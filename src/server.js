@@ -27,7 +27,7 @@ app.use(cors({
 
 app.use(express.json());
 
-const rootDir = process.cwd();
+const rootDir = path.join(process.cwd(), "agendamento-nails");;
 
 app.use(express.static(rootDir));
 
