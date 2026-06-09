@@ -1,4 +1,12 @@
 {
+  "name": "agenda-fashion",
+  "version": "1.0.0",
+  "description": "SaaS de agendamento",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node src/server.js"
+  },
   "dependencies": {
     "bcrypt": "^6.0.0",
     "cloudinary": "^2.10.0",
