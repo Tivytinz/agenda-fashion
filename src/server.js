@@ -5,6 +5,7 @@ const express = require("express");
 const cors = require("cors");
 
 const app = express();
+console.log("DATABASE_URL existe?", !!process.env.DATABASE_URL);
 
 const db = require("./db");
 
@@ -26,10 +27,12 @@ app.use(cors({
 
 app.use(express.json());
 
-app.use(express.static(path.join(__dirname, "../")));
+const rootDir = process.cwd();
+
+app.use(express.static(rootDir));
 
 app.get("/", (req, res) => {
-  res.sendFile(path.join(__dirname, "../html/inicio.html"));
+  res.sendFile(path.join(rootDir, "html", "inicio.html"));
 });
 
 app.use("/conta", contaRoutes);
