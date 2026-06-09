@@ -194,7 +194,7 @@ document.addEventListener("DOMContentLoaded", () => {
       btn.disabled = true;
       btn.classList.add("btn-disabled");
 
-      const resposta = await fetch("http://localhost:3000/cadastro", {
+      const resposta = await fetch("https://agenda-fashion-production.up.railway.app/cadastro", {
         method: "POST",
         headers: {
           "Content-Type": "application/json"

@@ -192,7 +192,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   // ===== CARREGAR AGENDAMENTOS =====
   async function carregarAgendamentos() {
     try {
-      const res = await fetch("http://localhost:3000/agendamentos", {
+      const res = await fetch("https://agenda-fashion-production.up.railway.app/agendamentos", {
         headers: {
           "Authorization": "Bearer " + token
         }
@@ -243,7 +243,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     try {
       mostrarLoading();
 
-      const res = await fetch("http://localhost:3000/agendamentos", {
+      const res = await fetch("https://agenda-fashion-production.up.railway.app/agendamentos", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

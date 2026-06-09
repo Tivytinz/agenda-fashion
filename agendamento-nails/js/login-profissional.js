@@ -159,7 +159,7 @@ document.addEventListener("DOMContentLoaded", () => {
       btn.disabled = true;
       btn.classList.add("btn-disabled");
 
-      const resposta = await fetch("http://localhost:3000/login", {
+      const resposta = await fetch("https://agenda-fashion-production.up.railway.app/login", {
         method: "POST",
         headers: {
           "Content-Type": "application/json"
@@ -183,7 +183,7 @@ document.addEventListener("DOMContentLoaded", () => {
       let negocio = null;
 
       try {
-        const respostaNegocio = await fetch("http://localhost:3000/meu-negocio", {
+        const respostaNegocio = await fetch("https://agenda-fashion-production.up.railway.app/meu-negocio", {
           headers: {
             Authorization: `Bearer ${resultado.token}`
           }
