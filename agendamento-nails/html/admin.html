@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>Admin da Plataforma</title>
+
+  <link rel="stylesheet" href="../css/global.css">
+  <link rel="stylesheet" href="../css/admin.css">
+</head>
+
+<body>
+
+  <main class="admin-page">
+
+    <header class="admin-header af-card">
+      <div class="admin-brand">
+        <div class="admin-icon">🛡️</div>
+
+        <div>
+          <h1>Admin da Plataforma</h1>
+          <p>Controle geral do Agenda Fashion</p>
+        </div>
+      </div>
+
+      <button id="btnSairAdmin" class="btn-sair-admin" type="button">
+        🚪 Sair
+      </button>
+    </header>
+
+    <section class="admin-hero af-card">
+      <div>
+        <span class="admin-badge">Visão geral</span>
+
+        <h2>Resumo da plataforma</h2>
+
+        <p>
+          Acompanhe negócios, usuários, profissionais, agendamentos,
+          crescimento e oportunidades de marketing.
+        </p>
+      </div>
+
+      <div class="admin-hero-emoji">💅</div>
+    </section>
+
+    <section class="admin-kpis">
+      <article class="admin-kpi af-card">
+        <span>🏢</span>
+        <strong id="totalNegocios">0</strong>
+        <small>Negócios cadastrados</small>
+      </article>
+
+      <article class="admin-kpi af-card">
+        <span>👤</span>
+        <strong id="totalClientes">0</strong>
+        <small>Clientes</small>
+      </article>
+
+      <article class="admin-kpi af-card">
+        <span>💅</span>
+        <strong id="totalProfissionais">0</strong>
+        <small>Profissionais</small>
+      </article>
+
+      <article class="admin-kpi af-card">
+        <span>📅</span>
+        <strong id="totalAgendamentos">0</strong>
+        <small>Agendamentos</small>
+      </article>
+
+      <article class="admin-kpi af-card">
+        <span>📈</span>
+        <strong id="usuariosHoje">0</strong>
+        <small>Usuários novos hoje</small>
+      </article>
+
+      <article class="admin-kpi af-card">
+        <span>🆕</span>
+        <strong id="negociosHoje">0</strong>
+        <small>Negócios novos hoje</small>
+      </article>
+
+      <article class="admin-kpi af-card">
+        <span>🔥</span>
+        <strong id="agendamentosHoje">0</strong>
+        <small>Agendamentos hoje</small>
+      </article>
+
+      <article class="admin-kpi af-card">
+        <span>🎯</span>
+        <strong id="taxaConversaoGeral">0%</strong>
+        <small>Conversão geral</small>
+      </article>
+    </section>
+
+    <section class="admin-marketing af-card">
+      <div class="bloco-topo">
+        <div>
+          <h2>Espaço do Marketing</h2>
+          <p>Métricas para entender crescimento, demanda e onde escalar.</p>
+        </div>
+      </div>
+
+      <div class="marketing-grid">
+        <div class="marketing-card">
+          <span>👀</span>
+          <strong id="visitasPlataforma">0</strong>
+          <small>Visitas na plataforma</small>
+        </div>
+
+        <div class="marketing-card">
+          <span>📲</span>
+          <strong id="cliquesWhatsapp">0</strong>
+          <small>Cliques WhatsApp</small>
+        </div>
+
+        <div class="marketing-card">
+          <span>📍</span>
+          <strong id="cliquesMaps">0</strong>
+          <small>Cliques Maps</small>
+        </div>
+
+        <div class="marketing-card">
+          <span>❤️</span>
+          <strong id="favoritosTotais">0</strong>
+          <small>Favoritos</small>
+        </div>
+
+        <div class="marketing-card">
+          <span>🏙️</span>
+          <strong id="cidadeTop">-</strong>
+          <small>Cidade com mais negócios</small>
+        </div>
+
+        <div class="marketing-card">
+          <span>💎</span>
+          <strong id="setorTop">-</strong>
+          <small>Setor mais forte</small>
+        </div>
+      </div>
+    </section>
+
+    <section class="admin-grid">
+
+      <article class="admin-bloco af-card">
+        <div class="bloco-topo">
+          <div>
+            <h2>Negócios cadastrados</h2>
+            <p>Visualize e controle os negócios da plataforma.</p>
+          </div>
+        </div>
+
+        <div id="listaNegociosAdmin" class="lista-admin">
+          <div class="estado-vazio">Carregando negócios...</div>
+        </div>
+      </article>
+
+      <article class="admin-bloco af-card">
+        <div class="bloco-topo">
+          <div>
+            <h2>Últimos agendamentos</h2>
+            <p>Movimento recente da plataforma.</p>
+          </div>
+        </div>
+
+        <div id="listaAgendamentosAdmin" class="lista-admin">
+          <div class="estado-vazio">Carregando agendamentos...</div>
+        </div>
+      </article>
+
+    </section>
+
+    <section class="admin-grid">
+
+      <article class="admin-bloco af-card">
+        <div class="bloco-topo">
+          <div>
+            <h2>Negócios mais agendados</h2>
+            <p>Quem está gerando mais demanda.</p>
+          </div>
+        </div>
+
+        <div id="rankingNegociosAgendados" class="lista-admin">
+          <div class="estado-vazio">Carregando ranking...</div>
+        </div>
+      </article>
+
+      <article class="admin-bloco af-card">
+        <div class="bloco-topo">
+          <div>
+            <h2>Negócios mais vistos</h2>
+            <p>Perfis com maior interesse.</p>
+          </div>
+        </div>
+
+        <div id="rankingNegociosVistos" class="lista-admin">
+          <div class="estado-vazio">Carregando visualizações...</div>
+        </div>
+      </article>
+
+    </section>
+
+    <section class="admin-grid">
+
+      <article class="admin-bloco af-card">
+        <div class="bloco-topo">
+          <div>
+            <h2>Cidades com mais negócios</h2>
+            <p>Onde a plataforma está crescendo.</p>
+          </div>
+        </div>
+
+        <div id="rankingCidades" class="lista-admin">
+          <div class="estado-vazio">Carregando cidades...</div>
+        </div>
+      </article>
+
+      <article class="admin-bloco af-card">
+        <div class="bloco-topo">
+          <div>
+            <h2>Usuários recentes</h2>
+            <p>Novos clientes, donos e profissionais.</p>
+          </div>
+        </div>
+
+        <div id="listaUsuariosRecentes" class="lista-admin">
+          <div class="estado-vazio">Carregando usuários...</div>
+        </div>
+      </article>
+
+    </section>
+
+    <section class="admin-saude af-card">
+      <div class="bloco-topo">
+        <div>
+          <h2>Saúde do SaaS</h2>
+          <p>Problemas e oportunidades que precisam de atenção.</p>
+        </div>
+      </div>
+
+      <div class="saude-grid">
+        <div class="saude-card alerta">
+          <span>⚠️</span>
+          <strong id="negociosSemServico">0</strong>
+          <small>Negócios sem serviço</small>
+        </div>
+
+        <div class="saude-card alerta">
+          <span>📍</span>
+          <strong id="negociosSemMaps">0</strong>
+          <small>Negócios sem Maps</small>
+        </div>
+
+        <div class="saude-card alerta">
+          <span>📞</span>
+          <strong id="negociosSemWhatsapp">0</strong>
+          <small>Negócios sem WhatsApp</small>
+        </div>
+
+        <div class="saude-card ok">
+          <span>✅</span>
+          <strong id="negociosCompletos">0</strong>
+          <small>Perfis completos</small>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <script src="../js/admin.js"></script>
+
+</body>
+</html>

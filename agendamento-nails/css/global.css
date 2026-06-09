@@ -1,0 +1,288 @@
+:root {
+  --rosa-principal: #ff4fa3;
+  --rosa-medio: #f3b0d7;
+  --roxo-suave: #e5b8ff;
+  --rosa-texto: #d96fb0;
+
+  --fundo: #fff1f8;
+  --fundo-2: #f6f7fb;
+  --card: #fffdfb;
+
+  --texto: #2f2a3a;
+  --texto-suave: #7e768f;
+
+  --borda: #f0e6f4;
+
+  --sombra-card: 0 18px 45px rgba(0, 0, 0, 0.07);
+  --sombra-rosa: 0 22px 50px rgba(217, 111, 176, 0.28);
+
+  --radius-xl: 32px;
+  --radius-lg: 26px;
+  --radius-md: 18px;
+
+  --gradiente-marca: linear-gradient(135deg, #ff4fa3, #f3b0d7, #e5b8ff);
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: "Segoe UI", sans-serif;
+}
+
+body {
+  min-height: 100vh;
+  background: linear-gradient(135deg, var(--fundo), var(--fundo-2));
+  color: var(--texto);
+}
+
+button,
+input,
+textarea,
+select {
+  font-family: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+/* MARCA */
+.af-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.af-brand-icon {
+  width: 52px;
+  height: 52px;
+  border-radius: 18px;
+  background: var(--gradiente-marca);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 27px;
+  box-shadow: 0 12px 28px rgba(255, 79, 163, 0.3);
+}
+
+.af-brand-title {
+  font-size: 26px;
+  font-weight: 950;
+  color: var(--rosa-principal);
+  text-transform: uppercase;
+  letter-spacing: -0.5px;
+  text-shadow:
+    0 3px 0 rgba(255, 255, 255, 0.9),
+    0 8px 18px rgba(217, 111, 176, 0.18);
+}
+
+.af-brand-subtitle {
+  font-size: 12px;
+  color: var(--texto-suave);
+  margin-top: 2px;
+}
+
+/* HERO PADRÃO */
+.af-hero {
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--radius-xl);
+  padding: 34px 22px;
+  background: var(--gradiente-marca);
+  color: white;
+  box-shadow: var(--sombra-rosa);
+}
+
+.af-hero::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at top right, rgba(255,255,255,0.35), transparent 35%),
+    radial-gradient(circle at bottom left, rgba(255,255,255,0.25), transparent 40%);
+}
+
+.af-hero-emoji {
+  position: absolute;
+  right: 28px;
+  top: 10px;
+  font-size: 110px;
+  opacity: 0.16;
+  transform: rotate(-12deg);
+}
+
+.af-hero-content {
+  position: relative;
+  z-index: 2;
+}
+
+.af-badge {
+  display: inline-block;
+  background: rgba(255,255,255,0.24);
+  border: 1px solid rgba(255,255,255,0.35);
+  padding: 7px 13px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 900;
+  margin-bottom: 14px;
+  backdrop-filter: blur(8px);
+}
+
+.af-hero-title {
+  font-size: 34px;
+  line-height: 1.05;
+  font-weight: 950;
+  margin-bottom: 12px;
+  max-width: 650px;
+}
+
+.af-hero-text {
+  font-size: 15px;
+  opacity: 0.94;
+  max-width: 540px;
+}
+
+/* CARD */
+.af-card {
+  background: var(--card);
+  border: 1px solid var(--borda);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--sombra-card);
+}
+
+/* BOTÕES */
+.af-btn-primary {
+  border: none;
+  border-radius: 16px;
+  padding: 14px 18px;
+  background: var(--gradiente-marca);
+  color: white;
+  font-size: 15px;
+  font-weight: 900;
+  transition: 0.24s ease;
+}
+
+.af-btn-primary:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 10px 25px rgba(243, 176, 215, 0.3);
+}
+
+.af-btn-secondary {
+  border: 1px solid var(--borda);
+  border-radius: 16px;
+  padding: 12px 16px;
+  background: var(--card);
+  color: var(--texto-suave);
+  font-weight: 900;
+}
+
+.af-btn-danger {
+  background: #fffdfb;
+  color: #e63946;
+  border: 1px solid #ffd6dc;
+  border-radius: 16px;
+  padding: 11px 14px;
+  font-size: 13px;
+  font-weight: 900;
+  box-shadow: 0 8px 20px rgba(230, 57, 70, 0.08);
+}
+
+/* FORM */
+.af-input {
+  width: 100%;
+  padding: 14px;
+  border-radius: 14px;
+  border: 1.5px solid #e7e2ee;
+  background: #faf8fc;
+  font-size: 14px;
+  outline: none;
+  transition: 0.25s ease;
+}
+
+.af-input:focus {
+  border-color: var(--rosa-medio);
+  background: #fff;
+  box-shadow: 0 0 0 4px rgba(243, 176, 215, 0.18);
+}
+
+.input-error {
+  border-color: #e63946 !important;
+  box-shadow: 0 0 0 4px rgba(230, 57, 70, 0.12) !important;
+}
+
+.shake {
+  animation: tremer 0.3s;
+}
+
+@keyframes tremer {
+  0% { transform: translateX(0); }
+  25% { transform: translateX(-5px); }
+  50% { transform: translateX(5px); }
+  75% { transform: translateX(-3px); }
+  100% { transform: translateX(0); }
+}
+
+/* ESTADOS */
+.hidden {
+  display: none !important;
+}
+
+.btn-disabled {
+  background: #cccccc !important;
+  color: #7b7b7b !important;
+  cursor: not-allowed !important;
+  box-shadow: none !important;
+  transform: none !important;
+}
+
+.btn-success {
+  background: linear-gradient(135deg, #57c785, #3bb273) !important;
+}
+
+.btn-error {
+  background: linear-gradient(135deg, #ff6b6b, #e63946) !important;
+}
+
+.spinner-emoji {
+  display: inline-block;
+  animation: girar 1s linear infinite;
+  margin-right: 6px;
+}
+
+@keyframes girar {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* RESPONSIVO */
+@media (max-width: 720px) {
+  .af-brand-icon {
+    width: 46px;
+    height: 46px;
+    font-size: 24px;
+  }
+
+  .af-brand-title {
+    font-size: 21px;
+  }
+
+  .af-brand-subtitle {
+    font-size: 11px;
+  }
+
+  .af-hero {
+    padding: 28px 18px;
+  }
+
+  .af-hero-title {
+    font-size: 27px;
+  }
+
+  .af-hero-emoji {
+    font-size: 86px;
+    right: 14px;
+    top: 18px;
+  }
+}

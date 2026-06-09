@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>Agendar Horário</title>
+
+  <link rel="stylesheet" href="../css/global.css">
+  <link rel="stylesheet" href="../css/navegacao.css">
+  <link rel="stylesheet" href="../css/agenda-publica-profissional.css">
+</head>
+
+<body>
+
+  <main class="agenda-publica-page">
+
+    <header class="agenda-publica-header af-card">
+      <div class="af-brand">
+        <div class="af-brand-icon">💅</div>
+
+        <div>
+          <div id="nomeNegocio" class="af-brand-title">
+            Agenda Fashion
+          </div>
+
+          <div id="nomeProfissional" class="af-brand-subtitle">
+            Escolha seu horário
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <section class="af-hero agenda-publica-hero">
+      <div class="af-hero-emoji">💅</div>
+
+      <div class="af-hero-content">
+        <span class="af-badge">Agendamento rápido</span>
+
+        <h1 class="af-hero-title">
+          Escolha o melhor horário para você
+        </h1>
+
+        <p id="resumoServico" class="af-hero-text">
+          Carregando serviço...
+        </p>
+      </div>
+    </section>
+
+    <section class="dias-scroll" id="diasScroll"></section>
+
+    <section id="listaHorarios" class="lista-horarios">
+      <div class="estado-vazio">
+        Carregando horários...
+      </div>
+    </section>
+
+  </main>
+
+  <div id="modalConfirmarAgendamento" class="modal-agendamento hidden">
+    <div class="modal-box">
+      <div class="modal-topo">
+        <h2>Confirmar agendamento</h2>
+
+        <button id="btnFecharModalAgendamento" class="btn-fechar" type="button">
+          ✕
+        </button>
+      </div>
+
+      <p id="resumoAgendamento" class="resumo-agendamento">
+        Confira os dados antes de confirmar.
+      </p>
+
+      <div class="campo-form">
+        <label for="nomeCliente">Seu nome</label>
+        <input
+          id="nomeCliente"
+          type="text"
+          placeholder="Digite seu nome"
+          autocomplete="name"
+        >
+      </div>
+
+      <div class="campo-form">
+        <label for="whatsappCliente">Seu WhatsApp</label>
+        <input
+          id="whatsappCliente"
+          type="tel"
+          placeholder="Ex: 62999999999"
+          autocomplete="tel"
+        >
+      </div>
+
+      <p id="mensagemAgendamento" class="mensagem-form hidden"></p>
+
+      <div class="modal-acoes">
+        <button id="btnCancelarAgendamento" type="button" class="btn-secundario">
+          Cancelar
+        </button>
+
+        <button id="btnConfirmarAgendamento" type="button" class="btn-primario">
+          Confirmar
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <nav id="appNav" class="app-bottom-nav"></nav>
+
+  <script src="../js/agenda-publica-profissional.js"></script>
+  <script src="../js/navegacao.js"></script>
+
+</body>
+</html>

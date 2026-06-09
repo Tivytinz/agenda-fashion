@@ -1,0 +1,84 @@
+.perfil-dono-page {
+  max-width: 560px;
+  margin: 0 auto;
+  padding: 20px;
+  padding-bottom: 110px;
+}
+
+.perfil-card {
+  padding: 28px;
+  text-align: center;
+}
+
+.perfil-avatar {
+  width: 82px;
+  height: 82px;
+  border-radius: 28px;
+  background: var(--gradiente-marca);
+  color: white;
+  display: grid;
+  place-items: center;
+  font-size: 38px;
+  margin: 0 auto 16px;
+}
+
+.perfil-card h1 {
+  font-size: 28px;
+  font-weight: 950;
+  color: var(--texto);
+  margin-bottom: 6px;
+}
+
+.perfil-card p {
+  color: var(--texto-suave);
+  font-weight: 700;
+  margin-bottom: 22px;
+}
+
+.info-lista {
+  display: grid;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.info-lista div {
+  border: 1px solid var(--borda);
+  background: white;
+  border-radius: 18px;
+  padding: 14px;
+  text-align: left;
+}
+
+.info-lista span {
+  display: block;
+  font-size: 12px;
+  color: var(--texto-suave);
+  font-weight: 800;
+  margin-bottom: 4px;
+}
+
+.info-lista strong {
+  font-size: 15px;
+  color: var(--texto);
+}
+
+.btn-secundario,
+.btn-sair {
+  width: 100%;
+  border: none;
+  border-radius: 18px;
+  padding: 15px;
+  font-weight: 950;
+  cursor: pointer;
+  margin-top: 10px;
+}
+
+.btn-secundario {
+  background: #f6ecfb;
+  color: #8a5bb0;
+}
+
+.btn-sair {
+  background: #ffe8e8;
+  color: #e63946;
+}

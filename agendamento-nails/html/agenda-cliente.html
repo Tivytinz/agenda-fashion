@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Agenda - Cliente</title>
+
+  <!-- CSS -->
+  <link rel="stylesheet" href="../css/agenda-cliente.css">
+  <link rel="stylesheet" href="../css/navegacao.css">
+</head>
+<body>
+
+  <!-- LOADING -->
+  <div id="loadingScreen" class="loading hidden">
+    <div class="loader-box">
+      💅
+      <p>Carregando agenda...</p>
+    </div>
+  </div>
+
+  <!-- CONTAINER PRINCIPAL -->
+  <div class="container">
+
+    <!-- CARD -->
+    <div class="card-agenda">
+
+      <h2>Agendar Horário 💅</h2>
+
+      <!-- DIAS -->
+      <p class="titulo">Escolha o dia</p>
+
+      <div class="dias-container">
+        <button class="scroll-btn" id="prevDia">◀</button>
+
+        <div id="dias" class="dias"></div>
+
+        <button class="scroll-btn" id="nextDia">▶</button>
+      </div>
+
+      <!-- HORÁRIOS -->
+      <p class="titulo">Horários disponíveis</p>
+
+      <div class="horarios-container">
+        <button class="scroll-btn" id="prevHora">◀</button>
+
+        <div id="horarios" class="horarios"></div>
+
+        <button class="scroll-btn" id="nextHora">▶</button>
+      </div>
+
+      <!-- BOTÃO -->
+      <button id="btnAgendar" class="btn-agendar">
+        Confirmar Agendamento
+      </button>
+
+    </div>
+
+    <!-- AGENDAMENTOS -->
+    <div class="meus-agendamentos">
+      <h3>Meus agendamentos</h3>
+
+      <div id="listaAgendamentos"></div>
+    </div>
+
+  </div>
+
+  <!-- POPUP -->
+  <div id="popupSucesso" class="popup hidden">
+    <div class="popup-box">
+      <p>✅ Agendamento confirmado!</p>
+      <button onclick="fecharPopup()">OK</button>
+    </div>
+  </div>
+
+  <!-- JS -->
+  <script src="../js/agenda-cliente.js"></script>
+
+  <nav id="appNav" class="app-bottom-nav"></nav>
+  <script src="../js/navegacao.js"></script>
+
+</body>
+</html>

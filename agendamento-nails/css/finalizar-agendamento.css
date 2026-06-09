@@ -1,0 +1,55 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: "Segoe UI", sans-serif;
+}
+
+body {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #f6f7fb, #e9ecf5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 20px;
+}
+
+.finalizar-container {
+  width: 100%;
+  max-width: 420px;
+}
+
+.finalizar-card {
+  background: #fffdfb;
+  border-radius: 26px;
+  padding: 34px 28px;
+  box-shadow: 0 18px 45px rgba(0, 0, 0, 0.08);
+  text-align: center;
+}
+
+.finalizar-icon {
+  font-size: 44px;
+  margin-bottom: 12px;
+  animation: pulse 1s infinite alternate;
+}
+
+.finalizar-card h1 {
+  font-size: 24px;
+  color: #2f2a3a;
+  margin-bottom: 8px;
+}
+
+.finalizar-card p {
+  color: #7e768f;
+  font-size: 14px;
+}
+
+@keyframes pulse {
+  from {
+    transform: scale(1);
+  }
+
+  to {
+    transform: scale(1.08);
+  }
+}

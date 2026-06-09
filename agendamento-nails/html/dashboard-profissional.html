@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Dashboard Profissional</title>
+  <link rel="stylesheet" href="../css/dashboard-profissional.css">
+  <link rel="stylesheet" href="../css/navegacao.css">
+</head>
+
+<body>
+
+<header class="topo">
+  <div class="logo" id="btnHome">💅</div>
+
+  <div class="topo-acoes">
+    <button id="btnAgenda">Agenda</button>
+    <button id="btnAgendamentos">Agendamentos</button>
+    <button id="btnSair">Sair</button>
+  </div>
+</header>
+
+<main class="container">
+
+  <h1>Dashboard</h1>
+
+  <!-- CARDS -->
+  <section class="cards">
+    <div class="card">
+      <span>Total Agendados</span>
+      <strong id="totalAgendados">0</strong>
+    </div>
+
+    <div class="card">
+      <span>Hoje</span>
+      <strong id="agendadosHoje">0</strong>
+    </div>
+
+    <div class="card">
+      <span>Clientes</span>
+      <strong id="clientes">0</strong>
+    </div>
+
+    <div class="card">
+      <span>Faturamento</span>
+      <strong id="faturamento">R$ 0</strong>
+    </div>
+  </section>
+
+  <!-- SERVIÇOS -->
+  <section class="servicos">
+    <h2>Serviços mais vendidos</h2>
+    <div id="listaServicos"></div>
+  </section>
+
+</main>
+
+<script src="../js/dashboard-profissional.js"></script>
+
+  <nav id="appNav" class="app-bottom-nav"></nav>
+  <script src="../js/navegacao.js"></script>
+
+</body>
+</html>

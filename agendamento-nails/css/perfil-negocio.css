@@ -1,0 +1,465 @@
+.perfil-page{
+  max-width:1200px;
+  margin:auto;
+  padding:20px 20px 120px;
+}
+
+.perfil-header{
+  margin-bottom:20px;
+}
+
+/* HERO */
+
+.perfil-card-principal{
+  overflow:hidden;
+}
+
+.perfil-capa{
+  height:220px;
+  background:var(--gradiente-marca);
+  position:relative;
+}
+
+.perfil-conteudo{
+  display:flex;
+  gap:24px;
+  padding:0 24px 24px;
+}
+
+.foto-area{
+  position:relative;
+  margin-top:-80px;
+}
+
+.foto-negocio{
+  width:170px;
+  height:170px;
+  border-radius:28px;
+  object-fit:cover;
+  background:white;
+  border:6px solid white;
+  box-shadow:var(--sombra-card);
+}
+
+.edit-btn{
+  position:absolute;
+  right:0;
+  bottom:0;
+  width:42px;
+  height:42px;
+  border:none;
+  border-radius:50%;
+  background:white;
+  font-size:18px;
+  box-shadow:var(--sombra-card);
+}
+
+.perfil-dados{
+  flex:1;
+  padding-top:20px;
+}
+
+.linha-editavel{
+  display:flex;
+  align-items:center;
+  gap:10px;
+}
+
+.linha-editavel h1{
+  font-size:42px;
+  font-weight:900;
+}
+
+.edit-icon{
+  border:none;
+  background:white;
+  border-radius:50%;
+  width:34px;
+  height:34px;
+  box-shadow:var(--sombra-card);
+}
+
+.linha-principal{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  margin-top:12px;
+  flex-wrap:wrap;
+}
+
+.linha-destaque{
+  background:#fff0f7;
+  color:var(--rosa-principal);
+  padding:10px 14px;
+  border-radius:999px;
+  font-weight:800;
+}
+
+.linha-distancia{
+  background:#eefaf2;
+  color:#34a853;
+  padding:10px 14px;
+  border-radius:999px;
+}
+
+.bio-box{
+  margin-top:18px;
+}
+
+.descricao-negocio{
+  font-size:16px;
+  color:var(--texto-suave);
+}
+
+/* AÇÕES */
+
+.perfil-acoes{
+  display:flex;
+  flex-wrap:wrap;
+  gap:12px;
+  margin-top:20px;
+}
+
+.contato-item{
+  display:flex;
+  align-items:center;
+  gap:8px;
+}
+
+.svg-icon{
+  width:22px;
+  height:22px;
+}
+
+.app-action{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  text-decoration:none;
+  background:white;
+  border:1px solid var(--borda);
+  padding:12px 16px;
+  border-radius:16px;
+  color:var(--texto);
+  font-weight:700;
+}
+
+.app-action:hover{
+  transform:translateY(-2px);
+}
+
+.edit-mini{
+  width:34px;
+  height:34px;
+  border:none;
+  border-radius:50%;
+  background:white;
+  box-shadow:var(--sombra-card);
+}
+
+.favorito{
+  color:#e63946;
+}
+
+/* ÁREAS */
+
+.areas-wrapper{
+  border-top:1px solid var(--borda);
+  padding:20px 24px;
+}
+
+.areas-topo{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+}
+
+.areas-negocio{
+  display:flex;
+  flex-wrap:wrap;
+  gap:10px;
+  margin-top:15px;
+}
+
+.area-tag{
+  background:#fff0f7;
+  color:var(--rosa-principal);
+  padding:10px 14px;
+  border-radius:999px;
+  font-weight:800;
+}
+
+/* MODO DONO */
+
+.painel-dono{
+  margin-top:20px;
+  padding:24px;
+  display:flex;
+  justify-content:space-between;
+  gap:20px;
+  align-items:center;
+}
+
+.painel-dono-acoes{
+  display:flex;
+  gap:10px;
+  flex-wrap:wrap;
+}
+
+/* SEÇÕES */
+
+.perfil-section{
+  margin-top:25px;
+}
+
+.section-title-row{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  margin-bottom:15px;
+}
+
+.cards-servicos,
+.cards-profissionais{
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(260px,1fr));
+  gap:16px;
+}
+
+.item-selecao{
+  background:white;
+  border:1px solid var(--borda);
+  border-radius:20px;
+  padding:18px;
+  cursor:pointer;
+  box-shadow:var(--sombra-card);
+}
+
+.item-selecao.ativo{
+  border:2px solid var(--rosa-principal);
+}
+
+.estado-vazio{
+  padding:30px;
+  text-align:center;
+  color:var(--texto-suave);
+  background:white;
+  border-radius:20px;
+}
+
+/* RESUMO */
+
+.resumo-agendamento{
+  margin-top:25px;
+  padding:24px;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+}
+
+.resumo-info{
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+}
+
+/* MODAL */
+
+.modal-overlay{
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,.4);
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  z-index:999;
+}
+
+.modal-card{
+  width:100%;
+  max-width:600px;
+  padding:24px;
+}
+
+.modal-topo{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+}
+
+.modal-close{
+  border:none;
+  background:none;
+  font-size:22px;
+}
+
+.modal-conteudo{
+  margin:20px 0;
+}
+
+.modal-acoes{
+  display:flex;
+  justify-content:flex-end;
+  gap:10px;
+}
+
+/* RESPONSIVO */
+
+@media(max-width:768px){
+
+  .perfil-conteudo{
+    flex-direction:column;
+  }
+
+  .foto-area{
+    margin-top:-70px;
+  }
+
+  .foto-negocio{
+    width:140px;
+    height:140px;
+  }
+
+  .linha-editavel h1{
+    font-size:30px;
+  }
+
+  .section-title-row{
+    flex-direction:column;
+    align-items:flex-start;
+    gap:10px;
+  }
+
+  .painel-dono{
+    flex-direction:column;
+    align-items:flex-start;
+  }
+
+  .resumo-agendamento{
+    flex-direction:column;
+    gap:20px;
+  }
+}
+.etapas {
+  display: flex;
+  gap: 10px;
+  margin: 24px 0;
+}
+
+.etapa {
+  flex: 1;
+  padding: 12px;
+  border-radius: 999px;
+  background: #fff;
+  border: 1px solid var(--borda);
+  text-align: center;
+  font-weight: 900;
+  color: var(--texto-suave);
+}
+
+.etapa.ativa {
+  background: var(--gradiente-marca);
+  color: white;
+  box-shadow: var(--sombra-rosa);
+}
+
+.servico-foto {
+  width: 100%;
+  height: 135px;
+  border-radius: 18px;
+  object-fit: cover;
+  background: #fff0f7;
+  margin-bottom: 12px;
+}
+
+.horarios-box {
+  margin-top: 18px;
+  padding: 20px;
+}
+
+.horarios-box h3 {
+  margin-bottom: 14px;
+}
+
+.horarios-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.horario-btn {
+  border: 1px solid var(--borda);
+  background: #fff;
+  padding: 12px 16px;
+  border-radius: 14px;
+  font-weight: 900;
+}
+
+.horario-btn.ativo {
+  background: var(--gradiente-marca);
+  color: white;
+  border-color: transparent;
+}
+
+@media (max-width: 768px) {
+  .etapas {
+    flex-direction: column;
+  }
+}
+.profissional-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.profissional-foto {
+  width: 64px;
+  height: 64px;
+  border-radius: 18px;
+  object-fit: cover;
+  background: #fff0f7;
+  flex-shrink: 0;
+}
+
+.profissional-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.profissional-info span {
+  color: var(--texto-suave);
+  font-size: 14px;
+}
+
+.dias-grid {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 18px;
+}
+
+.dia-btn {
+  border: 1px solid var(--borda);
+  background: white;
+  padding: 12px 16px;
+  border-radius: 999px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.dia-btn.ativo {
+  background: var(--gradiente-marca);
+  color: white;
+  border-color: transparent;
+}
+
+.horarios-dia-box h4 {
+  margin-bottom: 12px;
+}
+
+.horarios-wrap {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}

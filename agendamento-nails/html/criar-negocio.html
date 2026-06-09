@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Criar Negócio</title>
+  <link rel="stylesheet" href="../css/criar-negocio.css">
+</head>
+<body class="page-enter">
+
+  <div class="auth-container">
+
+    <div class="auth-icon">🏢</div>
+
+    <h2>Criar meu negócio</h2>
+    <p class="auth-subtitle">
+      Cadastre seu negócio para começar a usar a agenda
+    </p>
+
+    <form class="auth-form" onsubmit="return false;">
+
+      <div class="input-group">
+        <label for="nomeNegocio">Nome do negócio</label>
+        <input type="text" id="nomeNegocio" placeholder="Ex: Studio Bella">
+      </div>
+
+      <p id="mensagemCriarNegocio" class="mensagem-form hidden"></p>
+
+      <button id="btnCriarNegocio" type="button">
+        Criar negócio
+      </button>
+
+    </form>
+
+    <p class="auth-footer">
+      Voltar?
+      <a href="escolher-negocio.html" id="linkVoltarEscolha">Escolher negócio</a>
+    </p>
+
+  </div>
+
+  <script src="../js/criar-negocio.js"></script>
+</body>
+</html>

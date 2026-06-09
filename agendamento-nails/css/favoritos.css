@@ -1,0 +1,74 @@
+.favoritos-page {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 20px;
+  padding-bottom: 90px;
+}
+
+.favoritos-header {
+  margin-bottom: 20px;
+}
+
+.favoritos-section {
+  margin-top: 20px;
+}
+
+/* GRID */
+.grid-favoritos {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  gap: 16px;
+}
+
+/* CARD */
+.card-favorito {
+  padding: 14px;
+  transition: 0.25s ease;
+  cursor: pointer;
+}
+
+.card-favorito:hover {
+  transform: translateY(-4px);
+}
+
+/* IMG */
+.card-favorito img {
+  width: 100%;
+  height: 140px;
+  border-radius: 18px;
+  object-fit: cover;
+  margin-bottom: 10px;
+}
+
+/* TEXT */
+.card-favorito h3 {
+  font-size: 16px;
+  font-weight: 900;
+  margin-bottom: 4px;
+}
+
+.card-favorito span {
+  font-size: 13px;
+  color: var(--texto-suave);
+}
+
+/* BOTÃO */
+.btn-remover {
+  margin-top: 10px;
+  width: 100%;
+  border: none;
+  border-radius: 14px;
+  padding: 10px;
+  background: #ffe3ec;
+  color: #d6336c;
+  font-weight: 800;
+}
+
+/* VAZIO */
+.estado-vazio {
+  text-align: center;
+  padding: 30px;
+  border-radius: 20px;
+  border: 1px dashed var(--borda);
+  color: var(--texto-suave);
+}

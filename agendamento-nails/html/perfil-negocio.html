@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>Perfil do Negócio</title>
+
+  <link rel="stylesheet" href="../css/global.css">
+  <link rel="stylesheet" href="../css/navegacao.css">
+  <link rel="stylesheet" href="../css/perfil-negocio.css">
+</head>
+
+<body>
+
+  <main class="perfil-page">
+
+    <header class="perfil-header">
+      <div class="af-brand">
+        <div class="af-brand-icon">💅</div>
+
+        <div>
+          <div class="af-brand-title">Agenda Fashion</div>
+          <div class="af-brand-subtitle">Perfil público</div>
+        </div>
+      </div>
+    </header>
+
+    <section class="perfil-card-principal af-card">
+
+      <div class="perfil-capa">
+        <span class="af-badge">Perfil público</span>
+      </div>
+
+      <div class="perfil-conteudo">
+
+        <div class="foto-area">
+          <img
+            id="fotoNegocio"
+            class="foto-negocio"
+            alt="Foto do negócio"
+          >
+
+          <button
+            class="edit-btn dono-only hidden"
+            data-edit="foto"
+            title="Alterar foto"
+          >
+            📷
+          </button>
+        </div>
+
+        <div class="perfil-dados">
+
+          <div class="linha-editavel">
+            <h1 id="nomeNegocio">Carregando...</h1>
+
+            <button
+              class="edit-icon dono-only hidden"
+              data-edit="nome"
+              title="Editar nome"
+            >
+              ✏️
+            </button>
+          </div>
+
+          <div class="linha-principal">
+            <span
+              id="cidadeBairroNegocio"
+              class="linha-destaque"
+            ></span>
+
+            <button
+              class="edit-icon dono-only hidden"
+              data-edit="local"
+              title="Editar cidade e bairro"
+            >
+              ✏️
+            </button>
+
+            <span
+              id="distanciaNegocio"
+              class="linha-distancia hidden"
+            ></span>
+          </div>
+
+          <div class="linha-editavel bio-box">
+            <p
+              id="descricaoNegocio"
+              class="descricao-negocio"
+            ></p>
+
+            <button
+              class="edit-icon dono-only hidden"
+              data-edit="bio"
+              title="Editar bio"
+            >
+              ✏️
+            </button>
+          </div>
+
+          <div class="perfil-acoes">
+
+            <div class="contato-item">
+              <a
+                id="btnWhatsapp"
+                class="app-action whatsapp hidden"
+                target="_blank"
+              >
+                <img
+                  class="svg-icon"
+                  src="/public/img/icons/whatsapp.svg"
+                  alt="WhatsApp"
+                >
+
+                <span>WhatsApp</span>
+              </a>
+
+              <button
+                class="edit-mini dono-only hidden"
+                data-edit="whatsapp"
+                title="Editar WhatsApp"
+              >
+                ✏️
+              </button>
+            </div>
+
+            <div class="contato-item">
+              <a
+                id="btnMaps"
+                class="app-action maps hidden"
+                target="_blank"
+              >
+                <img
+                  class="svg-icon"
+                  src="/public/img/icons/maps.svg"
+                  alt="Maps"
+                >
+
+                <span>Maps</span>
+              </a>
+
+              <button
+                class="edit-mini dono-only hidden"
+                data-edit="maps"
+                title="Editar Maps"
+              >
+                ✏️
+              </button>
+            </div>
+
+            <button
+              id="btnFavorito"
+              class="app-action favorito"
+            >
+              ♡ Favoritar
+            </button>
+
+          </div>
+
+        </div>
+
+      </div>
+
+      <div class="areas-wrapper">
+        <div class="areas-topo">
+          <strong>Áreas atendidas</strong>
+
+          <button
+            class="edit-mini dono-only hidden"
+            data-edit="areas"
+          >
+            Editar
+          </button>
+        </div>
+
+        <div
+          id="areasNegocio"
+          class="areas-negocio"
+        ></div>
+      </div>
+
+    </section>
+
+    <section
+      id="painelDonoPerfil"
+      class="painel-dono af-card dono-only hidden"
+    >
+      <div>
+        <span class="af-badge badge-soft">Modo dono</span>
+
+        <h2>Gerencie seu perfil</h2>
+
+        <p>
+          Edite dados, serviços e profissionais sem sair do perfil público.
+        </p>
+      </div>
+
+      <div class="painel-dono-acoes">
+        <button
+          class="af-btn-primary"
+          data-action="novo-servico"
+        >
+          + Serviço
+        </button>
+
+        <button
+          class="af-btn-secondary"
+          data-action="novo-profissional"
+        >
+          + Profissional
+        </button>
+
+        <button
+          id="btnCopiarAgenda"
+          class="af-btn-secondary"
+        >
+          Copiar link
+        </button>
+      </div>
+    </section>
+
+    <section class="fluxo-agendamento">
+
+  <div class="etapas">
+    <div id="etapaServico" class="etapa ativa">1 Serviço</div>
+    <div id="etapaHorario" class="etapa">2 Horário</div>
+  </div>
+
+  <section id="boxServicos" class="perfil-section">
+    <div class="section-title-row">
+      <div>
+        <span class="af-badge badge-soft">Etapa 1</span>
+        <h2>Escolha o serviço</h2>
+        <p>Selecione o atendimento que deseja agendar.</p>
+      </div>
+
+      <button class="af-btn-primary dono-only hidden" data-action="novo-servico">
+        + Novo serviço
+      </button>
+    </div>
+
+    <div id="listaServicos" class="cards-servicos"></div>
+  </section>
+
+  <section id="boxProfissionaisHorarios" class="perfil-section hidden">
+    <div class="section-title-row">
+      <div>
+        <span class="af-badge badge-soft">Etapa 2</span>
+        <h2>Escolha profissional e horário</h2>
+        <p>Ao escolher o profissional, os horários aparecem automaticamente.</p>
+      </div>
+
+      <button class="af-btn-primary dono-only hidden" data-action="novo-profissional">
+        + Profissional
+      </button>
+    </div>
+
+    <div id="listaProfissionais" class="cards-profissionais"></div>
+
+    <div class="horarios-box af-card">
+      <h3>Horários disponíveis</h3>
+      <div id="listaHorariosDisponiveis" class="horarios-grid">
+        <div class="estado-vazio">Escolha um profissional para ver os horários.</div>
+      </div>
+    </div>
+  </section>
+
+  <section class="resumo-agendamento af-card">
+    <div class="resumo-info">
+      <strong>Resumo do agendamento</strong>
+      <span id="resumoServico">Serviço: nenhum</span>
+      <span id="resumoProfissional">Profissional: nenhum</span>
+      <span id="resumoHorario">Horário: nenhum</span>
+    </div>
+
+    <button id="btnContinuarAgendamento" class="af-btn-primary btn-disabled" disabled>
+      Confirmar agendamento
+    </button>
+  </section>
+
+</section>
+
+  </main>
+
+  <div
+    id="modalPerfil"
+    class="modal-overlay hidden"
+  >
+    <div class="modal-card af-card">
+
+      <div class="modal-topo">
+        <div>
+          <span class="af-badge badge-soft">Editar</span>
+
+          <h2 id="modalTitulo">Editar perfil</h2>
+        </div>
+
+        <button
+          id="btnFecharModal"
+          class="modal-close"
+        >
+          ✕
+        </button>
+      </div>
+
+      <div
+        id="modalConteudo"
+        class="modal-conteudo"
+      ></div>
+
+      <div class="modal-acoes">
+        <button
+          id="btnCancelarModal"
+          class="af-btn-secondary"
+        >
+          Cancelar
+        </button>
+
+        <button
+          id="btnSalvarModal"
+          class="af-btn-primary"
+        >
+          Salvar
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <nav
+    id="appNav"
+    class="app-bottom-nav"
+  ></nav>
+
+  <script src="../js/perfil-negocio.js"></script>
+  <script src="../js/navegacao.js"></script>
+
+</body>
+</html>

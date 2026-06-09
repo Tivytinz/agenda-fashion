@@ -1,0 +1,41 @@
+body {
+  padding-bottom: 86px;
+}
+
+.app-bottom-nav {
+  position: fixed;
+  left: 50%;
+  bottom: 14px;
+  transform: translateX(-50%);
+  width: calc(100% - 28px);
+  max-width: 560px;
+  height: 64px;
+  background: #fffdfb;
+  border: 1px solid #f0e6f4;
+  border-radius: 24px;
+  box-shadow: 0 14px 35px rgba(0,0,0,0.12);
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+  z-index: 999;
+}
+
+.app-bottom-nav a {
+  text-decoration: none;
+  color: #7e768f;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  font-weight: 800;
+}
+
+.app-bottom-nav a small {
+  font-size: 11px;
+}
+
+.app-bottom-nav a:hover,
+.app-bottom-nav a.ativo {
+  color: #d96fb0;
+}

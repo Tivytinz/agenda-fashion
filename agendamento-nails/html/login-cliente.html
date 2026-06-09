@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login Cliente</title>
+  <link rel="stylesheet" href="../css/login-cliente.css">
+</head>
+<body class="page-enter">
+
+  <div class="auth-container">
+    <div class="auth-icon">💅</div>
+
+    <h2>Login Cliente</h2>
+    <p class="auth-subtitle">Acesse sua agenda de horários</p>
+
+    <form class="auth-form" onsubmit="return false;">
+      <div class="input-group">
+        <label for="email">E-mail</label>
+        <input type="email" id="email" placeholder="Digite seu e-mail">
+      </div>
+
+      <div class="input-group">
+        <label for="senha">Senha</label>
+        <div class="senha-box">
+          <input type="password" id="senha" placeholder="Digite sua senha">
+          <span class="toggle-senha" id="toggleSenha">🙈</span>
+        </div>
+      </div>
+
+      <p id="mensagemLogin" class="mensagem-form hidden"></p>
+
+      <button id="btnLoginCliente" type="button">Entrar</button>
+    </form>
+
+    <p class="auth-footer">
+      Não tem conta? <a href="cadastro-cliente.html">Cadastre-se</a>
+    </p>
+
+    <p class="auth-footer">
+      Área profissional? <a href="login-profissional.html">Entrar como profissional</a>
+    </p>
+  </div>
+
+  <script src="../js/login-cliente.js"></script>
+</body>
+</html>

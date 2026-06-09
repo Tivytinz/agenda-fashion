@@ -1,0 +1,56 @@
+body {
+  margin: 0;
+  font-family: "Segoe UI";
+  background: #f6f7fb;
+}
+
+.topo {
+  display: flex;
+  justify-content: space-between;
+  padding: 15px;
+}
+
+.topo-acoes button {
+  margin-left: 8px;
+}
+
+.container {
+  max-width: 900px;
+  margin: auto;
+  padding: 10px;
+}
+
+.cards {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.card {
+  background: white;
+  padding: 18px;
+  border-radius: 16px;
+}
+
+.card span {
+  font-size: 13px;
+  color: #777;
+}
+
+.card strong {
+  font-size: 24px;
+  display: block;
+}
+
+.servicos {
+  background: white;
+  padding: 18px;
+  border-radius: 16px;
+}
+
+.item-servico {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 8px;
+}

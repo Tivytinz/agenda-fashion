@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Escolher Negócio</title>
+  <link rel="stylesheet" href="../css/escolher-negocio.css">
+</head>
+<body class="page-enter">
+
+  <div class="auth-container">
+
+    <div class="auth-icon">🏢</div>
+
+    <h2>Escolha um negócio</h2>
+    <p class="auth-subtitle">
+      Entre em um negócio existente ou crie o seu
+    </p>
+
+    <div class="auth-form">
+
+      <div class="input-group">
+        <label for="buscaNegocio">Buscar negócio</label>
+        <input type="text" id="buscaNegocio" placeholder="Digite o nome do negócio">
+      </div>
+
+      <p id="mensagemEscolhaNegocio" class="mensagem-form hidden"></p>
+
+      <button id="btnBuscarNegocio" type="button">Buscar negócio</button>
+      <button id="btnCriarNegocio" type="button">Criar meu negócio</button>
+
+      <div id="listaNegocios" class="lista-negocios hidden"></div>
+    </div>
+
+    <p class="auth-footer">
+      Quer sair?
+      <a href="login-profissional.html" id="linkVoltarLogin">Voltar ao login</a>
+    </p>
+
+  </div>
+
+  <script src="../js/escolher-negocio.js"></script>
+</body>
+</html>

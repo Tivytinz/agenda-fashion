@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Meus Agendamentos</title>
+
+  <link rel="stylesheet" href="../css/global.css">
+  <link rel="stylesheet" href="../css/navegacao.css">
+  <link rel="stylesheet" href="../css/meus-agendamentos.css">
+</head>
+
+<body>
+  <main class="meus-page">
+
+    <header class="meus-header">
+      <div class="af-brand">
+        <div class="af-brand-icon">💅</div>
+        <div>
+          <div class="af-brand-title">Agenda Fashion</div>
+          <div class="af-brand-subtitle">Meus horários</div>
+        </div>
+      </div>
+    </header>
+
+    <section class="af-hero">
+      <div class="af-hero-emoji">💅</div>
+      <div class="af-hero-content">
+        <span class="af-badge">Sua agenda</span>
+        <h1 class="af-hero-title">Meus agendamentos</h1>
+        <p class="af-hero-text">
+          Veja seus horários agendados, realizados e cancelados.
+        </p>
+      </div>
+    </section>
+
+    <section class="filtros">
+      <button class="filtro ativo" data-filtro="agendado">Agendados</button>
+      <button class="filtro" data-filtro="realizado">Realizados</button>
+      <button class="filtro" data-filtro="cancelado">Cancelados</button>
+    </section>
+
+    <p id="mensagemAgendamentos" class="mensagem-form hidden"></p>
+
+    <section id="listaAgendamentos" class="lista-agendamentos"></section>
+
+  </main>
+
+  <nav id="appNav" class="app-bottom-nav"></nav>
+
+  <script src="../js/meus-agendamentos.js"></script>
+  <script src="../js/navegacao.js"></script>
+</body>
+</html>

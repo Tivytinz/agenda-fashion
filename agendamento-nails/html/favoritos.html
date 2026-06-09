@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Favoritos</title>
+
+  <link rel="stylesheet" href="../css/global.css">
+  <link rel="stylesheet" href="../css/navegacao.css">
+  <link rel="stylesheet" href="../css/favoritos.css">
+</head>
+
+<body>
+
+  <main class="favoritos-page">
+
+    <!-- HEADER -->
+    <header class="favoritos-header">
+      <div class="af-brand">
+        <div class="af-brand-icon">💅</div>
+        <div>
+          <div class="af-brand-title">Agenda Fashion</div>
+          <div class="af-brand-subtitle">Seus favoritos</div>
+        </div>
+      </div>
+    </header>
+
+    <!-- HERO -->
+    <section class="af-hero">
+      <div class="af-hero-emoji">💅</div>
+
+      <div class="af-hero-content">
+        <span class="af-badge">Seus salvos</span>
+
+        <h1 class="af-hero-title">
+          Seus profissionais favoritos 💖
+        </h1>
+
+        <p class="af-hero-text">
+          Acesse rapidamente os negócios que você mais gosta e agende com facilidade.
+        </p>
+      </div>
+    </section>
+
+    <!-- LISTA -->
+    <section class="favoritos-section">
+
+      <div id="mensagemFavoritos" class="mensagem hidden"></div>
+
+      <div id="listaFavoritos" class="grid-favoritos">
+        <!-- JS preenche -->
+      </div>
+
+    </section>
+
+  </main>
+
+  <!-- NAV -->
+  <nav id="appNav" class="app-bottom-nav"></nav>
+
+  <script src="../js/favoritos.js"></script>
+  <script src="../js/navegacao.js"></script>
+
+</body>
+</html>

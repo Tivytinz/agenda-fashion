@@ -1,0 +1,372 @@
+/* PAGE */
+.agenda-geral-page {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 20px;
+  padding-bottom: 110px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+/* HEADER */
+.agenda-geral-header {
+  padding: 18px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.btn-topo {
+  border: none;
+  background: var(--gradiente-marca);
+  color: white;
+  border-radius: 16px;
+  padding: 12px 16px;
+  font-size: 14px;
+  font-weight: 900;
+  cursor: pointer;
+  transition: 0.22s ease;
+  box-shadow: 0 16px 32px rgba(217, 111, 176, 0.18);
+}
+
+.btn-topo:hover {
+  transform: translateY(-2px);
+}
+
+/* HERO */
+.agenda-geral-hero {
+  overflow: hidden;
+}
+
+/* RESUMO */
+.resumo-agenda {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+}
+
+.resumo-card {
+  padding: 20px;
+  transition: 0.22s ease;
+}
+
+.resumo-card:hover {
+  transform: translateY(-3px);
+}
+
+.resumo-card span {
+  font-size: 28px;
+  display: block;
+  margin-bottom: 10px;
+}
+
+.resumo-card strong {
+  display: block;
+  font-size: 30px;
+  font-weight: 950;
+  color: var(--texto);
+  margin-bottom: 5px;
+}
+
+.resumo-card small {
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--texto-suave);
+}
+
+/* CONTROLES */
+.controles-agenda {
+  padding: 18px;
+  display: flex;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+.campo-filtro {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1;
+  min-width: 180px;
+}
+
+.campo-filtro label {
+  font-size: 13px;
+  font-weight: 900;
+  color: var(--texto);
+}
+
+.campo-filtro select {
+  width: 100%;
+  border: 1px solid var(--borda);
+  background: white;
+  border-radius: 16px;
+  padding: 13px 14px;
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--texto);
+  outline: none;
+  transition: 0.2s ease;
+}
+
+.campo-filtro select:focus {
+  border-color: #f3b0d7;
+  box-shadow: 0 0 0 4px rgba(243, 176, 215, 0.12);
+}
+
+/* DIAS */
+.dias-scroll {
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+  padding-bottom: 2px;
+  scrollbar-width: none;
+}
+
+.dias-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+.dia-btn {
+  min-width: 130px;
+  border: 1px solid var(--borda);
+  background: white;
+  border-radius: 22px;
+  padding: 14px;
+  cursor: pointer;
+  transition: 0.22s ease;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.dia-btn:hover {
+  transform: translateY(-2px);
+}
+
+.dia-btn.ativo {
+  background: var(--gradiente-marca);
+  border-color: transparent;
+  color: white;
+  box-shadow: 0 18px 34px rgba(217, 111, 176, 0.2);
+}
+
+.dia-btn strong {
+  display: block;
+  font-size: 14px;
+  font-weight: 950;
+  margin-bottom: 4px;
+}
+
+.dia-btn span {
+  font-size: 12px;
+  font-weight: 800;
+  opacity: 0.85;
+}
+
+/* LEGENDA */
+.agenda-legenda {
+  display: flex;
+  gap: 18px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.legenda-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 900;
+  color: var(--texto);
+}
+
+.dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+}
+
+.dot.livre {
+  background: #2f9e63;
+}
+
+.dot.bloqueado {
+  background: #e63946;
+}
+
+.dot.ocupado {
+  background: #ff9f1c;
+}
+
+/* LISTA */
+.lista-agenda-geral {
+  display: grid;
+  gap: 16px;
+}
+
+/* PROFISSIONAL */
+.profissional-agenda {
+  border: 1px solid var(--borda);
+  background: white;
+  border-radius: 28px;
+  padding: 18px;
+  box-shadow: var(--sombra-card);
+}
+
+.profissional-topo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 18px;
+}
+
+.profissional-info {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.profissional-foto {
+  width: 62px;
+  height: 62px;
+  border-radius: 20px;
+  object-fit: cover;
+}
+
+.profissional-info strong {
+  display: block;
+  font-size: 17px;
+  font-weight: 950;
+  color: var(--texto);
+  margin-bottom: 4px;
+}
+
+.profissional-info span {
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--texto-suave);
+}
+
+.badge-agendados {
+  background: #fff1df;
+  color: #c77719;
+  border-radius: 999px;
+  padding: 10px 14px;
+  font-size: 12px;
+  font-weight: 950;
+}
+
+/* HORÁRIOS */
+.horarios-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(135px, 1fr));
+  gap: 12px;
+}
+
+.horario-card {
+  border-radius: 20px;
+  padding: 14px;
+  transition: 0.22s ease;
+  border: 1px solid transparent;
+}
+
+.horario-card:hover {
+  transform: translateY(-2px);
+}
+
+.horario-card.livre {
+  background: #edf9f1;
+  border-color: #bde6ca;
+}
+
+.horario-card.bloqueado {
+  background: #fff0f0;
+  border-color: #ffc9c9;
+}
+
+.horario-card.agendado {
+  background: #fff5e9;
+  border-color: #ffd9a8;
+}
+
+.horario-card strong {
+  display: block;
+  font-size: 15px;
+  font-weight: 950;
+  color: var(--texto);
+  margin-bottom: 6px;
+}
+
+.horario-card span {
+  display: block;
+  font-size: 12px;
+  font-weight: 800;
+  color: #6b6477;
+  line-height: 1.45;
+}
+
+/* ESTADO */
+.estado-vazio {
+  border: 1px dashed var(--borda);
+  background: white;
+  border-radius: 26px;
+  padding: 34px;
+  text-align: center;
+  color: var(--texto-suave);
+  font-weight: 900;
+}
+
+/* RESPONSIVO */
+@media (max-width: 900px) {
+  .resumo-agenda {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 720px) {
+  .agenda-geral-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .btn-topo {
+    width: 100%;
+  }
+
+  .profissional-topo {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .badge-agendados {
+    width: 100%;
+    text-align: center;
+  }
+}
+
+@media (max-width: 560px) {
+  .agenda-geral-page {
+    padding: 16px;
+    padding-bottom: 95px;
+  }
+
+  .horarios-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .profissional-info {
+    align-items: flex-start;
+  }
+
+  .profissional-foto {
+    width: 56px;
+    height: 56px;
+  }
+
+  .dia-btn {
+    min-width: 110px;
+  }
+}

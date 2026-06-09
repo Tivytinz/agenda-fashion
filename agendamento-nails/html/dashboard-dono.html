@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>Dashboard do Dono</title>
+
+  <link rel="stylesheet" href="../css/global.css">
+  <link rel="stylesheet" href="../css/navegacao.css">
+  <link rel="stylesheet" href="../css/dashboard-dono.css">
+</head>
+
+<body>
+
+  <main class="dashboard-dono-page">
+
+    <header class="dashboard-header af-card">
+      <div class="af-brand">
+        <div class="af-brand-icon">💅</div>
+
+        <div>
+          <div class="af-brand-title">Agenda Fashion</div>
+          <div class="af-brand-subtitle">Dashboard do negócio</div>
+        </div>
+      </div>
+
+      <select id="filtroPeriodo" class="filtro-periodo">
+        <option value="hoje">Hoje</option>
+        <option value="7dias">Últimos 7 dias</option>
+        <option value="30dias">Últimos 30 dias</option>
+        <option value="mes">Mês atual</option>
+      </select>
+    </header>
+
+    <section class="af-hero dashboard-hero">
+      <div class="af-hero-emoji">💅</div>
+
+      <div class="af-hero-content">
+        <span class="af-badge">Números do negócio</span>
+
+        <h1 class="af-hero-title">
+          Veja o desempenho real do seu negócio
+        </h1>
+
+        <p class="af-hero-text">
+          Acompanhe clientes, faturamento, serviços vendidos e conversão.
+        </p>
+      </div>
+    </section>
+
+    <section class="kpi-grid">
+      <article class="kpi-card af-card">
+        <span>📅</span>
+        <strong id="agendamentosHoje">0</strong>
+        <small>Agendamentos hoje</small>
+      </article>
+
+      <article class="kpi-card af-card">
+        <span>🗓️</span>
+        <strong id="agendamentosPeriodo">0</strong>
+        <small>Agendamentos no período</small>
+      </article>
+
+      <article class="kpi-card af-card">
+        <span>💰</span>
+        <strong id="faturamentoHoje">R$ 0</strong>
+        <small>Faturamento hoje</small>
+      </article>
+
+      <article class="kpi-card af-card">
+        <span>💵</span>
+        <strong id="faturamentoPeriodo">R$ 0</strong>
+        <small>Faturamento no período</small>
+      </article>
+
+      <article class="kpi-card af-card">
+        <span>👤</span>
+        <strong id="clientesNovos">0</strong>
+        <small>Clientes novos</small>
+      </article>
+
+      <article class="kpi-card af-card">
+        <span>🔁</span>
+        <strong id="clientesRecorrentes">0</strong>
+        <small>Clientes recorrentes</small>
+      </article>
+
+      <article class="kpi-card af-card">
+        <span>💅</span>
+        <strong id="servicosVendidos">0</strong>
+        <small>Serviços vendidos</small>
+      </article>
+
+      <article class="kpi-card af-card">
+        <span>🎟️</span>
+        <strong id="ticketMedio">R$ 0</strong>
+        <small>Ticket médio</small>
+      </article>
+    </section>
+
+    <section class="dashboard-grid">
+      <article class="dashboard-bloco af-card">
+        <div class="bloco-topo">
+          <div>
+            <h2>Performance do perfil</h2>
+            <p>Como os clientes interagem com seu negócio.</p>
+          </div>
+        </div>
+
+        <div class="performance-grid">
+          <div class="performance-card">
+            <strong id="visitasPerfil">0</strong>
+            <span>Visitas no perfil</span>
+          </div>
+
+          <div class="performance-card">
+            <strong id="cliquesWhatsapp">0</strong>
+            <span>Cliques WhatsApp</span>
+          </div>
+
+          <div class="performance-card">
+            <strong id="cliquesMaps">0</strong>
+            <span>Cliques Maps</span>
+          </div>
+
+          <div class="performance-card">
+            <strong id="favoritosRecebidos">0</strong>
+            <span>Favoritos</span>
+          </div>
+
+          <div class="performance-card destaque">
+            <strong id="taxaConversao">0%</strong>
+            <span>Conversão perfil → agenda</span>
+          </div>
+        </div>
+      </article>
+
+      <article class="dashboard-bloco af-card">
+        <div class="bloco-topo">
+          <div>
+            <h2>Resumo por dia</h2>
+            <p>Agendamentos e faturamento diário.</p>
+          </div>
+        </div>
+
+        <div id="listaResumoDias" class="lista-ranking">
+          <div class="estado-vazio">Carregando dados...</div>
+        </div>
+      </article>
+    </section>
+
+    <section class="dashboard-grid">
+      <article class="dashboard-bloco af-card">
+        <div class="bloco-topo">
+          <div>
+            <h2>Ranking de profissionais</h2>
+            <p>Quem mais gerou resultado no período.</p>
+          </div>
+        </div>
+
+        <div id="rankingProfissionais" class="lista-ranking">
+          <div class="estado-vazio">Carregando profissionais...</div>
+        </div>
+      </article>
+
+      <article class="dashboard-bloco af-card">
+        <div class="bloco-topo">
+          <div>
+            <h2>Ranking de serviços</h2>
+            <p>Serviços mais vendidos e faturamento.</p>
+          </div>
+        </div>
+
+        <div id="rankingServicos" class="lista-ranking">
+          <div class="estado-vazio">Carregando serviços...</div>
+        </div>
+      </article>
+    </section>
+
+    <section class="dashboard-bloco af-card">
+      <div class="bloco-topo">
+        <div>
+          <h2>Clientes</h2>
+          <p>Novos, recorrentes e clientes que mais agendam.</p>
+        </div>
+      </div>
+
+      <div id="rankingClientes" class="lista-ranking lista-clientes-dashboard">
+        <div class="estado-vazio">Carregando clientes...</div>
+      </div>
+    </section>
+
+  </main>
+
+  <nav id="appNav" class="app-bottom-nav"></nav>
+
+  <script src="../js/dashboard-dono.js"></script>
+  <script src="../js/navegacao.js"></script>
+
+</body>
+</html>

@@ -1,0 +1,276 @@
+/* =========================
+   PAGE
+========================= */
+
+.config-page {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 24px;
+  padding-bottom: 120px;
+}
+
+/* =========================
+   HEADER
+========================= */
+
+.config-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+.af-brand {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.af-brand-icon {
+  width: 52px;
+  height: 52px;
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  background: linear-gradient(
+    135deg,
+    #ff7eb3,
+    #ff5c8a
+  );
+  color: white;
+}
+
+.af-brand-title {
+  font-size: 22px;
+  font-weight: 800;
+}
+
+.af-brand-subtitle {
+  font-size: 14px;
+  color: #8f8f8f;
+}
+
+/* =========================
+   HERO
+========================= */
+
+.config-hero {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  margin-bottom: 24px;
+}
+
+.config-hero-icon {
+  width: 70px;
+  height: 70px;
+  border-radius: 20px;
+  background: linear-gradient(
+    135deg,
+    #ff7eb3,
+    #ff5c8a
+  );
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 32px;
+}
+
+.config-hero h1 {
+  margin: 0;
+  font-size: 28px;
+}
+
+.config-hero p {
+  margin-top: 6px;
+  color: #8f8f8f;
+}
+
+/* =========================
+   CARDS
+========================= */
+
+.af-card {
+  background: white;
+  border-radius: 24px;
+  padding: 24px;
+  margin-bottom: 20px;
+  box-shadow:
+    0 8px 30px rgba(0,0,0,0.06);
+}
+
+/* =========================
+   FOTO
+========================= */
+
+.foto-usuario-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 24px;
+}
+
+.foto-usuario {
+  width: 130px;
+  height: 130px;
+  border-radius: 32px;
+  object-fit: cover;
+  background: #fff0f7;
+  border: 5px solid white;
+  box-shadow:
+    0 10px 25px rgba(0,0,0,0.08);
+}
+
+.af-btn-secondary {
+  border: none;
+  padding: 12px 18px;
+  border-radius: 14px;
+  cursor: pointer;
+  font-weight: 700;
+  background: #f6f6f6;
+}
+
+/* =========================
+   FORM
+========================= */
+
+.config-form {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.campo-form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.campo-form label {
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.campo-form input,
+.campo-form textarea {
+  width: 100%;
+  border: 1px solid #e7e7e7;
+  border-radius: 16px;
+  padding: 14px;
+  font-size: 15px;
+  outline: none;
+  transition: .2s;
+}
+
+.campo-form input:focus,
+.campo-form textarea:focus {
+  border-color: #ff7eb3;
+  box-shadow:
+    0 0 0 4px rgba(255,126,179,.15);
+}
+
+.campo-form input:disabled {
+  background: #f8f8f8;
+  color: #777;
+}
+
+/* =========================
+   BOTÕES
+========================= */
+
+.acoes-form {
+  display: flex;
+  margin-top: 8px;
+}
+
+.btn-salvar {
+  width: 100%;
+  border: none;
+  border-radius: 16px;
+  padding: 14px;
+  cursor: pointer;
+  font-size: 15px;
+  font-weight: 800;
+  color: white;
+  background: linear-gradient(
+    135deg,
+    #ff7eb3,
+    #ff5c8a
+  );
+}
+
+.btn-salvar:hover {
+  transform: translateY(-1px);
+}
+
+.af-btn-danger {
+  width: 100%;
+  border: none;
+  border-radius: 16px;
+  padding: 14px;
+  cursor: pointer;
+  font-size: 15px;
+  font-weight: 800;
+  color: white;
+  background: #ff4d6d;
+}
+
+.af-btn-danger:hover {
+  background: #e6395a;
+}
+
+.btn-sair-conta {
+  width: 100%;
+}
+
+/* =========================
+   MENSAGEM
+========================= */
+
+.mensagem-form {
+  text-align: center;
+  font-weight: 700;
+  margin-bottom: 14px;
+}
+
+.hidden {
+  display: none !important;
+}
+
+/* =========================
+   RESPONSIVO
+========================= */
+
+@media (max-width: 768px) {
+
+  .config-page {
+    padding: 16px;
+    padding-bottom: 120px;
+  }
+
+  .config-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 14px;
+  }
+
+  .config-hero {
+    flex-direction: column;
+    text-align: center;
+  }
+
+  .config-hero-icon {
+    width: 64px;
+    height: 64px;
+    font-size: 28px;
+  }
+
+  .foto-usuario {
+    width: 110px;
+    height: 110px;
+  }
+}

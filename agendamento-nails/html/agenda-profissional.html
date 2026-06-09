@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>Minha Agenda</title>
+
+  <link rel="stylesheet" href="../css/global.css">
+  <link rel="stylesheet" href="../css/navegacao.css">
+  <link rel="stylesheet" href="../css/agenda-profissional.css">
+</head>
+
+<body>
+
+  <main class="agenda-page">
+
+    <!-- TOPO -->
+    <section class="agenda-topo af-card">
+
+      <div class="agenda-topo-info">
+
+        <div class="agenda-emoji">💅</div>
+
+        <div>
+          <h1 id="nomeProfissional">
+            Bom dia ✨
+          </h1>
+
+          <p id="resumoDia">
+            Você possui 0 atendimentos hoje
+          </p>
+        </div>
+
+      </div>
+
+    </section>
+
+    <!-- DIAS -->
+    <section class="dias-scroll" id="diasScroll">
+
+      <button class="dia-btn ativo">
+        <span>Hoje</span>
+        <small>12</small>
+      </button>
+
+    </section>
+
+    <!-- LEGENDA -->
+    <section class="agenda-legenda">
+
+      <div class="legenda-item">
+        <span class="dot livre"></span>
+        <span>Livre</span>
+      </div>
+
+      <div class="legenda-item">
+        <span class="dot bloqueado"></span>
+        <span>Bloqueado</span>
+      </div>
+
+      <div class="legenda-item">
+        <span class="dot ocupado"></span>
+        <span>Agendado</span>
+      </div>
+
+    </section>
+
+    <!-- HORÁRIOS -->
+    <section id="listaHorarios" class="lista-horarios">
+
+      <!-- JS -->
+
+    </section>
+
+  </main>
+
+  <!-- MODAL -->
+  <div id="modalHorario" class="modal-overlay hidden">
+
+    <div class="modal-box">
+
+      <h3 id="modalTitulo">
+        Horário
+      </h3>
+
+      <p id="modalDescricao">
+        ...
+      </p>
+
+      <div class="modal-botoes">
+
+        <button id="btnCancelarModal" class="btn-secundario">
+          Cancelar
+        </button>
+
+        <button id="btnConfirmarModal" class="btn-primario">
+          Confirmar
+        </button>
+
+      </div>
+
+    </div>
+
+  </div>
+
+  <nav id="appNav" class="app-bottom-nav"></nav>
+
+  <script src="../js/agenda-profissional.js"></script>
+  <script src="../js/navegacao.js"></script>
+
+</body>
+</html>

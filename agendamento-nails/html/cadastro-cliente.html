@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cadastro Cliente</title>
+
+  <link rel="stylesheet" href="../css/auth.css">
+</head>
+
+<body class="page-enter">
+
+  <div class="auth-container">
+
+    <div class="auth-icon">💅</div>
+
+    <h2>Cadastro do Cliente</h2>
+    <p class="auth-subtitle">
+      Crie sua conta para agendar seus horários
+    </p>
+
+    <form class="auth-form" onsubmit="return false;">
+
+      <!-- NOME -->
+      <div class="input-group">
+        <label for="nome">Nome</label>
+        <input type="text" id="nome" placeholder="Digite seu nome">
+      </div>
+
+      <!-- SOBRENOME -->
+      <div class="input-group">
+        <label for="sobrenome">Sobrenome</label>
+        <input type="text" id="sobrenome" placeholder="Digite seu sobrenome">
+      </div>
+
+      <!-- EMAIL -->
+      <div class="input-group">
+        <label for="email">E-mail</label>
+        <input type="email" id="email" placeholder="Digite seu e-mail">
+      </div>
+
+      <!-- WHATSAPP -->
+      <div class="input-group">
+        <label for="whatsapp">WhatsApp</label>
+        <input type="text" id="whatsapp" placeholder="(00) 00000-0000" maxlength="15">
+      </div>
+
+      <!-- SENHA -->
+      <div class="input-group">
+        <label for="senha">Senha</label>
+
+        <div class="senha-box">
+          <input type="password" id="senha" placeholder="Crie uma senha">
+
+          <span class="toggle-senha" id="toggleSenha">🙈</span>
+        </div>
+      </div>
+
+      <!-- CONFIRMAR SENHA -->
+      <div class="input-group">
+        <label for="confirmarSenha">Confirmar senha</label>
+
+        <div class="senha-box">
+          <input type="password" id="confirmarSenha" placeholder="Confirme sua senha">
+
+          <span class="toggle-senha" id="toggleConfirmarSenha">🙈</span>
+        </div>
+      </div>
+
+      <!-- MENSAGEM -->
+      <p id="mensagemCadastro" class="mensagem-form hidden"></p>
+
+      <!-- BOTÃO -->
+      <button id="btnCadastroCliente" type="button">
+        Cadastrar
+      </button>
+
+    </form>
+
+    <!-- LINKS -->
+    <p class="auth-footer">
+      Já tem conta?
+      <a href="login-cliente.html">Entrar</a>
+    </p>
+
+    <p class="auth-footer">
+      É profissional?
+      <a href="cadastro-profissional.html">Cadastrar como profissional</a>
+    </p>
+
+  </div>
+
+  <script src="../js/cadastro-cliente.js"></script>
+
+
+
+</body>
+</html>

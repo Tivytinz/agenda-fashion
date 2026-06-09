@@ -1,0 +1,336 @@
+.agenda-page {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 20px;
+  padding-bottom: 95px;
+}
+
+/* TOPO */
+.agenda-topo {
+  padding: 18px;
+  margin-bottom: 18px;
+}
+
+.agenda-topo-info {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.agenda-emoji {
+  width: 54px;
+  height: 54px;
+  border-radius: 20px;
+  background: var(--gradiente-marca);
+  display: grid;
+  place-items: center;
+  font-size: 28px;
+  box-shadow: 0 12px 28px rgba(255, 79, 163, 0.28);
+}
+
+.agenda-topo h1 {
+  font-size: 24px;
+  font-weight: 950;
+  color: var(--texto);
+  margin-bottom: 4px;
+}
+
+.agenda-topo p {
+  font-size: 14px;
+  color: var(--texto-suave);
+  font-weight: 800;
+}
+
+/* DIAS */
+.dias-scroll {
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+  padding: 2px 0 14px;
+  margin-bottom: 10px;
+}
+
+.dias-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+.dia-btn {
+  min-width: 76px;
+  border: 1px solid var(--borda);
+  background: var(--card);
+  border-radius: 18px;
+  padding: 11px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  align-items: center;
+  color: var(--texto-suave);
+  font-weight: 900;
+  box-shadow: 0 10px 22px rgba(0,0,0,0.04);
+}
+
+.dia-btn span {
+  font-size: 13px;
+}
+
+.dia-btn small {
+  font-size: 12px;
+}
+
+.dia-btn.ativo {
+  background: var(--gradiente-marca);
+  color: white;
+  border-color: transparent;
+  box-shadow: 0 14px 28px rgba(217, 111, 176, 0.22);
+}
+
+/* LEGENDA */
+.agenda-legenda {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+
+.legenda-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--card);
+  border: 1px solid var(--borda);
+  border-radius: 999px;
+  padding: 8px 11px;
+  font-size: 12px;
+  color: var(--texto-suave);
+  font-weight: 900;
+}
+
+.dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+}
+
+.dot.livre {
+  background: #2f9e63;
+}
+
+.dot.bloqueado {
+  background: #e63946;
+}
+
+.dot.ocupado {
+  background: #f59f00;
+}
+
+/* HORÁRIOS */
+.lista-horarios {
+  display: grid;
+  gap: 12px;
+}
+
+.horario-card {
+  background: var(--card);
+  border: 1px solid var(--borda);
+  border-radius: 22px;
+  padding: 15px;
+  box-shadow: var(--sombra-card);
+  cursor: pointer;
+  transition: 0.22s ease;
+}
+
+.horario-card:hover {
+  transform: translateY(-2px);
+}
+
+.horario-card.livre {
+  border-left: 6px solid #2f9e63;
+}
+
+.horario-card.bloqueado {
+  border-left: 6px solid #e63946;
+}
+
+.horario-card.agendado {
+  border-left: 6px solid #f59f00;
+}
+
+.horario-topo {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.horario-topo strong {
+  font-size: 18px;
+  font-weight: 950;
+  color: var(--texto);
+}
+
+.status-horario {
+  border-radius: 999px;
+  padding: 6px 10px;
+  font-size: 12px;
+  font-weight: 950;
+}
+
+.status-horario.livre {
+  background: #e9f9ef;
+  color: #2f9e63;
+}
+
+.status-horario.bloqueado {
+  background: #ffe8e8;
+  color: #e63946;
+}
+
+.status-horario.agendado {
+  background: #fff1df;
+  color: #c77719;
+}
+
+.agendamento-info {
+  margin-top: 12px;
+  display: grid;
+  gap: 5px;
+}
+
+.agendamento-info strong {
+  font-size: 15px;
+  color: var(--texto);
+}
+
+.agendamento-info span {
+  font-size: 13px;
+  color: var(--texto-suave);
+  font-weight: 800;
+}
+
+.agendamento-acoes {
+  margin-top: 12px;
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.btn-whatsapp-cliente,
+.btn-cancelar-agendamento {
+  border: none;
+  border-radius: 14px;
+  padding: 10px 12px;
+  font-size: 12px;
+  font-weight: 950;
+}
+
+.btn-whatsapp-cliente {
+  background: #e9f9ef;
+  color: #1fa855;
+}
+
+.btn-cancelar-agendamento {
+  background: #ffe8e8;
+  color: #e63946;
+}
+
+/* VAZIO */
+.estado-vazio {
+  background: var(--card);
+  border: 1px dashed var(--borda);
+  border-radius: 22px;
+  padding: 24px;
+  text-align: center;
+  color: var(--texto-suave);
+  font-weight: 900;
+}
+
+/* MODAL */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(47, 42, 58, 0.35);
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  z-index: 1000;
+}
+
+.modal-box {
+  width: 100%;
+  max-width: 380px;
+  background: var(--card);
+  border-radius: 26px;
+  padding: 22px;
+  box-shadow: 0 24px 60px rgba(0,0,0,0.18);
+  text-align: center;
+}
+
+.modal-box h3 {
+  font-size: 22px;
+  font-weight: 950;
+  color: var(--texto);
+  margin-bottom: 8px;
+}
+
+.modal-box p {
+  font-size: 14px;
+  color: var(--texto-suave);
+  line-height: 1.45;
+  margin-bottom: 18px;
+}
+
+.modal-botoes {
+  display: flex;
+  gap: 10px;
+}
+
+.btn-secundario,
+.btn-primario {
+  flex: 1;
+  border: none;
+  border-radius: 16px;
+  padding: 13px;
+  font-weight: 950;
+}
+
+.btn-secundario {
+  background: #f6f1f8;
+  color: var(--texto-suave);
+}
+
+.btn-primario {
+  background: var(--gradiente-marca);
+  color: white;
+}
+
+/* UTIL */
+.hidden {
+  display: none !important;
+}
+
+.carregando {
+  opacity: 0.65;
+  pointer-events: none;
+}
+
+/* MOBILE */
+@media (max-width: 520px) {
+  .agenda-page {
+    padding: 16px;
+    padding-bottom: 92px;
+  }
+
+  .agenda-topo h1 {
+    font-size: 21px;
+  }
+
+  .agenda-emoji {
+    width: 48px;
+    height: 48px;
+    font-size: 25px;
+  }
+
+  .modal-botoes {
+    flex-direction: column;
+  }
+}

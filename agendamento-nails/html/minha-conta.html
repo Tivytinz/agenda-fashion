@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>Minha Conta</title>
+
+  <link rel="stylesheet" href="../css/global.css">
+  <link rel="stylesheet" href="../css/navegacao.css">
+  <link rel="stylesheet" href="../css/minha-conta.css">
+</head>
+
+<body>
+
+  <main class="config-page">
+
+    <header class="config-header af-card">
+      <div class="af-brand">
+        <div class="af-brand-icon">💅</div>
+
+        <div>
+          <div class="af-brand-title">Minha Conta</div>
+          <div class="af-brand-subtitle">Gerencie seus dados pessoais</div>
+        </div>
+      </div>
+    </header>
+
+    <section class="config-hero af-card">
+      <div class="config-hero-icon">👤</div>
+
+      <div>
+        <h1>Perfil do usuário</h1>
+        <p>Essas informações aparecem na sua conta e no seu perfil profissional.</p>
+      </div>
+    </section>
+
+    <p id="mensagemConfig" class="mensagem-form hidden"></p>
+
+    <section class="config-form af-card">
+
+      <div class="foto-usuario-box">
+        <img
+          id="fotoUsuario"
+          class="foto-usuario"
+          alt="Foto do usuário"
+        >
+
+        <input
+          type="file"
+          id="inputFotoUsuario"
+          accept="image/*"
+          hidden
+        >
+
+        <button
+          type="button"
+          id="btnTrocarFoto"
+          class="af-btn-secondary"
+        >
+          📸 Alterar foto
+        </button>
+      </div>
+
+      <form id="formConta">
+
+        <div class="campo-form">
+          <label for="nomeUsuario">Nome</label>
+
+          <input
+            type="text"
+            id="nomeUsuario"
+            placeholder="Seu nome"
+            required
+          >
+        </div>
+
+        <div class="campo-form">
+          <label for="emailUsuario">E-mail</label>
+
+          <input
+            type="email"
+            id="emailUsuario"
+            placeholder="Seu e-mail"
+            disabled
+          >
+        </div>
+
+        <div class="campo-form">
+          <label for="whatsappUsuario">WhatsApp</label>
+
+          <input
+            type="tel"
+            id="whatsappUsuario"
+            placeholder="Ex: 62999999999"
+            required
+          >
+        </div>
+
+        <div class="acoes-form">
+          <button
+            type="submit"
+            class="btn-salvar"
+          >
+            Salvar dados
+          </button>
+        </div>
+
+      </form>
+
+    </section>
+
+    <section class="config-form af-card">
+
+      <h2>Alterar senha</h2>
+
+      <form id="formSenha">
+
+        <div class="campo-form">
+          <label for="senhaAtual">Senha atual</label>
+
+          <input
+            type="password"
+            id="senhaAtual"
+            placeholder="Digite sua senha atual"
+            required
+          >
+        </div>
+
+        <div class="campo-form">
+          <label for="novaSenha">Nova senha</label>
+
+          <input
+            type="password"
+            id="novaSenha"
+            placeholder="Digite a nova senha"
+            required
+          >
+        </div>
+
+        <div class="acoes-form">
+          <button
+            type="submit"
+            class="btn-salvar"
+          >
+            Alterar senha
+          </button>
+        </div>
+
+      </form>
+
+    </section>
+
+    <section class="config-form af-card">
+      <button
+        type="button"
+        id="btnLogout"
+        class="af-btn-danger btn-sair-conta"
+      >
+        Sair da conta
+      </button>
+    </section>
+
+  </main>
+
+  <nav id="appNav" class="app-bottom-nav"></nav>
+
+  <script src="../js/minha-conta.js"></script>
+  <script src="../js/navegacao.js"></script>
+
+</body>
+</html>

@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Agenda Fashion</title>
+
+  <link rel="stylesheet" href="../css/global.css">
+  <link rel="stylesheet" href="../css/navegacao.css">
+  <link rel="stylesheet" href="../css/inicio.css">
+</head>
+
+<body>
+  <main class="inicio-page">
+
+    <header class="inicio-header">
+      <div class="af-brand">
+        <div class="af-brand-icon">💅</div>
+        <div>
+          <div class="af-brand-title">Agenda Fashion</div>
+          <div class="af-brand-subtitle">Beleza agendada em poucos cliques</div>
+        </div>
+      </div>
+    </header>
+
+    <section class="af-hero inicio-hero">
+      <div class="af-hero-emoji">💅</div>
+
+      <div class="af-hero-content">
+        <span class="af-badge">Agendamento fácil</span>
+
+        <h1 class="af-hero-title">
+          Encontre profissionais<br>
+          e agende seu horário
+        </h1>
+
+        <p class="af-hero-text">
+          Descubra negócios de beleza perto de você e marque em poucos cliques.
+        </p>
+
+        <div class="busca-box">
+          <span>🔎</span>
+          <input
+            type="text"
+            id="campoBusca"
+            placeholder="Buscar por nome, cidade ou área..."
+          >
+        </div>
+      </div>
+    </section>
+
+    <section class="resumo-cards">
+      <div class="resumo-card">
+        <strong id="totalNegocios">0</strong>
+        <span>negócios disponíveis</span>
+      </div>
+
+      <div class="resumo-card">
+        <strong>📍</strong>
+        <span>ranking por proximidade</span>
+      </div>
+
+      <div class="resumo-card">
+        <strong>24h</strong>
+        <span>agenda online</span>
+      </div>
+    </section>
+
+    <section class="negocios-section">
+      <div class="section-topo">
+        <h2>Profissionais disponíveis</h2>
+        <p>Escolha um perfil para ver serviços e horários.</p>
+      </div>
+
+      <div id="mensagemHome" class="mensagem-home hidden"></div>
+
+      <div id="listaNegocios" class="grid-negocios"></div>
+    </section>
+
+  </main>
+
+  <nav id="appNav" class="app-bottom-nav"></nav>
+
+  <script src="../js/inicio.js"></script>
+  <script src="../js/navegacao.js"></script>
+</body>
+</html>
