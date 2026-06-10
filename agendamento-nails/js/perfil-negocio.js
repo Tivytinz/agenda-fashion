@@ -853,10 +853,24 @@ async function removerServico(id) {
   }
 
   async function copiarLinkPerfil() {
-    const link = `${location.origin}/agendamento-nails/html/perfil-negocio.html?slug=${encodeURIComponent(slug)}`;
+  try {
+    const link =
+      `${window.location.origin}/html/perfil-negocio.html?slug=${encodeURIComponent(slug)}`;
+
     await navigator.clipboard.writeText(link);
-    mostrarMensagem("Link copiado 💅", "#2f9e63");
+
+    btnCopiarAgenda.textContent = "✅ Link copiado";
+
+    setTimeout(() => {
+      btnCopiarAgenda.textContent = "Copiar link";
+    }, 2000);
+
+    mostrarMensagem("Link copiado com sucesso 💅", "#2f9e63");
+
+  } catch (erro) {
+    mostrarMensagem("Não foi possível copiar o link.");
   }
+}
 
   function irParaAgenda() {
   if (!servicoSelecionado || !profissionalSelecionado || !horarioSelecionado) {

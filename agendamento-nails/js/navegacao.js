@@ -76,14 +76,14 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   if (ehFuncionario) {
-    render([
-      { href: page("inicio.html"), icone: "🏠", texto: "Início" },
-      { href: page("agenda-profissional.html"), icone: "📅", texto: "Agenda" },
-      { href: page("perfil-profissional.html"), icone: "👤", texto: "Perfil" },
-      { href: page("minha-conta.html"), icone: "⚙️", texto: "Config" }
-    ]);
-    return;
-  }
+  render([
+    { href: page("inicio.html"), icone: "🏠", texto: "Início" },
+    { href: page("agenda-profissional.html"), icone: "📅", texto: "Agenda" },
+    { href: perfilHref, icone: "🏢", texto: "Perfil" },
+    { href: page("minha-conta.html"), icone: "⚙️", texto: "Config" }
+  ]);
+  return;
+}
 
   if (tipo === "cliente") {
     render([

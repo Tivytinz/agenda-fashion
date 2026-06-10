@@ -192,10 +192,13 @@ document.addEventListener("DOMContentLoaded", () => {
       btn.classList.remove("btn-disabled", "btn-error");
       btn.classList.add("btn-success");
 
+      localStorage.setItem("token", resultado.token);
+      localStorage.setItem("usuario", JSON.stringify(resultado.usuario));
+
       setTimeout(() => {
         document.body.classList.add("page-exit");
         setTimeout(() => {
-          window.location.href = "login-profissional.html";
+          window.location.href = "/html/criar-negocio.html";
         }, 350);
       }, 700);
 

@@ -46,9 +46,21 @@ async function cadastro(req, res) {
       ]
     );
 
+    const usuarioCriado = novoUsuario.rows[0];
+
+    const token = jwt.sign(
+      {
+        id: usuarioCriado.id,
+        tipo: usuarioCriado.tipo
+      },
+      "segredo",
+      { expiresIn: "1d" }
+    );
+
     return res.status(201).json({
       mensagem: "Usuário cadastrado com sucesso.",
-      usuario: novoUsuario.rows[0]
+      token,
+      usuario: usuarioCriado
     });
 
   } catch (err) {
