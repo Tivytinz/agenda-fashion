@@ -5,13 +5,18 @@ document.addEventListener("DOMContentLoaded", () => {
   const usuario = JSON.parse(localStorage.getItem("usuario") || "null");
   const negocio = JSON.parse(localStorage.getItem("negocio") || "null");
 
+  function page(nome) {
+    return `/html/${nome}`;
+  }
+
   function ativarPaginaAtual() {
     const paginaAtual = window.location.pathname.split("/").pop();
 
     nav.querySelectorAll("a").forEach((link) => {
       const href = (link.getAttribute("href") || "").split("?")[0];
+      const hrefPagina = href.split("/").pop();
 
-      if (href === paginaAtual) {
+      if (hrefPagina === paginaAtual) {
         link.classList.add("ativo");
       }
     });
@@ -32,8 +37,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
   if (!usuario) {
     render([
-      { href: "inicio.html", icone: "🏠", texto: "Início" },
-      { href: "login-cliente.html", icone: "👤", texto: "Entrar" }
+      { href: page("inicio.html"), icone: "🏠", texto: "Início" },
+      { href: page("login-cliente.html"), icone: "👤", texto: "Entrar" }
     ]);
     return;
   }
@@ -56,42 +61,42 @@ document.addEventListener("DOMContentLoaded", () => {
     negocio?.papel === "profissional";
 
   const perfilHref = negocio?.slug
-    ? `perfil-negocio.html?slug=${encodeURIComponent(negocio.slug)}`
-    : "perfil-negocio.html";
+    ? `${page("perfil-negocio.html")}?slug=${encodeURIComponent(negocio.slug)}`
+    : page("perfil-negocio.html");
 
   if (ehDono) {
     render([
-      { href: "inicio.html", icone: "🏠", texto: "Início" },
-      { href: "agenda-geral.html", icone: "📅", texto: "Agenda" },
-      { href: "dashboard-dono.html", icone: "📊", texto: "Dash" },
+      { href: page("inicio.html"), icone: "🏠", texto: "Início" },
+      { href: page("agenda-geral.html"), icone: "📅", texto: "Agenda" },
+      { href: page("dashboard-dono.html"), icone: "📊", texto: "Dash" },
       { href: perfilHref, icone: "🏢", texto: "Perfil" },
-      { href: "minha-conta.html", icone: "⚙️", texto: "Config" }
+      { href: page("minha-conta.html"), icone: "⚙️", texto: "Config" }
     ]);
     return;
   }
 
   if (ehFuncionario) {
     render([
-      { href: "inicio.html", icone: "🏠", texto: "Início" },
-      { href: "agenda-profissional.html", icone: "📅", texto: "Agenda" },
-      { href: "perfil-profissional.html", icone: "👤", texto: "Perfil" },
-      { href: "minha-conta.html", icone: "⚙️", texto: "Config" }
+      { href: page("inicio.html"), icone: "🏠", texto: "Início" },
+      { href: page("agenda-profissional.html"), icone: "📅", texto: "Agenda" },
+      { href: page("perfil-profissional.html"), icone: "👤", texto: "Perfil" },
+      { href: page("minha-conta.html"), icone: "⚙️", texto: "Config" }
     ]);
     return;
   }
 
   if (tipo === "cliente") {
     render([
-      { href: "inicio.html", icone: "🏠", texto: "Início" },
-      { href: "meus-agendamentos.html", icone: "📅", texto: "Agend." },
-      { href: "favoritos.html", icone: "❤️", texto: "Favoritos" },
-      { href: "minha-conta.html", icone: "⚙️", texto: "Config" }
+      { href: page("inicio.html"), icone: "🏠", texto: "Início" },
+      { href: page("meus-agendamentos.html"), icone: "📅", texto: "Agend." },
+      { href: page("favoritos.html"), icone: "❤️", texto: "Favoritos" },
+      { href: page("minha-conta.html"), icone: "⚙️", texto: "Config" }
     ]);
     return;
   }
 
   render([
-    { href: "inicio.html", icone: "🏠", texto: "Início" },
-    { href: "login-cliente.html", icone: "👤", texto: "Entrar" }
+    { href: page("inicio.html"), icone: "🏠", texto: "Início" },
+    { href: page("login-cliente.html"), icone: "👤", texto: "Entrar" }
   ]);
 });
