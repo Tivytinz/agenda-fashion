@@ -76,6 +76,15 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   if (ehFuncionario) {
+  if (!negocio?.id) {
+    render([
+      { href: page("inicio.html"), icone: "🏠", texto: "Início" },
+      { href: page("criar-negocio.html"), icone: "➕", texto: "Criar" },
+      { href: page("minha-conta.html"), icone: "⚙️", texto: "Config" }
+    ]);
+    return;
+  }
+
   render([
     { href: page("inicio.html"), icone: "🏠", texto: "Início" },
     { href: page("agenda-profissional.html"), icone: "📅", texto: "Agenda" },
