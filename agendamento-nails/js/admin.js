@@ -9,6 +9,8 @@ document.addEventListener("DOMContentLoaded", async () => {
     return;
   }
 
+  let periodoAtual = "all";
+
   const el = (id) => document.getElementById(id);
 
   const campos = {
@@ -131,7 +133,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   async function carregarDashboard() {
     try {
-      const data = await apiGet("/admin/dashboard");
+      const data = await apiGet(`/admin/dashboard?periodo=${periodoAtual}`);
 
       setText("totalNegocios", data.totalNegocios);
       setText("totalClientes", data.totalClientes);
@@ -260,6 +262,19 @@ document.addEventListener("DOMContentLoaded", async () => {
       mostrarVazio(listas.usuariosRecentes, "Erro ao carregar usuários.");
     }
   }
+
+  document.querySelectorAll(".filtro-periodo").forEach((btn) => {
+    btn.addEventListener("click", async () => {
+      document.querySelectorAll(".filtro-periodo").forEach((b) => {
+        b.classList.remove("ativo");
+      });
+
+      btn.classList.add("ativo");
+      periodoAtual = btn.dataset.periodo || "all";
+
+      await carregarDashboard();
+    });
+  });
 
   document.getElementById("btnSairAdmin")?.addEventListener("click", sair);
 
