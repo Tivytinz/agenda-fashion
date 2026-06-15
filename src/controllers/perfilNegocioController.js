@@ -110,6 +110,15 @@ async function buscarPerfilPublico(req, res) {
 
     const negocio = negocioResult.rows[0];
 
+    await db.query(
+  `
+    UPDATE negocios
+    SET visitas = COALESCE(visitas, 0) + 1
+    WHERE id = $1
+  `,
+      [negocio.id]
+);
+
     const servicosResult = await db.query(
       `
       SELECT

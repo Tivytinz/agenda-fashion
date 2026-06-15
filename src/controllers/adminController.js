@@ -47,6 +47,11 @@ async function buscarDashboardAdmin(req, res) {
       ${filtro}
     `);
 
+    const visitas = await db.query(`
+    SELECT COALESCE(SUM(visitas),0)::int AS total
+    FROM negocios
+    `);
+
     const usuariosHoje = await db.query(`
       SELECT COUNT(*)::int AS total
       FROM usuarios
@@ -147,6 +152,8 @@ async function buscarDashboardAdmin(req, res) {
       totalProfissionais: profissionais.rows[0].total,
       totalAgendamentos: agendamentos.rows[0].total,
 
+      visitasPlataforma: visitas.rows[0].total,
+
       usuariosHoje: usuariosHoje.rows[0].total,
       negociosHoje: negociosHoje.rows[0].total,
       agendamentosHoje: agendamentosHoje.rows[0].total,
@@ -225,8 +232,49 @@ async function listarAgendamentosAdmin(req, res) {
   }
 }
 
+async function buscarMarketingAdmin(req, res) {
+  try {
+
+    const negociosMaisVistos = await db.query(`
+      SELECT
+        nome,
+        cidade,
+        COALESCE(visitas, 0) AS visitas
+      FROM negocios
+      ORDER BY visitas DESC
+      LIMIT 10
+    `);
+
+    const cidades = await db.query(`
+      SELECT
+        cidade,
+        COUNT(*)::int AS total
+      FROM negocios
+      WHERE cidade IS NOT NULL
+      GROUP BY cidade
+      ORDER BY total DESC
+      LIMIT 10
+    `);
+
+    return res.json({
+      negociosMaisAgendados: [],
+      negociosMaisVistos: negociosMaisVistos.rows,
+      cidades: cidades.rows,
+      usuariosRecentes: []
+    });
+
+  } catch (err) {
+    console.error("Erro marketing admin:", err);
+
+    return res.status(500).json({
+      erro: "Erro ao carregar marketing."
+    });
+  }
+}
+
 module.exports = {
   buscarDashboardAdmin,
   listarNegociosAdmin,
-  listarAgendamentosAdmin
+  listarAgendamentosAdmin,
+  buscarMarketingAdmin
 };

@@ -152,5 +152,12 @@ router.get(
   adminController.listarAgendamentosAdmin
 );
 
+router.get(
+  "/admin/marketing",
+  auth,
+  authAdmin,
+  adminController.buscarMarketingAdmin
+);
+
 // =============================
 module.exports = router;
