@@ -83,24 +83,30 @@ async function criarNegocio(req, res) {
     const slug = await gerarSlugUnico(baseSlug);
 
     const novoNegocio = await db.query(
-      `
-      INSERT INTO negocios (
-        nome,
-        slug,
-        created_at
-      )
-      VALUES (
-        $1,
-        $2,
-        NOW()
-      )
-      RETURNING
-        id,
-        nome,
-        slug
-      `,
-      [nome.trim(), slug]
-    );
+  `
+  INSERT INTO negocios (
+    nome,
+    slug,
+    dono_usuario_id,
+    created_at
+  )
+  VALUES (
+    $1,
+    $2,
+    $3,
+    NOW()
+  )
+  RETURNING
+    id,
+    nome,
+    slug
+  `,
+  [
+    nome.trim(),
+    slug,
+    usuarioId
+  ]
+);
 
     const negocio = novoNegocio.rows[0];
 
