@@ -115,7 +115,7 @@ document.addEventListener("DOMContentLoaded", () => {
       setTimeout(() => {
         document.body.classList.add("page-exit");
         setTimeout(() => {
-          window.location.href = "painel-profissional.html";
+          window.location.href = "dashboard-dono.html";
         }, 350);
       }, 700);
 
