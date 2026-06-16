@@ -89,7 +89,7 @@ document.addEventListener("DOMContentLoaded", () => {
       btnCriarNegocio.disabled = true;
       btnCriarNegocio.classList.add("btn-disabled");
 
-      const resposta = await fetch(`${API_URL}/criar-negocio`, {
+        const resposta = await fetch(`${API_URL}/criar-negocio`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -108,7 +108,28 @@ document.addEventListener("DOMContentLoaded", () => {
 
       mostrarMensagem("Negócio criado com sucesso 💅", "#2f9e63");
 
-      btnCriarNegocio.innerHTML = "✅ Sucesso";
+      localStorage.setItem(
+      "negocio",
+      JSON.stringify({
+      ...resultado.negocio,
+      papel: "dono"
+    })
+    );
+
+    const usuarioAtual = JSON.parse(
+    localStorage.getItem("usuario") || "null"
+    );
+
+    if (usuarioAtual) {
+    usuarioAtual.tipo = "dono";
+
+    localStorage.setItem(
+    "usuario",
+    JSON.stringify(usuarioAtual)
+    );
+}
+
+btnCriarNegocio.innerHTML = "✅ Sucesso";
       btnCriarNegocio.classList.remove("btn-disabled", "btn-error");
       btnCriarNegocio.classList.add("btn-success");
 
