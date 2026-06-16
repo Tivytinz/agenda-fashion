@@ -87,13 +87,12 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
 
   function pegarFoto(item) {
-    if (item.foto_url && item.foto_url.trim()) {
-      return item.foto_url;
-    }
-
-    return "https://via.placeholder.com/500x300/f3b0d7/ffffff?text=Agenda+Fashion";
+  if (item.foto_url && item.foto_url.trim()) {
+    return item.foto_url;
   }
 
+  return "/img/negocio-padrao.png";
+}
   function renderizarNegocios(lista) {
     listaNegocios.innerHTML = "";
 
@@ -117,9 +116,14 @@ document.addEventListener("DOMContentLoaded", async () => {
       const areas = Array.isArray(negocio.areas) ? negocio.areas : [];
 
       card.innerHTML = `
-        <img src="${pegarFoto(negocio)}" alt="${negocio.nome || "Negócio"}">
+  <img
+    src="${pegarFoto(negocio)}"
+    alt="${negocio.nome || "Negócio"}"
+    onerror="this.src='/img/negocio-padrao.png'"
+  >
 
-        <h3>${negocio.nome || "Negócio"}</h3>
+  <h3>${negocio.nome || "Negócio"}</h3>
+
 
         <span class="local">
           📍 ${negocio.cidade || "Cidade não informada"}
