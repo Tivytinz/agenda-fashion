@@ -100,14 +100,28 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   function preencherNegocio(n) {
     if (fotoNegocio) {
-      if (n.foto_url) {
-        fotoNegocio.src = n.foto_url;
-        fotoNegocio.style.display = "block";
-      } else {
-        fotoNegocio.removeAttribute("src");
-        fotoNegocio.style.display = "block";
-      }
-    }
+
+  if (n.foto_url && n.foto_url.trim()) {
+
+    fotoNegocio.src = n.foto_url;
+    fotoNegocio.style.display = "block";
+
+  } else {
+
+    const iniciais = (n.nome || "N")
+      .split(" ")
+      .map(p => p[0])
+      .join("")
+      .substring(0, 2)
+      .toUpperCase();
+
+    fotoNegocio.outerHTML = `
+      <div id="fotoNegocio" class="avatar-negocio">
+        ${iniciais}
+      </div>
+    `;
+  }
+}
 
     if (nomeNegocio) {
       nomeNegocio.textContent = n.nome || "Negócio";
@@ -301,11 +315,26 @@ function renderizarServicos(servicos = []) {
     card.dataset.id = profissional.id;
 
     card.innerHTML = `
+      ${
+  profissional.foto_url
+    ? `
       <img
         class="profissional-foto"
-        src="${profissional.foto_url || "https://ui-avatars.com/api/?name=" + encodeURIComponent(profissional.nome || "Profissional") + "&background=f3b0d7&color=ffffff"}"
+        src="${profissional.foto_url}"
         alt="${profissional.nome || "Profissional"}"
       >
+    `
+    : `
+      <div class="profissional-foto avatar-iniciais">
+        ${(profissional.nome || "P")
+          .split(" ")
+          .map(p => p[0])
+          .join("")
+          .substring(0, 2)
+          .toUpperCase()}
+      </div>
+    `
+}
 
       <div class="profissional-info">
         <strong>${profissional.nome || "Profissional"}</strong>
