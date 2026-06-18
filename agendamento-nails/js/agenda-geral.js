@@ -148,7 +148,7 @@ document.addEventListener("DOMContentLoaded", async () => {
           <div class="profissional-info">
             <img
               class="profissional-foto"
-              src="${profissional.foto_url || "https://via.placeholder.com/100x100/f3b0d7/ffffff?text=💅"}"
+              src="${profissional.foto_url || "/public/img/negocio-padrao.png"}"
               alt="${profissional.nome || "Profissional"}"
             >
 
