@@ -328,7 +328,8 @@ document.addEventListener("DOMContentLoaded", async () => {
           <div class="profissional-topo">
 
             <img
-              src="${profissional.foto_url || "https://via.placeholder.com/100x100/f3b0d7/ffffff?text=💅"}"
+              src="${profissional.foto_url || "/public/img/negocio-padrao.png"}"
+              onerror="this.onerror=null; this.src='/public/img/negocio-padrao.png';"
               class="profissional-foto"
             >
 

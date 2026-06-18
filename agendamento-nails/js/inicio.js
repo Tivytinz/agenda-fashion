@@ -86,14 +86,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     return R * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)));
   }
 
-  function pegarFoto(item) {
-  if (item.foto_url && item.foto_url.trim()) {
-    return item.foto_url;
-  }
-
-  return "/public/img/negocio-padrao.png";
-
-}
   function renderizarNegocios(lista) {
     listaNegocios.innerHTML = "";
 
@@ -116,15 +108,32 @@ document.addEventListener("DOMContentLoaded", async () => {
 
       const areas = Array.isArray(negocio.areas) ? negocio.areas : [];
 
-      card.innerHTML = `
-  <img
-  src="${pegarFoto(negocio)}"
-  alt="${negocio.nome || "Negócio"}"
-  onerror="this.onerror=null; this.src='/public/img/negocio-padrao.png';"
->
+      const iniciais = (negocio.nome || "N")
+  .split(" ")
+  .map((parte) => parte[0])
+  .join("")
+  .substring(0, 2)
+  .toUpperCase();
 
-  <h3>${negocio.nome || "Negócio"}</h3>
+const fotoHtml = negocio.foto_url && negocio.foto_url.trim()
+  ? `
+    <img
+      class="foto-card-negocio"
+      src="${negocio.foto_url}"
+      alt="${negocio.nome || "Negócio"}"
+      onerror="this.outerHTML='<div class=&quot;avatar-negocio-card&quot;>${iniciais}</div>'"
+    >
+  `
+  : `
+    <div class="avatar-negocio-card">
+      ${iniciais}
+    </div>
+  `;
 
+card.innerHTML = `
+  ${fotoHtml}
+
+  <h3>${negocio.nome || "Negócio"}</h3> 
 
         <span class="local">
           📍 ${negocio.cidade || "Cidade não informada"}
