@@ -30,6 +30,7 @@ app.use(express.json());
 const rootDir = path.join(process.cwd(), "agendamento-nails");;
 
 app.use(express.static(rootDir));
+app.use("/public", express.static(path.join(rootDir, "public")));
 
 app.get("/", (req, res) => {
   res.sendFile(path.join(rootDir, "html", "inicio.html"));
