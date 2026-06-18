@@ -91,7 +91,8 @@ document.addEventListener("DOMContentLoaded", async () => {
     return item.foto_url;
   }
 
-  return "/img/negocio-padrao.png";
+  return "/public/img/negocio-padrao.png";
+
 }
   function renderizarNegocios(lista) {
     listaNegocios.innerHTML = "";
@@ -117,10 +118,10 @@ document.addEventListener("DOMContentLoaded", async () => {
 
       card.innerHTML = `
   <img
-    src="${pegarFoto(negocio)}"
-    alt="${negocio.nome || "Negócio"}"
-    onerror="this.src='/img/negocio-padrao.png'"
-  >
+  src="${pegarFoto(negocio)}"
+  alt="${negocio.nome || "Negócio"}"
+  onerror="this.onerror=null; this.src='/public/img/negocio-padrao.png';"
+>
 
   <h3>${negocio.nome || "Negócio"}</h3>
 
