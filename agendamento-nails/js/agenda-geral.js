@@ -146,11 +146,25 @@ document.addEventListener("DOMContentLoaded", async () => {
       bloco.innerHTML = `
         <div class="profissional-topo">
           <div class="profissional-info">
-            <img
-              class="profissional-foto"
-              src="${profissional.foto_url || "/public/img/negocio-padrao.png"}"
-              alt="${profissional.nome || "Profissional"}"
-            >
+            ${profissional.foto_url
+  ? `
+    <img
+      class="profissional-foto"
+      src="${profissional.foto_url}"
+      alt="${profissional.nome || "Profissional"}"
+    >
+  `
+  : `
+    <div class="profissional-foto avatar-iniciais">
+      ${(profissional.nome || "P")
+        .split(" ")
+        .map(p => p[0])
+        .join("")
+        .substring(0, 2)
+        .toUpperCase()}
+    </div>
+  `
+}
 
             <div>
               <strong>${profissional.nome || "Profissional"}</strong>

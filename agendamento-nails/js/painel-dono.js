@@ -327,11 +327,26 @@ document.addEventListener("DOMContentLoaded", async () => {
         card.innerHTML = `
           <div class="profissional-topo">
 
-            <img
-              src="${profissional.foto_url || "/public/img/negocio-padrao.png"}"
-              onerror="this.onerror=null; this.src='/public/img/negocio-padrao.png';"
-              class="profissional-foto"
-            >
+            ${
+  profissional.foto_url
+    ? `
+      <img
+        src="${profissional.foto_url}"
+        class="profissional-foto"
+        alt="${profissional.nome}"
+      >
+    `
+    : `
+      <div class="profissional-foto avatar-iniciais">
+        ${(profissional.nome || "P")
+          .split(" ")
+          .map(p => p[0])
+          .join("")
+          .substring(0, 2)
+          .toUpperCase()}
+      </div>
+    `
+}
 
             <div>
               <strong>

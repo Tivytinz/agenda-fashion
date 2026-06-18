@@ -370,3 +370,16 @@
     min-width: 110px;
   }
 }
+.avatar-iniciais{
+  width:60px;
+  height:60px;
+  border-radius:50%;
+  background:#e7abd1;
+  color:#fff;
+  font-weight:700;
+  font-size:22px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  flex-shrink:0;
+}
