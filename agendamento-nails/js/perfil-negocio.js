@@ -861,25 +861,34 @@ async function removerServico(id) {
 }
 
   async function carregarFavorito() {
-    const token = localStorage.getItem("token");
+  const token = localStorage.getItem("token");
+  const usuario = JSON.parse(localStorage.getItem("usuario") || "null");
 
-    if (!token || !negocioAtual?.id || !btnFavorito || ehDonoDoPerfil()) return;
-
-    try {
-      const resposta = await fetch(`${API_URL}/favoritos/${negocioAtual.id}/status`, {
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
-      });
-
-      const resultado = await resposta.json();
-
-      if (resultado.favoritado) {
-        btnFavorito.classList.add("ativo");
-        btnFavorito.innerHTML = "❤️ Favorito";
-      }
-    } catch {}
+  if (
+    !token ||
+    usuario?.tipo !== "cliente" ||
+    !negocioAtual?.id ||
+    !btnFavorito ||
+    ehDonoDoPerfil()
+  ) {
+    return;
   }
+
+  try {
+    const resposta = await fetch(`${API_URL}/favoritos/${negocioAtual.id}/status`, {
+      headers: {
+        Authorization: `Bearer ${token}`
+      }
+    });
+
+    const resultado = await resposta.json();
+
+    if (resultado.favoritado) {
+      btnFavorito.classList.add("ativo");
+      btnFavorito.innerHTML = "❤️ Favorito";
+    }
+  } catch {}
+}
 
   async function copiarLinkPerfil() {
   try {
