@@ -5,7 +5,6 @@ const express = require("express");
 const cors = require("cors");
 
 const app = express();
-console.log("DATABASE_URL existe?", !!process.env.DATABASE_URL);
 
 const db = require("./db");
 
@@ -27,7 +26,7 @@ app.use(cors({
 
 app.use(express.json());
 
-const rootDir = path.join(process.cwd(), "agendamento-nails");;
+const rootDir = path.join(process.cwd(), "agendamento-nails");
 
 app.use(express.static(rootDir));
 app.use("/public", express.static(path.join(rootDir, "public")));
@@ -48,8 +47,8 @@ app.listen(PORT, () => {
   console.log(`Servidor rodando na porta ${PORT}`);
 
   db.query("SELECT NOW()")
-    .then((res) => {
-      console.log("Banco conectado:", res.rows);
+    .then((resultado) => {
+      console.log("Banco conectado:", resultado.rows);
     })
     .catch((err) => {
       console.error("Erro banco:", err);
