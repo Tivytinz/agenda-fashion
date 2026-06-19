@@ -95,6 +95,12 @@ router.get(
   agendaController.listarAgendamentosFuncionario
 );
 
+router.get(
+  "/notificacoes-agenda",
+  auth,
+  agendaController.buscarNotificacoesAgenda
+);
+
 // =============================
 // 📊 DASHBOARD
 // =============================

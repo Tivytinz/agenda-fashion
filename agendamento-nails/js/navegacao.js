@@ -1,4 +1,4 @@
-document.addEventListener("DOMContentLoaded", () => {
+document.addEventListener("DOMContentLoaded", async () => {
   const nav = document.getElementById("appNav");
   if (!nav) return;
 
@@ -22,18 +22,42 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  function render(itens) {
-    nav.innerHTML = itens
-      .map((item) => `
-        <a href="${item.href}" class="nav-item">
-          <span>${item.icone}</span>
-          <small>${item.texto}</small>
-        </a>
-      `)
-      .join("");
+  async function buscarNotificacoesAgenda() {
+  const token = localStorage.getItem("token");
 
-    ativarPaginaAtual();
+  if (!token) return 0;
+
+  try {
+    const resposta = await fetch("/notificacoes-agenda", {
+      headers: {
+        Authorization: `Bearer ${token}`
+      }
+    });
+
+    const data = await resposta.json();
+
+    return data.total || 0;
+
+  } catch {
+    return 0;
   }
+}
+
+  function render(itens) {
+  nav.innerHTML = itens
+    .map((item) => `
+      <a href="${item.href}" class="nav-item">
+        <span class="nav-icon-wrap">
+          <span>${item.icone}</span>
+          ${item.badge ? `<b class="nav-badge">${item.badge}</b>` : ""}
+        </span>
+        <small>${item.texto}</small>
+      </a>
+    `)
+    .join("");
+
+  ativarPaginaAtual();
+}
 
   if (!usuario) {
     render([
@@ -64,10 +88,12 @@ document.addEventListener("DOMContentLoaded", () => {
     ? `${page("perfil-negocio.html")}?slug=${encodeURIComponent(negocio.slug)}`
     : page("perfil-negocio.html");
 
+    const totalAgenda = await buscarNotificacoesAgenda();
+
   if (ehDono) {
     render([
       { href: page("inicio.html"), icone: "🏠", texto: "Início" },
-      { href: page("agenda-geral.html"), icone: "📅", texto: "Agenda" },
+      { href: page("agenda-geral.html"), icone: "📅", texto: "Agenda", badge: totalAgenda },
       { href: page("dashboard-dono.html"), icone: "📊", texto: "Dash" },
       { href: perfilHref, icone: "🏢", texto: "Perfil" },
       { href: page("minha-conta.html"), icone: "⚙️", texto: "Config" }
@@ -87,7 +113,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   render([
     { href: page("inicio.html"), icone: "🏠", texto: "Início" },
-    { href: page("agenda-profissional.html"), icone: "📅", texto: "Agenda" },
+    { href: page("agenda-profissional.html"), icone: "📅", texto: "Agenda", badge: totalAgenda },
     { href: perfilHref, icone: "🏢", texto: "Perfil" },
     { href: page("minha-conta.html"), icone: "⚙️", texto: "Config" }
   ]);

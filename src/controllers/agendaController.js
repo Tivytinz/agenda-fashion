@@ -390,10 +390,70 @@ async function buscarAgendaGeral(req, res) {
   }
 }
 
+async function buscarNotificacoesAgenda(req, res) {
+  try {
+    const usuarioId = req.user.id;
+
+    const negocioResult = await db.query(
+      `
+      SELECT negocio_id, papel
+      FROM usuarios_negocios
+      WHERE usuario_id = $1
+      LIMIT 1
+      `,
+      [usuarioId]
+    );
+
+    if (negocioResult.rows.length === 0) {
+      return res.json({ total: 0 });
+    }
+
+    const vinculo = negocioResult.rows[0];
+
+    let result;
+
+    if (vinculo.papel === "dono") {
+      result = await db.query(
+        `
+        SELECT COUNT(*)::int AS total
+        FROM agendamentos
+        WHERE negocio_id = $1
+          AND data >= CURRENT_DATE
+          AND status IN ('agendado', 'confirmado')
+        `,
+        [vinculo.negocio_id]
+      );
+    } else {
+      result = await db.query(
+        `
+        SELECT COUNT(*)::int AS total
+        FROM agendamentos
+        WHERE profissional_id = $1
+          AND data >= CURRENT_DATE
+          AND status IN ('agendado', 'confirmado')
+        `,
+        [usuarioId]
+      );
+    }
+
+    return res.json({
+      total: result.rows[0].total
+    });
+
+  } catch (err) {
+    console.error("Erro notificações agenda:", err);
+
+    return res.status(500).json({
+      erro: "Erro ao buscar notificações."
+    });
+  }
+}
+
 // =============================
 module.exports = {
   buscarAgendaProfissional,
   listarAgendamentosFuncionario,
   alternarBloqueioHorario,
-  buscarAgendaGeral
+  buscarAgendaGeral,
+  buscarNotificacoesAgenda
 };

@@ -302,25 +302,30 @@ if (!clienteId) {
     const novoAgendamento = await db.query(
       `
       INSERT INTO agendamentos (
-        usuarios_id,
-        data,
-        horario,
-        profissional_id,
-        cliente_id,
-        servico_id,
-        status,
-        created_at
+      usuarios_id,
+      data,
+      horario,
+      profissional_id,
+      cliente_id,
+      servico_id,
+      negocio_id,
+      status,
+      created_at
       )
-      VALUES ($1, $2, $3, $4, $5, $6, 'agendado', NOW())
+      )
+      VALUES ($1, $2, $3, $4, $5, $6, $7, 'agendado', NOW())
       RETURNING *
       `,
       [
-        clienteId,
-        data,
-        horario,
-        profissional_id,
-        clienteId,
-        servico_id
+      [
+    clienteId,
+    data,
+    horario,
+    profissional_id,
+    clienteId,
+    servico_id,
+    negocio.id
+      ]
       ]
     );
 
