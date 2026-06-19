@@ -81,27 +81,32 @@ async function buscarPerfilPublico(req, res) {
     const negocioResult = await db.query(
       `
       SELECT
-        n.id,
-        n.nome,
-        n.slug,
-        n.foto_url,
-        n.foto_public_id,
-        n.descricao,
-        n.setor,
-        n.cidade,
-        n.bairro,
-        n.localizacao_url,
-        n.whatsapp_negocio,
-        n.areas,
-        n.latitude,
-        n.longitude
-      FROM negocios n
-      WHERE n.slug = $1
-      LIMIT 1
-      `,
-      [slug]
-    );
-
+      n.id,
+      n.nome,
+      n.slug,
+      n.foto_url,
+      n.foto_public_id,
+      n.descricao,
+      n.setor,
+    n.cidade,
+    n.bairro,
+    n.localizacao_url,
+    n.whatsapp_negocio,
+    n.areas,
+    n.latitude,
+    n.longitude,
+    COALESCE(AVG(a.avaliacao), 0)::numeric(2,1) AS media_avaliacoes,
+    COUNT(a.avaliacao)::int AS total_avaliacoes
+  FROM negocios n
+  LEFT JOIN agendamentos a
+    ON a.negocio_id = n.id
+    AND a.avaliacao IS NOT NULL
+  WHERE n.slug = $1
+  GROUP BY n.id
+  LIMIT 1
+  `,
+  [slug]
+);
     if (negocioResult.rows.length === 0) {
       return res.status(404).json({
         erro: "Negócio não encontrado."

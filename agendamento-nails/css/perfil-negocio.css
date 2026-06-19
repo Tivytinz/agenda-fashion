@@ -15,9 +15,16 @@
 }
 
 .perfil-capa{
-  height:220px;
-  background:var(--gradiente-marca);
-  position:relative;
+  height:240px;
+  background:
+    linear-gradient(
+      rgba(0,0,0,.25),
+      rgba(0,0,0,.25)
+    ),
+    url('/public/capa-default.jpg');
+
+  background-size:cover;
+  background-position:center;
 }
 
 .perfil-conteudo{
@@ -96,10 +103,9 @@
 }
 
 .linha-distancia{
-  background:#eefaf2;
-  color:#34a853;
-  padding:10px 14px;
-  border-radius:999px;
+  background:#34a853;
+  color:white;
+  font-weight:900;
 }
 
 .bio-box{
@@ -235,8 +241,14 @@
   box-shadow:var(--sombra-card);
 }
 
+.item-selecao{
+  transition:.2s;
+}
+
 .item-selecao.ativo{
   border:2px solid var(--rosa-principal);
+  transform:translateY(-3px);
+  box-shadow:0 10px 30px rgba(231,171,209,.35);
 }
 
 .estado-vazio{
@@ -488,4 +500,25 @@
   align-items:center;
   justify-content:center;
   flex-shrink:0;
+}
+
+@media(max-width:768px){
+
+  .resumo-agendamento{
+    position:fixed;
+    bottom:70px;
+    left:0;
+    right:0;
+    z-index:100;
+    margin:0;
+    border-radius:20px 20px 0 0;
+    background:white;
+    box-shadow:0 -4px 20px rgba(0,0,0,.12);
+  }
+
+}
+.linha-avaliacao{
+  margin-top:8px;
+  font-weight:800;
+  color:#f59e0b;
 }

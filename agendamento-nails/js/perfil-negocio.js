@@ -3,6 +3,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   const fotoNegocio = document.getElementById("fotoNegocio");
   const nomeNegocio = document.getElementById("nomeNegocio");
+  const linhaAvaliacao = document.getElementById("linhaAvaliacao");
   const descricaoNegocio = document.getElementById("descricaoNegocio");
   const cidadeBairro = document.getElementById("cidadeBairroNegocio");
   const areasNegocio = document.getElementById("areasNegocio");
@@ -106,7 +107,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     fotoNegocio.src = n.foto_url;
     fotoNegocio.style.display = "block";
 
-  } else {
+  }   else {
 
     const iniciais = (n.nome || "N")
       .split(" ")
@@ -121,7 +122,18 @@ document.addEventListener("DOMContentLoaded", async () => {
       </div>
     `;
   }
+  
 }
+    if (linhaAvaliacao) {
+
+    const total = Number(n.total_avaliacoes || 0);
+    const media = Number(n.media_avaliacoes || 0);
+
+    linhaAvaliacao.textContent =
+      total > 0
+        ? `⭐ ${media.toFixed(1)} • ${total} avaliação${total > 1 ? "ões" : ""}`
+        : "⭐ Novo negócio";
+    }
 
     if (nomeNegocio) {
       nomeNegocio.textContent = n.nome || "Negócio";
