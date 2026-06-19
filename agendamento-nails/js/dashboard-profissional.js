@@ -23,7 +23,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
 
   async function carregarDashboard() {
-    const res = await fetch(`${API}/dashboard-profissional`, {
+    const res = await fetch(`${API_URL}/dashboard-profissional`, {
       headers: {
         Authorization: "Bearer " + token
       }
@@ -71,9 +71,12 @@ document.addEventListener("DOMContentLoaded", async () => {
   });
 
   btnSair.addEventListener("click", () => {
-    localStorage.clear();
-    window.location.href = "login-profissional.html";
-  });
+  localStorage.removeItem("token");
+  localStorage.removeItem("usuario");
+  localStorage.removeItem("negocio");
+
+  window.location.href = "login-profissional.html";
+});
 
   await carregarDashboard();
 });

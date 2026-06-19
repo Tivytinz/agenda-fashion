@@ -2,6 +2,9 @@ const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const db = require("../db");
 
+const JWT_SECRET = "segredo";
+const TOKEN_EXPIRES_IN = "90d";
+
 // =========================
 // CADASTRO
 // =========================
@@ -53,8 +56,8 @@ async function cadastro(req, res) {
         id: usuarioCriado.id,
         tipo: usuarioCriado.tipo
       },
-      "segredo",
-      { expiresIn: "1d" }
+      JWT_SECRET,
+      { expiresIn: TOKEN_EXPIRES_IN }
     );
 
     return res.status(201).json({
@@ -102,8 +105,8 @@ async function login(req, res) {
         id: usuarioData.id,
         tipo: usuarioData.tipo
       },
-      "segredo",
-      { expiresIn: "1d" }
+      JWT_SECRET,
+      { expiresIn: TOKEN_EXPIRES_IN }
     );
 
     return res.json({
