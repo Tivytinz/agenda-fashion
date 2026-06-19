@@ -545,3 +545,44 @@
     width:100%;
   }
 }
+
+.perfil-completo-box{
+  margin-top:16px;
+  background:#fff;
+  padding:16px;
+  border-radius:16px;
+}
+
+.perfil-completo-topo{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  margin-bottom:10px;
+}
+
+.perfil-completo-topo strong{
+  color:var(--rosa-principal);
+  font-size:22px;
+}
+
+.perfil-completo-barra{
+  height:10px;
+  background:#f2f2f2;
+  border-radius:999px;
+  overflow:hidden;
+}
+
+.perfil-completo-progresso{
+  height:100%;
+  width:0%;
+  background:var(--gradiente-marca);
+  transition:.3s;
+}
+
+.perfil-completo-checklist{
+  margin-top:12px;
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+  font-size:14px;
+}

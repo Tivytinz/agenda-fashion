@@ -189,6 +189,65 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     btnFavorito?.classList.add("hidden");
   }
+  
+  function atualizarPerfilCompleto(negocio, servicos = []) {
+
+  const percentual =
+    document.getElementById("perfilCompletoPercentual");
+
+  const progresso =
+    document.getElementById("perfilCompletoProgresso");
+
+  const checklist =
+    document.getElementById("perfilCompletoChecklist");
+
+  if (!percentual || !progresso || !checklist) return;
+
+  const itens = [
+    {
+      nome: "Foto",
+      ok: !!negocio.foto_url
+    },
+    {
+      nome: "Descrição",
+      ok: !!negocio.descricao?.trim()
+    },
+    {
+      nome: "WhatsApp",
+      ok: !!negocio.whatsapp_negocio
+    },
+    {
+      nome: "Localização",
+      ok: !!negocio.localizacao_url
+    },
+    {
+      nome: "Serviços",
+      ok: servicos.length > 0
+    }
+  ];
+
+  const concluidos =
+    itens.filter(i => i.ok).length;
+
+  const total =
+    itens.length;
+
+  const porcentagem =
+    Math.round((concluidos / total) * 100);
+
+  percentual.textContent =
+    `${porcentagem}%`;
+
+  progresso.style.width =
+    `${porcentagem}%`;
+
+  checklist.innerHTML =
+    itens.map(item => `
+      <div>
+        ${item.ok ? "✅" : "❌"} ${item.nome}
+      </div>
+    `).join("");
+}
 
   function atualizarResumo() {
   if (resumoServico) {
@@ -1038,6 +1097,10 @@ setTimeout(() => {
       ativarModoDono();
       renderizarServicos(resultado.servicos || []);
       renderizarProfissionais(resultado.profissionais || []);
+      atualizarPerfilCompleto(
+      negocioAtual,
+      resultado.servicos || []
+);
       await carregarFavorito();
 
     } catch (erro) {
