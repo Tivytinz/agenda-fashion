@@ -45,6 +45,7 @@
             class="edit-btn dono-only hidden"
             data-edit="foto"
             title="Alterar foto"
+            type="button"
           >
             📷
           </button>
@@ -59,14 +60,15 @@
               class="edit-icon dono-only hidden"
               data-edit="nome"
               title="Editar nome"
+              type="button"
             >
               ✏️
             </button>
-            </div>
-            
-            <div id="linhaAvaliacao" class="linha-avaliacao">
-              ⭐ Novo negócio
-            </div>
+          </div>
+
+          <div id="linhaAvaliacao" class="linha-avaliacao">
+            ⭐ Novo negócio
+          </div>
 
           <div class="linha-principal">
             <span
@@ -78,6 +80,7 @@
               class="edit-icon dono-only hidden"
               data-edit="local"
               title="Editar cidade e bairro"
+              type="button"
             >
               ✏️
             </button>
@@ -98,6 +101,7 @@
               class="edit-icon dono-only hidden"
               data-edit="bio"
               title="Editar bio"
+              type="button"
             >
               ✏️
             </button>
@@ -110,9 +114,9 @@
                 id="btnWhatsapp"
                 class="app-action whatsapp hidden"
                 target="_blank"
+                rel="noopener noreferrer"
               >
                 <span>📲</span>
-
                 <span>WhatsApp</span>
               </a>
 
@@ -120,6 +124,7 @@
                 class="edit-mini dono-only hidden"
                 data-edit="whatsapp"
                 title="Editar WhatsApp"
+                type="button"
               >
                 ✏️
               </button>
@@ -130,9 +135,9 @@
                 id="btnMaps"
                 class="app-action maps hidden"
                 target="_blank"
+                rel="noopener noreferrer"
               >
                 <span>📍</span>
-
                 <span>Maps</span>
               </a>
 
@@ -140,6 +145,7 @@
                 class="edit-mini dono-only hidden"
                 data-edit="maps"
                 title="Editar Maps"
+                type="button"
               >
                 ✏️
               </button>
@@ -148,6 +154,7 @@
             <button
               id="btnFavorito"
               class="app-action favorito"
+              type="button"
             >
               ♡ Favoritar
             </button>
@@ -165,6 +172,7 @@
           <button
             class="edit-mini dono-only hidden"
             data-edit="areas"
+            type="button"
           >
             Editar
           </button>
@@ -196,6 +204,7 @@
         <button
           class="af-btn-primary"
           data-action="novo-servico"
+          type="button"
         >
           + Serviço
         </button>
@@ -203,6 +212,7 @@
         <button
           class="af-btn-secondary"
           data-action="novo-profissional"
+          type="button"
         >
           + Profissional
         </button>
@@ -210,6 +220,7 @@
         <button
           id="btnCopiarAgenda"
           class="af-btn-secondary"
+          type="button"
         >
           📋 Copiar link público
         </button>
@@ -218,64 +229,80 @@
 
     <section class="fluxo-agendamento">
 
-  <div class="etapas">
-    <div id="etapaServico" class="etapa ativa">1 Serviço</div>
-    <div id="etapaHorario" class="etapa">2 Horário</div>
-  </div>
-
-  <section id="boxServicos" class="perfil-section">
-    <div class="section-title-row">
-      <div>
-        <span class="af-badge badge-soft">Etapa 1</span>
-        <h2>Escolha o serviço</h2>
-        <p>Selecione o atendimento que deseja agendar.</p>
+      <div class="etapas">
+        <div id="etapaServico" class="etapa ativa">1 Serviço</div>
+        <div id="etapaHorario" class="etapa">2 Horário</div>
       </div>
 
-      <button class="af-btn-primary dono-only hidden" data-action="novo-servico">
-        + Novo serviço
-      </button>
-    </div>
+      <section id="boxServicos" class="perfil-section">
+        <div class="section-title-row">
+          <div>
+            <span class="af-badge badge-soft">Etapa 1</span>
+            <h2>Escolha o serviço</h2>
+            <p>Selecione o atendimento que deseja agendar.</p>
+          </div>
 
-    <div id="listaServicos" class="cards-servicos"></div>
-  </section>
+          <button
+            class="af-btn-primary dono-only hidden"
+            data-action="novo-servico"
+            type="button"
+          >
+            + Novo serviço
+          </button>
+        </div>
 
-  <section id="boxProfissionaisHorarios" class="perfil-section hidden">
-    <div class="section-title-row">
-      <div>
-        <span class="af-badge badge-soft">Etapa 2</span>
-        <h2>Escolha profissional e horário</h2>
-        <p>Ao escolher o profissional, os horários aparecem automaticamente.</p>
-      </div>
+        <div id="listaServicos" class="cards-servicos"></div>
+      </section>
 
-      <button class="af-btn-primary dono-only hidden" data-action="novo-profissional">
-        + Profissional
-      </button>
-    </div>
+      <section id="boxProfissionaisHorarios" class="perfil-section hidden">
+        <div class="section-title-row">
+          <div>
+            <span class="af-badge badge-soft">Etapa 2</span>
+            <h2>Escolha profissional e horário</h2>
+            <p>Ao escolher o profissional, os horários aparecem automaticamente.</p>
+          </div>
 
-    <div id="listaProfissionais" class="cards-profissionais"></div>
+          <button
+            class="af-btn-primary dono-only hidden"
+            data-action="novo-profissional"
+            type="button"
+          >
+            + Profissional
+          </button>
+        </div>
 
-    <div class="horarios-box af-card">
-      <h3>Horários disponíveis</h3>
-      <div id="listaHorariosDisponiveis" class="horarios-grid">
-        <div class="estado-vazio">Escolha um profissional para ver os horários.</div>
-      </div>
-    </div>
-  </section>
+        <div id="listaProfissionais" class="cards-profissionais"></div>
 
-  <section class="resumo-agendamento af-card">
-    <div class="resumo-info">
-      <strong>Resumo do agendamento</strong>
-      <span id="resumoServico">Serviço: nenhum</span>
-      <span id="resumoProfissional">Profissional: nenhum</span>
-      <span id="resumoHorario">Horário: nenhum</span>
-    </div>
+        <div class="horarios-box af-card">
+          <h3>Horários disponíveis</h3>
 
-    <button id="btnContinuarAgendamento" class="af-btn-primary btn-disabled" disabled>
-      Confirmar agendamento
-    </button>
-  </section>
+          <div id="listaHorariosDisponiveis" class="horarios-grid">
+            <div class="estado-vazio">
+              Escolha um profissional para ver os horários.
+            </div>
+          </div>
+        </div>
+      </section>
 
-</section>
+      <section class="resumo-agendamento af-card">
+        <div class="resumo-info">
+          <strong>Resumo do agendamento</strong>
+          <span id="resumoServico">Serviço: nenhum</span>
+          <span id="resumoProfissional">Profissional: nenhum</span>
+          <span id="resumoHorario">Horário: nenhum</span>
+        </div>
+
+        <button
+          id="btnContinuarAgendamento"
+          class="af-btn-primary btn-disabled"
+          type="button"
+          disabled
+        >
+          Confirmar agendamento
+        </button>
+      </section>
+
+    </section>
 
   </main>
 
@@ -295,6 +322,7 @@
         <button
           id="btnFecharModal"
           class="modal-close"
+          type="button"
         >
           ✕
         </button>
@@ -309,6 +337,7 @@
         <button
           id="btnCancelarModal"
           class="af-btn-secondary"
+          type="button"
         >
           Cancelar
         </button>
@@ -316,6 +345,7 @@
         <button
           id="btnSalvarModal"
           class="af-btn-primary"
+          type="button"
         >
           Salvar
         </button>
