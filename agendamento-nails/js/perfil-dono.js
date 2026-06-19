@@ -1,5 +1,7 @@
 document.addEventListener("DOMContentLoaded", () => {
 
+  const token = localStorage.getItem("token");
+
   const usuario = JSON.parse(
     localStorage.getItem("usuario") || "null"
   );
@@ -12,7 +14,7 @@ document.addEventListener("DOMContentLoaded", () => {
     usuario?.tipo === "dono" ||
     negocio?.papel === "dono";
 
-  if (!usuario || !ehDono) {
+  if (!token || !usuario || !ehDono) {
     window.location.href = "login-profissional.html";
     return;
   }

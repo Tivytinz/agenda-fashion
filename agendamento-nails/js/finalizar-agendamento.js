@@ -13,7 +13,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
 
   if (!agendamentoPendente) {
-    window.location.href = "home.html";
+    window.location.href = "inicio.html";
     return;
   }
 
@@ -52,7 +52,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     localStorage.removeItem("agendamentoPendente");
 
     setTimeout(() => {
-      window.location.href = "home.html";
+      window.location.href = "inicio.html";
     }, 1800);
   }
 });

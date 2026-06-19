@@ -1,4 +1,6 @@
 document.addEventListener("DOMContentLoaded", async () => {
+  const API_URL = "https://agenda-fashion-production.up.railway.app";
+
   const nav = document.getElementById("appNav");
   if (!nav) return;
 
@@ -23,41 +25,43 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
 
   async function buscarNotificacoesAgenda() {
-  const token = localStorage.getItem("token");
+    const token = localStorage.getItem("token");
 
-  if (!token) return 0;
+    if (!token) return 0;
 
-  try {
-    const resposta = await fetch("/notificacoes-agenda", {
-      headers: {
-        Authorization: `Bearer ${token}`
-      }
-    });
+    try {
+      const resposta = await fetch(`${API_URL}/notificacoes-agenda`, {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
 
-    const data = await resposta.json();
+      const data = await resposta.json();
 
-    return data.total || 0;
+      if (!resposta.ok) return 0;
 
-  } catch {
-    return 0;
+      return data.total || 0;
+
+    } catch {
+      return 0;
+    }
   }
-}
 
   function render(itens) {
-  nav.innerHTML = itens
-    .map((item) => `
-      <a href="${item.href}" class="nav-item">
-        <span class="nav-icon-wrap">
-          <span>${item.icone}</span>
-          ${item.badge ? `<b class="nav-badge">${item.badge}</b>` : ""}
-        </span>
-        <small>${item.texto}</small>
-      </a>
-    `)
-    .join("");
+    nav.innerHTML = itens
+      .map((item) => `
+        <a href="${item.href}" class="nav-item">
+          <span class="nav-icon-wrap">
+            <span>${item.icone}</span>
+            ${item.badge ? `<b class="nav-badge">${item.badge}</b>` : ""}
+          </span>
+          <small>${item.texto}</small>
+        </a>
+      `)
+      .join("");
 
-  ativarPaginaAtual();
-}
+    ativarPaginaAtual();
+  }
 
   if (!usuario) {
     render([
@@ -88,7 +92,10 @@ document.addEventListener("DOMContentLoaded", async () => {
     ? `${page("perfil-negocio.html")}?slug=${encodeURIComponent(negocio.slug)}`
     : page("perfil-negocio.html");
 
-    const totalAgenda = await buscarNotificacoesAgenda();
+  const totalAgenda =
+    ehDono || (ehFuncionario && negocio?.id)
+      ? await buscarNotificacoesAgenda()
+      : 0;
 
   if (ehDono) {
     render([
@@ -102,23 +109,23 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
 
   if (ehFuncionario) {
-  if (!negocio?.id) {
+    if (!negocio?.id) {
+      render([
+        { href: page("inicio.html"), icone: "🏠", texto: "Início" },
+        { href: page("criar-negocio.html"), icone: "➕", texto: "Criar" },
+        { href: page("minha-conta.html"), icone: "⚙️", texto: "Config" }
+      ]);
+      return;
+    }
+
     render([
       { href: page("inicio.html"), icone: "🏠", texto: "Início" },
-      { href: page("criar-negocio.html"), icone: "➕", texto: "Criar" },
+      { href: page("agenda-profissional.html"), icone: "📅", texto: "Agenda", badge: totalAgenda },
+      { href: perfilHref, icone: "🏢", texto: "Perfil" },
       { href: page("minha-conta.html"), icone: "⚙️", texto: "Config" }
     ]);
     return;
   }
-
-  render([
-    { href: page("inicio.html"), icone: "🏠", texto: "Início" },
-    { href: page("agenda-profissional.html"), icone: "📅", texto: "Agenda", badge: totalAgenda },
-    { href: perfilHref, icone: "🏢", texto: "Perfil" },
-    { href: page("minha-conta.html"), icone: "⚙️", texto: "Config" }
-  ]);
-  return;
-}
 
   if (tipo === "cliente") {
     render([

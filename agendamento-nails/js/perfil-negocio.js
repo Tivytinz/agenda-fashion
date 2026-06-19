@@ -651,7 +651,8 @@ function abrirNovoProfissional() {
     }
 
     negocioAtual.foto_url = data.foto;
-    fotoNegocio.src = data.foto;
+
+    window.location.reload();
   }
 
   async function salvarServico() {

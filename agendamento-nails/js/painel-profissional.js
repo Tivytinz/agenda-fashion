@@ -295,9 +295,11 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   if (btnSair) {
     btnSair.addEventListener("click", () => {
-      localStorage.removeItem("token");
-      localStorage.removeItem("usuario");
-      window.location.href = "login-profissional.html";
+    localStorage.removeItem("token");
+    localStorage.removeItem("usuario");
+    localStorage.removeItem("negocio");
+
+    window.location.href = "login-profissional.html";
     });
   }
 
