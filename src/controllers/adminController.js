@@ -16,7 +16,6 @@ async function buscarDashboardAdmin(req, res) {
   try {
     const periodo = req.query.periodo || "all";
     const filtros = filtroPeriodo();
-
     const filtro = filtros[periodo] || "";
 
     const negocios = await db.query(`
@@ -36,7 +35,7 @@ async function buscarDashboardAdmin(req, res) {
     const profissionais = await db.query(`
       SELECT COUNT(*)::int AS total
       FROM usuarios
-      WHERE tipo = 'profissional'
+      WHERE tipo IN ('profissional', 'dono')
       ${filtro}
     `);
 
@@ -48,27 +47,27 @@ async function buscarDashboardAdmin(req, res) {
     `);
 
     const visitas = await db.query(`
-    SELECT COALESCE(SUM(visitas),0)::int AS total
-    FROM negocios
-    `);
+      SELECT COALESCE(SUM(visitas), 0)::int AS total
+      FROM negocios
+    `).catch(() => ({ rows: [{ total: 0 }] }));
 
     const usuariosHoje = await db.query(`
       SELECT COUNT(*)::int AS total
       FROM usuarios
       WHERE created_at >= CURRENT_DATE
-    `);
+    `).catch(() => ({ rows: [{ total: 0 }] }));
 
     const negociosHoje = await db.query(`
       SELECT COUNT(*)::int AS total
       FROM negocios
       WHERE created_at >= CURRENT_DATE
-    `);
+    `).catch(() => ({ rows: [{ total: 0 }] }));
 
     const agendamentosHoje = await db.query(`
       SELECT COUNT(*)::int AS total
       FROM agendamentos
       WHERE created_at >= CURRENT_DATE
-    `);
+    `).catch(() => ({ rows: [{ total: 0 }] }));
 
     const favoritos = await db.query(`
       SELECT COUNT(*)::int AS total
@@ -135,31 +134,28 @@ async function buscarDashboardAdmin(req, res) {
         )
     `);
 
+    const totalNegocios = Number(negocios.rows[0].total || 0);
+    const totalAgendamentos = Number(agendamentos.rows[0].total || 0);
+
     const taxaConversao =
-      Number(negocios.rows[0].total) > 0
-        ? Math.round(
-            (Number(agendamentos.rows[0].total) /
-              Number(negocios.rows[0].total)) *
-              100
-          )
+      totalNegocios > 0
+        ? Math.round((totalAgendamentos / totalNegocios) * 100)
         : 0;
 
     return res.json({
       periodo,
 
-      totalNegocios: negocios.rows[0].total,
+      totalNegocios,
       totalClientes: clientes.rows[0].total,
       totalProfissionais: profissionais.rows[0].total,
-      totalAgendamentos: agendamentos.rows[0].total,
-
-      visitasPlataforma: visitas.rows[0].total,
+      totalAgendamentos,
 
       usuariosHoje: usuariosHoje.rows[0].total,
       negociosHoje: negociosHoje.rows[0].total,
       agendamentosHoje: agendamentosHoje.rows[0].total,
       taxaConversaoGeral: taxaConversao,
 
-      visitasPlataforma: 0,
+      visitasPlataforma: visitas.rows[0].total,
       cliquesWhatsapp: 0,
       cliquesMaps: 0,
       favoritosTotais: favoritos.rows[0].total,
@@ -213,9 +209,21 @@ async function listarNegociosAdmin(req, res) {
 async function listarAgendamentosAdmin(req, res) {
   try {
     const result = await db.query(`
-      SELECT *
-      FROM agendamentos
-      ORDER BY id DESC
+      SELECT
+        a.id,
+        a.data,
+        a.horario,
+        a.status,
+        c.nome AS cliente_nome,
+        n.nome AS negocio,
+        s.nome AS servico,
+        p.nome AS profissional
+      FROM agendamentos a
+      LEFT JOIN usuarios c ON c.id = a.cliente_id
+      LEFT JOIN usuarios p ON p.id = a.profissional_id
+      LEFT JOIN servicos_negocio s ON s.id = a.servico_id
+      LEFT JOIN negocios n ON n.id = COALESCE(a.negocio_id, s.negocio_id)
+      ORDER BY a.id DESC
       LIMIT 20
     `);
 
@@ -234,16 +242,32 @@ async function listarAgendamentosAdmin(req, res) {
 
 async function buscarMarketingAdmin(req, res) {
   try {
+    const negociosMaisAgendados = await db.query(`
+      SELECT
+        n.nome,
+        n.cidade,
+        COUNT(a.id)::int AS total,
+        COALESCE(SUM(s.valor), 0) AS faturamento
+      FROM negocios n
+      LEFT JOIN agendamentos a ON a.negocio_id = n.id
+      LEFT JOIN servicos_negocio s ON s.id = a.servico_id
+      WHERE a.status IS NULL
+         OR a.status != 'cancelado'
+      GROUP BY n.id, n.nome, n.cidade
+      ORDER BY total DESC
+      LIMIT 10
+    `).catch(() => ({ rows: [] }));
 
     const negociosMaisVistos = await db.query(`
       SELECT
         nome,
         cidade,
-        COALESCE(visitas, 0) AS visitas
+        COALESCE(visitas, 0)::int AS visitas,
+        COALESCE(cliques_whatsapp, 0)::int AS cliques_whatsapp
       FROM negocios
       ORDER BY visitas DESC
       LIMIT 10
-    `);
+    `).catch(() => ({ rows: [] }));
 
     const cidades = await db.query(`
       SELECT
@@ -251,16 +275,28 @@ async function buscarMarketingAdmin(req, res) {
         COUNT(*)::int AS total
       FROM negocios
       WHERE cidade IS NOT NULL
+        AND cidade <> ''
       GROUP BY cidade
       ORDER BY total DESC
       LIMIT 10
-    `);
+    `).catch(() => ({ rows: [] }));
+
+    const usuariosRecentes = await db.query(`
+      SELECT
+        nome,
+        email,
+        tipo,
+        created_at
+      FROM usuarios
+      ORDER BY created_at DESC
+      LIMIT 10
+    `).catch(() => ({ rows: [] }));
 
     return res.json({
-      negociosMaisAgendados: [],
+      negociosMaisAgendados: negociosMaisAgendados.rows,
       negociosMaisVistos: negociosMaisVistos.rows,
       cidades: cidades.rows,
-      usuariosRecentes: []
+      usuariosRecentes: usuariosRecentes.rows
     });
 
   } catch (err) {

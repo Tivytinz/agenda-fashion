@@ -15,66 +15,6 @@ async function buscarNegocioDono(usuarioId) {
   return result.rows[0] || null;
 }
 
-async function criarProfissional(req, res) {
-  try {
-    const usuarioId = req.user?.id;
-    const { nome, whatsapp } = req.body;
-
-    const vinculo = await buscarNegocioDono(usuarioId);
-
-    if (!vinculo) {
-      return res.status(403).json({ erro: "Apenas o dono pode adicionar profissionais." });
-    }
-
-    if (!nome || nome.trim().length < 2) {
-      return res.status(400).json({ erro: "Nome do profissional inválido." });
-    }
-
-    const novoUsuario = await db.query(
-      `
-      INSERT INTO usuarios (
-        nome,
-        email,
-        senha,
-        whatsapp,
-        tipo
-      )
-      VALUES ($1, $2, $3, $4, 'profissional')
-      RETURNING id, nome, email, whatsapp, tipo
-      `,
-      [
-        nome.trim(),
-        `profissional_${Date.now()}@agenda.local`,
-        "senha_temporaria",
-        whatsapp || ""
-      ]
-    );
-
-    const profissional = novoUsuario.rows[0];
-
-    await db.query(
-      `
-      INSERT INTO usuarios_negocios (
-        usuario_id,
-        negocio_id,
-        papel
-      )
-      VALUES ($1, $2, 'profissional')
-      `,
-      [profissional.id, vinculo.negocio_id]
-    );
-
-    return res.status(201).json({
-      mensagem: "Profissional criado com sucesso.",
-      profissional
-    });
-
-  } catch (err) {
-    console.error("Erro ao criar profissional:", err);
-    return res.status(500).json({ erro: "Erro ao criar profissional." });
-  }
-}
-
 async function editarProfissional(req, res) {
   try {
     const usuarioId = req.user?.id;
@@ -84,7 +24,15 @@ async function editarProfissional(req, res) {
     const vinculo = await buscarNegocioDono(usuarioId);
 
     if (!vinculo) {
-      return res.status(403).json({ erro: "Apenas o dono pode editar profissionais." });
+      return res.status(403).json({
+        erro: "Apenas o dono pode editar profissionais."
+      });
+    }
+
+    if (!nome || nome.trim().length < 2) {
+      return res.status(400).json({
+        erro: "Nome do profissional inválido."
+      });
     }
 
     const pertence = await db.query(
@@ -99,7 +47,9 @@ async function editarProfissional(req, res) {
     );
 
     if (pertence.rows.length === 0) {
-      return res.status(404).json({ erro: "Profissional não encontrado neste negócio." });
+      return res.status(404).json({
+        erro: "Profissional não encontrado neste negócio."
+      });
     }
 
     const result = await db.query(
@@ -109,10 +59,10 @@ async function editarProfissional(req, res) {
         nome = $1,
         whatsapp = $2
       WHERE id = $3
-      RETURNING id, nome, email, whatsapp, tipo
+      RETURNING id, nome, email, whatsapp, tipo, foto_url
       `,
       [
-        nome?.trim(),
+        nome.trim(),
         whatsapp || "",
         id
       ]
@@ -125,7 +75,10 @@ async function editarProfissional(req, res) {
 
   } catch (err) {
     console.error("Erro ao editar profissional:", err);
-    return res.status(500).json({ erro: "Erro ao editar profissional." });
+
+    return res.status(500).json({
+      erro: "Erro ao editar profissional."
+    });
   }
 }
 
@@ -137,11 +90,15 @@ async function removerProfissional(req, res) {
     const vinculo = await buscarNegocioDono(usuarioId);
 
     if (!vinculo) {
-      return res.status(403).json({ erro: "Apenas o dono pode remover profissionais." });
+      return res.status(403).json({
+        erro: "Apenas o dono pode remover profissionais."
+      });
     }
 
     if (Number(usuarioId) === Number(id)) {
-      return res.status(400).json({ erro: "O dono não pode remover a si mesmo." });
+      return res.status(400).json({
+        erro: "O dono não pode remover a si mesmo."
+      });
     }
 
     const result = await db.query(
@@ -155,7 +112,9 @@ async function removerProfissional(req, res) {
     );
 
     if (result.rows.length === 0) {
-      return res.status(404).json({ erro: "Profissional não encontrado." });
+      return res.status(404).json({
+        erro: "Profissional não encontrado."
+      });
     }
 
     return res.json({
@@ -164,7 +123,10 @@ async function removerProfissional(req, res) {
 
   } catch (err) {
     console.error("Erro ao remover profissional:", err);
-    return res.status(500).json({ erro: "Erro ao remover profissional." });
+
+    return res.status(500).json({
+      erro: "Erro ao remover profissional."
+    });
   }
 }
 
@@ -190,21 +152,25 @@ async function vincularProfissional(req, res) {
     const valorLimpo = emailOuWhatsapp.trim().toLowerCase();
     const whatsappLimpo = emailOuWhatsapp.replace(/\D/g, "");
 
-    const profissionaisResult = await db.query(
-  `
-  SELECT
-    u.id,
-    u.nome,
-    u.whatsapp,
-    u.foto_url
-  FROM usuarios u
-  INNER JOIN usuarios_negocios un
-    ON un.usuario_id = u.id
-  WHERE un.negocio_id = $1
-  ORDER BY u.nome ASC
-  `,
-  [negocio.id]
-);
+    const profissionalResult = await db.query(
+      `
+      SELECT
+        id,
+        nome,
+        email,
+        whatsapp,
+        tipo,
+        foto_url
+      FROM usuarios
+      WHERE tipo = 'profissional'
+        AND (
+          LOWER(email) = $1
+          OR REGEXP_REPLACE(COALESCE(whatsapp, ''), '\\D', '', 'g') = $2
+        )
+      LIMIT 1
+      `,
+      [valorLimpo, whatsappLimpo]
+    );
 
     if (profissionalResult.rows.length === 0) {
       return res.status(404).json({

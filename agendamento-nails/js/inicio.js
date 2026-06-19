@@ -162,7 +162,7 @@ card.innerHTML = `
       `;
 
       card.addEventListener("click", () => {
-        window.location.href = `perfil-negocio.html?slug=${encodeURIComponent(negocio.slug)}`;
+      window.location.href = `/html/perfil-negocio.html?slug=${encodeURIComponent(negocio.slug)}`;
       });
 
       listaNegocios.appendChild(card);
