@@ -733,3 +733,42 @@
     height:95px;
   }
 }
+.foto-publica-servico{
+  cursor:pointer;
+}
+
+.lightbox-galeria{
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,.82);
+  display:none;
+  align-items:center;
+  justify-content:center;
+  z-index:9999;
+  padding:20px;
+}
+
+.lightbox-galeria.ativo{
+  display:flex;
+}
+
+.lightbox-galeria img{
+  max-width:95%;
+  max-height:85vh;
+  border-radius:22px;
+  object-fit:contain;
+}
+
+.lightbox-fechar{
+  position:absolute;
+  top:22px;
+  right:22px;
+  width:42px;
+  height:42px;
+  border:none;
+  border-radius:50%;
+  background:white;
+  font-size:20px;
+  font-weight:900;
+  cursor:pointer;
+}

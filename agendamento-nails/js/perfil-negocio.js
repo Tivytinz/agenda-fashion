@@ -302,10 +302,11 @@ async function carregarGaleriaPublicaServico(servicoId) {
       <div class="galeria-publica-grid">
         ${fotos.slice(0, 4).map(foto => `
           <img
-            src="${foto.foto_url}"
-            alt="Foto do serviço"
-            class="foto-publica-servico"
-          >
+  src="${foto.foto_url}"
+  alt="Foto do serviço"
+  class="foto-publica-servico"
+  data-lightbox-src="${foto.foto_url}"
+>
         `).join("")}
       </div>
     `;
@@ -1212,7 +1213,61 @@ setTimeout(() => {
   }
 });
 
+function abrirLightbox(src) {
+  let lightbox = document.getElementById("lightboxGaleria");
+
+  if (!lightbox) {
+    lightbox = document.createElement("div");
+    lightbox.id = "lightboxGaleria";
+    lightbox.className = "lightbox-galeria";
+
+    lightbox.innerHTML = `
+      <button
+        type="button"
+        class="lightbox-fechar"
+      >
+        ✕
+      </button>
+
+      <img
+        id="lightboxImagem"
+        src=""
+        alt="Foto ampliada"
+      >
+    `;
+
+    document.body.appendChild(lightbox);
+  }
+
+  const imagem = document.getElementById("lightboxImagem");
+  imagem.src = src;
+
+  lightbox.classList.add("ativo");
+}
+
+function fecharLightbox() {
+  const lightbox = document.getElementById("lightboxGaleria");
+
+  if (lightbox) {
+    lightbox.classList.remove("ativo");
+  }
+}
+
   document.addEventListener("click", async (e) => {
+    const fotoLightbox = e.target.closest("[data-lightbox-src]");
+
+if (fotoLightbox) {
+  abrirLightbox(fotoLightbox.dataset.lightboxSrc);
+  return;
+}
+
+if (
+  e.target.closest(".lightbox-fechar") ||
+  e.target.id === "lightboxGaleria"
+) {
+  fecharLightbox();
+  return;
+}
   const edit = e.target.closest("[data-edit]");
   if (edit) {
     abrirEdicaoCampo(edit.dataset.edit);
