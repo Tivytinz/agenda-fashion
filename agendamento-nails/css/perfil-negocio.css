@@ -580,3 +580,54 @@
   gap:6px;
   font-size:14px;
 }
+
+.etapa{
+  display:flex;
+  flex-direction:column;
+  gap:4px;
+}
+
+.etapa strong{
+  font-size:15px;
+}
+
+.etapa span{
+  font-size:12px;
+  font-weight:700;
+  opacity:.75;
+}
+
+.areas-opcoes-modal{
+  display:grid;
+  grid-template-columns:repeat(2, 1fr);
+  gap:10px;
+}
+
+.area-opcao{
+  cursor:pointer;
+}
+
+.area-opcao input{
+  display:none;
+}
+
+.area-opcao span{
+  display:block;
+  padding:12px 14px;
+  border:1px solid var(--borda);
+  border-radius:999px;
+  font-weight:900;
+  background:white;
+}
+
+.area-opcao input:checked + span{
+  background:var(--gradiente-marca);
+  color:white;
+  border-color:transparent;
+}
+
+@media(max-width:600px){
+  .areas-opcoes-modal{
+    grid-template-columns:1fr;
+  }
+}

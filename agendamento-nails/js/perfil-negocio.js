@@ -189,7 +189,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     btnFavorito?.classList.add("hidden");
   }
-  
+
   function atualizarPerfilCompleto(negocio, servicos = []) {
 
   const percentual =
@@ -616,12 +616,42 @@ async function carregarHorariosDisponiveis() {
     }
 
     if (campo === "areas") {
-      abrirModal(
-        "Editar áreas",
-        "negocio",
-        `<input id="inputAreas" class="af-input" value="${Array.isArray(negocioAtual.areas) ? negocioAtual.areas.join(", ") : ""}">`
-      );
-    }
+  const areasAtuais = Array.isArray(negocioAtual.areas)
+    ? negocioAtual.areas
+    : [];
+
+  const opcoesAreas = [
+    "Unha",
+    "Sobrancelha",
+    "Cílios",
+    "Cabelo",
+    "Maquiagem",
+    "Bronze",
+    "Depilação",
+    "Estética",
+    "Massagem"
+  ];
+
+  abrirModal(
+    "Editar áreas atendidas",
+    "negocio",
+    `
+      <div class="areas-opcoes-modal">
+        ${opcoesAreas.map(area => `
+          <label class="area-opcao">
+            <input
+              type="checkbox"
+              name="areasNegocio"
+              value="${area}"
+              ${areasAtuais.includes(area) ? "checked" : ""}
+            >
+            <span>${area}</span>
+          </label>
+        `).join("")}
+      </div>
+    `
+  );
+} 
   }
 
 function abrirNovoServico() {
@@ -666,9 +696,13 @@ function abrirNovoProfissional() {
       whatsapp_negocio: document.getElementById("inputWhatsapp")?.value?.trim() ?? negocioAtual.whatsapp_negocio,
       localizacao_url: document.getElementById("inputMaps")?.value?.trim() ?? negocioAtual.localizacao_url,
       setor: negocioAtual.setor || "",
-      areas: document.getElementById("inputAreas")
-        ? document.getElementById("inputAreas").value.split(",").map(a => a.trim()).filter(Boolean)
-        : negocioAtual.areas || []
+      areas: Array.from(
+      document.querySelectorAll('input[name="areasNegocio"]:checked')
+      ).length
+      ? Array.from(
+      document.querySelectorAll('input[name="areasNegocio"]:checked')
+      ).map(input => input.value)
+      : negocioAtual.areas || []
     };
 
     const resposta = await fetch(`${API_URL}/configuracoes`, {
