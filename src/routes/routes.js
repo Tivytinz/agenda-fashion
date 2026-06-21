@@ -21,6 +21,7 @@ const dashboardController = require("../controllers/dashboardController");
 const contaController = require("../controllers/contaController");
 const favoritosController = require("../controllers/favoritosController");
 const adminController = require("../controllers/adminController");
+const notificacoesController = require("../controllers/notificacoesController");
 
 // =============================
 // 🔐 AUTH
@@ -99,6 +100,18 @@ router.get(
   "/notificacoes-agenda",
   auth,
   agendaController.buscarNotificacoesAgenda
+);
+
+router.get(
+  "/notificacoes",
+  auth,
+  notificacoesController.listarNotificacoes
+);
+
+router.patch(
+  "/notificacoes/:id/lida",
+  auth,
+  notificacoesController.marcarComoLida
 );
 
 // =============================
