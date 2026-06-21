@@ -235,11 +235,153 @@ async function enviarFotoServico(req, res) {
     return res.status(500).json({ erro: "Erro ao enviar foto do serviço." });
   }
 }
+async function listarFotosServico(req, res) {
+  try {
+    const { id } = req.params;
+
+    const result = await db.query(
+      `
+      SELECT id, servico_id, foto_url, foto_public_id, created_at
+      FROM fotos_servico
+      WHERE servico_id = $1
+      ORDER BY id DESC
+      `,
+      [id]
+    );
+
+    return res.json({
+      fotos: result.rows
+    });
+
+  } catch (err) {
+    console.error("Erro ao listar fotos do serviço:", err);
+    return res.status(500).json({
+      erro: "Erro ao listar fotos do serviço."
+    });
+  }
+}
+
+async function adicionarFotoGaleriaServico(req, res) {
+  try {
+    const usuarioId = req.user?.id;
+    const { id } = req.params;
+
+    const vinculo = await buscarNegocioDono(usuarioId);
+
+    if (!vinculo) {
+      return res.status(403).json({
+        erro: "Apenas o dono pode adicionar fotos ao serviço."
+      });
+    }
+
+    if (!req.file) {
+      return res.status(400).json({
+        erro: "Nenhuma imagem enviada."
+      });
+    }
+
+    const servicoResult = await db.query(
+      `
+      SELECT id
+      FROM servicos_negocio
+      WHERE id = $1
+        AND negocio_id = $2
+      LIMIT 1
+      `,
+      [id, vinculo.negocio_id]
+    );
+
+    if (servicoResult.rows.length === 0) {
+      return res.status(404).json({
+        erro: "Serviço não encontrado."
+      });
+    }
+
+    const resultado = await uploadToCloudinary(
+      req.file.buffer,
+      "saas-agendamento/servicos/galeria"
+    );
+
+    const foto = await db.query(
+      `
+      INSERT INTO fotos_servico (
+        servico_id,
+        foto_url,
+        foto_public_id
+      )
+      VALUES ($1, $2, $3)
+      RETURNING *
+      `,
+      [
+        id,
+        resultado.secure_url,
+        resultado.public_id
+      ]
+    );
+
+    return res.status(201).json({
+      mensagem: "Foto adicionada à galeria.",
+      foto: foto.rows[0]
+    });
+
+  } catch (err) {
+    console.error("Erro ao adicionar foto na galeria:", err);
+    return res.status(500).json({
+      erro: "Erro ao adicionar foto na galeria."
+    });
+  }
+}
+
+async function removerFotoGaleriaServico(req, res) {
+  try {
+    const usuarioId = req.user?.id;
+    const { fotoId } = req.params;
+
+    const vinculo = await buscarNegocioDono(usuarioId);
+
+    if (!vinculo) {
+      return res.status(403).json({
+        erro: "Apenas o dono pode remover fotos do serviço."
+      });
+    }
+
+    const result = await db.query(
+      `
+      DELETE FROM fotos_servico fs
+      USING servicos_negocio s
+      WHERE fs.id = $1
+        AND s.id = fs.servico_id
+        AND s.negocio_id = $2
+      RETURNING fs.id
+      `,
+      [fotoId, vinculo.negocio_id]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({
+        erro: "Foto não encontrada."
+      });
+    }
+
+    return res.json({
+      mensagem: "Foto removida da galeria."
+    });
+
+  } catch (err) {
+    console.error("Erro ao remover foto da galeria:", err);
+    return res.status(500).json({
+      erro: "Erro ao remover foto da galeria."
+    });
+  }
+}
 
 module.exports = {
   listarServicos,
   criarServico,
   editarServico,
   removerServico,
-  enviarFotoServico
+  enviarFotoServico,
+  listarFotosServico,
+  adicionarFotoGaleriaServico,
+  removerFotoGaleriaServico
 };
