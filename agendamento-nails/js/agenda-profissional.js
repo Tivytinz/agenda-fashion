@@ -13,6 +13,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   const resumoDia = document.getElementById("resumoDia");
   const diasScroll = document.getElementById("diasScroll");
   const listaHorarios = document.getElementById("listaHorarios");
+  const listaNotificacoes = document.getElementById("listaNotificacoes");
 
   const modal = document.getElementById("modalHorario");
   const modalTitulo = document.getElementById("modalTitulo");
@@ -202,6 +203,59 @@ document.addEventListener("DOMContentLoaded", async () => {
     atualizarResumoDia();
   }
 
+async function carregarNotificacoes() {
+  try {
+
+    const res = await fetch(
+      `${API_URL}/notificacoes`,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      }
+    );
+
+    const data = await res.json();
+
+    if (!res.ok) return;
+
+    renderizarNotificacoes(
+      data.notificacoes || []
+    );
+
+  } catch (err) {
+    console.error(err);
+  }
+}
+
+function renderizarNotificacoes(notificacoes) {
+
+  if (!listaNotificacoes) return;
+
+  if (!notificacoes.length) {
+    listaNotificacoes.innerHTML = `
+      <div class="estado-vazio">
+        Nenhuma notificação.
+      </div>
+    `;
+    return;
+  }
+
+  listaNotificacoes.innerHTML =
+    notificacoes.map(n => `
+      <div class="notificacao-card">
+        <strong>${n.titulo}</strong>
+
+        <p>${n.mensagem}</p>
+
+        <small>
+          ${new Date(n.created_at)
+            .toLocaleString("pt-BR")}
+        </small>
+      </div>
+    `).join("");
+}
+
   async function carregarAgenda() {
     try {
       listaHorarios.innerHTML = `
@@ -243,6 +297,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   btnCancelarModal.addEventListener("click", fecharModal);
   btnConfirmarModal.addEventListener("click", alternarBloqueio);
-
+  
   await carregarAgenda();
+  await carregarNotificacoes();
 });

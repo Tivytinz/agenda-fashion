@@ -29,6 +29,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   const diasAgenda = document.getElementById("diasAgenda");
   const listaAgendaGeral = document.getElementById("listaAgendaGeral");
+  const listaNotificacoes = document.getElementById("listaNotificacoes");
   const btnHoje = document.getElementById("btnHoje");
 
   let agenda = [];
@@ -265,6 +266,59 @@ grid.appendChild(card);
     renderizarAgenda();
   }
 
+  async function carregarNotificacoes() {
+  try {
+
+    const res = await fetch(
+      `${API_URL}/notificacoes`,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      }
+    );
+
+    const data = await res.json();
+
+    if (!res.ok) return;
+
+    renderizarNotificacoes(
+      data.notificacoes || []
+    );
+
+  } catch (err) {
+    console.error(err);
+  }
+}
+
+function renderizarNotificacoes(notificacoes) {
+
+  if (!listaNotificacoes) return;
+
+  if (!notificacoes.length) {
+    listaNotificacoes.innerHTML = `
+      <div class="estado-vazio">
+        Nenhuma notificação.
+      </div>
+    `;
+    return;
+  }
+
+  listaNotificacoes.innerHTML =
+    notificacoes.map(n => `
+      <div class="notificacao-card">
+        <strong>${n.titulo}</strong>
+
+        <p>${n.mensagem}</p>
+
+        <small>
+          ${new Date(n.created_at)
+            .toLocaleString("pt-BR")}
+        </small>
+      </div>
+    `).join("");
+}
+
   async function carregarAgendaGeral() {
     try {
       listaAgendaGeral.innerHTML = `
@@ -325,4 +379,5 @@ grid.appendChild(card);
   });
 
   await carregarAgendaGeral();
+  await carregarNotificacoes();
 });

@@ -406,3 +406,19 @@
   background:#ffe1e1;
   border-color:#e63946;
 }
+
+.notificacao-card{
+  padding:16px;
+  border:1px solid var(--borda);
+  border-radius:16px;
+  margin-bottom:10px;
+  background:white;
+}
+
+.notificacao-card p{
+  margin:8px 0;
+}
+
+.notificacao-card small{
+  color:var(--texto-suave);
+}
