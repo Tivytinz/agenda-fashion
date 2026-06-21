@@ -300,24 +300,26 @@ if (!clienteId) {
     }
 
     const novoAgendamento = await db.query(
-      `
-      INSERT INTO agendamentos (
-      usuarios_id,
-      data,
-      horario,
-      profissional_id,
-      cliente_id,
-      servico_id,
-      negocio_id,
-      status,
-      created_at
-      )
-      )
-      VALUES ($1, $2, $3, $4, $5, $6, $7, 'agendado', NOW())
-      RETURNING *
-      `,
-      [
-      [
+  `
+  INSERT INTO agendamentos (
+    usuarios_id,
+    data,
+    horario,
+    profissional_id,
+    cliente_id,
+    servico_id,
+    negocio_id,
+    status,
+    created_at
+  )
+  VALUES (
+    $1,$2,$3,$4,$5,$6,$7,
+    'agendado',
+    NOW()
+  )
+  RETURNING *
+  `,
+  [
     clienteId,
     data,
     horario,
@@ -325,9 +327,30 @@ if (!clienteId) {
     clienteId,
     servico_id,
     negocio.id
-      ]
-      ]
-    );
+  ]
+);
+
+const agendamentoCriado = novoAgendamento.rows[0];
+
+await db.query(
+  `
+  INSERT INTO notificacoes (
+    usuario_id,
+    negocio_id,
+    agendamento_id,
+    titulo,
+    mensagem
+  )
+  VALUES ($1, $2, $3, $4, $5)
+  `,
+  [
+    profissional_id,
+    negocio.id,
+    agendamentoCriado.id,
+    "Novo agendamento",
+    `Você recebeu um novo agendamento para ${data} às ${horario}.`
+  ]
+);
 
     return res.status(201).json({
       mensagem: "Agendamento criado com sucesso.",
