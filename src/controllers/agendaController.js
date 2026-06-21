@@ -361,9 +361,7 @@ const alternarBloqueioHorario = async (req, res) => {
 };
 
 async function buscarAgendaGeral(req, res) {
-
   try {
-
     const usuarioId = req.user.id;
 
     const negocioResult = await db.query(
@@ -391,54 +389,103 @@ async function buscarAgendaGeral(req, res) {
       `
       SELECT
         u.id,
-        u.nome
+        u.nome,
+        u.foto_url
       FROM usuarios u
       INNER JOIN usuarios_negocios un
         ON un.usuario_id = u.id
       WHERE un.negocio_id = $1
+      ORDER BY u.nome ASC
       `,
       [negocio.id]
     );
 
     const hoje = new Date();
-
     const agenda = [];
 
     for (let i = 0; i < 7; i++) {
-
       const dataObj = new Date();
       dataObj.setDate(hoje.getDate() + i);
 
       const data = dataObj.toISOString().slice(0, 10);
-
       const profissionais = [];
 
       for (const profissional of profissionaisResult.rows) {
-
         const horarios = [];
 
         for (let h = 8; h <= 18; h++) {
+          const horaFormatada = `${String(h).padStart(2, "0")}:00`;
+
+          const bloqueio = await db.query(
+            `
+            SELECT id
+            FROM bloqueios_horarios
+            WHERE profissional_id = $1
+              AND data_bloqueio = $2
+              AND TO_CHAR(hora_bloqueio, 'HH24:MI') = $3
+            LIMIT 1
+            `,
+            [
+              profissional.id,
+              data,
+              horaFormatada
+            ]
+          );
+
+          const agendamento = await db.query(
+            `
+            SELECT
+              a.id,
+              c.nome AS cliente,
+              s.nome AS servico
+            FROM agendamentos a
+            LEFT JOIN usuarios c
+              ON c.id = a.cliente_id
+            LEFT JOIN servicos_negocio s
+              ON s.id = a.servico_id
+            WHERE a.profissional_id = $1
+              AND a.data = $2
+              AND TO_CHAR(a.horario, 'HH24:MI') = $3
+              AND a.status IN ('agendado', 'confirmado')
+            LIMIT 1
+            `,
+            [
+              profissional.id,
+              data,
+              horaFormatada
+            ]
+          );
+
+          let status = "livre";
+
+          if (bloqueio.rows.length > 0) {
+            status = "bloqueado";
+          }
+
+          if (agendamento.rows.length > 0) {
+            status = "agendado";
+          }
 
           horarios.push({
-            hora: `${String(h).padStart(2, "0")}:00`,
-            status: "livre"
+            hora: horaFormatada,
+            status,
+            cliente: agendamento.rows[0]?.cliente || null,
+            servico: agendamento.rows[0]?.servico || null
           });
-
         }
 
         profissionais.push({
           id: profissional.id,
           nome: profissional.nome,
+          foto_url: profissional.foto_url,
           horarios
         });
-
       }
 
       agenda.push({
         data,
         profissionais
       });
-
     }
 
     return res.json({
@@ -446,11 +493,7 @@ async function buscarAgendaGeral(req, res) {
     });
 
   } catch (err) {
-
-    console.error(
-      "Erro agenda geral:",
-      err
-    );
+    console.error("Erro agenda geral:", err);
 
     return res.status(500).json({
       erro: "Erro ao carregar agenda geral."
