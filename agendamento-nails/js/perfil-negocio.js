@@ -1204,6 +1204,25 @@ setTimeout(() => {
     return;
   }
 
+  const btnRemoverFoto = e.target.closest(".btn-remover-foto");
+
+if (btnRemoverFoto) {
+  const fotoId = btnRemoverFoto.dataset.fotoId;
+  const servicoId = document.getElementById("inputServicoId")?.value;
+
+  try {
+    await removerFotoGaleria(fotoId);
+
+    if (servicoId) {
+      await carregarGaleriaServico(servicoId);
+    }
+  } catch (erro) {
+    mostrarMensagem(erro.message || "Erro ao remover foto.");
+  }
+
+  return;
+}
+
   const btnEditarServico = e.target.closest(".btn-editar-servico");
 
 if (btnEditarServico) {
@@ -1287,6 +1306,58 @@ if (btnRemoverServico) {
 }
 
 });
+
+async function carregarGaleriaServico(servicoId) {
+  try {
+    const resposta = await fetch(`${API_URL}/servicos/${servicoId}/fotos`);
+    const data = await resposta.json();
+
+    const galeria = document.getElementById("galeriaServicoPreview");
+    if (!galeria) return;
+
+    if (!data.fotos?.length) {
+      galeria.innerHTML = `<div class="estado-vazio">Nenhuma foto.</div>`;
+      return;
+    }
+
+    galeria.innerHTML = data.fotos.map(foto => `
+      <div class="foto-galeria-item">
+        <img src="${foto.foto_url}">
+        <button
+          type="button"
+          class="btn-remover-foto"
+          data-foto-id="${foto.id}"
+        >
+          ✕
+        </button>
+      </div>
+    `).join("");
+
+  } catch (err) {
+    console.error("Erro ao carregar galeria:", err);
+  }
+}
+
+async function removerFotoGaleria(fotoId) {
+  const token = localStorage.getItem("token");
+
+  if (!confirm("Remover esta foto da galeria?")) return;
+
+  const resposta = await fetch(`${API_URL}/servicos/fotos/${fotoId}`, {
+    method: "DELETE",
+    headers: {
+      Authorization: `Bearer ${token}`
+    }
+  });
+
+  const data = await resposta.json().catch(() => ({}));
+
+  if (!resposta.ok) {
+    throw new Error(data.erro || "Erro ao remover foto.");
+  }
+
+  mostrarMensagem("Foto removida com sucesso.", "#2f9e63");
+}
 
 async function enviarFotosGaleria(servicoId) {
 
