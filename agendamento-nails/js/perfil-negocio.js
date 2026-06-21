@@ -317,7 +317,7 @@ async function carregarGaleriaPublicaServico(servicoId) {
 
 function renderizarServicos(servicos = []) {
   if (!listaServicos) return;
-  
+
   servicosAtuais = servicos;
 
   listaServicos.innerHTML = "";
@@ -340,32 +340,59 @@ function renderizarServicos(servicos = []) {
     });
 
     card.innerHTML = `
-  ${
-    servico.foto_url
-      ? `<img src="${servico.foto_url}" class="servico-foto" alt="${servico.nome}">`
-      : `<div class="servico-foto servico-sem-foto">💅</div>`
-  }
+      ${
+        servico.foto_url
+          ? `<img src="${servico.foto_url}" class="servico-foto" alt="${servico.nome || "Serviço"}">`
+          : `<div class="servico-foto servico-sem-foto">💅</div>`
+      }
 
-  <h3>${servico.nome}</h3>
+      <h3>${servico.nome || "Serviço"}</h3>
 
-  <div class="servico-meta">
-    <span>⏱ ${servico.duracao_minutos || 0} min</span>
-    <strong>💰 R$ ${Number(servico.valor || 0).toFixed(2)}</strong>
-  </div>
+      <div class="servico-meta">
+        <span>⏱ ${servico.duracao_minutos || 0} min</span>
+        <strong>💰 ${valor}</strong>
+      </div>
 
-  <div
-    class="galeria-publica-servico"
-    id="galeriaServico-${servico.id}"
-  >
-    Carregando trabalhos...
-  </div>
-`;
+      <div
+        class="galeria-publica-servico"
+        id="galeriaServico-${servico.id}"
+      >
+        Carregando trabalhos...
+      </div>
+
+      ${
+        ehDonoDoPerfil()
+          ? `
+            <div class="acoes-servico">
+              <button
+                type="button"
+                class="btn-editar-servico af-btn-secondary"
+                data-servico-id="${servico.id}"
+              >
+                ✏️ Editar
+              </button>
+
+              <button
+                type="button"
+                class="btn-remover-servico af-btn-secondary"
+                data-servico-id="${servico.id}"
+              >
+                🗑️ Remover
+              </button>
+            </div>
+          `
+          : ""
+      }
+    `;
 
     card.addEventListener("click", (e) => {
       if (
         e.target.closest(".btn-editar-servico") ||
-        e.target.closest(".btn-remover-servico")
-      ) return;
+        e.target.closest(".btn-remover-servico") ||
+        e.target.closest(".foto-publica-servico")
+      ) {
+        return;
+      }
 
       servicoSelecionado = servico;
       profissionalSelecionado = null;
