@@ -383,3 +383,26 @@
   justify-content:center;
   flex-shrink:0;
 }
+
+.horario-card.clicavel{
+  cursor:pointer;
+}
+
+.horario-card.clicavel::after{
+  content:"Clique para bloquear/liberar";
+  display:block;
+  margin-top:8px;
+  font-size:10px;
+  font-weight:900;
+  opacity:.65;
+}
+
+.horario-card.livre.clicavel:hover{
+  background:#dff5e7;
+  border-color:#2f9e63;
+}
+
+.horario-card.bloqueado.clicavel:hover{
+  background:#ffe1e1;
+  border-color:#e63946;
+}

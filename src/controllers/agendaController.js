@@ -227,70 +227,138 @@ async function listarAgendamentosFuncionario(req, res) {
 // =============================
 // 🔒 BLOQUEAR / DESBLOQUEAR
 // =============================
-async function alternarBloqueioHorario(req, res) {
+const alternarBloqueioHorario = async (req, res) => {
   try {
-    const profissionalId = req.user.id;
+    const usuarioId = req.user?.id;
+    const { data, hora, profissional_id } = req.body;
 
-    const { data, hora } = req.body;
-
-    if (!data || !hora) {
-      return res.status(400).json({
-        erro: "Data e hora obrigatórias."
+    if (!usuarioId) {
+      return res.status(401).json({
+        erro: "Usuário não autenticado."
       });
     }
 
-    const existente = await db.query(
+    if (!data || !hora) {
+      return res.status(400).json({
+        erro: "Data e hora obrigatórios."
+      });
+    }
+
+    let profissionalId = usuarioId;
+
+    if (profissional_id) {
+      const donoResult = await db.query(
+        `
+        SELECT un.negocio_id
+        FROM usuarios_negocios un
+        WHERE un.usuario_id = $1
+          AND un.papel = 'dono'
+        LIMIT 1
+        `,
+        [usuarioId]
+      );
+
+      if (donoResult.rows.length === 0) {
+        return res.status(403).json({
+          erro: "Apenas o dono pode bloquear horários de outros profissionais."
+        });
+      }
+
+      const negocioId = donoResult.rows[0].negocio_id;
+
+      const profissionalPertence = await db.query(
+        `
+        SELECT id
+        FROM usuarios_negocios
+        WHERE usuario_id = $1
+          AND negocio_id = $2
+        LIMIT 1
+        `,
+        [profissional_id, negocioId]
+      );
+
+      if (profissionalPertence.rows.length === 0) {
+        return res.status(403).json({
+          erro: "Este profissional não pertence ao seu negócio."
+        });
+      }
+
+      profissionalId = profissional_id;
+    }
+
+    const existeAgendamento = await db.query(
       `
       SELECT id
-      FROM bloqueios_horario
+      FROM agendamentos
       WHERE profissional_id = $1
         AND data = $2
-        AND hora = $3
+        AND TO_CHAR(horario, 'HH24:MI') = $3
+        AND status IN ('agendado', 'confirmado')
+      LIMIT 1
       `,
       [profissionalId, data, hora]
     );
 
-    // 🔓 DESBLOQUEAR
-    if (existente.rows.length) {
-
-      await db.query(
-        `
-        DELETE FROM bloqueios_horario
-        WHERE id = $1
-        `,
-        [existente.rows[0].id]
-      );
-
-      return res.json({
-        status: "livre"
+    if (existeAgendamento.rows.length > 0) {
+      return res.status(400).json({
+        erro: "Horário já está agendado."
       });
     }
 
-    // 🔒 BLOQUEAR
+    const existeBloqueio = await db.query(
+      `
+      SELECT id
+      FROM bloqueios_horarios
+      WHERE profissional_id = $1
+        AND data_bloqueio = $2
+        AND TO_CHAR(hora_bloqueio, 'HH24:MI') = $3
+      LIMIT 1
+      `,
+      [profissionalId, data, hora]
+    );
+
+    if (existeBloqueio.rows.length > 0) {
+      await db.query(
+        `
+        DELETE FROM bloqueios_horarios
+        WHERE id = $1
+        `,
+        [existeBloqueio.rows[0].id]
+      );
+
+      return res.json({
+        sucesso: true,
+        status: "livre",
+        mensagem: "Horário liberado com sucesso."
+      });
+    }
+
     await db.query(
       `
-      INSERT INTO bloqueios_horario (
+      INSERT INTO bloqueios_horarios (
         profissional_id,
-        data,
-        hora
+        data_bloqueio,
+        hora_bloqueio
       )
-      VALUES ($1,$2,$3)
+      VALUES ($1, $2, $3)
       `,
       [profissionalId, data, hora]
     );
 
     return res.json({
-      status: "bloqueado"
+      sucesso: true,
+      status: "bloqueado",
+      mensagem: "Horário bloqueado com sucesso."
     });
 
-  } catch (err) {
-    console.error("Erro bloqueio:", err);
+  } catch (erro) {
+    console.error("Erro ao alternar bloqueio:", erro);
 
     return res.status(500).json({
-      erro: "Erro ao alterar horário."
+      erro: "Erro ao alternar bloqueio."
     });
   }
-}
+};
 
 async function buscarAgendaGeral(req, res) {
 

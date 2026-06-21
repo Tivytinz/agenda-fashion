@@ -25,27 +25,41 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
 
   async function buscarNotificacoesAgenda() {
-    const token = localStorage.getItem("token");
+  const token = localStorage.getItem("token");
+  const usuario = JSON.parse(localStorage.getItem("usuario") || "null");
 
-    if (!token) return 0;
+  if (!token || !usuario) return 0;
 
-    try {
-      const resposta = await fetch(`${API_URL}/notificacoes-agenda`, {
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
-      });
+  if (
+    usuario.tipo !== "dono" &&
+    usuario.tipo !== "profissional" &&
+    usuario.tipo !== "funcionario" &&
+    usuario.tipo !== "funcionário"
+  ) {
+    return 0;
+  }
 
-      const data = await resposta.json();
+  try {
+    const resposta = await fetch(`${API_URL}/notificacoes-agenda`, {
+      headers: {
+        Authorization: `Bearer ${token}`
+      }
+    });
 
-      if (!resposta.ok) return 0;
-
-      return data.total || 0;
-
-    } catch {
+    if (resposta.status === 401 || resposta.status === 403) {
       return 0;
     }
+
+    const data = await resposta.json();
+
+    if (!resposta.ok) return 0;
+
+    return data.total || 0;
+
+  } catch {
+    return 0;
   }
+}
 
   function render(itens) {
     nav.innerHTML = itens

@@ -191,19 +191,31 @@ document.addEventListener("DOMContentLoaded", async () => {
         if (h.status === "agendado") textoStatus = "Agendado";
 
         card.innerHTML = `
-          <strong>${h.hora}</strong>
-          <span>${textoStatus}</span>
-          ${
-            h.status === "agendado"
-              ? `
-                <span>${h.cliente || "Cliente"}</span>
-                <span>${h.servico || "Serviço"}</span>
-              `
-              : ""
-          }
-        `;
+  <strong>${h.hora}</strong>
+  <span>${textoStatus}</span>
+  ${
+    h.status === "agendado"
+      ? `
+        <span>${h.cliente || "Cliente"}</span>
+        <span>${h.servico || "Serviço"}</span>
+      `
+      : ""
+  }
+`;
 
-        grid.appendChild(card);
+if (h.status !== "agendado") {
+  card.classList.add("clicavel");
+
+  card.addEventListener("click", async () => {
+    await alternarBloqueioHorario(
+      profissional.id,
+      dia.data,
+      h.hora
+    );
+  });
+}
+
+grid.appendChild(card);
       });
 
       listaAgendaGeral.appendChild(bloco);
@@ -219,6 +231,34 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     atualizarResumo(todosHorariosResumo);
   }
+
+  async function alternarBloqueioHorario(profissionalId, data, hora) {
+  try {
+    const res = await fetch(`${API_URL}/bloqueios-horario`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`
+      },
+      body: JSON.stringify({
+        profissional_id: profissionalId,
+        data,
+        hora
+      })
+    });
+
+    const resposta = await res.json();
+
+    if (!res.ok) {
+      throw new Error(resposta.erro || "Erro ao alterar horário.");
+    }
+
+    await carregarAgendaGeral();
+
+  } catch (err) {
+    alert(err.message || "Erro ao bloquear horário.");
+  }
+}
 
   function renderizarTudo() {
     renderizarDias();
