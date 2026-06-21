@@ -262,8 +262,7 @@
 
 .item-selecao.ativo{
   border:2px solid var(--rosa-principal);
-  transform:translateY(-3px);
-  box-shadow:0 12px 30px rgba(231,171,209,.35);
+  background:#fff8fc;
 }
 
 .estado-vazio{
@@ -630,4 +629,40 @@
   .areas-opcoes-modal{
     grid-template-columns:1fr;
   }
+}
+.servico-sem-foto{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:42px;
+}
+
+.servico-meta{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  margin-top:12px;
+}
+
+.servico-meta span{
+  color:var(--texto-suave);
+  font-weight:700;
+}
+
+.servico-meta strong{
+  color:var(--rosa-principal);
+  font-size:18px;
+}
+
+.item-selecao h3{
+  margin-top:8px;
+  font-size:18px;
+}
+
+.cards-servicos .item-selecao{
+  overflow:hidden;
+}
+
+.cards-servicos .item-selecao:hover{
+  transform:translateY(-4px);
 }

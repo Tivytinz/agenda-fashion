@@ -305,32 +305,29 @@ function renderizarServicos(servicos = []) {
     });
 
     card.innerHTML = `
-      ${
-        servico.foto_url
-          ? `<img class="servico-foto" src="${servico.foto_url}" alt="${servico.nome}">`
-          : `<div class="servico-foto"></div>`
-      }
+  ${
+    servico.foto_url
+      ? `
+        <img
+          src="${servico.foto_url}"
+          class="servico-foto"
+          alt="${servico.nome}"
+        >
+      `
+      : `
+        <div class="servico-foto servico-sem-foto">
+          💅
+        </div>
+      `
+  }
 
-      <strong>${servico.nome || "Serviço"}</strong>
-      <span>${valor}</span>
-      <span>${servico.duracao_minutos || 0} min</span>
+  <h3>${servico.nome}</h3>
 
-      ${
-        ehDonoDoPerfil()
-          ? `
-            <div class="acoes-servico">
-              <button type="button" class="btn-editar-servico" data-servico-id="${servico.id}">
-                ✏️ Editar
-              </button>
-
-              <button type="button" class="btn-remover-servico" data-servico-id="${servico.id}">
-                🗑️ Remover
-              </button>
-            </div>
-          `
-          : ""
-      }
-    `;
+  <div class="servico-meta">
+    <span>⏱ ${servico.duracao_minutos || 0} min</span>
+    <strong>💰 R$ ${Number(servico.valor || 0).toFixed(2)}</strong>
+  </div>
+`;
 
     card.addEventListener("click", (e) => {
       if (
