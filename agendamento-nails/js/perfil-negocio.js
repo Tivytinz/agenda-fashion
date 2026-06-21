@@ -280,6 +280,41 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
 }
 
+async function carregarGaleriaPublicaServico(servicoId) {
+  const box = document.getElementById(`galeriaServico-${servicoId}`);
+
+  if (!box) return;
+
+  try {
+    const resposta = await fetch(`${API_URL}/servicos/${servicoId}/fotos`);
+    const data = await resposta.json();
+
+    const fotos = data.fotos || [];
+
+    if (!fotos.length) {
+      box.innerHTML = "";
+      return;
+    }
+
+    box.innerHTML = `
+      <strong>Trabalhos realizados</strong>
+
+      <div class="galeria-publica-grid">
+        ${fotos.slice(0, 4).map(foto => `
+          <img
+            src="${foto.foto_url}"
+            alt="Foto do serviço"
+            class="foto-publica-servico"
+          >
+        `).join("")}
+      </div>
+    `;
+
+  } catch (err) {
+    box.innerHTML = "";
+  }
+}
+
 function renderizarServicos(servicos = []) {
   if (!listaServicos) return;
   
@@ -307,18 +342,8 @@ function renderizarServicos(servicos = []) {
     card.innerHTML = `
   ${
     servico.foto_url
-      ? `
-        <img
-          src="${servico.foto_url}"
-          class="servico-foto"
-          alt="${servico.nome}"
-        >
-      `
-      : `
-        <div class="servico-foto servico-sem-foto">
-          💅
-        </div>
-      `
+      ? `<img src="${servico.foto_url}" class="servico-foto" alt="${servico.nome}">`
+      : `<div class="servico-foto servico-sem-foto">💅</div>`
   }
 
   <h3>${servico.nome}</h3>
@@ -326,6 +351,13 @@ function renderizarServicos(servicos = []) {
   <div class="servico-meta">
     <span>⏱ ${servico.duracao_minutos || 0} min</span>
     <strong>💰 R$ ${Number(servico.valor || 0).toFixed(2)}</strong>
+  </div>
+
+  <div
+    class="galeria-publica-servico"
+    id="galeriaServico-${servico.id}"
+  >
+    Carregando trabalhos...
   </div>
 `;
 
@@ -362,6 +394,7 @@ function renderizarServicos(servicos = []) {
     });
 
     listaServicos.appendChild(card);
+    carregarGaleriaPublicaServico(servico.id);
   });
 }
 
@@ -865,6 +898,9 @@ async function atualizarServico() {
   if (!resposta.ok) {
     throw new Error(data.erro || "Erro ao atualizar serviço.");
   }
+
+  await enviarFotosGaleria(id);
+
 }
 
 async function removerServico(id) {
@@ -1183,39 +1219,62 @@ if (btnEditarServico) {
   }
 
   abrirModal(
-    "Editar serviço",
-    "editar-servico",
-    `
-      <input id="inputServicoId" type="hidden" value="${servico.id}">
+  "Editar serviço",
+  "editar-servico",
+  `
+    <input id="inputServicoId" type="hidden" value="${servico.id}">
 
-      <input
-        id="inputServicoNome"
-        class="af-input"
-        placeholder="Nome do serviço"
-        value="${servico.nome || ""}"
-      >
+    <input
+      id="inputServicoNome"
+      class="af-input"
+      placeholder="Nome do serviço"
+      value="${servico.nome || ""}"
+    >
 
-      <input
-        id="inputServicoValor"
-        class="af-input"
-        type="number"
-        step="0.01"
-        placeholder="Valor"
-        value="${servico.valor || 0}"
-      >
+    <input
+      id="inputServicoValor"
+      class="af-input"
+      type="number"
+      step="0.01"
+      placeholder="Valor"
+      value="${servico.valor || 0}"
+    >
 
-      <input
-        id="inputServicoDuracao"
-        class="af-input"
-        type="number"
-        placeholder="Duração em minutos"
-        value="${servico.duracao_minutos || 0}"
-      >
-    `
-  );
+    <input
+      id="inputServicoDuracao"
+      class="af-input"
+      type="number"
+      placeholder="Duração em minutos"
+      value="${servico.duracao_minutos || 0}"
+    >
 
-  return;
-}
+    <hr style="margin:16px 0">
+
+    <h3>Galeria do serviço</h3>
+
+    <input
+      id="inputGaleriaServico"
+      type="file"
+      multiple
+      accept="image/*"
+      class="af-input"
+    >
+
+    <div
+      id="galeriaServicoPreview"
+      class="galeria-servico"
+    >
+      Carregando fotos...
+    </div>
+  `
+);
+
+setTimeout(() => {
+  carregarGaleriaServico(servico.id);
+}, 100);
+
+return;
+} 
 
 const btnRemoverServico = e.target.closest(".btn-remover-servico");
 if (btnRemoverServico) {
@@ -1228,6 +1287,35 @@ if (btnRemoverServico) {
 }
 
 });
+
+async function enviarFotosGaleria(servicoId) {
+
+  const token =
+    localStorage.getItem("token");
+
+  const arquivos =
+    document.getElementById("inputGaleriaServico")?.files;
+
+  if (!arquivos?.length) return;
+
+  for (const foto of arquivos) {
+
+    const formData = new FormData();
+
+    formData.append("foto", foto);
+
+    await fetch(
+      `${API_URL}/servicos/${servicoId}/fotos`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`
+        },
+        body: formData
+      }
+    );
+  }
+}
 
 async function confirmarAgendamentoVisitante() {
   const nome = document.getElementById("inputClienteNome")?.value?.trim();
