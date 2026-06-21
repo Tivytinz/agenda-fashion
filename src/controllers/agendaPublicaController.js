@@ -59,7 +59,9 @@ async function buscarAgendaPublica(req, res) {
     );
 
     if (servicoResult.rows.length === 0) {
-      return res.status(404).json({ erro: "Serviço não encontrado nesse negócio." });
+      return res.status(404).json({
+        erro: "Serviço não encontrado nesse negócio."
+      });
     }
 
     const profissionalResult = await db.query(
@@ -69,7 +71,8 @@ async function buscarAgendaPublica(req, res) {
         u.nome,
         un.papel
       FROM usuarios_negocios un
-      INNER JOIN usuarios u ON u.id = un.usuario_id
+      INNER JOIN usuarios u
+        ON u.id = un.usuario_id
       WHERE un.usuario_id = $1
         AND un.negocio_id = $2
       LIMIT 1
@@ -78,24 +81,26 @@ async function buscarAgendaPublica(req, res) {
     );
 
     if (profissionalResult.rows.length === 0) {
-      return res.status(404).json({ erro: "Profissional não pertence a esse negócio." });
+      return res.status(404).json({
+        erro: "Profissional não pertence a esse negócio."
+      });
     }
 
     const dias = gerarDiasProximos(7);
     const horariosBase = gerarHorariosBase();
 
     const agendamentosResult = await db.query(
-  `
-  SELECT
-    TO_CHAR(data, 'YYYY-MM-DD') AS data,
-    TO_CHAR(horario::time, 'HH24:MI') AS horario
-  FROM agendamentos
-  WHERE profissional_id = $1
-    AND data BETWEEN CURRENT_DATE AND CURRENT_DATE + INTERVAL '6 days'
-    AND status IN ('agendado', 'confirmado')
-  `,
-  [profissionalId]
-);
+      `
+      SELECT
+        TO_CHAR(data, 'YYYY-MM-DD') AS data,
+        TO_CHAR(horario::time, 'HH24:MI') AS horario
+      FROM agendamentos
+      WHERE profissional_id = $1
+        AND data BETWEEN CURRENT_DATE AND CURRENT_DATE + INTERVAL '6 days'
+        AND status IN ('agendado', 'confirmado')
+      `,
+      [profissionalId]
+    );
 
     const bloqueiosResult = await db.query(
       `
@@ -116,28 +121,28 @@ async function buscarAgendaPublica(req, res) {
     );
 
     const agora = new Date();
-const hojeISO = agora.toISOString().slice(0, 10);
+    const hojeISO = agora.toISOString().slice(0, 10);
 
-const horaAtual =
-  String(agora.getHours()).padStart(2, "0") +
-  ":" +
-  String(agora.getMinutes()).padStart(2, "0");
+    const horaAtual =
+      String(agora.getHours()).padStart(2, "0") +
+      ":" +
+      String(agora.getMinutes()).padStart(2, "0");
 
-const disponibilidade = dias.map((data) => {
-  const horarios = horariosBase.filter((hora) => {
-    const ocupado = ocupados.has(`${data}_${hora}`);
+    const disponibilidade = dias.map((data) => {
+      const horarios = horariosBase.filter((hora) => {
+        const ocupado = ocupados.has(`${data}_${hora}`);
 
-    const horarioPassado =
-      data === hojeISO && hora <= horaAtual;
+        const horarioPassado =
+          data === hojeISO && hora <= horaAtual;
 
-    return !ocupado && !horarioPassado;
-  });
+        return !ocupado && !horarioPassado;
+      });
 
-  return {
-    data,
-    horarios
-  };
-});
+      return {
+        data,
+        horarios
+      };
+    });
 
     return res.json({
       negocio,
@@ -148,76 +153,82 @@ const disponibilidade = dias.map((data) => {
 
   } catch (err) {
     console.error("Erro ao buscar agenda pública:", err);
-    return res.status(500).json({ erro: "Erro ao carregar agenda pública." });
+    return res.status(500).json({
+      erro: "Erro ao carregar agenda pública."
+    });
   }
 }
 
 async function criarAgendamentoPublico(req, res) {
   try {
     let clienteId = req.user?.id || null;
-const tipoUsuario = req.user?.tipo || null;
+    const tipoUsuario = req.user?.tipo || null;
 
-const {
-  slug,
-  servico_id,
-  profissional_id,
-  data,
-  horario,
-  cliente_nome,
-  cliente_whatsapp
-} = req.body;
+    const {
+      slug,
+      servico_id,
+      profissional_id,
+      data,
+      horario,
+      cliente_nome,
+      cliente_whatsapp
+    } = req.body;
 
-if (clienteId && tipoUsuario !== "cliente") {
-  return res.status(403).json({ erro: "Apenas clientes podem agendar." });
-}
-
-if (!clienteId) {
-  if (!cliente_nome || !cliente_whatsapp) {
-    return res.status(400).json({
-      erro: "Informe nome e WhatsApp para agendar."
-    });
-  }
-
-  const clienteExistente = await db.query(
-    `
-    SELECT id
-    FROM usuarios
-    WHERE tipo = 'cliente'
-      AND whatsapp = $1
-    LIMIT 1
-    `,
-    [cliente_whatsapp.trim()]
-  );
-
-  if (clienteExistente.rows.length > 0) {
-    clienteId = clienteExistente.rows[0].id;
-  } else {
-    const novoCliente = await db.query(
-      `
-      INSERT INTO usuarios (
-        nome,
-        email,
-        whatsapp,
-        senha,
-        tipo
-      )
-      VALUES ($1, $2, $3, $4, 'cliente')
-      RETURNING id
-      `,
-      [
-        cliente_nome.trim(),
-        `cliente_${Date.now()}@agenda.local`,
-        cliente_whatsapp.trim(),
-        "",
-      ]
-    );
-
-    clienteId = novoCliente.rows[0].id;
-  }
-}
+    if (clienteId && tipoUsuario !== "cliente") {
+      return res.status(403).json({
+        erro: "Apenas clientes podem agendar."
+      });
+    }
 
     if (!slug || !servico_id || !profissional_id || !data || !horario) {
-      return res.status(400).json({ erro: "Dados do agendamento incompletos." });
+      return res.status(400).json({
+        erro: "Dados do agendamento incompletos."
+      });
+    }
+
+    if (!clienteId) {
+      if (!cliente_nome || !cliente_whatsapp) {
+        return res.status(400).json({
+          erro: "Informe nome e WhatsApp para agendar."
+        });
+      }
+
+      const clienteExistente = await db.query(
+        `
+        SELECT id
+        FROM usuarios
+        WHERE tipo = 'cliente'
+          AND whatsapp = $1
+        LIMIT 1
+        `,
+        [cliente_whatsapp.trim()]
+      );
+
+      if (clienteExistente.rows.length > 0) {
+        clienteId = clienteExistente.rows[0].id;
+      } else {
+        const novoCliente = await db.query(
+          `
+          INSERT INTO usuarios (
+            nome,
+            email,
+            whatsapp,
+            senha,
+            tipo
+          )
+          VALUES ($1, $2, $3, $4, 'cliente')
+          RETURNING id
+          `,
+          [
+            cliente_nome.trim(),
+            `cliente_${Date.now()}@agenda.local`,
+            cliente_whatsapp.trim(),
+            ""
+          ]
+        );
+
+        clienteId = novoCliente.rows[0].id;
+      }
     }
 
     const negocioResult = await db.query(
@@ -231,14 +242,16 @@ if (!clienteId) {
     );
 
     if (negocioResult.rows.length === 0) {
-      return res.status(404).json({ erro: "Negócio não encontrado." });
+      return res.status(404).json({
+        erro: "Negócio não encontrado."
+      });
     }
 
     const negocio = negocioResult.rows[0];
 
     const servicoResult = await db.query(
       `
-      SELECT id
+      SELECT id, nome
       FROM servicos_negocio
       WHERE id = $1
         AND negocio_id = $2
@@ -248,23 +261,35 @@ if (!clienteId) {
     );
 
     if (servicoResult.rows.length === 0) {
-      return res.status(404).json({ erro: "Serviço não pertence a esse negócio." });
+      return res.status(404).json({
+        erro: "Serviço não pertence a esse negócio."
+      });
     }
+
+    const servico = servicoResult.rows[0];
 
     const profissionalResult = await db.query(
       `
-      SELECT id
-      FROM usuarios_negocios
-      WHERE usuario_id = $1
-        AND negocio_id = $2
+      SELECT
+        u.id,
+        u.nome
+      FROM usuarios u
+      INNER JOIN usuarios_negocios un
+        ON un.usuario_id = u.id
+      WHERE u.id = $1
+        AND un.negocio_id = $2
       LIMIT 1
       `,
       [profissional_id, negocio.id]
     );
 
     if (profissionalResult.rows.length === 0) {
-      return res.status(404).json({ erro: "Profissional não pertence a esse negócio." });
+      return res.status(404).json({
+        erro: "Profissional não pertence a esse negócio."
+      });
     }
+
+    const profissional = profissionalResult.rows[0];
 
     const existeBloqueio = await db.query(
       `
@@ -279,7 +304,9 @@ if (!clienteId) {
     );
 
     if (existeBloqueio.rows.length > 0) {
-      return res.status(400).json({ erro: "Esse horário está bloqueado." });
+      return res.status(400).json({
+        erro: "Esse horário está bloqueado."
+      });
     }
 
     const existeAgendamento = await db.query(
@@ -296,70 +323,74 @@ if (!clienteId) {
     );
 
     if (existeAgendamento.rows.length > 0) {
-      return res.status(400).json({ erro: "Esse horário já está reservado." });
+      return res.status(400).json({
+        erro: "Esse horário já está reservado."
+      });
     }
 
     const novoAgendamento = await db.query(
-  `
-  INSERT INTO agendamentos (
-    usuarios_id,
-    data,
-    horario,
-    profissional_id,
-    cliente_id,
-    servico_id,
-    negocio_id,
-    status,
-    created_at
-  )
-  VALUES (
-    $1,$2,$3,$4,$5,$6,$7,
-    'agendado',
-    NOW()
-  )
-  RETURNING *
-  `,
-  [
-    clienteId,
-    data,
-    horario,
-    profissional_id,
-    clienteId,
-    servico_id,
-    negocio.id
-  ]
-);
+      `
+      INSERT INTO agendamentos (
+        usuarios_id,
+        data,
+        horario,
+        profissional_id,
+        cliente_id,
+        servico_id,
+        negocio_id,
+        status,
+        created_at
+      )
+      VALUES (
+        $1, $2, $3, $4, $5, $6, $7,
+        'agendado',
+        NOW()
+      )
+      RETURNING *
+      `,
+      [
+        clienteId,
+        data,
+        horario,
+        profissional.id,
+        clienteId,
+        servico_id,
+        negocio.id
+      ]
+    );
 
-const agendamentoCriado = novoAgendamento.rows[0];
+    const agendamentoCriado = novoAgendamento.rows[0];
 
-await db.query(
-  `
-  INSERT INTO notificacoes (
-    usuario_id,
-    negocio_id,
-    agendamento_id,
-    titulo,
-    mensagem
-  )
-  VALUES ($1, $2, $3, $4, $5)
-  `,
-  [
-    profissional_id,
-    negocio.id,
-    agendamentoCriado.id,
-    "Novo agendamento",
-    `Você recebeu um novo agendamento para ${data} às ${horario}.`
-  ]
-);
+    await db.query(
+      `
+      INSERT INTO notificacoes (
+        usuario_id,
+        negocio_id,
+        agendamento_id,
+        titulo,
+        mensagem
+      )
+      VALUES ($1, $2, $3, $4, $5)
+      `,
+      [
+        profissional.id,
+        negocio.id,
+        agendamentoCriado.id,
+        "Novo agendamento",
+        `Novo agendamento: ${servico.nome} em ${data} às ${horario}.`
+      ]
+    );
 
     return res.status(201).json({
       mensagem: "Agendamento criado com sucesso.",
-      agendamento: novoAgendamento.rows[0]
+      agendamento: agendamentoCriado
     });
 
   } catch (err) {
     console.error("Erro ao criar agendamento público:", err);
-    return res.status(500).json({ erro: "Erro ao criar agendamento." });
+    return res.status(500).json({
+      erro: "Erro ao criar agendamento."
+    });
   }
 }
 
@@ -369,11 +400,15 @@ async function listarMeusAgendamentos(req, res) {
     const tipoUsuario = req.user?.tipo;
 
     if (!clienteId) {
-      return res.status(401).json({ erro: "Cliente não autenticado." });
+      return res.status(401).json({
+        erro: "Cliente não autenticado."
+      });
     }
 
     if (tipoUsuario !== "cliente") {
-      return res.status(403).json({ erro: "Apenas clientes podem ver seus agendamentos." });
+      return res.status(403).json({
+        erro: "Apenas clientes podem ver seus agendamentos."
+      });
     }
 
     const result = await db.query(
@@ -398,9 +433,12 @@ async function listarMeusAgendamentos(req, res) {
         s.valor
 
       FROM agendamentos a
-      LEFT JOIN servicos_negocio s ON s.id = a.servico_id
-      LEFT JOIN negocios n ON n.id = s.negocio_id
-      LEFT JOIN usuarios u ON u.id = a.profissional_id
+      LEFT JOIN servicos_negocio s
+        ON s.id = a.servico_id
+      LEFT JOIN negocios n
+        ON n.id = s.negocio_id
+      LEFT JOIN usuarios u
+        ON u.id = a.profissional_id
       WHERE a.cliente_id = $1
       ORDER BY a.data DESC, a.horario DESC
       `,
@@ -413,7 +451,9 @@ async function listarMeusAgendamentos(req, res) {
 
   } catch (err) {
     console.error("Erro ao listar meus agendamentos:", err);
-    return res.status(500).json({ erro: "Erro ao carregar agendamentos." });
+    return res.status(500).json({
+      erro: "Erro ao carregar agendamentos."
+    });
   }
 }
 
@@ -424,11 +464,15 @@ async function cancelarMeuAgendamento(req, res) {
     const { id } = req.params;
 
     if (!clienteId) {
-      return res.status(401).json({ erro: "Cliente não autenticado." });
+      return res.status(401).json({
+        erro: "Cliente não autenticado."
+      });
     }
 
     if (tipoUsuario !== "cliente") {
-      return res.status(403).json({ erro: "Apenas clientes podem cancelar agendamentos." });
+      return res.status(403).json({
+        erro: "Apenas clientes podem cancelar agendamentos."
+      });
     }
 
     const agendamentoResult = await db.query(
@@ -443,13 +487,17 @@ async function cancelarMeuAgendamento(req, res) {
     );
 
     if (agendamentoResult.rows.length === 0) {
-      return res.status(404).json({ erro: "Agendamento não encontrado." });
+      return res.status(404).json({
+        erro: "Agendamento não encontrado."
+      });
     }
 
     const agendamento = agendamentoResult.rows[0];
 
     if (agendamento.status === "cancelado") {
-      return res.status(400).json({ erro: "Esse agendamento já está cancelado." });
+      return res.status(400).json({
+        erro: "Esse agendamento já está cancelado."
+      });
     }
 
     const dataAgendamento = new Date(`${agendamento.data}T00:00:00`);
@@ -457,7 +505,9 @@ async function cancelarMeuAgendamento(req, res) {
     hoje.setHours(0, 0, 0, 0);
 
     if (dataAgendamento < hoje) {
-      return res.status(400).json({ erro: "Não é possível cancelar um agendamento já realizado." });
+      return res.status(400).json({
+        erro: "Não é possível cancelar um agendamento já realizado."
+      });
     }
 
     await db.query(
@@ -476,7 +526,9 @@ async function cancelarMeuAgendamento(req, res) {
 
   } catch (err) {
     console.error("Erro ao cancelar agendamento:", err);
-    return res.status(500).json({ erro: "Erro ao cancelar agendamento." });
+    return res.status(500).json({
+      erro: "Erro ao cancelar agendamento."
+    });
   }
 }
 
@@ -490,15 +542,21 @@ async function avaliarAgendamento(req, res) {
     const nota = Number(avaliacao);
 
     if (!clienteId) {
-      return res.status(401).json({ erro: "Cliente não autenticado." });
+      return res.status(401).json({
+        erro: "Cliente não autenticado."
+      });
     }
 
     if (tipoUsuario !== "cliente") {
-      return res.status(403).json({ erro: "Apenas clientes podem avaliar agendamentos." });
+      return res.status(403).json({
+        erro: "Apenas clientes podem avaliar agendamentos."
+      });
     }
 
     if (!Number.isInteger(nota) || nota < 1 || nota > 5) {
-      return res.status(400).json({ erro: "A avaliação deve ser de 1 a 5 estrelas." });
+      return res.status(400).json({
+        erro: "A avaliação deve ser de 1 a 5 estrelas."
+      });
     }
 
     const agendamentoResult = await db.query(
@@ -513,13 +571,17 @@ async function avaliarAgendamento(req, res) {
     );
 
     if (agendamentoResult.rows.length === 0) {
-      return res.status(404).json({ erro: "Agendamento não encontrado." });
+      return res.status(404).json({
+        erro: "Agendamento não encontrado."
+      });
     }
 
     const agendamento = agendamentoResult.rows[0];
 
     if (agendamento.status === "cancelado") {
-      return res.status(400).json({ erro: "Agendamento cancelado não pode ser avaliado." });
+      return res.status(400).json({
+        erro: "Agendamento cancelado não pode ser avaliado."
+      });
     }
 
     const dataAgendamento = new Date(`${agendamento.data}T00:00:00`);
@@ -527,11 +589,15 @@ async function avaliarAgendamento(req, res) {
     hoje.setHours(0, 0, 0, 0);
 
     if (dataAgendamento >= hoje) {
-      return res.status(400).json({ erro: "Só é possível avaliar serviços já realizados." });
+      return res.status(400).json({
+        erro: "Só é possível avaliar serviços já realizados."
+      });
     }
 
     if (agendamento.avaliacao) {
-      return res.status(400).json({ erro: "Esse agendamento já foi avaliado." });
+      return res.status(400).json({
+        erro: "Esse agendamento já foi avaliado."
+      });
     }
 
     await db.query(
@@ -551,7 +617,9 @@ async function avaliarAgendamento(req, res) {
 
   } catch (err) {
     console.error("Erro ao avaliar agendamento:", err);
-    return res.status(500).json({ erro: "Erro ao avaliar agendamento." });
+    return res.status(500).json({
+      erro: "Erro ao avaliar agendamento."
+    });
   }
 }
 
