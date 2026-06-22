@@ -16,12 +16,13 @@ const contaRoutes = require("./routes/contaRoutes");
 
 app.use(cors({
   origin: [
-  "http://127.0.0.1:5500",
-  "http://localhost:5500",
-  "https://agenda-fashion-production.up.railway.app",
-  "https://agendafashion.com.br",
-  "https://www.agendafashion.com.br"
-],
+    "http://127.0.0.1:5500",
+    "http://localhost:5500",
+    "https://agenda-fashion-production.up.railway.app",
+    "https://agendafashion.com.br",
+    "https://www.agendafashion.com.br",
+    "https://app.agendafashion.com.br"
+  ],
   methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"]
 }));
