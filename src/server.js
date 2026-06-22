@@ -37,6 +37,18 @@ app.get("/", (req, res) => {
   res.sendFile(path.join(rootDir, "html", "index.html"));
 });
 
+app.get("/login", (req, res) => {
+  res.sendFile(path.join(rootDir, "html", "login-profissional.html"));
+});
+
+app.get("/cadastro", (req, res) => {
+  res.sendFile(path.join(rootDir, "html", "cadastro-profissional.html"));
+});
+
+app.get("/demo", (req, res) => {
+  res.sendFile(path.join(rootDir, "html", "inicio.html"));
+});
+
 app.use("/conta", contaRoutes);
 app.use("/api/negocios", negocioRoutes);
 app.use("/servicos", servicosRoutes);
