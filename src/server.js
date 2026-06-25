@@ -13,6 +13,8 @@ const negocioRoutes = require("./routes/negocioRoutes");
 const servicosRoutes = require("./routes/servicosRoutes");
 const profissionaisRoutes = require("./routes/profissionaisRoutes");
 const contaRoutes = require("./routes/contaRoutes");
+const planosRoutes = require("./routes/planosRoutes");
+app.use("/api", planosRoutes);
 
 app.use(cors({
   origin: [
@@ -121,3 +123,4 @@ app.listen(PORT, () => {
       console.error("Erro banco:", err);
     });
 });
+

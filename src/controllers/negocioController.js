@@ -82,30 +82,41 @@ async function criarNegocio(req, res) {
 
     const slug = await gerarSlugUnico(baseSlug);
 
+    // Buscar o plano gratuito
+const planoGratis = await db.query(
+  `
+  SELECT id
+  FROM planos
+  WHERE slug = 'gratis'
+  LIMIT 1
+  `
+);
+
+const planoId = planoGratis.rows[0].id;
+
     const novoNegocio = await db.query(
   `
   INSERT INTO negocios (
     nome,
     slug,
     dono_usuario_id,
+    plano_id,
     created_at
-  )
-  VALUES (
+)
+VALUES (
     $1,
     $2,
     $3,
+    $4,
     NOW()
-  )
-  RETURNING
-    id,
-    nome,
-    slug
+)
   `,
   [
     nome.trim(),
     slug,
-    usuarioId
-  ]
+    usuarioId,
+    planoId
+]
 );
 
     const negocio = novoNegocio.rows[0];
@@ -125,6 +136,8 @@ async function criarNegocio(req, res) {
       `,
       [usuarioId, negocio.id]
     );
+
+
 
     return res.status(201).json({
       mensagem: "Negócio criado com sucesso.",
