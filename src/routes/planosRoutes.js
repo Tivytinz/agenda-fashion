@@ -1,10 +1,10 @@
 const express = require("express");
 const router = express.Router();
 const pool = require("../db");
-const autenticarToken = require("../middlewares/autenticarToken");
+// const autenticarToken = require("../middlewares/autenticarToken");
 
 // Listar todos os planos
-router.get("/planos", async (req, res) => {
+router.get("/meu-plano/:negocioId", async (req, res) => {
   try {
     const resultado = await pool.query(`
       SELECT 
