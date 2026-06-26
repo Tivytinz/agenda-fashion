@@ -33,19 +33,59 @@
       </select>
     </header>
 
-    <section class="af-hero dashboard-hero">
-      <div class="af-hero-emoji">💅</div>
+    <section class="af-hero dashboard-hero crescimento-hero">
+      <div class="af-hero-emoji">🚀</div>
 
       <div class="af-hero-content">
-        <span class="af-badge">Números do negócio</span>
+        <span class="af-badge">Crescimento do negócio</span>
 
         <h1 class="af-hero-title">
-          Veja o desempenho real do seu negócio
+          Seu negócio está crescendo
         </h1>
 
         <p class="af-hero-text">
-          Acompanhe clientes, faturamento, serviços vendidos e conversão.
+          Cada agendamento mostra que sua agenda está ficando mais cheia no Agenda Fashion.
         </p>
+      </div>
+    </section>
+
+    <section class="dashboard-bloco af-card plano-dashboard">
+      <div class="bloco-topo">
+        <div>
+          <h2>Seu crescimento no Agenda Fashion</h2>
+          <p id="planoMensagem">
+            Carregando informações do plano...
+          </p>
+        </div>
+
+        <button id="btnUpgradePlano" class="af-btn-primary hidden" type="button">
+          Fazer upgrade
+        </button>
+      </div>
+
+      <div class="plano-dashboard-grid">
+        <div class="plano-info-card">
+          <span class="plano-label">Plano atual</span>
+          <strong id="planoNome">Carregando...</strong>
+          <small id="planoValor">-</small>
+        </div>
+
+        <div class="plano-info-card">
+          <span class="plano-label">Capacidade mensal</span>
+          <strong id="planoUso">0 agendamentos</strong>
+          <small id="planoRestantes">-</small>
+        </div>
+
+        <div class="plano-info-card plano-progresso-card">
+          <span class="plano-label">Uso do plano</span>
+          <strong id="planoPercentual">0%</strong>
+
+          <div class="plano-progress">
+            <div id="planoBarra" class="plano-progress-bar"></div>
+          </div>
+
+          <small>No Agenda Fashion, o limite significa sucesso.</small>
+        </div>
       </div>
     </section>
 
@@ -104,7 +144,7 @@
         <div class="bloco-topo">
           <div>
             <h2>Performance do perfil</h2>
-            <p>Como os clientes interagem com seu negócio.</p>
+            <p>Como clientes encontram e interagem com seu negócio.</p>
           </div>
         </div>
 
@@ -155,7 +195,7 @@
         <div class="bloco-topo">
           <div>
             <h2>Ranking de profissionais</h2>
-            <p>Quem mais gerou resultado no período.</p>
+            <p>Quem mais ajudou o negócio a crescer no período.</p>
           </div>
         </div>
 
@@ -168,7 +208,7 @@
         <div class="bloco-topo">
           <div>
             <h2>Ranking de serviços</h2>
-            <p>Serviços mais vendidos e faturamento.</p>
+            <p>Serviços mais escolhidos pelas clientes.</p>
           </div>
         </div>
 
@@ -182,7 +222,7 @@
       <div class="bloco-topo">
         <div>
           <h2>Clientes</h2>
-          <p>Novos, recorrentes e clientes que mais agendam.</p>
+          <p>Clientes novos, recorrentes e quem mais agenda com você.</p>
         </div>
       </div>
 
@@ -194,7 +234,10 @@
   </main>
 
   <nav id="appNav" class="app-bottom-nav"></nav>
+
   <script src="../js/config.js"></script>
+  <script src="../js/utils.js"></script>
+  <script src="../js/api.js"></script>
   <script src="../js/dashboard-dono.js"></script>
   <script src="../js/navegacao.js"></script>
 

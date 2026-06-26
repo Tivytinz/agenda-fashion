@@ -1,15 +1,8 @@
 document.addEventListener("DOMContentLoaded", async () => {
-  
-
   const token = localStorage.getItem("token");
 
-  const usuario = JSON.parse(
-    localStorage.getItem("usuario") || "null"
-  );
-
-  const negocio = JSON.parse(
-    localStorage.getItem("negocio") || "null"
-  );
+  const usuario = JSON.parse(localStorage.getItem("usuario") || "null");
+  const negocio = JSON.parse(localStorage.getItem("negocio") || "null");
 
   const ehDono =
     usuario?.tipo === "dono" ||
@@ -42,11 +35,45 @@ document.addEventListener("DOMContentLoaded", async () => {
   const rankingServicos = document.getElementById("rankingServicos");
   const rankingClientes = document.getElementById("rankingClientes");
 
+  // Elementos opcionais do bloco de plano
+  const planoNome = document.getElementById("planoNome");
+  const planoValor = document.getElementById("planoValor");
+  const planoUso = document.getElementById("planoUso");
+  const planoRestantes = document.getElementById("planoRestantes");
+  const planoPercentual = document.getElementById("planoPercentual");
+  const planoBarra = document.getElementById("planoBarra");
+  const planoMensagem = document.getElementById("planoMensagem");
+  const btnUpgradePlano = document.getElementById("btnUpgradePlano");
+
   function formatarMoeda(valor) {
+    if (window.Utils?.formatarMoeda) {
+      return Utils.formatarMoeda(valor);
+    }
+
     return Number(valor || 0).toLocaleString("pt-BR", {
       style: "currency",
       currency: "BRL"
     });
+  }
+
+  async function apiGet(path) {
+    if (window.API?.get) {
+      return API.get(path);
+    }
+
+    const res = await fetch(`${API_URL}${path}`, {
+      headers: {
+        Authorization: `Bearer ${token}`
+      }
+    });
+
+    const data = await res.json().catch(() => ({}));
+
+    if (!res.ok) {
+      throw new Error(data.erro || "Erro ao carregar dados.");
+    }
+
+    return data;
   }
 
   function mostrarVazio(elemento, texto) {
@@ -131,21 +158,94 @@ document.addEventListener("DOMContentLoaded", async () => {
     });
   }
 
+  function renderPlano(plano) {
+    if (!plano) return;
+
+    const capacidade = plano.capacidade_agendamentos;
+    const utilizados = Number(plano.utilizados || 0);
+    const ilimitado = plano.ilimitado || capacidade === null;
+    const percentual = ilimitado
+      ? 100
+      : Math.min(Math.round((utilizados / capacidade) * 100), 100);
+
+    const restantes = ilimitado
+      ? null
+      : Math.max(Number(capacidade || 0) - utilizados, 0);
+
+    if (planoNome) {
+      planoNome.textContent = plano.plano_nome || plano.nome || "Plano";
+    }
+
+    if (planoValor) {
+      planoValor.textContent = ilimitado
+        ? "Premium"
+        : formatarMoeda(plano.valor || 0);
+    }
+
+    if (planoUso) {
+      planoUso.textContent = ilimitado
+        ? `${utilizados} agendamentos este mês`
+        : `${utilizados} de ${capacidade} agendamentos`;
+    }
+
+    if (planoRestantes) {
+      planoRestantes.textContent = ilimitado
+        ? "Agendamentos ilimitados"
+        : `${restantes} agendamento(s) restante(s)`;
+    }
+
+    if (planoPercentual) {
+      planoPercentual.textContent = ilimitado
+        ? "Ilimitado"
+        : `${percentual}%`;
+    }
+
+    if (planoBarra) {
+      planoBarra.style.width = ilimitado ? "100%" : `${percentual}%`;
+    }
+
+    if (planoMensagem) {
+      if (ilimitado) {
+        planoMensagem.textContent =
+          "Seu negócio está no plano com capacidade ilimitada.";
+      } else if (utilizados >= capacidade) {
+        planoMensagem.textContent =
+          "🎉 Parabéns! Você atingiu a capacidade do seu plano. No Agenda Fashion, o limite significa sucesso.";
+      } else if (percentual >= 80) {
+        planoMensagem.textContent =
+          `🚀 Sua agenda está crescendo. Faltam apenas ${restantes} agendamento(s) para atingir a capacidade do plano.`;
+      } else {
+        planoMensagem.textContent =
+          "Acompanhe aqui o crescimento da sua agenda este mês.";
+      }
+    }
+
+    if (btnUpgradePlano) {
+      btnUpgradePlano.classList.toggle("hidden", ilimitado);
+      btnUpgradePlano.onclick = () => {
+        window.location.href = "pagamento.html";
+      };
+    }
+  }
+
+  async function carregarPlano() {
+    try {
+      const plano = await apiGet("/api/meu-plano");
+      renderPlano(plano);
+    } catch (erro) {
+      console.error("Erro ao carregar plano:", erro);
+
+      if (planoMensagem) {
+        planoMensagem.textContent = "Não foi possível carregar seu plano.";
+      }
+    }
+  }
+
   async function carregarDashboard() {
     try {
       const periodo = filtroPeriodo?.value || "7";
 
-      const res = await fetch(`${API_URL}/dashboard-dono?periodo=${periodo}`, {
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
-      });
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        throw new Error(data.erro || "Erro ao carregar dashboard.");
-      }
+      const data = await apiGet(`/dashboard-dono?periodo=${periodo}`);
 
       const resumo = data.resumo || {};
       const performance = data.performance || {};
@@ -184,5 +284,6 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   filtroPeriodo?.addEventListener("change", carregarDashboard);
 
+  await carregarPlano();
   await carregarDashboard();
 });
