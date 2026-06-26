@@ -1,5 +1,5 @@
 document.addEventListener("DOMContentLoaded", async () => {
-  const API_URL = "https://agenda-fashion-production.up.railway.app";
+ 
 
   const token = localStorage.getItem("token");
   const usuarioLocal = JSON.parse(localStorage.getItem("usuario") || "null");

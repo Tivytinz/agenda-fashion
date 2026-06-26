@@ -1,6 +1,5 @@
 document.addEventListener("DOMContentLoaded", async () => {
-  const API_URL = "https://agenda-fashion-production.up.railway.app";
-
+ 
   const nomeNegocio = document.getElementById("nomeNegocio");
   const nomeProfissional = document.getElementById("nomeProfissional");
   const resumoServico = document.getElementById("resumoServico");
