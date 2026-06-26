@@ -44,6 +44,80 @@
   opacity: 0.08;
 }
 
+/* PLANO / CRESCIMENTO */
+.plano-dashboard {
+  background: linear-gradient(135deg, #fff7fc, #fff);
+}
+
+.plano-dashboard-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 18px;
+  margin-top: 20px;
+}
+
+.plano-info-card {
+  background: #fff;
+  border: 1px solid var(--borda);
+  border-radius: 24px;
+  padding: 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.plano-label {
+  font-size: 12px;
+  font-weight: 900;
+  color: var(--texto-suave);
+  text-transform: uppercase;
+  letter-spacing: .08em;
+}
+
+.plano-info-card strong {
+  font-size: 30px;
+  font-weight: 950;
+  color: var(--texto);
+}
+
+.plano-info-card small {
+  font-size: 14px;
+  color: var(--texto-suave);
+  font-weight: 700;
+}
+
+.plano-progresso-card {
+  background: linear-gradient(135deg, #fff, #fff8fd);
+}
+
+.plano-progress {
+  width: 100%;
+  height: 14px;
+  background: #f3f3f3;
+  border-radius: 999px;
+  overflow: hidden;
+  margin: 8px 0;
+}
+
+.plano-progress-bar {
+  width: 0%;
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #ff4fbf, #ff7bd1);
+  transition: .35s ease;
+}
+
+#planoMensagem {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--texto-suave);
+  max-width: 650px;
+}
+
+#btnUpgradePlano {
+  min-width: 180px;
+}
+
 /* KPI */
 .kpi-grid {
   display: grid;
@@ -142,11 +216,7 @@
 }
 
 .performance-card.destaque {
-  background: linear-gradient(
-    135deg,
-    #ff4fbf,
-    #ff89d7
-  );
+  background: linear-gradient(135deg, #ff4fbf, #ff89d7);
   border: none;
 }
 
@@ -189,11 +259,7 @@
   width: 62px;
   height: 62px;
   border-radius: 22px;
-  background: linear-gradient(
-    135deg,
-    #ffe1f4,
-    #ffd0ee
-  );
+  background: linear-gradient(135deg, #ffe1f4, #ffd0ee);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -252,15 +318,12 @@
 
 /* RESPONSIVO */
 @media (max-width: 1200px) {
-
   .kpi-grid {
     grid-template-columns: repeat(3, 1fr);
   }
-
 }
 
 @media (max-width: 980px) {
-
   .dashboard-grid {
     grid-template-columns: 1fr;
   }
@@ -269,10 +332,12 @@
     grid-template-columns: 1fr;
   }
 
+  .plano-dashboard-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (max-width: 760px) {
-
   .dashboard-header {
     flex-direction: column;
     align-items: stretch;
@@ -290,10 +355,17 @@
     grid-template-columns: 1fr;
   }
 
+  .bloco-topo {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  #btnUpgradePlano {
+    width: 100%;
+  }
 }
 
 @media (max-width: 560px) {
-
   .dashboard-dono-page {
     padding: 16px;
     padding-bottom: 100px;
@@ -320,4 +392,7 @@
     font-size: 21px;
   }
 
+  .plano-info-card strong {
+    font-size: 26px;
+  }
 }

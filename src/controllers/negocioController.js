@@ -27,13 +27,28 @@ async function gerarSlugUnico(baseSlug) {
       [slug]
     );
 
-    if (existe.rows.length === 0) {
-      return slug;
-    }
+    if (existe.rows.length === 0) return slug;
 
     slug = `${baseSlug}-${contador}`;
     contador++;
   }
+}
+
+// =============================
+// 💎 BUSCAR PLANO GRÁTIS
+// =============================
+async function buscarPlanoGratis() {
+  const result = await db.query(
+    `
+    SELECT id
+    FROM planos
+    WHERE slug = 'gratis'
+      AND ativo = true
+    LIMIT 1
+    `
+  );
+
+  return result.rows[0] || null;
 }
 
 // =============================
@@ -72,6 +87,14 @@ async function criarNegocio(req, res) {
       });
     }
 
+    const planoGratis = await buscarPlanoGratis();
+
+    if (!planoGratis) {
+      return res.status(500).json({
+        erro: "Plano gratuito não encontrado."
+      });
+    }
+
     const baseSlug = gerarSlug(nome);
 
     if (!baseSlug) {
@@ -82,42 +105,37 @@ async function criarNegocio(req, res) {
 
     const slug = await gerarSlugUnico(baseSlug);
 
-    // Buscar o plano gratuito
-const planoGratis = await db.query(
-  `
-  SELECT id
-  FROM planos
-  WHERE slug = 'gratis'
-  LIMIT 1
-  `
-);
-
-const planoId = planoGratis.rows[0].id;
-
     const novoNegocio = await db.query(
-  `
-  INSERT INTO negocios (
-    nome,
-    slug,
-    dono_usuario_id,
-    plano_id,
-    created_at
-)
-VALUES (
-    $1,
-    $2,
-    $3,
-    $4,
-    NOW()
-)
-  `,
-  [
-    nome.trim(),
-    slug,
-    usuarioId,
-    planoId
-]
-);
+      `
+      INSERT INTO negocios (
+        nome,
+        slug,
+        dono_usuario_id,
+        plano_id,
+        created_at
+      )
+      VALUES (
+        $1,
+        $2,
+        $3,
+        $4,
+        NOW()
+      )
+      RETURNING
+        id,
+        nome,
+        slug,
+        dono_usuario_id,
+        plano_id,
+        created_at
+      `,
+      [
+        nome.trim(),
+        slug,
+        usuarioId,
+        planoGratis.id
+      ]
+    );
 
     const negocio = novoNegocio.rows[0];
 
@@ -137,13 +155,15 @@ VALUES (
       [usuarioId, negocio.id]
     );
 
-
-
     return res.status(201).json({
       mensagem: "Negócio criado com sucesso.",
       negocio: {
         ...negocio,
-        papel: "dono"
+        papel: "dono",
+        plano: {
+          id: planoGratis.id,
+          slug: "gratis"
+        }
       }
     });
 
@@ -179,10 +199,21 @@ async function buscarMeuNegocio(req, res) {
         n.foto_public_id,
         n.descricao,
         n.cidade,
+        n.bairro,
         n.setor,
         n.whatsapp_negocio,
         n.localizacao_url,
         n.areas,
+        n.visitas,
+        n.cliques_whatsapp,
+        n.cliques_maps,
+        n.plano_id,
+
+        p.nome AS plano_nome,
+        p.slug AS plano_slug,
+        p.valor AS plano_valor,
+        p.capacidade_agendamentos,
+
         un.papel,
         u.nome AS profissional
       FROM usuarios_negocios un
@@ -190,6 +221,8 @@ async function buscarMeuNegocio(req, res) {
         ON n.id = un.negocio_id
       INNER JOIN usuarios u
         ON u.id = un.usuario_id
+      LEFT JOIN planos p
+        ON p.id = n.plano_id
       WHERE un.usuario_id = $1
       LIMIT 1
       `,
@@ -202,9 +235,45 @@ async function buscarMeuNegocio(req, res) {
       });
     }
 
+    const negocio = result.rows[0];
+
+    const profissionaisResult = await db.query(
+      `
+      SELECT
+        u.id,
+        u.nome,
+        u.email,
+        u.whatsapp,
+        u.tipo,
+        u.foto_url,
+        un.papel
+      FROM usuarios_negocios un
+      INNER JOIN usuarios u
+        ON u.id = un.usuario_id
+      WHERE un.negocio_id = $1
+      ORDER BY
+        CASE
+          WHEN un.papel = 'dono' THEN 1
+          ELSE 2
+        END,
+        u.nome ASC
+      `,
+      [negocio.id]
+    );
+
     return res.json({
       temNegocio: true,
-      negocio: result.rows[0]
+      negocio: {
+        ...negocio,
+        plano: {
+          id: negocio.plano_id,
+          nome: negocio.plano_nome,
+          slug: negocio.plano_slug,
+          valor: negocio.plano_valor,
+          capacidade_agendamentos: negocio.capacidade_agendamentos
+        }
+      },
+      profissionais: profissionaisResult.rows
     });
 
   } catch (err) {
