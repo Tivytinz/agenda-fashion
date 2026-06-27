@@ -81,7 +81,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function redirecionarUsuario(usuario, negocio) {
     if (usuario?.tipo === "admin") {
-      window.location.href = "admin.html";
+      window.location.href = "/html/admin.html";
       return;
     }
 
@@ -89,7 +89,7 @@ document.addEventListener("DOMContentLoaded", () => {
       usuario?.tipo === "dono" ||
       negocio?.papel === "dono"
     ) {
-      window.location.href = "dashboard-dono.html";
+      window.location.href = "/html/dashboard-dono.html";
       return;
     }
 
@@ -101,16 +101,16 @@ document.addEventListener("DOMContentLoaded", () => {
       negocio?.papel === "funcionário" ||
       negocio?.papel === "profissional"
     ) {
-      window.location.href = "agenda-profissional.html";
+      window.location.href = "/html/agenda-profissional.html";
       return;
     }
 
     if (usuario?.tipo === "cliente") {
-      window.location.href = "inicio.html";
+      window.location.href = "/html/inicio.html";
       return;
     }
 
-    window.location.href = "inicio.html";
+    window.location.href = "/html/inicio.html";
   }
 
   function handleEnter(e) {
