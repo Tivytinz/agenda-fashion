@@ -4,6 +4,8 @@ const {
 
 async function receberWebhookAsaas(req, res) {
   try {
+    console.log("BODY:");
+    console.log(req.body);
     const evento = req.body?.event;
     const pagamento = req.body?.payment;
 
