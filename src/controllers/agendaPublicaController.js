@@ -1,5 +1,50 @@
 const db = require("../db");
 
+const { verificarCapacidadePlano } = require("../services/planoService");
+
+async function verificarCapacidadePlano(negocioId) {
+
+    const result = await db.query(`
+        SELECT
+            p.capacidade_agendamentos,
+
+            (
+                SELECT COUNT(*)
+                FROM agendamentos
+                WHERE negocio_id = n.id
+                AND status!='cancelado'
+                AND data>=date_trunc('month',CURRENT_DATE)
+                AND data<date_trunc('month',CURRENT_DATE)+INTERVAL '1 month'
+            ) utilizados
+
+        FROM negocios n
+        INNER JOIN planos p
+            ON p.id=n.plano_id
+
+        WHERE n.id=$1
+    `,[negocioId]);
+
+    if(result.rows.length===0){
+
+        throw new Error("Negócio não encontrado.");
+
+    }
+
+    const plano=result.rows[0];
+
+    if(plano.capacidade_agendamentos===null){
+
+        return;
+    }
+
+    if(Number(plano.utilizados)>=Number(plano.capacidade_agendamentos)){
+
+        throw new Error("LIMITE_PLANO");
+
+    }
+
+}
+
 function gerarDiasProximos(qtd = 7) {
   const dias = [];
   const hoje = new Date();
@@ -328,7 +373,26 @@ async function criarAgendamentoPublico(req, res) {
       });
     }
 
+      try {
+  await verificarCapacidadePlano(negocio.id);
+} catch (e) {
+  if (e.codigo === "LIMITE_PLANO") {
+    return res.status(403).json({
+      erro: "Este negócio atingiu a capacidade de agendamentos do plano atual.",
+      codigo: "LIMITE_PLANO",
+      titulo: "🎉 Agenda lotada!",
+      mensagem:
+        "O limite significa sucesso. Faça upgrade para continuar recebendo novos agendamentos.",
+      plano: e.uso
+    });
+  }
+
+  throw e;
+}
+
     const novoAgendamento = await db.query(
+
+      
       `
       INSERT INTO agendamentos (
         usuarios_id,
