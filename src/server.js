@@ -15,7 +15,9 @@ const profissionaisRoutes = require("./routes/profissionaisRoutes");
 const contaRoutes = require("./routes/contaRoutes");
 const planosRoutes = require("./routes/planosRoutes");
 const checkoutRoutes = require("./routes/checkoutRoutes");
+const webhookRoutes = require("./routes/webhookRoutes");
 
+app.use("/api", webhookRoutes);
 app.use("/api", checkoutRoutes);
 app.use("/api", planosRoutes);
 app.use(cors({

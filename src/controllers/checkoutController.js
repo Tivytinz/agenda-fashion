@@ -2,9 +2,122 @@ const db = require("../db");
 
 const {
   criarAssinaturaAsaas,
-  listarPagamentosAssinatura,
+  criarCobrancaPix,
   buscarQrCodePix
 } = require("../services/asaasService");
+
+const {
+  registrarAssinaturaPendente,
+  registrarPagamento
+} = require("../services/assinaturaService");
+
+async function buscarNegocioDono(client, usuarioId) {
+  const result = await client.query(
+    `
+    SELECT
+      n.id,
+      n.nome,
+      n.asaas_customer_id
+    FROM usuarios_negocios un
+    INNER JOIN negocios n
+      ON n.id = un.negocio_id
+    WHERE un.usuario_id = $1
+      AND un.papel = 'dono'
+    LIMIT 1
+    `,
+    [usuarioId]
+  );
+
+  return result.rows[0] || null;
+}
+
+async function buscarPlano(client, planoId) {
+  const result = await client.query(
+    `
+    SELECT
+      id,
+      nome,
+      slug,
+      valor
+    FROM planos
+    WHERE id = $1
+      AND ativo = true
+    LIMIT 1
+    `,
+    [planoId]
+  );
+
+  return result.rows[0] || null;
+}
+
+async function criarCheckoutPix(client, negocio, plano) {
+  const assinaturaLocal = await registrarAssinaturaPendente(client, {
+    negocio_id: negocio.id,
+    plano_id: plano.id,
+    asaas_customer_id: negocio.asaas_customer_id,
+    asaas_subscription_id: null,
+    status: "PENDING",
+    forma_pagamento: "pix",
+    periodicidade: "MONTHLY",
+    valor: plano.valor,
+    observacoes: "PIX inicial criado. Assinatura recorrente será ativada após confirmação do pagamento."
+  });
+
+  const cobranca = await criarCobrancaPix({
+    customerId: negocio.asaas_customer_id,
+    valor: plano.valor,
+    descricao: `Agenda Fashion - Plano ${plano.nome}`,
+    externalReference: `assinatura:${assinaturaLocal.id};negocio:${negocio.id};plano:${plano.id}`
+  });
+
+  const pix = await buscarQrCodePix(cobranca.id);
+
+  await registrarPagamento(client, {
+    assinatura_id: assinaturaLocal.id,
+    asaas_payment_id: cobranca.id,
+    valor: cobranca.value || plano.valor,
+    forma_pagamento: "pix",
+    status: cobranca.status || "PENDING",
+    data_vencimento: cobranca.dueDate || null,
+    pix_copia_cola: pix?.payload || null,
+    pix_qrcode: pix?.encodedImage || null
+  });
+
+  return {
+    assinatura: assinaturaLocal,
+    pagamento: cobranca,
+    pix
+  };
+}
+
+async function criarCheckoutCartao(client, negocio, plano, cartao) {
+  const assinaturaAsaas = await criarAssinaturaAsaas({
+    customerId: negocio.asaas_customer_id,
+    valor: plano.valor,
+    descricao: `Agenda Fashion - Plano ${plano.nome}`,
+    formaPagamento: "cartao",
+    externalReference: `negocio:${negocio.id};plano:${plano.id}`,
+    cartao
+  });
+
+  const assinaturaLocal = await registrarAssinaturaPendente(client, {
+    negocio_id: negocio.id,
+    plano_id: plano.id,
+    asaas_customer_id: negocio.asaas_customer_id,
+    asaas_subscription_id: assinaturaAsaas.id,
+    status: assinaturaAsaas.status || "PENDING",
+    forma_pagamento: "cartao",
+    periodicidade: "MONTHLY",
+    valor: plano.valor,
+    data_proxima_cobranca: assinaturaAsaas.nextDueDate || null,
+    observacoes: "Assinatura criada via cartão."
+  });
+
+  return {
+    assinatura: assinaturaLocal,
+    assinatura_asaas: assinaturaAsaas
+  };
+}
 
 async function criarCheckout(req, res) {
   const client = await db.connect();
@@ -13,36 +126,41 @@ async function criarCheckout(req, res) {
     await client.query("BEGIN");
 
     const usuarioId = req.user?.id;
-    const { plano_id, forma_pagamento } = req.body;
+    const {
+      plano_id,
+      forma_pagamento,
+      cartao
+    } = req.body;
 
     if (!usuarioId) {
       await client.query("ROLLBACK");
-      return res.status(401).json({ erro: "Usuário não autenticado." });
+      return res.status(401).json({
+        erro: "Usuário não autenticado."
+      });
     }
 
     if (!plano_id || !["pix", "cartao"].includes(forma_pagamento)) {
       await client.query("ROLLBACK");
-      return res.status(400).json({ erro: "Dados de checkout inválidos." });
+      return res.status(400).json({
+        erro: "Dados de checkout inválidos."
+      });
     }
 
-    const negocioResult = await client.query(
-      `
-      SELECT n.id, n.nome, n.asaas_customer_id
-      FROM usuarios_negocios un
-      INNER JOIN negocios n ON n.id = un.negocio_id
-      WHERE un.usuario_id = $1
-        AND un.papel = 'dono'
-      LIMIT 1
-      `,
-      [usuarioId]
-    );
-
-    if (negocioResult.rows.length === 0) {
+    if (forma_pagamento === "cartao" && !cartao) {
       await client.query("ROLLBACK");
-      return res.status(404).json({ erro: "Negócio não encontrado." });
+      return res.status(400).json({
+        erro: "Dados do cartão não informados."
+      });
     }
 
-    const negocio = negocioResult.rows[0];
+    const negocio = await buscarNegocioDono(client, usuarioId);
+
+    if (!negocio) {
+      await client.query("ROLLBACK");
+      return res.status(404).json({
+        erro: "Negócio não encontrado."
+      });
+    }
 
     if (!negocio.asaas_customer_id) {
       await client.query("ROLLBACK");
@@ -51,23 +169,14 @@ async function criarCheckout(req, res) {
       });
     }
 
-    const planoResult = await client.query(
-      `
-      SELECT id, nome, slug, valor
-      FROM planos
-      WHERE id = $1
-        AND ativo = true
-      LIMIT 1
-      `,
-      [plano_id]
-    );
+    const plano = await buscarPlano(client, plano_id);
 
-    if (planoResult.rows.length === 0) {
+    if (!plano) {
       await client.query("ROLLBACK");
-      return res.status(404).json({ erro: "Plano não encontrado." });
+      return res.status(404).json({
+        erro: "Plano não encontrado."
+      });
     }
-
-    const plano = planoResult.rows[0];
 
     if (Number(plano.valor || 0) <= 0) {
       await client.query("ROLLBACK");
@@ -76,98 +185,25 @@ async function criarCheckout(req, res) {
       });
     }
 
-    const assinaturaAsaas = await criarAssinaturaAsaas({
-      customerId: negocio.asaas_customer_id,
-      valor: plano.valor,
-      descricao: `Agenda Fashion - Plano ${plano.nome}`,
-      formaPagamento: forma_pagamento,
-      externalReference: `negocio:${negocio.id};plano:${plano.id}`
-    });
+    let resultado;
 
-    const assinaturaResult = await client.query(
-      `
-      INSERT INTO assinaturas (
-        negocio_id,
-        plano_id,
-        asaas_customer_id,
-        asaas_subscription_id,
-        status,
-        forma_pagamento,
-        periodicidade,
-        valor,
-        data_proxima_cobranca,
-        ativo
-      )
-      VALUES (
-        $1, $2, $3, $4,
-        'PENDING',
-        $5,
-        'MONTHLY',
-        $6,
-        $7,
-        false
-      )
-      RETURNING *
-      `,
-      [
-        negocio.id,
-        plano.id,
-        negocio.asaas_customer_id,
-        assinaturaAsaas.id,
-        forma_pagamento,
-        plano.valor,
-        assinaturaAsaas.nextDueDate || null
-      ]
-    );
+    if (forma_pagamento === "pix") {
+      resultado = await criarCheckoutPix(client, negocio, plano);
+    }
 
-    const assinaturaLocal = assinaturaResult.rows[0];
-
-    let pagamento = null;
-    let pix = null;
-
-    const pagamentosAsaas = await listarPagamentosAssinatura(assinaturaAsaas.id);
-
-    if (pagamentosAsaas?.data?.length) {
-      pagamento = pagamentosAsaas.data[0];
-
-      if (forma_pagamento === "pix") {
-        pix = await buscarQrCodePix(pagamento.id);
-      }
-
-      await client.query(
-        `
-        INSERT INTO pagamentos (
-          assinatura_id,
-          asaas_payment_id,
-          valor,
-          forma_pagamento,
-          status,
-          data_vencimento,
-          pix_copia_cola,
-          pix_qrcode
-        )
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-        `,
-        [
-          assinaturaLocal.id,
-          pagamento.id,
-          pagamento.value || plano.valor,
-          forma_pagamento,
-          pagamento.status || "PENDING",
-          pagamento.dueDate || null,
-          pix?.payload || null,
-          pix?.encodedImage || null
-        ]
-      );
+    if (forma_pagamento === "cartao") {
+      resultado = await criarCheckoutCartao(client, negocio, plano, cartao);
     }
 
     await client.query("COMMIT");
 
     return res.status(201).json({
-      mensagem: "Assinatura criada com sucesso.",
-      assinatura: assinaturaLocal,
-      pagamento,
-      pix
+      mensagem:
+        forma_pagamento === "pix"
+          ? "PIX gerado com sucesso."
+          : "Assinatura enviada para processamento.",
+      forma_pagamento,
+      ...resultado
     });
 
   } catch (err) {

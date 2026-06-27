@@ -17,13 +17,26 @@ const asaasApi = axios.create({
   }
 });
 
+function limparNumero(valor) {
+  return String(valor || "").replace(/\D/g, "");
+}
+
+function separarValidade(validade) {
+  const [mes, ano] = String(validade || "").split("/");
+
+  return {
+    expiryMonth: mes,
+    expiryYear: ano?.length === 2 ? `20${ano}` : ano
+  };
+}
+
 async function criarClienteAsaas({ nome, email, telefone }) {
   validarConfigAsaas();
 
   const response = await asaasApi.post("/customers", {
     name: nome,
     email,
-    mobilePhone: telefone
+    mobilePhone: limparNumero(telefone)
   });
 
   return response.data;
@@ -57,11 +70,12 @@ async function criarAssinaturaAsaas({
   valor,
   descricao,
   formaPagamento,
-  externalReference
+  externalReference,
+  cartao
 }) {
   validarConfigAsaas();
 
-  const response = await asaasApi.post("/subscriptions", {
+  const payload = {
     customer: customerId,
     billingType: formaPagamento === "pix" ? "PIX" : "CREDIT_CARD",
     value: Number(valor),
@@ -69,7 +83,30 @@ async function criarAssinaturaAsaas({
     cycle: "MONTHLY",
     description: descricao,
     externalReference
-  });
+  };
+
+  if (formaPagamento === "cartao") {
+    const validade = separarValidade(cartao.validade);
+
+    payload.creditCard = {
+      holderName: cartao.nome,
+      number: limparNumero(cartao.numero),
+      expiryMonth: validade.expiryMonth,
+      expiryYear: validade.expiryYear,
+      ccv: limparNumero(cartao.cvv)
+    };
+
+    payload.creditCardHolderInfo = {
+      name: cartao.nome,
+      email: cartao.email || "cliente@agendafashion.com.br",
+      cpfCnpj: limparNumero(cartao.cpfCnpj || "00000000000"),
+      postalCode: limparNumero(cartao.postalCode || "00000000"),
+      addressNumber: cartao.addressNumber || "0",
+      phone: limparNumero(cartao.phone || "")
+    };
+  }
+
+  const response = await asaasApi.post("/subscriptions", payload);
 
   return response.data;
 }
