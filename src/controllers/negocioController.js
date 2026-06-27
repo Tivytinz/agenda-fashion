@@ -1,4 +1,5 @@
 const db = require("../db");
+const { criarClienteAsaas } = require("../services/asaasService");
 
 // =============================
 // 🔤 GERAR SLUG
@@ -17,12 +18,12 @@ function gerarSlug(texto) {
 // =============================
 // 🔁 SLUG ÚNICO
 // =============================
-async function gerarSlugUnico(baseSlug) {
+async function gerarSlugUnico(baseSlug, client = db) {
   let slug = baseSlug;
   let contador = 2;
 
   while (true) {
-    const existe = await db.query(
+    const existe = await client.query(
       "SELECT id FROM negocios WHERE slug = $1 LIMIT 1",
       [slug]
     );
@@ -35,43 +36,45 @@ async function gerarSlugUnico(baseSlug) {
 }
 
 // =============================
-// 💎 BUSCAR PLANO GRÁTIS
-// =============================
-async function buscarPlanoGratis() {
-  const result = await db.query(
-    `
-    SELECT id
-    FROM planos
-    WHERE slug = 'gratis'
-      AND ativo = true
-    LIMIT 1
-    `
-  );
-
-  return result.rows[0] || null;
-}
-
-// =============================
 // ➕ CRIAR NEGÓCIO
 // =============================
 async function criarNegocio(req, res) {
+  const client = await db.connect();
+
   try {
+    await client.query("BEGIN");
+
     const usuarioId = req.user?.id;
     const { nome } = req.body;
 
     if (!usuarioId) {
-      return res.status(401).json({
-        erro: "Usuário não autenticado."
-      });
+      await client.query("ROLLBACK");
+      return res.status(401).json({ erro: "Usuário não autenticado." });
     }
 
     if (!nome || nome.trim().length < 3) {
-      return res.status(400).json({
-        erro: "Nome do negócio inválido."
-      });
+      await client.query("ROLLBACK");
+      return res.status(400).json({ erro: "Nome do negócio inválido." });
     }
 
-    const existe = await db.query(
+    const usuarioResult = await client.query(
+      `
+      SELECT id, nome, email, whatsapp
+      FROM usuarios
+      WHERE id = $1
+      LIMIT 1
+      `,
+      [usuarioId]
+    );
+
+    if (usuarioResult.rows.length === 0) {
+      await client.query("ROLLBACK");
+      return res.status(404).json({ erro: "Usuário não encontrado." });
+    }
+
+    const usuario = usuarioResult.rows[0];
+
+    const existe = await client.query(
       `
       SELECT id
       FROM usuarios_negocios
@@ -82,30 +85,36 @@ async function criarNegocio(req, res) {
     );
 
     if (existe.rows.length > 0) {
-      return res.status(400).json({
-        erro: "Você já possui um negócio."
-      });
+      await client.query("ROLLBACK");
+      return res.status(400).json({ erro: "Você já possui um negócio." });
     }
 
-    const planoGratis = await buscarPlanoGratis();
+    const planoGratis = await client.query(
+      `
+      SELECT id
+      FROM planos
+      WHERE slug = 'gratis'
+        AND ativo = true
+      LIMIT 1
+      `
+    );
 
-    if (!planoGratis) {
-      return res.status(500).json({
-        erro: "Plano gratuito não encontrado."
-      });
+    if (planoGratis.rows.length === 0) {
+      await client.query("ROLLBACK");
+      return res.status(500).json({ erro: "Plano gratuito não encontrado." });
     }
 
     const baseSlug = gerarSlug(nome);
 
     if (!baseSlug) {
-      return res.status(400).json({
-        erro: "Erro ao gerar link do negócio."
-      });
+      await client.query("ROLLBACK");
+      return res.status(400).json({ erro: "Erro ao gerar link do negócio." });
     }
 
-    const slug = await gerarSlugUnico(baseSlug);
+    const slug = await gerarSlugUnico(baseSlug, client);
+    const planoId = planoGratis.rows[0].id;
 
-    const novoNegocio = await db.query(
+    const novoNegocio = await client.query(
       `
       INSERT INTO negocios (
         nome,
@@ -114,13 +123,7 @@ async function criarNegocio(req, res) {
         plano_id,
         created_at
       )
-      VALUES (
-        $1,
-        $2,
-        $3,
-        $4,
-        NOW()
-      )
+      VALUES ($1, $2, $3, $4, NOW())
       RETURNING
         id,
         nome,
@@ -133,46 +136,71 @@ async function criarNegocio(req, res) {
         nome.trim(),
         slug,
         usuarioId,
-        planoGratis.id
+        planoId
       ]
     );
 
     const negocio = novoNegocio.rows[0];
 
-    await db.query(
+    const clienteAsaas = await criarClienteAsaas({
+      nome: usuario.nome,
+      email: usuario.email,
+      telefone: usuario.whatsapp || ""
+    });
+
+    await client.query(
+      `
+      UPDATE negocios
+      SET asaas_customer_id = $1
+      WHERE id = $2
+      `,
+      [
+        clienteAsaas.id,
+        negocio.id
+      ]
+    );
+
+    await client.query(
       `
       INSERT INTO usuarios_negocios (
         usuario_id,
         negocio_id,
         papel
       )
-      VALUES (
-        $1,
-        $2,
-        'dono'
-      )
+      VALUES ($1, $2, 'dono')
       `,
-      [usuarioId, negocio.id]
+      [
+        usuarioId,
+        negocio.id
+      ]
     );
+
+    await client.query("COMMIT");
 
     return res.status(201).json({
       mensagem: "Negócio criado com sucesso.",
       negocio: {
         ...negocio,
+        asaas_customer_id: clienteAsaas.id,
         papel: "dono",
         plano: {
-          id: planoGratis.id,
+          id: planoId,
           slug: "gratis"
         }
       }
     });
 
   } catch (err) {
+    await client.query("ROLLBACK");
+
     console.error("Erro ao criar negócio:", err);
 
     return res.status(500).json({
       erro: "Erro ao criar negócio."
     });
+
+  } finally {
+    client.release();
   }
 }
 
@@ -208,6 +236,7 @@ async function buscarMeuNegocio(req, res) {
         n.cliques_whatsapp,
         n.cliques_maps,
         n.plano_id,
+        n.asaas_customer_id,
 
         p.nome AS plano_nome,
         p.slug AS plano_slug,
