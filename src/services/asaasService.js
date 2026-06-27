@@ -52,8 +52,42 @@ async function buscarQrCodePix(paymentId) {
   return response.data;
 }
 
+async function criarAssinaturaAsaas({
+  customerId,
+  valor,
+  descricao,
+  formaPagamento,
+  externalReference
+}) {
+  validarConfigAsaas();
+
+  const response = await asaasApi.post("/subscriptions", {
+    customer: customerId,
+    billingType: formaPagamento === "pix" ? "PIX" : "CREDIT_CARD",
+    value: Number(valor),
+    nextDueDate: new Date().toISOString().slice(0, 10),
+    cycle: "MONTHLY",
+    description: descricao,
+    externalReference
+  });
+
+  return response.data;
+}
+
+async function listarPagamentosAssinatura(subscriptionId) {
+  validarConfigAsaas();
+
+  const response = await asaasApi.get(
+    `/subscriptions/${subscriptionId}/payments`
+  );
+
+  return response.data;
+}
+
 module.exports = {
   criarClienteAsaas,
   criarCobrancaPix,
-  buscarQrCodePix
+  buscarQrCodePix,
+  criarAssinaturaAsaas,
+  listarPagamentosAssinatura
 };

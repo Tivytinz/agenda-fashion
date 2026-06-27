@@ -14,8 +14,10 @@ const servicosRoutes = require("./routes/servicosRoutes");
 const profissionaisRoutes = require("./routes/profissionaisRoutes");
 const contaRoutes = require("./routes/contaRoutes");
 const planosRoutes = require("./routes/planosRoutes");
-app.use("/api", planosRoutes);
+const checkoutRoutes = require("./routes/checkoutRoutes");
 
+app.use("/api", checkoutRoutes);
+app.use("/api", planosRoutes);
 app.use(cors({
   origin: [
     "http://127.0.0.1:5500",
@@ -28,7 +30,6 @@ app.use(cors({
   methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"]
 }));
-
 app.use(express.json());
 
 const rootDir = path.join(process.cwd(), "agendamento-nails");
