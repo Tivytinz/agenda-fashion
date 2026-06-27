@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Checkout | Agenda Fashion</title>
+
+  <link rel="stylesheet" href="../css/global.css">
+  <link rel="stylesheet" href="../css/checkout.css">
+</head>
+
+<body>
+  <main class="checkout-page">
+    <section class="checkout-card af-card">
+      <div class="checkout-brand">
+        <div class="af-brand-icon">💅</div>
+        <div>
+          <strong>Agenda Fashion</strong>
+          <span>Assinatura do plano</span>
+        </div>
+      </div>
+
+      <div id="checkoutResumo" class="checkout-resumo">
+        Carregando plano...
+      </div>
+
+      <div class="checkout-pagamento">
+        <h2>Forma de pagamento</h2>
+
+        <label class="pagamento-opcao">
+          <input type="radio" name="formaPagamento" value="pix" checked>
+          <span>PIX</span>
+        </label>
+
+        <label class="pagamento-opcao">
+          <input type="radio" name="formaPagamento" value="cartao">
+          <span>Cartão de crédito</span>
+        </label>
+      </div>
+
+      <div id="cartaoCampos" class="cartao-campos hidden">
+        <input id="nomeCartao" class="af-input" placeholder="Nome no cartão">
+        <input id="numeroCartao" class="af-input" placeholder="Número do cartão">
+        <input id="validadeCartao" class="af-input" placeholder="MM/AA">
+        <input id="cvvCartao" class="af-input" placeholder="CVV">
+      </div>
+
+      <div class="checkout-total">
+        <span>Total</span>
+        <strong id="checkoutTotal">R$ 0,00</strong>
+      </div>
+
+      <button id="btnConfirmarCheckout" class="af-btn-primary" type="button">
+        Confirmar assinatura
+      </button>
+
+      <p id="mensagemCheckout" class="hidden"></p>
+    </section>
+  </main>
+
+  <script src="../js/config.js"></script>
+  <script src="../js/utils.js"></script>
+  <script src="../js/api.js"></script>
+  <script src="../js/checkout.js"></script>
+</body>
+</html>

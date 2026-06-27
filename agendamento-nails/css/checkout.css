@@ -1,0 +1,145 @@
+.checkout-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 22px;
+}
+
+.checkout-card {
+  width: 100%;
+  max-width: 520px;
+  padding: 28px;
+}
+
+.checkout-brand {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 24px;
+}
+
+.checkout-brand strong {
+  display: block;
+  font-size: 22px;
+  font-weight: 950;
+  color: var(--texto);
+}
+
+.checkout-brand span {
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--texto-suave);
+}
+
+.checkout-resumo {
+  border: 1px solid var(--borda);
+  border-radius: 24px;
+  padding: 20px;
+  margin-bottom: 22px;
+  background: linear-gradient(135deg, #fff7fc, #fff);
+}
+
+.checkout-resumo h1 {
+  font-size: 28px;
+  font-weight: 950;
+  color: var(--texto);
+  margin-bottom: 10px;
+}
+
+.checkout-resumo p {
+  color: var(--texto-suave);
+  font-weight: 800;
+  margin-bottom: 12px;
+}
+
+.checkout-resumo ul {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-left: 0;
+  list-style: none;
+  color: var(--texto-suave);
+  font-weight: 800;
+}
+
+.checkout-pagamento {
+  margin-bottom: 18px;
+}
+
+.checkout-pagamento h2 {
+  font-size: 20px;
+  font-weight: 950;
+  margin-bottom: 12px;
+}
+
+.pagamento-opcao {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border: 1px solid var(--borda);
+  border-radius: 18px;
+  padding: 14px;
+  margin-bottom: 10px;
+  background: #fff;
+  cursor: pointer;
+  font-weight: 900;
+}
+
+.cartao-campos {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+.cartao-campos input:first-child,
+.cartao-campos input:nth-child(2) {
+  grid-column: span 2;
+}
+
+.checkout-total {
+  border-top: 1px solid var(--borda);
+  padding-top: 18px;
+  margin-top: 18px;
+  margin-bottom: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.checkout-total span {
+  color: var(--texto-suave);
+  font-weight: 900;
+}
+
+.checkout-total strong {
+  color: #ff4fbf;
+  font-size: 28px;
+  font-weight: 950;
+}
+
+#btnConfirmarCheckout {
+  width: 100%;
+}
+
+#mensagemCheckout {
+  margin-top: 14px;
+  text-align: center;
+  font-weight: 900;
+}
+
+@media (max-width: 560px) {
+  .checkout-card {
+    padding: 22px;
+  }
+
+  .cartao-campos {
+    grid-template-columns: 1fr;
+  }
+
+  .cartao-campos input:first-child,
+  .cartao-campos input:nth-child(2) {
+    grid-column: span 1;
+  }
+}
