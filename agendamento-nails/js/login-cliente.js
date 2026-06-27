@@ -171,9 +171,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
       setTimeout(() => {
         if (agendamentoPendente) {
-          window.location.href = "finalizar-agendamento.html";
+          window.location.href = "/html/finalizar-agendamento.html";
         } else {
-          window.location.href = "inicio.html";
+          window.location.href = "/html/inicio.html";
         }
       }, 700);
 
