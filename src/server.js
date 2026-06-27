@@ -6,6 +6,22 @@ const cors = require("cors");
 
 const app = express();
 
+app.use(express.json());
+
+app.use(cors({
+  origin: [
+    "http://127.0.0.1:5500",
+    "http://localhost:5500",
+    "https://agenda-fashion-production.up.railway.app",
+    "https://agendafashion.com.br",
+    "https://www.agendafashion.com.br",
+    "https://app.agendafashion.com.br"
+  ],
+  methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"]
+}));
+
+
 const db = require("./db");
 
 const routes = require("./routes/routes");
@@ -20,19 +36,6 @@ const webhookRoutes = require("./routes/webhookRoutes");
 app.use("/api", webhookRoutes);
 app.use("/api", checkoutRoutes);
 app.use("/api", planosRoutes);
-app.use(cors({
-  origin: [
-    "http://127.0.0.1:5500",
-    "http://localhost:5500",
-    "https://agenda-fashion-production.up.railway.app",
-    "https://agendafashion.com.br",
-    "https://www.agendafashion.com.br",
-    "https://app.agendafashion.com.br"
-  ],
-  methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization"]
-}));
-app.use(express.json());
 
 const rootDir = path.join(process.cwd(), "agendamento-nails");
 
