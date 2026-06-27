@@ -39,72 +39,56 @@ async function registrarPagamento(client, dados) {
 }
 
 async function ativarAssinaturaPorPagamento(paymentId, statusPagamento = "CONFIRMED") {
-  const client = await db.connect();
+  const pagamento = await pagamentoRepository.buscarPorPaymentId(paymentId);
 
-  try {
-    await client.query("BEGIN");
-
-    const pagamento = await pagamentoRepository.buscarPorPaymentId(paymentId);
-
-    if (!pagamento) {
-      await client.query("ROLLBACK");
-      return null;
-    }
-
-    await pagamentoRepository.atualizarStatusPagamento(client, paymentId, {
-      status: statusPagamento,
-      data_pagamento: new Date()
-    });
-
-    const assinaturaResult = await client.query(
-      `
-      SELECT *
-      FROM assinaturas
-      WHERE id = $1
-      LIMIT 1
-      `,
-      [pagamento.assinatura_id]
-    );
-
-    if (assinaturaResult.rows.length === 0) {
-      await client.query("ROLLBACK");
-      return null;
-    }
-
-    const assinatura = assinaturaResult.rows[0];
-
-    await assinaturaRepository.desativarAssinaturasDoNegocio(
-      client,
-      assinatura.negocio_id
-    );
-
-    const assinaturaAtiva = await assinaturaRepository.ativarAssinatura(
-      client,
-      assinatura.id
-    );
-
-    await client.query(
-      `
-      UPDATE negocios
-      SET plano_id = $1
-      WHERE id = $2
-      `,
-      [
-        assinatura.plano_id,
-        assinatura.negocio_id
-      ]
-    );
-
-    await client.query("COMMIT");
-
-    return assinaturaAtiva;
-
-  } catch (err) {
-    await client.query("ROLLBACK");
-    throw err;
-  } finally {
-    client.release();
+  if (!pagamento) {
+    return null;
   }
+
+  await pagamentoRepository.atualizarStatusPagamento(null, paymentId, {
+    status: statusPagamento,
+    data_pagamento: new Date()
+  });
+
+  const assinaturaResult = await db.query(
+    `
+    SELECT *
+    FROM assinaturas
+    WHERE id = $1
+    LIMIT 1
+    `,
+    [pagamento.assinatura_id]
+  );
+
+  if (assinaturaResult.rows.length === 0) {
+    return null;
+  }
+
+  const assinatura = assinaturaResult.rows[0];
+
+  await assinaturaRepository.desativarAssinaturasDoNegocio(
+    null,
+    assinatura.negocio_id
+  );
+
+  const assinaturaAtiva = await assinaturaRepository.ativarAssinatura(
+    null,
+    assinatura.id
+  );
+
+  await db.query(
+    `
+    UPDATE negocios
+    SET plano_id = $1
+    WHERE id = $2
+    `,
+    [
+      assinatura.plano_id,
+      assinatura.negocio_id
+    ]
+  );
+
+  return assinaturaAtiva;
 }
 
 module.exports = {
