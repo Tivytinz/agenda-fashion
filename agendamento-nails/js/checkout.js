@@ -145,16 +145,43 @@ document.addEventListener("DOMContentLoaded", async () => {
             });
 
             if (forma === "pix") {
-                mostrarMensagem(
-                    data.mensagem || "PIX gerado com sucesso. Agora conclua o pagamento.",
-                    "#2f9e63"
-                );
-            } else {
-                mostrarMensagem(
-                    data.mensagem || "Pagamento enviado para processamento.",
-                    "#2f9e63"
-                );
-            }
+  mostrarMensagem(
+    data.mensagem || "PIX gerado com sucesso. Agora conclua o pagamento.",
+    "#2f9e63"
+  );
+
+  const pixBox = document.getElementById("pixBox");
+  const pixQrCode = document.getElementById("pixQrCode");
+  const pixCopiaCola = document.getElementById("pixCopiaCola");
+  const btnCopiarPix = document.getElementById("btnCopiarPix");
+
+  if (data.pix?.encodedImage && pixQrCode) {
+    pixQrCode.src = `data:image/png;base64,${data.pix.encodedImage}`;
+  }
+
+  if (data.pix?.payload && pixCopiaCola) {
+    pixCopiaCola.value = data.pix.payload;
+  }
+
+  if (pixBox) {
+    pixBox.classList.remove("hidden");
+  }
+
+  if (btnCopiarPix && pixCopiaCola) {
+    btnCopiarPix.onclick = async () => {
+      await navigator.clipboard.writeText(pixCopiaCola.value);
+      btnCopiarPix.textContent = "Código copiado!";
+      setTimeout(() => {
+        btnCopiarPix.textContent = "Copiar código PIX";
+      }, 1500);
+    };
+  }
+} else {
+  mostrarMensagem(
+    data.mensagem || "Pagamento enviado para processamento.",
+    "#2f9e63"
+  );
+}
 
         } catch (erro) {
             mostrarMensagem(erro.message || "Erro ao gerar pagamento.");
