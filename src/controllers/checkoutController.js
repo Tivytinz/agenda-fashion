@@ -60,7 +60,8 @@ async function criarCheckoutPix(client, negocio, plano) {
     forma_pagamento: "pix",
     periodicidade: "MONTHLY",
     valor: plano.valor,
-    observacoes: "PIX inicial criado. Assinatura recorrente será ativada após confirmação do pagamento."
+    observacoes:
+      "PIX inicial criado. Assinatura recorrente será ativada após confirmação do pagamento."
   });
 
   const cobranca = await criarCobrancaPix({
@@ -120,34 +121,25 @@ async function criarCheckoutCartao(client, negocio, plano, cartao) {
 }
 
 async function criarCheckout(req, res) {
-  const client = await db.connect();
-
   try {
-    await client.query("BEGIN");
+    const client = db;
 
     const usuarioId = req.user?.id;
-    const {
-      plano_id,
-      forma_pagamento,
-      cartao
-    } = req.body;
+    const { plano_id, forma_pagamento, cartao } = req.body;
 
     if (!usuarioId) {
-      await client.query("ROLLBACK");
       return res.status(401).json({
         erro: "Usuário não autenticado."
       });
     }
 
     if (!plano_id || !["pix", "cartao"].includes(forma_pagamento)) {
-      await client.query("ROLLBACK");
       return res.status(400).json({
         erro: "Dados de checkout inválidos."
       });
     }
 
     if (forma_pagamento === "cartao" && !cartao) {
-      await client.query("ROLLBACK");
       return res.status(400).json({
         erro: "Dados do cartão não informados."
       });
@@ -156,14 +148,12 @@ async function criarCheckout(req, res) {
     const negocio = await buscarNegocioDono(client, usuarioId);
 
     if (!negocio) {
-      await client.query("ROLLBACK");
       return res.status(404).json({
         erro: "Negócio não encontrado."
       });
     }
 
     if (!negocio.asaas_customer_id) {
-      await client.query("ROLLBACK");
       return res.status(400).json({
         erro: "Cliente Asaas não encontrado para este negócio."
       });
@@ -172,20 +162,18 @@ async function criarCheckout(req, res) {
     const plano = await buscarPlano(client, plano_id);
 
     if (!plano) {
-      await client.query("ROLLBACK");
       return res.status(404).json({
         erro: "Plano não encontrado."
       });
     }
 
     if (Number(plano.valor || 0) <= 0) {
-      await client.query("ROLLBACK");
       return res.status(400).json({
         erro: "Este plano não precisa de pagamento."
       });
     }
 
-    let resultado;
+    let resultado = null;
 
     if (forma_pagamento === "pix") {
       resultado = await criarCheckoutPix(client, negocio, plano);
@@ -194,8 +182,6 @@ async function criarCheckout(req, res) {
     if (forma_pagamento === "cartao") {
       resultado = await criarCheckoutCartao(client, negocio, plano, cartao);
     }
-
-    await client.query("COMMIT");
 
     return res.status(201).json({
       mensagem:
@@ -207,16 +193,11 @@ async function criarCheckout(req, res) {
     });
 
   } catch (err) {
-    await client.query("ROLLBACK");
-
     console.error("Erro no checkout:", err.response?.data || err);
 
     return res.status(500).json({
       erro: "Erro ao criar checkout."
     });
-
-  } finally {
-    client.release();
   }
 }
 
