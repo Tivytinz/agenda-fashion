@@ -206,6 +206,48 @@ async function criarCheckout(req, res) {
   }
 }
 
+async function consultarStatusCheckout(req, res) {
+  try {
+    const usuarioId = req.user?.id;
+    const { pagamento_id } = req.params;
+
+    if (!usuarioId) {
+      return res.status(401).json({ erro: "Usuário não autenticado." });
+    }
+
+    const result = await db.query(
+      `
+      SELECT
+        pg.id,
+        pg.asaas_payment_id,
+        pg.status,
+        a.ativo,
+        a.status AS status_assinatura,
+        p.nome AS plano_nome
+      FROM pagamentos pg
+      INNER JOIN assinaturas a ON a.id = pg.assinatura_id
+      INNER JOIN planos p ON p.id = a.plano_id
+      INNER JOIN usuarios_negocios un ON un.negocio_id = a.negocio_id
+      WHERE pg.asaas_payment_id = $1
+        AND un.usuario_id = $2
+      LIMIT 1
+      `,
+      [pagamento_id, usuarioId]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ erro: "Pagamento não encontrado." });
+    }
+
+    return res.json(result.rows[0]);
+
+  } catch (err) {
+    console.error("Erro ao consultar checkout:", err);
+    return res.status(500).json({ erro: "Erro ao consultar pagamento." });
+  }
+}
+
 module.exports = {
-  criarCheckout
+  criarCheckout,
+  consultarStatusCheckout
 };
