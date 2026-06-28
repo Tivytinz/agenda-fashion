@@ -68,7 +68,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         if (Number(plano.valor || 0) === 0) return;
 
         window.location.href =
-          `pagamento.html?plano=${encodeURIComponent(plano.slug)}`;
+  `checkout.html?plano=${encodeURIComponent(plano.slug)}`;
       });
 
       listaPlanos.appendChild(card);
