@@ -39,21 +39,17 @@ async function gerarSlugUnico(baseSlug, client = db) {
 // ➕ CRIAR NEGÓCIO
 // =============================
 async function criarNegocio(req, res) {
-  const client = await db.connect();
-
   try {
-    await client.query("BEGIN");
+    const client = db;
 
     const usuarioId = req.user?.id;
     const { nome } = req.body;
 
     if (!usuarioId) {
-      await client.query("ROLLBACK");
       return res.status(401).json({ erro: "Usuário não autenticado." });
     }
 
     if (!nome || nome.trim().length < 3) {
-      await client.query("ROLLBACK");
       return res.status(400).json({ erro: "Nome do negócio inválido." });
     }
 
@@ -68,7 +64,6 @@ async function criarNegocio(req, res) {
     );
 
     if (usuarioResult.rows.length === 0) {
-      await client.query("ROLLBACK");
       return res.status(404).json({ erro: "Usuário não encontrado." });
     }
 
@@ -85,7 +80,6 @@ async function criarNegocio(req, res) {
     );
 
     if (existe.rows.length > 0) {
-      await client.query("ROLLBACK");
       return res.status(400).json({ erro: "Você já possui um negócio." });
     }
 
@@ -100,14 +94,12 @@ async function criarNegocio(req, res) {
     );
 
     if (planoGratis.rows.length === 0) {
-      await client.query("ROLLBACK");
       return res.status(500).json({ erro: "Plano gratuito não encontrado." });
     }
 
     const baseSlug = gerarSlug(nome);
 
     if (!baseSlug) {
-      await client.query("ROLLBACK");
       return res.status(400).json({ erro: "Erro ao gerar link do negócio." });
     }
 
@@ -142,23 +134,40 @@ async function criarNegocio(req, res) {
 
     const negocio = novoNegocio.rows[0];
 
-    const clienteAsaas = await criarClienteAsaas({
-      nome: usuario.nome,
-      email: usuario.email,
-      telefone: usuario.whatsapp || ""
-    });
+    let asaasCustomerId = null;
 
-    await client.query(
-      `
-      UPDATE negocios
-      SET asaas_customer_id = $1
-      WHERE id = $2
-      `,
-      [
-        clienteAsaas.id,
-        negocio.id
-      ]
-    );
+    try {
+      const clienteAsaas = await criarClienteAsaas({
+        nome: usuario.nome,
+        email: usuario.email,
+        telefone: usuario.whatsapp || ""
+      });
+
+      asaasCustomerId = clienteAsaas.id;
+
+      await client.query(
+        `
+        UPDATE negocios
+        SET asaas_customer_id = $1
+        WHERE id = $2
+        `,
+        [
+          asaasCustomerId,
+          negocio.id
+        ]
+      );
+    } catch (erroAsaas) {
+      console.error("Erro ao criar cliente Asaas:", erroAsaas.response?.data || erroAsaas);
+
+      await client.query(
+        `
+        UPDATE negocios
+        SET asaas_customer_id = NULL
+        WHERE id = $1
+        `,
+        [negocio.id]
+      );
+    }
 
     await client.query(
       `
@@ -175,13 +184,13 @@ async function criarNegocio(req, res) {
       ]
     );
 
-    await client.query("COMMIT");
-
     return res.status(201).json({
-      mensagem: "Negócio criado com sucesso.",
+      mensagem: asaasCustomerId
+        ? "Negócio criado com sucesso."
+        : "Negócio criado, mas o cliente Asaas não foi gerado.",
       negocio: {
         ...negocio,
-        asaas_customer_id: clienteAsaas.id,
+        asaas_customer_id: asaasCustomerId,
         papel: "dono",
         plano: {
           id: planoId,
@@ -191,16 +200,11 @@ async function criarNegocio(req, res) {
     });
 
   } catch (err) {
-    await client.query("ROLLBACK");
-
     console.error("Erro ao criar negócio:", err);
 
     return res.status(500).json({
       erro: "Erro ao criar negócio."
     });
-
-  } finally {
-    client.release();
   }
 }
 
