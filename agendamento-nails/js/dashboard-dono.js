@@ -221,11 +221,14 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
 
     if (btnUpgradePlano) {
-      btnUpgradePlano.classList.toggle("hidden", ilimitado);
-      btnUpgradePlano.onclick = () => {
-        window.location.href = "planos.html";
-      };
-    }
+  btnUpgradePlano.classList.remove("hidden");
+
+  btnUpgradePlano.textContent = "Gerenciar assinatura";
+
+  btnUpgradePlano.onclick = () => {
+    window.location.href = "minha-assinatura.html";
+  };
+}
   }
 
   async function carregarPlano() {
