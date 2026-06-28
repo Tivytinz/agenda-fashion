@@ -223,7 +223,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     if (btnUpgradePlano) {
       btnUpgradePlano.classList.toggle("hidden", ilimitado);
       btnUpgradePlano.onclick = () => {
-        window.location.href = "/html/planos.html";
+        window.location.href = "planos.html";
       };
     }
   }
