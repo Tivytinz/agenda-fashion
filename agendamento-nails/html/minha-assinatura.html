@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>Minha Assinatura | Agenda Fashion</title>
+
+  <link rel="stylesheet" href="../css/global.css">
+  <link rel="stylesheet" href="../css/navegacao.css">
+  <link rel="stylesheet" href="../css/minha-assinatura.css">
+</head>
+
+<body>
+  <main class="assinatura-page">
+    <section class="af-hero assinatura-hero">
+      <div class="af-hero-emoji">💎</div>
+
+      <div class="af-hero-content">
+        <span class="af-badge">Minha Assinatura</span>
+
+        <h1 class="af-hero-title">
+          Gerencie seu plano
+        </h1>
+
+        <p class="af-hero-text">
+          Acompanhe seu plano, pagamentos e uso da sua agenda no Agenda Fashion.
+        </p>
+      </div>
+    </section>
+
+    <section class="assinatura-grid">
+      <article class="af-card assinatura-card">
+        <div class="card-topo">
+          <div>
+            <span class="assinatura-label">Plano atual</span>
+            <h2 id="planoNome">Carregando...</h2>
+          </div>
+
+          <span id="assinaturaStatus" class="status-pill">-</span>
+        </div>
+
+        <div class="assinatura-info">
+          <div>
+            <span>Valor</span>
+            <strong id="planoValor">R$ 0,00</strong>
+          </div>
+
+          <div>
+            <span>Forma</span>
+            <strong id="formaPagamento">-</strong>
+          </div>
+
+          <div>
+            <span>Próxima cobrança</span>
+            <strong id="proximaCobranca">-</strong>
+          </div>
+        </div>
+
+        <div class="uso-plano">
+          <div class="uso-topo">
+            <span>Uso mensal</span>
+            <strong id="usoTexto">0 de 0</strong>
+          </div>
+
+          <div class="uso-barra">
+            <div id="usoBarra"></div>
+          </div>
+
+          <small id="usoMensagem">
+            Carregando uso do plano...
+          </small>
+        </div>
+
+        <div class="assinatura-acoes">
+          <button id="btnAlterarPlano" class="af-btn-primary" type="button">
+            Alterar plano
+          </button>
+
+          <button id="btnNovoPix" class="af-btn-secondary" type="button">
+            Gerar novo PIX
+          </button>
+
+          <button id="btnCancelarAssinatura" class="af-btn-danger" type="button">
+            Cancelar assinatura
+          </button>
+        </div>
+      </article>
+
+      <article class="af-card assinatura-card">
+        <div class="card-topo">
+          <div>
+            <span class="assinatura-label">Pagamentos</span>
+            <h2>Histórico</h2>
+          </div>
+        </div>
+
+        <div id="listaPagamentos" class="pagamentos-lista">
+          <div class="estado-vazio">Carregando pagamentos...</div>
+        </div>
+      </article>
+    </section>
+  </main>
+
+  <nav id="appNav" class="app-bottom-nav"></nav>
+
+  <script src="../js/config.js"></script>
+  <script src="../js/utils.js"></script>
+  <script src="../js/api.js"></script>
+  <script src="../js/minha-assinatura.js"></script>
+  <script src="../js/navegacao.js"></script>
+</body>
+</html>

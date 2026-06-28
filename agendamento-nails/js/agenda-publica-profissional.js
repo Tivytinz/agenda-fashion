@@ -245,8 +245,19 @@ document.addEventListener("DOMContentLoaded", async () => {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.erro || "Erro ao criar agendamento.");
-      }
+
+    if (data.codigo === "LIMITE_PLANO") {
+
+        mostrarMensagem(
+            "🎉 Este profissional atingiu o limite de agendamentos do plano atual. Aguarde a ampliação do plano ou escolha outro horário/negócio.",
+            "#ff9800"
+        );
+
+        return;
+    }
+
+    throw new Error(data.erro || "Erro ao criar agendamento.");
+}
 
       mostrarMensagem("Agendamento realizado com sucesso 💅");
 

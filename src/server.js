@@ -32,15 +32,21 @@ const contaRoutes = require("./routes/contaRoutes");
 const planosRoutes = require("./routes/planosRoutes");
 const checkoutRoutes = require("./routes/checkoutRoutes");
 const webhookRoutes = require("./routes/webhookRoutes");
+const assinaturaRoutes = require("./routes/assinaturaRoutes");
+
 
 app.use("/api", webhookRoutes);
 app.use("/api", checkoutRoutes);
 app.use("/api", planosRoutes);
+app.use("/api", assinaturaRoutes);
 
 const rootDir = path.join(process.cwd(), "agendamento-nails");
 
 app.use(express.static(rootDir));
 app.use("/public", express.static(path.join(rootDir, "public")));
+
+
+
 
 /* =========================
    ROTAS PRINCIPAIS
