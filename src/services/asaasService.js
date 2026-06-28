@@ -34,10 +34,11 @@ async function criarClienteAsaas({ nome, email, telefone }) {
   validarConfigAsaas();
 
   const response = await asaasApi.post("/customers", {
-    name: nome,
-    email,
-    mobilePhone: limparNumero(telefone)
-  });
+  name: nome,
+  email,
+  mobilePhone: limparNumero(telefone),
+  cpfCnpj: "24971563792"
+});
 
   return response.data;
 }
