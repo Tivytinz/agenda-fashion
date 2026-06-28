@@ -122,10 +122,21 @@ async function listarPagamentosAssinatura(subscriptionId) {
   return response.data;
 }
 
+async function atualizarClienteAsaas(customerId, dados = {}) {
+  validarConfigAsaas();
+
+  const response = await asaasApi.put(`/customers/${customerId}`, {
+    cpfCnpj: dados.cpfCnpj || "24971563792"
+  });
+
+  return response.data;
+}
+
 module.exports = {
   criarClienteAsaas,
   criarCobrancaPix,
   buscarQrCodePix,
   criarAssinaturaAsaas,
-  listarPagamentosAssinatura
+  listarPagamentosAssinatura,
+  atualizarClienteAsaas
 };

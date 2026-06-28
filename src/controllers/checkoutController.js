@@ -3,7 +3,8 @@ const db = require("../db");
 const {
   criarAssinaturaAsaas,
   criarCobrancaPix,
-  buscarQrCodePix
+  buscarQrCodePix,
+  atualizarClienteAsaas
 } = require("../services/asaasService");
 
 const {
@@ -63,6 +64,10 @@ async function criarCheckoutPix(client, negocio, plano) {
     observacoes:
       "PIX inicial criado. Assinatura recorrente será ativada após confirmação do pagamento."
   });
+
+await atualizarClienteAsaas(negocio.asaas_customer_id, {
+  cpfCnpj: "24971563792"
+});
 
   const cobranca = await criarCobrancaPix({
     customerId: negocio.asaas_customer_id,
