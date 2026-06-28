@@ -4,24 +4,22 @@ const {
   criarAssinaturaAsaas,
   criarCobrancaPix,
   buscarQrCodePix,
-  atualizarClienteAsaas
+  atualizarClienteAsaas,
+  buscarPagamentoAsaas
 } = require("../services/asaasService");
 
 const {
   registrarAssinaturaPendente,
-  registrarPagamento
+  registrarPagamento,
+  ativarAssinaturaPorPagamento
 } = require("../services/assinaturaService");
 
 async function buscarNegocioDono(client, usuarioId) {
   const result = await client.query(
     `
-    SELECT
-      n.id,
-      n.nome,
-      n.asaas_customer_id
+    SELECT n.id, n.nome, n.asaas_customer_id
     FROM usuarios_negocios un
-    INNER JOIN negocios n
-      ON n.id = un.negocio_id
+    INNER JOIN negocios n ON n.id = un.negocio_id
     WHERE un.usuario_id = $1
       AND un.papel = 'dono'
     LIMIT 1
@@ -35,11 +33,7 @@ async function buscarNegocioDono(client, usuarioId) {
 async function buscarPlano(client, planoId) {
   const result = await client.query(
     `
-    SELECT
-      id,
-      nome,
-      slug,
-      valor
+    SELECT id, nome, slug, valor
     FROM planos
     WHERE id = $1
       AND ativo = true
@@ -65,9 +59,9 @@ async function criarCheckoutPix(client, negocio, plano) {
       "PIX inicial criado. Assinatura recorrente será ativada após confirmação do pagamento."
   });
 
-await atualizarClienteAsaas(negocio.asaas_customer_id, {
-  cpfCnpj: "24971563792"
-});
+  await atualizarClienteAsaas(negocio.asaas_customer_id, {
+    cpfCnpj: "24971563792"
+  });
 
   const cobranca = await criarCobrancaPix({
     customerId: negocio.asaas_customer_id,
@@ -128,34 +122,25 @@ async function criarCheckoutCartao(client, negocio, plano, cartao) {
 async function criarCheckout(req, res) {
   try {
     const client = db;
-
     const usuarioId = req.user?.id;
     const { plano_id, forma_pagamento, cartao } = req.body;
 
     if (!usuarioId) {
-      return res.status(401).json({
-        erro: "Usuário não autenticado."
-      });
+      return res.status(401).json({ erro: "Usuário não autenticado." });
     }
 
     if (!plano_id || !["pix", "cartao"].includes(forma_pagamento)) {
-      return res.status(400).json({
-        erro: "Dados de checkout inválidos."
-      });
+      return res.status(400).json({ erro: "Dados de checkout inválidos." });
     }
 
     if (forma_pagamento === "cartao" && !cartao) {
-      return res.status(400).json({
-        erro: "Dados do cartão não informados."
-      });
+      return res.status(400).json({ erro: "Dados do cartão não informados." });
     }
 
     const negocio = await buscarNegocioDono(client, usuarioId);
 
     if (!negocio) {
-      return res.status(404).json({
-        erro: "Negócio não encontrado."
-      });
+      return res.status(404).json({ erro: "Negócio não encontrado." });
     }
 
     if (!negocio.asaas_customer_id) {
@@ -167,9 +152,7 @@ async function criarCheckout(req, res) {
     const plano = await buscarPlano(client, plano_id);
 
     if (!plano) {
-      return res.status(404).json({
-        erro: "Plano não encontrado."
-      });
+      return res.status(404).json({ erro: "Plano não encontrado." });
     }
 
     if (Number(plano.valor || 0) <= 0) {
@@ -215,6 +198,24 @@ async function consultarStatusCheckout(req, res) {
       return res.status(401).json({ erro: "Usuário não autenticado." });
     }
 
+    let pagamentoAsaas = null;
+
+    try {
+      pagamentoAsaas = await buscarPagamentoAsaas(pagamento_id);
+    } catch (erroAsaas) {
+      console.error("Erro ao consultar pagamento no Asaas:", erroAsaas.response?.data || erroAsaas);
+    }
+
+    if (
+      pagamentoAsaas &&
+      ["CONFIRMED", "RECEIVED"].includes(pagamentoAsaas.status)
+    ) {
+      await ativarAssinaturaPorPagamento(
+        pagamento_id,
+        pagamentoAsaas.status
+      );
+    }
+
     const result = await db.query(
       `
       SELECT
@@ -243,7 +244,10 @@ async function consultarStatusCheckout(req, res) {
 
   } catch (err) {
     console.error("Erro ao consultar checkout:", err);
-    return res.status(500).json({ erro: "Erro ao consultar pagamento." });
+
+    return res.status(500).json({
+      erro: "Erro ao consultar pagamento."
+    });
   }
 }
 

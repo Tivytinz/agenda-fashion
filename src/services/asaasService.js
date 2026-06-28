@@ -132,11 +132,20 @@ async function atualizarClienteAsaas(customerId, dados = {}) {
   return response.data;
 }
 
+async function buscarPagamentoAsaas(paymentId) {
+  validarConfigAsaas();
+
+  const response = await asaasApi.get(`/payments/${paymentId}`);
+
+  return response.data;
+}
+
 module.exports = {
   criarClienteAsaas,
   criarCobrancaPix,
   buscarQrCodePix,
   criarAssinaturaAsaas,
   listarPagamentosAssinatura,
-  atualizarClienteAsaas
+  atualizarClienteAsaas,
+  buscarPagamentoAsaas
 };
