@@ -74,8 +74,32 @@ async function atualizarStatusPagamento(client, paymentId, dados) {
     return result.rows[0] || null;
 }
 
+async function listarPorAssinatura(assinaturaId, limite = 12) {
+    const result = await db.query(
+        `
+        SELECT
+            id,
+            asaas_payment_id,
+            valor,
+            forma_pagamento,
+            status,
+            data_vencimento,
+            data_pagamento,
+            created_at
+        FROM pagamentos
+        WHERE assinatura_id = $1
+        ORDER BY id DESC
+        LIMIT $2
+        `,
+        [assinaturaId, limite]
+    );
+
+    return result.rows;
+}
+
 module.exports = {
     criarPagamento,
     buscarPorPaymentId,
-    atualizarStatusPagamento
+    atualizarStatusPagamento,
+    listarPorAssinatura
 };

@@ -87,6 +87,8 @@ async function buscarMinhaAssinatura(req, res) {
     }
 }
 
+
+
 module.exports = {
     buscarMinhaAssinatura
 };

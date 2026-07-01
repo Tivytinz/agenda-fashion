@@ -106,10 +106,25 @@ async function desativarAssinaturasDoNegocio(client, negocioId) {
     );
 }
 
+async function buscarPorId(assinaturaId) {
+    const result = await db.query(
+        `
+        SELECT *
+        FROM assinaturas
+        WHERE id = $1
+        LIMIT 1
+        `,
+        [assinaturaId]
+    );
+
+    return result.rows[0] || null;
+}
+
 module.exports = {
     criarAssinatura,
     buscarAssinaturaAtivaPorNegocio,
     buscarPorSubscriptionId,
     ativarAssinatura,
-    desativarAssinaturasDoNegocio
+    desativarAssinaturasDoNegocio,
+    buscarPorId
 };
