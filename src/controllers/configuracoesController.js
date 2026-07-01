@@ -1,4 +1,4 @@
-const db = require("../db");
+const db = require("../db/db");
 
 async function buscarNegocioDoUsuario(usuarioId) {
   const result = await db.query(

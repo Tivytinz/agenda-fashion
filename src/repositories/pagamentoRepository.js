@@ -1,10 +1,10 @@
-const db = require("../db");
+const db = require("../db/db");
 
 async function criarPagamento(client, dados) {
-  const executor = client || db;
+    const executor = client || db;
 
-  const result = await executor.query(
-    `
+    const result = await executor.query(
+        `
     INSERT INTO pagamentos (
       assinatura_id,
       asaas_payment_id,
@@ -22,41 +22,41 @@ async function criarPagamento(client, dados) {
     )
     RETURNING *
     `,
-    [
-      dados.assinatura_id,
-      dados.asaas_payment_id || null,
-      dados.valor,
-      dados.forma_pagamento || null,
-      dados.status || "PENDING",
-      dados.data_vencimento || null,
-      dados.data_pagamento || null,
-      dados.pix_copia_cola || null,
-      dados.pix_qrcode || null
-    ]
-  );
+        [
+            dados.assinatura_id,
+            dados.asaas_payment_id || null,
+            dados.valor,
+            dados.forma_pagamento || null,
+            dados.status || "PENDING",
+            dados.data_vencimento || null,
+            dados.data_pagamento || null,
+            dados.pix_copia_cola || null,
+            dados.pix_qrcode || null
+        ]
+    );
 
-  return result.rows[0];
+    return result.rows[0];
 }
 
 async function buscarPorPaymentId(paymentId) {
-  const result = await db.query(
-    `
+    const result = await db.query(
+        `
     SELECT *
     FROM pagamentos
     WHERE asaas_payment_id = $1
     LIMIT 1
     `,
-    [paymentId]
-  );
+        [paymentId]
+    );
 
-  return result.rows[0] || null;
+    return result.rows[0] || null;
 }
 
 async function atualizarStatusPagamento(client, paymentId, dados) {
-  const executor = client || db;
+    const executor = client || db;
 
-  const result = await executor.query(
-    `
+    const result = await executor.query(
+        `
     UPDATE pagamentos
     SET
       status = $1,
@@ -64,18 +64,18 @@ async function atualizarStatusPagamento(client, paymentId, dados) {
     WHERE asaas_payment_id = $3
     RETURNING *
     `,
-    [
-      dados.status,
-      dados.data_pagamento || null,
-      paymentId
-    ]
-  );
+        [
+            dados.status,
+            dados.data_pagamento || null,
+            paymentId
+        ]
+    );
 
-  return result.rows[0] || null;
+    return result.rows[0] || null;
 }
 
 module.exports = {
-  criarPagamento,
-  buscarPorPaymentId,
-  atualizarStatusPagamento
+    criarPagamento,
+    buscarPorPaymentId,
+    atualizarStatusPagamento
 };

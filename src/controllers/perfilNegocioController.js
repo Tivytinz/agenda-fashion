@@ -1,4 +1,4 @@
-const db = require("../db");
+const db = require("../db/db");
 
 // =============================
 // 🔧 NORMALIZAR ÁREAS
@@ -105,8 +105,8 @@ async function buscarPerfilPublico(req, res) {
   GROUP BY n.id
   LIMIT 1
   `,
-  [slug]
-);
+      [slug]
+    );
     if (negocioResult.rows.length === 0) {
       return res.status(404).json({
         erro: "Negócio não encontrado."
@@ -116,13 +116,13 @@ async function buscarPerfilPublico(req, res) {
     const negocio = negocioResult.rows[0];
 
     await db.query(
-  `
+      `
     UPDATE negocios
     SET visitas = COALESCE(visitas, 0) + 1
     WHERE id = $1
   `,
       [negocio.id]
-);
+    );
 
     const servicosResult = await db.query(
       `

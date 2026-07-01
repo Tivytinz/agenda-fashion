@@ -1,10 +1,10 @@
-const db = require("../db");
+const db = require("../db/db");
 
 async function criarAssinatura(client, dados) {
-  const executor = client || db;
+    const executor = client || db;
 
-  const result = await executor.query(
-    `
+    const result = await executor.query(
+        `
     INSERT INTO assinaturas (
       negocio_id,
       plano_id,
@@ -24,27 +24,27 @@ async function criarAssinatura(client, dados) {
     )
     RETURNING *
     `,
-    [
-      dados.negocio_id,
-      dados.plano_id,
-      dados.asaas_customer_id || null,
-      dados.asaas_subscription_id || null,
-      dados.status || "PENDING",
-      dados.forma_pagamento || null,
-      dados.periodicidade || "MONTHLY",
-      dados.valor,
-      dados.data_proxima_cobranca || null,
-      dados.ativo || false,
-      dados.observacoes || null
-    ]
-  );
+        [
+            dados.negocio_id,
+            dados.plano_id,
+            dados.asaas_customer_id || null,
+            dados.asaas_subscription_id || null,
+            dados.status || "PENDING",
+            dados.forma_pagamento || null,
+            dados.periodicidade || "MONTHLY",
+            dados.valor,
+            dados.data_proxima_cobranca || null,
+            dados.ativo || false,
+            dados.observacoes || null
+        ]
+    );
 
-  return result.rows[0];
+    return result.rows[0];
 }
 
 async function buscarAssinaturaAtivaPorNegocio(negocioId) {
-  const result = await db.query(
-    `
+    const result = await db.query(
+        `
     SELECT *
     FROM assinaturas
     WHERE negocio_id = $1
@@ -52,31 +52,31 @@ async function buscarAssinaturaAtivaPorNegocio(negocioId) {
     ORDER BY id DESC
     LIMIT 1
     `,
-    [negocioId]
-  );
+        [negocioId]
+    );
 
-  return result.rows[0] || null;
+    return result.rows[0] || null;
 }
 
 async function buscarPorSubscriptionId(subscriptionId) {
-  const result = await db.query(
-    `
+    const result = await db.query(
+        `
     SELECT *
     FROM assinaturas
     WHERE asaas_subscription_id = $1
     LIMIT 1
     `,
-    [subscriptionId]
-  );
+        [subscriptionId]
+    );
 
-  return result.rows[0] || null;
+    return result.rows[0] || null;
 }
 
 async function ativarAssinatura(client, assinaturaId) {
-  const executor = client || db;
+    const executor = client || db;
 
-  const result = await executor.query(
-    `
+    const result = await executor.query(
+        `
     UPDATE assinaturas
     SET
       status = 'ACTIVE',
@@ -85,31 +85,31 @@ async function ativarAssinatura(client, assinaturaId) {
     WHERE id = $1
     RETURNING *
     `,
-    [assinaturaId]
-  );
+        [assinaturaId]
+    );
 
-  return result.rows[0] || null;
+    return result.rows[0] || null;
 }
 
 async function desativarAssinaturasDoNegocio(client, negocioId) {
-  const executor = client || db;
+    const executor = client || db;
 
-  await executor.query(
-    `
+    await executor.query(
+        `
     UPDATE assinaturas
     SET
       ativo = false,
       updated_at = NOW()
     WHERE negocio_id = $1
     `,
-    [negocioId]
-  );
+        [negocioId]
+    );
 }
 
 module.exports = {
-  criarAssinatura,
-  buscarAssinaturaAtivaPorNegocio,
-  buscarPorSubscriptionId,
-  ativarAssinatura,
-  desativarAssinaturasDoNegocio
+    criarAssinatura,
+    buscarAssinaturaAtivaPorNegocio,
+    buscarPorSubscriptionId,
+    ativarAssinatura,
+    desativarAssinaturasDoNegocio
 };

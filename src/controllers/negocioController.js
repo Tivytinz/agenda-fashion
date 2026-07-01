@@ -1,4 +1,4 @@
-const db = require("../db");
+const db = require("../db/db");
 const { criarClienteAsaas } = require("../services/asaasService");
 
 // =============================

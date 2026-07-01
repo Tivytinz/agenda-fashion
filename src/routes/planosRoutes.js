@@ -1,7 +1,7 @@
 const express = require("express");
 const router = express.Router();
 
-const db = require("../db");
+const db = require("../db/db");
 const auth = require("../middlewares/auth");
 
 // =============================
@@ -103,9 +103,9 @@ router.get("/meu-plano", auth, async (req, res) => {
     const percentual = ilimitado
       ? null
       : Math.min(
-          Math.round((utilizados / Number(capacidade || 1)) * 100),
-          100
-        );
+        Math.round((utilizados / Number(capacidade || 1)) * 100),
+        100
+      );
 
     let status = "normal";
 

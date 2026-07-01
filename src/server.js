@@ -22,7 +22,7 @@ app.use(cors({
 }));
 
 
-const db = require("./db");
+const db = require("./db/db");
 
 const routes = require("./routes/routes");
 const negocioRoutes = require("./routes/negocioRoutes");

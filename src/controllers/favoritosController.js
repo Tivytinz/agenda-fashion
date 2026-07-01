@@ -1,4 +1,4 @@
-const db = require("../db");
+const db = require("../db/db");
 
 function garantirCliente(req, res) {
   if (!req.user?.id) {
@@ -21,7 +21,7 @@ async function listarFavoritos(req, res) {
     const clienteId = req.user.id;
 
     const result = await db.query(
-  `
+      `
   SELECT
     n.id,
     n.nome,
@@ -35,8 +35,8 @@ async function listarFavoritos(req, res) {
   WHERE f.cliente_id = $1
   ORDER BY f.created_at DESC
   `,
-  [clienteId]
-);
+      [clienteId]
+    );
 
     return res.json({ favoritos: result.rows });
   } catch (err) {

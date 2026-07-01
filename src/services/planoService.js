@@ -1,8 +1,8 @@
-const db = require("../db");
+const db = require("../db/db");
 
 async function buscarUsoPlano(negocioId) {
-  const result = await db.query(
-    `
+    const result = await db.query(
+        `
     SELECT
       n.id AS negocio_id,
       n.nome AS negocio_nome,
@@ -29,96 +29,96 @@ async function buscarUsoPlano(negocioId) {
     WHERE n.id = $1
     LIMIT 1
     `,
-    [negocioId]
-  );
+        [negocioId]
+    );
 
-  if (result.rows.length === 0) {
-    return null;
-  }
+    if (result.rows.length === 0) {
+        return null;
+    }
 
-  const plano = result.rows[0];
+    const plano = result.rows[0];
 
-  const capacidade = plano.capacidade_agendamentos;
-  const utilizados = Number(plano.utilizados || 0);
-  const ilimitado = capacidade === null;
+    const capacidade = plano.capacidade_agendamentos;
+    const utilizados = Number(plano.utilizados || 0);
+    const ilimitado = capacidade === null;
 
-  const restantes = ilimitado
-    ? null
-    : Math.max(Number(capacidade || 0) - utilizados, 0);
+    const restantes = ilimitado
+        ? null
+        : Math.max(Number(capacidade || 0) - utilizados, 0);
 
-  const percentual = ilimitado
-    ? null
-    : Math.min(
-        Math.round((utilizados / Number(capacidade || 1)) * 100),
-        100
-      );
+    const percentual = ilimitado
+        ? null
+        : Math.min(
+            Math.round((utilizados / Number(capacidade || 1)) * 100),
+            100
+        );
 
-  let status = "normal";
+    let status = "normal";
 
-  if (ilimitado) {
-    status = "ilimitado";
-  } else if (utilizados >= Number(capacidade || 0)) {
-    status = "limite_atingido";
-  } else if (percentual >= 80) {
-    status = "quase_cheio";
-  } else if (percentual >= 50) {
-    status = "crescendo";
-  }
+    if (ilimitado) {
+        status = "ilimitado";
+    } else if (utilizados >= Number(capacidade || 0)) {
+        status = "limite_atingido";
+    } else if (percentual >= 80) {
+        status = "quase_cheio";
+    } else if (percentual >= 50) {
+        status = "crescendo";
+    }
 
-  return {
-    negocio_id: plano.negocio_id,
-    negocio_nome: plano.negocio_nome,
+    return {
+        negocio_id: plano.negocio_id,
+        negocio_nome: plano.negocio_nome,
 
-    plano_id: plano.plano_id,
-    plano_nome: plano.plano_nome,
-    plano_slug: plano.plano_slug,
-    valor: plano.valor,
-    capacidade_agendamentos: capacidade,
-    destaque: plano.destaque,
+        plano_id: plano.plano_id,
+        plano_nome: plano.plano_nome,
+        plano_slug: plano.plano_slug,
+        valor: plano.valor,
+        capacidade_agendamentos: capacidade,
+        destaque: plano.destaque,
 
-    utilizados,
-    restantes,
-    percentual,
-    ilimitado,
-    status,
+        utilizados,
+        restantes,
+        percentual,
+        ilimitado,
+        status,
 
-    mensagem:
-      status === "limite_atingido"
-        ? "🎉 Parabéns! Sua agenda atingiu a capacidade do plano. O limite significa sucesso."
-        : status === "quase_cheio"
-          ? `🚀 Sua agenda está quase cheia. Faltam apenas ${restantes} agendamento(s) para atingir a capacidade do plano.`
-          : status === "crescendo"
-            ? "Seu negócio está crescendo no Agenda Fashion."
-            : status === "ilimitado"
-              ? "Seu negócio possui capacidade ilimitada de agendamentos."
-              : "Acompanhe aqui o crescimento da sua agenda este mês."
-  };
+        mensagem:
+            status === "limite_atingido"
+                ? "🎉 Parabéns! Sua agenda atingiu a capacidade do plano. O limite significa sucesso."
+                : status === "quase_cheio"
+                    ? `🚀 Sua agenda está quase cheia. Faltam apenas ${restantes} agendamento(s) para atingir a capacidade do plano.`
+                    : status === "crescendo"
+                        ? "Seu negócio está crescendo no Agenda Fashion."
+                        : status === "ilimitado"
+                            ? "Seu negócio possui capacidade ilimitada de agendamentos."
+                            : "Acompanhe aqui o crescimento da sua agenda este mês."
+    };
 }
 
 async function verificarCapacidadePlano(negocioId) {
-  const uso = await buscarUsoPlano(negocioId);
+    const uso = await buscarUsoPlano(negocioId);
 
-  if (!uso) {
-    const erro = new Error("NEGOCIO_NAO_ENCONTRADO");
-    erro.codigo = "NEGOCIO_NAO_ENCONTRADO";
-    throw erro;
-  }
+    if (!uso) {
+        const erro = new Error("NEGOCIO_NAO_ENCONTRADO");
+        erro.codigo = "NEGOCIO_NAO_ENCONTRADO";
+        throw erro;
+    }
 
-  if (uso.ilimitado) {
+    if (uso.ilimitado) {
+        return uso;
+    }
+
+    if (uso.utilizados >= Number(uso.capacidade_agendamentos || 0)) {
+        const erro = new Error("LIMITE_PLANO");
+        erro.codigo = "LIMITE_PLANO";
+        erro.uso = uso;
+        throw erro;
+    }
+
     return uso;
-  }
-
-  if (uso.utilizados >= Number(uso.capacidade_agendamentos || 0)) {
-    const erro = new Error("LIMITE_PLANO");
-    erro.codigo = "LIMITE_PLANO";
-    erro.uso = uso;
-    throw erro;
-  }
-
-  return uso;
 }
 
 module.exports = {
-  buscarUsoPlano,
-  verificarCapacidadePlano
+    buscarUsoPlano,
+    verificarCapacidadePlano
 };
