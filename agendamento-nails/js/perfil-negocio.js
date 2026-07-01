@@ -63,17 +63,19 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
 
   function ehDonoDoPerfil() {
-    if (!usuario || !negocioAtual) return false;
-
-    const ehDono =
-      usuario.tipo === "dono" ||
-      negocioLocal?.papel === "dono" ||
-      usuario.eh_dono === true ||
-      usuario.dono === true ||
-      usuario.is_dono === true;
-
-    return ehDono && Number(negocioLocal?.id) === Number(negocioAtual.id);
+  if (!usuario || !negocioAtual) {
+    return false;
   }
+
+  return (
+    Number(usuario.id) === Number(negocioAtual.dono_usuario_id) ||
+    usuario.tipo === "dono" ||
+    negocioLocal?.papel === "dono" ||
+    usuario.eh_dono === true ||
+    usuario.dono === true ||
+    usuario.is_dono === true
+  );
+}
 
   async function descobrirSlug() {
     if (slug) return slug;
