@@ -1,5 +1,10 @@
 const configuracoesRepository = require("../repositories/configuracoesRepository");
 
+const {
+  exigirUsuario,
+  exigirRecurso
+} = require("../validators/commonValidator");
+
 function normalizarAreas(areas) {
   if (!areas) return [];
 
@@ -23,25 +28,22 @@ function normalizarAreas(areas) {
 }
 
 async function buscarConfiguracoes({ usuarioId }) {
-  if (!usuarioId) {
-    throw new Error("Usuário não autenticado.");
-  }
+  exigirUsuario(usuarioId);
 
   const negocioUsuario =
     await configuracoesRepository.buscarNegocioDoUsuario(usuarioId);
 
-  if (!negocioUsuario) {
-    throw new Error("Usuário não está vinculado a nenhum negócio.");
-  }
+  exigirRecurso(
+    negocioUsuario,
+    "Usuário não está vinculado a nenhum negócio."
+  );
 
   const negocio =
     await configuracoesRepository.buscarNegocioPorId(
       negocioUsuario.negocio_id
     );
 
-  if (!negocio) {
-    throw new Error("Negócio não encontrado.");
-  }
+  exigirRecurso(negocio, "Negócio não encontrado.");
 
   const negocioNormalizado = {
     ...negocio,
@@ -54,23 +56,20 @@ async function buscarConfiguracoes({ usuarioId }) {
   };
 }
 
-async function salvarConfiguracoes({
-  usuarioId,
-  dados
-}) {
-  if (!usuarioId) {
-    throw new Error("Usuário não autenticado.");
-  }
+async function salvarConfiguracoes({ usuarioId, dados }) {
+  exigirUsuario(usuarioId);
 
   const negocioUsuario =
     await configuracoesRepository.buscarNegocioDoUsuario(usuarioId);
 
-  if (!negocioUsuario) {
-    throw new Error("Usuário não está vinculado a nenhum negócio.");
-  }
+  exigirRecurso(
+    negocioUsuario,
+    "Usuário não está vinculado a nenhum negócio."
+  );
 
   if (negocioUsuario.papel !== "dono") {
-    throw new Error("Apenas o dono pode editar o negócio.");
+    const ForbiddenError = require("../errors/ForbiddenError");
+    throw new ForbiddenError("Apenas o dono pode editar o negócio.");
   }
 
   const negocioAtual =
@@ -78,9 +77,7 @@ async function salvarConfiguracoes({
       negocioUsuario.negocio_id
     );
 
-  if (!negocioAtual) {
-    throw new Error("Negócio não encontrado.");
-  }
+  exigirRecurso(negocioAtual, "Negócio não encontrado.");
 
   const areasFinal = normalizarAreas(
     dados.areas !== undefined
