@@ -1,5 +1,14 @@
 const agendaRepository = require("../repositories/agendaRepository");
 
+const {
+  exigirUsuario,
+  exigirCampo,
+  exigirRecurso,
+  exigirPermissao
+} = require("../validators/commonValidator");
+
+const ValidationError = require("../errors/ValidationError");
+
 function gerarDatasAgenda(quantidadeDias = 6) {
   const datas = [];
 
@@ -24,9 +33,8 @@ function gerarHorariosAgenda(horaInicio = 8, horaFim = 18) {
 }
 
 async function buscarAgendaPublica({ slugNegocio, slugProfissional }) {
-  if (!slugNegocio || !slugProfissional) {
-    throw new Error("Dados da agenda inválidos.");
-  }
+  exigirCampo(slugNegocio, "Slug do negócio não informado.");
+  exigirCampo(slugProfissional, "Slug do profissional não informado.");
 
   const profissional =
     await agendaRepository.buscarProfissionalPorSlug(
@@ -34,9 +42,7 @@ async function buscarAgendaPublica({ slugNegocio, slugProfissional }) {
       slugProfissional
     );
 
-  if (!profissional) {
-    throw new Error("Profissional não encontrado.");
-  }
+  exigirRecurso(profissional, "Profissional não encontrado.");
 
   const datas = gerarDatasAgenda(6);
   const horas = gerarHorariosAgenda(8, 18);
@@ -63,13 +69,8 @@ async function buscarAgendaPublica({ slugNegocio, slugProfissional }) {
 
       let status = "livre";
 
-      if (bloqueado) {
-        status = "bloqueado";
-      }
-
-      if (agendamento) {
-        status = "agendado";
-      }
+      if (bloqueado) status = "bloqueado";
+      if (agendamento) status = "agendado";
 
       horarios.push({
         hora,
@@ -90,9 +91,7 @@ async function buscarAgendaPublica({ slugNegocio, slugProfissional }) {
 }
 
 async function listarAgendaProfissional({ profissionalId }) {
-  if (!profissionalId) {
-    throw new Error("Usuário não autenticado.");
-  }
+  exigirUsuario(profissionalId);
 
   const datas = gerarDatasAgenda(6);
   const horas = gerarHorariosAgenda(8, 18);
@@ -147,22 +146,19 @@ async function alternarBloqueioHorario({
   hora,
   profissionalIdSolicitado
 }) {
-  if (!usuarioId) {
-    throw new Error("Usuário não autenticado.");
-  }
-
-  if (!data || !hora) {
-    throw new Error("Data e hora obrigatórios.");
-  }
+  exigirUsuario(usuarioId);
+  exigirCampo(data, "Data é obrigatória.");
+  exigirCampo(hora, "Hora é obrigatória.");
 
   let profissionalId = usuarioId;
 
   if (profissionalIdSolicitado) {
     const dono = await agendaRepository.buscarNegocioDono(usuarioId);
 
-    if (!dono) {
-      throw new Error("Apenas o dono pode bloquear horários de outros profissionais.");
-    }
+    exigirPermissao(
+      dono,
+      "Apenas o dono pode bloquear horários de outros profissionais."
+    );
 
     const profissionalPertence =
       await agendaRepository.verificarProfissionalNoNegocio(
@@ -170,9 +166,10 @@ async function alternarBloqueioHorario({
         dono.negocio_id
       );
 
-    if (!profissionalPertence) {
-      throw new Error("Este profissional não pertence ao seu negócio.");
-    }
+    exigirPermissao(
+      profissionalPertence,
+      "Este profissional não pertence ao seu negócio."
+    );
 
     profissionalId = profissionalIdSolicitado;
   }
@@ -185,7 +182,7 @@ async function alternarBloqueioHorario({
     );
 
   if (agendamento) {
-    throw new Error("Horário já está agendado.");
+    throw new ValidationError("Horário já está agendado.");
   }
 
   const bloqueio =
@@ -219,15 +216,12 @@ async function alternarBloqueioHorario({
 }
 
 async function buscarAgendaGeral({ usuarioId }) {
-  if (!usuarioId) {
-    throw new Error("Usuário não autenticado.");
-  }
+  exigirUsuario(usuarioId);
 
-  const negocio = await agendaRepository.buscarNegocioDoUsuario(usuarioId);
+  const negocio =
+    await agendaRepository.buscarNegocioDoUsuario(usuarioId);
 
-  if (!negocio) {
-    throw new Error("Negócio não encontrado.");
-  }
+  exigirRecurso(negocio, "Negócio não encontrado.");
 
   const profissionais =
     await agendaRepository.buscarProfissionaisDoNegocio(negocio.id);
@@ -289,9 +283,7 @@ async function buscarAgendaGeral({ usuarioId }) {
 }
 
 async function buscarNotificacoesAgenda({ usuarioId }) {
-  if (!usuarioId) {
-    throw new Error("Usuário não autenticado.");
-  }
+  exigirUsuario(usuarioId);
 
   const vinculo =
     await agendaRepository.buscarVinculoUsuarioNegocio(usuarioId);
@@ -303,64 +295,15 @@ async function buscarNotificacoesAgenda({ usuarioId }) {
   let total = 0;
 
   if (vinculo.papel === "dono") {
-    total = await agendaRepository.contarNotificacoesAgendaDono(
-      vinculo.negocio_id
-    );
+    total =
+      await agendaRepository.contarNotificacoesAgendaDono(
+        vinculo.negocio_id
+      );
   } else {
     total =
-      await agendaRepository.contarNotificacoesAgendaProfissional(usuarioId);
-  }
-
-  return { total };
-}
-
-async function buscarNotificacoesAgenda({ usuarioId }) {
-  if (!usuarioId) {
-    throw new Error("Usuário não autenticado.");
-  }
-
-  const vinculo =
-    await agendaRepository.buscarVinculoUsuarioNegocio(usuarioId);
-
-  if (!vinculo) {
-    return { total: 0 };
-  }
-
-  let total = 0;
-
-  if (vinculo.papel === "dono") {
-    total = await agendaRepository.contarNotificacoesAgendaDono(
-      vinculo.negocio_id
-    );
-  } else {
-    total =
-      await agendaRepository.contarNotificacoesAgendaProfissional(usuarioId);
-  }
-
-  return { total };
-}
-
-async function buscarNotificacoesAgenda({ usuarioId }) {
-  if (!usuarioId) {
-    throw new Error("Usuário não autenticado.");
-  }
-
-  const vinculo =
-    await agendaRepository.buscarVinculoUsuarioNegocio(usuarioId);
-
-  if (!vinculo) {
-    return { total: 0 };
-  }
-
-  let total = 0;
-
-  if (vinculo.papel === "dono") {
-    total = await agendaRepository.contarNotificacoesAgendaDono(
-      vinculo.negocio_id
-    );
-  } else {
-    total =
-      await agendaRepository.contarNotificacoesAgendaProfissional(usuarioId);
+      await agendaRepository.contarNotificacoesAgendaProfissional(
+        usuarioId
+      );
   }
 
   return { total };
