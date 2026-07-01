@@ -1,9 +1,12 @@
 const notificacoesRepository = require("../repositories/notificacoesRepository");
 
+const {
+  exigirUsuario,
+  exigirCampo
+} = require("../validators/commonValidator");
+
 async function listarNotificacoes({ usuarioId }) {
-  if (!usuarioId) {
-    throw new Error("Usuário não autenticado.");
-  }
+  exigirUsuario(usuarioId);
 
   const notificacoes =
     await notificacoesRepository.listarNotificacoes(usuarioId);
@@ -12,13 +15,8 @@ async function listarNotificacoes({ usuarioId }) {
 }
 
 async function marcarComoLida({ usuarioId, notificacaoId }) {
-  if (!usuarioId) {
-    throw new Error("Usuário não autenticado.");
-  }
-
-  if (!notificacaoId) {
-    throw new Error("Notificação não informada.");
-  }
+  exigirUsuario(usuarioId);
+  exigirCampo(notificacaoId, "Notificação não informada.");
 
   await notificacoesRepository.marcarComoLida(
     notificacaoId,
