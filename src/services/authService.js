@@ -1,10 +1,9 @@
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
-
 const authRepository = require("../repositories/authRepository");
 
-const JWT_SECRET = process.env.JWT_SECRET || "segredo";
-const TOKEN_EXPIRES_IN = process.env.TOKEN_EXPIRES_IN || "90d";
+const JWT_SECRET = "segredo";
+const TOKEN_EXPIRES_IN = "90d";
 
 function gerarToken(usuario) {
   return jwt.sign(
@@ -13,21 +12,21 @@ function gerarToken(usuario) {
       tipo: usuario.tipo
     },
     JWT_SECRET,
-    { expiresIn: TOKEN_EXPIRES_IN }
+    {
+      expiresIn: TOKEN_EXPIRES_IN
+    }
   );
 }
 
-function validarEmail(email) {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(email || "").trim());
-}
-
-async function cadastro({ nome, email, senha, whatsapp, tipo }) {
+async function cadastro({
+  nome,
+  email,
+  senha,
+  whatsapp,
+  tipo
+}) {
   if (!nome || !email || !senha || !whatsapp) {
     throw new Error("Preencha todos os campos obrigatórios.");
-  }
-
-  if (!validarEmail(email)) {
-    throw new Error("E-mail inválido.");
   }
 
   if (senha.trim().length < 6) {
@@ -37,28 +36,29 @@ async function cadastro({ nome, email, senha, whatsapp, tipo }) {
   const emailLimpo = email.trim().toLowerCase();
   const tipoUsuario = tipo || "cliente";
 
-  const existe = await authRepository.emailExiste(emailLimpo);
+  const usuarioExistente =
+    await authRepository.buscarUsuarioPorEmail(emailLimpo);
 
-  if (existe) {
+  if (usuarioExistente) {
     throw new Error("Email já cadastrado.");
   }
 
   const senhaHash = await bcrypt.hash(senha, 10);
 
-  const usuario = await authRepository.criarUsuario({
+  const usuarioCriado = await authRepository.criarUsuario({
     nome: nome.trim(),
     email: emailLimpo,
-    senhaHash,
+    senha: senhaHash,
     whatsapp: whatsapp.trim(),
     tipo: tipoUsuario
   });
 
-  const token = gerarToken(usuario);
+  const token = gerarToken(usuarioCriado);
 
   return {
     mensagem: "Usuário cadastrado com sucesso.",
     token,
-    usuario
+    usuario: usuarioCriado
   };
 }
 
@@ -78,13 +78,10 @@ async function login({ email, senha }) {
   const senhaValida = await bcrypt.compare(senha, usuario.senha);
 
   if (!senhaValida) {
-    const erro = new Error("Senha inválida.");
-    erro.status = 401;
-    throw erro;
+    throw new Error("Senha inválida.");
   }
 
   const token = gerarToken(usuario);
-  const negocio = await authRepository.buscarNegocioDoUsuario(usuario.id);
 
   return {
     mensagem: "Login realizado com sucesso.",
@@ -95,20 +92,16 @@ async function login({ email, senha }) {
       email: usuario.email,
       whatsapp: usuario.whatsapp,
       tipo: usuario.tipo
-    },
-    negocio,
-    temNegocio: !!negocio
+    }
   };
 }
 
-async function meuNegocio(usuarioId) {
+async function meuNegocio({ usuarioId }) {
   if (!usuarioId) {
-    const erro = new Error("Usuário não autenticado.");
-    erro.status = 401;
-    throw erro;
+    throw new Error("Usuário não autenticado.");
   }
 
-  const negocio = await authRepository.buscarNegocioDoUsuario(usuarioId);
+  const negocio = await authRepository.buscarMeuNegocio(usuarioId);
 
   if (!negocio) {
     return {
