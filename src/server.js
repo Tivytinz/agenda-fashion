@@ -33,6 +33,7 @@ const planosRoutes = require("./routes/planosRoutes");
 const checkoutRoutes = require("./routes/checkoutRoutes");
 const webhookRoutes = require("./routes/webhookRoutes");
 const assinaturaRoutes = require("./routes/assinaturaRoutes");
+const errorHandler = require("./middlewares/errorHandler");
 
 
 app.use("/api", webhookRoutes);
@@ -117,6 +118,8 @@ app.use("/api/negocios", negocioRoutes);
 app.use("/servicos", servicosRoutes);
 app.use("/profissionais", profissionaisRoutes);
 app.use(routes);
+
+app.use(errorHandler);
 
 /* =========================
    START
