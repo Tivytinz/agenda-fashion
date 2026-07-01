@@ -306,6 +306,96 @@ async function contarNotificacoesAgendaProfissional(profissionalId) {
   return result.rows[0]?.total || 0;
 }
 
+async function buscarBloqueiosPorPeriodo(profissionalId, dataInicio, dataFim) {
+  const result = await db.query(
+    `
+    SELECT
+      id,
+      profissional_id,
+      TO_CHAR(data_bloqueio, 'YYYY-MM-DD') AS data,
+      TO_CHAR(hora_bloqueio, 'HH24:MI') AS hora
+    FROM bloqueios_horarios
+    WHERE profissional_id = $1
+      AND data_bloqueio BETWEEN $2 AND $3
+    `,
+    [profissionalId, dataInicio, dataFim]
+  );
+
+  return result.rows;
+}
+
+async function buscarAgendamentosPorPeriodo(profissionalId, dataInicio, dataFim) {
+  const result = await db.query(
+    `
+    SELECT
+      a.id,
+      a.profissional_id,
+      TO_CHAR(a.data, 'YYYY-MM-DD') AS data,
+      TO_CHAR(a.horario, 'HH24:MI') AS hora,
+      a.status,
+      c.nome AS cliente,
+      s.nome AS servico,
+      s.valor
+    FROM agendamentos a
+    LEFT JOIN usuarios c
+      ON c.id = a.cliente_id
+    LEFT JOIN servicos_negocio s
+      ON s.id = a.servico_id
+    WHERE a.profissional_id = $1
+      AND a.data BETWEEN $2 AND $3
+      AND a.status != 'cancelado'
+    `,
+    [profissionalId, dataInicio, dataFim]
+  );
+
+  return result.rows;
+}
+
+async function buscarBloqueiosProfissionaisPorPeriodo(profissionalIds, dataInicio, dataFim) {
+  const result = await db.query(
+    `
+    SELECT
+      id,
+      profissional_id,
+      TO_CHAR(data_bloqueio, 'YYYY-MM-DD') AS data,
+      TO_CHAR(hora_bloqueio, 'HH24:MI') AS hora
+    FROM bloqueios_horarios
+    WHERE profissional_id = ANY($1::int[])
+      AND data_bloqueio BETWEEN $2 AND $3
+    `,
+    [profissionalIds, dataInicio, dataFim]
+  );
+
+  return result.rows;
+}
+
+async function buscarAgendamentosProfissionaisPorPeriodo(profissionalIds, dataInicio, dataFim) {
+  const result = await db.query(
+    `
+    SELECT
+      a.id,
+      a.profissional_id,
+      TO_CHAR(a.data, 'YYYY-MM-DD') AS data,
+      TO_CHAR(a.horario, 'HH24:MI') AS hora,
+      a.status,
+      c.nome AS cliente,
+      s.nome AS servico,
+      s.valor
+    FROM agendamentos a
+    LEFT JOIN usuarios c
+      ON c.id = a.cliente_id
+    LEFT JOIN servicos_negocio s
+      ON s.id = a.servico_id
+    WHERE a.profissional_id = ANY($1::int[])
+      AND a.data BETWEEN $2 AND $3
+      AND a.status IN ('agendado', 'confirmado')
+    `,
+    [profissionalIds, dataInicio, dataFim]
+  );
+
+  return result.rows;
+}
+
 module.exports = {
   buscarProfissionalPorSlug,
   buscarBloqueioHorario,
@@ -324,5 +414,9 @@ module.exports = {
   buscarAgendamentoHorarioGeral,
   buscarVinculoUsuarioNegocio,
   contarNotificacoesAgendaDono,
-  contarNotificacoesAgendaProfissional
+  contarNotificacoesAgendaProfissional,
+  buscarBloqueiosPorPeriodo,
+  buscarAgendamentosPorPeriodo,
+  buscarBloqueiosProfissionaisPorPeriodo,
+  buscarAgendamentosProfissionaisPorPeriodo
 };

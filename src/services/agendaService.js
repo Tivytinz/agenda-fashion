@@ -32,6 +32,10 @@ function gerarHorariosAgenda(horaInicio = 8, horaFim = 18) {
   return horarios;
 }
 
+function criarChaveAgenda(data, hora) {
+  return `${data}_${hora}`;
+}
+
 async function buscarAgendaPublica({ slugNegocio, slugProfissional }) {
   exigirCampo(slugNegocio, "Slug do negócio não informado.");
   exigirCampo(slugProfissional, "Slug do profissional não informado.");
@@ -47,42 +51,58 @@ async function buscarAgendaPublica({ slugNegocio, slugProfissional }) {
   const datas = gerarDatasAgenda(6);
   const horas = gerarHorariosAgenda(8, 18);
 
-  const agenda = [];
+  const dataInicio = datas[0];
+  const dataFim = datas[datas.length - 1];
 
-  for (const data of datas) {
-    const horarios = [];
+  const bloqueios =
+    await agendaRepository.buscarBloqueiosPorPeriodo(
+      profissional.id,
+      dataInicio,
+      dataFim
+    );
 
-    for (const hora of horas) {
-      const bloqueado =
-        await agendaRepository.buscarBloqueioHorario(
-          profissional.id,
-          data,
-          hora
-        );
+  const agendamentos =
+    await agendaRepository.buscarAgendamentosPorPeriodo(
+      profissional.id,
+      dataInicio,
+      dataFim
+    );
 
-      const agendamento =
-        await agendaRepository.buscarAgendamentoHorario(
-          profissional.id,
-          data,
-          hora
-        );
+  const mapaBloqueios = new Map(
+    bloqueios.map(item => [
+      criarChaveAgenda(item.data, item.hora),
+      item
+    ])
+  );
+
+  const mapaAgendamentos = new Map(
+    agendamentos.map(item => [
+      criarChaveAgenda(item.data, item.hora),
+      item
+    ])
+  );
+
+  const agenda = datas.map(data => ({
+    data,
+    horarios: horas.map(hora => {
+      const chave = criarChaveAgenda(data, hora);
 
       let status = "livre";
 
-      if (bloqueado) status = "bloqueado";
-      if (agendamento) status = "agendado";
+      if (mapaBloqueios.has(chave)) {
+        status = "bloqueado";
+      }
 
-      horarios.push({
+      if (mapaAgendamentos.has(chave)) {
+        status = "agendado";
+      }
+
+      return {
         hora,
         status
-      });
-    }
-
-    agenda.push({
-      data,
-      horarios
-    });
-  }
+      };
+    })
+  }));
 
   return {
     profissional,
@@ -96,46 +116,63 @@ async function listarAgendaProfissional({ profissionalId }) {
   const datas = gerarDatasAgenda(6);
   const horas = gerarHorariosAgenda(8, 18);
 
-  const agenda = [];
+  const dataInicio = datas[0];
+  const dataFim = datas[datas.length - 1];
 
-  for (const data of datas) {
-    const horarios = [];
+  const bloqueios =
+    await agendaRepository.buscarBloqueiosPorPeriodo(
+      profissionalId,
+      dataInicio,
+      dataFim
+    );
 
-    for (const hora of horas) {
-      const bloqueado =
-        await agendaRepository.buscarBloqueioHorarioPainel(
-          profissionalId,
-          data,
-          hora
-        );
+  const agendamentos =
+    await agendaRepository.buscarAgendamentosPorPeriodo(
+      profissionalId,
+      dataInicio,
+      dataFim
+    );
 
-      const agendamento =
-        await agendaRepository.buscarAgendamentoHorarioPainel(
-          profissionalId,
-          data,
-          hora
-        );
+  const mapaBloqueios = new Map(
+    bloqueios.map(item => [
+      criarChaveAgenda(item.data, item.hora),
+      item
+    ])
+  );
+
+  const mapaAgendamentos = new Map(
+    agendamentos.map(item => [
+      criarChaveAgenda(item.data, item.hora),
+      item
+    ])
+  );
+
+  const agenda = datas.map(data => ({
+    data,
+    horarios: horas.map(hora => {
+      const chave = criarChaveAgenda(data, hora);
+      const agendamento = mapaAgendamentos.get(chave);
 
       let status = "livre";
 
-      if (bloqueado) status = "bloqueado";
-      if (agendamento) status = "agendado";
+      if (mapaBloqueios.has(chave)) {
+        status = "bloqueado";
+      }
 
-      horarios.push({
+      if (agendamento) {
+        status = "agendado";
+      }
+
+      return {
         data,
         hora,
         status,
         cliente: agendamento?.cliente || null,
         servico: agendamento?.servico || null,
         valor: agendamento?.valor || null
-      });
-    }
-
-    agenda.push({
-      data,
-      horarios
-    });
-  }
+      };
+    })
+  }));
 
   return { agenda };
 }
@@ -224,60 +261,82 @@ async function buscarAgendaGeral({ usuarioId }) {
   exigirRecurso(negocio, "Negócio não encontrado.");
 
   const profissionais =
-    await agendaRepository.buscarProfissionaisDoNegocio(negocio.id);
+    await agendaRepository.buscarProfissionaisDoNegocio(
+      negocio.id
+    );
 
   const datas = gerarDatasAgenda(7);
   const horas = gerarHorariosAgenda(8, 18);
 
-  const agenda = [];
+  const dataInicio = datas[0];
+  const dataFim = datas[datas.length - 1];
 
-  for (const data of datas) {
-    const profissionaisAgenda = [];
+  const profissionalIds =
+    profissionais.map(profissional => profissional.id);
 
-    for (const profissional of profissionais) {
-      const horarios = [];
+  if (profissionalIds.length === 0) {
+    return { agenda: [] };
+  }
 
-      for (const hora of horas) {
-        const bloqueio =
-          await agendaRepository.buscarBloqueioHorarioGeral(
-            profissional.id,
-            data,
-            hora
-          );
+  const bloqueios =
+    await agendaRepository.buscarBloqueiosProfissionaisPorPeriodo(
+      profissionalIds,
+      dataInicio,
+      dataFim
+    );
 
-        const agendamento =
-          await agendaRepository.buscarAgendamentoHorarioGeral(
-            profissional.id,
-            data,
-            hora
-          );
+  const agendamentos =
+    await agendaRepository.buscarAgendamentosProfissionaisPorPeriodo(
+      profissionalIds,
+      dataInicio,
+      dataFim
+    );
+
+  const mapaBloqueios = new Map(
+    bloqueios.map(item => [
+      `${item.profissional_id}_${criarChaveAgenda(item.data, item.hora)}`,
+      item
+    ])
+  );
+
+  const mapaAgendamentos = new Map(
+    agendamentos.map(item => [
+      `${item.profissional_id}_${criarChaveAgenda(item.data, item.hora)}`,
+      item
+    ])
+  );
+
+  const agenda = datas.map(data => ({
+    data,
+    profissionais: profissionais.map(profissional => ({
+      id: profissional.id,
+      nome: profissional.nome,
+      foto_url: profissional.foto_url,
+      horarios: horas.map(hora => {
+        const chave =
+          `${profissional.id}_${criarChaveAgenda(data, hora)}`;
+
+        const agendamento = mapaAgendamentos.get(chave);
 
         let status = "livre";
 
-        if (bloqueio) status = "bloqueado";
-        if (agendamento) status = "agendado";
+        if (mapaBloqueios.has(chave)) {
+          status = "bloqueado";
+        }
 
-        horarios.push({
+        if (agendamento) {
+          status = "agendado";
+        }
+
+        return {
           hora,
           status,
           cliente: agendamento?.cliente || null,
           servico: agendamento?.servico || null
-        });
-      }
-
-      profissionaisAgenda.push({
-        id: profissional.id,
-        nome: profissional.nome,
-        foto_url: profissional.foto_url,
-        horarios
-      });
-    }
-
-    agenda.push({
-      data,
-      profissionais: profissionaisAgenda
-    });
-  }
+        };
+      })
+    }))
+  }));
 
   return { agenda };
 }
