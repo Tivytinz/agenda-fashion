@@ -9,12 +9,19 @@ async function buscarConfiguracoes(req, res, next) {
 
     return res.json(resultado);
   } catch (err) {
+    console.error("ERRO AO BUSCAR CONFIGURAÇÕES:");
+    console.error(err);
+    console.error(err.stack);
+
     next(err);
   }
 }
 
 async function salvarConfiguracoes(req, res, next) {
   try {
+    console.log("REQ.USER CONFIGURAÇÕES:", req.user);
+    console.log("BODY CONFIGURAÇÕES:", req.body);
+
     const resultado =
       await configuracoesService.salvarConfiguracoes({
         usuarioId: req.user?.id,
@@ -23,22 +30,10 @@ async function salvarConfiguracoes(req, res, next) {
 
     return res.json(resultado);
   } catch (err) {
-    next(err);
-  }
-}
+    console.error("ERRO COMPLETO CONFIGURAÇÕES:");
+    console.error(err);
+    console.error(err.stack);
 
-async function salvarConfiguracoes(req, res, next) {
-  console.log("REQ.USER:", req.user);
-
-  try {
-    const resultado =
-      await configuracoesService.salvarConfiguracoes({
-        usuarioId: req.user?.id,
-        dados: req.body
-      });
-
-    return res.json(resultado);
-  } catch (err) {
     next(err);
   }
 }
