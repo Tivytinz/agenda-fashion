@@ -170,8 +170,25 @@ async function atualizarPlano(negocioId, planoId) {
     return result.rows[0] || null;
 }
 
+async function gerarSlugDisponivel(baseSlug) {
+  let slug = baseSlug;
+  let contador = 1;
+
+  while (true) {
+    const existente = await buscarPorSlug(slug);
+
+    if (!existente) {
+      return slug;
+    }
+
+    slug = `${baseSlug}-${contador}`;
+    contador++;
+  }
+}
+
 module.exports = {
   buscarPorSlug,
+  gerarSlugDisponivel,
   usuarioPossuiNegocio,
   criar,
   vincularUsuario,
