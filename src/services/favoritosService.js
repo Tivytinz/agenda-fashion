@@ -1,13 +1,14 @@
 const favoritosRepository = require("../repositories/favoritosRepository");
 
-function garantirCliente({ usuarioId, tipo }) {
-  if (!usuarioId) {
-    throw new Error("Usuário não autenticado.");
-  }
+const {
+  exigirUsuario,
+  exigirCliente,
+  exigirRecurso
+} = require("../validators/commonValidator");
 
-  if (tipo !== "cliente") {
-    throw new Error("Apenas clientes podem favoritar.");
-  }
+function garantirCliente({ usuarioId, tipo }) {
+  exigirUsuario(usuarioId);
+  exigirCliente(tipo);
 }
 
 async function listarFavoritos({ usuarioId, tipo }) {
@@ -25,9 +26,7 @@ async function adicionarFavorito({ usuarioId, tipo, negocioId }) {
   const negocio =
     await favoritosRepository.buscarNegocio(negocioId);
 
-  if (!negocio) {
-    throw new Error("Negócio não encontrado.");
-  }
+  exigirRecurso(negocio, "Negócio não encontrado.");
 
   await favoritosRepository.adicionarFavorito(
     usuarioId,
