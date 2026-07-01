@@ -1,11 +1,16 @@
 const agendamentoRepository = require("../repositories/agendamentoRepository");
 
-async function listarAgendaProfissional({ profissionalId }) {
-  if (!profissionalId) {
-    throw new Error("Usuário não autenticado.");
-  }
+const {
+  exigirUsuario,
+  exigirCampo
+} = require("../validators/commonValidator");
 
-  return await agendamentoRepository.listarAgendaProfissional(profissionalId);
+const ValidationError = require("../errors/ValidationError");
+
+async function listarAgendaProfissional({ profissionalId }) {
+  exigirUsuario(profissionalId);
+
+  return agendamentoRepository.listarAgendaProfissional(profissionalId);
 }
 
 async function alternarBloqueioHorario({
@@ -13,13 +18,10 @@ async function alternarBloqueioHorario({
   data,
   hora
 }) {
-  if (!profissionalId) {
-    throw new Error("Usuário não autenticado.");
-  }
+  exigirUsuario(profissionalId);
 
-  if (!data || !hora) {
-    throw new Error("Data e hora obrigatórios.");
-  }
+  exigirCampo(data, "Data é obrigatória.");
+  exigirCampo(hora, "Hora é obrigatória.");
 
   const agendamento =
     await agendamentoRepository.buscarAgendamento(
@@ -29,7 +31,9 @@ async function alternarBloqueioHorario({
     );
 
   if (agendamento) {
-    throw new Error("Horário já está agendado.");
+    throw new ValidationError(
+      "Horário já está agendado."
+    );
   }
 
   const bloqueio =
@@ -40,7 +44,9 @@ async function alternarBloqueioHorario({
     );
 
   if (bloqueio) {
-    await agendamentoRepository.removerBloqueio(bloqueio.id);
+    await agendamentoRepository.removerBloqueio(
+      bloqueio.id
+    );
 
     return {
       sucesso: true,
