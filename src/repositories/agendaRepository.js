@@ -54,6 +54,7 @@ async function buscarAgendamentoHorario(profissionalId, data, hora) {
   );
 
   return result.rows[0] || null;
+}
 
 
 async function buscarBloqueioHorarioPainel(profissionalId, data, hora) {
@@ -96,7 +97,7 @@ async function buscarAgendamentoHorarioPainel(profissionalId, data, hora) {
   );
 
   return result.rows[0] || null;
-}}
+}
 
 async function buscarNegocioDono(usuarioId) {
   const result = await db.query(
