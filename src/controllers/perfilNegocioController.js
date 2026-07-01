@@ -1,174 +1,32 @@
-const db = require("../db/db");
-
-// =============================
-// 🔧 NORMALIZAR ÁREAS
-// =============================
-function normalizarAreas(valor) {
-  if (!valor) return [];
-
-  if (Array.isArray(valor)) return valor;
-
-  if (typeof valor === "string") {
-    try {
-      const parsed = JSON.parse(valor);
-      return Array.isArray(parsed) ? parsed : [];
-    } catch {
-      return valor
-        .split(",")
-        .map((item) => item.trim())
-        .filter(Boolean);
-    }
-  }
-
-  return [];
-}
+const perfilNegocioService = require("../services/perfilNegocioService");
 
 // =============================
 // 🌍 LISTAR NEGÓCIOS PÚBLICOS
 // =============================
-async function listarNegociosPublicos(req, res) {
+async function listarNegociosPublicos(req, res, next) {
   try {
-    const result = await db.query(
-      `
-      SELECT
-        n.id,
-        n.nome,
-        n.slug,
-        n.foto_url,
-        n.descricao,
-        n.setor,
-        n.cidade,
-        n.bairro,
-        n.whatsapp_negocio,
-        n.localizacao_url,
-        n.areas,
-        n.latitude,
-        n.longitude
-      FROM negocios n
-      ORDER BY n.nome ASC
-      `
-    );
+    const resultado =
+      await perfilNegocioService.listarNegociosPublicos();
 
-    const negocios = result.rows.map((item) => ({
-      ...item,
-      areas: normalizarAreas(item.areas)
-    }));
-
-    return res.json({ negocios });
-
+    return res.json(resultado);
   } catch (err) {
-    console.error("Erro ao listar negócios públicos:", err);
-
-    return res.status(500).json({
-      erro: "Erro ao carregar negócios."
-    });
+    next(err);
   }
 }
 
 // =============================
 // 🔍 BUSCAR PERFIL DO NEGÓCIO
 // =============================
-async function buscarPerfilPublico(req, res) {
+async function buscarPerfilPublico(req, res, next) {
   try {
-    const { slug } = req.params;
-
-    if (!slug) {
-      return res.status(400).json({
-        erro: "Slug do negócio não informado."
+    const resultado =
+      await perfilNegocioService.buscarPerfilPublico({
+        slug: req.params.slug
       });
-    }
 
-    const negocioResult = await db.query(
-      `
-      SELECT
-      n.id,
-      n.nome,
-      n.slug,
-      n.foto_url,
-      n.foto_public_id,
-      n.descricao,
-      n.setor,
-    n.cidade,
-    n.bairro,
-    n.localizacao_url,
-    n.whatsapp_negocio,
-    n.areas,
-    n.latitude,
-    n.longitude,
-    COALESCE(AVG(a.avaliacao), 0)::numeric(2,1) AS media_avaliacoes,
-    COUNT(a.avaliacao)::int AS total_avaliacoes
-  FROM negocios n
-  LEFT JOIN agendamentos a
-    ON a.negocio_id = n.id
-    AND a.avaliacao IS NOT NULL
-  WHERE n.slug = $1
-  GROUP BY n.id
-  LIMIT 1
-  `,
-      [slug]
-    );
-    if (negocioResult.rows.length === 0) {
-      return res.status(404).json({
-        erro: "Negócio não encontrado."
-      });
-    }
-
-    const negocio = negocioResult.rows[0];
-
-    await db.query(
-      `
-    UPDATE negocios
-    SET visitas = COALESCE(visitas, 0) + 1
-    WHERE id = $1
-  `,
-      [negocio.id]
-    );
-
-    const servicosResult = await db.query(
-      `
-      SELECT
-        id,
-        nome,
-        valor,
-        duracao_minutos,
-        foto_url
-      FROM servicos_negocio
-      WHERE negocio_id = $1
-      ORDER BY nome ASC
-      `,
-      [negocio.id]
-    );
-
-    const profissionaisResult = await db.query(
-      `
-      SELECT
-        u.id,
-        u.nome,
-        u.whatsapp
-      FROM usuarios u
-      INNER JOIN usuarios_negocios un
-        ON un.usuario_id = u.id
-      WHERE un.negocio_id = $1
-      ORDER BY u.nome ASC
-      `,
-      [negocio.id]
-    );
-
-    return res.json({
-      negocio: {
-        ...negocio,
-        areas: normalizarAreas(negocio.areas)
-      },
-      servicos: servicosResult.rows,
-      profissionais: profissionaisResult.rows
-    });
-
+    return res.json(resultado);
   } catch (err) {
-    console.error("Erro ao buscar perfil público:", err);
-
-    return res.status(500).json({
-      erro: "Erro ao carregar perfil do negócio."
-    });
+    next(err);
   }
 }
 
