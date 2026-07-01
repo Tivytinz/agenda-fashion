@@ -1,9 +1,6 @@
-console.log("LOGIN PROFISSIONAL JS CARREGADO");
-
 document.addEventListener("DOMContentLoaded", () => {
   const email = document.getElementById("email");
   const senha = document.getElementById("senha");
-
   const btn = document.getElementById("btnLoginProfissional");
   const mensagem = document.getElementById("mensagemLogin");
   const toggleSenha = document.getElementById("toggleSenha");
@@ -18,16 +15,6 @@ document.addEventListener("DOMContentLoaded", () => {
   const emailSalvo = localStorage.getItem(STORAGE_EMAIL);
   if (emailSalvo) email.value = emailSalvo;
 
-  function desativarBotao() {
-    btn.disabled = true;
-    btn.classList.add("btn-disabled");
-  }
-
-  function ativarBotao() {
-    btn.disabled = false;
-    btn.classList.remove("btn-disabled");
-  }
-
   function mostrarMensagem(texto, cor = "#e63946") {
     mensagem.textContent = texto;
     mensagem.style.color = cor;
@@ -39,24 +26,6 @@ document.addEventListener("DOMContentLoaded", () => {
     mensagem.classList.add("hidden");
   }
 
-  function limparEstadoBotao() {
-    btn.classList.remove("btn-success", "btn-error");
-  }
-
-  function limparErros(...inputs) {
-    inputs.forEach((input) => {
-      input.classList.remove("input-error", "shake");
-    });
-  }
-
-  function tremerInputs(...inputs) {
-    inputs.forEach((input) => {
-      input.classList.remove("shake");
-      void input.offsetWidth;
-      input.classList.add("input-error", "shake");
-    });
-  }
-
   function validarEmail(valor) {
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(valor.trim());
   }
@@ -65,52 +34,24 @@ document.addEventListener("DOMContentLoaded", () => {
     return validarEmail(email.value) && senha.value.trim().length >= 6;
   }
 
-  function validarFormulario() {
-    esconderMensagem();
-    limparErros(email, senha);
-    limparEstadoBotao();
-
+  function atualizarBotao() {
+    btn.disabled = !formularioValido();
+    btn.classList.toggle("btn-disabled", btn.disabled);
     btn.innerHTML = "Entrar";
-
-    if (formularioValido()) {
-      ativarBotao();
-    } else {
-      desativarBotao();
-    }
   }
 
-  function redirecionarUsuario(usuario, negocio) {
-    if (usuario?.tipo === "admin") {
-      window.location.href = "/html/admin.html";
-      return;
-    }
+  function marcarErro(...inputs) {
+    inputs.forEach((input) => {
+      input.classList.remove("shake");
+      void input.offsetWidth;
+      input.classList.add("input-error", "shake");
+    });
+  }
 
-    if (
-      usuario?.tipo === "dono" ||
-      negocio?.papel === "dono"
-    ) {
-      window.location.href = "/html/dashboard-dono.html";
-      return;
-    }
-
-    if (
-      usuario?.tipo === "funcionario" ||
-      usuario?.tipo === "funcionário" ||
-      usuario?.tipo === "profissional" ||
-      negocio?.papel === "funcionario" ||
-      negocio?.papel === "funcionário" ||
-      negocio?.papel === "profissional"
-    ) {
-      window.location.href = "/html/agenda-profissional.html";
-      return;
-    }
-
-    if (usuario?.tipo === "cliente") {
-      window.location.href = "/html/inicio.html";
-      return;
-    }
-
-    window.location.href = "/html/inicio.html";
+  function limparErros(...inputs) {
+    inputs.forEach((input) => {
+      input.classList.remove("input-error", "shake");
+    });
   }
 
   function handleEnter(e) {
@@ -120,91 +61,43 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   toggleSenha.addEventListener("click", () => {
-    if (senha.type === "password") {
-      senha.type = "text";
-      toggleSenha.textContent = "🙉";
-    } else {
-      senha.type = "password";
-      toggleSenha.textContent = "🙈";
-    }
+    senha.type = senha.type === "password" ? "text" : "password";
+    toggleSenha.textContent = senha.type === "password" ? "🙈" : "🙉";
   });
 
-  email.addEventListener("input", validarFormulario);
-  senha.addEventListener("input", validarFormulario);
+  email.addEventListener("input", atualizarBotao);
+  senha.addEventListener("input", atualizarBotao);
 
   email.addEventListener("keydown", handleEnter);
   senha.addEventListener("keydown", handleEnter);
 
-  validarFormulario();
-
   btn.addEventListener("click", async () => {
     esconderMensagem();
     limparErros(email, senha);
-    limparEstadoBotao();
 
     if (!validarEmail(email.value)) {
-      tremerInputs(email);
+      marcarErro(email);
       mostrarMensagem("Digite um e-mail válido.");
       return;
     }
 
     if (senha.value.trim().length < 6) {
-      tremerInputs(senha);
+      marcarErro(senha);
       mostrarMensagem("Senha inválida.");
       return;
     }
 
     try {
-      btn.innerHTML = `<span class="spinner-emoji">⏳</span> Entrando...`;
       btn.disabled = true;
       btn.classList.add("btn-disabled");
+      btn.innerHTML = `<span class="spinner-emoji">⏳</span> Entrando...`;
 
-      const resposta = await fetch("https://agenda-fashion-production.up.railway.app/login", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-          email: email.value.trim(),
-          senha: senha.value
-        })
-      });
-
-      const resultado = await resposta.json();
-
-      if (!resposta.ok) {
-        throw new Error(resultado.erro || "Erro ao fazer login.");
-      }
+      const { usuario, negocio } = await AuthService.login(
+        email.value,
+        senha.value
+      );
 
       localStorage.setItem(STORAGE_EMAIL, email.value.trim());
-      localStorage.setItem("token", resultado.token);
-      localStorage.setItem("usuario", JSON.stringify(resultado.usuario));
-
-      let negocio = null;
-
-      try {
-        const respostaNegocio = await fetch("https://agenda-fashion-production.up.railway.app/meu-negocio", {
-          headers: {
-            Authorization: `Bearer ${resultado.token}`
-          }
-        });
-
-        const dadosNegocio = await respostaNegocio.json();
-
-        if (dadosNegocio.temNegocio) {
-          negocio = dadosNegocio.negocio;
-          localStorage.setItem("negocio", JSON.stringify(negocio));
-        } else {
-          localStorage.removeItem("negocio");
-        }
-
-      } catch (erroNegocio) {
-        console.error("Erro ao buscar negócio:", erroNegocio);
-        localStorage.removeItem("negocio");
-      }
-
-      console.log("USUARIO LOGADO:", resultado.usuario);
-      console.log("NEGÓCIO LOGADO:", negocio);
 
       mostrarMensagem("Login realizado com sucesso 💅", "#2f9e63");
 
@@ -213,20 +106,20 @@ document.addEventListener("DOMContentLoaded", () => {
       btn.classList.add("btn-success");
 
       setTimeout(() => {
-        redirecionarUsuario(resultado.usuario, negocio);
+        AuthService.redirecionarUsuario(usuario, negocio);
       }, 700);
 
     } catch (erro) {
       mostrarMensagem(erro.message || "Erro na conexão com o servidor.");
-      tremerInputs(email, senha);
+      marcarErro(email, senha);
 
       btn.innerHTML = "❌ Erro";
       btn.classList.remove("btn-disabled", "btn-success");
       btn.classList.add("btn-error");
 
-      setTimeout(() => {
-        validarFormulario();
-      }, 1400);
+      setTimeout(atualizarBotao, 1400);
     }
   });
+
+  atualizarBotao();
 });
