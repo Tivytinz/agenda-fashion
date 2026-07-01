@@ -1,21 +1,36 @@
 const profissionaisRepository = require("../repositories/profissionaisRepository");
 
+const {
+  exigirUsuario,
+  exigirCampo,
+  exigirRecurso,
+  exigirPermissao
+} = require("../validators/commonValidator");
+
+const ForbiddenError = require("../errors/ForbiddenError");
+const ValidationError = require("../errors/ValidationError");
+
 async function editarProfissional({
   usuarioId,
   profissionalId,
   nome,
   whatsapp
 }) {
+  exigirUsuario(usuarioId);
+  exigirCampo(profissionalId, "Profissional não informado.");
+  exigirCampo(nome, "Nome do profissional é obrigatório.");
+
+  if (nome.trim().length < 2) {
+    throw new ValidationError("Nome do profissional inválido.");
+  }
+
   const vinculo =
     await profissionaisRepository.buscarNegocioDono(usuarioId);
 
-  if (!vinculo) {
-    throw new Error("Apenas o dono pode editar profissionais.");
-  }
-
-  if (!nome || nome.trim().length < 2) {
-    throw new Error("Nome do profissional inválido.");
-  }
+  exigirPermissao(
+    vinculo,
+    "Apenas o dono pode editar profissionais."
+  );
 
   const pertence =
     await profissionaisRepository.verificarProfissionalNoNegocio(
@@ -23,9 +38,10 @@ async function editarProfissional({
       vinculo.negocio_id
     );
 
-  if (!pertence) {
-    throw new Error("Profissional não encontrado neste negócio.");
-  }
+  exigirRecurso(
+    pertence,
+    "Profissional não encontrado neste negócio."
+  );
 
   const profissional =
     await profissionaisRepository.atualizarProfissional(
@@ -44,15 +60,21 @@ async function removerProfissional({
   usuarioId,
   profissionalId
 }) {
+  exigirUsuario(usuarioId);
+  exigirCampo(profissionalId, "Profissional não informado.");
+
   const vinculo =
     await profissionaisRepository.buscarNegocioDono(usuarioId);
 
-  if (!vinculo) {
-    throw new Error("Apenas o dono pode remover profissionais.");
-  }
+  exigirPermissao(
+    vinculo,
+    "Apenas o dono pode remover profissionais."
+  );
 
   if (Number(usuarioId) === Number(profissionalId)) {
-    throw new Error("O dono não pode remover a si mesmo.");
+    throw new ForbiddenError(
+      "O dono não pode remover a si mesmo."
+    );
   }
 
   const removido =
@@ -61,9 +83,7 @@ async function removerProfissional({
       vinculo.negocio_id
     );
 
-  if (!removido) {
-    throw new Error("Profissional não encontrado.");
-  }
+  exigirRecurso(removido, "Profissional não encontrado.");
 
   return {
     mensagem: "Profissional removido do negócio."
@@ -74,16 +94,21 @@ async function vincularProfissional({
   usuarioDonoId,
   emailOuWhatsapp
 }) {
-  if (!emailOuWhatsapp) {
-    throw new Error("Informe o e-mail ou WhatsApp do profissional.");
-  }
+  exigirUsuario(usuarioDonoId);
+  exigirCampo(
+    emailOuWhatsapp,
+    "Informe o e-mail ou WhatsApp do profissional."
+  );
 
   const dono =
-    await profissionaisRepository.buscarNegocioDono(usuarioDonoId);
+    await profissionaisRepository.buscarNegocioDono(
+      usuarioDonoId
+    );
 
-  if (!dono) {
-    throw new Error("Apenas o dono pode adicionar profissionais.");
-  }
+  exigirPermissao(
+    dono,
+    "Apenas o dono pode adicionar profissionais."
+  );
 
   const valorLimpo = emailOuWhatsapp.trim().toLowerCase();
   const whatsappLimpo = emailOuWhatsapp.replace(/\D/g, "");
@@ -94,9 +119,10 @@ async function vincularProfissional({
       whatsappLimpo
     );
 
-  if (!profissional) {
-    throw new Error("Profissional não encontrado. Ele precisa criar uma conta profissional primeiro.");
-  }
+  exigirRecurso(
+    profissional,
+    "Profissional não encontrado. Ele precisa criar uma conta profissional primeiro."
+  );
 
   const jaVinculado =
     await profissionaisRepository.verificarVinculo(
@@ -105,7 +131,9 @@ async function vincularProfissional({
     );
 
   if (jaVinculado) {
-    throw new Error("Este profissional já está vinculado ao negócio.");
+    throw new ValidationError(
+      "Este profissional já está vinculado ao negócio."
+    );
   }
 
   await profissionaisRepository.criarVinculo(

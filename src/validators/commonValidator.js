@@ -41,10 +41,17 @@ function exigirCampo(valor, mensagem = "Campo obrigatório.") {
   }
 }
 
+function exigirPermissao(condicao, mensagem = "Acesso não permitido.") {
+  if (!condicao) {
+    throw new ForbiddenError(mensagem);
+  }
+}
+
 module.exports = {
   exigirUsuario,
   exigirCliente,
   exigirDono,
   exigirRecurso,
-  exigirCampo
+  exigirCampo,
+  exigirPermissao
 };
