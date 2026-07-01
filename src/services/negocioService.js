@@ -111,7 +111,25 @@ async function buscarMeuNegocio(usuarioId) {
   };
 }
 
+async function buscarPorTermo(termo) {
+  if (!termo || termo.trim().length < 2) {
+    return {
+      negocios: []
+    };
+  }
+
+  const negocios =
+    await negocioRepository.buscarPorTermo(
+      termo.trim()
+    );
+
+  return {
+    negocios
+  };
+}
+
 module.exports = {
   criar,
-  buscarMeuNegocio
+  buscarMeuNegocio,
+  buscarPorTermo
 };

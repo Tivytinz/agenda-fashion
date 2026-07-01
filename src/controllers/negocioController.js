@@ -27,7 +27,21 @@ async function buscarMeuNegocio(req, res, next) {
   }
 }
 
+async function buscarNegocios(req, res, next) {
+  try {
+    const resultado =
+      await negocioService.buscarPorTermo(
+        req.query.termo
+      );
+
+    return res.json(resultado);
+  } catch (err) {
+    next(err);
+  }
+}
+
 module.exports = {
   criarNegocio,
-  buscarMeuNegocio
+  buscarMeuNegocio,
+  buscarNegocios
 };

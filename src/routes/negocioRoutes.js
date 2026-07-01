@@ -5,6 +5,28 @@ const upload = require("../middlewares/upload");
 const uploadToCloudinary = require("../utils/uploadCloudinary");
 const db = require("../db/db");
 const auth = require("../middlewares/auth");
+const negocioController = require("../controllers/negocioController");
+
+// =============================
+// 🏢 NEGÓCIOS
+// =============================
+
+router.post(
+  "/criar-negocio",
+  auth,
+  negocioController.criarNegocio
+);
+
+router.get(
+  "/meu-negocio",
+  auth,
+  negocioController.buscarMeuNegocio
+);
+
+router.get(
+  "/negocios/buscar",
+  negocioController.buscarNegocios
+);
 
 router.post("/foto", auth, upload.single("foto"), async (req, res) => {
   try {
