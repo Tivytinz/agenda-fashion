@@ -1,58 +1,29 @@
-const db = require("../db/db");
+const notificacoesService = require("../services/notificacoesService");
 
-async function listarNotificacoes(req, res) {
+async function listarNotificacoes(req, res, next) {
   try {
-    const usuarioId = req.user.id;
+    const resultado =
+      await notificacoesService.listarNotificacoes({
+        usuarioId: req.user?.id
+      });
 
-    const result = await db.query(
-      `
-      SELECT *
-      FROM notificacoes
-      WHERE usuario_id = $1
-      ORDER BY created_at DESC
-      LIMIT 50
-      `,
-      [usuarioId]
-    );
-
-    return res.json({
-      notificacoes: result.rows
-    });
-
+    return res.json(resultado);
   } catch (err) {
-    console.error(err);
-
-    return res.status(500).json({
-      erro: "Erro ao carregar notificações."
-    });
+    next(err);
   }
 }
 
-async function marcarComoLida(req, res) {
+async function marcarComoLida(req, res, next) {
   try {
-    const usuarioId = req.user.id;
-    const { id } = req.params;
+    const resultado =
+      await notificacoesService.marcarComoLida({
+        usuarioId: req.user?.id,
+        notificacaoId: req.params.id
+      });
 
-    await db.query(
-      `
-      UPDATE notificacoes
-      SET lida = TRUE
-      WHERE id = $1
-        AND usuario_id = $2
-      `,
-      [id, usuarioId]
-    );
-
-    return res.json({
-      sucesso: true
-    });
-
+    return res.json(resultado);
   } catch (err) {
-    console.error(err);
-
-    return res.status(500).json({
-      erro: "Erro ao atualizar notificação."
-    });
+    next(err);
   }
 }
 
