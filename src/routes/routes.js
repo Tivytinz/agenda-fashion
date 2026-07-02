@@ -108,25 +108,6 @@ router.patch(
   auth,
   notificacoesController.marcarComoLida
 );
-
-// =============================
-// 📊 DASHBOARD
-// =============================
-router.get(
-  "/dashboard-profissional",
-  auth,
-  dashboardController.buscarDashboardProfissional
-);
-
-// =============================
-// 📊 DASHBOARD DONO
-// =============================
-router.get(
-  "/dashboard-dono",
-  auth,
-  dashboardController.buscarDashboardDono
-);
-
 // =============================
 // ⚙️ CONTA
 // =============================

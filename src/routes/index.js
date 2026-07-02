@@ -13,6 +13,7 @@ router.use("/", require("./servicosRoutes"));
 router.use("/", require("./planosRoutes"));
 router.use("/", require("./webhookRoutes"));
 router.use("/", require("./favoritosRoutes"));
+router.use("/", require("./dashboardRoutes"));
 
 
 // Os próximos módulos serão adicionados aqui conforme forem sendo separados:
