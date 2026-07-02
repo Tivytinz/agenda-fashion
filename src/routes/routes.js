@@ -60,44 +60,6 @@ router.patch("/agendamentos/:id/cancelar", auth, agendaPublicaController.cancela
 router.patch("/agendamentos/:id/avaliar", auth, agendaPublicaController.avaliarAgendamento);
 
 // =============================
-// 📅 AGENDA GERAL (DONO)
-// =============================
-
-router.get(
-  "/agenda-geral",
-  auth,
-  agendaController.buscarAgendaGeral
-);
-
-// =============================
-// 👨‍🔧 AGENDA PROFISSIONAL
-// =============================
-// rota privada: usa o profissional logado
-router.get(
-  "/agenda-profissional",
-  auth,
-  agendaController.listarAgendamentosFuncionario
-);
-
-router.post(
-  "/bloqueios-horario",
-  auth,
-  agendaController.alternarBloqueioHorario
-);
-
-router.get(
-  "/agendamentos-profissional",
-  auth,
-  agendaController.listarAgendamentosFuncionario
-);
-
-router.get(
-  "/notificacoes-agenda",
-  auth,
-  agendaController.buscarNotificacoesAgenda
-);
-
-// =============================
 // ⚙️ CONTA
 // =============================
 router.get("/minha-conta", auth, contaController.buscarMinhaConta);
