@@ -1,6 +1,4 @@
 document.addEventListener("DOMContentLoaded", async () => {
-  
-
   const token = localStorage.getItem("token");
   const usuario = JSON.parse(localStorage.getItem("usuario") || "null");
 
@@ -12,6 +10,11 @@ document.addEventListener("DOMContentLoaded", async () => {
   const btnSair = document.getElementById("btnSair");
   const btnDashboard = document.getElementById("btnDashboard");
   const mensagemPainel = document.getElementById("mensagemPainel");
+
+  const nomeNegocioAtual = document.getElementById("nomeNegocioAtual");
+  const slugNegocioAtual = document.getElementById("slugNegocioAtual");
+  const nomeProfissionalAtual = document.getElementById("nomeProfissionalAtual");
+  const btnPerfilPublico = document.getElementById("btnPerfilPublico");
 
   const totalAgendados = document.getElementById("totalAgendados");
   const totalRecorrentes = document.getElementById("totalRecorrentes");
@@ -28,6 +31,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   let agenda = [];
   let diaSelecionado = null;
+  let negocioAtual = null;
 
   function mostrarMensagem(texto, cor = "#e63946") {
     if (!mensagemPainel) return;
@@ -72,6 +76,51 @@ document.addEventListener("DOMContentLoaded", async () => {
   function ehHoje(dataIso) {
     const hoje = new Date().toISOString().slice(0, 10);
     return dataIso === hoje;
+  }
+
+  async function carregarNegocioAtual() {
+    try {
+      const resposta = await fetch(`${API_URL}/meu-negocio`, {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
+
+      const resultado = await resposta.json();
+
+      if (!resposta.ok) {
+        throw new Error(resultado.erro || "Erro ao carregar negócio.");
+      }
+
+      if (!resultado.temNegocio || !resultado.negocio) {
+        nomeNegocioAtual.textContent = "Nenhum negócio vinculado";
+        slugNegocioAtual.textContent = "--";
+        nomeProfissionalAtual.textContent = usuario.nome || "--";
+        return;
+      }
+
+      negocioAtual = resultado.negocio;
+
+      localStorage.setItem("negocio", JSON.stringify(negocioAtual));
+
+      nomeNegocioAtual.textContent = negocioAtual.nome || "Meu negócio";
+      slugNegocioAtual.textContent = negocioAtual.slug || "--";
+      nomeProfissionalAtual.textContent = usuario.nome || "--";
+
+      if (btnPerfilPublico && negocioAtual.slug) {
+        btnPerfilPublico.href = `/html/perfil-negocio.html?slug=${encodeURIComponent(negocioAtual.slug)}`;
+        btnPerfilPublico.classList.remove("oculto");
+      }
+
+    } catch (erro) {
+      console.error("Erro ao carregar negócio atual:", erro);
+
+      nomeNegocioAtual.textContent = "Erro ao carregar negócio";
+      slugNegocioAtual.textContent = "--";
+      nomeProfissionalAtual.textContent = usuario.nome || "--";
+
+      mostrarMensagem(erro.message || "Erro ao carregar dados do negócio.");
+    }
   }
 
   function atualizarCards() {
@@ -295,11 +344,11 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   if (btnSair) {
     btnSair.addEventListener("click", () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("usuario");
-    localStorage.removeItem("negocio");
+      localStorage.removeItem("token");
+      localStorage.removeItem("usuario");
+      localStorage.removeItem("negocio");
 
-    window.location.href = "login-profissional.html";
+      window.location.href = "login-profissional.html";
     });
   }
 
@@ -309,5 +358,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     });
   }
 
+  await carregarNegocioAtual();
   await carregarAgenda();
 });
