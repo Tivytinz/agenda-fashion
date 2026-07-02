@@ -35,11 +35,6 @@ router.post("/cadastro", authController.cadastro);
 router.post("/criar-negocio", auth, negocioController.criarNegocio);
 router.get("/meu-negocio", auth, negocioController.buscarMeuNegocio);
 
-// =============================
-// ⚙️ CONFIGURAÇÕES
-// =============================
-router.get("/configuracoes", auth, configuracoesController.buscarConfiguracoes);
-router.put("/configuracoes", auth, configuracoesController.salvarConfiguracoes);
 
 // =============================
 // 🛠️ SERVIÇOS

@@ -7,10 +7,12 @@ router.use("/", require("./negocioRoutes"));
 router.use("/", require("./checkoutRoutes"));
 router.use("/", require("./assinaturaRoutes"));
 router.use("/", require("./contaRoutes"));
+router.use("/", require("./configuracoesRoutes"));
 router.use("/", require("./profissionaisRoutes"));
 router.use("/", require("./servicosRoutes"));
 router.use("/", require("./planosRoutes"));
 router.use("/", require("./webhookRoutes"));
+
 
 // Os próximos módulos serão adicionados aqui conforme forem sendo separados:
 // router.use("/", require("./agendaRoutes"));
