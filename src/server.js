@@ -4,6 +4,10 @@ const path = require("path");
 const express = require("express");
 const cors = require("cors");
 
+const db = require("./db/db");
+const apiRoutes = require("./routes");
+const errorHandler = require("./middlewares/errorHandler");
+
 const app = express();
 
 app.use(express.json());
@@ -21,23 +25,10 @@ app.use(cors({
   allowedHeaders: ["Content-Type", "Authorization"]
 }));
 
-
-const db = require("./db/db");
-const errorHandler = require("./middlewares/errorHandler");
-
-
-app.use("/api", webhookRoutes);
-app.use("/api", checkoutRoutes);
-app.use("/api", planosRoutes);
-app.use("/api", assinaturaRoutes);
-
 const rootDir = path.join(process.cwd(), "agendamento-nails");
 
 app.use(express.static(rootDir));
 app.use("/public", express.static(path.join(rootDir, "public")));
-
-
-
 
 /* =========================
    ROTAS PRINCIPAIS
@@ -103,10 +94,6 @@ app.get("/painel-dono.html", (req, res) => {
    APIs
 ========================= */
 
-app.use("/conta", contaRoutes);
-app.use("/api/negocios", negocioRoutes);
-app.use("/servicos", servicosRoutes);
-app.use("/profissionais", profissionaisRoutes);
 app.use("/api", apiRoutes);
 
 app.use(errorHandler);
@@ -128,4 +115,3 @@ app.listen(PORT, () => {
       console.error("Erro banco:", err);
     });
 });
-
