@@ -40,8 +40,23 @@ async function buscarNegocios(req, res, next) {
   }
 }
 
+async function entrarNoNegocio(req, res, next) {
+  try {
+    const resultado =
+      await negocioService.entrarNoNegocio({
+        usuarioId: req.user?.id,
+        negocioId: req.body.negocio_id
+      });
+
+    return res.status(201).json(resultado);
+  } catch (err) {
+    next(err);
+  }
+}
+
 module.exports = {
   criarNegocio,
   buscarMeuNegocio,
-  buscarNegocios
+  buscarNegocios,
+  entrarNoNegocio
 };

@@ -239,6 +239,52 @@ async function buscarPorTermo(termo) {
   return result.rows;
 }
 
+async function buscarPorId(negocioId) {
+  const result = await db.query(
+    `
+    SELECT id, nome, slug
+    FROM negocios
+    WHERE id = $1
+    LIMIT 1
+    `,
+    [negocioId]
+  );
+
+  return result.rows[0] || null;
+}
+
+async function buscarVinculo(usuarioId, negocioId) {
+  const result = await db.query(
+    `
+    SELECT id, papel
+    FROM usuarios_negocios
+    WHERE usuario_id = $1
+      AND negocio_id = $2
+    LIMIT 1
+    `,
+    [usuarioId, negocioId]
+  );
+
+  return result.rows[0] || null;
+}
+
+async function vincularProfissional(usuarioId, negocioId) {
+  const result = await db.query(
+    `
+    INSERT INTO usuarios_negocios (
+      usuario_id,
+      negocio_id,
+      papel
+    )
+    VALUES ($1, $2, 'profissional')
+    RETURNING *
+    `,
+    [usuarioId, negocioId]
+  );
+
+  return result.rows[0];
+}
+
 module.exports = {
   buscarPorSlug,
   gerarSlugDisponivel,
@@ -249,5 +295,8 @@ module.exports = {
   buscarDoUsuario,
   listarProfissionais,
   atualizarAssinaturaAsaas,
-  atualizarPlano
+  atualizarPlano,
+  buscarPorId,
+  buscarVinculo,
+  vincularProfissional
 };

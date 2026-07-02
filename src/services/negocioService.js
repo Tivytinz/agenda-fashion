@@ -128,8 +128,43 @@ async function buscarPorTermo(termo) {
   };
 }
 
+async function entrarNoNegocio({ usuarioId, negocioId }) {
+  if (!usuarioId) {
+    throw new UnauthorizedError("Usuário não autenticado.");
+  }
+
+  if (!negocioId) {
+    throw new ValidationError("Negócio não informado.");
+  }
+
+  const negocio = await negocioRepository.buscarPorId(negocioId);
+
+  if (!negocio) {
+    throw new NotFoundError("Negócio não encontrado.");
+  }
+
+  const vinculoExistente =
+    await negocioRepository.buscarVinculo(usuarioId, negocioId);
+
+  if (vinculoExistente) {
+    throw new ValidationError("Você já está vinculado a este negócio.");
+  }
+
+  const vinculo =
+    await negocioRepository.vincularProfissional(usuarioId, negocioId);
+
+  return {
+    mensagem: "Você entrou no negócio com sucesso.",
+    negocio: {
+      ...negocio,
+      papel: vinculo.papel
+    }
+  };
+}
+
 module.exports = {
   criar,
   buscarMeuNegocio,
-  buscarPorTermo
+  buscarPorTermo,
+  entrarNoNegocio
 };
