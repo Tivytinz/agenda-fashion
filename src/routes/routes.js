@@ -52,36 +52,6 @@ router.put("/minha-conta", auth, contaController.atualizarMinhaConta);
 router.put("/minha-conta/senha", auth, contaController.alterarSenha);
 
 
-// =============================
-// 🛡️ ADMIN
-// =============================
-router.get(
-  "/admin/dashboard",
-  auth,
-  authAdmin,
-  adminController.buscarDashboardAdmin
-);
-
-router.get(
-  "/admin/negocios",
-  auth,
-  authAdmin,
-  adminController.listarNegociosAdmin
-);
-
-router.get(
-  "/admin/agendamentos",
-  auth,
-  authAdmin,
-  adminController.listarAgendamentosAdmin
-);
-
-router.get(
-  "/admin/marketing",
-  auth,
-  authAdmin,
-  adminController.buscarMarketingAdmin
-);
 
 // =============================
 module.exports = router;
