@@ -28,6 +28,12 @@ router.get(
   negocioController.buscarNegocios
 );
 
+router.post(
+  "/entrar-negocio",
+  auth,
+  negocioController.entrarNoNegocio
+);
+
 router.post("/foto", auth, upload.single("foto"), async (req, res) => {
   try {
     const usuarioId = req.user?.id;
