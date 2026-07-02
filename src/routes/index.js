@@ -14,6 +14,7 @@ router.use("/", require("./planosRoutes"));
 router.use("/", require("./webhookRoutes"));
 router.use("/", require("./favoritosRoutes"));
 router.use("/", require("./dashboardRoutes"));
+router.use("/", require("./notificacoesRoutes"));
 
 
 // Os próximos módulos serão adicionados aqui conforme forem sendo separados:

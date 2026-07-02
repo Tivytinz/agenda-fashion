@@ -97,17 +97,6 @@ router.get(
   agendaController.buscarNotificacoesAgenda
 );
 
-router.get(
-  "/notificacoes",
-  auth,
-  notificacoesController.listarNotificacoes
-);
-
-router.patch(
-  "/notificacoes/:id/lida",
-  auth,
-  notificacoesController.marcarComoLida
-);
 // =============================
 // ⚙️ CONTA
 // =============================
