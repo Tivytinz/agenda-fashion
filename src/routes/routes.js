@@ -45,15 +45,6 @@ router.put("/servicos/:id", auth, servicosController.editarServico);
 router.delete("/servicos/:id", auth, servicosController.removerServico);
 
 // =============================
-// 📅 AGENDA PÚBLICA
-// =============================
-router.get("/agenda-publica", agendaPublicaController.buscarAgendaPublica);
-router.post("/agendamentos", agendaPublicaController.criarAgendamentoPublico);
-router.get("/meus-agendamentos", auth, agendaPublicaController.listarMeusAgendamentos);
-router.patch("/agendamentos/:id/cancelar", auth, agendaPublicaController.cancelarMeuAgendamento);
-router.patch("/agendamentos/:id/avaliar", auth, agendaPublicaController.avaliarAgendamento);
-
-// =============================
 // ⚙️ CONTA
 // =============================
 router.get("/minha-conta", auth, contaController.buscarMinhaConta);
