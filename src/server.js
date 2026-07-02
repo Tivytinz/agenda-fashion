@@ -23,16 +23,6 @@ app.use(cors({
 
 
 const db = require("./db/db");
-
-const routes = require("./routes/routes");
-const negocioRoutes = require("./routes/negocioRoutes");
-const servicosRoutes = require("./routes/servicosRoutes");
-const profissionaisRoutes = require("./routes/profissionaisRoutes");
-const contaRoutes = require("./routes/contaRoutes");
-const planosRoutes = require("./routes/planosRoutes");
-const checkoutRoutes = require("./routes/checkoutRoutes");
-const webhookRoutes = require("./routes/webhookRoutes");
-const assinaturaRoutes = require("./routes/assinaturaRoutes");
 const errorHandler = require("./middlewares/errorHandler");
 
 
@@ -117,7 +107,7 @@ app.use("/conta", contaRoutes);
 app.use("/api/negocios", negocioRoutes);
 app.use("/servicos", servicosRoutes);
 app.use("/profissionais", profissionaisRoutes);
-app.use(routes);
+app.use("/api", apiRoutes);
 
 app.use(errorHandler);
 
