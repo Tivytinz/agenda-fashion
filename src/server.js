@@ -94,7 +94,7 @@ app.get("/painel-dono.html", (req, res) => {
    APIs
 ========================= */
 
-app.use("/api", apiRoutes);
+app.use(apiRoutes);
 
 app.use(errorHandler);
 
