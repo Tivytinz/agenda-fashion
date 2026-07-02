@@ -12,6 +12,7 @@ router.use("/", require("./profissionaisRoutes"));
 router.use("/", require("./servicosRoutes"));
 router.use("/", require("./planosRoutes"));
 router.use("/", require("./webhookRoutes"));
+router.use("/", require("./favoritosRoutes"));
 
 
 // Os próximos módulos serão adicionados aqui conforme forem sendo separados:

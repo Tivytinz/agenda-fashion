@@ -134,13 +134,6 @@ router.get("/minha-conta", auth, contaController.buscarMinhaConta);
 router.put("/minha-conta", auth, contaController.atualizarMinhaConta);
 router.put("/minha-conta/senha", auth, contaController.alterarSenha);
 
-// =============================
-// ❤️ FAVORITOS
-// =============================
-router.get("/favoritos", auth, favoritosController.listarFavoritos);
-router.post("/favoritos/:negocioId", auth, favoritosController.adicionarFavorito);
-router.delete("/favoritos/:negocioId", auth, favoritosController.removerFavorito);
-router.get("/favoritos/:negocioId/status", auth, favoritosController.verificarFavorito);
 
 // =============================
 // 🛡️ ADMIN
