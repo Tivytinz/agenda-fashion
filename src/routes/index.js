@@ -16,6 +16,7 @@ router.use("/", require("./favoritosRoutes"));
 router.use("/", require("./dashboardRoutes"));
 router.use("/", require("./notificacoesRoutes"));
 router.use("/", require("./agendaRoutes"));
+router.use("/", require("./perfilNegocioRoutes"));
 
 
 // Os próximos módulos serão adicionados aqui conforme forem sendo separados:

@@ -45,12 +45,6 @@ router.put("/servicos/:id", auth, servicosController.editarServico);
 router.delete("/servicos/:id", auth, servicosController.removerServico);
 
 // =============================
-// 🌍 PÚBLICO
-// =============================
-router.get("/negocios-publicos", perfilNegocioController.listarNegociosPublicos);
-router.get("/perfil-negocio/:slug", perfilNegocioController.buscarPerfilPublico);
-
-// =============================
 // 📅 AGENDA PÚBLICA
 // =============================
 router.get("/agenda-publica", agendaPublicaController.buscarAgendaPublica);
