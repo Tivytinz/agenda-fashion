@@ -9,14 +9,20 @@ const {
 
 const ValidationError = require("../errors/ValidationError");
 
-function gerarDatasAgenda(quantidadeDias = 6) {
+function gerarDatasAgenda(quantidadeDias = 7) {
   const datas = [];
 
   for (let i = 0; i < quantidadeDias; i++) {
-    const dataObj = new Date();
-    dataObj.setDate(dataObj.getDate() + i);
+    const data = new Date();
 
-    datas.push(dataObj.toISOString().slice(0, 10));
+    data.setHours(12, 0, 0, 0);
+    data.setDate(data.getDate() + i);
+
+    const ano = data.getFullYear();
+    const mes = String(data.getMonth() + 1).padStart(2, "0");
+    const dia = String(data.getDate()).padStart(2, "0");
+
+    datas.push(`${ano}-${mes}-${dia}`);
   }
 
   return datas;
@@ -48,7 +54,7 @@ async function buscarAgendaPublica({ slugNegocio, slugProfissional }) {
 
   exigirRecurso(profissional, "Profissional não encontrado.");
 
-  const datas = gerarDatasAgenda(6);
+  const datas = gerarDatasAgenda(7);
   const horas = gerarHorariosAgenda(8, 18);
 
   const dataInicio = datas[0];
@@ -69,22 +75,22 @@ async function buscarAgendaPublica({ slugNegocio, slugProfissional }) {
     );
 
   const mapaBloqueios = new Map(
-    bloqueios.map(item => [
+    bloqueios.map((item) => [
       criarChaveAgenda(item.data, item.hora),
       item
     ])
   );
 
   const mapaAgendamentos = new Map(
-    agendamentos.map(item => [
+    agendamentos.map((item) => [
       criarChaveAgenda(item.data, item.hora),
       item
     ])
   );
 
-  const agenda = datas.map(data => ({
+  const agenda = datas.map((data) => ({
     data,
-    horarios: horas.map(hora => {
+    horarios: horas.map((hora) => {
       const chave = criarChaveAgenda(data, hora);
 
       let status = "livre";
@@ -113,7 +119,7 @@ async function buscarAgendaPublica({ slugNegocio, slugProfissional }) {
 async function listarAgendaProfissional({ profissionalId }) {
   exigirUsuario(profissionalId);
 
-  const datas = gerarDatasAgenda(6);
+  const datas = gerarDatasAgenda(7);
   const horas = gerarHorariosAgenda(8, 18);
 
   const dataInicio = datas[0];
@@ -134,22 +140,22 @@ async function listarAgendaProfissional({ profissionalId }) {
     );
 
   const mapaBloqueios = new Map(
-    bloqueios.map(item => [
+    bloqueios.map((item) => [
       criarChaveAgenda(item.data, item.hora),
       item
     ])
   );
 
   const mapaAgendamentos = new Map(
-    agendamentos.map(item => [
+    agendamentos.map((item) => [
       criarChaveAgenda(item.data, item.hora),
       item
     ])
   );
 
-  const agenda = datas.map(data => ({
+  const agenda = datas.map((data) => ({
     data,
-    horarios: horas.map(hora => {
+    horarios: horas.map((hora) => {
       const chave = criarChaveAgenda(data, hora);
       const agendamento = mapaAgendamentos.get(chave);
 
@@ -272,7 +278,7 @@ async function buscarAgendaGeral({ usuarioId }) {
   const dataFim = datas[datas.length - 1];
 
   const profissionalIds =
-    profissionais.map(profissional => profissional.id);
+    profissionais.map((profissional) => profissional.id);
 
   if (profissionalIds.length === 0) {
     return { agenda: [] };
@@ -293,26 +299,26 @@ async function buscarAgendaGeral({ usuarioId }) {
     );
 
   const mapaBloqueios = new Map(
-    bloqueios.map(item => [
+    bloqueios.map((item) => [
       `${item.profissional_id}_${criarChaveAgenda(item.data, item.hora)}`,
       item
     ])
   );
 
   const mapaAgendamentos = new Map(
-    agendamentos.map(item => [
+    agendamentos.map((item) => [
       `${item.profissional_id}_${criarChaveAgenda(item.data, item.hora)}`,
       item
     ])
   );
 
-  const agenda = datas.map(data => ({
+  const agenda = datas.map((data) => ({
     data,
-    profissionais: profissionais.map(profissional => ({
+    profissionais: profissionais.map((profissional) => ({
       id: profissional.id,
       nome: profissional.nome,
       foto_url: profissional.foto_url,
-      horarios: horas.map(hora => {
+      horarios: horas.map((hora) => {
         const chave =
           `${profissional.id}_${criarChaveAgenda(data, hora)}`;
 
