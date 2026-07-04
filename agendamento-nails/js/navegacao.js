@@ -1,14 +1,46 @@
 document.addEventListener("DOMContentLoaded", async () => {
-  
-
   const nav = document.getElementById("appNav");
   if (!nav) return;
 
   const usuario = JSON.parse(localStorage.getItem("usuario") || "null");
-  const negocio = JSON.parse(localStorage.getItem("negocio") || "null");
+  let negocio = JSON.parse(localStorage.getItem("negocio") || "null");
 
   function page(nome) {
     return `/html/${nome}`;
+  }
+
+  async function carregarNegocioAtual() {
+    const token = localStorage.getItem("token");
+
+    if (!token || !usuario) {
+      localStorage.removeItem("negocio");
+      negocio = null;
+      return;
+    }
+
+    try {
+      const resposta = await fetch(`${API_URL}/meu-negocio`, {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
+
+      const data = await resposta.json();
+
+      if (resposta.ok && data.temNegocio && data.negocio) {
+        negocio = data.negocio;
+        localStorage.setItem("negocio", JSON.stringify(data.negocio));
+        return;
+      }
+
+      negocio = null;
+      localStorage.removeItem("negocio");
+
+    } catch (erro) {
+      console.warn("Erro ao carregar negócio da navegação:", erro);
+      negocio = null;
+      localStorage.removeItem("negocio");
+    }
   }
 
   function ativarPaginaAtual() {
@@ -25,41 +57,41 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
 
   async function buscarNotificacoesAgenda() {
-  const token = localStorage.getItem("token");
-  const usuario = JSON.parse(localStorage.getItem("usuario") || "null");
+    const token = localStorage.getItem("token");
+    const usuarioAtual = JSON.parse(localStorage.getItem("usuario") || "null");
 
-  if (!token || !usuario) return 0;
+    if (!token || !usuarioAtual) return 0;
 
-  if (
-    usuario.tipo !== "dono" &&
-    usuario.tipo !== "profissional" &&
-    usuario.tipo !== "funcionario" &&
-    usuario.tipo !== "funcionário"
-  ) {
-    return 0;
-  }
-
-  try {
-    const resposta = await fetch(`${API_URL}/notificacoes-agenda`, {
-      headers: {
-        Authorization: `Bearer ${token}`
-      }
-    });
-
-    if (resposta.status === 401 || resposta.status === 403) {
+    if (
+      usuarioAtual.tipo !== "dono" &&
+      usuarioAtual.tipo !== "profissional" &&
+      usuarioAtual.tipo !== "funcionario" &&
+      usuarioAtual.tipo !== "funcionário"
+    ) {
       return 0;
     }
 
-    const data = await resposta.json();
+    try {
+      const resposta = await fetch(`${API_URL}/notificacoes-agenda`, {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
 
-    if (!resposta.ok) return 0;
+      if (resposta.status === 401 || resposta.status === 403) {
+        return 0;
+      }
 
-    return data.total || 0;
+      const data = await resposta.json();
 
-  } catch {
-    return 0;
+      if (!resposta.ok) return 0;
+
+      return data.total || 0;
+
+    } catch {
+      return 0;
+    }
   }
-}
 
   function render(itens) {
     nav.innerHTML = itens
@@ -78,18 +110,24 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
 
   if (!usuario) {
+    localStorage.removeItem("negocio");
+
     render([
       { href: page("inicio.html"), icone: "🏠", texto: "Início" },
       { href: page("login-cliente.html"), icone: "👤", texto: "Entrar" }
     ]);
+
     return;
   }
+
+  await carregarNegocioAtual();
 
   const tipo = usuario.tipo;
 
   const ehDono =
     tipo === "dono" ||
     negocio?.papel === "dono" ||
+    Number(usuario.id) === Number(negocio?.dono_usuario_id) ||
     usuario?.eh_dono === true ||
     usuario?.dono === true ||
     usuario?.is_dono === true;
