@@ -6,13 +6,41 @@ function gerarDiasProximos(qtd = 7) {
   const dias = [];
   const hoje = new Date();
 
+  hoje.setHours(hoje.getHours() - 3);
+  hoje.setHours(12, 0, 0, 0);
+
   for (let i = 0; i < qtd; i++) {
     const data = new Date(hoje);
     data.setDate(hoje.getDate() + i);
-    dias.push(data.toISOString().slice(0, 10));
+
+    const ano = data.getFullYear();
+    const mes = String(data.getMonth() + 1).padStart(2, "0");
+    const dia = String(data.getDate()).padStart(2, "0");
+
+    dias.push(`${ano}-${mes}-${dia}`);
   }
 
   return dias;
+}
+
+function obterDataHoraBrasil() {
+  const agora = new Date();
+
+  agora.setHours(agora.getHours() - 3);
+
+  const data =
+    `${agora.getFullYear()}-` +
+    `${String(agora.getMonth() + 1).padStart(2, "0")}-` +
+    `${String(agora.getDate()).padStart(2, "0")}`;
+
+  const hora =
+    `${String(agora.getHours()).padStart(2, "0")}:` +
+    `${String(agora.getMinutes()).padStart(2, "0")}`;
+
+  return {
+    data,
+    hora
+  };
 }
 
 function gerarHorariosBase() {
@@ -98,10 +126,10 @@ async function buscarAgendaPublica(req, res) {
         TO_CHAR(horario::time, 'HH24:MI') AS horario
       FROM agendamentos
       WHERE profissional_id = $1
-        AND data BETWEEN CURRENT_DATE AND CURRENT_DATE + INTERVAL '6 days'
+        AND data BETWEEN $2 AND $3
         AND status IN ('agendado', 'confirmado')
       `,
-      [profissionalId]
+      [profissionalId, dias[0], dias[dias.length - 1]]
     );
 
     const bloqueiosResult = await db.query(
@@ -111,9 +139,9 @@ async function buscarAgendaPublica(req, res) {
         TO_CHAR(hora_bloqueio, 'HH24:MI') AS horario
       FROM bloqueios_horarios
       WHERE profissional_id = $1
-        AND data_bloqueio BETWEEN CURRENT_DATE AND CURRENT_DATE + INTERVAL '6 days'
+        AND data_bloqueio BETWEEN $2 AND $3
       `,
-      [profissionalId]
+      [profissionalId, dias[0], dias[dias.length - 1]]
     );
 
     const ocupados = new Set(
@@ -122,20 +150,14 @@ async function buscarAgendaPublica(req, res) {
       )
     );
 
-    const agora = new Date();
-    const hojeISO = agora.toISOString().slice(0, 10);
-
-    const horaAtual =
-      String(agora.getHours()).padStart(2, "0") +
-      ":" +
-      String(agora.getMinutes()).padStart(2, "0");
+    const agoraBrasil = obterDataHoraBrasil();
 
     const disponibilidade = dias.map((data) => {
       const horarios = horariosBase.filter((hora) => {
         const ocupado = ocupados.has(`${data}_${hora}`);
 
         const horarioPassado =
-          data === hojeISO && hora <= horaAtual;
+          data === agoraBrasil.data && hora <= agoraBrasil.hora;
 
         return !ocupado && !horarioPassado;
       });
@@ -348,8 +370,6 @@ async function criarAgendamentoPublico(req, res) {
     }
 
     const novoAgendamento = await db.query(
-
-
       `
       INSERT INTO agendamentos (
         usuarios_id,
@@ -523,6 +543,8 @@ async function cancelarMeuAgendamento(req, res) {
 
     const dataAgendamento = new Date(`${agendamento.data}T00:00:00`);
     const hoje = new Date();
+
+    hoje.setHours(hoje.getHours() - 3);
     hoje.setHours(0, 0, 0, 0);
 
     if (dataAgendamento < hoje) {
@@ -607,6 +629,8 @@ async function avaliarAgendamento(req, res) {
 
     const dataAgendamento = new Date(`${agendamento.data}T00:00:00`);
     const hoje = new Date();
+
+    hoje.setHours(hoje.getHours() - 3);
     hoje.setHours(0, 0, 0, 0);
 
     if (dataAgendamento >= hoje) {
