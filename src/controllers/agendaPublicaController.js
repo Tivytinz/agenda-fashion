@@ -1,6 +1,7 @@
 const db = require("../db/db");
 
 const { verificarCapacidadePlano } = require("../services/planoService");
+const agendaPublicaService = require("../services/agendaPublicaService");
 
 function gerarDiasProximos(qtd = 7) {
   const dias = [];
@@ -61,60 +62,12 @@ async function buscarAgendaPublica(req, res) {
       });
     }
 
-    const negocioResult = await db.query(
-      `
-      SELECT id, nome, slug
-      FROM negocios
-      WHERE slug = $1
-      LIMIT 1
-      `,
-      [slug]
-    );
-
-    if (negocioResult.rows.length === 0) {
-      return res.status(404).json({ erro: "Negócio não encontrado." });
-    }
-
-    const negocio = negocioResult.rows[0];
-
-    const servicoResult = await db.query(
-      `
-      SELECT id, nome, valor, duracao_minutos
-      FROM servicos_negocio
-      WHERE id = $1
-        AND negocio_id = $2
-      LIMIT 1
-      `,
-      [servicoId, negocio.id]
-    );
-
-    if (servicoResult.rows.length === 0) {
-      return res.status(404).json({
-        erro: "Serviço não encontrado nesse negócio."
-      });
-    }
-
-    const profissionalResult = await db.query(
-      `
-      SELECT
-        u.id,
-        u.nome,
-        un.papel
-      FROM usuarios_negocios un
-      INNER JOIN usuarios u
-        ON u.id = un.usuario_id
-      WHERE un.usuario_id = $1
-        AND un.negocio_id = $2
-      LIMIT 1
-      `,
-      [profissionalId, negocio.id]
-    );
-
-    if (profissionalResult.rows.length === 0) {
-      return res.status(404).json({
-        erro: "Profissional não pertence a esse negócio."
-      });
-    }
+    const { negocio, servico, profissional } =
+      await agendaPublicaService.buscarDadosBaseAgenda({
+        slug,
+        servicoId,
+        profissionalId
+  });
 
     const dias = gerarDiasProximos(7);
     const horariosBase = gerarHorariosBase();
@@ -169,9 +122,8 @@ async function buscarAgendaPublica(req, res) {
     });
 
     return res.json({
-      negocio,
-      servico: servicoResult.rows[0],
-      profissional: profissionalResult.rows[0],
+      servico,
+      profissional,
       disponibilidade
     });
 
