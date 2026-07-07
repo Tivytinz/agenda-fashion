@@ -36,8 +36,34 @@ async function buscarMarketingAdmin() {
   };
 }
 
+async function buscarDashboardAdmin({ periodo = "all" }) {
+  const [gerais, hoje, marketing, qualidade] = await Promise.all([
+    adminRepository.buscarIndicadoresGerais(periodo),
+    adminRepository.buscarIndicadoresHoje(),
+    adminRepository.buscarIndicadoresMarketing(periodo),
+    adminRepository.buscarIndicadoresQualidade(),
+  ]);
+
+  const taxaConversaoGeral =
+    gerais.totalNegocios > 0
+      ? Math.round((gerais.totalAgendamentos / gerais.totalNegocios) * 100)
+      : 0;
+
+  return {
+    periodo,
+    ...gerais,
+    ...hoje,
+    taxaConversaoGeral,
+    ...marketing,
+    cliquesWhatsapp: 0,
+    cliquesMaps: 0,
+    ...qualidade,
+  };
+}
+
 module.exports = {
   listarNegociosAdmin,
   listarAgendamentosAdmin,
-  buscarMarketingAdmin
+  buscarMarketingAdmin,
+  buscarDashboardAdmin,
 };
