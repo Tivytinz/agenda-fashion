@@ -1,5 +1,7 @@
 const db = require("../db/db");
 
+const adminService = require("../services/adminService");
+
 function filtroPeriodo(alias = "") {
   const prefixo = alias ? `${alias}.` : "";
 
@@ -178,31 +180,13 @@ async function buscarDashboardAdmin(req, res) {
   }
 }
 
-async function listarNegociosAdmin(req, res) {
+async function listarNegociosAdmin(req, res, next) {
   try {
-    const result = await db.query(`
-      SELECT
-        n.id,
-        n.nome,
-        n.slug,
-        n.cidade,
-        n.whatsapp_negocio,
-        COALESCE(n.ativo, true) AS ativo
-      FROM negocios n
-      ORDER BY n.id DESC
-      LIMIT 50
-    `);
+    const resultado = await adminService.listarNegociosAdmin();
 
-    return res.json({
-      negocios: result.rows
-    });
-
+    return res.json(resultado);
   } catch (err) {
-    console.error("Erro listar negócios admin:", err);
-
-    return res.status(500).json({
-      erro: "Erro ao listar negócios."
-    });
+    next(err);
   }
 }
 
