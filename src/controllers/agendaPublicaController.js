@@ -161,25 +161,13 @@ async function criarAgendamentoPublico(req, res) {
       negocioId: negocio.id,
     });
 
-    await db.query(
-      `
-      INSERT INTO notificacoes (
-        usuario_id,
-        negocio_id,
-        agendamento_id,
-        titulo,
-        mensagem
-      )
-      VALUES ($1, $2, $3, $4, $5)
-      `,
-      [
-        profissional.id,
-        negocio.id,
-        agendamento.id,
-        "Novo agendamento",
-        `Novo agendamento: ${servico.nome} em ${data} às ${horario}.`
-      ]
-    );
+    await agendaPublicaService.criarNotificacaoAgendamento({
+      usuarioId: profissional.id,
+      negocioId: negocio.id,
+      agendamentoId: agendamento.id,
+      titulo: "Novo agendamento",
+      mensagem: `Novo agendamento: ${servico.nome} em ${data} às ${horario}.`,
+    });
 
     return res.status(201).json({
       mensagem: "Agendamento criado com sucesso.",

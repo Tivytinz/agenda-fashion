@@ -189,6 +189,29 @@ async function criarAgendamento({
   return result.rows[0];
 }
 
+async function criarNotificacaoAgendamento({
+  usuarioId,
+  negocioId,
+  agendamentoId,
+  titulo,
+  mensagem,
+}) {
+  await db.query(
+    `
+    INSERT INTO notificacoes (
+      usuario_id,
+      negocio_id,
+      agendamento_id,
+      titulo,
+      mensagem
+    )
+    VALUES ($1, $2, $3, $4, $5)
+    `,
+    [usuarioId, negocioId, agendamentoId, titulo, mensagem]
+  );
+}
+
+
 module.exports = {
   buscarNegocioPorSlug,
   buscarServicoDoNegocio,
@@ -200,4 +223,5 @@ module.exports = {
   buscarBloqueioHorario,
   buscarAgendamentoNoHorario,
   criarAgendamento,
+  criarNotificacaoAgendamento,
 };

@@ -194,6 +194,22 @@ async function criarAgendamento({
   });
 }
 
+async function criarNotificacaoAgendamento({
+  usuarioId,
+  negocioId,
+  agendamentoId,
+  titulo,
+  mensagem,
+}) {
+  return agendaPublicaRepository.criarNotificacaoAgendamento({
+    usuarioId,
+    negocioId,
+    agendamentoId,
+    titulo,
+    mensagem,
+  });
+}
+
 module.exports = {
   gerarDiasProximos,
   buscarDadosBaseAgenda,
@@ -201,4 +217,5 @@ module.exports = {
   obterOuCriarCliente,
   validarHorarioDisponivel,
   criarAgendamento,
+  criarNotificacaoAgendamento,
 };
