@@ -122,65 +122,12 @@ async function criarAgendamentoPublico(req, res) {
     clienteWhatsapp: cliente_whatsapp,
 });
 
-    const negocioResult = await db.query(
-      `
-      SELECT id, nome, slug
-      FROM negocios
-      WHERE slug = $1
-      LIMIT 1
-      `,
-      [slug]
-    );
-
-    if (negocioResult.rows.length === 0) {
-      return res.status(404).json({
-        erro: "Negócio não encontrado."
-      });
-    }
-
-    const negocio = negocioResult.rows[0];
-
-    const servicoResult = await db.query(
-      `
-      SELECT id, nome
-      FROM servicos_negocio
-      WHERE id = $1
-        AND negocio_id = $2
-      LIMIT 1
-      `,
-      [servico_id, negocio.id]
-    );
-
-    if (servicoResult.rows.length === 0) {
-      return res.status(404).json({
-        erro: "Serviço não pertence a esse negócio."
-      });
-    }
-
-    const servico = servicoResult.rows[0];
-
-    const profissionalResult = await db.query(
-      `
-      SELECT
-        u.id,
-        u.nome
-      FROM usuarios u
-      INNER JOIN usuarios_negocios un
-        ON un.usuario_id = u.id
-      WHERE u.id = $1
-        AND un.negocio_id = $2
-      LIMIT 1
-      `,
-      [profissional_id, negocio.id]
-    );
-
-    if (profissionalResult.rows.length === 0) {
-      return res.status(404).json({
-        erro: "Profissional não pertence a esse negócio."
-      });
-    }
-
-    const profissional = profissionalResult.rows[0];
+    const { negocio, servico, profissional } =
+  await agendaPublicaService.buscarDadosBaseAgenda({
+    slug,
+    servicoId: servico_id,
+    profissionalId: profissional_id,
+  });
 
     const existeBloqueio = await db.query(
       `
