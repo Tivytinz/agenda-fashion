@@ -1,4 +1,4 @@
-const db = require("../db/db");
+const servicosService = require("../services/servicosService");
 const uploadToCloudinary = require("../utils/uploadCloudinary");
 
 async function buscarNegocioDono(usuarioId) {
@@ -16,88 +16,28 @@ async function buscarNegocioDono(usuarioId) {
   return result.rows[0] || null;
 }
 
-async function listarServicos(req, res) {
+async function listarServicos(req, res, next) {
   try {
-    const usuarioId = req.user.id;
+    const resultado = await servicosService.listarServicos(req.user.id);
 
-    const negocio = await db.query(
-      `
-      SELECT negocio_id
-      FROM usuarios_negocios
-      WHERE usuario_id = $1
-      LIMIT 1
-      `,
-      [usuarioId]
-    );
-
-    if (!negocio.rows.length) {
-      return res.json([]);
-    }
-
-    const servicos = await db.query(
-      `
-      SELECT *
-      FROM servicos_negocio
-      WHERE negocio_id = $1
-      ORDER BY nome
-      `,
-      [negocio.rows[0].negocio_id]
-    );
-
-    return res.json(servicos.rows);
-
+    return res.json(resultado);
   } catch (err) {
-    console.error(err);
-    return res.status(500).json({
-      erro: "Erro ao listar serviços."
-    });
+    next(err);
   }
 }
 
-async function criarServico(req, res) {
+async function criarServico(req, res, next) {
   try {
-    const usuarioId = req.user?.id;
-    const { nome, valor, duracao_minutos } = req.body;
-
-    const vinculo = await buscarNegocioDono(usuarioId);
-
-    if (!vinculo) {
-      return res.status(403).json({ erro: "Apenas o dono pode criar serviços." });
-    }
-
-    if (!nome || nome.trim().length < 2) {
-      return res.status(400).json({ erro: "Nome do serviço inválido." });
-    }
-
-    const result = await db.query(
-      `
-      INSERT INTO servicos_negocio (
-        negocio_id,
-        nome,
-        valor,
-        duracao_minutos,
-        ativo,
-        created_at
-      )
-      VALUES ($1, $2, $3, $4, true, NOW())
-      RETURNING *
-      `,
-      [
-        vinculo.negocio_id,
-        nome.trim(),
-        Number(valor || 0),
-        Number(duracao_minutos || 0)
-      ]
-    );
-
-    return res.status(201).json({
-      mensagem: "Serviço criado com sucesso.",
-      servico: result.rows[0]
+    const resultado = await servicosService.criarServico({
+      usuarioId: req.user?.id,
+      nome: req.body.nome,
+      valor: req.body.valor,
+      duracaoMinutos: req.body.duracao_minutos,
     });
 
+    return res.status(201).json(resultado);
   } catch (err) {
-    console.error("Erro ao criar serviço:", err);
-    return res.status(500).json({ erro: "Erro ao criar serviço." });
+    next(err);
   }
 }
 
