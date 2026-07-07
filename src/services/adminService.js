@@ -8,6 +8,14 @@ async function listarNegociosAdmin() {
   };
 }
 
+async function listarAgendamentosAdmin() {
+  const agendamentos =
+    await adminRepository.listarAgendamentosRecentes();
+
+  return { agendamentos };
+}
+
 module.exports = {
   listarNegociosAdmin,
+  listarAgendamentosAdmin,
 };
