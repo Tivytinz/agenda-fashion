@@ -154,6 +154,41 @@ async function buscarAgendamentoNoHorario(profissionalId, data, horario) {
   return result.rows[0] || null;
 }
 
+async function criarAgendamento({
+  data,
+  horario,
+  profissionalId,
+  clienteId,
+  servicoId,
+  negocioId,
+}) {
+  const result = await db.query(
+    `
+    INSERT INTO agendamentos (
+      data,
+      horario,
+      profissional_id,
+      cliente_id,
+      servico_id,
+      negocio_id,
+      status
+    )
+    VALUES ($1,$2,$3,$4,$5,$6,'agendado')
+    RETURNING *
+    `,
+    [
+      data,
+      horario,
+      profissionalId,
+      clienteId,
+      servicoId,
+      negocioId,
+    ]
+  );
+
+  return result.rows[0];
+}
+
 module.exports = {
   buscarNegocioPorSlug,
   buscarServicoDoNegocio,
@@ -164,4 +199,5 @@ module.exports = {
   criarCliente,
   buscarBloqueioHorario,
   buscarAgendamentoNoHorario,
+  criarAgendamento,
 };

@@ -176,10 +176,29 @@ async function validarHorarioDisponivel({ profissionalId, data, horario }) {
   }
 }
 
+async function criarAgendamento({
+  data,
+  horario,
+  profissionalId,
+  clienteId,
+  servicoId,
+  negocioId,
+}) {
+  return agendaPublicaRepository.criarAgendamento({
+    data,
+    horario,
+    profissionalId,
+    clienteId,
+    servicoId,
+    negocioId,
+  });
+}
+
 module.exports = {
   gerarDiasProximos,
   buscarDadosBaseAgenda,
   buscarDisponibilidade,
   obterOuCriarCliente,
   validarHorarioDisponivel,
+  criarAgendamento,
 };

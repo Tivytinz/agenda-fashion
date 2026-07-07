@@ -152,38 +152,14 @@ async function criarAgendamentoPublico(req, res) {
       throw e;
     }
 
-    const novoAgendamento = await db.query(
-      `
-      INSERT INTO agendamentos (
-        usuarios_id,
-        data,
-        horario,
-        profissional_id,
-        cliente_id,
-        servico_id,
-        negocio_id,
-        status,
-        created_at
-      )
-      VALUES (
-        $1, $2, $3, $4, $5, $6, $7,
-        'agendado',
-        NOW()
-      )
-      RETURNING *
-      `,
-      [
-        clienteId,
-        data,
-        horario,
-        profissional.id,
-        clienteId,
-        servico_id,
-        negocio.id
-      ]
-    );
-
-    const agendamentoCriado = novoAgendamento.rows[0];
+    const agendamento = await agendaPublicaService.criarAgendamento({
+      data,
+      horario,
+      profissionalId: profissional.id,
+      clienteId,
+      servicoId: servico_id,
+      negocioId: negocio.id,
+    });
 
     await db.query(
       `
@@ -199,7 +175,7 @@ async function criarAgendamentoPublico(req, res) {
       [
         profissional.id,
         negocio.id,
-        agendamentoCriado.id,
+        agendamento.id,
         "Novo agendamento",
         `Novo agendamento: ${servico.nome} em ${data} às ${horario}.`
       ]
@@ -207,7 +183,7 @@ async function criarAgendamentoPublico(req, res) {
 
     return res.status(201).json({
       mensagem: "Agendamento criado com sucesso.",
-      agendamento: agendamentoCriado
+      agendamento
     });
 
   } catch (err) {
@@ -316,7 +292,7 @@ async function cancelarMeuAgendamento(req, res) {
       });
     }
 
-    const agendamento = agendamentoResult.rows[0];
+    const agendamento = agendamento
 
     if (agendamento.status === "cancelado") {
       return res.status(400).json({
