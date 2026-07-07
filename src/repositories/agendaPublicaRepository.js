@@ -49,8 +49,43 @@ async function buscarProfissionalDoNegocio(profissionalId, negocioId) {
   return result.rows[0] || null;
 }
 
+async function listarAgendamentosOcupados(profissionalId, dataInicio, dataFim) {
+  const result = await db.query(
+    `
+    SELECT
+      TO_CHAR(data, 'YYYY-MM-DD') AS data,
+      TO_CHAR(horario::time, 'HH24:MI') AS horario
+    FROM agendamentos
+    WHERE profissional_id = $1
+      AND data BETWEEN $2 AND $3
+      AND status IN ('agendado', 'confirmado')
+    `,
+    [profissionalId, dataInicio, dataFim]
+  );
+
+  return result.rows;
+}
+
+async function listarBloqueios(profissionalId, dataInicio, dataFim) {
+  const result = await db.query(
+    `
+    SELECT
+      TO_CHAR(data_bloqueio, 'YYYY-MM-DD') AS data,
+      TO_CHAR(hora_bloqueio, 'HH24:MI') AS horario
+    FROM bloqueios_horarios
+    WHERE profissional_id = $1
+      AND data_bloqueio BETWEEN $2 AND $3
+    `,
+    [profissionalId, dataInicio, dataFim]
+  );
+
+  return result.rows;
+}
+
 module.exports = {
   buscarNegocioPorSlug,
   buscarServicoDoNegocio,
   buscarProfissionalDoNegocio,
+  listarAgendamentosOcupados,
+  listarBloqueios
 };

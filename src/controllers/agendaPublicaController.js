@@ -69,59 +69,13 @@ async function buscarAgendaPublica(req, res) {
         profissionalId
   });
 
-    const dias = gerarDiasProximos(7);
-    const horariosBase = gerarHorariosBase();
-
-    const agendamentosResult = await db.query(
-      `
-      SELECT
-        TO_CHAR(data, 'YYYY-MM-DD') AS data,
-        TO_CHAR(horario::time, 'HH24:MI') AS horario
-      FROM agendamentos
-      WHERE profissional_id = $1
-        AND data BETWEEN $2 AND $3
-        AND status IN ('agendado', 'confirmado')
-      `,
-      [profissionalId, dias[0], dias[dias.length - 1]]
-    );
-
-    const bloqueiosResult = await db.query(
-      `
-      SELECT
-        TO_CHAR(data_bloqueio, 'YYYY-MM-DD') AS data,
-        TO_CHAR(hora_bloqueio, 'HH24:MI') AS horario
-      FROM bloqueios_horarios
-      WHERE profissional_id = $1
-        AND data_bloqueio BETWEEN $2 AND $3
-      `,
-      [profissionalId, dias[0], dias[dias.length - 1]]
-    );
-
-    const ocupados = new Set(
-      [...agendamentosResult.rows, ...bloqueiosResult.rows].map(
-        (item) => `${item.data}_${item.horario}`
-      )
-    );
-
-    const agoraBrasil = obterDataHoraBrasil();
-
-    const disponibilidade = dias.map((data) => {
-      const horarios = horariosBase.filter((hora) => {
-        const ocupado = ocupados.has(`${data}_${hora}`);
-
-        const horarioPassado =
-          data === agoraBrasil.data && hora <= agoraBrasil.hora;
-
-        return !ocupado && !horarioPassado;
-      });
-
-      return {
-        data,
-        horarios
-      };
-    });
+    const disponibilidade =
+    await agendaPublicaService.buscarDisponibilidade({
+    profissionalId: profissional.id,
+  });
 
     return res.json({
+      negocio,
       servico,
       profissional,
       disponibilidade
