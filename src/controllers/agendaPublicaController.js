@@ -129,42 +129,11 @@ async function criarAgendamentoPublico(req, res) {
     profissionalId: profissional_id,
   });
 
-    const existeBloqueio = await db.query(
-      `
-      SELECT id
-      FROM bloqueios_horarios
-      WHERE profissional_id = $1
-        AND data_bloqueio = $2
-        AND TO_CHAR(hora_bloqueio, 'HH24:MI') = $3
-      LIMIT 1
-      `,
-      [profissional_id, data, horario]
-    );
-
-    if (existeBloqueio.rows.length > 0) {
-      return res.status(400).json({
-        erro: "Esse horário está bloqueado."
-      });
-    }
-
-    const existeAgendamento = await db.query(
-      `
-      SELECT id
-      FROM agendamentos
-      WHERE profissional_id = $1
-        AND data = $2
-        AND TO_CHAR(horario, 'HH24:MI') = $3
-        AND status IN ('agendado', 'confirmado')
-      LIMIT 1
-      `,
-      [profissional_id, data, horario]
-    );
-
-    if (existeAgendamento.rows.length > 0) {
-      return res.status(400).json({
-        erro: "Esse horário já está reservado."
-      });
-    }
+  await agendaPublicaService.validarHorarioDisponivel({
+  profissionalId: profissional.id,
+  data,
+  horario,
+});
 
     try {
       await verificarCapacidadePlano(negocio.id);

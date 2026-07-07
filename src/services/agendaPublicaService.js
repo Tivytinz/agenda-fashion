@@ -149,9 +149,37 @@ async function obterOuCriarCliente({
   return novoCliente.id;
 }
 
+async function validarHorarioDisponivel({ profissionalId, data, horario }) {
+  const bloqueio = await agendaPublicaRepository.buscarBloqueioHorario(
+    profissionalId,
+    data,
+    horario
+  );
+
+  if (bloqueio) {
+    const erro = new Error("Esse horário está bloqueado.");
+    erro.statusCode = 400;
+    throw erro;
+  }
+
+  const agendamento =
+    await agendaPublicaRepository.buscarAgendamentoNoHorario(
+      profissionalId,
+      data,
+      horario
+    );
+
+  if (agendamento) {
+    const erro = new Error("Esse horário já está reservado.");
+    erro.statusCode = 400;
+    throw erro;
+  }
+}
+
 module.exports = {
   gerarDiasProximos,
   buscarDadosBaseAgenda,
   buscarDisponibilidade,
   obterOuCriarCliente,
+  validarHorarioDisponivel,
 };

@@ -121,6 +121,39 @@ async function criarCliente(nome, whatsapp) {
   return result.rows[0];
 }
 
+async function buscarBloqueioHorario(profissionalId, data, horario) {
+  const result = await db.query(
+    `
+    SELECT id
+    FROM bloqueios_horarios
+    WHERE profissional_id = $1
+      AND data_bloqueio = $2
+      AND TO_CHAR(hora_bloqueio, 'HH24:MI') = $3
+    LIMIT 1
+    `,
+    [profissionalId, data, horario]
+  );
+
+  return result.rows[0] || null;
+}
+
+async function buscarAgendamentoNoHorario(profissionalId, data, horario) {
+  const result = await db.query(
+    `
+    SELECT id
+    FROM agendamentos
+    WHERE profissional_id = $1
+      AND data = $2
+      AND TO_CHAR(horario, 'HH24:MI') = $3
+      AND status IN ('agendado', 'confirmado')
+    LIMIT 1
+    `,
+    [profissionalId, data, horario]
+  );
+
+  return result.rows[0] || null;
+}
+
 module.exports = {
   buscarNegocioPorSlug,
   buscarServicoDoNegocio,
@@ -129,4 +162,6 @@ module.exports = {
   listarBloqueios,
   buscarClientePorWhatsapp,
   criarCliente,
+  buscarBloqueioHorario,
+  buscarAgendamentoNoHorario,
 };
