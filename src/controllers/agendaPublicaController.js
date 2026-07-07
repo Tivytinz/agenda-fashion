@@ -116,50 +116,11 @@ async function criarAgendamentoPublico(req, res) {
       });
     }
 
-    if (!clienteId) {
-      if (!cliente_nome || !cliente_whatsapp) {
-        return res.status(400).json({
-          erro: "Informe nome e WhatsApp para agendar."
-        });
-      }
-
-      const clienteExistente = await db.query(
-        `
-        SELECT id
-        FROM usuarios
-        WHERE tipo = 'cliente'
-          AND whatsapp = $1
-        LIMIT 1
-        `,
-        [cliente_whatsapp.trim()]
-      );
-
-      if (clienteExistente.rows.length > 0) {
-        clienteId = clienteExistente.rows[0].id;
-      } else {
-        const novoCliente = await db.query(
-          `
-          INSERT INTO usuarios (
-            nome,
-            email,
-            whatsapp,
-            senha,
-            tipo
-          )
-          VALUES ($1, $2, $3, $4, 'cliente')
-          RETURNING id
-          `,
-          [
-            cliente_nome.trim(),
-            `cliente_${Date.now()}@agenda.local`,
-            cliente_whatsapp.trim(),
-            ""
-          ]
-        );
-
-        clienteId = novoCliente.rows[0].id;
-      }
-    }
+    clienteId = await agendaPublicaService.obterOuCriarCliente({
+    clienteId,
+    clienteNome: cliente_nome,
+    clienteWhatsapp: cliente_whatsapp,
+});
 
     const negocioResult = await db.query(
       `

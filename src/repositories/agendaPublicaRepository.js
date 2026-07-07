@@ -82,10 +82,51 @@ async function listarBloqueios(profissionalId, dataInicio, dataFim) {
   return result.rows;
 }
 
+async function buscarClientePorWhatsapp(whatsapp) {
+  const result = await db.query(
+    `
+    SELECT id
+    FROM usuarios
+    WHERE tipo = 'cliente'
+      AND whatsapp = $1
+    LIMIT 1
+    `,
+    [whatsapp]
+  );
+
+  return result.rows[0] || null;
+}
+
+async function criarCliente(nome, whatsapp) {
+  const result = await db.query(
+    `
+    INSERT INTO usuarios (
+      nome,
+      email,
+      whatsapp,
+      senha,
+      tipo
+    )
+    VALUES ($1, $2, $3, $4, 'cliente')
+    RETURNING id
+    `,
+    [
+      nome.trim(),
+      `cliente_${Date.now()}@agenda.local`,
+      whatsapp.trim(),
+      ""
+    ]
+  );
+
+  return result.rows[0];
+}
+
 module.exports = {
   buscarNegocioPorSlug,
   buscarServicoDoNegocio,
   buscarProfissionalDoNegocio,
   listarAgendamentosOcupados,
-  listarBloqueios
+  listarBloqueios,
+  buscarClientePorWhatsapp,
+  criarCliente,
 };

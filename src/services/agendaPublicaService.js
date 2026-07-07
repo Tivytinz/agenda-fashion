@@ -122,8 +122,36 @@ async function buscarDisponibilidade({ profissionalId }) {
   });
 }
 
+async function obterOuCriarCliente({
+  clienteId,
+  clienteNome,
+  clienteWhatsapp,
+}) {
+  if (clienteId) {
+    return clienteId;
+  }
+
+  const clienteExistente =
+    await agendaPublicaRepository.buscarClientePorWhatsapp(
+      clienteWhatsapp.trim()
+    );
+
+  if (clienteExistente) {
+    return clienteExistente.id;
+  }
+
+  const novoCliente =
+    await agendaPublicaRepository.criarCliente(
+      clienteNome,
+      clienteWhatsapp
+    );
+
+  return novoCliente.id;
+}
+
 module.exports = {
   gerarDiasProximos,
   buscarDadosBaseAgenda,
-  buscarDisponibilidade
+  buscarDisponibilidade,
+  obterOuCriarCliente,
 };
