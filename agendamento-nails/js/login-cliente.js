@@ -134,7 +134,7 @@ document.addEventListener("DOMContentLoaded", () => {
       btn.disabled = true;
       btn.classList.add("btn-disabled");
 
-      const resposta = await fetch("https://agenda-fashion-production.up.railway.app/login", {
+      const resposta = await fetch(`${API_URL}/login`, {  
         method: "POST",
         headers: {
           "Content-Type": "application/json"
