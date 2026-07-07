@@ -41,50 +41,19 @@ async function criarServico(req, res, next) {
   }
 }
 
-async function editarServico(req, res) {
+async function editarServico(req, res, next) {
   try {
-    const usuarioId = req.user?.id;
-    const { id } = req.params;
-    const { nome, valor, duracao_minutos } = req.body;
-
-    const vinculo = await buscarNegocioDono(usuarioId);
-
-    if (!vinculo) {
-      return res.status(403).json({ erro: "Apenas o dono pode editar serviços." });
-    }
-
-    const result = await db.query(
-      `
-      UPDATE servicos_negocio
-      SET
-        nome = $1,
-        valor = $2,
-        duracao_minutos = $3
-      WHERE id = $4
-        AND negocio_id = $5
-      RETURNING *
-      `,
-      [
-        nome?.trim(),
-        Number(valor || 0),
-        Number(duracao_minutos || 0),
-        id,
-        vinculo.negocio_id
-      ]
-    );
-
-    if (result.rows.length === 0) {
-      return res.status(404).json({ erro: "Serviço não encontrado." });
-    }
-
-    return res.json({
-      mensagem: "Serviço atualizado com sucesso.",
-      servico: result.rows[0]
+    const resultado = await servicosService.editarServico({
+      usuarioId: req.user?.id,
+      id: req.params.id,
+      nome: req.body.nome,
+      valor: req.body.valor,
+      duracaoMinutos: req.body.duracao_minutos,
     });
 
+    return res.json(resultado);
   } catch (err) {
-    console.error("Erro ao editar serviço:", err);
-    return res.status(500).json({ erro: "Erro ao editar serviço." });
+    next(err);
   }
 }
 

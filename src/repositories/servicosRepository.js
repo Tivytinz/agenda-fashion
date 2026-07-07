@@ -54,8 +54,32 @@ async function criarServico({
   return result.rows[0];
 }
 
+async function editarServico({
+  id,
+  negocioId,
+  nome,
+  valor,
+  duracaoMinutos,
+}) {
+  const result = await db.query(
+    `
+    UPDATE servicos_negocio
+    SET
+      nome = $1,
+      valor = $2,
+      duracao_minutos = $3
+    WHERE id = $4
+      AND negocio_id = $5
+    RETURNING *
+    `,
+    [nome, valor, duracaoMinutos, id, negocioId]
+  );
+
+  return result.rows[0] || null;
+}
 module.exports = {
   buscarNegocioDono,
   listarServicos,
   criarServico,
+  editarServico,
 };
