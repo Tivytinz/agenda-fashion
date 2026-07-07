@@ -15,7 +15,29 @@ async function listarAgendamentosAdmin() {
   return { agendamentos };
 }
 
+async function buscarMarketingAdmin() {
+  const [
+    negociosMaisAgendados,
+    negociosMaisVistos,
+    cidades,
+    usuariosRecentes,
+  ] = await Promise.all([
+    adminRepository.listarNegociosMaisAgendados(),
+    adminRepository.listarNegociosMaisVistos(),
+    adminRepository.listarCidadesTop(),
+    adminRepository.listarUsuariosRecentes(),
+  ]);
+
+  return {
+    negociosMaisAgendados,
+    negociosMaisVistos,
+    cidades,
+    usuariosRecentes,
+  };
+}
+
 module.exports = {
   listarNegociosAdmin,
   listarAgendamentosAdmin,
+  buscarMarketingAdmin
 };

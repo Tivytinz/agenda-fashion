@@ -200,71 +200,13 @@ async function listarAgendamentosAdmin(req, res, next) {
   }
 }
 
-async function buscarMarketingAdmin(req, res) {
+async function buscarMarketingAdmin(req, res, next) {
   try {
-    const negociosMaisAgendados = await db.query(`
-      SELECT
-        n.nome,
-        n.cidade,
-        COUNT(a.id)::int AS total,
-        COALESCE(SUM(s.valor), 0) AS faturamento
-      FROM negocios n
-      LEFT JOIN agendamentos a ON a.negocio_id = n.id
-      LEFT JOIN servicos_negocio s ON s.id = a.servico_id
-      WHERE a.status IS NULL
-         OR a.status != 'cancelado'
-      GROUP BY n.id, n.nome, n.cidade
-      ORDER BY total DESC
-      LIMIT 10
-    `).catch(() => ({ rows: [] }));
+    const resultado = await adminService.buscarMarketingAdmin();
 
-    const negociosMaisVistos = await db.query(`
-      SELECT
-        nome,
-        cidade,
-        COALESCE(visitas, 0)::int AS visitas,
-        COALESCE(cliques_whatsapp, 0)::int AS cliques_whatsapp
-      FROM negocios
-      ORDER BY visitas DESC
-      LIMIT 10
-    `).catch(() => ({ rows: [] }));
-
-    const cidades = await db.query(`
-      SELECT
-        cidade,
-        COUNT(*)::int AS total
-      FROM negocios
-      WHERE cidade IS NOT NULL
-        AND cidade <> ''
-      GROUP BY cidade
-      ORDER BY total DESC
-      LIMIT 10
-    `).catch(() => ({ rows: [] }));
-
-    const usuariosRecentes = await db.query(`
-      SELECT
-        nome,
-        email,
-        tipo,
-        created_at
-      FROM usuarios
-      ORDER BY created_at DESC
-      LIMIT 10
-    `).catch(() => ({ rows: [] }));
-
-    return res.json({
-      negociosMaisAgendados: negociosMaisAgendados.rows,
-      negociosMaisVistos: negociosMaisVistos.rows,
-      cidades: cidades.rows,
-      usuariosRecentes: usuariosRecentes.rows
-    });
-
+    return res.json(resultado);
   } catch (err) {
-    console.error("Erro marketing admin:", err);
-
-    return res.status(500).json({
-      erro: "Erro ao carregar marketing."
-    });
+    next(err);
   }
 }
 
