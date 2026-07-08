@@ -1,45 +1,41 @@
 const {
-  ativarAssinaturaPorPagamento
+  ativarAssinaturaPorPagamento,
 } = require("../services/assinaturaService");
 
-async function receberWebhookAsaas(req, res) {
+async function receberWebhookAsaas(req, res, next) {
   try {
-    console.log("BODY:");
-    console.log(req.body);
     const evento = req.body?.event;
     const pagamento = req.body?.payment;
 
-    console.log("Webhook Asaas recebido:", evento);
-
     if (!evento || !pagamento?.id) {
       return res.status(400).json({
-        erro: "Webhook inválido."
+        erro: "Webhook inválido.",
       });
     }
 
-    if (
-      evento === "PAYMENT_CONFIRMED" ||
-      evento === "PAYMENT_RECEIVED"
-    ) {
-      await ativarAssinaturaPorPagamento(
-        pagamento.id,
-        pagamento.status || "CONFIRMED"
-      );
+    switch (evento) {
+      case "PAYMENT_CONFIRMED":
+      case "PAYMENT_RECEIVED":
+        await ativarAssinaturaPorPagamento(
+          pagamento.id,
+          pagamento.status || "CONFIRMED"
+        );
+        break;
+
+      default:
+        // Outros eventos são ignorados
+        break;
     }
 
     return res.json({
-      recebido: true
+      recebido: true,
     });
 
   } catch (err) {
-    console.error("Erro no webhook Asaas:", err);
-
-    return res.status(500).json({
-      erro: "Erro ao processar webhook."
-    });
+    next(err);
   }
 }
 
 module.exports = {
-  receberWebhookAsaas
+  receberWebhookAsaas,
 };
