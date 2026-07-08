@@ -1,5 +1,12 @@
 const agendaPublicaRepository = require("../repositories/agendaPublicaRepository");
 
+function criarErro(mensagem, statusCode) {
+  const erro = new Error(mensagem);
+  erro.statusCode = statusCode;
+  erro.status = statusCode;
+  return erro;
+}
+
 function gerarDiasProximos(qtd = 7) {
   const dias = [];
   const hoje = new Date();
@@ -21,13 +28,51 @@ function gerarDiasProximos(qtd = 7) {
   return dias;
 }
 
+function obterDataHoraBrasil() {
+  const agora = new Date();
+
+  const partes = new Intl.DateTimeFormat("pt-BR", {
+    timeZone: "America/Sao_Paulo",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false
+  }).formatToParts(agora);
+
+  const get = (tipo) =>
+    partes.find((p) => p.type === tipo)?.value;
+
+  return {
+    data: `${get("year")}-${get("month")}-${get("day")}`,
+    hora: `${get("hour")}:${get("minute")}`
+  };
+}
+
+function gerarHorariosBase() {
+  return [
+    "08:00", "09:00", "10:00", "11:00",
+    "12:00", "13:00", "14:00", "15:00",
+    "16:00", "17:00", "18:00", "19:00"
+  ];
+}
+
+function validarClienteAutenticado({ clienteId, tipoUsuario }) {
+  if (!clienteId) {
+    throw criarErro("Cliente não autenticado.", 401);
+  }
+
+  if (tipoUsuario !== "cliente") {
+    throw criarErro("Apenas clientes podem acessar este recurso.", 403);
+  }
+}
+
 async function buscarDadosBaseAgenda({ slug, servicoId, profissionalId }) {
   const negocio = await agendaPublicaRepository.buscarNegocioPorSlug(slug);
 
   if (!negocio) {
-    const erro = new Error("Negócio não encontrado.");
-    erro.statusCode = 404;
-    throw erro;
+    throw criarErro("Negócio não encontrado.", 404);
   }
 
   const servico = await agendaPublicaRepository.buscarServicoDoNegocio(
@@ -36,9 +81,7 @@ async function buscarDadosBaseAgenda({ slug, servicoId, profissionalId }) {
   );
 
   if (!servico) {
-    const erro = new Error("Serviço não encontrado nesse negócio.");
-    erro.statusCode = 404;
-    throw erro;
+    throw criarErro("Serviço não encontrado nesse negócio.", 404);
   }
 
   const profissional =
@@ -48,9 +91,7 @@ async function buscarDadosBaseAgenda({ slug, servicoId, profissionalId }) {
     );
 
   if (!profissional) {
-    const erro = new Error("Profissional não pertence a esse negócio.");
-    erro.statusCode = 404;
-    throw erro;
+    throw criarErro("Profissional não pertence a esse negócio.", 404);
   }
 
   return {
@@ -58,31 +99,6 @@ async function buscarDadosBaseAgenda({ slug, servicoId, profissionalId }) {
     servico,
     profissional,
   };
-}
-
-function obterDataHoraBrasil() {
-  const agora = new Date();
-
-  agora.setHours(agora.getHours() - 3);
-
-  const data =
-    `${agora.getFullYear()}-` +
-    `${String(agora.getMonth() + 1).padStart(2, "0")}-` +
-    `${String(agora.getDate()).padStart(2, "0")}`;
-
-  const hora =
-    `${String(agora.getHours()).padStart(2, "0")}:` +
-    `${String(agora.getMinutes()).padStart(2, "0")}`;
-
-  return { data, hora };
-}
-
-function gerarHorariosBase() {
-  return [
-    "08:00", "09:00", "10:00", "11:00",
-    "12:00", "13:00", "14:00", "15:00",
-    "16:00", "17:00", "18:00", "19:00"
-  ];
 }
 
 async function buscarDisponibilidade({ profissionalId }) {
@@ -131,6 +147,10 @@ async function obterOuCriarCliente({
     return clienteId;
   }
 
+  if (!clienteNome || !clienteWhatsapp) {
+    throw criarErro("Nome e WhatsApp do cliente são obrigatórios.", 400);
+  }
+
   const clienteExistente =
     await agendaPublicaRepository.buscarClientePorWhatsapp(
       clienteWhatsapp.trim()
@@ -157,9 +177,7 @@ async function validarHorarioDisponivel({ profissionalId, data, horario }) {
   );
 
   if (bloqueio) {
-    const erro = new Error("Esse horário está bloqueado.");
-    erro.statusCode = 400;
-    throw erro;
+    throw criarErro("Esse horário está bloqueado.", 400);
   }
 
   const agendamento =
@@ -170,9 +188,7 @@ async function validarHorarioDisponivel({ profissionalId, data, horario }) {
     );
 
   if (agendamento) {
-    const erro = new Error("Esse horário já está reservado.");
-    erro.statusCode = 400;
-    throw erro;
+    throw criarErro("Esse horário já está reservado.", 400);
   }
 }
 
@@ -210,6 +226,118 @@ async function criarNotificacaoAgendamento({
   });
 }
 
+async function listarMeusAgendamentos({ clienteId, tipoUsuario }) {
+  validarClienteAutenticado({ clienteId, tipoUsuario });
+
+  const agendamentos =
+    await agendaPublicaRepository.listarMeusAgendamentos(clienteId);
+
+  return { agendamentos };
+}
+
+function validarAgendamentoCancelavel(agendamento) {
+  if (agendamento.status === "cancelado") {
+    throw criarErro("Esse agendamento já está cancelado.", 400);
+  }
+
+  const dataAgendamento = new Date(`${agendamento.data}T00:00:00`);
+  const hoje = new Date();
+
+  hoje.setHours(hoje.getHours() - 3);
+  hoje.setHours(0, 0, 0, 0);
+
+  if (dataAgendamento < hoje) {
+    throw criarErro("Não é possível cancelar um agendamento já realizado.", 400);
+  }
+}
+
+async function cancelarMeuAgendamento({ clienteId, tipoUsuario, agendamentoId }) {
+  validarClienteAutenticado({ clienteId, tipoUsuario });
+
+  const agendamento =
+    await agendaPublicaRepository.buscarAgendamentoCliente(
+      agendamentoId,
+      clienteId
+    );
+
+  if (!agendamento) {
+    throw criarErro("Agendamento não encontrado.", 404);
+  }
+
+  validarAgendamentoCancelavel(agendamento);
+
+  await agendaPublicaRepository.cancelarAgendamento(
+    agendamentoId,
+    clienteId
+  );
+
+  return {
+    mensagem: "Agendamento cancelado com sucesso.",
+  };
+}
+
+function validarAvaliacao(nota) {
+  if (!Number.isInteger(nota) || nota < 1 || nota > 5) {
+    throw criarErro("A avaliação deve ser de 1 a 5 estrelas.", 400);
+  }
+}
+
+function validarAgendamentoAvaliavel(agendamento) {
+  if (agendamento.status === "cancelado") {
+    throw criarErro("Agendamento cancelado não pode ser avaliado.", 400);
+  }
+
+  const dataAgendamento = new Date(`${agendamento.data}T00:00:00`);
+  const hoje = new Date();
+
+  hoje.setHours(hoje.getHours() - 3);
+  hoje.setHours(0, 0, 0, 0);
+
+  if (dataAgendamento >= hoje) {
+    throw criarErro("Só é possível avaliar serviços já realizados.", 400);
+  }
+
+  if (agendamento.avaliacao) {
+    throw criarErro("Esse agendamento já foi avaliado.", 400);
+  }
+}
+
+async function avaliarAgendamento({
+  clienteId,
+  tipoUsuario,
+  agendamentoId,
+  avaliacao,
+}) {
+  validarClienteAutenticado({ clienteId, tipoUsuario });
+
+  const nota = Number(avaliacao);
+
+  validarAvaliacao(nota);
+
+  const agendamento =
+    await agendaPublicaRepository.buscarAgendamentoCliente(
+      agendamentoId,
+      clienteId
+    );
+
+  if (!agendamento) {
+    throw criarErro("Agendamento não encontrado.", 404);
+  }
+
+  validarAgendamentoAvaliavel(agendamento);
+
+  await agendaPublicaRepository.avaliarAgendamento(
+    agendamentoId,
+    clienteId,
+    nota
+  );
+
+  return {
+    mensagem: "Avaliação salva com sucesso.",
+    avaliacao: nota,
+  };
+}
+
 module.exports = {
   gerarDiasProximos,
   buscarDadosBaseAgenda,
@@ -218,4 +346,7 @@ module.exports = {
   validarHorarioDisponivel,
   criarAgendamento,
   criarNotificacaoAgendamento,
+  listarMeusAgendamentos,
+  cancelarMeuAgendamento,
+  avaliarAgendamento,
 };

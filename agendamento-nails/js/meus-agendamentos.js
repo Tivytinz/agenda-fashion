@@ -222,7 +222,16 @@ document.addEventListener("DOMContentLoaded", async () => {
       filtros.forEach((b) => b.classList.remove("ativo"));
       btn.classList.add("ativo");
 
-      filtroAtual = btn.dataset.filtro;
+      const mapaFiltros = {
+        agendados: "agendado",
+        realizados: "realizado",
+        cancelados: "cancelado",
+        agendado: "agendado",
+        realizado: "realizado",
+        cancelado: "cancelado"
+};
+
+filtroAtual = mapaFiltros[btn.dataset.filtro] || btn.dataset.filtro;
       renderizar();
     });
   });

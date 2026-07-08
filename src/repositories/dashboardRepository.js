@@ -1,5 +1,3 @@
-// repositories/dashboardRepository.js
-
 const db = require("../db/db");
 
 async function buscarNegocioDoUsuario(usuarioId) {

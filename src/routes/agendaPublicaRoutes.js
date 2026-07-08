@@ -1,8 +1,10 @@
 const express = require("express");
 const router = express.Router();
 
+const optionalAuth = require("../middlewares/optionalAuth");  
 const auth = require("../middlewares/auth");
 const agendaPublicaController = require("../controllers/agendaPublicaController");
+
 
 router.get(
   "/agenda-publica",
@@ -11,6 +13,7 @@ router.get(
 
 router.post(
   "/agendamentos",
+  optionalAuth,
   agendaPublicaController.criarAgendamentoPublico
 );
 

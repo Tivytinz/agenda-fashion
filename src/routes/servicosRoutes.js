@@ -5,6 +5,7 @@ const auth = require("../middlewares/auth");
 const upload = require("../middlewares/upload");
 
 const {
+  listarServicos,
   criarServico,
   editarServico,
   removerServico,
@@ -15,7 +16,7 @@ const {
 } = require("../controllers/servicosController");
 
 
-
+router.get("/", auth, listarServicos);
 router.post("/", auth, criarServico);
 router.put("/:id", auth, editarServico);
 router.delete("/:id", auth, removerServico);

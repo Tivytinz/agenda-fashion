@@ -1138,21 +1138,24 @@ async function confirmarAgendamentoLogado() {
     return;
   }
 
-  const resposta = await fetch(`${API_URL}/agendamentos`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({
-      slug,
-      servico_id: servicoSelecionado.id,
-      profissional_id: profissionalSelecionado.id,
-      data: horarioSelecionado.data,
-      horario: horarioSelecionado.hora,
-      cliente_nome: usuario.nome,
-      cliente_whatsapp: usuario.whatsapp
-    })
-  });
+  const token = localStorage.getItem("token");
+
+const resposta = await fetch(`${API_URL}/agendamentos`, {
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json",
+    Authorization: `Bearer ${token}`
+  },
+  body: JSON.stringify({
+    slug,
+    servico_id: servicoSelecionado.id,
+    profissional_id: profissionalSelecionado.id,
+    data: horarioSelecionado.data,
+    horario: horarioSelecionado.hora,
+    cliente_nome: usuario.nome,
+    cliente_whatsapp: usuario.whatsapp
+  })
+});
 
   const data = await resposta.json();
 

@@ -9,7 +9,10 @@ router.use("/", require("./assinaturaRoutes"));
 router.use("/conta", require("./contaRoutes"));
 router.use("/", require("./configuracoesRoutes"));
 router.use("/", require("./profissionaisRoutes"));
-router.use("/", require("./servicosRoutes"));
+
+// ===== SERVIÇOS =====
+router.use("/servicos", require("./servicosRoutes"));
+
 router.use("/", require("./planosRoutes"));
 router.use("/", require("./webhookRoutes"));
 router.use("/", require("./favoritosRoutes"));

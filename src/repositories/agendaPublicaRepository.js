@@ -32,13 +32,9 @@ async function buscarServicoDoNegocio(servicoId, negocioId) {
 async function buscarProfissionalDoNegocio(profissionalId, negocioId) {
   const result = await db.query(
     `
-    SELECT
-      u.id,
-      u.nome,
-      un.papel
+    SELECT u.id, u.nome, un.papel
     FROM usuarios_negocios un
-    INNER JOIN usuarios u
-      ON u.id = un.usuario_id
+    INNER JOIN usuarios u ON u.id = un.usuario_id
     WHERE un.usuario_id = $1
       AND un.negocio_id = $2
     LIMIT 1
@@ -100,13 +96,7 @@ async function buscarClientePorWhatsapp(whatsapp) {
 async function criarCliente(nome, whatsapp) {
   const result = await db.query(
     `
-    INSERT INTO usuarios (
-      nome,
-      email,
-      whatsapp,
-      senha,
-      tipo
-    )
+    INSERT INTO usuarios (nome, email, whatsapp, senha, tipo)
     VALUES ($1, $2, $3, $4, 'cliente')
     RETURNING id
     `,
@@ -173,17 +163,10 @@ async function criarAgendamento({
       negocio_id,
       status
     )
-    VALUES ($1,$2,$3,$4,$5,$6,'agendado')
+    VALUES ($1, $2, $3, $4, $5, $6, 'agendado')
     RETURNING *
     `,
-    [
-      data,
-      horario,
-      profissionalId,
-      clienteId,
-      servicoId,
-      negocioId,
-    ]
+    [data, horario, profissionalId, clienteId, servicoId, negocioId]
   );
 
   return result.rows[0];
@@ -211,6 +194,82 @@ async function criarNotificacaoAgendamento({
   );
 }
 
+async function listarMeusAgendamentos(clienteId) {
+  const result = await db.query(
+    `
+    SELECT
+      a.id,
+      TO_CHAR(a.data, 'YYYY-MM-DD') AS data,
+      TO_CHAR(a.horario, 'HH24:MI') AS horario,
+
+      CASE
+        WHEN a.status = 'cancelado' THEN 'cancelado'
+        WHEN (a.data::timestamp + a.horario::time) < (NOW() AT TIME ZONE 'America/Sao_Paulo') THEN 'realizado'
+        ELSE 'agendado'
+        END AS status,  
+
+      a.avaliacao,
+
+      n.nome AS negocio,
+      n.slug,
+      u.nome AS profissional,
+      s.nome AS servico,
+      s.valor
+
+    FROM agendamentos a
+    LEFT JOIN servicos_negocio s
+      ON s.id = a.servico_id
+    LEFT JOIN negocios n
+      ON n.id = s.negocio_id
+    LEFT JOIN usuarios u
+      ON u.id = a.profissional_id
+    WHERE a.cliente_id = $1
+    ORDER BY a.data DESC, a.horario DESC
+    `,
+    [clienteId]
+  );
+
+  return result.rows;
+}
+
+async function buscarAgendamentoCliente(agendamentoId, clienteId) {
+  const result = await db.query(
+    `
+    SELECT id, data, status, avaliacao
+    FROM agendamentos
+    WHERE id = $1
+      AND cliente_id = $2
+    LIMIT 1
+    `,
+    [agendamentoId, clienteId]
+  );
+
+  return result.rows[0] || null;
+}
+
+async function cancelarAgendamento(agendamentoId, clienteId) {
+  await db.query(
+    `
+    UPDATE agendamentos
+    SET status = 'cancelado'
+    WHERE id = $1
+      AND cliente_id = $2
+    `,
+    [agendamentoId, clienteId]
+  );
+}
+
+async function avaliarAgendamento(agendamentoId, clienteId, avaliacao) {
+  await db.query(
+    `
+    UPDATE agendamentos
+    SET avaliacao = $1
+    WHERE id = $2
+      AND cliente_id = $3
+    `,
+    [avaliacao, agendamentoId, clienteId]
+  );
+}
 
 module.exports = {
   buscarNegocioPorSlug,
@@ -224,4 +283,8 @@ module.exports = {
   buscarAgendamentoNoHorario,
   criarAgendamento,
   criarNotificacaoAgendamento,
+  listarMeusAgendamentos,
+  buscarAgendamentoCliente,
+  cancelarAgendamento,
+  avaliarAgendamento,
 };

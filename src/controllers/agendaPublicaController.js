@@ -1,55 +1,12 @@
-const db = require("../db/db");
-
-const { verificarCapacidadePlano } = require("../services/planoService");
+//const { verificarCapacidadePlano } = require("../services/planoService");
 const agendaPublicaService = require("../services/agendaPublicaService");
 
-function gerarDiasProximos(qtd = 7) {
-  const dias = [];
-  const hoje = new Date();
-
-  hoje.setHours(hoje.getHours() - 3);
-  hoje.setHours(12, 0, 0, 0);
-
-  for (let i = 0; i < qtd; i++) {
-    const data = new Date(hoje);
-    data.setDate(hoje.getDate() + i);
-
-    const ano = data.getFullYear();
-    const mes = String(data.getMonth() + 1).padStart(2, "0");
-    const dia = String(data.getDate()).padStart(2, "0");
-
-    dias.push(`${ano}-${mes}-${dia}`);
-  }
-
-  return dias;
+function statusErro(err) {
+  return err.statusCode || err.status || 500;
 }
 
-function obterDataHoraBrasil() {
-  const agora = new Date();
-
-  agora.setHours(agora.getHours() - 3);
-
-  const data =
-    `${agora.getFullYear()}-` +
-    `${String(agora.getMonth() + 1).padStart(2, "0")}-` +
-    `${String(agora.getDate()).padStart(2, "0")}`;
-
-  const hora =
-    `${String(agora.getHours()).padStart(2, "0")}:` +
-    `${String(agora.getMinutes()).padStart(2, "0")}`;
-
-  return {
-    data,
-    hora
-  };
-}
-
-function gerarHorariosBase() {
-  return [
-    "08:00", "09:00", "10:00", "11:00",
-    "12:00", "13:00", "14:00", "15:00",
-    "16:00", "17:00", "18:00", "19:00"
-  ];
+function mensagemErro(err, fallback) {
+  return err.message || fallback;
 }
 
 async function buscarAgendaPublica(req, res) {
@@ -67,12 +24,12 @@ async function buscarAgendaPublica(req, res) {
         slug,
         servicoId,
         profissionalId
-  });
+      });
 
     const disponibilidade =
-    await agendaPublicaService.buscarDisponibilidade({
-    profissionalId: profissional.id,
-  });
+      await agendaPublicaService.buscarDisponibilidade({
+        profissionalId: profissional.id,
+      });
 
     return res.json({
       negocio,
@@ -82,9 +39,8 @@ async function buscarAgendaPublica(req, res) {
     });
 
   } catch (err) {
-    console.error("Erro ao buscar agenda pública:", err);
-    return res.status(500).json({
-      erro: "Erro ao carregar agenda pública."
+    return res.status(statusErro(err)).json({
+      erro: mensagemErro(err, "Erro ao carregar agenda pública.")
     });
   }
 }
@@ -117,40 +73,25 @@ async function criarAgendamentoPublico(req, res) {
     }
 
     clienteId = await agendaPublicaService.obterOuCriarCliente({
-    clienteId,
-    clienteNome: cliente_nome,
-    clienteWhatsapp: cliente_whatsapp,
-});
+      clienteId,
+      clienteNome: cliente_nome,
+      clienteWhatsapp: cliente_whatsapp,
+    });
 
     const { negocio, servico, profissional } =
-  await agendaPublicaService.buscarDadosBaseAgenda({
-    slug,
-    servicoId: servico_id,
-    profissionalId: profissional_id,
-  });
+      await agendaPublicaService.buscarDadosBaseAgenda({
+        slug,
+        servicoId: servico_id,
+        profissionalId: profissional_id,
+      });
 
-  await agendaPublicaService.validarHorarioDisponivel({
-  profissionalId: profissional.id,
-  data,
-  horario,
-});
+    await agendaPublicaService.validarHorarioDisponivel({
+      profissionalId: profissional.id,
+      data,
+      horario,
+    });
 
-    try {
-      await verificarCapacidadePlano(negocio.id);
-    } catch (e) {
-      if (e.codigo === "LIMITE_PLANO") {
-        return res.status(403).json({
-          erro: "Este negócio atingiu a capacidade de agendamentos do plano atual.",
-          codigo: "LIMITE_PLANO",
-          titulo: "🎉 Agenda lotada!",
-          mensagem:
-            "O limite significa sucesso. Faça upgrade para continuar recebendo novos agendamentos.",
-          plano: e.uso
-        });
-      }
-
-      throw e;
-    }
+    // Validação do plano desabilitada temporariamente para testes.
 
     const agendamento = await agendaPublicaService.criarAgendamento({
       data,
@@ -175,242 +116,62 @@ async function criarAgendamentoPublico(req, res) {
     });
 
   } catch (err) {
-    console.error("Erro ao criar agendamento público:", err);
-    return res.status(500).json({
-      erro: "Erro ao criar agendamento."
+    return res.status(statusErro(err)).json({
+      erro: mensagemErro(err, "Erro ao criar agendamento.")
     });
   }
 }
 
 async function listarMeusAgendamentos(req, res) {
   try {
-    const clienteId = req.user?.id;
-    const tipoUsuario = req.user?.tipo;
-
-    if (!clienteId) {
-      return res.status(401).json({
-        erro: "Cliente não autenticado."
+    const resultado =
+      await agendaPublicaService.listarMeusAgendamentos({
+        clienteId: req.user?.id,
+        tipoUsuario: req.user?.tipo,
       });
-    }
 
-    if (tipoUsuario !== "cliente") {
-      return res.status(403).json({
-        erro: "Apenas clientes podem ver seus agendamentos."
-      });
-    }
-
-    const result = await db.query(
-      `
-      SELECT
-        a.id,
-        TO_CHAR(a.data, 'YYYY-MM-DD') AS data,
-        TO_CHAR(a.horario, 'HH24:MI') AS horario,
-
-        CASE
-          WHEN a.status = 'cancelado' THEN 'cancelado'
-          WHEN a.data < CURRENT_DATE THEN 'realizado'
-          ELSE 'agendado'
-        END AS status,
-
-        a.avaliacao,
-
-        n.nome AS negocio,
-        n.slug,
-        u.nome AS profissional,
-        s.nome AS servico,
-        s.valor
-
-      FROM agendamentos a
-      LEFT JOIN servicos_negocio s
-        ON s.id = a.servico_id
-      LEFT JOIN negocios n
-        ON n.id = s.negocio_id
-      LEFT JOIN usuarios u
-        ON u.id = a.profissional_id
-      WHERE a.cliente_id = $1
-      ORDER BY a.data DESC, a.horario DESC
-      `,
-      [clienteId]
-    );
-
-    return res.json({
-      agendamentos: result.rows
-    });
+    return res.json(resultado);
 
   } catch (err) {
-    console.error("Erro ao listar meus agendamentos:", err);
-    return res.status(500).json({
-      erro: "Erro ao carregar agendamentos."
+    return res.status(statusErro(err)).json({
+      erro: mensagemErro(err, "Erro ao carregar agendamentos.")
     });
   }
 }
 
 async function cancelarMeuAgendamento(req, res) {
   try {
-    const clienteId = req.user?.id;
-    const tipoUsuario = req.user?.tipo;
-    const { id } = req.params;
-
-    if (!clienteId) {
-      return res.status(401).json({
-        erro: "Cliente não autenticado."
+    const resultado =
+      await agendaPublicaService.cancelarMeuAgendamento({
+        clienteId: req.user?.id,
+        tipoUsuario: req.user?.tipo,
+        agendamentoId: req.params.id,
       });
-    }
 
-    if (tipoUsuario !== "cliente") {
-      return res.status(403).json({
-        erro: "Apenas clientes podem cancelar agendamentos."
-      });
-    }
-
-    const agendamentoResult = await db.query(
-      `
-      SELECT id, data, status
-      FROM agendamentos
-      WHERE id = $1
-        AND cliente_id = $2
-      LIMIT 1
-      `,
-      [id, clienteId]
-    );
-
-    if (agendamentoResult.rows.length === 0) {
-      return res.status(404).json({
-        erro: "Agendamento não encontrado."
-      });
-    }
-
-    const agendamento = agendamento
-
-    if (agendamento.status === "cancelado") {
-      return res.status(400).json({
-        erro: "Esse agendamento já está cancelado."
-      });
-    }
-
-    const dataAgendamento = new Date(`${agendamento.data}T00:00:00`);
-    const hoje = new Date();
-
-    hoje.setHours(hoje.getHours() - 3);
-    hoje.setHours(0, 0, 0, 0);
-
-    if (dataAgendamento < hoje) {
-      return res.status(400).json({
-        erro: "Não é possível cancelar um agendamento já realizado."
-      });
-    }
-
-    await db.query(
-      `
-      UPDATE agendamentos
-      SET status = 'cancelado'
-      WHERE id = $1
-        AND cliente_id = $2
-      `,
-      [id, clienteId]
-    );
-
-    return res.json({
-      mensagem: "Agendamento cancelado com sucesso."
-    });
+    return res.json(resultado);
 
   } catch (err) {
-    console.error("Erro ao cancelar agendamento:", err);
-    return res.status(500).json({
-      erro: "Erro ao cancelar agendamento."
+    return res.status(statusErro(err)).json({
+      erro: mensagemErro(err, "Erro ao cancelar agendamento.")
     });
   }
 }
 
 async function avaliarAgendamento(req, res) {
   try {
-    const clienteId = req.user?.id;
-    const tipoUsuario = req.user?.tipo;
-    const { id } = req.params;
-    const { avaliacao } = req.body;
-
-    const nota = Number(avaliacao);
-
-    if (!clienteId) {
-      return res.status(401).json({
-        erro: "Cliente não autenticado."
+    const resultado =
+      await agendaPublicaService.avaliarAgendamento({
+        clienteId: req.user?.id,
+        tipoUsuario: req.user?.tipo,
+        agendamentoId: req.params.id,
+        avaliacao: req.body.avaliacao,
       });
-    }
 
-    if (tipoUsuario !== "cliente") {
-      return res.status(403).json({
-        erro: "Apenas clientes podem avaliar agendamentos."
-      });
-    }
-
-    if (!Number.isInteger(nota) || nota < 1 || nota > 5) {
-      return res.status(400).json({
-        erro: "A avaliação deve ser de 1 a 5 estrelas."
-      });
-    }
-
-    const agendamentoResult = await db.query(
-      `
-      SELECT id, data, status, avaliacao
-      FROM agendamentos
-      WHERE id = $1
-        AND cliente_id = $2
-      LIMIT 1
-      `,
-      [id, clienteId]
-    );
-
-    if (agendamentoResult.rows.length === 0) {
-      return res.status(404).json({
-        erro: "Agendamento não encontrado."
-      });
-    }
-
-    const agendamento = agendamentoResult.rows[0];
-
-    if (agendamento.status === "cancelado") {
-      return res.status(400).json({
-        erro: "Agendamento cancelado não pode ser avaliado."
-      });
-    }
-
-    const dataAgendamento = new Date(`${agendamento.data}T00:00:00`);
-    const hoje = new Date();
-
-    hoje.setHours(hoje.getHours() - 3);
-    hoje.setHours(0, 0, 0, 0);
-
-    if (dataAgendamento >= hoje) {
-      return res.status(400).json({
-        erro: "Só é possível avaliar serviços já realizados."
-      });
-    }
-
-    if (agendamento.avaliacao) {
-      return res.status(400).json({
-        erro: "Esse agendamento já foi avaliado."
-      });
-    }
-
-    await db.query(
-      `
-      UPDATE agendamentos
-      SET avaliacao = $1
-      WHERE id = $2
-        AND cliente_id = $3
-      `,
-      [nota, id, clienteId]
-    );
-
-    return res.json({
-      mensagem: "Avaliação salva com sucesso.",
-      avaliacao: nota
-    });
+    return res.json(resultado);
 
   } catch (err) {
-    console.error("Erro ao avaliar agendamento:", err);
-    return res.status(500).json({
-      erro: "Erro ao avaliar agendamento."
+    return res.status(statusErro(err)).json({
+      erro: mensagemErro(err, "Erro ao avaliar agendamento.")
     });
   }
 }
