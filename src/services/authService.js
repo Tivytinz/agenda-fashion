@@ -1,6 +1,7 @@
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const authRepository = require("../repositories/authRepository");
+const AppError = require("../errors/AppError");
 
 const JWT_SECRET = "segredo";
 const TOKEN_EXPIRES_IN = "90d";
@@ -72,13 +73,13 @@ async function login({ email, senha }) {
   const usuario = await authRepository.buscarUsuarioPorEmail(emailLimpo);
 
   if (!usuario) {
-    throw new Error("Usuário não encontrado.");
-  }
+    throw new AppError("Usuário não encontrado.", 401);
+}
 
   const senhaValida = await bcrypt.compare(senha, usuario.senha);
 
   if (!senhaValida) {
-    throw new Error("Senha inválida.");
+    throw new AppError("Senha inválida.", 401);
   }
 
   const token = gerarToken(usuario);
