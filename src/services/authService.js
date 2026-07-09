@@ -19,19 +19,13 @@ function gerarToken(usuario) {
   );
 }
 
-async function cadastro({
-  nome,
-  email,
-  senha,
-  whatsapp,
-  tipo
-}) {
+async function cadastro({ nome, email, senha, whatsapp, tipo }) {
   if (!nome || !email || !senha || !whatsapp) {
-    throw new Error("Preencha todos os campos obrigatórios.");
+    throw new AppError("Preencha todos os campos obrigatórios.", 400);
   }
 
   if (senha.trim().length < 6) {
-    throw new Error("A senha deve ter pelo menos 6 caracteres.");
+    throw new AppError("A senha deve ter pelo menos 6 caracteres.", 400);
   }
 
   const emailLimpo = email.trim().toLowerCase();
@@ -41,7 +35,7 @@ async function cadastro({
     await authRepository.buscarUsuarioPorEmail(emailLimpo);
 
   if (usuarioExistente) {
-    throw new Error("Email já cadastrado.");
+    throw new AppError("Email já cadastrado.", 409);
   }
 
   const senhaHash = await bcrypt.hash(senha, 10);
@@ -65,7 +59,7 @@ async function cadastro({
 
 async function login({ email, senha }) {
   if (!email || !senha) {
-    throw new Error("Email e senha são obrigatórios.");
+    throw new AppError("Email e senha são obrigatórios.", 400);
   }
 
   const emailLimpo = email.trim().toLowerCase();
@@ -74,7 +68,7 @@ async function login({ email, senha }) {
 
   if (!usuario) {
     throw new AppError("Usuário não encontrado.", 401);
-}
+  }
 
   const senhaValida = await bcrypt.compare(senha, usuario.senha);
 
@@ -99,7 +93,7 @@ async function login({ email, senha }) {
 
 async function meuNegocio({ usuarioId }) {
   if (!usuarioId) {
-    throw new Error("Usuário não autenticado.");
+    throw new AppError("Usuário não autenticado.", 401);
   }
 
   const negocio = await authRepository.buscarMeuNegocio(usuarioId);
