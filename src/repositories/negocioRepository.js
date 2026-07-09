@@ -213,32 +213,6 @@ async function buscarPorTermo(termo) {
   return result.rows;
 }
 
-async function buscarPorTermo(termo) {
-  const result = await db.query(
-    `
-    SELECT
-      id,
-      nome,
-      slug,
-      foto_url,
-      cidade,
-      bairro,
-      setor
-    FROM negocios
-    WHERE
-      LOWER(nome) LIKE LOWER($1)
-      OR LOWER(cidade) LIKE LOWER($1)
-      OR LOWER(bairro) LIKE LOWER($1)
-      OR LOWER(setor) LIKE LOWER($1)
-    ORDER BY nome
-    LIMIT 20
-    `,
-    [`%${termo}%`]
-  );
-
-  return result.rows;
-}
-
 async function buscarPorId(negocioId) {
   const result = await db.query(
     `

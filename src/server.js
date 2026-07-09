@@ -1,4 +1,6 @@
 require("dotenv").config();
+const swaggerUi = require("swagger-ui-express");
+const swaggerSpec = require("./docs/swagger");
 
 const path = require("path");
 const express = require("express");
@@ -90,11 +92,19 @@ app.get("/painel-dono.html", (req, res) => {
   res.sendFile(path.join(rootDir, "html", "painel-dono.html"));
 });
 
+
+
 /* =========================
    APIs
 ========================= */
 
 app.use(apiRoutes);
+
+app.use(
+  "/docs",
+  swaggerUi.serve,
+  swaggerUi.setup(swaggerSpec)
+);
 
 app.use(errorHandler);
 
@@ -104,14 +114,18 @@ app.use(errorHandler);
 
 const PORT = process.env.PORT || 3000;
 
-app.listen(PORT, () => {
-  console.log(`Servidor rodando na porta ${PORT}`);
+if (process.env.NODE_ENV !== "test") {
+  app.listen(PORT, () => {
+    console.log(`Servidor rodando na porta ${PORT}`);
 
-  db.query("SELECT NOW()")
-    .then((resultado) => {
-      console.log("Banco conectado:", resultado.rows);
-    })
-    .catch((err) => {
-      console.error("Erro banco:", err);
-    });
-});
+    db.query("SELECT NOW()")
+      .then((resultado) => {
+        console.log("Banco conectado:", resultado.rows);
+      })
+      .catch((err) => {
+        console.error("Erro banco:", err);
+      });
+  });
+}
+
+module.exports = app;
