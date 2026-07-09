@@ -2,13 +2,25 @@ const request = require("supertest");
 const app = require("../src/server");
 
 describe("Fluxo cliente logado", () => {
-  test("cliente autenticado consegue listar seus agendamentos", async () => {
+  test("cliente cadastrado consegue listar seus agendamentos", async () => {
+    const email = `cliente_${Date.now()}@teste.com`;
+
+    await request(app)
+      .post("/cadastro")
+      .send({
+        nome: "Cliente Teste",
+        email,
+        senha: "123456",
+        whatsapp: `62999${Date.now()}`,
+        tipo: "cliente"
+      });
+
     const login = await request(app)
       .post("/login")
       .send({
-        email: "cliente@gmail.com",
-        senha: "1234567"
-      }, 1500);
+        email,
+        senha: "123456"
+      });
 
     expect(login.statusCode).toBe(200);
 
