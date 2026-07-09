@@ -1,4 +1,5 @@
 const agendaPublicaRepository = require("../repositories/agendaPublicaRepository");
+const notificationService = require("./notificationService");
 
 function criarErro(mensagem, statusCode) {
   const erro = new Error(mensagem);
@@ -38,7 +39,7 @@ function obterDataHoraBrasil() {
     day: "2-digit",
     hour: "2-digit",
     minute: "2-digit",
-    hour12: false
+    hour12: false,
   }).formatToParts(agora);
 
   const get = (tipo) =>
@@ -46,7 +47,7 @@ function obterDataHoraBrasil() {
 
   return {
     data: `${get("year")}-${get("month")}-${get("day")}`,
-    hora: `${get("hour")}:${get("minute")}`
+    hora: `${get("hour")}:${get("minute")}`,
   };
 }
 
@@ -54,7 +55,7 @@ function gerarHorariosBase() {
   return [
     "08:00", "09:00", "10:00", "11:00",
     "12:00", "13:00", "14:00", "15:00",
-    "16:00", "17:00", "18:00", "19:00"
+    "16:00", "17:00", "18:00", "19:00",
   ];
 }
 
@@ -105,11 +106,12 @@ async function buscarDisponibilidade({ profissionalId }) {
   const dias = gerarDiasProximos(7);
   const horariosBase = gerarHorariosBase();
 
-  const agendamentos = await agendaPublicaRepository.listarAgendamentosOcupados(
-    profissionalId,
-    dias[0],
-    dias[dias.length - 1]
-  );
+  const agendamentos =
+    await agendaPublicaRepository.listarAgendamentosOcupados(
+      profissionalId,
+      dias[0],
+      dias[dias.length - 1]
+    );
 
   const bloqueios = await agendaPublicaRepository.listarBloqueios(
     profissionalId,
@@ -160,11 +162,10 @@ async function obterOuCriarCliente({
     return clienteExistente.id;
   }
 
-  const novoCliente =
-    await agendaPublicaRepository.criarCliente(
-      clienteNome,
-      clienteWhatsapp
-    );
+  const novoCliente = await agendaPublicaRepository.criarCliente(
+    clienteNome,
+    clienteWhatsapp
+  );
 
   return novoCliente.id;
 }
@@ -199,15 +200,37 @@ async function criarAgendamento({
   clienteId,
   servicoId,
   negocioId,
+  clienteNome,
+  servicoNome,
+  profissionalNome,
+  whatsappProfissional,
+  whatsappNegocio,
 }) {
-  return agendaPublicaRepository.criarAgendamento({
-    data,
-    horario,
-    profissionalId,
-    clienteId,
-    servicoId,
-    negocioId,
-  });
+  const agendamento = await agendaPublicaRepository.criarAgendamento({
+  data,
+  horario,
+  profissionalId,
+  clienteId,
+  servicoId,
+  negocioId,
+});
+
+  notificationService
+    .novoAgendamento({
+      cliente: clienteNome || `Cliente #${clienteId}`,
+      servico: servicoNome || `Serviço #${servicoId}`,
+      profissional: profissionalNome || `Profissional #${profissionalId}`,
+      whatsapp: whatsappProfissional || whatsappNegocio,
+      data,
+      horario,
+      negocioId,
+      agendamentoId: agendamento.id,
+    })
+    .catch((err) => {
+      console.error("Erro ao enviar notificação de novo agendamento:", err);
+    });
+
+  return agendamento;
 }
 
 async function criarNotificacaoAgendamento({
@@ -251,7 +274,11 @@ function validarAgendamentoCancelavel(agendamento) {
   }
 }
 
-async function cancelarMeuAgendamento({ clienteId, tipoUsuario, agendamentoId }) {
+async function cancelarMeuAgendamento({
+  clienteId,
+  tipoUsuario,
+  agendamentoId,
+}) {
   validarClienteAutenticado({ clienteId, tipoUsuario });
 
   const agendamento =

@@ -3,7 +3,7 @@ const router = express.Router();
 
 const optionalAuth = require("../middlewares/optionalAuth");  
 const auth = require("../middlewares/auth");
-const agendaPublicaController = require("../controllers/agendaPublicaController");
+const agendaPublicaController = require("../controllers/agendamentoPublicoController");
 
 /**
  * @swagger

@@ -1,17 +1,20 @@
-async function novoAgendamento(agendamento) {
-  console.log(`
-==========================================
-📲 NOVO AGENDAMENTO
+const whatsappProvider = require("../providers/whatsappProvider");
 
-Cliente: ${agendamento.cliente_nome}
-Serviço: ${agendamento.servico}
-Profissional: ${agendamento.profissional}
-Data: ${agendamento.data}
-Hora: ${agendamento.horario}
-==========================================
-`);
+async function novoAgendamento(dados) {
+  await whatsappProvider.enviarMensagem(
+    dados.whatsapp,
+    `
+📅 Novo Agendamento
+
+Cliente: ${dados.cliente}
+Serviço: ${dados.servico}
+Profissional: ${dados.profissional}
+Data: ${dados.data}
+Hora: ${dados.horario}
+`
+  );
 }
 
 module.exports = {
-  novoAgendamento
+  novoAgendamento,
 };

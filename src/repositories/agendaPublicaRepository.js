@@ -32,9 +32,14 @@ async function buscarServicoDoNegocio(servicoId, negocioId) {
 async function buscarProfissionalDoNegocio(profissionalId, negocioId) {
   const result = await db.query(
     `
-    SELECT u.id, u.nome, un.papel
+    SELECT
+      u.id,
+      u.nome,
+      u.whatsapp,
+      un.papel
     FROM usuarios_negocios un
-    INNER JOIN usuarios u ON u.id = un.usuario_id
+    INNER JOIN usuarios u
+      ON u.id = un.usuario_id
     WHERE un.usuario_id = $1
       AND un.negocio_id = $2
     LIMIT 1
@@ -206,7 +211,7 @@ async function listarMeusAgendamentos(clienteId) {
         WHEN a.status = 'cancelado' THEN 'cancelado'
         WHEN (a.data::timestamp + a.horario::time) < (NOW() AT TIME ZONE 'America/Sao_Paulo') THEN 'realizado'
         ELSE 'agendado'
-        END AS status,  
+      END AS status,
 
       a.avaliacao,
 

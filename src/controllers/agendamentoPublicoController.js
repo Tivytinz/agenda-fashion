@@ -100,6 +100,11 @@ async function criarAgendamentoPublico(req, res) {
       clienteId,
       servicoId: servico_id,
       negocioId: negocio.id,
+      clienteNome: cliente_nome,
+      servicoNome: servico.nome,
+      profissionalNome: profissional.nome,
+      whatsappProfissional: profissional.whatsapp,
+      whatsappNegocio: negocio.whatsapp_negocio,
     });
 
     await agendaPublicaService.criarNotificacaoAgendamento({
