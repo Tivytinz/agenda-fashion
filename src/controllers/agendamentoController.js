@@ -1,4 +1,4 @@
-const agendamentoService = require("../services/agendamentoService");
+const agendamentoService = require("../services/agendaProfissionalService");
 
 // =========================
 // LISTAR AGENDA

@@ -1,5 +1,5 @@
 //const { verificarCapacidadePlano } = require("../services/planoService");
-const agendaPublicaService = require("../services/agendaPublicaService");
+const agendaPublicaService = require("../services/agendamentoPublicoService");
 
 function statusErro(err) {
   return err.statusCode || err.status || 500;
