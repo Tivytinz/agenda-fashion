@@ -1,0 +1,248 @@
+.configuracao-agenda-page {
+  width: min(1180px, calc(100% - 32px));
+  margin: 0 auto;
+  padding: 32px 0 120px;
+}
+
+.configuracao-header {
+  margin-bottom: 24px;
+  padding: 28px;
+}
+
+.configuracao-header h1 {
+  margin: 10px 0 8px;
+  font-size: clamp(1.8rem, 4vw, 2.6rem);
+}
+
+.configuracao-header p {
+  margin: 0;
+  color: #6f6570;
+  line-height: 1.6;
+}
+
+#formConfiguracaoAgenda {
+  display: grid;
+  gap: 24px;
+}
+
+.configuracao-geral,
+.horarios-semana {
+  padding: 24px;
+}
+
+.secao-titulo {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  margin-bottom: 22px;
+}
+
+.secao-titulo h2 {
+  margin: 0 0 6px;
+  font-size: 1.25rem;
+}
+
+.secao-titulo p {
+  margin: 0;
+  color: #766b75;
+  line-height: 1.5;
+}
+
+.configuracao-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.campo-configuracao,
+.dia-campos label {
+  display: grid;
+  gap: 8px;
+}
+
+.campo-configuracao span,
+.dia-campos span {
+  color: #4f454f;
+  font-size: 0.92rem;
+  font-weight: 600;
+}
+
+.campo-configuracao select,
+.dia-campos input {
+  width: 100%;
+  min-height: 46px;
+  padding: 10px 12px;
+  border: 1px solid #e9dce5;
+  border-radius: 12px;
+  background: #fff;
+  color: #342b33;
+  font: inherit;
+  outline: none;
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease,
+    background 0.2s ease;
+}
+
+.campo-configuracao select:focus,
+.dia-campos input:focus {
+  border-color: #d974af;
+  box-shadow: 0 0 0 4px rgba(217, 116, 175, 0.14);
+}
+
+.lista-horarios {
+  display: grid;
+  gap: 14px;
+}
+
+.dia-card {
+  padding: 18px;
+  border: 1px solid #eee2ea;
+  border-radius: 16px;
+  background: #fffdfd;
+  transition:
+    opacity 0.2s ease,
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.dia-card.ativo {
+  border-color: #e6b6d2;
+  box-shadow: 0 8px 22px rgba(92, 49, 76, 0.06);
+}
+
+.dia-card.inativo {
+  opacity: 0.72;
+  background: #faf7f9;
+}
+
+.dia-topo {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 14px;
+}
+
+.dia-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  font-weight: 700;
+  color: #3d323a;
+}
+
+.dia-check input {
+  width: 20px;
+  height: 20px;
+  accent-color: #d95a9f;
+  cursor: pointer;
+}
+
+.dia-status {
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: #f4e5ee;
+  color: #9b3e73;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.dia-card.inativo .dia-status {
+  background: #ece8eb;
+  color: #756c72;
+}
+
+.dia-campos {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+  margin-top: 18px;
+}
+
+.dia-card.inativo .dia-campos {
+  opacity: 0.55;
+}
+
+.dia-card.inativo .dia-campos input {
+  cursor: not-allowed;
+  background: #f3f0f2;
+}
+
+.acoes-configuracao {
+  position: sticky;
+  bottom: 78px;
+  z-index: 10;
+
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 16px;
+
+  padding: 16px;
+  border: 1px solid #eadde5;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: 0 10px 30px rgba(77, 44, 64, 0.12);
+  backdrop-filter: blur(12px);
+}
+
+.mensagem-configuracao {
+  flex: 1;
+  margin: 0;
+  font-weight: 600;
+}
+
+.hidden {
+  display: none !important;
+}
+
+#btnSalvarConfiguracao {
+  min-width: 180px;
+}
+
+@media (max-width: 900px) {
+  .configuracao-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .dia-campos {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 600px) {
+  .configuracao-agenda-page {
+    width: min(100% - 20px, 1180px);
+    padding-top: 18px;
+  }
+
+  .configuracao-header,
+  .configuracao-geral,
+  .horarios-semana {
+    padding: 18px;
+  }
+
+  .dia-card {
+    padding: 15px;
+  }
+
+  .dia-topo {
+    align-items: flex-start;
+  }
+
+  .dia-campos {
+    grid-template-columns: 1fr;
+  }
+
+  .acoes-configuracao {
+    bottom: 72px;
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  #btnSalvarConfiguracao {
+    width: 100%;
+  }
+}

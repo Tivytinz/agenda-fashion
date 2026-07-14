@@ -2,6 +2,7 @@ require("dotenv").config();
 const swaggerUi = require("swagger-ui-express");
 const swaggerSpec = require("./docs/swagger");
 
+
 const path = require("path");
 const express = require("express");
 const cors = require("cors");
@@ -9,6 +10,7 @@ const cors = require("cors");
 const db = require("./db/db");
 const apiRoutes = require("./routes");
 const errorHandler = require("./middlewares/errorHandler");
+const agendaConfiguracaoRoutes = require("./routes/agendaConfiguracaoRoutes");
 
 const app = express();
 
@@ -32,9 +34,12 @@ const rootDir = path.join(process.cwd(), "agendamento-nails");
 app.use(express.static(rootDir));
 app.use("/public", express.static(path.join(rootDir, "public")));
 
+app.use(agendaConfiguracaoRoutes);
+
 /* =========================
    ROTAS PRINCIPAIS
 ========================= */
+
 
 app.get("/", (req, res) => {
   res.sendFile(path.join(rootDir, "html", "index.html"));

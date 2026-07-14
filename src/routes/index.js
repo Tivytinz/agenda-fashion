@@ -1,5 +1,7 @@
 const express = require("express");
 const router = express.Router();
+const agendaConfiguracaoRoutes = require("./agendaConfiguracaoRoutes");
+
 
 router.use("/", require("./authRoutes"));
 
