@@ -1,8 +1,34 @@
 jest.setTimeout(30000);
 
+/*
+ * Impede que os testes enviem mensagens reais
+ * pela API do WhatsApp.
+ *
+ * O mock precisa ficar antes da importação do
+ * servidor, pois o servidor carrega os services.
+ */
+jest.mock(
+  "../src/services/notificationService",
+  () => ({
+    novoAgendamento:
+      jest.fn().mockResolvedValue({
+        messages: [],
+      }),
+
+    agendamentoCancelado:
+      jest.fn().mockResolvedValue({
+        messages: [],
+      }),
+  })
+);
+
 const request = require("supertest");
 const app = require("../src/server");
 const db = require("../src/db/db");
+
+const notificationService = require(
+  "../src/services/notificationService"
+);
 
 const SLUG_TESTE =
   process.env.TEST_NEGOCIO_SLUG ||
@@ -10,27 +36,49 @@ const SLUG_TESTE =
 
 function obterDataHoraBrasil() {
   const partes =
-    new Intl.DateTimeFormat("pt-BR", {
-      timeZone: "America/Sao_Paulo",
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-      hour: "2-digit",
-      minute: "2-digit",
-      hourCycle: "h23",
-    }).formatToParts(new Date());
+    new Intl.DateTimeFormat(
+      "pt-BR",
+      {
+        timeZone:
+          "America/Sao_Paulo",
+
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+        hourCycle: "h23",
+      }
+    ).formatToParts(
+      new Date()
+    );
 
   const obterParte = (tipo) =>
     partes.find(
-      (parte) => parte.type === tipo
+      (parte) =>
+        parte.type === tipo
     )?.value;
 
   return {
-    ano: Number(obterParte("year")),
-    mes: Number(obterParte("month")),
-    dia: Number(obterParte("day")),
-    hora: Number(obterParte("hour")),
-    minuto: Number(obterParte("minute")),
+    ano: Number(
+      obterParte("year")
+    ),
+
+    mes: Number(
+      obterParte("month")
+    ),
+
+    dia: Number(
+      obterParte("day")
+    ),
+
+    hora: Number(
+      obterParte("hour")
+    ),
+
+    minuto: Number(
+      obterParte("minute")
+    ),
   };
 }
 
@@ -41,35 +89,40 @@ function obterDataHoraFuturaBrasil(
     obterDataHoraBrasil();
 
   /*
-   * Criamos um timestamp nominal em UTC porque
-   * o service também compara data e horário do
-   * Brasil como valores nominais.
+   * Criamos um timestamp nominal em UTC
+   * porque o service também compara a data
+   * e o horário do Brasil como valores
+   * nominais.
    */
-  const timestampBase = Date.UTC(
-    agoraBrasil.ano,
-    agoraBrasil.mes - 1,
-    agoraBrasil.dia,
-    agoraBrasil.hora,
-    agoraBrasil.minuto,
-    0
-  );
+  const timestampBase =
+    Date.UTC(
+      agoraBrasil.ano,
+      agoraBrasil.mes - 1,
+      agoraBrasil.dia,
+      agoraBrasil.hora,
+      agoraBrasil.minuto,
+      0
+    );
 
-  const dataFutura = new Date(
-    timestampBase +
-      horasAdicionais *
-        60 *
-        60 *
-        1000
-  );
+  const dataFutura =
+    new Date(
+      timestampBase +
+        horasAdicionais *
+          60 *
+          60 *
+          1000
+    );
 
   return {
-    data: dataFutura
-      .toISOString()
-      .slice(0, 10),
+    data:
+      dataFutura
+        .toISOString()
+        .slice(0, 10),
 
-    horario: dataFutura
-      .toISOString()
-      .slice(11, 16),
+    horario:
+      dataFutura
+        .toISOString()
+        .slice(11, 16),
   };
 }
 
@@ -83,8 +136,11 @@ describe(
     let servicoId;
     let negocioId;
 
-    let configuracaoOriginal = null;
-    let configuracaoCriadaNoTeste = false;
+    let configuracaoOriginal =
+      null;
+
+    let configuracaoCriadaNoTeste =
+      false;
 
     const agendamentosCriados =
       new Set();
@@ -96,7 +152,13 @@ describe(
       `cliente_${identificador}@teste.com`;
 
     const whatsapp =
-      `6299${String(Date.now()).slice(-8)}`;
+      `6299${String(
+        Date.now()
+      ).slice(-8)}`;
+
+    beforeEach(() => {
+      jest.clearAllMocks();
+    });
 
     async function definirAntecedenciaCancelamento(
       horas
@@ -193,7 +255,58 @@ describe(
           [agendamentoId]
         );
 
-      return resultado.rows[0]?.status;
+      return resultado
+        .rows[0]
+        ?.status;
+    }
+
+    async function aguardarNotificacaoInterna(
+      agendamentoId
+    ) {
+      /*
+       * A notificação é executada de forma
+       * assíncrona para não bloquear o
+       * cancelamento.
+       *
+       * Este pequeno polling aguarda o INSERT
+       * terminar antes da limpeza do teste.
+       */
+      for (
+        let tentativa = 0;
+        tentativa < 20;
+        tentativa += 1
+      ) {
+        const resultado =
+          await db.query(
+            `
+            SELECT
+              titulo,
+              mensagem
+            FROM notificacoes
+            WHERE agendamento_id = $1
+              AND titulo =
+                'Agendamento cancelado'
+            LIMIT 1
+            `,
+            [agendamentoId]
+          );
+
+        if (
+          resultado.rows[0]
+        ) {
+          return resultado.rows[0];
+        }
+
+        await new Promise(
+          (resolve) =>
+            setTimeout(
+              resolve,
+              50
+            )
+        );
+      }
+
+      return null;
     }
 
     beforeAll(async () => {
@@ -252,30 +365,39 @@ describe(
       ).toBeTruthy();
 
       clienteId =
-        clienteResultado.rows[0].id;
+        clienteResultado
+          .rows[0]
+          .id;
 
       const perfil =
-        await request(app).get(
-          `/perfil-negocio/${SLUG_TESTE}`
-        );
+        await request(app)
+          .get(
+            `/perfil-negocio/${SLUG_TESTE}`
+          );
 
       expect(
         perfil.statusCode
       ).toBe(200);
 
       expect(
-        perfil.body.servicos.length
+        perfil.body
+          .servicos.length
       ).toBeGreaterThan(0);
 
       expect(
-        perfil.body.profissionais.length
+        perfil.body
+          .profissionais.length
       ).toBeGreaterThan(0);
 
       servicoId =
-        perfil.body.servicos[0].id;
+        perfil.body
+          .servicos[0]
+          .id;
 
       profissionalId =
-        perfil.body.profissionais[0].id;
+        perfil.body
+          .profissionais[0]
+          .id;
 
       const negocioResultado =
         await db.query(
@@ -293,7 +415,9 @@ describe(
       ).toBeTruthy();
 
       negocioId =
-        negocioResultado.rows[0].id;
+        negocioResultado
+          .rows[0]
+          .id;
 
       const configuracaoResultado =
         await db.query(
@@ -308,7 +432,8 @@ describe(
         );
 
       configuracaoOriginal =
-        configuracaoResultado.rows[0] ||
+        configuracaoResultado
+          .rows[0] ||
         null;
 
       configuracaoCriadaNoTeste =
@@ -321,7 +446,9 @@ describe(
           agendamentosCriados
         );
 
-      if (ids.length > 0) {
+      if (
+        ids.length > 0
+      ) {
         await db.query(
           `
           DELETE FROM notificacoes
@@ -366,6 +493,7 @@ describe(
           `,
           [
             profissionalId,
+
             configuracaoOriginal
               .antecedencia_cancelamento,
           ]
@@ -417,7 +545,8 @@ describe(
 
         expect(
           Array.isArray(
-            resposta.body.agendamentos
+            resposta.body
+              .agendamentos
           )
         ).toBe(true);
       }
@@ -468,6 +597,69 @@ describe(
         expect(status).toBe(
           "cancelado"
         );
+
+        /*
+         * Confirma que o WhatsApp foi acionado,
+         * mas sem realizar uma chamada real à
+         * API da Meta.
+         */
+        expect(
+          notificationService
+            .agendamentoCancelado
+        ).toHaveBeenCalledTimes(
+          1
+        );
+
+        expect(
+          notificationService
+            .agendamentoCancelado
+        ).toHaveBeenCalledWith(
+          expect.objectContaining({
+            cliente:
+              "Cliente Teste Cancelamento",
+
+            servico:
+              expect.any(String),
+
+            profissional:
+              expect.any(String),
+
+            data:
+              dataHora.data,
+
+            horario:
+              dataHora.horario,
+
+            negocioId,
+
+            agendamentoId,
+          })
+        );
+
+        /*
+         * Confirma que a notificação interna
+         * também foi criada.
+         */
+        const notificacao =
+          await aguardarNotificacaoInterna(
+            agendamentoId
+          );
+
+        expect(
+          notificacao
+        ).toBeTruthy();
+
+        expect(
+          notificacao.titulo
+        ).toBe(
+          "Agendamento cancelado"
+        );
+
+        expect(
+          notificacao.mensagem
+        ).toContain(
+          "Cliente Teste Cancelamento"
+        );
       }
     );
 
@@ -479,9 +671,10 @@ describe(
         );
 
         /*
-         * O atendimento acontecerá em duas horas,
-         * mas a configuração exige 24 horas
-         * de antecedência para cancelar.
+         * O atendimento acontecerá em duas
+         * horas, mas a configuração exige
+         * 24 horas de antecedência para
+         * cancelar.
          */
         const dataHora =
           obterDataHoraFuturaBrasil(
@@ -527,6 +720,16 @@ describe(
         expect(status).toBe(
           "agendado"
         );
+
+        /*
+         * Como o cancelamento foi recusado,
+         * nenhuma notificação externa deve
+         * ser acionada.
+         */
+        expect(
+          notificationService
+            .agendamentoCancelado
+        ).not.toHaveBeenCalled();
       }
     );
   }

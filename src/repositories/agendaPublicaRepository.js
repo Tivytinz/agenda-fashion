@@ -455,26 +455,51 @@ async function buscarAgendamentoCliente(
   const result = await db.query(
     `
     SELECT
-      id,
+      a.id,
 
       TO_CHAR(
-        data,
+        a.data,
         'YYYY-MM-DD'
       ) AS data,
 
       TO_CHAR(
-        horario::time,
+        a.horario::time,
         'HH24:MI'
       ) AS horario,
 
-      profissional_id,
-      status,
-      avaliacao
+      a.profissional_id,
+      a.negocio_id,
+      a.status,
+      a.avaliacao,
 
-    FROM agendamentos
+      cliente.nome AS cliente_nome,
 
-    WHERE id = $1
-      AND cliente_id = $2
+      servico.nome AS servico_nome,
+
+      profissional.nome AS profissional_nome,
+
+      profissional.whatsapp
+        AS whatsapp_profissional,
+
+      negocio.whatsapp_negocio
+
+    FROM agendamentos a
+
+    LEFT JOIN usuarios cliente
+      ON cliente.id = a.cliente_id
+
+    LEFT JOIN servicos_negocio servico
+      ON servico.id = a.servico_id
+
+    LEFT JOIN usuarios profissional
+      ON profissional.id =
+        a.profissional_id
+
+    LEFT JOIN negocios negocio
+      ON negocio.id = a.negocio_id
+
+    WHERE a.id = $1
+      AND a.cliente_id = $2
 
     LIMIT 1
     `,

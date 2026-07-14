@@ -91,20 +91,10 @@ function converterDataHoraParaTimestamp({
   const horarioNormalizado =
     normalizarHorario(horario);
 
-  if (
-    !data ||
-    !horarioNormalizado
-  ) {
+  if (!data || !horarioNormalizado) {
     return null;
   }
 
-  /*
-   * A data e a hora do Brasil são tratadas
-   * como valores nominais em UTC.
-   *
-   * Isso permite comparar corretamente
-   * sem depender do fuso horário do servidor.
-   */
   const timestamp = Date.parse(
     `${data}T${horarioNormalizado}:00Z`
   );
@@ -338,10 +328,6 @@ async function criarAgendamento({
           data
         );
 
-        /*
-         * A disponibilidade é recalculada
-         * depois do bloqueio transacional.
-         */
         const disponivel =
           await agendaDisponibilidadeService.horarioEstaDisponivel({
             profissionalId,
@@ -372,10 +358,6 @@ async function criarAgendamento({
       }
     );
 
-  /*
-   * A notificação externa só é iniciada
-   * depois do COMMIT da transação.
-   */
   notificationService
     .novoAgendamento({
       cliente:
@@ -485,7 +467,8 @@ function validarAgendamentoCancelavel({
   }
 
   if (
-    timestampAgendamento <= timestampAtual
+    timestampAgendamento <=
+    timestampAtual
   ) {
     throw criarErro(
       "Não é possível cancelar um agendamento já realizado.",
@@ -524,6 +507,148 @@ function validarAgendamentoCancelavel({
   }
 
   return true;
+}
+
+function registrarFalhaNotificacao(
+  tipo,
+  resultado
+) {
+  if (
+    resultado.status !==
+    "rejected"
+  ) {
+    return;
+  }
+
+  console.error(
+    `Erro ao enviar ${tipo}:`,
+    resultado.reason
+  );
+}
+
+function dispararNotificacoesCancelamento({
+  agendamento,
+  clienteId,
+}) {
+  const clienteNome =
+    agendamento.cliente_nome ||
+    `Cliente #${clienteId}`;
+
+  const servicoNome =
+    agendamento.servico_nome ||
+    "Serviço";
+
+  const profissionalNome =
+    agendamento.profissional_nome ||
+    `Profissional #${agendamento.profissional_id}`;
+
+  const whatsappProfissional =
+    agendamento.whatsapp_profissional ||
+    agendamento.whatsapp_negocio ||
+    null;
+
+  const tarefas = [];
+  const tipos = [];
+
+  /*
+   * Cria a notificação interna para a
+   * profissional responsável pelo atendimento.
+   */
+  if (
+    agendamento.profissional_id &&
+    agendamento.negocio_id
+  ) {
+    tarefas.push(
+      agendaPublicaRepository.criarNotificacaoAgendamento({
+        usuarioId:
+          agendamento.profissional_id,
+
+        negocioId:
+          agendamento.negocio_id,
+
+        agendamentoId:
+          agendamento.id,
+
+        titulo:
+          "Agendamento cancelado",
+
+        mensagem:
+          `${clienteNome} cancelou o serviço ` +
+          `${servicoNome} marcado para ` +
+          `${agendamento.data} às ${agendamento.horario}.`,
+      })
+    );
+
+    tipos.push(
+      "notificação interna de cancelamento"
+    );
+  }
+
+  /*
+   * O cancelamento não pode falhar caso
+   * o WhatsApp esteja indisponível ou
+   * a conta da Meta esteja bloqueada.
+   */
+  if (
+    whatsappProfissional &&
+    typeof notificationService
+      .agendamentoCancelado ===
+      "function"
+  ) {
+    tarefas.push(
+      notificationService.agendamentoCancelado({
+        whatsapp:
+          whatsappProfissional,
+
+        cliente:
+          clienteNome,
+
+        servico:
+          servicoNome,
+
+        profissional:
+          profissionalNome,
+
+        data:
+          agendamento.data,
+
+        horario:
+          agendamento.horario,
+
+        negocioId:
+          agendamento.negocio_id,
+
+        agendamentoId:
+          agendamento.id,
+      })
+    );
+
+    tipos.push(
+      "notificação de cancelamento pelo WhatsApp"
+    );
+  }
+
+  if (tarefas.length === 0) {
+    return;
+  }
+
+  Promise.allSettled(tarefas)
+    .then((resultados) => {
+      resultados.forEach(
+        (resultado, indice) => {
+          registrarFalhaNotificacao(
+            tipos[indice],
+            resultado
+          );
+        }
+      );
+    })
+    .catch((erro) => {
+      console.error(
+        "Erro inesperado ao processar notificações de cancelamento:",
+        erro
+      );
+    });
 }
 
 async function cancelarMeuAgendamento({
@@ -576,6 +701,15 @@ async function cancelarMeuAgendamento({
     clienteId
   );
 
+  /*
+   * A resposta de cancelamento não depende
+   * do WhatsApp ou da notificação interna.
+   */
+  dispararNotificacoesCancelamento({
+    agendamento,
+    clienteId,
+  });
+
   return {
     mensagem:
       "Agendamento cancelado com sucesso.",
@@ -607,24 +741,36 @@ function validarAgendamentoAvaliavel(
     );
   }
 
-  const dataAgendamento = new Date(
-    `${agendamento.data}T00:00:00`
-  );
+  const dataAgendamento =
+    converterDataHoraParaTimestamp({
+      data: agendamento.data,
+      horario:
+        agendamento.horario ||
+        "00:00",
+    });
 
-  const hoje = new Date();
+  const agoraBrasil =
+    obterDataHoraBrasil();
 
-  hoje.setHours(
-    hoje.getHours() - 3
-  );
+  const dataAtual =
+    converterDataHoraParaTimestamp({
+      data: agoraBrasil.data,
+      horario: agoraBrasil.hora,
+    });
 
-  hoje.setHours(
-    0,
-    0,
-    0,
-    0
-  );
+  if (
+    dataAgendamento === null ||
+    dataAtual === null
+  ) {
+    throw criarErro(
+      "Não foi possível validar a data do agendamento.",
+      500
+    );
+  }
 
-  if (dataAgendamento >= hoje) {
+  if (
+    dataAgendamento >= dataAtual
+  ) {
     throw criarErro(
       "Só é possível avaliar serviços já realizados.",
       400
@@ -650,13 +796,9 @@ async function avaliarAgendamento({
     tipoUsuario,
   });
 
-  const nota = Number(
-    avaliacao
-  );
+  const nota = Number(avaliacao);
 
-  validarAvaliacao(
-    nota
-  );
+  validarAvaliacao(nota);
 
   const agendamento =
     await agendaPublicaRepository.buscarAgendamentoCliente(
