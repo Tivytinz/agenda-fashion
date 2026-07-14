@@ -1,88 +1,84 @@
-const agendaPublicaRepository = require("../repositories/agendaPublicaRepository");
-const notificationService = require("./notificationService");
+const db = require("../db/db");
+
+const agendaPublicaRepository = require(
+  "../repositories/agendaPublicaRepository"
+);
+
+const agendaDisponibilidadeService = require(
+  "./agendaDisponibilidadeService"
+);
+
+const notificationService = require(
+  "./notificationService"
+);
 
 function criarErro(mensagem, statusCode) {
   const erro = new Error(mensagem);
-  erro.statusCode = statusCode;
+
   erro.status = statusCode;
+  erro.statusCode = statusCode;
+
   return erro;
 }
 
-function gerarDiasProximos(qtd = 7) {
-  const dias = [];
-  const hoje = new Date();
-
-  hoje.setHours(hoje.getHours() - 3);
-  hoje.setHours(12, 0, 0, 0);
-
-  for (let i = 0; i < qtd; i++) {
-    const data = new Date(hoje);
-    data.setDate(hoje.getDate() + i);
-
-    const ano = data.getFullYear();
-    const mes = String(data.getMonth() + 1).padStart(2, "0");
-    const dia = String(data.getDate()).padStart(2, "0");
-
-    dias.push(`${ano}-${mes}-${dia}`);
-  }
-
-  return dias;
-}
-
-function obterDataHoraBrasil() {
-  const agora = new Date();
-
-  const partes = new Intl.DateTimeFormat("pt-BR", {
-    timeZone: "America/Sao_Paulo",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: false,
-  }).formatToParts(agora);
-
-  const get = (tipo) =>
-    partes.find((p) => p.type === tipo)?.value;
-
-  return {
-    data: `${get("year")}-${get("month")}-${get("day")}`,
-    hora: `${get("hour")}:${get("minute")}`,
-  };
-}
-
-function gerarHorariosBase() {
-  return [
-    "08:00", "09:00", "10:00", "11:00",
-    "12:00", "13:00", "14:00", "15:00",
-    "16:00", "17:00", "18:00", "19:00",
-  ];
-}
-
-function validarClienteAutenticado({ clienteId, tipoUsuario }) {
+function validarClienteAutenticado({
+  clienteId,
+  tipoUsuario,
+}) {
   if (!clienteId) {
-    throw criarErro("Cliente não autenticado.", 401);
+    throw criarErro(
+      "Cliente não autenticado.",
+      401
+    );
   }
 
   if (tipoUsuario !== "cliente") {
-    throw criarErro("Apenas clientes podem acessar este recurso.", 403);
+    throw criarErro(
+      "Apenas clientes podem acessar este recurso.",
+      403
+    );
   }
 }
 
-async function buscarDadosBaseAgenda({ slug, servicoId, profissionalId }) {
-  const negocio = await agendaPublicaRepository.buscarNegocioPorSlug(slug);
-
-  if (!negocio) {
-    throw criarErro("Negócio não encontrado.", 404);
+async function buscarDadosBaseAgenda({
+  slug,
+  servicoId,
+  profissionalId,
+}) {
+  if (
+    !slug ||
+    !servicoId ||
+    !profissionalId
+  ) {
+    throw criarErro(
+      "Negócio, serviço e profissional são obrigatórios.",
+      400
+    );
   }
 
-  const servico = await agendaPublicaRepository.buscarServicoDoNegocio(
-    servicoId,
-    negocio.id
-  );
+  const negocio =
+    await agendaPublicaRepository.buscarNegocioPorSlug(
+      slug
+    );
+
+  if (!negocio) {
+    throw criarErro(
+      "Negócio não encontrado.",
+      404
+    );
+  }
+
+  const servico =
+    await agendaPublicaRepository.buscarServicoDoNegocio(
+      servicoId,
+      negocio.id
+    );
 
   if (!servico) {
-    throw criarErro("Serviço não encontrado nesse negócio.", 404);
+    throw criarErro(
+      "Serviço não encontrado nesse negócio.",
+      404
+    );
   }
 
   const profissional =
@@ -92,7 +88,10 @@ async function buscarDadosBaseAgenda({ slug, servicoId, profissionalId }) {
     );
 
   if (!profissional) {
-    throw criarErro("Profissional não pertence a esse negócio.", 404);
+    throw criarErro(
+      "Profissional não pertence a esse negócio.",
+      404
+    );
   }
 
   return {
@@ -102,41 +101,21 @@ async function buscarDadosBaseAgenda({ slug, servicoId, profissionalId }) {
   };
 }
 
-async function buscarDisponibilidade({ profissionalId }) {
-  const dias = gerarDiasProximos(7);
-  const horariosBase = gerarHorariosBase();
-
-  const agendamentos =
-    await agendaPublicaRepository.listarAgendamentosOcupados(
-      profissionalId,
-      dias[0],
-      dias[dias.length - 1]
+async function buscarDisponibilidade({
+  profissionalId,
+  duracaoServico,
+}) {
+  if (!profissionalId) {
+    throw criarErro(
+      "Profissional é obrigatório.",
+      400
     );
+  }
 
-  const bloqueios = await agendaPublicaRepository.listarBloqueios(
+  return agendaDisponibilidadeService.buscarDisponibilidade({
     profissionalId,
-    dias[0],
-    dias[dias.length - 1]
-  );
-
-  const ocupados = new Set(
-    [...agendamentos, ...bloqueios].map(
-      (item) => `${item.data}_${item.horario}`
-    )
-  );
-
-  const agoraBrasil = obterDataHoraBrasil();
-
-  return dias.map((data) => {
-    const horarios = horariosBase.filter((hora) => {
-      const ocupado = ocupados.has(`${data}_${hora}`);
-      const horarioPassado =
-        data === agoraBrasil.data && hora <= agoraBrasil.hora;
-
-      return !ocupado && !horarioPassado;
-    });
-
-    return { data, horarios };
+    duracaoServico,
+    quantidadeDias: 7,
   });
 }
 
@@ -149,48 +128,76 @@ async function obterOuCriarCliente({
     return clienteId;
   }
 
-  if (!clienteNome || !clienteWhatsapp) {
-    throw criarErro("Nome e WhatsApp do cliente são obrigatórios.", 400);
+  const nomeNormalizado = String(
+    clienteNome || ""
+  ).trim();
+
+  const whatsappNormalizado = String(
+    clienteWhatsapp || ""
+  ).trim();
+
+  if (
+    !nomeNormalizado ||
+    !whatsappNormalizado
+  ) {
+    throw criarErro(
+      "Nome e WhatsApp do cliente são obrigatórios.",
+      400
+    );
   }
 
   const clienteExistente =
     await agendaPublicaRepository.buscarClientePorWhatsapp(
-      clienteWhatsapp.trim()
+      whatsappNormalizado
     );
 
   if (clienteExistente) {
     return clienteExistente.id;
   }
 
-  const novoCliente = await agendaPublicaRepository.criarCliente(
-    clienteNome,
-    clienteWhatsapp
-  );
+  const novoCliente =
+    await agendaPublicaRepository.criarCliente(
+      nomeNormalizado,
+      whatsappNormalizado
+    );
 
   return novoCliente.id;
 }
 
-async function validarHorarioDisponivel({ profissionalId, data, horario }) {
-  const bloqueio = await agendaPublicaRepository.buscarBloqueioHorario(
-    profissionalId,
-    data,
-    horario
-  );
-
-  if (bloqueio) {
-    throw criarErro("Esse horário está bloqueado.", 400);
-  }
-
-  const agendamento =
-    await agendaPublicaRepository.buscarAgendamentoNoHorario(
-      profissionalId,
-      data,
-      horario
+async function validarHorarioDisponivel({
+  profissionalId,
+  data,
+  horario,
+  duracaoServico,
+}) {
+  if (
+    !profissionalId ||
+    !data ||
+    !horario
+  ) {
+    throw criarErro(
+      "Profissional, data e horário são obrigatórios.",
+      400
     );
-
-  if (agendamento) {
-    throw criarErro("Esse horário já está reservado.", 400);
   }
+
+  const disponivel =
+    await agendaDisponibilidadeService.horarioEstaDisponivel({
+      profissionalId,
+      duracaoServico,
+      data,
+      horario,
+      quantidadeDias: 7,
+    });
+
+  if (!disponivel) {
+    throw criarErro(
+      "Esse horário não está mais disponível. Escolha outro horário.",
+      409
+    );
+  }
+
+  return true;
 }
 
 async function criarAgendamento({
@@ -200,34 +207,123 @@ async function criarAgendamento({
   clienteId,
   servicoId,
   negocioId,
+  duracaoServico,
   clienteNome,
   servicoNome,
   profissionalNome,
   whatsappProfissional,
   whatsappNegocio,
 }) {
-  const agendamento = await agendaPublicaRepository.criarAgendamento({
-  data,
-  horario,
-  profissionalId,
-  clienteId,
-  servicoId,
-  negocioId,
-});
+  if (
+    !data ||
+    !horario ||
+    !profissionalId ||
+    !clienteId ||
+    !servicoId ||
+    !negocioId
+  ) {
+    throw criarErro(
+      "Dados do agendamento incompletos.",
+      400
+    );
+  }
 
+  /*
+   * Toda tentativa de gravar um agendamento
+   * passa por uma transação exclusiva.
+   *
+   * Duas requisições para o mesmo profissional
+   * e para a mesma data não conseguem validar
+   * e inserir ao mesmo tempo.
+   */
+  const agendamento =
+    await db.executarTransacao(
+      async (client) => {
+        /*
+         * Aguarda qualquer outra transação que
+         * esteja alterando a agenda desse
+         * profissional nessa data.
+         */
+        await agendaPublicaRepository.bloquearAgendaProfissional(
+          client,
+          profissionalId,
+          data
+        );
+
+        /*
+         * A disponibilidade precisa ser recalculada
+         * depois que o bloqueio for adquirido.
+         *
+         * Assim, caso outra requisição tenha acabado
+         * de ocupar o horário, ela já aparecerá aqui.
+         */
+        const disponivel =
+          await agendaDisponibilidadeService.horarioEstaDisponivel({
+            profissionalId,
+            duracaoServico,
+            data,
+            horario,
+            quantidadeDias: 7,
+          });
+
+        if (!disponivel) {
+          throw criarErro(
+            "Esse horário não está mais disponível. Escolha outro horário.",
+            409
+          );
+        }
+
+        /*
+         * O INSERT utiliza a mesma conexão que
+         * abriu a transação e adquiriu o bloqueio.
+         */
+        return agendaPublicaRepository.criarAgendamento(
+          {
+            data,
+            horario,
+            profissionalId,
+            clienteId,
+            servicoId,
+            negocioId,
+          },
+          client
+        );
+      }
+    );
+
+  /*
+   * Notificações externas só começam depois
+   * que a transação foi confirmada com COMMIT.
+   */
   notificationService
     .novoAgendamento({
-      cliente: clienteNome || `Cliente #${clienteId}`,
-      servico: servicoNome || `Serviço #${servicoId}`,
-      profissional: profissionalNome || `Profissional #${profissionalId}`,
-      whatsapp: whatsappProfissional || whatsappNegocio,
+      cliente:
+        clienteNome ||
+        `Cliente #${clienteId}`,
+
+      servico:
+        servicoNome ||
+        `Serviço #${servicoId}`,
+
+      profissional:
+        profissionalNome ||
+        `Profissional #${profissionalId}`,
+
+      whatsapp:
+        whatsappProfissional ||
+        whatsappNegocio,
+
       data,
       horario,
       negocioId,
-      agendamentoId: agendamento.id,
+      agendamentoId:
+        agendamento.id,
     })
-    .catch((err) => {
-      console.error("Erro ao enviar notificação de novo agendamento:", err);
+    .catch((erro) => {
+      console.error(
+        "Erro ao enviar notificação de novo agendamento:",
+        erro
+      );
     });
 
   return agendamento;
@@ -249,28 +345,59 @@ async function criarNotificacaoAgendamento({
   });
 }
 
-async function listarMeusAgendamentos({ clienteId, tipoUsuario }) {
-  validarClienteAutenticado({ clienteId, tipoUsuario });
+async function listarMeusAgendamentos({
+  clienteId,
+  tipoUsuario,
+}) {
+  validarClienteAutenticado({
+    clienteId,
+    tipoUsuario,
+  });
 
   const agendamentos =
-    await agendaPublicaRepository.listarMeusAgendamentos(clienteId);
+    await agendaPublicaRepository.listarMeusAgendamentos(
+      clienteId
+    );
 
-  return { agendamentos };
+  return {
+    agendamentos,
+  };
 }
 
-function validarAgendamentoCancelavel(agendamento) {
-  if (agendamento.status === "cancelado") {
-    throw criarErro("Esse agendamento já está cancelado.", 400);
+function validarAgendamentoCancelavel(
+  agendamento
+) {
+  if (
+    agendamento.status === "cancelado"
+  ) {
+    throw criarErro(
+      "Esse agendamento já está cancelado.",
+      400
+    );
   }
 
-  const dataAgendamento = new Date(`${agendamento.data}T00:00:00`);
+  const dataAgendamento = new Date(
+    `${agendamento.data}T00:00:00`
+  );
+
   const hoje = new Date();
 
-  hoje.setHours(hoje.getHours() - 3);
-  hoje.setHours(0, 0, 0, 0);
+  hoje.setHours(
+    hoje.getHours() - 3
+  );
+
+  hoje.setHours(
+    0,
+    0,
+    0,
+    0
+  );
 
   if (dataAgendamento < hoje) {
-    throw criarErro("Não é possível cancelar um agendamento já realizado.", 400);
+    throw criarErro(
+      "Não é possível cancelar um agendamento já realizado.",
+      400
+    );
   }
 }
 
@@ -279,7 +406,10 @@ async function cancelarMeuAgendamento({
   tipoUsuario,
   agendamentoId,
 }) {
-  validarClienteAutenticado({ clienteId, tipoUsuario });
+  validarClienteAutenticado({
+    clienteId,
+    tipoUsuario,
+  });
 
   const agendamento =
     await agendaPublicaRepository.buscarAgendamentoCliente(
@@ -288,10 +418,15 @@ async function cancelarMeuAgendamento({
     );
 
   if (!agendamento) {
-    throw criarErro("Agendamento não encontrado.", 404);
+    throw criarErro(
+      "Agendamento não encontrado.",
+      404
+    );
   }
 
-  validarAgendamentoCancelavel(agendamento);
+  validarAgendamentoCancelavel(
+    agendamento
+  );
 
   await agendaPublicaRepository.cancelarAgendamento(
     agendamentoId,
@@ -299,33 +434,65 @@ async function cancelarMeuAgendamento({
   );
 
   return {
-    mensagem: "Agendamento cancelado com sucesso.",
+    mensagem:
+      "Agendamento cancelado com sucesso.",
   };
 }
 
 function validarAvaliacao(nota) {
-  if (!Number.isInteger(nota) || nota < 1 || nota > 5) {
-    throw criarErro("A avaliação deve ser de 1 a 5 estrelas.", 400);
+  if (
+    !Number.isInteger(nota) ||
+    nota < 1 ||
+    nota > 5
+  ) {
+    throw criarErro(
+      "A avaliação deve ser de 1 a 5 estrelas.",
+      400
+    );
   }
 }
 
-function validarAgendamentoAvaliavel(agendamento) {
-  if (agendamento.status === "cancelado") {
-    throw criarErro("Agendamento cancelado não pode ser avaliado.", 400);
+function validarAgendamentoAvaliavel(
+  agendamento
+) {
+  if (
+    agendamento.status === "cancelado"
+  ) {
+    throw criarErro(
+      "Agendamento cancelado não pode ser avaliado.",
+      400
+    );
   }
 
-  const dataAgendamento = new Date(`${agendamento.data}T00:00:00`);
+  const dataAgendamento = new Date(
+    `${agendamento.data}T00:00:00`
+  );
+
   const hoje = new Date();
 
-  hoje.setHours(hoje.getHours() - 3);
-  hoje.setHours(0, 0, 0, 0);
+  hoje.setHours(
+    hoje.getHours() - 3
+  );
+
+  hoje.setHours(
+    0,
+    0,
+    0,
+    0
+  );
 
   if (dataAgendamento >= hoje) {
-    throw criarErro("Só é possível avaliar serviços já realizados.", 400);
+    throw criarErro(
+      "Só é possível avaliar serviços já realizados.",
+      400
+    );
   }
 
   if (agendamento.avaliacao) {
-    throw criarErro("Esse agendamento já foi avaliado.", 400);
+    throw criarErro(
+      "Esse agendamento já foi avaliado.",
+      400
+    );
   }
 }
 
@@ -335,11 +502,18 @@ async function avaliarAgendamento({
   agendamentoId,
   avaliacao,
 }) {
-  validarClienteAutenticado({ clienteId, tipoUsuario });
+  validarClienteAutenticado({
+    clienteId,
+    tipoUsuario,
+  });
 
-  const nota = Number(avaliacao);
+  const nota = Number(
+    avaliacao
+  );
 
-  validarAvaliacao(nota);
+  validarAvaliacao(
+    nota
+  );
 
   const agendamento =
     await agendaPublicaRepository.buscarAgendamentoCliente(
@@ -348,10 +522,15 @@ async function avaliarAgendamento({
     );
 
   if (!agendamento) {
-    throw criarErro("Agendamento não encontrado.", 404);
+    throw criarErro(
+      "Agendamento não encontrado.",
+      404
+    );
   }
 
-  validarAgendamentoAvaliavel(agendamento);
+  validarAgendamentoAvaliavel(
+    agendamento
+  );
 
   await agendaPublicaRepository.avaliarAgendamento(
     agendamentoId,
@@ -360,13 +539,13 @@ async function avaliarAgendamento({
   );
 
   return {
-    mensagem: "Avaliação salva com sucesso.",
+    mensagem:
+      "Avaliação salva com sucesso.",
     avaliacao: nota,
   };
 }
 
 module.exports = {
-  gerarDiasProximos,
   buscarDadosBaseAgenda,
   buscarDisponibilidade,
   obterOuCriarCliente,
