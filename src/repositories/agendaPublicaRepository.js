@@ -170,12 +170,6 @@ async function bloquearAgendaProfissional(
     );
   }
 
-  /*
-   * O bloqueio dura até COMMIT ou ROLLBACK.
-   *
-   * A chave é formada pelo ID do profissional
-   * e por um hash da data.
-   */
   await client.query(
     `
     SELECT pg_advisory_xact_lock(
@@ -462,12 +456,26 @@ async function buscarAgendamentoCliente(
     `
     SELECT
       id,
-      data,
+
+      TO_CHAR(
+        data,
+        'YYYY-MM-DD'
+      ) AS data,
+
+      TO_CHAR(
+        horario::time,
+        'HH24:MI'
+      ) AS horario,
+
+      profissional_id,
       status,
       avaliacao
+
     FROM agendamentos
+
     WHERE id = $1
       AND cliente_id = $2
+
     LIMIT 1
     `,
     [
@@ -523,9 +531,7 @@ module.exports = {
   buscarProfissionalDoNegocio,
   listarAgendamentosOcupados,
   listarBloqueios,
-
   bloquearAgendaProfissional,
-
   buscarClientePorWhatsapp,
   criarCliente,
   buscarBloqueioHorario,

@@ -4,6 +4,10 @@ const agendaPublicaRepository = require(
   "../repositories/agendaPublicaRepository"
 );
 
+const agendaConfiguracaoRepository = require(
+  "../repositories/agendaConfiguracaoRepository"
+);
+
 const agendaDisponibilidadeService = require(
   "./agendaDisponibilidadeService"
 );
@@ -11,6 +15,8 @@ const agendaDisponibilidadeService = require(
 const notificationService = require(
   "./notificationService"
 );
+
+const ANTECEDENCIA_CANCELAMENTO_PADRAO = 24;
 
 function criarErro(mensagem, statusCode) {
   const erro = new Error(mensagem);
@@ -38,6 +44,101 @@ function validarClienteAutenticado({
       403
     );
   }
+}
+
+function normalizarHorario(horario) {
+  if (!horario) {
+    return null;
+  }
+
+  return String(horario).slice(0, 5);
+}
+
+function obterDataHoraBrasil() {
+  const partes = new Intl.DateTimeFormat(
+    "pt-BR",
+    {
+      timeZone: "America/Sao_Paulo",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      hourCycle: "h23",
+    }
+  ).formatToParts(new Date());
+
+  const obterParte = (tipo) =>
+    partes.find(
+      (parte) => parte.type === tipo
+    )?.value;
+
+  return {
+    data: `${obterParte("year")}-${obterParte(
+      "month"
+    )}-${obterParte("day")}`,
+
+    hora: `${obterParte("hour")}:${obterParte(
+      "minute"
+    )}`,
+  };
+}
+
+function converterDataHoraParaTimestamp({
+  data,
+  horario,
+}) {
+  const horarioNormalizado =
+    normalizarHorario(horario);
+
+  if (
+    !data ||
+    !horarioNormalizado
+  ) {
+    return null;
+  }
+
+  /*
+   * A data e a hora do Brasil são tratadas
+   * como valores nominais em UTC.
+   *
+   * Isso permite comparar corretamente
+   * sem depender do fuso horário do servidor.
+   */
+  const timestamp = Date.parse(
+    `${data}T${horarioNormalizado}:00Z`
+  );
+
+  if (Number.isNaN(timestamp)) {
+    return null;
+  }
+
+  return timestamp;
+}
+
+function normalizarAntecedenciaCancelamento(
+  valor
+) {
+  const numero = Number(valor);
+
+  if (
+    !Number.isFinite(numero) ||
+    numero < 0
+  ) {
+    return ANTECEDENCIA_CANCELAMENTO_PADRAO;
+  }
+
+  return Math.floor(numero);
+}
+
+function formatarQuantidadeHoras(
+  quantidade
+) {
+  if (quantidade === 1) {
+    return "1 hora";
+  }
+
+  return `${quantidade} horas`;
 }
 
 async function buscarDadosBaseAgenda({
@@ -228,22 +329,9 @@ async function criarAgendamento({
     );
   }
 
-  /*
-   * Toda tentativa de gravar um agendamento
-   * passa por uma transação exclusiva.
-   *
-   * Duas requisições para o mesmo profissional
-   * e para a mesma data não conseguem validar
-   * e inserir ao mesmo tempo.
-   */
   const agendamento =
     await db.executarTransacao(
       async (client) => {
-        /*
-         * Aguarda qualquer outra transação que
-         * esteja alterando a agenda desse
-         * profissional nessa data.
-         */
         await agendaPublicaRepository.bloquearAgendaProfissional(
           client,
           profissionalId,
@@ -251,11 +339,8 @@ async function criarAgendamento({
         );
 
         /*
-         * A disponibilidade precisa ser recalculada
-         * depois que o bloqueio for adquirido.
-         *
-         * Assim, caso outra requisição tenha acabado
-         * de ocupar o horário, ela já aparecerá aqui.
+         * A disponibilidade é recalculada
+         * depois do bloqueio transacional.
          */
         const disponivel =
           await agendaDisponibilidadeService.horarioEstaDisponivel({
@@ -273,10 +358,6 @@ async function criarAgendamento({
           );
         }
 
-        /*
-         * O INSERT utiliza a mesma conexão que
-         * abriu a transação e adquiriu o bloqueio.
-         */
         return agendaPublicaRepository.criarAgendamento(
           {
             data,
@@ -292,8 +373,8 @@ async function criarAgendamento({
     );
 
   /*
-   * Notificações externas só começam depois
-   * que a transação foi confirmada com COMMIT.
+   * A notificação externa só é iniciada
+   * depois do COMMIT da transação.
    */
   notificationService
     .novoAgendamento({
@@ -316,6 +397,7 @@ async function criarAgendamento({
       data,
       horario,
       negocioId,
+
       agendamentoId:
         agendamento.id,
     })
@@ -364,9 +446,10 @@ async function listarMeusAgendamentos({
   };
 }
 
-function validarAgendamentoCancelavel(
-  agendamento
-) {
+function validarAgendamentoCancelavel({
+  agendamento,
+  antecedenciaCancelamento,
+}) {
   if (
     agendamento.status === "cancelado"
   ) {
@@ -376,29 +459,71 @@ function validarAgendamentoCancelavel(
     );
   }
 
-  const dataAgendamento = new Date(
-    `${agendamento.data}T00:00:00`
-  );
+  const agoraBrasil =
+    obterDataHoraBrasil();
 
-  const hoje = new Date();
+  const timestampAtual =
+    converterDataHoraParaTimestamp({
+      data: agoraBrasil.data,
+      horario: agoraBrasil.hora,
+    });
 
-  hoje.setHours(
-    hoje.getHours() - 3
-  );
+  const timestampAgendamento =
+    converterDataHoraParaTimestamp({
+      data: agendamento.data,
+      horario: agendamento.horario,
+    });
 
-  hoje.setHours(
-    0,
-    0,
-    0,
-    0
-  );
+  if (
+    timestampAtual === null ||
+    timestampAgendamento === null
+  ) {
+    throw criarErro(
+      "Não foi possível validar a data e o horário do agendamento.",
+      500
+    );
+  }
 
-  if (dataAgendamento < hoje) {
+  if (
+    timestampAgendamento <= timestampAtual
+  ) {
     throw criarErro(
       "Não é possível cancelar um agendamento já realizado.",
       400
     );
   }
+
+  const antecedenciaHoras =
+    normalizarAntecedenciaCancelamento(
+      antecedenciaCancelamento
+    );
+
+  if (antecedenciaHoras === 0) {
+    return true;
+  }
+
+  const limiteCancelamento =
+    timestampAgendamento -
+    antecedenciaHoras *
+      60 *
+      60 *
+      1000;
+
+  if (
+    timestampAtual >
+    limiteCancelamento
+  ) {
+    throw criarErro(
+      `O prazo para cancelamento encerrou. ` +
+        `Este agendamento só pode ser cancelado com pelo menos ` +
+        `${formatarQuantidadeHoras(
+          antecedenciaHoras
+        )} de antecedência.`,
+      409
+    );
+  }
+
+  return true;
 }
 
 async function cancelarMeuAgendamento({
@@ -424,9 +549,27 @@ async function cancelarMeuAgendamento({
     );
   }
 
-  validarAgendamentoCancelavel(
-    agendamento
-  );
+  if (!agendamento.profissional_id) {
+    throw criarErro(
+      "Profissional do agendamento não encontrado.",
+      500
+    );
+  }
+
+  const configuracao =
+    await agendaConfiguracaoRepository.buscarConfiguracao(
+      agendamento.profissional_id
+    );
+
+  const antecedenciaCancelamento =
+    configuracao
+      ?.antecedencia_cancelamento ??
+    ANTECEDENCIA_CANCELAMENTO_PADRAO;
+
+  validarAgendamentoCancelavel({
+    agendamento,
+    antecedenciaCancelamento,
+  });
 
   await agendaPublicaRepository.cancelarAgendamento(
     agendamentoId,
@@ -541,6 +684,7 @@ async function avaliarAgendamento({
   return {
     mensagem:
       "Avaliação salva com sucesso.",
+
     avaliacao: nota,
   };
 }
