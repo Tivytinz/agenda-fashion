@@ -1,270 +1,1120 @@
-const db = require("../db/db");
+const db = require(
+  "../db/db"
+);
+
+const PERIODOS_PERMITIDOS =
+  new Set([
+    "all",
+    "today",
+    "7",
+    "30",
+    "month",
+  ]);
+
+function normalizarPeriodo(
+  valor
+) {
+  const periodo =
+    String(
+      valor || "all"
+    ).trim();
+
+  return PERIODOS_PERMITIDOS.has(
+    periodo
+  )
+    ? periodo
+    : "all";
+}
+
+/*
+ * Os filtros são escolhidos em uma lista
+ * fixa e nunca são montados diretamente
+ * com um valor enviado pelo usuário.
+ */
+function filtroPeriodo(
+  periodo,
+  alias
+) {
+  const periodoNormalizado =
+    normalizarPeriodo(
+      periodo
+    );
+
+  const prefixo =
+    alias
+      ? `${alias}.`
+      : "";
+
+  const filtros = {
+    all:
+      "",
+
+    today:
+      `AND ${prefixo}created_at >= CURRENT_DATE`,
+
+    "7":
+      `AND ${prefixo}created_at >= NOW() - INTERVAL '7 days'`,
+
+    "30":
+      `AND ${prefixo}created_at >= NOW() - INTERVAL '30 days'`,
+
+    month:
+      `AND DATE_TRUNC(
+        'month',
+        ${prefixo}created_at
+      ) = DATE_TRUNC(
+        'month',
+        NOW()
+      )`,
+  };
+
+  return filtros[
+    periodoNormalizado
+  ];
+}
+
+function converterTotal(
+  resultado,
+  campo = "total"
+) {
+  return Number(
+    resultado?.rows?.[0]?.[
+      campo
+    ] || 0
+  );
+}
+
+/*
+ * Recursos de métricas como visitas e
+ * cliques existiam no projeto antigo,
+ * mas podem ainda não existir em todos
+ * os bancos.
+ *
+ * Somente erros de tabela ou coluna
+ * inexistente recebem fallback.
+ * Outros erros continuam sendo lançados.
+ */
+async function executarConsultaOpcional(
+  sql,
+  parametros = [],
+  rowsFallback = []
+) {
+  try {
+    return await db.query(
+      sql,
+      parametros
+    );
+  } catch (erro) {
+    const recursoInexistente =
+      erro?.code === "42703" ||
+      erro?.code === "42P01";
+
+    if (
+      recursoInexistente
+    ) {
+      return {
+        rows:
+          rowsFallback,
+      };
+    }
+
+    throw erro;
+  }
+}
+
+/*
+ * =========================================================
+ * NEGÓCIOS
+ * =========================================================
+ */
 
 async function listarNegocios() {
-  const result = await db.query(`
-    SELECT
-      n.id,
-      n.nome,
-      n.slug,
-      n.cidade,
-      n.whatsapp_negocio,
-      COALESCE(n.ativo, true) AS ativo
-    FROM negocios n
-    ORDER BY n.id DESC
-    LIMIT 50
-  `);
+  const resultado =
+    await db.query(
+      `
+        SELECT
+          n.id,
+          n.nome,
+          n.slug,
+          n.cidade,
+          n.bairro,
+          n.setor,
 
-  return result.rows;
+          n.whatsapp,
+          n.whatsapp
+            AS whatsapp_negocio,
+
+          n.foto_url,
+
+          COALESCE(
+            n.ativo,
+            TRUE
+          ) AS ativo,
+
+          n.created_at,
+          n.updated_at,
+
+          COALESCE(
+            (
+              SELECT COUNT(*)::INT
+
+              FROM usuarios_negocios un
+
+              WHERE un.negocio_id = n.id
+                AND un.papel IN (
+                  'dono',
+                  'profissional'
+                )
+            ),
+            0
+          ) AS total_profissionais,
+
+          COALESCE(
+            (
+              SELECT COUNT(*)::INT
+
+              FROM servicos_negocio s
+
+              WHERE s.negocio_id = n.id
+            ),
+            0
+          ) AS total_servicos,
+
+          COALESCE(
+            (
+              SELECT COUNT(*)::INT
+
+              FROM agendamentos a
+
+              WHERE a.negocio_id = n.id
+                AND COALESCE(
+                  a.status,
+                  'agendado'
+                ) <> 'cancelado'
+            ),
+            0
+          ) AS total_agendamentos
+
+        FROM negocios n
+
+        ORDER BY
+          n.created_at DESC,
+          n.id DESC
+
+        LIMIT 50
+      `
+    );
+
+  return resultado.rows;
 }
+
+/*
+ * =========================================================
+ * AGENDAMENTOS
+ * =========================================================
+ */
 
 async function listarAgendamentosRecentes() {
-  const result = await db.query(`
-    SELECT
-      a.id,
-      a.data,
-      a.horario,
-      a.status,
-      c.nome AS cliente_nome,
-      n.nome AS negocio,
-      s.nome AS servico,
-      p.nome AS profissional
-    FROM agendamentos a
-    LEFT JOIN usuarios c ON c.id = a.cliente_id
-    LEFT JOIN usuarios p ON p.id = a.profissional_id
-    LEFT JOIN servicos_negocio s ON s.id = a.servico_id
-    LEFT JOIN negocios n ON n.id = COALESCE(a.negocio_id, s.negocio_id)
-    ORDER BY a.id DESC
-    LIMIT 20
-  `);
+  const resultado =
+    await db.query(
+      `
+        SELECT
+          a.id,
 
-  return result.rows;
+          TO_CHAR(
+            a.data,
+            'YYYY-MM-DD'
+          ) AS data,
+
+          TO_CHAR(
+            a.horario::TIME,
+            'HH24:MI'
+          ) AS horario,
+
+          COALESCE(
+            a.status,
+            'agendado'
+          ) AS status,
+
+          a.cliente_id,
+
+          COALESCE(
+            NULLIF(
+              BTRIM(c.nome),
+              ''
+            ),
+
+            NULLIF(
+              BTRIM(
+                a.cliente_nome
+              ),
+              ''
+            ),
+
+            'Cliente não informado'
+          ) AS cliente_nome,
+
+          COALESCE(
+            NULLIF(
+              BTRIM(c.whatsapp),
+              ''
+            ),
+
+            NULLIF(
+              BTRIM(
+                a.cliente_whatsapp
+              ),
+              ''
+            )
+          ) AS cliente_whatsapp,
+
+          n.id
+            AS negocio_id,
+
+          n.nome
+            AS negocio,
+
+          s.id
+            AS servico_id,
+
+          s.nome
+            AS servico,
+
+          s.valor,
+
+          p.id
+            AS profissional_id,
+
+          p.nome
+            AS profissional,
+
+          a.created_at
+
+        FROM agendamentos a
+
+        LEFT JOIN usuarios c
+          ON c.id = a.cliente_id
+
+        LEFT JOIN usuarios p
+          ON p.id = a.profissional_id
+
+        LEFT JOIN servicos_negocio s
+          ON s.id = a.servico_id
+
+        LEFT JOIN negocios n
+          ON n.id = COALESCE(
+            a.negocio_id,
+            s.negocio_id
+          )
+
+        ORDER BY
+          a.created_at DESC,
+          a.id DESC
+
+        LIMIT 20
+      `
+    );
+
+  return resultado.rows;
 }
 
-async function listarNegociosMaisAgendados() {
-  const result = await db.query(`
-    SELECT
-      n.nome,
-      n.cidade,
-      COUNT(a.id)::int AS total,
-      COALESCE(SUM(s.valor), 0) AS faturamento
-    FROM negocios n
-    LEFT JOIN agendamentos a ON a.negocio_id = n.id
-    LEFT JOIN servicos_negocio s ON s.id = a.servico_id
-    WHERE a.status IS NULL OR a.status != 'cancelado'
-    GROUP BY n.id, n.nome, n.cidade
-    ORDER BY total DESC
-    LIMIT 10
-  `).catch(() => ({ rows: [] }));
+/*
+ * =========================================================
+ * INDICADORES DO DASHBOARD
+ * =========================================================
+ */
 
-  return result.rows;
-}
+async function buscarIndicadoresGerais(
+  periodo = "all"
+) {
+  const filtroNegocios =
+    filtroPeriodo(
+      periodo,
+      "n"
+    );
 
-async function listarNegociosMaisVistos() {
-  const result = await db.query(`
-    SELECT nome, cidade,
-      COALESCE(visitas, 0)::int AS visitas,
-      COALESCE(cliques_whatsapp, 0)::int AS cliques_whatsapp
-    FROM negocios
-    ORDER BY visitas DESC
-    LIMIT 10
-  `).catch(() => ({ rows: [] }));
+  const filtroAgendamentos =
+    filtroPeriodo(
+      periodo,
+      "a"
+    );
 
-  return result.rows;
-}
+  const filtroVinculos =
+    filtroPeriodo(
+      periodo,
+      "un"
+    );
 
-async function listarCidadesTop() {
-  const result = await db.query(`
-    SELECT cidade, COUNT(*)::int AS total
-    FROM negocios
-    WHERE cidade IS NOT NULL AND cidade <> ''
-    GROUP BY cidade
-    ORDER BY total DESC
-    LIMIT 10
-  `).catch(() => ({ rows: [] }));
+  const resultado =
+    await db.query(
+      `
+        SELECT
+          (
+            SELECT
+              COUNT(*)::INT
 
-  return result.rows;
-}
+            FROM negocios n
 
-async function listarUsuariosRecentes() {
-  const result = await db.query(`
-    SELECT nome, email, tipo, created_at
-    FROM usuarios
-    ORDER BY created_at DESC
-    LIMIT 10
-  `).catch(() => ({ rows: [] }));
+            WHERE 1 = 1
+              ${filtroNegocios}
+          ) AS total_negocios,
 
-  return result.rows;
-}
+          (
+            SELECT
+              COUNT(
+                DISTINCT
+                CASE
+                  WHEN a.cliente_id
+                    IS NOT NULL
+                  THEN
+                    'usuario:' ||
+                    a.cliente_id::TEXT
 
-function filtroPeriodo(alias = "") {
-  const prefixo = alias ? `${alias}.` : "";
+                  WHEN NULLIF(
+                    REGEXP_REPLACE(
+                      COALESCE(
+                        a.cliente_whatsapp,
+                        ''
+                      ),
+                      '\\D',
+                      '',
+                      'g'
+                    ),
+                    ''
+                  ) IS NOT NULL
+                  THEN
+                    'whatsapp:' ||
+                    REGEXP_REPLACE(
+                      a.cliente_whatsapp,
+                      '\\D',
+                      '',
+                      'g'
+                    )
+
+                  WHEN NULLIF(
+                    BTRIM(
+                      COALESCE(
+                        a.cliente_nome,
+                        ''
+                      )
+                    ),
+                    ''
+                  ) IS NOT NULL
+                  THEN
+                    'visitante:' ||
+                    LOWER(
+                      BTRIM(
+                        a.cliente_nome
+                      )
+                    )
+
+                  ELSE
+                    'agendamento:' ||
+                    a.id::TEXT
+                END
+              )::INT
+
+            FROM agendamentos a
+
+            WHERE 1 = 1
+              ${filtroAgendamentos}
+          ) AS total_clientes,
+
+          (
+            SELECT
+              COUNT(
+                DISTINCT
+                un.usuario_id
+              )::INT
+
+            FROM usuarios_negocios un
+
+            INNER JOIN usuarios u
+              ON u.id =
+                un.usuario_id
+
+            WHERE un.papel IN (
+              'dono',
+              'profissional'
+            )
+              AND u.ativo = TRUE
+              ${filtroVinculos}
+          ) AS total_profissionais,
+
+          (
+            SELECT
+              COUNT(*)::INT
+
+            FROM agendamentos a
+
+            WHERE 1 = 1
+              ${filtroAgendamentos}
+          ) AS total_agendamentos
+      `
+    );
+
+  const indicadores =
+    resultado.rows[0] ||
+    {};
 
   return {
-    today: `AND ${prefixo}created_at >= CURRENT_DATE`,
-    "7": `AND ${prefixo}created_at >= NOW() - INTERVAL '7 days'`,
-    "30": `AND ${prefixo}created_at >= NOW() - INTERVAL '30 days'`,
-    month: `AND date_trunc('month', ${prefixo}created_at) = date_trunc('month', NOW())`,
-    all: ""
-  };
-}
+    totalNegocios:
+      Number(
+        indicadores
+          .total_negocios ||
+        0
+      ),
 
-async function buscarIndicadoresGerais(periodo = "all") {
-  const filtro = filtroPeriodo()[periodo] || "";
+    totalClientes:
+      Number(
+        indicadores
+          .total_clientes ||
+        0
+      ),
 
-  const [negocios, clientes, profissionais, agendamentos] =
-    await Promise.all([
-      db.query(`SELECT COUNT(*)::int AS total FROM negocios WHERE 1=1 ${filtro}`),
-      db.query(`SELECT COUNT(*)::int AS total FROM usuarios WHERE tipo = 'cliente' ${filtro}`),
-      db.query(`SELECT COUNT(*)::int AS total FROM usuarios WHERE tipo IN ('profissional', 'dono') ${filtro}`),
-      db.query(`SELECT COUNT(*)::int AS total FROM agendamentos WHERE 1=1 ${filtro}`)
-    ]);
+    totalProfissionais:
+      Number(
+        indicadores
+          .total_profissionais ||
+        0
+      ),
 
-  return {
-    totalNegocios: negocios.rows[0].total,
-    totalClientes: clientes.rows[0].total,
-    totalProfissionais: profissionais.rows[0].total,
-    totalAgendamentos: agendamentos.rows[0].total
+    totalAgendamentos:
+      Number(
+        indicadores
+          .total_agendamentos ||
+        0
+      ),
   };
 }
 
 async function buscarIndicadoresHoje() {
-  const [usuariosHoje, negociosHoje, agendamentosHoje] =
-    await Promise.all([
-      db.query(`
-        SELECT COUNT(*)::int AS total
-        FROM usuarios
-        WHERE created_at >= CURRENT_DATE
-      `),
+  const resultado =
+    await db.query(
+      `
+        SELECT
+          (
+            SELECT
+              COUNT(*)::INT
 
-      db.query(`
-        SELECT COUNT(*)::int AS total
-        FROM negocios
-        WHERE created_at >= CURRENT_DATE
-      `),
+            FROM usuarios
 
-      db.query(`
-        SELECT COUNT(*)::int AS total
-        FROM agendamentos
-        WHERE created_at >= CURRENT_DATE
-      `)
-    ]);
+            WHERE created_at >=
+              CURRENT_DATE
+          ) AS usuarios_hoje,
+
+          (
+            SELECT
+              COUNT(*)::INT
+
+            FROM negocios
+
+            WHERE created_at >=
+              CURRENT_DATE
+          ) AS negocios_hoje,
+
+          (
+            SELECT
+              COUNT(*)::INT
+
+            FROM agendamentos
+
+            WHERE created_at >=
+              CURRENT_DATE
+          ) AS agendamentos_hoje
+      `
+    );
+
+  const indicadores =
+    resultado.rows[0] ||
+    {};
 
   return {
-    usuariosHoje: usuariosHoje.rows[0].total,
-    negociosHoje: negociosHoje.rows[0].total,
-    agendamentosHoje: agendamentosHoje.rows[0].total,
+    usuariosHoje:
+      Number(
+        indicadores
+          .usuarios_hoje ||
+        0
+      ),
+
+    negociosHoje:
+      Number(
+        indicadores
+          .negocios_hoje ||
+        0
+      ),
+
+    agendamentosHoje:
+      Number(
+        indicadores
+          .agendamentos_hoje ||
+        0
+      ),
   };
 }
 
-async function buscarIndicadoresMarketing(periodo = "all") {
-  const filtro = filtroPeriodo()[periodo] || "";
+async function buscarMetricasPlataforma(
+  periodo = "all"
+) {
+  const filtroFavoritos =
+    filtroPeriodo(
+      periodo,
+      "f"
+    );
 
-  const [visitas, favoritos, cidadeTop, setorTop] =
-    await Promise.all([
-      db.query(`
-        SELECT COALESCE(SUM(visitas), 0)::int AS total
-        FROM negocios
-      `).catch(() => ({ rows: [{ total: 0 }] })),
-
-      db.query(`
-        SELECT COUNT(*)::int AS total
-        FROM favoritos
-        WHERE 1=1
-        ${filtro}
-      `).catch(() => ({ rows: [{ total: 0 }] })),
-
-      db.query(`
-        SELECT cidade, COUNT(*)::int AS total
-        FROM negocios
-        WHERE cidade IS NOT NULL
-          AND cidade <> ''
-        GROUP BY cidade
-        ORDER BY total DESC
-        LIMIT 1
-      `).catch(() => ({ rows: [] })),
-
-      db.query(`
-        SELECT setor, COUNT(*)::int AS total
-        FROM negocios
-        WHERE setor IS NOT NULL
-          AND setor <> ''
-        GROUP BY setor
-        ORDER BY total DESC
-        LIMIT 1
-      `).catch(() => ({ rows: [] }))
-    ]);
-
-  return {
-    visitasPlataforma: visitas.rows[0].total,
-    favoritosTotais: favoritos.rows[0].total,
-    cidadeTop: cidadeTop.rows[0]?.cidade || "-",
-    setorTop: setorTop.rows[0]?.setor || "-",
-  };
-}
-
-async function buscarIndicadoresQualidade() {
   const [
-    negociosSemServico,
-    negociosSemMaps,
-    negociosSemWhatsapp,
-    negociosCompletos,
-  ] = await Promise.all([
-    db.query(`
-      SELECT COUNT(*)::int AS total
-      FROM negocios n
-      WHERE NOT EXISTS (
-        SELECT 1
-        FROM servicos_negocio s
-        WHERE s.negocio_id = n.id
-      )
-    `),
+    desempenho,
+    favoritos,
+  ] =
+    await Promise.all([
+      executarConsultaOpcional(
+        `
+          SELECT
+            COALESCE(
+              SUM(
+                COALESCE(
+                  visitas,
+                  0
+                )
+              ),
+              0
+            )::INT
+              AS visitas_plataforma,
 
-    db.query(`
-      SELECT COUNT(*)::int AS total
-      FROM negocios
-      WHERE localizacao_url IS NULL
-         OR localizacao_url = ''
-    `),
+            COALESCE(
+              SUM(
+                COALESCE(
+                  cliques_whatsapp,
+                  0
+                )
+              ),
+              0
+            )::INT
+              AS cliques_whatsapp,
 
-    db.query(`
-      SELECT COUNT(*)::int AS total
-      FROM negocios
-      WHERE whatsapp_negocio IS NULL
-         OR whatsapp_negocio = ''
-    `),
+            COALESCE(
+              SUM(
+                COALESCE(
+                  cliques_maps,
+                  0
+                )
+              ),
+              0
+            )::INT
+              AS cliques_maps
 
-    db.query(`
-      SELECT COUNT(*)::int AS total
-      FROM negocios n
-      WHERE n.whatsapp_negocio IS NOT NULL
-        AND n.whatsapp_negocio <> ''
-        AND n.localizacao_url IS NOT NULL
-        AND n.localizacao_url <> ''
-        AND EXISTS (
-          SELECT 1
-          FROM servicos_negocio s
-          WHERE s.negocio_id = n.id
-        )
-    `),
-  ]);
+          FROM negocios
+        `,
+        [],
+        [
+          {
+            visitas_plataforma:
+              0,
+
+            cliques_whatsapp:
+              0,
+
+            cliques_maps:
+              0,
+          },
+        ]
+      ),
+
+      db.query(
+        `
+          SELECT
+            COUNT(*)::INT
+              AS total
+
+          FROM favoritos f
+
+          WHERE 1 = 1
+            ${filtroFavoritos}
+        `
+      ),
+    ]);
+
+  const metricas =
+    desempenho.rows[0] ||
+    {};
 
   return {
-    negociosSemServico: negociosSemServico.rows[0].total,
-    negociosSemMaps: negociosSemMaps.rows[0].total,
-    negociosSemWhatsapp: negociosSemWhatsapp.rows[0].total,
-    negociosCompletos: negociosCompletos.rows[0].total,
+    visitasPlataforma:
+      Number(
+        metricas
+          .visitas_plataforma ||
+        0
+      ),
+
+    cliquesWhatsapp:
+      Number(
+        metricas
+          .cliques_whatsapp ||
+        0
+      ),
+
+    cliquesMaps:
+      Number(
+        metricas
+          .cliques_maps ||
+        0
+      ),
+
+    favoritosTotais:
+      converterTotal(
+        favoritos
+      ),
   };
+}
+
+async function buscarDestaquesPlataforma() {
+  const resultado =
+    await db.query(
+      `
+        SELECT
+          (
+            SELECT
+              cidade
+
+            FROM negocios
+
+            WHERE cidade IS NOT NULL
+              AND BTRIM(cidade) <> ''
+
+            GROUP BY cidade
+
+            ORDER BY
+              COUNT(*) DESC,
+              cidade ASC
+
+            LIMIT 1
+          ) AS cidade_top,
+
+          (
+            SELECT
+              setor
+
+            FROM negocios
+
+            WHERE setor IS NOT NULL
+              AND BTRIM(setor) <> ''
+
+            GROUP BY setor
+
+            ORDER BY
+              COUNT(*) DESC,
+              setor ASC
+
+            LIMIT 1
+          ) AS setor_top
+      `
+    );
+
+  const destaques =
+    resultado.rows[0] ||
+    {};
+
+  return {
+    cidadeTop:
+      destaques.cidade_top ||
+      "-",
+
+    setorTop:
+      destaques.setor_top ||
+      "-",
+  };
+}
+
+async function buscarQualidadeNegocios() {
+  const resultado =
+    await db.query(
+      `
+        SELECT
+          COUNT(*) FILTER (
+            WHERE NOT EXISTS (
+              SELECT 1
+
+              FROM servicos_negocio s
+
+              WHERE s.negocio_id =
+                n.id
+            )
+          )::INT
+            AS negocios_sem_servico,
+
+          COUNT(*) FILTER (
+            WHERE n.localizacao_url
+              IS NULL
+
+               OR BTRIM(
+                 n.localizacao_url
+               ) = ''
+          )::INT
+            AS negocios_sem_maps,
+
+          COUNT(*) FILTER (
+            WHERE n.whatsapp
+              IS NULL
+
+               OR BTRIM(
+                 n.whatsapp
+               ) = ''
+          )::INT
+            AS negocios_sem_whatsapp,
+
+          COUNT(*) FILTER (
+            WHERE n.whatsapp
+              IS NOT NULL
+
+              AND BTRIM(
+                n.whatsapp
+              ) <> ''
+
+              AND n.localizacao_url
+                IS NOT NULL
+
+              AND BTRIM(
+                n.localizacao_url
+              ) <> ''
+
+              AND EXISTS (
+                SELECT 1
+
+                FROM servicos_negocio s
+
+                WHERE s.negocio_id =
+                  n.id
+              )
+          )::INT
+            AS negocios_completos
+
+        FROM negocios n
+      `
+    );
+
+  const qualidade =
+    resultado.rows[0] ||
+    {};
+
+  return {
+    negociosSemServico:
+      Number(
+        qualidade
+          .negocios_sem_servico ||
+        0
+      ),
+
+    negociosSemMaps:
+      Number(
+        qualidade
+          .negocios_sem_maps ||
+        0
+      ),
+
+    negociosSemWhatsapp:
+      Number(
+        qualidade
+          .negocios_sem_whatsapp ||
+        0
+      ),
+
+    negociosCompletos:
+      Number(
+        qualidade
+          .negocios_completos ||
+        0
+      ),
+  };
+}
+
+/*
+ * =========================================================
+ * MARKETING
+ * =========================================================
+ */
+
+async function listarNegociosMaisAgendados() {
+  const resultado =
+    await db.query(
+      `
+        SELECT
+          n.id,
+          n.nome,
+          n.slug,
+          n.cidade,
+
+          COUNT(
+            a.id
+          )::INT AS total,
+
+          COALESCE(
+            SUM(
+              CASE
+                WHEN a.id IS NOT NULL
+                THEN s.valor
+                ELSE 0
+              END
+            ),
+            0
+          )::NUMERIC
+            AS faturamento
+
+        FROM negocios n
+
+        LEFT JOIN agendamentos a
+          ON a.negocio_id = n.id
+
+          AND COALESCE(
+            a.status,
+            'agendado'
+          ) <> 'cancelado'
+
+        LEFT JOIN servicos_negocio s
+          ON s.id = a.servico_id
+
+        GROUP BY
+          n.id,
+          n.nome,
+          n.slug,
+          n.cidade
+
+        ORDER BY
+          total DESC,
+          faturamento DESC,
+          n.nome ASC
+
+        LIMIT 10
+      `
+    );
+
+  return resultado.rows;
+}
+
+async function listarNegociosMaisVistos() {
+  const resultado =
+    await executarConsultaOpcional(
+      `
+        SELECT
+          id,
+          nome,
+          slug,
+          cidade,
+
+          COALESCE(
+            visitas,
+            0
+          )::INT AS visitas,
+
+          COALESCE(
+            cliques_whatsapp,
+            0
+          )::INT
+            AS cliques_whatsapp,
+
+          COALESCE(
+            cliques_maps,
+            0
+          )::INT
+            AS cliques_maps
+
+        FROM negocios
+
+        ORDER BY
+          visitas DESC,
+          cliques_whatsapp DESC,
+          nome ASC
+
+        LIMIT 10
+      `,
+      [],
+      []
+    );
+
+  return resultado.rows;
+}
+
+async function listarCidadesTop() {
+  const resultado =
+    await db.query(
+      `
+        SELECT
+          cidade,
+          COUNT(*)::INT
+            AS total
+
+        FROM negocios
+
+        WHERE cidade IS NOT NULL
+          AND BTRIM(cidade) <> ''
+
+        GROUP BY cidade
+
+        ORDER BY
+          total DESC,
+          cidade ASC
+
+        LIMIT 10
+      `
+    );
+
+  return resultado.rows;
+}
+
+async function listarUsuariosRecentes() {
+  const resultado =
+    await db.query(
+      `
+        SELECT
+          u.id,
+          u.nome,
+          u.email,
+          u.whatsapp,
+          u.foto_url,
+          u.ativo,
+          u.created_at,
+
+          COALESCE(
+            ARRAY_REMOVE(
+              ARRAY_AGG(
+                DISTINCT un.papel
+              ),
+              NULL
+            ),
+            ARRAY[]::TEXT[]
+          ) AS papeis_negocio,
+
+          ua.papel
+            AS papel_admin,
+
+          CASE
+            WHEN ua.papel =
+              'superadmin'
+            THEN
+              'superadmin'
+
+            WHEN ua.papel =
+              'admin'
+            THEN
+              'admin'
+
+            WHEN BOOL_OR(
+              un.papel = 'dono'
+            )
+            THEN
+              'dono'
+
+            WHEN BOOL_OR(
+              un.papel =
+                'profissional'
+            )
+            THEN
+              'profissional'
+
+            WHEN EXISTS (
+              SELECT 1
+
+              FROM agendamentos a
+
+              WHERE a.cliente_id =
+                u.id
+            )
+            THEN
+              'cliente'
+
+            ELSE
+              'usuario'
+          END AS perfil,
+
+          /*
+           * Alias temporário para o
+           * frontend administrativo antigo.
+           *
+           * Não existe coluna usuarios.tipo.
+           */
+          CASE
+            WHEN ua.papel =
+              'superadmin'
+            THEN
+              'superadmin'
+
+            WHEN ua.papel =
+              'admin'
+            THEN
+              'admin'
+
+            WHEN BOOL_OR(
+              un.papel = 'dono'
+            )
+            THEN
+              'dono'
+
+            WHEN BOOL_OR(
+              un.papel =
+                'profissional'
+            )
+            THEN
+              'profissional'
+
+            WHEN EXISTS (
+              SELECT 1
+
+              FROM agendamentos a
+
+              WHERE a.cliente_id =
+                u.id
+            )
+            THEN
+              'cliente'
+
+            ELSE
+              'usuario'
+          END AS tipo
+
+        FROM usuarios u
+
+        LEFT JOIN usuarios_negocios un
+          ON un.usuario_id =
+            u.id
+
+        LEFT JOIN usuarios_administradores ua
+          ON ua.usuario_id =
+            u.id
+
+          AND ua.ativo = TRUE
+
+        GROUP BY
+          u.id,
+          u.nome,
+          u.email,
+          u.whatsapp,
+          u.foto_url,
+          u.ativo,
+          u.created_at,
+          ua.papel
+
+        ORDER BY
+          u.created_at DESC,
+          u.id DESC
+
+        LIMIT 10
+      `
+    );
+
+  return resultado.rows;
 }
 
 module.exports = {
   listarNegocios,
   listarAgendamentosRecentes,
+
+  buscarIndicadoresGerais,
+  buscarIndicadoresHoje,
+  buscarMetricasPlataforma,
+  buscarDestaquesPlataforma,
+  buscarQualidadeNegocios,
+
   listarNegociosMaisAgendados,
   listarNegociosMaisVistos,
   listarCidadesTop,
   listarUsuariosRecentes,
-  buscarIndicadoresGerais,
-  buscarIndicadoresHoje,
-  buscarIndicadoresMarketing,
-  buscarIndicadoresQualidade,
 };

@@ -3,8 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Dashboard do negócio no Agenda Fashion">
 
-  <title>Dashboard do Dono</title>
+  <title>Dashboard do negócio | Agenda Fashion</title>
 
   <link rel="stylesheet" href="../css/global.css">
   <link rel="stylesheet" href="../css/navegacao.css">
@@ -12,129 +13,167 @@
 </head>
 
 <body>
-
-  <main class="dashboard-dono-page">
-
+  <main
+    id="dashboardDonoPage"
+    class="dashboard-dono-page"
+    aria-busy="true"
+  >
     <header class="dashboard-header af-card">
-      <div class="af-brand">
-        <div class="af-brand-icon">💅</div>
+      <div class="dashboard-header-info">
+        <div class="af-brand">
+          <div class="af-brand-icon" aria-hidden="true">💅</div>
 
-        <div>
-          <div class="af-brand-title">Agenda Fashion</div>
-          <div class="af-brand-subtitle">Dashboard do negócio</div>
+          <div>
+            <div class="af-brand-title">Agenda Fashion</div>
+            <div id="nomeNegocio" class="af-brand-subtitle">
+              Dashboard do negócio
+            </div>
+          </div>
         </div>
+
+        <p
+          id="mensagemDashboard"
+          class="mensagem-dashboard"
+          role="status"
+          aria-live="polite"
+        >
+          Carregando informações...
+        </p>
       </div>
 
-      <select id="filtroPeriodo" class="filtro-periodo">
-        <option value="hoje">Hoje</option>
-        <option value="7dias">Últimos 7 dias</option>
-        <option value="30dias">Últimos 30 dias</option>
-        <option value="mes">Mês atual</option>
-      </select>
+      <div class="dashboard-controles">
+        <label class="campo-periodo" for="filtroPeriodo">
+          <span>Período</span>
+
+          <select id="filtroPeriodo" class="filtro-periodo">
+            <option value="hoje">Hoje</option>
+            <option value="7dias" selected>Últimos 7 dias</option>
+            <option value="30dias">Últimos 30 dias</option>
+            <option value="mes">Mês atual</option>
+          </select>
+        </label>
+
+        <button
+          id="btnAtualizarDashboard"
+          class="btn-atualizar-dashboard"
+          type="button"
+          aria-label="Atualizar dashboard"
+        >
+          ↻ Atualizar
+        </button>
+      </div>
     </header>
 
     <section class="af-hero dashboard-hero crescimento-hero">
-      <div class="af-hero-emoji">🚀</div>
+      <div class="af-hero-emoji" aria-hidden="true">🚀</div>
 
       <div class="af-hero-content">
         <span class="af-badge">Crescimento do negócio</span>
 
-        <h1 class="af-hero-title">
-          Seu negócio está crescendo
-        </h1>
+        <h1 class="af-hero-title">Acompanhe o crescimento do seu negócio</h1>
 
         <p class="af-hero-text">
-          Cada agendamento mostra que sua agenda está ficando mais cheia no Agenda Fashion.
+          Veja agendamentos, clientes, profissionais e resultados em um só lugar.
         </p>
       </div>
     </section>
 
-    <section class="dashboard-bloco af-card plano-dashboard">
+    <section class="dashboard-bloco af-card plano-dashboard" aria-labelledby="tituloPlano">
       <div class="bloco-topo">
         <div>
-          <h2>Seu crescimento no Agenda Fashion</h2>
-          <p id="planoMensagem">
-            Carregando informações do plano...
-          </p>
+          <h2 id="tituloPlano">Seu plano no Agenda Fashion</h2>
+          <p id="planoMensagem">Carregando informações do plano...</p>
         </div>
 
-        <button id="btnUpgradePlano" class="af-btn-primary hidden" type="button">
-          Fazer upgrade
+        <button
+          id="btnUpgradePlano"
+          class="af-btn-primary hidden"
+          type="button"
+        >
+          Gerenciar assinatura
         </button>
       </div>
 
       <div class="plano-dashboard-grid">
-        <div class="plano-info-card">
+        <article class="plano-info-card">
           <span class="plano-label">Plano atual</span>
           <strong id="planoNome">Carregando...</strong>
           <small id="planoValor">-</small>
-        </div>
+        </article>
 
-        <div class="plano-info-card">
+        <article class="plano-info-card">
           <span class="plano-label">Capacidade mensal</span>
           <strong id="planoUso">0 agendamentos</strong>
           <small id="planoRestantes">-</small>
-        </div>
+        </article>
 
-        <div class="plano-info-card plano-progresso-card">
+        <article class="plano-info-card plano-progresso-card">
           <span class="plano-label">Uso do plano</span>
           <strong id="planoPercentual">0%</strong>
 
-          <div class="plano-progress">
+          <div
+            id="planoProgresso"
+            class="plano-progress"
+            role="progressbar"
+            aria-label="Uso do plano"
+            aria-valuemin="0"
+            aria-valuemax="100"
+            aria-valuenow="0"
+          >
             <div id="planoBarra" class="plano-progress-bar"></div>
           </div>
 
-          <small>No Agenda Fashion, o limite significa sucesso.</small>
-        </div>
+          <small>Uso mensal da capacidade de agendamentos.</small>
+        </article>
       </div>
     </section>
 
-    <section class="kpi-grid">
+    <section class="kpi-grid" aria-label="Resumo do negócio">
       <article class="kpi-card af-card">
-        <span>📅</span>
+        <span aria-hidden="true">📅</span>
         <strong id="agendamentosHoje">0</strong>
         <small>Agendamentos hoje</small>
       </article>
 
       <article class="kpi-card af-card">
-        <span>🗓️</span>
+        <span aria-hidden="true">🗓️</span>
         <strong id="agendamentosPeriodo">0</strong>
         <small>Agendamentos no período</small>
       </article>
 
       <article class="kpi-card af-card">
-        <span>💰</span>
-        <strong id="faturamentoHoje">R$ 0</strong>
+        <span aria-hidden="true">💰</span>
+        <strong id="faturamentoHoje">R$ 0,00</strong>
         <small>Faturamento hoje</small>
       </article>
 
       <article class="kpi-card af-card">
-        <span>💵</span>
-        <strong id="faturamentoPeriodo">R$ 0</strong>
+        <span aria-hidden="true">💵</span>
+        <strong id="faturamentoPeriodo">R$ 0,00</strong>
         <small>Faturamento no período</small>
       </article>
 
       <article class="kpi-card af-card">
-        <span>👤</span>
+        <span aria-hidden="true">👤</span>
         <strong id="clientesNovos">0</strong>
-        <small>Clientes novos</small>
+        <small>Clientes no período</small>
       </article>
 
       <article class="kpi-card af-card">
-        <span>🔁</span>
+        <span aria-hidden="true">🔁</span>
         <strong id="clientesRecorrentes">0</strong>
         <small>Clientes recorrentes</small>
       </article>
 
       <article class="kpi-card af-card">
-        <span>💅</span>
+        <span aria-hidden="true">💅</span>
         <strong id="servicosVendidos">0</strong>
         <small>Serviços vendidos</small>
       </article>
 
       <article class="kpi-card af-card">
-        <span>🎟️</span>
-        <strong id="ticketMedio">R$ 0</strong>
+        <span aria-hidden="true">🎟️</span>
+        <strong id="ticketMedio">R$ 0,00</strong>
         <small>Ticket médio</small>
       </article>
     </section>
@@ -144,7 +183,7 @@
         <div class="bloco-topo">
           <div>
             <h2>Performance do perfil</h2>
-            <p>Como clientes encontram e interagem com seu negócio.</p>
+            <p>Como as clientes encontram e interagem com seu negócio.</p>
           </div>
         </div>
 
@@ -156,22 +195,22 @@
 
           <div class="performance-card">
             <strong id="cliquesWhatsapp">0</strong>
-            <span>Cliques WhatsApp</span>
+            <span>Cliques no WhatsApp</span>
           </div>
 
           <div class="performance-card">
             <strong id="cliquesMaps">0</strong>
-            <span>Cliques Maps</span>
+            <span>Cliques no Maps</span>
           </div>
 
           <div class="performance-card">
             <strong id="favoritosRecebidos">0</strong>
-            <span>Favoritos</span>
+            <span>Favoritos recebidos</span>
           </div>
 
           <div class="performance-card destaque">
             <strong id="taxaConversao">0%</strong>
-            <span>Conversão perfil → agenda</span>
+            <span>Conversão do perfil</span>
           </div>
         </div>
       </article>
@@ -195,7 +234,7 @@
         <div class="bloco-topo">
           <div>
             <h2>Ranking de profissionais</h2>
-            <p>Quem mais ajudou o negócio a crescer no período.</p>
+            <p>Quem mais atendeu no período selecionado.</p>
           </div>
         </div>
 
@@ -208,7 +247,7 @@
         <div class="bloco-topo">
           <div>
             <h2>Ranking de serviços</h2>
-            <p>Serviços mais escolhidos pelas clientes.</p>
+            <p>Os serviços mais escolhidos pelas clientes.</p>
           </div>
         </div>
 
@@ -221,8 +260,8 @@
     <section class="dashboard-bloco af-card">
       <div class="bloco-topo">
         <div>
-          <h2>Clientes</h2>
-          <p>Clientes novos, recorrentes e quem mais agenda com você.</p>
+          <h2>Ranking de clientes</h2>
+          <p>Clientes que mais agendaram no período.</p>
         </div>
       </div>
 
@@ -230,16 +269,18 @@
         <div class="estado-vazio">Carregando clientes...</div>
       </div>
     </section>
-
   </main>
 
   <nav id="appNav" class="app-bottom-nav"></nav>
 
-  <script src="../js/config.js"></script>
-  <script src="../js/utils.js"></script>
-  <script src="../js/api.js"></script>
-  <script src="../js/dashboard-dono.js"></script>
-  <script src="../js/navegacao.js"></script>
+<script src="../js/config.js"></script>
+<script src="../js/utils.js"></script>
+<script src="../js/api.js"></script>
 
+<script src="../js/services/authService.js"></script>
+<script src="../js/services/sessionGuard.js"></script>
+
+<script src="../js/navegacao.js"></script>
+<script src="../js/dashboard-dono.js"></script>
 </body>
 </html>

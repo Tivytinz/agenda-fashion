@@ -1,33 +1,59 @@
-const configuracoesService = require("../services/configuracoesService");
+const configuracoesService = require(
+  "../services/configuracoesService"
+);
 
-async function buscarConfiguracoes(req, res, next) {
+async function buscarConfiguracoes(
+  req,
+  res,
+  next
+) {
   try {
     const resultado =
-      await configuracoesService.buscarConfiguracoes({
-        usuarioId: req.user?.id
-      });
+      await configuracoesService
+        .buscarConfiguracoes({
+          usuarioId:
+            req.user?.id,
+        });
 
-    return res.json(resultado);
-  } catch (err) {
-    next(err);
+    return res
+      .status(200)
+      .json(resultado);
+  } catch (erro) {
+    return next(erro);
   }
 }
 
-async function salvarConfiguracoes(req, res, next) {
+async function salvarConfiguracoes(
+  req,
+  res,
+  next
+) {
   try {
-    const resultado =
-      await configuracoesService.salvarConfiguracoes({
-        usuarioId: req.user?.id,
-        dados: req.body
-      });
+    const dados =
+      req.body &&
+      typeof req.body === "object" &&
+      !Array.isArray(req.body)
+        ? req.body
+        : {};
 
-    return res.json(resultado);
-  } catch (err) {
-    next(err);
+    const resultado =
+      await configuracoesService
+        .salvarConfiguracoes({
+          usuarioId:
+            req.user?.id,
+
+          dados,
+        });
+
+    return res
+      .status(200)
+      .json(resultado);
+  } catch (erro) {
+    return next(erro);
   }
 }
 
 module.exports = {
   buscarConfiguracoes,
-  salvarConfiguracoes
+  salvarConfiguracoes,
 };

@@ -1,276 +1,509 @@
-const db = require("../db/db");
+const db = require(
+  "../db/db"
+);
 
-async function buscarPorSlug(slug) {
-  const result = await db.query(
-    `
-    SELECT *
-    FROM negocios
-    WHERE slug = $1
-    LIMIT 1
-    `,
-    [slug]
-  );
-
-  return result.rows[0] || null;
-}
-
-async function usuarioPossuiNegocio(usuarioId) {
-  const result = await db.query(
-    `
-    SELECT 1
-    FROM usuarios_negocios
-    WHERE usuario_id = $1
-    LIMIT 1
-    `,
-    [usuarioId]
-  );
-
-  return result.rows.length > 0;
-}
-
-async function criar({
-  nome,
-  slug,
-  donoUsuarioId,
-  planoId,
-  asaasCustomerId
-}) {
-  const result = await db.query(
-    `
-    INSERT INTO negocios (
-      nome,
-      slug,
-      dono_usuario_id,
-      plano_id,
-      asaas_customer_id,
-      created_at
-    )
-    VALUES ($1,$2,$3,$4,$5,NOW())
-    RETURNING *
-    `,
-    [
-      nome,
-      slug,
-      donoUsuarioId,
-      planoId,
-      asaasCustomerId
-    ]
-  );
-
-  return result.rows[0];
-}
-
-async function vincularUsuario(
-  usuarioId,
-  negocioId,
-  papel = "dono"
+function normalizarId(
+  valor
 ) {
-  await db.query(
-    `
-    INSERT INTO usuarios_negocios (
-      usuario_id,
-      negocio_id,
-      papel
+  const id =
+    Number(valor);
+
+  if (
+    !Number.isInteger(id) ||
+    id <= 0
+  ) {
+    return null;
+  }
+
+  return id;
+}
+
+function obterExecutor(
+  executor
+) {
+  if (
+    executor &&
+    typeof executor.query ===
+      "function"
+  ) {
+    return executor;
+  }
+
+  return db;
+}
+
+/*
+ * Procura um negócio pelo slug,
+ * independentemente de estar publicado.
+ *
+ * Utilizado para garantir que a URL
+ * pública não seja duplicada.
+ */
+async function buscarNegocioPorSlug(
+  slug,
+  executor = db
+) {
+  const slugLimpo =
+    String(
+      slug ?? ""
     )
-    VALUES ($1,$2,$3)
-    `,
-    [
-      usuarioId,
-      negocioId,
-      papel
-    ]
-  );
-}
+      .trim()
+      .toLowerCase();
 
-async function buscarDoUsuario(usuarioId) {
-  const result = await db.query(
-    `
-    SELECT
-      n.*
-    FROM usuarios_negocios un
-    INNER JOIN negocios n
-      ON n.id = un.negocio_id
-    WHERE un.usuario_id = $1
-    LIMIT 1
-    `,
-    [usuarioId]
-  );
+  if (!slugLimpo) {
+    return null;
+  }
 
-  return result.rows[0] || null;
-}
-
-async function listarProfissionais(negocioId) {
-  const result = await db.query(
-    `
-    SELECT
-      u.id,
-      u.nome,
-      u.email,
-      u.whatsapp,
-      u.tipo,
-      u.foto_url,
-      un.papel
-    FROM usuarios_negocios un
-    INNER JOIN usuarios u
-      ON u.id = un.usuario_id
-    WHERE un.negocio_id = $1
-    ORDER BY
-      CASE
-        WHEN un.papel = 'dono' THEN 1
-        ELSE 2
-      END,
-      u.nome
-    `,
-    [negocioId]
-  );
-
-  return result.rows;
-}
-
-async function atualizarAssinaturaAsaas({
-  negocioId,
-  subscriptionId,
-  status,
-  proximoVencimento
-}) {
-  const result = await db.query(
-    `
-    UPDATE negocios
-    SET
-      asaas_subscription_id = $1,
-      status_assinatura = $2,
-      proximo_vencimento = $3
-    WHERE id = $4
-    RETURNING *
-    `,
-    [
-      subscriptionId,
-      status,
-      proximoVencimento,
-      negocioId
-    ]
-  );
-
-  return result.rows[0];
-}
-
-async function atualizarPlano(negocioId, planoId) {
-    const result = await db.query(
-        `
-        UPDATE negocios
-        SET
-            plano_id = $1,
-            updated_at = NOW()
-        WHERE id = $2
-        RETURNING *
-        `,
-        [planoId, negocioId]
+  const conexao =
+    obterExecutor(
+      executor
     );
 
-    return result.rows[0] || null;
+  const resultado =
+    await conexao.query(
+      `
+      SELECT
+        id,
+        nome,
+        slug,
+        ativo,
+        publicado,
+        created_at,
+        updated_at
+
+      FROM negocios
+
+      WHERE slug = $1
+
+      LIMIT 1
+      `,
+      [
+        slugLimpo,
+      ]
+    );
+
+  return (
+    resultado.rows[0] ||
+    null
+  );
 }
 
-async function gerarSlugDisponivel(baseSlug) {
-  let slug = baseSlug;
-  let contador = 1;
+/*
+ * Verifica se a conta já possui
+ * vínculo ativo como dona.
+ *
+ * Neste momento, o fluxo permite
+ * somente um negócio principal
+ * por conta.
+ */
+async function buscarNegocioDoDono(
+  usuarioId,
+  executor = db
+) {
+  const id =
+    normalizarId(
+      usuarioId
+    );
 
-  while (true) {
-    const existente = await buscarPorSlug(slug);
-
-    if (!existente) {
-      return slug;
-    }
-
-    slug = `${baseSlug}-${contador}`;
-    contador++;
+  if (!id) {
+    return null;
   }
+
+  const conexao =
+    obterExecutor(
+      executor
+    );
+
+  const resultado =
+    await conexao.query(
+      `
+      SELECT
+        n.id,
+        n.nome,
+        n.slug,
+        n.descricao,
+        n.setor,
+        n.whatsapp,
+        n.foto_url,
+        n.foto_public_id,
+        n.cidade,
+        n.estado,
+        n.bairro,
+        n.endereco,
+        n.numero,
+        n.complemento,
+        n.cep,
+        n.localizacao_url,
+        n.latitude,
+        n.longitude,
+        n.fuso_horario,
+        n.ativo,
+        n.publicado,
+        n.created_at,
+        n.updated_at,
+
+        un.id
+          AS vinculo_id,
+
+        un.papel,
+
+        un.created_at
+          AS vinculado_em
+
+      FROM usuarios_negocios un
+
+      INNER JOIN negocios n
+        ON n.id = un.negocio_id
+
+      WHERE un.usuario_id = $1
+        AND un.papel = 'dono'
+        AND un.ativo = TRUE
+        AND n.ativo = TRUE
+
+      ORDER BY
+        un.created_at ASC,
+        n.id ASC
+
+      LIMIT 1
+      `,
+      [
+        id,
+      ]
+    );
+
+  return (
+    resultado.rows[0] ||
+    null
+  );
 }
 
-async function buscarPorTermo(termo) {
-  const result = await db.query(
-    `
-    SELECT
-      id,
-      nome,
-      slug,
-      foto_url,
-      cidade,
-      bairro,
-      setor,
-      descricao
-    FROM negocios
-    WHERE
-      LOWER(nome) LIKE $1
-      OR LOWER(cidade) LIKE $1
-      OR LOWER(bairro) LIKE $1
-      OR LOWER(setor) LIKE $1
-    ORDER BY nome ASC
-    LIMIT 20
-    `,
-    [`%${termo.toLowerCase()}%`]
-  );
+/*
+ * Insere somente o negócio.
+ *
+ * Deve ser chamada dentro de uma
+ * transação quando houver criação
+ * simultânea do vínculo de dono.
+ */
+async function criarNegocio(
+  dados,
+  executor = db
+) {
+  const conexao =
+    obterExecutor(
+      executor
+    );
 
-  return result.rows;
+  const resultado =
+    await conexao.query(
+      `
+      INSERT INTO negocios (
+        nome,
+        slug,
+        descricao,
+        setor,
+        whatsapp,
+        foto_url,
+        foto_public_id,
+        cidade,
+        estado,
+        bairro,
+        endereco,
+        numero,
+        complemento,
+        cep,
+        localizacao_url,
+        latitude,
+        longitude,
+        fuso_horario,
+        ativo,
+        publicado
+      )
+      VALUES (
+        $1,
+        $2,
+        $3,
+        $4,
+        $5,
+        $6,
+        $7,
+        $8,
+        $9,
+        $10,
+        $11,
+        $12,
+        $13,
+        $14,
+        $15,
+        $16,
+        $17,
+        $18,
+        TRUE,
+        FALSE
+      )
+
+      RETURNING
+        id,
+        nome,
+        slug,
+        descricao,
+        setor,
+        whatsapp,
+        foto_url,
+        foto_public_id,
+        cidade,
+        estado,
+        bairro,
+        endereco,
+        numero,
+        complemento,
+        cep,
+        localizacao_url,
+        latitude,
+        longitude,
+        fuso_horario,
+        ativo,
+        publicado,
+        created_at,
+        updated_at
+      `,
+      [
+        dados.nome,
+        dados.slug,
+        dados.descricao || null,
+        dados.setor || null,
+        dados.whatsapp || null,
+        dados.foto_url || null,
+        dados.foto_public_id || null,
+        dados.cidade || null,
+        dados.estado || null,
+        dados.bairro || null,
+        dados.endereco || null,
+        dados.numero || null,
+        dados.complemento || null,
+        dados.cep || null,
+        dados.localizacao_url || null,
+        dados.latitude ?? null,
+        dados.longitude ?? null,
+        dados.fuso_horario ||
+          "America/Sao_Paulo",
+      ]
+    );
+
+  return resultado.rows[0];
 }
 
-async function buscarPorId(negocioId) {
-  const result = await db.query(
-    `
-    SELECT id, nome, slug
-    FROM negocios
-    WHERE id = $1
-    LIMIT 1
-    `,
-    [negocioId]
-  );
+/*
+ * Cria o vínculo entre uma conta
+ * e um negócio.
+ */
+async function criarVinculoDono(
+  {
+    usuarioId,
+    negocioId,
+  },
+  executor = db
+) {
+  const idUsuario =
+    normalizarId(
+      usuarioId
+    );
 
-  return result.rows[0] || null;
+  const idNegocio =
+    normalizarId(
+      negocioId
+    );
+
+  if (
+    !idUsuario ||
+    !idNegocio
+  ) {
+    throw new TypeError(
+      "Usuário ou negócio inválido para criação do vínculo."
+    );
+  }
+
+  const conexao =
+    obterExecutor(
+      executor
+    );
+
+  const resultado =
+    await conexao.query(
+      `
+      INSERT INTO usuarios_negocios (
+        usuario_id,
+        negocio_id,
+        papel,
+        ativo
+      )
+      VALUES (
+        $1,
+        $2,
+        'dono',
+        TRUE
+      )
+
+      RETURNING
+        id,
+        usuario_id,
+        negocio_id,
+        papel,
+        ativo,
+        created_at,
+        updated_at
+      `,
+      [
+        idUsuario,
+        idNegocio,
+      ]
+    );
+
+  return resultado.rows[0];
 }
 
-async function buscarVinculo(usuarioId, negocioId) {
-  const result = await db.query(
-    `
-    SELECT id, papel
-    FROM usuarios_negocios
-    WHERE usuario_id = $1
-      AND negocio_id = $2
-    LIMIT 1
-    `,
-    [usuarioId, negocioId]
+/*
+ * Cria o negócio e o vínculo de dono
+ * dentro da mesma transação.
+ *
+ * Se qualquer INSERT falhar,
+ * nenhuma alteração permanece no banco.
+ */
+async function criarNegocioComDono({
+  usuarioId,
+  negocio,
+}) {
+  const idUsuario =
+    normalizarId(
+      usuarioId
+    );
+
+  if (!idUsuario) {
+    throw new TypeError(
+      "Usuário inválido para criação do negócio."
+    );
+  }
+
+  return db.executarTransacao(
+    async (
+      client
+    ) => {
+      /*
+       * Bloqueia a conta durante a
+       * transação para reduzir risco
+       * de criações simultâneas.
+       */
+      const usuarioResultado =
+        await client.query(
+          `
+          SELECT
+            id,
+            ativo
+
+          FROM usuarios
+
+          WHERE id = $1
+
+          FOR UPDATE
+          `,
+          [
+            idUsuario,
+          ]
+        );
+
+      const usuario =
+        usuarioResultado
+          .rows[0];
+
+      if (!usuario) {
+        const erro =
+          new Error(
+            "Usuário não encontrado."
+          );
+
+        erro.code =
+          "USUARIO_NAO_ENCONTRADO";
+
+        throw erro;
+      }
+
+      if (
+        usuario.ativo === false
+      ) {
+        const erro =
+          new Error(
+            "Conta desativada."
+          );
+
+        erro.code =
+          "USUARIO_INATIVO";
+
+        throw erro;
+      }
+
+      const negocioExistente =
+        await buscarNegocioDoDono(
+          idUsuario,
+          client
+        );
+
+      if (negocioExistente) {
+        const erro =
+          new Error(
+            "Esta conta já possui um negócio."
+          );
+
+        erro.code =
+          "DONO_JA_POSSUI_NEGOCIO";
+
+        erro.negocio =
+          negocioExistente;
+
+        throw erro;
+      }
+
+      const negocioCriado =
+        await criarNegocio(
+          negocio,
+          client
+        );
+
+      const vinculoCriado =
+        await criarVinculoDono(
+          {
+            usuarioId:
+              idUsuario,
+
+            negocioId:
+              negocioCriado.id,
+          },
+          client
+        );
+
+      return {
+        negocio: {
+          ...negocioCriado,
+
+          papel:
+            vinculoCriado.papel,
+
+          vinculo_id:
+            vinculoCriado.id,
+
+          vinculado_em:
+            vinculoCriado.created_at,
+        },
+
+        vinculo:
+          vinculoCriado,
+      };
+    }
   );
-
-  return result.rows[0] || null;
-}
-
-async function vincularProfissional(usuarioId, negocioId) {
-  const result = await db.query(
-    `
-    INSERT INTO usuarios_negocios (
-      usuario_id,
-      negocio_id,
-      papel
-    )
-    VALUES ($1, $2, 'profissional')
-    RETURNING *
-    `,
-    [usuarioId, negocioId]
-  );
-
-  return result.rows[0];
 }
 
 module.exports = {
-  buscarPorSlug,
-  gerarSlugDisponivel,
-  buscarPorTermo,
-  usuarioPossuiNegocio,
-  criar,
-  vincularUsuario,
-  buscarDoUsuario,
-  listarProfissionais,
-  atualizarAssinaturaAsaas,
-  atualizarPlano,
-  buscarPorId,
-  buscarVinculo,
-  vincularProfissional
+  buscarNegocioPorSlug,
+  buscarNegocioDoDono,
+  criarNegocio,
+  criarVinculoDono,
+  criarNegocioComDono,
 };

@@ -2,45 +2,446 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Criar Negócio</title>
-  <link rel="stylesheet" href="../css/criar-negocio.css">
+
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+  >
+
+  <meta
+    name="description"
+    content="Configure seu negócio no Agenda Fashion."
+  >
+
+  <title>
+    Criar negócio | Agenda Fashion
+  </title>
+
+  <link
+    rel="stylesheet"
+    href="../css/criar-negocio.css"
+  >
 </head>
-<body class="page-enter">
 
-  <div class="auth-container">
+<body>
+  <header class="topo-onboarding">
+    <a
+      class="marca"
+      href="inicio.html"
+      aria-label="Agenda Fashion"
+    >
+      <span aria-hidden="true">
+        ✨
+      </span>
 
-    <div class="auth-icon">🏢</div>
+      <strong>
+        Agenda Fashion
+      </strong>
+    </a>
 
-    <h2>Criar meu negócio</h2>
-    <p class="auth-subtitle">
-      Cadastre seu negócio para começar a usar a agenda
-    </p>
+    <button
+      id="btnSair"
+      class="btn-sair"
+      type="button"
+    >
+      Sair
+    </button>
+  </header>
 
-    <form class="auth-form" onsubmit="return false;">
+  <main class="pagina-criar-negocio">
+    <section class="apresentacao">
+      <span class="etapa">
+        Configuração inicial
+      </span>
 
-      <div class="input-group">
-        <label for="nomeNegocio">Nome do negócio</label>
-        <input type="text" id="nomeNegocio" placeholder="Ex: Studio Bella">
+      <h1>
+        Vamos criar o perfil do seu negócio
+      </h1>
+
+      <p>
+        Preencha as informações principais.
+        Você poderá editar tudo depois no painel.
+      </p>
+
+      <div class="beneficios">
+        <article>
+          <span aria-hidden="true">
+            📅
+          </span>
+
+          <div>
+            <strong>
+              Agenda organizada
+            </strong>
+
+            <small>
+              Gerencie horários e atendimentos.
+            </small>
+          </div>
+        </article>
+
+        <article>
+          <span aria-hidden="true">
+            🔗
+          </span>
+
+          <div>
+            <strong>
+              Página pública
+            </strong>
+
+            <small>
+              Compartilhe seu perfil com clientes.
+            </small>
+          </div>
+        </article>
+
+        <article>
+          <span aria-hidden="true">
+            👥
+          </span>
+
+          <div>
+            <strong>
+              Equipe conectada
+            </strong>
+
+            <small>
+              Adicione profissionais posteriormente.
+            </small>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <section class="card-formulario">
+      <div class="cabecalho-formulario">
+        <span class="icone-card" aria-hidden="true">
+          🏢
+        </span>
+
+        <div>
+          <h2>
+            Dados do negócio
+          </h2>
+
+          <p>
+            Campos com * são obrigatórios.
+          </p>
+        </div>
       </div>
 
-      <p id="mensagemCriarNegocio" class="mensagem-form hidden"></p>
+      <form
+        id="formCriarNegocio"
+        novalidate
+      >
+        <div class="grade-formulario">
+          <div class="campo campo-grande">
+            <label for="nome">
+              Nome do negócio *
+            </label>
 
-      <button id="btnCriarNegocio" type="button">
-        Criar negócio
-      </button>
+            <input
+              id="nome"
+              name="nome"
+              type="text"
+              placeholder="Ex.: Studio Bella"
+              autocomplete="organization"
+              minlength="2"
+              maxlength="120"
+              required
+            >
 
-    </form>
+            <small>
+              Este nome será exibido para os clientes.
+            </small>
+          </div>
 
-    <p class="auth-footer">
-      Voltar?
-      <a href="escolher-negocio.html" id="linkVoltarEscolha">Escolher negócio</a>
-    </p>
+          <div class="campo">
+            <label for="setor">
+              Segmento *
+            </label>
 
-  </div>
+            <select
+              id="setor"
+              name="setor"
+              required
+            >
+              <option value="">
+                Selecione
+              </option>
+
+              <option value="Salão de beleza">
+                Salão de beleza
+              </option>
+
+              <option value="Barbearia">
+                Barbearia
+              </option>
+
+              <option value="Manicure e pedicure">
+                Manicure e pedicure
+              </option>
+
+              <option value="Cílios e sobrancelhas">
+                Cílios e sobrancelhas
+              </option>
+
+              <option value="Estética">
+                Estética
+              </option>
+
+              <option value="Massagem">
+                Massagem
+              </option>
+
+              <option value="Maquiagem">
+                Maquiagem
+              </option>
+
+              <option value="Tatuagem">
+                Tatuagem
+              </option>
+
+              <option value="Outro">
+                Outro
+              </option>
+            </select>
+          </div>
+
+          <div class="campo">
+            <label for="whatsapp">
+              WhatsApp *
+            </label>
+
+            <input
+              id="whatsapp"
+              name="whatsapp"
+              type="tel"
+              placeholder="(62) 99999-9999"
+              autocomplete="tel"
+              inputmode="numeric"
+              maxlength="15"
+              required
+            >
+          </div>
+
+          <div class="campo campo-grande">
+            <label for="descricao">
+              Descrição
+            </label>
+
+            <textarea
+              id="descricao"
+              name="descricao"
+              placeholder="Conte um pouco sobre seu negócio, especialidades e atendimento."
+              maxlength="1200"
+              rows="4"
+            ></textarea>
+
+            <div class="contador">
+              <span id="contadorDescricao">
+                0
+              </span>
+
+              <span>
+                / 1200
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <fieldset>
+          <legend>
+            Localização
+          </legend>
+
+          <p class="descricao-secao">
+            Ajude seus clientes a encontrarem seu negócio.
+          </p>
+
+          <div class="grade-formulario">
+            <div class="campo">
+              <label for="cep">
+                CEP
+              </label>
+
+              <input
+                id="cep"
+                name="cep"
+                type="text"
+                placeholder="00000-000"
+                autocomplete="postal-code"
+                inputmode="numeric"
+                maxlength="9"
+              >
+            </div>
+
+            <div class="campo">
+              <label for="cidade">
+                Cidade *
+              </label>
+
+              <input
+                id="cidade"
+                name="cidade"
+                type="text"
+                placeholder="Sua cidade"
+                autocomplete="address-level2"
+                maxlength="100"
+                required
+              >
+            </div>
+
+            <div class="campo campo-pequeno">
+              <label for="estado">
+                Estado *
+              </label>
+
+              <select
+                id="estado"
+                name="estado"
+                autocomplete="address-level1"
+                required
+              >
+                <option value="">
+                  UF
+                </option>
+
+                <option value="AC">AC</option>
+                <option value="AL">AL</option>
+                <option value="AP">AP</option>
+                <option value="AM">AM</option>
+                <option value="BA">BA</option>
+                <option value="CE">CE</option>
+                <option value="DF">DF</option>
+                <option value="ES">ES</option>
+                <option value="GO">GO</option>
+                <option value="MA">MA</option>
+                <option value="MT">MT</option>
+                <option value="MS">MS</option>
+                <option value="MG">MG</option>
+                <option value="PA">PA</option>
+                <option value="PB">PB</option>
+                <option value="PR">PR</option>
+                <option value="PE">PE</option>
+                <option value="PI">PI</option>
+                <option value="RJ">RJ</option>
+                <option value="RN">RN</option>
+                <option value="RS">RS</option>
+                <option value="RO">RO</option>
+                <option value="RR">RR</option>
+                <option value="SC">SC</option>
+                <option value="SP">SP</option>
+                <option value="SE">SE</option>
+                <option value="TO">TO</option>
+              </select>
+            </div>
+
+            <div class="campo">
+              <label for="bairro">
+                Bairro
+              </label>
+
+              <input
+                id="bairro"
+                name="bairro"
+                type="text"
+                placeholder="Seu bairro"
+                autocomplete="address-level3"
+                maxlength="100"
+              >
+            </div>
+
+            <div class="campo campo-grande">
+              <label for="endereco">
+                Endereço
+              </label>
+
+              <input
+                id="endereco"
+                name="endereco"
+                type="text"
+                placeholder="Rua, avenida ou praça"
+                autocomplete="street-address"
+                maxlength="180"
+              >
+            </div>
+
+            <div class="campo campo-pequeno">
+              <label for="numero">
+                Número
+              </label>
+
+              <input
+                id="numero"
+                name="numero"
+                type="text"
+                placeholder="123"
+                maxlength="20"
+              >
+            </div>
+
+            <div class="campo">
+              <label for="complemento">
+                Complemento
+              </label>
+
+              <input
+                id="complemento"
+                name="complemento"
+                type="text"
+                placeholder="Sala, bloco ou referência"
+                maxlength="120"
+              >
+            </div>
+
+            <div class="campo campo-grande">
+              <label for="localizacao_url">
+                Link do Google Maps
+              </label>
+
+              <input
+                id="localizacao_url"
+                name="localizacao_url"
+                type="url"
+                placeholder="https://maps.google.com/..."
+                inputmode="url"
+              >
+            </div>
+          </div>
+        </fieldset>
+
+        <p
+          id="mensagemCriacao"
+          class="mensagem hidden"
+          role="alert"
+          aria-live="polite"
+        ></p>
+
+        <div class="acoes-formulario">
+          <a
+            class="btn-secundario"
+            href="inicio.html"
+          >
+            Voltar
+          </a>
+
+          <button
+            id="btnCriarNegocio"
+            class="btn-principal"
+            type="submit"
+          >
+            Criar meu negócio
+          </button>
+        </div>
+      </form>
+    </section>
+  </main>
+
   <script src="../js/config.js"></script>
-  <script src="../js/utils.js"></script>
   <script src="../js/api.js"></script>
+  <script src="../js/services/authService.js"></script>
   <script src="../js/criar-negocio.js"></script>
 </body>
 </html>

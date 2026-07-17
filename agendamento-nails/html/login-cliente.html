@@ -1,53 +1,149 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
-
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Login Cliente</title>
-  <link rel="stylesheet" href="../css/login-cliente.css">
+
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+  >
+
+  <meta
+    name="description"
+    content="Entre na sua conta do Agenda Fashion para acompanhar seus agendamentos."
+  >
+
+  <title>Entrar | Agenda Fashion</title>
+
+  <link
+    rel="stylesheet"
+    href="../css/auth.css"
+  >
 </head>
 
 <body class="page-enter">
+  <main class="auth-container">
+    <div
+      class="auth-icon"
+      aria-hidden="true"
+    >
+      💅
+    </div>
 
-  <div class="auth-container">
-    <div class="auth-icon">💅</div>
+    <h1>Entre na sua conta</h1>
 
-    <h2>Login Cliente</h2>
-    <p class="auth-subtitle">Acesse sua agenda de horários</p>
+    <p class="auth-subtitle">
+      Acesse seus agendamentos e encontre novos serviços.
+    </p>
 
-    <form class="auth-form" onsubmit="return false;">
+    <form
+      id="formLoginCliente"
+      class="auth-form"
+      novalidate
+    >
       <div class="input-group">
-        <label for="email">E-mail</label>
-        <input type="email" id="email" placeholder="Digite seu e-mail">
+        <label for="email">
+          E-mail
+        </label>
+
+        <input
+          id="email"
+          name="email"
+          type="email"
+          placeholder="voce@email.com"
+          autocomplete="email"
+          maxlength="160"
+          autocapitalize="none"
+          spellcheck="false"
+          required
+        >
       </div>
 
       <div class="input-group">
-        <label for="senha">Senha</label>
+        <label for="senha">
+          Senha
+        </label>
+
         <div class="senha-box">
-          <input type="password" id="senha" placeholder="Digite sua senha">
-          <span class="toggle-senha" id="toggleSenha">🙈</span>
+          <input
+            id="senha"
+            name="senha"
+            type="password"
+            placeholder="Digite sua senha"
+            autocomplete="current-password"
+            maxlength="72"
+            required
+          >
+
+          <button
+            id="toggleSenha"
+            class="toggle-senha"
+            type="button"
+            aria-label="Mostrar senha"
+            aria-pressed="false"
+          >
+            🙈
+          </button>
         </div>
       </div>
 
-      <p id="mensagemLogin" class="mensagem-form hidden"></p>
+      <p
+        id="mensagemLogin"
+        class="mensagem-form hidden"
+        role="alert"
+        aria-live="polite"
+      ></p>
 
-      <button id="btnLoginCliente" type="button">Entrar</button>
+      <button
+        id="btnLoginCliente"
+        type="submit"
+        disabled
+      >
+        Entrar
+      </button>
     </form>
 
     <p class="auth-footer">
-      Não tem conta? <a href="cadastro-cliente.html">Cadastre-se</a>
+      Ainda não possui uma conta?
+
+      <a href="cadastro-cliente.html">
+        Criar conta
+      </a>
     </p>
 
     <p class="auth-footer">
-      Área profissional? <a href="login-profissional.html">Entrar como profissional</a>
+      Quer administrar um negócio?
+
+      <a href="login-profissional.html">
+        Área profissional
+      </a>
     </p>
-  </div>
+
+    <p class="auth-footer">
+      <a href="inicio.html">
+        Voltar para o início
+      </a>
+    </p>
+  </main>
+
+  <!--
+    A ordem é obrigatória:
+
+    config.js
+    → define API_URL
+
+    api.js
+    → cria window.API
+
+    authService.js
+    → utiliza window.API
+
+    login-cliente.js
+    → utiliza window.AuthService
+  -->
   <script src="../js/config.js"></script>
-  <script src="../js/utils.js"></script>
   <script src="../js/api.js"></script>
   <script src="../js/services/authService.js"></script>
   <script src="../js/login-cliente.js"></script>
 </body>
-
 </html>

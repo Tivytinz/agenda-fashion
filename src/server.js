@@ -8,7 +8,7 @@ const express = require("express");
 const cors = require("cors");
 
 const db = require("./db/db");
-const apiRoutes = require("./routes");
+const apiRoutes = require("./routes/index");
 const errorHandler = require("./middlewares/errorHandler");
 const agendaConfiguracaoRoutes = require("./routes/agendaConfiguracaoRoutes");
 

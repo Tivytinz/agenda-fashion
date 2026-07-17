@@ -1,247 +1,628 @@
 document.addEventListener("DOMContentLoaded", () => {
-  const nome = document.getElementById("nome");
-  const sobrenome = document.getElementById("sobrenome");
-  const email = document.getElementById("email");
-  const whatsapp = document.getElementById("whatsapp");
-  const senha = document.getElementById("senha");
-  const confirmarSenha = document.getElementById("confirmarSenha");
+  const elementos = {
+    form: document.getElementById("formCadastroCliente"),
+    nome: document.getElementById("nome"),
+    sobrenome: document.getElementById("sobrenome"),
+    email: document.getElementById("email"),
+    whatsapp: document.getElementById("whatsapp"),
+    senha: document.getElementById("senha"),
+    confirmarSenha: document.getElementById("confirmarSenha"),
+    botao: document.getElementById("btnCadastroCliente"),
+    mensagem: document.getElementById("mensagemCadastro"),
+    toggleSenha: document.getElementById("toggleSenha"),
+    toggleConfirmarSenha: document.getElementById(
+      "toggleConfirmarSenha"
+    ),
+  };
 
-  const btn = document.getElementById("btnCadastroCliente");
-  const mensagem = document.getElementById("mensagemCadastro");
+  const obrigatorios = [
+    elementos.form,
+    elementos.nome,
+    elementos.sobrenome,
+    elementos.email,
+    elementos.whatsapp,
+    elementos.senha,
+    elementos.confirmarSenha,
+    elementos.botao,
+    elementos.mensagem,
+  ];
 
-  const toggleSenha = document.getElementById("toggleSenha");
-  const toggleConfirmarSenha = document.getElementById("toggleConfirmarSenha");
+  if (obrigatorios.some((elemento) => !elemento)) {
+    console.error(
+      "Elementos obrigatórios do cadastro de cliente não foram encontrados."
+    );
 
-  if (
-    !nome || !sobrenome || !email || !whatsapp ||
-    !senha || !confirmarSenha || !btn || !mensagem ||
-    !toggleSenha || !toggleConfirmarSenha
-  ) {
-    console.error("Elementos do cadastro cliente não encontrados.");
     return;
   }
 
-  function desativarBotao() {
-    btn.disabled = true;
-    btn.classList.add("btn-disabled");
+  if (
+    !window.AuthService ||
+    typeof window.AuthService.cadastro !== "function"
+  ) {
+    console.error("AuthService não foi carregado.");
+
+    mostrarMensagem(
+      "O sistema de autenticação não foi carregado. Atualize a página."
+    );
+
+    return;
   }
 
-  function ativarBotao() {
-    btn.disabled = false;
-    btn.classList.remove("btn-disabled");
+  let enviando = false;
+  let temporizadorRedirecionamento = null;
+
+  function normalizarTexto(valor) {
+    return String(valor ?? "")
+      .trim()
+      .replace(/\s+/g, " ");
   }
 
-  function mostrarMensagem(texto, cor = "#e63946") {
-    mensagem.textContent = texto;
-    mensagem.style.color = cor;
-    mensagem.classList.remove("hidden");
+  function normalizarEmail(valor) {
+    return String(valor ?? "")
+      .trim()
+      .toLowerCase();
+  }
+
+  function normalizarWhatsapp(valor) {
+    let numeros = String(valor ?? "").replace(/\D/g, "");
+
+    if (
+      (numeros.length === 12 || numeros.length === 13) &&
+      numeros.startsWith("55")
+    ) {
+      numeros = numeros.slice(2);
+    }
+
+    return numeros;
+  }
+
+  function aplicarMascaraWhatsapp(valor) {
+    const numeros = normalizarWhatsapp(valor).slice(0, 11);
+
+    if (numeros.length <= 2) {
+      return numeros;
+    }
+
+    if (numeros.length <= 6) {
+      return `(${numeros.slice(0, 2)}) ${numeros.slice(2)}`;
+    }
+
+    if (numeros.length <= 10) {
+      return (
+        `(${numeros.slice(0, 2)}) ` +
+        `${numeros.slice(2, 6)}-${numeros.slice(6)}`
+      );
+    }
+
+    return (
+      `(${numeros.slice(0, 2)}) ` +
+      `${numeros.slice(2, 7)}-${numeros.slice(7)}`
+    );
+  }
+
+  function nomeValido(valor) {
+    const texto = normalizarTexto(valor);
+
+    return (
+      texto.length >= 2 &&
+      texto.length <= 60 &&
+      /^[A-Za-zÀ-ÿ' -]+$/.test(texto)
+    );
+  }
+
+  function emailValido(valor) {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(
+      normalizarEmail(valor)
+    );
+  }
+
+  function whatsappValido(valor) {
+    return [10, 11].includes(
+      normalizarWhatsapp(valor).length
+    );
+  }
+
+  function senhaValida(valor) {
+    const senha = String(valor ?? "");
+
+    const tamanhoEmBytes = new TextEncoder()
+      .encode(senha)
+      .length;
+
+    return (
+      tamanhoEmBytes >= 6 &&
+      tamanhoEmBytes <= 72
+    );
+  }
+
+  function limparErroCampo(campo) {
+    campo?.removeAttribute("aria-invalid");
+
+    campo?.classList.remove(
+      "input-error",
+      "shake"
+    );
+  }
+
+  function limparErros() {
+    [
+      elementos.nome,
+      elementos.sobrenome,
+      elementos.email,
+      elementos.whatsapp,
+      elementos.senha,
+      elementos.confirmarSenha,
+    ].forEach(limparErroCampo);
+  }
+
+  function marcarErro(...campos) {
+    campos.forEach((campo) => {
+      if (!campo) {
+        return;
+      }
+
+      campo.setAttribute(
+        "aria-invalid",
+        "true"
+      );
+
+      campo.classList.remove("shake");
+
+      void campo.offsetWidth;
+
+      campo.classList.add(
+        "input-error",
+        "shake"
+      );
+    });
+
+    campos[0]?.focus();
+  }
+
+  function mostrarMensagem(
+    texto,
+    tipo = "erro"
+  ) {
+    elementos.mensagem.textContent = texto;
+
+    elementos.mensagem.classList.remove(
+      "hidden",
+      "erro",
+      "sucesso"
+    );
+
+    elementos.mensagem.classList.add(tipo);
   }
 
   function esconderMensagem() {
-    mensagem.textContent = "";
-    mensagem.classList.add("hidden");
+    elementos.mensagem.textContent = "";
+
+    elementos.mensagem.classList.add(
+      "hidden"
+    );
+
+    elementos.mensagem.classList.remove(
+      "erro",
+      "sucesso"
+    );
   }
 
   function limparEstadoBotao() {
-    btn.classList.remove("btn-success", "btn-error");
-  }
-
-  function limparErros(...inputs) {
-    inputs.forEach((input) => {
-      input.classList.remove("input-error", "shake");
-    });
-  }
-
-  function tremerInputs(...inputs) {
-    inputs.forEach((input) => {
-      input.classList.remove("shake");
-      void input.offsetWidth;
-      input.classList.add("input-error", "shake");
-    });
-  }
-
-  function validarEmail(valor) {
-    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(valor.trim());
-  }
-
-  function validarNome(valor) {
-    return /^[A-Za-zÀ-ÿ\s]{2,}$/.test(valor.trim());
-  }
-
-  function validarWhatsapp(valor) {
-    return valor.replace(/\D/g, "").length === 11;
-  }
-
-  function mascaraWhatsapp(valor) {
-    let numeros = valor.replace(/\D/g, "");
-    numeros = numeros.slice(0, 11);
-
-    if (numeros.length <= 2) return numeros;
-    if (numeros.length <= 7) {
-      return `(${numeros.slice(0, 2)}) ${numeros.slice(2)}`;
-    }
-    return `(${numeros.slice(0, 2)}) ${numeros.slice(2, 7)}-${numeros.slice(7)}`;
+    elementos.botao.classList.remove(
+      "btn-success",
+      "btn-error"
+    );
   }
 
   function formularioValido() {
     return (
-      validarNome(nome.value) &&
-      validarNome(sobrenome.value) &&
-      validarEmail(email.value) &&
-      validarWhatsapp(whatsapp.value) &&
-      senha.value.trim().length >= 6 &&
-      confirmarSenha.value.trim() !== "" &&
-      senha.value === confirmarSenha.value
+      nomeValido(elementos.nome.value) &&
+      nomeValido(elementos.sobrenome.value) &&
+      emailValido(elementos.email.value) &&
+      whatsappValido(elementos.whatsapp.value) &&
+      senhaValida(elementos.senha.value) &&
+      elementos.senha.value ===
+        elementos.confirmarSenha.value
     );
   }
 
-  function validarFormulario() {
-    esconderMensagem();
-    limparErros(nome, sobrenome, email, whatsapp, senha, confirmarSenha);
-    limparEstadoBotao();
+  function atualizarBotao() {
+    elementos.botao.disabled =
+      enviando || !formularioValido();
 
-    if (formularioValido()) {
-      ativarBotao();
-      btn.innerHTML = "Cadastrar";
-    } else {
-      desativarBotao();
-      btn.innerHTML = "Cadastrar";
+    elementos.botao.classList.toggle(
+      "btn-disabled",
+      elementos.botao.disabled
+    );
+
+    if (
+      !enviando &&
+      !elementos.botao.classList.contains(
+        "btn-success"
+      ) &&
+      !elementos.botao.classList.contains(
+        "btn-error"
+      )
+    ) {
+      elementos.botao.textContent =
+        "Criar conta";
     }
   }
 
-  toggleSenha.addEventListener("click", () => {
-    if (senha.type === "password") {
-      senha.type = "text";
-      toggleSenha.textContent = "🙉";
-    } else {
-      senha.type = "password";
-      toggleSenha.textContent = "🙈";
+  function validarFormulario() {
+    limparErros();
+
+    if (!nomeValido(elementos.nome.value)) {
+      marcarErro(elementos.nome);
+
+      mostrarMensagem(
+        "Digite um nome válido."
+      );
+
+      return false;
     }
-  });
 
-  toggleConfirmarSenha.addEventListener("click", () => {
-    if (confirmarSenha.type === "password") {
-      confirmarSenha.type = "text";
-      toggleConfirmarSenha.textContent = "🙉";
-    } else {
-      confirmarSenha.type = "password";
-      toggleConfirmarSenha.textContent = "🙈";
+    if (
+      !nomeValido(
+        elementos.sobrenome.value
+      )
+    ) {
+      marcarErro(elementos.sobrenome);
+
+      mostrarMensagem(
+        "Digite um sobrenome válido."
+      );
+
+      return false;
     }
-  });
 
-  whatsapp.addEventListener("input", () => {
-    whatsapp.value = mascaraWhatsapp(whatsapp.value);
-    validarFormulario();
-  });
+    if (!emailValido(elementos.email.value)) {
+      marcarErro(elementos.email);
 
-  [nome, sobrenome, email, senha, confirmarSenha].forEach((campo) => {
-    campo.addEventListener("input", validarFormulario);
-  });
+      mostrarMensagem(
+        "Digite um e-mail válido."
+      );
 
-  validarFormulario();
+      return false;
+    }
 
-  btn.addEventListener("click", async () => {
+    if (
+      !whatsappValido(
+        elementos.whatsapp.value
+      )
+    ) {
+      marcarErro(elementos.whatsapp);
+
+      mostrarMensagem(
+        "Digite um WhatsApp com DDD."
+      );
+
+      return false;
+    }
+
+    if (!senhaValida(elementos.senha.value)) {
+      marcarErro(elementos.senha);
+
+      mostrarMensagem(
+        "A senha deve ter entre 6 e 72 bytes."
+      );
+
+      return false;
+    }
+
+    if (
+      elementos.senha.value !==
+      elementos.confirmarSenha.value
+    ) {
+      marcarErro(
+        elementos.senha,
+        elementos.confirmarSenha
+      );
+
+      mostrarMensagem(
+        "As senhas não coincidem."
+      );
+
+      return false;
+    }
+
+    return true;
+  }
+
+  function definirCarregando(ativo) {
+    enviando = ativo;
+
+    elementos.form.setAttribute(
+      "aria-busy",
+      String(ativo)
+    );
+
+    [
+      elementos.nome,
+      elementos.sobrenome,
+      elementos.email,
+      elementos.whatsapp,
+      elementos.senha,
+      elementos.confirmarSenha,
+    ].forEach((campo) => {
+      campo.disabled = ativo;
+    });
+
+    if (elementos.toggleSenha) {
+      elementos.toggleSenha.disabled =
+        ativo;
+    }
+
+    if (elementos.toggleConfirmarSenha) {
+      elementos.toggleConfirmarSenha.disabled =
+        ativo;
+    }
+
+    elementos.botao.disabled =
+      ativo || !formularioValido();
+
+    elementos.botao.classList.toggle(
+      "btn-disabled",
+      elementos.botao.disabled
+    );
+
+    if (ativo) {
+      limparEstadoBotao();
+
+      elementos.botao.textContent =
+        "Criando conta...";
+    }
+  }
+
+  function configurarToggleSenha(
+    botao,
+    campo,
+    rotulo
+  ) {
+    botao?.addEventListener("click", () => {
+      const visivel =
+        campo.type === "text";
+
+      campo.type = visivel
+        ? "password"
+        : "text";
+
+      botao.textContent = visivel
+        ? "🙈"
+        : "🙉";
+
+      botao.setAttribute(
+        "aria-pressed",
+        String(!visivel)
+      );
+
+      botao.setAttribute(
+        "aria-label",
+        visivel
+          ? `Mostrar ${rotulo}`
+          : `Ocultar ${rotulo}`
+      );
+    });
+  }
+
+  function tratarCamposDoErro(erro) {
+    const mensagem = String(
+      erro?.message || ""
+    ).toLowerCase();
+
+    if (mensagem.includes("email")) {
+      marcarErro(elementos.email);
+      return;
+    }
+
+    if (mensagem.includes("whatsapp")) {
+      marcarErro(elementos.whatsapp);
+      return;
+    }
+
+    if (mensagem.includes("senha")) {
+      marcarErro(
+        elementos.senha,
+        elementos.confirmarSenha
+      );
+    }
+  }
+
+  function obterDestino(resultado) {
+    const agendamentoPendente =
+      localStorage.getItem(
+        "agendamentoPendente"
+      );
+
+    if (agendamentoPendente) {
+      return "/html/finalizar-agendamento.html";
+    }
+
+    return window.AuthService.obterDestino({
+      usuario: resultado.usuario,
+      negocio: resultado.negocio,
+
+      destinoSemNegocio:
+        "/html/inicio.html",
+
+      destinoDono:
+        "/html/dashboard-dono.html",
+
+      destinoProfissional:
+        "/html/agenda-profissional.html",
+
+      destinoLogin:
+        "/html/login-cliente.html",
+    });
+  }
+
+  function redirecionar(destino) {
+    temporizadorRedirecionamento =
+      window.setTimeout(() => {
+        document.body.classList.add(
+          "page-exit"
+        );
+
+        window.setTimeout(() => {
+          window.location.href = destino;
+        }, 250);
+      }, 600);
+  }
+
+  async function cadastrar(evento) {
+    evento.preventDefault();
+
+    if (enviando) {
+      return;
+    }
+
     esconderMensagem();
-    limparErros(nome, sobrenome, email, whatsapp, senha, confirmarSenha);
     limparEstadoBotao();
 
-    if (!validarNome(nome.value)) {
-      tremerInputs(nome);
-      mostrarMensagem("Digite um nome válido.");
+    if (!validarFormulario()) {
+      atualizarBotao();
       return;
     }
 
-    if (!validarNome(sobrenome.value)) {
-      tremerInputs(sobrenome);
-      mostrarMensagem("Digite um sobrenome válido.");
-      return;
-    }
-
-    if (!validarEmail(email.value)) {
-      tremerInputs(email);
-      mostrarMensagem("Digite um e-mail válido.");
-      return;
-    }
-
-    if (!validarWhatsapp(whatsapp.value)) {
-      tremerInputs(whatsapp);
-      mostrarMensagem("Digite um WhatsApp válido.");
-      return;
-    }
-
-    if (senha.value.trim().length < 6) {
-      tremerInputs(senha);
-      mostrarMensagem("A senha deve ter pelo menos 6 caracteres.");
-      return;
-    }
-
-    if (senha.value !== confirmarSenha.value) {
-      tremerInputs(senha, confirmarSenha);
-      mostrarMensagem("As senhas não coincidem.");
-      return;
-    }
-
-    const dados = {
-      nome: `${nome.value.trim()} ${sobrenome.value.trim()}`,
-      email: email.value.trim(),
-      senha: senha.value,
-      whatsapp: whatsapp.value.trim(),
-      tipo: "cliente"
-    };
+    definirCarregando(true);
 
     try {
-      btn.innerHTML = `<span class="spinner-emoji">⏳</span> Cadastrando...`;
-      btn.disabled = true;
-      btn.classList.add("btn-disabled");
+      const dados = {
+        nome: normalizarTexto(
+          `${elementos.nome.value} ${elementos.sobrenome.value}`
+        ),
 
-      const resposta = await fetch(`${API_URL}/cadastro`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify(dados)
-      });
+        email: normalizarEmail(
+          elementos.email.value
+        ),
 
-      const resultado = await resposta.json();
+        whatsapp: normalizarWhatsapp(
+          elementos.whatsapp.value
+        ),
 
-      if (resposta.ok) {
-        mostrarMensagem("Cadastro realizado com sucesso 💅", "#2f9e63");
+        senha: elementos.senha.value,
+      };
 
-        btn.innerHTML = "✅ Sucesso";
-        btn.classList.remove("btn-disabled", "btn-error");
-        btn.classList.add("btn-success");
+      const resultado =
+        await window.AuthService.cadastro(
+          dados
+        );
 
-        setTimeout(() => {
-          document.body.classList.add("page-exit");
-          setTimeout(() => {
-            window.location.href = "login-cliente.html";
-          }, 350);
-        }, 700);
+      localStorage.setItem(
+        "ultimoEmail",
+        dados.email
+      );
 
-      } else {
-        mostrarMensagem(resultado.erro || "Erro ao cadastrar.");
-        tremerInputs(nome, sobrenome, email, whatsapp, senha, confirmarSenha);
+      const destino =
+        obterDestino(resultado);
 
-        btn.innerHTML = "❌ Erro";
-        btn.classList.remove("btn-disabled", "btn-success");
-        btn.classList.add("btn-error");
+      mostrarMensagem(
+        "Conta criada com sucesso.",
+        "sucesso"
+      );
 
-        setTimeout(() => {
-          validarFormulario();
-        }, 1400);
-      }
+      elementos.botao.textContent =
+        "Conta criada";
 
+      elementos.botao.classList.remove(
+        "btn-disabled",
+        "btn-error"
+      );
+
+      elementos.botao.classList.add(
+        "btn-success"
+      );
+
+      redirecionar(destino);
     } catch (erro) {
-      mostrarMensagem("Erro na conexão com o servidor.");
-      tremerInputs(nome, sobrenome, email, whatsapp, senha, confirmarSenha);
+      console.error(
+        "Erro no cadastro de cliente:",
+        erro
+      );
 
-      btn.innerHTML = "❌ Erro";
-      btn.classList.remove("btn-disabled", "btn-success");
-      btn.classList.add("btn-error");
+      tratarCamposDoErro(erro);
 
-      setTimeout(() => {
-        validarFormulario();
-      }, 1400);
+      mostrarMensagem(
+        erro?.message ||
+          "Não foi possível criar a conta."
+      );
+
+      elementos.botao.textContent =
+        "Tentar novamente";
+
+      elementos.botao.classList.remove(
+        "btn-success",
+        "btn-disabled"
+      );
+
+      elementos.botao.classList.add(
+        "btn-error"
+      );
+    } finally {
+      definirCarregando(false);
+      atualizarBotao();
     }
+  }
+
+  elementos.whatsapp.addEventListener(
+    "input",
+    () => {
+      elementos.whatsapp.value =
+        aplicarMascaraWhatsapp(
+          elementos.whatsapp.value
+        );
+
+      limparErroCampo(
+        elementos.whatsapp
+      );
+
+      esconderMensagem();
+      limparEstadoBotao();
+      atualizarBotao();
+    }
+  );
+
+  [
+    elementos.nome,
+    elementos.sobrenome,
+    elementos.email,
+    elementos.senha,
+    elementos.confirmarSenha,
+  ].forEach((campo) => {
+    campo.addEventListener("input", () => {
+      limparErroCampo(campo);
+      esconderMensagem();
+      limparEstadoBotao();
+      atualizarBotao();
+    });
   });
+
+  elementos.form.addEventListener(
+    "submit",
+    cadastrar
+  );
+
+  configurarToggleSenha(
+    elementos.toggleSenha,
+    elementos.senha,
+    "senha"
+  );
+
+  configurarToggleSenha(
+    elementos.toggleConfirmarSenha,
+    elementos.confirmarSenha,
+    "confirmação da senha"
+  );
+
+  atualizarBotao();
+  elementos.nome.focus();
+
+  window.addEventListener(
+    "beforeunload",
+    () => {
+      window.clearTimeout(
+        temporizadorRedirecionamento
+      );
+    }
+  );
 });

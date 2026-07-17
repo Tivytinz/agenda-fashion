@@ -3,127 +3,117 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-  <title>Minha Agenda</title>
-
-  <link rel="stylesheet" href="../css/global.css">
-  <link rel="stylesheet" href="../css/navegacao.css">
+  <title>Painel do NegÃ³cio</title>
   <link rel="stylesheet" href="../css/agenda-profissional.css">
+  <link rel="stylesheet" href="../css/navegacao.css">
 </head>
-
 <body>
 
-  <main class="agenda-page">
+  <main class="painel-negocio">
+    <section class="container-painel">
 
-    <!-- TOPO -->
-    <section class="agenda-topo af-card">
-
-      <div class="agenda-topo-info">
-
-        <div class="agenda-emoji">💅</div>
-
+      <!-- HEADER -->
+      <header class="topo-painel">
         <div>
-          <h1 id="nomeProfissional">
-            Bom dia ✨
-          </h1>
-
-          <p id="resumoDia">
-            Você possui 0 atendimentos hoje
-          </p>
+          <h1>Painel do NegÃ³cio ðŸ’…</h1>
+          <p>Gerencie agenda e atendimentos</p>
         </div>
 
-      </div>
+        <div class="topo-direita">
+          <button id="btnDashboard" class="btn-dashboard">Dashboard</button>
+          <button id="btnSair" class="btn-sair">Sair</button>
+        </div>
+      </header>
 
-    </section>
-
-    <!-- DIAS -->
-    <section class="dias-scroll" id="diasScroll">
-
-      <button class="dia-btn ativo">
-        <span>Hoje</span>
-        <small>12</small>
-      </button>
-
-    </section>
-
-    <!-- LEGENDA -->
-    <section class="agenda-legenda">
-
-      <div class="legenda-item">
-        <span class="dot livre"></span>
-        <span>Livre</span>
-      </div>
-
-      <div class="legenda-item">
-        <span class="dot bloqueado"></span>
-        <span>Bloqueado</span>
-      </div>
-
-      <div class="legenda-item">
-        <span class="dot ocupado"></span>
-        <span>Agendado</span>
-      </div>
-
-    </section>
-
-    <section class="af-card">
-
-  <h2>🔔 Novos agendamentos</h2>
-
-  <div id="listaNotificacoes">
-
-    <div class="estado-vazio">
-      Carregando notificações...
+      <section class="dashboard-box info-negocio-box">
+  <div class="info-negocio-topo">
+    <div>
+      <span class="info-label">NegÃ³cio atual</span>
+      <h3 id="nomeNegocioAtual">Carregando...</h3>
+      <p id="slugNegocioAtual" class="info-slug">--</p>
     </div>
 
+    <div class="info-negocio-acoes">
+      <a id="btnPerfilPublico" class="btn-link" href="#" target="_blank" rel="noopener noreferrer">
+        Ver perfil pÃºblico
+      </a>
+    </div>
   </div>
 
+  <div class="info-profissional-linha">
+    <span class="info-profissional-item">
+      <strong>Profissional:</strong>
+      <span id="nomeProfissionalAtual">--</span>
+    </span>
+  </div>
 </section>
 
-    <!-- HORÁRIOS -->
-    <section id="listaHorarios" class="lista-horarios">
+      <!-- ALERTA -->
+      <div id="mensagemPainel" class="mensagem-painel oculto"></div>
 
-      <!-- JS -->
+      <!-- CARDS (AGORA IGUAL DASHBOARD) -->
+      <section class="dashboard-cards">
+
+        <div class="dashboard-card">
+          <span>Total de agendados</span>
+          <h2 id="totalAgendados">0</h2>
+        </div>
+
+        <div class="dashboard-card">
+          <span>Clientes recorrentes</span>
+          <h2 id="totalRecorrentes">0</h2>
+        </div>
+
+        <div class="dashboard-card">
+          <span>Clientes novos</span>
+          <h2 id="totalNovos">0</h2>
+        </div>
+
+        <div class="dashboard-card destaque">
+          <span>Hoje</span>
+          <h2 id="totalHoje">0</h2>
+        </div>
+
+      </section>
+
+      <!-- AGENDA -->
+      <section class="dashboard-box">
+
+        <div class="cabecalho-agenda">
+          <div>
+            <h3>
+              Agenda visual de
+              <span id="diaAgendaTexto">Hoje ðŸ’… â€¢ Segunda-feira â€¢ 20/04</span>
+            </h3>
+
+            <div id="abasDias" class="abas-dias"></div>
+          </div>
+
+          <div class="resumo-status">
+            <span>ðŸŸ¢ Livres: <strong id="qtdLivres">0</strong></span>
+            <span>|</span>
+            <span>ðŸ”´ Bloqueados: <strong id="qtdBloqueados">0</strong></span>
+            <span>|</span>
+            <span>ðŸŸ  Agendados: <strong id="qtdAgendados">0</strong></span>
+          </div>
+        </div>
+
+        <div id="agendaVisual" class="agenda-grid"></div>
+
+      </section>
 
     </section>
-
   </main>
 
-  <!-- MODAL -->
-  <div id="modalHorario" class="modal-overlay hidden">
+<script src="../js/config.js"></script>
+<script src="../js/utils.js"></script>
+<script src="../js/api.js"></script>
 
-    <div class="modal-box">
+<script src="../js/services/authService.js"></script>
+<script src="../js/services/sessionGuard.js"></script>
 
-      <h3 id="modalTitulo">
-        Horário
-      </h3>
-
-      <p id="modalDescricao">
-        ...
-      </p>
-
-      <div class="modal-botoes">
-
-        <button id="btnCancelarModal" class="btn-secundario">
-          Cancelar
-        </button>
-
-        <button id="btnConfirmarModal" class="btn-primario">
-          Confirmar
-        </button>
-
-      </div>
-
-    </div>
-
-  </div>
-
-  <nav id="appNav" class="app-bottom-nav"></nav>
-  <script src="../js/config.js"></script>
-  <script src="../js/utils.js"></script>
-  <script src="../js/api.js"></script>
-  <script src="../js/agenda-profissional.js"></script>
-  <script src="../js/navegacao.js"></script>
+<script src="../js/navegacao.js"></script>
+<script src="../js/agenda-profissional.js"></script>
 
 </body>
 </html>

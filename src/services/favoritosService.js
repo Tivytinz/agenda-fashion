@@ -1,71 +1,162 @@
-const favoritosRepository = require("../repositories/favoritosRepository");
+const favoritosRepository = require(
+  "../repositories/favoritosRepository"
+);
 
 const {
   exigirUsuario,
-  exigirCliente,
-  exigirRecurso
-} = require("../validators/commonValidator");
+  exigirRecurso,
+} = require(
+  "../validators/commonValidator"
+);
 
-function garantirCliente({ usuarioId, tipo }) {
-  exigirUsuario(usuarioId);
-  exigirCliente(tipo);
+const ValidationError = require(
+  "../errors/ValidationError"
+);
+
+/*
+ * A coluna ainda se chama cliente_id
+ * no banco, mas agora representa qualquer
+ * usuário que esteja utilizando o sistema
+ * como cliente.
+ */
+
+function normalizarNegocioId(
+  valor
+) {
+  const negocioId =
+    Number(valor);
+
+  if (
+    !Number.isInteger(
+      negocioId
+    ) ||
+    negocioId <= 0
+  ) {
+    throw new ValidationError(
+      "Negócio inválido."
+    );
+  }
+
+  return negocioId;
 }
 
-async function listarFavoritos({ usuarioId, tipo }) {
-  garantirCliente({ usuarioId, tipo });
+async function listarFavoritos({
+  usuarioId,
+}) {
+  exigirUsuario(
+    usuarioId
+  );
 
   const favoritos =
-    await favoritosRepository.listarFavoritos(usuarioId);
-
-  return { favoritos };
-}
-
-async function adicionarFavorito({ usuarioId, tipo, negocioId }) {
-  garantirCliente({ usuarioId, tipo });
-
-  const negocio =
-    await favoritosRepository.buscarNegocio(negocioId);
-
-  exigirRecurso(negocio, "Negócio não encontrado.");
-
-  await favoritosRepository.adicionarFavorito(
-    usuarioId,
-    negocioId
-  );
+    await favoritosRepository
+      .listarFavoritos(
+        usuarioId
+      );
 
   return {
-    mensagem: "Adicionado aos favoritos."
+    favoritos:
+      Array.isArray(favoritos)
+        ? favoritos
+        : [],
   };
 }
 
-async function removerFavorito({ usuarioId, tipo, negocioId }) {
-  garantirCliente({ usuarioId, tipo });
-
-  await favoritosRepository.removerFavorito(
-    usuarioId,
-    negocioId
+async function adicionarFavorito({
+  usuarioId,
+  negocioId,
+}) {
+  exigirUsuario(
+    usuarioId
   );
 
-  return {
-    mensagem: "Removido dos favoritos."
-  };
-}
-
-async function verificarFavorito({ usuarioId, tipo, negocioId }) {
-  garantirCliente({ usuarioId, tipo });
-
-  const favoritado =
-    await favoritosRepository.verificarFavorito(
-      usuarioId,
+  const negocioIdNormalizado =
+    normalizarNegocioId(
       negocioId
     );
 
-  return { favoritado };
+  const negocio =
+    await favoritosRepository
+      .buscarNegocio(
+        negocioIdNormalizado
+      );
+
+  exigirRecurso(
+    negocio,
+    "Negócio não encontrado."
+  );
+
+  await favoritosRepository
+    .adicionarFavorito(
+      usuarioId,
+      negocioIdNormalizado
+    );
+
+  return {
+    mensagem:
+      "Adicionado aos favoritos.",
+
+    favoritado:
+      true,
+  };
+}
+
+async function removerFavorito({
+  usuarioId,
+  negocioId,
+}) {
+  exigirUsuario(
+    usuarioId
+  );
+
+  const negocioIdNormalizado =
+    normalizarNegocioId(
+      negocioId
+    );
+
+  await favoritosRepository
+    .removerFavorito(
+      usuarioId,
+      negocioIdNormalizado
+    );
+
+  return {
+    mensagem:
+      "Removido dos favoritos.",
+
+    favoritado:
+      false,
+  };
+}
+
+async function verificarFavorito({
+  usuarioId,
+  negocioId,
+}) {
+  exigirUsuario(
+    usuarioId
+  );
+
+  const negocioIdNormalizado =
+    normalizarNegocioId(
+      negocioId
+    );
+
+  const favoritado =
+    await favoritosRepository
+      .verificarFavorito(
+        usuarioId,
+        negocioIdNormalizado
+      );
+
+  return {
+    favoritado:
+      Boolean(favoritado),
+  };
 }
 
 module.exports = {
   listarFavoritos,
   adicionarFavorito,
   removerFavorito,
-  verificarFavorito
+  verificarFavorito,
 };

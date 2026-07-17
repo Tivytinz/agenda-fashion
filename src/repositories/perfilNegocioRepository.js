@@ -1,118 +1,242 @@
 const db = require("../db/db");
 
 async function listarNegociosPublicos() {
-  const result = await db.query(`
-    SELECT
-      id,
-      nome,
-      slug,
-      foto_url,
-      descricao,
-      setor,
-      cidade,
-      bairro,
-      whatsapp_negocio,
-      localizacao_url,
-      areas,
-      latitude,
-      longitude
-    FROM negocios
-    ORDER BY nome ASC
-  `);
-
-  return result.rows;
-}
-
-async function buscarNegocioPorSlug(slug) {
-  const result = await db.query(
-    `
+  const resultado = await db.query(`
     SELECT
       n.id,
       n.nome,
       n.slug,
-
-      (
-        SELECT un.usuario_id
-        FROM usuarios_negocios un
-        WHERE un.negocio_id = n.id
-          AND un.papel = 'dono'
-        LIMIT 1
-      ) AS dono_usuario_id,
-
       n.foto_url,
-      n.foto_public_id,
       n.descricao,
       n.setor,
       n.cidade,
+      n.estado,
       n.bairro,
+
+      n.whatsapp AS whatsapp_negocio,
+
       n.localizacao_url,
-      n.whatsapp_negocio,
-      n.areas,
       n.latitude,
       n.longitude,
-      COALESCE(AVG(a.avaliacao), 0)::numeric(2,1) AS media_avaliacoes,
-      COUNT(a.avaliacao)::int AS total_avaliacoes
+      n.publicado,
+
+      ARRAY[]::text[] AS areas,
+
+      COALESCE(
+        (
+          SELECT
+            ROUND(
+              AVG(a.avaliacao)::numeric,
+              1
+            )
+
+          FROM agendamentos a
+
+          WHERE a.negocio_id = n.id
+            AND a.avaliacao IS NOT NULL
+        ),
+        0
+      )::numeric(2, 1)
+        AS media_avaliacoes,
+
+      COALESCE(
+        (
+          SELECT
+            COUNT(*)::int
+
+          FROM agendamentos a
+
+          WHERE a.negocio_id = n.id
+            AND a.avaliacao IS NOT NULL
+        ),
+        0
+      )::int
+        AS total_avaliacoes
+
     FROM negocios n
-    LEFT JOIN agendamentos a
-      ON a.negocio_id = n.id
-      AND a.avaliacao IS NOT NULL
-    WHERE n.slug = $1
-    GROUP BY n.id
-    LIMIT 1
+
+    WHERE n.ativo = TRUE
+
+    ORDER BY
+      n.nome ASC
+  `);
+
+  return resultado.rows;
+}
+
+async function buscarNegocioPorSlug(
+  slug
+) {
+  const resultado = await db.query(
+    `
+      SELECT
+        n.id,
+        n.nome,
+        n.slug,
+        n.foto_url,
+        n.foto_public_id,
+        n.descricao,
+        n.setor,
+
+        n.whatsapp
+          AS whatsapp_negocio,
+
+        n.cidade,
+        n.estado,
+        n.bairro,
+        n.endereco,
+        n.numero,
+        n.complemento,
+        n.cep,
+        n.localizacao_url,
+        n.latitude,
+        n.longitude,
+        n.fuso_horario,
+        n.ativo,
+        n.publicado,
+        n.created_at,
+        n.updated_at,
+
+        ARRAY[]::text[]
+          AS areas,
+
+        (
+          SELECT
+            un.usuario_id
+
+          FROM usuarios_negocios un
+
+          WHERE un.negocio_id = n.id
+            AND un.papel = 'dono'
+            AND un.ativo = TRUE
+
+          ORDER BY
+            un.id ASC
+
+          LIMIT 1
+        ) AS dono_usuario_id,
+
+        COALESCE(
+          (
+            SELECT
+              ROUND(
+                AVG(a.avaliacao)::numeric,
+                1
+              )
+
+            FROM agendamentos a
+
+            WHERE a.negocio_id = n.id
+              AND a.avaliacao IS NOT NULL
+          ),
+          0
+        )::numeric(2, 1)
+          AS media_avaliacoes,
+
+        COALESCE(
+          (
+            SELECT
+              COUNT(*)::int
+
+            FROM agendamentos a
+
+            WHERE a.negocio_id = n.id
+              AND a.avaliacao IS NOT NULL
+          ),
+          0
+        )::int
+          AS total_avaliacoes
+
+      FROM negocios n
+
+      WHERE n.slug = $1
+        AND n.ativo = TRUE
+
+      LIMIT 1
     `,
     [slug]
   );
 
-  return result.rows[0] || null;
+  return resultado.rows[0] || null;
 }
 
-async function incrementarVisita(id) {
-  await db.query(
-    `
-    UPDATE negocios
-    SET visitas = COALESCE(visitas, 0) + 1
-    WHERE id = $1
-    `,
-    [id]
-  );
+/*
+ * A tabela negocios ainda não possui
+ * uma coluna para armazenar visitas.
+ *
+ * Mantemos a função para preservar
+ * compatibilidade com o service.
+ */
+async function incrementarVisita(
+  negocioId
+) {
+  return Boolean(negocioId);
 }
 
-async function buscarServicos(negocioId) {
-  const result = await db.query(
+async function buscarServicos(
+  negocioId
+) {
+  const resultado = await db.query(
     `
-    SELECT
-      id,
-      nome,
-      valor,
-      duracao_minutos,
-      foto_url
-    FROM servicos_negocio
-    WHERE negocio_id = $1
-    ORDER BY nome
-    `,
-    [negocioId]
-  );
+      SELECT
+        id,
+        nome,
+        descricao,
+        valor,
+        duracao_minutos,
+        foto_url
 
-  return result.rows;
-}
+      FROM servicos_negocio
 
-async function buscarProfissionais(negocioId) {
-  const result = await db.query(
-    `
-    SELECT
-      u.id,
-      u.nome,
-      u.whatsapp
-    FROM usuarios u
-    INNER JOIN usuarios_negocios un
-      ON un.usuario_id = u.id
-    WHERE un.negocio_id = $1
-    ORDER BY u.nome
+      WHERE negocio_id = $1
+        AND ativo = TRUE
+
+      ORDER BY
+        nome ASC
     `,
     [negocioId]
   );
 
-  return result.rows;
+  return resultado.rows;
+}
+
+async function buscarProfissionais(
+  negocioId
+) {
+  const resultado = await db.query(
+    `
+      SELECT
+        u.id,
+        u.nome,
+        u.whatsapp,
+        un.papel
+
+      FROM usuarios_negocios un
+
+      INNER JOIN usuarios u
+        ON u.id = un.usuario_id
+
+      WHERE un.negocio_id = $1
+        AND un.ativo = TRUE
+        AND u.ativo = TRUE
+        AND un.papel IN (
+          'dono',
+          'profissional'
+        )
+
+      ORDER BY
+        CASE
+          WHEN un.papel = 'dono'
+            THEN 0
+          ELSE 1
+        END,
+
+        u.nome ASC
+    `,
+    [negocioId]
+  );
+
+  return resultado.rows;
 }
 
 module.exports = {

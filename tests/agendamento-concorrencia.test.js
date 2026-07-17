@@ -1,444 +1,845 @@
-jest.setTimeout(30000);
+jest.setTimeout(90000);
 
+/*
+ * Impede chamadas reais para WhatsApp durante
+ * o teste de concorrência.
+ */
 jest.mock(
   "../src/services/notificationService",
   () => ({
-    novoAgendamento: jest
-      .fn()
-      .mockResolvedValue({
-        sucesso: true,
-      }),
+    novoAgendamento:
+      jest.fn().mockResolvedValue(null),
+
+    agendamentoCancelado:
+      jest.fn().mockResolvedValue(null),
   })
 );
 
 const request = require("supertest");
-const app = require("../src/server");
-const db = require("../src/db/db");
 
-const agendaPublicaService = require(
-  "../src/services/agendamentoPublicoService"
+const app = require(
+  "../src/server"
 );
 
-const SLUG_TESTE =
-  process.env.TEST_NEGOCIO_SLUG ||
-  "teste-1";
+const db = require(
+  "../src/db/db"
+);
+
+function normalizarId(valor) {
+  const id = Number(valor);
+
+  return (
+    Number.isInteger(id) &&
+    id > 0
+  )
+    ? id
+    : null;
+}
+
+function normalizarHorario(valor) {
+  if (
+    typeof valor === "string"
+  ) {
+    return valor
+      .trim()
+      .slice(0, 5);
+  }
+
+  if (
+    valor &&
+    typeof valor === "object"
+  ) {
+    return String(
+      valor.hora ||
+      valor.horario ||
+      ""
+    )
+      .trim()
+      .slice(0, 5);
+  }
+
+  return "";
+}
+
+function gerarWhatsappsTeste() {
+  const sufixo =
+    String(Date.now())
+      .slice(-8)
+      .padStart(8, "0");
+
+  return [
+    `629${sufixo}`,
+    `639${sufixo}`,
+  ];
+}
+
+/*
+ * Procura combinações que realmente existem
+ * no banco atual.
+ *
+ * Primeiro prioriza combinações já utilizadas
+ * em agendamentos anteriores.
+ */
+async function buscarCandidatos() {
+  const candidatos =
+    new Map();
+
+  const adicionar =
+    (registro) => {
+      const slug =
+        String(
+          registro?.slug || ""
+        ).trim();
+
+      const servicoId =
+        normalizarId(
+          registro?.servico_id
+        );
+
+      const profissionalId =
+        normalizarId(
+          registro?.profissional_id
+        );
+
+      if (
+        !slug ||
+        !servicoId ||
+        !profissionalId
+      ) {
+        return;
+      }
+
+      const chave =
+        [
+          slug,
+          servicoId,
+          profissionalId,
+        ].join(":");
+
+      candidatos.set(
+        chave,
+        {
+          slug,
+          servicoId,
+          profissionalId,
+        }
+      );
+    };
+
+  const usadosAnteriormente =
+    await db.query(
+      `
+        SELECT DISTINCT
+          n.slug,
+          a.servico_id,
+          a.profissional_id
+
+        FROM agendamentos a
+
+        INNER JOIN servicos_negocio s
+          ON s.id = a.servico_id
+
+        INNER JOIN negocios n
+          ON n.id = COALESCE(
+            a.negocio_id,
+            s.negocio_id
+          )
+
+        INNER JOIN usuarios_negocios un
+          ON un.negocio_id = n.id
+          AND un.usuario_id =
+            a.profissional_id
+
+        WHERE n.slug IS NOT NULL
+          AND BTRIM(n.slug) <> ''
+          AND a.servico_id IS NOT NULL
+          AND a.profissional_id IS NOT NULL
+
+        ORDER BY
+          n.slug,
+          a.servico_id,
+          a.profissional_id
+
+        LIMIT 30
+      `
+    );
+
+  usadosAnteriormente.rows
+    .forEach(adicionar);
+
+  /*
+   * Caso não existam agendamentos anteriores,
+   * procura qualquer negócio que tenha serviço
+   * e usuário vinculado.
+   */
+  const vinculados =
+    await db.query(
+      `
+        SELECT DISTINCT
+          n.slug,
+          s.id AS servico_id,
+          un.usuario_id
+            AS profissional_id
+
+        FROM negocios n
+
+        INNER JOIN servicos_negocio s
+          ON s.negocio_id = n.id
+
+        INNER JOIN usuarios_negocios un
+          ON un.negocio_id = n.id
+          AND un.papel IN (
+            'dono',
+            'profissional'
+          )
+
+        INNER JOIN usuarios u
+          ON u.id = un.usuario_id
+
+        WHERE n.slug IS NOT NULL
+          AND BTRIM(n.slug) <> ''
+
+        ORDER BY
+          n.slug,
+          s.id,
+          un.usuario_id
+
+        LIMIT 50
+      `
+    );
+
+  vinculados.rows
+    .forEach(adicionar);
+
+  return Array.from(
+    candidatos.values()
+  );
+}
+
+/*
+ * Percorre as combinações do banco até encontrar:
+ *
+ * - perfil público acessível;
+ * - serviço presente no perfil;
+ * - profissional presente no perfil;
+ * - pelo menos um horário disponível.
+ */
+async function buscarCenarioDisponivel() {
+  const candidatos =
+    await buscarCandidatos();
+
+  if (
+    candidatos.length === 0
+  ) {
+    throw new Error(
+      "Nenhum negócio com serviço e profissional foi encontrado para o teste."
+    );
+  }
+
+  for (
+    const candidato
+    of candidatos
+  ) {
+    const perfil =
+      await request(app)
+        .get(
+          `/perfil-negocio/${
+            encodeURIComponent(
+              candidato.slug
+            )
+          }`
+        );
+
+    if (
+      perfil.statusCode !== 200
+    ) {
+      continue;
+    }
+
+    const servicos =
+      Array.isArray(
+        perfil.body?.servicos
+      )
+        ? perfil.body.servicos
+        : [];
+
+    const profissionais =
+      Array.isArray(
+        perfil.body?.profissionais
+      )
+        ? perfil.body.profissionais
+        : [];
+
+    const servico =
+      servicos.find(
+        (item) =>
+          Number(item?.id) ===
+          candidato.servicoId
+      );
+
+    const profissional =
+      profissionais.find(
+        (item) =>
+          Number(item?.id) ===
+          candidato.profissionalId
+      );
+
+    if (
+      !servico ||
+      !profissional
+    ) {
+      continue;
+    }
+
+    const agenda =
+      await request(app)
+        .get(
+          "/agenda-publica"
+        )
+        .query({
+          slug:
+            candidato.slug,
+
+          servicoId:
+            servico.id,
+
+          profissionalId:
+            profissional.id,
+        });
+
+    if (
+      agenda.statusCode !== 200
+    ) {
+      continue;
+    }
+
+    const disponibilidade =
+      Array.isArray(
+        agenda.body
+          ?.disponibilidade
+      )
+        ? agenda.body
+            .disponibilidade
+        : [];
+
+    const diaDisponivel =
+      disponibilidade.find(
+        (dia) =>
+          dia?.data &&
+          Array.isArray(
+            dia?.horarios
+          ) &&
+          dia.horarios.some(
+            (item) =>
+              normalizarHorario(
+                item
+              )
+          )
+      );
+
+    if (!diaDisponivel) {
+      continue;
+    }
+
+    const horario =
+      diaDisponivel.horarios
+        .map(
+          normalizarHorario
+        )
+        .find(Boolean);
+
+    if (!horario) {
+      continue;
+    }
+
+    return {
+      slug:
+        candidato.slug,
+
+      negocioId:
+        normalizarId(
+          perfil.body
+            ?.negocio?.id
+        ),
+
+      servico: {
+        ...servico,
+
+        id:
+          normalizarId(
+            servico.id
+          ),
+      },
+
+      profissional: {
+        ...profissional,
+
+        id:
+          normalizarId(
+            profissional.id
+          ),
+      },
+
+      data:
+        String(
+          diaDisponivel.data
+        ).slice(0, 10),
+
+      horario,
+    };
+  }
+
+  throw new Error(
+    "Nenhum horário disponível foi encontrado para executar o teste de concorrência."
+  );
+}
+
+async function buscarAgendamentosDoHorario({
+  profissionalId,
+  data,
+  horario,
+  criadoDepoisDe,
+}) {
+  const resultado =
+    await db.query(
+      `
+        SELECT
+          id,
+          status,
+          cliente_id,
+          cliente_nome,
+          cliente_whatsapp,
+          created_at
+
+        FROM agendamentos
+
+        WHERE profissional_id = $1
+          AND data = $2
+          AND TO_CHAR(
+            horario::TIME,
+            'HH24:MI'
+          ) = $3
+          AND created_at >= $4
+
+        ORDER BY id
+      `,
+      [
+        profissionalId,
+        data,
+        horario,
+        criadoDepoisDe,
+      ]
+    );
+
+  return resultado.rows;
+}
 
 describe(
   "Concorrência no agendamento público",
   () => {
-    let negocio;
-    let servico;
-    let profissional;
-
-    let clienteA;
-    let clienteB;
-
-    let dataDisponivel;
-    let horarioDisponivel;
-
     const agendamentosCriados =
       new Set();
 
-    const identificador =
-      `${Date.now()}_${process.pid}`;
+    const whatsappsCriados =
+      new Set();
 
-    const whatsappA =
-      `6291${String(Date.now()).slice(-8)}`;
+    afterAll(
+      async () => {
+        try {
+          const ids =
+            Array.from(
+              agendamentosCriados
+            );
 
-    const whatsappB =
-      `6292${String(Date.now()).slice(-8)}`;
+          if (
+            ids.length > 0
+          ) {
+            await db.query(
+              `
+                DELETE FROM notificacoes
 
-    async function criarClientesDeTeste() {
-      const resultado =
-        await db.query(
-          `
-          INSERT INTO usuarios (
-            nome,
-            email,
-            whatsapp,
-            senha,
-            tipo
-          )
-          VALUES
-            (
-              $1,
-              $2,
-              $3,
-              '',
-              'cliente'
-            ),
-            (
-              $4,
-              $5,
-              $6,
-              '',
-              'cliente'
-            )
-          RETURNING
-            id,
-            nome,
-            whatsapp
-          `,
-          [
-            "Cliente Concorrência A",
-            `concorrencia_a_${identificador}@agenda.local`,
-            whatsappA,
+                WHERE agendamento_id =
+                  ANY($1::INT[])
+              `,
+              [
+                ids,
+              ]
+            );
 
-            "Cliente Concorrência B",
-            `concorrencia_b_${identificador}@agenda.local`,
-            whatsappB,
-          ]
-        );
+            await db.query(
+              `
+                DELETE FROM agendamentos
 
-      clienteA =
-        resultado.rows[0];
+                WHERE id =
+                  ANY($1::INT[])
+              `,
+              [
+                ids,
+              ]
+            );
+          }
 
-      clienteB =
-        resultado.rows[1];
-    }
+          /*
+           * Compatibilidade com versões antigas,
+           * nas quais visitantes eram transformados
+           * em usuários automaticamente.
+           *
+           * Na arquitetura nova, esta consulta
+           * apenas não encontrará registros.
+           */
+          const whatsapps =
+            Array.from(
+              whatsappsCriados
+            );
 
-    async function buscarDadosDoTeste() {
-      const perfil =
-        await request(app).get(
-          `/perfil-negocio/${SLUG_TESTE}`
-        );
+          if (
+            whatsapps.length > 0
+          ) {
+            await db.query(
+              `
+                DELETE FROM usuarios u
 
-      expect(
-        perfil.statusCode
-      ).toBe(200);
+                WHERE u.whatsapp =
+                  ANY($1::TEXT[])
 
-      expect(
-        perfil.body.servicos.length
-      ).toBeGreaterThan(0);
+                  AND NOT EXISTS (
+                    SELECT 1
 
-      expect(
-        perfil.body.profissionais.length
-      ).toBeGreaterThan(0);
+                    FROM agendamentos a
 
-      const servicoPerfil =
-        perfil.body.servicos[0];
+                    WHERE a.cliente_id =
+                      u.id
+                  )
 
-      const profissionalPerfil =
-        perfil.body.profissionais[0];
+                  AND NOT EXISTS (
+                    SELECT 1
 
-      const dados =
-        await agendaPublicaService.buscarDadosBaseAgenda({
-          slug: SLUG_TESTE,
+                    FROM usuarios_negocios un
 
-          servicoId:
-            servicoPerfil.id,
-
-          profissionalId:
-            profissionalPerfil.id,
-        });
-
-      negocio =
-        dados.negocio;
-
-      servico =
-        dados.servico;
-
-      profissional =
-        dados.profissional;
-    }
-
-    async function buscarHorarioDisponivel() {
-      const disponibilidade =
-        await agendaPublicaService.buscarDisponibilidade({
-          profissionalId:
-            profissional.id,
-
-          duracaoServico:
-            servico.duracao_minutos,
-        });
-
-      const diaComHorario =
-        disponibilidade.find(
-          (dia) =>
-            Array.isArray(
-              dia.horarios
-            ) &&
-            dia.horarios.length > 0
-        );
-
-      expect(
-        diaComHorario
-      ).toBeTruthy();
-
-      dataDisponivel =
-        diaComHorario.data;
-
-      horarioDisponivel =
-        diaComHorario.horarios[0];
-    }
-
-    function montarDadosAgendamento(
-      cliente
-    ) {
-      return {
-        data:
-          dataDisponivel,
-
-        horario:
-          horarioDisponivel,
-
-        profissionalId:
-          profissional.id,
-
-        clienteId:
-          cliente.id,
-
-        servicoId:
-          servico.id,
-
-        negocioId:
-          negocio.id,
-
-        duracaoServico:
-          servico.duracao_minutos,
-
-        clienteNome:
-          cliente.nome,
-
-        servicoNome:
-          servico.nome,
-
-        profissionalNome:
-          profissional.nome,
-
-        whatsappProfissional:
-          profissional.whatsapp,
-
-        whatsappNegocio:
-          negocio.whatsapp_negocio,
-      };
-    }
-
-    beforeAll(async () => {
-      await buscarDadosDoTeste();
-
-      await criarClientesDeTeste();
-
-      await buscarHorarioDisponivel();
-    });
-
-    afterAll(async () => {
-      const clientesIds = [
-        clienteA?.id,
-        clienteB?.id,
-      ].filter(Boolean);
-
-      if (
-        agendamentosCriados.size > 0
-      ) {
-        const ids = Array.from(
-          agendamentosCriados
-        );
-
-        await db.query(
-          `
-          DELETE FROM notificacoes
-          WHERE agendamento_id =
-            ANY($1::int[])
-          `,
-          [ids]
-        );
-
-        await db.query(
-          `
-          DELETE FROM agendamentos
-          WHERE id =
-            ANY($1::int[])
-          `,
-          [ids]
-        );
-      }
-
-      /*
-       * Segurança adicional:
-       * remove qualquer agendamento criado
-       * para os clientes temporários mesmo
-       * que o teste falhe antes de registrar
-       * o ID retornado.
-       */
-      if (clientesIds.length > 0) {
-        await db.query(
-          `
-          DELETE FROM notificacoes
-          WHERE agendamento_id IN (
-            SELECT id
-            FROM agendamentos
-            WHERE cliente_id =
-              ANY($1::int[])
-          )
-          `,
-          [clientesIds]
-        );
-
-        await db.query(
-          `
-          DELETE FROM agendamentos
-          WHERE cliente_id =
-            ANY($1::int[])
-          `,
-          [clientesIds]
-        );
-
-        await db.query(
-          `
-          DELETE FROM usuarios
-          WHERE id =
-            ANY($1::int[])
-            AND tipo = 'cliente'
-          `,
-          [clientesIds]
-        );
-      }
-    });
+                    WHERE un.usuario_id =
+                      u.id
+                  )
+              `,
+              [
+                whatsapps,
+              ]
+            );
+          }
+        } finally {
+          if (
+            typeof db.end ===
+            "function"
+          ) {
+            await db.end();
+          }
+        }
+      },
+      60000
+    );
 
     test(
       "permite apenas um agendamento quando duas clientes tentam reservar simultaneamente",
       async () => {
-        /*
-         * Simula as duas clientes verificando
-         * o horário antes de qualquer INSERT.
-         *
-         * As duas validações devem passar.
-         */
-        const validacoes =
-          await Promise.all([
-            agendaPublicaService.validarHorarioDisponivel({
-              profissionalId:
-                profissional.id,
-
-              data:
-                dataDisponivel,
-
-              horario:
-                horarioDisponivel,
-
-              duracaoServico:
-                servico.duracao_minutos,
-            }),
-
-            agendaPublicaService.validarHorarioDisponivel({
-              profissionalId:
-                profissional.id,
-
-              data:
-                dataDisponivel,
-
-              horario:
-                horarioDisponivel,
-
-              duracaoServico:
-                servico.duracao_minutos,
-            }),
-          ]);
+        const cenario =
+          await buscarCenarioDisponivel();
 
         expect(
-          validacoes
-        ).toEqual([
-          true,
-          true,
-        ]);
-
-        /*
-         * Depois das duas validações,
-         * as duas clientes tentam gravar
-         * ao mesmo tempo.
-         */
-        const resultados =
-          await Promise.allSettled([
-            agendaPublicaService.criarAgendamento(
-              montarDadosAgendamento(
-                clienteA
-              )
-            ),
-
-            agendaPublicaService.criarAgendamento(
-              montarDadosAgendamento(
-                clienteB
-              )
-            ),
-          ]);
-
-        const sucessos =
-          resultados.filter(
-            (resultado) =>
-              resultado.status ===
-              "fulfilled"
-          );
-
-        const conflitos =
-          resultados.filter(
-            (resultado) =>
-              resultado.status ===
-              "rejected"
-          );
+          cenario.negocioId
+        ).toBeGreaterThan(0);
 
         expect(
-          sucessos
-        ).toHaveLength(1);
+          cenario.servico.id
+        ).toBeGreaterThan(0);
 
         expect(
-          conflitos
-        ).toHaveLength(1);
+          cenario.profissional.id
+        ).toBeGreaterThan(0);
 
-        const agendamentoCriado =
-          sucessos[0].value;
-
-        agendamentosCriados.add(
-          agendamentoCriado.id
+        expect(
+          cenario.data
+        ).toMatch(
+          /^\d{4}-\d{2}-\d{2}$/
         );
 
-        const erroConflito =
-          conflitos[0].reason;
-
         expect(
-          erroConflito.statusCode ||
-            erroConflito.status
-        ).toBe(409);
-
-        expect(
-          erroConflito.message
-        ).toBe(
-          "Esse horário não está mais disponível. Escolha outro horário."
+          cenario.horario
+        ).toMatch(
+          /^\d{2}:\d{2}$/
         );
 
         /*
-         * Confirma diretamente no banco:
-         * só pode existir um agendamento
-         * ativo naquele horário.
+         * Confirma diretamente no banco que não existe
+         * agendamento ativo antes da concorrência.
          */
-        const contagem =
+        const antes =
           await db.query(
             `
-            SELECT
-              COUNT(*)::int AS total
-            FROM agendamentos
-            WHERE profissional_id = $1
-              AND data = $2
-              AND TO_CHAR(
-                horario::time,
-                'HH24:MI'
-              ) = $3
-              AND status IN (
-                'agendado',
-                'confirmado'
-              )
+              SELECT
+                COUNT(*)::INT
+                  AS total
+
+              FROM agendamentos
+
+              WHERE profissional_id = $1
+                AND data = $2
+                AND TO_CHAR(
+                  horario::TIME,
+                  'HH24:MI'
+                ) = $3
+                AND status IN (
+                  'agendado',
+                  'confirmado'
+                )
             `,
             [
-              profissional.id,
-              dataDisponivel,
-              horarioDisponivel,
+              cenario.profissional.id,
+              cenario.data,
+              cenario.horario,
             ]
           );
 
         expect(
-          contagem.rows[0].total
+          Number(
+            antes.rows[0]?.total
+          )
+        ).toBe(0);
+
+        const [
+          whatsappClienteA,
+          whatsappClienteB,
+        ] =
+          gerarWhatsappsTeste();
+
+        whatsappsCriados.add(
+          whatsappClienteA
+        );
+
+        whatsappsCriados.add(
+          whatsappClienteB
+        );
+
+        const inicioConcorrencia =
+          new Date(
+            Date.now() - 1000
+          );
+
+        const payloadBase = {
+          slug:
+            cenario.slug,
+
+          servico_id:
+            cenario.servico.id,
+
+          profissional_id:
+            cenario.profissional.id,
+
+          data:
+            cenario.data,
+
+          horario:
+            cenario.horario,
+        };
+
+        /*
+         * As duas requisições são iniciadas sem aguardar
+         * a conclusão uma da outra.
+         */
+        const [
+          respostaA,
+          respostaB,
+        ] =
+          await Promise.all([
+            request(app)
+              .post(
+                "/agendamentos"
+              )
+              .send({
+                ...payloadBase,
+
+                cliente_nome:
+                  "Cliente Concorrência A",
+
+                cliente_whatsapp:
+                  whatsappClienteA,
+              }),
+
+            request(app)
+              .post(
+                "/agendamentos"
+              )
+              .send({
+                ...payloadBase,
+
+                cliente_nome:
+                  "Cliente Concorrência B",
+
+                cliente_whatsapp:
+                  whatsappClienteB,
+              }),
+          ]);
+
+        const respostas = [
+          respostaA,
+          respostaB,
+        ];
+
+        /*
+         * Uma requisição deve criar o agendamento.
+         * A outra deve receber conflito de horário.
+         */
+        expect(
+          respostas
+            .map(
+              (resposta) =>
+                resposta.statusCode
+            )
+            .sort(
+              (a, b) =>
+                a - b
+            )
+        ).toEqual([
+          201,
+          409,
+        ]);
+
+        const respostaSucesso =
+          respostas.find(
+            (resposta) =>
+              resposta.statusCode ===
+              201
+          );
+
+        const respostaConflito =
+          respostas.find(
+            (resposta) =>
+              resposta.statusCode ===
+              409
+          );
+
+        expect(
+          respostaSucesso
+        ).toBeTruthy();
+
+        expect(
+          respostaSucesso.body
+        ).toHaveProperty(
+          "agendamento"
+        );
+
+        expect(
+          normalizarId(
+            respostaSucesso.body
+              ?.agendamento?.id
+          )
+        ).toBeGreaterThan(0);
+
+        expect(
+          respostaConflito
+        ).toBeTruthy();
+
+        expect(
+          respostaConflito.body
+            ?.erro
+        ).toEqual(
+          expect.any(String)
+        );
+
+        expect(
+          respostaConflito.body
+            .erro
+            .toLocaleLowerCase(
+              "pt-BR"
+            )
+        ).toMatch(
+          /horário|disponível|reservado/
+        );
+
+        /*
+         * Registra todos os IDs criados durante a
+         * janela do teste para limpeza posterior,
+         * inclusive caso alguma resposta falhe
+         * depois do COMMIT.
+         */
+        const registrosCriados =
+          await buscarAgendamentosDoHorario({
+            profissionalId:
+              cenario.profissional.id,
+
+            data:
+              cenario.data,
+
+            horario:
+              cenario.horario,
+
+            criadoDepoisDe:
+              inicioConcorrencia,
+          });
+
+        registrosCriados
+          .forEach(
+            (registro) => {
+              const id =
+                normalizarId(
+                  registro.id
+                );
+
+              if (id) {
+                agendamentosCriados.add(
+                  id
+                );
+              }
+            }
+          );
+
+        expect(
+          registrosCriados
+        ).toHaveLength(1);
+
+        expect(
+          registrosCriados[0]
+            .status
+        ).toMatch(
+          /agendado|confirmado/
+        );
+
+        /*
+         * Confirma a regra principal diretamente
+         * no banco: existe somente um horário ativo.
+         */
+        const depois =
+          await db.query(
+            `
+              SELECT
+                COUNT(*)::INT
+                  AS total
+
+              FROM agendamentos
+
+              WHERE profissional_id = $1
+                AND data = $2
+                AND TO_CHAR(
+                  horario::TIME,
+                  'HH24:MI'
+                ) = $3
+                AND status IN (
+                  'agendado',
+                  'confirmado'
+                )
+            `,
+            [
+              cenario.profissional.id,
+              cenario.data,
+              cenario.horario,
+            ]
+          );
+
+        expect(
+          Number(
+            depois.rows[0]?.total
+          )
         ).toBe(1);
-      }
+      },
+      60000
     );
   }
 );

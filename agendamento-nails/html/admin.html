@@ -2,283 +2,774 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  <title>Admin da Plataforma</title>
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+  >
 
-  <link rel="stylesheet" href="../css/global.css">
-  <link rel="stylesheet" href="../css/admin.css">
+  <meta
+    name="description"
+    content="Painel administrativo da plataforma Agenda Fashion."
+  >
+
+  <title>
+    Administração | Agenda Fashion
+  </title>
+
+  <link
+    rel="stylesheet"
+    href="../css/global.css"
+  >
+
+  <link
+    rel="stylesheet"
+    href="../css/admin.css"
+  >
 </head>
 
 <body>
-
-  <main class="admin-page">
-
+  <main
+    id="adminPage"
+    class="admin-page"
+    aria-busy="true"
+  >
+    <!-- =================================================
+         CABEÇALHO
+    ================================================== -->
     <header class="admin-header af-card">
-      <div class="admin-brand">
-        <div class="admin-icon">🛡️</div>
+      <div class="admin-header-identidade">
+        <div
+          class="admin-logo"
+          aria-hidden="true"
+        >
+          💅
+        </div>
 
         <div>
-          <h1>Admin da Plataforma</h1>
-          <p>Controle geral do Agenda Fashion</p>
+          <span class="admin-header-marca">
+            Agenda Fashion
+          </span>
+
+          <h1>
+            Administração da plataforma
+          </h1>
+
+          <p>
+            Acompanhe negócios, usuários, agendamentos
+            e indicadores gerais.
+          </p>
         </div>
       </div>
 
-      <button id="btnSairAdmin" class="btn-sair-admin" type="button">
-        🚪 Sair
-      </button>
+      <div class="admin-header-acoes">
+        <a
+          class="admin-btn admin-btn-secundario"
+          href="/html/inicio.html"
+        >
+          Ir para o início
+        </a>
+
+        <button
+          id="btnLogout"
+          class="admin-btn admin-btn-sair"
+          type="button"
+        >
+          Sair
+        </button>
+      </div>
     </header>
 
+    <!-- =================================================
+         MENSAGEM GLOBAL
+    ================================================== -->
+    <p
+      id="mensagemAdmin"
+      class="admin-mensagem hidden"
+      role="status"
+      aria-live="polite"
+    ></p>
+
+    <!-- =================================================
+         APRESENTAÇÃO E FILTRO
+    ================================================== -->
     <section class="admin-hero af-card">
-      <div>
-        <span class="admin-badge">Visão geral</span>
+      <div class="admin-hero-conteudo">
+        <span class="admin-badge">
+          Visão geral
+        </span>
 
-        <h2>Resumo da plataforma</h2>
-
-        <div class="admin-filtros-periodo">
-          <button class="filtro-periodo ativo" data-periodo="all">Todo período</button>
-          <button class="filtro-periodo" data-periodo="today">Hoje</button>
-          <button class="filtro-periodo" data-periodo="7">7 dias</button>
-          <button class="filtro-periodo" data-periodo="30">30 dias</button>
-          <button class="filtro-periodo" data-periodo="month">Este mês</button>
-        </div>
+        <h2>
+          Controle completo do Agenda Fashion
+        </h2>
 
         <p>
-          Acompanhe negócios, usuários, profissionais, agendamentos,
-          crescimento e oportunidades de marketing.
+          Consulte os principais números da plataforma
+          e identifique pontos que precisam de atenção.
         </p>
       </div>
 
-      <div class="admin-hero-emoji">💅</div>
+      <div class="admin-filtros">
+        <label for="filtroPeriodo">
+          <span>
+            Período dos indicadores
+          </span>
+
+          <select
+            id="filtroPeriodo"
+            class="admin-select"
+          >
+            <option value="all">
+              Todo o período
+            </option>
+
+            <option value="today">
+              Hoje
+            </option>
+
+            <option value="7" selected>
+              Últimos 7 dias
+            </option>
+
+            <option value="30">
+              Últimos 30 dias
+            </option>
+
+            <option value="month">
+              Mês atual
+            </option>
+          </select>
+        </label>
+
+        <button
+          id="btnAtualizarAdmin"
+          class="admin-btn admin-btn-principal"
+          type="button"
+        >
+          Atualizar
+        </button>
+      </div>
     </section>
 
-    <section class="admin-kpis">
-      <article class="admin-kpi af-card">
-        <span>🏢</span>
-        <strong id="totalNegocios">0</strong>
-        <small>Negócios cadastrados</small>
-      </article>
-
-      <article class="admin-kpi af-card">
-        <span>👤</span>
-        <strong id="totalClientes">0</strong>
-        <small>Clientes</small>
-      </article>
-
-      <article class="admin-kpi af-card">
-        <span>💅</span>
-        <strong id="totalProfissionais">0</strong>
-        <small>Profissionais</small>
-      </article>
-
-      <article class="admin-kpi af-card">
-        <span>📅</span>
-        <strong id="totalAgendamentos">0</strong>
-        <small>Agendamentos</small>
-      </article>
-
-      <article class="admin-kpi af-card">
-        <span>📈</span>
-        <strong id="usuariosHoje">0</strong>
-        <small>Usuários novos hoje</small>
-      </article>
-
-      <article class="admin-kpi af-card">
-        <span>🆕</span>
-        <strong id="negociosHoje">0</strong>
-        <small>Negócios novos hoje</small>
-      </article>
-
-      <article class="admin-kpi af-card">
-        <span>🔥</span>
-        <strong id="agendamentosHoje">0</strong>
-        <small>Agendamentos hoje</small>
-      </article>
-
-      <article class="admin-kpi af-card">
-        <span>🎯</span>
-        <strong id="taxaConversaoGeral">0%</strong>
-        <small>Conversão geral</small>
-      </article>
-    </section>
-
-    <section class="admin-marketing af-card">
-      <div class="bloco-topo">
+    <!-- =================================================
+         INDICADORES GERAIS
+    ================================================== -->
+    <section
+      class="admin-secao"
+      aria-labelledby="tituloIndicadoresGerais"
+    >
+      <div class="admin-secao-cabecalho">
         <div>
-          <h2>Espaço do Marketing</h2>
-          <p>Métricas para entender crescimento, demanda e onde escalar.</p>
+          <span class="admin-secao-etiqueta">
+            Plataforma
+          </span>
+
+          <h2 id="tituloIndicadoresGerais">
+            Indicadores gerais
+          </h2>
+
+          <p>
+            Totais encontrados no período selecionado.
+          </p>
         </div>
       </div>
 
-      <div class="marketing-grid">
-        <div class="marketing-card">
-          <span>👀</span>
-          <strong id="visitasPlataforma">0</strong>
-          <small>Visitas na plataforma</small>
-        </div>
+      <div class="admin-kpi-grid">
+        <article class="admin-kpi-card af-card">
+          <span
+            class="admin-kpi-icone"
+            aria-hidden="true"
+          >
+            🏢
+          </span>
 
-        <div class="marketing-card">
-          <span>📲</span>
-          <strong id="cliquesWhatsapp">0</strong>
-          <small>Cliques WhatsApp</small>
-        </div>
+          <strong id="totalNegocios">
+            0
+          </strong>
 
-        <div class="marketing-card">
-          <span>📍</span>
-          <strong id="cliquesMaps">0</strong>
-          <small>Cliques Maps</small>
-        </div>
+          <small>
+            Negócios
+          </small>
+        </article>
 
-        <div class="marketing-card">
-          <span>❤️</span>
-          <strong id="favoritosTotais">0</strong>
-          <small>Favoritos</small>
-        </div>
+        <article class="admin-kpi-card af-card">
+          <span
+            class="admin-kpi-icone"
+            aria-hidden="true"
+          >
+            👥
+          </span>
 
-        <div class="marketing-card">
-          <span>🏙️</span>
-          <strong id="cidadeTop">-</strong>
-          <small>Cidade com mais negócios</small>
-        </div>
+          <strong id="totalClientes">
+            0
+          </strong>
 
-        <div class="marketing-card">
-          <span>💎</span>
-          <strong id="setorTop">-</strong>
-          <small>Setor mais forte</small>
-        </div>
+          <small>
+            Clientes
+          </small>
+        </article>
+
+        <article class="admin-kpi-card af-card">
+          <span
+            class="admin-kpi-icone"
+            aria-hidden="true"
+          >
+            💼
+          </span>
+
+          <strong id="totalProfissionais">
+            0
+          </strong>
+
+          <small>
+            Profissionais
+          </small>
+        </article>
+
+        <article class="admin-kpi-card af-card">
+          <span
+            class="admin-kpi-icone"
+            aria-hidden="true"
+          >
+            📅
+          </span>
+
+          <strong id="totalAgendamentos">
+            0
+          </strong>
+
+          <small>
+            Agendamentos
+          </small>
+        </article>
       </div>
     </section>
 
-    <section class="admin-grid">
-
-      <article class="admin-bloco af-card">
-        <div class="bloco-topo">
-          <div>
-            <h2>Negócios cadastrados</h2>
-            <p>Visualize e controle os negócios da plataforma.</p>
-          </div>
-        </div>
-
-        <div id="listaNegociosAdmin" class="lista-admin">
-          <div class="estado-vazio">Carregando negócios...</div>
-        </div>
-      </article>
-
-      <article class="admin-bloco af-card">
-        <div class="bloco-topo">
-          <div>
-            <h2>Últimos agendamentos</h2>
-            <p>Movimento recente da plataforma.</p>
-          </div>
-        </div>
-
-        <div id="listaAgendamentosAdmin" class="lista-admin">
-          <div class="estado-vazio">Carregando agendamentos...</div>
-        </div>
-      </article>
-
-    </section>
-
-    <section class="admin-grid">
-
-      <article class="admin-bloco af-card">
-        <div class="bloco-topo">
-          <div>
-            <h2>Negócios mais agendados</h2>
-            <p>Quem está gerando mais demanda.</p>
-          </div>
-        </div>
-
-        <div id="rankingNegociosAgendados" class="lista-admin">
-          <div class="estado-vazio">Carregando ranking...</div>
-        </div>
-      </article>
-
-      <article class="admin-bloco af-card">
-        <div class="bloco-topo">
-          <div>
-            <h2>Negócios mais vistos</h2>
-            <p>Perfis com maior interesse.</p>
-          </div>
-        </div>
-
-        <div id="rankingNegociosVistos" class="lista-admin">
-          <div class="estado-vazio">Carregando visualizações...</div>
-        </div>
-      </article>
-
-    </section>
-
-    <section class="admin-grid">
-
-      <article class="admin-bloco af-card">
-        <div class="bloco-topo">
-          <div>
-            <h2>Cidades com mais negócios</h2>
-            <p>Onde a plataforma está crescendo.</p>
-          </div>
-        </div>
-
-        <div id="rankingCidades" class="lista-admin">
-          <div class="estado-vazio">Carregando cidades...</div>
-        </div>
-      </article>
-
-      <article class="admin-bloco af-card">
-        <div class="bloco-topo">
-          <div>
-            <h2>Usuários recentes</h2>
-            <p>Novos clientes, donos e profissionais.</p>
-          </div>
-        </div>
-
-        <div id="listaUsuariosRecentes" class="lista-admin">
-          <div class="estado-vazio">Carregando usuários...</div>
-        </div>
-      </article>
-
-    </section>
-
-    <section class="admin-saude af-card">
-      <div class="bloco-topo">
+    <!-- =================================================
+         MOVIMENTO DE HOJE
+    ================================================== -->
+    <section
+      class="admin-secao"
+      aria-labelledby="tituloMovimentoHoje"
+    >
+      <div class="admin-secao-cabecalho">
         <div>
-          <h2>Saúde do SaaS</h2>
-          <p>Problemas e oportunidades que precisam de atenção.</p>
+          <span class="admin-secao-etiqueta">
+            Hoje
+          </span>
+
+          <h2 id="tituloMovimentoHoje">
+            Movimento da plataforma
+          </h2>
+
+          <p>
+            Cadastros e agendamentos registrados desde
+            o início do dia.
+          </p>
         </div>
       </div>
 
-      <div class="saude-grid">
-        <div class="saude-card alerta">
-          <span>⚠️</span>
-          <strong id="negociosSemServico">0</strong>
-          <small>Negócios sem serviço</small>
-        </div>
+      <div class="admin-kpi-grid admin-kpi-grid-menor">
+        <article class="admin-kpi-card af-card">
+          <span
+            class="admin-kpi-icone"
+            aria-hidden="true"
+          >
+            🆕
+          </span>
 
-        <div class="saude-card alerta">
-          <span>📍</span>
-          <strong id="negociosSemMaps">0</strong>
-          <small>Negócios sem Maps</small>
-        </div>
+          <strong id="usuariosHoje">
+            0
+          </strong>
 
-        <div class="saude-card alerta">
-          <span>📞</span>
-          <strong id="negociosSemWhatsapp">0</strong>
-          <small>Negócios sem WhatsApp</small>
-        </div>
+          <small>
+            Usuários novos
+          </small>
+        </article>
 
-        <div class="saude-card ok">
-          <span>✅</span>
-          <strong id="negociosCompletos">0</strong>
-          <small>Perfis completos</small>
-        </div>
+        <article class="admin-kpi-card af-card">
+          <span
+            class="admin-kpi-icone"
+            aria-hidden="true"
+          >
+            🏪
+          </span>
+
+          <strong id="negociosHoje">
+            0
+          </strong>
+
+          <small>
+            Negócios novos
+          </small>
+        </article>
+
+        <article class="admin-kpi-card af-card">
+          <span
+            class="admin-kpi-icone"
+            aria-hidden="true"
+          >
+            🗓️
+          </span>
+
+          <strong id="agendamentosHoje">
+            0
+          </strong>
+
+          <small>
+            Agendamentos criados
+          </small>
+        </article>
+
+        <article class="admin-kpi-card admin-kpi-destaque af-card">
+          <span
+            class="admin-kpi-icone"
+            aria-hidden="true"
+          >
+            📈
+          </span>
+
+          <strong id="taxaConversaoGeral">
+            0%
+          </strong>
+
+          <small>
+            Relação agendamentos por negócio
+          </small>
+        </article>
       </div>
     </section>
 
+    <!-- =================================================
+         MÉTRICAS E DESTAQUES
+    ================================================== -->
+    <section class="admin-duas-colunas">
+      <article
+        class="admin-bloco af-card"
+        aria-labelledby="tituloMetricas"
+      >
+        <div class="admin-bloco-cabecalho">
+          <div>
+            <span class="admin-secao-etiqueta">
+              Engajamento
+            </span>
+
+            <h2 id="tituloMetricas">
+              Métricas da plataforma
+            </h2>
+
+            <p>
+              Interações registradas nos perfis públicos.
+            </p>
+          </div>
+        </div>
+
+        <div class="admin-metricas-grid">
+          <div class="admin-metrica">
+            <span>
+              Visitas
+            </span>
+
+            <strong id="visitasPlataforma">
+              0
+            </strong>
+          </div>
+
+          <div class="admin-metrica">
+            <span>
+              Cliques no WhatsApp
+            </span>
+
+            <strong id="cliquesWhatsapp">
+              0
+            </strong>
+          </div>
+
+          <div class="admin-metrica">
+            <span>
+              Cliques no Maps
+            </span>
+
+            <strong id="cliquesMaps">
+              0
+            </strong>
+          </div>
+
+          <div class="admin-metrica">
+            <span>
+              Favoritos
+            </span>
+
+            <strong id="favoritosTotais">
+              0
+            </strong>
+          </div>
+        </div>
+      </article>
+
+      <article
+        class="admin-bloco af-card"
+        aria-labelledby="tituloDestaques"
+      >
+        <div class="admin-bloco-cabecalho">
+          <div>
+            <span class="admin-secao-etiqueta">
+              Destaques
+            </span>
+
+            <h2 id="tituloDestaques">
+              Onde a plataforma cresce
+            </h2>
+
+            <p>
+              Cidade e setor com maior presença.
+            </p>
+          </div>
+        </div>
+
+        <div class="admin-destaques-grid">
+          <div class="admin-destaque-card">
+            <span
+              aria-hidden="true"
+              class="admin-destaque-icone"
+            >
+              📍
+            </span>
+
+            <small>
+              Cidade em destaque
+            </small>
+
+            <strong id="cidadeTop">
+              -
+            </strong>
+          </div>
+
+          <div class="admin-destaque-card">
+            <span
+              aria-hidden="true"
+              class="admin-destaque-icone"
+            >
+              ✨
+            </span>
+
+            <small>
+              Setor em destaque
+            </small>
+
+            <strong id="setorTop">
+              -
+            </strong>
+          </div>
+        </div>
+      </article>
+    </section>
+
+    <!-- =================================================
+         QUALIDADE DOS NEGÓCIOS
+    ================================================== -->
+    <section
+      class="admin-secao"
+      aria-labelledby="tituloQualidade"
+    >
+      <div class="admin-secao-cabecalho">
+        <div>
+          <span class="admin-secao-etiqueta">
+            Qualidade
+          </span>
+
+          <h2 id="tituloQualidade">
+            Situação dos negócios
+          </h2>
+
+          <p>
+            Informações importantes para melhorar os
+            perfis publicados.
+          </p>
+        </div>
+      </div>
+
+      <div class="admin-qualidade-grid">
+        <article class="admin-qualidade-card admin-alerta">
+          <span aria-hidden="true">
+            💅
+          </span>
+
+          <strong id="negociosSemServico">
+            0
+          </strong>
+
+          <small>
+            Sem serviços cadastrados
+          </small>
+        </article>
+
+        <article class="admin-qualidade-card admin-alerta">
+          <span aria-hidden="true">
+            🗺️
+          </span>
+
+          <strong id="negociosSemMaps">
+            0
+          </strong>
+
+          <small>
+            Sem localização
+          </small>
+        </article>
+
+        <article class="admin-qualidade-card admin-alerta">
+          <span aria-hidden="true">
+            📞
+          </span>
+
+          <strong id="negociosSemWhatsapp">
+            0
+          </strong>
+
+          <small>
+            Sem WhatsApp
+          </small>
+        </article>
+
+        <article class="admin-qualidade-card admin-ok">
+          <span aria-hidden="true">
+            ✅
+          </span>
+
+          <strong id="negociosCompletos">
+            0
+          </strong>
+
+          <small>
+            Perfis completos
+          </small>
+        </article>
+      </div>
+    </section>
+
+    <!-- =================================================
+         NEGÓCIOS E AGENDAMENTOS
+    ================================================== -->
+    <section class="admin-duas-colunas admin-listagens-principais">
+      <article
+        class="admin-bloco af-card"
+        aria-labelledby="tituloNegocios"
+      >
+        <div class="admin-bloco-cabecalho">
+          <div>
+            <span class="admin-secao-etiqueta">
+              Cadastros
+            </span>
+
+            <h2 id="tituloNegocios">
+              Negócios recentes
+            </h2>
+
+            <p>
+              Últimos negócios cadastrados na plataforma.
+            </p>
+          </div>
+        </div>
+
+        <div
+          id="listaNegocios"
+          class="admin-lista"
+          aria-live="polite"
+        >
+          <div class="estado-vazio">
+            Carregando negócios...
+          </div>
+        </div>
+      </article>
+
+      <article
+        class="admin-bloco af-card"
+        aria-labelledby="tituloAgendamentos"
+      >
+        <div class="admin-bloco-cabecalho">
+          <div>
+            <span class="admin-secao-etiqueta">
+              Agenda
+            </span>
+
+            <h2 id="tituloAgendamentos">
+              Agendamentos recentes
+            </h2>
+
+            <p>
+              Últimos horários marcados pelos usuários.
+            </p>
+          </div>
+        </div>
+
+        <div
+          id="listaAgendamentos"
+          class="admin-lista"
+          aria-live="polite"
+        >
+          <div class="estado-vazio">
+            Carregando agendamentos...
+          </div>
+        </div>
+      </article>
+    </section>
+
+    <!-- =================================================
+         MARKETING
+    ================================================== -->
+    <section
+      class="admin-secao"
+      aria-labelledby="tituloMarketing"
+    >
+      <div class="admin-secao-cabecalho">
+        <div>
+          <span class="admin-secao-etiqueta">
+            Marketing
+          </span>
+
+          <h2 id="tituloMarketing">
+            Desempenho e crescimento
+          </h2>
+
+          <p>
+            Rankings e informações que ajudam a entender
+            o uso da plataforma.
+          </p>
+        </div>
+      </div>
+
+      <div class="admin-marketing-grid">
+        <article
+          class="admin-bloco af-card"
+          aria-labelledby="tituloMaisAgendados"
+        >
+          <div class="admin-bloco-cabecalho">
+            <div>
+              <h3 id="tituloMaisAgendados">
+                Mais agendados
+              </h3>
+
+              <p>
+                Negócios com mais horários marcados.
+              </p>
+            </div>
+          </div>
+
+          <div
+            id="negociosMaisAgendados"
+            class="admin-ranking"
+            aria-live="polite"
+          >
+            <div class="estado-vazio">
+              Carregando ranking...
+            </div>
+          </div>
+        </article>
+
+        <article
+          class="admin-bloco af-card"
+          aria-labelledby="tituloMaisVistos"
+        >
+          <div class="admin-bloco-cabecalho">
+            <div>
+              <h3 id="tituloMaisVistos">
+                Mais vistos
+              </h3>
+
+              <p>
+                Negócios com maior alcance na plataforma.
+              </p>
+            </div>
+          </div>
+
+          <div
+            id="negociosMaisVistos"
+            class="admin-ranking"
+            aria-live="polite"
+          >
+            <div class="estado-vazio">
+              Carregando ranking...
+            </div>
+          </div>
+        </article>
+
+        <article
+          class="admin-bloco af-card"
+          aria-labelledby="tituloCidades"
+        >
+          <div class="admin-bloco-cabecalho">
+            <div>
+              <h3 id="tituloCidades">
+                Cidades em destaque
+              </h3>
+
+              <p>
+                Regiões com mais negócios cadastrados.
+              </p>
+            </div>
+          </div>
+
+          <div
+            id="cidadesTop"
+            class="admin-ranking"
+            aria-live="polite"
+          >
+            <div class="estado-vazio">
+              Carregando cidades...
+            </div>
+          </div>
+        </article>
+
+        <article
+          class="admin-bloco af-card"
+          aria-labelledby="tituloUsuariosRecentes"
+        >
+          <div class="admin-bloco-cabecalho">
+            <div>
+              <h3 id="tituloUsuariosRecentes">
+                Usuários recentes
+              </h3>
+
+              <p>
+                Contas cadastradas mais recentemente.
+              </p>
+            </div>
+          </div>
+
+          <div
+            id="usuariosRecentes"
+            class="admin-lista"
+            aria-live="polite"
+          >
+            <div class="estado-vazio">
+              Carregando usuários...
+            </div>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <footer class="admin-footer">
+      <span>
+        Agenda Fashion
+      </span>
+
+      <small>
+        Painel reservado à administração da plataforma.
+      </small>
+    </footer>
   </main>
+
+  <!-- =================================================
+       SCRIPTS
+  ================================================== -->
   <script src="../js/config.js"></script>
   <script src="../js/utils.js"></script>
   <script src="../js/api.js"></script>
-  <script src="../js/admin.js"></script>
 
+  <script src="../js/services/authService.js"></script>
+
+  <script src="../js/admin.js"></script>
 </body>
 </html>

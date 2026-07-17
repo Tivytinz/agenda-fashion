@@ -63,17 +63,33 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
 
   function ehDonoDoPerfil() {
-  if (!usuario || !negocioAtual) {
+  if (
+    !usuario?.id ||
+    !negocioAtual?.id
+  ) {
     return false;
   }
 
-  return (
-    Number(usuario.id) === Number(negocioAtual.dono_usuario_id) ||
-    usuario.tipo === "dono" ||
-    negocioLocal?.papel === "dono" ||
-    usuario.eh_dono === true ||
-    usuario.dono === true ||
-    usuario.is_dono === true
+  const usuarioEhDonoDireto =
+    negocioAtual.dono_usuario_id &&
+    Number(usuario.id) ===
+      Number(
+        negocioAtual.dono_usuario_id
+      );
+
+  const mesmoNegocioDaSessao =
+    negocioLocal?.id &&
+    Number(negocioLocal.id) ===
+      Number(negocioAtual.id);
+
+  const usuarioEhDonoPeloVinculo =
+    mesmoNegocioDaSessao &&
+    negocioLocal?.papel ===
+      "dono";
+
+  return Boolean(
+    usuarioEhDonoDireto ||
+    usuarioEhDonoPeloVinculo
   );
 }
 
@@ -982,6 +998,30 @@ async function removerServico(id) {
   await confirmarAgendamentoVisitante();
 }
 
+if (
+  tipoEdicao ===
+  "confirmar-agendamento-logado"
+) {
+  const nome =
+    document.getElementById(
+      "inputClienteNome"
+    )?.value;
+
+  const whatsapp =
+    document.getElementById(
+      "inputClienteWhatsapp"
+    )?.value;
+
+  await confirmarAgendamentoLogado({
+    nome,
+    whatsapp,
+  });
+
+  fecharModal();
+
+  return;
+}
+
 
       fecharModal();
       mostrarMensagem("Salvo com sucesso 💅", "#2f9e63");
@@ -995,68 +1035,279 @@ async function removerServico(id) {
     }
   }
 
-  async function alternarFavorito() {
-  const token = localStorage.getItem("token");
-  const usuario = JSON.parse(localStorage.getItem("usuario") || "null");
+  function obterTokenAtual() {
+  if (
+    window.AuthService &&
+    typeof window.AuthService
+      .getToken === "function"
+  ) {
+    return window.AuthService
+      .getToken();
+  }
 
-  if (!token || usuario?.tipo !== "cliente") {
-    mostrarMensagem("Entre como cliente para favoritar.");
-    window.location.href = "login-cliente.html";
+  return localStorage.getItem(
+    "token"
+  );
+}
+function obterUsuarioAtual() {
+  try {
+    return JSON.parse(
+      localStorage.getItem(
+        "usuario"
+      ) || "null"
+    );
+  } catch {
+    localStorage.removeItem(
+      "usuario"
+    );
+
+    return null;
+  }
+}
+
+function escaparHtml(
+  valor
+) {
+  return String(
+    valor ?? ""
+  )
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
+
+function atualizarBotaoFavorito(
+  favoritado
+) {
+  if (!btnFavorito) {
     return;
   }
 
-  const jaFavoritado = btnFavorito.classList.contains("ativo");
+  btnFavorito.classList.toggle(
+    "ativo",
+    favoritado
+  );
 
-  const resposta = await fetch(`${API_URL}/favoritos/${negocioAtual.id}`, {
-    method: jaFavoritado ? "DELETE" : "POST",
-    headers: {
-      Authorization: `Bearer ${token}`
-    }
-  });
+  btnFavorito.textContent =
+    favoritado
+      ? "❤️ Favorito"
+      : "♡ Favoritar";
 
-  const data = await resposta.json();
-
-  if (!resposta.ok) {
-    throw new Error(data.erro || "Erro ao atualizar favorito.");
-  }
-
-  btnFavorito.classList.toggle("ativo", !jaFavoritado);
-  btnFavorito.innerHTML = jaFavoritado ? "♡ Favoritar" : "❤️ Favorito";
-
-  mostrarMensagem(
-    jaFavoritado ? "Removido dos favoritos." : "Adicionado aos favoritos ❤️",
-    "#2f9e63"
+  btnFavorito.setAttribute(
+    "aria-pressed",
+    String(favoritado)
   );
 }
 
-  async function carregarFavorito() {
-  const token = localStorage.getItem("token");
-  const usuario = JSON.parse(localStorage.getItem("usuario") || "null");
+function redirecionarParaLogin() {
+  if (
+    window.AuthService &&
+    typeof window.AuthService
+      .limparSessao === "function"
+  ) {
+    window.AuthService
+      .limparSessao();
+  }
+
+  window.location.href =
+    "/html/login-cliente.html";
+}
+
+  async function alternarFavorito() {
+  if (
+    !btnFavorito ||
+    !negocioAtual?.id
+  ) {
+    throw new Error(
+      "Negócio inválido."
+    );
+  }
+
+  if (ehDonoDoPerfil()) {
+    mostrarMensagem(
+      "Você não pode favoritar seu próprio negócio."
+    );
+
+    return;
+  }
+
+  const token =
+    obterTokenAtual();
+
+  if (!token) {
+    mostrarMensagem(
+      "Entre na sua conta para favoritar."
+    );
+
+    window.location.href =
+      "/html/login-cliente.html";
+
+    return;
+  }
 
   if (
-    !token ||
-    usuario?.tipo !== "cliente" ||
-    !negocioAtual?.id ||
+    !window.API ||
+    typeof window.API.post !==
+      "function" ||
+    typeof window.API.delete !==
+      "function"
+  ) {
+    throw new Error(
+      "O serviço da API não foi carregado."
+    );
+  }
+
+  const jaFavoritado =
+    btnFavorito.classList.contains(
+      "ativo"
+    );
+
+  btnFavorito.disabled =
+    true;
+
+  try {
+    const caminho =
+      `/favoritos/${encodeURIComponent(
+        negocioAtual.id
+      )}`;
+
+    const resultado =
+      jaFavoritado
+        ? await window.API.delete(
+            caminho
+          )
+        : await window.API.post(
+            caminho,
+            {}
+          );
+
+    const favoritado =
+      typeof resultado?.favoritado ===
+      "boolean"
+        ? resultado.favoritado
+        : !jaFavoritado;
+
+    atualizarBotaoFavorito(
+      favoritado
+    );
+
+    mostrarMensagem(
+      resultado?.mensagem ||
+        (
+          favoritado
+            ? "Adicionado aos favoritos ❤️"
+            : "Removido dos favoritos."
+        ),
+      "#2f9e63"
+    );
+  } catch (erro) {
+    if (
+      erro?.status === 401 ||
+      erro?.status === 403
+    ) {
+      redirecionarParaLogin();
+      return;
+    }
+
+    throw erro;
+  } finally {
+    btnFavorito.disabled =
+      false;
+  }
+}
+
+  async function carregarFavorito() {
+  if (
     !btnFavorito ||
-    ehDonoDoPerfil()
+    !negocioAtual?.id
   ) {
     return;
   }
 
+  if (ehDonoDoPerfil()) {
+    btnFavorito.classList.add(
+      "hidden"
+    );
+
+    return;
+  }
+
+  btnFavorito.classList.remove(
+    "hidden"
+  );
+
+  atualizarBotaoFavorito(
+    false
+  );
+
+  const token =
+    obterTokenAtual();
+
+  /*
+   * Visitante pode visualizar o perfil,
+   * apenas não possui favorito salvo.
+   */
+  if (!token) {
+    return;
+  }
+
+  if (
+    !window.API ||
+    typeof window.API.get !==
+      "function"
+  ) {
+    console.warn(
+      "API não carregada para verificar favorito."
+    );
+
+    return;
+  }
+
+  btnFavorito.disabled =
+    true;
+
   try {
-    const resposta = await fetch(`${API_URL}/favoritos/${negocioAtual.id}/status`, {
-      headers: {
-        Authorization: `Bearer ${token}`
-      }
-    });
+    const resultado =
+      await window.API.get(
+        `/favoritos/${encodeURIComponent(
+          negocioAtual.id
+        )}/status`
+      );
 
-    const resultado = await resposta.json();
+    atualizarBotaoFavorito(
+      Boolean(
+        resultado?.favoritado
+      )
+    );
+  } catch (erro) {
+    if (
+      erro?.status === 401 ||
+      erro?.status === 403
+    ) {
+      window.AuthService
+        ?.limparSessao?.();
 
-    if (resultado.favoritado) {
-      btnFavorito.classList.add("ativo");
-      btnFavorito.innerHTML = "❤️ Favorito";
+      atualizarBotaoFavorito(
+        false
+      );
+
+      return;
     }
-  } catch {}
+
+    console.warn(
+      "Não foi possível verificar o favorito:",
+      erro
+    );
+
+    atualizarBotaoFavorito(
+      false
+    );
+  } finally {
+    btnFavorito.disabled =
+      false;
+  }
 }
 
   async function copiarLinkPerfil() {
@@ -1079,99 +1330,300 @@ async function removerServico(id) {
   }
 }
 
-  function irParaAgenda() {
-  if (!servicoSelecionado || !profissionalSelecionado || !horarioSelecionado) {
-    mostrarMensagem("Escolha serviço, profissional e horário.");
+  async function irParaAgenda() {
+  if (
+    !servicoSelecionado ||
+    !profissionalSelecionado ||
+    !horarioSelecionado
+  ) {
+    mostrarMensagem(
+      "Escolha serviço, profissional e horário."
+    );
+
     return;
   }
 
-  const token = localStorage.getItem("token");
-  const usuario = JSON.parse(localStorage.getItem("usuario") || "null");
+  const token =
+    obterTokenAtual();
 
-  if (!token || usuario?.tipo !== "cliente") {
+  const usuarioAtual =
+    obterUsuarioAtual();
+
+  /*
+   * Sem token, mantém o fluxo
+   * público de visitante.
+   */
+  if (!token) {
     abrirModal(
       "Confirmar agendamento",
       "confirmar-agendamento-visitante",
       `
         <div class="resumo-modal">
-          <strong>${servicoSelecionado.nome}</strong><br>
-          ${horarioSelecionado.data} às ${horarioSelecionado.hora}<br>
-          Profissional: ${profissionalSelecionado.nome}
+          <strong>${escaparHtml(
+            servicoSelecionado.nome
+          )}</strong><br>
+
+          ${escaparHtml(
+            horarioSelecionado.data
+          )} às ${escaparHtml(
+            horarioSelecionado.hora
+          )}<br>
+
+          Profissional:
+          ${escaparHtml(
+            profissionalSelecionado.nome
+          )}
         </div>
 
-        <label>Seu nome</label>
-        <input id="inputClienteNome" class="af-input" placeholder="Digite seu nome">
+        <label for="inputClienteNome">
+          Seu nome
+        </label>
 
-        <label>Seu WhatsApp</label>
-        <input id="inputClienteWhatsapp" class="af-input" placeholder="Ex: 62999999999">
+        <input
+          id="inputClienteNome"
+          class="af-input"
+          placeholder="Digite seu nome"
+        >
+
+        <label for="inputClienteWhatsapp">
+          Seu WhatsApp
+        </label>
+
+        <input
+          id="inputClienteWhatsapp"
+          class="af-input"
+          placeholder="Ex.: 62999999999"
+        >
       `
     );
 
     return;
   }
 
-  confirmarAgendamentoLogado();
-}
+  /*
+   * Qualquer conta autenticada pode
+   * realizar um agendamento.
+   */
+  if (
+    usuarioAtual?.nome &&
+    usuarioAtual?.whatsapp
+  ) {
+    try {
+      await confirmarAgendamentoLogado({
+        nome:
+          usuarioAtual.nome,
 
-async function confirmarAgendamentoLogado() {
-  const usuario = JSON.parse(localStorage.getItem("usuario") || "null");
-
-  if (!usuario?.nome || !usuario?.whatsapp) {
-    abrirModal(
-      "Confirmar agendamento",
-      "confirmar-agendamento-visitante",
-      `
-        <div class="resumo-modal">
-          <strong>${servicoSelecionado.nome}</strong><br>
-          ${horarioSelecionado.data} às ${horarioSelecionado.hora}<br>
-          Profissional: ${profissionalSelecionado.nome}
-        </div>
-
-        <label>Seu nome</label>
-        <input id="inputClienteNome" class="af-input" value="${usuario?.nome || ""}">
-
-        <label>Seu WhatsApp</label>
-        <input id="inputClienteWhatsapp" class="af-input" value="${usuario?.whatsapp || ""}">
-      `
-    );
+        whatsapp:
+          usuarioAtual.whatsapp,
+      });
+    } catch (erro) {
+      mostrarMensagem(
+        erro?.message ||
+          "Não foi possível confirmar o agendamento."
+      );
+    }
 
     return;
   }
 
-  const token = localStorage.getItem("token");
+  /*
+   * Conta autenticada sem nome ou
+   * WhatsApp completo.
+   */
+  abrirModal(
+    "Confirmar agendamento",
+    "confirmar-agendamento-logado",
+    `
+      <div class="resumo-modal">
+        <strong>${escaparHtml(
+          servicoSelecionado.nome
+        )}</strong><br>
 
-const resposta = await fetch(`${API_URL}/agendamentos`, {
-  method: "POST",
-  headers: {
-    "Content-Type": "application/json",
-    Authorization: `Bearer ${token}`
-  },
-  body: JSON.stringify({
-    slug,
-    servico_id: servicoSelecionado.id,
-    profissional_id: profissionalSelecionado.id,
-    data: horarioSelecionado.data,
-    horario: horarioSelecionado.hora,
-    cliente_nome: usuario.nome,
-    cliente_whatsapp: usuario.whatsapp
-  })
-});
+        ${escaparHtml(
+          horarioSelecionado.data
+        )} às ${escaparHtml(
+          horarioSelecionado.hora
+        )}<br>
 
-  const data = await resposta.json();
+        Profissional:
+        ${escaparHtml(
+          profissionalSelecionado.nome
+        )}
+      </div>
 
-  if (!resposta.ok) {
-  throw new Error(data.erro || "Erro ao confirmar agendamento.");
+      <label for="inputClienteNome">
+        Seu nome
+      </label>
+
+      <input
+        id="inputClienteNome"
+        class="af-input"
+        value="${escaparHtml(
+          usuarioAtual?.nome
+        )}"
+        placeholder="Digite seu nome"
+      >
+
+      <label for="inputClienteWhatsapp">
+        Seu WhatsApp
+      </label>
+
+      <input
+        id="inputClienteWhatsapp"
+        class="af-input"
+        value="${escaparHtml(
+          usuarioAtual?.whatsapp
+        )}"
+        placeholder="Ex.: 62999999999"
+      >
+    `
+  );
 }
 
-btnContinuar.disabled = true;
-btnContinuar.textContent = "Agendado com sucesso ✅";
+async function confirmarAgendamentoLogado({
+  nome,
+  whatsapp,
+} = {}) {
+  const token =
+    obterTokenAtual();
 
-mostrarMensagem("Agendamento confirmado com sucesso 💅", "#2f9e63");
+  if (!token) {
+    throw new Error(
+      "Sua sessão expirou. Entre novamente."
+    );
+  }
 
-setTimeout(() => {
-  window.location.href = "meus-agendamentos.html";
-}, 1200);
+  if (
+    !window.API ||
+    typeof window.API.post !==
+      "function"
+  ) {
+    throw new Error(
+      "O serviço da API não foi carregado."
+    );
+  }
 
+  const nomeNormalizado =
+    String(nome || "")
+      .trim()
+      .replace(/\s+/g, " ");
+
+  const whatsappNormalizado =
+    String(whatsapp || "")
+      .replace(/\D/g, "");
+
+  if (
+    nomeNormalizado.length < 2
+  ) {
+    throw new Error(
+      "Informe seu nome."
+    );
+  }
+
+  if (
+    ![10, 11].includes(
+      whatsappNormalizado.length
+    )
+  ) {
+    throw new Error(
+      "Informe um WhatsApp válido com DDD."
+    );
+  }
+
+  if (
+    !servicoSelecionado ||
+    !profissionalSelecionado ||
+    !horarioSelecionado
+  ) {
+    throw new Error(
+      "Os dados do agendamento estão incompletos."
+    );
+  }
+
+  if (btnContinuar) {
+    btnContinuar.disabled =
+      true;
+
+    btnContinuar.textContent =
+      "Confirmando...";
+  }
+
+  try {
+    const resultado =
+      await window.API.post(
+        "/agendamentos",
+        {
+          slug,
+
+          servico_id:
+            servicoSelecionado.id,
+
+          profissional_id:
+            profissionalSelecionado.id,
+
+          data:
+            horarioSelecionado.data,
+
+          horario:
+            horarioSelecionado.hora,
+
+          cliente_nome:
+            nomeNormalizado,
+
+          cliente_whatsapp:
+            whatsappNormalizado,
+        }
+      );
+
+    if (
+      !resultado?.agendamento?.id
+    ) {
+      throw new Error(
+        "O servidor não confirmou o agendamento."
+      );
+    }
+
+    if (btnContinuar) {
+      btnContinuar.textContent =
+        "Agendado com sucesso ✅";
+    }
+
+    mostrarMensagem(
+      resultado?.mensagem ||
+        "Agendamento confirmado com sucesso 💅",
+      "#2f9e63"
+    );
+
+    window.setTimeout(
+      () => {
+        window.location.href =
+          "/html/meus-agendamentos.html";
+      },
+      1200
+    );
+
+    return resultado;
+  } catch (erro) {
+    if (btnContinuar) {
+      btnContinuar.disabled =
+        false;
+
+      btnContinuar.textContent =
+        "Continuar";
+    }
+
+    if (
+      erro?.status === 401
+    ) {
+      window.AuthService
+        ?.limparSessao?.();
+
+      window.location.href =
+        "/html/login-cliente.html";
+    }
+
+    throw erro;
+  }
 }
 
   async function carregarPerfil() {

@@ -1,58 +1,91 @@
-const db = require("../db/db");
+const adminService = require(
+  "../services/adminService"
+);
 
-const adminService = require("../services/adminService");
-
-function filtroPeriodo(alias = "") {
-  const prefixo = alias ? `${alias}.` : "";
-
-  return {
-    today: `AND ${prefixo}created_at >= CURRENT_DATE`,
-    "7": `AND ${prefixo}created_at >= NOW() - INTERVAL '7 days'`,
-    "30": `AND ${prefixo}created_at >= NOW() - INTERVAL '30 days'`,
-    month: `AND date_trunc('month', ${prefixo}created_at) = date_trunc('month', NOW())`,
-    all: ""
-  };
-}
-
-async function buscarDashboardAdmin(req, res, next) {
+/*
+ * GET /admin/dashboard
+ */
+async function buscarDashboardAdmin(
+  req,
+  res,
+  next
+) {
   try {
-    const resultado = await adminService.buscarDashboardAdmin({
-      periodo: req.query.periodo || "all",
-    });
+    const resultado =
+      await adminService
+        .buscarDashboardAdmin({
+          periodo:
+            req.query?.periodo,
+        });
 
-    return res.json(resultado);
-  } catch (err) {
-    next(err);
+    return res
+      .status(200)
+      .json(resultado);
+  } catch (erro) {
+    return next(erro);
   }
 }
 
-async function listarNegociosAdmin(req, res, next) {
+/*
+ * GET /admin/negocios
+ */
+async function listarNegociosAdmin(
+  req,
+  res,
+  next
+) {
   try {
-    const resultado = await adminService.listarNegociosAdmin();
+    const resultado =
+      await adminService
+        .listarNegociosAdmin();
 
-    return res.json(resultado);
-  } catch (err) {
-    next(err);
+    return res
+      .status(200)
+      .json(resultado);
+  } catch (erro) {
+    return next(erro);
   }
 }
 
-async function listarAgendamentosAdmin(req, res, next) {
+/*
+ * GET /admin/agendamentos
+ */
+async function listarAgendamentosAdmin(
+  req,
+  res,
+  next
+) {
   try {
-    const resultado = await adminService.listarAgendamentosAdmin();
+    const resultado =
+      await adminService
+        .listarAgendamentosAdmin();
 
-    return res.json(resultado);
-  } catch (err) {
-    next(err);
+    return res
+      .status(200)
+      .json(resultado);
+  } catch (erro) {
+    return next(erro);
   }
 }
 
-async function buscarMarketingAdmin(req, res, next) {
+/*
+ * GET /admin/marketing
+ */
+async function buscarMarketingAdmin(
+  req,
+  res,
+  next
+) {
   try {
-    const resultado = await adminService.buscarMarketingAdmin();
+    const resultado =
+      await adminService
+        .buscarMarketingAdmin();
 
-    return res.json(resultado);
-  } catch (err) {
-    next(err);
+    return res
+      .status(200)
+      .json(resultado);
+  } catch (erro) {
+    return next(erro);
   }
 }
 
@@ -60,5 +93,5 @@ module.exports = {
   buscarDashboardAdmin,
   listarNegociosAdmin,
   listarAgendamentosAdmin,
-  buscarMarketingAdmin
+  buscarMarketingAdmin,
 };

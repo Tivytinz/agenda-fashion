@@ -1,4 +1,7 @@
 const agendaRepository = require("../repositories/agendaRepository");
+const agendaConfiguracaoRepository = require(
+  "../repositories/agendaConfiguracaoRepository"
+);
 
 const {
   exigirUsuario,
@@ -116,71 +119,593 @@ async function buscarAgendaPublica({ slugNegocio, slugProfissional }) {
   };
 }
 
-async function listarAgendaProfissional({ profissionalId }) {
-  exigirUsuario(profissionalId);
+function normalizarHorario(
+  horario
+) {
+  if (!horario) {
+    return null;
+  }
 
-  const datas = gerarDatasAgenda(7);
-  const horas = gerarHorariosAgenda(8, 18);
+  return String(
+    horario
+  )
+    .trim()
+    .slice(0, 5);
+}
 
-  const dataInicio = datas[0];
-  const dataFim = datas[datas.length - 1];
-
-  const bloqueios =
-    await agendaRepository.buscarBloqueiosPorPeriodo(
-      profissionalId,
-      dataInicio,
-      dataFim
+function horarioParaMinutos(
+  horario
+) {
+  const horarioNormalizado =
+    normalizarHorario(
+      horario
     );
 
-  const agendamentos =
-    await agendaRepository.buscarAgendamentosPorPeriodo(
-      profissionalId,
-      dataInicio,
-      dataFim
+  if (!horarioNormalizado) {
+    return null;
+  }
+
+  const [
+    hora,
+    minuto,
+  ] = horarioNormalizado
+    .split(":")
+    .map(Number);
+
+  if (
+    !Number.isInteger(hora) ||
+    !Number.isInteger(minuto)
+  ) {
+    return null;
+  }
+
+  return (
+    hora * 60 +
+    minuto
+  );
+}
+
+function minutosParaHorario(
+  minutosTotais
+) {
+  const hora =
+    Math.floor(
+      minutosTotais / 60
     );
 
-  const mapaBloqueios = new Map(
-    bloqueios.map((item) => [
-      criarChaveAgenda(item.data, item.hora),
-      item
-    ])
+  const minuto =
+    minutosTotais % 60;
+
+  return (
+    `${String(hora).padStart(
+      2,
+      "0"
+    )}:` +
+    `${String(minuto).padStart(
+      2,
+      "0"
+    )}`
+  );
+}
+
+function intervalosSeSobrepoem({
+  inicioA,
+  fimA,
+  inicioB,
+  fimB,
+}) {
+  return (
+    inicioA < fimB &&
+    fimA > inicioB
+  );
+}
+
+function gerarHorariosConfigurados({
+  horaInicio,
+  horaFim,
+  intervaloInicio,
+  intervaloFim,
+  duracaoMinutos,
+  intervaloMinutos,
+}) {
+  const horarios = [];
+
+  const inicioExpediente =
+    horarioParaMinutos(
+      horaInicio
+    );
+
+  const fimExpediente =
+    horarioParaMinutos(
+      horaFim
+    );
+
+  const inicioPausa =
+    horarioParaMinutos(
+      intervaloInicio
+    );
+
+  const fimPausa =
+    horarioParaMinutos(
+      intervaloFim
+    );
+
+  if (
+    inicioExpediente === null ||
+    fimExpediente === null ||
+    inicioExpediente >=
+      fimExpediente
+  ) {
+    return horarios;
+  }
+
+  const passo =
+    duracaoMinutos +
+    intervaloMinutos;
+
+  if (passo <= 0) {
+    return horarios;
+  }
+
+  for (
+    let inicio =
+      inicioExpediente;
+
+    inicio +
+      duracaoMinutos <=
+    fimExpediente;
+
+    inicio += passo
+  ) {
+    const fim =
+      inicio +
+      duracaoMinutos;
+
+    const atravessaIntervalo =
+      inicioPausa !== null &&
+      fimPausa !== null &&
+      intervalosSeSobrepoem({
+        inicioA: inicio,
+        fimA: fim,
+        inicioB:
+          inicioPausa,
+        fimB:
+          fimPausa,
+      });
+
+    if (
+      !atravessaIntervalo
+    ) {
+      horarios.push(
+        minutosParaHorario(
+          inicio
+        )
+      );
+    }
+  }
+
+  return horarios;
+}
+
+function obterDataHoraBrasil() {
+  const partes =
+    new Intl.DateTimeFormat(
+      "pt-BR",
+      {
+        timeZone:
+          "America/Sao_Paulo",
+
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+        hourCycle: "h23",
+      }
+    ).formatToParts(
+      new Date()
+    );
+
+  const obterParte =
+    (tipo) =>
+      partes.find(
+        (parte) =>
+          parte.type === tipo
+      )?.value;
+
+  return {
+    data:
+      `${obterParte(
+        "year"
+      )}-` +
+      `${obterParte(
+        "month"
+      )}-` +
+      `${obterParte(
+        "day"
+      )}`,
+
+    hora:
+      `${obterParte(
+        "hour"
+      )}:` +
+      `${obterParte(
+        "minute"
+      )}`,
+  };
+}
+
+function obterDiaSemana(
+  data
+) {
+  const [
+    ano,
+    mes,
+    dia,
+  ] = String(data)
+    .split("-")
+    .map(Number);
+
+  return new Date(
+    Date.UTC(
+      ano,
+      mes - 1,
+      dia,
+      12
+    )
+  ).getUTCDay();
+}
+
+function horarioJaPassou({
+  data,
+  hora,
+  agoraBrasil,
+}) {
+  if (
+    data <
+    agoraBrasil.data
+  ) {
+    return true;
+  }
+
+  if (
+    data >
+    agoraBrasil.data
+  ) {
+    return false;
+  }
+
+  return (
+    hora <=
+    agoraBrasil.hora
+  );
+}
+
+async function listarAgendaProfissional({
+  profissionalId,
+}) {
+  exigirUsuario(
+    profissionalId
   );
 
-  const mapaAgendamentos = new Map(
-    agendamentos.map((item) => [
-      criarChaveAgenda(item.data, item.hora),
-      item
-    ])
-  );
+  const datas =
+    gerarDatasAgenda(7);
 
-  const agenda = datas.map((data) => ({
-    data,
-    horarios: horas.map((hora) => {
-      const chave = criarChaveAgenda(data, hora);
-      const agendamento = mapaAgendamentos.get(chave);
+  const dataInicio =
+    datas[0];
 
-      let status = "livre";
+  const dataFim =
+    datas[
+      datas.length - 1
+    ];
 
-      if (mapaBloqueios.has(chave)) {
-        status = "bloqueado";
+  const [
+    configuracao,
+    horariosConfigurados,
+    bloqueios,
+    agendamentos,
+  ] = await Promise.all([
+    agendaConfiguracaoRepository
+      .buscarConfiguracao(
+        profissionalId
+      ),
+
+    agendaConfiguracaoRepository
+      .listarHorarios(
+        profissionalId
+      ),
+
+    agendaRepository
+      .buscarBloqueiosPorPeriodo(
+        profissionalId,
+        dataInicio,
+        dataFim
+      ),
+
+    agendaRepository
+      .buscarAgendamentosPorPeriodo(
+        profissionalId,
+        dataInicio,
+        dataFim
+      ),
+  ]);
+
+  const duracaoConfigurada =
+    Number(
+      configuracao
+        ?.duracao_padrao
+    );
+
+  const intervaloConfigurado =
+    Number(
+      configuracao
+        ?.intervalo_minutos
+    );
+
+  const duracaoPadrao =
+    Number.isInteger(
+      duracaoConfigurada
+    ) &&
+    duracaoConfigurada > 0
+      ? duracaoConfigurada
+      : 60;
+
+  const intervaloMinutos =
+    Number.isInteger(
+      intervaloConfigurado
+    ) &&
+    intervaloConfigurado >= 0
+      ? intervaloConfigurado
+      : 0;
+
+  const mapaBloqueios =
+    new Map(
+      bloqueios.map(
+        (item) => [
+          criarChaveAgenda(
+            item.data,
+            normalizarHorario(
+              item.hora
+            )
+          ),
+          item,
+        ]
+      )
+    );
+
+  const mapaAgendamentos =
+    new Map(
+      agendamentos.map(
+        (item) => [
+          criarChaveAgenda(
+            item.data,
+            normalizarHorario(
+              item.hora
+            )
+          ),
+          item,
+        ]
+      )
+    );
+
+  const agoraBrasil =
+    obterDataHoraBrasil();
+
+  const agenda =
+    datas.map(
+      (data) => {
+        const diaSemana =
+          obterDiaSemana(
+            data
+          );
+
+        const horarioConfigurado =
+          horariosConfigurados.find(
+            (item) =>
+              Number(
+                item.dia_semana
+              ) ===
+              Number(
+                diaSemana
+              )
+          );
+
+        if (
+          horarioConfigurado &&
+          !horarioConfigurado
+            .trabalha
+        ) {
+          return {
+            data,
+            trabalha: false,
+            horarios: [],
+          };
+        }
+
+        const horaInicio =
+          horarioConfigurado
+            ?.hora_inicio ||
+          "08:00";
+
+        const horaFim =
+          horarioConfigurado
+            ?.hora_fim ||
+          "18:00";
+
+        const intervaloInicio =
+          horarioConfigurado
+            ?.intervalo_inicio ||
+          null;
+
+        const intervaloFim =
+          horarioConfigurado
+            ?.intervalo_fim ||
+          null;
+
+        const horariosBase =
+          gerarHorariosConfigurados({
+            horaInicio,
+            horaFim,
+            intervaloInicio,
+            intervaloFim,
+            duracaoMinutos:
+              duracaoPadrao,
+            intervaloMinutos,
+          });
+
+        const horarios =
+          horariosBase.map(
+            (hora) => {
+              const chave =
+                criarChaveAgenda(
+                  data,
+                  hora
+                );
+
+              const bloqueio =
+                mapaBloqueios.get(
+                  chave
+                );
+
+              const agendamento =
+                mapaAgendamentos.get(
+                  chave
+                );
+
+              let status =
+                "livre";
+
+              if (bloqueio) {
+                status =
+                  "bloqueado";
+              }
+
+              if (agendamento) {
+                status =
+                  agendamento.status ===
+                    "confirmado"
+                    ? "confirmado"
+                    : "agendado";
+              }
+
+              const horarioPassado =
+                horarioJaPassou({
+                  data,
+                  hora,
+                  agoraBrasil,
+                });
+
+              if (
+                horarioPassado &&
+                agendamento
+              ) {
+                status =
+                  "realizado";
+              } else if (
+                horarioPassado &&
+                !agendamento &&
+                !bloqueio
+              ) {
+                status =
+                  "passado";
+              }
+
+              return {
+                data,
+                hora,
+                status,
+
+                agendamento_id:
+                  agendamento
+                    ?.agendamento_id ||
+                  null,
+
+                cliente_id:
+                  agendamento
+                    ?.cliente_id ||
+                  null,
+
+                cliente:
+                  agendamento
+                    ?.cliente ||
+                  null,
+
+                cliente_whatsapp:
+                  agendamento
+                    ?.cliente_whatsapp ||
+                  null,
+
+                servico_id:
+                  agendamento
+                    ?.servico_id ||
+                  null,
+
+                servico:
+                  agendamento
+                    ?.servico ||
+                  null,
+
+                valor:
+                  agendamento
+                    ?.valor ||
+                  null,
+
+                duracao_minutos:
+                  agendamento
+                    ?.duracao_minutos ||
+                  duracaoPadrao,
+              };
+            }
+          );
+
+        return {
+          data,
+          trabalha: true,
+
+          configuracao: {
+            hora_inicio:
+              normalizarHorario(
+                horaInicio
+              ),
+
+            hora_fim:
+              normalizarHorario(
+                horaFim
+              ),
+
+            intervalo_inicio:
+              normalizarHorario(
+                intervaloInicio
+              ),
+
+            intervalo_fim:
+              normalizarHorario(
+                intervaloFim
+              ),
+
+            duracao_padrao:
+              duracaoPadrao,
+
+            intervalo_minutos:
+              intervaloMinutos,
+          },
+
+          horarios,
+        };
       }
+    );
 
-      if (agendamento) {
-        status = "agendado";
-      }
+  return {
+    configuracao: {
+      duracao_padrao:
+        duracaoPadrao,
 
-      return {
-        data,
-        hora,
-        status,
-        cliente: agendamento?.cliente || null,
-        servico: agendamento?.servico || null,
-        valor: agendamento?.valor || null
-      };
-    })
-  }));
+      intervalo_minutos:
+        intervaloMinutos,
+    },
 
-  return { agenda };
+    agenda,
+  };
 }
 
 async function alternarBloqueioHorario({

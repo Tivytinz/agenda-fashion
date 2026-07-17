@@ -1,55 +1,127 @@
-const contaService = require("../services/contaService");
+const contaService = require(
+  "../services/contaService"
+);
 
-async function buscarMinhaConta(req, res, next) {
+/*
+ * GET /conta
+ */
+async function buscarMinhaConta(
+  req,
+  res,
+  next
+) {
   try {
-    const resultado = await contaService.buscarMinhaConta({
-      usuarioId: req.user?.id,
-    });
+    const resultado =
+      await contaService
+        .buscarMinhaConta({
+          usuarioId:
+            req.user?.id,
+        });
 
-    return res.json(resultado);
-  } catch (err) {
-    next(err);
+    return res.json(
+      resultado
+    );
+  } catch (erro) {
+    return next(erro);
   }
 }
 
-async function atualizarMinhaConta(req, res, next) {
+/*
+ * PUT /conta
+ */
+async function atualizarMinhaConta(
+  req,
+  res,
+  next
+) {
   try {
-    const resultado = await contaService.atualizarMinhaConta({
-      usuarioId: req.user?.id,
-      nome: req.body.nome,
-      whatsapp: req.body.whatsapp,
-    });
+    const body =
+      req.body &&
+      typeof req.body === "object"
+        ? req.body
+        : {};
 
-    return res.json(resultado);
-  } catch (err) {
-    next(err);
+    const resultado =
+      await contaService
+        .atualizarMinhaConta({
+          usuarioId:
+            req.user?.id,
+
+          nome:
+            body.nome,
+
+          whatsapp:
+            body.whatsapp,
+        });
+
+    return res.json(
+      resultado
+    );
+  } catch (erro) {
+    return next(erro);
   }
 }
 
-async function alterarSenha(req, res, next) {
+/*
+ * PUT /conta/senha
+ */
+async function alterarSenha(
+  req,
+  res,
+  next
+) {
   try {
-    const resultado = await contaService.alterarSenha({
-      usuarioId: req.user?.id,
-      senhaAtual: req.body.senhaAtual,
-      novaSenha: req.body.novaSenha,
-    });
+    const body =
+      req.body &&
+      typeof req.body === "object"
+        ? req.body
+        : {};
 
-    return res.json(resultado);
-  } catch (err) {
-    next(err);
+    const resultado =
+      await contaService
+        .alterarSenha({
+          usuarioId:
+            req.user?.id,
+
+          senhaAtual:
+            body.senhaAtual,
+
+          novaSenha:
+            body.novaSenha,
+        });
+
+    return res.json(
+      resultado
+    );
+  } catch (erro) {
+    return next(erro);
   }
 }
 
-async function enviarFotoUsuario(req, res, next) {
+/*
+ * POST /conta/foto
+ */
+async function enviarFotoUsuario(
+  req,
+  res,
+  next
+) {
   try {
-    const resultado = await contaService.enviarFotoUsuario({
-      usuarioId: req.user?.id,
-      file: req.file,
-    });
+    const resultado =
+      await contaService
+        .enviarFotoUsuario({
+          usuarioId:
+            req.user?.id,
 
-    return res.json(resultado);
-  } catch (err) {
-    next(err);
+          arquivo:
+            req.file,
+        });
+
+    return res.json(
+      resultado
+    );
+  } catch (erro) {
+    return next(erro);
   }
 }
 

@@ -2,64 +2,212 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
-  <title>Dashboard Profissional</title>
-  <link rel="stylesheet" href="../css/dashboard-profissional.css">
-  <link rel="stylesheet" href="../css/navegacao.css">
+
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+  >
+
+  <title>
+    Dashboard Profissional | Agenda Fashion
+  </title>
+
+  <link
+    rel="stylesheet"
+    href="../css/dashboard-profissional.css"
+  >
+
+  <link
+    rel="stylesheet"
+    href="../css/navegacao.css"
+  >
 </head>
 
 <body>
 
-<header class="topo">
-  <div class="logo" id="btnHome">💅</div>
+  <header class="topo">
+    <button
+      type="button"
+      class="logo"
+      id="btnHome"
+      aria-label="Ir para o início"
+    >
+      💅
+    </button>
 
-  <div class="topo-acoes">
-    <button id="btnAgenda">Agenda</button>
-    <button id="btnAgendamentos">Agendamentos</button>
-    <button id="btnSair">Sair</button>
-  </div>
-</header>
+    <div class="topo-acoes">
+      <button
+        type="button"
+        id="btnAgenda"
+      >
+        Agenda
+      </button>
 
-<main class="container">
+      <button
+        type="button"
+        id="btnAgendamentos"
+      >
+        Agendamentos
+      </button>
 
-  <h1>Dashboard</h1>
-
-  <!-- CARDS -->
-  <section class="cards">
-    <div class="card">
-      <span>Total Agendados</span>
-      <strong id="totalAgendados">0</strong>
+      <button
+        type="button"
+        id="btnSair"
+      >
+        Sair
+      </button>
     </div>
+  </header>
 
-    <div class="card">
-      <span>Hoje</span>
-      <strong id="agendadosHoje">0</strong>
-    </div>
+  <main class="container">
 
-    <div class="card">
-      <span>Clientes</span>
-      <strong id="clientes">0</strong>
-    </div>
+    <section class="dashboard-cabecalho">
+      <div>
+        <h1>Dashboard profissional</h1>
 
-    <div class="card">
-      <span>Faturamento</span>
-      <strong id="faturamento">R$ 0</strong>
-    </div>
-  </section>
+        <p id="nomeNegocio">
+          Acompanhe sua agenda e seus resultados.
+        </p>
+      </div>
+    </section>
 
-  <!-- SERVIÇOS -->
-  <section class="servicos">
-    <h2>Serviços mais vendidos</h2>
-    <div id="listaServicos"></div>
-  </section>
+    <p
+      id="mensagemDashboard"
+      class="mensagem-dashboard"
+      role="status"
+      aria-live="polite"
+    >
+      Carregando dashboard...
+    </p>
 
-</main>
-<script src="../js/config.js"></script>
-<script src="../js/utils.js"></script>
-<script src="../js/api.js"></script>
-<script src="../js/dashboard-profissional.js"></script>
+    <section
+      class="cards"
+      aria-label="Resumo do dashboard"
+    >
+      <article class="card">
+        <span>Agendamentos hoje</span>
+        <strong id="agendamentosHoje">0</strong>
+      </article>
 
-  <nav id="appNav" class="app-bottom-nav"></nav>
-  <script src="../js/navegacao.js"></script>
+      <article class="card">
+        <span>Faturamento previsto hoje</span>
+        <strong id="faturamentoHoje">
+          R$ 0,00
+        </strong>
+      </article>
+
+      <article class="card">
+        <span>Realizados hoje</span>
+        <strong id="realizadosHoje">0</strong>
+      </article>
+
+      <article class="card">
+        <span>Pendentes hoje</span>
+        <strong id="pendentesHoje">0</strong>
+      </article>
+
+      <article class="card">
+        <span>Cancelamentos hoje</span>
+        <strong id="cancelamentosHoje">0</strong>
+      </article>
+
+      <article class="card">
+        <span>Clientes atendidos</span>
+        <strong id="clientesUnicos">0</strong>
+      </article>
+
+      <article class="card">
+        <span>Total agendado</span>
+        <strong id="totalAgendados">0</strong>
+      </article>
+
+      <article class="card">
+        <span>Faturamento estimado</span>
+        <strong id="faturamentoEstimado">
+          R$ 0,00
+        </strong>
+      </article>
+    </section>
+
+    <section class="secao-dashboard">
+      <div class="secao-titulo">
+        <div>
+          <h2>Próximo atendimento</h2>
+
+          <p>
+            O atendimento mais próximo da sua agenda.
+          </p>
+        </div>
+      </div>
+
+      <div
+        id="proximoAtendimento"
+        class="proximo-atendimento"
+      >
+        <p>Nenhum atendimento futuro encontrado.</p>
+      </div>
+    </section>
+
+    <section class="secao-dashboard">
+      <div class="secao-titulo">
+        <div>
+          <h2>Próximos atendimentos</h2>
+
+          <p>
+            Seus próximos horários confirmados ou
+            agendados.
+          </p>
+        </div>
+      </div>
+
+      <div
+        id="listaProximosAtendimentos"
+        class="lista-atendimentos"
+      >
+        <p>Nenhum atendimento futuro encontrado.</p>
+      </div>
+    </section>
+
+    <section class="secao-dashboard servicos">
+      <div class="secao-titulo">
+        <div>
+          <h2>Serviços mais vendidos</h2>
+
+          <p>
+            Os serviços mais procurados pelas clientes.
+          </p>
+        </div>
+      </div>
+
+      <div
+        id="listaServicos"
+        class="lista-servicos"
+      >
+        <p>Nenhum serviço encontrado.</p>
+      </div>
+    </section>
+
+  </main>
+
+  <nav
+    id="appNav"
+    class="app-bottom-nav"
+  ></nav>
+
+  <script src="../js/config.js"></script>
+  <script src="../js/utils.js"></script>
+  <script src="../js/api.js"></script>
+
+  <script
+    src="../js/dashboard-profissional.js"
+  ></script>
+
+<nav
+  id="appNav"
+  class="app-bottom-nav"
+></nav>
+
+<script src="../js/navegacao.js"></script>
 
 </body>
 </html>

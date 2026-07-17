@@ -1,172 +1,563 @@
-const dashboardRepository = require("../repositories/dashboardRepository");
+const dashboardRepository = require(
+  "../repositories/dashboardRepository"
+);
 
-function filtroPeriodo(periodo) {
-  if (periodo === "hoje") {
-    return "AND a.data = CURRENT_DATE";
-  }
+const AppError = require(
+  "../errors/AppError"
+);
 
-  if (periodo === "7dias" || periodo === "7") {
-    return "AND a.data >= CURRENT_DATE - INTERVAL '7 days'";
-  }
-
-  if (periodo === "30dias" || periodo === "30") {
-    return "AND a.data >= CURRENT_DATE - INTERVAL '30 days'";
-  }
-
-  if (periodo === "mes" || periodo === "month") {
-    return "AND date_trunc('month', a.data) = date_trunc('month', CURRENT_DATE)";
-  }
-
-  return "AND a.data >= CURRENT_DATE - INTERVAL '7 days'";
+function criarErro(
+  mensagem,
+  statusCode
+) {
+  return new AppError(
+    mensagem,
+    statusCode
+  );
 }
 
-async function buscarDashboardProfissional({ usuarioId }) {
+function converterNumero(
+  valor
+) {
+  const numero =
+    Number(valor);
+
+  if (
+    !Number.isFinite(numero)
+  ) {
+    return 0;
+  }
+
+  return numero;
+}
+
+function normalizarNegocio(
+  negocio
+) {
+  if (!negocio) {
+    return null;
+  }
+
+  return {
+    negocio_id:
+      converterNumero(
+        negocio.negocio_id
+      ),
+
+    papel:
+      negocio.papel,
+
+    nome:
+      negocio.nome,
+
+    slug:
+      negocio.slug,
+  };
+}
+
+function normalizarAtendimento(
+  atendimento
+) {
+  if (!atendimento) {
+    return null;
+  }
+
+  return {
+    id:
+      converterNumero(
+        atendimento.id
+      ),
+
+    data:
+      atendimento.data,
+
+    horario:
+      atendimento.horario,
+
+    status:
+      atendimento.status,
+
+    hoje:
+      Boolean(
+        atendimento.hoje
+      ),
+
+    cliente: {
+      id:
+        atendimento.cliente_id
+          ? converterNumero(
+              atendimento.cliente_id
+            )
+          : null,
+
+      nome:
+        atendimento.cliente_nome,
+
+      whatsapp:
+        atendimento.cliente_whatsapp ||
+        null,
+    },
+
+    servico: {
+      id:
+        atendimento.servico_id
+          ? converterNumero(
+              atendimento.servico_id
+            )
+          : null,
+
+      nome:
+        atendimento.servico_nome,
+
+      valor:
+        converterNumero(
+          atendimento.valor
+        ),
+
+      duracao_minutos:
+        converterNumero(
+          atendimento.duracao_minutos
+        ),
+    },
+  };
+}
+
+function normalizarServico(
+  servico
+) {
+  return {
+    id:
+      servico.id
+        ? converterNumero(
+            servico.id
+          )
+        : null,
+
+    nome:
+      servico.nome,
+
+    total:
+      converterNumero(
+        servico.total
+      ),
+
+    faturamento:
+      converterNumero(
+        servico.faturamento
+      ),
+  };
+}
+
+function filtroPeriodo(
+  periodo
+) {
+  const hojeBrasil =
+    `(NOW() AT TIME ZONE ` +
+    `'America/Sao_Paulo')::date`;
+
+  if (
+    periodo === "hoje"
+  ) {
+    return (
+      `AND a.data = ` +
+      hojeBrasil
+    );
+  }
+
+  if (
+    periodo === "7dias" ||
+    periodo === "7"
+  ) {
+    return (
+      `AND a.data >= ` +
+      `${hojeBrasil} - ` +
+      `INTERVAL '7 days'`
+    );
+  }
+
+  if (
+    periodo === "30dias" ||
+    periodo === "30"
+  ) {
+    return (
+      `AND a.data >= ` +
+      `${hojeBrasil} - ` +
+      `INTERVAL '30 days'`
+    );
+  }
+
+  if (
+    periodo === "mes" ||
+    periodo === "month"
+  ) {
+    return (
+      `AND date_trunc(` +
+      `'month', a.data` +
+      `) = date_trunc(` +
+      `'month', ` +
+      hojeBrasil +
+      `)`
+    );
+  }
+
+  return (
+    `AND a.data >= ` +
+    `${hojeBrasil} - ` +
+    `INTERVAL '7 days'`
+  );
+}
+
+async function buscarDashboardProfissional({
+  usuarioId,
+}) {
   if (!usuarioId) {
-    throw new Error("Usuário não autenticado.");
+    throw criarErro(
+      "Usuário não autenticado.",
+      401
+    );
   }
 
   const negocio =
-    await dashboardRepository.buscarNegocioDoUsuario(usuarioId);
+    await dashboardRepository
+      .buscarNegocioDoUsuario(
+        usuarioId
+      );
 
   if (!negocio) {
-    throw new Error("Usuário não está vinculado a nenhum negócio.");
+    throw criarErro(
+      "Usuário não está vinculado a nenhum negócio.",
+      404
+    );
   }
 
-  const resumo =
-    await dashboardRepository.buscarResumoProfissional(
-      negocio.negocio_id,
-      usuarioId
+  const negocioId =
+    converterNumero(
+      negocio.negocio_id
     );
 
-  const servicosMaisVendidos =
-    await dashboardRepository.buscarServicosMaisVendidosProfissional(
-      negocio.negocio_id,
-      usuarioId
+  const [
+    resumo,
+    proximoAtendimento,
+    proximosAtendimentos,
+    servicosMaisVendidos,
+  ] = await Promise.all([
+    dashboardRepository
+      .buscarResumoProfissional(
+        negocioId,
+        usuarioId
+      ),
+
+    dashboardRepository
+      .buscarProximoAtendimentoProfissional(
+        negocioId,
+        usuarioId
+      ),
+
+    dashboardRepository
+      .listarProximosAtendimentosProfissional(
+        negocioId,
+        usuarioId,
+        5
+      ),
+
+    dashboardRepository
+      .buscarServicosMaisVendidosProfissional(
+        negocioId,
+        usuarioId
+      ),
+  ]);
+
+  const agendamentosHoje =
+    converterNumero(
+      resumo.agendamentos_hoje ??
+      resumo.agendados_hoje
     );
 
   return {
-    negocio,
-    resumo,
-    servicosMaisVendidos
+    negocio:
+      normalizarNegocio(
+        negocio
+      ),
+
+    resumo: {
+      total_agendados:
+        converterNumero(
+          resumo.total_agendados
+        ),
+
+      agendados_hoje:
+        agendamentosHoje,
+
+      agendamentos_hoje:
+        agendamentosHoje,
+
+      cancelamentos_hoje:
+        converterNumero(
+          resumo.cancelamentos_hoje
+        ),
+
+      realizados_hoje:
+        converterNumero(
+          resumo.realizados_hoje
+        ),
+
+      pendentes_hoje:
+        converterNumero(
+          resumo.pendentes_hoje
+        ),
+
+      clientes_unicos:
+        converterNumero(
+          resumo.clientes_unicos
+        ),
+
+      faturamento_estimado:
+        converterNumero(
+          resumo.faturamento_estimado
+        ),
+
+      faturamento_previsto_hoje:
+        converterNumero(
+          resumo
+            .faturamento_previsto_hoje
+        ),
+    },
+
+    proximo_atendimento:
+      normalizarAtendimento(
+        proximoAtendimento
+      ),
+
+    proximos_atendimentos:
+      proximosAtendimentos.map(
+        normalizarAtendimento
+      ),
+
+    servicos_mais_vendidos:
+      servicosMaisVendidos.map(
+        normalizarServico
+      ),
   };
 }
 
 async function buscarDashboardDono({
   usuarioId,
-  periodo = "7dias"
+  periodo = "7dias",
 }) {
-
   if (!usuarioId) {
-    throw new Error("Usuário não autenticado.");
+    throw criarErro(
+      "Usuário não autenticado.",
+      401
+    );
   }
 
   const negocio =
-    await dashboardRepository.buscarNegocioDoUsuario(usuarioId);
+    await dashboardRepository
+      .buscarNegocioDoUsuario(
+        usuarioId
+      );
 
   if (!negocio) {
-    throw new Error("Usuário não está vinculado a nenhum negócio.");
+    throw criarErro(
+      "Usuário não está vinculado a nenhum negócio.",
+      404
+    );
   }
 
-  if (negocio.papel !== "dono") {
-    throw new Error("Apenas o dono pode acessar este dashboard.");
+  if (
+    negocio.papel !== "dono"
+  ) {
+    throw criarErro(
+      "Apenas o dono pode acessar este dashboard.",
+      403
+    );
   }
 
-  const filtro = filtroPeriodo(periodo);
-
-  const resumo =
-    await dashboardRepository.buscarResumoDono(
-      negocio.negocio_id,
-      filtro
-    );
-
-  const clientesRecorrentes =
-    await dashboardRepository.buscarClientesRecorrentes(
+  const negocioId =
+    converterNumero(
       negocio.negocio_id
     );
 
-  const performance =
-    await dashboardRepository.buscarPerformanceNegocio(
-      negocio.negocio_id
+  const filtro =
+    filtroPeriodo(
+      periodo
     );
 
-  const favoritos =
-    await dashboardRepository.buscarFavoritosRecebidos(
-      negocio.negocio_id
-    );
+  const [
+    resumo,
+    clientesRecorrentes,
+    performance,
+    favoritos,
+    resumoDias,
+    rankingProfissionais,
+    rankingServicos,
+    rankingClientes,
+  ] = await Promise.all([
+    dashboardRepository
+      .buscarResumoDono(
+        negocioId,
+        filtro
+      ),
 
-  const resumoDias =
-    await dashboardRepository.buscarResumoDias(
-      negocio.negocio_id,
-      filtro
-    );
+    dashboardRepository
+      .buscarClientesRecorrentes(
+        negocioId
+      ),
 
-  const rankingProfissionais =
-    await dashboardRepository.buscarRankingProfissionais(
-      negocio.negocio_id,
-      filtro
-    );
+    dashboardRepository
+      .buscarPerformanceNegocio(
+        negocioId
+      ),
 
-  const rankingServicos =
-    await dashboardRepository.buscarRankingServicos(
-      negocio.negocio_id,
-      filtro
-    );
+    dashboardRepository
+      .buscarFavoritosRecebidos(
+        negocioId
+      ),
 
-  const rankingClientes =
-    await dashboardRepository.buscarRankingClientes(
-      negocio.negocio_id,
-      filtro
-    );
+    dashboardRepository
+      .buscarResumoDias(
+        negocioId,
+        filtro
+      ),
+
+    dashboardRepository
+      .buscarRankingProfissionais(
+        negocioId,
+        filtro
+      ),
+
+    dashboardRepository
+      .buscarRankingServicos(
+        negocioId,
+        filtro
+      ),
+
+    dashboardRepository
+      .buscarRankingClientes(
+        negocioId,
+        filtro
+      ),
+  ]);
 
   const totalVisitas =
-    Number(performance.visitas_perfil || 0);
+    converterNumero(
+      performance.visitas_perfil
+    );
 
   const agendamentosPeriodo =
-    Number(resumo.agendamentos_periodo || 0);
+    converterNumero(
+      resumo.agendamentos_periodo
+    );
+
+  const faturamentoPeriodo =
+    converterNumero(
+      resumo.faturamento_periodo
+    );
 
   const taxaConversao =
     totalVisitas > 0
-      ? Math.round((agendamentosPeriodo / totalVisitas) * 100)
+      ? Math.round(
+          (
+            agendamentosPeriodo /
+            totalVisitas
+          ) * 100
+        )
       : 0;
 
   const ticketMedio =
     agendamentosPeriodo > 0
-      ? Number(resumo.faturamento_periodo || 0) /
-        agendamentosPeriodo
+      ? Number(
+          (
+            faturamentoPeriodo /
+            agendamentosPeriodo
+          ).toFixed(2)
+        )
       : 0;
 
   return {
     periodo,
 
-    negocio,
+    negocio:
+      normalizarNegocio(
+        negocio
+      ),
 
     resumo: {
-      agendamentos_hoje: Number(resumo.agendamentos_hoje || 0),
-      agendamentos_periodo: agendamentosPeriodo,
-      faturamento_hoje: Number(resumo.faturamento_hoje || 0),
-      faturamento_periodo: Number(resumo.faturamento_periodo || 0),
-      clientes_novos: Number(resumo.clientes_novos || 0),
-      clientes_recorrentes: Number(clientesRecorrentes),
-      servicos_vendidos: Number(resumo.servicos_vendidos || 0),
-      ticket_medio: ticketMedio
+      agendamentos_hoje:
+        converterNumero(
+          resumo.agendamentos_hoje
+        ),
+
+      agendamentos_periodo:
+        agendamentosPeriodo,
+
+      faturamento_hoje:
+        converterNumero(
+          resumo.faturamento_hoje
+        ),
+
+      faturamento_periodo:
+        faturamentoPeriodo,
+
+      clientes_novos:
+        converterNumero(
+          resumo.clientes_novos
+        ),
+
+      clientes_recorrentes:
+        converterNumero(
+          clientesRecorrentes
+        ),
+
+      servicos_vendidos:
+        converterNumero(
+          resumo.servicos_vendidos
+        ),
+
+      ticket_medio:
+        ticketMedio,
     },
 
     performance: {
-      visitas_perfil: totalVisitas,
-      cliques_whatsapp: Number(performance.cliques_whatsapp || 0),
-      cliques_maps: Number(performance.cliques_maps || 0),
-      favoritos_recebidos: Number(favoritos),
-      taxa_conversao: taxaConversao
+      visitas_perfil:
+        totalVisitas,
+
+      cliques_whatsapp:
+        converterNumero(
+          performance
+            .cliques_whatsapp
+        ),
+
+      cliques_maps:
+        converterNumero(
+          performance
+            .cliques_maps
+        ),
+
+      favoritos_recebidos:
+        converterNumero(
+          favoritos
+        ),
+
+      taxa_conversao:
+        taxaConversao,
     },
 
-    resumo_dias: resumoDias,
-    ranking_profissionais: rankingProfissionais,
-    ranking_servicos: rankingServicos,
-    ranking_clientes: rankingClientes
+    resumo_dias:
+      resumoDias,
+
+    ranking_profissionais:
+      rankingProfissionais,
+
+    ranking_servicos:
+      rankingServicos,
+
+    ranking_clientes:
+      rankingClientes,
   };
 }
 
 module.exports = {
   buscarDashboardProfissional,
-  buscarDashboardDono
+  buscarDashboardDono,
 };

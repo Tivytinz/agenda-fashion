@@ -1,76 +1,195 @@
 const db = require("../db/db");
 
-async function buscarUsuarioPorId(usuarioId) {
-  const result = await db.query(
-    `
-    SELECT
-      id,
-      nome,
-      email,
-      whatsapp,
-      tipo,
-      foto_url
-    FROM usuarios
-    WHERE id = $1
-    LIMIT 1
-    `,
-    [usuarioId]
-  );
+/*
+ * Busca somente dados seguros para
+ * exibição na tela Minha conta.
+ *
+ * A senha nunca é retornada aqui.
+ */
+async function buscarUsuarioPorId(
+  usuarioId
+) {
+  const resultado =
+    await db.query(
+      `
+        SELECT
+          id,
+          nome,
+          email,
+          whatsapp,
+          foto_url,
+          foto_public_id,
+          ativo,
+          email_verificado_em,
+          ultimo_login_em,
+          senha_alterada_em,
+          created_at,
+          updated_at
 
-  return result.rows[0] || null;
-}
+        FROM usuarios
 
-async function buscarSenhaUsuario(usuarioId) {
-  const result = await db.query(
-    `
-    SELECT id, senha
-    FROM usuarios
-    WHERE id = $1
-    LIMIT 1
-    `,
-    [usuarioId]
-  );
+        WHERE id = $1
 
-  return result.rows[0] || null;
-}
+        LIMIT 1
+      `,
+      [usuarioId]
+    );
 
-async function atualizarUsuario({ usuarioId, nome, whatsapp }) {
-  const result = await db.query(
-    `
-    UPDATE usuarios
-    SET
-      nome = $1,
-      whatsapp = $2
-    WHERE id = $3
-    RETURNING id, nome, email, whatsapp, tipo, foto_url
-    `,
-    [nome, whatsapp, usuarioId]
-  );
-
-  return result.rows[0] || null;
-}
-
-async function atualizarSenha({ usuarioId, senhaHash }) {
-  await db.query(
-    `
-    UPDATE usuarios
-    SET senha = $1
-    WHERE id = $2
-    `,
-    [senhaHash, usuarioId]
+  return (
+    resultado.rows[0] ||
+    null
   );
 }
 
-async function atualizarFotoUsuario({ usuarioId, fotoUrl, fotoPublicId }) {
-  await db.query(
-    `
-    UPDATE usuarios
-    SET
-      foto_url = $1,
-      foto_public_id = $2
-    WHERE id = $3
-    `,
-    [fotoUrl, fotoPublicId, usuarioId]
+/*
+ * Usado exclusivamente durante
+ * a alteração da senha.
+ */
+async function buscarSenhaUsuario(
+  usuarioId
+) {
+  const resultado =
+    await db.query(
+      `
+        SELECT
+          id,
+          senha,
+          ativo,
+          senha_alterada_em
+
+        FROM usuarios
+
+        WHERE id = $1
+
+        LIMIT 1
+      `,
+      [usuarioId]
+    );
+
+  return (
+    resultado.rows[0] ||
+    null
+  );
+}
+
+async function atualizarUsuario({
+  usuarioId,
+  nome,
+  whatsapp,
+}) {
+  const resultado =
+    await db.query(
+      `
+        UPDATE usuarios
+
+        SET
+          nome = $1,
+          whatsapp = $2
+
+        WHERE id = $3
+          AND ativo = TRUE
+
+        RETURNING
+          id,
+          nome,
+          email,
+          whatsapp,
+          foto_url,
+          foto_public_id,
+          ativo,
+          email_verificado_em,
+          ultimo_login_em,
+          senha_alterada_em,
+          created_at,
+          updated_at
+      `,
+      [
+        nome,
+        whatsapp,
+        usuarioId,
+      ]
+    );
+
+  return (
+    resultado.rows[0] ||
+    null
+  );
+}
+
+async function atualizarSenha({
+  usuarioId,
+  senhaHash,
+}) {
+  const resultado =
+    await db.query(
+      `
+        UPDATE usuarios
+
+        SET
+          senha = $1,
+          senha_alterada_em = NOW()
+
+        WHERE id = $2
+          AND ativo = TRUE
+
+        RETURNING
+          id,
+          senha_alterada_em,
+          updated_at
+      `,
+      [
+        senhaHash,
+        usuarioId,
+      ]
+    );
+
+  return (
+    resultado.rows[0] ||
+    null
+  );
+}
+
+async function atualizarFotoUsuario({
+  usuarioId,
+  fotoUrl,
+  fotoPublicId,
+}) {
+  const resultado =
+    await db.query(
+      `
+        UPDATE usuarios
+
+        SET
+          foto_url = $1,
+          foto_public_id = $2
+
+        WHERE id = $3
+          AND ativo = TRUE
+
+        RETURNING
+          id,
+          nome,
+          email,
+          whatsapp,
+          foto_url,
+          foto_public_id,
+          ativo,
+          email_verificado_em,
+          ultimo_login_em,
+          senha_alterada_em,
+          created_at,
+          updated_at
+      `,
+      [
+        fotoUrl,
+        fotoPublicId,
+        usuarioId,
+      ]
+    );
+
+  return (
+    resultado.rows[0] ||
+    null
   );
 }
 

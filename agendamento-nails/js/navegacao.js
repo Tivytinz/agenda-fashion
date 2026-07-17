@@ -1,196 +1,733 @@
-document.addEventListener("DOMContentLoaded", async () => {
-  const nav = document.getElementById("appNav");
-  if (!nav) return;
+document.addEventListener(
+  "DOMContentLoaded",
+  async () => {
+    const nav =
+      document.getElementById(
+        "appNav"
+      );
 
-  const usuario = JSON.parse(localStorage.getItem("usuario") || "null");
-  let negocio = JSON.parse(localStorage.getItem("negocio") || "null");
-
-  function page(nome) {
-    return `/html/${nome}`;
-  }
-
-  async function carregarNegocioAtual() {
-    const token = localStorage.getItem("token");
-
-    if (!token || !usuario) {
-      localStorage.removeItem("negocio");
-      negocio = null;
+    if (!nav) {
       return;
     }
 
-    try {
-      const resposta = await fetch(`${API_URL}/meu-negocio`, {
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
-      });
+    function pagina(nome) {
+      return `/html/${nome}`;
+    }
 
-      const data = await resposta.json();
+    function lerLocalStorage(
+      chave
+    ) {
+      try {
+        return JSON.parse(
+          localStorage.getItem(chave) ||
+            "null"
+        );
+      } catch {
+        localStorage.removeItem(
+          chave
+        );
 
-      if (resposta.ok && data.temNegocio && data.negocio) {
-        negocio = data.negocio;
-        localStorage.setItem("negocio", JSON.stringify(data.negocio));
+        return null;
+      }
+    }
+
+    function obterToken() {
+      if (
+        window.AuthService &&
+        typeof window.AuthService
+          .getToken === "function"
+      ) {
+        return window.AuthService
+          .getToken();
+      }
+
+      return localStorage.getItem(
+        "token"
+      );
+    }
+
+    function limparSessao() {
+      if (
+        window.AuthService &&
+        typeof window.AuthService
+          .limparSessao === "function"
+      ) {
+        window.AuthService
+          .limparSessao();
+
         return;
       }
 
-      negocio = null;
-      localStorage.removeItem("negocio");
+      localStorage.removeItem(
+        "token"
+      );
 
-    } catch (erro) {
-      console.warn("Erro ao carregar negócio da navegação:", erro);
-      negocio = null;
-      localStorage.removeItem("negocio");
+      localStorage.removeItem(
+        "usuario"
+      );
+
+      localStorage.removeItem(
+        "negocio"
+      );
     }
-  }
 
-  function ativarPaginaAtual() {
-    const paginaAtual = window.location.pathname.split("/").pop();
-
-    nav.querySelectorAll("a").forEach((link) => {
-      const href = (link.getAttribute("href") || "").split("?")[0];
-      const hrefPagina = href.split("/").pop();
-
-      if (hrefPagina === paginaAtual) {
-        link.classList.add("ativo");
-      }
-    });
-  }
-
-  async function buscarNotificacoesAgenda() {
-    const token = localStorage.getItem("token");
-    const usuarioAtual = JSON.parse(localStorage.getItem("usuario") || "null");
-
-    if (!token || !usuarioAtual) return 0;
-
-    if (
-      usuarioAtual.tipo !== "dono" &&
-      usuarioAtual.tipo !== "profissional" &&
-      usuarioAtual.tipo !== "funcionario" &&
-      usuarioAtual.tipo !== "funcionário"
+    function salvarContexto(
+      contexto
     ) {
-      return 0;
+      if (contexto?.usuario) {
+        localStorage.setItem(
+          "usuario",
+          JSON.stringify(
+            contexto.usuario
+          )
+        );
+      }
+
+      if (contexto?.negocio) {
+        if (
+          window.AuthService &&
+          typeof window.AuthService
+            .salvarNegocio ===
+            "function"
+        ) {
+          window.AuthService
+            .salvarNegocio(
+              contexto.negocio
+            );
+        } else {
+          localStorage.setItem(
+            "negocio",
+            JSON.stringify(
+              contexto.negocio
+            )
+          );
+        }
+      } else {
+        localStorage.removeItem(
+          "negocio"
+        );
+      }
     }
 
-    try {
-      const resposta = await fetch(`${API_URL}/notificacoes-agenda`, {
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
-      });
+    function normalizarPapel(
+      valor
+    ) {
+      const papel =
+        String(valor ?? "")
+          .trim()
+          .toLowerCase();
 
-      if (resposta.status === 401 || resposta.status === 403) {
+      if (
+        papel === "dono" ||
+        papel === "profissional"
+      ) {
+        return papel;
+      }
+
+      return null;
+    }
+
+    async function requisicaoGet(
+      caminho
+    ) {
+      if (
+        window.API &&
+        typeof window.API.get ===
+          "function"
+      ) {
+        return window.API.get(
+          caminho
+        );
+      }
+
+      const token =
+        obterToken();
+
+      const baseUrl =
+        typeof window.API_URL ===
+        "string"
+          ? window.API_URL
+              .trim()
+              .replace(/\/$/, "")
+          : "";
+
+      const resposta =
+        await fetch(
+          `${baseUrl}${caminho}`,
+          {
+            method: "GET",
+
+            headers: {
+              Accept:
+                "application/json",
+
+              ...(token
+                ? {
+                    Authorization:
+                      `Bearer ${token}`,
+                  }
+                : {}),
+            },
+          }
+        );
+
+      const dados =
+        await resposta
+          .json()
+          .catch(() => ({}));
+
+      if (!resposta.ok) {
+        const erro =
+          new Error(
+            dados.erro ||
+              dados.mensagem ||
+              "Erro na requisição."
+          );
+
+        erro.status =
+          resposta.status;
+
+        throw erro;
+      }
+
+      return dados;
+    }
+
+    async function carregarContexto() {
+      const token =
+        obterToken();
+
+      if (!token) {
+        limparSessao();
+
+        return {
+          usuario: null,
+          negocio: null,
+          temNegocio: false,
+        };
+      }
+
+      try {
+        let contexto;
+
+        if (
+          window.AuthService &&
+          typeof window.AuthService
+            .carregarMinhaSessao ===
+            "function"
+        ) {
+          contexto =
+            await window.AuthService
+              .carregarMinhaSessao();
+        } else {
+          contexto =
+            await requisicaoGet(
+              "/minha-sessao"
+            );
+
+          salvarContexto(
+            contexto
+          );
+        }
+
+        return {
+          usuario:
+            contexto?.usuario ||
+            null,
+
+          negocio:
+            contexto?.negocio ||
+            null,
+
+          temNegocio:
+            Boolean(
+              contexto?.negocio?.id
+            ),
+        };
+      } catch (erro) {
+        if (
+          erro?.status === 401 ||
+          erro?.status === 403
+        ) {
+          limparSessao();
+
+          return {
+            usuario: null,
+            negocio: null,
+            temNegocio: false,
+          };
+        }
+
+        console.warn(
+          "Não foi possível atualizar a navegação:",
+          erro
+        );
+
+        const usuarioCache =
+          lerLocalStorage(
+            "usuario"
+          );
+
+        const negocioCache =
+          lerLocalStorage(
+            "negocio"
+          );
+
+        return {
+          usuario:
+            usuarioCache,
+
+          negocio:
+            negocioCache,
+
+          temNegocio:
+            Boolean(
+              negocioCache?.id
+            ),
+        };
+      }
+    }
+
+    async function buscarNotificacoesAgenda(
+      negocio
+    ) {
+      const papel =
+        normalizarPapel(
+          negocio?.papel
+        );
+
+      if (
+        !negocio?.id ||
+        !papel ||
+        !obterToken()
+      ) {
         return 0;
       }
 
-      const data = await resposta.json();
+      try {
+        const dados =
+          await requisicaoGet(
+            "/notificacoes-agenda"
+          );
 
-      if (!resposta.ok) return 0;
+        const total =
+          Number(
+            dados?.total || 0
+          );
 
-      return data.total || 0;
+        return Number.isFinite(
+          total
+        )
+          ? Math.max(0, total)
+          : 0;
+      } catch (erro) {
+        if (
+          erro?.status !== 401 &&
+          erro?.status !== 403
+        ) {
+          console.warn(
+            "Não foi possível carregar as notificações da agenda:",
+            erro
+          );
+        }
 
-    } catch {
-      return 0;
+        return 0;
+      }
     }
-  }
 
-  function render(itens) {
-    nav.innerHTML = itens
-      .map((item) => `
-        <a href="${item.href}" class="nav-item">
-          <span class="nav-icon-wrap">
-            <span>${item.icone}</span>
-            ${item.badge ? `<b class="nav-badge">${item.badge}</b>` : ""}
-          </span>
-          <small>${item.texto}</small>
-        </a>
-      `)
-      .join("");
+    function ativarPaginaAtual() {
+      const paginaAtual =
+        window.location.pathname
+          .split("/")
+          .pop();
 
-    ativarPaginaAtual();
-  }
+      nav
+        .querySelectorAll("a")
+        .forEach(
+          (link) => {
+            const href =
+              String(
+                link.getAttribute(
+                  "href"
+                ) || ""
+              ).split("?")[0];
 
-  if (!usuario) {
-    localStorage.removeItem("negocio");
+            const paginaLink =
+              href
+                .split("/")
+                .pop();
 
-    render([
-      { href: page("inicio.html"), icone: "🏠", texto: "Início" },
-      { href: page("login-cliente.html"), icone: "👤", texto: "Entrar" }
-    ]);
+            const ativa =
+              paginaLink ===
+              paginaAtual;
 
-    return;
-  }
+            link.classList.toggle(
+              "ativo",
+              ativa
+            );
 
-  await carregarNegocioAtual();
+            if (ativa) {
+              link.setAttribute(
+                "aria-current",
+                "page"
+              );
+            } else {
+              link.removeAttribute(
+                "aria-current"
+              );
+            }
+          }
+        );
+    }
 
-  const tipo = usuario.tipo;
+    function criarItem({
+      href,
+      icone,
+      texto,
+      badge = 0,
+    }) {
+      const link =
+        document.createElement(
+          "a"
+        );
 
-  const ehDono =
-    tipo === "dono" ||
-    negocio?.papel === "dono" ||
-    Number(usuario.id) === Number(negocio?.dono_usuario_id) ||
-    usuario?.eh_dono === true ||
-    usuario?.dono === true ||
-    usuario?.is_dono === true;
+      link.href = href;
+      link.className =
+        "nav-item";
 
-  const ehFuncionario =
-    tipo === "funcionario" ||
-    tipo === "funcionário" ||
-    tipo === "profissional" ||
-    negocio?.papel === "funcionario" ||
-    negocio?.papel === "funcionário" ||
-    negocio?.papel === "profissional";
+      const iconeWrap =
+        document.createElement(
+          "span"
+        );
 
-  const perfilHref = negocio?.slug
-    ? `${page("perfil-negocio.html")}?slug=${encodeURIComponent(negocio.slug)}`
-    : page("perfil-negocio.html");
+      iconeWrap.className =
+        "nav-icon-wrap";
 
-  const totalAgenda =
-    ehDono || (ehFuncionario && negocio?.id)
-      ? await buscarNotificacoesAgenda()
-      : 0;
+      const iconeElemento =
+        document.createElement(
+          "span"
+        );
 
-  if (ehDono) {
-    render([
-      { href: page("inicio.html"), icone: "🏠", texto: "Início" },
-      { href: page("agenda-geral.html"), icone: "📅", texto: "Agenda", badge: totalAgenda },
-      { href: page("dashboard-dono.html"), icone: "📊", texto: "Dash" },
-      { href: perfilHref, icone: "🏢", texto: "Perfil" },
-      { href: page("minha-conta.html"), icone: "⚙️", texto: "Config" }
-    ]);
-    return;
-  }
+      iconeElemento.textContent =
+        icone;
 
-  if (ehFuncionario) {
-    if (!negocio?.id) {
-      render([
-        { href: page("inicio.html"), icone: "🏠", texto: "Início" },
-        { href: page("criar-negocio.html"), icone: "➕", texto: "Criar" },
-        { href: page("minha-conta.html"), icone: "⚙️", texto: "Config" }
+      iconeWrap.appendChild(
+        iconeElemento
+      );
+
+      if (badge > 0) {
+        const badgeElemento =
+          document.createElement(
+            "b"
+          );
+
+        badgeElemento.className =
+          "nav-badge";
+
+        badgeElemento.textContent =
+          badge > 99
+            ? "99+"
+            : String(badge);
+
+        badgeElemento.setAttribute(
+          "aria-label",
+          `${badge} notificações`
+        );
+
+        iconeWrap.appendChild(
+          badgeElemento
+        );
+      }
+
+      const textoElemento =
+        document.createElement(
+          "small"
+        );
+
+      textoElemento.textContent =
+        texto;
+
+      link.append(
+        iconeWrap,
+        textoElemento
+      );
+
+      return link;
+    }
+
+    function renderizar(
+      itens
+    ) {
+      nav.replaceChildren(
+        ...itens.map(
+          criarItem
+        )
+      );
+
+      ativarPaginaAtual();
+    }
+
+    function obterPerfilHref(
+      negocio
+    ) {
+      if (!negocio?.slug) {
+        return pagina(
+          "inicio.html"
+        );
+      }
+
+      return (
+        pagina(
+          "perfil-negocio.html"
+        ) +
+        `?slug=${encodeURIComponent(
+          negocio.slug
+        )}`
+      );
+    }
+
+    function renderizarVisitante() {
+      renderizar([
+        {
+          href:
+            pagina(
+              "inicio.html"
+            ),
+          icone: "🏠",
+          texto: "Início",
+        },
+        {
+          href:
+            pagina(
+              "login-cliente.html"
+            ),
+          icone: "👤",
+          texto: "Entrar",
+        },
       ]);
+    }
+
+    function renderizarContaComum() {
+      renderizar([
+        {
+          href:
+            pagina(
+              "inicio.html"
+            ),
+          icone: "🏠",
+          texto: "Início",
+        },
+        {
+          href:
+            pagina(
+              "meus-agendamentos.html"
+            ),
+          icone: "📅",
+          texto: "Agenda",
+        },
+        {
+          href:
+            pagina(
+              "favoritos.html"
+            ),
+          icone: "❤️",
+          texto: "Favoritos",
+        },
+        {
+          href:
+            pagina(
+              "criar-negocio.html"
+            ),
+          icone: "➕",
+          texto: "Negócio",
+        },
+        {
+          href:
+            pagina(
+              "minha-conta.html"
+            ),
+          icone: "⚙️",
+          texto: "Conta",
+        },
+      ]);
+    }
+
+    function renderizarDono(
+      negocio,
+      totalAgenda
+    ) {
+      renderizar([
+        {
+          href:
+            pagina(
+              "inicio.html"
+            ),
+          icone: "🏠",
+          texto: "Início",
+        },
+        {
+          href:
+            pagina(
+              "agenda-geral.html"
+            ),
+          icone: "📅",
+          texto: "Agenda",
+          badge:
+            totalAgenda,
+        },
+        {
+          href:
+            pagina(
+              "dashboard-dono.html"
+            ),
+          icone: "📊",
+          texto: "Painel",
+        },
+        {
+          href:
+            obterPerfilHref(
+              negocio
+            ),
+          icone: "🏢",
+          texto: "Perfil",
+        },
+        {
+          href:
+            pagina(
+              "minha-conta.html"
+            ),
+          icone: "⚙️",
+          texto: "Conta",
+        },
+      ]);
+    }
+
+    function renderizarProfissional(
+      negocio,
+      totalAgenda
+    ) {
+      renderizar([
+        {
+          href:
+            pagina(
+              "inicio.html"
+            ),
+          icone: "🏠",
+          texto: "Início",
+        },
+        {
+          href:
+            pagina(
+              "agenda-profissional.html"
+            ),
+          icone: "📅",
+          texto: "Agenda",
+          badge:
+            totalAgenda,
+        },
+        {
+          href:
+            obterPerfilHref(
+              negocio
+            ),
+          icone: "🏢",
+          texto: "Perfil",
+        },
+        {
+          href:
+            pagina(
+              "minha-conta.html"
+            ),
+          icone: "⚙️",
+          texto: "Conta",
+        },
+      ]);
+    }
+
+    /*
+     * Exibe rapidamente o contexto
+     * salvo enquanto a sessão é
+     * atualizada pelo servidor.
+     */
+    const usuarioCache =
+      lerLocalStorage(
+        "usuario"
+      );
+
+    const negocioCache =
+      lerLocalStorage(
+        "negocio"
+      );
+
+    if (!obterToken()) {
+      renderizarVisitante();
+    } else if (
+      negocioCache?.papel ===
+      "dono"
+    ) {
+      renderizarDono(
+        negocioCache,
+        0
+      );
+    } else if (
+      negocioCache?.papel ===
+      "profissional"
+    ) {
+      renderizarProfissional(
+        negocioCache,
+        0
+      );
+    } else if (
+      usuarioCache?.id
+    ) {
+      renderizarContaComum();
+    } else {
+      renderizarVisitante();
+    }
+
+    const contexto =
+      await carregarContexto();
+
+    if (!contexto.usuario?.id) {
+      renderizarVisitante();
       return;
     }
 
-    render([
-      { href: page("inicio.html"), icone: "🏠", texto: "Início" },
-      { href: page("agenda-profissional.html"), icone: "📅", texto: "Agenda", badge: totalAgenda },
-      { href: perfilHref, icone: "🏢", texto: "Perfil" },
-      { href: page("minha-conta.html"), icone: "⚙️", texto: "Config" }
-    ]);
-    return;
-  }
+    if (!contexto.negocio?.id) {
+      renderizarContaComum();
+      return;
+    }
 
-  if (tipo === "cliente") {
-    render([
-      { href: page("inicio.html"), icone: "🏠", texto: "Início" },
-      { href: page("meus-agendamentos.html"), icone: "📅", texto: "Agend." },
-      { href: page("favoritos.html"), icone: "❤️", texto: "Favoritos" },
-      { href: page("minha-conta.html"), icone: "⚙️", texto: "Config" }
-    ]);
-    return;
-  }
+    const papel =
+      normalizarPapel(
+        contexto.negocio.papel
+      );
 
-  render([
-    { href: page("inicio.html"), icone: "🏠", texto: "Início" },
-    { href: page("login-cliente.html"), icone: "👤", texto: "Entrar" }
-  ]);
-});
+    const totalAgenda =
+      await buscarNotificacoesAgenda(
+        contexto.negocio
+      );
+
+    if (papel === "dono") {
+      renderizarDono(
+        contexto.negocio,
+        totalAgenda
+      );
+
+      return;
+    }
+
+    if (
+      papel === "profissional"
+    ) {
+      renderizarProfissional(
+        contexto.negocio,
+        totalAgenda
+      );
+
+      return;
+    }
+
+    renderizarContaComum();
+  }
+);

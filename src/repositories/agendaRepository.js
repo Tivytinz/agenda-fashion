@@ -324,28 +324,68 @@ async function buscarBloqueiosPorPeriodo(profissionalId, dataInicio, dataFim) {
   return result.rows;
 }
 
-async function buscarAgendamentosPorPeriodo(profissionalId, dataInicio, dataFim) {
+async function buscarAgendamentosPorPeriodo(
+  profissionalId,
+  dataInicio,
+  dataFim
+) {
   const result = await db.query(
     `
     SELECT
-      a.id,
+      a.id AS agendamento_id,
       a.profissional_id,
-      TO_CHAR(a.data, 'YYYY-MM-DD') AS data,
-      TO_CHAR(a.horario, 'HH24:MI') AS hora,
+      a.negocio_id,
+
+      TO_CHAR(
+        a.data,
+        'YYYY-MM-DD'
+      ) AS data,
+
+      TO_CHAR(
+        a.horario::time,
+        'HH24:MI'
+      ) AS hora,
+
       a.status,
+
+      c.id AS cliente_id,
       c.nome AS cliente,
+      c.whatsapp AS cliente_whatsapp,
+
+      s.id AS servico_id,
       s.nome AS servico,
-      s.valor
+
+      COALESCE(
+        s.valor,
+        0
+      )::numeric AS valor,
+
+      COALESCE(
+        s.duracao_minutos,
+        60
+      )::int AS duracao_minutos
+
     FROM agendamentos a
+
     LEFT JOIN usuarios c
       ON c.id = a.cliente_id
+
     LEFT JOIN servicos_negocio s
       ON s.id = a.servico_id
+
     WHERE a.profissional_id = $1
       AND a.data BETWEEN $2 AND $3
       AND a.status != 'cancelado'
+
+    ORDER BY
+      a.data ASC,
+      a.horario ASC
     `,
-    [profissionalId, dataInicio, dataFim]
+    [
+      profissionalId,
+      dataInicio,
+      dataFim,
+    ]
   );
 
   return result.rows;
@@ -369,28 +409,71 @@ async function buscarBloqueiosProfissionaisPorPeriodo(profissionalIds, dataInici
   return result.rows;
 }
 
-async function buscarAgendamentosProfissionaisPorPeriodo(profissionalIds, dataInicio, dataFim) {
+async function buscarAgendamentosProfissionaisPorPeriodo(
+  profissionalIds,
+  dataInicio,
+  dataFim
+) {
   const result = await db.query(
     `
     SELECT
-      a.id,
+      a.id AS agendamento_id,
       a.profissional_id,
-      TO_CHAR(a.data, 'YYYY-MM-DD') AS data,
-      TO_CHAR(a.horario, 'HH24:MI') AS hora,
+      a.negocio_id,
+
+      TO_CHAR(
+        a.data,
+        'YYYY-MM-DD'
+      ) AS data,
+
+      TO_CHAR(
+        a.horario::time,
+        'HH24:MI'
+      ) AS hora,
+
       a.status,
+
+      c.id AS cliente_id,
       c.nome AS cliente,
+      c.whatsapp AS cliente_whatsapp,
+
+      s.id AS servico_id,
       s.nome AS servico,
-      s.valor
+
+      COALESCE(
+        s.valor,
+        0
+      )::numeric AS valor,
+
+      COALESCE(
+        s.duracao_minutos,
+        60
+      )::int AS duracao_minutos
+
     FROM agendamentos a
+
     LEFT JOIN usuarios c
       ON c.id = a.cliente_id
+
     LEFT JOIN servicos_negocio s
       ON s.id = a.servico_id
-    WHERE a.profissional_id = ANY($1::int[])
+
+    WHERE a.profissional_id =
+      ANY($1::int[])
+
       AND a.data BETWEEN $2 AND $3
-      AND a.status IN ('agendado', 'confirmado')
+
+      AND a.status != 'cancelado'
+
+    ORDER BY
+      a.data ASC,
+      a.horario ASC
     `,
-    [profissionalIds, dataInicio, dataFim]
+    [
+      profissionalIds,
+      dataInicio,
+      dataFim,
+    ]
   );
 
   return result.rows;

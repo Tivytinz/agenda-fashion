@@ -1,240 +1,979 @@
-document.addEventListener("DOMContentLoaded", async () => {
-  
+document.addEventListener(
+  "DOMContentLoaded",
+  async () => {
+    const elementos = {
+      lista:
+        document.getElementById(
+          "listaAgendamentos"
+        ),
 
-  const token = localStorage.getItem("token");
-  const usuario = JSON.parse(localStorage.getItem("usuario") || "null");
+      mensagem:
+        document.getElementById(
+          "mensagemAgendamentos"
+        ),
 
-  if (!token || !usuario || usuario.tipo !== "cliente") {
-    window.location.href = "login-cliente.html";
-    return;
-  }
+      filtros:
+        Array.from(
+          document.querySelectorAll(
+            ".filtro"
+          )
+        ),
+    };
 
-  const lista = document.getElementById("listaAgendamentos");
-  const mensagem = document.getElementById("mensagemAgendamentos");
-  const filtros = document.querySelectorAll(".filtro");
+    if (
+      !elementos.lista ||
+      !elementos.mensagem
+    ) {
+      console.error(
+        "Elementos da página de agendamentos não foram encontrados."
+      );
 
-  let agendamentos = [];
-  let filtroAtual = "agendado";
-
-  function mostrarMensagem(texto, cor = "#e63946") {
-    mensagem.textContent = texto;
-    mensagem.style.color = cor;
-    mensagem.classList.remove("hidden");
-  }
-
-  function esconderMensagem() {
-    mensagem.textContent = "";
-    mensagem.classList.add("hidden");
-  }
-
-  function formatarData(dataIso) {
-    const data = new Date(`${dataIso}T00:00:00`);
-    return data.toLocaleDateString("pt-BR", {
-      weekday: "long",
-      day: "2-digit",
-      month: "2-digit",
-      year: "numeric"
-    });
-  }
-
-  function formatarMoeda(valor) {
-    return Number(valor || 0).toLocaleString("pt-BR", {
-      style: "currency",
-      currency: "BRL"
-    });
-  }
-
-  async function cancelarAgendamento(id) {
-    try {
-      esconderMensagem();
-
-      const confirmar = confirm("Deseja cancelar este agendamento?");
-      if (!confirmar) return;
-
-      const res = await fetch(`${API_URL}/agendamentos/${id}/cancelar`, {
-        method: "PATCH",
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
-      });
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        throw new Error(data.erro || "Erro ao cancelar agendamento.");
-      }
-
-      mostrarMensagem("Agendamento cancelado com sucesso.", "#2f9e63");
-      await carregarAgendamentos();
-
-    } catch (err) {
-      mostrarMensagem(err.message || "Erro na conexão.");
-    }
-  }
-
-  async function avaliarAgendamento(id, nota) {
-    try {
-      esconderMensagem();
-
-      const res = await fetch(`${API_URL}/agendamentos/${id}/avaliar`, {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`
-        },
-        body: JSON.stringify({ avaliacao: nota })
-      });
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        throw new Error(data.erro || "Erro ao avaliar agendamento.");
-      }
-
-      mostrarMensagem("Avaliação enviada com sucesso 💅", "#2f9e63");
-      await carregarAgendamentos();
-
-    } catch (err) {
-      mostrarMensagem(err.message || "Erro na conexão.");
-    }
-  }
-
-  function renderizar() {
-    lista.innerHTML = "";
-
-    const filtrados = agendamentos.filter((item) => item.status === filtroAtual);
-
-    if (!filtrados.length) {
-      lista.innerHTML = `
-        <div class="estado-vazio">
-          Nenhum agendamento ${filtroAtual} encontrado.
-        </div>
-      `;
       return;
     }
 
-    filtrados.forEach((item) => {
-      const card = document.createElement("article");
-      card.className = "af-card card-agendamento";
+    if (
+      !window.SessionGuard ||
+      typeof window.SessionGuard
+        .exigirConta !== "function"
+    ) {
+      console.error(
+        "SessionGuard não foi carregado."
+      );
 
-      card.innerHTML = `
-        <div class="card-topo">
-          <div>
-            <h3>${item.negocio || "Negócio"}</h3>
-            <span>${item.servico || "Serviço"}</span>
-          </div>
+      window.location.replace(
+        "/html/login-cliente.html"
+      );
 
-          <span class="status ${item.status}">
-            ${item.status}
-          </span>
-        </div>
+      return;
+    }
 
-        <div class="info-agendamento">
-          <span>📅 ${formatarData(item.data)}</span>
-          <span>⏰ ${item.horario}</span>
-          <span>💅 Profissional: ${item.profissional || "Não informado"}</span>
-          <span>💰 Valor: ${formatarMoeda(item.valor)}</span>
-        </div>
+    if (
+      !window.API ||
+      typeof window.API.get !==
+        "function" ||
+      typeof window.API.patch !==
+        "function"
+    ) {
+      mostrarMensagem(
+        "O serviço da API não foi carregado."
+      );
 
-        <div class="acoes-agendamento"></div>
-      `;
+      return;
+    }
 
-      const acoes = card.querySelector(".acoes-agendamento");
+    const estado = {
+      contexto: null,
+      agendamentos: [],
+      filtroAtual:
+        "agendado",
+      carregando:
+        false,
+      acaoEmAndamento:
+        null,
+    };
 
-      if (item.status === "agendado") {
-        const btnCancelar = document.createElement("button");
-        btnCancelar.className = "btn-cancelar";
-        btnCancelar.textContent = "Cancelar agendamento";
-        btnCancelar.addEventListener("click", () => cancelarAgendamento(item.id));
-        acoes.appendChild(btnCancelar);
+    function normalizarStatus(
+      status
+    ) {
+      const valor =
+        String(status || "")
+          .trim()
+          .toLowerCase();
+
+      const permitidos =
+        new Set([
+          "agendado",
+          "realizado",
+          "cancelado",
+        ]);
+
+      return permitidos.has(
+        valor
+      )
+        ? valor
+        : "agendado";
+    }
+
+    function obterNomeStatus(
+      status
+    ) {
+      const nomes = {
+        agendado:
+          "Agendado",
+        realizado:
+          "Realizado",
+        cancelado:
+          "Cancelado",
+      };
+
+      return (
+        nomes[
+          normalizarStatus(
+            status
+          )
+        ] || "Agendado"
+      );
+    }
+
+    function obterNomeFiltro(
+      status
+    ) {
+      const nomes = {
+        agendado:
+          "agendado",
+        realizado:
+          "realizado",
+        cancelado:
+          "cancelado",
+      };
+
+      return (
+        nomes[status] ||
+        "agendado"
+      );
+    }
+
+    function formatarData(
+      dataIso
+    ) {
+      const texto =
+        String(dataIso || "")
+          .slice(0, 10);
+
+      const partes =
+        texto.split("-");
+
+      if (
+        partes.length !== 3
+      ) {
+        return "Data não informada";
       }
 
-      if (item.status === "realizado") {
-        if (item.avaliacao) {
-          const avaliado = document.createElement("div");
-          avaliado.className = "avaliado";
-          avaliado.textContent = `Sua avaliação: ${"⭐".repeat(Number(item.avaliacao))}`;
-          acoes.appendChild(avaliado);
-        } else {
-          const box = document.createElement("div");
-          box.className = "avaliacao-box";
-          box.innerHTML = `
-            <p>Avalie esse atendimento:</p>
-            <div class="estrelas"></div>
-          `;
+      const [
+        ano,
+        mes,
+        dia,
+      ] = partes.map(Number);
 
-          const estrelas = box.querySelector(".estrelas");
+      const data =
+        new Date(
+          ano,
+          mes - 1,
+          dia
+        );
 
-          for (let i = 1; i <= 5; i++) {
-            const estrela = document.createElement("button");
-            estrela.className = "estrela";
-            estrela.textContent = "⭐";
-            estrela.title = `${i} estrela(s)`;
-            estrela.addEventListener("click", () => avaliarAgendamento(item.id, i));
-            estrelas.appendChild(estrela);
+      if (
+        Number.isNaN(
+          data.getTime()
+        )
+      ) {
+        return "Data não informada";
+      }
+
+      return data
+        .toLocaleDateString(
+          "pt-BR",
+          {
+            weekday:
+              "long",
+            day:
+              "2-digit",
+            month:
+              "2-digit",
+            year:
+              "numeric",
           }
+        );
+    }
 
-          acoes.appendChild(box);
-        }
+    function formatarHorario(
+      horario
+    ) {
+      const valor =
+        String(horario || "")
+          .trim();
+
+      const correspondencia =
+        valor.match(
+          /^(\d{1,2}):(\d{2})/
+        );
+
+      if (
+        !correspondencia
+      ) {
+        return (
+          valor ||
+          "Horário não informado"
+        );
       }
 
-      lista.appendChild(card);
-    });
-  }
+      return (
+        `${correspondencia[1]` +
+        `.padStart(2, "0")}:` +
+        correspondencia[2]
+      );
+    }
 
-  async function carregarAgendamentos() {
-    try {
+    function formatarMoeda(
+      valor
+    ) {
+      const numero =
+        Number(valor);
+
+      return (
+        Number.isFinite(numero)
+          ? numero
+          : 0
+      ).toLocaleString(
+        "pt-BR",
+        {
+          style:
+            "currency",
+          currency:
+            "BRL",
+        }
+      );
+    }
+
+    function mostrarMensagem(
+      texto,
+      tipo = "erro"
+    ) {
+      elementos.mensagem
+        .textContent =
+          String(texto || "");
+
+      elementos.mensagem
+        .classList.remove(
+          "hidden"
+        );
+
+      elementos.mensagem
+        .dataset.tipo =
+          tipo;
+
+      elementos.mensagem
+        .style.color =
+          tipo === "sucesso"
+            ? "#2f9e63"
+            : "#e63946";
+    }
+
+    function esconderMensagem() {
+      elementos.mensagem
+        .textContent = "";
+
+      elementos.mensagem
+        .classList.add(
+          "hidden"
+        );
+
+      elementos.mensagem
+        .removeAttribute(
+          "data-tipo"
+        );
+
+      elementos.mensagem
+        .style.removeProperty(
+          "color"
+        );
+    }
+
+    function exibirEstadoLista(
+      texto
+    ) {
+      elementos.lista
+        .replaceChildren();
+
+      const estadoVazio =
+        document.createElement(
+          "div"
+        );
+
+      estadoVazio.className =
+        "estado-vazio";
+
+      estadoVazio.textContent =
+        texto;
+
+      elementos.lista
+        .appendChild(
+          estadoVazio
+        );
+    }
+
+    function redirecionarLogin() {
+      window.AuthService
+        ?.limparSessao?.();
+
+      window.location.replace(
+        "/html/login-cliente.html"
+      );
+    }
+
+    function tratarErro(
+      erro,
+      mensagemPadrao
+    ) {
+      console.error(
+        mensagemPadrao,
+        erro
+      );
+
+      if (
+        erro?.status === 401 ||
+        erro?.status === 403
+      ) {
+        redirecionarLogin();
+
+        return true;
+      }
+
+      mostrarMensagem(
+        erro?.message ||
+          mensagemPadrao
+      );
+
+      return false;
+    }
+
+    function criarElemento(
+      tag,
+      {
+        classe,
+        texto,
+      } = {}
+    ) {
+      const elemento =
+        document.createElement(
+          tag
+        );
+
+      if (classe) {
+        elemento.className =
+          classe;
+      }
+
+      if (
+        texto !== undefined
+      ) {
+        elemento.textContent =
+          texto;
+      }
+
+      return elemento;
+    }
+
+    function criarLinhaInfo(
+      icone,
+      texto
+    ) {
+      return criarElemento(
+        "span",
+        {
+          texto:
+            `${icone} ${texto}`,
+        }
+      );
+    }
+
+    function definirBotoesBloqueados(
+      bloqueado
+    ) {
+      elementos.lista
+        .querySelectorAll(
+          "button"
+        )
+        .forEach(
+          (botao) => {
+            botao.disabled =
+              bloqueado;
+          }
+        );
+    }
+
+    async function cancelarAgendamento(
+      id
+    ) {
+      if (
+        estado.acaoEmAndamento
+      ) {
+        return;
+      }
+
+      const confirmou =
+        window.confirm(
+          "Deseja cancelar este agendamento?"
+        );
+
+      if (!confirmou) {
+        return;
+      }
+
       esconderMensagem();
 
-      lista.innerHTML = `
-        <div class="estado-vazio">
-          Carregando agendamentos...
-        </div>
-      `;
+      estado.acaoEmAndamento =
+        id;
 
-      const res = await fetch(`${API_URL}/meus-agendamentos`, {
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
-      });
+      definirBotoesBloqueados(
+        true
+      );
 
-      const data = await res.json();
+      try {
+        await window.API.patch(
+          `/agendamentos/${encodeURIComponent(
+            id
+          )}/cancelar`,
+          {}
+        );
 
-      if (!res.ok) {
-        throw new Error(data.erro || "Erro ao carregar agendamentos.");
+        mostrarMensagem(
+          "Agendamento cancelado com sucesso.",
+          "sucesso"
+        );
+
+        await carregarAgendamentos({
+          preservarMensagem:
+            true,
+        });
+      } catch (erro) {
+        tratarErro(
+          erro,
+          "Não foi possível cancelar o agendamento."
+        );
+      } finally {
+        estado.acaoEmAndamento =
+          null;
+
+        definirBotoesBloqueados(
+          false
+        );
+      }
+    }
+
+    async function avaliarAgendamento(
+      id,
+      nota
+    ) {
+      if (
+        estado.acaoEmAndamento
+      ) {
+        return;
       }
 
-      agendamentos = data.agendamentos || [];
-      renderizar();
+      estado.acaoEmAndamento =
+        id;
 
-    } catch (err) {
-      mostrarMensagem(err.message || "Erro na conexão.");
-      lista.innerHTML = `
-        <div class="estado-vazio">
-          Não foi possível carregar seus agendamentos.
-        </div>
-      `;
+      esconderMensagem();
+
+      definirBotoesBloqueados(
+        true
+      );
+
+      try {
+        await window.API.patch(
+          `/agendamentos/${encodeURIComponent(
+            id
+          )}/avaliar`,
+          {
+            avaliacao:
+              nota,
+          }
+        );
+
+        mostrarMensagem(
+          "Avaliação enviada com sucesso 💅",
+          "sucesso"
+        );
+
+        await carregarAgendamentos({
+          preservarMensagem:
+            true,
+        });
+      } catch (erro) {
+        tratarErro(
+          erro,
+          "Não foi possível enviar sua avaliação."
+        );
+      } finally {
+        estado.acaoEmAndamento =
+          null;
+
+        definirBotoesBloqueados(
+          false
+        );
+      }
+    }
+
+    function criarAvaliacao(
+      item,
+      container
+    ) {
+      const notaAtual =
+        Number(
+          item.avaliacao
+        );
+
+      if (
+        Number.isInteger(
+          notaAtual
+        ) &&
+        notaAtual >= 1 &&
+        notaAtual <= 5
+      ) {
+        const avaliado =
+          criarElemento(
+            "div",
+            {
+              classe:
+                "avaliado",
+
+              texto:
+                `Sua avaliação: ` +
+                "⭐".repeat(
+                  notaAtual
+                ),
+            }
+          );
+
+        container.appendChild(
+          avaliado
+        );
+
+        return;
+      }
+
+      const box =
+        criarElemento(
+          "div",
+          {
+            classe:
+              "avaliacao-box",
+          }
+        );
+
+      const titulo =
+        criarElemento(
+          "p",
+          {
+            texto:
+              "Avalie esse atendimento:",
+          }
+        );
+
+      const estrelas =
+        criarElemento(
+          "div",
+          {
+            classe:
+              "estrelas",
+          }
+        );
+
+      for (
+        let nota = 1;
+        nota <= 5;
+        nota += 1
+      ) {
+        const estrela =
+          criarElemento(
+            "button",
+            {
+              classe:
+                "estrela",
+              texto:
+                "⭐",
+            }
+          );
+
+        estrela.type =
+          "button";
+
+        estrela.title =
+          `${nota} estrela` +
+          `${nota > 1 ? "s" : ""}`;
+
+        estrela.setAttribute(
+          "aria-label",
+          `Avaliar com ${nota} ` +
+          `${nota > 1
+            ? "estrelas"
+            : "estrela"}`
+        );
+
+        estrela.addEventListener(
+          "click",
+          () =>
+            avaliarAgendamento(
+              item.id,
+              nota
+            )
+        );
+
+        estrelas.appendChild(
+          estrela
+        );
+      }
+
+      box.append(
+        titulo,
+        estrelas
+      );
+
+      container.appendChild(
+        box
+      );
+    }
+
+    function criarCard(
+      item
+    ) {
+      const status =
+        normalizarStatus(
+          item.status
+        );
+
+      const card =
+        criarElemento(
+          "article",
+          {
+            classe:
+              "af-card card-agendamento",
+          }
+        );
+
+      const topo =
+        criarElemento(
+          "div",
+          {
+            classe:
+              "card-topo",
+          }
+        );
+
+      const identificacao =
+        criarElemento(
+          "div"
+        );
+
+      const nomeNegocio =
+        criarElemento(
+          "h3",
+          {
+            texto:
+              item.negocio ||
+              "Negócio",
+          }
+        );
+
+      const nomeServico =
+        criarElemento(
+          "span",
+          {
+            texto:
+              item.servico ||
+              "Serviço",
+          }
+        );
+
+      identificacao.append(
+        nomeNegocio,
+        nomeServico
+      );
+
+      const statusElemento =
+        criarElemento(
+          "span",
+          {
+            classe:
+              `status ${status}`,
+
+            texto:
+              obterNomeStatus(
+                status
+              ),
+          }
+        );
+
+      topo.append(
+        identificacao,
+        statusElemento
+      );
+
+      const informacoes =
+        criarElemento(
+          "div",
+          {
+            classe:
+              "info-agendamento",
+          }
+        );
+
+      informacoes.append(
+        criarLinhaInfo(
+          "📅",
+          formatarData(
+            item.data
+          )
+        ),
+
+        criarLinhaInfo(
+          "⏰",
+          formatarHorario(
+            item.horario
+          )
+        ),
+
+        criarLinhaInfo(
+          "💅",
+          `Profissional: ${
+            item.profissional ||
+            "Não informado"
+          }`
+        ),
+
+        criarLinhaInfo(
+          "💰",
+          `Valor: ${formatarMoeda(
+            item.valor
+          )}`
+        )
+      );
+
+      const acoes =
+        criarElemento(
+          "div",
+          {
+            classe:
+              "acoes-agendamento",
+          }
+        );
+
+      if (
+        status === "agendado"
+      ) {
+        const botaoCancelar =
+          criarElemento(
+            "button",
+            {
+              classe:
+                "btn-cancelar",
+
+              texto:
+                "Cancelar agendamento",
+            }
+          );
+
+        botaoCancelar.type =
+          "button";
+
+        botaoCancelar.addEventListener(
+          "click",
+          () =>
+            cancelarAgendamento(
+              item.id
+            )
+        );
+
+        acoes.appendChild(
+          botaoCancelar
+        );
+      }
+
+      if (
+        status === "realizado"
+      ) {
+        criarAvaliacao(
+          item,
+          acoes
+        );
+      }
+
+      card.append(
+        topo,
+        informacoes,
+        acoes
+      );
+
+      return card;
+    }
+
+    function renderizar() {
+      elementos.lista
+        .replaceChildren();
+
+      const filtrados =
+        estado.agendamentos
+          .filter(
+            (item) =>
+              normalizarStatus(
+                item.status
+              ) ===
+              estado.filtroAtual
+          );
+
+      if (
+        filtrados.length === 0
+      ) {
+        exibirEstadoLista(
+          `Nenhum agendamento ` +
+          `${obterNomeFiltro(
+            estado.filtroAtual
+          )} encontrado.`
+        );
+
+        return;
+      }
+
+      const fragmento =
+        document.createDocumentFragment();
+
+      filtrados.forEach(
+        (item) => {
+          fragmento.appendChild(
+            criarCard(item)
+          );
+        }
+      );
+
+      elementos.lista
+        .appendChild(
+          fragmento
+        );
+    }
+
+    function atualizarFiltroAtivo() {
+      elementos.filtros
+        .forEach(
+          (botao) => {
+            const ativo =
+              botao.dataset
+                .filtro ===
+              estado.filtroAtual;
+
+            botao.classList.toggle(
+              "ativo",
+              ativo
+            );
+
+            botao.setAttribute(
+              "aria-pressed",
+              String(ativo)
+            );
+          }
+        );
+    }
+
+    async function carregarAgendamentos({
+      preservarMensagem =
+        false,
+    } = {}) {
+      if (
+        estado.carregando
+      ) {
+        return;
+      }
+
+      estado.carregando =
+        true;
+
+      if (
+        !preservarMensagem
+      ) {
+        esconderMensagem();
+      }
+
+      exibirEstadoLista(
+        "Carregando agendamentos..."
+      );
+
+      try {
+        const resultado =
+          await window.API.get(
+            "/meus-agendamentos"
+          );
+
+        estado.agendamentos =
+          Array.isArray(
+            resultado?.agendamentos
+          )
+            ? resultado.agendamentos
+            : [];
+
+        renderizar();
+      } catch (erro) {
+        const redirecionou =
+          tratarErro(
+            erro,
+            "Não foi possível carregar seus agendamentos."
+          );
+
+        if (!redirecionou) {
+          exibirEstadoLista(
+            "Não foi possível carregar seus agendamentos."
+          );
+        }
+      } finally {
+        estado.carregando =
+          false;
+      }
+    }
+
+    elementos.filtros
+      .forEach(
+        (botao) => {
+          botao.type =
+            "button";
+
+          botao.addEventListener(
+            "click",
+            () => {
+              const filtro =
+                normalizarStatus(
+                  botao.dataset
+                    .filtro
+                );
+
+              estado.filtroAtual =
+                filtro;
+
+              esconderMensagem();
+              atualizarFiltroAtivo();
+              renderizar();
+            }
+          );
+        }
+      );
+
+    atualizarFiltroAtivo();
+
+    try {
+      estado.contexto =
+        await window.SessionGuard
+          .exigirConta({
+            destinoLogin:
+              "/html/login-cliente.html",
+          });
+
+      if (
+        !estado.contexto
+      ) {
+        return;
+      }
+
+      await carregarAgendamentos();
+    } catch (erro) {
+      const redirecionou =
+        tratarErro(
+          erro,
+          "Não foi possível validar sua sessão."
+        );
+
+      if (!redirecionou) {
+        exibirEstadoLista(
+          "Não foi possível carregar seus agendamentos."
+        );
+      }
     }
   }
-
-  filtros.forEach((btn) => {
-    btn.addEventListener("click", () => {
-      filtros.forEach((b) => b.classList.remove("ativo"));
-      btn.classList.add("ativo");
-
-      const mapaFiltros = {
-        agendados: "agendado",
-        realizados: "realizado",
-        cancelados: "cancelado",
-        agendado: "agendado",
-        realizado: "realizado",
-        cancelado: "cancelado"
-};
-
-filtroAtual = mapaFiltros[btn.dataset.filtro] || btn.dataset.filtro;
-      renderizar();
-    });
-  });
-
-  await carregarAgendamentos();
-});
+);
