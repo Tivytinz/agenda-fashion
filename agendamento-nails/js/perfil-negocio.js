@@ -1,1377 +1,2424 @@
-document.addEventListener("DOMContentLoaded", async () => {
+document.addEventListener("DOMContentLoaded", () => {
+  const elementos = {
+    nomeNegocio: document.getElementById("nomeNegocio"),
+    linhaAvaliacao: document.getElementById("linhaAvaliacao"),
+    descricaoNegocio: document.getElementById("descricaoNegocio"),
+    cidadeBairro: document.getElementById("cidadeBairroNegocio"),
+    distanciaNegocio: document.getElementById("distanciaNegocio"),
+    areasNegocio: document.getElementById("areasNegocio"),
 
+    btnWhatsapp: document.getElementById("btnWhatsapp"),
+    btnMaps: document.getElementById("btnMaps"),
+    btnFavorito: document.getElementById("btnFavorito"),
+    btnCopiarAgenda: document.getElementById("btnCopiarAgenda"),
+    btnContinuar: document.getElementById("btnContinuarAgendamento"),
 
-  const fotoNegocio = document.getElementById("fotoNegocio");
-  const nomeNegocio = document.getElementById("nomeNegocio");
-  const linhaAvaliacao = document.getElementById("linhaAvaliacao");
-  const descricaoNegocio = document.getElementById("descricaoNegocio");
-  const cidadeBairro = document.getElementById("cidadeBairroNegocio");
-  const areasNegocio = document.getElementById("areasNegocio");
+    listaServicos: document.getElementById("listaServicos"),
+    listaProfissionais: document.getElementById("listaProfissionais"),
+    listaHorarios: document.getElementById("listaHorariosDisponiveis"),
 
-  const btnWhatsapp = document.getElementById("btnWhatsapp");
-  const btnMaps = document.getElementById("btnMaps");
-  const btnFavorito = document.getElementById("btnFavorito");
-  const btnCopiarAgenda = document.getElementById("btnCopiarAgenda");
-  const btnContinuar = document.getElementById("btnContinuarAgendamento");
+    resumoServico: document.getElementById("resumoServico"),
+    resumoProfissional: document.getElementById("resumoProfissional"),
+    resumoHorario: document.getElementById("resumoHorario"),
 
-  const listaServicos = document.getElementById("listaServicos");
-  const listaProfissionais = document.getElementById("listaProfissionais");
-  const resumoServico = document.getElementById("resumoServico");
-  const resumoProfissional = document.getElementById("resumoProfissional");
-  const mensagem = document.getElementById("mensagemPerfil");
+    mensagem: document.getElementById("mensagemPerfil"),
 
-  const modal = document.getElementById("modalPerfil");
-  const modalTitulo = document.getElementById("modalTitulo");
-  const modalConteudo = document.getElementById("modalConteudo");
-  const btnFecharModal = document.getElementById("btnFecharModal");
-  const btnCancelarModal = document.getElementById("btnCancelarModal");
-  const btnSalvarModal = document.getElementById("btnSalvarModal");
+    modal: document.getElementById("modalPerfil"),
+    modalTitulo: document.getElementById("modalTitulo"),
+    modalConteudo: document.getElementById("modalConteudo"),
+    btnFecharModal: document.getElementById("btnFecharModal"),
+    btnCancelarModal: document.getElementById("btnCancelarModal"),
+    btnSalvarModal: document.getElementById("btnSalvarModal"),
 
-  const boxServicos = document.getElementById("boxServicos");
-  const boxProfissionaisHorarios = document.getElementById("boxProfissionaisHorarios");
-  const etapaServico = document.getElementById("etapaServico");
-  const etapaHorario = document.getElementById("etapaHorario");
-  const listaHorariosDisponiveis = document.getElementById("listaHorariosDisponiveis");
-  const resumoHorario = document.getElementById("resumoHorario");
+    boxProfissionaisHorarios: document.getElementById(
+      "boxProfissionaisHorarios"
+    ),
+    etapaServico: document.getElementById("etapaServico"),
+    etapaHorario: document.getElementById("etapaHorario"),
 
+    percentualPerfil: document.getElementById("perfilCompletoPercentual"),
+    progressoPerfil: document.getElementById("perfilCompletoProgresso"),
+    checklistPerfil: document.getElementById("perfilCompletoChecklist"),
+  };
 
+  const estado = {
+    slug: null,
+    negocio: null,
+    negocioLocal: obterJsonLocal("negocio"),
+    servicos: [],
+    profissionais: [],
+    servicoSelecionado: null,
+    profissionalSelecionado: null,
+    horarioSelecionado: null,
+    tipoModal: null,
+    carregandoPerfil: false,
+  };
 
-  const usuario = JSON.parse(localStorage.getItem("usuario") || "null");
-  let negocioLocal = JSON.parse(localStorage.getItem("negocio") || "null");
+  function obterJsonLocal(chave) {
+    try {
+      return JSON.parse(localStorage.getItem(chave) || "null");
+    } catch {
+      localStorage.removeItem(chave);
+      return null;
+    }
+  }
 
-  const params = new URLSearchParams(window.location.search);
-  let slug = params.get("slug") || negocioLocal?.slug || null;
+  function obterUsuarioAtual() {
+    return obterJsonLocal("usuario");
+  }
 
-  let negocioAtual = null;
-  let servicoSelecionado = null;
-  let profissionalSelecionado = null;
-  let tipoEdicao = null;
-  let servicosAtuais = [];
-  let horarioSelecionado = null;
+  function obterTokenAtual() {
+    if (
+      window.AuthService &&
+      typeof window.AuthService.getToken === "function"
+    ) {
+      return window.AuthService.getToken();
+    }
 
-  function mostrarMensagem(texto, cor = "#e63946") {
-    if (!mensagem) return;
-    mensagem.textContent = texto;
-    mensagem.style.color = cor;
-    mensagem.classList.remove("hidden");
+    return localStorage.getItem("token");
+  }
+
+  function limparSessao() {
+    if (
+      window.AuthService &&
+      typeof window.AuthService.limparSessao === "function"
+    ) {
+      window.AuthService.limparSessao();
+      return;
+    }
+
+    localStorage.removeItem("token");
+    localStorage.removeItem("usuario");
+    localStorage.removeItem("negocio");
+  }
+
+  function obterApiUrl() {
+    const valor =
+      typeof API_URL !== "undefined"
+        ? API_URL
+        : window.API_URL || "";
+
+    return String(valor).trim().replace(/\/+$/, "");
+  }
+
+  async function lerJson(resposta) {
+    if (resposta.status === 204) {
+      return {};
+    }
+
+    try {
+      return await resposta.json();
+    } catch {
+      return {};
+    }
+  }
+
+  async function requisicao(
+    caminho,
+    {
+      method = "GET",
+      body,
+      autenticado = false,
+      headers = {},
+      signal,
+    } = {}
+  ) {
+    const apiUrl = obterApiUrl();
+
+    if (!apiUrl) {
+      throw new Error("A conexão com o servidor não está configurada.");
+    }
+
+    const cabecalhos = {
+      Accept: "application/json",
+      ...headers,
+    };
+
+    if (autenticado) {
+      const token = obterTokenAtual();
+
+      if (!token) {
+        const erro = new Error("Sua sessão expirou. Entre novamente.");
+        erro.status = 401;
+        throw erro;
+      }
+
+      cabecalhos.Authorization = `Bearer ${token}`;
+    }
+
+    let corpo = body;
+
+    if (
+      body !== undefined &&
+      body !== null &&
+      !(body instanceof FormData)
+    ) {
+      cabecalhos["Content-Type"] = "application/json";
+      corpo = JSON.stringify(body);
+    }
+
+    const resposta = await fetch(
+      `${apiUrl}${caminho.startsWith("/") ? caminho : `/${caminho}`}`,
+      {
+        method,
+        headers: cabecalhos,
+        body: corpo,
+        signal,
+      }
+    );
+
+    const resultado = await lerJson(resposta);
+
+    if (!resposta.ok) {
+      const erro = new Error(
+        resultado.erro ||
+          resultado.mensagem ||
+          "Não foi possível concluir a operação."
+      );
+
+      erro.status = resposta.status;
+      erro.dados = resultado;
+      throw erro;
+    }
+
+    return resultado;
+  }
+
+  function escaparHtml(valor) {
+    return String(valor ?? "")
+      .replaceAll("&", "&amp;")
+      .replaceAll("<", "&lt;")
+      .replaceAll(">", "&gt;")
+      .replaceAll('"', "&quot;")
+      .replaceAll("'", "&#039;");
+  }
+
+  function criarElemento(tag, classe = "", texto = null) {
+    const elemento = document.createElement(tag);
+
+    if (classe) {
+      elemento.className = classe;
+    }
+
+    if (texto !== null && texto !== undefined) {
+      elemento.textContent = String(texto);
+    }
+
+    return elemento;
+  }
+
+  function obterUrlSegura(valor) {
+    const texto = String(valor || "").trim();
+
+    if (!texto) {
+      return null;
+    }
+
+    try {
+      const url = new URL(texto, window.location.origin);
+
+      if (!["http:", "https:"].includes(url.protocol)) {
+        return null;
+      }
+
+      return url.href;
+    } catch {
+      return null;
+    }
+  }
+
+  function obterIniciais(nome, fallback = "N") {
+    const partes = String(nome || "")
+      .trim()
+      .split(/\s+/)
+      .filter(Boolean);
+
+    if (!partes.length) {
+      return fallback;
+    }
+
+    if (partes.length === 1) {
+      return partes[0].slice(0, 2).toUpperCase();
+    }
+
+    return `${partes[0][0]}${partes[partes.length - 1][0]}`.toUpperCase();
+  }
+
+  function formatarMoeda(valor) {
+    return Number(valor || 0).toLocaleString("pt-BR", {
+      style: "currency",
+      currency: "BRL",
+    });
+  }
+
+  function formatarDia(dataIso) {
+    const data = new Date(`${dataIso}T00:00:00`);
+
+    if (Number.isNaN(data.getTime())) {
+      return String(dataIso || "Data");
+    }
+
+    return data.toLocaleDateString("pt-BR", {
+      weekday: "short",
+      day: "2-digit",
+      month: "2-digit",
+    });
+  }
+
+  function formatarDataResumo(dataIso) {
+    const data = new Date(`${dataIso}T00:00:00`);
+
+    if (Number.isNaN(data.getTime())) {
+      return String(dataIso || "");
+    }
+
+    return data.toLocaleDateString("pt-BR", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+    });
+  }
+
+  function mostrarMensagem(texto, tipo = "erro") {
+    if (!elementos.mensagem) {
+      return;
+    }
+
+    const estilos = {
+      sucesso: {
+        color: "var(--sucesso)",
+        background: "var(--sucesso-fundo)",
+        border: "var(--sucesso-borda)",
+      },
+      aviso: {
+        color: "var(--aviso)",
+        background: "var(--aviso-fundo)",
+        border: "var(--aviso-borda)",
+      },
+      info: {
+        color: "var(--info)",
+        background: "var(--info-fundo)",
+        border: "var(--info-borda)",
+      },
+      erro: {
+        color: "var(--erro)",
+        background: "var(--erro-fundo)",
+        border: "var(--erro-borda)",
+      },
+    };
+
+    const estilo = estilos[tipo] || estilos.erro;
+
+    elementos.mensagem.textContent = String(texto || "");
+    elementos.mensagem.style.color = estilo.color;
+    elementos.mensagem.style.background = estilo.background;
+    elementos.mensagem.style.borderColor = estilo.border;
+    elementos.mensagem.classList.remove("hidden");
   }
 
   function esconderMensagem() {
-    if (!mensagem) return;
-    mensagem.textContent = "";
-    mensagem.classList.add("hidden");
+    if (!elementos.mensagem) {
+      return;
+    }
+
+    elementos.mensagem.textContent = "";
+    elementos.mensagem.removeAttribute("style");
+    elementos.mensagem.classList.add("hidden");
+  }
+
+  function criarEstadoVazio(texto) {
+    return criarElemento("div", "estado-vazio", texto);
+  }
+
+  function criarEstadoCarregando(texto) {
+    const container = criarElemento("div", "estado-vazio");
+    const loading = criarElemento("span", "af-loading");
+    const spinner = criarElemento("span", "af-spinner");
+
+    spinner.setAttribute("aria-hidden", "true");
+
+    loading.append(spinner, criarElemento("span", "", texto));
+    container.appendChild(loading);
+
+    return container;
   }
 
   function ehDonoDoPerfil() {
-  if (
-    !usuario?.id ||
-    !negocioAtual?.id
-  ) {
-    return false;
+    const usuario = obterUsuarioAtual();
+    const negocioAtual = estado.negocio;
+    const negocioLocal = estado.negocioLocal;
+
+    if (!usuario?.id || !negocioAtual?.id) {
+      return false;
+    }
+
+    const donoDireto =
+      negocioAtual.dono_usuario_id &&
+      Number(usuario.id) === Number(negocioAtual.dono_usuario_id);
+
+    const mesmoNegocio =
+      negocioLocal?.id &&
+      Number(negocioLocal.id) === Number(negocioAtual.id);
+
+    const donoPorVinculo = mesmoNegocio && negocioLocal?.papel === "dono";
+
+    return Boolean(donoDireto || donoPorVinculo);
   }
 
-  const usuarioEhDonoDireto =
-    negocioAtual.dono_usuario_id &&
-    Number(usuario.id) ===
-      Number(
-        negocioAtual.dono_usuario_id
-      );
-
-  const mesmoNegocioDaSessao =
-    negocioLocal?.id &&
-    Number(negocioLocal.id) ===
-      Number(negocioAtual.id);
-
-  const usuarioEhDonoPeloVinculo =
-    mesmoNegocioDaSessao &&
-    negocioLocal?.papel ===
-      "dono";
-
-  return Boolean(
-    usuarioEhDonoDireto ||
-    usuarioEhDonoPeloVinculo
-  );
-}
-
   async function descobrirSlug() {
-    if (slug) return slug;
+    const params = new URLSearchParams(window.location.search);
+    const slugUrl = params.get("slug")?.trim();
 
-    const token = localStorage.getItem("token");
-    if (!token) return null;
+    if (slugUrl) {
+      estado.slug = slugUrl;
+      return slugUrl;
+    }
 
-    const resposta = await fetch(`${API_URL}/meu-negocio`, {
-      headers: {
-        Authorization: `Bearer ${token}`
-      }
+    if (estado.negocioLocal?.slug) {
+      estado.slug = estado.negocioLocal.slug;
+      return estado.slug;
+    }
+
+    if (!obterTokenAtual()) {
+      return null;
+    }
+
+    const dados = await requisicao("/meu-negocio", {
+      autenticado: true,
     });
 
-    const dados = await resposta.json();
-
     if (dados.temNegocio && dados.negocio?.slug) {
-      negocioLocal = dados.negocio;
+      estado.negocioLocal = dados.negocio;
+      estado.slug = dados.negocio.slug;
+
       localStorage.setItem("negocio", JSON.stringify(dados.negocio));
-      slug = dados.negocio.slug;
-      return slug;
+
+      return estado.slug;
     }
 
     return null;
   }
 
-  function preencherNegocio(n) {
-    if (fotoNegocio) {
+  function renderizarFotoNegocio(negocio) {
+    const atual = document.getElementById("fotoNegocio");
 
-  if (n.foto_url && n.foto_url.trim()) {
-
-    fotoNegocio.src = n.foto_url;
-    fotoNegocio.style.display = "block";
-
-  }   else {
-
-    const iniciais = (n.nome || "N")
-      .split(" ")
-      .map(p => p[0])
-      .join("")
-      .substring(0, 2)
-      .toUpperCase();
-
-    fotoNegocio.outerHTML = `
-      <div id="fotoNegocio" class="avatar-negocio">
-        ${iniciais}
-      </div>
-    `;
-  }
-  
-}
-    if (linhaAvaliacao) {
-
-    const total = Number(n.total_avaliacoes || 0);
-    const media = Number(n.media_avaliacoes || 0);
-
-    linhaAvaliacao.textContent =
-      total > 0
-        ? `⭐ ${media.toFixed(1)} • ${total} avaliação${total > 1 ? "ões" : ""}`
-        : "⭐ Novo negócio";
-    }
-
-    if (nomeNegocio) {
-      nomeNegocio.textContent = n.nome || "Negócio";
-    }
-
-    if (descricaoNegocio) {
-      descricaoNegocio.textContent =
-        n.descricao || "Este negócio ainda não adicionou uma descrição.";
-    }
-
-    if (cidadeBairro) {
-      const cidade = n.cidade || "Cidade não informada";
-      const bairro = n.bairro || "Região";
-      cidadeBairro.textContent = `📍 ${cidade}, ${bairro}`;
-    }
-
-    if (areasNegocio) {
-      const areas = Array.isArray(n.areas) ? n.areas : [];
-
-      areasNegocio.innerHTML = areas.length
-        ? areas.map((area) => `<span class="area-tag">${area}</span>`).join("")
-        : `<span class="area-tag">Beleza</span>`;
-    }
-
-    if (btnWhatsapp) {
-      if (n.whatsapp_negocio) {
-        const numero = String(n.whatsapp_negocio).replace(/\D/g, "");
-        btnWhatsapp.href = `https://wa.me/55${numero}`;
-        btnWhatsapp.classList.remove("hidden");
-      } else if (ehDonoDoPerfil()) {
-        btnWhatsapp.classList.remove("hidden");
-        btnWhatsapp.removeAttribute("href");
-      }
-    }
-
-    if (btnMaps) {
-      if (n.localizacao_url) {
-        btnMaps.href = n.localizacao_url;
-        btnMaps.classList.remove("hidden");
-      } else if (ehDonoDoPerfil()) {
-        btnMaps.classList.remove("hidden");
-        btnMaps.removeAttribute("href");
-      }
-    }
-  }
-
-  function ativarModoDono() {
-    if (!ehDonoDoPerfil()) return;
-
-    document.querySelectorAll(".dono-only").forEach((el) => {
-      el.classList.remove("hidden");
-    });
-
-    btnFavorito?.classList.add("hidden");
-  }
-
-  function atualizarPerfilCompleto(negocio, servicos = []) {
-
-  const percentual =
-    document.getElementById("perfilCompletoPercentual");
-
-  const progresso =
-    document.getElementById("perfilCompletoProgresso");
-
-  const checklist =
-    document.getElementById("perfilCompletoChecklist");
-
-  if (!percentual || !progresso || !checklist) return;
-
-  const itens = [
-    {
-      nome: "Foto",
-      ok: !!negocio.foto_url
-    },
-    {
-      nome: "Descrição",
-      ok: !!negocio.descricao?.trim()
-    },
-    {
-      nome: "WhatsApp",
-      ok: !!negocio.whatsapp_negocio
-    },
-    {
-      nome: "Localização",
-      ok: !!negocio.localizacao_url
-    },
-    {
-      nome: "Serviços",
-      ok: servicos.length > 0
-    }
-  ];
-
-  const concluidos =
-    itens.filter(i => i.ok).length;
-
-  const total =
-    itens.length;
-
-  const porcentagem =
-    Math.round((concluidos / total) * 100);
-
-  percentual.textContent =
-    `${porcentagem}%`;
-
-  progresso.style.width =
-    `${porcentagem}%`;
-
-  checklist.innerHTML =
-    itens.map(item => `
-      <div>
-        ${item.ok ? "✅" : "❌"} ${item.nome}
-      </div>
-    `).join("");
-}
-
-  function atualizarResumo() {
-  if (resumoServico) {
-    resumoServico.textContent = `Serviço: ${servicoSelecionado?.nome || "nenhum"}`;
-  }
-
-  if (resumoProfissional) {
-    resumoProfissional.textContent = `Profissional: ${profissionalSelecionado?.nome || "nenhum"}`;
-  }
-
-  if (resumoHorario) {
-    const textoHorario =
-      horarioSelecionado?.hora ||
-      horarioSelecionado?.horario ||
-      horarioSelecionado?.inicio ||
-      horarioSelecionado?.data_hora ||
-      "nenhum";
-
-    resumoHorario.textContent = `Horário: ${horarioSelecionado ? textoHorario : "nenhum"}`;
-  }
-
-  const ativo =
-    servicoSelecionado &&
-    profissionalSelecionado &&
-    horarioSelecionado;
-
-  if (btnContinuar) {
-    btnContinuar.disabled = !ativo;
-    btnContinuar.classList.toggle("btn-disabled", !ativo);
-  }
-}
-
-async function carregarGaleriaPublicaServico(servicoId) {
-  const box = document.getElementById(`galeriaServico-${servicoId}`);
-
-  if (!box) return;
-
-  try {
-    const resposta = await fetch(`${API_URL}/servicos/${servicoId}/fotos`);
-    const data = await resposta.json();
-
-    const fotos = data.fotos || [];
-
-    if (!fotos.length) {
-      box.innerHTML = "";
+    if (!atual) {
       return;
     }
 
-    box.innerHTML = `
-      <strong>Trabalhos realizados</strong>
+    const fotoUrl = obterUrlSegura(negocio.foto_url);
+    let novoElemento;
 
-      <div class="galeria-publica-grid">
-        ${fotos.slice(0, 4).map(foto => `
-          <img
-  src="${foto.foto_url}"
-  alt="Foto do serviço"
-  class="foto-publica-servico"
-  data-lightbox-src="${foto.foto_url}"
->
-        `).join("")}
-      </div>
-    `;
+    if (fotoUrl) {
+      novoElemento = document.createElement("img");
+      novoElemento.id = "fotoNegocio";
+      novoElemento.className = "foto-negocio";
+      novoElemento.src = fotoUrl;
+      novoElemento.alt = `Foto de ${negocio.nome || "negócio"}`;
+      novoElemento.decoding = "async";
 
-  } catch (err) {
-    box.innerHTML = "";
+      novoElemento.addEventListener(
+        "error",
+        () => {
+          renderizarAvatarNegocio(negocio);
+        },
+        { once: true }
+      );
+    } else {
+      novoElemento = criarElemento(
+        "div",
+        "avatar-negocio",
+        obterIniciais(negocio.nome)
+      );
+
+      novoElemento.id = "fotoNegocio";
+
+      novoElemento.setAttribute(
+        "aria-label",
+        `Avatar de ${negocio.nome || "negócio"}`
+      );
+    }
+
+    atual.replaceWith(novoElemento);
   }
-}
 
-function renderizarServicos(servicos = []) {
-  if (!listaServicos) return;
+  function renderizarAvatarNegocio(negocio) {
+    const atual = document.getElementById("fotoNegocio");
 
-  servicosAtuais = servicos;
+    if (!atual) {
+      return;
+    }
 
-  listaServicos.innerHTML = "";
+    const avatar = criarElemento(
+      "div",
+      "avatar-negocio",
+      obterIniciais(negocio.nome)
+    );
 
-  if (!servicos.length) {
-    listaServicos.innerHTML = `
-      <div class="estado-vazio">Nenhum serviço cadastrado.</div>
-    `;
-    return;
+    avatar.id = "fotoNegocio";
+
+    avatar.setAttribute(
+      "aria-label",
+      `Avatar de ${negocio.nome || "negócio"}`
+    );
+
+    atual.replaceWith(avatar);
   }
 
-  servicos.forEach((servico) => {
-    const card = document.createElement("div");
-    card.className = "item-selecao";
-    card.dataset.id = servico.id;
+  function configurarContato({
+    elemento,
+    disponivel,
+    href,
+    textoDisponivel,
+    textoAusente,
+  }) {
+    if (!elemento) {
+      return;
+    }
 
-    const valor = Number(servico.valor || 0).toLocaleString("pt-BR", {
-      style: "currency",
-      currency: "BRL"
+    const dono = ehDonoDoPerfil();
+    const texto = elemento.querySelector("span:last-child");
+    const container = elemento.closest(".contato-item");
+
+    if (disponivel && href) {
+      elemento.href = href;
+      elemento.removeAttribute("aria-disabled");
+      elemento.classList.remove("hidden");
+
+      if (texto) {
+        texto.textContent = textoDisponivel;
+      }
+
+      container?.classList.remove("hidden");
+      return;
+    }
+
+    elemento.removeAttribute("href");
+
+    if (dono) {
+      elemento.setAttribute("aria-disabled", "true");
+      elemento.classList.remove("hidden");
+
+      if (texto) {
+        texto.textContent = textoAusente;
+      }
+
+      container?.classList.remove("hidden");
+      return;
+    }
+
+    elemento.classList.add("hidden");
+    container?.classList.add("hidden");
+  }
+
+  function preencherNegocio(negocio) {
+    renderizarFotoNegocio(negocio);
+
+    if (elementos.nomeNegocio) {
+      elementos.nomeNegocio.textContent = negocio.nome || "Negócio";
+    }
+
+    document.title = `${negocio.nome || "Perfil"} | Agenda Fashion`;
+
+    if (elementos.linhaAvaliacao) {
+      const total = Number(negocio.total_avaliacoes || 0);
+      const media = Number(negocio.media_avaliacoes || 0);
+
+      elementos.linhaAvaliacao.textContent =
+        total > 0
+          ? `⭐ ${media.toFixed(1)} · ${total} avaliação${
+              total === 1 ? "" : "ões"
+            }`
+          : "⭐ Novo negócio";
+    }
+
+    if (elementos.descricaoNegocio) {
+      elementos.descricaoNegocio.textContent =
+        negocio.descricao ||
+        "Este negócio ainda não adicionou uma descrição.";
+    }
+
+    if (elementos.cidadeBairro) {
+      const localizacao = [negocio.bairro, negocio.cidade]
+        .map((item) => String(item || "").trim())
+        .filter(Boolean)
+        .join(", ");
+
+      elementos.cidadeBairro.textContent = `📍 ${
+        localizacao || "Localização não informada"
+      }`;
+    }
+
+    if (elementos.areasNegocio) {
+      const areas = Array.isArray(negocio.areas)
+        ? negocio.areas
+            .map((area) => String(area || "").trim())
+            .filter(Boolean)
+        : [];
+
+      elementos.areasNegocio.replaceChildren();
+
+      (areas.length ? areas : ["Beleza"]).forEach((area) => {
+        elementos.areasNegocio.appendChild(
+          criarElemento("span", "area-tag", area)
+        );
+      });
+    }
+
+    const numeroOriginal = String(
+      negocio.whatsapp_negocio || ""
+    ).replace(/\D/g, "");
+
+    const numeroWhatsapp = numeroOriginal.startsWith("55")
+      ? numeroOriginal
+      : numeroOriginal
+        ? `55${numeroOriginal}`
+        : "";
+
+    configurarContato({
+      elemento: elementos.btnWhatsapp,
+      disponivel: Boolean(numeroWhatsapp),
+      href: numeroWhatsapp
+        ? `https://wa.me/${numeroWhatsapp}`
+        : null,
+      textoDisponivel: "WhatsApp",
+      textoAusente: "Adicionar WhatsApp",
     });
 
-    card.innerHTML = `
-      ${
-        servico.foto_url
-          ? `<img src="${servico.foto_url}" class="servico-foto" alt="${servico.nome || "Serviço"}">`
-          : `<div class="servico-foto servico-sem-foto">💅</div>`
-      }
+    const mapsUrl = obterUrlSegura(negocio.localizacao_url);
 
-      <h3>${servico.nome || "Serviço"}</h3>
+    configurarContato({
+      elemento: elementos.btnMaps,
+      disponivel: Boolean(mapsUrl),
+      href: mapsUrl,
+      textoDisponivel: "Ver no Maps",
+      textoAusente: "Adicionar Maps",
+    });
+  }
 
-      <div class="servico-meta">
-        <span>⏱ ${servico.duracao_minutos || 0} min</span>
-        <strong>💰 ${valor}</strong>
-      </div>
+  function ativarModoDono() {
+    const dono = ehDonoDoPerfil();
 
-      <div
-        class="galeria-publica-servico"
-        id="galeriaServico-${servico.id}"
-      >
-        Carregando trabalhos...
-      </div>
+    document.querySelectorAll(".dono-only").forEach((elemento) => {
+      elemento.classList.toggle("hidden", !dono);
+    });
 
-      ${
-        ehDonoDoPerfil()
-          ? `
-            <div class="acoes-servico">
-              <button
-                type="button"
-                class="btn-editar-servico af-btn-secondary"
-                data-servico-id="${servico.id}"
-              >
-                ✏️ Editar
-              </button>
+    elementos.btnFavorito?.classList.toggle("hidden", dono);
+  }
 
-              <button
-                type="button"
-                class="btn-remover-servico af-btn-secondary"
-                data-servico-id="${servico.id}"
-              >
-                🗑️ Remover
-              </button>
-            </div>
-          `
-          : ""
-      }
-    `;
+    function atualizarPerfilCompleto(negocio, servicos) {
+    if (
+      !elementos.percentualPerfil ||
+      !elementos.progressoPerfil ||
+      !elementos.checklistPerfil
+    ) {
+      return;
+    }
 
-    card.addEventListener("click", (e) => {
+    const itens = [
+  {
+    nome: "Foto",
+    ok: Boolean(negocio.foto_url),
+  },
+  {
+    nome: "Descrição",
+    ok: Boolean(negocio.descricao?.trim()),
+  },
+  {
+    nome: "WhatsApp",
+    ok: Boolean(negocio.whatsapp_negocio),
+  },
+  {
+    nome: "Localização",
+    ok: Boolean(negocio.localizacao_url),
+  },
+  {
+    nome: "Serviços",
+    ok: servicos.length > 0,
+  },
+];
+
+    const concluidos = itens.filter((item) => item.ok).length;
+    const porcentagem = Math.round((concluidos / itens.length) * 100);
+
+    elementos.percentualPerfil.textContent = `${porcentagem}%`;
+    elementos.progressoPerfil.style.width = `${porcentagem}%`;
+
+    const barra = elementos.progressoPerfil.parentElement;
+    barra?.setAttribute("aria-valuenow", String(porcentagem));
+
+    elementos.checklistPerfil.replaceChildren();
+
+    itens.forEach((item) => {
+      elementos.checklistPerfil.appendChild(
+        criarElemento("div", "", `${item.ok ? "✅" : "○"} ${item.nome}`)
+      );
+    });
+  }
+
+  function atualizarResumo() {
+    if (elementos.resumoServico) {
+      elementos.resumoServico.textContent = `Serviço: ${
+        estado.servicoSelecionado?.nome || "nenhum"
+      }`;
+    }
+
+    if (elementos.resumoProfissional) {
+      elementos.resumoProfissional.textContent = `Profissional: ${
+        estado.profissionalSelecionado?.nome || "nenhum"
+      }`;
+    }
+
+    if (elementos.resumoHorario) {
+      const horario = estado.horarioSelecionado;
+
+      elementos.resumoHorario.textContent = horario
+        ? `Horário: ${formatarDataResumo(horario.data)} às ${horario.hora}`
+        : "Horário: nenhum";
+    }
+
+    const completo = Boolean(
+      estado.servicoSelecionado &&
+        estado.profissionalSelecionado &&
+        estado.horarioSelecionado
+    );
+
+    if (elementos.btnContinuar) {
+      elementos.btnContinuar.disabled = !completo;
+      elementos.btnContinuar.classList.toggle("btn-disabled", !completo);
+    }
+  }
+
+  function limparSelecaoAposServico() {
+    estado.profissionalSelecionado = null;
+    estado.horarioSelecionado = null;
+
+    elementos.listaProfissionais
+      ?.querySelectorAll(".item-selecao")
+      .forEach((item) => item.classList.remove("ativo"));
+
+    elementos.listaHorarios?.replaceChildren(
+      criarEstadoVazio("Escolha um profissional para visualizar os horários.")
+    );
+  }
+
+  function selecionarServico(servico, card) {
+    estado.servicoSelecionado = servico;
+    limparSelecaoAposServico();
+
+    elementos.listaServicos
+      ?.querySelectorAll(".item-selecao")
+      .forEach((item) => item.classList.remove("ativo"));
+
+    card.classList.add("ativo");
+
+    elementos.boxProfissionaisHorarios?.classList.remove("hidden");
+    elementos.etapaServico?.classList.remove("ativa");
+    elementos.etapaHorario?.classList.add("ativa");
+
+    atualizarResumo();
+
+    elementos.boxProfissionaisHorarios?.scrollIntoView({
+      behavior: "smooth",
+      block: "start",
+    });
+  }
+
+  function criarImagemServico(servico) {
+    const fotoUrl = obterUrlSegura(servico.foto_url);
+
+    if (!fotoUrl) {
+      return criarElemento("div", "servico-foto servico-sem-foto", "💅");
+    }
+
+    const imagem = document.createElement("img");
+
+    imagem.className = "servico-foto";
+    imagem.src = fotoUrl;
+    imagem.alt = servico.nome || "Serviço";
+    imagem.loading = "lazy";
+    imagem.decoding = "async";
+
+    imagem.addEventListener(
+      "error",
+      () => {
+        imagem.replaceWith(
+          criarElemento("div", "servico-foto servico-sem-foto", "💅")
+        );
+      },
+      { once: true }
+    );
+
+    return imagem;
+  }
+
+  function criarCardServico(servico) {
+    const card = criarElemento("article", "item-selecao");
+
+    card.dataset.id = String(servico.id);
+    card.tabIndex = 0;
+    card.setAttribute("role", "button");
+    card.setAttribute(
+      "aria-label",
+      `Selecionar ${servico.nome || "serviço"}`
+    );
+
+    const imagem = criarImagemServico(servico);
+    const titulo = criarElemento("h3", "", servico.nome || "Serviço");
+    const meta = criarElemento("div", "servico-meta");
+
+    meta.append(
+      criarElemento(
+        "span",
+        "",
+        `⏱ ${Number(servico.duracao_minutos || 0)} min`
+      ),
+      criarElemento("strong", "", formatarMoeda(servico.valor))
+    );
+
+    const galeria = criarElemento("div", "galeria-publica-servico");
+
+    galeria.id = `galeriaServico-${servico.id}`;
+    galeria.textContent = "Carregando trabalhos...";
+
+    card.append(imagem, titulo, meta, galeria);
+
+    if (ehDonoDoPerfil()) {
+      const acoes = criarElemento("div", "acoes-servico");
+
+      const editar = criarElemento(
+        "button",
+        "btn-editar-servico af-btn-secondary",
+        "✏️ Editar"
+      );
+
+      const remover = criarElemento(
+        "button",
+        "btn-remover-servico af-btn-secondary",
+        "🗑️ Remover"
+      );
+
+      editar.type = "button";
+      editar.dataset.servicoId = String(servico.id);
+
+      remover.type = "button";
+      remover.dataset.servicoId = String(servico.id);
+
+      acoes.append(editar, remover);
+      card.appendChild(acoes);
+    }
+
+    const selecionar = (evento) => {
       if (
-        e.target.closest(".btn-editar-servico") ||
-        e.target.closest(".btn-remover-servico") ||
-        e.target.closest(".foto-publica-servico")
+        evento.target.closest(".btn-editar-servico") ||
+        evento.target.closest(".btn-remover-servico") ||
+        evento.target.closest(".foto-publica-servico")
       ) {
         return;
       }
 
-      servicoSelecionado = servico;
-      profissionalSelecionado = null;
-      horarioSelecionado = null;
+      selecionarServico(servico, card);
+    };
 
-      listaServicos.querySelectorAll(".item-selecao").forEach((el) => {
-        el.classList.remove("ativo");
-      });
+    card.addEventListener("click", selecionar);
 
-      card.classList.add("ativo");
-
-      boxProfissionaisHorarios.classList.remove("hidden");
-      etapaServico.classList.remove("ativa");
-      etapaHorario.classList.add("ativa");
-
-      listaHorariosDisponiveis.innerHTML = `
-        <div class="estado-vazio">Escolha um profissional para ver os horários.</div>
-      `;
-
-      atualizarResumo();
-
-      boxProfissionaisHorarios.scrollIntoView({
-        behavior: "smooth",
-        block: "start"
-      });
-    });
-
-    listaServicos.appendChild(card);
-    carregarGaleriaPublicaServico(servico.id);
-  });
-}
-
-  function renderizarProfissionais(profissionais = []) {
-  if (!listaProfissionais) return;
-
-  listaProfissionais.innerHTML = "";
-
-  if (!profissionais.length) {
-    listaProfissionais.innerHTML = `
-      <div class="estado-vazio">Nenhum profissional disponível.</div>
-    `;
-    return;
-  }
-
-  profissionais.forEach((profissional) => {
-    const card = document.createElement("div");
-    card.className = "item-selecao profissional-card";
-    card.dataset.id = profissional.id;
-
-    card.innerHTML = `
-      ${
-  profissional.foto_url
-    ? `
-      <img
-        class="profissional-foto"
-        src="${profissional.foto_url}"
-        alt="${profissional.nome || "Profissional"}"
-      >
-    `
-    : `
-      <div class="profissional-foto avatar-iniciais">
-        ${(profissional.nome || "P")
-          .split(" ")
-          .map(p => p[0])
-          .join("")
-          .substring(0, 2)
-          .toUpperCase()}
-      </div>
-    `
-}
-
-      <div class="profissional-info">
-        <strong>${profissional.nome || "Profissional"}</strong>
-        <span>Ver horários disponíveis</span>
-      </div>
-    `;
-
-    card.addEventListener("click", async () => {
-      profissionalSelecionado = profissional;
-      horarioSelecionado = null;
-
-      listaProfissionais.querySelectorAll(".item-selecao").forEach((el) => {
-        el.classList.remove("ativo");
-      });
-
-      card.classList.add("ativo");
-
-      atualizarResumo();
-      await carregarHorariosDisponiveis();
-    });
-
-    listaProfissionais.appendChild(card);
-  });
-}
-
-async function carregarHorariosDisponiveis() {
-  if (!servicoSelecionado || !profissionalSelecionado) return;
-
-  listaHorariosDisponiveis.innerHTML = `
-    <div class="estado-vazio">Carregando horários...</div>
-  `;
-
-  try {
-    const resposta = await fetch(
-      `${API_URL}/agenda-publica?slug=${encodeURIComponent(slug)}&servicoId=${servicoSelecionado.id}&profissionalId=${profissionalSelecionado.id}`
-    );
-
-    const data = await resposta.json();
-
-    if (!resposta.ok) {
-      throw new Error(data.erro || "Erro ao carregar horários.");
-    }
-
-    const disponibilidade = data.disponibilidade || [];
-
-    if (!disponibilidade.length) {
-      listaHorariosDisponiveis.innerHTML = `
-        <div class="estado-vazio">Nenhum horário disponível.</div>
-      `;
-      return;
-    }
-
-    listaHorariosDisponiveis.innerHTML = `
-      <div id="listaDiasDisponiveis" class="dias-grid"></div>
-      <div id="horariosDoDia" class="horarios-dia-box"></div>
-    `;
-
-    const listaDias = document.getElementById("listaDiasDisponiveis");
-    const horariosDoDia = document.getElementById("horariosDoDia");
-
-    function formatarDia(dataISO) {
-      const data = new Date(`${dataISO}T00:00:00`);
-      return data.toLocaleDateString("pt-BR", {
-        weekday: "short",
-        day: "2-digit",
-        month: "2-digit"
-      });
-    }
-
-    function renderizarHorariosDoDia(diaSelecionado) {
-      horariosDoDia.innerHTML = `
-        <h4>${formatarDia(diaSelecionado.data)}</h4>
-        <div class="horarios-wrap"></div>
-      `;
-
-      const wrap = horariosDoDia.querySelector(".horarios-wrap");
-
-      if (!diaSelecionado.horarios.length) {
-        wrap.innerHTML = `
-          <div class="estado-vazio">Nenhum horário disponível neste dia.</div>
-        `;
+    card.addEventListener("keydown", (evento) => {
+      if (evento.key !== "Enter" && evento.key !== " ") {
         return;
       }
 
-      diaSelecionado.horarios.forEach((hora) => {
-        const btn = document.createElement("button");
-        btn.type = "button";
-        btn.className = "horario-btn";
-        btn.textContent = hora;
+      evento.preventDefault();
+      selecionar(evento);
+    });
 
-        btn.addEventListener("click", () => {
-          horarioSelecionado = {
-            data: diaSelecionado.data,
-            hora
+    return card;
+  }
+
+  function renderizarServicos(servicos) {
+    estado.servicos = Array.isArray(servicos) ? servicos : [];
+
+    if (!elementos.listaServicos) {
+      return;
+    }
+
+    elementos.listaServicos.replaceChildren();
+
+    if (!estado.servicos.length) {
+      elementos.listaServicos.appendChild(
+        criarEstadoVazio("Nenhum serviço cadastrado.")
+      );
+
+      return;
+    }
+
+    const fragmento = document.createDocumentFragment();
+
+    estado.servicos.forEach((servico) => {
+      fragmento.appendChild(criarCardServico(servico));
+    });
+
+    elementos.listaServicos.appendChild(fragmento);
+
+    estado.servicos.forEach((servico) => {
+      void carregarGaleriaPublicaServico(servico.id);
+    });
+  }
+
+  async function carregarGaleriaPublicaServico(servicoId) {
+    const box = document.getElementById(`galeriaServico-${servicoId}`);
+
+    if (!box) {
+      return;
+    }
+
+    try {
+      const dados = await requisicao(`/servicos/${servicoId}/fotos`);
+      const fotos = Array.isArray(dados.fotos) ? dados.fotos : [];
+
+      box.replaceChildren();
+
+      if (!fotos.length) {
+        return;
+      }
+
+      box.appendChild(
+        criarElemento("strong", "", "Trabalhos realizados")
+      );
+
+      const grid = criarElemento("div", "galeria-publica-grid");
+
+      fotos.slice(0, 4).forEach((foto) => {
+        const fotoUrl = obterUrlSegura(foto.foto_url);
+
+        if (!fotoUrl) {
+          return;
+        }
+
+        const imagem = document.createElement("img");
+
+        imagem.src = fotoUrl;
+        imagem.alt = "Trabalho realizado neste serviço";
+        imagem.className = "foto-publica-servico";
+        imagem.loading = "lazy";
+        imagem.decoding = "async";
+        imagem.dataset.lightboxSrc = fotoUrl;
+
+        grid.appendChild(imagem);
+      });
+
+      if (grid.children.length) {
+        box.appendChild(grid);
+      }
+    } catch (erro) {
+      console.warn(
+        "Não foi possível carregar a galeria pública:",
+        erro
+      );
+
+      box.replaceChildren();
+    }
+  }
+
+  function criarFotoProfissional(profissional) {
+    const fotoUrl = obterUrlSegura(profissional.foto_url);
+
+    if (!fotoUrl) {
+      return criarElemento(
+        "div",
+        "profissional-foto avatar-iniciais",
+        obterIniciais(profissional.nome, "P")
+      );
+    }
+
+    const imagem = document.createElement("img");
+
+    imagem.className = "profissional-foto";
+    imagem.src = fotoUrl;
+    imagem.alt = profissional.nome || "Profissional";
+    imagem.loading = "lazy";
+
+    imagem.addEventListener(
+      "error",
+      () => {
+        imagem.replaceWith(
+          criarElemento(
+            "div",
+            "profissional-foto avatar-iniciais",
+            obterIniciais(profissional.nome, "P")
+          )
+        );
+      },
+      { once: true }
+    );
+
+    return imagem;
+  }
+
+  async function selecionarProfissional(profissional, card) {
+    estado.profissionalSelecionado = profissional;
+    estado.horarioSelecionado = null;
+
+    elementos.listaProfissionais
+      ?.querySelectorAll(".item-selecao")
+      .forEach((item) => item.classList.remove("ativo"));
+
+    card.classList.add("ativo");
+
+    atualizarResumo();
+    await carregarHorariosDisponiveis();
+  }
+
+  function criarCardProfissional(profissional) {
+    const card = criarElemento(
+      "article",
+      "item-selecao profissional-card"
+    );
+
+    card.dataset.id = String(profissional.id);
+    card.tabIndex = 0;
+    card.setAttribute("role", "button");
+
+    card.setAttribute(
+      "aria-label",
+      `Selecionar ${profissional.nome || "profissional"}`
+    );
+
+    const info = criarElemento("div", "profissional-info");
+
+    info.append(
+      criarElemento(
+        "strong",
+        "",
+        profissional.nome || "Profissional"
+      ),
+      criarElemento(
+        "span",
+        "",
+        "Ver horários disponíveis"
+      )
+    );
+
+    card.append(
+      criarFotoProfissional(profissional),
+      info
+    );
+
+    card.addEventListener("click", () => {
+      void selecionarProfissional(profissional, card);
+    });
+
+    card.addEventListener("keydown", (evento) => {
+      if (evento.key !== "Enter" && evento.key !== " ") {
+        return;
+      }
+
+      evento.preventDefault();
+      void selecionarProfissional(profissional, card);
+    });
+
+    return card;
+  }
+
+  function renderizarProfissionais(profissionais) {
+    estado.profissionais = Array.isArray(profissionais)
+      ? profissionais
+      : [];
+
+    if (!elementos.listaProfissionais) {
+      return;
+    }
+
+    elementos.listaProfissionais.replaceChildren();
+
+    if (!estado.profissionais.length) {
+      elementos.listaProfissionais.appendChild(
+        criarEstadoVazio("Nenhum profissional disponível.")
+      );
+
+      return;
+    }
+
+    const fragmento = document.createDocumentFragment();
+
+    estado.profissionais.forEach((profissional) => {
+      fragmento.appendChild(
+        criarCardProfissional(profissional)
+      );
+    });
+
+    elementos.listaProfissionais.appendChild(fragmento);
+  }
+
+  function renderizarHorariosDoDia(
+    dia,
+    container,
+    listaDias
+  ) {
+    estado.horarioSelecionado = null;
+    atualizarResumo();
+
+    container.replaceChildren();
+
+    container.appendChild(
+      criarElemento("h4", "", formatarDia(dia.data))
+    );
+
+    const wrap = criarElemento("div", "horarios-wrap");
+    const horarios = Array.isArray(dia.horarios)
+      ? dia.horarios
+      : [];
+
+    if (!horarios.length) {
+      wrap.appendChild(
+        criarEstadoVazio(
+          "Nenhum horário disponível neste dia."
+        )
+      );
+    } else {
+      horarios.forEach((hora) => {
+        const botao = criarElemento(
+          "button",
+          "horario-btn",
+          hora
+        );
+
+        botao.type = "button";
+
+        botao.addEventListener("click", () => {
+          estado.horarioSelecionado = {
+            data: dia.data,
+            hora,
           };
 
-          horariosDoDia.querySelectorAll(".horario-btn").forEach((el) => {
-            el.classList.remove("ativo");
-          });
+          container
+            .querySelectorAll(".horario-btn")
+            .forEach((item) => {
+              item.classList.remove("ativo");
+            });
 
-          btn.classList.add("ativo");
+          botao.classList.add("ativo");
           atualizarResumo();
         });
 
-        wrap.appendChild(btn);
+        wrap.appendChild(botao);
       });
     }
 
-    disponibilidade.forEach((dia, index) => {
-      const btnDia = document.createElement("button");
-      btnDia.type = "button";
-      btnDia.className = "dia-btn";
-      btnDia.textContent = formatarDia(dia.data);
+    container.appendChild(wrap);
 
-      btnDia.addEventListener("click", () => {
-        horarioSelecionado = null;
+    listaDias
+      .querySelectorAll(".dia-btn")
+      .forEach((item) => {
+        item.setAttribute(
+          "aria-pressed",
+          String(item.classList.contains("ativo"))
+        );
+      });
+  }
 
-        listaDias.querySelectorAll(".dia-btn").forEach((el) => {
-          el.classList.remove("ativo");
-        });
+  async function carregarHorariosDisponiveis() {
+    if (
+      !estado.servicoSelecionado ||
+      !estado.profissionalSelecionado ||
+      !elementos.listaHorarios
+    ) {
+      return;
+    }
 
-        btnDia.classList.add("ativo");
-        renderizarHorariosDoDia(dia);
-        atualizarResumo();
+    elementos.listaHorarios.replaceChildren(
+      criarEstadoCarregando("Carregando horários...")
+    );
+
+    elementos.listaHorarios.setAttribute(
+      "aria-busy",
+      "true"
+    );
+
+    try {
+      const query = new URLSearchParams({
+        slug: estado.slug,
+        servicoId: String(
+          estado.servicoSelecionado.id
+        ),
+        profissionalId: String(
+          estado.profissionalSelecionado.id
+        ),
       });
 
-      listaDias.appendChild(btnDia);
+      const dados = await requisicao(
+        `/agenda-publica?${query.toString()}`
+      );
 
-      if (index === 0) {
-        btnDia.classList.add("ativo");
-        renderizarHorariosDoDia(dia);
+      const disponibilidade = Array.isArray(
+        dados.disponibilidade
+      )
+        ? dados.disponibilidade
+        : [];
+
+      elementos.listaHorarios.replaceChildren();
+
+      if (!disponibilidade.length) {
+        elementos.listaHorarios.appendChild(
+          criarEstadoVazio("Nenhum horário disponível.")
+        );
+
+        return;
       }
-    });
 
-  } catch (erro) {
-    console.error(erro);
+      const listaDias = criarElemento(
+        "div",
+        "dias-grid"
+      );
 
-    listaHorariosDisponiveis.innerHTML = `
-      <div class="estado-vazio">${erro.message}</div>
-    `;
+      listaDias.id = "listaDiasDisponiveis";
+
+      const horariosDia = criarElemento(
+        "div",
+        "horarios-dia-box"
+      );
+
+      horariosDia.id = "horariosDoDia";
+
+      elementos.listaHorarios.append(
+        listaDias,
+        horariosDia
+      );
+
+      disponibilidade.forEach((dia, indice) => {
+        const botao = criarElemento(
+          "button",
+          "dia-btn",
+          formatarDia(dia.data)
+        );
+
+        botao.type = "button";
+        botao.setAttribute("aria-pressed", "false");
+
+        botao.addEventListener("click", () => {
+          listaDias
+            .querySelectorAll(".dia-btn")
+            .forEach((item) => {
+              item.classList.remove("ativo");
+            });
+
+          botao.classList.add("ativo");
+
+          renderizarHorariosDoDia(
+            dia,
+            horariosDia,
+            listaDias
+          );
+        });
+
+        listaDias.appendChild(botao);
+
+        if (indice === 0) {
+          botao.classList.add("ativo");
+
+          renderizarHorariosDoDia(
+            dia,
+            horariosDia,
+            listaDias
+          );
+        }
+      });
+    } catch (erro) {
+      console.error(
+        "Erro ao carregar horários:",
+        erro
+      );
+
+      elementos.listaHorarios.replaceChildren(
+        criarEstadoVazio(
+          erro.message ||
+            "Não foi possível carregar os horários."
+        )
+      );
+    } finally {
+      elementos.listaHorarios.setAttribute(
+        "aria-busy",
+        "false"
+      );
+    }
   }
-}
 
-  function abrirModal(titulo, tipo, html) {
-    tipoEdicao = tipo;
-    modalTitulo.textContent = titulo;
-    modalConteudo.innerHTML = html;
-    modal.classList.remove("hidden");
+    function abrirModal(titulo, tipo, html) {
+    if (
+      !elementos.modal ||
+      !elementos.modalTitulo ||
+      !elementos.modalConteudo
+    ) {
+      return;
+    }
+
+    estado.tipoModal = tipo;
+    elementos.modalTitulo.textContent = titulo;
+    elementos.modalConteudo.innerHTML = html;
+    elementos.modal.classList.remove("hidden");
+
+    document.body.style.overflow = "hidden";
+
+    window.setTimeout(() => {
+      elementos.modalConteudo
+        .querySelector("input, textarea, select")
+        ?.focus();
+    }, 0);
   }
 
   function fecharModal() {
-    tipoEdicao = null;
-    modal.classList.add("hidden");
-    modalConteudo.innerHTML = "";
+    estado.tipoModal = null;
+
+    elementos.modal?.classList.add("hidden");
+
+    if (elementos.modalConteudo) {
+      elementos.modalConteudo.replaceChildren();
+    }
+
+    document.body.style.removeProperty("overflow");
   }
 
   function abrirEdicaoCampo(campo) {
-    if (!ehDonoDoPerfil()) return;
-    if (campo === "foto") {
-      abrirModal(
-        "Alterar foto",
-        "foto",
-        `<input id="inputFotoNegocio" class="af-input" type="file" accept="image/*">`
-      );
+    if (!ehDonoDoPerfil() || !estado.negocio) {
+      return;
     }
 
-    if (campo === "nome") {
-      abrirModal(
-        "Editar nome",
-        "negocio",
-        `<input id="inputNome" class="af-input" value="${negocioAtual.nome || ""}">`
-      );
-    }
+    const negocio = estado.negocio;
 
-    if (campo === "bio") {
-      abrirModal(
-        "Editar bio",
-        "negocio",
-        `<textarea id="inputDescricao" class="af-input">${negocioAtual.descricao || ""}</textarea>`
-      );
-    }
+    const modais = {
+      foto: {
+        titulo: "Alterar foto",
+        tipo: "foto",
+        html: `
+          <label for="inputFotoNegocio">
+            Nova foto do negócio
+          </label>
 
-    if (campo === "local") {
-      abrirModal(
-        "Editar localização",
-        "negocio",
-        `
-          <input id="inputCidade" class="af-input" placeholder="Cidade" value="${negocioAtual.cidade || ""}">
-          <input id="inputBairro" class="af-input" placeholder="Bairro" value="${negocioAtual.bairro || ""}">
-        `
-      );
-    }
+          <input
+            id="inputFotoNegocio"
+            class="af-input"
+            type="file"
+            accept="image/*"
+          >
+        `,
+      },
 
-    if (campo === "whatsapp") {
-      abrirModal(
-        "Editar WhatsApp",
-        "negocio",
-        `<input id="inputWhatsapp" class="af-input" value="${negocioAtual.whatsapp_negocio || ""}">`
-      );
-    }
+      nome: {
+        titulo: "Editar nome",
+        tipo: "negocio",
+        html: `
+          <label for="inputNome">
+            Nome do negócio
+          </label>
 
-    if (campo === "maps") {
-      abrirModal(
-        "Editar Maps",
-        "negocio",
-        `<input id="inputMaps" class="af-input" value="${negocioAtual.localizacao_url || ""}">`
-      );
-    }
+          <input
+            id="inputNome"
+            class="af-input"
+            value="${escaparHtml(negocio.nome)}"
+          >
+        `,
+      },
+
+      bio: {
+        titulo: "Editar descrição",
+        tipo: "negocio",
+        html: `
+          <label for="inputDescricao">
+            Descrição do negócio
+          </label>
+
+          <textarea
+            id="inputDescricao"
+            class="af-input"
+            placeholder="Conte aos clientes sobre seu negócio"
+          >${escaparHtml(negocio.descricao)}</textarea>
+        `,
+      },
+
+      local: {
+        titulo: "Editar localização",
+        tipo: "negocio",
+        html: `
+          <label for="inputCidade">
+            Cidade
+          </label>
+
+          <input
+            id="inputCidade"
+            class="af-input"
+            value="${escaparHtml(negocio.cidade)}"
+          >
+
+          <label for="inputBairro">
+            Bairro
+          </label>
+
+          <input
+            id="inputBairro"
+            class="af-input"
+            value="${escaparHtml(negocio.bairro)}"
+          >
+        `,
+      },
+
+      whatsapp: {
+        titulo: "Editar WhatsApp",
+        tipo: "negocio",
+        html: `
+          <label for="inputWhatsapp">
+            WhatsApp com DDD
+          </label>
+
+          <input
+            id="inputWhatsapp"
+            class="af-input"
+            inputmode="tel"
+            value="${escaparHtml(negocio.whatsapp_negocio)}"
+            placeholder="Ex.: 62999999999"
+          >
+        `,
+      },
+
+      maps: {
+        titulo: "Editar localização no Maps",
+        tipo: "negocio",
+        html: `
+          <label for="inputMaps">
+            Link do Google Maps
+          </label>
+
+          <input
+            id="inputMaps"
+            class="af-input"
+            type="url"
+            value="${escaparHtml(negocio.localizacao_url)}"
+            placeholder="https://maps.google.com/..."
+          >
+        `,
+      },
+    };
 
     if (campo === "areas") {
-  const areasAtuais = Array.isArray(negocioAtual.areas)
-    ? negocioAtual.areas
-    : [];
+      const atuais = Array.isArray(negocio.areas)
+        ? negocio.areas
+        : [];
 
-  const opcoesAreas = [
-    "Unha",
-    "Sobrancelha",
-    "Cílios",
-    "Cabelo",
-    "Maquiagem",
-    "Bronze",
-    "Depilação",
-    "Estética",
-    "Massagem"
-  ];
+      const opcoes = [
+        "Unha",
+        "Sobrancelha",
+        "Cílios",
+        "Cabelo",
+        "Maquiagem",
+        "Bronze",
+        "Depilação",
+        "Estética",
+        "Massagem",
+      ];
 
-  abrirModal(
-    "Editar áreas atendidas",
-    "negocio",
-    `
-      <div class="areas-opcoes-modal">
-        ${opcoesAreas.map(area => `
-          <label class="area-opcao">
-            <input
-              type="checkbox"
-              name="areasNegocio"
-              value="${area}"
-              ${areasAtuais.includes(area) ? "checked" : ""}
-            >
-            <span>${area}</span>
-          </label>
-        `).join("")}
-      </div>
-    `
-  );
-} 
-  }
+      abrirModal(
+        "Editar áreas atendidas",
+        "negocio",
+        `
+          <div class="areas-opcoes-modal">
+            ${opcoes
+              .map(
+                (area) => `
+                  <label class="area-opcao">
+                    <input
+                      type="checkbox"
+                      name="areasNegocio"
+                      value="${escaparHtml(area)}"
+                      ${atuais.includes(area) ? "checked" : ""}
+                    >
 
-function abrirNovoServico() {
-  abrirModal(
-    "Novo serviço",
-    "novo-servico",
-    `
-      <input id="inputServicoNome" class="af-input" placeholder="Nome do serviço">
-      <input id="inputServicoValor" class="af-input" type="number" step="0.01" placeholder="Valor">
-      <input id="inputServicoDuracao" class="af-input" type="number" placeholder="Duração em minutos">
-      <input id="inputServicoFoto" class="af-input" type="file" accept="image/*">
-    `
-  );
-}
+                    <span>
+                      ${escaparHtml(area)}
+                    </span>
+                  </label>
+                `
+              )
+              .join("")}
+          </div>
+        `
+      );
 
-function abrirNovoProfissional() {
-  abrirModal(
-    "Adicionar profissional",
-    "novo-profissional",
-    `
-      <input
-        id="inputProfissionalBusca"
-        class="af-input"
-        placeholder="Digite o e-mail ou WhatsApp do profissional"
-      >
-
-      <p style="font-size: 13px; color: #7e768f; margin-top: 10px;">
-        O profissional precisa ter uma conta profissional cadastrada.
-      </p>
-    `
-  );
-}
-
-  async function salvarNegocio() {
-    const token = localStorage.getItem("token");
-
-    const payload = {
-      nome: document.getElementById("inputNome")?.value?.trim() ?? negocioAtual.nome,
-      descricao: document.getElementById("inputDescricao")?.value?.trim() ?? negocioAtual.descricao,
-      cidade: document.getElementById("inputCidade")?.value?.trim() ?? negocioAtual.cidade,
-      bairro: document.getElementById("inputBairro")?.value?.trim() ?? negocioAtual.bairro,
-      whatsapp_negocio: document.getElementById("inputWhatsapp")?.value?.trim() ?? negocioAtual.whatsapp_negocio,
-      localizacao_url: document.getElementById("inputMaps")?.value?.trim() ?? negocioAtual.localizacao_url,
-      setor: negocioAtual.setor || "",
-      areas: Array.from(
-      document.querySelectorAll('input[name="areasNegocio"]:checked')
-      ).length
-      ? Array.from(
-      document.querySelectorAll('input[name="areasNegocio"]:checked')
-      ).map(input => input.value)
-      : negocioAtual.areas || []
-    };
-
-    const resposta = await fetch(`${API_URL}/configuracoes`, {
-      method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`
-      },
-      body: JSON.stringify(payload)
-    });
-
-    const data = await resposta.json();
-
-    if (!resposta.ok) {
-      throw new Error(data.erro || "Erro ao salvar.");
+      return;
     }
 
-    negocioAtual = {
-      ...negocioAtual,
-      ...data.negocio
+    const configuracao = modais[campo];
+
+    if (configuracao) {
+      abrirModal(
+        configuracao.titulo,
+        configuracao.tipo,
+        configuracao.html
+      );
+    }
+  }
+
+  function abrirNovoServico() {
+    abrirModal(
+      "Novo serviço",
+      "novo-servico",
+      `
+        <label for="inputServicoNome">
+          Nome do serviço
+        </label>
+
+        <input
+          id="inputServicoNome"
+          class="af-input"
+          placeholder="Ex.: Alongamento em gel"
+        >
+
+        <label for="inputServicoValor">
+          Valor
+        </label>
+
+        <input
+          id="inputServicoValor"
+          class="af-input"
+          type="number"
+          min="0"
+          step="0.01"
+          placeholder="0,00"
+        >
+
+        <label for="inputServicoDuracao">
+          Duração em minutos
+        </label>
+
+        <input
+          id="inputServicoDuracao"
+          class="af-input"
+          type="number"
+          min="1"
+          placeholder="60"
+        >
+
+        <label for="inputServicoFoto">
+          Foto de capa
+        </label>
+
+        <input
+          id="inputServicoFoto"
+          class="af-input"
+          type="file"
+          accept="image/*"
+        >
+      `
+    );
+  }
+
+  function abrirNovoProfissional() {
+    abrirModal(
+      "Adicionar profissional",
+      "novo-profissional",
+      `
+        <label for="inputProfissionalBusca">
+          E-mail ou WhatsApp
+        </label>
+
+        <input
+          id="inputProfissionalBusca"
+          class="af-input"
+          placeholder="Digite o e-mail ou WhatsApp do profissional"
+        >
+
+        <p class="af-help">
+          O profissional precisa possuir uma conta cadastrada
+          no Agenda Fashion.
+        </p>
+      `
+    );
+  }
+
+  function abrirEditarServico(servico) {
+    abrirModal(
+      "Editar serviço",
+      "editar-servico",
+      `
+        <input
+          id="inputServicoId"
+          type="hidden"
+          value="${escaparHtml(servico.id)}"
+        >
+
+        <label for="inputServicoNome">
+          Nome do serviço
+        </label>
+
+        <input
+          id="inputServicoNome"
+          class="af-input"
+          value="${escaparHtml(servico.nome)}"
+        >
+
+        <label for="inputServicoValor">
+          Valor
+        </label>
+
+        <input
+          id="inputServicoValor"
+          class="af-input"
+          type="number"
+          min="0"
+          step="0.01"
+          value="${escaparHtml(servico.valor || 0)}"
+        >
+
+        <label for="inputServicoDuracao">
+          Duração em minutos
+        </label>
+
+        <input
+          id="inputServicoDuracao"
+          class="af-input"
+          type="number"
+          min="1"
+          value="${escaparHtml(
+            servico.duracao_minutos || 0
+          )}"
+        >
+
+        <hr>
+
+        <h3>
+          Galeria do serviço
+        </h3>
+
+        <label for="inputGaleriaServico">
+          Adicionar novas fotos
+        </label>
+
+        <input
+          id="inputGaleriaServico"
+          type="file"
+          multiple
+          accept="image/*"
+          class="af-input"
+        >
+
+        <div
+          id="galeriaServicoPreview"
+          class="galeria-servico"
+        >
+          Carregando fotos...
+        </div>
+      `
+    );
+
+    window.setTimeout(() => {
+      void carregarGaleriaServico(servico.id);
+    }, 0);
+  }
+
+  function valorCampo(id, fallback = "") {
+    const elemento = document.getElementById(id);
+
+    if (!elemento) {
+      return fallback;
+    }
+
+    return String(elemento.value || "").trim();
+  }
+
+  async function salvarNegocio() {
+    const negocio = estado.negocio;
+
+    if (!negocio) {
+      throw new Error("Negócio não carregado.");
+    }
+
+    const checkboxes = Array.from(
+      document.querySelectorAll(
+        'input[name="areasNegocio"]'
+      )
+    );
+
+    const areas = checkboxes.length
+      ? checkboxes
+          .filter((input) => input.checked)
+          .map((input) => input.value)
+      : negocio.areas || [];
+
+    const payload = {
+      nome: valorCampo(
+        "inputNome",
+        negocio.nome
+      ),
+
+      descricao: valorCampo(
+        "inputDescricao",
+        negocio.descricao
+      ),
+
+      cidade: valorCampo(
+        "inputCidade",
+        negocio.cidade
+      ),
+
+      bairro: valorCampo(
+        "inputBairro",
+        negocio.bairro
+      ),
+
+      whatsapp_negocio: valorCampo(
+        "inputWhatsapp",
+        negocio.whatsapp_negocio
+      ),
+
+      localizacao_url: valorCampo(
+        "inputMaps",
+        negocio.localizacao_url
+      ),
+
+      setor: negocio.setor || "",
+      areas,
     };
 
-    localStorage.setItem("negocio", JSON.stringify(data.negocio));
+    if (!payload.nome) {
+      throw new Error(
+        "Informe o nome do negócio."
+      );
+    }
 
-    preencherNegocio(negocioAtual);
+    const dados = await requisicao(
+      "/configuracoes",
+      {
+        method: "PUT",
+        autenticado: true,
+        body: payload,
+      }
+    );
+
+    estado.negocio = {
+      ...estado.negocio,
+      ...(dados.negocio || payload),
+    };
+
+    estado.negocioLocal = {
+      ...estado.negocioLocal,
+      ...(dados.negocio || {}),
+    };
+
+    localStorage.setItem(
+      "negocio",
+      JSON.stringify(
+        estado.negocioLocal
+      )
+    );
   }
 
   async function salvarFoto() {
-    const token = localStorage.getItem("token");
-    const file = document.getElementById("inputFotoNegocio")?.files?.[0];
+    const arquivo =
+      document.getElementById(
+        "inputFotoNegocio"
+      )?.files?.[0];
 
-    if (!file) {
-      throw new Error("Escolha uma imagem.");
+    if (!arquivo) {
+      throw new Error(
+        "Escolha uma imagem."
+      );
     }
 
-    const formData = new FormData();
-    formData.append("foto", file);
+    const formData =
+      new FormData();
 
-    const resposta = await fetch(`${API_URL}/api/negocios/foto`, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${token}`
-      },
-      body: formData
-    });
+    formData.append(
+      "foto",
+      arquivo
+    );
 
-    const data = await resposta.json();
+    const dados = await requisicao(
+      "/api/negocios/foto",
+      {
+        method: "POST",
+        autenticado: true,
+        body: formData,
+      }
+    );
 
-    if (!resposta.ok) {
-      throw new Error(data.erro || "Erro ao enviar foto.");
-    }
-
-    negocioAtual.foto_url = data.foto;
-
-    window.location.reload();
+    estado.negocio.foto_url =
+      dados.foto ||
+      dados.foto_url;
   }
 
   async function salvarServico() {
-  const token = localStorage.getItem("token");
-
-  const nome = document.getElementById("inputServicoNome")?.value?.trim();
-  const valor = document.getElementById("inputServicoValor")?.value;
-  const duracao = document.getElementById("inputServicoDuracao")?.value;
-
-  if (!nome) throw new Error("Informe o nome do serviço.");
-
-  const resposta = await fetch(`${API_URL}/servicos`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`
-    },
-    body: JSON.stringify({
-      nome,
-      valor: Number(valor || 0),
-      duracao_minutos: Number(duracao || 0)
-    })
-  });
-
-  const data = await resposta.json();
-  console.log("SERVICO CRIADO", data);
-
-  if (!resposta.ok) {
-    throw new Error(data.erro || "Erro ao criar serviço.");
-  }
-const idServico = data.servico?.id;
-const foto = document.getElementById("inputServicoFoto")?.files?.[0];
-
-if (foto && idServico) {
-  const formData = new FormData();
-  formData.append("foto", foto);
-
-  const fotoResposta = await fetch(`${API_URL}/servicos/${idServico}/foto`, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${token}`
-    },
-    body: formData
-  });
-
-  const fotoData = await fotoResposta.json();
-
-  if (!fotoResposta.ok) {
-    throw new Error(fotoData.erro || "Serviço criado, mas erro ao enviar foto.");
-  }
-}
-
-}
-
-async function salvarProfissional() {
-  const token = localStorage.getItem("token");
-
-  const emailOuWhatsapp =
-    document.getElementById("inputProfissionalBusca")?.value?.trim();
-
-  if (!emailOuWhatsapp) {
-    throw new Error("Digite o e-mail ou WhatsApp do profissional.");
-  }
-
-  const resposta = await fetch(`${API_URL}/profissionais/vincular`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`
-    },
-    body: JSON.stringify({
-      emailOuWhatsapp
-    })
-  });
-
-  const data = await resposta.json();
-
-  if (!resposta.ok) {
-    throw new Error(data.erro || "Erro ao vincular profissional.");
-  }
-}
-
-async function atualizarServico() {
-  const token = localStorage.getItem("token");
-
-  const id = document.getElementById("inputServicoId")?.value;
-  const nome = document.getElementById("inputServicoNome")?.value?.trim();
-  const valor = document.getElementById("inputServicoValor")?.value;
-  const duracao = document.getElementById("inputServicoDuracao")?.value;
-
-  if (!nome) throw new Error("Informe o nome do serviço.");
-
-  const resposta = await fetch(`${API_URL}/servicos/${id}`, {
-    method: "PUT",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`
-    },
-    body: JSON.stringify({
-      nome,
-      valor: Number(valor || 0),
-      duracao_minutos: Number(duracao || 0)
-    })
-  });
-
-  const data = await resposta.json();
-
-  if (!resposta.ok) {
-    throw new Error(data.erro || "Erro ao atualizar serviço.");
-  }
-
-  await enviarFotosGaleria(id);
-
-}
-
-async function removerServico(id) {
-  const token = localStorage.getItem("token");
-
-  const resposta = await fetch(`${API_URL}/servicos/${id}`, {
-    method: "DELETE",
-    headers: {
-      Authorization: `Bearer ${token}`
-    }
-  });
-
-  const data = await resposta.json().catch(() => ({}));
-
-  if (!resposta.ok) {
-    throw new Error(data.erro || "Erro ao remover serviço.");
-  }
-
-  mostrarMensagem("Serviço removido com sucesso.", "#2f9e63");
-  await carregarPerfil();
-}
-
-  async function salvarModal() {
-    try {
-      btnSalvarModal.disabled = true;
-      btnSalvarModal.textContent = "Salvando...";
-
-      if (tipoEdicao === "foto") {
-        await salvarFoto();
-      }
-
-      if (tipoEdicao === "negocio") {
-        await salvarNegocio();
-      }
-      
-      if (tipoEdicao === "novo-servico") {
-  await salvarServico();
-}
-
-      if (tipoEdicao === "editar-servico") {
-  await atualizarServico();
-}
-
-      if (tipoEdicao === "novo-profissional") {
-  await salvarProfissional();
-}
-
-      if (tipoEdicao === "confirmar-agendamento-visitante") {
-  await confirmarAgendamentoVisitante();
-}
-
-if (
-  tipoEdicao ===
-  "confirmar-agendamento-logado"
-) {
-  const nome =
-    document.getElementById(
-      "inputClienteNome"
-    )?.value;
-
-  const whatsapp =
-    document.getElementById(
-      "inputClienteWhatsapp"
-    )?.value;
-
-  await confirmarAgendamentoLogado({
-    nome,
-    whatsapp,
-  });
-
-  fecharModal();
-
-  return;
-}
-
-
-      fecharModal();
-      mostrarMensagem("Salvo com sucesso 💅", "#2f9e63");
-      await carregarPerfil();
-
-    } catch (erro) {
-      mostrarMensagem(erro.message || "Erro ao salvar.");
-    } finally {
-      btnSalvarModal.disabled = false;
-      btnSalvarModal.textContent = "Salvar";
-    }
-  }
-
-  function obterTokenAtual() {
-  if (
-    window.AuthService &&
-    typeof window.AuthService
-      .getToken === "function"
-  ) {
-    return window.AuthService
-      .getToken();
-  }
-
-  return localStorage.getItem(
-    "token"
-  );
-}
-function obterUsuarioAtual() {
-  try {
-    return JSON.parse(
-      localStorage.getItem(
-        "usuario"
-      ) || "null"
-    );
-  } catch {
-    localStorage.removeItem(
-      "usuario"
+    const nome = valorCampo(
+      "inputServicoNome"
     );
 
-    return null;
-  }
-}
-
-function escaparHtml(
-  valor
-) {
-  return String(
-    valor ?? ""
-  )
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#039;");
-}
-
-function atualizarBotaoFavorito(
-  favoritado
-) {
-  if (!btnFavorito) {
-    return;
-  }
-
-  btnFavorito.classList.toggle(
-    "ativo",
-    favoritado
-  );
-
-  btnFavorito.textContent =
-    favoritado
-      ? "❤️ Favorito"
-      : "♡ Favoritar";
-
-  btnFavorito.setAttribute(
-    "aria-pressed",
-    String(favoritado)
-  );
-}
-
-function redirecionarParaLogin() {
-  if (
-    window.AuthService &&
-    typeof window.AuthService
-      .limparSessao === "function"
-  ) {
-    window.AuthService
-      .limparSessao();
-  }
-
-  window.location.href =
-    "/html/login-cliente.html";
-}
-
-  async function alternarFavorito() {
-  if (
-    !btnFavorito ||
-    !negocioAtual?.id
-  ) {
-    throw new Error(
-      "Negócio inválido."
-    );
-  }
-
-  if (ehDonoDoPerfil()) {
-    mostrarMensagem(
-      "Você não pode favoritar seu próprio negócio."
-    );
-
-    return;
-  }
-
-  const token =
-    obterTokenAtual();
-
-  if (!token) {
-    mostrarMensagem(
-      "Entre na sua conta para favoritar."
-    );
-
-    window.location.href =
-      "/html/login-cliente.html";
-
-    return;
-  }
-
-  if (
-    !window.API ||
-    typeof window.API.post !==
-      "function" ||
-    typeof window.API.delete !==
-      "function"
-  ) {
-    throw new Error(
-      "O serviço da API não foi carregado."
-    );
-  }
-
-  const jaFavoritado =
-    btnFavorito.classList.contains(
-      "ativo"
-    );
-
-  btnFavorito.disabled =
-    true;
-
-  try {
-    const caminho =
-      `/favoritos/${encodeURIComponent(
-        negocioAtual.id
-      )}`;
-
-    const resultado =
-      jaFavoritado
-        ? await window.API.delete(
-            caminho
-          )
-        : await window.API.post(
-            caminho,
-            {}
-          );
-
-    const favoritado =
-      typeof resultado?.favoritado ===
-      "boolean"
-        ? resultado.favoritado
-        : !jaFavoritado;
-
-    atualizarBotaoFavorito(
-      favoritado
-    );
-
-    mostrarMensagem(
-      resultado?.mensagem ||
-        (
-          favoritado
-            ? "Adicionado aos favoritos ❤️"
-            : "Removido dos favoritos."
-        ),
-      "#2f9e63"
-    );
-  } catch (erro) {
-    if (
-      erro?.status === 401 ||
-      erro?.status === 403
-    ) {
-      redirecionarParaLogin();
-      return;
-    }
-
-    throw erro;
-  } finally {
-    btnFavorito.disabled =
-      false;
-  }
-}
-
-  async function carregarFavorito() {
-  if (
-    !btnFavorito ||
-    !negocioAtual?.id
-  ) {
-    return;
-  }
-
-  if (ehDonoDoPerfil()) {
-    btnFavorito.classList.add(
-      "hidden"
-    );
-
-    return;
-  }
-
-  btnFavorito.classList.remove(
-    "hidden"
-  );
-
-  atualizarBotaoFavorito(
-    false
-  );
-
-  const token =
-    obterTokenAtual();
-
-  /*
-   * Visitante pode visualizar o perfil,
-   * apenas não possui favorito salvo.
-   */
-  if (!token) {
-    return;
-  }
-
-  if (
-    !window.API ||
-    typeof window.API.get !==
-      "function"
-  ) {
-    console.warn(
-      "API não carregada para verificar favorito."
-    );
-
-    return;
-  }
-
-  btnFavorito.disabled =
-    true;
-
-  try {
-    const resultado =
-      await window.API.get(
-        `/favoritos/${encodeURIComponent(
-          negocioAtual.id
-        )}/status`
-      );
-
-    atualizarBotaoFavorito(
-      Boolean(
-        resultado?.favoritado
+    const valor = Number(
+      valorCampo(
+        "inputServicoValor",
+        "0"
       )
     );
-  } catch (erro) {
+
+    const duracao = Number(
+      valorCampo(
+        "inputServicoDuracao",
+        "0"
+      )
+    );
+
+    if (!nome) {
+      throw new Error(
+        "Informe o nome do serviço."
+      );
+    }
+
     if (
-      erro?.status === 401 ||
-      erro?.status === 403
+      !Number.isFinite(valor) ||
+      valor < 0
     ) {
-      window.AuthService
-        ?.limparSessao?.();
+      throw new Error(
+        "Informe um valor válido."
+      );
+    }
+
+    if (
+      !Number.isInteger(duracao) ||
+      duracao <= 0
+    ) {
+      throw new Error(
+        "Informe uma duração válida."
+      );
+    }
+
+    const dados = await requisicao(
+      "/servicos",
+      {
+        method: "POST",
+        autenticado: true,
+
+        body: {
+          nome,
+          valor,
+          duracao_minutos: duracao,
+        },
+      }
+    );
+
+    const servicoId =
+      dados.servico?.id;
+
+    const foto =
+      document.getElementById(
+        "inputServicoFoto"
+      )?.files?.[0];
+
+    if (foto && servicoId) {
+      const formData =
+        new FormData();
+
+      formData.append(
+        "foto",
+        foto
+      );
+
+      await requisicao(
+        `/servicos/${servicoId}/foto`,
+        {
+          method: "POST",
+          autenticado: true,
+          body: formData,
+        }
+      );
+    }
+  }
+
+  async function salvarProfissional() {
+    const emailOuWhatsapp =
+      valorCampo(
+        "inputProfissionalBusca"
+      );
+
+    if (!emailOuWhatsapp) {
+      throw new Error(
+        "Digite o e-mail ou WhatsApp do profissional."
+      );
+    }
+
+    await requisicao(
+      "/profissionais/vincular",
+      {
+        method: "POST",
+        autenticado: true,
+        body: {
+          emailOuWhatsapp,
+        },
+      }
+    );
+  }
+
+  async function atualizarServico() {
+    const id = valorCampo(
+      "inputServicoId"
+    );
+
+    const nome = valorCampo(
+      "inputServicoNome"
+    );
+
+    const valor = Number(
+      valorCampo(
+        "inputServicoValor",
+        "0"
+      )
+    );
+
+    const duracao = Number(
+      valorCampo(
+        "inputServicoDuracao",
+        "0"
+      )
+    );
+
+    if (!id) {
+      throw new Error(
+        "Serviço inválido."
+      );
+    }
+
+    if (!nome) {
+      throw new Error(
+        "Informe o nome do serviço."
+      );
+    }
+
+    if (
+      !Number.isFinite(valor) ||
+      valor < 0
+    ) {
+      throw new Error(
+        "Informe um valor válido."
+      );
+    }
+
+    if (
+      !Number.isInteger(duracao) ||
+      duracao <= 0
+    ) {
+      throw new Error(
+        "Informe uma duração válida."
+      );
+    }
+
+    await requisicao(
+      `/servicos/${encodeURIComponent(id)}`,
+      {
+        method: "PUT",
+        autenticado: true,
+
+        body: {
+          nome,
+          valor,
+          duracao_minutos: duracao,
+        },
+      }
+    );
+
+    await enviarFotosGaleria(id);
+  }
+
+  async function removerServico(id) {
+    if (
+      !window.confirm(
+        "Remover este serviço?"
+      )
+    ) {
+      return;
+    }
+
+    await requisicao(
+      `/servicos/${encodeURIComponent(id)}`,
+      {
+        method: "DELETE",
+        autenticado: true,
+      }
+    );
+
+    await carregarPerfil();
+
+    mostrarMensagem(
+      "Serviço removido com sucesso.",
+      "sucesso"
+    );
+  }
+
+  async function carregarGaleriaServico(
+    servicoId
+  ) {
+    const galeria =
+      document.getElementById(
+        "galeriaServicoPreview"
+      );
+
+    if (!galeria) {
+      return;
+    }
+
+    try {
+      const dados =
+        await requisicao(
+          `/servicos/${servicoId}/fotos`
+        );
+
+      const fotos =
+        Array.isArray(dados.fotos)
+          ? dados.fotos
+          : [];
+
+      galeria.replaceChildren();
+
+      if (!fotos.length) {
+        galeria.appendChild(
+          criarEstadoVazio(
+            "Nenhuma foto cadastrada."
+          )
+        );
+
+        return;
+      }
+
+      fotos.forEach((foto) => {
+        const fotoUrl =
+          obterUrlSegura(
+            foto.foto_url
+          );
+
+        if (!fotoUrl) {
+          return;
+        }
+
+        const item =
+          criarElemento(
+            "div",
+            "foto-galeria-item"
+          );
+
+        const imagem =
+          document.createElement(
+            "img"
+          );
+
+        const remover =
+          criarElemento(
+            "button",
+            "btn-remover-foto",
+            "✕"
+          );
+
+        imagem.src = fotoUrl;
+
+        imagem.alt =
+          "Foto da galeria do serviço";
+
+        imagem.loading =
+          "lazy";
+
+        remover.type =
+          "button";
+
+        remover.dataset.fotoId =
+          String(foto.id);
+
+        remover.dataset.servicoId =
+          String(servicoId);
+
+        remover.setAttribute(
+          "aria-label",
+          "Remover foto da galeria"
+        );
+
+        item.append(
+          imagem,
+          remover
+        );
+
+        galeria.appendChild(
+          item
+        );
+      });
+    } catch (erro) {
+      console.error(
+        "Erro ao carregar galeria:",
+        erro
+      );
+
+      galeria.replaceChildren(
+        criarEstadoVazio(
+          "Não foi possível carregar a galeria."
+        )
+      );
+    }
+  }
+
+  async function enviarFotosGaleria(
+    servicoId
+  ) {
+    const arquivos = Array.from(
+      document.getElementById(
+        "inputGaleriaServico"
+      )?.files || []
+    );
+
+    for (const foto of arquivos) {
+      const formData =
+        new FormData();
+
+      formData.append(
+        "foto",
+        foto
+      );
+
+      await requisicao(
+        `/servicos/${servicoId}/fotos`,
+        {
+          method: "POST",
+          autenticado: true,
+          body: formData,
+        }
+      );
+    }
+  }
+
+  async function removerFotoGaleria(
+    fotoId,
+    servicoId
+  ) {
+    if (
+      !window.confirm(
+        "Remover esta foto da galeria?"
+      )
+    ) {
+      return;
+    }
+
+    await requisicao(
+      `/servicos/fotos/${encodeURIComponent(
+        fotoId
+      )}`,
+      {
+        method: "DELETE",
+        autenticado: true,
+      }
+    );
+
+    mostrarMensagem(
+      "Foto removida com sucesso.",
+      "sucesso"
+    );
+
+    await carregarGaleriaServico(
+      servicoId
+    );
+  }
+
+  function atualizarBotaoFavorito(
+    favoritado
+  ) {
+    if (!elementos.btnFavorito) {
+      return;
+    }
+
+    elementos.btnFavorito
+      .classList.toggle(
+        "ativo",
+        favoritado
+      );
+
+    elementos.btnFavorito.textContent =
+      favoritado
+        ? "❤️ Favorito"
+        : "♡ Favoritar";
+
+    elementos.btnFavorito.setAttribute(
+      "aria-pressed",
+      String(favoritado)
+    );
+  }
+
+  async function carregarFavorito() {
+    if (
+      !elementos.btnFavorito ||
+      !estado.negocio?.id
+    ) {
+      return;
+    }
+
+    if (ehDonoDoPerfil()) {
+      elementos.btnFavorito
+        .classList.add("hidden");
+
+      return;
+    }
+
+    elementos.btnFavorito
+      .classList.remove("hidden");
+
+    atualizarBotaoFavorito(false);
+
+    if (!obterTokenAtual()) {
+      return;
+    }
+
+    elementos.btnFavorito.disabled =
+      true;
+
+    try {
+      const dados =
+        await requisicao(
+          `/favoritos/${encodeURIComponent(
+            estado.negocio.id
+          )}/status`,
+          {
+            autenticado: true,
+          }
+        );
 
       atualizarBotaoFavorito(
-        false
+        Boolean(dados.favoritado)
+      );
+    } catch (erro) {
+      if (
+        [401, 403].includes(
+          erro.status
+        )
+      ) {
+        limparSessao();
+      } else {
+        console.warn(
+          "Não foi possível verificar o favorito:",
+          erro
+        );
+      }
+
+      atualizarBotaoFavorito(false);
+    } finally {
+      elementos.btnFavorito.disabled =
+        false;
+    }
+  }
+
+  async function alternarFavorito() {
+    if (
+      !estado.negocio?.id ||
+      !elementos.btnFavorito
+    ) {
+      throw new Error(
+        "Negócio inválido."
+      );
+    }
+
+    if (ehDonoDoPerfil()) {
+      mostrarMensagem(
+        "Você não pode favoritar seu próprio negócio.",
+        "aviso"
       );
 
       return;
     }
 
-    console.warn(
-      "Não foi possível verificar o favorito:",
-      erro
+    if (!obterTokenAtual()) {
+      mostrarMensagem(
+        "Entre na sua conta para favoritar.",
+        "aviso"
+      );
+
+      window.setTimeout(() => {
+        window.location.href =
+          "/html/login-cliente.html";
+      }, 700);
+
+      return;
+    }
+
+    const jaFavoritado =
+      elementos.btnFavorito
+        .classList.contains(
+          "ativo"
+        );
+
+    elementos.btnFavorito.disabled =
+      true;
+
+    try {
+      const dados =
+        await requisicao(
+          `/favoritos/${encodeURIComponent(
+            estado.negocio.id
+          )}`,
+          {
+            method:
+              jaFavoritado
+                ? "DELETE"
+                : "POST",
+
+            autenticado: true,
+
+            body:
+              jaFavoritado
+                ? undefined
+                : {},
+          }
+        );
+
+      const favoritado =
+        typeof dados.favoritado ===
+        "boolean"
+          ? dados.favoritado
+          : !jaFavoritado;
+
+      atualizarBotaoFavorito(
+        favoritado
+      );
+
+      mostrarMensagem(
+        dados.mensagem ||
+          (
+            favoritado
+              ? "Adicionado aos favoritos ❤️"
+              : "Removido dos favoritos."
+          ),
+        "sucesso"
+      );
+    } catch (erro) {
+      if (
+        [401, 403].includes(
+          erro.status
+        )
+      ) {
+        limparSessao();
+
+        window.location.href =
+          "/html/login-cliente.html";
+
+        return;
+      }
+
+      throw erro;
+    } finally {
+      elementos.btnFavorito.disabled =
+        false;
+    }
+  }
+
+  async function copiarTexto(texto) {
+    if (
+      navigator.clipboard
+        ?.writeText &&
+      window.isSecureContext
+    ) {
+      await navigator.clipboard
+        .writeText(texto);
+
+      return;
+    }
+
+    const area =
+      document.createElement(
+        "textarea"
+      );
+
+    area.value = texto;
+
+    area.style.position =
+      "fixed";
+
+    area.style.opacity =
+      "0";
+
+    document.body.appendChild(
+      area
     );
 
-    atualizarBotaoFavorito(
-      false
-    );
-  } finally {
-    btnFavorito.disabled =
-      false;
+    area.select();
+
+    const copiou =
+      document.execCommand(
+        "copy"
+      );
+
+    area.remove();
+
+    if (!copiou) {
+      throw new Error(
+        "Não foi possível copiar."
+      );
+    }
   }
-}
 
   async function copiarLinkPerfil() {
-  try {
     const link =
-      `${window.location.origin}/html/perfil-negocio.html?slug=${encodeURIComponent(slug)}`;
+      `${window.location.origin}` +
+      `/html/perfil-negocio.html?slug=` +
+      encodeURIComponent(
+        estado.slug
+      );
 
-    await navigator.clipboard.writeText(link);
+    await copiarTexto(link);
 
-    btnCopiarAgenda.textContent = "✅ Link copiado";
+    if (elementos.btnCopiarAgenda) {
+      const textoOriginal =
+        elementos.btnCopiarAgenda
+          .textContent;
 
-    setTimeout(() => {
-      btnCopiarAgenda.textContent = "Copiar link";
-    }, 2000);
+      elementos.btnCopiarAgenda
+        .textContent =
+        "✅ Link copiado";
 
-    mostrarMensagem("Link copiado com sucesso 💅", "#2f9e63");
+      window.setTimeout(() => {
+        elementos.btnCopiarAgenda
+          .textContent =
+          textoOriginal;
+      }, 1800);
+    }
 
-  } catch (erro) {
-    mostrarMensagem("Não foi possível copiar o link.");
-  }
-}
-
-  async function irParaAgenda() {
-  if (
-    !servicoSelecionado ||
-    !profissionalSelecionado ||
-    !horarioSelecionado
-  ) {
     mostrarMensagem(
-      "Escolha serviço, profissional e horário."
+      "Link copiado com sucesso.",
+      "sucesso"
     );
-
-    return;
   }
 
-  const token =
-    obterTokenAtual();
+  function abrirModalConfirmacao(
+    tipo,
+    usuario = null
+  ) {
+    const horario =
+      estado.horarioSelecionado;
 
-  const usuarioAtual =
-    obterUsuarioAtual();
-
-  /*
-   * Sem token, mantém o fluxo
-   * público de visitante.
-   */
-  if (!token) {
     abrirModal(
       "Confirmar agendamento",
-      "confirmar-agendamento-visitante",
+      tipo,
       `
         <div class="resumo-modal">
-          <strong>${escaparHtml(
-            servicoSelecionado.nome
-          )}</strong><br>
+          <strong>
+            ${escaparHtml(
+              estado
+                .servicoSelecionado
+                .nome
+            )}
+          </strong>
+          <br>
 
           ${escaparHtml(
-            horarioSelecionado.data
-          )} às ${escaparHtml(
-            horarioSelecionado.hora
-          )}<br>
+            formatarDataResumo(
+              horario.data
+            )
+          )}
+
+          às ${escaparHtml(
+            horario.hora
+          )}
+          <br>
 
           Profissional:
           ${escaparHtml(
-            profissionalSelecionado.nome
+            estado
+              .profissionalSelecionado
+              .nome
           )}
         </div>
 
@@ -1382,7 +2429,11 @@ function redirecionarParaLogin() {
         <input
           id="inputClienteNome"
           class="af-input"
+          value="${escaparHtml(
+            usuario?.nome
+          )}"
           placeholder="Digite seu nome"
+          autocomplete="name"
         >
 
         <label for="inputClienteWhatsapp">
@@ -1392,231 +2443,260 @@ function redirecionarParaLogin() {
         <input
           id="inputClienteWhatsapp"
           class="af-input"
+          inputmode="tel"
+          value="${escaparHtml(
+            usuario?.whatsapp
+          )}"
           placeholder="Ex.: 62999999999"
+          autocomplete="tel"
         >
       `
     );
-
-    return;
   }
 
-  /*
-   * Qualquer conta autenticada pode
-   * realizar um agendamento.
-   */
-  if (
-    usuarioAtual?.nome &&
-    usuarioAtual?.whatsapp
+    function validarDadosAgendamento(
+    nome,
+    whatsapp
   ) {
-    try {
-      await confirmarAgendamentoLogado({
-        nome:
-          usuarioAtual.nome,
+    const nomeNormalizado =
+      String(nome || "")
+        .trim()
+        .replace(/\s+/g, " ");
 
-        whatsapp:
-          usuarioAtual.whatsapp,
-      });
-    } catch (erro) {
-      mostrarMensagem(
-        erro?.message ||
-          "Não foi possível confirmar o agendamento."
+    const whatsappNormalizado =
+      String(whatsapp || "")
+        .replace(/\D/g, "");
+
+    if (
+      nomeNormalizado.length < 2
+    ) {
+      throw new Error(
+        "Informe seu nome."
       );
     }
 
-    return;
+    if (
+      ![10, 11].includes(
+        whatsappNormalizado.length
+      )
+    ) {
+      throw new Error(
+        "Informe um WhatsApp válido com DDD."
+      );
+    }
+
+    if (
+      !estado.servicoSelecionado ||
+      !estado.profissionalSelecionado ||
+      !estado.horarioSelecionado
+    ) {
+      throw new Error(
+        "Os dados do agendamento estão incompletos."
+      );
+    }
+
+    return {
+      nome:
+        nomeNormalizado,
+
+      whatsapp:
+        whatsappNormalizado,
+    };
   }
 
-  /*
-   * Conta autenticada sem nome ou
-   * WhatsApp completo.
-   */
-  abrirModal(
-    "Confirmar agendamento",
-    "confirmar-agendamento-logado",
-    `
-      <div class="resumo-modal">
-        <strong>${escaparHtml(
-          servicoSelecionado.nome
-        )}</strong><br>
-
-        ${escaparHtml(
-          horarioSelecionado.data
-        )} às ${escaparHtml(
-          horarioSelecionado.hora
-        )}<br>
-
-        Profissional:
-        ${escaparHtml(
-          profissionalSelecionado.nome
-        )}
-      </div>
-
-      <label for="inputClienteNome">
-        Seu nome
-      </label>
-
-      <input
-        id="inputClienteNome"
-        class="af-input"
-        value="${escaparHtml(
-          usuarioAtual?.nome
-        )}"
-        placeholder="Digite seu nome"
-      >
-
-      <label for="inputClienteWhatsapp">
-        Seu WhatsApp
-      </label>
-
-      <input
-        id="inputClienteWhatsapp"
-        class="af-input"
-        value="${escaparHtml(
-          usuarioAtual?.whatsapp
-        )}"
-        placeholder="Ex.: 62999999999"
-      >
-    `
-  );
-}
-
-async function confirmarAgendamentoLogado({
-  nome,
-  whatsapp,
-} = {}) {
-  const token =
-    obterTokenAtual();
-
-  if (!token) {
-    throw new Error(
-      "Sua sessão expirou. Entre novamente."
-    );
-  }
-
-  if (
-    !window.API ||
-    typeof window.API.post !==
-      "function"
+  function definirBotaoConfirmando(
+    confirmando
   ) {
-    throw new Error(
-      "O serviço da API não foi carregado."
-    );
+    if (!elementos.btnContinuar) {
+      return;
+    }
+
+    elementos.btnContinuar.disabled =
+      confirmando;
+
+    elementos.btnContinuar.textContent =
+      confirmando
+        ? "Confirmando..."
+        : "Confirmar agendamento";
+
+    if (!confirmando) {
+      atualizarResumo();
+    }
   }
 
-  const nomeNormalizado =
-    String(nome || "")
-      .trim()
-      .replace(/\s+/g, " ");
+  function resetarFluxoAgendamento() {
+    estado.servicoSelecionado =
+      null;
 
-  const whatsappNormalizado =
-    String(whatsapp || "")
-      .replace(/\D/g, "");
+    estado.profissionalSelecionado =
+      null;
 
-  if (
-    nomeNormalizado.length < 2
-  ) {
-    throw new Error(
-      "Informe seu nome."
-    );
-  }
+    estado.horarioSelecionado =
+      null;
 
-  if (
-    ![10, 11].includes(
-      whatsappNormalizado.length
-    )
-  ) {
-    throw new Error(
-      "Informe um WhatsApp válido com DDD."
-    );
-  }
-
-  if (
-    !servicoSelecionado ||
-    !profissionalSelecionado ||
-    !horarioSelecionado
-  ) {
-    throw new Error(
-      "Os dados do agendamento estão incompletos."
-    );
-  }
-
-  if (btnContinuar) {
-    btnContinuar.disabled =
-      true;
-
-    btnContinuar.textContent =
-      "Confirmando...";
-  }
-
-  try {
-    const resultado =
-      await window.API.post(
-        "/agendamentos",
-        {
-          slug,
-
-          servico_id:
-            servicoSelecionado.id,
-
-          profissional_id:
-            profissionalSelecionado.id,
-
-          data:
-            horarioSelecionado.data,
-
-          horario:
-            horarioSelecionado.hora,
-
-          cliente_nome:
-            nomeNormalizado,
-
-          cliente_whatsapp:
-            whatsappNormalizado,
+    elementos.listaServicos
+      ?.querySelectorAll(
+        ".item-selecao"
+      )
+      .forEach(
+        (item) => {
+          item.classList.remove(
+            "ativo"
+          );
         }
       );
 
-    if (
-      !resultado?.agendamento?.id
-    ) {
-      throw new Error(
-        "O servidor não confirmou o agendamento."
+    elementos.listaProfissionais
+      ?.querySelectorAll(
+        ".item-selecao"
+      )
+      .forEach(
+        (item) => {
+          item.classList.remove(
+            "ativo"
+          );
+        }
       );
-    }
 
-    if (btnContinuar) {
-      btnContinuar.textContent =
+    elementos
+      .boxProfissionaisHorarios
+      ?.classList.add(
+        "hidden"
+      );
+
+    elementos.etapaServico
+      ?.classList.add(
+        "ativa"
+      );
+
+    elementos.etapaHorario
+      ?.classList.remove(
+        "ativa"
+      );
+
+    atualizarResumo();
+  }
+
+  async function confirmarAgendamento({
+  nome,
+  whatsapp,
+  autenticado,
+}) {
+  const cliente = validarDadosAgendamento(
+    nome,
+    whatsapp
+  );
+
+  const slugAgendamento = String(
+    estado.slug ||
+      new URLSearchParams(
+        window.location.search
+      ).get("slug") ||
+      ""
+  ).trim();
+
+  const servicoId =
+    estado.servicoSelecionado?.id;
+
+  const profissionalId =
+    estado.profissionalSelecionado?.id;
+
+  const dataAgendamento =
+    estado.horarioSelecionado?.data;
+
+  const horaAgendamento =
+    estado.horarioSelecionado?.hora;
+
+  if (!slugAgendamento) {
+    throw new Error(
+      "Não foi possível identificar o negócio."
+    );
+  }
+
+  if (!servicoId) {
+    throw new Error(
+      "Selecione um serviço."
+    );
+  }
+
+  if (!profissionalId) {
+    throw new Error(
+      "Selecione um profissional."
+    );
+  }
+
+  if (
+    !dataAgendamento ||
+    !horaAgendamento
+  ) {
+    throw new Error(
+      "Selecione uma data e um horário."
+    );
+  }
+
+  definirBotaoConfirmando(true);
+
+  try {
+    const payload = {
+      slug: slugAgendamento,
+      servico_id: servicoId,
+      profissional_id: profissionalId,
+      data: dataAgendamento,
+      horario: horaAgendamento,
+      cliente_nome: cliente.nome,
+      cliente_whatsapp: cliente.whatsapp,
+    };
+
+    console.log(
+      "ENVIANDO AGENDAMENTO",
+      payload
+    );
+
+    const dados = await requisicao(
+      "/agendamentos",
+      {
+        method: "POST",
+        autenticado: Boolean(autenticado),
+        body: payload,
+      }
+    );
+
+    if (elementos.btnContinuar) {
+      elementos.btnContinuar.textContent =
         "Agendado com sucesso ✅";
     }
 
     mostrarMensagem(
-      resultado?.mensagem ||
+      dados.mensagem ||
         "Agendamento confirmado com sucesso 💅",
-      "#2f9e63"
+      "sucesso"
     );
 
-    window.setTimeout(
-      () => {
+    fecharModal();
+
+    if (autenticado) {
+      window.setTimeout(() => {
         window.location.href =
           "/html/meus-agendamentos.html";
-      },
-      1200
-    );
+      }, 1200);
+    } else {
+      window.setTimeout(() => {
+        definirBotaoConfirmando(false);
+        resetarFluxoAgendamento();
 
-    return resultado;
-  } catch (erro) {
-    if (btnContinuar) {
-      btnContinuar.disabled =
-        false;
-
-      btnContinuar.textContent =
-        "Continuar";
+        window.scrollTo({
+          top: 0,
+          behavior: "smooth",
+        });
+      }, 1800);
     }
 
-    if (
-      erro?.status === 401
-    ) {
-      window.AuthService
-        ?.limparSessao?.();
+    return dados;
+  } catch (erro) {
+    definirBotaoConfirmando(false);
+
+    if (erro?.status === 401) {
+      limparSessao();
 
       window.location.href =
         "/html/login-cliente.html";
@@ -1626,354 +2706,721 @@ async function confirmarAgendamentoLogado({
   }
 }
 
-  async function carregarPerfil() {
-    try {
-      esconderMensagem();
+  async function irParaAgenda() {
+    if (
+      !estado.servicoSelecionado ||
+      !estado.profissionalSelecionado ||
+      !estado.horarioSelecionado
+    ) {
+      mostrarMensagem(
+        "Escolha serviço, profissional, data e horário.",
+        "aviso"
+      );
 
-      await descobrirSlug();
-
-      if (!slug) {
-        throw new Error("Perfil inválido.");
-      }
-
-      const resposta = await fetch(`${API_URL}/perfil-negocio/${encodeURIComponent(slug)}`);
-      const resultado = await resposta.json();
-
-      if (!resposta.ok) {
-        throw new Error(resultado.erro || "Erro ao carregar perfil.");
-      }
-
-      negocioAtual = resultado.negocio;
-
-      preencherNegocio(negocioAtual);
-      ativarModoDono();
-      renderizarServicos(resultado.servicos || []);
-      renderizarProfissionais(resultado.profissionais || []);
-      atualizarPerfilCompleto(
-      negocioAtual,
-      resultado.servicos || []
-);
-      await carregarFavorito();
-
-    } catch (erro) {
-      console.error("Erro perfil:", erro);
-      nomeNegocio.textContent = "Erro ao carregar";
-      mostrarMensagem(erro.message || "Erro ao carregar perfil.");
-    }
-  }
-
-  btnFavorito?.addEventListener("click", async () => {
-  try {
-    await alternarFavorito();
-  } catch (erro) {
-    mostrarMensagem(erro.message || "Erro ao favoritar.");
-  }
-});
-
-function abrirLightbox(src) {
-  let lightbox = document.getElementById("lightboxGaleria");
-
-  if (!lightbox) {
-    lightbox = document.createElement("div");
-    lightbox.id = "lightboxGaleria";
-    lightbox.className = "lightbox-galeria";
-
-    lightbox.innerHTML = `
-      <button
-        type="button"
-        class="lightbox-fechar"
-      >
-        ✕
-      </button>
-
-      <img
-        id="lightboxImagem"
-        src=""
-        alt="Foto ampliada"
-      >
-    `;
-
-    document.body.appendChild(lightbox);
-  }
-
-  const imagem = document.getElementById("lightboxImagem");
-  imagem.src = src;
-
-  lightbox.classList.add("ativo");
-}
-
-function fecharLightbox() {
-  const lightbox = document.getElementById("lightboxGaleria");
-
-  if (lightbox) {
-    lightbox.classList.remove("ativo");
-  }
-}
-
-  document.addEventListener("click", async (e) => {
-    const fotoLightbox = e.target.closest("[data-lightbox-src]");
-
-if (fotoLightbox) {
-  abrirLightbox(fotoLightbox.dataset.lightboxSrc);
-  return;
-}
-
-if (
-  e.target.closest(".lightbox-fechar") ||
-  e.target.id === "lightboxGaleria"
-) {
-  fecharLightbox();
-  return;
-}
-  const edit = e.target.closest("[data-edit]");
-  if (edit) {
-    abrirEdicaoCampo(edit.dataset.edit);
-    return;
-  }
-
-  const action = e.target.closest("[data-action]");
-
-  if (action?.dataset.action === "novo-servico") {
-    abrirNovoServico();
-    return;
-  }
-
-  if (action?.dataset.action === "novo-profissional") {
-    abrirNovoProfissional();
-    return;
-  }
-
-  const btnRemoverFoto = e.target.closest(".btn-remover-foto");
-
-if (btnRemoverFoto) {
-  const fotoId = btnRemoverFoto.dataset.fotoId;
-  const servicoId = document.getElementById("inputServicoId")?.value;
-
-  try {
-    await removerFotoGaleria(fotoId);
-
-    if (servicoId) {
-      await carregarGaleriaServico(servicoId);
-    }
-  } catch (erro) {
-    mostrarMensagem(erro.message || "Erro ao remover foto.");
-  }
-
-  return;
-}
-
-  const btnEditarServico = e.target.closest(".btn-editar-servico");
-
-if (btnEditarServico) {
-  const id = btnEditarServico.dataset.servicoId;
-
-  const servico = servicosAtuais.find(
-    (item) => Number(item.id) === Number(id)
-  );
-
-  if (!servico) {
-    mostrarMensagem("Serviço não encontrado.");
-    return;
-  }
-
-  abrirModal(
-  "Editar serviço",
-  "editar-servico",
-  `
-    <input id="inputServicoId" type="hidden" value="${servico.id}">
-
-    <input
-      id="inputServicoNome"
-      class="af-input"
-      placeholder="Nome do serviço"
-      value="${servico.nome || ""}"
-    >
-
-    <input
-      id="inputServicoValor"
-      class="af-input"
-      type="number"
-      step="0.01"
-      placeholder="Valor"
-      value="${servico.valor || 0}"
-    >
-
-    <input
-      id="inputServicoDuracao"
-      class="af-input"
-      type="number"
-      placeholder="Duração em minutos"
-      value="${servico.duracao_minutos || 0}"
-    >
-
-    <hr style="margin:16px 0">
-
-    <h3>Galeria do serviço</h3>
-
-    <input
-      id="inputGaleriaServico"
-      type="file"
-      multiple
-      accept="image/*"
-      class="af-input"
-    >
-
-    <div
-      id="galeriaServicoPreview"
-      class="galeria-servico"
-    >
-      Carregando fotos...
-    </div>
-  `
-);
-
-setTimeout(() => {
-  carregarGaleriaServico(servico.id);
-}, 100);
-
-return;
-} 
-
-const btnRemoverServico = e.target.closest(".btn-remover-servico");
-if (btnRemoverServico) {
-  const id = btnRemoverServico.dataset.servicoId;
-
-  if (!confirm("Remover este serviço?")) return;
-
-  await removerServico(id);
-  return;
-}
-
-});
-
-async function carregarGaleriaServico(servicoId) {
-  try {
-    const resposta = await fetch(`${API_URL}/servicos/${servicoId}/fotos`);
-    const data = await resposta.json();
-
-    const galeria = document.getElementById("galeriaServicoPreview");
-    if (!galeria) return;
-
-    if (!data.fotos?.length) {
-      galeria.innerHTML = `<div class="estado-vazio">Nenhuma foto.</div>`;
       return;
     }
 
-    galeria.innerHTML = data.fotos.map(foto => `
-      <div class="foto-galeria-item">
-        <img src="${foto.foto_url}">
-        <button
-          type="button"
-          class="btn-remover-foto"
-          data-foto-id="${foto.id}"
-        >
-          ✕
-        </button>
-      </div>
-    `).join("");
+    const token =
+      obterTokenAtual();
 
-  } catch (err) {
-    console.error("Erro ao carregar galeria:", err);
-  }
-}
+    const usuario =
+      obterUsuarioAtual();
 
-async function removerFotoGaleria(fotoId) {
-  const token = localStorage.getItem("token");
+    if (!token) {
+      abrirModalConfirmacao(
+        "confirmar-agendamento-visitante"
+      );
 
-  if (!confirm("Remover esta foto da galeria?")) return;
-
-  const resposta = await fetch(`${API_URL}/servicos/fotos/${fotoId}`, {
-    method: "DELETE",
-    headers: {
-      Authorization: `Bearer ${token}`
+      return;
     }
-  });
 
-  const data = await resposta.json().catch(() => ({}));
+    if (
+      usuario?.nome &&
+      usuario?.whatsapp
+    ) {
+      await confirmarAgendamento({
+        nome:
+          usuario.nome,
 
-  if (!resposta.ok) {
-    throw new Error(data.erro || "Erro ao remover foto.");
+        whatsapp:
+          usuario.whatsapp,
+
+        autenticado:
+          true,
+      });
+
+      return;
+    }
+
+    abrirModalConfirmacao(
+      "confirmar-agendamento-logado",
+      usuario
+    );
   }
 
-  mostrarMensagem("Foto removida com sucesso.", "#2f9e63");
+  async function salvarModal() {
+    if (
+      !elementos.btnSalvarModal
+    ) {
+      return;
+    }
+
+    const textoOriginal =
+      elementos.btnSalvarModal
+        .textContent;
+
+    elementos.btnSalvarModal
+      .disabled =
+      true;
+
+    elementos.btnSalvarModal
+      .textContent =
+      "Salvando...";
+
+    try {
+      switch (
+        estado.tipoModal
+      ) {
+        case "foto":
+          await salvarFoto();
+          break;
+
+        case "negocio":
+          await salvarNegocio();
+          break;
+
+        case "novo-servico":
+          await salvarServico();
+          break;
+
+        case "editar-servico":
+          await atualizarServico();
+          break;
+
+        case "novo-profissional":
+          await salvarProfissional();
+          break;
+
+        case "confirmar-agendamento-visitante":
+          await confirmarAgendamento({
+            nome:
+              valorCampo(
+                "inputClienteNome"
+              ),
+
+            whatsapp:
+              valorCampo(
+                "inputClienteWhatsapp"
+              ),
+
+            autenticado:
+              false,
+          });
+
+          fecharModal();
+
+          return;
+
+        case "confirmar-agendamento-logado":
+          await confirmarAgendamento({
+            nome:
+              valorCampo(
+                "inputClienteNome"
+              ),
+
+            whatsapp:
+              valorCampo(
+                "inputClienteWhatsapp"
+              ),
+
+            autenticado:
+              true,
+          });
+
+          fecharModal();
+
+          return;
+
+        default:
+          throw new Error(
+            "Operação inválida."
+          );
+      }
+
+      fecharModal();
+
+      await carregarPerfil();
+
+      mostrarMensagem(
+        "Alterações salvas com sucesso.",
+        "sucesso"
+      );
+    } catch (erro) {
+      mostrarMensagem(
+        erro.message ||
+          "Erro ao salvar.",
+        "erro"
+      );
+    } finally {
+      elementos.btnSalvarModal
+        .disabled =
+        false;
+
+      elementos.btnSalvarModal
+        .textContent =
+        textoOriginal;
+    }
+  }
+
+  function abrirLightbox(
+    src
+  ) {
+    const url =
+      obterUrlSegura(
+        src
+      );
+
+    if (!url) {
+      return;
+    }
+
+    let lightbox =
+      document.getElementById(
+        "lightboxGaleria"
+      );
+
+    if (!lightbox) {
+      lightbox =
+        criarElemento(
+          "div",
+          "lightbox-galeria"
+        );
+
+      lightbox.id =
+        "lightboxGaleria";
+
+      lightbox.setAttribute(
+        "role",
+        "dialog"
+      );
+
+      lightbox.setAttribute(
+        "aria-modal",
+        "true"
+      );
+
+      lightbox.setAttribute(
+        "aria-label",
+        "Foto ampliada"
+      );
+
+      const fechar =
+        criarElemento(
+          "button",
+          "lightbox-fechar",
+          "✕"
+        );
+
+      fechar.type =
+        "button";
+
+      fechar.setAttribute(
+        "aria-label",
+        "Fechar foto ampliada"
+      );
+
+      const imagem =
+        document.createElement(
+          "img"
+        );
+
+      imagem.id =
+        "lightboxImagem";
+
+      imagem.alt =
+        "Foto ampliada";
+
+      lightbox.append(
+        fechar,
+        imagem
+      );
+
+      document.body.appendChild(
+        lightbox
+      );
+    }
+
+    const imagem =
+      lightbox.querySelector(
+        "#lightboxImagem"
+      );
+
+    if (imagem) {
+      imagem.src =
+        url;
+    }
+
+    lightbox.classList.add(
+      "ativo"
+    );
+
+    document.body.style.overflow =
+      "hidden";
+
+    lightbox
+      .querySelector(
+        ".lightbox-fechar"
+      )
+      ?.focus();
+  }
+
+  function fecharLightbox() {
+    document
+      .getElementById(
+        "lightboxGaleria"
+      )
+      ?.classList.remove(
+        "ativo"
+      );
+
+    if (
+      elementos.modal
+        ?.classList.contains(
+          "hidden"
+        )
+    ) {
+      document.body.style
+        .removeProperty(
+          "overflow"
+        );
+    }
+  }
+
+  async function carregarPerfil() {
+    if (
+      estado.carregandoPerfil
+    ) {
+      return;
+    }
+
+    estado.carregandoPerfil =
+      true;
+
+    esconderMensagem();
+
+    elementos.listaServicos
+      ?.replaceChildren(
+        criarEstadoCarregando(
+          "Carregando serviços..."
+        )
+      );
+
+    try {
+      await descobrirSlug();
+
+      if (!estado.slug) {
+        throw new Error(
+          "Perfil inválido."
+        );
+      }
+
+      const dados =
+        await requisicao(
+          `/perfil-negocio/${encodeURIComponent(
+            estado.slug
+          )}`
+        );
+
+      if (!dados.negocio) {
+        throw new Error(
+          "Negócio não encontrado."
+        );
+      }
+
+      estado.negocio =
+        dados.negocio;
+
+      estado.servicos =
+        Array.isArray(
+          dados.servicos
+        )
+          ? dados.servicos
+          : [];
+
+      estado.profissionais =
+        Array.isArray(
+          dados.profissionais
+        )
+          ? dados.profissionais
+          : [];
+
+      preencherNegocio(
+        estado.negocio
+      );
+
+      ativarModoDono();
+
+      renderizarServicos(
+        estado.servicos
+      );
+
+      renderizarProfissionais(
+        estado.profissionais
+      );
+
+      atualizarPerfilCompleto(
+        estado.negocio,
+        estado.servicos
+      );
+
+      resetarFluxoAgendamento();
+
+      await carregarFavorito();
+    } catch (erro) {
+      console.error(
+        "Erro ao carregar perfil:",
+        erro
+      );
+
+      if (
+        elementos.nomeNegocio
+      ) {
+        elementos.nomeNegocio
+          .textContent =
+          "Erro ao carregar perfil";
+      }
+
+      elementos.listaServicos
+        ?.replaceChildren(
+          criarEstadoVazio(
+            "Não foi possível carregar os serviços."
+          )
+        );
+
+      mostrarMensagem(
+        erro.message ||
+          "Erro ao carregar perfil.",
+        "erro"
+      );
+    } finally {
+      estado.carregandoPerfil =
+        false;
+    }
+  }
+
+  function configurarEventos() {
+    elementos.btnFavorito
+      ?.addEventListener(
+        "click",
+        () => {
+          void alternarFavorito()
+            .catch(
+              (erro) => {
+                mostrarMensagem(
+                  erro.message ||
+                    "Erro ao favoritar.",
+                  "erro"
+                );
+              }
+            );
+        }
+      );
+
+    elementos.btnCopiarAgenda
+      ?.addEventListener(
+        "click",
+        () => {
+          void copiarLinkPerfil()
+            .catch(
+              () => {
+                mostrarMensagem(
+                  "Não foi possível copiar o link.",
+                  "erro"
+                );
+              }
+            );
+        }
+      );
+
+    if (elementos.btnContinuar) {
+  elementos.btnContinuar.addEventListener(
+    "click",
+    async (evento) => {
+      evento.preventDefault();
+      evento.stopPropagation();
+
+      esconderMensagem();
+
+      const slugUrl = new URLSearchParams(
+        window.location.search
+      ).get("slug");
+
+      if (!estado.slug && slugUrl) {
+        estado.slug = slugUrl;
+      }
+
+      console.log("CONFIRMAR CLICADO", {
+        slug: estado.slug,
+        servico: estado.servicoSelecionado,
+        profissional: estado.profissionalSelecionado,
+        horario: estado.horarioSelecionado,
+        token: Boolean(obterTokenAtual()),
+      });
+
+      try {
+        await irParaAgenda();
+      } catch (erro) {
+        console.error(
+          "ERRO AO CONFIRMAR AGENDAMENTO:",
+          erro
+        );
+
+        mostrarMensagem(
+          erro?.message ||
+            "Não foi possível confirmar o agendamento.",
+          "erro"
+        );
+      }
+    }
+  );
 }
 
-async function enviarFotosGaleria(servicoId) {
+    elementos.btnFecharModal
+      ?.addEventListener(
+        "click",
+        fecharModal
+      );
 
-  const token =
-    localStorage.getItem("token");
+    elementos.btnCancelarModal
+      ?.addEventListener(
+        "click",
+        fecharModal
+      );
 
-  const arquivos =
-    document.getElementById("inputGaleriaServico")?.files;
+    elementos.btnSalvarModal
+      ?.addEventListener(
+        "click",
+        () => {
+          void salvarModal();
+        }
+      );
 
-  if (!arquivos?.length) return;
+    elementos.modal
+      ?.addEventListener(
+        "click",
+        (evento) => {
+          if (
+            evento.target ===
+            elementos.modal
+          ) {
+            fecharModal();
+          }
+        }
+      );
 
-  for (const foto of arquivos) {
+    document.addEventListener(
+      "click",
+      (evento) => {
+        const linkDesabilitado =
+          evento.target.closest(
+            '[aria-disabled="true"]'
+          );
 
-    const formData = new FormData();
+        if (
+          linkDesabilitado
+        ) {
+          evento.preventDefault();
+        }
 
-    formData.append("foto", foto);
+        const foto =
+          evento.target.closest(
+            "[data-lightbox-src]"
+          );
 
-    await fetch(
-      `${API_URL}/servicos/${servicoId}/fotos`,
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`
-        },
-        body: formData
+        if (foto) {
+          abrirLightbox(
+            foto.dataset
+              .lightboxSrc
+          );
+
+          return;
+        }
+
+        if (
+          evento.target.closest(
+            ".lightbox-fechar"
+          ) ||
+          evento.target.id ===
+            "lightboxGaleria"
+        ) {
+          fecharLightbox();
+
+          return;
+        }
+
+        const editarCampo =
+          evento.target.closest(
+            "[data-edit]"
+          );
+
+        if (editarCampo) {
+          abrirEdicaoCampo(
+            editarCampo.dataset
+              .edit
+          );
+
+          return;
+        }
+
+        const acao =
+          evento.target.closest(
+            "[data-action]"
+          )?.dataset.action;
+
+        if (
+          acao ===
+          "novo-servico"
+        ) {
+          abrirNovoServico();
+
+          return;
+        }
+
+        if (
+          acao ===
+          "novo-profissional"
+        ) {
+          abrirNovoProfissional();
+
+          return;
+        }
+
+        const editarServico =
+          evento.target.closest(
+            ".btn-editar-servico"
+          );
+
+        if (editarServico) {
+          const servico =
+            estado.servicos.find(
+              (item) =>
+                Number(item.id) ===
+                Number(
+                  editarServico
+                    .dataset
+                    .servicoId
+                )
+            );
+
+          if (!servico) {
+            mostrarMensagem(
+              "Serviço não encontrado.",
+              "erro"
+            );
+
+            return;
+          }
+
+          abrirEditarServico(
+            servico
+          );
+
+          return;
+        }
+
+        const removerServicoBotao =
+          evento.target.closest(
+            ".btn-remover-servico"
+          );
+
+        if (
+          removerServicoBotao
+        ) {
+          void removerServico(
+            removerServicoBotao
+              .dataset
+              .servicoId
+          ).catch(
+            (erro) => {
+              mostrarMensagem(
+                erro.message ||
+                  "Erro ao remover serviço.",
+                "erro"
+              );
+            }
+          );
+
+          return;
+        }
+
+        const removerFoto =
+          evento.target.closest(
+            ".btn-remover-foto"
+          );
+
+        if (removerFoto) {
+          void removerFotoGaleria(
+            removerFoto.dataset
+              .fotoId,
+
+            removerFoto.dataset
+              .servicoId
+          ).catch(
+            (erro) => {
+              mostrarMensagem(
+                erro.message ||
+                  "Erro ao remover foto.",
+                "erro"
+              );
+            }
+          );
+        }
+      }
+    );
+
+    document.addEventListener(
+      "keydown",
+      (evento) => {
+        if (
+          evento.key !==
+          "Escape"
+        ) {
+          return;
+        }
+
+        if (
+          document
+            .getElementById(
+              "lightboxGaleria"
+            )
+            ?.classList.contains(
+              "ativo"
+            )
+        ) {
+          fecharLightbox();
+
+          return;
+        }
+
+        if (
+          !elementos.modal
+            ?.classList.contains(
+              "hidden"
+            )
+        ) {
+          fecharModal();
+        }
       }
     );
   }
-}
 
-async function confirmarAgendamentoVisitante() {
-  const nome = document.getElementById("inputClienteNome")?.value?.trim();
-  const whatsapp = document.getElementById("inputClienteWhatsapp")?.value?.trim();
+  async function iniciar() {
+    configurarEventos();
 
-  if (!nome || !whatsapp) {
-    throw new Error("Informe nome e WhatsApp.");
+    atualizarResumo();
+
+    await carregarPerfil();
   }
 
-  const resposta = await fetch(`${API_URL}/agendamentos`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({
-      slug,
-      servico_id: servicoSelecionado.id,
-      profissional_id: profissionalSelecionado.id,
-      data: horarioSelecionado.data,
-      horario: horarioSelecionado.hora,
-      cliente_nome: nome,
-      cliente_whatsapp: whatsapp
-    })
-  });
-
-  const data = await resposta.json();
-
-  if (!resposta.ok) {
-  throw new Error(data.erro || "Erro ao confirmar agendamento.");
-}
-
-btnContinuar.disabled = true;
-btnContinuar.textContent = "Agendado com sucesso ✅";
-
-mostrarMensagem("Agendamento confirmado com sucesso 💅", "#2f9e63");
-
-setTimeout(() => {
-  window.location.href = "meus-agendamentos.html";
-}, 1200);
-
-}
-
-  btnFecharModal?.addEventListener("click", fecharModal);
-  btnCancelarModal?.addEventListener("click", fecharModal);
-  btnSalvarModal?.addEventListener("click", salvarModal);
-
-  btnCopiarAgenda?.addEventListener("click", copiarLinkPerfil);
-  btnContinuar?.addEventListener("click", irParaAgenda);
-
-  await carregarPerfil();
+  void iniciar();
 });

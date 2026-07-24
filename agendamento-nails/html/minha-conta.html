@@ -2,176 +2,393 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  <title>Minha Conta</title>
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+  >
 
-  <link rel="stylesheet" href="../css/global.css">
-  <link rel="stylesheet" href="../css/navegacao.css">
-  <link rel="stylesheet" href="../css/minha-conta.css">
+  <meta
+    name="description"
+    content="Gerencie seus dados pessoais, foto e senha no Agenda Fashion."
+  >
+
+  <meta
+    name="theme-color"
+    content="#e83e8c"
+  >
+
+  <title>Minha conta | Agenda Fashion</title>
+
+  <link
+    rel="stylesheet"
+    href="../css/global.css"
+  >
+
+  <link
+    rel="stylesheet"
+    href="../css/navegacao.css"
+  >
+
+  <link
+    rel="stylesheet"
+    href="../css/minha-conta.css"
+  >
 </head>
 
 <body>
-
-  <main class="config-page">
-
-    <header class="config-header af-card">
-      <div class="af-brand">
-        <div class="af-brand-icon">💅</div>
+  <main class="conta-page">
+    <header class="conta-header">
+      <a
+        class="af-brand"
+        href="/html/inicio.html"
+        aria-label="Ir para o início do Agenda Fashion"
+      >
+        <div
+          class="af-brand-icon"
+          aria-hidden="true"
+        >
+          💅
+        </div>
 
         <div>
-          <div class="af-brand-title">Minha Conta</div>
-          <div class="af-brand-subtitle">Gerencie seus dados pessoais</div>
+          <div class="af-brand-title">
+            Agenda Fashion
+          </div>
+
+          <div class="af-brand-subtitle">
+            Configurações da conta
+          </div>
         </div>
-      </div>
+      </a>
     </header>
 
-    <section class="config-hero af-card">
-      <div class="config-hero-icon">👤</div>
+    <section
+      class="conta-hero af-card"
+      aria-labelledby="tituloMinhaConta"
+    >
+      <div class="conta-hero-conteudo">
+        <span class="section-etiqueta">
+          Sua conta
+        </span>
 
-      <div>
-        <h1>Perfil do usuário</h1>
-        <p>Essas informações aparecem na sua conta e no seu perfil profissional.</p>
-      </div>
-    </section>
+        <h1 id="tituloMinhaConta">
+          Cuide dos seus dados e da sua segurança
+        </h1>
 
-    <p id="mensagemConfig" class="mensagem-form hidden"></p>
-
-    <section class="config-form af-card">
-
-      <div class="foto-usuario-box">
-        <img
-          id="fotoUsuario"
-          class="foto-usuario"
-          alt="Foto do usuário"
-        >
-
-        <input
-          type="file"
-          id="inputFotoUsuario"
-          accept="image/*"
-          hidden
-        >
-
-        <button
-          type="button"
-          id="btnTrocarFoto"
-          class="af-btn-secondary"
-        >
-          📸 Alterar foto
-        </button>
+        <p>
+          Atualize seu nome, WhatsApp, foto de perfil
+          e senha de acesso ao Agenda Fashion.
+        </p>
       </div>
 
-      <form id="formConta">
-
-        <div class="campo-form">
-          <label for="nomeUsuario">Nome</label>
-
-          <input
-            type="text"
-            id="nomeUsuario"
-            placeholder="Seu nome"
-            required
-          >
-        </div>
-
-        <div class="campo-form">
-          <label for="emailUsuario">E-mail</label>
-
-          <input
-            type="email"
-            id="emailUsuario"
-            placeholder="Seu e-mail"
-            disabled
-          >
-        </div>
-
-        <div class="campo-form">
-          <label for="whatsappUsuario">WhatsApp</label>
-
-          <input
-            type="tel"
-            id="whatsappUsuario"
-            placeholder="Ex: 62999999999"
-            required
-          >
-        </div>
-
-        <div class="acoes-form">
-          <button
-            type="submit"
-            class="btn-salvar"
-          >
-            Salvar dados
-          </button>
-        </div>
-
-      </form>
-
-    </section>
-
-    <section class="config-form af-card">
-
-      <h2>Alterar senha</h2>
-
-      <form id="formSenha">
-
-        <div class="campo-form">
-          <label for="senhaAtual">Senha atual</label>
-
-          <input
-            type="password"
-            id="senhaAtual"
-            placeholder="Digite sua senha atual"
-            required
-          >
-        </div>
-
-        <div class="campo-form">
-          <label for="novaSenha">Nova senha</label>
-
-          <input
-            type="password"
-            id="novaSenha"
-            placeholder="Digite a nova senha"
-            required
-          >
-        </div>
-
-        <div class="acoes-form">
-          <button
-            type="submit"
-            class="btn-salvar"
-          >
-            Alterar senha
-          </button>
-        </div>
-
-      </form>
-
-    </section>
-
-    <section class="config-form af-card">
-      <button
-        type="button"
-        id="btnLogout"
-        class="af-btn-danger btn-sair-conta"
+      <div
+        class="conta-hero-icone"
+        aria-hidden="true"
       >
-        Sair da conta
-      </button>
+        👤
+      </div>
     </section>
 
+    <div
+      id="mensagemConfig"
+      class="mensagem-form hidden"
+      role="status"
+      aria-live="polite"
+    ></div>
+
+    <section class="conta-grid">
+      <aside class="conta-perfil af-card">
+        <span class="section-etiqueta">
+          Foto de perfil
+        </span>
+
+        <div class="foto-usuario-box">
+          <div class="foto-usuario-wrapper">
+            <img
+              id="fotoUsuario"
+              class="foto-usuario"
+              alt="Foto do usuário"
+            >
+
+            <span
+              class="foto-status"
+              aria-hidden="true"
+            >
+              ✓
+            </span>
+          </div>
+
+          <div class="foto-usuario-texto">
+            <h2>
+              Sua imagem
+            </h2>
+
+            <p>
+              Use uma foto clara para facilitar sua
+              identificação nos perfis profissionais.
+            </p>
+          </div>
+
+          <input
+            id="inputFotoUsuario"
+            type="file"
+            accept="image/jpeg,image/png,image/webp"
+            hidden
+          >
+
+          <button
+            id="btnTrocarFoto"
+            class="af-btn-secondary"
+            type="button"
+          >
+            <span aria-hidden="true">📷</span>
+            Trocar foto
+          </button>
+
+          <small class="foto-ajuda">
+            JPG, PNG ou WEBP com até 5 MB.
+          </small>
+        </div>
+      </aside>
+
+      <div class="conta-conteudo">
+        <section
+          class="conta-card af-card"
+          aria-labelledby="tituloDadosPessoais"
+        >
+          <div class="conta-card-topo">
+            <div>
+              <span class="section-etiqueta">
+                Dados pessoais
+              </span>
+
+              <h2 id="tituloDadosPessoais">
+                Informações da conta
+              </h2>
+
+              <p>
+                Esses dados são utilizados nos seus
+                agendamentos e perfis profissionais.
+              </p>
+            </div>
+
+            <div
+              class="conta-card-icone"
+              aria-hidden="true"
+            >
+              🪪
+            </div>
+          </div>
+
+          <form
+            id="formConta"
+            class="conta-form"
+            novalidate
+          >
+            <div class="campo-form">
+              <label for="nomeUsuario">
+                Nome completo
+              </label>
+
+              <input
+                id="nomeUsuario"
+                class="af-input"
+                type="text"
+                placeholder="Digite seu nome"
+                autocomplete="name"
+                maxlength="120"
+                required
+              >
+
+              <small>
+                Esse nome poderá aparecer nos seus agendamentos.
+              </small>
+            </div>
+
+            <div class="campo-form">
+              <label for="emailUsuario">
+                E-mail
+              </label>
+
+              <input
+                id="emailUsuario"
+                class="af-input"
+                type="email"
+                placeholder="seuemail@exemplo.com"
+                autocomplete="email"
+                readonly
+              >
+
+              <small>
+                O e-mail de acesso não pode ser alterado nesta tela.
+              </small>
+            </div>
+
+            <div class="campo-form">
+              <label for="whatsappUsuario">
+                WhatsApp
+              </label>
+
+              <input
+                id="whatsappUsuario"
+                class="af-input"
+                type="tel"
+                placeholder="(62) 99999-9999"
+                autocomplete="tel"
+                inputmode="tel"
+                maxlength="16"
+                required
+              >
+
+              <small>
+                Informe o número com DDD.
+              </small>
+            </div>
+
+            <div class="acoes-form">
+              <button
+                class="af-btn-primary"
+                type="submit"
+              >
+                Salvar alterações
+              </button>
+            </div>
+          </form>
+        </section>
+
+        <section
+          class="conta-card af-card"
+          aria-labelledby="tituloSeguranca"
+        >
+          <div class="conta-card-topo">
+            <div>
+              <span class="section-etiqueta">
+                Segurança
+              </span>
+
+              <h2 id="tituloSeguranca">
+                Alterar senha
+              </h2>
+
+              <p>
+                Escolha uma senha diferente da atual
+                e que seja difícil de adivinhar.
+              </p>
+            </div>
+
+            <div
+              class="conta-card-icone"
+              aria-hidden="true"
+            >
+              🔒
+            </div>
+          </div>
+
+          <form
+            id="formSenha"
+            class="conta-form"
+            novalidate
+          >
+            <div class="campo-form">
+              <label for="senhaAtual">
+                Senha atual
+              </label>
+
+              <input
+                id="senhaAtual"
+                class="af-input"
+                type="password"
+                placeholder="Digite sua senha atual"
+                autocomplete="current-password"
+                minlength="6"
+                maxlength="72"
+                required
+              >
+            </div>
+
+            <div class="campo-form">
+              <label for="novaSenha">
+                Nova senha
+              </label>
+
+              <input
+                id="novaSenha"
+                class="af-input"
+                type="password"
+                placeholder="Digite uma nova senha"
+                autocomplete="new-password"
+                minlength="6"
+                maxlength="72"
+                required
+              >
+
+              <small>
+                Utilize entre 6 e 72 caracteres.
+              </small>
+            </div>
+
+            <div class="acoes-form">
+              <button
+                class="af-btn-primary"
+                type="submit"
+              >
+                Alterar senha
+              </button>
+            </div>
+          </form>
+        </section>
+
+        <section class="conta-sessao af-card">
+          <div>
+            <span class="section-etiqueta">
+              Sessão
+            </span>
+
+            <h2>
+              Sair da conta
+            </h2>
+
+            <p>
+              Você precisará entrar novamente para acessar
+              suas informações e agendamentos.
+            </p>
+          </div>
+
+          <button
+            id="btnLogout"
+            class="af-btn-danger btn-sair-conta"
+            type="button"
+          >
+            <span aria-hidden="true">↪</span>
+            Sair da conta
+          </button>
+        </section>
+      </div>
+    </section>
+
+    <footer class="conta-footer">
+      <p>
+        Seus dados são utilizados para oferecer os recursos
+        do Agenda Fashion.
+      </p>
+    </footer>
   </main>
 
-<script src="../js/config.js"></script>
-<script src="../js/utils.js"></script>
-<script src="../js/api.js"></script>
+  <nav
+    id="appNav"
+    class="app-bottom-nav"
+    aria-label="Navegação principal"
+  ></nav>
 
-<script src="../js/services/authService.js"></script>
-<script src="../js/services/sessionGuard.js"></script>
+  <script src="../js/config.js"></script>
+  <script src="../js/utils.js"></script>
+  <script src="../js/api.js"></script>
 
-<script src="../js/navegacao.js"></script>
-<script src="../js/minha-conta.js"></script>
+  <script src="../js/services/authService.js"></script>
+  <script src="../js/services/sessionGuard.js"></script>
 
+  <script src="../js/navegacao.js"></script>
+  <script src="../js/minha-conta.js"></script>
 </body>
 </html>

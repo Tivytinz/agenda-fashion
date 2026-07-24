@@ -2,118 +2,347 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  <title>Minha Assinatura | Agenda Fashion</title>
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+  >
 
-  <link rel="stylesheet" href="../css/global.css">
-  <link rel="stylesheet" href="../css/navegacao.css">
-  <link rel="stylesheet" href="../css/minha-assinatura.css">
+  <meta
+    name="description"
+    content="Acompanhe seu plano, uso mensal e histórico de pagamentos no Agenda Fashion."
+  >
+
+  <meta
+    name="theme-color"
+    content="#e83e8c"
+  >
+
+  <title>
+    Minha assinatura | Agenda Fashion
+  </title>
+
+  <link
+    rel="stylesheet"
+    href="../css/global.css"
+  >
+
+  <link
+    rel="stylesheet"
+    href="../css/navegacao.css"
+  >
+
+  <link
+    rel="stylesheet"
+    href="../css/minha-assinatura.css"
+  >
 </head>
 
 <body>
   <main class="assinatura-page">
-    <section class="af-hero assinatura-hero">
-      <div class="af-hero-emoji">💎</div>
+    <header class="assinatura-header">
+      <a
+        class="af-brand"
+        href="/html/inicio.html"
+        aria-label="Ir para o início do Agenda Fashion"
+      >
+        <div
+          class="af-brand-icon"
+          aria-hidden="true"
+        >
+          💅
+        </div>
+
+        <div>
+          <div class="af-brand-title">
+            Agenda Fashion
+          </div>
+
+          <div class="af-brand-subtitle">
+            Assinatura e pagamentos
+          </div>
+        </div>
+      </a>
+
+      <a
+        class="af-btn-secondary assinatura-voltar"
+        href="/html/dashboard-dono.html"
+      >
+        <span aria-hidden="true">←</span>
+        Voltar ao painel
+      </a>
+    </header>
+
+    <section
+      class="af-hero assinatura-hero"
+      aria-labelledby="tituloAssinatura"
+    >
+      <div
+        class="af-hero-emoji"
+        aria-hidden="true"
+      >
+        💎
+      </div>
 
       <div class="af-hero-content">
-        <span class="af-badge">Minha Assinatura</span>
+        <span class="af-badge">
+          <span aria-hidden="true">✦</span>
+          Minha assinatura
+        </span>
 
-        <h1 class="af-hero-title">
+        <h1
+          id="tituloAssinatura"
+          class="af-hero-title"
+        >
           Gerencie seu plano
         </h1>
 
         <p class="af-hero-text">
-          Acompanhe seu plano, pagamentos e uso da sua agenda no Agenda Fashion.
+          Acompanhe sua capacidade mensal, pagamentos
+          e situação da assinatura do Agenda Fashion.
         </p>
       </div>
     </section>
 
+    <div
+      id="mensagemAssinatura"
+      class="mensagem-assinatura hidden"
+      role="status"
+      aria-live="polite"
+    ></div>
+
     <section class="assinatura-grid">
-      <article class="af-card assinatura-card">
+      <article
+        class="af-card assinatura-card assinatura-card-plano"
+        aria-labelledby="tituloPlanoAtual"
+      >
         <div class="card-topo">
           <div>
-            <span class="assinatura-label">Plano atual</span>
-            <h2 id="planoNome">Carregando...</h2>
+            <span class="assinatura-label">
+              Plano atual
+            </span>
+
+            <h2 id="planoNome">
+              Carregando...
+            </h2>
           </div>
 
-          <span id="assinaturaStatus" class="status-pill">-</span>
+          <span
+            id="assinaturaStatus"
+            class="status-pill"
+          >
+            -
+          </span>
         </div>
 
         <div class="assinatura-info">
-          <div>
-            <span>Valor</span>
-            <strong id="planoValor">R$ 0,00</strong>
+          <div class="assinatura-info-item">
+            <span class="assinatura-info-icone" aria-hidden="true">
+              💰
+            </span>
+
+            <div>
+              <span>
+                Valor
+              </span>
+
+              <strong id="planoValor">
+                R$ 0,00
+              </strong>
+            </div>
           </div>
 
-          <div>
-            <span>Forma</span>
-            <strong id="formaPagamento">-</strong>
+          <div class="assinatura-info-item">
+            <span class="assinatura-info-icone" aria-hidden="true">
+              💳
+            </span>
+
+            <div>
+              <span>
+                Forma de pagamento
+              </span>
+
+              <strong id="formaPagamento">
+                -
+              </strong>
+            </div>
           </div>
 
-          <div>
-            <span>Próxima cobrança</span>
-            <strong id="proximaCobranca">-</strong>
+          <div class="assinatura-info-item">
+            <span class="assinatura-info-icone" aria-hidden="true">
+              📅
+            </span>
+
+            <div>
+              <span>
+                Próxima cobrança
+              </span>
+
+              <strong id="proximaCobranca">
+                -
+              </strong>
+            </div>
           </div>
         </div>
 
         <div class="uso-plano">
           <div class="uso-topo">
-            <span>Uso mensal</span>
-            <strong id="usoTexto">0 de 0</strong>
+            <div>
+              <span>
+                Uso mensal
+              </span>
+
+              <small>
+                Agendamentos utilizados neste mês
+              </small>
+            </div>
+
+            <strong id="usoTexto">
+              0 de 0
+            </strong>
           </div>
 
-          <div class="uso-barra">
+          <div
+            class="uso-barra"
+            role="progressbar"
+            aria-label="Uso mensal do plano"
+            aria-valuemin="0"
+            aria-valuemax="100"
+          >
             <div id="usoBarra"></div>
           </div>
 
-          <small id="usoMensagem">
+          <p id="usoMensagem">
             Carregando uso do plano...
-          </small>
+          </p>
         </div>
 
         <div class="assinatura-acoes">
-          <button id="btnAlterarPlano" class="af-btn-primary" type="button">
+          <button
+            id="btnAlterarPlano"
+            class="af-btn-primary"
+            type="button"
+          >
+            <span aria-hidden="true">↗</span>
             Alterar plano
           </button>
 
-          <button id="btnNovoPix" class="af-btn-secondary" type="button">
+          <button
+            id="btnNovoPix"
+            class="af-btn-secondary"
+            type="button"
+          >
+            <span aria-hidden="true">◇</span>
             Gerar novo PIX
           </button>
 
-          <button id="btnCancelarAssinatura" class="af-btn-danger" type="button">
+          <button
+            id="btnCancelarAssinatura"
+            class="af-btn-danger"
+            type="button"
+          >
             Cancelar assinatura
           </button>
         </div>
       </article>
 
-      <article class="af-card assinatura-card">
+      <article
+        class="af-card assinatura-card assinatura-card-pagamentos"
+        aria-labelledby="tituloPagamentos"
+      >
         <div class="card-topo">
           <div>
-            <span class="assinatura-label">Pagamentos</span>
-            <h2>Histórico</h2>
+            <span class="assinatura-label">
+              Pagamentos
+            </span>
+
+            <h2 id="tituloPagamentos">
+              Histórico
+            </h2>
+
+            <p>
+              Consulte as cobranças recentes relacionadas
+              à sua assinatura.
+            </p>
+          </div>
+
+          <div
+            class="pagamentos-icone"
+            aria-hidden="true"
+          >
+            🧾
           </div>
         </div>
 
-        <div id="listaPagamentos" class="pagamentos-lista">
-          <div class="estado-vazio">Carregando pagamentos...</div>
+        <div
+          id="listaPagamentos"
+          class="pagamentos-lista"
+          aria-live="polite"
+        >
+          <div class="estado-vazio">
+            <span class="af-loading">
+              <span
+                class="af-spinner"
+                aria-hidden="true"
+              ></span>
+
+              Carregando pagamentos...
+            </span>
+          </div>
         </div>
       </article>
     </section>
+
+    <section class="assinatura-ajuda af-card">
+      <div class="assinatura-ajuda-icone" aria-hidden="true">
+        💬
+      </div>
+
+      <div>
+        <span class="assinatura-label">
+          Precisa de ajuda?
+        </span>
+
+        <h2>
+          Dúvidas sobre cobrança ou plano
+        </h2>
+
+        <p>
+          Entre em contato com o suporte antes de cancelar
+          sua assinatura ou alterar o plano.
+        </p>
+      </div>
+
+      <a
+        class="af-btn-secondary"
+        href="/html/minha-conta.html"
+      >
+        Acessar minha conta
+      </a>
+    </section>
+
+    <footer class="assinatura-footer">
+      <p>
+        Pagamentos e assinaturas protegidos pelo Agenda Fashion.
+      </p>
+    </footer>
   </main>
 
-  <nav id="appNav" class="app-bottom-nav"></nav>
+  <!-- Deve existir somente um appNav na página. -->
+  <nav
+    id="appNav"
+    class="app-bottom-nav"
+    aria-label="Navegação principal"
+  ></nav>
 
   <script src="../js/config.js"></script>
   <script src="../js/utils.js"></script>
   <script src="../js/api.js"></script>
+
+  <script src="../js/services/authService.js"></script>
+  <script src="../js/services/sessionGuard.js"></script>
+
+  <script src="../js/navegacao.js"></script>
   <script src="../js/minha-assinatura.js"></script>
-
-<nav
-  id="appNav"
-  class="app-bottom-nav"
-></nav>
-
-<script src="../js/navegacao.js"></script>
 </body>
 </html>

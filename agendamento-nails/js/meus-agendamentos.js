@@ -186,33 +186,39 @@ document.addEventListener(
         );
     }
 
-    function formatarHorario(
-      horario
-    ) {
-      const valor =
-        String(horario || "")
-          .trim();
+    function formatarHorario(valor) {
+  const horario = String(
+    valor ?? ""
+  ).trim();
 
-      const correspondencia =
-        valor.match(
-          /^(\d{1,2}):(\d{2})/
-        );
+  if (!horario) {
+    return "Horário não informado";
+  }
 
-      if (
-        !correspondencia
-      ) {
-        return (
-          valor ||
-          "Horário não informado"
-        );
-      }
+  /*
+   * Aceita:
+   * 08:00
+   * 08:00:00
+   * 2026-07-18T08:00:00
+   */
+  const correspondencia = horario.match(
+    /(?:T|\s|^)(\d{1,2}):(\d{2})/
+  );
 
-      return (
-        `${correspondencia[1]` +
-        `.padStart(2, "0")}:` +
-        correspondencia[2]
-      );
-    }
+  if (!correspondencia) {
+    return horario;
+  }
+
+  const horas = String(
+    correspondencia[1]
+  ).padStart(2, "0");
+
+  const minutos = String(
+    correspondencia[2]
+  ).padStart(2, "0");
+
+  return `${horas}:${minutos}`;
+}
 
     function formatarMoeda(
       valor

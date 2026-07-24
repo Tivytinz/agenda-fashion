@@ -1,383 +1,2062 @@
 document.addEventListener("DOMContentLoaded", async () => {
-  
+  const elementos = {
+    totalAgendados:
+      document.getElementById("totalAgendados"),
 
-  const token = localStorage.getItem("token");
+    totalLivres:
+      document.getElementById("totalLivres"),
 
-  const usuario = JSON.parse(
-    localStorage.getItem("usuario") || "null"
-  );
+    totalBloqueados:
+      document.getElementById("totalBloqueados"),
 
-  const negocio = JSON.parse(
-    localStorage.getItem("negocio") || "null"
-  );
+    filtroProfissional:
+      document.getElementById("filtroProfissional"),
 
-  const ehDono =
-    usuario?.tipo === "dono" ||
-    negocio?.papel === "dono";
+    filtroStatus:
+      document.getElementById("filtroStatus"),
 
-  if (!token || !usuario || !ehDono) {
-    window.location.href = "login-profissional.html";
+    diasAgenda:
+      document.getElementById("diasAgenda"),
+
+    listaAgendaGeral:
+      document.getElementById("listaAgendaGeral"),
+
+    listaNotificacoes:
+      document.getElementById("listaNotificacoes"),
+
+    btnHoje:
+      document.getElementById("btnHoje"),
+
+    btnLimparFiltros:
+      document.getElementById("btnLimparFiltros"),
+
+    agendaConteudo:
+      document.querySelector(".agenda-conteudo"),
+
+    agendaConteudoHeader:
+      document.querySelector(".agenda-conteudo-header"),
+  };
+
+  const elementosObrigatorios = [
+    elementos.totalAgendados,
+    elementos.totalLivres,
+    elementos.totalBloqueados,
+    elementos.filtroProfissional,
+    elementos.filtroStatus,
+    elementos.diasAgenda,
+    elementos.listaAgendaGeral,
+    elementos.listaNotificacoes,
+    elementos.btnHoje,
+  ];
+
+  if (
+    elementosObrigatorios.some(
+      (elemento) => !elemento
+    )
+  ) {
+    console.error(
+      "A estrutura necessária da agenda geral não foi encontrada."
+    );
+
     return;
   }
 
-  const totalAgendados = document.getElementById("totalAgendados");
-  const totalLivres = document.getElementById("totalLivres");
-  const totalBloqueados = document.getElementById("totalBloqueados");
+  const estado = {
+    agenda: [],
+    diaSelecionado: null,
+    contexto: null,
 
-  const filtroProfissional = document.getElementById("filtroProfissional");
-  const filtroStatus = document.getElementById("filtroStatus");
+    carregandoAgenda: false,
+    carregandoNotificacoes: false,
 
-  const diasAgenda = document.getElementById("diasAgenda");
-  const listaAgendaGeral = document.getElementById("listaAgendaGeral");
-  const listaNotificacoes = document.getElementById("listaNotificacoes");
-  const btnHoje = document.getElementById("btnHoje");
+    horariosEmAlteracao: new Set(),
 
-  let agenda = [];
-  let diaSelecionado = null;
+    mensagemTimer: null,
+  };
 
-  function formatarData(dataIso) {
-    const data = new Date(`${dataIso}T00:00:00`);
+  /*
+   * =====================================================
+   * UTILITÁRIOS
+   * =====================================================
+   */
 
-    return data.toLocaleDateString("pt-BR", {
-      weekday: "short",
-      day: "2-digit",
-      month: "2-digit"
-    });
+  function normalizarTexto(valor) {
+    return String(valor ?? "").trim();
   }
 
-  function ehHoje(dataIso) {
-    return dataIso === new Date().toISOString().slice(0, 10);
+  function normalizarStatus(valor) {
+    return normalizarTexto(valor).toLowerCase();
   }
 
-  function atualizarResumo(horarios) {
-    totalAgendados.textContent = horarios.filter(h => h.status === "agendado").length;
-    totalLivres.textContent = horarios.filter(h => h.status === "livre").length;
-    totalBloqueados.textContent = horarios.filter(h => h.status === "bloqueado").length;
+  function criarElemento(
+    tag,
+    classe = "",
+    conteudo = null
+  ) {
+    const elemento =
+      document.createElement(tag);
+
+    if (classe) {
+      elemento.className = classe;
+    }
+
+    if (
+      conteudo !== null &&
+      conteudo !== undefined
+    ) {
+      elemento.textContent =
+        String(conteudo);
+    }
+
+    return elemento;
   }
 
-  function renderizarDias() {
-    diasAgenda.innerHTML = "";
+  /*
+   * =====================================================
+   * SESSÃO
+   * =====================================================
+   */
 
-    agenda.forEach((dia) => {
-      const btn = document.createElement("button");
-      btn.className = "dia-btn";
-      btn.type = "button";
+  function limparSessao() {
+    if (
+      window.AuthService &&
+      typeof window.AuthService
+        .limparSessao === "function"
+    ) {
+      window.AuthService
+        .limparSessao();
 
-      if (dia.data === diaSelecionado) {
-        btn.classList.add("ativo");
-      }
-
-      btn.innerHTML = `
-        <strong>${ehHoje(dia.data) ? "Hoje" : formatarData(dia.data).split(",")[0]}</strong>
-        <span>${formatarData(dia.data)}</span>
-      `;
-
-      btn.addEventListener("click", () => {
-        diaSelecionado = dia.data;
-        renderizarTudo();
-      });
-
-      diasAgenda.appendChild(btn);
-    });
-  }
-
-  function renderizarFiltrosProfissionais(dia) {
-    const valorAtual = filtroProfissional.value || "todos";
-
-    filtroProfissional.innerHTML = `<option value="todos">Todos</option>`;
-
-    const nomes = new Map();
-
-    dia.profissionais.forEach((prof) => {
-      nomes.set(String(prof.id), prof.nome);
-    });
-
-    nomes.forEach((nome, id) => {
-      const option = document.createElement("option");
-      option.value = id;
-      option.textContent = nome;
-      filtroProfissional.appendChild(option);
-    });
-
-    filtroProfissional.value = nomes.has(valorAtual) ? valorAtual : "todos";
-  }
-
-  function renderizarAgenda() {
-    const dia = agenda.find(d => d.data === diaSelecionado);
-
-    if (!dia || !dia.profissionais?.length) {
-      listaAgendaGeral.innerHTML = `
-        <div class="estado-vazio">
-          Nenhuma agenda encontrada.
-        </div>
-      `;
-      atualizarResumo([]);
       return;
     }
 
-    renderizarFiltrosProfissionais(dia);
-
-    const profissionalFiltro = filtroProfissional.value;
-    const statusFiltro = filtroStatus.value;
-
-    let todosHorariosResumo = [];
-
-    let profissionaisFiltrados = dia.profissionais.filter((prof) => {
-      return profissionalFiltro === "todos" || String(prof.id) === profissionalFiltro;
-    });
-
-    listaAgendaGeral.innerHTML = "";
-
-    profissionaisFiltrados.forEach((profissional) => {
-      let horarios = profissional.horarios || [];
-
-      todosHorariosResumo.push(...horarios);
-
-      if (statusFiltro !== "todos") {
-        horarios = horarios.filter(h => h.status === statusFiltro);
-      }
-
-      if (!horarios.length) return;
-
-      const totalAgendadosProf = horarios.filter(h => h.status === "agendado").length;
-
-      const bloco = document.createElement("article");
-      bloco.className = "profissional-agenda";
-
-      bloco.innerHTML = `
-        <div class="profissional-topo">
-          <div class="profissional-info">
-            ${profissional.foto_url
-  ? `
-    <img
-      class="profissional-foto"
-      src="${profissional.foto_url}"
-      alt="${profissional.nome || "Profissional"}"
-    >
-  `
-  : `
-    <div class="profissional-foto avatar-iniciais">
-      ${(profissional.nome || "P")
-        .split(" ")
-        .map(p => p[0])
-        .join("")
-        .substring(0, 2)
-        .toUpperCase()}
-    </div>
-  `
-}
-
-            <div>
-              <strong>${profissional.nome || "Profissional"}</strong>
-              <span>${horarios.length} horário(s) exibido(s)</span>
-            </div>
-          </div>
-
-          <div class="badge-agendados">
-            ${totalAgendadosProf} agendado(s)
-          </div>
-        </div>
-
-        <div class="horarios-grid"></div>
-      `;
-
-      const grid = bloco.querySelector(".horarios-grid");
-
-      horarios.forEach((h) => {
-        const card = document.createElement("div");
-        card.className = `horario-card ${h.status}`;
-
-        let textoStatus = "Livre";
-        if (h.status === "bloqueado") textoStatus = "Bloqueado";
-        if (h.status === "agendado") textoStatus = "Agendado";
-
-        card.innerHTML = `
-  <strong>${h.hora}</strong>
-  <span>${textoStatus}</span>
-  ${
-    h.status === "agendado"
-      ? `
-        <span>${h.cliente || "Cliente"}</span>
-        <span>${h.servico || "Serviço"}</span>
-      `
-      : ""
+    localStorage.removeItem("token");
+    localStorage.removeItem("usuario");
+    localStorage.removeItem("negocio");
   }
-`;
 
-if (h.status !== "agendado") {
-  card.classList.add("clicavel");
+  function redirecionarLogin() {
+    limparSessao();
 
-  card.addEventListener("click", async () => {
-    await alternarBloqueioHorario(
-      profissional.id,
-      dia.data,
-      h.hora
+    window.location.replace(
+      "/html/login-profissional.html"
     );
-  });
-}
-
-grid.appendChild(card);
-      });
-
-      listaAgendaGeral.appendChild(bloco);
-    });
-
-    if (!listaAgendaGeral.innerHTML.trim()) {
-      listaAgendaGeral.innerHTML = `
-        <div class="estado-vazio">
-          Nenhum horário encontrado com esse filtro.
-        </div>
-      `;
-    }
-
-    atualizarResumo(todosHorariosResumo);
   }
 
-  async function alternarBloqueioHorario(profissionalId, data, hora) {
-  try {
-    const res = await fetch(`${API_URL}/bloqueios-horario`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`
+  function tratarErroAutorizacao(erro) {
+    if (erro?.status === 401) {
+      redirecionarLogin();
+
+      return true;
+    }
+
+    if (erro?.status === 403) {
+      window.location.replace(
+        "/html/inicio.html"
+      );
+
+      return true;
+    }
+
+    return false;
+  }
+
+  /*
+   * =====================================================
+   * MENSAGENS
+   * =====================================================
+   */
+
+  function criarMensagemAgenda() {
+    const existente =
+      document.getElementById(
+        "mensagemAgendaGeral"
+      );
+
+    if (existente) {
+      return existente;
+    }
+
+    const mensagem =
+      criarElemento(
+        "div",
+        "mensagem-agenda-geral hidden"
+      );
+
+    mensagem.id =
+      "mensagemAgendaGeral";
+
+    mensagem.setAttribute(
+      "role",
+      "status"
+    );
+
+    mensagem.setAttribute(
+      "aria-live",
+      "polite"
+    );
+
+    if (
+      elementos.agendaConteudoHeader
+    ) {
+      elementos.agendaConteudoHeader
+        .insertAdjacentElement(
+          "afterend",
+          mensagem
+        );
+    } else {
+      elementos.agendaConteudo
+        ?.prepend(mensagem);
+    }
+
+    return mensagem;
+  }
+
+  const mensagemAgenda =
+    criarMensagemAgenda();
+
+  function esconderMensagem() {
+    window.clearTimeout(
+      estado.mensagemTimer
+    );
+
+    if (!mensagemAgenda) {
+      return;
+    }
+
+    mensagemAgenda.textContent = "";
+
+    mensagemAgenda.className =
+      "mensagem-agenda-geral hidden";
+
+    delete mensagemAgenda.dataset.tipo;
+  }
+
+  function mostrarMensagem(
+    mensagem,
+    tipo = "erro",
+    tempo = 4000
+  ) {
+    if (!mensagemAgenda) {
+      return;
+    }
+
+    window.clearTimeout(
+      estado.mensagemTimer
+    );
+
+    mensagemAgenda.textContent =
+      normalizarTexto(mensagem) ||
+      "Ocorreu um erro.";
+
+    mensagemAgenda.className =
+      "mensagem-agenda-geral";
+
+    mensagemAgenda.dataset.tipo =
+      tipo;
+
+    if (tempo > 0) {
+      estado.mensagemTimer =
+        window.setTimeout(
+          esconderMensagem,
+          tempo
+        );
+    }
+  }
+
+  /*
+   * =====================================================
+   * ESTADOS VISUAIS
+   * =====================================================
+   */
+
+  function criarEstadoVazio({
+    icone = "📅",
+    titulo = "Nenhum resultado encontrado",
+    descricao = "",
+    compacto = false,
+  } = {}) {
+    const caixa =
+      criarElemento(
+        "div",
+        `estado-vazio${
+          compacto
+            ? " estado-vazio-compacto"
+            : ""
+        }`
+      );
+
+    if (!compacto) {
+      const elementoIcone =
+        criarElemento(
+          "span",
+          "estado-vazio-icone",
+          icone
+        );
+
+      elementoIcone.setAttribute(
+        "aria-hidden",
+        "true"
+      );
+
+      caixa.appendChild(
+        elementoIcone
+      );
+    }
+
+    if (titulo) {
+      caixa.appendChild(
+        criarElemento(
+          "strong",
+          "",
+          titulo
+        )
+      );
+    }
+
+    if (descricao) {
+      caixa.appendChild(
+        criarElemento(
+          "p",
+          "",
+          descricao
+        )
+      );
+    }
+
+    return caixa;
+  }
+
+  /*
+   * =====================================================
+   * DATAS
+   * =====================================================
+   */
+
+  function obterHojeBrasil() {
+    const partes =
+      new Intl.DateTimeFormat(
+        "pt-BR",
+        {
+          timeZone:
+            "America/Sao_Paulo",
+
+          year: "numeric",
+          month: "2-digit",
+          day: "2-digit",
+        }
+      ).formatToParts(
+        new Date()
+      );
+
+    function obterParte(tipo) {
+      return (
+        partes.find(
+          (parte) =>
+            parte.type === tipo
+        )?.value || ""
+      );
+    }
+
+    return (
+      `${obterParte("year")}-` +
+      `${obterParte("month")}-` +
+      `${obterParte("day")}`
+    );
+  }
+
+  function criarDataLocal(dataIso) {
+    const resultado =
+      /^(\d{4})-(\d{2})-(\d{2})$/
+        .exec(
+          normalizarTexto(dataIso)
+        );
+
+    if (!resultado) {
+      return null;
+    }
+
+    const data =
+      new Date(
+        Number(resultado[1]),
+        Number(resultado[2]) - 1,
+        Number(resultado[3]),
+        12,
+        0,
+        0
+      );
+
+    return Number.isNaN(
+      data.getTime()
+    )
+      ? null
+      : data;
+  }
+
+  function capitalizar(valor) {
+    const conteudo =
+      normalizarTexto(valor);
+
+    if (!conteudo) {
+      return "";
+    }
+
+    return (
+      conteudo.charAt(0).toUpperCase() +
+      conteudo.slice(1)
+    );
+  }
+
+  function formatarDiaSemana(dataIso) {
+    const data =
+      criarDataLocal(dataIso);
+
+    if (!data) {
+      return "Dia";
+    }
+
+    return capitalizar(
+      data
+        .toLocaleDateString(
+          "pt-BR",
+          {
+            weekday: "short",
+          }
+        )
+        .replace(".", "")
+    );
+  }
+
+  function formatarDataCurta(dataIso) {
+    const data =
+      criarDataLocal(dataIso);
+
+    if (!data) {
+      return normalizarTexto(dataIso);
+    }
+
+    return data.toLocaleDateString(
+      "pt-BR",
+      {
+        day: "2-digit",
+        month: "2-digit",
+      }
+    );
+  }
+
+  function formatarDataCompleta(dataIso) {
+    const data =
+      criarDataLocal(dataIso);
+
+    if (!data) {
+      return normalizarTexto(dataIso);
+    }
+
+    return capitalizar(
+      data.toLocaleDateString(
+        "pt-BR",
+        {
+          weekday: "long",
+          day: "2-digit",
+          month: "2-digit",
+        }
+      )
+    );
+  }
+
+  function formatarHora(valor) {
+    const resultado =
+      /^(\d{2}):(\d{2})/
+        .exec(
+          normalizarTexto(valor)
+        );
+
+    if (!resultado) {
+      return (
+        normalizarTexto(valor) ||
+        "--:--"
+      );
+    }
+
+    return (
+      `${resultado[1]}:` +
+      `${resultado[2]}`
+    );
+  }
+
+  function formatarDataHora(valor) {
+    const data =
+      new Date(valor);
+
+    if (
+      Number.isNaN(
+        data.getTime()
+      )
+    ) {
+      return "Data não informada";
+    }
+
+    return data.toLocaleString(
+      "pt-BR",
+      {
+        dateStyle: "short",
+        timeStyle: "short",
+      }
+    );
+  }
+
+  function ehHoje(dataIso) {
+    return (
+      normalizarTexto(dataIso) ===
+      obterHojeBrasil()
+    );
+  }
+
+  /*
+   * =====================================================
+   * STATUS
+   * =====================================================
+   */
+
+  function ehAgendamento(status) {
+    return [
+      "agendado",
+      "confirmado",
+      "realizado",
+    ].includes(
+      normalizarStatus(status)
+    );
+  }
+
+  function statusCombinaComFiltro(
+    status,
+    filtro
+  ) {
+    const statusAtual =
+      normalizarStatus(status);
+
+    const filtroSelecionado =
+      normalizarStatus(filtro);
+
+    if (
+      !filtroSelecionado ||
+      filtroSelecionado === "todos"
+    ) {
+      return true;
+    }
+
+    if (
+      filtroSelecionado ===
+      "agendado"
+    ) {
+      return ehAgendamento(
+        statusAtual
+      );
+    }
+
+    return (
+      statusAtual ===
+      filtroSelecionado
+    );
+  }
+
+  function obterTextoStatus(status) {
+    const textos = {
+      livre:
+        "Livre",
+
+      bloqueado:
+        "Bloqueado",
+
+      agendado:
+        "Agendado",
+
+      confirmado:
+        "Confirmado",
+
+      realizado:
+        "Realizado",
+
+      passado:
+        "Encerrado",
+    };
+
+    return (
+      textos[
+        normalizarStatus(status)
+      ] ||
+      "Indisponível"
+    );
+  }
+
+  function obterClasseStatus(status) {
+    const statusAtual =
+      normalizarStatus(status);
+
+    const statusValidos = [
+      "livre",
+      "bloqueado",
+      "agendado",
+      "confirmado",
+      "realizado",
+    ];
+
+    return statusValidos.includes(
+      statusAtual
+    )
+      ? statusAtual
+      : "passado";
+  }
+
+  /*
+   * =====================================================
+   * API
+   * =====================================================
+   */
+
+  function extrairAgenda(resposta) {
+    if (Array.isArray(resposta)) {
+      return resposta;
+    }
+
+    return Array.isArray(
+      resposta?.agenda
+    )
+      ? resposta.agenda
+      : [];
+  }
+
+  function extrairNotificacoes(
+    resposta
+  ) {
+    if (Array.isArray(resposta)) {
+      return resposta;
+    }
+
+    return Array.isArray(
+      resposta?.notificacoes
+    )
+      ? resposta.notificacoes
+      : [];
+  }
+
+  async function apiGet(caminho) {
+    try {
+      return await window.API.get(
+        caminho
+      );
+    } catch (erro) {
+      tratarErroAutorizacao(
+        erro
+      );
+
+      throw erro;
+    }
+  }
+
+  async function apiPost(
+    caminho,
+    dados
+  ) {
+    try {
+      return await window.API.post(
+        caminho,
+        dados
+      );
+    } catch (erro) {
+      tratarErroAutorizacao(
+        erro
+      );
+
+      throw erro;
+    }
+  }
+
+  /*
+   * =====================================================
+   * DIA SELECIONADO
+   * =====================================================
+   */
+
+  function obterDiaSelecionado() {
+    return estado.agenda.find(
+      (dia) =>
+        normalizarTexto(
+          dia?.data
+        ) ===
+        estado.diaSelecionado
+    );
+  }
+
+  function selecionarDiaInicial() {
+    const hoje =
+      obterHojeBrasil();
+
+    const existeHoje =
+      estado.agenda.some(
+        (dia) =>
+          normalizarTexto(
+            dia?.data
+          ) ===
+          hoje
+      );
+
+    if (existeHoje) {
+      return hoje;
+    }
+
+    return (
+      normalizarTexto(
+        estado.agenda[0]?.data
+      ) ||
+      null
+    );
+  }
+
+  /*
+   * =====================================================
+   * RESUMO
+   * =====================================================
+   */
+
+  function atualizarResumo(
+    horarios = []
+  ) {
+    const totalAgendados =
+      horarios.filter(
+        (horario) =>
+          ehAgendamento(
+            horario?.status
+          )
+      ).length;
+
+    const totalLivres =
+      horarios.filter(
+        (horario) =>
+          normalizarStatus(
+            horario?.status
+          ) === "livre"
+      ).length;
+
+    const totalBloqueados =
+      horarios.filter(
+        (horario) =>
+          normalizarStatus(
+            horario?.status
+          ) === "bloqueado"
+      ).length;
+
+    elementos.totalAgendados
+      .textContent =
+        String(totalAgendados);
+
+    elementos.totalLivres
+      .textContent =
+        String(totalLivres);
+
+    elementos.totalBloqueados
+      .textContent =
+        String(totalBloqueados);
+  }
+
+  function atualizarBotaoHoje() {
+    const hoje =
+      obterHojeBrasil();
+
+    const existeHoje =
+      estado.agenda.some(
+        (dia) =>
+          normalizarTexto(
+            dia?.data
+          ) ===
+          hoje
+      );
+
+    elementos.btnHoje.disabled =
+      !existeHoje;
+
+    elementos.btnHoje.title =
+      existeHoje
+        ? "Ir para a agenda de hoje"
+        : "O período carregado não inclui hoje";
+  }
+
+  /*
+   * =====================================================
+   * DIAS
+   * =====================================================
+   */
+
+  function renderizarDias() {
+    elementos.diasAgenda
+      .replaceChildren();
+
+    estado.agenda.forEach(
+      (dia) => {
+        const data =
+          normalizarTexto(
+            dia?.data
+          );
+
+        if (!data) {
+          return;
+        }
+
+        const ativo =
+          data ===
+          estado.diaSelecionado;
+
+        const botao =
+          criarElemento(
+            "button",
+            "dia-btn"
+          );
+
+        botao.type = "button";
+
+        botao.dataset.data =
+          data;
+
+        botao.setAttribute(
+          "role",
+          "tab"
+        );
+
+        botao.setAttribute(
+          "aria-selected",
+          String(ativo)
+        );
+
+        botao.setAttribute(
+          "aria-label",
+          formatarDataCompleta(
+            data
+          )
+        );
+
+        if (ativo) {
+          botao.classList.add(
+            "ativo"
+          );
+        }
+
+        botao.append(
+          criarElemento(
+            "strong",
+            "",
+            ehHoje(data)
+              ? "Hoje"
+              : formatarDiaSemana(
+                  data
+                )
+          ),
+
+          criarElemento(
+            "span",
+            "",
+            formatarDataCurta(
+              data
+            )
+          )
+        );
+
+        botao.addEventListener(
+          "click",
+          () => {
+            estado.diaSelecionado =
+              data;
+
+            renderizarTudo();
+
+            window.setTimeout(
+              () => {
+                botao.scrollIntoView({
+                  behavior:
+                    "smooth",
+
+                  block:
+                    "nearest",
+
+                  inline:
+                    "center",
+                });
+              },
+              0
+            );
+          }
+        );
+
+        elementos.diasAgenda
+          .appendChild(botao);
+      }
+    );
+  }
+
+  /*
+   * =====================================================
+   * FILTRO DE PROFISSIONAIS
+   * =====================================================
+   */
+
+  function renderizarFiltroProfissionais(
+    dia
+  ) {
+    const valorAtual =
+      elementos.filtroProfissional
+        .value ||
+      "todos";
+
+    const profissionais =
+      Array.isArray(
+        dia?.profissionais
+      )
+        ? dia.profissionais
+        : [];
+
+    const profissionaisMap =
+      new Map();
+
+    profissionais.forEach(
+      (profissional) => {
+        if (
+          profissional?.id ===
+            undefined ||
+          profissional?.id ===
+            null
+        ) {
+          return;
+        }
+
+        profissionaisMap.set(
+          String(profissional.id),
+
+          normalizarTexto(
+            profissional.nome
+          ) ||
+          "Profissional"
+        );
+      }
+    );
+
+    elementos.filtroProfissional
+      .replaceChildren();
+
+    const opcaoTodos =
+      criarElemento(
+        "option",
+        "",
+        "Todos os profissionais"
+      );
+
+    opcaoTodos.value =
+      "todos";
+
+    elementos.filtroProfissional
+      .appendChild(opcaoTodos);
+
+    Array.from(
+      profissionaisMap.entries()
+    )
+      .sort(
+        (
+          [, nomeA],
+          [, nomeB]
+        ) =>
+          nomeA.localeCompare(
+            nomeB,
+            "pt-BR"
+          )
+      )
+      .forEach(
+        ([id, nome]) => {
+          const opcao =
+            criarElemento(
+              "option",
+              "",
+              nome
+            );
+
+          opcao.value =
+            id;
+
+          elementos.filtroProfissional
+            .appendChild(opcao);
+        }
+      );
+
+    elementos.filtroProfissional
+      .value =
+        profissionaisMap.has(
+          valorAtual
+        )
+          ? valorAtual
+          : "todos";
+  }
+
+  /*
+   * =====================================================
+   * AVATAR
+   * =====================================================
+   */
+
+  function obterIniciais(nome) {
+    const partes =
+      normalizarTexto(nome)
+        .split(/\s+/)
+        .filter(Boolean);
+
+    if (!partes.length) {
+      return "P";
+    }
+
+    if (partes.length === 1) {
+      return partes[0]
+        .slice(0, 2)
+        .toUpperCase();
+    }
+
+    return (
+      `${partes[0][0]}` +
+      `${partes[
+        partes.length - 1
+      ][0]}`
+    ).toUpperCase();
+  }
+
+  function criarAvatarIniciais(
+    nome
+  ) {
+    const avatar =
+      criarElemento(
+        "div",
+        "profissional-foto avatar-iniciais",
+        obterIniciais(nome)
+      );
+
+    avatar.setAttribute(
+      "aria-hidden",
+      "true"
+    );
+
+    return avatar;
+  }
+
+  function criarAvatar(
+    profissional
+  ) {
+    const nome =
+      normalizarTexto(
+        profissional?.nome
+      ) ||
+      "Profissional";
+
+    const foto =
+      normalizarTexto(
+        profissional?.foto_url
+      );
+
+    if (!foto) {
+      return criarAvatarIniciais(
+        nome
+      );
+    }
+
+    const imagem =
+      document.createElement("img");
+
+    imagem.className =
+      "profissional-foto";
+
+    imagem.src =
+      foto;
+
+    imagem.alt =
+      `Foto de ${nome}`;
+
+    imagem.loading =
+      "lazy";
+
+    imagem.decoding =
+      "async";
+
+    imagem.addEventListener(
+      "error",
+      () => {
+        imagem.replaceWith(
+          criarAvatarIniciais(
+            nome
+          )
+        );
       },
-      body: JSON.stringify({
-        profissional_id: profissionalId,
-        data,
+      {
+        once: true,
+      }
+    );
+
+    return imagem;
+  }
+
+  /*
+   * =====================================================
+   * CARD DE HORÁRIO
+   * =====================================================
+   */
+
+  function criarHorarioCard(
+    profissional,
+    dia,
+    horario
+  ) {
+    const status =
+      normalizarStatus(
+        horario?.status
+      );
+
+    const hora =
+      formatarHora(
+        horario?.hora
+      );
+
+    const card =
+      criarElemento(
+        "article",
+        `horario-card ${obterClasseStatus(
+          status
+        )}`
+      );
+
+    card.dataset.profissionalId =
+      String(
+        profissional?.id ?? ""
+      );
+
+    card.dataset.data =
+      normalizarTexto(
+        dia?.data
+      );
+
+    card.dataset.hora =
+      hora;
+
+    card.dataset.status =
+      status;
+
+    card.append(
+      criarElemento(
+        "strong",
+        "",
         hora
-      })
-    });
+      ),
 
-    const resposta = await res.json();
+      criarElemento(
+        "span",
+        "",
+        obterTextoStatus(
+          status
+        )
+      )
+    );
 
-    if (!res.ok) {
-      throw new Error(resposta.erro || "Erro ao alterar horário.");
+    if (ehAgendamento(status)) {
+      card.append(
+        criarElemento(
+          "span",
+          "",
+          normalizarTexto(
+            horario?.cliente
+          ) ||
+          "Cliente não informado"
+        ),
+
+        criarElemento(
+          "span",
+          "",
+          normalizarTexto(
+            horario?.servico
+          ) ||
+          "Serviço não informado"
+        )
+      );
+
+      return card;
     }
 
-    await carregarAgendaGeral();
+    if (
+      ![
+        "livre",
+        "bloqueado",
+      ].includes(status)
+    ) {
+      return card;
+    }
 
-  } catch (err) {
-    alert(err.message || "Erro ao bloquear horário.");
+    card.classList.add(
+      "clicavel"
+    );
+
+    card.tabIndex = 0;
+
+    card.setAttribute(
+      "role",
+      "button"
+    );
+
+    card.setAttribute(
+      "aria-label",
+      `${obterTextoStatus(
+        status
+      )}, ${hora}. Clique para ${
+        status === "livre"
+          ? "bloquear"
+          : "liberar"
+      }.`
+    );
+
+    const alterarHorario =
+      () => {
+        alternarBloqueioHorario(
+          profissional.id,
+          dia.data,
+          horario.hora,
+          card
+        );
+      };
+
+    card.addEventListener(
+      "click",
+      alterarHorario
+    );
+
+    card.addEventListener(
+      "keydown",
+      (evento) => {
+        if (
+          evento.key === "Enter" ||
+          evento.key === " "
+        ) {
+          evento.preventDefault();
+
+          alterarHorario();
+        }
+      }
+    );
+
+    return card;
   }
-}
+
+  /*
+   * =====================================================
+   * BLOCO DO PROFISSIONAL
+   * =====================================================
+   */
+
+  function criarBlocoProfissional(
+    profissional,
+    dia,
+    horarios
+  ) {
+    const nome =
+      normalizarTexto(
+        profissional?.nome
+      ) ||
+      "Profissional";
+
+    const bloco =
+      criarElemento(
+        "article",
+        "profissional-agenda"
+      );
+
+    const topo =
+      criarElemento(
+        "header",
+        "profissional-topo"
+      );
+
+    const informacoes =
+      criarElemento(
+        "div",
+        "profissional-info"
+      );
+
+    const textosProfissional =
+      criarElemento("div");
+
+    const quantidade =
+      horarios.length;
+
+    textosProfissional.append(
+      criarElemento(
+        "strong",
+        "",
+        nome
+      ),
+
+      criarElemento(
+        "span",
+        "",
+        `${quantidade} horário${
+          quantidade === 1
+            ? ""
+            : "s"
+        } exibido${
+          quantidade === 1
+            ? ""
+            : "s"
+        }`
+      )
+    );
+
+    informacoes.append(
+      criarAvatar(profissional),
+      textosProfissional
+    );
+
+    const totalAgendados =
+      horarios.filter(
+        (horario) =>
+          ehAgendamento(
+            horario?.status
+          )
+      ).length;
+
+    const badge =
+      criarElemento(
+        "span",
+        "badge-agendados",
+        `${totalAgendados} agendado${
+          totalAgendados === 1
+            ? ""
+            : "s"
+        }`
+      );
+
+    topo.append(
+      informacoes,
+      badge
+    );
+
+    const grid =
+      criarElemento(
+        "div",
+        "horarios-grid"
+      );
+
+    Array.from(horarios)
+      .sort(
+        (horarioA, horarioB) =>
+          formatarHora(
+            horarioA?.hora
+          ).localeCompare(
+            formatarHora(
+              horarioB?.hora
+            )
+          )
+      )
+      .forEach(
+        (horario) => {
+          grid.appendChild(
+            criarHorarioCard(
+              profissional,
+              dia,
+              horario
+            )
+          );
+        }
+      );
+
+    bloco.append(
+      topo,
+      grid
+    );
+
+    return bloco;
+  }
+
+  /*
+   * =====================================================
+   * RENDERIZAÇÃO DA AGENDA
+   * =====================================================
+   */
+
+  function renderizarAgenda() {
+    const dia =
+      obterDiaSelecionado();
+
+    elementos.listaAgendaGeral
+      .replaceChildren();
+
+    if (!dia) {
+      atualizarResumo([]);
+
+      elementos.listaAgendaGeral
+        .appendChild(
+          criarEstadoVazio({
+            titulo:
+              "Nenhum dia disponível",
+
+            descricao:
+              "Não encontramos dias para exibir nesta agenda.",
+          })
+        );
+
+      return;
+    }
+
+    renderizarFiltroProfissionais(
+      dia
+    );
+
+    const profissionais =
+      Array.isArray(
+        dia.profissionais
+      )
+        ? dia.profissionais
+        : [];
+
+    const filtroProfissional =
+      elementos.filtroProfissional
+        .value ||
+      "todos";
+
+    const filtroStatus =
+      elementos.filtroStatus
+        .value ||
+      "todos";
+
+    const profissionaisSelecionados =
+      profissionais.filter(
+        (profissional) => {
+          if (
+            filtroProfissional ===
+            "todos"
+          ) {
+            return true;
+          }
+
+          return (
+            String(
+              profissional?.id
+            ) ===
+            filtroProfissional
+          );
+        }
+      );
+
+    const horariosResumo =
+      profissionaisSelecionados
+        .flatMap(
+          (profissional) =>
+            Array.isArray(
+              profissional?.horarios
+            )
+              ? profissional.horarios
+              : []
+        );
+
+    atualizarResumo(
+      horariosResumo
+    );
+
+    let quantidadeBlocos = 0;
+
+    profissionaisSelecionados
+      .forEach(
+        (profissional) => {
+          const horarios =
+            (
+              Array.isArray(
+                profissional?.horarios
+              )
+                ? profissional.horarios
+                : []
+            ).filter(
+              (horario) =>
+                statusCombinaComFiltro(
+                  horario?.status,
+                  filtroStatus
+                )
+            );
+
+          if (!horarios.length) {
+            return;
+          }
+
+          elementos.listaAgendaGeral
+            .appendChild(
+              criarBlocoProfissional(
+                profissional,
+                dia,
+                horarios
+              )
+            );
+
+          quantidadeBlocos += 1;
+        }
+      );
+
+    if (!quantidadeBlocos) {
+      elementos.listaAgendaGeral
+        .appendChild(
+          criarEstadoVazio({
+            icone:
+              "🔎",
+
+            titulo:
+              "Nenhum horário encontrado",
+
+            descricao:
+              "Altere os filtros para visualizar outros horários da equipe.",
+          })
+        );
+    }
+  }
 
   function renderizarTudo() {
     renderizarDias();
     renderizarAgenda();
+    atualizarBotaoHoje();
   }
 
-  async function carregarNotificacoes() {
-  try {
+  /*
+   * =====================================================
+   * BLOQUEIO E LIBERAÇÃO
+   * =====================================================
+   */
 
-    const res = await fetch(
-      `${API_URL}/notificacoes`,
-      {
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
-      }
+  async function alternarBloqueioHorario(
+    profissionalId,
+    data,
+    hora,
+    card
+  ) {
+    const chave =
+      `${profissionalId}|` +
+      `${data}|` +
+      `${hora}`;
+
+    if (
+      estado.horariosEmAlteracao
+        .has(chave)
+    ) {
+      return;
+    }
+
+    estado.horariosEmAlteracao
+      .add(chave);
+
+    esconderMensagem();
+
+    card.classList.add(
+      "carregando"
     );
 
-    const data = await res.json();
-
-    if (!res.ok) return;
-
-    renderizarNotificacoes(
-      data.notificacoes || []
+    card.setAttribute(
+      "aria-busy",
+      "true"
     );
 
-  } catch (err) {
-    console.error(err);
-  }
-}
-
-function renderizarNotificacoes(notificacoes) {
-
-  if (!listaNotificacoes) return;
-
-  if (!notificacoes.length) {
-    listaNotificacoes.innerHTML = `
-      <div class="estado-vazio">
-        Nenhuma notificação.
-      </div>
-    `;
-    return;
-  }
-
-  listaNotificacoes.innerHTML =
-    notificacoes.map(n => `
-      <div class="notificacao-card">
-        <strong>${n.titulo}</strong>
-
-        <p>${n.mensagem}</p>
-
-        <small>
-          ${new Date(n.created_at)
-            .toLocaleString("pt-BR")}
-        </small>
-      </div>
-    `).join("");
-}
-
-  async function carregarAgendaGeral() {
     try {
-      listaAgendaGeral.innerHTML = `
-        <div class="estado-vazio">
-          Carregando agenda geral...
-        </div>
-      `;
+      const resposta =
+        await apiPost(
+          "/bloqueios-horario",
+          {
+            profissional_id:
+              profissionalId,
 
-      const res = await fetch(`${API_URL}/agenda-geral`, {
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
+            data,
+            hora,
+          }
+        );
+
+      await carregarAgendaGeral({
+        preservarDia:
+          true,
+
+        silencioso:
+          true,
       });
 
-      const data = await res.json();
+      mostrarMensagem(
+        resposta?.mensagem ||
+          "Horário atualizado com sucesso.",
 
-      if (!res.ok) {
-        throw new Error(data.erro || "Erro ao carregar agenda geral.");
-      }
+        "sucesso",
+        3000
+      );
+    } catch (erro) {
+      console.error(
+        "Erro ao alterar horário:",
+        erro
+      );
 
-      agenda = data.agenda || [];
-
-      if (!agenda.length) {
-        listaAgendaGeral.innerHTML = `
-          <div class="estado-vazio">
-            Nenhuma agenda encontrada.
-          </div>
-        `;
+      if (
+        tratarErroAutorizacao(
+          erro
+        )
+      ) {
         return;
       }
 
-      diaSelecionado = agenda[0].data;
+      card.classList.remove(
+        "carregando"
+      );
 
-      renderizarTudo();
+      card.removeAttribute(
+        "aria-busy"
+      );
 
-    } catch (err) {
-      console.error("Erro agenda geral:", err);
+      mostrarMensagem(
+        erro?.message ||
+          "Não foi possível alterar o horário.",
 
-      listaAgendaGeral.innerHTML = `
-        <div class="estado-vazio">
-          ${err.message || "Erro ao carregar agenda geral."}
-        </div>
-      `;
+        "erro",
+        0
+      );
+    } finally {
+      estado.horariosEmAlteracao
+        .delete(chave);
     }
   }
 
-  filtroProfissional?.addEventListener("change", renderizarAgenda);
-  filtroStatus?.addEventListener("change", renderizarAgenda);
+  /*
+   * =====================================================
+   * NOTIFICAÇÕES
+   * =====================================================
+   */
 
-  btnHoje?.addEventListener("click", () => {
-    const hoje = new Date().toISOString().slice(0, 10);
-    const existe = agenda.find(d => d.data === hoje);
+  function renderizarNotificacoes(
+    notificacoes
+  ) {
+    elementos.listaNotificacoes
+      .replaceChildren();
 
-    if (existe) {
-      diaSelecionado = hoje;
-      renderizarTudo();
+    if (!notificacoes.length) {
+      elementos.listaNotificacoes
+        .appendChild(
+          criarEstadoVazio({
+            titulo:
+              "Nenhuma notificação recente",
+
+            descricao:
+              "Novos agendamentos e atualizações aparecerão aqui.",
+
+            compacto:
+              true,
+          })
+        );
+
+      return;
     }
-  });
 
-  await carregarAgendaGeral();
-  await carregarNotificacoes();
+    notificacoes
+      .slice(0, 20)
+      .forEach(
+        (notificacao) => {
+          const card =
+            criarElemento(
+              "article",
+              "notificacao-card"
+            );
+
+          card.append(
+            criarElemento(
+              "strong",
+              "",
+              normalizarTexto(
+                notificacao?.titulo
+              ) ||
+              "Atualização da agenda"
+            ),
+
+            criarElemento(
+              "p",
+              "",
+              normalizarTexto(
+                notificacao?.mensagem
+              ) ||
+              "Sem detalhes adicionais."
+            ),
+
+            criarElemento(
+              "small",
+              "",
+              formatarDataHora(
+                notificacao?.created_at
+              )
+            )
+          );
+
+          elementos.listaNotificacoes
+            .appendChild(card);
+        }
+      );
+  }
+
+  async function carregarNotificacoes() {
+    if (
+      estado.carregandoNotificacoes
+    ) {
+      return;
+    }
+
+    estado.carregandoNotificacoes =
+      true;
+
+    elementos.listaNotificacoes
+      .replaceChildren(
+        criarEstadoVazio({
+          titulo:
+            "Carregando notificações...",
+
+          compacto:
+            true,
+        })
+      );
+
+    try {
+      const resposta =
+        await apiGet(
+          "/notificacoes"
+        );
+
+      renderizarNotificacoes(
+        extrairNotificacoes(
+          resposta
+        )
+      );
+    } catch (erro) {
+      console.error(
+        "Erro ao carregar notificações:",
+        erro
+      );
+
+      if (
+        tratarErroAutorizacao(
+          erro
+        )
+      ) {
+        return;
+      }
+
+      elementos.listaNotificacoes
+        .replaceChildren(
+          criarEstadoVazio({
+            titulo:
+              "Não foi possível carregar as notificações",
+
+            descricao:
+              "Atualize a página para tentar novamente.",
+
+            compacto:
+              true,
+          })
+        );
+    } finally {
+      estado.carregandoNotificacoes =
+        false;
+    }
+  }
+
+  /*
+   * =====================================================
+   * CARREGAMENTO DA AGENDA
+   * =====================================================
+   */
+
+  async function carregarAgendaGeral({
+    preservarDia = false,
+    silencioso = false,
+  } = {}) {
+    if (estado.carregandoAgenda) {
+      return;
+    }
+
+    estado.carregandoAgenda =
+      true;
+
+    if (!silencioso) {
+      esconderMensagem();
+
+      elementos.listaAgendaGeral
+        .replaceChildren(
+          criarEstadoVazio({
+            icone:
+              "⏳",
+
+            titulo:
+              "Carregando agenda geral",
+
+            descricao:
+              "Aguarde enquanto buscamos os horários da equipe.",
+          })
+        );
+    }
+
+    try {
+      const resposta =
+        await apiGet(
+          "/agenda-geral"
+        );
+
+      estado.agenda =
+        extrairAgenda(resposta)
+          .filter(
+            (dia) =>
+              normalizarTexto(
+                dia?.data
+              )
+          );
+
+      if (!estado.agenda.length) {
+        estado.diaSelecionado =
+          null;
+
+        elementos.diasAgenda
+          .replaceChildren();
+
+        atualizarResumo([]);
+        atualizarBotaoHoje();
+
+        elementos.listaAgendaGeral
+          .replaceChildren(
+            criarEstadoVazio({
+              icone:
+                "📭",
+
+              titulo:
+                "Nenhuma agenda encontrada",
+
+              descricao:
+                "Configure os horários dos profissionais para começar.",
+            })
+          );
+
+        return;
+      }
+
+      const diaAnteriorExiste =
+        estado.agenda.some(
+          (dia) =>
+            normalizarTexto(
+              dia?.data
+            ) ===
+            estado.diaSelecionado
+        );
+
+      if (
+        !preservarDia ||
+        !estado.diaSelecionado ||
+        !diaAnteriorExiste
+      ) {
+        estado.diaSelecionado =
+          selecionarDiaInicial();
+      }
+
+      renderizarTudo();
+    } catch (erro) {
+      console.error(
+        "Erro ao carregar agenda geral:",
+        erro
+      );
+
+      if (
+        tratarErroAutorizacao(
+          erro
+        )
+      ) {
+        return;
+      }
+
+      atualizarResumo([]);
+
+      elementos.listaAgendaGeral
+        .replaceChildren(
+          criarEstadoVazio({
+            icone:
+              "⚠️",
+
+            titulo:
+              "Não foi possível carregar a agenda",
+
+            descricao:
+              erro?.message ||
+              "Atualize a página e tente novamente.",
+          })
+        );
+
+      mostrarMensagem(
+        erro?.message ||
+          "Não foi possível carregar a agenda geral.",
+
+        "erro",
+        0
+      );
+    } finally {
+      estado.carregandoAgenda =
+        false;
+    }
+  }
+
+  /*
+   * =====================================================
+   * EVENTOS
+   * =====================================================
+   */
+
+  elementos.filtroProfissional
+    .addEventListener(
+      "change",
+      renderizarAgenda
+    );
+
+  elementos.filtroStatus
+    .addEventListener(
+      "change",
+      renderizarAgenda
+    );
+
+  elementos.btnLimparFiltros
+    ?.addEventListener(
+      "click",
+      () => {
+        elementos.filtroProfissional
+          .value =
+            "todos";
+
+        elementos.filtroStatus
+          .value =
+            "todos";
+
+        renderizarAgenda();
+      }
+    );
+
+  elementos.btnHoje.addEventListener(
+    "click",
+    () => {
+      const hoje =
+        obterHojeBrasil();
+
+      const existeHoje =
+        estado.agenda.some(
+          (dia) =>
+            normalizarTexto(
+              dia?.data
+            ) ===
+            hoje
+        );
+
+      if (!existeHoje) {
+        return;
+      }
+
+      estado.diaSelecionado =
+        hoje;
+
+      renderizarTudo();
+
+      elementos.diasAgenda
+        .querySelector(
+          `[data-data="${hoje}"]`
+        )
+        ?.scrollIntoView({
+          behavior:
+            "smooth",
+
+          block:
+            "nearest",
+
+          inline:
+            "center",
+        });
+    }
+  );
+
+  window.addEventListener(
+    "beforeunload",
+    () => {
+      window.clearTimeout(
+        estado.mensagemTimer
+      );
+    }
+  );
+
+  /*
+   * =====================================================
+   * INICIALIZAÇÃO
+   * =====================================================
+   */
+
+  if (
+    !window.SessionGuard ||
+    typeof window.SessionGuard
+      .exigirDono !== "function"
+  ) {
+    console.error(
+      "SessionGuard.exigirDono não foi carregado."
+    );
+
+    mostrarMensagem(
+      "Não foi possível validar o acesso à agenda geral.",
+      "erro",
+      0
+    );
+
+    return;
+  }
+
+  if (
+    !window.API ||
+    typeof window.API.get !==
+      "function" ||
+    typeof window.API.post !==
+      "function"
+  ) {
+    mostrarMensagem(
+      "O serviço da API não foi carregado.",
+      "erro",
+      0
+    );
+
+    return;
+  }
+
+  try {
+    estado.contexto =
+      await window.SessionGuard
+        .exigirDono({
+          destinoLogin:
+            "/html/login-profissional.html",
+
+          destinoSemNegocio:
+            "/html/criar-negocio.html",
+
+          destinoSemPermissao:
+            "/html/inicio.html",
+        });
+  } catch (erro) {
+    console.error(
+      "Erro ao validar acesso à agenda geral:",
+      erro
+    );
+
+    mostrarMensagem(
+      erro?.message ||
+        "Não foi possível validar sua sessão.",
+
+      "erro",
+      0
+    );
+
+    return;
+  }
+
+  if (!estado.contexto) {
+    return;
+  }
+
+  await Promise.all([
+    carregarAgendaGeral(),
+    carregarNotificacoes(),
+  ]);
 });

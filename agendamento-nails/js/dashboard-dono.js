@@ -1147,6 +1147,15 @@ function redirecionarProfissional() {
       mensagem =
         "Sua agenda atingiu a capacidade atual do plano.";
     } else if (
+      percentual >= 90
+    ) {
+      mensagem =
+        `Sua agenda está quase cheia. ` +
+        `Restam ${restantes} ` +
+        `${pluralizarAgendamento(
+          restantes
+        )}. Compare com o próximo plano.`;
+    } else if (
       percentual >= 80
     ) {
       mensagem =

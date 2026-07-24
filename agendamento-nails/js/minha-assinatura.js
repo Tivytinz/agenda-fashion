@@ -1,153 +1,1129 @@
-document.addEventListener("DOMContentLoaded", async () => {
-  const token = localStorage.getItem("token");
+document.addEventListener(
+  "DOMContentLoaded",
+  async () => {
+    const elementos = {
+      planoNome:
+        document.getElementById(
+          "planoNome"
+        ),
 
-  if (!token) {
-    window.location.href = "login-profissional.html";
-    return;
-  }
+      assinaturaStatus:
+        document.getElementById(
+          "assinaturaStatus"
+        ),
 
-  const planoNome = document.getElementById("planoNome");
-  const assinaturaStatus = document.getElementById("assinaturaStatus");
-  const planoValor = document.getElementById("planoValor");
-  const formaPagamento = document.getElementById("formaPagamento");
-  const proximaCobranca = document.getElementById("proximaCobranca");
-  const usoTexto = document.getElementById("usoTexto");
-  const usoBarra = document.getElementById("usoBarra");
-  const usoMensagem = document.getElementById("usoMensagem");
-  const listaPagamentos = document.getElementById("listaPagamentos");
+      planoValor:
+        document.getElementById(
+          "planoValor"
+        ),
 
-  const btnAlterarPlano = document.getElementById("btnAlterarPlano");
-  const btnNovoPix = document.getElementById("btnNovoPix");
-  const btnCancelarAssinatura = document.getElementById("btnCancelarAssinatura");
+      formaPagamento:
+        document.getElementById(
+          "formaPagamento"
+        ),
 
-  function moeda(valor) {
-    return Number(valor || 0).toLocaleString("pt-BR", {
-      style: "currency",
-      currency: "BRL"
-    });
-  }
+      proximaCobranca:
+        document.getElementById(
+          "proximaCobranca"
+        ),
 
-  function formatarData(data) {
-    if (!data) return "-";
+      usoTexto:
+        document.getElementById(
+          "usoTexto"
+        ),
 
-    return new Date(`${data}T00:00:00`).toLocaleDateString("pt-BR");
-  }
+      usoBarra:
+        document.getElementById(
+          "usoBarra"
+        ),
 
-  function traduzirStatus(status) {
-    const mapa = {
-      ACTIVE: "Ativo",
-      PENDING: "Pendente",
-      OVERDUE: "Vencido",
-      CANCELED: "Cancelado",
-      CANCELLED: "Cancelado",
-      RECEIVED: "Pago",
-      CONFIRMED: "Confirmado"
+      usoMensagem:
+        document.getElementById(
+          "usoMensagem"
+        ),
+
+      listaPagamentos:
+        document.getElementById(
+          "listaPagamentos"
+        ),
+
+      mensagem:
+        document.getElementById(
+          "mensagemAssinatura"
+        ),
+
+      btnAlterarPlano:
+        document.getElementById(
+          "btnAlterarPlano"
+        ),
+
+      btnNovoPix:
+        document.getElementById(
+          "btnNovoPix"
+        ),
+
+      btnCancelarAssinatura:
+        document.getElementById(
+          "btnCancelarAssinatura"
+        ),
     };
 
-    return mapa[status] || status || "Grátis";
-  }
+    const obrigatorios = [
+      elementos.planoNome,
+      elementos.assinaturaStatus,
+      elementos.planoValor,
+      elementos.formaPagamento,
+      elementos.proximaCobranca,
+      elementos.usoTexto,
+      elementos.usoBarra,
+      elementos.usoMensagem,
+      elementos.listaPagamentos,
+    ];
 
-  function traduzirForma(forma) {
-    const mapa = {
-      pix: "PIX",
-      cartao: "Cartão",
-      CREDIT_CARD: "Cartão",
-      PIX: "PIX"
-    };
+    if (
+      obrigatorios.some(
+        (elemento) => !elemento
+      )
+    ) {
+      console.error(
+        "Elementos obrigatórios da página de assinatura não foram encontrados."
+      );
 
-    return mapa[forma] || forma || "-";
-  }
-
-  function renderPagamentos(pagamentos) {
-    if (!listaPagamentos) return;
-
-    if (!pagamentos.length) {
-      listaPagamentos.innerHTML = `
-        <div class="estado-vazio">
-          Nenhum pagamento encontrado.
-        </div>
-      `;
       return;
     }
 
-    listaPagamentos.innerHTML = pagamentos.map((p) => `
-      <div class="pagamento-item">
-        <div>
-          <strong>${traduzirStatus(p.status)}</strong><br>
-          <span>${formatarData(p.data_vencimento)}</span>
-        </div>
+    if (
+      !window.API ||
+      typeof window.API.get !==
+        "function"
+    ) {
+      mostrarMensagem(
+        "O serviço da API não foi carregado.",
+        "erro"
+      );
 
-        <strong>${moeda(p.valor)}</strong>
-      </div>
-    `).join("");
-  }
-
-  function renderUso(uso) {
-    const usados = Number(uso?.utilizados || 0);
-    const limite = uso?.limite;
-
-    if (limite === null || limite === undefined) {
-      usoTexto.textContent = `${usados} agendamento(s)`;
-      usoBarra.style.width = "100%";
-      usoMensagem.textContent = "Seu plano possui agendamentos ilimitados.";
       return;
     }
 
-    const percentual = Math.min(
-      Math.round((usados / Number(limite || 1)) * 100),
-      100
-    );
+    if (
+      !window.AuthService ||
+      typeof window.AuthService
+        .limparSessao !==
+        "function"
+    ) {
+      mostrarMensagem(
+        "O serviço de autenticação não foi carregado.",
+        "erro"
+      );
 
-    usoTexto.textContent = `${usados} de ${limite}`;
-    usoBarra.style.width = `${percentual}%`;
+      return;
+    }
 
-    usoMensagem.textContent =
-      `Você ainda possui ${Math.max(Number(limite) - usados, 0)} agendamento(s) disponíveis este mês.`;
-  }
+    if (
+      !window.SessionGuard ||
+      typeof window.SessionGuard
+        .exigirConta !==
+        "function"
+    ) {
+      window.location.replace(
+        "/html/login-cliente.html"
+      );
 
-  async function carregar() {
-    try {
-      const data = await API.get("/api/minha-assinatura");
+      return;
+    }
 
-      planoNome.textContent = data.plano?.nome || "Gratuito";
-      assinaturaStatus.textContent = traduzirStatus(data.assinatura?.status);
-      planoValor.textContent = moeda(data.plano?.valor || 0);
-      formaPagamento.textContent = traduzirForma(data.assinatura?.forma_pagamento);
-      proximaCobranca.textContent = formatarData(data.assinatura?.data_proxima_cobranca);
+    const estado = {
+      contexto: null,
+      dados: null,
+      carregando: false,
+      temporizadorMensagem: null,
+    };
 
-      renderUso(data.uso || {});
-      renderPagamentos(data.pagamentos || []);
+    function criarElemento(
+      tag,
+      classe = "",
+      texto = null
+    ) {
+      const elemento =
+        document.createElement(
+          tag
+        );
 
-    } catch (erro) {
-      console.error("Erro ao carregar assinatura:", erro);
+      if (classe) {
+        elemento.className =
+          classe;
+      }
 
-      if (listaPagamentos) {
-        listaPagamentos.innerHTML = `
-          <div class="estado-vazio">
-            Não foi possível carregar sua assinatura.
-          </div>
-        `;
+      if (
+        texto !== null &&
+        texto !== undefined
+      ) {
+        elemento.textContent =
+          String(texto);
+      }
+
+      return elemento;
+    }
+
+    function converterNumero(
+      valor,
+      fallback = 0
+    ) {
+      const numero =
+        Number(valor);
+
+      return Number.isFinite(
+        numero
+      )
+        ? numero
+        : fallback;
+    }
+
+    function formatarMoeda(
+      valor
+    ) {
+      return converterNumero(
+        valor
+      ).toLocaleString(
+        "pt-BR",
+        {
+          style:
+            "currency",
+
+          currency:
+            "BRL",
+        }
+      );
+    }
+
+    function formatarData(
+      valor
+    ) {
+      if (!valor) {
+        return "-";
+      }
+
+      const texto =
+        String(valor)
+          .slice(0, 10);
+
+      const partes =
+        texto
+          .split("-")
+          .map(Number);
+
+      if (
+        partes.length !== 3 ||
+        partes.some(
+          (parte) =>
+            !Number.isFinite(
+              parte
+            )
+        )
+      ) {
+        return "-";
+      }
+
+      const [
+        ano,
+        mes,
+        dia,
+      ] = partes;
+
+      const data =
+        new Date(
+          ano,
+          mes - 1,
+          dia
+        );
+
+      if (
+        Number.isNaN(
+          data.getTime()
+        )
+      ) {
+        return "-";
+      }
+
+      return data
+        .toLocaleDateString(
+          "pt-BR",
+          {
+            day:
+              "2-digit",
+
+            month:
+              "2-digit",
+
+            year:
+              "numeric",
+          }
+        );
+    }
+
+    function normalizarStatus(
+      valor
+    ) {
+      return String(
+        valor || ""
+      )
+        .trim()
+        .toUpperCase();
+    }
+
+    function traduzirStatus(
+      status,
+      gratuito = false
+    ) {
+      if (gratuito) {
+        return "Grátis";
+      }
+
+      const mapa = {
+        ACTIVE:
+          "Ativo",
+
+        PENDING:
+          "Pendente",
+
+        OVERDUE:
+          "Vencido",
+
+        CANCELED:
+          "Cancelado",
+
+        CANCELLED:
+          "Cancelado",
+
+        INACTIVE:
+          "Inativo",
+
+        RECEIVED:
+          "Pago",
+
+        CONFIRMED:
+          "Confirmado",
+
+        REFUNDED:
+          "Estornado",
+      };
+
+      const normalizado =
+        normalizarStatus(
+          status
+        );
+
+      return (
+        mapa[normalizado] ||
+        normalizado ||
+        "-"
+      );
+    }
+
+    function traduzirForma(
+      forma
+    ) {
+      const mapa = {
+        PIX:
+          "PIX",
+
+        CREDIT_CARD:
+          "Cartão",
+
+        DEBIT_CARD:
+          "Cartão de débito",
+
+        BOLETO:
+          "Boleto",
+
+        UNDEFINED:
+          "-",
+      };
+
+      const normalizada =
+        String(
+          forma || ""
+        )
+          .trim()
+          .toUpperCase();
+
+      return (
+        mapa[normalizada] ||
+        forma ||
+        "-"
+      );
+    }
+
+    function mostrarMensagem(
+      texto,
+      tipo = "erro",
+      esconderDepois = false
+    ) {
+      if (!elementos.mensagem) {
+        return;
+      }
+
+      window.clearTimeout(
+        estado.temporizadorMensagem
+      );
+
+      elementos.mensagem
+        .textContent =
+          String(texto || "");
+
+      elementos.mensagem
+        .classList.remove(
+          "hidden",
+          "erro",
+          "sucesso",
+          "aviso"
+        );
+
+      elementos.mensagem
+        .classList.add(
+          tipo
+        );
+
+      elementos.mensagem
+        .dataset.tipo =
+          tipo;
+
+      if (esconderDepois) {
+        estado.temporizadorMensagem =
+          window.setTimeout(
+            esconderMensagem,
+            4000
+          );
       }
     }
+
+    function esconderMensagem() {
+      if (!elementos.mensagem) {
+        return;
+      }
+
+      window.clearTimeout(
+        estado.temporizadorMensagem
+      );
+
+      elementos.mensagem
+        .textContent = "";
+
+      elementos.mensagem
+        .classList.add(
+          "hidden"
+        );
+
+      elementos.mensagem
+        .classList.remove(
+          "erro",
+          "sucesso",
+          "aviso"
+        );
+
+      elementos.mensagem
+        .removeAttribute(
+          "data-tipo"
+        );
+    }
+
+    function redirecionarLogin() {
+      window.AuthService
+        .limparSessao();
+
+      window.location.replace(
+        "/html/login-cliente.html"
+      );
+    }
+
+    function criarEstadoLista(
+      texto,
+      icone = "🧾"
+    ) {
+      const container =
+        criarElemento(
+          "div",
+          "estado-vazio"
+        );
+
+      const conteudo =
+        criarElemento(
+          "div"
+        );
+
+      const elementoIcone =
+        criarElemento(
+          "div",
+          "estado-vazio-icone",
+          icone
+        );
+
+      elementoIcone.setAttribute(
+        "aria-hidden",
+        "true"
+      );
+
+      conteudo.append(
+        elementoIcone,
+        criarElemento(
+          "p",
+          "",
+          texto
+        )
+      );
+
+      container.appendChild(
+        conteudo
+      );
+
+      return container;
+    }
+
+    function definirCarregando(
+      carregando
+    ) {
+      estado.carregando =
+        carregando;
+
+      elementos.listaPagamentos
+        .setAttribute(
+          "aria-busy",
+          String(carregando)
+        );
+
+      [
+        elementos.btnAlterarPlano,
+        elementos.btnNovoPix,
+        elementos.btnCancelarAssinatura,
+      ].forEach(
+        (botao) => {
+          if (botao) {
+            botao.disabled =
+              carregando;
+          }
+        }
+      );
+
+      if (carregando) {
+        elementos.listaPagamentos
+          .replaceChildren(
+            criarEstadoLista(
+              "Carregando pagamentos...",
+              "⏳"
+            )
+          );
+      }
+    }
+
+    function definirStatus(
+      status,
+      gratuito
+    ) {
+      const elemento =
+        elementos.assinaturaStatus;
+
+      const normalizado =
+        gratuito
+          ? "FREE"
+          : normalizarStatus(
+              status
+            );
+
+      elemento.textContent =
+        traduzirStatus(
+          normalizado,
+          gratuito
+        );
+
+      elemento.dataset.status =
+        normalizado;
+
+      elemento.classList.remove(
+        "pendente",
+        "vencido",
+        "cancelado"
+      );
+
+      if (
+        normalizado ===
+        "PENDING"
+      ) {
+        elemento.classList.add(
+          "pendente"
+        );
+      }
+
+      if (
+        normalizado ===
+        "OVERDUE"
+      ) {
+        elemento.classList.add(
+          "vencido"
+        );
+      }
+
+      if (
+        [
+          "CANCELED",
+          "CANCELLED",
+          "INACTIVE",
+        ].includes(
+          normalizado
+        )
+      ) {
+        elemento.classList.add(
+          "cancelado"
+        );
+      }
+    }
+
+    function renderizarPlano(
+      dados
+    ) {
+      const plano =
+        dados?.plano || {};
+
+      const assinatura =
+        dados?.assinatura ||
+        null;
+
+      const valor =
+        converterNumero(
+          plano.valor
+        );
+
+      const gratuito =
+        valor <= 0;
+
+      elementos.planoNome
+        .textContent =
+          plano.nome ||
+          (
+            gratuito
+              ? "Plano gratuito"
+              : "Plano"
+          );
+
+      elementos.planoValor
+        .textContent =
+          formatarMoeda(
+            valor
+          );
+
+      elementos.formaPagamento
+        .textContent =
+          assinatura
+            ? traduzirForma(
+                assinatura
+                  .forma_pagamento
+              )
+            : "-";
+
+      elementos.proximaCobranca
+        .textContent =
+          assinatura
+            ? formatarData(
+                assinatura
+                  .data_proxima_cobranca
+              )
+            : "-";
+
+      definirStatus(
+        assinatura?.status,
+        gratuito &&
+          !assinatura
+      );
+
+      configurarAcoes({
+        plano,
+        assinatura,
+        gratuito,
+      });
+    }
+
+    function renderizarUso(
+      uso
+    ) {
+      const utilizados =
+        Math.max(
+          converterNumero(
+            uso?.utilizados
+          ),
+          0
+        );
+
+      const limiteBruto =
+        uso?.limite ??
+        uso?.capacidade_agendamentos ??
+        null;
+
+      const ilimitado =
+        limiteBruto === null ||
+        limiteBruto === undefined;
+
+      let percentual = 0;
+
+      if (ilimitado) {
+        elementos.usoTexto
+          .textContent =
+            `${utilizados} agendamento` +
+            `${utilizados === 1 ? "" : "s"}`;
+
+        elementos.usoMensagem
+          .textContent =
+            "Seu plano possui agendamentos ilimitados.";
+
+        percentual = 100;
+      } else {
+        const limite =
+          Math.max(
+            converterNumero(
+              limiteBruto
+            ),
+            0
+          );
+
+        percentual =
+          limite > 0
+            ? Math.min(
+                Math.round(
+                  (
+                    utilizados /
+                    limite
+                  ) * 100
+                ),
+                100
+              )
+            : 0;
+
+        const restantes =
+          Math.max(
+            limite -
+              utilizados,
+            0
+          );
+
+        elementos.usoTexto
+          .textContent =
+            `${utilizados} de ${limite}`;
+
+        if (
+          utilizados >=
+          limite
+        ) {
+          elementos.usoMensagem
+            .textContent =
+              "A capacidade mensal do plano foi atingida.";
+        } else {
+          elementos.usoMensagem
+            .textContent =
+              `Você ainda possui ${restantes} ` +
+              `agendamento${restantes === 1 ? "" : "s"} ` +
+              "disponível" +
+              `${restantes === 1 ? "" : "is"} neste mês.`;
+        }
+      }
+
+      elementos.usoBarra
+        .style.width =
+          `${percentual}%`;
+
+      const barra =
+        elementos.usoBarra
+          .parentElement;
+
+      barra?.setAttribute(
+        "aria-valuenow",
+        String(percentual)
+      );
+    }
+
+    function criarPagamento(
+      pagamento
+    ) {
+      const item =
+        criarElemento(
+          "article",
+          "pagamento-item"
+        );
+
+      const informacoes =
+        criarElemento(
+          "div"
+        );
+
+      const status =
+        criarElemento(
+          "strong",
+          "",
+          traduzirStatus(
+            pagamento.status
+          )
+        );
+
+      const dataPagamento =
+        pagamento.data_pagamento
+          ? `Pago em ${formatarData(
+              pagamento
+                .data_pagamento
+            )}`
+          : `Vencimento: ${formatarData(
+              pagamento
+                .data_vencimento
+            )}`;
+
+      const data =
+        criarElemento(
+          "span",
+          "",
+          dataPagamento
+        );
+
+      const valor =
+        criarElemento(
+          "strong",
+          "",
+          formatarMoeda(
+            pagamento.valor
+          )
+        );
+
+      informacoes.append(
+        status,
+        document.createElement(
+          "br"
+        ),
+        data
+      );
+
+      item.append(
+        informacoes,
+        valor
+      );
+
+      return item;
+    }
+
+    function renderizarPagamentos(
+      pagamentos
+    ) {
+      const lista =
+        Array.isArray(
+          pagamentos
+        )
+          ? pagamentos
+          : [];
+
+      elementos.listaPagamentos
+        .replaceChildren();
+
+      if (!lista.length) {
+        elementos.listaPagamentos
+          .appendChild(
+            criarEstadoLista(
+              "Nenhum pagamento encontrado.",
+              "♡"
+            )
+          );
+
+        return;
+      }
+
+      const fragmento =
+        document.createDocumentFragment();
+
+      lista.forEach(
+        (pagamento) => {
+          fragmento.appendChild(
+            criarPagamento(
+              pagamento
+            )
+          );
+        }
+      );
+
+      elementos.listaPagamentos
+        .appendChild(
+          fragmento
+        );
+    }
+
+    function configurarAcoes({
+      plano,
+      assinatura,
+      gratuito,
+    }) {
+      const status =
+        normalizarStatus(
+          assinatura?.status
+        );
+
+      const possuiAssinaturaPaga =
+        Boolean(
+          assinatura &&
+          converterNumero(
+            plano?.valor
+          ) > 0
+        );
+
+      if (
+        elementos.btnAlterarPlano
+      ) {
+        elementos.btnAlterarPlano
+          .disabled =
+            false;
+
+        elementos.btnAlterarPlano
+          .textContent =
+            gratuito
+              ? "Conhecer planos"
+              : "Alterar plano";
+      }
+
+      /*
+       * Um plano gratuito não possui cobrança
+       * para gerar ou assinatura paga para cancelar.
+       */
+      elementos.btnNovoPix
+        ?.classList.toggle(
+          "hidden",
+          !possuiAssinaturaPaga
+        );
+
+      elementos.btnCancelarAssinatura
+        ?.classList.toggle(
+          "hidden",
+          !possuiAssinaturaPaga
+        );
+
+      if (
+        elementos.btnNovoPix
+      ) {
+        elementos.btnNovoPix
+          .disabled =
+            ![
+              "PENDING",
+              "OVERDUE",
+            ].includes(
+              status
+            );
+      }
+
+      if (
+        elementos.btnCancelarAssinatura
+      ) {
+        elementos.btnCancelarAssinatura
+          .disabled =
+            ![
+              "ACTIVE",
+              "PENDING",
+              "OVERDUE",
+            ].includes(
+              status
+            );
+      }
+    }
+
+    async function carregarAssinatura() {
+      if (
+        estado.carregando
+      ) {
+        return;
+      }
+
+      esconderMensagem();
+
+      definirCarregando(
+        true
+      );
+
+      try {
+        const dados =
+          await window.API.get(
+            "/minha-assinatura"
+          );
+
+        estado.dados =
+          dados || {};
+
+        renderizarPlano(
+          estado.dados
+        );
+
+        renderizarUso(
+          estado.dados.uso ||
+          {}
+        );
+
+        renderizarPagamentos(
+          estado.dados
+            .pagamentos ||
+          []
+        );
+      } catch (erro) {
+        console.error(
+          "Erro ao carregar assinatura:",
+          erro
+        );
+
+        if (
+          erro?.status === 401
+        ) {
+          redirecionarLogin();
+
+          return;
+        }
+
+        elementos.planoNome
+          .textContent =
+            "Não disponível";
+
+        elementos.assinaturaStatus
+          .textContent =
+            "-";
+
+        elementos.planoValor
+          .textContent =
+            "-";
+
+        elementos.formaPagamento
+          .textContent =
+            "-";
+
+        elementos.proximaCobranca
+          .textContent =
+            "-";
+
+        elementos.usoTexto
+          .textContent =
+            "0 de 0";
+
+        elementos.usoBarra
+          .style.width =
+            "0%";
+
+        elementos.usoMensagem
+          .textContent =
+            "Não foi possível carregar o uso do plano.";
+
+        elementos.listaPagamentos
+          .replaceChildren(
+            criarEstadoLista(
+              "Não foi possível carregar os pagamentos.",
+              "⚠️"
+            )
+          );
+
+        mostrarMensagem(
+          erro?.message ||
+            "Não foi possível carregar sua assinatura.",
+          "erro"
+        );
+      } finally {
+        definirCarregando(
+          false
+        );
+
+        if (estado.dados) {
+          renderizarPlano(
+            estado.dados
+          );
+        }
+      }
+    }
+
+    function configurarEventos() {
+      elementos.btnAlterarPlano
+        ?.addEventListener(
+          "click",
+          () => {
+            window.location.href =
+              "/html/planos.html";
+          }
+        );
+
+      elementos.btnNovoPix
+        ?.addEventListener(
+          "click",
+          () => {
+            mostrarMensagem(
+              "A geração de uma nova cobrança PIX ainda será conectada ao backend.",
+              "aviso",
+              true
+            );
+          }
+        );
+
+      elementos.btnCancelarAssinatura
+        ?.addEventListener(
+          "click",
+          () => {
+            const confirmou =
+              window.confirm(
+                "Deseja solicitar o cancelamento desta assinatura?"
+              );
+
+            if (!confirmou) {
+              return;
+            }
+
+            mostrarMensagem(
+              "O cancelamento online ainda será conectado ao backend. Nenhuma alteração foi realizada.",
+              "aviso"
+            );
+          }
+        );
+
+      window.addEventListener(
+        "beforeunload",
+        () => {
+          window.clearTimeout(
+            estado.temporizadorMensagem
+          );
+        }
+      );
+    }
+
+    async function iniciar() {
+      configurarEventos();
+
+      try {
+        estado.contexto =
+          await window.SessionGuard
+            .exigirConta({
+              destinoLogin:
+                "/html/login-cliente.html",
+            });
+
+        if (
+          !estado.contexto
+        ) {
+          return;
+        }
+
+        await carregarAssinatura();
+      } catch (erro) {
+        console.error(
+          "Erro ao validar sessão:",
+          erro
+        );
+
+        if (
+          erro?.status === 401
+        ) {
+          redirecionarLogin();
+
+          return;
+        }
+
+        mostrarMensagem(
+          erro?.message ||
+            "Não foi possível validar sua sessão.",
+          "erro"
+        );
+      }
+    }
+
+    await iniciar();
   }
-
-  btnAlterarPlano?.addEventListener("click", () => {
-    window.location.href = "planos.html";
-  });
-
-  btnNovoPix?.addEventListener("click", () => {
-    alert("Geração de novo PIX será implementada na próxima etapa.");
-  });
-
-  btnCancelarAssinatura?.addEventListener("click", async () => {
-    const confirmar = confirm(
-      "Tem certeza que deseja cancelar sua assinatura? Seu acesso pago poderá ser encerrado no fim do ciclo."
-    );
-
-    if (!confirmar) return;
-
-    alert("Cancelamento será implementado na próxima etapa.");
-  });
-
-  await carregar();
-});
+);

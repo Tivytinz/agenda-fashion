@@ -89,13 +89,8 @@ app.get("/dashboard-dono.html", (req, res) => {
   res.sendFile(path.join(rootDir, "html", "dashboard-dono.html"));
 });
 
-app.get("/painel-profissional.html", (req, res) => {
-  res.sendFile(path.join(rootDir, "html", "painel-profissional.html"));
-});
 
-app.get("/painel-dono.html", (req, res) => {
-  res.sendFile(path.join(rootDir, "html", "painel-dono.html"));
-});
+
 
 
 

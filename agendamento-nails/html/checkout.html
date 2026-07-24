@@ -2,73 +2,456 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Checkout | Agenda Fashion</title>
 
-  <link rel="stylesheet" href="../css/global.css">
-  <link rel="stylesheet" href="../css/checkout.css">
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+  >
+
+  <meta
+    name="description"
+    content="Finalize a assinatura do seu plano no Agenda Fashion."
+  >
+
+  <meta
+    name="theme-color"
+    content="#e83e8c"
+  >
+
+  <title>
+    Finalizar assinatura | Agenda Fashion
+  </title>
+
+  <link
+    rel="stylesheet"
+    href="../css/global.css"
+  >
+
+  <link
+    rel="stylesheet"
+    href="../css/navegacao.css"
+  >
+
+  <link
+    rel="stylesheet"
+    href="../css/checkout.css"
+  >
 </head>
 
 <body>
   <main class="checkout-page">
-    <section class="checkout-card af-card">
-      <div class="checkout-brand">
-        <div class="af-brand-icon">💅</div>
-        <div>
-          <strong>Agenda Fashion</strong>
-          <span>Assinatura do plano</span>
+    <header class="checkout-header">
+      <a
+        href="/html/planos.html"
+        class="checkout-voltar"
+        aria-label="Voltar para os planos"
+      >
+        <span aria-hidden="true">
+          ←
+        </span>
+
+        Voltar para os planos
+      </a>
+
+      <a
+        ←
+        </span>
+
+        Voltar para os planos
+      </ href="/html/inicio.html"
+        class="checkout-brand"
+        aria-label="Ir para o início do Agenda Fashion"
+      >
+        <span
+          class="af-brand-icon"
+          aria-hidden="true"
+        >
+          💅
+        </span>
+
+        <span class="checkout-brand-texto">
+          <strong>
+            Agenda Fashion
+          </strong>
+
+          <small>
+            Assinatura do plano
+          </small>
+        </span>
+      </a>
+    </header>
+
+    <section
+      class="checkout-layout"
+      aria-labelledby="tituloCheckout"
+    >
+      <aside class="checkout-resumo-coluna">
+        <div class="checkout-resumo-cabecalho">
+          <span class="checkout-etiqueta">
+            Seu plano
+          </span>
+
+          <h1 id="tituloCheckout">
+            Confira sua assinatura
+          </h1>
+
+          <p>
+            Revise os benefícios e o valor antes de gerar
+            o pagamento.
+          </p>
         </div>
-      </div>
 
-      <div id="checkoutResumo" class="checkout-resumo">
-        Carregando plano...
-      </div>
+        <article
+          id="checkoutResumo"
+          class="checkout-resumo af-card"
+          aria-live="polite"
+        >
+          <div class="checkout-carregando">
+            <span class="checkout-spinner"></span>
 
-      <div class="checkout-pagamento">
-        <h2>Forma de pagamento</h2>
+            <div>
+              <strong>
+                Carregando plano
+              </strong>
 
-        <label class="pagamento-opcao">
-          <input type="radio" name="formaPagamento" value="pix" checked>
-          <span>PIX</span>
-        </label>
+              <small>
+                Aguarde enquanto buscamos os detalhes.
+              </small>
+            </div>
+          </div>
+        </article>
 
-        <label class="pagamento-opcao">
-          <input type="radio" name="formaPagamento" value="cartao">
-          <span>Cartão de crédito</span>
-        </label>
-      </div>
+        <div class="checkout-seguranca">
+          <span aria-hidden="true">
+            🔒
+          </span>
 
-      <div id="cartaoCampos" class="cartao-campos hidden">
-        <input id="nomeCartao" class="af-input" placeholder="Nome no cartão">
-        <input id="numeroCartao" class="af-input" placeholder="Número do cartão">
-        <input id="validadeCartao" class="af-input" placeholder="MM/AA">
-        <input id="cvvCartao" class="af-input" placeholder="CVV">
-      </div>
+          <div>
+            <strong>
+              Pagamento protegido
+            </strong>
 
-      <div class="checkout-total">
-        <span>Total</span>
-        <strong id="checkoutTotal">R$ 0,00</strong>
-      </div>
+            <small>
+              A confirmação da assinatura acontece após
+              a aprovação do pagamento.
+            </small>
+          </div>
+        </div>
+      </aside>
 
-      <button id="btnConfirmarCheckout" class="af-btn-primary" type="button">
-        Confirmar assinatura
-      </button>
+      <section class="checkout-pagamento-coluna">
+        <article class="checkout-card af-card">
+          <header class="checkout-card-header">
+            <div>
+              <span class="checkout-etiqueta">
+                Pagamento
+              </span>
 
-      <p id="mensagemCheckout" class="hidden"></p>
-      <div id="pixBox" class="pix-box hidden">
-  <h3>Pagamento via PIX</h3>
-  <img id="pixQrCode" alt="QR Code PIX">
-  <textarea id="pixCopiaCola" readonly></textarea>
-  <button id="btnCopiarPix" class="af-btn-secondary" type="button">
-    Copiar código PIX
-  </button>
-</div>
+              <h2>
+                Escolha como pagar
+              </h2>
+
+              <p>
+                Selecione uma forma de pagamento para
+                continuar.
+              </p>
+            </div>
+
+            <span
+              class="checkout-card-icone"
+              aria-hidden="true"
+            >
+              💳
+            </span>
+          </header>
+
+          <fieldset class="checkout-pagamento">
+            <legend class="sr-only">
+              Forma de pagamento
+            </legend>
+
+            <label class="pagamento-opcao">
+              <input
+                type="radio"
+                name="formaPagamento"
+                value="pix"
+                checked
+              >
+
+              <span class="pagamento-opcao-icone">
+                ◈
+              </span>
+
+              <span class="pagamento-opcao-conteudo">
+                <strong>
+                  PIX
+                </strong>
+
+                <small>
+                  Pagamento rápido por QR Code ou código copia e cola.
+                </small>
+              </span>
+
+              <span class="pagamento-opcao-marcador"></span>
+            </label>
+
+            <label class="pagamento-opcao">
+              <input
+                type="radio"
+                name="formaPagamento"
+                value="cartao"
+              >
+
+              <span class="pagamento-opcao-icone">
+                💳
+              </span>
+
+              <span class="pagamento-opcao-conteudo">
+                <strong>
+                  Cartão de crédito
+                </strong>
+
+                <small>
+                  Informe os dados do cartão para processar a cobrança.
+                </small>
+              </span>
+
+              <span class="pagamento-opcao-marcador"></span>
+            </label>
+          </fieldset>
+
+          <section
+            id="cartaoCampos"
+            class="cartao-campos hidden"
+            aria-labelledby="tituloDadosCartao"
+          >
+            <div class="cartao-campos-titulo">
+              <span aria-hidden="true">
+                💳
+              </span>
+
+              <div>
+                <h3 id="tituloDadosCartao">
+                  Dados do cartão
+                </h3>
+
+                <p>
+                  Preencha os campos conforme aparecem no cartão.
+                </p>
+              </div>
+            </div>
+
+            <div class="cartao-formulario">
+              <div class="checkout-campo checkout-campo-largo">
+                <label for="nomeCartao">
+                  Nome impresso no cartão
+                </label>
+
+                <input
+                  id="nomeCartao"
+                  class="af-input"
+                  type="text"
+                  placeholder="Ex.: Maria da Silva"
+                  autocomplete="cc-name"
+                  maxlength="80"
+                >
+              </div>
+
+              <div class="checkout-campo checkout-campo-largo">
+                <label for="numeroCartao">
+                  Número do cartão
+                </label>
+
+                <input
+                  id="numeroCartao"
+                  class="af-input"
+                  type="text"
+                  placeholder="0000 0000 0000 0000"
+                  autocomplete="cc-number"
+                  inputmode="numeric"
+                  maxlength="23"
+                >
+              </div>
+
+              <div class="checkout-campo">
+                <label for="validadeCartao">
+                  Validade
+                </label>
+
+                <input
+                  id="validadeCartao"
+                  class="af-input"
+                  type="text"
+                  placeholder="MM/AA"
+                  autocomplete="cc-exp"
+                  inputmode="numeric"
+                  maxlength="5"
+                >
+              </div>
+
+              <div class="checkout-campo">
+                <label for="cvvCartao">
+                  CVV
+                </label>
+
+                <input
+                  id="cvvCartao"
+                  class="af-input"
+                  type="password"
+                  placeholder="123"
+                  autocomplete="cc-csc"
+                  inputmode="numeric"
+                  maxlength="4"
+                >
+              </div>
+            </div>
+          </section>
+
+          <div class="checkout-total">
+            <div>
+              <span>
+                Total da assinatura
+              </span>
+
+              <small>
+                Cobrança mensal
+              </small>
+            </div>
+
+            <strong id="checkoutTotal">
+              R$ 0,00
+            </strong>
+          </div>
+
+          <button
+            id="btnConfirmarCheckout"
+            class="af-btn-primary checkout-confirmar"
+            type="button"
+          >
+            <span aria-hidden="true">
+              🔒
+            </span>
+
+            Confirmar assinatura
+          </button>
+
+          <p
+            id="mensagemCheckout"
+            class="checkout-mensagem hidden"
+            role="status"
+            aria-live="polite"
+          ></p>
+
+          <section
+            id="pixBox"
+            class="pix-box hidden"
+            aria-labelledby="tituloPix"
+          >
+            <header class="pix-box-header">
+              <span
+                class="pix-box-icone"
+                aria-hidden="true"
+              >
+                ◈
+              </span>
+
+              <div>
+                <h3 id="tituloPix">
+                  Pagamento via PIX
+                </h3>
+
+                <p>
+                  Escaneie o QR Code ou copie o código abaixo.
+                </p>
+              </div>
+            </header>
+
+            <div class="pix-qr-container">
+              <img
+                id="pixQrCode"
+                alt="QR Code para pagamento via PIX"
+              >
+
+              <span>
+                Aguardando pagamento
+              </span>
+            </div>
+
+            <div class="pix-codigo">
+              <label for="pixCopiaCola">
+                Código PIX copia e cola
+              </label>
+
+              <textarea
+                id="pixCopiaCola"
+                readonly
+                aria-label="Código PIX copia e cola"
+              ></textarea>
+            </div>
+
+            <button
+              id="btnCopiarPix"
+              class="af-btn-secondary"
+              type="button"
+            >
+              <span aria-hidden="true">
+                📋
+              </span>
+
+              Copiar código PIX
+            </button>
+
+            <div class="pix-aviso">
+              <span aria-hidden="true">
+                ⏱️
+              </span>
+
+              <p>
+                A página verificará automaticamente quando
+                o pagamento for confirmado.
+              </p>
+            </div>
+          </section>
+
+          <footer class="checkout-card-footer">
+            <span aria-hidden="true">
+              🛡️
+            </span>
+
+            <p>
+              Não atualize ou feche a página depois de gerar
+              o pagamento.
+            </p>
+          </footer>
+        </article>
+      </section>
     </section>
+
+    <footer class="checkout-footer">
+      <p>
+        © 2026 Agenda Fashion
+      </p>
+
+      <a href="/html/minha-assinatura.html">
+        Minha assinatura
+      </a>
+    </footer>
   </main>
+
+  <nav
+    id="appNav"
+    class="app-bottom-nav"
+    aria-label="Navegação principal"
+  ></nav>
 
   <script src="../js/config.js"></script>
   <script src="../js/utils.js"></script>
   <script src="../js/api.js"></script>
+
+  <script src="../js/services/authService.js"></script>
+  <script src="../js/services/sessionGuard.js"></script>
+
+  <script src="../js/navegacao.js"></script>
   <script src="../js/checkout.js"></script>
 </body>
 </html>

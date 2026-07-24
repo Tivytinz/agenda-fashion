@@ -2,94 +2,372 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Agenda Fashion</title>
 
-  <link rel="stylesheet" href="../css/global.css">
-  <link rel="stylesheet" href="../css/inicio.css">
-  <link rel="stylesheet" href="../css/navegacao.css">
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+  >
+
+  <meta
+    name="description"
+    content="Encontre negócios e profissionais de beleza, consulte serviços e agende seu horário online pelo Agenda Fashion."
+  >
+
+  <meta
+    name="theme-color"
+    content="#e83e8c"
+  >
+
+  <title>
+    Agenda Fashion | Encontre e agende serviços de beleza
+  </title>
+
+  <link
+    rel="stylesheet"
+    href="../css/global.css"
+  >
+
+  <link
+    rel="stylesheet"
+    href="../css/inicio.css"
+  >
+
+  <link
+    rel="stylesheet"
+    href="../css/navegacao.css"
+  >
 </head>
 
 <body>
   <main class="inicio-page">
-
     <header class="inicio-header">
-      <div class="af-brand">
-        <div class="af-brand-icon">💅</div>
-        <div>
-          <div class="af-brand-title">Agenda Fashion</div>
-          <div class="af-brand-subtitle">Beleza agendada em poucos cliques</div>
+      <a
+        class="af-brand"
+        href="/html/inicio.html"
+        aria-label="Ir para o início do Agenda Fashion"
+      >
+        <div
+          class="af-brand-icon"
+          aria-hidden="true"
+        >
+          💅
         </div>
+
+        <div>
+          <div class="af-brand-title">
+            Agenda Fashion
+          </div>
+
+          <div class="af-brand-subtitle">
+            Beleza agendada em poucos cliques
+          </div>
+        </div>
+      </a>
+
+      <div class="inicio-header-acoes">
+        <a
+          class="inicio-link-profissional"
+          href="/html/cadastro-profissional.html"
+        >
+          Sou profissional
+        </a>
+
+        <a
+          class="af-btn-primary inicio-btn-entrar"
+          href="/html/login-cliente.html"
+        >
+          Entrar
+        </a>
       </div>
     </header>
 
-    <section class="af-hero inicio-hero">
-      <div class="af-hero-emoji">💅</div>
+    <section
+      class="af-hero inicio-hero"
+      aria-labelledby="inicioTitulo"
+    >
+      <div
+        class="af-hero-emoji"
+        aria-hidden="true"
+      >
+        ✨
+      </div>
 
       <div class="af-hero-content">
-        <span class="af-badge">Agendamento fácil</span>
+        <span class="af-badge">
+          <span aria-hidden="true">✦</span>
+          Agendamento simples e rápido
+        </span>
 
-        <h1 class="af-hero-title">
-          Encontre profissionais<br>
-          e agende seu horário
+        <h1
+          id="inicioTitulo"
+          class="af-hero-title"
+        >
+          Seu próximo horário de beleza começa aqui
         </h1>
 
         <p class="af-hero-text">
-          Descubra negócios de beleza perto de você e marque em poucos cliques.
+          Encontre negócios perto de você, compare serviços
+          e escolha o melhor horário sem precisar esperar
+          atendimento pelo WhatsApp.
         </p>
 
-        <div class="busca-box">
-          <span>🔎</span>
-          <input
-            type="text"
-            id="campoBusca"
-            placeholder="Buscar por nome, cidade ou área..."
+        <form
+          class="busca-box"
+          role="search"
+          onsubmit="return false"
+        >
+          <span
+            class="busca-icone"
+            aria-hidden="true"
           >
+            🔎
+          </span>
+
+          <label
+            class="sr-only"
+            for="campoBusca"
+          >
+            Buscar negócios e profissionais
+          </label>
+
+          <input
+            id="campoBusca"
+            name="busca"
+            type="search"
+            placeholder="Busque por nome, cidade, bairro ou serviço"
+            autocomplete="off"
+            autocapitalize="none"
+            spellcheck="false"
+            aria-describedby="buscaAjuda"
+          >
+
+          <span
+            id="buscaAjuda"
+            class="sr-only"
+          >
+            Os resultados são atualizados enquanto você digita.
+          </span>
+        </form>
+
+        <div
+          class="inicio-beneficios"
+          aria-label="Benefícios do Agenda Fashion"
+        >
+          <span>
+            <b aria-hidden="true">✓</b>
+            Agendamento online
+          </span>
+
+          <span>
+            <b aria-hidden="true">✓</b>
+            Horários atualizados
+          </span>
+
+          <span>
+            <b aria-hidden="true">✓</b>
+            Perfis perto de você
+          </span>
         </div>
       </div>
     </section>
 
-    <section class="resumo-cards">
-      <div class="resumo-card">
-        <strong id="totalNegocios">0</strong>
-        <span>negócios disponíveis</span>
-      </div>
+    <section
+      class="resumo-cards"
+      aria-label="Vantagens do Agenda Fashion"
+    >
+      <article class="resumo-card af-card">
+        <div
+          class="resumo-card-icone"
+          aria-hidden="true"
+        >
+          🏢
+        </div>
 
-      <div class="resumo-card">
-        <strong>📍</strong>
-        <span>ranking por proximidade</span>
-      </div>
+        <div>
+          <strong
+            id="totalNegocios"
+            aria-live="polite"
+          >
+            0
+          </strong>
 
-      <div class="resumo-card">
-        <strong>24h</strong>
-        <span>agenda online</span>
-      </div>
+          <span>
+            negócios disponíveis
+          </span>
+        </div>
+      </article>
+
+      <article class="resumo-card af-card">
+        <div
+          class="resumo-card-icone"
+          aria-hidden="true"
+        >
+          📍
+        </div>
+
+        <div>
+          <strong>
+            Perto de você
+          </strong>
+
+          <span>
+            resultados por proximidade
+          </span>
+        </div>
+      </article>
+
+      <article class="resumo-card af-card">
+        <div
+          class="resumo-card-icone"
+          aria-hidden="true"
+        >
+          📅
+        </div>
+
+        <div>
+          <strong>
+            24 horas
+          </strong>
+
+          <span>
+            agenda disponível online
+          </span>
+        </div>
+      </article>
     </section>
 
-    <section class="negocios-section">
+    <section
+      class="negocios-section"
+      aria-labelledby="tituloNegocios"
+    >
       <div class="section-topo">
-        <h2>Profissionais disponíveis</h2>
-        <p>Escolha um perfil para ver serviços e horários.</p>
+        <div>
+          <span class="section-etiqueta">
+            Explore
+          </span>
+
+          <h2 id="tituloNegocios">
+            Profissionais e negócios disponíveis
+          </h2>
+
+          <p>
+            Abra um perfil para conhecer os serviços,
+            profissionais, preços e horários disponíveis.
+          </p>
+        </div>
+
+        <a
+          class="af-btn-secondary section-link-negocios"
+          href="#listaNegocios"
+        >
+          Ver todos
+        </a>
       </div>
 
-      <div id="mensagemHome" class="mensagem-home hidden"></div>
+      <div
+        id="mensagemHome"
+        class="mensagem-home hidden"
+        role="alert"
+        aria-live="assertive"
+      ></div>
 
-      <div id="listaNegocios" class="grid-negocios"></div>
+      <div
+        id="listaNegocios"
+        class="grid-negocios"
+        aria-live="polite"
+        aria-busy="true"
+      >
+        <div class="estado-vazio">
+          <span class="af-loading">
+            <span
+              class="af-spinner"
+              aria-hidden="true"
+            ></span>
+
+            Carregando profissionais...
+          </span>
+        </div>
+      </div>
     </section>
 
+    <section
+      class="inicio-cta-profissional af-card"
+      aria-labelledby="tituloCtaProfissional"
+    >
+      <div class="inicio-cta-icone" aria-hidden="true">
+        🚀
+      </div>
+
+      <div class="inicio-cta-conteudo">
+        <span class="section-etiqueta">
+          Para profissionais
+        </span>
+
+        <h2 id="tituloCtaProfissional">
+          Transforme seguidores em clientes agendados
+        </h2>
+
+        <p>
+          Crie seu perfil, organize seus horários e permita
+          que clientes agendem serviços mesmo quando você
+          estiver ocupada.
+        </p>
+      </div>
+
+      <div class="inicio-cta-acoes">
+        <a
+          class="af-btn-primary"
+          href="/html/cadastro-profissional.html"
+        >
+          Criar conta profissional
+        </a>
+
+        <a
+          class="af-btn-secondary"
+          href="/html/planos.html"
+        >
+          Conhecer os planos
+        </a>
+      </div>
+    </section>
+
+    <footer class="inicio-footer">
+      <div class="af-brand inicio-footer-marca">
+        <div
+          class="af-brand-icon"
+          aria-hidden="true"
+        >
+          💅
+        </div>
+
+        <div>
+          <div class="af-brand-title">
+            Agenda Fashion
+          </div>
+
+          <div class="af-brand-subtitle">
+            Sua beleza, no seu horário
+          </div>
+        </div>
+      </div>
+
+      <p>
+        Encontre, escolha e agende com praticidade.
+      </p>
+    </footer>
   </main>
 
-<nav
-  id="appNav"
-  class="app-bottom-nav"
-  aria-label="Navegação principal"
-></nav>
+  <nav
+    id="appNav"
+    class="app-bottom-nav"
+    aria-label="Navegação principal"
+  ></nav>
 
-<script src="../js/config.js"></script>
-<script src="../js/utils.js"></script>
-<script src="../js/api.js"></script>
-<script src="../js/services/authService.js"></script>
-<script src="../js/navegacao.js"></script>
-<script src="../js/inicio.js"></script>
+  <script src="../js/config.js"></script>
+  <script src="../js/utils.js"></script>
+  <script src="../js/api.js"></script>
+  <script src="../js/services/authService.js"></script>
+  <script src="../js/navegacao.js"></script>
+  <script src="../js/inicio.js"></script>
 </body>
 </html>
