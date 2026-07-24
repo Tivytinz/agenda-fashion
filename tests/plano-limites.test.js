@@ -1,0 +1,109 @@
+jest.mock("../src/db/db", () => ({
+  query: jest.fn(),
+}));
+
+const planoService = require("../src/services/planoService");
+
+function criarPlano({
+  capacidade = 10,
+  utilizados = 0,
+} = {}) {
+  return {
+    negocio_id: 1,
+    negocio_nome: "Negócio Teste",
+    plano_id: 1,
+    plano_nome: "Grátis",
+    plano_slug: "inicial",
+    valor: "0.00",
+    capacidade_agendamentos: capacidade,
+    limite_profissionais: 1,
+    limite_servicos: 2,
+    destaque: false,
+    utilizados,
+    profissionais_utilizados: 1,
+    servicos_utilizados: 1,
+  };
+}
+
+describe("Limites dos planos", () => {
+  test.each([
+    [8, "alerta_capacidade"],
+    [9, "upgrade_recomendado"],
+    [10, "limite_atingido"],
+  ])(
+    "%i de 10 agendamentos retorna %s",
+    async (utilizados, statusEsperado) => {
+      const executor = {
+        query: jest.fn().mockResolvedValue({
+          rows: [criarPlano({ utilizados })],
+        }),
+      };
+
+      const uso = await planoService.buscarUsoPlano(
+        1,
+        executor,
+        "2026-07-20"
+      );
+
+      expect(uso.status).toBe(statusEsperado);
+      expect(uso.utilizados).toBe(utilizados);
+      expect(executor.query).toHaveBeenCalledWith(
+        expect.stringContaining("COALESCE($2::date, CURRENT_DATE)"),
+        [1, "2026-07-20"]
+      );
+    }
+  );
+
+  test("plano Salão aceita agendamentos ilimitados", async () => {
+    const executor = {
+      query: jest.fn().mockResolvedValue({
+        rows: [
+          criarPlano({
+            capacidade: null,
+            utilizados: 500,
+          }),
+        ],
+      }),
+    };
+
+    const uso = await planoService.verificarCapacidadePlano(
+      1,
+      executor
+    );
+
+    expect(uso.ilimitado).toBe(true);
+    expect(uso.status).toBe("ilimitado");
+  });
+
+  test("bloqueia atomicamente quando a capacidade foi atingida", async () => {
+    const executor = {
+      query: jest
+        .fn()
+        .mockResolvedValueOnce({ rows: [] })
+        .mockResolvedValueOnce({
+          rows: [criarPlano({ utilizados: 10 })],
+        }),
+    };
+
+    await expect(
+      planoService.verificarCapacidadePlano(
+        1,
+        executor,
+        {
+          bloquear: true,
+          dataReferencia: "2026-07-20",
+        }
+      )
+    ).rejects.toMatchObject({
+      statusCode: 409,
+      codigo: "LIMITE_AGENDAMENTOS",
+      message: "Novos horários em breve.",
+    });
+
+    expect(executor.query).toHaveBeenNthCalledWith(
+      1,
+      expect.stringContaining("pg_advisory_xact_lock"),
+      [1]
+    );
+  });
+});

@@ -1,5 +1,51 @@
 const db = require("../db/db");
 
+async function bloquearCadastroServico(client, negocioId) {
+  await client.query(
+    `
+    SELECT pg_advisory_xact_lock(
+      hashtext('agenda_fashion_limite_servicos'),
+      $1::integer
+    )
+    `,
+    [Number(negocioId)]
+  );
+}
+
+async function buscarPlanoDoNegocio(negocioId, executor = db) {
+  const result = await executor.query(
+    `
+    SELECT
+      p.id,
+      p.nome,
+      p.slug,
+      p.limite_servicos
+    FROM negocios n
+    INNER JOIN planos p
+      ON p.id = n.plano_id
+    WHERE n.id = $1
+    LIMIT 1
+    `,
+    [negocioId]
+  );
+
+  return result.rows[0] || null;
+}
+
+async function contarServicosAtivos(negocioId, executor = db) {
+  const result = await executor.query(
+    `
+    SELECT COUNT(*)::int AS total
+    FROM servicos_negocio
+    WHERE negocio_id = $1
+      AND ativo = TRUE
+    `,
+    [negocioId]
+  );
+
+  return Number(result.rows[0]?.total || 0);
+}
+
 async function buscarNegocioUsuario(usuarioId) {
   const result = await db.query(
     `
@@ -58,8 +104,11 @@ async function listarServicos(negocioId) {
   return result.rows;
 }
 
-async function criarServico({ negocioId, nome, valor, duracaoMinutos }) {
-  const result = await db.query(
+async function criarServico(
+  { negocioId, nome, valor, duracaoMinutos },
+  executor = db
+) {
+  const result = await executor.query(
     `
     INSERT INTO servicos_negocio (
       negocio_id, nome, valor, duracao_minutos, ativo, created_at
@@ -161,6 +210,9 @@ async function removerFotoGaleriaServico({ fotoId, negocioId }) {
 }
 
 module.exports = {
+  bloquearCadastroServico,
+  buscarPlanoDoNegocio,
+  contarServicosAtivos,
   buscarNegocioUsuario,
   buscarNegocioDono,
   buscarServicoDoNegocio,

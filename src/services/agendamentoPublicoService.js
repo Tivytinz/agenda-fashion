@@ -16,6 +16,10 @@ const notificationService = require(
   "./notificationService"
 );
 
+const planoService = require(
+  "./planoService"
+);
+
 const ANTECEDENCIA_CANCELAMENTO_PADRAO = 24;
 
 function criarErro(
@@ -795,6 +799,21 @@ async function criarAgendamento({
   const agendamento =
     await db.executarTransacao(
       async (client) => {
+        /*
+         * Serializa o consumo mensal do negócio e valida
+         * o limite na mesma transação do INSERT.
+         */
+        await planoService
+          .verificarCapacidadePlano(
+            negocioIdNormalizado,
+            client,
+            {
+              bloquear: true,
+              dataReferencia:
+                data,
+            }
+          );
+
         /*
          * Bloqueio por profissional e data.
          * Evita duas reservas simultâneas
