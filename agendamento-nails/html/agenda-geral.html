@@ -2,129 +2,479 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  <title>Agenda Geral</title>
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+  >
 
-  <link rel="stylesheet" href="../css/global.css">
-  <link rel="stylesheet" href="../css/navegacao.css">
-  <link rel="stylesheet" href="../css/agenda-geral.css">
+  <meta
+    name="description"
+    content="Acompanhe a agenda de todos os profissionais do seu negócio no Agenda Fashion."
+  >
+
+  <meta
+    name="theme-color"
+    content="#e83e8c"
+  >
+
+  <title>
+    Agenda geral | Agenda Fashion
+  </title>
+
+  <link
+    rel="stylesheet"
+    href="../css/global.css"
+  >
+
+  <link
+    rel="stylesheet"
+    href="../css/navegacao.css"
+  >
+
+  <link
+    rel="stylesheet"
+    href="../css/agenda-geral.css"
+  >
 </head>
 
 <body>
-
   <main class="agenda-geral-page">
+    <header class="agenda-geral-header">
+      <a
+        href="/html/inicio.html"
+        class="agenda-geral-brand"
+        aria-label="Ir para o início do Agenda Fashion"
+      >
+        <span
+          class="af-brand-icon"
+          aria-hidden="true"
+        >
+          💅
+        </span>
 
-    <header class="agenda-geral-header af-card">
-      <div class="af-brand">
-        <div class="af-brand-icon">💅</div>
+        <span class="agenda-geral-brand-texto">
+          <strong>
+            Agenda Fashion
+          </strong>
 
-        <div>
-          <div class="af-brand-title">Agenda Fashion</div>
-          <div class="af-brand-subtitle">Agenda geral do negócio</div>
+          <small>
+            Gestão do negócio
+          </small>
+        </span>
+      </a>
+
+      <div class="agenda-geral-header-acoes">
+        <a
+          href="/html/configuracao-agenda.html"
+          class="btn-configurar-agenda"
+        >
+          <span aria-hidden="true">
+            ⚙️
+          </span>
+
+          Configurar agenda
+        </a>
+
+        <button
+          id="btnHoje"
+          class="btn-topo"
+          type="button"
+        >
+          <span aria-hidden="true">
+            📅
+          </span>
+
+          Ir para hoje
+        </button>
+      </div>
+    </header>
+
+    <section
+      class="agenda-geral-hero"
+      aria-labelledby="tituloAgendaGeral"
+    >
+      <div class="agenda-geral-hero-conteudo">
+        <span class="agenda-geral-etiqueta">
+          Visão do dono
+        </span>
+
+        <h1 id="tituloAgendaGeral">
+          Toda a equipe em uma única agenda
+        </h1>
+
+        <p>
+          Acompanhe os horários livres, bloqueados e agendados
+          de todos os profissionais do seu negócio.
+        </p>
+
+        <div class="agenda-geral-hero-beneficios">
+          <span>
+            <b aria-hidden="true">
+              ✓
+            </b>
+
+            Visão completa da equipe
+          </span>
+
+          <span>
+            <b aria-hidden="true">
+              ✓
+            </b>
+
+            Filtros por profissional
+          </span>
+
+          <span>
+            <b aria-hidden="true">
+              ✓
+            </b>
+
+            Bloqueio rápido de horários
+          </span>
         </div>
       </div>
 
-      <button id="btnHoje" class="btn-topo" type="button">
-        Hoje
-      </button>
-    </header>
+      <div
+        class="agenda-geral-hero-ilustracao"
+        aria-hidden="true"
+      >
+        <div class="hero-calendario">
+          <span class="hero-calendario-topo">
+            Agenda da equipe
+          </span>
 
-    <section class="af-hero agenda-geral-hero">
-      <div class="af-hero-emoji">💅</div>
+          <div class="hero-calendario-linhas">
+            <span></span>
+            <span></span>
+            <span class="ocupado"></span>
+            <span></span>
+            <span class="bloqueado"></span>
+            <span></span>
+          </div>
+        </div>
+      </div>
+    </section>
 
-      <div class="af-hero-content">
-        <span class="af-badge">Visão do dono</span>
+    <section
+      class="resumo-agenda"
+      aria-label="Resumo da agenda selecionada"
+    >
+      <article class="resumo-card">
+        <div class="resumo-card-topo">
+          <span
+            class="resumo-card-icone agendados"
+            aria-hidden="true"
+          >
+            📅
+          </span>
 
-        <h1 class="af-hero-title">
-          Acompanhe todos os profissionais em uma só agenda
-        </h1>
+          <small>
+            Reservados
+          </small>
+        </div>
 
-        <p class="af-hero-text">
-          Veja horários livres, bloqueados e agendados de toda a equipe.
+        <strong id="totalAgendados">
+          0
+        </strong>
+
+        <span class="resumo-card-titulo">
+          Horários agendados
+        </span>
+
+        <p>
+          Atendimentos confirmados para o dia selecionado.
         </p>
-      </div>
-    </section>
-
-    <section class="resumo-agenda">
-      <article class="af-card resumo-card">
-        <span>📅</span>
-        <strong id="totalAgendados">0</strong>
-        <small>Agendados</small>
       </article>
 
-      <article class="af-card resumo-card">
-        <span>🟢</span>
-        <strong id="totalLivres">0</strong>
-        <small>Livres</small>
+      <article class="resumo-card">
+        <div class="resumo-card-topo">
+          <span
+            class="resumo-card-icone livres"
+            aria-hidden="true"
+          >
+            ✓
+          </span>
+
+          <small>
+            Disponíveis
+          </small>
+        </div>
+
+        <strong id="totalLivres">
+          0
+        </strong>
+
+        <span class="resumo-card-titulo">
+          Horários livres
+        </span>
+
+        <p>
+          Espaços que ainda podem receber agendamentos.
+        </p>
       </article>
 
-      <article class="af-card resumo-card">
-        <span>🔒</span>
-        <strong id="totalBloqueados">0</strong>
-        <small>Bloqueados</small>
+      <article class="resumo-card">
+        <div class="resumo-card-topo">
+          <span
+            class="resumo-card-icone bloqueados"
+            aria-hidden="true"
+          >
+            🔒
+          </span>
+
+          <small>
+            Indisponíveis
+          </small>
+        </div>
+
+        <strong id="totalBloqueados">
+          0
+        </strong>
+
+        <span class="resumo-card-titulo">
+          Horários bloqueados
+        </span>
+
+        <p>
+          Períodos removidos da disponibilidade da equipe.
+        </p>
       </article>
     </section>
 
-    <section class="controles-agenda af-card">
-      <div class="campo-filtro">
-        <label for="filtroProfissional">Profissional</label>
-        <select id="filtroProfissional">
-          <option value="todos">Todos</option>
-        </select>
-      </div>
+    <section
+      class="controles-agenda"
+      aria-labelledby="tituloFiltrosAgenda"
+    >
+      <header class="controles-agenda-header">
+        <div>
+          <span class="agenda-geral-etiqueta">
+            Filtros
+          </span>
 
-      <div class="campo-filtro">
-        <label for="filtroStatus">Status</label>
-        <select id="filtroStatus">
-          <option value="todos">Todos</option>
-          <option value="agendado">Agendados</option>
-          <option value="livre">Livres</option>
-          <option value="bloqueado">Bloqueados</option>
-        </select>
+          <h2 id="tituloFiltrosAgenda">
+            Encontre o horário que procura
+          </h2>
+
+          <p>
+            Escolha um profissional e um status para reduzir
+            os resultados exibidos.
+          </p>
+        </div>
+
+        <button
+          id="btnLimparFiltros"
+          class="btn-limpar-filtros"
+          type="button"
+        >
+          Limpar filtros
+        </button>
+      </header>
+
+      <div class="controles-agenda-campos">
+        <label class="campo-filtro">
+          <span class="campo-filtro-label">
+            <i aria-hidden="true">
+              👤
+            </i>
+
+            Profissional
+          </span>
+
+          <select id="filtroProfissional">
+            <option value="todos">
+              Todos os profissionais
+            </option>
+          </select>
+        </label>
+
+        <label class="campo-filtro">
+          <span class="campo-filtro-label">
+            <i aria-hidden="true">
+              ◉
+            </i>
+
+            Status do horário
+          </span>
+
+          <select id="filtroStatus">
+            <option value="todos">
+              Todos os status
+            </option>
+
+            <option value="agendado">
+              Agendados
+            </option>
+
+            <option value="livre">
+              Livres
+            </option>
+
+            <option value="bloqueado">
+              Bloqueados
+            </option>
+          </select>
+        </label>
       </div>
     </section>
 
-    <section id="diasAgenda" class="dias-scroll"></section>
+    <section
+      class="agenda-dias"
+      aria-labelledby="tituloDiasAgenda"
+    >
+      <header class="agenda-dias-header">
+        <div>
+          <span class="agenda-geral-etiqueta">
+            Período
+          </span>
 
-    <section class="agenda-legenda">
-      <div class="legenda-item">
-        <span class="dot livre"></span>
-        <span>Livre</span>
-      </div>
+          <h2 id="tituloDiasAgenda">
+            Selecione um dia
+          </h2>
+        </div>
 
-      <div class="legenda-item">
-        <span class="dot bloqueado"></span>
-        <span>Bloqueado</span>
-      </div>
+        <p>
+          Arraste para os lados para visualizar mais datas.
+        </p>
+      </header>
 
-      <div class="legenda-item">
-        <span class="dot ocupado"></span>
-        <span>Agendado</span>
+      <div
+        id="diasAgenda"
+        class="dias-scroll"
+        role="tablist"
+        aria-label="Dias disponíveis na agenda"
+      ></div>
+    </section>
+
+    <section
+      class="agenda-conteudo"
+      aria-labelledby="tituloEquipeAgenda"
+    >
+      <header class="agenda-conteudo-header">
+        <div>
+          <span class="agenda-geral-etiqueta">
+            Equipe
+          </span>
+
+          <h2 id="tituloEquipeAgenda">
+            Agenda dos profissionais
+          </h2>
+
+          <p>
+            Clique em um horário livre ou bloqueado para alterar
+            sua disponibilidade.
+          </p>
+        </div>
+
+        <div
+          class="agenda-legenda"
+          aria-label="Legenda dos horários"
+        >
+          <span class="legenda-item">
+            <i class="dot livre"></i>
+            Livre
+          </span>
+
+          <span class="legenda-item">
+            <i class="dot bloqueado"></i>
+            Bloqueado
+          </span>
+
+          <span class="legenda-item">
+            <i class="dot ocupado"></i>
+            Agendado
+          </span>
+        </div>
+      </header>
+
+      <div
+        id="listaAgendaGeral"
+        class="lista-agenda-geral"
+        aria-live="polite"
+      >
+        <div class="estado-vazio">
+          <span
+            class="estado-vazio-icone"
+            aria-hidden="true"
+          >
+            ⏳
+          </span>
+
+          <strong>
+            Carregando agenda geral
+          </strong>
+
+          <p>
+            Aguarde enquanto buscamos os horários da equipe.
+          </p>
+        </div>
       </div>
     </section>
 
-    
+    <section
+      class="notificacoes-agenda"
+      aria-labelledby="tituloNotificacoesAgenda"
+    >
+      <header class="notificacoes-agenda-header">
+        <div>
+          <span class="agenda-geral-etiqueta">
+            Atualizações
+          </span>
 
-    <section id="listaAgendaGeral" class="lista-agenda-geral">
-      <div class="estado-vazio">
-        Carregando agenda geral...
+          <h2 id="tituloNotificacoesAgenda">
+            Notificações recentes
+          </h2>
+
+          <p>
+            Acompanhe novos agendamentos e outras movimentações
+            importantes do negócio.
+          </p>
+        </div>
+
+        <span
+          class="notificacoes-agenda-icone"
+          aria-hidden="true"
+        >
+          🔔
+        </span>
+      </header>
+
+      <div
+        id="listaNotificacoes"
+        class="lista-notificacoes"
+        aria-live="polite"
+      >
+        <div class="estado-vazio estado-vazio-compacto">
+          Carregando notificações...
+        </div>
       </div>
     </section>
 
+    <footer class="agenda-geral-footer">
+      <p>
+        Os dados exibidos são atualizados conforme a agenda da equipe.
+      </p>
+
+      <a href="/html/inicio.html">
+        Voltar para o início
+      </a>
+    </footer>
   </main>
 
-  <nav id="appNav" class="app-bottom-nav"></nav>
+  <nav
+    id="appNav"
+    class="app-bottom-nav"
+    aria-label="Navegação principal"
+  ></nav>
+
   <script src="../js/config.js"></script>
   <script src="../js/utils.js"></script>
   <script src="../js/api.js"></script>
+
+  <script src="../js/services/authService.js"></script>
+  <script src="../js/services/sessionGuard.js"></script>
+
+  <script src="../js/navegacao.js"></script>
   <script src="../js/agenda-geral.js"></script>
-<nav
-  id="appNav"
-  class="app-bottom-nav"
-></nav>
-
-<script src="../js/navegacao.js"></script>
-
 </body>
 </html>

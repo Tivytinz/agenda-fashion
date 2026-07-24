@@ -2,6 +2,10 @@ const agendaPublicaService = require(
   "../services/agendamentoPublicoService"
 );
 
+const planoService = require(
+  "../services/planoService"
+);
+
 function statusErro(erro) {
   return (
     erro?.statusCode ||
@@ -66,11 +70,64 @@ async function buscarAgendaPublica(
             servico.duracao_minutos,
         });
 
+    const usosPorMes =
+      new Map();
+
+    const disponibilidadeDoPlano = [];
+
+    for (const dia of disponibilidade) {
+      const chaveMes =
+        String(dia?.data || "")
+          .slice(0, 7);
+
+      if (!usosPorMes.has(chaveMes)) {
+        usosPorMes.set(
+          chaveMes,
+          await planoService
+            .buscarUsoPlano(
+              negocio.id,
+              undefined,
+              dia.data
+            )
+        );
+      }
+
+      const usoPlano =
+        usosPorMes.get(chaveMes);
+
+      const mesDisponivel =
+        !usoPlano ||
+        usoPlano.ilimitado ||
+        usoPlano.utilizados <
+          Number(
+            usoPlano
+              .capacidade_agendamentos ||
+            0
+          );
+
+      if (mesDisponivel) {
+        disponibilidadeDoPlano.push(
+          dia
+        );
+      }
+    }
+
+    const agendaIndisponivel =
+      disponibilidade.length > 0 &&
+      disponibilidadeDoPlano.length === 0;
+
     return res.json({
       negocio,
       servico,
       profissional,
-      disponibilidade,
+      disponibilidade:
+        disponibilidadeDoPlano,
+      agenda_indisponivel:
+        agendaIndisponivel,
+      mensagem:
+        agendaIndisponivel
+          ? "Novos horários em breve."
+          : undefined,
     });
   } catch (erro) {
     return res

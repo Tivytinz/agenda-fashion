@@ -39,7 +39,7 @@ async function buscarHorarioDisponivel() {
         `/perfil-negocio/${SLUG_NEGOCIO}`
       );
 
-  expect(
+      expect(
     perfil.statusCode
   ).toBe(200);
 
@@ -84,7 +84,6 @@ async function buscarHorarioDisponivel() {
         profissionalId:
           profissional.id,
       });
-
   expect(
     agenda.statusCode
   ).toBe(200);

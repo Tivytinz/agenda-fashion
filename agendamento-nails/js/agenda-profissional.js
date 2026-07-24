@@ -1,6 +1,138 @@
 document.addEventListener(
   "DOMContentLoaded",
   async () => {
+    const elementos = {
+      btnSair:
+        document.getElementById(
+          "btnSair"
+        ),
+
+      btnDashboard:
+        document.getElementById(
+          "btnDashboard"
+        ),
+
+      mensagemPainel:
+        document.getElementById(
+          "mensagemPainel"
+        ),
+
+      nomeNegocioAtual:
+        document.getElementById(
+          "nomeNegocioAtual"
+        ),
+
+      slugNegocioAtual:
+        document.getElementById(
+          "slugNegocioAtual"
+        ),
+
+      nomeProfissionalAtual:
+        document.getElementById(
+          "nomeProfissionalAtual"
+        ),
+
+      btnPerfilPublico:
+        document.getElementById(
+          "btnPerfilPublico"
+        ),
+
+      totalAgendados:
+        document.getElementById(
+          "totalAgendados"
+        ),
+
+      totalRecorrentes:
+        document.getElementById(
+          "totalRecorrentes"
+        ),
+
+      totalNovos:
+        document.getElementById(
+          "totalNovos"
+        ),
+
+      totalHoje:
+        document.getElementById(
+          "totalHoje"
+        ),
+
+      diaAgendaTexto:
+        document.getElementById(
+          "diaAgendaTexto"
+        ),
+
+      abasDias:
+        document.getElementById(
+          "abasDias"
+        ),
+
+      agendaVisual:
+        document.getElementById(
+          "agendaVisual"
+        ),
+
+      qtdLivres:
+        document.getElementById(
+          "qtdLivres"
+        ),
+
+      qtdBloqueados:
+        document.getElementById(
+          "qtdBloqueados"
+        ),
+
+      qtdAgendados:
+        document.getElementById(
+          "qtdAgendados"
+        ),
+    };
+
+    const elementosObrigatorios = [
+      elementos.mensagemPainel,
+      elementos.nomeNegocioAtual,
+      elementos.slugNegocioAtual,
+      elementos.nomeProfissionalAtual,
+      elementos.totalAgendados,
+      elementos.totalRecorrentes,
+      elementos.totalNovos,
+      elementos.totalHoje,
+      elementos.diaAgendaTexto,
+      elementos.abasDias,
+      elementos.agendaVisual,
+      elementos.qtdLivres,
+      elementos.qtdBloqueados,
+      elementos.qtdAgendados,
+    ];
+
+    if (
+      elementosObrigatorios.some(
+        (elemento) => !elemento
+      )
+    ) {
+      console.error(
+        "A estrutura necessária da agenda profissional não foi encontrada."
+      );
+
+      return;
+    }
+
+    const estado = {
+      agenda: [],
+      diaSelecionado: null,
+      negocioAtual: null,
+      configuracaoAgenda: null,
+      carregandoAgenda: false,
+      alterandoHorario: false,
+      mensagemTimer: null,
+    };
+
+    /*
+     * =====================================================
+     * SERVIÇOS OBRIGATÓRIOS
+     * =====================================================
+     */
+
     if (
       !window.SessionGuard ||
       typeof window.SessionGuard
@@ -17,6 +149,27 @@ document.addEventListener(
 
       return;
     }
+
+    if (
+      !window.API ||
+      typeof window.API.get !==
+        "function" ||
+      typeof window.API.post !==
+        "function"
+    ) {
+      mostrarMensagem(
+        "O serviço da API não foi carregado.",
+        "erro"
+      );
+
+      return;
+    }
+
+    /*
+     * =====================================================
+     * SESSÃO
+     * =====================================================
+     */
 
     let contexto;
 
@@ -39,31 +192,15 @@ document.addEventListener(
         erro
       );
 
-      const mensagem =
-        document.getElementById(
-          "mensagemPainel"
-        );
-
-      if (mensagem) {
-        mensagem.textContent =
-          erro?.message ||
-          "Não foi possível validar sua sessão.";
-
-        mensagem.dataset.tipo =
-          "erro";
-
-        mensagem.classList.remove(
-          "oculto"
-        );
-      }
+      mostrarMensagem(
+        erro?.message ||
+          "Não foi possível validar sua sessão.",
+        "erro"
+      );
 
       return;
     }
 
-    /*
-     * O guard já realizou qualquer
-     * redirecionamento necessário.
-     */
     if (!contexto) {
       return;
     }
@@ -75,113 +212,194 @@ document.addEventListener(
       contexto.negocio;
 
     const token =
-      window.AuthService
-        .getToken();
+      window.AuthService &&
+      typeof window.AuthService
+        .getToken === "function"
+        ? window.AuthService
+            .getToken()
+        : localStorage.getItem(
+            "token"
+          );
 
     if (
       !usuario?.id ||
       !negocioDaSessao?.id ||
       !token
     ) {
-      window.AuthService
-        .limparSessao();
-
-      window.location.replace(
-        "/html/login-profissional.html"
-      );
+      redirecionarLogin();
 
       return;
     }
 
-    const btnSair =
-      document.getElementById(
-        "btnSair"
+    const formatadorMoeda =
+      new Intl.NumberFormat(
+        "pt-BR",
+        {
+          style: "currency",
+          currency: "BRL",
+        }
       );
 
-    const btnDashboard =
-      document.getElementById(
-        "btnDashboard"
+    /*
+     * =====================================================
+     * UTILITÁRIOS
+     * =====================================================
+     */
+
+    function normalizarTexto(
+      valor
+    ) {
+      return String(
+        valor ?? ""
+      ).trim();
+    }
+
+    function normalizarStatus(
+      valor
+    ) {
+      return normalizarTexto(
+        valor
+      ).toLowerCase();
+    }
+
+    function criarElemento(
+      tag,
+      classe = "",
+      texto = null
+    ) {
+      const elemento =
+        document.createElement(
+          tag
+        );
+
+      if (classe) {
+        elemento.className =
+          classe;
+      }
+
+      if (
+        texto !== null &&
+        texto !== undefined
+      ) {
+        elemento.textContent =
+          String(texto);
+      }
+
+      return elemento;
+    }
+
+    function limparSessao() {
+      if (
+        window.AuthService &&
+        typeof window.AuthService
+          .limparSessao ===
+          "function"
+      ) {
+        window.AuthService
+          .limparSessao();
+
+        return;
+      }
+
+      localStorage.removeItem(
+        "token"
       );
 
-    const mensagemPainel =
-      document.getElementById(
-        "mensagemPainel"
+      localStorage.removeItem(
+        "usuario"
       );
 
-    const nomeNegocioAtual =
-      document.getElementById(
-        "nomeNegocioAtual"
+      localStorage.removeItem(
+        "negocio"
+      );
+    }
+
+    function redirecionarLogin() {
+      limparSessao();
+
+      window.location.replace(
+        "/html/login-profissional.html"
+      );
+    }
+
+    function tratarErroSessao(
+      erro
+    ) {
+      if (
+        erro?.status !== 401 &&
+        erro?.status !== 403
+      ) {
+        return false;
+      }
+
+      redirecionarLogin();
+
+      return true;
+    }
+
+    /*
+     * =====================================================
+     * MENSAGENS
+     * =====================================================
+     */
+
+    function esconderMensagem() {
+      window.clearTimeout(
+        estado.mensagemTimer
       );
 
-    const slugNegocioAtual =
-      document.getElementById(
-        "slugNegocioAtual"
+      elementos.mensagemPainel
+        .textContent = "";
+
+      elementos.mensagemPainel
+        .classList.add(
+          "oculto"
+        );
+
+      delete elementos
+        .mensagemPainel
+        .dataset.tipo;
+    }
+
+    function mostrarMensagem(
+      texto,
+      tipo = "erro",
+      ocultarDepois = 0
+    ) {
+      window.clearTimeout(
+        estado.mensagemTimer
       );
 
-    const nomeProfissionalAtual =
-      document.getElementById(
-        "nomeProfissionalAtual"
-      );
+      elementos.mensagemPainel
+        .textContent =
+          normalizarTexto(texto) ||
+          "Ocorreu um erro.";
 
-    const btnPerfilPublico =
-      document.getElementById(
-        "btnPerfilPublico"
-      );
+      elementos.mensagemPainel
+        .dataset.tipo =
+          tipo;
 
-    const totalAgendados =
-      document.getElementById(
-        "totalAgendados"
-      );
+      elementos.mensagemPainel
+        .classList.remove(
+          "oculto"
+        );
 
-    const totalRecorrentes =
-      document.getElementById(
-        "totalRecorrentes"
-      );
+      if (
+        ocultarDepois > 0
+      ) {
+        estado.mensagemTimer =
+          window.setTimeout(
+            esconderMensagem,
+            ocultarDepois
+          );
+      }
+    }
 
-    const totalNovos =
-      document.getElementById(
-        "totalNovos"
-      );
-
-    const totalHoje =
-      document.getElementById(
-        "totalHoje"
-      );
-
-    const diaAgendaTexto =
-      document.getElementById(
-        "diaAgendaTexto"
-      );
-
-    const abasDias =
-      document.getElementById(
-        "abasDias"
-      );
-
-    const agendaVisual =
-      document.getElementById(
-        "agendaVisual"
-      );
-
-    const qtdLivres =
-      document.getElementById(
-        "qtdLivres"
-      );
-
-    const qtdBloqueados =
-      document.getElementById(
-        "qtdBloqueados"
-      );
-
-    const qtdAgendados =
-      document.getElementById(
-        "qtdAgendados"
-      );
-
-    let agenda = [];
-    let diaSelecionado = null;
-    let negocioAtual = null;
-    let configuracaoAgenda = null;
+    /*
+     * =====================================================
+     * DATAS
+     * =====================================================
+     */
 
     function obterDataHojeBrasil() {
       const partes =
@@ -204,7 +422,7 @@ document.addEventListener(
           partes.find(
             (parte) =>
               parte.type === tipo
-          )?.value;
+          )?.value || "";
 
       return (
         `${obterParte("year")}-` +
@@ -213,147 +431,51 @@ document.addEventListener(
       );
     }
 
-    function mostrarMensagem(
-      texto,
-      tipo = "erro"
-    ) {
-      if (!mensagemPainel) {
-        return;
-      }
-
-      mensagemPainel.textContent =
-        texto;
-
-      mensagemPainel.dataset.tipo =
-        tipo;
-
-      mensagemPainel.style.color =
-        tipo === "sucesso"
-          ? "#237a48"
-          : "#c62839";
-
-      mensagemPainel.style.background =
-        tipo === "sucesso"
-          ? "#e8f8ef"
-          : "#ffe5e8";
-
-      mensagemPainel.classList.remove(
-        "oculto"
-      );
-    }
-
-    function esconderMensagem() {
-      if (!mensagemPainel) {
-        return;
-      }
-
-      mensagemPainel.textContent =
-        "";
-
-      mensagemPainel.classList.add(
-        "oculto"
-      );
-    }
-
-    function limparSessao() {
-  if (
-    window.AuthService &&
-    typeof window.AuthService
-      .limparSessao === "function"
-  ) {
-    window.AuthService
-      .limparSessao();
-
-    return;
-  }
-
-  localStorage.removeItem(
-    "token"
-  );
-
-  localStorage.removeItem(
-    "usuario"
-  );
-
-  localStorage.removeItem(
-    "negocio"
-  );
-}
-
-function redirecionarLogin() {
-  limparSessao();
-
-  window.location.replace(
-    "/html/login-profissional.html"
-  );
-}
-
-    async function requisicaoAutenticada(
-      caminho,
-      opcoes = {}
-    ) {
-      const headers = {
-        ...(opcoes.headers || {}),
-        Authorization:
-          `Bearer ${token}`,
-      };
-
-      const resposta =
-        await fetch(
-          `${API_URL}${caminho}`,
-          {
-            ...opcoes,
-            headers,
-          }
-        );
-
-      if (
-         resposta.status === 401 ||
-         resposta.status === 403
-        ) {
-        redirecionarLogin();
-
-        throw new Error(
-          "Sessão expirada."
-        );
-      }
-
-      return resposta;
-    }
-
-    function formatarMoeda(
-      valor
-    ) {
-      return Number(
-        valor || 0
-      ).toLocaleString(
-        "pt-BR",
-        {
-          style: "currency",
-          currency: "BRL",
-        }
-      );
-    }
-
     function criarDataLocal(
       dataIso
     ) {
-      const [
-        ano,
-        mes,
-        dia,
-      ] = String(dataIso)
-        .split("-")
-        .map(Number);
+      const correspondencia =
+        /^(\d{4})-(\d{2})-(\d{2})$/
+          .exec(
+            normalizarTexto(
+              dataIso
+            )
+          );
 
-      return new Date(
-        ano,
-        mes - 1,
-        dia,
-        12,
-        0,
-        0
-      );
+      if (!correspondencia) {
+        return null;
+      }
+
+      const ano =
+        Number(
+          correspondencia[1]
+        );
+
+      const mes =
+        Number(
+          correspondencia[2]
+        );
+
+      const dia =
+        Number(
+          correspondencia[3]
+        );
+
+      const data =
+        new Date(
+          ano,
+          mes - 1,
+          dia,
+          12,
+          0,
+          0
+        );
+
+      return Number.isNaN(
+        data.getTime()
+      )
+        ? null
+        : data;
     }
 
     function formatarDataCompleta(
@@ -364,14 +486,21 @@ function redirecionarLogin() {
           dataIso
         );
 
-      return data.toLocaleDateString(
-        "pt-BR",
-        {
-          weekday: "long",
-          day: "2-digit",
-          month: "2-digit",
-        }
-      );
+      if (!data) {
+        return normalizarTexto(
+          dataIso
+        );
+      }
+
+      return data
+        .toLocaleDateString(
+          "pt-BR",
+          {
+            weekday: "long",
+            day: "2-digit",
+            month: "2-digit",
+          }
+        );
     }
 
     function formatarDiaCurto(
@@ -382,24 +511,65 @@ function redirecionarLogin() {
           dataIso
         );
 
-      return data.toLocaleDateString(
-        "pt-BR",
-        {
-          weekday: "short",
-          day: "2-digit",
-          month: "2-digit",
-        }
-      );
+      if (!data) {
+        return normalizarTexto(
+          dataIso
+        );
+      }
+
+      return data
+        .toLocaleDateString(
+          "pt-BR",
+          {
+            weekday: "short",
+            day: "2-digit",
+            month: "2-digit",
+          }
+        )
+        .replace(
+          ".",
+          ""
+        );
     }
 
     function ehHoje(
       dataIso
     ) {
       return (
-        dataIso ===
+        normalizarTexto(
+          dataIso
+        ) ===
         obterDataHojeBrasil()
       );
     }
+
+    /*
+     * =====================================================
+     * FORMATAÇÃO
+     * =====================================================
+     */
+
+    function formatarMoeda(
+      valor
+    ) {
+      const numero =
+        Number(valor);
+
+      return formatadorMoeda
+        .format(
+          Number.isFinite(
+            numero
+          )
+            ? numero
+            : 0
+        );
+    }
+
+    /*
+     * =====================================================
+     * STATUS
+     * =====================================================
+     */
 
     function statusEhAgendamento(
       status
@@ -408,23 +578,42 @@ function redirecionarLogin() {
         "agendado",
         "confirmado",
         "realizado",
-      ].includes(status);
+      ].includes(
+        normalizarStatus(
+          status
+        )
+      );
     }
 
     function obterTextoStatus(
       status
     ) {
       const textos = {
-        livre: "Livre",
-        bloqueado: "Bloqueado",
-        agendado: "Agendado",
-        confirmado: "Confirmado",
-        realizado: "Realizado",
-        passado: "Encerrado",
+        livre:
+          "Livre",
+
+        bloqueado:
+          "Bloqueado",
+
+        agendado:
+          "Agendado",
+
+        confirmado:
+          "Confirmado",
+
+        realizado:
+          "Realizado",
+
+        passado:
+          "Encerrado",
       };
 
       return (
-        textos[status] ||
+        textos[
+          normalizarStatus(
+            status
+          )
+        ] ||
         "Indisponível"
       );
     }
@@ -433,16 +622,31 @@ function redirecionarLogin() {
       status
     ) {
       const emojis = {
-        livre: "🟢",
-        bloqueado: "🔒",
-        agendado: "🟠",
-        confirmado: "✅",
-        realizado: "✔️",
-        passado: "⚪",
+        livre:
+          "🟢",
+
+        bloqueado:
+          "🔒",
+
+        agendado:
+          "🟠",
+
+        confirmado:
+          "✅",
+
+        realizado:
+          "✔️",
+
+        passado:
+          "⚪",
       };
 
       return (
-        emojis[status] ||
+        emojis[
+          normalizarStatus(
+            status
+          )
+        ] ||
         "⚪"
       );
     }
@@ -450,14 +654,20 @@ function redirecionarLogin() {
     function obterClasseStatus(
       status
     ) {
+      const statusNormalizado =
+        normalizarStatus(
+          status
+        );
+
       if (
-        status === "livre"
+        statusNormalizado ===
+        "livre"
       ) {
         return "disponivel";
       }
 
       if (
-        status ===
+        statusNormalizado ===
         "bloqueado"
       ) {
         return "bloqueado";
@@ -465,7 +675,7 @@ function redirecionarLogin() {
 
       if (
         statusEhAgendamento(
-          status
+          statusNormalizado
         )
       ) {
         return "agendado";
@@ -474,12 +684,22 @@ function redirecionarLogin() {
       return "passado";
     }
 
+    /*
+     * =====================================================
+     * WHATSAPP
+     * =====================================================
+     */
+
     function normalizarWhatsapp(
       whatsapp
     ) {
-      let numeros = String(
-        whatsapp || ""
-      ).replace(/\D/g, "");
+      let numeros =
+        normalizarTexto(
+          whatsapp
+        ).replace(
+          /\D/g,
+          ""
+        );
 
       if (
         numeros.length === 10 ||
@@ -503,7 +723,9 @@ function redirecionarLogin() {
 
       if (!numero) {
         mostrarMensagem(
-          "A cliente não possui WhatsApp cadastrado."
+          "A cliente não possui WhatsApp cadastrado.",
+          "aviso",
+          3000
         );
 
         return;
@@ -514,14 +736,22 @@ function redirecionarLogin() {
           horario.data
         );
 
+      const nomeCliente =
+        normalizarTexto(
+          horario.cliente
+        ) ||
+        "tudo bem";
+
+      const servico =
+        normalizarTexto(
+          horario.servico
+        ) ||
+        "serviço";
+
       const mensagem =
-        `Olá, ${
-          horario.cliente ||
-          "tudo bem"
-        }! ` +
-        `Estou entrando em contato sobre seu agendamento de ` +
-        `${horario.servico || "serviço"} ` +
-        `em ${dataFormatada}, às ${horario.hora}.`;
+        `Olá, ${nomeCliente}! ` +
+        "Estou entrando em contato sobre seu agendamento de " +
+        `${servico} em ${dataFormatada}, às ${horario.hora}.`;
 
       const url =
         `https://wa.me/${numero}` +
@@ -536,132 +766,177 @@ function redirecionarLogin() {
       );
     }
 
-    async function carregarNegocioAtual() {
-  try {
-    if (
-      !negocioDaSessao?.id
-    ) {
-      throw new Error(
-        "Nenhum negócio está vinculado a esta conta."
-      );
-    }
+    /*
+     * =====================================================
+     * API
+     * =====================================================
+     */
 
-    negocioAtual = {
-      ...negocioDaSessao,
-    };
-
-    if (
-      window.AuthService &&
-      typeof window.AuthService
-        .salvarNegocio === "function"
+    async function apiGet(
+      caminho
     ) {
-      window.AuthService
-        .salvarNegocio(
-          negocioAtual
+      try {
+        return await window.API.get(
+          caminho
         );
-    } else {
-      localStorage.setItem(
-        "negocio",
-        JSON.stringify(
-          negocioAtual
-        )
-      );
+      } catch (erro) {
+        tratarErroSessao(
+          erro
+        );
+
+        throw erro;
+      }
     }
 
-    if (
-      nomeNegocioAtual
+    async function apiPost(
+      caminho,
+      dados
     ) {
-      nomeNegocioAtual.textContent =
-        negocioAtual.nome ||
-        "Meu negócio";
+      try {
+        return await window.API.post(
+          caminho,
+          dados
+        );
+      } catch (erro) {
+        tratarErroSessao(
+          erro
+        );
+
+        throw erro;
+      }
     }
 
-    if (
-      slugNegocioAtual
-    ) {
-      slugNegocioAtual.textContent =
-        negocioAtual.slug
-          ? `@${negocioAtual.slug}`
-          : "--";
-    }
+    /*
+     * =====================================================
+     * NEGÓCIO ATUAL
+     * =====================================================
+     */
 
-    if (
-      nomeProfissionalAtual
-    ) {
-      nomeProfissionalAtual
+    function carregarNegocioAtual() {
+      estado.negocioAtual = {
+        ...negocioDaSessao,
+      };
+
+      if (
+        window.AuthService &&
+        typeof window.AuthService
+          .salvarNegocio ===
+          "function"
+      ) {
+        window.AuthService
+          .salvarNegocio(
+            estado.negocioAtual
+          );
+      } else {
+        localStorage.setItem(
+          "negocio",
+          JSON.stringify(
+            estado.negocioAtual
+          )
+        );
+      }
+
+      elementos.nomeNegocioAtual
         .textContent =
-          usuario.nome ||
+          normalizarTexto(
+            estado.negocioAtual
+              .nome
+          ) ||
+          "Meu negócio";
+
+      elementos.slugNegocioAtual
+        .textContent =
+          estado.negocioAtual
+            .slug
+            ? `@${estado.negocioAtual.slug}`
+            : "--";
+
+      elementos.nomeProfissionalAtual
+        .textContent =
+          normalizarTexto(
+            usuario.nome
+          ) ||
           "Profissional";
+
+      if (
+        elementos.btnPerfilPublico &&
+        estado.negocioAtual.slug
+      ) {
+        elementos.btnPerfilPublico.href =
+          "/html/perfil-negocio.html" +
+          `?slug=${encodeURIComponent(
+            estado.negocioAtual.slug
+          )}`;
+
+        elementos.btnPerfilPublico
+          .classList.remove(
+            "oculto"
+          );
+      } else {
+        elementos.btnPerfilPublico
+          ?.classList.add(
+            "oculto"
+          );
+      }
     }
 
-    if (
-      btnPerfilPublico &&
-      negocioAtual.slug
-    ) {
-      btnPerfilPublico.href =
-        `/html/perfil-negocio.html` +
-        `?slug=${encodeURIComponent(
-          negocioAtual.slug
-        )}`;
-
-      btnPerfilPublico
-        .classList.remove(
-          "oculto"
-        );
-    } else {
-      btnPerfilPublico
-        ?.classList.add(
-          "oculto"
-        );
-    }
-  } catch (erro) {
-    console.error(
-      "Erro ao carregar negócio:",
-      erro
-    );
-
-    if (
-      nomeNegocioAtual
-    ) {
-      nomeNegocioAtual.textContent =
-        "Erro ao carregar negócio";
-    }
-
-    if (
-      slugNegocioAtual
-    ) {
-      slugNegocioAtual.textContent =
-        "--";
-    }
-
-    if (
-      nomeProfissionalAtual
-    ) {
-      nomeProfissionalAtual
-        .textContent =
-          usuario?.nome ||
-          "--";
-    }
-
-    mostrarMensagem(
-      erro?.message ||
-        "Erro ao carregar os dados do negócio."
-    );
-  }
-}
+    /*
+     * =====================================================
+     * MÉTRICAS
+     * =====================================================
+     */
 
     function obterTodosAgendamentos() {
-      return agenda
+      return estado.agenda
         .flatMap(
           (dia) =>
-            dia.horarios || []
+            Array.isArray(
+              dia?.horarios
+            )
+              ? dia.horarios
+              : []
         )
         .filter(
           (horario) =>
             statusEhAgendamento(
-              horario.status
+              horario?.status
             )
         );
+    }
+
+    function obterChaveCliente(
+      horario
+    ) {
+      if (
+        horario?.cliente_id
+      ) {
+        return (
+          `id:` +
+          `${horario.cliente_id}`
+        );
+      }
+
+      const whatsapp =
+        normalizarWhatsapp(
+          horario
+            ?.cliente_whatsapp
+        );
+
+      if (whatsapp) {
+        return (
+          `whatsapp:` +
+          `${whatsapp}`
+        );
+      }
+
+      const nome =
+        normalizarTexto(
+          horario?.cliente
+        ).toLowerCase();
+
+      return nome
+        ? `nome:${nome}`
+        : null;
     }
 
     function atualizarCardsGerais() {
@@ -681,82 +956,109 @@ function redirecionarLogin() {
 
       agendamentos.forEach(
         (horario) => {
-          const chaveCliente =
-            horario.cliente_id ||
-            horario.cliente;
+          const chave =
+            obterChaveCliente(
+              horario
+            );
 
-          if (!chaveCliente) {
+          if (!chave) {
             return;
           }
 
-          const totalAtual =
-            quantidadePorCliente.get(
-              chaveCliente
-            ) || 0;
-
           quantidadePorCliente.set(
-            chaveCliente,
-            totalAtual + 1
+            chave,
+            (
+              quantidadePorCliente.get(
+                chave
+              ) || 0
+            ) + 1
           );
         }
       );
 
-      const recorrentes =
+      const quantidades =
         Array.from(
-          quantidadePorCliente.values()
-        ).filter(
+          quantidadePorCliente
+            .values()
+        );
+
+      const recorrentes =
+        quantidades.filter(
           (total) =>
             total > 1
         ).length;
 
-      const clientesComUmAgendamento =
-        Array.from(
-          quantidadePorCliente.values()
-        ).filter(
+      const novos =
+        quantidades.filter(
           (total) =>
             total === 1
         ).length;
 
-      totalAgendados.textContent =
-        String(
-          agendamentos.length
-        );
+      elementos.totalAgendados
+        .textContent =
+          String(
+            agendamentos.length
+          );
 
-      totalRecorrentes.textContent =
-        String(recorrentes);
+      elementos.totalRecorrentes
+        .textContent =
+          String(
+            recorrentes
+          );
 
-      totalNovos.textContent =
-        String(
-          clientesComUmAgendamento
-        );
+      elementos.totalNovos
+        .textContent =
+          String(
+            novos
+          );
 
-      totalHoje.textContent =
-        String(
-          agendamentosHoje.length
-        );
+      elementos.totalHoje
+        .textContent =
+          String(
+            agendamentosHoje.length
+          );
+    }
+
+    /*
+     * =====================================================
+     * RESUMO DO DIA
+     * =====================================================
+     */
+
+    function obterDiaSelecionado() {
+      return estado.agenda.find(
+        (dia) =>
+          dia?.data ===
+          estado.diaSelecionado
+      );
     }
 
     function atualizarResumoDia() {
-      const dia = agenda.find(
-        (item) =>
-          item.data ===
-          diaSelecionado
-      );
+      const dia =
+        obterDiaSelecionado();
 
       const horarios =
-        dia?.horarios || [];
+        Array.isArray(
+          dia?.horarios
+        )
+          ? dia.horarios
+          : [];
 
       const livres =
         horarios.filter(
           (horario) =>
-            horario.status ===
+            normalizarStatus(
+              horario.status
+            ) ===
             "livre"
         ).length;
 
       const bloqueados =
         horarios.filter(
           (horario) =>
-            horario.status ===
+            normalizarStatus(
+              horario.status
+            ) ===
             "bloqueado"
         ).length;
 
@@ -768,50 +1070,84 @@ function redirecionarLogin() {
             )
         ).length;
 
-      qtdLivres.textContent =
-        String(livres);
+      elementos.qtdLivres
+        .textContent =
+          String(
+            livres
+          );
 
-      qtdBloqueados.textContent =
-        String(bloqueados);
+      elementos.qtdBloqueados
+        .textContent =
+          String(
+            bloqueados
+          );
 
-      qtdAgendados.textContent =
-        String(agendados);
+      elementos.qtdAgendados
+        .textContent =
+          String(
+            agendados
+          );
     }
 
-    function renderizarAbasDias() {
-      abasDias.replaceChildren();
+    /*
+     * =====================================================
+     * ABAS DOS DIAS
+     * =====================================================
+     */
 
-      agenda.forEach(
+    function renderizarAbasDias() {
+      elementos.abasDias
+        .replaceChildren();
+
+      estado.agenda.forEach(
         (dia) => {
+          if (!dia?.data) {
+            return;
+          }
+
           const botao =
-            document.createElement(
-              "button"
+            criarElemento(
+              "button",
+              "aba-dia"
             );
+
+          const ativa =
+            dia.data ===
+            estado.diaSelecionado;
 
           botao.type =
             "button";
 
-          botao.className =
-            "aba-dia";
+          botao.id =
+            `aba-dia-${dia.data}`;
 
-          if (
-            dia.data ===
-            diaSelecionado
-          ) {
+          botao.dataset.data =
+            dia.data;
+
+          botao.setAttribute(
+            "role",
+            "tab"
+          );
+
+          botao.setAttribute(
+            "aria-selected",
+            String(ativa)
+          );
+
+          if (ativa) {
             botao.classList.add(
               "ativa"
             );
           }
 
-          const texto =
-            ehHoje(dia.data)
+          botao.textContent =
+            ehHoje(
+              dia.data
+            )
               ? "Hoje"
               : formatarDiaCurto(
                   dia.data
                 );
-
-          botao.textContent =
-            texto;
 
           if (
             dia.trabalha ===
@@ -824,45 +1160,26 @@ function redirecionarLogin() {
           botao.addEventListener(
             "click",
             () => {
-              diaSelecionado =
+              estado.diaSelecionado =
                 dia.data;
 
               renderizarTudo();
             }
           );
 
-          abasDias.appendChild(
-            botao
-          );
+          elementos.abasDias
+            .appendChild(
+              botao
+            );
         }
       );
     }
 
-    function criarElemento(
-      tag,
-      classe,
-      texto
-    ) {
-      const elemento =
-        document.createElement(
-          tag
-        );
-
-      if (classe) {
-        elemento.className =
-          classe;
-      }
-
-      if (
-        texto !== undefined &&
-        texto !== null
-      ) {
-        elemento.textContent =
-          String(texto);
-      }
-
-      return elemento;
-    }
+    /*
+     * =====================================================
+     * SLOTS
+     * =====================================================
+     */
 
     function criarBotaoWhatsapp(
       horario
@@ -894,28 +1211,34 @@ function redirecionarLogin() {
     function criarSlotHorario(
       horario
     ) {
+      const statusNormalizado =
+        normalizarStatus(
+          horario.status
+        );
+
       const card =
         criarElemento(
           "article",
           `slot ${obterClasseStatus(
-            horario.status
+            statusNormalizado
           )}`
         );
 
       card.dataset.data =
-        horario.data;
+        horario.data || "";
 
       card.dataset.hora =
-        horario.hora;
+        horario.hora || "";
 
       card.dataset.status =
-        horario.status;
+        statusNormalizado;
 
       const hora =
         criarElemento(
           "span",
           "slot-hora",
-          horario.hora
+          horario.hora ||
+          "--:--"
         );
 
       const status =
@@ -923,9 +1246,9 @@ function redirecionarLogin() {
           "span",
           "slot-status",
           `${obterEmojiStatus(
-            horario.status
+            statusNormalizado
           )} ${obterTextoStatus(
-            horario.status
+            statusNormalizado
           )}`
         );
 
@@ -936,36 +1259,52 @@ function redirecionarLogin() {
 
       if (
         statusEhAgendamento(
-          horario.status
+          statusNormalizado
         )
       ) {
         const cliente =
           criarElemento(
             "span",
             "slot-cliente",
-            horario.cliente ||
-              "Cliente não informado"
+            normalizarTexto(
+              horario.cliente
+            ) ||
+            "Cliente não informado"
           );
 
         const servico =
           criarElemento(
             "span",
             "slot-servico",
-            horario.servico ||
-              "Serviço não informado"
+            normalizarTexto(
+              horario.servico
+            ) ||
+            "Serviço não informado"
           );
 
         const duracao =
+          Number(
+            horario
+              .duracao_minutos ??
+            estado
+              .configuracaoAgenda
+              ?.duracao_padrao ??
+            60
+          );
+
+        const duracaoTexto =
+          Number.isFinite(
+            duracao
+          ) &&
+          duracao > 0
+            ? duracao
+            : 60;
+
+        const elementoDuracao =
           criarElemento(
             "span",
             "slot-duracao",
-            `${Number(
-              horario
-                .duracao_minutos ||
-                configuracaoAgenda
-                  ?.duracao_padrao ||
-                60
-            )} minutos`
+            `${duracaoTexto} minutos`
           );
 
         const valor =
@@ -980,7 +1319,7 @@ function redirecionarLogin() {
         card.append(
           cliente,
           servico,
-          duracao,
+          elementoDuracao,
           valor
         );
 
@@ -998,56 +1337,40 @@ function redirecionarLogin() {
         return card;
       }
 
-      if (
-        horario.status ===
-        "livre"
-      ) {
-        card.appendChild(
-          criarElemento(
-            "span",
-            "slot-acao",
-            "Clique para bloquear"
-          )
-        );
-      }
+      const textosAcao = {
+        livre:
+          "Clique para bloquear",
+
+        bloqueado:
+          "Clique para liberar",
+
+        passado:
+          "Horário encerrado",
+      };
+
+      card.appendChild(
+        criarElemento(
+          "span",
+          "slot-acao",
+          textosAcao[
+            statusNormalizado
+          ] ||
+          "Horário indisponível"
+        )
+      );
 
       if (
-        horario.status ===
-        "bloqueado"
-      ) {
-        card.appendChild(
-          criarElemento(
-            "span",
-            "slot-acao",
-            "Clique para liberar"
-          )
-        );
-      }
-
-      if (
-        horario.status ===
-        "passado"
-      ) {
-        card.appendChild(
-          criarElemento(
-            "span",
-            "slot-acao",
-            "Horário encerrado"
-          )
-        );
-      }
-
-      if (
-        horario.status ===
+        statusNormalizado ===
           "livre" ||
-        horario.status ===
+        statusNormalizado ===
           "bloqueado"
       ) {
         card.classList.add(
           "clicavel"
         );
 
-        card.tabIndex = 0;
+        card.tabIndex =
+          0;
 
         card.setAttribute(
           "role",
@@ -1057,8 +1380,12 @@ function redirecionarLogin() {
         card.setAttribute(
           "aria-label",
           `${obterTextoStatus(
-            horario.status
-          )}, ${horario.hora}`
+            statusNormalizado
+          )}, ${horario.hora}. ${
+            textosAcao[
+              statusNormalizado
+            ]
+          }.`
         );
 
         const executarAlteracao =
@@ -1095,78 +1422,99 @@ function redirecionarLogin() {
       return card;
     }
 
+    /*
+     * =====================================================
+     * RENDERIZAÇÃO DA AGENDA
+     * =====================================================
+     */
+
     function renderizarAgendaVisual() {
-      agendaVisual.replaceChildren();
+      elementos.agendaVisual
+        .replaceChildren();
 
       const dia =
-        agenda.find(
-          (item) =>
-            item.data ===
-            diaSelecionado
-        );
+        obterDiaSelecionado();
 
       if (!dia) {
-        agendaVisual.appendChild(
-          criarElemento(
-            "div",
-            "agenda-vazia",
-            "Nenhum dia disponível."
-          )
-        );
+        elementos.diaAgendaTexto
+          .textContent =
+            "nenhum dia";
+
+        elementos.agendaVisual
+          .appendChild(
+            criarElemento(
+              "div",
+              "agenda-vazia",
+              "Nenhum dia disponível."
+            )
+          );
 
         atualizarResumoDia();
 
         return;
       }
 
-      diaAgendaTexto.textContent =
-        `${ehHoje(dia.data)
-          ? "Hoje 💅"
-          : "Agenda"} • ` +
-        `${formatarDataCompleta(
+      const prefixoHoje =
+        ehHoje(
           dia.data
-        )}`;
+        )
+          ? "hoje • "
+          : "";
+
+      elementos.diaAgendaTexto
+        .textContent =
+          `${prefixoHoje}${formatarDataCompleta(
+            dia.data
+          )}`;
 
       if (
         dia.trabalha ===
         false
       ) {
-        agendaVisual.appendChild(
-          criarElemento(
-            "div",
-            "agenda-vazia",
-            "Você não trabalha neste dia."
-          )
-        );
-
-        atualizarResumoDia();
-
-        return;
-      }
-
-      if (
-        !dia.horarios?.length
-      ) {
-        agendaVisual.appendChild(
-          criarElemento(
-            "div",
-            "agenda-vazia",
-            "Nenhum horário configurado para este dia."
-          )
-        );
-
-        atualizarResumoDia();
-
-        return;
-      }
-
-      dia.horarios.forEach(
-        (horario) => {
-          agendaVisual.appendChild(
-            criarSlotHorario(
-              horario
+        elementos.agendaVisual
+          .appendChild(
+            criarElemento(
+              "div",
+              "agenda-vazia",
+              "Você não trabalha neste dia."
             )
           );
+
+        atualizarResumoDia();
+
+        return;
+      }
+
+      const horarios =
+        Array.isArray(
+          dia.horarios
+        )
+          ? dia.horarios
+          : [];
+
+      if (!horarios.length) {
+        elementos.agendaVisual
+          .appendChild(
+            criarElemento(
+              "div",
+              "agenda-vazia",
+              "Nenhum horário configurado para este dia."
+            )
+          );
+
+        atualizarResumoDia();
+
+        return;
+      }
+
+      horarios.forEach(
+        (horario) => {
+          elementos.agendaVisual
+            .appendChild(
+              criarSlotHorario(
+                horario
+              )
+            );
         }
       );
 
@@ -1179,14 +1527,21 @@ function redirecionarLogin() {
       atualizarCardsGerais();
     }
 
+    /*
+     * =====================================================
+     * DIA INICIAL
+     * =====================================================
+     */
+
     function selecionarDiaInicial() {
       const hoje =
         obterDataHojeBrasil();
 
       const existeHoje =
-        agenda.some(
+        estado.agenda.some(
           (dia) =>
-            dia.data === hoje
+            dia?.data ===
+            hoje
         );
 
       if (existeHoje) {
@@ -1194,111 +1549,79 @@ function redirecionarLogin() {
       }
 
       const primeiroDiaTrabalhado =
-        agenda.find(
+        estado.agenda.find(
           (dia) =>
-            dia.trabalha !==
+            dia?.trabalha !==
               false &&
-            dia.horarios?.length
+            Array.isArray(
+              dia?.horarios
+            ) &&
+            dia.horarios.length > 0
         );
 
       return (
         primeiroDiaTrabalhado
           ?.data ||
-        agenda[0]?.data ||
+        estado.agenda[0]
+          ?.data ||
         null
       );
     }
 
-    async function alternarBloqueio(
-      data,
-      hora,
-      card
-    ) {
+    function zerarResumo() {
+      elementos.totalAgendados
+        .textContent =
+          "0";
+
+      elementos.totalRecorrentes
+        .textContent =
+          "0";
+
+      elementos.totalNovos
+        .textContent =
+          "0";
+
+      elementos.totalHoje
+        .textContent =
+          "0";
+
+      elementos.qtdLivres
+        .textContent =
+          "0";
+
+      elementos.qtdBloqueados
+        .textContent =
+          "0";
+
+      elementos.qtdAgendados
+        .textContent =
+          "0";
+    }
+
+    /*
+     * =====================================================
+     * CARREGAMENTO DA AGENDA
+     * =====================================================
+     */
+
+    async function carregarAgenda({
+      manterMensagem = false,
+    } = {}) {
       if (
-        card.classList.contains(
-          "carregando"
-        )
+        estado.carregandoAgenda
       ) {
         return;
       }
 
-      try {
+      estado.carregandoAgenda =
+        true;
+
+      if (!manterMensagem) {
         esconderMensagem();
-
-        card.classList.add(
-          "carregando"
-        );
-
-        card.setAttribute(
-          "aria-busy",
-          "true"
-        );
-
-        const resposta =
-          await requisicaoAutenticada(
-            "/bloqueios-horario",
-            {
-              method: "POST",
-
-              headers: {
-                "Content-Type":
-                  "application/json",
-              },
-
-              body: JSON.stringify({
-                data,
-                hora,
-              }),
-            }
-          );
-
-        const resultado =
-          await resposta.json();
-
-        if (!resposta.ok) {
-          throw new Error(
-            resultado.erro ||
-              resultado.mensagem ||
-              "Erro ao alterar horário."
-          );
-        }
-
-        await carregarAgenda();
-
-        mostrarMensagem(
-          resultado.mensagem ||
-            "Agenda atualizada com sucesso.",
-          "sucesso"
-        );
-
-        window.setTimeout(
-          esconderMensagem,
-          2200
-        );
-      } catch (erro) {
-        console.error(
-          "Erro ao alterar bloqueio:",
-          erro
-        );
-
-        mostrarMensagem(
-          erro.message ||
-            "Erro na conexão com o servidor."
-        );
-
-        card.classList.remove(
-          "carregando"
-        );
-
-        card.removeAttribute(
-          "aria-busy"
-        );
       }
-    }
 
-    async function carregarAgenda() {
-      try {
-        agendaVisual.replaceChildren(
+      elementos.agendaVisual
+        .replaceChildren(
           criarElemento(
             "div",
             "agenda-vazia",
@@ -1306,75 +1629,63 @@ function redirecionarLogin() {
           )
         );
 
-        const resposta =
-          await requisicaoAutenticada(
+      try {
+        const resultado =
+          await apiGet(
             "/agenda-profissional"
           );
 
-        const resultado =
-          await resposta.json();
+        estado.agenda =
+          Array.isArray(
+            resultado?.agenda
+          )
+            ? resultado.agenda
+            : [];
 
-        if (!resposta.ok) {
-          throw new Error(
-            resultado.erro ||
-              resultado.mensagem ||
-              "Erro ao carregar agenda."
-          );
-        }
-
-        agenda = Array.isArray(
-          resultado.agenda
-        )
-          ? resultado.agenda
-          : [];
-
-        configuracaoAgenda =
-          resultado.configuracao ||
+        estado.configuracaoAgenda =
+          resultado
+            ?.configuracao ||
           null;
 
-        if (!agenda.length) {
-          diaSelecionado =
+        if (
+          !estado.agenda.length
+        ) {
+          estado.diaSelecionado =
             null;
 
-          abasDias.replaceChildren();
+          elementos.abasDias
+            .replaceChildren();
 
-          agendaVisual.replaceChildren(
-            criarElemento(
-              "div",
-              "agenda-vazia",
-              "Nenhuma agenda disponível."
-            )
-          );
+          elementos.diaAgendaTexto
+            .textContent =
+              "nenhum dia";
 
-          totalAgendados.textContent =
-            "0";
+          elementos.agendaVisual
+            .replaceChildren(
+              criarElemento(
+                "div",
+                "agenda-vazia",
+                "Nenhuma agenda disponível."
+              )
+            );
 
-          totalRecorrentes.textContent =
-            "0";
-
-          totalNovos.textContent =
-            "0";
-
-          totalHoje.textContent =
-            "0";
-
-          atualizarResumoDia();
+          zerarResumo();
 
           return;
         }
 
         const diaAindaExiste =
-          agenda.some(
+          estado.agenda.some(
             (dia) =>
-              dia.data ===
-              diaSelecionado
+              dia?.data ===
+              estado.diaSelecionado
           );
 
         if (
-          !diaSelecionado ||
+          !estado.diaSelecionado ||
           !diaAindaExiste
         ) {
-          diaSelecionado =
+          estado.diaSelecionado =
             selecionarDiaInicial();
         }
 
@@ -1385,44 +1696,173 @@ function redirecionarLogin() {
           erro
         );
 
+        if (
+          tratarErroSessao(
+            erro
+          )
+        ) {
+          return;
+        }
+
         mostrarMensagem(
-          erro.message ||
-            "Erro ao carregar agenda."
+          erro?.message ||
+            "Não foi possível carregar a agenda.",
+          "erro"
         );
 
-        agendaVisual.replaceChildren(
-          criarElemento(
-            "div",
-            "agenda-vazia",
-            "Não foi possível carregar a agenda."
-          )
-        );
+        elementos.agendaVisual
+          .replaceChildren(
+            criarElemento(
+              "div",
+              "agenda-vazia",
+              "Não foi possível carregar a agenda. Atualize a página e tente novamente."
+            )
+          );
+      } finally {
+        estado.carregandoAgenda =
+          false;
       }
     }
 
-    btnSair?.addEventListener(
-      "click",
+    /*
+     * =====================================================
+     * BLOQUEIO E LIBERAÇÃO
+     * =====================================================
+     */
+
+    async function alternarBloqueio(
+      data,
+      hora,
+      card
+    ) {
+      if (
+        estado.alterandoHorario ||
+        card.classList.contains(
+          "carregando"
+        )
+      ) {
+        return;
+      }
+
+      estado.alterandoHorario =
+        true;
+
+      esconderMensagem();
+
+      card.classList.add(
+        "carregando"
+      );
+
+      card.setAttribute(
+        "aria-busy",
+        "true"
+      );
+
+      try {
+        const resultado =
+          await apiPost(
+            "/bloqueios-horario",
+            {
+              data,
+              hora,
+            }
+          );
+
+        await carregarAgenda({
+          manterMensagem:
+            true,
+        });
+
+        mostrarMensagem(
+          resultado?.mensagem ||
+            "Agenda atualizada com sucesso.",
+          "sucesso",
+          2600
+        );
+      } catch (erro) {
+        console.error(
+          "Erro ao alterar bloqueio:",
+          erro
+        );
+
+        if (
+          tratarErroSessao(
+            erro
+          )
+        ) {
+          return;
+        }
+
+        mostrarMensagem(
+          erro?.message ||
+            "Não foi possível alterar o horário.",
+          "erro"
+        );
+
+        card.classList.remove(
+          "carregando"
+        );
+
+        card.removeAttribute(
+          "aria-busy"
+        );
+      } finally {
+        estado.alterandoHorario =
+          false;
+      }
+    }
+
+    /*
+     * =====================================================
+     * EVENTOS
+     * =====================================================
+     */
+
+    elementos.btnSair
+      ?.addEventListener(
+        "click",
+        redirecionarLogin
+      );
+
+    elementos.btnDashboard
+      ?.addEventListener(
+        "click",
+        () => {
+          window.location.href =
+            "/html/inicio.html";
+        }
+      );
+
+    window.addEventListener(
+      "beforeunload",
       () => {
-        redirecionarLogin();
+        window.clearTimeout(
+          estado.mensagemTimer
+        );
       }
     );
 
-    if (
-  btnDashboard
-) {
-  btnDashboard.textContent =
-    "Início";
+    /*
+     * =====================================================
+     * INICIALIZAÇÃO
+     * =====================================================
+     */
 
-  btnDashboard.addEventListener(
-    "click",
-    () => {
-      window.location.href =
-        "/html/inicio.html";
+    try {
+      carregarNegocioAtual();
+
+      await carregarAgenda();
+    } catch (erro) {
+      console.error(
+        "Erro ao iniciar agenda profissional:",
+        erro
+      );
+
+      mostrarMensagem(
+        erro?.message ||
+          "Não foi possível iniciar a agenda profissional.",
+        "erro"
+      );
     }
-  );
-}
-
-    await carregarNegocioAtual();
-    await carregarAgenda();
   }
 );

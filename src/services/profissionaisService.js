@@ -1,4 +1,6 @@
 const profissionaisRepository = require("../repositories/profissionaisRepository");
+const db = require("../db/db");
+const { criarErroLimite } = require("./planoService");
 
 const {
   exigirUsuario,
@@ -124,22 +126,63 @@ async function vincularProfissional({
     "Profissional não encontrado. Ele precisa criar uma conta profissional primeiro."
   );
 
-  const jaVinculado =
-    await profissionaisRepository.verificarVinculo(
-      profissional.id,
+  await db.executarTransacao(async (client) => {
+    await profissionaisRepository.bloquearCadastroProfissional(
+      client,
       dono.negocio_id
     );
 
-  if (jaVinculado) {
-    throw new ValidationError(
-      "Este profissional já está vinculado ao negócio."
-    );
-  }
+    const jaVinculado =
+      await profissionaisRepository.verificarVinculo(
+        profissional.id,
+        dono.negocio_id,
+        client
+      );
 
-  await profissionaisRepository.criarVinculo(
-    profissional.id,
-    dono.negocio_id
-  );
+    if (jaVinculado) {
+      throw new ValidationError(
+        "Este profissional já está vinculado ao negócio."
+      );
+    }
+
+    const plano = await profissionaisRepository.buscarPlanoDoNegocio(
+      dono.negocio_id,
+      client
+    );
+
+    if (!plano) {
+      const erro = new Error("Plano do negócio não encontrado.");
+      erro.status = 404;
+      erro.statusCode = 404;
+      throw erro;
+    }
+
+    const utilizados =
+      await profissionaisRepository.contarProfissionaisAtivos(
+        dono.negocio_id,
+        client
+      );
+
+    const limite = plano.limite_profissionais;
+
+    if (limite !== null && utilizados >= Number(limite)) {
+      throw criarErroLimite(
+        `Você atingiu o limite de ${limite} profissional(is) do plano ${plano.nome}. Faça upgrade para adicionar mais.`,
+        "LIMITE_PROFISSIONAIS",
+        {
+          plano_nome: plano.nome,
+          utilizados,
+          limite: Number(limite),
+        }
+      );
+    }
+
+    await profissionaisRepository.criarVinculo(
+      profissional.id,
+      dono.negocio_id,
+      client
+    );
+  });
 
   return {
     mensagem: "Profissional vinculado com sucesso.",

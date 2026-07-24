@@ -1,271 +1,1633 @@
-document.addEventListener("DOMContentLoaded", async () => {
-  const token = localStorage.getItem("token");
-  const usuario = JSON.parse(localStorage.getItem("usuario") || "null");
+document.addEventListener(
+  "DOMContentLoaded",
+  async () => {
+    const elementos = {
+      checkoutResumo:
+        document.getElementById(
+          "checkoutResumo"
+        ),
 
-  if (!token || !usuario) {
-    window.location.href = "login-profissional.html";
-    return;
-  }
+      checkoutTotal:
+        document.getElementById(
+          "checkoutTotal"
+        ),
 
-  const params = new URLSearchParams(window.location.search);
-  const planoSlug = params.get("plano");
+      checkoutTotal:
+        document.getElementById(
+          "checkoutTotal"
+        ),
 
-  const checkoutResumo = document.getElementById("checkoutResumo");
-  const checkoutTotal = document.getElementById("checkoutTotal");
-  const cartaoCampos = document.getElementById("cartaoCampos");
-  const btnConfirmar = document.getElementById("btnConfirmarCheckout");
-  const mensagem = document.getElementById("mensagemCheckout");
+      cartaoCampos:
+        document.getElementById(
+          "cartaoCampos"
+        ),
 
-  const pixBox = document.getElementById("pixBox");
-  const pixQrCode = document.getElementById("pixQrCode");
-  const pixCopiaCola = document.getElementById("pixCopiaCola");
-  const btnCopiarPix = document.getElementById("btnCopiarPix");
+      btnConfirmar:
+        document.getElementById(
+          "btnConfirmarCheckout"
+        ),
 
-  let planoSelecionado = null;
-  let intervaloPagamento = null;
+      mensagem:
+        document.getElementById(
+          "mensagemCheckout"
+        ),
 
-  function mostrarMensagem(texto, cor = "#e63946") {
-    if (!mensagem) return;
+      pixBox:
+        document.getElementById(
+          "pixBox"
+        ),
 
-    mensagem.textContent = texto;
-    mensagem.style.color = cor;
-    mensagem.classList.remove("hidden");
-  }
+      pixQrCode:
+        document.getElementById(
+          "pixQrCode"
+        ),
 
-  function formatarMoeda(valor) {
-    return Number(valor || 0).toLocaleString("pt-BR", {
-      style: "currency",
-      currency: "BRL"
-    });
-  }
+      pixCopiaCola:
+        document.getElementById(
+          "pixCopiaCola"
+        ),
 
-  function formaPagamentoSelecionada() {
-    return document.querySelector("input[name='formaPagamento']:checked")?.value || "pix";
-  }
+      btnCopiarPix:
+        document.getElementById(
+          "btnCopiarPix"
+        ),
 
-  function renderPlano(plano) {
-    const capacidade = plano.capacidade_agendamentos === null
-      ? "Agendamentos ilimitados"
-      : `${plano.capacidade_agendamentos} agendamentos por mês`;
+      nomeCartao:
+        document.getElementById(
+          "nomeCartao"
+        ),
 
-    checkoutResumo.innerHTML = `
-      <h1>${plano.nome}</h1>
-      <p>${formatarMoeda(plano.valor)} / mês</p>
+      numeroCartao:
+        document.getElementById(
+          "numeroCartao"
+        ),
 
-      <ul>
-        <li>✅ ${capacidade}</li>
-        <li>✅ Perfil público do negócio</li>
-        <li>✅ Dashboard de crescimento</li>
-        <li>✅ Gestão de agenda</li>
-        ${plano.destaque ? "<li>✅ Mais visibilidade no Agenda Fashion</li>" : ""}
-      </ul>
-    `;
+      validadeCartao:
+        document.getElementById(
+          "validadeCartao"
+        ),
 
-    checkoutTotal.textContent = formatarMoeda(plano.valor);
-  }
+      cvvCartao:
+        document.getElementById(
+          "cvvCartao"
+        ),
 
-  async function carregarPlano() {
-    if (!planoSlug) {
-      throw new Error("Plano não informado.");
-    }
-
-    const data = await API.get("/api/planos");
-    const planos = data.planos || data || [];
-
-    const plano = planos.find((item) => item.slug === planoSlug);
-
-    if (!plano) {
-      throw new Error("Plano não encontrado.");
-    }
-
-    if (Number(plano.valor || 0) === 0) {
-      throw new Error("Este plano não precisa de pagamento.");
-    }
-
-    planoSelecionado = plano;
-    renderPlano(plano);
-  }
-
-  function alternarCamposCartao() {
-    const forma = formaPagamentoSelecionada();
-
-    if (forma === "cartao") {
-      cartaoCampos?.classList.remove("hidden");
-      pixBox?.classList.add("hidden");
-    } else {
-      cartaoCampos?.classList.add("hidden");
-    }
-  }
-
-  function validarCartao() {
-    const nome = document.getElementById("nomeCartao")?.value.trim();
-    const numero = document.getElementById("numeroCartao")?.value.replace(/\D/g, "");
-    const validade = document.getElementById("validadeCartao")?.value.trim();
-    const cvv = document.getElementById("cvvCartao")?.value.replace(/\D/g, "");
-
-    if (!nome || nome.length < 3) {
-      throw new Error("Informe o nome impresso no cartão.");
-    }
-
-    if (!numero || numero.length < 13) {
-      throw new Error("Informe um número de cartão válido.");
-    }
-
-    if (!validade || !validade.includes("/")) {
-      throw new Error("Informe a validade no formato MM/AA.");
-    }
-
-    if (!cvv || cvv.length < 3) {
-      throw new Error("Informe o CVV.");
-    }
-
-    return {
-      nome,
-      numero,
-      validade,
-      cvv
+      formasPagamento:
+        Array.from(
+          document.querySelectorAll(
+            "input[name='formaPagamento']"
+          )
+        ),
     };
-  }
 
-  function iniciarVerificacaoPagamento(pagamentoId) {
-    if (!pagamentoId) return;
+    const elementosObrigatorios = [
+      elementos.checkoutResumo,
+      elementos.checkoutTotal,
+      elementos.btnConfirmar,
+      elementos.mensagem,
+    ];
 
-    if (intervaloPagamento) {
-      clearInterval(intervaloPagamento);
+    if (
+      elementosObrigatorios.some(
+        (elemento) => !elemento
+      )
+    ) {
+      console.error(
+        "A estrutura necessária do checkout não foi encontrada."
+      );
+
+      return;
     }
 
-    let tentativas = 0;
+    const estado = {
+      planoSelecionado: null,
+      processando: false,
+      pagamentoGerado: false,
+      pixGerado: false,
+      temporizadorStatus: null,
+      temporizadorRedirecionamento:
+        null,
+      verificacaoStatusAtiva: false,
+      tentativasStatus: 0,
+    };
 
-    mostrarMensagem(
-      "PIX gerado com sucesso. Aguardando confirmação do pagamento...",
-      "#2f9e63"
-    );
+    const parametros =
+      new URLSearchParams(
+        window.location.search
+      );
 
-    intervaloPagamento = setInterval(async () => {
-      try {
-        tentativas++;
+    const planoSlug =
+      String(
+        parametros.get("plano") ||
+        ""
+      ).trim();
 
-        const status = await API.get(`/api/checkout/status/${pagamentoId}`);
-
-        if (
-          status.status === "CONFIRMED" ||
-          status.status === "RECEIVED" ||
-          status.ativo === true
-        ) {
-          clearInterval(intervaloPagamento);
-
-          mostrarMensagem(
-            `Pagamento confirmado! Plano ${status.plano_nome} ativado.`,
-            "#2f9e63"
-          );
-
-          setTimeout(() => {
-            window.location.href = "dashboard-dono.html";
-          }, 1800);
+    const formatadorMoeda =
+      new Intl.NumberFormat(
+        "pt-BR",
+        {
+          style: "currency",
+          currency: "BRL",
         }
+      );
 
-        if (tentativas >= 60) {
-          clearInterval(intervaloPagamento);
+    /*
+     * =====================================================
+     * SESSÃO
+     * =====================================================
+     */
 
-          mostrarMensagem(
-            "PIX gerado. Assim que o pagamento for confirmado, seu plano será ativado automaticamente.",
-            "#2f9e63"
-          );
-        }
-
-      } catch (erro) {
-        console.error("Erro ao verificar pagamento:", erro);
-      }
-    }, 5000);
-  }
-
-  function mostrarPix(data) {
-    if (data.pix?.encodedImage && pixQrCode) {
-      pixQrCode.src = `data:image/png;base64,${data.pix.encodedImage}`;
-    }
-
-    if (data.pix?.payload && pixCopiaCola) {
-      pixCopiaCola.value = data.pix.payload;
-    }
-
-    pixBox?.classList.remove("hidden");
-
-    if (btnCopiarPix && pixCopiaCola) {
-      btnCopiarPix.onclick = async () => {
-        await navigator.clipboard.writeText(pixCopiaCola.value);
-
-        btnCopiarPix.textContent = "Código copiado!";
-
-        setTimeout(() => {
-          btnCopiarPix.textContent = "Copiar código PIX";
-        }, 1500);
-      };
-    }
-
-    if (data.pagamento?.id) {
-      iniciarVerificacaoPagamento(data.pagamento.id);
-    }
-  }
-
-  async function confirmarCheckout() {
-    try {
-      if (!planoSelecionado) {
-        throw new Error("Plano não carregado.");
+    function obterToken() {
+      if (
+        window.AuthService &&
+        typeof window.AuthService
+          .getToken === "function"
+      ) {
+        return window.AuthService
+          .getToken();
       }
 
-      const forma = formaPagamentoSelecionada();
+      return localStorage.getItem(
+        "token"
+      );
+    }
 
-      let cartao = null;
+    function limparSessao() {
+      if (
+        window.AuthService &&
+        typeof window.AuthService
+          .limparSessao ===
+          "function"
+      ) {
+        window.AuthService
+          .limparSessao();
 
-      if (forma === "cartao") {
-        cartao = validarCartao();
+        return;
       }
 
-      btnConfirmar.disabled = true;
-      btnConfirmar.textContent = "Gerando pagamento...";
+      localStorage.removeItem(
+        "token"
+      );
 
-      pixBox?.classList.add("hidden");
+      localStorage.removeItem(
+        "usuario"
+      );
 
-      const data = await API.post("/api/checkout", {
-        plano_id: planoSelecionado.id,
-        plano_slug: planoSelecionado.slug,
-        forma_pagamento: forma,
-        cartao
-      });
+      localStorage.removeItem(
+        "negocio"
+      );
+    }
 
-      if (forma === "pix") {
-        mostrarPix(data);
-      } else {
-        mostrarMensagem(
-          data.mensagem || "Pagamento enviado para processamento.",
-          "#2f9e63"
+    function redirecionarLogin() {
+      limparSessao();
+
+      window.location.replace(
+        "/html/login-profissional.html"
+      );
+    }
+
+    function tratarErroSessao(
+      erro
+    ) {
+      if (
+        erro?.status !== 401
+      ) {
+        return false;
+      }
+
+      redirecionarLogin();
+
+      return true;
+    }
+
+    /*
+     * =====================================================
+     * UTILITÁRIOS
+     * =====================================================
+     */
+
+    function normalizarTexto(
+      valor
+    ) {
+      return String(
+        valor ?? ""
+      ).trim();
+    }
+
+    function normalizarNumero(
+      valor
+    ) {
+      const numero =
+        Number(valor);
+
+      return Number.isFinite(
+        numero
+      )
+        ? numero
+        : 0;
+    }
+
+    function formatarMoeda(
+      valor
+    ) {
+      return formatadorMoeda
+        .format(
+          normalizarNumero(
+            valor
+          )
+        );
+    }
+
+    function criarElemento(
+      tag,
+      classe = "",
+      texto = null
+    ) {
+      const elemento =
+        document.createElement(
+          tag
+        );
+
+      if (classe) {
+        elemento.className =
+          classe;
+      }
+
+      if (
+        texto !== null &&
+        texto !== undefined
+      ) {
+        elemento.textContent =
+          String(texto);
+      }
+
+      return elemento;
+    }
+
+    /*
+     * =====================================================
+     * MENSAGENS
+     * =====================================================
+     */
+
+    function limparMensagem() {
+      elementos.mensagem
+        .textContent = "";
+
+      elementos.mensagem
+        .className =
+          "checkout-mensagem hidden";
+
+      delete elementos.mensagem
+        .dataset.tipo;
+    }
+
+    function mostrarMensagem(
+      texto,
+      tipo = "erro"
+    ) {
+      elementos.mensagem
+        .textContent =
+          normalizarTexto(texto) ||
+          "Ocorreu um erro.";
+
+      elementos.mensagem
+        .className =
+          "checkout-mensagem";
+
+      elementos.mensagem
+        .classList.add(
+          tipo
+        );
+
+      elementos.mensagem
+        .dataset.tipo =
+          tipo;
+    }
+
+    /*
+     * =====================================================
+     * BOTÕES
+     * =====================================================
+     */
+
+    function definirTextoBotaoConfirmar(
+      texto,
+      icone = "🔒"
+    ) {
+      elementos.btnConfirmar
+        .replaceChildren();
+
+      const elementoIcone =
+        criarElemento(
+          "span",
+          "",
+          icone
+        );
+
+      elementoIcone.setAttribute(
+        "aria-hidden",
+        "true"
+      );
+
+      elementos.btnConfirmar.append(
+        elementoIcone,
+        document.createTextNode(
+          ` ${texto}`
+        )
+      );
+    }
+
+    function definirTextoBotaoCopiar(
+      texto,
+      icone = "📋"
+    ) {
+      if (
+        !elementos.btnCopiarPix
+      ) {
+        return;
+      }
+
+      elementos.btnCopiarPix
+        .replaceChildren();
+
+      const elementoIcone =
+        criarElemento(
+          "span",
+          "",
+          icone
+        );
+
+      elementoIcone.setAttribute(
+        "aria-hidden",
+        "true"
+      );
+
+      elementos.btnCopiarPix.append(
+        elementoIcone,
+        document.createTextNode(
+          ` ${texto}`
+        )
+      );
+    }
+
+    function definirProcessando(
+      ativo,
+      texto =
+        "Processando pagamento..."
+    ) {
+      estado.processando =
+        Boolean(ativo);
+
+      elementos.btnConfirmar.disabled =
+        estado.processando ||
+        !estado.planoSelecionado ||
+        estado.pagamentoGerado;
+
+      elementos.formasPagamento
+        .forEach(
+          (input) => {
+            input.disabled =
+              estado.processando ||
+              estado.pagamentoGerado;
+          }
+        );
+
+      if (estado.processando) {
+        definirTextoBotaoConfirmar(
+          texto,
+          "⏳"
+        );
+
+        return;
+      }
+
+      if (
+        estado.pagamentoGerado
+      ) {
+        definirTextoBotaoConfirmar(
+          "Pagamento gerado",
+          "✓"
+        );
+
+        return;
+      }
+
+      definirTextoBotaoConfirmar(
+        "Confirmar assinatura",
+        "🔒"
+      );
+    }
+
+    /*
+     * =====================================================
+     * PLANO
+     * =====================================================
+     */
+
+    function formaPagamentoSelecionada() {
+      return (
+        elementos.formasPagamento
+          .find(
+            (input) =>
+              input.checked
+          )?.value ||
+        "pix"
+      );
+    }
+
+    function criarItemBeneficio(
+      texto
+    ) {
+      const item =
+        criarElemento("li");
+
+      item.append(
+        document.createTextNode(
+          `✅ ${texto}`
+        )
+      );
+
+      return item;
+    }
+
+    function renderizarPlano(
+      plano
+    ) {
+      elementos.checkoutResumo
+        .replaceChildren();
+
+      const titulo =
+        criarElemento(
+          "h1",
+          "",
+          plano.nome ||
+          "Plano"
+        );
+
+      const preco =
+        criarElemento(
+          "p",
+          "",
+          `${formatarMoeda(
+            plano.valor
+          )} / mês`
+        );
+
+      const lista =
+        criarElemento("ul");
+
+      const capacidadeBruta =
+        plano.capacidade_agendamentos ??
+        plano.limite_agendamentos ??
+        null;
+
+      const capacidadeTexto =
+        capacidadeBruta === null
+          ? "Agendamentos ilimitados"
+          : `${normalizarNumero(
+              capacidadeBruta
+            )} agendamentos por mês`;
+
+      const limiteProfissionais =
+        plano.limite_profissionais;
+
+      const profissionaisTexto =
+        limiteProfissionais === null ||
+        limiteProfissionais === undefined
+          ? "Profissionais ilimitados"
+          : `${normalizarNumero(
+              limiteProfissionais
+            )} ${
+              normalizarNumero(
+                limiteProfissionais
+              ) === 1
+                ? "profissional"
+                : "profissionais"
+            }`;
+
+      const limiteServicos =
+        plano.limite_servicos;
+
+      const servicosTexto =
+        limiteServicos === null ||
+        limiteServicos === undefined
+          ? "Serviços ilimitados"
+          : `${normalizarNumero(
+              limiteServicos
+            )} serviço${
+              normalizarNumero(
+                limiteServicos
+              ) === 1
+                ? ""
+                : "s"
+            }`;
+
+      const beneficios = [
+        capacidadeTexto,
+        profissionaisTexto,
+        servicosTexto,
+        "Perfil público do negócio",
+        "Dashboard de crescimento",
+        "Gestão da agenda e da equipe",
+      ];
+
+      if (plano.destaque) {
+        beneficios.push(
+          "Mais visibilidade no Agenda Fashion"
         );
       }
 
+      beneficios.forEach(
+        (beneficio) => {
+          lista.appendChild(
+            criarItemBeneficio(
+              beneficio
+            )
+          );
+        }
+      );
+
+      elementos.checkoutResumo.append(
+        titulo,
+        preco,
+        lista
+      );
+
+      elementos.checkoutTotal
+        .textContent =
+          formatarMoeda(
+            plano.valor
+          );
+    }
+
+    function extrairPlanos(
+      resposta
+    ) {
+      if (
+        Array.isArray(resposta)
+      ) {
+        return resposta;
+      }
+
+      if (
+        Array.isArray(
+          resposta?.planos
+        )
+      ) {
+        return resposta.planos;
+      }
+
+      return [];
+    }
+
+    async function carregarPlano() {
+      if (!planoSlug) {
+        throw new Error(
+          "Plano não informado. Volte para a página de planos e escolha uma opção."
+        );
+      }
+
+      const resposta =
+        await window.API.get(
+          "/planos"
+        );
+
+      const planos =
+        extrairPlanos(
+          resposta
+        );
+
+      const plano =
+        planos.find(
+          (item) =>
+            normalizarTexto(
+              item?.slug
+            ) === planoSlug
+        );
+
+      if (!plano) {
+        throw new Error(
+          "O plano selecionado não foi encontrado."
+        );
+      }
+
+      if (
+        normalizarNumero(
+          plano.valor
+        ) <= 0
+      ) {
+        throw new Error(
+          "Este plano não precisa de pagamento."
+        );
+      }
+
+      estado.planoSelecionado =
+        plano;
+
+      renderizarPlano(
+        plano
+      );
+
+      definirProcessando(
+        false
+      );
+    }
+
+    /*
+     * =====================================================
+     * FORMA DE PAGAMENTO
+     * =====================================================
+     */
+
+    function alternarCamposCartao() {
+      const usandoCartao =
+        formaPagamentoSelecionada() ===
+        "cartao";
+
+      elementos.cartaoCampos
+        ?.classList.toggle(
+          "hidden",
+          !usandoCartao
+        );
+
+      if (usandoCartao) {
+        elementos.pixBox
+          ?.classList.add(
+            "hidden"
+          );
+      } else if (
+        estado.pixGerado
+      ) {
+        elementos.pixBox
+          ?.classList.remove(
+            "hidden"
+          );
+      }
+
+      limparMensagem();
+    }
+
+    /*
+     * =====================================================
+     * MÁSCARAS DO CARTÃO
+     * =====================================================
+     */
+
+    function formatarNumeroCartao(
+      valor
+    ) {
+      return normalizarTexto(
+        valor
+      )
+        .replace(
+          /\D/g,
+          ""
+        )
+        .slice(
+          0,
+          19
+        )
+        .replace(
+          /(\d{4})(?=\d)/g,
+          "$1 "
+        );
+    }
+
+    function formatarValidade(
+      valor
+    ) {
+      const numeros =
+        normalizarTexto(
+          valor
+        )
+          .replace(
+            /\D/g,
+            ""
+          )
+          .slice(
+            0,
+            4
+          );
+
+      if (
+        numeros.length <= 2
+      ) {
+        return numeros;
+      }
+
+      return `${numeros.slice(
+        0,
+        2
+      )}/${numeros.slice(2)}`;
+    }
+
+    function configurarMascaras() {
+      elementos.numeroCartao
+        ?.addEventListener(
+          "input",
+          (evento) => {
+            evento.target.value =
+              formatarNumeroCartao(
+                evento.target.value
+              );
+          }
+        );
+
+      elementos.validadeCartao
+        ?.addEventListener(
+          "input",
+          (evento) => {
+            evento.target.value =
+              formatarValidade(
+                evento.target.value
+              );
+          }
+        );
+
+      elementos.cvvCartao
+        ?.addEventListener(
+          "input",
+          (evento) => {
+            evento.target.value =
+              normalizarTexto(
+                evento.target.value
+              )
+                .replace(
+                  /\D/g,
+                  ""
+                )
+                .slice(
+                  0,
+                  4
+                );
+          }
+        );
+    }
+
+    /*
+     * =====================================================
+     * VALIDAÇÃO DO CARTÃO
+     * =====================================================
+     */
+
+    function cartaoPassaNoLuhn(
+      numero
+    ) {
+      let soma = 0;
+      let deveDobrar =
+        false;
+
+      for (
+        let indice =
+          numero.length - 1;
+        indice >= 0;
+        indice -= 1
+      ) {
+        let digito =
+          Number(
+            numero[indice]
+          );
+
+        if (deveDobrar) {
+          digito *= 2;
+
+          if (
+            digito > 9
+          ) {
+            digito -= 9;
+          }
+        }
+
+        soma += digito;
+
+        deveDobrar =
+          !deveDobrar;
+      }
+
+      return (
+        soma % 10 === 0
+      );
+    }
+
+    function validarValidadeCartao(
+      validade
+    ) {
+      const correspondencia =
+        /^(\d{2})\/(\d{2})$/
+          .exec(
+            validade
+          );
+
+      if (
+        !correspondencia
+      ) {
+        return false;
+      }
+
+      const mes =
+        Number(
+          correspondencia[1]
+        );
+
+      const ano =
+        2000 +
+        Number(
+          correspondencia[2]
+        );
+
+      if (
+        mes < 1 ||
+        mes > 12
+      ) {
+        return false;
+      }
+
+      const agora =
+        new Date();
+
+      const fimDoMes =
+        new Date(
+          ano,
+          mes,
+          0,
+          23,
+          59,
+          59,
+          999
+        );
+
+      return (
+        fimDoMes >= agora
+      );
+    }
+
+    function validarCartao() {
+      const nome =
+        normalizarTexto(
+          elementos.nomeCartao
+            ?.value
+        );
+
+      const numero =
+        normalizarTexto(
+          elementos.numeroCartao
+            ?.value
+        ).replace(
+          /\D/g,
+          ""
+        );
+
+      const validade =
+        normalizarTexto(
+          elementos.validadeCartao
+            ?.value
+        );
+
+      const cvv =
+        normalizarTexto(
+          elementos.cvvCartao
+            ?.value
+        ).replace(
+          /\D/g,
+          ""
+        );
+
+      if (
+        nome.length < 3
+      ) {
+        elementos.nomeCartao
+          ?.focus();
+
+        throw new Error(
+          "Informe o nome impresso no cartão."
+        );
+      }
+
+      if (
+        numero.length < 13 ||
+        numero.length > 19 ||
+        !cartaoPassaNoLuhn(
+          numero
+        )
+      ) {
+        elementos.numeroCartao
+          ?.focus();
+
+        throw new Error(
+          "Informe um número de cartão válido."
+        );
+      }
+
+      if (
+        !validarValidadeCartao(
+          validade
+        )
+      ) {
+        elementos.validadeCartao
+          ?.focus();
+
+        throw new Error(
+          "Informe uma validade futura no formato MM/AA."
+        );
+      }
+
+      if (
+        cvv.length < 3 ||
+        cvv.length > 4
+      ) {
+        elementos.cvvCartao
+          ?.focus();
+
+        throw new Error(
+          "Informe um CVV válido."
+        );
+      }
+
+      return {
+        nome,
+        numero,
+        validade,
+        cvv,
+      };
+    }
+
+    /*
+     * =====================================================
+     * STATUS DO PAGAMENTO
+     * =====================================================
+     */
+
+    function obterStatusPagamento(
+      resposta
+    ) {
+      return normalizarTexto(
+        resposta?.status ??
+        resposta?.pagamento?.status ??
+        resposta?.assinatura?.status
+      ).toUpperCase();
+    }
+
+    function pagamentoConfirmado(
+      resposta
+    ) {
+      const status =
+        obterStatusPagamento(
+          resposta
+        );
+
+      return (
+        [
+          "CONFIRMED",
+          "RECEIVED",
+          "PAID",
+          "ACTIVE",
+        ].includes(
+          status
+        ) ||
+        resposta?.ativo === true ||
+        resposta?.assinatura
+          ?.ativo === true
+      );
+    }
+
+    function obterPagamentoId(
+      resposta
+    ) {
+      return (
+        resposta?.pagamento?.id ??
+        resposta?.pagamento_id ??
+        resposta?.payment_id ??
+        resposta?.id ??
+        null
+      );
+    }
+
+    function obterNomePlanoStatus(
+      resposta
+    ) {
+      return normalizarTexto(
+        resposta?.plano_nome ??
+        resposta?.plano?.nome ??
+        estado.planoSelecionado
+          ?.nome
+      );
+    }
+
+    function concluirPagamento(
+      resposta = {}
+    ) {
+      estado.verificacaoStatusAtiva =
+        false;
+
+      window.clearTimeout(
+        estado.temporizadorStatus
+      );
+
+      const nomePlano =
+        obterNomePlanoStatus(
+          resposta
+        );
+
+      mostrarMensagem(
+        nomePlano
+          ? `Pagamento confirmado. O plano ${nomePlano} foi ativado.`
+          : "Pagamento confirmado e assinatura ativada.",
+        "sucesso"
+      );
+
+      definirTextoBotaoConfirmar(
+        "Assinatura confirmada",
+        "✓"
+      );
+
+      estado
+        .temporizadorRedirecionamento =
+          window.setTimeout(
+            () => {
+              window.location.replace(
+                "/html/dashboard-dono.html"
+              );
+            },
+            1600
+          );
+    }
+
+    async function verificarStatusPagamento(
+      pagamentoId
+    ) {
+      if (
+        !estado.verificacaoStatusAtiva
+      ) {
+        return;
+      }
+
+      try {
+        estado.tentativasStatus +=
+          1;
+
+        const resposta =
+          await window.API.get(
+            `/checkout/status/${encodeURIComponent(
+              pagamentoId
+            )}`
+          );
+
+        if (
+          pagamentoConfirmado(
+            resposta
+          )
+        ) {
+          concluirPagamento(
+            resposta
+          );
+
+          return;
+        }
+
+        if (
+          estado.tentativasStatus >=
+          60
+        ) {
+          estado
+            .verificacaoStatusAtiva =
+              false;
+
+          mostrarMensagem(
+            "O pagamento foi gerado. Assim que ele for confirmado, seu plano será ativado automaticamente.",
+            "aviso"
+          );
+
+          return;
+        }
+      } catch (erro) {
+        if (
+          tratarErroSessao(
+            erro
+          )
+        ) {
+          return;
+        }
+
+        console.error(
+          "Erro ao verificar pagamento:",
+          erro
+        );
+
+        if (
+          estado.tentativasStatus >=
+          60
+        ) {
+          estado
+            .verificacaoStatusAtiva =
+              false;
+
+          mostrarMensagem(
+            "Não foi possível acompanhar a confirmação agora. Consulte sua assinatura em alguns instantes.",
+            "aviso"
+          );
+
+          return;
+        }
+      }
+
+      estado.temporizadorStatus =
+        window.setTimeout(
+          () => {
+            verificarStatusPagamento(
+              pagamentoId
+            );
+          },
+          5000
+        );
+    }
+
+    function iniciarVerificacaoPagamento(
+      pagamentoId
+    ) {
+      if (!pagamentoId) {
+        mostrarMensagem(
+          "Pagamento gerado. A confirmação será processada automaticamente.",
+          "sucesso"
+        );
+
+        return;
+      }
+
+      window.clearTimeout(
+        estado.temporizadorStatus
+      );
+
+      estado.verificacaoStatusAtiva =
+        true;
+
+      estado.tentativasStatus =
+        0;
+
+      mostrarMensagem(
+        "Pagamento gerado. Aguardando a confirmação...",
+        "sucesso"
+      );
+
+      estado.temporizadorStatus =
+        window.setTimeout(
+          () => {
+            verificarStatusPagamento(
+              pagamentoId
+            );
+          },
+          2500
+        );
+    }
+
+    /*
+     * =====================================================
+     * PIX
+     * =====================================================
+     */
+
+    function extrairPix(
+      resposta
+    ) {
+      const pix =
+        resposta?.pix ||
+        resposta?.pagamento?.pix ||
+        {};
+
+      return {
+        imagem:
+          pix.encodedImage ??
+          pix.encoded_image ??
+          pix.qrCodeImage ??
+          pix.qr_code_image ??
+          resposta?.encodedImage ??
+          "",
+
+        codigo:
+          pix.payload ??
+          pix.copiaCola ??
+          pix.copia_cola ??
+          pix.qrCode ??
+          pix.qr_code ??
+          resposta?.payload ??
+          "",
+      };
+    }
+
+    function mostrarPix(
+      resposta
+    ) {
+      const pix =
+        extrairPix(
+          resposta
+        );
+
+      if (
+        pix.imagem &&
+        elementos.pixQrCode
+      ) {
+        elementos.pixQrCode.src =
+          pix.imagem.startsWith(
+            "data:image/"
+          )
+            ? pix.imagem
+            : `data:image/png;base64,${pix.imagem}`;
+      }
+
+      if (
+        elementos.pixCopiaCola
+      ) {
+        elementos.pixCopiaCola
+          .value =
+            pix.codigo;
+      }
+
+      estado.pixGerado =
+        true;
+
+      elementos.pixBox
+        ?.classList.remove(
+          "hidden"
+        );
+
+      elementos.pixBox
+        ?.scrollIntoView({
+          behavior: "smooth",
+          block: "start",
+        });
+
+      iniciarVerificacaoPagamento(
+        obterPagamentoId(
+          resposta
+        )
+      );
+    }
+
+    async function copiarTexto(
+      texto
+    ) {
+      if (
+        navigator.clipboard &&
+        window.isSecureContext
+      ) {
+        await navigator.clipboard
+          .writeText(
+            texto
+          );
+
+        return;
+      }
+
+      const campo =
+        document.createElement(
+          "textarea"
+        );
+
+      campo.value =
+        texto;
+
+      campo.setAttribute(
+        "readonly",
+        ""
+      );
+
+      campo.style.position =
+        "fixed";
+
+      campo.style.opacity =
+        "0";
+
+      document.body.appendChild(
+        campo
+      );
+
+      campo.select();
+
+      const copiado =
+        document.execCommand(
+          "copy"
+        );
+
+      campo.remove();
+
+      if (!copiado) {
+        throw new Error(
+          "Não foi possível copiar o código PIX."
+        );
+      }
+    }
+
+    async function copiarCodigoPix() {
+      const codigo =
+        normalizarTexto(
+          elementos.pixCopiaCola
+            ?.value
+        );
+
+      if (!codigo) {
+        mostrarMensagem(
+          "O código PIX ainda não foi carregado.",
+          "aviso"
+        );
+
+        return;
+      }
+
+      try {
+        await copiarTexto(
+          codigo
+        );
+
+        definirTextoBotaoCopiar(
+          "Código copiado",
+          "✓"
+        );
+
+        window.setTimeout(
+          () => {
+            definirTextoBotaoCopiar(
+              "Copiar código PIX",
+              "📋"
+            );
+          },
+          1700
+        );
+      } catch (erro) {
+        mostrarMensagem(
+          erro?.message ||
+          "Não foi possível copiar o código PIX.",
+          "erro"
+        );
+      }
+    }
+
+    /*
+     * =====================================================
+     * CONFIRMAÇÃO
+     * =====================================================
+     */
+
+    async function confirmarCheckout() {
+      if (
+        estado.processando ||
+        estado.pagamentoGerado
+      ) {
+        return;
+      }
+
+      limparMensagem();
+
+      try {
+        if (
+          !estado.planoSelecionado
+        ) {
+          throw new Error(
+            "O plano ainda não foi carregado."
+          );
+        }
+
+        const forma =
+          formaPagamentoSelecionada();
+
+        const cartao =
+          forma === "cartao"
+            ? validarCartao()
+            : null;
+
+        definirProcessando(
+          true,
+          forma === "pix"
+            ? "Gerando PIX..."
+            : "Processando cartão..."
+        );
+
+        elementos.pixBox
+          ?.classList.add(
+            "hidden"
+          );
+
+        const resposta =
+          await window.API.post(
+            "/checkout",
+            {
+              plano_id:
+                estado
+                  .planoSelecionado
+                  .id,
+
+              plano_slug:
+                estado
+                  .planoSelecionado
+                  .slug,
+
+              forma_pagamento:
+                forma,
+
+              cartao,
+            }
+          );
+
+        estado.pagamentoGerado =
+          true;
+
+        definirProcessando(
+          false
+        );
+
+        if (
+          pagamentoConfirmado(
+            resposta
+          )
+        ) {
+          concluirPagamento(
+            resposta
+          );
+
+          return;
+        }
+
+        if (
+          forma === "pix"
+        ) {
+          mostrarPix(
+            resposta
+          );
+
+          return;
+        }
+
+        mostrarMensagem(
+          resposta?.mensagem ||
+          "Pagamento enviado para processamento.",
+          "sucesso"
+        );
+
+        iniciarVerificacaoPagamento(
+          obterPagamentoId(
+            resposta
+          )
+        );
+      } catch (erro) {
+        console.error(
+          "Erro ao gerar pagamento:",
+          erro
+        );
+
+        if (
+          tratarErroSessao(
+            erro
+          )
+        ) {
+          return;
+        }
+
+        estado.pagamentoGerado =
+          false;
+
+        definirProcessando(
+          false
+        );
+
+        mostrarMensagem(
+          erro?.message ||
+          "Não foi possível gerar o pagamento.",
+          "erro"
+        );
+      }
+    }
+
+    /*
+     * =====================================================
+     * ERRO DE CARREGAMENTO
+     * =====================================================
+     */
+
+    function mostrarErroCarregamento(
+      erro
+    ) {
+      elementos.checkoutResumo
+        .replaceChildren(
+          criarElemento(
+            "div",
+            "estado-vazio",
+            erro?.message ||
+            "Não foi possível carregar o plano."
+          )
+        );
+
+      elementos.checkoutTotal
+        .textContent =
+          formatarMoeda(0);
+
+      estado.planoSelecionado =
+        null;
+
+      definirProcessando(
+        false
+      );
+    }
+
+    /*
+     * =====================================================
+     * EVENTOS
+     * =====================================================
+     */
+
+    elementos.formasPagamento
+      .forEach(
+        (input) => {
+          input.addEventListener(
+            "change",
+            alternarCamposCartao
+          );
+        }
+      );
+
+    elementos.btnConfirmar
+      .addEventListener(
+        "click",
+        confirmarCheckout
+      );
+
+    elementos.btnCopiarPix
+      ?.addEventListener(
+        "click",
+        copiarCodigoPix
+      );
+
+    window.addEventListener(
+      "beforeunload",
+      () => {
+        estado.verificacaoStatusAtiva =
+          false;
+
+        window.clearTimeout(
+          estado.temporizadorStatus
+        );
+
+        window.clearTimeout(
+          estado
+            .temporizadorRedirecionamento
+        );
+      }
+    );
+
+    /*
+     * =====================================================
+     * INICIALIZAÇÃO
+     * =====================================================
+     */
+
+    if (
+      !window.API ||
+      typeof window.API.get !==
+        "function" ||
+      typeof window.API.post !==
+        "function"
+    ) {
+      mostrarErroCarregamento(
+        new Error(
+          "O serviço da API não foi carregado."
+        )
+      );
+
+      return;
+    }
+
+    if (!obterToken()) {
+      redirecionarLogin();
+
+      return;
+    }
+
+    configurarMascaras();
+
+    alternarCamposCartao();
+
+    definirProcessando(
+      true,
+      "Carregando plano..."
+    );
+
+    try {
+      await carregarPlano();
     } catch (erro) {
-      mostrarMensagem(erro.message || "Erro ao gerar pagamento.");
-    } finally {
-      btnConfirmar.disabled = false;
-      btnConfirmar.textContent = "Confirmar assinatura";
+      console.error(
+        "Erro ao carregar plano:",
+        erro
+      );
+
+      if (
+        tratarErroSessao(
+          erro
+        )
+      ) {
+        return;
+      }
+
+      mostrarErroCarregamento(
+        erro
+      );
     }
   }
-
-  document.querySelectorAll("input[name='formaPagamento']").forEach((input) => {
-    input.addEventListener("change", alternarCamposCartao);
-  });
-
-  btnConfirmar.addEventListener("click", confirmarCheckout);
-
-  try {
-    await carregarPlano();
-    alternarCamposCartao();
-  } catch (erro) {
-    checkoutResumo.innerHTML = `
-      <div class="estado-vazio">
-        ${erro.message || "Erro ao carregar plano."}
-      </div>
-    `;
-
-    btnConfirmar.disabled = true;
-  }
-});
+);

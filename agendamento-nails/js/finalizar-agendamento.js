@@ -1,23 +1,48 @@
 document.addEventListener(
   "DOMContentLoaded",
   async () => {
-    const mensagem =
-      document.getElementById(
-        "mensagemFinalizar"
-      );
+    const elementos = {
+      titulo:
+        document.getElementById(
+          "tituloFinalizar"
+        ),
 
-    const estado = {
-      finalizando:
-        false,
+      mensagem:
+        document.getElementById(
+          "mensagemFinalizar"
+        ),
 
-      redirecionando:
-        false,
+      icone:
+        document.querySelector(
+          ".finalizar-icon"
+        ),
 
-      temporizador:
-        null,
+      spinner:
+        document.querySelector(
+          ".finalizar-spinner"
+        ),
+
+      progresso:
+        document.querySelector(
+          ".finalizar-progresso span"
+        ),
+
+      passos:
+        Array.from(
+          document.querySelectorAll(
+            ".finalizar-passo"
+          )
+        ),
+
+      aviso:
+        document.querySelector(
+          ".finalizar-aviso p"
+        ),
     };
 
-    if (!mensagem) {
+    if (
+      !elementos.mensagem
+    ) {
       console.error(
         "O elemento mensagemFinalizar não foi encontrado."
       );
@@ -25,24 +50,28 @@ document.addEventListener(
       return;
     }
 
-    /*
-     * =====================================================
-     * SERVIÇOS
-     * =====================================================
-     */
-
     if (
       !window.API ||
       typeof window.API.post !==
         "function"
     ) {
-      mostrarMensagem(
-        "O serviço da API não foi carregado.",
-        "erro"
-      );
+      mostrarEstado({
+        tipo: "erro",
+        titulo:
+          "Não foi possível iniciar",
+        mensagem:
+          "O serviço da API não foi carregado.",
+        etapa: 0,
+      });
 
       return;
     }
+
+    const estado = {
+      finalizando: false,
+      redirecionando: false,
+      temporizador: null,
+    };
 
     function obterToken() {
       if (
@@ -86,42 +115,12 @@ document.addEventListener(
       );
     }
 
-    /*
-     * =====================================================
-     * UTILITÁRIOS
-     * =====================================================
-     */
-
-    function mostrarMensagem(
-      texto,
-      tipo = "erro"
+    function normalizarTexto(
+      valor
     ) {
-      mensagem.textContent =
-        String(
-          texto ||
-          "Ocorreu um erro."
-        );
-
-      mensagem.classList.remove(
-        "hidden",
-        "erro",
-        "sucesso",
-        "aviso"
-      );
-
-      mensagem.classList.add(
-        tipo
-      );
-
-      mensagem.dataset.tipo =
-        tipo;
-
-      mensagem.style.color =
-        tipo === "sucesso"
-          ? "#2f9e63"
-          : tipo === "aviso"
-            ? "#b76a12"
-            : "#e63946";
+      return String(
+        valor ?? ""
+      ).trim();
     }
 
     function normalizarId(
@@ -138,12 +137,36 @@ document.addEventListener(
         : null;
     }
 
-    function normalizarTexto(
+    function dataValida(
       valor
     ) {
-      return String(
-        valor ?? ""
-      ).trim();
+      const texto =
+        normalizarTexto(valor);
+
+      if (
+        !/^\d{4}-\d{2}-\d{2}$/.test(
+          texto
+        )
+      ) {
+        return false;
+      }
+
+      const data =
+        new Date(
+          `${texto}T00:00:00`
+        );
+
+      return !Number.isNaN(
+        data.getTime()
+      );
+    }
+
+    function horarioValido(
+      valor
+    ) {
+      return /^\d{1,2}:\d{2}(?::\d{2})?$/.test(
+        normalizarTexto(valor)
+      );
     }
 
     function obterAgendamentoPendente() {
@@ -178,10 +201,25 @@ document.addEventListener(
     function validarAgendamento(
       dados
     ) {
+      if (
+        !dados ||
+        typeof dados !==
+          "object"
+      ) {
+        return null;
+      }
+
       const negocioId =
         normalizarId(
           dados.negocio_id ??
           dados.negocioId
+        );
+
+      const slug =
+        normalizarTexto(
+          dados.slug ??
+          dados.negocio_slug ??
+          dados.negocioSlug
         );
 
       const servicoId =
@@ -203,24 +241,26 @@ document.addEventListener(
 
       const horario =
         normalizarTexto(
-          dados.horario
+          dados.horario ??
+          dados.hora
         );
 
+      /*
+       * O negócio pode ser identificado
+       * pelo ID antigo ou pelo slug atual.
+       */
       if (
-        !negocioId ||
+        (!negocioId && !slug) ||
         !servicoId ||
         !profissionalId ||
-        !data ||
-        !horario
+        !dataValida(data) ||
+        !horarioValido(horario)
       ) {
         return null;
       }
 
-      return {
+      const payload = {
         ...dados,
-
-        negocio_id:
-          negocioId,
 
         servico_id:
           servicoId,
@@ -232,6 +272,179 @@ document.addEventListener(
 
         horario,
       };
+
+      if (negocioId) {
+        payload.negocio_id =
+          negocioId;
+      }
+
+      if (slug) {
+        payload.slug =
+          slug;
+      }
+
+      delete payload.negocioId;
+      delete payload.negocioSlug;
+      delete payload.servicoId;
+      delete payload.profissionalId;
+      delete payload.hora;
+
+      return payload;
+    }
+
+    function atualizarPassos(
+      etapaAtual
+    ) {
+      elementos.passos
+        .forEach(
+          (
+            passo,
+            indice
+          ) => {
+            const numeroEtapa =
+              indice + 1;
+
+            passo.classList.remove(
+              "concluido",
+              "ativo"
+            );
+
+            if (
+              numeroEtapa <
+              etapaAtual
+            ) {
+              passo.classList.add(
+                "concluido"
+              );
+
+              const marcador =
+                passo.querySelector(
+                  ":scope > span"
+                );
+
+              if (marcador) {
+                marcador.textContent =
+                  "✓";
+              }
+
+              return;
+            }
+
+            if (
+              numeroEtapa ===
+              etapaAtual
+            ) {
+              passo.classList.add(
+                "ativo"
+              );
+
+              const marcador =
+                passo.querySelector(
+                  ":scope > span"
+                );
+
+              if (marcador) {
+                marcador.textContent =
+                  String(
+                    numeroEtapa
+                  );
+              }
+
+              return;
+            }
+
+            const marcador =
+              passo.querySelector(
+                ":scope > span"
+              );
+
+            if (marcador) {
+              marcador.textContent =
+                String(
+                  numeroEtapa
+                );
+            }
+          }
+        );
+    }
+
+    function definirProcessando(
+      processando
+    ) {
+      elementos.spinner
+        ?.classList.toggle(
+          "hidden",
+          !processando
+        );
+
+      if (
+        elementos.progresso
+      ) {
+        elementos.progresso
+          .style.animationPlayState =
+            processando
+              ? "running"
+              : "paused";
+      }
+    }
+
+    function mostrarEstado({
+      tipo = "aviso",
+      titulo,
+      mensagem,
+      etapa = 2,
+      processando = false,
+      icone,
+    }) {
+      if (
+        titulo &&
+        elementos.titulo
+      ) {
+        elementos.titulo
+          .textContent =
+            titulo;
+      }
+
+      elementos.mensagem
+        .textContent =
+          String(
+            mensagem ||
+            ""
+          );
+
+      elementos.mensagem
+        .classList.remove(
+          "hidden",
+          "erro",
+          "sucesso",
+          "aviso"
+        );
+
+      elementos.mensagem
+        .classList.add(
+          tipo
+        );
+
+      elementos.mensagem
+        .dataset.tipo =
+          tipo;
+
+      if (
+        icone &&
+        elementos.icone
+      ) {
+        elementos.icone
+          .textContent =
+            icone;
+      }
+
+      atualizarPassos(
+        etapa
+      );
+
+      definirProcessando(
+        processando
+      );
     }
 
     function redirecionar(
@@ -262,12 +475,27 @@ document.addEventListener(
         );
     }
 
+    function obterDestinoPerfil(
+      dados
+    ) {
+      const slug =
+        normalizarTexto(
+          dados?.slug
+        );
+
+      if (!slug) {
+        return "/html/inicio.html";
+      }
+
+      return (
+        "/html/perfil-negocio.html?slug=" +
+        encodeURIComponent(
+          slug
+        )
+      );
+    }
+
     function redirecionarLogin() {
-      /*
-       * O agendamento pendente é preservado.
-       * Após o próximo login, o usuário poderá
-       * finalizar o mesmo agendamento.
-       */
       localStorage.setItem(
         "voltarDepoisLogin",
         "/html/finalizar-agendamento.html"
@@ -275,8 +503,20 @@ document.addEventListener(
 
       limparSessao();
 
+      mostrarEstado({
+        tipo: "aviso",
+        titulo:
+          "Entre para continuar",
+        mensagem:
+          "Você será direcionado para o login.",
+        etapa: 1,
+        processando: false,
+        icone: "🔐",
+      });
+
       redirecionar(
-        "/html/login-cliente.html"
+        "/html/login-cliente.html",
+        500
       );
     }
 
@@ -284,7 +524,8 @@ document.addEventListener(
       erro
     ) {
       if (
-        erro?.status === 401
+        erro?.status === 401 ||
+        erro?.status === 403
       ) {
         redirecionarLogin();
 
@@ -294,12 +535,6 @@ document.addEventListener(
       return false;
     }
 
-    /*
-     * =====================================================
-     * FINALIZAÇÃO
-     * =====================================================
-     */
-
     async function finalizarAgendamento() {
       if (
         estado.finalizando ||
@@ -308,10 +543,7 @@ document.addEventListener(
         return;
       }
 
-      const token =
-        obterToken();
-
-      if (!token) {
+      if (!obterToken()) {
         redirecionarLogin();
 
         return;
@@ -325,14 +557,20 @@ document.addEventListener(
           "agendamentoPendente"
         );
 
-        mostrarMensagem(
-          "Nenhum agendamento pendente foi encontrado.",
-          "aviso"
-        );
+        mostrarEstado({
+          tipo: "aviso",
+          titulo:
+            "Nenhum agendamento pendente",
+          mensagem:
+            "Você será direcionado para a página inicial.",
+          etapa: 1,
+          processando: false,
+          icone: "📅",
+        });
 
         redirecionar(
           "/html/inicio.html",
-          1200
+          1400
         );
 
         return;
@@ -352,14 +590,22 @@ document.addEventListener(
           "voltarDepoisLogin"
         );
 
-        mostrarMensagem(
-          "Os dados do agendamento pendente são inválidos.",
-          "erro"
-        );
+        mostrarEstado({
+          tipo: "erro",
+          titulo:
+            "Dados do agendamento inválidos",
+          mensagem:
+            "Volte ao perfil do negócio e escolha o horário novamente.",
+          etapa: 1,
+          processando: false,
+          icone: "⚠️",
+        });
 
         redirecionar(
-          "/html/inicio.html",
-          1600
+          obterDestinoPerfil(
+            pendente
+          ),
+          1800
         );
 
         return;
@@ -368,10 +614,24 @@ document.addEventListener(
       estado.finalizando =
         true;
 
-      mostrarMensagem(
-        "Confirmando seu agendamento...",
-        "aviso"
-      );
+      mostrarEstado({
+        tipo: "aviso",
+        titulo:
+          "Estamos confirmando seu agendamento",
+        mensagem:
+          "Verificando a disponibilidade do horário selecionado.",
+        etapa: 2,
+        processando: true,
+        icone: "💅",
+      });
+
+      if (
+        elementos.aviso
+      ) {
+        elementos.aviso
+          .textContent =
+            "Não feche esta página enquanto a confirmação estiver sendo processada.";
+      }
 
       try {
         const resultado =
@@ -380,10 +640,6 @@ document.addEventListener(
             dados
           );
 
-        /*
-         * O agendamento pendente só é apagado
-         * depois que o backend confirma a criação.
-         */
         localStorage.removeItem(
           "agendamentoPendente"
         );
@@ -392,15 +648,71 @@ document.addEventListener(
           "voltarDepoisLogin"
         );
 
-        mostrarMensagem(
-          resultado?.mensagem ||
-            "Agendamento confirmado com sucesso 💅",
-          "sucesso"
-        );
+        mostrarEstado({
+          tipo: "sucesso",
+          titulo:
+            "Agendamento confirmado",
+          mensagem:
+            resultado?.mensagem ||
+            "Seu horário foi reservado com sucesso.",
+          etapa: 3,
+          processando: false,
+          icone: "✅",
+        });
+
+        /*
+         * Deixa todos os passos concluídos.
+         */
+        elementos.passos
+          .forEach(
+            (passo) => {
+              passo.classList.remove(
+                "ativo"
+              );
+
+              passo.classList.add(
+                "concluido"
+              );
+
+              const marcador =
+                passo.querySelector(
+                  ":scope > span"
+                );
+
+              if (marcador) {
+                marcador.textContent =
+                  "✓";
+              }
+            }
+          );
+
+        if (
+          elementos.progresso
+        ) {
+          elementos.progresso
+            .style.width =
+              "100%";
+
+          elementos.progresso
+            .style.transform =
+              "none";
+
+          elementos.progresso
+            .style.animation =
+              "none";
+        }
+
+        if (
+          elementos.aviso
+        ) {
+          elementos.aviso
+            .textContent =
+              "Abrindo sua agenda...";
+        }
 
         redirecionar(
           "/html/meus-agendamentos.html",
-          900
+          1100
         );
       } catch (erro) {
         console.error(
@@ -416,20 +728,9 @@ document.addEventListener(
           return;
         }
 
-        /*
-         * Em falhas temporárias, conflitos de horário
-         * ou indisponibilidade do servidor, os dados
-         * permanecem salvos para o usuário tentar
-         * novamente ou escolher outro horário.
-         */
         const mensagemErro =
           erro?.message ||
           "Não foi possível finalizar o agendamento.";
-
-        mostrarMensagem(
-          mensagemErro,
-          "erro"
-        );
 
         if (
           erro?.status === 409
@@ -442,18 +743,53 @@ document.addEventListener(
             "voltarDepoisLogin"
           );
 
-          mostrarMensagem(
-            mensagemErro ||
-              "Esse horário não está mais disponível.",
-            "aviso"
-          );
+          mostrarEstado({
+            tipo: "aviso",
+            titulo:
+              "Horário indisponível",
+            mensagem:
+              mensagemErro ||
+              "Outra pessoa reservou esse horário.",
+            etapa: 2,
+            processando: false,
+            icone: "🕒",
+          });
+
+          if (
+            elementos.aviso
+          ) {
+            elementos.aviso
+              .textContent =
+                "Você será direcionado para escolher outro horário.";
+          }
 
           redirecionar(
-            "/html/inicio.html",
-            1800
+            obterDestinoPerfil(
+              dados
+            ),
+            1900
           );
 
           return;
+        }
+
+        mostrarEstado({
+          tipo: "erro",
+          titulo:
+            "Não foi possível confirmar",
+          mensagem:
+            mensagemErro,
+          etapa: 2,
+          processando: false,
+          icone: "⚠️",
+        });
+
+        if (
+          elementos.aviso
+        ) {
+          elementos.aviso
+            .textContent =
+              "Seus dados continuam salvos. Atualize a página para tentar novamente.";
         }
 
         estado.finalizando =

@@ -2,33 +2,206 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Finalizando Agendamento</title>
-  <link rel="stylesheet" href="../css/finalizar-agendamento.css">
-  <link rel="stylesheet" href="../css/navegacao.css">
+
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+  >
+
+  <meta
+    name="description"
+    content="Confirmação do agendamento no Agenda Fashion."
+  >
+
+  <meta
+    name="theme-color"
+    content="#e83e8c"
+  >
+
+  <title>
+    Finalizando agendamento | Agenda Fashion
+  </title>
+
+  <link
+    rel="stylesheet"
+    href="../css/global.css"
+  >
+
+  <link
+    rel="stylesheet"
+    href="../css/navegacao.css"
+  >
+
+  <link
+    rel="stylesheet"
+    href="../css/finalizar-agendamento.css"
+  >
 </head>
+
 <body>
-  <main class="finalizar-container">
-    <div class="finalizar-card">
-      <div class="finalizar-icon">💅</div>
-      <h1>Finalizando seu agendamento...</h1>
-      <p id="mensagemFinalizar">Aguarde um instante.</p>
-    </div>
+  <main class="finalizar-page">
+    <header class="finalizar-header">
+      <a
+        class="af-brand"
+        href="/html/inicio.html"
+        aria-label="Ir para o início do Agenda Fashion"
+      >
+        <span
+          class="af-brand-icon"
+          aria-hidden="true"
+        >
+          💅
+        </span>
+
+        <span class="finalizar-brand-texto">
+          <strong>
+            Agenda Fashion
+          </strong>
+
+          <small>
+            Confirmação do agendamento
+          </small>
+        </span>
+      </a>
+    </header>
+
+    <section
+      class="finalizar-container"
+      aria-labelledby="tituloFinalizar"
+    >
+      <article class="finalizar-card af-card">
+        <div
+          class="finalizar-decoracao finalizar-decoracao-um"
+          aria-hidden="true"
+        ></div>
+
+        <div
+          class="finalizar-decoracao finalizar-decoracao-dois"
+          aria-hidden="true"
+        ></div>
+
+        <div class="finalizar-conteudo">
+          <div
+            class="finalizar-icon-box"
+            aria-hidden="true"
+          >
+            <span class="finalizar-icon">
+              💅
+            </span>
+
+            <span class="finalizar-spinner"></span>
+          </div>
+
+          <span class="finalizar-etiqueta">
+            Quase pronto
+          </span>
+
+          <h1 id="tituloFinalizar">
+            Estamos confirmando seu agendamento
+          </h1>
+
+          <p
+            id="mensagemFinalizar"
+            class="finalizar-mensagem aviso"
+            role="status"
+            aria-live="polite"
+          >
+            Aguarde um instante enquanto verificamos a disponibilidade.
+          </p>
+
+          <div
+            class="finalizar-progresso"
+            aria-hidden="true"
+          >
+            <span></span>
+          </div>
+
+          <div class="finalizar-passos">
+            <div class="finalizar-passo concluido">
+              <span aria-hidden="true">
+                ✓
+              </span>
+
+              <div>
+                <strong>
+                  Dados recebidos
+                </strong>
+
+                <small>
+                  Serviço, profissional e horário selecionados.
+                </small>
+              </div>
+            </div>
+
+            <div class="finalizar-passo ativo">
+              <span aria-hidden="true">
+                2
+              </span>
+
+              <div>
+                <strong>
+                  Confirmando disponibilidade
+                </strong>
+
+                <small>
+                  Evitando que duas pessoas reservem o mesmo horário.
+                </small>
+              </div>
+            </div>
+
+            <div class="finalizar-passo">
+              <span aria-hidden="true">
+                3
+              </span>
+
+              <div>
+                <strong>
+                  Agendamento concluído
+                </strong>
+
+                <small>
+                  Você será direcionado para sua agenda.
+                </small>
+              </div>
+            </div>
+          </div>
+
+          <div class="finalizar-aviso">
+            <span aria-hidden="true">
+              🔒
+            </span>
+
+            <p>
+              Não feche esta página enquanto a confirmação
+              estiver sendo processada.
+            </p>
+          </div>
+        </div>
+      </article>
+    </section>
+
+    <footer class="finalizar-footer">
+      <p>
+        Agendamento protegido e organizado pelo Agenda Fashion.
+      </p>
+    </footer>
   </main>
 
+  <!-- Deve existir somente uma navegação na página. -->
+  <nav
+    id="appNav"
+    class="app-bottom-nav"
+    aria-label="Navegação principal"
+  ></nav>
+
+  <script src="../js/config.js"></script>
+  <script src="../js/utils.js"></script>
+  <script src="../js/api.js"></script>
+
+  <script src="../js/services/authService.js"></script>
+  <script src="../js/services/sessionGuard.js"></script>
+
+  <script src="../js/navegacao.js"></script>
   <script src="../js/finalizar-agendamento.js"></script>
-  
-<nav id="appNav" class="app-bottom-nav"></nav>
-
-<script src="../js/config.js"></script>
-<script src="../js/utils.js"></script>
-<script src="../js/api.js"></script>
-<nav
-  id="appNav"
-  class="app-bottom-nav"
-></nav>
-
-<script src="../js/navegacao.js"></script>
-
 </body>
 </html>

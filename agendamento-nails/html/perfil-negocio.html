@@ -2,87 +2,162 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  <title>Perfil do NegÃ³cio</title>
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+  >
 
-  <link rel="stylesheet" href="../css/global.css">
-  <link rel="stylesheet" href="../css/navegacao.css">
-  <link rel="stylesheet" href="../css/perfil-negocio.css">
+  <meta
+    name="description"
+    content="Conheça os serviços, profissionais e horários disponíveis e faça seu agendamento pelo Agenda Fashion."
+  >
+
+  <meta
+    name="theme-color"
+    content="#e83e8c"
+  >
+
+  <title>
+    Perfil do negócio | Agenda Fashion
+  </title>
+
+  <link
+    rel="stylesheet"
+    href="../css/global.css"
+  >
+
+  <link
+    rel="stylesheet"
+    href="../css/navegacao.css"
+  >
+
+  <link
+    rel="stylesheet"
+    href="../css/perfil-negocio.css"
+  >
 </head>
 
 <body>
-
   <main class="perfil-page">
-
     <header class="perfil-header">
-      <div class="af-brand">
-        <div class="af-brand-icon">ðŸ’…</div>
+      <a
+        class="af-brand"
+        href="/html/inicio.html"
+        aria-label="Ir para o início do Agenda Fashion"
+      >
+        <div
+          class="af-brand-icon"
+          aria-hidden="true"
+        >
+          💅
+        </div>
 
         <div>
-          <div class="af-brand-title">Agenda Fashion</div>
-          <div class="af-brand-subtitle">Perfil pÃºblico</div>
+          <div class="af-brand-title">
+            Agenda Fashion
+          </div>
+
+          <div class="af-brand-subtitle">
+            Perfil público
+          </div>
         </div>
-      </div>
+      </a>
+
+      <a
+        class="af-btn-secondary perfil-voltar"
+        href="/html/inicio.html"
+      >
+        <span aria-hidden="true">←</span>
+        Explorar negócios
+      </a>
     </header>
 
-    <section class="perfil-card-principal af-card">
+    <div
+      id="mensagemPerfil"
+      class="mensagem-perfil hidden"
+      role="status"
+      aria-live="polite"
+    ></div>
 
+    <section
+      class="perfil-card-principal af-card"
+      aria-labelledby="nomeNegocio"
+    >
       <div class="perfil-capa">
-        <span class="af-badge">Perfil pÃºblico</span>
+        <div class="perfil-capa-conteudo">
+          <span class="af-badge">
+            <span aria-hidden="true">✦</span>
+            Perfil público
+          </span>
+
+          <span class="perfil-capa-texto">
+            Serviços, profissionais e horários em um só lugar
+          </span>
+        </div>
       </div>
 
       <div class="perfil-conteudo">
-
         <div class="foto-area">
           <img
             id="fotoNegocio"
             class="foto-negocio"
-            alt="Foto do negÃ³cio"
+            alt="Foto do negócio"
           >
 
           <button
             class="edit-btn dono-only hidden"
             data-edit="foto"
-            title="Alterar foto"
+            title="Alterar foto do negócio"
+            aria-label="Alterar foto do negócio"
             type="button"
           >
-            ðŸ“·
+            📷
           </button>
         </div>
 
         <div class="perfil-dados">
+          <div class="perfil-identidade">
+            <div class="linha-editavel">
+              <h1 id="nomeNegocio">
+                Carregando perfil...
+              </h1>
 
-          <div class="linha-editavel">
-            <h1 id="nomeNegocio">Carregando...</h1>
+              <button
+                class="edit-icon dono-only hidden"
+                data-edit="nome"
+                title="Editar nome"
+                aria-label="Editar nome do negócio"
+                type="button"
+              >
+                ✏️
+              </button>
+            </div>
 
-            <button
-              class="edit-icon dono-only hidden"
-              data-edit="nome"
-              title="Editar nome"
-              type="button"
+            <div
+              id="linhaAvaliacao"
+              class="linha-avaliacao"
             >
-              âœï¸
-            </button>
-          </div>
-
-          <div id="linhaAvaliacao" class="linha-avaliacao">
-            â­ Novo negÃ³cio
+              ⭐ Novo negócio
+            </div>
           </div>
 
           <div class="linha-principal">
             <span
               id="cidadeBairroNegocio"
               class="linha-destaque"
-            ></span>
+            >
+              📍 Carregando localização...
+            </span>
 
             <button
               class="edit-icon dono-only hidden"
               data-edit="local"
               title="Editar cidade e bairro"
+              aria-label="Editar localização"
               type="button"
             >
-              âœï¸
+              ✏️
             </button>
 
             <span
@@ -95,20 +170,25 @@
             <p
               id="descricaoNegocio"
               class="descricao-negocio"
-            ></p>
+            >
+              Carregando descrição...
+            </p>
 
             <button
               class="edit-icon dono-only hidden"
               data-edit="bio"
-              title="Editar bio"
+              title="Editar descrição"
+              aria-label="Editar descrição do negócio"
               type="button"
             >
-              âœï¸
+              ✏️
             </button>
           </div>
 
-          <div class="perfil-acoes">
-
+          <div
+            class="perfil-acoes"
+            aria-label="Ações do perfil"
+          >
             <div class="contato-item">
               <a
                 id="btnWhatsapp"
@@ -116,17 +196,26 @@
                 target="_blank"
                 rel="noopener noreferrer"
               >
-                <span>ðŸ“²</span>
-                <span>WhatsApp</span>
+                <span
+                  class="app-action-icon"
+                  aria-hidden="true"
+                >
+                  💬
+                </span>
+
+                <span>
+                  WhatsApp
+                </span>
               </a>
 
               <button
                 class="edit-mini dono-only hidden"
                 data-edit="whatsapp"
                 title="Editar WhatsApp"
+                aria-label="Editar WhatsApp"
                 type="button"
               >
-                âœï¸
+                ✏️
               </button>
             </div>
 
@@ -137,17 +226,26 @@
                 target="_blank"
                 rel="noopener noreferrer"
               >
-                <span>ðŸ“</span>
-                <span>Maps</span>
+                <span
+                  class="app-action-icon"
+                  aria-hidden="true"
+                >
+                  📍
+                </span>
+
+                <span>
+                  Ver no Maps
+                </span>
               </a>
 
               <button
                 class="edit-mini dono-only hidden"
                 data-edit="maps"
-                title="Editar Maps"
+                title="Editar localização no Maps"
+                aria-label="Editar localização no Maps"
                 type="button"
               >
-                âœï¸
+                ✏️
               </button>
             </div>
 
@@ -155,67 +253,100 @@
               id="btnFavorito"
               class="app-action favorito"
               type="button"
+              aria-pressed="false"
             >
-              â™¡ Favoritar
+              ♡ Favoritar
             </button>
-
           </div>
-
         </div>
-
       </div>
 
       <div class="areas-wrapper">
         <div class="areas-topo">
-          <strong>Ãreas atendidas</strong>
+          <div>
+            <span class="areas-label">
+              Especialidades
+            </span>
+
+            <strong>
+              Áreas atendidas
+            </strong>
+          </div>
 
           <button
             class="edit-mini dono-only hidden"
             data-edit="areas"
             type="button"
           >
-            Editar
+            Editar áreas
           </button>
         </div>
 
         <div
           id="areasNegocio"
           class="areas-negocio"
-        ></div>
+          aria-label="Áreas atendidas pelo negócio"
+        >
+          <span class="area-tag">
+            Carregando...
+          </span>
+        </div>
       </div>
-
     </section>
 
     <section
       id="painelDonoPerfil"
       class="painel-dono af-card dono-only hidden"
+      aria-labelledby="tituloPainelDono"
     >
-      <div>
-        <span class="af-badge badge-soft">Modo dono</span>
+      <div class="painel-dono-conteudo">
+        <span class="section-etiqueta">
+          Área de gestão
+        </span>
 
-        <h2>Gerencie seu perfil</h2>
+        <h2 id="tituloPainelDono">
+          Gerencie seu perfil público
+        </h2>
 
         <p>
-          Edite dados, serviÃ§os e profissionais sem sair do perfil pÃºblico.
+          Complete as informações do negócio, cadastre serviços
+          e organize sua equipe para começar a receber agendamentos.
         </p>
-        <div id="perfilCompletoBox" class="perfil-completo-box">
-  <div class="perfil-completo-topo">
-    <strong id="perfilCompletoPercentual">0%</strong>
-    <span>Perfil completo</span>
-  </div>
 
-  <div class="perfil-completo-barra">
-    <div
-      id="perfilCompletoProgresso"
-      class="perfil-completo-progresso"
-    ></div>
-  </div>
+        <div
+          id="perfilCompletoBox"
+          class="perfil-completo-box"
+        >
+          <div class="perfil-completo-topo">
+            <div>
+              <strong id="perfilCompletoPercentual">
+                0%
+              </strong>
 
-  <div
-    id="perfilCompletoChecklist"
-    class="perfil-completo-checklist"
-  ></div>
-</div>
+              <span>
+                do perfil completo
+              </span>
+            </div>
+          </div>
+
+          <div
+            class="perfil-completo-barra"
+            role="progressbar"
+            aria-label="Progresso de preenchimento do perfil"
+            aria-valuemin="0"
+            aria-valuemax="100"
+          >
+            <div
+              id="perfilCompletoProgresso"
+              class="perfil-completo-progresso"
+            ></div>
+          </div>
+
+          <div
+            id="perfilCompletoChecklist"
+            class="perfil-completo-checklist"
+          ></div>
+        </div>
       </div>
 
       <div class="painel-dono-acoes">
@@ -224,7 +355,8 @@
           data-action="novo-servico"
           type="button"
         >
-          + ServiÃ§o
+          <span aria-hidden="true">＋</span>
+          Novo serviço
         </button>
 
         <button
@@ -232,7 +364,8 @@
           data-action="novo-profissional"
           type="button"
         >
-          + Profissional
+          <span aria-hidden="true">＋</span>
+          Adicionar profissional
         </button>
 
         <button
@@ -240,31 +373,97 @@
           class="af-btn-secondary"
           type="button"
         >
-          ðŸ“‹ Copiar link pÃºblico
+          <span aria-hidden="true">🔗</span>
+          Copiar link público
         </button>
       </div>
     </section>
 
-    <section class="fluxo-agendamento">
+    <section
+      class="fluxo-agendamento"
+      aria-labelledby="tituloAgendamento"
+    >
+      <div class="agendamento-introducao">
+        <span class="section-etiqueta">
+          Agendamento online
+        </span>
 
-      <div class="etapas">
-        <div id="etapaServico" class="etapa ativa">
-  <strong>Escolha o serviÃ§o</strong>
-  <span>Primeiro selecione o atendimento</span>
-</div>
+        <h2 id="tituloAgendamento">
+          Escolha seu serviço e reserve um horário
+        </h2>
 
-<div id="etapaHorario" class="etapa">
-  <strong>Escolha o horÃ¡rio</strong>
-  <span>Depois selecione profissional e data</span>
-</div>
+        <p>
+          Siga as etapas abaixo. A confirmação leva poucos segundos.
+        </p>
       </div>
 
-      <section id="boxServicos" class="perfil-section">
+      <div
+        class="etapas"
+        aria-label="Etapas do agendamento"
+      >
+        <div
+          id="etapaServico"
+          class="etapa ativa"
+        >
+          <span
+            class="etapa-numero"
+            aria-hidden="true"
+          >
+            1
+          </span>
+
+          <div>
+            <strong>
+              Escolha o serviço
+            </strong>
+
+            <span>
+              Selecione o atendimento desejado
+            </span>
+          </div>
+        </div>
+
+        <div
+          id="etapaHorario"
+          class="etapa"
+        >
+          <span
+            class="etapa-numero"
+            aria-hidden="true"
+          >
+            2
+          </span>
+
+          <div>
+            <strong>
+              Escolha o horário
+            </strong>
+
+            <span>
+              Selecione profissional, data e hora
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <section
+        id="boxServicos"
+        class="perfil-section af-card"
+        aria-labelledby="tituloServicos"
+      >
         <div class="section-title-row">
           <div>
-            <span class="af-badge badge-soft">Etapa 1</span>
-            <h2>Escolha o serviÃ§o</h2>
-            <p>Selecione o atendimento que deseja agendar.</p>
+            <span class="section-etiqueta">
+              Etapa 1
+            </span>
+
+            <h2 id="tituloServicos">
+              Qual serviço você deseja?
+            </h2>
+
+            <p>
+              Confira preço, duração e trabalhos realizados.
+            </p>
           </div>
 
           <button
@@ -272,19 +471,48 @@
             data-action="novo-servico"
             type="button"
           >
-            + Novo serviÃ§o
+            <span aria-hidden="true">＋</span>
+            Novo serviço
           </button>
         </div>
 
-        <div id="listaServicos" class="cards-servicos"></div>
+        <div
+          id="listaServicos"
+          class="cards-servicos"
+          aria-live="polite"
+        >
+          <div class="estado-vazio">
+            <span class="af-loading">
+              <span
+                class="af-spinner"
+                aria-hidden="true"
+              ></span>
+
+              Carregando serviços...
+            </span>
+          </div>
+        </div>
       </section>
 
-      <section id="boxProfissionaisHorarios" class="perfil-section hidden">
+      <section
+        id="boxProfissionaisHorarios"
+        class="perfil-section af-card hidden"
+        aria-labelledby="tituloProfissionais"
+      >
         <div class="section-title-row">
           <div>
-            <span class="af-badge badge-soft">Etapa 2</span>
-            <h2>Escolha profissional e horÃ¡rio</h2>
-            <p>Ao escolher o profissional, os horÃ¡rios aparecem automaticamente.</p>
+            <span class="section-etiqueta">
+              Etapa 2
+            </span>
+
+            <h2 id="tituloProfissionais">
+              Escolha profissional, data e horário
+            </h2>
+
+            <p>
+              Ao selecionar um profissional, os próximos
+              horários disponíveis serão exibidos.
+            </p>
           </div>
 
           <button
@@ -292,29 +520,84 @@
             data-action="novo-profissional"
             type="button"
           >
-            + Profissional
+            <span aria-hidden="true">＋</span>
+            Adicionar profissional
           </button>
         </div>
 
-        <div id="listaProfissionais" class="cards-profissionais"></div>
+        <div class="profissionais-bloco">
+          <h3>
+            Profissionais disponíveis
+          </h3>
 
-        <div class="horarios-box af-card">
-          <h3>HorÃ¡rios disponÃ­veis</h3>
-
-          <div id="listaHorariosDisponiveis" class="horarios-grid">
+          <div
+            id="listaProfissionais"
+            class="cards-profissionais"
+          >
             <div class="estado-vazio">
-              Escolha um profissional para ver os horÃ¡rios.
+              Carregando profissionais...
+            </div>
+          </div>
+        </div>
+
+        <div class="horarios-box">
+          <div class="horarios-box-topo">
+            <div>
+              <span class="horarios-label">
+                Agenda
+              </span>
+
+              <h3>
+                Horários disponíveis
+              </h3>
+            </div>
+
+            <span
+              class="horarios-ajuda"
+              aria-hidden="true"
+            >
+              📅
+            </span>
+          </div>
+
+          <div
+            id="listaHorariosDisponiveis"
+            class="horarios-grid"
+            aria-live="polite"
+          >
+            <div class="estado-vazio">
+              Escolha um profissional para visualizar os horários.
             </div>
           </div>
         </div>
       </section>
 
-      <section class="resumo-agendamento af-card">
+      <section
+        class="resumo-agendamento af-card"
+        aria-labelledby="tituloResumoAgendamento"
+      >
         <div class="resumo-info">
-          <strong>Resumo do agendamento</strong>
-          <span id="resumoServico">ServiÃ§o: nenhum</span>
-          <span id="resumoProfissional">Profissional: nenhum</span>
-          <span id="resumoHorario">HorÃ¡rio: nenhum</span>
+          <span class="resumo-label">
+            Sua seleção
+          </span>
+
+          <strong id="tituloResumoAgendamento">
+            Resumo do agendamento
+          </strong>
+
+          <div class="resumo-itens">
+            <span id="resumoServico">
+              Serviço: nenhum
+            </span>
+
+            <span id="resumoProfissional">
+              Profissional: nenhum
+            </span>
+
+            <span id="resumoHorario">
+              Horário: nenhum
+            </span>
+          </div>
         </div>
 
         <button
@@ -326,30 +609,44 @@
           Confirmar agendamento
         </button>
       </section>
-
     </section>
 
+    <footer class="perfil-footer">
+      <p>
+        Agendamento seguro e organizado pelo Agenda Fashion.
+      </p>
+    </footer>
   </main>
 
   <div
     id="modalPerfil"
     class="modal-overlay hidden"
+    role="presentation"
   >
-    <div class="modal-card af-card">
-
+    <div
+      class="modal-card af-card"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="modalTitulo"
+    >
       <div class="modal-topo">
         <div>
-          <span class="af-badge badge-soft">Editar</span>
+          <span class="section-etiqueta">
+            Agenda Fashion
+          </span>
 
-          <h2 id="modalTitulo">Editar perfil</h2>
+          <h2 id="modalTitulo">
+            Editar perfil
+          </h2>
         </div>
 
         <button
           id="btnFecharModal"
           class="modal-close"
           type="button"
+          aria-label="Fechar janela"
         >
-          âœ•
+          ✕
         </button>
       </div>
 
@@ -375,18 +672,22 @@
           Salvar
         </button>
       </div>
-
     </div>
   </div>
 
-<script src="../js/config.js"></script>
-<script src="../js/utils.js"></script>
-<script src="../js/api.js"></script>
+  <nav
+    id="appNav"
+    class="app-bottom-nav"
+    aria-label="Navegação principal"
+  ></nav>
 
-<script src="../js/services/authService.js"></script>
+  <script src="../js/config.js"></script>
+  <script src="../js/utils.js"></script>
+  <script src="../js/api.js"></script>
 
-<script src="../js/navegacao.js"></script>
-<script src="../js/perfil-negocio.js"></script>
+  <script src="../js/services/authService.js"></script>
 
+  <script src="../js/navegacao.js"></script>
+  <script src="../js/perfil-negocio.js"></script>
 </body>
 </html>

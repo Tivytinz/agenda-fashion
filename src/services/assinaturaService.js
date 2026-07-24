@@ -121,7 +121,11 @@ async function buscarMinhaAssinatura({ usuarioId }) {
       utilizados: uso?.utilizados || 0,
       limite: uso?.capacidade_agendamentos ?? null,
       restantes: uso?.restantes ?? null,
-      percentual: uso?.percentual ?? null
+      percentual: uso?.percentual ?? null,
+      profissionais_utilizados: uso?.profissionais_utilizados || 0,
+      limite_profissionais: uso?.limite_profissionais ?? null,
+      servicos_utilizados: uso?.servicos_utilizados || 0,
+      limite_servicos: uso?.limite_servicos ?? null
     },
     pagamentos
   };

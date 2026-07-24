@@ -1,5 +1,52 @@
 const db = require("../db/db");
 
+async function bloquearCadastroProfissional(client, negocioId) {
+  await client.query(
+    `
+    SELECT pg_advisory_xact_lock(
+      hashtext('agenda_fashion_limite_profissionais'),
+      $1::integer
+    )
+    `,
+    [Number(negocioId)]
+  );
+}
+
+async function buscarPlanoDoNegocio(negocioId, executor = db) {
+  const result = await executor.query(
+    `
+    SELECT
+      p.id,
+      p.nome,
+      p.slug,
+      p.limite_profissionais
+    FROM negocios n
+    INNER JOIN planos p
+      ON p.id = n.plano_id
+    WHERE n.id = $1
+    LIMIT 1
+    `,
+    [negocioId]
+  );
+
+  return result.rows[0] || null;
+}
+
+async function contarProfissionaisAtivos(negocioId, executor = db) {
+  const result = await executor.query(
+    `
+    SELECT COUNT(*)::int AS total
+    FROM usuarios_negocios
+    WHERE negocio_id = $1
+      AND ativo = TRUE
+      AND papel IN ('dono', 'profissional')
+    `,
+    [negocioId]
+  );
+
+  return Number(result.rows[0]?.total || 0);
+}
+
 async function buscarNegocioDono(usuarioId) {
   const result = await db.query(
     `
@@ -99,8 +146,8 @@ async function buscarProfissionalPorEmailWhatsapp(email, whatsapp) {
   return result.rows[0] || null;
 }
 
-async function verificarVinculo(usuarioId, negocioId) {
-  const result = await db.query(
+async function verificarVinculo(usuarioId, negocioId, executor = db) {
+  const result = await executor.query(
     `
     SELECT id
     FROM usuarios_negocios
@@ -114,8 +161,8 @@ async function verificarVinculo(usuarioId, negocioId) {
   return result.rows[0] || null;
 }
 
-async function criarVinculo(usuarioId, negocioId) {
-  await db.query(
+async function criarVinculo(usuarioId, negocioId, executor = db) {
+  await executor.query(
     `
     INSERT INTO usuarios_negocios(
       usuario_id,
@@ -129,6 +176,9 @@ async function criarVinculo(usuarioId, negocioId) {
 }
 
 module.exports = {
+  bloquearCadastroProfissional,
+  buscarPlanoDoNegocio,
+  contarProfissionaisAtivos,
   buscarNegocioDono,
   verificarProfissionalNoNegocio,
   atualizarProfissional,

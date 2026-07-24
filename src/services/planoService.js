@@ -1,7 +1,36 @@
 const db = require("../db/db");
 
-async function buscarUsoPlano(negocioId) {
-    const result = await db.query(
+function criarErroLimite(mensagem, codigo, uso = null) {
+    const erro = new Error(mensagem);
+    erro.status = 409;
+    erro.statusCode = 409;
+    erro.codigo = codigo;
+    erro.uso = uso;
+    return erro;
+}
+
+async function bloquearUsoPlano(client, negocioId) {
+    if (!client || typeof client.query !== "function") {
+        throw new Error("Conexão transacional inválida.");
+    }
+
+    await client.query(
+        `
+        SELECT pg_advisory_xact_lock(
+          hashtext('agenda_fashion_limite_plano'),
+          $1::integer
+        )
+        `,
+        [Number(negocioId)]
+    );
+}
+
+async function buscarUsoPlano(
+    negocioId,
+    executor = db,
+    dataReferencia = null
+) {
+    const result = await executor.query(
         `
     SELECT
       n.id AS negocio_id,
@@ -12,16 +41,43 @@ async function buscarUsoPlano(negocioId) {
       p.slug AS plano_slug,
       p.valor,
       p.capacidade_agendamentos,
+      p.limite_profissionais,
+      p.limite_servicos,
       p.destaque,
 
       (
         SELECT COUNT(*)::int
         FROM agendamentos a
         WHERE a.negocio_id = n.id
-          AND a.status != 'cancelado'
-          AND a.data >= date_trunc('month', CURRENT_DATE)
-          AND a.data < date_trunc('month', CURRENT_DATE) + INTERVAL '1 month'
-      ) AS utilizados
+          AND a.status IN (
+            'agendado',
+            'confirmado',
+            'realizado'
+          )
+          AND a.data >= date_trunc(
+            'month',
+            COALESCE($2::date, CURRENT_DATE)
+          )
+          AND a.data < date_trunc(
+            'month',
+            COALESCE($2::date, CURRENT_DATE)
+          ) + INTERVAL '1 month'
+      ) AS utilizados,
+
+      (
+        SELECT COUNT(*)::int
+        FROM usuarios_negocios un
+        WHERE un.negocio_id = n.id
+          AND un.ativo = TRUE
+          AND un.papel IN ('dono', 'profissional')
+      ) AS profissionais_utilizados,
+
+      (
+        SELECT COUNT(*)::int
+        FROM servicos_negocio sn
+        WHERE sn.negocio_id = n.id
+          AND sn.ativo = TRUE
+      ) AS servicos_utilizados
 
     FROM negocios n
     INNER JOIN planos p
@@ -29,7 +85,7 @@ async function buscarUsoPlano(negocioId) {
     WHERE n.id = $1
     LIMIT 1
     `,
-        [negocioId]
+        [negocioId, dataReferencia]
     );
 
     if (result.rows.length === 0) {
@@ -59,8 +115,10 @@ async function buscarUsoPlano(negocioId) {
         status = "ilimitado";
     } else if (utilizados >= Number(capacidade || 0)) {
         status = "limite_atingido";
+    } else if (percentual >= 90) {
+        status = "upgrade_recomendado";
     } else if (percentual >= 80) {
-        status = "quase_cheio";
+        status = "alerta_capacidade";
     } else if (percentual >= 50) {
         status = "crescendo";
     }
@@ -74,9 +132,13 @@ async function buscarUsoPlano(negocioId) {
         plano_slug: plano.plano_slug,
         valor: plano.valor,
         capacidade_agendamentos: capacidade,
+        limite_profissionais: plano.limite_profissionais,
+        limite_servicos: plano.limite_servicos,
         destaque: plano.destaque,
 
         utilizados,
+        profissionais_utilizados: Number(plano.profissionais_utilizados || 0),
+        servicos_utilizados: Number(plano.servicos_utilizados || 0),
         restantes,
         percentual,
         ilimitado,
@@ -84,9 +146,11 @@ async function buscarUsoPlano(negocioId) {
 
         mensagem:
             status === "limite_atingido"
-                ? "🎉 Parabéns! Sua agenda atingiu a capacidade do plano. O limite significa sucesso."
-                : status === "quase_cheio"
-                    ? `🚀 Sua agenda está quase cheia. Faltam apenas ${restantes} agendamento(s) para atingir a capacidade do plano.`
+                ? "🎉 Sua agenda atingiu a capacidade do plano. Faça upgrade para continuar recebendo novas clientes."
+                : status === "upgrade_recomendado"
+                    ? `🚀 Faltam apenas ${restantes} agendamento(s). Compare seu plano com a próxima opção.`
+                    : status === "alerta_capacidade"
+                    ? `Seu negócio está crescendo: você já utilizou ${percentual}% da agenda mensal.`
                     : status === "crescendo"
                         ? "Seu negócio está crescendo no Agenda Fashion."
                         : status === "ilimitado"
@@ -95,12 +159,29 @@ async function buscarUsoPlano(negocioId) {
     };
 }
 
-async function verificarCapacidadePlano(negocioId) {
-    const uso = await buscarUsoPlano(negocioId);
+async function verificarCapacidadePlano(
+    negocioId,
+    executor = db,
+    {
+        bloquear = false,
+        dataReferencia = null
+    } = {}
+) {
+    if (bloquear) {
+        await bloquearUsoPlano(executor, negocioId);
+    }
+
+    const uso = await buscarUsoPlano(
+        negocioId,
+        executor,
+        dataReferencia
+    );
 
     if (!uso) {
-        const erro = new Error("NEGOCIO_NAO_ENCONTRADO");
+        const erro = new Error("Negócio não encontrado.");
         erro.codigo = "NEGOCIO_NAO_ENCONTRADO";
+        erro.status = 404;
+        erro.statusCode = 404;
         throw erro;
     }
 
@@ -109,10 +190,11 @@ async function verificarCapacidadePlano(negocioId) {
     }
 
     if (uso.utilizados >= Number(uso.capacidade_agendamentos || 0)) {
-        const erro = new Error("LIMITE_PLANO");
-        erro.codigo = "LIMITE_PLANO";
-        erro.uso = uso;
-        throw erro;
+        throw criarErroLimite(
+            "Novos horários em breve.",
+            "LIMITE_AGENDAMENTOS",
+            uso
+        );
     }
 
     return uso;
@@ -120,5 +202,7 @@ async function verificarCapacidadePlano(negocioId) {
 
 module.exports = {
     buscarUsoPlano,
-    verificarCapacidadePlano
+    bloquearUsoPlano,
+    verificarCapacidadePlano,
+    criarErroLimite
 };

@@ -2,360 +2,959 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  <title>HorÃ¡rios de Atendimento | Agenda Fashion</title>
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+  >
 
-  <link rel="stylesheet" href="../css/global.css">
-  <link rel="stylesheet" href="../css/navegacao.css">
-  <link rel="stylesheet" href="../css/configuracao-agenda.css">
+  <meta
+    name="description"
+    content="Configure os dias, horários e regras de atendimento do seu negócio no Agenda Fashion."
+  >
+
+  <meta
+    name="theme-color"
+    content="#e83e8c"
+  >
+
+  <title>
+    Configuração da agenda | Agenda Fashion
+  </title>
+
+  <link
+    rel="stylesheet"
+    href="../css/global.css"
+  >
+
+  <link
+    rel="stylesheet"
+    href="../css/navegacao.css"
+  >
+
+  <link
+    rel="stylesheet"
+    href="../css/configuracao-agenda.css"
+  >
 </head>
 
 <body>
   <main class="configuracao-agenda-page">
+    <header class="configuracao-topo">
+      <a
+        href="/html/inicio.html"
+        class="configuracao-brand"
+        aria-label="Ir para o início do Agenda Fashion"
+      >
+        <span
+          class="af-brand-icon"
+          aria-hidden="true"
+        >
+          💅
+        </span>
 
-    <header class="configuracao-header af-card">
-      <div>
-        <span class="af-badge">Agenda inteligente</span>
-        <h1>HorÃ¡rios de atendimento</h1>
-        <p>
-          Configure os dias e horÃ¡rios em que vocÃª atende suas clientes.
-        </p>
-      </div>
+        <span class="configuracao-brand-texto">
+          <strong>
+            Agenda Fashion
+          </strong>
+
+          <small>
+            Área profissional
+          </small>
+        </span>
+      </a>
+
+      <a
+        href="/html/agenda-profissional.html"
+        class="configuracao-voltar"
+      >
+        <span aria-hidden="true">
+          ←
+        </span>
+
+        Ver minha agenda
+      </a>
     </header>
 
-    <form id="formConfiguracaoAgenda">
+    <section
+      class="configuracao-header af-card"
+      aria-labelledby="tituloConfiguracaoAgenda"
+    >
+      <div class="configuracao-header-conteudo">
+        <span class="af-badge">
+          Agenda inteligente
+        </span>
 
-      <section class="configuracao-geral af-card">
-        <div class="secao-titulo">
-          <div>
-            <h2>ConfiguraÃ§Ã£o geral</h2>
-            <p>Defina o tempo padrÃ£o entre os seus atendimentos.</p>
-          </div>
+        <h1 id="tituloConfiguracaoAgenda">
+          Configure seus horários de atendimento
+        </h1>
+
+        <p>
+          Escolha os dias em que você trabalha, seus horários,
+          intervalos e regras para novos agendamentos.
+        </p>
+
+        <div class="configuracao-header-destaques">
+          <span>
+            <b aria-hidden="true">✓</b>
+            Horários por dia
+          </span>
+
+          <span>
+            <b aria-hidden="true">✓</b>
+            Intervalo entre clientes
+          </span>
+
+          <span>
+            <b aria-hidden="true">✓</b>
+            Regras de antecedência
+          </span>
         </div>
+      </div>
+
+      <div
+        class="configuracao-header-icone"
+        aria-hidden="true"
+      >
+        🗓️
+      </div>
+    </section>
+
+    <form
+      id="formConfiguracaoAgenda"
+      novalidate
+    >
+      <section
+        class="configuracao-geral af-card"
+        aria-labelledby="tituloConfiguracaoGeral"
+      >
+        <header class="secao-titulo">
+          <div class="secao-titulo-identidade">
+            <span
+              class="secao-icone"
+              aria-hidden="true"
+            >
+              ⚙️
+            </span>
+
+            <div>
+              <span class="secao-etiqueta">
+                Regras gerais
+              </span>
+
+              <h2 id="tituloConfiguracaoGeral">
+                Configuração geral
+              </h2>
+
+              <p>
+                Defina a duração padrão, os intervalos e as
+                regras aplicadas aos seus atendimentos.
+              </p>
+            </div>
+          </div>
+        </header>
 
         <div class="configuracao-grid">
           <label class="campo-configuracao">
-            <span>DuraÃ§Ã£o padrÃ£o do atendimento</span>
+            <span class="campo-configuracao-icone">
+              ⏱️
+            </span>
 
-            <select id="duracaoPadrao" required>
-              <option value="30">30 minutos</option>
-              <option value="45">45 minutos</option>
-              <option value="60">60 minutos</option>
-              <option value="90">90 minutos</option>
-              <option value="120">120 minutos</option>
-            </select>
+            <span class="campo-configuracao-conteudo">
+              <strong>
+                Duração padrão
+              </strong>
+
+              <small>
+                Tempo sugerido quando um serviço não possuir duração própria.
+              </small>
+
+              <select
+                id="duracaoPadrao"
+                required
+              >
+                <option value="30">
+                  30 minutos
+                </option>
+
+                <option value="45">
+                  45 minutos
+                </option>
+
+                <option value="60">
+                  60 minutos
+                </option>
+
+                <option value="90">
+                  90 minutos
+                </option>
+
+                <option value="120">
+                  120 minutos
+                </option>
+              </select>
+            </span>
           </label>
 
           <label class="campo-configuracao">
-            <span>Intervalo entre clientes</span>
+            <span class="campo-configuracao-icone">
+              ☕
+            </span>
 
-            <select id="intervaloMinutos" required>
-              <option value="0">Sem intervalo</option>
-              <option value="5">5 minutos</option>
-              <option value="10">10 minutos</option>
-              <option value="15">15 minutos</option>
-              <option value="20">20 minutos</option>
-              <option value="30">30 minutos</option>
-            </select>
+            <span class="campo-configuracao-conteudo">
+              <strong>
+                Intervalo entre clientes
+              </strong>
+
+              <small>
+                Tempo reservado entre o fim de um atendimento e o próximo.
+              </small>
+
+              <select
+                id="intervaloMinutos"
+                required
+              >
+                <option value="0">
+                  Sem intervalo
+                </option>
+
+                <option value="5">
+                  5 minutos
+                </option>
+
+                <option value="10">
+                  10 minutos
+                </option>
+
+                <option value="15">
+                  15 minutos
+                </option>
+
+                <option value="20">
+                  20 minutos
+                </option>
+
+                <option value="30">
+                  30 minutos
+                </option>
+              </select>
+            </span>
           </label>
 
           <label class="campo-configuracao">
-            <span>AntecedÃªncia mÃ­nima para agendar</span>
+            <span class="campo-configuracao-icone">
+              📅
+            </span>
 
-            <select id="antecedenciaAgendamento" required>
-              <option value="0">Sem antecedÃªncia mÃ­nima</option>
-              <option value="1">1 hora</option>
-              <option value="2">2 horas</option>
-              <option value="4">4 horas</option>
-              <option value="12">12 horas</option>
-              <option value="24">24 horas</option>
-            </select>
+            <span class="campo-configuracao-conteudo">
+              <strong>
+                Antecedência mínima para agendar
+              </strong>
+
+              <small>
+                Evita que clientes criem agendamentos em cima da hora.
+              </small>
+
+              <select
+                id="antecedenciaAgendamento"
+                required
+              >
+                <option value="0">
+                  Sem antecedência mínima
+                </option>
+
+                <option value="1">
+                  1 hora
+                </option>
+
+                <option value="2">
+                  2 horas
+                </option>
+
+                <option value="4">
+                  4 horas
+                </option>
+
+                <option value="12">
+                  12 horas
+                </option>
+
+                <option value="24">
+                  24 horas
+                </option>
+              </select>
+            </span>
           </label>
 
           <label class="campo-configuracao">
-            <span>AntecedÃªncia para cancelamento</span>
+            <span class="campo-configuracao-icone">
+              ↩️
+            </span>
 
-            <select id="antecedenciaCancelamento" required>
-              <option value="0">Pode cancelar a qualquer momento</option>
-              <option value="2">2 horas</option>
-              <option value="6">6 horas</option>
-              <option value="12">12 horas</option>
-              <option value="24">24 horas</option>
-              <option value="48">48 horas</option>
-            </select>
+            <span class="campo-configuracao-conteudo">
+              <strong>
+                Antecedência para cancelamento
+              </strong>
+
+              <small>
+                Prazo mínimo permitido para cancelar um atendimento.
+              </small>
+
+              <select
+                id="antecedenciaCancelamento"
+                required
+              >
+                <option value="0">
+                  Pode cancelar a qualquer momento
+                </option>
+
+                <option value="2">
+                  2 horas
+                </option>
+
+                <option value="6">
+                  6 horas
+                </option>
+
+                <option value="12">
+                  12 horas
+                </option>
+
+                <option value="24">
+                  24 horas
+                </option>
+
+                <option value="48">
+                  48 horas
+                </option>
+              </select>
+            </span>
           </label>
         </div>
       </section>
 
-      <section class="horarios-semana af-card">
-        <div class="secao-titulo">
-          <div>
-            <h2>Dias da semana</h2>
-            <p>Marque os dias em que vocÃª atende.</p>
+      <section
+        class="horarios-semana af-card"
+        aria-labelledby="tituloDiasSemana"
+      >
+        <header class="secao-titulo">
+          <div class="secao-titulo-identidade">
+            <span
+              class="secao-icone"
+              aria-hidden="true"
+            >
+              📆
+            </span>
+
+            <div>
+              <span class="secao-etiqueta">
+                Semana de trabalho
+              </span>
+
+              <h2 id="tituloDiasSemana">
+                Dias e horários de atendimento
+              </h2>
+
+              <p>
+                Ative os dias em que você trabalha e configure
+                o início, o fim e o intervalo de cada dia.
+              </p>
+            </div>
           </div>
-        </div>
 
-        <div id="listaHorarios" class="lista-horarios">
+          <div class="secao-ajuda">
+            <span aria-hidden="true">
+              💡
+            </span>
 
-          <article class="dia-card" data-dia="0">
+            <p>
+              O intervalo é opcional. Deixe os dois campos vazios
+              quando não houver pausa.
+            </p>
+          </div>
+        </header>
+
+        <div
+          id="listaHorarios"
+          class="lista-horarios"
+        >
+          <article
+            class="dia-card"
+            data-dia="0"
+          >
             <div class="dia-topo">
               <label class="dia-check">
-                <input type="checkbox" class="campo-trabalha">
-                <span>Domingo</span>
+                <input
+                  type="checkbox"
+                  class="campo-trabalha"
+                >
+
+                <span class="dia-switch"></span>
+
+                <span class="dia-identidade">
+                  <strong>
+                    Domingo
+                  </strong>
+
+                  <small>
+                    Primeiro dia da semana
+                  </small>
+                </span>
               </label>
 
-              <span class="dia-status">NÃ£o atende</span>
+              <span class="dia-status">
+                Não atende
+              </span>
             </div>
 
             <div class="dia-campos">
               <label>
-                <span>InÃ­cio</span>
-                <input type="time" class="campo-inicio">
+                <span>
+                  Início
+                </span>
+
+                <input
+                  type="time"
+                  class="campo-inicio"
+                  aria-label="Horário inicial de domingo"
+                >
               </label>
 
               <label>
-                <span>Fim</span>
-                <input type="time" class="campo-fim">
+                <span>
+                  Fim
+                </span>
+
+                <input
+                  type="time"
+                  class="campo-fim"
+                  aria-label="Horário final de domingo"
+                >
               </label>
 
               <label>
-                <span>InÃ­cio do intervalo</span>
-                <input type="time" class="campo-intervalo-inicio">
+                <span>
+                  Início do intervalo
+                </span>
+
+                <input
+                  type="time"
+                  class="campo-intervalo-inicio"
+                  aria-label="Início do intervalo de domingo"
+                >
               </label>
 
               <label>
-                <span>Fim do intervalo</span>
-                <input type="time" class="campo-intervalo-fim">
+                <span>
+                  Fim do intervalo
+                </span>
+
+                <input
+                  type="time"
+                  class="campo-intervalo-fim"
+                  aria-label="Fim do intervalo de domingo"
+                >
               </label>
             </div>
           </article>
 
-          <article class="dia-card" data-dia="1">
+          <article
+            class="dia-card"
+            data-dia="1"
+          >
             <div class="dia-topo">
               <label class="dia-check">
-                <input type="checkbox" class="campo-trabalha">
-                <span>Segunda-feira</span>
+                <input
+                  type="checkbox"
+                  class="campo-trabalha"
+                >
+
+                <span class="dia-switch"></span>
+
+                <span class="dia-identidade">
+                  <strong>
+                    Segunda-feira
+                  </strong>
+
+                  <small>
+                    Configure o horário de atendimento
+                  </small>
+                </span>
               </label>
 
-              <span class="dia-status">Atende</span>
+              <span class="dia-status">
+                Não atende
+              </span>
             </div>
 
             <div class="dia-campos">
               <label>
-                <span>InÃ­cio</span>
-                <input type="time" class="campo-inicio">
+                <span>Início</span>
+
+                <input
+                  type="time"
+                  class="campo-inicio"
+                  aria-label="Horário inicial de segunda-feira"
+                >
               </label>
 
               <label>
                 <span>Fim</span>
-                <input type="time" class="campo-fim">
+
+                <input
+                  type="time"
+                  class="campo-fim"
+                  aria-label="Horário final de segunda-feira"
+                >
               </label>
 
               <label>
-                <span>InÃ­cio do intervalo</span>
-                <input type="time" class="campo-intervalo-inicio">
+                <span>Início do intervalo</span>
+
+                <input
+                  type="time"
+                  class="campo-intervalo-inicio"
+                  aria-label="Início do intervalo de segunda-feira"
+                >
               </label>
 
               <label>
                 <span>Fim do intervalo</span>
-                <input type="time" class="campo-intervalo-fim">
+
+                <input
+                  type="time"
+                  class="campo-intervalo-fim"
+                  aria-label="Fim do intervalo de segunda-feira"
+                >
               </label>
             </div>
           </article>
 
-          <article class="dia-card" data-dia="2">
+          <article
+            class="dia-card"
+            data-dia="2"
+          >
             <div class="dia-topo">
               <label class="dia-check">
-                <input type="checkbox" class="campo-trabalha">
-                <span>TerÃ§a-feira</span>
+                <input
+                  type="checkbox"
+                  class="campo-trabalha"
+                >
+
+                <span class="dia-switch"></span>
+
+                <span class="dia-identidade">
+                  <strong>
+                    Terça-feira
+                  </strong>
+
+                  <small>
+                    Configure o horário de atendimento
+                  </small>
+                </span>
               </label>
 
-              <span class="dia-status">Atende</span>
+              <span class="dia-status">
+                Não atende
+              </span>
             </div>
 
             <div class="dia-campos">
               <label>
-                <span>InÃ­cio</span>
-                <input type="time" class="campo-inicio">
+                <span>Início</span>
+
+                <input
+                  type="time"
+                  class="campo-inicio"
+                  aria-label="Horário inicial de terça-feira"
+                >
               </label>
 
               <label>
                 <span>Fim</span>
-                <input type="time" class="campo-fim">
+
+                <input
+                  type="time"
+                  class="campo-fim"
+                  aria-label="Horário final de terça-feira"
+                >
               </label>
 
               <label>
-                <span>InÃ­cio do intervalo</span>
-                <input type="time" class="campo-intervalo-inicio">
+                <span>Início do intervalo</span>
+
+                <input
+                  type="time"
+                  class="campo-intervalo-inicio"
+                  aria-label="Início do intervalo de terça-feira"
+                >
               </label>
 
               <label>
                 <span>Fim do intervalo</span>
-                <input type="time" class="campo-intervalo-fim">
+
+                <input
+                  type="time"
+                  class="campo-intervalo-fim"
+                  aria-label="Fim do intervalo de terça-feira"
+                >
               </label>
             </div>
           </article>
 
-          <article class="dia-card" data-dia="3">
+          <article
+            class="dia-card"
+            data-dia="3"
+          >
             <div class="dia-topo">
               <label class="dia-check">
-                <input type="checkbox" class="campo-trabalha">
-                <span>Quarta-feira</span>
+                <input
+                  type="checkbox"
+                  class="campo-trabalha"
+                >
+
+                <span class="dia-switch"></span>
+
+                <span class="dia-identidade">
+                  <strong>
+                    Quarta-feira
+                  </strong>
+
+                  <small>
+                    Configure o horário de atendimento
+                  </small>
+                </span>
               </label>
 
-              <span class="dia-status">Atende</span>
+              <span class="dia-status">
+                Não atende
+              </span>
             </div>
 
             <div class="dia-campos">
               <label>
-                <span>InÃ­cio</span>
-                <input type="time" class="campo-inicio">
+                <span>Início</span>
+
+                <input
+                  type="time"
+                  class="campo-inicio"
+                  aria-label="Horário inicial de quarta-feira"
+                >
               </label>
 
               <label>
                 <span>Fim</span>
-                <input type="time" class="campo-fim">
+
+                <input
+                  type="time"
+                  class="campo-fim"
+                  aria-label="Horário final de quarta-feira"
+                >
               </label>
 
               <label>
-                <span>InÃ­cio do intervalo</span>
-                <input type="time" class="campo-intervalo-inicio">
+                <span>Início do intervalo</span>
+
+                <input
+                  type="time"
+                  class="campo-intervalo-inicio"
+                  aria-label="Início do intervalo de quarta-feira"
+                >
               </label>
 
               <label>
                 <span>Fim do intervalo</span>
-                <input type="time" class="campo-intervalo-fim">
+
+                <input
+                  type="time"
+                  class="campo-intervalo-fim"
+                  aria-label="Fim do intervalo de quarta-feira"
+                >
               </label>
             </div>
           </article>
 
-          <article class="dia-card" data-dia="4">
+          <article
+            class="dia-card"
+            data-dia="4"
+          >
             <div class="dia-topo">
               <label class="dia-check">
-                <input type="checkbox" class="campo-trabalha">
-                <span>Quinta-feira</span>
+                <input
+                  type="checkbox"
+                  class="campo-trabalha"
+                >
+
+                <span class="dia-switch"></span>
+
+                <span class="dia-identidade">
+                  <strong>
+                    Quinta-feira
+                  </strong>
+
+                  <small>
+                    Configure o horário de atendimento
+                  </small>
+                </span>
               </label>
 
-              <span class="dia-status">Atende</span>
+              <span class="dia-status">
+                Não atende
+              </span>
             </div>
 
             <div class="dia-campos">
               <label>
-                <span>InÃ­cio</span>
-                <input type="time" class="campo-inicio">
+                <span>Início</span>
+
+                <input
+                  type="time"
+                  class="campo-inicio"
+                  aria-label="Horário inicial de quinta-feira"
+                >
               </label>
 
               <label>
                 <span>Fim</span>
-                <input type="time" class="campo-fim">
+
+                <input
+                  type="time"
+                  class="campo-fim"
+                  aria-label="Horário final de quinta-feira"
+                >
               </label>
 
               <label>
-                <span>InÃ­cio do intervalo</span>
-                <input type="time" class="campo-intervalo-inicio">
+                <span>Início do intervalo</span>
+
+                <input
+                  type="time"
+                  class="campo-intervalo-inicio"
+                  aria-label="Início do intervalo de quinta-feira"
+                >
               </label>
 
               <label>
                 <span>Fim do intervalo</span>
-                <input type="time" class="campo-intervalo-fim">
+
+                <input
+                  type="time"
+                  class="campo-intervalo-fim"
+                  aria-label="Fim do intervalo de quinta-feira"
+                >
               </label>
             </div>
           </article>
 
-          <article class="dia-card" data-dia="5">
+          <article
+            class="dia-card"
+            data-dia="5"
+          >
             <div class="dia-topo">
               <label class="dia-check">
-                <input type="checkbox" class="campo-trabalha">
-                <span>Sexta-feira</span>
+                <input
+                  type="checkbox"
+                  class="campo-trabalha"
+                >
+
+                <span class="dia-switch"></span>
+
+                <span class="dia-identidade">
+                  <strong>
+                    Sexta-feira
+                  </strong>
+
+                  <small>
+                    Configure o horário de atendimento
+                  </small>
+                </span>
               </label>
 
-              <span class="dia-status">Atende</span>
+              <span class="dia-status">
+                Não atende
+              </span>
             </div>
 
             <div class="dia-campos">
               <label>
-                <span>InÃ­cio</span>
-                <input type="time" class="campo-inicio">
+                <span>Início</span>
+
+                <input
+                  type="time"
+                  class="campo-inicio"
+                  aria-label="Horário inicial de sexta-feira"
+                >
               </label>
 
               <label>
                 <span>Fim</span>
-                <input type="time" class="campo-fim">
+
+                <input
+                  type="time"
+                  class="campo-fim"
+                  aria-label="Horário final de sexta-feira"
+                >
               </label>
 
               <label>
-                <span>InÃ­cio do intervalo</span>
-                <input type="time" class="campo-intervalo-inicio">
+                <span>Início do intervalo</span>
+
+                <input
+                  type="time"
+                  class="campo-intervalo-inicio"
+                  aria-label="Início do intervalo de sexta-feira"
+                >
               </label>
 
               <label>
                 <span>Fim do intervalo</span>
-                <input type="time" class="campo-intervalo-fim">
+
+                <input
+                  type="time"
+                  class="campo-intervalo-fim"
+                  aria-label="Fim do intervalo de sexta-feira"
+                >
               </label>
             </div>
           </article>
 
-          <article class="dia-card" data-dia="6">
+          <article
+            class="dia-card"
+            data-dia="6"
+          >
             <div class="dia-topo">
               <label class="dia-check">
-                <input type="checkbox" class="campo-trabalha">
-                <span>SÃ¡bado</span>
+                <input
+                  type="checkbox"
+                  class="campo-trabalha"
+                >
+
+                <span class="dia-switch"></span>
+
+                <span class="dia-identidade">
+                  <strong>
+                    Sábado
+                  </strong>
+
+                  <small>
+                    Último dia da semana
+                  </small>
+                </span>
               </label>
 
-              <span class="dia-status">Atende</span>
+              <span class="dia-status">
+                Não atende
+              </span>
             </div>
 
             <div class="dia-campos">
               <label>
-                <span>InÃ­cio</span>
-                <input type="time" class="campo-inicio">
+                <span>Início</span>
+
+                <input
+                  type="time"
+                  class="campo-inicio"
+                  aria-label="Horário inicial de sábado"
+                >
               </label>
 
               <label>
                 <span>Fim</span>
-                <input type="time" class="campo-fim">
+
+                <input
+                  type="time"
+                  class="campo-fim"
+                  aria-label="Horário final de sábado"
+                >
               </label>
 
               <label>
-                <span>InÃ­cio do intervalo</span>
-                <input type="time" class="campo-intervalo-inicio">
+                <span>Início do intervalo</span>
+
+                <input
+                  type="time"
+                  class="campo-intervalo-inicio"
+                  aria-label="Início do intervalo de sábado"
+                >
               </label>
 
               <label>
                 <span>Fim do intervalo</span>
-                <input type="time" class="campo-intervalo-fim">
+
+                <input
+                  type="time"
+                  class="campo-intervalo-fim"
+                  aria-label="Fim do intervalo de sábado"
+                >
               </label>
             </div>
           </article>
-
         </div>
       </section>
 
       <section class="acoes-configuracao">
-        <p id="mensagemConfiguracao" class="mensagem-configuracao hidden"></p>
+        <div class="acoes-configuracao-texto">
+          <span aria-hidden="true">
+            💾
+          </span>
 
-        <button id="btnSalvarConfiguracao" class="af-btn-primary" type="submit">
-          Salvar horÃ¡rios
+          <div>
+            <strong>
+              Salve suas alterações
+            </strong>
+
+            <small>
+              Os novos horários serão usados para gerar sua agenda.
+            </small>
+          </div>
+        </div>
+
+        <p
+          id="mensagemConfiguracao"
+          class="mensagem-configuracao hidden"
+          role="status"
+          aria-live="polite"
+        ></p>
+
+        <button
+          id="btnSalvarConfiguracao"
+          class="af-btn-primary"
+          type="submit"
+        >
+          <span aria-hidden="true">
+            ✓
+          </span>
+
+          Salvar horários
         </button>
       </section>
-
     </form>
 
+    <footer class="configuracao-footer">
+      <p>
+        As alterações serão aplicadas aos próximos horários disponíveis.
+      </p>
+
+      <a href="/html/agenda-profissional.html">
+        Ir para a agenda
+      </a>
+    </footer>
   </main>
 
-  <nav id="appNav" class="app-bottom-nav"></nav>
+  <nav
+    id="appNav"
+    class="app-bottom-nav"
+    aria-label="Navegação principal"
+  ></nav>
 
   <script src="../js/config.js"></script>
   <script src="../js/utils.js"></script>
   <script src="../js/api.js"></script>
+
+  <script src="../js/services/authService.js"></script>
+  <script src="../js/services/sessionGuard.js"></script>
+
+  <script src="../js/navegacao.js"></script>
   <script src="../js/configuracao-agenda.js"></script>
-<nav
-  id="appNav"
-  class="app-bottom-nav"
-></nav>
-
-<script src="../js/navegacao.js"></script>
-
 </body>
 </html>

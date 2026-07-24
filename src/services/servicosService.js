@@ -1,5 +1,7 @@
 const servicosRepository = require("../repositories/servicosRepository");
 const uploadToCloudinary = require("../utils/uploadCloudinary");
+const db = require("../db/db");
+const { criarErroLimite } = require("./planoService");
 
 function criarErro(mensagem, statusCode) {
   const err = new Error(mensagem);
@@ -38,11 +40,49 @@ async function criarServico({ usuarioId, nome, valor, duracaoMinutos }) {
     throw criarErro("Nome do serviço inválido.", 400);
   }
 
-  const servico = await servicosRepository.criarServico({
-    negocioId: vinculo.negocio_id,
-    nome: nome.trim(),
-    valor: Number(valor || 0),
-    duracaoMinutos: Number(duracaoMinutos || 0),
+  const servico = await db.executarTransacao(async (client) => {
+    await servicosRepository.bloquearCadastroServico(
+      client,
+      vinculo.negocio_id
+    );
+
+    const plano = await servicosRepository.buscarPlanoDoNegocio(
+      vinculo.negocio_id,
+      client
+    );
+
+    if (!plano) {
+      throw criarErro("Plano do negócio não encontrado.", 404);
+    }
+
+    const utilizados = await servicosRepository.contarServicosAtivos(
+      vinculo.negocio_id,
+      client
+    );
+
+    const limite = plano.limite_servicos;
+
+    if (limite !== null && utilizados >= Number(limite)) {
+      throw criarErroLimite(
+        `Você atingiu o limite de ${limite} serviço(s) do plano ${plano.nome}. Faça upgrade para cadastrar mais.`,
+        "LIMITE_SERVICOS",
+        {
+          plano_nome: plano.nome,
+          utilizados,
+          limite: Number(limite),
+        }
+      );
+    }
+
+    return servicosRepository.criarServico(
+      {
+        negocioId: vinculo.negocio_id,
+        nome: nome.trim(),
+        valor: Number(valor || 0),
+        duracaoMinutos: Number(duracaoMinutos || 0),
+      },
+      client
+    );
   });
 
   return {

@@ -6,7 +6,6 @@ const router = express.Router();
 // =============================
 const auth = require("../middlewares/auth");
 const authAdmin = require("../middlewares/authAdmin");
-
 // =============================
 // 🎮 CONTROLLERS
 // =============================
