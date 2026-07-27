@@ -1222,43 +1222,97 @@ function redirecionarProfissional() {
       );
   }
 
-  async function carregarPlano() {
-    try {
-      let plano;
+  async function apiGet(
+    caminho,
+    {
+      signal,
+      redirecionarAcessoNegado = false,
+    } = {}
+  ) {
+    const apiUrl =
+      obterApiUrl();
 
-      try {
-        plano =
-          await apiGet(
-            "/api/meu-plano"
-          );
-      } catch (erro) {
-        if (
-          erro.status !== 404
-        ) {
-          throw erro;
-        }
-
-        plano =
-          await apiGet(
-            "/meu-plano"
-          );
-      }
-
-      renderizarPlano(
-        plano
+    if (!apiUrl) {
+      throw new Error(
+        "API_URL não está configurada."
       );
-    } catch (erro) {
-      if (
-        erro.status !== 401
-      ) {
-        console.error(
-          "Erro ao carregar plano:",
-          erro
-        );
-
-        mostrarErroPlano();
-      }
     }
+
+    const resposta =
+      await fetch(
+        `${apiUrl}${caminho}`,
+        {
+          method: "GET",
+
+          headers: {
+            Authorization:
+              `Bearer ${token}`,
+
+            Accept:
+              "application/json",
+          },
+
+          cache: "no-store",
+          signal,
+        }
+      );
+
+    const dados =
+      await lerJson(
+        resposta
+      );
+
+    if (
+      resposta.status === 401
+    ) {
+      redirecionarLogin();
+
+      throw Object.assign(
+        new Error(
+          "Sessão expirada."
+        ),
+        {
+          status: 401,
+        }
+      );
+    }
+
+    if (
+      resposta.status === 403
+    ) {
+      if (
+        redirecionarAcessoNegado
+      ) {
+        redirecionarProfissional();
+      }
+
+      throw Object.assign(
+        new Error(
+          dados.erro ||
+            dados.mensagem ||
+            "Apenas o dono pode acessar este dashboard."
+        ),
+        {
+          status: 403,
+        }
+      );
+    }
+
+    if (!resposta.ok) {
+      throw Object.assign(
+        new Error(
+          dados.erro ||
+            dados.mensagem ||
+            "Erro ao carregar dados."
+        ),
+        {
+          status:
+            resposta.status,
+        }
+      );
+    }
+
+    return dados;
   }
 
   function obterPeriodoInicial() {
@@ -1452,6 +1506,25 @@ function redirecionarProfissional() {
       }
     );
   }
+
+ async function carregarPlano() {
+  try {
+    const plano = await apiGet(
+      "/meu-plano"
+    );
+
+    renderizarPlano(plano);
+  } catch (erro) {
+    if (erro.status !== 401) {
+      console.error(
+        "Erro ao carregar plano:",
+        erro
+      );
+
+      renderizarPlano(null);
+    }
+  }
+} 
 
  async function iniciar() {
   if (

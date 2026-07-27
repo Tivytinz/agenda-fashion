@@ -365,6 +365,57 @@ async function buscarPagamentoAsaas(
   return response.data;
 }
 
+async function removerAssinaturaAsaas(
+  subscriptionId
+) {
+  validarConfigAsaas();
+
+  const id =
+    String(
+      subscriptionId || ""
+    ).trim();
+
+  if (!id) {
+    throw new Error(
+      "Assinatura Asaas não informada."
+    );
+  }
+
+  try {
+    const response =
+      await asaasApi.delete(
+        `/subscriptions/${encodeURIComponent(
+          id
+        )}`
+      );
+
+    return {
+      removida: true,
+      ja_removida: false,
+      dados: response.data || null
+    };
+  } catch (erro) {
+    /*
+     * Torna o cancelamento idempotente.
+     *
+     * Se o Asaas já removeu a recorrência,
+     * o estado local ainda precisa ser
+     * atualizado como cancelado.
+     */
+    if (
+      erro?.response?.status === 404
+    ) {
+      return {
+        removida: true,
+        ja_removida: true,
+        dados: null
+      };
+    }
+
+    throw erro;
+  }
+}
+
 module.exports = {
   criarClienteAsaas,
   criarCobrancaPix,
@@ -372,5 +423,6 @@ module.exports = {
   criarAssinaturaAsaas,
   listarPagamentosAssinatura,
   atualizarClienteAsaas,
-  buscarPagamentoAsaas
+  buscarPagamentoAsaas,
+  removerAssinaturaAsaas
 };

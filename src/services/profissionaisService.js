@@ -1,6 +1,9 @@
 const profissionaisRepository = require("../repositories/profissionaisRepository");
 const db = require("../db/db");
-const { criarErroLimite } = require("./planoService");
+const {
+  buscarUsoPlano,
+  criarErroLimite
+} = require("./planoService");
 
 const {
   exigirUsuario,
@@ -130,6 +133,11 @@ async function vincularProfissional({
     await profissionaisRepository.bloquearCadastroProfissional(
       client,
       dono.negocio_id
+    );
+
+    await buscarUsoPlano(
+      dono.negocio_id,
+      client
     );
 
     const jaVinculado =

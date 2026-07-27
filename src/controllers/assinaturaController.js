@@ -13,6 +13,21 @@ async function buscarMinhaAssinatura(req, res, next) {
   }
 }
 
+async function cancelarMinhaAssinatura(req, res, next) {
+  try {
+    const resultado =
+      await assinaturaService
+        .cancelarMinhaAssinatura({
+          usuarioId: req.user?.id
+        });
+
+    return res.json(resultado);
+  } catch (err) {
+    next(err);
+  }
+}
+
 module.exports = {
-  buscarMinhaAssinatura
+  buscarMinhaAssinatura,
+  cancelarMinhaAssinatura
 };

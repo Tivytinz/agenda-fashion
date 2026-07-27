@@ -1,0 +1,7 @@
+BEGIN;
+
+ALTER TABLE pagamentos
+ADD COLUMN IF NOT EXISTS pix_copia_cola TEXT,
+ADD COLUMN IF NOT EXISTS pix_qrcode TEXT;
+
+COMMIT;

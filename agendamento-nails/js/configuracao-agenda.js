@@ -84,46 +84,33 @@ document.addEventListener(
      */
 
     if (
-      !window.SessionGuard ||
-      typeof window.SessionGuard
-        .exigirProfissional !==
-        "function"
-    ) {
-      console.error(
-        "SessionGuard não foi carregado."
-      );
+  !window.SessionGuard ||
+  typeof window.SessionGuard
+    .exigirVinculo !==
+    "function"
+) {
+  console.error(
+    "SessionGuard não foi carregado."
+  );
 
-      window.location.replace(
-        "/html/login-profissional.html"
-      );
+  window.location.replace(
+    "/html/login-profissional.html"
+  );
 
-      return;
-    }
+  return;
+}
 
-    /*
-     * =====================================================
-     * SESSÃO
-     * =====================================================
-     */
+try {
+  estado.contexto =
+    await window.SessionGuard
+      .exigirVinculo({
+        destinoLogin:
+          "/html/login-profissional.html",
 
-    try {
-      estado.contexto =
-        await window.SessionGuard
-          .exigirProfissional({
-            destinoLogin:
-              "/html/login-profissional.html",
-
-            destinoSemNegocio:
-              "/html/criar-negocio.html",
-
-            destinoSemPermissao:
-              "/html/inicio.html",
-          });
-    } catch (erro) {
-      console.error(
-        "Erro ao validar sessão:",
-        erro
-      );
+        destinoSemNegocio:
+          "/html/criar-negocio.html",
+      });
+} catch (erro) {
 
       mostrarMensagem(
         erro?.message ||

@@ -1,7 +1,10 @@
 const servicosRepository = require("../repositories/servicosRepository");
 const uploadToCloudinary = require("../utils/uploadCloudinary");
 const db = require("../db/db");
-const { criarErroLimite } = require("./planoService");
+const {
+  buscarUsoPlano,
+  criarErroLimite
+} = require("./planoService");
 
 function criarErro(mensagem, statusCode) {
   const err = new Error(mensagem);
@@ -44,6 +47,11 @@ async function criarServico({ usuarioId, nome, valor, duracaoMinutos }) {
     await servicosRepository.bloquearCadastroServico(
       client,
       vinculo.negocio_id
+    );
+
+    await buscarUsoPlano(
+      vinculo.negocio_id,
+      client
     );
 
     const plano = await servicosRepository.buscarPlanoDoNegocio(

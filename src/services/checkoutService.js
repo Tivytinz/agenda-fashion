@@ -3,10 +3,10 @@ const db = require("../db/db");
 const checkoutRepository = require("../repositories/checkoutRepository");
 
 const {
+  criarClienteAsaas,
   criarAssinaturaAsaas,
   criarCobrancaPix,
   buscarQrCodePix,
-  atualizarClienteAsaas,
   buscarPagamentoAsaas
 } = require("./asaasService");
 
@@ -15,6 +15,131 @@ const {
   registrarPagamento,
   ativarAssinaturaPorPagamento
 } = require("./assinaturaService");
+
+function normalizarDocumento(valor) {
+  return String(valor || "").replace(/\D/g, "");
+}
+
+function obterDocumentoCliente(documentoInformado) {
+  const documento = normalizarDocumento(
+    documentoInformado ||
+    process.env.ASAAS_SANDBOX_CUSTOMER_CPF
+  );
+
+  if (![11, 14].includes(documento.length)) {
+    throw new Error(
+      "Informe um CPF/CNPJ vÃ¡lido para gerar a cobranÃ§a."
+    );
+  }
+
+  return documento;
+}
+
+async function buscarDadosClienteAsaas(client, negocioId, usuarioId) {
+  const result = await client.query(
+    `
+    SELECT
+      n.nome AS nome_negocio,
+      n.whatsapp AS telefone_negocio,
+      u.nome AS nome_dono,
+      u.email AS email_dono,
+      u.whatsapp AS telefone_dono
+    FROM negocios n
+    INNER JOIN usuarios_negocios un
+      ON un.negocio_id = n.id
+    INNER JOIN usuarios u
+      ON u.id = un.usuario_id
+    WHERE n.id = $1
+      AND un.usuario_id = $2
+      AND un.papel = 'dono'
+      AND un.ativo = TRUE
+    LIMIT 1
+    `,
+    [negocioId, usuarioId]
+  );
+
+  return result.rows[0] || null;
+}
+
+async function garantirClienteAsaas({
+  client,
+  negocio,
+  usuarioId,
+  cpfCnpj
+}) {
+  if (negocio.asaas_customer_id) {
+    return negocio;
+  }
+
+  const dadosCliente = await buscarDadosClienteAsaas(
+    client,
+    negocio.id,
+    usuarioId
+  );
+
+  if (!dadosCliente) {
+    throw new Error(
+      "NÃ£o foi possÃ­vel carregar os dados do responsÃ¡vel pelo negÃ³cio."
+    );
+  }
+
+  const clienteAsaas = await criarClienteAsaas({
+    nome:
+      dadosCliente.nome_negocio ||
+      dadosCliente.nome_dono,
+    email: dadosCliente.email_dono,
+    telefone:
+      dadosCliente.telefone_negocio ||
+      dadosCliente.telefone_dono,
+    cpfCnpj: obterDocumentoCliente(cpfCnpj),
+    externalReference: `negocio:${negocio.id}`
+  });
+
+  if (!clienteAsaas?.id) {
+    throw new Error(
+      "O Asaas nÃ£o retornou o identificador do cliente."
+    );
+  }
+
+  const atualizacao = await client.query(
+    `
+    UPDATE negocios
+    SET asaas_customer_id = $1
+    WHERE id = $2
+      AND asaas_customer_id IS NULL
+    RETURNING asaas_customer_id
+    `,
+    [clienteAsaas.id, negocio.id]
+  );
+
+  if (atualizacao.rows[0]?.asaas_customer_id) {
+    negocio.asaas_customer_id =
+      atualizacao.rows[0].asaas_customer_id;
+
+    return negocio;
+  }
+
+  const consulta = await client.query(
+    `
+    SELECT asaas_customer_id
+    FROM negocios
+    WHERE id = $1
+    LIMIT 1
+    `,
+    [negocio.id]
+  );
+
+  negocio.asaas_customer_id =
+    consulta.rows[0]?.asaas_customer_id;
+
+  if (!negocio.asaas_customer_id) {
+    throw new Error(
+      "NÃ£o foi possÃ­vel salvar o cliente Asaas no negÃ³cio."
+    );
+  }
+
+  return negocio;
+}
 
 async function criarCheckoutPix(client, negocio, plano) {
   const assinaturaLocal =
@@ -28,12 +153,8 @@ async function criarCheckoutPix(client, negocio, plano) {
       periodicidade: "MONTHLY",
       valor: plano.valor,
       observacoes:
-        "PIX inicial criado. Assinatura recorrente será ativada após confirmação do pagamento."
+        "PIX inicial criado. Assinatura recorrente serÃ¡ ativada apÃ³s confirmaÃ§Ã£o do pagamento."
     });
-
-  await atualizarClienteAsaas(negocio.asaas_customer_id, {
-    cpfCnpj: "24971563792"
-  });
 
   const cobranca = await criarCobrancaPix({
     customerId: negocio.asaas_customer_id,
@@ -85,7 +206,7 @@ async function criarCheckoutCartao(client, negocio, plano, cartao) {
       periodicidade: "MONTHLY",
       valor: plano.valor,
       data_proxima_cobranca: assinaturaAsaas.nextDueDate || null,
-      observacoes: "Assinatura criada via cartão."
+      observacoes: "Assinatura criada via cartÃ£o."
     });
 
   return {
@@ -98,20 +219,21 @@ async function criarCheckout({
   usuarioId,
   planoId,
   formaPagamento,
-  cartao
+  cartao,
+  cpfCnpj
 }) {
   const client = db;
 
   if (!usuarioId) {
-    throw new Error("Usuário não autenticado.");
+    throw new Error("UsuÃ¡rio nÃ£o autenticado.");
   }
 
   if (!planoId || !["pix", "cartao"].includes(formaPagamento)) {
-    throw new Error("Dados de checkout inválidos.");
+    throw new Error("Dados de checkout invÃ¡lidos.");
   }
 
   if (formaPagamento === "cartao" && !cartao) {
-    throw new Error("Dados do cartão não informados.");
+    throw new Error("Dados do cartÃ£o nÃ£o informados.");
   }
 
   const negocio =
@@ -121,11 +243,7 @@ async function criarCheckout({
     );
 
   if (!negocio) {
-    throw new Error("Negócio não encontrado.");
-  }
-
-  if (!negocio.asaas_customer_id) {
-    throw new Error("Cliente Asaas não encontrado para este negócio.");
+    throw new Error("NegÃ³cio nÃ£o encontrado.");
   }
 
   const plano =
@@ -135,12 +253,21 @@ async function criarCheckout({
     );
 
   if (!plano) {
-    throw new Error("Plano não encontrado.");
+    throw new Error("Plano nÃ£o encontrado.");
   }
 
   if (Number(plano.valor || 0) <= 0) {
-    throw new Error("Este plano não precisa de pagamento.");
+    throw new Error("Este plano nÃ£o precisa de pagamento.");
   }
+
+  await garantirClienteAsaas({
+    client,
+    negocio,
+    usuarioId,
+    cpfCnpj:
+      cpfCnpj ||
+      cartao?.cpfCnpj
+  });
 
   let resultado = null;
 
@@ -176,11 +303,11 @@ async function consultarStatusCheckout({
   pagamentoId
 }) {
   if (!usuarioId) {
-    throw new Error("Usuário não autenticado.");
+    throw new Error("UsuÃ¡rio nÃ£o autenticado.");
   }
 
   if (!pagamentoId) {
-    throw new Error("Pagamento não informado.");
+    throw new Error("Pagamento nÃ£o informado.");
   }
 
   let pagamentoAsaas = null;
@@ -211,7 +338,7 @@ async function consultarStatusCheckout({
     );
 
   if (!pagamento) {
-    throw new Error("Pagamento não encontrado.");
+    throw new Error("Pagamento nÃ£o encontrado.");
   }
 
   return pagamento;

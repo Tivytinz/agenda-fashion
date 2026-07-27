@@ -154,6 +154,105 @@ async function buscarUltimaAssinaturaPorNegocio(negocioId) {
   return result.rows[0] || null;
 }
 
+async function registrarCancelamento(
+  client,
+  {
+    assinaturaId,
+    negocioId,
+    acessoAte,
+    observacoes
+  }
+) {
+  const executor = client || db;
+
+  const result =
+    await executor.query(
+      `
+      UPDATE assinaturas
+      SET
+        status = 'CANCELED',
+        ativo = TRUE,
+        data_proxima_cobranca = $3,
+        observacoes = CONCAT_WS(
+          E'\n',
+          NULLIF(observacoes, ''),
+          $4
+        ),
+        updated_at = NOW()
+      WHERE id = $1
+        AND negocio_id = $2
+        AND ativo = TRUE
+      RETURNING *
+      `,
+      [
+        assinaturaId,
+        negocioId,
+        acessoAte,
+        observacoes
+      ]
+    );
+
+  return result.rows[0] || null;
+}
+
+async function expirarCancelamentoSeNecessario(
+  negocioId,
+  executor = db
+) {
+  const result =
+    await executor.query(
+      `
+      WITH plano_gratis AS (
+        SELECT id
+        FROM planos
+        WHERE slug = 'inicial'
+          AND ativo = TRUE
+        LIMIT 1
+      ),
+      negocio_atualizado AS (
+        UPDATE negocios n
+        SET plano_id = pg.id
+        FROM plano_gratis pg
+        WHERE n.id = $1
+          AND EXISTS (
+            SELECT 1
+            FROM assinaturas a
+            WHERE a.negocio_id = n.id
+              AND a.ativo = TRUE
+              AND a.status IN (
+                'CANCELED',
+                'CANCELLED'
+              )
+              AND a.data_proxima_cobranca
+                IS NOT NULL
+              AND a.data_proxima_cobranca
+                <= CURRENT_DATE
+          )
+        RETURNING n.id
+      )
+      UPDATE assinaturas a
+      SET
+        ativo = FALSE,
+        updated_at = NOW()
+      FROM negocio_atualizado na
+      WHERE a.negocio_id = na.id
+        AND a.ativo = TRUE
+        AND a.status IN (
+          'CANCELED',
+          'CANCELLED'
+        )
+        AND a.data_proxima_cobranca
+          IS NOT NULL
+        AND a.data_proxima_cobranca
+          <= CURRENT_DATE
+      RETURNING a.*
+      `,
+      [negocioId]
+    );
+
+  return result.rows[0] || null;
+}
+
 async function buscarPlano(planoId) {
   const result = await db.query(
     `
@@ -205,6 +304,8 @@ module.exports = {
   buscarPorId,
   buscarNegocioDono,
   buscarUltimaAssinaturaPorNegocio,
+  registrarCancelamento,
+  expirarCancelamentoSeNecessario,
   buscarPlano,
   listarPagamentos
 };

@@ -1,4 +1,6 @@
 const db = require("../db/db");
+const assinaturaRepository =
+    require("../repositories/assinaturaRepository");
 
 function criarErroLimite(mensagem, codigo, uso = null) {
     const erro = new Error(mensagem);
@@ -30,6 +32,12 @@ async function buscarUsoPlano(
     executor = db,
     dataReferencia = null
 ) {
+    await assinaturaRepository
+        .expirarCancelamentoSeNecessario(
+            negocioId,
+            executor
+        );
+
     const result = await executor.query(
         `
     SELECT

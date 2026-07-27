@@ -10,4 +10,10 @@ router.get(
   assinaturaController.buscarMinhaAssinatura
 );
 
+router.delete(
+  "/minha-assinatura",
+  auth,
+  assinaturaController.cancelarMinhaAssinatura
+);
+
 module.exports = router;
