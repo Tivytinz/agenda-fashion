@@ -23,8 +23,16 @@ async function cancelarMinhaAssinatura(req, res, next) {
 
     return res.json(resultado);
   } catch (err) {
-    next(err);
-  }
+  console.error("ERRO AO CANCELAR ASSINATURA:", {
+    mensagem: err.message,
+    statusAsaas: err.response?.status,
+    respostaAsaas: err.response?.data,
+    metodo: err.config?.method,
+    url: err.config?.url
+  });
+
+  next(err);
+}
 }
 
 module.exports = {
