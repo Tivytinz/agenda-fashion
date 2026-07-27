@@ -86,7 +86,7 @@ document.addEventListener(
       )
     ) {
       console.error(
-        "Elementos obrigatórios da página de assinatura não foram encontrados."
+        "Elementos obrigatÃ³rios da pÃ¡gina de assinatura nÃ£o foram encontrados."
       );
 
       return;
@@ -95,10 +95,12 @@ document.addEventListener(
     if (
       !window.API ||
       typeof window.API.get !==
+        "function" ||
+      typeof window.API.delete !==
         "function"
     ) {
       mostrarMensagem(
-        "O serviço da API não foi carregado.",
+        "O serviÃ§o da API nÃ£o foi carregado.",
         "erro"
       );
 
@@ -112,7 +114,7 @@ document.addEventListener(
         "function"
     ) {
       mostrarMensagem(
-        "O serviço de autenticação não foi carregado.",
+        "O serviÃ§o de autenticaÃ§Ã£o nÃ£o foi carregado.",
         "erro"
       );
 
@@ -276,7 +278,7 @@ document.addEventListener(
       gratuito = false
     ) {
       if (gratuito) {
-        return "Grátis";
+        return "GrÃ¡tis";
       }
 
       const mapa = {
@@ -328,10 +330,10 @@ document.addEventListener(
           "PIX",
 
         CREDIT_CARD:
-          "Cartão",
+          "CartÃ£o",
 
         DEBIT_CARD:
-          "Cartão de débito",
+          "CartÃ£o de dÃ©bito",
 
         BOLETO:
           "Boleto",
@@ -438,7 +440,7 @@ document.addEventListener(
 
     function criarEstadoLista(
       texto,
-      icone = "🧾"
+      icone = "ðŸ§¾"
     ) {
       const container =
         criarElemento(
@@ -509,7 +511,7 @@ document.addEventListener(
           .replaceChildren(
             criarEstadoLista(
               "Carregando pagamentos...",
-              "⏳"
+              "â³"
             )
           );
       }
@@ -517,7 +519,8 @@ document.addEventListener(
 
     function definirStatus(
       status,
-      gratuito
+      gratuito,
+      acessoAte = null
     ) {
       const elemento =
         elementos.assinaturaStatus;
@@ -529,11 +532,24 @@ document.addEventListener(
               status
             );
 
+      const cancelamentoAgendado =
+        [
+          "CANCELED",
+          "CANCELLED",
+        ].includes(
+          normalizado
+        ) &&
+        acessoAte;
+
       elemento.textContent =
-        traduzirStatus(
-          normalizado,
-          gratuito
-        );
+        cancelamentoAgendado
+          ? `Ativo atÃ© ${formatarData(
+              acessoAte
+            )}`
+          : traduzirStatus(
+              normalizado,
+              gratuito
+            );
 
       elemento.dataset.status =
         normalizado;
@@ -595,6 +611,17 @@ document.addEventListener(
       const gratuito =
         valor <= 0;
 
+      const status =
+        normalizarStatus(
+          assinatura?.status
+        );
+
+      const cancelada =
+        [
+          "CANCELED",
+          "CANCELLED",
+        ].includes(status);
+
       elementos.planoNome
         .textContent =
           plano.nome ||
@@ -621,7 +648,8 @@ document.addEventListener(
 
       elementos.proximaCobranca
         .textContent =
-          assinatura
+          assinatura &&
+          !cancelada
             ? formatarData(
                 assinatura
                   .data_proxima_cobranca
@@ -631,7 +659,16 @@ document.addEventListener(
       definirStatus(
         assinatura?.status,
         gratuito &&
-          !assinatura
+          (
+            !assinatura ||
+            assinatura.ativo ===
+              false
+          ),
+        assinatura?.ativo !==
+          false
+          ? assinatura
+          ?.data_proxima_cobranca
+          : null
       );
 
       configurarAcoes({
@@ -717,10 +754,10 @@ document.addEventListener(
         } else {
           elementos.usoMensagem
             .textContent =
-              `Você ainda possui ${restantes} ` +
+              `VocÃª ainda possui ${restantes} ` +
               `agendamento${restantes === 1 ? "" : "s"} ` +
-              "disponível" +
-              `${restantes === 1 ? "" : "is"} neste mês.`;
+              "disponÃ­vel" +
+              `${restantes === 1 ? "" : "is"} neste mÃªs.`;
         }
       }
 
@@ -822,7 +859,7 @@ document.addEventListener(
           .appendChild(
             criarEstadoLista(
               "Nenhum pagamento encontrado.",
-              "♡"
+              "â™¡"
             )
           );
 
@@ -881,7 +918,7 @@ document.addEventListener(
       }
 
       /*
-       * Um plano gratuito não possui cobrança
+       * Um plano gratuito nÃ£o possui cobranÃ§a
        * para gerar ou assinatura paga para cancelar.
        */
       elementos.btnNovoPix
@@ -893,7 +930,11 @@ document.addEventListener(
       elementos.btnCancelarAssinatura
         ?.classList.toggle(
           "hidden",
-          !possuiAssinaturaPaga
+          !possuiAssinaturaPaga ||
+          [
+            "CANCELED",
+            "CANCELLED",
+          ].includes(status)
         );
 
       if (
@@ -916,11 +957,117 @@ document.addEventListener(
           .disabled =
             ![
               "ACTIVE",
-              "PENDING",
-              "OVERDUE",
             ].includes(
               status
             );
+      }
+    }
+
+    async function cancelarAssinatura() {
+      if (
+        estado.carregando
+      ) {
+        return;
+      }
+
+      const confirmou =
+        window.confirm(
+          "Deseja cancelar a renovaÃ§Ã£o desta assinatura?\n\n" +
+          "Seu plano continuarÃ¡ ativo atÃ© o fim do perÃ­odo jÃ¡ pago. " +
+          "As prÃ³ximas cobranÃ§as pendentes serÃ£o removidas."
+        );
+
+      if (!confirmou) {
+        return;
+      }
+
+      const botao =
+        elementos
+          .btnCancelarAssinatura;
+
+      const textoAnterior =
+        botao?.textContent;
+
+      if (botao) {
+        botao.disabled = true;
+        botao.textContent =
+          "Cancelando...";
+      }
+
+      esconderMensagem();
+
+      try {
+        const resultado =
+          await window.API.delete(
+            "/minha-assinatura"
+          );
+
+        await carregarAssinatura();
+
+        const acessoAteResultado =
+          formatarData(
+            resultado?.acesso_ate
+          );
+
+        mostrarMensagem(
+          resultado?.mensagem ||
+          (
+            "RenovaÃ§Ã£o cancelada. " +
+            (
+              acessoAteResultado !== "-"
+                ? `Seu plano ficarÃ¡ ativo atÃ© ${acessoAteResultado}.`
+                : "Seu plano ficarÃ¡ ativo atÃ© o fim do perÃ­odo jÃ¡ pago."
+            )
+          ),
+          "sucesso"
+        );
+      } catch (erro) {
+        console.error(
+          "Erro ao cancelar assinatura:",
+          erro
+        );
+
+        if (
+          erro?.status === 401
+        ) {
+          redirecionarLogin();
+
+          return;
+        }
+
+        mostrarMensagem(
+          erro?.message ||
+            "NÃ£o foi possÃ­vel cancelar a renovaÃ§Ã£o.",
+          "erro"
+        );
+      } finally {
+        if (
+          botao &&
+          !botao.classList
+            .contains("hidden")
+        ) {
+          botao.textContent =
+            textoAnterior ||
+            "Cancelar assinatura";
+
+          configurarAcoes({
+            plano:
+              estado.dados?.plano ||
+              {},
+
+            assinatura:
+              estado.dados
+                ?.assinatura ||
+              null,
+
+            gratuito:
+              converterNumero(
+                estado.dados
+                  ?.plano
+                  ?.valor
+              ) <= 0,
+          });
+        }
       }
     }
 
@@ -976,7 +1123,7 @@ document.addEventListener(
 
         elementos.planoNome
           .textContent =
-            "Não disponível";
+            "NÃ£o disponÃ­vel";
 
         elementos.assinaturaStatus
           .textContent =
@@ -1004,19 +1151,19 @@ document.addEventListener(
 
         elementos.usoMensagem
           .textContent =
-            "Não foi possível carregar o uso do plano.";
+            "NÃ£o foi possÃ­vel carregar o uso do plano.";
 
         elementos.listaPagamentos
           .replaceChildren(
             criarEstadoLista(
-              "Não foi possível carregar os pagamentos.",
-              "⚠️"
+              "NÃ£o foi possÃ­vel carregar os pagamentos.",
+              "âš ï¸"
             )
           );
 
         mostrarMensagem(
           erro?.message ||
-            "Não foi possível carregar sua assinatura.",
+            "NÃ£o foi possÃ­vel carregar sua assinatura.",
           "erro"
         );
       } finally {
@@ -1047,7 +1194,7 @@ document.addEventListener(
           "click",
           () => {
             mostrarMensagem(
-              "A geração de uma nova cobrança PIX ainda será conectada ao backend.",
+              "A geraÃ§Ã£o de uma nova cobranÃ§a PIX ainda serÃ¡ conectada ao backend.",
               "aviso",
               true
             );
@@ -1058,19 +1205,7 @@ document.addEventListener(
         ?.addEventListener(
           "click",
           () => {
-            const confirmou =
-              window.confirm(
-                "Deseja solicitar o cancelamento desta assinatura?"
-              );
-
-            if (!confirmou) {
-              return;
-            }
-
-            mostrarMensagem(
-              "O cancelamento online ainda será conectado ao backend. Nenhuma alteração foi realizada.",
-              "aviso"
-            );
+            cancelarAssinatura();
           }
         );
 
@@ -1104,7 +1239,7 @@ document.addEventListener(
         await carregarAssinatura();
       } catch (erro) {
         console.error(
-          "Erro ao validar sessão:",
+          "Erro ao validar sessÃ£o:",
           erro
         );
 
@@ -1118,7 +1253,7 @@ document.addEventListener(
 
         mostrarMensagem(
           erro?.message ||
-            "Não foi possível validar sua sessão.",
+            "NÃ£o foi possÃ­vel validar sua sessÃ£o.",
           "erro"
         );
       }
