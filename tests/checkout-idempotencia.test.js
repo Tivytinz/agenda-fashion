@@ -256,7 +256,31 @@ describe(
             })
           );
         expect(registrarPagamento)
-          .toHaveBeenCalledTimes(1);
+          .toHaveBeenCalledTimes(2);
+        expect(registrarPagamento)
+          .toHaveBeenNthCalledWith(
+            1,
+            expect.anything(),
+            expect.objectContaining({
+              asaas_payment_id:
+                "pay_1",
+              pix_copia_cola: null,
+              pix_qrcode: null
+            })
+          );
+        expect(registrarPagamento)
+          .toHaveBeenNthCalledWith(
+            2,
+            expect.anything(),
+            expect.objectContaining({
+              asaas_payment_id:
+                "pay_1",
+              pix_copia_cola:
+                "pix-copia-cola",
+              pix_qrcode:
+                "imagem"
+            })
+          );
         expect(
           checkoutTentativaRepository
             .concluir
@@ -269,6 +293,77 @@ describe(
         expect(
           resultado.pagamento.id
         ).toBe("pay_1");
+      }
+    );
+
+    test(
+      "salva a cobrança antes de buscar o QR Code",
+      async () => {
+        checkoutTentativaRepository
+          .iniciar
+          .mockResolvedValue({
+            executar: true,
+            nova: true,
+            tentativa: {
+              id: 34,
+              status: "PROCESSING",
+              assinatura_id: null
+            }
+          });
+
+        registrarAssinaturaPendente
+          .mockResolvedValue({
+            id: 45,
+            negocio_id: 7
+          });
+
+        criarCobrancaPix
+          .mockResolvedValue({
+            id: "pay_pendente",
+            value: 99.9,
+            status: "PENDING"
+          });
+
+        buscarQrCodePix
+          .mockRejectedValue(
+            new Error(
+              "QR Code ainda indisponível"
+            )
+          );
+
+        await expect(
+          criarCheckout({
+            usuarioId: 1,
+            planoId: 3,
+            formaPagamento: "pix",
+            chaveIdempotencia:
+              "checkout-chave-123456"
+          })
+        ).rejects.toThrow(
+          "QR Code ainda indisponível"
+        );
+
+        expect(registrarPagamento)
+          .toHaveBeenCalledTimes(1);
+        expect(registrarPagamento)
+          .toHaveBeenCalledWith(
+            expect.anything(),
+            expect.objectContaining({
+              assinatura_id: 45,
+              asaas_payment_id:
+                "pay_pendente",
+              status: "PENDING",
+              pix_copia_cola: null,
+              pix_qrcode: null
+            })
+          );
+        expect(
+          checkoutTentativaRepository
+            .marcarFalha
+        ).toHaveBeenCalledWith(
+          34,
+          "QR Code ainda indisponível"
+        );
       }
     );
 
