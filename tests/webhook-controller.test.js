@@ -1,36 +1,37 @@
 jest.mock(
   "../src/services/webhookService",
   () => ({
-    processarWebhookAsaas:
+    enfileirarWebhookAsaas:
       jest.fn(),
+    agendarProcessamentoWebhook:
+      jest.fn()
   })
 );
 
 const {
-  processarWebhookAsaas,
+  enfileirarWebhookAsaas,
+  agendarProcessamentoWebhook
 } = require(
   "../src/services/webhookService"
 );
 
 const {
-  receberWebhookAsaas,
+  receberWebhookAsaas
 } = require(
   "../src/controllers/webhookController"
 );
 
 function criarResposta() {
   return {
-    set: jest.fn()
-      .mockReturnThis(),
     status: jest.fn()
       .mockReturnThis(),
     json: jest.fn()
-      .mockReturnThis(),
+      .mockReturnThis()
   };
 }
 
 describe(
-  "Controller do webhook Asaas",
+  "Controller assíncrono do webhook Asaas",
   () => {
     beforeEach(() => {
       jest.clearAllMocks();
@@ -41,19 +42,14 @@ describe(
       async () => {
         const req = {
           body: {
-            event:
-              "PAYMENT_CONFIRMED",
+            event: "PAYMENT_CONFIRMED",
             payment: {
-              id: "pay_1",
-            },
-          },
+              id: "pay_1"
+            }
+          }
         };
-
-        const res =
-          criarResposta();
-
-        const next =
-          jest.fn();
+        const res = criarResposta();
+        const next = jest.fn();
 
         await receberWebhookAsaas(
           req,
@@ -62,43 +58,35 @@ describe(
         );
 
         expect(res.status)
-          .toHaveBeenCalledWith(
-            400
-          );
-
+          .toHaveBeenCalledWith(400);
         expect(
-          processarWebhookAsaas
+          enfileirarWebhookAsaas
         ).not.toHaveBeenCalled();
       }
     );
 
     test(
-      "confirma evento concluído",
+      "responde imediatamente após persistir o evento",
       async () => {
-        processarWebhookAsaas
+        enfileirarWebhookAsaas
           .mockResolvedValue({
             duplicado: false,
-            ignorado: false,
-            em_processamento:
-              false,
+            evento: {
+              id: 10
+            }
           });
 
         const req = {
           body: {
             id: "evt_1",
-            event:
-              "PAYMENT_CONFIRMED",
+            event: "PAYMENT_CONFIRMED",
             payment: {
-              id: "pay_1",
-            },
-          },
+              id: "pay_1"
+            }
+          }
         };
-
-        const res =
-          criarResposta();
-
-        const next =
-          jest.fn();
+        const res = criarResposta();
+        const next = jest.fn();
 
         await receberWebhookAsaas(
           req,
@@ -106,61 +94,55 @@ describe(
           next
         );
 
+        expect(
+          agendarProcessamentoWebhook
+        ).toHaveBeenCalledWith(10);
         expect(res.json)
           .toHaveBeenCalledWith({
             recebido: true,
             duplicado: false,
-            ignorado: false,
+            enfileirado: true
           });
-
         expect(next)
           .not.toHaveBeenCalled();
       }
     );
 
     test(
-      "solicita reenvio para duplicata ainda em processamento",
+      "confirma também uma entrega duplicada",
       async () => {
-        processarWebhookAsaas
+        enfileirarWebhookAsaas
           .mockResolvedValue({
             duplicado: true,
-            ignorado: false,
-            em_processamento:
-              true,
+            evento: {
+              id: 10,
+              status: "PROCESSED"
+            }
           });
 
         const req = {
           body: {
             id: "evt_1",
-            event:
-              "PAYMENT_CONFIRMED",
+            event: "PAYMENT_RECEIVED",
             payment: {
-              id: "pay_1",
-            },
-          },
+              id: "pay_1"
+            }
+          }
         };
-
-        const res =
-          criarResposta();
-
-        const next =
-          jest.fn();
+        const res = criarResposta();
 
         await receberWebhookAsaas(
           req,
           res,
-          next
+          jest.fn()
         );
 
-        expect(res.set)
+        expect(res.json)
           .toHaveBeenCalledWith(
-            "Retry-After",
-            "5"
-          );
-
-        expect(res.status)
-          .toHaveBeenCalledWith(
-            503
+            expect.objectContaining({
+              recebido: true,
+              duplicado: true
+            })
           );
       }
     );

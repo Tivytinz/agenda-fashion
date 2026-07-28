@@ -26,6 +26,8 @@ process.env.ASAAS_API_KEY =
 
 const {
   criarAssinaturaAsaas,
+  criarCobrancaPix,
+  criarClienteAsaas,
 } = require(
   "../src/services/asaasService"
 );
@@ -36,6 +38,110 @@ describe(
     beforeEach(() => {
       jest.clearAllMocks();
     });
+
+    test(
+      "reutiliza cliente encontrado pela referência externa",
+      async () => {
+        mockGet.mockResolvedValue({
+          data: {
+            data: [
+              {
+                id:
+                  "cus_existente",
+                externalReference:
+                  "negocio:7",
+              },
+            ],
+          },
+        });
+
+        const resultado =
+          await criarClienteAsaas({
+            nome: "Studio",
+            cpfCnpj:
+              "12345678901",
+            externalReference:
+              "negocio:7",
+            reutilizarPorExternalReference:
+              true,
+          });
+
+        expect(mockGet)
+          .toHaveBeenCalledWith(
+            "/customers",
+            {
+              params: {
+                externalReference:
+                  "negocio:7",
+                limit: 1,
+                offset: 0,
+              },
+            }
+          );
+
+        expect(mockPost)
+          .not.toHaveBeenCalled();
+
+        expect(resultado.id)
+          .toBe(
+            "cus_existente"
+          );
+      }
+    );
+
+    test(
+      "reutiliza cobrança PIX encontrada pela referência externa",
+      async () => {
+        mockGet.mockResolvedValue({
+          data: {
+            data: [
+              {
+                id:
+                  "pay_existente",
+                externalReference:
+                  "checkout:1;assinatura:2",
+              },
+            ],
+          },
+        });
+
+        const resultado =
+          await criarCobrancaPix({
+            customerId:
+              "cus_1",
+            valor: 99.9,
+            descricao:
+              "Agenda Fashion",
+            externalReference:
+              "checkout:1;assinatura:2",
+            reutilizarPorExternalReference:
+              true,
+          });
+
+        expect(mockGet)
+          .toHaveBeenCalledWith(
+            "/payments",
+            {
+              params: {
+                externalReference:
+                  "checkout:1;assinatura:2",
+                limit: 1,
+                offset: 0,
+                customer:
+                  "cus_1",
+              },
+            }
+          );
+
+        expect(mockPost)
+          .not.toHaveBeenCalled();
+
+        expect(resultado.id)
+          .toBe(
+            "pay_existente"
+          );
+      }
+    );
 
     test(
       "reutiliza assinatura encontrada pela referência externa",

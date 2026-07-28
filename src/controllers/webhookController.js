@@ -1,5 +1,6 @@
 const {
-  processarWebhookAsaas,
+  enfileirarWebhookAsaas,
+  agendarProcessamentoWebhook,
 } = require("../services/webhookService");
 
 async function receberWebhookAsaas(req, res, next) {
@@ -14,28 +15,24 @@ async function receberWebhookAsaas(req, res, next) {
     }
 
     const resultado =
-      await processarWebhookAsaas({
+      await enfileirarWebhookAsaas({
         eventoId,
         tipoEvento,
         pagamento:
           req.body?.payment || null,
       });
 
-    if (resultado.em_processamento) {
-      res.set("Retry-After", "5");
-
-      return res.status(503).json({
-        recebido: false,
-        tentar_novamente: true,
-      });
+    if (resultado.evento?.id) {
+      agendarProcessamentoWebhook(
+        resultado.evento.id
+      );
     }
 
     return res.json({
       recebido: true,
       duplicado:
         resultado.duplicado,
-      ignorado:
-        resultado.ignorado,
+      enfileirado: true,
     });
   } catch (err) {
     next(err);

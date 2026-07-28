@@ -109,6 +109,7 @@ document.addEventListener(
         null,
       verificacaoStatusAtiva: false,
       tentativasStatus: 0,
+      chaveIdempotencia: null,
     };
 
     const parametros =
@@ -434,6 +435,27 @@ document.addEventListener(
           )?.value ||
         "pix"
       );
+    }
+
+    function criarChaveIdempotencia() {
+      if (
+        window.crypto &&
+        typeof window.crypto.randomUUID ===
+          "function"
+      ) {
+        return window.crypto.randomUUID();
+      }
+
+      return [
+        "checkout",
+        Date.now(),
+        Math.random()
+          .toString(36)
+          .slice(2),
+        Math.random()
+          .toString(36)
+          .slice(2),
+      ].join("-");
     }
 
     function criarItemBeneficio(
@@ -1394,6 +1416,10 @@ document.addEventListener(
             ? validarCartao()
             : null;
 
+        estado.chaveIdempotencia =
+          estado.chaveIdempotencia ||
+          criarChaveIdempotencia();
+
         definirProcessando(
           true,
           forma === "pix"
@@ -1424,6 +1450,12 @@ document.addEventListener(
                 forma,
 
               cartao,
+            },
+            {
+              headers: {
+                "Idempotency-Key":
+                  estado.chaveIdempotencia,
+              },
             }
           );
 
@@ -1538,7 +1570,12 @@ document.addEventListener(
         (input) => {
           input.addEventListener(
             "change",
-            alternarCamposCartao
+            () => {
+              estado.chaveIdempotencia =
+                null;
+
+              alternarCamposCartao();
+            }
           );
         }
       );

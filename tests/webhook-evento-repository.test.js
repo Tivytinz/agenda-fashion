@@ -1,7 +1,7 @@
 jest.mock(
   "../src/db/db",
   () => ({
-    query: jest.fn(),
+    query: jest.fn()
   })
 );
 
@@ -14,24 +14,23 @@ const webhookEventoRepository = require(
 );
 
 describe(
-  "Repository de eventos do webhook",
+  "Repository da fila de webhooks",
   () => {
     beforeEach(() => {
       jest.clearAllMocks();
     });
 
     test(
-      "assume o processamento de um evento novo",
+      "persiste um evento novo como pendente",
       async () => {
         db.query.mockResolvedValueOnce({
           rows: [
             {
               id: 1,
-              status:
-                "PROCESSING",
-              tentativas: 1,
-            },
-          ],
+              status: "PENDING",
+              tentativas: 0
+            }
+          ]
         });
 
         const resultado =
@@ -42,36 +41,34 @@ describe(
               tipoEvento:
                 "PAYMENT_CONFIRMED",
               recursoId: "pay_1",
+              payload: {
+                id: "evt_1"
+              }
             });
 
-        expect(resultado).toEqual(
-          expect.objectContaining({
-            processar: true,
-            novo: true,
-          })
-        );
-
+        expect(resultado.novo)
+          .toBe(true);
+        expect(resultado.evento.status)
+          .toBe("PENDING");
         expect(db.query)
           .toHaveBeenCalledTimes(1);
       }
     );
 
     test(
-      "retoma um evento que falhou",
+      "recupera o registro de uma entrega duplicada",
       async () => {
         db.query
           .mockResolvedValueOnce({
-            rows: [],
+            rows: []
           })
           .mockResolvedValueOnce({
             rows: [
               {
                 id: 1,
-                status:
-                  "PROCESSING",
-                tentativas: 2,
-              },
-            ],
+                status: "PROCESSED"
+              }
+            ]
           });
 
         const resultado =
@@ -82,60 +79,66 @@ describe(
               tipoEvento:
                 "PAYMENT_CONFIRMED",
               recursoId: "pay_1",
+              payload: {}
             });
 
-        expect(resultado).toEqual(
-          expect.objectContaining({
-            processar: true,
-            novo: false,
-          })
-        );
-
-        expect(db.query)
-          .toHaveBeenCalledTimes(2);
+        expect(resultado.novo)
+          .toBe(false);
+        expect(resultado.evento.status)
+          .toBe("PROCESSED");
       }
     );
 
     test(
-      "apenas contabiliza uma entrega já concluída",
+      "reserva um evento sem permitir processamento concorrente",
       async () => {
-        db.query
-          .mockResolvedValueOnce({
-            rows: [],
-          })
-          .mockResolvedValueOnce({
-            rows: [],
-          })
-          .mockResolvedValueOnce({
-            rows: [
-              {
-                id: 1,
-                status:
-                  "PROCESSED",
-                tentativas: 2,
-              },
-            ],
-          });
+        db.query.mockResolvedValueOnce({
+          rows: [
+            {
+              id: 1,
+              status: "PROCESSING",
+              tentativas: 1
+            }
+          ]
+        });
 
-        const resultado =
+        const evento =
           await webhookEventoRepository
-            .registrarRecebimento({
-              provedor: "asaas",
-              eventoId: "evt_1",
-              tipoEvento:
-                "PAYMENT_CONFIRMED",
-              recursoId: "pay_1",
-            });
+            .reservarProximo();
 
-        expect(resultado).toEqual(
-          expect.objectContaining({
-            processar: false,
-            novo: false,
-          })
+        expect(evento.status)
+          .toBe("PROCESSING");
+        expect(
+          db.query.mock.calls[0][0]
+        ).toContain(
+          "FOR UPDATE SKIP LOCKED"
         );
+      }
+    );
 
-        expect(db.query)
-          .toHaveBeenCalledTimes(3);
+    test(
+      "agenda nova tentativa ao registrar falha",
+      async () => {
+        db.query.mockResolvedValueOnce({
+          rows: [
+            {
+              id: 1,
+              status: "FAILED"
+            }
+          ]
+        });
+
+        await webhookEventoRepository
+          .marcarFalha(
+            1,
+            "erro temporário"
+          );
+
+        expect(
+          db.query.mock.calls[0][0]
+        ).toContain(
+          "proxima_tentativa_em"
+        );
       }
     );
   }

@@ -3,67 +3,47 @@ const webhookEventoRepository = require(
 );
 
 const {
-  ativarAssinaturaPorPagamento,
+  ativarAssinaturaPorPagamento
 } = require("./assinaturaService");
 
 const EVENTOS_PAGAMENTO_CONFIRMADO =
   new Set([
     "PAYMENT_CONFIRMED",
-    "PAYMENT_RECEIVED",
+    "PAYMENT_RECEIVED"
   ]);
 
-function dadosLog(
-  registro,
-  {
-    eventoId,
-    tipoEvento,
-    pagamentoId,
-  }
-) {
+function dadosLog(evento) {
   return {
-    registro_id:
-      registro?.evento?.id || null,
-    evento_id: eventoId,
-    tipo_evento: tipoEvento,
+    registro_id: evento?.id || null,
+    evento_id: evento?.evento_id || null,
+    tipo_evento: evento?.tipo_evento || null,
     pagamento_id:
-      pagamentoId || null,
+      evento?.recurso_id || null,
     tentativa:
-      registro?.evento
-        ?.tentativas || null,
+      evento?.tentativas || null
   };
 }
 
-async function registrarFalha(
-  registroId,
-  erro
-) {
-  try {
-    await webhookEventoRepository
-      .marcarFalha(
-        registroId,
-        erro?.message ||
-        "Falha desconhecida."
-      );
-  } catch (erroRegistro) {
-    console.error(
-      "[Webhook Asaas] Falha ao registrar erro do evento.",
-      {
-        registro_id:
-          registroId,
-        erro:
-          erroRegistro?.message,
-      }
-    );
-  }
-}
-
-async function processarWebhookAsaas({
+async function enfileirarWebhookAsaas({
   eventoId,
   tipoEvento,
-  pagamento,
+  pagamento
 }) {
-  const pagamentoId =
-    pagamento?.id || null;
+  const payloadSeguro = {
+    id: eventoId,
+    event: tipoEvento,
+    payment: pagamento
+      ? {
+          id: pagamento.id || null,
+          status:
+            pagamento.status || null,
+          subscription:
+            pagamento.subscription || null,
+          externalReference:
+            pagamento.externalReference || null
+        }
+      : null
+  };
 
   const registro =
     await webhookEventoRepository
@@ -72,47 +52,52 @@ async function processarWebhookAsaas({
         eventoId,
         tipoEvento,
         recursoId:
-          pagamentoId,
+          pagamento?.id || null,
+        payload: payloadSeguro
       });
 
-  const contexto = dadosLog(
-    registro,
-    {
-      eventoId,
-      tipoEvento,
-      pagamentoId,
-    }
-  );
+  return {
+    duplicado: !registro.novo,
+    evento: registro.evento
+  };
+}
 
-  if (!registro.processar) {
-    const emProcessamento =
-      registro.evento?.status ===
-      "PROCESSING";
-
-    console.info(
-      "[Webhook Asaas] Evento duplicado.",
-      contexto
+async function registrarFalha(evento, erro) {
+  try {
+    await webhookEventoRepository
+      .marcarFalha(
+        evento.id,
+        erro?.message ||
+        "Falha desconhecida."
+      );
+  } catch (erroRegistro) {
+    console.error(
+      "[Webhook Asaas] Falha ao registrar erro do evento.",
+      {
+        registro_id: evento.id,
+        erro: erroRegistro?.message
+      }
     );
-
-    return {
-      duplicado: true,
-      ignorado: false,
-      em_processamento:
-        emProcessamento,
-      status:
-        registro.evento?.status ||
-        null,
-    };
   }
+}
+
+async function processarRegistro(evento) {
+  const contexto = dadosLog(evento);
+  const pagamento =
+    evento.payload?.payment || null;
+  const pagamentoId =
+    pagamento?.id ||
+    evento.recurso_id ||
+    null;
 
   try {
     if (
       !EVENTOS_PAGAMENTO_CONFIRMADO
-        .has(tipoEvento)
+        .has(evento.tipo_evento)
     ) {
       await webhookEventoRepository
         .marcarConcluido(
-          registro.evento.id,
+          evento.id,
           "IGNORED"
         );
 
@@ -122,18 +107,15 @@ async function processarWebhookAsaas({
       );
 
       return {
-        duplicado: false,
         ignorado: true,
-        em_processamento: false,
-        status: "IGNORED",
+        status: "IGNORED"
       };
     }
 
     if (!pagamentoId) {
-      const erro =
-        new Error(
-          "Pagamento não informado no webhook."
-        );
+      const erro = new Error(
+        "Pagamento não informado no webhook."
+      );
 
       erro.code =
         "WEBHOOK_PAYMENT_REQUIRED";
@@ -144,15 +126,14 @@ async function processarWebhookAsaas({
     const assinatura =
       await ativarAssinaturaPorPagamento(
         pagamentoId,
-        pagamento.status ||
+        pagamento?.status ||
         "CONFIRMED"
       );
 
     if (!assinatura) {
-      const erro =
-        new Error(
-          "Pagamento do webhook não encontrado."
-        );
+      const erro = new Error(
+        "Pagamento do webhook não encontrado."
+      );
 
       erro.code =
         "WEBHOOK_PAYMENT_NOT_FOUND";
@@ -162,7 +143,7 @@ async function processarWebhookAsaas({
 
     await webhookEventoRepository
       .marcarConcluido(
-        registro.evento.id,
+        evento.id,
         "PROCESSED"
       );
 
@@ -172,14 +153,12 @@ async function processarWebhookAsaas({
     );
 
     return {
-      duplicado: false,
       ignorado: false,
-      em_processamento: false,
-      status: "PROCESSED",
+      status: "PROCESSED"
     };
   } catch (erro) {
     await registrarFalha(
-      registro.evento.id,
+      evento,
       erro
     );
 
@@ -187,10 +166,8 @@ async function processarWebhookAsaas({
       "[Webhook Asaas] Falha no processamento.",
       {
         ...contexto,
-        codigo:
-          erro?.code || null,
-        erro:
-          erro?.message,
+        codigo: erro?.code || null,
+        erro: erro?.message
       }
     );
 
@@ -198,6 +175,95 @@ async function processarWebhookAsaas({
   }
 }
 
+async function processarEventoWebhook(eventoId) {
+  const evento =
+    await webhookEventoRepository
+      .reservarPorId(eventoId);
+
+  if (!evento) {
+    return {
+      processado: false,
+      indisponivel: true
+    };
+  }
+
+  return processarRegistro(evento);
+}
+
+function agendarProcessamentoWebhook(eventoId) {
+  setImmediate(() => {
+    processarEventoWebhook(eventoId)
+      .catch(() => {});
+  });
+}
+
+async function processarFilaWebhook(limite = 20) {
+  let processados = 0;
+
+  while (processados < limite) {
+    const evento =
+      await webhookEventoRepository
+        .reservarProximo();
+
+    if (!evento) {
+      break;
+    }
+
+    await processarRegistro(evento)
+      .catch(() => {});
+
+    processados += 1;
+  }
+
+  return processados;
+}
+
+function iniciarWorkerWebhook() {
+  const executar = () => {
+    processarFilaWebhook()
+      .catch((erro) => {
+        console.error(
+          "[Webhook Asaas] Falha no worker.",
+          {
+            erro: erro?.message
+          }
+        );
+      });
+  };
+
+  setImmediate(executar);
+
+  const intervalo =
+    setInterval(
+      executar,
+      30000
+    );
+
+  intervalo.unref?.();
+
+  return intervalo;
+}
+
+async function processarWebhookAsaas(dados) {
+  const registro =
+    await enfileirarWebhookAsaas(dados);
+
+  const resultado =
+    await processarEventoWebhook(
+      registro.evento.id
+    );
+
+  return {
+    duplicado: registro.duplicado,
+    ...resultado
+  };
+}
+
 module.exports = {
-  processarWebhookAsaas,
+  enfileirarWebhookAsaas,
+  processarEventoWebhook,
+  agendarProcessamentoWebhook,
+  processarFilaWebhook,
+  iniciarWorkerWebhook,
+  processarWebhookAsaas
 };

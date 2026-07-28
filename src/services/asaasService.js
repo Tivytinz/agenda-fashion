@@ -21,6 +21,10 @@ const asaasApi = axios.create({
     "Content-Type":
       "application/json",
 
+    "User-Agent":
+      process.env.ASAAS_USER_AGENT ||
+      "AgendaFashion/1.0",
+
     access_token:
       ASAAS_API_KEY
   }
@@ -81,7 +85,9 @@ async function criarClienteAsaas({
   email,
   telefone,
   cpfCnpj,
-  externalReference
+  externalReference,
+  reutilizarPorExternalReference =
+    false
 }) {
   validarConfigAsaas();
 
@@ -92,6 +98,20 @@ async function criarClienteAsaas({
     throw new Error(
       "Nome obrigatório para criar o cliente no Asaas."
     );
+  }
+
+  if (
+    reutilizarPorExternalReference &&
+    externalReference
+  ) {
+    const clienteExistente =
+      await buscarClientePorReferencia(
+        externalReference
+      );
+
+    if (clienteExistente) {
+      return clienteExistente;
+    }
   }
 
   const payload = {
@@ -126,13 +146,62 @@ async function criarClienteAsaas({
   return response.data;
 }
 
+async function buscarClientePorReferencia(
+  externalReference
+) {
+  validarConfigAsaas();
+
+  const referencia = String(
+    externalReference || ""
+  ).trim();
+
+  if (!referencia) {
+    return null;
+  }
+
+  const response =
+    await asaasApi.get(
+      "/customers",
+      {
+        params: {
+          externalReference:
+            referencia,
+          limit: 1,
+          offset: 0
+        }
+      }
+    );
+
+  return (
+    response.data?.data?.[0] ||
+    null
+  );
+}
+
 async function criarCobrancaPix({
   customerId,
   valor,
   descricao,
-  externalReference
+  externalReference,
+  reutilizarPorExternalReference =
+    false
 }) {
   validarConfigAsaas();
+
+  if (
+    reutilizarPorExternalReference &&
+    externalReference
+  ) {
+    const cobrancaExistente =
+      await buscarCobrancaPorReferencia({
+        externalReference,
+        customerId
+      });
+
+    if (cobrancaExistente) {
+      return cobrancaExistente;
+    }
+  }
 
   const response =
     await asaasApi.post(
@@ -153,6 +222,44 @@ async function criarCobrancaPix({
     );
 
   return response.data;
+}
+
+async function buscarCobrancaPorReferencia({
+  externalReference,
+  customerId
+}) {
+  validarConfigAsaas();
+
+  const referencia = String(
+    externalReference || ""
+  ).trim();
+
+  if (!referencia) {
+    return null;
+  }
+
+  const params = {
+    externalReference: referencia,
+    limit: 1,
+    offset: 0
+  };
+
+  if (customerId) {
+    params.customer = customerId;
+  }
+
+  const response =
+    await asaasApi.get(
+      "/payments",
+      {
+        params
+      }
+    );
+
+  return (
+    response.data?.data?.[0] ||
+    null
+  );
 }
 
 async function buscarQrCodePix(
@@ -467,7 +574,9 @@ async function removerAssinaturaAsaas(
 
 module.exports = {
   criarClienteAsaas,
+  buscarClientePorReferencia,
   criarCobrancaPix,
+  buscarCobrancaPorReferencia,
   buscarQrCodePix,
   criarAssinaturaAsaas,
   buscarAssinaturaPorReferencia,

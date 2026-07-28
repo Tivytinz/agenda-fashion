@@ -9,11 +9,6 @@ const {
 const { buscarUsoPlano } = require("./planoService");
 
 async function registrarAssinaturaPendente(client, dados) {
-  await assinaturaRepository.desativarAssinaturasDoNegocio(
-    client,
-    dados.negocio_id
-  );
-
   return assinaturaRepository.criarAssinatura(client, {
     negocio_id: dados.negocio_id,
     plano_id: dados.plano_id,
