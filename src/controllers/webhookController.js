@@ -1,36 +1,42 @@
 const {
-  ativarAssinaturaPorPagamento,
-} = require("../services/assinaturaService");
+  processarWebhookAsaas,
+} = require("../services/webhookService");
 
 async function receberWebhookAsaas(req, res, next) {
   try {
-    const evento = req.body?.event;
-    const pagamento = req.body?.payment;
+    const eventoId = req.body?.id;
+    const tipoEvento = req.body?.event;
 
-    if (!evento || !pagamento?.id) {
+    if (!eventoId || !tipoEvento) {
       return res.status(400).json({
         erro: "Webhook inválido.",
       });
     }
 
-    switch (evento) {
-      case "PAYMENT_CONFIRMED":
-      case "PAYMENT_RECEIVED":
-        await ativarAssinaturaPorPagamento(
-          pagamento.id,
-          pagamento.status || "CONFIRMED"
-        );
-        break;
+    const resultado =
+      await processarWebhookAsaas({
+        eventoId,
+        tipoEvento,
+        pagamento:
+          req.body?.payment || null,
+      });
 
-      default:
-        // Outros eventos são ignorados
-        break;
+    if (resultado.em_processamento) {
+      res.set("Retry-After", "5");
+
+      return res.status(503).json({
+        recebido: false,
+        tentar_novamente: true,
+      });
     }
 
     return res.json({
       recebido: true,
+      duplicado:
+        resultado.duplicado,
+      ignorado:
+        resultado.ignorado,
     });
-
   } catch (err) {
     next(err);
   }
