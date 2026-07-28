@@ -12,11 +12,6 @@ document.addEventListener(
           "checkoutTotal"
         ),
 
-      checkoutTotal:
-        document.getElementById(
-          "checkoutTotal"
-        ),
-
       cartaoCampos:
         document.getElementById(
           "cartaoCampos"
@@ -72,6 +67,11 @@ document.addEventListener(
           "cvvCartao"
         ),
 
+      cpfCnpj:
+        document.getElementById(
+          "cpfCnpj"
+        ),
+
       formasPagamento:
         Array.from(
           document.querySelectorAll(
@@ -85,6 +85,7 @@ document.addEventListener(
       elementos.checkoutTotal,
       elementos.btnConfirmar,
       elementos.mensagem,
+      elementos.cpfCnpj,
     ];
 
     if (
@@ -744,7 +745,167 @@ document.addEventListener(
       )}/${numeros.slice(2)}`;
     }
 
+    function normalizarDocumento(
+      valor
+    ) {
+      return normalizarTexto(
+        valor
+      ).replace(/\D/g, "");
+    }
+
+    function calcularDigitoDocumento(
+      documento,
+      pesos
+    ) {
+      const soma = pesos.reduce(
+        (total, peso, indice) =>
+          total +
+          Number(documento[indice]) *
+          peso,
+        0
+      );
+
+      const resto = soma % 11;
+
+      return resto < 2
+        ? 0
+        : 11 - resto;
+    }
+
+    function documentoValido(
+      valor
+    ) {
+      const documento =
+        normalizarDocumento(valor);
+
+      if (
+        ![11, 14].includes(
+          documento.length
+        ) ||
+        /^(\d)\1+$/.test(
+          documento
+        )
+      ) {
+        return false;
+      }
+
+      const pesos =
+        documento.length === 11
+          ? [
+              [10, 9, 8, 7, 6, 5, 4, 3, 2],
+              [11, 10, 9, 8, 7, 6, 5, 4, 3, 2],
+            ]
+          : [
+              [5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2],
+              [6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2],
+            ];
+
+      const indicePrimeiro =
+        documento.length - 2;
+
+      return (
+        calcularDigitoDocumento(
+          documento,
+          pesos[0]
+        ) ===
+          Number(
+            documento[
+              indicePrimeiro
+            ]
+          ) &&
+        calcularDigitoDocumento(
+          documento,
+          pesos[1]
+        ) ===
+          Number(
+            documento[
+              indicePrimeiro + 1
+            ]
+          )
+      );
+    }
+
+    function formatarDocumento(
+      valor
+    ) {
+      const documento =
+        normalizarDocumento(
+          valor
+        ).slice(0, 14);
+
+      if (documento.length <= 11) {
+        return documento
+          .replace(
+            /(\d{3})(\d)/,
+            "$1.$2"
+          )
+          .replace(
+            /(\d{3})(\d)/,
+            "$1.$2"
+          )
+          .replace(
+            /(\d{3})(\d{1,2})$/,
+            "$1-$2"
+          );
+      }
+
+      return documento
+        .replace(
+          /^(\d{2})(\d)/,
+          "$1.$2"
+        )
+        .replace(
+          /^(\d{2})\.(\d{3})(\d)/,
+          "$1.$2.$3"
+        )
+        .replace(
+          /\.(\d{3})(\d)/,
+          ".$1/$2"
+        )
+        .replace(
+          /(\d{4})(\d)/,
+          "$1-$2"
+        );
+    }
+
+    function validarDocumentoCobranca() {
+      const documento =
+        normalizarDocumento(
+          elementos.cpfCnpj
+            ?.value
+        );
+
+      if (
+        !documentoValido(
+          documento
+        )
+      ) {
+        elementos.cpfCnpj
+          ?.focus();
+
+        throw new Error(
+          "Informe um CPF ou CNPJ válido."
+        );
+      }
+
+      return documento;
+    }
+
     function configurarMascaras() {
+      elementos.cpfCnpj
+        ?.addEventListener(
+          "input",
+          (evento) => {
+            evento.target.value =
+              formatarDocumento(
+                evento.target.value
+              );
+
+            estado.chaveIdempotencia =
+              null;
+          }
+        );
+
       elementos.numeroCartao
         ?.addEventListener(
           "input",
@@ -1411,6 +1572,9 @@ document.addEventListener(
         const forma =
           formaPagamentoSelecionada();
 
+        const cpfCnpj =
+          validarDocumentoCobranca();
+
         const cartao =
           forma === "cartao"
             ? validarCartao()
@@ -1448,6 +1612,9 @@ document.addEventListener(
 
               forma_pagamento:
                 forma,
+
+              cpf_cnpj:
+                cpfCnpj,
 
               cartao,
             },

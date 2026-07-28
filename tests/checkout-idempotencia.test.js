@@ -94,6 +94,75 @@ describe(
     });
 
     test(
+      "recusa cliente novo sem CPF/CNPJ antes de iniciar a tentativa",
+      async () => {
+        const apiUrlAnterior =
+          process.env.ASAAS_API_URL;
+
+        process.env.ASAAS_API_URL =
+          "https://api.asaas.com/v3";
+
+        checkoutRepository
+          .buscarNegocioDono
+          .mockResolvedValue({
+            id: 7,
+            nome: "Studio",
+            asaas_customer_id: null
+          });
+
+        try {
+          await expect(
+            criarCheckout({
+              usuarioId: 1,
+              planoId: 3,
+              formaPagamento: "pix",
+              chaveIdempotencia:
+                "checkout-chave-123456"
+            })
+          ).rejects.toMatchObject({
+            message:
+              "Informe um CPF/CNPJ válido para gerar a cobrança.",
+            statusCode: 400
+          });
+
+          expect(
+            checkoutTentativaRepository
+              .iniciar
+          ).not.toHaveBeenCalled();
+        } finally {
+          process.env.ASAAS_API_URL =
+            apiUrlAnterior;
+        }
+      }
+    );
+
+    test(
+      "mantém cartão bloqueado sem liberação explícita",
+      async () => {
+        await expect(
+          criarCheckout({
+            usuarioId: 1,
+            planoId: 3,
+            formaPagamento: "cartao",
+            cartao: {
+              nome: "Cliente",
+              numero: "4111111111111111",
+              validade: "12/30",
+              cvv: "123"
+            },
+            cpfCnpj: "11144477735",
+            chaveIdempotencia:
+              "checkout-chave-123456"
+          })
+        ).rejects.toMatchObject({
+          message:
+            "Pagamento por cartão ainda não está disponível.",
+          statusCode: 400
+        });
+      }
+    );
+
+    test(
       "devolve a resposta salva sem criar nova cobrança",
       async () => {
         const respostaSalva = {

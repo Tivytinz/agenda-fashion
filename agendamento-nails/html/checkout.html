@@ -54,11 +54,7 @@
       </a>
 
       <a
-        ←
-        </span>
-
-        Voltar para os planos
-      </ href="/html/inicio.html"
+        href="/html/inicio.html"
         class="checkout-brand"
         aria-label="Ir para o início do Agenda Fashion"
       >
@@ -200,6 +196,7 @@
                 type="radio"
                 name="formaPagamento"
                 value="cartao"
+                disabled
               >
 
               <span class="pagamento-opcao-icone">
@@ -212,13 +209,55 @@
                 </strong>
 
                 <small>
-                  Informe os dados do cartão para processar a cobrança.
+                  Em breve, após a validação de segurança.
                 </small>
               </span>
 
               <span class="pagamento-opcao-marcador"></span>
             </label>
           </fieldset>
+
+          <section
+            class="dados-cobranca"
+            aria-labelledby="tituloDadosCobranca"
+          >
+            <div class="dados-cobranca-titulo">
+              <span aria-hidden="true">
+                👤
+              </span>
+
+              <div>
+                <h3 id="tituloDadosCobranca">
+                  Dados do responsável
+                </h3>
+
+                <p>
+                  O Asaas exige o documento para gerar a cobrança.
+                </p>
+              </div>
+            </div>
+
+            <div class="checkout-campo">
+              <label for="cpfCnpj">
+                CPF ou CNPJ
+              </label>
+
+              <input
+                id="cpfCnpj"
+                class="af-input"
+                type="text"
+                placeholder="000.000.000-00"
+                inputmode="numeric"
+                maxlength="18"
+                aria-describedby="cpfCnpjAjuda"
+                autocomplete="off"
+              >
+
+              <small id="cpfCnpjAjuda">
+                Usado somente para identificar o responsável pela cobrança.
+              </small>
+            </div>
+          </section>
 
           <section
             id="cartaoCampos"
