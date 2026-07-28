@@ -39,9 +39,11 @@ function autenticarWebhookAsaas(
     ""
   ).trim();
 
-  if (!tokenEsperado) {
+  if (
+    tokenEsperado.length < 32
+  ) {
     console.error(
-      "[Webhook Asaas] ASAAS_WEBHOOK_TOKEN não configurado."
+      "[Webhook Asaas] ASAAS_WEBHOOK_TOKEN ausente ou inseguro."
     );
 
     return res.status(503).json({

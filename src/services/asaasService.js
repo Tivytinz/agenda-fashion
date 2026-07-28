@@ -5,10 +5,47 @@ const {
 } = require("../utils/documento");
 
 const ASAAS_API_URL =
-  process.env.ASAAS_API_URL;
+  String(
+    process.env.ASAAS_API_URL || ""
+  ).trim();
 
 const ASAAS_API_KEY =
-  process.env.ASAAS_API_KEY;
+  String(
+    process.env.ASAAS_API_KEY || ""
+  ).trim();
+
+function identificarAmbienteAsaas(url) {
+  let endereco;
+
+  try {
+    endereco =
+      new URL(
+        String(url || "").trim()
+      );
+  } catch {
+    return null;
+  }
+
+  if (endereco.protocol !== "https:") {
+    return null;
+  }
+
+  if (
+    endereco.hostname ===
+    "api-sandbox.asaas.com"
+  ) {
+    return "sandbox";
+  }
+
+  if (
+    endereco.hostname ===
+    "api.asaas.com"
+  ) {
+    return "producao";
+  }
+
+  return null;
+}
 
 function validarConfigAsaas() {
   if (!ASAAS_API_URL || !ASAAS_API_KEY) {
@@ -16,10 +53,71 @@ function validarConfigAsaas() {
       "Configuração do Asaas ausente."
     );
   }
+
+  const ambiente =
+    identificarAmbienteAsaas(
+      ASAAS_API_URL
+    );
+
+  if (
+    ambiente === "producao" &&
+    !ASAAS_API_KEY.startsWith(
+      "$aact_prod_"
+    )
+  ) {
+    throw new Error(
+      "Configuração inválida do Asaas: a URL de produção exige uma chave de produção."
+    );
+  }
+
+  if (
+    ambiente === "sandbox" &&
+    !ASAAS_API_KEY.startsWith(
+      "$aact_hmlg_"
+    )
+  ) {
+    throw new Error(
+      "Configuração inválida do Asaas: a URL de Sandbox exige uma chave de Sandbox."
+    );
+  }
+
+  if (
+    process.env.NODE_ENV ===
+      "production" &&
+    !ambiente
+  ) {
+    throw new Error(
+      "Configuração inválida do Asaas: use um endpoint oficial em produção."
+    );
+  }
+
+  return {
+    ambiente,
+    url: ASAAS_API_URL
+  };
+}
+
+function obterTimeoutAsaas() {
+  const configurado =
+    Number(
+      process.env
+        .ASAAS_HTTP_TIMEOUT_MS
+    );
+
+  if (
+    Number.isFinite(configurado) &&
+    configurado >= 1000 &&
+    configurado <= 30000
+  ) {
+    return configurado;
+  }
+
+  return 10000;
 }
 
 const asaasApi = axios.create({
   baseURL: ASAAS_API_URL,
+  timeout: obterTimeoutAsaas(),
 
   headers: {
     "Content-Type":
@@ -617,6 +715,9 @@ async function removerAssinaturaAsaas(
 }
 
 module.exports = {
+  validarConfigAsaas,
+  identificarAmbienteAsaas,
+  obterTimeoutAsaas,
   criarClienteAsaas,
   buscarClientePorReferencia,
   criarCobrancaPix,

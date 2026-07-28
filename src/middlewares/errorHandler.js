@@ -2,14 +2,7 @@ const AppError = require(
   "../errors/AppError"
 );
 
-function deveExibirErro() {
-  if (
-    process.env.NODE_ENV ===
-    "production"
-  ) {
-    return false;
-  }
-
+function deveRegistrarErro() {
   if (
     process.env.NODE_ENV !==
     "test"
@@ -24,51 +17,54 @@ function deveExibirErro() {
   );
 }
 
+function deveExibirDetalhes() {
+  return (
+    process.env.NODE_ENV !==
+    "production"
+  );
+}
+
 function errorHandler(
   err,
   req,
   res,
   next
 ) {
+  const erroOperacional =
+    err instanceof AppError;
+
   if (
-    deveExibirErro()
+    deveRegistrarErro() &&
+    !erroOperacional
   ) {
     console.error(
-      "\nErro capturado pelo middleware:"
-    );
+      "[Erro não tratado]",
+      {
+        mensagem:
+          err?.message ||
+          "Erro desconhecido.",
 
-    console.error({
-      mensagem:
-        err?.message,
+        codigo:
+          err?.code || null,
 
-      codigo:
-        err?.code,
+        rota:
+          req?.originalUrl ||
+          null,
 
-      detalhe:
-        err?.detail,
+        metodo:
+          req?.method ||
+          null,
 
-      dica:
-        err?.hint,
+        detalhe:
+          deveExibirDetalhes()
+            ? err?.detail || null
+            : undefined,
 
-      tabela:
-        err?.table,
-
-      coluna:
-        err?.column,
-
-      restricao:
-        err?.constraint,
-
-      rota:
-        req?.originalUrl,
-
-      metodo:
-        req?.method,
-    });
-
-    console.error(
-      err?.stack ||
-      err
+        stack:
+          deveExibirDetalhes()
+            ? err?.stack || null
+            : undefined
+      }
     );
   }
 

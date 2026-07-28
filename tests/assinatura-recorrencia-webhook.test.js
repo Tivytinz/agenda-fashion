@@ -1,0 +1,298 @@
+const mockClient = {
+  query: jest.fn()
+};
+
+jest.mock(
+  "../src/db/db",
+  () => ({
+    executarTransacao:
+      jest.fn(
+        async (callback) =>
+          callback(mockClient)
+      )
+  })
+);
+
+jest.mock(
+  "../src/repositories/assinaturaRepository"
+);
+
+jest.mock(
+  "../src/repositories/pagamentoRepository",
+  () => ({
+    criarPagamento: jest.fn(),
+    atualizarStatusPagamento:
+      jest.fn()
+  })
+);
+
+jest.mock(
+  "../src/services/asaasService",
+  () => ({
+    criarAssinaturaAsaas:
+      jest.fn(),
+    removerAssinaturaAsaas:
+      jest.fn()
+  })
+);
+
+jest.mock(
+  "../src/services/planoService",
+  () => ({
+    buscarUsoPlano: jest.fn()
+  })
+);
+
+const pagamentoRepository = require(
+  "../src/repositories/pagamentoRepository"
+);
+
+const {
+  ativarAssinaturaPorPagamento,
+  sincronizarPagamentoPorWebhook,
+  suspenderAssinaturaPorPagamento
+} = require(
+  "../src/services/assinaturaService"
+);
+
+describe(
+  "Recorrências recebidas pelo webhook",
+  () => {
+    beforeEach(() => {
+      jest.clearAllMocks();
+    });
+
+    test(
+      "cria o pagamento recorrente local e renova a assinatura",
+      async () => {
+        mockClient.query
+          .mockResolvedValueOnce({
+            rows: []
+          })
+          .mockResolvedValueOnce({
+            rows: [
+              {
+                id: 20,
+                negocio_id: 7,
+                plano_id: 3,
+                valor: "99.90",
+                forma_pagamento:
+                  "pix",
+                status: "ACTIVE",
+                ativo: true,
+                asaas_subscription_id:
+                  "sub_1",
+                data_proxima_cobranca:
+                  "2026-08-28"
+              }
+            ]
+          })
+          .mockResolvedValueOnce({
+            rows: [
+              {
+                id: 20,
+                negocio_id: 7,
+                plano_id: 3,
+                valor: "99.90",
+                forma_pagamento:
+                  "pix",
+                status: "ACTIVE",
+                ativo: true,
+                asaas_subscription_id:
+                  "sub_1",
+                pagamento_id: 50,
+                data_pagamento:
+                  "2026-08-28",
+                data_vencimento:
+                  "2026-08-28"
+              }
+            ]
+          })
+          .mockResolvedValueOnce({
+            rows: []
+          })
+          .mockResolvedValueOnce({
+            rows: []
+          })
+          .mockResolvedValueOnce({
+            rows: [
+              {
+                id: 20,
+                status: "ACTIVE",
+                ativo: true,
+                data_proxima_cobranca:
+                  "2026-09-28"
+              }
+            ]
+          })
+          .mockResolvedValueOnce({
+            rows: []
+          });
+
+        pagamentoRepository
+          .criarPagamento
+          .mockResolvedValue({
+            id: 50
+          });
+
+        const assinatura =
+          await ativarAssinaturaPorPagamento(
+            "pay_renovacao",
+            "RECEIVED",
+            {
+              id: "pay_renovacao",
+              status: "RECEIVED",
+              subscription: "sub_1",
+              value: 99.9,
+              billingType: "PIX",
+              dueDate: "2026-08-28",
+              paymentDate: "2026-08-28"
+            }
+          );
+
+        expect(
+          pagamentoRepository
+            .criarPagamento
+        ).toHaveBeenCalledWith(
+          mockClient,
+          expect.objectContaining({
+            assinatura_id: 20,
+            asaas_payment_id:
+              "pay_renovacao",
+            valor: 99.9,
+            forma_pagamento: "pix",
+            status: "RECEIVED"
+          })
+        );
+
+        expect(
+          mockClient.query
+        ).toHaveBeenCalledWith(
+          expect.stringContaining(
+            "data_proxima_cobranca = $2"
+          ),
+          [
+            "sub_1",
+            "2026-09-28",
+            "Assinatura mensal ativa no Asaas.",
+            20
+          ]
+        );
+
+        expect(assinatura)
+          .toMatchObject({
+            id: 20,
+            ativo: true
+          });
+      }
+    );
+
+    test(
+      "ignora com segurança pagamento sem vínculo local",
+      async () => {
+        mockClient.query
+          .mockResolvedValueOnce({
+            rows: []
+          })
+          .mockResolvedValueOnce({
+            rows: []
+          });
+
+        const pagamento =
+          await sincronizarPagamentoPorWebhook({
+            id: "pay_externo",
+            status: "PENDING",
+            subscription:
+              "sub_desconhecida"
+          });
+
+        expect(pagamento)
+          .toBeNull();
+        expect(
+          pagamentoRepository
+            .criarPagamento
+        ).not.toHaveBeenCalled();
+      }
+    );
+
+    test(
+      "suspende assinatura vencida e retorna o negócio ao plano gratuito",
+      async () => {
+        mockClient.query
+          .mockResolvedValueOnce({
+            rows: [
+              {
+                id: 20,
+                negocio_id: 7,
+                pagamento_id: 50,
+                asaas_subscription_id:
+                  "sub_1",
+                status: "ACTIVE",
+                ativo: true
+              }
+            ]
+          })
+          .mockResolvedValueOnce({
+            rows: [
+              {
+                id: 1
+              }
+            ]
+          })
+          .mockResolvedValueOnce({
+            rows: [
+              {
+                id: 20,
+                status: "OVERDUE",
+                ativo: false
+              }
+            ]
+          })
+          .mockResolvedValueOnce({
+            rows: []
+          });
+
+        pagamentoRepository
+          .atualizarStatusPagamento
+          .mockResolvedValue({
+            id: 50,
+            status: "OVERDUE"
+          });
+
+        const assinatura =
+          await suspenderAssinaturaPorPagamento({
+            id: "pay_renovacao",
+            status: "OVERDUE",
+            subscription: "sub_1"
+          });
+
+        expect(
+          pagamentoRepository
+            .atualizarStatusPagamento
+        ).toHaveBeenCalledWith(
+          mockClient,
+          "pay_renovacao",
+          {
+            status: "OVERDUE",
+            data_pagamento: null
+          }
+        );
+
+        expect(
+          mockClient.query
+        ).toHaveBeenCalledWith(
+          expect.stringContaining(
+            "UPDATE negocios"
+          ),
+          [1, 7]
+        );
+
+        expect(assinatura)
+          .toMatchObject({
+            status: "OVERDUE",
+            ativo: false
+          });
+      }
+    );
+  }
+);

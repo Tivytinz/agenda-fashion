@@ -139,5 +139,40 @@ describe(
           .not.toHaveBeenCalled();
       }
     );
+
+    test(
+      "rejeita configuração com token curto",
+      () => {
+        process.env
+          .ASAAS_WEBHOOK_TOKEN =
+          "token-curto";
+
+        jest.spyOn(
+          console,
+          "error"
+        ).mockImplementation();
+
+        const req = {
+          get: jest.fn()
+        };
+
+        const res =
+          criarResposta();
+
+        const next =
+          jest.fn();
+
+        autenticarWebhookAsaas(
+          req,
+          res,
+          next
+        );
+
+        expect(res.status)
+          .toHaveBeenCalledWith(503);
+        expect(next)
+          .not.toHaveBeenCalled();
+      }
+    );
   }
 );

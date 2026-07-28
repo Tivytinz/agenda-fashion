@@ -74,7 +74,8 @@ async function atualizarStatusPagamento(client, paymentId, dados) {
     UPDATE pagamentos
     SET
       status = $1,
-      data_pagamento = COALESCE($2, data_pagamento)
+      data_pagamento = COALESCE($2, data_pagamento),
+      updated_at = NOW()
     WHERE asaas_payment_id = $3
     RETURNING *
     `,

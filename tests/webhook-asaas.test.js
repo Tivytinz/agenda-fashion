@@ -6,6 +6,10 @@ jest.mock(
   "../src/services/assinaturaService",
   () => ({
     ativarAssinaturaPorPagamento:
+      jest.fn(),
+    sincronizarPagamentoPorWebhook:
+      jest.fn(),
+    suspenderAssinaturaPorPagamento:
       jest.fn()
   })
 );
@@ -15,7 +19,9 @@ const webhookEventoRepository = require(
 );
 
 const {
-  ativarAssinaturaPorPagamento
+  ativarAssinaturaPorPagamento,
+  sincronizarPagamentoPorWebhook,
+  suspenderAssinaturaPorPagamento
 } = require(
   "../src/services/assinaturaService"
 );
@@ -124,7 +130,10 @@ describe(
           ativarAssinaturaPorPagamento
         ).toHaveBeenCalledWith(
           "pay_1",
-          "CONFIRMED"
+          "CONFIRMED",
+          expect.objectContaining({
+            id: "pay_1"
+          })
         );
         expect(
           webhookEventoRepository
@@ -193,7 +202,7 @@ describe(
     );
 
     test(
-      "registra falha para nova tentativa automática",
+      "ignora pagamento que não pertence ao Agenda Fashion",
       async () => {
         webhookEventoRepository
           .reservarPorId
@@ -216,19 +225,114 @@ describe(
         ativarAssinaturaPorPagamento
           .mockResolvedValue(null);
 
-        await expect(
-          processarEventoWebhook(12)
-        ).rejects.toThrow(
-          "Pagamento do webhook não encontrado."
-        );
+        const resultado =
+          await processarEventoWebhook(12);
 
         expect(
           webhookEventoRepository
-            .marcarFalha
+            .marcarConcluido
         ).toHaveBeenCalledWith(
           12,
-          "Pagamento do webhook não encontrado."
+          "IGNORED"
         );
+
+        expect(resultado)
+          .toEqual({
+            ignorado: true,
+            status: "IGNORED"
+          });
+      }
+    );
+
+    test(
+      "sincroniza cobrança recorrente criada pelo Asaas",
+      async () => {
+        webhookEventoRepository
+          .reservarPorId
+          .mockResolvedValue({
+            id: 14,
+            evento_id: "evt_5",
+            tipo_evento:
+              "PAYMENT_CREATED",
+            recurso_id: "pay_5",
+            tentativas: 1,
+            payload: {
+              payment: {
+                id: "pay_5",
+                status: "PENDING",
+                subscription: "sub_1",
+                value: 99.9,
+                billingType: "PIX",
+                dueDate: "2026-08-28"
+              }
+            }
+          });
+
+        sincronizarPagamentoPorWebhook
+          .mockResolvedValue({
+            id: 50,
+            status: "PENDING"
+          });
+
+        const resultado =
+          await processarEventoWebhook(14);
+
+        expect(
+          sincronizarPagamentoPorWebhook
+        ).toHaveBeenCalledWith(
+          expect.objectContaining({
+            id: "pay_5",
+            subscription: "sub_1",
+            value: 99.9
+          })
+        );
+        expect(resultado.status)
+          .toBe("PROCESSED");
+      }
+    );
+
+    test(
+      "suspende o plano quando a cobrança fica vencida",
+      async () => {
+        webhookEventoRepository
+          .reservarPorId
+          .mockResolvedValue({
+            id: 15,
+            evento_id: "evt_6",
+            tipo_evento:
+              "PAYMENT_OVERDUE",
+            recurso_id: "pay_6",
+            tentativas: 1,
+            payload: {
+              payment: {
+                id: "pay_6",
+                status: "OVERDUE",
+                subscription: "sub_1"
+              }
+            }
+          });
+
+        suspenderAssinaturaPorPagamento
+          .mockResolvedValue({
+            id: 20,
+            status: "OVERDUE",
+            ativo: false
+          });
+
+        const resultado =
+          await processarEventoWebhook(15);
+
+        expect(
+          suspenderAssinaturaPorPagamento
+        ).toHaveBeenCalledWith(
+          expect.objectContaining({
+            id: "pay_6",
+            status: "OVERDUE",
+            subscription: "sub_1"
+          })
+        );
+        expect(resultado.status)
+          .toBe("PROCESSED");
       }
     );
 

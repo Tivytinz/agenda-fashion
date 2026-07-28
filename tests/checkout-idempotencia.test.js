@@ -23,8 +23,7 @@ jest.mock(
     criarClienteAsaas: jest.fn(),
     criarAssinaturaAsaas: jest.fn(),
     criarCobrancaPix: jest.fn(),
-    buscarQrCodePix: jest.fn(),
-    buscarPagamentoAsaas: jest.fn()
+    buscarQrCodePix: jest.fn()
   })
 );
 
@@ -59,7 +58,8 @@ const {
   "../src/services/assinaturaService"
 );
 const {
-  criarCheckout
+  criarCheckout,
+  consultarStatusCheckout
 } = require(
   "../src/services/checkoutService"
 );
@@ -159,6 +159,37 @@ describe(
             "Pagamento por cartão ainda não está disponível.",
           statusCode: 400
         });
+      }
+    );
+
+    test(
+      "consulta o status somente no banco local",
+      async () => {
+        checkoutRepository
+          .buscarPagamentoCheckout
+          .mockResolvedValue({
+            id: 10,
+            asaas_payment_id:
+              "pay_1",
+            status: "PENDING",
+            ativo: false
+          });
+
+        const resultado =
+          await consultarStatusCheckout({
+            usuarioId: 1,
+            pagamentoId: "pay_1"
+          });
+
+        expect(
+          checkoutRepository
+            .buscarPagamentoCheckout
+        ).toHaveBeenCalledWith(
+          "pay_1",
+          1
+        );
+        expect(resultado.status)
+          .toBe("PENDING");
       }
     );
 
