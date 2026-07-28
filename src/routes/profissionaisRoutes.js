@@ -9,8 +9,8 @@ const {
   removerProfissional
 } = require("../controllers/profissionaisController");
 
-router.put("/:id", auth, editarProfissional);
-router.delete("/:id", auth, removerProfissional);
-router.post("/vincular", auth, vincularProfissional);
+router.put("/profissionais/:id", auth, editarProfissional);
+router.delete("/profissionais/:id", auth, removerProfissional);
+router.post("/profissionais/vincular", auth, vincularProfissional);
 
 module.exports = router;

@@ -165,32 +165,31 @@ async function registrarCancelamento(
 ) {
   const executor = client || db;
 
-  const result =
-    await executor.query(
-      `
-      UPDATE assinaturas
-      SET
-        status = 'CANCELED',
-        ativo = TRUE,
-        data_proxima_cobranca = $3,
-        observacoes = CONCAT_WS(
-          E'\n',
-          NULLIF(observacoes, ''),
-          $4
-        ),
-        updated_at = NOW()
-      WHERE id = $1
-        AND negocio_id = $2
-        AND ativo = TRUE
-      RETURNING *
-      `,
-      [
-        assinaturaId,
-        negocioId,
-        acessoAte,
-        observacoes
-      ]
-    );
+  const result = await executor.query(
+    `
+    UPDATE assinaturas
+    SET
+      status = 'CANCELED',
+      ativo = TRUE,
+      data_proxima_cobranca = $3,
+      observacoes = CONCAT_WS(
+        E'\n',
+        NULLIF(observacoes, ''),
+        $4::text
+      ),
+      updated_at = NOW()
+    WHERE id = $1
+      AND negocio_id = $2
+      AND ativo = TRUE
+    RETURNING *
+    `,
+    [
+      assinaturaId,
+      negocioId,
+      acessoAte,
+      observacoes
+    ]
+  );
 
   return result.rows[0] || null;
 }
