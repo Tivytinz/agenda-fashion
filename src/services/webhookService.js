@@ -41,6 +41,22 @@ const EVENTOS_SUSPENSAO =
     "PAYMENT_CHARGEBACK_REQUESTED"
   ]);
 
+function normalizarPagamentoPorEvento(
+  tipoEvento,
+  pagamento
+) {
+  const pagamentoNormalizado = {
+    ...(pagamento || {})
+  };
+
+  if (tipoEvento === "PAYMENT_DELETED") {
+    pagamentoNormalizado.status =
+      "DELETED";
+  }
+
+  return pagamentoNormalizado;
+}
+
 function dadosLog(evento) {
   return {
     registro_id: evento?.id || null,
@@ -123,7 +139,10 @@ async function registrarFalha(evento, erro) {
 async function processarRegistro(evento) {
   const contexto = dadosLog(evento);
   const pagamento =
-    evento.payload?.payment || null;
+    normalizarPagamentoPorEvento(
+      evento.tipo_evento,
+      evento.payload?.payment || null
+    );
   const pagamentoId =
     pagamento?.id ||
     evento.recurso_id ||
