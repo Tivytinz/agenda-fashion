@@ -36,7 +36,7 @@ function obterDocumentoCliente(documentoInformado) {
 
   if (![11, 14].includes(documento.length)) {
     throw new Error(
-      "Informe um CPF/CNPJ vÃ¡lido para gerar a cobranÃ§a."
+      "Informe um CPF/CNPJ válido para gerar a cobrança."
     );
   }
 
@@ -87,7 +87,7 @@ async function garantirClienteAsaas({
 
   if (!dadosCliente) {
     throw new Error(
-      "NÃ£o foi possÃ­vel carregar os dados do responsÃ¡vel pelo negÃ³cio."
+      "Não foi possível carregar os dados do responsável pelo negócio."
     );
   }
 
@@ -106,7 +106,7 @@ async function garantirClienteAsaas({
 
   if (!clienteAsaas?.id) {
     throw new Error(
-      "O Asaas nÃ£o retornou o identificador do cliente."
+      "O Asaas não retornou o identificador do cliente."
     );
   }
 
@@ -143,7 +143,7 @@ async function garantirClienteAsaas({
 
   if (!negocio.asaas_customer_id) {
     throw new Error(
-      "NÃ£o foi possÃ­vel salvar o cliente Asaas no negÃ³cio."
+      "Não foi possível salvar o cliente Asaas no negócio."
     );
   }
 
@@ -340,15 +340,15 @@ async function criarCheckout({
   const client = db;
 
   if (!usuarioId) {
-    throw new Error("UsuÃ¡rio nÃ£o autenticado.");
+    throw new Error("Usuário não autenticado.");
   }
 
   if (!planoId || !["pix", "cartao"].includes(formaPagamento)) {
-    throw new Error("Dados de checkout invÃ¡lidos.");
+    throw new Error("Dados de checkout inválidos.");
   }
 
   if (formaPagamento === "cartao" && !cartao) {
-    throw new Error("Dados do cartÃ£o nÃ£o informados.");
+    throw new Error("Dados do cartão não informados.");
   }
 
   const chave =
@@ -363,7 +363,7 @@ async function criarCheckout({
     );
 
   if (!negocio) {
-    throw new Error("NegÃ³cio nÃ£o encontrado.");
+    throw new Error("Negócio não encontrado.");
   }
 
   const plano =
@@ -373,11 +373,11 @@ async function criarCheckout({
     );
 
   if (!plano) {
-    throw new Error("Plano nÃ£o encontrado.");
+    throw new Error("Plano não encontrado.");
   }
 
   if (Number(plano.valor || 0) <= 0) {
-    throw new Error("Este plano nÃ£o precisa de pagamento.");
+    throw new Error("Este plano não precisa de pagamento.");
   }
 
   let tentativa;
@@ -485,11 +485,11 @@ async function consultarStatusCheckout({
   pagamentoId
 }) {
   if (!usuarioId) {
-    throw new Error("UsuÃ¡rio nÃ£o autenticado.");
+    throw new Error("Usuário não autenticado.");
   }
 
   if (!pagamentoId) {
-    throw new Error("Pagamento nÃ£o informado.");
+    throw new Error("Pagamento não informado.");
   }
 
   let pagamentoAsaas = null;
@@ -520,7 +520,7 @@ async function consultarStatusCheckout({
     );
 
   if (!pagamento) {
-    throw new Error("Pagamento nÃ£o encontrado.");
+    throw new Error("Pagamento não encontrado.");
   }
 
   return pagamento;
