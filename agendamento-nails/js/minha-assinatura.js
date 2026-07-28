@@ -86,7 +86,7 @@ document.addEventListener(
       )
     ) {
       console.error(
-        "Elementos obrigatÃ³rios da pÃ¡gina de assinatura nÃ£o foram encontrados."
+        "Elementos obrigatórios da página de assinatura não foram encontrados."
       );
 
       return;
@@ -100,7 +100,7 @@ document.addEventListener(
         "function"
     ) {
       mostrarMensagem(
-        "O serviÃ§o da API nÃ£o foi carregado.",
+        "O serviço da API não foi carregado.",
         "erro"
       );
 
@@ -114,7 +114,7 @@ document.addEventListener(
         "function"
     ) {
       mostrarMensagem(
-        "O serviÃ§o de autenticaÃ§Ã£o nÃ£o foi carregado.",
+        "O serviço de autenticação não foi carregado.",
         "erro"
       );
 
@@ -278,7 +278,7 @@ document.addEventListener(
       gratuito = false
     ) {
       if (gratuito) {
-        return "GrÃ¡tis";
+        return "Grátis";
       }
 
       const mapa = {
@@ -330,10 +330,10 @@ document.addEventListener(
           "PIX",
 
         CREDIT_CARD:
-          "CartÃ£o",
+          "Cartão",
 
         DEBIT_CARD:
-          "CartÃ£o de dÃ©bito",
+          "Cartão de débito",
 
         BOLETO:
           "Boleto",
@@ -440,7 +440,7 @@ document.addEventListener(
 
     function criarEstadoLista(
       texto,
-      icone = "ðŸ§¾"
+      icone = "🧾"
     ) {
       const container =
         criarElemento(
@@ -511,7 +511,7 @@ document.addEventListener(
           .replaceChildren(
             criarEstadoLista(
               "Carregando pagamentos...",
-              "â³"
+              "⏳"
             )
           );
       }
@@ -543,7 +543,7 @@ document.addEventListener(
 
       elemento.textContent =
         cancelamentoAgendado
-          ? `Ativo atÃ© ${formatarData(
+          ? `Ativo até ${formatarData(
               acessoAte
             )}`
           : traduzirStatus(
@@ -754,10 +754,10 @@ document.addEventListener(
         } else {
           elementos.usoMensagem
             .textContent =
-              `VocÃª ainda possui ${restantes} ` +
+              `Você ainda possui ${restantes} ` +
               `agendamento${restantes === 1 ? "" : "s"} ` +
-              "disponÃ­vel" +
-              `${restantes === 1 ? "" : "is"} neste mÃªs.`;
+              "disponível" +
+              `${restantes === 1 ? "" : "is"} neste mês.`;
         }
       }
 
@@ -859,7 +859,7 @@ document.addEventListener(
           .appendChild(
             criarEstadoLista(
               "Nenhum pagamento encontrado.",
-              "â™¡"
+              "♡"
             )
           );
 
@@ -918,7 +918,7 @@ document.addEventListener(
       }
 
       /*
-       * Um plano gratuito nÃ£o possui cobranÃ§a
+       * Um plano gratuito não possui cobrança
        * para gerar ou assinatura paga para cancelar.
        */
       elementos.btnNovoPix
@@ -972,9 +972,9 @@ document.addEventListener(
 
       const confirmou =
         window.confirm(
-          "Deseja cancelar a renovaÃ§Ã£o desta assinatura?\n\n" +
-          "Seu plano continuarÃ¡ ativo atÃ© o fim do perÃ­odo jÃ¡ pago. " +
-          "As prÃ³ximas cobranÃ§as pendentes serÃ£o removidas."
+          "Deseja cancelar a renovação desta assinatura?\n\n" +
+          "Seu plano continuará ativo até o fim do período já pago. " +
+          "As próximas cobranças pendentes serão removidas."
         );
 
       if (!confirmou) {
@@ -1012,11 +1012,11 @@ document.addEventListener(
         mostrarMensagem(
           resultado?.mensagem ||
           (
-            "RenovaÃ§Ã£o cancelada. " +
+            "Renovação cancelada. " +
             (
               acessoAteResultado !== "-"
-                ? `Seu plano ficarÃ¡ ativo atÃ© ${acessoAteResultado}.`
-                : "Seu plano ficarÃ¡ ativo atÃ© o fim do perÃ­odo jÃ¡ pago."
+                ? `Seu plano ficará ativo até ${acessoAteResultado}.`
+                : "Seu plano ficará ativo até o fim do período já pago."
             )
           ),
           "sucesso"
@@ -1037,7 +1037,7 @@ document.addEventListener(
 
         mostrarMensagem(
           erro?.message ||
-            "NÃ£o foi possÃ­vel cancelar a renovaÃ§Ã£o.",
+            "Não foi possível cancelar a renovação.",
           "erro"
         );
       } finally {
@@ -1123,7 +1123,7 @@ document.addEventListener(
 
         elementos.planoNome
           .textContent =
-            "NÃ£o disponÃ­vel";
+            "Não disponível";
 
         elementos.assinaturaStatus
           .textContent =
@@ -1151,19 +1151,19 @@ document.addEventListener(
 
         elementos.usoMensagem
           .textContent =
-            "NÃ£o foi possÃ­vel carregar o uso do plano.";
+            "Não foi possível carregar o uso do plano.";
 
         elementos.listaPagamentos
           .replaceChildren(
             criarEstadoLista(
-              "NÃ£o foi possÃ­vel carregar os pagamentos.",
-              "âš ï¸"
+              "Não foi possível carregar os pagamentos.",
+              "⚠️"
             )
           );
 
         mostrarMensagem(
           erro?.message ||
-            "NÃ£o foi possÃ­vel carregar sua assinatura.",
+            "Não foi possível carregar sua assinatura.",
           "erro"
         );
       } finally {
@@ -1194,7 +1194,7 @@ document.addEventListener(
           "click",
           () => {
             mostrarMensagem(
-              "A geraÃ§Ã£o de uma nova cobranÃ§a PIX ainda serÃ¡ conectada ao backend.",
+              "A geração de uma nova cobrança PIX ainda será conectada ao backend.",
               "aviso",
               true
             );
@@ -1239,7 +1239,7 @@ document.addEventListener(
         await carregarAssinatura();
       } catch (erro) {
         console.error(
-          "Erro ao validar sessÃ£o:",
+          "Erro ao validar sessão:",
           erro
         );
 
@@ -1253,7 +1253,7 @@ document.addEventListener(
 
         mostrarMensagem(
           erro?.message ||
-            "NÃ£o foi possÃ­vel validar sua sessÃ£o.",
+            "Não foi possível validar sua sessão.",
           "erro"
         );
       }
