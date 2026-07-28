@@ -231,6 +231,29 @@ async function criarCheckoutPix(
     reutilizarPorExternalReference: true
   });
 
+  if (!cobranca?.id) {
+    throw new Error(
+      "O Asaas não retornou o identificador da cobrança PIX."
+    );
+  }
+
+  /*
+   * Persiste a cobrança antes de consultar o QR Code.
+   * O Asaas pode levar alguns segundos para disponibilizá-lo;
+   * assim, mesmo se essa consulta falhar, o pagamento não fica
+   * órfão no banco e pode ser recuperado pela idempotência.
+   */
+  await registrarPagamento(client, {
+    assinatura_id: assinaturaLocal.id,
+    asaas_payment_id: cobranca.id,
+    valor: cobranca.value || plano.valor,
+    forma_pagamento: "pix",
+    status: cobranca.status || "PENDING",
+    data_vencimento: cobranca.dueDate || null,
+    pix_copia_cola: null,
+    pix_qrcode: null
+  });
+
   const pix = await buscarQrCodePix(cobranca.id);
 
   await registrarPagamento(client, {

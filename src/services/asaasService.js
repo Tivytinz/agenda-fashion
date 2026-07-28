@@ -261,16 +261,62 @@ async function buscarCobrancaPorReferencia({
 }
 
 async function buscarQrCodePix(
-  paymentId
+  paymentId,
+  {
+    maxTentativas = 6,
+    intervaloMs = 1000
+  } = {}
 ) {
   validarConfigAsaas();
 
-  const response =
-    await asaasApi.get(
-      `/payments/${paymentId}/pixQrCode`
-    );
+  const totalTentativas = Math.max(
+    1,
+    Number(maxTentativas) || 1
+  );
 
-  return response.data;
+  for (
+    let tentativa = 1;
+    tentativa <= totalTentativas;
+    tentativa += 1
+  ) {
+    try {
+      const response =
+        await asaasApi.get(
+          `/payments/${paymentId}/pixQrCode`
+        );
+
+      return response.data;
+    } catch (erro) {
+      const status =
+        erro?.response?.status;
+
+      const erroTemporario =
+        status === 400 ||
+        status === 404 ||
+        status === 409 ||
+        status === 429 ||
+        status >= 500;
+
+      if (
+        !erroTemporario ||
+        tentativa === totalTentativas
+      ) {
+        throw erro;
+      }
+
+      await new Promise(
+        (resolve) => {
+          setTimeout(
+            resolve,
+            Math.max(
+              0,
+              Number(intervaloMs) || 0
+            )
+          );
+        }
+      );
+    }
+  }
 }
 
 async function criarAssinaturaAsaas({

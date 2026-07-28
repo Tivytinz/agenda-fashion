@@ -28,6 +28,7 @@ const {
   criarAssinaturaAsaas,
   criarCobrancaPix,
   criarClienteAsaas,
+  buscarQrCodePix,
 } = require(
   "../src/services/asaasService"
 );
@@ -238,6 +239,79 @@ describe(
 
         expect(resultado.id)
           .toBe("sub_nova");
+      }
+    );
+
+    test(
+      "repete a consulta do QR Code enquanto o Asaas ainda o prepara",
+      async () => {
+        mockGet
+          .mockRejectedValueOnce({
+            response: {
+              status: 400,
+            },
+          })
+          .mockRejectedValueOnce({
+            response: {
+              status: 404,
+            },
+          })
+          .mockResolvedValue({
+            data: {
+              payload:
+                "pix-copia-cola",
+              encodedImage:
+                "imagem",
+            },
+          });
+
+        const resultado =
+          await buscarQrCodePix(
+            "pay_1",
+            {
+              maxTentativas: 3,
+              intervaloMs: 0,
+            }
+          );
+
+        expect(mockGet)
+          .toHaveBeenCalledTimes(3);
+        expect(resultado)
+          .toEqual({
+            payload:
+              "pix-copia-cola",
+            encodedImage:
+              "imagem",
+          });
+      }
+    );
+
+    test(
+      "não repete a consulta do QR Code quando a autenticação falha",
+      async () => {
+        const erro = {
+          response: {
+            status: 401,
+          },
+        };
+
+        mockGet
+          .mockRejectedValue(
+            erro
+          );
+
+        await expect(
+          buscarQrCodePix(
+            "pay_1",
+            {
+              maxTentativas: 3,
+              intervaloMs: 0,
+            }
+          )
+        ).rejects.toBe(erro);
+
+        expect(mockGet)
+          .toHaveBeenCalledTimes(1);
       }
     );
   }
