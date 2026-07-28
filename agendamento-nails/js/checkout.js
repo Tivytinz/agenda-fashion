@@ -1270,7 +1270,7 @@ document.addEventListener(
 
         if (
           estado.tentativasStatus >=
-          60
+          24
         ) {
           estado
             .verificacaoStatusAtiva =
@@ -1299,7 +1299,7 @@ document.addEventListener(
 
         if (
           estado.tentativasStatus >=
-          60
+          24
         ) {
           estado
             .verificacaoStatusAtiva =
@@ -1314,6 +1314,13 @@ document.addEventListener(
         }
       }
 
+      const intervalo =
+        estado.tentativasStatus <= 6
+          ? 5000
+          : estado.tentativasStatus <= 12
+            ? 10000
+            : 20000;
+
       estado.temporizadorStatus =
         window.setTimeout(
           () => {
@@ -1321,7 +1328,7 @@ document.addEventListener(
               pagamentoId
             );
           },
-          5000
+          intervalo
         );
     }
 

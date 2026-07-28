@@ -73,9 +73,290 @@ function calcularProximaCobranca(dataBase = new Date()) {
     .slice(0, 10);
 }
 
+function normalizarFormaPagamento(
+  billingType
+) {
+  const tipo =
+    String(billingType || "")
+      .trim()
+      .toUpperCase();
+
+  const formas = {
+    PIX: "pix",
+    CREDIT_CARD: "cartao",
+    BOLETO: "boleto"
+  };
+
+  return formas[tipo] || null;
+}
+
+async function localizarAssinaturaPagamento(
+  client,
+  paymentId
+) {
+  const resultado =
+    await client.query(
+      `
+      SELECT
+        p.id AS pagamento_id,
+        p.data_pagamento,
+        p.data_vencimento,
+        a.*
+      FROM pagamentos p
+      INNER JOIN assinaturas a
+        ON a.id = p.assinatura_id
+      WHERE p.asaas_payment_id = $1
+      LIMIT 1
+      FOR UPDATE OF p, a
+      `,
+      [paymentId]
+    );
+
+  return resultado.rows[0] || null;
+}
+
+async function garantirPagamentoRecorrente(
+  client,
+  paymentId,
+  dadosPagamento = {}
+) {
+  let assinatura =
+    await localizarAssinaturaPagamento(
+      client,
+      paymentId
+    );
+
+  if (assinatura) {
+    return assinatura;
+  }
+
+  const subscriptionId =
+    String(
+      dadosPagamento.subscription ||
+      ""
+    ).trim();
+
+  if (!subscriptionId) {
+    return null;
+  }
+
+  const assinaturaResultado =
+    await client.query(
+      `
+      SELECT *
+      FROM assinaturas
+      WHERE asaas_subscription_id = $1
+      LIMIT 1
+      FOR UPDATE
+      `,
+      [subscriptionId]
+    );
+
+  const assinaturaRecorrente =
+    assinaturaResultado.rows[0] ||
+    null;
+
+  if (!assinaturaRecorrente) {
+    return null;
+  }
+
+  await pagamentoRepository
+    .criarPagamento(
+      client,
+      {
+        assinatura_id:
+          assinaturaRecorrente.id,
+        asaas_payment_id:
+          paymentId,
+        valor:
+          dadosPagamento.value ??
+          assinaturaRecorrente.valor,
+        forma_pagamento:
+          normalizarFormaPagamento(
+            dadosPagamento.billingType
+          ) ||
+          assinaturaRecorrente
+            .forma_pagamento,
+        status:
+          dadosPagamento.status ||
+          "PENDING",
+        data_vencimento:
+          dadosPagamento.dueDate ||
+          null,
+        data_pagamento:
+          dadosPagamento.paymentDate ||
+          dadosPagamento.confirmedDate ||
+          null,
+        pix_copia_cola: null,
+        pix_qrcode: null
+      }
+    );
+
+  assinatura =
+    await localizarAssinaturaPagamento(
+      client,
+      paymentId
+    );
+
+  return assinatura;
+}
+
+async function sincronizarPagamentoPorWebhook(
+  dadosPagamento = {}
+) {
+  const paymentId =
+    String(
+      dadosPagamento.id || ""
+    ).trim();
+
+  if (!paymentId) {
+    throw new Error(
+      "Pagamento não informado."
+    );
+  }
+
+  return db.executarTransacao(
+    async (client) => {
+      const assinatura =
+        await garantirPagamentoRecorrente(
+          client,
+          paymentId,
+          dadosPagamento
+        );
+
+      if (!assinatura) {
+        return null;
+      }
+
+      return pagamentoRepository
+        .atualizarStatusPagamento(
+          client,
+          paymentId,
+          {
+            status:
+              dadosPagamento.status ||
+              "PENDING",
+            data_pagamento:
+              dadosPagamento.paymentDate ||
+              dadosPagamento
+                .confirmedDate ||
+              null
+          }
+        );
+    }
+  );
+}
+
+async function suspenderAssinaturaPorPagamento(
+  dadosPagamento = {}
+) {
+  const paymentId =
+    String(
+      dadosPagamento.id || ""
+    ).trim();
+
+  if (!paymentId) {
+    throw new Error(
+      "Pagamento não informado."
+    );
+  }
+
+  return db.executarTransacao(
+    async (client) => {
+      const assinatura =
+        await garantirPagamentoRecorrente(
+          client,
+          paymentId,
+          dadosPagamento
+        );
+
+      if (!assinatura) {
+        return null;
+      }
+
+      const status =
+        String(
+          dadosPagamento.status ||
+          "OVERDUE"
+        )
+          .trim()
+          .toUpperCase();
+
+      await pagamentoRepository
+        .atualizarStatusPagamento(
+          client,
+          paymentId,
+          {
+            status,
+            data_pagamento: null
+          }
+        );
+
+      const planoGratis =
+        await client.query(
+          `
+          SELECT id
+          FROM planos
+          WHERE slug = 'inicial'
+            AND ativo = TRUE
+          LIMIT 1
+          `
+        );
+
+      const planoGratisId =
+        planoGratis.rows[0]?.id;
+
+      if (!planoGratisId) {
+        throw new Error(
+          "Plano gratuito não encontrado para suspender a assinatura."
+        );
+      }
+
+      const suspensao =
+        await client.query(
+          `
+          UPDATE assinaturas
+          SET
+            status = $1,
+            ativo = FALSE,
+            observacoes = CONCAT_WS(
+              E'\n',
+              NULLIF(observacoes, ''),
+              $2::text
+            ),
+            updated_at = NOW()
+          WHERE id = $3
+          RETURNING *
+          `,
+          [
+            status,
+            "Acesso suspenso automaticamente após evento financeiro do Asaas.",
+            assinatura.id
+          ]
+        );
+
+      await client.query(
+        `
+        UPDATE negocios
+        SET plano_id = $1
+        WHERE id = $2
+        `,
+        [
+          planoGratisId,
+          assinatura.negocio_id
+        ]
+      );
+
+      return suspensao.rows[0] ||
+        null;
+    }
+  );
+}
+
 async function ativarAssinaturaPorPagamento(
   paymentId,
-  statusPagamento = "CONFIRMED"
+  statusPagamento = "CONFIRMED",
+  dadosPagamento = {}
 ) {
   if (!paymentId) {
     throw new Error("Pagamento não informado.");
@@ -83,25 +364,17 @@ async function ativarAssinaturaPorPagamento(
 
   return db.executarTransacao(
     async (client) => {
-      const resultado = await client.query(
-        `
-        SELECT
-          p.id AS pagamento_id,
-          p.data_pagamento,
-          p.data_vencimento,
-          a.*
-        FROM pagamentos p
-        INNER JOIN assinaturas a
-          ON a.id = p.assinatura_id
-        WHERE p.asaas_payment_id = $1
-        LIMIT 1
-        FOR UPDATE OF p, a
-        `,
-        [paymentId]
-      );
-
       const assinatura =
-        resultado.rows[0] || null;
+        await garantirPagamentoRecorrente(
+          client,
+          paymentId,
+          {
+            ...dadosPagamento,
+            status:
+              statusPagamento ||
+              dadosPagamento.status
+          }
+        );
 
       if (!assinatura) {
         return null;
@@ -190,6 +463,20 @@ async function ativarAssinaturaPorPagamento(
         dataProximaCobranca =
           assinaturaAsaas.nextDueDate ||
           dataProximaCobranca;
+      } else if (
+        assinatura.asaas_subscription_id &&
+        (
+          dadosPagamento.paymentDate ||
+          dadosPagamento.confirmedDate ||
+          dadosPagamento.dueDate
+        )
+      ) {
+        dataProximaCobranca =
+          calcularProximaCobranca(
+            dadosPagamento.paymentDate ||
+            dadosPagamento.confirmedDate ||
+            dadosPagamento.dueDate
+          );
       }
 
       await client.query(
@@ -545,6 +832,8 @@ async function cancelarMinhaAssinatura({
 module.exports = {
   registrarAssinaturaPendente,
   registrarPagamento,
+  sincronizarPagamentoPorWebhook,
+  suspenderAssinaturaPorPagamento,
   ativarAssinaturaPorPagamento,
   buscarMinhaAssinatura,
   cancelarMinhaAssinatura

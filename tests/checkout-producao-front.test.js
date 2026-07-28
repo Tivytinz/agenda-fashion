@@ -35,4 +35,19 @@ describe("checkout de produção no frontend", () => {
       "Em breve, após a validação de segurança."
     );
   });
+
+  test("acompanha o banco local sem polling agressivo", () => {
+    expect(javascript).toMatch(
+      /tentativasStatus\s*>=\s*24/
+    );
+    expect(javascript).toContain(
+      "? 5000"
+    );
+    expect(javascript).toContain(
+      "? 10000"
+    );
+    expect(javascript).toContain(
+      ": 20000"
+    );
+  });
 });

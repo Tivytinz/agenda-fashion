@@ -3,13 +3,42 @@ const webhookEventoRepository = require(
 );
 
 const {
-  ativarAssinaturaPorPagamento
+  ativarAssinaturaPorPagamento,
+  sincronizarPagamentoPorWebhook,
+  suspenderAssinaturaPorPagamento
 } = require("./assinaturaService");
 
 const EVENTOS_PAGAMENTO_CONFIRMADO =
   new Set([
     "PAYMENT_CONFIRMED",
     "PAYMENT_RECEIVED"
+  ]);
+
+const EVENTOS_SINCRONIZACAO =
+  new Set([
+    "PAYMENT_CREATED",
+    "PAYMENT_UPDATED",
+    "PAYMENT_OVERDUE",
+    "PAYMENT_DELETED",
+    "PAYMENT_RESTORED",
+    "PAYMENT_REFUNDED",
+    "PAYMENT_PARTIALLY_REFUNDED",
+    "PAYMENT_REFUND_IN_PROGRESS",
+    "PAYMENT_REFUND_DENIED",
+    "PAYMENT_RECEIVED_IN_CASH_UNDONE",
+    "PAYMENT_CREDIT_CARD_CAPTURE_REFUSED",
+    "PAYMENT_CHARGEBACK_REQUESTED",
+    "PAYMENT_CHARGEBACK_DISPUTE",
+    "PAYMENT_AWAITING_CHARGEBACK_REVERSAL"
+  ]);
+
+const EVENTOS_SUSPENSAO =
+  new Set([
+    "PAYMENT_OVERDUE",
+    "PAYMENT_REFUNDED",
+    "PAYMENT_RECEIVED_IN_CASH_UNDONE",
+    "PAYMENT_CREDIT_CARD_CAPTURE_REFUSED",
+    "PAYMENT_CHARGEBACK_REQUESTED"
   ]);
 
 function dadosLog(evento) {
@@ -40,7 +69,17 @@ async function enfileirarWebhookAsaas({
           subscription:
             pagamento.subscription || null,
           externalReference:
-            pagamento.externalReference || null
+            pagamento.externalReference || null,
+          value:
+            pagamento.value ?? null,
+          billingType:
+            pagamento.billingType || null,
+          dueDate:
+            pagamento.dueDate || null,
+          paymentDate:
+            pagamento.paymentDate || null,
+          confirmedDate:
+            pagamento.confirmedDate || null
         }
       : null
   };
@@ -93,6 +132,8 @@ async function processarRegistro(evento) {
   try {
     if (
       !EVENTOS_PAGAMENTO_CONFIRMADO
+        .has(evento.tipo_evento) &&
+      !EVENTOS_SINCRONIZACAO
         .has(evento.tipo_evento)
     ) {
       await webhookEventoRepository
@@ -123,22 +164,56 @@ async function processarRegistro(evento) {
       throw erro;
     }
 
-    const assinatura =
-      await ativarAssinaturaPorPagamento(
-        pagamentoId,
-        pagamento?.status ||
-        "CONFIRMED"
+    let resultado = null;
+
+    if (
+      EVENTOS_PAGAMENTO_CONFIRMADO
+        .has(evento.tipo_evento)
+    ) {
+      resultado =
+        await ativarAssinaturaPorPagamento(
+          pagamentoId,
+          pagamento?.status ||
+          "CONFIRMED",
+          pagamento || {}
+        );
+    } else if (
+      EVENTOS_SUSPENSAO
+        .has(evento.tipo_evento)
+    ) {
+      resultado =
+        await suspenderAssinaturaPorPagamento(
+          {
+            ...(pagamento || {}),
+            id: pagamentoId
+          }
+        );
+    } else {
+      resultado =
+        await sincronizarPagamentoPorWebhook(
+          {
+            ...(pagamento || {}),
+            id: pagamentoId
+          }
+        );
+    }
+
+    if (!resultado) {
+      await webhookEventoRepository
+        .marcarConcluido(
+          evento.id,
+          "IGNORED"
+        );
+
+      console.info(
+        "[Webhook Asaas] Pagamento sem vínculo local ignorado.",
+        contexto
       );
 
-    if (!assinatura) {
-      const erro = new Error(
-        "Pagamento do webhook não encontrado."
-      );
-
-      erro.code =
-        "WEBHOOK_PAYMENT_NOT_FOUND";
-
-      throw erro;
+      return {
+        ignorado: true,
+        status: "IGNORED"
+      };
     }
 
     await webhookEventoRepository

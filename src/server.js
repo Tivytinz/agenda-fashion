@@ -14,6 +14,9 @@ const agendaConfiguracaoRoutes = require("./routes/agendaConfiguracaoRoutes");
 const {
   iniciarWorkerWebhook
 } = require("./services/webhookService");
+const {
+  validarConfigAsaas
+} = require("./services/asaasService");
 
 const app = express();
 
@@ -122,6 +125,15 @@ app.use(errorHandler);
 const PORT = process.env.PORT || 3000;
 
 if (process.env.NODE_ENV !== "test") {
+  if (
+    process.env.NODE_ENV ===
+      "production" ||
+    process.env.ASAAS_API_URL ||
+    process.env.ASAAS_API_KEY
+  ) {
+    validarConfigAsaas();
+  }
+
   app.listen(PORT, () => {
     console.log(`Servidor rodando na porta ${PORT}`);
 

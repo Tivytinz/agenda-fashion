@@ -18,14 +18,12 @@ const {
   criarClienteAsaas,
   criarAssinaturaAsaas,
   criarCobrancaPix,
-  buscarQrCodePix,
-  buscarPagamentoAsaas
+  buscarQrCodePix
 } = require("./asaasService");
 
 const {
   registrarAssinaturaPendente,
-  registrarPagamento,
-  ativarAssinaturaPorPagamento
+  registrarPagamento
 } = require("./assinaturaService");
 
 function obterDocumentoCliente(documentoInformado) {
@@ -552,27 +550,6 @@ async function consultarStatusCheckout({
 
   if (!pagamentoId) {
     throw new Error("Pagamento não informado.");
-  }
-
-  let pagamentoAsaas = null;
-
-  try {
-    pagamentoAsaas = await buscarPagamentoAsaas(pagamentoId);
-  } catch (erroAsaas) {
-    console.error(
-      "Erro ao consultar pagamento no Asaas:",
-      erroAsaas.response?.data || erroAsaas
-    );
-  }
-
-  if (
-    pagamentoAsaas &&
-    ["CONFIRMED", "RECEIVED"].includes(pagamentoAsaas.status)
-  ) {
-    await ativarAssinaturaPorPagamento(
-      pagamentoId,
-      pagamentoAsaas.status
-    );
   }
 
   const pagamento =
