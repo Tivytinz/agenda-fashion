@@ -175,7 +175,9 @@ async function criarAssinaturaAsaas({
   formaPagamento,
   externalReference,
   cartao,
-  proximaCobranca
+  proximaCobranca,
+  reutilizarPorExternalReference =
+    false
 }) {
   validarConfigAsaas();
 
@@ -195,6 +197,21 @@ async function criarAssinaturaAsaas({
     throw new Error(
       "Data da próxima cobrança inválida para criar a assinatura no Asaas."
     );
+  }
+
+  if (
+    reutilizarPorExternalReference &&
+    externalReference
+  ) {
+    const assinaturaExistente =
+      await buscarAssinaturaPorReferencia({
+        externalReference,
+        customerId
+      });
+
+    if (assinaturaExistente) {
+      return assinaturaExistente;
+    }
   }
 
   const payload = {
@@ -279,6 +296,46 @@ async function criarAssinaturaAsaas({
     );
 
   return response.data;
+}
+
+async function buscarAssinaturaPorReferencia({
+  externalReference,
+  customerId
+}) {
+  validarConfigAsaas();
+
+  const referencia = String(
+    externalReference || ""
+  ).trim();
+
+  if (!referencia) {
+    return null;
+  }
+
+  const params = {
+    externalReference:
+      referencia,
+    limit: 1,
+    offset: 0
+  };
+
+  if (customerId) {
+    params.customer =
+      customerId;
+  }
+
+  const response =
+    await asaasApi.get(
+      "/subscriptions",
+      {
+        params
+      }
+    );
+
+  return (
+    response.data?.data?.[0] ||
+    null
+  );
 }
 
 async function listarPagamentosAssinatura(
@@ -413,6 +470,7 @@ module.exports = {
   criarCobrancaPix,
   buscarQrCodePix,
   criarAssinaturaAsaas,
+  buscarAssinaturaPorReferencia,
   listarPagamentosAssinatura,
   atualizarClienteAsaas,
   buscarPagamentoAsaas,

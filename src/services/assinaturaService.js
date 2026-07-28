@@ -177,7 +177,10 @@ async function ativarAssinaturaPorPagamento(
               `assinatura:${assinatura.id};negocio:${assinatura.negocio_id};plano:${assinatura.plano_id}`,
 
             proximaCobranca:
-              dataProximaCobranca
+              dataProximaCobranca,
+
+            reutilizarPorExternalReference:
+              true
           });
 
         if (!assinaturaAsaas?.id) {
