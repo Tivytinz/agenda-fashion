@@ -20,6 +20,20 @@ async function criarPagamento(client, dados) {
       $1, $2, $3, $4, $5,
       $6, $7, $8, $9
     )
+    ON CONFLICT (asaas_payment_id)
+      WHERE asaas_payment_id IS NOT NULL
+    DO UPDATE SET
+      status = EXCLUDED.status,
+      data_vencimento = EXCLUDED.data_vencimento,
+      pix_copia_cola = COALESCE(
+        EXCLUDED.pix_copia_cola,
+        pagamentos.pix_copia_cola
+      ),
+      pix_qrcode = COALESCE(
+        EXCLUDED.pix_qrcode,
+        pagamentos.pix_qrcode
+      ),
+      updated_at = NOW()
     RETURNING *
     `,
         [

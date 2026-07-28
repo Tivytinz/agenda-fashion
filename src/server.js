@@ -11,6 +11,9 @@ const db = require("./db/db");
 const apiRoutes = require("./routes/index");
 const errorHandler = require("./middlewares/errorHandler");
 const agendaConfiguracaoRoutes = require("./routes/agendaConfiguracaoRoutes");
+const {
+  iniciarWorkerWebhook
+} = require("./services/webhookService");
 
 const app = express();
 
@@ -26,7 +29,11 @@ app.use(cors({
     "https://app.agendafashion.com.br"
   ],
   methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization"]
+  allowedHeaders: [
+    "Content-Type",
+    "Authorization",
+    "Idempotency-Key"
+  ]
 }));
 
 const rootDir = path.join(process.cwd(), "agendamento-nails");
@@ -117,6 +124,8 @@ const PORT = process.env.PORT || 3000;
 if (process.env.NODE_ENV !== "test") {
   app.listen(PORT, () => {
     console.log(`Servidor rodando na porta ${PORT}`);
+
+    iniciarWorkerWebhook();
 
     db.query("SELECT NOW()")
       .then((resultado) => {

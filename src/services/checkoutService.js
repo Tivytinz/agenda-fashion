@@ -1,6 +1,14 @@
+const crypto = require("crypto");
 const db = require("../db/db");
 
 const checkoutRepository = require("../repositories/checkoutRepository");
+const checkoutTentativaRepository = require(
+  "../repositories/checkoutTentativaRepository"
+);
+const assinaturaRepository = require(
+  "../repositories/assinaturaRepository"
+);
+const AppError = require("../errors/AppError");
 
 const {
   criarClienteAsaas,
@@ -92,7 +100,8 @@ async function garantirClienteAsaas({
       dadosCliente.telefone_negocio ||
       dadosCliente.telefone_dono,
     cpfCnpj: obterDocumentoCliente(cpfCnpj),
-    externalReference: `negocio:${negocio.id}`
+    externalReference: `negocio:${negocio.id}`,
+    reutilizarPorExternalReference: true
   });
 
   if (!clienteAsaas?.id) {
@@ -141,27 +150,75 @@ async function garantirClienteAsaas({
   return negocio;
 }
 
-async function criarCheckoutPix(client, negocio, plano) {
-  const assinaturaLocal =
+async function obterAssinaturaCheckout({
+  client,
+  negocio,
+  plano,
+  formaPagamento,
+  tentativa
+}) {
+  if (tentativa.assinatura_id) {
+    const assinaturaExistente =
+      await assinaturaRepository.buscarPorId(
+        tentativa.assinatura_id
+      );
+
+    if (assinaturaExistente) {
+      return assinaturaExistente;
+    }
+  }
+
+  const assinatura =
     await registrarAssinaturaPendente(client, {
       negocio_id: negocio.id,
       plano_id: plano.id,
       asaas_customer_id: negocio.asaas_customer_id,
       asaas_subscription_id: null,
       status: "PENDING",
-      forma_pagamento: "pix",
+      forma_pagamento: formaPagamento,
       periodicidade: "MONTHLY",
       valor: plano.valor,
       observacoes:
-        "PIX inicial criado. Assinatura recorrente serÃ¡ ativada apÃ³s confirmaÃ§Ã£o do pagamento."
+        formaPagamento === "pix"
+          ? "PIX inicial criado. Assinatura recorrente será ativada após confirmação do pagamento."
+          : "Assinatura criada via cartão."
     });
+
+  await checkoutTentativaRepository
+    .vincularAssinatura(
+      tentativa.id,
+      assinatura.id
+    );
+
+  tentativa.assinatura_id = assinatura.id;
+
+  return assinatura;
+}
+
+async function criarCheckoutPix(
+  client,
+  negocio,
+  plano,
+  tentativa
+) {
+  const assinaturaLocal =
+    await obterAssinaturaCheckout({
+      client,
+      negocio,
+      plano,
+      formaPagamento: "pix",
+      tentativa
+    });
+
+  const externalReference =
+    `checkout:${tentativa.id};assinatura:${assinaturaLocal.id}`;
 
   const cobranca = await criarCobrancaPix({
     customerId: negocio.asaas_customer_id,
     valor: plano.valor,
     descricao: `Agenda Fashion - Plano ${plano.nome}`,
-    externalReference:
-      `assinatura:${assinaturaLocal.id};negocio:${negocio.id};plano:${plano.id}`
+    externalReference,
+    reutilizarPorExternalReference: true
   });
 
   const pix = await buscarQrCodePix(cobranca.id);
@@ -184,35 +241,92 @@ async function criarCheckoutPix(client, negocio, plano) {
   };
 }
 
-async function criarCheckoutCartao(client, negocio, plano, cartao) {
+async function criarCheckoutCartao(
+  client,
+  negocio,
+  plano,
+  cartao,
+  tentativa
+) {
+  const assinaturaLocal =
+    await obterAssinaturaCheckout({
+      client,
+      negocio,
+      plano,
+      formaPagamento: "cartao",
+      tentativa
+    });
+
   const assinaturaAsaas =
     await criarAssinaturaAsaas({
       customerId: negocio.asaas_customer_id,
       valor: plano.valor,
       descricao: `Agenda Fashion - Plano ${plano.nome}`,
       formaPagamento: "cartao",
-      externalReference: `negocio:${negocio.id};plano:${plano.id}`,
-      cartao
+      externalReference:
+        `checkout:${tentativa.id};assinatura:${assinaturaLocal.id}`,
+      cartao,
+      reutilizarPorExternalReference: true
     });
 
-  const assinaturaLocal =
-    await registrarAssinaturaPendente(client, {
-      negocio_id: negocio.id,
-      plano_id: plano.id,
-      asaas_customer_id: negocio.asaas_customer_id,
-      asaas_subscription_id: assinaturaAsaas.id,
-      status: assinaturaAsaas.status || "PENDING",
-      forma_pagamento: "cartao",
-      periodicidade: "MONTHLY",
-      valor: plano.valor,
-      data_proxima_cobranca: assinaturaAsaas.nextDueDate || null,
-      observacoes: "Assinatura criada via cartÃ£o."
-    });
+  const atualizacao = await client.query(
+    `
+    UPDATE assinaturas
+    SET
+      asaas_subscription_id = $2,
+      status = $3,
+      data_proxima_cobranca = $4,
+      updated_at = NOW()
+    WHERE id = $1
+    RETURNING *
+    `,
+    [
+      assinaturaLocal.id,
+      assinaturaAsaas.id,
+      assinaturaAsaas.status || "PENDING",
+      assinaturaAsaas.nextDueDate || null
+    ]
+  );
 
   return {
-    assinatura: assinaturaLocal,
+    assinatura:
+      atualizacao.rows[0] || assinaturaLocal,
     assinatura_asaas: assinaturaAsaas
   };
+}
+
+function criarHashCheckout({
+  negocioId,
+  planoId,
+  formaPagamento
+}) {
+  return crypto
+    .createHash("sha256")
+    .update(
+      JSON.stringify({
+        negocioId: Number(negocioId),
+        planoId: Number(planoId),
+        formaPagamento
+      })
+    )
+    .digest("hex");
+}
+
+function validarChaveIdempotencia(chave) {
+  const valor = String(chave || "").trim();
+
+  if (
+    valor.length < 16 ||
+    valor.length > 120 ||
+    !/^[A-Za-z0-9._:-]+$/.test(valor)
+  ) {
+    throw new AppError(
+      "Chave de idempotência do checkout inválida.",
+      400
+    );
+  }
+
+  return valor;
 }
 
 async function criarCheckout({
@@ -220,7 +334,8 @@ async function criarCheckout({
   planoId,
   formaPagamento,
   cartao,
-  cpfCnpj
+  cpfCnpj,
+  chaveIdempotencia
 }) {
   const client = db;
 
@@ -235,6 +350,11 @@ async function criarCheckout({
   if (formaPagamento === "cartao" && !cartao) {
     throw new Error("Dados do cartÃ£o nÃ£o informados.");
   }
+
+  const chave =
+    validarChaveIdempotencia(
+      chaveIdempotencia
+    );
 
   const negocio =
     await checkoutRepository.buscarNegocioDono(
@@ -260,42 +380,104 @@ async function criarCheckout({
     throw new Error("Este plano nÃ£o precisa de pagamento.");
   }
 
-  await garantirClienteAsaas({
-    client,
-    negocio,
-    usuarioId,
-    cpfCnpj:
-      cpfCnpj ||
-      cartao?.cpfCnpj
-  });
+  let tentativa;
 
-  let resultado = null;
+  try {
+    tentativa =
+      await checkoutTentativaRepository.iniciar({
+        negocioId: negocio.id,
+        chaveIdempotencia: chave,
+        requestHash: criarHashCheckout({
+          negocioId: negocio.id,
+          planoId: plano.id,
+          formaPagamento
+        })
+      });
+  } catch (erro) {
+    if (
+      erro?.code ===
+      "IDEMPOTENCY_KEY_REUSED"
+    ) {
+      throw new AppError(
+        erro.message,
+        409
+      );
+    }
 
-  if (formaPagamento === "pix") {
-    resultado = await criarCheckoutPix(
-      client,
-      negocio,
-      plano
+    throw erro;
+  }
+
+  if (!tentativa.executar) {
+    if (
+      tentativa.tentativa.status ===
+      "COMPLETED"
+    ) {
+      return tentativa.tentativa.resposta;
+    }
+
+    throw new AppError(
+      "Este checkout já está sendo processado. Aguarde alguns segundos.",
+      409
     );
   }
 
-  if (formaPagamento === "cartao") {
-    resultado = await criarCheckoutCartao(
+  try {
+    await garantirClienteAsaas({
       client,
       negocio,
-      plano,
-      cartao
-    );
-  }
+      usuarioId,
+      cpfCnpj:
+        cpfCnpj ||
+        cartao?.cpfCnpj
+    });
 
-  return {
-    mensagem:
-      formaPagamento === "pix"
-        ? "PIX gerado com sucesso."
-        : "Assinatura enviada para processamento.",
-    forma_pagamento: formaPagamento,
-    ...resultado
-  };
+    let resultado = null;
+
+    if (formaPagamento === "pix") {
+      resultado = await criarCheckoutPix(
+        client,
+        negocio,
+        plano,
+        tentativa.tentativa
+      );
+    }
+
+    if (formaPagamento === "cartao") {
+      resultado = await criarCheckoutCartao(
+        client,
+        negocio,
+        plano,
+        cartao,
+        tentativa.tentativa
+      );
+    }
+
+    const resposta = {
+      mensagem:
+        formaPagamento === "pix"
+          ? "PIX gerado com sucesso."
+          : "Assinatura enviada para processamento.",
+      forma_pagamento: formaPagamento,
+      ...resultado
+    };
+
+    await checkoutTentativaRepository
+      .concluir(
+        tentativa.tentativa.id,
+        resposta
+      );
+
+    return resposta;
+  } catch (erro) {
+    await checkoutTentativaRepository
+      .marcarFalha(
+        tentativa.tentativa.id,
+        erro?.message
+      )
+      .catch(() => {});
+
+    throw erro;
+  }
 }
 
 async function consultarStatusCheckout({
