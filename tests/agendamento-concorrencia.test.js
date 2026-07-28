@@ -15,6 +15,32 @@ jest.mock(
   })
 );
 
+/*
+ * Este teste valida exclusivamente a disputa pelo
+ * mesmo horário. O limite comercial do plano possui
+ * testes próprios e não deve impedir as duas
+ * requisições de chegarem à regra de concorrência.
+ */
+jest.mock(
+  "../src/services/planoService",
+  () => {
+    const planoServiceReal =
+      jest.requireActual(
+        "../src/services/planoService"
+      );
+
+    return {
+      ...planoServiceReal,
+
+      verificarCapacidadePlano:
+        jest.fn().mockResolvedValue({
+          ilimitado: true,
+          status: "ilimitado",
+        }),
+    };
+  }
+);
+
 const request = require("supertest");
 
 const app = require(

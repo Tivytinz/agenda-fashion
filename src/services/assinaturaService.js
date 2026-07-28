@@ -363,20 +363,18 @@ async function calcularFimDoPeriodoPago(
   assinatura
 ) {
   /*
-   * O cancelamento não depende de uma consulta auxiliar
-   * ao Asaas. Se essa consulta falhar, a recorrência nunca
-   * chega a ser removida.
+   * Não consultamos o Asaas antes de cancelar.
+   * Uma falha nessa consulta impediria que o DELETE
+   * da assinatura fosse executado.
    *
-   * A assinatura ACTIVE comprova que o pagamento inicial
-   * já ativou o plano. Por isso usamos as datas registradas
-   * no pagamento local, mesmo se um webhook antigo não
-   * tiver sincronizado o status da linha de pagamentos.
+   * Como a assinatura está ACTIVE, o pagamento inicial
+   * já ativou o plano. Portanto, usamos os dados locais
+   * para calcular o fim do período pago.
    */
   const pagamentosLocais =
-    await assinaturaRepository
-      .listarPagamentos(
-        assinatura.id
-      );
+    await assinaturaRepository.listarPagamentos(
+      assinatura.id
+    );
 
   const pagamentoRecebido =
     pagamentosLocais.find(
@@ -386,9 +384,7 @@ async function calcularFimDoPeriodoPago(
           "RECEIVED",
           "RECEIVED_IN_CASH"
         ].includes(
-          String(
-            pagamento?.status || ""
-          )
+          String(pagamento?.status || "")
             .trim()
             .toUpperCase()
         )
@@ -398,28 +394,20 @@ async function calcularFimDoPeriodoPago(
     pagamentoRecebido ||
     pagamentosLocais.find(
       (pagamento) =>
-        dataValida(
-          pagamento?.data_pagamento
-        ) ||
-        dataValida(
-          pagamento?.data_vencimento
-        )
+        dataValida(pagamento?.data_pagamento) ||
+        dataValida(pagamento?.data_vencimento)
     );
 
   if (pagamentoComData) {
     return calcularProximaCobranca(
-      pagamentoComData
-        .data_pagamento ||
-      pagamentoComData
-        .data_vencimento
+      pagamentoComData.data_pagamento ||
+      pagamentoComData.data_vencimento
     );
   }
 
-  const dataLocal =
-    dataValida(
-      assinatura
-        .data_proxima_cobranca
-    );
+  const dataLocal = dataValida(
+    assinatura.data_proxima_cobranca
+  );
 
   if (dataLocal) {
     return dataLocal;
@@ -466,18 +454,14 @@ async function cancelarMinhaAssinatura({
     );
   }
 
-  const status =
-    String(
-      assinatura.status || ""
-    )
-      .trim()
-      .toUpperCase();
+  const status = String(
+    assinatura.status || ""
+  )
+    .trim()
+    .toUpperCase();
 
   if (
-    [
-      "CANCELED",
-      "CANCELLED"
-    ].includes(status)
+    ["CANCELED", "CANCELLED"].includes(status)
   ) {
     return {
       mensagem:
@@ -495,10 +479,7 @@ async function cancelarMinhaAssinatura({
     );
   }
 
-  if (
-    !assinatura
-      .asaas_subscription_id
-  ) {
+  if (!assinatura.asaas_subscription_id) {
     throw criarErro(
       "A assinatura não possui uma recorrência vinculada no Asaas.",
       409
@@ -510,15 +491,17 @@ async function cancelarMinhaAssinatura({
       assinatura
     );
 
+  /*
+   * Agora a primeira chamada externa é diretamente
+   * o DELETE da assinatura.
+   */
   await removerAssinaturaAsaas(
     assinatura.asaas_subscription_id
   );
 
   const observacoes =
     "Renovação cancelada pelo titular. " +
-    `Acesso mantido até ${
-      acessoAte
-    }.`;
+    `Acesso mantido até ${acessoAte}.`;
 
   const assinaturaCancelada =
     await db.executarTransacao(
@@ -534,7 +517,6 @@ async function cancelarMinhaAssinatura({
                 negocio.id,
 
               acessoAte,
-
               observacoes
             }
           );

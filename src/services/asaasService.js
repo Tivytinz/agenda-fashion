@@ -370,10 +370,9 @@ async function removerAssinaturaAsaas(
 ) {
   validarConfigAsaas();
 
-  const id =
-    String(
-      subscriptionId || ""
-    ).trim();
+  const id = String(
+    subscriptionId || ""
+  ).trim();
 
   if (!id) {
     throw new Error(
@@ -384,9 +383,7 @@ async function removerAssinaturaAsaas(
   try {
     const response =
       await asaasApi.delete(
-        `/subscriptions/${encodeURIComponent(
-          id
-        )}`
+        `/subscriptions/${encodeURIComponent(id)}`
       );
 
     return {
@@ -396,15 +393,10 @@ async function removerAssinaturaAsaas(
     };
   } catch (erro) {
     /*
-     * Torna o cancelamento idempotente.
-     *
-     * Se o Asaas já removeu a recorrência,
-     * o estado local ainda precisa ser
-     * atualizado como cancelado.
+     * Se uma tentativa anterior removeu a assinatura
+     * no Asaas, ainda precisamos sincronizar o banco.
      */
-    if (
-      erro?.response?.status === 404
-    ) {
+    if (erro?.response?.status === 404) {
       return {
         removida: true,
         ja_removida: true,

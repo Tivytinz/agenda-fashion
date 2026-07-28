@@ -2,12 +2,42 @@ jest.mock("../src/db/db", () => ({
   executarTransacao: jest.fn(),
 }));
 
-jest.mock("../src/repositories/profissionaisRepository");
+jest.mock(
+  "../src/repositories/profissionaisRepository"
+);
+
+/*
+ * Este mock precisa aparecer antes da importação de
+ * profissionaisService, pois o service importa essas
+ * funções por desestruturação.
+ */
+jest.mock("../src/services/planoService", () => ({
+  buscarUsoPlano: jest.fn(),
+
+  criarErroLimite: jest.fn(
+    (mensagem, codigo, uso = null) => {
+      const erro = new Error(mensagem);
+
+      erro.status = 409;
+      erro.statusCode = 409;
+      erro.codigo = codigo;
+      erro.uso = uso;
+
+      return erro;
+    }
+  ),
+}));
 
 const db = require("../src/db/db");
+
 const profissionaisRepository = require(
   "../src/repositories/profissionaisRepository"
 );
+
+const planoService = require(
+  "../src/services/planoService"
+);
+
 const profissionaisService = require(
   "../src/services/profissionaisService"
 );
@@ -24,59 +54,117 @@ describe("Limite de profissionais", () => {
       async (callback) => callback(client)
     );
 
-    profissionaisRepository.buscarNegocioDono.mockResolvedValue({
+    /*
+     * Impede que o teste unitário execute o SQL real
+     * de buscarUsoPlano.
+     */
+    planoService.buscarUsoPlano.mockResolvedValue({
       negocio_id: 7,
+      plano_nome: "Plano de teste",
+      profissionais_utilizados: 1,
     });
 
-    profissionaisRepository.buscarProfissionalPorEmailWhatsapp.mockResolvedValue({
-      id: 20,
-      nome: "Profissional Teste",
-    });
+    profissionaisRepository
+      .buscarNegocioDono
+      .mockResolvedValue({
+        negocio_id: 7,
+      });
 
-    profissionaisRepository.bloquearCadastroProfissional.mockResolvedValue();
-    profissionaisRepository.verificarVinculo.mockResolvedValue(null);
+    profissionaisRepository
+      .buscarProfissionalPorEmailWhatsapp
+      .mockResolvedValue({
+        id: 20,
+        nome: "Profissional Teste",
+      });
+
+    profissionaisRepository
+      .bloquearCadastroProfissional
+      .mockResolvedValue();
+
+    profissionaisRepository
+      .verificarVinculo
+      .mockResolvedValue(null);
   });
 
-  test("plano Grátis não permite adicionar um segundo profissional", async () => {
-    profissionaisRepository.buscarPlanoDoNegocio.mockResolvedValue({
-      nome: "Grátis",
-      limite_profissionais: 1,
-    });
+  test(
+    "plano Grátis não permite adicionar um segundo profissional",
+    async () => {
+      profissionaisRepository
+        .buscarPlanoDoNegocio
+        .mockResolvedValue({
+          nome: "Grátis",
+          limite_profissionais: 1,
+        });
 
-    profissionaisRepository.contarProfissionaisAtivos.mockResolvedValue(1);
+      profissionaisRepository
+        .contarProfissionaisAtivos
+        .mockResolvedValue(1);
 
-    await expect(
-      profissionaisService.vincularProfissional({
-        usuarioDonoId: 1,
-        emailOuWhatsapp: "profissional@teste.com",
-      })
-    ).rejects.toMatchObject({
-      statusCode: 409,
-      codigo: "LIMITE_PROFISSIONAIS",
-    });
+      await expect(
+        profissionaisService.vincularProfissional({
+          usuarioDonoId: 1,
+          emailOuWhatsapp:
+            "profissional@teste.com",
+        })
+      ).rejects.toMatchObject({
+        statusCode: 409,
+        codigo: "LIMITE_PROFISSIONAIS",
+      });
 
-    expect(profissionaisRepository.criarVinculo).not.toHaveBeenCalled();
-  });
+      expect(
+        planoService.buscarUsoPlano
+      ).toHaveBeenCalledWith(
+        7,
+        client
+      );
 
-  test("plano Salão permite até cinco profissionais", async () => {
-    profissionaisRepository.buscarPlanoDoNegocio.mockResolvedValue({
-      nome: "Salão",
-      limite_profissionais: 5,
-    });
+      expect(
+        profissionaisRepository.criarVinculo
+      ).not.toHaveBeenCalled();
+    }
+  );
 
-    profissionaisRepository.contarProfissionaisAtivos.mockResolvedValue(4);
-    profissionaisRepository.criarVinculo.mockResolvedValue();
+  test(
+    "plano Salão permite até cinco profissionais",
+    async () => {
+      profissionaisRepository
+        .buscarPlanoDoNegocio
+        .mockResolvedValue({
+          nome: "Salão",
+          limite_profissionais: 5,
+        });
 
-    const resultado = await profissionaisService.vincularProfissional({
-      usuarioDonoId: 1,
-      emailOuWhatsapp: "profissional@teste.com",
-    });
+      profissionaisRepository
+        .contarProfissionaisAtivos
+        .mockResolvedValue(4);
 
-    expect(resultado.profissional.id).toBe(20);
-    expect(profissionaisRepository.criarVinculo).toHaveBeenCalledWith(
-      20,
-      7,
-      client
-    );
-  });
+      profissionaisRepository
+        .criarVinculo
+        .mockResolvedValue();
+
+      const resultado =
+        await profissionaisService.vincularProfissional({
+          usuarioDonoId: 1,
+          emailOuWhatsapp:
+            "profissional@teste.com",
+        });
+
+      expect(resultado.profissional.id).toBe(20);
+
+      expect(
+        planoService.buscarUsoPlano
+      ).toHaveBeenCalledWith(
+        7,
+        client
+      );
+
+      expect(
+        profissionaisRepository.criarVinculo
+      ).toHaveBeenCalledWith(
+        20,
+        7,
+        client
+      );
+    }
+  );
 });

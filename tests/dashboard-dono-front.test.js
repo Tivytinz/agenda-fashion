@@ -1176,52 +1176,49 @@ describe(
     );
 
     test(
-      "usa a rota alternativa quando /api/meu-plano retorna 404",
-      async () => {
-        configurarFetch({
-          planoStatus:
-            404,
+  "usa diretamente a rota /meu-plano",
+  async () => {
+    configurarFetch({
+      planoFallback:
+        criarPlano({
+          plano_nome:
+            "Premium",
+        }),
+    });
 
-          planoFallback:
-            criarPlano({
-              plano_nome:
-                "Premium",
-            }),
-        });
+    iniciarDashboard();
 
-        iniciarDashboard();
-
-        await esperarAte(
-          () =>
-            texto(
-              "planoNome"
-            ) ===
-            "Premium"
-        );
-
-        const urls =
-          global
-            .fetch
-            .mock
-            .calls
-            .map(
-              ([url]) =>
-                String(url)
-            );
-
-        expect(
-          urls
-        ).toContain(
-          "https://api.teste/api/meu-plano"
-        );
-
-        expect(
-          urls
-        ).toContain(
-          "https://api.teste/meu-plano"
-        );
-      }
+    await esperarAte(
+      () =>
+        texto(
+          "planoNome"
+        ) ===
+        "Premium"
     );
+
+    const urls =
+      global
+        .fetch
+        .mock
+        .calls
+        .map(
+          ([url]) =>
+            String(url)
+        );
+
+    expect(
+      urls
+    ).toContain(
+      "https://api.teste/meu-plano"
+    );
+
+    expect(
+      urls
+    ).not.toContain(
+      "https://api.teste/api/meu-plano"
+    );
+  }
+);
 
     test(
       "renderiza corretamente um plano ilimitado",
