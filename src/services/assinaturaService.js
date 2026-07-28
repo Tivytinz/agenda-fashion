@@ -383,6 +383,43 @@ function dataValida(
 async function calcularFimDoPeriodoPago(
   assinatura
 ) {
+  /*
+   * O pagamento inicial confirmado já informa até quando
+   * o plano foi pago. Usamos primeiro o banco local para
+   * que uma falha na consulta auxiliar do Asaas não impeça
+   * o cancelamento da recorrência.
+   */
+  const pagamentosLocais =
+    await assinaturaRepository
+      .listarPagamentos(
+        assinatura.id
+      );
+
+  const ultimoPagamentoRecebido =
+    pagamentosLocais.find(
+      (pagamento) =>
+        [
+          "CONFIRMED",
+          "RECEIVED",
+          "RECEIVED_IN_CASH"
+        ].includes(
+          String(
+            pagamento?.status || ""
+          )
+            .trim()
+            .toUpperCase()
+        )
+    );
+
+  if (ultimoPagamentoRecebido) {
+    return calcularProximaCobranca(
+      ultimoPagamentoRecebido
+        .data_pagamento ||
+      ultimoPagamentoRecebido
+        .data_vencimento
+    );
+  }
+
   let pagamentosAsaas = null;
 
   try {
@@ -444,37 +481,6 @@ async function calcularFimDoPeriodoPago(
 
   if (primeiraCobrancaAberta) {
     return primeiraCobrancaAberta;
-  }
-
-  const pagamentosLocais =
-    await assinaturaRepository
-      .listarPagamentos(
-        assinatura.id
-      );
-
-  const ultimoPagamentoRecebido =
-    pagamentosLocais.find(
-      (pagamento) =>
-        [
-          "CONFIRMED",
-          "RECEIVED",
-          "RECEIVED_IN_CASH"
-        ].includes(
-          String(
-            pagamento?.status || ""
-          )
-            .trim()
-            .toUpperCase()
-        )
-    );
-
-  if (ultimoPagamentoRecebido) {
-    return calcularProximaCobranca(
-      ultimoPagamentoRecebido
-        .data_pagamento ||
-      ultimoPagamentoRecebido
-        .data_vencimento
-    );
   }
 
   const dataLocal =
