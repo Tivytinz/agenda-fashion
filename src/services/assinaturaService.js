@@ -4,7 +4,6 @@ const assinaturaRepository = require("../repositories/assinaturaRepository");
 const pagamentoRepository = require("../repositories/pagamentoRepository");
 const {
   criarAssinaturaAsaas,
-  listarPagamentosAssinatura,
   removerAssinaturaAsaas
 } = require("./asaasService");
 const { buscarUsoPlano } = require("./planoService");
@@ -347,26 +346,6 @@ function criarErro(
   return erro;
 }
 
-function obterPagamentosDaResposta(
-  resposta
-) {
-  if (
-    Array.isArray(resposta)
-  ) {
-    return resposta;
-  }
-
-  if (
-    Array.isArray(
-      resposta?.data
-    )
-  ) {
-    return resposta.data;
-  }
-
-  return [];
-}
-
 function dataValida(
   valor
 ) {
@@ -384,10 +363,14 @@ async function calcularFimDoPeriodoPago(
   assinatura
 ) {
   /*
-   * O pagamento inicial confirmado já informa até quando
-   * o plano foi pago. Usamos primeiro o banco local para
-   * que uma falha na consulta auxiliar do Asaas não impeça
-   * o cancelamento da recorrência.
+   * O cancelamento não depende de uma consulta auxiliar
+   * ao Asaas. Se essa consulta falhar, a recorrência nunca
+   * chega a ser removida.
+   *
+   * A assinatura ACTIVE comprova que o pagamento inicial
+   * já ativou o plano. Por isso usamos as datas registradas
+   * no pagamento local, mesmo se um webhook antigo não
+   * tiver sincronizado o status da linha de pagamentos.
    */
   const pagamentosLocais =
     await assinaturaRepository
@@ -395,7 +378,7 @@ async function calcularFimDoPeriodoPago(
         assinatura.id
       );
 
-  const ultimoPagamentoRecebido =
+  const pagamentoRecebido =
     pagamentosLocais.find(
       (pagamento) =>
         [
@@ -411,76 +394,25 @@ async function calcularFimDoPeriodoPago(
         )
     );
 
-  if (ultimoPagamentoRecebido) {
+  const pagamentoComData =
+    pagamentoRecebido ||
+    pagamentosLocais.find(
+      (pagamento) =>
+        dataValida(
+          pagamento?.data_pagamento
+        ) ||
+        dataValida(
+          pagamento?.data_vencimento
+        )
+    );
+
+  if (pagamentoComData) {
     return calcularProximaCobranca(
-      ultimoPagamentoRecebido
+      pagamentoComData
         .data_pagamento ||
-      ultimoPagamentoRecebido
+      pagamentoComData
         .data_vencimento
     );
-  }
-
-  let pagamentosAsaas = null;
-
-  try {
-    pagamentosAsaas =
-      await listarPagamentosAssinatura(
-        assinatura.asaas_subscription_id
-      );
-  } catch (erro) {
-    /*
-     * Pode ocorrer em uma repetição após
-     * o Asaas ter removido a assinatura,
-     * mas antes da atualização local.
-     */
-    if (
-      erro?.response?.status !== 404
-    ) {
-      throw erro;
-    }
-  }
-
-  const cobrancasAbertas =
-    obterPagamentosDaResposta(
-      pagamentosAsaas
-    )
-      .filter(
-        (pagamento) => {
-          const status =
-            String(
-              pagamento?.status || ""
-            )
-              .trim()
-              .toUpperCase();
-
-          return ![
-            "CONFIRMED",
-            "RECEIVED",
-            "RECEIVED_IN_CASH",
-            "REFUNDED",
-            "DELETED"
-          ].includes(status) &&
-            dataValida(
-              pagamento?.dueDate
-            );
-        }
-      )
-      .sort(
-        (a, b) =>
-          String(a.dueDate)
-            .localeCompare(
-              String(b.dueDate)
-            )
-      );
-
-  const primeiraCobrancaAberta =
-    dataValida(
-      cobrancasAbertas[0]
-        ?.dueDate
-    );
-
-  if (primeiraCobrancaAberta) {
-    return primeiraCobrancaAberta;
   }
 
   const dataLocal =
