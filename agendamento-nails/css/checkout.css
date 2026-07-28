@@ -977,7 +977,8 @@
   font-weight: 920;
 }
 
-.cartao-campos-titulo p {
+.cartao-campos-titulo p,
+.dados-cobranca-titulo p {
   margin-top: 3px;
 
   color:
@@ -988,6 +989,36 @@
 
   font-size: 0.65rem;
   line-height: 1.4;
+}
+
+.dados-cobranca {
+  display: grid;
+  gap: 15px;
+
+  margin-top: 20px;
+  padding: 18px;
+
+  background: #fff9fc;
+  border: 1px solid rgba(232, 62, 140, 0.13);
+  border-radius: 18px;
+}
+
+.dados-cobranca-titulo {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+}
+
+.dados-cobranca-titulo h3 {
+  color: var(--texto-forte, #2f2833);
+  font-size: 0.82rem;
+  font-weight: 900;
+}
+
+.checkout-campo > small {
+  color: var(--texto-suave, #746b7d);
+  font-size: 0.62rem;
+  line-height: 1.45;
 }
 
 .cartao-formulario {

@@ -1,4 +1,8 @@
 const axios = require("axios");
+const {
+  documentoValido,
+  normalizarDocumento
+} = require("../utils/documento");
 
 const ASAAS_API_URL =
   process.env.ASAAS_API_URL;
@@ -30,10 +34,8 @@ const asaasApi = axios.create({
   }
 });
 
-function limparNumero(valor) {
-  return String(valor || "")
-    .replace(/\D/g, "");
-}
+const limparNumero =
+  normalizarDocumento;
 
 function adicionarSePreenchido(
   payload,
@@ -52,11 +54,7 @@ function validarCpfCnpj(valor) {
   const documento =
     limparNumero(valor);
 
-  if (
-    ![11, 14].includes(
-      documento.length
-    )
-  ) {
+  if (!documentoValido(documento)) {
     throw new Error(
       "CPF/CNPJ inválido para criar o cliente no Asaas."
     );

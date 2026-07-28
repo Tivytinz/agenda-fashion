@@ -9,6 +9,10 @@ const assinaturaRepository = require(
   "../repositories/assinaturaRepository"
 );
 const AppError = require("../errors/AppError");
+const {
+  documentoValido,
+  normalizarDocumento
+} = require("../utils/documento");
 
 const {
   criarClienteAsaas,
@@ -24,19 +28,25 @@ const {
   ativarAssinaturaPorPagamento
 } = require("./assinaturaService");
 
-function normalizarDocumento(valor) {
-  return String(valor || "").replace(/\D/g, "");
-}
-
 function obterDocumentoCliente(documentoInformado) {
+  const ambienteSandbox =
+    String(process.env.ASAAS_API_URL || "")
+      .toLowerCase()
+      .includes("sandbox");
+
   const documento = normalizarDocumento(
     documentoInformado ||
-    process.env.ASAAS_SANDBOX_CUSTOMER_CPF
+    (
+      ambienteSandbox
+        ? process.env.ASAAS_SANDBOX_CUSTOMER_CPF
+        : ""
+    )
   );
 
-  if (![11, 14].includes(documento.length)) {
-    throw new Error(
-      "Informe um CPF/CNPJ válido para gerar a cobrança."
+  if (!documentoValido(documento)) {
+    throw new AppError(
+      "Informe um CPF/CNPJ válido para gerar a cobrança.",
+      400
     );
   }
 
@@ -351,6 +361,16 @@ async function criarCheckout({
     throw new Error("Dados do cartão não informados.");
   }
 
+  if (
+    formaPagamento === "cartao" &&
+    process.env.ASAAS_CARD_ENABLED !== "true"
+  ) {
+    throw new AppError(
+      "Pagamento por cartão ainda não está disponível.",
+      400
+    );
+  }
+
   const chave =
     validarChaveIdempotencia(
       chaveIdempotencia
@@ -379,6 +399,26 @@ async function criarCheckout({
   if (Number(plano.valor || 0) <= 0) {
     throw new Error("Este plano não precisa de pagamento.");
   }
+
+  const documentoCliente =
+    (
+      !negocio.asaas_customer_id ||
+      formaPagamento === "cartao"
+    )
+      ? obterDocumentoCliente(
+          cpfCnpj ||
+          cartao?.cpfCnpj
+        )
+      : null;
+
+  const dadosCartao =
+    formaPagamento === "cartao"
+      ? {
+          ...cartao,
+          cpfCnpj:
+            documentoCliente
+        }
+      : null;
 
   let tentativa;
 
@@ -427,8 +467,7 @@ async function criarCheckout({
       negocio,
       usuarioId,
       cpfCnpj:
-        cpfCnpj ||
-        cartao?.cpfCnpj
+        documentoCliente
     });
 
     let resultado = null;
@@ -447,7 +486,7 @@ async function criarCheckout({
         client,
         negocio,
         plano,
-        cartao,
+        dadosCartao,
         tentativa.tentativa
       );
     }
