@@ -292,6 +292,49 @@ describe(
     );
 
     test(
+      "marca como deletado mesmo quando o payload ainda informa pending",
+      async () => {
+        webhookEventoRepository
+          .reservarPorId
+          .mockResolvedValue({
+            id: 16,
+            evento_id: "evt_deleted",
+            tipo_evento:
+              "PAYMENT_DELETED",
+            recurso_id: "pay_deleted",
+            tentativas: 1,
+            payload: {
+              payment: {
+                id: "pay_deleted",
+                status: "PENDING",
+                subscription: null
+              }
+            }
+          });
+
+        sincronizarPagamentoPorWebhook
+          .mockResolvedValue({
+            id: 51,
+            status: "DELETED"
+          });
+
+        const resultado =
+          await processarEventoWebhook(16);
+
+        expect(
+          sincronizarPagamentoPorWebhook
+        ).toHaveBeenCalledWith(
+          expect.objectContaining({
+            id: "pay_deleted",
+            status: "DELETED"
+          })
+        );
+        expect(resultado.status)
+          .toBe("PROCESSED");
+      }
+    );
+
+    test(
       "suspende o plano quando a cobrança fica vencida",
       async () => {
         webhookEventoRepository
