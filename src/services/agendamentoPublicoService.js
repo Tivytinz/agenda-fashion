@@ -12,8 +12,8 @@ const agendaDisponibilidadeService = require(
   "./agendaDisponibilidadeService"
 );
 
-const notificationService = require(
-  "./notificationService"
+const whatsappMensagemService = require(
+  "./whatsappMensagemService"
 );
 
 const planoService = require(
@@ -545,154 +545,6 @@ async function validarHorarioDisponivel({
   return true;
 }
 
-function notificacoesExternasAtivas() {
-  /*
-   * Testes nunca devem realizar chamadas
-   * reais para a API da Meta.
-   */
-  if (
-    process.env.NODE_ENV ===
-    "test"
-  ) {
-    return false;
-  }
-
-  const configuracao =
-    String(
-      process.env
-        .WHATSAPP_NOTIFICATIONS_ENABLED ??
-      "true"
-    )
-      .trim()
-      .toLowerCase();
-
-  return [
-    "1",
-    "true",
-    "sim",
-    "yes",
-  ].includes(
-    configuracao
-  );
-}
-
-function registrarFalhaNotificacao(
-  erro
-) {
-  /*
-   * Não imprime o erro completo do Axios,
-   * pois ele contém o header Authorization.
-   */
-  const status =
-    erro?.response?.status ||
-    erro?.status ||
-    null;
-
-  const codigo =
-    erro?.response
-      ?.data
-      ?.error
-      ?.code ||
-    erro?.code ||
-    null;
-
-  const mensagem =
-    erro?.response
-      ?.data
-      ?.error
-      ?.message ||
-    erro?.message ||
-    "Erro desconhecido.";
-
-  console.error(
-    "Falha ao enviar notificação de novo agendamento:",
-    {
-      status,
-      codigo,
-      mensagem,
-    }
-  );
-}
-
-function notificarNovoAgendamento({
-  clienteNome,
-  clienteId,
-  servicoNome,
-  servicoId,
-  profissionalNome,
-  profissionalId,
-  whatsappProfissional,
-  whatsappNegocio,
-  data,
-  horario,
-  negocioId,
-  agendamentoId,
-}) {
-  if (
-    !notificacoesExternasAtivas()
-  ) {
-    return;
-  }
-
-  const whatsapp =
-    normalizarWhatsapp(
-      whatsappProfissional ||
-      whatsappNegocio
-    );
-
-  if (
-    ![10, 11].includes(
-      whatsapp.length
-    )
-  ) {
-    return;
-  }
-
-  Promise.resolve(
-    notificationService
-      .novoAgendamento({
-        cliente:
-          normalizarTexto(
-            clienteNome,
-            120
-          ) ||
-          (
-            `Cliente #` +
-            `${clienteId || "visitante"}`
-          ),
-
-        servico:
-          normalizarTexto(
-            servicoNome,
-            120
-          ) ||
-          `Serviço #${servicoId}`,
-
-        profissional:
-          normalizarTexto(
-            profissionalNome,
-            120
-          ) ||
-          (
-            `Profissional #` +
-            profissionalId
-          ),
-
-        whatsapp,
-
-        data,
-
-        horario,
-
-        negocioId,
-
-        agendamentoId,
-      })
-  ).catch(
-    registrarFalhaNotificacao
-  );
-}
-
 async function criarAgendamento({
   data,
   horario,
@@ -701,6 +553,7 @@ async function criarAgendamento({
   clienteId = null,
   clienteNome = null,
   clienteWhatsapp = null,
+  whatsappConsentido = false,
 
   servicoId,
   negocioId,
@@ -852,8 +705,8 @@ async function criarAgendamento({
           );
         }
 
-        return (
-          agendaPublicaRepository
+        const criado =
+          await agendaPublicaRepository
             .criarAgendamento(
               {
                 data,
@@ -873,6 +726,10 @@ async function criarAgendamento({
                 clienteWhatsapp:
                   whatsappNormalizado,
 
+                whatsappConsentido:
+                  whatsappConsentido ===
+                  true,
+
                 servicoId:
                   servicoIdNormalizado,
 
@@ -880,8 +737,32 @@ async function criarAgendamento({
                   negocioIdNormalizado,
               },
               client
-            )
-        );
+            );
+
+        if (
+          !criado?.id
+        ) {
+          throw criarErro(
+            "Não foi possível confirmar o agendamento.",
+            500
+          );
+        }
+
+        /*
+         * O agendamento e suas mensagens entram no banco
+         * juntos. Se qualquer INSERT falhar, nada é
+         * confirmado pela metade.
+         */
+        await whatsappMensagemService
+          .enfileirarNovoAgendamento({
+            executor:
+              client,
+
+            agendamentoId:
+              criado.id,
+          });
+
+        return criado;
       }
     );
 
@@ -893,43 +774,6 @@ async function criarAgendamento({
       500
     );
   }
-
-  /*
-   * Notificação externa somente depois
-   * do COMMIT da transação.
-   */
-  notificarNovoAgendamento({
-    clienteNome:
-      nomeNormalizado,
-
-    clienteId:
-      clienteIdNormalizado,
-
-    servicoNome,
-
-    servicoId:
-      servicoIdNormalizado,
-
-    profissionalNome,
-
-    profissionalId:
-      profissionalIdNormalizado,
-
-    whatsappProfissional,
-
-    whatsappNegocio,
-
-    data,
-
-    horario:
-      horarioNormalizado,
-
-    negocioId:
-      negocioIdNormalizado,
-
-    agendamentoId:
-      agendamento.id,
-  });
 
   return agendamento;
 }
@@ -1171,11 +1015,64 @@ async function cancelarMeuAgendamento({
   });
 
   const cancelado =
-    await agendaPublicaRepository
-      .cancelarAgendamento(
-        agendamentoIdNormalizado,
-        id
-      );
+    await db.executarTransacao(
+      async (
+        client
+      ) => {
+        const agendamentoAtual =
+          await agendaPublicaRepository
+            .buscarAgendamentoCliente(
+              agendamentoIdNormalizado,
+              id,
+              client,
+              {
+                bloquear: true,
+              }
+            );
+
+        if (
+          !agendamentoAtual
+        ) {
+          throw criarErro(
+            "Agendamento não encontrado.",
+            404
+          );
+        }
+
+        validarAgendamentoCancelavel({
+          agendamento:
+            agendamentoAtual,
+
+          antecedenciaCancelamento,
+        });
+
+        const resultado =
+          await agendaPublicaRepository
+            .cancelarAgendamento(
+              agendamentoIdNormalizado,
+              id,
+              client
+            );
+
+        if (!resultado) {
+          throw criarErro(
+            "Não foi possível cancelar o agendamento.",
+            409
+          );
+        }
+
+        await whatsappMensagemService
+          .enfileirarCancelamento({
+            executor:
+              client,
+
+            agendamentoId:
+              agendamentoIdNormalizado,
+          });
+
+        return resultado;
+      }
+    );
 
   if (!cancelado) {
     throw criarErro(

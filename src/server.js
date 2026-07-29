@@ -17,6 +17,9 @@ const {
 const {
   validarConfigAsaas
 } = require("./services/asaasService");
+const {
+  iniciarWorkerWhatsapp
+} = require("./services/whatsappMensagemService");
 
 const app = express();
 
@@ -138,6 +141,7 @@ if (process.env.NODE_ENV !== "test") {
     console.log(`Servidor rodando na porta ${PORT}`);
 
     iniciarWorkerWebhook();
+    iniciarWorkerWhatsapp();
 
     db.query("SELECT NOW()")
       .then((resultado) => {
