@@ -7,7 +7,6 @@ async function criarCheckout(req, res, next) {
         usuarioId: req.user?.id,
         planoId: req.body.plano_id,
         formaPagamento: req.body.forma_pagamento,
-        cartao: req.body.cartao,
         cpfCnpj: req.body.cpf_cnpj,
         chaveIdempotencia:
           req.get("Idempotency-Key")

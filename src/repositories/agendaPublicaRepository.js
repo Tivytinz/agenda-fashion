@@ -430,6 +430,7 @@ async function listarMeusAgendamentos(
     `
       SELECT
         a.id,
+        a.negocio_id,
 
         TO_CHAR(
           a.data,
@@ -477,6 +478,10 @@ async function listarMeusAgendamentos(
 
       LEFT JOIN usuarios u
         ON u.id = a.profissional_id
+      INNER JOIN usuarios cliente_conta
+        ON cliente_conta.id =
+          a.cliente_id
+        AND cliente_conta.ativo = TRUE
 
       WHERE a.cliente_id = $1
 
@@ -527,6 +532,12 @@ async function buscarAgendamentoCliente(
 
       WHERE id = $1
         AND cliente_id = $2
+        AND EXISTS (
+          SELECT 1
+          FROM usuarios u
+          WHERE u.id = $2
+            AND u.ativo = TRUE
+        )
 
       LIMIT 1
 
@@ -557,6 +568,12 @@ async function cancelarAgendamento(
       WHERE id = $1
         AND cliente_id = $2
         AND status <> 'cancelado'
+        AND EXISTS (
+          SELECT 1
+          FROM usuarios u
+          WHERE u.id = $2
+            AND u.ativo = TRUE
+        )
 
       RETURNING
         id,
@@ -585,6 +602,12 @@ async function avaliarAgendamento(
 
       WHERE id = $2
         AND cliente_id = $3
+        AND EXISTS (
+          SELECT 1
+          FROM usuarios u
+          WHERE u.id = $3
+            AND u.ativo = TRUE
+        )
 
       RETURNING
         id,

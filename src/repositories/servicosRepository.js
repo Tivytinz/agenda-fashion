@@ -49,9 +49,16 @@ async function contarServicosAtivos(negocioId, executor = db) {
 async function buscarNegocioUsuario(usuarioId) {
   const result = await db.query(
     `
-    SELECT negocio_id, papel
-    FROM usuarios_negocios
-    WHERE usuario_id = $1
+    SELECT un.negocio_id, un.papel
+    FROM usuarios_negocios un
+    INNER JOIN usuarios u
+      ON u.id = un.usuario_id
+    INNER JOIN negocios n
+      ON n.id = un.negocio_id
+    WHERE un.usuario_id = $1
+      AND un.ativo = TRUE
+      AND u.ativo = TRUE
+      AND n.ativo = TRUE
     LIMIT 1
     `,
     [usuarioId]
@@ -63,10 +70,17 @@ async function buscarNegocioUsuario(usuarioId) {
 async function buscarNegocioDono(usuarioId) {
   const result = await db.query(
     `
-    SELECT negocio_id
-    FROM usuarios_negocios
-    WHERE usuario_id = $1
-      AND papel = 'dono'
+    SELECT un.negocio_id
+    FROM usuarios_negocios un
+    INNER JOIN usuarios u
+      ON u.id = un.usuario_id
+    INNER JOIN negocios n
+      ON n.id = un.negocio_id
+    WHERE un.usuario_id = $1
+      AND un.papel = 'dono'
+      AND un.ativo = TRUE
+      AND u.ativo = TRUE
+      AND n.ativo = TRUE
     LIMIT 1
     `,
     [usuarioId]
@@ -75,10 +89,10 @@ async function buscarNegocioDono(usuarioId) {
   return result.rows[0] || null;
 }
 
-async function buscarServicoDoNegocio(id, negocioId) {
-  const result = await db.query(
+async function buscarServicoDoNegocio(id, negocioId, executor = db) {
+  const result = await executor.query(
     `
-    SELECT id
+    SELECT *
     FROM servicos_negocio
     WHERE id = $1
       AND negocio_id = $2
@@ -105,33 +119,40 @@ async function listarServicos(negocioId) {
 }
 
 async function criarServico(
-  { negocioId, nome, valor, duracaoMinutos },
+  { negocioId, nome, descricao, valor, duracaoMinutos, ativo },
   executor = db
 ) {
   const result = await executor.query(
     `
     INSERT INTO servicos_negocio (
-      negocio_id, nome, valor, duracao_minutos, ativo, created_at
+      negocio_id, nome, descricao, valor, duracao_minutos, ativo, created_at
     )
-    VALUES ($1, $2, $3, $4, true, NOW())
+    VALUES ($1, $2, $3, $4, $5, $6, NOW())
     RETURNING *
     `,
-    [negocioId, nome, valor, duracaoMinutos]
+    [negocioId, nome, descricao, valor, duracaoMinutos, ativo]
   );
 
   return result.rows[0];
 }
 
-async function editarServico({ id, negocioId, nome, valor, duracaoMinutos }) {
-  const result = await db.query(
+async function editarServico(
+  { id, negocioId, nome, descricao, valor, duracaoMinutos, ativo },
+  executor = db
+) {
+  const result = await executor.query(
     `
     UPDATE servicos_negocio
-    SET nome = $1, valor = $2, duracao_minutos = $3
-    WHERE id = $4
-      AND negocio_id = $5
+    SET nome = $1,
+        descricao = $2,
+        valor = $3,
+        duracao_minutos = $4,
+        ativo = $5
+    WHERE id = $6
+      AND negocio_id = $7
     RETURNING *
     `,
-    [nome, valor, duracaoMinutos, id, negocioId]
+    [nome, descricao, valor, duracaoMinutos, ativo, id, negocioId]
   );
 
   return result.rows[0] || null;

@@ -50,10 +50,17 @@ async function contarProfissionaisAtivos(negocioId, executor = db) {
 async function buscarNegocioDono(usuarioId) {
   const result = await db.query(
     `
-    SELECT negocio_id
-    FROM usuarios_negocios
-    WHERE usuario_id = $1
-      AND papel = 'dono'
+    SELECT un.negocio_id
+    FROM usuarios_negocios un
+    INNER JOIN usuarios u
+      ON u.id = un.usuario_id
+    INNER JOIN negocios n
+      ON n.id = un.negocio_id
+    WHERE un.usuario_id = $1
+      AND un.papel = 'dono'
+      AND un.ativo = TRUE
+      AND u.ativo = TRUE
+      AND n.ativo = TRUE
     LIMIT 1
     `,
     [usuarioId]
@@ -65,10 +72,14 @@ async function buscarNegocioDono(usuarioId) {
 async function verificarProfissionalNoNegocio(usuarioId, negocioId) {
   const result = await db.query(
     `
-    SELECT id
-    FROM usuarios_negocios
-    WHERE usuario_id = $1
-      AND negocio_id = $2
+    SELECT un.id
+    FROM usuarios_negocios un
+    INNER JOIN usuarios u
+      ON u.id = un.usuario_id
+    WHERE un.usuario_id = $1
+      AND un.negocio_id = $2
+      AND un.ativo = TRUE
+      AND u.ativo = TRUE
     LIMIT 1
     `,
     [usuarioId, negocioId]

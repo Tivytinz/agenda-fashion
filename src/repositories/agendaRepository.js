@@ -15,6 +15,9 @@ async function buscarProfissionalPorSlug(slugNegocio, slugProfissional) {
       ON n.id = un.negocio_id
     WHERE n.slug = $1
       AND u.slug = $2
+      AND n.ativo = TRUE
+      AND u.ativo = TRUE
+      AND un.ativo = TRUE
     LIMIT 1
     `,
     [slugNegocio, slugProfissional]
@@ -104,8 +107,15 @@ async function buscarNegocioDono(usuarioId) {
     `
     SELECT un.negocio_id
     FROM usuarios_negocios un
+    INNER JOIN usuarios u
+      ON u.id = un.usuario_id
+    INNER JOIN negocios n
+      ON n.id = un.negocio_id
     WHERE un.usuario_id = $1
       AND un.papel = 'dono'
+      AND un.ativo = TRUE
+      AND u.ativo = TRUE
+      AND n.ativo = TRUE
     LIMIT 1
     `,
     [usuarioId]
@@ -117,10 +127,14 @@ async function buscarNegocioDono(usuarioId) {
 async function verificarProfissionalNoNegocio(profissionalId, negocioId) {
   const result = await db.query(
     `
-    SELECT id
-    FROM usuarios_negocios
-    WHERE usuario_id = $1
-      AND negocio_id = $2
+    SELECT un.id
+    FROM usuarios_negocios un
+    INNER JOIN usuarios u
+      ON u.id = un.usuario_id
+    WHERE un.usuario_id = $1
+      AND un.negocio_id = $2
+      AND un.ativo = TRUE
+      AND u.ativo = TRUE
     LIMIT 1
     `,
     [profissionalId, negocioId]
@@ -194,7 +208,12 @@ async function buscarNegocioDoUsuario(usuarioId) {
     FROM negocios n
     INNER JOIN usuarios_negocios un
       ON un.negocio_id = n.id
+    INNER JOIN usuarios u
+      ON u.id = un.usuario_id
     WHERE un.usuario_id = $1
+      AND un.ativo = TRUE
+      AND u.ativo = TRUE
+      AND n.ativo = TRUE
     LIMIT 1
     `,
     [usuarioId]
@@ -214,6 +233,8 @@ async function buscarProfissionaisDoNegocio(negocioId) {
     INNER JOIN usuarios_negocios un
       ON un.usuario_id = u.id
     WHERE un.negocio_id = $1
+      AND un.ativo = TRUE
+      AND u.ativo = TRUE
     ORDER BY u.nome ASC
     `,
     [negocioId]
@@ -265,9 +286,16 @@ async function buscarAgendamentoHorarioGeral(profissionalId, data, hora) {
 async function buscarVinculoUsuarioNegocio(usuarioId) {
   const result = await db.query(
     `
-    SELECT negocio_id, papel
-    FROM usuarios_negocios
-    WHERE usuario_id = $1
+    SELECT un.negocio_id, un.papel
+    FROM usuarios_negocios un
+    INNER JOIN usuarios u
+      ON u.id = un.usuario_id
+    INNER JOIN negocios n
+      ON n.id = un.negocio_id
+    WHERE un.usuario_id = $1
+      AND un.ativo = TRUE
+      AND u.ativo = TRUE
+      AND n.ativo = TRUE
     LIMIT 1
     `,
     [usuarioId]
@@ -349,8 +377,14 @@ async function buscarAgendamentosPorPeriodo(
       a.status,
 
       c.id AS cliente_id,
-      c.nome AS cliente,
-      c.whatsapp AS cliente_whatsapp,
+      COALESCE(
+        NULLIF(BTRIM(c.nome), ''),
+        NULLIF(BTRIM(a.cliente_nome), '')
+      ) AS cliente,
+      COALESCE(
+        NULLIF(BTRIM(c.whatsapp), ''),
+        NULLIF(BTRIM(a.cliente_whatsapp), '')
+      ) AS cliente_whatsapp,
 
       s.id AS servico_id,
       s.nome AS servico,
@@ -434,8 +468,14 @@ async function buscarAgendamentosProfissionaisPorPeriodo(
       a.status,
 
       c.id AS cliente_id,
-      c.nome AS cliente,
-      c.whatsapp AS cliente_whatsapp,
+      COALESCE(
+        NULLIF(BTRIM(c.nome), ''),
+        NULLIF(BTRIM(a.cliente_nome), '')
+      ) AS cliente,
+      COALESCE(
+        NULLIF(BTRIM(c.whatsapp), ''),
+        NULLIF(BTRIM(a.cliente_whatsapp), '')
+      ) AS cliente_whatsapp,
 
       s.id AS servico_id,
       s.nome AS servico,

@@ -137,28 +137,57 @@ describe(
     );
 
     test(
-      "mantém cartão bloqueado sem liberação explícita",
+      "recusa qualquer forma de pagamento diferente de PIX",
       async () => {
         await expect(
           criarCheckout({
             usuarioId: 1,
             planoId: 3,
             formaPagamento: "cartao",
-            cartao: {
-              nome: "Cliente",
-              numero: "4111111111111111",
-              validade: "12/30",
-              cvv: "123"
-            },
             cpfCnpj: "11144477735",
             chaveIdempotencia:
               "checkout-chave-123456"
           })
         ).rejects.toMatchObject({
           message:
-            "Pagamento por cartão ainda não está disponível.",
+            "Aceitamos pagamento somente por PIX.",
           statusCode: 400
         });
+      }
+    );
+
+    test(
+      "impede pagar novamente o plano atual",
+      async () => {
+        checkoutRepository
+          .buscarNegocioDono
+          .mockResolvedValue({
+            id: 7,
+            nome: "Studio",
+            plano_id: 3,
+            asaas_customer_id: "cus_1"
+          });
+
+        await expect(
+          criarCheckout({
+            usuarioId: 1,
+            planoId: 3,
+            formaPagamento: "pix",
+            chaveIdempotencia:
+              "checkout-chave-123456"
+          })
+        ).rejects.toMatchObject({
+          message:
+            "Este já é o plano atual do seu negócio.",
+          statusCode: 409
+        });
+
+        expect(
+          checkoutTentativaRepository
+            .iniciar
+        ).not.toHaveBeenCalled();
+        expect(criarCobrancaPix)
+          .not.toHaveBeenCalled();
       }
     );
 

@@ -29,9 +29,12 @@ async function listarFavoritos(
 
         INNER JOIN negocios n
           ON n.id = f.negocio_id
+        INNER JOIN usuarios u
+          ON u.id = f.usuario_id
 
         WHERE f.usuario_id = $1
           AND n.ativo = TRUE
+          AND u.ativo = TRUE
 
         ORDER BY
           f.created_at DESC,
@@ -83,10 +86,12 @@ async function adicionarFavorito(
           usuario_id,
           negocio_id
         )
-        VALUES (
+        SELECT
           $1,
           $2
-        )
+        FROM usuarios u
+        WHERE u.id = $1
+          AND u.ativo = TRUE
 
         ON CONFLICT (
           usuario_id,
@@ -134,6 +139,12 @@ async function adicionarFavorito(
 
         WHERE usuario_id = $1
           AND negocio_id = $2
+          AND EXISTS (
+            SELECT 1
+            FROM usuarios u
+            WHERE u.id = $1
+              AND u.ativo = TRUE
+          )
 
         LIMIT 1
       `,
@@ -160,6 +171,12 @@ async function removerFavorito(
 
         WHERE usuario_id = $1
           AND negocio_id = $2
+          AND EXISTS (
+            SELECT 1
+            FROM usuarios u
+            WHERE u.id = $1
+              AND u.ativo = TRUE
+          )
 
         RETURNING
           id,
@@ -192,6 +209,12 @@ async function verificarFavorito(
 
           WHERE usuario_id = $1
             AND negocio_id = $2
+            AND EXISTS (
+              SELECT 1
+              FROM usuarios u
+              WHERE u.id = $1
+                AND u.ativo = TRUE
+            )
         ) AS favoritado
       `,
       [

@@ -374,13 +374,24 @@ async function sincronizarAssinaturaPorWebhook(
 
         await client.query(
           `
-          UPDATE negocios
+          UPDATE negocios n
           SET plano_id = $1
-          WHERE id = $2
+          WHERE n.id = $2
+            AND n.plano_id = $3
+            AND NOT EXISTS (
+              SELECT 1
+              FROM assinaturas atual
+              WHERE atual.negocio_id =
+                n.id
+                AND atual.id <> $4
+                AND atual.ativo = TRUE
+            )
           `,
           [
             planoGratisId,
-            assinatura.negocio_id
+            assinatura.negocio_id,
+            assinatura.plano_id,
+            assinatura.id
           ]
         );
       }
@@ -717,6 +728,8 @@ async function ativarAssinaturaPorPagamento(
       let dataProximaCobranca =
         assinatura.data_proxima_cobranca;
 
+      let novaRecorrencia = false;
+
       if (
         assinatura.forma_pagamento === "pix" &&
         !asaasSubscriptionId
@@ -761,6 +774,8 @@ async function ativarAssinaturaPorPagamento(
         asaasSubscriptionId =
           assinaturaAsaas.id;
 
+        novaRecorrencia = true;
+
         dataProximaCobranca =
           assinaturaAsaas.nextDueDate ||
           dataProximaCobranca;
@@ -778,6 +793,88 @@ async function ativarAssinaturaPorPagamento(
             dadosPagamento.confirmedDate ||
             dadosPagamento.dueDate
           );
+      }
+
+      /*
+       * Na troca de plano, a nova recorrência é criada
+       * antes de encerrarmos as anteriores. Se o DELETE
+       * falhar, a ativação local é interrompida e o
+       * webhook pode tentar novamente com segurança.
+       */
+      if (novaRecorrencia) {
+        const anteriores =
+          await client.query(
+            `
+            SELECT
+              id,
+              asaas_subscription_id
+            FROM assinaturas
+            WHERE negocio_id = $1
+              AND id <> $2
+              AND ativo = TRUE
+            ORDER BY id ASC
+            FOR UPDATE
+            `,
+            [
+              assinatura.negocio_id,
+              assinatura.id
+            ]
+          );
+
+        const recorrencias =
+          new Set(
+            anteriores.rows
+              .map(
+                (item) =>
+                  String(
+                    item
+                      .asaas_subscription_id ||
+                    ""
+                  ).trim()
+              )
+              .filter(
+                (id) =>
+                  id &&
+                  id !==
+                    asaasSubscriptionId
+              )
+          );
+
+        for (
+          const recorrenciaId
+          of recorrencias
+        ) {
+          await removerAssinaturaAsaas(
+            recorrenciaId
+          );
+        }
+
+        await client.query(
+          `
+          UPDATE assinaturas
+          SET
+            ativo = FALSE,
+            status = CASE
+              WHEN asaas_subscription_id
+                IS NOT NULL
+                THEN 'CANCELED'
+              ELSE status
+            END,
+            observacoes = CONCAT_WS(
+              E'\n',
+              NULLIF(observacoes, ''),
+              'Recorrência substituída por uma nova assinatura.'
+            ),
+            updated_at = NOW()
+          WHERE negocio_id = $1
+            AND id <> $2
+            AND ativo = TRUE
+          `,
+          [
+            assinatura.negocio_id,
+            assinatura.id
+          ]
+        );
       }
 
       await client.query(

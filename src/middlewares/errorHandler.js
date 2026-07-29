@@ -30,8 +30,22 @@ function errorHandler(
   res,
   next
 ) {
+  const statusInformado =
+    Number(
+      err?.statusCode ||
+      err?.status
+    );
+
+  const statusOperacional =
+    Number.isInteger(
+      statusInformado
+    ) &&
+    statusInformado >= 400 &&
+    statusInformado < 500;
+
   const erroOperacional =
-    err instanceof AppError;
+    err instanceof AppError ||
+    statusOperacional;
 
   if (
     deveRegistrarErro() &&
@@ -68,13 +82,12 @@ function errorHandler(
     );
   }
 
-  if (
-    err instanceof
-    AppError
-  ) {
+  if (erroOperacional) {
     return res
       .status(
-        err.statusCode
+        err instanceof AppError
+          ? err.statusCode
+          : statusInformado
       )
       .json({
         erro:

@@ -180,6 +180,63 @@ describe(
     );
 
     test(
+      "registra cancelamento mesmo com contexto de negócio opcional",
+      async () => {
+        const resposta =
+          await request(
+            criarApp()
+          )
+            .post(
+              "/eventos-produto"
+            )
+            .send({
+              nome:
+                "agendamento_cancelado",
+              pagina:
+                "meus_agendamentos",
+              missao:
+                "acompanhar_agendamentos",
+              sessao_id:
+                "sessao_produto_123",
+              negocio_id:
+                14,
+              propriedades: {
+                agendamento_id:
+                  32,
+              },
+            });
+
+        expect(
+          resposta.status
+        ).toBe(
+          202
+        );
+
+        expect(
+          eventoProdutoRepository
+            .registrar
+        ).toHaveBeenCalledWith({
+          nome:
+            "agendamento_cancelado",
+          pagina:
+            "meus_agendamentos",
+          missao:
+            "acompanhar_agendamentos",
+          sessaoId:
+            "sessao_produto_123",
+          usuarioId:
+            null,
+          negocioId:
+            14,
+          propriedades: {
+            agendamento_id:
+              32,
+          },
+        });
+      }
+    );
+
+    test(
       "rejeita nomes de evento fora do contrato",
       async () => {
         const resposta =

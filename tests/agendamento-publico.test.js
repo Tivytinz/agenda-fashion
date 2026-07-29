@@ -12,6 +12,10 @@ const app = require(
   "../src/server"
 );
 
+const db = require(
+  "../src/db/db"
+);
+
 const SLUG_NEGOCIO =
   "victor";
 
@@ -124,6 +128,77 @@ async function buscarHorarioDisponivel() {
 describe(
   "Fluxo de agendamento público",
   () => {
+    const agendamentosCriados =
+      new Set();
+
+    const usuariosCriados =
+      new Set();
+
+    afterAll(
+      async () => {
+        try {
+          const agendamentoIds =
+            Array.from(
+              agendamentosCriados
+            );
+
+          if (
+            agendamentoIds.length > 0
+          ) {
+            await db.query(
+              `
+                DELETE FROM agendamentos
+
+                WHERE id =
+                  ANY($1::BIGINT[])
+              `,
+              [
+                agendamentoIds,
+              ]
+            );
+          }
+
+          const usuarioIds =
+            Array.from(
+              usuariosCriados
+            );
+
+          if (
+            usuarioIds.length > 0
+          ) {
+            await db.query(
+              `
+                DELETE FROM usuarios
+
+                WHERE id =
+                  ANY($1::BIGINT[])
+
+                  AND NOT EXISTS (
+                    SELECT 1
+
+                    FROM usuarios_negocios un
+
+                    WHERE un.usuario_id =
+                      usuarios.id
+                  )
+              `,
+              [
+                usuarioIds,
+              ]
+            );
+          }
+        } finally {
+          if (
+            typeof db.end ===
+            "function"
+          ) {
+            await db.end();
+          }
+        }
+      },
+      60000
+    );
+
     test(
       "visitante consegue abrir o perfil e agendar",
       async () => {
@@ -175,6 +250,14 @@ describe(
             .agendamento
             .id
         ).toBeTruthy();
+
+        agendamentosCriados.add(
+          Number(
+            resposta.body
+              .agendamento
+              .id
+          )
+        );
       }
     );
 
@@ -210,6 +293,14 @@ describe(
         expect(
           cadastro.statusCode
         ).toBe(201);
+
+        usuariosCriados.add(
+          Number(
+            cadastro.body
+              .usuario
+              .id
+          )
+        );
 
         expect(
           typeof cadastro.body.token
@@ -307,6 +398,12 @@ describe(
           resposta.body
             .agendamento
             .id;
+
+        agendamentosCriados.add(
+          Number(
+            agendamentoId
+          )
+        );
 
         /*
          * Confirma que o agendamento

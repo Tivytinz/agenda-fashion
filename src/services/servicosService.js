@@ -33,7 +33,60 @@ async function listarServicos(usuarioId) {
   return servicosRepository.listarServicos(vinculo.negocio_id);
 }
 
-async function criarServico({ usuarioId, nome, valor, duracaoMinutos }) {
+function normalizarDescricao(descricao) {
+  const valor = String(descricao || "").trim();
+
+  if (valor.length > 1200) {
+    throw criarErro("A descrição pode ter no máximo 1200 caracteres.", 400);
+  }
+
+  return valor || null;
+}
+
+function normalizarAtivo(ativo, padrao = true) {
+  return typeof ativo === "boolean" ? ativo : padrao;
+}
+
+async function validarLimiteServicoAtivo(negocioId, executor) {
+  await servicosRepository.bloquearCadastroServico(executor, negocioId);
+  await buscarUsoPlano(negocioId, executor);
+
+  const plano = await servicosRepository.buscarPlanoDoNegocio(
+    negocioId,
+    executor
+  );
+
+  if (!plano) {
+    throw criarErro("Plano do negócio não encontrado.", 404);
+  }
+
+  const utilizados = await servicosRepository.contarServicosAtivos(
+    negocioId,
+    executor
+  );
+  const limite = plano.limite_servicos;
+
+  if (limite !== null && utilizados >= Number(limite)) {
+    throw criarErroLimite(
+      `Você atingiu o limite de ${limite} serviço(s) do plano ${plano.nome}. Faça upgrade para cadastrar mais.`,
+      "LIMITE_SERVICOS",
+      {
+        plano_nome: plano.nome,
+        utilizados,
+        limite: Number(limite),
+      }
+    );
+  }
+}
+
+async function criarServico({
+  usuarioId,
+  nome,
+  descricao,
+  valor,
+  duracaoMinutos,
+  ativo
+}) {
   const vinculo = await obterVinculoDono(
     usuarioId,
     "Apenas o dono pode criar serviços."
@@ -43,51 +96,20 @@ async function criarServico({ usuarioId, nome, valor, duracaoMinutos }) {
     throw criarErro("Nome do serviço inválido.", 400);
   }
 
+  const servicoAtivo = normalizarAtivo(ativo);
   const servico = await db.executarTransacao(async (client) => {
-    await servicosRepository.bloquearCadastroServico(
-      client,
-      vinculo.negocio_id
-    );
-
-    await buscarUsoPlano(
-      vinculo.negocio_id,
-      client
-    );
-
-    const plano = await servicosRepository.buscarPlanoDoNegocio(
-      vinculo.negocio_id,
-      client
-    );
-
-    if (!plano) {
-      throw criarErro("Plano do negócio não encontrado.", 404);
-    }
-
-    const utilizados = await servicosRepository.contarServicosAtivos(
-      vinculo.negocio_id,
-      client
-    );
-
-    const limite = plano.limite_servicos;
-
-    if (limite !== null && utilizados >= Number(limite)) {
-      throw criarErroLimite(
-        `Você atingiu o limite de ${limite} serviço(s) do plano ${plano.nome}. Faça upgrade para cadastrar mais.`,
-        "LIMITE_SERVICOS",
-        {
-          plano_nome: plano.nome,
-          utilizados,
-          limite: Number(limite),
-        }
-      );
+    if (servicoAtivo) {
+      await validarLimiteServicoAtivo(vinculo.negocio_id, client);
     }
 
     return servicosRepository.criarServico(
       {
         negocioId: vinculo.negocio_id,
         nome: nome.trim(),
+        descricao: normalizarDescricao(descricao),
         valor: Number(valor || 0),
         duracaoMinutos: Number(duracaoMinutos || 0),
+        ativo: servicoAtivo,
       },
       client
     );
@@ -99,7 +121,15 @@ async function criarServico({ usuarioId, nome, valor, duracaoMinutos }) {
   };
 }
 
-async function editarServico({ usuarioId, id, nome, valor, duracaoMinutos }) {
+async function editarServico({
+  usuarioId,
+  id,
+  nome,
+  descricao,
+  valor,
+  duracaoMinutos,
+  ativo
+}) {
   const vinculo = await obterVinculoDono(
     usuarioId,
     "Apenas o dono pode editar serviços."
@@ -109,12 +139,29 @@ async function editarServico({ usuarioId, id, nome, valor, duracaoMinutos }) {
     throw criarErro("Nome do serviço inválido.", 400);
   }
 
-  const servico = await servicosRepository.editarServico({
-    id,
-    negocioId: vinculo.negocio_id,
-    nome: nome.trim(),
-    valor: Number(valor || 0),
-    duracaoMinutos: Number(duracaoMinutos || 0),
+  const servico = await db.executarTransacao(async (client) => {
+    const atual = await servicosRepository.buscarServicoDoNegocio(
+      id,
+      vinculo.negocio_id,
+      client
+    );
+
+    if (!atual) return null;
+
+    const servicoAtivo = normalizarAtivo(ativo, atual.ativo !== false);
+    if (atual.ativo === false && servicoAtivo) {
+      await validarLimiteServicoAtivo(vinculo.negocio_id, client);
+    }
+
+    return servicosRepository.editarServico({
+      id,
+      negocioId: vinculo.negocio_id,
+      nome: nome.trim(),
+      descricao: normalizarDescricao(descricao),
+      valor: Number(valor || 0),
+      duracaoMinutos: Number(duracaoMinutos || 0),
+      ativo: servicoAtivo,
+    }, client);
   });
 
   if (!servico) {

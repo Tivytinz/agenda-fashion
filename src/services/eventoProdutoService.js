@@ -18,6 +18,7 @@ const EVENTOS_PERMITIDOS =
     "perfil_visualizado",
     "agendamento_iniciado",
     "agendamento_concluido",
+    "agendamento_cancelado",
     "mensagem_crescimento_visualizada",
     "acao_dashboard_selecionada",
     "periodo_dashboard_alterado",
@@ -78,6 +79,7 @@ const MISSOES_PERMITIDAS =
 const CHAVES_PROPRIEDADES =
   new Set([
     "acao",
+    "agendamento_id",
     "agendamentos_mes",
     "categoria",
     "faixa",
