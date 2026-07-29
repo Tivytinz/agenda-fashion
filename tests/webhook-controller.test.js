@@ -146,5 +146,55 @@ describe(
           );
       }
     );
+
+    test(
+      "encaminha o payload de assinatura para a fila",
+      async () => {
+        enfileirarWebhookAsaas
+          .mockResolvedValue({
+            duplicado: false,
+            evento: {
+              id: 11
+            }
+          });
+
+        const req = {
+          body: {
+            id: "evt_subscription_1",
+            event:
+              "SUBSCRIPTION_CREATED",
+            subscription: {
+              id: "sub_1",
+              status: "ACTIVE",
+              externalReference:
+                "assinatura:20;negocio:7;plano:3"
+            }
+          }
+        };
+        const res = criarResposta();
+
+        await receberWebhookAsaas(
+          req,
+          res,
+          jest.fn()
+        );
+
+        expect(
+          enfileirarWebhookAsaas
+        ).toHaveBeenCalledWith(
+          expect.objectContaining({
+            eventoId:
+              "evt_subscription_1",
+            tipoEvento:
+              "SUBSCRIPTION_CREATED",
+            pagamento: null,
+            assinatura:
+              expect.objectContaining({
+                id: "sub_1"
+              })
+          })
+        );
+      }
+    );
   }
 );

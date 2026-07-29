@@ -4,6 +4,7 @@ const webhookEventoRepository = require(
 
 const {
   ativarAssinaturaPorPagamento,
+  sincronizarAssinaturaPorWebhook,
   sincronizarPagamentoPorWebhook,
   suspenderAssinaturaPorPagamento
 } = require("./assinaturaService");
@@ -41,6 +42,14 @@ const EVENTOS_SUSPENSAO =
     "PAYMENT_CHARGEBACK_REQUESTED"
   ]);
 
+const EVENTOS_ASSINATURA =
+  new Set([
+    "SUBSCRIPTION_CREATED",
+    "SUBSCRIPTION_UPDATED",
+    "SUBSCRIPTION_INACTIVATED",
+    "SUBSCRIPTION_DELETED"
+  ]);
+
 function normalizarPagamentoPorEvento(
   tipoEvento,
   pagamento
@@ -62,7 +71,7 @@ function dadosLog(evento) {
     registro_id: evento?.id || null,
     evento_id: evento?.evento_id || null,
     tipo_evento: evento?.tipo_evento || null,
-    pagamento_id:
+    recurso_id:
       evento?.recurso_id || null,
     tentativa:
       evento?.tentativas || null
@@ -72,7 +81,8 @@ function dadosLog(evento) {
 async function enfileirarWebhookAsaas({
   eventoId,
   tipoEvento,
-  pagamento
+  pagamento,
+  assinatura
 }) {
   const payloadSeguro = {
     id: eventoId,
@@ -97,6 +107,27 @@ async function enfileirarWebhookAsaas({
           confirmedDate:
             pagamento.confirmedDate || null
         }
+      : null,
+    subscription: assinatura
+      ? {
+          id: assinatura.id || null,
+          status:
+            assinatura.status || null,
+          customer:
+            assinatura.customer || null,
+          value:
+            assinatura.value ?? null,
+          nextDueDate:
+            assinatura.nextDueDate || null,
+          cycle:
+            assinatura.cycle || null,
+          billingType:
+            assinatura.billingType || null,
+          externalReference:
+            assinatura.externalReference || null,
+          deleted:
+            assinatura.deleted ?? null
+        }
       : null
   };
 
@@ -107,7 +138,9 @@ async function enfileirarWebhookAsaas({
         eventoId,
         tipoEvento,
         recursoId:
-          pagamento?.id || null,
+          pagamento?.id ||
+          assinatura?.id ||
+          null,
         payload: payloadSeguro
       });
 
@@ -138,6 +171,8 @@ async function registrarFalha(evento, erro) {
 
 async function processarRegistro(evento) {
   const contexto = dadosLog(evento);
+  const assinatura =
+    evento.payload?.subscription || null;
   const pagamento =
     normalizarPagamentoPorEvento(
       evento.tipo_evento,
@@ -149,6 +184,70 @@ async function processarRegistro(evento) {
     null;
 
   try {
+    if (
+      EVENTOS_ASSINATURA
+        .has(evento.tipo_evento)
+    ) {
+      const assinaturaId =
+        assinatura?.id ||
+        evento.recurso_id ||
+        null;
+
+      if (!assinaturaId) {
+        const erro = new Error(
+          "Assinatura não informada no webhook."
+        );
+
+        erro.code =
+          "WEBHOOK_SUBSCRIPTION_REQUIRED";
+
+        throw erro;
+      }
+
+      const resultado =
+        await sincronizarAssinaturaPorWebhook(
+          evento.tipo_evento,
+          {
+            ...(assinatura || {}),
+            id: assinaturaId
+          }
+        );
+
+      if (!resultado) {
+        await webhookEventoRepository
+          .marcarConcluido(
+            evento.id,
+            "IGNORED"
+          );
+
+        console.info(
+          "[Webhook Asaas] Assinatura sem vínculo local ignorada.",
+          contexto
+        );
+
+        return {
+          ignorado: true,
+          status: "IGNORED"
+        };
+      }
+
+      await webhookEventoRepository
+        .marcarConcluido(
+          evento.id,
+          "PROCESSED"
+        );
+
+      console.info(
+        "[Webhook Asaas] Evento de assinatura processado.",
+        contexto
+      );
+
+      return {
+        ignorado: false,
+        status: "PROCESSED"
+      };
+    }
+
     if (
       !EVENTOS_PAGAMENTO_CONFIRMADO
         .has(evento.tipo_evento) &&

@@ -49,6 +49,7 @@ const pagamentoRepository = require(
 
 const {
   ativarAssinaturaPorPagamento,
+  sincronizarAssinaturaPorWebhook,
   sincronizarPagamentoPorWebhook,
   suspenderAssinaturaPorPagamento
 } = require(
@@ -212,6 +213,219 @@ describe(
           pagamentoRepository
             .criarPagamento
         ).not.toHaveBeenCalled();
+      }
+    );
+
+    test(
+      "vincula assinatura criada sem ativar plano pendente",
+      async () => {
+        mockClient.query
+          .mockResolvedValueOnce({
+            rows: []
+          })
+          .mockResolvedValueOnce({
+            rows: [
+              {
+                id: 20,
+                negocio_id: 7,
+                plano_id: 3,
+                status: "PENDING",
+                ativo: false,
+                asaas_subscription_id:
+                  null
+              }
+            ]
+          })
+          .mockResolvedValueOnce({
+            rows: [
+              {
+                id: 20,
+                status: "PENDING",
+                ativo: false,
+                asaas_subscription_id:
+                  "sub_1"
+              }
+            ]
+          });
+
+        const assinatura =
+          await sincronizarAssinaturaPorWebhook(
+            "SUBSCRIPTION_CREATED",
+            {
+              id: "sub_1",
+              status: "ACTIVE",
+              customer: "cus_1",
+              value: 49.9,
+              nextDueDate:
+                "2026-09-28",
+              cycle: "MONTHLY",
+              billingType: "PIX",
+              externalReference:
+                "assinatura:20;negocio:7;plano:3"
+            }
+          );
+
+        expect(mockClient.query)
+          .toHaveBeenNthCalledWith(
+            2,
+            expect.stringContaining(
+              "WHERE id = $1"
+            ),
+            [20, "sub_1"]
+          );
+        expect(mockClient.query)
+          .toHaveBeenNthCalledWith(
+            3,
+            expect.stringContaining(
+              "UPDATE assinaturas"
+            ),
+            [
+              "sub_1",
+              "cus_1",
+              "PENDING",
+              "pix",
+              "MONTHLY",
+              49.9,
+              "2026-09-28",
+              false,
+              20
+            ]
+          );
+        expect(assinatura)
+          .toMatchObject({
+            status: "PENDING",
+            ativo: false
+          });
+      }
+    );
+
+    test.each([
+      [
+        "SUBSCRIPTION_INACTIVATED",
+        "INACTIVE"
+      ],
+      [
+        "SUBSCRIPTION_DELETED",
+        "DELETED"
+      ]
+    ])(
+      "encerra acesso no evento %s",
+      async (tipoEvento, statusEsperado) => {
+        mockClient.query
+          .mockResolvedValueOnce({
+            rows: [
+              {
+                id: 20,
+                negocio_id: 7,
+                plano_id: 3,
+                status: "ACTIVE",
+                ativo: true,
+                asaas_subscription_id:
+                  "sub_1"
+              }
+            ]
+          })
+          .mockResolvedValueOnce({
+            rows: [
+              {
+                id: 20,
+                status:
+                  statusEsperado,
+                ativo: false
+              }
+            ]
+          })
+          .mockResolvedValueOnce({
+            rows: [
+              {
+                id: 1
+              }
+            ]
+          })
+          .mockResolvedValueOnce({
+            rows: []
+          });
+
+        const assinatura =
+          await sincronizarAssinaturaPorWebhook(
+            tipoEvento,
+            {
+              id: "sub_1",
+              status: "ACTIVE"
+            }
+          );
+
+        expect(mockClient.query)
+          .toHaveBeenNthCalledWith(
+            2,
+            expect.stringContaining(
+              "UPDATE assinaturas"
+            ),
+            expect.arrayContaining([
+              statusEsperado,
+              false,
+              20
+            ])
+          );
+        expect(mockClient.query)
+          .toHaveBeenNthCalledWith(
+            4,
+            expect.stringContaining(
+              "UPDATE negocios"
+            ),
+            [1, 7]
+          );
+        expect(assinatura.ativo)
+          .toBe(false);
+      }
+    );
+
+    test(
+      "mantém acesso já pago após excluir renovação",
+      async () => {
+        mockClient.query
+          .mockResolvedValueOnce({
+            rows: [
+              {
+                id: 20,
+                negocio_id: 7,
+                plano_id: 3,
+                status: "ACTIVE",
+                ativo: true,
+                asaas_subscription_id:
+                  "sub_1",
+                data_proxima_cobranca:
+                  "2099-09-28"
+              }
+            ]
+          })
+          .mockResolvedValueOnce({
+            rows: [
+              {
+                id: 20,
+                status: "CANCELED",
+                ativo: true
+              }
+            ]
+          });
+
+        const assinatura =
+          await sincronizarAssinaturaPorWebhook(
+            "SUBSCRIPTION_DELETED",
+            {
+              id: "sub_1",
+              status: "INACTIVE",
+              deleted: true
+            }
+          );
+
+        expect(mockClient.query)
+          .toHaveBeenCalledTimes(2);
+        expect(assinatura)
+          .toMatchObject({
+            status: "CANCELED",
+            ativo: true
+          });
       }
     );
 
