@@ -368,21 +368,24 @@
       await carregarMinhaSessao();
 
     return {
-      mensagem:
-        resultado.mensagem,
+  mensagem:
+    resultado.mensagem,
 
-      token:
-        getToken(),
+  contaCriada:
+    Boolean(resultado.contaCriada),
 
-      usuario:
-        contexto.usuario,
+  token:
+    getToken(),
 
-      temNegocio:
-        contexto.temNegocio,
+  usuario:
+    contexto.usuario,
 
-      negocio:
-        contexto.negocio,
-    };
+  temNegocio:
+    contexto.temNegocio,
+
+  negocio:
+    contexto.negocio,
+};
   }
 
   async function cadastro({
@@ -455,6 +458,31 @@
           senha:
             senhaTexto,
         }
+      );
+
+    return finalizarAutenticacao(
+      resultado
+    );
+  }
+
+  async function loginGoogle(
+    credential
+  ) {
+    const credencial =
+      normalizarTexto(
+        credential
+      );
+
+    if (!credencial) {
+      throw new Error(
+        "A credencial do Google é obrigatória."
+      );
+    }
+
+    const resultado =
+      await obterApi().post(
+        "/auth/google",
+        { credential: credencial }
       );
 
     return finalizarAutenticacao(
@@ -561,6 +589,7 @@
       carregarMinhaSessao,
       cadastro,
       login,
+      loginGoogle,
       obterDestino,
       redirecionarUsuario,
       exigirLogin,
