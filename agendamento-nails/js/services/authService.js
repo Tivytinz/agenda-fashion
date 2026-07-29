@@ -368,21 +368,24 @@
       await carregarMinhaSessao();
 
     return {
-      mensagem:
-        resultado.mensagem,
+  mensagem:
+    resultado.mensagem,
 
-      token:
-        getToken(),
+  contaCriada:
+    Boolean(resultado.contaCriada),
 
-      usuario:
-        contexto.usuario,
+  token:
+    getToken(),
 
-      temNegocio:
-        contexto.temNegocio,
+  usuario:
+    contexto.usuario,
 
-      negocio:
-        contexto.negocio,
-    };
+  temNegocio:
+    contexto.temNegocio,
+
+  negocio:
+    contexto.negocio,
+};
   }
 
   async function cadastro({
