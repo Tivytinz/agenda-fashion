@@ -39,6 +39,27 @@ Na ativação da recorrência PIX, a aplicação também consulta o Asaas pela
 permite recuperar uma assinatura que tenha sido criada no Asaas caso o
 processo seja interrompido antes de gravar o identificador no banco.
 
+## Eventos de assinatura
+
+O worker trata os eventos:
+
+- `SUBSCRIPTION_CREATED`;
+- `SUBSCRIPTION_UPDATED`;
+- `SUBSCRIPTION_INACTIVATED`;
+- `SUBSCRIPTION_DELETED`.
+
+Criação e atualização sincronizam o identificador, cliente, valor,
+ciclo, forma de pagamento e próxima cobrança. Esses eventos não ativam
+o plano: o acesso só é liberado por um pagamento confirmado.
+
+Inativação encerra o acesso e retorna o negócio ao plano gratuito.
+Exclusão cancela a renovação; quando existe um período ativo já pago, o
+acesso é preservado até `data_proxima_cobranca`.
+
+Assinaturas ainda sem `asaas_subscription_id` podem ser conciliadas pela
+`externalReference` no formato
+`assinatura:<id>;negocio:<id>;plano:<id>`.
+
 ## Processamento assíncrono
 
 A migration

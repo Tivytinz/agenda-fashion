@@ -90,6 +90,307 @@ function normalizarFormaPagamento(
   return formas[tipo] || null;
 }
 
+function extrairReferenciaAssinatura(
+  externalReference
+) {
+  const referencia =
+    String(externalReference || "");
+
+  const valores = {};
+
+  for (const trecho of referencia.split(";")) {
+    const [chave, valor] =
+      trecho.split(":");
+
+    if (
+      ["assinatura", "negocio", "plano"]
+        .includes(chave) &&
+      /^\d+$/.test(valor || "")
+    ) {
+      valores[chave] = Number(valor);
+    }
+  }
+
+  return valores;
+}
+
+async function localizarAssinaturaPorWebhook(
+  client,
+  subscriptionId,
+  externalReference
+) {
+  const porSubscription =
+    await client.query(
+      `
+      SELECT *
+      FROM assinaturas
+      WHERE asaas_subscription_id = $1
+      LIMIT 1
+      FOR UPDATE
+      `,
+      [subscriptionId]
+    );
+
+  if (porSubscription.rows[0]) {
+    return porSubscription.rows[0];
+  }
+
+  const referencia =
+    extrairReferenciaAssinatura(
+      externalReference
+    );
+
+  if (!referencia.assinatura) {
+    return null;
+  }
+
+  const porReferencia =
+    await client.query(
+      `
+      SELECT *
+      FROM assinaturas
+      WHERE id = $1
+        AND (
+          asaas_subscription_id IS NULL
+          OR asaas_subscription_id = $2
+        )
+      LIMIT 1
+      FOR UPDATE
+      `,
+      [
+        referencia.assinatura,
+        subscriptionId
+      ]
+    );
+
+  const assinatura =
+    porReferencia.rows[0] || null;
+
+  if (
+    !assinatura ||
+    (
+      referencia.negocio &&
+      referencia.negocio !==
+        assinatura.negocio_id
+    ) ||
+    (
+      referencia.plano &&
+      referencia.plano !==
+        assinatura.plano_id
+    )
+  ) {
+    return null;
+  }
+
+  return assinatura;
+}
+
+function acessoPagoAindaValido(
+  assinatura
+) {
+  const acessoAte =
+    String(
+      assinatura
+        ?.data_proxima_cobranca ||
+      ""
+    ).slice(0, 10);
+
+  const hoje =
+    new Date()
+      .toISOString()
+      .slice(0, 10);
+
+  return (
+    assinatura?.ativo === true &&
+    /^\d{4}-\d{2}-\d{2}$/
+      .test(acessoAte) &&
+    acessoAte > hoje
+  );
+}
+
+async function sincronizarAssinaturaPorWebhook(
+  tipoEvento,
+  dadosAssinatura = {}
+) {
+  const subscriptionId =
+    String(
+      dadosAssinatura.id || ""
+    ).trim();
+
+  if (!subscriptionId) {
+    throw new Error(
+      "Assinatura não informada."
+    );
+  }
+
+  const eventos =
+    new Set([
+      "SUBSCRIPTION_CREATED",
+      "SUBSCRIPTION_UPDATED",
+      "SUBSCRIPTION_INACTIVATED",
+      "SUBSCRIPTION_DELETED"
+    ]);
+
+  if (!eventos.has(tipoEvento)) {
+    return null;
+  }
+
+  return db.executarTransacao(
+    async (client) => {
+      const assinatura =
+        await localizarAssinaturaPorWebhook(
+          client,
+          subscriptionId,
+          dadosAssinatura
+            .externalReference
+        );
+
+      if (!assinatura) {
+        return null;
+      }
+
+      const eventoEncerramento =
+        [
+          "SUBSCRIPTION_INACTIVATED",
+          "SUBSCRIPTION_DELETED"
+        ].includes(tipoEvento);
+
+      const manterPeriodoPago =
+        tipoEvento ===
+          "SUBSCRIPTION_DELETED" &&
+        acessoPagoAindaValido(
+          assinatura
+        );
+
+      let status =
+        assinatura.status;
+
+      if (manterPeriodoPago) {
+        status = "CANCELED";
+      } else if (
+        eventoEncerramento &&
+        !manterPeriodoPago
+      ) {
+        status =
+          tipoEvento ===
+            "SUBSCRIPTION_DELETED"
+            ? "DELETED"
+            : "INACTIVE";
+      } else if (
+        assinatura.ativo === true &&
+        ![
+          "CANCELED",
+          "CANCELLED"
+        ].includes(
+          String(
+            assinatura.status || ""
+          )
+            .trim()
+            .toUpperCase()
+        ) &&
+        dadosAssinatura.status
+      ) {
+        status =
+          String(
+            dadosAssinatura.status
+          )
+            .trim()
+            .toUpperCase();
+      }
+
+      const ativo =
+        eventoEncerramento &&
+        !manterPeriodoPago
+          ? false
+          : assinatura.ativo;
+
+      const atualizacao =
+        await client.query(
+          `
+          UPDATE assinaturas
+          SET
+            asaas_subscription_id = $1,
+            asaas_customer_id =
+              COALESCE($2, asaas_customer_id),
+            status = $3,
+            forma_pagamento =
+              COALESCE($4, forma_pagamento),
+            periodicidade =
+              COALESCE($5, periodicidade),
+            valor =
+              COALESCE($6, valor),
+            data_proxima_cobranca =
+              COALESCE(
+                $7,
+                data_proxima_cobranca
+              ),
+            ativo = $8,
+            updated_at = NOW()
+          WHERE id = $9
+          RETURNING *
+          `,
+          [
+            subscriptionId,
+            dadosAssinatura.customer ||
+              null,
+            status,
+            normalizarFormaPagamento(
+              dadosAssinatura.billingType
+            ),
+            dadosAssinatura.cycle ||
+              null,
+            dadosAssinatura.value ??
+              null,
+            dadosAssinatura.nextDueDate ||
+              null,
+            ativo,
+            assinatura.id
+          ]
+        );
+
+      if (
+        eventoEncerramento &&
+        !manterPeriodoPago
+      ) {
+        const planoGratis =
+          await client.query(
+            `
+            SELECT id
+            FROM planos
+            WHERE slug = 'inicial'
+              AND ativo = TRUE
+            LIMIT 1
+            `
+          );
+
+        const planoGratisId =
+          planoGratis.rows[0]?.id;
+
+        if (!planoGratisId) {
+          throw new Error(
+            "Plano gratuito não encontrado para encerrar a assinatura."
+          );
+        }
+
+        await client.query(
+          `
+          UPDATE negocios
+          SET plano_id = $1
+          WHERE id = $2
+          `,
+          [
+            planoGratisId,
+            assinatura.negocio_id
+          ]
+        );
+      }
+
+      return atualizacao.rows[0] ||
+        null;
+    }
+  );
+}
+
 async function localizarAssinaturaPagamento(
   client,
   paymentId
@@ -832,6 +1133,7 @@ async function cancelarMinhaAssinatura({
 module.exports = {
   registrarAssinaturaPendente,
   registrarPagamento,
+  sincronizarAssinaturaPorWebhook,
   sincronizarPagamentoPorWebhook,
   suspenderAssinaturaPorPagamento,
   ativarAssinaturaPorPagamento,

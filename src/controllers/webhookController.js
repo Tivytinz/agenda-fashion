@@ -20,6 +20,8 @@ async function receberWebhookAsaas(req, res, next) {
         tipoEvento,
         pagamento:
           req.body?.payment || null,
+        assinatura:
+          req.body?.subscription || null,
       });
 
     if (resultado.evento?.id) {
