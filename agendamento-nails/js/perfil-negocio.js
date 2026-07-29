@@ -3098,6 +3098,49 @@ document.addEventListener("DOMContentLoaded", () => {
 
       resetarFluxoAgendamento();
 
+      const servicoUrl =
+        new URLSearchParams(
+          window.location.search
+        ).get("servico");
+
+      const servicoInicial =
+        estado.servicos.find(
+          (servico) =>
+            String(servico.id) ===
+            String(servicoUrl || "")
+        );
+
+      if (servicoInicial) {
+        const cardInicial =
+          Array.from(
+            elementos.listaServicos
+              ?.querySelectorAll(
+                "[data-id]"
+              ) || []
+          ).find(
+            (card) =>
+              card.dataset.id ===
+              String(
+                servicoInicial.id
+              )
+          );
+
+        selecionarServico(
+          servicoInicial,
+          cardInicial
+        );
+
+        cardInicial?.scrollIntoView?.({
+          behavior:
+            window.matchMedia(
+              "(prefers-reduced-motion: reduce)"
+            ).matches
+              ? "auto"
+              : "smooth",
+          block: "center",
+        });
+      }
+
       await carregarFavorito();
     } catch (erro) {
       console.error(
