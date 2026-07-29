@@ -195,29 +195,29 @@ document.addEventListener(
         "planoValor"
       ),
 
-    planoUso:
+    crescimentoTotal:
       document.getElementById(
-        "planoUso"
+        "crescimentoTotal"
       ),
 
-    planoRestantes:
+    crescimentoMarco:
       document.getElementById(
-        "planoRestantes"
+        "crescimentoMarco"
       ),
 
-    planoPercentual:
+    crescimentoApoio:
       document.getElementById(
-        "planoPercentual"
+        "crescimentoApoio"
       ),
 
-    planoProgresso:
+    crescimentoProgresso:
       document.getElementById(
-        "planoProgresso"
+        "crescimentoProgresso"
       ),
 
-    planoBarra:
+    crescimentoBarra:
       document.getElementById(
-        "planoBarra"
+        "crescimentoBarra"
       ),
 
     planoMensagem:
@@ -229,12 +229,19 @@ document.addEventListener(
       document.getElementById(
         "btnUpgradePlano"
       ),
+
+    linkPerfilPublico:
+      document.getElementById(
+        "linkPerfilPublico"
+      ),
   };
 
   const estado = {
     requisicaoDashboard: null,
     idRequisicaoDashboard: 0,
     temporizadorMensagem: null,
+    faixaCrescimento:
+      "carregando",
   };
 
   const formatadorMoeda =
@@ -273,6 +280,19 @@ document.addEventListener(
     return formatadorMoeda.format(
       converterNumero(valor)
     );
+  }
+
+  function registrarComportamento(
+    nome,
+    propriedades = {}
+  ) {
+    window.AFAnalytics
+      ?.registrar?.(
+        nome,
+        {
+          propriedades,
+        }
+      );
   }
 
   function pluralizarAgendamento(
@@ -1007,6 +1027,17 @@ function redirecionarProfissional() {
       );
     }
 
+    if (
+      elementos.linkPerfilPublico &&
+      dados.negocio?.slug
+    ) {
+      elementos.linkPerfilPublico
+        .href =
+          `/html/perfil-negocio.html?slug=${encodeURIComponent(
+            dados.negocio.slug
+          )}`;
+    }
+
     salvarNegocioDoDashboard(
       dados.negocio
     );
@@ -1054,29 +1085,93 @@ function redirecionarProfissional() {
       ) ||
       capacidade === null;
 
-    const percentual =
-      ilimitado
-        ? 100
-        : capacidade > 0
-          ? Math.min(
-              Math.round(
-                (
-                  utilizados /
-                  capacidade
-                ) * 100
-              ),
-              100
-            )
-          : 0;
-
-    const restantes =
-      ilimitado
-        ? null
-        : Math.max(
-            capacidade -
-              utilizados,
-            0
+    const percentualComercial =
+      ilimitado ||
+      capacidade <= 0
+        ? 0
+        : Math.min(
+            Math.round(
+              (
+                utilizados /
+                capacidade
+              ) * 100
+            ),
+            100
           );
+
+    const marcos = [
+      5,
+      10,
+      20,
+      30,
+      50,
+      75,
+      100,
+      150,
+      200,
+      300,
+      500,
+      750,
+      1000,
+    ];
+
+    const proximoMarco =
+      marcos.find(
+        (marco) =>
+          marco >
+          utilizados
+      ) ||
+      (
+        Math.floor(
+          utilizados /
+          500
+        ) +
+        1
+      ) *
+        500;
+
+    const marcoAnterior =
+      [
+        0,
+        ...marcos,
+      ]
+        .filter(
+          (marco) =>
+            marco <=
+            utilizados
+        )
+        .at(
+          -1
+        ) ||
+      0;
+
+    const intervaloMarco =
+      Math.max(
+        proximoMarco -
+          marcoAnterior,
+        1
+      );
+
+    let percentualMarco =
+      Math.min(
+        Math.round(
+          (
+            (
+              utilizados -
+              marcoAnterior
+            ) /
+            intervaloMarco
+          ) *
+            100
+        ),
+        100
+      );
+
+    const novaFase =
+      !ilimitado &&
+      capacidade > 0 &&
+      utilizados >=
+        capacidade;
 
     definirTexto(
       elementos.planoNome,
@@ -1093,77 +1188,101 @@ function redirecionarProfissional() {
         ? formatarMoeda(
             plano.valor
           )
-        : ilimitado
-          ? "Agendamentos ilimitados"
-          : "-"
+        : "-"
     );
 
     definirTexto(
-      elementos.planoUso,
-      ilimitado
-        ? `${utilizados} agendamentos neste mês`
-        : `${utilizados} de ${capacidade} agendamentos`
+      elementos.crescimentoTotal,
+      utilizados
     );
 
     definirTexto(
-      elementos.planoRestantes,
-      ilimitado
-        ? "Capacidade ilimitada"
-        : `${restantes} ${pluralizarAgendamento(
-            restantes
-          )} restantes`
-    );
-
-    definirTexto(
-      elementos.planoPercentual,
-      ilimitado
-        ? "Ilimitado"
-        : `${percentual}%`
+      elementos.crescimentoMarco,
+      novaFase
+        ? "Nova fase pronta"
+        : `${proximoMarco} ${pluralizarAgendamento(
+            proximoMarco
+          )}`
     );
 
     if (
-      elementos.planoBarra
+      elementos.crescimentoBarra
     ) {
-      elementos.planoBarra.style.width =
-        `${percentual}%`;
+      if (novaFase) {
+        percentualMarco =
+          100;
+      }
+
+      elementos.crescimentoBarra
+        .style.width =
+          `${percentualMarco}%`;
     }
 
-    elementos.planoProgresso
+    elementos.crescimentoProgresso
       ?.setAttribute(
         "aria-valuenow",
-        String(percentual)
+        String(
+          percentualMarco
+        )
       );
 
-    let mensagem =
-      "Acompanhe aqui o uso mensal do seu plano.";
+    let faixa =
+      "ganhando_ritmo";
 
-    if (ilimitado) {
-      mensagem =
-        "Seu plano permite agendamentos ilimitados.";
-    } else if (
-      capacidade > 0 &&
-      utilizados >= capacidade
+    let mensagem =
+      `Seu negócio conquistou ${utilizados} ` +
+      `${pluralizarAgendamento(
+        utilizados
+      )} neste mês. Cada horário preenchido mostra que seu negócio está avançando 💅`;
+
+    let apoio =
+      "Seu trabalho merece ser cada vez mais escolhido.";
+
+    if (
+      utilizados === 0
     ) {
+      faixa =
+        "comecando";
+
       mensagem =
-        "Sua agenda atingiu a capacidade atual do plano.";
+        "Seu próximo agendamento abre uma nova história. Divulgue seu perfil e deixe seus horários prontos.";
+
+      apoio =
+        "A primeira conquista começa com um horário disponível.";
     } else if (
-      percentual >= 90
+      utilizados === 1
     ) {
+      faixa =
+        "primeira_conquista";
+
       mensagem =
-        `Sua agenda está quase cheia. ` +
-        `Restam ${restantes} ` +
-        `${pluralizarAgendamento(
-          restantes
-        )}. Compare com o próximo plano.`;
+        "Sua primeira conquista do mês já chegou. É assim que um negócio ganha ritmo 💅";
+
+      apoio =
+        "Cada cliente atendida fortalece sua história.";
     } else if (
-      percentual >= 80
+      novaFase
     ) {
+      faixa =
+        "nova_fase";
+
       mensagem =
-        `Sua agenda está crescendo. ` +
-        `Restam ${restantes} ` +
-        `${pluralizarAgendamento(
-          restantes
-        )} neste plano.`;
+        "Você chegou a um novo marco — isso é prova do seu sucesso. Para continuar recebendo novos agendamentos, abra a próxima fase do seu negócio.";
+
+      apoio =
+        "Seu crescimento trouxe você até aqui. Vamos continuar.";
+    } else if (
+      !ilimitado &&
+      percentualComercial >= 80
+    ) {
+      faixa =
+        "crescendo";
+
+      mensagem =
+        "Seu trabalho está sendo cada vez mais escolhido. Você está pronta para a próxima fase do seu crescimento.";
+
+      apoio =
+        "O próximo passo existe porque sua agenda cresceu.";
     }
 
     definirTexto(
@@ -1171,10 +1290,32 @@ function redirecionarProfissional() {
       mensagem
     );
 
+    definirTexto(
+      elementos.crescimentoApoio,
+      apoio
+    );
+
+    estado.faixaCrescimento =
+      faixa;
+
     elementos.btnUpgradePlano
-      ?.classList.remove(
-        "hidden"
+      ?.classList.toggle(
+        "hidden",
+        (
+          ilimitado ||
+          percentualComercial < 80
+        ) &&
+        !novaFase
       );
+
+    registrarComportamento(
+      "mensagem_crescimento_visualizada",
+      {
+        faixa,
+        agendamentos_mes:
+          utilizados,
+      }
+    );
   }
 
   function mostrarErroPlano() {
@@ -1189,18 +1330,18 @@ function redirecionarProfissional() {
     );
 
     definirTexto(
-      elementos.planoUso,
-      "0 agendamentos"
+      elementos.crescimentoTotal,
+      "0"
     );
 
     definirTexto(
-      elementos.planoRestantes,
-      "-"
+      elementos.crescimentoMarco,
+      "Próxima conquista"
     );
 
     definirTexto(
-      elementos.planoPercentual,
-      "0%"
+      elementos.crescimentoApoio,
+      "Continue cuidando da sua agenda enquanto tentamos novamente."
     );
 
     definirTexto(
@@ -1209,13 +1350,13 @@ function redirecionarProfissional() {
     );
 
     if (
-      elementos.planoBarra
+      elementos.crescimentoBarra
     ) {
-      elementos.planoBarra.style.width =
+      elementos.crescimentoBarra.style.width =
         "0%";
     }
 
-    elementos.planoProgresso
+    elementos.crescimentoProgresso
       ?.setAttribute(
         "aria-valuenow",
         "0"
@@ -1464,7 +1605,20 @@ function redirecionarProfissional() {
     elementos.filtroPeriodo
       ?.addEventListener(
         "change",
-        carregarDashboard
+        () => {
+          registrarComportamento(
+            "periodo_dashboard_alterado",
+            {
+              periodo:
+                elementos
+                  .filtroPeriodo
+                  ?.value ||
+                "7dias",
+            }
+          );
+
+          void carregarDashboard();
+        }
       );
 
     elementos.btnAtualizarDashboard
@@ -1477,8 +1631,46 @@ function redirecionarProfissional() {
       ?.addEventListener(
         "click",
         () => {
+          registrarComportamento(
+            "upgrade_selecionado",
+            {
+              origem:
+                "dashboard_dono",
+              faixa:
+                estado
+                  .faixaCrescimento,
+            }
+          );
+
           window.location.href =
             "minha-assinatura.html";
+        }
+      );
+
+    document
+      .querySelectorAll(
+        "[data-acao-dashboard]"
+      )
+      .forEach(
+        (elemento) => {
+          elemento
+            .addEventListener(
+              "click",
+              () => {
+                registrarComportamento(
+                  "acao_dashboard_selecionada",
+                  {
+                    acao:
+                      elemento
+                        .dataset
+                        .acaoDashboard ||
+                      "desconhecida",
+                    papel:
+                      "dono",
+                  }
+                );
+              }
+            );
         }
       );
 

@@ -32,7 +32,10 @@
   <link rel="stylesheet" href="../css/refresh.css?v=2026.1">
 </head>
 
-<body>
+<body
+  data-af-tela="admin"
+  data-af-missao="administrar_plataforma"
+>
   <main
     id="adminPage"
     class="admin-page"
@@ -340,6 +343,62 @@
           <small>
             Relação agendamentos por negócio
           </small>
+        </article>
+      </div>
+    </section>
+
+    <section
+      class="admin-secao"
+      aria-labelledby="tituloFunilProduto"
+    >
+      <div class="admin-secao-cabecalho">
+        <div>
+          <span class="admin-secao-etiqueta">
+            Comportamento
+          </span>
+
+          <h2 id="tituloFunilProduto">
+            Missão das telas
+          </h2>
+
+          <p>
+            Sessões que descobriram, avaliaram e agendaram,
+            sem armazenar nome, telefone ou localização.
+          </p>
+        </div>
+      </div>
+
+      <div class="admin-funil-grid">
+        <article class="admin-metrica af-card">
+          <span>Descobriram serviços</span>
+          <strong id="funilDescobriram">0</strong>
+        </article>
+
+        <article class="admin-metrica af-card">
+          <span>Avaliaram um perfil</span>
+          <strong id="funilAvaliaram">0</strong>
+        </article>
+
+        <article class="admin-metrica af-card">
+          <span>Iniciaram agendamento</span>
+          <strong id="funilIniciaram">0</strong>
+        </article>
+
+        <article class="admin-metrica af-card">
+          <span>Concluíram agendamento</span>
+          <strong id="funilConcluiram">0</strong>
+        </article>
+
+        <article
+          class="admin-metrica admin-funil-destaque af-card"
+        >
+          <span>Conversão após iniciar</span>
+          <strong id="funilConversao">0%</strong>
+        </article>
+
+        <article class="admin-metrica af-card">
+          <span>Ações nos dashboards</span>
+          <strong id="acoesDashboard">0</strong>
         </article>
       </div>
     </section>
@@ -769,6 +828,7 @@
        SCRIPTS
   ================================================== -->
   <script src="../js/config.js"></script>
+  <script src="../js/analytics.js"></script>
   <script src="../js/utils.js"></script>
   <script src="../js/api.js"></script>
 

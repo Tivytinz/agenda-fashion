@@ -562,6 +562,12 @@ async function buscarMetricasPlataforma(
       "f"
     );
 
+  const filtroEventos =
+    filtroPeriodo(
+      periodo,
+      "e"
+    );
+
   const [
     desempenho,
     favoritos,
@@ -570,40 +576,34 @@ async function buscarMetricasPlataforma(
       executarConsultaOpcional(
         `
           SELECT
-            COALESCE(
-              SUM(
-                COALESCE(
-                  visitas,
-                  0
-                )
-              ),
-              0
+            COUNT(*) FILTER (
+              WHERE e.nome =
+                'perfil_visualizado'
             )::INT
               AS visitas_plataforma,
 
-            COALESCE(
-              SUM(
-                COALESCE(
-                  cliques_whatsapp,
-                  0
-                )
-              ),
-              0
+            COUNT(*) FILTER (
+              WHERE e.nome =
+                'contato_selecionado'
+                AND e.propriedades
+                  ->> 'acao' =
+                    'whatsapp'
             )::INT
               AS cliques_whatsapp,
 
-            COALESCE(
-              SUM(
-                COALESCE(
-                  cliques_maps,
-                  0
-                )
-              ),
-              0
+            COUNT(*) FILTER (
+              WHERE e.nome =
+                'contato_selecionado'
+                AND e.propriedades
+                  ->> 'acao' =
+                    'maps'
             )::INT
               AS cliques_maps
 
-          FROM negocios
+          FROM eventos_produto e
+
+          WHERE 1 = 1
+            ${filtroEventos}
         `,
         [],
         [
@@ -665,6 +665,94 @@ async function buscarMetricasPlataforma(
         favoritos
       ),
   };
+}
+
+async function buscarFunilProduto(
+  periodo = "all"
+) {
+  const filtro =
+    filtroPeriodo(
+      periodo,
+      "e"
+    );
+
+  const resultado =
+    await executarConsultaOpcional(
+      `
+        SELECT
+          COUNT(
+            DISTINCT e.sessao_id
+          ) FILTER (
+            WHERE e.nome =
+              'tela_visualizada'
+              AND e.pagina =
+                'inicio'
+          )::INT
+            AS descobriram,
+
+          COUNT(
+            DISTINCT e.sessao_id
+          ) FILTER (
+            WHERE e.nome =
+              'perfil_visualizado'
+          )::INT
+            AS avaliaram,
+
+          COUNT(
+            DISTINCT e.sessao_id
+          ) FILTER (
+            WHERE e.nome =
+              'agendamento_iniciado'
+          )::INT
+            AS iniciaram,
+
+          COUNT(
+            DISTINCT e.sessao_id
+          ) FILTER (
+            WHERE e.nome =
+              'agendamento_concluido'
+          )::INT
+            AS concluiram,
+
+          COUNT(*) FILTER (
+            WHERE e.nome =
+              'acao_dashboard_selecionada'
+          )::INT
+            AS acoes_dashboard,
+
+          COUNT(*) FILTER (
+            WHERE e.nome =
+              'mensagem_crescimento_visualizada'
+          )::INT
+            AS mensagens_crescimento
+
+        FROM eventos_produto e
+
+        WHERE 1 = 1
+          ${filtro}
+      `,
+      [],
+      [
+        {
+          descobriram:
+            0,
+          avaliaram:
+            0,
+          iniciaram:
+            0,
+          concluiram:
+            0,
+          acoes_dashboard:
+            0,
+          mensagens_crescimento:
+            0,
+        },
+      ]
+    );
+
+  return resultado
+    .rows[0] ||
+    {};
 }
 
 async function buscarDestaquesPlataforma() {
@@ -895,34 +983,51 @@ async function listarNegociosMaisVistos() {
     await executarConsultaOpcional(
       `
         SELECT
-          id,
-          nome,
-          slug,
-          cidade,
+          n.id,
+          n.nome,
+          n.slug,
+          n.cidade,
 
-          COALESCE(
-            visitas,
-            0
-          )::INT AS visitas,
+          COUNT(*) FILTER (
+            WHERE e.nome =
+              'perfil_visualizado'
+          )::INT
+            AS visitas,
 
-          COALESCE(
-            cliques_whatsapp,
-            0
+          COUNT(*) FILTER (
+            WHERE e.nome =
+              'contato_selecionado'
+              AND e.propriedades
+                ->> 'acao' =
+                  'whatsapp'
           )::INT
             AS cliques_whatsapp,
 
-          COALESCE(
-            cliques_maps,
-            0
+          COUNT(*) FILTER (
+            WHERE e.nome =
+              'contato_selecionado'
+              AND e.propriedades
+                ->> 'acao' =
+                  'maps'
           )::INT
             AS cliques_maps
 
-        FROM negocios
+        FROM negocios n
+
+        LEFT JOIN eventos_produto e
+          ON e.negocio_id =
+            n.id
+
+        GROUP BY
+          n.id,
+          n.nome,
+          n.slug,
+          n.cidade
 
         ORDER BY
           visitas DESC,
           cliques_whatsapp DESC,
-          nome ASC
+          n.nome ASC
 
         LIMIT 10
       `,
@@ -1110,6 +1215,7 @@ module.exports = {
   buscarIndicadoresGerais,
   buscarIndicadoresHoje,
   buscarMetricasPlataforma,
+  buscarFunilProduto,
   buscarDestaquesPlataforma,
   buscarQualidadeNegocios,
 

@@ -989,6 +989,54 @@ img {
     12px;
 }
 
+.admin-funil-grid {
+  display: grid;
+
+  grid-template-columns:
+    repeat(
+      6,
+      minmax(0, 1fr)
+    );
+
+  gap:
+    12px;
+}
+
+.admin-funil-grid
+.admin-metrica {
+  min-width:
+    0;
+
+  min-height:
+    112px;
+}
+
+.admin-funil-destaque {
+  color:
+    #ffffff;
+
+  background:
+    linear-gradient(
+      135deg,
+      var(--admin-primary),
+      var(--admin-primary-dark)
+    );
+
+  border-color:
+    transparent;
+}
+
+.admin-funil-destaque
+span {
+  color:
+    rgba(
+      255,
+      255,
+      255,
+      0.82
+    );
+}
+
 .admin-metrica {
   display: flex;
 
@@ -1782,6 +1830,14 @@ img {
         minmax(0, 1fr)
       );
   }
+
+  .admin-funil-grid {
+    grid-template-columns:
+      repeat(
+        3,
+        minmax(0, 1fr)
+      );
+  }
 }
 
 @media (
@@ -1920,6 +1976,23 @@ img {
   .admin-destaques-grid {
     grid-template-columns:
       minmax(0, 1fr);
+  }
+
+  .admin-funil-grid {
+    grid-template-columns:
+      repeat(
+        2,
+        minmax(0, 1fr)
+      );
+  }
+
+  .admin-funil-grid
+  .admin-metrica {
+    min-height:
+      96px;
+
+    padding:
+      13px;
   }
 
   .admin-kpi-card {

@@ -640,6 +640,25 @@ document.addEventListener(
             dados
           );
 
+        window.AFAnalytics
+          ?.registrar?.(
+            "agendamento_concluido",
+            {
+              propriedades: {
+                origem:
+                  "finalizar_agendamento",
+                servico_id:
+                  Number(
+                    dados
+                      .servico_id
+                  ) ||
+                  0,
+                status:
+                  "sucesso",
+              },
+            }
+          );
+
         localStorage.removeItem(
           "agendamentoPendente"
         );

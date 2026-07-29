@@ -70,19 +70,24 @@ function montarHtml() {
 
       <strong id="planoNome">Carregando...</strong>
       <small id="planoValor">-</small>
-      <strong id="planoUso">0 agendamentos</strong>
-      <small id="planoRestantes">-</small>
-      <strong id="planoPercentual">0%</strong>
+      <strong id="crescimentoTotal">0</strong>
+      <strong id="crescimentoMarco">5 agendamentos</strong>
+      <small id="crescimentoApoio"></small>
 
       <div
-        id="planoProgresso"
+        id="crescimentoProgresso"
         role="progressbar"
         aria-valuenow="0"
       >
-        <div id="planoBarra"></div>
+        <div id="crescimentoBarra"></div>
       </div>
 
       <p id="planoMensagem"></p>
+      <a
+        id="linkPerfilPublico"
+        data-acao-dashboard="ver_perfil"
+        href="/html/inicio.html"
+      >Perfil</a>
 
       <button
         id="btnUpgradePlano"
@@ -1245,48 +1250,140 @@ describe(
         await esperarAte(
           () =>
             texto(
-              "planoPercentual"
+              "crescimentoTotal"
             ) ===
-            "Ilimitado"
+            "240"
         );
 
         expect(
           texto(
-            "planoUso"
+            "crescimentoMarco"
           )
         ).toBe(
-          "240 agendamentos neste mês"
+          "300 agendamentos"
         );
 
         expect(
           texto(
-            "planoRestantes"
+            "planoMensagem"
           )
-        ).toBe(
-          "Capacidade ilimitada"
+        ).toContain(
+          "Cada horário preenchido"
         );
 
         expect(
           document
             .getElementById(
-              "planoBarra"
+              "crescimentoBarra"
             )
             .style
             .width
         ).toBe(
-          "100%"
+          "40%"
         );
 
         expect(
           document
             .getElementById(
-              "planoProgresso"
+              "crescimentoProgresso"
             )
             .getAttribute(
               "aria-valuenow"
             )
         ).toBe(
-          "100"
+          "40"
+        );
+
+        expect(
+          document
+            .getElementById(
+              "btnUpgradePlano"
+            )
+            .classList
+            .contains(
+              "hidden"
+            )
+        ).toBe(
+          true
+        );
+      }
+    );
+
+    test(
+      "celebra o crescimento sem exibir o limite comercial",
+      async () => {
+        configurarFetch({
+          plano:
+            criarPlano({
+              capacidade_agendamentos:
+                100,
+
+              utilizados:
+                100,
+            }),
+        });
+
+        iniciarDashboard();
+
+        await esperarAte(
+          () =>
+            texto(
+              "crescimentoMarco"
+            ) ===
+            "Nova fase pronta"
+        );
+
+        const comunicacao =
+          [
+            texto(
+              "crescimentoTotal"
+            ),
+            texto(
+              "crescimentoMarco"
+            ),
+            texto(
+              "planoMensagem"
+            ),
+            texto(
+              "crescimentoApoio"
+            ),
+          ]
+            .join(
+              " "
+            )
+            .toLocaleLowerCase(
+              "pt-BR"
+            );
+
+        expect(
+          comunicacao
+        ).toContain(
+          "novo marco"
+        );
+
+        expect(
+          comunicacao
+        ).not.toContain(
+          "restante"
+        );
+
+        expect(
+          comunicacao
+        ).not.toContain(
+          "100 de 100"
+        );
+
+        expect(
+          document
+            .getElementById(
+              "btnUpgradePlano"
+            )
+            .classList
+            .contains(
+              "hidden"
+            )
+        ).toBe(
+          false
         );
       }
     );

@@ -101,6 +101,21 @@ document.addEventListener("DOMContentLoaded", () => {
     return String(valor).trim().replace(/\/+$/, "");
   }
 
+  function registrarComportamento(
+    nome,
+    propriedades = {}
+  ) {
+    window.AFAnalytics
+      ?.registrar?.(
+        nome,
+        {
+          negocioId:
+            estado.negocio?.id,
+          propriedades,
+        }
+      );
+  }
+
   async function lerJson(resposta) {
     if (resposta.status === 204) {
       return {};
@@ -717,6 +732,19 @@ document.addEventListener("DOMContentLoaded", () => {
     elementos.etapaHorario?.classList.add("ativa");
 
     atualizarResumo();
+
+    registrarComportamento(
+      "servico_selecionado",
+      {
+        origem:
+          "perfil_negocio",
+        servico_id:
+          Number(
+            servico?.id
+          ) ||
+          0,
+      }
+    );
 
     elementos.boxProfissionaisHorarios?.scrollIntoView({
       behavior: "smooth",
@@ -1688,6 +1716,23 @@ document.addEventListener("DOMContentLoaded", () => {
         method: "PUT",
         autenticado: true,
         body: payload,
+      }
+    );
+
+    registrarComportamento(
+      "agendamento_concluido",
+      {
+        origem:
+          autenticado
+            ? "cliente_logada"
+            : "visitante",
+        servico_id:
+          Number(
+            servicoId
+          ) ||
+          0,
+        status:
+          "sucesso",
       }
     );
 
@@ -2743,6 +2788,23 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
+    registrarComportamento(
+      "agendamento_iniciado",
+      {
+        origem:
+          obterTokenAtual()
+            ? "cliente_logada"
+            : "visitante",
+        servico_id:
+          Number(
+            estado
+              .servicoSelecionado
+              ?.id
+          ) ||
+          0,
+      }
+    );
+
     const token =
       obterTokenAtual();
 
@@ -3063,6 +3125,24 @@ document.addEventListener("DOMContentLoaded", () => {
       estado.negocio =
         dados.negocio;
 
+      if (
+        !ehDonoDoPerfil()
+      ) {
+        registrarComportamento(
+          "perfil_visualizado",
+          {
+            origem:
+              new URLSearchParams(
+                window.location.search
+              ).has(
+                "servico"
+              )
+                ? "servico"
+                : "negocio",
+          }
+        );
+      }
+
       estado.servicos =
         Array.isArray(
           dados.servicos
@@ -3175,6 +3255,34 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function configurarEventos() {
+    elementos.btnWhatsapp
+      ?.addEventListener(
+        "click",
+        () => {
+          registrarComportamento(
+            "contato_selecionado",
+            {
+              acao:
+                "whatsapp",
+            }
+          );
+        }
+      );
+
+    elementos.btnMaps
+      ?.addEventListener(
+        "click",
+        () => {
+          registrarComportamento(
+            "contato_selecionado",
+            {
+              acao:
+                "maps",
+            }
+          );
+        }
+      );
+
     elementos.btnFavorito
       ?.addEventListener(
         "click",

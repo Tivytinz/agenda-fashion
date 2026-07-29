@@ -35,17 +35,27 @@
   <link rel="stylesheet" href="../css/refresh.css?v=2026.1">
 </head>
 
-<body>
+<body
+  data-af-tela="dashboard_profissional"
+  data-af-missao="conduzir_atendimentos"
+>
 
   <header class="topo">
-    <button
-      type="button"
-      class="logo"
-      id="btnHome"
-      aria-label="Ir para o início"
-    >
-      💅
-    </button>
+    <div class="marca-profissional">
+      <button
+        type="button"
+        class="logo"
+        id="btnHome"
+        aria-label="Ir para o dashboard"
+      >
+        💅
+      </button>
+
+      <div>
+        <strong>Agenda Fashion</strong>
+        <span>Minha rotina</span>
+      </div>
+    </div>
 
     <div class="topo-acoes">
       <button
@@ -75,13 +85,47 @@
 
     <section class="dashboard-cabecalho">
       <div>
-        <h1>Dashboard profissional</h1>
+        <span class="dashboard-etiqueta">
+          Seu dia
+        </span>
 
-        <p id="nomeNegocio">
-          Acompanhe sua agenda e seus resultados.
-        </p>
+        <h1>O que precisa da sua atenção agora</h1>
+
+        <p id="nomeNegocio">Carregando seu negócio...</p>
       </div>
     </section>
+
+    <p
+      id="mensagemCrescimento"
+      class="mensagem-crescimento"
+      role="status"
+      aria-live="polite"
+    >
+      Preparando o resumo do seu dia...
+    </p>
+
+    <nav
+      class="acoes-profissional"
+      aria-label="Ações rápidas"
+    >
+      <button
+        type="button"
+        id="btnAbrirAgenda"
+        data-acao-dashboard="abrir_agenda"
+      >
+        <span aria-hidden="true">📅</span>
+        Abrir agenda
+      </button>
+
+      <button
+        type="button"
+        id="btnVerAgendamentos"
+        data-acao-dashboard="ver_agendamentos"
+      >
+        <span aria-hidden="true">🗓️</span>
+        Ver atendimentos
+      </button>
+    </nav>
 
     <p
       id="mensagemDashboard"
@@ -92,9 +136,29 @@
       Carregando dashboard...
     </p>
 
+    <section class="secao-dashboard proximo-prioridade">
+      <div class="secao-titulo">
+        <div>
+          <span class="dashboard-etiqueta">Agora</span>
+          <h2>Próximo atendimento</h2>
+
+          <p>
+            Cliente, serviço e horário em um só lugar.
+          </p>
+        </div>
+      </div>
+
+      <div
+        id="proximoAtendimento"
+        class="proximo-atendimento"
+      >
+        <p>Nenhum atendimento futuro encontrado.</p>
+      </div>
+    </section>
+
     <section
-      class="cards"
-      aria-label="Resumo do dashboard"
+      class="cards cards-principais"
+      aria-label="Resumo de hoje"
     >
       <article class="card">
         <span>Agendamentos hoje</span>
@@ -117,7 +181,12 @@
         <span>Pendentes hoje</span>
         <strong id="pendentesHoje">0</strong>
       </article>
+    </section>
 
+    <section
+      class="cards cards-secundarios"
+      aria-label="Resultados acumulados"
+    >
       <article class="card">
         <span>Cancelamentos hoje</span>
         <strong id="cancelamentosHoje">0</strong>
@@ -139,25 +208,6 @@
           R$ 0,00
         </strong>
       </article>
-    </section>
-
-    <section class="secao-dashboard">
-      <div class="secao-titulo">
-        <div>
-          <h2>Próximo atendimento</h2>
-
-          <p>
-            O atendimento mais próximo da sua agenda.
-          </p>
-        </div>
-      </div>
-
-      <div
-        id="proximoAtendimento"
-        class="proximo-atendimento"
-      >
-        <p>Nenhum atendimento futuro encontrado.</p>
-      </div>
     </section>
 
     <section class="secao-dashboard">
@@ -207,6 +257,7 @@
   ></nav>
 
   <script src="../js/config.js"></script>
+  <script src="../js/analytics.js"></script>
   <script src="../js/utils.js"></script>
   <script src="../js/api.js"></script>
 
@@ -214,12 +265,7 @@
     src="../js/dashboard-profissional.js"
   ></script>
 
-<nav
-  id="appNav"
-  class="app-bottom-nav"
-></nav>
-
-<script src="../js/navegacao.js"></script>
+  <script src="../js/navegacao.js"></script>
 
 </body>
 </html>

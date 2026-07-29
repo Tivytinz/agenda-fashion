@@ -15,7 +15,10 @@
   <link rel="stylesheet" href="../css/refresh.css?v=2026.1">
 </head>
 
-<body>
+<body
+  data-af-tela="dashboard_dono"
+  data-af-missao="acompanhar_crescimento"
+>
   <main
     id="dashboardDonoPage"
     class="dashboard-dono-page"
@@ -67,25 +70,55 @@
       </div>
     </header>
 
-    <section class="af-hero dashboard-hero crescimento-hero">
-      <div class="af-hero-emoji" aria-hidden="true">🚀</div>
+    <section
+      class="crescimento-painel af-card"
+      aria-labelledby="crescimentoTitulo"
+    >
+      <div class="crescimento-conteudo">
+        <span class="af-badge">Seu progresso</span>
 
-      <div class="af-hero-content">
-        <span class="af-badge">Crescimento do negócio</span>
+        <h1 id="crescimentoTitulo">
+          Cada agendamento é uma conquista
+        </h1>
 
-        <h1 class="af-hero-title">Acompanhe o crescimento do seu negócio</h1>
-
-        <p class="af-hero-text">
-          Veja agendamentos, clientes, profissionais e resultados em um só lugar.
+        <p id="planoMensagem">
+          Preparando a história de crescimento do seu negócio...
         </p>
-      </div>
-    </section>
 
-    <section class="dashboard-bloco af-card plano-dashboard" aria-labelledby="tituloPlano">
-      <div class="bloco-topo">
-        <div>
-          <h2 id="tituloPlano">Seu plano no Agenda Fashion</h2>
-          <p id="planoMensagem">Carregando informações do plano...</p>
+        <div class="crescimento-numero">
+          <strong id="crescimentoTotal">0</strong>
+
+          <span>
+            agendamentos conquistados neste mês
+          </span>
+        </div>
+
+        <div
+          id="crescimentoProgresso"
+          class="crescimento-progress"
+          role="progressbar"
+          aria-label="Progresso até a próxima conquista"
+          aria-valuemin="0"
+          aria-valuemax="100"
+          aria-valuenow="0"
+        >
+          <div
+            id="crescimentoBarra"
+            class="crescimento-progress-bar"
+          ></div>
+        </div>
+      </div>
+
+      <aside class="crescimento-marco">
+        <span>Próxima conquista</span>
+        <strong id="crescimentoMarco">5 agendamentos</strong>
+        <small id="crescimentoApoio">
+          Seu trabalho merece ser cada vez mais escolhido.
+        </small>
+
+        <div class="crescimento-plano">
+          <span id="planoNome">Carregando plano...</span>
+          <small id="planoValor">-</small>
         </div>
 
         <button
@@ -93,55 +126,49 @@
           class="af-btn-primary hidden"
           type="button"
         >
-          Gerenciar assinatura
+          Continuar crescendo
         </button>
-      </div>
-
-      <div class="plano-dashboard-grid">
-        <article class="plano-info-card">
-          <span class="plano-label">Plano atual</span>
-          <strong id="planoNome">Carregando...</strong>
-          <small id="planoValor">-</small>
-        </article>
-
-        <article class="plano-info-card">
-          <span class="plano-label">Capacidade mensal</span>
-          <strong id="planoUso">0 agendamentos</strong>
-          <small id="planoRestantes">-</small>
-        </article>
-
-        <article class="plano-info-card plano-progresso-card">
-          <span class="plano-label">Uso do plano</span>
-          <strong id="planoPercentual">0%</strong>
-
-          <div
-            id="planoProgresso"
-            class="plano-progress"
-            role="progressbar"
-            aria-label="Uso do plano"
-            aria-valuemin="0"
-            aria-valuemax="100"
-            aria-valuenow="0"
-          >
-            <div id="planoBarra" class="plano-progress-bar"></div>
-          </div>
-
-          <small>Uso mensal da capacidade de agendamentos.</small>
-        </article>
-      </div>
+      </aside>
     </section>
 
-    <section class="kpi-grid" aria-label="Resumo do negócio">
+    <nav
+      class="acoes-rapidas af-card"
+      aria-label="Ações rápidas do negócio"
+    >
+      <a
+        href="/html/agenda-geral.html"
+        data-acao-dashboard="abrir_agenda"
+      >
+        <span aria-hidden="true">📅</span>
+        <strong>Abrir agenda</strong>
+      </a>
+
+      <a
+        href="/html/configuracao-agenda.html"
+        data-acao-dashboard="disponibilizar_horarios"
+      >
+        <span aria-hidden="true">🕒</span>
+        <strong>Liberar horários</strong>
+      </a>
+
+      <a
+        id="linkPerfilPublico"
+        href="/html/inicio.html"
+        data-acao-dashboard="ver_perfil"
+      >
+        <span aria-hidden="true">✨</span>
+        <strong>Ver meu perfil</strong>
+      </a>
+    </nav>
+
+    <section
+      class="kpi-grid kpi-grid-principal"
+      aria-label="Resumo principal do negócio"
+    >
       <article class="kpi-card af-card">
         <span aria-hidden="true">📅</span>
         <strong id="agendamentosHoje">0</strong>
         <small>Agendamentos hoje</small>
-      </article>
-
-      <article class="kpi-card af-card">
-        <span aria-hidden="true">🗓️</span>
-        <strong id="agendamentosPeriodo">0</strong>
-        <small>Agendamentos no período</small>
       </article>
 
       <article class="kpi-card af-card">
@@ -151,15 +178,32 @@
       </article>
 
       <article class="kpi-card af-card">
-        <span aria-hidden="true">💵</span>
-        <strong id="faturamentoPeriodo">R$ 0,00</strong>
-        <small>Faturamento no período</small>
-      </article>
-
-      <article class="kpi-card af-card">
         <span aria-hidden="true">👤</span>
         <strong id="clientesNovos">0</strong>
         <small>Clientes no período</small>
+      </article>
+
+      <article class="kpi-card af-card">
+        <span aria-hidden="true">📈</span>
+        <strong id="taxaConversao">0%</strong>
+        <small>Conversão do perfil</small>
+      </article>
+    </section>
+
+    <section
+      class="kpi-grid kpi-grid-secundario"
+      aria-label="Outros resultados do negócio"
+    >
+      <article class="kpi-card af-card">
+        <span aria-hidden="true">🗓️</span>
+        <strong id="agendamentosPeriodo">0</strong>
+        <small>Agendamentos no período</small>
+      </article>
+
+      <article class="kpi-card af-card">
+        <span aria-hidden="true">💵</span>
+        <strong id="faturamentoPeriodo">R$ 0,00</strong>
+        <small>Faturamento no período</small>
       </article>
 
       <article class="kpi-card af-card">
@@ -169,15 +213,15 @@
       </article>
 
       <article class="kpi-card af-card">
-        <span aria-hidden="true">💅</span>
-        <strong id="servicosVendidos">0</strong>
-        <small>Serviços vendidos</small>
-      </article>
-
-      <article class="kpi-card af-card">
         <span aria-hidden="true">🎟️</span>
         <strong id="ticketMedio">R$ 0,00</strong>
         <small>Ticket médio</small>
+      </article>
+
+      <article class="kpi-card af-card">
+        <span aria-hidden="true">💅</span>
+        <strong id="servicosVendidos">0</strong>
+        <small>Serviços vendidos</small>
       </article>
     </section>
 
@@ -211,10 +255,6 @@
             <span>Favoritos recebidos</span>
           </div>
 
-          <div class="performance-card destaque">
-            <strong id="taxaConversao">0%</strong>
-            <span>Conversão do perfil</span>
-          </div>
         </div>
       </article>
 
@@ -277,6 +317,7 @@
   <nav id="appNav" class="app-bottom-nav"></nav>
 
 <script src="../js/config.js"></script>
+<script src="../js/analytics.js"></script>
 <script src="../js/utils.js"></script>
 <script src="../js/api.js"></script>
 
