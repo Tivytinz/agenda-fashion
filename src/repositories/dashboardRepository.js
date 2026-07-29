@@ -480,26 +480,33 @@ async function buscarPerformanceNegocio(
       await db.query(
         `
         SELECT
-          COALESCE(
-            visitas,
-            0
-          )::int AS visitas_perfil,
+          COUNT(*) FILTER (
+            WHERE nome =
+              'perfil_visualizado'
+          )::INT
+            AS visitas_perfil,
 
-          COALESCE(
-            cliques_whatsapp,
-            0
-          )::int AS cliques_whatsapp,
+          COUNT(*) FILTER (
+            WHERE nome =
+              'contato_selecionado'
+              AND propriedades
+                ->> 'acao' =
+                  'whatsapp'
+          )::INT
+            AS cliques_whatsapp,
 
-          COALESCE(
-            cliques_maps,
-            0
-          )::int AS cliques_maps
+          COUNT(*) FILTER (
+            WHERE nome =
+              'contato_selecionado'
+              AND propriedades
+                ->> 'acao' =
+                  'maps'
+          )::INT
+            AS cliques_maps
 
-        FROM negocios
+        FROM eventos_produto
 
-        WHERE id = $1
-
-        LIMIT 1
+        WHERE negocio_id = $1
         `,
         [negocioId]
       );

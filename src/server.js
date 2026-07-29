@@ -17,10 +17,31 @@ const {
 const {
   validarConfigAsaas
 } = require("./services/asaasService");
+const {
+  iniciarWorkerWhatsapp
+} = require("./services/whatsappMensagemService");
 
 const app = express();
 
-app.use(express.json());
+app.use(
+  express.json({
+    verify: (
+      req,
+      _res,
+      buffer
+    ) => {
+      if (
+        req.originalUrl
+          ?.startsWith(
+            "/webhook/whatsapp"
+          )
+      ) {
+        req.rawBody =
+          Buffer.from(buffer);
+      }
+    },
+  })
+);
 
 app.use(cors({
   origin: [
@@ -138,6 +159,7 @@ if (process.env.NODE_ENV !== "test") {
     console.log(`Servidor rodando na porta ${PORT}`);
 
     iniciarWorkerWebhook();
+    iniciarWorkerWhatsapp();
 
     db.query("SELECT NOW()")
       .then((resultado) => {

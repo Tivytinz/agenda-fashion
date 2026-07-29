@@ -291,6 +291,7 @@ async function criarAgendamento(
     clienteId = null,
     clienteNome = null,
     clienteWhatsapp = null,
+    whatsappConsentido = false,
     servicoId,
     negocioId,
   },
@@ -315,6 +316,7 @@ async function criarAgendamento(
           cliente_id,
           cliente_nome,
           cliente_whatsapp,
+          whatsapp_consentido_em,
           servico_id,
           negocio_id,
           status
@@ -326,8 +328,13 @@ async function criarAgendamento(
           $4,
           $5,
           $6,
-          $7,
+          CASE
+            WHEN $7::BOOLEAN
+              THEN NOW()
+            ELSE NULL
+          END,
           $8,
+          $9,
           'agendado'
         )
         RETURNING
@@ -347,6 +354,7 @@ async function criarAgendamento(
           cliente_id,
           cliente_nome,
           cliente_whatsapp,
+          whatsapp_consentido_em,
           servico_id,
           negocio_id,
           status,
@@ -361,6 +369,7 @@ async function criarAgendamento(
         clienteId,
         clienteNome,
         clienteWhatsapp,
+        whatsappConsentido,
         servicoId,
         negocioId,
       ]
@@ -483,9 +492,18 @@ async function listarMeusAgendamentos(
 
 async function buscarAgendamentoCliente(
   agendamentoId,
-  clienteId
+  clienteId,
+  executor = db,
+  {
+    bloquear = false,
+  } = {}
 ) {
-  const result = await db.query(
+  const bloqueio =
+    bloquear
+      ? "FOR UPDATE"
+      : "";
+
+  const result = await executor.query(
     `
       SELECT
         id,
@@ -511,6 +529,8 @@ async function buscarAgendamentoCliente(
         AND cliente_id = $2
 
       LIMIT 1
+
+      ${bloqueio}
     `,
     [
       agendamentoId,
@@ -523,9 +543,10 @@ async function buscarAgendamentoCliente(
 
 async function cancelarAgendamento(
   agendamentoId,
-  clienteId
+  clienteId,
+  executor = db
 ) {
-  const result = await db.query(
+  const result = await executor.query(
     `
       UPDATE agendamentos
 

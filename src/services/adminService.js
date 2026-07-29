@@ -547,6 +547,7 @@ async function buscarDashboardAdmin({
     indicadoresGerais,
     indicadoresHoje,
     metricas,
+    funilProduto,
     destaques,
     qualidade,
   ] =
@@ -561,6 +562,11 @@ async function buscarDashboardAdmin({
 
       adminRepository
         .buscarMetricasPlataforma(
+          periodoNormalizado
+        ),
+
+      adminRepository
+        .buscarFunilProduto(
           periodoNormalizado
         ),
 
@@ -636,6 +642,47 @@ async function buscarDashboardAdmin({
       metricas
         ?.favoritosTotais
     );
+
+  const descobriram =
+    converterInteiro(
+      funilProduto
+        ?.descobriram
+    );
+
+  const avaliaram =
+    converterInteiro(
+      funilProduto
+        ?.avaliaram
+    );
+
+  const iniciaram =
+    converterInteiro(
+      funilProduto
+        ?.iniciaram
+    );
+
+  const concluiram =
+    converterInteiro(
+      funilProduto
+        ?.concluiram
+    );
+
+  const acoesDashboard =
+    converterInteiro(
+      funilProduto
+        ?.acoes_dashboard
+    );
+
+  const conversaoAgendamento =
+    iniciaram > 0
+      ? Math.round(
+          (
+            concluiram /
+            iniciaram
+          ) *
+            100
+        )
+      : 0;
 
   const cidadeTop =
     normalizarTexto(
@@ -745,6 +792,15 @@ async function buscarDashboardAdmin({
       negociosSemMaps,
       negociosSemWhatsapp,
       negociosCompletos,
+    },
+
+    comportamento: {
+      descobriram,
+      avaliaram,
+      iniciaram,
+      concluiram,
+      acoesDashboard,
+      conversaoAgendamento,
     },
   };
 }

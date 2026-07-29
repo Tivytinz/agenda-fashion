@@ -127,6 +127,36 @@ document.addEventListener(
           "favoritosTotais"
         ),
 
+      funilDescobriram:
+        buscarElemento(
+          "funilDescobriram"
+        ),
+
+      funilAvaliaram:
+        buscarElemento(
+          "funilAvaliaram"
+        ),
+
+      funilIniciaram:
+        buscarElemento(
+          "funilIniciaram"
+        ),
+
+      funilConcluiram:
+        buscarElemento(
+          "funilConcluiram"
+        ),
+
+      funilConversao:
+        buscarElemento(
+          "funilConversao"
+        ),
+
+      acoesDashboard:
+        buscarElemento(
+          "acoesDashboard"
+        ),
+
       /*
        * Destaques.
        */
@@ -842,6 +872,56 @@ document.addEventListener(
           dados.favoritosTotais ??
           dados.metricas
             ?.favoritosTotais
+        )
+      );
+
+      definirTexto(
+        elementos.funilDescobriram,
+        converterInteiro(
+          dados.comportamento
+            ?.descobriram
+        )
+      );
+
+      definirTexto(
+        elementos.funilAvaliaram,
+        converterInteiro(
+          dados.comportamento
+            ?.avaliaram
+        )
+      );
+
+      definirTexto(
+        elementos.funilIniciaram,
+        converterInteiro(
+          dados.comportamento
+            ?.iniciaram
+        )
+      );
+
+      definirTexto(
+        elementos.funilConcluiram,
+        converterInteiro(
+          dados.comportamento
+            ?.concluiram
+        )
+      );
+
+      definirTexto(
+        elementos.funilConversao,
+        `${
+          converterNumero(
+            dados.comportamento
+              ?.conversaoAgendamento
+          )
+        }%`
+      );
+
+      definirTexto(
+        elementos.acoesDashboard,
+        converterInteiro(
+          dados.comportamento
+            ?.acoesDashboard
         )
       );
 

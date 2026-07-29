@@ -166,6 +166,7 @@ async function criarAgendamentoPublico(
       horario,
       cliente_nome,
       cliente_whatsapp,
+      aceita_mensagens_whatsapp,
     } = req.body || {};
 
     if (
@@ -259,6 +260,10 @@ async function criarAgendamentoPublico(
 
           clienteWhatsapp:
             cliente_whatsapp,
+
+          whatsappConsentido:
+            aceita_mensagens_whatsapp ===
+            true,
 
           servicoId:
             servico.id,

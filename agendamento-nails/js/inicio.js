@@ -12,6 +12,16 @@ document.addEventListener(
           "listaNegocios"
         ),
 
+      listaServicos:
+        document.getElementById(
+          "listaServicosHome"
+        ),
+
+      filtrosCategorias:
+        document.getElementById(
+          "filtrosCategorias"
+        ),
+
       mensagemHome:
         document.getElementById(
           "mensagemHome"
@@ -21,12 +31,18 @@ document.addEventListener(
         document.getElementById(
           "totalNegocios"
         ),
+
+      totalServicos:
+        document.getElementById(
+          "totalServicos"
+        ),
     };
 
     const estado = {
       negocios: [],
       carregando: false,
       termoBusca: "",
+      categoria: "",
       controlador: null,
       temporizadorBusca: null,
     };
@@ -68,6 +84,23 @@ document.addEventListener(
         .replace(/\/$/, "");
     }
 
+    function registrarComportamento(
+      nome,
+      {
+        negocioId,
+        propriedades = {},
+      } = {}
+    ) {
+      window.AFAnalytics
+        ?.registrar?.(
+          nome,
+          {
+            negocioId,
+            propriedades,
+          }
+        );
+    }
+
     function normalizarTexto(
       texto
     ) {
@@ -98,6 +131,23 @@ document.addEventListener(
       )
         ? numero
         : null;
+    }
+
+    function formatarMoeda(
+      valor
+    ) {
+      const numero =
+        normalizarNumero(
+          valor
+        ) || 0;
+
+      return new Intl.NumberFormat(
+        "pt-BR",
+        {
+          style: "currency",
+          currency: "BRL",
+        }
+      ).format(numero);
     }
 
     function obterIniciais(
@@ -181,6 +231,12 @@ document.addEventListener(
         carregando;
 
       elementos.listaNegocios
+        ?.setAttribute(
+          "aria-busy",
+          String(carregando)
+        );
+
+      elementos.listaServicos
         ?.setAttribute(
           "aria-busy",
           String(carregando)
@@ -515,8 +571,19 @@ document.addEventListener(
           ];
     }
 
-    function abrirPerfil(
+    function obterServicos(
       negocio
+    ) {
+      return Array.isArray(
+        negocio.servicos
+      )
+        ? negocio.servicos
+        : [];
+    }
+
+    function abrirPerfil(
+      negocio,
+      servicoId = null
     ) {
       const slug =
         String(
@@ -532,12 +599,218 @@ document.addEventListener(
         return;
       }
 
+      const parametros =
+        new URLSearchParams({
+          slug,
+        });
+
+      if (servicoId) {
+        parametros.set(
+          "servico",
+          String(servicoId)
+        );
+      }
+
+      registrarComportamento(
+        servicoId
+          ? "servico_selecionado"
+          : "negocio_selecionado",
+        {
+          negocioId:
+            negocio.id,
+          propriedades: {
+            origem:
+              "inicio",
+            servico_id:
+              servicoId ||
+              undefined,
+          },
+        }
+      );
+
       window.location.href =
-        `/html/perfil-negocio.html?slug=${
-          encodeURIComponent(
-            slug
-          )
+        `/html/perfil-negocio.html?${parametros.toString()}`;
+    }
+
+    function criarImagemServico(
+      servico,
+      negocio
+    ) {
+      const fotoUrl =
+        String(
+          servico.foto_url ||
+          negocio.foto_url ||
+          ""
+        ).trim();
+
+      if (!fotoUrl) {
+        return criarElemento(
+          "div",
+          "servico-home-imagem servico-home-sem-foto",
+          "💅"
+        );
+      }
+
+      const imagem =
+        document.createElement(
+          "img"
+        );
+
+      imagem.className =
+        "servico-home-imagem";
+
+      imagem.src =
+        fotoUrl;
+
+      imagem.alt =
+        `Foto de ${
+          servico.nome ||
+          "serviço"
         }`;
+
+      imagem.loading =
+        "lazy";
+
+      imagem.decoding =
+        "async";
+
+      imagem.addEventListener(
+        "error",
+        () => {
+          imagem.replaceWith(
+            criarElemento(
+              "div",
+              "servico-home-imagem servico-home-sem-foto",
+              "💅"
+            )
+          );
+        },
+        {
+          once: true,
+        }
+      );
+
+      return imagem;
+    }
+
+    function criarCardServico({
+      servico,
+      negocio,
+    }) {
+      const card =
+        criarElemento(
+          "article",
+          "card-servico-home af-fade-in"
+        );
+
+      const imagem =
+        criarImagemServico(
+          servico,
+          negocio
+        );
+
+      const conteudo =
+        criarElemento(
+          "div",
+          "servico-home-conteudo"
+        );
+
+      const nome =
+        criarElemento(
+          "h3",
+          "",
+          servico.nome ||
+          "Serviço de beleza"
+        );
+
+      const negocioNome =
+        criarElemento(
+          "button",
+          "servico-home-negocio",
+          negocio.nome ||
+          "Negócio"
+        );
+
+      negocioNome.type =
+        "button";
+
+      negocioNome.addEventListener(
+        "click",
+        () => {
+          abrirPerfil(
+            negocio
+          );
+        }
+      );
+
+      const meta =
+        criarElemento(
+          "div",
+          "servico-home-meta"
+        );
+
+      meta.append(
+        criarElemento(
+          "strong",
+          "",
+          formatarMoeda(
+            servico.valor
+          )
+        ),
+        criarElemento(
+          "span",
+          "",
+          `⏱ ${Number(
+            servico.duracao_minutos ||
+            0
+          )} min`
+        )
+      );
+
+      const botao =
+        criarElemento(
+          "button",
+          "servico-home-agendar",
+          "Agendar"
+        );
+
+      botao.type =
+        "button";
+
+      botao.setAttribute(
+        "aria-label",
+        `Agendar ${
+          servico.nome ||
+          "serviço"
+        } em ${
+          negocio.nome ||
+          "negócio"
+        }`
+      );
+
+      botao.addEventListener(
+        "click",
+        () => {
+          abrirPerfil(
+            negocio,
+            servico.id
+          );
+        }
+      );
+
+      conteudo.append(
+        nome,
+        negocioNome,
+        meta,
+        botao
+      );
+
+      card.append(
+        imagem,
+        conteudo
+      );
+
+      return card;
     }
 
     function criarCardNegocio(
@@ -694,12 +967,79 @@ document.addEventListener(
       if (
         elementos.totalNegocios
       ) {
+        const total =
+          obterNegociosFiltrados()
+            .length;
+
         elementos.totalNegocios
           .textContent =
-          String(
-            estado.negocios.length
-          );
+          `${total} ${
+            total === 1
+              ? "negócio"
+              : "negócios"
+          }`;
       }
+    }
+
+    function obterServicosFiltrados() {
+      const termo =
+        normalizarTexto(
+          estado.termoBusca
+        );
+
+      const categoria =
+        normalizarTexto(
+          estado.categoria
+        );
+
+      const servicos = [];
+
+      estado.negocios
+        .forEach(
+          (negocio) => {
+            obterServicos(
+              negocio
+            ).forEach(
+              (servico) => {
+                const textoBusca =
+                  normalizarTexto(
+                    [
+                      servico.nome,
+                      servico.descricao,
+                      negocio.nome,
+                      negocio.cidade,
+                      negocio.bairro,
+                    ].join(" ")
+                  );
+
+                if (
+                  termo &&
+                  !textoBusca.includes(
+                    termo
+                  )
+                ) {
+                  return;
+                }
+
+                if (
+                  categoria &&
+                  !textoBusca.includes(
+                    categoria
+                  )
+                ) {
+                  return;
+                }
+
+                servicos.push({
+                  servico,
+                  negocio,
+                });
+              }
+            );
+          }
+        );
+
+      return servicos;
     }
 
     function obterNegociosFiltrados() {
@@ -708,7 +1048,15 @@ document.addEventListener(
           estado.termoBusca
         );
 
-      if (!termo) {
+      const categoria =
+        normalizarTexto(
+          estado.categoria
+        );
+
+      if (
+        !termo &&
+        !categoria
+      ) {
         return [
           ...estado.negocios,
         ];
@@ -726,17 +1074,105 @@ document.addEventListener(
               ...obterAreas(
                 negocio
               ),
+              ...obterServicos(
+                negocio
+              ).flatMap(
+                (servico) => [
+                  servico.nome,
+                  servico.descricao,
+                ]
+              ),
             ].join(
               " "
             );
 
-            return normalizarTexto(
+            const textoNormalizado =
+              normalizarTexto(
               textoBusca
-            ).includes(
-              termo
+            );
+
+            return (
+              (
+                !termo ||
+                textoNormalizado.includes(
+                  termo
+                )
+              ) &&
+              (
+                !categoria ||
+                textoNormalizado.includes(
+                  categoria
+                )
+              )
             );
           }
         );
+    }
+
+    function renderizarServicos() {
+      const lista =
+        elementos.listaServicos;
+
+      if (!lista) {
+        return;
+      }
+
+      const servicos =
+        obterServicosFiltrados();
+
+      if (
+        elementos.totalServicos
+      ) {
+        elementos.totalServicos
+          .textContent =
+          `${servicos.length} ${
+            servicos.length === 1
+              ? "serviço"
+              : "serviços"
+          }`;
+      }
+
+      lista.replaceChildren();
+
+      if (
+        servicos.length === 0
+      ) {
+        lista.appendChild(
+          criarEstadoVazio(
+            "Nenhum serviço encontrado",
+            "Tente outra busca ou categoria."
+          )
+        );
+
+        lista.setAttribute(
+          "aria-busy",
+          "false"
+        );
+
+        return;
+      }
+
+      const fragmento =
+        document.createDocumentFragment();
+
+      servicos.forEach(
+        (item) => {
+          fragmento.appendChild(
+            criarCardServico(
+              item
+            )
+          );
+        }
+      );
+
+      lista.appendChild(
+        fragmento
+      );
+
+      lista.setAttribute(
+        "aria-busy",
+        "false"
+      );
     }
 
     function renderizarNegocios() {
@@ -807,6 +1243,11 @@ document.addEventListener(
         "aria-busy",
         "false"
       );
+    }
+
+    function renderizarConteudo() {
+      renderizarServicos();
+      renderizarNegocios();
     }
 
     function salvarLocalizacaoUsuario(
@@ -1083,7 +1524,7 @@ document.addEventListener(
             }
           );
 
-      renderizarNegocios();
+      renderizarConteudo();
     }
 
     async function lerRespostaJson(
@@ -1188,7 +1629,7 @@ document.addEventListener(
             })
           );
 
-        renderizarNegocios();
+        renderizarConteudo();
 
         /*
          * A lista aparece imediatamente.
@@ -1232,7 +1673,29 @@ document.addEventListener(
           ?.value ||
         "";
 
-      renderizarNegocios();
+      renderizarConteudo();
+
+      const termoPresente =
+        normalizarTexto(
+          estado.termoBusca
+        ).length >= 2;
+
+      if (termoPresente) {
+        registrarComportamento(
+          "busca_realizada",
+          {
+            propriedades: {
+              termo_presente:
+                true,
+              resultados:
+                obterNegociosFiltrados()
+                  .length +
+                obterServicosFiltrados()
+                  .length,
+            },
+          }
+        );
+      }
     }
 
     function configurarEventos() {
@@ -1250,6 +1713,54 @@ document.addEventListener(
                 filtrarNegocios,
                 160
               );
+          }
+        );
+
+      elementos.filtrosCategorias
+        ?.addEventListener(
+          "click",
+          (evento) => {
+            const botao =
+              evento.target.closest(
+                "[data-categoria]"
+              );
+
+            if (!botao) {
+              return;
+            }
+
+            estado.categoria =
+              botao.dataset
+                .categoria ||
+              "";
+
+            registrarComportamento(
+              "categoria_selecionada",
+              {
+                propriedades: {
+                  categoria:
+                    estado.categoria ||
+                    "todas",
+                },
+              }
+            );
+
+            elementos
+              .filtrosCategorias
+              .querySelectorAll(
+                "[data-categoria]"
+              )
+              .forEach(
+                (item) => {
+                  item.classList
+                    .toggle(
+                      "ativo",
+                      item === botao
+                    );
+                }
+              );
+
+            renderizarConteudo();
           }
         );
 

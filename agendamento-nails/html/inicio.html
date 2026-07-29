@@ -15,7 +15,7 @@
 
   <meta
     name="theme-color"
-    content="#e83e8c"
+    content="#d92f7f"
   >
 
   <title>
@@ -36,9 +36,14 @@
     rel="stylesheet"
     href="../css/navegacao.css"
   >
+
+  <link rel="stylesheet" href="../css/refresh.css?v=2026.1">
 </head>
 
-<body>
+<body
+  data-af-tela="inicio"
+  data-af-missao="descobrir_servico"
+>
   <main class="inicio-page">
     <header class="inicio-header">
       <a
@@ -59,7 +64,7 @@
           </div>
 
           <div class="af-brand-subtitle">
-            Beleza agendada em poucos cliques
+            Encontre e agende beleza
           </div>
         </div>
       </a>
@@ -85,30 +90,16 @@
       class="af-hero inicio-hero"
       aria-labelledby="inicioTitulo"
     >
-      <div
-        class="af-hero-emoji"
-        aria-hidden="true"
-      >
-        ✨
-      </div>
-
       <div class="af-hero-content">
-        <span class="af-badge">
-          <span aria-hidden="true">✦</span>
-          Agendamento simples e rápido
-        </span>
-
         <h1
           id="inicioTitulo"
           class="af-hero-title"
         >
-          Seu próximo horário de beleza começa aqui
+          O que você quer agendar hoje?
         </h1>
 
         <p class="af-hero-text">
-          Encontre negócios perto de você, compare serviços
-          e escolha o melhor horário sem precisar esperar
-          atendimento pelo WhatsApp.
+          Encontre serviços e negócios de beleza perto de você.
         </p>
 
         <form
@@ -134,7 +125,7 @@
             id="campoBusca"
             name="busca"
             type="search"
-            placeholder="Busque por nome, cidade, bairro ou serviço"
+            placeholder="Busque serviço, negócio ou cidade"
             autocomplete="off"
             autocapitalize="none"
             spellcheck="false"
@@ -150,90 +141,62 @@
         </form>
 
         <div
-          class="inicio-beneficios"
-          aria-label="Benefícios do Agenda Fashion"
+          id="filtrosCategorias"
+          class="categorias-rapidas"
+          aria-label="Categorias de beleza"
         >
-          <span>
-            <b aria-hidden="true">✓</b>
-            Agendamento online
-          </span>
-
-          <span>
-            <b aria-hidden="true">✓</b>
-            Horários atualizados
-          </span>
-
-          <span>
-            <b aria-hidden="true">✓</b>
-            Perfis perto de você
-          </span>
+          <button class="categoria-chip ativo" type="button" data-categoria="">
+            Todos
+          </button>
+          <button class="categoria-chip" type="button" data-categoria="unha">
+            💅 Unhas
+          </button>
+          <button class="categoria-chip" type="button" data-categoria="cabelo">
+            💇 Cabelo
+          </button>
+          <button class="categoria-chip" type="button" data-categoria="cilio">
+            👁️ Cílios
+          </button>
+          <button class="categoria-chip" type="button" data-categoria="sobrancelha">
+            ✨ Sobrancelhas
+          </button>
         </div>
       </div>
     </section>
 
     <section
-      class="resumo-cards"
-      aria-label="Vantagens do Agenda Fashion"
+      class="servicos-section"
+      aria-labelledby="tituloServicos"
     >
-      <article class="resumo-card af-card">
-        <div
-          class="resumo-card-icone"
-          aria-hidden="true"
-        >
-          🏢
-        </div>
-
+      <div class="section-topo section-topo-compacto">
         <div>
-          <strong
-            id="totalNegocios"
-            aria-live="polite"
-          >
-            0
-          </strong>
-
-          <span>
-            negócios disponíveis
+          <span class="section-etiqueta">
+            Agende agora
           </span>
-        </div>
-      </article>
 
-      <article class="resumo-card af-card">
-        <div
-          class="resumo-card-icone"
-          aria-hidden="true"
+          <h2 id="tituloServicos">
+            Serviços disponíveis
+          </h2>
+        </div>
+
+        <span
+          id="totalServicos"
+          class="total-resultados"
+          aria-live="polite"
         >
-          📍
-        </div>
+          0 serviços
+        </span>
+      </div>
 
-        <div>
-          <strong>
-            Perto de você
-          </strong>
-
-          <span>
-            resultados por proximidade
-          </span>
-        </div>
-      </article>
-
-      <article class="resumo-card af-card">
-        <div
-          class="resumo-card-icone"
-          aria-hidden="true"
-        >
-          📅
-        </div>
-
-        <div>
-          <strong>
-            24 horas
-          </strong>
-
-          <span>
-            agenda disponível online
-          </span>
-        </div>
-      </article>
+      <div
+        id="listaServicosHome"
+        class="lista-servicos-home"
+        aria-live="polite"
+        aria-busy="true"
+      >
+        <div class="servico-card-skeleton" aria-hidden="true"></div>
+        <div class="servico-card-skeleton" aria-hidden="true"></div>
+      </div>
     </section>
 
     <section
@@ -247,21 +210,21 @@
           </span>
 
           <h2 id="tituloNegocios">
-            Profissionais e negócios disponíveis
+            Negócios para conhecer
           </h2>
 
           <p>
-            Abra um perfil para conhecer os serviços,
-            profissionais, preços e horários disponíveis.
+            Escolha um perfil, veja todos os serviços e agende seu horário.
           </p>
         </div>
 
-        <a
-          class="af-btn-secondary section-link-negocios"
-          href="#listaNegocios"
+        <span
+          id="totalNegocios"
+          class="total-resultados"
+          aria-live="polite"
         >
-          Ver todos
-        </a>
+          0 negócios
+        </span>
       </div>
 
       <div
@@ -364,6 +327,7 @@
   ></nav>
 
   <script src="../js/config.js"></script>
+  <script src="../js/analytics.js"></script>
   <script src="../js/utils.js"></script>
   <script src="../js/api.js"></script>
   <script src="../js/services/authService.js"></script>

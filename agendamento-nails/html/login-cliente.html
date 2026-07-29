@@ -13,15 +13,23 @@
     content="Entre na sua conta do Agenda Fashion para acompanhar seus agendamentos."
   >
 
+  <meta name="theme-color" content="#d92f7f">
+
   <title>Entrar | Agenda Fashion</title>
 
   <link
     rel="stylesheet"
     href="../css/auth.css"
   >
+
+  <link rel="stylesheet" href="../css/refresh.css?v=2026.1">
 </head>
 
-<body class="page-enter">
+<body
+  class="page-enter"
+  data-af-tela="login_cliente"
+  data-af-missao="entrar_cliente"
+>
   <main class="auth-container">
     <div
       class="auth-icon"
@@ -142,6 +150,7 @@
     → utiliza window.AuthService
   -->
   <script src="../js/config.js"></script>
+  <script src="../js/analytics.js"></script>
   <script src="../js/api.js"></script>
   <script src="../js/services/authService.js"></script>
   <script src="../js/login-cliente.js"></script>

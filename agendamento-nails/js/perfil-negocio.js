@@ -101,6 +101,21 @@ document.addEventListener("DOMContentLoaded", () => {
     return String(valor).trim().replace(/\/+$/, "");
   }
 
+  function registrarComportamento(
+    nome,
+    propriedades = {}
+  ) {
+    window.AFAnalytics
+      ?.registrar?.(
+        nome,
+        {
+          negocioId:
+            estado.negocio?.id,
+          propriedades,
+        }
+      );
+  }
+
   async function lerJson(resposta) {
     if (resposta.status === 204) {
       return {};
@@ -717,6 +732,19 @@ document.addEventListener("DOMContentLoaded", () => {
     elementos.etapaHorario?.classList.add("ativa");
 
     atualizarResumo();
+
+    registrarComportamento(
+      "servico_selecionado",
+      {
+        origem:
+          "perfil_negocio",
+        servico_id:
+          Number(
+            servico?.id
+          ) ||
+          0,
+      }
+    );
 
     elementos.boxProfissionaisHorarios?.scrollIntoView({
       behavior: "smooth",
@@ -1691,6 +1719,23 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     );
 
+    registrarComportamento(
+      "agendamento_concluido",
+      {
+        origem:
+          autenticado
+            ? "cliente_logada"
+            : "visitante",
+        servico_id:
+          Number(
+            servicoId
+          ) ||
+          0,
+        status:
+          "sucesso",
+      }
+    );
+
     estado.negocio = {
       ...estado.negocio,
       ...(dados.negocio || payload),
@@ -2450,6 +2495,25 @@ document.addEventListener("DOMContentLoaded", () => {
           placeholder="Ex.: 62999999999"
           autocomplete="tel"
         >
+
+        <label
+          for="inputClienteWhatsappConsentimento"
+          class="af-consentimento-whatsapp"
+        >
+          <input
+            id="inputClienteWhatsappConsentimento"
+            type="checkbox"
+          >
+
+          <span>
+            Quero receber confirmação, lembrete e
+            atualizações deste agendamento pelo WhatsApp.
+          </span>
+        </label>
+
+        <p class="af-help">
+          Opcional. Você pode agendar sem autorizar mensagens.
+        </p>
       `
     );
   }
@@ -2580,6 +2644,7 @@ document.addEventListener("DOMContentLoaded", () => {
   async function confirmarAgendamento({
   nome,
   whatsapp,
+  consentimentoWhatsapp = false,
   autenticado,
 }) {
   const cliente = validarDadosAgendamento(
@@ -2645,6 +2710,9 @@ document.addEventListener("DOMContentLoaded", () => {
       horario: horaAgendamento,
       cliente_nome: cliente.nome,
       cliente_whatsapp: cliente.whatsapp,
+      aceita_mensagens_whatsapp:
+        consentimentoWhatsapp ===
+        true,
     };
 
     console.log(
@@ -2720,6 +2788,23 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
+    registrarComportamento(
+      "agendamento_iniciado",
+      {
+        origem:
+          obterTokenAtual()
+            ? "cliente_logada"
+            : "visitante",
+        servico_id:
+          Number(
+            estado
+              .servicoSelecionado
+              ?.id
+          ) ||
+          0,
+      }
+    );
+
     const token =
       obterTokenAtual();
 
@@ -2730,24 +2815,6 @@ document.addEventListener("DOMContentLoaded", () => {
       abrirModalConfirmacao(
         "confirmar-agendamento-visitante"
       );
-
-      return;
-    }
-
-    if (
-      usuario?.nome &&
-      usuario?.whatsapp
-    ) {
-      await confirmarAgendamento({
-        nome:
-          usuario.nome,
-
-        whatsapp:
-          usuario.whatsapp,
-
-        autenticado:
-          true,
-      });
 
       return;
     }
@@ -2813,6 +2880,15 @@ document.addEventListener("DOMContentLoaded", () => {
                 "inputClienteWhatsapp"
               ),
 
+            consentimentoWhatsapp:
+              Boolean(
+                document
+                  .getElementById(
+                    "inputClienteWhatsappConsentimento"
+                  )
+                  ?.checked
+              ),
+
             autenticado:
               false,
           });
@@ -2831,6 +2907,15 @@ document.addEventListener("DOMContentLoaded", () => {
             whatsapp:
               valorCampo(
                 "inputClienteWhatsapp"
+              ),
+
+            consentimentoWhatsapp:
+              Boolean(
+                document
+                  .getElementById(
+                    "inputClienteWhatsappConsentimento"
+                  )
+                  ?.checked
               ),
 
             autenticado:
@@ -3040,6 +3125,24 @@ document.addEventListener("DOMContentLoaded", () => {
       estado.negocio =
         dados.negocio;
 
+      if (
+        !ehDonoDoPerfil()
+      ) {
+        registrarComportamento(
+          "perfil_visualizado",
+          {
+            origem:
+              new URLSearchParams(
+                window.location.search
+              ).has(
+                "servico"
+              )
+                ? "servico"
+                : "negocio",
+          }
+        );
+      }
+
       estado.servicos =
         Array.isArray(
           dados.servicos
@@ -3075,6 +3178,49 @@ document.addEventListener("DOMContentLoaded", () => {
 
       resetarFluxoAgendamento();
 
+      const servicoUrl =
+        new URLSearchParams(
+          window.location.search
+        ).get("servico");
+
+      const servicoInicial =
+        estado.servicos.find(
+          (servico) =>
+            String(servico.id) ===
+            String(servicoUrl || "")
+        );
+
+      if (servicoInicial) {
+        const cardInicial =
+          Array.from(
+            elementos.listaServicos
+              ?.querySelectorAll(
+                "[data-id]"
+              ) || []
+          ).find(
+            (card) =>
+              card.dataset.id ===
+              String(
+                servicoInicial.id
+              )
+          );
+
+        selecionarServico(
+          servicoInicial,
+          cardInicial
+        );
+
+        cardInicial?.scrollIntoView?.({
+          behavior:
+            window.matchMedia(
+              "(prefers-reduced-motion: reduce)"
+            ).matches
+              ? "auto"
+              : "smooth",
+          block: "center",
+        });
+      }
+
       await carregarFavorito();
     } catch (erro) {
       console.error(
@@ -3109,6 +3255,34 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function configurarEventos() {
+    elementos.btnWhatsapp
+      ?.addEventListener(
+        "click",
+        () => {
+          registrarComportamento(
+            "contato_selecionado",
+            {
+              acao:
+                "whatsapp",
+            }
+          );
+        }
+      );
+
+    elementos.btnMaps
+      ?.addEventListener(
+        "click",
+        () => {
+          registrarComportamento(
+            "contato_selecionado",
+            {
+              acao:
+                "maps",
+            }
+          );
+        }
+      );
+
     elementos.btnFavorito
       ?.addEventListener(
         "click",

@@ -1,5 +1,11 @@
 const axios = require("axios");
 
+function erroConfiguracao(mensagem) {
+  const erro = new Error(mensagem);
+  erro.code = "WHATSAPP_CONFIGURATION_ERROR";
+  return erro;
+}
+
 function validarConfiguracao() {
   const {
     WHATSAPP_ACCESS_TOKEN,
@@ -8,19 +14,19 @@ function validarConfiguracao() {
   } = process.env;
 
   if (!WHATSAPP_ACCESS_TOKEN) {
-    throw new Error(
+    throw erroConfiguracao(
       "WHATSAPP_ACCESS_TOKEN não configurado no .env."
     );
   }
 
   if (!WHATSAPP_PHONE_NUMBER_ID) {
-    throw new Error(
+    throw erroConfiguracao(
       "WHATSAPP_PHONE_NUMBER_ID não configurado no .env."
     );
   }
 
   if (!WHATSAPP_API_VERSION) {
-    throw new Error(
+    throw erroConfiguracao(
       "WHATSAPP_API_VERSION não configurado no .env."
     );
   }
@@ -35,20 +41,27 @@ function limparNumero(numero) {
 }
 
 function obterDestinatario(numeroRecebido) {
-  /*
-   * Enquanto estiver usando o ambiente
-   * de testes da Meta, o número definido em
-   * WHATSAPP_TEST_RECIPIENT será priorizado.
-   *
-   * Quando essa variável não existir,
-   * será usado o número recebido pelo sistema.
-   */
-  const numero =
-    process.env.WHATSAPP_TEST_RECIPIENT ||
-    numeroRecebido;
-
   const numeroLimpo =
-    limparNumero(numero);
+    limparNumero(numeroRecebido);
+
+  if (
+    [10, 11].includes(
+      numeroLimpo.length
+    )
+  ) {
+    return `55${numeroLimpo}`;
+  }
+
+  if (
+    [12, 13].includes(
+      numeroLimpo.length
+    ) &&
+    numeroLimpo.startsWith(
+      "55"
+    )
+  ) {
+    return numeroLimpo;
+  }
 
   if (!numeroLimpo) {
     throw new Error(
@@ -56,7 +69,9 @@ function obterDestinatario(numeroRecebido) {
     );
   }
 
-  return numeroLimpo;
+  throw new Error(
+    "Destinatário do WhatsApp inválido. Informe um número brasileiro com DDD."
+  );
 }
 
 function obterUrlMensagens() {
@@ -136,16 +151,16 @@ async function enviarRequisicao(payload) {
         }
       );
 
-    console.log(
-      "WhatsApp enviado com sucesso:"
-    );
-
-    console.log(
-      JSON.stringify(
-        response.data,
-        null,
-        2
-      )
+    console.info(
+      "[WhatsApp] Requisição aceita pela Meta.",
+      {
+        message_id:
+          response.data
+            ?.messages
+            ?.[0]
+            ?.id ||
+          null,
+      }
     );
 
     return response.data;
@@ -263,11 +278,9 @@ async function enviarNovoAgendamento(
 }
 
 /*
- * Mantido temporariamente para não quebrar
- * arquivos que ainda chamam enviarMensagem().
- *
- * No próximo passo, notificationService.js
- * passará a chamar enviarNovoAgendamento().
+ * Mantido para mensagens livres dentro da janela
+ * de atendimento iniciada pelo próprio cliente.
+ * As automações usam enviarTemplate().
  */
 async function enviarMensagem(
   numero,
@@ -312,4 +325,6 @@ module.exports = {
   enviarMensagem,
   enviarTemplate,
   enviarNovoAgendamento,
+  obterDestinatario,
+  validarConfiguracao,
 };

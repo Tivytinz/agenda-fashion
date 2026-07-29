@@ -32,7 +32,10 @@ async function listarNegociosPublicos() {
   return {
     negocios: negocios.map(negocio => ({
       ...negocio,
-      areas: normalizarAreas(negocio.areas)
+      areas: normalizarAreas(negocio.areas),
+      servicos: Array.isArray(negocio.servicos)
+        ? negocio.servicos
+        : []
     }))
   };
 }

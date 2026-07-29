@@ -698,68 +698,148 @@ document.addEventListener(
         limiteBruto === null ||
         limiteBruto === undefined;
 
-      let percentual = 0;
+      const limite =
+        ilimitado
+          ? null
+          : Math.max(
+              converterNumero(
+                limiteBruto
+              ),
+              0
+            );
 
-      if (ilimitado) {
-        elementos.usoTexto
-          .textContent =
-            `${utilizados} agendamento` +
-            `${utilizados === 1 ? "" : "s"}`;
+      const percentualComercial =
+        ilimitado ||
+        limite <= 0
+          ? 0
+          : Math.min(
+              Math.round(
+                (
+                  utilizados /
+                  limite
+                ) * 100
+              ),
+              100
+            );
 
-        elementos.usoMensagem
-          .textContent =
-            "Seu plano possui agendamentos ilimitados.";
+      const marcos = [
+        5,
+        10,
+        20,
+        30,
+        50,
+        75,
+        100,
+        150,
+        200,
+        300,
+        500,
+        750,
+        1000,
+      ];
 
-        percentual = 100;
-      } else {
-        const limite =
-          Math.max(
-            converterNumero(
-              limiteBruto
-            ),
-            0
-          );
+      const proximoMarco =
+        marcos.find(
+          (marco) =>
+            marco >
+            utilizados
+        ) ||
+        (
+          Math.floor(
+            utilizados /
+            500
+          ) +
+          1
+        ) *
+          500;
+
+      const marcoAnterior =
+        [
+          0,
+          ...marcos,
+        ]
+          .filter(
+            (marco) =>
+              marco <=
+              utilizados
+          )
+          .at(
+            -1
+          ) ||
+        0;
+
+      let percentual =
+        Math.min(
+          Math.round(
+            (
+              (
+                utilizados -
+                marcoAnterior
+              ) /
+              Math.max(
+                proximoMarco -
+                  marcoAnterior,
+                1
+              )
+            ) *
+              100
+          ),
+          100
+        );
+
+      const novaFase =
+        !ilimitado &&
+        limite > 0 &&
+        utilizados >=
+          limite;
+
+      elementos.usoTexto
+        .textContent =
+          `${utilizados} ` +
+          `${utilizados === 1
+            ? "conquista"
+            : "conquistas"}`;
+
+      let faixa =
+        "ganhando_ritmo";
+
+      let mensagem =
+        `Próxima conquista: ${proximoMarco} agendamentos. ` +
+        "Cada novo horário mostra que seu trabalho está sendo escolhido.";
+
+      if (
+        utilizados === 0
+      ) {
+        faixa =
+          "comecando";
+
+        mensagem =
+          "Seu próximo agendamento será a primeira conquista deste mês 💅";
+      } else if (
+        novaFase
+      ) {
+        faixa =
+          "nova_fase";
 
         percentual =
-          limite > 0
-            ? Math.min(
-                Math.round(
-                  (
-                    utilizados /
-                    limite
-                  ) * 100
-                ),
-                100
-              )
-            : 0;
+          100;
 
-        const restantes =
-          Math.max(
-            limite -
-              utilizados,
-            0
-          );
+        mensagem =
+          "Você atingiu um novo marco — isso é prova do seu sucesso. Escolha a próxima fase para continuar recebendo novos agendamentos.";
+      } else if (
+        !ilimitado &&
+        percentualComercial >= 80
+      ) {
+        faixa =
+          "crescendo";
 
-        elementos.usoTexto
-          .textContent =
-            `${utilizados} de ${limite}`;
-
-        if (
-          utilizados >=
-          limite
-        ) {
-          elementos.usoMensagem
-            .textContent =
-              "A capacidade mensal do plano foi atingida.";
-        } else {
-          elementos.usoMensagem
-            .textContent =
-              `Você ainda possui ${restantes} ` +
-              `agendamento${restantes === 1 ? "" : "s"} ` +
-              "disponível" +
-              `${restantes === 1 ? "" : "is"} neste mês.`;
-        }
+        mensagem =
+          "Seu ritmo aumentou e seu trabalho está sendo cada vez mais escolhido. Conheça sua próxima fase.";
       }
+
+      elementos.usoMensagem
+        .textContent =
+          mensagem;
 
       elementos.usoBarra
         .style.width =
@@ -773,6 +853,18 @@ document.addEventListener(
         "aria-valuenow",
         String(percentual)
       );
+
+      window.AFAnalytics
+        ?.registrar?.(
+          "mensagem_crescimento_visualizada",
+          {
+            propriedades: {
+              faixa,
+              agendamentos_mes:
+                utilizados,
+            },
+          }
+        );
     }
 
     function criarPagamento(
@@ -1143,7 +1235,7 @@ document.addEventListener(
 
         elementos.usoTexto
           .textContent =
-            "0 de 0";
+            "0 conquistas";
 
         elementos.usoBarra
           .style.width =
@@ -1151,7 +1243,7 @@ document.addEventListener(
 
         elementos.usoMensagem
           .textContent =
-            "Não foi possível carregar o uso do plano.";
+            "Não foi possível carregar seu progresso.";
 
         elementos.listaPagamentos
           .replaceChildren(
@@ -1184,6 +1276,17 @@ document.addEventListener(
         ?.addEventListener(
           "click",
           () => {
+            window.AFAnalytics
+              ?.registrar?.(
+                "upgrade_selecionado",
+                {
+                  propriedades: {
+                    origem:
+                      "minha_assinatura",
+                  },
+                }
+              );
+
             window.location.href =
               "/html/planos.html";
           }
