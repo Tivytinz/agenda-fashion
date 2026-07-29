@@ -2,6 +2,11 @@ const authService = require(
   "../services/authService"
 );
 
+const googleIdentityService =
+  require(
+    "../services/googleIdentityService"
+  );
+
 /*
  * Retira somente os campos permitidos
  * do corpo da requisição.
@@ -85,7 +90,45 @@ async function login(
   }
 }
 
+async function loginGoogle(
+  req,
+  res,
+  next
+) {
+  try {
+    const resultado =
+      await authService
+        .loginGoogle({
+          credencial:
+            req.body?.credential,
+        });
+
+    return res
+      .status(200)
+      .json(resultado);
+  } catch (erro) {
+    return next(erro);
+  }
+}
+
+function configuracaoPublica(
+  _req,
+  res,
+  next
+) {
+  try {
+    return res.status(200).json(
+      googleIdentityService
+        .obterConfiguracaoPublica()
+    );
+  } catch (erro) {
+    return next(erro);
+  }
+}
+
 module.exports = {
   cadastro,
   login,
+  loginGoogle,
+  configuracaoPublica,
 };

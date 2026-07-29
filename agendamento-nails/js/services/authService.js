@@ -462,6 +462,31 @@
     );
   }
 
+  async function loginGoogle(
+    credential
+  ) {
+    const credencial =
+      normalizarTexto(
+        credential
+      );
+
+    if (!credencial) {
+      throw new Error(
+        "A credencial do Google é obrigatória."
+      );
+    }
+
+    const resultado =
+      await obterApi().post(
+        "/auth/google",
+        { credential: credencial }
+      );
+
+    return finalizarAutenticacao(
+      resultado
+    );
+  }
+
   function obterDestino({
     usuario =
       getUsuario(),
@@ -561,6 +586,7 @@
       carregarMinhaSessao,
       cadastro,
       login,
+      loginGoogle,
       obterDestino,
       redirecionarUsuario,
       exigirLogin,
