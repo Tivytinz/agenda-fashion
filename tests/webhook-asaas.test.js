@@ -7,6 +7,8 @@ jest.mock(
   () => ({
     ativarAssinaturaPorPagamento:
       jest.fn(),
+    sincronizarAssinaturaPorWebhook:
+      jest.fn(),
     sincronizarPagamentoPorWebhook:
       jest.fn(),
     suspenderAssinaturaPorPagamento:
@@ -20,6 +22,7 @@ const webhookEventoRepository = require(
 
 const {
   ativarAssinaturaPorPagamento,
+  sincronizarAssinaturaPorWebhook,
   sincronizarPagamentoPorWebhook,
   suspenderAssinaturaPorPagamento
 } = require(
@@ -288,6 +291,105 @@ describe(
         );
         expect(resultado.status)
           .toBe("PROCESSED");
+      }
+    );
+
+    test.each([
+      "SUBSCRIPTION_CREATED",
+      "SUBSCRIPTION_UPDATED",
+      "SUBSCRIPTION_INACTIVATED",
+      "SUBSCRIPTION_DELETED"
+    ])(
+      "processa o evento de assinatura %s",
+      async (tipoEvento) => {
+        webhookEventoRepository
+          .reservarPorId
+          .mockResolvedValue({
+            id: 17,
+            evento_id:
+              `evt_${tipoEvento}`,
+            tipo_evento: tipoEvento,
+            recurso_id: "sub_1",
+            tentativas: 1,
+            payload: {
+              subscription: {
+                id: "sub_1",
+                status: "ACTIVE",
+                customer: "cus_1",
+                value: 49.9,
+                nextDueDate:
+                  "2026-09-28",
+                cycle: "MONTHLY",
+                billingType: "PIX",
+                externalReference:
+                  "assinatura:20;negocio:7;plano:3"
+              }
+            }
+          });
+
+        sincronizarAssinaturaPorWebhook
+          .mockResolvedValue({
+            id: 20
+          });
+
+        const resultado =
+          await processarEventoWebhook(17);
+
+        expect(
+          sincronizarAssinaturaPorWebhook
+        ).toHaveBeenCalledWith(
+          tipoEvento,
+          expect.objectContaining({
+            id: "sub_1",
+            customer: "cus_1"
+          })
+        );
+        expect(
+          webhookEventoRepository
+            .marcarConcluido
+        ).toHaveBeenCalledWith(
+          17,
+          "PROCESSED"
+        );
+        expect(resultado.status)
+          .toBe("PROCESSED");
+      }
+    );
+
+    test(
+      "ignora assinatura externa sem vínculo local",
+      async () => {
+        webhookEventoRepository
+          .reservarPorId
+          .mockResolvedValue({
+            id: 18,
+            evento_id:
+              "evt_subscription_external",
+            tipo_evento:
+              "SUBSCRIPTION_UPDATED",
+            recurso_id:
+              "sub_desconhecida",
+            tentativas: 1,
+            payload: {
+              subscription: {
+                id:
+                  "sub_desconhecida",
+                status: "ACTIVE"
+              }
+            }
+          });
+
+        sincronizarAssinaturaPorWebhook
+          .mockResolvedValue(null);
+
+        const resultado =
+          await processarEventoWebhook(18);
+
+        expect(resultado)
+          .toEqual({
+            ignorado: true,
+            status: "IGNORED"
+          });
       }
     );
 
