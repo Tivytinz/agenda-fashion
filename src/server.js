@@ -61,9 +61,11 @@ app.use(cors({
 }));
 
 const rootDir = path.join(process.cwd(), "agendamento-nails");
+const reactDir = path.join(rootDir, "react-app");
 
 app.use(express.static(rootDir));
 app.use("/public", express.static(path.join(rootDir, "public")));
+app.use("/app", express.static(reactDir));
 
 app.use(agendaConfiguracaoRoutes);
 
@@ -86,6 +88,20 @@ app.get("/cadastro", (req, res) => {
 
 app.get("/demo", (req, res) => {
   res.sendFile(path.join(rootDir, "html", "inicio.html"));
+});
+
+/*
+ * O React é migrado por fluxo e convive com o frontend atual.
+ * O fallback abaixo permite que o React Router resolva /app/*.
+ */
+app.get(["/app", "/app/{*rota}"], (req, res, next) => {
+  const indexReact = path.join(reactDir, "index.html");
+
+  res.sendFile(indexReact, (erro) => {
+    if (erro) {
+      next(erro);
+    }
+  });
 });
 
 /* =========================

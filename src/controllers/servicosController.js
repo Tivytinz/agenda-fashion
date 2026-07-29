@@ -15,8 +15,10 @@ async function criarServico(req, res, next) {
     const resultado = await servicosService.criarServico({
       usuarioId: req.user?.id,
       nome: req.body.nome,
+      descricao: req.body.descricao,
       valor: req.body.valor,
       duracaoMinutos: req.body.duracao_minutos,
+      ativo: req.body.ativo,
     });
 
     return res.status(201).json(resultado);
@@ -31,8 +33,10 @@ async function editarServico(req, res, next) {
       usuarioId: req.user?.id,
       id: req.params.id,
       nome: req.body.nome,
+      descricao: req.body.descricao,
       valor: req.body.valor,
       duracaoMinutos: req.body.duracao_minutos,
+      ativo: req.body.ativo,
     });
 
     return res.json(resultado);

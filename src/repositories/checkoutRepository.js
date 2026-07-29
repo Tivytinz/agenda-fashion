@@ -8,12 +8,18 @@ async function buscarNegocioDono(client, usuarioId) {
     SELECT
       n.id,
       n.nome,
+      n.plano_id,
       n.asaas_customer_id
     FROM usuarios_negocios un
     INNER JOIN negocios n
       ON n.id = un.negocio_id
+    INNER JOIN usuarios u
+      ON u.id = un.usuario_id
     WHERE un.usuario_id = $1
       AND un.papel = 'dono'
+      AND un.ativo = TRUE
+      AND n.ativo = TRUE
+      AND u.ativo = TRUE
     LIMIT 1
     `,
     [usuarioId]
@@ -60,8 +66,13 @@ async function buscarPagamentoCheckout(pagamentoId, usuarioId) {
       ON p.id = a.plano_id
     INNER JOIN usuarios_negocios un
       ON un.negocio_id = a.negocio_id
+    INNER JOIN usuarios u
+      ON u.id = un.usuario_id
     WHERE pg.asaas_payment_id = $1
       AND un.usuario_id = $2
+      AND un.papel = 'dono'
+      AND un.ativo = TRUE
+      AND u.ativo = TRUE
     LIMIT 1
     `,
     [pagamentoId, usuarioId]

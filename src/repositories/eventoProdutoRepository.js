@@ -30,8 +30,16 @@ async function registrar({
           $2,
           $3,
           $4,
-          $5,
-          $6,
+          (
+            SELECT id
+            FROM usuarios
+            WHERE id = $5
+          ),
+          (
+            SELECT id
+            FROM negocios
+            WHERE id = $6
+          ),
           $7::JSONB
         )
 

@@ -15,8 +15,13 @@ async function buscarNegocioDoUsuario(
 
     INNER JOIN negocios n
       ON n.id = un.negocio_id
+    INNER JOIN usuarios u
+      ON u.id = un.usuario_id
 
     WHERE un.usuario_id = $1
+      AND un.ativo = TRUE
+      AND u.ativo = TRUE
+      AND n.ativo = TRUE
 
     LIMIT 1
     `,

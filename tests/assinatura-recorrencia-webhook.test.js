@@ -48,6 +48,13 @@ const pagamentoRepository = require(
 );
 
 const {
+  criarAssinaturaAsaas,
+  removerAssinaturaAsaas
+} = require(
+  "../src/services/asaasService"
+);
+
+const {
   ativarAssinaturaPorPagamento,
   sincronizarAssinaturaPorWebhook,
   sincronizarPagamentoPorWebhook,
@@ -373,10 +380,116 @@ describe(
             expect.stringContaining(
               "UPDATE negocios"
             ),
-            [1, 7]
+            [1, 7, 3, 20]
           );
         expect(assinatura.ativo)
           .toBe(false);
+      }
+    );
+
+    test(
+      "encerra a recorrência anterior ao ativar um novo plano",
+      async () => {
+        mockClient.query
+          .mockResolvedValueOnce({
+            rows: [
+              {
+                id: 30,
+                negocio_id: 7,
+                plano_id: 4,
+                pagamento_id: 60,
+                valor: "149.90",
+                forma_pagamento:
+                  "pix",
+                status: "PENDING",
+                ativo: false,
+                asaas_customer_id:
+                  "cus_1",
+                asaas_subscription_id:
+                  null,
+                data_pagamento:
+                  "2026-07-29",
+                data_vencimento:
+                  "2026-07-29"
+              }
+            ]
+          })
+          .mockResolvedValueOnce({
+            rows: []
+          })
+          .mockResolvedValueOnce({
+            rows: [
+              {
+                id: 20,
+                asaas_subscription_id:
+                  "sub_antiga"
+              }
+            ]
+          })
+          .mockResolvedValueOnce({
+            rows: []
+          })
+          .mockResolvedValueOnce({
+            rows: []
+          })
+          .mockResolvedValueOnce({
+            rows: [
+              {
+                id: 30,
+                ativo: true,
+                status: "ACTIVE"
+              }
+            ]
+          })
+          .mockResolvedValueOnce({
+            rows: []
+          });
+
+        criarAssinaturaAsaas
+          .mockResolvedValue({
+            id: "sub_nova",
+            nextDueDate:
+              "2026-08-29"
+          });
+
+        removerAssinaturaAsaas
+          .mockResolvedValue({
+            removida: true
+          });
+
+        const assinatura =
+          await ativarAssinaturaPorPagamento(
+            "pay_novo_plano",
+            "CONFIRMED",
+            {
+              status: "CONFIRMED"
+            }
+          );
+
+        expect(
+          removerAssinaturaAsaas
+        ).toHaveBeenCalledTimes(1);
+
+        expect(
+          removerAssinaturaAsaas
+        ).toHaveBeenCalledWith(
+          "sub_antiga"
+        );
+
+        expect(mockClient.query)
+          .toHaveBeenCalledWith(
+            expect.stringContaining(
+              "Recorrência substituída"
+            ),
+            [7, 30]
+          );
+
+        expect(assinatura)
+          .toMatchObject({
+            id: 30,
+            ativo: true,
+            status: "ACTIVE"
+          });
       }
     );
 

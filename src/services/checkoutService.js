@@ -16,7 +16,6 @@ const {
 
 const {
   criarClienteAsaas,
-  criarAssinaturaAsaas,
   criarCobrancaPix,
   buscarQrCodePix
 } = require("./asaasService");
@@ -187,9 +186,7 @@ async function obterAssinaturaCheckout({
       periodicidade: "MONTHLY",
       valor: plano.valor,
       observacoes:
-        formaPagamento === "pix"
-          ? "PIX inicial criado. Assinatura recorrente será ativada após confirmação do pagamento."
-          : "Assinatura criada via cartão."
+        "PIX inicial criado. Assinatura recorrente será ativada após confirmação do pagamento."
     });
 
   await checkoutTentativaRepository
@@ -272,60 +269,6 @@ async function criarCheckoutPix(
   };
 }
 
-async function criarCheckoutCartao(
-  client,
-  negocio,
-  plano,
-  cartao,
-  tentativa
-) {
-  const assinaturaLocal =
-    await obterAssinaturaCheckout({
-      client,
-      negocio,
-      plano,
-      formaPagamento: "cartao",
-      tentativa
-    });
-
-  const assinaturaAsaas =
-    await criarAssinaturaAsaas({
-      customerId: negocio.asaas_customer_id,
-      valor: plano.valor,
-      descricao: `Agenda Fashion - Plano ${plano.nome}`,
-      formaPagamento: "cartao",
-      externalReference:
-        `checkout:${tentativa.id};assinatura:${assinaturaLocal.id}`,
-      cartao,
-      reutilizarPorExternalReference: true
-    });
-
-  const atualizacao = await client.query(
-    `
-    UPDATE assinaturas
-    SET
-      asaas_subscription_id = $2,
-      status = $3,
-      data_proxima_cobranca = $4,
-      updated_at = NOW()
-    WHERE id = $1
-    RETURNING *
-    `,
-    [
-      assinaturaLocal.id,
-      assinaturaAsaas.id,
-      assinaturaAsaas.status || "PENDING",
-      assinaturaAsaas.nextDueDate || null
-    ]
-  );
-
-  return {
-    assinatura:
-      atualizacao.rows[0] || assinaturaLocal,
-    assinatura_asaas: assinaturaAsaas
-  };
-}
-
 function criarHashCheckout({
   negocioId,
   planoId,
@@ -364,7 +307,6 @@ async function criarCheckout({
   usuarioId,
   planoId,
   formaPagamento,
-  cartao,
   cpfCnpj,
   chaveIdempotencia
 }) {
@@ -374,20 +316,9 @@ async function criarCheckout({
     throw new Error("Usuário não autenticado.");
   }
 
-  if (!planoId || !["pix", "cartao"].includes(formaPagamento)) {
-    throw new Error("Dados de checkout inválidos.");
-  }
-
-  if (formaPagamento === "cartao" && !cartao) {
-    throw new Error("Dados do cartão não informados.");
-  }
-
-  if (
-    formaPagamento === "cartao" &&
-    process.env.ASAAS_CARD_ENABLED !== "true"
-  ) {
+  if (!planoId || formaPagamento !== "pix") {
     throw new AppError(
-      "Pagamento por cartão ainda não está disponível.",
+      "Aceitamos pagamento somente por PIX.",
       400
     );
   }
@@ -421,24 +352,18 @@ async function criarCheckout({
     throw new Error("Este plano não precisa de pagamento.");
   }
 
-  const documentoCliente =
-    (
-      !negocio.asaas_customer_id ||
-      formaPagamento === "cartao"
-    )
-      ? obterDocumentoCliente(
-          cpfCnpj ||
-          cartao?.cpfCnpj
-        )
-      : null;
+  if (Number(negocio.plano_id) === Number(plano.id)) {
+    throw new AppError(
+      "Este já é o plano atual do seu negócio.",
+      409
+    );
+  }
 
-  const dadosCartao =
-    formaPagamento === "cartao"
-      ? {
-          ...cartao,
-          cpfCnpj:
-            documentoCliente
-        }
+  const documentoCliente =
+    !negocio.asaas_customer_id
+      ? obterDocumentoCliente(
+          cpfCnpj
+        )
       : null;
 
   let tentativa;
@@ -491,33 +416,16 @@ async function criarCheckout({
         documentoCliente
     });
 
-    let resultado = null;
-
-    if (formaPagamento === "pix") {
-      resultado = await criarCheckoutPix(
-        client,
-        negocio,
-        plano,
-        tentativa.tentativa
-      );
-    }
-
-    if (formaPagamento === "cartao") {
-      resultado = await criarCheckoutCartao(
-        client,
-        negocio,
-        plano,
-        dadosCartao,
-        tentativa.tentativa
-      );
-    }
+    const resultado = await criarCheckoutPix(
+      client,
+      negocio,
+      plano,
+      tentativa.tentativa
+    );
 
     const resposta = {
-      mensagem:
-        formaPagamento === "pix"
-          ? "PIX gerado com sucesso."
-          : "Assinatura enviada para processamento.",
-      forma_pagamento: formaPagamento,
+      mensagem: "PIX gerado com sucesso.",
+      forma_pagamento: "pix",
       ...resultado
     };
 

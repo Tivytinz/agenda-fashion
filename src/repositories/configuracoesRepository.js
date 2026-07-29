@@ -19,8 +19,15 @@ async function buscarNegocioDoUsuario(
           un.papel
 
         FROM usuarios_negocios un
+        INNER JOIN usuarios u
+          ON u.id = un.usuario_id
+        INNER JOIN negocios n
+          ON n.id = un.negocio_id
 
         WHERE un.usuario_id = $1
+          AND un.ativo = TRUE
+          AND u.ativo = TRUE
+          AND n.ativo = TRUE
 
         ORDER BY
           CASE

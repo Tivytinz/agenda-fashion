@@ -1,4 +1,5 @@
 node_modules/
+agendamento-nails/react-app/
 .env
 .vscode/
 .env.test
