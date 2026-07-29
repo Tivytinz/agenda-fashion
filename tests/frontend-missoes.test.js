@@ -19,10 +19,10 @@ function ler(
 }
 
 describe(
-  "missões do frontend",
+  "objetivos do frontend",
   () => {
     test(
-      "dashboard do dono comunica conquistas sem expor saldo do plano",
+      "dashboard do dono torna crescimento e capacidade visíveis",
       () => {
         const html =
           ler(
@@ -37,13 +37,13 @@ describe(
         expect(
           html
         ).toContain(
-          "Cada agendamento é uma conquista"
+          "Sua agenda está ganhando força"
         );
 
         expect(
           html
         ).toContain(
-          "Próxima conquista"
+          "Capacidade do mês"
         );
 
         expect(
@@ -54,8 +54,58 @@ describe(
 
         expect(
           `${html}\n${javascript}`
-        ).not.toMatch(
-          /planoRestantes|planoUso|planoPercentual/
+        ).toContain(
+          "percentual_capacidade"
+        );
+      }
+    );
+
+    test(
+      "home apresenta o AF como destino para descobrir e agendar beleza",
+      () => {
+        const html =
+          ler(
+            "../agendamento-nails/html/inicio.html"
+          );
+
+        expect(
+          html
+        ).toContain(
+          "Seu próximo serviço de beleza está aqui"
+        );
+
+        expect(
+          html
+        ).toContain(
+          "Serviços para você agendar"
+        );
+
+        expect(
+          html
+        ).toContain(
+          "Negócios de beleza em destaque"
+        );
+      }
+    );
+
+    test(
+      "admin apresenta a jornada sem expor a palavra missão",
+      () => {
+        const html =
+          ler(
+            "../agendamento-nails/html/admin.html"
+          );
+
+        expect(
+          html
+        ).toContain(
+          "Jornada de descoberta e agendamento"
+        );
+
+        expect(
+          html
+        ).not.toContain(
+          "Missão das telas"
         );
       }
     );

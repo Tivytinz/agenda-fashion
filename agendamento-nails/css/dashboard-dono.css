@@ -162,6 +162,44 @@
   transform: rotate(-12deg);
 }
 
+.crescimento-painel[data-faixa="crescendo"] {
+  background:
+    radial-gradient(
+      circle at 95% 10%,
+      rgba(255, 255, 255, 0.42),
+      transparent 30%
+    ),
+    linear-gradient(
+      135deg,
+      #b91c6b,
+      #e23388 52%,
+      #ff6eb5
+    );
+}
+
+.crescimento-painel[data-faixa="nova_fase"] {
+  background:
+    radial-gradient(
+      circle at 95% 10%,
+      rgba(255, 255, 255, 0.48),
+      transparent 31%
+    ),
+    linear-gradient(
+      135deg,
+      #86134d,
+      #c51f70 48%,
+      #ef4d9c
+    );
+}
+
+.crescimento-painel[data-faixa="nova_fase"]
+.crescimento-marco {
+  border: 2px solid #fff;
+  box-shadow:
+    0 22px 48px
+    rgba(88, 8, 46, 0.28);
+}
+
 .crescimento-conteudo,
 .crescimento-marco {
   position: relative;

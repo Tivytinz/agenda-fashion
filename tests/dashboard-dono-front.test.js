@@ -34,6 +34,10 @@ function montarHtml() {
       class="dashboard-dono-page"
       aria-busy="true"
     >
+      <section class="crescimento-painel">
+        <span id="crescimentoBadge">Seu negócio está crescendo</span>
+      </section>
+
       <div id="nomeNegocio">Dashboard do negócio</div>
       <p id="mensagemDashboard" class="mensagem-dashboard"></p>
 
@@ -71,6 +75,7 @@ function montarHtml() {
       <strong id="planoNome">Carregando...</strong>
       <small id="planoValor">-</small>
       <strong id="crescimentoTotal">0</strong>
+      <span id="crescimentoRotulo">Capacidade do mês</span>
       <strong id="crescimentoMarco">5 agendamentos</strong>
       <small id="crescimentoApoio"></small>
 
@@ -1310,7 +1315,7 @@ describe(
     );
 
     test(
-      "celebra o crescimento sem exibir o limite comercial",
+      "celebra agenda lotada, exibe a capacidade e oferece upgrade",
       async () => {
         configurarFetch({
           plano:
@@ -1330,7 +1335,7 @@ describe(
             texto(
               "crescimentoMarco"
             ) ===
-            "Nova fase pronta"
+            "100 de 100 agendamentos"
         );
 
         const comunicacao =
@@ -1358,19 +1363,100 @@ describe(
         expect(
           comunicacao
         ).toContain(
-          "novo marco"
+          "prova de que seu negócio cresceu"
         );
 
         expect(
           comunicacao
-        ).not.toContain(
-          "restante"
-        );
-
-        expect(
-          comunicacao
-        ).not.toContain(
+        ).toContain(
           "100 de 100"
+        );
+
+        expect(
+          texto(
+            "crescimentoBadge"
+          )
+        ).toContain(
+          "agenda lotou"
+        );
+
+        expect(
+          document
+            .getElementById(
+              "crescimentoProgresso"
+            )
+            .getAttribute(
+              "aria-valuenow"
+            )
+        ).toBe(
+          "100"
+        );
+
+        expect(
+          document
+            .getElementById(
+              "btnUpgradePlano"
+            )
+            .classList
+            .contains(
+              "hidden"
+            )
+        ).toBe(
+          false
+        );
+      }
+    );
+
+    test(
+      "torna o crescimento visível ao chegar a 80% da capacidade",
+      async () => {
+        configurarFetch({
+          plano:
+            criarPlano({
+              capacidade_agendamentos:
+                20,
+
+              utilizados:
+                16,
+            }),
+        });
+
+        iniciarDashboard();
+
+        await esperarAte(
+          () =>
+            texto(
+              "crescimentoMarco"
+            ) ===
+            "16 de 20 agendamentos"
+        );
+
+        expect(
+          texto(
+            "planoMensagem"
+          )
+        ).toContain(
+          "80% da capacidade"
+        );
+
+        expect(
+          texto(
+            "crescimentoApoio"
+          )
+        ).toContain(
+          "Faltam 4 agendamentos"
+        );
+
+        expect(
+          document
+            .getElementById(
+              "crescimentoProgresso"
+            )
+            .getAttribute(
+              "aria-valuenow"
+            )
+        ).toBe(
+          "80"
         );
 
         expect(

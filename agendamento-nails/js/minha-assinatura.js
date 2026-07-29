@@ -769,23 +769,25 @@ document.addEventListener(
         0;
 
       let percentual =
-        Math.min(
-          Math.round(
-            (
-              (
-                utilizados -
-                marcoAnterior
-              ) /
-              Math.max(
-                proximoMarco -
-                  marcoAnterior,
-                1
-              )
-            ) *
+        ilimitado
+          ? Math.min(
+              Math.round(
+                (
+                  (
+                    utilizados -
+                    marcoAnterior
+                  ) /
+                  Math.max(
+                    proximoMarco -
+                      marcoAnterior,
+                    1
+                  )
+                ) *
+                  100
+              ),
               100
-          ),
-          100
-        );
+            )
+          : percentualComercial;
 
       const novaFase =
         !ilimitado &&
@@ -795,17 +797,23 @@ document.addEventListener(
 
       elementos.usoTexto
         .textContent =
-          `${utilizados} ` +
-          `${utilizados === 1
-            ? "conquista"
-            : "conquistas"}`;
+          ilimitado
+            ? `${utilizados} agendamentos`
+            : `${utilizados} de ${limite} agendamentos`;
 
       let faixa =
         "ganhando_ritmo";
 
       let mensagem =
-        `Próxima conquista: ${proximoMarco} agendamentos. ` +
-        "Cada novo horário mostra que seu trabalho está sendo escolhido.";
+        ilimitado
+          ? `Próxima conquista: ${proximoMarco} agendamentos. ` +
+            "Cada novo horário mostra que seu trabalho está sendo escolhido."
+          : `Você usou ${percentualComercial}% da capacidade mensal. ` +
+            `Ainda há espaço para ${Math.max(
+              limite -
+                utilizados,
+              0
+            )} agendamentos.`;
 
       if (
         utilizados === 0
@@ -825,7 +833,7 @@ document.addEventListener(
           100;
 
         mensagem =
-          "Você atingiu um novo marco — isso é prova do seu sucesso. Escolha a próxima fase para continuar recebendo novos agendamentos.";
+          "Sua agenda lotou — isso é prova de que seu negócio cresceu. Aumente o plano para continuar recebendo novos agendamentos.";
       } else if (
         !ilimitado &&
         percentualComercial >= 80
@@ -834,8 +842,24 @@ document.addEventListener(
           "crescendo";
 
         mensagem =
-          "Seu ritmo aumentou e seu trabalho está sendo cada vez mais escolhido. Conheça sua próxima fase.";
+          `Sua agenda já alcançou ${percentualComercial}% da capacidade. ` +
+          `Faltam ${Math.max(
+            limite -
+              utilizados,
+            0
+          )} agendamentos para lotar o mês.`;
       }
+
+      elementos.btnAlterarPlano
+        .textContent =
+          novaFase
+            ? "Abrir espaço para crescer"
+            : (
+                !ilimitado &&
+                percentualComercial >= 80
+                  ? "Aumentar meu plano"
+                  : "Ver outros planos"
+              );
 
       elementos.usoMensagem
         .textContent =

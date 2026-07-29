@@ -200,9 +200,24 @@ document.addEventListener(
         "crescimentoTotal"
       ),
 
+    crescimentoBadge:
+      document.getElementById(
+        "crescimentoBadge"
+      ),
+
+    crescimentoPainel:
+      document.querySelector(
+        ".crescimento-painel"
+      ),
+
     crescimentoMarco:
       document.getElementById(
         "crescimentoMarco"
+      ),
+
+    crescimentoRotulo:
+      document.getElementById(
+        "crescimentoRotulo"
       ),
 
     crescimentoApoio:
@@ -1173,6 +1188,20 @@ function redirecionarProfissional() {
       utilizados >=
         capacidade;
 
+    const restantes =
+      ilimitado
+        ? null
+        : Math.max(
+            capacidade -
+              utilizados,
+            0
+          );
+
+    let percentualProgresso =
+      ilimitado
+        ? percentualMarco
+        : percentualComercial;
+
     definirTexto(
       elementos.planoNome,
       plano.plano_nome ||
@@ -1197,11 +1226,20 @@ function redirecionarProfissional() {
     );
 
     definirTexto(
+      elementos.crescimentoRotulo,
+      ilimitado
+        ? "Próxima conquista"
+        : "Capacidade do mês"
+    );
+
+    definirTexto(
       elementos.crescimentoMarco,
-      novaFase
-        ? "Nova fase pronta"
-        : `${proximoMarco} ${pluralizarAgendamento(
+      ilimitado
+        ? `${proximoMarco} ${pluralizarAgendamento(
             proximoMarco
+          )}`
+        : `${utilizados} de ${capacidade} ${pluralizarAgendamento(
+            capacidade
           )}`
     );
 
@@ -1209,21 +1247,29 @@ function redirecionarProfissional() {
       elementos.crescimentoBarra
     ) {
       if (novaFase) {
-        percentualMarco =
+        percentualProgresso =
           100;
       }
 
       elementos.crescimentoBarra
         .style.width =
-          `${percentualMarco}%`;
+          `${percentualProgresso}%`;
     }
 
     elementos.crescimentoProgresso
       ?.setAttribute(
         "aria-valuenow",
         String(
-          percentualMarco
+          percentualProgresso
         )
+      );
+
+    elementos.crescimentoProgresso
+      ?.setAttribute(
+        "aria-valuetext",
+        ilimitado
+          ? `${utilizados} agendamentos; próxima conquista em ${proximoMarco}`
+          : `${utilizados} de ${capacidade} agendamentos usados`
       );
 
     let faixa =
@@ -1236,7 +1282,11 @@ function redirecionarProfissional() {
       )} neste mês. Cada horário preenchido mostra que seu negócio está avançando 💅`;
 
     let apoio =
-      "Seu trabalho merece ser cada vez mais escolhido.";
+      ilimitado
+        ? "Seu trabalho merece ser cada vez mais escolhido."
+        : `${restantes} ${pluralizarAgendamento(
+            restantes
+          )} até completar a capacidade do mês.`;
 
     if (
       utilizados === 0
@@ -1248,7 +1298,11 @@ function redirecionarProfissional() {
         "Seu próximo agendamento abre uma nova história. Divulgue seu perfil e deixe seus horários prontos.";
 
       apoio =
-        "A primeira conquista começa com um horário disponível.";
+        ilimitado
+          ? "A primeira conquista começa com um horário disponível."
+          : `Seu plano pode receber ${capacidade} ${pluralizarAgendamento(
+              capacidade
+            )} neste mês.`;
     } else if (
       utilizados === 1
     ) {
@@ -1259,7 +1313,11 @@ function redirecionarProfissional() {
         "Sua primeira conquista do mês já chegou. É assim que um negócio ganha ritmo 💅";
 
       apoio =
-        "Cada cliente atendida fortalece sua história.";
+        ilimitado
+          ? "Cada cliente atendida fortalece sua história."
+          : `${restantes} ${pluralizarAgendamento(
+              restantes
+            )} para sua agenda alcançar a capacidade atual.`;
     } else if (
       novaFase
     ) {
@@ -1267,10 +1325,10 @@ function redirecionarProfissional() {
         "nova_fase";
 
       mensagem =
-        "Você chegou a um novo marco — isso é prova do seu sucesso. Para continuar recebendo novos agendamentos, abra a próxima fase do seu negócio.";
+        "Sua agenda chegou à capacidade do plano — isso é prova de que seu negócio cresceu. Aumente o plano para continuar recebendo novos agendamentos.";
 
       apoio =
-        "Seu crescimento trouxe você até aqui. Vamos continuar.";
+        "Você lotou a capacidade do mês. Seu próximo plano abre espaço para crescer ainda mais.";
     } else if (
       !ilimitado &&
       percentualComercial >= 80
@@ -1279,10 +1337,32 @@ function redirecionarProfissional() {
         "crescendo";
 
       mensagem =
-        "Seu trabalho está sendo cada vez mais escolhido. Você está pronta para a próxima fase do seu crescimento.";
+        `Sua agenda já alcançou ${percentualComercial}% da capacidade do plano. Seu trabalho está sendo cada vez mais escolhido.`;
 
       apoio =
-        "O próximo passo existe porque sua agenda cresceu.";
+        `Faltam ${restantes} ${pluralizarAgendamento(
+          restantes
+        )} para lotar a capacidade deste mês.`;
+    }
+
+    definirTexto(
+      elementos.crescimentoBadge,
+      novaFase
+        ? "Sua agenda lotou 💅"
+        : (
+            !ilimitado &&
+            percentualComercial >= 80
+              ? "Sua agenda está quase lotada"
+              : "Seu negócio está crescendo"
+          )
+    );
+
+    if (
+      elementos.crescimentoPainel
+    ) {
+      elementos.crescimentoPainel
+        .dataset.faixa =
+          faixa;
     }
 
     definirTexto(
@@ -1314,6 +1394,8 @@ function redirecionarProfissional() {
         faixa,
         agendamentos_mes:
           utilizados,
+        percentual_capacidade:
+          percentualComercial,
       }
     );
   }
@@ -1335,8 +1417,13 @@ function redirecionarProfissional() {
     );
 
     definirTexto(
+      elementos.crescimentoRotulo,
+      "Crescimento indisponível"
+    );
+
+    definirTexto(
       elementos.crescimentoMarco,
-      "Próxima conquista"
+      "Tente novamente"
     );
 
     definirTexto(
