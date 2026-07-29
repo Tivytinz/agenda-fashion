@@ -110,8 +110,9 @@ Um agendamento foi cancelado.
 
 Cliente: {{1}}
 Serviço: {{2}}
-Data: {{3}}
-Horário: {{4}}
+Profissional: {{3}}
+Data: {{4}}
+Horário: {{5}}
 
 O horário voltou a ficar disponível no Agenda Fashion.
 ```

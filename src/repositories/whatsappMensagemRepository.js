@@ -356,6 +356,9 @@ async function enfileirarCancelamento(
             s.nome
               AS servico_nome,
 
+            profissional.nome
+              AS profissional_nome,
+
             TO_CHAR(
               a.data,
               'DD/MM/YYYY'
@@ -401,6 +404,7 @@ async function enfileirarCancelamento(
             JSONB_BUILD_ARRAY(
               cliente_nome,
               servico_nome,
+              profissional_nome,
               data_formatada,
               horario_formatado
             ) AS parametros_corpo,
