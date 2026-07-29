@@ -50,13 +50,34 @@ function obterDestinatario(numeroRecebido) {
   const numeroLimpo =
     limparNumero(numero);
 
+  if (
+    [10, 11].includes(
+      numeroLimpo.length
+    )
+  ) {
+    return `55${numeroLimpo}`;
+  }
+
+  if (
+    [12, 13].includes(
+      numeroLimpo.length
+    ) &&
+    numeroLimpo.startsWith(
+      "55"
+    )
+  ) {
+    return numeroLimpo;
+  }
+
   if (!numeroLimpo) {
     throw new Error(
       "Nenhum destinatário do WhatsApp foi informado."
     );
   }
 
-  return numeroLimpo;
+  throw new Error(
+    "Destinatário do WhatsApp inválido. Informe um número brasileiro com DDD."
+  );
 }
 
 function obterUrlMensagens() {
@@ -136,16 +157,16 @@ async function enviarRequisicao(payload) {
         }
       );
 
-    console.log(
-      "WhatsApp enviado com sucesso:"
-    );
-
-    console.log(
-      JSON.stringify(
-        response.data,
-        null,
-        2
-      )
+    console.info(
+      "[WhatsApp] Requisição aceita pela Meta.",
+      {
+        message_id:
+          response.data
+            ?.messages
+            ?.[0]
+            ?.id ||
+          null,
+      }
     );
 
     return response.data;
@@ -263,11 +284,9 @@ async function enviarNovoAgendamento(
 }
 
 /*
- * Mantido temporariamente para não quebrar
- * arquivos que ainda chamam enviarMensagem().
- *
- * No próximo passo, notificationService.js
- * passará a chamar enviarNovoAgendamento().
+ * Mantido para mensagens livres dentro da janela
+ * de atendimento iniciada pelo próprio cliente.
+ * As automações usam enviarTemplate().
  */
 async function enviarMensagem(
   numero,
@@ -312,4 +331,5 @@ module.exports = {
   enviarMensagem,
   enviarTemplate,
   enviarNovoAgendamento,
+  obterDestinatario,
 };

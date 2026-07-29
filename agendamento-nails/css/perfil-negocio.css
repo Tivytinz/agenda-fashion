@@ -1556,6 +1556,45 @@
   font-weight: 900;
 }
 
+.modal-conteudo
+  .af-consentimento-whatsapp {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+
+  margin:
+    4px
+    0
+    -5px;
+
+  padding: 12px;
+
+  color: var(--texto-suave);
+  background: var(--rosa-claro);
+
+  border:
+    1px solid
+    rgba(232, 62, 140, 0.14);
+  border-radius: 12px;
+
+  cursor: pointer;
+  font-size: 0.82rem;
+  font-weight: 650;
+  line-height: 1.45;
+}
+
+.af-consentimento-whatsapp
+  input {
+  width: 17px;
+  height: 17px;
+
+  margin-top: 1px;
+
+  accent-color:
+    var(--rosa-principal);
+  flex: 0 0 auto;
+}
+
 .modal-acoes {
   display: flex;
   align-items: center;

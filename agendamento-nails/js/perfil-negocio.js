@@ -2450,6 +2450,25 @@ document.addEventListener("DOMContentLoaded", () => {
           placeholder="Ex.: 62999999999"
           autocomplete="tel"
         >
+
+        <label
+          for="inputClienteWhatsappConsentimento"
+          class="af-consentimento-whatsapp"
+        >
+          <input
+            id="inputClienteWhatsappConsentimento"
+            type="checkbox"
+          >
+
+          <span>
+            Quero receber confirmação, lembrete e
+            atualizações deste agendamento pelo WhatsApp.
+          </span>
+        </label>
+
+        <p class="af-help">
+          Opcional. Você pode agendar sem autorizar mensagens.
+        </p>
       `
     );
   }
@@ -2580,6 +2599,7 @@ document.addEventListener("DOMContentLoaded", () => {
   async function confirmarAgendamento({
   nome,
   whatsapp,
+  consentimentoWhatsapp = false,
   autenticado,
 }) {
   const cliente = validarDadosAgendamento(
@@ -2645,6 +2665,9 @@ document.addEventListener("DOMContentLoaded", () => {
       horario: horaAgendamento,
       cliente_nome: cliente.nome,
       cliente_whatsapp: cliente.whatsapp,
+      aceita_mensagens_whatsapp:
+        consentimentoWhatsapp ===
+        true,
     };
 
     console.log(
@@ -2734,24 +2757,6 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
-    if (
-      usuario?.nome &&
-      usuario?.whatsapp
-    ) {
-      await confirmarAgendamento({
-        nome:
-          usuario.nome,
-
-        whatsapp:
-          usuario.whatsapp,
-
-        autenticado:
-          true,
-      });
-
-      return;
-    }
-
     abrirModalConfirmacao(
       "confirmar-agendamento-logado",
       usuario
@@ -2813,6 +2818,15 @@ document.addEventListener("DOMContentLoaded", () => {
                 "inputClienteWhatsapp"
               ),
 
+            consentimentoWhatsapp:
+              Boolean(
+                document
+                  .getElementById(
+                    "inputClienteWhatsappConsentimento"
+                  )
+                  ?.checked
+              ),
+
             autenticado:
               false,
           });
@@ -2831,6 +2845,15 @@ document.addEventListener("DOMContentLoaded", () => {
             whatsapp:
               valorCampo(
                 "inputClienteWhatsapp"
+              ),
+
+            consentimentoWhatsapp:
+              Boolean(
+                document
+                  .getElementById(
+                    "inputClienteWhatsappConsentimento"
+                  )
+                  ?.checked
               ),
 
             autenticado:

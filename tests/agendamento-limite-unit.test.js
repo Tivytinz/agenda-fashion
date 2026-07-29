@@ -10,6 +10,10 @@ jest.mock("../src/services/agendaDisponibilidadeService", () => ({
 jest.mock("../src/services/notificationService", () => ({
   novoAgendamento: jest.fn(),
 }));
+jest.mock("../src/services/whatsappMensagemService", () => ({
+  enfileirarNovoAgendamento: jest.fn(),
+  enfileirarCancelamento: jest.fn(),
+}));
 jest.mock("../src/services/planoService", () => ({
   verificarCapacidadePlano: jest.fn(),
 }));
@@ -22,6 +26,9 @@ const agendaDisponibilidadeService = require(
   "../src/services/agendaDisponibilidadeService"
 );
 const planoService = require("../src/services/planoService");
+const whatsappMensagemService = require(
+  "../src/services/whatsappMensagemService"
+);
 const agendamentoPublicoService = require(
   "../src/services/agendamentoPublicoService"
 );
@@ -70,5 +77,15 @@ describe("Limite durante a criação do agendamento", () => {
         dataReferencia: "2026-08-15",
       }
     );
+
+    expect(
+      whatsappMensagemService
+        .enfileirarNovoAgendamento
+    ).toHaveBeenCalledWith({
+      executor:
+        client,
+      agendamentoId:
+        99,
+    });
   });
 });
