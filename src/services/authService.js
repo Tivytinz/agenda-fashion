@@ -10,6 +10,11 @@ const authRepository = require(
   "../repositories/authRepository"
 );
 
+const googleIdentityService =
+  require(
+    "./googleIdentityService"
+  );
+
 const AppError = require(
   "../errors/AppError"
 );
@@ -144,6 +149,9 @@ function sanitizarUsuario(
 
     ativo:
       usuario.ativo,
+
+    googleConectado:
+      Boolean(usuario.google_sub),
 
     email_verificado_em:
       usuario.email_verificado_em,
@@ -286,6 +294,23 @@ function gerarToken(
   );
 }
 
+function montarResultado({
+  usuario,
+  mensagem,
+  contaCriada = false,
+}) {
+  const usuarioSeguro =
+    sanitizarUsuario(usuario);
+
+  return {
+    mensagem,
+    token:
+      gerarToken(usuarioSeguro),
+    usuario: usuarioSeguro,
+    contaCriada,
+  };
+}
+
 /*
  * POST /cadastro
  *
@@ -359,23 +384,12 @@ async function cadastro({
     throw erro;
   }
 
-  const usuarioSeguro =
-    sanitizarUsuario(
-      usuarioCriado
-    );
-
-  return {
+  return montarResultado({
+    usuario: usuarioCriado,
     mensagem:
       "Conta criada com sucesso.",
-
-    token:
-      gerarToken(
-        usuarioSeguro
-      ),
-
-    usuario:
-      usuarioSeguro,
-  };
+    contaCriada: true,
+  });
 }
 
 /*
@@ -440,6 +454,13 @@ async function login({
     );
   }
 
+  if (!usuario.senha) {
+    throw new AppError(
+      "Esta conta usa o login com Google.",
+      401
+    );
+  }
+
   const senhaValida =
     await bcrypt.compare(
       senhaInformada,
@@ -459,31 +480,154 @@ async function login({
         usuario.id
       );
 
-  const usuarioSeguro =
-    sanitizarUsuario({
+  return montarResultado({
+    usuario: {
       ...usuario,
-
       ultimo_login_em:
         loginAtualizado
           ?.ultimo_login_em ||
         usuario.ultimo_login_em,
-    });
-
-  return {
+    },
     mensagem:
       "Login realizado com sucesso.",
+  });
+}
 
-    token:
-      gerarToken(
-        usuarioSeguro
-      ),
+async function buscarContaGoogle({
+  googleSub,
+  email,
+  emailAutoritativo,
+}) {
+  let usuario =
+    await authRepository
+      .buscarUsuarioPorGoogleSub(
+        googleSub
+      );
 
-    usuario:
-      usuarioSeguro,
-  };
+  if (usuario) {
+    return usuario;
+  }
+
+  usuario =
+    await authRepository
+      .buscarUsuarioPorEmail(
+        email
+      );
+
+  if (
+    usuario?.google_sub &&
+    usuario.google_sub !==
+      googleSub
+  ) {
+    throw new AppError(
+      "Este e-mail já está vinculado a outra conta Google.",
+      409
+    );
+  }
+
+  if (
+    usuario &&
+    !usuario.google_sub
+  ) {
+    if (!emailAutoritativo) {
+      throw new AppError(
+        "Entre com sua senha para vincular este e-mail à conta Google.",
+        409
+      );
+    }
+
+    usuario =
+      await authRepository
+        .vincularUsuarioAoGoogle({
+          usuarioId:
+            usuario.id,
+          googleSub,
+        });
+
+    if (!usuario) {
+      throw new AppError(
+        "Não foi possível vincular sua conta Google.",
+        409
+      );
+    }
+  }
+
+  return usuario;
+}
+
+async function loginGoogle({
+  credencial,
+}) {
+  const identidade =
+    await googleIdentityService
+      .verificarCredencial(
+        credencial
+      );
+
+  let usuario =
+    await buscarContaGoogle(
+      identidade
+    );
+
+  let contaCriada = false;
+
+  if (!usuario) {
+    try {
+      usuario =
+        await authRepository
+          .criarUsuarioGoogle(
+            identidade
+          );
+      contaCriada = true;
+    } catch (erro) {
+      if (erro?.code !== "23505") {
+        throw erro;
+      }
+
+      usuario =
+        await buscarContaGoogle(
+          identidade
+        );
+
+      if (!usuario) {
+        throw new AppError(
+          "Não foi possível criar sua conta Google.",
+          409
+        );
+      }
+    }
+  }
+
+  if (usuario.ativo === false) {
+    throw new AppError(
+      "Esta conta está desativada.",
+      403
+    );
+  }
+
+  const loginAtualizado =
+    await authRepository
+      .atualizarUltimoLogin(
+        usuario.id
+      );
+
+  return montarResultado({
+    usuario: {
+      ...usuario,
+      ultimo_login_em:
+        loginAtualizado
+          ?.ultimo_login_em ||
+        usuario.ultimo_login_em,
+    },
+    mensagem: contaCriada
+      ? "Conta criada com Google."
+      : "Login com Google realizado com sucesso.",
+    contaCriada,
+  });
 }
 
 module.exports = {
   cadastro,
   login,
+  loginGoogle,
 };

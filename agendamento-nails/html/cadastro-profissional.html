@@ -24,6 +24,8 @@
     href="../css/auth.css"
   >
 
+  <link rel="stylesheet" href="../css/google-auth.css">
+
   <link rel="stylesheet" href="../css/refresh.css?v=2026.1">
 </head>
 
@@ -47,6 +49,18 @@
     <p class="auth-subtitle">
       Crie sua conta para configurar e administrar seu negócio.
     </p>
+
+    <section class="google-auth-area" aria-label="Acesso rápido">
+      <div
+        class="google-auth-button"
+        data-google-auth
+        data-google-contexto="profissional"
+      ></div>
+
+      <div class="auth-divider">
+        <span>ou continue com e-mail</span>
+      </div>
+    </section>
 
     <form
       id="formCadastroProfissional"
@@ -204,5 +218,7 @@
 <script src="../js/analytics.js"></script>
 <script src="../js/api.js"></script>
 <script src="../js/services/authService.js"></script>
+<script id="googleIdentityScript" src="https://accounts.google.com/gsi/client" async></script>
+<script src="../js/google-auth.js"></script>
 <script src="../js/cadastro-profissional.js"></script>
 </html>

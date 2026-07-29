@@ -1,31 +1,27 @@
-const db = require(
-  "../db/db"
-);
+const db = require("../db/db");
 
-/*
- * Busca a conta pelo e-mail.
- *
- * O LOWER protege contra diferenças
- * entre letras maiúsculas e minúsculas.
- */
+const CAMPOS_USUARIO = `
+  id,
+  nome,
+  email,
+  senha,
+  whatsapp,
+  google_sub,
+  ativo,
+  email_verificado_em,
+  ultimo_login_em,
+  senha_alterada_em,
+  created_at,
+  updated_at
+`;
+
 async function buscarUsuarioPorEmail(
   email
 ) {
   const resultado =
     await db.query(
       `
-      SELECT
-        id,
-        nome,
-        email,
-        senha,
-        whatsapp,
-        ativo,
-        email_verificado_em,
-        ultimo_login_em,
-        senha_alterada_em,
-        created_at,
-        updated_at
+      SELECT ${CAMPOS_USUARIO}
       FROM usuarios
       WHERE LOWER(email) =
         LOWER($1)
@@ -34,20 +30,26 @@ async function buscarUsuarioPorEmail(
       [email]
     );
 
-  return (
-    resultado.rows[0] ||
-    null
-  );
+  return resultado.rows[0] || null;
 }
 
-/*
- * Busca a conta pelo ID.
- *
- * Pode ser utilizada posteriormente
- * por rotas autenticadas como:
- *
- * GET /minha-conta
- */
+async function buscarUsuarioPorGoogleSub(
+  googleSub
+) {
+  const resultado =
+    await db.query(
+      `
+      SELECT ${CAMPOS_USUARIO}
+      FROM usuarios
+      WHERE google_sub = $1
+      LIMIT 1
+      `,
+      [googleSub]
+    );
+
+  return resultado.rows[0] || null;
+}
+
 async function buscarUsuarioPorId(
   usuarioId
 ) {
@@ -59,6 +61,7 @@ async function buscarUsuarioPorId(
         nome,
         email,
         whatsapp,
+        google_sub,
         ativo,
         email_verificado_em,
         ultimo_login_em,
@@ -72,21 +75,9 @@ async function buscarUsuarioPorId(
       [usuarioId]
     );
 
-  return (
-    resultado.rows[0] ||
-    null
-  );
+  return resultado.rows[0] || null;
 }
 
-/*
- * Cria uma conta única.
- *
- * Não existe mais tipo de usuário
- * nesta tabela.
- *
- * A senha recebida já deve estar
- * criptografada pelo authService.
- */
 async function criarUsuario({
   nome,
   email,
@@ -102,23 +93,8 @@ async function criarUsuario({
         senha,
         whatsapp
       )
-      VALUES (
-        $1,
-        $2,
-        $3,
-        $4
-      )
-      RETURNING
-        id,
-        nome,
-        email,
-        whatsapp,
-        ativo,
-        email_verificado_em,
-        ultimo_login_em,
-        senha_alterada_em,
-        created_at,
-        updated_at
+      VALUES ($1, $2, $3, $4)
+      RETURNING ${CAMPOS_USUARIO}
       `,
       [
         nome,
@@ -131,9 +107,66 @@ async function criarUsuario({
   return resultado.rows[0];
 }
 
-/*
- * Registra o último login da conta.
- */
+async function criarUsuarioGoogle({
+  nome,
+  email,
+  googleSub,
+}) {
+  const resultado =
+    await db.query(
+      `
+      INSERT INTO usuarios (
+        nome,
+        email,
+        senha,
+        whatsapp,
+        google_sub,
+        email_verificado_em
+      )
+      VALUES (
+        $1,
+        $2,
+        NULL,
+        NULL,
+        $3,
+        NOW()
+      )
+      RETURNING ${CAMPOS_USUARIO}
+      `,
+      [nome, email, googleSub]
+    );
+
+  return resultado.rows[0];
+}
+
+async function vincularUsuarioAoGoogle({
+  usuarioId,
+  googleSub,
+}) {
+  const resultado =
+    await db.query(
+      `
+      UPDATE usuarios
+      SET
+        google_sub = $2,
+        email_verificado_em =
+          COALESCE(
+            email_verificado_em,
+            NOW()
+          )
+      WHERE id = $1
+        AND (
+          google_sub IS NULL OR
+          google_sub = $2
+        )
+      RETURNING ${CAMPOS_USUARIO}
+      `,
+      [usuarioId, googleSub]
+    );
+
+  return resultado.rows[0] || null;
+}
+
 async function atualizarUltimoLogin(
   usuarioId
 ) {
@@ -143,24 +176,14 @@ async function atualizarUltimoLogin(
       UPDATE usuarios
       SET ultimo_login_em = NOW()
       WHERE id = $1
-      RETURNING
-        ultimo_login_em
+      RETURNING ultimo_login_em
       `,
       [usuarioId]
     );
 
-  return (
-    resultado.rows[0] ||
-    null
-  );
+  return resultado.rows[0] || null;
 }
 
-/*
- * Atualiza a senha da conta.
- *
- * Será utilizada posteriormente no
- * fluxo de recuperação de senha.
- */
 async function atualizarSenha({
   usuarioId,
   senha,
@@ -177,22 +200,12 @@ async function atualizarSenha({
         id,
         senha_alterada_em
       `,
-      [
-        usuarioId,
-        senha,
-      ]
+      [usuarioId, senha]
     );
 
-  return (
-    resultado.rows[0] ||
-    null
-  );
+  return resultado.rows[0] || null;
 }
 
-/*
- * Desativa uma conta sem excluir
- * os dados históricos relacionados.
- */
 async function desativarUsuario(
   usuarioId
 ) {
@@ -202,23 +215,21 @@ async function desativarUsuario(
       UPDATE usuarios
       SET ativo = FALSE
       WHERE id = $1
-      RETURNING
-        id,
-        ativo
+      RETURNING id, ativo
       `,
       [usuarioId]
     );
 
-  return (
-    resultado.rows[0] ||
-    null
-  );
+  return resultado.rows[0] || null;
 }
 
 module.exports = {
   buscarUsuarioPorEmail,
+  buscarUsuarioPorGoogleSub,
   buscarUsuarioPorId,
   criarUsuario,
+  criarUsuarioGoogle,
+  vincularUsuarioAoGoogle,
   atualizarUltimoLogin,
   atualizarSenha,
   desativarUsuario,
