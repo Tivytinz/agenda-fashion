@@ -109,6 +109,34 @@ body {
   background: #fbcfe8;
 }
 
+.marca-profissional {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  min-width: 0;
+}
+
+.marca-profissional > div {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+}
+
+.marca-profissional strong {
+  overflow: hidden;
+  font-size: 14px;
+  font-weight: 900;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.marca-profissional span {
+  color:
+    var(--cor-texto-secundario);
+  font-size: 11px;
+  font-weight: 700;
+}
+
 .topo-acoes {
   display: flex;
   align-items: center;
@@ -206,6 +234,85 @@ body {
     var(--cor-texto-secundario);
 }
 
+.dashboard-etiqueta {
+  display: inline-flex;
+  align-items: center;
+  margin-bottom: 6px;
+  color:
+    var(--cor-principal-escura);
+  font-size: 11px;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+}
+
+.mensagem-crescimento {
+  position: relative;
+  overflow: hidden;
+  margin: 0 0 14px;
+  padding: 16px 18px 16px 21px;
+  color: #7d1c50;
+  background:
+    linear-gradient(
+      135deg,
+      #fff0f8,
+      #fff9fc
+    );
+  border: 1px solid #f8c8df;
+  border-radius: 18px;
+  font-size: 14px;
+  font-weight: 800;
+  line-height: 1.45;
+}
+
+.mensagem-crescimento::before {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 5px;
+  content: "";
+  background:
+    linear-gradient(
+      #d9468f,
+      #f472b6
+    );
+}
+
+.acoes-profissional {
+  display: grid;
+  grid-template-columns:
+    repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.acoes-profissional button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  min-height: 48px;
+  padding: 10px 15px;
+  color:
+    var(--cor-principal-escura);
+  background: #fff;
+  border: 1px solid #f1bbd5;
+  border-radius: 15px;
+  font-size: 13px;
+  font-weight: 850;
+  cursor: pointer;
+}
+
+.acoes-profissional button:hover {
+  background:
+    var(--cor-principal-clara);
+  transform: translateY(-1px);
+}
+
+.acoes-profissional button:focus-visible {
+  outline: 3px solid rgba(217, 70, 143, 0.2);
+  outline-offset: 2px;
+}
+
 /* =========================
    MENSAGENS
 ========================= */
@@ -242,6 +349,18 @@ body {
     #bbf7d0;
 }
 
+.mensagem-dashboard.mensagem-sucesso {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  margin: -1px;
+  padding: 0;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
 .mensagem-erro {
   color:
     var(--cor-erro);
@@ -266,6 +385,14 @@ body {
   gap: 16px;
 
   margin-bottom: 26px;
+}
+
+.cards-principais {
+  margin-bottom: 18px;
+}
+
+.cards-secundarios {
+  margin-bottom: 24px;
 }
 
 .card {
@@ -363,6 +490,14 @@ body {
 
   box-shadow:
     var(--sombra-card);
+}
+
+.proximo-prioridade {
+  margin-bottom: 18px;
+  border-color: #f2bad5;
+  box-shadow:
+    0 14px 34px
+    rgba(185, 50, 118, 0.09);
 }
 
 .secao-titulo {
@@ -712,14 +847,12 @@ body {
   max-width: 600px
 ) {
   .topo {
-    align-items: flex-start;
-
+    align-items: center;
     padding: 10px 14px;
   }
 
   .topo-acoes {
     justify-content: flex-end;
-    flex-wrap: wrap;
   }
 
   .topo-acoes button {
@@ -730,14 +863,50 @@ body {
     font-size: 12px;
   }
 
+  #btnAgenda,
+  #btnAgendamentos {
+    display: none;
+  }
+
   .container {
     padding:
-      22px 14px 105px;
+      16px 12px 105px;
   }
 
   .dashboard-cabecalho {
     align-items: flex-start;
     flex-direction: column;
+
+    margin-bottom: 12px;
+  }
+
+  .dashboard-cabecalho h1 {
+    max-width: 340px;
+    margin-bottom: 5px;
+    font-size: 27px;
+    line-height: 1.08;
+    letter-spacing: -0.025em;
+  }
+
+  .dashboard-cabecalho p {
+    font-size: 13px;
+    font-weight: 700;
+  }
+
+  .mensagem-crescimento {
+    padding: 14px 15px 14px 18px;
+    font-size: 13px;
+  }
+
+  .mensagem-dashboard {
+    margin-bottom: 12px;
+    padding: 10px 12px;
+    font-size: 12px;
+  }
+
+  .acoes-profissional button {
+    padding-inline: 10px;
+    font-size: 12px;
   }
 
   .cards {
@@ -748,19 +917,21 @@ body {
   }
 
   .card {
-    min-height: 112px;
+    min-height: 94px;
 
-    padding: 16px;
+    padding: 13px;
+    border-radius: 15px;
   }
 
   .card span {
-    margin-bottom: 10px;
+    margin-bottom: 7px;
 
-    font-size: 12px;
+    font-size: 11px;
+    line-height: 1.25;
   }
 
   .card strong {
-    font-size: 21px;
+    font-size: 20px;
   }
 
   .secao-dashboard {
@@ -771,6 +942,14 @@ body {
 
   .secao-titulo h2 {
     font-size: 19px;
+  }
+
+  .secao-titulo p {
+    font-size: 12px;
+  }
+
+  .proximo-prioridade {
+    order: -1;
   }
 
   .atendimento-card {
@@ -812,20 +991,28 @@ body {
 @media (
   max-width: 390px
 ) {
-  .cards {
-    grid-template-columns:
-      1fr;
-  }
-
-  .topo {
-    position: static;
-  }
-
   .topo-acoes {
     gap: 5px;
   }
 
   .topo-acoes button {
     padding: 7px 8px;
+  }
+
+  .marca-profissional span {
+    display: none;
+  }
+
+  .acoes-profissional {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (
+  prefers-reduced-motion:
+    reduce
+) {
+  .acoes-profissional button {
+    transition: none;
   }
 }

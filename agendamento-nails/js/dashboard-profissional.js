@@ -24,6 +24,11 @@ document.addEventListener(
           "mensagemDashboard"
         ),
 
+      mensagemCrescimento:
+        document.getElementById(
+          "mensagemCrescimento"
+        ),
+
       agendamentosHoje:
         document.getElementById(
           "agendamentosHoje"
@@ -87,6 +92,16 @@ document.addEventListener(
       btnAgendamentos:
         document.getElementById(
           "btnAgendamentos"
+        ),
+
+      btnAbrirAgenda:
+        document.getElementById(
+          "btnAbrirAgenda"
+        ),
+
+      btnVerAgendamentos:
+        document.getElementById(
+          "btnVerAgendamentos"
         ),
 
       btnHome:
@@ -184,6 +199,19 @@ document.addEventListener(
         status ||
         "Não informado"
       );
+    }
+
+    function registrarComportamento(
+      nome,
+      propriedades = {}
+    ) {
+      window.AFAnalytics
+        ?.registrar?.(
+          nome,
+          {
+            propriedades,
+          }
+        );
     }
 
     function criarElemento(
@@ -388,6 +416,22 @@ document.addEventListener(
         linkWhatsapp.rel =
           "noopener noreferrer";
 
+        linkWhatsapp
+          .addEventListener(
+            "click",
+            () => {
+              registrarComportamento(
+                "acao_dashboard_selecionada",
+                {
+                  acao:
+                    "falar_cliente",
+                  papel:
+                    "profissional",
+                }
+              );
+            }
+          );
+
         card.appendChild(
           linkWhatsapp
         );
@@ -399,15 +443,18 @@ document.addEventListener(
     function renderizarResumo(
       resumo = {}
     ) {
+      const agendamentosHoje =
+        converterNumero(
+          resumo
+            .agendamentos_hoje ??
+          resumo
+            .agendados_hoje
+        );
+
       elementos
         .agendamentosHoje
         .textContent =
-          converterNumero(
-            resumo
-              .agendamentos_hoje ??
-            resumo
-              .agendados_hoje
-          );
+          agendamentosHoje;
 
       elementos
         .faturamentoHoje
@@ -460,6 +507,55 @@ document.addEventListener(
             resumo
               .faturamento_estimado
           );
+
+      let mensagem =
+        "Sua agenda está livre hoje. Deixe seus horários disponíveis e compartilhe seu perfil 💅";
+
+      let faixa =
+        "dia_livre";
+
+      if (
+        agendamentosHoje === 1
+      ) {
+        faixa =
+          "primeiro_atendimento";
+
+        mensagem =
+          "Seu trabalho foi escolhido hoje. Prepare tudo com carinho para esse atendimento 💅";
+      } else if (
+        agendamentosHoje > 1
+      ) {
+        faixa =
+          "dia_em_movimento";
+
+        mensagem =
+          `Seu trabalho foi escolhido ${agendamentosHoje} vezes hoje. ` +
+          "Vamos fazer um ótimo dia 💅";
+      }
+
+      if (
+        elementos
+          .mensagemCrescimento
+      ) {
+        elementos
+          .mensagemCrescimento
+          .textContent =
+            mensagem;
+      }
+
+      registrarComportamento(
+        "mensagem_crescimento_visualizada",
+        {
+          faixa,
+          agendamentos_mes:
+            converterNumero(
+              resumo
+                .total_agendados
+            ),
+          papel:
+            "profissional",
+        }
+      );
     }
 
     function renderizarProximoAtendimento(
@@ -752,7 +848,7 @@ document.addEventListener(
         "click",
         () => {
           window.location.href =
-            "painel-profissional.html";
+            "agenda-profissional.html";
         }
       );
 
@@ -762,7 +858,7 @@ document.addEventListener(
         "click",
         () => {
           window.location.href =
-            "agendamentos-profissional.html";
+            "agenda-profissional.html";
         }
       );
 
@@ -772,7 +868,48 @@ document.addEventListener(
         "click",
         () => {
           window.location.href =
-            "painel-profissional.html";
+            "dashboard-profissional.html";
+        }
+      );
+
+    function abrirDestino(
+      destino,
+      acao
+    ) {
+      registrarComportamento(
+        "acao_dashboard_selecionada",
+        {
+          acao,
+          papel:
+            "profissional",
+        }
+      );
+
+      window.location.href =
+        destino;
+    }
+
+    elementos
+      .btnAbrirAgenda
+      ?.addEventListener(
+        "click",
+        () => {
+          abrirDestino(
+            "agenda-profissional.html",
+            "abrir_agenda"
+          );
+        }
+      );
+
+    elementos
+      .btnVerAgendamentos
+      ?.addEventListener(
+        "click",
+        () => {
+          abrirDestino(
+            "agenda-profissional.html",
+            "ver_agendamentos"
+          );
         }
       );
 

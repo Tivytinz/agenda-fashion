@@ -84,6 +84,23 @@ document.addEventListener(
         .replace(/\/$/, "");
     }
 
+    function registrarComportamento(
+      nome,
+      {
+        negocioId,
+        propriedades = {},
+      } = {}
+    ) {
+      window.AFAnalytics
+        ?.registrar?.(
+          nome,
+          {
+            negocioId,
+            propriedades,
+          }
+        );
+    }
+
     function normalizarTexto(
       texto
     ) {
@@ -593,6 +610,23 @@ document.addEventListener(
           String(servicoId)
         );
       }
+
+      registrarComportamento(
+        servicoId
+          ? "servico_selecionado"
+          : "negocio_selecionado",
+        {
+          negocioId:
+            negocio.id,
+          propriedades: {
+            origem:
+              "inicio",
+            servico_id:
+              servicoId ||
+              undefined,
+          },
+        }
+      );
 
       window.location.href =
         `/html/perfil-negocio.html?${parametros.toString()}`;
@@ -1640,6 +1674,28 @@ document.addEventListener(
         "";
 
       renderizarConteudo();
+
+      const termoPresente =
+        normalizarTexto(
+          estado.termoBusca
+        ).length >= 2;
+
+      if (termoPresente) {
+        registrarComportamento(
+          "busca_realizada",
+          {
+            propriedades: {
+              termo_presente:
+                true,
+              resultados:
+                obterNegociosFiltrados()
+                  .length +
+                obterServicosFiltrados()
+                  .length,
+            },
+          }
+        );
+      }
     }
 
     function configurarEventos() {
@@ -1677,6 +1733,17 @@ document.addEventListener(
               botao.dataset
                 .categoria ||
               "";
+
+            registrarComportamento(
+              "categoria_selecionada",
+              {
+                propriedades: {
+                  categoria:
+                    estado.categoria ||
+                    "todas",
+                },
+              }
+            );
 
             elementos
               .filtrosCategorias

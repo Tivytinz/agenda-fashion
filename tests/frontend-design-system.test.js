@@ -61,6 +61,24 @@ describe(
             ).toContain(
               'content="#d92f7f"'
             );
+
+            expect(
+              html
+            ).toMatch(
+              /data-af-tela="[a-z0-9_]+"/
+            );
+
+            expect(
+              html
+            ).toMatch(
+              /data-af-missao="[a-z0-9_]+"/
+            );
+
+            expect(
+              html
+            ).toContain(
+              'src="../js/analytics.js"'
+            );
           }
         );
       }

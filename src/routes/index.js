@@ -73,6 +73,10 @@ const notificacoesRoutes = require(
   "./notificacoesRoutes"
 );
 
+const eventoProdutoRoutes = require(
+  "./eventoProdutoRoutes"
+);
+
 /*
  * AGENDAS
  */
@@ -180,6 +184,10 @@ router.use(
 
 router.use(
   notificacoesRoutes
+);
+
+router.use(
+  eventoProdutoRoutes
 );
 
 /*
