@@ -162,6 +162,58 @@ function obterCodigoIdioma() {
   ).trim();
 }
 
+function validarConfiguracaoAtivacao() {
+  whatsappProvider
+    .validarConfiguracao();
+
+  for (
+    const nome of [
+      "WHATSAPP_WEBHOOK_VERIFY_TOKEN",
+      "WHATSAPP_APP_SECRET",
+    ]
+  ) {
+    if (
+      !String(
+        process.env[nome] ||
+        ""
+      ).trim()
+    ) {
+      const erro =
+        new Error(
+          `${nome} não configurado.`
+        );
+
+      erro.code =
+        "WHATSAPP_CONFIGURATION_ERROR";
+
+      throw erro;
+    }
+  }
+
+  for (
+    const tipo of
+      Object.keys(
+        CONFIGURACOES_TEMPLATE
+      )
+  ) {
+    if (
+      !obterNomeTemplate(
+        tipo
+      )
+    ) {
+      const erro =
+        new Error(
+          `Template vazio para ${tipo}.`
+        );
+
+      erro.code =
+        "WHATSAPP_CONFIGURATION_ERROR";
+
+      throw erro;
+    }
+  }
+}
+
 function mensagemErroSegura(
   erro
 ) {
@@ -236,6 +288,50 @@ function obterMetaMessageId(
       ?.[0]
       ?.id ||
     null
+  );
+}
+
+function erroEhRetentavel(
+  erro
+) {
+  const status =
+    Number(
+      erro?.response?.status ||
+      erro?.status
+    );
+
+  if (
+    Number.isInteger(status)
+  ) {
+    return (
+      [408, 425, 429]
+        .includes(status) ||
+      status >= 500
+    );
+  }
+
+  const codigo =
+    String(
+      erro?.code ||
+      ""
+    ).toUpperCase();
+
+  if (
+    [
+      "ECONNABORTED",
+      "ECONNRESET",
+      "ECONNREFUSED",
+      "EAI_AGAIN",
+      "ENETUNREACH",
+      "ETIMEDOUT",
+    ].includes(codigo)
+  ) {
+    return true;
+  }
+
+  return Boolean(
+    erro?.request &&
+    !erro?.response
   );
 }
 
@@ -340,13 +436,19 @@ async function processarMensagem(
         erro
       );
 
+    const retentavel =
+      erroEhRetentavel(
+        erro
+      );
+
     await whatsappMensagemRepository
       .marcarFalha(
         mensagem,
         erroSeguro,
         obterAtrasoNovaTentativa(
           mensagem.tentativas
-        )
+        ),
+        retentavel
       );
 
     console.error(
@@ -360,6 +462,7 @@ async function processarMensagem(
           mensagem.tipo,
         tentativa:
           mensagem.tentativas,
+        retentavel,
         erro:
           erroSeguro,
       }
@@ -456,6 +559,8 @@ function iniciarWorkerWhatsapp() {
     return temporizadorWorker;
   }
 
+  validarConfiguracaoAtivacao();
+
   const intervalo =
     obterInteiroConfiguracao(
       "WHATSAPP_WORKER_INTERVAL_MS",
@@ -532,4 +637,6 @@ module.exports = {
   pararWorkerWhatsapp,
   notificacoesWhatsappAtivas,
   obterNomeTemplate,
+  erroEhRetentavel,
+  validarConfiguracaoAtivacao,
 };
