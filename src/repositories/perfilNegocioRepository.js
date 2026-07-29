@@ -25,6 +25,31 @@ async function listarNegociosPublicos() {
       COALESCE(
         (
           SELECT
+            jsonb_agg(
+              jsonb_build_object(
+                'id', s.id,
+                'nome', s.nome,
+                'descricao', s.descricao,
+                'valor', s.valor,
+                'duracao_minutos', s.duracao_minutos,
+                'foto_url', s.foto_url
+              )
+
+              ORDER BY
+                s.nome ASC
+            )
+
+          FROM servicos_negocio s
+
+          WHERE s.negocio_id = n.id
+            AND s.ativo = TRUE
+        ),
+        '[]'::jsonb
+      ) AS servicos,
+
+      COALESCE(
+        (
+          SELECT
             ROUND(
               AVG(a.avaliacao)::numeric,
               1
