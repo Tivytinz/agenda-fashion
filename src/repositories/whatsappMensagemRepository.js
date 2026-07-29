@@ -662,6 +662,10 @@ async function marcarEnviada(
 
         SET
           status = 'SENT',
+          status_entrega =
+            'ACCEPTED',
+          status_entrega_em =
+            NULL,
           enviado_em = NOW(),
           meta_message_id = $2,
           bloqueado_em = NULL,
@@ -685,9 +689,11 @@ async function marcarEnviada(
 async function marcarFalha(
   mensagem,
   erro,
-  atrasoSegundos
+  atrasoSegundos,
+  retentavel = true
 ) {
   const esgotada =
+    !retentavel ||
     Number(mensagem.tentativas) >=
     Number(mensagem.max_tentativas);
 
@@ -698,6 +704,13 @@ async function marcarFalha(
 
         SET
           status = 'FAILED',
+          falha_retentavel = $5,
+          tentativas =
+            CASE
+              WHEN $5::BOOLEAN
+                THEN tentativas
+              ELSE max_tentativas
+            END,
           bloqueado_em = NULL,
           ultimo_erro = $2,
           proxima_tentativa_em =
@@ -726,6 +739,130 @@ async function marcarFalha(
         ),
         esgotada,
         atrasoSegundos,
+        retentavel,
+      ]
+    );
+
+  return result.rows[0] || null;
+}
+
+async function registrarStatusEntrega({
+  metaMessageId,
+  status,
+  ocorridoEm,
+  codigoErro = null,
+  tituloErro = null,
+}) {
+  const statusNormalizado =
+    String(
+      status ||
+      ""
+    ).toUpperCase();
+
+  if (
+    ![
+      "SENT",
+      "DELIVERED",
+      "READ",
+      "FAILED",
+    ].includes(
+      statusNormalizado
+    )
+  ) {
+    return null;
+  }
+
+  const result =
+    await db.query(
+      `
+        UPDATE whatsapp_mensagens
+
+        SET
+          status_entrega = $2,
+          status_entrega_em = $3,
+          entregue_em =
+            CASE
+              WHEN $2 IN (
+                'DELIVERED',
+                'READ'
+              )
+                THEN COALESCE(
+                  entregue_em,
+                  $3
+                )
+              ELSE entregue_em
+            END,
+          lida_em =
+            CASE
+              WHEN $2 = 'READ'
+                THEN COALESCE(
+                  lida_em,
+                  $3
+                )
+              ELSE lida_em
+            END,
+          falhou_em =
+            CASE
+              WHEN $2 = 'FAILED'
+                THEN COALESCE(
+                  falhou_em,
+                  $3
+                )
+              ELSE falhou_em
+            END,
+          meta_codigo_erro =
+            CASE
+              WHEN $2 = 'FAILED'
+                THEN $4
+              ELSE meta_codigo_erro
+            END,
+          ultimo_erro =
+            CASE
+              WHEN $2 = 'FAILED'
+                THEN COALESCE(
+                  $5,
+                  ultimo_erro
+                )
+              ELSE ultimo_erro
+            END
+
+        WHERE meta_message_id = $1
+          AND (
+            status_entrega_em IS NULL
+            OR $3 > status_entrega_em
+            OR (
+              $3 = status_entrega_em
+              AND CASE $2
+                WHEN 'SENT' THEN 1
+                WHEN 'DELIVERED' THEN 2
+                WHEN 'READ' THEN 3
+                WHEN 'FAILED' THEN 4
+                ELSE 0
+              END >=
+              CASE status_entrega
+                WHEN 'ACCEPTED' THEN 0
+                WHEN 'SENT' THEN 1
+                WHEN 'DELIVERED' THEN 2
+                WHEN 'READ' THEN 3
+                WHEN 'FAILED' THEN 4
+                ELSE 0
+              END
+            )
+          )
+
+        RETURNING *
+      `,
+      [
+        metaMessageId,
+        statusNormalizado,
+        ocorridoEm,
+        codigoErro
+          ? String(codigoErro)
+          : null,
+        tituloErro
+          ? String(tituloErro)
+              .slice(0, 2000)
+          : null,
       ]
     );
 
@@ -768,4 +905,5 @@ module.exports = {
   marcarEnviada,
   marcarFalha,
   marcarCancelada,
+  registrarStatusEntrega,
 };

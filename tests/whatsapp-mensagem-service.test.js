@@ -17,6 +17,8 @@ jest.mock(
       jest.fn(),
     marcarCancelada:
       jest.fn(),
+    registrarStatusEntrega:
+      jest.fn(),
   })
 );
 
@@ -24,6 +26,8 @@ jest.mock(
   "../src/providers/whatsappProvider",
   () => ({
     enviarTemplate:
+      jest.fn(),
+    validarConfiguracao:
       jest.fn(),
   })
 );
@@ -248,8 +252,93 @@ describe(
         ).toHaveBeenCalledWith(
           mensagem,
           "HTTP 429 - código 130429 - Limite temporário atingido.",
-          120
+          120,
+          true
         );
+      }
+    );
+
+    test(
+      "não repete erro permanente de template",
+      async () => {
+        const mensagem =
+          criarMensagem();
+
+        whatsappMensagemRepository
+          .reservarProximaMensagem
+          .mockResolvedValueOnce(
+            mensagem
+          )
+          .mockResolvedValueOnce(
+            null
+          );
+
+        whatsappMensagemRepository
+          .mensagemContinuaValida
+          .mockResolvedValue(
+            true
+          );
+
+        const erro =
+          new Error(
+            "Template inexistente."
+          );
+
+        erro.response = {
+          status: 400,
+          data: {
+            error: {
+              code: 132001,
+              message:
+                "Template inexistente.",
+            },
+          },
+        };
+
+        whatsappProvider
+          .enviarTemplate
+          .mockRejectedValue(
+            erro
+          );
+
+        await whatsappMensagemService
+          .processarFilaWhatsapp({
+            limite: 1,
+          });
+
+        expect(
+          whatsappMensagemRepository
+            .marcarFalha
+        ).toHaveBeenCalledWith(
+          mensagem,
+          "HTTP 400 - código 132001 - Template inexistente.",
+          60,
+          false
+        );
+      }
+    );
+
+    test.each([
+      [408, true],
+      [429, true],
+      [500, true],
+      [503, true],
+      [400, false],
+      [401, false],
+    ])(
+      "classifica HTTP %i como retentável=%s",
+      (
+        status,
+        esperado
+      ) => {
+        expect(
+          whatsappMensagemService
+            .erroEhRetentavel({
+              response: {
+                status,
+              },
+            })
+        ).toBe(esperado);
       }
     );
 
@@ -305,6 +394,25 @@ describe(
               )
         ).toThrow(
           "Tipo de mensagem do WhatsApp não suportado"
+        );
+      }
+    );
+
+    test(
+      "impede ativação sem os segredos do webhook",
+      () => {
+        delete process.env
+          .WHATSAPP_APP_SECRET;
+
+        delete process.env
+          .WHATSAPP_WEBHOOK_VERIFY_TOKEN;
+
+        expect(
+          () =>
+            whatsappMensagemService
+              .validarConfiguracaoAtivacao()
+        ).toThrow(
+          "WHATSAPP_WEBHOOK_VERIFY_TOKEN não configurado"
         );
       }
     );

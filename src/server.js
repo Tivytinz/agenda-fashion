@@ -23,7 +23,25 @@ const {
 
 const app = express();
 
-app.use(express.json());
+app.use(
+  express.json({
+    verify: (
+      req,
+      _res,
+      buffer
+    ) => {
+      if (
+        req.originalUrl
+          ?.startsWith(
+            "/webhook/whatsapp"
+          )
+      ) {
+        req.rawBody =
+          Buffer.from(buffer);
+      }
+    },
+  })
+);
 
 app.use(cors({
   origin: [

@@ -72,7 +72,7 @@ describe(
     );
 
     test(
-      "prioriza o destinatário seguro de teste",
+      "não redireciona a fila pelo destinatário de teste",
       () => {
         process.env
           .WHATSAPP_TEST_RECIPIENT =
@@ -84,7 +84,7 @@ describe(
               "62999999999"
             )
         ).toBe(
-          "5511988887777"
+          "5562999999999"
         );
       }
     );

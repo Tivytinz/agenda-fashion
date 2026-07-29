@@ -1,5 +1,11 @@
 const axios = require("axios");
 
+function erroConfiguracao(mensagem) {
+  const erro = new Error(mensagem);
+  erro.code = "WHATSAPP_CONFIGURATION_ERROR";
+  return erro;
+}
+
 function validarConfiguracao() {
   const {
     WHATSAPP_ACCESS_TOKEN,
@@ -8,19 +14,19 @@ function validarConfiguracao() {
   } = process.env;
 
   if (!WHATSAPP_ACCESS_TOKEN) {
-    throw new Error(
+    throw erroConfiguracao(
       "WHATSAPP_ACCESS_TOKEN não configurado no .env."
     );
   }
 
   if (!WHATSAPP_PHONE_NUMBER_ID) {
-    throw new Error(
+    throw erroConfiguracao(
       "WHATSAPP_PHONE_NUMBER_ID não configurado no .env."
     );
   }
 
   if (!WHATSAPP_API_VERSION) {
-    throw new Error(
+    throw erroConfiguracao(
       "WHATSAPP_API_VERSION não configurado no .env."
     );
   }
@@ -35,20 +41,8 @@ function limparNumero(numero) {
 }
 
 function obterDestinatario(numeroRecebido) {
-  /*
-   * Enquanto estiver usando o ambiente
-   * de testes da Meta, o número definido em
-   * WHATSAPP_TEST_RECIPIENT será priorizado.
-   *
-   * Quando essa variável não existir,
-   * será usado o número recebido pelo sistema.
-   */
-  const numero =
-    process.env.WHATSAPP_TEST_RECIPIENT ||
-    numeroRecebido;
-
   const numeroLimpo =
-    limparNumero(numero);
+    limparNumero(numeroRecebido);
 
   if (
     [10, 11].includes(
@@ -332,4 +326,5 @@ module.exports = {
   enviarTemplate,
   enviarNovoAgendamento,
   obterDestinatario,
+  validarConfiguracao,
 };
