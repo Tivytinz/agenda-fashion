@@ -10,6 +10,12 @@ const upload = require(
   "../middlewares/upload"
 );
 
+const {
+  limitarUpload,
+} = require(
+  "../middlewares/rateLimits"
+);
+
 const contaController = require(
   "../controllers/contaController"
 );
@@ -71,6 +77,7 @@ router.put(
 
 router.post(
   "/conta/foto",
+  limitarUpload,
   auth,
   upload.single("foto"),
   tratarErroUpload,

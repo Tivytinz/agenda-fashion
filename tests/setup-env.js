@@ -1,6 +1,20 @@
 const path = require("path");
 const dotenv = require("dotenv");
 
+jest.mock(
+  "../src/repositories/authSessionRepository",
+  () => ({
+    buscarEstadoDaSessao:
+      jest.fn(
+        async (usuarioId) => ({
+          id: usuarioId,
+          ativo: true,
+          senha_alterada_em: null,
+        })
+      ),
+  })
+);
+
 const resultado = dotenv.config({
   path: path.resolve(
     __dirname,
@@ -10,7 +24,10 @@ const resultado = dotenv.config({
   quiet: true
 });
 
-if (resultado.error) {
+if (
+  resultado.error &&
+  !process.env.DATABASE_URL
+) {
   throw new Error(
     "Não foi possível carregar o .env.test."
   );

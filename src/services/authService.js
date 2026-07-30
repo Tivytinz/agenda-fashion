@@ -43,16 +43,16 @@ function obterJwtSecret() {
  * Duração do token.
  *
  * Exemplo no .env:
- * JWT_EXPIRES_IN=90d
+ * JWT_EXPIRES_IN=7d
  */
 function obterExpiracaoToken() {
   const expiracao =
     String(
       process.env.JWT_EXPIRES_IN ||
-        "90d"
+        "7d"
     ).trim();
 
-  return expiracao || "90d";
+  return expiracao || "7d";
 }
 
 /*

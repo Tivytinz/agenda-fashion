@@ -2,6 +2,10 @@ const jwt = require(
   "jsonwebtoken"
 );
 
+const authSessionRepository = require(
+  "../repositories/authSessionRepository"
+);
+
 /*
  * Obtém o segredo usado para
  * validar os tokens JWT.
@@ -58,7 +62,42 @@ function obterTokenDoCabecalho(
  * só continuam quando existe um
  * token JWT válido.
  */
-module.exports = function auth(
+function tokenAnteriorATrocaDeSenha(
+  decoded,
+  senhaAlteradaEm
+) {
+  if (!senhaAlteradaEm) {
+    return false;
+  }
+
+  const emitidoEmSegundos =
+    Number(decoded?.iat);
+
+  const senhaAlteradaEmSegundos =
+    Math.floor(
+      new Date(
+        senhaAlteradaEm
+      ).getTime() / 1000
+    );
+
+  if (
+    !Number.isFinite(
+      emitidoEmSegundos
+    ) ||
+    !Number.isFinite(
+      senhaAlteradaEmSegundos
+    )
+  ) {
+    return true;
+  }
+
+  return (
+    emitidoEmSegundos <
+    senhaAlteradaEmSegundos
+  );
+}
+
+module.exports = async function auth(
   req,
   res,
   next
@@ -93,13 +132,29 @@ module.exports = function auth(
         });
     }
 
-    /*
-     * O token identifica somente
-     * a conta autenticada.
-     *
-     * Papel de dono ou profissional
-     * será consultado no banco.
-     */
+    const estadoDaSessao =
+      await authSessionRepository
+        .buscarEstadoDaSessao(
+          decoded.id
+        );
+
+    if (
+      !estadoDaSessao ||
+      estadoDaSessao.ativo !== true ||
+      tokenAnteriorATrocaDeSenha(
+        decoded,
+        estadoDaSessao
+          .senha_alterada_em
+      )
+    ) {
+      return res
+        .status(401)
+        .json({
+          erro:
+            "Sessão inválida ou encerrada.",
+        });
+    }
+
     req.user = {
       id:
         decoded.id,
@@ -136,6 +191,17 @@ module.exports = function auth(
         });
     }
 
+    if (
+      ![
+        "JsonWebTokenError",
+        "NotBeforeError",
+      ].includes(
+        erro.name
+      )
+    ) {
+      return next(erro);
+    }
+
     return res
       .status(401)
       .json({
@@ -144,3 +210,6 @@ module.exports = function auth(
       });
   }
 };
+
+module.exports.tokenAnteriorATrocaDeSenha =
+  tokenAnteriorATrocaDeSenha;

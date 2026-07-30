@@ -16,8 +16,14 @@ const db = require(
   "../src/db/db"
 );
 
-const SLUG_NEGOCIO =
-  "victor";
+const {
+  criarCenarioAgendamento,
+  removerCenarioAgendamento,
+} = require(
+  "./helpers/cenarioAgendamento"
+);
+
+let cenarioTeste;
 
 function gerarSufixoUnico() {
   return (
@@ -40,7 +46,7 @@ async function buscarHorarioDisponivel() {
   const perfil =
     await request(app)
       .get(
-        `/perfil-negocio/${SLUG_NEGOCIO}`
+        `/perfil-negocio/${cenarioTeste.slug}`
       );
 
       expect(
@@ -80,7 +86,7 @@ async function buscarHorarioDisponivel() {
       )
       .query({
         slug:
-          SLUG_NEGOCIO,
+          cenarioTeste.slug,
 
         servicoId:
           servico.id,
@@ -133,6 +139,20 @@ describe(
 
     const usuariosCriados =
       new Set();
+
+    beforeAll(
+      async () => {
+        cenarioTeste =
+          await criarCenarioAgendamento(
+            db,
+            {
+              prefixo:
+                "teste-publico",
+            }
+          );
+      },
+      60000
+    );
 
     afterAll(
       async () => {
@@ -187,6 +207,11 @@ describe(
               ]
             );
           }
+
+          await removerCenarioAgendamento(
+            db,
+            cenarioTeste
+          );
         } finally {
           if (
             typeof db.end ===
@@ -217,7 +242,7 @@ describe(
             )
             .send({
               slug:
-                SLUG_NEGOCIO,
+                cenarioTeste.slug,
 
               servico_id:
                 servico.id,
@@ -355,7 +380,7 @@ describe(
             )
             .send({
               slug:
-                SLUG_NEGOCIO,
+                cenarioTeste.slug,
 
               servico_id:
                 servico.id,

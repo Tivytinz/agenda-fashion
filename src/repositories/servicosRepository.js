@@ -164,7 +164,9 @@ async function removerServico({ id, negocioId }) {
     DELETE FROM servicos_negocio
     WHERE id = $1
       AND negocio_id = $2
-    RETURNING id
+    RETURNING
+      id,
+      foto_public_id
     `,
     [id, negocioId]
   );
@@ -222,7 +224,9 @@ async function removerFotoGaleriaServico({ fotoId, negocioId }) {
     WHERE fs.id = $1
       AND s.id = fs.servico_id
       AND s.negocio_id = $2
-    RETURNING fs.id
+    RETURNING
+      fs.id,
+      fs.foto_public_id
     `,
     [fotoId, negocioId]
   );

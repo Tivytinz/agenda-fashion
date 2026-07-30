@@ -71,6 +71,11 @@ const dashboardRepository = require(
   "../src/repositories/dashboardRepository"
 );
 
+const authSessionRepository =
+  require(
+    "../src/repositories/authSessionRepository"
+  );
+
 function obterJwtSecretTeste() {
   const segredo =
     String(
@@ -285,6 +290,21 @@ describe(
     beforeEach(
       () => {
         jest.resetAllMocks();
+
+        authSessionRepository
+          .buscarEstadoDaSessao
+          .mockImplementation(
+            async (
+              usuarioId
+            ) => ({
+              id:
+                usuarioId,
+              ativo:
+                true,
+              senha_alterada_em:
+                null,
+            })
+          );
       }
     );
 

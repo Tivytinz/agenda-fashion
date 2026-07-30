@@ -50,6 +50,9 @@ const EVENTOS_ASSINATURA =
     "SUBSCRIPTION_DELETED"
   ]);
 
+let temporizadorWorker =
+  null;
+
 function normalizarPagamentoPorEvento(
   tipoEvento,
   pagamento
@@ -412,6 +415,10 @@ async function processarFilaWebhook(limite = 20) {
 }
 
 function iniciarWorkerWebhook() {
+  if (temporizadorWorker) {
+    return temporizadorWorker;
+  }
+
   const executar = () => {
     processarFilaWebhook()
       .catch((erro) => {
@@ -426,15 +433,29 @@ function iniciarWorkerWebhook() {
 
   setImmediate(executar);
 
-  const intervalo =
+  temporizadorWorker =
     setInterval(
       executar,
       30000
     );
 
-  intervalo.unref?.();
+  temporizadorWorker
+    .unref?.();
 
-  return intervalo;
+  return temporizadorWorker;
+}
+
+function pararWorkerWebhook() {
+  if (!temporizadorWorker) {
+    return;
+  }
+
+  clearInterval(
+    temporizadorWorker
+  );
+
+  temporizadorWorker =
+    null;
 }
 
 async function processarWebhookAsaas(dados) {
@@ -458,5 +479,6 @@ module.exports = {
   agendarProcessamentoWebhook,
   processarFilaWebhook,
   iniciarWorkerWebhook,
+  pararWorkerWebhook,
   processarWebhookAsaas
 };

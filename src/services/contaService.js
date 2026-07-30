@@ -487,27 +487,58 @@ async function enviarFotoUsuario({
     !fotoUrl ||
     !fotoPublicId
   ) {
+    await removerImagemSilenciosamente(
+      fotoPublicId
+    );
+
     throw criarErro(
       "O provedor de imagens retornou uma resposta inválida.",
       502
     );
   }
 
-  const usuario =
-    await contaRepository
-      .atualizarFotoUsuario({
-        usuarioId:
-          id,
+  let usuario;
 
-        fotoUrl,
+  try {
+    usuario =
+      await contaRepository
+        .atualizarFotoUsuario({
+          usuarioId:
+            id,
 
-        fotoPublicId,
-      });
+          fotoUrl,
+
+          fotoPublicId,
+        });
+  } catch (erro) {
+    await removerImagemSilenciosamente(
+      fotoPublicId
+    );
+
+    throw erro;
+  }
 
   if (!usuario) {
+    await removerImagemSilenciosamente(
+      fotoPublicId
+    );
+
     throw criarErro(
       "Usuário não encontrado.",
       404
+    );
+  }
+
+  if (
+    usuarioAtual
+      .foto_public_id &&
+    usuarioAtual
+      .foto_public_id !==
+      fotoPublicId
+  ) {
+    await removerImagemSilenciosamente(
+      usuarioAtual
+        .foto_public_id
     );
   }
 
@@ -521,6 +552,33 @@ async function enviarFotoUsuario({
 
     usuario,
   };
+}
+
+async function removerImagemSilenciosamente(
+  publicId
+) {
+  if (
+    typeof uploadToCloudinary
+      .remover !==
+    "function"
+  ) {
+    return;
+  }
+
+  try {
+    await uploadToCloudinary
+      .remover(publicId);
+  } catch (erro) {
+    console.warn(
+      "[Cloudinary] Não foi possível remover uma foto de usuário órfã.",
+      {
+        public_id:
+          publicId,
+        erro:
+          erro?.message,
+      }
+    );
+  }
 }
 
 module.exports = {

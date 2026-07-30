@@ -12,6 +12,8 @@
     "migrate:baseline": "node scripts/migrate.js baseline",
     "migrate:test": "node scripts/migrate.js up --env test",
     "migrate:test:status": "node scripts/migrate.js status --env test",
+    "migrate:deploy": "node scripts/migrate-deploy.js",
+    "test:coverage": "jest --runInBand --coverage",
     "frontend:install": "npm --prefix frontend install",
     "frontend:dev": "npm --prefix frontend run dev",
     "frontend:build": "npm --prefix frontend run build",
@@ -20,20 +22,22 @@
   "dependencies": {
     "axios": "^1.18.1",
     "bcrypt": "^6.0.0",
+    "busboy": "^1.6.0",
     "cloudinary": "^2.10.0",
     "cors": "^2.8.6",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
+    "express-rate-limit": "^8.6.1",
     "google-auth-library": "^10.9.1",
+    "helmet": "^8.3.0",
     "jsonwebtoken": "^9.0.3",
-    "multer": "^2.1.1",
-    "pg": "^8.21.0",
-    "swagger-jsdoc": "^6.3.0",
-    "swagger-ui-express": "^5.0.1"
+    "pg": "^8.21.0"
   },
   "devDependencies": {
     "jest": "^30.4.2",
     "jest-environment-jsdom": "^30.4.1",
-    "supertest": "^7.2.2"
+    "supertest": "^7.2.2",
+    "swagger-jsdoc": "^6.3.0",
+    "swagger-ui-express": "^5.0.1"
   }
 }

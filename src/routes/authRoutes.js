@@ -9,6 +9,13 @@ const authController = require(
 const router =
   express.Router();
 
+const {
+  limitarLogin,
+  limitarCadastro,
+} = require(
+  "../middlewares/rateLimits"
+);
+
 router.get(
   "/auth/configuracao-publica",
   authController
@@ -17,16 +24,19 @@ router.get(
 
 router.post(
   "/cadastro",
+  limitarCadastro,
   authController.cadastro
 );
 
 router.post(
   "/login",
+  limitarLogin,
   authController.login
 );
 
 router.post(
   "/auth/google",
+  limitarLogin,
   authController.loginGoogle
 );
 

@@ -69,6 +69,10 @@ function errorHandler(
           req?.method ||
           null,
 
+        request_id:
+          req?.id ||
+          null,
+
         detalhe:
           deveExibirDetalhes()
             ? err?.detail || null
@@ -92,6 +96,9 @@ function errorHandler(
       .json({
         erro:
           err.message,
+        request_id:
+          req?.id ||
+          undefined,
       });
   }
 
@@ -100,6 +107,9 @@ function errorHandler(
     .json({
       erro:
         "Erro interno do servidor.",
+      request_id:
+        req?.id ||
+        undefined,
     });
 }
 

@@ -649,13 +649,23 @@ async function suspenderAssinaturaPorPagamento(
 
       await client.query(
         `
-        UPDATE negocios
+        UPDATE negocios n
         SET plano_id = $1
-        WHERE id = $2
+        WHERE n.id = $2
+          AND n.plano_id = $3
+          AND NOT EXISTS (
+            SELECT 1
+            FROM assinaturas atual
+            WHERE atual.negocio_id = n.id
+              AND atual.id <> $4
+              AND atual.ativo = TRUE
+          )
         `,
         [
           planoGratisId,
-          assinatura.negocio_id
+          assinatura.negocio_id,
+          assinatura.plano_id,
+          assinatura.id
         ]
       );
 

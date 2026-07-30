@@ -180,6 +180,24 @@ async function removerServico({ usuarioId, id }) {
     "Apenas o dono pode remover serviços."
   );
 
+  const servicoAtual =
+    await servicosRepository
+      .buscarServicoDoNegocio(
+        id,
+        vinculo.negocio_id
+      );
+
+  if (!servicoAtual) {
+    throw criarErro(
+      "Serviço não encontrado.",
+      404
+    );
+  }
+
+  const fotos =
+    await servicosRepository
+      .listarFotosServico(id);
+
   const removido = await servicosRepository.removerServico({
     id,
     negocioId: vinculo.negocio_id,
@@ -187,6 +205,26 @@ async function removerServico({ usuarioId, id }) {
 
   if (!removido) {
     throw criarErro("Serviço não encontrado.", 404);
+  }
+
+  const imagens =
+    new Set([
+      servicoAtual
+        .foto_public_id,
+      ...(fotos || [])
+        .map(
+          (foto) =>
+            foto.foto_public_id
+        ),
+    ]);
+
+  for (
+    const publicId
+    of imagens
+  ) {
+    await removerImagemSilenciosamente(
+      publicId
+    );
   }
 
   return {
@@ -204,20 +242,69 @@ async function enviarFotoServico({ usuarioId, id, file }) {
     throw criarErro("Nenhuma imagem enviada.", 400);
   }
 
-  const resultado = await uploadToCloudinary(
-    file.buffer,
-    "saas-agendamento/servicos"
-  );
+  const servicoAtual =
+    await servicosRepository
+      .buscarServicoDoNegocio(
+        id,
+        vinculo.negocio_id
+      );
 
-  const servico = await servicosRepository.atualizarFotoServico({
-    id,
-    negocioId: vinculo.negocio_id,
-    fotoUrl: resultado.secure_url,
-    fotoPublicId: resultado.public_id,
-  });
+  if (!servicoAtual) {
+    throw criarErro(
+      "Serviço não encontrado.",
+      404
+    );
+  }
+
+  const resultado =
+    await validarResultadoUpload(
+      await uploadToCloudinary(
+        file.buffer,
+        "saas-agendamento/servicos"
+      )
+    );
+
+  let servico;
+
+  try {
+    servico =
+      await servicosRepository
+        .atualizarFotoServico({
+          id,
+          negocioId:
+            vinculo.negocio_id,
+          fotoUrl:
+            resultado.fotoUrl,
+          fotoPublicId:
+            resultado.fotoPublicId,
+        });
+  } catch (erro) {
+    await removerImagemSilenciosamente(
+      resultado.fotoPublicId
+    );
+
+    throw erro;
+  }
 
   if (!servico) {
+    await removerImagemSilenciosamente(
+      resultado.fotoPublicId
+    );
+
     throw criarErro("Serviço não encontrado.", 404);
+  }
+
+  if (
+    servicoAtual
+      .foto_public_id &&
+    servicoAtual
+      .foto_public_id !==
+      resultado.fotoPublicId
+  ) {
+    await removerImagemSilenciosamente(
+      servicoAtual
+        .foto_public_id
+    );
   }
 
   return {
@@ -251,16 +338,33 @@ async function adicionarFotoGaleriaServico({ usuarioId, id, file }) {
     throw criarErro("Serviço não encontrado.", 404);
   }
 
-  const resultado = await uploadToCloudinary(
-    file.buffer,
-    "saas-agendamento/servicos/galeria"
-  );
+  const resultado =
+    await validarResultadoUpload(
+      await uploadToCloudinary(
+        file.buffer,
+        "saas-agendamento/servicos/galeria"
+      )
+    );
 
-  const foto = await servicosRepository.adicionarFotoGaleriaServico({
-    servicoId: id,
-    fotoUrl: resultado.secure_url,
-    fotoPublicId: resultado.public_id,
-  });
+  let foto;
+
+  try {
+    foto =
+      await servicosRepository
+        .adicionarFotoGaleriaServico({
+          servicoId: id,
+          fotoUrl:
+            resultado.fotoUrl,
+          fotoPublicId:
+            resultado.fotoPublicId,
+        });
+  } catch (erro) {
+    await removerImagemSilenciosamente(
+      resultado.fotoPublicId
+    );
+
+    throw erro;
+  }
 
   return {
     mensagem: "Foto adicionada à galeria.",
@@ -283,9 +387,77 @@ async function removerFotoGaleriaServico({ usuarioId, fotoId }) {
     throw criarErro("Foto não encontrada.", 404);
   }
 
+  await removerImagemSilenciosamente(
+    removida.foto_public_id
+  );
+
   return {
     mensagem: "Foto removida da galeria.",
   };
+}
+
+async function removerImagemSilenciosamente(
+  publicId
+) {
+  if (
+    typeof uploadToCloudinary
+      .remover !==
+    "function" ||
+    !publicId
+  ) {
+    return;
+  }
+
+  try {
+    await uploadToCloudinary
+      .remover(publicId);
+  } catch (erro) {
+    console.warn(
+      "[Cloudinary] Não foi possível remover uma imagem órfã de serviço.",
+      {
+        public_id:
+          publicId,
+        erro:
+          erro?.message,
+      }
+    );
+  }
+}
+
+async function validarResultadoUpload(
+  resultado
+) {
+  const fotoUrl =
+    String(
+      resultado?.secure_url ||
+      resultado?.url ||
+      ""
+    ).trim();
+
+  const fotoPublicId =
+    String(
+      resultado?.public_id ||
+      ""
+    ).trim();
+
+  if (
+    fotoUrl &&
+    fotoPublicId
+  ) {
+    return {
+      fotoUrl,
+      fotoPublicId,
+    };
+  }
+
+  await removerImagemSilenciosamente(
+    fotoPublicId
+  );
+
+  throw criarErro(
+    "O provedor de imagens retornou uma resposta inválida.",
+    502
+  );
 }
 
 module.exports = {
