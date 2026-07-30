@@ -15,13 +15,51 @@ const AMBIENTES_VALIDOS =
 const CHAVE_LOCK_MIGRATIONS =
   73421601;
 
+function normalizarConteudo(
+  conteudo
+) {
+  return String(
+    conteudo
+  )
+    .replace(
+      /\r\n/g,
+      "\n"
+    )
+    .replace(
+      /\r/g,
+      "\n"
+    );
+}
+
 function calcularChecksum(
   conteudo
 ) {
   return crypto
     .createHash("sha256")
     .update(
-      conteudo,
+      normalizarConteudo(
+        conteudo
+      ),
+      "utf8"
+    )
+    .digest("hex");
+}
+
+function calcularChecksumCrLf(
+  conteudo
+) {
+  const conteudoCrLf =
+    normalizarConteudo(
+      conteudo
+    ).replace(
+      /\n/g,
+      "\r\n"
+    );
+
+  return crypto
+    .createHash("sha256")
+    .update(
+      conteudoCrLf,
       "utf8"
     )
     .digest("hex");
@@ -141,6 +179,11 @@ function carregarMigrations(
           calcularChecksum(
             conteudo
           ),
+        checksumCrLf:
+          calcularChecksumCrLf(
+            conteudo
+          ),
+
         sql:
           removerTransacaoExterna(
             conteudo,
@@ -242,7 +285,8 @@ async function possuiTabelasDaAplicacao(
   );
 }
 
-function validarHistorico(
+async function validarHistorico(
+  client,
   migrations,
   aplicadas,
   ambiente
@@ -293,12 +337,40 @@ function validarHistorico(
         `A migration ${aplicada.versao} foi renomeada após ser aplicada.`
       );
     }
+    const checksumAplicado =
+      aplicada.checksum
+        .trim();
 
     if (
       local.checksum !==
-      aplicada.checksum
-        .trim()
+      checksumAplicado
     ) {
+      if (
+        local.checksumCrLf ===
+        checksumAplicado
+      ) {
+        await client.query(
+          `
+            UPDATE schema_migrations
+            SET checksum = $1
+            WHERE versao = $2
+              AND arquivo = $3
+              AND checksum = $4
+          `,
+          [
+            local.checksum,
+            aplicada.versao,
+            aplicada.arquivo,
+            checksumAplicado,
+          ]
+        );
+
+        aplicada.checksum =
+          local.checksum;
+
+        continue;
+      }
+
       throw new Error(
         `A migration aplicada ${aplicada.arquivo} foi alterada. Crie uma nova migration em vez de editar a antiga.`
       );
@@ -536,7 +608,8 @@ async function executarRunner({
         client
       );
 
-    validarHistorico(
+    await validarHistorico(
+      client,
       migrations,
       aplicadas,
       ambiente
