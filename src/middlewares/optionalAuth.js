@@ -2,6 +2,14 @@ const jwt = require(
   "jsonwebtoken"
 );
 
+const authSessionRepository = require(
+  "../repositories/authSessionRepository"
+);
+
+const {
+  tokenAnteriorATrocaDeSenha,
+} = require("./auth");
+
 /*
  * Retorna o segredo utilizado
  * para validar os tokens JWT.
@@ -56,7 +64,7 @@ function obterTokenDoCabecalho(
  * a requisição continua como visitante.
  */
 module.exports =
-  function optionalAuth(
+  async function optionalAuth(
     req,
     res,
     next
@@ -99,17 +107,26 @@ module.exports =
         );
 
       if (decoded?.id) {
-        /*
-         * O token identifica somente
-         * a conta autenticada.
-         *
-         * Papéis e vínculos serão
-         * consultados no banco.
-         */
-        req.user = {
-          id:
-            decoded.id,
-        };
+        const estadoDaSessao =
+          await authSessionRepository
+            .buscarEstadoDaSessao(
+              decoded.id
+            );
+
+        if (
+          estadoDaSessao?.ativo ===
+            true &&
+          !tokenAnteriorATrocaDeSenha(
+            decoded,
+            estadoDaSessao
+              .senha_alterada_em
+          )
+        ) {
+          req.user = {
+            id:
+              decoded.id,
+          };
+        }
       }
     } catch (erro) {
       /*
@@ -121,6 +138,18 @@ module.exports =
        */
       req.user =
         undefined;
+
+      if (
+        ![
+          "JsonWebTokenError",
+          "TokenExpiredError",
+          "NotBeforeError",
+        ].includes(
+          erro.name
+        )
+      ) {
+        return next(erro);
+      }
     }
 
     return next();

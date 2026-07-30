@@ -3,6 +3,11 @@ const router = express.Router();
 
 const auth = require("../middlewares/auth");
 const upload = require("../middlewares/upload");
+const {
+  limitarUpload
+} = require(
+  "../middlewares/rateLimits"
+);
 
 const {
   listarServicos,
@@ -107,12 +112,19 @@ router.get("/", auth, listarServicos);
 router.post("/", auth, criarServico);
 router.put("/:id", auth, editarServico);
 router.delete("/:id", auth, removerServico);
-router.post("/:id/foto", auth, upload.single("foto"), enviarFotoServico);
+router.post(
+  "/:id/foto",
+  limitarUpload,
+  auth,
+  upload.single("foto"),
+  enviarFotoServico
+);
 
 router.get("/:id/fotos", listarFotosServico);
 
 router.post(
   "/:id/fotos",
+  limitarUpload,
   auth,
   upload.single("foto"),
   adicionarFotoGaleriaServico

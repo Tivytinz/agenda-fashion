@@ -251,7 +251,31 @@ function formatarHorarioBanco(horario) {
   };
 }
 
-async function criarConfiguracaoPadrao(profissionalId) {
+async function exigirProfissionalAtivo(
+  profissionalId,
+  executor
+) {
+  const profissional =
+    await agendaConfiguracaoRepository
+      .buscarProfissionalAtivo(
+        profissionalId,
+        executor
+      );
+
+  if (!profissional) {
+    throw criarErro(
+      "Conta sem vínculo ativo com um negócio.",
+      403
+    );
+  }
+
+  return profissional;
+}
+
+async function criarConfiguracaoPadrao(
+  profissionalId,
+  executor
+) {
   const configuracao =
     await agendaConfiguracaoRepository.criarConfiguracao({
       profissionalId,
@@ -259,7 +283,7 @@ async function criarConfiguracaoPadrao(profissionalId) {
       intervaloMinutos: 0,
       antecedenciaAgendamento: 0,
       antecedenciaCancelamento: 24,
-    });
+    }, executor);
 
   const horarios = [];
 
@@ -268,7 +292,7 @@ async function criarConfiguracaoPadrao(profissionalId) {
       await agendaConfiguracaoRepository.salvarHorario({
         profissionalId,
         ...horario,
-      });
+      }, executor);
 
     horarios.push(horarioSalvo);
   }
@@ -282,39 +306,71 @@ async function criarConfiguracaoPadrao(profissionalId) {
 async function buscarMinhaConfiguracao({ usuarioId }) {
   exigirUsuario(usuarioId);
 
-  let configuracao =
-    await agendaConfiguracaoRepository.buscarConfiguracao(
-      usuarioId
+  return agendaConfiguracaoRepository
+    .executarTransacao(
+      async (client) => {
+        await exigirProfissionalAtivo(
+          usuarioId,
+          client
+        );
+
+        let configuracao =
+          await agendaConfiguracaoRepository
+            .buscarConfiguracao(
+              usuarioId,
+              client
+            );
+
+        let horarios =
+          await agendaConfiguracaoRepository
+            .listarHorarios(
+              usuarioId,
+              client
+            );
+
+        if (!configuracao) {
+          const padrao =
+            await criarConfiguracaoPadrao(
+              usuarioId,
+              client
+            );
+
+          configuracao =
+            padrao.configuracao;
+          horarios =
+            padrao.horarios;
+        } else if (
+          horarios.length === 0
+        ) {
+          for (
+            const horario
+            of HORARIOS_PADRAO
+          ) {
+            await agendaConfiguracaoRepository
+              .salvarHorario({
+                profissionalId:
+                  usuarioId,
+                ...horario,
+              }, client);
+          }
+
+          horarios =
+            await agendaConfiguracaoRepository
+              .listarHorarios(
+                usuarioId,
+                client
+              );
+        }
+
+        return {
+          configuracao,
+          horarios:
+            horarios.map(
+              formatarHorarioBanco
+            ),
+        };
+      }
     );
-
-  let horarios =
-    await agendaConfiguracaoRepository.listarHorarios(
-      usuarioId
-    );
-
-  if (!configuracao) {
-    const padrao = await criarConfiguracaoPadrao(usuarioId);
-
-    configuracao = padrao.configuracao;
-    horarios = padrao.horarios;
-  } else if (horarios.length === 0) {
-    for (const horario of HORARIOS_PADRAO) {
-      await agendaConfiguracaoRepository.salvarHorario({
-        profissionalId: usuarioId,
-        ...horario,
-      });
-    }
-
-    horarios =
-      await agendaConfiguracaoRepository.listarHorarios(
-        usuarioId
-      );
-  }
-
-  return {
-    configuracao,
-    horarios: horarios.map(formatarHorarioBanco),
-  };
 }
 
 async function salvarMinhaConfiguracao({
@@ -379,54 +435,85 @@ async function salvarMinhaConfiguracao({
     validarHorarioDoDia
   );
 
-  const configuracaoExistente =
-    await agendaConfiguracaoRepository.buscarConfiguracao(
-      usuarioId
+  return agendaConfiguracaoRepository
+    .executarTransacao(
+      async (client) => {
+        await exigirProfissionalAtivo(
+          usuarioId,
+          client
+        );
+
+        const configuracaoExistente =
+          await agendaConfiguracaoRepository
+            .buscarConfiguracao(
+              usuarioId,
+              client
+            );
+
+        let configuracao;
+
+        const dadosConfiguracao = {
+          profissionalId:
+            usuarioId,
+          duracaoPadrao:
+            duracao,
+          intervaloMinutos:
+            intervalo,
+          antecedenciaAgendamento:
+            antecedenciaAgendamentoValidada,
+          antecedenciaCancelamento:
+            antecedenciaCancelamentoValidada,
+        };
+
+        if (
+          configuracaoExistente
+        ) {
+          configuracao =
+            await agendaConfiguracaoRepository
+              .atualizarConfiguracao(
+                dadosConfiguracao,
+                client
+              );
+        } else {
+          configuracao =
+            await agendaConfiguracaoRepository
+              .criarConfiguracao(
+                dadosConfiguracao,
+                client
+              );
+        }
+
+        const horariosSalvos =
+          [];
+
+        for (
+          const horario
+          of horariosValidados
+        ) {
+          const horarioSalvo =
+            await agendaConfiguracaoRepository
+              .salvarHorario({
+                profissionalId:
+                  usuarioId,
+                ...horario,
+              }, client);
+
+          horariosSalvos.push(
+            horarioSalvo
+          );
+        }
+
+        return {
+          mensagem:
+            "Horários de atendimento atualizados com sucesso.",
+          configuracao,
+          horarios:
+            horariosSalvos.map(
+              formatarHorarioBanco
+            ),
+        };
+      }
     );
-
-  let configuracao;
-
-  if (configuracaoExistente) {
-    configuracao =
-      await agendaConfiguracaoRepository.atualizarConfiguracao({
-        profissionalId: usuarioId,
-        duracaoPadrao: duracao,
-        intervaloMinutos: intervalo,
-        antecedenciaAgendamento:
-          antecedenciaAgendamentoValidada,
-        antecedenciaCancelamento:
-          antecedenciaCancelamentoValidada,
-      });
-  } else {
-    configuracao =
-      await agendaConfiguracaoRepository.criarConfiguracao({
-        profissionalId: usuarioId,
-        duracaoPadrao: duracao,
-        intervaloMinutos: intervalo,
-        antecedenciaAgendamento:
-          antecedenciaAgendamentoValidada,
-        antecedenciaCancelamento:
-          antecedenciaCancelamentoValidada,
-      });
-  }
-
-  const horariosSalvos = [];
-
-  for (const horario of horariosValidados) {
-    const horarioSalvo =
-      await agendaConfiguracaoRepository.salvarHorario({
-        profissionalId: usuarioId,
-        ...horario,
-      });
-
-    horariosSalvos.push(horarioSalvo);
-  }
-
-  return {
-    mensagem: "Horários de atendimento atualizados com sucesso.",
-    configuracao,
-    horarios: horariosSalvos.map(formatarHorarioBanco),
-  };
 }
 
 module.exports = {

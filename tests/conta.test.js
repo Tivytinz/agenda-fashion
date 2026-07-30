@@ -240,6 +240,14 @@ describe(
         criarApp();
 
       jest.clearAllMocks();
+
+      uploadToCloudinary
+        .remover =
+        jest.fn()
+          .mockResolvedValue({
+            result:
+              "ok",
+          });
     });
 
     test(
@@ -953,6 +961,116 @@ describe(
           contaRepository
             .atualizarFotoUsuario
         ).not.toHaveBeenCalled();
+      }
+    );
+
+    test(
+      "remove a foto antiga após substituir com sucesso",
+      async () => {
+        contaRepository
+          .buscarUsuarioPorId
+          .mockResolvedValue(
+            criarUsuario({
+              foto_public_id:
+                "usuarios/foto-antiga",
+            })
+          );
+
+        uploadToCloudinary
+          .mockResolvedValue({
+            secure_url:
+              "https://cdn.teste/foto-nova.png",
+            public_id:
+              "usuarios/foto-nova",
+          });
+
+        contaRepository
+          .atualizarFotoUsuario
+          .mockResolvedValue(
+            criarUsuario({
+              foto_url:
+                "https://cdn.teste/foto-nova.png",
+              foto_public_id:
+                "usuarios/foto-nova",
+            })
+          );
+
+        const resposta =
+          await request(app)
+            .post(
+              "/conta/foto"
+            )
+            .set(
+              "Authorization",
+              `Bearer ${gerarToken()}`
+            )
+            .set(
+              "x-test-file",
+              "valid"
+            );
+
+        expect(
+          resposta.status
+        ).toBe(200);
+
+        expect(
+          uploadToCloudinary
+            .remover
+        ).toHaveBeenCalledWith(
+          "usuarios/foto-antiga"
+        );
+      }
+    );
+
+    test(
+      "remove o upload novo quando o banco falha",
+      async () => {
+        contaRepository
+          .buscarUsuarioPorId
+          .mockResolvedValue(
+            criarUsuario()
+          );
+
+        uploadToCloudinary
+          .mockResolvedValue({
+            secure_url:
+              "https://cdn.teste/foto-nova.png",
+            public_id:
+              "usuarios/foto-nova",
+          });
+
+        contaRepository
+          .atualizarFotoUsuario
+          .mockRejectedValue(
+            new Error(
+              "Banco indisponível"
+            )
+          );
+
+        const resposta =
+          await request(app)
+            .post(
+              "/conta/foto"
+            )
+            .set(
+              "Authorization",
+              `Bearer ${gerarToken()}`
+            )
+            .set(
+              "x-test-file",
+              "valid"
+            );
+
+        expect(
+          resposta.status
+        ).toBe(500);
+
+        expect(
+          uploadToCloudinary
+            .remover
+        ).toHaveBeenCalledWith(
+          "usuarios/foto-nova"
+        );
       }
     );
 

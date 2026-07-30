@@ -17,4 +17,32 @@ function uploadToCloudinary(buffer, folder) {
   });
 }
 
+async function removerImagem(
+  publicId
+) {
+  const id =
+    String(
+      publicId || ""
+    ).trim();
+
+  if (!id) {
+    return null;
+  }
+
+  return cloudinary
+    .uploader
+    .destroy(
+      id,
+      {
+        resource_type:
+          "image",
+        invalidate:
+          true,
+      }
+    );
+}
+
+uploadToCloudinary.remover =
+  removerImagem;
+
 module.exports = uploadToCloudinary;

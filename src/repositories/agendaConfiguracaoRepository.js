@@ -1,7 +1,46 @@
 const db = require("../db/db");
 
-async function buscarConfiguracao(profissionalId) {
-  const result = await db.query(
+async function buscarProfissionalAtivo(
+  profissionalId,
+  executor = db
+) {
+  const result = await executor.query(
+    `
+    SELECT
+      u.id,
+      un.negocio_id,
+      un.papel
+    FROM usuarios u
+    INNER JOIN usuarios_negocios un
+      ON un.usuario_id = u.id
+    INNER JOIN negocios n
+      ON n.id = un.negocio_id
+    WHERE u.id = $1
+      AND u.ativo = TRUE
+      AND un.ativo = TRUE
+      AND un.papel IN (
+        'dono',
+        'profissional'
+      )
+      AND n.ativo = TRUE
+    ORDER BY
+      CASE un.papel
+        WHEN 'dono' THEN 1
+        ELSE 2
+      END
+    LIMIT 1
+    `,
+    [profissionalId]
+  );
+
+  return result.rows[0] || null;
+}
+
+async function buscarConfiguracao(
+  profissionalId,
+  executor = db
+) {
+  const result = await executor.query(
     `
     SELECT *
     FROM agenda_configuracoes
@@ -20,8 +59,8 @@ async function criarConfiguracao({
   intervaloMinutos,
   antecedenciaAgendamento,
   antecedenciaCancelamento
-}) {
-  const result = await db.query(
+}, executor = db) {
+  const result = await executor.query(
     `
     INSERT INTO agenda_configuracoes (
       profissional_id,
@@ -51,8 +90,8 @@ async function atualizarConfiguracao({
   intervaloMinutos,
   antecedenciaAgendamento,
   antecedenciaCancelamento
-}) {
-  const result = await db.query(
+}, executor = db) {
+  const result = await executor.query(
     `
     UPDATE agenda_configuracoes
     SET
@@ -76,8 +115,11 @@ async function atualizarConfiguracao({
   return result.rows[0] || null;
 }
 
-async function listarHorarios(profissionalId) {
-  const result = await db.query(
+async function listarHorarios(
+  profissionalId,
+  executor = db
+) {
+  const result = await executor.query(
     `
     SELECT *
     FROM agenda_horarios
@@ -98,8 +140,8 @@ async function salvarHorario({
   horaFim,
   intervaloInicio,
   intervaloFim
-}) {
-  const result = await db.query(
+}, executor = db) {
+  const result = await executor.query(
     `
     INSERT INTO agenda_horarios (
       profissional_id,
@@ -140,9 +182,12 @@ async function salvarHorario({
 }
 
 module.exports = {
+  buscarProfissionalAtivo,
   buscarConfiguracao,
   criarConfiguracao,
   atualizarConfiguracao,
   listarHorarios,
-  salvarHorario
+  salvarHorario,
+  executarTransacao:
+    db.executarTransacao,
 };

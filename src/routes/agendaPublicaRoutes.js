@@ -3,6 +3,11 @@ const router = express.Router();
 
 const optionalAuth = require("../middlewares/optionalAuth");  
 const auth = require("../middlewares/auth");
+const {
+  limitarAgendamento
+} = require(
+  "../middlewares/rateLimits"
+);
 const agendaPublicaController = require("../controllers/agendamentoPublicoController");
 
 /**
@@ -96,6 +101,7 @@ router.get(
 
 router.post(
   "/agendamentos",
+  limitarAgendamento,
   optionalAuth,
   agendaPublicaController.criarAgendamentoPublico
 );

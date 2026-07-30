@@ -5,5 +5,18 @@ module.exports = {
   ],
   testPathIgnorePatterns: [
     "<rootDir>/frontend/"
-  ]
+  ],
+  collectCoverageFrom: [
+    "src/**/*.js",
+    "!src/docs/**",
+    "!src/server.js"
+  ],
+  coverageThreshold: {
+    global: {
+      branches: 35,
+      functions: 40,
+      lines: 50,
+      statements: 50
+    }
+  }
 };

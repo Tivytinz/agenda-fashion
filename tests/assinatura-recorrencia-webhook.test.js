@@ -551,6 +551,7 @@ describe(
               {
                 id: 20,
                 negocio_id: 7,
+                plano_id: 3,
                 pagamento_id: 50,
                 asaas_subscription_id:
                   "sub_1",
@@ -611,7 +612,7 @@ describe(
           expect.stringContaining(
             "UPDATE negocios"
           ),
-          [1, 7]
+          [1, 7, 3, 20]
         );
 
         expect(assinatura)
@@ -619,6 +620,81 @@ describe(
             status: "OVERDUE",
             ativo: false
           });
+      }
+    );
+
+    test(
+      "webhook financeiro antigo não rebaixa o plano vigente",
+      async () => {
+        mockClient.query
+          .mockResolvedValueOnce({
+            rows: [
+              {
+                id: 20,
+                negocio_id: 7,
+                plano_id: 3,
+                pagamento_id: 50,
+                asaas_subscription_id:
+                  "sub_antiga",
+                status:
+                  "CANCELED",
+                ativo:
+                  false
+              }
+            ]
+          })
+          .mockResolvedValueOnce({
+            rows: [
+              {
+                id: 1
+              }
+            ]
+          })
+          .mockResolvedValueOnce({
+            rows: [
+              {
+                id: 20,
+                status:
+                  "OVERDUE",
+                ativo:
+                  false
+              }
+            ]
+          })
+          .mockResolvedValueOnce({
+            rows: []
+          });
+
+        pagamentoRepository
+          .atualizarStatusPagamento
+          .mockResolvedValue({
+            id: 50,
+            status:
+              "OVERDUE"
+          });
+
+        await suspenderAssinaturaPorPagamento({
+          id:
+            "pay_antigo",
+          status:
+            "OVERDUE",
+          subscription:
+            "sub_antiga"
+        });
+
+        expect(
+          mockClient.query
+        ).toHaveBeenCalledWith(
+          expect.stringContaining(
+            "NOT EXISTS"
+          ),
+          [
+            1,
+            7,
+            3,
+            20
+          ]
+        );
       }
     );
   }
