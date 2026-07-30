@@ -96,13 +96,14 @@ async function atualizarProfissional(id, nome, whatsapp) {
       nome = $1,
       whatsapp = $2
     WHERE id = $3
+      AND ativo = TRUE
     RETURNING
       id,
       nome,
       email,
       whatsapp,
-      tipo,
-      foto_url
+      foto_url,
+      ativo
     `,
     [
       nome,
@@ -132,22 +133,25 @@ async function buscarProfissionalPorEmailWhatsapp(email, whatsapp) {
   const result = await db.query(
     `
     SELECT
-      id,
-      nome,
-      email,
-      whatsapp,
-      tipo,
-      foto_url
-    FROM usuarios
-    WHERE tipo = 'profissional'
+      u.id,
+      u.nome,
+      u.email,
+      u.whatsapp,
+      u.foto_url,
+      u.ativo
+    FROM usuarios u
+    WHERE u.ativo = TRUE
       AND (
-        LOWER(email) = $1
+        (
+          $1 <> ''
+          AND LOWER(u.email) = $1
+        )
         OR REGEXP_REPLACE(
-             COALESCE(whatsapp,''),
-             '\\D',
-             '',
-             'g'
-           ) = $2
+          COALESCE(u.whatsapp, ''),
+          '\\D',
+          '',
+          'g'
+        ) = NULLIF($2, '')
       )
     LIMIT 1
     `,

@@ -15,6 +15,67 @@ const {
 const ForbiddenError = require("../errors/ForbiddenError");
 const ValidationError = require("../errors/ValidationError");
 
+function normalizarTexto(valor) {
+  return String(valor ?? "").trim();
+}
+
+function normalizarWhatsapp(valor) {
+  let numeros = String(valor ?? "").replace(/\D/g, "");
+
+  if (
+    (numeros.length === 12 || numeros.length === 13) &&
+    numeros.startsWith("55")
+  ) {
+    numeros = numeros.slice(2);
+  }
+
+  return numeros;
+}
+
+function validarWhatsappOpcional(valor) {
+  const whatsapp = normalizarWhatsapp(valor);
+
+  if (!whatsapp) {
+    return null;
+  }
+
+  if (!/^[0-9]{10,11}$/.test(whatsapp)) {
+    throw new ValidationError("WhatsApp do profissional inválido.");
+  }
+
+  return whatsapp;
+}
+
+function normalizarIdentificadorProfissional(valor) {
+  const identificador = normalizarTexto(valor).toLowerCase();
+
+  if (identificador.includes("@")) {
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(identificador)) {
+      throw new ValidationError(
+        "Informe um e-mail ou WhatsApp válido."
+      );
+    }
+
+    return {
+      email: identificador,
+      whatsapp: ""
+    };
+  }
+
+  const whatsapp = normalizarWhatsapp(identificador);
+
+  if (!/^[0-9]{10,11}$/.test(whatsapp)) {
+    throw new ValidationError(
+      "Informe um e-mail ou WhatsApp válido."
+    );
+  }
+
+  return {
+    email: "",
+    whatsapp
+  };
+}
+
 async function editarProfissional({
   usuarioId,
   profissionalId,
@@ -25,7 +86,10 @@ async function editarProfissional({
   exigirCampo(profissionalId, "Profissional não informado.");
   exigirCampo(nome, "Nome do profissional é obrigatório.");
 
-  if (nome.trim().length < 2) {
+  const nomeLimpo = normalizarTexto(nome);
+  const whatsappLimpo = validarWhatsappOpcional(whatsapp);
+
+  if (nomeLimpo.length < 2 || nomeLimpo.length > 120) {
     throw new ValidationError("Nome do profissional inválido.");
   }
 
@@ -51,9 +115,14 @@ async function editarProfissional({
   const profissional =
     await profissionaisRepository.atualizarProfissional(
       profissionalId,
-      nome.trim(),
-      whatsapp || ""
+      nomeLimpo,
+      whatsappLimpo
     );
+
+  exigirRecurso(
+    profissional,
+    "Profissional não encontrado neste negócio."
+  );
 
   return {
     mensagem: "Profissional atualizado com sucesso.",
@@ -115,18 +184,20 @@ async function vincularProfissional({
     "Apenas o dono pode adicionar profissionais."
   );
 
-  const valorLimpo = emailOuWhatsapp.trim().toLowerCase();
-  const whatsappLimpo = emailOuWhatsapp.replace(/\D/g, "");
+  const {
+    email,
+    whatsapp
+  } = normalizarIdentificadorProfissional(emailOuWhatsapp);
 
   const profissional =
     await profissionaisRepository.buscarProfissionalPorEmailWhatsapp(
-      valorLimpo,
-      whatsappLimpo
+      email,
+      whatsapp
     );
 
   exigirRecurso(
     profissional,
-    "Profissional não encontrado. Ele precisa criar uma conta profissional primeiro."
+    "Profissional não encontrado. Ele precisa criar uma conta primeiro."
   );
 
   await db.executarTransacao(async (client) => {
