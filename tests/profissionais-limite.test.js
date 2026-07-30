@@ -167,4 +167,60 @@ describe("Limite de profissionais", () => {
       );
     }
   );
+
+  test(
+    "edição normaliza nome e WhatsApp antes de atualizar",
+    async () => {
+      profissionaisRepository
+        .verificarProfissionalNoNegocio
+        .mockResolvedValue({
+          id: 30,
+        });
+
+      profissionaisRepository
+        .atualizarProfissional
+        .mockResolvedValue({
+          id: 20,
+          nome: "Profissional Teste",
+          whatsapp: "62999991234",
+        });
+
+      await profissionaisService.editarProfissional({
+        usuarioId: 1,
+        profissionalId: 20,
+        nome: "  Profissional Teste  ",
+        whatsapp: "(62) 99999-1234",
+      });
+
+      expect(
+        profissionaisRepository.atualizarProfissional
+      ).toHaveBeenCalledWith(
+        20,
+        "Profissional Teste",
+        "62999991234"
+      );
+    }
+  );
+
+  test(
+    "identificador inválido não procura uma conta aleatória",
+    async () => {
+      await expect(
+        profissionaisService.vincularProfissional({
+          usuarioDonoId: 1,
+          emailOuWhatsapp:
+            "email-invalido1234567890@",
+        })
+      ).rejects.toMatchObject({
+        statusCode: 400,
+        message:
+          "Informe um e-mail ou WhatsApp válido.",
+      });
+
+      expect(
+        profissionaisRepository
+          .buscarProfissionalPorEmailWhatsapp
+      ).not.toHaveBeenCalled();
+    }
+  );
 });
