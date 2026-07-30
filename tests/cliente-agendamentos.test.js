@@ -28,6 +28,13 @@ const db = require(
   "../src/db/db"
 );
 
+const {
+  criarCenarioAgendamento,
+  removerCenarioAgendamento,
+} = require(
+  "./helpers/cenarioAgendamento"
+);
+
 /*
  * Retorna a data e a hora atuais considerando
  * o fuso de São Paulo.
@@ -151,6 +158,7 @@ describe(
     let profissionalId;
     let servicoId;
     let negocioId;
+    let cenarioTeste;
 
     let configuracaoOriginal =
       null;
@@ -296,150 +304,17 @@ describe(
       );
     }
 
-    /*
-     * Procura IDs que realmente existem no banco.
-     *
-     * Primeiro reaproveita uma combinação que já
-     * apareceu em algum agendamento válido.
-     */
-    async function buscarDadosBase() {
-      let resultado =
-        await db.query(
-          `
-            SELECT
-              COALESCE(
-                a.negocio_id,
-                s.negocio_id
-              ) AS negocio_id,
-
-              a.servico_id,
-              a.profissional_id
-
-            FROM agendamentos a
-
-            INNER JOIN
-              servicos_negocio s
-              ON s.id =
-                a.servico_id
-
-            INNER JOIN
-              negocios n
-              ON n.id =
-                COALESCE(
-                  a.negocio_id,
-                  s.negocio_id
-                )
-
-            INNER JOIN
-              usuarios u
-              ON u.id =
-                a.profissional_id
-
-            WHERE
-              a.servico_id
-                IS NOT NULL
-
-              AND a.profissional_id
-                IS NOT NULL
-
-              AND COALESCE(
-                a.negocio_id,
-                s.negocio_id
-              ) IS NOT NULL
-
-              AND COALESCE(
-                u.ativo,
-                TRUE
-              ) = TRUE
-
-            ORDER BY
-              a.id DESC
-
-            LIMIT 1
-          `
-        );
-
-      if (
-        resultado.rows[0]
-      ) {
-        return resultado.rows[0];
-      }
-
-      /*
-       * Banco sem agendamentos:
-       * procura qualquer negócio com serviço
-       * e usuário vinculado.
-       */
-      resultado =
-        await db.query(
-          `
-            SELECT
-              n.id
-                AS negocio_id,
-
-              s.id
-                AS servico_id,
-
-              un.usuario_id
-                AS profissional_id
-
-            FROM negocios n
-
-            INNER JOIN
-              servicos_negocio s
-              ON s.negocio_id =
-                n.id
-
-            INNER JOIN
-              usuarios_negocios un
-              ON un.negocio_id =
-                n.id
-
-              AND un.papel IN (
-                'dono',
-                'profissional'
-              )
-
-            INNER JOIN
-              usuarios u
-              ON u.id =
-                un.usuario_id
-
-            WHERE
-              COALESCE(
-                s.ativo,
-                TRUE
-              ) = TRUE
-
-              AND COALESCE(
-                u.ativo,
-                TRUE
-              ) = TRUE
-
-            ORDER BY
-              CASE
-                WHEN un.papel =
-                  'profissional'
-                THEN 0
-                ELSE 1
-              END,
-
-              n.id ASC,
-              s.id ASC,
-              un.usuario_id ASC
-
-            LIMIT 1
-          `
-        );
-
-      return (
-        resultado.rows[0] ||
-        null
-      );
-    }
-
     beforeAll(
       async () => {
+        cenarioTeste =
+          await criarCenarioAgendamento(
+            db,
+            {
+              prefixo:
+                "teste-cliente",
+            }
+          );
+
         const cadastro =
           await request(app)
             .post(
@@ -491,7 +366,14 @@ describe(
         ).toBeGreaterThan(0);
 
         const dadosBase =
-          await buscarDadosBase();
+          {
+            negocio_id:
+              cenarioTeste.negocioId,
+            servico_id:
+              cenarioTeste.servico.id,
+            profissional_id:
+              cenarioTeste.profissional.id,
+          };
 
         expect(
           dadosBase
@@ -679,6 +561,11 @@ describe(
               ]
             );
           }
+
+          await removerCenarioAgendamento(
+            db,
+            cenarioTeste
+          );
         } finally {
           /*
            * Fecha o pool para o Jest não permanecer

@@ -51,6 +51,15 @@ const db = require(
   "../src/db/db"
 );
 
+const {
+  criarCenarioAgendamento,
+  removerCenarioAgendamento,
+} = require(
+  "./helpers/cenarioAgendamento"
+);
+
+let cenarioTeste;
+
 function normalizarId(valor) {
   const id = Number(valor);
 
@@ -100,150 +109,8 @@ function gerarWhatsappsTeste() {
 }
 
 /*
- * Procura combinações que realmente existem
- * no banco atual.
- *
- * Primeiro prioriza combinações já utilizadas
- * em agendamentos anteriores.
- */
-async function buscarCandidatos() {
-  const candidatos =
-    new Map();
-
-  const adicionar =
-    (registro) => {
-      const slug =
-        String(
-          registro?.slug || ""
-        ).trim();
-
-      const servicoId =
-        normalizarId(
-          registro?.servico_id
-        );
-
-      const profissionalId =
-        normalizarId(
-          registro?.profissional_id
-        );
-
-      if (
-        !slug ||
-        !servicoId ||
-        !profissionalId
-      ) {
-        return;
-      }
-
-      const chave =
-        [
-          slug,
-          servicoId,
-          profissionalId,
-        ].join(":");
-
-      candidatos.set(
-        chave,
-        {
-          slug,
-          servicoId,
-          profissionalId,
-        }
-      );
-    };
-
-  const usadosAnteriormente =
-    await db.query(
-      `
-        SELECT DISTINCT
-          n.slug,
-          a.servico_id,
-          a.profissional_id
-
-        FROM agendamentos a
-
-        INNER JOIN servicos_negocio s
-          ON s.id = a.servico_id
-
-        INNER JOIN negocios n
-          ON n.id = COALESCE(
-            a.negocio_id,
-            s.negocio_id
-          )
-
-        INNER JOIN usuarios_negocios un
-          ON un.negocio_id = n.id
-          AND un.usuario_id =
-            a.profissional_id
-
-        WHERE n.slug IS NOT NULL
-          AND BTRIM(n.slug) <> ''
-          AND a.servico_id IS NOT NULL
-          AND a.profissional_id IS NOT NULL
-
-        ORDER BY
-          n.slug,
-          a.servico_id,
-          a.profissional_id
-
-        LIMIT 30
-      `
-    );
-
-  usadosAnteriormente.rows
-    .forEach(adicionar);
-
-  /*
-   * Caso não existam agendamentos anteriores,
-   * procura qualquer negócio que tenha serviço
-   * e usuário vinculado.
-   */
-  const vinculados =
-    await db.query(
-      `
-        SELECT DISTINCT
-          n.slug,
-          s.id AS servico_id,
-          un.usuario_id
-            AS profissional_id
-
-        FROM negocios n
-
-        INNER JOIN servicos_negocio s
-          ON s.negocio_id = n.id
-
-        INNER JOIN usuarios_negocios un
-          ON un.negocio_id = n.id
-          AND un.papel IN (
-            'dono',
-            'profissional'
-          )
-
-        INNER JOIN usuarios u
-          ON u.id = un.usuario_id
-
-        WHERE n.slug IS NOT NULL
-          AND BTRIM(n.slug) <> ''
-
-        ORDER BY
-          n.slug,
-          s.id,
-          un.usuario_id
-
-        LIMIT 50
-      `
-    );
-
-  vinculados.rows
-    .forEach(adicionar);
-
-  return Array.from(
-    candidatos.values()
-  );
-}
-
-/*
- * Percorre as combinações do banco até encontrar:
+ * Confirma que o cenário isolado está acessível
+ * pelas mesmas rotas públicas usadas pelo cliente:
  *
  * - perfil público acessível;
  * - serviço presente no perfil;
@@ -252,7 +119,16 @@ async function buscarCandidatos() {
  */
 async function buscarCenarioDisponivel() {
   const candidatos =
-    await buscarCandidatos();
+    [
+      {
+        slug:
+          cenarioTeste.slug,
+        servicoId:
+          cenarioTeste.servico.id,
+        profissionalId:
+          cenarioTeste.profissional.id,
+      },
+    ];
 
   if (
     candidatos.length === 0
@@ -469,6 +345,20 @@ describe(
     const whatsappsCriados =
       new Set();
 
+    beforeAll(
+      async () => {
+        cenarioTeste =
+          await criarCenarioAgendamento(
+            db,
+            {
+              prefixo:
+                "teste-concorrencia",
+            }
+          );
+      },
+      60000
+    );
+
     afterAll(
       async () => {
         try {
@@ -551,6 +441,11 @@ describe(
               ]
             );
           }
+
+          await removerCenarioAgendamento(
+            db,
+            cenarioTeste
+          );
         } finally {
           if (
             typeof db.end ===
