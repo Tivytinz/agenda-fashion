@@ -120,7 +120,12 @@ module.exports = async function auth(
     const decoded =
       jwt.verify(
         token,
-        obterJwtSecret()
+        obterJwtSecret(),
+        {
+          algorithms: [
+            "HS256",
+          ],
+        }
       );
 
     if (!decoded?.id) {

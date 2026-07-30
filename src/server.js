@@ -5,9 +5,15 @@ const express = require("express");
 const cors = require("cors");
 const helmet = require("helmet");
 
+const {
+  corsOptions,
+} = require("./config/cors");
+
 const db = require("./db/db");
 const apiRoutes = require("./routes/index");
 const errorHandler = require("./middlewares/errorHandler");
+const notFound = require("./middlewares/notFound");
+const requestLogger = require("./middlewares/requestLogger");
 const agendaConfiguracaoRoutes = require("./routes/agendaConfiguracaoRoutes");
 const {
   iniciarWorkerWebhook,
@@ -68,6 +74,10 @@ app.use(
 );
 
 app.use(
+  requestLogger
+);
+
+app.use(
   express.json({
     limit:
       "1mb",
@@ -89,22 +99,11 @@ app.use(
   })
 );
 
-app.use(cors({
-  origin: [
-    "http://127.0.0.1:5500",
-    "http://localhost:5500",
-    "https://agenda-fashion-production.up.railway.app",
-    "https://agendafashion.com.br",
-    "https://www.agendafashion.com.br",
-    "https://app.agendafashion.com.br"
-  ],
-  methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
-  allowedHeaders: [
-    "Content-Type",
-    "Authorization",
-    "Idempotency-Key"
-  ]
-}));
+app.use(
+  cors(
+    corsOptions
+  )
+);
 
 app.get(
   "/health/live",
@@ -252,6 +251,10 @@ if (
     )
   );
 }
+
+app.use(
+  notFound
+);
 
 app.use(errorHandler);
 
