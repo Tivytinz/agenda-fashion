@@ -7,7 +7,7 @@ import "./styles/index.css";
 
 createRoot(document.getElementById("root")).render(
   <StrictMode>
-    <BrowserRouter basename="/app">
+    <BrowserRouter>
       <SessionProvider>
         <App />
       </SessionProvider>
