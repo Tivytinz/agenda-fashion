@@ -100,23 +100,57 @@ describe(
     );
 
     test(
-      "serve o aplicativo em rota separada",
+      "serve o aplicativo React na raiz do dominio",
       () => {
         const servidor =
           ler(
             "src/server.js"
           );
 
+        const main =
+          ler(
+            "frontend/src/main.jsx"
+          );
+
+        const vite =
+          ler(
+            "frontend/vite.config.js"
+          );
+
         expect(
           servidor
         ).toContain(
-          'app.use("/app"'
+          "app.use(express.static(reactDir))"
         );
 
         expect(
           servidor
         ).toContain(
-          '"/app/{*rota}"'
+          "const rotasReact ="
+        );
+
+        expect(
+          servidor
+        ).toContain(
+          '"/painel"'
+        );
+
+        expect(
+          servidor
+        ).not.toContain(
+          'app.use("/app", express.static(reactDir))'
+        );
+
+        expect(
+          main
+        ).not.toContain(
+          'basename="/app"'
+        );
+
+        expect(
+          vite
+        ).toContain(
+          'base: "/"'
         );
       }
     );

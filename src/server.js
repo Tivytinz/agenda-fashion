@@ -147,9 +147,7 @@ app.get(
 const rootDir = path.join(process.cwd(), "agendamento-nails");
 const reactDir = path.join(rootDir, "react-app");
 
-app.use(express.static(rootDir));
-app.use("/public", express.static(path.join(rootDir, "public")));
-app.use("/app", express.static(reactDir));
+app.use(express.static(reactDir));
 
 app.use(agendaConfiguracaoRoutes);
 
@@ -158,66 +156,112 @@ app.use(agendaConfiguracaoRoutes);
 ========================= */
 
 
-app.get("/", (req, res) => {
-  res.sendFile(path.join(rootDir, "html", "index.html"));
-});
-
-app.get("/login", (req, res) => {
-  res.sendFile(path.join(rootDir, "html", "login-profissional.html"));
-});
-
-app.get("/cadastro", (req, res) => {
-  res.sendFile(path.join(rootDir, "html", "cadastro-profissional.html"));
-});
-
-app.get("/demo", (req, res) => {
-  res.sendFile(path.join(rootDir, "html", "inicio.html"));
-});
 
 /*
  * O React é migrado por fluxo e convive com o frontend atual.
  * O fallback abaixo permite que o React Router resolva /app/*.
  */
-app.get(["/app", "/app/{*rota}"], (req, res, next) => {
-  const indexReact = path.join(reactDir, "index.html");
-
-  res.sendFile(indexReact, (erro) => {
-    if (erro) {
-      next(erro);
-    }
-  });
+/*
+ * Compatibilidade temporaria:
+ * /app/painel -> /painel
+ * /login -> /entrar
+ */
+app.get("/app", (_req, res) => {
+  return res.redirect(301, "/");
 });
 
+app.get("/app/{*rota}", (req, res) => {
+  return res.redirect(
+    301,
+    `/${req.params.rota}`
+  );
+});
+
+app.get("/login", (_req, res) => {
+  return res.redirect(301, "/entrar");
+});
 /* =========================
    COMPATIBILIDADE COM LINKS ANTIGOS
 ========================= */
+const redirecionamentosLegados = new Map([
+  ["/admin.html", "/painel"],
+  ["/agenda-geral.html", "/painel/agenda"],
+  ["/agenda-profissional.html", "/profissional/agenda"],
+  ["/checkout.html", "/checkout"],
+  ["/criar-negocio.html", "/criar-negocio"],
+  ["/meus-agendamentos.html", "/minha-agenda"],
+  ["/minha-assinatura.html", "/painel/assinatura"],
+  ["/perfil-negocio.html", "/"],
+  ["/planos.html", "/planos"],
+  ["/configuracao-agenda.html", "/painel/horarios"],
+  ["/escolher-negocio.html", "/"],
+  ["/favoritos.html", "/favoritos"],
+  ["/finalizar-agendamento.html", "/confirmar"],
+  ["/minha-conta.html", "/conta"],
+]);
 
-app.get("/inicio.html", (req, res) => {
-  res.sendFile(path.join(rootDir, "html", "inicio.html"));
+app.get(
+  Array.from(
+    redirecionamentosLegados.keys()
+  ),
+  (req, res) => {
+    return res.redirect(
+      301,
+      redirecionamentosLegados.get(
+        req.path
+      )
+    );
+  }
+);
+
+
+app.get("/inicio.html", (_req, res) => {
+  return res.redirect(
+    301,
+    "/"
+  );
 });
 
-app.get("/login-profissional.html", (req, res) => {
-  res.sendFile(path.join(rootDir, "html", "login-profissional.html"));
+app.get("/login-profissional.html", (_req, res) => {
+  return res.redirect(
+    301,
+    "/entrar"
+  );
 });
 
-app.get("/login-cliente.html", (req, res) => {
-  res.sendFile(path.join(rootDir, "html", "login-cliente.html"));
+app.get("/login-cliente.html", (_req, res) => {
+  return res.redirect(
+    301,
+    "/entrar"
+  );
 });
 
-app.get("/cadastro-profissional.html", (req, res) => {
-  res.sendFile(path.join(rootDir, "html", "cadastro-profissional.html"));
+app.get("/cadastro-profissional.html", (_req, res) => {
+  return res.redirect(
+    301,
+    "/cadastro"
+  );
 });
 
-app.get("/cadastro-cliente.html", (req, res) => {
-  res.sendFile(path.join(rootDir, "html", "cadastro-cliente.html"));
+app.get("/cadastro-cliente.html", (_req, res) => {
+  return res.redirect(
+    301,
+    "/cadastro"
+  );
 });
 
-app.get("/dashboard-profissional.html", (req, res) => {
-  res.sendFile(path.join(rootDir, "html", "dashboard-profissional.html"));
+app.get("/dashboard-profissional.html", (_req, res) => {
+  return res.redirect(
+    301,
+    "/profissional/agenda"
+  );
 });
 
-app.get("/dashboard-dono.html", (req, res) => {
-  res.sendFile(path.join(rootDir, "html", "dashboard-dono.html"));
+app.get("/dashboard-dono.html", (_req, res) => {
+  return res.redirect(
+    301,
+    "/painel"
+  );
 });
 
 
@@ -252,6 +296,57 @@ if (
   );
 }
 
+/*
+ * Rotas da SPA React.
+ *
+ * Elas ficam depois das APIs para que endpoints reais tenham prioridade.
+ * A lista explicita evita devolver index.html para uma API inexistente.
+ */
+const rotasReact = [
+  "/",
+  "/entrar",
+  "/cadastro",
+  "/confirmar",
+  "/sucesso",
+  "/minha-agenda",
+  "/favoritos",
+  "/criar-negocio",
+  "/conta",
+  "/planos",
+  "/checkout",
+  "/painel",
+  "/painel/agenda",
+  "/painel/servicos",
+  "/painel/servicos/novo",
+  "/painel/servicos/:id/editar",
+  "/painel/profissionais",
+  "/painel/horarios",
+  "/painel/negocio",
+  "/painel/assinatura",
+  "/profissional/agenda",
+  "/profissional/horarios",
+  "/negocio/:slug",
+];
+
+app.get(
+  rotasReact,
+  (_req, res, next) => {
+    const indexReact =
+      path.join(
+        reactDir,
+        "index.html"
+      );
+
+    res.sendFile(
+      indexReact,
+      (erro) => {
+        if (erro) {
+          next(erro);
+        }
+      }
+    );
+  }
+);
 app.use(
   notFound
 );

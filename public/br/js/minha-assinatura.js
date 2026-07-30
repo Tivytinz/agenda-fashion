@@ -128,7 +128,7 @@ document.addEventListener(
         "function"
     ) {
       window.location.replace(
-        "/html/login-cliente.html"
+        "/entrar"
       );
 
       return;
@@ -434,7 +434,7 @@ document.addEventListener(
         .limparSessao();
 
       window.location.replace(
-        "/html/login-cliente.html"
+        "/entrar"
       );
     }
 
@@ -1185,7 +1185,7 @@ document.addEventListener(
           "click",
           () => {
             window.location.href =
-              "/html/planos.html";
+              "/planos";
           }
         );
 
@@ -1227,7 +1227,7 @@ document.addEventListener(
           await window.SessionGuard
             .exigirConta({
               destinoLogin:
-                "/html/login-cliente.html",
+                "/entrar",
             });
 
         if (

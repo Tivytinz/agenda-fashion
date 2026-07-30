@@ -680,30 +680,50 @@ Nunca executar testes automatizados contra o banco de produção.
 
 ## 14. Frontend
 
-O frontend atual é estático e organizado em:
+O frontend oficial do Agenda Fashion utiliza React com Vite.
+
+Estrutura principal:
 
 ```text
-agendamento-nails/html
-agendamento-nails/css
-agendamento-nails/js
+frontend/
+|-- src/
+|   |-- api/
+|   |-- auth/
+|   |-- components/
+|   |-- layouts/
+|   |-- pages/
+|   `-- utils/
+`-- public/
 ```
+
+O build de producao e gerado em:
+
+```text
+agendamento-nails/react-app
+```
+
+O backend Express serve esse build diretamente na raiz do dominio:
+
+```text
+https://app.agendafashion.com.br/
+https://app.agendafashion.com.br/entrar
+https://app.agendafashion.com.br/painel
+```
+
+As antigas pastas `agendamento-nails/html`, `agendamento-nails/css`
+e `agendamento-nails/js` foram removidas depois da consolidacao do
+frontend em React.
 
 Regras:
 
 - manter a identidade rosa, feminina e delicada do Agenda Fashion;
-- preservar o emoji de unha pintada como elemento de identidade;
-- usar componentes visuais e tokens consistentes;
-- não duplicar regras de negócio que pertencem ao backend;
-- tratar loading, vazio, sucesso, erro e sessão expirada;
-- usar `fetch` por meio de funções reutilizáveis;
-- não confiar no frontend para autorização ou limites;
-- manter páginas responsivas e acessíveis.
-
-Páginas antigas removidas não devem voltar a ser referenciadas. Quando uma rota
-antiga precisar sobreviver temporariamente, usar redirecionamento explícito.
-
----
-
+- preservar o emoji de unha pintada como elemento da marca;
+- usar componentes React reutilizaveis;
+- centralizar chamadas HTTP no cliente da API;
+- tratar carregamento, erro, estado vazio e sessao expirada;
+- nao duplicar regras de negocio que pertencem ao backend;
+- manter as paginas responsivas e acessiveis;
+- preservar testes de regressao das jornadas principais.
 ## 15. Deploy no Railway
 
 O ambiente de produção é composto por:
