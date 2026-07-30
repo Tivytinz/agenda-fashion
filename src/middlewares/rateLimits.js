@@ -60,6 +60,25 @@ function chaveLogin(req) {
   return `${ip}:${email}`;
 }
 
+function chaveUsuarioOuIp(
+  req
+) {
+  if (
+    req.user?.id
+  ) {
+    return `usuario:${req.user.id}`;
+  }
+
+  const ip =
+    ipKeyGenerator(
+      req.ip ||
+      req.socket
+        ?.remoteAddress ||
+      ""
+    );
+
+  return `ip:${ip}`;
+}
 const limitarLogin =
   criarLimitador({
     limite: 10,
@@ -91,6 +110,16 @@ const limitarAgendamento =
       "Muitos agendamentos enviados. Aguarde alguns minutos.",
   });
 
+const limitarCheckout =
+  criarLimitador({
+    limite: 8,
+    janelaMs:
+      15 * 60 * 1000,
+    mensagem:
+      "Muitas tentativas de checkout. Aguarde alguns minutos.",
+    chave:
+      chaveUsuarioOuIp,
+  });
 const limitarEventos =
   criarLimitador({
     limite: 120,
@@ -114,6 +143,7 @@ module.exports = {
   limitarLogin,
   limitarCadastro,
   limitarAgendamento,
+  limitarCheckout,
   limitarEventos,
   limitarUpload,
 };
