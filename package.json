@@ -4,6 +4,7 @@
   "description": "SaaS de agendamento",
   "main": "src/server.js",
   "scripts": {
+    "build": "npm --prefix frontend ci && npm run frontend:build",
     "start": "node src/server.js",
     "dev": "node src/server.js",
     "test": "jest --runInBand",
