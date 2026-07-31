@@ -25,7 +25,7 @@ const CONFIGURACOES_TEMPLATE = {
     variavel:
       "WHATSAPP_TEMPLATE_LEMBRETE_CLIENTE",
     padrao:
-      "lembrete_agendamento_cliente",
+      "lembrete_agendamento",
   },
 
   CANCELAMENTO_AGENDAMENTO_PROFISSIONAL: {
@@ -39,7 +39,7 @@ const CONFIGURACOES_TEMPLATE = {
     variavel:
       "WHATSAPP_TEMPLATE_CANCELAMENTO_CLIENTE",
     padrao:
-      "cancelamento_agendamento_cliente",
+      "cancelamento_agendamento",
   },
 };
 

@@ -21,7 +21,7 @@ describe(
     });
 
     test(
-      "enfileira cancelamento do profissional com as cinco variáveis do template",
+      "enfileira cancelamento do profissional com as seis variáveis do template",
       async () => {
         const executor = {
           query: jest
@@ -55,10 +55,10 @@ describe(
         );
 
         expect(
-          consultaInsercao
-        ).toContain(
-          "JSONB_BUILD_ARRAY( cliente_nome, servico_nome, profissional_nome, data_formatada, horario_formatado ) AS parametros_corpo"
-        );
+  consultaInsercao
+).toContain(
+  "JSONB_BUILD_ARRAY( profissional_nome, cliente_nome, cliente_whatsapp, servico_nome, data_formatada, horario_formatado ) AS parametros_corpo"
+);
       }
     );
 
