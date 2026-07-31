@@ -817,6 +817,168 @@ body,
   }
 }
 
+/* Correcoes mobile do fluxo de agendamento */
+
+.booking-layout,
+.booking-main,
+.booking-section,
+.booking-summary,
+.choice-list,
+.choice-card,
+.flow-progress,
+.flow-steps {
+  min-width: 0;
+  max-width: 100%;
+}
+
+@media (max-width: 620px) {
+  .booking-layout {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 18px;
+  }
+
+  .booking-main {
+    width: 100%;
+    gap: 16px;
+  }
+
+  .booking-section,
+  .booking-summary {
+    width: 100%;
+    border-radius: 16px;
+    padding: 18px;
+  }
+
+  .booking-section .section-heading {
+    margin-bottom: 16px;
+  }
+
+  .booking-section .section-heading h2 {
+    font-size: clamp(1.65rem, 7vw, 2rem);
+    line-height: 1.08;
+  }
+
+  .choice-list,
+  .choice-list.compact {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .choice-card {
+    width: 100%;
+    min-width: 0;
+    padding: 15px;
+  }
+
+  .choice-copy {
+    min-width: 0;
+  }
+
+  .choice-copy small:first-of-type:not(:last-child) {
+    max-width: 100%;
+  }
+
+  .date-options {
+    display: flex;
+    width: 100%;
+    max-width: 100%;
+    overflow-x: auto;
+    gap: 10px;
+    padding-bottom: 6px;
+    scrollbar-width: none;
+  }
+
+  .date-options::-webkit-scrollbar {
+    display: none;
+  }
+
+  .date-button {
+    min-width: 150px;
+    flex: 0 0 auto;
+  }
+
+  .time-options {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    width: 100%;
+    gap: 10px;
+  }
+
+  .time-button {
+    width: 100%;
+    min-width: 0;
+    padding-inline: 8px;
+  }
+
+  .booking-summary {
+    position: static;
+  }
+
+  .booking-summary .button,
+  .booking-summary button {
+    width: 100%;
+    max-width: 100%;
+    white-space: normal;
+    text-align: center;
+  }
+
+  .flow-progress {
+    width: 100%;
+    overflow: hidden;
+  }
+
+  .flow-steps {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .flow-steps li {
+    min-width: 0;
+  }
+
+  .flow-steps li small {
+    display: none;
+  }
+
+  .profile-hero {
+    grid-template-columns: 82px minmax(0, 1fr);
+    gap: 14px;
+  }
+
+  .profile-hero > :last-child {
+    grid-column: 1 / -1;
+    justify-self: start;
+  }
+
+  .profile-image {
+    width: 82px;
+    height: 82px;
+    border-radius: 18px;
+  }
+
+  .profile-hero h1 {
+    font-size: 2rem;
+  }
+
+  .favorite-button {
+    min-height: 42px;
+  }
+}
+
+@media (max-width: 390px) {
+  .time-options {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .booking-section,
+  .booking-summary {
+    padding: 16px;
+  }
+
+  .step-label {
+    width: 30px;
+    height: 30px;
+  }
+}
+
 @media (max-width: 900px) {
   .service-discovery-grid {
     grid-template-columns:
