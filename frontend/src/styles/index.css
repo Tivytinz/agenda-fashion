@@ -1782,3 +1782,209 @@ nav .button-small {
 }
 
 /* HOME MOBILE POLIMENTO FINAL V3 END */
+/* BOOKING MOBILE POLISH START */
+
+@media (max-width: 800px) {
+  /*
+   * Evita que o conteudo role por baixo do topo fixo.
+   * scroll-padding ajuda navegacao por ancora e foco.
+   */
+  html {
+    scroll-padding-top: 84px;
+  }
+
+  .site-header {
+    position: sticky;
+    top: 0;
+    z-index: 1100;
+  }
+
+  .booking-layout,
+  .booking-main {
+    overflow: visible;
+  }
+
+  .booking-main {
+    gap: 16px;
+    padding-top: 4px;
+  }
+
+  /*
+   * Mantem cada etapa completamente visivel ao chegar nela.
+   */
+  .booking-section {
+    scroll-margin-top: 84px;
+    padding: 16px;
+    border-radius: 20px;
+  }
+
+  /*
+   * Titulos menores e mais equilibrados no celular.
+   */
+  .booking-section .section-heading {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: start;
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+
+  .booking-section .section-heading h2 {
+    margin: 0;
+    font-size: clamp(1.65rem, 7.4vw, 2.15rem);
+    line-height: 1.04;
+    letter-spacing: -0.035em;
+    overflow-wrap: normal;
+  }
+
+  .booking-section .step-number,
+  .booking-section .section-number {
+    width: 48px;
+    min-width: 48px;
+    height: 48px;
+    font-size: 1.25rem;
+  }
+
+  /*
+   * Mostra mais descricao sem deixar o card muito alto.
+   */
+  .choice-card {
+    align-items: center;
+    gap: 12px;
+    padding: 14px;
+  }
+
+  .choice-copy {
+    min-width: 0;
+  }
+
+  .choice-copy strong {
+    display: block;
+    font-size: 1.05rem;
+    line-height: 1.2;
+  }
+
+  .choice-copy small,
+  .choice-card .muted {
+    display: -webkit-box;
+    max-width: 100%;
+    overflow: hidden;
+    margin-top: 5px;
+    line-height: 1.35;
+    white-space: normal;
+    text-overflow: initial;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+  }
+
+  /*
+   * Datas continuam rolaveis, mas agora indicam melhor que ha
+   * mais opcoes para o lado.
+   */
+  .date-options {
+    position: relative;
+    gap: 10px;
+    margin-right: -16px;
+    padding-right: 54px;
+    padding-bottom: 8px;
+    scroll-padding-right: 54px;
+  }
+
+  .booking-section:has(.date-options) {
+    position: relative;
+    overflow: hidden;
+  }
+
+  .booking-section:has(.date-options)::after {
+    position: absolute;
+    z-index: 3;
+    right: 0;
+    top: 90px;
+    width: 46px;
+    height: 74px;
+    pointer-events: none;
+    content: "";
+    background:
+      linear-gradient(
+        90deg,
+        rgba(255, 255, 255, 0),
+        rgba(255, 255, 255, 0.98) 75%
+      );
+  }
+
+  .booking-section:has(.date-options)::before {
+    position: absolute;
+    z-index: 4;
+    right: 10px;
+    top: 116px;
+    pointer-events: none;
+    content: "›";
+    color: var(--pink-700);
+    font-size: 1.35rem;
+    font-weight: 900;
+    line-height: 1;
+  }
+
+  .date-button {
+    width: 138px;
+    min-width: 138px;
+    max-width: 138px;
+    min-height: 64px;
+    flex-basis: 138px;
+    padding: 10px 12px;
+    line-height: 1.15;
+  }
+
+  .time-options {
+    gap: 10px;
+  }
+
+  .time-button {
+    min-height: 52px;
+  }
+
+  /*
+   * Botao final continua grande, mas o bloco ocupa menos espaco.
+   */
+  .booking-summary {
+    margin-top: 0;
+    padding: 14px;
+    border-radius: 20px;
+  }
+
+  .booking-summary .button,
+  .booking-summary button {
+    min-height: 54px;
+  }
+}
+
+@media (max-width: 390px) {
+  html {
+    scroll-padding-top: 78px;
+  }
+
+  .booking-section {
+    scroll-margin-top: 78px;
+    padding: 14px;
+  }
+
+  .booking-section .section-heading h2 {
+    font-size: clamp(1.5rem, 7.2vw, 1.9rem);
+  }
+
+  .booking-section .step-number,
+  .booking-section .section-number {
+    width: 44px;
+    min-width: 44px;
+    height: 44px;
+  }
+
+  .date-button {
+    width: 132px;
+    min-width: 132px;
+    max-width: 132px;
+    flex-basis: 132px;
+  }
+}
+
+/* BOOKING MOBILE POLISH END */
