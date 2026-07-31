@@ -1395,3 +1395,77 @@ nav .button-small {
   }
 }
 /* MOBILE VISUAL POLISH END */
+/* MOBILE FINAL POLISH START */
+
+@media (max-width: 800px) {
+  /* Enquadramento mais natural das fotos de servico */
+  .service-discovery-image {
+    overflow: hidden;
+    background: var(--pink-50);
+  }
+
+  .service-discovery-image img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center 60%;
+    transform: scale(1.01);
+  }
+
+  /* Mais separacao entre catalogo e negocios */
+  .businesses-section {
+    margin-top: 24px;
+    padding-top: 16px;
+  }
+
+  /* Evita repetir visualmente a categoria no card do negocio */
+  .business-card .card-content > .eyebrow:first-child {
+    display: none;
+  }
+
+  /* Compacta um pouco mais o topo dos cards sem foto */
+  .business-card .card-image {
+    min-height: 132px;
+  }
+
+  .business-card .business-initial {
+    width: 54px;
+    height: 54px;
+    font-size: 1.5rem;
+  }
+
+  /* Mantem textos e botoes equilibrados */
+  .business-card .card-content {
+    gap: 10px;
+  }
+
+  .business-card .button,
+  .business-card button {
+    min-height: 44px;
+  }
+
+  /* Corrige possiveis cortes em textos longos */
+  .business-card h3,
+  .service-discovery-card h3,
+  .business-card p,
+  .service-discovery-card p {
+    max-width: 100%;
+    overflow-wrap: anywhere;
+  }
+}
+
+@media (max-width: 390px) {
+  .service-discovery-image img {
+    object-position: center 62%;
+  }
+
+  .businesses-section {
+    margin-top: 20px;
+  }
+
+  .business-card .card-image {
+    min-height: 124px;
+  }
+}
+
+/* MOBILE FINAL POLISH END */
