@@ -204,6 +204,33 @@ export function ExplorePage() {
       query
     ]);
 
+  const sortedBusinesses =
+    useMemo(() => {
+      return [...filteredBusinesses].sort(
+        (businessA, businessB) => {
+          const servicesA =
+            businessA.servicos?.length || 0;
+
+          const servicesB =
+            businessB.servicos?.length || 0;
+
+          if (
+            Boolean(servicesA) !==
+            Boolean(servicesB)
+          ) {
+            return servicesB - servicesA;
+          }
+
+          return String(
+            businessA.nome || ""
+          ).localeCompare(
+            String(businessB.nome || ""),
+            "pt-BR"
+          );
+        }
+      );
+    }, [filteredBusinesses]);
+
   function chooseCategory(value) {
     setCategory(value);
 
@@ -375,7 +402,7 @@ export function ExplorePage() {
       </section>
 
       {status === "ready" &&
-        filteredBusinesses.length >
+        sortedBusinesses.length >
         0 && (
           <section
             className="container content-section businesses-section"
@@ -394,9 +421,9 @@ export function ExplorePage() {
 
               <span>
                 {
-                  filteredBusinesses.length
+                  sortedBusinesses.length
                 }{" "}
-                {filteredBusinesses.length ===
+                {sortedBusinesses.length ===
                   1
                   ? "opção encontrada"
                   : "opções encontradas"}
@@ -404,7 +431,7 @@ export function ExplorePage() {
             </div>
 
             <div className="card-grid">
-              {filteredBusinesses.map(
+              {sortedBusinesses.map(
                 (business) => (
                   <BusinessCard
                     business={business}
