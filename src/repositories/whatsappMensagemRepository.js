@@ -148,9 +148,10 @@ async function enfileirarNovoAgendamento(
             profissional_whatsapp
               AS destinatario,
             JSONB_BUILD_ARRAY(
-              cliente_nome,
-              servico_nome,
               profissional_nome,
+              cliente_nome,
+              cliente_whatsapp,
+              servico_nome,
               data_formatada,
               horario_formatado
             ) AS parametros_corpo,
@@ -175,7 +176,6 @@ async function enfileirarNovoAgendamento(
               cliente_nome,
               negocio_nome,
               servico_nome,
-              profissional_nome,
               data_formatada,
               horario_formatado
             ),
@@ -199,7 +199,6 @@ async function enfileirarNovoAgendamento(
               cliente_nome,
               negocio_nome,
               servico_nome,
-              profissional_nome,
               data_formatada,
               horario_formatado
             ),
@@ -402,9 +401,10 @@ async function enfileirarCancelamento(
             profissional_whatsapp
               AS destinatario,
             JSONB_BUILD_ARRAY(
-              cliente_nome,
-              servico_nome,
               profissional_nome,
+              cliente_nome,
+              cliente_whatsapp,
+              servico_nome,
               data_formatada,
               horario_formatado
             ) AS parametros_corpo,
