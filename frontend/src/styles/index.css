@@ -1469,3 +1469,110 @@ nav .button-small {
 }
 
 /* MOBILE FINAL POLISH END */
+/* HOME MOBILE CARDS START */
+
+@media (max-width: 800px) {
+  /* Mostra a imagem completa, evitando cortar o desenho ou a foto */
+  .service-discovery-image {
+    display: grid;
+    place-items: center;
+    aspect-ratio: 16 / 8.8;
+    overflow: hidden;
+    background:
+      linear-gradient(
+        145deg,
+        var(--pink-50),
+        #fde2ed
+      );
+  }
+
+  .service-discovery-image img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    object-position: center;
+    transform: none;
+  }
+
+  /* Remove a categoria repetida da parte branca do card */
+  .business-card .business-heading .eyebrow {
+    display: none;
+  }
+
+  /* Compacta o card de negocio sem perder legibilidade */
+  .business-card .card-image {
+    aspect-ratio: 16 / 5.6;
+    min-height: 120px;
+  }
+
+  .business-card .card-placeholder {
+    gap: 8px;
+  }
+
+  .business-card .business-initial {
+    width: 50px;
+    height: 50px;
+    border-radius: 15px;
+    font-size: 1.4rem;
+  }
+
+  .business-card .card-placeholder small {
+    max-width: calc(100% - 28px);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .business-card .card-content {
+    padding: 15px;
+  }
+
+  .business-card .business-heading {
+    gap: 10px;
+  }
+
+  .business-card .business-heading h3 {
+    margin-top: 0;
+  }
+
+  .business-card .location {
+    margin-top: 6px;
+  }
+
+  .business-card .service-preview {
+    margin-block: 12px;
+  }
+
+  .business-card .card-footer {
+    gap: 12px;
+  }
+
+  .business-card .card-footer .button {
+    min-width: 0;
+  }
+
+  .businesses-section {
+    margin-top: 28px;
+  }
+}
+
+@media (max-width: 390px) {
+  .service-discovery-image {
+    aspect-ratio: 16 / 8.4;
+  }
+
+  .business-card .card-image {
+    min-height: 112px;
+  }
+
+  .business-card .card-footer {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .business-card .card-footer .button {
+    width: 100%;
+  }
+}
+
+/* HOME MOBILE CARDS END */
