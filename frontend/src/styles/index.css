@@ -628,6 +628,195 @@ th { color: var(--muted); font-size: .76rem; letter-spacing: .04em; text-transfo
   padding-top: 8px;
 }
 
+/* Ajustes mobile da pagina inicial */
+
+html,
+body,
+#root {
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+.app-shell {
+  min-height: 100dvh;
+}
+
+.hero-copy,
+.discovery-panel,
+.section-heading,
+.service-discovery-card,
+.business-card {
+  min-width: 0;
+}
+
+.hero-copy h1,
+.hero-copy p {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 620px) {
+  .container {
+    width: min(100% - 24px, 1160px);
+  }
+
+  .header-content {
+    min-height: 58px;
+    gap: 12px;
+  }
+
+  .brand {
+    min-width: 0;
+    gap: 8px;
+  }
+
+  .brand-mark {
+    width: 40px;
+    height: 40px;
+    flex: 0 0 auto;
+    border-radius: 11px;
+    font-size: 1.1rem;
+  }
+
+  .brand strong {
+    overflow: hidden;
+    max-width: 190px;
+    font-size: 1rem;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .brand small {
+    display: none;
+  }
+
+  nav {
+    gap: 8px;
+  }
+
+  nav .text-link:not(.button),
+  nav .text-button {
+    display: none;
+  }
+
+  nav .button-small {
+    min-height: 40px;
+    padding-inline: 17px;
+    font-size: 1rem;
+  }
+
+  .hero-content {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 24px;
+    padding-block: 30px;
+  }
+
+  .hero-copy h1 {
+    margin-bottom: 14px;
+    font-size: clamp(2.15rem, 10.5vw, 2.85rem);
+    line-height: 1.03;
+  }
+
+  .hero-copy p:not(.eyebrow) {
+    font-size: 1rem;
+    line-height: 1.5;
+  }
+
+  .discovery-panel {
+    width: 100%;
+    border-radius: 18px;
+    padding: 13px;
+  }
+
+  .search-box {
+    width: 100%;
+    min-height: 52px;
+    padding-inline: 14px;
+  }
+
+  .search-box input {
+    min-width: 0;
+    font-size: 0.98rem;
+  }
+
+  .chips {
+    width: 100%;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    gap: 8px;
+    padding: 2px 0 7px;
+    scroll-snap-type: x proximity;
+    scrollbar-width: none;
+  }
+
+  .chips::-webkit-scrollbar {
+    display: none;
+  }
+
+  .chip {
+    min-height: 40px;
+    flex: 0 0 auto;
+    padding-inline: 18px;
+    scroll-snap-align: start;
+  }
+
+  .content-section {
+    padding-block: 30px;
+  }
+
+  .section-heading {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 7px;
+    margin-bottom: 20px;
+  }
+
+  .section-heading > span {
+    font-size: 0.88rem;
+  }
+
+  .service-discovery-grid,
+  .card-grid {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 18px;
+  }
+
+  .service-discovery-image {
+    aspect-ratio: 16 / 9;
+  }
+
+  .service-discovery-content {
+    padding: 18px;
+  }
+
+  .service-discovery-content h3 {
+    font-size: 1.25rem;
+  }
+
+  .service-discovery-description {
+    margin-bottom: 14px;
+  }
+
+  .service-discovery-meta {
+    margin-block: 15px;
+  }
+
+  .business-card .card-image {
+    aspect-ratio: 16 / 7;
+  }
+
+  .business-card .card-content {
+    padding: 17px;
+  }
+
+  .business-initial {
+    width: 58px;
+    height: 58px;
+    border-radius: 16px;
+    font-size: 1.65rem;
+  }
+}
+
 @media (max-width: 900px) {
   .service-discovery-grid {
     grid-template-columns:
