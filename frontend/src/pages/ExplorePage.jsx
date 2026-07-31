@@ -1,8 +1,20 @@
-import { useEffect, useMemo, useState } from "react";
+import {
+  useEffect,
+  useMemo,
+  useState
+} from "react";
+
 import { apiRequest } from "../api/client";
 import { track } from "../analytics/track";
 import { BusinessCard } from "../components/BusinessCard";
-import { EmptyState, ErrorState, LoadingState } from "../components/ScreenState";
+import { ServiceCard } from "../components/ServiceCard";
+
+import {
+  EmptyState,
+  ErrorState,
+  LoadingState
+} from "../components/ScreenState";
+
 import { normalizeText } from "../utils/format";
 
 const CATEGORIES = [
@@ -10,22 +22,39 @@ const CATEGORIES = [
   ["unha", "Unhas"],
   ["cabelo", "Cabelo"],
   ["cilio", "Cílios"],
-  ["sobrancelha", "Sobrancelhas"]
+  ["sobrancelha", "Sobrancelhas"],
+  ["maquiagem", "Maquiagem"],
+  ["estetica", "Estética"]
 ];
 
 export function ExplorePage() {
-  const [businesses, setBusinesses] = useState([]);
-  const [query, setQuery] = useState("");
-  const [category, setCategory] = useState("");
-  const [status, setStatus] = useState("loading");
-  const [error, setError] = useState("");
+  const [businesses, setBusinesses] =
+    useState([]);
+
+  const [query, setQuery] =
+    useState("");
+
+  const [category, setCategory] =
+    useState("");
+
+  const [status, setStatus] =
+    useState("loading");
+
+  const [error, setError] =
+    useState("");
 
   async function loadBusinesses() {
     setStatus("loading");
 
     try {
       const data = await apiRequest("/negocios-publicos");
-      setBusinesses(Array.isArray(data.negocios) ? data.negocios : []);
+
+      setBusinesses(
+        Array.isArray(data.negocios)
+          ? data.negocios
+          : []
+      );
+
       setStatus("ready");
     } catch (requestError) {
       setError(requestError.message);
@@ -35,44 +64,155 @@ export function ExplorePage() {
 
   useEffect(() => {
     void loadBusinesses();
+
     track("tela_visualizada", {
       page: "inicio",
       mission: "descobrir_servico"
     });
   }, []);
 
-  const filtered = useMemo(() => {
-    const wanted = normalizeText(`${query} ${category}`);
+  const services =
+    useMemo(() => {
+      return businesses.flatMap(
+        (business) => {
+          return (
+            business.servicos || []
+          ).map((service) => ({
+            ...service,
 
-    if (!wanted) {
-      return businesses;
-    }
+            negocio_id:
+              business.id,
 
-    const terms = wanted.split(/\s+/).filter(Boolean);
+            negocio_nome:
+              business.nome,
 
-    return businesses.filter((business) => {
-      const services = (business.servicos || [])
-        .map((service) => `${service.nome} ${service.descricao || ""}`)
-        .join(" ");
-      const haystack = normalizeText([
-        business.nome,
-        business.setor,
-        business.cidade,
-        business.bairro,
-        ...(business.areas || []),
-        services
-      ].join(" "));
+            negocio_slug:
+              business.slug,
 
-      return terms.every((term) => haystack.includes(term));
-    });
-  }, [businesses, category, query]);
+            negocio_setor:
+              business.setor,
+
+            negocio_cidade:
+              business.cidade,
+
+            negocio_bairro:
+              business.bairro,
+
+            negocio_estado:
+              business.estado,
+
+            negocio_foto_url:
+              business.foto_url
+          }));
+        }
+      );
+    }, [businesses]);
+
+  const filteredServices =
+    useMemo(() => {
+      const wanted =
+        normalizeText(
+          `${query} ${category}`
+        );
+
+      if (!wanted) {
+        return services;
+      }
+
+      const terms =
+        wanted
+          .split(/\s+/)
+          .filter(Boolean);
+
+      return services.filter(
+        (service) => {
+          const haystack =
+            normalizeText(
+              [
+                service.nome,
+                service.descricao,
+                service.categoria,
+                service.negocio_nome,
+                service.negocio_setor,
+                service.negocio_cidade,
+                service.negocio_bairro
+              ].join(" ")
+            );
+
+          return terms.every(
+            (term) =>
+              haystack.includes(term)
+          );
+        }
+      );
+    }, [
+      services,
+      category,
+      query
+    ]);
+
+  const filteredBusinesses =
+    useMemo(() => {
+      const wanted =
+        normalizeText(
+          `${query} ${category}`
+        );
+
+      if (!wanted) {
+        return businesses;
+      }
+
+      const terms =
+        wanted
+          .split(/\s+/)
+          .filter(Boolean);
+
+      return businesses.filter(
+        (business) => {
+          const businessServices =
+            (
+              business.servicos || []
+            )
+              .map(
+                (service) =>
+                  `${service.nome} ${service.descricao || ""
+                  }`
+              )
+              .join(" ");
+
+          const haystack =
+            normalizeText(
+              [
+                business.nome,
+                business.setor,
+                business.cidade,
+                business.bairro,
+                ...(business.areas || []),
+                businessServices
+              ].join(" ")
+            );
+
+          return terms.every(
+            (term) =>
+              haystack.includes(term)
+          );
+        }
+      );
+    }, [
+      businesses,
+      category,
+      query
+    ]);
 
   function chooseCategory(value) {
     setCategory(value);
+
     track("categoria_selecionada", {
       page: "inicio",
       mission: "descobrir_servico",
-      properties: { categoria: value || "todos" }
+      properties: {
+        categoria: value || "todos"
+      }
     });
   }
 
@@ -81,26 +221,53 @@ export function ExplorePage() {
       <section className="hero">
         <div className="container hero-content">
           <div className="hero-copy">
-            <p className="eyebrow">Beleza perto de você</p>
-            <h1>Seu próximo cuidado começa aqui</h1>
-            <p>Encontre profissionais, compare serviços e escolha um horário em poucos passos.</p>
+            <p className="eyebrow">
+              Beleza perto de você
+            </p>
+
+            <h1>
+              Encontre o serviço que combina com você
+            </h1>
+
+            <p>
+              Inspire-se pelas fotos,
+              compare preços e escolha
+              um horário em poucos passos.
+            </p>
           </div>
 
           <div className="discovery-panel">
             <label className="search-box">
-              <span className="search-icon" aria-hidden="true">⌕</span>
-              <span className="sr-only">Buscar serviço, negócio ou cidade</span>
+              <span
+                className="search-icon"
+                aria-hidden="true"
+              >
+                ⌕
+              </span>
+
+              <span className="sr-only">
+                Buscar serviço, negócio
+                ou cidade
+              </span>
+
               <input
                 type="search"
                 value={query}
-                onChange={(event) => setQuery(event.target.value)}
+                onChange={(event) =>
+                  setQuery(
+                    event.target.value
+                  )
+                }
                 placeholder="Serviço, negócio ou cidade"
               />
+
               {query && (
                 <button
                   aria-label="Limpar busca"
                   className="clear-search"
-                  onClick={() => setQuery("")}
+                  onClick={() =>
+                    setQuery("")
+                  }
                   type="button"
                 >
                   ×
@@ -108,51 +275,146 @@ export function ExplorePage() {
               )}
             </label>
 
-            <div className="chips" aria-label="Categorias">
-              {CATEGORIES.map(([value, label]) => (
-                <button
-                  aria-pressed={category === value}
-                  className={category === value ? "chip active" : "chip"}
-                  key={label}
-                  type="button"
-                  onClick={() => chooseCategory(value)}
-                >
-                  {label}
-                </button>
-              ))}
+            <div
+              className="chips"
+              aria-label="Categorias"
+            >
+              {CATEGORIES.map(
+                ([value, label]) => (
+                  <button
+                    aria-pressed={
+                      category === value
+                    }
+                    className={
+                      category === value
+                        ? "chip active"
+                        : "chip"
+                    }
+                    key={label}
+                    type="button"
+                    onClick={() =>
+                      chooseCategory(
+                        value
+                      )
+                    }
+                  >
+                    {label}
+                  </button>
+                )
+              )}
             </div>
           </div>
         </div>
       </section>
 
-      <section className="container content-section" aria-labelledby="businesses-title">
+      <section
+        className="container content-section"
+        aria-labelledby="services-title"
+      >
         <div className="section-heading">
           <div>
-            <p className="eyebrow">Disponíveis agora</p>
-            <h2 id="businesses-title">
-              {query || category ? "Resultados para você" : "Negócios e profissionais"}
+            <p className="eyebrow">
+              Inspire-se e agende
+            </p>
+
+            <h2 id="services-title">
+              {query || category
+                ? "Serviços encontrados"
+                : "Serviços para você"}
             </h2>
           </div>
+
           {status === "ready" && (
-            <span>{filtered.length} {filtered.length === 1 ? "opção encontrada" : "opções encontradas"}</span>
+            <span>
+              {filteredServices.length}{" "}
+              {filteredServices.length ===
+                1
+                ? "serviço encontrado"
+                : "serviços encontrados"}
+            </span>
           )}
         </div>
 
-        {status === "loading" && <LoadingState>Buscando opções para você...</LoadingState>}
-        {status === "error" && <ErrorState message={error} onRetry={loadBusinesses} />}
-        {status === "ready" && filtered.length === 0 && (
-          <EmptyState title="Nenhum resultado">
-            Tente buscar outro serviço, negócio ou cidade.
-          </EmptyState>
+        {status === "loading" && (
+          <LoadingState>
+            Buscando serviços para
+            você...
+          </LoadingState>
         )}
-        {status === "ready" && filtered.length > 0 && (
-          <div className="card-grid">
-            {filtered.map((business) => (
-              <BusinessCard business={business} key={business.id} />
-            ))}
-          </div>
+
+        {status === "error" && (
+          <ErrorState
+            message={error}
+            onRetry={loadBusinesses}
+          />
         )}
+
+        {status === "ready" &&
+          filteredServices.length ===
+          0 && (
+            <EmptyState title="Nenhum serviço encontrado">
+              Tente outra categoria,
+              serviço ou cidade.
+            </EmptyState>
+          )}
+
+        {status === "ready" &&
+          filteredServices.length >
+          0 && (
+            <div className="service-discovery-grid">
+              {filteredServices.map(
+                (service) => (
+                  <ServiceCard
+                    service={service}
+                    key={`${service.negocio_id}-${service.id}`}
+                  />
+                )
+              )}
+            </div>
+          )}
       </section>
+
+      {status === "ready" &&
+        filteredBusinesses.length >
+        0 && (
+          <section
+            className="container content-section businesses-section"
+            aria-labelledby="businesses-title"
+          >
+            <div className="section-heading">
+              <div>
+                <p className="eyebrow">
+                  Conheça quem atende
+                </p>
+
+                <h2 id="businesses-title">
+                  Negócios e profissionais
+                </h2>
+              </div>
+
+              <span>
+                {
+                  filteredBusinesses.length
+                }{" "}
+                {filteredBusinesses.length ===
+                  1
+                  ? "opção encontrada"
+                  : "opções encontradas"}
+              </span>
+            </div>
+
+            <div className="card-grid">
+              {filteredBusinesses.map(
+                (business) => (
+                  <BusinessCard
+                    business={business}
+                    key={business.id}
+                  />
+                )
+              )}
+            </div>
+          </section>
+        )}
     </main>
   );
 }

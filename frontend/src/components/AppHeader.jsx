@@ -22,7 +22,7 @@ export function AppHeader() {
             end
             to="/"
           >
-            Explorar
+            Início
           </NavLink>
           <NavLink
             className={({ isActive }) => isActive ? "text-link active" : "text-link"}
