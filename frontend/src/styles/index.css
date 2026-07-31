@@ -1691,3 +1691,94 @@ nav .button-small {
 }
 
 /* HOME MOBILE UX FINAL END */
+/* HOME MOBILE POLIMENTO FINAL V3 START */
+
+@media (max-width: 800px) {
+  /* Mostra melhor que as categorias podem ser arrastadas */
+  .discovery-panel {
+    position: relative;
+    overflow: hidden;
+  }
+
+  .chips {
+    position: relative;
+    padding-right: 54px;
+    scroll-padding-right: 54px;
+  }
+
+  .discovery-panel::after {
+    right: 0;
+    bottom: 12px;
+    width: 54px;
+    height: 48px;
+    background:
+      linear-gradient(
+        90deg,
+        rgba(255, 250, 252, 0),
+        rgba(255, 250, 252, 0.98) 72%
+      );
+  }
+
+  .discovery-panel::before {
+    position: absolute;
+    z-index: 3;
+    right: 11px;
+    bottom: 25px;
+    pointer-events: none;
+    content: "›";
+    color: var(--pink-700);
+    font-size: 1.35rem;
+    font-weight: 900;
+    line-height: 1;
+  }
+
+  /* Aproveita melhor a area da imagem sem cortar */
+  .service-discovery-image {
+    aspect-ratio: 16 / 7.4;
+    min-height: 0;
+  }
+
+  .service-discovery-image img {
+    width: 100%;
+    height: 100%;
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+    object-position: center;
+    transform: scale(1.06);
+  }
+
+  /* Aproxima a secao de negocios do card de servico */
+  .businesses-section {
+    margin-top: 8px;
+    padding-top: 4px;
+  }
+
+  .content-section + .businesses-section {
+    padding-top: 12px;
+  }
+
+  .service-discovery-grid {
+    margin-bottom: 4px;
+  }
+
+  .businesses-section .section-heading {
+    margin-bottom: 16px;
+  }
+}
+
+@media (max-width: 390px) {
+  .service-discovery-image {
+    aspect-ratio: 16 / 7;
+  }
+
+  .service-discovery-image img {
+    transform: scale(1.08);
+  }
+
+  .businesses-section {
+    margin-top: 4px;
+  }
+}
+
+/* HOME MOBILE POLIMENTO FINAL V3 END */
