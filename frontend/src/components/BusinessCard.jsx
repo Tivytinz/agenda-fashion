@@ -1,29 +1,68 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { formatCurrency, formatLocation, formatRating } from "../utils/format";
+import {
+  formatCurrency,
+  formatLocation,
+  formatRating
+} from "../utils/format";
 
 export function BusinessCard({ business }) {
-  const featuredServices = (business.servicos || []).slice(0, 2);
-  const serviceCount = business.servicos?.length || 0;
+  const featuredServices =
+    (business.servicos || []).slice(0, 2);
+
+  const serviceCount =
+    business.servicos?.length || 0;
+
+  const available = serviceCount > 0;
   const rating = formatRating(business);
-  const [imageFailed, setImageFailed] = useState(false);
-  const hasImage = Boolean(business.foto_url) && !imageFailed;
-  const initial = String(business.nome || "A").trim().charAt(0).toLocaleUpperCase("pt-BR");
+
+  const [imageFailed, setImageFailed] =
+    useState(false);
+
+  const hasImage =
+    Boolean(business.foto_url) &&
+    !imageFailed;
+
+  const initial = String(
+    business.nome || "A"
+  )
+    .trim()
+    .charAt(0)
+    .toLocaleUpperCase("pt-BR");
 
   return (
-    <article className="card business-card">
-      <div className="card-image" aria-hidden={!hasImage}>
+    <article
+      className={
+        available
+          ? "card business-card business-card-available"
+          : "card business-card business-card-unavailable"
+      }
+    >
+      <div
+        className="card-image"
+        aria-hidden={!hasImage}
+      >
         {hasImage ? (
           <img
             src={business.foto_url}
             alt=""
             loading="lazy"
-            onError={() => setImageFailed(true)}
+            onError={() =>
+              setImageFailed(true)
+            }
           />
         ) : (
           <span className="card-placeholder">
-            <span className="business-initial" aria-hidden="true">{initial}</span>
-            <small>{business.setor || "Beleza"}</small>
+            <span
+              className="business-initial"
+              aria-hidden="true"
+            >
+              {initial}
+            </span>
+
+            <small>
+              {business.setor || "Beleza"}
+            </small>
           </span>
         )}
       </div>
@@ -31,12 +70,21 @@ export function BusinessCard({ business }) {
       <div className="card-content">
         <div className="business-heading">
           <div>
-            <p className="eyebrow">{business.setor || "Beleza"}</p>
             <h3>{business.nome}</h3>
-            <p className="muted location">⌖ {formatLocation(business) || "Atendimento local"}</p>
+
+            <p className="muted location">
+              ⌖{" "}
+              {formatLocation(business) ||
+                "Atendimento local"}
+            </p>
           </div>
+
           <span
-            className={rating.label === "Novo" ? "rating rating-new" : "rating"}
+            className={
+              rating.label === "Novo"
+                ? "rating rating-new"
+                : "rating"
+            }
             aria-label={rating.ariaLabel}
           >
             {rating.label}
@@ -44,31 +92,51 @@ export function BusinessCard({ business }) {
         </div>
 
         {featuredServices.length > 0 && (
-          <ul className="service-preview" aria-label="Serviços em destaque">
-            {featuredServices.map((service) => (
-              <li key={service.id}>
-                <span>{service.nome}</span>
-                <strong>{formatCurrency(service.valor)}</strong>
-              </li>
-            ))}
+          <ul
+            className="service-preview"
+            aria-label="Serviços em destaque"
+          >
+            {featuredServices.map(
+              (service) => (
+                <li key={service.id}>
+                  <span>{service.nome}</span>
+
+                  <strong>
+                    {formatCurrency(
+                      service.valor
+                    )}
+                  </strong>
+                </li>
+              )
+            )}
           </ul>
         )}
 
         <div className="card-footer">
           <small>
-            {serviceCount > 0
-              ? `${serviceCount} ${serviceCount === 1 ? "serviço" : "serviços"}`
+            {available
+              ? `${serviceCount} ${
+                  serviceCount === 1
+                    ? "serviço"
+                    : "serviços"
+                }`
               : "Agenda em configuração"}
           </small>
-          {serviceCount > 0 ? (
+
+          {available ? (
             <Link
               className="button button-small"
-              to={`/negocio/${encodeURIComponent(business.slug)}`}
+              to={`/negocio/${encodeURIComponent(
+                business.slug
+              )}`}
             >
               Ver horários
             </Link>
           ) : (
-            <span className="button button-small button-unavailable" aria-disabled="true">
+            <span
+              className="button button-small button-unavailable"
+              aria-disabled="true"
+            >
               Indisponível
             </span>
           )}
