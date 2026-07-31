@@ -55,6 +55,14 @@ app.use(
   })
 );
 
+app.get("/health", (req, res) => {
+  return res.status(200).json({
+    status: "ok",
+    service: "agenda-fashion",
+    timestamp: new Date().toISOString(),
+  });
+});
+
 app.use(
   (req, res, next) => {
     const recebido =
