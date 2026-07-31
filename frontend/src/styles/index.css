@@ -1576,3 +1576,118 @@ nav .button-small {
 }
 
 /* HOME MOBILE CARDS END */
+/* HOME MOBILE UX FINAL START */
+
+@media (max-width: 800px) {
+  /* Indica que as categorias podem ser arrastadas */
+  .discovery-panel {
+    overflow: hidden;
+  }
+
+  .chips {
+    padding-right: 42px;
+  }
+
+  .discovery-panel::after {
+    width: 44px;
+  }
+
+  /* Categoria do placeholder pode ocupar duas linhas */
+  .business-card .card-placeholder small {
+    display: -webkit-box;
+    max-width: min(260px, calc(100% - 32px));
+    overflow: hidden;
+    line-height: 1.25;
+    text-align: center;
+    text-overflow: initial;
+    white-space: normal;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+  }
+
+  /* Cards disponiveis mantem informacoes essenciais */
+  .business-card-available .card-image {
+    min-height: 112px;
+  }
+
+  /* Negocio indisponivel recebe menos destaque */
+  .business-card-unavailable {
+    opacity: 0.88;
+  }
+
+  .business-card-unavailable .card-image {
+    min-height: 88px;
+    aspect-ratio: 16 / 4.4;
+  }
+
+  .business-card-unavailable .business-initial {
+    width: 44px;
+    height: 44px;
+    font-size: 1.2rem;
+  }
+
+  .business-card-unavailable .card-content {
+    padding: 14px;
+  }
+
+  .business-card-unavailable .location {
+    margin-bottom: 4px;
+  }
+
+  .business-card-unavailable .card-footer {
+    margin-top: 10px;
+  }
+
+  .business-card-unavailable
+  .button-unavailable {
+    min-height: 42px;
+  }
+
+  /* Hierarquia mais clara */
+  .business-card h3 {
+    font-size: 1.2rem;
+    line-height: 1.15;
+  }
+
+  .business-card .location {
+    font-size: 0.88rem;
+    line-height: 1.35;
+  }
+
+  .business-card .service-preview li {
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  .business-card .service-preview span {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+
+  /* Imagem do servico sem grande bloco vazio */
+  .service-discovery-image {
+    aspect-ratio: 16 / 8;
+  }
+
+  .service-discovery-image img {
+    max-width: 92%;
+    max-height: 92%;
+  }
+}
+
+@media (max-width: 390px) {
+  .business-card-unavailable .card-footer {
+    gap: 8px;
+  }
+
+  .business-card-unavailable
+  .button-unavailable {
+    width: 100%;
+  }
+
+  .service-discovery-image {
+    aspect-ratio: 16 / 7.6;
+  }
+}
+
+/* HOME MOBILE UX FINAL END */
