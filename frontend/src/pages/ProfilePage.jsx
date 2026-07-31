@@ -12,6 +12,86 @@ import {
   normalizeAvailability
 } from "../utils/format";
 
+function cleanPhone(value) {
+  return String(value || "").replace(/\D/g, "");
+}
+
+function parseCoordinate(value) {
+  const number = Number(
+    String(value ?? "").replace(",", ".")
+  );
+
+  return Number.isFinite(number)
+    ? number
+    : null;
+}
+
+function distanceInKm(
+  originLatitude,
+  originLongitude,
+  destinationLatitude,
+  destinationLongitude
+) {
+  const earthRadiusKm = 6371;
+  const toRadians = (value) =>
+    (value * Math.PI) / 180;
+
+  const latitudeDelta = toRadians(
+    destinationLatitude - originLatitude
+  );
+
+  const longitudeDelta = toRadians(
+    destinationLongitude - originLongitude
+  );
+
+  const calculation =
+    Math.sin(latitudeDelta / 2) ** 2 +
+    Math.cos(toRadians(originLatitude)) *
+      Math.cos(toRadians(destinationLatitude)) *
+      Math.sin(longitudeDelta / 2) ** 2;
+
+  return (
+    earthRadiusKm *
+    2 *
+    Math.atan2(
+      Math.sqrt(calculation),
+      Math.sqrt(1 - calculation)
+    )
+  );
+}
+
+function MediaThumb({
+  src,
+  alt,
+  className = "",
+  emoji = "💅"
+}) {
+  const [failed, setFailed] = useState(false);
+  const hasImage = Boolean(src) && !failed;
+
+  return (
+    <span
+      className={`af-media-thumb ${className}`.trim()}
+    >
+      {hasImage ? (
+        <img
+          src={src}
+          alt={alt}
+          loading="lazy"
+          onError={() => setFailed(true)}
+        />
+      ) : (
+        <span
+          className="af-media-fallback"
+          aria-hidden="true"
+        >
+          {emoji}
+        </span>
+      )}
+    </span>
+  );
+}
+
 export function ProfilePage() {
   const { slug } = useParams();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -32,6 +112,8 @@ export function ProfilePage() {
   const [error, setError] = useState("");
   const [favorite, setFavorite] = useState(false);
   const [favoriteBusy, setFavoriteBusy] = useState(false);
+  const [distanceKm, setDistanceKm] = useState(null);
+  const [locationStatus, setLocationStatus] = useState("idle");
 
   useEffect(() => {
     const controller = new AbortController();
@@ -76,6 +158,58 @@ export function ProfilePage() {
         result.favoritado ?? result.favorito ?? result.is_favorito
       )))
       .catch(() => {});
+  }, [profile]);
+
+    useEffect(() => {
+    const business = profile?.negocio;
+
+    const latitude = parseCoordinate(
+      business?.latitude ??
+      business?.lat ??
+      business?.endereco_latitude
+    );
+
+    const longitude = parseCoordinate(
+      business?.longitude ??
+      business?.lng ??
+      business?.lon ??
+      business?.endereco_longitude
+    );
+
+    if (
+      latitude === null ||
+      longitude === null ||
+      !navigator.geolocation
+    ) {
+      setDistanceKm(null);
+      setLocationStatus("unavailable");
+      return;
+    }
+
+    setLocationStatus("loading");
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const distance = distanceInKm(
+          position.coords.latitude,
+          position.coords.longitude,
+          latitude,
+          longitude
+        );
+
+        setDistanceKm(distance);
+        setLocationStatus("ready");
+      },
+      () => {
+        setDistanceKm(null);
+        setLocationStatus("denied");
+      },
+      {
+        enableHighAccuracy: false,
+        timeout: 8000,
+        maximumAge: 300000
+      }
+    );
   }, [profile]);
 
   useEffect(() => {
@@ -245,35 +379,131 @@ export function ProfilePage() {
     );
   }
 
-  const { negocio, servicos = [], profissionais = [] } = profile;
+    const { negocio, servicos = [], profissionais = [] } = profile;
   const rating = formatRating(negocio);
+
+  const whatsappPhone = cleanPhone(
+    negocio.whatsapp ??
+    negocio.telefone_whatsapp ??
+    negocio.telefone ??
+    negocio.celular
+  );
+
+  const whatsappMessage = encodeURIComponent(
+    `Olá! Encontrei ${negocio.nome} no Agenda Fashion e gostaria de tirar uma dúvida.`
+  );
+
+  const whatsappUrl = whatsappPhone
+    ? `https://wa.me/${whatsappPhone}?text=${whatsappMessage}`
+    : "";
+
+  const latitude = parseCoordinate(
+    negocio.latitude ??
+    negocio.lat ??
+    negocio.endereco_latitude
+  );
+
+  const longitude = parseCoordinate(
+    negocio.longitude ??
+    negocio.lng ??
+    negocio.lon ??
+    negocio.endereco_longitude
+  );
+
+  const fullAddress = [
+    negocio.logradouro,
+    negocio.numero,
+    negocio.bairro,
+    negocio.cidade,
+    negocio.estado,
+    negocio.cep
+  ]
+    .filter(Boolean)
+    .join(", ");
+
+  const mapsQuery =
+    latitude !== null && longitude !== null
+      ? `${latitude},${longitude}`
+      : fullAddress || formatLocation(negocio);
+
+  const mapsUrl =
+    `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
+      mapsQuery
+    )}`;
 
   return (
     <main className="container page-content">
       <Link className="back-link" to="/">← Voltar para explorar</Link>
 
       <section className="profile-hero">
-        <div className="profile-image">
-          {negocio.foto_url ? <img src={negocio.foto_url} alt="" /> : <span>💅</span>}
-        </div>
+        <MediaThumb
+          src={negocio.foto_url}
+          alt={`Foto de ${negocio.nome}`}
+          className="profile-image"
+        />
         <div className="profile-copy">
           <p className="eyebrow">{negocio.setor || "Beleza"}</p>
           <h1>{negocio.nome}</h1>
           <p>{negocio.descricao || "Escolha um serviço e encontre o melhor horário para você."}</p>
           <div className="profile-meta">
-            <span>⌖ {formatLocation(negocio) || "Atendimento local"}</span>
-            <span aria-label={rating.ariaLabel}>{rating.label}</span>
+            <span>
+              ⌖{" "}
+              {formatLocation(negocio) ||
+                "Atendimento local"}
+            </span>
+
+            <span aria-label={rating.ariaLabel}>
+              {rating.label}
+            </span>
+
+            {locationStatus === "loading" && (
+              <span>Calculando distância...</span>
+            )}
+
+            {distanceKm !== null && (
+              <span>
+                {distanceKm < 1
+                  ? `${Math.round(distanceKm * 1000)} m de você`
+                  : `${distanceKm.toFixed(1).replace(".", ",")} km de você`}
+              </span>
+            )}
           </div>
         </div>
-        <button
-          aria-pressed={favorite}
-          className={favorite ? "favorite-button active" : "favorite-button"}
-          disabled={favoriteBusy}
-          onClick={toggleFavorite}
-          type="button"
-        >
-          {favorite ? "♥ Salvo" : "♡ Favoritar"}
-        </button>
+        <div className="profile-actions">
+          <button
+            aria-pressed={favorite}
+            className={
+              favorite
+                ? "favorite-button active"
+                : "favorite-button"
+            }
+            disabled={favoriteBusy}
+            onClick={toggleFavorite}
+            type="button"
+          >
+            {favorite ? "♥ Salvo" : "♡ Favoritar"}
+          </button>
+
+          {whatsappUrl && (
+            <a
+              className="profile-action-button whatsapp"
+              href={whatsappUrl}
+              target="_blank"
+              rel="noreferrer"
+            >
+              WhatsApp
+            </a>
+          )}
+
+          <a
+            className="profile-action-button maps"
+            href={mapsUrl}
+            target="_blank"
+            rel="noreferrer"
+          >
+            Ver no mapa
+          </a>
+        </div>
       </section>
 
       <FlowSteps current={currentStep} />
@@ -298,6 +528,16 @@ export function ProfilePage() {
                     onClick={() => selectService(service.id)}
                     type="button"
                   >
+                    <MediaThumb
+                      src={
+                        service.foto_url ??
+                        service.imagem_url ??
+                        service.foto
+                      }
+                      alt={`Foto do serviço ${service.nome}`}
+                      className="choice-media service-choice-media"
+                    />
+
                     <span className="choice-copy">
                       <strong>{service.nome}</strong>
                       {service.descricao && <small>{service.descricao}</small>}
@@ -322,7 +562,15 @@ export function ProfilePage() {
                 <EmptyState title="Nenhum profissional disponível" />
               ) : profissionais.length === 1 ? (
                 <div className="single-professional">
-                  <span className="avatar" aria-hidden="true">{profissionais[0].nome?.[0] || "P"}</span>
+                  <MediaThumb
+                    src={
+                      profissionais[0].foto_url ??
+                      profissionais[0].avatar_url ??
+                      profissionais[0].foto
+                    }
+                    alt={`Foto de ${profissionais[0].nome}`}
+                    className="avatar professional-media"
+                  />
                   <span>
                     <strong>{profissionais[0].nome}</strong>
                     <small>Selecionada automaticamente</small>
@@ -339,7 +587,15 @@ export function ProfilePage() {
                       onClick={() => selectProfessional(person.id)}
                       type="button"
                     >
-                      <span className="avatar" aria-hidden="true">{person.nome?.[0] || "P"}</span>
+                      <MediaThumb
+                        src={
+                          person.foto_url ??
+                          person.avatar_url ??
+                          person.foto
+                        }
+                        alt={`Foto de ${person.nome}`}
+                        className="avatar professional-media"
+                      />
                       <span><strong>{person.nome}</strong><small>Profissional</small></span>
                     </button>
                   ))}
@@ -420,6 +676,14 @@ export function ProfilePage() {
             <div><dt>Profissional</dt><dd>{selectedProfessional?.nome || "Aguardando serviço"}</dd></div>
             <div><dt>Data</dt><dd>{day ? formatDate(day, true) : "Aguardando horário"}</dd></div>
             <div><dt>Horário</dt><dd>{time || "Aguardando horário"}</dd></div>
+            <div>
+              <dt>Total</dt>
+              <dd>
+                {selectedService
+                  ? formatCurrency(selectedService.valor)
+                  : "Aguardando serviço"}
+              </dd>
+            </div>
           </dl>
           <button className="button button-full" disabled={!time} onClick={continueToConfirmation}>
             {time ? "Revisar e confirmar" : "Complete as etapas"}
