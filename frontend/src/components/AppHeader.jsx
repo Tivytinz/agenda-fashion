@@ -1,4 +1,4 @@
-﻿import {
+import {
   Link,
   NavLink,
   useNavigate
@@ -38,13 +38,16 @@ export function AppHeader() {
             💅
           </span>
 
-          <span>
+          <span className="brand-copy">
             <strong>Agenda Fashion</strong>
             <small>Descubra e agende beleza</small>
           </span>
         </Link>
 
-        <nav aria-label="Navegação principal">
+        <nav
+          className="public-navigation"
+          aria-label="Navegação principal"
+        >
           <NavLink
             className={({ isActive }) =>
               isActive
@@ -82,7 +85,8 @@ export function AppHeader() {
               <NavLink
                 className="account-button"
                 to="/conta"
-                aria-label="Abrir minha conta"
+                aria-label={`Conta de ${session.usuario?.nome || "usuário"}`}
+                title="Minha conta"
               >
                 <span
                   className="account-avatar"

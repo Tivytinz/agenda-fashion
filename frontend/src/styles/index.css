@@ -1,4 +1,4 @@
-﻿:root {
+:root {
   color: #281821;
   background: #fff9fb;
   font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
@@ -693,13 +693,7 @@ body,
   nav {
     gap: 8px;
   }
-
-  nav .text-link:not(.button),
-  nav .text-button {
-    display: none;
-  }
-
-  nav .button-small {
+nav .button-small {
     min-height: 40px;
     padding-inline: 17px;
     font-size: 1rem;
@@ -830,7 +824,7 @@ body,
   }
 
   .service-discovery-image {
-    aspect-ratio: 16 / 10;
+    aspect-ratio: 16 / 9;
   }
 }
 
@@ -841,3 +835,429 @@ body,
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; transition-duration: .01ms !important; }
 }
+/* MOBILE SYSTEM START */
+
+.account-button {
+  display: inline-flex;
+  min-height: 42px;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid var(--pink-100);
+  border-radius: 999px;
+  padding: 4px 12px 4px 5px;
+  color: var(--wine);
+  background: #fff;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.account-avatar {
+  display: grid;
+  width: 32px;
+  height: 32px;
+  place-items: center;
+  overflow: hidden;
+  border-radius: 50%;
+  color: #fff;
+  background: var(--pink-600);
+  font-size: 0.9rem;
+  font-weight: 900;
+}
+
+.workspace-mobile-nav {
+  display: none;
+}
+
+@media (max-width: 800px) {
+  html,
+  body,
+  #root {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: hidden;
+  }
+
+  img,
+  video,
+  canvas,
+  svg {
+    max-width: 100%;
+  }
+
+  .container {
+    width: calc(100% - 24px);
+    max-width: calc(100% - 24px);
+  }
+
+  .header-content {
+    min-height: 64px;
+    gap: 10px;
+  }
+
+  .brand {
+    min-width: 0;
+    gap: 9px;
+  }
+
+  .brand-mark {
+    width: 44px;
+    height: 44px;
+    flex: 0 0 auto;
+    border-radius: 13px;
+  }
+
+  .brand-copy {
+    min-width: 0;
+  }
+
+  .brand strong {
+    display: block;
+    overflow: hidden;
+    max-width: 190px;
+    font-size: 1.05rem;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .brand small {
+    display: none;
+  }
+
+  .public-navigation {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .site-header .desktop-nav-link {
+    display: none;
+  }
+
+  .site-header .account-button,
+  .site-header .button-small {
+    display: inline-flex;
+  }
+
+  .account-label {
+    display: none;
+  }
+
+  .account-button {
+    min-width: 42px;
+    padding: 4px;
+  }
+
+  .account-avatar {
+    width: 34px;
+    height: 34px;
+  }
+
+  .workspace-shell {
+    display: block;
+    min-width: 0;
+    padding-bottom: calc(76px + env(safe-area-inset-bottom));
+  }
+
+  .workspace-sidebar {
+    display: none;
+  }
+
+  .workspace-content {
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+    padding: 20px 12px 28px;
+    overflow-x: hidden;
+  }
+
+  .workspace-mobile-nav {
+    position: fixed;
+    z-index: 1000;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    display: flex;
+    align-items: stretch;
+    gap: 2px;
+    overflow-x: auto;
+    padding: 7px 8px calc(7px + env(safe-area-inset-bottom));
+    border-top: 1px solid var(--line);
+    background: rgba(255, 250, 252, 0.98);
+    box-shadow: 0 -10px 30px rgba(79, 24, 48, 0.08);
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+
+  .workspace-mobile-nav::-webkit-scrollbar {
+    display: none;
+  }
+
+  .workspace-mobile-link {
+    display: grid;
+    min-width: 70px;
+    min-height: 52px;
+    flex: 1 0 70px;
+    place-items: center;
+    align-content: center;
+    gap: 3px;
+    border-radius: 13px;
+    color: var(--muted);
+    text-decoration: none;
+  }
+
+  .workspace-mobile-link > span {
+    font-size: 1.05rem;
+    line-height: 1;
+  }
+
+  .workspace-mobile-link small {
+    max-width: 74px;
+    overflow: hidden;
+    font-size: 0.67rem;
+    font-weight: 800;
+    line-height: 1.1;
+    text-align: center;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .workspace-mobile-link.active {
+    color: var(--pink-700);
+    background: var(--pink-50);
+  }
+
+  .page-header,
+  .section-heading,
+  .dashboard-heading,
+  .page-title-row {
+    min-width: 0;
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .page-header h1,
+  .section-heading h1,
+  .section-heading h2,
+  .dashboard-heading h1 {
+    max-width: 100%;
+    overflow-wrap: anywhere;
+  }
+
+  .page-header > .button,
+  .section-heading > .button,
+  .page-title-row > .button {
+    width: 100%;
+  }
+
+  .card-grid,
+  .service-discovery-grid,
+  .dashboard-grid,
+  .metrics-grid,
+  .stats-grid,
+  .professional-grid,
+  .plans-grid,
+  .form-grid,
+  .two-column-layout,
+  .account-layout,
+  .checkout-layout,
+  .billing-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .card,
+  .panel,
+  .metric-card,
+  .professional-card,
+  .service-card,
+  .plan-card {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  input,
+  select,
+  textarea,
+  button {
+    max-width: 100%;
+  }
+
+  input,
+  select,
+  textarea {
+    font-size: 16px;
+  }
+
+  .inline-form,
+  .form-actions,
+  .service-editor-actions {
+    grid-template-columns: minmax(0, 1fr);
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .inline-form .button,
+  .form-actions .button,
+  .service-editor-actions .button {
+    width: 100%;
+  }
+
+  .table-wrapper,
+  .table-scroll,
+  .responsive-table {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  table {
+    max-width: none;
+  }
+
+  .hero-content {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .hero-copy,
+  .discovery-panel {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .hero-copy h1 {
+    max-width: 100%;
+    font-size: clamp(2.15rem, 10.5vw, 3rem);
+    overflow-wrap: anywhere;
+  }
+
+  .chips,
+  .date-options,
+  .filter-row,
+  .tabs {
+    max-width: 100%;
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+
+  .chips::-webkit-scrollbar,
+  .date-options::-webkit-scrollbar,
+  .filter-row::-webkit-scrollbar,
+  .tabs::-webkit-scrollbar {
+    display: none;
+  }
+
+  .chip,
+  .date-button,
+  .tab {
+    flex: 0 0 auto;
+  }
+
+  .service-discovery-image {
+    aspect-ratio: 16 / 9;
+  }
+
+  .booking-layout,
+  .booking-main,
+  .booking-section,
+  .booking-summary,
+  .choice-list,
+  .choice-card {
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .booking-layout {
+    display: block;
+  }
+
+  .booking-section,
+  .booking-summary {
+    padding: 16px;
+  }
+
+  .choice-card {
+    overflow: hidden;
+  }
+
+  .choice-copy {
+    min-width: 0;
+  }
+
+  .choice-copy strong,
+  .choice-copy small {
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .date-options {
+    display: flex;
+    gap: 10px;
+    padding-bottom: 7px;
+  }
+
+  .date-button {
+    width: 145px;
+    min-width: 145px;
+    max-width: 145px;
+  }
+
+  .time-options {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    width: 100%;
+    gap: 10px;
+  }
+
+  .time-button {
+    width: 100%;
+    min-width: 0;
+    padding-inline: 6px;
+  }
+
+  .booking-summary {
+    position: static;
+  }
+
+  .booking-summary .button,
+  .booking-summary button {
+    width: 100%;
+    white-space: normal;
+  }
+
+  .qr-code,
+  .pix-image,
+  .checkout-qr img {
+    width: min(100%, 280px);
+    height: auto;
+    margin-inline: auto;
+  }
+
+  .calendar-grid {
+    min-width: 680px;
+  }
+}
+
+@media (max-width: 390px) {
+  .container {
+    width: calc(100% - 20px);
+    max-width: calc(100% - 20px);
+  }
+
+  .brand strong {
+    max-width: 165px;
+  }
+
+  .time-options {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .workspace-content {
+    padding-inline: 10px;
+  }
+}
+
+/* MOBILE SYSTEM END */
