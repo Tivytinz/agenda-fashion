@@ -1261,3 +1261,137 @@ nav .button-small {
 }
 
 /* MOBILE SYSTEM END */
+/* MOBILE VISUAL POLISH START */
+@media (max-width: 800px) {
+  .hero { overflow: hidden; }
+
+  .hero-content {
+    gap: 20px;
+    padding-block: 24px 28px;
+  }
+
+  .hero-copy h1 {
+    margin-bottom: 14px;
+    font-size: clamp(2rem, 9.2vw, 2.7rem);
+    line-height: 1.02;
+    letter-spacing: -0.035em;
+  }
+
+  .hero-copy p:not(.eyebrow) {
+    max-width: 34rem;
+    font-size: 1rem;
+    line-height: 1.48;
+  }
+
+  .discovery-panel {
+    position: relative;
+    padding: 12px;
+    border-radius: 18px;
+  }
+
+  .search-box { min-height: 50px; }
+
+  .chips {
+    margin-right: -12px;
+    padding-right: 28px;
+    scroll-padding-inline: 12px 28px;
+  }
+
+  .discovery-panel::after {
+    position: absolute;
+    right: 0;
+    bottom: 12px;
+    width: 34px;
+    height: 48px;
+    pointer-events: none;
+    content: "";
+    background: linear-gradient(
+      90deg,
+      rgba(255, 250, 252, 0),
+      rgba(255, 250, 252, 0.98)
+    );
+  }
+
+  .chip {
+    min-height: 38px;
+    padding-inline: 17px;
+  }
+
+  .content-section { padding-block: 28px; }
+
+  .section-heading { margin-bottom: 18px; }
+
+  .section-heading h2 {
+    font-size: clamp(1.75rem, 7vw, 2.2rem);
+    line-height: 1.08;
+  }
+
+  .service-discovery-card { overflow: hidden; }
+
+  .service-discovery-image {
+    aspect-ratio: 16 / 8.6;
+    min-height: 0;
+  }
+
+  .service-discovery-image img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center;
+  }
+
+  .service-discovery-content { padding: 16px; }
+
+  .service-discovery-content h3 {
+    margin-bottom: 6px;
+    font-size: 1.18rem;
+  }
+
+  .service-discovery-description {
+    margin-bottom: 12px;
+    line-height: 1.42;
+    -webkit-line-clamp: 2;
+  }
+
+  .service-business-info { padding-top: 11px; }
+
+  .service-discovery-meta { margin-block: 13px; }
+
+  .service-discovery-card .button { min-height: 46px; }
+
+  .business-card .card-image {
+    aspect-ratio: 16 / 6.2;
+    min-height: 150px;
+  }
+
+  .business-card .card-image img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center;
+  }
+
+  .business-card .card-content { padding: 16px; }
+
+  .businesses-section { padding-top: 12px; }
+}
+
+@media (max-width: 390px) {
+  .hero-copy h1 {
+    font-size: clamp(1.9rem, 9vw, 2.35rem);
+  }
+
+  .hero-copy p:not(.eyebrow) {
+    font-size: 0.96rem;
+  }
+
+  .service-discovery-image {
+    aspect-ratio: 16 / 8.2;
+  }
+
+  .business-card .card-image {
+    aspect-ratio: 16 / 5.8;
+    min-height: 136px;
+  }
+}
+/* MOBILE VISUAL POLISH END */
