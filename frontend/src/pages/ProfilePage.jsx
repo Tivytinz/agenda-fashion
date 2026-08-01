@@ -521,7 +521,13 @@ export function ProfilePage() {
               )}
           </div>
         </div>
-        <div className="profile-actions">
+        <div
+          className={
+            whatsappUrl
+              ? "profile-actions has-whatsapp"
+              : "profile-actions"
+          }
+        >
           <button
             aria-pressed={favorite}
             className={
@@ -699,6 +705,10 @@ export function ProfilePage() {
                       </button>
                     ))}
                   </div>
+                  <small className="date-scroll-hint">
+                    Deslize para ver mais datas
+                  </small>
+
                   {selectedDay && (
                     <div className="time-list" aria-label="Horários disponíveis">
                       {selectedDay.horarios.map((hour) => (
