@@ -2168,3 +2168,89 @@ nav .button-small {
 }
 
 /* PROFILE MEDIA CONTACT LOCATION END */
+/* PROFILE DATA AND MOBILE FIX START */
+
+@media (max-width: 800px) {
+  .workspace-main,
+  .workspace-content,
+  .workspace-layout main,
+  .workspace-layout .page-content {
+    padding-bottom:
+      calc(
+        112px +
+        env(safe-area-inset-bottom)
+      );
+  }
+
+  .workspace-layout {
+    min-height: 100dvh;
+  }
+
+  .profile-actions {
+    display: grid;
+    grid-template-columns:
+      repeat(
+        auto-fit,
+        minmax(140px, 1fr)
+      );
+    gap: 10px;
+  }
+
+  .profile-actions > * {
+    width: 100%;
+    min-height: 48px;
+    padding: 10px 14px;
+    font-size: 0.96rem;
+  }
+
+  .profile-meta {
+    gap: 6px;
+  }
+
+  .profile-meta > span {
+    max-width: 100%;
+    overflow-wrap: anywhere;
+  }
+
+  .workspace-mobile-nav {
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding-bottom:
+      env(safe-area-inset-bottom);
+    scroll-snap-type: x proximity;
+    scrollbar-width: none;
+  }
+
+  .workspace-mobile-nav::-webkit-scrollbar {
+    display: none;
+  }
+
+  .workspace-mobile-nav a {
+    min-width: 92px;
+    flex: 0 0 92px;
+    scroll-snap-align: start;
+  }
+
+  .workspace-main form,
+  .workspace-content form {
+    margin-bottom: 28px;
+  }
+}
+
+@media (max-width: 390px) {
+  .profile-actions {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .profile-actions > *:only-child,
+  .profile-actions > *:last-child:nth-child(odd) {
+    grid-column: 1 / -1;
+  }
+
+  .workspace-mobile-nav a {
+    min-width: 88px;
+    flex-basis: 88px;
+  }
+}
+
+/* PROFILE DATA AND MOBILE FIX END */
