@@ -539,7 +539,19 @@ export function ProfilePage() {
             onClick={toggleFavorite}
             type="button"
           >
-            {favorite ? "♥ Salvo" : "♡ Favoritar"}
+            <>
+              <svg
+                className="action-icon favorite-icon"
+                viewBox="0 0 24 24"
+                aria-hidden="true"
+              >
+                <path
+                  fill="currentColor"
+                  d="M12 21s-7.2-4.35-9.33-8.72C.8 8.45 3.02 4.5 7.18 4.5c2.02 0 3.4 1.1 4.82 2.7 1.42-1.6 2.8-2.7 4.82-2.7 4.16 0 6.38 3.95 4.51 7.78C19.2 16.65 12 21 12 21Z"
+                />
+              </svg>
+              <span>{favorite ? "Salvo" : "Favoritar"}</span>
+            </>
           </button>
 
           {whatsappUrl && (
@@ -549,8 +561,18 @@ export function ProfilePage() {
               target="_blank"
               rel="noreferrer"
             >
-              WhatsApp
-            </a>
+              <svg
+                className="action-icon whatsapp-icon"
+                viewBox="0 0 24 24"
+                aria-hidden="true"
+              >
+                <path
+                  fill="currentColor"
+                  d="M12 2a9.5 9.5 0 0 0-8.16 14.38L2.5 21.5l5.25-1.38A9.5 9.5 0 1 0 12 2Zm0 17.25a7.7 7.7 0 0 1-3.92-1.06l-.28-.17-3.12.82.83-3.04-.18-.29A7.75 7.75 0 1 1 12 19.25Zm4.25-5.78c-.23-.12-1.38-.68-1.59-.76-.21-.08-.36-.12-.52.12-.15.23-.59.76-.73.91-.13.16-.27.18-.5.06-.23-.12-.98-.36-1.86-1.15-.69-.61-1.15-1.37-1.28-1.6-.14-.23-.02-.36.1-.48.11-.1.23-.27.35-.41.12-.13.16-.23.23-.39.08-.15.04-.29-.02-.41-.06-.12-.52-1.25-.71-1.71-.18-.45-.37-.39-.51-.4h-.44c-.15 0-.4.06-.61.29-.21.23-.8.78-.8 1.91s.82 2.22.94 2.37c.12.16 1.62 2.48 3.93 3.48.55.24.98.38 1.31.49.55.17 1.05.15 1.45.09.44-.07 1.38-.56 1.57-1.1.2-.55.2-1.02.14-1.11-.06-.1-.21-.16-.44-.27Z"
+                />
+              </svg>
+              <span>WhatsApp</span>
+</a>
           )}
 
           <a
@@ -559,8 +581,18 @@ export function ProfilePage() {
             target="_blank"
             rel="noreferrer"
           >
-            Ver no mapa
-          </a>
+            <svg
+              className="action-icon maps-icon"
+              viewBox="0 0 24 24"
+              aria-hidden="true"
+            >
+              <path
+                fill="currentColor"
+                d="M12 2a7 7 0 0 0-7 7c0 5.25 7 13 7 13s7-7.75 7-13a7 7 0 0 0-7-7Zm0 9.5A2.5 2.5 0 1 1 12 6a2.5 2.5 0 0 1 0 5.5Z"
+              />
+            </svg>
+            <span>Ver no mapa</span>
+</a>
         </div>
       </section>
 
@@ -748,7 +780,7 @@ export function ProfilePage() {
             </div>
           </dl>
           <button className="button button-full" disabled={!time} onClick={continueToConfirmation}>
-            {time ? "Revisar e confirmar" : "Complete as etapas"}
+            {time ? "Revisar e confirmar" : "Escolha um horário"}
           </button>
           <small>Você confirma seus dados na próxima etapa.</small>
         </aside>
