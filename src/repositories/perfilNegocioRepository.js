@@ -238,6 +238,7 @@ async function buscarProfissionais(
         u.id,
         u.nome,
         u.whatsapp,
+        u.foto_url,
         un.papel
 
       FROM usuarios_negocios un

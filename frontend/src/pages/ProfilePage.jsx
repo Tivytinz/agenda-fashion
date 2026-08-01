@@ -427,8 +427,12 @@ export function ProfilePage() {
     negocio.celular
   );
 
+  const whatsappServiceText = selectedService?.nome
+    ? ` sobre ${selectedService.nome}`
+    : "";
+
   const whatsappMessage = encodeURIComponent(
-    `Olá! Encontrei ${negocio.nome} no Agenda Fashion e gostaria de tirar uma dúvida.`
+    `Olá! Encontrei ${negocio.nome} no Agenda Fashion e gostaria de saber mais${whatsappServiceText}.`
   );
 
   const whatsappUrl = whatsappPhone
