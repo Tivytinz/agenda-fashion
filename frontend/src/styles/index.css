@@ -2736,3 +2736,80 @@ nav .button-small {
 }
 
 /* PROFILE PUBLIC UX FINAL END */
+/* PROFESSIONAL PHOTO PUBLIC FIX START */
+
+.professional-media img,
+.single-professional .af-media-thumb img,
+.professional-card .account-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+@media (max-width: 800px) {
+  /*
+   * O CTA volta a ficar logo abaixo das etapas.
+   * Mantemos somente a area segura real do aparelho.
+   */
+  .booking-main,
+  .booking-layout {
+    padding-bottom:
+      calc(
+        28px +
+        env(safe-area-inset-bottom)
+      );
+  }
+
+  .booking-summary {
+    margin-top: 18px;
+    margin-bottom:
+      calc(
+        24px +
+        env(safe-area-inset-bottom)
+      );
+  }
+
+  /*
+   * Evita texto cortado horizontalmente no card do servico.
+   */
+  .booking-section:first-child .choice-copy {
+    min-width: 0;
+    overflow: hidden;
+  }
+
+  .booking-section:first-child .choice-copy strong,
+  .booking-section:first-child .choice-copy small {
+    max-width: 100%;
+    overflow-wrap: anywhere;
+    word-break: normal;
+  }
+
+  /*
+   * Foto profissional circular e sem deformacao.
+   */
+  .professional-media,
+  .single-professional .af-media-thumb {
+    overflow: hidden;
+    border-radius: 50%;
+  }
+
+  /*
+   * Evita que regras antigas criem centenas de pixels vazios.
+   */
+  .booking-layout > .booking-summary,
+  .booking-main > .booking-summary {
+    min-height: 0;
+  }
+}
+
+@media (max-width: 390px) {
+  .booking-summary {
+    margin-bottom:
+      calc(
+        30px +
+        env(safe-area-inset-bottom)
+      );
+  }
+}
+
+/* PROFESSIONAL PHOTO PUBLIC FIX END */
