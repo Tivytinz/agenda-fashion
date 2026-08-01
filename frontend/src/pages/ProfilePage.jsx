@@ -12,18 +12,54 @@ import {
   normalizeAvailability
 } from "../utils/format";
 
-function cleanPhone(value) {
-  return String(value || "").replace(/\D/g, "");
+function normalizeWhatsApp(value) {
+  const digits = String(value || "")
+    .replace(/\D/g, "");
+
+  if (!digits) {
+    return "";
+  }
+
+  if (
+    digits.length === 10 ||
+    digits.length === 11
+  ) {
+    return `55${digits}`;
+  }
+
+  return digits;
 }
 
-function parseCoordinate(value) {
+function parseCoordinate(value, type) {
+  const raw = String(value ?? "").trim();
+
+  if (!raw) {
+    return null;
+  }
+
   const number = Number(
-    String(value ?? "").replace(",", ".")
+    raw.replace(",", ".")
   );
 
-  return Number.isFinite(number)
-    ? number
-    : null;
+  if (!Number.isFinite(number)) {
+    return null;
+  }
+
+  if (
+    type === "latitude" &&
+    (number < -90 || number > 90)
+  ) {
+    return null;
+  }
+
+  if (
+    type === "longitude" &&
+    (number < -180 || number > 180)
+  ) {
+    return null;
+  }
+
+  return number;
 }
 
 function distanceInKm(
@@ -166,14 +202,16 @@ export function ProfilePage() {
     const latitude = parseCoordinate(
       business?.latitude ??
       business?.lat ??
-      business?.endereco_latitude
+      business?.endereco_latitude,
+      "latitude"
     );
 
     const longitude = parseCoordinate(
       business?.longitude ??
       business?.lng ??
       business?.lon ??
-      business?.endereco_longitude
+      business?.endereco_longitude,
+      "longitude"
     );
 
     if (
@@ -382,7 +420,7 @@ export function ProfilePage() {
     const { negocio, servicos = [], profissionais = [] } = profile;
   const rating = formatRating(negocio);
 
-  const whatsappPhone = cleanPhone(
+  const whatsappPhone = normalizeWhatsApp(
     negocio.whatsapp ??
     negocio.telefone_whatsapp ??
     negocio.telefone ??
@@ -400,14 +438,16 @@ export function ProfilePage() {
   const latitude = parseCoordinate(
     negocio.latitude ??
     negocio.lat ??
-    negocio.endereco_latitude
+    negocio.endereco_latitude,
+    "latitude"
   );
 
   const longitude = parseCoordinate(
     negocio.longitude ??
     negocio.lng ??
     negocio.lon ??
-    negocio.endereco_longitude
+    negocio.endereco_longitude,
+    "longitude"
   );
 
   const fullAddress = [
@@ -426,7 +466,17 @@ export function ProfilePage() {
       ? `${latitude},${longitude}`
       : fullAddress || formatLocation(negocio);
 
+  const savedMapsUrl = String(
+    negocio.google_maps_url ??
+    negocio.google_maps_link ??
+    negocio.link_google_maps ??
+    negocio.maps_url ??
+    negocio.google_maps ??
+    ""
+  ).trim();
+
   const mapsUrl =
+    savedMapsUrl ||
     `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
       mapsQuery
     )}`;
@@ -460,13 +510,15 @@ export function ProfilePage() {
               <span>Calculando distância...</span>
             )}
 
-            {distanceKm !== null && (
-              <span>
-                {distanceKm < 1
-                  ? `${Math.round(distanceKm * 1000)} m de você`
-                  : `${distanceKm.toFixed(1).replace(".", ",")} km de você`}
-              </span>
-            )}
+            {distanceKm !== null &&
+              distanceKm >= 0 &&
+              distanceKm <= 500 && (
+                <span>
+                  {distanceKm < 1
+                    ? `${Math.round(distanceKm * 1000)} m de você`
+                    : `${distanceKm.toFixed(1).replace(".", ",")} km de você`}
+                </span>
+              )}
           </div>
         </div>
         <div className="profile-actions">
