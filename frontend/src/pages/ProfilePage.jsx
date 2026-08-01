@@ -96,6 +96,55 @@ function distanceInKm(
   );
 }
 
+function getServiceEmoji(name) {
+  const normalized = String(name || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLocaleLowerCase("pt-BR");
+
+  if (
+    normalized.includes("cilio") ||
+    normalized.includes("sobrancelha")
+  ) {
+    return "👁️";
+  }
+
+  if (
+    normalized.includes("unha") ||
+    normalized.includes("manicure") ||
+    normalized.includes("pedicure")
+  ) {
+    return "💅";
+  }
+
+  if (
+    normalized.includes("cabelo") ||
+    normalized.includes("corte") ||
+    normalized.includes("escova") ||
+    normalized.includes("penteado")
+  ) {
+    return "💇";
+  }
+
+  if (
+    normalized.includes("maquiagem") ||
+    normalized.includes("make")
+  ) {
+    return "💄";
+  }
+
+  if (
+    normalized.includes("pele") ||
+    normalized.includes("limpeza") ||
+    normalized.includes("massagem") ||
+    normalized.includes("estetica")
+  ) {
+    return "💆";
+  }
+
+  return "✨";
+}
+
 function MediaThumb({
   src,
   alt,
@@ -507,7 +556,7 @@ export function ProfilePage() {
             </span>
 
             <span aria-label={rating.ariaLabel}>
-              {rating.label}
+              {rating.label === "Novo" ? "✨ Novo" : rating.label}
             </span>
 
             {locationStatus === "loading" && (
@@ -633,9 +682,25 @@ export function ProfilePage() {
                     />
 
                     <span className="choice-copy">
-                      <strong>{service.nome}</strong>
+                      <strong className="service-name-with-emoji">
+                      <span
+                        className="service-name-emoji"
+                        aria-hidden="true"
+                      >
+                        {getServiceEmoji(service.nome)}
+                      </span>
+                      <span>{service.nome}</span>
+                    </strong>
                       {service.descricao && <small>{service.descricao}</small>}
-                      <small>{service.duracao_minutos} min</small>
+                      <small className="service-duration-with-emoji">
+                      <span
+                        className="service-duration-emoji"
+                        aria-hidden="true"
+                      >
+                        🕒
+                      </span>
+                      {service.duracao_minutos} min
+                    </small>
                     </span>
                     <span className="choice-price">
                       <strong>{formatCurrency(service.valor)}</strong>

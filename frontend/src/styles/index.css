@@ -2813,3 +2813,92 @@ nav .button-small {
 }
 
 /* PROFESSIONAL PHOTO PUBLIC FIX END */
+/* PROFILE PUBLIC EMOJI UX START */
+
+.service-name-with-emoji {
+  display: flex !important;
+  min-width: 0;
+  align-items: flex-start;
+  gap: 7px;
+}
+
+.service-name-with-emoji > span:last-child {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.service-name-emoji {
+  flex: 0 0 auto;
+  font-size: 0.96em;
+  line-height: 1.15;
+}
+
+.service-duration-with-emoji {
+  display: inline-flex !important;
+  align-items: center;
+  gap: 5px;
+}
+
+.service-duration-emoji {
+  flex: 0 0 auto;
+  font-size: 0.86em;
+  line-height: 1;
+}
+
+.favorite-button {
+  transition:
+    transform 160ms ease,
+    border-color 160ms ease,
+    background-color 160ms ease,
+    color 160ms ease;
+}
+
+.favorite-button:active {
+  transform: scale(0.985);
+}
+
+.favorite-button.active .favorite-icon {
+  animation: af-favorite-pop 280ms ease;
+}
+
+@keyframes af-favorite-pop {
+  0% {
+    transform: scale(0.78);
+  }
+
+  55% {
+    transform: scale(1.2);
+  }
+
+  100% {
+    transform: scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .favorite-button,
+  .favorite-button.active .favorite-icon {
+    transition: none;
+    animation: none;
+  }
+}
+
+@media (max-width: 800px) {
+  .service-name-with-emoji {
+    gap: 6px;
+  }
+
+  .service-name-emoji {
+    margin-top: 1px;
+  }
+
+  .booking-section:first-child .choice-copy,
+  .booking-section:first-child .choice-copy > * {
+    min-width: 0;
+    max-width: 100%;
+  }
+}
+
+/* PROFILE PUBLIC EMOJI UX END */
