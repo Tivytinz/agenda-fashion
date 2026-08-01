@@ -2424,3 +2424,109 @@ nav .button-small {
 }
 
 /* PROFILE PUBLIC MOBILE FINAL END */
+/* PROFILE PUBLIC MOBILE POLISH FINAL START */
+
+@media (max-width: 800px) {
+  /*
+   * Cabecalho mais compacto.
+   */
+  .page-content > .back-link {
+    margin-bottom: 20px;
+  }
+
+  .profile-hero {
+    gap: 9px 11px;
+    margin-bottom: 14px;
+  }
+
+  .profile-copy h1 {
+    margin-bottom: 4px;
+  }
+
+  .profile-meta {
+    margin-top: 6px;
+  }
+
+  /*
+   * Acoes publicas menores e mais proximas.
+   */
+  .profile-actions {
+    gap: 7px;
+    margin-top: 2px;
+  }
+
+  .profile-actions > * {
+    min-height: 40px;
+    padding: 7px 12px;
+    font-size: 0.91rem;
+    line-height: 1.15;
+  }
+
+  .profile-action-button.whatsapp::before {
+    content: "◉";
+    font-size: 0.95rem;
+  }
+
+  .profile-action-button.maps::before {
+    content: "⌖";
+    font-size: 1rem;
+  }
+
+  /*
+   * Aproxima a barra de etapas do cabecalho.
+   */
+  .flow-steps {
+    margin-top: 12px;
+    margin-bottom: 16px;
+  }
+
+  /*
+   * Quando houver quantidade impar de horarios,
+   * o ultimo ocupa toda a linha.
+   */
+  .time-list .time-button:last-child:nth-child(odd),
+  .time-options .time-button:last-child:nth-child(odd) {
+    grid-column: 1 / -1;
+  }
+
+  /*
+   * Reserva espaco extra para a barra expansivel do Safari.
+   */
+  .booking-layout,
+  .booking-main {
+    padding-bottom:
+      calc(
+        38px +
+        env(safe-area-inset-bottom)
+      );
+  }
+
+  .booking-summary {
+    margin-bottom:
+      calc(
+        74px +
+        env(safe-area-inset-bottom)
+      );
+  }
+}
+
+@media (max-width: 390px) {
+  .page-content > .back-link {
+    margin-bottom: 16px;
+  }
+
+  .profile-actions > * {
+    min-height: 39px;
+    padding-block: 7px;
+  }
+
+  .booking-summary {
+    margin-bottom:
+      calc(
+        88px +
+        env(safe-area-inset-bottom)
+      );
+  }
+}
+
+/* PROFILE PUBLIC MOBILE POLISH FINAL END */
