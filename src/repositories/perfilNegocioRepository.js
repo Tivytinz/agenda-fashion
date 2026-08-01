@@ -14,8 +14,10 @@ async function listarNegociosPublicos() {
       n.bairro,
 
       n.whatsapp AS whatsapp_negocio,
+      n.whatsapp AS whatsapp,
 
       n.localizacao_url,
+      n.localizacao_url AS google_maps_url,
       n.latitude,
       n.longitude,
       n.publicado,
@@ -105,6 +107,7 @@ async function buscarNegocioPorSlug(
 
         n.whatsapp
           AS whatsapp_negocio,
+      n.whatsapp AS whatsapp,
 
         n.cidade,
         n.estado,
@@ -114,6 +117,7 @@ async function buscarNegocioPorSlug(
         n.complemento,
         n.cep,
         n.localizacao_url,
+      n.localizacao_url AS google_maps_url,
         n.latitude,
         n.longitude,
         n.fuso_horario,
