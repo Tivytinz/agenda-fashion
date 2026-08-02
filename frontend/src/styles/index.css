@@ -2902,3 +2902,87 @@ nav .button-small {
 }
 
 /* PROFILE PUBLIC EMOJI UX END */
+/* PROFILE LOCATION AND EMOJI FIX START */
+
+.profile-location {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.profile-meta .profile-location-emoji {
+  display: inline;
+  padding: 0;
+  border-radius: 0;
+  background: transparent;
+  line-height: 1;
+}
+
+.service-choice-media .af-media-fallback {
+  font-size: 1.55rem;
+}
+
+.time-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+}
+
+.time-selected-check {
+  font-size: 0.92em;
+  font-weight: 950;
+  line-height: 1;
+}
+
+.time-button.selected,
+.time-button[aria-pressed="true"] {
+  color: #ffffff;
+  border-color: var(--pink-600);
+  background: var(--pink-600);
+  box-shadow: 0 8px 18px rgb(197 36 107 / 18%);
+}
+
+@media (max-width: 800px) {
+  /*
+   * Descricao limitada a duas linhas, sem vazar pela direita.
+   */
+  .booking-section:first-child .choice-copy {
+    min-width: 0;
+    overflow: hidden;
+    padding-right: 3px;
+  }
+
+  .booking-section:first-child
+    .choice-copy
+    small:not(.service-duration-with-emoji) {
+    display: -webkit-box !important;
+    max-width: 100%;
+    overflow: hidden !important;
+    white-space: normal !important;
+    overflow-wrap: anywhere;
+    word-break: normal;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+  }
+
+  /*
+   * O nome fica limpo quando ja existe foto.
+   * O emoji contextual aparece somente dentro do fallback da imagem.
+   */
+  .booking-section:first-child .choice-copy > strong {
+    display: block;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .time-button {
+    transition: none;
+  }
+}
+
+/* PROFILE LOCATION AND EMOJI FIX END */

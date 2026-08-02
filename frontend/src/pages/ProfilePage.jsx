@@ -549,8 +549,13 @@ export function ProfilePage() {
           <h1>{negocio.nome}</h1>
           <p>{negocio.descricao || "Escolha um serviço e encontre o melhor horário para você."}</p>
           <div className="profile-meta">
-            <span>
-              ⌖{" "}
+            <span className="profile-location">
+              <span
+                className="profile-location-emoji"
+                aria-hidden="true"
+              >
+                📍
+              </span>{" "}
               {formatLocation(negocio) ||
                 "Atendimento local"}
             </span>
@@ -678,19 +683,12 @@ export function ProfilePage() {
                         service.foto
                       }
                       alt={`Foto do serviço ${service.nome}`}
+                      emoji={getServiceEmoji(service.nome)}
                       className="choice-media service-choice-media"
                     />
 
                     <span className="choice-copy">
-                      <strong className="service-name-with-emoji">
-                      <span
-                        className="service-name-emoji"
-                        aria-hidden="true"
-                      >
-                        {getServiceEmoji(service.nome)}
-                      </span>
-                      <span>{service.nome}</span>
-                    </strong>
+                      <strong>{service.nome}</strong>
                       {service.descricao && <small>{service.descricao}</small>}
                       <small className="service-duration-with-emoji">
                       <span
@@ -820,7 +818,15 @@ export function ProfilePage() {
                           onClick={() => setTime(hour)}
                           type="button"
                         >
-                          {hour}
+                          {hour === time && (
+                            <span
+                              className="time-selected-check"
+                              aria-hidden="true"
+                            >
+                              ✓
+                            </span>
+                          )}
+                          <span>{hour}</span>
                         </button>
                       ))}
                     </div>
