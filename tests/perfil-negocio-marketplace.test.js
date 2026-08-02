@@ -79,5 +79,24 @@ describe(
         ).toEqual([]);
       }
     );
+
+    test(
+      "responde 404 para perfil inexistente ou não publicado",
+      async () => {
+        repository
+          .buscarNegocioPorSlug
+          .mockResolvedValue(null);
+
+        await expect(
+          service.buscarPerfilPublico({
+            slug: "negocio-privado"
+          })
+        ).rejects.toMatchObject({
+          statusCode: 404,
+          message:
+            "Negócio não encontrado."
+        });
+      }
+    );
   }
 );

@@ -120,7 +120,7 @@ router.post(
   enviarFotoServico
 );
 
-router.get("/:id/fotos", listarFotosServico);
+router.get("/:id/fotos", auth, listarFotosServico);
 
 router.post(
   "/:id/fotos",

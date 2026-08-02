@@ -313,8 +313,23 @@ async function enviarFotoServico({ usuarioId, id, file }) {
   };
 }
 
-async function listarFotosServico(servicoId) {
-  const fotos = await servicosRepository.listarFotosServico(servicoId);
+async function listarFotosServico({ usuarioId, id }) {
+  const vinculo = await obterVinculoDono(
+    usuarioId,
+    "Apenas o dono pode listar fotos do serviço."
+  );
+
+  const servico =
+    await servicosRepository.buscarServicoDoNegocio(
+      id,
+      vinculo.negocio_id
+    );
+
+  if (!servico) {
+    throw criarErro("Serviço não encontrado.", 404);
+  }
+
+  const fotos = await servicosRepository.listarFotosServico(id);
 
   return { fotos };
 }

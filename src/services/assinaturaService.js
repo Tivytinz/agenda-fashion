@@ -717,6 +717,47 @@ async function ativarAssinaturaPorPagamento(
         ]
       );
 
+      /*
+       * Serializa ativações do mesmo negócio. Depois que uma
+       * assinatura mais nova já está vigente, a confirmação
+       * atrasada de uma cobrança antiga deve atualizar somente
+       * o pagamento, sem trocar novamente o plano.
+       */
+      const vigencia = await client.query(
+        `
+        SELECT atual.id AS assinatura_vigente_id
+        FROM negocios n
+        LEFT JOIN LATERAL (
+          SELECT a.id
+          FROM assinaturas a
+          WHERE a.negocio_id = n.id
+            AND a.id > $2
+            AND a.ativo = TRUE
+          ORDER BY a.id DESC
+          LIMIT 1
+        ) atual ON TRUE
+        WHERE n.id = $1
+        FOR UPDATE OF n
+        `,
+        [
+          assinatura.negocio_id,
+          assinatura.id
+        ]
+      );
+
+      const assinaturaVigenteId =
+        vigencia.rows[0]
+          ?.assinatura_vigente_id;
+
+      if (assinaturaVigenteId) {
+        return {
+          ...assinatura,
+          ativacao_ignorada: true,
+          assinatura_vigente_id:
+            assinaturaVigenteId
+        };
+      }
+
       if (
         [
           "CANCELED",

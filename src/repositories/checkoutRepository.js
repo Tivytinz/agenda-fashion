@@ -49,6 +49,66 @@ async function buscarPlano(client, planoId) {
   return result.rows[0] || null;
 }
 
+async function bloquearCheckoutDoNegocio(
+  client,
+  negocioId
+) {
+  await client.query(
+    `
+    SELECT pg_advisory_xact_lock(
+      hashtext('agenda_fashion_checkout_pix'),
+      $1::integer
+    )
+    `,
+    [Number(negocioId)]
+  );
+}
+
+async function buscarAssinaturaPendenteEquivalente(
+  client,
+  negocioId,
+  planoId
+) {
+  const result = await client.query(
+    `
+    SELECT
+      a.id,
+      a.negocio_id,
+      a.plano_id,
+      a.status,
+      a.created_at
+    FROM assinaturas a
+    WHERE a.negocio_id = $1
+      AND a.plano_id = $2
+      AND a.ativo = FALSE
+      AND UPPER(a.status) = 'PENDING'
+      AND (
+        a.created_at >= NOW() - INTERVAL '15 minutes'
+        OR EXISTS (
+          SELECT 1
+          FROM pagamentos pg
+          WHERE pg.assinatura_id = a.id
+            AND UPPER(pg.status) IN (
+              'PENDING',
+              'CREATED',
+              'AWAITING_PAYMENT'
+            )
+            AND (
+              pg.data_vencimento IS NULL
+              OR pg.data_vencimento >= CURRENT_DATE
+            )
+        )
+      )
+    ORDER BY a.id DESC
+    LIMIT 1
+    FOR UPDATE OF a
+    `,
+    [negocioId, planoId]
+  );
+
+  return result.rows[0] || null;
+}
+
 async function buscarPagamentoCheckout(pagamentoId, usuarioId) {
   const result = await db.query(
     `
@@ -84,5 +144,7 @@ async function buscarPagamentoCheckout(pagamentoId, usuarioId) {
 module.exports = {
   buscarNegocioDono,
   buscarPlano,
+  bloquearCheckoutDoNegocio,
+  buscarAssinaturaPendenteEquivalente,
   buscarPagamentoCheckout
 };

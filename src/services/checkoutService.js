@@ -167,7 +167,8 @@ async function obterAssinaturaCheckout({
   if (tentativa.assinatura_id) {
     const assinaturaExistente =
       await assinaturaRepository.buscarPorId(
-        tentativa.assinatura_id
+        tentativa.assinatura_id,
+        client
       );
 
     if (assinaturaExistente) {
@@ -175,25 +176,57 @@ async function obterAssinaturaCheckout({
     }
   }
 
-  const assinatura =
-    await registrarAssinaturaPendente(client, {
-      negocio_id: negocio.id,
-      plano_id: plano.id,
-      asaas_customer_id: negocio.asaas_customer_id,
-      asaas_subscription_id: null,
-      status: "PENDING",
-      forma_pagamento: formaPagamento,
-      periodicidade: "MONTHLY",
-      valor: plano.valor,
-      observacoes:
-        "PIX inicial criado. Assinatura recorrente será ativada após confirmação do pagamento."
-    });
+  const assinatura = await db.executarTransacao(
+    async (transactionClient) => {
+      await checkoutRepository
+        .bloquearCheckoutDoNegocio(
+          transactionClient,
+          negocio.id
+        );
 
-  await checkoutTentativaRepository
-    .vincularAssinatura(
-      tentativa.id,
-      assinatura.id
-    );
+      const pendente = await checkoutRepository
+        .buscarAssinaturaPendenteEquivalente(
+          transactionClient,
+          negocio.id,
+          plano.id
+        );
+
+      if (pendente) {
+        throw new AppError(
+          "Já existe um PIX pendente para este plano. Aguarde a confirmação ou o vencimento da cobrança.",
+          409
+        );
+      }
+
+      const novaAssinatura =
+        await registrarAssinaturaPendente(
+          transactionClient,
+          {
+            negocio_id: negocio.id,
+            plano_id: plano.id,
+            asaas_customer_id:
+              negocio.asaas_customer_id,
+            asaas_subscription_id: null,
+            status: "PENDING",
+            forma_pagamento:
+              formaPagamento,
+            periodicidade: "MONTHLY",
+            valor: plano.valor,
+            observacoes:
+              "PIX inicial criado. Assinatura recorrente será ativada após confirmação do pagamento."
+          }
+        );
+
+      await checkoutTentativaRepository
+        .vincularAssinatura(
+          tentativa.id,
+          novaAssinatura.id,
+          transactionClient
+        );
+
+      return novaAssinatura;
+    }
+  );
 
   tentativa.assinatura_id = assinatura.id;
 

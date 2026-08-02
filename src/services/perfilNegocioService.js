@@ -1,4 +1,5 @@
 const perfilNegocioRepository = require("../repositories/perfilNegocioRepository");
+const AppError = require("../errors/AppError");
 
 function normalizarAreas(valor) {
   if (!valor) return [];
@@ -49,7 +50,7 @@ async function buscarPerfilPublico({ slug }) {
     await perfilNegocioRepository.buscarNegocioPorSlug(slug);
 
   if (!negocio) {
-    throw new Error("Negócio não encontrado.");
+    throw new AppError("Negócio não encontrado.", 404);
   }
 
   await perfilNegocioRepository.incrementarVisita(

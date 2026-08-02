@@ -1,5 +1,18 @@
 const profissionaisService = require("../services/profissionaisService");
 
+async function listarProfissionais(req, res, next) {
+  try {
+    const resultado =
+      await profissionaisService.listarProfissionais({
+        usuarioId: req.user?.id
+      });
+
+    return res.json(resultado);
+  } catch (err) {
+    next(err);
+  }
+}
+
 async function editarProfissional(req, res, next) {
   try {
     const resultado =
@@ -45,6 +58,7 @@ async function vincularProfissional(req, res, next) {
 }
 
 module.exports = {
+  listarProfissionais,
   vincularProfissional,
   editarProfissional,
   removerProfissional

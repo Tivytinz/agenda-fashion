@@ -347,6 +347,12 @@ describe(
         expect(profissionais).toContain(
           '"/profissionais/vincular"'
         );
+        expect(profissionais).toContain(
+          'apiRequest("/profissionais")'
+        );
+        expect(profissionais).not.toContain(
+          "perfil-negocio"
+        );
         expect(servicos).not.toContain(
           "window.confirm"
         );

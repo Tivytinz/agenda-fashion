@@ -74,9 +74,10 @@ async function enviarFotoServico(req, res, next) {
 
 async function listarFotosServico(req, res, next) {
   try {
-    const resultado = await servicosService.listarFotosServico(
-      req.params.id
-    );
+    const resultado = await servicosService.listarFotosServico({
+      usuarioId: req.user?.id,
+      id: req.params.id
+    });
 
     return res.json(resultado);
   } catch (err) {
