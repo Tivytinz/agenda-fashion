@@ -1,7 +1,16 @@
+const mockClient = {
+  query: jest.fn()
+};
+
 jest.mock(
   "../src/db/db",
   () => ({
-    query: jest.fn()
+    query: jest.fn(),
+    executarTransacao:
+      jest.fn(
+        async (callback) =>
+          callback(mockClient)
+      )
   })
 );
 
@@ -91,6 +100,14 @@ describe(
       checkoutTentativaRepository
         .marcarFalha
         .mockResolvedValue({});
+
+      checkoutRepository
+        .bloquearCheckoutDoNegocio
+        .mockResolvedValue();
+
+      checkoutRepository
+        .buscarAssinaturaPendenteEquivalente
+        .mockResolvedValue(null);
     });
 
     test(
@@ -185,6 +202,59 @@ describe(
         expect(
           checkoutTentativaRepository
             .iniciar
+        ).not.toHaveBeenCalled();
+        expect(criarCobrancaPix)
+          .not.toHaveBeenCalled();
+      }
+    );
+
+    test(
+      "impede outro PIX pendente para o mesmo negócio e plano",
+      async () => {
+        checkoutTentativaRepository
+          .iniciar
+          .mockResolvedValue({
+            executar: true,
+            nova: true,
+            tentativa: {
+              id: 35,
+              status: "PROCESSING",
+              assinatura_id: null
+            }
+          });
+
+        checkoutRepository
+          .buscarAssinaturaPendenteEquivalente
+          .mockResolvedValue({
+            id: 44,
+            negocio_id: 7,
+            plano_id: 3,
+            status: "PENDING"
+          });
+
+        await expect(
+          criarCheckout({
+            usuarioId: 1,
+            planoId: 3,
+            formaPagamento: "pix",
+            chaveIdempotencia:
+              "outra-chave-checkout-123"
+          })
+        ).rejects.toMatchObject({
+          statusCode: 409,
+          message:
+            "Já existe um PIX pendente para este plano. Aguarde a confirmação ou o vencimento da cobrança."
+        });
+
+        expect(
+          checkoutRepository
+            .bloquearCheckoutDoNegocio
+        ).toHaveBeenCalledWith(
+          mockClient,
+          7
+        );
+        expect(
+          registrarAssinaturaPendente
         ).not.toHaveBeenCalled();
         expect(criarCobrancaPix)
           .not.toHaveBeenCalled();

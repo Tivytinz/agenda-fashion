@@ -87,4 +87,23 @@ describe("Edição completa de serviços", () => {
 
     expect(servicosRepository.editarServico).not.toHaveBeenCalled();
   });
+
+  test("lista a galeria somente para serviço do dono autenticado", async () => {
+    servicosRepository.buscarServicoDoNegocio.mockResolvedValue({
+      id: 12,
+      negocio_id: 7,
+    });
+    servicosRepository.listarFotosServico.mockResolvedValue([
+      { id: 2, foto_url: "https://imagem.test/foto.jpg" },
+    ]);
+
+    const resultado = await servicosService.listarFotosServico({
+      usuarioId: 1,
+      id: 12,
+    });
+
+    expect(servicosRepository.buscarServicoDoNegocio)
+      .toHaveBeenCalledWith(12, 7);
+    expect(resultado.fotos).toHaveLength(1);
+  });
 });

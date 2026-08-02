@@ -120,6 +120,14 @@ describe(
             rows: []
           })
           .mockResolvedValueOnce({
+            rows: [
+              {
+                assinatura_vigente_id:
+                  null
+              }
+            ]
+          })
+          .mockResolvedValueOnce({
             rows: []
           })
           .mockResolvedValueOnce({
@@ -420,6 +428,14 @@ describe(
           .mockResolvedValueOnce({
             rows: [
               {
+                assinatura_vigente_id:
+                  null
+              }
+            ]
+          })
+          .mockResolvedValueOnce({
+            rows: [
+              {
                 id: 20,
                 asaas_subscription_id:
                   "sub_antiga"
@@ -490,6 +506,71 @@ describe(
             ativo: true,
             status: "ACTIVE"
           });
+      }
+    );
+
+    test(
+      "confirma pagamento antigo sem substituir a assinatura vigente",
+      async () => {
+        mockClient.query
+          .mockResolvedValueOnce({
+            rows: [
+              {
+                id: 20,
+                negocio_id: 7,
+                plano_id: 3,
+                pagamento_id: 50,
+                valor: "99.90",
+                forma_pagamento: "pix",
+                status: "PENDING",
+                ativo: false,
+                asaas_customer_id: "cus_1",
+                asaas_subscription_id:
+                  null
+              }
+            ]
+          })
+          .mockResolvedValueOnce({
+            rows: []
+          })
+          .mockResolvedValueOnce({
+            rows: [
+              {
+                assinatura_vigente_id:
+                  30
+              }
+            ]
+          });
+
+        const assinatura =
+          await ativarAssinaturaPorPagamento(
+            "pay_antigo",
+            "CONFIRMED",
+            {
+              status: "CONFIRMED"
+            }
+          );
+
+        expect(assinatura)
+          .toMatchObject({
+            id: 20,
+            ativacao_ignorada: true,
+            assinatura_vigente_id: 30
+          });
+        expect(criarAssinaturaAsaas)
+          .not.toHaveBeenCalled();
+        expect(removerAssinaturaAsaas)
+          .not.toHaveBeenCalled();
+        expect(mockClient.query)
+          .toHaveBeenCalledTimes(3);
+        expect(mockClient.query)
+          .toHaveBeenNthCalledWith(
+            3,
+            expect.stringContaining(
+              "a.id > $2"
+            ),
+            [7, 20]
+          );
       }
     );
 

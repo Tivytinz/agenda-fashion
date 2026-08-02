@@ -69,6 +69,31 @@ async function buscarNegocioDono(usuarioId) {
   return result.rows[0] || null;
 }
 
+async function listarProfissionaisDoNegocio(negocioId) {
+  const result = await db.query(
+    `
+    SELECT
+      u.id,
+      u.nome,
+      u.foto_url,
+      un.papel
+    FROM usuarios_negocios un
+    INNER JOIN usuarios u
+      ON u.id = un.usuario_id
+    WHERE un.negocio_id = $1
+      AND un.ativo = TRUE
+      AND u.ativo = TRUE
+      AND un.papel IN ('dono', 'profissional')
+    ORDER BY
+      CASE WHEN un.papel = 'dono' THEN 0 ELSE 1 END,
+      u.nome ASC
+    `,
+    [negocioId]
+  );
+
+  return result.rows;
+}
+
 async function verificarProfissionalNoNegocio(usuarioId, negocioId) {
   const result = await db.query(
     `
@@ -195,6 +220,7 @@ module.exports = {
   buscarPlanoDoNegocio,
   contarProfissionaisAtivos,
   buscarNegocioDono,
+  listarProfissionaisDoNegocio,
   verificarProfissionalNoNegocio,
   atualizarProfissional,
   removerVinculo,
