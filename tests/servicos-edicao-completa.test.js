@@ -87,4 +87,49 @@ describe("Edição completa de serviços", () => {
 
     expect(servicosRepository.editarServico).not.toHaveBeenCalled();
   });
+
+  test.each([
+    ["NaN", "NaN", 60, "Valor do serviço inválido."],
+    ["negativo", -1, 60, "Valor do serviço inválido."],
+    ["duração zero", 50, 0, "A duração deve ser um número inteiro entre 5 e 1440 minutos."],
+    ["duração fracionada", 50, 30.5, "A duração deve ser um número inteiro entre 5 e 1440 minutos."],
+    ["duração excessiva", 50, 1441, "A duração deve ser um número inteiro entre 5 e 1440 minutos."]
+  ])(
+    "rejeita %s antes de abrir a transação",
+    async (titulo, valor, duracaoMinutos, mensagem) => {
+      await expect(
+        servicosService.criarServico({
+          usuarioId: 1,
+          nome: "Manicure",
+          valor,
+          duracaoMinutos
+        })
+      ).rejects.toMatchObject({
+        statusCode: 400,
+        message: mensagem
+      });
+
+      expect(db.executarTransacao).not.toHaveBeenCalled();
+      expect(servicosRepository.criarServico).not.toHaveBeenCalled();
+    }
+  );
+
+  test("lista a galeria somente para serviço do dono autenticado", async () => {
+    servicosRepository.buscarServicoDoNegocio.mockResolvedValue({
+      id: 12,
+      negocio_id: 7,
+    });
+    servicosRepository.listarFotosServico.mockResolvedValue([
+      { id: 2, foto_url: "https://imagem.test/foto.jpg" },
+    ]);
+
+    const resultado = await servicosService.listarFotosServico({
+      usuarioId: 1,
+      id: 12,
+    });
+
+    expect(servicosRepository.buscarServicoDoNegocio)
+      .toHaveBeenCalledWith(12, 7);
+    expect(resultado.fotos).toHaveLength(1);
+  });
 });

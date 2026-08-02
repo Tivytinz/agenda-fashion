@@ -130,12 +130,12 @@ function exibirResultado(
     "baseline"
   ) {
     console.log(
-      `Baseline registrado até ${String(
+      `Marco inicial registrado até ${String(
         configuracao.baselineAte
       ).padStart(
         3,
         "0"
-      )}: ${resultado.baseline.length} migrations.`
+      )}: ${resultado.baseline.length} migrações.`
     );
 
     return;
@@ -145,7 +145,7 @@ function exibirResultado(
     !resultado.aplicadas.length
   ) {
     console.log(
-      "Banco atualizado: nenhuma migration pendente."
+      "Banco atualizado: nenhuma migração pendente."
     );
 
     return;
@@ -156,12 +156,12 @@ function exibirResultado(
     of resultado.aplicadas
   ) {
     console.log(
-      `Aplicada: ${migration.arquivo}`
+      `Migração aplicada: ${migration.arquivo}`
     );
   }
 
   console.log(
-    `${resultado.aplicadas.length} migration(s) aplicada(s) com sucesso.`
+    `${resultado.aplicadas.length} migração(ões) aplicada(s) com sucesso.`
   );
 }
 

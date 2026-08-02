@@ -1,4 +1,5 @@
 const db = require("../db");
+const registrador = require("../utils/registrador");
 
 async function buscarNegocioDoUsuario(usuarioId) {
   const result = await db.query(
@@ -45,7 +46,7 @@ async function verificarPlano(req, res, next) {
     next();
 
   } catch (err) {
-    console.error("Erro no middleware de plano:", err);
+    registrador.erro("Não foi possível validar o plano.", err);
     return res.status(500).json({ erro: "Erro ao validar plano." });
   }
 }

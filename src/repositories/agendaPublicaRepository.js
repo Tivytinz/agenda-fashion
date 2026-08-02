@@ -61,8 +61,8 @@ async function buscarProfissionalDoNegocio(
     `
       SELECT
         u.id,
-        u.nome,
-        u.whatsapp,
+        COALESCE(un.nome_exibicao, u.nome) AS nome,
+        COALESCE(un.whatsapp_exibicao, u.whatsapp) AS whatsapp,
         un.papel
 
       FROM usuarios_negocios un

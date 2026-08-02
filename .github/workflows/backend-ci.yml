@@ -56,6 +56,9 @@ jobs:
       - name: Build React frontend
         run: npm run frontend:build
 
+      - name: Test React frontend
+        run: npm run frontend:test
+
       - name: Apply test migrations
         run: npm run migrate:test
 

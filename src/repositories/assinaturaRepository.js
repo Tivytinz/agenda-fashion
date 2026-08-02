@@ -106,8 +106,11 @@ async function desativarAssinaturasDoNegocio(client, negocioId) {
   );
 }
 
-async function buscarPorId(assinaturaId) {
-  const result = await db.query(
+async function buscarPorId(
+  assinaturaId,
+  executor = db
+) {
+  const result = await executor.query(
     `
     SELECT *
     FROM assinaturas

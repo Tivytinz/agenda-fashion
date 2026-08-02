@@ -15,10 +15,10 @@ export function ProfessionalsPage() {
 
   const load = useCallback(() => {
     setError("");
-    apiRequest(`/perfil-negocio/${encodeURIComponent(session.negocio.slug)}`)
+    apiRequest("/profissionais")
       .then((result) => setItems(result.profissionais || []))
       .catch((requestError) => setError(requestError.message));
-  }, [session.negocio.slug]);
+  }, []);
 
   useEffect(load, [load]);
 

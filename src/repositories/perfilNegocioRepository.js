@@ -83,6 +83,7 @@ async function listarNegociosPublicos() {
     FROM negocios n
 
     WHERE n.ativo = TRUE
+      AND n.publicado = TRUE
 
     ORDER BY
       n.nome ASC
@@ -101,7 +102,6 @@ async function buscarNegocioPorSlug(
         n.nome,
         n.slug,
         n.foto_url,
-        n.foto_public_id,
         n.descricao,
         n.setor,
 
@@ -123,27 +123,8 @@ async function buscarNegocioPorSlug(
         n.fuso_horario,
         n.ativo,
         n.publicado,
-        n.created_at,
-        n.updated_at,
-
         ARRAY[]::text[]
           AS areas,
-
-        (
-          SELECT
-            un.usuario_id
-
-          FROM usuarios_negocios un
-
-          WHERE un.negocio_id = n.id
-            AND un.papel = 'dono'
-            AND un.ativo = TRUE
-
-          ORDER BY
-            un.id ASC
-
-          LIMIT 1
-        ) AS dono_usuario_id,
 
         COALESCE(
           (
@@ -180,6 +161,7 @@ async function buscarNegocioPorSlug(
 
       WHERE n.slug = $1
         AND n.ativo = TRUE
+        AND n.publicado = TRUE
 
       LIMIT 1
     `,
@@ -236,8 +218,7 @@ async function buscarProfissionais(
     `
       SELECT
         u.id,
-        u.nome,
-        u.whatsapp,
+        COALESCE(un.nome_exibicao, u.nome) AS nome,
         u.foto_url,
         un.papel
 
@@ -261,7 +242,7 @@ async function buscarProfissionais(
           ELSE 1
         END,
 
-        u.nome ASC
+        COALESCE(un.nome_exibicao, u.nome) ASC
     `,
     [negocioId]
   );

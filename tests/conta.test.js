@@ -808,6 +808,47 @@ describe(
     );
 
     test(
+      "rejeita nova senha Unicode acima de 72 bytes",
+      async () => {
+        const resposta =
+          await request(app)
+            .put(
+              "/conta/senha"
+            )
+            .set(
+              "Authorization",
+              `Bearer ${gerarToken()}`
+            )
+            .send({
+              senhaAtual:
+                "SenhaAtual@123",
+
+              novaSenha:
+                "😀".repeat(19),
+            });
+
+        expect(
+          resposta.status
+        ).toBe(400);
+
+        expect(
+          resposta.body.erro
+        ).toBe(
+          "A nova senha deve ter entre 6 e 72 bytes."
+        );
+
+        expect(
+          contaRepository
+            .buscarSenhaUsuario
+        ).not.toHaveBeenCalled();
+
+        expect(
+          bcrypt.hash
+        ).not.toHaveBeenCalled();
+      }
+    );
+
+    test(
       "retorna 400 quando nenhuma foto é enviada",
       async () => {
         const resposta =

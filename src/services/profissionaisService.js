@@ -76,6 +76,28 @@ function normalizarIdentificadorProfissional(valor) {
   };
 }
 
+async function listarProfissionais({ usuarioId }) {
+  exigirUsuario(usuarioId);
+
+  const dono =
+    await profissionaisRepository.buscarNegocioDono(
+      usuarioId
+    );
+
+  exigirPermissao(
+    dono,
+    "Apenas o dono pode listar profissionais."
+  );
+
+  const profissionais =
+    await profissionaisRepository
+      .listarProfissionaisDoNegocio(
+        dono.negocio_id
+      );
+
+  return { profissionais };
+}
+
 async function editarProfissional({
   usuarioId,
   profissionalId,
@@ -115,6 +137,7 @@ async function editarProfissional({
   const profissional =
     await profissionaisRepository.atualizarProfissional(
       profissionalId,
+      vinculo.negocio_id,
       nomeLimpo,
       whatsappLimpo
     );
@@ -270,6 +293,7 @@ async function vincularProfissional({
 }
 
 module.exports = {
+  listarProfissionais,
   vincularProfissional,
   editarProfissional,
   removerProfissional

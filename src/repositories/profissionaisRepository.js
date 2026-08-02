@@ -69,6 +69,32 @@ async function buscarNegocioDono(usuarioId) {
   return result.rows[0] || null;
 }
 
+async function listarProfissionaisDoNegocio(negocioId) {
+  const result = await db.query(
+    `
+    SELECT
+      u.id,
+      COALESCE(un.nome_exibicao, u.nome) AS nome,
+      COALESCE(un.whatsapp_exibicao, u.whatsapp) AS whatsapp,
+      u.foto_url,
+      un.papel
+    FROM usuarios_negocios un
+    INNER JOIN usuarios u
+      ON u.id = un.usuario_id
+    WHERE un.negocio_id = $1
+      AND un.ativo = TRUE
+      AND u.ativo = TRUE
+      AND un.papel IN ('dono', 'profissional')
+    ORDER BY
+      CASE WHEN un.papel = 'dono' THEN 0 ELSE 1 END,
+      COALESCE(un.nome_exibicao, u.nome) ASC
+    `,
+    [negocioId]
+  );
+
+  return result.rows;
+}
+
 async function verificarProfissionalNoNegocio(usuarioId, negocioId) {
   const result = await db.query(
     `
@@ -88,27 +114,37 @@ async function verificarProfissionalNoNegocio(usuarioId, negocioId) {
   return result.rows[0] || null;
 }
 
-async function atualizarProfissional(id, nome, whatsapp) {
+async function atualizarProfissional(
+  id,
+  negocioId,
+  nome,
+  whatsapp
+) {
   const result = await db.query(
     `
-    UPDATE usuarios
+    UPDATE usuarios_negocios un
     SET
-      nome = $1,
-      whatsapp = $2
-    WHERE id = $3
-      AND ativo = TRUE
+      nome_exibicao = $1,
+      whatsapp_exibicao = $2
+    FROM usuarios u
+    WHERE un.usuario_id = $3
+      AND un.negocio_id = $4
+      AND un.ativo = TRUE
+      AND u.id = un.usuario_id
+      AND u.ativo = TRUE
     RETURNING
-      id,
-      nome,
-      email,
-      whatsapp,
-      foto_url,
-      ativo
+      u.id,
+      COALESCE(un.nome_exibicao, u.nome) AS nome,
+      u.email,
+      COALESCE(un.whatsapp_exibicao, u.whatsapp) AS whatsapp,
+      u.foto_url,
+      un.ativo
     `,
     [
       nome,
       whatsapp,
-      id
+      id,
+      negocioId
     ]
   );
 
@@ -195,6 +231,7 @@ module.exports = {
   buscarPlanoDoNegocio,
   contarProfissionaisAtivos,
   buscarNegocioDono,
+  listarProfissionaisDoNegocio,
   verificarProfissionalNoNegocio,
   atualizarProfissional,
   removerVinculo,

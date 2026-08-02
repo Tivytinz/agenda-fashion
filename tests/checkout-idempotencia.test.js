@@ -1,7 +1,16 @@
+const mockClient = {
+  query: jest.fn()
+};
+
 jest.mock(
   "../src/db/db",
   () => ({
-    query: jest.fn()
+    query: jest.fn(),
+    executarTransacao:
+      jest.fn(
+        async (callback) =>
+          callback(mockClient)
+      )
   })
 );
 
@@ -91,6 +100,14 @@ describe(
       checkoutTentativaRepository
         .marcarFalha
         .mockResolvedValue({});
+
+      checkoutRepository
+        .bloquearCheckoutDoNegocio
+        .mockResolvedValue();
+
+      checkoutRepository
+        .buscarAssinaturaPendenteEquivalente
+        .mockResolvedValue(null);
     });
 
     test(
@@ -192,6 +209,59 @@ describe(
     );
 
     test(
+      "impede outro PIX pendente para o mesmo negócio e plano",
+      async () => {
+        checkoutTentativaRepository
+          .iniciar
+          .mockResolvedValue({
+            executar: true,
+            nova: true,
+            tentativa: {
+              id: 35,
+              status: "PROCESSING",
+              assinatura_id: null
+            }
+          });
+
+        checkoutRepository
+          .buscarAssinaturaPendenteEquivalente
+          .mockResolvedValue({
+            id: 44,
+            negocio_id: 7,
+            plano_id: 3,
+            status: "PENDING"
+          });
+
+        await expect(
+          criarCheckout({
+            usuarioId: 1,
+            planoId: 3,
+            formaPagamento: "pix",
+            chaveIdempotencia:
+              "outra-chave-checkout-123"
+          })
+        ).rejects.toMatchObject({
+          statusCode: 409,
+          message:
+            "Já existe um PIX pendente para este plano. Aguarde a confirmação ou o vencimento da cobrança."
+        });
+
+        expect(
+          checkoutRepository
+            .bloquearCheckoutDoNegocio
+        ).toHaveBeenCalledWith(
+          mockClient,
+          7
+        );
+        expect(
+          registrarAssinaturaPendente
+        ).not.toHaveBeenCalled();
+        expect(criarCobrancaPix)
+          .not.toHaveBeenCalled();
+      }
+    );
+
+    test(
       "consulta o status somente no banco local",
       async () => {
         checkoutRepository
@@ -219,6 +289,93 @@ describe(
         );
         expect(resultado.status)
           .toBe("PENDING");
+      }
+    );
+
+    test.each([
+      {
+        titulo: "usuário ausente",
+        parametros: {
+          usuarioId: null,
+          pagamentoId: "pay_1"
+        },
+        statusCode: 401
+      },
+      {
+        titulo: "pagamento ausente",
+        parametros: {
+          usuarioId: 1,
+          pagamentoId: null
+        },
+        statusCode: 400
+      }
+    ])(
+      "retorna status operacional para $titulo",
+      async ({ parametros, statusCode }) => {
+        await expect(
+          consultarStatusCheckout(parametros)
+        ).rejects.toMatchObject({
+          statusCode
+        });
+      }
+    );
+
+    test(
+      "retorna 404 quando o pagamento não existe",
+      async () => {
+        checkoutRepository
+          .buscarPagamentoCheckout
+          .mockResolvedValue(null);
+
+        await expect(
+          consultarStatusCheckout({
+            usuarioId: 1,
+            pagamentoId: "pay_inexistente"
+          })
+        ).rejects.toMatchObject({
+          statusCode: 404,
+          message: "Pagamento não encontrado."
+        });
+      }
+    );
+
+    test.each([
+      {
+        titulo: "negócio",
+        preparar: () =>
+          checkoutRepository
+            .buscarNegocioDono
+            .mockResolvedValue(null),
+        statusCode: 404
+      },
+      {
+        titulo: "plano",
+        preparar: () =>
+          checkoutRepository
+            .buscarPlano
+            .mockResolvedValue(null),
+        statusCode: 404
+      }
+    ])(
+      "retorna 404 quando $titulo não existe",
+      async ({ preparar, statusCode }) => {
+        preparar();
+
+        await expect(
+          criarCheckout({
+            usuarioId: 1,
+            planoId: 3,
+            formaPagamento: "pix",
+            chaveIdempotencia:
+              "checkout-chave-123456"
+          })
+        ).rejects.toMatchObject({
+          statusCode
+        });
+
+        expect(
+          checkoutTentativaRepository.iniciar
+        ).not.toHaveBeenCalled();
       }
     );
 

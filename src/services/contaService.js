@@ -7,6 +7,9 @@ const contaRepository = require(
 const uploadToCloudinary = require(
   "../utils/uploadCloudinary"
 );
+const registrador = require(
+  "../utils/registrador"
+);
 
 const BCRYPT_ROUNDS = 10;
 
@@ -141,12 +144,18 @@ function validarSenha(
     );
   }
 
+  const tamanhoEmBytes =
+    Buffer.byteLength(
+      valor,
+      "utf8"
+    );
+
   if (
-    valor.length < 6 ||
-    valor.length > 72
+    tamanhoEmBytes < 6 ||
+    tamanhoEmBytes > 72
   ) {
     throw criarErro(
-      "A nova senha deve ter entre 6 e 72 caracteres.",
+      "A nova senha deve ter entre 6 e 72 bytes.",
       400
     );
   }
@@ -569,7 +578,7 @@ async function removerImagemSilenciosamente(
     await uploadToCloudinary
       .remover(publicId);
   } catch (erro) {
-    console.warn(
+    registrador.aviso(
       "[Cloudinary] Não foi possível remover uma foto de usuário órfã.",
       {
         public_id:

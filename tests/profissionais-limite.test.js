@@ -125,6 +125,39 @@ describe("Limite de profissionais", () => {
   );
 
   test(
+    "lista a equipe pela rota interna sem expor WhatsApp",
+    async () => {
+      profissionaisRepository
+        .listarProfissionaisDoNegocio
+        .mockResolvedValue([
+          {
+            id: 1,
+            nome: "Dona",
+            foto_url: null,
+            papel: "dono"
+          }
+        ]);
+
+      const resultado =
+        await profissionaisService
+          .listarProfissionais({
+            usuarioId: 1
+          });
+
+      expect(
+        profissionaisRepository
+          .listarProfissionaisDoNegocio
+      ).toHaveBeenCalledWith(7);
+      expect(resultado.profissionais)
+        .toEqual([
+          expect.not.objectContaining({
+            whatsapp: expect.anything()
+          })
+        ]);
+    }
+  );
+
+  test(
     "plano Salão permite até cinco profissionais",
     async () => {
       profissionaisRepository
@@ -196,6 +229,7 @@ describe("Limite de profissionais", () => {
         profissionaisRepository.atualizarProfissional
       ).toHaveBeenCalledWith(
         20,
+        7,
         "Profissional Teste",
         "62999991234"
       );

@@ -1,4 +1,4 @@
-require("dotenv").config();
+require("dotenv").config({ quiet: true });
 
 const notificationService = require(
   "../src/services/notificationService"
@@ -16,7 +16,7 @@ async function executar() {
   }
 
   console.log(
-    "Enviando template novo_agendamento..."
+    "Enviando o modelo novo_agendamento..."
   );
 
   const resultado =
@@ -30,7 +30,7 @@ async function executar() {
     });
 
   console.log(
-    "Template enviado com sucesso."
+    "Modelo enviado com sucesso."
   );
 
   console.log(
@@ -48,7 +48,7 @@ executar()
   })
   .catch((erro) => {
     console.error(
-      "Falha ao testar o template:"
+      "Falha ao testar o modelo:"
     );
 
     if (erro.response?.data) {

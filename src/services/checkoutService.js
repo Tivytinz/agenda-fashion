@@ -167,7 +167,8 @@ async function obterAssinaturaCheckout({
   if (tentativa.assinatura_id) {
     const assinaturaExistente =
       await assinaturaRepository.buscarPorId(
-        tentativa.assinatura_id
+        tentativa.assinatura_id,
+        client
       );
 
     if (assinaturaExistente) {
@@ -175,25 +176,57 @@ async function obterAssinaturaCheckout({
     }
   }
 
-  const assinatura =
-    await registrarAssinaturaPendente(client, {
-      negocio_id: negocio.id,
-      plano_id: plano.id,
-      asaas_customer_id: negocio.asaas_customer_id,
-      asaas_subscription_id: null,
-      status: "PENDING",
-      forma_pagamento: formaPagamento,
-      periodicidade: "MONTHLY",
-      valor: plano.valor,
-      observacoes:
-        "PIX inicial criado. Assinatura recorrente será ativada após confirmação do pagamento."
-    });
+  const assinatura = await db.executarTransacao(
+    async (transactionClient) => {
+      await checkoutRepository
+        .bloquearCheckoutDoNegocio(
+          transactionClient,
+          negocio.id
+        );
 
-  await checkoutTentativaRepository
-    .vincularAssinatura(
-      tentativa.id,
-      assinatura.id
-    );
+      const pendente = await checkoutRepository
+        .buscarAssinaturaPendenteEquivalente(
+          transactionClient,
+          negocio.id,
+          plano.id
+        );
+
+      if (pendente) {
+        throw new AppError(
+          "Já existe um PIX pendente para este plano. Aguarde a confirmação ou o vencimento da cobrança.",
+          409
+        );
+      }
+
+      const novaAssinatura =
+        await registrarAssinaturaPendente(
+          transactionClient,
+          {
+            negocio_id: negocio.id,
+            plano_id: plano.id,
+            asaas_customer_id:
+              negocio.asaas_customer_id,
+            asaas_subscription_id: null,
+            status: "PENDING",
+            forma_pagamento:
+              formaPagamento,
+            periodicidade: "MONTHLY",
+            valor: plano.valor,
+            observacoes:
+              "PIX inicial criado. Assinatura recorrente será ativada após confirmação do pagamento."
+          }
+        );
+
+      await checkoutTentativaRepository
+        .vincularAssinatura(
+          tentativa.id,
+          novaAssinatura.id,
+          transactionClient
+        );
+
+      return novaAssinatura;
+    }
+  );
 
   tentativa.assinatura_id = assinatura.id;
 
@@ -313,7 +346,7 @@ async function criarCheckout({
   const client = db;
 
   if (!usuarioId) {
-    throw new Error("Usuário não autenticado.");
+    throw new AppError("Usuário não autenticado.", 401);
   }
 
   if (!planoId || formaPagamento !== "pix") {
@@ -335,7 +368,7 @@ async function criarCheckout({
     );
 
   if (!negocio) {
-    throw new Error("Negócio não encontrado.");
+    throw new AppError("Negócio não encontrado.", 404);
   }
 
   const plano =
@@ -345,11 +378,11 @@ async function criarCheckout({
     );
 
   if (!plano) {
-    throw new Error("Plano não encontrado.");
+    throw new AppError("Plano não encontrado.", 404);
   }
 
   if (Number(plano.valor || 0) <= 0) {
-    throw new Error("Este plano não precisa de pagamento.");
+    throw new AppError("Este plano não precisa de pagamento.", 400);
   }
 
   if (Number(negocio.plano_id) === Number(plano.id)) {
@@ -453,11 +486,11 @@ async function consultarStatusCheckout({
   pagamentoId
 }) {
   if (!usuarioId) {
-    throw new Error("Usuário não autenticado.");
+    throw new AppError("Usuário não autenticado.", 401);
   }
 
   if (!pagamentoId) {
-    throw new Error("Pagamento não informado.");
+    throw new AppError("Pagamento não informado.", 400);
   }
 
   const pagamento =
@@ -467,7 +500,7 @@ async function consultarStatusCheckout({
     );
 
   if (!pagamento) {
-    throw new Error("Pagamento não encontrado.");
+    throw new AppError("Pagamento não encontrado.", 404);
   }
 
   return pagamento;

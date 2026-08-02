@@ -4,6 +4,7 @@ const router = express.Router();
 const db = require("../db/db");
 const auth = require("../middlewares/auth");
 const planoService = require("../services/planoService");
+const registrador = require("../utils/registrador");
 
 // =============================
 // 📋 LISTAR PLANOS
@@ -33,7 +34,7 @@ router.get("/planos", async (req, res) => {
     });
 
   } catch (erro) {
-    console.error("Erro ao listar planos:", erro);
+    registrador.erro("Não foi possível listar os planos.", erro);
 
     return res.status(500).json({
       erro: "Erro ao listar planos."
@@ -86,7 +87,7 @@ router.get("/meu-plano", auth, async (req, res) => {
     return res.json(plano);
 
   } catch (erro) {
-    console.error("Erro ao buscar meu plano:", erro);
+    registrador.erro("Não foi possível buscar o plano atual.", erro);
 
     return res.status(500).json({
       erro: "Erro ao buscar plano atual."

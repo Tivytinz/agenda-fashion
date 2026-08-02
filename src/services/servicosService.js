@@ -1,6 +1,7 @@
 const servicosRepository = require("../repositories/servicosRepository");
 const uploadToCloudinary = require("../utils/uploadCloudinary");
 const db = require("../db/db");
+const registrador = require("../utils/registrador");
 const {
   buscarUsoPlano,
   criarErroLimite
@@ -45,6 +46,52 @@ function normalizarDescricao(descricao) {
 
 function normalizarAtivo(ativo, padrao = true) {
   return typeof ativo === "boolean" ? ativo : padrao;
+}
+
+function normalizarValor(valor) {
+  const numero =
+    valor === undefined ||
+    valor === null ||
+    valor === ""
+      ? 0
+      : Number(valor);
+
+  if (
+    !Number.isFinite(numero) ||
+    numero < 0 ||
+    numero > 9999999999.99
+  ) {
+    throw criarErro("Valor do serviço inválido.", 400);
+  }
+
+  return numero;
+}
+
+function normalizarDuracao(duracaoMinutos) {
+  const numero = Number(duracaoMinutos);
+
+  if (
+    !Number.isInteger(numero) ||
+    numero < 5 ||
+    numero > 1440
+  ) {
+    throw criarErro(
+      "A duração deve ser um número inteiro entre 5 e 1440 minutos.",
+      400
+    );
+  }
+
+  return numero;
+}
+
+function normalizarNome(nome) {
+  const valor = String(nome ?? "").trim();
+
+  if (valor.length < 2 || valor.length > 120) {
+    throw criarErro("Nome do serviço inválido.", 400);
+  }
+
+  return valor;
 }
 
 async function validarLimiteServicoAtivo(negocioId, executor) {
@@ -92,11 +139,10 @@ async function criarServico({
     "Apenas o dono pode criar serviços."
   );
 
-  if (!nome || nome.trim().length < 2) {
-    throw criarErro("Nome do serviço inválido.", 400);
-  }
-
   const servicoAtivo = normalizarAtivo(ativo);
+  const nomeNormalizado = normalizarNome(nome);
+  const valorNormalizado = normalizarValor(valor);
+  const duracaoNormalizada = normalizarDuracao(duracaoMinutos);
   const servico = await db.executarTransacao(async (client) => {
     if (servicoAtivo) {
       await validarLimiteServicoAtivo(vinculo.negocio_id, client);
@@ -105,10 +151,10 @@ async function criarServico({
     return servicosRepository.criarServico(
       {
         negocioId: vinculo.negocio_id,
-        nome: nome.trim(),
+        nome: nomeNormalizado,
         descricao: normalizarDescricao(descricao),
-        valor: Number(valor || 0),
-        duracaoMinutos: Number(duracaoMinutos || 0),
+        valor: valorNormalizado,
+        duracaoMinutos: duracaoNormalizada,
         ativo: servicoAtivo,
       },
       client
@@ -135,9 +181,9 @@ async function editarServico({
     "Apenas o dono pode editar serviços."
   );
 
-  if (!nome || nome.trim().length < 2) {
-    throw criarErro("Nome do serviço inválido.", 400);
-  }
+  const nomeNormalizado = normalizarNome(nome);
+  const valorNormalizado = normalizarValor(valor);
+  const duracaoNormalizada = normalizarDuracao(duracaoMinutos);
 
   const servico = await db.executarTransacao(async (client) => {
     const atual = await servicosRepository.buscarServicoDoNegocio(
@@ -156,10 +202,10 @@ async function editarServico({
     return servicosRepository.editarServico({
       id,
       negocioId: vinculo.negocio_id,
-      nome: nome.trim(),
+      nome: nomeNormalizado,
       descricao: normalizarDescricao(descricao),
-      valor: Number(valor || 0),
-      duracaoMinutos: Number(duracaoMinutos || 0),
+      valor: valorNormalizado,
+      duracaoMinutos: duracaoNormalizada,
       ativo: servicoAtivo,
     }, client);
   });
@@ -313,8 +359,23 @@ async function enviarFotoServico({ usuarioId, id, file }) {
   };
 }
 
-async function listarFotosServico(servicoId) {
-  const fotos = await servicosRepository.listarFotosServico(servicoId);
+async function listarFotosServico({ usuarioId, id }) {
+  const vinculo = await obterVinculoDono(
+    usuarioId,
+    "Apenas o dono pode listar fotos do serviço."
+  );
+
+  const servico =
+    await servicosRepository.buscarServicoDoNegocio(
+      id,
+      vinculo.negocio_id
+    );
+
+  if (!servico) {
+    throw criarErro("Serviço não encontrado.", 404);
+  }
+
+  const fotos = await servicosRepository.listarFotosServico(id);
 
   return { fotos };
 }
@@ -412,7 +473,7 @@ async function removerImagemSilenciosamente(
     await uploadToCloudinary
       .remover(publicId);
   } catch (erro) {
-    console.warn(
+    registrador.aviso(
       "[Cloudinary] Não foi possível remover uma imagem órfã de serviço.",
       {
         public_id:

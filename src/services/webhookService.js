@@ -1,6 +1,7 @@
 const webhookEventoRepository = require(
   "../repositories/webhookEventoRepository"
 );
+const registrador = require("../utils/registrador");
 
 const {
   ativarAssinaturaPorPagamento,
@@ -162,8 +163,8 @@ async function registrarFalha(evento, erro) {
         "Falha desconhecida."
       );
   } catch (erroRegistro) {
-    console.error(
-      "[Webhook Asaas] Falha ao registrar erro do evento.",
+    registrador.erro(
+      "Webhook Asaas: falha ao registrar o erro do evento.",
       {
         registro_id: evento.id,
         erro: erroRegistro?.message
@@ -223,8 +224,8 @@ async function processarRegistro(evento) {
             "IGNORED"
           );
 
-        console.info(
-          "[Webhook Asaas] Assinatura sem vínculo local ignorada.",
+        registrador.informacao(
+          "Webhook Asaas: assinatura sem vínculo local ignorada.",
           contexto
         );
 
@@ -240,8 +241,8 @@ async function processarRegistro(evento) {
           "PROCESSED"
         );
 
-      console.info(
-        "[Webhook Asaas] Evento de assinatura processado.",
+      registrador.informacao(
+        "Webhook Asaas: evento de assinatura processado.",
         contexto
       );
 
@@ -263,8 +264,8 @@ async function processarRegistro(evento) {
           "IGNORED"
         );
 
-      console.info(
-        "[Webhook Asaas] Evento ignorado.",
+      registrador.informacao(
+        "Webhook Asaas: evento ignorado.",
         contexto
       );
 
@@ -326,8 +327,8 @@ async function processarRegistro(evento) {
           "IGNORED"
         );
 
-      console.info(
-        "[Webhook Asaas] Pagamento sem vínculo local ignorado.",
+      registrador.informacao(
+        "Webhook Asaas: pagamento sem vínculo local ignorado.",
         contexto
       );
 
@@ -343,8 +344,8 @@ async function processarRegistro(evento) {
         "PROCESSED"
       );
 
-    console.info(
-      "[Webhook Asaas] Evento processado.",
+    registrador.informacao(
+      "Webhook Asaas: evento processado.",
       contexto
     );
 
@@ -358,8 +359,8 @@ async function processarRegistro(evento) {
       erro
     );
 
-    console.error(
-      "[Webhook Asaas] Falha no processamento.",
+    registrador.erro(
+      "Webhook Asaas: falha no processamento.",
       {
         ...contexto,
         codigo: erro?.code || null,
@@ -422,8 +423,8 @@ function iniciarWorkerWebhook() {
   const executar = () => {
     processarFilaWebhook()
       .catch((erro) => {
-        console.error(
-          "[Webhook Asaas] Falha no worker.",
+        registrador.erro(
+          "Webhook Asaas: falha no processador da fila.",
           {
             erro: erro?.message
           }

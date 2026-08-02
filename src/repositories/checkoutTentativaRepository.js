@@ -108,8 +108,12 @@ async function iniciar({
   };
 }
 
-async function vincularAssinatura(id, assinaturaId) {
-  const resultado = await db.query(
+async function vincularAssinatura(
+  id,
+  assinaturaId,
+  executor = db
+) {
+  const resultado = await executor.query(
     `
     UPDATE checkout_tentativas
     SET

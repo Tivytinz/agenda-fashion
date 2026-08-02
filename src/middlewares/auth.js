@@ -5,6 +5,7 @@ const jwt = require(
 const authSessionRepository = require(
   "../repositories/authSessionRepository"
 );
+const registrador = require("../utils/registrador");
 
 /*
  * Obtém o segredo usado para
@@ -171,7 +172,7 @@ module.exports = async function auth(
       erro.message ===
       "JWT_SECRET não configurado nas variáveis de ambiente."
     ) {
-      console.error(
+      registrador.erro(
         "Erro de configuração JWT:",
         erro.message
       );
