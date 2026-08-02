@@ -384,7 +384,7 @@ describe(
               "test",
           })
         ).rejects.toThrow(
-          "baseline explícito"
+          "marco inicial"
         );
       }
     );

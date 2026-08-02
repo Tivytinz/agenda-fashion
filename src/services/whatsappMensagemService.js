@@ -5,6 +5,7 @@ const whatsappMensagemRepository = require(
 const whatsappProvider = require(
   "../providers/whatsappProvider"
 );
+const registrador = require("../utils/registrador");
 
 const CONFIGURACOES_TEMPLATE = {
   NOVO_AGENDAMENTO_PROFISSIONAL: {
@@ -412,8 +413,8 @@ async function processarMensagem(
         )
       );
 
-    console.info(
-      "[WhatsApp] Mensagem aceita pela Meta.",
+    registrador.informacao(
+      "WhatsApp: mensagem aceita pela Meta.",
       {
         mensagem_id:
           mensagem.id,
@@ -451,8 +452,8 @@ async function processarMensagem(
         retentavel
       );
 
-    console.error(
-      "[WhatsApp] Falha ao enviar mensagem.",
+    registrador.erro(
+      "WhatsApp: falha ao enviar mensagem.",
       {
         mensagem_id:
           mensagem.id,
@@ -546,8 +547,8 @@ function iniciarWorkerWhatsapp() {
   if (
     !notificacoesWhatsappAtivas()
   ) {
-    console.info(
-      "[WhatsApp] Worker desativado. Defina WHATSAPP_NOTIFICATIONS_ENABLED=true após aprovar os templates."
+    registrador.informacao(
+      "WhatsApp: processador de mensagens desativado. Defina WHATSAPP_NOTIFICATIONS_ENABLED=true para ativá-lo."
     );
 
     return null;
@@ -575,8 +576,8 @@ function iniciarWorkerWhatsapp() {
     processarFilaWhatsapp()
       .catch(
         (erro) => {
-          console.error(
-            "[WhatsApp] Erro inesperado no worker.",
+          registrador.erro(
+            "WhatsApp: erro inesperado no processador de mensagens.",
             {
               mensagem:
                 mensagemErroSegura(
@@ -605,8 +606,8 @@ function iniciarWorkerWhatsapp() {
       .unref();
   }
 
-  console.info(
-    "[WhatsApp] Worker iniciado.",
+  registrador.informacao(
+    "WhatsApp: processador de mensagens iniciado.",
     {
       intervalo_ms:
         intervalo,

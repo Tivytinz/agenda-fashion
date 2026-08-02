@@ -5,6 +5,9 @@ const agendaPublicaService = require(
 const planoService = require(
   "../services/planoService"
 );
+const registrador = require(
+  "../utils/registrador"
+);
 
 function statusErro(erro) {
   return (
@@ -317,7 +320,7 @@ async function criarAgendamentoPublico(
     } catch (
       erroNotificacao
     ) {
-      console.error(
+      registrador.erro(
         "Erro ao registrar notificação interna do agendamento:",
         {
           mensagem:

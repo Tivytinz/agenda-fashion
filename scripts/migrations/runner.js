@@ -372,7 +372,7 @@ async function validarHistorico(
       }
 
       throw new Error(
-        `A migration aplicada ${aplicada.arquivo} foi alterada. Crie uma nova migration em vez de editar a antiga.`
+        `A migração aplicada ${aplicada.arquivo} foi alterada. Crie uma nova migração em vez de editar a antiga.`
       );
     }
   }
@@ -389,7 +389,7 @@ async function registrarBaseline({
     aplicadas.length
   ) {
     throw new Error(
-      "Baseline bloqueado: o banco já possui histórico de migrations."
+      "Marco inicial bloqueado: o banco já possui histórico de migrações."
     );
   }
 
@@ -399,7 +399,7 @@ async function registrarBaseline({
     )
   ) {
     throw new Error(
-      "Informe a versão do baseline com --through 000."
+      "Informe a versão do marco inicial com --through 000."
     );
   }
 
@@ -421,7 +421,7 @@ async function registrarBaseline({
       baselineAte
   ) {
     throw new Error(
-      `A migration ${String(
+      `A migração ${String(
         baselineAte
       ).padStart(
         3,
@@ -436,7 +436,7 @@ async function registrarBaseline({
     )
   ) {
     throw new Error(
-      "Baseline bloqueado: banco vazio deve executar as migrations normalmente."
+      "Marco inicial bloqueado: um banco vazio deve executar as migrações normalmente."
     );
   }
 
@@ -496,7 +496,7 @@ async function aplicarPendentes({
     )
   ) {
     throw new Error(
-      "Banco existente sem histórico. Confira o schema e execute o baseline explícito antes de aplicar novas migrations."
+      "Banco existente sem histórico. Confira a estrutura e registre o marco inicial antes de aplicar novas migrações."
     );
   }
 

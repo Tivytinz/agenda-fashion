@@ -1,4 +1,5 @@
 const axios = require("axios");
+const registrador = require("../utils/registrador");
 
 function erroConfiguracao(mensagem) {
   const erro = new Error(mensagem);
@@ -151,10 +152,10 @@ async function enviarRequisicao(payload) {
         }
       );
 
-    console.info(
-      "[WhatsApp] Requisição aceita pela Meta.",
+    registrador.informacao(
+      "WhatsApp: requisição aceita pela Meta.",
       {
-        message_id:
+        mensagem_id:
           response.data
             ?.messages
             ?.[0]
@@ -165,17 +166,17 @@ async function enviarRequisicao(payload) {
 
     return response.data;
   } catch (erro) {
-    console.error(
-      "Erro ao enviar mensagem pelo WhatsApp."
+    registrador.erro(
+      "Não foi possível enviar a mensagem pelo WhatsApp."
     );
 
     if (erro.response) {
-      console.error(
+      registrador.erro(
         "Status HTTP:",
         erro.response.status
       );
 
-      console.error(
+      registrador.erro(
         "Resposta da Meta:",
         JSON.stringify(
           erro.response.data,
@@ -184,12 +185,12 @@ async function enviarRequisicao(payload) {
         )
       );
     } else if (erro.request) {
-      console.error(
+      registrador.erro(
         "A Meta não respondeu à solicitação:",
         erro.message
       );
     } else {
-      console.error(
+      registrador.erro(
         "Erro ao preparar a solicitação:",
         erro.message
       );

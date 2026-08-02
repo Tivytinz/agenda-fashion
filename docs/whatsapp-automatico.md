@@ -144,7 +144,7 @@ Use `docs/whatsapp.env.example` como referência. As obrigatórias para ativaç�
 são:
 
 ```text
-WHATSAPP_NOTIFICATIONS_ENABLED=false
+WHATSAPP_NOTIFICATIONS_ENABLED=true
 WHATSAPP_ACCESS_TOKEN=
 WHATSAPP_PHONE_NUMBER_ID=
 WHATSAPP_API_VERSION=
@@ -154,18 +154,18 @@ WHATSAPP_APP_SECRET=
 ```
 
 Use um token de acesso permanente de usuário do sistema na ativação final.
-O worker recusa iniciar se as credenciais da API ou os segredos do webhook
+O processador recusa iniciar se as credenciais da API ou os segredos do webhook
 estiverem ausentes.
 
-Mantenha `WHATSAPP_NOTIFICATIONS_ENABLED=false` durante migration e aprovação
-dos templates. Para o teste controlado:
+Os modelos já foram aprovados pela Meta. Mantenha
+`WHATSAPP_NOTIFICATIONS_ENABLED=true` em produção. Para um teste controlado:
 
 1. configure `WHATSAPP_TEST_RECIPIENT` com o número autorizado na Meta;
 2. execute `node scripts/testar-template-novo-agendamento.js`;
-3. confira o recebimento sem ligar o worker;
+3. confira o recebimento antes de ligar o processador;
 4. configure o webhook da Meta usando `/webhook/whatsapp`;
 5. remova `WHATSAPP_TEST_RECIPIENT`;
-6. somente depois mude `WHATSAPP_NOTIFICATIONS_ENABLED=true`.
+6. confirme `WHATSAPP_NOTIFICATIONS_ENABLED=true`.
 
 `WHATSAPP_TEST_RECIPIENT` nunca substitui o destinatário da fila automática.
 Isso impede que um teste redirecione mensagens reais de várias clientes.

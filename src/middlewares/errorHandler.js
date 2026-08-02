@@ -1,6 +1,9 @@
 const AppError = require(
   "../errors/AppError"
 );
+const registrador = require(
+  "../utils/registrador"
+);
 
 function deveRegistrarErro() {
   if (
@@ -51,8 +54,8 @@ function errorHandler(
     deveRegistrarErro() &&
     !erroOperacional
   ) {
-    console.error(
-      "[Erro não tratado]",
+    registrador.erro(
+      "Erro não tratado.",
       {
         mensagem:
           err?.message ||
@@ -69,7 +72,7 @@ function errorHandler(
           req?.method ||
           null,
 
-        request_id:
+        id_requisicao:
           req?.id ||
           null,
 

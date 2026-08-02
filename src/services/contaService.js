@@ -7,6 +7,9 @@ const contaRepository = require(
 const uploadToCloudinary = require(
   "../utils/uploadCloudinary"
 );
+const registrador = require(
+  "../utils/registrador"
+);
 
 const BCRYPT_ROUNDS = 10;
 
@@ -569,7 +572,7 @@ async function removerImagemSilenciosamente(
     await uploadToCloudinary
       .remover(publicId);
   } catch (erro) {
-    console.warn(
+    registrador.aviso(
       "[Cloudinary] Não foi possível remover uma foto de usuário órfã.",
       {
         public_id:

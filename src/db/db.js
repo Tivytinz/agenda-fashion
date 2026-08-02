@@ -1,4 +1,5 @@
 const { Pool } = require("pg");
+const registrador = require("../utils/registrador");
 
 const ambiente =
   process.env.NODE_ENV ||
@@ -227,7 +228,7 @@ pool.on(
         erro
       )
     ) {
-      console.warn(
+      registrador.aviso(
         "PostgreSQL: uma conexão ociosa foi encerrada; o pool abrirá outra automaticamente.",
         erro?.code ||
         erro?.message
@@ -236,7 +237,7 @@ pool.on(
       return;
     }
 
-    console.error(
+    registrador.erro(
       "Erro inesperado no pool do PostgreSQL:",
       erro
     );
@@ -279,7 +280,7 @@ async function query(
       throw erro;
     }
 
-    console.warn(
+    registrador.aviso(
       "PostgreSQL: conexão interrompida durante uma consulta de leitura. Tentando novamente..."
     );
 
@@ -316,7 +317,7 @@ async function connect() {
       throw erro;
     }
 
-    console.warn(
+    registrador.aviso(
       "PostgreSQL: falha temporária ao obter uma conexão. Tentando novamente..."
     );
 
@@ -385,7 +386,7 @@ async function executarTransacao(
       } catch (
         erroRollback
       ) {
-        console.error(
+        registrador.erro(
           "Erro ao executar ROLLBACK:",
           erroRollback
         );

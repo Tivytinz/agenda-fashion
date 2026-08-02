@@ -3,6 +3,7 @@ const crypto = require("crypto");
 const UnauthorizedError = require(
   "../errors/UnauthorizedError"
 );
+const registrador = require("../utils/registrador");
 
 function tokensIguais(
   tokenRecebido,
@@ -42,8 +43,8 @@ function autenticarWebhookAsaas(
   if (
     tokenEsperado.length < 32
   ) {
-    console.error(
-      "[Webhook Asaas] ASAAS_WEBHOOK_TOKEN ausente ou inseguro."
+    registrador.erro(
+      "Webhook Asaas: ASAAS_WEBHOOK_TOKEN ausente ou inseguro."
     );
 
     return res.status(503).json({
