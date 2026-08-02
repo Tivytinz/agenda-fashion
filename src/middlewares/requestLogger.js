@@ -1,3 +1,7 @@
+const registrador = require(
+  "../utils/registrador"
+);
+
 function deveIgnorar(
   req
 ) {
@@ -47,11 +51,12 @@ module.exports =
             duracaoNs
           ) / 1_000_000;
 
-        console.info(
-          JSON.stringify({
+        registrador.informacao(
+          "Requisição HTTP concluída.",
+          {
             tipo:
-              "http_request",
-            request_id:
+              "requisicao_http",
+            id_requisicao:
               req.id ||
               null,
             metodo:
@@ -68,7 +73,7 @@ module.exports =
             usuario_id:
               req.user?.id ||
               null,
-          })
+          }
         );
       }
     );

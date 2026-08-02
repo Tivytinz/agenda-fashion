@@ -1,4 +1,6 @@
-require("dotenv").config();
+require("dotenv").config({
+  quiet: true,
+});
 const path = require("path");
 const crypto = require("crypto");
 const express = require("express");
@@ -14,6 +16,7 @@ const apiRoutes = require("./routes/index");
 const errorHandler = require("./middlewares/errorHandler");
 const notFound = require("./middlewares/notFound");
 const requestLogger = require("./middlewares/requestLogger");
+const registrador = require("./utils/registrador");
 const agendaConfiguracaoRoutes = require("./routes/agendaConfiguracaoRoutes");
 const {
   iniciarWorkerWebhook,
@@ -394,7 +397,7 @@ async function iniciarServidor() {
 
   servidor =
     app.listen(PORT, () => {
-      console.log(
+      registrador.informacao(
         `Servidor rodando na porta ${PORT}`
       );
 
@@ -415,7 +418,7 @@ async function encerrarServidor(
   encerrando =
     true;
 
-  console.info(
+  registrador.informacao(
     "Encerrando servidor.",
     {
       sinal,
@@ -444,7 +447,7 @@ if (
 ) {
   iniciarServidor()
     .catch((erro) => {
-      console.error(
+      registrador.erro(
         "Falha ao iniciar o servidor:",
         erro
       );
@@ -470,7 +473,7 @@ if (
               0;
           })
           .catch((erro) => {
-            console.error(
+            registrador.erro(
               "Falha durante o encerramento:",
               erro
             );

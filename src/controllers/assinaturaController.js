@@ -1,4 +1,5 @@
 const assinaturaService = require("../services/assinaturaService");
+const registrador = require("../utils/registrador");
 
 async function buscarMinhaAssinatura(req, res, next) {
   try {
@@ -23,16 +24,16 @@ async function cancelarMinhaAssinatura(req, res, next) {
 
     return res.json(resultado);
   } catch (err) {
-  console.error("ERRO AO CANCELAR ASSINATURA:", {
-    mensagem: err.message,
-    statusAsaas: err.response?.status,
-    respostaAsaas: err.response?.data,
-    metodo: err.config?.method,
-    url: err.config?.url
-  });
+    registrador.erro("Não foi possível cancelar a assinatura.", {
+      mensagem: err.message,
+      status_asaas: err.response?.status,
+      resposta_asaas: err.response?.data,
+      metodo: err.config?.method,
+      url: err.config?.url
+    });
 
-  next(err);
-}
+    next(err);
+  }
 }
 
 module.exports = {

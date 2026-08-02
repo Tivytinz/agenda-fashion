@@ -1,4 +1,5 @@
 const crypto = require("crypto");
+const registrador = require("../utils/registrador");
 
 function compararAssinaturas(
   recebida,
@@ -35,8 +36,8 @@ function autenticarWebhookWhatsapp(
     ).trim();
 
   if (!segredo) {
-    console.error(
-      "[Webhook WhatsApp] WHATSAPP_APP_SECRET não configurado."
+    registrador.erro(
+      "Webhook WhatsApp: WHATSAPP_APP_SECRET não configurado."
     );
 
     return res.status(503).json({

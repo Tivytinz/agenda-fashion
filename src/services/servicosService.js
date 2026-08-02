@@ -1,6 +1,7 @@
 const servicosRepository = require("../repositories/servicosRepository");
 const uploadToCloudinary = require("../utils/uploadCloudinary");
 const db = require("../db/db");
+const registrador = require("../utils/registrador");
 const {
   buscarUsoPlano,
   criarErroLimite
@@ -427,7 +428,7 @@ async function removerImagemSilenciosamente(
     await uploadToCloudinary
       .remover(publicId);
   } catch (erro) {
-    console.warn(
+    registrador.aviso(
       "[Cloudinary] Não foi possível remover uma imagem órfã de serviço.",
       {
         public_id:

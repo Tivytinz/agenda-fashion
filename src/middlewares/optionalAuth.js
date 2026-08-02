@@ -5,6 +5,7 @@ const jwt = require(
 const authSessionRepository = require(
   "../repositories/authSessionRepository"
 );
+const registrador = require("../utils/registrador");
 
 const {
   tokenAnteriorATrocaDeSenha,
@@ -92,7 +93,7 @@ module.exports =
      * autenticação opcional.
      */
     if (!jwtSecret) {
-      console.error(
+      registrador.erro(
         "JWT_SECRET não configurado no optionalAuth."
       );
 
