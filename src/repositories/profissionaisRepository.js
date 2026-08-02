@@ -74,8 +74,8 @@ async function listarProfissionaisDoNegocio(negocioId) {
     `
     SELECT
       u.id,
-      COALESCE(un.nome_exibicao, u.nome) AS nome,
-      COALESCE(un.whatsapp_exibicao, u.whatsapp) AS whatsapp,
+COALESCE(un.nome_exibicao, u.nome) AS nome,
+COALESCE(un.whatsapp_exibicao, u.whatsapp) AS whatsapp,
       u.foto_url,
       un.papel
     FROM usuarios_negocios un
@@ -87,7 +87,7 @@ async function listarProfissionaisDoNegocio(negocioId) {
       AND un.papel IN ('dono', 'profissional')
     ORDER BY
       CASE WHEN un.papel = 'dono' THEN 0 ELSE 1 END,
-      COALESCE(un.nome_exibicao, u.nome) ASC
+COALESCE(un.nome_exibicao, u.nome) ASC
     `,
     [negocioId]
   );

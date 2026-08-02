@@ -220,7 +220,7 @@ async function buscarProfissionais(
         u.id,
         COALESCE(un.nome_exibicao, u.nome) AS nome,
         u.foto_url,
-        un.papel
+        un.papel  
 
       FROM usuarios_negocios un
 
