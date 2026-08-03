@@ -417,6 +417,24 @@ describe(
         );
 
         expect(
+          css
+        ).toContain(
+          "Sprint 14: consolidação responsiva"
+        );
+
+        expect(
+          css
+        ).toContain(
+          ".site-header .mobile-agenda-link"
+        );
+
+        expect(
+          cabecalho
+        ).toContain(
+          "mobile-agenda-link"
+        );
+
+        expect(
           explorar
         ).toContain(
           'aria-label="Categorias"'

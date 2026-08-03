@@ -3411,3 +3411,165 @@ nav .button-small {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
+
+/* Sprint 14: consolidação responsiva
+ * Esta camada é a fonte final de verdade para regras mobile que foram
+ * ajustadas em sprints diferentes. Mantenha correções responsivas novas aqui
+ * até a divisão do arquivo por componente.
+ */
+@media (max-width: 800px) {
+  .app-shell,
+  .page-content,
+  .content-section,
+  .workspace-content,
+  .booking-layout,
+  .booking-main,
+  .card-grid,
+  .service-discovery-grid {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .site-header .header-content {
+    min-width: 0;
+  }
+
+  .site-header .brand {
+    min-width: 0;
+    flex: 1 1 auto;
+    overflow: hidden;
+  }
+
+  .site-header .public-navigation {
+    min-width: 0;
+    flex: 0 0 auto;
+  }
+
+  /* A agenda da cliente não pode desaparecer junto dos links de desktop. */
+  .site-header .mobile-agenda-link {
+    display: inline-flex;
+    min-height: 40px;
+    align-items: center;
+    border: 1px solid var(--pink-100);
+    border-radius: 10px;
+    padding-inline: 10px;
+    background: #fff;
+    font-size: 0.78rem;
+    line-height: 1;
+    white-space: nowrap;
+  }
+
+  .site-header .mobile-agenda-link.active {
+    border-color: var(--pink-500);
+    background: var(--pink-50);
+  }
+
+  .card-grid,
+  .service-discovery-grid,
+  .management-grid,
+  .professional-grid,
+  .dashboard-grid,
+  .plans-grid {
+    width: 100%;
+  }
+
+  .card,
+  .business-card,
+  .service-discovery-card,
+  .management-card,
+  .professional-card,
+  .panel,
+  .form-card {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .card-content,
+  .service-discovery-content,
+  .business-heading,
+  .card-footer {
+    min-width: 0;
+  }
+
+  .business-heading h3,
+  .card-content h3,
+  .service-discovery-content h3,
+  .location {
+    overflow-wrap: anywhere;
+  }
+
+  .card-footer {
+    flex-wrap: wrap;
+  }
+
+  .card-footer .button {
+    flex: 1 1 128px;
+  }
+
+  input,
+  select,
+  textarea,
+  table {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .workspace-mobile-nav {
+    width: 100%;
+    max-width: 100vw;
+    grid-auto-columns: minmax(0, 1fr);
+    overflow: visible;
+  }
+
+  .workspace-mobile-link,
+  .workspace-mobile-more,
+  .workspace-mobile-more > button {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .workspace-mobile-link small,
+  .workspace-mobile-more > button > small {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .booking-layout,
+  .booking-main {
+    padding-bottom: 0;
+  }
+
+  .booking-layout:has(.booking-summary-ready) {
+    padding-bottom: calc(78px + env(safe-area-inset-bottom));
+  }
+
+  .booking-summary-ready {
+    margin-bottom: 0;
+  }
+
+  .time-list > .time-button:last-child:nth-child(odd),
+  .time-options > .time-button:last-child:nth-child(odd) {
+    grid-column: auto;
+  }
+}
+
+@media (max-width: 370px) {
+  .site-header .brand-copy {
+    display: none;
+  }
+
+  .site-header .brand {
+    flex: 0 0 auto;
+  }
+
+  .site-header .brand-mark {
+    width: 40px;
+    height: 40px;
+  }
+
+  .site-header .mobile-agenda-link {
+    padding-inline: 8px;
+    font-size: 0.73rem;
+  }
+}
