@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import { apiRequest } from "../api/client";
 import { BackLink } from "../components/BackLink";
 import { EmptyState, ErrorState, LoadingState } from "../components/ScreenState";
@@ -48,10 +48,13 @@ async function uploadImage(path, file) {
 }
 
 export function ServicesPage() {
+  const location = useLocation();
+  const navigate = useNavigate();
   const removeDialogRef = useRef(null);
   const [services, setServices] = useState(null);
   const [error, setError] = useState("");
   const [pendingRemove, setPendingRemove] = useState(null);
+  const [message] = useState(() => location.state?.message || "");
 
   const load = useCallback(() => {
     setError("");
@@ -61,6 +64,12 @@ export function ServicesPage() {
   }, []);
 
   useEffect(load, [load]);
+
+  useEffect(() => {
+    if (location.state?.message) {
+      navigate(location.pathname, { replace: true, state: null });
+    }
+  }, [location.pathname, location.state, navigate]);
 
   function askRemove(service) {
     setPendingRemove(service);
@@ -95,6 +104,7 @@ export function ServicesPage() {
       </div>
 
       {error && services && <p className="form-error" role="alert">{error}</p>}
+      {message && <p className="form-success" role="status">{message}</p>}
       {!services && !error && <LoadingState>Carregando serviços...</LoadingState>}
       {!services && error && <ErrorState message={error} onRetry={load} />}
       {services?.length === 0 && (
@@ -350,7 +360,7 @@ export function ServiceEditorPage() {
               {coverPreview
                 ? <img alt="Prévia da nova capa" src={coverPreview} />
                 : form.foto_url
-                  ? <img alt={`Capa atual do serviço ${form.nome}`} src={form.foto_url} />
+                  ? <MediaThumb alt={`Capa atual do serviço ${form.nome}`} className="editor-media" emoji="✦" src={form.foto_url} />
                   : <span><strong>✦</strong>Adicione uma foto de capa</span>}
             </div>
             <label className="button button-secondary button-small">
@@ -370,7 +380,7 @@ export function ServiceEditorPage() {
             <div className="service-gallery" aria-label="Galeria atual">
               {gallery.map((photo) => (
                 <figure key={photo.id}>
-                  <img alt={`Foto da galeria de ${form.nome}`} src={photo.foto_url} />
+                  <MediaThumb alt={`Foto da galeria de ${form.nome}`} className="editor-media" emoji="✦" src={photo.foto_url} />
                   <button
                     aria-label="Remover foto da galeria"
                     disabled={removingPhotoId === photo.id}

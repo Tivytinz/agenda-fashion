@@ -4,6 +4,7 @@ import { apiRequest } from "../api/client";
 import { useSession } from "../auth/SessionContext";
 import { BackLink } from "../components/BackLink";
 import { ErrorState, LoadingState } from "../components/ScreenState";
+import { MediaThumb } from "../components/profile/MediaThumb";
 
 export function AccountPage() {
   const session = useSession();
@@ -109,9 +110,7 @@ export function AccountPage() {
       <section className="account-grid">
         <form className="panel stack-form" onSubmit={saveProfile}>
           <div className="profile-editor">
-            <div className="account-avatar">
-              {user.foto_url ? <img alt={`Foto de perfil de ${user.nome || "usuária"}`} src={user.foto_url} /> : <span>{String(user.nome || "A").slice(0, 1)}</span>}
-            </div>
+            <MediaThumb alt={`Foto de perfil de ${user.nome || "usuária"}`} className="account-avatar" emoji={String(user.nome || "A").slice(0, 1)} src={user.foto_url} />
             <label className="button button-secondary button-small">
               {saving === "photo" ? "Enviando..." : "Trocar foto"}
               <input accept="image/jpeg,image/png,image/webp" className="sr-only" disabled={saving === "photo"} onChange={uploadPhoto} type="file" />
