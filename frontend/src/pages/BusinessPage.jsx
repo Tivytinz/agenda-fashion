@@ -29,6 +29,8 @@ export function BusinessPage({ create = false }) {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
+  const [publication, setPublication] = useState(null);
+  const [publishing, setPublishing] = useState(false);
 
   useEffect(() => {
     if (create) return;
@@ -40,6 +42,11 @@ export function BusinessPage({ create = false }) {
           ...business,
           whatsapp: business.whatsapp || business.whatsapp_negocio || "",
           areas: Array.isArray(business.areas) ? business.areas.join(", ") : ""
+        });
+        setPublication(result.publicacao || {
+          publicado: business.publicado === true,
+          pode_publicar: false,
+          pendencias: []
         });
       })
       .catch((requestError) => setError(requestError.message))
@@ -71,12 +78,34 @@ export function BusinessPage({ create = false }) {
         body: payload
       });
       setMessage(result.mensagem || (create ? "Negócio criado." : "Alterações salvas."));
+      if (result.publicacao) setPublication(result.publicacao);
       await session.refresh();
       if (create) navigate("/painel", { replace: true });
     } catch (requestError) {
       setError(requestError.message);
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function togglePublication() {
+    const nextPublished = !publication?.publicado;
+    setPublishing(true);
+    setError("");
+    setMessage("");
+
+    try {
+      const result = await apiRequest("/configuracoes/publicacao", {
+        method: "PATCH",
+        body: { publicado: nextPublished }
+      });
+      setPublication(result.publicacao);
+      setMessage(result.mensagem);
+      await session.refresh();
+    } catch (requestError) {
+      setError(requestError.message);
+    } finally {
+      setPublishing(false);
     }
   }
 
@@ -95,6 +124,37 @@ export function BusinessPage({ create = false }) {
           <p>Esses dados ajudam clientes a encontrar, confiar e agendar com você.</p>
         </div>
       </header>
+
+      {!create && publication && (
+        <section className={`panel publication-panel ${publication.publicado ? "publication-panel-live" : ""}`}>
+          <div>
+            <p className="eyebrow">Visibilidade na página inicial</p>
+            <h2>{publication.publicado ? "Seu negócio está publicado" : "Seu negócio ainda não está publicado"}</h2>
+            <p>
+              {publication.publicado
+                ? "Clientes podem encontrar seus serviços e acessar seu perfil público."
+                : "Publique quando o perfil estiver pronto para aparecer em Negócios e Serviços."}
+            </p>
+            {!publication.pode_publicar && publication.pendencias.length > 0 && (
+              <p className="publication-pending">
+                Falta completar: {publication.pendencias.join(", ")}.
+              </p>
+            )}
+          </div>
+          <button
+            className={publication.publicado ? "button button-secondary" : "button"}
+            disabled={publishing || (!publication.publicado && !publication.pode_publicar)}
+            onClick={togglePublication}
+            type="button"
+          >
+            {publishing
+              ? "Atualizando..."
+              : publication.publicado
+                ? "Retirar da página inicial"
+                : "Publicar meu negócio"}
+          </button>
+        </section>
+      )}
 
       <form className="panel stack-form" onSubmit={submit}>
         <div className="form-grid">

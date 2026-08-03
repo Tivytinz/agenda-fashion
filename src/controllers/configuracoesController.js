@@ -53,7 +53,32 @@ async function salvarConfiguracoes(
   }
 }
 
+async function alterarPublicacao(
+  req,
+  res,
+  next
+) {
+  try {
+    const resultado =
+      await configuracoesService
+        .alterarPublicacao({
+          usuarioId:
+            req.user?.id,
+
+          publicado:
+            req.body?.publicado,
+        });
+
+    return res
+      .status(200)
+      .json(resultado);
+  } catch (erro) {
+    return next(erro);
+  }
+}
+
 module.exports = {
   buscarConfiguracoes,
   salvarConfiguracoes,
+  alterarPublicacao,
 };

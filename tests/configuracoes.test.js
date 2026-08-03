@@ -24,6 +24,9 @@ jest.mock(
 
     atualizarNegocio:
       jest.fn(),
+
+    atualizarPublicacao:
+      jest.fn(),
   })
 );
 
@@ -137,6 +140,9 @@ function criarNegocio(
     setor:
       "Beleza",
 
+    publicado:
+      false,
+
     cidade:
       "Goiânia",
 
@@ -156,6 +162,9 @@ function criarNegocio(
       "Unhas",
       "Cabelo",
     ],
+
+    possui_servico_ativo:
+      true,
 
     created_at:
       "2026-07-16T18:00:00.000Z",
@@ -717,6 +726,226 @@ describe(
         expect(
           configuracoesRepository
             .atualizarNegocio
+        ).not.toHaveBeenCalled();
+      }
+    );
+
+    test(
+      "publica um negócio completo do dono",
+      async () => {
+        configuracoesRepository
+          .buscarNegocioDoUsuario
+          .mockResolvedValue(
+            criarVinculo()
+          );
+
+        configuracoesRepository
+          .buscarNegocioPorId
+          .mockResolvedValue(
+            criarNegocio()
+          );
+
+        configuracoesRepository
+          .atualizarPublicacao
+          .mockResolvedValue({
+            id:
+              11,
+
+            publicado:
+              true,
+          });
+
+        const resposta =
+          await request(app)
+            .patch(
+              "/configuracoes/publicacao"
+            )
+            .set(
+              "Authorization",
+              `Bearer ${gerarToken()}`
+            )
+            .send({
+              publicado:
+                true,
+            });
+
+        expect(
+          resposta.status
+        ).toBe(200);
+
+        expect(
+          configuracoesRepository
+            .atualizarPublicacao
+        ).toHaveBeenCalledWith(
+          11,
+          true
+        );
+
+        expect(
+          resposta.body
+        ).toMatchObject({
+          mensagem:
+            "Seu negócio está publicado e já pode aparecer na página inicial.",
+
+          negocio: {
+            publicado:
+              true,
+          },
+
+          publicacao: {
+            publicado:
+              true,
+
+            pode_publicar:
+              true,
+
+            pendencias: [],
+          },
+        });
+      }
+    );
+
+    test(
+      "impede publicar um perfil incompleto",
+      async () => {
+        configuracoesRepository
+          .buscarNegocioDoUsuario
+          .mockResolvedValue(
+            criarVinculo()
+          );
+
+        configuracoesRepository
+          .buscarNegocioPorId
+          .mockResolvedValue(
+            criarNegocio({
+              descricao:
+                "",
+
+              cidade:
+                "",
+
+              possui_servico_ativo:
+                false,
+            })
+          );
+
+        const resposta =
+          await request(app)
+            .patch(
+              "/configuracoes/publicacao"
+            )
+            .set(
+              "Authorization",
+              `Bearer ${gerarToken()}`
+            )
+            .send({
+              publicado:
+                true,
+            });
+
+        expect(
+          resposta.status
+        ).toBe(400);
+
+        expect(
+          resposta.body.erro
+        ).toBe(
+          "Complete o perfil antes de publicar: descrição, cidade, pelo menos um serviço ativo."
+        );
+
+        expect(
+          configuracoesRepository
+            .atualizarPublicacao
+        ).not.toHaveBeenCalled();
+      }
+    );
+
+    test(
+      "permite ao dono retirar o negócio da página inicial",
+      async () => {
+        configuracoesRepository
+          .buscarNegocioDoUsuario
+          .mockResolvedValue(
+            criarVinculo()
+          );
+
+        configuracoesRepository
+          .buscarNegocioPorId
+          .mockResolvedValue(
+            criarNegocio({
+              publicado:
+                true,
+            })
+          );
+
+        configuracoesRepository
+          .atualizarPublicacao
+          .mockResolvedValue({
+            id:
+              11,
+
+            publicado:
+              false,
+          });
+
+        const resposta =
+          await request(app)
+            .patch(
+              "/configuracoes/publicacao"
+            )
+            .set(
+              "Authorization",
+              `Bearer ${gerarToken()}`
+            )
+            .send({
+              publicado:
+                false,
+            });
+
+        expect(
+          resposta.status
+        ).toBe(200);
+
+        expect(
+          resposta.body.publicacao
+            .publicado
+        ).toBe(false);
+      }
+    );
+
+    test(
+      "impede profissional de alterar a publicação",
+      async () => {
+        configuracoesRepository
+          .buscarNegocioDoUsuario
+          .mockResolvedValue(
+            criarVinculo({
+              papel:
+                "profissional",
+            })
+          );
+
+        const resposta =
+          await request(app)
+            .patch(
+              "/configuracoes/publicacao"
+            )
+            .set(
+              "Authorization",
+              `Bearer ${gerarToken()}`
+            )
+            .send({
+              publicado:
+                true,
+            });
+
+        expect(
+          resposta.status
+        ).toBe(403);
+
+        expect(
+          configuracoesRepository
+            .atualizarPublicacao
         ).not.toHaveBeenCalled();
       }
     );

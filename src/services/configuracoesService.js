@@ -438,6 +438,121 @@ function normalizarNegocio(
   };
 }
 
+function avaliarPublicacao(
+  negocio
+) {
+  const pendencias = [];
+
+  if (!normalizarTexto(
+    negocio?.descricao,
+    {
+      nomeCampo:
+        "Descrição",
+
+      tamanhoMaximo:
+        1200,
+    }
+  )) {
+    pendencias.push(
+      "descrição"
+    );
+  }
+
+  if (!normalizarTexto(
+    negocio?.setor,
+    {
+      nomeCampo:
+        "Setor",
+
+      tamanhoMaximo:
+        80,
+    }
+  )) {
+    pendencias.push(
+      "área principal"
+    );
+  }
+
+  if (!normalizarWhatsapp(
+    negocio?.whatsapp ??
+      negocio?.whatsapp_negocio,
+    {
+      validar:
+        false,
+    }
+  )) {
+    pendencias.push(
+      "WhatsApp"
+    );
+  }
+
+  if (!normalizarTexto(
+    negocio?.cidade,
+    {
+      nomeCampo:
+        "Cidade",
+
+      tamanhoMaximo:
+        120,
+    }
+  )) {
+    pendencias.push(
+      "cidade"
+    );
+  }
+
+  if (
+    negocio?.possui_servico_ativo !==
+    true
+  ) {
+    pendencias.push(
+      "pelo menos um serviço ativo"
+    );
+  }
+
+  return {
+    publicado:
+      negocio?.publicado ===
+      true,
+
+    pode_publicar:
+      pendencias.length === 0,
+
+    pendencias,
+  };
+}
+
+function montarRespostaNegocio({
+  negocio,
+  papel,
+  mensagem,
+}) {
+  const negocioNormalizado =
+    normalizarNegocio(
+      negocio,
+      papel
+    );
+
+  return {
+    ...(mensagem
+      ? {
+          mensagem,
+        }
+      : {}),
+
+    negocio:
+      negocioNormalizado,
+
+    configuracoes:
+      negocioNormalizado,
+
+    publicacao:
+      avaliarPublicacao(
+        negocioNormalizado
+      ),
+  };
+}
+
 async function obterVinculo(
   usuarioId
 ) {
@@ -478,19 +593,11 @@ async function buscarConfiguracoes({
     "Negócio não encontrado."
   );
 
-  const negocioNormalizado =
-    normalizarNegocio(
-      negocio,
-      vinculo.papel
-    );
-
-  return {
-    negocio:
-      negocioNormalizado,
-
-    configuracoes:
-      negocioNormalizado,
-  };
+  return montarRespostaNegocio({
+    negocio,
+    papel:
+      vinculo.papel,
+  });
 }
 
 async function salvarConfiguracoes({
@@ -640,25 +747,104 @@ async function salvarConfiguracoes({
     "Negócio não encontrado."
   );
 
-  const negocioNormalizado =
-    normalizarNegocio(
+  return montarRespostaNegocio({
+    negocio:
       negocioAtualizado,
-      vinculo.papel
-    );
 
-  return {
+    papel:
+      vinculo.papel,
+
     mensagem:
       "Configurações salvas com sucesso.",
+  });
+}
 
-    negocio:
-      negocioNormalizado,
+async function alterarPublicacao({
+  usuarioId,
+  publicado,
+}) {
+  const vinculo =
+    await obterVinculo(
+      usuarioId
+    );
 
-    configuracoes:
-      negocioNormalizado,
+  if (
+    vinculo.papel !==
+    "dono"
+  ) {
+    throw new ForbiddenError(
+      "Apenas o dono pode alterar a publicação do negócio."
+    );
+  }
+
+  if (
+    typeof publicado !==
+    "boolean"
+  ) {
+    throw new ValidationError(
+      "Informe se o negócio deve ficar publicado."
+    );
+  }
+
+  const negocioAtual =
+    await configuracoesRepository
+      .buscarNegocioPorId(
+        vinculo.negocio_id
+      );
+
+  exigirRecurso(
+    negocioAtual,
+    "Negócio não encontrado."
+  );
+
+  const publicacao =
+    avaliarPublicacao(
+      negocioAtual
+    );
+
+  if (
+    publicado &&
+    !publicacao.pode_publicar
+  ) {
+    throw new ValidationError(
+      `Complete o perfil antes de publicar: ${publicacao.pendencias.join(", ")}.`
+    );
+  }
+
+  const resultado =
+    await configuracoesRepository
+      .atualizarPublicacao(
+        vinculo.negocio_id,
+        publicado
+      );
+
+  exigirRecurso(
+    resultado,
+    "Negócio não encontrado."
+  );
+
+  const negocioAtualizado = {
+    ...negocioAtual,
+    publicado:
+      resultado.publicado,
   };
+
+  return montarRespostaNegocio({
+    negocio:
+      negocioAtualizado,
+
+    papel:
+      vinculo.papel,
+
+    mensagem:
+      resultado.publicado
+        ? "Seu negócio está publicado e já pode aparecer na página inicial."
+        : "Seu negócio foi retirado da página inicial.",
+  });
 }
 
 module.exports = {
   buscarConfiguracoes,
   salvarConfiguracoes,
+  alterarPublicacao,
 };

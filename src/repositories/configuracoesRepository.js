@@ -76,6 +76,8 @@ async function buscarNegocioPorId(
           n.descricao,
           n.setor,
 
+          n.publicado,
+
           n.cidade,
           n.bairro,
           n.localizacao_url,
@@ -88,6 +90,13 @@ async function buscarNegocioPorId(
             n.areas,
             ARRAY[]::TEXT[]
           ) AS areas,
+
+          EXISTS (
+            SELECT 1
+            FROM servicos_negocio s
+            WHERE s.negocio_id = n.id
+              AND s.ativo = TRUE
+          ) AS possui_servico_ativo,
 
           n.created_at,
           n.updated_at
@@ -148,6 +157,8 @@ async function atualizarNegocio(
           descricao,
           setor,
 
+          publicado,
+
           cidade,
           bairro,
           localizacao_url,
@@ -160,6 +171,13 @@ async function atualizarNegocio(
             areas,
             ARRAY[]::TEXT[]
           ) AS areas,
+
+          EXISTS (
+            SELECT 1
+            FROM servicos_negocio s
+            WHERE s.negocio_id = negocios.id
+              AND s.ativo = TRUE
+          ) AS possui_servico_ativo,
 
           created_at,
           updated_at
@@ -184,8 +202,38 @@ async function atualizarNegocio(
   );
 }
 
+async function atualizarPublicacao(
+  negocioId,
+  publicado
+) {
+  const resultado =
+    await db.query(
+      `
+        UPDATE negocios
+
+        SET
+          publicado = $1,
+          updated_at = NOW()
+
+        WHERE id = $2
+
+        RETURNING id, publicado
+      `,
+      [
+        publicado,
+        negocioId,
+      ]
+    );
+
+  return (
+    resultado.rows[0] ||
+    null
+  );
+}
+
 module.exports = {
   buscarNegocioDoUsuario,
   buscarNegocioPorId,
   atualizarNegocio,
+  atualizarPublicacao,
 };
