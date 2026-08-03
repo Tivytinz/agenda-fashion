@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Navigate, useLocation, useNavigate } from "react-router-dom";
 import { apiRequest } from "../api/client";
 import { track } from "../analytics/track";
@@ -31,6 +31,7 @@ export function ConfirmPage() {
   const [status, setStatus] = useState("idle");
   const [scheduleConflict, setScheduleConflict] = useState(false);
   const [error, setError] = useState("");
+  const submissionInFlight = useRef(false);
 
   useEffect(() => {
     if (booking) {
@@ -48,6 +49,9 @@ export function ConfirmPage() {
 
   async function submit(event) {
     event.preventDefault();
+
+    if (submissionInFlight.current) return;
+
     const normalizedName = name.trim().replace(/\s+/g, " ");
     const normalizedPhone = whatsapp.replace(/\D/g, "");
 
@@ -62,6 +66,7 @@ export function ConfirmPage() {
     }
 
     setStatus("loading");
+    submissionInFlight.current = true;
     setScheduleConflict(false);
     setError("");
 
@@ -105,6 +110,8 @@ export function ConfirmPage() {
           : requestError.message
       );
       setStatus("error");
+    } finally {
+      submissionInFlight.current = false;
     }
   }
 

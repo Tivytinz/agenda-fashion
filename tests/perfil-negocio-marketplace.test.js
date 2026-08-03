@@ -51,7 +51,7 @@ describe(
           repository.listarNegociosPublicos
         ).toHaveBeenCalledWith({
           busca: "unhas",
-          categoria: "",
+          categoriaTermos: [],
           limite: 6,
           offset: 6
         });
@@ -66,6 +66,35 @@ describe(
               "Alongamento em gel",
           }),
         ]);
+      }
+    );
+
+    test(
+      "expande categorias para nomes usados pelos profissionais",
+      async () => {
+        repository
+          .listarNegociosPublicos
+          .mockResolvedValue([]);
+
+        await service.listarNegociosPublicos({
+          categoria: "unha"
+        });
+
+        expect(
+          repository.listarNegociosPublicos
+        ).toHaveBeenCalledWith(
+          expect.objectContaining({
+            busca: "",
+            categoriaTermos: expect.arrayContaining([
+              "unha",
+              "manicure",
+              "pedicure",
+              "esmalta",
+              "nail",
+              "alongamento"
+            ])
+          })
+        );
       }
     );
 

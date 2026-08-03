@@ -225,9 +225,7 @@ export function ExplorePage() {
 
   const filteredServices =
     useMemo(() => {
-      const wanted = normalizeText(
-        `${query} ${category}`
-      );
+      const wanted = normalizeText(query);
 
       if (!wanted) {
         return services;
@@ -253,7 +251,7 @@ export function ExplorePage() {
           haystack.includes(term)
         );
       });
-    }, [services, category, query]);
+    }, [services, query]);
 
   const sortedBusinesses =
     useMemo(() => {
