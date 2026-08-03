@@ -13,10 +13,35 @@ export default defineConfig({
   },
   projects: [
     {
-      name: "mobile-chromium",
+      name: "webkit-360",
+      use: {
+        ...devices["iPhone SE"],
+        browserName: "webkit",
+        viewport: { width: 360, height: 740 }
+      }
+    },
+    {
+      name: "webkit-390",
       use: {
         ...devices["iPhone 13"],
-        browserName: "chromium"
+        browserName: "webkit",
+        viewport: { width: 390, height: 844 }
+      }
+    },
+    {
+      name: "webkit-430",
+      use: {
+        ...devices["iPhone 13 Pro Max"],
+        browserName: "webkit",
+        viewport: { width: 430, height: 932 }
+      }
+    },
+    {
+      name: "mobile-chromium",
+      use: {
+        ...devices["Pixel 7"],
+        browserName: "chromium",
+        viewport: { width: 390, height: 844 }
       }
     }
   ],

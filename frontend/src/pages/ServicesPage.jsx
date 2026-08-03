@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import { apiRequest } from "../api/client";
 import { BackLink } from "../components/BackLink";
 import { EmptyState, ErrorState, LoadingState } from "../components/ScreenState";
+import { MediaThumb } from "../components/profile/MediaThumb";
 import { formatCurrency } from "../utils/format";
 
 const EMPTY_FORM = {
@@ -109,9 +110,12 @@ export function ServicesPage() {
           {services.map((service) => (
             <article className="management-card" key={service.id}>
               <div className="service-cover">
-                {service.foto_url
-                  ? <img alt={`Capa do serviço ${service.nome}`} src={service.foto_url} />
-                  : <span aria-label="Serviço sem foto">✦</span>}
+                <MediaThumb
+                  alt={`Capa do serviço ${service.nome}`}
+                  className="management-service-media"
+                  emoji="✦"
+                  src={service.foto_url}
+                />
               </div>
               <div className="management-card-body">
                 <span className={service.ativo === false ? "status-badge status-cancelado" : "status-badge status-agendado"}>
