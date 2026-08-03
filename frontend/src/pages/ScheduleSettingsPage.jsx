@@ -15,6 +15,33 @@ function normalizeDay(day) {
   };
 }
 
+export function validateSchedule(days) {
+  for (const day of days) {
+    if (!day.trabalha) continue;
+
+    const dayName = DAY_NAMES[day.diaSemana] || "Dia selecionado";
+    if (!day.horaInicio || !day.horaFim || day.horaInicio >= day.horaFim) {
+      return `Em ${dayName}, o horário final precisa ser depois do horário inicial.`;
+    }
+
+    const hasPauseStart = Boolean(day.intervaloInicio);
+    const hasPauseEnd = Boolean(day.intervaloFim);
+    if (hasPauseStart !== hasPauseEnd) {
+      return `Em ${dayName}, preencha o início e o fim da pausa.`;
+    }
+
+    if (hasPauseStart && (
+      day.intervaloInicio >= day.intervaloFim
+      || day.intervaloInicio < day.horaInicio
+      || day.intervaloFim > day.horaFim
+    )) {
+      return `Em ${dayName}, a pausa precisa estar dentro do horário de atendimento.`;
+    }
+  }
+
+  return "";
+}
+
 export function ScheduleSettingsPage() {
   const [config, setConfig] = useState(null);
   const [days, setDays] = useState([]);
@@ -46,9 +73,15 @@ export function ScheduleSettingsPage() {
 
   async function submit(event) {
     event.preventDefault();
-    setSaving(true);
     setError("");
     setMessage("");
+    const validationError = validateSchedule(days);
+    if (validationError) {
+      setError(validationError);
+      return;
+    }
+
+    setSaving(true);
     try {
       const result = await apiRequest("/agenda-configuracao", {
         method: "PUT",

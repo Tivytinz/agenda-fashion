@@ -184,13 +184,20 @@ export function SubscriptionPage() {
           </tbody></table></div>
         )}
       </section>
-      <dialog className="cancel-dialog" ref={dialogRef}>
+      <dialog
+        aria-labelledby="cancel-subscription-title"
+        className="cancel-dialog"
+        onCancel={(event) => {
+          if (canceling) event.preventDefault();
+        }}
+        ref={dialogRef}
+      >
         <div className="cancel-dialog-content">
-          <div className="cancel-dialog-icon">!</div>
-          <h2>Cancelar renovação?</h2>
+          <div aria-hidden="true" className="cancel-dialog-icon">!</div>
+          <h2 id="cancel-subscription-title">Cancelar renovação?</h2>
           <p>Seu acesso continua até o fim do período que já foi pago.</p>
           <div className="cancel-dialog-actions">
-            <button className="button button-secondary" onClick={() => dialogRef.current?.close()} type="button">Manter plano</button>
+            <button className="button button-secondary" disabled={canceling} onClick={() => dialogRef.current?.close()} type="button">Manter plano</button>
             <button className="button button-danger" disabled={canceling} onClick={cancel} type="button">{canceling ? "Cancelando..." : "Sim, cancelar"}</button>
           </div>
         </div>

@@ -22,6 +22,7 @@ export function FavoritesPage() {
   useEffect(load, [load]);
 
   function askRemove(item) {
+    setError("");
     setPendingRemove(item);
     removeDialogRef.current?.showModal();
   }
@@ -73,13 +74,21 @@ export function FavoritesPage() {
           })}
         </section>
       )}
-      <dialog className="cancel-dialog" ref={removeDialogRef}>
+      <dialog
+        aria-labelledby="remove-favorite-title"
+        className="cancel-dialog"
+        onCancel={(event) => {
+          if (removing) event.preventDefault();
+          else setPendingRemove(null);
+        }}
+        ref={removeDialogRef}
+      >
         <div className="cancel-dialog-content">
-          <div className="cancel-dialog-icon">!</div>
-          <h2>Remover dos favoritos?</h2>
+          <div aria-hidden="true" className="cancel-dialog-icon">!</div>
+          <h2 id="remove-favorite-title">Remover dos favoritos?</h2>
           <p>“{pendingRemove?.nome}” sairá da sua lista de perfis salvos.</p>
           <div className="cancel-dialog-actions">
-            <button className="button button-secondary" onClick={() => { removeDialogRef.current?.close(); setPendingRemove(null); }} type="button">Manter favorito</button>
+            <button className="button button-secondary" disabled={removing} onClick={() => { removeDialogRef.current?.close(); setPendingRemove(null); }} type="button">Manter favorito</button>
             <button className="button button-danger" disabled={removing} onClick={remove} type="button">{removing ? "Removendo..." : "Sim, remover"}</button>
           </div>
         </div>

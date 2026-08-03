@@ -54,6 +54,7 @@ export function ServicesPage() {
   const [services, setServices] = useState(null);
   const [error, setError] = useState("");
   const [pendingRemove, setPendingRemove] = useState(null);
+  const [removing, setRemoving] = useState(false);
   const [message] = useState(() => location.state?.message || "");
 
   const load = useCallback(() => {
@@ -77,7 +78,8 @@ export function ServicesPage() {
   }
 
   async function remove() {
-    if (!pendingRemove) return;
+    if (!pendingRemove || removing) return;
+    setRemoving(true);
     setError("");
     try {
       await apiRequest(`/servicos/${pendingRemove.id}`, { method: "DELETE" });
@@ -86,6 +88,8 @@ export function ServicesPage() {
       setPendingRemove(null);
     } catch (requestError) {
       setError(requestError.message);
+    } finally {
+      setRemoving(false);
     }
   }
 
@@ -145,14 +149,22 @@ export function ServicesPage() {
         </section>
       )}
 
-      <dialog className="cancel-dialog" ref={removeDialogRef}>
+      <dialog
+        aria-labelledby="remove-service-title"
+        className="cancel-dialog"
+        onCancel={(event) => {
+          if (removing) event.preventDefault();
+          else setPendingRemove(null);
+        }}
+        ref={removeDialogRef}
+      >
         <div className="cancel-dialog-content">
-          <div className="cancel-dialog-icon">!</div>
-          <h2>Remover serviço?</h2>
+          <div aria-hidden="true" className="cancel-dialog-icon">!</div>
+          <h2 id="remove-service-title">Remover serviço?</h2>
           <p>“{pendingRemove?.nome}” deixará de aparecer para novas clientes.</p>
           <div className="cancel-dialog-actions">
-            <button className="button button-secondary" onClick={() => { removeDialogRef.current?.close(); setPendingRemove(null); }} type="button">Manter serviço</button>
-            <button className="button button-danger" onClick={remove} type="button">Sim, remover</button>
+            <button className="button button-secondary" disabled={removing} onClick={() => { removeDialogRef.current?.close(); setPendingRemove(null); }} type="button">Manter serviço</button>
+            <button className="button button-danger" disabled={removing} onClick={remove} type="button">{removing ? "Removendo..." : "Sim, remover"}</button>
           </div>
         </div>
       </dialog>

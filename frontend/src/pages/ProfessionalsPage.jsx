@@ -91,12 +91,20 @@ export function ProfessionalsPage() {
           })}
         </section>
       )}
-      <dialog className="cancel-dialog" ref={removeDialogRef}>
+      <dialog
+        aria-labelledby="remove-professional-title"
+        className="cancel-dialog"
+        onCancel={(event) => {
+          if (saving) event.preventDefault();
+          else setPendingRemove(null);
+        }}
+        ref={removeDialogRef}
+      >
         <div className="cancel-dialog-content">
-          <div className="cancel-dialog-icon">!</div><h2>Remover da equipe?</h2>
+          <div aria-hidden="true" className="cancel-dialog-icon">!</div><h2 id="remove-professional-title">Remover da equipe?</h2>
           <p>{pendingRemove?.nome} perderá o acesso a este negócio. A conta pessoal dela continuará existindo.</p>
           <div className="cancel-dialog-actions">
-            <button className="button button-secondary" onClick={() => { removeDialogRef.current?.close(); setPendingRemove(null); }} type="button">Manter profissional</button>
+            <button className="button button-secondary" disabled={saving} onClick={() => { removeDialogRef.current?.close(); setPendingRemove(null); }} type="button">Manter profissional</button>
             <button className="button button-danger" disabled={saving} onClick={remove} type="button">{saving ? "Removendo..." : "Sim, remover"}</button>
           </div>
         </div>
