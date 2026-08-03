@@ -372,10 +372,10 @@ describe(
     test(
       "preserva identidade rosa responsividade acessibilidade e mensagem de crescimento",
       () => {
-        const css =
-          ler(
-            "frontend/src/styles/index.css"
-          );
+        const css = [
+          "frontend/src/styles/index.css",
+          "frontend/src/styles/responsive.css",
+        ].map(ler).join("\n");
 
         const explorar =
           ler(
@@ -419,7 +419,7 @@ describe(
         expect(
           css
         ).toContain(
-          "Sprint 14: consolidação responsiva"
+          "Camada responsiva final"
         );
 
         expect(

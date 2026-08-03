@@ -5,6 +5,7 @@ import App from "./App";
 import { SessionProvider } from "./auth/SessionContext";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import "./styles/index.css";
+import "./styles/responsive.css";
 
 createRoot(document.getElementById("root")).render(
   <StrictMode>
