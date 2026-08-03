@@ -21,10 +21,12 @@ function renderEditor() {
   );
 }
 
-function renderServices() {
+function renderServices(entry = "/painel/servicos") {
   return render(
-    <MemoryRouter>
-      <ServicesPage />
+    <MemoryRouter initialEntries={[entry]}>
+      <Routes>
+        <Route path="/painel/servicos" element={<ServicesPage />} />
+      </Routes>
     </MemoryRouter>
   );
 }
@@ -119,6 +121,17 @@ describe("editor de serviços", () => {
 });
 
 describe("lista profissional de serviços", () => {
+  it("mostra a confirmação recebida após salvar um serviço", async () => {
+    apiRequest.mockResolvedValueOnce({ servicos: [] });
+
+    renderServices({
+      pathname: "/painel/servicos",
+      state: { message: "Serviço criado." }
+    });
+
+    expect((await screen.findByRole("status")).textContent).toContain("Serviço criado.");
+  });
+
   it("resolve caminhos relativos de capa com o mesmo tratamento do catálogo", async () => {
     apiRequest.mockResolvedValueOnce({
       servicos: [{

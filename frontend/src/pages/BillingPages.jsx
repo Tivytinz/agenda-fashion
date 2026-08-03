@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { Link, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { apiRequest } from "../api/client";
 import { useSession } from "../auth/SessionContext";
 import { BackLink } from "../components/BackLink";
@@ -92,10 +92,16 @@ export function PlansPage() {
 }
 
 export function SubscriptionPage() {
+  const location = useLocation();
+  const navigate = useNavigate();
   const dialogRef = useRef(null);
   const [data, setData] = useState(null);
   const [error, setError] = useState("");
-  const [message, setMessage] = useState("");
+  const [message, setMessage] = useState(() =>
+    location.state?.payment === "confirmed"
+      ? "Pagamento confirmado. Seu plano foi atualizado."
+      : ""
+  );
   const [canceling, setCanceling] = useState(false);
 
   const load = useCallback(() => {
@@ -106,6 +112,12 @@ export function SubscriptionPage() {
   }, []);
 
   useEffect(load, [load]);
+
+  useEffect(() => {
+    if (location.state?.payment) {
+      navigate(location.pathname, { replace: true, state: null });
+    }
+  }, [location.pathname, location.state, navigate]);
 
   async function cancel() {
     setCanceling(true);
@@ -297,7 +309,7 @@ export function BillingCheckoutPage() {
         }
       });
       if (paymentConfirmed(result)) {
-        navigate("/painel/assinatura", { replace: true });
+        navigate("/painel/assinatura", { replace: true, state: { payment: "confirmed" } });
         return;
       }
       const value = result.pix || result.pagamento?.pix || {};

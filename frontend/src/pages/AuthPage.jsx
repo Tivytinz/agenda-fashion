@@ -4,6 +4,12 @@ import { getWorkspacePath } from "../auth/session";
 import { useSession } from "../auth/SessionContext";
 import { GoogleLoginButton } from "../components/GoogleLoginButton";
 
+export function safeReturnPath(value) {
+  return typeof value === "string" && value.startsWith("/") && !value.startsWith("//")
+    ? value
+    : "";
+}
+
 export function AuthPage({ mode = "login" }) {
   const isRegister = mode === "register";
   const session = useSession();
@@ -19,18 +25,17 @@ export function AuthPage({ mode = "login" }) {
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
-  const finish = useCallback(async () => {
-    const current = await session.refresh();
-    const requested = location.state?.from;
+  const finish = useCallback((current) => {
+    const requested = safeReturnPath(location.state?.from);
     navigate(requested || getWorkspacePath(current), { replace: true });
-  }, [location.state, navigate, session]);
+  }, [location.state, navigate]);
 
   const handleGoogle = useCallback(async (credential) => {
     setError("");
     setSubmitting(true);
     try {
-      await session.loginWithGoogle(credential);
-      await finish();
+      const current = await session.loginWithGoogle(credential);
+      finish(current);
     } catch (requestError) {
       setError(requestError.message);
     } finally {
@@ -58,7 +63,7 @@ export function AuthPage({ mode = "login" }) {
     setSubmitting(true);
     try {
       const action = isRegister ? session.register : session.login;
-      await action({
+      const current = await action({
         ...(isRegister ? {
           nome: form.nome.trim(),
           whatsapp: form.whatsapp.replace(/\D/g, "")
@@ -66,7 +71,7 @@ export function AuthPage({ mode = "login" }) {
         email: form.email.trim().toLowerCase(),
         senha: form.senha
       });
-      await finish();
+      finish(current);
     } catch (requestError) {
       setError(requestError.message);
     } finally {

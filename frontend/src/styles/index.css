@@ -329,6 +329,8 @@ th { color: var(--muted); font-size: .76rem; letter-spacing: .04em; text-transfo
 .service-gallery { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 9px; }
 .service-gallery figure { position: relative; overflow: hidden; aspect-ratio: 1; margin: 0; border-radius: 10px; background: var(--pink-50); }
 .service-gallery img { width: 100%; height: 100%; object-fit: cover; }
+.cover-preview > .editor-media,
+.service-gallery .editor-media { width: 100%; height: 100%; border: 0; border-radius: 0; }
 .service-gallery button { position: absolute; top: 6px; right: 6px; display: grid; width: 30px; height: 30px; place-items: center; border: 0; border-radius: 50%; color: #fff; background: rgb(40 24 33 / 78%); font-size: 1.15rem; cursor: pointer; }
 .professional-card { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 14px; padding: 18px; }
 .professional-card .account-avatar { width: 54px; height: 54px; border-radius: 15px; }

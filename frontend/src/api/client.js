@@ -1,3 +1,5 @@
+import { clearSession } from "../auth/session";
+
 const API_URL = String(import.meta.env.VITE_API_URL || "").replace(/\/+$/, "");
 
 export class ApiError extends Error {
@@ -36,9 +38,7 @@ export async function apiRequest(path, options = {}) {
 
   if (!response.ok) {
     if (response.status === 401) {
-      localStorage.removeItem("token");
-      localStorage.removeItem("usuario");
-      localStorage.removeItem("negocio");
+      clearSession({ notify: true });
     }
 
     throw new ApiError(

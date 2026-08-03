@@ -4,7 +4,7 @@ import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-libra
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { apiRequest } from "../api/client";
-import { BillingCheckoutPage } from "./BillingPages";
+import { BillingCheckoutPage, SubscriptionPage } from "./BillingPages";
 
 vi.mock("../api/client", () => ({
   apiRequest: vi.fn()
@@ -118,5 +118,29 @@ describe("checkout PIX", () => {
 
     await waitFor(() => expect(writeText).toHaveBeenCalledWith("000201PIX"));
     expect(screen.getByText("Código PIX copiado.")).not.toBeNull();
+  });
+});
+
+describe("assinatura", () => {
+  it("confirma visualmente o pagamento recebido do checkout", async () => {
+    apiRequest.mockResolvedValueOnce({
+      plano: { nome: "Autônoma", valor: 49.9 },
+      assinatura: { status: "ACTIVE", forma_pagamento: "PIX" },
+      uso: {},
+      pagamentos: []
+    });
+
+    render(
+      <MemoryRouter initialEntries={[{
+        pathname: "/painel/assinatura",
+        state: { payment: "confirmed" }
+      }]}>
+        <Routes>
+          <Route path="/painel/assinatura" element={<SubscriptionPage />} />
+        </Routes>
+      </MemoryRouter>
+    );
+
+    expect(await screen.findByText("Pagamento confirmado. Seu plano foi atualizado.")).not.toBeNull();
   });
 });

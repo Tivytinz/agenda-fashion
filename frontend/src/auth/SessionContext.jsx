@@ -7,9 +7,22 @@ import {
   useState
 } from "react";
 import { apiRequest } from "../api/client";
-import { clearSession, getStoredUser, hasSession, saveSession } from "./session";
+import {
+  clearSession,
+  getStoredUser,
+  hasSession,
+  saveSession,
+  SESSION_CLEARED_EVENT
+} from "./session";
 
 const SessionContext = createContext(null);
+const SIGNED_OUT_STATE = {
+  loading: false,
+  authenticated: false,
+  usuario: null,
+  negocio: null,
+  temNegocio: false
+};
 
 export function SessionProvider({ children }) {
   const [state, setState] = useState({
@@ -22,13 +35,7 @@ export function SessionProvider({ children }) {
 
   const refresh = useCallback(async () => {
     if (!hasSession()) {
-      setState({
-        loading: false,
-        authenticated: false,
-        usuario: null,
-        negocio: null,
-        temNegocio: false
-      });
+      setState(SIGNED_OUT_STATE);
       return null;
     }
 
@@ -56,13 +63,7 @@ export function SessionProvider({ children }) {
     } catch (error) {
       if (error.status === 401 || error.status === 403) {
         clearSession();
-        setState({
-          loading: false,
-          authenticated: false,
-          usuario: null,
-          negocio: null,
-          temNegocio: false
-        });
+        setState(SIGNED_OUT_STATE);
       } else {
         setState((current) => ({ ...current, loading: false }));
       }
@@ -74,14 +75,32 @@ export function SessionProvider({ children }) {
     refresh().catch(() => {});
   }, [refresh]);
 
+  useEffect(() => {
+    function handleSessionCleared() {
+      setState(SIGNED_OUT_STATE);
+    }
+
+    function handleStorage(event) {
+      if (["token", "usuario", "negocio"].includes(event.key) && !hasSession()) {
+        handleSessionCleared();
+      }
+    }
+
+    window.addEventListener(SESSION_CLEARED_EVENT, handleSessionCleared);
+    window.addEventListener("storage", handleStorage);
+    return () => {
+      window.removeEventListener(SESSION_CLEARED_EVENT, handleSessionCleared);
+      window.removeEventListener("storage", handleStorage);
+    };
+  }, []);
+
   const login = useCallback(async (payload) => {
     const result = await apiRequest("/login", {
       method: "POST",
       body: payload
     });
     saveSession(result);
-    await refresh();
-    return result;
+    return refresh();
   }, [refresh]);
 
   const register = useCallback(async (payload) => {
@@ -90,8 +109,7 @@ export function SessionProvider({ children }) {
       body: payload
     });
     saveSession(result);
-    await refresh();
-    return result;
+    return refresh();
   }, [refresh]);
 
   const loginWithGoogle = useCallback(async (credential) => {
@@ -100,19 +118,12 @@ export function SessionProvider({ children }) {
       body: { credential }
     });
     saveSession(result);
-    await refresh();
-    return result;
+    return refresh();
   }, [refresh]);
 
   const logout = useCallback(() => {
     clearSession();
-    setState({
-      loading: false,
-      authenticated: false,
-      usuario: null,
-      negocio: null,
-      temNegocio: false
-    });
+    setState(SIGNED_OUT_STATE);
   }, []);
 
   const value = useMemo(() => ({

@@ -1,11 +1,15 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { apiRequest } from "../api/client";
 import { EmptyState, ErrorState, LoadingState } from "../components/ScreenState";
+import { MediaThumb } from "../components/profile/MediaThumb";
 import { formatLocation } from "../utils/format";
 
 export function FavoritesPage() {
+  const removeDialogRef = useRef(null);
   const [items, setItems] = useState(null);
+  const [pendingRemove, setPendingRemove] = useState(null);
+  const [removing, setRemoving] = useState(false);
   const [error, setError] = useState("");
 
   const load = useCallback(() => {
@@ -17,12 +21,24 @@ export function FavoritesPage() {
 
   useEffect(load, [load]);
 
-  async function remove(id) {
+  function askRemove(item) {
+    setPendingRemove(item);
+    removeDialogRef.current?.showModal();
+  }
+
+  async function remove() {
+    if (!pendingRemove) return;
+    const id = pendingRemove.id || pendingRemove.negocio_id;
+    setRemoving(true);
     try {
       await apiRequest(`/favoritos/${id}`, { method: "DELETE" });
       setItems((current) => current.filter((item) => Number(item.id || item.negocio_id) !== Number(id)));
+      removeDialogRef.current?.close();
+      setPendingRemove(null);
     } catch (requestError) {
       setError(requestError.message);
+    } finally {
+      setRemoving(false);
     }
   }
 
@@ -42,12 +58,14 @@ export function FavoritesPage() {
             const id = item.id || item.negocio_id;
             return (
               <article className="management-card" key={id}>
-                <div className="service-cover">{item.foto_url ? <img alt="" src={item.foto_url} /> : <span>{String(item.nome || "A").slice(0, 1)}</span>}</div>
+                <div className="service-cover">
+                  <MediaThumb alt={`Foto de ${item.nome}`} className="management-service-media" emoji={String(item.nome || "A").slice(0, 1)} src={item.foto_url} />
+                </div>
                 <div className="management-card-body">
                   <h2>{item.nome}</h2><p className="muted">{formatLocation(item)}</p>
                   <div className="card-actions">
                     <Link className="button button-small" to={`/negocio/${item.slug}`}>Ver perfil</Link>
-                    <button className="text-button danger-text" onClick={() => remove(id)} type="button">Remover</button>
+                    <button className="text-button danger-text" onClick={() => askRemove(item)} type="button">Remover</button>
                   </div>
                 </div>
               </article>
@@ -55,6 +73,17 @@ export function FavoritesPage() {
           })}
         </section>
       )}
+      <dialog className="cancel-dialog" ref={removeDialogRef}>
+        <div className="cancel-dialog-content">
+          <div className="cancel-dialog-icon">!</div>
+          <h2>Remover dos favoritos?</h2>
+          <p>“{pendingRemove?.nome}” sairá da sua lista de perfis salvos.</p>
+          <div className="cancel-dialog-actions">
+            <button className="button button-secondary" onClick={() => { removeDialogRef.current?.close(); setPendingRemove(null); }} type="button">Manter favorito</button>
+            <button className="button button-danger" disabled={removing} onClick={remove} type="button">{removing ? "Removendo..." : "Sim, remover"}</button>
+          </div>
+        </div>
+      </dialog>
     </main>
   );
 }
