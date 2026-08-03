@@ -126,6 +126,17 @@ beforeEach(() => {
 afterEach(cleanup);
 
 describe("fluxo publico de agendamento", () => {
+  it("personaliza o titulo com o nome do negocio", async () => {
+    mockSuccessfulRequests();
+    renderProfile();
+
+    await screen.findByRole("heading", { name: "Studio Aurora" });
+
+    await waitFor(() => {
+      expect(document.title).toBe("Studio Aurora | Agenda Fashion");
+    });
+  });
+
   it("seleciona servico, profissional e horario antes de revisar", async () => {
     const user = userEvent.setup();
     mockSuccessfulRequests();
