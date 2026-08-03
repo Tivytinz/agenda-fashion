@@ -4,21 +4,32 @@ import {
   formatCurrency,
   formatLocation
 } from "../utils/format";
-import { resolveMediaUrl } from "../utils/media";
+import { resolveMediaUrl, withMediaRetry } from "../utils/media";
 
 export function ServiceCard({
   service
 }) {
   const [imageFailed, setImageFailed] =
     useState(false);
+  const [imageRetry, setImageRetry] =
+    useState(0);
 
   const hasImage =
     Boolean(service.foto_url) &&
     !imageFailed;
 
-  const imageUrl = resolveMediaUrl(
-    service.foto_url
-  );
+  const imageUrl = withMediaRetry(resolveMediaUrl(
+    service.foto_url,
+    { width: 520 }
+  ), imageRetry);
+
+  function handleImageError() {
+    if (imageRetry < 1) {
+      setImageRetry(1);
+      return;
+    }
+    setImageFailed(true);
+  }
 
   const initial = String(
     service.nome || "S"
@@ -46,9 +57,7 @@ export function ServiceCard({
             src={imageUrl}
             alt={`Resultado de ${service.nome}`}
             loading="lazy"
-            onError={() =>
-              setImageFailed(true)
-            }
+            onError={handleImageError}
           />
         ) : (
           <span className="service-discovery-placeholder">

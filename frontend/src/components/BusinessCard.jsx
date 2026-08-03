@@ -5,7 +5,7 @@ import {
   formatLocation,
   formatRating
 } from "../utils/format";
-import { resolveMediaUrl } from "../utils/media";
+import { resolveMediaUrl, withMediaRetry } from "../utils/media";
 
 export function BusinessCard({ business }) {
   const featuredServices =
@@ -20,13 +20,28 @@ export function BusinessCard({ business }) {
   const [imageFailed, setImageFailed] =
     useState(false);
 
+  const [imageRetry, setImageRetry] =
+    useState(0);
+
+  const coverSource = business.foto_url ||
+    featuredServices.find((service) => service.foto_url)?.foto_url;
+
   const hasImage =
-    Boolean(business.foto_url) &&
+    Boolean(coverSource) &&
     !imageFailed;
 
-  const imageUrl = resolveMediaUrl(
-    business.foto_url
-  );
+  const imageUrl = withMediaRetry(resolveMediaUrl(
+    coverSource,
+    { width: 420 }
+  ), imageRetry);
+
+  function handleImageError() {
+    if (imageRetry < 1) {
+      setImageRetry(1);
+      return;
+    }
+    setImageFailed(true);
+  }
 
   const initial = String(
     business.nome || "A"
@@ -52,9 +67,7 @@ export function BusinessCard({ business }) {
             src={imageUrl}
             alt=""
             loading="lazy"
-            onError={() =>
-              setImageFailed(true)
-            }
+            onError={handleImageError}
           />
         ) : (
           <span className="card-placeholder">

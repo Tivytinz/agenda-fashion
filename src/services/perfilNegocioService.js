@@ -1,6 +1,7 @@
 const perfilNegocioRepository = require("../repositories/perfilNegocioRepository");
 const AppError = require("../errors/AppError");
 const {
+  CATEGORIAS_CATALOGO,
   termosDaCategoria
 } = require("../domain/catalogoCategorias");
 
@@ -69,6 +70,9 @@ async function listarNegociosPublicos({
   const negocios =
     await perfilNegocioRepository.listarNegociosPublicos({
       busca: buscaNormalizada,
+      categoria: Object.hasOwn(CATEGORIAS_CATALOGO, categoriaNormalizada)
+        ? categoriaNormalizada
+        : "",
       categoriaTermos,
       limite: limiteNormalizado,
       offset:

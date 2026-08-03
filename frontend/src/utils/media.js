@@ -18,7 +18,23 @@ function secureUrl(url) {
   return url.toString();
 }
 
-export function resolveMediaUrl(value) {
+function optimizeCloudinary(url, width) {
+  if (
+    !width ||
+    url.hostname !== "res.cloudinary.com" ||
+    !url.pathname.includes("/image/upload/")
+  ) {
+    return url;
+  }
+
+  url.pathname = url.pathname.replace(
+    "/image/upload/",
+    `/image/upload/f_auto,q_auto,c_fill,w_${Math.max(80, Math.round(width))}/`
+  );
+  return url;
+}
+
+export function resolveMediaUrl(value, { width } = {}) {
   const source = String(value || "").trim();
 
   if (!source) {
@@ -31,7 +47,7 @@ export function resolveMediaUrl(value) {
 
   try {
     if (/^https?:\/\//i.test(source)) {
-      return secureUrl(new URL(source));
+      return secureUrl(optimizeCloudinary(new URL(source), width));
     }
 
     const origin = API_ORIGIN || (
@@ -50,5 +66,17 @@ export function resolveMediaUrl(value) {
     ).toString();
   } catch {
     return source;
+  }
+}
+
+export function withMediaRetry(value, retry = 0) {
+  if (!value || retry < 1) return value;
+
+  try {
+    const url = new URL(value, typeof window !== "undefined" ? window.location.origin : undefined);
+    url.searchParams.set("af_retry", String(retry));
+    return url.toString();
+  } catch {
+    return value;
   }
 }

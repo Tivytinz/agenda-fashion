@@ -192,6 +192,7 @@ describe("fluxo publico de agendamento", () => {
     expect(screen.getByRole("button", { name: "Revisar e confirmar" }).disabled)
       .toBe(false);
 
+    await user.click(screen.getAllByRole("button", { name: "Alterar" })[0]);
     await user.click(screen.getByRole("button", { name: /Pedicure/ }));
 
     expect(screen.getByText("Aguardando serviço", { selector: "dd" }))

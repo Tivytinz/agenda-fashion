@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
 import { describe, expect, it } from "vitest";
-import { resolveMediaUrl } from "./media";
+import { resolveMediaUrl, withMediaRetry } from "./media";
 
 describe("resolveMediaUrl", () => {
   it("mantém URL absoluta segura", () => {
@@ -19,5 +19,17 @@ describe("resolveMediaUrl", () => {
 
   it("não cria URL para valor vazio", () => {
     expect(resolveMediaUrl(null)).toBe("");
+  });
+
+  it("otimiza imagens do Cloudinary para a largura exibida", () => {
+    expect(resolveMediaUrl(
+      "https://res.cloudinary.com/demo/image/upload/v1/foto.jpg",
+      { width: 480 }
+    )).toContain("/image/upload/f_auto,q_auto,c_fill,w_480/");
+  });
+
+  it("gera uma URL diferente para a nova tentativa", () => {
+    expect(withMediaRetry("https://img.exemplo/foto.jpg", 1))
+      .toContain("af_retry=1");
   });
 });

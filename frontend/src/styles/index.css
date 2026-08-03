@@ -900,6 +900,55 @@ nav .button-small {
 }
 
 @media (max-width: 800px) {
+  .booking-layout {
+    min-width: 0;
+  }
+
+  .booking-layout:has(.booking-summary-ready) {
+    padding-bottom: calc(78px + env(safe-area-inset-bottom));
+  }
+
+  .booking-main,
+  .booking-section {
+    min-width: 0;
+  }
+
+  .booking-step-summary {
+    display: flex;
+    min-height: 58px;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 10px 12px;
+    background: var(--pink-50);
+  }
+
+  .booking-step-summary > span {
+    display: grid;
+    min-width: 0;
+    gap: 2px;
+  }
+
+  .booking-step-summary strong {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .booking-step-summary small {
+    color: var(--muted);
+  }
+
+  .date-list {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    overscroll-behavior-inline: contain;
+    scrollbar-width: thin;
+  }
+
   html,
   body,
   #root {
@@ -3315,11 +3364,20 @@ nav .button-small {
   }
 
   .booking-summary-ready {
-    position: sticky;
-    z-index: 20;
+    position: fixed;
+    z-index: 70;
+    right: 12px;
     bottom: calc(10px + env(safe-area-inset-bottom));
-    padding: 10px;
-    box-shadow: 0 12px 34px rgb(72 22 43 / 24%);
+    left: 12px;
+    width: auto;
+    max-width: 520px;
+    margin-inline: auto;
+    padding: 8px;
+    border: 1px solid rgb(197 36 107 / 18%);
+    border-radius: 16px;
+    background: rgb(255 255 255 / 96%);
+    box-shadow: 0 14px 38px rgb(72 22 43 / 24%);
+    backdrop-filter: blur(12px);
   }
 
   .booking-summary-ready .eyebrow,
@@ -3330,7 +3388,7 @@ nav .button-small {
   }
 
   .booking-summary-ready .button {
-    min-height: 48px;
+    min-height: 50px;
   }
 }
 

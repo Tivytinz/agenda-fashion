@@ -119,25 +119,25 @@ async function listarServicos(negocioId) {
 }
 
 async function criarServico(
-  { negocioId, nome, descricao, valor, duracaoMinutos, ativo },
+  { negocioId, nome, descricao, valor, duracaoMinutos, categoria, ativo },
   executor = db
 ) {
   const result = await executor.query(
     `
     INSERT INTO servicos_negocio (
-      negocio_id, nome, descricao, valor, duracao_minutos, ativo, created_at
+      negocio_id, nome, descricao, valor, duracao_minutos, categoria, ativo, created_at
     )
-    VALUES ($1, $2, $3, $4, $5, $6, NOW())
+    VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())
     RETURNING *
     `,
-    [negocioId, nome, descricao, valor, duracaoMinutos, ativo]
+    [negocioId, nome, descricao, valor, duracaoMinutos, categoria, ativo]
   );
 
   return result.rows[0];
 }
 
 async function editarServico(
-  { id, negocioId, nome, descricao, valor, duracaoMinutos, ativo },
+  { id, negocioId, nome, descricao, valor, duracaoMinutos, categoria, ativo },
   executor = db
 ) {
   const result = await executor.query(
@@ -147,12 +147,13 @@ async function editarServico(
         descricao = $2,
         valor = $3,
         duracao_minutos = $4,
-        ativo = $5
-    WHERE id = $6
-      AND negocio_id = $7
+        categoria = $5,
+        ativo = $6
+    WHERE id = $7
+      AND negocio_id = $8
     RETURNING *
     `,
-    [nome, descricao, valor, duracaoMinutos, ativo, id, negocioId]
+    [nome, descricao, valor, duracaoMinutos, categoria, ativo, id, negocioId]
   );
 
   return result.rows[0] || null;

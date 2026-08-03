@@ -2,6 +2,7 @@ const db = require("../db/db");
 
 async function listarNegociosPublicos({
   busca = "",
+  categoria = "",
   categoriaTermos = [],
   limite = 12,
   offset = 0
@@ -56,25 +57,23 @@ async function listarNegociosPublicos({
         )
         AND (
           cardinality($2::text[]) = 0
-          OR translate(
-            lower(
-              concat_ws(
-                ' ',
-                n.setor,
-                (
-                  SELECT string_agg(
-                    concat_ws(' ', s.nome, s.descricao),
-                    ' '
-                  )
-                  FROM servicos_negocio s
-                  WHERE s.negocio_id = n.id
-                    AND s.ativo = TRUE
+          OR EXISTS (
+            SELECT 1
+            FROM servicos_negocio s
+            WHERE s.negocio_id = n.id
+              AND s.ativo = TRUE
+              AND (
+                ($3::text <> '' AND s.categoria = $3::text)
+                OR (
+                  s.categoria IS NULL
+                  AND translate(
+                    lower(concat_ws(' ', s.nome, s.descricao)),
+                    'áàâãäéèêëíìîïóòôõöúùûüç',
+                    'aaaaaeeeeiiiiooooouuuuc'
+                  ) LIKE ANY($2::text[])
                 )
               )
-            ),
-            'áàâãäéèêëíìîïóòôõöúùûüç',
-            'aaaaaeeeeiiiiooooouuuuc'
-          ) LIKE ANY($2::text[])
+          )
         )
     ),
     negocios_paginados AS (
@@ -91,8 +90,8 @@ async function listarNegociosPublicos({
         ) DESC,
         nf.nome ASC,
         nf.id ASC
-      LIMIT $3
-      OFFSET $4
+      LIMIT $4
+      OFFSET $5
     )
     SELECT
       n.id,
@@ -127,6 +126,7 @@ async function listarNegociosPublicos({
                 'descricao', s.descricao,
                 'valor', s.valor,
                 'duracao_minutos', s.duracao_minutos,
+                'categoria', s.categoria,
                 'foto_url', s.foto_url
               )
 
@@ -140,17 +140,15 @@ async function listarNegociosPublicos({
             AND s.ativo = TRUE
             AND (
               cardinality($2::text[]) = 0
-              OR translate(
-                lower(
-                  concat_ws(
-                    ' ',
-                    s.nome,
-                    s.descricao
-                  )
-                ),
-                'áàâãäéèêëíìîïóòôõöúùûüç',
-                'aaaaaeeeeiiiiooooouuuuc'
-              ) LIKE ANY($2::text[])
+              OR ($3::text <> '' AND s.categoria = $3::text)
+              OR (
+                s.categoria IS NULL
+                AND translate(
+                  lower(concat_ws(' ', s.nome, s.descricao)),
+                  'áàâãäéèêëíìîïóòôõöúùûüç',
+                  'aaaaaeeeeiiiiooooouuuuc'
+                ) LIKE ANY($2::text[])
+              )
             )
         ),
         '[]'::jsonb
@@ -192,7 +190,7 @@ async function listarNegociosPublicos({
     ORDER BY
       n.nome ASC,
       n.id ASC
-  `, [termosBusca, termosCategoria, limite, offset]);
+  `, [termosBusca, termosCategoria, categoria, limite, offset]);
 
   return resultado.rows;
 }

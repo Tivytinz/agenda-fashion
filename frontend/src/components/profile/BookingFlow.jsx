@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { FlowSteps } from "../FlowSteps";
 import { EmptyState, ErrorState, LoadingState } from "../ScreenState";
 import { formatCurrency, formatDate } from "../../utils/format";
@@ -218,6 +219,18 @@ export function BookingFlow({
   time
 }) {
   const currentStep = !serviceId ? 1 : !professionalId ? 2 : !time ? 3 : 4;
+  const [editingService, setEditingService] = useState(false);
+  const [editingProfessional, setEditingProfessional] = useState(false);
+
+  function selectService(id) {
+    setEditingService(false);
+    onSelectService(id);
+  }
+
+  function selectProfessional(id) {
+    setEditingProfessional(false);
+    onSelectProfessional(id);
+  }
 
   return (
     <>
@@ -226,16 +239,32 @@ export function BookingFlow({
         <div className="booking-main">
           <section className="booking-section">
             <div className="section-heading"><div><p className="step-label">1</p><h2>Escolha o serviço</h2></div></div>
-            <ServiceChoices services={services} selectedId={serviceId} onSelect={onSelectService} />
+            {serviceId && !editingService ? (
+              <div className="booking-step-summary">
+                <span><strong>{selectedService?.nome}</strong><small>{formatCurrency(selectedService?.valor)}</small></span>
+                <button className="text-button" onClick={() => setEditingService(true)} type="button">Alterar</button>
+              </div>
+            ) : (
+              <ServiceChoices services={services} selectedId={serviceId} onSelect={selectService} />
+            )}
           </section>
           {serviceId && (
             <section className="booking-section" id="profissional">
               <div className="section-heading"><div><p className="step-label">2</p><h2>Escolha quem vai atender</h2></div></div>
-              <ProfessionalChoices
-                professionals={professionals}
-                selectedId={professionalId}
-                onSelect={onSelectProfessional}
-              />
+              {professionalId && !editingProfessional ? (
+                <div className="booking-step-summary">
+                  <span><strong>{selectedProfessional?.nome}</strong><small>Profissional selecionada</small></span>
+                  {professionals.length > 1 && (
+                    <button className="text-button" onClick={() => setEditingProfessional(true)} type="button">Alterar</button>
+                  )}
+                </div>
+              ) : (
+                <ProfessionalChoices
+                  professionals={professionals}
+                  selectedId={professionalId}
+                  onSelect={selectProfessional}
+                />
+              )}
             </section>
           )}
           {professionalId && (

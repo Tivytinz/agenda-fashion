@@ -32,6 +32,7 @@ describe("Publicação e privacidade do perfil público", () => {
   test("catálogo filtra e pagina no banco de dados", async () => {
     await repository.listarNegociosPublicos({
       busca: "Cílios",
+      categoria: "estetica",
       categoriaTermos: ["estética", "limpeza de pele"],
       limite: 12,
       offset: 24
@@ -44,11 +45,12 @@ describe("Publicação e privacidade do perfil público", () => {
     expect(sql).toMatch(
       /jsonb_agg[\s\S]*WHERE s\.negocio_id = n\.id[\s\S]*cardinality\(\$2::text\[\]\) = 0[\s\S]*s\.nome[\s\S]*LIKE ANY\(\$2::text\[\]\)/i
     );
-    expect(sql).toMatch(/LIMIT \$3[\s\S]*OFFSET \$4/i);
+    expect(sql).toMatch(/LIMIT \$4[\s\S]*OFFSET \$5/i);
     expect(sql).toMatch(/COUNT\(\*\) OVER\(\)/i);
     expect(parametros).toEqual([
       ["%cilios%"],
       ["%estetica%", "%limpeza de pele%"],
+      "estetica",
       12,
       24
     ]);
@@ -56,6 +58,7 @@ describe("Publicação e privacidade do perfil público", () => {
 
   test("categoria limita também os serviços devolvidos", async () => {
     await repository.listarNegociosPublicos({
+      categoria: "unha",
       categoriaTermos: ["unha"]
     });
 
@@ -64,8 +67,9 @@ describe("Publicação e privacidade do perfil público", () => {
       sql.indexOf("jsonb_agg")
     );
 
+    expect(agregacaoServicos).toMatch(/s\.categoria\s*=\s*\$3::text/i);
     expect(agregacaoServicos).toMatch(
-      /concat_ws\([\s\S]*s\.nome[\s\S]*s\.descricao[\s\S]*LIKE ANY\(\$2::text\[\]\)/i
+      /s\.categoria IS NULL[\s\S]*s\.nome[\s\S]*s\.descricao[\s\S]*LIKE ANY\(\$2::text\[\]\)/i
     );
   });
 
