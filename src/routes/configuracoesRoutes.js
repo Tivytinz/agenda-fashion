@@ -16,4 +16,10 @@ router.put(
   configuracoesController.salvarConfiguracoes
 );
 
+router.patch(
+  "/configuracoes/publicacao",
+  auth,
+  configuracoesController.alterarPublicacao
+);
+
 module.exports = router;
