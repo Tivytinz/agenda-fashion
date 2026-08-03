@@ -132,13 +132,13 @@ describe(
         expect(
           explorar
         ).toContain(
-          'apiRequest("/negocios-publicos")'
+          "buildCatalogPath"
         );
 
         expect(
           explorar
         ).toContain(
-          "normalizeText"
+          '"Carregar mais"'
         );
 
         expect(
@@ -173,6 +173,26 @@ describe(
             );
           }
         );
+      }
+    );
+
+    test(
+      "carrega paginas por rota e mostra pagina inexistente",
+      () => {
+        const app = ler("frontend/src/App.jsx");
+        const pagina404 = ler(
+          "frontend/src/pages/NotFoundPage.jsx"
+        );
+
+        expect(app).toContain("lazyNamed");
+        expect(app).toContain("<Suspense");
+        expect(app).toContain(
+          '<Route path="*" element={<NotFoundPage />} />'
+        );
+        expect(pagina404).toContain(
+          "Página não encontrada"
+        );
+        expect(pagina404).toContain('to="/"');
       }
     );
 

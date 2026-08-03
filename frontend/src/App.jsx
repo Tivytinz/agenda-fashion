@@ -1,23 +1,94 @@
+import { lazy, Suspense } from "react";
 import { Route, Routes } from "react-router-dom";
 import { ProtectedRoute } from "./auth/ProtectedRoute";
 import { useSession } from "./auth/SessionContext";
 import { AppHeader } from "./components/AppHeader";
 import { WorkspaceLayout } from "./components/WorkspaceLayout";
-import { AuthPage } from "./pages/AuthPage";
-import { AgendaWorkspacePage } from "./pages/AgendaWorkspacePage";
-import { BillingCheckoutPage, PlansPage, SubscriptionPage } from "./pages/BillingPages";
-import { BusinessPage } from "./pages/BusinessPage";
-import { DashboardPage } from "./pages/DashboardPage";
-import { FavoritesPage } from "./pages/FavoritesPage";
-import { AccountPage } from "./pages/AccountPage";
-import { ScheduleSettingsPage } from "./pages/ScheduleSettingsPage";
-import { ServiceEditorPage, ServicesPage } from "./pages/ServicesPage";
-import { ProfessionalsPage } from "./pages/ProfessionalsPage";
-import { ConfirmPage } from "./pages/ConfirmPage";
-import { ExplorePage } from "./pages/ExplorePage";
-import { MyAppointmentsPage } from "./pages/MyAppointmentsPage";
-import { ProfilePage } from "./pages/ProfilePage";
-import { SuccessPage } from "./pages/SuccessPage";
+
+function lazyNamed(importer, name) {
+  return lazy(() =>
+    importer().then((module) => ({
+      default: module[name]
+    }))
+  );
+}
+
+const AuthPage = lazyNamed(
+  () => import("./pages/AuthPage"),
+  "AuthPage"
+);
+const AgendaWorkspacePage = lazyNamed(
+  () => import("./pages/AgendaWorkspacePage"),
+  "AgendaWorkspacePage"
+);
+const BillingCheckoutPage = lazyNamed(
+  () => import("./pages/BillingPages"),
+  "BillingCheckoutPage"
+);
+const PlansPage = lazyNamed(
+  () => import("./pages/BillingPages"),
+  "PlansPage"
+);
+const SubscriptionPage = lazyNamed(
+  () => import("./pages/BillingPages"),
+  "SubscriptionPage"
+);
+const BusinessPage = lazyNamed(
+  () => import("./pages/BusinessPage"),
+  "BusinessPage"
+);
+const DashboardPage = lazyNamed(
+  () => import("./pages/DashboardPage"),
+  "DashboardPage"
+);
+const FavoritesPage = lazyNamed(
+  () => import("./pages/FavoritesPage"),
+  "FavoritesPage"
+);
+const AccountPage = lazyNamed(
+  () => import("./pages/AccountPage"),
+  "AccountPage"
+);
+const ScheduleSettingsPage = lazyNamed(
+  () => import("./pages/ScheduleSettingsPage"),
+  "ScheduleSettingsPage"
+);
+const ServiceEditorPage = lazyNamed(
+  () => import("./pages/ServicesPage"),
+  "ServiceEditorPage"
+);
+const ServicesPage = lazyNamed(
+  () => import("./pages/ServicesPage"),
+  "ServicesPage"
+);
+const ProfessionalsPage = lazyNamed(
+  () => import("./pages/ProfessionalsPage"),
+  "ProfessionalsPage"
+);
+const ConfirmPage = lazyNamed(
+  () => import("./pages/ConfirmPage"),
+  "ConfirmPage"
+);
+const ExplorePage = lazyNamed(
+  () => import("./pages/ExplorePage"),
+  "ExplorePage"
+);
+const MyAppointmentsPage = lazyNamed(
+  () => import("./pages/MyAppointmentsPage"),
+  "MyAppointmentsPage"
+);
+const ProfilePage = lazyNamed(
+  () => import("./pages/ProfilePage"),
+  "ProfilePage"
+);
+const SuccessPage = lazyNamed(
+  () => import("./pages/SuccessPage"),
+  "SuccessPage"
+);
+const NotFoundPage = lazyNamed(
+  () => import("./pages/NotFoundPage"),
+  "NotFoundPage"
+);
 
 function AccountRoute() {
   const session = useSession();
@@ -37,7 +108,8 @@ export default function App() {
   return (
     <div className="app-shell">
       <AppHeader />
-      <Routes>
+      <Suspense fallback={<main><div className="container route-loading">Carregando...</div></main>}>
+        <Routes>
         <Route path="/" element={<ExplorePage />} />
         <Route path="/negocio/:slug" element={<ProfilePage />} />
         <Route path="/confirmar" element={<ConfirmPage />} />
@@ -113,8 +185,9 @@ export default function App() {
             element={<ScheduleSettingsPage />}
           />
         </Route>
-        <Route path="*" element={<ExplorePage />} />
-      </Routes>
+          <Route path="*" element={<NotFoundPage />} />
+        </Routes>
+      </Suspense>
     </div>
   );
 }

@@ -26,18 +26,76 @@ function normalizarAreas(valor) {
   return [];
 }
 
-async function listarNegociosPublicos() {
+function normalizarInteiro(valor, padrao, maximo) {
+  const numero = Number.parseInt(valor, 10);
+
+  if (!Number.isFinite(numero) || numero < 1) {
+    return padrao;
+  }
+
+  return Math.min(numero, maximo);
+}
+
+function normalizarBusca(valor) {
+  return String(valor || "")
+    .trim()
+    .slice(0, 120);
+}
+
+async function listarNegociosPublicos({
+  busca,
+  categoria,
+  pagina,
+  limite
+} = {}) {
+  const paginaNormalizada =
+    normalizarInteiro(pagina, 1, 100000);
+
+  const limiteNormalizado =
+    normalizarInteiro(limite, 12, 24);
+
+  const buscaNormalizada =
+    normalizarBusca(busca);
+
+  const categoriaNormalizada =
+    normalizarBusca(categoria);
+
   const negocios =
-    await perfilNegocioRepository.listarNegociosPublicos();
+    await perfilNegocioRepository.listarNegociosPublicos({
+      busca: buscaNormalizada,
+      categoria: categoriaNormalizada,
+      limite: limiteNormalizado,
+      offset:
+        (paginaNormalizada - 1) *
+        limiteNormalizado
+    });
+
+  const total = Number(
+    negocios[0]?.total_resultados || 0
+  );
 
   return {
     negocios: negocios.map(negocio => ({
-      ...negocio,
+      ...Object.fromEntries(
+        Object.entries(negocio).filter(
+          ([chave]) =>
+            chave !== "total_resultados"
+        )
+      ),
       areas: normalizarAreas(negocio.areas),
       servicos: Array.isArray(negocio.servicos)
         ? negocio.servicos
         : []
-    }))
+    })),
+    paginacao: {
+      pagina: paginaNormalizada,
+      limite: limiteNormalizado,
+      total,
+      tem_mais:
+        paginaNormalizada *
+          limiteNormalizado <
+        total
+    }
   };
 }
 

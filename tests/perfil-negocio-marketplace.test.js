@@ -41,7 +41,20 @@ describe(
 
         const resultado =
           await service
-            .listarNegociosPublicos();
+            .listarNegociosPublicos({
+              busca: "unhas",
+              pagina: "2",
+              limite: "6"
+            });
+
+        expect(
+          repository.listarNegociosPublicos
+        ).toHaveBeenCalledWith({
+          busca: "unhas",
+          categoria: "",
+          limite: 6,
+          offset: 6
+        });
 
         expect(
           resultado.negocios[0]
@@ -53,6 +66,37 @@ describe(
               "Alongamento em gel",
           }),
         ]);
+      }
+    );
+
+    test(
+      "limita pagina e informa se existem mais resultados",
+      async () => {
+        repository
+          .listarNegociosPublicos
+          .mockResolvedValue([
+            {
+              id: 3,
+              nome: "Studio Aurora",
+              total_resultados: 30,
+              servicos: []
+            }
+          ]);
+
+        const resultado =
+          await service.listarNegociosPublicos({
+            pagina: "1",
+            limite: "999"
+          });
+
+        expect(resultado.paginacao).toEqual({
+          pagina: 1,
+          limite: 24,
+          total: 30,
+          tem_mais: true
+        });
+        expect(resultado.negocios[0])
+          .not.toHaveProperty("total_resultados");
       }
     );
 

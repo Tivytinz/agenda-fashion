@@ -16,6 +16,26 @@ const perfilNegocioController = require("../controllers/perfilNegocioController"
  *   get:
  *     summary: Lista os negócios públicos disponíveis
  *     tags: [Perfil do Negócio]
+ *     parameters:
+ *       - in: query
+ *         name: busca
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: categoria
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: pagina
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *       - in: query
+ *         name: limite
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *           maximum: 24
  *     responses:
  *       200:
  *         description: Lista de negócios retornada com sucesso

@@ -1,6 +1,8 @@
 import {
+  useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState
 } from "react";
 
@@ -27,6 +29,29 @@ const CATEGORIES = [
   ["estetica", "Estética"]
 ];
 
+const PAGE_SIZE = 12;
+
+export function buildCatalogPath({
+  query = "",
+  category = "",
+  page = 1
+} = {}) {
+  const params = new URLSearchParams({
+    pagina: String(page),
+    limite: String(PAGE_SIZE)
+  });
+
+  if (query.trim()) {
+    params.set("busca", query.trim());
+  }
+
+  if (category) {
+    params.set("categoria", category);
+  }
+
+  return `/negocios-publicos?${params.toString()}`;
+}
+
 export function ExplorePage() {
   const [businesses, setBusinesses] =
     useState([]);
@@ -43,27 +68,117 @@ export function ExplorePage() {
   const [error, setError] =
     useState("");
 
-  async function loadBusinesses() {
-    setStatus("loading");
+  const [page, setPage] =
+    useState(1);
+
+  const [hasMore, setHasMore] =
+    useState(false);
+
+  const [total, setTotal] =
+    useState(0);
+
+  const [loadingMore, setLoadingMore] =
+    useState(false);
+
+  const latestRequest = useRef(0);
+
+  const loadBusinesses = useCallback(async ({
+    requestedPage = 1,
+    append = false,
+    signal
+  } = {}) => {
+    const requestId =
+      latestRequest.current + 1;
+
+    latestRequest.current = requestId;
+
+    if (append) {
+      setLoadingMore(true);
+    } else {
+      setStatus("loading");
+      setError("");
+    }
 
     try {
-      const data = await apiRequest("/negocios-publicos");
+      const data = await apiRequest(
+        buildCatalogPath({
+          query,
+          category,
+          page: requestedPage
+        }),
+        { signal }
+      );
 
-      setBusinesses(
+      if (requestId !== latestRequest.current) {
+        return;
+      }
+
+      const received =
         Array.isArray(data.negocios)
           ? data.negocios
-          : []
+          : [];
+
+      setBusinesses(
+        (current) =>
+          append
+            ? [...current, ...received]
+            : received
       );
+
+      setPage(requestedPage);
+      setHasMore(
+        Boolean(data.paginacao?.tem_mais)
+      );
+      setTotal(
+        Number(data.paginacao?.total) ||
+          received.length
+      );
+      setError("");
 
       setStatus("ready");
     } catch (requestError) {
+      if (
+        signal?.aborted ||
+        requestId !== latestRequest.current
+      ) {
+        return;
+      }
+
       setError(requestError.message);
-      setStatus("error");
+      if (!append) {
+        setStatus("error");
+      }
+    } finally {
+      if (
+        !signal?.aborted &&
+        requestId === latestRequest.current
+      ) {
+        setLoadingMore(false);
+      }
     }
-  }
+  }, [category, query]);
 
   useEffect(() => {
-    void loadBusinesses();
+    const controller =
+      new AbortController();
+
+    const timeout = window.setTimeout(
+      () => {
+        void loadBusinesses({
+          requestedPage: 1,
+          signal: controller.signal
+        });
+      },
+      query ? 350 : 0
+    );
+
+    return () => {
+      window.clearTimeout(timeout);
+      controller.abort();
+    };
+  }, [loadBusinesses, query]);
+
+  useEffect(() => {
 
     track("tela_visualizada", {
       page: "inicio",
@@ -110,103 +225,39 @@ export function ExplorePage() {
 
   const filteredServices =
     useMemo(() => {
-      const wanted =
-        normalizeText(
-          `${query} ${category}`
-        );
+      const wanted = normalizeText(
+        `${query} ${category}`
+      );
 
       if (!wanted) {
         return services;
       }
 
-      const terms =
-        wanted
-          .split(/\s+/)
-          .filter(Boolean);
+      const terms = wanted
+        .split(/\s+/)
+        .filter(Boolean);
 
-      return services.filter(
-        (service) => {
-          const haystack =
-            normalizeText(
-              [
-                service.nome,
-                service.descricao,
-                service.categoria,
-                service.negocio_nome,
-                service.negocio_setor,
-                service.negocio_cidade,
-                service.negocio_bairro
-              ].join(" ")
-            );
-
-          return terms.every(
-            (term) =>
-              haystack.includes(term)
-          );
-        }
-      );
-    }, [
-      services,
-      category,
-      query
-    ]);
-
-  const filteredBusinesses =
-    useMemo(() => {
-      const wanted =
-        normalizeText(
-          `${query} ${category}`
+      return services.filter((service) => {
+        const haystack = normalizeText(
+          [
+            service.nome,
+            service.descricao,
+            service.negocio_nome,
+            service.negocio_setor,
+            service.negocio_cidade,
+            service.negocio_bairro
+          ].join(" ")
         );
 
-      if (!wanted) {
-        return businesses;
-      }
-
-      const terms =
-        wanted
-          .split(/\s+/)
-          .filter(Boolean);
-
-      return businesses.filter(
-        (business) => {
-          const businessServices =
-            (
-              business.servicos || []
-            )
-              .map(
-                (service) =>
-                  `${service.nome} ${service.descricao || ""
-                  }`
-              )
-              .join(" ");
-
-          const haystack =
-            normalizeText(
-              [
-                business.nome,
-                business.setor,
-                business.cidade,
-                business.bairro,
-                ...(business.areas || []),
-                businessServices
-              ].join(" ")
-            );
-
-          return terms.every(
-            (term) =>
-              haystack.includes(term)
-          );
-        }
-      );
-    }, [
-      businesses,
-      category,
-      query
-    ]);
+        return terms.every((term) =>
+          haystack.includes(term)
+        );
+      });
+    }, [services, category, query]);
 
   const sortedBusinesses =
     useMemo(() => {
-      return [...filteredBusinesses].sort(
+      return [...businesses].sort(
         (businessA, businessB) => {
           const servicesA =
             businessA.servicos?.length || 0;
@@ -229,7 +280,14 @@ export function ExplorePage() {
           );
         }
       );
-    }, [filteredBusinesses]);
+    }, [businesses]);
+
+  async function loadMore() {
+    await loadBusinesses({
+      requestedPage: page + 1,
+      append: true
+    });
+  }
 
   function chooseCategory(value) {
     setCategory(value);
@@ -356,8 +414,8 @@ export function ExplorePage() {
               {filteredServices.length}{" "}
               {filteredServices.length ===
                 1
-                ? "serviço encontrado"
-                : "serviços encontrados"}
+                ? "serviço exibido"
+                : "serviços exibidos"}
             </span>
           )}
         </div>
@@ -420,10 +478,8 @@ export function ExplorePage() {
               </div>
 
               <span>
-                {
-                  sortedBusinesses.length
-                }{" "}
-                {sortedBusinesses.length ===
+                {total}{" "}
+                {total ===
                   1
                   ? "opção encontrada"
                   : "opções encontradas"}
@@ -440,6 +496,34 @@ export function ExplorePage() {
                 )
               )}
             </div>
+
+            {hasMore && (
+              <div className="load-more-row">
+                <button
+                  className="button button-secondary"
+                  disabled={loadingMore}
+                  onClick={loadMore}
+                  type="button"
+                >
+                  {loadingMore
+                    ? "Carregando..."
+                    : "Carregar mais"}
+                </button>
+              </div>
+            )}
+
+            {error && status === "ready" && (
+              <p className="inline-error" role="alert">
+                {error}{" "}
+                <button
+                  className="link-button"
+                  onClick={loadMore}
+                  type="button"
+                >
+                  Tentar novamente
+                </button>
+              </p>
+            )}
           </section>
         )}
     </main>

@@ -6,7 +6,12 @@ const perfilNegocioService = require("../services/perfilNegocioService");
 async function listarNegociosPublicos(req, res, next) {
   try {
     const resultado =
-      await perfilNegocioService.listarNegociosPublicos();
+      await perfilNegocioService.listarNegociosPublicos({
+        busca: req.query.busca,
+        categoria: req.query.categoria,
+        pagina: req.query.pagina,
+        limite: req.query.limite
+      });
 
     return res.json(resultado);
   } catch (err) {
