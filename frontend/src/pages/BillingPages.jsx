@@ -204,8 +204,17 @@ export function BillingCheckoutPage() {
   const [samePlan, setSamePlan] = useState(false);
   const [document, setDocument] = useState("");
   const [pix, setPix] = useState(null);
+  const [checkoutPaymentId, setCheckoutPaymentId] = useState("");
+  const [paymentStatus, setPaymentStatus] = useState("idle");
+  const [paymentMessage, setPaymentMessage] = useState("");
+  const [copyMessage, setCopyMessage] = useState("");
   const [error, setError] = useState("");
   const [processing, setProcessing] = useState(false);
+  const pollRunRef = useRef(0);
+
+  useEffect(() => () => {
+    pollRunRef.current += 1;
+  }, []);
 
   useEffect(() => {
     Promise.all([
@@ -227,15 +236,48 @@ export function BillingCheckoutPage() {
       .catch((requestError) => setError(requestError.message));
   }, [slug]);
 
-  async function poll(id) {
+  async function poll(id, checkImmediately = false) {
     if (!id) return;
+
+    const run = pollRunRef.current + 1;
+    pollRunRef.current = run;
+    setPaymentStatus("checking");
+    setPaymentMessage("Aguardando a confirmação automática do pagamento...");
+
     for (let attempt = 0; attempt < 12; attempt += 1) {
-      await new Promise((resolve) => window.setTimeout(resolve, 2500));
-      const status = await apiRequest(`/checkout/status/${encodeURIComponent(id)}`);
-      if (paymentConfirmed(status)) {
-        navigate("/painel/assinatura", { replace: true, state: { payment: "confirmed" } });
+      if (!checkImmediately || attempt > 0) {
+        await new Promise((resolve) => window.setTimeout(resolve, 2500));
+      }
+      if (pollRunRef.current !== run) return;
+
+      try {
+        const status = await apiRequest(`/checkout/status/${encodeURIComponent(id)}`);
+        if (pollRunRef.current !== run) return;
+        if (paymentConfirmed(status)) {
+          navigate("/painel/assinatura", { replace: true, state: { payment: "confirmed" } });
+          return;
+        }
+      } catch {
+        if (pollRunRef.current !== run) return;
+        setPaymentStatus("error");
+        setPaymentMessage("Não foi possível verificar o pagamento agora. Seu PIX continua válido.");
         return;
       }
+    }
+
+    if (pollRunRef.current === run) {
+      setPaymentStatus("timeout");
+      setPaymentMessage("Ainda não recebemos a confirmação. Se você já pagou, verifique novamente.");
+    }
+  }
+
+  async function copyPixCode() {
+    setCopyMessage("");
+    try {
+      await navigator.clipboard.writeText(pix.code);
+      setCopyMessage("Código PIX copiado.");
+    } catch {
+      setCopyMessage("Não foi possível copiar automaticamente. Selecione o código acima e copie.");
     }
   }
 
@@ -259,11 +301,18 @@ export function BillingCheckoutPage() {
         return;
       }
       const value = result.pix || result.pagamento?.pix || {};
+      const id = paymentId(result);
       setPix({
         image: value.encodedImage || value.encoded_image || "",
         code: value.payload || value.copia_cola || ""
       });
-      void poll(paymentId(result));
+      setCheckoutPaymentId(id || "");
+      if (id) {
+        void poll(id);
+      } else {
+        setPaymentStatus("error");
+        setPaymentMessage("O PIX foi gerado, mas a confirmação automática não pôde ser iniciada.");
+      }
     } catch (requestError) {
       setError(requestError.message);
     } finally {
@@ -304,7 +353,14 @@ export function BillingCheckoutPage() {
               <p>Escaneie ou copie o código. O plano será ativado após a confirmação.</p>
               {pix.image && <img alt="QR Code PIX" src={`data:image/png;base64,${pix.image}`} />}
               <textarea readOnly rows="4" value={pix.code} />
-              <button className="button button-secondary" onClick={() => navigator.clipboard.writeText(pix.code)} type="button">Copiar código PIX</button>
+              <button className="button button-secondary" disabled={!pix.code} onClick={copyPixCode} type="button">Copiar código PIX</button>
+              {copyMessage && <p className={copyMessage.startsWith("Código") ? "form-success" : "form-error"} role="status">{copyMessage}</p>}
+              {paymentMessage && <p className={paymentStatus === "error" ? "form-error" : "muted"} role="status">{paymentMessage}</p>}
+              {checkoutPaymentId && ["error", "timeout"].includes(paymentStatus) && (
+                <button className="button button-secondary" onClick={() => void poll(checkoutPaymentId, true)} type="button">
+                  Verificar pagamento novamente
+                </button>
+              )}
             </section>
           )}
           {!pix && <button className="button button-full" disabled={processing} type="submit">{processing ? "Gerando PIX..." : "Gerar PIX"}</button>}
