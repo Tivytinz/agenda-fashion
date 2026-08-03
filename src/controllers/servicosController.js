@@ -18,6 +18,7 @@ async function criarServico(req, res, next) {
       descricao: req.body.descricao,
       valor: req.body.valor,
       duracaoMinutos: req.body.duracao_minutos,
+      categoria: req.body.categoria,
       ativo: req.body.ativo,
     });
 
@@ -36,6 +37,7 @@ async function editarServico(req, res, next) {
       descricao: req.body.descricao,
       valor: req.body.valor,
       duracaoMinutos: req.body.duracao_minutos,
+      categoria: req.body.categoria,
       ativo: req.body.ativo,
     });
 

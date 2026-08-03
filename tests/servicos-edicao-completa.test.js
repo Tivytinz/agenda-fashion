@@ -33,6 +33,7 @@ describe("Edição completa de serviços", () => {
     servicosRepository.buscarServicoDoNegocio.mockResolvedValue({
       id: 12,
       ativo: true,
+      categoria: "unha",
     });
     servicosRepository.editarServico.mockResolvedValue({
       id: 12,
@@ -54,6 +55,7 @@ describe("Edição completa de serviços", () => {
     expect(servicosRepository.editarServico).toHaveBeenCalledWith(
       expect.objectContaining({
         descricao: "Esmaltação e cuidado completo.",
+        categoria: "unha",
         ativo: true,
       }),
       client
@@ -62,6 +64,31 @@ describe("Edição completa de serviços", () => {
       servicosRepository.despublicarSemServicoAtivo
     ).toHaveBeenCalledWith(7, client);
     expect(resultado.servico.id).toBe(12);
+  });
+
+  test("salva a categoria explícita escolhida pela profissional", async () => {
+    servicosRepository.buscarServicoDoNegocio.mockResolvedValue({
+      id: 15,
+      ativo: true,
+      categoria: null,
+    });
+    servicosRepository.editarServico.mockResolvedValue({ id: 15, categoria: "sobrancelha" });
+
+    await servicosService.editarServico({
+      usuarioId: 1,
+      id: 15,
+      nome: "Design + Henna",
+      descricao: "",
+      valor: 45,
+      duracaoMinutos: 40,
+      categoria: "sobrancelha",
+      ativo: true,
+    });
+
+    expect(servicosRepository.editarServico).toHaveBeenCalledWith(
+      expect.objectContaining({ categoria: "sobrancelha" }),
+      client
+    );
   });
 
   test("confere o limite antes de reativar", async () => {

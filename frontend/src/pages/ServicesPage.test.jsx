@@ -28,6 +28,9 @@ function fillService() {
   fireEvent.change(screen.getByRole("spinbutton", { name: "Valor" }), {
     target: { value: "50" }
   });
+  fireEvent.change(screen.getByRole("combobox", { name: /Categoria/ }), {
+    target: { value: "unha" }
+  });
 }
 
 function submit() {
@@ -72,6 +75,9 @@ describe("editor de serviços", () => {
 
     expect(await screen.findByRole("heading", { name: "Lista de serviços" })).not.toBeNull();
     expect(apiRequest.mock.calls.filter(([path, options]) => path === "/servicos" && options?.method === "POST")).toHaveLength(1);
+    expect(apiRequest).toHaveBeenCalledWith("/servicos", expect.objectContaining({
+      body: expect.objectContaining({ categoria: "unha" })
+    }));
     expect(apiRequest).toHaveBeenCalledWith("/servicos/33", expect.objectContaining({ method: "PUT" }));
   });
 

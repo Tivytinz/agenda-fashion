@@ -51,6 +51,7 @@ describe(
           repository.listarNegociosPublicos
         ).toHaveBeenCalledWith({
           busca: "unhas",
+          categoria: "",
           categoriaTermos: [],
           limite: 6,
           offset: 6
@@ -85,6 +86,7 @@ describe(
         ).toHaveBeenCalledWith(
           expect.objectContaining({
             busca: "",
+            categoria: "unha",
             categoriaTermos: expect.arrayContaining([
               "unha",
               "manicure",

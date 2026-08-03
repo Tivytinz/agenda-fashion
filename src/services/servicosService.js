@@ -2,6 +2,7 @@ const servicosRepository = require("../repositories/servicosRepository");
 const uploadToCloudinary = require("../utils/uploadCloudinary");
 const db = require("../db/db");
 const registrador = require("../utils/registrador");
+const { normalizarCategoriaServico } = require("../domain/catalogoCategorias");
 const {
   buscarUsoPlano,
   criarErroLimite
@@ -132,6 +133,7 @@ async function criarServico({
   descricao,
   valor,
   duracaoMinutos,
+  categoria,
   ativo
 }) {
   const vinculo = await obterVinculoDono(
@@ -155,6 +157,7 @@ async function criarServico({
         descricao: normalizarDescricao(descricao),
         valor: valorNormalizado,
         duracaoMinutos: duracaoNormalizada,
+        categoria: normalizarCategoriaServico(categoria || "outro"),
         ativo: servicoAtivo,
       },
       client
@@ -174,6 +177,7 @@ async function editarServico({
   descricao,
   valor,
   duracaoMinutos,
+  categoria,
   ativo
 }) {
   const vinculo = await obterVinculoDono(
@@ -206,6 +210,10 @@ async function editarServico({
       descricao: normalizarDescricao(descricao),
       valor: valorNormalizado,
       duracaoMinutos: duracaoNormalizada,
+      categoria: normalizarCategoriaServico(
+        categoria === undefined ? atual.categoria : categoria,
+        { obrigatoria: categoria !== undefined || Boolean(atual.categoria) }
+      ),
       ativo: servicoAtivo,
     }, client);
 

@@ -21,7 +21,9 @@ const CATEGORIAS_CATALOGO = {
   sobrancelha: [
     "sobrancelha",
     "brow",
-    "micropigmenta"
+    "micropigmenta",
+    "design",
+    "henna"
   ],
   maquiagem: ["maquiagem", "makeup", "make up"],
   estetica: [
@@ -34,6 +36,34 @@ const CATEGORIAS_CATALOGO = {
     "corporal"
   ]
 };
+
+const CATEGORIAS_SERVICO = Object.freeze([
+  "unha",
+  "cabelo",
+  "cilio",
+  "sobrancelha",
+  "maquiagem",
+  "estetica",
+  "outro"
+]);
+
+function normalizarCategoriaServico(categoria, { obrigatoria = true } = {}) {
+  const chave = String(categoria || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim()
+    .toLocaleLowerCase("pt-BR");
+
+  if (!chave && !obrigatoria) return null;
+  if (!CATEGORIAS_SERVICO.includes(chave)) {
+    const erro = new Error("Selecione uma categoria válida para o serviço.");
+    erro.status = 400;
+    erro.statusCode = 400;
+    throw erro;
+  }
+
+  return chave;
+}
 
 function termosDaCategoria(categoria) {
   const chave = String(categoria || "")
@@ -49,5 +79,7 @@ function termosDaCategoria(categoria) {
 
 module.exports = {
   CATEGORIAS_CATALOGO,
+  CATEGORIAS_SERVICO,
+  normalizarCategoriaServico,
   termosDaCategoria
 };

@@ -8,10 +8,21 @@ import { formatCurrency } from "../utils/format";
 const EMPTY_FORM = {
   nome: "",
   descricao: "",
+  categoria: "",
   valor: "",
   duracao_minutos: "60",
   ativo: true
 };
+const SERVICE_CATEGORIES = [
+  ["unha", "Unhas"],
+  ["cabelo", "Cabelos"],
+  ["cilio", "Cílios"],
+  ["sobrancelha", "Sobrancelhas"],
+  ["maquiagem", "Maquiagem"],
+  ["estetica", "Estética"],
+  ["outro", "Outro"]
+];
+const categoryLabel = (value) => SERVICE_CATEGORIES.find(([key]) => key === value)?.[1] || "Sem categoria";
 const ACCEPTED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"];
 const MAX_IMAGE_SIZE = 5 * 1024 * 1024;
 
@@ -107,6 +118,7 @@ export function ServicesPage() {
                   {service.ativo === false ? "Inativo" : "Disponível"}
                 </span>
                 <h2>{service.nome}</h2>
+                <p className="service-category-label">{categoryLabel(service.categoria)}</p>
                 {service.descricao && <p className="service-description">{service.descricao}</p>}
                 <p>{service.duracao_minutos || 0} min · <strong>{formatCurrency(service.valor)}</strong></p>
                 <div className="card-actions">
@@ -166,6 +178,7 @@ export function ServiceEditorPage() {
         setForm({
           nome: service.nome || "",
           descricao: service.descricao || "",
+          categoria: service.categoria || "",
           valor: String(service.valor ?? ""),
           duracao_minutos: String(service.duracao_minutos ?? 60),
           ativo: service.ativo !== false,
@@ -213,6 +226,7 @@ export function ServiceEditorPage() {
         body: {
           nome: form.nome.trim(),
           descricao: form.descricao.trim(),
+          categoria: form.categoria,
           valor: Number(form.valor),
           duracao_minutos: Number(form.duracao_minutos),
           ativo: form.ativo
@@ -283,6 +297,20 @@ export function ServiceEditorPage() {
           <label>
             Nome do serviço
             <input minLength="2" onChange={(event) => setForm({ ...form, nome: event.target.value })} required value={form.nome} />
+          </label>
+          <label>
+            Categoria
+            <select
+              onChange={(event) => setForm({ ...form, categoria: event.target.value })}
+              required
+              value={form.categoria}
+            >
+              <option value="">Selecione a categoria</option>
+              {SERVICE_CATEGORIES.map(([value, label]) => (
+                <option key={value} value={value}>{label}</option>
+              ))}
+            </select>
+            <small>Ajuda a cliente a encontrar este serviço na página inicial.</small>
           </label>
           <label>
             Descrição
