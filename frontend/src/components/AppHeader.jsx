@@ -63,8 +63,8 @@ export function AppHeader() {
           <NavLink
             className={({ isActive }) =>
               isActive
-                ? "text-link active desktop-nav-link"
-                : "text-link desktop-nav-link"
+                ? "text-link active desktop-nav-link mobile-agenda-link"
+                : "text-link desktop-nav-link mobile-agenda-link"
             }
             to="/minha-agenda"
           >
