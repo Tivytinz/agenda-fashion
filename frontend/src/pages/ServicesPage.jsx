@@ -142,6 +142,7 @@ export function ServiceEditorPage() {
   const [cover, setCover] = useState(null);
   const [galleryFiles, setGalleryFiles] = useState([]);
   const [gallery, setGallery] = useState([]);
+  const [persistedId, setPersistedId] = useState(id || "");
   const [loading, setLoading] = useState(editing);
   const [saving, setSaving] = useState(false);
   const [removingPhotoId, setRemovingPhotoId] = useState(null);
@@ -205,9 +206,10 @@ export function ServiceEditorPage() {
     event.preventDefault();
     setSaving(true);
     setError("");
+    let savedId = persistedId;
     try {
-      const result = await apiRequest(editing ? `/servicos/${id}` : "/servicos", {
-        method: editing ? "PUT" : "POST",
+      const result = await apiRequest(savedId ? `/servicos/${savedId}` : "/servicos", {
+        method: savedId ? "PUT" : "POST",
         body: {
           nome: form.nome.trim(),
           descricao: form.descricao.trim(),
@@ -216,17 +218,32 @@ export function ServiceEditorPage() {
           ativo: form.ativo
         }
       });
-      const savedId = result.servico?.id || id;
-      if (cover) await uploadImage(`/servicos/${savedId}/foto`, cover);
+      savedId = result.servico?.id || savedId;
+      if (!savedId) {
+        throw new Error("O serviço foi salvo, mas não foi possível identificar o cadastro.");
+      }
+      setPersistedId(String(savedId));
+    } catch (requestError) {
+      setError(requestError.message);
+      setSaving(false);
+      return;
+    }
+
+    try {
+      if (cover) {
+        await uploadImage(`/servicos/${savedId}/foto`, cover);
+        setCover(null);
+      }
       for (const file of galleryFiles) {
         await uploadImage(`/servicos/${savedId}/fotos`, file);
+        setGalleryFiles((current) => current.filter((item) => item !== file));
       }
       navigate("/painel/servicos", {
         replace: true,
         state: { message: editing ? "Serviço atualizado." : "Serviço criado." }
       });
     } catch (requestError) {
-      setError(requestError.message);
+      setError(`O serviço foi salvo, mas algumas fotos não foram enviadas. ${requestError.message} Tente novamente para enviar apenas as fotos pendentes.`);
     } finally {
       setSaving(false);
     }
