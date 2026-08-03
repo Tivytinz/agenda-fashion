@@ -1,4 +1,5 @@
 const agendaRepository = require("../repositories/agendaRepository");
+const db = require("../db/db");
 const agendaConfiguracaoRepository = require(
   "../repositories/agendaConfiguracaoRepository"
 );
@@ -742,54 +743,84 @@ async function alternarBloqueioHorario({
     profissionalId = profissionalIdSolicitado;
   }
 
-  const agendamento =
-    await agendaRepository.buscarAgendamentoAtivo(
+  return db.executarTransacao(async (client) => {
+    await agendaRepository.bloquearAlteracaoHorario(
       profissionalId,
       data,
-      hora
+      hora,
+      client
     );
 
-  if (agendamento) {
-    throw new ValidationError("Horário já está agendado.");
-  }
+    const agendamento =
+      await agendaRepository.buscarAgendamentoAtivo(
+        profissionalId,
+        data,
+        hora,
+        client
+      );
 
-  const bloqueio =
-    await agendaRepository.buscarBloqueioHorarioNovo(
-      profissionalId,
-      data,
-      hora
-    );
+    if (agendamento) {
+      throw new ValidationError("Horário já está agendado.");
+    }
 
-  if (bloqueio) {
-    await agendaRepository.removerBloqueioHorario(bloqueio.id);
+    const bloqueio =
+      await agendaRepository.buscarBloqueioHorarioNovo(
+        profissionalId,
+        data,
+        hora,
+        client
+      );
+
+    if (bloqueio) {
+      await agendaRepository.removerBloqueioHorario(
+        bloqueio.id,
+        client
+      );
+
+      return {
+        sucesso: true,
+        status: "livre",
+        mensagem: "Horário liberado com sucesso."
+      };
+    }
+
+    try {
+      await agendaRepository.criarBloqueioHorario(
+        profissionalId,
+        data,
+        hora,
+        client
+      );
+    } catch (erro) {
+      if (erro?.code === "23505") {
+        throw new ValidationError("Horário já está bloqueado.");
+      }
+
+      throw erro;
+    }
 
     return {
       sucesso: true,
-      status: "livre",
-      mensagem: "Horário liberado com sucesso."
+      status: "bloqueado",
+      mensagem: "Horário bloqueado com sucesso."
     };
-  }
-
-  await agendaRepository.criarBloqueioHorario(
-    profissionalId,
-    data,
-    hora
-  );
-
-  return {
-    sucesso: true,
-    status: "bloqueado",
-    mensagem: "Horário bloqueado com sucesso."
-  };
+  });
 }
 
 async function buscarAgendaGeral({ usuarioId }) {
   exigirUsuario(usuarioId);
 
-  const negocio =
-    await agendaRepository.buscarNegocioDoUsuario(usuarioId);
+  const vinculoDono =
+    await agendaRepository.buscarNegocioDono(usuarioId);
 
-  exigirRecurso(negocio, "Negócio não encontrado.");
+  exigirPermissao(
+    vinculoDono,
+    "Apenas o dono pode acessar a agenda geral."
+  );
+
+  const negocio = {
+    id: vinculoDono.negocio_id
+  };
 
   const profissionais =
     await agendaRepository.buscarProfissionaisDoNegocio(

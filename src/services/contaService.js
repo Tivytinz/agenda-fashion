@@ -144,12 +144,18 @@ function validarSenha(
     );
   }
 
+  const tamanhoEmBytes =
+    Buffer.byteLength(
+      valor,
+      "utf8"
+    );
+
   if (
-    valor.length < 6 ||
-    valor.length > 72
+    tamanhoEmBytes < 6 ||
+    tamanhoEmBytes > 72
   ) {
     throw criarErro(
-      "A nova senha deve ter entre 6 e 72 caracteres.",
+      "A nova senha deve ter entre 6 e 72 bytes.",
       400
     );
   }

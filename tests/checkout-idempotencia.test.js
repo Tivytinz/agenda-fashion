@@ -292,6 +292,93 @@ describe(
       }
     );
 
+    test.each([
+      {
+        titulo: "usuário ausente",
+        parametros: {
+          usuarioId: null,
+          pagamentoId: "pay_1"
+        },
+        statusCode: 401
+      },
+      {
+        titulo: "pagamento ausente",
+        parametros: {
+          usuarioId: 1,
+          pagamentoId: null
+        },
+        statusCode: 400
+      }
+    ])(
+      "retorna status operacional para $titulo",
+      async ({ parametros, statusCode }) => {
+        await expect(
+          consultarStatusCheckout(parametros)
+        ).rejects.toMatchObject({
+          statusCode
+        });
+      }
+    );
+
+    test(
+      "retorna 404 quando o pagamento não existe",
+      async () => {
+        checkoutRepository
+          .buscarPagamentoCheckout
+          .mockResolvedValue(null);
+
+        await expect(
+          consultarStatusCheckout({
+            usuarioId: 1,
+            pagamentoId: "pay_inexistente"
+          })
+        ).rejects.toMatchObject({
+          statusCode: 404,
+          message: "Pagamento não encontrado."
+        });
+      }
+    );
+
+    test.each([
+      {
+        titulo: "negócio",
+        preparar: () =>
+          checkoutRepository
+            .buscarNegocioDono
+            .mockResolvedValue(null),
+        statusCode: 404
+      },
+      {
+        titulo: "plano",
+        preparar: () =>
+          checkoutRepository
+            .buscarPlano
+            .mockResolvedValue(null),
+        statusCode: 404
+      }
+    ])(
+      "retorna 404 quando $titulo não existe",
+      async ({ preparar, statusCode }) => {
+        preparar();
+
+        await expect(
+          criarCheckout({
+            usuarioId: 1,
+            planoId: 3,
+            formaPagamento: "pix",
+            chaveIdempotencia:
+              "checkout-chave-123456"
+          })
+        ).rejects.toMatchObject({
+          statusCode
+        });
+
+        expect(
+          checkoutTentativaRepository.iniciar
+        ).not.toHaveBeenCalled();
+      }
+    );
+
     test(
       "devolve a resposta salva sem criar nova cobrança",
       async () => {

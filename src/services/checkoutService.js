@@ -346,7 +346,7 @@ async function criarCheckout({
   const client = db;
 
   if (!usuarioId) {
-    throw new Error("Usuário não autenticado.");
+    throw new AppError("Usuário não autenticado.", 401);
   }
 
   if (!planoId || formaPagamento !== "pix") {
@@ -368,7 +368,7 @@ async function criarCheckout({
     );
 
   if (!negocio) {
-    throw new Error("Negócio não encontrado.");
+    throw new AppError("Negócio não encontrado.", 404);
   }
 
   const plano =
@@ -378,11 +378,11 @@ async function criarCheckout({
     );
 
   if (!plano) {
-    throw new Error("Plano não encontrado.");
+    throw new AppError("Plano não encontrado.", 404);
   }
 
   if (Number(plano.valor || 0) <= 0) {
-    throw new Error("Este plano não precisa de pagamento.");
+    throw new AppError("Este plano não precisa de pagamento.", 400);
   }
 
   if (Number(negocio.plano_id) === Number(plano.id)) {
@@ -486,11 +486,11 @@ async function consultarStatusCheckout({
   pagamentoId
 }) {
   if (!usuarioId) {
-    throw new Error("Usuário não autenticado.");
+    throw new AppError("Usuário não autenticado.", 401);
   }
 
   if (!pagamentoId) {
-    throw new Error("Pagamento não informado.");
+    throw new AppError("Pagamento não informado.", 400);
   }
 
   const pagamento =
@@ -500,7 +500,7 @@ async function consultarStatusCheckout({
     );
 
   if (!pagamento) {
-    throw new Error("Pagamento não encontrado.");
+    throw new AppError("Pagamento não encontrado.", 404);
   }
 
   return pagamento;

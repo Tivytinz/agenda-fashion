@@ -74,7 +74,8 @@ async function listarProfissionaisDoNegocio(negocioId) {
     `
     SELECT
       u.id,
-      u.nome,
+COALESCE(un.nome_exibicao, u.nome) AS nome,
+COALESCE(un.whatsapp_exibicao, u.whatsapp) AS whatsapp,
       u.foto_url,
       un.papel
     FROM usuarios_negocios un
@@ -86,7 +87,7 @@ async function listarProfissionaisDoNegocio(negocioId) {
       AND un.papel IN ('dono', 'profissional')
     ORDER BY
       CASE WHEN un.papel = 'dono' THEN 0 ELSE 1 END,
-      u.nome ASC
+COALESCE(un.nome_exibicao, u.nome) ASC
     `,
     [negocioId]
   );
@@ -113,27 +114,37 @@ async function verificarProfissionalNoNegocio(usuarioId, negocioId) {
   return result.rows[0] || null;
 }
 
-async function atualizarProfissional(id, nome, whatsapp) {
+async function atualizarProfissional(
+  id,
+  negocioId,
+  nome,
+  whatsapp
+) {
   const result = await db.query(
     `
-    UPDATE usuarios
+    UPDATE usuarios_negocios un
     SET
-      nome = $1,
-      whatsapp = $2
-    WHERE id = $3
-      AND ativo = TRUE
+      nome_exibicao = $1,
+      whatsapp_exibicao = $2
+    FROM usuarios u
+    WHERE un.usuario_id = $3
+      AND un.negocio_id = $4
+      AND un.ativo = TRUE
+      AND u.id = un.usuario_id
+      AND u.ativo = TRUE
     RETURNING
-      id,
-      nome,
-      email,
-      whatsapp,
-      foto_url,
-      ativo
+      u.id,
+      COALESCE(un.nome_exibicao, u.nome) AS nome,
+      u.email,
+      COALESCE(un.whatsapp_exibicao, u.whatsapp) AS whatsapp,
+      u.foto_url,
+      un.ativo
     `,
     [
       nome,
       whatsapp,
-      id
+      id,
+      negocioId
     ]
   );
 

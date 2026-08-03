@@ -143,8 +143,30 @@ async function verificarProfissionalNoNegocio(profissionalId, negocioId) {
   return result.rows[0] || null;
 }
 
-async function buscarAgendamentoAtivo(profissionalId, data, hora) {
-  const result = await db.query(
+async function bloquearAlteracaoHorario(
+  profissionalId,
+  data,
+  hora,
+  executor = db
+) {
+  await executor.query(
+    `
+    SELECT pg_advisory_xact_lock(
+      hashtext('agenda_fashion_bloqueio_horario'),
+      hashtext($1)
+    )
+    `,
+    [`${profissionalId}:${data}:${hora}`]
+  );
+}
+
+async function buscarAgendamentoAtivo(
+  profissionalId,
+  data,
+  hora,
+  executor = db
+) {
+  const result = await executor.query(
     `
     SELECT id
     FROM agendamentos
@@ -160,8 +182,13 @@ async function buscarAgendamentoAtivo(profissionalId, data, hora) {
   return result.rows[0] || null;
 }
 
-async function buscarBloqueioHorarioNovo(profissionalId, data, hora) {
-  const result = await db.query(
+async function buscarBloqueioHorarioNovo(
+  profissionalId,
+  data,
+  hora,
+  executor = db
+) {
+  const result = await executor.query(
     `
     SELECT id
     FROM bloqueios_horarios
@@ -176,8 +203,8 @@ async function buscarBloqueioHorarioNovo(profissionalId, data, hora) {
   return result.rows[0] || null;
 }
 
-async function removerBloqueioHorario(bloqueioId) {
-  await db.query(
+async function removerBloqueioHorario(bloqueioId, executor = db) {
+  await executor.query(
     `
     DELETE FROM bloqueios_horarios
     WHERE id = $1
@@ -186,8 +213,13 @@ async function removerBloqueioHorario(bloqueioId) {
   );
 }
 
-async function criarBloqueioHorario(profissionalId, data, hora) {
-  await db.query(
+async function criarBloqueioHorario(
+  profissionalId,
+  data,
+  hora,
+  executor = db
+) {
+  await executor.query(
     `
     INSERT INTO bloqueios_horarios (
       profissional_id,
@@ -227,7 +259,7 @@ async function buscarProfissionaisDoNegocio(negocioId) {
     `
     SELECT
       u.id,
-      u.nome,
+      COALESCE(un.nome_exibicao, u.nome) AS nome,
       u.foto_url
     FROM usuarios u
     INNER JOIN usuarios_negocios un
@@ -235,7 +267,7 @@ async function buscarProfissionaisDoNegocio(negocioId) {
     WHERE un.negocio_id = $1
       AND un.ativo = TRUE
       AND u.ativo = TRUE
-    ORDER BY u.nome ASC
+    ORDER BY COALESCE(un.nome_exibicao, u.nome) ASC
     `,
     [negocioId]
   );
@@ -527,6 +559,7 @@ module.exports = {
   buscarAgendamentoHorarioPainel,
   buscarNegocioDono,
   verificarProfissionalNoNegocio,
+  bloquearAlteracaoHorario,
   buscarAgendamentoAtivo,
   buscarBloqueioHorarioNovo,
   removerBloqueioHorario,

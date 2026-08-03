@@ -137,6 +137,7 @@ async function editarProfissional({
   const profissional =
     await profissionaisRepository.atualizarProfissional(
       profissionalId,
+      vinculo.negocio_id,
       nomeLimpo,
       whatsappLimpo
     );

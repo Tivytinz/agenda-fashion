@@ -229,6 +229,7 @@ describe("Limite de profissionais", () => {
         profissionaisRepository.atualizarProfissional
       ).toHaveBeenCalledWith(
         20,
+        7,
         "Profissional Teste",
         "62999991234"
       );

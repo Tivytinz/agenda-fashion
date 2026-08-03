@@ -213,7 +213,7 @@ describe("Fluxo de profissionais com banco real", () => {
     ]);
   });
 
-  test("dona edita nome e normaliza WhatsApp do profissional", async () => {
+  test("dona edita apenas o perfil do vínculo com o negócio", async () => {
     const resposta = await request(app)
       .put(`/profissionais/${profissionalVinculado.id}`)
       .set("Authorization", `Bearer ${tokenDonoA}`)
@@ -229,6 +229,35 @@ describe("Fluxo de profissionais com banco real", () => {
       whatsapp: "62999991234"
     });
     expect(resposta.body.profissional).not.toHaveProperty("tipo");
+
+    const contaGlobal = await db.query(
+      `
+      SELECT nome, whatsapp
+      FROM usuarios
+      WHERE id = $1
+      `,
+      [profissionalVinculado.id]
+    );
+
+    expect(contaGlobal.rows[0]).toMatchObject({
+      nome: profissionalVinculado.nome,
+      whatsapp: profissionalVinculado.whatsapp
+    });
+
+    const perfilNoNegocio = await db.query(
+      `
+      SELECT nome_exibicao, whatsapp_exibicao
+      FROM usuarios_negocios
+      WHERE usuario_id = $1
+        AND negocio_id = $2
+      `,
+      [profissionalVinculado.id, negocioA.id]
+    );
+
+    expect(perfilNoNegocio.rows[0]).toEqual({
+      nome_exibicao: "Profissional Atualizada",
+      whatsapp_exibicao: "62999991234"
+    });
   });
 
   test("dona de outro negócio não edita o profissional", async () => {
@@ -251,7 +280,7 @@ describe("Fluxo de profissionais com banco real", () => {
       [profissionalVinculado.id]
     );
 
-    expect(usuario.rows[0].nome).toBe("Profissional Atualizada");
+    expect(usuario.rows[0].nome).toBe(profissionalVinculado.nome);
   });
 
   test("profissional sem papel de dona não adiciona pessoas", async () => {

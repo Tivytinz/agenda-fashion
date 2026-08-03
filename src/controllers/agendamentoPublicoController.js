@@ -9,27 +9,14 @@ const registrador = require(
   "../utils/registrador"
 );
 
-function statusErro(erro) {
-  return (
-    erro?.statusCode ||
-    erro?.status ||
-    500
-  );
-}
-
-function mensagemErro(
-  erro,
-  mensagemPadrao
-) {
-  return (
-    erro?.message ||
-    mensagemPadrao
-  );
+function encaminharErro(erro, next) {
+  return next(erro);
 }
 
 async function buscarAgendaPublica(
   req,
-  res
+  res,
+  next
 ) {
   try {
     const {
@@ -133,23 +120,14 @@ async function buscarAgendaPublica(
           : undefined,
     });
   } catch (erro) {
-    return res
-      .status(
-        statusErro(erro)
-      )
-      .json({
-        erro:
-          mensagemErro(
-            erro,
-            "Erro ao carregar agenda pública."
-          ),
-      });
+    return encaminharErro(erro, next);
   }
 }
 
 async function criarAgendamentoPublico(
   req,
-  res
+  res,
+  next
 ) {
   try {
     /*
@@ -352,23 +330,14 @@ async function criarAgendamentoPublico(
         agendamento,
       });
   } catch (erro) {
-    return res
-      .status(
-        statusErro(erro)
-      )
-      .json({
-        erro:
-          mensagemErro(
-            erro,
-            "Erro ao criar agendamento."
-          ),
-      });
+    return encaminharErro(erro, next);
   }
 }
 
 async function listarMeusAgendamentos(
   req,
-  res
+  res,
+  next
 ) {
   try {
     const resultado =
@@ -382,23 +351,14 @@ async function listarMeusAgendamentos(
       resultado
     );
   } catch (erro) {
-    return res
-      .status(
-        statusErro(erro)
-      )
-      .json({
-        erro:
-          mensagemErro(
-            erro,
-            "Erro ao carregar agendamentos."
-          ),
-      });
+    return encaminharErro(erro, next);
   }
 }
 
 async function cancelarMeuAgendamento(
   req,
-  res
+  res,
+  next
 ) {
   try {
     const resultado =
@@ -415,17 +375,7 @@ async function cancelarMeuAgendamento(
       resultado
     );
   } catch (erro) {
-    return res
-      .status(
-        statusErro(erro)
-      )
-      .json({
-        erro:
-          mensagemErro(
-            erro,
-            "Erro ao cancelar agendamento."
-          ),
-      });
+    return encaminharErro(erro, next);
   }
 }
 

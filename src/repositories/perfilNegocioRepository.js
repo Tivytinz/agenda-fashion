@@ -218,9 +218,9 @@ async function buscarProfissionais(
     `
       SELECT
         u.id,
-        u.nome,
+        COALESCE(un.nome_exibicao, u.nome) AS nome,
         u.foto_url,
-        un.papel
+        un.papel  
 
       FROM usuarios_negocios un
 
@@ -242,7 +242,7 @@ async function buscarProfissionais(
           ELSE 1
         END,
 
-        u.nome ASC
+        COALESCE(un.nome_exibicao, u.nome) ASC
     `,
     [negocioId]
   );
