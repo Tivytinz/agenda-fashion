@@ -108,6 +108,8 @@ nav { display: flex; align-items: center; gap: 18px; }
 .profile-image img { width: 100%; height: 100%; object-fit: cover; }
 .profile-meta { display: flex; flex-wrap: wrap; gap: 8px; color: var(--muted); font-size: .88rem; }
 .profile-meta span { border-radius: 999px; padding: 5px 9px; background: var(--pink-50); }
+.profile-distance-button { border: 1px solid var(--pink-100); border-radius: 999px; padding: 5px 9px; color: var(--wine); background: #fff; font: inherit; font-weight: 800; cursor: pointer; }
+.profile-distance-button:hover { border-color: var(--pink-500); background: var(--pink-50); }
 .favorite-button { min-height: 42px; border: 1px solid var(--pink-100); border-radius: 999px; padding: 0 16px; color: var(--wine); background: #fff; font-weight: 850; cursor: pointer; }
 .favorite-button.active { color: var(--pink-600); border-color: var(--pink-500); background: var(--pink-50); }
 .flow-progress { max-width: 760px; margin: 0 auto 24px; }
