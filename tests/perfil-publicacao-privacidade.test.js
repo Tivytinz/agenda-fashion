@@ -29,6 +29,26 @@ describe("Publicação e privacidade do perfil público", () => {
     );
   });
 
+  test("catálogo filtra e pagina no banco de dados", async () => {
+    await repository.listarNegociosPublicos({
+      busca: "Cílios",
+      categoria: "estética",
+      limite: 12,
+      offset: 24
+    });
+
+    const [sql, parametros] = mockQuery.mock.calls[0];
+
+    expect(sql).toMatch(/LIKE ALL\(\$1::text\[\]\)/i);
+    expect(sql).toMatch(/LIMIT \$2[\s\S]*OFFSET \$3/i);
+    expect(sql).toMatch(/COUNT\(\*\) OVER\(\)/i);
+    expect(parametros).toEqual([
+      ["%cilios%", "%estetica%"],
+      12,
+      24
+    ]);
+  });
+
   test("perfil não seleciona identificadores internos", async () => {
     await repository.buscarNegocioPorSlug("studio");
 

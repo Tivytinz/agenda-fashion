@@ -3097,3 +3097,41 @@ nav .button-small {
 }
 
 /* MOBILE WORKSPACE NAVIGATION END */
+/* Sprint 6: estados de paginação e rotas públicas */
+.load-more-row {
+  display: flex;
+  justify-content: center;
+  margin-top: 24px;
+}
+
+.inline-error {
+  color: var(--danger, #a3214f);
+  margin: 16px auto 0;
+  text-align: center;
+}
+
+.link-button {
+  appearance: none;
+  background: transparent;
+  border: 0;
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 700;
+  padding: 0;
+  text-decoration: underline;
+}
+
+.route-loading,
+.not-found-page {
+  padding-block: clamp(48px, 10vw, 112px);
+}
+
+.not-found-page {
+  max-width: 680px;
+  text-align: center;
+}
+
+.not-found-page .button {
+  margin-top: 16px;
+}
