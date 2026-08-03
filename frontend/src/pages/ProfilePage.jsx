@@ -206,6 +206,8 @@ export function ProfilePage() {
     async function loadProfile() {
       setStatus("loading");
       setError("");
+      setDistanceKm(null);
+      setLocationStatus("idle");
 
       try {
         const data = await apiRequest(
@@ -245,7 +247,7 @@ export function ProfilePage() {
       .catch(() => {});
   }, [profile]);
 
-    useEffect(() => {
+  function requestDistance() {
     const business = profile?.negocio;
 
     const latitude = parseCoordinate(
@@ -297,7 +299,7 @@ export function ProfilePage() {
         maximumAge: 300000
       }
     );
-  }, [profile]);
+  }
 
   useEffect(() => {
     if (!serviceId || !professionalId) {
@@ -564,14 +566,29 @@ export function ProfilePage() {
               {rating.label === "Novo" ? "✨ Novo" : rating.label}
             </span>
 
+            {latitude !== null &&
+              longitude !== null &&
+              navigator.geolocation &&
+              ["idle", "denied"].includes(locationStatus) && (
+                <button
+                  className="profile-distance-button"
+                  onClick={requestDistance}
+                  type="button"
+                >
+                  {locationStatus === "denied"
+                    ? "Tentar ver distância"
+                    : "Ver distância"}
+                </button>
+              )}
+
             {locationStatus === "loading" && (
-              <span>Calculando distância...</span>
+              <span aria-live="polite">Calculando distância...</span>
             )}
 
             {distanceKm !== null &&
               distanceKm >= 0 &&
               distanceKm <= 500 && (
-                <span>
+                <span aria-live="polite">
                   {distanceKm < 1
                     ? `${Math.round(distanceKm * 1000)} m de você`
                     : `${distanceKm.toFixed(1).replace(".", ",")} km de você`}
