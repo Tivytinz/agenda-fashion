@@ -199,7 +199,7 @@ async function editarServico({
       await validarLimiteServicoAtivo(vinculo.negocio_id, client);
     }
 
-    return servicosRepository.editarServico({
+    const atualizado = await servicosRepository.editarServico({
       id,
       negocioId: vinculo.negocio_id,
       nome: nomeNormalizado,
@@ -208,6 +208,15 @@ async function editarServico({
       duracaoMinutos: duracaoNormalizada,
       ativo: servicoAtivo,
     }, client);
+
+    if (atualizado) {
+      await servicosRepository.despublicarSemServicoAtivo(
+        vinculo.negocio_id,
+        client
+      );
+    }
+
+    return atualizado;
   });
 
   if (!servico) {
@@ -244,10 +253,24 @@ async function removerServico({ usuarioId, id }) {
     await servicosRepository
       .listarFotosServico(id);
 
-  const removido = await servicosRepository.removerServico({
-    id,
-    negocioId: vinculo.negocio_id,
-  });
+  const removido = await db.executarTransacao(
+    async (client) => {
+      const resultado =
+        await servicosRepository.removerServico({
+          id,
+          negocioId: vinculo.negocio_id,
+        }, client);
+
+      if (resultado) {
+        await servicosRepository.despublicarSemServicoAtivo(
+          vinculo.negocio_id,
+          client
+        );
+      }
+
+      return resultado;
+    }
+  );
 
   if (!removido) {
     throw criarErro("Serviço não encontrado.", 404);

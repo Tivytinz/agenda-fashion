@@ -4,6 +4,7 @@ import {
   formatCurrency,
   formatLocation
 } from "../utils/format";
+import { resolveMediaUrl } from "../utils/media";
 
 export function ServiceCard({
   service
@@ -14,6 +15,10 @@ export function ServiceCard({
   const hasImage =
     Boolean(service.foto_url) &&
     !imageFailed;
+
+  const imageUrl = resolveMediaUrl(
+    service.foto_url
+  );
 
   const initial = String(
     service.nome || "S"
@@ -38,7 +43,7 @@ export function ServiceCard({
       >
         {hasImage ? (
           <img
-            src={service.foto_url}
+            src={imageUrl}
             alt={`Resultado de ${service.nome}`}
             loading="lazy"
             onError={() =>
@@ -109,4 +114,4 @@ export function ServiceCard({
       </div>
     </article>
   );
-}   
+}

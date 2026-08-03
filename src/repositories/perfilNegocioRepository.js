@@ -138,6 +138,20 @@ async function listarNegociosPublicos({
 
           WHERE s.negocio_id = n.id
             AND s.ativo = TRUE
+            AND (
+              cardinality($2::text[]) = 0
+              OR translate(
+                lower(
+                  concat_ws(
+                    ' ',
+                    s.nome,
+                    s.descricao
+                  )
+                ),
+                'áàâãäéèêëíìîïóòôõöúùûüç',
+                'aaaaaeeeeiiiiooooouuuuc'
+              ) LIKE ANY($2::text[])
+            )
         ),
         '[]'::jsonb
       ) AS servicos,

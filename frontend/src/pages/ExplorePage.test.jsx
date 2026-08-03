@@ -168,4 +168,23 @@ describe("catálogo público paginado", () => {
       expect.objectContaining({ signal: expect.any(AbortSignal) })
     );
   });
+
+  it("mantém as seções visíveis quando o catálogo está vazio", async () => {
+    apiRequest.mockResolvedValue({
+      negocios: [],
+      paginacao: { total: 0, tem_mais: false }
+    });
+
+    renderExplore();
+
+    expect(await screen.findByText(
+      "Nenhum serviço encontrado"
+    )).not.toBeNull();
+    expect(screen.getByRole("heading", {
+      name: "Negócios e profissionais"
+    })).not.toBeNull();
+    expect(screen.getByText(
+      "Nenhum negócio encontrado"
+    )).not.toBeNull();
+  });
 });

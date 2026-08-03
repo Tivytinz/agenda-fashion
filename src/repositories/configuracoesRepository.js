@@ -138,6 +138,21 @@ async function atualizarNegocio(
             $9::TEXT[],
             ARRAY[]::TEXT[]
           ),
+          publicado = CASE
+            WHEN negocios.publicado = TRUE
+              AND NULLIF(BTRIM(COALESCE($3, '')), '') IS NOT NULL
+              AND NULLIF(BTRIM(COALESCE($4, '')), '') IS NOT NULL
+              AND NULLIF(BTRIM(COALESCE($5, '')), '') IS NOT NULL
+              AND NULLIF(BTRIM(COALESCE($8, '')), '') IS NOT NULL
+              AND EXISTS (
+                SELECT 1
+                FROM servicos_negocio s
+                WHERE s.negocio_id = negocios.id
+                  AND s.ativo = TRUE
+              )
+            THEN TRUE
+            ELSE FALSE
+          END,
           updated_at = NOW()
 
         WHERE id = $10
