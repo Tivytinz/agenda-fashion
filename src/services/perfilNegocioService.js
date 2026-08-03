@@ -1,5 +1,8 @@
 const perfilNegocioRepository = require("../repositories/perfilNegocioRepository");
 const AppError = require("../errors/AppError");
+const {
+  termosDaCategoria
+} = require("../domain/catalogoCategorias");
 
 function normalizarAreas(valor) {
   if (!valor) return [];
@@ -60,10 +63,13 @@ async function listarNegociosPublicos({
   const categoriaNormalizada =
     normalizarBusca(categoria);
 
+  const categoriaTermos =
+    termosDaCategoria(categoriaNormalizada);
+
   const negocios =
     await perfilNegocioRepository.listarNegociosPublicos({
       busca: buscaNormalizada,
-      categoria: categoriaNormalizada,
+      categoriaTermos,
       limite: limiteNormalizado,
       offset:
         (paginaNormalizada - 1) *

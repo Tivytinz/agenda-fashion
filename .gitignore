@@ -1,5 +1,7 @@
 node_modules/
 coverage/
+frontend/playwright-report/
+frontend/test-results/
 agendamento-nails/react-app/
 .env
 .vscode/

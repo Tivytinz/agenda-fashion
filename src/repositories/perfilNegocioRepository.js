@@ -2,16 +2,22 @@ const db = require("../db/db");
 
 async function listarNegociosPublicos({
   busca = "",
-  categoria = "",
+  categoriaTermos = [],
   limite = 12,
   offset = 0
 } = {}) {
-  const termos = [busca, categoria]
-    .join(" ")
+  const normalizarTexto = valor => String(valor || "")
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
-    .toLocaleLowerCase("pt-BR")
+    .toLocaleLowerCase("pt-BR");
+
+  const termosBusca = normalizarTexto(busca)
     .split(/\s+/)
+    .filter(Boolean)
+    .map(termo => `%${termo}%`);
+
+  const termosCategoria = categoriaTermos
+    .map(normalizarTexto)
     .filter(Boolean)
     .map(termo => `%${termo}%`);
 
@@ -48,6 +54,28 @@ async function listarNegociosPublicos({
             'aaaaaeeeeiiiiooooouuuuc'
           ) LIKE ALL($1::text[])
         )
+        AND (
+          cardinality($2::text[]) = 0
+          OR translate(
+            lower(
+              concat_ws(
+                ' ',
+                n.setor,
+                (
+                  SELECT string_agg(
+                    concat_ws(' ', s.nome, s.descricao),
+                    ' '
+                  )
+                  FROM servicos_negocio s
+                  WHERE s.negocio_id = n.id
+                    AND s.ativo = TRUE
+                )
+              )
+            ),
+            'áàâãäéèêëíìîïóòôõöúùûüç',
+            'aaaaaeeeeiiiiooooouuuuc'
+          ) LIKE ANY($2::text[])
+        )
     ),
     negocios_paginados AS (
       SELECT
@@ -63,8 +91,8 @@ async function listarNegociosPublicos({
         ) DESC,
         nf.nome ASC,
         nf.id ASC
-      LIMIT $2
-      OFFSET $3
+      LIMIT $3
+      OFFSET $4
     )
     SELECT
       n.id,
@@ -150,7 +178,7 @@ async function listarNegociosPublicos({
     ORDER BY
       n.nome ASC,
       n.id ASC
-  `, [termos, limite, offset]);
+  `, [termosBusca, termosCategoria, limite, offset]);
 
   return resultado.rows;
 }

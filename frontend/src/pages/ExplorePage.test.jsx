@@ -127,4 +127,45 @@ describe("catálogo público paginado", () => {
       );
     }, { timeout: 1000 });
   });
+
+  it("mostra Manicure ao selecionar a categoria Unhas", async () => {
+    const user = userEvent.setup();
+
+    apiRequest
+      .mockResolvedValueOnce({
+        negocios: [],
+        paginacao: { total: 0, tem_mais: false }
+      })
+      .mockResolvedValueOnce({
+        negocios: [{
+          id: 3,
+          nome: "Studio Manicure",
+          slug: "studio-manicure",
+          servicos: [{
+            id: 31,
+            nome: "Manicure tradicional",
+            valor: 45,
+            duracao_minutos: 50
+          }]
+        }],
+        paginacao: { total: 1, tem_mais: false }
+      });
+
+    renderExplore();
+    await waitFor(() =>
+      expect(apiRequest).toHaveBeenCalledTimes(1)
+    );
+
+    await user.click(screen.getByRole("button", {
+      name: "Unhas"
+    }));
+
+    expect(await screen.findByRole("heading", {
+      name: "Manicure tradicional"
+    })).not.toBeNull();
+    expect(apiRequest).toHaveBeenLastCalledWith(
+      expect.stringContaining("categoria=unha"),
+      expect.objectContaining({ signal: expect.any(AbortSignal) })
+    );
+  });
 });
