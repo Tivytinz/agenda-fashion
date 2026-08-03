@@ -97,7 +97,17 @@ describe(
             .attach(
               "foto",
               Buffer.from(
-                "imagem"
+                [
+                  0x89,
+                  0x50,
+                  0x4e,
+                  0x47,
+                  0x0d,
+                  0x0a,
+                  0x1a,
+                  0x0a,
+                  0x00,
+                ]
               ),
               {
                 filename:
@@ -116,7 +126,69 @@ describe(
         ).toEqual({
           mimetype:
             "image/png",
-          tamanho: 6,
+          tamanho: 9,
+        });
+      }
+    );
+
+    test(
+      "recusa conteúdo falso disfarçado de imagem",
+      async () => {
+        const app =
+          express();
+
+        app.post(
+          "/upload",
+          upload.single(
+            "foto"
+          ),
+          (_req, res) =>
+            res.sendStatus(204)
+        );
+
+        app.use(
+          (
+            erro,
+            _req,
+            res,
+            _next
+          ) =>
+            res
+              .status(
+                erro.statusCode ||
+                500
+              )
+              .json({
+                codigo:
+                  erro.code,
+              })
+        );
+
+        const resposta =
+          await request(app)
+            .post("/upload")
+            .attach(
+              "foto",
+              Buffer.from(
+                "não é uma imagem"
+              ),
+              {
+                filename:
+                  "foto.png",
+                contentType:
+                  "image/png",
+              }
+            );
+
+        expect(
+          resposta.status
+        ).toBe(400);
+
+        expect(
+          resposta.body
+        ).toEqual({
+          codigo:
+            "INVALID_FILE_CONTENT",
         });
       }
     );

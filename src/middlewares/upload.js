@@ -1,5 +1,11 @@
 const Busboy = require("busboy");
 
+const {
+  correspondeAoTipo,
+} = require(
+  "../utils/validarImagem"
+);
+
 const TAMANHO_MAXIMO =
   5 * 1024 * 1024;
 
@@ -188,6 +194,26 @@ function single(
           "end",
           () => {
             if (!erroUpload) {
+              const buffer =
+                Buffer.concat(
+                  partes
+                );
+
+              if (
+                !correspondeAoTipo(
+                  buffer,
+                  mimetype
+                )
+              ) {
+                erroUpload =
+                  criarErro(
+                    "O conteúdo do arquivo não corresponde a uma imagem válida.",
+                    "INVALID_FILE_CONTENT"
+                  );
+
+                return;
+              }
+
               arquivo = {
                 fieldname:
                   nomeCampo,
@@ -199,10 +225,7 @@ function single(
                 mimetype,
                 size:
                   tamanho,
-                buffer:
-                  Buffer.concat(
-                    partes
-                  ),
+                buffer,
               };
             }
           }
