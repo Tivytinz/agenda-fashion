@@ -1,5 +1,9 @@
-import { NavLink, Outlet } from "react-router-dom";
+import { NavLink, Outlet, useLocation } from "react-router-dom";
 import { useSession } from "../auth/SessionContext";
+import {
+  isWorkspaceRouteActive,
+  splitMobileLinks
+} from "./workspaceNavigation";
 
 const OWNER_LINKS = [
   ["/painel", "Visão geral", "⌂"],
@@ -18,13 +22,15 @@ const PROFESSIONAL_LINKS = [
   ["/conta", "Minha conta", "○"]
 ];
 
-function WorkspaceLinks({ links, mobile = false }) {
+function WorkspaceLinks({ links, mobile = false, menu = false }) {
   return links.map(([to, label, icon]) => (
     <NavLink
       className={({ isActive }) => {
-        const base = mobile
-          ? "workspace-mobile-link"
-          : "workspace-link";
+        const base = menu
+          ? "workspace-mobile-menu-link"
+          : mobile
+            ? "workspace-mobile-link"
+            : "workspace-link";
 
         return isActive
           ? `${base} active`
@@ -35,12 +41,57 @@ function WorkspaceLinks({ links, mobile = false }) {
         to === "/profissional/agenda"
       }
       key={to}
+      onClick={
+        menu
+          ? (event) => {
+            event.currentTarget
+              .closest("details")
+              ?.removeAttribute("open");
+          }
+          : undefined
+      }
       to={to}
     >
       <span aria-hidden="true">{icon}</span>
       <small>{label}</small>
     </NavLink>
   ));
+}
+
+export function MobileWorkspaceNavigation({ links }) {
+  const { pathname } = useLocation();
+  const { primary, secondary } = splitMobileLinks(links);
+  const secondaryActive = secondary.some(([to]) =>
+    isWorkspaceRouteActive(pathname, to)
+  );
+
+  return (
+    <nav
+      className="workspace-mobile-nav"
+      aria-label="Navegação da área de trabalho"
+    >
+      <WorkspaceLinks links={primary} mobile />
+
+      {secondary.length > 0 && (
+        <details
+          className={
+            secondaryActive
+              ? "workspace-mobile-more active"
+              : "workspace-mobile-more"
+          }
+        >
+          <summary aria-label="Abrir mais opções da área de trabalho">
+            <span aria-hidden="true">•••</span>
+            <small>Mais</small>
+          </summary>
+
+          <div className="workspace-mobile-menu">
+            <WorkspaceLinks links={secondary} menu />
+          </div>
+        </details>
+      )}
+    </nav>
+  );
 }
 
 export function WorkspaceLayout({ children }) {
@@ -80,12 +131,7 @@ export function WorkspaceLayout({ children }) {
         {children || <Outlet />}
       </section>
 
-      <nav
-        className="workspace-mobile-nav"
-        aria-label="Navegação da área de trabalho"
-      >
-        <WorkspaceLinks links={links} mobile />
-      </nav>
+      <MobileWorkspaceNavigation links={links} />
     </div>
   );
 }
