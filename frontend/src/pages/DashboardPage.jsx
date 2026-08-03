@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { apiRequest } from "../api/client";
 import { ErrorState, LoadingState } from "../components/ScreenState";
@@ -15,18 +15,39 @@ export function DashboardPage() {
   const [period, setPeriod] = useState("7dias");
   const [data, setData] = useState(null);
   const [error, setError] = useState("");
+  const [reloadKey, setReloadKey] = useState(0);
 
-  const load = useCallback(() => {
+  useEffect(() => {
+    const controller = new AbortController();
+    let active = true;
+
     setError("");
-    apiRequest(`/dashboard-dono?periodo=${period}`)
-      .then(setData)
-      .catch((requestError) => setError(requestError.message));
-  }, [period]);
+    apiRequest(`/dashboard-dono?periodo=${period}`, {
+      signal: controller.signal
+    })
+      .then((result) => {
+        if (active) setData(result);
+      })
+      .catch((requestError) => {
+        if (active && requestError.name !== "AbortError") {
+          setError(requestError.message);
+        }
+      });
 
-  useEffect(load, [load]);
+    return () => {
+      active = false;
+      controller.abort();
+    };
+  }, [period, reloadKey]);
+
+  function selectPeriod(value) {
+    if (value === period) return;
+    setData(null);
+    setPeriod(value);
+  }
 
   if (!data && !error) return <div className="workspace-page"><LoadingState>Montando seu painel...</LoadingState></div>;
-  if (error) return <div className="workspace-page"><ErrorState message={error} onRetry={load} /></div>;
+  if (error) return <div className="workspace-page"><ErrorState message={error} onRetry={() => setReloadKey((current) => current + 1)} /></div>;
 
   const summary = data.resumo || {};
   const performance = data.performance || {};
@@ -47,7 +68,7 @@ export function DashboardPage() {
         </div>
         <div className="segmented-control" aria-label="Período">
           {PERIODS.map(([value, label]) => (
-            <button className={period === value ? "active" : ""} key={value} onClick={() => setPeriod(value)} type="button">
+            <button aria-pressed={period === value} className={period === value ? "active" : ""} key={value} onClick={() => selectPeriod(value)} type="button">
               {label}
             </button>
           ))}

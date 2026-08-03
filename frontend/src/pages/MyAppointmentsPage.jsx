@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { apiRequest } from "../api/client";
 import { track } from "../analytics/track";
+import { useSession } from "../auth/SessionContext";
 import { ErrorState, LoadingState } from "../components/ScreenState";
 import {
   APPOINTMENT_STATUS,
@@ -137,19 +138,27 @@ function AppointmentCard({ appointment, canCancel, canceling, onCancel }) {
 }
 
 export function MyAppointmentsPage() {
-  const isAuthenticated = Boolean(localStorage.getItem("token"));
+  const session = useSession();
+  const isAuthenticated = session.authenticated;
   const recentAppointment = useMemo(() => readRecentAppointment(), []);
   const [appointments, setAppointments] = useState(
     !isAuthenticated && recentAppointment ? [recentAppointment] : []
   );
   const [activeTab, setActiveTab] = useState("scheduled");
-  const [status, setStatus] = useState(isAuthenticated ? "loading" : "ready");
+  const [status, setStatus] = useState(session.loading || isAuthenticated ? "loading" : "ready");
   const [message, setMessage] = useState("");
   const [cancelingId, setCancelingId] = useState(null);
   const [pendingCancellation, setPendingCancellation] = useState(null);
 
   const loadAppointments = useCallback(async () => {
+    if (session.loading) {
+      return;
+    }
+
     if (!isAuthenticated) {
+      setAppointments(recentAppointment ? [recentAppointment] : []);
+      setStatus("ready");
+      setMessage("");
       return;
     }
 
@@ -164,7 +173,7 @@ export function MyAppointmentsPage() {
       setMessage(error.message);
       setStatus("error");
     }
-  }, [isAuthenticated]);
+  }, [isAuthenticated, recentAppointment, session.loading]);
 
   useEffect(() => {
     track("tela_visualizada", {
