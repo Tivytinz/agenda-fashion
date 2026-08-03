@@ -1,35 +1,18 @@
-import { useState } from "react";
 import { Link } from "react-router-dom";
 import {
   formatCurrency,
   formatLocation
 } from "../utils/format";
-import { resolveMediaUrl, withMediaRetry } from "../utils/media";
+import { useRetryingMedia } from "../hooks/useRetryingMedia";
 
 export function ServiceCard({
   service
 }) {
-  const [imageFailed, setImageFailed] =
-    useState(false);
-  const [imageRetry, setImageRetry] =
-    useState(0);
-
-  const hasImage =
-    Boolean(service.foto_url) &&
-    !imageFailed;
-
-  const imageUrl = withMediaRetry(resolveMediaUrl(
-    service.foto_url,
-    { width: 520 }
-  ), imageRetry);
-
-  function handleImageError() {
-    if (imageRetry < 1) {
-      setImageRetry(1);
-      return;
-    }
-    setImageFailed(true);
-  }
+  const {
+    handleError: handleImageError,
+    hasImage,
+    imageUrl
+  } = useRetryingMedia(service.foto_url, { width: 520 });
 
   const initial = String(
     service.nome || "S"

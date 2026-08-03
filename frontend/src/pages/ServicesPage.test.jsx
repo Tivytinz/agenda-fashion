@@ -4,7 +4,7 @@ import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/re
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { apiRequest } from "../api/client";
-import { ServiceEditorPage } from "./ServicesPage";
+import { ServicesPage, ServiceEditorPage } from "./ServicesPage";
 
 vi.mock("../api/client", () => ({
   apiRequest: vi.fn()
@@ -17,6 +17,14 @@ function renderEditor() {
         <Route path="/painel/servicos/novo" element={<ServiceEditorPage />} />
         <Route path="/painel/servicos" element={<h1>Lista de serviços</h1>} />
       </Routes>
+    </MemoryRouter>
+  );
+}
+
+function renderServices() {
+  return render(
+    <MemoryRouter>
+      <ServicesPage />
     </MemoryRouter>
   );
 }
@@ -107,5 +115,27 @@ describe("editor de serviços", () => {
     expect(galleryUploads).toHaveLength(3);
     expect(galleryUploads[2][1].body.get("foto").name).toBe("segunda.jpg");
     await waitFor(() => expect(apiRequest).toHaveBeenCalledTimes(5));
+  });
+});
+
+describe("lista profissional de serviços", () => {
+  it("resolve caminhos relativos de capa com o mesmo tratamento do catálogo", async () => {
+    apiRequest.mockResolvedValueOnce({
+      servicos: [{
+        id: 8,
+        nome: "Design com henna",
+        categoria: "sobrancelha",
+        foto_url: "/uploads/design.jpg",
+        duracao_minutos: 50,
+        valor: 55,
+        ativo: true
+      }]
+    });
+
+    renderServices();
+
+    expect((await screen.findByRole("img", {
+      name: "Capa do serviço Design com henna"
+    })).src).toContain("/uploads/design.jpg");
   });
 });

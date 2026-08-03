@@ -294,6 +294,7 @@ th { color: var(--muted); font-size: .76rem; letter-spacing: .04em; text-transfo
 .management-card { overflow: hidden; border: 1px solid var(--line); border-radius: 16px; background: #fff; box-shadow: var(--shadow); }
 .service-cover { display: grid; aspect-ratio: 16 / 7; place-items: center; overflow: hidden; color: var(--pink-600); background: var(--pink-50); font-size: 2rem; font-weight: 900; }
 .service-cover img { width: 100%; height: 100%; object-fit: cover; }
+.service-cover .management-service-media { width: 100%; height: 100%; border-radius: 0; }
 .management-card-body { padding: 18px; }
 .management-card-body h2 { margin: 14px 0 7px; font-size: 1.28rem; }
 .management-card-body p { margin-bottom: 0; }
@@ -3378,6 +3379,10 @@ nav .button-small {
     background: rgb(255 255 255 / 96%);
     box-shadow: 0 14px 38px rgb(72 22 43 / 24%);
     backdrop-filter: blur(12px);
+  }
+
+  .booking-layout:has(.booking-summary-ready) {
+    padding-bottom: calc(78px + env(safe-area-inset-bottom));
   }
 
   .booking-summary-ready .eyebrow,

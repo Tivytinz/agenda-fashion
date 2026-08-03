@@ -1,11 +1,10 @@
-import { useState } from "react";
 import { Link } from "react-router-dom";
 import {
   formatCurrency,
   formatLocation,
   formatRating
 } from "../utils/format";
-import { resolveMediaUrl, withMediaRetry } from "../utils/media";
+import { useRetryingMedia } from "../hooks/useRetryingMedia";
 
 export function BusinessCard({ business }) {
   const featuredServices =
@@ -17,31 +16,14 @@ export function BusinessCard({ business }) {
   const available = serviceCount > 0;
   const rating = formatRating(business);
 
-  const [imageFailed, setImageFailed] =
-    useState(false);
-
-  const [imageRetry, setImageRetry] =
-    useState(0);
-
   const coverSource = business.foto_url ||
-    featuredServices.find((service) => service.foto_url)?.foto_url;
+    business.servicos?.find((service) => service.foto_url)?.foto_url;
 
-  const hasImage =
-    Boolean(coverSource) &&
-    !imageFailed;
-
-  const imageUrl = withMediaRetry(resolveMediaUrl(
-    coverSource,
-    { width: 420 }
-  ), imageRetry);
-
-  function handleImageError() {
-    if (imageRetry < 1) {
-      setImageRetry(1);
-      return;
-    }
-    setImageFailed(true);
-  }
+  const {
+    handleError: handleImageError,
+    hasImage,
+    imageUrl
+  } = useRetryingMedia(coverSource, { width: 420 });
 
   const initial = String(
     business.nome || "A"
