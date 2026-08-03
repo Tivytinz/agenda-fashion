@@ -1,3 +1,9 @@
+import {
+  useEffect,
+  useId,
+  useRef,
+  useState
+} from "react";
 import { NavLink, Outlet, useLocation } from "react-router-dom";
 import { useSession } from "../auth/SessionContext";
 import {
@@ -22,7 +28,12 @@ const PROFESSIONAL_LINKS = [
   ["/conta", "Minha conta", "○"]
 ];
 
-function WorkspaceLinks({ links, mobile = false, menu = false }) {
+function WorkspaceLinks({
+  links,
+  mobile = false,
+  menu = false,
+  onNavigate
+}) {
   return links.map(([to, label, icon]) => (
     <NavLink
       className={({ isActive }) => {
@@ -41,15 +52,7 @@ function WorkspaceLinks({ links, mobile = false, menu = false }) {
         to === "/profissional/agenda"
       }
       key={to}
-      onClick={
-        menu
-          ? (event) => {
-            event.currentTarget
-              .closest("details")
-              ?.removeAttribute("open");
-          }
-          : undefined
-      }
+      onClick={onNavigate}
       to={to}
     >
       <span aria-hidden="true">{icon}</span>
@@ -60,10 +63,39 @@ function WorkspaceLinks({ links, mobile = false, menu = false }) {
 
 export function MobileWorkspaceNavigation({ links }) {
   const { pathname } = useLocation();
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuId = useId();
+  const moreRef = useRef(null);
   const { primary, secondary } = splitMobileLinks(links);
   const secondaryActive = secondary.some(([to]) =>
     isWorkspaceRouteActive(pathname, to)
   );
+
+  useEffect(() => {
+    setMenuOpen(false);
+  }, [pathname]);
+
+  useEffect(() => {
+    if (!menuOpen) return undefined;
+
+    function closeOnOutsideClick(event) {
+      if (!moreRef.current?.contains(event.target)) {
+        setMenuOpen(false);
+      }
+    }
+
+    document.addEventListener("pointerdown", closeOnOutsideClick);
+    return () => {
+      document.removeEventListener("pointerdown", closeOnOutsideClick);
+    };
+  }, [menuOpen]);
+
+  function closeOnEscape(event) {
+    if (event.key === "Escape" && menuOpen) {
+      setMenuOpen(false);
+      moreRef.current?.querySelector("button")?.focus();
+    }
+  }
 
   return (
     <nav
@@ -73,22 +105,44 @@ export function MobileWorkspaceNavigation({ links }) {
       <WorkspaceLinks links={primary} mobile />
 
       {secondary.length > 0 && (
-        <details
+        <div
           className={
             secondaryActive
               ? "workspace-mobile-more active"
               : "workspace-mobile-more"
           }
+          onKeyDown={closeOnEscape}
+          ref={moreRef}
         >
-          <summary aria-label="Abrir mais opções da área de trabalho">
+          <button
+            aria-controls={menuId}
+            aria-expanded={menuOpen}
+            aria-label={
+              menuOpen
+                ? "Fechar mais opções da área de trabalho"
+                : "Abrir mais opções da área de trabalho"
+            }
+            onClick={() => setMenuOpen((open) => !open)}
+            type="button"
+          >
             <span aria-hidden="true">•••</span>
             <small>Mais</small>
-          </summary>
+          </button>
 
-          <div className="workspace-mobile-menu">
-            <WorkspaceLinks links={secondary} menu />
-          </div>
-        </details>
+          {menuOpen && (
+            <div
+              aria-label="Mais opções da área de trabalho"
+              className="workspace-mobile-menu"
+              id={menuId}
+            >
+              <WorkspaceLinks
+                links={secondary}
+                menu
+                onNavigate={() => setMenuOpen(false)}
+              />
+            </div>
+          )}
+        </div>
       )}
     </nav>
   );

@@ -3020,7 +3020,7 @@ nav .button-small {
     min-width: 0;
   }
 
-  .workspace-mobile-more > summary {
+  .workspace-mobile-more > button {
     display: grid;
     width: 100%;
     min-height: 52px;
@@ -3030,28 +3030,24 @@ nav .button-small {
     border-radius: 13px;
     color: var(--muted);
     cursor: pointer;
-    list-style: none;
+    font: inherit;
   }
 
-  .workspace-mobile-more > summary::-webkit-details-marker {
-    display: none;
-  }
-
-  .workspace-mobile-more > summary > span {
+  .workspace-mobile-more > button > span {
     font-size: 0.95rem;
     font-weight: 900;
     letter-spacing: 0.08em;
     line-height: 1;
   }
 
-  .workspace-mobile-more > summary > small {
+  .workspace-mobile-more > button > small {
     font-size: 0.67rem;
     font-weight: 800;
     line-height: 1.1;
   }
 
-  .workspace-mobile-more.active > summary,
-  .workspace-mobile-more[open] > summary {
+  .workspace-mobile-more.active > button,
+  .workspace-mobile-more > button[aria-expanded="true"] {
     color: var(--pink-700);
     background: var(--pink-50);
   }
