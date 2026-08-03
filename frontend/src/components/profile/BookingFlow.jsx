@@ -175,7 +175,11 @@ function ScheduleChoices({
 
 function BookingSummary({ day, onContinue, professional, service, time }) {
   return (
-    <aside className="booking-summary">
+    <aside className={
+      time
+        ? "booking-summary booking-summary-ready"
+        : "booking-summary"
+    }>
       <p className="eyebrow">Seu agendamento</p>
       <h2>Resumo</h2>
       <dl>

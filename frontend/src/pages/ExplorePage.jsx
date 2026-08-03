@@ -457,9 +457,7 @@ export function ExplorePage() {
           )}
       </section>
 
-      {status === "ready" &&
-        sortedBusinesses.length >
-        0 && (
+      {status === "ready" && (
           <section
             className="container content-section businesses-section"
             aria-labelledby="businesses-title"
@@ -484,16 +482,22 @@ export function ExplorePage() {
               </span>
             </div>
 
-            <div className="card-grid">
-              {sortedBusinesses.map(
-                (business) => (
-                  <BusinessCard
-                    business={business}
-                    key={business.id}
-                  />
-                )
-              )}
-            </div>
+            {sortedBusinesses.length > 0 ? (
+              <div className="card-grid">
+                {sortedBusinesses.map(
+                  (business) => (
+                    <BusinessCard
+                      business={business}
+                      key={business.id}
+                    />
+                  )
+                )}
+              </div>
+            ) : (
+              <EmptyState title="Nenhum negócio encontrado">
+                Tente outra categoria, serviço ou cidade.
+              </EmptyState>
+            )}
 
             {hasMore && (
               <div className="load-more-row">

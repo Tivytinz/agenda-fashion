@@ -158,8 +158,11 @@ async function editarServico(
   return result.rows[0] || null;
 }
 
-async function removerServico({ id, negocioId }) {
-  const result = await db.query(
+async function removerServico(
+  { id, negocioId },
+  executor = db
+) {
+  const result = await executor.query(
     `
     DELETE FROM servicos_negocio
     WHERE id = $1
@@ -169,6 +172,32 @@ async function removerServico({ id, negocioId }) {
       foto_public_id
     `,
     [id, negocioId]
+  );
+
+  return result.rows[0] || null;
+}
+
+async function despublicarSemServicoAtivo(
+  negocioId,
+  executor = db
+) {
+  const result = await executor.query(
+    `
+      UPDATE negocios n
+      SET
+        publicado = FALSE,
+        updated_at = NOW()
+      WHERE n.id = $1
+        AND n.publicado = TRUE
+        AND NOT EXISTS (
+          SELECT 1
+          FROM servicos_negocio s
+          WHERE s.negocio_id = n.id
+            AND s.ativo = TRUE
+        )
+      RETURNING n.id, n.publicado
+    `,
+    [negocioId]
   );
 
   return result.rows[0] || null;
@@ -245,6 +274,7 @@ module.exports = {
   criarServico,
   editarServico,
   removerServico,
+  despublicarSemServicoAtivo,
   atualizarFotoServico,
   listarFotosServico,
   adicionarFotoGaleriaServico,

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { resolveMediaUrl } from "../../utils/media";
 
 export function MediaThumb({
   src,
@@ -8,12 +9,13 @@ export function MediaThumb({
 }) {
   const [failed, setFailed] = useState(false);
   const hasImage = Boolean(src) && !failed;
+  const imageUrl = resolveMediaUrl(src);
 
   return (
     <span className={`af-media-thumb ${className}`.trim()}>
       {hasImage ? (
         <img
-          src={src}
+          src={imageUrl}
           alt={alt}
           loading="lazy"
           onError={() => setFailed(true)}

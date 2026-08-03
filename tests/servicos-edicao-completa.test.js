@@ -58,6 +58,9 @@ describe("Edição completa de serviços", () => {
       }),
       client
     );
+    expect(
+      servicosRepository.despublicarSemServicoAtivo
+    ).toHaveBeenCalledWith(7, client);
     expect(resultado.servico.id).toBe(12);
   });
 

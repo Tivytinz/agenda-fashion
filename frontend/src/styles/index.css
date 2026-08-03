@@ -3163,3 +3163,188 @@ nav .button-small {
 .not-found-page .button {
   margin-top: 16px;
 }
+
+/* Sprint 11: catálogo e agendamento compactos no celular */
+@media (max-width: 800px) {
+  .content-section {
+    padding-block: 20px;
+  }
+
+  .content-section + .businesses-section {
+    margin-top: 0;
+    padding-top: 8px;
+  }
+
+  .section-heading h2 {
+    font-size: clamp(1.55rem, 6.3vw, 1.9rem);
+  }
+
+  .service-discovery-card {
+    display: grid;
+    grid-template-columns: 112px minmax(0, 1fr);
+  }
+
+  .service-discovery-image {
+    width: 112px;
+    height: 100%;
+    min-height: 178px;
+    aspect-ratio: auto;
+  }
+
+  .service-discovery-image img {
+    max-width: none;
+    max-height: none;
+    object-fit: cover;
+    transform: none;
+  }
+
+  .service-discovery-placeholder strong {
+    width: 48px;
+    height: 48px;
+    border-radius: 14px;
+    font-size: 1.35rem;
+  }
+
+  .service-discovery-placeholder small {
+    max-width: 92px;
+    overflow: hidden;
+    font-size: 0.62rem;
+    text-align: center;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .service-discovery-content {
+    padding: 13px;
+  }
+
+  .service-discovery-content .eyebrow {
+    max-width: 100%;
+    overflow: hidden;
+    font-size: 0.68rem;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .service-discovery-content h3 {
+    font-size: 1.05rem;
+  }
+
+  .service-discovery-description {
+    display: none;
+  }
+
+  .service-business-info {
+    padding-top: 8px;
+  }
+
+  .service-discovery-meta {
+    margin-block: 9px;
+  }
+
+  .service-discovery-card .button {
+    min-height: 40px;
+    padding-inline: 10px;
+  }
+
+  .business-card {
+    display: grid;
+    grid-template-columns: 96px minmax(0, 1fr);
+  }
+
+  .business-card .card-image,
+  .business-card-available .card-image,
+  .business-card-unavailable .card-image {
+    width: 96px;
+    height: 100%;
+    min-height: 142px;
+    aspect-ratio: auto;
+  }
+
+  .business-card .card-placeholder small {
+    max-width: 82px;
+    -webkit-line-clamp: 2;
+  }
+
+  .business-card .service-preview {
+    display: none;
+  }
+
+  .business-card .card-content {
+    padding: 13px;
+  }
+
+  .business-card .card-footer {
+    margin-top: 10px;
+  }
+
+  .booking-section {
+    padding: 13px;
+  }
+
+  .booking-section .section-heading {
+    margin-bottom: 12px;
+  }
+
+  .booking-section .section-heading h2 {
+    font-size: clamp(1.35rem, 5.8vw, 1.7rem);
+  }
+
+  .booking-section .step-label {
+    width: 38px;
+    min-width: 38px;
+    height: 38px;
+    font-size: 1rem;
+  }
+
+  .time-list,
+  .time-options {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .time-list .time-button,
+  .time-options .time-button {
+    min-height: 44px;
+    padding-inline: 8px;
+  }
+
+  .time-list > .time-button:last-child:nth-child(odd),
+  .time-options > .time-button:last-child:nth-child(odd) {
+    grid-column: auto;
+  }
+
+  .booking-summary-ready {
+    position: sticky;
+    z-index: 20;
+    bottom: calc(10px + env(safe-area-inset-bottom));
+    padding: 10px;
+    box-shadow: 0 12px 34px rgb(72 22 43 / 24%);
+  }
+
+  .booking-summary-ready .eyebrow,
+  .booking-summary-ready h2,
+  .booking-summary-ready dl,
+  .booking-summary-ready > small {
+    display: none;
+  }
+
+  .booking-summary-ready .button {
+    min-height: 48px;
+  }
+}
+
+@media (max-width: 370px) {
+  .service-discovery-card {
+    grid-template-columns: 96px minmax(0, 1fr);
+  }
+
+  .service-discovery-image {
+    width: 96px;
+  }
+
+  .time-list,
+  .time-options {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}

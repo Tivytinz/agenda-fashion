@@ -5,6 +5,7 @@ import {
   formatLocation,
   formatRating
 } from "../utils/format";
+import { resolveMediaUrl } from "../utils/media";
 
 export function BusinessCard({ business }) {
   const featuredServices =
@@ -22,6 +23,10 @@ export function BusinessCard({ business }) {
   const hasImage =
     Boolean(business.foto_url) &&
     !imageFailed;
+
+  const imageUrl = resolveMediaUrl(
+    business.foto_url
+  );
 
   const initial = String(
     business.nome || "A"
@@ -44,7 +49,7 @@ export function BusinessCard({ business }) {
       >
         {hasImage ? (
           <img
-            src={business.foto_url}
+            src={imageUrl}
             alt=""
             loading="lazy"
             onError={() =>
