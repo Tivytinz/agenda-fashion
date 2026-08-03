@@ -1,32 +1,100 @@
-import { renderToStaticMarkup } from "react-dom/server";
+// @vitest-environment jsdom
+
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen
+} from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 import { MobileWorkspaceNavigation } from "./WorkspaceLayout";
 
-describe("menu mobile da área de trabalho", () => {
-  it("renderiza quatro atalhos e destaca Mais em uma rota secundária", () => {
-    const links = [
-      ["/painel", "Visão geral", "⌂"],
-      ["/painel/agenda", "Agenda", "▦"],
-      ["/painel/servicos", "Serviços", "✦"],
-      ["/painel/profissionais", "Profissionais", "♙"],
-      ["/painel/horarios", "Horários", "◷"],
-      ["/conta", "Minha conta", "○"]
-    ];
+const LINKS = [
+  ["/painel", "Visão geral", "⌂"],
+  ["/painel/agenda", "Agenda", "▦"],
+  ["/painel/servicos", "Serviços", "✦"],
+  ["/painel/profissionais", "Profissionais", "♙"],
+  ["/painel/horarios", "Horários", "◷"],
+  ["/conta", "Minha conta", "○"]
+];
 
-    const html = renderToStaticMarkup(
-      <MemoryRouter initialEntries={["/painel/horarios"]}>
-        <MobileWorkspaceNavigation links={links} />
-      </MemoryRouter>
-    );
+afterEach(cleanup);
+
+function renderNavigation(pathname = "/painel") {
+  return render(
+    <MemoryRouter initialEntries={[pathname]}>
+      <MobileWorkspaceNavigation links={LINKS} />
+    </MemoryRouter>
+  );
+}
+
+describe("menu mobile da área de trabalho", () => {
+  it("mostra quatro atalhos e mantém as opções secundárias fechadas", () => {
+    renderNavigation();
+
+    const navigation = screen.getByRole("navigation", {
+      name: "Navegação da área de trabalho"
+    });
 
     expect(
-      html.match(/class="workspace-mobile-link/g)
+      navigation.querySelectorAll(".workspace-mobile-link")
     ).toHaveLength(4);
-    expect(html).toContain(
-      'class="workspace-mobile-more active"'
+    expect(screen.queryByRole("link", { name: /Horários/ })).toBeNull();
+    expect(
+      screen.getByRole("button", { name: /Abrir mais opções/ })
+        .getAttribute("aria-expanded")
+    ).toBe("false");
+  });
+
+  it("abre o menu e fecha ao navegar para uma opção", async () => {
+    const user = userEvent.setup();
+    renderNavigation();
+    const openButton = screen.getByRole("button", {
+      name: /Abrir mais opções/
+    });
+
+    await user.click(openButton);
+
+    expect(openButton.getAttribute("aria-expanded")).toBe("true");
+    expect(screen.getByRole("link", { name: /Horários/ })).not.toBeNull();
+
+    await user.click(screen.getByRole("link", { name: /Horários/ }));
+
+    expect(screen.queryByRole("link", { name: /Minha conta/ })).toBeNull();
+    expect(
+      screen.getByRole("button", { name: /Abrir mais opções/ })
+        .getAttribute("aria-expanded")
+    ).toBe("false");
+  });
+
+  it("fecha com Escape e devolve o foco ao botão Mais", async () => {
+    const user = userEvent.setup();
+    renderNavigation("/painel/horarios");
+    const openButton = screen.getByRole("button", {
+      name: /Abrir mais opções/
+    });
+
+    await user.click(openButton);
+    await user.keyboard("{Escape}");
+
+    expect(screen.queryByRole("link", { name: /Horários/ })).toBeNull();
+    expect(document.activeElement).toBe(openButton);
+    expect(
+      openButton.closest(".workspace-mobile-more")?.classList.contains("active")
+    ).toBe(true);
+  });
+
+  it("fecha ao clicar fora do menu", async () => {
+    const user = userEvent.setup();
+    renderNavigation();
+
+    await user.click(
+      screen.getByRole("button", { name: /Abrir mais opções/ })
     );
-    expect(html).toContain("Horários");
-    expect(html).toContain("Minha conta");
+    fireEvent.pointerDown(document.body);
+
+    expect(screen.queryByRole("link", { name: /Horários/ })).toBeNull();
   });
 });
