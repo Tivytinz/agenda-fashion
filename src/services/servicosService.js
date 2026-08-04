@@ -4,6 +4,9 @@ const db = require("../db/db");
 const registrador = require("../utils/registrador");
 const { normalizarCategoriaServico } = require("../domain/catalogoCategorias");
 const {
+  especialidadeDaCategoria,
+} = require("../domain/especialidadesNegocio");
+const {
   buscarUsoPlano,
   criarErroLimite
 } = require("./planoService");
@@ -145,23 +148,32 @@ async function criarServico({
   const nomeNormalizado = normalizarNome(nome);
   const valorNormalizado = normalizarValor(valor);
   const duracaoNormalizada = normalizarDuracao(duracaoMinutos);
+  const categoriaNormalizada = normalizarCategoriaServico(categoria || "outro");
   const servico = await db.executarTransacao(async (client) => {
     if (servicoAtivo) {
       await validarLimiteServicoAtivo(vinculo.negocio_id, client);
     }
 
-    return servicosRepository.criarServico(
+    const criado = await servicosRepository.criarServico(
       {
         negocioId: vinculo.negocio_id,
         nome: nomeNormalizado,
         descricao: normalizarDescricao(descricao),
         valor: valorNormalizado,
         duracaoMinutos: duracaoNormalizada,
-        categoria: normalizarCategoriaServico(categoria || "outro"),
+        categoria: categoriaNormalizada,
         ativo: servicoAtivo,
       },
       client
     );
+
+    await servicosRepository.adicionarEspecialidadeNegocio(
+      vinculo.negocio_id,
+      especialidadeDaCategoria(categoriaNormalizada),
+      client
+    );
+
+    return criado;
   });
 
   return {
@@ -203,6 +215,11 @@ async function editarServico({
       await validarLimiteServicoAtivo(vinculo.negocio_id, client);
     }
 
+    const categoriaNormalizada = normalizarCategoriaServico(
+      categoria === undefined ? atual.categoria : categoria,
+      { obrigatoria: categoria !== undefined || Boolean(atual.categoria) }
+    );
+
     const atualizado = await servicosRepository.editarServico({
       id,
       negocioId: vinculo.negocio_id,
@@ -210,14 +227,17 @@ async function editarServico({
       descricao: normalizarDescricao(descricao),
       valor: valorNormalizado,
       duracaoMinutos: duracaoNormalizada,
-      categoria: normalizarCategoriaServico(
-        categoria === undefined ? atual.categoria : categoria,
-        { obrigatoria: categoria !== undefined || Boolean(atual.categoria) }
-      ),
+      categoria: categoriaNormalizada,
       ativo: servicoAtivo,
     }, client);
 
     if (atualizado) {
+      await servicosRepository.adicionarEspecialidadeNegocio(
+        vinculo.negocio_id,
+        especialidadeDaCategoria(categoriaNormalizada),
+        client
+      );
+
       await servicosRepository.despublicarSemServicoAtivo(
         vinculo.negocio_id,
         client

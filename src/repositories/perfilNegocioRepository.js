@@ -37,6 +37,10 @@ async function listarNegociosPublicos({
                 n.nome,
                 n.descricao,
                 n.setor,
+                array_to_string(
+                  COALESCE(n.areas, ARRAY[]::TEXT[]),
+                  ' '
+                ),
                 n.cidade,
                 n.estado,
                 n.bairro,
@@ -114,7 +118,10 @@ async function listarNegociosPublicos({
       n.publicado,
       n.total_resultados,
 
-      ARRAY[]::text[] AS areas,
+      COALESCE(
+        n.areas,
+        ARRAY[]::TEXT[]
+      ) AS areas,
 
       COALESCE(
         (
@@ -226,8 +233,10 @@ async function buscarNegocioPorSlug(
         n.fuso_horario,
         n.ativo,
         n.publicado,
-        ARRAY[]::text[]
-          AS areas,
+        COALESCE(
+          n.areas,
+          ARRAY[]::TEXT[]
+        ) AS areas,
 
         COALESCE(
           (
@@ -298,6 +307,7 @@ async function buscarServicos(
         descricao,
         valor,
         duracao_minutos,
+        categoria,
         foto_url
 
       FROM servicos_negocio

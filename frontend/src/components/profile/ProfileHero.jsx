@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { formatLocation } from "../../utils/format";
 import { MediaThumb } from "./MediaThumb";
+import { normalizeBusinessSpecialties } from "../../utils/specialties";
 
 function normalizeWhatsApp(value) {
   const digits = String(value || "").replace(/\D/g, "");
@@ -87,6 +88,7 @@ export function ProfileHero({
 }) {
   const [distanceKm, setDistanceKm] = useState(null);
   const [locationStatus, setLocationStatus] = useState("idle");
+  const specialties = normalizeBusinessSpecialties(business);
 
   useEffect(() => {
     setDistanceKm(null);
@@ -139,7 +141,7 @@ export function ProfileHero({
     ? `https://wa.me/${whatsappPhone}?text=${whatsappMessage}`
     : "";
   const fullAddress = [
-    business.logradouro,
+    business.endereco || business.logradouro,
     business.numero,
     business.bairro,
     business.cidade,
@@ -168,9 +170,16 @@ export function ProfileHero({
         className="profile-image"
       />
       <div className="profile-copy">
-        <p className="eyebrow">{business.setor || "Beleza"}</p>
+        <p className="eyebrow">{specialties[0] || "Beleza"}</p>
         <h1>{business.nome}</h1>
         <p>{business.descricao || "Escolha um serviço e encontre o melhor horário para você."}</p>
+        {specialties.length > 0 && (
+          <div className="profile-specialties" aria-label="Especialidades">
+            {specialties.map((specialty) => (
+              <span key={specialty}>{specialty}</span>
+            ))}
+          </div>
+        )}
         <div className="profile-meta">
           <span className="profile-location">
             <span className="profile-location-emoji" aria-hidden="true">📍</span>{" "}

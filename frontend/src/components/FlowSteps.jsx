@@ -1,20 +1,27 @@
-const STEPS = ["Serviço", "Profissional", "Horário", "Confirmar"];
+import { BrandProgressMark } from "./BrandProgressMark";
 
-export function FlowSteps({ current }) {
+const DEFAULT_STEPS = ["Serviço", "Profissional", "Horário", "Confirmar"];
+
+export function FlowSteps({ current, steps = DEFAULT_STEPS }) {
   return (
     <div className="flow-progress">
+      <BrandProgressMark current={current} total={steps.length} />
       <p>
-        Etapa {current} de {STEPS.length}
-        <strong>{STEPS[current - 1]}</strong>
+        Etapa {current} de {steps.length}
+        <strong>{steps[current - 1]}</strong>
       </p>
-      <ol className="flow-steps" aria-label="Etapas do agendamento">
-        {STEPS.map((label, index) => {
+      <ol
+        className="flow-steps"
+        aria-label="Etapas do agendamento"
+        style={{ "--flow-step-count": steps.length }}
+      >
+        {steps.map((label, index) => {
           const step = index + 1;
           const state = step < current ? "done" : step === current ? "current" : "";
 
           return (
             <li className={state} key={label} aria-current={step === current ? "step" : undefined}>
-              <span>{step < current ? "✓" : step}</span>
+              <span>{step}</span>
               <small>{label}</small>
             </li>
           );

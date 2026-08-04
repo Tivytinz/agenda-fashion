@@ -22,6 +22,10 @@ function obterDadosCriacao(
     setor:
       req.body?.setor,
 
+    especialidades:
+      req.body?.especialidades ??
+      req.body?.areas,
+
     /*
      * Aceita temporariamente os dois nomes
      * para manter compatibilidade com o

@@ -159,10 +159,6 @@ nav { display: flex; align-items: center; gap: 18px; }
 .choice-price { flex: 0 0 auto; color: var(--wine); text-align: right; }
 .choice-price small { color: var(--pink-600); font-size: .72rem; font-weight: 850; }
 .avatar { display: grid; width: 42px; height: 42px; flex: 0 0 auto; place-items: center; border-radius: 50%; color: var(--wine); background: var(--pink-100); font-weight: 900; }
-.single-professional { display: flex; align-items: center; gap: 13px; border: 1px solid var(--pink-100); border-radius: 13px; padding: 13px 15px; background: var(--pink-50); }
-.single-professional > span:nth-child(2) { display: grid; flex: 1; gap: 3px; }
-.single-professional small { color: var(--muted); }
-.single-professional > span:last-child { color: var(--pink-600); font-weight: 900; }
 .date-list, .time-list { display: flex; overflow-x: auto; gap: 10px; padding: 2px; }
 .time-list { flex-wrap: wrap; margin-top: 16px; overflow: visible; }
 .date-button, .time-button { min-height: 44px; flex: 0 0 auto; border: 1px solid var(--line); border-radius: 10px; padding-inline: 14px; color: var(--ink); background: #fff; font-weight: 750; cursor: pointer; }
@@ -824,4 +820,211 @@ body,
 
 .not-found-page .button {
   margin-top: 16px;
+}
+
+/* Sprint 23: identidade de progresso, especialidades e perfil do negócio */
+.brand-progress-mark {
+  width: 74px;
+  height: 74px;
+  overflow: visible;
+  filter: drop-shadow(0 8px 14px rgb(105 36 63 / 12%));
+}
+
+.brand-progress-piece {
+  fill: #f8e9ef;
+  stroke: #b06b86;
+  stroke-linejoin: round;
+  stroke-width: 1.8;
+  transition: fill 220ms ease, stroke 220ms ease;
+}
+
+.brand-progress-piece.active {
+  fill: var(--pink-500);
+  stroke: var(--wine);
+}
+
+.brand-progress-nail {
+  fill: #fff;
+  pointer-events: none;
+}
+
+.flow-progress {
+  display: grid;
+  justify-items: center;
+  gap: 10px;
+}
+
+.flow-progress > p {
+  width: 100%;
+}
+
+.flow-steps {
+  width: 100%;
+  grid-template-columns: repeat(var(--flow-step-count, 4), minmax(0, 1fr));
+}
+
+.flow-steps li.done > span {
+  color: var(--wine);
+  border-color: var(--pink-500);
+  background: var(--pink-100);
+}
+
+.profile-specialties {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin: 3px 0 10px;
+}
+
+.profile-specialties span {
+  border: 1px solid var(--pink-100);
+  border-radius: 999px;
+  padding: 5px 10px;
+  color: var(--wine);
+  background: #fff8fb;
+  font-size: .78rem;
+  font-weight: 800;
+}
+
+.success-brand-mark {
+  width: 86px;
+  height: 86px;
+  margin: 0 auto 18px;
+}
+
+.publication-actions {
+  display: flex;
+  flex: 0 0 auto;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.business-settings-form {
+  gap: 0;
+  padding-bottom: 0;
+}
+
+.business-form-section {
+  display: grid;
+  grid-template-columns: minmax(190px, .42fr) minmax(0, 1fr);
+  gap: clamp(20px, 4vw, 46px);
+  padding-block: 28px;
+}
+
+.business-form-section:first-child {
+  padding-top: 0;
+}
+
+.business-form-section + .business-form-section {
+  border-top: 1px solid var(--line);
+}
+
+.business-form-heading h2 {
+  margin-bottom: 7px;
+  font-size: 1.25rem;
+}
+
+.business-form-heading p:last-child {
+  margin-bottom: 0;
+  color: var(--muted);
+  font-size: .88rem;
+  line-height: 1.5;
+}
+
+.business-photo-editor {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
+
+.business-photo-editor > div {
+  display: grid;
+  justify-items: start;
+  gap: 8px;
+}
+
+.business-photo-editor small {
+  color: var(--muted);
+  font-size: .8rem;
+}
+
+.business-photo-preview {
+  width: 118px;
+  height: 118px;
+  flex: 0 0 auto;
+  border: 1px solid var(--pink-100);
+  border-radius: 24px;
+  background: var(--pink-50);
+  font-size: 2.6rem;
+}
+
+.business-photo-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.specialty-field {
+  min-width: 0;
+  margin: 0;
+  border: 0;
+  padding: 0;
+}
+
+.specialty-field legend {
+  color: var(--wine);
+  font-size: .9rem;
+  font-weight: 800;
+}
+
+.specialty-field > p {
+  margin: 6px 0 11px;
+  color: var(--muted);
+  font-size: .82rem;
+}
+
+.specialty-selector {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 9px;
+}
+
+.specialty-option {
+  display: inline-flex !important;
+  min-height: 42px;
+  align-items: center;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 0 15px;
+  color: var(--wine);
+  background: #fff;
+  cursor: pointer;
+  transition: border-color 150ms ease, background-color 150ms ease, color 150ms ease;
+}
+
+.specialty-option input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  opacity: 0;
+}
+
+.specialty-option.selected {
+  color: #fff;
+  border-color: var(--pink-600);
+  background: var(--pink-600);
+}
+
+.specialty-option:has(input:focus-visible) {
+  outline: 3px solid rgb(197 36 107 / 32%);
+  outline-offset: 3px;
+}
+
+.business-save-actions {
+  margin-inline: calc(clamp(20px, 3vw, 28px) * -1);
+  border-top: 1px solid var(--line);
+  padding: 18px clamp(20px, 3vw, 28px);
+  background: #fff;
 }

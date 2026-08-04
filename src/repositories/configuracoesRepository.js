@@ -151,7 +151,7 @@ async function atualizarNegocio(
           publicado = CASE
             WHEN negocios.publicado = TRUE
               AND NULLIF(BTRIM(COALESCE($3, '')), '') IS NOT NULL
-              AND NULLIF(BTRIM(COALESCE($4, '')), '') IS NOT NULL
+              AND cardinality(COALESCE($14::TEXT[], ARRAY[]::TEXT[])) > 0
               AND NULLIF(BTRIM(COALESCE($5, '')), '') IS NOT NULL
               AND NULLIF(BTRIM(COALESCE($6, '')), '') IS NOT NULL
               AND NULLIF(BTRIM(COALESCE($13, '')), '') IS NOT NULL
@@ -267,9 +267,46 @@ async function atualizarPublicacao(
   );
 }
 
+async function atualizarFotoNegocio({
+  negocioId,
+  fotoUrl,
+  fotoPublicId,
+}) {
+  const resultado =
+    await db.query(
+      `
+        UPDATE negocios
+
+        SET
+          foto_url = $1,
+          foto_public_id = $2,
+          updated_at = NOW()
+
+        WHERE id = $3
+
+        RETURNING
+          id,
+          foto_url,
+          foto_public_id,
+          updated_at
+      `,
+      [
+        fotoUrl,
+        fotoPublicId,
+        negocioId,
+      ]
+    );
+
+  return (
+    resultado.rows[0] ||
+    null
+  );
+}
+
 module.exports = {
   buscarNegocioDoUsuario,
   buscarNegocioPorId,
   atualizarNegocio,
+  atualizarFotoNegocio,
   atualizarPublicacao,
 };

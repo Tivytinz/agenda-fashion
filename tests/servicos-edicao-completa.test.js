@@ -63,6 +63,13 @@ describe("Edição completa de serviços", () => {
     expect(
       servicosRepository.despublicarSemServicoAtivo
     ).toHaveBeenCalledWith(7, client);
+    expect(
+      servicosRepository.adicionarEspecialidadeNegocio
+    ).toHaveBeenCalledWith(
+      7,
+      "Unhas",
+      client
+    );
     expect(resultado.servico.id).toBe(12);
   });
 
@@ -87,6 +94,13 @@ describe("Edição completa de serviços", () => {
 
     expect(servicosRepository.editarServico).toHaveBeenCalledWith(
       expect.objectContaining({ categoria: "sobrancelha" }),
+      client
+    );
+    expect(
+      servicosRepository.adicionarEspecialidadeNegocio
+    ).toHaveBeenCalledWith(
+      7,
+      "Sobrancelhas",
       client
     );
   });

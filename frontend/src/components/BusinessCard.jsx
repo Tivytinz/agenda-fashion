@@ -5,6 +5,7 @@ import {
   formatRating
 } from "../utils/format";
 import { useRetryingMedia } from "../hooks/useRetryingMedia";
+import { normalizeBusinessSpecialties } from "../utils/specialties";
 
 export function BusinessCard({ business }) {
   const featuredServices =
@@ -15,6 +16,7 @@ export function BusinessCard({ business }) {
 
   const available = serviceCount > 0;
   const rating = formatRating(business);
+  const specialties = normalizeBusinessSpecialties(business);
 
   const coverSource = business.foto_url ||
     business.servicos?.find((service) => service.foto_url)?.foto_url;
@@ -61,7 +63,7 @@ export function BusinessCard({ business }) {
             </span>
 
             <small>
-              {business.setor || "Beleza"}
+              {specialties[0] || "Beleza"}
             </small>
           </span>
         )}

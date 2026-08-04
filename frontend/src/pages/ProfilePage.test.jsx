@@ -202,6 +202,10 @@ describe("fluxo publico de agendamento", () => {
     mockSuccessfulRequests();
     renderProfile();
 
+    await screen.findByRole("heading", { name: "Studio Aurora" });
+    expect(document.querySelectorAll(".flow-steps li")).toHaveLength(4);
+    expect(document.querySelector(".flow-steps")?.textContent).not.toContain("✓");
+
     await user.click(await screen.findByRole("button", {
       name: /Manicure completa/
     }));
@@ -236,6 +240,48 @@ describe("fluxo publico de agendamento", () => {
       date: "2026-08-05",
       time: "09:00"
     });
+  });
+
+  it("remove a escolha de profissional quando existe apenas uma opção", async () => {
+    const user = userEvent.setup();
+    const singleProfessionalProfile = {
+      ...PROFILE,
+      negocio: {
+        ...PROFILE.negocio,
+        areas: ["Sobrancelhas", "Estética"]
+      },
+      profissionais: [{ id: 21, nome: "Ana" }]
+    };
+
+    apiRequest.mockImplementation((path) => {
+      if (path.startsWith("/perfil-negocio/")) {
+        return Promise.resolve(singleProfessionalProfile);
+      }
+      if (path.startsWith("/agenda-publica?")) {
+        return Promise.resolve(AVAILABILITY);
+      }
+      return Promise.reject(new Error(`Requisicao inesperada: ${path}`));
+    });
+
+    renderProfile();
+    await screen.findByRole("heading", { name: "Studio Aurora" });
+
+    expect(screen.queryByRole("heading", {
+      name: "Escolha quem vai atender"
+    })).toBeNull();
+    expect(document.querySelectorAll(".flow-steps li")).toHaveLength(3);
+    expect(screen.getAllByText("Sobrancelhas").length).toBeGreaterThan(0);
+    expect(screen.getByText("Estética")).not.toBeNull();
+
+    await user.click(screen.getByRole("button", {
+      name: /Manicure completa/
+    }));
+
+    expect(await screen.findByRole("button", { name: "09:00" })).not.toBeNull();
+    expect(screen.queryByRole("heading", {
+      name: "Escolha quem vai atender"
+    })).toBeNull();
+    expect(screen.getByText("Etapa 2 de 3")).not.toBeNull();
   });
 
   it("limpa profissional e horario ao trocar o servico", async () => {

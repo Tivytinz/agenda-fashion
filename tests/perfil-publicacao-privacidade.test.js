@@ -47,6 +47,8 @@ describe("Publicação e privacidade do perfil público", () => {
     );
     expect(sql).toMatch(/LIMIT \$4[\s\S]*OFFSET \$5/i);
     expect(sql).toMatch(/COUNT\(\*\) OVER\(\)/i);
+    expect(sql).toMatch(/array_to_string[\s\S]*n\.areas/i);
+    expect(sql).toMatch(/COALESCE\([\s\S]*n\.areas[\s\S]*AS areas/i);
     expect(parametros).toEqual([
       ["%cilios%"],
       ["%estetica%", "%limpeza de pele%"],
@@ -90,5 +92,13 @@ describe("Publicação e privacidade do perfil público", () => {
     const sql = mockQuery.mock.calls[0][0];
 
     expect(sql).not.toMatch(/u\.whatsapp/i);
+  });
+
+  test("perfil devolve categoria de cada serviço", async () => {
+    await repository.buscarServicos(7);
+
+    const sql = mockQuery.mock.calls[0][0];
+
+    expect(sql).toMatch(/duracao_minutos,[\s\S]*categoria,[\s\S]*foto_url/i);
   });
 });

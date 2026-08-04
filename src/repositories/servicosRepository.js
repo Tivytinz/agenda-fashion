@@ -204,6 +204,37 @@ async function despublicarSemServicoAtivo(
   return result.rows[0] || null;
 }
 
+async function adicionarEspecialidadeNegocio(
+  negocioId,
+  especialidade,
+  executor = db
+) {
+  const result = await executor.query(
+    `
+      UPDATE negocios
+      SET
+        areas = CASE
+          WHEN $2 = ANY(COALESCE(areas, ARRAY[]::TEXT[]))
+            THEN COALESCE(areas, ARRAY[]::TEXT[])
+          ELSE array_append(
+            COALESCE(areas, ARRAY[]::TEXT[]),
+            $2
+          )
+        END,
+        setor = COALESCE(
+          NULLIF(BTRIM(setor), ''),
+          $2
+        ),
+        updated_at = NOW()
+      WHERE id = $1
+      RETURNING setor, areas
+    `,
+    [negocioId, especialidade]
+  );
+
+  return result.rows[0] || null;
+}
+
 async function atualizarFotoServico({ id, negocioId, fotoUrl, fotoPublicId }) {
   const result = await db.query(
     `
@@ -276,6 +307,7 @@ module.exports = {
   editarServico,
   removerServico,
   despublicarSemServicoAtivo,
+  adicionarEspecialidadeNegocio,
   atualizarFotoServico,
   listarFotosServico,
   adicionarFotoGaleriaServico,
