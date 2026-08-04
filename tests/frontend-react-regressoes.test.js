@@ -471,5 +471,52 @@ describe(
         );
       }
     );
+
+    test(
+      "mantem uma unica fonte para os breakpoints do frontend",
+      () => {
+        const principal = ler(
+          "frontend/src/styles/index.css"
+        );
+        const responsivo = ler(
+          "frontend/src/styles/responsive.css"
+        );
+        const entrada = ler(
+          "frontend/src/main.jsx"
+        );
+
+        expect(
+          principal
+        ).not.toMatch(
+          /@media\s*\(/
+        );
+
+        [
+          "@media (max-width: 900px)",
+          "@media (max-width: 800px)",
+          "@media (max-width: 620px)",
+          "@media (max-width: 390px)",
+          "@media (prefers-reduced-motion: reduce)",
+        ].forEach(
+          (breakpoint) => {
+            expect(
+              responsivo
+            ).toContain(
+              breakpoint
+            );
+          }
+        );
+
+        expect(
+          entrada.indexOf(
+            '"./styles/index.css"'
+          )
+        ).toBeLessThan(
+          entrada.indexOf(
+            '"./styles/responsive.css"'
+          )
+        );
+      }
+    );
   }
 );
