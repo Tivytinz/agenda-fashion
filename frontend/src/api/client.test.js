@@ -5,6 +5,7 @@ import { apiRequest } from "./client";
 import { SESSION_CLEARED_EVENT } from "../auth/session";
 
 afterEach(() => {
+  vi.useRealTimers();
   vi.unstubAllGlobals();
   localStorage.clear();
 });
@@ -26,5 +27,23 @@ describe("cliente da API", () => {
     expect(localStorage.getItem("token")).toBeNull();
     expect(localStorage.getItem("usuario")).toBeNull();
     expect(listener).toHaveBeenCalledOnce();
+  });
+
+  it("interrompe requisições presas e explica o tempo limite", async () => {
+    vi.useFakeTimers();
+    vi.stubGlobal("fetch", vi.fn((_url, options) => new Promise((_resolve, reject) => {
+      options.signal.addEventListener("abort", () => {
+        reject(new DOMException("Abortada", "AbortError"));
+      });
+    })));
+
+    const request = apiRequest("/demorada", { timeoutMs: 50 });
+    const expectation = expect(request).rejects.toMatchObject({
+      status: 408,
+      message: expect.stringContaining("demorou demais")
+    });
+
+    await vi.advanceTimersByTimeAsync(50);
+    await expectation;
   });
 });

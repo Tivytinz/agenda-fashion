@@ -10,6 +10,7 @@ export function FavoritesPage() {
   const [items, setItems] = useState(null);
   const [pendingRemove, setPendingRemove] = useState(null);
   const [removing, setRemoving] = useState(false);
+  const [removeError, setRemoveError] = useState("");
   const [error, setError] = useState("");
 
   const load = useCallback(() => {
@@ -22,7 +23,7 @@ export function FavoritesPage() {
   useEffect(load, [load]);
 
   function askRemove(item) {
-    setError("");
+    setRemoveError("");
     setPendingRemove(item);
     removeDialogRef.current?.showModal();
   }
@@ -31,13 +32,14 @@ export function FavoritesPage() {
     if (!pendingRemove) return;
     const id = pendingRemove.id || pendingRemove.negocio_id;
     setRemoving(true);
+    setRemoveError("");
     try {
       await apiRequest(`/favoritos/${id}`, { method: "DELETE" });
       setItems((current) => current.filter((item) => Number(item.id || item.negocio_id) !== Number(id)));
       removeDialogRef.current?.close();
       setPendingRemove(null);
     } catch (requestError) {
-      setError(requestError.message);
+      setRemoveError(requestError.message);
     } finally {
       setRemoving(false);
     }
@@ -87,8 +89,9 @@ export function FavoritesPage() {
           <div aria-hidden="true" className="cancel-dialog-icon">!</div>
           <h2 id="remove-favorite-title">Remover dos favoritos?</h2>
           <p>“{pendingRemove?.nome}” sairá da sua lista de perfis salvos.</p>
+          {removeError && <p className="form-error" role="alert">{removeError}</p>}
           <div className="cancel-dialog-actions">
-            <button className="button button-secondary" disabled={removing} onClick={() => { removeDialogRef.current?.close(); setPendingRemove(null); }} type="button">Manter favorito</button>
+            <button className="button button-secondary" disabled={removing} onClick={() => { setRemoveError(""); removeDialogRef.current?.close(); setPendingRemove(null); }} type="button">Manter favorito</button>
             <button className="button button-danger" disabled={removing} onClick={remove} type="button">{removing ? "Removendo..." : "Sim, remover"}</button>
           </div>
         </div>

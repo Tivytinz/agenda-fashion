@@ -42,6 +42,12 @@ async function generatePix() {
 beforeEach(() => {
   apiRequest.mockReset();
   localStorage.clear();
+  HTMLDialogElement.prototype.showModal = function showModal() {
+    this.setAttribute("open", "");
+  };
+  HTMLDialogElement.prototype.close = function close() {
+    this.removeAttribute("open");
+  };
 });
 
 afterEach(() => {
@@ -50,6 +56,37 @@ afterEach(() => {
 });
 
 describe("checkout PIX", () => {
+  it("reutiliza a chave de idempotência ao repetir uma tentativa que falhou", async () => {
+    mockInitialization();
+    apiRequest
+      .mockRejectedValueOnce(new Error("Conexão interrompida"))
+      .mockResolvedValueOnce({
+        pagamento: { pix: { payload: "000201PIX" } },
+        status: "PENDING"
+      });
+
+    renderCheckout();
+    await screen.findByRole("heading", { name: "Finalize seu plano" });
+    fireEvent.change(screen.getByRole("textbox", { name: "CPF ou CNPJ" }), {
+      target: { value: "123.456.789-01" }
+    });
+
+    await act(async () => {
+      fireEvent.submit(screen.getByRole("button", { name: "Gerar PIX" }).closest("form"));
+    });
+    expect(await screen.findByRole("alert")).not.toBeNull();
+
+    await act(async () => {
+      fireEvent.submit(screen.getByRole("button", { name: "Gerar PIX" }).closest("form"));
+    });
+
+    const checkoutCalls = apiRequest.mock.calls.filter(([path]) => path === "/checkout");
+    expect(checkoutCalls).toHaveLength(2);
+    expect(checkoutCalls[0][1].headers["Idempotency-Key"])
+      .toBe(checkoutCalls[1][1].headers["Idempotency-Key"]);
+    expect(checkoutCalls[1][1].body.cpf_cnpj).toBe("12345678901");
+  });
+
   it("explica a falha de consulta e permite verificar novamente", async () => {
     mockInitialization();
     apiRequest
@@ -142,5 +179,33 @@ describe("assinatura", () => {
     );
 
     expect(await screen.findByText("Pagamento confirmado. Seu plano foi atualizado.")).not.toBeNull();
+  });
+
+  it("mostra a falha de cancelamento dentro do diálogo", async () => {
+    apiRequest
+      .mockResolvedValueOnce({
+        plano: { nome: "Autônoma", valor: 49.9 },
+        assinatura: { status: "ACTIVE", forma_pagamento: "PIX" },
+        uso: {},
+        pagamentos: []
+      })
+      .mockRejectedValueOnce(new Error("Não foi possível cancelar agora"));
+
+    render(
+      <MemoryRouter initialEntries={["/painel/assinatura"]}>
+        <Routes>
+          <Route path="/painel/assinatura" element={<SubscriptionPage />} />
+        </Routes>
+      </MemoryRouter>
+    );
+
+    fireEvent.click(await screen.findByRole("button", { name: "Cancelar renovação" }));
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "Sim, cancelar" }));
+    });
+
+    const dialog = screen.getByRole("dialog", { hidden: true });
+    expect(dialog.querySelector('[role="alert"]').textContent)
+      .toContain("Não foi possível cancelar agora");
   });
 });

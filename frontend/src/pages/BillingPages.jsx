@@ -103,6 +103,7 @@ export function SubscriptionPage() {
       : ""
   );
   const [canceling, setCanceling] = useState(false);
+  const [cancelError, setCancelError] = useState("");
 
   const load = useCallback(() => {
     setError("");
@@ -121,14 +122,14 @@ export function SubscriptionPage() {
 
   async function cancel() {
     setCanceling(true);
-    setError("");
+    setCancelError("");
     try {
       const result = await apiRequest("/minha-assinatura", { method: "DELETE" });
       setMessage(result.mensagem);
       dialogRef.current?.close();
       load();
     } catch (requestError) {
-      setError(requestError.message);
+      setCancelError(requestError.message);
     } finally {
       setCanceling(false);
     }
@@ -159,7 +160,7 @@ export function SubscriptionPage() {
             <div><dt>Próxima cobrança</dt><dd>{subscription?.data_proxima_cobranca ? formatDate(subscription.data_proxima_cobranca) : "—"}</dd></div>
           </dl>
           {status === "ACTIVE" && (
-            <button className="text-button danger-text" onClick={() => dialogRef.current?.showModal()} type="button">Cancelar renovação</button>
+            <button className="text-button danger-text" onClick={() => { setCancelError(""); dialogRef.current?.showModal(); }} type="button">Cancelar renovação</button>
           )}
         </article>
         <article className="panel">
@@ -196,8 +197,9 @@ export function SubscriptionPage() {
           <div aria-hidden="true" className="cancel-dialog-icon">!</div>
           <h2 id="cancel-subscription-title">Cancelar renovação?</h2>
           <p>Seu acesso continua até o fim do período que já foi pago.</p>
+          {cancelError && <p className="form-error" role="alert">{cancelError}</p>}
           <div className="cancel-dialog-actions">
-            <button className="button button-secondary" disabled={canceling} onClick={() => dialogRef.current?.close()} type="button">Manter plano</button>
+            <button className="button button-secondary" disabled={canceling} onClick={() => { setCancelError(""); dialogRef.current?.close(); }} type="button">Manter plano</button>
             <button className="button button-danger" disabled={canceling} onClick={cancel} type="button">{canceling ? "Cancelando..." : "Sim, cancelar"}</button>
           </div>
         </div>
@@ -230,6 +232,7 @@ export function BillingCheckoutPage() {
   const [error, setError] = useState("");
   const [processing, setProcessing] = useState(false);
   const pollRunRef = useRef(0);
+  const checkoutAttemptRef = useRef({ fingerprint: "", key: "" });
 
   useEffect(() => () => {
     pollRunRef.current += 1;
@@ -304,17 +307,28 @@ export function BillingCheckoutPage() {
     event.preventDefault();
     setProcessing(true);
     setError("");
+    const normalizedDocument = document.replace(/\D/g, "");
+    const fingerprint = `${plan.id}:${normalizedDocument}`;
+    if (checkoutAttemptRef.current.fingerprint !== fingerprint) {
+      const uniquePart = globalThis.crypto?.randomUUID?.()
+        || `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+      checkoutAttemptRef.current = {
+        fingerprint,
+        key: `checkout-${uniquePart}`
+      };
+    }
     try {
       const result = await apiRequest("/checkout", {
         method: "POST",
-        headers: { "Idempotency-Key": `checkout-${Date.now()}-${Math.random().toString(36).slice(2)}` },
+        headers: { "Idempotency-Key": checkoutAttemptRef.current.key },
         body: {
           plano_id: plan.id,
           plano_slug: plan.slug,
           forma_pagamento: "pix",
-          cpf_cnpj: document.replace(/\D/g, "")
+          cpf_cnpj: normalizedDocument
         }
       });
+      checkoutAttemptRef.current = { fingerprint: "", key: "" };
       if (paymentConfirmed(result)) {
         navigate("/painel/assinatura", { replace: true, state: { payment: "confirmed" } });
         return;

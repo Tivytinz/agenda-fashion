@@ -13,6 +13,7 @@ export function ProfessionalsPage() {
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const [saving, setSaving] = useState(false);
+  const [removeError, setRemoveError] = useState("");
 
   const load = useCallback(() => {
     setError("");
@@ -46,7 +47,7 @@ export function ProfessionalsPage() {
   async function remove() {
     if (!pendingRemove) return;
     setSaving(true);
-    setError("");
+    setRemoveError("");
     try {
       const result = await apiRequest(`/profissionais/${pendingRemove.id}`, { method: "DELETE" });
       setMessage(result.mensagem);
@@ -54,7 +55,7 @@ export function ProfessionalsPage() {
       setPendingRemove(null);
       load();
     } catch (requestError) {
-      setError(requestError.message);
+      setRemoveError(requestError.message);
     } finally {
       setSaving(false);
     }
@@ -85,7 +86,7 @@ export function ProfessionalsPage() {
               <article className="management-card professional-card" key={professional.id}>
                 <MediaThumb alt={`Foto de ${professional.nome}`} className="account-avatar" emoji={String(professional.nome || "P").slice(0, 1)} src={professional.foto_url} />
                 <div><h2>{professional.nome}</h2><p className="muted">{owner ? "Dona do negócio" : "Profissional"}</p></div>
-                {!owner && <button className="text-button danger-text" onClick={() => { setPendingRemove(professional); removeDialogRef.current?.showModal(); }} type="button">Remover</button>}
+                {!owner && <button className="text-button danger-text" onClick={() => { setRemoveError(""); setPendingRemove(professional); removeDialogRef.current?.showModal(); }} type="button">Remover</button>}
               </article>
             );
           })}
@@ -103,8 +104,9 @@ export function ProfessionalsPage() {
         <div className="cancel-dialog-content">
           <div aria-hidden="true" className="cancel-dialog-icon">!</div><h2 id="remove-professional-title">Remover da equipe?</h2>
           <p>{pendingRemove?.nome} perderá o acesso a este negócio. A conta pessoal dela continuará existindo.</p>
+          {removeError && <p className="form-error" role="alert">{removeError}</p>}
           <div className="cancel-dialog-actions">
-            <button className="button button-secondary" disabled={saving} onClick={() => { removeDialogRef.current?.close(); setPendingRemove(null); }} type="button">Manter profissional</button>
+            <button className="button button-secondary" disabled={saving} onClick={() => { setRemoveError(""); removeDialogRef.current?.close(); setPendingRemove(null); }} type="button">Manter profissional</button>
             <button className="button button-danger" disabled={saving} onClick={remove} type="button">{saving ? "Removendo..." : "Sim, remover"}</button>
           </div>
         </div>

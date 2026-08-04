@@ -28,23 +28,25 @@ export function AgendaWorkspacePage({ owner = false }) {
   const [message, setMessage] = useState("");
   const [updating, setUpdating] = useState("");
 
-  const load = useCallback(() => {
+  const load = useCallback(async () => {
     setError("");
-    apiRequest(owner ? "/agenda-geral" : "/agenda-profissional")
-      .then((result) => {
-        setData(result);
-        const firstDay = getValidAgendaDays(result.agenda)[0];
-        const firstDate = firstDay?.data || "";
-        setSelectedDate((current) => current || firstDate);
-        if (owner) {
-          const firstProfessional = getValidProfessionals(firstDay?.profissionais)[0]?.id;
-          setSelectedProfessional((current) => current || String(firstProfessional || ""));
-        }
-      })
-      .catch((requestError) => setError(requestError.message));
+    try {
+      const result = await apiRequest(owner ? "/agenda-geral" : "/agenda-profissional");
+      setData(result);
+      const firstDay = getValidAgendaDays(result.agenda)[0];
+      const firstDate = firstDay?.data || "";
+      setSelectedDate((current) => current || firstDate);
+      if (owner) {
+        const firstProfessional = getValidProfessionals(firstDay?.profissionais)[0]?.id;
+        setSelectedProfessional((current) => current || String(firstProfessional || ""));
+      }
+    } catch (requestError) {
+      setError(requestError.message);
+      throw requestError;
+    }
   }, [owner]);
 
-  useEffect(load, [load]);
+  useEffect(() => { void load().catch(() => {}); }, [load]);
 
   const dates = getValidAgendaDays(data?.agenda);
   const activeDay = dates.find((day) => day.data === selectedDate) || dates[0];
@@ -79,7 +81,7 @@ export function AgendaWorkspacePage({ owner = false }) {
         }
       });
       setMessage(result.mensagem);
-      load();
+      await load();
     } catch (requestError) {
       setError(requestError.message);
     } finally {
@@ -88,7 +90,7 @@ export function AgendaWorkspacePage({ owner = false }) {
   }
 
   if (!data && !error) return <div className="workspace-page"><LoadingState>Carregando agenda...</LoadingState></div>;
-  if (!data && error) return <div className="workspace-page"><ErrorState message={error} onRetry={load} /></div>;
+  if (!data && error) return <div className="workspace-page"><ErrorState message={error} onRetry={() => void load().catch(() => {})} /></div>;
 
   return (
     <main className="workspace-page">
