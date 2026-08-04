@@ -666,14 +666,6 @@
     scroll-snap-align: start;
   }
 
-  .date-scroll-hint {
-    display: block;
-    margin: 7px 2px 12px;
-    color: var(--muted);
-    font-size: 0.78rem;
-    text-align: right;
-  }
-
   .time-list,
   .time-options {
     display: grid;
@@ -746,6 +738,15 @@
     order: -1;
   }
 
+  .success-actions {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .success-actions .button {
+    width: 100%;
+  }
+
   .appointments-header,
   .visitor-notice,
   .workspace-heading,
@@ -762,13 +763,13 @@
   }
 
   .appointment-card {
-    grid-template-columns: 58px minmax(0, 1fr);
-    gap: 13px;
-    padding: 15px;
+    grid-template-columns: 54px minmax(0, 1fr);
+    gap: 10px;
+    padding: 12px;
   }
 
   .appointment-date {
-    min-height: 58px;
+    min-height: 74px;
     border-radius: 11px;
   }
 
@@ -776,24 +777,81 @@
     font-size: 1.35rem;
   }
 
+  .appointment-date small {
+    display: block;
+    margin-top: 6px;
+    font-size: 0.7rem;
+    font-weight: 850;
+    letter-spacing: 0;
+  }
+
   .appointment-heading {
-    align-items: flex-start;
-    flex-direction: column-reverse;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: start;
     gap: 8px;
   }
 
+  .appointment-heading h2 {
+    margin-bottom: 8px;
+    font-size: 1.08rem;
+    line-height: 1.2;
+  }
+
+  .appointment-heading .eyebrow {
+    margin-bottom: 3px;
+    font-size: 0.7rem;
+  }
+
   .appointment-details {
-    grid-template-columns: minmax(0, 1fr);
-    gap: 10px;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 8px;
+  }
+
+  .appointment-details div:first-child {
+    display: none;
+  }
+
+  .appointment-details div:last-child {
+    text-align: right;
   }
 
   .appointment-actions {
-    align-items: stretch;
-    flex-direction: column;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-top: 10px;
+    padding-top: 10px;
   }
 
   .appointment-actions .button {
+    width: auto;
+    min-height: 38px;
+    padding-inline: 10px;
+    font-size: 0.76rem;
+  }
+
+  .agenda-tabs {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 2px;
+    overflow: visible;
+  }
+
+  .agenda-tabs button {
     width: 100%;
+    min-width: 0;
+    justify-content: center;
+    gap: 5px;
+    padding-inline: 3px;
+    font-size: 0.76rem;
+  }
+
+  .agenda-tabs span {
+    min-width: 20px;
+    height: 20px;
+    padding-inline: 4px;
+    font-size: 0.68rem;
   }
 
   .workspace-shell {

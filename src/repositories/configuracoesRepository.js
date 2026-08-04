@@ -79,7 +79,12 @@ async function buscarNegocioPorId(
           n.publicado,
 
           n.cidade,
+          n.estado,
           n.bairro,
+          n.endereco,
+          n.numero,
+          n.complemento,
+          n.cep,
           n.localizacao_url,
 
           n.whatsapp,
@@ -131,11 +136,16 @@ async function atualizarNegocio(
           descricao = $3,
           setor = $4,
           cidade = $5,
-          bairro = $6,
-          localizacao_url = $7,
-          whatsapp = $8,
+          estado = $6,
+          bairro = $7,
+          endereco = $8,
+          numero = $9,
+          complemento = $10,
+          cep = $11,
+          localizacao_url = $12,
+          whatsapp = $13,
           areas = COALESCE(
-            $9::TEXT[],
+            $14::TEXT[],
             ARRAY[]::TEXT[]
           ),
           publicado = CASE
@@ -143,7 +153,8 @@ async function atualizarNegocio(
               AND NULLIF(BTRIM(COALESCE($3, '')), '') IS NOT NULL
               AND NULLIF(BTRIM(COALESCE($4, '')), '') IS NOT NULL
               AND NULLIF(BTRIM(COALESCE($5, '')), '') IS NOT NULL
-              AND NULLIF(BTRIM(COALESCE($8, '')), '') IS NOT NULL
+              AND NULLIF(BTRIM(COALESCE($6, '')), '') IS NOT NULL
+              AND NULLIF(BTRIM(COALESCE($13, '')), '') IS NOT NULL
               AND EXISTS (
                 SELECT 1
                 FROM servicos_negocio s
@@ -155,7 +166,7 @@ async function atualizarNegocio(
           END,
           updated_at = NOW()
 
-        WHERE id = $10
+        WHERE id = $15
 
         RETURNING
           id,
@@ -175,7 +186,12 @@ async function atualizarNegocio(
           publicado,
 
           cidade,
+          estado,
           bairro,
+          endereco,
+          numero,
+          complemento,
+          cep,
           localizacao_url,
 
           whatsapp,
@@ -203,7 +219,12 @@ async function atualizarNegocio(
         dados.descricao,
         dados.setor,
         dados.cidade,
+        dados.estado,
         dados.bairro,
+        dados.endereco,
+        dados.numero,
+        dados.complemento,
+        dados.cep,
         dados.localizacao_url,
         dados.whatsapp_negocio,
         dados.areas,

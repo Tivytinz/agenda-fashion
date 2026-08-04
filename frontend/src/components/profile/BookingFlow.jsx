@@ -153,7 +153,6 @@ function ScheduleChoices({
           </button>
         ))}
       </div>
-      <small className="date-scroll-hint">Deslize para ver mais datas</small>
       {selectedDay && (
         <div className="time-list" aria-label="Horários disponíveis">
           {selectedDay.horarios.map((hour) => (

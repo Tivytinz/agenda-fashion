@@ -88,6 +88,7 @@ nav { display: flex; align-items: center; gap: 18px; }
 .service-preview li span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .service-preview li strong { flex: 0 0 auto; color: var(--wine); }
 .card-footer { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: auto; padding-top: 16px; }
+.business-card-available .card-footer { justify-content: flex-end; }
 .card-footer > small { color: var(--muted); }
 .muted { color: var(--muted); }
 .rating { flex: 0 0 auto; border-radius: 999px; padding: 5px 8px; color: #7d4c00; background: #fff7db; font-size: .78rem; font-weight: 850; }
@@ -208,6 +209,7 @@ nav { display: flex; align-items: center; gap: 18px; }
 .appointment-date { display: grid; min-height: 76px; align-content: center; justify-items: center; align-self: start; border-radius: 14px; color: var(--wine); background: var(--pink-50); text-transform: uppercase; }
 .appointment-date strong { font-size: 1.75rem; line-height: 1; }
 .appointment-date span { margin-top: 5px; font-size: .75rem; font-weight: 900; letter-spacing: .08em; }
+.appointment-date small { display: none; }
 .appointment-heading { display: flex; align-items: start; justify-content: space-between; gap: 16px; }
 .appointment-heading h2 { margin-bottom: 14px; font-size: 1.35rem; }
 .status-badge { flex: 0 0 auto; border-radius: 999px; padding: 6px 10px; font-size: .75rem; font-weight: 900; }
@@ -228,6 +230,7 @@ nav { display: flex; align-items: center; gap: 18px; }
 .cancel-dialog h2 { margin-bottom: 10px; font-size: 1.6rem; }
 .cancel-dialog p:not(.eyebrow) { color: var(--muted); line-height: 1.55; }
 .cancel-dialog-warning { margin-bottom: 0; font-size: .9rem; }
+.cancel-dialog .form-error { margin-top: 16px; color: #8c2039; text-align: left; }
 .cancel-dialog-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 24px; }
 .empty-agenda { display: grid; min-height: 300px; justify-items: center; align-content: center; border: 1px dashed var(--line); border-radius: 18px; padding: 30px; text-align: center; background: #fff; }
 .empty-agenda > span { color: var(--pink-500); font-size: 2.5rem; }
@@ -666,9 +669,6 @@ body,
   border-radius: 50%;
 }
 
-.date-scroll-hint {
-  display: none;
-}
 
 .action-icon {
   width: 20px;

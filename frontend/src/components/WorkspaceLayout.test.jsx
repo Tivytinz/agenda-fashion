@@ -15,7 +15,7 @@ const LINKS = [
   ["/painel", "Visão geral", "⌂"],
   ["/painel/agenda", "Agenda", "▦"],
   ["/painel/servicos", "Serviços", "✦"],
-  ["/painel/profissionais", "Profissionais", "♙"],
+  ["/painel/profissionais", "Equipe", "♙"],
   ["/painel/horarios", "Horários", "◷"],
   ["/conta", "Minha conta", "○"]
 ];

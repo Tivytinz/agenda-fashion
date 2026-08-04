@@ -24,7 +24,12 @@ describe("consistência da publicação do negócio", () => {
       descricao: null,
       setor: "Unhas",
       cidade: "Goiânia",
+      estado: "GO",
       bairro: "Centro",
+      endereco: "Rua das Flores",
+      numero: "10",
+      complemento: "",
+      cep: "74000123",
       localizacao_url: null,
       whatsapp_negocio: "62999999999",
       areas: []
@@ -37,6 +42,9 @@ describe("consistência da publicação do negócio", () => {
     );
     expect(sql).toMatch(
       /NULLIF\(BTRIM\(COALESCE\(\$3, ''\)\), ''\) IS NOT NULL/i
+    );
+    expect(sql).toMatch(
+      /NULLIF\(BTRIM\(COALESCE\(\$6, ''\)\), ''\) IS NOT NULL/i
     );
     expect(sql).toMatch(
       /EXISTS[\s\S]*servicos_negocio[\s\S]*s\.ativo\s*=\s*TRUE/i

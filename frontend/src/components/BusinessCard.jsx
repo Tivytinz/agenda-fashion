@@ -113,15 +113,7 @@ export function BusinessCard({ business }) {
         )}
 
         <div className="card-footer">
-          <small>
-            {available
-              ? `${serviceCount} ${
-                  serviceCount === 1
-                    ? "serviço"
-                    : "serviços"
-                }`
-              : "Agenda em configuração"}
-          </small>
+          {!available && <small>Agenda em configuração</small>}
 
           {available ? (
             <Link
