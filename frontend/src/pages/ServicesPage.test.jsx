@@ -49,6 +49,12 @@ function submit() {
 
 beforeEach(() => {
   apiRequest.mockReset();
+  HTMLDialogElement.prototype.showModal = function showModal() {
+    this.setAttribute("open", "");
+  };
+  HTMLDialogElement.prototype.close = function close() {
+    this.removeAttribute("open");
+  };
   Object.defineProperty(URL, "createObjectURL", {
     configurable: true,
     value: vi.fn(() => "blob:preview")
@@ -121,6 +127,30 @@ describe("editor de serviços", () => {
 });
 
 describe("lista profissional de serviços", () => {
+  it("mostra a falha de remoção dentro do diálogo", async () => {
+    apiRequest
+      .mockResolvedValueOnce({
+        servicos: [{
+          id: 8,
+          nome: "Design com henna",
+          categoria: "sobrancelha",
+          duracao_minutos: 50,
+          valor: 55,
+          ativo: true
+        }]
+      })
+      .mockRejectedValueOnce(new Error("Não foi possível remover o serviço"));
+
+    renderServices();
+    fireEvent.click(await screen.findByRole("button", { name: "Remover" }));
+    await waitFor(() => expect(screen.getByRole("button", { name: "Sim, remover" })).not.toBeNull());
+    fireEvent.click(screen.getByRole("button", { name: "Sim, remover" }));
+
+    const alert = await screen.findByRole("alert");
+    expect(alert.closest("dialog")).not.toBeNull();
+    expect(alert.textContent).toContain("Não foi possível remover o serviço");
+  });
+
   it("mostra a confirmação recebida após salvar um serviço", async () => {
     apiRequest.mockResolvedValueOnce({ servicos: [] });
 

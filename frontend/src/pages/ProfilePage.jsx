@@ -30,6 +30,7 @@ export function ProfilePage() {
   const [error, setError] = useState("");
   const [favorite, setFavorite] = useState(false);
   const [favoriteBusy, setFavoriteBusy] = useState(false);
+  const [favoriteError, setFavoriteError] = useState("");
 
   const business = profile?.negocio;
   const services = profile?.servicos ?? EMPTY_LIST;
@@ -217,13 +218,14 @@ export function ProfilePage() {
     }
 
     setFavoriteBusy(true);
+    setFavoriteError("");
     try {
       await apiRequest(`/favoritos/${business.id}`, {
         method: favorite ? "DELETE" : "POST"
       });
       setFavorite((current) => !current);
     } catch (requestError) {
-      setError(requestError.message);
+      setFavoriteError(requestError.message);
     } finally {
       setFavoriteBusy(false);
     }
@@ -255,6 +257,7 @@ export function ProfilePage() {
         rating={formatRating(business)}
         selectedService={selectedService}
       />
+      {favoriteError && <p className="form-error" role="alert">{favoriteError}</p>}
       <BookingFlow
         availability={availability}
         day={day}

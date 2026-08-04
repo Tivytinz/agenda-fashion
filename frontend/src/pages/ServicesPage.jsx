@@ -55,6 +55,7 @@ export function ServicesPage() {
   const [error, setError] = useState("");
   const [pendingRemove, setPendingRemove] = useState(null);
   const [removing, setRemoving] = useState(false);
+  const [removeError, setRemoveError] = useState("");
   const [message] = useState(() => location.state?.message || "");
 
   const load = useCallback(() => {
@@ -73,6 +74,7 @@ export function ServicesPage() {
   }, [location.pathname, location.state, navigate]);
 
   function askRemove(service) {
+    setRemoveError("");
     setPendingRemove(service);
     removeDialogRef.current?.showModal();
   }
@@ -80,14 +82,14 @@ export function ServicesPage() {
   async function remove() {
     if (!pendingRemove || removing) return;
     setRemoving(true);
-    setError("");
+    setRemoveError("");
     try {
       await apiRequest(`/servicos/${pendingRemove.id}`, { method: "DELETE" });
       setServices((current) => current.filter((item) => item.id !== pendingRemove.id));
       removeDialogRef.current?.close();
       setPendingRemove(null);
     } catch (requestError) {
-      setError(requestError.message);
+      setRemoveError(requestError.message);
     } finally {
       setRemoving(false);
     }
@@ -162,8 +164,9 @@ export function ServicesPage() {
           <div aria-hidden="true" className="cancel-dialog-icon">!</div>
           <h2 id="remove-service-title">Remover serviço?</h2>
           <p>“{pendingRemove?.nome}” deixará de aparecer para novas clientes.</p>
+          {removeError && <p className="form-error" role="alert">{removeError}</p>}
           <div className="cancel-dialog-actions">
-            <button className="button button-secondary" disabled={removing} onClick={() => { removeDialogRef.current?.close(); setPendingRemove(null); }} type="button">Manter serviço</button>
+            <button className="button button-secondary" disabled={removing} onClick={() => { setRemoveError(""); removeDialogRef.current?.close(); setPendingRemove(null); }} type="button">Manter serviço</button>
             <button className="button button-danger" disabled={removing} onClick={remove} type="button">{removing ? "Removendo..." : "Sim, remover"}</button>
           </div>
         </div>

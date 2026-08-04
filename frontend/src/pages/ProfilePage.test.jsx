@@ -126,6 +126,26 @@ beforeEach(() => {
 afterEach(cleanup);
 
 describe("fluxo publico de agendamento", () => {
+  it("mostra a falha ao favoritar perto da ação", async () => {
+    const user = userEvent.setup();
+    localStorage.setItem("token", "token-valido");
+    apiRequest.mockImplementation((path, options) => {
+      if (path.startsWith("/perfil-negocio/")) return Promise.resolve(PROFILE);
+      if (path === "/favoritos/7/status") return Promise.resolve({ favoritado: false });
+      if (path === "/favoritos/7" && options?.method === "POST") {
+        return Promise.reject(new Error("Não foi possível salvar o favorito"));
+      }
+      return Promise.reject(new Error(`Requisicao inesperada: ${path}`));
+    });
+
+    renderProfile();
+    await user.click(await screen.findByRole("button", { name: /Favoritar/ }));
+
+    expect((await screen.findByRole("alert")).textContent)
+      .toContain("Não foi possível salvar o favorito");
+    expect(screen.getByRole("button", { name: /Favoritar/ }).disabled).toBe(false);
+  });
+
   it("personaliza o titulo com o nome do negocio", async () => {
     mockSuccessfulRequests();
     renderProfile();

@@ -265,7 +265,13 @@ describe(
         expect(
           cobranca
         ).toContain(
-          'cpf_cnpj: document.replace(/\\D/g, "")'
+          'const normalizedDocument = document.replace(/\\D/g, "")'
+        );
+
+        expect(
+          cobranca
+        ).toContain(
+          "cpf_cnpj: normalizedDocument"
         );
 
         expect(
@@ -278,6 +284,12 @@ describe(
           cobranca
         ).toContain(
           '"Idempotency-Key"'
+        );
+
+        expect(
+          cobranca
+        ).toContain(
+          "checkoutAttemptRef.current.key"
         );
 
         expect(

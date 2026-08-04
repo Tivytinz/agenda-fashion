@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { apiRequest } from "../api/client";
 import { AgendaWorkspacePage } from "./AgendaWorkspacePage";
@@ -31,5 +31,35 @@ describe("agenda do negócio", () => {
 
     expect(screen.getByText("Nenhuma profissional disponível neste dia")).not.toBeNull();
     expect(screen.getByRole("button", { name: /04 de ago/ }).getAttribute("aria-pressed")).toBe("true");
+  });
+
+  it("mantém o horário desabilitado até a agenda atualizada chegar", async () => {
+    let finishReload;
+    const refreshedAgenda = new Promise((resolve) => { finishReload = resolve; });
+    apiRequest
+      .mockResolvedValueOnce({
+        agenda: [{
+          data: "2026-08-03",
+          profissionais: [{ id: 1, nome: "Ana", horarios: [{ hora: "09:00", status: "livre" }] }]
+        }]
+      })
+      .mockResolvedValueOnce({ mensagem: "Horário bloqueado." })
+      .mockImplementationOnce(() => refreshedAgenda);
+
+    render(<AgendaWorkspacePage owner />);
+    const slot = await screen.findByRole("button", { name: /09:00 Livre/ });
+    fireEvent.click(slot);
+
+    await waitFor(() => expect(apiRequest).toHaveBeenCalledTimes(3));
+    expect(slot.disabled).toBe(true);
+
+    finishReload({
+      agenda: [{
+        data: "2026-08-03",
+        profissionais: [{ id: 1, nome: "Ana", horarios: [{ hora: "09:00", status: "bloqueado" }] }]
+      }]
+    });
+
+    expect(await screen.findByRole("button", { name: /09:00 Bloqueado/ })).not.toBeNull();
   });
 });

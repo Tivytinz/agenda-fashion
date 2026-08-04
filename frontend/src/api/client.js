@@ -1,6 +1,7 @@
 import { clearSession } from "../auth/session";
 
 const API_URL = String(import.meta.env.VITE_API_URL || "").replace(/\/+$/, "");
+const DEFAULT_TIMEOUT_MS = 20000;
 
 export class ApiError extends Error {
   constructor(message, status, data) {
@@ -12,6 +13,11 @@ export class ApiError extends Error {
 }
 
 export async function apiRequest(path, options = {}) {
+  const {
+    signal: externalSignal,
+    timeoutMs = DEFAULT_TIMEOUT_MS,
+    ...requestOptions
+  } = options;
   const headers = new Headers(options.headers || {});
   const token = localStorage.getItem("token");
 
@@ -28,11 +34,44 @@ export async function apiRequest(path, options = {}) {
     body = JSON.stringify(body);
   }
 
-  const response = await fetch(`${API_URL}${path}`, {
-    ...options,
-    headers,
-    body
-  });
+  const controller = new AbortController();
+  let timedOut = false;
+  const abortFromExternalSignal = () => controller.abort(externalSignal?.reason);
+
+  if (externalSignal?.aborted) {
+    abortFromExternalSignal();
+  } else {
+    externalSignal?.addEventListener("abort", abortFromExternalSignal, { once: true });
+  }
+
+  const timeoutId = Number(timeoutMs) > 0
+    ? window.setTimeout(() => {
+      timedOut = true;
+      controller.abort();
+    }, Number(timeoutMs))
+    : null;
+
+  let response;
+  try {
+    response = await fetch(`${API_URL}${path}`, {
+      ...requestOptions,
+      headers,
+      body,
+      signal: controller.signal
+    });
+  } catch (requestError) {
+    if (timedOut) {
+      throw new ApiError(
+        "A solicitação demorou demais. Verifique sua conexão e tente novamente.",
+        408,
+        { codigo: "REQUEST_TIMEOUT" }
+      );
+    }
+    throw requestError;
+  } finally {
+    if (timeoutId !== null) window.clearTimeout(timeoutId);
+    externalSignal?.removeEventListener("abort", abortFromExternalSignal);
+  }
 
   const data = await response.json().catch(() => ({}));
 
