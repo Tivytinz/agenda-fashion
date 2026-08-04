@@ -139,7 +139,8 @@ nav { display: flex; align-items: center; gap: 18px; }
 .flow-steps li.current, .flow-steps li.done { color: var(--wine); }
 .flow-steps li.current > span, .flow-steps li.done > span { color: #fff; border-color: var(--pink-600); background: var(--pink-600); }
 
-.booking-layout { display: grid; grid-template-columns: minmax(0, 1fr) 320px; align-items: start; gap: 24px; }
+.booking-layout { display: grid; grid-template-columns: minmax(0, 1fr); align-items: start; gap: 24px; }
+.booking-layout-with-summary { grid-template-columns: minmax(0, 1fr) 320px; }
 .booking-main { display: grid; gap: 18px; }
 .booking-section, .form-card, .booking-summary, .success-card { border: 1px solid var(--line); border-radius: 18px; padding: clamp(20px, 4vw, 30px); background: #fff; box-shadow: var(--shadow); }
 .booking-section .section-heading > div { display: flex; align-items: center; gap: 12px; }
@@ -187,6 +188,11 @@ nav { display: flex; align-items: center; gap: 18px; }
 .success-icon { display: grid; width: 68px; height: 68px; place-items: center; margin: 0 auto 22px; border-radius: 50%; color: #fff; background: #21845b; font-size: 2rem; font-weight: 900; }
 .success-card p:not(.eyebrow) { color: var(--muted); font-size: 1.05rem; line-height: 1.7; }
 .success-actions { display: flex; justify-content: center; flex-wrap: wrap; gap: 12px; margin-top: 28px; }
+.success-details { display: grid; max-width: 520px; gap: 0; margin: 24px auto 0; border: 1px solid var(--line); border-radius: 14px; padding-inline: 18px; background: var(--pink-50); text-align: left; }
+.success-details div { display: grid; grid-template-columns: minmax(110px, auto) 1fr; gap: 16px; padding-block: 13px; }
+.success-details div + div { border-top: 1px solid var(--line); }
+.success-details dt { color: var(--muted); }
+.success-details dd { margin: 0; font-weight: 800; text-align: right; overflow-wrap: anywhere; }
 .appointments-page { max-width: 980px; }
 .appointments-header { display: flex; align-items: end; justify-content: space-between; gap: 24px; margin-bottom: 24px; }
 .appointments-header h1 { margin-bottom: 8px; }

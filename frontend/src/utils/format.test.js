@@ -3,6 +3,7 @@ import {
   formatCurrency,
   formatLocation,
   formatRating,
+  formatWhatsApp,
   normalizeAvailability,
   normalizeText
 } from "./format";
@@ -14,6 +15,12 @@ describe("formatadores do frontend", () => {
 
   test("formata valores em reais", () => {
     expect(formatCurrency(35)).toContain("35,00");
+  });
+
+  test("formata WhatsApp com DDD sem manter caracteres extras", () => {
+    expect(formatWhatsApp("62999998888")).toBe("(62) 99999-8888");
+    expect(formatWhatsApp("62 3333-4444")).toBe("(62) 3333-4444");
+    expect(formatWhatsApp("62999998888123")).toBe("(62) 99999-8888");
   });
 
   test("monta a localização sem campos vazios", () => {

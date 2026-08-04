@@ -126,6 +126,46 @@ beforeEach(() => {
 afterEach(cleanup);
 
 describe("fluxo publico de agendamento", () => {
+  it("oculta o resumo até a cliente escolher um serviço", async () => {
+    const user = userEvent.setup();
+    mockSuccessfulRequests();
+    renderProfile();
+
+    await screen.findByRole("heading", { name: "Studio Aurora" });
+    expect(screen.queryByRole("heading", { name: "Resumo" })).toBeNull();
+
+    await user.click(screen.getByRole("button", {
+      name: /Manicure completa/
+    }));
+
+    expect(screen.getByRole("heading", { name: "Resumo" })).not.toBeNull();
+  });
+
+  it("usa a primeira foto de serviço quando o negócio não possui foto", async () => {
+    const profileWithServicePhoto = {
+      ...PROFILE,
+      servicos: PROFILE.servicos.map((service, index) => (
+        index === 0
+          ? { ...service, foto_url: "/uploads/manicure.jpg" }
+          : service
+      ))
+    };
+
+    apiRequest.mockImplementation((path) => {
+      if (path.startsWith("/perfil-negocio/")) {
+        return Promise.resolve(profileWithServicePhoto);
+      }
+      return Promise.reject(new Error(`Requisicao inesperada: ${path}`));
+    });
+
+    renderProfile();
+
+    const image = await screen.findByRole("img", {
+      name: "Foto de Studio Aurora"
+    });
+    expect(image.getAttribute("src")).toContain("/uploads/manicure.jpg");
+  });
+
   it("mostra a falha ao favoritar perto da ação", async () => {
     const user = userEvent.setup();
     localStorage.setItem("token", "token-valido");

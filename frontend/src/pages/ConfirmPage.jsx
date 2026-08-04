@@ -4,7 +4,7 @@ import { apiRequest } from "../api/client";
 import { track } from "../analytics/track";
 import { FlowSteps } from "../components/FlowSteps";
 import { saveRecentAppointment } from "../utils/appointments";
-import { formatCurrency, formatDate } from "../utils/format";
+import { formatCurrency, formatDate, formatWhatsApp } from "../utils/format";
 
 function storedBooking() {
   try {
@@ -26,7 +26,7 @@ export function ConfirmPage() {
     }
   }, []);
   const [name, setName] = useState(user?.nome || "");
-  const [whatsapp, setWhatsapp] = useState(user?.whatsapp || "");
+  const [whatsapp, setWhatsapp] = useState(formatWhatsApp(user?.whatsapp));
   const [consent, setConsent] = useState(false);
   const [status, setStatus] = useState("idle");
   const [scheduleConflict, setScheduleConflict] = useState(false);
@@ -100,7 +100,17 @@ export function ConfirmPage() {
         booking,
         appointment: result.agendamento
       });
-      navigate("/sucesso", { replace: true, state: { booking, result } });
+      navigate("/sucesso", {
+        replace: true,
+        state: {
+          booking,
+          customer: {
+            name: normalizedName,
+            whatsapp: normalizedPhone
+          },
+          result
+        }
+      });
     } catch (requestError) {
       const isConflict = requestError.status === 409;
       setScheduleConflict(isConflict);
@@ -143,9 +153,10 @@ export function ConfirmPage() {
               <input
                 autoComplete="tel"
                 inputMode="tel"
-                placeholder="(62) 99999-9999"
+                maxLength={15}
+                placeholder="(00) 12345-6789"
                 value={whatsapp}
-                onChange={(event) => setWhatsapp(event.target.value)}
+                onChange={(event) => setWhatsapp(formatWhatsApp(event.target.value))}
               />
             </label>
             <label className="checkbox-label">

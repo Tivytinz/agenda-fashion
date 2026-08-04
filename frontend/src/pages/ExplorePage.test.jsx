@@ -187,4 +187,19 @@ describe("catálogo público paginado", () => {
       "Nenhum negócio encontrado"
     )).not.toBeNull();
   });
+
+  it("não mostra contadores redundantes acima dos catálogos", async () => {
+    apiRequest.mockResolvedValue({
+      negocios: [business(1, "Studio Um")],
+      paginacao: { total: 1, tem_mais: false }
+    });
+
+    renderExplore();
+
+    expect(await screen.findByRole("heading", {
+      name: "Studio Um"
+    })).not.toBeNull();
+    expect(screen.queryByText(/serviço exibido/i)).toBeNull();
+    expect(screen.queryByText(/opção encontrada/i)).toBeNull();
+  });
 });

@@ -74,9 +74,6 @@ export function ExplorePage() {
   const [hasMore, setHasMore] =
     useState(false);
 
-  const [total, setTotal] =
-    useState(0);
-
   const [loadingMore, setLoadingMore] =
     useState(false);
 
@@ -128,10 +125,6 @@ export function ExplorePage() {
       setPage(requestedPage);
       setHasMore(
         Boolean(data.paginacao?.tem_mais)
-      );
-      setTotal(
-        Number(data.paginacao?.total) ||
-          received.length
       );
       setError("");
 
@@ -407,15 +400,6 @@ export function ExplorePage() {
             </h2>
           </div>
 
-          {status === "ready" && (
-            <span>
-              {filteredServices.length}{" "}
-              {filteredServices.length ===
-                1
-                ? "serviço exibido"
-                : "serviços exibidos"}
-            </span>
-          )}
         </div>
 
         {status === "loading" && (
@@ -473,13 +457,6 @@ export function ExplorePage() {
                 </h2>
               </div>
 
-              <span>
-                {total}{" "}
-                {total ===
-                  1
-                  ? "opção encontrada"
-                  : "opções encontradas"}
-              </span>
             </div>
 
             {sortedBusinesses.length > 0 ? (

@@ -70,6 +70,17 @@ beforeEach(() => {
 afterEach(cleanup);
 
 describe("confirmação do agendamento", () => {
+  it("mostra o exemplo e aplica a máscara do WhatsApp durante a digitação", async () => {
+    const user = userEvent.setup();
+    renderConfirmation();
+
+    const input = screen.getByRole("textbox", { name: "Seu WhatsApp" });
+    expect(input.getAttribute("placeholder")).toBe("(00) 12345-6789");
+
+    await user.type(input, "62999998888");
+    expect(input.value).toBe("(62) 99999-8888");
+  });
+
   it("envia os dados normalizados e abre a tela de sucesso", async () => {
     const user = userEvent.setup();
     apiRequest.mockResolvedValue({

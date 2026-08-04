@@ -235,7 +235,10 @@ export function BookingFlow({
   return (
     <>
       <FlowSteps current={currentStep} />
-      <div className="booking-layout">
+      <div className={serviceId
+        ? "booking-layout booking-layout-with-summary"
+        : "booking-layout"}
+      >
         <div className="booking-main">
           <section className="booking-section">
             <div className="section-heading"><div><p className="step-label">1</p><h2>Escolha o serviço</h2></div></div>
@@ -284,13 +287,15 @@ export function BookingFlow({
             </section>
           )}
         </div>
-        <BookingSummary
-          day={day}
-          onContinue={onContinue}
-          professional={selectedProfessional}
-          service={selectedService}
-          time={time}
-        />
+        {serviceId && (
+          <BookingSummary
+            day={day}
+            onContinue={onContinue}
+            professional={selectedProfessional}
+            service={selectedService}
+            time={time}
+          />
+        )}
       </div>
     </>
   );
