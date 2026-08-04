@@ -13,6 +13,22 @@ export function formatCurrency(value) {
   }).format(Number(value) || 0);
 }
 
+export function formatWhatsApp(value) {
+  const digits = String(value || "").replace(/\D/g, "").slice(0, 11);
+
+  if (!digits) return "";
+  if (digits.length <= 2) return `(${digits}`;
+
+  const areaCode = digits.slice(0, 2);
+  const localNumber = digits.slice(2);
+
+  if (localNumber.length <= 5) {
+    return `(${areaCode}) ${localNumber}`;
+  }
+
+  return `(${areaCode}) ${localNumber.slice(0, -4)}-${localNumber.slice(-4)}`;
+}
+
 export function formatLocation(business) {
   const parts = [business?.bairro, business?.cidade, business?.estado]
     .map((part) => String(part || "").replace(/\s+/g, " ").trim())

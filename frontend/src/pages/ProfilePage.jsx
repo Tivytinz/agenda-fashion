@@ -35,6 +35,13 @@ export function ProfilePage() {
   const business = profile?.negocio;
   const services = profile?.servicos ?? EMPTY_LIST;
   const professionals = profile?.profissionais ?? EMPTY_LIST;
+  const profileImageSource = business?.foto_url ||
+    business?.imagem_url ||
+    business?.logo_url ||
+    services.map((service) => (
+      service.foto_url || service.imagem_url || service.foto
+    )).find(Boolean) ||
+    "";
   const pageDescription = business?.descricao || (
     business?.nome
       ? `Agende serviços de beleza com ${business.nome} pelo Agenda Fashion.`
@@ -253,6 +260,7 @@ export function ProfilePage() {
         business={business}
         favorite={favorite}
         favoriteBusy={favoriteBusy}
+        imageSource={profileImageSource}
         onToggleFavorite={toggleFavorite}
         rating={formatRating(business)}
         selectedService={selectedService}

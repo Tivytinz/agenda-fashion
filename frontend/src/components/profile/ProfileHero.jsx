@@ -80,6 +80,7 @@ export function ProfileHero({
   business,
   favorite,
   favoriteBusy,
+  imageSource,
   onToggleFavorite,
   rating,
   selectedService
@@ -162,7 +163,7 @@ export function ProfileHero({
   return (
     <section className="profile-hero">
       <MediaThumb
-        src={business.foto_url}
+        src={imageSource}
         alt={`Foto de ${business.nome}`}
         className="profile-image"
       />
@@ -215,7 +216,7 @@ export function ProfileHero({
         )}
         <a className="profile-action-button maps" href={mapsUrl} target="_blank" rel="noreferrer">
           <ActionIcon type="maps" />
-          <span>Ver no mapa</span>
+          <span>Como chegar</span>
         </a>
       </div>
     </section>
