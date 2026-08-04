@@ -431,7 +431,7 @@ describe(
         expect(
           css
         ).toContain(
-          "Camada responsiva final"
+          "Sistema responsivo único do Agenda Fashion"
         );
 
         expect(
@@ -515,6 +515,22 @@ describe(
           entrada.indexOf(
             '"./styles/responsive.css"'
           )
+        );
+
+        expect(
+          responsivo.match(/@media\s*\(/g)
+        ).toHaveLength(7);
+
+        expect(
+          responsivo
+        ).not.toMatch(
+          /(?:POLISH|POLIMENTO|UX FINAL|V3|Proteções finais)/i
+        );
+
+        expect(
+          principal
+        ).not.toMatch(
+          /MOBILE (?:SYSTEM|VISUAL|FINAL|UX|POLISH|POLIMENTO)/i
         );
       }
     );

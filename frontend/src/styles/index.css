@@ -30,7 +30,7 @@ h2 { font-size: clamp(1.45rem, 3vw, 2rem); letter-spacing: -.025em; }
 h3 { margin-bottom: .35rem; }
 
 .container { width: min(1160px, calc(100% - 32px)); margin-inline: auto; }
-.app-shell { min-height: 100vh; }
+.app-shell { min-height: 100vh; min-height: 100dvh; }
 .site-header { position: sticky; top: 0; z-index: 20; border-bottom: 1px solid rgb(234 221 226 / 80%); background: rgb(255 249 251 / 92%); backdrop-filter: blur(16px); }
 .header-content { min-height: 68px; display: flex; align-items: center; justify-content: space-between; gap: 20px; }
 .brand { display: inline-flex; align-items: center; gap: 10px; text-decoration: none; }
@@ -126,7 +126,7 @@ nav { display: flex; align-items: center; gap: 18px; }
 .profile-meta span { border-radius: 999px; padding: 5px 9px; background: var(--pink-50); }
 .profile-distance-button { border: 1px solid var(--pink-100); border-radius: 999px; padding: 5px 9px; color: var(--wine); background: #fff; font: inherit; font-weight: 800; cursor: pointer; }
 .profile-distance-button:hover { border-color: var(--pink-500); background: var(--pink-50); }
-.favorite-button { min-height: 42px; border: 1px solid var(--pink-100); border-radius: 999px; padding: 0 16px; color: var(--wine); background: #fff; font-weight: 850; cursor: pointer; }
+.favorite-button { min-height: 42px; border: 1px solid var(--pink-100); border-radius: 999px; padding: 0 16px; color: var(--wine); background: #fff; font-weight: 850; cursor: pointer; transition: transform 160ms ease, border-color 160ms ease, background-color 160ms ease, color 160ms ease; }
 .favorite-button.active { color: var(--pink-600); border-color: var(--pink-500); background: var(--pink-50); }
 .flow-progress { max-width: 760px; margin: 0 auto 24px; }
 .flow-progress > p { display: none; justify-content: space-between; margin-bottom: 9px; color: var(--muted); font-size: .82rem; }
@@ -543,17 +543,11 @@ th { color: var(--muted); font-size: .76rem; letter-spacing: .04em; text-transfo
   padding-top: 8px;
 }
 
-/* Ajustes mobile da pagina inicial */
-
 html,
 body,
 #root {
   max-width: 100%;
   overflow-x: hidden;
-}
-
-.app-shell {
-  min-height: 100dvh;
 }
 
 .hero-copy,
@@ -569,8 +563,6 @@ body,
   max-width: 100%;
   overflow-wrap: anywhere;
 }
-/* MOBILE SYSTEM START */
-
 .account-button {
   display: inline-flex;
   min-height: 42px;
@@ -585,7 +577,7 @@ body,
   text-decoration: none;
 }
 
-.account-avatar {
+.account-button .account-avatar {
   display: grid;
   width: 32px;
   height: 32px;
@@ -601,26 +593,6 @@ body,
 .workspace-mobile-nav {
   display: none;
 }
-
-/* MOBILE SYSTEM END */
-/* MOBILE VISUAL POLISH START */
-/* MOBILE VISUAL POLISH END */
-/* MOBILE FINAL POLISH START */
-
-/* MOBILE FINAL POLISH END */
-/* HOME MOBILE CARDS START */
-
-/* HOME MOBILE CARDS END */
-/* HOME MOBILE UX FINAL START */
-
-/* HOME MOBILE UX FINAL END */
-/* HOME MOBILE POLIMENTO FINAL V3 START */
-
-/* HOME MOBILE POLIMENTO FINAL V3 END */
-/* BOOKING MOBILE POLISH START */
-
-/* BOOKING MOBILE POLISH END */
-/* PROFILE MEDIA CONTACT LOCATION START */
 
 .af-media-thumb {
   display: grid;
@@ -688,21 +660,9 @@ body,
   border-radius: 50%;
 }
 
-/* PROFILE MEDIA CONTACT LOCATION END */
-/* PROFILE DATA AND MOBILE FIX START */
-
-/* PROFILE DATA AND MOBILE FIX END */
-/* PROFILE PUBLIC MOBILE FINAL START */
-
 .date-scroll-hint {
   display: none;
 }
-
-/* PROFILE PUBLIC MOBILE FINAL END */
-/* PROFILE PUBLIC MOBILE POLISH FINAL START */
-
-/* PROFILE PUBLIC MOBILE POLISH FINAL END */
-/* PROFILE PUBLIC UX FINAL START */
 
 .action-icon {
   width: 20px;
@@ -715,9 +675,6 @@ body,
   content: none !important;
 }
 
-/* PROFILE PUBLIC UX FINAL END */
-/* PROFESSIONAL PHOTO PUBLIC FIX START */
-
 .professional-media img,
 .single-professional .af-media-thumb img,
 .professional-card .account-avatar img {
@@ -725,9 +682,6 @@ body,
   height: 100%;
   object-fit: cover;
 }
-
-/* PROFESSIONAL PHOTO PUBLIC FIX END */
-/* PROFILE PUBLIC EMOJI UX START */
 
 .service-name-with-emoji {
   display: flex !important;
@@ -761,14 +715,6 @@ body,
   line-height: 1;
 }
 
-.favorite-button {
-  transition:
-    transform 160ms ease,
-    border-color 160ms ease,
-    background-color 160ms ease,
-    color 160ms ease;
-}
-
 .favorite-button:active {
   transform: scale(0.985);
 }
@@ -790,9 +736,6 @@ body,
     transform: scale(1);
   }
 }
-
-/* PROFILE PUBLIC EMOJI UX END */
-/* PROFILE LOCATION AND EMOJI FIX START */
 
 .profile-location {
   display: inline-flex;
@@ -833,16 +776,11 @@ body,
   box-shadow: 0 8px 18px rgb(197 36 107 / 18%);
 }
 
-/* PROFILE LOCATION AND EMOJI FIX END */
-
-/* MOBILE WORKSPACE NAVIGATION START */
-
 :where(a, button, input, textarea, select, summary):focus-visible {
   outline: 3px solid rgb(197 36 107 / 32%);
   outline-offset: 3px;
 }
 
-/* MOBILE WORKSPACE NAVIGATION END */
 /* Sprint 6: estados de paginação e rotas públicas */
 .load-more-row {
   display: flex;
