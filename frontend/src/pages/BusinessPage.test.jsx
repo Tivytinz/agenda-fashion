@@ -18,6 +18,7 @@ vi.mock("../auth/SessionContext", () => ({
 
 const BUSINESS = {
   id: 11,
+  slug: "studio-victor",
   nome: "Studio Victor",
   descricao: "Beleza e cuidados pessoais.",
   setor: "Beleza",
@@ -80,6 +81,12 @@ describe("publicação do negócio", () => {
     expect(state.required).toBe(true);
     expect(address.value).toBe("Rua das Flores");
     expect(postalCode.value).toBe("74000-123");
+    expect(screen.queryByLabelText("Área principal")).toBeNull();
+    expect(screen.queryByLabelText("Áreas atendidas")).toBeNull();
+    expect(screen.getByLabelText("Unhas").checked).toBe(true);
+    expect(screen.getByRole("link", {
+      name: "Ver meu perfil público"
+    }).getAttribute("href")).toBe("/negocio/studio-victor");
 
     fireEvent.change(whatsapp, { target: { value: "11 98765-4321" } });
     fireEvent.change(state, { target: { value: "SP" } });
@@ -94,10 +101,53 @@ describe("publicação do negócio", () => {
           whatsapp: "11987654321",
           estado: "SP",
           endereco: "Avenida Brasil",
-          cep: "01001000"
+          cep: "01001000",
+          especialidades: ["Unhas"]
         })
       });
     });
+  });
+
+  it("troca a foto do negócio pelo endpoint próprio", async () => {
+    apiRequest
+      .mockResolvedValueOnce({
+        negocio: { ...BUSINESS, foto_url: "" },
+        publicacao: {
+          publicado: false,
+          pode_publicar: true,
+          pendencias: []
+        }
+      })
+      .mockResolvedValueOnce({
+        mensagem: "Foto do negócio atualizada com sucesso.",
+        negocio: {
+          ...BUSINESS,
+          foto_url: "https://cdn.teste/negocio.png"
+        },
+        publicacao: {
+          publicado: false,
+          pode_publicar: true,
+          pendencias: []
+        }
+      });
+
+    renderPage();
+    const input = await screen.findByLabelText("Adicionar foto");
+    const file = new File(["imagem"], "negocio.png", { type: "image/png" });
+
+    fireEvent.change(input, { target: { files: [file] } });
+
+    await waitFor(() => {
+      expect(apiRequest).toHaveBeenLastCalledWith("/configuracoes/foto", {
+        method: "POST",
+        body: expect.any(FormData)
+      });
+    });
+
+    expect(await screen.findByRole("img", {
+      name: "Foto do negócio Studio Victor"
+    })).not.toBeNull();
+    expect(refreshSession).toHaveBeenCalledTimes(1);
   });
 
   it("publica um perfil pronto e atualiza o estado da tela", async () => {

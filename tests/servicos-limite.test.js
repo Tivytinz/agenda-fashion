@@ -142,6 +142,7 @@ describe("Limite de serviços", () => {
           nome: "Coloração",
           valor: 150,
           duracaoMinutos: 120,
+          categoria: "cabelo",
         });
 
       expect(
@@ -154,6 +155,15 @@ describe("Limite de serviços", () => {
       expect(resultado.servico).toEqual({
         id: 10,
       });
+
+      expect(
+        servicosRepository
+          .adicionarEspecialidadeNegocio
+      ).toHaveBeenCalledWith(
+        7,
+        "Cabelos",
+        client
+      );
     }
   );
 });

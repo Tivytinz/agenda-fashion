@@ -4,6 +4,7 @@ import {
   formatLocation
 } from "../utils/format";
 import { useRetryingMedia } from "../hooks/useRetryingMedia";
+import { serviceCategoryLabel } from "../utils/specialties";
 
 export function ServiceCard({
   service
@@ -27,6 +28,7 @@ export function ServiceCard({
     )}?servico=${encodeURIComponent(
       service.id
     )}`;
+  const category = serviceCategoryLabel(service.categoria);
 
   return (
     <article className="card service-discovery-card">
@@ -49,9 +51,7 @@ export function ServiceCard({
             </strong>
 
             <small>
-              {service.categoria ||
-                service.negocio_setor ||
-                "Beleza"}
+              {category}
             </small>
           </span>
         )}
@@ -59,8 +59,7 @@ export function ServiceCard({
 
       <div className="service-discovery-content">
         <p className="eyebrow">
-          {service.negocio_setor ||
-            "Serviço de beleza"}
+          {category}
         </p>
 
         <h3>{service.nome}</h3>

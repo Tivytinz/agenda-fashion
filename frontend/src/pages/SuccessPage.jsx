@@ -1,4 +1,5 @@
 import { Link, Navigate, useLocation } from "react-router-dom";
+import { BrandProgressMark } from "../components/BrandProgressMark";
 import { formatDate, formatWhatsApp } from "../utils/format";
 
 function localCalendarDate(date, time, additionalMinutes = 0) {
@@ -71,7 +72,7 @@ export function SuccessPage() {
   return (
     <main className="container page-content narrow-page">
       <section className="success-card">
-        <span className="success-icon" aria-hidden="true">✓</span>
+        <BrandProgressMark className="success-brand-mark" complete />
         <p className="eyebrow">Tudo certo</p>
         <h1>Agendamento confirmado</h1>
         <p>

@@ -69,21 +69,6 @@ function ProfessionalChoices({ professionals, selectedId, onSelect }) {
     return <EmptyState title="Nenhum profissional disponível" />;
   }
 
-  if (professionals.length === 1) {
-    const person = professionals[0];
-    return (
-      <div className="single-professional">
-        <MediaThumb
-          src={person.foto_url ?? person.avatar_url ?? person.foto}
-          alt={`Foto de ${person.nome}`}
-          className="avatar professional-media"
-        />
-        <span><strong>{person.nome}</strong><small>Selecionada automaticamente</small></span>
-        <span aria-label="Selecionada">✓</span>
-      </div>
-    );
-  }
-
   return (
     <div className="choice-list compact">
       {professionals.map((person) => (
@@ -217,7 +202,19 @@ export function BookingFlow({
   services,
   time
 }) {
-  const currentStep = !serviceId ? 1 : !professionalId ? 2 : !time ? 3 : 4;
+  const hasSingleProfessional = professionals.length === 1;
+  const showProfessionalStep = !hasSingleProfessional;
+  const steps = showProfessionalStep
+    ? ["Serviço", "Profissional", "Horário", "Confirmar"]
+    : ["Serviço", "Horário", "Confirmar"];
+  const currentStep = !serviceId
+    ? 1
+    : showProfessionalStep && !professionalId
+      ? 2
+      : !time
+        ? showProfessionalStep ? 3 : 2
+        : showProfessionalStep ? 4 : 3;
+  const scheduleStep = showProfessionalStep ? 3 : 2;
   const [editingService, setEditingService] = useState(false);
   const [editingProfessional, setEditingProfessional] = useState(false);
 
@@ -233,7 +230,7 @@ export function BookingFlow({
 
   return (
     <>
-      <FlowSteps current={currentStep} />
+      <FlowSteps current={currentStep} steps={steps} />
       <div className={serviceId
         ? "booking-layout booking-layout-with-summary"
         : "booking-layout"}
@@ -250,7 +247,7 @@ export function BookingFlow({
               <ServiceChoices services={services} selectedId={serviceId} onSelect={selectService} />
             )}
           </section>
-          {serviceId && (
+          {serviceId && showProfessionalStep && (
             <section className="booking-section" id="profissional">
               <div className="section-heading"><div><p className="step-label">2</p><h2>Escolha quem vai atender</h2></div></div>
               {professionalId && !editingProfessional ? (
@@ -271,7 +268,7 @@ export function BookingFlow({
           )}
           {professionalId && (
             <section className="booking-section" id="horario">
-              <div className="section-heading"><div><p className="step-label">3</p><h2>Escolha o horário</h2></div></div>
+              <div className="section-heading"><div><p className="step-label">{scheduleStep}</p><h2>Escolha o horário</h2></div></div>
               <ScheduleChoices
                 availability={availability}
                 day={day}

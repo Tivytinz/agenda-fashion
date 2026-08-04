@@ -123,6 +123,10 @@ async function buscarNegocioDoDono(
         n.slug,
         n.descricao,
         n.setor,
+        COALESCE(
+          n.areas,
+          ARRAY[]::TEXT[]
+        ) AS areas,
         n.whatsapp,
         n.foto_url,
         n.foto_public_id,
@@ -215,6 +219,7 @@ async function criarNegocio(
         latitude,
         longitude,
         fuso_horario,
+        areas,
         ativo,
         publicado
       )
@@ -237,6 +242,7 @@ async function criarNegocio(
         $16,
         $17,
         $18,
+        $19,
         TRUE,
         FALSE
       )
@@ -261,6 +267,7 @@ async function criarNegocio(
         latitude,
         longitude,
         fuso_horario,
+        COALESCE(areas, ARRAY[]::TEXT[]) AS areas,
         ativo,
         publicado,
         created_at,
@@ -286,6 +293,7 @@ async function criarNegocio(
         dados.longitude ?? null,
         dados.fuso_horario ||
           "America/Sao_Paulo",
+        dados.areas || [],
       ]
     );
 

@@ -67,5 +67,11 @@ describe("confirmação concluída", () => {
     expect(screen.getByRole("link", {
       name: "Falar com o negócio"
     }).getAttribute("href")).toBe("https://wa.me/5562911112222");
+
+    expect(screen.getByRole("img", {
+      name: "Símbolo do Agenda Fashion completo"
+    })).not.toBeNull();
+    expect(document.querySelectorAll(".success-brand-mark .active"))
+      .toHaveLength(6);
   });
 });

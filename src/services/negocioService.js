@@ -6,6 +6,12 @@ const AppError = require(
   "../errors/AppError"
 );
 
+const {
+  normalizarEspecialidades,
+} = require(
+  "../domain/especialidadesNegocio"
+);
+
 function normalizarId(valor) {
   const id = Number(valor);
 
@@ -300,6 +306,29 @@ function validarDadosNegocio(
     );
   }
 
+  const recebeuEspecialidades =
+    Object.prototype.hasOwnProperty.call(
+      dados,
+      "especialidades"
+    ) ||
+    Object.prototype.hasOwnProperty.call(
+      dados,
+      "areas"
+    );
+
+  const especialidades =
+    normalizarEspecialidades(
+      dados.especialidades ??
+        dados.areas,
+      {
+        setorLegado:
+          dados.setor,
+
+        legado:
+          !recebeuEspecialidades,
+      }
+    );
+
   const latitude =
     normalizarCoordenada({
       valor:
@@ -362,16 +391,11 @@ function validarDadosNegocio(
       }),
 
     setor:
-      normalizarCampoOpcional({
-        valor:
-          dados.setor,
+      especialidades[0] ||
+      null,
 
-        limite:
-          80,
-
-        campo:
-          "Setor",
-      }),
+    areas:
+      especialidades,
 
     whatsapp:
       normalizarWhatsapp(

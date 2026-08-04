@@ -1046,6 +1046,49 @@
     width: 100%;
   }
 
+  .publication-actions {
+    display: grid;
+    width: 100%;
+  }
+
+  .business-form-section {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 18px;
+    padding-block: 24px;
+  }
+
+  .business-photo-editor {
+    align-items: flex-start;
+  }
+
+  .business-photo-preview {
+    width: 96px;
+    height: 96px;
+    border-radius: 20px;
+  }
+
+  .workspace-shell .business-save-actions {
+    position: sticky;
+    z-index: 9;
+    bottom: 70px;
+    box-shadow: 0 -12px 26px rgb(72 22 43 / 8%);
+  }
+
+  .brand-progress-mark {
+    width: 62px;
+    height: 62px;
+  }
+
+  .profile-specialties {
+    gap: 5px;
+    margin-bottom: 8px;
+  }
+
+  .profile-specialties span {
+    padding: 4px 8px;
+    font-size: .7rem;
+  }
+
   .professional-card {
     grid-template-columns: auto minmax(0, 1fr);
   }

@@ -17,12 +17,85 @@ const ValidationError = require(
   "../errors/ValidationError"
 );
 
-const LIMITE_AREAS = 30;
+const AppError = require(
+  "../errors/AppError"
+);
+
+const {
+  normalizarEspecialidades,
+} = require(
+  "../domain/especialidadesNegocio"
+);
+
+const {
+  correspondeAoTipo,
+} = require(
+  "../utils/validarImagem"
+);
+
+const uploadToCloudinary = require(
+  "../utils/uploadCloudinary"
+);
+
+const registrador = require(
+  "../utils/registrador"
+);
+
 const ESTADOS_BRASILEIROS = new Set([
   "AC", "AL", "AP", "AM", "BA", "CE", "DF", "ES", "GO",
   "MA", "MT", "MS", "MG", "PA", "PB", "PR", "PE", "PI",
   "RJ", "RN", "RS", "RO", "RR", "SC", "SP", "SE", "TO",
 ]);
+
+const TAMANHO_MAXIMO_FOTO =
+  5 * 1024 * 1024;
+
+const TIPOS_IMAGEM_PERMITIDOS =
+  new Set([
+    "image/jpeg",
+    "image/png",
+    "image/webp",
+  ]);
+
+function validarArquivoImagem(
+  arquivo
+) {
+  if (
+    !arquivo ||
+    !Buffer.isBuffer(
+      arquivo.buffer
+    )
+  ) {
+    throw new ValidationError(
+      "Selecione uma foto para o negócio."
+    );
+  }
+
+  if (
+    arquivo.size >
+    TAMANHO_MAXIMO_FOTO
+  ) {
+    throw new ValidationError(
+      "A imagem deve ter no máximo 5 MB."
+    );
+  }
+
+  if (
+    !TIPOS_IMAGEM_PERMITIDOS.has(
+      arquivo.mimetype
+    ) ||
+    !correspondeAoTipo(
+      arquivo.buffer,
+      arquivo.mimetype
+    )
+  ) {
+    throw new ValidationError(
+      "Use uma imagem JPG, PNG ou WEBP válida."
+    );
+  }
+
+  return arquivo;
+}
 
 function possuiCampo(
   objeto,
@@ -127,21 +200,6 @@ function normalizarDescricao(
 
       tamanhoMaximo:
         1000,
-    }
-  );
-}
-
-function normalizarSetor(
-  valor
-) {
-  return normalizarTexto(
-    valor,
-    {
-      nomeCampo:
-        "Setor",
-
-      tamanhoMaximo:
-        80,
     }
   );
 }
@@ -314,141 +372,6 @@ function normalizarUrl(
   return urlValidada.toString();
 }
 
-function converterAreasParaArray(
-  valor
-) {
-  if (
-    valor === null ||
-    valor === undefined ||
-    valor === ""
-  ) {
-    return [];
-  }
-
-  if (
-    Array.isArray(valor)
-  ) {
-    return valor;
-  }
-
-  if (
-    typeof valor === "string"
-  ) {
-    const texto =
-      valor.trim();
-
-    if (!texto) {
-      return [];
-    }
-
-    try {
-      const convertido =
-        JSON.parse(texto);
-
-      if (
-        Array.isArray(
-          convertido
-        )
-      ) {
-        return convertido;
-      }
-    } catch {
-      /*
-       * Caso não seja JSON, aceita:
-       * "Unha, Cabelo, Estética".
-       */
-    }
-
-    return texto.split(",");
-  }
-
-  throw new ValidationError(
-    "As áreas atendidas são inválidas."
-  );
-}
-
-function normalizarAreas(
-  valor
-) {
-  const areasRecebidas =
-    converterAreasParaArray(
-      valor
-    );
-
-  const areas = [];
-  const areasRegistradas =
-    new Set();
-
-  for (
-    const areaRecebida
-    of areasRecebidas
-  ) {
-    if (
-      typeof areaRecebida !==
-      "string"
-    ) {
-      throw new ValidationError(
-        "Cada área atendida deve ser um texto."
-      );
-    }
-
-    const area =
-      areaRecebida
-        .trim()
-        .replace(/\s+/g, " ");
-
-    if (!area) {
-      continue;
-    }
-
-    if (
-      area.length < 2
-    ) {
-      throw new ValidationError(
-        "Cada área atendida deve ter pelo menos 2 caracteres."
-      );
-    }
-
-    if (
-      area.length > 60
-    ) {
-      throw new ValidationError(
-        "Cada área atendida deve ter no máximo 60 caracteres."
-      );
-    }
-
-    const chave =
-      area.toLocaleLowerCase(
-        "pt-BR"
-      );
-
-    if (
-      areasRegistradas.has(
-        chave
-      )
-    ) {
-      continue;
-    }
-
-    areasRegistradas.add(
-      chave
-    );
-
-    areas.push(area);
-  }
-
-  if (
-    areas.length >
-    LIMITE_AREAS
-  ) {
-    throw new ValidationError(
-      `Informe no máximo ${LIMITE_AREAS} áreas atendidas.`
-    );
-  }
-
-  return areas;
-}
-
 function normalizarNegocio(
   negocio,
   papel
@@ -467,6 +390,18 @@ function normalizarNegocio(
       }
     );
 
+  const especialidades =
+    normalizarEspecialidades(
+      negocio.areas,
+      {
+        setorLegado:
+          negocio.setor,
+
+        legado:
+          true,
+      }
+    );
+
   return {
     ...negocio,
 
@@ -479,10 +414,15 @@ function normalizarNegocio(
     whatsapp_negocio:
       whatsapp,
 
+    setor:
+      negocio.setor ||
+      especialidades[0] ||
+      null,
+
     areas:
-      normalizarAreas(
-        negocio.areas
-      ),
+      especialidades,
+
+    especialidades,
 
     papel:
       papel ||
@@ -511,18 +451,21 @@ function avaliarPublicacao(
     );
   }
 
-  if (!normalizarTexto(
-    negocio?.setor,
-    {
-      nomeCampo:
-        "Setor",
+  const especialidades =
+    normalizarEspecialidades(
+      negocio?.areas,
+      {
+        setorLegado:
+          negocio?.setor,
 
-      tamanhoMaximo:
-        80,
-    }
-  )) {
+        legado:
+          true,
+      }
+    );
+
+  if (especialidades.length === 0) {
     pendencias.push(
-      "área principal"
+      "pelo menos uma especialidade"
     );
   }
 
@@ -715,6 +658,38 @@ async function salvarConfiguracoes({
         : negocioAtual.whatsapp ??
           negocioAtual.whatsapp_negocio;
 
+  const recebeuEspecialidades =
+    possuiCampo(
+      entrada,
+      "especialidades"
+    ) ||
+    possuiCampo(
+      entrada,
+      "areas"
+    );
+
+  const especialidades =
+    normalizarEspecialidades(
+      possuiCampo(
+        entrada,
+        "especialidades"
+      )
+        ? entrada.especialidades
+        : possuiCampo(
+            entrada,
+            "areas"
+          )
+          ? entrada.areas
+          : negocioAtual.areas,
+      {
+        setorLegado:
+          negocioAtual.setor,
+
+        legado:
+          !recebeuEspecialidades,
+      }
+    );
+
   const dadosAtualizados = {
     nome:
       normalizarNome(
@@ -745,14 +720,8 @@ async function salvarConfiguracoes({
       ),
 
     setor:
-      normalizarSetor(
-        possuiCampo(
-          entrada,
-          "setor"
-        )
-          ? entrada.setor
-          : negocioAtual.setor
-      ),
+      especialidades[0] ||
+      "",
 
     cidade:
       normalizarCidade(
@@ -861,14 +830,7 @@ async function salvarConfiguracoes({
       ),
 
     areas:
-      normalizarAreas(
-        possuiCampo(
-          entrada,
-          "areas"
-        )
-          ? entrada.areas
-          : negocioAtual.areas
-      ),
+      especialidades,
   };
 
   const negocioAtualizado =
@@ -892,6 +854,162 @@ async function salvarConfiguracoes({
 
     mensagem:
       "Configurações salvas com sucesso.",
+  });
+}
+
+async function removerImagemSilenciosamente(
+  publicId
+) {
+  if (
+    !publicId ||
+    typeof uploadToCloudinary.remover !==
+      "function"
+  ) {
+    return;
+  }
+
+  try {
+    await uploadToCloudinary.remover(
+      publicId
+    );
+  } catch (erro) {
+    registrador.aviso(
+      "[Cloudinary] Não foi possível remover uma foto de negócio órfã.",
+      {
+        public_id:
+          publicId,
+
+        erro:
+          erro?.message,
+      }
+    );
+  }
+}
+
+async function enviarFotoNegocio({
+  usuarioId,
+  arquivo,
+}) {
+  const vinculo =
+    await obterVinculo(
+      usuarioId
+    );
+
+  if (
+    vinculo.papel !==
+    "dono"
+  ) {
+    throw new ForbiddenError(
+      "Apenas o dono pode alterar a foto do negócio."
+    );
+  }
+
+  const negocioAtual =
+    await configuracoesRepository
+      .buscarNegocioPorId(
+        vinculo.negocio_id
+      );
+
+  exigirRecurso(
+    negocioAtual,
+    "Negócio não encontrado."
+  );
+
+  const imagem =
+    validarArquivoImagem(
+      arquivo
+    );
+
+  let upload;
+
+  try {
+    upload =
+      await uploadToCloudinary(
+        imagem.buffer,
+        "saas-agendamento/negocios"
+      );
+  } catch {
+    throw new AppError(
+      "Não foi possível enviar a foto agora.",
+      502
+    );
+  }
+
+  const fotoUrl = String(
+    upload?.secure_url ||
+    upload?.url ||
+    ""
+  ).trim();
+
+  const fotoPublicId = String(
+    upload?.public_id ||
+    ""
+  ).trim();
+
+  if (!fotoUrl || !fotoPublicId) {
+    await removerImagemSilenciosamente(
+      fotoPublicId
+    );
+
+    throw new AppError(
+      "O provedor de imagens retornou uma resposta inválida.",
+      502
+    );
+  }
+
+  let negocioAtualizado;
+
+  try {
+    negocioAtualizado =
+      await configuracoesRepository
+        .atualizarFotoNegocio({
+          negocioId:
+            vinculo.negocio_id,
+
+          fotoUrl,
+
+          fotoPublicId,
+        });
+  } catch (erro) {
+    await removerImagemSilenciosamente(
+      fotoPublicId
+    );
+
+    throw erro;
+  }
+
+  if (!negocioAtualizado) {
+    await removerImagemSilenciosamente(
+      fotoPublicId
+    );
+
+    exigirRecurso(
+      negocioAtualizado,
+      "Negócio não encontrado."
+    );
+  }
+
+  if (
+    negocioAtual.foto_public_id &&
+    negocioAtual.foto_public_id !==
+      fotoPublicId
+  ) {
+    await removerImagemSilenciosamente(
+      negocioAtual.foto_public_id
+    );
+  }
+
+  return montarRespostaNegocio({
+    negocio: {
+      ...negocioAtual,
+      ...negocioAtualizado,
+    },
+
+    papel:
+      vinculo.papel,
+
+    mensagem:
+      "Foto do negócio atualizada com sucesso.",
   });
 }
 
@@ -982,5 +1100,6 @@ async function alterarPublicacao({
 module.exports = {
   buscarConfiguracoes,
   salvarConfiguracoes,
+  enviarFotoNegocio,
   alterarPublicacao,
 };

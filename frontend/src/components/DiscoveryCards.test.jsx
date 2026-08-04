@@ -76,4 +76,24 @@ describe("imagens dos cards do catálogo", () => {
         .toContain("/uploads/nova.jpg");
     });
   });
+
+  it("mostra a categoria do serviço sem repetir a especialidade do negócio", () => {
+    render(
+      <MemoryRouter>
+        <ServiceCard service={{
+          id: 12,
+          nome: "Limpeza de pele",
+          categoria: "estetica",
+          negocio_nome: "Studio Aurora",
+          negocio_slug: "studio-aurora",
+          negocio_setor: "Sobrancelhas",
+          valor: 80,
+          duracao_minutos: 50
+        }} />
+      </MemoryRouter>
+    );
+
+    expect(screen.getAllByText("Estética").length).toBeGreaterThan(0);
+    expect(screen.queryByText("Sobrancelhas")).toBeNull();
+  });
 });

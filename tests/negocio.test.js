@@ -105,6 +105,11 @@ function dadosNegocio(
     setor:
       "Salão de beleza",
 
+    especialidades: [
+      "Unhas",
+      "Estética",
+    ],
+
     whatsapp:
       "(62) 99999-9999",
 
@@ -324,7 +329,12 @@ describe(
                 "studio-victor",
 
               setor:
-                "Salão de beleza",
+                "Unhas",
+
+              areas: [
+                "Unhas",
+                "Estética",
+              ],
 
               whatsapp:
                 "62999999999",

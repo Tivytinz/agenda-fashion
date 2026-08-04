@@ -77,8 +77,33 @@ async function alterarPublicacao(
   }
 }
 
+async function enviarFotoNegocio(
+  req,
+  res,
+  next
+) {
+  try {
+    const resultado =
+      await configuracoesService
+        .enviarFotoNegocio({
+          usuarioId:
+            req.user?.id,
+
+          arquivo:
+            req.file,
+        });
+
+    return res
+      .status(200)
+      .json(resultado);
+  } catch (erro) {
+    return next(erro);
+  }
+}
+
 module.exports = {
   buscarConfiguracoes,
   salvarConfiguracoes,
+  enviarFotoNegocio,
   alterarPublicacao,
 };

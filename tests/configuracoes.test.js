@@ -25,15 +25,31 @@ jest.mock(
     atualizarNegocio:
       jest.fn(),
 
+    atualizarFotoNegocio:
+      jest.fn(),
+
     atualizarPublicacao:
       jest.fn(),
   })
+);
+
+jest.mock(
+  "../src/utils/uploadCloudinary",
+  () => {
+    const enviar = jest.fn();
+    enviar.remover = jest.fn();
+    return enviar;
+  }
 );
 
 const configuracoesRepository =
   require(
     "../src/repositories/configuracoesRepository"
   );
+
+const uploadToCloudinary = require(
+  "../src/utils/uploadCloudinary"
+);
 
 const configuracoesRoutes =
   require(
@@ -175,7 +191,7 @@ function criarNegocio(
 
     areas: [
       "Unhas",
-      "Cabelo",
+      "Cabelos",
     ],
 
     possui_servico_ativo:
@@ -302,7 +318,7 @@ describe(
 
           areas: [
             "Unhas",
-            "Cabelo",
+            "Cabelos",
           ],
 
           papel:
@@ -450,7 +466,7 @@ describe(
 
               areas: [
                 "Unhas",
-                "Cabelo",
+                "Cabelos",
               ],
             })
           );
@@ -504,7 +520,7 @@ describe(
               areas:
                 JSON.stringify([
                   "Unhas",
-                  " Cabelo ",
+                  " Cabelos ",
                   "unhas",
                 ]),
             });
@@ -529,7 +545,7 @@ describe(
               "Beleza e estética.",
 
             setor:
-              "Estética",
+              "Unhas",
 
             cidade:
               "Goiânia",
@@ -560,7 +576,7 @@ describe(
 
             areas: [
               "Unhas",
-              "Cabelo",
+              "Cabelos",
             ],
           }
         );
@@ -586,7 +602,7 @@ describe(
 
             areas: [
               "Unhas",
-              "Cabelo",
+              "Cabelos",
             ],
 
             papel:
@@ -724,7 +740,7 @@ describe(
               negocioAtual.descricao,
 
             setor:
-              negocioAtual.setor,
+              "Unhas",
 
             cidade:
               negocioAtual.cidade,
@@ -751,7 +767,10 @@ describe(
               negocioAtual.whatsapp,
 
             areas:
-              negocioAtual.areas,
+              [
+                "Unhas",
+                "Cabelos",
+              ],
           })
         );
       }
@@ -975,6 +994,57 @@ describe(
           resposta.body.erro
         ).toBe(
           "Complete o perfil antes de publicar: estado."
+        );
+
+        expect(
+          configuracoesRepository
+            .atualizarPublicacao
+        ).not.toHaveBeenCalled();
+      }
+    );
+
+    test(
+      "exige ao menos uma especialidade antes de publicar",
+      async () => {
+        configuracoesRepository
+          .buscarNegocioDoUsuario
+          .mockResolvedValue(
+            criarVinculo()
+          );
+
+        configuracoesRepository
+          .buscarNegocioPorId
+          .mockResolvedValue(
+            criarNegocio({
+              setor:
+                "",
+
+              areas: [],
+            })
+          );
+
+        const resposta =
+          await request(app)
+            .patch(
+              "/configuracoes/publicacao"
+            )
+            .set(
+              "Authorization",
+              `Bearer ${gerarToken()}`
+            )
+            .send({
+              publicado:
+                true,
+            });
+
+        expect(
+          resposta.status
+        ).toBe(400);
+
+        expect(
+          resposta.body.erro
+        ).toBe(
+          "Complete o perfil antes de publicar: pelo menos uma especialidade."
         );
 
         expect(
@@ -1213,7 +1283,7 @@ describe(
     );
 
     test(
-      "retorna 400 quando são enviadas mais de 30 áreas",
+      "retorna 400 quando é enviada uma especialidade fora do seletor",
       async () => {
         configuracoesRepository
           .buscarNegocioDoUsuario
@@ -1227,20 +1297,6 @@ describe(
             criarNegocio()
           );
 
-        const areas =
-          Array.from(
-            {
-              length:
-                31,
-            },
-
-            (
-              _,
-              indice
-            ) =>
-              `Área ${indice + 1}`
-          );
-
         const resposta =
           await request(app)
             .put(
@@ -1251,7 +1307,9 @@ describe(
               `Bearer ${gerarToken()}`
             )
             .send({
-              areas,
+              especialidades: [
+                "Veterinária",
+              ],
             });
 
         expect(
@@ -1261,13 +1319,107 @@ describe(
         expect(
           resposta.body.erro
         ).toBe(
-          "Informe no máximo 30 áreas atendidas."
+          "Selecione apenas especialidades válidas."
         );
 
         expect(
           configuracoesRepository
             .atualizarNegocio
         ).not.toHaveBeenCalled();
+      }
+    );
+
+    test(
+      "troca a foto do negócio e remove a imagem anterior",
+      async () => {
+        configuracoesRepository
+          .buscarNegocioDoUsuario
+          .mockResolvedValue(
+            criarVinculo()
+          );
+
+        configuracoesRepository
+          .buscarNegocioPorId
+          .mockResolvedValue(
+            criarNegocio()
+          );
+
+        uploadToCloudinary
+          .mockResolvedValue({
+            secure_url:
+              "https://cdn.teste/nova-foto.png",
+
+            public_id:
+              "negocios/nova-foto",
+          });
+
+        configuracoesRepository
+          .atualizarFotoNegocio
+          .mockResolvedValue({
+            id:
+              11,
+
+            foto_url:
+              "https://cdn.teste/nova-foto.png",
+
+            foto_public_id:
+              "negocios/nova-foto",
+          });
+
+        const resposta =
+          await request(app)
+            .post(
+              "/configuracoes/foto"
+            )
+            .set(
+              "Authorization",
+              `Bearer ${gerarToken()}`
+            )
+            .attach(
+              "foto",
+              Buffer.from([
+                0x89, 0x50, 0x4e, 0x47,
+                0x0d, 0x0a, 0x1a, 0x0a,
+                0x00,
+              ]),
+              {
+                filename:
+                  "negocio.png",
+
+                contentType:
+                  "image/png",
+              }
+            );
+
+        expect(
+          resposta.status
+        ).toBe(200);
+
+        expect(
+          configuracoesRepository
+            .atualizarFotoNegocio
+        ).toHaveBeenCalledWith({
+          negocioId:
+            11,
+
+          fotoUrl:
+            "https://cdn.teste/nova-foto.png",
+
+          fotoPublicId:
+            "negocios/nova-foto",
+        });
+
+        expect(
+          uploadToCloudinary.remover
+        ).toHaveBeenCalledWith(
+          "negocios/studio-11"
+        );
+
+        expect(
+          resposta.body.negocio.foto_url
+        ).toBe(
+          "https://cdn.teste/nova-foto.png"
+        );
       }
     );
   }

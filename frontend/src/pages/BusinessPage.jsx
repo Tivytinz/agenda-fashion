@@ -1,21 +1,27 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { apiRequest } from "../api/client";
 import { useSession } from "../auth/SessionContext";
 import { BackLink } from "../components/BackLink";
 import { ErrorState, LoadingState } from "../components/ScreenState";
+import { MediaThumb } from "../components/profile/MediaThumb";
 import { formatCep, formatWhatsApp } from "../utils/format";
+import {
+  BUSINESS_SPECIALTIES,
+  normalizeBusinessSpecialties
+} from "../utils/specialties";
 
 const BRAZILIAN_STATES = [
   "AC", "AL", "AP", "AM", "BA", "CE", "DF", "ES", "GO",
   "MA", "MT", "MS", "MG", "PA", "PB", "PR", "PE", "PI",
   "RJ", "RN", "RS", "RO", "RR", "SC", "SP", "SE", "TO"
 ];
+const ACCEPTED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"];
+const MAX_IMAGE_SIZE = 5 * 1024 * 1024;
 
 const EMPTY = {
   nome: "",
   descricao: "",
-  setor: "Beleza",
   whatsapp: "",
   cidade: "",
   estado: "",
@@ -25,8 +31,22 @@ const EMPTY = {
   complemento: "",
   cep: "",
   localizacao_url: "",
-  areas: ""
+  foto_url: "",
+  slug: "",
+  areas: []
 };
+
+function validateImage(file) {
+  if (!ACCEPTED_IMAGE_TYPES.includes(file.type)) {
+    return "Use uma imagem JPG, PNG ou WEBP.";
+  }
+
+  if (file.size > MAX_IMAGE_SIZE) {
+    return "A imagem deve ter no máximo 5 MB.";
+  }
+
+  return "";
+}
 
 export function BusinessPage({ create = false }) {
   const session = useSession();
@@ -34,6 +54,7 @@ export function BusinessPage({ create = false }) {
   const [form, setForm] = useState(EMPTY);
   const [loading, setLoading] = useState(!create);
   const [saving, setSaving] = useState(false);
+  const [photoUploading, setPhotoUploading] = useState(false);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const [publication, setPublication] = useState(null);
@@ -41,6 +62,7 @@ export function BusinessPage({ create = false }) {
 
   useEffect(() => {
     if (create) return;
+
     apiRequest("/configuracoes")
       .then((result) => {
         const business = result.negocio || result.configuracoes || {};
@@ -51,7 +73,7 @@ export function BusinessPage({ create = false }) {
             business.whatsapp || business.whatsapp_negocio
           ),
           cep: formatCep(business.cep),
-          areas: Array.isArray(business.areas) ? business.areas.join(", ") : ""
+          areas: normalizeBusinessSpecialties(business)
         });
         setPublication(result.publicacao || {
           publicado: business.publicado === true,
@@ -67,20 +89,33 @@ export function BusinessPage({ create = false }) {
     setForm((current) => ({ ...current, [field]: value }));
   }
 
+  function toggleSpecialty(specialty) {
+    setForm((current) => ({
+      ...current,
+      areas: current.areas.includes(specialty)
+        ? current.areas.filter((item) => item !== specialty)
+        : [...current.areas, specialty]
+    }));
+  }
+
   async function submit(event) {
     event.preventDefault();
-    setSaving(true);
     setError("");
     setMessage("");
+
+    if (form.areas.length === 0) {
+      setError("Selecione ao menos uma especialidade.");
+      return;
+    }
+
+    setSaving(true);
 
     const payload = {
       ...form,
       whatsapp: String(form.whatsapp).replace(/\D/g, ""),
       cep: String(form.cep).replace(/\D/g, ""),
-      areas: String(form.areas || "")
-        .split(",")
-        .map((item) => item.trim())
-        .filter(Boolean)
+      especialidades: form.areas,
+      areas: form.areas
     };
 
     try {
@@ -88,6 +123,20 @@ export function BusinessPage({ create = false }) {
         method: create ? "POST" : "PUT",
         body: payload
       });
+      const savedBusiness = result.negocio || {};
+      setForm((current) => ({
+        ...current,
+        ...savedBusiness,
+        whatsapp: formatWhatsApp(
+          savedBusiness.whatsapp || savedBusiness.whatsapp_negocio || current.whatsapp
+        ),
+        cep: formatCep(savedBusiness.cep || current.cep),
+        areas: normalizeBusinessSpecialties({
+          ...current,
+          ...savedBusiness,
+          areas: savedBusiness.areas || current.areas
+        })
+      }));
       setMessage(result.mensagem || (create ? "Negócio criado." : "Alterações salvas."));
       if (result.publicacao) setPublication(result.publicacao);
       await session.refresh();
@@ -96,6 +145,49 @@ export function BusinessPage({ create = false }) {
       setError(requestError.message);
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function uploadPhoto(event) {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const validationError = validateImage(file);
+    if (validationError) {
+      setError(validationError);
+      event.target.value = "";
+      return;
+    }
+
+    setPhotoUploading(true);
+    setError("");
+    setMessage("");
+    const body = new FormData();
+    body.append("foto", file);
+
+    try {
+      const result = await apiRequest("/configuracoes/foto", {
+        method: "POST",
+        body
+      });
+      const business = result.negocio || {};
+      setForm((current) => ({
+        ...current,
+        ...business,
+        areas: normalizeBusinessSpecialties({
+          ...current,
+          ...business,
+          areas: business.areas || current.areas
+        })
+      }));
+      if (result.publicacao) setPublication(result.publicacao);
+      setMessage(result.mensagem || "Foto do negócio atualizada.");
+      await session.refresh();
+    } catch (requestError) {
+      setError(requestError.message);
+    } finally {
+      setPhotoUploading(false);
+      event.target.value = "";
     }
   }
 
@@ -124,7 +216,7 @@ export function BusinessPage({ create = false }) {
   if (error && !form.nome && !create) return <div className="workspace-page"><ErrorState message={error} /></div>;
 
   return (
-    <main className={create ? "container page-content narrow-page" : "workspace-page"}>
+    <main className={create ? "container page-content narrow-page" : "workspace-page business-settings-page"}>
       <BackLink to={create ? "/" : "/painel"}>
         {create ? "Voltar a explorar" : "Voltar à visão geral"}
       </BackLink>
@@ -152,111 +244,173 @@ export function BusinessPage({ create = false }) {
               </p>
             )}
           </div>
-          <button
-            className={publication.publicado ? "button button-secondary" : "button"}
-            disabled={publishing || (!publication.publicado && !publication.pode_publicar)}
-            onClick={togglePublication}
-            type="button"
-          >
-            {publishing
-              ? "Atualizando..."
-              : publication.publicado
-                ? "Retirar da página inicial"
-                : "Publicar meu negócio"}
-          </button>
+          <div className="publication-actions">
+            {form.slug && (
+              <Link className="button button-secondary" to={`/negocio/${encodeURIComponent(form.slug)}`}>
+                Ver meu perfil público
+              </Link>
+            )}
+            <button
+              className={publication.publicado ? "button button-secondary" : "button"}
+              disabled={publishing || (!publication.publicado && !publication.pode_publicar)}
+              onClick={togglePublication}
+              type="button"
+            >
+              {publishing
+                ? "Atualizando..."
+                : publication.publicado
+                  ? "Retirar da página inicial"
+                  : "Publicar meu negócio"}
+            </button>
+          </div>
         </section>
       )}
 
-      <form className="panel stack-form" onSubmit={submit}>
-        <div className="form-grid">
-          <label className="field-wide">
-            Nome do negócio
-            <input minLength="2" onChange={(e) => update("nome", e.target.value)} required value={form.nome} />
-          </label>
-          <label>
-            Área principal
-            <input onChange={(e) => update("setor", e.target.value)} value={form.setor} />
-          </label>
-          <label>
-            WhatsApp
-            <input
-              autoComplete="tel"
-              inputMode="tel"
-              maxLength="15"
-              onChange={(e) => update("whatsapp", formatWhatsApp(e.target.value))}
-              placeholder="(00) 12345-6789"
-              value={form.whatsapp}
-            />
-          </label>
-          <label className="field-wide">
-            Descrição
-            <textarea maxLength="1000" onChange={(e) => update("descricao", e.target.value)} rows="4" value={form.descricao} />
-          </label>
-          <label>
-            Cidade
-            <input onChange={(e) => update("cidade", e.target.value)} value={form.cidade} />
-          </label>
-          <label>
-            Estado
-            <select
-              aria-label="Estado"
-              onChange={(e) => update("estado", e.target.value)}
-              required
-              value={form.estado}
-            >
-              <option value="">Selecione a UF</option>
-              {BRAZILIAN_STATES.map((state) => (
-                <option key={state} value={state}>{state}</option>
-              ))}
-            </select>
-          </label>
-          <label>
-            Bairro
-            <input onChange={(e) => update("bairro", e.target.value)} value={form.bairro} />
-          </label>
-          <label>
-            Endereço
-            <input autoComplete="street-address" onChange={(e) => update("endereco", e.target.value)} value={form.endereco} />
-          </label>
-          <label>
-            Número
-            <input onChange={(e) => update("numero", e.target.value)} value={form.numero} />
-          </label>
-          <label>
-            Complemento
-            <input onChange={(e) => update("complemento", e.target.value)} value={form.complemento} />
-          </label>
-          <label>
-            CEP
-            <input
-              autoComplete="postal-code"
-              inputMode="numeric"
-              maxLength="9"
-              onChange={(e) => update("cep", formatCep(e.target.value))}
-              placeholder="00000-000"
-              value={form.cep}
-            />
-          </label>
-          {!create && (
-            <label className="field-wide">
-              Áreas atendidas
-              <input
-                onChange={(e) => update("areas", e.target.value)}
-                placeholder="Unhas, cabelo, cílios"
-                value={form.areas}
+      <form className="panel stack-form business-settings-form" onSubmit={submit}>
+        {!create && (
+          <section className="business-form-section business-photo-section">
+            <div className="business-form-heading">
+              <p className="eyebrow">Foto</p>
+              <h2>Imagem do negócio</h2>
+              <p>Ela aparece na página inicial, no perfil público e nos seus cards.</p>
+            </div>
+            <div className="business-photo-editor">
+              <MediaThumb
+                alt={`Foto do negócio ${form.nome || "Agenda Fashion"}`}
+                className="business-photo-preview"
+                src={form.foto_url}
               />
-              <small>Separe as áreas por vírgula.</small>
+              <div>
+                <label className="button button-secondary button-small">
+                  {photoUploading
+                    ? "Enviando..."
+                    : form.foto_url
+                      ? "Trocar foto"
+                      : "Adicionar foto"}
+                  <input
+                    accept="image/jpeg,image/png,image/webp"
+                    className="sr-only"
+                    disabled={photoUploading}
+                    onChange={uploadPhoto}
+                    type="file"
+                  />
+                </label>
+                <small>JPG, PNG ou WEBP, até 5 MB.</small>
+              </div>
+            </div>
+          </section>
+        )}
+
+        <section className="business-form-section">
+          <div className="business-form-heading">
+            <p className="eyebrow">Identidade</p>
+            <h2>Como clientes encontram você</h2>
+          </div>
+          <div className="form-grid">
+            <label className="field-wide">
+              Nome do negócio
+              <input minLength="2" onChange={(event) => update("nome", event.target.value)} required value={form.nome} />
             </label>
-          )}
-          <label className="field-wide">
-            Link do Google Maps
-            <input onChange={(e) => update("localizacao_url", e.target.value)} type="url" value={form.localizacao_url} />
-          </label>
-        </div>
+            <label className="field-wide">
+              Descrição
+              <textarea maxLength="1000" onChange={(event) => update("descricao", event.target.value)} rows="4" value={form.descricao} />
+            </label>
+            <fieldset className="specialty-field field-wide">
+              <legend>Especialidades</legend>
+              <p>Selecione tudo o que o negócio oferece.</p>
+              <div className="specialty-selector">
+                {BUSINESS_SPECIALTIES.map(([value, label]) => (
+                  <label className={form.areas.includes(value) ? "specialty-option selected" : "specialty-option"} key={value}>
+                    <input
+                      checked={form.areas.includes(value)}
+                      onChange={() => toggleSpecialty(value)}
+                      type="checkbox"
+                    />
+                    <span>{label}</span>
+                  </label>
+                ))}
+              </div>
+            </fieldset>
+          </div>
+        </section>
+
+        <section className="business-form-section">
+          <div className="business-form-heading">
+            <p className="eyebrow">Contato</p>
+            <h2>Como falar com o negócio</h2>
+          </div>
+          <div className="form-grid">
+            <label>
+              WhatsApp
+              <input
+                autoComplete="tel"
+                inputMode="tel"
+                maxLength="15"
+                onChange={(event) => update("whatsapp", formatWhatsApp(event.target.value))}
+                placeholder="(00) 12345-6789"
+                value={form.whatsapp}
+              />
+            </label>
+            <label>
+              Link do Google Maps
+              <input onChange={(event) => update("localizacao_url", event.target.value)} type="url" value={form.localizacao_url} />
+            </label>
+          </div>
+        </section>
+
+        <section className="business-form-section">
+          <div className="business-form-heading">
+            <p className="eyebrow">Endereço</p>
+            <h2>Onde acontece o atendimento</h2>
+          </div>
+          <div className="form-grid">
+            <label>
+              Cidade
+              <input onChange={(event) => update("cidade", event.target.value)} value={form.cidade} />
+            </label>
+            <label>
+              Estado
+              <select aria-label="Estado" onChange={(event) => update("estado", event.target.value)} required value={form.estado}>
+                <option value="">Selecione a UF</option>
+                {BRAZILIAN_STATES.map((state) => (
+                  <option key={state} value={state}>{state}</option>
+                ))}
+              </select>
+            </label>
+            <label>
+              Bairro
+              <input onChange={(event) => update("bairro", event.target.value)} value={form.bairro} />
+            </label>
+            <label>
+              Endereço
+              <input autoComplete="street-address" onChange={(event) => update("endereco", event.target.value)} value={form.endereco} />
+            </label>
+            <label>
+              Número
+              <input onChange={(event) => update("numero", event.target.value)} value={form.numero} />
+            </label>
+            <label>
+              Complemento
+              <input onChange={(event) => update("complemento", event.target.value)} value={form.complemento} />
+            </label>
+            <label>
+              CEP
+              <input
+                autoComplete="postal-code"
+                inputMode="numeric"
+                maxLength="9"
+                onChange={(event) => update("cep", formatCep(event.target.value))}
+                placeholder="00000-000"
+                value={form.cep}
+              />
+            </label>
+          </div>
+        </section>
+
         {error && <p className="form-error" role="alert">{error}</p>}
         {message && <p className="form-success" role="status">{message}</p>}
-        <div className="form-actions">
-          <button className="button" disabled={saving} type="submit">
+        <div className="form-actions business-save-actions">
+          <button className="button" disabled={saving || photoUploading} type="submit">
             {saving ? "Salvando..." : create ? "Criar negócio" : "Salvar alterações"}
           </button>
         </div>
