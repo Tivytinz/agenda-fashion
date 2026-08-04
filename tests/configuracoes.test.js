@@ -146,8 +146,23 @@ function criarNegocio(
     cidade:
       "Goiânia",
 
+    estado:
+      "GO",
+
     bairro:
       "Centro",
+
+    endereco:
+      "Rua das Flores",
+
+    numero:
+      "10",
+
+    complemento:
+      "Sala 2",
+
+    cep:
+      "74000123",
 
     localizacao_url:
       "https://maps.google.com/",
@@ -406,8 +421,23 @@ describe(
               cidade:
                 "Goiânia",
 
+              estado:
+                "SP",
+
               bairro:
                 "Setor Central",
+
+              endereco:
+                "Avenida Brasil",
+
+              numero:
+                "123",
+
+              complemento:
+                "Sala 4",
+
+              cep:
+                "01001000",
 
               localizacao_url:
                 "https://maps.google.com/?q=studio",
@@ -447,8 +477,23 @@ describe(
               cidade:
                 "  Goiânia  ",
 
+              estado:
+                "sp",
+
               bairro:
                 "  Setor   Central  ",
+
+              endereco:
+                "  Avenida   Brasil  ",
+
+              numero:
+                " 123 ",
+
+              complemento:
+                " Sala 4 ",
+
+              cep:
+                "01001-000",
 
               localizacao_url:
                 "https://maps.google.com/?q=studio",
@@ -489,8 +534,23 @@ describe(
             cidade:
               "Goiânia",
 
+            estado:
+              "SP",
+
             bairro:
               "Setor Central",
+
+            endereco:
+              "Avenida Brasil",
+
+            numero:
+              "123",
+
+            complemento:
+              "Sala 4",
+
+            cep:
+              "01001000",
 
             localizacao_url:
               "https://maps.google.com/?q=studio",
@@ -669,8 +729,23 @@ describe(
             cidade:
               negocioAtual.cidade,
 
+            estado:
+              negocioAtual.estado,
+
             bairro:
               negocioAtual.bairro,
+
+            endereco:
+              negocioAtual.endereco,
+
+            numero:
+              negocioAtual.numero,
+
+            complemento:
+              negocioAtual.complemento,
+
+            cep:
+              negocioAtual.cep,
 
             whatsapp_negocio:
               negocioAtual.whatsapp,
@@ -851,6 +926,55 @@ describe(
           resposta.body.erro
         ).toBe(
           "Complete o perfil antes de publicar: descrição, cidade, pelo menos um serviço ativo."
+        );
+
+        expect(
+          configuracoesRepository
+            .atualizarPublicacao
+        ).not.toHaveBeenCalled();
+      }
+    );
+
+    test(
+      "exige estado válido antes de publicar",
+      async () => {
+        configuracoesRepository
+          .buscarNegocioDoUsuario
+          .mockResolvedValue(
+            criarVinculo()
+          );
+
+        configuracoesRepository
+          .buscarNegocioPorId
+          .mockResolvedValue(
+            criarNegocio({
+              estado:
+                "",
+            })
+          );
+
+        const resposta =
+          await request(app)
+            .patch(
+              "/configuracoes/publicacao"
+            )
+            .set(
+              "Authorization",
+              `Bearer ${gerarToken()}`
+            )
+            .send({
+              publicado:
+                true,
+            });
+
+        expect(
+          resposta.status
+        ).toBe(400);
+
+        expect(
+          resposta.body.erro
+        ).toBe(
+          "Complete o perfil antes de publicar: estado."
         );
 
         expect(

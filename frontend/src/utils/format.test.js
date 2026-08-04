@@ -1,5 +1,6 @@
 import { describe, expect, test } from "vitest";
 import {
+  formatCep,
   formatCurrency,
   formatLocation,
   formatRating,
@@ -21,6 +22,11 @@ describe("formatadores do frontend", () => {
     expect(formatWhatsApp("62999998888")).toBe("(62) 99999-8888");
     expect(formatWhatsApp("62 3333-4444")).toBe("(62) 3333-4444");
     expect(formatWhatsApp("62999998888123")).toBe("(62) 99999-8888");
+  });
+
+  test("formata CEP sem manter caracteres extras", () => {
+    expect(formatCep("74000-123")).toBe("74000-123");
+    expect(formatCep("7400012345")).toBe("74000-123");
   });
 
   test("monta a localização sem campos vazios", () => {

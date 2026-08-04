@@ -4,6 +4,13 @@ import { apiRequest } from "../api/client";
 import { useSession } from "../auth/SessionContext";
 import { BackLink } from "../components/BackLink";
 import { ErrorState, LoadingState } from "../components/ScreenState";
+import { formatCep, formatWhatsApp } from "../utils/format";
+
+const BRAZILIAN_STATES = [
+  "AC", "AL", "AP", "AM", "BA", "CE", "DF", "ES", "GO",
+  "MA", "MT", "MS", "MG", "PA", "PB", "PR", "PE", "PI",
+  "RJ", "RN", "RS", "RO", "RR", "SC", "SP", "SE", "TO"
+];
 
 const EMPTY = {
   nome: "",
@@ -40,7 +47,10 @@ export function BusinessPage({ create = false }) {
         setForm({
           ...EMPTY,
           ...business,
-          whatsapp: business.whatsapp || business.whatsapp_negocio || "",
+          whatsapp: formatWhatsApp(
+            business.whatsapp || business.whatsapp_negocio
+          ),
+          cep: formatCep(business.cep),
           areas: Array.isArray(business.areas) ? business.areas.join(", ") : ""
         });
         setPublication(result.publicacao || {
@@ -66,6 +76,7 @@ export function BusinessPage({ create = false }) {
     const payload = {
       ...form,
       whatsapp: String(form.whatsapp).replace(/\D/g, ""),
+      cep: String(form.cep).replace(/\D/g, ""),
       areas: String(form.areas || "")
         .split(",")
         .map((item) => item.trim())
@@ -168,7 +179,14 @@ export function BusinessPage({ create = false }) {
           </label>
           <label>
             WhatsApp
-            <input inputMode="tel" onChange={(e) => update("whatsapp", e.target.value)} value={form.whatsapp} />
+            <input
+              autoComplete="tel"
+              inputMode="tel"
+              maxLength="15"
+              onChange={(e) => update("whatsapp", formatWhatsApp(e.target.value))}
+              placeholder="(00) 12345-6789"
+              value={form.whatsapp}
+            />
           </label>
           <label className="field-wide">
             Descrição
@@ -180,28 +198,45 @@ export function BusinessPage({ create = false }) {
           </label>
           <label>
             Estado
-            <input maxLength="2" onChange={(e) => update("estado", e.target.value.toUpperCase())} value={form.estado} />
+            <select
+              aria-label="Estado"
+              onChange={(e) => update("estado", e.target.value)}
+              required
+              value={form.estado}
+            >
+              <option value="">Selecione a UF</option>
+              {BRAZILIAN_STATES.map((state) => (
+                <option key={state} value={state}>{state}</option>
+              ))}
+            </select>
           </label>
           <label>
             Bairro
             <input onChange={(e) => update("bairro", e.target.value)} value={form.bairro} />
           </label>
-          {create && (
-            <>
-              <label>
-                Endereço
-                <input onChange={(e) => update("endereco", e.target.value)} value={form.endereco} />
-              </label>
-              <label>
-                Número
-                <input onChange={(e) => update("numero", e.target.value)} value={form.numero} />
-              </label>
-              <label>
-                CEP
-                <input inputMode="numeric" onChange={(e) => update("cep", e.target.value)} value={form.cep} />
-              </label>
-            </>
-          )}
+          <label>
+            Endereço
+            <input autoComplete="street-address" onChange={(e) => update("endereco", e.target.value)} value={form.endereco} />
+          </label>
+          <label>
+            Número
+            <input onChange={(e) => update("numero", e.target.value)} value={form.numero} />
+          </label>
+          <label>
+            Complemento
+            <input onChange={(e) => update("complemento", e.target.value)} value={form.complemento} />
+          </label>
+          <label>
+            CEP
+            <input
+              autoComplete="postal-code"
+              inputMode="numeric"
+              maxLength="9"
+              onChange={(e) => update("cep", formatCep(e.target.value))}
+              placeholder="00000-000"
+              value={form.cep}
+            />
+          </label>
           {!create && (
             <label className="field-wide">
               Áreas atendidas

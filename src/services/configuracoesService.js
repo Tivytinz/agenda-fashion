@@ -18,6 +18,11 @@ const ValidationError = require(
 );
 
 const LIMITE_AREAS = 30;
+const ESTADOS_BRASILEIROS = new Set([
+  "AC", "AL", "AP", "AM", "BA", "CE", "DF", "ES", "GO",
+  "MA", "MT", "MS", "MG", "PA", "PB", "PR", "PE", "PI",
+  "RJ", "RN", "RS", "RO", "RR", "SC", "SP", "SE", "TO",
+]);
 
 function possuiCampo(
   objeto,
@@ -169,6 +174,54 @@ function normalizarBairro(
         120,
     }
   );
+}
+
+function normalizarEstado(
+  valor
+) {
+  const estado =
+    normalizarTexto(
+      valor,
+      {
+        nomeCampo:
+          "Estado",
+
+        tamanhoMaximo:
+          2,
+      }
+    ).toUpperCase();
+
+  if (
+    estado &&
+    !ESTADOS_BRASILEIROS.has(
+      estado
+    )
+  ) {
+    throw new ValidationError(
+      "Selecione um estado válido."
+    );
+  }
+
+  return estado;
+}
+
+function normalizarCep(
+  valor
+) {
+  const cep = String(
+    valor ?? ""
+  ).replace(/\D/g, "");
+
+  if (
+    cep &&
+    !/^\d{8}$/.test(cep)
+  ) {
+    throw new ValidationError(
+      "Digite um CEP válido."
+    );
+  }
+
+  return cep;
 }
 
 function normalizarWhatsapp(
@@ -502,6 +555,18 @@ function avaliarPublicacao(
   }
 
   if (
+    !ESTADOS_BRASILEIROS.has(
+      String(
+        negocio?.estado || ""
+      ).trim().toUpperCase()
+    )
+  ) {
+    pendencias.push(
+      "estado"
+    );
+  }
+
+  if (
     negocio?.possui_servico_ativo !==
     true
   ) {
@@ -699,6 +764,16 @@ async function salvarConfiguracoes({
           : negocioAtual.cidade
       ),
 
+    estado:
+      normalizarEstado(
+        possuiCampo(
+          entrada,
+          "estado"
+        )
+          ? entrada.estado
+          : negocioAtual.estado
+      ),
+
     bairro:
       normalizarBairro(
         possuiCampo(
@@ -707,6 +782,67 @@ async function salvarConfiguracoes({
         )
           ? entrada.bairro
           : negocioAtual.bairro
+      ),
+
+    endereco:
+      normalizarTexto(
+        possuiCampo(
+          entrada,
+          "endereco"
+        )
+          ? entrada.endereco
+          : negocioAtual.endereco,
+        {
+          nomeCampo:
+            "Endereço",
+
+          tamanhoMaximo:
+            180,
+        }
+      ),
+
+    numero:
+      normalizarTexto(
+        possuiCampo(
+          entrada,
+          "numero"
+        )
+          ? entrada.numero
+          : negocioAtual.numero,
+        {
+          nomeCampo:
+            "Número",
+
+          tamanhoMaximo:
+            20,
+        }
+      ),
+
+    complemento:
+      normalizarTexto(
+        possuiCampo(
+          entrada,
+          "complemento"
+        )
+          ? entrada.complemento
+          : negocioAtual.complemento,
+        {
+          nomeCampo:
+            "Complemento",
+
+          tamanhoMaximo:
+            120,
+        }
+      ),
+
+    cep:
+      normalizarCep(
+        possuiCampo(
+          entrada,
+          "cep"
+        )
+          ? entrada.cep
+          : negocioAtual.cep
       ),
 
     localizacao_url:

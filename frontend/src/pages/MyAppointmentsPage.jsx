@@ -17,7 +17,7 @@ const TABS = [
   { id: "canceled", label: "Cancelados" }
 ];
 
-function CancelDialog({ appointment, canceling, onClose, onConfirm }) {
+function CancelDialog({ appointment, canceling, error, onClose, onConfirm }) {
   const dialogRef = useRef(null);
 
   useEffect(() => {
@@ -58,6 +58,7 @@ function CancelDialog({ appointment, canceling, onClose, onConfirm }) {
           <p className="cancel-dialog-warning">
             O horário será liberado para outra cliente.
           </p>
+          {error && <p className="form-error" role="alert">{error}</p>}
           <div className="cancel-dialog-actions">
             <button
               className="button button-secondary"
@@ -98,6 +99,7 @@ function AppointmentCard({ appointment, canCancel, canceling, onCancel }) {
             .format(new Date(`${appointment.data}T12:00:00`))
             .replace(".", "")}
         </span>
+        <small>{appointment.horario}</small>
       </div>
 
       <div className="appointment-copy">
@@ -147,8 +149,10 @@ export function MyAppointmentsPage() {
   const [activeTab, setActiveTab] = useState("scheduled");
   const [status, setStatus] = useState(session.loading || isAuthenticated ? "loading" : "ready");
   const [message, setMessage] = useState("");
+  const [cancelError, setCancelError] = useState("");
   const [cancelingId, setCancelingId] = useState(null);
   const [pendingCancellation, setPendingCancellation] = useState(null);
+  const tabRefs = useRef([]);
 
   const loadAppointments = useCallback(async () => {
     if (session.loading) {
@@ -184,10 +188,10 @@ export function MyAppointmentsPage() {
   }, [loadAppointments]);
 
   const grouped = useMemo(() => groupAppointments(appointments), [appointments]);
-  const visibleAppointments = grouped[activeTab];
 
   async function cancelAppointment(appointment) {
     setCancelingId(appointment.id);
+    setCancelError("");
     setMessage("");
 
     try {
@@ -201,6 +205,7 @@ export function MyAppointmentsPage() {
       ));
       setActiveTab("canceled");
       setMessage("Agendamento cancelado com sucesso.");
+      setPendingCancellation(null);
       track("agendamento_cancelado", {
         page: "meus_agendamentos",
         mission: "acompanhar_agendamentos",
@@ -208,11 +213,43 @@ export function MyAppointmentsPage() {
         properties: { agendamento_id: Number(appointment.id) }
       });
     } catch (error) {
-      setMessage(error.message);
+      setCancelError(error.message);
     } finally {
       setCancelingId(null);
-      setPendingCancellation(null);
     }
+  }
+
+  function selectTab(tabId, focus = false) {
+    const nextIndex = TABS.findIndex((tab) => tab.id === tabId);
+
+    setActiveTab(tabId);
+    setMessage("");
+
+    if (focus && nextIndex >= 0) {
+      tabRefs.current[nextIndex]?.focus();
+    }
+  }
+
+  function handleTabKeyDown(event, index) {
+    const keyDirection = {
+      ArrowLeft: -1,
+      ArrowRight: 1
+    }[event.key];
+
+    let nextIndex;
+
+    if (keyDirection) {
+      nextIndex = (index + keyDirection + TABS.length) % TABS.length;
+    } else if (event.key === "Home") {
+      nextIndex = 0;
+    } else if (event.key === "End") {
+      nextIndex = TABS.length - 1;
+    } else {
+      return;
+    }
+
+    event.preventDefault();
+    selectTab(TABS[nextIndex].id, true);
   }
 
   return (
@@ -251,16 +288,18 @@ export function MyAppointmentsPage() {
         <>
           {message && <p className="agenda-message" role="status">{message}</p>}
           <div className="agenda-tabs" role="tablist" aria-label="Status dos agendamentos">
-            {TABS.map((tab) => (
+            {TABS.map((tab, index) => (
               <button
+                aria-controls={`appointments-panel-${tab.id}`}
                 aria-selected={activeTab === tab.id}
                 className={activeTab === tab.id ? "active" : ""}
+                id={`appointments-tab-${tab.id}`}
                 key={tab.id}
-                onClick={() => {
-                  setActiveTab(tab.id);
-                  setMessage("");
-                }}
+                onClick={() => selectTab(tab.id)}
+                onKeyDown={(event) => handleTabKeyDown(event, index)}
+                ref={(element) => { tabRefs.current[index] = element; }}
                 role="tab"
+                tabIndex={activeTab === tab.id ? 0 : -1}
                 type="button"
               >
                 {tab.label}
@@ -269,42 +308,60 @@ export function MyAppointmentsPage() {
             ))}
           </div>
 
-          {visibleAppointments.length > 0 ? (
-            <section className="appointments-list" aria-live="polite">
-              {visibleAppointments.map((appointment) => (
-                <AppointmentCard
-                  appointment={appointment}
-                  canCancel={
-                    isAuthenticated &&
-                    appointment.status === APPOINTMENT_STATUS.scheduled
-                  }
-                  canceling={cancelingId === appointment.id}
-                  key={appointment.id}
-                  onCancel={setPendingCancellation}
-                />
-              ))}
-            </section>
-          ) : (
-            <section className="empty-agenda">
-              <span aria-hidden="true">♡</span>
-              <h2>Nenhum agendamento aqui</h2>
-              <p>
-                {activeTab === "scheduled"
-                  ? "Quando você marcar um novo horário, ele aparecerá nesta lista."
-                  : "Seu histórico aparecerá aqui conforme os atendimentos forem atualizados."}
-              </p>
-              {activeTab === "scheduled" && (
-                <Link className="button" to="/">Encontrar um serviço</Link>
+          {TABS.map((tab) => (
+            <div
+              aria-labelledby={`appointments-tab-${tab.id}`}
+              hidden={activeTab !== tab.id}
+              id={`appointments-panel-${tab.id}`}
+              key={tab.id}
+              role="tabpanel"
+              tabIndex={0}
+            >
+              {grouped[tab.id].length > 0 ? (
+                <section className="appointments-list" aria-live="polite">
+                  {grouped[tab.id].map((appointment) => (
+                    <AppointmentCard
+                      appointment={appointment}
+                      canCancel={
+                        isAuthenticated &&
+                        appointment.status === APPOINTMENT_STATUS.scheduled
+                      }
+                      canceling={cancelingId === appointment.id}
+                      key={appointment.id}
+                      onCancel={(item) => {
+                        setCancelError("");
+                        setPendingCancellation(item);
+                      }}
+                    />
+                  ))}
+                </section>
+              ) : (
+                <section className="empty-agenda">
+                  <span aria-hidden="true">♡</span>
+                  <h2>Nenhum agendamento aqui</h2>
+                  <p>
+                    {tab.id === "scheduled"
+                      ? "Quando você marcar um novo horário, ele aparecerá nesta lista."
+                      : "Seu histórico aparecerá aqui conforme os atendimentos forem atualizados."}
+                  </p>
+                  {tab.id === "scheduled" && (
+                    <Link className="button" to="/">Encontrar um serviço</Link>
+                  )}
+                </section>
               )}
-            </section>
-          )}
+            </div>
+          ))}
         </>
       )}
 
       <CancelDialog
         appointment={pendingCancellation}
         canceling={cancelingId !== null}
-        onClose={() => setPendingCancellation(null)}
+        error={cancelError}
+        onClose={() => {
+          setCancelError("");
+          setPendingCancellation(null);
+        }}
         onConfirm={cancelAppointment}
       />
     </main>

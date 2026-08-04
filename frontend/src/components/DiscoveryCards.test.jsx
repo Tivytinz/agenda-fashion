@@ -38,6 +38,7 @@ describe("imagens dos cards do catálogo", () => {
 
     expect(document.querySelector(".business-card img")?.src)
       .toContain("/uploads/terceiro.jpg");
+    expect(screen.queryByText("3 serviços")).toBeNull();
   });
 
   it("volta a tentar quando a URL do mesmo card muda", async () => {

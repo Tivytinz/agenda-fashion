@@ -5,6 +5,7 @@ import { useSession } from "../auth/SessionContext";
 import { BackLink } from "../components/BackLink";
 import { ErrorState, LoadingState } from "../components/ScreenState";
 import { MediaThumb } from "../components/profile/MediaThumb";
+import { formatWhatsApp } from "../utils/format";
 
 export function AccountPage() {
   const session = useSession();
@@ -23,7 +24,7 @@ export function AccountPage() {
         setUser(result.usuario);
         setProfile({
           nome: result.usuario?.nome || "",
-          whatsapp: result.usuario?.whatsapp || ""
+          whatsapp: formatWhatsApp(result.usuario?.whatsapp)
         });
       })
       .catch((requestError) => setError(requestError.message));
@@ -118,7 +119,21 @@ export function AccountPage() {
           </div>
           <label>Nome<input minLength="2" onChange={(e) => setProfile({ ...profile, nome: e.target.value })} required value={profile.nome} /></label>
           <label>E-mail<input disabled type="email" value={user.email || ""} /></label>
-          <label>WhatsApp<input inputMode="tel" onChange={(e) => setProfile({ ...profile, whatsapp: e.target.value })} required value={profile.whatsapp} /></label>
+          <label>
+            WhatsApp
+            <input
+              autoComplete="tel"
+              inputMode="tel"
+              maxLength="15"
+              onChange={(e) => setProfile({
+                ...profile,
+                whatsapp: formatWhatsApp(e.target.value)
+              })}
+              placeholder="(00) 12345-6789"
+              required
+              value={profile.whatsapp}
+            />
+          </label>
           <button className="button" disabled={saving === "profile"} type="submit">{saving === "profile" ? "Salvando..." : "Salvar perfil"}</button>
         </form>
         <form className="panel stack-form" onSubmit={savePassword}>

@@ -9,7 +9,7 @@ describe("navegação mobile da área de trabalho", () => {
     ["/painel", "Visão geral", "⌂"],
     ["/painel/agenda", "Agenda", "▦"],
     ["/painel/servicos", "Serviços", "✦"],
-    ["/painel/profissionais", "Profissionais", "♙"],
+    ["/painel/profissionais", "Equipe", "♙"],
     ["/painel/horarios", "Horários", "◷"],
     ["/painel/negocio", "Meu negócio", "◇"]
   ];
@@ -21,7 +21,7 @@ describe("navegação mobile da área de trabalho", () => {
       "Visão geral",
       "Agenda",
       "Serviços",
-      "Profissionais"
+      "Equipe"
     ]);
     expect(result.secondary.map((link) => link[1])).toEqual([
       "Horários",

@@ -355,6 +355,7 @@ describe(
           '["/painel", "Visão geral"',
           '["/painel/agenda", "Agenda"',
           '["/painel/servicos", "Serviços"',
+          '["/painel/profissionais", "Equipe"',
           '["/profissional/agenda", "Minha agenda"',
           '["/profissional/horarios", "Meus horários"',
         ].forEach(
