@@ -130,40 +130,55 @@ async function atualizarNegocio(
       `
         UPDATE negocios
 
-        SET
-          nome = $1,
-          foto_url = $2,
-          descricao = $3,
-          setor = $4,
-          cidade = $5,
-          estado = $6,
-          bairro = $7,
-          endereco = $8,
-          numero = $9,
-          complemento = $10,
-          cep = $11,
-          localizacao_url = $12,
-          whatsapp = $13,
-          areas = COALESCE(
-            $14::TEXT[],
-            ARRAY[]::TEXT[]
-          ),
-          publicado = CASE
-            WHEN negocios.publicado = TRUE
-              AND NULLIF(BTRIM(COALESCE($3, '')), '') IS NOT NULL
-              AND cardinality(COALESCE($14::TEXT[], ARRAY[]::TEXT[])) > 0
-              AND NULLIF(BTRIM(COALESCE($5, '')), '') IS NOT NULL
-              AND NULLIF(BTRIM(COALESCE($6, '')), '') IS NOT NULL
-              AND NULLIF(BTRIM(COALESCE($13, '')), '') IS NOT NULL
-              AND EXISTS (
-                SELECT 1
-                FROM servicos_negocio s
-                WHERE s.negocio_id = negocios.id
-                  AND s.ativo = TRUE
-              )
-            THEN TRUE
-            ELSE FALSE
-          END,
+       SET
+  nome = $1::TEXT,
+  foto_url = $2::TEXT,
+  descricao = $3::TEXT,
+  setor = $4::TEXT,
+  cidade = $5::TEXT,
+  estado = $6::TEXT,
+  bairro = $7::TEXT,
+  endereco = $8::TEXT,
+  numero = $9::TEXT,
+  complemento = $10::TEXT,
+  cep = $11::TEXT,
+  localizacao_url = $12::TEXT,
+  whatsapp = $13::TEXT,
+  areas = COALESCE(
+    $14::TEXT[],
+    ARRAY[]::TEXT[]
+  ),
+         publicado = CASE
+  WHEN negocios.publicado = TRUE
+    AND NULLIF(
+      BTRIM(COALESCE($3::TEXT, ''::TEXT)),
+      ''
+    ) IS NOT NULL
+    AND NULLIF(
+      BTRIM(COALESCE($4::TEXT, ''::TEXT)),
+      ''
+    ) IS NOT NULL
+    AND NULLIF(
+      BTRIM(COALESCE($5::TEXT, ''::TEXT)),
+      ''
+    ) IS NOT NULL
+    AND NULLIF(
+      BTRIM(COALESCE($6::TEXT, ''::TEXT)),
+      ''
+    ) IS NOT NULL
+    AND NULLIF(
+      BTRIM(COALESCE($13::TEXT, ''::TEXT)),
+      ''
+    ) IS NOT NULL
+    AND EXISTS (
+      SELECT 1
+      FROM servicos_negocio s
+      WHERE s.negocio_id = negocios.id
+        AND s.ativo = TRUE
+    )
+  THEN TRUE
+  ELSE FALSE
+END,
           updated_at = NOW()
 
         WHERE id = $15
