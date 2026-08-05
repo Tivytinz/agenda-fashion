@@ -11,6 +11,13 @@ const servicosRepository = require(
   "../src/repositories/servicosRepository"
 );
 
+
+function compactarSql(sql) {
+  return String(sql || "")
+    .replace(/\s+/g, "")
+    .toUpperCase();
+}
+
 describe("consistência da publicação do negócio", () => {
   beforeEach(() => {
     jest.clearAllMocks();
@@ -40,11 +47,22 @@ describe("consistência da publicação do negócio", () => {
     expect(sql).toMatch(
       /publicado\s*=\s*CASE[\s\S]*negocios\.publicado\s*=\s*TRUE/i
     );
-    expect(sql).toMatch(
-      /NULLIF\(BTRIM\(COALESCE\(\$3, ''\)\), ''\) IS NOT NULL/i
-    );
-    expect(sql).toMatch(
-      /NULLIF\(BTRIM\(COALESCE\(\$6, ''\)\), ''\) IS NOT NULL/i
+    const sqlCompacto =
+      compactarSql(sql);
+
+    for (
+      const parametro
+      of [3, 4, 5, 6, 13]
+    ) {
+      expect(
+        sqlCompacto
+      ).toContain(
+        `NULLIF(BTRIM(COALESCE($${parametro}::TEXT,''::TEXT)),'')ISNOTNULL`
+      );
+    }
+
+    expect(sqlCompacto).toContain(
+      "AREAS=COALESCE($14::TEXT[],ARRAY[]::TEXT[])"
     );
     expect(sql).toMatch(
       /EXISTS[\s\S]*servicos_negocio[\s\S]*s\.ativo\s*=\s*TRUE/i

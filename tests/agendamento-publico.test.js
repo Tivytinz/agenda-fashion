@@ -25,6 +25,48 @@ const {
 
 let cenarioTeste;
 
+
+function resumirResposta(
+  contexto,
+  resposta
+) {
+  let corpo;
+
+  try {
+    corpo = JSON.stringify(
+      resposta?.body ?? null
+    );
+  } catch {
+    corpo = String(
+      resposta?.text || ""
+    );
+  }
+
+  return (
+    `${contexto} respondeu ` +
+    `${resposta?.statusCode}: ` +
+    `${corpo}`
+  );
+}
+
+function exigirStatus(
+  resposta,
+  statusEsperado,
+  contexto
+) {
+  if (
+    resposta.statusCode !==
+    statusEsperado
+  ) {
+    throw new Error(
+      resumirResposta(
+        contexto,
+        resposta
+      )
+    );
+  }
+}
+
 function gerarSufixoUnico() {
   return (
     `${Date.now()}` +
@@ -46,12 +88,16 @@ async function buscarHorarioDisponivel() {
   const perfil =
     await request(app)
       .get(
-        `/perfil-negocio/${cenarioTeste.slug}`
+        `/perfil-negocio/${encodeURIComponent(
+          cenarioTeste.slug
+        )}`
       );
 
-      expect(
-    perfil.statusCode
-  ).toBe(200);
+  exigirStatus(
+    perfil,
+    200,
+    "Perfil público"
+  );
 
   expect(
     Array.isArray(
@@ -94,9 +140,11 @@ async function buscarHorarioDisponivel() {
         profissionalId:
           profissional.id,
       });
-  expect(
-    agenda.statusCode
-  ).toBe(200);
+  exigirStatus(
+    agenda,
+    200,
+    "Agenda pública"
+  );
 
   expect(
     Array.isArray(

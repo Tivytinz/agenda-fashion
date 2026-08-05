@@ -60,6 +60,30 @@ const {
 
 let cenarioTeste;
 
+
+function resumirResposta(
+  contexto,
+  resposta
+) {
+  let corpo;
+
+  try {
+    corpo = JSON.stringify(
+      resposta?.body ?? null
+    );
+  } catch {
+    corpo = String(
+      resposta?.text || ""
+    );
+  }
+
+  return (
+    `${contexto} respondeu ` +
+    `${resposta?.statusCode}: ` +
+    `${corpo}`
+  );
+}
+
 function normalizarId(valor) {
   const id = Number(valor);
 
@@ -130,6 +154,8 @@ async function buscarCenarioDisponivel() {
       },
     ];
 
+  const erros = [];
+
   if (
     candidatos.length === 0
   ) {
@@ -155,6 +181,13 @@ async function buscarCenarioDisponivel() {
     if (
       perfil.statusCode !== 200
     ) {
+      erros.push(
+        resumirResposta(
+          "Perfil público",
+          perfil
+        )
+      );
+
       continue;
     }
 
@@ -190,6 +223,10 @@ async function buscarCenarioDisponivel() {
       !servico ||
       !profissional
     ) {
+      erros.push(
+        "O perfil público não devolveu o serviço ou o profissional do cenário isolado."
+      );
+
       continue;
     }
 
@@ -212,6 +249,13 @@ async function buscarCenarioDisponivel() {
     if (
       agenda.statusCode !== 200
     ) {
+      erros.push(
+        resumirResposta(
+          "Agenda pública",
+          agenda
+        )
+      );
+
       continue;
     }
 
@@ -240,6 +284,10 @@ async function buscarCenarioDisponivel() {
       );
 
     if (!diaDisponivel) {
+      erros.push(
+        "A agenda pública respondeu 200, mas não devolveu nenhum dia com horário disponível."
+      );
+
       continue;
     }
 
@@ -251,6 +299,10 @@ async function buscarCenarioDisponivel() {
         .find(Boolean);
 
     if (!horario) {
+      erros.push(
+        "A agenda pública devolveu horários, mas nenhum deles pôde ser normalizado."
+      );
+
       continue;
     }
 
@@ -292,7 +344,10 @@ async function buscarCenarioDisponivel() {
   }
 
   throw new Error(
-    "Nenhum horário disponível foi encontrado para executar o teste de concorrência."
+    [
+      "Nenhum horário disponível foi encontrado para executar o teste de concorrência.",
+      ...erros,
+    ].join("\n")
   );
 }
 
