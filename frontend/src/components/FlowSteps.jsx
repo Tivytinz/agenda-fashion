@@ -1,11 +1,8 @@
-import { BrandProgressMark } from "./BrandProgressMark";
-
 const DEFAULT_STEPS = ["Serviço", "Profissional", "Horário", "Confirmar"];
 
 export function FlowSteps({ current, steps = DEFAULT_STEPS }) {
   return (
     <div className="flow-progress">
-      <BrandProgressMark current={current} total={steps.length} />
       <p>
         Etapa {current} de {steps.length}
         <strong>{steps[current - 1]}</strong>
