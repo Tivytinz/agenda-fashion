@@ -258,6 +258,7 @@ export function ProfilePage() {
       <Link className="back-link" to="/">← Voltar para explorar</Link>
       <ProfileHero
         business={business}
+        businessSlug={slug}
         favorite={favorite}
         favoriteBusy={favoriteBusy}
         imageSource={profileImageSource}
@@ -268,6 +269,9 @@ export function ProfilePage() {
       {favoriteError && <p className="form-error" role="alert">{favoriteError}</p>}
       <BookingFlow
         availability={availability}
+        businessId={business.id}
+        businessName={business.nome}
+        businessSlug={slug}
         day={day}
         error={error}
         onContinue={continueToConfirmation}

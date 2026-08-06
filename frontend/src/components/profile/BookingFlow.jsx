@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { PublicShareButton } from "../PublicShareButton";
 import { FlowSteps } from "../FlowSteps";
 import { EmptyState, ErrorState, LoadingState } from "../ScreenState";
 import { formatCurrency, formatDate } from "../../utils/format";
@@ -18,7 +19,14 @@ function getServiceEmoji(name) {
   return "✨";
 }
 
-function ServiceChoices({ services, selectedId, onSelect }) {
+function ServiceChoices({
+  businessId,
+  businessName,
+  businessSlug,
+  services,
+  selectedId,
+  onSelect
+}) {
   if (services.length === 0) {
     return (
       <EmptyState title="Este negócio ainda está configurando os serviços">
@@ -32,32 +40,60 @@ function ServiceChoices({ services, selectedId, onSelect }) {
       {services.map((service) => {
         const selected = String(service.id) === selectedId;
         return (
-          <button
-            aria-pressed={selected}
-            className={selected ? "choice-card selected" : "choice-card"}
+          <article
+            className={selected ? "service-choice-item selected" : "service-choice-item"}
             key={service.id}
-            onClick={() => onSelect(service.id)}
-            type="button"
           >
-            <MediaThumb
-              src={service.foto_url ?? service.imagem_url ?? service.foto}
-              alt={`Foto do serviço ${service.nome}`}
-              emoji={getServiceEmoji(service.nome)}
-              className="choice-media service-choice-media"
-            />
-            <span className="choice-copy">
-              <strong>{service.nome}</strong>
-              {service.descricao && <small>{service.descricao}</small>}
-              <small className="service-duration-with-emoji">
-                <span className="service-duration-emoji" aria-hidden="true">🕒</span>
-                {service.duracao_minutos} min
-              </small>
-            </span>
-            <span className="choice-price">
-              <strong>{formatCurrency(service.valor)}</strong>
-              <small>{selected ? "Selecionado ✓" : "Escolher"}</small>
-            </span>
-          </button>
+            <button
+              aria-label={`Selecionar ${service.nome}`}
+              aria-pressed={selected}
+              className={selected ? "choice-card selected" : "choice-card"}
+              onClick={() => onSelect(service.id)}
+              type="button"
+            >
+              <MediaThumb
+                src={service.foto_url ?? service.imagem_url ?? service.foto}
+                alt={`Foto do serviço ${service.nome}`}
+                emoji={getServiceEmoji(service.nome)}
+                className="choice-media service-choice-media"
+              />
+              <span className="choice-copy">
+                <strong>{service.nome}</strong>
+                {service.descricao && <small>{service.descricao}</small>}
+                <small className="service-duration-with-emoji">
+                  <span className="service-duration-emoji" aria-hidden="true">🕒</span>
+                  {service.duracao_minutos} min
+                </small>
+              </span>
+              <span className="choice-price">
+                <strong>{formatCurrency(service.valor)}</strong>
+                <small>{selected ? "Selecionado ✓" : "Escolher"}</small>
+              </span>
+            </button>
+            <div className="service-share-actions">
+              <PublicShareButton
+                ariaLabel={`Copiar link de ${service.nome}`}
+                businessId={businessId}
+                businessName={businessName}
+                businessSlug={businessSlug}
+                className="service-share-button"
+                label="Copiar link"
+                mode="copy"
+                serviceId={service.id}
+                serviceName={service.nome}
+              />
+              <PublicShareButton
+                ariaLabel={`Compartilhar ${service.nome}`}
+                businessId={businessId}
+                businessName={businessName}
+                businessSlug={businessSlug}
+                className="service-share-button"
+                label="Compartilhar"
+                serviceId={service.id}
+                serviceName={service.nome}
+              />
+            </div>
+          </article>
         );
       })}
     </div>
@@ -184,6 +220,9 @@ function BookingSummary({ day, onContinue, professional, service, time }) {
 
 export function BookingFlow({
   availability,
+  businessId,
+  businessName,
+  businessSlug,
   day,
   error,
   onContinue,
@@ -244,7 +283,14 @@ export function BookingFlow({
                 <button className="text-button" onClick={() => setEditingService(true)} type="button">Alterar</button>
               </div>
             ) : (
-              <ServiceChoices services={services} selectedId={serviceId} onSelect={selectService} />
+              <ServiceChoices
+                businessId={businessId}
+                businessName={businessName}
+                businessSlug={businessSlug}
+                services={services}
+                selectedId={serviceId}
+                onSelect={selectService}
+              />
             )}
           </section>
           {serviceId && showProfessionalStep && (

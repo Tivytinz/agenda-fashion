@@ -129,6 +129,11 @@ nav { display: flex; align-items: center; gap: 18px; }
 .profile-distance-button:hover { border-color: var(--pink-500); background: var(--pink-50); }
 .favorite-button { min-height: 42px; border: 1px solid var(--pink-100); border-radius: 999px; padding: 0 16px; color: var(--wine); background: #fff; font-weight: 850; cursor: pointer; transition: transform 160ms ease, border-color 160ms ease, background-color 160ms ease, color 160ms ease; }
 .favorite-button.active { color: var(--pink-600); border-color: var(--pink-500); background: var(--pink-50); }
+.public-share-button { display: inline-flex; min-height: 40px; align-items: center; justify-content: center; gap: 7px; border: 1px solid var(--pink-100); border-radius: 10px; padding: 0 12px; color: var(--wine); background: #fff; font-weight: 850; cursor: pointer; transition: border-color 160ms ease, background-color 160ms ease, color 160ms ease; }
+.public-share-button:hover { color: var(--pink-600); border-color: var(--pink-500); background: var(--pink-50); }
+.public-share-button:disabled { opacity: .6; cursor: wait; }
+.public-share-icon { width: 17px; height: 17px; flex: 0 0 auto; }
+.profile-action-button.share { font: inherit; }
 .flow-progress { max-width: 760px; margin: 0 auto 24px; }
 .flow-progress > p { display: none; justify-content: space-between; margin-bottom: 9px; color: var(--muted); font-size: .82rem; }
 .flow-progress > p strong { color: var(--wine); }
@@ -148,6 +153,10 @@ nav { display: flex; align-items: center; gap: 18px; }
 .step-label { display: grid; width: 32px; height: 32px; place-items: center; margin: 0; border-radius: 9px; color: #fff; background: var(--pink-600); font-weight: 900; }
 .choice-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
 .choice-list.compact { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.service-choice-item { display: grid; min-width: 0; align-content: start; gap: 8px; }
+.service-choice-item .choice-card { width: 100%; height: 100%; }
+.service-share-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.service-share-button { width: 100%; min-width: 0; min-height: 38px; font-size: .8rem; }
 .choice-card { display: flex; min-height: 82px; align-items: center; justify-content: space-between; gap: 14px; border: 1px solid var(--line); border-radius: 13px; padding: 15px; color: var(--ink); background: #fff; text-align: left; cursor: pointer; }
 .choice-card:hover { border-color: var(--pink-500); }
 .choice-card.selected, .date-button.selected, .time-button.selected { border-color: var(--pink-500); background: var(--pink-50); box-shadow: inset 0 0 0 1px var(--pink-500); }
