@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { PublicShareButton } from "../PublicShareButton";
 import { formatLocation } from "../../utils/format";
 import { MediaThumb } from "./MediaThumb";
 import { normalizeBusinessSpecialties } from "../../utils/specialties";
@@ -79,6 +80,7 @@ function ActionIcon({ type }) {
 
 export function ProfileHero({
   business,
+  businessSlug,
   favorite,
   favoriteBusy,
   imageSource,
@@ -217,6 +219,13 @@ export function ProfileHero({
           <ActionIcon type="favorite" />
           <span>{favorite ? "Salvo" : "Favoritar"}</span>
         </button>
+        <PublicShareButton
+          businessId={business.id}
+          businessName={business.nome}
+          businessSlug={businessSlug}
+          className="profile-action-button share"
+          label="Compartilhar"
+        />
         {whatsappUrl && (
           <a className="profile-action-button whatsapp" href={whatsappUrl} target="_blank" rel="noreferrer">
             <ActionIcon type="whatsapp" />

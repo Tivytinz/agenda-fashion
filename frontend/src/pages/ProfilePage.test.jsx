@@ -135,7 +135,7 @@ describe("fluxo publico de agendamento", () => {
     expect(screen.queryByRole("heading", { name: "Resumo" })).toBeNull();
 
     await user.click(screen.getByRole("button", {
-      name: /Manicure completa/
+      name: "Selecionar Manicure completa"
     }));
 
     expect(screen.getByRole("heading", { name: "Resumo" })).not.toBeNull();
@@ -207,7 +207,7 @@ describe("fluxo publico de agendamento", () => {
     expect(document.querySelector(".flow-steps")?.textContent).not.toContain("✓");
 
     await user.click(await screen.findByRole("button", {
-      name: /Manicure completa/
+      name: "Selecionar Manicure completa"
     }));
     await user.click(screen.getByRole("button", { name: /Ana/ }));
 
@@ -274,7 +274,7 @@ describe("fluxo publico de agendamento", () => {
     expect(screen.getByText("Estética")).not.toBeNull();
 
     await user.click(screen.getByRole("button", {
-      name: /Manicure completa/
+      name: "Selecionar Manicure completa"
     }));
 
     expect(await screen.findByRole("button", { name: "09:00" })).not.toBeNull();
@@ -290,7 +290,7 @@ describe("fluxo publico de agendamento", () => {
     renderProfile();
 
     await user.click(await screen.findByRole("button", {
-      name: /Manicure completa/
+      name: "Selecionar Manicure completa"
     }));
     await user.click(screen.getByRole("button", { name: /Ana/ }));
     await user.click(await screen.findByRole("button", { name: "09:00" }));
@@ -299,7 +299,9 @@ describe("fluxo publico de agendamento", () => {
       .toBe(false);
 
     await user.click(screen.getAllByRole("button", { name: "Alterar" })[0]);
-    await user.click(screen.getByRole("button", { name: /Pedicure/ }));
+    await user.click(screen.getByRole("button", {
+      name: "Selecionar Pedicure"
+    }));
 
     expect(screen.getByText("Aguardando serviço", { selector: "dd" }))
       .not.toBeNull();
@@ -328,7 +330,7 @@ describe("fluxo publico de agendamento", () => {
 
     renderProfile();
     await user.click(await screen.findByRole("button", {
-      name: /Manicure completa/
+      name: "Selecionar Manicure completa"
     }));
     await user.click(screen.getByRole("button", { name: /Ana/ }));
 
