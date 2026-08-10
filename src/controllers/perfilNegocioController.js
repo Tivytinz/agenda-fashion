@@ -1,4 +1,6 @@
 const perfilNegocioService = require("../services/perfilNegocioService");
+const socialPreviewService = require("../services/socialPreviewService");
+const { criarImagemPadrao } = require("../utils/socialPreviewImage");
 
 // =============================
 // 🌍 LISTAR NEGÓCIOS PÚBLICOS
@@ -35,7 +37,64 @@ async function buscarPerfilPublico(req, res, next) {
   }
 }
 
+async function renderizarPerfilPublico(req, res, next) {
+  try {
+    const previa = await socialPreviewService.buscarPrevia({
+      slug: req.params.slug,
+      servicoId: req.query.servico
+    });
+
+    if (!previa) {
+      return next();
+    }
+
+    if (previa.negocio.slug !== previa.slugSolicitado) {
+      const destino = new URL(
+        `/negocio/${encodeURIComponent(previa.negocio.slug)}`,
+        socialPreviewService.origemPublica()
+      );
+
+      for (const [chave, valor] of Object.entries(req.query)) {
+        const valores = Array.isArray(valor) ? valor : [valor];
+
+        for (const item of valores) {
+          if (typeof item === "string" && item.length <= 500) {
+            destino.searchParams.append(chave, item);
+          }
+        }
+      }
+
+      return res.redirect(301, `${destino.pathname}${destino.search}`);
+    }
+
+    const html = await socialPreviewService.lerHtmlReact();
+
+    res.setHeader(
+      "Cache-Control",
+      "public, max-age=300, stale-while-revalidate=3600"
+    );
+
+    return res
+      .type("html")
+      .send(
+        socialPreviewService.injetarMetadados(
+          html,
+          previa.metadados
+        )
+      );
+  } catch (erro) {
+    return next(erro);
+  }
+}
+
+function servirImagemSocialPadrao(_req, res) {
+  res.setHeader("Cache-Control", "public, max-age=86400");
+  res.type("png").send(criarImagemPadrao());
+}
+
 module.exports = {
   listarNegociosPublicos,
-  buscarPerfilPublico
+  buscarPerfilPublico,
+  renderizarPerfilPublico,
+  servirImagemSocialPadrao
 };
