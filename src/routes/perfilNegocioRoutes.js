@@ -114,4 +114,14 @@ router.get(
   perfilNegocioController.buscarPerfilPublico
 );
 
+router.get(
+  "/social-preview.png",
+  perfilNegocioController.servirImagemSocialPadrao
+);
+
+router.get(
+  "/negocio/:slug",
+  perfilNegocioController.renderizarPerfilPublico
+);
+
 module.exports = router;
