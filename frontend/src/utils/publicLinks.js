@@ -1,11 +1,11 @@
+const DEFAULT_PUBLIC_ORIGIN =
+  "https://app.agendafashion.com.br";
+
 function resolveOrigin(origin) {
   const value = String(
     origin ||
-    (
-      typeof window !== "undefined"
-        ? window.location.origin
-        : ""
-    )
+    import.meta.env.VITE_PUBLIC_APP_URL ||
+    DEFAULT_PUBLIC_ORIGIN
   ).trim();
 
   if (!value) {
@@ -14,7 +14,15 @@ function resolveOrigin(origin) {
     );
   }
 
-  return value.replace(/\/+$/, "");
+  const url = new URL(value);
+
+  if (!["http:", "https:"].includes(url.protocol)) {
+    throw new Error(
+      "O endereço público do Agenda Fashion é inválido."
+    );
+  }
+
+  return url.origin;
 }
 
 export function buildPublicLink({
