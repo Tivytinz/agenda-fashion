@@ -271,7 +271,14 @@ async function buscarNegocioPorSlug(
 
       FROM negocios n
 
-      WHERE n.slug = $1
+      LEFT JOIN negocios_slugs_antigos nsa
+        ON nsa.negocio_id = n.id
+        AND nsa.slug = $1
+
+      WHERE (
+          n.slug = $1
+          OR nsa.slug = $1
+        )
         AND n.ativo = TRUE
         AND n.publicado = TRUE
 

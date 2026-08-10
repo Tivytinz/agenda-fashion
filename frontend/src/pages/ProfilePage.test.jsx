@@ -86,6 +86,11 @@ function ConfirmationProbe() {
   );
 }
 
+function LocationProbe() {
+  const location = useLocation();
+  return <output aria-label="localização atual">{`${location.pathname}${location.search}`}</output>;
+}
+
 function renderProfile(initialEntry = "/negocio/studio-aurora") {
   return render(
     <MemoryRouter initialEntries={[initialEntry]}>
@@ -93,6 +98,7 @@ function renderProfile(initialEntry = "/negocio/studio-aurora") {
         <Route path="/negocio/:slug" element={<ProfilePage />} />
         <Route path="/confirmar" element={<ConfirmationProbe />} />
       </Routes>
+      <LocationProbe />
     </MemoryRouter>
   );
 }
@@ -126,6 +132,42 @@ beforeEach(() => {
 afterEach(cleanup);
 
 describe("fluxo publico de agendamento", () => {
+  it("leva um endereço antigo ao endereço público atual sem perder parâmetros", async () => {
+    apiRequest.mockImplementation((path) => {
+      if (path === "/perfil-negocio/victor") {
+        return Promise.resolve({
+          ...PROFILE,
+          redirecionamento: {
+            slug: "beauty-vanessa"
+          }
+        });
+      }
+
+      if (path === "/perfil-negocio/beauty-vanessa") {
+        return Promise.resolve({
+          ...PROFILE,
+          negocio: {
+            ...PROFILE.negocio,
+            slug: "beauty-vanessa"
+          },
+          redirecionamento: null
+        });
+      }
+
+      return Promise.reject(new Error(`Requisicao inesperada: ${path}`));
+    });
+
+    renderProfile("/negocio/victor?servico=11");
+
+    await waitFor(() => {
+      expect(screen.getByLabelText("localização atual").textContent)
+        .toBe("/negocio/beauty-vanessa?servico=11");
+    });
+
+    expect(await screen.findByRole("heading", { name: "Studio Aurora" }))
+      .not.toBeNull();
+  });
+
   it("oculta o resumo até a cliente escolher um serviço", async () => {
     const user = userEvent.setup();
     mockSuccessfulRequests();

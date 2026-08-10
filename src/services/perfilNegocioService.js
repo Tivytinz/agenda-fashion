@@ -114,8 +114,12 @@ async function buscarPerfilPublico({ slug }) {
     throw new Error("Slug do negócio não informado.");
   }
 
+  const slugSolicitado = String(slug)
+    .trim()
+    .toLowerCase();
+
   const negocio =
-    await perfilNegocioRepository.buscarNegocioPorSlug(slug);
+    await perfilNegocioRepository.buscarNegocioPorSlug(slugSolicitado);
 
   if (!negocio) {
     throw new AppError("Negócio não encontrado.", 404);
@@ -136,6 +140,11 @@ async function buscarPerfilPublico({ slug }) {
     );
 
   return {
+    redirecionamento: negocio.slug !== slugSolicitado
+      ? {
+          slug: negocio.slug
+        }
+      : null,
     negocio: {
       ...negocio,
       areas: normalizarAreas(negocio.areas)

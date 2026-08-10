@@ -1,7 +1,10 @@
 const mockQuery = jest.fn();
 
 jest.mock("../src/db/db", () => ({
-  query: mockQuery
+  query: mockQuery,
+  executarTransacao: (callback) => callback({
+    query: mockQuery
+  })
 }));
 
 const configuracoesRepository = require(
@@ -25,8 +28,15 @@ describe("consistência da publicação do negócio", () => {
   });
 
   test("salvar perfil incompleto retira negócio publicado", async () => {
+    mockQuery
+      .mockResolvedValueOnce({ rows: [] })
+      .mockResolvedValueOnce({ rows: [{ slug: "studio" }] })
+      .mockResolvedValueOnce({ rows: [] })
+      .mockResolvedValueOnce({ rows: [] });
+
     await configuracoesRepository.atualizarNegocio(11, {
       nome: "Studio",
+      slug: "studio",
       foto_url: null,
       descricao: null,
       setor: "Unhas",
@@ -42,7 +52,7 @@ describe("consistência da publicação do negócio", () => {
       areas: []
     });
 
-    const sql = mockQuery.mock.calls[0][0];
+    const sql = mockQuery.mock.calls.at(-1)[0];
 
     expect(sql).toMatch(
       /publicado\s*=\s*CASE[\s\S]*negocios\.publicado\s*=\s*TRUE/i
@@ -52,7 +62,7 @@ describe("consistência da publicação do negócio", () => {
 
     for (
       const parametro
-      of [3, 4, 5, 6, 13]
+      of [4, 5, 6, 7, 14]
     ) {
       expect(
         sqlCompacto
@@ -62,7 +72,7 @@ describe("consistência da publicação do negócio", () => {
     }
 
     expect(sqlCompacto).toContain(
-      "AREAS=COALESCE($14::TEXT[],ARRAY[]::TEXT[])"
+      "AREAS=COALESCE($15::TEXT[],ARRAY[]::TEXT[])"
     );
     expect(sql).toMatch(
       /EXISTS[\s\S]*servicos_negocio[\s\S]*s\.ativo\s*=\s*TRUE/i

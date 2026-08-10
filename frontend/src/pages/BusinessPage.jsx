@@ -118,6 +118,11 @@ export function BusinessPage({ create = false }) {
       areas: form.areas
     };
 
+    // O endereço público é derivado do nome pelo backend. Não envie o slug
+    // carregado anteriormente, pois isso faria uma troca de nome conservar
+    // um endereço desatualizado.
+    delete payload.slug;
+
     try {
       const result = await apiRequest(create ? "/criar-negocio" : "/configuracoes", {
         method: create ? "POST" : "PUT",
@@ -311,6 +316,12 @@ export function BusinessPage({ create = false }) {
               Nome do negócio
               <input minLength="2" onChange={(event) => update("nome", event.target.value)} required value={form.nome} />
             </label>
+            {!create && form.slug && (
+              <p className="field-wide muted" data-testid="public-address-hint">
+                Endereço atual: <strong>app.agendafashion.com.br/negocio/{form.slug}</strong>.
+                Ao salvar um novo nome, este endereço também será atualizado. Links antigos continuarão funcionando.
+              </p>
+            )}
             <label className="field-wide">
               Descrição
               <textarea maxLength="1000" onChange={(event) => update("descricao", event.target.value)} rows="4" value={form.descricao} />

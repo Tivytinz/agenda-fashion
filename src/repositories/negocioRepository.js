@@ -71,9 +71,15 @@ async function buscarNegocioPorSlug(
         created_at,
         updated_at
 
-      FROM negocios
+      FROM negocios n
 
-      WHERE slug = $1
+      WHERE n.slug = $1
+        OR EXISTS (
+          SELECT 1
+          FROM negocios_slugs_antigos nsa
+          WHERE nsa.negocio_id = n.id
+            AND nsa.slug = $1
+        )
 
       LIMIT 1
       `,

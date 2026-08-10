@@ -65,6 +65,24 @@ export function ProfilePage() {
           `/perfil-negocio/${encodeURIComponent(slug)}`,
           { signal: controller.signal }
         );
+
+        const canonicalSlug =
+          data.redirecionamento?.slug;
+
+        if (
+          canonicalSlug &&
+          canonicalSlug !== slug
+        ) {
+          const query =
+            searchParams.toString();
+
+          navigate(
+            `/negocio/${encodeURIComponent(canonicalSlug)}${query ? `?${query}` : ""}`,
+            { replace: true }
+          );
+          return;
+        }
+
         setProfile(data);
         setStatus("ready");
         track("perfil_visualizado", {
@@ -82,7 +100,7 @@ export function ProfilePage() {
 
     void loadProfile();
     return () => controller.abort();
-  }, [profileReload, slug]);
+  }, [navigate, profileReload, searchParams, slug]);
 
   useEffect(() => {
     const businessId = business?.id;

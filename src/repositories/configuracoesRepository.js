@@ -125,35 +125,117 @@ async function atualizarNegocio(
   negocioId,
   dados
 ) {
-  const resultado =
-    await db.query(
+  return db.executarTransacao(
+    async (client) => {
+      await client.query(
+        `
+          SELECT pg_advisory_xact_lock(
+            hashtext($1)
+          )
+        `,
+        [
+          `negocio-slug:${dados.slug}`,
+        ]
+      );
+
+      const atual =
+        await client.query(
+          `
+            SELECT slug
+            FROM negocios
+            WHERE id = $1
+            FOR UPDATE
+          `,
+          [negocioId]
+        );
+
+      if (!atual.rows[0]) {
+        return null;
+      }
+
+      const conflito =
+        await client.query(
+          `
+            SELECT 1
+            FROM negocios
+            WHERE slug = $1
+              AND id <> $2
+
+            UNION ALL
+
+            SELECT 1
+            FROM negocios_slugs_antigos
+            WHERE slug = $1
+              AND negocio_id <> $2
+
+            LIMIT 1
+          `,
+          [dados.slug, negocioId]
+        );
+
+      if (conflito.rows[0]) {
+        const erro = new Error(
+          "Slug público indisponível."
+        );
+        erro.code =
+          "SLUG_INDISPONIVEL";
+        throw erro;
+      }
+
+      const slugAnterior =
+        atual.rows[0].slug;
+
+      if (
+        slugAnterior !== dados.slug
+      ) {
+        await client.query(
+          `
+            DELETE FROM negocios_slugs_antigos
+            WHERE negocio_id = $1
+              AND slug = $2
+          `,
+          [negocioId, dados.slug]
+        );
+
+        await client.query(
+          `
+            INSERT INTO negocios_slugs_antigos (
+              negocio_id,
+              slug
+            )
+            VALUES ($1, $2)
+            ON CONFLICT (slug) DO NOTHING
+          `,
+          [negocioId, slugAnterior]
+        );
+      }
+
+      const resultado =
+        await client.query(
       `
         UPDATE negocios
 
        SET
   nome = $1::TEXT,
-  foto_url = $2::TEXT,
-  descricao = $3::TEXT,
-  setor = $4::TEXT,
-  cidade = $5::TEXT,
-  estado = $6::TEXT,
-  bairro = $7::TEXT,
-  endereco = $8::TEXT,
-  numero = $9::TEXT,
-  complemento = $10::TEXT,
-  cep = $11::TEXT,
-  localizacao_url = $12::TEXT,
-  whatsapp = $13::TEXT,
+  slug = $2::TEXT,
+  foto_url = $3::TEXT,
+  descricao = $4::TEXT,
+  setor = $5::TEXT,
+  cidade = $6::TEXT,
+  estado = $7::TEXT,
+  bairro = $8::TEXT,
+  endereco = $9::TEXT,
+  numero = $10::TEXT,
+  complemento = $11::TEXT,
+  cep = $12::TEXT,
+  localizacao_url = $13::TEXT,
+  whatsapp = $14::TEXT,
   areas = COALESCE(
-    $14::TEXT[],
+    $15::TEXT[],
     ARRAY[]::TEXT[]
   ),
          publicado = CASE
   WHEN negocios.publicado = TRUE
-    AND NULLIF(
-      BTRIM(COALESCE($3::TEXT, ''::TEXT)),
-      ''
-    ) IS NOT NULL
     AND NULLIF(
       BTRIM(COALESCE($4::TEXT, ''::TEXT)),
       ''
@@ -167,7 +249,11 @@ async function atualizarNegocio(
       ''
     ) IS NOT NULL
     AND NULLIF(
-      BTRIM(COALESCE($13::TEXT, ''::TEXT)),
+      BTRIM(COALESCE($7::TEXT, ''::TEXT)),
+      ''
+    ) IS NOT NULL
+    AND NULLIF(
+      BTRIM(COALESCE($14::TEXT, ''::TEXT)),
       ''
     ) IS NOT NULL
     AND EXISTS (
@@ -181,7 +267,7 @@ async function atualizarNegocio(
 END,
           updated_at = NOW()
 
-        WHERE id = $15
+        WHERE id = $16
 
         RETURNING
           id,
@@ -230,6 +316,7 @@ END,
       `,
       [
         dados.nome,
+        dados.slug,
         dados.foto_url,
         dados.descricao,
         dados.setor,
@@ -247,9 +334,11 @@ END,
       ]
     );
 
-  return (
-    resultado.rows[0] ||
-    null
+      return (
+        resultado.rows[0] ||
+        null
+      );
+    }
   );
 }
 
