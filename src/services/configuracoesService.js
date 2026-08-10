@@ -189,6 +189,46 @@ function normalizarNome(
   );
 }
 
+function normalizarSlug(
+  valor
+) {
+  if (
+    typeof valor !== "string"
+  ) {
+    throw new ValidationError(
+      "Endereço público inválido."
+    );
+  }
+
+  const slug = valor
+    .normalize("NFD")
+    .replace(
+      /[\u0300-\u036f]/g,
+      ""
+    )
+    .toLowerCase()
+    .trim()
+    .replace(
+      /[^a-z0-9]+/g,
+      "-"
+    )
+    .replace(
+      /^-+|-+$/g,
+      ""
+    );
+
+  if (
+    slug.length < 2 ||
+    slug.length > 80
+  ) {
+    throw new ValidationError(
+      "Não foi possível gerar um endereço público válido a partir do nome."
+    );
+  }
+
+  return slug;
+}
+
 function normalizarDescricao(
   valor
 ) {
@@ -690,16 +730,34 @@ async function salvarConfiguracoes({
       }
     );
 
+  const nomeAtualizado =
+    normalizarNome(
+      possuiCampo(
+        entrada,
+        "nome"
+      )
+        ? entrada.nome
+        : negocioAtual.nome
+    );
+
+  const nomeFoiAlterado =
+    nomeAtualizado !==
+    normalizarNome(
+      negocioAtual.nome
+    );
+
   const dadosAtualizados = {
     nome:
-      normalizarNome(
-        possuiCampo(
-          entrada,
-          "nome"
-        )
-          ? entrada.nome
-          : negocioAtual.nome
-      ),
+      nomeAtualizado,
+
+    // O nome é a fonte oficial do endereço público. O slug atual só é
+    // preservado quando o nome não mudou, inclusive em atualizações parciais.
+    slug:
+      nomeFoiAlterado
+        ? normalizarSlug(
+            nomeAtualizado
+          )
+        : negocioAtual.slug,
 
     /*
      * Foto é alterada somente pela rota
@@ -833,12 +891,28 @@ async function salvarConfiguracoes({
       especialidades,
   };
 
-  const negocioAtualizado =
-    await configuracoesRepository
-      .atualizarNegocio(
-        vinculo.negocio_id,
-        dadosAtualizados
+  let negocioAtualizado;
+
+  try {
+    negocioAtualizado =
+      await configuracoesRepository
+        .atualizarNegocio(
+          vinculo.negocio_id,
+          dadosAtualizados
+        );
+  } catch (erro) {
+    if (
+      erro?.code ===
+      "SLUG_INDISPONIVEL"
+    ) {
+      throw new AppError(
+        "Já existe um negócio com um endereço igual ao gerado por esse nome. Diferencie o nome e tente novamente.",
+        409
       );
+    }
+
+    throw erro;
+  }
 
   exigirRecurso(
     negocioAtualizado,

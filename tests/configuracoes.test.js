@@ -538,6 +538,9 @@ describe(
             nome:
               "Studio Victor Premium",
 
+            slug:
+              "studio-victor-premium",
+
             foto_url:
               "https://cdn.teste/studio.png",
 
@@ -609,6 +612,124 @@ describe(
               "dono",
           },
         });
+      }
+    );
+
+    test(
+      "atualiza o endereço público pelo nome e rejeita endereço ocupado",
+      async () => {
+        configuracoesRepository
+          .buscarNegocioDoUsuario
+          .mockResolvedValue(
+            criarVinculo()
+          );
+
+        configuracoesRepository
+          .buscarNegocioPorId
+          .mockResolvedValue(
+            criarNegocio()
+          );
+
+        const erro = new Error(
+          "Slug indisponível."
+        );
+        erro.code =
+          "SLUG_INDISPONIVEL";
+
+        configuracoesRepository
+          .atualizarNegocio
+          .mockRejectedValue(
+            erro
+          );
+
+        const resposta =
+          await request(app)
+            .put(
+              "/configuracoes"
+            )
+            .set(
+              "Authorization",
+              `Bearer ${gerarToken()}`
+            )
+            .send({
+              nome:
+                " Beauty Vanessa ",
+            });
+
+        expect(
+          resposta.status
+        ).toBe(409);
+
+        expect(
+          configuracoesRepository
+            .atualizarNegocio
+        ).toHaveBeenCalledWith(
+          11,
+          expect.objectContaining({
+            slug:
+              "beauty-vanessa",
+          })
+        );
+
+        expect(
+          resposta.body.erro
+        ).toBe(
+          "Já existe um negócio com um endereço igual ao gerado por esse nome. Diferencie o nome e tente novamente."
+        );
+      }
+    );
+
+    test(
+      "preserva o endereço público quando o nome não mudou",
+      async () => {
+        configuracoesRepository
+          .buscarNegocioDoUsuario
+          .mockResolvedValue(
+            criarVinculo()
+          );
+
+        configuracoesRepository
+          .buscarNegocioPorId
+          .mockResolvedValue(
+            criarNegocio()
+          );
+
+        configuracoesRepository
+          .atualizarNegocio
+          .mockResolvedValue(
+            criarNegocio()
+          );
+
+        const resposta =
+          await request(app)
+            .put("/configuracoes")
+            .set(
+              "Authorization",
+              `Bearer ${gerarToken()}`
+            )
+            .send({
+              descricao:
+                "Nova descrição",
+              slug:
+                "slug-enviado-nao-deve-ser-usado",
+            });
+
+        expect(
+          resposta.status
+        ).toBe(200);
+
+        expect(
+          configuracoesRepository
+            .atualizarNegocio
+        ).toHaveBeenCalledWith(
+          11,
+          expect.objectContaining({
+            nome:
+              "Studio Victor",
+            slug:
+              "studio-victor",
+          })
+        );
       }
     );
 

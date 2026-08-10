@@ -53,7 +53,7 @@ afterEach(() => {
 });
 
 describe("publicação do negócio", () => {
-  it("permite corrigir endereço e envia WhatsApp e CEP sem máscara", async () => {
+  it("informa que o endereço acompanha o nome e envia os demais campos normalizados", async () => {
     apiRequest
       .mockResolvedValueOnce({
         negocio: BUSINESS,
@@ -76,6 +76,10 @@ describe("publicação do negócio", () => {
     const postalCode = screen.getByLabelText("CEP");
 
     expect(whatsapp.value).toBe("(62) 99999-9999");
+    expect(screen.getByTestId("public-address-hint").textContent)
+      .toContain("app.agendafashion.com.br/negocio/studio-victor");
+    expect(screen.getByTestId("public-address-hint").textContent)
+      .toContain("Ao salvar um novo nome, este endereço também será atualizado");
     expect(whatsapp.getAttribute("placeholder")).toBe("(00) 12345-6789");
     expect(state.value).toBe("GO");
     expect(state.required).toBe(true);
@@ -89,6 +93,9 @@ describe("publicação do negócio", () => {
     }).getAttribute("href")).toBe("/negocio/studio-victor");
 
     fireEvent.change(whatsapp, { target: { value: "11 98765-4321" } });
+    fireEvent.change(screen.getByLabelText("Nome do negócio"), {
+      target: { value: "Beauty Vanessa" }
+    });
     fireEvent.change(state, { target: { value: "SP" } });
     fireEvent.change(address, { target: { value: "Avenida Brasil" } });
     fireEvent.change(postalCode, { target: { value: "01001-000" } });
@@ -99,6 +106,7 @@ describe("publicação do negócio", () => {
         method: "PUT",
         body: expect.objectContaining({
           whatsapp: "11987654321",
+          nome: "Beauty Vanessa",
           estado: "SP",
           endereco: "Avenida Brasil",
           cep: "01001000",
@@ -106,6 +114,9 @@ describe("publicação do negócio", () => {
         })
       });
     });
+
+    const [, request] = apiRequest.mock.calls.at(-1);
+    expect(request.body).not.toHaveProperty("slug");
   });
 
   it("troca a foto do negócio pelo endpoint próprio", async () => {
