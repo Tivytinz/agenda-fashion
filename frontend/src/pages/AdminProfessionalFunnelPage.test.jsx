@@ -106,7 +106,7 @@ describe(
 
         expect(
           screen.getAllByText(
-            "R$ 100,00"
+            /R\$\s*100,00/
           ).length
         ).toBeGreaterThanOrEqual(1);
       }
