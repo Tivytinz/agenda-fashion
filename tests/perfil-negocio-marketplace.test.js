@@ -54,6 +54,7 @@ describe(
           categoria: "",
           categoriaTermos: [],
           cidade: "",
+          estado: "",
           limite: 6,
           offset: 6
         });
@@ -96,14 +97,15 @@ describe(
               "nail",
               "alongamento"
             ]),
-            cidade: ""
+            cidade: "",
+            estado: ""
           })
         );
       }
     );
 
     test(
-      "encaminha cidade como filtro dedicado sem misturar com a busca",
+      "encaminha cidade e UF como filtros dedicados sem misturar com a busca",
       async () => {
         repository
           .listarNegociosPublicos
@@ -112,7 +114,8 @@ describe(
         await service.listarNegociosPublicos({
           busca: "escova",
           categoria: "cabelo",
-          cidade: "Goiânia"
+          cidade: "Goiânia",
+          estado: "go"
         });
 
         expect(
@@ -121,7 +124,31 @@ describe(
           expect.objectContaining({
             busca: "escova",
             categoria: "cabelo",
-            cidade: "Goiânia"
+            cidade: "Goiânia",
+            estado: "GO"
+          })
+        );
+      }
+    );
+
+    test(
+      "descarta UF inválida em vez de ampliar um filtro ambíguo",
+      async () => {
+        repository
+          .listarNegociosPublicos
+          .mockResolvedValue([]);
+
+        await service.listarNegociosPublicos({
+          cidade: "Goiânia",
+          estado: "Goiás"
+        });
+
+        expect(
+          repository.listarNegociosPublicos
+        ).toHaveBeenCalledWith(
+          expect.objectContaining({
+            cidade: "Goiânia",
+            estado: ""
           })
         );
       }
