@@ -50,6 +50,7 @@ async function listarNegociosPublicos({
   busca,
   categoria,
   cidade,
+  estado,
   pagina,
   limite
 } = {}) {
@@ -68,6 +69,16 @@ async function listarNegociosPublicos({
   const cidadeNormalizada =
     normalizarBusca(cidade, 100);
 
+  const estadoRecebido = normalizarBusca(
+    estado,
+    2
+  ).toUpperCase();
+  const estadoNormalizado = /^[A-Z]{2}$/.test(
+    estadoRecebido
+  )
+    ? estadoRecebido
+    : "";
+
   const categoriaTermos =
     termosDaCategoria(categoriaNormalizada);
 
@@ -79,6 +90,7 @@ async function listarNegociosPublicos({
         : "",
       categoriaTermos,
       cidade: cidadeNormalizada,
+      estado: estadoNormalizado,
       limite: limiteNormalizado,
       offset:
         (paginaNormalizada - 1) *
