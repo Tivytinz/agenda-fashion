@@ -73,6 +73,19 @@ export function AppHeader() {
 
           {session.authenticated ? (
             <>
+              {session.ehAdministrador && (
+                <NavLink
+                  className={({ isActive }) =>
+                    isActive
+                      ? "text-link active desktop-nav-link"
+                      : "text-link desktop-nav-link"
+                  }
+                  to="/admin/marketing"
+                >
+                  Marketing Admin
+                </NavLink>
+              )}
+
               <NavLink
                 className="text-link desktop-nav-link"
                 to={getWorkspacePath(session)}
