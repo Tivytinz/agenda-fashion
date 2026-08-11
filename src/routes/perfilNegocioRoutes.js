@@ -2,6 +2,7 @@ const express = require("express");
 const router = express.Router();
 
 const perfilNegocioController = require("../controllers/perfilNegocioController");
+const catalogoLocalController = require("../controllers/catalogoLocalController");
 
 /**
  * @swagger
@@ -23,6 +24,10 @@ const perfilNegocioController = require("../controllers/perfilNegocioController"
  *           type: string
  *       - in: query
  *         name: categoria
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: cidade
  *         schema:
  *           type: string
  *       - in: query
@@ -67,10 +72,25 @@ const perfilNegocioController = require("../controllers/perfilNegocioController"
  *                       bairro:
  *                         type: string
  *                         example: Centro
- */ 
+ */
 router.get(
   "/negocios-publicos",
   perfilNegocioController.listarNegociosPublicos
+);
+
+router.get(
+  "/catalogo-local/:categoria/:localidade",
+  catalogoLocalController.listarCatalogoLocal
+);
+
+router.get(
+  "/sitemap.xml",
+  catalogoLocalController.servirSitemap
+);
+
+router.get(
+  "/robots.txt",
+  catalogoLocalController.servirRobots
 );
 
 /**
@@ -108,7 +128,6 @@ router.get(
  *       404:
  *         description: Negócio não encontrado
  */
-
 router.get(
   "/perfil-negocio/:slug",
   perfilNegocioController.buscarPerfilPublico
@@ -117,6 +136,11 @@ router.get(
 router.get(
   "/social-preview.png",
   perfilNegocioController.servirImagemSocialPadrao
+);
+
+router.get(
+  "/servicos/:categoria/em/:localidade",
+  catalogoLocalController.renderizarCatalogoLocal
 );
 
 router.get(
