@@ -34,9 +34,9 @@ function filtroEvento(
     today:
       `AND ${prefixo}created_at >= CURRENT_DATE`,
     "7":
-      `AND ${prefixo}created_at >= NOW() - INTERVAL '7 days'`,
+      `AND ${prefixo}created_at >= CURRENT_DATE - INTERVAL '6 days'`,
     "30":
-      `AND ${prefixo}created_at >= NOW() - INTERVAL '30 days'`,
+      `AND ${prefixo}created_at >= CURRENT_DATE - INTERVAL '29 days'`,
     month:
       `AND DATE_TRUNC('month', ${prefixo}created_at) = DATE_TRUNC('month', NOW())`,
   };
@@ -57,9 +57,9 @@ function filtroGasto(
     today:
       `AND ${prefixo}data_gasto = CURRENT_DATE`,
     "7":
-      `AND ${prefixo}data_gasto >= (NOW() - INTERVAL '7 days')::DATE`,
+      `AND ${prefixo}data_gasto >= CURRENT_DATE - 6`,
     "30":
-      `AND ${prefixo}data_gasto >= (NOW() - INTERVAL '30 days')::DATE`,
+      `AND ${prefixo}data_gasto >= CURRENT_DATE - 29`,
     month:
       `AND DATE_TRUNC('month', ${prefixo}data_gasto) = DATE_TRUNC('month', CURRENT_DATE)`,
   };
