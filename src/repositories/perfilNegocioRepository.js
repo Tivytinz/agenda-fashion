@@ -4,6 +4,7 @@ async function listarNegociosPublicos({
   busca = "",
   categoria = "",
   categoriaTermos = [],
+  cidade = "",
   limite = 12,
   offset = 0
 } = {}) {
@@ -21,6 +22,10 @@ async function listarNegociosPublicos({
     .map(normalizarTexto)
     .filter(Boolean)
     .map(termo => `%${termo}%`);
+
+  const cidadeNormalizada = String(cidade || "")
+    .trim()
+    .slice(0, 100);
 
   const resultado = await db.query(`
     WITH negocios_filtrados AS (
@@ -79,6 +84,10 @@ async function listarNegociosPublicos({
               )
           )
         )
+        AND (
+          $4::text = ''
+          OR lower(n.cidade) = lower($4::text)
+        )
     ),
     negocios_paginados AS (
       SELECT
@@ -94,8 +103,8 @@ async function listarNegociosPublicos({
         ) DESC,
         nf.nome ASC,
         nf.id ASC
-      LIMIT $4
-      OFFSET $5
+      LIMIT $5
+      OFFSET $6
     )
     SELECT
       n.id,
@@ -197,7 +206,14 @@ async function listarNegociosPublicos({
     ORDER BY
       n.nome ASC,
       n.id ASC
-  `, [termosBusca, termosCategoria, categoria, limite, offset]);
+  `, [
+    termosBusca,
+    termosCategoria,
+    categoria,
+    cidadeNormalizada,
+    limite,
+    offset
+  ]);
 
   return resultado.rows;
 }
