@@ -28,11 +28,12 @@ describe(
     });
 
     test(
-      "calcula conversão sobre sessões atribuídas",
+      "calcula conversão e cobertura sobre sessões atribuídas",
       async () => {
         adminMarketingRepository
           .buscarResumo
           .mockResolvedValue({
+            total_sessoes: "50",
             sessoes: "40",
             campanhas: "3",
             perfis_visualizados: "24",
@@ -56,7 +57,10 @@ describe(
         expect(resultado)
           .toMatchObject({
             periodo: "30",
+            totalSessoes: 50,
             sessoes: 40,
+            sessoesSemAtribuicao: 10,
+            coberturaAtribuicao: 80,
             campanhas: 3,
             perfisVisualizados: 24,
             agendamentosIniciados: 10,
@@ -67,11 +71,12 @@ describe(
     );
 
     test(
-      "mantém taxa em zero sem sessões atribuídas",
+      "mantém taxas em zero sem sessões",
       async () => {
         adminMarketingRepository
           .buscarResumo
           .mockResolvedValue({
+            total_sessoes: 0,
             sessoes: 0,
             agendamentos_concluidos: 0,
           });
@@ -82,6 +87,9 @@ describe(
 
         expect(
           resultado.taxaConversao
+        ).toBe(0);
+        expect(
+          resultado.coberturaAtribuicao
         ).toBe(0);
       }
     );
