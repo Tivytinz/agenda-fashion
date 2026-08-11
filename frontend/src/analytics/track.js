@@ -57,7 +57,7 @@ function captureAttribution() {
   const attribution = {
     ...stored,
     ...incoming,
-    landing_page: stored.landing_page || `${window.location.pathname}${window.location.search}`
+    landing_page: stored.landing_page || window.location.pathname
   };
 
   sessionStorage.setItem(
