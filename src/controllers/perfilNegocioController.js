@@ -13,6 +13,7 @@ async function listarNegociosPublicos(req, res, next) {
         busca: req.query.busca,
         categoria: req.query.categoria,
         cidade: req.query.cidade,
+        estado: req.query.estado,
         pagina: req.query.pagina,
         limite: req.query.limite
       });
