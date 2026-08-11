@@ -68,6 +68,18 @@ function captureAttribution() {
   return attribution;
 }
 
+export function getMarketingContext(
+  intent = "indefinida"
+) {
+  const attribution = captureAttribution();
+
+  return {
+    intencao: intent,
+    sessao_id: sessionId(),
+    ...attribution
+  };
+}
+
 export function track(name, {
   page,
   mission,
