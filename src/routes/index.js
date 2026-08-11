@@ -81,6 +81,10 @@ const metaAdsRoutes = require(
   "./metaAdsRoutes"
 );
 
+const googleMeasurementRoutes = require(
+  "./googleMeasurementRoutes"
+);
+
 /*
  * AGENDAS
  */
@@ -196,6 +200,10 @@ router.use(
 
 router.use(
   metaAdsRoutes
+);
+
+router.use(
+  googleMeasurementRoutes
 );
 
 /*

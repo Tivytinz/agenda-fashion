@@ -6,8 +6,7 @@ const marketingConversaoRepository = require(
 async function salvarConsentimentoUsuario({
   usuarioId,
   consentido,
-  fbp,
-  fbc
+  clientId
 }) {
   const resultado = await db.query(
     `
@@ -15,42 +14,32 @@ async function salvarConsentimentoUsuario({
       usuario_id,
       intencao,
       atribuicao_em,
-      meta_consentido_em,
-      meta_fbp,
-      meta_fbc
+      google_consentido_em,
+      google_client_id
     )
     SELECT
       u.id,
       'indefinida',
       u.created_at,
       CASE WHEN $2::boolean THEN NOW() ELSE NULL END,
-      CASE WHEN $2::boolean THEN $3 ELSE NULL END,
-      CASE WHEN $2::boolean THEN $4 ELSE NULL END
+      CASE WHEN $2::boolean THEN $3 ELSE NULL END
     FROM usuarios u
     WHERE u.id = $1
     ON CONFLICT (usuario_id)
     DO UPDATE SET
-      meta_consentido_em = CASE
+      google_consentido_em = CASE
         WHEN $2::boolean
           THEN COALESCE(
-            marketing_usuario_atribuicoes.meta_consentido_em,
+            marketing_usuario_atribuicoes.google_consentido_em,
             NOW()
           )
         ELSE NULL
       END,
-      meta_fbp = CASE
+      google_client_id = CASE
         WHEN $2::boolean
           THEN COALESCE(
             $3,
-            marketing_usuario_atribuicoes.meta_fbp
-          )
-        ELSE NULL
-      END,
-      meta_fbc = CASE
-        WHEN $2::boolean
-          THEN COALESCE(
-            $4,
-            marketing_usuario_atribuicoes.meta_fbc
+            marketing_usuario_atribuicoes.google_client_id
           )
         ELSE NULL
       END,
@@ -60,33 +49,8 @@ async function salvarConsentimentoUsuario({
     [
       usuarioId,
       Boolean(consentido),
-      fbp || null,
-      fbc || null
+      clientId || null
     ]
-  );
-
-  return resultado.rows[0] || null;
-}
-
-async function buscarPerfilPorUsuario(usuarioId) {
-  const resultado = await db.query(
-    `
-    SELECT
-      u.id AS usuario_id,
-      u.email,
-      u.whatsapp,
-      mua.intencao,
-      mua.fbclid,
-      mua.meta_consentido_em,
-      mua.meta_fbp,
-      mua.meta_fbc
-    FROM usuarios u
-    LEFT JOIN marketing_usuario_atribuicoes mua
-      ON mua.usuario_id = u.id
-    WHERE u.id = $1
-    LIMIT 1
-    `,
-    [usuarioId]
   );
 
   return resultado.rows[0] || null;
@@ -97,13 +61,9 @@ async function buscarPerfilPorNegocio(negocioId) {
     `
     SELECT
       u.id AS usuario_id,
-      u.email,
-      u.whatsapp,
-      mua.intencao,
-      mua.fbclid,
-      mua.meta_consentido_em,
-      mua.meta_fbp,
-      mua.meta_fbc
+      mua.gclid,
+      mua.google_consentido_em,
+      mua.google_client_id
     FROM usuarios_negocios un
     INNER JOIN usuarios u
       ON u.id = un.usuario_id
@@ -125,7 +85,6 @@ async function buscarPerfilPorNegocio(negocioId) {
 
 module.exports = {
   salvarConsentimentoUsuario,
-  buscarPerfilPorUsuario,
   buscarPerfilPorNegocio,
   ehPrimeiroPagamentoAssinatura:
     marketingConversaoRepository

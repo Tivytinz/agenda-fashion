@@ -20,6 +20,9 @@ import {
   vi
 } from "vitest";
 import {
+  getGoogleConfig
+} from "../analytics/googleMeasurement";
+import {
   getMarketingConsent,
   MARKETING_CONSENT,
   setMarketingConsent
@@ -31,7 +34,10 @@ import {
 import { MetaAdsBridge } from "./MetaAdsBridge";
 
 vi.mock("../auth/SessionContext", () => ({
-  useSession: () => ({ authenticated: true })
+  useSession: () => ({
+    authenticated: true,
+    usuario: { id: 9 }
+  })
 }));
 
 vi.mock("../analytics/marketingConsent", () => ({
@@ -53,6 +59,18 @@ vi.mock("../analytics/metaAds", () => ({
   trackMetaPageView: vi.fn().mockResolvedValue(true)
 }));
 
+vi.mock("../analytics/googleMeasurement", () => ({
+  applyGoogleConsentDefault: vi.fn(),
+  getGoogleConfig: vi.fn(),
+  initializeGoogleMeasurement:
+    vi.fn().mockResolvedValue(true),
+  syncGoogleConsent:
+    vi.fn().mockResolvedValue(true),
+  trackGooglePageView:
+    vi.fn().mockResolvedValue(true),
+  updateGoogleConsent: vi.fn()
+}));
+
 beforeEach(() => {
   getMarketingConsent.mockReturnValue(
     MARKETING_CONSENT.UNKNOWN
@@ -60,6 +78,11 @@ beforeEach(() => {
   getMetaConfig.mockResolvedValue({
     enabled: true,
     pixelId: "123456789"
+  });
+  getGoogleConfig.mockResolvedValue({
+    enabled: false,
+    measurementId: null,
+    adsId: null
   });
   initializeMetaAds.mockResolvedValue(true);
   setMarketingConsent.mockReset();
@@ -91,6 +114,8 @@ describe("consentimento de marketing", () => {
     ).not.toBeNull();
     expect(actions.querySelectorAll("button"))
       .toHaveLength(2);
+    expect(region.textContent)
+      .toContain("Meta e do Google");
 
     await user.click(
       screen.getByRole("button", { name: "Permitir" })

@@ -1,5 +1,6 @@
 import { useCallback, useMemo, useState } from "react";
 import { Link, Navigate, useLocation, useNavigate } from "react-router-dom";
+import { trackGoogleSignUp } from "../analytics/googleMeasurement";
 import {
   createMetaEventContext,
   trackMetaEvent
@@ -70,13 +71,18 @@ export function AuthPage({ mode = "login" }) {
 
       if (
         current?.contaCriada &&
-        professionalIntent &&
-        meta?.event_id
+        professionalIntent
       ) {
-        void trackMetaEvent(
-          "CompleteRegistration",
-          {},
-          meta.event_id
+        if (meta?.event_id) {
+          void trackMetaEvent(
+            "CompleteRegistration",
+            {},
+            meta.event_id
+          );
+        }
+
+        void trackGoogleSignUp(
+          "google"
         );
       }
 
@@ -131,13 +137,18 @@ export function AuthPage({ mode = "login" }) {
 
       if (
         current?.contaCriada &&
-        professionalIntent &&
-        meta?.event_id
+        professionalIntent
       ) {
-        void trackMetaEvent(
-          "CompleteRegistration",
-          {},
-          meta.event_id
+        if (meta?.event_id) {
+          void trackMetaEvent(
+            "CompleteRegistration",
+            {},
+            meta.event_id
+          );
+        }
+
+        void trackGoogleSignUp(
+          "email"
         );
       }
 

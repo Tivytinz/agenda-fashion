@@ -1,4 +1,8 @@
-const STORAGE_KEY = "af_marketing_consent_v1";
+const STORAGE_KEY = "af_marketing_consent_v2";
+const LEGACY_STORAGE_KEYS = [
+  "af_marketing_consent_v1"
+];
+
 export const MARKETING_CONSENT_EVENT =
   "af:marketing-consent";
 
@@ -16,10 +20,13 @@ export function getMarketingConsent() {
     );
 
     if (
-      stored?.status ===
-        MARKETING_CONSENT.GRANTED ||
-      stored?.status ===
-        MARKETING_CONSENT.DENIED
+      stored?.version === 2 &&
+      (
+        stored?.status ===
+          MARKETING_CONSENT.GRANTED ||
+        stored?.status ===
+          MARKETING_CONSENT.DENIED
+      )
     ) {
       return stored.status;
     }
@@ -43,11 +50,15 @@ export function setMarketingConsent(status) {
   localStorage.setItem(
     STORAGE_KEY,
     JSON.stringify({
-      version: 1,
+      version: 2,
       status,
       updatedAt: new Date().toISOString()
     })
   );
+
+  for (const key of LEGACY_STORAGE_KEYS) {
+    localStorage.removeItem(key);
+  }
 
   window.dispatchEvent(
     new CustomEvent(

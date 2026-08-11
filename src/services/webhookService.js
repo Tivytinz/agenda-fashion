@@ -5,6 +5,9 @@ const registrador = require("../utils/registrador");
 const metaAdsService = require(
   "./metaAdsService"
 );
+const googleMeasurementService = require(
+  "./googleMeasurementService"
+);
 
 const {
   ativarAssinaturaPorPagamento,
@@ -304,16 +307,25 @@ async function processarRegistro(evento) {
         );
 
       if (resultado) {
+        const conversao = {
+          negocioId:
+            resultado.negocio_id,
+          assinaturaId:
+            resultado.id,
+          pagamentoId,
+          valor:
+            resultado.valor
+        };
+
         metaAdsService
-          .enviarAssinaturaAtivadaSeguro({
-            negocioId:
-              resultado.negocio_id,
-            assinaturaId:
-              resultado.id,
-            pagamentoId,
-            valor:
-              resultado.valor
-          });
+          .enviarAssinaturaAtivadaSeguro(
+            conversao
+          );
+
+        googleMeasurementService
+          .enviarAssinaturaAtivadaSeguro(
+            conversao
+          );
       }
     } else if (
       EVENTOS_SUSPENSAO

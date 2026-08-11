@@ -4,6 +4,13 @@ import {
 } from "react";
 import { Link } from "react-router-dom";
 import {
+  clearGoogleCookies,
+  getGoogleConfig,
+  initializeGoogleMeasurement,
+  syncGoogleConsent,
+  updateGoogleConsent
+} from "../analytics/googleMeasurement";
+import {
   getMarketingConsent,
   MARKETING_CONSENT,
   MARKETING_CONSENT_EVENT,
@@ -35,13 +42,24 @@ function statusLabel(status) {
 }
 
 export function PrivacyPage() {
-  const [config, setConfig] =
+  const [metaConfig, setMetaConfig] =
+    useState(null);
+  const [googleConfig, setGoogleConfig] =
     useState(null);
   const [consent, setConsent] =
     useState(getMarketingConsent);
 
   useEffect(() => {
-    getMetaConfig().then(setConfig);
+    Promise.all([
+      getMetaConfig(),
+      getGoogleConfig()
+    ]).then(([
+      nextMetaConfig,
+      nextGoogleConfig
+    ]) => {
+      setMetaConfig(nextMetaConfig);
+      setGoogleConfig(nextGoogleConfig);
+    });
   }, []);
 
   useEffect(() => {
@@ -71,15 +89,46 @@ export function PrivacyPage() {
       status ===
         MARKETING_CONSENT.GRANTED
     ) {
-      await initializeMetaAds()
-        .catch(() => false);
+      await Promise.all([
+        metaConfig?.enabled
+          ? initializeMetaAds()
+              .catch(() => false)
+          : Promise.resolve(false),
+        googleConfig?.enabled
+          ? initializeGoogleMeasurement()
+              .catch(() => false)
+          : Promise.resolve(false)
+      ]);
     } else {
-      clearMetaCookies();
+      if (metaConfig?.enabled) {
+        clearMetaCookies();
+      }
+
+      if (googleConfig?.enabled) {
+        clearGoogleCookies();
+        updateGoogleConsent(
+          MARKETING_CONSENT.DENIED
+        );
+      }
     }
 
-    await syncMetaConsent()
-      .catch(() => {});
+    await Promise.all([
+      metaConfig?.enabled
+        ? syncMetaConsent()
+            .catch(() => false)
+        : Promise.resolve(false),
+      googleConfig?.enabled
+        ? syncGoogleConsent()
+            .catch(() => false)
+        : Promise.resolve(false)
+    ]);
   }
+
+  const measurementEnabled =
+    Boolean(
+      metaConfig?.enabled ||
+      googleConfig?.enabled
+    );
 
   return (
     <main className="container page-content narrow-page privacy-page">
@@ -100,20 +149,20 @@ export function PrivacyPage() {
       <section className="panel privacy-section">
         <h2>O que é necessário para o site funcionar</h2>
         <p>
-          O Agenda Fashion usa armazenamento local e dados de sessão para recursos como login, segurança, preferências e continuidade dos fluxos. Esses recursos não dependem da Meta.
+          O Agenda Fashion usa armazenamento local e dados de sessão para recursos como login, segurança, preferências e continuidade dos fluxos. Esses recursos não dependem das ferramentas opcionais da Meta ou do Google.
         </p>
       </section>
 
       <section className="panel privacy-section">
-        <h2>Medição opcional da Meta</h2>
+        <h2>Medição opcional de anúncios e analytics</h2>
         <p>
-          Quando essa integração estiver habilitada e você permitir, o site poderá carregar o Meta Pixel e enviar conversões pela Conversions API para medir se campanhas resultam em cadastro profissional, início de checkout e assinatura ativada.
+          Quando as integrações estiverem habilitadas e você permitir, o site poderá usar Meta Pixel, Google Analytics e Google Ads para entender se campanhas resultam em visitas, cadastros profissionais, início de checkout e assinaturas ativadas.
         </p>
         <p>
-          Nas conversões, identificadores como e-mail e telefone podem ser normalizados e transformados em hash no servidor antes do envio. O token da Conversions API permanece somente no backend.
+          A Meta também pode receber conversões pelo servidor. Para o Google Analytics, a confirmação do primeiro pagamento de uma assinatura pode ser registrada pelo servidor usando o identificador pseudônimo de medição associado à sessão consentida.
         </p>
         <p>
-          Se você não permitir, o Pixel não é carregado pelo Agenda Fashion e os identificadores opcionais de medição da Meta não são mantidos na atribuição da sua conta.
+          Se você não permitir, o Agenda Fashion não carrega as tags opcionais de Meta ou Google e remove os identificadores opcionais de medição que controla no navegador e na atribuição da sua conta.
         </p>
       </section>
 
@@ -125,7 +174,7 @@ export function PrivacyPage() {
           </div>
         </div>
 
-        {config?.enabled ? (
+        {measurementEnabled ? (
           <div className="marketing-consent-actions privacy-actions">
             <button
               aria-pressed={
@@ -156,7 +205,7 @@ export function PrivacyPage() {
           </div>
         ) : (
           <p className="muted">
-            A integração de publicidade da Meta está desativada no Agenda Fashion neste momento.
+            As integrações opcionais de publicidade e analytics estão desativadas no Agenda Fashion neste momento.
           </p>
         )}
       </section>
