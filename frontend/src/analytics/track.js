@@ -1,10 +1,13 @@
 import {
   readBrowserStorage,
+  removeBrowserStorage,
   writeBrowserStorage
 } from "../utils/browserStorage";
 
 const SESSION_KEY = "af_produto_sessao";
 const ATTRIBUTION_KEY = "af_marketing_attribution";
+const ATTRIBUTION_VERSION = 2;
+const ATTRIBUTION_WINDOW_MS = 30 * 24 * 60 * 60 * 1000;
 
 const ATTRIBUTION_PARAMS = [
   "utm_source",
@@ -46,50 +49,215 @@ function sessionId() {
   return created;
 }
 
-function readStoredAttribution() {
-  try {
-    const stored = JSON.parse(
-      readBrowserStorage("session", ATTRIBUTION_KEY) || "null"
-    );
+function safeObject(value) {
+  return value &&
+    typeof value === "object" &&
+    !Array.isArray(value)
+      ? value
+      : null;
+}
 
-    return stored && typeof stored === "object" && !Array.isArray(stored)
-      ? stored
-      : {};
+function parseStored(raw) {
+  if (!raw) {
+    return null;
+  }
+
+  try {
+    return safeObject(JSON.parse(raw));
   } catch {
-    return {};
+    return null;
   }
 }
 
-function captureAttribution() {
+function legacyTouch(stored, capturedAt) {
+  const touch = {};
+
+  for (const key of ATTRIBUTION_PARAMS) {
+    const value = stored?.[key];
+
+    if (typeof value === "string" && value.trim()) {
+      touch[key] = value.trim();
+    }
+  }
+
+  if (stored?.landing_page) {
+    touch.landing_page = stored.landing_page;
+  }
+
+  touch.captured_at = capturedAt;
+  return touch;
+}
+
+function normalizeStored(stored) {
+  if (!safeObject(stored)) {
+    return null;
+  }
+
+  const now = Date.now();
+
+  if (
+    stored.version === ATTRIBUTION_VERSION &&
+    safeObject(stored.first_touch) &&
+    safeObject(stored.last_touch)
+  ) {
+    const expiresAt = Number(stored.expires_at);
+
+    if (Number.isFinite(expiresAt) && expiresAt <= now) {
+      return null;
+    }
+
+    return {
+      version: ATTRIBUTION_VERSION,
+      first_touch: stored.first_touch,
+      last_touch: stored.last_touch,
+      expires_at:
+        Number.isFinite(expiresAt)
+          ? expiresAt
+          : now + ATTRIBUTION_WINDOW_MS
+    };
+  }
+
+  const legacy = legacyTouch(
+    stored,
+    new Date(now).toISOString()
+  );
+
+  const hasAttribution = ATTRIBUTION_PARAMS.some(
+    (key) => Boolean(legacy[key])
+  );
+
+  if (!hasAttribution) {
+    return null;
+  }
+
+  return {
+    version: ATTRIBUTION_VERSION,
+    first_touch: legacy,
+    last_touch: legacy,
+    expires_at: now + ATTRIBUTION_WINDOW_MS
+  };
+}
+
+function clearStoredAttribution() {
+  removeBrowserStorage("local", ATTRIBUTION_KEY);
+  removeBrowserStorage("session", ATTRIBUTION_KEY);
+}
+
+function readStoredAttribution() {
+  const local = normalizeStored(
+    parseStored(
+      readBrowserStorage("local", ATTRIBUTION_KEY)
+    )
+  );
+
+  if (local) {
+    return local;
+  }
+
+  const legacySession = normalizeStored(
+    parseStored(
+      readBrowserStorage("session", ATTRIBUTION_KEY)
+    )
+  );
+
+  if (legacySession) {
+    writeBrowserStorage(
+      "local",
+      ATTRIBUTION_KEY,
+      JSON.stringify(legacySession)
+    );
+    removeBrowserStorage("session", ATTRIBUTION_KEY);
+    return legacySession;
+  }
+
+  clearStoredAttribution();
+  return null;
+}
+
+function incomingTouch() {
   const params = new URLSearchParams(window.location.search);
-  const incoming = {};
+  const touch = {};
 
   for (const key of ATTRIBUTION_PARAMS) {
     const value = params.get(key)?.trim();
 
     if (value) {
-      incoming[key] = value;
+      touch[key] = value;
     }
   }
 
-  if (!Object.keys(incoming).length) {
-    return readStoredAttribution();
+  if (!Object.keys(touch).length) {
+    return null;
   }
 
+  return {
+    ...touch,
+    landing_page: window.location.pathname,
+    captured_at: new Date().toISOString()
+  };
+}
+
+function contextFromStored(stored) {
+  if (!stored) {
+    return {};
+  }
+
+  const first = stored.first_touch || {};
+  const last = stored.last_touch || first;
+  const context = {};
+
+  for (const key of ATTRIBUTION_PARAMS) {
+    if (first[key]) {
+      context[key] = first[key];
+    }
+
+    if (last[key]) {
+      context[`last_${key}`] = last[key];
+    }
+  }
+
+  if (first.landing_page) {
+    context.landing_page = first.landing_page;
+  }
+
+  if (last.landing_page) {
+    context.last_landing_page = last.landing_page;
+  }
+
+  if (first.captured_at) {
+    context.attribution_first_at = first.captured_at;
+  }
+
+  if (last.captured_at) {
+    context.attribution_last_at = last.captured_at;
+  }
+
+  return context;
+}
+
+function captureAttribution() {
+  const incoming = incomingTouch();
   const stored = readStoredAttribution();
-  const attribution = {
-    ...stored,
-    ...incoming,
-    landing_page: stored.landing_page || window.location.pathname
+
+  if (!incoming) {
+    return contextFromStored(stored);
+  }
+
+  const next = {
+    version: ATTRIBUTION_VERSION,
+    first_touch: stored?.first_touch || incoming,
+    last_touch: incoming,
+    expires_at: Date.now() + ATTRIBUTION_WINDOW_MS
   };
 
   writeBrowserStorage(
-    "session",
+    "local",
     ATTRIBUTION_KEY,
-    JSON.stringify(attribution)
+    JSON.stringify(next)
   );
+  removeBrowserStorage("session", ATTRIBUTION_KEY);
 
-  return attribution;
+  return contextFromStored(next);
 }
 
 export function getMarketingContext(
