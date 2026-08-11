@@ -25,6 +25,42 @@ function json(route, body, status = 200) {
   });
 }
 
+async function horizontalOverflowDiagnostics(page) {
+  return page.evaluate(() => {
+    const clientWidth = document.documentElement.clientWidth;
+    const scrollWidth = document.documentElement.scrollWidth;
+    const offenders = Array.from(document.querySelectorAll("body *"))
+      .map((element) => {
+        const rect = element.getBoundingClientRect();
+        const style = getComputedStyle(element);
+        const classes = Array.from(element.classList)
+          .slice(0, 4)
+          .map((name) => `.${name}`)
+          .join("");
+
+        return {
+          selector: `${element.tagName.toLowerCase()}${classes}`,
+          left: Math.round(rect.left * 100) / 100,
+          right: Math.round(rect.right * 100) / 100,
+          width: Math.round(rect.width * 100) / 100,
+          clientWidth: element.clientWidth,
+          scrollWidth: element.scrollWidth,
+          display: style.display,
+          position: style.position,
+          minWidth: style.minWidth,
+          maxWidth: style.maxWidth
+        };
+      })
+      .filter((element) => (
+        element.left < -0.5 ||
+        element.right > clientWidth + 0.5 ||
+        element.scrollWidth > element.clientWidth + 1
+      ));
+
+    return { clientWidth, scrollWidth, offenders };
+  });
+}
+
 test("ações do negócio ficam acima da navegação e mantêm foco visível", async ({ page }) => {
   await page.addInitScript(() => {
     localStorage.setItem("token", "owner-e2e");
@@ -94,8 +130,15 @@ test("ações do negócio ficam acima da navegação e mantêm foco visível", a
     getComputedStyle(element).outlineStyle
   ))).not.toBe("none");
 
-  await expect.poll(() => page.evaluate(() => (
-    document.documentElement.scrollWidth ===
-    document.documentElement.clientWidth
-  ))).toBe(true);
+  try {
+    await expect.poll(() => page.evaluate(() => (
+      document.documentElement.scrollWidth ===
+      document.documentElement.clientWidth
+    ))).toBe(true);
+  } catch (error) {
+    const diagnostics = await horizontalOverflowDiagnostics(page);
+    throw new Error(
+      `${error.message}\n\nHorizontal overflow diagnostics:\n${JSON.stringify(diagnostics, null, 2)}`
+    );
+  }
 });
