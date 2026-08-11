@@ -1,6 +1,9 @@
 const metaAdsService = require(
   "../services/metaAdsService"
 );
+const AppError = require(
+  "../errors/AppError"
+);
 
 function configuracaoPublica(
   _req,
@@ -23,6 +26,16 @@ async function atualizarConsentimento(
   next
 ) {
   try {
+    if (
+      typeof req.body?.consentimento !==
+      "boolean"
+    ) {
+      throw new AppError(
+        "Informe uma escolha válida de privacidade.",
+        400
+      );
+    }
+
     const contexto =
       metaAdsService
         .sanitizarContextoCliente(
