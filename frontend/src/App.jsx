@@ -3,6 +3,7 @@ import { Route, Routes } from "react-router-dom";
 import { ProtectedRoute } from "./auth/ProtectedRoute";
 import { useSession } from "./auth/SessionContext";
 import { AppHeader } from "./components/AppHeader";
+import { MetaAdsBridge } from "./components/MetaAdsBridge";
 import { WorkspaceLayout } from "./components/WorkspaceLayout";
 
 function lazyNamed(importer, name) {
@@ -97,6 +98,10 @@ const SuccessPage = lazyNamed(
   () => import("./pages/SuccessPage"),
   "SuccessPage"
 );
+const PrivacyPage = lazyNamed(
+  () => import("./pages/PrivacyPage"),
+  "PrivacyPage"
+);
 const NotFoundPage = lazyNamed(
   () => import("./pages/NotFoundPage"),
   "NotFoundPage"
@@ -120,6 +125,7 @@ export default function App() {
   return (
     <div className="app-shell">
       <AppHeader />
+      <MetaAdsBridge />
       <Suspense fallback={<main><div className="container route-loading">Carregando...</div></main>}>
         <Routes>
         <Route path="/" element={<ExplorePage />} />
@@ -129,6 +135,7 @@ export default function App() {
         <Route path="/minha-agenda" element={<MyAppointmentsPage />} />
         <Route path="/entrar" element={<AuthPage />} />
         <Route path="/cadastro" element={<AuthPage mode="register" />} />
+        <Route path="/privacidade" element={<PrivacyPage />} />
         <Route
           path="/admin/trafego-pago"
           element={(
