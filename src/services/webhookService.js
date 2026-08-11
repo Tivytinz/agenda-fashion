@@ -2,6 +2,9 @@ const webhookEventoRepository = require(
   "../repositories/webhookEventoRepository"
 );
 const registrador = require("../utils/registrador");
+const metaAdsService = require(
+  "./metaAdsService"
+);
 
 const {
   ativarAssinaturaPorPagamento,
@@ -299,6 +302,19 @@ async function processarRegistro(evento) {
           "CONFIRMED",
           pagamento || {}
         );
+
+      if (resultado) {
+        metaAdsService
+          .enviarAssinaturaAtivadaSeguro({
+            negocioId:
+              resultado.negocio_id,
+            assinaturaId:
+              resultado.id,
+            pagamentoId,
+            valor:
+              resultado.valor
+          });
+      }
     } else if (
       EVENTOS_SUSPENSAO
         .has(evento.tipo_evento)
