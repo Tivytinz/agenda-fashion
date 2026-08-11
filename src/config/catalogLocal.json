@@ -1,0 +1,32 @@
+{
+  "unhas": {
+    "categoria": "unha",
+    "titulo": "Manicure e unhas",
+    "descricao": "serviços de manicure, pedicure e unhas"
+  },
+  "cabelo": {
+    "categoria": "cabelo",
+    "titulo": "Cabelo e barbearia",
+    "descricao": "serviços de cabelo, corte, penteado e barbearia"
+  },
+  "cilios": {
+    "categoria": "cilio",
+    "titulo": "Cílios",
+    "descricao": "serviços de cílios e extensão de cílios"
+  },
+  "sobrancelhas": {
+    "categoria": "sobrancelha",
+    "titulo": "Sobrancelhas",
+    "descricao": "design e serviços de sobrancelhas"
+  },
+  "maquiagem": {
+    "categoria": "maquiagem",
+    "titulo": "Maquiagem",
+    "descricao": "serviços de maquiagem"
+  },
+  "estetica": {
+    "categoria": "estetica",
+    "titulo": "Estética",
+    "descricao": "serviços de estética, pele e cuidados corporais"
+  }
+}
