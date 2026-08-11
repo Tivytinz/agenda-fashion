@@ -69,7 +69,7 @@ test("ações do negócio ficam acima da navegação e mantêm foco visível", a
 
   const save = page.getByRole("button", { name: "Salvar alterações" });
   const navigation = page.getByRole("navigation", {
-    name: "Área de trabalho do negócio"
+    name: "Área de trabalho"
   });
 
   await expect(save).toBeVisible();

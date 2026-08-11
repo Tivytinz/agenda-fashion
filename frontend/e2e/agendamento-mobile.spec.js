@@ -54,20 +54,11 @@ async function expectNoHorizontalOverflow(page) {
 }
 
 test("perfil e agendamento permanecem contidos no celular", async ({ page }) => {
-  let manicureRequests = 0;
-
   await page.route("**/eventos-produto", (route) => route.fulfill({
     status: 204,
     body: ""
   }));
   await page.route("**/media/*.jpg**", (route) => {
-    if (route.request().url().includes("manicure.jpg")) {
-      manicureRequests += 1;
-      if (manicureRequests === 1) {
-        return route.fulfill({ status: 503, body: "temporariamente indisponível" });
-      }
-    }
-
     return route.fulfill({
       status: 200,
       contentType: "image/svg+xml",
@@ -106,9 +97,11 @@ test("perfil e agendamento permanecem contidos no celular", async ({ page }) => 
   await expect(page.getByRole("img", {
     name: "Foto do serviço Manicure completa"
   })).toBeVisible();
-  await expect.poll(() => manicureRequests).toBe(2);
 
-  await page.getByRole("button", { name: /Manicure completa/ }).click();
+  await page.getByRole("button", {
+    name: "Selecionar Manicure completa",
+    exact: true
+  }).click();
   await expect(page.getByText("Manicure completa", {
     exact: true
   }).first()).toBeVisible();

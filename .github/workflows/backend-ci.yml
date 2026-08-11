@@ -62,12 +62,6 @@ jobs:
       - name: Test React frontend
         run: npm run frontend:test
 
-      - name: Install mobile browsers
-        run: npm --prefix frontend exec -- playwright install --with-deps chromium webkit
-
-      - name: Test mobile frontend
-        run: npm --prefix frontend run test:e2e
-
       - name: Apply test migrations
         run: npm run migrate:test
 
@@ -76,3 +70,9 @@ jobs:
 
       - name: Audit production dependencies
         run: npm audit --omit=dev --audit-level=high
+
+      - name: Install mobile browsers
+        run: npm --prefix frontend exec -- playwright install --with-deps chromium webkit
+
+      - name: Test mobile frontend
+        run: npm --prefix frontend run test:e2e

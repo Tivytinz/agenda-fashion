@@ -88,8 +88,14 @@ test("admin e consentimento permanecem navegáveis no celular", async ({ page })
   const consent = page.getByRole("complementary", {
     name: "Preferências de privacidade"
   });
-  const allow = consent.getByRole("button", { name: "Permitir" });
-  const deny = consent.getByRole("button", { name: "Não permitir" });
+  const allow = consent.getByRole("button", {
+    name: "Permitir",
+    exact: true
+  });
+  const deny = consent.getByRole("button", {
+    name: "Não permitir",
+    exact: true
+  });
 
   await expect(consent).toBeVisible();
   await expect(allow).toBeVisible();
