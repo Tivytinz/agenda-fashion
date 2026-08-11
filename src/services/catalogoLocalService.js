@@ -117,6 +117,7 @@ async function listarCatalogoLocal({
     await perfilNegocioService.listarNegociosPublicos({
       categoria: categoria.categoria,
       cidade: localidade.cidade,
+      estado: localidade.estado,
       pagina,
       limite
     });
