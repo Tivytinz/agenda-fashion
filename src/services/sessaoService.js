@@ -139,12 +139,29 @@ function montarNegocio(
   };
 }
 
+function montarAdministrador(
+  administrador
+) {
+  if (!administrador) {
+    return null;
+  }
+
+  return {
+    papel:
+      administrador.papel,
+
+    superadmin:
+      administrador.papel ===
+      "superadmin",
+  };
+}
+
 /*
  * Retorna os dados atuais da sessão.
  *
  * O JWT fornece apenas o ID da conta.
- * O papel e o negócio são consultados
- * diretamente no banco.
+ * O papel, o negócio e o contexto Admin
+ * são consultados diretamente no banco.
  */
 async function obterMinhaSessao(
   usuarioId
@@ -181,15 +198,29 @@ async function obterMinhaSessao(
     );
   }
 
-  const contexto =
-    await sessaoRepository
+  const [
+    contexto,
+    administrador,
+  ] = await Promise.all([
+    sessaoRepository
       .buscarContextoAtivoPorUsuarioId(
         id
-      );
+      ),
+
+    sessaoRepository
+      .buscarAdministradorAtivoPorUsuarioId(
+        id
+      ),
+  ]);
 
   const negocio =
     montarNegocio(
       contexto
+    );
+
+  const admin =
+    montarAdministrador(
+      administrador
     );
 
   return {
@@ -202,6 +233,12 @@ async function obterMinhaSessao(
       Boolean(negocio),
 
     negocio,
+
+    administrador:
+      admin,
+
+    ehAdministrador:
+      Boolean(admin),
   };
 }
 
