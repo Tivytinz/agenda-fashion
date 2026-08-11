@@ -118,10 +118,13 @@ export function SessionProvider({ children }) {
     return refresh();
   }, [refresh]);
 
-  const loginWithGoogle = useCallback(async (credential) => {
+  const loginWithGoogle = useCallback(async (credential, marketing) => {
     const result = await apiRequest("/auth/google", {
       method: "POST",
-      body: { credential }
+      body: {
+        credential,
+        ...(marketing ? { marketing } : {})
+      }
     });
     saveSession(result);
     return refresh();
