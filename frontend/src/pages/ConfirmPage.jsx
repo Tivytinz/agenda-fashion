@@ -91,6 +91,7 @@ export function ConfirmPage() {
         businessId: booking.business.id,
         properties: {
           origem: "react",
+          agendamento_id: Number(result.agendamento?.id),
           servico_id: Number(booking.service.id),
           status: "sucesso"
         }
