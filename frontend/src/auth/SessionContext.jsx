@@ -115,19 +115,34 @@ export function SessionProvider({ children }) {
       body: payload
     });
     saveSession(result);
-    return refresh();
+    const current = await refresh();
+
+    return {
+      ...current,
+      contaCriada: Boolean(result.contaCriada)
+    };
   }, [refresh]);
 
-  const loginWithGoogle = useCallback(async (credential, marketing) => {
+  const loginWithGoogle = useCallback(async (
+    credential,
+    marketing,
+    meta
+  ) => {
     const result = await apiRequest("/auth/google", {
       method: "POST",
       body: {
         credential,
-        ...(marketing ? { marketing } : {})
+        ...(marketing ? { marketing } : {}),
+        ...(meta ? { meta } : {})
       }
     });
     saveSession(result);
-    return refresh();
+    const current = await refresh();
+
+    return {
+      ...current,
+      contaCriada: Boolean(result.contaCriada)
+    };
   }, [refresh]);
 
   const logout = useCallback(() => {

@@ -77,6 +77,10 @@ const eventoProdutoRoutes = require(
   "./eventoProdutoRoutes"
 );
 
+const metaAdsRoutes = require(
+  "./metaAdsRoutes"
+);
+
 /*
  * AGENDAS
  */
@@ -188,6 +192,10 @@ router.use(
 
 router.use(
   eventoProdutoRoutes
+);
+
+router.use(
+  metaAdsRoutes
 );
 
 /*

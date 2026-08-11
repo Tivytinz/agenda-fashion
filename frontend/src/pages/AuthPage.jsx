@@ -1,5 +1,9 @@
 import { useCallback, useMemo, useState } from "react";
 import { Link, Navigate, useLocation, useNavigate } from "react-router-dom";
+import {
+  createMetaEventContext,
+  trackMetaEvent
+} from "../analytics/metaAds";
 import { getMarketingContext } from "../analytics/track";
 import { getWorkspacePath } from "../auth/session";
 import { useSession } from "../auth/SessionContext";
@@ -49,11 +53,31 @@ export function AuthPage({ mode = "login" }) {
               : "indefinida"
           )
         : undefined;
+      const meta =
+        isRegister && professionalIntent
+          ? createMetaEventContext(
+              "professional-registration"
+            )
+          : undefined;
 
       const current = await session.loginWithGoogle(
         credential,
-        marketing
+        marketing,
+        meta
       );
+
+      if (
+        current?.contaCriada &&
+        professionalIntent &&
+        meta?.event_id
+      ) {
+        void trackMetaEvent(
+          "CompleteRegistration",
+          {},
+          meta.event_id
+        );
+      }
+
       finish(current);
     } catch (requestError) {
       setError(requestError.message);
@@ -82,6 +106,12 @@ export function AuthPage({ mode = "login" }) {
     setSubmitting(true);
     try {
       const action = isRegister ? session.register : session.login;
+      const meta =
+        isRegister && professionalIntent
+          ? createMetaEventContext(
+              "professional-registration"
+            )
+          : undefined;
       const current = await action({
         ...(isRegister ? {
           nome: form.nome.trim(),
@@ -90,11 +120,25 @@ export function AuthPage({ mode = "login" }) {
             professionalIntent
               ? "profissional"
               : "indefinida"
-          )
+          ),
+          ...(meta ? { meta } : {})
         } : {}),
         email: form.email.trim().toLowerCase(),
         senha: form.senha
       });
+
+      if (
+        current?.contaCriada &&
+        professionalIntent &&
+        meta?.event_id
+      ) {
+        void trackMetaEvent(
+          "CompleteRegistration",
+          {},
+          meta.event_id
+        );
+      }
+
       finish(current);
     } catch (requestError) {
       setError(requestError.message);

@@ -7,6 +7,10 @@ const googleIdentityService =
     "../services/googleIdentityService"
   );
 
+const metaAdsService = require(
+  "../services/metaAdsService"
+);
+
 /*
  * Retira somente os campos permitidos
  * do corpo da requisição.
@@ -52,10 +56,37 @@ async function cadastro(
   next
 ) {
   try {
+    const dados =
+      obterDadosCadastro(req);
+
     const resultado =
       await authService.cadastro(
-        obterDadosCadastro(req)
+        dados
       );
+
+    if (resultado.contaCriada) {
+      await metaAdsService
+        .salvarConsentimentoSeguro({
+          usuarioId:
+            resultado.usuario?.id,
+          meta:
+            req.body?.meta
+        });
+
+      metaAdsService
+        .enviarCadastroProfissionalSeguro({
+          usuario:
+            resultado.usuario,
+          marketing:
+            dados.marketing,
+          contexto:
+            metaAdsService
+              .criarContextoRequisicao(
+                req,
+                req.body?.meta
+              )
+        });
+    }
 
     return res
       .status(201)
@@ -99,15 +130,40 @@ async function loginGoogle(
   next
 ) {
   try {
+    const marketing =
+      req.body?.marketing;
+
     const resultado =
       await authService
         .loginGoogle({
           credencial:
             req.body?.credential,
 
-          marketing:
-            req.body?.marketing,
+          marketing,
         });
+
+    if (resultado.contaCriada) {
+      await metaAdsService
+        .salvarConsentimentoSeguro({
+          usuarioId:
+            resultado.usuario?.id,
+          meta:
+            req.body?.meta
+        });
+
+      metaAdsService
+        .enviarCadastroProfissionalSeguro({
+          usuario:
+            resultado.usuario,
+          marketing,
+          contexto:
+            metaAdsService
+              .criarContextoRequisicao(
+                req,
+                req.body?.meta
+              )
+        });
+    }
 
     return res
       .status(200)
