@@ -17,6 +17,11 @@ const adminController = require(
   "../controllers/adminController"
 );
 
+const adminMarketingController =
+  require(
+    "../controllers/adminMarketingController"
+  );
+
 /*
  * Resumo geral da plataforma.
  */
@@ -48,13 +53,39 @@ router.get(
 );
 
 /*
- * Marketing e crescimento.
+ * Marketing e crescimento existente.
+ * Mantido por compatibilidade com o
+ * painel administrativo atual.
  */
 router.get(
   "/admin/marketing",
   auth,
   authAdmin,
   adminController.buscarMarketingAdmin
+);
+
+/*
+ * Atribuição de tráfego e mídia paga.
+ */
+router.get(
+  "/admin/marketing/resumo",
+  auth,
+  authAdmin,
+  adminMarketingController.buscarResumo
+);
+
+router.get(
+  "/admin/marketing/campanhas",
+  auth,
+  authAdmin,
+  adminMarketingController.listarCampanhas
+);
+
+router.get(
+  "/admin/marketing/conversoes",
+  auth,
+  authAdmin,
+  adminMarketingController.listarConversoes
 );
 
 module.exports = router;
