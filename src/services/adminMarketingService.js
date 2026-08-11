@@ -89,14 +89,14 @@ function data(
 }
 
 function taxa(
-  conversoes,
-  sessoes
+  parte,
+  total
 ) {
-  const totalSessoes =
-    numero(sessoes);
+  const totalNormalizado =
+    numero(total);
 
   if (
-    totalSessoes <= 0
+    totalNormalizado <= 0
   ) {
     return 0;
   }
@@ -104,8 +104,8 @@ function taxa(
   return Number(
     (
       (
-        numero(conversoes) /
-        totalSessoes
+        numero(parte) /
+        totalNormalizado
       ) * 100
     ).toFixed(2)
   );
@@ -124,6 +124,11 @@ async function buscarResumo({
       .buscarResumo(
         periodoNormalizado
       );
+
+  const totalSessoes =
+    inteiro(
+      resumo?.total_sessoes
+    );
 
   const sessoes =
     inteiro(
@@ -156,7 +161,18 @@ async function buscarResumo({
   return {
     periodo:
       periodoNormalizado,
+    totalSessoes,
     sessoes,
+    sessoesSemAtribuicao:
+      Math.max(
+        totalSessoes - sessoes,
+        0
+      ),
+    coberturaAtribuicao:
+      taxa(
+        sessoes,
+        totalSessoes
+      ),
     campanhas,
     perfisVisualizados,
     agendamentosIniciados,
