@@ -3,6 +3,10 @@
 import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import {
+  createMetaEventContext,
+  trackMetaEvent
+} from "../analytics/metaAds";
 import { apiRequest } from "../api/client";
 import { BillingCheckoutPage, SubscriptionPage } from "./BillingPages";
 
@@ -10,7 +14,18 @@ vi.mock("../api/client", () => ({
   apiRequest: vi.fn()
 }));
 
+vi.mock("../analytics/metaAds", () => ({
+  createMetaEventContext: vi.fn(),
+  trackMetaEvent: vi.fn()
+}));
+
 const PLAN = { id: 2, slug: "autonoma", nome: "Autônoma", valor: 49.9 };
+const META_CONTEXT = {
+  consentimento: true,
+  event_id: "af:professional-checkout:12345678",
+  fbp: "fb.1.123.456",
+  source_url: "http://localhost/checkout"
+};
 
 function renderCheckout() {
   return render(
@@ -41,6 +56,12 @@ async function generatePix() {
 
 beforeEach(() => {
   apiRequest.mockReset();
+  createMetaEventContext.mockReset();
+  trackMetaEvent.mockReset();
+  createMetaEventContext.mockReturnValue({
+    ...META_CONTEXT
+  });
+  trackMetaEvent.mockResolvedValue(true);
   localStorage.clear();
   HTMLDialogElement.prototype.showModal = function showModal() {
     this.setAttribute("open", "");
@@ -56,7 +77,7 @@ afterEach(() => {
 });
 
 describe("checkout PIX", () => {
-  it("reutiliza a chave de idempotência ao repetir uma tentativa que falhou", async () => {
+  it("reutiliza idempotência e event_id ao repetir uma tentativa que falhou", async () => {
     mockInitialization();
     apiRequest
       .mockRejectedValueOnce(new Error("Conexão interrompida"))
@@ -84,7 +105,19 @@ describe("checkout PIX", () => {
     expect(checkoutCalls).toHaveLength(2);
     expect(checkoutCalls[0][1].headers["Idempotency-Key"])
       .toBe(checkoutCalls[1][1].headers["Idempotency-Key"]);
+    expect(checkoutCalls[0][1].body.meta.event_id)
+      .toBe(checkoutCalls[1][1].body.meta.event_id);
     expect(checkoutCalls[1][1].body.cpf_cnpj).toBe("12345678901");
+    expect(createMetaEventContext).toHaveBeenCalledTimes(1);
+    expect(trackMetaEvent).toHaveBeenCalledWith(
+      "InitiateCheckout",
+      {
+        currency: "BRL",
+        value: 49.9,
+        content_name: "Autônoma"
+      },
+      META_CONTEXT.event_id
+    );
   });
 
   it("explica a falha de consulta e permite verificar novamente", async () => {
