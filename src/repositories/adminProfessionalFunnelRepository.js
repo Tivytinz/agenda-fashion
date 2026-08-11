@@ -11,6 +11,9 @@ const PERIODOS_PERMITIDOS =
     "month",
   ]);
 
+const REPORT_TIME_ZONE =
+  "America/Sao_Paulo";
+
 function periodoSeguro(valor) {
   const periodo = String(
     valor || "30"
@@ -23,32 +26,80 @@ function periodoSeguro(valor) {
     : "30";
 }
 
+function inicioPeriodoTimestampSql(
+  periodo
+) {
+  const bases = {
+    today:
+      `date_trunc('day', NOW() AT TIME ZONE '${REPORT_TIME_ZONE}')`,
+    "7":
+      `(date_trunc('day', NOW() AT TIME ZONE '${REPORT_TIME_ZONE}') - INTERVAL '6 days')`,
+    "30":
+      `(date_trunc('day', NOW() AT TIME ZONE '${REPORT_TIME_ZONE}') - INTERVAL '29 days')`,
+    month:
+      `date_trunc('month', NOW() AT TIME ZONE '${REPORT_TIME_ZONE}')`,
+  };
+
+  const base =
+    bases[periodoSeguro(periodo)];
+
+  return base
+    ? `(${base} AT TIME ZONE '${REPORT_TIME_ZONE}')`
+    : null;
+}
+
+function inicioPeriodoDataSql(
+  periodo
+) {
+  const hoje =
+    `(NOW() AT TIME ZONE '${REPORT_TIME_ZONE}')::date`;
+
+  const inicios = {
+    today: hoje,
+    "7": `(${hoje} - 6)`,
+    "30": `(${hoje} - 29)`,
+    month:
+      `date_trunc('month', ${hoje})::date`,
+  };
+
+  return inicios[
+    periodoSeguro(periodo)
+  ] || null;
+}
+
+function filtroTimestamp(
+  periodo,
+  expressao
+) {
+  const inicio =
+    inicioPeriodoTimestampSql(
+      periodo
+    );
+
+  return inicio
+    ? `AND ${expressao} >= ${inicio}`
+    : "";
+}
+
 function filtroData(
   periodo,
   expressao
 ) {
-  const filtros = {
-    all: "",
-    today:
-      `AND ${expressao} >= CURRENT_DATE`,
-    "7":
-      `AND ${expressao} >= CURRENT_DATE - INTERVAL '6 days'`,
-    "30":
-      `AND ${expressao} >= CURRENT_DATE - INTERVAL '29 days'`,
-    month:
-      `AND DATE_TRUNC('month', ${expressao}) = DATE_TRUNC('month', CURRENT_DATE)`,
-  };
+  const inicio =
+    inicioPeriodoDataSql(
+      periodo
+    );
 
-  return filtros[
-    periodoSeguro(periodo)
-  ];
+  return inicio
+    ? `AND ${expressao} >= ${inicio}`
+    : "";
 }
 
 async function listarPorCampanha(
   periodo = "30"
 ) {
   const filtroCoorte =
-    filtroData(
+    filtroTimestamp(
       periodo,
       "mua.atribuicao_em"
     );
@@ -255,4 +306,5 @@ module.exports = {
   listarPorCampanha,
   periodoSeguro,
   filtroData,
+  filtroTimestamp,
 };
