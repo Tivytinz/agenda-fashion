@@ -12,6 +12,12 @@ async function criarCheckout(req, res, next) {
           req.body?.meta
         );
 
+    await metaAdsService
+      .salvarConsentimentoSeguro({
+        usuarioId: req.user?.id,
+        meta: req.body?.meta
+      });
+
     const resultado =
       await checkoutService.criarCheckout({
         usuarioId: req.user?.id,
@@ -29,8 +35,6 @@ async function criarCheckout(req, res, next) {
           contextoMeta,
         plano: {
           id: req.body.plano_id,
-          nome:
-            req.body.plano_nome,
           valor:
             resultado?.assinatura
               ?.valor
