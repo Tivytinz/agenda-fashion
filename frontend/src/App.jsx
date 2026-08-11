@@ -13,6 +13,10 @@ function lazyNamed(importer, name) {
   );
 }
 
+const AdminMarketingPage = lazyNamed(
+  () => import("./pages/AdminMarketingPage"),
+  "AdminMarketingPage"
+);
 const AuthPage = lazyNamed(
   () => import("./pages/AuthPage"),
   "AuthPage"
@@ -117,6 +121,14 @@ export default function App() {
         <Route path="/minha-agenda" element={<MyAppointmentsPage />} />
         <Route path="/entrar" element={<AuthPage />} />
         <Route path="/cadastro" element={<AuthPage mode="register" />} />
+        <Route
+          path="/admin/marketing"
+          element={(
+            <ProtectedRoute adminOnly>
+              <AdminMarketingPage />
+            </ProtectedRoute>
+          )}
+        />
         <Route
           path="/favoritos"
           element={<ProtectedRoute><FavoritesPage /></ProtectedRoute>}
