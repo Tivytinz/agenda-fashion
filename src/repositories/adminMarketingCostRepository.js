@@ -11,6 +11,9 @@ const PERIODOS_PERMITIDOS =
     "month",
   ]);
 
+const REPORT_TIME_ZONE =
+  "America/Sao_Paulo";
+
 function periodoSeguro(valor) {
   const periodo = String(
     valor || "30"
@@ -23,50 +26,80 @@ function periodoSeguro(valor) {
     : "30";
 }
 
+function inicioPeriodoTimestampSql(
+  periodo
+) {
+  const bases = {
+    today:
+      `date_trunc('day', NOW() AT TIME ZONE '${REPORT_TIME_ZONE}')`,
+    "7":
+      `(date_trunc('day', NOW() AT TIME ZONE '${REPORT_TIME_ZONE}') - INTERVAL '6 days')`,
+    "30":
+      `(date_trunc('day', NOW() AT TIME ZONE '${REPORT_TIME_ZONE}') - INTERVAL '29 days')`,
+    month:
+      `date_trunc('month', NOW() AT TIME ZONE '${REPORT_TIME_ZONE}')`,
+  };
+
+  const base =
+    bases[periodoSeguro(periodo)];
+
+  return base
+    ? `(${base} AT TIME ZONE '${REPORT_TIME_ZONE}')`
+    : null;
+}
+
+function inicioPeriodoDataSql(
+  periodo
+) {
+  const hoje =
+    `(NOW() AT TIME ZONE '${REPORT_TIME_ZONE}')::date`;
+
+  const inicios = {
+    today:
+      hoje,
+    "7":
+      `(${hoje} - 6)`,
+    "30":
+      `(${hoje} - 29)`,
+    month:
+      `date_trunc('month', ${hoje})::date`,
+  };
+
+  return inicios[
+    periodoSeguro(periodo)
+  ] || null;
+}
+
 function filtroEvento(
   periodo,
   alias = "e"
 ) {
-  const prefixo = `${alias}.`;
+  const inicio =
+    inicioPeriodoTimestampSql(
+      periodo
+    );
 
-  const filtros = {
-    all: "",
-    today:
-      `AND ${prefixo}created_at >= CURRENT_DATE`,
-    "7":
-      `AND ${prefixo}created_at >= CURRENT_DATE - INTERVAL '6 days'`,
-    "30":
-      `AND ${prefixo}created_at >= CURRENT_DATE - INTERVAL '29 days'`,
-    month:
-      `AND DATE_TRUNC('month', ${prefixo}created_at) = DATE_TRUNC('month', NOW())`,
-  };
+  if (!inicio) {
+    return "";
+  }
 
-  return filtros[
-    periodoSeguro(periodo)
-  ];
+  return `AND ${alias}.created_at >= ${inicio}`;
 }
 
 function filtroGasto(
   periodo,
   alias = "g"
 ) {
-  const prefixo = `${alias}.`;
+  const inicio =
+    inicioPeriodoDataSql(
+      periodo
+    );
 
-  const filtros = {
-    all: "",
-    today:
-      `AND ${prefixo}data_gasto = CURRENT_DATE`,
-    "7":
-      `AND ${prefixo}data_gasto >= CURRENT_DATE - 6`,
-    "30":
-      `AND ${prefixo}data_gasto >= CURRENT_DATE - 29`,
-    month:
-      `AND DATE_TRUNC('month', ${prefixo}data_gasto) = DATE_TRUNC('month', CURRENT_DATE)`,
-  };
+  if (!inicio) {
+    return "";
+  }
 
-  return filtros[
-    periodoSeguro(periodo)
-  ];
+  return `AND ${alias}.data_gasto >= ${inicio}`;
 }
 
 async function listarDesempenho(
@@ -98,7 +131,16 @@ async function listarDesempenho(
           )::INT AS sessoes,
 
           COUNT(
-            DISTINCT e.sessao_id
+            DISTINCT COALESCE(
+              NULLIF(
+                BTRIM(
+                  e.propriedades
+                    ->> 'agendamento_id'
+                ),
+                ''
+              ),
+              e.id::TEXT
+            )
           ) FILTER (
             WHERE e.nome =
               'agendamento_concluido'
@@ -327,4 +369,5 @@ module.exports = {
   salvarGastoManual,
   filtroEvento,
   filtroGasto,
+  periodoSeguro,
 };
