@@ -1,5 +1,5 @@
-const db = require(
-  "../db/db"
+const sessaoRepository = require(
+  "../repositories/sessaoRepository"
 );
 
 const AppError = require(
@@ -49,36 +49,11 @@ async function authAdmin(
       );
     }
 
-    const resultado =
-      await db.query(
-        `
-          SELECT
-            ua.usuario_id,
-            ua.papel
-
-          FROM usuarios_administradores ua
-
-          INNER JOIN usuarios u
-            ON u.id = ua.usuario_id
-
-          WHERE ua.usuario_id = $1
-            AND ua.ativo = TRUE
-            AND u.ativo = TRUE
-            AND ua.papel IN (
-              'admin',
-              'superadmin'
-            )
-
-          LIMIT 1
-        `,
-        [
-          usuarioId,
-        ]
-      );
-
     const administrador =
-      resultado.rows[0] ||
-      null;
+      await sessaoRepository
+        .buscarAdministradorAtivoPorUsuarioId(
+          usuarioId
+        );
 
     if (!administrador) {
       throw new AppError(
@@ -89,10 +64,10 @@ async function authAdmin(
 
     /*
      * A permissão administrativa não é
-     * inserida no JWT nem em usuario.tipo.
+     * inserida no JWT.
      *
-     * Ela existe somente durante esta
-     * requisição após a consulta ao banco.
+     * Ela é consultada no banco em cada
+     * requisição administrativa.
      */
     req.admin = {
       usuarioId:

@@ -63,6 +63,53 @@ async function buscarUsuarioPorId(
 }
 
 /*
+ * Busca a permissão administrativa ativa.
+ *
+ * A autorização final continua sendo feita
+ * no backend em cada rota protegida.
+ */
+async function buscarAdministradorAtivoPorUsuarioId(
+  usuarioId
+) {
+  const id =
+    normalizarId(usuarioId);
+
+  if (!id) {
+    return null;
+  }
+
+  const resultado =
+    await db.query(
+      `
+        SELECT
+          ua.usuario_id,
+          ua.papel
+
+        FROM usuarios_administradores ua
+
+        INNER JOIN usuarios u
+          ON u.id = ua.usuario_id
+
+        WHERE ua.usuario_id = $1
+          AND ua.ativo = TRUE
+          AND u.ativo = TRUE
+          AND ua.papel IN (
+            'admin',
+            'superadmin'
+          )
+
+        LIMIT 1
+      `,
+      [id]
+    );
+
+  return (
+    resultado.rows[0] ||
+    null
+  );
+}
+
+/*
  * Lista todos os vínculos ativos
  * da conta com negócios ativos.
  *
@@ -202,6 +249,7 @@ async function buscarContextoAtivoPorUsuarioId(
 
 module.exports = {
   buscarUsuarioPorId,
+  buscarAdministradorAtivoPorUsuarioId,
   buscarVinculosAtivosPorUsuarioId,
   buscarContextoAtivoPorUsuarioId,
 };

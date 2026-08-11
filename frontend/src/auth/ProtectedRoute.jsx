@@ -2,7 +2,12 @@ import { Navigate, useLocation } from "react-router-dom";
 import { LoadingState } from "../components/ScreenState";
 import { useSession } from "./SessionContext";
 
-export function ProtectedRoute({ children, ownerOnly = false, businessRequired = false }) {
+export function ProtectedRoute({
+  children,
+  ownerOnly = false,
+  businessRequired = false,
+  adminOnly = false
+}) {
   const session = useSession();
   const location = useLocation();
 
@@ -22,6 +27,10 @@ export function ProtectedRoute({ children, ownerOnly = false, businessRequired =
         to="/entrar"
       />
     );
+  }
+
+  if (adminOnly && !session.ehAdministrador) {
+    return <Navigate replace to="/" />;
   }
 
   if (businessRequired && !session.temNegocio) {

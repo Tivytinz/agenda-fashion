@@ -21,7 +21,9 @@ const SIGNED_OUT_STATE = {
   authenticated: false,
   usuario: null,
   negocio: null,
-  temNegocio: false
+  temNegocio: false,
+  administrador: null,
+  ehAdministrador: false
 };
 
 export function SessionProvider({ children }) {
@@ -30,7 +32,9 @@ export function SessionProvider({ children }) {
     authenticated: hasSession(),
     usuario: getStoredUser(),
     negocio: null,
-    temNegocio: false
+    temNegocio: false,
+    administrador: null,
+    ehAdministrador: false
   });
 
   const refresh = useCallback(async () => {
@@ -56,7 +60,9 @@ export function SessionProvider({ children }) {
         authenticated: true,
         usuario: result.usuario,
         negocio: result.negocio,
-        temNegocio: Boolean(result.temNegocio)
+        temNegocio: Boolean(result.temNegocio),
+        administrador: result.administrador || null,
+        ehAdministrador: Boolean(result.ehAdministrador)
       };
       setState(next);
       return next;
