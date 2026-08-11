@@ -7,6 +7,7 @@ import {
 } from "../analytics/metaAds";
 import { apiRequest } from "../api/client";
 import { useSession } from "../auth/SessionContext";
+import { getBusinessWorkspacePath } from "../auth/session";
 import { BackLink } from "../components/BackLink";
 import { EmptyState, ErrorState, LoadingState } from "../components/ScreenState";
 import { formatCurrency, formatDate } from "../utils/format";
@@ -59,10 +60,18 @@ export function PlansPage() {
             const isCurrent = Number(current?.plano_id ?? current?.id) === Number(plan.id)
               || current?.plano_slug === plan.slug;
             const paid = Number(plan.valor) > 0;
+            const professionalRegistration = new URLSearchParams({
+              tipo: "profissional",
+              ...(paid ? { plano: plan.slug } : {})
+            });
             const target = !session.authenticated
-              ? "/cadastro"
+              ? `/cadastro?${professionalRegistration}`
               : !session.temNegocio
-                ? "/criar-negocio"
+                ? paid
+                  ? `/criar-negocio?plano=${encodeURIComponent(plan.slug)}`
+                  : "/criar-negocio"
+                : session.negocio?.papel !== "dono"
+                  ? getBusinessWorkspacePath(session)
                 : paid
                   ? `/checkout?plano=${encodeURIComponent(plan.slug)}`
                   : "/painel";

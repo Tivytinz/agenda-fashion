@@ -282,6 +282,10 @@ describe("fluxo publico de agendamento", () => {
       date: "2026-08-05",
       time: "09:00"
     });
+
+    expect(apiRequest.mock.calls.filter(([path]) => (
+      path.startsWith("/perfil-negocio/")
+    ))).toHaveLength(1);
   });
 
   it("remove a escolha de profissional quando existe apenas uma opção", async () => {

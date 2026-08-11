@@ -70,9 +70,9 @@ describe("minha conta", () => {
 
   it("mantém o administrador dentro do fluxo administrativo", async () => {
     useSession.mockReturnValue({
-      temNegocio: false,
+      temNegocio: true,
       ehAdministrador: true,
-      negocio: null,
+      negocio: { papel: "dono" },
       refresh: refreshSession,
       logout: vi.fn()
     });

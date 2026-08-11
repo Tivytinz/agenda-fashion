@@ -857,7 +857,7 @@
   .workspace-shell {
     display: block;
     min-width: 0;
-    padding-bottom: calc(76px + env(safe-area-inset-bottom));
+    padding-bottom: calc(var(--workspace-mobile-nav-height) + 10px);
   }
 
   .workspace-sidebar {
@@ -922,6 +922,12 @@
     line-height: 1;
   }
 
+  .workspace-mobile-link svg,
+  .workspace-mobile-more svg {
+    width: 20px;
+    height: 20px;
+  }
+
   .workspace-mobile-link small,
   .workspace-mobile-more > button > small {
     width: 100%;
@@ -969,6 +975,12 @@
     color: var(--muted);
     font-weight: 800;
     text-decoration: none;
+  }
+
+  .workspace-mobile-menu-link svg {
+    width: 20px;
+    height: 20px;
+    flex: 0 0 auto;
   }
 
   .workspace-mobile-menu-link.active {
@@ -1070,7 +1082,7 @@
   .workspace-shell .business-save-actions {
     position: sticky;
     z-index: 9;
-    bottom: 70px;
+    bottom: var(--workspace-mobile-nav-height);
     box-shadow: 0 -12px 26px rgb(72 22 43 / 8%);
   }
 

@@ -84,7 +84,11 @@ async function buscarAgendamentoHorarioPainel(profissionalId, data, hora) {
       a.status,
       c.nome AS cliente,
       s.nome AS servico,
-      s.valor
+      COALESCE(
+        a.valor_servico,
+        s.valor,
+        0
+      )::numeric AS valor
     FROM agendamentos a
     LEFT JOIN usuarios c
       ON c.id = a.cliente_id
@@ -422,6 +426,7 @@ async function buscarAgendamentosPorPeriodo(
       s.nome AS servico,
 
       COALESCE(
+        a.valor_servico,
         s.valor,
         0
       )::numeric AS valor,
@@ -513,6 +518,7 @@ async function buscarAgendamentosProfissionaisPorPeriodo(
       s.nome AS servico,
 
       COALESCE(
+        a.valor_servico,
         s.valor,
         0
       )::numeric AS valor,

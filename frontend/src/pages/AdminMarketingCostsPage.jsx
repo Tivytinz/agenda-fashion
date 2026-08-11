@@ -7,6 +7,7 @@ import {
   ErrorState,
   LoadingState
 } from "../components/ScreenState";
+import { settleRequestMap } from "../utils/asyncData";
 
 const PERIODS = [
   ["today", "Hoje"],
@@ -92,6 +93,9 @@ export function AdminMarketingCostsPage() {
   const [reloadKey, setReloadKey] =
     useState(0);
 
+  const [refreshing, setRefreshing] =
+    useState(true);
+
   const [form, setForm] =
     useState({
       campanhaId: "",
@@ -115,51 +119,56 @@ export function AdminMarketingCostsPage() {
 
     let active = true;
 
-    setData(null);
     setError("");
+    setRefreshing(true);
 
-    Promise.all([
-      apiRequest(
+    settleRequestMap({
+      costs: apiRequest(
         `/admin/marketing/custos?periodo=${period}`,
         { signal: controller.signal }
       ),
-      apiRequest(
+      expenses: apiRequest(
         `/admin/marketing/gastos?periodo=${period}`,
         { signal: controller.signal }
       ),
-      apiRequest(
+      managedCampaigns: apiRequest(
         "/admin/marketing/gestao-campanhas",
         { signal: controller.signal }
       )
-    ])
-      .then(([
-        costs,
-        expenses,
-        managedCampaigns
-      ]) => {
+    })
+      .then(({ values, errors }) => {
         if (!active) return;
 
-        setData({
-          costs,
+        if (Object.keys(values).length === 0) {
+          setError(
+            errors[0]?.error?.message ||
+            "Não foi possível carregar os custos de marketing."
+          );
+          return;
+        }
+
+        setData((current) => ({
+          costs:
+            values.costs || current?.costs || {},
           expenses:
-            expenses.gastos || [],
+            values.expenses?.gastos || current?.expenses || [],
           managedCampaigns:
-            managedCampaigns.campanhas || []
-        });
+            values.managedCampaigns?.campanhas || current?.managedCampaigns || []
+        }));
 
         setForm((current) => {
           if (
             current.campanhaId ||
-            !managedCampaigns.campanhas?.length
+            !values.managedCampaigns?.campanhas?.length
           ) {
             return current;
           }
 
           const firstActive =
-            managedCampaigns.campanhas.find(
+            values.managedCampaigns.campanhas.find(
               (item) => item.ativo
             ) ||
-            managedCampaigns.campanhas[0];
+            values.managedCampaigns.campanhas[0];
 
           return {
             ...current,
@@ -167,17 +176,14 @@ export function AdminMarketingCostsPage() {
               String(firstActive.id)
           };
         });
-      })
-      .catch((requestError) => {
-        if (
-          active &&
-          requestError.name !==
-            "AbortError"
-        ) {
+        if (errors.some(({ error }) => error?.name !== "AbortError")) {
           setError(
-            requestError.message
+            "Parte dos custos de marketing está temporariamente indisponível."
           );
         }
+      })
+      .finally(() => {
+        if (active) setRefreshing(false);
       });
 
     return () => {
@@ -275,7 +281,7 @@ export function AdminMarketingCostsPage() {
     );
   }
 
-  if (error) {
+  if (!data && error) {
     return (
       <main className="workspace-page admin-workspace-page">
         <ErrorState
@@ -322,7 +328,7 @@ export function AdminMarketingCostsPage() {
   ];
 
   return (
-    <main className="workspace-page admin-workspace-page">
+    <main aria-busy={refreshing} className="workspace-page admin-workspace-page">
       <header className="workspace-heading">
         <div>
           <p className="eyebrow">
@@ -361,6 +367,9 @@ export function AdminMarketingCostsPage() {
           )}
         </div>
       </header>
+
+      {refreshing && <p className="data-refresh-status" role="status">Atualizando custos...</p>}
+      {error && <p className="form-error" role="alert">{error}</p>}
 
       <section
         className="metric-grid"

@@ -11,17 +11,25 @@ const PERIODS = [
   ["mes", "Este mês"]
 ];
 
+function formatPercent(value) {
+  return new Intl.NumberFormat("pt-BR", {
+    maximumFractionDigits: 1
+  }).format(Number(value) || 0);
+}
+
 export function DashboardPage() {
   const [period, setPeriod] = useState("7dias");
   const [data, setData] = useState(null);
   const [error, setError] = useState("");
   const [reloadKey, setReloadKey] = useState(0);
+  const [refreshing, setRefreshing] = useState(true);
 
   useEffect(() => {
     const controller = new AbortController();
     let active = true;
 
     setError("");
+    setRefreshing(true);
     apiRequest(`/dashboard-dono?periodo=${period}`, {
       signal: controller.signal
     })
@@ -32,6 +40,9 @@ export function DashboardPage() {
         if (active && requestError.name !== "AbortError") {
           setError(requestError.message);
         }
+      })
+      .finally(() => {
+        if (active) setRefreshing(false);
       });
 
     return () => {
@@ -42,24 +53,30 @@ export function DashboardPage() {
 
   function selectPeriod(value) {
     if (value === period) return;
-    setData(null);
     setPeriod(value);
   }
 
   if (!data && !error) return <div className="workspace-page"><LoadingState>Montando seu painel...</LoadingState></div>;
-  if (error) return <div className="workspace-page"><ErrorState message={error} onRetry={() => setReloadKey((current) => current + 1)} /></div>;
+  if (!data && error) return <div className="workspace-page"><ErrorState message={error} onRetry={() => setReloadKey((current) => current + 1)} /></div>;
 
   const summary = data.resumo || {};
   const performance = data.performance || {};
+  const newClients = Number(summary.clientes_novos) || 0;
+  const profileVisits = Number(performance.visitas_perfil) || 0;
+  const completedBookings = Number(performance.agendamentos_concluidos) || 0;
   const cards = [
     ["Agendamentos", summary.agendamentos_periodo ?? 0, "no período"],
     ["Faturamento", formatCurrency(summary.faturamento_periodo), "previsto"],
-    ["Clientes novos", summary.clientes_novos ?? 0, "descobriram você"],
-    ["Conversão", `${performance.taxa_conversao ?? 0}%`, "visita → agenda"]
+    ["Clientes novos", newClients, newClients === 1 ? "descobriu você" : "descobriram você"],
+    [
+      "Conversão",
+      `${formatPercent(performance.taxa_conversao)}%`,
+      `${completedBookings} de ${profileVisits} visitas`
+    ]
   ];
 
   return (
-    <main className="workspace-page">
+    <main aria-busy={refreshing} className="workspace-page">
       <header className="workspace-heading">
         <div>
           <p className="eyebrow">Seu crescimento</p>
@@ -74,6 +91,9 @@ export function DashboardPage() {
           ))}
         </div>
       </header>
+
+      {refreshing && <p className="data-refresh-status" role="status">Atualizando indicadores...</p>}
+      {error && <p className="form-error" role="alert">{error} Os últimos dados carregados continuam visíveis.</p>}
 
       <section className="metric-grid" aria-label="Indicadores">
         {cards.map(([label, value, hint]) => (
@@ -112,7 +132,7 @@ export function DashboardPage() {
 
       {Array.isArray(data.ranking_servicos) && data.ranking_servicos.length > 0 && (
         <section className="panel">
-          <div className="panel-heading"><h2>Serviços que mais cresceram</h2></div>
+          <div className="panel-heading"><h2>Serviços mais agendados</h2></div>
           <div className="table-wrap">
             <table>
               <thead><tr><th>Serviço</th><th>Agendamentos</th><th>Faturamento</th></tr></thead>

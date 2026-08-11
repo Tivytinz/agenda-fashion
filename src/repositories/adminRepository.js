@@ -280,7 +280,11 @@ async function listarAgendamentosRecentes() {
           s.nome
             AS servico,
 
-          s.valor,
+          COALESCE(
+            a.valor_servico,
+            s.valor,
+            0
+          )::NUMERIC AS valor,
 
           p.id
             AS profissional_id,
@@ -939,7 +943,11 @@ async function listarNegociosMaisAgendados() {
             SUM(
               CASE
                 WHEN a.id IS NOT NULL
-                THEN s.valor
+                THEN COALESCE(
+                  a.valor_servico,
+                  s.valor,
+                  0
+                )
                 ELSE 0
               END
             ),

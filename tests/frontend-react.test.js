@@ -13,6 +13,10 @@ function ler(caminho) {
   );
 }
 
+const rotasReact = JSON.parse(
+  ler("src/config/reactRoutes.json")
+);
+
 describe(
   "Frontend React",
   () => {
@@ -130,9 +134,11 @@ describe(
         );
 
         expect(
-          servidor
+          ler(
+            "src/config/reactRoutes.json"
+          )
         ).toContain(
-          '"/painel"'
+          '"dashboard": "/painel"'
         );
 
         expect(
@@ -226,8 +232,9 @@ describe(
         expect(
           app
         ).toContain(
-          'path="/minha-agenda"'
+          "path={reactRoutes.myAgenda}"
         );
+        expect(rotasReact.myAgenda).toBe("/minha-agenda");
 
         expect(
           sucesso
@@ -281,14 +288,19 @@ describe(
         );
 
         expect(app).toContain(
-          'path="/entrar"'
+          "path={reactRoutes.login}"
         );
         expect(app).toContain(
-          'path="/cadastro"'
+          "path={reactRoutes.register}"
         );
         expect(app).toContain(
-          'path="/criar-negocio"'
+          "path={reactRoutes.createBusiness}"
         );
+        expect(rotasReact).toMatchObject({
+          login: "/entrar",
+          register: "/cadastro",
+          createBusiness: "/criar-negocio",
+        });
         expect(autenticacao).toContain(
           'session.loginWithGoogle'
         );
@@ -323,16 +335,19 @@ describe(
         );
 
         [
-          'path="/painel"',
-          'path="/painel/agenda"',
-          'path="/painel/servicos"',
-          'path="/painel/profissionais"',
-          'path="/painel/horarios"',
-          'path="/profissional/agenda"',
+          ["dashboard", "/painel"],
+          ["ownerAgenda", "/painel/agenda"],
+          ["services", "/painel/servicos"],
+          ["professionals", "/painel/profissionais"],
+          ["schedule", "/painel/horarios"],
+          ["professionalAgenda", "/profissional/agenda"],
         ].forEach(
-          (rota) =>
-            expect(app)
-              .toContain(rota)
+          ([chave, rota]) => {
+            expect(app).toContain(
+              `path={reactRoutes.${chave}}`
+            );
+            expect(rotasReact[chave]).toBe(rota);
+          }
         );
 
         expect(agenda).toContain(
@@ -379,17 +394,23 @@ describe(
         );
 
         expect(app).toContain(
-          'path="/conta"'
+          "path={reactRoutes.account}"
         );
         expect(app).toContain(
-          'path="/favoritos"'
+          "path={reactRoutes.favorites}"
         );
         expect(app).toContain(
-          'path="/planos"'
+          "path={reactRoutes.plans}"
         );
         expect(app).toContain(
-          'path="/checkout"'
+          "path={reactRoutes.checkout}"
         );
+        expect(rotasReact).toMatchObject({
+          account: "/conta",
+          favorites: "/favoritos",
+          plans: "/planos",
+          checkout: "/checkout",
+        });
         expect(conta).toContain(
           '"/conta/foto"'
         );

@@ -48,14 +48,16 @@ export function AdminProfessionalFunnelPage() {
     useState("");
   const [reloadKey, setReloadKey] =
     useState(0);
+  const [refreshing, setRefreshing] =
+    useState(true);
 
   useEffect(() => {
     const controller =
       new AbortController();
     let active = true;
 
-    setData(null);
     setError("");
+    setRefreshing(true);
 
     apiRequest(
       `/admin/marketing/funil-profissionais?periodo=${period}`,
@@ -76,6 +78,9 @@ export function AdminProfessionalFunnelPage() {
             requestError.message
           );
         }
+      })
+      .finally(() => {
+        if (active) setRefreshing(false);
       });
 
     return () => {
@@ -94,7 +99,7 @@ export function AdminProfessionalFunnelPage() {
     );
   }
 
-  if (error) {
+  if (!data && error) {
     return (
       <main className="workspace-page admin-workspace-page">
         <ErrorState
@@ -152,7 +157,7 @@ export function AdminProfessionalFunnelPage() {
   ];
 
   return (
-    <main className="workspace-page admin-workspace-page">
+    <main aria-busy={refreshing} className="workspace-page admin-workspace-page">
       <header className="workspace-heading">
         <div>
           <p className="eyebrow">
@@ -191,6 +196,9 @@ export function AdminProfessionalFunnelPage() {
           )}
         </div>
       </header>
+
+      {refreshing && <p className="data-refresh-status" role="status">Atualizando funil...</p>}
+      {error && <p className="form-error" role="alert">{error} Os últimos dados carregados continuam visíveis.</p>}
 
       <section
         className="metric-grid"

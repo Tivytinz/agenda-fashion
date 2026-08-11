@@ -105,17 +105,17 @@ export function AccountPage() {
   if (!user && !error) return <main className={pageClassName}><LoadingState>Carregando sua conta...</LoadingState></main>;
   if (!user && error) return <main className={pageClassName}><ErrorState message={error} onRetry={load} /></main>;
 
-  const backPath = session.temNegocio
-    ? session.negocio?.papel === "dono"
-      ? "/painel"
-      : "/profissional/agenda"
-    : session.ehAdministrador
-      ? "/admin/trafego-pago"
+  const backPath = session.ehAdministrador
+    ? "/admin/trafego-pago"
+    : session.temNegocio
+      ? session.negocio?.papel === "dono"
+        ? "/painel"
+        : "/profissional/agenda"
       : "/";
-  const backLabel = session.temNegocio
-    ? "Voltar à área de trabalho"
-    : session.ehAdministrador
-      ? "Voltar à administração"
+  const backLabel = session.ehAdministrador
+    ? "Voltar à administração"
+    : session.temNegocio
+      ? "Voltar à área de trabalho"
       : "Voltar a explorar";
 
   return (

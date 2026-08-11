@@ -352,5 +352,43 @@ describe(
           );
       }
     );
+
+    it("mantém as seções disponíveis quando uma API falha", async () => {
+      const originalImplementation = apiRequest.getMockImplementation();
+      apiRequest.mockImplementation((path, options) => {
+        if (path.startsWith("/admin/marketing/conversoes")) {
+          return Promise.reject(new Error("Conversões indisponíveis"));
+        }
+        return originalImplementation(path, options);
+      });
+
+      render(<AdminMarketingPage />);
+
+      expect(await screen.findByRole("heading", {
+        name: "Marketing e tráfego pago"
+      })).not.toBeNull();
+      expect(screen.getByText("Meta Cílios")).not.toBeNull();
+      expect(screen.getByRole("alert").textContent)
+        .toContain("Parte dos dados de marketing");
+    });
+
+    it("preserva a última seção carregada durante uma falha de atualização", async () => {
+      const user = userEvent.setup();
+      render(<AdminMarketingPage />);
+      await screen.findByText("Studio Bella");
+
+      const originalImplementation = apiRequest.getMockImplementation();
+      apiRequest.mockImplementation((path, options) => {
+        if (path === "/admin/marketing/conversoes?periodo=7") {
+          return Promise.reject(new Error("Conversões indisponíveis"));
+        }
+        return originalImplementation(path, options);
+      });
+
+      await user.click(screen.getByRole("button", { name: "7 dias" }));
+      await screen.findByRole("alert");
+
+      expect(screen.getByText("Studio Bella")).not.toBeNull();
+    });
   }
 );

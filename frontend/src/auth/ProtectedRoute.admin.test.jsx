@@ -8,7 +8,8 @@ import {
 import {
   MemoryRouter,
   Route,
-  Routes
+  Routes,
+  useLocation
 } from "react-router-dom";
 import {
   afterEach,
@@ -20,6 +21,11 @@ import {
 import { ProtectedRoute } from "./ProtectedRoute";
 
 let sessionState;
+
+function LocationProbe() {
+  const location = useLocation();
+  return <p data-testid="location">{location.pathname}{location.search}</p>;
+}
 
 vi.mock("./SessionContext", () => ({
   useSession: () => sessionState
@@ -50,6 +56,31 @@ function renderAdminRoute() {
               <h1>Marketing Admin</h1>
             </ProtectedRoute>
           )}
+        />
+      </Routes>
+    </MemoryRouter>
+  );
+}
+
+function renderCheckoutRoute() {
+  return render(
+    <MemoryRouter initialEntries={["/checkout?plano=autonoma"]}>
+      <Routes>
+        <Route
+          path="/checkout"
+          element={(
+            <ProtectedRoute ownerOnly businessRequired>
+              <h1>Checkout</h1>
+            </ProtectedRoute>
+          )}
+        />
+        <Route
+          path="/criar-negocio"
+          element={<><h1>Criar negócio</h1><LocationProbe /></>}
+        />
+        <Route
+          path="/entrar"
+          element={<><h1>Entrar</h1><LocationProbe /></>}
         />
       </Routes>
     </MemoryRouter>
@@ -128,3 +159,38 @@ describe(
     );
   }
 );
+
+describe("ProtectedRoute businessRequired", () => {
+  it("preserva o plano ao enviar conta sem negócio para o onboarding", () => {
+    sessionState = {
+      loading: false,
+      authenticated: true,
+      ehAdministrador: false,
+      temNegocio: false,
+      negocio: null
+    };
+
+    renderCheckoutRoute();
+
+    expect(screen.getByRole("heading", { name: "Criar negócio" }))
+      .not.toBeNull();
+    expect(screen.getByTestId("location").textContent)
+      .toBe("/criar-negocio?plano=autonoma");
+  });
+
+  it("preserva o plano também antes do login", () => {
+    sessionState = {
+      loading: false,
+      authenticated: false,
+      ehAdministrador: false,
+      temNegocio: false,
+      negocio: null
+    };
+
+    renderCheckoutRoute();
+
+    expect(screen.getByRole("heading", { name: "Entrar" })).not.toBeNull();
+    expect(screen.getByTestId("location").textContent)
+      .toBe("/entrar?tipo=profissional&plano=autonoma");
+  });
+});

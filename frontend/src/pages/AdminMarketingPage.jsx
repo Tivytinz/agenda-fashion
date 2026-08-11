@@ -7,6 +7,7 @@ import {
   ErrorState,
   LoadingState
 } from "../components/ScreenState";
+import { settleRequestMap } from "../utils/asyncData";
 
 const PERIODS = [
   ["today", "Hoje"],
@@ -137,6 +138,9 @@ export function AdminMarketingPage() {
   const [reloadKey, setReloadKey] =
     useState(0);
 
+  const [refreshing, setRefreshing] =
+    useState(true);
+
   const [campaignForm, setCampaignForm] =
     useState(INITIAL_CAMPAIGN);
 
@@ -161,55 +165,57 @@ export function AdminMarketingPage() {
 
     let active = true;
 
-    setData(null);
     setError("");
+    setRefreshing(true);
 
-    Promise.all([
-      apiRequest(
+    settleRequestMap({
+      summary: apiRequest(
         `/admin/marketing/resumo?periodo=${period}`,
         { signal: controller.signal }
       ),
-      apiRequest(
+      campaigns: apiRequest(
         `/admin/marketing/campanhas?periodo=${period}`,
         { signal: controller.signal }
       ),
-      apiRequest(
+      conversions: apiRequest(
         `/admin/marketing/conversoes?periodo=${period}`,
         { signal: controller.signal }
       ),
-      apiRequest(
+      managedCampaigns: apiRequest(
         "/admin/marketing/gestao-campanhas",
         { signal: controller.signal }
       )
-    ])
-      .then(([
-        summary,
-        campaigns,
-        conversions,
-        managedCampaigns
-      ]) => {
+    })
+      .then(({ values, errors }) => {
         if (!active) return;
 
-        setData({
-          summary,
-          campaigns:
-            campaigns.campanhas || [],
-          conversions:
-            conversions.conversoes || [],
-          managedCampaigns:
-            managedCampaigns.campanhas || []
-        });
-      })
-      .catch((requestError) => {
-        if (
-          active &&
-          requestError.name !==
-            "AbortError"
-        ) {
+        if (Object.keys(values).length === 0) {
           setError(
-            requestError.message
+            errors[0]?.error?.message ||
+            "Não foi possível carregar os dados de marketing."
+          );
+          return;
+        }
+
+        setData((current) => ({
+          summary:
+            values.summary || current?.summary || {},
+          campaigns:
+            values.campaigns?.campanhas || current?.campaigns || [],
+          conversions:
+            values.conversions?.conversoes || current?.conversions || [],
+          managedCampaigns:
+            values.managedCampaigns?.campanhas || current?.managedCampaigns || []
+        }));
+
+        if (errors.some(({ error }) => error?.name !== "AbortError")) {
+          setError(
+            "Parte dos dados de marketing está temporariamente indisponível."
           );
         }
+      })
+      .finally(() => {
+        if (active) setRefreshing(false);
       });
 
     return () => {
@@ -399,7 +405,7 @@ export function AdminMarketingPage() {
     );
   }
 
-  if (error) {
+  if (!data && error) {
     return (
       <main className="workspace-page admin-workspace-page">
         <ErrorState
@@ -447,7 +453,7 @@ export function AdminMarketingPage() {
     );
 
   return (
-    <main className="workspace-page admin-workspace-page">
+    <main aria-busy={refreshing} className="workspace-page admin-workspace-page">
       <header className="workspace-heading">
         <div>
           <p className="eyebrow">
@@ -486,6 +492,9 @@ export function AdminMarketingPage() {
           )}
         </div>
       </header>
+
+      {refreshing && <p className="data-refresh-status" role="status">Atualizando dados de marketing...</p>}
+      {error && <p className="form-error" role="alert">{error}</p>}
 
       <section
         className="metric-grid"

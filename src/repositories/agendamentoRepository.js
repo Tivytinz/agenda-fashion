@@ -9,7 +9,11 @@ async function listarAgendaProfissional(profissionalId) {
       'agendado' AS status,
       u.nome AS cliente,
       s.nome AS servico,
-      s.valor AS valor
+      COALESCE(
+        a.valor_servico,
+        s.valor,
+        0
+      )::numeric AS valor
     FROM agendamentos a
     LEFT JOIN usuarios u
       ON u.id = a.cliente_id

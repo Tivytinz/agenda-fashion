@@ -228,5 +228,52 @@ describe(
           );
       }
     );
+
+    it("continua mostrando custos quando o histórico de gastos falha", async () => {
+      const originalImplementation = apiRequest.getMockImplementation();
+      apiRequest.mockImplementation((path, options) => {
+        if (path.startsWith("/admin/marketing/gastos") && options?.method !== "POST") {
+          return Promise.reject(new Error("Histórico indisponível"));
+        }
+        return originalImplementation(path, options);
+      });
+
+      render(
+        <MemoryRouter>
+          <AdminMarketingCostsPage />
+        </MemoryRouter>
+      );
+
+      expect(await screen.findByRole("heading", {
+        name: "Investimento e CPA"
+      })).not.toBeNull();
+      expect(screen.getAllByText(/R\$\s*100,00/).length).toBeGreaterThanOrEqual(1);
+      expect(screen.getByRole("alert").textContent)
+        .toContain("Parte dos custos de marketing");
+    });
+
+    it("preserva os últimos custos se apenas a atualização deles falhar", async () => {
+      const user = userEvent.setup();
+      render(
+        <MemoryRouter>
+          <AdminMarketingCostsPage />
+        </MemoryRouter>
+      );
+      await screen.findByRole("heading", { name: "Investimento e CPA" });
+
+      const originalImplementation = apiRequest.getMockImplementation();
+      apiRequest.mockImplementation((path, options) => {
+        if (path === "/admin/marketing/custos?periodo=7") {
+          return Promise.reject(new Error("Custos indisponíveis"));
+        }
+        return originalImplementation(path, options);
+      });
+
+      await user.click(screen.getByRole("button", { name: "7 dias" }));
+      await screen.findByRole("alert");
+
+      expect(screen.getAllByText(/R\$\s*100,00/).length)
+        .toBeGreaterThanOrEqual(1);
+    });
   }
 );

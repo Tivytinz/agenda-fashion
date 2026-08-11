@@ -6,11 +6,12 @@ describe("rotas SPA servidas pelo Express", () => {
     path.join(__dirname, "..", "src", "server.js"),
     "utf8"
   );
-
-  const match = serverSource.match(/const rotasReact = \[([\s\S]*?)\];/);
+  const routes = require("../src/config/reactRoutes.json");
 
   it("mantém o manifesto explícito de rotas React", () => {
-    expect(match).not.toBeNull();
+    expect(serverSource).toContain("Object.values(");
+    expect(serverSource).toContain("reactRoutes");
+    expect(Object.keys(routes).length).toBeGreaterThan(20);
   });
 
   it.each([
@@ -19,6 +20,6 @@ describe("rotas SPA servidas pelo Express", () => {
     "/admin/trafego-pago/custos",
     "/admin/trafego-pago/profissionais",
   ])("serve %s pelo fallback da SPA", (route) => {
-    expect(match?.[1]).toContain(`\"${route}\"`);
+    expect(Object.values(routes)).toContain(route);
   });
 });

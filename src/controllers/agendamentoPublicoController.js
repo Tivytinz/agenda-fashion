@@ -258,6 +258,9 @@ async function criarAgendamentoPublico(
           servicoNome:
             servico.nome,
 
+          servicoValor:
+            servico.valor,
+
           profissionalNome:
             profissional.nome,
 

@@ -53,11 +53,20 @@ jobs:
       - name: Install frontend dependencies
         run: npm --prefix frontend ci
 
+      - name: Lint React frontend
+        run: npm --prefix frontend run lint
+
       - name: Build React frontend
         run: npm run frontend:build
 
       - name: Test React frontend
         run: npm run frontend:test
+
+      - name: Install mobile browsers
+        run: npm --prefix frontend exec -- playwright install --with-deps chromium webkit
+
+      - name: Test mobile frontend
+        run: npm --prefix frontend run test:e2e
 
       - name: Apply test migrations
         run: npm run migrate:test

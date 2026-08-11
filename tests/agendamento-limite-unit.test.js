@@ -65,6 +65,7 @@ describe("Limite durante a criação do agendamento", () => {
       negocioId: 5,
       duracaoServico: 60,
       servicoNome: "Manicure",
+      servicoValor: 50,
       profissionalNome: "Profissional",
     });
 

@@ -6,22 +6,23 @@ import {
 } from "react-router-dom";
 
 import { useSession } from "../auth/SessionContext";
-import { getWorkspacePath } from "../auth/session";
+import { getBusinessWorkspacePath } from "../auth/session";
+import { AppIcon } from "./AppIcon";
 
 export function AppHeader() {
   const session = useSession();
   const location = useLocation();
   const navigate = useNavigate();
-  const adminArea = location.pathname.startsWith(
-    "/admin/"
-  );
+  const accountInAdmin = location.pathname === "/conta" && session.ehAdministrador;
+  const adminArea = location.pathname.startsWith("/admin/") || accountInAdmin;
   const businessArea =
     location.pathname.startsWith("/painel") ||
-    location.pathname.startsWith("/profissional/") ||
-    (
-      location.pathname === "/conta" &&
-      session.temNegocio
-    );
+      location.pathname.startsWith("/profissional/") ||
+      (
+        location.pathname === "/conta" &&
+        session.temNegocio &&
+        !session.ehAdministrador
+      );
   const operationalArea =
     adminArea ||
     businessArea ||
@@ -60,7 +61,7 @@ export function AppHeader() {
             className="brand-mark"
             aria-hidden="true"
           >
-            💅
+            <AppIcon name="brand" />
           </span>
 
           <span className="brand-copy">
@@ -109,10 +110,10 @@ export function AppHeader() {
                 </NavLink>
               )}
 
-              {!businessArea && (
+              {!businessArea && (!session.ehAdministrador || session.temNegocio) && (
                 <NavLink
                   className="text-link desktop-nav-link"
-                  to={getWorkspacePath(session)}
+                  to={getBusinessWorkspacePath(session)}
                 >
                   {session.temNegocio
                     ? "Área de trabalho"

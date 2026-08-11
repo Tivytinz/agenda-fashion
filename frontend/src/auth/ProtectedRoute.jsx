@@ -1,6 +1,7 @@
 import { Navigate, useLocation } from "react-router-dom";
 import { LoadingState } from "../components/ScreenState";
 import { useSession } from "./SessionContext";
+import { getBusinessCreationPath, normalizePlanSlug } from "./session";
 
 export function ProtectedRoute({
   children,
@@ -20,11 +21,20 @@ export function ProtectedRoute({
   }
 
   if (!session.authenticated) {
+    const planSlug = businessRequired
+      ? normalizePlanSlug(
+          new URLSearchParams(location.search).get("plano")
+        )
+      : "";
+    const loginPath = planSlug
+      ? `/entrar?tipo=profissional&plano=${encodeURIComponent(planSlug)}`
+      : "/entrar";
+
     return (
       <Navigate
         replace
         state={{ from: `${location.pathname}${location.search}` }}
-        to="/entrar"
+        to={loginPath}
       />
     );
   }
@@ -34,7 +44,17 @@ export function ProtectedRoute({
   }
 
   if (businessRequired && !session.temNegocio) {
-    return <Navigate replace to="/criar-negocio" />;
+    const planSlug = normalizePlanSlug(
+      new URLSearchParams(location.search).get("plano")
+    );
+
+    return (
+      <Navigate
+        replace
+        state={{ from: `${location.pathname}${location.search}` }}
+        to={getBusinessCreationPath(planSlug)}
+      />
+    );
   }
 
   if (ownerOnly && session.negocio?.papel !== "dono") {

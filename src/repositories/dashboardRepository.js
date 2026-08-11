@@ -103,14 +103,26 @@ async function buscarResumoProfissional(
       )::int AS clientes_unicos,
 
       COALESCE(
-        SUM(s.valor) FILTER (
+        SUM(
+          COALESCE(
+            a.valor_servico,
+            s.valor,
+            0
+          )
+        ) FILTER (
           WHERE a.status != 'cancelado'
         ),
         0
       )::numeric AS faturamento_estimado,
 
       COALESCE(
-        SUM(s.valor) FILTER (
+        SUM(
+          COALESCE(
+            a.valor_servico,
+            s.valor,
+            0
+          )
+        ) FILTER (
           WHERE a.status != 'cancelado'
             AND a.data = (
               NOW() AT TIME ZONE
@@ -176,6 +188,7 @@ async function buscarProximoAtendimentoProfissional(
       ) AS servico_nome,
 
       COALESCE(
+        a.valor_servico,
         servico.valor,
         0
       )::numeric AS valor,
@@ -285,6 +298,7 @@ async function listarProximosAtendimentosProfissional(
       ) AS servico_nome,
 
       COALESCE(
+        a.valor_servico,
         servico.valor,
         0
       )::numeric AS valor,
@@ -349,7 +363,13 @@ async function buscarServicosMaisVendidosProfissional(
       )::int AS total,
 
       COALESCE(
-        SUM(s.valor),
+        SUM(
+          COALESCE(
+            a.valor_servico,
+            s.valor,
+            0
+          )
+        ),
         0
       )::numeric AS faturamento
 
@@ -386,24 +406,59 @@ async function buscarResumoDono(
 ) {
   const result = await db.query(
     `
+    WITH agendamentos_base AS (
+      SELECT
+        a.*,
+        COALESCE(
+          'usuario:' || a.cliente_id::text,
+          'whatsapp:' || NULLIF(
+            regexp_replace(
+              COALESCE(a.cliente_whatsapp, ''),
+              '[^0-9]',
+              '',
+              'g'
+            ),
+            ''
+          )
+        ) AS cliente_chave
+
+      FROM agendamentos a
+
+      WHERE a.negocio_id = $1
+        AND a.status != 'cancelado'
+    ),
+    agendamentos_validos AS (
+      SELECT
+        base.*,
+        MIN(base.data) OVER (
+          PARTITION BY base.cliente_chave
+        ) AS primeira_data_cliente
+
+      FROM agendamentos_base base
+    )
+
     SELECT
       COUNT(*) FILTER (
-        WHERE a.status != 'cancelado'
-          AND a.data = (
+        WHERE a.data = (
             NOW() AT TIME ZONE
             'America/Sao_Paulo'
           )::date
       )::int AS agendamentos_hoje,
 
       COUNT(*) FILTER (
-        WHERE a.status != 'cancelado'
+        WHERE TRUE
         ${filtro}
       )::int AS agendamentos_periodo,
 
       COALESCE(
-        SUM(s.valor) FILTER (
-          WHERE a.status != 'cancelado'
-            AND a.data = (
+        SUM(
+          COALESCE(
+            a.valor_servico,
+            s.valor,
+            0
+          )
+        ) FILTER (
+          WHERE a.data = (
               NOW() AT TIME ZONE
               'America/Sao_Paulo'
             )::date
@@ -412,31 +467,37 @@ async function buscarResumoDono(
       )::numeric AS faturamento_hoje,
 
       COALESCE(
-        SUM(s.valor) FILTER (
-          WHERE a.status != 'cancelado'
+        SUM(
+          COALESCE(
+            a.valor_servico,
+            s.valor,
+            0
+          )
+        ) FILTER (
+          WHERE TRUE
           ${filtro}
         ),
         0
       )::numeric AS faturamento_periodo,
 
       COUNT(
-        DISTINCT a.cliente_id
+        DISTINCT a.cliente_chave
       ) FILTER (
-        WHERE a.status != 'cancelado'
+        WHERE a.cliente_chave IS NOT NULL
+          AND a.data = a.primeira_data_cliente
         ${filtro}
       )::int AS clientes_novos,
 
       COUNT(a.id) FILTER (
-        WHERE a.status != 'cancelado'
+        WHERE TRUE
         ${filtro}
       )::int AS servicos_vendidos
 
-    FROM agendamentos a
+    FROM agendamentos_validos a
 
     LEFT JOIN servicos_negocio s
       ON s.id = a.servico_id
 
-    WHERE a.negocio_id = $1
     `,
     [negocioId]
   );
@@ -454,16 +515,38 @@ async function buscarClientesRecorrentes(
 
     FROM (
       SELECT
-        cliente_id
+        COALESCE(
+          'usuario:' || cliente_id::text,
+          'whatsapp:' || NULLIF(
+            regexp_replace(
+              COALESCE(cliente_whatsapp, ''),
+              '[^0-9]',
+              '',
+              'g'
+            ),
+            ''
+          )
+        ) AS cliente_chave
 
       FROM agendamentos
 
       WHERE negocio_id = $1
         AND status != 'cancelado'
-        AND cliente_id IS NOT NULL
+        AND COALESCE(
+          cliente_id::text,
+          NULLIF(
+            regexp_replace(
+              COALESCE(cliente_whatsapp, ''),
+              '[^0-9]',
+              '',
+              'g'
+            ),
+            ''
+          )
+        ) IS NOT NULL
 
       GROUP BY
-        cliente_id
+        cliente_chave
 
       HAVING COUNT(*) > 1
     ) recorrentes
@@ -478,7 +561,8 @@ async function buscarClientesRecorrentes(
 }
 
 async function buscarPerformanceNegocio(
-  negocioId
+  negocioId,
+  filtro = ""
 ) {
   try {
     const result =
@@ -507,11 +591,18 @@ async function buscarPerformanceNegocio(
                 ->> 'acao' =
                   'maps'
           )::INT
-            AS cliques_maps
+            AS cliques_maps,
 
-        FROM eventos_produto
+          COUNT(*) FILTER (
+            WHERE nome =
+              'agendamento_concluido'
+          )::INT
+            AS agendamentos_concluidos
+
+        FROM eventos_produto e
 
         WHERE negocio_id = $1
+          ${filtro}
         `,
         [negocioId]
       );
@@ -521,6 +612,7 @@ async function buscarPerformanceNegocio(
         visitas_perfil: 0,
         cliques_whatsapp: 0,
         cliques_maps: 0,
+        agendamentos_concluidos: 0,
       }
     );
   } catch {
@@ -528,12 +620,14 @@ async function buscarPerformanceNegocio(
       visitas_perfil: 0,
       cliques_whatsapp: 0,
       cliques_maps: 0,
+      agendamentos_concluidos: 0,
     };
   }
 }
 
 async function buscarFavoritosRecebidos(
-  negocioId
+  negocioId,
+  filtro = ""
 ) {
   try {
     const result =
@@ -542,9 +636,10 @@ async function buscarFavoritosRecebidos(
         SELECT
           COUNT(*)::int AS total
 
-        FROM favoritos
+        FROM favoritos f
 
         WHERE negocio_id = $1
+          ${filtro}
         `,
         [negocioId]
       );
@@ -575,7 +670,13 @@ async function buscarResumoDias(
       )::int AS agendamentos,
 
       COALESCE(
-        SUM(s.valor),
+        SUM(
+          COALESCE(
+            a.valor_servico,
+            s.valor,
+            0
+          )
+        ),
         0
       )::numeric AS faturamento
 
@@ -615,7 +716,13 @@ async function buscarRankingProfissionais(
       )::int AS total,
 
       COALESCE(
-        SUM(s.valor),
+        SUM(
+          COALESCE(
+            a.valor_servico,
+            s.valor,
+            0
+          )
+        ),
         0
       )::numeric AS faturamento
 
@@ -661,7 +768,13 @@ async function buscarRankingServicos(
       )::int AS total,
 
       COALESCE(
-        SUM(s.valor),
+        SUM(
+          COALESCE(
+            a.valor_servico,
+            s.valor,
+            0
+          )
+        ),
         0
       )::numeric AS faturamento
 
@@ -704,7 +817,13 @@ async function buscarRankingClientes(
       )::int AS total,
 
       COALESCE(
-        SUM(s.valor),
+        SUM(
+          COALESCE(
+            a.valor_servico,
+            s.valor,
+            0
+          )
+        ),
         0
       )::numeric AS faturamento
 

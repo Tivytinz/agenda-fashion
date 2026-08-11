@@ -560,6 +560,7 @@ async function criarAgendamento({
   duracaoServico,
 
   servicoNome,
+  servicoValor,
   profissionalNome,
   whatsappProfissional,
   whatsappNegocio,
@@ -649,6 +650,23 @@ async function criarAgendamento({
       ? duracaoRecebida
       : 60;
 
+  const valorServico =
+    Number(
+      servicoValor
+    );
+
+  if (
+    !Number.isFinite(
+      valorServico
+    ) ||
+    valorServico < 0
+  ) {
+    throw criarErro(
+      "Valor do serviço inválido.",
+      400
+    );
+  }
+
   const agendamento =
     await db.executarTransacao(
       async (client) => {
@@ -732,6 +750,8 @@ async function criarAgendamento({
 
                 servicoId:
                   servicoIdNormalizado,
+
+                valorServico,
 
                 negocioId:
                   negocioIdNormalizado,

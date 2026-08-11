@@ -1,5 +1,6 @@
 import { lazy, Suspense } from "react";
 import { Route, Routes } from "react-router-dom";
+import reactRoutes from "../../src/config/reactRoutes.json";
 import { ProtectedRoute } from "./auth/ProtectedRoute";
 import { useSession } from "./auth/SessionContext";
 import { AppHeader } from "./components/AppHeader";
@@ -113,19 +114,19 @@ const NotFoundPage = lazyNamed(
 function AccountRoute() {
   const session = useSession();
 
-  if (session.temNegocio) {
-    return (
-      <WorkspaceLayout>
-        <AccountPage />
-      </WorkspaceLayout>
-    );
-  }
-
   if (session.ehAdministrador) {
     return (
       <AdminLayout>
         <AccountPage />
       </AdminLayout>
+    );
+  }
+
+  if (session.temNegocio) {
+    return (
+      <WorkspaceLayout>
+        <AccountPage />
+      </WorkspaceLayout>
     );
   }
 
@@ -139,14 +140,14 @@ export default function App() {
       <MetaAdsBridge />
       <Suspense fallback={<main><div className="container route-loading">Carregando...</div></main>}>
         <Routes>
-        <Route path="/" element={<ExplorePage />} />
-        <Route path="/negocio/:slug" element={<ProfilePage />} />
-        <Route path="/confirmar" element={<ConfirmPage />} />
-        <Route path="/sucesso" element={<SuccessPage />} />
-        <Route path="/minha-agenda" element={<MyAppointmentsPage />} />
-        <Route path="/entrar" element={<AuthPage />} />
-        <Route path="/cadastro" element={<AuthPage mode="register" />} />
-        <Route path="/privacidade" element={<PrivacyPage />} />
+        <Route path={reactRoutes.home} element={<ExplorePage />} />
+        <Route path={reactRoutes.businessProfile} element={<ProfilePage />} />
+        <Route path={reactRoutes.confirm} element={<ConfirmPage />} />
+        <Route path={reactRoutes.success} element={<SuccessPage />} />
+        <Route path={reactRoutes.myAgenda} element={<MyAppointmentsPage />} />
+        <Route path={reactRoutes.login} element={<AuthPage />} />
+        <Route path={reactRoutes.register} element={<AuthPage mode="register" />} />
+        <Route path={reactRoutes.privacy} element={<PrivacyPage />} />
         <Route
           element={(
             <ProtectedRoute adminOnly>
@@ -155,83 +156,83 @@ export default function App() {
           )}
         >
           <Route
-            path="/admin/trafego-pago"
+            path={reactRoutes.adminMarketing}
             element={<AdminMarketingPage />}
           />
           <Route
-            path="/admin/trafego-pago/custos"
+            path={reactRoutes.adminCosts}
             element={<AdminMarketingCostsPage />}
           />
           <Route
-            path="/admin/trafego-pago/profissionais"
+            path={reactRoutes.adminProfessionals}
             element={<AdminProfessionalFunnelPage />}
           />
         </Route>
         <Route
-          path="/favoritos"
+          path={reactRoutes.favorites}
           element={<ProtectedRoute><FavoritesPage /></ProtectedRoute>}
         />
         <Route
-          path="/criar-negocio"
+          path={reactRoutes.createBusiness}
           element={<ProtectedRoute><BusinessPage create /></ProtectedRoute>}
         />
         <Route
-          path="/conta"
+          path={reactRoutes.account}
           element={<ProtectedRoute><AccountRoute /></ProtectedRoute>}
         />
         <Route
-          path="/planos"
+          path={reactRoutes.plans}
           element={<PlansPage />}
         />
         <Route
-          path="/checkout"
+          path={reactRoutes.checkout}
           element={<ProtectedRoute ownerOnly businessRequired><BillingCheckoutPage /></ProtectedRoute>}
         />
         <Route
           element={<ProtectedRoute businessRequired><WorkspaceLayout /></ProtectedRoute>}
         >
           <Route
-            path="/painel"
+            path={reactRoutes.dashboard}
             element={<ProtectedRoute ownerOnly businessRequired><DashboardPage /></ProtectedRoute>}
           />
           <Route
-            path="/painel/agenda"
+            path={reactRoutes.ownerAgenda}
             element={<ProtectedRoute ownerOnly businessRequired><AgendaWorkspacePage owner /></ProtectedRoute>}
           />
           <Route
-            path="/painel/servicos"
+            path={reactRoutes.services}
             element={<ProtectedRoute ownerOnly businessRequired><ServicesPage /></ProtectedRoute>}
           />
           <Route
-            path="/painel/servicos/novo"
+            path={reactRoutes.newService}
             element={<ProtectedRoute ownerOnly businessRequired><ServiceEditorPage /></ProtectedRoute>}
           />
           <Route
-            path="/painel/servicos/:id/editar"
+            path={reactRoutes.editService}
             element={<ProtectedRoute ownerOnly businessRequired><ServiceEditorPage /></ProtectedRoute>}
           />
           <Route
-            path="/painel/profissionais"
+            path={reactRoutes.professionals}
             element={<ProtectedRoute ownerOnly businessRequired><ProfessionalsPage /></ProtectedRoute>}
           />
           <Route
-            path="/painel/horarios"
+            path={reactRoutes.schedule}
             element={<ProtectedRoute ownerOnly businessRequired><ScheduleSettingsPage /></ProtectedRoute>}
           />
           <Route
-            path="/painel/negocio"
+            path={reactRoutes.businessSettings}
             element={<ProtectedRoute ownerOnly businessRequired><BusinessPage /></ProtectedRoute>}
           />
           <Route
-            path="/painel/assinatura"
+            path={reactRoutes.subscription}
             element={<ProtectedRoute ownerOnly businessRequired><SubscriptionPage /></ProtectedRoute>}
           />
           <Route
-            path="/profissional/agenda"
+            path={reactRoutes.professionalAgenda}
             element={<AgendaWorkspacePage />}
           />
           <Route
-            path="/profissional/horarios"
+            path={reactRoutes.professionalSchedule}
             element={<ScheduleSettingsPage />}
           />
         </Route>

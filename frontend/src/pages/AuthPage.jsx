@@ -6,16 +6,18 @@ import {
   trackMetaEvent
 } from "../analytics/metaAds";
 import { getMarketingContext } from "../analytics/track";
-import { getWorkspacePath } from "../auth/session";
+import {
+  getAuthDestination,
+  normalizePlanSlug,
+  safeInternalPath
+} from "../auth/session";
 import { useSession } from "../auth/SessionContext";
 import { GoogleLoginButton } from "../components/GoogleLoginButton";
 
 export const WHATSAPP_PATTERN = "(?:[^0-9]*[0-9]){10,11}[^0-9]*";
 
 export function safeReturnPath(value) {
-  return typeof value === "string" && value.startsWith("/") && !value.startsWith("//")
-    ? value
-    : "";
+  return safeInternalPath(value);
 }
 
 export function AuthPage({ mode = "login" }) {
@@ -33,17 +35,28 @@ export function AuthPage({ mode = "login" }) {
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
-  const professionalIntent = useMemo(() => {
-    if (!isRegister) return false;
-
+  const authIntent = useMemo(() => {
     const params = new URLSearchParams(location.search);
-    return params.get("tipo") === "profissional";
-  }, [isRegister, location.search]);
+    const planSlug = normalizePlanSlug(params.get("plano"));
+
+    return {
+      planSlug,
+      professional: params.get("tipo") === "profissional" || Boolean(planSlug)
+    };
+  }, [location.search]);
+  const professionalIntent = isRegister && authIntent.professional;
+
+  const destination = useMemo(() => getAuthDestination(session, {
+    requestedPath: safeReturnPath(location.state?.from),
+    planSlug: authIntent.planSlug
+  }), [authIntent.planSlug, location.state, session]);
 
   const finish = useCallback((current) => {
-    const requested = safeReturnPath(location.state?.from);
-    navigate(requested || getWorkspacePath(current), { replace: true });
-  }, [location.state, navigate]);
+    navigate(getAuthDestination(current, {
+      requestedPath: safeReturnPath(location.state?.from),
+      planSlug: authIntent.planSlug
+    }), { replace: true });
+  }, [authIntent.planSlug, location.state, navigate]);
 
   const handleGoogle = useCallback(async (credential) => {
     setError("");
@@ -95,7 +108,7 @@ export function AuthPage({ mode = "login" }) {
   }, [finish, isRegister, professionalIntent, session]);
 
   if (!session.loading && session.authenticated) {
-    return <Navigate replace to={getWorkspacePath(session)} />;
+    return <Navigate replace to={destination} />;
   }
 
   function update(field, value) {
@@ -243,7 +256,10 @@ export function AuthPage({ mode = "login" }) {
 
         <p className="auth-switch">
           {isRegister ? "Já tem uma conta?" : "Ainda não tem conta?"}{" "}
-          <Link to={isRegister ? "/entrar" : "/cadastro"}>
+          <Link
+            state={location.state}
+            to={`${isRegister ? "/entrar" : "/cadastro"}${location.search}`}
+          >
             {isRegister ? "Entrar" : "Criar conta"}
           </Link>
         </p>

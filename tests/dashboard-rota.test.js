@@ -195,6 +195,9 @@ function configurarRepositorioDono() {
 
       cliques_maps:
         "4",
+
+      agendamentos_concluidos:
+        "6",
     });
 
   dashboardRepository
@@ -510,7 +513,7 @@ describe(
           11,
 
           expect.stringContaining(
-            "INTERVAL '7 days'"
+            "INTERVAL '6 days'"
           )
         );
 
@@ -573,6 +576,9 @@ describe(
             favoritos_recebidos:
               8,
 
+            agendamentos_concluidos:
+              6,
+
             taxa_conversao:
               25,
           },
@@ -616,17 +622,17 @@ describe(
 
       [
         "7dias",
-        "INTERVAL '7 days'",
+        "INTERVAL '6 days'",
       ],
 
       [
         "30dias",
-        "INTERVAL '30 days'",
+        "INTERVAL '29 days'",
       ],
 
       [
         "mes",
-        "date_trunc('month', a.data)",
+        "date_trunc('month'",
       ],
     ])(
       "aplica corretamente o filtro %s",
@@ -715,6 +721,26 @@ describe(
 
           expect.stringContaining(
             trechoEsperado
+          )
+        );
+
+        expect(
+          dashboardRepository
+            .buscarPerformanceNegocio
+        ).toHaveBeenCalledWith(
+          11,
+          expect.stringContaining(
+            "e.created_at"
+          )
+        );
+
+        expect(
+          dashboardRepository
+            .buscarFavoritosRecebidos
+        ).toHaveBeenCalledWith(
+          11,
+          expect.stringContaining(
+            "f.created_at"
           )
         );
       }

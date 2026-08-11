@@ -6,6 +6,7 @@ import {
 } from "react";
 import { NavLink, Outlet, useLocation } from "react-router-dom";
 import { useSession } from "../auth/SessionContext";
+import { AppIcon } from "./AppIcon";
 import {
   isExactNavigationRoute,
   isWorkspaceRouteActive,
@@ -13,27 +14,27 @@ import {
 } from "./workspaceNavigation";
 
 const OWNER_LINKS = [
-  ["/painel", "Visão geral", "⌂"],
-  ["/painel/agenda", "Agenda", "▦"],
-  ["/painel/servicos", "Serviços", "✦"],
-  ["/painel/profissionais", "Equipe", "♙"],
-  ["/painel/horarios", "Horários", "◷"],
-  ["/painel/negocio", "Meu negócio", "◇"],
-  ["/painel/assinatura", "Plano e assinatura", "◉"],
-  ["/conta", "Minha conta", "○"]
+  ["/painel", "Visão geral", "home"],
+  ["/painel/agenda", "Agenda", "calendar"],
+  ["/painel/servicos", "Serviços", "services"],
+  ["/painel/profissionais", "Equipe", "team"],
+  ["/painel/horarios", "Horários", "clock"],
+  ["/painel/negocio", "Meu negócio", "business"],
+  ["/painel/assinatura", "Plano e assinatura", "plan"],
+  ["/conta", "Minha conta", "account"]
 ];
 
 const PROFESSIONAL_LINKS = [
-  ["/profissional/agenda", "Minha agenda", "▦"],
-  ["/profissional/horarios", "Meus horários", "◷"],
-  ["/conta", "Minha conta", "○"]
+  ["/profissional/agenda", "Minha agenda", "calendar"],
+  ["/profissional/horarios", "Meus horários", "clock"],
+  ["/conta", "Minha conta", "account"]
 ];
 
 export const ADMIN_LINKS = [
-  ["/admin/trafego-pago", "Marketing", "↗"],
-  ["/admin/trafego-pago/custos", "Custos", "R$"],
-  ["/admin/trafego-pago/profissionais", "Funil", "◇"],
-  ["/conta", "Minha conta", "○"]
+  ["/admin/trafego-pago", "Marketing", "marketing"],
+  ["/admin/trafego-pago/custos", "Custos", "costs"],
+  ["/admin/trafego-pago/profissionais", "Funil", "funnel"],
+  ["/conta", "Minha conta", "account"]
 ];
 
 function WorkspaceLinks({
@@ -60,7 +61,7 @@ function WorkspaceLinks({
       onClick={onNavigate}
       to={to}
     >
-      <span aria-hidden="true">{icon}</span>
+      <span aria-hidden="true"><AppIcon name={icon} /></span>
       <small>{label}</small>
     </NavLink>
   ));
@@ -133,7 +134,7 @@ export function MobileWorkspaceNavigation({
             onClick={() => setMenuOpen((open) => !open)}
             type="button"
           >
-            <span aria-hidden="true">•••</span>
+            <span aria-hidden="true"><AppIcon name="more" /></span>
             <small>Mais</small>
           </button>
 

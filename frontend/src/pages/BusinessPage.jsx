@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { apiRequest } from "../api/client";
 import { useSession } from "../auth/SessionContext";
+import { normalizePlanSlug, safeInternalPath } from "../auth/session";
 import { BackLink } from "../components/BackLink";
 import { ErrorState, LoadingState } from "../components/ScreenState";
 import { MediaThumb } from "../components/profile/MediaThumb";
@@ -51,6 +52,9 @@ function validateImage(file) {
 export function BusinessPage({ create = false }) {
   const session = useSession();
   const navigate = useNavigate();
+  const location = useLocation();
+  const [searchParams] = useSearchParams();
+  const selectedPlan = normalizePlanSlug(searchParams.get("plano"));
   const [form, setForm] = useState(EMPTY);
   const [loading, setLoading] = useState(!create);
   const [saving, setSaving] = useState(false);
@@ -145,7 +149,13 @@ export function BusinessPage({ create = false }) {
       setMessage(result.mensagem || (create ? "Negócio criado." : "Alterações salvas."));
       if (result.publicacao) setPublication(result.publicacao);
       await session.refresh();
-      if (create) navigate("/painel", { replace: true });
+      if (create) {
+        const requestedPath = safeInternalPath(location.state?.from);
+        const destination = selectedPlan
+          ? `/checkout?plano=${encodeURIComponent(selectedPlan)}`
+          : requestedPath || "/painel";
+        navigate(destination, { replace: true });
+      }
     } catch (requestError) {
       setError(requestError.message);
     } finally {
@@ -222,8 +232,8 @@ export function BusinessPage({ create = false }) {
 
   return (
     <main className={create ? "container page-content narrow-page" : "workspace-page business-settings-page"}>
-      <BackLink to={create ? "/" : "/painel"}>
-        {create ? "Voltar a explorar" : "Voltar à visão geral"}
+      <BackLink to={create ? selectedPlan ? "/planos" : "/" : "/painel"}>
+        {create ? selectedPlan ? "Voltar aos planos" : "Voltar a explorar" : "Voltar à visão geral"}
       </BackLink>
       <header className="workspace-heading">
         <div>

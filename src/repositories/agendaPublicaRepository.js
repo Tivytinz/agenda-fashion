@@ -293,6 +293,7 @@ async function criarAgendamento(
     clienteWhatsapp = null,
     whatsappConsentido = false,
     servicoId,
+    valorServico,
     negocioId,
   },
   executor = db
@@ -318,6 +319,7 @@ async function criarAgendamento(
           cliente_whatsapp,
           whatsapp_consentido_em,
           servico_id,
+          valor_servico,
           negocio_id,
           status
         )
@@ -335,6 +337,7 @@ async function criarAgendamento(
           END,
           $8,
           $9,
+          $10,
           'agendado'
         )
         RETURNING
@@ -356,6 +359,7 @@ async function criarAgendamento(
           cliente_whatsapp,
           whatsapp_consentido_em,
           servico_id,
+          valor_servico,
           negocio_id,
           status,
           avaliacao,
@@ -371,6 +375,7 @@ async function criarAgendamento(
         clienteWhatsapp,
         whatsappConsentido,
         servicoId,
+        valorServico,
         negocioId,
       ]
     );
@@ -466,7 +471,11 @@ async function listarMeusAgendamentos(
         u.nome AS profissional,
 
         s.nome AS servico,
-        s.valor
+        COALESCE(
+          a.valor_servico,
+          s.valor,
+          0
+        )::numeric AS valor
 
       FROM agendamentos a
 

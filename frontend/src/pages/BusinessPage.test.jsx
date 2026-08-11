@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { MemoryRouter } from "react-router-dom";
+import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { apiRequest } from "../api/client";
 import { BusinessPage } from "./BusinessPage";
@@ -53,6 +53,38 @@ afterEach(() => {
 });
 
 describe("publicação do negócio", () => {
+  it("continua no checkout depois de criar o negócio de um plano pago", async () => {
+    apiRequest.mockResolvedValueOnce({
+      mensagem: "Negócio criado.",
+      negocio: BUSINESS
+    });
+
+    render(
+      <MemoryRouter initialEntries={["/criar-negocio?plano=autonoma"]}>
+        <Routes>
+          <Route path="/criar-negocio" element={<BusinessPage create />} />
+          <Route path="/checkout" element={<h1>Checkout do plano</h1>} />
+        </Routes>
+      </MemoryRouter>
+    );
+
+    fireEvent.change(screen.getByLabelText("Nome do negócio"), {
+      target: { value: "Studio Victor" }
+    });
+    fireEvent.click(screen.getByLabelText("Unhas"));
+    fireEvent.submit(screen.getByRole("button", { name: "Criar negócio" }).closest("form"));
+
+    expect(await screen.findByRole("heading", { name: "Checkout do plano" }))
+      .not.toBeNull();
+    expect(apiRequest).toHaveBeenCalledWith("/criar-negocio", {
+      method: "POST",
+      body: expect.objectContaining({
+        nome: "Studio Victor",
+        especialidades: ["Unhas"]
+      })
+    });
+  });
+
   it("informa que o endereço acompanha o nome e envia os demais campos normalizados", async () => {
     apiRequest
       .mockResolvedValueOnce({

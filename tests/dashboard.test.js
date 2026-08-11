@@ -308,7 +308,8 @@ describe(
           .mockResolvedValue({
             visitas_perfil: "20",
             cliques_whatsapp: "8",
-            cliques_maps: "3"
+            cliques_maps: "3",
+            agendamentos_concluidos: "5"
           });
 
         dashboardRepository
@@ -372,7 +373,7 @@ describe(
         ).toHaveBeenCalledWith(
           11,
           expect.stringContaining(
-            "INTERVAL '7 days'"
+            "INTERVAL '6 days'"
           )
         );
 
@@ -405,6 +406,7 @@ describe(
           cliques_whatsapp: 8,
           cliques_maps: 3,
           favoritos_recebidos: 6,
+          agendamentos_concluidos: 5,
           taxa_conversao: 25
         });
 

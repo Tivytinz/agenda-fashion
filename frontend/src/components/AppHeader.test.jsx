@@ -107,4 +107,24 @@ describe("cabeçalho por contexto", () => {
       screen.queryByRole("link", { name: "Administração" })
     ).toBeNull();
   });
+
+  it("mantém a conta de um administrador proprietário no contexto administrativo", () => {
+    useSession.mockReturnValue({
+      authenticated: true,
+      ehAdministrador: true,
+      temNegocio: true,
+      negocio: { papel: "dono" },
+      usuario: { nome: "Admin" },
+      logout
+    });
+
+    renderHeader("/conta");
+
+    expect(screen.getByRole("link", { name: "Explorar" })
+      .getAttribute("href")).toBe("/");
+    expect(screen.getByRole("link", { name: "Área de trabalho" })
+      .getAttribute("href")).toBe("/painel");
+    expect(screen.queryByRole("link", { name: "Administração" }))
+      .toBeNull();
+  });
 });

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { apiRequest } from "../api/client";
 import { track } from "../analytics/track";
@@ -31,6 +31,8 @@ export function ProfilePage() {
   const [favorite, setFavorite] = useState(false);
   const [favoriteBusy, setFavoriteBusy] = useState(false);
   const [favoriteError, setFavoriteError] = useState("");
+  const searchQueryRef = useRef(searchParams.toString());
+  searchQueryRef.current = searchParams.toString();
 
   const business = profile?.negocio;
   const services = profile?.servicos ?? EMPTY_LIST;
@@ -74,7 +76,7 @@ export function ProfilePage() {
           canonicalSlug !== slug
         ) {
           const query =
-            searchParams.toString();
+            searchQueryRef.current;
 
           navigate(
             `/negocio/${encodeURIComponent(canonicalSlug)}${query ? `?${query}` : ""}`,
@@ -100,7 +102,7 @@ export function ProfilePage() {
 
     void loadProfile();
     return () => controller.abort();
-  }, [navigate, profileReload, searchParams, slug]);
+  }, [navigate, profileReload, slug]);
 
   useEffect(() => {
     const businessId = business?.id;

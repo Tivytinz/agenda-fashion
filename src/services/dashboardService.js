@@ -148,63 +148,72 @@ function normalizarServico(
   };
 }
 
+function normalizarPeriodo(periodo) {
+  const aliases = {
+    hoje: "hoje",
+    "7": "7dias",
+    "7dias": "7dias",
+    "30": "30dias",
+    "30dias": "30dias",
+    mes: "mes",
+    month: "mes"
+  };
+
+  return aliases[periodo] || "7dias";
+}
+
 function filtroPeriodo(
-  periodo
+  periodo,
+  expressaoData = "a.data"
 ) {
   const hojeBrasil =
     `(NOW() AT TIME ZONE ` +
     `'America/Sao_Paulo')::date`;
+  const periodoNormalizado =
+    normalizarPeriodo(
+      periodo
+    );
 
   if (
-    periodo === "hoje"
+    periodoNormalizado === "hoje"
   ) {
     return (
-      `AND a.data = ` +
+      `AND ${expressaoData} = ` +
       hojeBrasil
     );
   }
 
   if (
-    periodo === "7dias" ||
-    periodo === "7"
+    periodoNormalizado === "7dias"
   ) {
     return (
-      `AND a.data >= ` +
+      `AND ${expressaoData} BETWEEN ` +
       `${hojeBrasil} - ` +
-      `INTERVAL '7 days'`
+      `INTERVAL '6 days' ` +
+      `AND ${hojeBrasil}`
     );
   }
 
   if (
-    periodo === "30dias" ||
-    periodo === "30"
+    periodoNormalizado === "30dias"
   ) {
     return (
-      `AND a.data >= ` +
+      `AND ${expressaoData} BETWEEN ` +
       `${hojeBrasil} - ` +
-      `INTERVAL '30 days'`
+      `INTERVAL '29 days' ` +
+      `AND ${hojeBrasil}`
     );
   }
 
-  if (
-    periodo === "mes" ||
-    periodo === "month"
-  ) {
+  if (periodoNormalizado === "mes") {
     return (
-      `AND date_trunc(` +
-      `'month', a.data` +
-      `) = date_trunc(` +
-      `'month', ` +
-      hojeBrasil +
-      `)`
+      `AND ${expressaoData} BETWEEN ` +
+      `date_trunc('month', ${hojeBrasil})::date ` +
+      `AND ${hojeBrasil}`
     );
   }
 
-  return (
-    `AND a.data >= ` +
-    `${hojeBrasil} - ` +
-    `INTERVAL '7 days'`
-  );
+  return filtroPeriodo("7dias", expressaoData);
 }
 
 async function buscarDashboardProfissional({
@@ -378,9 +387,28 @@ async function buscarDashboardDono({
       negocio.negocio_id
     );
 
+  const periodoNormalizado =
+    normalizarPeriodo(
+      periodo
+    );
+
   const filtro =
     filtroPeriodo(
-      periodo
+      periodoNormalizado
+    );
+
+  const filtroEventos =
+    filtroPeriodo(
+      periodoNormalizado,
+      `(e.created_at AT TIME ZONE ` +
+      `'America/Sao_Paulo')::date`
+    );
+
+  const filtroFavoritos =
+    filtroPeriodo(
+      periodoNormalizado,
+      `(f.created_at AT TIME ZONE ` +
+      `'America/Sao_Paulo')::date`
     );
 
   const [
@@ -406,12 +434,14 @@ async function buscarDashboardDono({
 
     dashboardRepository
       .buscarPerformanceNegocio(
-        negocioId
+        negocioId,
+        filtroEventos
       ),
 
     dashboardRepository
       .buscarFavoritosRecebidos(
-        negocioId
+        negocioId,
+        filtroFavoritos
       ),
 
     dashboardRepository
@@ -444,6 +474,12 @@ async function buscarDashboardDono({
       performance.visitas_perfil
     );
 
+  const agendamentosConvertidos =
+    converterNumero(
+      performance
+        .agendamentos_concluidos
+    );
+
   const agendamentosPeriodo =
     converterNumero(
       resumo.agendamentos_periodo
@@ -456,11 +492,11 @@ async function buscarDashboardDono({
 
   const taxaConversao =
     totalVisitas > 0
-      ? Math.round(
-          (
-            agendamentosPeriodo /
+      ? Number(
+          ((
+            agendamentosConvertidos /
             totalVisitas
-          ) * 100
+          ) * 100).toFixed(1)
         )
       : 0;
 
@@ -475,7 +511,8 @@ async function buscarDashboardDono({
       : 0;
 
   return {
-    periodo,
+    periodo:
+      periodoNormalizado,
 
     negocio:
       normalizarNegocio(
@@ -538,6 +575,9 @@ async function buscarDashboardDono({
         converterNumero(
           favoritos
         ),
+
+      agendamentos_concluidos:
+        agendamentosConvertidos,
 
       taxa_conversao:
         taxaConversao,

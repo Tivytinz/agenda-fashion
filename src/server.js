@@ -163,6 +163,7 @@ app.get(
 
 const rootDir = path.join(process.cwd(), "agendamento-nails");
 const reactDir = path.join(rootDir, "react-app");
+const reactRoutes = require("./config/reactRoutes.json");
 
 app.use(express.static(reactDir));
 
@@ -319,35 +320,9 @@ if (
  * Elas ficam depois das APIs para que endpoints reais tenham prioridade.
  * A lista explicita evita devolver index.html para uma API inexistente.
  */
-const rotasReact = [
-  "/",
-  "/entrar",
-  "/cadastro",
-  "/privacidade",
-  "/confirmar",
-  "/sucesso",
-  "/minha-agenda",
-  "/favoritos",
-  "/criar-negocio",
-  "/conta",
-  "/planos",
-  "/checkout",
-  "/admin/trafego-pago",
-  "/admin/trafego-pago/custos",
-  "/admin/trafego-pago/profissionais",
-  "/painel",
-  "/painel/agenda",
-  "/painel/servicos",
-  "/painel/servicos/novo",
-  "/painel/servicos/:id/editar",
-  "/painel/profissionais",
-  "/painel/horarios",
-  "/painel/negocio",
-  "/painel/assinatura",
-  "/profissional/agenda",
-  "/profissional/horarios",
-  "/negocio/:slug",
-];
+const rotasReact = Object.values(
+  reactRoutes
+);
 
 app.get(
   rotasReact,

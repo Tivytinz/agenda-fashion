@@ -148,5 +148,23 @@ describe(
         });
       }
     );
+
+    it("preserva a coorte carregada se a atualização falhar", async () => {
+      const user = userEvent.setup();
+
+      render(
+        <MemoryRouter>
+          <AdminProfessionalFunnelPage />
+        </MemoryRouter>
+      );
+
+      await screen.findByText("profissionais_goiania");
+      apiRequest.mockRejectedValueOnce(new Error("Funil indisponível"));
+
+      await user.click(screen.getByRole("button", { name: "7 dias" }));
+
+      expect(await screen.findByRole("alert")).not.toBeNull();
+      expect(screen.getByText("profissionais_goiania")).not.toBeNull();
+    });
   }
 );
