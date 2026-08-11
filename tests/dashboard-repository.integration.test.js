@@ -63,7 +63,11 @@ describe("dashboardRepository integrado", () => {
     return id;
   }
 
-  async function criarAgendamento(clienteId, deslocamentoDias) {
+  async function criarAgendamento(
+    clienteId,
+    deslocamentoDias,
+    horario = "10:00"
+  ) {
     await db.query(
       `
         INSERT INTO agendamentos (
@@ -81,7 +85,7 @@ describe("dashboardRepository integrado", () => {
           $3,
           $4,
           (NOW() AT TIME ZONE 'America/Sao_Paulo')::date + $5::int,
-          '10:00',
+          $6,
           'agendado'
         )
       `,
@@ -91,6 +95,7 @@ describe("dashboardRepository integrado", () => {
         cenario.profissional.id,
         clienteId,
         deslocamentoDias,
+        horario,
       ]
     );
   }
@@ -101,7 +106,7 @@ describe("dashboardRepository integrado", () => {
 
     await criarAgendamento(clienteAntigo, -10);
     await criarAgendamento(clienteAntigo, 0);
-    await criarAgendamento(clienteNovo, 0);
+    await criarAgendamento(clienteNovo, 0, "11:00");
     await criarAgendamento(clienteNovo, 3);
 
     await db.query(
