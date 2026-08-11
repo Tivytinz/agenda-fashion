@@ -1,5 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useLocation, useNavigate, useSearchParams } from "react-router-dom";
+import {
+  createMetaEventContext,
+  trackMetaEvent
+} from "../analytics/metaAds";
 import { apiRequest } from "../api/client";
 import { useSession } from "../auth/SessionContext";
 import { BackLink } from "../components/BackLink";
@@ -232,7 +236,11 @@ export function BillingCheckoutPage() {
   const [error, setError] = useState("");
   const [processing, setProcessing] = useState(false);
   const pollRunRef = useRef(0);
-  const checkoutAttemptRef = useRef({ fingerprint: "", key: "" });
+  const checkoutAttemptRef = useRef({
+    fingerprint: "",
+    key: "",
+    meta: null
+  });
 
   useEffect(() => () => {
     pollRunRef.current += 1;
@@ -314,10 +322,15 @@ export function BillingCheckoutPage() {
         || `${Date.now()}-${Math.random().toString(36).slice(2)}`;
       checkoutAttemptRef.current = {
         fingerprint,
-        key: `checkout-${uniquePart}`
+        key: `checkout-${uniquePart}`,
+        meta: createMetaEventContext(
+          "professional-checkout"
+        )
       };
     }
     try {
+      const metaContext =
+        checkoutAttemptRef.current.meta;
       const result = await apiRequest("/checkout", {
         method: "POST",
         headers: { "Idempotency-Key": checkoutAttemptRef.current.key },
@@ -325,10 +338,28 @@ export function BillingCheckoutPage() {
           plano_id: plan.id,
           plano_slug: plan.slug,
           forma_pagamento: "pix",
-          cpf_cnpj: normalizedDocument
+          cpf_cnpj: normalizedDocument,
+          ...(metaContext ? { meta: metaContext } : {})
         }
       });
-      checkoutAttemptRef.current = { fingerprint: "", key: "" };
+      checkoutAttemptRef.current = {
+        fingerprint: "",
+        key: "",
+        meta: null
+      };
+
+      if (metaContext?.event_id) {
+        void trackMetaEvent(
+          "InitiateCheckout",
+          {
+            currency: "BRL",
+            value: Number(plan.valor || 0),
+            content_name: plan.nome
+          },
+          metaContext.event_id
+        );
+      }
+
       if (paymentConfirmed(result)) {
         navigate("/painel/assinatura", { replace: true, state: { payment: "confirmed" } });
         return;
