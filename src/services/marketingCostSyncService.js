@@ -42,6 +42,12 @@ function normalizarTexto(valor, maximo = 240) {
   return String(valor || "").trim().slice(0, maximo);
 }
 
+function normalizarIdExterno(valor, maximo = 120) {
+  return normalizarTexto(valor, maximo)
+    .replace(/^act_/i, "")
+    .replace(/\D/g, "");
+}
+
 async function statusIntegracoes() {
   const [vinculos, sincronizacoes] = await Promise.all([
     repository.listarVinculos(),
@@ -66,9 +72,16 @@ async function vincularCampanha({ payload }) {
   if (!campanha) throw new AppError("Campanha não encontrada.", 404);
 
   const provedor = normalizarProvedor(payload?.provedor);
-  const contaExternaId = normalizarTexto(payload?.contaExternaId ?? payload?.conta_externa_id, 120).replace(/^act_/, "");
-  const campanhaExternaId = normalizarTexto(payload?.campanhaExternaId ?? payload?.campanha_externa_id, 120);
-  const campanhaExternaNome = normalizarTexto(payload?.campanhaExternaNome ?? payload?.campanha_externa_nome, 240) || null;
+  const contaExternaId = normalizarIdExterno(
+    payload?.contaExternaId ?? payload?.conta_externa_id
+  );
+  const campanhaExternaId = normalizarIdExterno(
+    payload?.campanhaExternaId ?? payload?.campanha_externa_id
+  );
+  const campanhaExternaNome = normalizarTexto(
+    payload?.campanhaExternaNome ?? payload?.campanha_externa_nome,
+    240
+  ) || null;
   if (!contaExternaId || !campanhaExternaId) {
     throw new AppError("Informe a conta e o ID externo da campanha.", 400);
   }
@@ -158,5 +171,6 @@ module.exports = {
   vincularCampanha,
   sincronizar,
   normalizarProvedor,
-  periodoPadrao
+  periodoPadrao,
+  normalizarIdExterno
 };
