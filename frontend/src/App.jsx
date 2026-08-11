@@ -110,6 +110,10 @@ const PrivacyPage = lazyNamed(
   () => import("./pages/PrivacyPage"),
   "PrivacyPage"
 );
+const ProfessionalLandingPage = lazyNamed(
+  () => import("./pages/ProfessionalLandingPage"),
+  "ProfessionalLandingPage"
+);
 const NotFoundPage = lazyNamed(
   () => import("./pages/NotFoundPage"),
   "NotFoundPage"
@@ -145,6 +149,7 @@ export default function App() {
       <Suspense fallback={<main><div className="container route-loading">Carregando...</div></main>}>
         <Routes>
         <Route path={reactRoutes.home} element={<ExplorePage />} />
+        <Route path={reactRoutes.professionalLanding} element={<ProfessionalLandingPage />} />
         <Route path={reactRoutes.businessProfile} element={<ProfilePage />} />
         <Route path={reactRoutes.confirm} element={<ConfirmPage />} />
         <Route path={reactRoutes.success} element={<SuccessPage />} />
