@@ -96,7 +96,13 @@ describe(
             'agendamento_concluido',
             'finalizar_agendamento',
             $1,
-            $3::JSONB
+            $4::JSONB
+          ),
+          (
+            'agendamento_concluido',
+            'finalizar_agendamento',
+            $1,
+            $5::JSONB
           ),
           (
             'perfil_visualizado',
@@ -109,6 +115,14 @@ describe(
           sessionA,
           sessionB,
           JSON.stringify(props),
+          JSON.stringify({
+            ...props,
+            agendamento_id: 55001,
+          }),
+          JSON.stringify({
+            ...props,
+            agendamento_id: 55002,
+          }),
         ]
       );
 
@@ -123,7 +137,7 @@ describe(
         )
         VALUES (
           $1,
-          '2026-08-10',
+          (NOW() AT TIME ZONE 'America/Sao_Paulo')::date,
           5000,
           'BRL',
           'manual'
@@ -160,7 +174,7 @@ describe(
     });
 
     test(
-      "relaciona investimento com sessões e conversões pela identidade UTM",
+      "relaciona investimento com sessões e agendamentos distintos pela identidade UTM",
       async () => {
         const linhas =
           await adminMarketingCostRepository
@@ -179,7 +193,7 @@ describe(
             utm_medium: "cpc",
             utm_campaign: utmCampaign,
             sessoes: 2,
-            agendamentos_concluidos: 1,
+            agendamentos_concluidos: 2,
             investimento_centavos: "5000",
           });
       }
@@ -188,10 +202,18 @@ describe(
     test(
       "corrige gasto manual do mesmo dia sem duplicar valor",
       async () => {
+        const dataHoje =
+          await db.query(
+            `SELECT (NOW() AT TIME ZONE 'America/Sao_Paulo')::date::text AS hoje`
+          );
+
+        const hoje =
+          dataHoje.rows[0].hoje;
+
         await adminMarketingCostRepository
           .salvarGastoManual({
             campanhaId,
-            dataGasto: "2026-08-10",
+            dataGasto: hoje,
             valorCentavos: 7000,
             observacao:
               "Valor corrigido",
@@ -209,10 +231,10 @@ describe(
                 AS observacao
             FROM marketing_campanha_gastos
             WHERE campanha_id = $1
-              AND data_gasto = '2026-08-10'
+              AND data_gasto = $2::date
               AND fonte = 'manual'
             `,
-            [campanhaId]
+            [campanhaId, hoje]
           );
 
         expect(resultado.rows[0])
