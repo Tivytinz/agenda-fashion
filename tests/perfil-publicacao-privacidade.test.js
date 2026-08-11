@@ -34,6 +34,8 @@ describe("Publicação e privacidade do perfil público", () => {
       busca: "Cílios",
       categoria: "estetica",
       categoriaTermos: ["estética", "limpeza de pele"],
+      cidade: "Goiânia",
+      estado: "GO",
       limite: 12,
       offset: 24
     });
@@ -45,7 +47,13 @@ describe("Publicação e privacidade do perfil público", () => {
     expect(sql).toMatch(
       /jsonb_agg[\s\S]*WHERE s\.negocio_id = n\.id[\s\S]*cardinality\(\$2::text\[\]\) = 0[\s\S]*s\.nome[\s\S]*LIKE ANY\(\$2::text\[\]\)/i
     );
-    expect(sql).toMatch(/LIMIT \$4[\s\S]*OFFSET \$5/i);
+    expect(sql).toMatch(
+      /\$4::text = ''[\s\S]*lower\(n\.cidade\) = lower\(\$4::text\)/i
+    );
+    expect(sql).toMatch(
+      /\$5::text = ''[\s\S]*upper\(n\.estado\) = upper\(\$5::text\)/i
+    );
+    expect(sql).toMatch(/LIMIT \$6[\s\S]*OFFSET \$7/i);
     expect(sql).toMatch(/COUNT\(\*\) OVER\(\)/i);
     expect(sql).toMatch(/array_to_string[\s\S]*n\.areas/i);
     expect(sql).toMatch(/COALESCE\([\s\S]*n\.areas[\s\S]*AS areas/i);
@@ -53,6 +61,8 @@ describe("Publicação e privacidade do perfil público", () => {
       ["%cilios%"],
       ["%estetica%", "%limpeza de pele%"],
       "estetica",
+      "Goiânia",
+      "GO",
       12,
       24
     ]);

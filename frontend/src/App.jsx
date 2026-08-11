@@ -94,6 +94,10 @@ const ExplorePage = lazyNamed(
   () => import("./pages/ExplorePage"),
   "ExplorePage"
 );
+const LocalCatalogPage = lazyNamed(
+  () => import("./pages/LocalCatalogPage"),
+  "LocalCatalogPage"
+);
 const MyAppointmentsPage = lazyNamed(
   () => import("./pages/MyAppointmentsPage"),
   "MyAppointmentsPage"
@@ -150,6 +154,7 @@ export default function App() {
         <Routes>
         <Route path={reactRoutes.home} element={<ExplorePage />} />
         <Route path={reactRoutes.professionalLanding} element={<ProfessionalLandingPage />} />
+        <Route path={reactRoutes.localCatalog} element={<LocalCatalogPage />} />
         <Route path={reactRoutes.businessProfile} element={<ProfilePage />} />
         <Route path={reactRoutes.confirm} element={<ConfirmPage />} />
         <Route path={reactRoutes.success} element={<SuccessPage />} />

@@ -12,6 +12,8 @@ async function listarNegociosPublicos(req, res, next) {
       await perfilNegocioService.listarNegociosPublicos({
         busca: req.query.busca,
         categoria: req.query.categoria,
+        cidade: req.query.cidade,
+        estado: req.query.estado,
         pagina: req.query.pagina,
         limite: req.query.limite
       });

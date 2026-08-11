@@ -142,6 +142,9 @@ function montarTags(metadados) {
   return [
     `<title>${escaparHtml(metadados.titulo)}</title>`,
     tagMeta("description", metadados.descricao, "name"),
+    metadados.robots
+      ? tagMeta("robots", metadados.robots, "name")
+      : null,
     `<link rel="canonical" href="${escaparHtml(metadados.url)}" />`,
     tagMeta("og:locale", "pt_BR"),
     tagMeta("og:type", "website"),
@@ -155,7 +158,7 @@ function montarTags(metadados) {
     tagMeta("twitter:title", metadados.titulo, "name"),
     tagMeta("twitter:description", metadados.descricao, "name"),
     tagMeta("twitter:image", metadados.imagem, "name")
-  ].join("\n    ");
+  ].filter(Boolean).join("\n    ");
 }
 
 async function lerHtmlReact() {

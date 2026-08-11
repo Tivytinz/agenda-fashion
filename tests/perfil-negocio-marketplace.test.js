@@ -53,6 +53,8 @@ describe(
           busca: "unhas",
           categoria: "",
           categoriaTermos: [],
+          cidade: "",
+          estado: "",
           limite: 6,
           offset: 6
         });
@@ -94,7 +96,59 @@ describe(
               "esmalta",
               "nail",
               "alongamento"
-            ])
+            ]),
+            cidade: "",
+            estado: ""
+          })
+        );
+      }
+    );
+
+    test(
+      "encaminha cidade e UF como filtros dedicados sem misturar com a busca",
+      async () => {
+        repository
+          .listarNegociosPublicos
+          .mockResolvedValue([]);
+
+        await service.listarNegociosPublicos({
+          busca: "escova",
+          categoria: "cabelo",
+          cidade: "Goiânia",
+          estado: "go"
+        });
+
+        expect(
+          repository.listarNegociosPublicos
+        ).toHaveBeenCalledWith(
+          expect.objectContaining({
+            busca: "escova",
+            categoria: "cabelo",
+            cidade: "Goiânia",
+            estado: "GO"
+          })
+        );
+      }
+    );
+
+    test(
+      "descarta UF inválida em vez de ampliar um filtro ambíguo",
+      async () => {
+        repository
+          .listarNegociosPublicos
+          .mockResolvedValue([]);
+
+        await service.listarNegociosPublicos({
+          cidade: "Goiânia",
+          estado: "Goiás"
+        });
+
+        expect(
+          repository.listarNegociosPublicos
+        ).toHaveBeenCalledWith(
+          expect.objectContaining({
+            cidade: "Goiânia",
+            estado: ""
           })
         );
       }

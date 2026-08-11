@@ -28,6 +28,12 @@ describe("rotas SPA servidas pelo Express", () => {
     expect(Object.values(routes)).toContain(route);
   });
 
+  it("mantém a rota dinâmica do catálogo local compartilhada com o React Router", () => {
+    expect(routes.localCatalog).toBe(
+      "/servicos/:categoria/em/:localidade"
+    );
+  });
+
   it("não reutiliza HTML antigo e mantém assets versionados em cache", () => {
     expect(serverSource).toContain("disableDocumentCache");
     expect(serverSource).toContain('index: false');
