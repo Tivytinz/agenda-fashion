@@ -55,7 +55,7 @@ async function buscarLocalidadePublica({
 
 async function listarEntradasSitemap() {
   const resultado = await db.query(`
-    SELECT
+    SELECT DISTINCT
       n.slug,
       n.cidade,
       n.estado,
@@ -67,7 +67,6 @@ async function listarEntradasSitemap() {
       AND s.ativo = TRUE
     WHERE n.ativo = TRUE
       AND n.publicado = TRUE
-    ORDER BY n.id ASC, s.id ASC
   `);
 
   return resultado.rows;
