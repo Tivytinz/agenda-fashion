@@ -69,10 +69,9 @@ async function listarNegociosPublicos({
   const cidadeNormalizada =
     normalizarBusca(cidade, 100);
 
-  const estadoRecebido = normalizarBusca(
-    estado,
-    2
-  ).toUpperCase();
+  const estadoRecebido = String(estado || "")
+    .trim()
+    .toUpperCase();
   const estadoNormalizado = /^[A-Z]{2}$/.test(
     estadoRecebido
   )
