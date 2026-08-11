@@ -4,7 +4,10 @@ import { ProtectedRoute } from "./auth/ProtectedRoute";
 import { useSession } from "./auth/SessionContext";
 import { AppHeader } from "./components/AppHeader";
 import { MetaAdsBridge } from "./components/MetaAdsBridge";
-import { WorkspaceLayout } from "./components/WorkspaceLayout";
+import {
+  AdminLayout,
+  WorkspaceLayout
+} from "./components/WorkspaceLayout";
 
 function lazyNamed(importer, name) {
   return lazy(() =>
@@ -118,6 +121,14 @@ function AccountRoute() {
     );
   }
 
+  if (session.ehAdministrador) {
+    return (
+      <AdminLayout>
+        <AccountPage />
+      </AdminLayout>
+    );
+  }
+
   return <AccountPage />;
 }
 
@@ -137,29 +148,25 @@ export default function App() {
         <Route path="/cadastro" element={<AuthPage mode="register" />} />
         <Route path="/privacidade" element={<PrivacyPage />} />
         <Route
-          path="/admin/trafego-pago"
           element={(
             <ProtectedRoute adminOnly>
-              <AdminMarketingPage />
+              <AdminLayout />
             </ProtectedRoute>
           )}
-        />
-        <Route
-          path="/admin/trafego-pago/custos"
-          element={(
-            <ProtectedRoute adminOnly>
-              <AdminMarketingCostsPage />
-            </ProtectedRoute>
-          )}
-        />
-        <Route
-          path="/admin/trafego-pago/profissionais"
-          element={(
-            <ProtectedRoute adminOnly>
-              <AdminProfessionalFunnelPage />
-            </ProtectedRoute>
-          )}
-        />
+        >
+          <Route
+            path="/admin/trafego-pago"
+            element={<AdminMarketingPage />}
+          />
+          <Route
+            path="/admin/trafego-pago/custos"
+            element={<AdminMarketingCostsPage />}
+          />
+          <Route
+            path="/admin/trafego-pago/profissionais"
+            element={<AdminProfessionalFunnelPage />}
+          />
+        </Route>
         <Route
           path="/favoritos"
           element={<ProtectedRoute><FavoritesPage /></ProtectedRoute>}

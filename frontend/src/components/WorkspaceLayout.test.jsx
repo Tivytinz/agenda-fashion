@@ -9,7 +9,11 @@ import {
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, describe, expect, it } from "vitest";
-import { MobileWorkspaceNavigation } from "./WorkspaceLayout";
+import {
+  ADMIN_LINKS,
+  AdminLayout,
+  MobileWorkspaceNavigation
+} from "./WorkspaceLayout";
 
 const LINKS = [
   ["/painel", "Visão geral", "⌂"],
@@ -96,5 +100,64 @@ describe("menu mobile da área de trabalho", () => {
     fireEvent.pointerDown(document.body);
 
     expect(screen.queryByRole("link", { name: /Horários/ })).toBeNull();
+  });
+
+  it("mantém os quatro destinos do admin visíveis e ativa apenas a rota atual", () => {
+    render(
+      <MemoryRouter
+        initialEntries={[
+          "/admin/trafego-pago/custos"
+        ]}
+      >
+        <MobileWorkspaceNavigation
+          ariaLabel="Administração do Agenda Fashion"
+          links={ADMIN_LINKS}
+        />
+      </MemoryRouter>
+    );
+
+    const navigation = screen.getByRole(
+      "navigation",
+      { name: "Administração do Agenda Fashion" }
+    );
+    const marketing = screen.getByRole(
+      "link",
+      { name: /Marketing/ }
+    );
+    const costs = screen.getByRole(
+      "link",
+      { name: /Custos/ }
+    );
+
+    expect(
+      navigation.querySelectorAll(".workspace-mobile-link")
+    ).toHaveLength(4);
+    expect(marketing.classList.contains("active")).toBe(false);
+    expect(costs.classList.contains("active")).toBe(true);
+    expect(screen.queryByRole("button", { name: /mais opções/i })).toBeNull();
+  });
+
+  it("renderiza a mesma navegação administrativa no conteúdo e na lateral", () => {
+    render(
+      <MemoryRouter>
+        <AdminLayout>
+          <h1>Conteúdo administrativo</h1>
+        </AdminLayout>
+      </MemoryRouter>
+    );
+
+    expect(
+      screen.getByRole("complementary", {
+        name: "Administração do Agenda Fashion"
+      })
+    ).not.toBeNull();
+    expect(
+      screen.getByRole("heading", {
+        name: "Conteúdo administrativo"
+      })
+    ).not.toBeNull();
+    expect(
+      screen.getAllByRole("link", { name: /Funil/ })
+    ).toHaveLength(2);
   });
 });

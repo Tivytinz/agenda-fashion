@@ -391,7 +391,7 @@ export function AdminMarketingPage() {
 
   if (!data && !error) {
     return (
-      <main className="container page-content">
+      <main className="workspace-page admin-workspace-page">
         <LoadingState>
           Carregando marketing...
         </LoadingState>
@@ -401,7 +401,7 @@ export function AdminMarketingPage() {
 
   if (error) {
     return (
-      <main className="container page-content">
+      <main className="workspace-page admin-workspace-page">
         <ErrorState
           message={error}
           onRetry={() =>
@@ -447,7 +447,7 @@ export function AdminMarketingPage() {
     );
 
   return (
-    <main className="container page-content">
+    <main className="workspace-page admin-workspace-page">
       <header className="workspace-heading">
         <div>
           <p className="eyebrow">
@@ -486,6 +486,24 @@ export function AdminMarketingPage() {
           )}
         </div>
       </header>
+
+      <section
+        className="metric-grid"
+        aria-label="Indicadores de marketing"
+      >
+        {cards.map(
+          ([label, value, hint]) => (
+            <article
+              className="metric-card"
+              key={label}
+            >
+              <span>{label}</span>
+              <strong>{value}</strong>
+              <small>{hint}</small>
+            </article>
+          )
+        )}
+      </section>
 
       <section className="panel">
         <div className="panel-heading">
@@ -786,24 +804,6 @@ export function AdminMarketingPage() {
               </tbody>
             </table>
           </div>
-        )}
-      </section>
-
-      <section
-        className="metric-grid"
-        aria-label="Indicadores de marketing"
-      >
-        {cards.map(
-          ([label, value, hint]) => (
-            <article
-              className="metric-card"
-              key={label}
-            >
-              <span>{label}</span>
-              <strong>{value}</strong>
-              <small>{hint}</small>
-            </article>
-          )
         )}
       </section>
 

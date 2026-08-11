@@ -129,7 +129,7 @@ export function MetaAdsBridge() {
         aria-label="Preferências de privacidade"
         className="marketing-consent-banner"
       >
-        <div>
+        <div className="marketing-consent-copy">
           <strong>Privacidade e medição de anúncios</strong>
           <p>
             O Agenda Fashion pode usar ferramentas opcionais da Meta para medir se anúncios resultam em cadastros e assinaturas. Elas só são ativadas se você permitir.
@@ -138,7 +138,11 @@ export function MetaAdsBridge() {
             Entender como funciona
           </Link>
         </div>
-        <div className="marketing-consent-actions">
+        <div
+          aria-label="Escolha de medição de anúncios"
+          className="marketing-consent-actions"
+          role="group"
+        >
           <button
             className="button button-secondary"
             onClick={() => choose(

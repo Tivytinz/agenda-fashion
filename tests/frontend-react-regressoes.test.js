@@ -338,7 +338,7 @@ describe(
 
         [
           'to="/"',
-          'to="/minha-agenda"',
+          '"/minha-agenda"',
           'to="/cadastro?tipo=profissional"',
           'to="/entrar"',
         ].forEach(
@@ -358,6 +358,9 @@ describe(
           '["/painel/profissionais", "Equipe"',
           '["/profissional/agenda", "Minha agenda"',
           '["/profissional/horarios", "Meus horários"',
+          '["/admin/trafego-pago", "Marketing"',
+          '["/admin/trafego-pago/custos", "Custos"',
+          '["/admin/trafego-pago/profissionais", "Funil"',
         ].forEach(
           (rota) => {
             expect(
@@ -372,6 +375,12 @@ describe(
           workspace
         ).toContain(
           'negocio?.papel === "dono"'
+        );
+
+        expect(
+          workspace
+        ).toContain(
+          "export function AdminLayout"
         );
 
         expect(

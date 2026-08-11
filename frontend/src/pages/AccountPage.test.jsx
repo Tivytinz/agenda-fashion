@@ -18,6 +18,8 @@ beforeEach(() => {
   refreshSession.mockResolvedValue({});
   useSession.mockReturnValue({
     temNegocio: false,
+    ehAdministrador: false,
+    negocio: null,
     refresh: refreshSession,
     logout: vi.fn()
   });
@@ -64,5 +66,41 @@ describe("minha conta", () => {
         }
       });
     });
+  });
+
+  it("mantém o administrador dentro do fluxo administrativo", async () => {
+    useSession.mockReturnValue({
+      temNegocio: false,
+      ehAdministrador: true,
+      negocio: null,
+      refresh: refreshSession,
+      logout: vi.fn()
+    });
+    apiRequest.mockResolvedValueOnce({
+      usuario: {
+        id: 9,
+        nome: "Admin AF",
+        email: "admin@example.com",
+        whatsapp: "62999998888"
+      }
+    });
+
+    const { container } = render(
+      <MemoryRouter>
+        <AccountPage />
+      </MemoryRouter>
+    );
+
+    const backLink = await screen.findByRole(
+      "link",
+      { name: /Voltar à administração/ }
+    );
+
+    expect(backLink.getAttribute("href"))
+      .toBe("/admin/trafego-pago");
+    expect(
+      container.querySelector("main")
+        ?.classList.contains("workspace-page")
+    ).toBe(true);
   });
 });

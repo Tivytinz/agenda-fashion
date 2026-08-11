@@ -2,7 +2,6 @@ import {
   useEffect,
   useState
 } from "react";
-import { Link } from "react-router-dom";
 import { apiRequest } from "../api/client";
 import {
   ErrorState,
@@ -87,7 +86,7 @@ export function AdminProfessionalFunnelPage() {
 
   if (!data && !error) {
     return (
-      <main className="container page-content">
+      <main className="workspace-page admin-workspace-page">
         <LoadingState>
           Carregando funil profissional...
         </LoadingState>
@@ -97,7 +96,7 @@ export function AdminProfessionalFunnelPage() {
 
   if (error) {
     return (
-      <main className="container page-content">
+      <main className="workspace-page admin-workspace-page">
         <ErrorState
           message={error}
           onRetry={() =>
@@ -153,7 +152,7 @@ export function AdminProfessionalFunnelPage() {
   ];
 
   return (
-    <main className="container page-content">
+    <main className="workspace-page admin-workspace-page">
       <header className="workspace-heading">
         <div>
           <p className="eyebrow">
@@ -192,21 +191,6 @@ export function AdminProfessionalFunnelPage() {
           )}
         </div>
       </header>
-
-      <div className="form-actions">
-        <Link
-          className="button button-secondary button-small"
-          to="/admin/trafego-pago"
-        >
-          Marketing
-        </Link>
-        <Link
-          className="button button-secondary button-small"
-          to="/admin/trafego-pago/custos"
-        >
-          Custos & CPA
-        </Link>
-      </div>
 
       <section
         className="metric-grid"

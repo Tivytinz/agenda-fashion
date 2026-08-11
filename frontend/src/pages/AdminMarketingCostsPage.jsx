@@ -2,7 +2,6 @@ import {
   useEffect,
   useState
 } from "react";
-import { Link } from "react-router-dom";
 import { apiRequest } from "../api/client";
 import {
   ErrorState,
@@ -268,7 +267,7 @@ export function AdminMarketingCostsPage() {
 
   if (!data && !error) {
     return (
-      <main className="container page-content">
+      <main className="workspace-page admin-workspace-page">
         <LoadingState>
           Carregando custos de marketing...
         </LoadingState>
@@ -278,7 +277,7 @@ export function AdminMarketingCostsPage() {
 
   if (error) {
     return (
-      <main className="container page-content">
+      <main className="workspace-page admin-workspace-page">
         <ErrorState
           message={error}
           onRetry={() =>
@@ -323,14 +322,7 @@ export function AdminMarketingCostsPage() {
   ];
 
   return (
-    <main className="container page-content">
-      <Link
-        className="back-link"
-        to="/admin/trafego-pago"
-      >
-        ← Voltar para Marketing
-      </Link>
-
+    <main className="workspace-page admin-workspace-page">
       <header className="workspace-heading">
         <div>
           <p className="eyebrow">

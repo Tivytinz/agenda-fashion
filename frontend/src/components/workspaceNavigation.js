@@ -1,3 +1,9 @@
+const EXACT_NAVIGATION_ROUTES = new Set([
+  "/painel",
+  "/profissional/agenda",
+  "/admin/trafego-pago"
+]);
+
 export function splitMobileLinks(links, primaryLimit = 4) {
   return {
     primary: links.slice(0, primaryLimit),
@@ -5,8 +11,12 @@ export function splitMobileLinks(links, primaryLimit = 4) {
   };
 }
 
+export function isExactNavigationRoute(to) {
+  return EXACT_NAVIGATION_ROUTES.has(to);
+}
+
 export function isWorkspaceRouteActive(pathname, to) {
-  if (to === "/painel" || to === "/profissional/agenda") {
+  if (isExactNavigationRoute(to)) {
     return pathname === to;
   }
 

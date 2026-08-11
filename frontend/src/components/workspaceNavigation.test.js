@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  isExactNavigationRoute,
   isWorkspaceRouteActive,
   splitMobileLinks
 } from "./workspaceNavigation";
@@ -46,5 +47,23 @@ describe("navegação mobile da área de trabalho", () => {
     expect(
       isWorkspaceRouteActive("/painel/agenda", "/painel")
     ).toBe(false);
+  });
+
+  it("mantém a raiz do admin exata nas páginas de Custos e Funil", () => {
+    expect(
+      isExactNavigationRoute("/admin/trafego-pago")
+    ).toBe(true);
+    expect(
+      isWorkspaceRouteActive(
+        "/admin/trafego-pago/custos",
+        "/admin/trafego-pago"
+      )
+    ).toBe(false);
+    expect(
+      isWorkspaceRouteActive(
+        "/admin/trafego-pago/custos",
+        "/admin/trafego-pago/custos"
+      )
+    ).toBe(true);
   });
 });

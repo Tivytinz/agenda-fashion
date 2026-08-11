@@ -7,6 +7,7 @@ import {
 import { NavLink, Outlet, useLocation } from "react-router-dom";
 import { useSession } from "../auth/SessionContext";
 import {
+  isExactNavigationRoute,
   isWorkspaceRouteActive,
   splitMobileLinks
 } from "./workspaceNavigation";
@@ -25,6 +26,13 @@ const OWNER_LINKS = [
 const PROFESSIONAL_LINKS = [
   ["/profissional/agenda", "Minha agenda", "▦"],
   ["/profissional/horarios", "Meus horários", "◷"],
+  ["/conta", "Minha conta", "○"]
+];
+
+export const ADMIN_LINKS = [
+  ["/admin/trafego-pago", "Marketing", "↗"],
+  ["/admin/trafego-pago/custos", "Custos", "R$"],
+  ["/admin/trafego-pago/profissionais", "Funil", "◇"],
   ["/conta", "Minha conta", "○"]
 ];
 
@@ -47,10 +55,7 @@ function WorkspaceLinks({
           ? `${base} active`
           : base;
       }}
-      end={
-        to === "/painel" ||
-        to === "/profissional/agenda"
-      }
+      end={isExactNavigationRoute(to)}
       key={to}
       onClick={onNavigate}
       to={to}
@@ -61,7 +66,10 @@ function WorkspaceLinks({
   ));
 }
 
-export function MobileWorkspaceNavigation({ links }) {
+export function MobileWorkspaceNavigation({
+  ariaLabel = "Navegação da área de trabalho",
+  links
+}) {
   const { pathname } = useLocation();
   const [menuOpen, setMenuOpen] = useState(false);
   const menuId = useId();
@@ -100,7 +108,7 @@ export function MobileWorkspaceNavigation({ links }) {
   return (
     <nav
       className="workspace-mobile-nav"
-      aria-label="Navegação da área de trabalho"
+      aria-label={ariaLabel}
     >
       <WorkspaceLinks links={primary} mobile />
 
@@ -148,31 +156,24 @@ export function MobileWorkspaceNavigation({ links }) {
   );
 }
 
-export function WorkspaceLayout({ children }) {
-  const { negocio } = useSession();
-  const owner = negocio?.papel === "dono";
-  const links = owner ? OWNER_LINKS : PROFESSIONAL_LINKS;
-
+function NavigationShell({
+  ariaLabel,
+  children,
+  identity,
+  links
+}) {
   return (
     <div className="workspace-shell">
       <aside
         className="workspace-sidebar"
-        aria-label="Área de trabalho"
+        aria-label={ariaLabel}
       >
         <div className="workspace-business">
-          <span>
-            {String(negocio?.nome || "A")
-              .slice(0, 1)
-              .toUpperCase()}
-          </span>
+          <span>{identity.initial}</span>
 
           <div>
-            <strong>
-              {negocio?.nome || "Agenda Fashion"}
-            </strong>
-            <small>
-              {owner ? "Administração" : "Área profissional"}
-            </small>
+            <strong>{identity.title}</strong>
+            <small>{identity.subtitle}</small>
           </div>
         </div>
 
@@ -185,7 +186,51 @@ export function WorkspaceLayout({ children }) {
         {children || <Outlet />}
       </section>
 
-      <MobileWorkspaceNavigation links={links} />
+      <MobileWorkspaceNavigation
+        ariaLabel={ariaLabel}
+        links={links}
+      />
     </div>
+  );
+}
+
+export function AdminLayout({ children }) {
+  return (
+    <NavigationShell
+      ariaLabel="Administração do Agenda Fashion"
+      identity={{
+        initial: "AF",
+        title: "Agenda Fashion",
+        subtitle: "Administração global"
+      }}
+      links={ADMIN_LINKS}
+    >
+      {children}
+    </NavigationShell>
+  );
+}
+
+export function WorkspaceLayout({ children }) {
+  const { negocio } = useSession();
+  const owner = negocio?.papel === "dono";
+  const links = owner ? OWNER_LINKS : PROFESSIONAL_LINKS;
+  const businessName = negocio?.nome || "Agenda Fashion";
+
+  return (
+    <NavigationShell
+      ariaLabel="Área de trabalho"
+      identity={{
+        initial: String(businessName)
+          .slice(0, 1)
+          .toUpperCase(),
+        title: businessName,
+        subtitle: owner
+          ? "Administração do negócio"
+          : "Área profissional"
+      }}
+      links={links}
+    >
+      {children}
+    </NavigationShell>
   );
 }

@@ -1,6 +1,7 @@
 import {
   Link,
   NavLink,
+  useLocation,
   useNavigate
 } from "react-router-dom";
 
@@ -9,7 +10,31 @@ import { getWorkspacePath } from "../auth/session";
 
 export function AppHeader() {
   const session = useSession();
+  const location = useLocation();
   const navigate = useNavigate();
+  const adminArea = location.pathname.startsWith(
+    "/admin/"
+  );
+  const businessArea =
+    location.pathname.startsWith("/painel") ||
+    location.pathname.startsWith("/profissional/") ||
+    (
+      location.pathname === "/conta" &&
+      session.temNegocio
+    );
+  const operationalArea =
+    adminArea ||
+    businessArea ||
+    (
+      location.pathname === "/conta" &&
+      session.ehAdministrador
+    );
+  const mobileContextPath = operationalArea
+    ? "/"
+    : "/minha-agenda";
+  const mobileContextLabel = operationalArea
+    ? "Explorar"
+    : "Minha agenda";
 
   function handleLogout() {
     session.logout();
@@ -48,17 +73,19 @@ export function AppHeader() {
           className="public-navigation"
           aria-label="Navegação principal"
         >
-          <NavLink
-            className={({ isActive }) =>
-              isActive
-                ? "text-link active desktop-nav-link"
-                : "text-link desktop-nav-link"
-            }
-            end
-            to="/"
-          >
-            Início
-          </NavLink>
+          {!operationalArea && (
+            <NavLink
+              className={({ isActive }) =>
+                isActive
+                  ? "text-link active desktop-nav-link"
+                  : "text-link desktop-nav-link"
+              }
+              end
+              to="/"
+            >
+              Início
+            </NavLink>
+          )}
 
           <NavLink
             className={({ isActive }) =>
@@ -66,59 +93,32 @@ export function AppHeader() {
                 ? "text-link active desktop-nav-link mobile-agenda-link"
                 : "text-link desktop-nav-link mobile-agenda-link"
             }
-            to="/minha-agenda"
+            to={mobileContextPath}
           >
-            Minha agenda
+            {mobileContextLabel}
           </NavLink>
 
           {session.authenticated ? (
             <>
-              {session.ehAdministrador && (
-                <>
-                  <NavLink
-                    className={({ isActive }) =>
-                      isActive
-                        ? "text-link active desktop-nav-link"
-                        : "text-link desktop-nav-link"
-                    }
-                    end
-                    to="/admin/trafego-pago"
-                  >
-                    Marketing Admin
-                  </NavLink>
-
-                  <NavLink
-                    className={({ isActive }) =>
-                      isActive
-                        ? "text-link active desktop-nav-link"
-                        : "text-link desktop-nav-link"
-                    }
-                    to="/admin/trafego-pago/custos"
-                  >
-                    Custos & CPA
-                  </NavLink>
-
-                  <NavLink
-                    className={({ isActive }) =>
-                      isActive
-                        ? "text-link active desktop-nav-link"
-                        : "text-link desktop-nav-link"
-                    }
-                    to="/admin/trafego-pago/profissionais"
-                  >
-                    Funil profissional
-                  </NavLink>
-                </>
+              {session.ehAdministrador && !adminArea && (
+                <NavLink
+                  className="text-link desktop-nav-link"
+                  to="/admin/trafego-pago"
+                >
+                  Administração
+                </NavLink>
               )}
 
-              <NavLink
-                className="text-link desktop-nav-link"
-                to={getWorkspacePath(session)}
-              >
-                {session.temNegocio
-                  ? "Área de trabalho"
-                  : "Criar negócio"}
-              </NavLink>
+              {!businessArea && (
+                <NavLink
+                  className="text-link desktop-nav-link"
+                  to={getWorkspacePath(session)}
+                >
+                  {session.temNegocio
+                    ? "Área de trabalho"
+                    : "Criar negócio"}
+                </NavLink>
+              )}
 
               <NavLink
                 className="account-button"

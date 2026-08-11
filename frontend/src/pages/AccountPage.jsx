@@ -16,6 +16,13 @@ export function AccountPage() {
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const [saving, setSaving] = useState("");
+  const insideNavigation = Boolean(
+    session.temNegocio ||
+    session.ehAdministrador
+  );
+  const pageClassName = insideNavigation
+    ? "workspace-page account-page"
+    : "container page-content account-page";
 
   const load = useCallback(() => {
     setError("");
@@ -95,13 +102,26 @@ export function AccountPage() {
     }
   }
 
-  if (!user && !error) return <main className="container page-content narrow-page"><LoadingState>Carregando sua conta...</LoadingState></main>;
-  if (!user && error) return <main className="container page-content narrow-page"><ErrorState message={error} onRetry={load} /></main>;
+  if (!user && !error) return <main className={pageClassName}><LoadingState>Carregando sua conta...</LoadingState></main>;
+  if (!user && error) return <main className={pageClassName}><ErrorState message={error} onRetry={load} /></main>;
+
+  const backPath = session.temNegocio
+    ? session.negocio?.papel === "dono"
+      ? "/painel"
+      : "/profissional/agenda"
+    : session.ehAdministrador
+      ? "/admin/trafego-pago"
+      : "/";
+  const backLabel = session.temNegocio
+    ? "Voltar à área de trabalho"
+    : session.ehAdministrador
+      ? "Voltar à administração"
+      : "Voltar a explorar";
 
   return (
-    <main className="container page-content account-page">
-      <BackLink to={session.temNegocio ? (session.negocio?.papel === "dono" ? "/painel" : "/profissional/agenda") : "/"}>
-        {session.temNegocio ? "Voltar à área de trabalho" : "Voltar a explorar"}
+    <main className={pageClassName}>
+      <BackLink to={backPath}>
+        {backLabel}
       </BackLink>
       <header className="workspace-heading">
         <div><p className="eyebrow">Seu perfil</p><h1>Minha conta</h1><p>Atualize seus dados e mantenha sua conta protegida.</p></div>
