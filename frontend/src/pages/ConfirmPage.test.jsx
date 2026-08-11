@@ -22,6 +22,7 @@ import {
   vi
 } from "vitest";
 import { apiRequest } from "../api/client";
+import { track } from "../analytics/track";
 import { ConfirmPage } from "./ConfirmPage";
 
 vi.mock("../api/client", () => ({
@@ -65,6 +66,7 @@ beforeEach(() => {
   localStorage.clear();
   sessionStorage.clear();
   apiRequest.mockReset();
+  track.mockReset();
 });
 
 afterEach(cleanup);
@@ -113,6 +115,19 @@ describe("confirmação do agendamento", () => {
         aceita_mensagens_whatsapp: true
       }
     });
+
+    expect(track).toHaveBeenCalledWith(
+      "agendamento_concluido",
+      expect.objectContaining({
+        businessId: 7,
+        properties: expect.objectContaining({
+          agendamento_id: 90,
+          servico_id: 11,
+          status: "sucesso"
+        })
+      })
+    );
+
     expect(await screen.findByRole("heading", {
       name: "Agendamento confirmado"
     })).not.toBeNull();
