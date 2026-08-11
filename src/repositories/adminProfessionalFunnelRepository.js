@@ -189,32 +189,62 @@ async function listarPorCampanha(
       )
 
       SELECT
-        a.origem,
-        a.midia,
-        a.campanha,
-        a.cadastros,
-        a.negocios_criados,
-        a.servicos_criados,
-        a.agendas_configuradas,
-        a.negocios_publicados,
-        a.checkouts_iniciados,
-        a.assinaturas_ativadas,
+        COALESCE(
+          a.origem,
+          g.origem
+        ) AS origem,
+        COALESCE(
+          a.midia,
+          g.midia
+        ) AS midia,
+        COALESCE(
+          a.campanha,
+          g.campanha
+        ) AS campanha,
+        COALESCE(
+          a.cadastros,
+          0
+        )::INT AS cadastros,
+        COALESCE(
+          a.negocios_criados,
+          0
+        )::INT AS negocios_criados,
+        COALESCE(
+          a.servicos_criados,
+          0
+        )::INT AS servicos_criados,
+        COALESCE(
+          a.agendas_configuradas,
+          0
+        )::INT AS agendas_configuradas,
+        COALESCE(
+          a.negocios_publicados,
+          0
+        )::INT AS negocios_publicados,
+        COALESCE(
+          a.checkouts_iniciados,
+          0
+        )::INT AS checkouts_iniciados,
+        COALESCE(
+          a.assinaturas_ativadas,
+          0
+        )::INT AS assinaturas_ativadas,
         COALESCE(
           g.investimento_centavos,
           0
         )::BIGINT AS investimento_centavos
       FROM agrupado a
-      LEFT JOIN gastos_por_campanha g
+      FULL OUTER JOIN gastos_por_campanha g
         ON g.origem = a.origem
         AND g.midia = a.midia
         AND g.campanha = a.campanha
       ORDER BY
-        a.assinaturas_ativadas DESC,
-        a.checkouts_iniciados DESC,
-        a.cadastros DESC,
+        assinaturas_ativadas DESC,
+        checkouts_iniciados DESC,
+        cadastros DESC,
         investimento_centavos DESC,
-        a.origem ASC,
-        a.campanha ASC
+        origem ASC,
+        campanha ASC
       `
     );
 
