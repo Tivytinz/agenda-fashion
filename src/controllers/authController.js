@@ -27,6 +27,9 @@ function obterDadosCadastro(req) {
 
     senha:
       req.body?.senha,
+
+    marketing:
+      req.body?.marketing,
   };
 }
 
@@ -101,6 +104,9 @@ async function loginGoogle(
         .loginGoogle({
           credencial:
             req.body?.credential,
+
+          marketing:
+            req.body?.marketing,
         });
 
     return res
