@@ -31,6 +31,12 @@ const catalogoLocalController = require("../controllers/catalogoLocalController"
  *         schema:
  *           type: string
  *       - in: query
+ *         name: estado
+ *         schema:
+ *           type: string
+ *           minLength: 2
+ *           maxLength: 2
+ *       - in: query
  *         name: pagina
  *         schema:
  *           type: integer
