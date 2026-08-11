@@ -1,4 +1,5 @@
 import {
+  useCallback,
   useEffect,
   useMemo,
   useState
@@ -41,7 +42,7 @@ export function MarketingCostIntegrationsPanel({ onChanged }) {
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
 
-  async function load() {
+  const load = useCallback(async () => {
     setLoading(true);
     setError("");
     try {
@@ -57,11 +58,11 @@ export function MarketingCostIntegrationsPanel({ onChanged }) {
     } finally {
       setLoading(false);
     }
-  }
+  }, []);
 
   useEffect(() => {
     void load();
-  }, []);
+  }, [load]);
 
   const selectedProvider = useMemo(
     () => data?.provedores?.find((item) => item.provedor === provider) || null,
