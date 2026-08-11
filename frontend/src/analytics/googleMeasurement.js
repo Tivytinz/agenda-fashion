@@ -11,6 +11,7 @@ const CLIENT_ID_TIMEOUT_MS = 1200;
 let configPromise = null;
 let initializedMeasurementId = null;
 let initializedAdsId = null;
+let currentUserId = null;
 let googleJsConfigured = false;
 let lastPageView = "";
 let defaultConsentApplied = false;
@@ -205,28 +206,26 @@ export async function initializeGoogleMeasurement(
     googleJsConfigured = true;
   }
 
-  if (
+  const nextUserId = userId
+    ? String(userId)
+    : null;
+  const needsMeasurementConfig =
     initializedMeasurementId !==
-      config.measurementId
-  ) {
+      config.measurementId ||
+    currentUserId !== nextUserId;
+
+  if (needsMeasurementConfig) {
     gtag(
       "config",
       config.measurementId,
       {
         send_page_view: false,
-        ...(userId
-          ? { user_id: String(userId) }
-          : {})
+        user_id: nextUserId
       }
     );
     initializedMeasurementId =
       config.measurementId;
-  } else if (userId) {
-    gtag(
-      "set",
-      "user_id",
-      String(userId)
-    );
+    currentUserId = nextUserId;
   }
 
   if (
@@ -535,6 +534,7 @@ export function resetGoogleMeasurementForTests() {
   configPromise = null;
   initializedMeasurementId = null;
   initializedAdsId = null;
+  currentUserId = null;
   googleJsConfigured = false;
   lastPageView = "";
   defaultConsentApplied = false;
