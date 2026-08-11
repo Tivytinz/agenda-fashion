@@ -22,58 +22,132 @@ vi.mock("../api/client", () => ({
   apiRequest: vi.fn()
 }));
 
+const MANAGED_CAMPAIGN = {
+  id: 7,
+  nome: "Meta Cílios",
+  canal: "meta",
+  utmSource: "meta",
+  utmMedium: "cpc",
+  utmCampaign: "meta_cilios",
+  utmContent: null,
+  utmTerm: null,
+  destinoPath: "/",
+  ativo: true,
+  linkRastreavel:
+    "https://app.agendafashion.com.br/?utm_source=meta&utm_medium=cpc&utm_campaign=meta_cilios"
+};
+
 function mockMarketingRequests() {
-  apiRequest.mockImplementation((path) => {
-    if (path.startsWith("/admin/marketing/resumo")) {
-      return Promise.resolve({
-        periodo: "30",
-        sessoes: 100,
-        campanhas: 2,
-        perfisVisualizados: 60,
-        agendamentosIniciados: 20,
-        agendamentosConcluidos: 10,
-        taxaConversao: 10
-      });
-    }
-
-    if (path.startsWith("/admin/marketing/campanhas")) {
-      return Promise.resolve({
-        periodo: "30",
-        campanhas: [
-          {
-            origem: "facebook",
-            midia: "cpc",
-            campanha: "goiania_cilios",
-            sessoes: 100,
-            perfisVisualizados: 60,
-            agendamentosIniciados: 20,
-            agendamentosConcluidos: 10,
-            taxaConversao: 10
+  apiRequest.mockImplementation(
+    (path, options = {}) => {
+      if (
+        path ===
+          "/admin/marketing/gestao-campanhas" &&
+        options.method === "POST"
+      ) {
+        return Promise.resolve({
+          campanha: {
+            id: 8,
+            nome:
+              options.body.nome,
+            canal:
+              options.body.canal,
+            utmSource:
+              options.body.utmSource,
+            utmMedium:
+              options.body.utmMedium,
+            utmCampaign:
+              "cilios_goiania_agosto",
+            utmContent:
+              options.body.utmContent || null,
+            utmTerm:
+              options.body.utmTerm || null,
+            destinoPath:
+              options.body.destinoPath,
+            ativo: true,
+            linkRastreavel:
+              "https://app.agendafashion.com.br/?utm_source=meta&utm_medium=cpc&utm_campaign=cilios_goiania_agosto"
           }
-        ]
-      });
-    }
+        });
+      }
 
-    if (path.startsWith("/admin/marketing/conversoes")) {
-      return Promise.resolve({
-        periodo: "30",
-        conversoes: [
-          {
-            eventoId: 88,
-            agendamentoId: 42,
-            negocioNome: "Studio Bella",
-            campanha: "goiania_cilios",
-            landingPage: "/negocio/studio-bella",
-            createdAt: "2026-08-10T20:00:00.000Z"
+      if (
+        path.startsWith(
+          "/admin/marketing/gestao-campanhas/"
+        ) &&
+        options.method === "PATCH"
+      ) {
+        return Promise.resolve({
+          campanha: {
+            ...MANAGED_CAMPAIGN,
+            ativo:
+              options.body.ativo
           }
-        ]
-      });
-    }
+        });
+      }
 
-    return Promise.reject(
-      new Error("Rota inesperada")
-    );
-  });
+      if (
+        path ===
+        "/admin/marketing/gestao-campanhas"
+      ) {
+        return Promise.resolve({
+          campanhas: [
+            MANAGED_CAMPAIGN
+          ]
+        });
+      }
+
+      if (path.startsWith("/admin/marketing/resumo")) {
+        return Promise.resolve({
+          periodo: "30",
+          sessoes: 100,
+          campanhas: 2,
+          perfisVisualizados: 60,
+          agendamentosIniciados: 20,
+          agendamentosConcluidos: 10,
+          taxaConversao: 10
+        });
+      }
+
+      if (path.startsWith("/admin/marketing/campanhas")) {
+        return Promise.resolve({
+          periodo: "30",
+          campanhas: [
+            {
+              origem: "facebook",
+              midia: "cpc",
+              campanha: "goiania_cilios",
+              sessoes: 100,
+              perfisVisualizados: 60,
+              agendamentosIniciados: 20,
+              agendamentosConcluidos: 10,
+              taxaConversao: 10
+            }
+          ]
+        });
+      }
+
+      if (path.startsWith("/admin/marketing/conversoes")) {
+        return Promise.resolve({
+          periodo: "30",
+          conversoes: [
+            {
+              eventoId: 88,
+              agendamentoId: 42,
+              negocioNome: "Studio Bella",
+              campanha: "goiania_cilios",
+              landingPage: "/negocio/studio-bella",
+              createdAt: "2026-08-10T20:00:00.000Z"
+            }
+          ]
+        });
+      }
+
+      return Promise.reject(
+        new Error("Rota inesperada")
+      );
+    }
+  );
 }
 
 beforeEach(() => {
@@ -87,7 +161,7 @@ describe(
   "AdminMarketingPage",
   () => {
     it(
-      "carrega resumo, campanhas e conversões atribuídas",
+      "carrega métricas e campanhas gerenciadas",
       async () => {
         render(<AdminMarketingPage />);
 
@@ -118,16 +192,124 @@ describe(
         ).not.toBeNull();
 
         expect(
-          screen.getByText("#42")
+          screen.getByText(
+            "Meta Cílios"
+          )
         ).not.toBeNull();
 
         expect(apiRequest)
-          .toHaveBeenCalledTimes(3);
+          .toHaveBeenCalledTimes(4);
       }
     );
 
     it(
-      "recarrega as três visões ao trocar o período",
+      "cria campanha e adiciona o link à lista",
+      async () => {
+        const user =
+          userEvent.setup();
+
+        render(<AdminMarketingPage />);
+
+        await screen.findByRole(
+          "heading",
+          {
+            name:
+              "Marketing e tráfego pago"
+          }
+        );
+
+        await user.type(
+          screen.getByLabelText(
+            "Nome da campanha"
+          ),
+          "Cílios Goiânia Agosto"
+        );
+
+        await user.click(
+          screen.getByRole(
+            "button",
+            {
+              name:
+                "Criar campanha e link"
+            }
+          )
+        );
+
+        await waitFor(() => {
+          expect(apiRequest)
+            .toHaveBeenCalledWith(
+              "/admin/marketing/gestao-campanhas",
+              expect.objectContaining({
+                method: "POST",
+                body:
+                  expect.objectContaining({
+                    nome:
+                      "Cílios Goiânia Agosto",
+                    canal: "meta",
+                    utmSource: "meta",
+                    utmMedium: "cpc",
+                    destinoPath: "/"
+                  })
+              })
+            );
+        });
+
+        expect(
+          await screen.findByText(
+            "Campanha criada. O link rastreável já está pronto para uso."
+          )
+        ).not.toBeNull();
+
+        expect(
+          screen.getByText(
+            "Cílios Goiânia Agosto"
+          )
+        ).not.toBeNull();
+      }
+    );
+
+    it(
+      "arquiva campanha cadastrada",
+      async () => {
+        const user =
+          userEvent.setup();
+
+        render(<AdminMarketingPage />);
+
+        await screen.findByText(
+          "Meta Cílios"
+        );
+
+        await user.click(
+          screen.getByRole(
+            "button",
+            { name: "Arquivar" }
+          )
+        );
+
+        await waitFor(() => {
+          expect(apiRequest)
+            .toHaveBeenCalledWith(
+              "/admin/marketing/gestao-campanhas/7",
+              {
+                method: "PATCH",
+                body: {
+                  ativo: false
+                }
+              }
+            );
+        });
+
+        expect(
+          await screen.findByText(
+            "Arquivada"
+          )
+        ).not.toBeNull();
+      }
+    );
+
+    it(
+      "recarrega as visões ao trocar o período",
       async () => {
         const user =
           userEvent.setup();

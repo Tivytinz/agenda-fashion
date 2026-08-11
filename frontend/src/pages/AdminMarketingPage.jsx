@@ -16,6 +16,45 @@ const PERIODS = [
   ["all", "Todo período"]
 ];
 
+const CHANNELS = {
+  meta: {
+    label: "Meta",
+    source: "meta",
+    medium: "cpc"
+  },
+  google: {
+    label: "Google",
+    source: "google",
+    medium: "cpc"
+  },
+  pinterest: {
+    label: "Pinterest",
+    source: "pinterest",
+    medium: "cpc"
+  },
+  tiktok: {
+    label: "TikTok",
+    source: "tiktok",
+    medium: "cpc"
+  },
+  outro: {
+    label: "Outro",
+    source: "",
+    medium: "cpc"
+  }
+};
+
+const INITIAL_CAMPAIGN = {
+  nome: "",
+  canal: "meta",
+  utmSource: "meta",
+  utmMedium: "cpc",
+  utmCampaign: "",
+  utmContent: "",
+  utmTerm: "",
+  destinoPath: "/"
+};
+
 function formatDateTime(value) {
   if (!value) return "—";
 
@@ -44,6 +83,47 @@ function campaignLabel(item) {
     : campaign;
 }
 
+function tokenPreview(value) {
+  return String(value || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLocaleLowerCase("pt-BR")
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "")
+    .replace(/_+/g, "_")
+    .slice(0, 140);
+}
+
+async function copyText(value) {
+  if (
+    navigator.clipboard?.writeText
+  ) {
+    await navigator.clipboard.writeText(value);
+    return;
+  }
+
+  const textarea =
+    document.createElement("textarea");
+
+  textarea.value = value;
+  textarea.setAttribute("readonly", "");
+  textarea.style.position = "fixed";
+  textarea.style.opacity = "0";
+  document.body.appendChild(textarea);
+  textarea.select();
+
+  const copied =
+    document.execCommand("copy");
+
+  textarea.remove();
+
+  if (!copied) {
+    throw new Error(
+      "Não foi possível copiar o link."
+    );
+  }
+}
+
 export function AdminMarketingPage() {
   const [period, setPeriod] =
     useState("30");
@@ -56,6 +136,24 @@ export function AdminMarketingPage() {
 
   const [reloadKey, setReloadKey] =
     useState(0);
+
+  const [campaignForm, setCampaignForm] =
+    useState(INITIAL_CAMPAIGN);
+
+  const [campaignStatus, setCampaignStatus] =
+    useState("idle");
+
+  const [campaignMessage, setCampaignMessage] =
+    useState("");
+
+  const [campaignError, setCampaignError] =
+    useState("");
+
+  const [campaignActionId, setCampaignActionId] =
+    useState(null);
+
+  const [copiedCampaignId, setCopiedCampaignId] =
+    useState(null);
 
   useEffect(() => {
     const controller =
@@ -78,12 +176,17 @@ export function AdminMarketingPage() {
       apiRequest(
         `/admin/marketing/conversoes?periodo=${period}`,
         { signal: controller.signal }
+      ),
+      apiRequest(
+        "/admin/marketing/gestao-campanhas",
+        { signal: controller.signal }
       )
     ])
       .then(([
         summary,
         campaigns,
-        conversions
+        conversions,
+        managedCampaigns
       ]) => {
         if (!active) return;
 
@@ -92,7 +195,9 @@ export function AdminMarketingPage() {
           campaigns:
             campaigns.campanhas || [],
           conversions:
-            conversions.conversoes || []
+            conversions.conversoes || [],
+          managedCampaigns:
+            managedCampaigns.campanhas || []
         });
       })
       .catch((requestError) => {
@@ -116,6 +221,172 @@ export function AdminMarketingPage() {
   function selectPeriod(value) {
     if (value === period) return;
     setPeriod(value);
+  }
+
+  function updateCampaignForm(
+    field,
+    value
+  ) {
+    setCampaignMessage("");
+    setCampaignError("");
+
+    if (field === "canal") {
+      const preset =
+        CHANNELS[value] ||
+        CHANNELS.outro;
+
+      setCampaignForm(
+        (current) => ({
+          ...current,
+          canal: value,
+          utmSource:
+            preset.source,
+          utmMedium:
+            preset.medium
+        })
+      );
+      return;
+    }
+
+    setCampaignForm(
+      (current) => ({
+        ...current,
+        [field]: value
+      })
+    );
+  }
+
+  async function submitCampaign(event) {
+    event.preventDefault();
+
+    if (campaignStatus === "loading") {
+      return;
+    }
+
+    setCampaignStatus("loading");
+    setCampaignError("");
+    setCampaignMessage("");
+
+    const payload = {
+      nome:
+        campaignForm.nome,
+      canal:
+        campaignForm.canal,
+      utmSource:
+        campaignForm.utmSource,
+      utmMedium:
+        campaignForm.utmMedium,
+      destinoPath:
+        campaignForm.destinoPath,
+      utmContent:
+        campaignForm.utmContent,
+      utmTerm:
+        campaignForm.utmTerm,
+      ...(campaignForm.utmCampaign.trim()
+        ? {
+            utmCampaign:
+              campaignForm.utmCampaign
+          }
+        : {})
+    };
+
+    try {
+      const result =
+        await apiRequest(
+          "/admin/marketing/gestao-campanhas",
+          {
+            method: "POST",
+            body: payload
+          }
+        );
+
+      setData(
+        (current) => ({
+          ...current,
+          managedCampaigns: [
+            result.campanha,
+            ...(current?.managedCampaigns || [])
+              .filter(
+                (item) =>
+                  item.id !==
+                  result.campanha.id
+              )
+          ]
+        })
+      );
+
+      setCampaignForm(
+        INITIAL_CAMPAIGN
+      );
+      setCampaignMessage(
+        "Campanha criada. O link rastreável já está pronto para uso."
+      );
+    } catch (requestError) {
+      setCampaignError(
+        requestError.message
+      );
+    } finally {
+      setCampaignStatus("idle");
+    }
+  }
+
+  async function toggleCampaign(item) {
+    if (campaignActionId) {
+      return;
+    }
+
+    setCampaignActionId(item.id);
+    setCampaignError("");
+    setCampaignMessage("");
+
+    try {
+      const result =
+        await apiRequest(
+          `/admin/marketing/gestao-campanhas/${item.id}`,
+          {
+            method: "PATCH",
+            body: {
+              ativo:
+                !item.ativo
+            }
+          }
+        );
+
+      setData(
+        (current) => ({
+          ...current,
+          managedCampaigns:
+            (current?.managedCampaigns || [])
+              .map(
+                (campaign) =>
+                  campaign.id === item.id
+                    ? result.campanha
+                    : campaign
+              )
+        })
+      );
+    } catch (requestError) {
+      setCampaignError(
+        requestError.message
+      );
+    } finally {
+      setCampaignActionId(null);
+    }
+  }
+
+  async function copyCampaignLink(item) {
+    setCampaignError("");
+
+    try {
+      await copyText(
+        item.linkRastreavel
+      );
+      setCopiedCampaignId(item.id);
+    } catch (copyError) {
+      setCampaignError(
+        copyError.message
+      );
+    }
   }
 
   if (!data && !error) {
@@ -169,6 +440,12 @@ export function AdminMarketingPage() {
     ]
   ];
 
+  const campaignIdentifier =
+    campaignForm.utmCampaign.trim() ||
+    tokenPreview(
+      campaignForm.nome
+    );
+
   return (
     <main className="container page-content">
       <header className="workspace-heading">
@@ -178,7 +455,7 @@ export function AdminMarketingPage() {
           </p>
           <h1>Marketing e tráfego pago</h1>
           <p>
-            Acompanhe de onde chegam as sessões e quais campanhas terminam em agendamento.
+            Crie links de campanha e acompanhe quais origens terminam em agendamento.
           </p>
         </div>
 
@@ -209,6 +486,308 @@ export function AdminMarketingPage() {
           )}
         </div>
       </header>
+
+      <section className="panel">
+        <div className="panel-heading">
+          <div>
+            <p className="eyebrow">
+              Nova campanha
+            </p>
+            <h2>Gerar link rastreável</h2>
+            <p className="muted">
+              O destino precisa ser uma página interna do AF. A identidade UTM fica preservada depois da criação.
+            </p>
+          </div>
+        </div>
+
+        <form
+          className="stack-form"
+          onSubmit={submitCampaign}
+        >
+          <div className="form-grid">
+            <label>
+              Nome da campanha
+              <input
+                maxLength="140"
+                onChange={(event) =>
+                  updateCampaignForm(
+                    "nome",
+                    event.target.value
+                  )
+                }
+                placeholder="Ex.: Cílios Goiânia Agosto"
+                required
+                value={campaignForm.nome}
+              />
+            </label>
+
+            <label>
+              Canal
+              <select
+                onChange={(event) =>
+                  updateCampaignForm(
+                    "canal",
+                    event.target.value
+                  )
+                }
+                value={campaignForm.canal}
+              >
+                {Object.entries(CHANNELS)
+                  .map(
+                    ([value, item]) => (
+                      <option
+                        key={value}
+                        value={value}
+                      >
+                        {item.label}
+                      </option>
+                    )
+                  )}
+              </select>
+            </label>
+
+            <label>
+              Origem UTM
+              <input
+                maxLength="80"
+                onChange={(event) =>
+                  updateCampaignForm(
+                    "utmSource",
+                    event.target.value
+                  )
+                }
+                placeholder="Ex.: meta"
+                required
+                value={campaignForm.utmSource}
+              />
+            </label>
+
+            <label>
+              Mídia UTM
+              <input
+                maxLength="80"
+                onChange={(event) =>
+                  updateCampaignForm(
+                    "utmMedium",
+                    event.target.value
+                  )
+                }
+                placeholder="Ex.: cpc"
+                required
+                value={campaignForm.utmMedium}
+              />
+            </label>
+
+            <label className="field-wide">
+              Destino dentro do AF
+              <input
+                maxLength="500"
+                onChange={(event) =>
+                  updateCampaignForm(
+                    "destinoPath",
+                    event.target.value
+                  )
+                }
+                placeholder="/ ou /negocio/nome-do-negocio"
+                required
+                value={campaignForm.destinoPath}
+              />
+              <small>
+                Use apenas caminhos internos iniciados por /.
+              </small>
+            </label>
+
+            <label>
+              Identificador UTM
+              <input
+                maxLength="140"
+                onChange={(event) =>
+                  updateCampaignForm(
+                    "utmCampaign",
+                    event.target.value
+                  )
+                }
+                placeholder={
+                  tokenPreview(
+                    campaignForm.nome
+                  ) ||
+                  "gerado pelo nome"
+                }
+                value={campaignForm.utmCampaign}
+              />
+              <small>
+                {campaignIdentifier
+                  ? `Será usado: ${campaignIdentifier}`
+                  : "Se ficar vazio, será gerado pelo nome."}
+              </small>
+            </label>
+
+            <label>
+              Conteúdo / criativo
+              <input
+                maxLength="140"
+                onChange={(event) =>
+                  updateCampaignForm(
+                    "utmContent",
+                    event.target.value
+                  )
+                }
+                placeholder="Ex.: video_01"
+                value={campaignForm.utmContent}
+              />
+            </label>
+
+            <label>
+              Termo UTM
+              <input
+                maxLength="140"
+                onChange={(event) =>
+                  updateCampaignForm(
+                    "utmTerm",
+                    event.target.value
+                  )
+                }
+                placeholder="Opcional"
+                value={campaignForm.utmTerm}
+              />
+            </label>
+          </div>
+
+          {campaignError && (
+            <p
+              className="form-error"
+              role="alert"
+            >
+              {campaignError}
+            </p>
+          )}
+
+          {campaignMessage && (
+            <p
+              className="form-success"
+              role="status"
+            >
+              {campaignMessage}
+            </p>
+          )}
+
+          <div className="form-actions">
+            <button
+              className="button"
+              disabled={
+                campaignStatus ===
+                "loading"
+              }
+              type="submit"
+            >
+              {campaignStatus === "loading"
+                ? "Criando..."
+                : "Criar campanha e link"}
+            </button>
+          </div>
+        </form>
+      </section>
+
+      <section className="panel">
+        <div className="panel-heading">
+          <div>
+            <p className="eyebrow">
+              Links do AF
+            </p>
+            <h2>Campanhas cadastradas</h2>
+          </div>
+        </div>
+
+        {data.managedCampaigns.length === 0 ? (
+          <p className="muted">
+            Nenhuma campanha cadastrada ainda.
+          </p>
+        ) : (
+          <div className="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Campanha</th>
+                  <th>Canal</th>
+                  <th>UTM</th>
+                  <th>Destino</th>
+                  <th>Status</th>
+                  <th>Ações</th>
+                </tr>
+              </thead>
+              <tbody>
+                {data.managedCampaigns.map(
+                  (item) => (
+                    <tr key={item.id}>
+                      <td>
+                        <strong>
+                          {item.nome}
+                        </strong>
+                      </td>
+                      <td>
+                        {CHANNELS[item.canal]
+                          ?.label ||
+                          item.canal}
+                      </td>
+                      <td>
+                        <code>
+                          {item.utmSource}/
+                          {item.utmMedium}/
+                          {item.utmCampaign}
+                        </code>
+                      </td>
+                      <td>
+                        {item.destinoPath}
+                      </td>
+                      <td>
+                        {item.ativo
+                          ? "Ativa"
+                          : "Arquivada"}
+                      </td>
+                      <td>
+                        <div className="quick-actions">
+                          <button
+                            className="button button-secondary button-small"
+                            onClick={() =>
+                              copyCampaignLink(
+                                item
+                              )
+                            }
+                            type="button"
+                          >
+                            {copiedCampaignId === item.id
+                              ? "Copiado"
+                              : "Copiar link"}
+                          </button>
+                          <button
+                            className="text-button"
+                            disabled={
+                              campaignActionId ===
+                              item.id
+                            }
+                            onClick={() =>
+                              toggleCampaign(
+                                item
+                              )
+                            }
+                            type="button"
+                          >
+                            {campaignActionId === item.id
+                              ? "Salvando..."
+                              : item.ativo
+                                ? "Arquivar"
+                                : "Reativar"}
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  )
+                )}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </section>
 
       <section
         className="metric-grid"
