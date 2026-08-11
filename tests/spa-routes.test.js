@@ -19,6 +19,7 @@ describe("rotas SPA servidas pelo Express", () => {
   });
 
   it.each([
+    "/para-profissionais",
     "/privacidade",
     "/admin/trafego-pago",
     "/admin/trafego-pago/custos",
