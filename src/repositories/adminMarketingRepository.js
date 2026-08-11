@@ -11,6 +11,9 @@ const PERIODOS_PERMITIDOS =
     "month",
   ]);
 
+const REPORT_TIME_ZONE =
+  "America/Sao_Paulo";
+
 function normalizarPeriodo(
   valor
 ) {
@@ -26,35 +29,45 @@ function normalizarPeriodo(
     : "all";
 }
 
+function inicioPeriodoSql(
+  periodo
+) {
+  const bases = {
+    today:
+      `date_trunc('day', NOW() AT TIME ZONE '${REPORT_TIME_ZONE}')`,
+    "7":
+      `(date_trunc('day', NOW() AT TIME ZONE '${REPORT_TIME_ZONE}') - INTERVAL '6 days')`,
+    "30":
+      `(date_trunc('day', NOW() AT TIME ZONE '${REPORT_TIME_ZONE}') - INTERVAL '29 days')`,
+    month:
+      `date_trunc('month', NOW() AT TIME ZONE '${REPORT_TIME_ZONE}')`,
+  };
+
+  const base =
+    bases[normalizarPeriodo(periodo)];
+
+  return base
+    ? `(${base} AT TIME ZONE '${REPORT_TIME_ZONE}')`
+    : null;
+}
+
 function filtroPeriodo(
   periodo,
   alias = "e"
 ) {
+  const inicio =
+    inicioPeriodoSql(periodo);
+
+  if (!inicio) {
+    return "";
+  }
+
   const prefixo =
     alias
       ? `${alias}.`
       : "";
 
-  const filtros = {
-    all:
-      "",
-
-    today:
-      `AND ${prefixo}created_at >= CURRENT_DATE`,
-
-    "7":
-      `AND ${prefixo}created_at >= NOW() - INTERVAL '7 days'`,
-
-    "30":
-      `AND ${prefixo}created_at >= NOW() - INTERVAL '30 days'`,
-
-    month:
-      `AND DATE_TRUNC('month', ${prefixo}created_at) = DATE_TRUNC('month', NOW())`,
-  };
-
-  return filtros[
-    normalizarPeriodo(periodo)
-  ];
+  return `AND ${prefixo}created_at >= ${inicio}`;
 }
 
 const ATRIBUICAO_SQL = `
@@ -158,6 +171,18 @@ const CAMPANHA_SQL = `
   )
 `;
 
+const AGENDAMENTO_CONCLUIDO_ID_SQL = `
+  COALESCE(
+    NULLIF(
+      BTRIM(
+        e.propriedades ->> 'agendamento_id'
+      ),
+      ''
+    ),
+    e.id::TEXT
+  )
+`;
+
 async function consultarEventos(
   sql,
   fallbackRows
@@ -192,6 +217,11 @@ async function buscarResumo(
     await consultarEventos(
       `
         SELECT
+          COUNT(
+            DISTINCT e.sessao_id
+          )::INT
+            AS total_sessoes,
+
           COUNT(
             DISTINCT e.sessao_id
           ) FILTER (
@@ -229,7 +259,7 @@ async function buscarResumo(
             AS agendamentos_iniciados,
 
           COUNT(
-            DISTINCT e.sessao_id
+            DISTINCT ${AGENDAMENTO_CONCLUIDO_ID_SQL}
           ) FILTER (
             WHERE ${ATRIBUICAO_SQL}
               AND e.nome =
@@ -244,6 +274,7 @@ async function buscarResumo(
       `,
       [
         {
+          total_sessoes: 0,
           sessoes: 0,
           campanhas: 0,
           perfis_visualizados: 0,
@@ -300,7 +331,7 @@ async function listarCampanhas(
             AS agendamentos_iniciados,
 
           COUNT(
-            DISTINCT e.sessao_id
+            DISTINCT ${AGENDAMENTO_CONCLUIDO_ID_SQL}
           ) FILTER (
             WHERE e.nome =
               'agendamento_concluido'
@@ -422,4 +453,6 @@ module.exports = {
   buscarResumo,
   listarCampanhas,
   listarConversoes,
+  normalizarPeriodo,
+  filtroPeriodo,
 };
