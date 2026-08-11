@@ -154,6 +154,53 @@ function normalizarMarketing(
         entrada.landing_page ??
         entrada.landingPage
       ),
+    lastUtmSource:
+      normalizarTexto(
+        entrada.last_utm_source ??
+        entrada.lastUtmSource,
+        80
+      ),
+    lastUtmMedium:
+      normalizarTexto(
+        entrada.last_utm_medium ??
+        entrada.lastUtmMedium,
+        80
+      ),
+    lastUtmCampaign:
+      normalizarTexto(
+        entrada.last_utm_campaign ??
+        entrada.lastUtmCampaign,
+        140
+      ),
+    lastUtmContent:
+      normalizarTexto(
+        entrada.last_utm_content ??
+        entrada.lastUtmContent,
+        140
+      ),
+    lastUtmTerm:
+      normalizarTexto(
+        entrada.last_utm_term ??
+        entrada.lastUtmTerm,
+        140
+      ),
+    lastGclid:
+      normalizarTexto(
+        entrada.last_gclid ??
+        entrada.lastGclid,
+        160
+      ),
+    lastFbclid:
+      normalizarTexto(
+        entrada.last_fbclid ??
+        entrada.lastFbclid,
+        160
+      ),
+    lastLandingPage:
+      normalizarLanding(
+        entrada.last_landing_page ??
+        entrada.lastLandingPage
+      ),
   };
 }
 
