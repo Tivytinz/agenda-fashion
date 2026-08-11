@@ -53,6 +53,7 @@ describe(
           busca: "unhas",
           categoria: "",
           categoriaTermos: [],
+          cidade: "",
           limite: 6,
           offset: 6
         });
@@ -94,7 +95,33 @@ describe(
               "esmalta",
               "nail",
               "alongamento"
-            ])
+            ]),
+            cidade: ""
+          })
+        );
+      }
+    );
+
+    test(
+      "encaminha cidade como filtro dedicado sem misturar com a busca",
+      async () => {
+        repository
+          .listarNegociosPublicos
+          .mockResolvedValue([]);
+
+        await service.listarNegociosPublicos({
+          busca: "escova",
+          categoria: "cabelo",
+          cidade: "Goiânia"
+        });
+
+        expect(
+          repository.listarNegociosPublicos
+        ).toHaveBeenCalledWith(
+          expect.objectContaining({
+            busca: "escova",
+            categoria: "cabelo",
+            cidade: "Goiânia"
           })
         );
       }
