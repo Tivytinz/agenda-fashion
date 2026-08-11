@@ -22,6 +22,11 @@ const adminMarketingController =
     "../controllers/adminMarketingController"
   );
 
+const adminCampaignController =
+  require(
+    "../controllers/adminCampaignController"
+  );
+
 /*
  * Resumo geral da plataforma.
  */
@@ -86,6 +91,34 @@ router.get(
   auth,
   authAdmin,
   adminMarketingController.listarConversoes
+);
+
+/*
+ * Gestão das campanhas criadas pelo AF.
+ *
+ * A identidade UTM é preservada após
+ * a criação; edições ficam restritas a
+ * nome, destino, conteúdo, termo e status.
+ */
+router.get(
+  "/admin/marketing/gestao-campanhas",
+  auth,
+  authAdmin,
+  adminCampaignController.listar
+);
+
+router.post(
+  "/admin/marketing/gestao-campanhas",
+  auth,
+  authAdmin,
+  adminCampaignController.criar
+);
+
+router.patch(
+  "/admin/marketing/gestao-campanhas/:id",
+  auth,
+  authAdmin,
+  adminCampaignController.atualizar
 );
 
 module.exports = router;
