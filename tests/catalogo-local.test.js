@@ -69,6 +69,7 @@ describe("catálogo local SEO", () => {
     ).toHaveBeenCalledWith({
       categoria: "cabelo",
       cidade: "Goiânia",
+      estado: "GO",
       pagina: 1,
       limite: 12
     });
