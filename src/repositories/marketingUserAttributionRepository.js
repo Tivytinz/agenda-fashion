@@ -14,6 +14,14 @@ async function registrarConta({
   gclid,
   fbclid,
   landingPage,
+  lastUtmSource,
+  lastUtmMedium,
+  lastUtmCampaign,
+  lastUtmContent,
+  lastUtmTerm,
+  lastGclid,
+  lastFbclid,
+  lastLandingPage,
 }) {
   const resultado =
     await db.query(
@@ -30,11 +38,21 @@ async function registrarConta({
         gclid,
         fbclid,
         landing_page,
+        last_utm_source,
+        last_utm_medium,
+        last_utm_campaign,
+        last_utm_content,
+        last_utm_term,
+        last_gclid,
+        last_fbclid,
+        last_landing_page,
         atribuicao_em
       )
       VALUES (
         $1, $2, $3, $4, $5, $6,
-        $7, $8, $9, $10, $11, NOW()
+        $7, $8, $9, $10, $11, $12,
+        $13, $14, $15, $16, $17, $18,
+        $19, NOW()
       )
       ON CONFLICT (usuario_id)
       DO NOTHING
@@ -52,6 +70,14 @@ async function registrarConta({
         gclid,
         fbclid,
         landingPage,
+        lastUtmSource || utmSource,
+        lastUtmMedium || utmMedium,
+        lastUtmCampaign || utmCampaign,
+        lastUtmContent || utmContent,
+        lastUtmTerm || utmTerm,
+        lastGclid || gclid,
+        lastFbclid || fbclid,
+        lastLandingPage || landingPage,
       ]
     );
 
