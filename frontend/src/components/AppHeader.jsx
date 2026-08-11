@@ -80,7 +80,7 @@ export function AppHeader() {
                       ? "text-link active desktop-nav-link"
                       : "text-link desktop-nav-link"
                   }
-                  to="/admin/marketing"
+                  to="/admin/trafego-pago"
                 >
                   Marketing Admin
                 </NavLink>
