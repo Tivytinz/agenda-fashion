@@ -198,6 +198,10 @@ async function obterMinhaSessao(
     );
   }
 
+  const buscarAdministrador =
+    sessaoRepository
+      .buscarAdministradorAtivoPorUsuarioId;
+
   const [
     contexto,
     administrador,
@@ -207,10 +211,10 @@ async function obterMinhaSessao(
         id
       ),
 
-    sessaoRepository
-      .buscarAdministradorAtivoPorUsuarioId(
-        id
-      ),
+    typeof buscarAdministrador ===
+      "function"
+      ? buscarAdministrador(id)
+      : Promise.resolve(null),
   ]);
 
   const negocio =
