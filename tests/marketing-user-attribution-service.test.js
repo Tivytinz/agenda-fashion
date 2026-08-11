@@ -24,7 +24,7 @@ describe(
     });
 
     test(
-      "mantém somente contexto de marketing permitido",
+      "mantém somente contexto de marketing permitido com first e last touch",
       async () => {
         repository.registrarConta
           .mockResolvedValue({
@@ -42,6 +42,12 @@ describe(
             utm_content: "video_01",
             gclid: "gclid-123",
             landing_page: "/cadastro",
+            last_utm_source: "google",
+            last_utm_medium: "cpc",
+            last_utm_campaign: "retargeting",
+            last_utm_content: "search_01",
+            last_gclid: "gclid-last-456",
+            last_landing_page: "/planos",
             email: "nao@salvar.com",
             whatsapp: "62999999999",
             nome: "Não salvar",
@@ -62,6 +68,14 @@ describe(
           gclid: "gclid-123",
           fbclid: null,
           landingPage: "/cadastro",
+          lastUtmSource: "google",
+          lastUtmMedium: "cpc",
+          lastUtmCampaign: "retargeting",
+          lastUtmContent: "search_01",
+          lastUtmTerm: null,
+          lastGclid: "gclid-last-456",
+          lastFbclid: null,
+          lastLandingPage: "/planos",
         });
       }
     );
@@ -79,6 +93,8 @@ describe(
             sessao_id: "x",
             landing_page:
               "https://externo.test/oferta",
+            last_landing_page:
+              "//externo.test/oferta",
           },
         });
 
@@ -89,6 +105,7 @@ describe(
             intencao: "indefinida",
             sessaoId: null,
             landingPage: null,
+            lastLandingPage: null,
           })
         );
       }
