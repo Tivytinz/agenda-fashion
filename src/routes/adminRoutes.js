@@ -27,6 +27,11 @@ const adminCampaignController =
     "../controllers/adminCampaignController"
   );
 
+const adminMarketingCostController =
+  require(
+    "../controllers/adminMarketingCostController"
+  );
+
 /*
  * Resumo geral da plataforma.
  */
@@ -119,6 +124,34 @@ router.patch(
   auth,
   authAdmin,
   adminCampaignController.atualizar
+);
+
+/*
+ * Investimento e eficiência de mídia.
+ *
+ * O gasto manual é registrado por dia e
+ * campanha. Reenviar o mesmo dia corrige
+ * o valor existente em vez de duplicá-lo.
+ */
+router.get(
+  "/admin/marketing/custos",
+  auth,
+  authAdmin,
+  adminMarketingCostController.buscarCustos
+);
+
+router.get(
+  "/admin/marketing/gastos",
+  auth,
+  authAdmin,
+  adminMarketingCostController.listarGastos
+);
+
+router.post(
+  "/admin/marketing/gastos",
+  auth,
+  authAdmin,
+  adminMarketingCostController.registrarGasto
 );
 
 module.exports = router;
