@@ -134,4 +134,117 @@ DO UPDATE SET
   intencao = 'profissional',
   updated_at = NOW();
 
+/*
+ * Se uma conta genérica criar um negócio depois, ela passa a integrar o
+ * funil profissional preservando a atribuição que recebeu no cadastro.
+ */
+CREATE OR REPLACE FUNCTION
+  marketing_marcar_usuario_dono_profissional()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+AS $$
+BEGIN
+  IF NEW.papel = 'dono' THEN
+    INSERT INTO marketing_usuario_atribuicoes (
+      usuario_id,
+      intencao,
+      atribuicao_em
+    )
+    SELECT
+      u.id,
+      'profissional',
+      u.created_at
+    FROM usuarios u
+    WHERE u.id = NEW.usuario_id
+    ON CONFLICT (usuario_id)
+    DO UPDATE SET
+      intencao = 'profissional',
+      updated_at = NOW();
+  END IF;
+
+  RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS
+  marketing_usuario_dono_profissional_trigger
+ON usuarios_negocios;
+
+CREATE TRIGGER
+  marketing_usuario_dono_profissional_trigger
+AFTER INSERT OR UPDATE OF papel
+ON usuarios_negocios
+FOR EACH ROW
+EXECUTE FUNCTION
+  marketing_marcar_usuario_dono_profissional();
+
+/*
+ * Primeiro serviço é um marco permanente do funil, mesmo se o serviço for
+ * removido no futuro.
+ */
+CREATE OR REPLACE FUNCTION
+  marketing_marcar_primeiro_servico()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+AS $$
+BEGIN
+  UPDATE negocios
+  SET primeiro_servico_criado_em =
+    COALESCE(
+      primeiro_servico_criado_em,
+      NEW.created_at,
+      NOW()
+    )
+  WHERE id = NEW.negocio_id
+    AND primeiro_servico_criado_em IS NULL;
+
+  RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS
+  marketing_primeiro_servico_trigger
+ON servicos_negocio;
+
+CREATE TRIGGER
+  marketing_primeiro_servico_trigger
+AFTER INSERT
+ON servicos_negocio
+FOR EACH ROW
+EXECUTE FUNCTION
+  marketing_marcar_primeiro_servico();
+
+/*
+ * A primeira publicação não desaparece do funil quando o dono decide ocultar
+ * temporariamente o perfil.
+ */
+CREATE OR REPLACE FUNCTION
+  marketing_marcar_primeira_publicacao()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+AS $$
+BEGIN
+  IF NEW.publicado = TRUE
+    AND COALESCE(OLD.publicado, FALSE) = FALSE
+    AND NEW.primeira_publicacao_em IS NULL
+  THEN
+    NEW.primeira_publicacao_em = NOW();
+  END IF;
+
+  RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS
+  marketing_primeira_publicacao_trigger
+ON negocios;
+
+CREATE TRIGGER
+  marketing_primeira_publicacao_trigger
+BEFORE UPDATE OF publicado
+ON negocios
+FOR EACH ROW
+EXECUTE FUNCTION
+  marketing_marcar_primeira_publicacao();
+
 COMMIT;
