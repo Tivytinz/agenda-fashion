@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useLocation, useNavigate, useSearchParams } from "react-router-dom";
+import { trackGoogleBeginCheckout } from "../analytics/googleMeasurement";
 import {
   createMetaEventContext,
   trackMetaEvent
@@ -359,6 +360,13 @@ export function BillingCheckoutPage() {
           metaContext.event_id
         );
       }
+
+      void trackGoogleBeginCheckout({
+        currency: "BRL",
+        value: Number(plan.valor || 0),
+        planId: plan.slug || plan.id,
+        planName: plan.nome
+      });
 
       if (paymentConfirmed(result)) {
         navigate("/painel/assinatura", { replace: true, state: { payment: "confirmed" } });
