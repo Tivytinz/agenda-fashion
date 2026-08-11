@@ -8,6 +8,14 @@ import {
 } from "react-router-dom";
 import { useSession } from "../auth/SessionContext";
 import {
+  applyGoogleConsentDefault,
+  getGoogleConfig,
+  initializeGoogleMeasurement,
+  syncGoogleConsent,
+  trackGooglePageView,
+  updateGoogleConsent
+} from "../analytics/googleMeasurement";
+import {
   getMarketingConsent,
   MARKETING_CONSENT,
   MARKETING_CONSENT_EVENT,
@@ -24,7 +32,9 @@ import {
 export function MetaAdsBridge() {
   const location = useLocation();
   const session = useSession();
-  const [config, setConfig] =
+  const [metaConfig, setMetaConfig] =
+    useState(null);
+  const [googleConfig, setGoogleConfig] =
     useState(null);
   const [consent, setConsent] =
     useState(getMarketingConsent);
@@ -32,9 +42,22 @@ export function MetaAdsBridge() {
   useEffect(() => {
     let active = true;
 
-    getMetaConfig().then((result) => {
-      if (active) {
-        setConfig(result);
+    Promise.all([
+      getMetaConfig(),
+      getGoogleConfig()
+    ]).then(([
+      nextMetaConfig,
+      nextGoogleConfig
+    ]) => {
+      if (!active) {
+        return;
+      }
+
+      setMetaConfig(nextMetaConfig);
+      setGoogleConfig(nextGoogleConfig);
+
+      if (nextGoogleConfig?.enabled) {
+        applyGoogleConsentDefault();
       }
     });
 
@@ -65,7 +88,7 @@ export function MetaAdsBridge() {
   }, []);
 
   useEffect(() => {
-    if (!config?.enabled) {
+    if (!metaConfig?.enabled) {
       return;
     }
 
@@ -88,27 +111,75 @@ export function MetaAdsBridge() {
         .catch(() => {});
     }
   }, [
-    config?.enabled,
+    metaConfig?.enabled,
     consent,
     session.authenticated
   ]);
 
   useEffect(() => {
-    if (
-      !config?.enabled ||
-      consent !==
-        MARKETING_CONSENT.GRANTED
-    ) {
+    if (!googleConfig?.enabled) {
       return;
     }
 
-    void trackMetaPageView(
-      location.pathname
-    );
+    if (
+      consent ===
+        MARKETING_CONSENT.GRANTED
+    ) {
+      void initializeGoogleMeasurement(
+        session.usuario?.id
+      )
+        .then(() => syncGoogleConsent())
+        .catch(() => {});
+      return;
+    }
+
+    if (
+      consent ===
+        MARKETING_CONSENT.DENIED
+    ) {
+      updateGoogleConsent(
+        MARKETING_CONSENT.DENIED
+      );
+      void syncGoogleConsent()
+        .catch(() => {});
+      return;
+    }
+
+    applyGoogleConsentDefault();
   }, [
-    config?.enabled,
+    googleConfig?.enabled,
     consent,
-    location.pathname
+    session.authenticated,
+    session.usuario?.id
+  ]);
+
+  useEffect(() => {
+    if (
+      metaConfig?.enabled &&
+      consent ===
+        MARKETING_CONSENT.GRANTED
+    ) {
+      void trackMetaPageView(
+        location.pathname
+      );
+    }
+
+    if (
+      googleConfig?.enabled &&
+      consent ===
+        MARKETING_CONSENT.GRANTED
+    ) {
+      void trackGooglePageView(
+        location.pathname,
+        session.usuario?.id
+      );
+    }
+  }, [
+    metaConfig?.enabled,
+    googleConfig?.enabled,
+    consent,
+    location.pathname,
+    session.usuario?.id
   ]);
 
   function choose(status) {
@@ -116,7 +187,13 @@ export function MetaAdsBridge() {
     setConsent(status);
   }
 
-  if (!config?.enabled) {
+  const measurementEnabled =
+    Boolean(
+      metaConfig?.enabled ||
+      googleConfig?.enabled
+    );
+
+  if (!measurementEnabled) {
     return null;
   }
 
@@ -132,7 +209,7 @@ export function MetaAdsBridge() {
         <div className="marketing-consent-copy">
           <strong>Privacidade e medição de anúncios</strong>
           <p>
-            O Agenda Fashion pode usar ferramentas opcionais da Meta para medir se anúncios resultam em cadastros e assinaturas. Elas só são ativadas se você permitir.
+            O Agenda Fashion pode usar ferramentas opcionais da Meta e do Google para entender se anúncios resultam em cadastros e assinaturas. Elas só são ativadas se você permitir.
           </p>
           <Link to="/privacidade">
             Entender como funciona
