@@ -1,6 +1,7 @@
 {
   "home": "/",
   "professionalLanding": "/para-profissionais",
+  "localCatalog": "/servicos/:categoria/em/:localidade",
   "login": "/entrar",
   "register": "/cadastro",
   "privacy": "/privacidade",
