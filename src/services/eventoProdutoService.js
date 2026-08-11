@@ -90,6 +90,14 @@ const CHAVES_PROPRIEDADES =
     "servico_id",
     "status",
     "termo_presente",
+    "utm_source",
+    "utm_medium",
+    "utm_campaign",
+    "utm_content",
+    "utm_term",
+    "gclid",
+    "fbclid",
+    "landing_page",
   ]);
 
 function erroValidacao(
