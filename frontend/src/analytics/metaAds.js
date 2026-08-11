@@ -185,11 +185,23 @@ function uniquePart() {
 export function createMetaEventContext(
   namespace
 ) {
+  const consent =
+    getMarketingConsent();
+
   if (
-    getMarketingConsent() !==
-      MARKETING_CONSENT.GRANTED
+    consent ===
+      MARKETING_CONSENT.UNKNOWN
   ) {
     return null;
+  }
+
+  if (
+    consent ===
+      MARKETING_CONSENT.DENIED
+  ) {
+    return {
+      consentimento: false
+    };
   }
 
   return {
