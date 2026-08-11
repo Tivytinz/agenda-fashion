@@ -463,12 +463,35 @@ async function salvarConsentimento({
     });
 }
 
+async function salvarConsentimentoSeguro({
+  usuarioId,
+  meta
+}) {
+  if (!usuarioId || !meta) {
+    return null;
+  }
+
+  try {
+    return await salvarConsentimento({
+      usuarioId,
+      meta
+    });
+  } catch (erro) {
+    registrarFalha(
+      "Consentimento",
+      erro
+    );
+    return null;
+  }
+}
+
 function enviarCadastroProfissionalSeguro({
   usuario,
   marketing,
   contexto
 }) {
   if (
+    !capiHabilitada() ||
     !usuario?.id ||
     marketing?.intencao !==
       "profissional"
@@ -478,32 +501,16 @@ function enviarCadastroProfissionalSeguro({
 
   dispararSeguro(
     "CompleteRegistration",
-    async () => {
-      await salvarConsentimento({
-        usuarioId: usuario.id,
-        meta: {
-          consentimento:
-            contexto?.consentimento,
-          fbp: contexto?.fbp,
-          fbc: contexto?.fbc,
-          event_id:
-            contexto?.eventId,
-          source_url:
-            contexto?.sourceUrl
-        }
-      });
-
-      return enviarEvento({
-        eventName:
-          "CompleteRegistration",
-        eventId:
-          contexto?.eventId,
-        usuarioId: usuario.id,
-        email: usuario.email,
-        whatsapp: usuario.whatsapp,
-        contexto
-      });
-    }
+    () => enviarEvento({
+      eventName:
+        "CompleteRegistration",
+      eventId:
+        contexto?.eventId,
+      usuarioId: usuario.id,
+      email: usuario.email,
+      whatsapp: usuario.whatsapp,
+      contexto
+    })
   );
 }
 
@@ -513,27 +520,16 @@ function enviarCheckoutSeguro({
   plano,
   resultado
 }) {
-  if (!usuarioId) {
+  if (
+    !capiHabilitada() ||
+    !usuarioId
+  ) {
     return;
   }
 
   dispararSeguro(
     "InitiateCheckout",
     async () => {
-      await salvarConsentimento({
-        usuarioId,
-        meta: {
-          consentimento:
-            contexto?.consentimento,
-          fbp: contexto?.fbp,
-          fbc: contexto?.fbc,
-          event_id:
-            contexto?.eventId,
-          source_url:
-            contexto?.sourceUrl
-        }
-      });
-
       const perfil =
         await metaAdsRepository
           .buscarPerfilPorUsuario(
@@ -572,13 +568,32 @@ function enviarAssinaturaAtivadaSeguro({
   pagamentoId,
   valor
 }) {
-  if (!negocioId || !assinaturaId) {
+  if (
+    !capiHabilitada() ||
+    !negocioId ||
+    !assinaturaId ||
+    !pagamentoId
+  ) {
     return;
   }
 
   dispararSeguro(
     "Subscribe",
     async () => {
+      const primeiroPagamento =
+        await metaAdsRepository
+          .ehPrimeiroPagamentoAssinatura({
+            assinaturaId,
+            pagamentoId
+          });
+
+      if (!primeiroPagamento) {
+        return {
+          enviado: false,
+          motivo: "renovacao"
+        };
+      }
+
       const perfil =
         await metaAdsRepository
           .buscarPerfilPorNegocio(
@@ -595,7 +610,7 @@ function enviarAssinaturaAtivadaSeguro({
       const contexto = {
         consentimento: true,
         eventId:
-          `subscribe:${assinaturaId}:${pagamentoId || "payment"}`,
+          `subscribe:${assinaturaId}`,
         fbp:
           perfil.meta_fbp || null,
         fbc:
@@ -631,6 +646,7 @@ module.exports = {
   sanitizarContextoCliente,
   criarContextoRequisicao,
   salvarConsentimento,
+  salvarConsentimentoSeguro,
   enviarEvento,
   enviarCadastroProfissionalSeguro,
   enviarCheckoutSeguro,
