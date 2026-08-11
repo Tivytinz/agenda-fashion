@@ -128,7 +128,7 @@ describe("marketingCostSyncService", () => {
     })).toThrow("até 90 dias");
   });
 
-  test("salva vínculo somente para campanha existente", async () => {
+  test("normaliza IDs e salva vínculo somente para campanha existente", async () => {
     mockCampaignRepository.buscarPorId.mockResolvedValue({ id: 5, nome: "Teste" });
     mockRepository.salvarVinculo.mockResolvedValue({ id: 9, campanha_id: 5 });
 
@@ -145,7 +145,7 @@ describe("marketingCostSyncService", () => {
     expect(mockRepository.salvarVinculo).toHaveBeenCalledWith({
       campanhaId: 5,
       provedor: "google_ads",
-      contaExternaId: "677-020-7927",
+      contaExternaId: "6770207927",
       campanhaExternaId: "555",
       campanhaExternaNome: "Aquisição"
     });
