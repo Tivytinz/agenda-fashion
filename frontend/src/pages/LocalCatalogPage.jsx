@@ -157,7 +157,6 @@ export function LocalCatalogPage() {
     });
   }, [filter]);
 
-  const canonical = metadata?.url || "";
   const notFound = status === "not-found";
 
   usePageMetadata(
@@ -167,11 +166,7 @@ export function LocalCatalogPage() {
         : "Serviços perto de você | Agenda Fashion"
     ),
     metadata?.descricao ||
-      "Encontre profissionais e serviços de beleza e agende online pelo Agenda Fashion.",
-    {
-      canonical: canonical || undefined,
-      robots: notFound ? "noindex,follow" : undefined
-    }
+      "Encontre profissionais e serviços de beleza e agende online pelo Agenda Fashion."
   );
 
   const services = useMemo(
