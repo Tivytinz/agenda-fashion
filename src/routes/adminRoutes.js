@@ -32,6 +32,11 @@ const adminMarketingCostController =
     "../controllers/adminMarketingCostController"
   );
 
+const marketingCostSyncController =
+  require(
+    "../controllers/marketingCostSyncController"
+  );
+
 const adminProfessionalFunnelController =
   require(
     "../controllers/adminProfessionalFunnelController"
@@ -144,9 +149,9 @@ router.patch(
 /*
  * Investimento e eficiência de mídia.
  *
- * O gasto manual é registrado por dia e
- * campanha. Reenviar o mesmo dia corrige
- * o valor existente em vez de duplicá-lo.
+ * O gasto manual continua disponível como fallback.
+ * Integrações automáticas usam vínculo explícito com a
+ * campanha externa e nunca expõem credenciais ao frontend.
  */
 router.get(
   "/admin/marketing/custos",
@@ -167,6 +172,27 @@ router.post(
   auth,
   authAdmin,
   adminMarketingCostController.registrarGasto
+);
+
+router.get(
+  "/admin/marketing/custos-integracoes",
+  auth,
+  authAdmin,
+  marketingCostSyncController.status
+);
+
+router.post(
+  "/admin/marketing/custos-integracoes/vinculos",
+  auth,
+  authAdmin,
+  marketingCostSyncController.vincular
+);
+
+router.post(
+  "/admin/marketing/custos-integracoes/:provedor/sincronizar",
+  auth,
+  authAdmin,
+  marketingCostSyncController.sincronizar
 );
 
 module.exports = router;
