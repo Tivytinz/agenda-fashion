@@ -65,6 +65,14 @@ async function cadastro(
       );
 
     if (resultado.contaCriada) {
+      await metaAdsService
+        .salvarConsentimentoSeguro({
+          usuarioId:
+            resultado.usuario?.id,
+          meta:
+            req.body?.meta
+        });
+
       metaAdsService
         .enviarCadastroProfissionalSeguro({
           usuario:
@@ -135,6 +143,14 @@ async function loginGoogle(
         });
 
     if (resultado.contaCriada) {
+      await metaAdsService
+        .salvarConsentimentoSeguro({
+          usuarioId:
+            resultado.usuario?.id,
+          meta:
+            req.body?.meta
+        });
+
       metaAdsService
         .enviarCadastroProfissionalSeguro({
           usuario:
