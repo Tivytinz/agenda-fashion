@@ -71,6 +71,18 @@ describe(
               $4::JSONB
             ),
             (
+              'agendamento_concluido',
+              'finalizar_agendamento',
+              $1,
+              $4::JSONB
+            ),
+            (
+              'agendamento_concluido',
+              'finalizar_agendamento',
+              $1,
+              $5::JSONB
+            ),
+            (
               'perfil_visualizado',
               'perfil_negocio',
               $2,
@@ -84,6 +96,12 @@ describe(
           JSON.stringify({
             ...attribution,
             agendamento_id: 987654,
+            servico_id: 123456,
+            status: "sucesso"
+          }),
+          JSON.stringify({
+            ...attribution,
+            agendamento_id: 987655,
             servico_id: 123456,
             status: "sucesso"
           })
@@ -102,7 +120,7 @@ describe(
     });
 
     test(
-      "agrupa sessões e conversões de uma campanha real",
+      "conta agendamentos distintos mesmo dentro da mesma sessão",
       async () => {
         const campanhas =
           await adminMarketingRepository
@@ -123,7 +141,7 @@ describe(
             sessoes: 2,
             perfis_visualizados: 2,
             agendamentos_iniciados: 1,
-            agendamentos_concluidos: 1,
+            agendamentos_concluidos: 2,
           });
       }
     );
@@ -139,7 +157,9 @@ describe(
           conversoes.find(
             (item) =>
               item.campanha ===
-              campaign
+              campaign &&
+              item.agendamento_id ===
+              "987654"
           );
 
         expect(encontrada)
