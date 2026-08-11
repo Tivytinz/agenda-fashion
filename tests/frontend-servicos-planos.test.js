@@ -8,10 +8,15 @@ function ler(relativePath) {
 describe("Sprint de catálogo, planos e navegação", () => {
   test("liga o editor React aos endpoints de foto e galeria", () => {
     const app = ler("frontend/src/App.jsx");
+    const routes = JSON.parse(
+      ler("src/config/reactRoutes.json")
+    );
     const services = ler("frontend/src/pages/ServicesPage.jsx");
 
-    expect(app).toContain('path="/painel/servicos/novo"');
-    expect(app).toContain('path="/painel/servicos/:id/editar"');
+    expect(app).toContain("path={reactRoutes.newService}");
+    expect(app).toContain("path={reactRoutes.editService}");
+    expect(routes.newService).toBe("/painel/servicos/novo");
+    expect(routes.editService).toBe("/painel/servicos/:id/editar");
     expect(services).toContain('`/servicos/${savedId}/foto`');
     expect(services).toContain('`/servicos/${savedId}/fotos`');
     expect(services).toContain('`/servicos/fotos/${photo.id}`');

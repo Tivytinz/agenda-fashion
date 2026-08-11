@@ -46,13 +46,17 @@ describe("dashboardRepository integrado", () => {
 
   async function criarCliente(nome) {
     const token = crypto.randomUUID().replaceAll("-", "").slice(0, 10);
+    const whatsapp = `62${crypto.randomInt(
+      100_000_000,
+      1_000_000_000
+    )}`;
     const resultado = await db.query(
       `
         INSERT INTO usuarios (nome, email, senha, whatsapp)
         VALUES ($1, $2, 'hash-teste', $3)
         RETURNING id
       `,
-      [nome, `${token}@dashboard.test`, `629${token.slice(0, 8)}`]
+      [nome, `${token}@dashboard.test`, whatsapp]
     );
     const id = Number(resultado.rows[0].id);
     clientes.push(id);
