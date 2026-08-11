@@ -87,8 +87,18 @@ ALTER TABLE negocios
     primeira_publicacao_em TIMESTAMPTZ;
 
 /*
- * O histórico anterior não possuía marcos explícitos. Para serviços ainda
- * existentes, recuperamos com precisão a primeira criação conhecida.
+ * A publicação precisa ser recuperada antes de qualquer backfill que altere
+ * updated_at. Para registros antigos, updated_at é a melhor evidência que
+ * existe; novas publicações passam a ter marco exato pelo trigger abaixo.
+ */
+UPDATE negocios
+SET primeira_publicacao_em = updated_at
+WHERE publicado = TRUE
+  AND primeira_publicacao_em IS NULL;
+
+/*
+ * Para serviços ainda existentes, recuperamos com precisão a primeira criação
+ * conhecida. O marco passa a ser permanente para novas inserções.
  */
 UPDATE negocios n
 SET primeiro_servico_criado_em = dados.primeiro_servico_em
@@ -101,16 +111,6 @@ FROM (
 ) dados
 WHERE dados.negocio_id = n.id
   AND n.primeiro_servico_criado_em IS NULL;
-
-/*
- * Para negócios já publicados antes desta migration, updated_at é a melhor
- * evidência disponível do marco histórico. A partir daqui o primeiro momento
- * de publicação será preservado exatamente.
- */
-UPDATE negocios
-SET primeira_publicacao_em = updated_at
-WHERE publicado = TRUE
-  AND primeira_publicacao_em IS NULL;
 
 /*
  * Contas que já são donas entram no funil como profissionais orgânicos. A
@@ -134,10 +134,6 @@ DO UPDATE SET
   intencao = 'profissional',
   updated_at = NOW();
 
-/*
- * Se uma conta genérica criar um negócio depois, ela passa a integrar o
- * funil profissional preservando a atribuição que recebeu no cadastro.
- */
 CREATE OR REPLACE FUNCTION
   marketing_marcar_usuario_dono_profissional()
 RETURNS TRIGGER
@@ -178,10 +174,6 @@ FOR EACH ROW
 EXECUTE FUNCTION
   marketing_marcar_usuario_dono_profissional();
 
-/*
- * Primeiro serviço é um marco permanente do funil, mesmo se o serviço for
- * removido no futuro.
- */
 CREATE OR REPLACE FUNCTION
   marketing_marcar_primeiro_servico()
 RETURNS TRIGGER
@@ -214,10 +206,6 @@ FOR EACH ROW
 EXECUTE FUNCTION
   marketing_marcar_primeiro_servico();
 
-/*
- * A primeira publicação não desaparece do funil quando o dono decide ocultar
- * temporariamente o perfil.
- */
 CREATE OR REPLACE FUNCTION
   marketing_marcar_primeira_publicacao()
 RETURNS TRIGGER
