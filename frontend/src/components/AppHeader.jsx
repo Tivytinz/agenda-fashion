@@ -97,6 +97,17 @@ export function AppHeader() {
                   >
                     Custos & CPA
                   </NavLink>
+
+                  <NavLink
+                    className={({ isActive }) =>
+                      isActive
+                        ? "text-link active desktop-nav-link"
+                        : "text-link desktop-nav-link"
+                    }
+                    to="/admin/trafego-pago/profissionais"
+                  >
+                    Funil profissional
+                  </NavLink>
                 </>
               )}
 
@@ -139,7 +150,7 @@ export function AppHeader() {
             <>
               <NavLink
                 className="text-link desktop-nav-link"
-                to="/cadastro"
+                to="/cadastro?tipo=profissional"
               >
                 Sou profissional
               </NavLink>
