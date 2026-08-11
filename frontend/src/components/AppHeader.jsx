@@ -74,16 +74,30 @@ export function AppHeader() {
           {session.authenticated ? (
             <>
               {session.ehAdministrador && (
-                <NavLink
-                  className={({ isActive }) =>
-                    isActive
-                      ? "text-link active desktop-nav-link"
-                      : "text-link desktop-nav-link"
-                  }
-                  to="/admin/trafego-pago"
-                >
-                  Marketing Admin
-                </NavLink>
+                <>
+                  <NavLink
+                    className={({ isActive }) =>
+                      isActive
+                        ? "text-link active desktop-nav-link"
+                        : "text-link desktop-nav-link"
+                    }
+                    end
+                    to="/admin/trafego-pago"
+                  >
+                    Marketing Admin
+                  </NavLink>
+
+                  <NavLink
+                    className={({ isActive }) =>
+                      isActive
+                        ? "text-link active desktop-nav-link"
+                        : "text-link desktop-nav-link"
+                    }
+                    to="/admin/trafego-pago/custos"
+                  >
+                    Custos & CPA
+                  </NavLink>
+                </>
               )}
 
               <NavLink
