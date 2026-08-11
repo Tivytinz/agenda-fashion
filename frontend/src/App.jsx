@@ -21,6 +21,10 @@ const AdminMarketingCostsPage = lazyNamed(
   () => import("./pages/AdminMarketingCostsPage"),
   "AdminMarketingCostsPage"
 );
+const AdminProfessionalFunnelPage = lazyNamed(
+  () => import("./pages/AdminProfessionalFunnelPage"),
+  "AdminProfessionalFunnelPage"
+);
 const AuthPage = lazyNamed(
   () => import("./pages/AuthPage"),
   "AuthPage"
@@ -138,6 +142,14 @@ export default function App() {
           element={(
             <ProtectedRoute adminOnly>
               <AdminMarketingCostsPage />
+            </ProtectedRoute>
+          )}
+        />
+        <Route
+          path="/admin/trafego-pago/profissionais"
+          element={(
+            <ProtectedRoute adminOnly>
+              <AdminProfessionalFunnelPage />
             </ProtectedRoute>
           )}
         />
