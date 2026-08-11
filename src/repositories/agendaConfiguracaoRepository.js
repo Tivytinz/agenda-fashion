@@ -115,6 +115,28 @@ async function atualizarConfiguracao({
   return result.rows[0] || null;
 }
 
+async function marcarConfigurada(
+  profissionalId,
+  executor = db
+) {
+  const result = await executor.query(
+    `
+    UPDATE agenda_configuracoes
+    SET
+      configurado_em = COALESCE(
+        configurado_em,
+        NOW()
+      ),
+      updated_at = NOW()
+    WHERE profissional_id = $1
+    RETURNING *
+    `,
+    [profissionalId]
+  );
+
+  return result.rows[0] || null;
+}
+
 async function listarHorarios(
   profissionalId,
   executor = db
@@ -186,6 +208,7 @@ module.exports = {
   buscarConfiguracao,
   criarConfiguracao,
   atualizarConfiguracao,
+  marcarConfigurada,
   listarHorarios,
   salvarHorario,
   executarTransacao:
