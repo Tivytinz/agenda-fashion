@@ -40,15 +40,16 @@ function normalizarInteiro(valor, padrao, maximo) {
   return Math.min(numero, maximo);
 }
 
-function normalizarBusca(valor) {
+function normalizarBusca(valor, limite = 120) {
   return String(valor || "")
     .trim()
-    .slice(0, 120);
+    .slice(0, limite);
 }
 
 async function listarNegociosPublicos({
   busca,
   categoria,
+  cidade,
   pagina,
   limite
 } = {}) {
@@ -64,6 +65,9 @@ async function listarNegociosPublicos({
   const categoriaNormalizada =
     normalizarBusca(categoria);
 
+  const cidadeNormalizada =
+    normalizarBusca(cidade, 100);
+
   const categoriaTermos =
     termosDaCategoria(categoriaNormalizada);
 
@@ -74,6 +78,7 @@ async function listarNegociosPublicos({
         ? categoriaNormalizada
         : "",
       categoriaTermos,
+      cidade: cidadeNormalizada,
       limite: limiteNormalizado,
       offset:
         (paginaNormalizada - 1) *
