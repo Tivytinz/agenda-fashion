@@ -244,7 +244,7 @@ nav { display: flex; align-items: center; gap: 18px; }
 .empty-agenda > span { color: var(--pink-500); font-size: 2.5rem; }
 .empty-agenda h2 { margin: 8px 0; }
 .empty-agenda p { max-width: 480px; color: var(--muted); }
-.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; margin: -1px; border: 0; padding: 0; clip: rect(0, 0, 0, 0); white-space: nowrap; }
 
 .auth-page { display: grid; min-height: calc(100vh - 69px); place-items: center; padding: 32px 16px; background: radial-gradient(circle at 15% 15%, #ffe1ee, transparent 30%), linear-gradient(145deg, #fffafd, #fff2f7); }
 .auth-card { width: min(480px, 100%); border: 1px solid var(--line); border-radius: 22px; padding: clamp(24px, 5vw, 40px); background: #fff; box-shadow: var(--shadow-hover); }
@@ -257,7 +257,7 @@ nav { display: flex; align-items: center; gap: 18px; }
 
 .stack-form { display: grid; gap: 18px; }
 .stack-form label, .settings-grid label { display: grid; gap: 7px; color: var(--wine); font-size: .9rem; font-weight: 800; }
-.stack-form input:not([type="radio"]):not([type="checkbox"]), .stack-form textarea, .stack-form select,
+.stack-form input:not([type="radio"]):not([type="checkbox"]):not(.sr-only), .stack-form textarea, .stack-form select,
 .settings-grid input, .settings-grid select, .agenda-toolbar select { width: 100%; min-height: 48px; border: 1px solid var(--line); border-radius: 10px; padding: 10px 13px; color: var(--ink); background: #fff; outline: none; }
 .stack-form textarea { resize: vertical; }
 .stack-form input:focus, .stack-form textarea:focus, .stack-form select:focus, .settings-grid input:focus, .settings-grid select:focus { border-color: var(--pink-500); box-shadow: 0 0 0 3px var(--pink-100); }
