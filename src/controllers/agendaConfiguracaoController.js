@@ -2,6 +2,11 @@ const agendaConfiguracaoService = require(
   "../services/agendaConfiguracaoService"
 );
 
+const marketingProfessionalMilestoneService =
+  require(
+    "../services/marketingProfessionalMilestoneService"
+  );
+
 async function buscarMinhaConfiguracao(req, res, next) {
   try {
     const resultado =
@@ -28,6 +33,11 @@ async function salvarMinhaConfiguracao(req, res, next) {
           req.body.antecedenciaCancelamento,
         horarios: req.body.horarios,
       });
+
+    await marketingProfessionalMilestoneService
+      .marcarAgendaConfigurada(
+        req.user?.id
+      );
 
     return res.json(resultado);
   } catch (err) {
