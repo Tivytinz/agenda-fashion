@@ -1,0 +1,228 @@
+const db = require(
+  "../db/db"
+);
+
+const PERIODOS_PERMITIDOS =
+  new Set([
+    "all",
+    "today",
+    "7",
+    "30",
+    "month",
+  ]);
+
+function periodoSeguro(valor) {
+  const periodo = String(
+    valor || "30"
+  ).trim();
+
+  return PERIODOS_PERMITIDOS.has(
+    periodo
+  )
+    ? periodo
+    : "30";
+}
+
+function filtroData(
+  periodo,
+  expressao
+) {
+  const filtros = {
+    all: "",
+    today:
+      `AND ${expressao} >= CURRENT_DATE`,
+    "7":
+      `AND ${expressao} >= CURRENT_DATE - INTERVAL '6 days'`,
+    "30":
+      `AND ${expressao} >= CURRENT_DATE - INTERVAL '29 days'`,
+    month:
+      `AND DATE_TRUNC('month', ${expressao}) = DATE_TRUNC('month', CURRENT_DATE)`,
+  };
+
+  return filtros[
+    periodoSeguro(periodo)
+  ];
+}
+
+async function listarPorCampanha(
+  periodo = "30"
+) {
+  const filtroCoorte =
+    filtroData(
+      periodo,
+      "mua.atribuicao_em"
+    );
+
+  const filtroGasto =
+    filtroData(
+      periodo,
+      "g.data_gasto"
+    );
+
+  const resultado =
+    await db.query(
+      `
+      WITH coorte AS (
+        SELECT
+          mua.usuario_id,
+          COALESCE(
+            NULLIF(BTRIM(mua.utm_source), ''),
+            'organico'
+          ) AS origem,
+          COALESCE(
+            NULLIF(BTRIM(mua.utm_medium), ''),
+            'none'
+          ) AS midia,
+          COALESCE(
+            NULLIF(BTRIM(mua.utm_campaign), ''),
+            'organico'
+          ) AS campanha
+        FROM marketing_usuario_atribuicoes mua
+        WHERE mua.intencao = 'profissional'
+          ${filtroCoorte}
+      ),
+
+      funil AS (
+        SELECT
+          c.usuario_id,
+          c.origem,
+          c.midia,
+          c.campanha,
+
+          dono.negocio_id IS NOT NULL
+            AS negocio_criado,
+
+          n.primeiro_servico_criado_em IS NOT NULL
+            AS servico_criado,
+
+          ac.configurado_em IS NOT NULL
+            AS agenda_configurada,
+
+          n.primeira_publicacao_em IS NOT NULL
+            AS negocio_publicado,
+
+          EXISTS (
+            SELECT 1
+            FROM checkout_tentativas ct
+            WHERE ct.negocio_id = dono.negocio_id
+          ) AS checkout_iniciado,
+
+          EXISTS (
+            SELECT 1
+            FROM assinaturas a
+            INNER JOIN planos p
+              ON p.id = a.plano_id
+            INNER JOIN pagamentos pg
+              ON pg.assinatura_id = a.id
+            WHERE a.negocio_id = dono.negocio_id
+              AND p.valor > 0
+              AND pg.data_pagamento IS NOT NULL
+          ) AS assinatura_ativada
+
+        FROM coorte c
+
+        LEFT JOIN LATERAL (
+          SELECT un.negocio_id
+          FROM usuarios_negocios un
+          WHERE un.usuario_id = c.usuario_id
+            AND un.papel = 'dono'
+          ORDER BY un.created_at ASC, un.id ASC
+          LIMIT 1
+        ) dono ON TRUE
+
+        LEFT JOIN negocios n
+          ON n.id = dono.negocio_id
+
+        LEFT JOIN agenda_configuracoes ac
+          ON ac.profissional_id = c.usuario_id
+      ),
+
+      gastos_por_campanha AS (
+        SELECT
+          mc.utm_source AS origem,
+          mc.utm_medium AS midia,
+          mc.utm_campaign AS campanha,
+          COALESCE(
+            SUM(g.valor_centavos),
+            0
+          )::BIGINT AS investimento_centavos
+        FROM marketing_campanhas mc
+        INNER JOIN marketing_campanha_gastos g
+          ON g.campanha_id = mc.id
+        WHERE g.moeda = 'BRL'
+          ${filtroGasto}
+        GROUP BY
+          mc.utm_source,
+          mc.utm_medium,
+          mc.utm_campaign
+      ),
+
+      agrupado AS (
+        SELECT
+          f.origem,
+          f.midia,
+          f.campanha,
+          COUNT(*)::INT AS cadastros,
+          COUNT(*) FILTER (
+            WHERE f.negocio_criado
+          )::INT AS negocios_criados,
+          COUNT(*) FILTER (
+            WHERE f.servico_criado
+          )::INT AS servicos_criados,
+          COUNT(*) FILTER (
+            WHERE f.agenda_configurada
+          )::INT AS agendas_configuradas,
+          COUNT(*) FILTER (
+            WHERE f.negocio_publicado
+          )::INT AS negocios_publicados,
+          COUNT(*) FILTER (
+            WHERE f.checkout_iniciado
+          )::INT AS checkouts_iniciados,
+          COUNT(*) FILTER (
+            WHERE f.assinatura_ativada
+          )::INT AS assinaturas_ativadas
+        FROM funil f
+        GROUP BY
+          f.origem,
+          f.midia,
+          f.campanha
+      )
+
+      SELECT
+        a.origem,
+        a.midia,
+        a.campanha,
+        a.cadastros,
+        a.negocios_criados,
+        a.servicos_criados,
+        a.agendas_configuradas,
+        a.negocios_publicados,
+        a.checkouts_iniciados,
+        a.assinaturas_ativadas,
+        COALESCE(
+          g.investimento_centavos,
+          0
+        )::BIGINT AS investimento_centavos
+      FROM agrupado a
+      LEFT JOIN gastos_por_campanha g
+        ON g.origem = a.origem
+        AND g.midia = a.midia
+        AND g.campanha = a.campanha
+      ORDER BY
+        a.assinaturas_ativadas DESC,
+        a.checkouts_iniciados DESC,
+        a.cadastros DESC,
+        investimento_centavos DESC,
+        a.origem ASC,
+        a.campanha ASC
+      `
+    );
+
+  return resultado.rows;
+}
+
+module.exports = {
+  listarPorCampanha,
+  periodoSeguro,
+  filtroData,
+};
