@@ -15,6 +15,15 @@ const googleIdentityService =
     "./googleIdentityService"
   );
 
+const marketingUserAttributionService =
+  require(
+    "./marketingUserAttributionService"
+  );
+
+const registrador = require(
+  "../utils/registrador"
+);
+
 const AppError = require(
   "../errors/AppError"
 );
@@ -311,6 +320,29 @@ function montarResultado({
   };
 }
 
+async function registrarAtribuicaoCriacao(
+  usuarioId,
+  marketing
+) {
+  try {
+    await marketingUserAttributionService
+      .registrarContaCriada({
+        usuarioId,
+        marketing,
+      });
+  } catch (erro) {
+    registrador.aviso(
+      "[Marketing] Não foi possível registrar a atribuição da conta criada.",
+      {
+        usuario_id:
+          usuarioId,
+        erro:
+          erro?.message,
+      }
+    );
+  }
+}
+
 /*
  * POST /cadastro
  *
@@ -321,6 +353,7 @@ async function cadastro({
   email,
   senha,
   whatsapp,
+  marketing,
 }) {
   const dados =
     validarDadosCadastro({
@@ -383,6 +416,11 @@ async function cadastro({
 
     throw erro;
   }
+
+  await registrarAtribuicaoCriacao(
+    usuarioCriado.id,
+    marketing
+  );
 
   return montarResultado({
     usuario: usuarioCriado,
@@ -557,6 +595,7 @@ async function buscarContaGoogle({
 
 async function loginGoogle({
   credencial,
+  marketing,
 }) {
   const identidade =
     await googleIdentityService
@@ -610,6 +649,13 @@ async function loginGoogle({
       .atualizarUltimoLogin(
         usuario.id
       );
+
+  if (contaCriada) {
+    await registrarAtribuicaoCriacao(
+      usuario.id,
+      marketing
+    );
+  }
 
   return montarResultado({
     usuario: {
