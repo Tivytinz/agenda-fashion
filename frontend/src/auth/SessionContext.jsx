@@ -14,6 +14,10 @@ import {
   saveSession,
   SESSION_CLEARED_EVENT
 } from "./session";
+import {
+  removeBrowserStorage,
+  writeBrowserStorage
+} from "../utils/browserStorage";
 
 const SessionContext = createContext(null);
 const SIGNED_OUT_STATE = {
@@ -47,12 +51,12 @@ export function SessionProvider({ children }) {
 
     try {
       const result = await apiRequest("/minha-sessao");
-      localStorage.setItem("usuario", JSON.stringify(result.usuario));
+      writeBrowserStorage("local", "usuario", JSON.stringify(result.usuario));
 
       if (result.negocio) {
-        localStorage.setItem("negocio", JSON.stringify(result.negocio));
+        writeBrowserStorage("local", "negocio", JSON.stringify(result.negocio));
       } else {
-        localStorage.removeItem("negocio");
+        removeBrowserStorage("local", "negocio");
       }
 
       const next = {

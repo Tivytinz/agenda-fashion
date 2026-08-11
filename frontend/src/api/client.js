@@ -1,4 +1,5 @@
 import { clearSession } from "../auth/session";
+import { readBrowserStorage } from "../utils/browserStorage";
 
 const API_URL = String(import.meta.env.VITE_API_URL || "").replace(/\/+$/, "");
 const DEFAULT_TIMEOUT_MS = 20000;
@@ -19,7 +20,7 @@ export async function apiRequest(path, options = {}) {
     ...requestOptions
   } = options;
   const headers = new Headers(options.headers || {});
-  const token = localStorage.getItem("token");
+  const token = readBrowserStorage("local", "token");
 
   headers.set("Accept", "application/json");
 

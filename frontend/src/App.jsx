@@ -9,12 +9,16 @@ import {
   AdminLayout,
   WorkspaceLayout
 } from "./components/WorkspaceLayout";
+import { markRuntimeReady } from "./utils/runtimeRecovery";
 
 function lazyNamed(importer, name) {
   return lazy(() =>
-    importer().then((module) => ({
-      default: module[name]
-    }))
+    importer().then((module) => {
+      markRuntimeReady();
+      return {
+        default: module[name]
+      };
+    })
   );
 }
 

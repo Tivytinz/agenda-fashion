@@ -17,6 +17,10 @@ const errorHandler = require("./middlewares/errorHandler");
 const notFound = require("./middlewares/notFound");
 const requestLogger = require("./middlewares/requestLogger");
 const registrador = require("./utils/registrador");
+const {
+  cacheVersionedAsset,
+  disableDocumentCache
+} = require("./utils/httpCache");
 const agendaConfiguracaoRoutes = require("./routes/agendaConfiguracaoRoutes");
 const {
   iniciarWorkerWebhook,
@@ -165,7 +169,24 @@ const rootDir = path.join(process.cwd(), "agendamento-nails");
 const reactDir = path.join(rootDir, "react-app");
 const reactRoutes = require("./config/reactRoutes.json");
 
-app.use(express.static(reactDir));
+app.use(express.static(reactDir, {
+  index: false,
+  setHeaders(response, filePath) {
+    const relativePath = path
+      .relative(reactDir, filePath)
+      .split(path.sep)
+      .join("/");
+
+    if (relativePath === "index.html") {
+      disableDocumentCache(response);
+      return;
+    }
+
+    if (relativePath.startsWith("assets/")) {
+      cacheVersionedAsset(response);
+    }
+  }
+}));
 
 app.use(agendaConfiguracaoRoutes);
 
@@ -332,6 +353,8 @@ app.get(
         reactDir,
         "index.html"
       );
+
+    disableDocumentCache(res);
 
     res.sendFile(
       indexReact,

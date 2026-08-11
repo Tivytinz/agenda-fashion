@@ -5,10 +5,14 @@ import { track } from "../analytics/track";
 import { FlowSteps } from "../components/FlowSteps";
 import { saveRecentAppointment } from "../utils/appointments";
 import { formatCurrency, formatDate, formatWhatsApp } from "../utils/format";
+import {
+  readBrowserStorage,
+  removeBrowserStorage
+} from "../utils/browserStorage";
 
 function storedBooking() {
   try {
-    return JSON.parse(sessionStorage.getItem("af_booking_draft") || "null");
+    return JSON.parse(readBrowserStorage("session", "af_booking_draft") || "null");
   } catch {
     return null;
   }
@@ -20,7 +24,7 @@ export function ConfirmPage() {
   const booking = useMemo(() => location.state || storedBooking(), [location.state]);
   const user = useMemo(() => {
     try {
-      return JSON.parse(localStorage.getItem("usuario") || "null");
+      return JSON.parse(readBrowserStorage("local", "usuario") || "null");
     } catch {
       return null;
     }
@@ -96,7 +100,7 @@ export function ConfirmPage() {
           status: "sucesso"
         }
       });
-      sessionStorage.removeItem("af_booking_draft");
+      removeBrowserStorage("session", "af_booking_draft");
       saveRecentAppointment({
         booking,
         appointment: result.agendamento

@@ -1,4 +1,8 @@
 import { Component } from "react";
+import {
+  recoverFromStaleAssets,
+  reloadWithFreshAssets
+} from "../utils/runtimeRecovery";
 
 export class ErrorBoundary extends Component {
   constructor(props) {
@@ -12,6 +16,7 @@ export class ErrorBoundary extends Component {
 
   componentDidCatch(error, details) {
     console.error("Falha inesperada na interface", error, details);
+    recoverFromStaleAssets(error);
   }
 
   render() {
@@ -23,7 +28,7 @@ export class ErrorBoundary extends Component {
           <strong>Não conseguimos abrir esta página</strong>
           <p>Atualize a página para tentar novamente. Seu agendamento ainda não foi confirmado.</p>
           <div className="fatal-error-actions">
-            <button className="button" onClick={() => window.location.reload()} type="button">
+            <button className="button" onClick={() => reloadWithFreshAssets()} type="button">
               Atualizar página
             </button>
             <a className="button button-secondary" href="/">Voltar ao início</a>

@@ -7,6 +7,10 @@ import { ProfileHero } from "../components/profile/ProfileHero";
 import { ErrorState, LoadingState } from "../components/ScreenState";
 import { usePageMetadata } from "../hooks/usePageMetadata";
 import { formatRating, normalizeAvailability } from "../utils/format";
+import {
+  readBrowserStorage,
+  writeBrowserStorage
+} from "../utils/browserStorage";
 
 const EMPTY_LIST = [];
 
@@ -106,7 +110,7 @@ export function ProfilePage() {
 
   useEffect(() => {
     const businessId = business?.id;
-    if (!businessId || !localStorage.getItem("token")) return;
+    if (!businessId || !readBrowserStorage("local", "token")) return;
 
     apiRequest(`/favoritos/${businessId}/status`)
       .then((result) => setFavorite(Boolean(
@@ -225,13 +229,13 @@ export function ProfilePage() {
       time
     };
 
-    sessionStorage.setItem("af_booking_draft", JSON.stringify(booking));
+    writeBrowserStorage("session", "af_booking_draft", JSON.stringify(booking));
     track("agendamento_iniciado", {
       page: "perfil_negocio",
       mission: "escolher_e_agendar",
       businessId: business.id,
       properties: {
-        origem: localStorage.getItem("token") ? "cliente_logada" : "visitante",
+        origem: readBrowserStorage("local", "token") ? "cliente_logada" : "visitante",
         servico_id: Number(serviceId)
       }
     });
@@ -239,7 +243,7 @@ export function ProfilePage() {
   }
 
   async function toggleFavorite() {
-    if (!localStorage.getItem("token")) {
+    if (!readBrowserStorage("local", "token")) {
       navigate("/entrar", { state: { from: `/negocio/${slug}` } });
       return;
     }

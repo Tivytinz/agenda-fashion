@@ -1,4 +1,5 @@
 import { apiRequest } from "../api/client";
+import { readBrowserStorage } from "../utils/browserStorage";
 import {
   getMarketingConsent,
   MARKETING_CONSENT
@@ -347,7 +348,7 @@ export async function syncGoogleConsent() {
 
   updateGoogleConsent(status);
 
-  if (!localStorage.getItem("token")) {
+  if (!readBrowserStorage("local", "token")) {
     return false;
   }
 

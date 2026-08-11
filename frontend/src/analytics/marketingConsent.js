@@ -1,3 +1,9 @@
+import {
+  readBrowserStorage,
+  removeBrowserStorage,
+  writeBrowserStorage
+} from "../utils/browserStorage";
+
 const STORAGE_KEY = "af_marketing_consent_v2";
 const LEGACY_STORAGE_KEYS = [
   "af_marketing_consent_v1"
@@ -15,7 +21,7 @@ export const MARKETING_CONSENT = {
 export function getMarketingConsent() {
   try {
     const stored = JSON.parse(
-      localStorage.getItem(STORAGE_KEY) ||
+      readBrowserStorage("local", STORAGE_KEY) ||
         "null"
     );
 
@@ -47,7 +53,8 @@ export function setMarketingConsent(status) {
     );
   }
 
-  localStorage.setItem(
+  writeBrowserStorage(
+    "local",
     STORAGE_KEY,
     JSON.stringify({
       version: 2,
@@ -57,7 +64,7 @@ export function setMarketingConsent(status) {
   );
 
   for (const key of LEGACY_STORAGE_KEYS) {
-    localStorage.removeItem(key);
+    removeBrowserStorage("local", key);
   }
 
   window.dispatchEvent(

@@ -1,3 +1,8 @@
+import {
+  readBrowserStorage,
+  writeBrowserStorage
+} from "./browserStorage";
+
 const RECENT_APPOINTMENT_KEY = "af_recent_appointment";
 
 export const APPOINTMENT_STATUS = {
@@ -47,14 +52,14 @@ export function saveRecentAppointment({ booking, appointment }) {
   }, "visitor");
 
   if (recent) {
-    sessionStorage.setItem(RECENT_APPOINTMENT_KEY, JSON.stringify(recent));
+    writeBrowserStorage("session", RECENT_APPOINTMENT_KEY, JSON.stringify(recent));
   }
 }
 
 export function readRecentAppointment() {
   try {
     return normalizeAppointment(
-      JSON.parse(sessionStorage.getItem(RECENT_APPOINTMENT_KEY) || "null"),
+      JSON.parse(readBrowserStorage("session", RECENT_APPOINTMENT_KEY) || "null"),
       "visitor"
     );
   } catch {

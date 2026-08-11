@@ -105,4 +105,36 @@ describe("track attribution", () => {
       landing_page: "/cadastro",
     });
   });
+
+  test("continua funcionando sem randomUUID no navegador", () => {
+    vi.stubGlobal("crypto", {});
+    sessionStorage.clear();
+
+    expect(() => track("tela_visualizada", {
+      page: "inicio",
+      mission: "descobrir_servico"
+    })).not.toThrow();
+
+    const payload = JSON.parse(fetch.mock.calls[0][1].body);
+    expect(payload.sessao_id).toMatch(/^[A-Za-z0-9_-]{8,64}$/);
+  });
+
+  test("analytics não derruba a interface quando o storage é bloqueado", () => {
+    const unavailableStorage = {
+      getItem: () => {
+        throw new DOMException("Storage bloqueado", "SecurityError");
+      },
+      setItem: () => {
+        throw new DOMException("Storage bloqueado", "SecurityError");
+      }
+    };
+
+    vi.stubGlobal("sessionStorage", unavailableStorage);
+
+    expect(() => track("tela_visualizada", {
+      page: "inicio",
+      mission: "descobrir_servico"
+    })).not.toThrow();
+    expect(fetch).toHaveBeenCalledTimes(1);
+  });
 });

@@ -1,6 +1,7 @@
 const perfilNegocioService = require("../services/perfilNegocioService");
 const socialPreviewService = require("../services/socialPreviewService");
 const { criarImagemPadrao } = require("../utils/socialPreviewImage");
+const { disableDocumentCache } = require("../utils/httpCache");
 
 // =============================
 // 🌍 LISTAR NEGÓCIOS PÚBLICOS
@@ -69,10 +70,7 @@ async function renderizarPerfilPublico(req, res, next) {
 
     const html = await socialPreviewService.lerHtmlReact();
 
-    res.setHeader(
-      "Cache-Control",
-      "public, max-age=300, stale-while-revalidate=3600"
-    );
+    disableDocumentCache(res);
 
     return res
       .type("html")

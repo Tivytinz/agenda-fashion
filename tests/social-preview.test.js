@@ -100,7 +100,7 @@ describe("prévia social dos links públicos", () => {
 
     expect(resposta.status).toBe(200);
     expect(resposta.headers["content-type"]).toMatch(/text\/html/);
-    expect(resposta.headers["cache-control"]).toContain("max-age=300");
+    expect(resposta.headers["cache-control"]).toContain("no-store");
     expect(resposta.text).toContain(
       '<title>Manicure Premium | Beauty &lt;Vanessa&gt; &quot;Studio&quot;</title>'
     );

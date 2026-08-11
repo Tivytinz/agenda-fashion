@@ -187,7 +187,7 @@ describe("checkout PIX", () => {
     fireEvent.click(screen.getByRole("button", { name: "Copiar código PIX" }));
 
     await waitFor(() => expect(writeText).toHaveBeenCalledWith("000201PIX"));
-    expect(screen.getByText("Código PIX copiado.")).not.toBeNull();
+    expect(await screen.findByText("Código PIX copiado.")).not.toBeNull();
   });
 });
 

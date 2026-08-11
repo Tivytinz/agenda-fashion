@@ -1,3 +1,9 @@
+import {
+  readBrowserStorage,
+  removeBrowserStorage,
+  writeBrowserStorage
+} from "../utils/browserStorage";
+
 const SESSION_KEYS = ["token", "usuario", "negocio"];
 export const SESSION_CLEARED_EVENT = "agenda-fashion:session-cleared";
 
@@ -6,15 +12,15 @@ export function saveSession(result) {
     return;
   }
 
-  localStorage.setItem("token", result.token);
+  writeBrowserStorage("local", "token", result.token);
 
   if (result.usuario) {
-    localStorage.setItem("usuario", JSON.stringify(result.usuario));
+    writeBrowserStorage("local", "usuario", JSON.stringify(result.usuario));
   }
 }
 
 export function clearSession({ notify = false } = {}) {
-  SESSION_KEYS.forEach((key) => localStorage.removeItem(key));
+  SESSION_KEYS.forEach((key) => removeBrowserStorage("local", key));
 
   if (notify && typeof window !== "undefined") {
     window.dispatchEvent(new Event(SESSION_CLEARED_EVENT));
@@ -22,12 +28,12 @@ export function clearSession({ notify = false } = {}) {
 }
 
 export function hasSession() {
-  return Boolean(localStorage.getItem("token"));
+  return Boolean(readBrowserStorage("local", "token"));
 }
 
 export function getStoredUser() {
   try {
-    return JSON.parse(localStorage.getItem("usuario") || "null");
+    return JSON.parse(readBrowserStorage("local", "usuario") || "null");
   } catch {
     return null;
   }

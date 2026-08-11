@@ -121,10 +121,23 @@ describe(
             "frontend/vite.config.js"
           );
 
+        const cache =
+          ler(
+            "src/utils/httpCache.js"
+          );
+
         expect(
           servidor
         ).toContain(
-          "app.use(express.static(reactDir))"
+          "app.use(express.static(reactDir, {"
+        );
+
+        expect(cache).toContain(
+          '"no-store, no-cache, must-revalidate"'
+        );
+
+        expect(cache).toContain(
+          '"public, max-age=31536000, immutable"'
         );
 
         expect(

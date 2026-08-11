@@ -1,4 +1,5 @@
 import { apiRequest } from "../api/client";
+import { readBrowserStorage } from "../utils/browserStorage";
 import {
   getMarketingConsent,
   MARKETING_CONSENT
@@ -284,7 +285,7 @@ export async function syncMetaConsent() {
     return false;
   }
 
-  if (!localStorage.getItem("token")) {
+  if (!readBrowserStorage("local", "token")) {
     if (
       status ===
         MARKETING_CONSENT.DENIED

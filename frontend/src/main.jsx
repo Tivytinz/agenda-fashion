@@ -4,9 +4,12 @@ import { BrowserRouter } from "react-router-dom";
 import App from "./App";
 import { SessionProvider } from "./auth/SessionContext";
 import { ErrorBoundary } from "./components/ErrorBoundary";
+import { installRuntimeRecovery } from "./utils/runtimeRecovery";
 import "./styles/index.css";
 import "./styles/marketing-consent.css";
 import "./styles/responsive.css";
+
+installRuntimeRecovery();
 
 createRoot(document.getElementById("root")).render(
   <StrictMode>
