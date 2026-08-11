@@ -122,7 +122,7 @@ export default function App() {
         <Route path="/entrar" element={<AuthPage />} />
         <Route path="/cadastro" element={<AuthPage mode="register" />} />
         <Route
-          path="/admin/marketing"
+          path="/admin/trafego-pago"
           element={(
             <ProtectedRoute adminOnly>
               <AdminMarketingPage />
