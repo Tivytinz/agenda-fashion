@@ -120,8 +120,40 @@ async function buscarPerfilPorNegocio(negocioId) {
   return resultado.rows[0] || null;
 }
 
+async function ehPrimeiroPagamentoAssinatura({
+  assinaturaId,
+  pagamentoId
+}) {
+  const resultado = await db.query(
+    `
+    SELECT
+      COUNT(*) FILTER (
+        WHERE data_pagamento IS NOT NULL
+      )::INT AS pagamentos_confirmados,
+      BOOL_OR(
+        asaas_payment_id = $2
+        AND data_pagamento IS NOT NULL
+      ) AS pagamento_atual_confirmado
+    FROM pagamentos
+    WHERE assinatura_id = $1
+    `,
+    [
+      assinaturaId,
+      pagamentoId
+    ]
+  );
+
+  const linha = resultado.rows[0] || {};
+
+  return (
+    Number(linha.pagamentos_confirmados) === 1 &&
+    linha.pagamento_atual_confirmado === true
+  );
+}
+
 module.exports = {
   salvarConsentimentoUsuario,
   buscarPerfilPorUsuario,
-  buscarPerfilPorNegocio
+  buscarPerfilPorNegocio,
+  ehPrimeiroPagamentoAssinatura
 };
