@@ -5,6 +5,7 @@ import {
 } from "../utils/format";
 import { useRetryingMedia } from "../hooks/useRetryingMedia";
 import { serviceCategoryLabel } from "../utils/specialties";
+import { buildLocalCatalogPath } from "../utils/localCatalog";
 
 export function ServiceCard({
   service
@@ -29,6 +30,11 @@ export function ServiceCard({
       service.id
     )}`;
   const category = serviceCategoryLabel(service.categoria);
+  const localCatalogPath = buildLocalCatalogPath({
+    category: service.categoria,
+    city: service.negocio_cidade,
+    state: service.negocio_estado
+  });
 
   return (
     <article className="card service-discovery-card">
@@ -58,9 +64,18 @@ export function ServiceCard({
       </Link>
 
       <div className="service-discovery-content">
-        <p className="eyebrow">
-          {category}
-        </p>
+        {localCatalogPath ? (
+          <Link
+            className="eyebrow text-link"
+            to={localCatalogPath}
+          >
+            {category}
+          </Link>
+        ) : (
+          <p className="eyebrow">
+            {category}
+          </p>
+        )}
 
         <h3>{service.nome}</h3>
 
