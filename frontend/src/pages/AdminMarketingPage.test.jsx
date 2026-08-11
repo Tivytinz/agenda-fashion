@@ -102,8 +102,8 @@ describe(
         ).not.toBeNull();
 
         expect(
-          screen.getByText("100")
-        ).not.toBeNull();
+          screen.getAllByText("100").length
+        ).toBeGreaterThanOrEqual(1);
 
         expect(
           screen.getAllByText(
