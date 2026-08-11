@@ -9,6 +9,8 @@ import { getWorkspacePath } from "../auth/session";
 import { useSession } from "../auth/SessionContext";
 import { GoogleLoginButton } from "../components/GoogleLoginButton";
 
+export const WHATSAPP_PATTERN = "(?:[^0-9]*[0-9]){10,11}[^0-9]*";
+
 export function safeReturnPath(value) {
   return typeof value === "string" && value.startsWith("/") && !value.startsWith("//")
     ? value
@@ -191,8 +193,9 @@ export function AuthPage({ mode = "login" }) {
                 autoComplete="tel"
                 inputMode="tel"
                 onChange={(event) => update("whatsapp", event.target.value)}
-                pattern="(?:\\D*\\d){10,11}\\D*"
+                pattern={WHATSAPP_PATTERN}
                 required
+                title="Informe um WhatsApp com DDD, usando 10 ou 11 dígitos."
                 value={form.whatsapp}
               />
             </label>
