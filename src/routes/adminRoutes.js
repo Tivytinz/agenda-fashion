@@ -32,6 +32,11 @@ const adminMarketingCostController =
     "../controllers/adminMarketingCostController"
   );
 
+const adminProfessionalFunnelController =
+  require(
+    "../controllers/adminProfessionalFunnelController"
+  );
+
 /*
  * Resumo geral da plataforma.
  */
@@ -96,6 +101,16 @@ router.get(
   auth,
   authAdmin,
   adminMarketingController.listarConversoes
+);
+
+/*
+ * Funil de aquisição dos profissionais.
+ */
+router.get(
+  "/admin/marketing/funil-profissionais",
+  auth,
+  authAdmin,
+  adminProfessionalFunnelController.buscar
 );
 
 /*

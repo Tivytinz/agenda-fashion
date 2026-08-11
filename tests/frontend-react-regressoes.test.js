@@ -339,7 +339,7 @@ describe(
         [
           'to="/"',
           'to="/minha-agenda"',
-          'to="/cadastro"',
+          'to="/cadastro?tipo=profissional"',
           'to="/entrar"',
         ].forEach(
           (rota) => {

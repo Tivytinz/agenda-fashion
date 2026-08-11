@@ -15,14 +15,19 @@ const googleIdentityService =
     "./googleIdentityService"
   );
 
+const marketingUserAttributionService =
+  require(
+    "./marketingUserAttributionService"
+  );
+
+const registrador = require(
+  "../utils/registrador"
+);
+
 const AppError = require(
   "../errors/AppError"
 );
 
-/*
- * Retorna o segredo usado para
- * assinar os tokens JWT.
- */
 function obterJwtSecret() {
   const segredo =
     String(
@@ -39,12 +44,6 @@ function obterJwtSecret() {
   return segredo;
 }
 
-/*
- * Duração do token.
- *
- * Exemplo no .env:
- * JWT_EXPIRES_IN=7d
- */
 function obterExpiracaoToken() {
   const expiracao =
     String(
@@ -55,12 +54,6 @@ function obterExpiracaoToken() {
   return expiracao || "7d";
 }
 
-/*
- * Custo utilizado pelo bcrypt.
- *
- * Valores aceitos:
- * 10 até 14.
- */
 function obterBcryptRounds() {
   const rounds =
     Number(
@@ -94,12 +87,6 @@ function normalizarEmail(
   ).toLowerCase();
 }
 
-/*
- * Mantém somente números.
- *
- * Também remove o código do Brasil
- * quando vier como 55 + DDD + número.
- */
 function normalizarWhatsapp(
   valor
 ) {
@@ -127,44 +114,30 @@ function emailValido(
   );
 }
 
-/*
- * Remove senha e outros campos
- * que não devem ser enviados.
- */
 function sanitizarUsuario(
   usuario
 ) {
   return {
     id:
       usuario.id,
-
     nome:
       usuario.nome,
-
     email:
       usuario.email,
-
     whatsapp:
       usuario.whatsapp,
-
     ativo:
       usuario.ativo,
-
     googleConectado:
       Boolean(usuario.google_sub),
-
     email_verificado_em:
       usuario.email_verificado_em,
-
     ultimo_login_em:
       usuario.ultimo_login_em,
-
     senha_alterada_em:
       usuario.senha_alterada_em,
-
     created_at:
       usuario.created_at,
-
     updated_at:
       usuario.updated_at,
   };
@@ -178,13 +151,10 @@ function validarDadosCadastro({
 }) {
   const nomeLimpo =
     normalizarTexto(nome);
-
   const emailLimpo =
     normalizarEmail(email);
-
   const senhaTexto =
     String(senha ?? "");
-
   const whatsappLimpo =
     normalizarWhatsapp(
       whatsapp
@@ -252,24 +222,15 @@ function validarDadosCadastro({
   return {
     nome:
       nomeLimpo,
-
     email:
       emailLimpo,
-
     senha:
       senhaTexto,
-
     whatsapp:
       whatsappLimpo,
   };
 }
 
-/*
- * O token identifica somente a conta.
- *
- * O papel de dono ou profissional
- * será consultado no banco depois.
- */
 function gerarToken(
   usuario
 ) {
@@ -284,9 +245,7 @@ function gerarToken(
       id:
         usuario.id,
     },
-
     obterJwtSecret(),
-
     {
       expiresIn:
         obterExpiracaoToken(),
@@ -311,16 +270,39 @@ function montarResultado({
   };
 }
 
-/*
- * POST /cadastro
- *
- * Cria uma conta única.
- */
+async function registrarAtribuicaoCriacao(
+  usuarioId,
+  marketing
+) {
+  if (!marketing) {
+    return;
+  }
+
+  try {
+    await marketingUserAttributionService
+      .registrarContaCriada({
+        usuarioId,
+        marketing,
+      });
+  } catch (erro) {
+    registrador.aviso(
+      "[Marketing] Não foi possível registrar a atribuição da conta criada.",
+      {
+        usuario_id:
+          usuarioId,
+        erro:
+          erro?.message,
+      }
+    );
+  }
+}
+
 async function cadastro({
   nome,
   email,
   senha,
   whatsapp,
+  marketing,
 }) {
   const dados =
     validarDadosCadastro({
@@ -357,21 +339,14 @@ async function cadastro({
         .criarUsuario({
           nome:
             dados.nome,
-
           email:
             dados.email,
-
           senha:
             senhaHash,
-
           whatsapp:
             dados.whatsapp,
         });
   } catch (erro) {
-    /*
-     * Código do PostgreSQL para
-     * violação de índice único.
-     */
     if (
       erro?.code === "23505"
     ) {
@@ -384,6 +359,11 @@ async function cadastro({
     throw erro;
   }
 
+  await registrarAtribuicaoCriacao(
+    usuarioCriado.id,
+    marketing
+  );
+
   return montarResultado({
     usuario: usuarioCriado,
     mensagem:
@@ -392,11 +372,6 @@ async function cadastro({
   });
 }
 
-/*
- * POST /login
- *
- * Autentica qualquer conta.
- */
 async function login({
   email,
   senha,
@@ -410,7 +385,6 @@ async function login({
 
   const emailLimpo =
     normalizarEmail(email);
-
   const senhaInformada =
     String(senha);
 
@@ -431,13 +405,6 @@ async function login({
         emailLimpo
       );
 
-  /*
-   * A mesma mensagem é usada para
-   * e-mail inexistente e senha errada.
-   *
-   * Isso evita revelar quais e-mails
-   * estão cadastrados.
-   */
   if (!usuario) {
     throw new AppError(
       "Email ou senha inválidos.",
@@ -557,6 +524,7 @@ async function buscarContaGoogle({
 
 async function loginGoogle({
   credencial,
+  marketing,
 }) {
   const identidade =
     await googleIdentityService
@@ -568,7 +536,6 @@ async function loginGoogle({
     await buscarContaGoogle(
       identidade
     );
-
   let contaCriada = false;
 
   if (!usuario) {
@@ -610,6 +577,13 @@ async function loginGoogle({
       .atualizarUltimoLogin(
         usuario.id
       );
+
+  if (contaCriada) {
+    await registrarAtribuicaoCriacao(
+      usuario.id,
+      marketing
+    );
+  }
 
   return montarResultado({
     usuario: {

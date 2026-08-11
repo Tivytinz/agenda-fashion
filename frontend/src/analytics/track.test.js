@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
 import { beforeEach, describe, expect, test, vi } from "vitest";
-import { track } from "./track";
+import { getMarketingContext, track } from "./track";
 
 function storage() {
   const values = new Map();
@@ -67,6 +67,42 @@ describe("track attribution", () => {
       fbclid: "abc123",
       landing_page: "/negocio/studio",
       status: "sucesso",
+    });
+  });
+
+  test("expõe contexto seguro para vincular aquisição ao cadastro profissional", () => {
+    window.history.replaceState(
+      {},
+      "",
+      "/cadastro?tipo=profissional&utm_source=meta&utm_medium=cpc&utm_campaign=profissionais_goiania&utm_content=video_01&fbclid=click123"
+    );
+
+    const contexto = getMarketingContext(
+      "profissional"
+    );
+
+    expect(contexto).toMatchObject({
+      intencao: "profissional",
+      sessao_id: "12345678123412341234123456789012",
+      utm_source: "meta",
+      utm_medium: "cpc",
+      utm_campaign: "profissionais_goiania",
+      utm_content: "video_01",
+      fbclid: "click123",
+      landing_page: "/cadastro",
+    });
+
+    window.history.replaceState({}, "", "/criar-negocio");
+
+    expect(
+      getMarketingContext(
+        "profissional"
+      )
+    ).toMatchObject({
+      utm_source: "meta",
+      utm_medium: "cpc",
+      utm_campaign: "profissionais_goiania",
+      landing_page: "/cadastro",
     });
   });
 });

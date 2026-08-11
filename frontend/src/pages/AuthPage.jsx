@@ -1,5 +1,6 @@
-import { useCallback, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { Link, Navigate, useLocation, useNavigate } from "react-router-dom";
+import { getMarketingContext } from "../analytics/track";
 import { getWorkspacePath } from "../auth/session";
 import { useSession } from "../auth/SessionContext";
 import { GoogleLoginButton } from "../components/GoogleLoginButton";
@@ -25,6 +26,13 @@ export function AuthPage({ mode = "login" }) {
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
+  const professionalIntent = useMemo(() => {
+    if (!isRegister) return false;
+
+    const params = new URLSearchParams(location.search);
+    return params.get("tipo") === "profissional";
+  }, [isRegister, location.search]);
+
   const finish = useCallback((current) => {
     const requested = safeReturnPath(location.state?.from);
     navigate(requested || getWorkspacePath(current), { replace: true });
@@ -34,14 +42,25 @@ export function AuthPage({ mode = "login" }) {
     setError("");
     setSubmitting(true);
     try {
-      const current = await session.loginWithGoogle(credential);
+      const marketing = isRegister
+        ? getMarketingContext(
+            professionalIntent
+              ? "profissional"
+              : "indefinida"
+          )
+        : undefined;
+
+      const current = await session.loginWithGoogle(
+        credential,
+        marketing
+      );
       finish(current);
     } catch (requestError) {
       setError(requestError.message);
     } finally {
       setSubmitting(false);
     }
-  }, [finish, session]);
+  }, [finish, isRegister, professionalIntent, session]);
 
   if (!session.loading && session.authenticated) {
     return <Navigate replace to={getWorkspacePath(session)} />;
@@ -66,7 +85,12 @@ export function AuthPage({ mode = "login" }) {
       const current = await action({
         ...(isRegister ? {
           nome: form.nome.trim(),
-          whatsapp: form.whatsapp.replace(/\D/g, "")
+          whatsapp: form.whatsapp.replace(/\D/g, ""),
+          marketing: getMarketingContext(
+            professionalIntent
+              ? "profissional"
+              : "indefinida"
+          )
         } : {}),
         email: form.email.trim().toLowerCase(),
         senha: form.senha
@@ -85,7 +109,9 @@ export function AuthPage({ mode = "login" }) {
         <p className="eyebrow">{isRegister ? "Comece agora" : "Boas-vindas"}</p>
         <h1 id="auth-title">{isRegister ? "Crie sua conta" : "Entre no Agenda Fashion"}</h1>
         <p className="muted">
-          Uma conta para agendar como cliente ou administrar seu negócio.
+          {professionalIntent
+            ? "Crie sua conta para montar seu negócio, publicar serviços e receber agendamentos."
+            : "Uma conta para agendar como cliente ou administrar seu negócio."}
         </p>
 
         <GoogleLoginButton onCredential={handleGoogle} />
