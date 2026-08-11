@@ -327,7 +327,7 @@ export function BusinessPage({ create = false }) {
               <input minLength="2" onChange={(event) => update("nome", event.target.value)} required value={form.nome} />
             </label>
             {!create && form.slug && (
-              <p className="field-wide muted" data-testid="public-address-hint">
+              <p className="field-wide muted public-address-hint" data-testid="public-address-hint">
                 Endereço atual: <strong>app.agendafashion.com.br/negocio/{form.slug}</strong>.
                 Ao salvar um novo nome, este endereço também será atualizado. Links antigos continuarão funcionando.
               </p>

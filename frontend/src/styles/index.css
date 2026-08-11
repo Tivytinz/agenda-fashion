@@ -927,14 +927,22 @@ summary:focus-visible {
 
 .business-settings-form {
   gap: 0;
+  min-width: 0;
   padding-bottom: 0;
 }
 
 .business-form-section {
   display: grid;
+  min-width: 0;
   grid-template-columns: minmax(190px, .42fr) minmax(0, 1fr);
   gap: clamp(20px, 4vw, 46px);
   padding-block: 28px;
+}
+
+.business-form-section > *,
+.business-form-section .form-grid,
+.business-form-section .field-wide {
+  min-width: 0;
 }
 
 .business-form-section:first-child {
@@ -972,6 +980,11 @@ summary:focus-visible {
 .business-photo-editor small {
   color: var(--muted);
   font-size: .8rem;
+}
+
+.public-address-hint,
+.public-address-hint strong {
+  overflow-wrap: anywhere;
 }
 
 .business-photo-preview {
