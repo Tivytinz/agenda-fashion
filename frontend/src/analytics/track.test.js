@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import { beforeEach, describe, expect, test, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { getMarketingContext, track } from "./track";
 
 function storage() {
@@ -24,6 +24,10 @@ describe("track attribution", () => {
     vi.stubGlobal("fetch", vi.fn(() => Promise.resolve({ ok: true })));
   });
 
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
   test("persiste a campanha da entrada e reaplica nos eventos seguintes", () => {
     window.history.replaceState(
       {},
@@ -45,6 +49,9 @@ describe("track attribution", () => {
       utm_campaign: "goiania_cilios",
       fbclid: "abc123",
       landing_page: "/negocio/studio",
+      last_utm_source: "facebook",
+      last_utm_campaign: "goiania_cilios",
+      last_landing_page: "/negocio/studio",
     });
 
     window.history.replaceState({}, "", "/confirmar");
@@ -66,8 +73,83 @@ describe("track attribution", () => {
       utm_campaign: "goiania_cilios",
       fbclid: "abc123",
       landing_page: "/negocio/studio",
+      last_utm_source: "facebook",
+      last_utm_campaign: "goiania_cilios",
       status: "sucesso",
     });
+  });
+
+  test("mantém first touch e atualiza last touch em uma nova campanha", () => {
+    window.history.replaceState(
+      {},
+      "",
+      "/cadastro?utm_source=meta&utm_medium=cpc&utm_campaign=primeira&utm_content=video_01"
+    );
+
+    getMarketingContext("profissional");
+
+    sessionStorage.clear();
+    window.history.replaceState(
+      {},
+      "",
+      "/planos?utm_source=google&utm_medium=cpc&utm_campaign=retargeting&gclid=click456"
+    );
+
+    const contexto = getMarketingContext("profissional");
+
+    expect(contexto).toMatchObject({
+      utm_source: "meta",
+      utm_medium: "cpc",
+      utm_campaign: "primeira",
+      utm_content: "video_01",
+      landing_page: "/cadastro",
+      last_utm_source: "google",
+      last_utm_medium: "cpc",
+      last_utm_campaign: "retargeting",
+      last_gclid: "click456",
+      last_landing_page: "/planos",
+    });
+  });
+
+  test("sobrevive a uma nova sessão do navegador dentro da janela de 30 dias", () => {
+    window.history.replaceState(
+      {},
+      "",
+      "/cadastro?utm_source=pinterest&utm_medium=cpc&utm_campaign=manicure_agosto"
+    );
+
+    getMarketingContext("profissional");
+    sessionStorage.clear();
+    window.history.replaceState({}, "", "/criar-negocio");
+
+    expect(getMarketingContext("profissional")).toMatchObject({
+      utm_source: "pinterest",
+      utm_medium: "cpc",
+      utm_campaign: "manicure_agosto",
+      landing_page: "/cadastro",
+    });
+  });
+
+  test("expira a atribuição depois de 30 dias sem novo toque", () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-08-01T12:00:00.000Z"));
+
+    window.history.replaceState(
+      {},
+      "",
+      "/cadastro?utm_source=meta&utm_medium=cpc&utm_campaign=agosto"
+    );
+
+    getMarketingContext("profissional");
+
+    vi.setSystemTime(new Date("2026-09-01T12:00:01.000Z"));
+    sessionStorage.clear();
+    window.history.replaceState({}, "", "/criar-negocio");
+
+    const contexto = getMarketingContext("profissional");
+
+    expect(contexto).not.toHaveProperty("utm_source");
+    expect(contexto).not.toHaveProperty("utm_campaign");
   });
 
   test("expõe contexto seguro para vincular aquisição ao cadastro profissional", () => {
@@ -90,6 +172,8 @@ describe("track attribution", () => {
       utm_content: "video_01",
       fbclid: "click123",
       landing_page: "/cadastro",
+      last_utm_source: "meta",
+      last_utm_campaign: "profissionais_goiania",
     });
 
     window.history.replaceState({}, "", "/criar-negocio");
@@ -126,10 +210,14 @@ describe("track attribution", () => {
       },
       setItem: () => {
         throw new DOMException("Storage bloqueado", "SecurityError");
+      },
+      removeItem: () => {
+        throw new DOMException("Storage bloqueado", "SecurityError");
       }
     };
 
     vi.stubGlobal("sessionStorage", unavailableStorage);
+    vi.stubGlobal("localStorage", unavailableStorage);
 
     expect(() => track("tela_visualizada", {
       page: "inicio",
