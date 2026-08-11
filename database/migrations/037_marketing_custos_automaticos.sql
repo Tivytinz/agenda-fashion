@@ -58,6 +58,26 @@ CREATE INDEX marketing_custo_sincronizacoes_provedor_data_idx
     created_at DESC
   );
 
+CREATE OR REPLACE FUNCTION marketing_campanha_gastos_manter_fonte_unica()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+AS $$
+BEGIN
+  DELETE FROM marketing_campanha_gastos
+  WHERE campanha_id = NEW.campanha_id
+    AND data_gasto = NEW.data_gasto
+    AND fonte <> NEW.fonte;
+
+  RETURN NEW;
+END;
+$$;
+
+CREATE TRIGGER marketing_campanha_gastos_fonte_unica_trigger
+BEFORE INSERT OR UPDATE OF campanha_id, data_gasto, fonte
+ON marketing_campanha_gastos
+FOR EACH ROW
+EXECUTE FUNCTION marketing_campanha_gastos_manter_fonte_unica();
+
 COMMENT ON TABLE marketing_campanha_vinculos IS
   'Liga uma campanha rastreável do Agenda Fashion à campanha equivalente em uma plataforma de anúncios.';
 
@@ -65,6 +85,6 @@ COMMENT ON TABLE marketing_custo_sincronizacoes IS
   'Auditoria das importações de custo das plataformas de mídia, sem armazenar tokens ou segredos.';
 
 COMMENT ON COLUMN marketing_campanha_gastos.fonte IS
-  'Origem do custo: manual, google_ads ou meta_ads. Quando existir custo automático para o mesmo dia, ele prevalece no relatório sobre o lançamento manual.';
+  'Origem efetiva do custo do dia: manual, google_ads ou meta_ads. A fonte gravada por último substitui as demais para impedir dupla contagem.';
 
 COMMIT;
