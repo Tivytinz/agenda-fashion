@@ -158,17 +158,14 @@ async function listarPorCampanha(
             WHERE ct.negocio_id = dono.negocio_id
           ) AS checkout_iniciado,
 
-          EXISTS (
-            SELECT 1
-            FROM assinaturas a
-            INNER JOIN planos p
-              ON p.id = a.plano_id
-            INNER JOIN pagamentos pg
-              ON pg.assinatura_id = a.id
-            WHERE a.negocio_id = dono.negocio_id
-              AND p.valor > 0
-              AND pg.data_pagamento IS NOT NULL
-          ) AS assinatura_ativada
+          primeiro_pagamento.valor_centavos IS NOT NULL
+            AS assinatura_ativada,
+
+          COALESCE(
+            primeiro_pagamento.valor_centavos,
+            0
+          )::BIGINT
+            AS receita_primeiro_pagamento_centavos
 
         FROM coorte c
 
@@ -186,6 +183,28 @@ async function listarPorCampanha(
 
         LEFT JOIN agenda_configuracoes ac
           ON ac.profissional_id = c.usuario_id
+
+        LEFT JOIN LATERAL (
+          SELECT
+            ROUND(pg.valor * 100)::BIGINT
+              AS valor_centavos
+          FROM assinaturas a
+          INNER JOIN planos p
+            ON p.id = a.plano_id
+          INNER JOIN pagamentos pg
+            ON pg.assinatura_id = a.id
+          WHERE a.negocio_id = dono.negocio_id
+            AND p.valor > 0
+            AND pg.data_pagamento IS NOT NULL
+            AND UPPER(pg.status) IN (
+              'CONFIRMED',
+              'RECEIVED'
+            )
+          ORDER BY
+            pg.data_pagamento ASC,
+            pg.id ASC
+          LIMIT 1
+        ) primeiro_pagamento ON TRUE
       ),
 
       gastos_por_campanha AS (
@@ -231,7 +250,14 @@ async function listarPorCampanha(
           )::INT AS checkouts_iniciados,
           COUNT(*) FILTER (
             WHERE f.assinatura_ativada
-          )::INT AS assinaturas_ativadas
+          )::INT AS assinaturas_ativadas,
+          COALESCE(
+            SUM(
+              f.receita_primeiro_pagamento_centavos
+            ),
+            0
+          )::BIGINT
+            AS receita_primeiro_pagamento_centavos
         FROM funil f
         GROUP BY
           f.origem,
@@ -281,6 +307,11 @@ async function listarPorCampanha(
           0
         )::INT AS assinaturas_ativadas,
         COALESCE(
+          a.receita_primeiro_pagamento_centavos,
+          0
+        )::BIGINT
+          AS receita_primeiro_pagamento_centavos,
+        COALESCE(
           g.investimento_centavos,
           0
         )::BIGINT AS investimento_centavos
@@ -291,6 +322,7 @@ async function listarPorCampanha(
         AND g.campanha = a.campanha
       ORDER BY
         assinaturas_ativadas DESC,
+        receita_primeiro_pagamento_centavos DESC,
         checkouts_iniciados DESC,
         cadastros DESC,
         investimento_centavos DESC,
