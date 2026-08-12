@@ -1,16 +1,25 @@
 const AppError = require("../errors/AppError");
 const adminCampaignRepository = require("../repositories/adminCampaignRepository");
 const repository = require("../repositories/marketingCostSyncRepository");
-const providers = require("./marketingCostProviders");
+const providers = require("./marketingCostProviderRegistry");
 
-const PROVEDORES = new Set(["google_ads", "meta_ads"]);
+const PROVEDORES = new Set([
+  "google_ads",
+  "meta_ads",
+  "pinterest_ads",
+  "tiktok_ads"
+]);
 const CANAL_POR_PROVEDOR = Object.freeze({
   google_ads: "google",
-  meta_ads: "meta"
+  meta_ads: "meta",
+  pinterest_ads: "pinterest",
+  tiktok_ads: "tiktok"
 });
 const NOME_POR_PROVEDOR = Object.freeze({
   google_ads: "Google Ads",
-  meta_ads: "Meta Ads"
+  meta_ads: "Meta Ads",
+  pinterest_ads: "Pinterest Ads",
+  tiktok_ads: "TikTok Ads"
 });
 
 function normalizarProvedor(valor) {
