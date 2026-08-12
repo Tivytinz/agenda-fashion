@@ -91,6 +91,21 @@ function mockRequests() {
     }
 
     if (
+      path === "/admin/marketing/custos-integracoes/google_ads/testar" &&
+      options.method === "POST"
+    ) {
+      return Promise.resolve({
+        provedor: "google_ads",
+        conectado: true,
+        contaExternaId: "6770207927",
+        nomeConta: "Agenda Fashion Ads",
+        moeda: "BRL",
+        fusoHorario: "America/Sao_Paulo",
+        apiVersion: "v25"
+      });
+    }
+
+    if (
       path === "/admin/marketing/custos-integracoes/vinculos" &&
       options.method === "POST"
     ) {
@@ -124,6 +139,35 @@ beforeEach(() => {
 afterEach(cleanup);
 
 describe("MarketingCostIntegrationsPanel", () => {
+  it("testa a conexão com Google Ads e exibe a conta identificada", async () => {
+    const user = userEvent.setup();
+
+    render(<MarketingCostIntegrationsPanel />);
+
+    const testButton = await screen.findByRole("button", {
+      name: "Testar conexão"
+    });
+
+    await user.click(testButton);
+
+    await waitFor(() => {
+      expect(apiRequest).toHaveBeenCalledWith(
+        "/admin/marketing/custos-integracoes/google_ads/testar",
+        { method: "POST", body: {} }
+      );
+    });
+
+    expect(
+      await screen.findByText(
+        "Google Ads conectado com sucesso. Agenda Fashion Ads · BRL · America/Sao_Paulo · v25."
+      )
+    ).not.toBeNull();
+
+    expect(
+      screen.getByText("Agenda Fashion Ads · BRL · America/Sao_Paulo · v25")
+    ).not.toBeNull();
+  });
+
   it("lista campanhas reais do Google e salva vínculo verificado", async () => {
     const user = userEvent.setup();
 
