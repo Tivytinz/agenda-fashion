@@ -1,0 +1,155 @@
+const providers = require("../src/services/marketingCostProviders");
+
+const GOOGLE_ENV_KEYS = [
+  "GOOGLE_ADS_COSTS_ENABLED",
+  "GOOGLE_ADS_CUSTOMER_ID",
+  "GOOGLE_ADS_DEVELOPER_TOKEN",
+  "GOOGLE_ADS_CLIENT_ID",
+  "GOOGLE_ADS_CLIENT_SECRET",
+  "GOOGLE_ADS_REFRESH_TOKEN",
+  "GOOGLE_ADS_LOGIN_CUSTOMER_ID",
+  "GOOGLE_ADS_API_VERSION"
+];
+
+const originalEnv = Object.fromEntries(
+  GOOGLE_ENV_KEYS.map((key) => [key, process.env[key]])
+);
+const originalFetch = global.fetch;
+
+function response(payload, { ok = true, status = 200 } = {}) {
+  return {
+    ok,
+    status,
+    json: jest.fn().mockResolvedValue(payload)
+  };
+}
+
+describe("marketingCostProviders Google Ads", () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    process.env.GOOGLE_ADS_COSTS_ENABLED = "true";
+    process.env.GOOGLE_ADS_CUSTOMER_ID = "677-020-7927";
+    process.env.GOOGLE_ADS_DEVELOPER_TOKEN = "developer-token";
+    process.env.GOOGLE_ADS_CLIENT_ID = "client-id";
+    process.env.GOOGLE_ADS_CLIENT_SECRET = "client-secret";
+    process.env.GOOGLE_ADS_REFRESH_TOKEN = "refresh-token";
+    process.env.GOOGLE_ADS_LOGIN_CUSTOMER_ID = "123-456-7890";
+    process.env.GOOGLE_ADS_API_VERSION = "v25";
+    global.fetch = jest.fn();
+  });
+
+  afterAll(() => {
+    for (const key of GOOGLE_ENV_KEYS) {
+      if (originalEnv[key] === undefined) delete process.env[key];
+      else process.env[key] = originalEnv[key];
+    }
+    global.fetch = originalFetch;
+  });
+
+  test("lista campanhas reais sem expor credenciais no resultado", async () => {
+    global.fetch
+      .mockResolvedValueOnce(response({ access_token: "access-token" }))
+      .mockResolvedValueOnce(response([
+        {
+          results: [
+            {
+              campaign: {
+                id: "555",
+                name: "Aquisição Goiânia",
+                status: "ENABLED",
+                advertisingChannelType: "SEARCH"
+              }
+            },
+            {
+              campaign: {
+                id: "777",
+                name: "Marca",
+                status: "PAUSED",
+                advertisingChannelType: "PERFORMANCE_MAX"
+              }
+            }
+          ]
+        }
+      ]));
+
+    const result = await providers.listarCampanhas("google_ads");
+
+    expect(result).toEqual([
+      {
+        contaExternaId: "6770207927",
+        campanhaExternaId: "555",
+        campanhaExternaNome: "Aquisição Goiânia",
+        status: "ENABLED",
+        tipo: "SEARCH"
+      },
+      {
+        contaExternaId: "6770207927",
+        campanhaExternaId: "777",
+        campanhaExternaNome: "Marca",
+        status: "PAUSED",
+        tipo: "PERFORMANCE_MAX"
+      }
+    ]);
+
+    expect(global.fetch).toHaveBeenCalledTimes(2);
+    expect(global.fetch.mock.calls[0][0]).toBe("https://oauth2.googleapis.com/token");
+    expect(global.fetch.mock.calls[1][0]).toBe(
+      "https://googleads.googleapis.com/v25/customers/6770207927/googleAds:searchStream"
+    );
+
+    const googleOptions = global.fetch.mock.calls[1][1];
+    expect(googleOptions.headers).toMatchObject({
+      Authorization: "Bearer access-token",
+      "developer-token": "developer-token",
+      "login-customer-id": "1234567890"
+    });
+    expect(JSON.parse(googleOptions.body).query).toContain(
+      "campaign.advertising_channel_type"
+    );
+    expect(JSON.stringify(result)).not.toContain("developer-token");
+    expect(JSON.stringify(result)).not.toContain("refresh-token");
+  });
+
+  test("busca uma campanha específica para validar o vínculo", async () => {
+    global.fetch
+      .mockResolvedValueOnce(response({ access_token: "access-token" }))
+      .mockResolvedValueOnce(response([
+        {
+          results: [
+            {
+              campaign: {
+                id: "555",
+                name: "Aquisição real",
+                status: "ENABLED",
+                advertisingChannelType: "SEARCH"
+              }
+            }
+          ]
+        }
+      ]));
+
+    const result = await providers.buscarCampanha("google_ads", "5-5-5");
+
+    expect(result).toMatchObject({
+      contaExternaId: "6770207927",
+      campanhaExternaId: "555",
+      campanhaExternaNome: "Aquisição real",
+      status: "ENABLED",
+      tipo: "SEARCH"
+    });
+
+    const query = JSON.parse(global.fetch.mock.calls[1][1].body).query;
+    expect(query).toContain("WHERE campaign.id = 555");
+    expect(query).toContain("campaign.status != 'REMOVED'");
+  });
+
+  test("não consulta a API se a integração estiver incompleta", async () => {
+    process.env.GOOGLE_ADS_REFRESH_TOKEN = "";
+
+    await expect(
+      providers.listarCampanhas("google_ads")
+    ).rejects.toThrow("ainda não está configurada");
+
+    expect(global.fetch).not.toHaveBeenCalled();
+  });
+});
