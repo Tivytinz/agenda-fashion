@@ -409,7 +409,7 @@ describe(
     );
 
     test(
-      "usa somente o primeiro pagamento válido e ignora pagamento reembolsado",
+      "mantém o primeiro pagamento da aquisição como referência após reembolso",
       async () => {
         const valorRenovacaoCentavos =
           valorPrimeiroPagamentoCentavos +
@@ -452,14 +452,14 @@ describe(
               utmCampaign
           );
 
-        expect(
-          encontrada
-            .receita_primeiro_pagamento_centavos
-        ).toBe(
-          String(
-            valorPrimeiroPagamentoCentavos
-          )
-        );
+        expect(encontrada)
+          .toMatchObject({
+            assinaturas_ativadas: 1,
+            receita_primeiro_pagamento_centavos:
+              String(
+                valorPrimeiroPagamentoCentavos
+              ),
+          });
 
         await db.query(
           `
@@ -486,12 +486,12 @@ describe(
               utmCampaign
           );
 
-        expect(
-          encontrada
-            .receita_primeiro_pagamento_centavos
-        ).toBe(
-          String(valorRenovacaoCentavos)
-        );
+        expect(encontrada)
+          .toMatchObject({
+            assinaturas_ativadas: 0,
+            receita_primeiro_pagamento_centavos:
+              "0",
+          });
       }
     );
 
