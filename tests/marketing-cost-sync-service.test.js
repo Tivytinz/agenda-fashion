@@ -50,6 +50,11 @@ describe("marketingCostSyncService", () => {
         provedor: "google_ads",
         configurado: true,
         contaExternaId: "6770207927"
+      },
+      {
+        provedor: "meta_ads",
+        configurado: true,
+        contaExternaId: "1122334455"
       }
     ]);
   });
@@ -165,6 +170,33 @@ describe("marketingCostSyncService", () => {
     });
   });
 
+  test("testa a integração Meta pelo mesmo contrato seguro", async () => {
+    mockProviders.testarConexao.mockResolvedValue({
+      provedor: "meta_ads",
+      conectado: true,
+      contaExternaId: "1122334455",
+      nomeConta: "Agenda Fashion Meta",
+      moeda: "BRL",
+      fusoHorario: "America/Sao_Paulo",
+      apiVersion: "v25.0"
+    });
+
+    const result = await service.testarIntegracao({
+      provedor: "meta_ads"
+    });
+
+    expect(mockProviders.testarConexao).toHaveBeenCalledWith("meta_ads");
+    expect(result).toEqual({
+      provedor: "meta_ads",
+      conectado: true,
+      contaExternaId: "1122334455",
+      nomeConta: "Agenda Fashion Meta",
+      moeda: "BRL",
+      fusoHorario: "America/Sao_Paulo",
+      apiVersion: "v25.0"
+    });
+  });
+
   test("lista campanhas reais devolvidas pelo Google Ads", async () => {
     mockProviders.listarCampanhas.mockResolvedValue([
       {
@@ -190,6 +222,36 @@ describe("marketingCostSyncService", () => {
           nome: "Aquisição Goiânia",
           status: "ENABLED",
           tipo: "SEARCH"
+        }
+      ]
+    });
+  });
+
+  test("lista campanhas reais devolvidas pelo Meta Ads", async () => {
+    mockProviders.listarCampanhas.mockResolvedValue([
+      {
+        contaExternaId: "1122334455",
+        campanhaExternaId: "901",
+        campanhaExternaNome: "Profissionais Meta",
+        status: "ACTIVE",
+        tipo: "OUTCOME_TRAFFIC"
+      }
+    ]);
+
+    const result = await service.listarCampanhasExternas({
+      provedor: "meta_ads"
+    });
+
+    expect(mockProviders.listarCampanhas).toHaveBeenCalledWith("meta_ads");
+    expect(result).toEqual({
+      provedor: "meta_ads",
+      contaExternaId: "1122334455",
+      campanhas: [
+        {
+          id: "901",
+          nome: "Profissionais Meta",
+          status: "ACTIVE",
+          tipo: "OUTCOME_TRAFFIC"
         }
       ]
     });
@@ -242,6 +304,47 @@ describe("marketingCostSyncService", () => {
     });
   });
 
+  test("consulta o Meta novamente e ignora nome adulterado antes de salvar", async () => {
+    mockCampaignRepository.buscarPorId.mockResolvedValue({
+      id: 8,
+      nome: "Meta Agosto",
+      canal: "meta"
+    });
+    mockProviders.buscarCampanha.mockResolvedValue({
+      contaExternaId: "1122334455",
+      campanhaExternaId: "901",
+      campanhaExternaNome: "Profissionais Meta",
+      status: "ACTIVE",
+      tipo: "OUTCOME_TRAFFIC"
+    });
+    mockRepository.salvarVinculo.mockResolvedValue({ id: 10, campanha_id: 8 });
+
+    const result = await service.vincularCampanha({
+      payload: {
+        campanhaId: 8,
+        provedor: "meta_ads",
+        contaExternaId: "act_1122334455",
+        campanhaExternaId: "901",
+        campanhaExternaNome: "Nome falso enviado pelo navegador"
+      }
+    });
+
+    expect(mockProviders.buscarCampanha).toHaveBeenCalledWith("meta_ads", "901");
+    expect(mockRepository.salvarVinculo).toHaveBeenCalledWith({
+      campanhaId: 8,
+      provedor: "meta_ads",
+      contaExternaId: "1122334455",
+      campanhaExternaId: "901",
+      campanhaExternaNome: "Profissionais Meta"
+    });
+    expect(result.campanhaExterna).toEqual({
+      id: "901",
+      nome: "Profissionais Meta",
+      status: "ACTIVE",
+      tipo: "OUTCOME_TRAFFIC"
+    });
+  });
+
   test("impede vincular campanha AF de outro canal ao Google Ads", async () => {
     mockCampaignRepository.buscarPorId.mockResolvedValue({
       id: 8,
@@ -256,6 +359,25 @@ describe("marketingCostSyncService", () => {
         campanhaExternaId: "555"
       }
     })).rejects.toThrow("canal meta");
+
+    expect(mockProviders.buscarCampanha).not.toHaveBeenCalled();
+    expect(mockRepository.salvarVinculo).not.toHaveBeenCalled();
+  });
+
+  test("impede vincular campanha Google do AF ao Meta Ads", async () => {
+    mockCampaignRepository.buscarPorId.mockResolvedValue({
+      id: 5,
+      nome: "Google Agosto",
+      canal: "google"
+    });
+
+    await expect(service.vincularCampanha({
+      payload: {
+        campanhaId: 5,
+        provedor: "meta_ads",
+        campanhaExternaId: "901"
+      }
+    })).rejects.toThrow("canal google");
 
     expect(mockProviders.buscarCampanha).not.toHaveBeenCalled();
     expect(mockRepository.salvarVinculo).not.toHaveBeenCalled();
@@ -283,6 +405,32 @@ describe("marketingCostSyncService", () => {
         campanhaExternaId: "555"
       }
     })).rejects.toThrow("não corresponde à conta configurada");
+
+    expect(mockRepository.salvarVinculo).not.toHaveBeenCalled();
+  });
+
+  test("recusa conta Meta diferente da configurada no backend", async () => {
+    mockCampaignRepository.buscarPorId.mockResolvedValue({
+      id: 8,
+      nome: "Meta Agosto",
+      canal: "meta"
+    });
+    mockProviders.buscarCampanha.mockResolvedValue({
+      contaExternaId: "1122334455",
+      campanhaExternaId: "901",
+      campanhaExternaNome: "Profissionais Meta",
+      status: "ACTIVE",
+      tipo: "OUTCOME_TRAFFIC"
+    });
+
+    await expect(service.vincularCampanha({
+      payload: {
+        campanhaId: 8,
+        provedor: "meta_ads",
+        contaExternaId: "9988776655",
+        campanhaExternaId: "901"
+      }
+    })).rejects.toThrow("não corresponde à conta configurada do Meta Ads");
 
     expect(mockRepository.salvarVinculo).not.toHaveBeenCalled();
   });
