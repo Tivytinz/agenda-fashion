@@ -16,7 +16,8 @@ const mockProviders = {
   status: jest.fn(),
   listarCustos: jest.fn(),
   listarCampanhas: jest.fn(),
-  buscarCampanha: jest.fn()
+  buscarCampanha: jest.fn(),
+  testarConexao: jest.fn()
 };
 
 jest.mock(
@@ -135,6 +136,33 @@ describe("marketingCostSyncService", () => {
       dataInicio: "2026-01-01",
       dataFim: "2026-08-10"
     })).toThrow("até 90 dias");
+  });
+
+  test("testa a integração e devolve apenas metadados seguros da conta", async () => {
+    mockProviders.testarConexao.mockResolvedValue({
+      provedor: "google_ads",
+      conectado: true,
+      contaExternaId: "6770207927",
+      nomeConta: "Agenda Fashion Ads",
+      moeda: "BRL",
+      fusoHorario: "America/Sao_Paulo",
+      apiVersion: "v25"
+    });
+
+    const result = await service.testarIntegracao({
+      provedor: "google_ads"
+    });
+
+    expect(mockProviders.testarConexao).toHaveBeenCalledWith("google_ads");
+    expect(result).toEqual({
+      provedor: "google_ads",
+      conectado: true,
+      contaExternaId: "6770207927",
+      nomeConta: "Agenda Fashion Ads",
+      moeda: "BRL",
+      fusoHorario: "America/Sao_Paulo",
+      apiVersion: "v25"
+    });
   });
 
   test("lista campanhas reais devolvidas pelo Google Ads", async () => {
