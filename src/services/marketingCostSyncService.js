@@ -4,6 +4,10 @@ const repository = require("../repositories/marketingCostSyncRepository");
 const providers = require("./marketingCostProviders");
 
 const PROVEDORES = new Set(["google_ads", "meta_ads"]);
+const CANAL_POR_PROVEDOR = Object.freeze({
+  google_ads: "google",
+  meta_ads: "meta"
+});
 
 function normalizarProvedor(valor) {
   const provedor = String(valor || "").trim().toLowerCase();
@@ -48,6 +52,16 @@ function normalizarIdExterno(valor, maximo = 120) {
     .replace(/\D/g, "");
 }
 
+function validarCanalDaCampanha(campanha, provedor) {
+  const canalEsperado = CANAL_POR_PROVEDOR[provedor];
+  if (campanha?.canal && canalEsperado && campanha.canal !== canalEsperado) {
+    throw new AppError(
+      `Esta campanha do AF pertence ao canal ${campanha.canal}. Vincule-a ao provedor correspondente.`,
+      400
+    );
+  }
+}
+
 async function statusIntegracoes() {
   const [vinculos, sincronizacoes] = await Promise.all([
     repository.listarVinculos(),
@@ -63,6 +77,23 @@ async function statusIntegracoes() {
   };
 }
 
+async function listarCampanhasExternas({ provedor: valorProvedor }) {
+  const provedor = normalizarProvedor(valorProvedor);
+  const campanhas = await providers.listarCampanhas(provedor);
+  return {
+    provedor,
+    contaExternaId: campanhas[0]?.contaExternaId ||
+      providers.status().find((item) => item.provedor === provedor)?.contaExternaId ||
+      null,
+    campanhas: campanhas.map((item) => ({
+      id: item.campanhaExternaId,
+      nome: item.campanhaExternaNome,
+      status: item.status || "UNKNOWN",
+      tipo: item.tipo || "UNKNOWN"
+    }))
+  };
+}
+
 async function vincularCampanha({ payload }) {
   const campanhaId = Number(payload?.campanhaId ?? payload?.campanha_id);
   if (!Number.isInteger(campanhaId) || campanhaId <= 0) {
@@ -72,24 +103,76 @@ async function vincularCampanha({ payload }) {
   if (!campanha) throw new AppError("Campanha não encontrada.", 404);
 
   const provedor = normalizarProvedor(payload?.provedor);
-  const contaExternaId = normalizarIdExterno(
-    payload?.contaExternaId ?? payload?.conta_externa_id
-  );
-  const campanhaExternaId = normalizarIdExterno(
-    payload?.campanhaExternaId ?? payload?.campanha_externa_id
-  );
-  const campanhaExternaNome = normalizarTexto(
-    payload?.campanhaExternaNome ?? payload?.campanha_externa_nome,
-    240
-  ) || null;
+  validarCanalDaCampanha(campanha, provedor);
+
+  let contaExternaId;
+  let campanhaExternaId;
+  let campanhaExternaNome;
+  let campanhaExterna = null;
+
+  if (provedor === "google_ads") {
+    campanhaExternaId = normalizarIdExterno(
+      payload?.campanhaExternaId ?? payload?.campanha_externa_id
+    );
+    if (!campanhaExternaId) {
+      throw new AppError("Selecione uma campanha real do Google Ads.", 400);
+    }
+
+    campanhaExterna = await providers.buscarCampanha(
+      provedor,
+      campanhaExternaId
+    );
+    contaExternaId = normalizarIdExterno(campanhaExterna?.contaExternaId);
+    campanhaExternaId = normalizarIdExterno(campanhaExterna?.campanhaExternaId);
+    campanhaExternaNome = normalizarTexto(
+      campanhaExterna?.campanhaExternaNome,
+      240
+    ) || null;
+
+    const contaInformada = normalizarIdExterno(
+      payload?.contaExternaId ?? payload?.conta_externa_id
+    );
+    if (contaInformada && contaInformada !== contaExternaId) {
+      throw new AppError(
+        "A conta informada não corresponde à conta configurada do Google Ads.",
+        400
+      );
+    }
+  } else {
+    contaExternaId = normalizarIdExterno(
+      payload?.contaExternaId ?? payload?.conta_externa_id
+    );
+    campanhaExternaId = normalizarIdExterno(
+      payload?.campanhaExternaId ?? payload?.campanha_externa_id
+    );
+    campanhaExternaNome = normalizarTexto(
+      payload?.campanhaExternaNome ?? payload?.campanha_externa_nome,
+      240
+    ) || null;
+  }
+
   if (!contaExternaId || !campanhaExternaId) {
     throw new AppError("Informe a conta e o ID externo da campanha.", 400);
   }
 
   const vinculo = await repository.salvarVinculo({
-    campanhaId, provedor, contaExternaId, campanhaExternaId, campanhaExternaNome
+    campanhaId,
+    provedor,
+    contaExternaId,
+    campanhaExternaId,
+    campanhaExternaNome
   });
-  return { vinculo };
+  return {
+    vinculo,
+    campanhaExterna: campanhaExterna
+      ? {
+          id: campanhaExternaId,
+          nome: campanhaExternaNome,
+          status: campanhaExterna.status || "UNKNOWN",
+          tipo: campanhaExterna.tipo || "UNKNOWN"
+        }
+      : null
+  };
 }
 
 function erroSeguro(erro) {
@@ -168,9 +251,11 @@ async function sincronizar({ provedor: valorProvedor, payload, usuarioId }) {
 
 module.exports = {
   statusIntegracoes,
+  listarCampanhasExternas,
   vincularCampanha,
   sincronizar,
   normalizarProvedor,
   periodoPadrao,
-  normalizarIdExterno
+  normalizarIdExterno,
+  validarCanalDaCampanha
 };
