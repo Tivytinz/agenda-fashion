@@ -61,6 +61,12 @@ function googleConfig() {
   return config;
 }
 
+function exigirGoogleConfigurado(config) {
+  if (!config.configured) {
+    throw new AppError("Integração com Google Ads ainda não está configurada.", 409);
+  }
+}
+
 async function googleAccessToken(config) {
   const body = new URLSearchParams({
     client_id: config.clientId,
@@ -79,25 +85,85 @@ async function googleAccessToken(config) {
   return payload.access_token;
 }
 
-async function listarGoogle({ dataInicio, dataFim }) {
-  const config = googleConfig();
-  if (!config.configured) {
-    throw new AppError("Importação de custos do Google Ads ainda não está configurada.", 409);
-  }
-  const accessToken = await googleAccessToken(config);
-  const query = `SELECT campaign.id, campaign.name, segments.date, metrics.cost_micros FROM campaign WHERE segments.date BETWEEN '${dataInicio}' AND '${dataFim}' AND campaign.status != 'REMOVED'`;
+function googleHeaders(config, accessToken) {
   const headers = {
     "Content-Type": "application/json",
     Authorization: `Bearer ${accessToken}`,
     "developer-token": config.developerToken
   };
   if (config.loginCustomerId) headers["login-customer-id"] = config.loginCustomerId;
+  return headers;
+}
+
+async function googleQuery(config, query) {
+  exigirGoogleConfigurado(config);
+  const accessToken = await googleAccessToken(config);
   const payload = await fetchJson(
     `https://googleads.googleapis.com/${config.version}/customers/${config.customerId}/googleAds:searchStream`,
-    { method: "POST", headers, body: JSON.stringify({ query }) }
+    {
+      method: "POST",
+      headers: googleHeaders(config, accessToken),
+      body: JSON.stringify({ query })
+    }
   );
   const chunks = Array.isArray(payload) ? payload : [];
-  const rows = chunks.flatMap((chunk) => Array.isArray(chunk.results) ? chunk.results : []);
+  return chunks.flatMap((chunk) => Array.isArray(chunk.results) ? chunk.results : []);
+}
+
+function mapearGoogleCampanha(row, customerId) {
+  const id = String(row?.campaign?.id || "");
+  if (!id) return null;
+  return {
+    contaExternaId: customerId,
+    campanhaExternaId: id,
+    campanhaExternaNome: String(row?.campaign?.name || ""),
+    status: String(row?.campaign?.status || "UNKNOWN"),
+    tipo: String(row?.campaign?.advertisingChannelType || "UNKNOWN")
+  };
+}
+
+async function listarGoogleCampanhas() {
+  const config = googleConfig();
+  const query = [
+    "SELECT campaign.id, campaign.name, campaign.status, campaign.advertising_channel_type",
+    "FROM campaign",
+    "WHERE campaign.status != 'REMOVED'",
+    "ORDER BY campaign.name"
+  ].join(" ");
+  const rows = await googleQuery(config, query);
+  return rows
+    .map((row) => mapearGoogleCampanha(row, config.customerId))
+    .filter(Boolean);
+}
+
+async function buscarGoogleCampanha(campanhaExternaId) {
+  const id = String(campanhaExternaId || "").replace(/\D/g, "");
+  if (!id) {
+    throw new AppError("Informe uma campanha válida do Google Ads.", 400);
+  }
+  const config = googleConfig();
+  const query = [
+    "SELECT campaign.id, campaign.name, campaign.status, campaign.advertising_channel_type",
+    "FROM campaign",
+    `WHERE campaign.id = ${id}`,
+    "AND campaign.status != 'REMOVED'",
+    "LIMIT 1"
+  ].join(" ");
+  const rows = await googleQuery(config, query);
+  const campanha = mapearGoogleCampanha(rows[0], config.customerId);
+  if (!campanha) {
+    throw new AppError("Campanha não encontrada na conta configurada do Google Ads.", 404);
+  }
+  return campanha;
+}
+
+async function listarGoogle({ dataInicio, dataFim }) {
+  const config = googleConfig();
+  if (!config.configured) {
+    throw new AppError("Importação de custos do Google Ads ainda não está configurada.", 409);
+  }
+  const query = `SELECT campaign.id, campaign.name, segments.date, metrics.cost_micros FROM campaign WHERE segments.date BETWEEN '${dataInicio}' AND '${dataFim}' AND campaign.status != 'REMOVED'`;
+  const rows = await googleQuery(config, query);
   return rows.map((row) => ({
     contaExternaId: config.customerId,
     campanhaExternaId: String(row?.campaign?.id || ""),
@@ -165,4 +231,22 @@ async function listarCustos(provedor, periodo) {
   throw new AppError("Provedor de custos inválido.", 400);
 }
 
-module.exports = { PROVIDERS, status, listarCustos, googleConfig, metaConfig };
+async function listarCampanhas(provedor) {
+  if (provedor === "google_ads") return listarGoogleCampanhas();
+  throw new AppError("Listagem automática de campanhas ainda não está disponível para este provedor.", 409);
+}
+
+async function buscarCampanha(provedor, campanhaExternaId) {
+  if (provedor === "google_ads") return buscarGoogleCampanha(campanhaExternaId);
+  throw new AppError("Validação automática de campanha ainda não está disponível para este provedor.", 409);
+}
+
+module.exports = {
+  PROVIDERS,
+  status,
+  listarCustos,
+  listarCampanhas,
+  buscarCampanha,
+  googleConfig,
+  metaConfig
+};
