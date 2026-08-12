@@ -33,7 +33,7 @@ const PROFESSIONAL_LINKS = [
 export const ADMIN_LINKS = [
   ["/admin/trafego-pago", "Marketing", "marketing"],
   ["/admin/trafego-pago/custos", "Custos", "costs"],
-  ["/admin/trafego-pago/profissionais", "Funil", "funnel"],
+  ["/admin/trafego-pago/profissionais", "Rentabilidade", "funnel"],
   ["/conta", "Minha conta", "account"]
 ];
 
