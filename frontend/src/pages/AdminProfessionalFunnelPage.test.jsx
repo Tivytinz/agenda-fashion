@@ -128,7 +128,13 @@ describe(
 
         expect(
           screen.getByText(
-            /sem somar renovações ao ROAS de aquisição/i
+            /renovações posteriores não entram no ROAS de aquisição/i
+          )
+        ).not.toBeNull();
+
+        expect(
+          screen.getByText(
+            /reembolso zera a receita/i
           )
         ).not.toBeNull();
       }
