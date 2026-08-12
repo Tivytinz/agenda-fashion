@@ -12,10 +12,22 @@ const PROVIDER_LABELS = {
   meta_ads: "Meta Ads"
 };
 
+const GOOGLE_STATUS_LABELS = {
+  ENABLED: "Ativa",
+  PAUSED: "Pausada",
+  REMOVED: "Removida",
+  UNKNOWN: "Status desconhecido"
+};
+
 function statusLabel(provider) {
   if (provider?.configurado) return "Configurado";
   if (provider?.habilitado) return "Configuração incompleta";
   return "Desativado";
+}
+
+function googleStatusLabel(value) {
+  const status = String(value || "UNKNOWN").toUpperCase();
+  return GOOGLE_STATUS_LABELS[status] || status;
 }
 
 function formatTimestamp(value) {
@@ -28,14 +40,22 @@ function formatTimestamp(value) {
   }).format(date);
 }
 
+function canalEsperado(provedor) {
+  if (provedor === "google_ads") return "google";
+  if (provedor === "meta_ads") return "meta";
+  return "";
+}
+
 export function MarketingCostIntegrationsPanel({ onChanged }) {
   const [data, setData] = useState(null);
   const [campaigns, setCampaigns] = useState([]);
   const [provider, setProvider] = useState("google_ads");
   const [campaignId, setCampaignId] = useState("");
+  const [externalCampaigns, setExternalCampaigns] = useState([]);
   const [externalAccountId, setExternalAccountId] = useState("");
   const [externalCampaignId, setExternalCampaignId] = useState("");
   const [externalCampaignName, setExternalCampaignName] = useState("");
+  const [loadingExternalCampaigns, setLoadingExternalCampaigns] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [syncing, setSyncing] = useState("");
@@ -52,7 +72,6 @@ export function MarketingCostIntegrationsPanel({ onChanged }) {
       ]);
       setData(integrations);
       setCampaigns(managed?.campanhas || []);
-      setCampaignId((current) => current || String(managed?.campanhas?.[0]?.id || ""));
     } catch (requestError) {
       setError(requestError.message);
     } finally {
@@ -69,11 +88,76 @@ export function MarketingCostIntegrationsPanel({ onChanged }) {
     [data, provider]
   );
 
+  const eligibleCampaigns = useMemo(() => {
+    const expected = canalEsperado(provider);
+    return campaigns.filter((item) => !expected || item.canal === expected);
+  }, [campaigns, provider]);
+
+  const selectedExternalCampaign = useMemo(
+    () => externalCampaigns.find((item) => String(item.id) === String(externalCampaignId)) || null,
+    [externalCampaignId, externalCampaigns]
+  );
+
+  useEffect(() => {
+    if (
+      campaignId &&
+      eligibleCampaigns.some((item) => String(item.id) === String(campaignId))
+    ) {
+      return;
+    }
+    setCampaignId(String(eligibleCampaigns[0]?.id || ""));
+  }, [campaignId, eligibleCampaigns]);
+
   useEffect(() => {
     if (!externalAccountId && selectedProvider?.contaExternaId) {
       setExternalAccountId(String(selectedProvider.contaExternaId));
     }
   }, [externalAccountId, selectedProvider]);
+
+  useEffect(() => {
+    if (provider !== "google_ads" || !selectedProvider?.configurado) {
+      setLoadingExternalCampaigns(false);
+      return undefined;
+    }
+
+    let active = true;
+    setLoadingExternalCampaigns(true);
+    setError("");
+
+    apiRequest("/admin/marketing/custos-integracoes/google_ads/campanhas")
+      .then((result) => {
+        if (!active) return;
+        setExternalCampaigns(result?.campanhas || []);
+        setExternalAccountId(String(result?.contaExternaId || selectedProvider.contaExternaId || ""));
+      })
+      .catch((requestError) => {
+        if (!active) return;
+        setExternalCampaigns([]);
+        setError(requestError.message);
+      })
+      .finally(() => {
+        if (active) setLoadingExternalCampaigns(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [provider, selectedProvider?.configurado, selectedProvider?.contaExternaId]);
+
+  function changeProvider(value) {
+    setProvider(value);
+    setExternalAccountId("");
+    setExternalCampaignId("");
+    setExternalCampaignName("");
+    setError("");
+    setMessage("");
+  }
+
+  function changeExternalCampaign(value) {
+    setExternalCampaignId(value);
+    const campaign = externalCampaigns.find((item) => String(item.id) === String(value));
+    setExternalCampaignName(campaign?.nome || "");
+  }
 
   async function saveLink(event) {
     event.preventDefault();
@@ -94,7 +178,11 @@ export function MarketingCostIntegrationsPanel({ onChanged }) {
       });
       setExternalCampaignId("");
       setExternalCampaignName("");
-      setMessage("Vínculo salvo. A próxima sincronização poderá importar o custo dessa campanha.");
+      setMessage(
+        provider === "google_ads"
+          ? "Vínculo verificado e salvo com a campanha real do Google Ads."
+          : "Vínculo salvo. A próxima sincronização poderá importar o custo dessa campanha."
+      );
       await load();
     } catch (requestError) {
       setError(requestError.message);
@@ -128,14 +216,22 @@ export function MarketingCostIntegrationsPanel({ onChanged }) {
     }
   }
 
+  function liveStatus(link) {
+    if (link.provedor !== "google_ads") return "—";
+    const campaign = externalCampaigns.find(
+      (item) => String(item.id) === String(link.campanha_externa_id)
+    );
+    return campaign ? googleStatusLabel(campaign.status) : "Não carregado";
+  }
+
   return (
-    <section className="panel" aria-busy={loading}>
+    <section className="panel" aria-busy={loading || loadingExternalCampaigns}>
       <div className="panel-heading">
         <div>
           <p className="eyebrow">Importação automática</p>
-          <h2>Custos das plataformas</h2>
+          <h2>Campanhas e custos das plataformas</h2>
           <p className="muted">
-            Vincule a campanha do Agenda Fashion ao ID da campanha externa. Tokens e credenciais ficam somente no backend.
+            No Google Ads, escolha uma campanha real da conta configurada. O backend confirma o vínculo antes de salvar e mantém as credenciais fora do navegador.
           </p>
         </div>
       </div>
@@ -170,10 +266,7 @@ export function MarketingCostIntegrationsPanel({ onChanged }) {
             <div className="form-grid">
               <label>
                 Plataforma
-                <select value={provider} onChange={(event) => {
-                  setProvider(event.target.value);
-                  setExternalAccountId("");
-                }}>
+                <select value={provider} onChange={(event) => changeProvider(event.target.value)}>
                   <option value="google_ads">Google Ads</option>
                   <option value="meta_ads">Meta Ads</option>
                 </select>
@@ -187,10 +280,13 @@ export function MarketingCostIntegrationsPanel({ onChanged }) {
                   onChange={(event) => setCampaignId(event.target.value)}
                 >
                   <option value="">Selecione</option>
-                  {campaigns.map((item) => (
+                  {eligibleCampaigns.map((item) => (
                     <option key={item.id} value={item.id}>{item.nome}</option>
                   ))}
                 </select>
+                {eligibleCampaigns.length === 0 && (
+                  <small>Crie primeiro uma campanha do AF para este canal.</small>
+                )}
               </label>
 
               <label>
@@ -198,35 +294,79 @@ export function MarketingCostIntegrationsPanel({ onChanged }) {
                 <input
                   required
                   maxLength="120"
-                  placeholder={provider === "meta_ads" ? "Ex.: 123456789" : "Ex.: 6770207927"}
+                  placeholder={provider === "meta_ads" ? "Ex.: 123456789" : "Conta configurada no backend"}
+                  readOnly={provider === "google_ads"}
                   value={externalAccountId}
                   onChange={(event) => setExternalAccountId(event.target.value)}
                 />
               </label>
 
-              <label>
-                ID da campanha externa
-                <input
-                  required
-                  maxLength="120"
-                  value={externalCampaignId}
-                  onChange={(event) => setExternalCampaignId(event.target.value)}
-                />
-              </label>
+              {provider === "google_ads" ? (
+                <label>
+                  Campanha real do Google Ads
+                  <select
+                    disabled={!selectedProvider?.configurado || loadingExternalCampaigns}
+                    required
+                    value={externalCampaignId}
+                    onChange={(event) => changeExternalCampaign(event.target.value)}
+                  >
+                    <option value="">
+                      {loadingExternalCampaigns ? "Carregando campanhas..." : "Selecione"}
+                    </option>
+                    {externalCampaigns.map((item) => (
+                      <option key={item.id} value={item.id}>
+                        {item.nome} · {googleStatusLabel(item.status)} · {item.id}
+                      </option>
+                    ))}
+                  </select>
+                  {!selectedProvider?.configurado && (
+                    <small>Complete as credenciais do Google Ads no backend para listar campanhas reais.</small>
+                  )}
+                </label>
+              ) : (
+                <label>
+                  ID da campanha externa
+                  <input
+                    required
+                    maxLength="120"
+                    value={externalCampaignId}
+                    onChange={(event) => setExternalCampaignId(event.target.value)}
+                  />
+                </label>
+              )}
 
               <label>
-                Nome externo (opcional)
+                Nome externo {provider === "meta_ads" ? "(opcional)" : ""}
                 <input
                   maxLength="240"
+                  readOnly={provider === "google_ads"}
                   value={externalCampaignName}
                   onChange={(event) => setExternalCampaignName(event.target.value)}
                 />
               </label>
+
+              {provider === "google_ads" && (
+                <label>
+                  Status no Google Ads
+                  <input
+                    readOnly
+                    value={selectedExternalCampaign ? googleStatusLabel(selectedExternalCampaign.status) : "—"}
+                  />
+                </label>
+              )}
             </div>
 
             <div className="form-actions">
-              <button className="button" disabled={saving || campaigns.length === 0} type="submit">
-                {saving ? "Salvando vínculo..." : "Salvar vínculo"}
+              <button
+                className="button"
+                disabled={
+                  saving ||
+                  eligibleCampaigns.length === 0 ||
+                  (provider === "google_ads" && (!selectedProvider?.configurado || loadingExternalCampaigns || !externalCampaignId))
+                }
+                type="submit"
+              >
+                {saving ? "Salvando vínculo..." : provider === "google_ads" ? "Vincular campanha verificada" : "Salvar vínculo"}
               </button>
             </div>
           </form>
@@ -240,6 +380,7 @@ export function MarketingCostIntegrationsPanel({ onChanged }) {
                     <th>Plataforma</th>
                     <th>ID externo</th>
                     <th>Nome externo</th>
+                    <th>Status externo</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -249,6 +390,7 @@ export function MarketingCostIntegrationsPanel({ onChanged }) {
                       <td>{PROVIDER_LABELS[item.provedor] || item.provedor}</td>
                       <td>{item.campanha_externa_id}</td>
                       <td>{item.campanha_externa_nome || "—"}</td>
+                      <td>{liveStatus(item)}</td>
                     </tr>
                   ))}
                 </tbody>
