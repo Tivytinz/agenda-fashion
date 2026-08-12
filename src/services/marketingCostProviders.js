@@ -204,7 +204,7 @@ async function listarGoogle({ dataInicio, dataFim }) {
 }
 
 function metaConfig() {
-  const account = texto(process.env.META_AD_ACCOUNT_ID).replace(/^act_/, "");
+  const account = texto(process.env.META_AD_ACCOUNT_ID).replace(/^act_/i, "").replace(/\D/g, "");
   const config = {
     enabled: flagAtiva(process.env.META_ADS_COSTS_ENABLED),
     accountId: account,
@@ -215,28 +215,136 @@ function metaConfig() {
   return config;
 }
 
+function exigirMetaConfigurado(config) {
+  if (!config.configured) {
+    throw new AppError("Integração com Meta Ads ainda não está configurada.", 409);
+  }
+}
+
+function metaUrl(config, path, params = {}) {
+  const cleanPath = String(path || "").replace(/^\/+/, "");
+  const url = new URL(`https://graph.facebook.com/${config.version}/${cleanPath}`);
+  for (const [key, value] of Object.entries(params)) {
+    if (value !== undefined && value !== null && value !== "") {
+      url.searchParams.set(key, String(value));
+    }
+  }
+  return url;
+}
+
+async function metaGet(config, path, params = {}) {
+  exigirMetaConfigurado(config);
+  return fetchJson(metaUrl(config, path, params).toString(), {
+    headers: {
+      Authorization: `Bearer ${config.accessToken}`
+    }
+  });
+}
+
+async function metaListarPaginas(config, path, params = {}) {
+  exigirMetaConfigurado(config);
+  const rows = [];
+  let after = "";
+  let paginas = 0;
+
+  do {
+    const payload = await metaGet(config, path, {
+      ...params,
+      limit: params.limit || 500,
+      after: after || undefined
+    });
+    rows.push(...(Array.isArray(payload?.data) ? payload.data : []));
+    const nextAfter = String(payload?.paging?.cursors?.after || "");
+    after = payload?.paging?.next && nextAfter ? nextAfter : "";
+    paginas += 1;
+  } while (after && paginas < 20);
+
+  return rows;
+}
+
+function normalizarMetaAccountId(value) {
+  return String(value || "").replace(/^act_/i, "").replace(/\D/g, "");
+}
+
+function mapearMetaCampanha(row, accountId) {
+  const id = String(row?.id || "").replace(/\D/g, "");
+  if (!id) return null;
+  return {
+    contaExternaId: normalizarMetaAccountId(row?.account_id) || accountId,
+    campanhaExternaId: id,
+    campanhaExternaNome: String(row?.name || ""),
+    status: String(row?.effective_status || row?.status || "UNKNOWN"),
+    tipo: String(row?.objective || "UNKNOWN")
+  };
+}
+
+async function testarMetaConexao() {
+  const config = metaConfig();
+  const account = await metaGet(config, `act_${config.accountId}`, {
+    fields: "id,name,currency,timezone_name,account_status"
+  });
+  const accountId = normalizarMetaAccountId(account?.id);
+
+  if (!accountId) {
+    throw new AppError("Meta Ads respondeu sem identificar a conta configurada.", 502);
+  }
+  if (accountId !== config.accountId) {
+    throw new AppError("A conta retornada pelo Meta Ads não corresponde ao Ad Account ID configurado.", 502);
+  }
+
+  return {
+    provedor: "meta_ads",
+    conectado: true,
+    contaExternaId: accountId,
+    nomeConta: String(account?.name || "").trim() || null,
+    moeda: String(account?.currency || "").trim() || null,
+    fusoHorario: String(account?.timezone_name || "").trim() || null,
+    apiVersion: config.version
+  };
+}
+
+async function listarMetaCampanhas() {
+  const config = metaConfig();
+  const rows = await metaListarPaginas(config, `act_${config.accountId}/campaigns`, {
+    fields: "id,name,account_id,status,effective_status,objective"
+  });
+  return rows
+    .map((row) => mapearMetaCampanha(row, config.accountId))
+    .filter((item) => item && item.status !== "DELETED")
+    .sort((a, b) => a.campanhaExternaNome.localeCompare(b.campanhaExternaNome, "pt-BR"));
+}
+
+async function buscarMetaCampanha(campanhaExternaId) {
+  const id = String(campanhaExternaId || "").replace(/\D/g, "");
+  if (!id) {
+    throw new AppError("Informe uma campanha válida do Meta Ads.", 400);
+  }
+  const config = metaConfig();
+  const row = await metaGet(config, id, {
+    fields: "id,name,account_id,status,effective_status,objective"
+  });
+  const campanha = mapearMetaCampanha(row, config.accountId);
+  if (
+    !campanha ||
+    campanha.contaExternaId !== config.accountId ||
+    campanha.status === "DELETED"
+  ) {
+    throw new AppError("Campanha não encontrada na conta configurada do Meta Ads.", 404);
+  }
+  return campanha;
+}
+
 async function listarMeta({ dataInicio, dataFim }) {
   const config = metaConfig();
   if (!config.configured) {
     throw new AppError("Importação de custos da Meta ainda não está configurada.", 409);
   }
-  const base = new URL(`https://graph.facebook.com/${config.version}/act_${config.accountId}/insights`);
-  base.searchParams.set("level", "campaign");
-  base.searchParams.set("fields", "campaign_id,campaign_name,spend,date_start,date_stop");
-  base.searchParams.set("time_increment", "1");
-  base.searchParams.set("time_range", JSON.stringify({ since: dataInicio, until: dataFim }));
-  base.searchParams.set("limit", "500");
-  base.searchParams.set("access_token", config.accessToken);
-
-  const rows = [];
-  let next = base.toString();
-  let paginas = 0;
-  while (next && paginas < 20) {
-    const payload = await fetchJson(next);
-    rows.push(...(Array.isArray(payload.data) ? payload.data : []));
-    next = typeof payload?.paging?.next === "string" ? payload.paging.next : "";
-    paginas += 1;
-  }
+  const rows = await metaListarPaginas(config, `act_${config.accountId}/insights`, {
+    level: "campaign",
+    fields: "campaign_id,campaign_name,spend,date_start,date_stop",
+    time_increment: "1",
+    time_range: JSON.stringify({ since: dataInicio, until: dataFim })
+  });
   return rows.map((row) => ({
     contaExternaId: config.accountId,
     campanhaExternaId: String(row?.campaign_id || ""),
@@ -263,16 +371,19 @@ async function listarCustos(provedor, periodo) {
 
 async function listarCampanhas(provedor) {
   if (provedor === "google_ads") return listarGoogleCampanhas();
+  if (provedor === "meta_ads") return listarMetaCampanhas();
   throw new AppError("Listagem automática de campanhas ainda não está disponível para este provedor.", 409);
 }
 
 async function buscarCampanha(provedor, campanhaExternaId) {
   if (provedor === "google_ads") return buscarGoogleCampanha(campanhaExternaId);
+  if (provedor === "meta_ads") return buscarMetaCampanha(campanhaExternaId);
   throw new AppError("Validação automática de campanha ainda não está disponível para este provedor.", 409);
 }
 
 async function testarConexao(provedor) {
   if (provedor === "google_ads") return testarGoogleConexao();
+  if (provedor === "meta_ads") return testarMetaConexao();
   throw new AppError("Teste automático de conexão ainda não está disponível para este provedor.", 409);
 }
 
