@@ -181,6 +181,13 @@ router.get(
   marketingCostSyncController.status
 );
 
+router.get(
+  "/admin/marketing/custos-integracoes/:provedor/campanhas",
+  auth,
+  authAdmin,
+  marketingCostSyncController.listarCampanhas
+);
+
 router.post(
   "/admin/marketing/custos-integracoes/vinculos",
   auth,
