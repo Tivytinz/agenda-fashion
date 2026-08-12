@@ -94,6 +94,20 @@ async function listarCampanhasExternas({ provedor: valorProvedor }) {
   };
 }
 
+async function testarIntegracao({ provedor: valorProvedor }) {
+  const provedor = normalizarProvedor(valorProvedor);
+  const resultado = await providers.testarConexao(provedor);
+  return {
+    provedor,
+    conectado: resultado?.conectado === true,
+    contaExternaId: resultado?.contaExternaId || null,
+    nomeConta: resultado?.nomeConta || null,
+    moeda: resultado?.moeda || null,
+    fusoHorario: resultado?.fusoHorario || null,
+    apiVersion: resultado?.apiVersion || null
+  };
+}
+
 async function vincularCampanha({ payload }) {
   const campanhaId = Number(payload?.campanhaId ?? payload?.campanha_id);
   if (!Number.isInteger(campanhaId) || campanhaId <= 0) {
@@ -252,6 +266,7 @@ async function sincronizar({ provedor: valorProvedor, payload, usuarioId }) {
 module.exports = {
   statusIntegracoes,
   listarCampanhasExternas,
+  testarIntegracao,
   vincularCampanha,
   sincronizar,
   normalizarProvedor,
