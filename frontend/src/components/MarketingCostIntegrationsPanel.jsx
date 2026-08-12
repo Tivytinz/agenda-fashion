@@ -9,12 +9,15 @@ import { apiRequest } from "../api/client";
 
 const PROVIDER_LABELS = {
   google_ads: "Google Ads",
-  meta_ads: "Meta Ads"
+  meta_ads: "Meta Ads",
+  pinterest_ads: "Pinterest Ads",
+  tiktok_ads: "TikTok Ads"
 };
 
 const EXTERNAL_STATUS_LABELS = {
   ENABLED: "Ativa",
   ACTIVE: "Ativa",
+  DISABLED: "Desativada",
   PAUSED: "Pausada",
   REMOVED: "Removida",
   DELETED: "Excluída",
@@ -53,6 +56,8 @@ function formatTimestamp(value) {
 function canalEsperado(provedor) {
   if (provedor === "google_ads") return "google";
   if (provedor === "meta_ads") return "meta";
+  if (provedor === "pinterest_ads") return "pinterest";
+  if (provedor === "tiktok_ads") return "tiktok";
   return "";
 }
 
@@ -283,7 +288,7 @@ export function MarketingCostIntegrationsPanel({ onChanged }) {
           <p className="eyebrow">Importação automática</p>
           <h2>Campanhas e custos das plataformas</h2>
           <p className="muted">
-            Escolha uma campanha real da conta configurada. O backend confirma o vínculo no Google Ads ou Meta Ads antes de salvar e mantém as credenciais fora do navegador.
+            Escolha uma campanha real da conta configurada. O backend confirma o vínculo na plataforma selecionada antes de salvar e mantém as credenciais fora do navegador.
           </p>
         </div>
       </div>
@@ -334,6 +339,8 @@ export function MarketingCostIntegrationsPanel({ onChanged }) {
                 <select value={provider} onChange={(event) => changeProvider(event.target.value)}>
                   <option value="google_ads">Google Ads</option>
                   <option value="meta_ads">Meta Ads</option>
+                  <option value="pinterest_ads">Pinterest Ads</option>
+                  <option value="tiktok_ads">TikTok Ads</option>
                 </select>
               </label>
 
