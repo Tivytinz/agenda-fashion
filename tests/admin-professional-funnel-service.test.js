@@ -24,7 +24,7 @@ describe(
     });
 
     test(
-      "calcula conversões, custo por cadastro e CAC",
+      "calcula conversões, custos, receita e ROAS",
       async () => {
         repository.listarPorCampanha
           .mockResolvedValue([
@@ -40,6 +40,8 @@ describe(
               checkouts_iniciados: "5",
               assinaturas_ativadas: "4",
               investimento_centavos: "40000",
+              receita_primeiro_pagamento_centavos:
+                "59600",
             },
           ]);
 
@@ -57,7 +59,10 @@ describe(
           taxaNegocio: 60,
           taxaAssinatura: 20,
           custoCadastroCentavos: 2000,
+          custoCheckoutCentavos: 8000,
           cacAssinanteCentavos: 10000,
+          receitaPrimeiroPagamentoCentavos: 59600,
+          roas: 1.49,
         });
 
         expect(
@@ -67,13 +72,16 @@ describe(
           assinaturasAtivadas: 4,
           investimentoCentavos: 40000,
           custoCadastroCentavos: 2000,
+          custoCheckoutCentavos: 8000,
           cacAssinanteCentavos: 10000,
+          receitaPrimeiroPagamentoCentavos: 59600,
+          roas: 1.49,
         });
       }
     );
 
     test(
-      "não chama gasto zero de CAC zero",
+      "não inventa CAC nem ROAS quando não existe investimento",
       async () => {
         repository.listarPorCampanha
           .mockResolvedValue([
@@ -89,6 +97,7 @@ describe(
               checkouts_iniciados: 0,
               assinaturas_ativadas: 0,
               investimento_centavos: 0,
+              receita_primeiro_pagamento_centavos: 0,
             },
           ]);
 
@@ -104,7 +113,16 @@ describe(
 
         expect(
           resultado.campanhas[0]
+            .custoCheckoutCentavos
+        ).toBeNull();
+
+        expect(
+          resultado.campanhas[0]
             .cacAssinanteCentavos
+        ).toBeNull();
+
+        expect(
+          resultado.campanhas[0].roas
         ).toBeNull();
       }
     );
