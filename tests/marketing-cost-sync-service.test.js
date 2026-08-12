@@ -14,7 +14,9 @@ const mockRepository = {
 
 const mockProviders = {
   status: jest.fn(),
-  listarCustos: jest.fn()
+  listarCustos: jest.fn(),
+  listarCampanhas: jest.fn(),
+  buscarCampanha: jest.fn()
 };
 
 jest.mock(
@@ -42,6 +44,13 @@ describe("marketingCostSyncService", () => {
     mockRepository.iniciarSincronizacao.mockResolvedValue({ id: 10 });
     mockRepository.finalizarSincronizacao.mockResolvedValue();
     mockRepository.salvarGastoAutomatico.mockResolvedValue({ id: 1 });
+    mockProviders.status.mockReturnValue([
+      {
+        provedor: "google_ads",
+        configurado: true,
+        contaExternaId: "6770207927"
+      }
+    ]);
   });
 
   test("sincroniza apenas campanhas explicitamente vinculadas", async () => {
@@ -128,8 +137,49 @@ describe("marketingCostSyncService", () => {
     })).toThrow("até 90 dias");
   });
 
-  test("normaliza IDs e salva vínculo somente para campanha existente", async () => {
-    mockCampaignRepository.buscarPorId.mockResolvedValue({ id: 5, nome: "Teste" });
+  test("lista campanhas reais devolvidas pelo Google Ads", async () => {
+    mockProviders.listarCampanhas.mockResolvedValue([
+      {
+        contaExternaId: "6770207927",
+        campanhaExternaId: "555",
+        campanhaExternaNome: "Aquisição Goiânia",
+        status: "ENABLED",
+        tipo: "SEARCH"
+      }
+    ]);
+
+    const result = await service.listarCampanhasExternas({
+      provedor: "google_ads"
+    });
+
+    expect(mockProviders.listarCampanhas).toHaveBeenCalledWith("google_ads");
+    expect(result).toEqual({
+      provedor: "google_ads",
+      contaExternaId: "6770207927",
+      campanhas: [
+        {
+          id: "555",
+          nome: "Aquisição Goiânia",
+          status: "ENABLED",
+          tipo: "SEARCH"
+        }
+      ]
+    });
+  });
+
+  test("consulta o Google novamente antes de salvar um vínculo", async () => {
+    mockCampaignRepository.buscarPorId.mockResolvedValue({
+      id: 5,
+      nome: "Teste",
+      canal: "google"
+    });
+    mockProviders.buscarCampanha.mockResolvedValue({
+      contaExternaId: "6770207927",
+      campanhaExternaId: "555",
+      campanhaExternaNome: "Aquisição real",
+      status: "ENABLED",
+      tipo: "SEARCH"
+    });
     mockRepository.salvarVinculo.mockResolvedValue({ id: 9, campanha_id: 5 });
 
     const result = await service.vincularCampanha({
@@ -138,17 +188,74 @@ describe("marketingCostSyncService", () => {
         provedor: "google_ads",
         contaExternaId: "677-020-7927",
         campanhaExternaId: "555",
-        campanhaExternaNome: "Aquisição"
+        campanhaExternaNome: "Nome adulterado no navegador"
       }
     });
 
+    expect(mockProviders.buscarCampanha).toHaveBeenCalledWith(
+      "google_ads",
+      "555"
+    );
     expect(mockRepository.salvarVinculo).toHaveBeenCalledWith({
       campanhaId: 5,
       provedor: "google_ads",
       contaExternaId: "6770207927",
       campanhaExternaId: "555",
-      campanhaExternaNome: "Aquisição"
+      campanhaExternaNome: "Aquisição real"
     });
-    expect(result.vinculo.id).toBe(9);
+    expect(result).toMatchObject({
+      vinculo: { id: 9 },
+      campanhaExterna: {
+        id: "555",
+        nome: "Aquisição real",
+        status: "ENABLED",
+        tipo: "SEARCH"
+      }
+    });
+  });
+
+  test("impede vincular campanha AF de outro canal ao Google Ads", async () => {
+    mockCampaignRepository.buscarPorId.mockResolvedValue({
+      id: 8,
+      nome: "Meta verão",
+      canal: "meta"
+    });
+
+    await expect(service.vincularCampanha({
+      payload: {
+        campanhaId: 8,
+        provedor: "google_ads",
+        campanhaExternaId: "555"
+      }
+    })).rejects.toThrow("canal meta");
+
+    expect(mockProviders.buscarCampanha).not.toHaveBeenCalled();
+    expect(mockRepository.salvarVinculo).not.toHaveBeenCalled();
+  });
+
+  test("recusa conta Google diferente da configurada no backend", async () => {
+    mockCampaignRepository.buscarPorId.mockResolvedValue({
+      id: 5,
+      nome: "Teste",
+      canal: "google"
+    });
+    mockProviders.buscarCampanha.mockResolvedValue({
+      contaExternaId: "6770207927",
+      campanhaExternaId: "555",
+      campanhaExternaNome: "Aquisição real",
+      status: "PAUSED",
+      tipo: "SEARCH"
+    });
+
+    await expect(service.vincularCampanha({
+      payload: {
+        campanhaId: 5,
+        provedor: "google_ads",
+        contaExternaId: "1112223334",
+        campanhaExternaId: "555"
+      }
+    })).rejects.toThrow("não corresponde à conta configurada");
+
+    expect(mockRepository.salvarVinculo).not.toHaveBeenCalled();
   });
 });
