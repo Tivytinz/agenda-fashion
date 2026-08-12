@@ -8,6 +8,16 @@ async function status(req, res, next) {
   }
 }
 
+async function listarCampanhas(req, res, next) {
+  try {
+    return res.status(200).json(await service.listarCampanhasExternas({
+      provedor: req.params?.provedor
+    }));
+  } catch (erro) {
+    return next(erro);
+  }
+}
+
 async function vincular(req, res, next) {
   try {
     return res.status(200).json(await service.vincularCampanha({ payload: req.body }));
@@ -28,4 +38,4 @@ async function sincronizar(req, res, next) {
   }
 }
 
-module.exports = { status, vincular, sincronizar };
+module.exports = { status, listarCampanhas, vincular, sincronizar };
