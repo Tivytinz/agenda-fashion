@@ -33,6 +33,23 @@ function formatMoney(value) {
   ).format(Number(value) / 100);
 }
 
+function formatRoas(value) {
+  if (
+    value === null ||
+    value === undefined
+  ) {
+    return "—";
+  }
+
+  return `${new Intl.NumberFormat(
+    "pt-BR",
+    {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    }
+  ).format(Number(value))}x`;
+}
+
 function campaignLabel(item) {
   return item?.campanha === "organico"
     ? "Orgânico / sem campanha"
@@ -128,11 +145,6 @@ export function AdminProfessionalFunnelPage() {
         : `${formatMoney(summary.custoCadastroCentavos)} por cadastro`
     ],
     [
-      "Negócios criados",
-      summary.negociosCriados ?? 0,
-      `${summary.taxaNegocio ?? 0}% dos cadastros`
-    ],
-    [
       "Negócios publicados",
       summary.negociosPublicados ?? 0,
       `${summary.taxaPublicacao ?? 0}% dos cadastros`
@@ -143,6 +155,27 @@ export function AdminProfessionalFunnelPage() {
       summary.cacAssinanteCentavos === null
         ? `${summary.taxaAssinatura ?? 0}% dos cadastros`
         : `CAC ${formatMoney(summary.cacAssinanteCentavos)}`
+    ],
+    [
+      "Investimento",
+      formatMoney(
+        summary.investimentoCentavos ?? 0
+      ),
+      summary.custoCheckoutCentavos === null
+        ? "sem custo por checkout calculável"
+        : `${formatMoney(summary.custoCheckoutCentavos)} por checkout`
+    ],
+    [
+      "Receita atribuída",
+      formatMoney(
+        summary.receitaPrimeiroPagamentoCentavos ?? 0
+      ),
+      "primeiro pagamento válido de cada aquisição"
+    ],
+    [
+      "ROAS de aquisição",
+      formatRoas(summary.roas),
+      "receita atribuída ÷ investimento"
     ]
   ];
 
@@ -165,7 +198,7 @@ export function AdminProfessionalFunnelPage() {
           </p>
           <h1>Funil de profissionais</h1>
           <p>
-            Acompanhe quais campanhas trazem profissionais que avançam até negócio publicado, checkout e assinatura.
+            Acompanhe quais campanhas trazem profissionais que avançam até negócio publicado, checkout, assinatura e receita.
           </p>
         </div>
 
@@ -261,9 +294,9 @@ export function AdminProfessionalFunnelPage() {
             <p className="eyebrow">
               Aquisição
             </p>
-            <h2>Conversão por campanha</h2>
+            <h2>Retorno por campanha</h2>
             <p className="muted">
-              Investimento é cruzado com a mesma identidade UTM usada no cadastro da conta.
+              Investimento é cruzado com a mesma identidade UTM usada no cadastro. Receita considera apenas o primeiro pagamento válido de cada negócio adquirido, sem somar renovações ao ROAS de aquisição.
             </p>
           </div>
         </div>
@@ -280,12 +313,13 @@ export function AdminProfessionalFunnelPage() {
                   <th>Campanha</th>
                   <th>Origem</th>
                   <th>Investimento</th>
+                  <th>Receita</th>
+                  <th>ROAS</th>
                   <th>Cadastros</th>
-                  <th>Negócios</th>
-                  <th>Publicados</th>
                   <th>Checkouts</th>
                   <th>Assinaturas</th>
                   <th>Custo cadastro</th>
+                  <th>Custo checkout</th>
                   <th>CAC</th>
                 </tr>
               </thead>
@@ -310,9 +344,17 @@ export function AdminProfessionalFunnelPage() {
                           ? formatMoney(item.investimentoCentavos)
                           : "—"}
                       </td>
+                      <td>
+                        {item.receitaPrimeiroPagamentoCentavos > 0
+                          ? formatMoney(item.receitaPrimeiroPagamentoCentavos)
+                          : "—"}
+                      </td>
+                      <td>
+                        <strong>
+                          {formatRoas(item.roas)}
+                        </strong>
+                      </td>
                       <td>{item.cadastros}</td>
-                      <td>{item.negociosCriados}</td>
-                      <td>{item.negociosPublicados}</td>
                       <td>{item.checkoutsIniciados}</td>
                       <td>
                         <strong>
@@ -326,6 +368,11 @@ export function AdminProfessionalFunnelPage() {
                       <td>
                         {formatMoney(
                           item.custoCadastroCentavos
+                        )}
+                      </td>
+                      <td>
+                        {formatMoney(
+                          item.custoCheckoutCentavos
                         )}
                       </td>
                       <td>

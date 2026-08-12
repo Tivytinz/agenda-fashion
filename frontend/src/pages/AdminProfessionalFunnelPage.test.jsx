@@ -35,11 +35,14 @@ function resultado() {
       checkoutsIniciados: 5,
       assinaturasAtivadas: 4,
       investimentoCentavos: 40000,
+      receitaPrimeiroPagamentoCentavos: 59600,
+      roas: 1.49,
       taxaNegocio: 60,
       taxaPublicacao: 35,
       taxaCheckout: 25,
       taxaAssinatura: 20,
       custoCadastroCentavos: 2000,
+      custoCheckoutCentavos: 8000,
       cacAssinanteCentavos: 10000
     },
     campanhas: [
@@ -55,8 +58,11 @@ function resultado() {
         checkoutsIniciados: 5,
         assinaturasAtivadas: 4,
         investimentoCentavos: 40000,
+        receitaPrimeiroPagamentoCentavos: 59600,
+        roas: 1.49,
         taxaAssinatura: 20,
         custoCadastroCentavos: 2000,
+        custoCheckoutCentavos: 8000,
         cacAssinanteCentavos: 10000
       }
     ]
@@ -76,7 +82,7 @@ describe(
   "AdminProfessionalFunnelPage",
   () => {
     it(
-      "renderiza funil e CAC da campanha",
+      "renderiza CAC, receita e ROAS da campanha",
       async () => {
         render(
           <MemoryRouter>
@@ -109,6 +115,22 @@ describe(
             /R\$\s*100,00/
           ).length
         ).toBeGreaterThanOrEqual(1);
+
+        expect(
+          screen.getAllByText(
+            /R\$\s*596,00/
+          ).length
+        ).toBeGreaterThanOrEqual(1);
+
+        expect(
+          screen.getAllByText("1,49x").length
+        ).toBeGreaterThanOrEqual(1);
+
+        expect(
+          screen.getByText(
+            /sem somar renovações ao ROAS de aquisição/i
+          )
+        ).not.toBeNull();
       }
     );
 

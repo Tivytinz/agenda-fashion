@@ -42,6 +42,22 @@ function custoUnitario(
   );
 }
 
+function calcularRoas(
+  receitaCentavos,
+  investimentoCentavos
+) {
+  if (investimentoCentavos <= 0) {
+    return null;
+  }
+
+  return Number(
+    (
+      receitaCentavos /
+      investimentoCentavos
+    ).toFixed(2)
+  );
+}
+
 function mapearLinha(linha) {
   const cadastros =
     numero(linha.cadastros);
@@ -57,6 +73,10 @@ function mapearLinha(linha) {
     numero(linha.checkouts_iniciados);
   const assinaturasAtivadas =
     numero(linha.assinaturas_ativadas);
+  const receitaPrimeiroPagamentoCentavos =
+    numero(
+      linha.receita_primeiro_pagamento_centavos
+    );
   const investimentoCentavos =
     numero(linha.investimento_centavos);
 
@@ -75,6 +95,12 @@ function mapearLinha(linha) {
     checkoutsIniciados,
     assinaturasAtivadas,
     investimentoCentavos,
+    receitaPrimeiroPagamentoCentavos,
+    roas:
+      calcularRoas(
+        receitaPrimeiroPagamentoCentavos,
+        investimentoCentavos
+      ),
     taxaNegocio:
       percentual(
         negociosCriados,
@@ -99,6 +125,11 @@ function mapearLinha(linha) {
       custoUnitario(
         investimentoCentavos,
         cadastros
+      ),
+    custoCheckoutCentavos:
+      custoUnitario(
+        investimentoCentavos,
+        checkoutsIniciados
       ),
     cacAssinanteCentavos:
       custoUnitario(
@@ -178,6 +209,11 @@ async function buscarFunil({
         campanhas,
         "investimentoCentavos"
       ),
+    receitaPrimeiroPagamentoCentavos:
+      somar(
+        campanhas,
+        "receitaPrimeiroPagamentoCentavos"
+      ),
   };
 
   resumo.taxaNegocio =
@@ -205,10 +241,20 @@ async function buscarFunil({
       resumo.investimentoCentavos,
       resumo.cadastros
     );
+  resumo.custoCheckoutCentavos =
+    custoUnitario(
+      resumo.investimentoCentavos,
+      resumo.checkoutsIniciados
+    );
   resumo.cacAssinanteCentavos =
     custoUnitario(
       resumo.investimentoCentavos,
       resumo.assinaturasAtivadas
+    );
+  resumo.roas =
+    calcularRoas(
+      resumo.receitaPrimeiroPagamentoCentavos,
+      resumo.investimentoCentavos
     );
 
   return {
@@ -224,4 +270,5 @@ module.exports = {
   mapearLinha,
   percentual,
   custoUnitario,
+  calcularRoas,
 };
