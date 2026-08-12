@@ -136,6 +136,10 @@ describe("MarketingCostIntegrationsPanel", () => {
     expect(screen.getByRole("option", { name: "Google Agosto" })).not.toBeNull();
     expect(screen.queryByRole("option", { name: "Meta Agosto" })).toBeNull();
 
+    await screen.findByRole("option", {
+      name: "Aquisição real · Ativa · 555"
+    });
+
     await user.selectOptions(googleCampaign, "555");
 
     expect(screen.getByLabelText("Nome externo").value).toBe("Aquisição real");
