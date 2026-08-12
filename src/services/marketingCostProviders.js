@@ -122,6 +122,36 @@ function mapearGoogleCampanha(row, customerId) {
   };
 }
 
+async function testarGoogleConexao() {
+  const config = googleConfig();
+  const query = [
+    "SELECT customer.id, customer.descriptive_name, customer.currency_code, customer.time_zone",
+    "FROM customer",
+    "LIMIT 1"
+  ].join(" ");
+  const rows = await googleQuery(config, query);
+  const customer = rows[0]?.customer;
+  const customerId = String(customer?.id || "").replace(/\D/g, "");
+
+  if (!customerId) {
+    throw new AppError("Google Ads respondeu sem identificar a conta configurada.", 502);
+  }
+
+  if (customerId !== config.customerId) {
+    throw new AppError("A conta retornada pelo Google Ads não corresponde ao Customer ID configurado.", 502);
+  }
+
+  return {
+    provedor: "google_ads",
+    conectado: true,
+    contaExternaId: customerId,
+    nomeConta: String(customer?.descriptiveName || "").trim() || null,
+    moeda: String(customer?.currencyCode || "").trim() || null,
+    fusoHorario: String(customer?.timeZone || "").trim() || null,
+    apiVersion: config.version
+  };
+}
+
 async function listarGoogleCampanhas() {
   const config = googleConfig();
   const query = [
@@ -241,12 +271,18 @@ async function buscarCampanha(provedor, campanhaExternaId) {
   throw new AppError("Validação automática de campanha ainda não está disponível para este provedor.", 409);
 }
 
+async function testarConexao(provedor) {
+  if (provedor === "google_ads") return testarGoogleConexao();
+  throw new AppError("Teste automático de conexão ainda não está disponível para este provedor.", 409);
+}
+
 module.exports = {
   PROVIDERS,
   status,
   listarCustos,
   listarCampanhas,
   buscarCampanha,
+  testarConexao,
   googleConfig,
   metaConfig
 };
