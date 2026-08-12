@@ -23,7 +23,9 @@ describe(
     let usuarioId;
     let negocioId;
     let campanhaId;
+    let assinaturaId;
     let utmCampaign;
+    let valorPrimeiroPagamentoCentavos;
 
     beforeEach(async () => {
       const suffix = idCurto();
@@ -271,6 +273,11 @@ describe(
           `
         );
 
+      valorPrimeiroPagamentoCentavos =
+        Math.round(
+          Number(plano.rows[0].valor) * 100
+        );
+
       const assinatura =
         await db.query(
           `
@@ -301,6 +308,10 @@ describe(
           ]
         );
 
+      assinaturaId = Number(
+        assinatura.rows[0].id
+      );
+
       await db.query(
         `
         INSERT INTO pagamentos (
@@ -321,7 +332,7 @@ describe(
         )
         `,
         [
-          assinatura.rows[0].id,
+          assinaturaId,
           `pay_${suffix}`,
           plano.rows[0].valor,
         ]
@@ -363,7 +374,7 @@ describe(
     });
 
     test(
-      "atravessa todos os marcos e relaciona investimento pela UTM",
+      "atravessa todos os marcos e relaciona investimento e receita pela UTM",
       async () => {
         const linhas =
           await repository
@@ -389,7 +400,98 @@ describe(
             checkouts_iniciados: 1,
             assinaturas_ativadas: 1,
             investimento_centavos: "12000",
+            receita_primeiro_pagamento_centavos:
+              String(
+                valorPrimeiroPagamentoCentavos
+              ),
           });
+      }
+    );
+
+    test(
+      "usa somente o primeiro pagamento válido e ignora pagamento reembolsado",
+      async () => {
+        const valorRenovacaoCentavos =
+          valorPrimeiroPagamentoCentavos +
+          1000;
+
+        await db.query(
+          `
+          INSERT INTO pagamentos (
+            assinatura_id,
+            asaas_payment_id,
+            valor,
+            forma_pagamento,
+            status,
+            data_pagamento
+          )
+          VALUES (
+            $1,
+            $2,
+            $3,
+            'pix',
+            'RECEIVED',
+            CURRENT_DATE
+          )
+          `,
+          [
+            assinaturaId,
+            `pay_${idCurto()}`,
+            valorRenovacaoCentavos / 100,
+          ]
+        );
+
+        let linhas =
+          await repository
+            .listarPorCampanha("today");
+
+        let encontrada =
+          linhas.find(
+            (item) =>
+              item.campanha ===
+              utmCampaign
+          );
+
+        expect(
+          encontrada
+            .receita_primeiro_pagamento_centavos
+        ).toBe(
+          String(
+            valorPrimeiroPagamentoCentavos
+          )
+        );
+
+        await db.query(
+          `
+          UPDATE pagamentos
+          SET status = 'REFUNDED'
+          WHERE assinatura_id = $1
+            AND id = (
+              SELECT MIN(id)
+              FROM pagamentos
+              WHERE assinatura_id = $1
+            )
+          `,
+          [assinaturaId]
+        );
+
+        linhas =
+          await repository
+            .listarPorCampanha("today");
+
+        encontrada =
+          linhas.find(
+            (item) =>
+              item.campanha ===
+              utmCampaign
+          );
+
+        expect(
+          encontrada
+            .receita_primeiro_pagamento_centavos
+        ).toBe(
+          String(valorRenovacaoCentavos)
+        );
       }
     );
 
