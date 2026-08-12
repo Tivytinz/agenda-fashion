@@ -39,9 +39,9 @@ function mockRequests() {
           {
             provedor: "meta_ads",
             nome: "Meta Ads",
-            habilitado: false,
-            configurado: false,
-            contaExternaId: null,
+            habilitado: true,
+            configurado: true,
+            contaExternaId: "1122334455",
             vinculos: 0,
             ultimaSincronizacao: null
           }
@@ -90,6 +90,27 @@ function mockRequests() {
       });
     }
 
+    if (path === "/admin/marketing/custos-integracoes/meta_ads/campanhas") {
+      return Promise.resolve({
+        provedor: "meta_ads",
+        contaExternaId: "1122334455",
+        campanhas: [
+          {
+            id: "901",
+            nome: "Profissionais Meta",
+            status: "ACTIVE",
+            tipo: "OUTCOME_TRAFFIC"
+          },
+          {
+            id: "902",
+            nome: "Marca Meta pausada",
+            status: "PAUSED",
+            tipo: "OUTCOME_AWARENESS"
+          }
+        ]
+      });
+    }
+
     if (
       path === "/admin/marketing/custos-integracoes/google_ads/testar" &&
       options.method === "POST"
@@ -106,9 +127,43 @@ function mockRequests() {
     }
 
     if (
+      path === "/admin/marketing/custos-integracoes/meta_ads/testar" &&
+      options.method === "POST"
+    ) {
+      return Promise.resolve({
+        provedor: "meta_ads",
+        conectado: true,
+        contaExternaId: "1122334455",
+        nomeConta: "Agenda Fashion Meta",
+        moeda: "BRL",
+        fusoHorario: "America/Sao_Paulo",
+        apiVersion: "v25.0"
+      });
+    }
+
+    if (
       path === "/admin/marketing/custos-integracoes/vinculos" &&
       options.method === "POST"
     ) {
+      if (options.body?.provedor === "meta_ads") {
+        return Promise.resolve({
+          vinculo: {
+            id: 10,
+            campanha_id: 8,
+            provedor: "meta_ads",
+            conta_externa_id: "1122334455",
+            campanha_externa_id: "901",
+            campanha_externa_nome: "Profissionais Meta"
+          },
+          campanhaExterna: {
+            id: "901",
+            nome: "Profissionais Meta",
+            status: "ACTIVE",
+            tipo: "OUTCOME_TRAFFIC"
+          }
+        });
+      }
+
       return Promise.resolve({
         vinculo: {
           id: 9,
@@ -144,11 +199,11 @@ describe("MarketingCostIntegrationsPanel", () => {
 
     render(<MarketingCostIntegrationsPanel />);
 
-    const testButton = await screen.findByRole("button", {
+    const testButtons = await screen.findAllByRole("button", {
       name: "Testar conexão"
     });
 
-    await user.click(testButton);
+    await user.click(testButtons[0]);
 
     await waitFor(() => {
       expect(apiRequest).toHaveBeenCalledWith(
@@ -212,6 +267,65 @@ describe("MarketingCostIntegrationsPanel", () => {
 
     expect(
       await screen.findByText("Vínculo verificado e salvo com a campanha real do Google Ads.")
+    ).not.toBeNull();
+  });
+
+  it("testa Meta, lista campanhas reais e salva vínculo verificado", async () => {
+    const user = userEvent.setup();
+
+    render(<MarketingCostIntegrationsPanel />);
+
+    const platform = await screen.findByLabelText("Plataforma");
+    await user.selectOptions(platform, "meta_ads");
+
+    const metaCampaign = await screen.findByLabelText(
+      "Campanha real do Meta Ads"
+    );
+
+    expect(screen.getByRole("option", { name: "Meta Agosto" })).not.toBeNull();
+    expect(screen.queryByRole("option", { name: "Google Agosto" })).toBeNull();
+
+    await screen.findByRole("option", {
+      name: "Profissionais Meta · Ativa · 901"
+    });
+
+    const testButtons = screen.getAllByRole("button", { name: "Testar conexão" });
+    await user.click(testButtons[1]);
+
+    expect(
+      await screen.findByText(
+        "Meta Ads conectado com sucesso. Agenda Fashion Meta · BRL · America/Sao_Paulo · v25.0."
+      )
+    ).not.toBeNull();
+
+    await user.selectOptions(metaCampaign, "901");
+
+    expect(screen.getByLabelText("Nome externo").value).toBe("Profissionais Meta");
+    expect(screen.getByLabelText("Status no Meta Ads").value).toBe("Ativa");
+    expect(screen.getByLabelText("ID da conta externa").value).toBe("1122334455");
+
+    await user.click(
+      screen.getByRole("button", { name: "Vincular campanha verificada" })
+    );
+
+    await waitFor(() => {
+      expect(apiRequest).toHaveBeenCalledWith(
+        "/admin/marketing/custos-integracoes/vinculos",
+        expect.objectContaining({
+          method: "POST",
+          body: {
+            campanhaId: 8,
+            provedor: "meta_ads",
+            contaExternaId: "1122334455",
+            campanhaExternaId: "901",
+            campanhaExternaNome: "Profissionais Meta"
+          }
+        })
+      );
+    });
+
+    expect(
+      await screen.findByText("Vínculo verificado e salvo com a campanha real do Meta Ads.")
     ).not.toBeNull();
   });
 });
