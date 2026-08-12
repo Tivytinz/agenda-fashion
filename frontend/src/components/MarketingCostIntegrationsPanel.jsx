@@ -46,6 +46,17 @@ function canalEsperado(provedor) {
   return "";
 }
 
+function connectionSummary(connection) {
+  if (!connection?.conectado) return "";
+  const parts = [
+    connection.nomeConta || `Conta ${connection.contaExternaId}`,
+    connection.moeda,
+    connection.fusoHorario,
+    connection.apiVersion
+  ].filter(Boolean);
+  return parts.join(" · ");
+}
+
 export function MarketingCostIntegrationsPanel({ onChanged }) {
   const [data, setData] = useState(null);
   const [campaigns, setCampaigns] = useState([]);
@@ -56,6 +67,8 @@ export function MarketingCostIntegrationsPanel({ onChanged }) {
   const [externalCampaignId, setExternalCampaignId] = useState("");
   const [externalCampaignName, setExternalCampaignName] = useState("");
   const [loadingExternalCampaigns, setLoadingExternalCampaigns] = useState(false);
+  const [googleConnection, setGoogleConnection] = useState(null);
+  const [testingProvider, setTestingProvider] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [syncing, setSyncing] = useState("");
@@ -159,6 +172,33 @@ export function MarketingCostIntegrationsPanel({ onChanged }) {
     setExternalCampaignName(campaign?.nome || "");
   }
 
+  async function testConnection(provedor) {
+    if (testingProvider) return;
+    setTestingProvider(provedor);
+    setError("");
+    setMessage("");
+    try {
+      const result = await apiRequest(
+        `/admin/marketing/custos-integracoes/${provedor}/testar`,
+        { method: "POST", body: {} }
+      );
+      if (provedor === "google_ads") {
+        setGoogleConnection(result);
+      }
+      setMessage(
+        `${PROVIDER_LABELS[provedor] || provedor} conectado com sucesso.` +
+        (connectionSummary(result) ? ` ${connectionSummary(result)}.` : "")
+      );
+    } catch (requestError) {
+      if (provedor === "google_ads") {
+        setGoogleConnection(null);
+      }
+      setError(requestError.message);
+    } finally {
+      setTestingProvider("");
+    }
+  }
+
   async function saveLink(event) {
     event.preventDefault();
     if (saving) return;
@@ -250,9 +290,24 @@ export function MarketingCostIntegrationsPanel({ onChanged }) {
                 <small>
                   {item.vinculos || 0} vínculo(s) · {formatTimestamp(item.ultimaSincronizacao?.finished_at)}
                 </small>
+                {item.provedor === "google_ads" && googleConnection?.conectado && (
+                  <small>
+                    {connectionSummary(googleConnection)}
+                  </small>
+                )}
+                {item.provedor === "google_ads" && (
+                  <button
+                    className="button button-secondary"
+                    disabled={!item.configurado || Boolean(testingProvider) || Boolean(syncing)}
+                    onClick={() => testConnection(item.provedor)}
+                    type="button"
+                  >
+                    {testingProvider === item.provedor ? "Testando conexão..." : "Testar conexão"}
+                  </button>
+                )}
                 <button
                   className="button button-secondary"
-                  disabled={!item.configurado || Boolean(syncing)}
+                  disabled={!item.configurado || Boolean(syncing) || Boolean(testingProvider)}
                   onClick={() => sync(item.provedor)}
                   type="button"
                 >
