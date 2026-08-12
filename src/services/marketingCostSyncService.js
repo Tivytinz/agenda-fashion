@@ -8,6 +8,10 @@ const CANAL_POR_PROVEDOR = Object.freeze({
   google_ads: "google",
   meta_ads: "meta"
 });
+const NOME_POR_PROVEDOR = Object.freeze({
+  google_ads: "Google Ads",
+  meta_ads: "Meta Ads"
+});
 
 function normalizarProvedor(valor) {
   const provedor = String(valor || "").trim().toLowerCase();
@@ -119,54 +123,37 @@ async function vincularCampanha({ payload }) {
   const provedor = normalizarProvedor(payload?.provedor);
   validarCanalDaCampanha(campanha, provedor);
 
-  let contaExternaId;
-  let campanhaExternaId;
-  let campanhaExternaNome;
-  let campanhaExterna = null;
+  let campanhaExternaId = normalizarIdExterno(
+    payload?.campanhaExternaId ?? payload?.campanha_externa_id
+  );
+  const nomeProvedor = NOME_POR_PROVEDOR[provedor] || provedor;
+  if (!campanhaExternaId) {
+    throw new AppError(`Selecione uma campanha real do ${nomeProvedor}.`, 400);
+  }
 
-  if (provedor === "google_ads") {
-    campanhaExternaId = normalizarIdExterno(
-      payload?.campanhaExternaId ?? payload?.campanha_externa_id
-    );
-    if (!campanhaExternaId) {
-      throw new AppError("Selecione uma campanha real do Google Ads.", 400);
-    }
+  const campanhaExterna = await providers.buscarCampanha(
+    provedor,
+    campanhaExternaId
+  );
+  const contaExternaId = normalizarIdExterno(campanhaExterna?.contaExternaId);
+  campanhaExternaId = normalizarIdExterno(campanhaExterna?.campanhaExternaId);
+  const campanhaExternaNome = normalizarTexto(
+    campanhaExterna?.campanhaExternaNome,
+    240
+  ) || null;
 
-    campanhaExterna = await providers.buscarCampanha(
-      provedor,
-      campanhaExternaId
+  const contaInformada = normalizarIdExterno(
+    payload?.contaExternaId ?? payload?.conta_externa_id
+  );
+  if (contaInformada && contaInformada !== contaExternaId) {
+    throw new AppError(
+      `A conta informada não corresponde à conta configurada do ${nomeProvedor}.`,
+      400
     );
-    contaExternaId = normalizarIdExterno(campanhaExterna?.contaExternaId);
-    campanhaExternaId = normalizarIdExterno(campanhaExterna?.campanhaExternaId);
-    campanhaExternaNome = normalizarTexto(
-      campanhaExterna?.campanhaExternaNome,
-      240
-    ) || null;
-
-    const contaInformada = normalizarIdExterno(
-      payload?.contaExternaId ?? payload?.conta_externa_id
-    );
-    if (contaInformada && contaInformada !== contaExternaId) {
-      throw new AppError(
-        "A conta informada não corresponde à conta configurada do Google Ads.",
-        400
-      );
-    }
-  } else {
-    contaExternaId = normalizarIdExterno(
-      payload?.contaExternaId ?? payload?.conta_externa_id
-    );
-    campanhaExternaId = normalizarIdExterno(
-      payload?.campanhaExternaId ?? payload?.campanha_externa_id
-    );
-    campanhaExternaNome = normalizarTexto(
-      payload?.campanhaExternaNome ?? payload?.campanha_externa_nome,
-      240
-    ) || null;
   }
 
   if (!contaExternaId || !campanhaExternaId) {
-    throw new AppError("Informe a conta e o ID externo da campanha.", 400);
+    throw new AppError("A plataforma não devolveu uma conta e campanha válidas.", 502);
   }
 
   const vinculo = await repository.salvarVinculo({
@@ -178,14 +165,12 @@ async function vincularCampanha({ payload }) {
   });
   return {
     vinculo,
-    campanhaExterna: campanhaExterna
-      ? {
-          id: campanhaExternaId,
-          nome: campanhaExternaNome,
-          status: campanhaExterna.status || "UNKNOWN",
-          tipo: campanhaExterna.tipo || "UNKNOWN"
-        }
-      : null
+    campanhaExterna: {
+      id: campanhaExternaId,
+      nome: campanhaExternaNome,
+      status: campanhaExterna.status || "UNKNOWN",
+      tipo: campanhaExterna.tipo || "UNKNOWN"
+    }
   };
 }
 
