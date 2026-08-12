@@ -189,6 +189,13 @@ router.get(
 );
 
 router.post(
+  "/admin/marketing/custos-integracoes/:provedor/testar",
+  auth,
+  authAdmin,
+  marketingCostSyncController.testar
+);
+
+router.post(
   "/admin/marketing/custos-integracoes/vinculos",
   auth,
   authAdmin,
