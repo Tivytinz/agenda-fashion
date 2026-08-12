@@ -3,6 +3,7 @@ import {
   useState
 } from "react";
 import { apiRequest } from "../api/client";
+import { MarketingCostIntegrationsPanel } from "../components/MarketingCostIntegrationsPanel";
 import {
   ErrorState,
   LoadingState
@@ -256,7 +257,7 @@ export function AdminMarketingCostsPage() {
       );
 
       setMessage(
-        "Investimento salvo. Se já existia valor manual para esta campanha e data, ele foi corrigido."
+        "Investimento salvo. O lançamento manual se torna a fonte efetiva daquele dia até uma nova sincronização automática."
       );
 
       setReloadKey(
@@ -336,7 +337,7 @@ export function AdminMarketingCostsPage() {
           </p>
           <h1>Investimento e CPA</h1>
           <p>
-            Registre o gasto real das campanhas e compare custo por sessão e por agendamento concluído.
+            Importe o gasto real das plataformas, mantenha correções manuais e compare custo por sessão e por agendamento concluído.
           </p>
         </div>
 
@@ -389,6 +390,14 @@ export function AdminMarketingCostsPage() {
         )}
       </section>
 
+      <MarketingCostIntegrationsPanel
+        onChanged={() =>
+          setReloadKey(
+            (current) => current + 1
+          )
+        }
+      />
+
       <section className="panel">
         <div className="panel-heading">
           <div>
@@ -397,7 +406,7 @@ export function AdminMarketingCostsPage() {
             </p>
             <h2>Registrar investimento</h2>
             <p className="muted">
-              O valor representa o gasto real daquela campanha no dia. Repetir campanha + data corrige o lançamento anterior.
+              Use como fallback ou correção pontual. Para a mesma campanha e data, a última fonte gravada substitui a anterior e evita dupla contagem.
             </p>
           </div>
         </div>
@@ -603,6 +612,7 @@ export function AdminMarketingCostsPage() {
                   <th>Data</th>
                   <th>Campanha</th>
                   <th>Canal</th>
+                  <th>Fonte</th>
                   <th>Valor</th>
                   <th>Observação</th>
                 </tr>
@@ -620,6 +630,7 @@ export function AdminMarketingCostsPage() {
                         {item.campanhaNome || "—"}
                       </td>
                       <td>{item.canal || "—"}</td>
+                      <td>{item.fonte || "manual"}</td>
                       <td>
                         {formatMoney(
                           item.valorCentavos

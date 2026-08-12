@@ -33,6 +33,10 @@ const {
   iniciarWorkerWhatsapp,
   pararWorkerWhatsapp,
 } = require("./services/whatsappMensagemService");
+const {
+  iniciarWorkerCustosMarketing,
+  pararWorkerCustosMarketing,
+} = require("./services/marketingCostSyncWorker");
 
 const app = express();
 
@@ -405,6 +409,7 @@ async function iniciarServidor() {
 
       iniciarWorkerWebhook();
       iniciarWorkerWhatsapp();
+      iniciarWorkerCustosMarketing();
     });
 
   return servidor;
@@ -429,6 +434,7 @@ async function encerrarServidor(
 
   pararWorkerWebhook();
   pararWorkerWhatsapp();
+  pararWorkerCustosMarketing();
 
   if (servidor) {
     await new Promise(
