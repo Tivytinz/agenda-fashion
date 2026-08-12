@@ -170,7 +170,7 @@ export function AdminProfessionalFunnelPage() {
       formatMoney(
         summary.receitaPrimeiroPagamentoCentavos ?? 0
       ),
-      "primeiro pagamento válido de cada aquisição"
+      "primeiro pagamento da aquisição; reembolso zera a receita"
     ],
     [
       "ROAS de aquisição",
@@ -296,7 +296,7 @@ export function AdminProfessionalFunnelPage() {
             </p>
             <h2>Retorno por campanha</h2>
             <p className="muted">
-              Investimento é cruzado com a mesma identidade UTM usada no cadastro. Receita considera apenas o primeiro pagamento válido de cada negócio adquirido, sem somar renovações ao ROAS de aquisição.
+              Investimento é cruzado com a mesma identidade UTM usada no cadastro. Receita usa somente o primeiro pagamento realizado da aquisição. Se ele for reembolsado, a receita atribuída fica zerada; renovações posteriores não entram no ROAS de aquisição.
             </p>
           </div>
         </div>
