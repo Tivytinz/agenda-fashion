@@ -46,6 +46,45 @@ describe("marketingCostProviders Google Ads", () => {
     global.fetch = originalFetch;
   });
 
+  test("testa a conexão e identifica a conta sem expor credenciais", async () => {
+    global.fetch
+      .mockResolvedValueOnce(response({ access_token: "access-token" }))
+      .mockResolvedValueOnce(response([
+        {
+          results: [
+            {
+              customer: {
+                id: "6770207927",
+                descriptiveName: "Agenda Fashion Ads",
+                currencyCode: "BRL",
+                timeZone: "America/Sao_Paulo"
+              }
+            }
+          ]
+        }
+      ]));
+
+    const result = await providers.testarConexao("google_ads");
+
+    expect(result).toEqual({
+      provedor: "google_ads",
+      conectado: true,
+      contaExternaId: "6770207927",
+      nomeConta: "Agenda Fashion Ads",
+      moeda: "BRL",
+      fusoHorario: "America/Sao_Paulo",
+      apiVersion: "v25"
+    });
+
+    const query = JSON.parse(global.fetch.mock.calls[1][1].body).query;
+    expect(query).toContain("customer.descriptive_name");
+    expect(query).toContain("customer.currency_code");
+    expect(query).toContain("customer.time_zone");
+    expect(JSON.stringify(result)).not.toContain("developer-token");
+    expect(JSON.stringify(result)).not.toContain("refresh-token");
+    expect(JSON.stringify(result)).not.toContain("client-secret");
+  });
+
   test("lista campanhas reais sem expor credenciais no resultado", async () => {
     global.fetch
       .mockResolvedValueOnce(response({ access_token: "access-token" }))
