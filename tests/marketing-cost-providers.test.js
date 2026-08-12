@@ -299,7 +299,7 @@ describe("marketingCostProviders Meta Ads", () => {
     ]);
 
     expect(global.fetch).toHaveBeenCalledTimes(2);
-    expect(global.fetch.mock.calls[0][0]).toContain("act_1122334455%2Fcampaigns");
+    expect(global.fetch.mock.calls[0][0]).toContain("/v25.0/act_1122334455/campaigns?");
     expect(global.fetch.mock.calls[1][0]).toContain("after=cursor-1");
     for (const [, options] of global.fetch.mock.calls) {
       expect(options.headers).toEqual({ Authorization: "Bearer marketing-token" });
