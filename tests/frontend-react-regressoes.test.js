@@ -358,7 +358,7 @@ describe(
           '["/painel/profissionais", "Equipe"',
           '["/profissional/agenda", "Minha agenda"',
           '["/profissional/horarios", "Meus horários"',
-          '["/admin/trafego-pago", "Marketing"',
+          '["/admin/trafego-pago", "Campanhas"',
           '["/admin/trafego-pago/custos", "Custos"',
           '["/admin/trafego-pago/profissionais", "Rentabilidade"',
         ].forEach(
