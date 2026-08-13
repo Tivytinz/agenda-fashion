@@ -193,7 +193,6 @@ export function MarketingCostIntegrationsPanel({ onChanged }) {
 
     let active = true;
     setLoadingExternalCampaigns(true);
-    setError("");
 
     apiRequest(`/admin/marketing/custos-integracoes/${provider}/campanhas`)
       .then((result) => {
