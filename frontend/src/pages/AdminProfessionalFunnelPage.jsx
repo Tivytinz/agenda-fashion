@@ -52,13 +52,43 @@ function formatRoas(value) {
 }
 
 function campaignLabel(item) {
-  return item?.campanha === "organico"
-    ? "Orgânico / sem campanha"
-    : item?.campanha || "Sem campanha";
+  const campaign = String(
+    item?.campanha || ""
+  ).trim();
+  const source = String(
+    item?.origem || ""
+  ).trim().toLowerCase();
+  const medium = String(
+    item?.midia || ""
+  ).trim().toLowerCase();
+
+  if (
+    !campaign ||
+    campaign.toLowerCase() === "organico"
+  ) {
+    if (
+      source === "organico" &&
+      (!medium || medium === "none")
+    ) {
+      return "Orgânico / sem campanha";
+    }
+
+    return "Sem UTM de campanha";
+  }
+
+  return campaign;
 }
 
 function campaignKey(item) {
   return `${item.origem}-${item.midia}-${item.campanha}`;
+}
+
+function decisionBadgeClass(code) {
+  const safeCode = String(
+    code || "sem_dados"
+  ).replace(/[^a-z_]/g, "");
+
+  return `admin-status-badge admin-decision-badge is-${safeCode}`;
 }
 
 export function AdminProfessionalFunnelPage() {
@@ -102,7 +132,7 @@ export function AdminProfessionalFunnelPage() {
     return (
       <main className="workspace-page admin-workspace-page admin-marketing-page admin-professional-funnel-page">
         <LoadingState>
-          Carregando funil profissional...
+          Carregando rentabilidade profissional...
         </LoadingState>
       </main>
     );
@@ -160,18 +190,6 @@ export function AdminProfessionalFunnelPage() {
       "ROAS de aquisição",
       formatRoas(summary.roas),
       "receita atribuída ÷ investimento"
-    ],
-    [
-      "Campanhas para escalar",
-      decisionCounts.escalar ?? 0,
-      decision.faixaEscalaRoas
-        ? `faixa de escala a partir de ${formatRoas(decision.faixaEscalaRoas)}`
-        : "aguardando régua de decisão"
-    ],
-    [
-      "Campanhas para pausar",
-      decisionCounts.pausar ?? 0,
-      "somente com amostra mínima atingida"
     ]
   ];
 
@@ -190,9 +208,9 @@ export function AdminProfessionalFunnelPage() {
       <header className="workspace-heading">
         <div>
           <p className="eyebrow">Administração do AF</p>
-          <h1>Funil de profissionais</h1>
+          <h1>Rentabilidade de profissionais</h1>
           <p>
-            Acompanhe quais campanhas trazem profissionais que avançam até negócio publicado, checkout, assinatura e receita.
+            Acompanhe o funil de aquisição, CAC, ROAS e quais campanhas merecem escala, revisão ou pausa.
           </p>
         </div>
 
@@ -214,7 +232,7 @@ export function AdminProfessionalFunnelPage() {
         </div>
       </header>
 
-      {refreshing && <p className="data-refresh-status" role="status">Atualizando funil...</p>}
+      {refreshing && <p className="data-refresh-status" role="status">Atualizando rentabilidade...</p>}
       {error && <p className="form-error" role="alert">{error} Os últimos dados carregados continuam visíveis.</p>}
 
       <section
@@ -228,6 +246,32 @@ export function AdminProfessionalFunnelPage() {
             <small>{hint}</small>
           </article>
         ))}
+      </section>
+
+      <section className="admin-decision-summary" aria-label="Resumo das recomendações de campanha">
+        <div>
+          <span>Para escalar</span>
+          <strong>{decisionCounts.escalar ?? 0}</strong>
+          <small>
+            {decision.faixaEscalaRoas
+              ? `ROAS a partir de ${formatRoas(decision.faixaEscalaRoas)}`
+              : "aguardando régua"}
+          </small>
+        </div>
+        <div>
+          <span>Para pausar</span>
+          <strong>{decisionCounts.pausar ?? 0}</strong>
+          <small>somente com amostra mínima atingida</small>
+        </div>
+        <div className="admin-decision-rule">
+          <span>Régua de decisão</span>
+          <strong>
+            {decision.minimoCadastros ?? "—"} cadastros · {decision.minimoAssinaturas ?? "—"} assinaturas
+          </strong>
+          <small>
+            meta de ROAS {formatRoas(decision.metaRoas)} · escala em {formatRoas(decision.faixaEscalaRoas)}
+          </small>
+        </div>
       </section>
 
       <section className="panel">
@@ -272,7 +316,7 @@ export function AdminProfessionalFunnelPage() {
               Compare retorno e CAC sem perder a leitura principal. Cadastros, checkouts e custos intermediários ficam disponíveis nos detalhes de cada campanha. A receita usa somente o primeiro pagamento da aquisição; se ele for reembolsado, a receita atribuída fica zerada e renovações posteriores não entram no ROAS de aquisição.
             </p>
             <p className="muted">
-              A recomendação não altera campanhas automaticamente. Com a régua atual, uma decisão forte exige pelo menos {decision.minimoCadastros ?? "—"} cadastros e {decision.minimoAssinaturas ?? "—"} assinaturas; meta de ROAS {formatRoas(decision.metaRoas)} e escala a partir de {formatRoas(decision.faixaEscalaRoas)}.
+              A recomendação é somente analítica e não altera campanhas automaticamente.
             </p>
           </div>
         </div>
@@ -325,7 +369,7 @@ export function AdminProfessionalFunnelPage() {
                         </td>
                         <td>{formatMoney(item.cacAssinanteCentavos)}</td>
                         <td className="admin-decision-cell">
-                          <span className="admin-status-badge">
+                          <span className={decisionBadgeClass(item.decisao?.codigo)}>
                             {item.decisao?.rotulo || "Sem dados"}
                           </span>
                           <small className="muted">
