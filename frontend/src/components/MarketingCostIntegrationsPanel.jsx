@@ -59,31 +59,27 @@ function canalEsperado(provedor) {
 
 function connectionSummary(connection) {
   if (!connection?.conectado) return "";
-  const parts = [
+  return [
     connection.nomeConta || `Conta ${connection.contaExternaId}`,
     connection.moeda,
     connection.fusoHorario,
     connection.apiVersion
-  ].filter(Boolean);
-  return parts.join(" · ");
+  ]
+    .filter(Boolean)
+    .join(" · ");
 }
 
 function scheduleSummary(config) {
-  if (!config) {
-    return "Status do agendamento automático indisponível.";
-  }
-
+  if (!config) return "Status do agendamento automático indisponível.";
   if (config.habilitado) {
-    return `Sincronização automática ativa a cada ${config.intervaloHoras}h · alerta de desatualização após ${config.limiteDesatualizadoHoras}h.`;
+    return `Execução a cada ${config.intervaloHoras}h · alerta de desatualização após ${config.limiteDesatualizadoHoras}h.`;
   }
-
-  return `Sincronização automática desligada · sincronização manual disponível · alerta de desatualização após ${config.limiteDesatualizadoHoras || 24}h.`;
+  return `Sincronização manual disponível · alerta de desatualização após ${config.limiteDesatualizadoHoras || 24}h.`;
 }
 
 function syncDetail(item) {
   const sync = item?.ultimaSincronizacao;
   if (!sync) return "Sem histórico de sincronização.";
-
   const imported = Number(sync.registros_importados || 0);
   const unlinked = Number(sync.campanhas_nao_vinculadas || 0);
   return `${imported} importado(s) · ${unlinked} sem vínculo`;
@@ -115,15 +111,13 @@ export function MarketingCostIntegrationsPanel({ onChanged }) {
       apiRequest("/admin/marketing/custos-integracoes"),
       apiRequest("/admin/marketing/gestao-campanhas")
     ]);
-
     const errors = [];
 
     if (integrationsResult.status === "fulfilled") {
       setData(integrationsResult.value);
     } else {
       errors.push(
-        integrationsResult.reason?.message ||
-          "Falha ao carregar integrações."
+        integrationsResult.reason?.message || "Falha ao carregar integrações."
       );
     }
 
@@ -131,8 +125,7 @@ export function MarketingCostIntegrationsPanel({ onChanged }) {
       setCampaigns(managedResult.value?.campanhas || []);
     } else {
       errors.push(
-        managedResult.reason?.message ||
-          "Falha ao carregar campanhas do AF."
+        managedResult.reason?.message || "Falha ao carregar campanhas do AF."
       );
     }
 
@@ -143,7 +136,6 @@ export function MarketingCostIntegrationsPanel({ onChanged }) {
           : `Parte do painel está temporariamente indisponível. ${errors[0]}`
       );
     }
-
     setLoading(false);
   }, []);
 
@@ -162,7 +154,10 @@ export function MarketingCostIntegrationsPanel({ onChanged }) {
   }, [campaigns, provider]);
 
   const selectedExternalCampaign = useMemo(
-    () => externalCampaigns.find((item) => String(item.id) === String(externalCampaignId)) || null,
+    () =>
+      externalCampaigns.find(
+        (item) => String(item.id) === String(externalCampaignId)
+      ) || null,
     [externalCampaignId, externalCampaigns]
   );
 
@@ -198,7 +193,9 @@ export function MarketingCostIntegrationsPanel({ onChanged }) {
       .then((result) => {
         if (!active) return;
         setExternalCampaigns(result?.campanhas || []);
-        setExternalAccountId(String(result?.contaExternaId || selectedProvider.contaExternaId || ""));
+        setExternalAccountId(
+          String(result?.contaExternaId || selectedProvider.contaExternaId || "")
+        );
       })
       .catch((requestError) => {
         if (!active) return;
@@ -226,7 +223,9 @@ export function MarketingCostIntegrationsPanel({ onChanged }) {
 
   function changeExternalCampaign(value) {
     setExternalCampaignId(value);
-    const campaign = externalCampaigns.find((item) => String(item.id) === String(value));
+    const campaign = externalCampaigns.find(
+      (item) => String(item.id) === String(value)
+    );
     setExternalCampaignName(campaign?.nome || "");
   }
 
@@ -240,19 +239,13 @@ export function MarketingCostIntegrationsPanel({ onChanged }) {
         `/admin/marketing/custos-integracoes/${provedor}/testar`,
         { method: "POST", body: {} }
       );
-      setConnections((current) => ({
-        ...current,
-        [provedor]: result
-      }));
+      setConnections((current) => ({ ...current, [provedor]: result }));
       setMessage(
         `${PROVIDER_LABELS[provedor] || provedor} conectado com sucesso.` +
-        (connectionSummary(result) ? ` ${connectionSummary(result)}.` : "")
+          (connectionSummary(result) ? ` ${connectionSummary(result)}.` : "")
       );
     } catch (requestError) {
-      setConnections((current) => ({
-        ...current,
-        [provedor]: null
-      }));
+      setConnections((current) => ({ ...current, [provedor]: null }));
       setError(requestError.message);
     } finally {
       setTestingProvider("");
@@ -278,7 +271,9 @@ export function MarketingCostIntegrationsPanel({ onChanged }) {
       });
       setExternalCampaignId("");
       setExternalCampaignName("");
-      setMessage(`Vínculo verificado e salvo com a campanha real do ${providerLabel}.`);
+      setMessage(
+        `Vínculo verificado e salvo com a campanha real do ${providerLabel}.`
+      );
       await load();
     } catch (requestError) {
       setError(requestError.message);
@@ -299,9 +294,9 @@ export function MarketingCostIntegrationsPanel({ onChanged }) {
       );
       setMessage(
         `${PROVIDER_LABELS[provedor] || provedor}: ${result.registrosImportados || 0} registro(s) importado(s).` +
-        (result.campanhasNaoVinculadas
-          ? ` ${result.campanhasNaoVinculadas} campanha(s) externa(s) ainda sem vínculo.`
-          : "")
+          (result.campanhasNaoVinculadas
+            ? ` ${result.campanhasNaoVinculadas} campanha(s) externa(s) ainda sem vínculo.`
+            : "")
       );
       await load();
       onChanged?.();
@@ -320,6 +315,29 @@ export function MarketingCostIntegrationsPanel({ onChanged }) {
     return campaign ? externalStatusLabel(campaign.status) : "Não carregado";
   }
 
+  const scheduleEnabled = Boolean(data?.sincronizacaoAutomatica?.habilitado);
+  const platformReady = Boolean(selectedProvider?.configurado && externalAccountId);
+  const afCampaignReady = Boolean(campaignId);
+  const externalReady = Boolean(selectedExternalCampaign);
+  const canSaveLink = Boolean(
+    !saving &&
+      eligibleCampaigns.length > 0 &&
+      selectedProvider?.configurado &&
+      !loadingExternalCampaigns &&
+      externalCampaignId
+  );
+
+  let linkBlockReason = "";
+  if (!selectedProvider?.configurado) {
+    linkBlockReason = `Complete a configuração do ${providerLabel} antes de vincular campanhas.`;
+  } else if (eligibleCampaigns.length === 0) {
+    linkBlockReason = `Crie uma campanha do AF para ${providerLabel} antes de continuar.`;
+  } else if (loadingExternalCampaigns) {
+    linkBlockReason = "Aguarde o carregamento das campanhas externas.";
+  } else if (!externalCampaignId) {
+    linkBlockReason = `Selecione uma campanha real do ${providerLabel} para continuar.`;
+  }
+
   return (
     <section className="panel" aria-busy={loading || loadingExternalCampaigns}>
       <div className="panel-heading">
@@ -329,8 +347,17 @@ export function MarketingCostIntegrationsPanel({ onChanged }) {
           <p className="muted">
             Confira a saúde das contas e vincule cada campanha do AF à campanha real da plataforma. Credenciais continuam somente no backend.
           </p>
-          <p className="muted" role="status">
-            {scheduleSummary(data?.sincronizacaoAutomatica)}
+          <p role="status">
+            <span
+              className={`admin-status-badge ${scheduleEnabled ? "is-success" : "is-muted"}`}
+            >
+              {scheduleEnabled
+                ? "Custos automáticos ativos"
+                : "Custos automáticos desativados"}
+            </span>{" "}
+            <span className="muted">
+              {scheduleSummary(data?.sincronizacaoAutomatica)}
+            </span>
           </p>
         </div>
       </div>
@@ -341,10 +368,12 @@ export function MarketingCostIntegrationsPanel({ onChanged }) {
 
       {!loading && (
         <>
-          <div className="integration-health-grid" aria-label="Saúde das integrações de custos">
+          <div
+            className="integration-health-grid"
+            aria-label="Saúde das integrações de custos"
+          >
             {(data?.provedores || []).map((item) => {
               const hasLinks = Number(item.vinculos || 0) > 0;
-
               return (
                 <article className="integration-health-card" key={item.provedor}>
                   <span>{item.nome}</span>
@@ -369,19 +398,30 @@ export function MarketingCostIntegrationsPanel({ onChanged }) {
                   <div className="integration-health-actions">
                     <button
                       className="button button-secondary button-small"
-                      disabled={!item.configurado || Boolean(testingProvider) || Boolean(syncing)}
+                      disabled={
+                        !item.configurado || Boolean(testingProvider) || Boolean(syncing)
+                      }
                       onClick={() => testConnection(item.provedor)}
                       type="button"
                     >
-                      {testingProvider === item.provedor ? "Testando conexão..." : "Testar conexão"}
+                      {testingProvider === item.provedor
+                        ? "Testando conexão..."
+                        : "Testar conexão"}
                     </button>
                     <button
                       className="button button-secondary button-small"
-                      disabled={!item.configurado || !hasLinks || Boolean(syncing) || Boolean(testingProvider)}
+                      disabled={
+                        !item.configurado ||
+                        !hasLinks ||
+                        Boolean(syncing) ||
+                        Boolean(testingProvider)
+                      }
                       onClick={() => sync(item.provedor)}
                       type="button"
                     >
-                      {syncing === item.provedor ? "Sincronizando..." : "Sincronizar 30 dias"}
+                      {syncing === item.provedor
+                        ? "Sincronizando..."
+                        : "Sincronizar 30 dias"}
                     </button>
                   </div>
                 </article>
@@ -391,34 +431,40 @@ export function MarketingCostIntegrationsPanel({ onChanged }) {
 
           <form className="stack-form" onSubmit={saveLink}>
             <div className="integration-link-flow">
-              <section className="integration-link-step" aria-labelledby="integration-step-platform">
-                <span className="integration-step-number">1</span>
-                <span className="integration-step-label" id="integration-step-platform">Plataforma</span>
+              <section
+                className={`integration-link-step ${platformReady ? "is-complete" : ""}`}
+                aria-labelledby="integration-step-platform"
+              >
+                <span className="integration-step-number">
+                  {platformReady ? "✓" : "1"}
+                </span>
+                <span className="integration-step-label" id="integration-step-platform">
+                  Plataforma
+                </span>
                 <div className="form-grid">
                   <label>
                     Plataforma
-                    <select value={provider} onChange={(event) => changeProvider(event.target.value)}>
+                    <select
+                      value={provider}
+                      onChange={(event) => changeProvider(event.target.value)}
+                    >
                       <option value="google_ads">Google Ads</option>
                       <option value="meta_ads">Meta Ads</option>
                     </select>
                   </label>
-
-                  <label>
-                    ID da conta externa
-                    <input
-                      required
-                      maxLength="120"
-                      placeholder="Conta configurada no backend"
-                      readOnly
-                      value={externalAccountId}
-                    />
-                  </label>
                 </div>
               </section>
 
-              <section className="integration-link-step" aria-labelledby="integration-step-af">
-                <span className="integration-step-number">2</span>
-                <span className="integration-step-label" id="integration-step-af">Campanha do AF</span>
+              <section
+                className={`integration-link-step ${afCampaignReady ? "is-complete" : ""}`}
+                aria-labelledby="integration-step-af"
+              >
+                <span className="integration-step-number">
+                  {afCampaignReady ? "✓" : "2"}
+                </span>
+                <span className="integration-step-label" id="integration-step-af">
+                  Campanha do AF
+                </span>
                 <div className="form-grid">
                   <label>
                     Campanha do AF
@@ -439,9 +485,16 @@ export function MarketingCostIntegrationsPanel({ onChanged }) {
                 </div>
               </section>
 
-              <section className="integration-link-step" aria-labelledby="integration-step-external">
-                <span className="integration-step-number">3</span>
-                <span className="integration-step-label" id="integration-step-external">Campanha externa</span>
+              <section
+                className={`integration-link-step ${externalReady ? "is-complete" : ""}`}
+                aria-labelledby="integration-step-external"
+              >
+                <span className="integration-step-number">
+                  {externalReady ? "✓" : "3"}
+                </span>
+                <span className="integration-step-label" id="integration-step-external">
+                  Campanha externa
+                </span>
                 <div className="form-grid">
                   <label>
                     Campanha real do {providerLabel}
@@ -452,7 +505,9 @@ export function MarketingCostIntegrationsPanel({ onChanged }) {
                       onChange={(event) => changeExternalCampaign(event.target.value)}
                     >
                       <option value="">
-                        {loadingExternalCampaigns ? "Carregando campanhas..." : "Selecione"}
+                        {loadingExternalCampaigns
+                          ? "Carregando campanhas..."
+                          : "Selecione"}
                       </option>
                       {externalCampaigns.map((item) => (
                         <option key={item.id} value={item.id}>
@@ -461,45 +516,23 @@ export function MarketingCostIntegrationsPanel({ onChanged }) {
                       ))}
                     </select>
                     {!selectedProvider?.configurado && (
-                      <small>Complete as credenciais do {providerLabel} no backend para listar campanhas reais.</small>
+                      <small>
+                        Complete as credenciais do {providerLabel} no backend para listar campanhas reais.
+                      </small>
                     )}
-                  </label>
-
-                  <label>
-                    Nome externo
-                    <input
-                      maxLength="240"
-                      readOnly
-                      value={externalCampaignName}
-                    />
-                  </label>
-
-                  <label>
-                    Status no {providerLabel}
-                    <input
-                      readOnly
-                      value={selectedExternalCampaign ? externalStatusLabel(selectedExternalCampaign.status) : "—"}
-                    />
                   </label>
                 </div>
               </section>
             </div>
 
             <div className="form-actions">
-              <button
-                className="button"
-                disabled={
-                  saving ||
-                  eligibleCampaigns.length === 0 ||
-                  !selectedProvider?.configurado ||
-                  loadingExternalCampaigns ||
-                  !externalCampaignId
-                }
-                type="submit"
-              >
+              <button className="button" disabled={!canSaveLink} type="submit">
                 {saving ? "Salvando vínculo..." : "Vincular campanha verificada"}
               </button>
             </div>
+            {!canSaveLink && !saving && linkBlockReason && (
+              <p className="muted" role="status">{linkBlockReason}</p>
+            )}
           </form>
 
           {(data?.vinculos || []).length > 0 && (
