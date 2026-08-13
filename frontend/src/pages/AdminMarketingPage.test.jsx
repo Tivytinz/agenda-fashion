@@ -49,24 +49,15 @@ function mockMarketingRequests() {
         return Promise.resolve({
           campanha: {
             id: 8,
-            nome:
-              options.body.nome,
-            canal:
-              options.body.canal,
-            objetivo:
-              options.body.objetivo,
-            utmSource:
-              options.body.utmSource,
-            utmMedium:
-              options.body.utmMedium,
-            utmCampaign:
-              "cilios_goiania_agosto",
-            utmContent:
-              options.body.utmContent || null,
-            utmTerm:
-              options.body.utmTerm || null,
-            destinoPath:
-              options.body.destinoPath,
+            nome: options.body.nome,
+            canal: options.body.canal,
+            objetivo: options.body.objetivo,
+            utmSource: options.body.utmSource,
+            utmMedium: options.body.utmMedium,
+            utmCampaign: "cilios_goiania_agosto",
+            utmContent: options.body.utmContent || null,
+            utmTerm: options.body.utmTerm || null,
+            destinoPath: options.body.destinoPath,
             ativo: true,
             linkRastreavel:
               "https://app.agendafashion.com.br/?utm_source=meta&utm_medium=cpc&utm_campaign=cilios_goiania_agosto"
@@ -98,9 +89,7 @@ function mockMarketingRequests() {
         "/admin/marketing/gestao-campanhas"
       ) {
         return Promise.resolve({
-          campanhas: [
-            MANAGED_CAMPAIGN
-          ]
+          campanhas: [MANAGED_CAMPAIGN]
         });
       }
 
@@ -178,10 +167,7 @@ describe(
         expect(
           await screen.findByRole(
             "heading",
-            {
-              name:
-                "Marketing e tráfego pago"
-            }
+            { name: "Campanhas e tráfego pago" }
           )
         ).not.toBeNull();
 
@@ -190,26 +176,24 @@ describe(
         ).toBeGreaterThanOrEqual(1);
 
         expect(
-          screen.getAllByText(
-            "goiania_cilios"
-          ).length
+          screen.getAllByText("goiania_cilios").length
         ).toBeGreaterThanOrEqual(2);
 
         expect(
-          screen.getByText(
-            "Studio Bella"
-          )
+          screen.getByText("Studio Bella")
         ).not.toBeNull();
 
         expect(
-          screen.getByText(
-            "Meta Cílios"
-          )
+          screen.getByText("Meta Cílios")
+        ).not.toBeNull();
+
+        expect(
+          screen.getByText("Não classificado")
         ).not.toBeNull();
 
         expect(
           screen.getByRole("button", {
-            name: "Profissional"
+            name: "Classificar campanha"
           })
         ).not.toBeNull();
 
@@ -219,42 +203,60 @@ describe(
     );
 
     it(
+      "mantém UTMs técnicas recolhidas e permite abri-las sob demanda",
+      async () => {
+        const user = userEvent.setup();
+        render(<AdminMarketingPage />);
+
+        await screen.findByRole("heading", {
+          name: "Campanhas e tráfego pago"
+        });
+
+        const summary = screen.getByText(
+          "Configurações avançadas de rastreamento"
+        );
+        const details = summary.closest("details");
+
+        expect(details?.open).toBe(false);
+
+        await user.click(summary);
+
+        expect(details?.open).toBe(true);
+        expect(
+          screen.getByLabelText("Origem UTM")
+        ).toHaveValue("meta");
+        expect(
+          screen.getByLabelText("Mídia UTM")
+        ).toHaveValue("cpc");
+      }
+    );
+
+    it(
       "cria campanha somente depois de escolher o objetivo",
       async () => {
-        const user =
-          userEvent.setup();
+        const user = userEvent.setup();
 
         render(<AdminMarketingPage />);
 
         await screen.findByRole(
           "heading",
-          {
-            name:
-              "Marketing e tráfego pago"
-          }
+          { name: "Campanhas e tráfego pago" }
         );
 
         await user.type(
-          screen.getByLabelText(
-            "Nome da campanha"
-          ),
+          screen.getByLabelText("Nome da campanha"),
           "Cílios Goiânia Agosto"
         );
 
         await user.selectOptions(
-          screen.getByLabelText(
-            /Objetivo/
-          ),
+          screen.getByLabelText(/Objetivo/),
           "cliente"
         );
 
         await user.click(
           screen.getByRole(
             "button",
-            {
-              name:
-                "Criar campanha e link"
-            }
+            { name: "Criar campanha e link" }
           )
         );
 
@@ -264,16 +266,14 @@ describe(
               "/admin/marketing/gestao-campanhas",
               expect.objectContaining({
                 method: "POST",
-                body:
-                  expect.objectContaining({
-                    nome:
-                      "Cílios Goiânia Agosto",
-                    canal: "meta",
-                    objetivo: "cliente",
-                    utmSource: "meta",
-                    utmMedium: "cpc",
-                    destinoPath: "/"
-                  })
+                body: expect.objectContaining({
+                  nome: "Cílios Goiânia Agosto",
+                  canal: "meta",
+                  objetivo: "cliente",
+                  utmSource: "meta",
+                  utmMedium: "cpc",
+                  destinoPath: "/"
+                })
               })
             );
         });
@@ -285,9 +285,7 @@ describe(
         ).not.toBeNull();
 
         expect(
-          screen.getByText(
-            "Cílios Goiânia Agosto"
-          )
+          screen.getByText("Cílios Goiânia Agosto")
         ).not.toBeNull();
 
         expect(
@@ -301,16 +299,25 @@ describe(
     it(
       "classifica campanha legada com confirmação explícita",
       async () => {
-        const user =
-          userEvent.setup();
+        const user = userEvent.setup();
         vi.spyOn(window, "confirm")
           .mockReturnValue(true);
 
         render(<AdminMarketingPage />);
 
-        await screen.findByText(
-          "Meta Cílios"
+        await screen.findByText("Meta Cílios");
+
+        await user.click(
+          screen.getByRole("button", {
+            name: "Classificar campanha"
+          })
         );
+
+        expect(
+          screen.getByText(
+            /Escolha uma vez\. Depois o objetivo fica travado/
+          )
+        ).not.toBeNull();
 
         await user.click(
           screen.getByRole("button", {
@@ -347,14 +354,11 @@ describe(
     it(
       "arquiva campanha cadastrada",
       async () => {
-        const user =
-          userEvent.setup();
+        const user = userEvent.setup();
 
         render(<AdminMarketingPage />);
 
-        await screen.findByText(
-          "Meta Cílios"
-        );
+        await screen.findByText("Meta Cílios");
 
         await user.click(
           screen.getByRole(
@@ -369,17 +373,13 @@ describe(
               "/admin/marketing/gestao-campanhas/7",
               {
                 method: "PATCH",
-                body: {
-                  ativo: false
-                }
+                body: { ativo: false }
               }
             );
         });
 
         expect(
-          await screen.findByText(
-            "Arquivada"
-          )
+          await screen.findByText("Arquivada")
         ).not.toBeNull();
       }
     );
@@ -387,17 +387,13 @@ describe(
     it(
       "recarrega as visões ao trocar o período",
       async () => {
-        const user =
-          userEvent.setup();
+        const user = userEvent.setup();
 
         render(<AdminMarketingPage />);
 
         await screen.findByRole(
           "heading",
-          {
-            name:
-              "Marketing e tráfego pago"
-          }
+          { name: "Campanhas e tráfego pago" }
         );
 
         await user.click(
@@ -441,7 +437,7 @@ describe(
       render(<AdminMarketingPage />);
 
       expect(await screen.findByRole("heading", {
-        name: "Marketing e tráfego pago"
+        name: "Campanhas e tráfego pago"
       })).not.toBeNull();
       expect(screen.getByText("Meta Cílios")).not.toBeNull();
       expect(screen.getByRole("alert").textContent)
