@@ -63,6 +63,17 @@ describe("rotas HTTP do catálogo local", () => {
     );
   });
 
+  test("redireciona variação não canônica preservando atribuição", async () => {
+    const resposta = await request(app).get(
+      "/servicos/Cabelo/em/Goi%C3%A2nia-GO?utm_source=google&gclid=abc123"
+    );
+
+    expect(resposta.status).toBe(301);
+    expect(resposta.headers.location).toBe(
+      "/servicos/cabelo/em/goiania-go?utm_source=google&gclid=abc123"
+    );
+  });
+
   test("responde JSON pela API usada pelo React", async () => {
     const resposta = await request(app).get(
       "/catalogo-local/cabelo/goiania-go?pagina=1&limite=12"
@@ -73,6 +84,17 @@ describe("rotas HTTP do catálogo local", () => {
       categoria: "cabelo",
       cidade: "Goiânia",
       estado: "GO"
+    });
+  });
+
+  test("API informa caminho canônico para navegação interna", async () => {
+    const resposta = await request(app).get(
+      "/catalogo-local/Cabelo/Goi%C3%A2nia-GO?pagina=1&limite=12"
+    );
+
+    expect(resposta.status).toBe(200);
+    expect(resposta.body.redirecionamento).toEqual({
+      caminho: "/servicos/cabelo/em/goiania-go"
     });
   });
 
