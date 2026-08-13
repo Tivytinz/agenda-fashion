@@ -209,19 +209,104 @@ app.use(agendaConfiguracaoRoutes);
  * /app/painel -> /painel
  * /login -> /entrar
  */
-app.get("/app", (_req, res) => {
-  return res.redirect(301, "/");
-});
+function obterQueryOriginal(req) {
+  const originalUrl =
+    String(
+      req.originalUrl ||
+      ""
+    );
 
-app.get("/app/{*rota}", (req, res) => {
+  const indiceQuery =
+    originalUrl.indexOf("?");
+
+  return indiceQuery >= 0
+    ? originalUrl.slice(
+        indiceQuery
+      )
+    : "";
+}
+
+function redirecionarPermanente(
+  req,
+  res,
+  destino
+) {
+  const caminho =
+    String(
+      destino ||
+      "/"
+    );
+
+  const destinoInterno =
+    caminho.startsWith("/") &&
+    !caminho.startsWith("//")
+      ? caminho
+      : "/";
+
   return res.redirect(
     301,
-    `/${req.params.rota}`
+    `${destinoInterno}${obterQueryOriginal(req)}`
+  );
+}
+
+function montarDestinoAppLegado(
+  rota
+) {
+  const segmentos =
+    Array.isArray(rota)
+      ? rota
+      : String(
+          rota ||
+          ""
+        ).split("/");
+
+  const caminho =
+    segmentos
+      .map(
+        (segmento) =>
+          String(
+            segmento ||
+            ""
+          ).trim()
+      )
+      .filter(Boolean)
+      .map(
+        (segmento) =>
+          encodeURIComponent(
+            segmento
+          )
+      )
+      .join("/");
+
+  return caminho
+    ? `/${caminho}`
+    : "/";
+}
+
+app.get("/app", (req, res) => {
+  return redirecionarPermanente(
+    req,
+    res,
+    "/"
   );
 });
 
-app.get("/login", (_req, res) => {
-  return res.redirect(301, "/entrar");
+app.get("/app/{*rota}", (req, res) => {
+  return redirecionarPermanente(
+    req,
+    res,
+    montarDestinoAppLegado(
+      req.params.rota
+    )
+  );
+});
+
+app.get("/login", (req, res) => {
+  return redirecionarPermanente(
+    req,
+    res,
+    "/entrar"
+  );
 });
 /* =========================
    COMPATIBILIDADE COM LINKS ANTIGOS
@@ -248,8 +333,9 @@ app.get(
     redirecionamentosLegados.keys()
   ),
   (req, res) => {
-    return res.redirect(
-      301,
+    return redirecionarPermanente(
+      req,
+      res,
       redirecionamentosLegados.get(
         req.path
       )
@@ -258,51 +344,58 @@ app.get(
 );
 
 
-app.get("/inicio.html", (_req, res) => {
-  return res.redirect(
-    301,
+app.get("/inicio.html", (req, res) => {
+  return redirecionarPermanente(
+    req,
+    res,
     "/"
   );
 });
 
-app.get("/login-profissional.html", (_req, res) => {
-  return res.redirect(
-    301,
+app.get("/login-profissional.html", (req, res) => {
+  return redirecionarPermanente(
+    req,
+    res,
     "/entrar"
   );
 });
 
-app.get("/login-cliente.html", (_req, res) => {
-  return res.redirect(
-    301,
+app.get("/login-cliente.html", (req, res) => {
+  return redirecionarPermanente(
+    req,
+    res,
     "/entrar"
   );
 });
 
-app.get("/cadastro-profissional.html", (_req, res) => {
-  return res.redirect(
-    301,
+app.get("/cadastro-profissional.html", (req, res) => {
+  return redirecionarPermanente(
+    req,
+    res,
     "/cadastro"
   );
 });
 
-app.get("/cadastro-cliente.html", (_req, res) => {
-  return res.redirect(
-    301,
+app.get("/cadastro-cliente.html", (req, res) => {
+  return redirecionarPermanente(
+    req,
+    res,
     "/cadastro"
   );
 });
 
-app.get("/dashboard-profissional.html", (_req, res) => {
-  return res.redirect(
-    301,
+app.get("/dashboard-profissional.html", (req, res) => {
+  return redirecionarPermanente(
+    req,
+    res,
     "/profissional/agenda"
   );
 });
 
-app.get("/dashboard-dono.html", (_req, res) => {
-  return res.redirect(
-    301,
+app.get("/dashboard-dono.html", (req, res) => {
+  return redirecionarPermanente(
+    req,
+    res,
     "/painel"
   );
 });
