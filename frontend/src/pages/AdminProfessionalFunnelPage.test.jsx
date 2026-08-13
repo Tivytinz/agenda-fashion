@@ -115,7 +115,7 @@ describe(
         expect(
           await screen.findByRole(
             "heading",
-            { name: "Funil de profissionais" }
+            { name: "Rentabilidade de profissionais" }
           )
         ).not.toBeNull();
 
@@ -148,9 +148,7 @@ describe(
         ).not.toBeNull();
 
         expect(
-          screen.getByText(
-            /decisão forte exige pelo menos 10 cadastros e 2 assinaturas/i
-          )
+          screen.getByText(/10 cadastros · 2 assinaturas/i)
         ).not.toBeNull();
 
         expect(
@@ -192,6 +190,42 @@ describe(
     );
 
     it(
+      "não chama tráfego pago sem utm_campaign de orgânico",
+      async () => {
+        const paidWithoutCampaign = resultado();
+        paidWithoutCampaign.campanhas = [
+          {
+            ...paidWithoutCampaign.campanhas[0],
+            origem: "google",
+            midia: "cpc",
+            campanha: "organico",
+            decisao: {
+              codigo: "sem_dados",
+              rotulo: "Sem dados",
+              confianca: "baixa",
+              motivo: "Sem investimento atribuído."
+            }
+          }
+        ];
+        apiRequest.mockResolvedValueOnce(paidWithoutCampaign);
+
+        render(
+          <MemoryRouter>
+            <AdminProfessionalFunnelPage />
+          </MemoryRouter>
+        );
+
+        expect(
+          await screen.findByText("Sem UTM de campanha")
+        ).not.toBeNull();
+        expect(
+          screen.queryByText("Orgânico / sem campanha")
+        ).toBeNull();
+        expect(screen.getByText("google · cpc")).not.toBeNull();
+      }
+    );
+
+    it(
       "recarrega a coorte ao trocar período",
       async () => {
         const user = userEvent.setup();
@@ -204,7 +238,7 @@ describe(
 
         await screen.findByRole(
           "heading",
-          { name: "Funil de profissionais" }
+          { name: "Rentabilidade de profissionais" }
         );
 
         await user.click(
