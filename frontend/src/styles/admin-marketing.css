@@ -1,17 +1,17 @@
-.admin-marketing-page {
+.admin-workspace-page {
   min-width: 0;
 }
 
-.admin-marketing-page .workspace-heading {
+.admin-workspace-page .workspace-heading {
   align-items: flex-start;
   gap: 1.25rem;
 }
 
-.admin-marketing-page .workspace-heading > div:first-child {
+.admin-workspace-page .workspace-heading > div:first-child {
   min-width: 0;
 }
 
-.admin-marketing-page .segmented-control {
+.admin-workspace-page .segmented-control {
   flex: 0 1 auto;
   max-width: 100%;
   overflow-x: auto;
@@ -19,32 +19,32 @@
   scrollbar-width: thin;
 }
 
-.admin-marketing-page .segmented-control button {
+.admin-workspace-page .segmented-control button {
   flex: 0 0 auto;
   min-width: 0;
   padding-inline: 1rem;
   white-space: nowrap;
 }
 
-.admin-marketing-page .metric-grid {
+.admin-workspace-page .metric-grid {
   grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
 }
 
-.admin-marketing-page .metric-card {
+.admin-workspace-page .metric-card {
   min-width: 0;
 }
 
-.admin-marketing-page .panel {
+.admin-workspace-page .panel {
   min-width: 0;
 }
 
-.admin-marketing-page .table-wrap {
+.admin-workspace-page .table-wrap {
   max-width: 100%;
   overflow-x: auto;
   overscroll-behavior-inline: contain;
 }
 
-.admin-marketing-page .table-wrap table {
+.admin-workspace-page .table-wrap table {
   width: 100%;
 }
 
@@ -228,15 +228,15 @@
 }
 
 @media (max-width: 1180px) {
-  .admin-marketing-page .workspace-heading {
+  .admin-workspace-page .workspace-heading {
     flex-direction: column;
   }
 
-  .admin-marketing-page .segmented-control {
+  .admin-workspace-page .segmented-control {
     width: 100%;
   }
 
-  .admin-marketing-page .metric-grid {
+  .admin-workspace-page .metric-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
@@ -246,12 +246,12 @@
 }
 
 @media (max-width: 720px) {
-  .admin-marketing-page .metric-grid,
+  .admin-workspace-page .metric-grid,
   .integration-health-grid {
     grid-template-columns: 1fr;
   }
 
-  .admin-marketing-page .segmented-control button {
+  .admin-workspace-page .segmented-control button {
     padding-inline: 0.8rem;
   }
 
