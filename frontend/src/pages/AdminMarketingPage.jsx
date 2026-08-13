@@ -4,6 +4,7 @@ import {
   useState
 } from "react";
 import { apiRequest } from "../api/client";
+import { MarketingBarChart } from "../components/MarketingBarChart";
 import {
   ErrorState,
   LoadingState
@@ -24,8 +25,8 @@ const PERIODS = [
 ];
 
 const CHANNELS = {
-  meta: { label: "Meta", source: "meta", medium: "cpc" },
-  google: { label: "Google", source: "google", medium: "cpc" },
+  meta: { label: "Meta Ads", source: "meta", medium: "cpc" },
+  google: { label: "Google Ads", source: "google", medium: "cpc" },
   pinterest: { label: "Pinterest", source: "pinterest", medium: "cpc" },
   tiktok: { label: "TikTok", source: "tiktok", medium: "cpc" },
   outro: { label: "Outro", source: "", medium: "cpc" }
@@ -49,20 +50,50 @@ const INITIAL_CAMPAIGN = {
 };
 
 function formatDateTime(value) {
-  if (!value) return "—";
+  if (!value) return "Sem data";
   const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "—";
+  if (Number.isNaN(date.getTime())) return "Sem data";
   return new Intl.DateTimeFormat("pt-BR", {
     dateStyle: "short",
     timeStyle: "short"
   }).format(date);
 }
 
+function pluralize(count, singular, plural) {
+  return `${count} ${Number(count) === 1 ? singular : plural}`;
+}
+
+function titleCase(value) {
+  const text = String(value || "").trim();
+  if (!text) return "Não identificada";
+  return text.charAt(0).toUpperCase() + text.slice(1);
+}
+
+function sourceLabel(value) {
+  const source = String(value || "").trim().toLowerCase();
+  if (source === "google") return "Google Ads";
+  if (["meta", "facebook", "instagram"].includes(source)) return "Meta Ads";
+  if (source === "pinterest") return "Pinterest";
+  if (source === "tiktok") return "TikTok";
+  if (source === "organico") return "Orgânico";
+  return titleCase(source);
+}
+
+function sourceCode(value) {
+  const source = String(value || "").trim().toLowerCase();
+  if (source === "google") return "google";
+  if (["meta", "facebook", "instagram"].includes(source)) return "meta";
+  if (source === "pinterest") return "pinterest";
+  if (source === "tiktok") return "tiktok";
+  if (source === "organico") return "organico";
+  return "outro";
+}
+
 function campaignLabel(item) {
-  const campaign = item?.campanha || "(sem campanha)";
-  return campaign === "(sem campanha)"
-    ? "Sem nome de campanha"
-    : campaign;
+  const campaign = String(item?.campanha || "").trim();
+  if (campaign && campaign !== "(sem campanha)") return campaign;
+  if (isPaidTrafficWithoutCampaign(item)) return "Tráfego pago sem campanha";
+  return "Sem campanha identificada";
 }
 
 function tokenPreview(value) {
@@ -93,6 +124,38 @@ async function copyText(value) {
   const copied = document.execCommand("copy");
   textarea.remove();
   if (!copied) throw new Error("Não foi possível copiar o link.");
+}
+
+function aggregateBySource(campaigns) {
+  const groups = new Map();
+
+  campaigns.forEach((item) => {
+    const managed = managedChannelForSource(item.origem);
+    const key = managed || String(item.origem || "nao_identificada").toLowerCase();
+    const current = groups.get(key) || {
+      key,
+      label: sourceLabel(item.origem),
+      sessoes: 0,
+      perfisVisualizados: 0,
+      agendamentosIniciados: 0,
+      agendamentosConcluidos: 0
+    };
+
+    current.sessoes += Number(item.sessoes || 0);
+    current.perfisVisualizados += Number(item.perfisVisualizados || 0);
+    current.agendamentosIniciados += Number(item.agendamentosIniciados || 0);
+    current.agendamentosConcluidos += Number(item.agendamentosConcluidos || 0);
+    groups.set(key, current);
+  });
+
+  return [...groups.values()]
+    .map((item) => ({
+      ...item,
+      taxaConversao: item.sessoes
+        ? Number(((item.agendamentosConcluidos / item.sessoes) * 100).toFixed(2))
+        : 0
+    }))
+    .sort((a, b) => b.sessoes - a.sessoes);
 }
 
 export function AdminMarketingPage() {
@@ -153,9 +216,7 @@ export function AdminMarketingPage() {
         }));
 
         if (errors.some(({ error: itemError }) => itemError?.name !== "AbortError")) {
-          setError(
-            "Parte dos dados de marketing está temporariamente indisponível."
-          );
+          setError("Parte dos dados de marketing está temporariamente indisponível.");
         }
       })
       .finally(() => {
@@ -228,9 +289,7 @@ export function AdminMarketingPage() {
         ]
       }));
       setCampaignForm(INITIAL_CAMPAIGN);
-      setCampaignMessage(
-        "Campanha criada. O link rastreável já está pronto para uso."
-      );
+      setCampaignMessage("Campanha criada. O link rastreável já está pronto para uso.");
     } catch (requestError) {
       setCampaignError(requestError.message);
     } finally {
@@ -305,7 +364,7 @@ export function AdminMarketingPage() {
 
   const managedCampaigns = data?.managedCampaigns || [];
   const campaigns = data?.campaigns || [];
-
+  const acquisitionBySource = useMemo(() => aggregateBySource(campaigns), [campaigns]);
   const paidWithoutCampaign = useMemo(
     () => campaigns.filter(isPaidTrafficWithoutCampaign),
     [campaigns]
@@ -378,7 +437,7 @@ export function AdminMarketingPage() {
           <p className="eyebrow">Administração do AF</p>
           <h1>Campanhas e tráfego pago</h1>
           <p>
-            Crie links de aquisição para clientes e profissionais sem misturar o objetivo dos relatórios.
+            Crie, acompanhe e corrija campanhas de aquisição sem misturar objetivos ou perder a rastreabilidade.
           </p>
         </div>
 
@@ -425,8 +484,14 @@ export function AdminMarketingPage() {
             {paidWithoutCampaignSessions > 0 && (
               <div className="admin-pending-item">
                 <div>
-                  <strong>{paidWithoutCampaignSessions} sessão(ões) paga(s) sem campanha</strong>
-                  <small>Origem e mídia identificadas; faltou utm_campaign.</small>
+                  <strong>
+                    {pluralize(
+                      paidWithoutCampaignSessions,
+                      "sessão paga sem campanha",
+                      "sessões pagas sem campanha"
+                    )}
+                  </strong>
+                  <small>Origem e mídia foram identificadas, mas faltou a campanha UTM.</small>
                 </div>
                 {suggestedCampaign && (
                   <button
@@ -446,7 +511,13 @@ export function AdminMarketingPage() {
             {unclassifiedCampaigns.length > 0 && (
               <div className="admin-pending-item">
                 <div>
-                  <strong>{unclassifiedCampaigns.length} campanha(s) sem classificação</strong>
+                  <strong>
+                    {pluralize(
+                      unclassifiedCampaigns.length,
+                      "campanha sem classificação",
+                      "campanhas sem classificação"
+                    )}
+                  </strong>
                   <small>Defina o objetivo para habilitar CPA, CAC e ROAS no relatório correto.</small>
                 </div>
                 <button
@@ -462,13 +533,13 @@ export function AdminMarketingPage() {
         </section>
       )}
 
-      <section className="panel">
+      <section className="panel admin-primary-action-panel">
         <div className="panel-heading">
           <div>
             <p className="eyebrow">Nova campanha</p>
             <h2>Gerar link rastreável</h2>
             <p className="muted">
-              Preencha primeiro o que define a campanha. Os parâmetros UTM técnicos ficam em configurações avançadas e continuam disponíveis quando necessário.
+              Defina nome, objetivo, canal e destino. Os parâmetros técnicos ficam disponíveis somente quando você precisar ajustá-los.
             </p>
           </div>
         </div>
@@ -480,7 +551,7 @@ export function AdminMarketingPage() {
               <input
                 maxLength="140"
                 onChange={(event) => updateCampaignForm("nome", event.target.value)}
-                placeholder="Ex.: Cílios Goiânia Agosto"
+                placeholder="Ex.: Profissionais Goiânia Agosto"
                 required
                 value={campaignForm.nome}
               />
@@ -489,9 +560,7 @@ export function AdminMarketingPage() {
             <label>
               Objetivo
               <select
-                onChange={(event) =>
-                  updateCampaignForm("objetivo", event.target.value)
-                }
+                onChange={(event) => updateCampaignForm("objetivo", event.target.value)}
                 required
                 value={campaignForm.objetivo}
               >
@@ -500,9 +569,7 @@ export function AdminMarketingPage() {
                   <option key={value} value={value}>{label}</option>
                 ))}
               </select>
-              <small>
-                Profissionais mede aquisição e assinatura; clientes mede agendamento.
-              </small>
+              <small>Profissionais mede assinatura; clientes mede agendamento.</small>
             </label>
 
             <label>
@@ -521,10 +588,8 @@ export function AdminMarketingPage() {
               Destino dentro do AF
               <input
                 maxLength="500"
-                onChange={(event) =>
-                  updateCampaignForm("destinoPath", event.target.value)
-                }
-                placeholder="/ ou /negocio/nome-do-negocio"
+                onChange={(event) => updateCampaignForm("destinoPath", event.target.value)}
+                placeholder="/ ou /para-profissionais"
                 required
                 value={campaignForm.destinoPath}
               />
@@ -559,9 +624,7 @@ export function AdminMarketingPage() {
                 Identificador UTM
                 <input
                   maxLength="140"
-                  onChange={(event) =>
-                    updateCampaignForm("utmCampaign", event.target.value)
-                  }
+                  onChange={(event) => updateCampaignForm("utmCampaign", event.target.value)}
                   placeholder={tokenPreview(campaignForm.nome) || "gerado pelo nome"}
                   value={campaignForm.utmCampaign}
                 />
@@ -575,9 +638,7 @@ export function AdminMarketingPage() {
                 Conteúdo / criativo
                 <input
                   maxLength="140"
-                  onChange={(event) =>
-                    updateCampaignForm("utmContent", event.target.value)
-                  }
+                  onChange={(event) => updateCampaignForm("utmContent", event.target.value)}
                   placeholder="Ex.: video_01"
                   value={campaignForm.utmContent}
                 />
@@ -595,9 +656,7 @@ export function AdminMarketingPage() {
           </details>
 
           {campaignError && <p className="form-error" role="alert">{campaignError}</p>}
-          {campaignMessage && (
-            <p className="form-success" role="status">{campaignMessage}</p>
-          )}
+          {campaignMessage && <p className="form-success" role="status">{campaignMessage}</p>}
 
           <div className="form-actions">
             <button
@@ -614,10 +673,10 @@ export function AdminMarketingPage() {
       <section className="panel" id="campanhas-cadastradas">
         <div className="panel-heading">
           <div>
-            <p className="eyebrow">Links do AF</p>
+            <p className="eyebrow">Operação</p>
             <h2>Campanhas cadastradas</h2>
             <p className="muted">
-              Campanhas antigas precisam ser classificadas uma vez antes de entrarem nos KPIs específicos do objetivo.
+              Gerencie objetivo, rastreamento e status sem expor parâmetros técnicos o tempo todo.
             </p>
           </div>
         </div>
@@ -631,8 +690,7 @@ export function AdminMarketingPage() {
                 <tr>
                   <th>Campanha</th>
                   <th>Objetivo</th>
-                  <th>Canal</th>
-                  <th>UTM</th>
+                  <th>Rastreamento</th>
                   <th>Destino</th>
                   <th>Status</th>
                   <th>Ações</th>
@@ -649,9 +707,7 @@ export function AdminMarketingPage() {
                         </span>
                       ) : (
                         <div className="admin-classification-actions">
-                          <span className="admin-status-badge is-muted">
-                            Não classificado
-                          </span>
+                          <span className="admin-status-badge is-warning">Não classificado</span>
                           {classifyingCampaignId === item.id ? (
                             <>
                               <small className="muted">
@@ -695,17 +751,21 @@ export function AdminMarketingPage() {
                         </div>
                       )}
                     </td>
-                    <td>{CHANNELS[item.canal]?.label || item.canal}</td>
                     <td>
-                      <code>
-                        {item.utmSource}/{item.utmMedium}/{item.utmCampaign}
-                      </code>
+                      <div className="admin-campaign-source">
+                        <span className={`admin-status-badge admin-source-badge is-${sourceCode(item.utmSource)}`}>
+                          {CHANNELS[item.canal]?.label || sourceLabel(item.utmSource)}
+                        </span>
+                        <span className="admin-medium-label">{String(item.utmMedium || "").toUpperCase()}</span>
+                      </div>
+                      <details className="admin-inline-details">
+                        <summary>Ver UTM</summary>
+                        <code>{item.utmSource}/{item.utmMedium}/{item.utmCampaign}</code>
+                      </details>
                     </td>
                     <td>{item.destinoPath}</td>
                     <td>
-                      <span
-                        className={`admin-status-badge ${item.ativo ? "is-success" : "is-muted"}`}
-                      >
+                      <span className={`admin-status-badge ${item.ativo ? "is-success" : "is-muted"}`}>
                         {item.ativo ? "Ativa" : "Arquivada"}
                       </span>
                     </td>
@@ -751,8 +811,71 @@ export function AdminMarketingPage() {
       <section className="panel">
         <div className="panel-heading">
           <div>
+            <p className="eyebrow">Estatísticas</p>
+            <h2>Visão de aquisição</h2>
+            <p className="muted">
+              Compare volume e conversão por origem antes de analisar cada campanha individualmente.
+            </p>
+          </div>
+        </div>
+
+        <div className="admin-insights-grid">
+          <MarketingBarChart
+            title="Sessões por origem"
+            description="Volume de visitas atribuídas no período selecionado."
+            items={acquisitionBySource.map((item) => ({
+              key: item.key,
+              label: item.label,
+              value: item.sessoes,
+              formattedValue: pluralize(item.sessoes, "sessão", "sessões"),
+              secondary: `${item.agendamentosConcluidos} concluídos · ${item.taxaConversao}% de conversão`
+            }))}
+            emptyMessage="Ainda não há sessões atribuídas neste período."
+          />
+
+          <div className="admin-stat-table-card">
+            <div className="admin-stat-table-heading">
+              <strong>Resumo por origem</strong>
+              <small>Do acesso até o agendamento concluído.</small>
+            </div>
+            {acquisitionBySource.length === 0 ? (
+              <p className="muted">Sem dados de aquisição no período.</p>
+            ) : (
+              <div className="table-wrap">
+                <table className="admin-compact-table">
+                  <thead>
+                    <tr>
+                      <th>Origem</th>
+                      <th>Sessões</th>
+                      <th>Iniciados</th>
+                      <th>Concluídos</th>
+                      <th>Conversão</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {acquisitionBySource.map((item) => (
+                      <tr key={item.key}>
+                        <td>{item.label}</td>
+                        <td>{item.sessoes}</td>
+                        <td>{item.agendamentosIniciados}</td>
+                        <td>{item.agendamentosConcluidos}</td>
+                        <td>{item.taxaConversao}%</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </div>
+      </section>
+
+      <section className="panel">
+        <div className="panel-heading">
+          <div>
             <p className="eyebrow">Aquisição</p>
-            <h2>Desempenho por campanha</h2>
+            <h2>Desempenho detalhado</h2>
+            <p className="muted">Acompanhe cada identidade de campanha e identifique falhas de rastreamento.</p>
           </div>
         </div>
 
@@ -777,16 +900,17 @@ export function AdminMarketingPage() {
                 {campaigns.map((item, index) => (
                   <tr key={`${item.origem}-${item.midia}-${item.campanha}-${index}`}>
                     <td>
-                      {campaignLabel(item)}
+                      <strong>{campaignLabel(item)}</strong>
                       {isPaidTrafficWithoutCampaign(item) && (
-                        <>
-                          <br />
-                          <small className="muted">Falta utm_campaign</small>
-                        </>
+                        <small className="admin-row-note">Campanha UTM não recebida</small>
                       )}
                     </td>
-                    <td>{item.origem}</td>
-                    <td>{item.midia}</td>
+                    <td>
+                      <span className={`admin-status-badge admin-source-badge is-${sourceCode(item.origem)}`}>
+                        {sourceLabel(item.origem)}
+                      </span>
+                    </td>
+                    <td>{String(item.midia || "Não identificada").toUpperCase()}</td>
                     <td>{item.sessoes}</td>
                     <td>{item.perfisVisualizados}</td>
                     <td>{item.agendamentosIniciados}</td>
@@ -828,8 +952,8 @@ export function AdminMarketingPage() {
                     <td>{formatDateTime(item.createdAt)}</td>
                     <td>{campaignLabel(item)}</td>
                     <td>{item.negocioNome || "Negócio indisponível"}</td>
-                    <td>{item.agendamentoId ? `#${item.agendamentoId}` : "—"}</td>
-                    <td>{item.landingPage || "—"}</td>
+                    <td>{item.agendamentoId ? `#${item.agendamentoId}` : "Sem ID"}</td>
+                    <td>{item.landingPage || "Não registrada"}</td>
                   </tr>
                 ))}
               </tbody>
