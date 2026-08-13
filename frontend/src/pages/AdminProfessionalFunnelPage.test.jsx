@@ -167,6 +167,10 @@ describe(
           screen.queryByText("Custo por checkout")
         ).toBeNull();
 
+        expect(
+          screen.getAllByText(/R\$\s*80,00/)
+        ).toHaveLength(1);
+
         await user.click(
           screen.getByRole("button", {
             name: "Ver detalhes"
@@ -177,8 +181,8 @@ describe(
           screen.getByText("Custo por checkout")
         ).not.toBeNull();
         expect(
-          screen.getByText(/R\$\s*80,00/)
-        ).not.toBeNull();
+          screen.getAllByText(/R\$\s*80,00/)
+        ).toHaveLength(2);
         expect(
           screen.getByText(
             /ROAS 1\.49x está acima da faixa de escala/i
