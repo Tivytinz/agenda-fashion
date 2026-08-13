@@ -194,6 +194,23 @@ beforeEach(() => {
 afterEach(cleanup);
 
 describe("MarketingCostIntegrationsPanel", () => {
+  it("bloqueia sincronização enquanto não existe vínculo de campanha", async () => {
+    render(<MarketingCostIntegrationsPanel />);
+
+    const syncButtons = await screen.findAllByRole("button", {
+      name: "Sincronizar 30 dias"
+    });
+
+    expect(syncButtons).toHaveLength(2);
+    expect(syncButtons[0]).toBeDisabled();
+    expect(syncButtons[1]).toBeDisabled();
+    expect(
+      screen.getAllByText(
+        "Vincule pelo menos uma campanha antes de sincronizar custos."
+      )
+    ).toHaveLength(2);
+  });
+
   it("testa a conexão com Google Ads e exibe a conta identificada", async () => {
     const user = userEvent.setup();
 
