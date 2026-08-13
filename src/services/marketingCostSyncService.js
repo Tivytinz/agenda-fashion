@@ -2,6 +2,7 @@ const AppError = require("../errors/AppError");
 const adminCampaignRepository = require("../repositories/adminCampaignRepository");
 const repository = require("../repositories/marketingCostSyncRepository");
 const providers = require("./marketingCostProviders");
+const marketingCostSyncConfig = require("../config/marketingCostSync");
 
 const PROVEDORES = new Set(["google_ads", "meta_ads"]);
 const CANAL_POR_PROVEDOR = Object.freeze({
@@ -138,17 +139,173 @@ function gastoVinculadoSeguro(item, vinculo, periodo) {
   };
 }
 
+function idadeHoras(timestamp, agora = new Date()) {
+  if (!timestamp) return null;
+
+  const data = new Date(timestamp);
+  if (Number.isNaN(data.getTime())) return null;
+
+  return Math.max(
+    0,
+    Number(((agora.getTime() - data.getTime()) / 3600000).toFixed(2))
+  );
+}
+
+function saudeIntegracao(
+  item,
+  ultimaSincronizacao,
+  sincronizacaoAutomatica,
+  agora = new Date()
+) {
+  if (!item?.habilitado) {
+    return {
+      codigo: "desativado",
+      rotulo: "Desativado",
+      nivel: "neutro",
+      detalhe: "Integração desligada no ambiente.",
+      desatualizado: false,
+      idadeHoras: null
+    };
+  }
+
+  if (!item?.configurado) {
+    return {
+      codigo: "configuracao_incompleta",
+      rotulo: "Configuração incompleta",
+      nivel: "aviso",
+      detalhe: "A integração está habilitada, mas faltam credenciais obrigatórias.",
+      desatualizado: false,
+      idadeHoras: null
+    };
+  }
+
+  if (!ultimaSincronizacao) {
+    return {
+      codigo: "nao_sincronizado",
+      rotulo: "Não sincronizado",
+      nivel: "aviso",
+      detalhe: "Conta configurada, mas nenhum custo foi sincronizado ainda.",
+      desatualizado: false,
+      idadeHoras: null
+    };
+  }
+
+  const status = String(ultimaSincronizacao.status || "")
+    .trim()
+    .toLowerCase();
+  const referencia =
+    ultimaSincronizacao.finished_at ||
+    ultimaSincronizacao.created_at ||
+    null;
+  const horas = idadeHoras(referencia, agora);
+
+  if (status === "executando") {
+    return {
+      codigo: "sincronizando",
+      rotulo: "Sincronizando",
+      nivel: "informacao",
+      detalhe: "Uma sincronização de custos está em andamento.",
+      desatualizado: false,
+      idadeHoras: horas
+    };
+  }
+
+  if (status === "erro") {
+    return {
+      codigo: "erro",
+      rotulo: "Erro",
+      nivel: "erro",
+      detalhe:
+        normalizarTexto(
+          ultimaSincronizacao.erro_mensagem ||
+            "A última sincronização falhou.",
+          300
+        ),
+      desatualizado: false,
+      idadeHoras: horas
+    };
+  }
+
+  if (
+    status === "parcial" ||
+    Number(ultimaSincronizacao.campanhas_nao_vinculadas || 0) > 0
+  ) {
+    const semVinculo = Number(
+      ultimaSincronizacao.campanhas_nao_vinculadas || 0
+    );
+    return {
+      codigo: "parcial",
+      rotulo: "Parcial",
+      nivel: "aviso",
+      detalhe:
+        semVinculo > 0
+          ? `${semVinculo} campanha(s) externa(s) ficaram sem vínculo na última sincronização.`
+          : "A última sincronização foi concluída apenas parcialmente.",
+      desatualizado: false,
+      idadeHoras: horas
+    };
+  }
+
+  const limiteHoras = Number(
+    sincronizacaoAutomatica?.limiteDesatualizadoHoras || 24
+  );
+  const desatualizado =
+    horas === null ||
+    horas > limiteHoras;
+
+  if (desatualizado) {
+    return {
+      codigo: "desatualizado",
+      rotulo: "Desatualizado",
+      nivel: "aviso",
+      detalhe:
+        horas === null
+          ? "A última sincronização não possui horário válido de conclusão."
+          : `Última sincronização há ${horas.toFixed(1)}h; limite operacional de ${limiteHoras}h.`,
+      desatualizado: true,
+      idadeHoras: horas
+    };
+  }
+
+  const importados = Number(
+    ultimaSincronizacao.registros_importados || 0
+  );
+
+  return {
+    codigo: "saudavel",
+    rotulo: "Saudável",
+    nivel: "sucesso",
+    detalhe: `${importados} registro(s) importado(s) na última sincronização.`,
+    desatualizado: false,
+    idadeHoras: horas
+  };
+}
+
 async function statusIntegracoes() {
   const [vinculos, sincronizacoes] = await Promise.all([
     repository.listarVinculos(),
     repository.listarUltimasSincronizacoes()
   ]);
+  const sincronizacaoAutomatica =
+    marketingCostSyncConfig.statusAgendamento();
+
   return {
-    provedores: providers.status().map((item) => ({
-      ...item,
-      vinculos: vinculos.filter((v) => v.provedor === item.provedor).length,
-      ultimaSincronizacao: sincronizacoes.find((s) => s.provedor === item.provedor) || null
-    })),
+    sincronizacaoAutomatica,
+    provedores: providers.status().map((item) => {
+      const ultimaSincronizacao =
+        sincronizacoes.find((s) => s.provedor === item.provedor) || null;
+
+      return {
+        ...item,
+        vinculos: vinculos.filter((v) => v.provedor === item.provedor).length,
+        ultimaSincronizacao,
+        saude: saudeIntegracao(
+          item,
+          ultimaSincronizacao,
+          sincronizacaoAutomatica
+        )
+      };
+    }),
     vinculos
   };
 }
@@ -353,5 +510,7 @@ module.exports = {
   normalizarIdExterno,
   validarCanalDaCampanha,
   validarMoedaConta,
-  gastoVinculadoSeguro
+  gastoVinculadoSeguro,
+  idadeHoras,
+  saudeIntegracao
 };
