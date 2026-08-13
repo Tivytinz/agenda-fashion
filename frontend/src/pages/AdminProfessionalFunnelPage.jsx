@@ -1,4 +1,5 @@
 import {
+  Fragment,
   useEffect,
   useState
 } from "react";
@@ -56,6 +57,10 @@ function campaignLabel(item) {
     : item?.campanha || "Sem campanha";
 }
 
+function campaignKey(item) {
+  return `${item.origem}-${item.midia}-${item.campanha}`;
+}
+
 export function AdminProfessionalFunnelPage() {
   const [period, setPeriod] =
     useState("30");
@@ -67,6 +72,8 @@ export function AdminProfessionalFunnelPage() {
     useState(0);
   const [refreshing, setRefreshing] =
     useState(true);
+  const [expandedCampaign, setExpandedCampaign] =
+    useState("");
 
   useEffect(() => {
     const controller =
@@ -108,7 +115,7 @@ export function AdminProfessionalFunnelPage() {
 
   if (!data && !error) {
     return (
-      <main className="workspace-page admin-workspace-page">
+      <main className="workspace-page admin-workspace-page admin-marketing-page admin-professional-funnel-page">
         <LoadingState>
           Carregando funil profissional...
         </LoadingState>
@@ -118,7 +125,7 @@ export function AdminProfessionalFunnelPage() {
 
   if (!data && error) {
     return (
-      <main className="workspace-page admin-workspace-page">
+      <main className="workspace-page admin-workspace-page admin-marketing-page admin-professional-funnel-page">
         <ErrorState
           message={error}
           onRetry={() =>
@@ -206,7 +213,7 @@ export function AdminProfessionalFunnelPage() {
   ];
 
   return (
-    <main aria-busy={refreshing} className="workspace-page admin-workspace-page">
+    <main aria-busy={refreshing} className="workspace-page admin-workspace-page admin-marketing-page admin-professional-funnel-page">
       <header className="workspace-heading">
         <div>
           <p className="eyebrow">
@@ -312,7 +319,7 @@ export function AdminProfessionalFunnelPage() {
             </p>
             <h2>Retorno e decisão por campanha</h2>
             <p className="muted">
-              Investimento é cruzado com a mesma identidade UTM usada no cadastro. Receita usa somente o primeiro pagamento realizado da aquisição. Se ele for reembolsado, a receita atribuída fica zerada; renovações posteriores não entram no ROAS de aquisição.
+              Compare retorno e CAC sem perder a leitura principal. Cadastros, checkouts e custos intermediários ficam disponíveis nos detalhes de cada campanha.
             </p>
             <p className="muted">
               A recomendação não altera campanhas automaticamente. Com a régua atual, uma decisão forte exige pelo menos {decision.minimoCadastros ?? "—"} cadastros e {decision.minimoAssinaturas ?? "—"} assinaturas; meta de ROAS {formatRoas(decision.metaRoas)} e escala a partir de {formatRoas(decision.faixaEscalaRoas)}.
@@ -326,100 +333,104 @@ export function AdminProfessionalFunnelPage() {
           </p>
         ) : (
           <div className="table-wrap">
-            <table>
+            <table className="admin-decision-table">
               <thead>
                 <tr>
                   <th>Campanha</th>
-                  <th>Origem</th>
                   <th>Investimento</th>
                   <th>Receita</th>
                   <th>ROAS</th>
-                  <th>Decisão</th>
-                  <th>Cadastros</th>
-                  <th>Checkouts</th>
-                  <th>Assinaturas</th>
-                  <th>Custo cadastro</th>
-                  <th>Custo checkout</th>
                   <th>CAC</th>
+                  <th>Decisão</th>
+                  <th>Detalhes</th>
                 </tr>
               </thead>
               <tbody>
-                {campaigns.map(
-                  (item) => (
-                    <tr
-                      key={`${item.origem}-${item.midia}-${item.campanha}`}
-                    >
-                      <td>
-                        {campaignLabel(item)}
-                      </td>
-                      <td>
-                        {item.origem}
-                        <br />
-                        <small className="muted">
-                          {item.midia}
-                        </small>
-                      </td>
-                      <td>
-                        {item.investimentoCentavos > 0
-                          ? formatMoney(item.investimentoCentavos)
-                          : "—"}
-                      </td>
-                      <td>
-                        {item.receitaPrimeiroPagamentoCentavos > 0
-                          ? formatMoney(item.receitaPrimeiroPagamentoCentavos)
-                          : "—"}
-                      </td>
-                      <td>
-                        <strong>
-                          {formatRoas(item.roas)}
-                        </strong>
-                      </td>
-                      <td>
-                        <strong>
-                          {item.decisao?.rotulo || "—"}
-                        </strong>
-                        <br />
-                        <small className="muted">
-                          Confiança {item.decisao?.confianca || "—"}
-                        </small>
-                        {item.decisao?.motivo && (
-                          <>
-                            <br />
-                            <small className="muted">
-                              {item.decisao.motivo}
-                            </small>
-                          </>
-                        )}
-                      </td>
-                      <td>{item.cadastros}</td>
-                      <td>{item.checkoutsIniciados}</td>
-                      <td>
-                        <strong>
-                          {item.assinaturasAtivadas}
-                        </strong>
-                        <br />
-                        <small className="muted">
-                          {item.taxaAssinatura}%
-                        </small>
-                      </td>
-                      <td>
-                        {formatMoney(
-                          item.custoCadastroCentavos
-                        )}
-                      </td>
-                      <td>
-                        {formatMoney(
-                          item.custoCheckoutCentavos
-                        )}
-                      </td>
-                      <td>
-                        {formatMoney(
-                          item.cacAssinanteCentavos
-                        )}
-                      </td>
-                    </tr>
-                  )
-                )}
+                {campaigns.map((item) => {
+                  const key = campaignKey(item);
+                  const expanded = expandedCampaign === key;
+
+                  return (
+                    <Fragment key={key}>
+                      <tr>
+                        <td>
+                          <strong>{campaignLabel(item)}</strong>
+                          <br />
+                          <small className="muted">
+                            {item.origem} · {item.midia}
+                          </small>
+                        </td>
+                        <td>
+                          {item.investimentoCentavos > 0
+                            ? formatMoney(item.investimentoCentavos)
+                            : "—"}
+                        </td>
+                        <td>
+                          {item.receitaPrimeiroPagamentoCentavos > 0
+                            ? formatMoney(item.receitaPrimeiroPagamentoCentavos)
+                            : "—"}
+                        </td>
+                        <td>
+                          <strong>{formatRoas(item.roas)}</strong>
+                        </td>
+                        <td>{formatMoney(item.cacAssinanteCentavos)}</td>
+                        <td className="admin-decision-cell">
+                          <span className="admin-status-badge">
+                            {item.decisao?.rotulo || "Sem dados"}
+                          </span>
+                          <small className="muted">
+                            Confiança {item.decisao?.confianca || "—"}
+                          </small>
+                        </td>
+                        <td>
+                          <button
+                            aria-expanded={expanded}
+                            className="button button-secondary button-small admin-detail-toggle"
+                            onClick={() => setExpandedCampaign(expanded ? "" : key)}
+                            type="button"
+                          >
+                            {expanded ? "Ocultar detalhes" : "Ver detalhes"}
+                          </button>
+                        </td>
+                      </tr>
+
+                      {expanded && (
+                        <tr className="admin-campaign-detail-row">
+                          <td colSpan="7">
+                            <div className="admin-campaign-detail-grid">
+                              <div>
+                                <span>Cadastros</span>
+                                <strong>{item.cadastros}</strong>
+                              </div>
+                              <div>
+                                <span>Checkouts</span>
+                                <strong>{item.checkoutsIniciados}</strong>
+                              </div>
+                              <div>
+                                <span>Assinaturas</span>
+                                <strong>{item.assinaturasAtivadas} · {item.taxaAssinatura}%</strong>
+                              </div>
+                              <div>
+                                <span>Custo por cadastro</span>
+                                <strong>{formatMoney(item.custoCadastroCentavos)}</strong>
+                              </div>
+                              <div>
+                                <span>Custo por checkout</span>
+                                <strong>{formatMoney(item.custoCheckoutCentavos)}</strong>
+                              </div>
+                              {item.decisao?.motivo && (
+                                <div className="admin-campaign-decision-reason">
+                                  <span>Motivo da recomendação</span>
+                                  <strong>{item.decisao.motivo}</strong>
+                                </div>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                    </Fragment>
+                  );
+                })}
               </tbody>
             </table>
           </div>
