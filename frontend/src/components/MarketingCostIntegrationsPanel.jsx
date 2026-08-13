@@ -79,10 +79,18 @@ function scheduleSummary(config) {
 
 function syncDetail(item) {
   const sync = item?.ultimaSincronizacao;
-  if (!sync) return "Sem histórico de sincronização.";
+  if (!sync) return "";
   const imported = Number(sync.registros_importados || 0);
   const unlinked = Number(sync.campanhas_nao_vinculadas || 0);
   return `${imported} importado(s) · ${unlinked} sem vínculo`;
+}
+
+function shouldShowHealthDetail(item) {
+  const state = String(item?.saude?.estado || "");
+  return Boolean(
+    item?.saude?.detalhe &&
+      !["saudavel", "nao_sincronizado"].includes(state)
+  );
 }
 
 export function MarketingCostIntegrationsPanel({ onChanged }) {
@@ -374,26 +382,47 @@ export function MarketingCostIntegrationsPanel({ onChanged }) {
           >
             {(data?.provedores || []).map((item) => {
               const hasLinks = Number(item.vinculos || 0) > 0;
+              const hasSync = Boolean(item.ultimaSincronizacao);
+              const healthy = item.saude?.estado === "saudavel";
+
               return (
                 <article className="integration-health-card" key={item.provedor}>
-                  <span>{item.nome}</span>
-                  <h3>{statusLabel(item)}</h3>
-                  <p className="muted">
-                    {item.saude?.detalhe || "Estado operacional ainda não calculado."}
+                  <div className="integration-health-card-heading">
+                    <span>{item.nome}</span>
+                    <span
+                      className={`admin-status-badge ${healthy ? "is-success" : "is-muted"}`}
+                    >
+                      {statusLabel(item)}
+                    </span>
+                  </div>
+                  <p className="integration-health-summary muted">
+                    <strong>{item.vinculos || 0}</strong> campanha(s) vinculada(s)
+                    <span aria-hidden="true"> · </span>
+                    <span>
+                      {hasSync
+                        ? formatTimestamp(item.ultimaSincronizacao?.finished_at)
+                        : "Nunca sincronizado"}
+                    </span>
                   </p>
-                  <p className="muted">
-                    {item.vinculos || 0} vínculo(s) · {formatTimestamp(item.ultimaSincronizacao?.finished_at)}
-                  </p>
-                  <p className="muted">{syncDetail(item)}</p>
+                  {hasSync && (
+                    <p className="muted integration-health-detail">
+                      {syncDetail(item)}
+                    </p>
+                  )}
+                  {shouldShowHealthDetail(item) && (
+                    <p className="muted integration-health-detail">
+                      {item.saude.detalhe}
+                    </p>
+                  )}
                   {connections[item.provedor]?.conectado && (
-                    <p className="muted">
+                    <p className="muted integration-health-detail">
                       {connectionSummary(connections[item.provedor])}
                     </p>
                   )}
                   {!hasLinks && item.configurado && (
-                    <p className="muted">
+                    <small className="muted integration-health-hint">
                       Vincule pelo menos uma campanha antes de sincronizar custos.
-                    </p>
+                    </small>
                   )}
                   <div className="integration-health-actions">
                     <button
@@ -432,15 +461,20 @@ export function MarketingCostIntegrationsPanel({ onChanged }) {
           <form className="stack-form" onSubmit={saveLink}>
             <div className="integration-link-flow">
               <section
-                className={`integration-link-step ${platformReady ? "is-complete" : ""}`}
+                className={`integration-link-step ${platformReady ? "is-complete" : "is-pending"}`}
                 aria-labelledby="integration-step-platform"
               >
-                <span className="integration-step-number">
-                  {platformReady ? "✓" : "1"}
-                </span>
-                <span className="integration-step-label" id="integration-step-platform">
-                  Plataforma
-                </span>
+                <div className="integration-step-heading">
+                  <span className="integration-step-number">
+                    {platformReady ? "✓" : "1"}
+                  </span>
+                  <span className="integration-step-label" id="integration-step-platform">
+                    Plataforma
+                  </span>
+                  <span className={`integration-step-state ${platformReady ? "is-complete" : "is-pending"}`}>
+                    {platformReady ? "Concluído" : "Pendente"}
+                  </span>
+                </div>
                 <div className="form-grid">
                   <label>
                     Plataforma
@@ -456,15 +490,20 @@ export function MarketingCostIntegrationsPanel({ onChanged }) {
               </section>
 
               <section
-                className={`integration-link-step ${afCampaignReady ? "is-complete" : ""}`}
+                className={`integration-link-step ${afCampaignReady ? "is-complete" : "is-pending"}`}
                 aria-labelledby="integration-step-af"
               >
-                <span className="integration-step-number">
-                  {afCampaignReady ? "✓" : "2"}
-                </span>
-                <span className="integration-step-label" id="integration-step-af">
-                  Campanha do AF
-                </span>
+                <div className="integration-step-heading">
+                  <span className="integration-step-number">
+                    {afCampaignReady ? "✓" : "2"}
+                  </span>
+                  <span className="integration-step-label" id="integration-step-af">
+                    Campanha do AF
+                  </span>
+                  <span className={`integration-step-state ${afCampaignReady ? "is-complete" : "is-pending"}`}>
+                    {afCampaignReady ? "Concluído" : "Pendente"}
+                  </span>
+                </div>
                 <div className="form-grid">
                   <label>
                     Campanha do AF
@@ -486,15 +525,20 @@ export function MarketingCostIntegrationsPanel({ onChanged }) {
               </section>
 
               <section
-                className={`integration-link-step ${externalReady ? "is-complete" : ""}`}
+                className={`integration-link-step ${externalReady ? "is-complete" : "is-pending"}`}
                 aria-labelledby="integration-step-external"
               >
-                <span className="integration-step-number">
-                  {externalReady ? "✓" : "3"}
-                </span>
-                <span className="integration-step-label" id="integration-step-external">
-                  Campanha externa
-                </span>
+                <div className="integration-step-heading">
+                  <span className="integration-step-number">
+                    {externalReady ? "✓" : "3"}
+                  </span>
+                  <span className="integration-step-label" id="integration-step-external">
+                    Campanha externa
+                  </span>
+                  <span className={`integration-step-state ${externalReady ? "is-complete" : "is-pending"}`}>
+                    {externalReady ? "Concluído" : "Pendente"}
+                  </span>
+                </div>
                 <div className="form-grid">
                   <label>
                     Campanha real do {providerLabel}
