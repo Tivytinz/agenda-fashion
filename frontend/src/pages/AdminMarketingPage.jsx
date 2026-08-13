@@ -162,6 +162,9 @@ export function AdminMarketingPage() {
   const [campaignActionId, setCampaignActionId] =
     useState(null);
 
+  const [classifyingCampaignId, setClassifyingCampaignId] =
+    useState(null);
+
   const [copiedCampaignId, setCopiedCampaignId] =
     useState(null);
 
@@ -423,6 +426,7 @@ export function AdminMarketingPage() {
       );
 
     if (updated) {
+      setClassifyingCampaignId(null);
       setCampaignMessage(
         `Objetivo definido como ${label}.`
       );
@@ -446,7 +450,7 @@ export function AdminMarketingPage() {
 
   if (!data && !error) {
     return (
-      <main className="workspace-page admin-workspace-page">
+      <main className="workspace-page admin-workspace-page admin-marketing-page admin-campaigns-page">
         <LoadingState>
           Carregando marketing...
         </LoadingState>
@@ -456,7 +460,7 @@ export function AdminMarketingPage() {
 
   if (!data && error) {
     return (
-      <main className="workspace-page admin-workspace-page">
+      <main className="workspace-page admin-workspace-page admin-marketing-page admin-campaigns-page">
         <ErrorState
           message={error}
           onRetry={() =>
@@ -502,13 +506,13 @@ export function AdminMarketingPage() {
     );
 
   return (
-    <main aria-busy={refreshing} className="workspace-page admin-workspace-page">
+    <main aria-busy={refreshing} className="workspace-page admin-workspace-page admin-marketing-page admin-campaigns-page">
       <header className="workspace-heading">
         <div>
           <p className="eyebrow">
             Administração do AF
           </p>
-          <h1>Marketing e tráfego pago</h1>
+          <h1>Campanhas e tráfego pago</h1>
           <p>
             Crie links de aquisição para clientes e profissionais sem misturar o objetivo dos relatórios.
           </p>
@@ -571,7 +575,7 @@ export function AdminMarketingPage() {
             </p>
             <h2>Gerar link rastreável</h2>
             <p className="muted">
-              Defina o objetivo antes de criar. A identidade UTM e o objetivo ficam preservados para manter a leitura histórica consistente.
+              Preencha primeiro o que define a campanha. Os parâmetros UTM técnicos ficam em configurações avançadas e continuam disponíveis quando necessário.
             </p>
           </div>
         </div>
@@ -649,38 +653,6 @@ export function AdminMarketingPage() {
             </label>
 
             <label>
-              Origem UTM
-              <input
-                maxLength="80"
-                onChange={(event) =>
-                  updateCampaignForm(
-                    "utmSource",
-                    event.target.value
-                  )
-                }
-                placeholder="Ex.: meta"
-                required
-                value={campaignForm.utmSource}
-              />
-            </label>
-
-            <label>
-              Mídia UTM
-              <input
-                maxLength="80"
-                onChange={(event) =>
-                  updateCampaignForm(
-                    "utmMedium",
-                    event.target.value
-                  )
-                }
-                placeholder="Ex.: cpc"
-                required
-                value={campaignForm.utmMedium}
-              />
-            </label>
-
-            <label className="field-wide">
               Destino dentro do AF
               <input
                 maxLength="500"
@@ -698,62 +670,99 @@ export function AdminMarketingPage() {
                 Use apenas caminhos internos iniciados por /.
               </small>
             </label>
-
-            <label>
-              Identificador UTM
-              <input
-                maxLength="140"
-                onChange={(event) =>
-                  updateCampaignForm(
-                    "utmCampaign",
-                    event.target.value
-                  )
-                }
-                placeholder={
-                  tokenPreview(
-                    campaignForm.nome
-                  ) ||
-                  "gerado pelo nome"
-                }
-                value={campaignForm.utmCampaign}
-              />
-              <small>
-                {campaignIdentifier
-                  ? `Será usado: ${campaignIdentifier}`
-                  : "Se ficar vazio, será gerado pelo nome."}
-              </small>
-            </label>
-
-            <label>
-              Conteúdo / criativo
-              <input
-                maxLength="140"
-                onChange={(event) =>
-                  updateCampaignForm(
-                    "utmContent",
-                    event.target.value
-                  )
-                }
-                placeholder="Ex.: video_01"
-                value={campaignForm.utmContent}
-              />
-            </label>
-
-            <label>
-              Termo UTM
-              <input
-                maxLength="140"
-                onChange={(event) =>
-                  updateCampaignForm(
-                    "utmTerm",
-                    event.target.value
-                  )
-                }
-                placeholder="Opcional"
-                value={campaignForm.utmTerm}
-              />
-            </label>
           </div>
+
+          <details className="admin-advanced-fields">
+            <summary>Configurações avançadas de rastreamento</summary>
+            <div className="form-grid">
+              <label>
+                Origem UTM
+                <input
+                  maxLength="80"
+                  onChange={(event) =>
+                    updateCampaignForm(
+                      "utmSource",
+                      event.target.value
+                    )
+                  }
+                  placeholder="Ex.: meta"
+                  required
+                  value={campaignForm.utmSource}
+                />
+              </label>
+
+              <label>
+                Mídia UTM
+                <input
+                  maxLength="80"
+                  onChange={(event) =>
+                    updateCampaignForm(
+                      "utmMedium",
+                      event.target.value
+                    )
+                  }
+                  placeholder="Ex.: cpc"
+                  required
+                  value={campaignForm.utmMedium}
+                />
+              </label>
+
+              <label>
+                Identificador UTM
+                <input
+                  maxLength="140"
+                  onChange={(event) =>
+                    updateCampaignForm(
+                      "utmCampaign",
+                      event.target.value
+                    )
+                  }
+                  placeholder={
+                    tokenPreview(
+                      campaignForm.nome
+                    ) ||
+                    "gerado pelo nome"
+                  }
+                  value={campaignForm.utmCampaign}
+                />
+                <small>
+                  {campaignIdentifier
+                    ? `Será usado: ${campaignIdentifier}`
+                    : "Se ficar vazio, será gerado pelo nome."}
+                </small>
+              </label>
+
+              <label>
+                Conteúdo / criativo
+                <input
+                  maxLength="140"
+                  onChange={(event) =>
+                    updateCampaignForm(
+                      "utmContent",
+                      event.target.value
+                    )
+                  }
+                  placeholder="Ex.: video_01"
+                  value={campaignForm.utmContent}
+                />
+              </label>
+
+              <label>
+                Termo UTM
+                <input
+                  maxLength="140"
+                  onChange={(event) =>
+                    updateCampaignForm(
+                      "utmTerm",
+                      event.target.value
+                    )
+                  }
+                  placeholder="Opcional"
+                  value={campaignForm.utmTerm}
+                />
+              </label>
+            </div>
+          </details>
 
           {campaignError && (
             <p
@@ -808,7 +817,7 @@ export function AdminMarketingPage() {
             Nenhuma campanha cadastrada ainda.
           </p>
         ) : (
-          <div className="table-wrap">
+          <div className="table-wrap admin-campaign-table">
             <table>
               <thead>
                 <tr>
@@ -830,25 +839,56 @@ export function AdminMarketingPage() {
                           {item.nome}
                         </strong>
                       </td>
-                      <td>
-                        {OBJECTIVES[item.objetivo] || (
-                          <div className="quick-actions">
-                            <button
-                              className="button button-secondary button-small"
-                              disabled={campaignActionId === item.id}
-                              onClick={() => classifyCampaign(item, "profissional")}
-                              type="button"
-                            >
-                              Profissional
-                            </button>
-                            <button
-                              className="button button-secondary button-small"
-                              disabled={campaignActionId === item.id}
-                              onClick={() => classifyCampaign(item, "cliente")}
-                              type="button"
-                            >
-                              Cliente
-                            </button>
+                      <td className="admin-objective-cell">
+                        {OBJECTIVES[item.objetivo] ? (
+                          <span className="admin-status-badge">
+                            {OBJECTIVES[item.objetivo]}
+                          </span>
+                        ) : (
+                          <div className="admin-classification-actions">
+                            <span className="admin-status-badge is-muted">
+                              Não classificado
+                            </span>
+                            {classifyingCampaignId === item.id ? (
+                              <>
+                                <small className="muted">
+                                  Escolha uma vez. Depois o objetivo fica travado para preservar o histórico.
+                                </small>
+                                <div className="admin-classification-options">
+                                  <button
+                                    className="button button-secondary button-small"
+                                    disabled={campaignActionId === item.id}
+                                    onClick={() => classifyCampaign(item, "profissional")}
+                                    type="button"
+                                  >
+                                    Profissional
+                                  </button>
+                                  <button
+                                    className="button button-secondary button-small"
+                                    disabled={campaignActionId === item.id}
+                                    onClick={() => classifyCampaign(item, "cliente")}
+                                    type="button"
+                                  >
+                                    Cliente
+                                  </button>
+                                  <button
+                                    className="text-button"
+                                    onClick={() => setClassifyingCampaignId(null)}
+                                    type="button"
+                                  >
+                                    Cancelar
+                                  </button>
+                                </div>
+                              </>
+                            ) : (
+                              <button
+                                className="button button-secondary button-small"
+                                onClick={() => setClassifyingCampaignId(item.id)}
+                                type="button"
+                              >
+                                Classificar campanha
+                              </button>
+                            )}
                           </div>
                         )}
                       </td>
@@ -868,9 +908,11 @@ export function AdminMarketingPage() {
                         {item.destinoPath}
                       </td>
                       <td>
-                        {item.ativo
-                          ? "Ativa"
-                          : "Arquivada"}
+                        <span className={`admin-status-badge ${item.ativo ? "is-success" : "is-muted"}`}>
+                          {item.ativo
+                            ? "Ativa"
+                            : "Arquivada"}
+                        </span>
                       </td>
                       <td>
                         <div className="quick-actions">
