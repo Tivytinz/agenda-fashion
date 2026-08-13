@@ -26,6 +26,7 @@ const MANAGED_CAMPAIGN = {
   id: 7,
   nome: "Meta Cílios",
   canal: "meta",
+  objetivo: "indefinido",
   utmSource: "meta",
   utmMedium: "cpc",
   utmCampaign: "meta_cilios",
@@ -52,6 +53,8 @@ function mockMarketingRequests() {
               options.body.nome,
             canal:
               options.body.canal,
+            objetivo:
+              options.body.objetivo,
             utmSource:
               options.body.utmSource,
             utmMedium:
@@ -80,8 +83,12 @@ function mockMarketingRequests() {
         return Promise.resolve({
           campanha: {
             ...MANAGED_CAMPAIGN,
+            objetivo:
+              options.body.objetivo ??
+              MANAGED_CAMPAIGN.objetivo,
             ativo:
-              options.body.ativo
+              options.body.ativo ??
+              MANAGED_CAMPAIGN.ativo
           }
         });
       }
@@ -155,13 +162,16 @@ beforeEach(() => {
   mockMarketingRequests();
 });
 
-afterEach(cleanup);
+afterEach(() => {
+  vi.restoreAllMocks();
+  cleanup();
+});
 
 describe(
   "AdminMarketingPage",
   () => {
     it(
-      "carrega métricas e campanhas gerenciadas",
+      "carrega métricas e sinaliza campanha legada sem objetivo",
       async () => {
         render(<AdminMarketingPage />);
 
@@ -197,13 +207,19 @@ describe(
           )
         ).not.toBeNull();
 
+        expect(
+          screen.getByRole("button", {
+            name: "Profissional"
+          })
+        ).not.toBeNull();
+
         expect(apiRequest)
           .toHaveBeenCalledTimes(4);
       }
     );
 
     it(
-      "cria campanha e adiciona o link à lista",
+      "cria campanha somente depois de escolher o objetivo",
       async () => {
         const user =
           userEvent.setup();
@@ -223,6 +239,13 @@ describe(
             "Nome da campanha"
           ),
           "Cílios Goiânia Agosto"
+        );
+
+        await user.selectOptions(
+          screen.getByLabelText(
+            /Objetivo/
+          ),
+          "cliente"
         );
 
         await user.click(
@@ -246,6 +269,7 @@ describe(
                     nome:
                       "Cílios Goiânia Agosto",
                     canal: "meta",
+                    objetivo: "cliente",
                     utmSource: "meta",
                     utmMedium: "cpc",
                     destinoPath: "/"
@@ -263,6 +287,58 @@ describe(
         expect(
           screen.getByText(
             "Cílios Goiânia Agosto"
+          )
+        ).not.toBeNull();
+
+        expect(
+          screen.getByText(
+            "Aquisição de clientes"
+          )
+        ).not.toBeNull();
+      }
+    );
+
+    it(
+      "classifica campanha legada com confirmação explícita",
+      async () => {
+        const user =
+          userEvent.setup();
+        vi.spyOn(window, "confirm")
+          .mockReturnValue(true);
+
+        render(<AdminMarketingPage />);
+
+        await screen.findByText(
+          "Meta Cílios"
+        );
+
+        await user.click(
+          screen.getByRole("button", {
+            name: "Profissional"
+          })
+        );
+
+        await waitFor(() => {
+          expect(apiRequest)
+            .toHaveBeenCalledWith(
+              "/admin/marketing/gestao-campanhas/7",
+              {
+                method: "PATCH",
+                body: {
+                  objetivo: "profissional"
+                }
+              }
+            );
+        });
+
+        expect(
+          await screen.findByText(
+            "Aquisição de profissionais"
+          )
+        ).not.toBeNull();
+        expect(
+          screen.getByText(
+            "Objetivo definido como Aquisição de profissionais."
           )
         ).not.toBeNull();
       }
