@@ -280,7 +280,19 @@ async function listarCustos(periodo) {
 
 async function status() {
   const valor = config();
-  const autorizacao = await tiktokOAuthService.statusAutorizacao();
+  const oauthDisponivel = tiktokOAuthService.configuracaoOAuthDisponivel();
+  const tokenManual = Boolean(texto(process.env.TIKTOK_ADS_ACCESS_TOKEN));
+
+  const autorizacao =
+    oauthDisponivel || tokenManual
+      ? await tiktokOAuthService.statusAutorizacao()
+      : {
+          disponivel: false,
+          autorizado: false,
+          fonte: null,
+          accessTokenExpiresAt: null,
+          refreshTokenExpiresAt: null
+        };
 
   return {
     provedor: "tiktok_ads",
