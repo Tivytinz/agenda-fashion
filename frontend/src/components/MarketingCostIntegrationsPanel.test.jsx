@@ -202,8 +202,8 @@ describe("MarketingCostIntegrationsPanel", () => {
     });
 
     expect(syncButtons).toHaveLength(2);
-    expect(syncButtons[0]).toBeDisabled();
-    expect(syncButtons[1]).toBeDisabled();
+    expect(syncButtons[0].disabled).toBe(true);
+    expect(syncButtons[1].disabled).toBe(true);
     expect(
       screen.getAllByText(
         "Vincule pelo menos uma campanha antes de sincronizar custos."
@@ -292,7 +292,9 @@ describe("MarketingCostIntegrationsPanel", () => {
 
     render(<MarketingCostIntegrationsPanel />);
 
-    const platform = await screen.findByLabelText("Plataforma");
+    const platform = await screen.findByRole("combobox", {
+      name: "Plataforma"
+    });
     await user.selectOptions(platform, "meta_ads");
 
     const metaCampaign = await screen.findByLabelText(
