@@ -4,6 +4,7 @@ import {
   useState
 } from "react";
 import { apiRequest } from "../api/client";
+import { MarketingBarChart } from "../components/MarketingBarChart";
 import { MarketingCostIntegrationsPanel } from "../components/MarketingCostIntegrationsPanel";
 import {
   ErrorState,
@@ -26,18 +27,24 @@ const OBJECTIVE_LABELS = {
   indefinido: "Não classificado"
 };
 
+const CHANNEL_LABELS = {
+  google: "Google Ads",
+  meta: "Meta Ads",
+  pinterest: "Pinterest",
+  tiktok: "TikTok",
+  outro: "Outro"
+};
+
 function localDateValue() {
   const now = new Date();
-  const local = new Date(
-    now.getTime() - now.getTimezoneOffset() * 60000
-  );
+  const local = new Date(now.getTime() - now.getTimezoneOffset() * 60000);
   return local.toISOString().slice(0, 10);
 }
 
 function formatMoney(value) {
-  if (value === null || value === undefined) return "—";
+  if (value === null || value === undefined) return "Sem dados";
   const cents = Number(value);
-  if (!Number.isFinite(cents)) return "—";
+  if (!Number.isFinite(cents)) return "Sem dados";
   return new Intl.NumberFormat("pt-BR", {
     style: "currency",
     currency: "BRL"
@@ -45,7 +52,7 @@ function formatMoney(value) {
 }
 
 function formatDate(value) {
-  if (!value) return "—";
+  if (!value) return "Sem data";
   const [year, month, day] = String(value).slice(0, 10).split("-");
   if (!year || !month || !day) return value;
   return `${day}/${month}/${year}`;
@@ -59,6 +66,14 @@ function moneyToCents(value) {
 
 function objectiveLabel(value) {
   return OBJECTIVE_LABELS[value] || OBJECTIVE_LABELS.indefinido;
+}
+
+function channelLabel(value) {
+  return CHANNEL_LABELS[value] || String(value || "Não identificado");
+}
+
+function pluralize(count, singular, plural) {
+  return `${count} ${Number(count) === 1 ? singular : plural}`;
 }
 
 export function AdminMarketingCostsPage() {
@@ -122,10 +137,7 @@ export function AdminMarketingCostsPage() {
         }));
 
         setForm((current) => {
-          if (
-            current.campanhaId ||
-            !values.managedCampaigns?.campanhas?.length
-          ) {
+          if (current.campanhaId || !values.managedCampaigns?.campanhas?.length) {
             return current;
           }
 
@@ -133,16 +145,11 @@ export function AdminMarketingCostsPage() {
             values.managedCampaigns.campanhas.find((item) => item.ativo) ||
             values.managedCampaigns.campanhas[0];
 
-          return {
-            ...current,
-            campanhaId: String(firstActive.id)
-          };
+          return { ...current, campanhaId: String(firstActive.id) };
         });
 
         if (errors.some(({ error: itemError }) => itemError?.name !== "AbortError")) {
-          setError(
-            "Parte dos custos de marketing está temporariamente indisponível."
-          );
+          setError("Parte dos custos de marketing está temporariamente indisponível.");
         }
       })
       .finally(() => {
@@ -192,7 +199,7 @@ export function AdminMarketingCostsPage() {
 
       setForm((current) => ({ ...current, valor: "", observacao: "" }));
       setMessage(
-        "Investimento salvo. O lançamento manual se torna a fonte efetiva daquele dia até uma nova sincronização automática."
+        "Investimento salvo. O lançamento manual será a fonte efetiva daquele dia até uma nova sincronização automática."
       );
       setReloadKey((current) => current + 1);
     } catch (requestError) {
@@ -210,7 +217,7 @@ export function AdminMarketingCostsPage() {
 
   if (!data && !error) {
     return (
-      <main className="workspace-page admin-workspace-page">
+      <main className="workspace-page admin-workspace-page admin-marketing-page admin-costs-page">
         <LoadingState>Carregando custos de marketing...</LoadingState>
       </main>
     );
@@ -218,7 +225,7 @@ export function AdminMarketingCostsPage() {
 
   if (!data && error) {
     return (
-      <main className="workspace-page admin-workspace-page">
+      <main className="workspace-page admin-workspace-page admin-marketing-page admin-costs-page">
         <ErrorState
           message={error}
           onRetry={() => setReloadKey((current) => current + 1)}
@@ -228,37 +235,48 @@ export function AdminMarketingCostsPage() {
   }
 
   const costs = data.costs || {};
+  const campaignCosts = costs.campanhas || [];
   const cards = [
-    [
-      "Investimento",
-      formatMoney(costs.investimentoCentavos),
-      "gasto total registrado no período"
-    ],
+    ["Investimento", formatMoney(costs.investimentoCentavos), "gasto total no período"],
     [
       "Custo por sessão",
       formatMoney(costs.custoPorSessaoCentavos),
-      `${costs.sessoes ?? 0} sessões vinculadas a campanhas cadastradas`
+      pluralize(costs.sessoes ?? 0, "sessão vinculada", "sessões vinculadas")
     ],
     [
       "Agendamentos de clientes",
       costs.agendamentosConcluidos ?? 0,
-      "somente campanhas com objetivo cliente"
+      "somente campanhas de clientes"
     ],
     [
       "CPA cliente",
       formatMoney(costs.cpaCentavos),
-      `${formatMoney(costs.investimentoClientesCentavos)} investidos em campanhas cliente`
+      `${formatMoney(costs.investimentoClientesCentavos)} em campanhas de clientes`
     ]
   ];
 
+  const investmentChartItems = [...campaignCosts]
+    .sort((a, b) => Number(b.investimentoCentavos || 0) - Number(a.investimentoCentavos || 0))
+    .slice(0, 8)
+    .map((item) => ({
+      key: item.campanhaId,
+      label: item.nome,
+      value: Number(item.investimentoCentavos || 0),
+      formattedValue: formatMoney(item.investimentoCentavos),
+      secondary: `${channelLabel(item.canal)} · ${objectiveLabel(item.objetivo)}`
+    }));
+
   return (
-    <main aria-busy={refreshing} className="workspace-page admin-workspace-page">
+    <main
+      aria-busy={refreshing}
+      className="workspace-page admin-workspace-page admin-marketing-page admin-costs-page"
+    >
       <header className="workspace-heading">
         <div>
           <p className="eyebrow">Administração do AF</p>
-          <h1>Investimento e CPA</h1>
+          <h1>Investimento e eficiência</h1>
           <p>
-            O investimento total continua visível, mas CPA de agendamento usa apenas campanhas de clientes. Aquisição profissional é avaliada por CAC e ROAS em Rentabilidade.
+            Acompanhe investimento, custo por sessão e CPA. Campanhas profissionais seguem para CAC e ROAS em Rentabilidade.
           </p>
         </div>
 
@@ -277,9 +295,7 @@ export function AdminMarketingCostsPage() {
         </div>
       </header>
 
-      {refreshing && (
-        <p className="data-refresh-status" role="status">Atualizando custos...</p>
-      )}
+      {refreshing && <p className="data-refresh-status" role="status">Atualizando custos...</p>}
       {error && <p className="form-error" role="alert">{error}</p>}
 
       <section className="metric-grid" aria-label="Indicadores de custo de marketing">
@@ -293,37 +309,55 @@ export function AdminMarketingCostsPage() {
       </section>
 
       {paidWithoutCampaignSessions > 0 && (
-        <section className="panel" aria-label="Diagnóstico de atribuição de custos">
-          <div className="panel-heading">
-            <div>
-              <p className="eyebrow">Atribuição pendente</p>
-              <h2>
-                {paidWithoutCampaignSessions} sessão(ões) paga(s) ainda sem campanha
-              </h2>
-              <p className="muted">
-                Essas visitas têm origem/mídia paga identificada, mas chegaram sem utm_campaign. Por isso aparecem no tráfego geral e não entram nas sessões nem no custo por sessão de uma campanha cadastrada.
-              </p>
-            </div>
+        <section className="admin-notice-panel" aria-label="Diagnóstico de atribuição de custos">
+          <div>
+            <p className="eyebrow">Atribuição pendente</p>
+            <strong>
+              {pluralize(
+                paidWithoutCampaignSessions,
+                "sessão paga ainda sem campanha",
+                "sessões pagas ainda sem campanha"
+              )}
+            </strong>
           </div>
+          <p className="muted">
+            A origem paga foi reconhecida, mas a campanha UTM não chegou. Essas sessões aparecem no tráfego geral, porém não entram no custo de uma campanha cadastrada.
+          </p>
         </section>
       )}
+
+      <section className="panel">
+        <div className="panel-heading">
+          <div>
+            <p className="eyebrow">Estatísticas</p>
+            <h2>Distribuição do investimento</h2>
+            <p className="muted">Compare rapidamente onde o orçamento do período está concentrado.</p>
+          </div>
+        </div>
+        <MarketingBarChart
+          title="Investimento por campanha"
+          description="Até 8 campanhas, ordenadas pelo maior investimento."
+          items={investmentChartItems}
+          emptyMessage="Nenhum investimento foi registrado no período selecionado."
+        />
+      </section>
 
       <MarketingCostIntegrationsPanel
         onChanged={() => setReloadKey((current) => current + 1)}
       />
 
-      <section className="panel">
+      <section className="panel admin-manual-cost-panel">
         <div className="panel-heading">
           <div>
             <p className="eyebrow">Lançamento manual</p>
             <h2>Correção pontual de investimento</h2>
             <p className="muted">
-              Use somente como fallback ou correção quando a sincronização automática não estiver disponível. Para a mesma campanha e data, a última fonte gravada substitui a anterior.
+              Use apenas como fallback ou correção quando a sincronização automática não estiver disponível.
             </p>
           </div>
           <button
             aria-expanded={manualOpen}
-            className="button button-secondary button-small"
+            className="button button-secondary button-small admin-nowrap-button"
             disabled={data.managedCampaigns.length === 0}
             onClick={() => setManualOpen((current) => !current)}
             type="button"
@@ -333,9 +367,7 @@ export function AdminMarketingCostsPage() {
         </div>
 
         {data.managedCampaigns.length === 0 ? (
-          <p className="muted">
-            Crie uma campanha rastreável antes de registrar investimento.
-          </p>
+          <p className="muted">Crie uma campanha rastreável antes de registrar investimento.</p>
         ) : manualOpen ? (
           <form className="stack-form" onSubmit={submitExpense}>
             <div className="form-grid">
@@ -408,12 +440,12 @@ export function AdminMarketingCostsPage() {
             <p className="eyebrow">Eficiência</p>
             <h2>Custo por campanha</h2>
             <p className="muted">
-              CPA é calculado apenas para objetivo Cliente. Campanhas profissionais usam CAC/ROAS na tela de Rentabilidade; não classificadas aguardam definição.
+              CPA é exibido para campanhas de clientes. Campanhas profissionais usam CAC e ROAS na tela de Rentabilidade.
             </p>
           </div>
         </div>
 
-        {!costs.campanhas?.length ? (
+        {!campaignCosts.length ? (
           <p className="muted">Ainda não há campanhas cadastradas.</p>
         ) : (
           <div className="table-wrap">
@@ -431,20 +463,20 @@ export function AdminMarketingCostsPage() {
                 </tr>
               </thead>
               <tbody>
-                {costs.campanhas.map((item) => (
+                {campaignCosts.map((item) => (
                   <tr key={item.campanhaId}>
-                    <td>{item.nome}</td>
-                    <td>{objectiveLabel(item.objetivo)}</td>
-                    <td>{item.canal}</td>
+                    <td><strong>{item.nome}</strong></td>
+                    <td>
+                      <span className={`admin-status-badge ${item.objetivo === "indefinido" ? "is-warning" : ""}`}>
+                        {objectiveLabel(item.objetivo)}
+                      </span>
+                    </td>
+                    <td>{channelLabel(item.canal)}</td>
                     <td>{formatMoney(item.investimentoCentavos)}</td>
                     <td>{item.sessoes}</td>
                     <td>{formatMoney(item.custoPorSessaoCentavos)}</td>
-                    <td>
-                      {item.objetivo === "cliente"
-                        ? item.agendamentosConcluidos
-                        : "—"}
-                    </td>
-                    <td>{formatMoney(item.cpaCentavos)}</td>
+                    <td>{item.objetivo === "cliente" ? item.agendamentosConcluidos : "Não se aplica"}</td>
+                    <td>{item.objetivo === "cliente" ? formatMoney(item.cpaCentavos) : "Não se aplica"}</td>
                   </tr>
                 ))}
               </tbody>
@@ -481,12 +513,12 @@ export function AdminMarketingCostsPage() {
                 {data.expenses.map((item) => (
                   <tr key={item.id}>
                     <td>{formatDate(item.dataGasto)}</td>
-                    <td>{item.campanhaNome || "—"}</td>
+                    <td>{item.campanhaNome || "Campanha indisponível"}</td>
                     <td>{objectiveLabel(item.objetivo)}</td>
-                    <td>{item.canal || "—"}</td>
+                    <td>{channelLabel(item.canal)}</td>
                     <td>{item.fonte || "manual"}</td>
                     <td>{formatMoney(item.valorCentavos)}</td>
-                    <td>{item.observacao || "—"}</td>
+                    <td>{item.observacao || "Sem observação"}</td>
                   </tr>
                 ))}
               </tbody>

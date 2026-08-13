@@ -4,6 +4,7 @@ import {
   useState
 } from "react";
 import { apiRequest } from "../api/client";
+import { MarketingBarChart } from "../components/MarketingBarChart";
 import {
   ErrorState,
   LoadingState
@@ -18,62 +19,35 @@ const PERIODS = [
 ];
 
 function formatMoney(value) {
-  if (
-    value === null ||
-    value === undefined
-  ) {
-    return "—";
-  }
-
-  return new Intl.NumberFormat(
-    "pt-BR",
-    {
-      style: "currency",
-      currency: "BRL"
-    }
-  ).format(Number(value) / 100);
+  if (value === null || value === undefined) return "Sem dados";
+  const number = Number(value);
+  if (!Number.isFinite(number)) return "Sem dados";
+  return new Intl.NumberFormat("pt-BR", {
+    style: "currency",
+    currency: "BRL"
+  }).format(number / 100);
 }
 
 function formatRoas(value) {
-  if (
-    value === null ||
-    value === undefined
-  ) {
-    return "—";
-  }
-
-  return `${new Intl.NumberFormat(
-    "pt-BR",
-    {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2
-    }
-  ).format(Number(value))}x`;
+  if (value === null || value === undefined) return "Sem dados";
+  const number = Number(value);
+  if (!Number.isFinite(number)) return "Sem dados";
+  return `${new Intl.NumberFormat("pt-BR", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  }).format(number)}x`;
 }
 
 function campaignLabel(item) {
-  const campaign = String(
-    item?.campanha || ""
-  ).trim();
-  const source = String(
-    item?.origem || ""
-  ).trim().toLowerCase();
-  const medium = String(
-    item?.midia || ""
-  ).trim().toLowerCase();
+  const campaign = String(item?.campanha || "").trim();
+  const source = String(item?.origem || "").trim().toLowerCase();
+  const medium = String(item?.midia || "").trim().toLowerCase();
 
-  if (
-    !campaign ||
-    campaign.toLowerCase() === "organico"
-  ) {
-    if (
-      source === "organico" &&
-      (!medium || medium === "none")
-    ) {
+  if (!campaign || campaign.toLowerCase() === "organico") {
+    if (source === "organico" && (!medium || medium === "none")) {
       return "Orgânico / sem campanha";
     }
-
-    return "Sem UTM de campanha";
+    return "Tráfego sem UTM de campanha";
   }
 
   return campaign;
@@ -84,10 +58,7 @@ function campaignKey(item) {
 }
 
 function decisionBadgeClass(code) {
-  const safeCode = String(
-    code || "sem_dados"
-  ).replace(/[^a-z_]/g, "");
-
+  const safeCode = String(code || "sem_dados").replace(/[^a-z_]/g, "");
   return `admin-status-badge admin-decision-badge is-${safeCode}`;
 }
 
@@ -104,8 +75,17 @@ function sourceMeta(item) {
 
   return {
     code: "outro",
-    label: source ? source.charAt(0).toUpperCase() + source.slice(1) : "Origem não identificada"
+    label: source
+      ? source.charAt(0).toUpperCase() + source.slice(1)
+      : "Origem não identificada"
   };
+}
+
+function mediumLabel(item) {
+  const source = String(item?.origem || "").trim().toLowerCase();
+  const medium = String(item?.midia || "").trim().toLowerCase();
+  if (source === "organico" && (!medium || medium === "none")) return "";
+  return medium ? medium.toUpperCase() : "";
 }
 
 export function AdminProfessionalFunnelPage() {
@@ -123,10 +103,9 @@ export function AdminProfessionalFunnelPage() {
     setError("");
     setRefreshing(true);
 
-    apiRequest(
-      `/admin/marketing/funil-profissionais?periodo=${period}`,
-      { signal: controller.signal }
-    )
+    apiRequest(`/admin/marketing/funil-profissionais?periodo=${period}`, {
+      signal: controller.signal
+    })
       .then((result) => {
         if (active) setData(result);
       })
@@ -148,9 +127,7 @@ export function AdminProfessionalFunnelPage() {
   if (!data && !error) {
     return (
       <main className="workspace-page admin-workspace-page admin-marketing-page admin-professional-funnel-page">
-        <LoadingState>
-          Carregando rentabilidade profissional...
-        </LoadingState>
+        <LoadingState>Carregando rentabilidade profissional...</LoadingState>
       </main>
     );
   }
@@ -195,13 +172,13 @@ export function AdminProfessionalFunnelPage() {
       "Investimento",
       formatMoney(summary.investimentoCentavos ?? 0),
       summary.custoCheckoutCentavos === null
-        ? "sem custo por checkout calculável"
+        ? "custo por checkout ainda não calculável"
         : `${formatMoney(summary.custoCheckoutCentavos)} por checkout`
     ],
     [
       "Receita atribuída",
       formatMoney(summary.receitaPrimeiroPagamentoCentavos ?? 0),
-      "primeiro pagamento da aquisição; reembolso zera a receita"
+      "primeiro pagamento da aquisição"
     ],
     [
       "ROAS de aquisição",
@@ -213,28 +190,60 @@ export function AdminProfessionalFunnelPage() {
   const stages = [
     ["Cadastro", summary.cadastros ?? 0, 100],
     ["Negócio criado", summary.negociosCriados ?? 0, summary.taxaNegocio ?? 0],
-    ["Serviço criado", summary.servicosCriados ?? 0, summary.cadastros ? Number(((summary.servicosCriados / summary.cadastros) * 100).toFixed(2)) : 0],
-    ["Agenda configurada", summary.agendasConfiguradas ?? 0, summary.cadastros ? Number(((summary.agendasConfiguradas / summary.cadastros) * 100).toFixed(2)) : 0],
+    [
+      "Serviço criado",
+      summary.servicosCriados ?? 0,
+      summary.cadastros
+        ? Number(((summary.servicosCriados / summary.cadastros) * 100).toFixed(2))
+        : 0
+    ],
+    [
+      "Agenda configurada",
+      summary.agendasConfiguradas ?? 0,
+      summary.cadastros
+        ? Number(((summary.agendasConfiguradas / summary.cadastros) * 100).toFixed(2))
+        : 0
+    ],
     ["Negócio publicado", summary.negociosPublicados ?? 0, summary.taxaPublicacao ?? 0],
     ["Checkout iniciado", summary.checkoutsIniciados ?? 0, summary.taxaCheckout ?? 0],
     ["Assinatura ativada", summary.assinaturasAtivadas ?? 0, summary.taxaAssinatura ?? 0]
   ];
 
+  const stageChartItems = stages.map(([label, value, rate]) => ({
+    key: label,
+    label,
+    value: rate,
+    formattedValue: `${rate}%`,
+    secondary: `${value} profissionais`
+  }));
+
+  const roasChartItems = campaigns
+    .filter((item) => Number.isFinite(Number(item.roas)) && Number(item.roas) > 0)
+    .sort((a, b) => Number(b.roas) - Number(a.roas))
+    .slice(0, 8)
+    .map((item) => ({
+      key: campaignKey(item),
+      label: campaignLabel(item),
+      value: Number(item.roas),
+      formattedValue: formatRoas(item.roas),
+      secondary: `${sourceMeta(item).label} · CAC ${formatMoney(item.cacAssinanteCentavos)}`
+    }));
+
   return (
-    <main aria-busy={refreshing} className="workspace-page admin-workspace-page admin-marketing-page admin-professional-funnel-page">
+    <main
+      aria-busy={refreshing}
+      className="workspace-page admin-workspace-page admin-marketing-page admin-professional-funnel-page"
+    >
       <header className="workspace-heading">
         <div>
           <p className="eyebrow">Administração do AF</p>
           <h1>Rentabilidade de profissionais</h1>
           <p>
-            Acompanhe o funil de aquisição, CAC, ROAS e quais campanhas merecem escala, revisão ou pausa.
+            Acompanhe aquisição, ativação, CAC e ROAS para decidir onde escalar, revisar ou pausar investimento.
           </p>
         </div>
 
-        <div
-          className="segmented-control"
-          aria-label="Período do funil profissional"
-        >
+        <div className="segmented-control" aria-label="Período do funil profissional">
           {PERIODS.map(([value, label]) => (
             <button
               aria-pressed={period === value}
@@ -250,12 +259,13 @@ export function AdminProfessionalFunnelPage() {
       </header>
 
       {refreshing && <p className="data-refresh-status" role="status">Atualizando rentabilidade...</p>}
-      {error && <p className="form-error" role="alert">{error} Os últimos dados carregados continuam visíveis.</p>}
+      {error && (
+        <p className="form-error" role="alert">
+          {error} Os últimos dados carregados continuam visíveis.
+        </p>
+      )}
 
-      <section
-        className="metric-grid"
-        aria-label="Indicadores do funil profissional"
-      >
+      <section className="metric-grid" aria-label="Indicadores do funil profissional">
         {cards.map(([label, value, hint]) => (
           <article className="metric-card" key={label}>
             <span>{label}</span>
@@ -272,21 +282,21 @@ export function AdminProfessionalFunnelPage() {
           <small>
             {decision.faixaEscalaRoas
               ? `ROAS a partir de ${formatRoas(decision.faixaEscalaRoas)}`
-              : "aguardando régua"}
+              : "Aguardando régua"}
           </small>
         </div>
         <div>
           <span>Para pausar</span>
           <strong>{decisionCounts.pausar ?? 0}</strong>
-          <small>somente com amostra mínima atingida</small>
+          <small>Somente com amostra mínima atingida</small>
         </div>
         <div className="admin-decision-rule">
           <span>Régua de decisão</span>
           <strong>
-            {decision.minimoCadastros ?? "—"} cadastros · {decision.minimoAssinaturas ?? "—"} assinaturas
+            {decision.minimoCadastros ?? "Sem dados"} cadastros · {decision.minimoAssinaturas ?? "Sem dados"} assinaturas
           </strong>
           <small>
-            meta de ROAS {formatRoas(decision.metaRoas)} · escala em {formatRoas(decision.faixaEscalaRoas)}
+            Meta de ROAS {formatRoas(decision.metaRoas)} · escala em {formatRoas(decision.faixaEscalaRoas)}
           </small>
         </div>
       </section>
@@ -297,53 +307,71 @@ export function AdminProfessionalFunnelPage() {
             <p className="eyebrow">Ativação</p>
             <h2>Marcos alcançados pela coorte</h2>
             <p className="muted">
-              O período define quando o profissional entrou na coorte. Cada marco é medido independentemente e não representa uma sequência obrigatória.
+              Cada marco é medido de forma independente para os profissionais que entraram na coorte durante o período selecionado.
             </p>
           </div>
         </div>
 
-        <div className="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>Marco</th>
-                <th>Profissionais</th>
-                <th>% dos cadastros</th>
-              </tr>
-            </thead>
-            <tbody>
-              {stages.map(([label, value, rate]) => (
-                <tr key={label}>
-                  <td>{label}</td>
-                  <td>{value}</td>
-                  <td>{rate}%</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <div className="admin-insights-grid">
+          <MarketingBarChart
+            title="Atingimento por marco"
+            description="Percentual da coorte que já alcançou cada marco."
+            items={stageChartItems}
+            emptyMessage="Ainda não há profissionais nesta coorte."
+          />
+
+          <div className="admin-stat-table-card">
+            <div className="admin-stat-table-heading">
+              <strong>Detalhamento da coorte</strong>
+              <small>Quantidade e participação sobre os cadastros.</small>
+            </div>
+            <div className="table-wrap">
+              <table className="admin-compact-table">
+                <thead>
+                  <tr>
+                    <th>Marco</th>
+                    <th>Profissionais</th>
+                    <th>% dos cadastros</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {stages.map(([label, value, rate]) => (
+                    <tr key={label}>
+                      <td>{label}</td>
+                      <td>{value}</td>
+                      <td>{rate}%</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
         </div>
       </section>
 
       <section className="panel">
         <div className="panel-heading">
           <div>
-            <p className="eyebrow">Aquisição</p>
+            <p className="eyebrow">Retorno</p>
             <h2>Retorno e decisão por campanha</h2>
             <p className="muted">
-              Compare retorno e CAC sem perder a leitura principal. Cadastros, checkouts e custos intermediários ficam disponíveis nos detalhes de cada campanha. A receita usa somente o primeiro pagamento da aquisição; se ele for reembolsado, a receita atribuída fica zerada e renovações posteriores não entram no ROAS de aquisição.
+              Compare investimento, receita, ROAS e CAC. A receita considera somente o primeiro pagamento da aquisição; reembolso zera a receita e renovações posteriores não entram no ROAS.
             </p>
-            <p className="muted">
-              A recomendação é somente analítica e não altera campanhas automaticamente.
-            </p>
+            <p className="muted">As recomendações são analíticas e não alteram campanhas automaticamente.</p>
           </div>
         </div>
 
+        <MarketingBarChart
+          title="ROAS por campanha"
+          description="Comparação das campanhas com ROAS calculável no período."
+          items={roasChartItems}
+          emptyMessage="Nenhuma campanha possui investimento e receita suficientes para calcular ROAS neste período."
+        />
+
         {campaigns.length === 0 ? (
-          <p className="muted">
-            Ainda não há profissionais nesta coorte.
-          </p>
+          <p className="muted">Ainda não há profissionais nesta coorte.</p>
         ) : (
-          <div className="table-wrap">
+          <div className="table-wrap admin-chart-table-spacing">
             <table className="admin-decision-table">
               <thead>
                 <tr>
@@ -361,6 +389,7 @@ export function AdminProfessionalFunnelPage() {
                   const key = campaignKey(item);
                   const expanded = expandedCampaign === key;
                   const source = sourceMeta(item);
+                  const medium = mediumLabel(item);
 
                   return (
                     <Fragment key={key}>
@@ -371,29 +400,35 @@ export function AdminProfessionalFunnelPage() {
                             <span className={`admin-status-badge admin-source-badge is-${source.code}`}>
                               {source.label}
                             </span>
-                            <small className="muted">{item.midia || "none"}</small>
+                            {medium && <small className="admin-medium-label">{medium}</small>}
                           </div>
                         </td>
                         <td>
                           {item.investimentoCentavos > 0
                             ? formatMoney(item.investimentoCentavos)
-                            : "—"}
+                            : <span className="admin-data-empty">Sem dados</span>}
                         </td>
                         <td>
                           {item.receitaPrimeiroPagamentoCentavos > 0
                             ? formatMoney(item.receitaPrimeiroPagamentoCentavos)
-                            : "—"}
+                            : <span className="admin-data-empty">Sem dados</span>}
                         </td>
                         <td>
-                          <strong>{formatRoas(item.roas)}</strong>
+                          <strong className={item.roas === null || item.roas === undefined ? "admin-data-empty" : ""}>
+                            {formatRoas(item.roas)}
+                          </strong>
                         </td>
-                        <td>{formatMoney(item.cacAssinanteCentavos)}</td>
+                        <td>
+                          <span className={item.cacAssinanteCentavos === null || item.cacAssinanteCentavos === undefined ? "admin-data-empty" : ""}>
+                            {formatMoney(item.cacAssinanteCentavos)}
+                          </span>
+                        </td>
                         <td className="admin-decision-cell">
                           <span className={decisionBadgeClass(item.decisao?.codigo)}>
                             {item.decisao?.rotulo || "Sem dados"}
                           </span>
                           <small className="muted">
-                            Confiança {item.decisao?.confianca || "—"}
+                            Confiança {item.decisao?.confianca || "não calculada"}
                           </small>
                         </td>
                         <td>

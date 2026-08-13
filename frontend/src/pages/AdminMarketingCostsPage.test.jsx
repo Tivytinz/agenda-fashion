@@ -24,9 +24,7 @@ vi.mock("../api/client", () => ({
 
 function mockRequests() {
   apiRequest.mockImplementation((path, options = {}) => {
-    if (
-      path === "/admin/marketing/custos-integracoes"
-    ) {
+    if (path === "/admin/marketing/custos-integracoes") {
       return Promise.resolve({
         sincronizacaoAutomatica: {
           habilitado: false,
@@ -64,10 +62,7 @@ function mockRequests() {
       });
     }
 
-    if (
-      path.startsWith("/admin/marketing/gastos") &&
-      options.method !== "POST"
-    ) {
+    if (path.startsWith("/admin/marketing/gastos") && options.method !== "POST") {
       return Promise.resolve({ periodo: "30", gastos: [] });
     }
 
@@ -125,7 +120,7 @@ beforeEach(() => {
 });
 
 describe("AdminMarketingCostsPage", () => {
-  it("distingue sessões vinculadas de tráfego pago sem campanha", async () => {
+  it("distingue sessões vinculadas de tráfego pago sem campanha e mostra estatística de investimento", async () => {
     render(
       <MemoryRouter>
         <AdminMarketingCostsPage />
@@ -133,16 +128,12 @@ describe("AdminMarketingCostsPage", () => {
     );
 
     expect(
-      await screen.findByRole("heading", { name: "Investimento e CPA" })
+      await screen.findByRole("heading", { name: "Investimento e eficiência" })
     ).not.toBeNull();
-    expect(
-      screen.getByText("20 sessões vinculadas a campanhas cadastradas")
-    ).not.toBeNull();
-    expect(
-      screen.getByRole("heading", {
-        name: /5 sessão\(ões\) paga\(s\) ainda sem campanha/i
-      })
-    ).not.toBeNull();
+    expect(screen.getByText("20 sessões vinculadas")).not.toBeNull();
+    expect(screen.getByText(/5 sessões pagas ainda sem campanha/i)).not.toBeNull();
+    expect(screen.getByText("Investimento por campanha")).not.toBeNull();
+    expect(screen.getAllByText("Meta Agosto").length).toBeGreaterThanOrEqual(2);
   });
 
   it("mantém lançamento manual fechado até o administrador pedir", async () => {
@@ -153,12 +144,10 @@ describe("AdminMarketingCostsPage", () => {
       </MemoryRouter>
     );
 
-    await screen.findByRole("heading", { name: "Investimento e CPA" });
+    await screen.findByRole("heading", { name: "Investimento e eficiência" });
     expect(screen.queryByLabelText("Investimento (R$)")).toBeNull();
 
-    await user.click(
-      screen.getByRole("button", { name: "+ Registrar manualmente" })
-    );
+    await user.click(screen.getByRole("button", { name: "+ Registrar manualmente" }));
     expect(screen.getByLabelText("Investimento (R$)")).not.toBeNull();
   });
 
@@ -171,20 +160,16 @@ describe("AdminMarketingCostsPage", () => {
     );
 
     expect(
-      await screen.findByRole("heading", { name: "Investimento e CPA" })
+      await screen.findByRole("heading", { name: "Investimento e eficiência" })
     ).not.toBeNull();
     expect(screen.getAllByText(/R\$\s*100,00/).length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByText(/R\$\s*25,00/).length).toBeGreaterThanOrEqual(1);
 
-    await user.click(
-      screen.getByRole("button", { name: "+ Registrar manualmente" })
-    );
+    await user.click(screen.getByRole("button", { name: "+ Registrar manualmente" }));
     const amount = screen.getByLabelText("Investimento (R$)");
     await user.clear(amount);
     await user.type(amount, "75.50");
-    await user.click(
-      screen.getByRole("button", { name: "Salvar investimento" })
-    );
+    await user.click(screen.getByRole("button", { name: "Salvar investimento" }));
 
     await waitFor(() => {
       expect(apiRequest).toHaveBeenCalledWith(
@@ -208,7 +193,7 @@ describe("AdminMarketingCostsPage", () => {
       </MemoryRouter>
     );
 
-    await screen.findByRole("heading", { name: "Investimento e CPA" });
+    await screen.findByRole("heading", { name: "Investimento e eficiência" });
     await user.click(screen.getByRole("button", { name: "7 dias" }));
 
     await waitFor(() => {
@@ -230,10 +215,7 @@ describe("AdminMarketingCostsPage", () => {
   it("continua mostrando custos quando o histórico de gastos falha", async () => {
     const originalImplementation = apiRequest.getMockImplementation();
     apiRequest.mockImplementation((path, options) => {
-      if (
-        path.startsWith("/admin/marketing/gastos") &&
-        options?.method !== "POST"
-      ) {
+      if (path.startsWith("/admin/marketing/gastos") && options?.method !== "POST") {
         return Promise.reject(new Error("Histórico indisponível"));
       }
       return originalImplementation(path, options);
@@ -246,12 +228,10 @@ describe("AdminMarketingCostsPage", () => {
     );
 
     expect(
-      await screen.findByRole("heading", { name: "Investimento e CPA" })
+      await screen.findByRole("heading", { name: "Investimento e eficiência" })
     ).not.toBeNull();
     expect(screen.getAllByText(/R\$\s*100,00/).length).toBeGreaterThanOrEqual(1);
-    expect(screen.getByRole("alert").textContent).toContain(
-      "Parte dos custos de marketing"
-    );
+    expect(screen.getByRole("alert").textContent).toContain("Parte dos custos de marketing");
   });
 
   it("preserva os últimos custos se apenas a atualização deles falhar", async () => {
@@ -261,7 +241,7 @@ describe("AdminMarketingCostsPage", () => {
         <AdminMarketingCostsPage />
       </MemoryRouter>
     );
-    await screen.findByRole("heading", { name: "Investimento e CPA" });
+    await screen.findByRole("heading", { name: "Investimento e eficiência" });
 
     const originalImplementation = apiRequest.getMockImplementation();
     apiRequest.mockImplementation((path, options) => {
