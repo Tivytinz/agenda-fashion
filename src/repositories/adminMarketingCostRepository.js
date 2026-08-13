@@ -203,6 +203,7 @@ async function listarDesempenho(
         mc.id,
         mc.nome,
         mc.canal,
+        mc.objetivo,
         mc.utm_source,
         mc.utm_medium,
         mc.utm_campaign,
@@ -271,6 +272,7 @@ async function listarGastos(
         g.updated_at,
         mc.nome AS campanha_nome,
         mc.canal,
+        mc.objetivo,
         mc.utm_source,
         mc.utm_medium,
         mc.utm_campaign
