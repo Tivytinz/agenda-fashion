@@ -71,12 +71,12 @@ test("admin e consentimento permanecem navegáveis no celular", async ({ page })
   await page.goto("/admin/trafego-pago");
 
   await expect(
-    page.getByRole("heading", { name: "Marketing e tráfego pago" })
+    page.getByRole("heading", { name: "Campanhas e tráfego pago" })
   ).toBeVisible();
   const navigation = page.getByRole("navigation", {
     name: "Administração do Agenda Fashion"
   });
-  await expect(navigation.getByRole("link", { name: /Marketing/ }))
+  await expect(navigation.getByRole("link", { name: /Campanhas/ }))
     .toBeVisible();
   await expect(navigation.getByRole("link", { name: /Custos/ }))
     .toBeVisible();
