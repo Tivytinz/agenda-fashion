@@ -4,6 +4,7 @@ import reactRoutes from "../../src/config/reactRoutes.json";
 import { ProtectedRoute } from "./auth/ProtectedRoute";
 import { useSession } from "./auth/SessionContext";
 import { AppHeader } from "./components/AppHeader";
+import { MarketingMetricGlossary } from "./components/MarketingMetricGlossary";
 import { MetaAdsBridge } from "./components/MetaAdsBridge";
 import {
   AdminLayout,
@@ -171,15 +172,30 @@ export default function App() {
         >
           <Route
             path={reactRoutes.adminMarketing}
-            element={<AdminMarketingPage />}
+            element={(
+              <>
+                <AdminMarketingPage />
+                <MarketingMetricGlossary terms={["UTM", "CPC", "CONVERSAO"]} />
+              </>
+            )}
           />
           <Route
             path={reactRoutes.adminCosts}
-            element={<AdminMarketingCostsPage />}
+            element={(
+              <>
+                <AdminMarketingCostsPage />
+                <MarketingMetricGlossary terms={["CPA", "CPC", "UTM"]} />
+              </>
+            )}
           />
           <Route
             path={reactRoutes.adminProfessionals}
-            element={<AdminProfessionalFunnelPage />}
+            element={(
+              <>
+                <AdminProfessionalFunnelPage />
+                <MarketingMetricGlossary terms={["CAC", "ROAS", "COORTE"]} />
+              </>
+            )}
           />
         </Route>
         <Route
