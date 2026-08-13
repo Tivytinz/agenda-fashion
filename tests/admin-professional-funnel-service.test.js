@@ -24,7 +24,7 @@ describe(
     });
 
     test(
-      "calcula conversões, custos, receita e ROAS",
+      "calcula conversões, custos, receita, ROAS e decisão",
       async () => {
         repository.listarPorCampanha
           .mockResolvedValue([
@@ -63,6 +63,11 @@ describe(
           cacAssinanteCentavos: 10000,
           receitaPrimeiroPagamentoCentavos: 59600,
           roas: 1.49,
+          decisao: {
+            codigo: "escalar",
+            rotulo: "Escalar",
+            confianca: "alta",
+          },
         });
 
         expect(
@@ -77,11 +82,28 @@ describe(
           receitaPrimeiroPagamentoCentavos: 59600,
           roas: 1.49,
         });
+
+        expect(
+          resultado.decisao
+        ).toMatchObject({
+          metaRoas: 1,
+          faixaEscalaRoas: 1.2,
+          minimoCadastros: 10,
+          minimoAssinaturas: 2,
+          contagem: {
+            escalar: 1,
+            manter: 0,
+            observar: 0,
+            revisar: 0,
+            pausar: 0,
+            semDados: 0,
+          },
+        });
       }
     );
 
     test(
-      "não inventa CAC nem ROAS quando não existe investimento",
+      "não inventa CAC, ROAS ou decisão forte quando não existe investimento",
       async () => {
         repository.listarPorCampanha
           .mockResolvedValue([
@@ -124,6 +146,128 @@ describe(
         expect(
           resultado.campanhas[0].roas
         ).toBeNull();
+
+        expect(
+          resultado.campanhas[0].decisao
+        ).toMatchObject({
+          codigo: "sem_dados",
+          confianca: "baixa",
+        });
+      }
+    );
+
+    test(
+      "observa amostra pequena antes de recomendar escala ou pausa",
+      () => {
+        const decisao =
+          service.recomendarCampanha(
+            {
+              investimentoCentavos: 15000,
+              cadastros: 4,
+              assinaturasAtivadas: 0,
+              roas: 0,
+            },
+            {
+              metaRoas: 1,
+              multiplicadorEscala: 1.2,
+              minimoCadastros: 10,
+              minimoAssinaturas: 2,
+            }
+          );
+
+        expect(decisao)
+          .toMatchObject({
+            codigo: "observar",
+            confianca: "baixa",
+          });
+      }
+    );
+
+    test(
+      "recomenda pausar quando a campanha tem amostra suficiente sem assinatura",
+      () => {
+        const decisao =
+          service.recomendarCampanha(
+            {
+              investimentoCentavos: 40000,
+              cadastros: 12,
+              assinaturasAtivadas: 0,
+              roas: 0,
+            },
+            {
+              metaRoas: 1,
+              multiplicadorEscala: 1.2,
+              minimoCadastros: 10,
+              minimoAssinaturas: 2,
+            }
+          );
+
+        expect(decisao)
+          .toMatchObject({
+            codigo: "pausar",
+            confianca: "media",
+          });
+      }
+    );
+
+    test(
+      "distingue manter, revisar e pausar pela meta de ROAS depois do volume mínimo",
+      () => {
+        const configuracao = {
+          metaRoas: 1,
+          multiplicadorEscala: 1.2,
+          minimoCadastros: 10,
+          minimoAssinaturas: 2,
+        };
+        const base = {
+          investimentoCentavos: 40000,
+          cadastros: 20,
+          assinaturasAtivadas: 3,
+        };
+
+        expect(
+          service.recomendarCampanha(
+            { ...base, roas: 1.1 },
+            configuracao
+          ).codigo
+        ).toBe("manter");
+
+        expect(
+          service.recomendarCampanha(
+            { ...base, roas: 0.8 },
+            configuracao
+          ).codigo
+        ).toBe("revisar");
+
+        expect(
+          service.recomendarCampanha(
+            { ...base, roas: 0.4 },
+            configuracao
+          ).codigo
+        ).toBe("pausar");
+      }
+    );
+
+    test(
+      "permite configurar a régua de decisão sem expor regra ao frontend",
+      () => {
+        expect(
+          service.configuracaoDecisao({
+            MARKETING_DECISION_ROAS_TARGET:
+              "1.5",
+            MARKETING_DECISION_SCALE_MULTIPLIER:
+              "1.3",
+            MARKETING_DECISION_MIN_SIGNUPS:
+              "20",
+            MARKETING_DECISION_MIN_SUBSCRIPTIONS:
+              "4",
+          })
+        ).toEqual({
+          metaRoas: 1.5,
+          multiplicadorEscala: 1.3,
+          minimoCadastros: 20,
+          minimoAssinaturas: 4,
+        });
       }
     );
   }

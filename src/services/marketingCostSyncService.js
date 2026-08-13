@@ -2,6 +2,7 @@ const AppError = require("../errors/AppError");
 const adminCampaignRepository = require("../repositories/adminCampaignRepository");
 const repository = require("../repositories/marketingCostSyncRepository");
 const providers = require("./marketingCostProviders");
+const marketingCostSyncConfig = require("../config/marketingCostSync");
 
 const PROVEDORES = new Set(["google_ads", "meta_ads"]);
 const CANAL_POR_PROVEDOR = Object.freeze({
@@ -12,6 +13,8 @@ const NOME_POR_PROVEDOR = Object.freeze({
   google_ads: "Google Ads",
   meta_ads: "Meta Ads"
 });
+const REPORT_TIME_ZONE = "America/Sao_Paulo";
+const MOEDA_SUPORTADA = "BRL";
 
 function normalizarProvedor(valor) {
   const provedor = String(valor || "").trim().toLowerCase();
@@ -33,9 +36,31 @@ function dataIso(valor) {
   return texto;
 }
 
+function hojeNoFusoRelatorio(data = new Date()) {
+  const partes = new Intl.DateTimeFormat("en-US", {
+    timeZone: REPORT_TIME_ZONE,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit"
+  }).formatToParts(data);
+
+  const valor = (tipo) =>
+    partes.find((item) => item.type === tipo)?.value;
+
+  return `${valor("year")}-${valor("month")}-${valor("day")}`;
+}
+
 function periodoPadrao({ dataInicio, dataFim } = {}) {
-  const hoje = new Date();
-  const fim = dataFim ? dataIso(dataFim) : hoje.toISOString().slice(0, 10);
+  const hoje = hojeNoFusoRelatorio();
+  const fim = dataFim ? dataIso(dataFim) : hoje;
+
+  if (fim > hoje) {
+    throw new AppError(
+      "A sincronização não aceita data futura.",
+      400
+    );
+  }
+
   const inicioDate = new Date(`${fim}T00:00:00Z`);
   inicioDate.setUTCDate(inicioDate.getUTCDate() - 29);
   const inicio = dataInicio ? dataIso(dataInicio) : inicioDate.toISOString().slice(0, 10);
@@ -66,17 +91,221 @@ function validarCanalDaCampanha(campanha, provedor) {
   }
 }
 
+function validarMoedaConta(resultado, provedor) {
+  const moeda = String(resultado?.moeda || "")
+    .trim()
+    .toUpperCase();
+
+  if (moeda !== MOEDA_SUPORTADA) {
+    const nomeProvedor = NOME_POR_PROVEDOR[provedor] || provedor;
+    const moedaExibida = moeda || "não informada";
+    throw new AppError(
+      `A conta do ${nomeProvedor} usa moeda ${moedaExibida}. O AF só importa custos automáticos em BRL nesta versão.`,
+      422
+    );
+  }
+
+  return moeda;
+}
+
+function gastoVinculadoSeguro(item, vinculo, periodo) {
+  const dataGasto = dataIso(item?.dataGasto);
+  if (
+    dataGasto < periodo.dataInicio ||
+    dataGasto > periodo.dataFim
+  ) {
+    throw new AppError(
+      "A plataforma devolveu custo fora do período solicitado.",
+      502
+    );
+  }
+
+  const valorCentavos = Number(item?.valorCentavos);
+  if (!Number.isInteger(valorCentavos) || valorCentavos < 0) {
+    throw new AppError(
+      "A plataforma devolveu um valor de custo inválido.",
+      502
+    );
+  }
+
+  if (valorCentavos === 0) {
+    return null;
+  }
+
+  return {
+    campanhaId: Number(vinculo.campanha_id),
+    dataGasto,
+    valorCentavos
+  };
+}
+
+function idadeHoras(timestamp, agora = new Date()) {
+  if (!timestamp) return null;
+
+  const data = new Date(timestamp);
+  if (Number.isNaN(data.getTime())) return null;
+
+  return Math.max(
+    0,
+    Number(((agora.getTime() - data.getTime()) / 3600000).toFixed(2))
+  );
+}
+
+function saudeIntegracao(
+  item,
+  ultimaSincronizacao,
+  sincronizacaoAutomatica,
+  agora = new Date()
+) {
+  if (!item?.habilitado) {
+    return {
+      codigo: "desativado",
+      rotulo: "Desativado",
+      nivel: "neutro",
+      detalhe: "Integração desligada no ambiente.",
+      desatualizado: false,
+      idadeHoras: null
+    };
+  }
+
+  if (!item?.configurado) {
+    return {
+      codigo: "configuracao_incompleta",
+      rotulo: "Configuração incompleta",
+      nivel: "aviso",
+      detalhe: "A integração está habilitada, mas faltam credenciais obrigatórias.",
+      desatualizado: false,
+      idadeHoras: null
+    };
+  }
+
+  if (!ultimaSincronizacao) {
+    return {
+      codigo: "nao_sincronizado",
+      rotulo: "Não sincronizado",
+      nivel: "aviso",
+      detalhe: "Conta configurada, mas nenhum custo foi sincronizado ainda.",
+      desatualizado: false,
+      idadeHoras: null
+    };
+  }
+
+  const status = String(ultimaSincronizacao.status || "")
+    .trim()
+    .toLowerCase();
+  const referencia =
+    ultimaSincronizacao.finished_at ||
+    ultimaSincronizacao.created_at ||
+    null;
+  const horas = idadeHoras(referencia, agora);
+
+  if (status === "executando") {
+    return {
+      codigo: "sincronizando",
+      rotulo: "Sincronizando",
+      nivel: "informacao",
+      detalhe: "Uma sincronização de custos está em andamento.",
+      desatualizado: false,
+      idadeHoras: horas
+    };
+  }
+
+  if (status === "erro") {
+    return {
+      codigo: "erro",
+      rotulo: "Erro",
+      nivel: "erro",
+      detalhe:
+        normalizarTexto(
+          ultimaSincronizacao.erro_mensagem ||
+            "A última sincronização falhou.",
+          300
+        ),
+      desatualizado: false,
+      idadeHoras: horas
+    };
+  }
+
+  if (
+    status === "parcial" ||
+    Number(ultimaSincronizacao.campanhas_nao_vinculadas || 0) > 0
+  ) {
+    const semVinculo = Number(
+      ultimaSincronizacao.campanhas_nao_vinculadas || 0
+    );
+    return {
+      codigo: "parcial",
+      rotulo: "Parcial",
+      nivel: "aviso",
+      detalhe:
+        semVinculo > 0
+          ? `${semVinculo} campanha(s) externa(s) ficaram sem vínculo na última sincronização.`
+          : "A última sincronização foi concluída apenas parcialmente.",
+      desatualizado: false,
+      idadeHoras: horas
+    };
+  }
+
+  const limiteHoras = Number(
+    sincronizacaoAutomatica?.limiteDesatualizadoHoras || 24
+  );
+  const desatualizado =
+    horas === null ||
+    horas > limiteHoras;
+
+  if (desatualizado) {
+    return {
+      codigo: "desatualizado",
+      rotulo: "Desatualizado",
+      nivel: "aviso",
+      detalhe:
+        horas === null
+          ? "A última sincronização não possui horário válido de conclusão."
+          : `Última sincronização há ${horas.toFixed(1)}h; limite operacional de ${limiteHoras}h.`,
+      desatualizado: true,
+      idadeHoras: horas
+    };
+  }
+
+  const importados = Number(
+    ultimaSincronizacao.registros_importados || 0
+  );
+
+  return {
+    codigo: "saudavel",
+    rotulo: "Saudável",
+    nivel: "sucesso",
+    detalhe: `${importados} registro(s) importado(s) na última sincronização.`,
+    desatualizado: false,
+    idadeHoras: horas
+  };
+}
+
 async function statusIntegracoes() {
   const [vinculos, sincronizacoes] = await Promise.all([
     repository.listarVinculos(),
     repository.listarUltimasSincronizacoes()
   ]);
+  const sincronizacaoAutomatica =
+    marketingCostSyncConfig.statusAgendamento();
+
   return {
-    provedores: providers.status().map((item) => ({
-      ...item,
-      vinculos: vinculos.filter((v) => v.provedor === item.provedor).length,
-      ultimaSincronizacao: sincronizacoes.find((s) => s.provedor === item.provedor) || null
-    })),
+    sincronizacaoAutomatica,
+    provedores: providers.status().map((item) => {
+      const ultimaSincronizacao =
+        sincronizacoes.find((s) => s.provedor === item.provedor) || null;
+
+      return {
+        ...item,
+        vinculos: vinculos.filter((v) => v.provedor === item.provedor).length,
+        ultimaSincronizacao,
+        saude: saudeIntegracao(
+          item,
+          ultimaSincronizacao,
+          sincronizacaoAutomatica
+        )
+      };
+    }),
     vinculos
   };
 }
@@ -101,12 +330,13 @@ async function listarCampanhasExternas({ provedor: valorProvedor }) {
 async function testarIntegracao({ provedor: valorProvedor }) {
   const provedor = normalizarProvedor(valorProvedor);
   const resultado = await providers.testarConexao(provedor);
+  const moeda = validarMoedaConta(resultado, provedor);
   return {
     provedor,
     conectado: resultado?.conectado === true,
     contaExternaId: resultado?.contaExternaId || null,
     nomeConta: resultado?.nomeConta || null,
-    moeda: resultado?.moeda || null,
+    moeda,
     fusoHorario: resultado?.fusoHorario || null,
     apiVersion: resultado?.apiVersion || null
   };
@@ -130,6 +360,9 @@ async function vincularCampanha({ payload }) {
   if (!campanhaExternaId) {
     throw new AppError(`Selecione uma campanha real do ${nomeProvedor}.`, 400);
   }
+
+  const diagnostico = await providers.testarConexao(provedor);
+  validarMoedaConta(diagnostico, provedor);
 
   const campanhaExterna = await providers.buscarCampanha(
     provedor,
@@ -187,10 +420,15 @@ async function sincronizar({ provedor: valorProvedor, payload, usuarioId }) {
   const provedor = normalizarProvedor(valorProvedor);
   const periodo = periodoPadrao(payload);
   const run = await repository.iniciarSincronizacao({
-    provedor, ...periodo, usuarioId: Number.isInteger(Number(usuarioId)) ? Number(usuarioId) : null
+    provedor,
+    ...periodo,
+    usuarioId: Number.isInteger(Number(usuarioId)) ? Number(usuarioId) : null
   });
 
   try {
+    const diagnostico = await providers.testarConexao(provedor);
+    validarMoedaConta(diagnostico, provedor);
+
     const [custos, vinculos] = await Promise.all([
       providers.listarCustos(provedor, periodo),
       repository.buscarVinculosPorProvedor(provedor)
@@ -202,8 +440,9 @@ async function sincronizar({ provedor: valorProvedor, payload, usuarioId }) {
       ])
     );
 
-    let importados = 0;
     const naoVinculadas = new Set();
+    const gastosVinculados = [];
+
     for (const item of custos) {
       const chave = `${item.contaExternaId}:${item.campanhaExternaId}`;
       const vinculo = porExterno.get(chave);
@@ -211,15 +450,26 @@ async function sincronizar({ provedor: valorProvedor, payload, usuarioId }) {
         naoVinculadas.add(chave);
         continue;
       }
-      await repository.salvarGastoAutomatico({
-        campanhaId: Number(vinculo.campanha_id),
-        dataGasto: item.dataGasto,
-        valorCentavos: item.valorCentavos,
-        provedor
-      });
-      importados += 1;
+
+      const gasto = gastoVinculadoSeguro(
+        item,
+        vinculo,
+        periodo
+      );
+      if (gasto) {
+        gastosVinculados.push(gasto);
+      }
     }
 
+    await repository.reconciliarGastosAutomaticos({
+      provedor,
+      dataInicio: periodo.dataInicio,
+      dataFim: periodo.dataFim,
+      campanhaIds: vinculos.map((v) => Number(v.campanha_id)),
+      gastos: gastosVinculados
+    });
+
+    const importados = gastosVinculados.length;
     const status = naoVinculadas.size > 0 ? "parcial" : "sucesso";
     await repository.finalizarSincronizacao({
       id: run.id,
@@ -256,6 +506,11 @@ module.exports = {
   sincronizar,
   normalizarProvedor,
   periodoPadrao,
+  hojeNoFusoRelatorio,
   normalizarIdExterno,
-  validarCanalDaCampanha
+  validarCanalDaCampanha,
+  validarMoedaConta,
+  gastoVinculadoSeguro,
+  idadeHoras,
+  saudeIntegracao
 };

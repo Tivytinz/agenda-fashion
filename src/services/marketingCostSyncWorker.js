@@ -1,36 +1,14 @@
 const registrador = require("../utils/registrador");
 const marketingCostSyncService = require("./marketingCostSyncService");
-
-const PRIMEIRA_EXECUCAO_MS = 60000;
-const HORAS_PADRAO = 6;
-const HORAS_MINIMAS = 1;
-const HORAS_MAXIMAS = 24;
+const {
+  PRIMEIRA_EXECUCAO_MS,
+  agendamentoAtivo,
+  intervaloHoras
+} = require("../config/marketingCostSync");
 
 let timerInicial = null;
 let timerIntervalo = null;
 let executando = false;
-
-function flagAtiva(valor) {
-  return ["1", "true", "yes", "on"].includes(
-    String(valor || "").trim().toLowerCase()
-  );
-}
-
-function intervaloHoras() {
-  const valor = Number(
-    process.env.MARKETING_COST_SYNC_INTERVAL_HOURS ||
-      HORAS_PADRAO
-  );
-
-  if (!Number.isFinite(valor)) {
-    return HORAS_PADRAO;
-  }
-
-  return Math.min(
-    HORAS_MAXIMAS,
-    Math.max(HORAS_MINIMAS, valor)
-  );
-}
 
 function intervaloMs() {
   return intervaloHoras() * 60 * 60 * 1000;
@@ -102,11 +80,7 @@ async function executarSincronizacaoAgendada() {
 }
 
 function iniciarWorkerCustosMarketing() {
-  if (
-    !flagAtiva(
-      process.env.MARKETING_COST_SYNC_SCHEDULE_ENABLED
-    )
-  ) {
+  if (!agendamentoAtivo()) {
     return false;
   }
 

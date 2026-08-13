@@ -45,6 +45,20 @@ function resultado() {
       custoCheckoutCentavos: 8000,
       cacAssinanteCentavos: 10000
     },
+    decisao: {
+      metaRoas: 1,
+      faixaEscalaRoas: 1.2,
+      minimoCadastros: 10,
+      minimoAssinaturas: 2,
+      contagem: {
+        escalar: 1,
+        manter: 0,
+        observar: 0,
+        revisar: 0,
+        pausar: 0,
+        semDados: 0
+      }
+    },
     campanhas: [
       {
         origem: "meta",
@@ -63,7 +77,13 @@ function resultado() {
         taxaAssinatura: 20,
         custoCadastroCentavos: 2000,
         custoCheckoutCentavos: 8000,
-        cacAssinanteCentavos: 10000
+        cacAssinanteCentavos: 10000,
+        decisao: {
+          codigo: "escalar",
+          rotulo: "Escalar",
+          confianca: "alta",
+          motivo: "ROAS 1.49x está acima da faixa de escala de 1.20x com volume mínimo atingido."
+        }
       }
     ]
   };
@@ -82,7 +102,7 @@ describe(
   "AdminProfessionalFunnelPage",
   () => {
     it(
-      "renderiza CAC, receita e ROAS da campanha",
+      "renderiza CAC, receita, ROAS e decisão da campanha",
       async () => {
         render(
           <MemoryRouter>
@@ -125,6 +145,20 @@ describe(
         expect(
           screen.getAllByText("1,49x").length
         ).toBeGreaterThanOrEqual(1);
+
+        expect(
+          screen.getAllByText("Escalar").length
+        ).toBeGreaterThanOrEqual(1);
+
+        expect(
+          screen.getByText(/Confiança alta/i)
+        ).not.toBeNull();
+
+        expect(
+          screen.getByText(
+            /decisão forte exige pelo menos 10 cadastros e 2 assinaturas/i
+          )
+        ).not.toBeNull();
 
         expect(
           screen.getByText(

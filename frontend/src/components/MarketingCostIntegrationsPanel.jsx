@@ -30,6 +30,7 @@ const EXTERNAL_STATUS_LABELS = {
 };
 
 function statusLabel(provider) {
+  if (provider?.saude?.rotulo) return provider.saude.rotulo;
   if (provider?.configurado) return "Configurado";
   if (provider?.habilitado) return "Configuração incompleta";
   return "Desativado";
@@ -67,6 +68,27 @@ function connectionSummary(connection) {
   return parts.join(" · ");
 }
 
+function scheduleSummary(config) {
+  if (!config) {
+    return "Status do agendamento automático indisponível.";
+  }
+
+  if (config.habilitado) {
+    return `Sincronização automática ativa a cada ${config.intervaloHoras}h · alerta de desatualização após ${config.limiteDesatualizadoHoras}h.`;
+  }
+
+  return `Sincronização automática desligada · sincronização manual disponível · alerta de desatualização após ${config.limiteDesatualizadoHoras || 24}h.`;
+}
+
+function syncDetail(item) {
+  const sync = item?.ultimaSincronizacao;
+  if (!sync) return "Sem histórico de sincronização.";
+
+  const imported = Number(sync.registros_importados || 0);
+  const unlinked = Number(sync.campanhas_nao_vinculadas || 0);
+  return `${imported} importado(s) · ${unlinked} sem vínculo`;
+}
+
 export function MarketingCostIntegrationsPanel({ onChanged }) {
   const [data, setData] = useState(null);
   const [campaigns, setCampaigns] = useState([]);
@@ -88,18 +110,41 @@ export function MarketingCostIntegrationsPanel({ onChanged }) {
   const load = useCallback(async () => {
     setLoading(true);
     setError("");
-    try {
-      const [integrations, managed] = await Promise.all([
-        apiRequest("/admin/marketing/custos-integracoes"),
-        apiRequest("/admin/marketing/gestao-campanhas")
-      ]);
-      setData(integrations);
-      setCampaigns(managed?.campanhas || []);
-    } catch (requestError) {
-      setError(requestError.message);
-    } finally {
-      setLoading(false);
+
+    const [integrationsResult, managedResult] = await Promise.allSettled([
+      apiRequest("/admin/marketing/custos-integracoes"),
+      apiRequest("/admin/marketing/gestao-campanhas")
+    ]);
+
+    const errors = [];
+
+    if (integrationsResult.status === "fulfilled") {
+      setData(integrationsResult.value);
+    } else {
+      errors.push(
+        integrationsResult.reason?.message ||
+          "Falha ao carregar integrações."
+      );
     }
+
+    if (managedResult.status === "fulfilled") {
+      setCampaigns(managedResult.value?.campanhas || []);
+    } else {
+      errors.push(
+        managedResult.reason?.message ||
+          "Falha ao carregar campanhas do AF."
+      );
+    }
+
+    if (errors.length > 0) {
+      setError(
+        errors.length === 2
+          ? errors[0]
+          : `Parte do painel está temporariamente indisponível. ${errors[0]}`
+      );
+    }
+
+    setLoading(false);
   }, []);
 
   useEffect(() => {
@@ -148,7 +193,6 @@ export function MarketingCostIntegrationsPanel({ onChanged }) {
 
     let active = true;
     setLoadingExternalCampaigns(true);
-    setError("");
 
     apiRequest(`/admin/marketing/custos-integracoes/${provider}/campanhas`)
       .then((result) => {
@@ -285,6 +329,9 @@ export function MarketingCostIntegrationsPanel({ onChanged }) {
           <p className="muted">
             Escolha uma campanha real da conta configurada. O backend confirma o vínculo no Google Ads ou Meta Ads antes de salvar e mantém as credenciais fora do navegador.
           </p>
+          <p className="muted" role="status">
+            {scheduleSummary(data?.sincronizacaoAutomatica)}
+          </p>
         </div>
       </div>
 
@@ -300,8 +347,12 @@ export function MarketingCostIntegrationsPanel({ onChanged }) {
                 <span>{item.nome}</span>
                 <strong>{statusLabel(item)}</strong>
                 <small>
+                  {item.saude?.detalhe || "Estado operacional ainda não calculado."}
+                </small>
+                <small>
                   {item.vinculos || 0} vínculo(s) · {formatTimestamp(item.ultimaSincronizacao?.finished_at)}
                 </small>
+                <small>{syncDetail(item)}</small>
                 {connections[item.provedor]?.conectado && (
                   <small>
                     {connectionSummary(connections[item.provedor])}

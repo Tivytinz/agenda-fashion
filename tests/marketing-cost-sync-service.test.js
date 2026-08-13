@@ -8,6 +8,7 @@ const mockRepository = {
   salvarVinculo: jest.fn(),
   buscarVinculosPorProvedor: jest.fn(),
   salvarGastoAutomatico: jest.fn(),
+  reconciliarGastosAutomaticos: jest.fn(),
   iniciarSincronizacao: jest.fn(),
   finalizarSincronizacao: jest.fn()
 };
@@ -45,6 +46,14 @@ describe("marketingCostSyncService", () => {
     mockRepository.iniciarSincronizacao.mockResolvedValue({ id: 10 });
     mockRepository.finalizarSincronizacao.mockResolvedValue();
     mockRepository.salvarGastoAutomatico.mockResolvedValue({ id: 1 });
+    mockRepository.reconciliarGastosAutomaticos.mockResolvedValue({
+      removidos: 0,
+      salvos: 0
+    });
+    mockProviders.testarConexao.mockResolvedValue({
+      conectado: true,
+      moeda: "BRL"
+    });
     mockProviders.status.mockReturnValue([
       {
         provedor: "google_ads",
@@ -59,7 +68,7 @@ describe("marketingCostSyncService", () => {
     ]);
   });
 
-  test("sincroniza apenas campanhas explicitamente vinculadas", async () => {
+  test("sincroniza apenas campanhas explicitamente vinculadas e reconcilia o período", async () => {
     mockRepository.buscarVinculosPorProvedor.mockResolvedValue([
       {
         campanha_id: 7,
@@ -91,12 +100,20 @@ describe("marketingCostSyncService", () => {
       usuarioId: 3
     });
 
-    expect(mockRepository.salvarGastoAutomatico).toHaveBeenCalledTimes(1);
-    expect(mockRepository.salvarGastoAutomatico).toHaveBeenCalledWith({
-      campanhaId: 7,
-      dataGasto: "2026-08-10",
-      valorCentavos: 2500,
-      provedor: "google_ads"
+    expect(mockProviders.testarConexao).toHaveBeenCalledWith("google_ads");
+    expect(mockRepository.salvarGastoAutomatico).not.toHaveBeenCalled();
+    expect(mockRepository.reconciliarGastosAutomaticos).toHaveBeenCalledWith({
+      provedor: "google_ads",
+      dataInicio: "2026-08-01",
+      dataFim: "2026-08-10",
+      campanhaIds: [7],
+      gastos: [
+        {
+          campanhaId: 7,
+          dataGasto: "2026-08-10",
+          valorCentavos: 2500
+        }
+      ]
     });
     expect(result).toMatchObject({
       status: "parcial",
@@ -109,6 +126,31 @@ describe("marketingCostSyncService", () => {
         status: "parcial",
         importados: 1,
         naoVinculadas: 1
+      })
+    );
+  });
+
+  test("recusa sincronização de conta que não esteja em BRL", async () => {
+    mockProviders.testarConexao.mockResolvedValue({
+      conectado: true,
+      moeda: "USD"
+    });
+
+    await expect(service.sincronizar({
+      provedor: "google_ads",
+      payload: {
+        dataInicio: "2026-08-01",
+        dataFim: "2026-08-10"
+      }
+    })).rejects.toThrow("só importa custos automáticos em BRL");
+
+    expect(mockProviders.listarCustos).not.toHaveBeenCalled();
+    expect(mockRepository.reconciliarGastosAutomaticos).not.toHaveBeenCalled();
+    expect(mockRepository.finalizarSincronizacao).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: 10,
+        status: "erro",
+        erroCodigo: "http_422"
       })
     );
   });
@@ -143,6 +185,35 @@ describe("marketingCostSyncService", () => {
     })).toThrow("até 90 dias");
   });
 
+  test("recusa data futura", () => {
+    expect(() => service.periodoPadrao({
+      dataInicio: "2999-01-01",
+      dataFim: "2999-01-30"
+    })).toThrow("data futura");
+  });
+
+  test("calcula hoje pelo fuso de São Paulo e não pelo dia UTC", () => {
+    expect(
+      service.hojeNoFusoRelatorio(
+        new Date("2026-08-13T00:30:00Z")
+      )
+    ).toBe("2026-08-12");
+  });
+
+  test("recusa custo devolvido fora do período solicitado", () => {
+    expect(() => service.gastoVinculadoSeguro(
+      {
+        dataGasto: "2026-08-11",
+        valorCentavos: 1000
+      },
+      { campanha_id: 7 },
+      {
+        dataInicio: "2026-08-01",
+        dataFim: "2026-08-10"
+      }
+    )).toThrow("fora do período");
+  });
+
   test("testa a integração e devolve apenas metadados seguros da conta", async () => {
     mockProviders.testarConexao.mockResolvedValue({
       provedor: "google_ads",
@@ -168,6 +239,18 @@ describe("marketingCostSyncService", () => {
       fusoHorario: "America/Sao_Paulo",
       apiVersion: "v25"
     });
+  });
+
+  test("teste da integração rejeita moeda diferente de BRL", async () => {
+    mockProviders.testarConexao.mockResolvedValue({
+      conectado: true,
+      contaExternaId: "6770207927",
+      moeda: "EUR"
+    });
+
+    await expect(service.testarIntegracao({
+      provedor: "google_ads"
+    })).rejects.toThrow("moeda EUR");
   });
 
   test("testa a integração Meta pelo mesmo contrato seguro", async () => {
@@ -282,6 +365,7 @@ describe("marketingCostSyncService", () => {
       }
     });
 
+    expect(mockProviders.testarConexao).toHaveBeenCalledWith("google_ads");
     expect(mockProviders.buscarCampanha).toHaveBeenCalledWith(
       "google_ads",
       "555"
@@ -302,6 +386,29 @@ describe("marketingCostSyncService", () => {
         tipo: "SEARCH"
       }
     });
+  });
+
+  test("não cria vínculo de custos se a conta não estiver em BRL", async () => {
+    mockCampaignRepository.buscarPorId.mockResolvedValue({
+      id: 5,
+      nome: "Teste",
+      canal: "google"
+    });
+    mockProviders.testarConexao.mockResolvedValue({
+      conectado: true,
+      moeda: "USD"
+    });
+
+    await expect(service.vincularCampanha({
+      payload: {
+        campanhaId: 5,
+        provedor: "google_ads",
+        campanhaExternaId: "555"
+      }
+    })).rejects.toThrow("moeda USD");
+
+    expect(mockProviders.buscarCampanha).not.toHaveBeenCalled();
+    expect(mockRepository.salvarVinculo).not.toHaveBeenCalled();
   });
 
   test("consulta o Meta novamente e ignora nome adulterado antes de salvar", async () => {

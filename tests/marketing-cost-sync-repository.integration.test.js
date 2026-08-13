@@ -10,13 +10,17 @@ function suffix() {
 describe("custos automáticos integrados", () => {
   let campanhaId;
   let hoje;
+  let ontem;
 
   beforeEach(async () => {
     const id = suffix();
-    const data = await db.query(
-      "SELECT (NOW() AT TIME ZONE 'America/Sao_Paulo')::date::text AS hoje"
-    );
+    const data = await db.query(`
+      SELECT
+        (NOW() AT TIME ZONE 'America/Sao_Paulo')::date::text AS hoje,
+        ((NOW() AT TIME ZONE 'America/Sao_Paulo')::date - 1)::text AS ontem
+    `);
     hoje = data.rows[0].hoje;
+    ontem = data.rows[0].ontem;
 
     const campanha = await db.query(`
       INSERT INTO marketing_campanhas (
@@ -91,6 +95,100 @@ describe("custos automáticos integrados", () => {
         valor_centavos: "1300",
         observacao: "ajuste confirmado"
       })
+    ]);
+  });
+
+  test("reconciliação remove custo automático antigo que não veio mais da plataforma", async () => {
+    await syncRepository.salvarGastoAutomatico({
+      campanhaId,
+      dataGasto: ontem,
+      valorCentavos: 700,
+      provedor: "google_ads"
+    });
+    await syncRepository.salvarGastoAutomatico({
+      campanhaId,
+      dataGasto: hoje,
+      valorCentavos: 1250,
+      provedor: "google_ads"
+    });
+
+    const resumo = await syncRepository.reconciliarGastosAutomaticos({
+      provedor: "google_ads",
+      dataInicio: ontem,
+      dataFim: hoje,
+      campanhaIds: [campanhaId],
+      gastos: [
+        {
+          campanhaId,
+          dataGasto: hoje,
+          valorCentavos: 1500
+        }
+      ]
+    });
+
+    expect(resumo).toEqual({
+      removidos: 2,
+      salvos: 1
+    });
+
+    const result = await db.query(`
+      SELECT data_gasto::text AS data_gasto, fonte, valor_centavos, moeda
+      FROM marketing_campanha_gastos
+      WHERE campanha_id = $1
+      ORDER BY data_gasto ASC
+    `, [campanhaId]);
+
+    expect(result.rows).toEqual([
+      {
+        data_gasto: hoje,
+        fonte: "google_ads",
+        valor_centavos: "1500",
+        moeda: "BRL"
+      }
+    ]);
+  });
+
+  test("falha no meio da reconciliação faz rollback e preserva o retrato anterior", async () => {
+    await syncRepository.salvarGastoAutomatico({
+      campanhaId,
+      dataGasto: hoje,
+      valorCentavos: 1250,
+      provedor: "google_ads"
+    });
+
+    await expect(
+      syncRepository.reconciliarGastosAutomaticos({
+        provedor: "google_ads",
+        dataInicio: ontem,
+        dataFim: hoje,
+        campanhaIds: [campanhaId],
+        gastos: [
+          {
+            campanhaId,
+            dataGasto: hoje,
+            valorCentavos: 1500
+          },
+          {
+            campanhaId,
+            dataGasto: "data-invalida",
+            valorCentavos: 800
+          }
+        ]
+      })
+    ).rejects.toThrow();
+
+    const result = await db.query(`
+      SELECT fonte, valor_centavos, moeda
+      FROM marketing_campanha_gastos
+      WHERE campanha_id = $1 AND data_gasto = $2::date
+    `, [campanhaId, hoje]);
+
+    expect(result.rows).toEqual([
+      {
+        fonte: "google_ads",
+        valor_centavos: "1250",
+        moeda: "BRL"
+      }
     ]);
   });
 });
