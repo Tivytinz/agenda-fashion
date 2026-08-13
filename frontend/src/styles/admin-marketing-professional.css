@@ -7,6 +7,14 @@
   --admin-muted: #795f68;
   --admin-accent: #c82068;
   --admin-accent-dark: #7f163e;
+  --marketing-donut-1: #cf276d;
+  --marketing-donut-2: #8d2e62;
+  --marketing-donut-3: #e875a4;
+  --marketing-donut-4: #6c4a71;
+  --marketing-donut-5: #efabc5;
+  --marketing-donut-6: #a65a83;
+  --marketing-donut-7: #d99bb3;
+  --marketing-donut-8: #72515e;
 }
 
 .admin-marketing-page .workspace-heading {
@@ -368,6 +376,202 @@
   border-color: #dfc5cf;
 }
 
+/* Donut somente para distribuicoes. Coorte e ROAS ficam em tabelas. */
+.marketing-donut-chart {
+  display: none;
+}
+
+.admin-campaigns-page .marketing-bar-chart-list,
+.admin-costs-page .marketing-bar-chart-list {
+  display: none;
+}
+
+.admin-campaigns-page .marketing-donut-chart,
+.admin-costs-page .marketing-donut-chart {
+  display: grid;
+  grid-template-columns: minmax(150px, 190px) minmax(0, 1fr);
+  align-items: center;
+  gap: 1rem;
+}
+
+.admin-professional-funnel-page .marketing-bar-chart {
+  display: none;
+}
+
+.admin-professional-funnel-page .admin-insights-grid {
+  grid-template-columns: 1fr;
+}
+
+.marketing-donut-visual {
+  position: relative;
+  width: min(100%, 180px);
+  aspect-ratio: 1;
+  margin-inline: auto;
+  border-radius: 50%;
+  box-shadow: inset 0 0 0 1px rgba(74, 32, 49, 0.05);
+}
+
+.marketing-donut-center {
+  position: absolute;
+  inset: 24%;
+  display: grid;
+  place-content: center;
+  border: 1px solid #efdfe5;
+  border-radius: 50%;
+  background: #fff;
+  text-align: center;
+  box-shadow: 0 6px 20px rgba(92, 31, 56, 0.08);
+}
+
+.marketing-donut-center strong {
+  color: var(--admin-ink);
+  font-size: 1.15rem;
+  line-height: 1;
+}
+
+.marketing-donut-center span {
+  margin-top: 0.2rem;
+  color: var(--admin-muted);
+  font-size: 0.67rem;
+}
+
+.marketing-donut-legend {
+  display: grid;
+  gap: 0.6rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.marketing-donut-legend li {
+  display: grid;
+  grid-template-columns: 10px minmax(0, 1fr);
+  align-items: center;
+  gap: 0.55rem;
+}
+
+.marketing-donut-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
+.marketing-donut-legend li > div {
+  display: flex;
+  min-width: 0;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.6rem;
+}
+
+.marketing-donut-legend strong {
+  overflow: hidden;
+  color: #513843;
+  font-size: 0.82rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.marketing-donut-legend small {
+  flex: 0 0 auto;
+  color: var(--admin-muted);
+  font-size: 0.74rem;
+}
+
+/* As tabelas comparativas devem caber no desktop; scroll fica para telas pequenas. */
+.admin-campaigns-page .admin-stat-table-card .table-wrap,
+.admin-professional-funnel-page .admin-stat-table-card .table-wrap {
+  overflow-x: visible;
+}
+
+.admin-campaigns-page .admin-compact-table,
+.admin-professional-funnel-page .admin-compact-table {
+  width: 100%;
+  min-width: 0;
+  table-layout: auto;
+}
+
+.admin-campaigns-page .admin-compact-table th,
+.admin-campaigns-page .admin-compact-table td {
+  padding-inline: 0.45rem;
+  white-space: nowrap;
+}
+
+.admin-professional-funnel-page .admin-compact-table th,
+.admin-professional-funnel-page .admin-compact-table td {
+  padding-inline: 0.65rem;
+}
+
+.admin-costs-page table td:nth-child(2),
+.admin-costs-page table td:nth-child(3),
+.admin-costs-page table td:nth-child(4),
+.admin-costs-page table td:nth-child(5),
+.admin-costs-page table td:nth-child(6) {
+  white-space: nowrap;
+}
+
+.admin-professional-funnel-page .metric-card strong {
+  font-size: clamp(1.45rem, 2vw, 2rem);
+  line-height: 1.08;
+}
+
+@media (min-width: 1181px) {
+  .admin-professional-funnel-page .metric-card strong {
+    white-space: nowrap;
+  }
+}
+
+/* Glossario compacto, aberto apenas quando o admin quiser contexto. */
+.marketing-metric-help {
+  margin: -0.3rem 1.5rem 2rem;
+}
+
+.marketing-metric-glossary {
+  border: 1px solid #e7d3dc;
+  border-radius: 15px;
+  background: #fffafd;
+  box-shadow: 0 10px 28px rgba(111, 23, 56, 0.045);
+}
+
+.marketing-metric-glossary > summary {
+  cursor: pointer;
+  padding: 0.9rem 1rem;
+  color: #6f1738;
+  font-size: 0.86rem;
+  font-weight: 750;
+  list-style-position: inside;
+}
+
+.marketing-metric-glossary[open] > summary {
+  border-bottom: 1px solid #eddde4;
+}
+
+.marketing-metric-glossary-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 0.8rem;
+  padding: 1rem;
+}
+
+.marketing-metric-glossary-grid > div {
+  border: 1px solid #f0e2e8;
+  border-radius: 12px;
+  padding: 0.8rem;
+  background: #fff;
+}
+
+.marketing-metric-glossary-grid strong {
+  color: #4d2635;
+  font-size: 0.82rem;
+}
+
+.marketing-metric-glossary-grid p {
+  margin: 0.35rem 0 0;
+  color: #765d67;
+  font-size: 0.77rem;
+  line-height: 1.45;
+}
+
 @media (max-width: 1050px) {
   .admin-insights-grid {
     grid-template-columns: 1fr;
@@ -384,6 +588,31 @@
     padding: 0.85rem;
   }
 
+  .admin-campaigns-page .marketing-donut-chart,
+  .admin-costs-page .marketing-donut-chart {
+    grid-template-columns: 1fr;
+  }
+
+  .marketing-donut-visual {
+    width: 150px;
+  }
+
+  .marketing-donut-legend li > div {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 0.1rem;
+  }
+
+  .admin-campaigns-page .admin-stat-table-card .table-wrap,
+  .admin-professional-funnel-page .admin-stat-table-card .table-wrap {
+    overflow-x: auto;
+  }
+
+  .admin-campaigns-page .admin-compact-table,
+  .admin-professional-funnel-page .admin-compact-table {
+    min-width: 520px;
+  }
+
   .integration-link-actions {
     grid-template-columns: 1fr;
   }
@@ -398,5 +627,9 @@
 
   .admin-nowrap-button {
     width: 100%;
+  }
+
+  .marketing-metric-help {
+    margin-inline: 1rem;
   }
 }
