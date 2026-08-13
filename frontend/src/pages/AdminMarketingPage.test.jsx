@@ -156,7 +156,7 @@ describe("AdminMarketingPage", () => {
     expect(screen.getByText("Meta Cílios")).not.toBeNull();
     expect(screen.getByText("Não classificado")).not.toBeNull();
     expect(
-      screen.getByText(/1 campanha\(s\) precisa\(m\) de classificação/i)
+      screen.getByText(/1 campanha\(s\) sem classificação/i)
     ).not.toBeNull();
     expect(
       screen.getByRole("button", { name: "Revisar classificação" })
@@ -164,7 +164,7 @@ describe("AdminMarketingPage", () => {
     expect(apiRequest).toHaveBeenCalledTimes(4);
   });
 
-  it("avisa quando tráfego pago chega sem utm_campaign", async () => {
+  it("avisa de forma compacta quando tráfego pago chega sem utm_campaign", async () => {
     const originalImplementation = apiRequest.getMockImplementation();
     apiRequest.mockImplementation((path, options) => {
       if (path.startsWith("/admin/marketing/campanhas")) {
@@ -190,11 +190,11 @@ describe("AdminMarketingPage", () => {
     render(<AdminMarketingPage />);
 
     expect(
-      await screen.findByText(/5 sessão\(ões\) paga\(s\) sem identificação de campanha/i)
+      await screen.findByText(/5 sessão\(ões\) paga\(s\) sem campanha/i)
     ).not.toBeNull();
     expect(screen.getByText("Falta utm_campaign")).not.toBeNull();
     expect(
-      screen.getByRole("button", { name: "Copiar link de Meta Cílios" })
+      screen.getByRole("button", { name: "Copiar link correto de Meta Cílios" })
     ).not.toBeNull();
   });
 
@@ -265,7 +265,7 @@ describe("AdminMarketingPage", () => {
     expect(campaignRow).not.toBeNull();
 
     await user.click(
-      within(campaignRow).getByRole("button", { name: "Classificar campanha" })
+      within(campaignRow).getByRole("button", { name: "Classificar" })
     );
     expect(
       within(campaignRow).getByText(
@@ -294,7 +294,7 @@ describe("AdminMarketingPage", () => {
     ).not.toBeNull();
   });
 
-  it("mantém arquivamento em ação secundária", async () => {
+  it("mantém arquivamento em menu de ação secundária", async () => {
     const user = userEvent.setup();
     render(<AdminMarketingPage />);
 
@@ -302,7 +302,7 @@ describe("AdminMarketingPage", () => {
     const row = campaignName.closest("tr");
     expect(row).not.toBeNull();
 
-    await user.click(within(row).getByText("Mais"));
+    await user.click(within(row).getByLabelText("Mais ações de Meta Cílios"));
     await user.click(within(row).getByRole("button", { name: "Arquivar" }));
 
     await waitFor(() => {

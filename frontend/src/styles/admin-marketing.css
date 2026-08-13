@@ -68,6 +68,74 @@
   margin-top: 0.1rem;
 }
 
+.admin-pending-strip {
+  display: grid;
+  grid-template-columns: minmax(180px, 0.7fr) minmax(0, 2.3fr);
+  gap: 0.8rem;
+  align-items: stretch;
+  margin-bottom: 1rem;
+  padding: 0.85rem 1rem;
+  border: 1px solid var(--line, #ead7df);
+  border-radius: 14px;
+  background: #fffafd;
+}
+
+.admin-pending-strip-heading {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.admin-pending-strip-heading .eyebrow {
+  margin: 0;
+}
+
+.admin-pending-strip-heading strong {
+  line-height: 1.25;
+}
+
+.admin-pending-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));
+  gap: 0.55rem;
+  min-width: 0;
+}
+
+.admin-pending-item {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.55rem 0.8rem;
+  min-width: 0;
+  padding: 0.65rem 0.75rem;
+  border: 1px solid var(--line, #ead7df);
+  border-radius: 12px;
+  background: #fff;
+}
+
+.admin-pending-item > div {
+  min-width: 0;
+  flex: 1 1 220px;
+}
+
+.admin-pending-item strong,
+.admin-pending-item small {
+  display: block;
+}
+
+.admin-pending-item small {
+  margin-top: 0.15rem;
+  color: var(--muted, #795f68);
+}
+
+.admin-pending-item .button {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
 .admin-advanced-fields {
   border: 1px solid var(--line, #ead7df);
   border-radius: 14px;
@@ -85,7 +153,7 @@
 }
 
 .admin-objective-cell {
-  min-width: 170px;
+  min-width: 150px;
 }
 
 .admin-status-badge {
@@ -114,8 +182,7 @@
 
 .admin-classification-actions {
   display: grid;
-  gap: 0.45rem;
-  margin-top: 0.55rem;
+  gap: 0.35rem;
 }
 
 .admin-classification-options {
@@ -124,15 +191,51 @@
   gap: 0.4rem;
 }
 
+.admin-classify-trigger {
+  width: fit-content;
+  white-space: nowrap;
+}
+
 .admin-campaign-table table {
-  min-width: 880px;
+  min-width: 860px;
 }
 
 .admin-campaign-table .quick-actions {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 0.35rem 0.55rem;
+  gap: 0.35rem 0.45rem;
+}
+
+.admin-campaign-table .quick-actions > .button {
+  white-space: nowrap;
+}
+
+.admin-more-actions {
+  position: relative;
+}
+
+.admin-more-actions > summary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  min-width: 40px;
+  padding-inline: 0;
+  cursor: pointer;
+  list-style: none;
+  font-size: 1.1rem;
+  line-height: 1;
+}
+
+.admin-more-actions > summary::-webkit-details-marker {
+  display: none;
+}
+
+.admin-more-actions[open] > .text-button {
+  display: block;
+  margin-top: 0.35rem;
+  white-space: nowrap;
 }
 
 .admin-decision-table {
@@ -177,6 +280,55 @@
   color: #69565e;
 }
 
+.admin-campaign-source {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem;
+  margin-top: 0.4rem;
+}
+
+.admin-source-badge {
+  min-height: 24px;
+  padding: 0.2rem 0.55rem;
+  font-size: 0.72rem;
+}
+
+.admin-source-badge.is-google {
+  background: #f5f8ff;
+  border-color: #dbe4f5;
+  color: #405778;
+}
+
+.admin-source-badge.is-meta {
+  background: #f6f5ff;
+  border-color: #dedbf4;
+  color: #554b80;
+}
+
+.admin-source-badge.is-pinterest {
+  background: #fff3f6;
+  border-color: #efd4dc;
+  color: #8d2948;
+}
+
+.admin-source-badge.is-tiktok {
+  background: #f5f5f6;
+  border-color: #dedde0;
+  color: #4a454b;
+}
+
+.admin-source-badge.is-organico {
+  background: #effaf3;
+  border-color: #c9e8d5;
+  color: #24613b;
+}
+
+.admin-source-badge.is-outro {
+  background: #f8f5f6;
+  color: #69565e;
+}
+
 .admin-detail-toggle {
   white-space: nowrap;
 }
@@ -201,7 +353,7 @@
 }
 
 .admin-campaign-detail-grid span,
-.integration-health-card span,
+.integration-health-card > span,
 .integration-step-label,
 .admin-decision-summary span {
   display: block;
@@ -266,19 +418,64 @@
 
 .integration-health-card {
   min-width: 0;
-  padding: 0.85rem 0.95rem;
+  padding: 0.8rem 0.9rem;
   border: 1px solid var(--line, #ead7df);
   border-radius: 14px;
   background: #fff;
 }
 
-.integration-health-card h3 {
-  margin: 0.2rem 0 0.3rem;
-  font-size: 1rem;
+.integration-health-card-heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.45rem;
 }
 
-.integration-health-card p {
-  margin: 0.12rem 0;
+.integration-health-card-heading > span:first-child {
+  color: var(--muted, #795f68);
+  font-size: 0.76rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.integration-health-card .admin-status-badge {
+  min-height: 26px;
+  padding: 0.2rem 0.55rem;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.integration-health-summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.15rem;
+  margin: 0.55rem 0 0;
+}
+
+.integration-health-summary strong {
+  color: #6f1738;
+}
+
+.integration-health-summary span {
+  display: inline;
+  color: inherit;
+  font-size: inherit;
+  font-weight: inherit;
+  letter-spacing: normal;
+  text-transform: none;
+}
+
+.integration-health-detail {
+  margin: 0.2rem 0 0;
+  line-height: 1.35;
+}
+
+.integration-health-hint {
+  display: block;
+  margin-top: 0.35rem;
   line-height: 1.35;
 }
 
@@ -310,6 +507,18 @@
   background: #fffafd;
 }
 
+.integration-link-step.is-pending {
+  background: #fffdfd;
+}
+
+.integration-step-heading {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.45rem;
+  margin-bottom: 0.45rem;
+}
+
 .integration-link-step .form-grid {
   grid-template-columns: 1fr;
   gap: 0.55rem;
@@ -325,12 +534,32 @@
   place-items: center;
   width: 28px;
   height: 28px;
-  margin-bottom: 0.35rem;
   border-radius: 50%;
   background: #c82068;
   color: #fff;
   font-size: 0.78rem;
   font-weight: 800;
+}
+
+.integration-step-state {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.integration-step-state.is-complete {
+  background: #effaf3;
+  color: #24613b;
+}
+
+.integration-step-state.is-pending {
+  background: #fff5ea;
+  color: #805f19;
 }
 
 @media (max-width: 1180px) {
@@ -361,6 +590,10 @@
   }
 
   .integration-link-flow {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-pending-strip {
     grid-template-columns: 1fr;
   }
 }

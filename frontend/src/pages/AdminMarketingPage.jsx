@@ -415,55 +415,50 @@ export function AdminMarketingPage() {
       </section>
 
       {(paidWithoutCampaignSessions > 0 || unclassifiedCampaigns.length > 0) && (
-        <section className="panel" aria-label="Pendências de rastreamento">
-          <div className="panel-heading">
-            <div>
-              <p className="eyebrow">Atenção operacional</p>
-              <h2>Pendências que afetam a leitura dos KPIs</h2>
-            </div>
+        <section className="admin-pending-strip" aria-label="Pendências de rastreamento">
+          <div className="admin-pending-strip-heading">
+            <p className="eyebrow">Atenção operacional</p>
+            <strong>Pendências que afetam os KPIs</strong>
           </div>
 
-          {paidWithoutCampaignSessions > 0 && (
-            <div>
-              <strong>
-                {paidWithoutCampaignSessions} sessão(ões) paga(s) sem identificação de campanha
-              </strong>
-              <p className="muted">
-                A origem e a mídia foram identificadas, mas o acesso chegou sem utm_campaign. Essas sessões aparecem no tráfego geral, porém não entram no resultado de uma campanha cadastrada.
-              </p>
-              {suggestedCampaign && (
+          <div className="admin-pending-list">
+            {paidWithoutCampaignSessions > 0 && (
+              <div className="admin-pending-item">
+                <div>
+                  <strong>{paidWithoutCampaignSessions} sessão(ões) paga(s) sem campanha</strong>
+                  <small>Origem e mídia identificadas; faltou utm_campaign.</small>
+                </div>
+                {suggestedCampaign && (
+                  <button
+                    aria-label={`Copiar link correto de ${suggestedCampaign.nome}`}
+                    className="button button-secondary button-small"
+                    onClick={() => copyCampaignLink(suggestedCampaign)}
+                    type="button"
+                  >
+                    {copiedCampaignId === suggestedCampaign.id
+                      ? "Link copiado"
+                      : "Copiar link correto"}
+                  </button>
+                )}
+              </div>
+            )}
+
+            {unclassifiedCampaigns.length > 0 && (
+              <div className="admin-pending-item">
+                <div>
+                  <strong>{unclassifiedCampaigns.length} campanha(s) sem classificação</strong>
+                  <small>Defina o objetivo para habilitar CPA, CAC e ROAS no relatório correto.</small>
+                </div>
                 <button
                   className="button button-secondary button-small"
-                  onClick={() => copyCampaignLink(suggestedCampaign)}
+                  onClick={() => reviewClassification(unclassifiedCampaigns[0])}
                   type="button"
                 >
-                  {copiedCampaignId === suggestedCampaign.id
-                    ? "Link copiado"
-                    : `Copiar link de ${suggestedCampaign.nome}`}
+                  Revisar classificação
                 </button>
-              )}
-            </div>
-          )}
-
-          {paidWithoutCampaignSessions > 0 && unclassifiedCampaigns.length > 0 && <hr />}
-
-          {unclassifiedCampaigns.length > 0 && (
-            <div>
-              <strong>
-                {unclassifiedCampaigns.length} campanha(s) precisa(m) de classificação
-              </strong>
-              <p className="muted">
-                Classifique o objetivo para que investimento, CPA, CAC e ROAS sejam calculados no relatório correto.
-              </p>
-              <button
-                className="button button-secondary button-small"
-                onClick={() => reviewClassification(unclassifiedCampaigns[0])}
-                type="button"
-              >
-                Revisar classificação
-              </button>
-            </div>
-          )}
+              </div>
+            )}
+          </div>
         </section>
       )}
 
@@ -690,11 +685,11 @@ export function AdminMarketingPage() {
                             </>
                           ) : (
                             <button
-                              className="button button-secondary button-small"
+                              className="button button-secondary button-small admin-classify-trigger"
                               onClick={() => setClassifyingCampaignId(item.id)}
                               type="button"
                             >
-                              Classificar campanha
+                              Classificar
                             </button>
                           )}
                         </div>
@@ -723,9 +718,12 @@ export function AdminMarketingPage() {
                         >
                           {copiedCampaignId === item.id ? "Copiado" : "Copiar link"}
                         </button>
-                        <details>
-                          <summary className="button button-secondary button-small">
-                            Mais
+                        <details className="admin-more-actions">
+                          <summary
+                            aria-label={`Mais ações de ${item.nome}`}
+                            className="button button-secondary button-small"
+                          >
+                            ⋯
                           </summary>
                           <button
                             className="text-button"

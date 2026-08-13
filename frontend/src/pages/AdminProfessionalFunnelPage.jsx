@@ -91,6 +91,23 @@ function decisionBadgeClass(code) {
   return `admin-status-badge admin-decision-badge is-${safeCode}`;
 }
 
+function sourceMeta(item) {
+  const source = String(item?.origem || "").trim().toLowerCase();
+
+  if (source === "google") return { code: "google", label: "Google Ads" };
+  if (["meta", "facebook", "instagram"].includes(source)) {
+    return { code: "meta", label: "Meta Ads" };
+  }
+  if (source === "pinterest") return { code: "pinterest", label: "Pinterest" };
+  if (source === "tiktok") return { code: "tiktok", label: "TikTok" };
+  if (source === "organico") return { code: "organico", label: "Orgânico" };
+
+  return {
+    code: "outro",
+    label: source ? source.charAt(0).toUpperCase() + source.slice(1) : "Origem não identificada"
+  };
+}
+
 export function AdminProfessionalFunnelPage() {
   const [period, setPeriod] = useState("30");
   const [data, setData] = useState(null);
@@ -278,9 +295,9 @@ export function AdminProfessionalFunnelPage() {
         <div className="panel-heading">
           <div>
             <p className="eyebrow">Ativação</p>
-            <h2>Progressão da coorte</h2>
+            <h2>Marcos alcançados pela coorte</h2>
             <p className="muted">
-              O período define quando o profissional entrou na coorte. As etapas mostram o progresso que essas contas já alcançaram.
+              O período define quando o profissional entrou na coorte. Cada marco é medido independentemente e não representa uma sequência obrigatória.
             </p>
           </div>
         </div>
@@ -289,7 +306,7 @@ export function AdminProfessionalFunnelPage() {
           <table>
             <thead>
               <tr>
-                <th>Etapa</th>
+                <th>Marco</th>
                 <th>Profissionais</th>
                 <th>% dos cadastros</th>
               </tr>
@@ -343,16 +360,19 @@ export function AdminProfessionalFunnelPage() {
                 {campaigns.map((item) => {
                   const key = campaignKey(item);
                   const expanded = expandedCampaign === key;
+                  const source = sourceMeta(item);
 
                   return (
                     <Fragment key={key}>
                       <tr>
                         <td>
                           <strong>{campaignLabel(item)}</strong>
-                          <br />
-                          <small className="muted">
-                            {item.origem} · {item.midia}
-                          </small>
+                          <div className="admin-campaign-source">
+                            <span className={`admin-status-badge admin-source-badge is-${source.code}`}>
+                              {source.label}
+                            </span>
+                            <small className="muted">{item.midia || "none"}</small>
+                          </div>
                         </td>
                         <td>
                           {item.investimentoCentavos > 0
