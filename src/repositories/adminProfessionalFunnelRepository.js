@@ -129,7 +129,18 @@ async function listarPorCampanha(
             'organico'
           ) AS campanha
         FROM marketing_usuario_atribuicoes mua
+        LEFT JOIN marketing_campanhas mc
+          ON mc.utm_source = NULLIF(BTRIM(mua.utm_source), '')
+          AND mc.utm_medium = COALESCE(
+            NULLIF(BTRIM(mua.utm_medium), ''),
+            'cpc'
+          )
+          AND mc.utm_campaign = NULLIF(BTRIM(mua.utm_campaign), '')
         WHERE mua.intencao = 'profissional'
+          AND (
+            mc.id IS NULL
+            OR mc.objetivo = 'profissional'
+          )
           ${filtroCoorte}
       ),
 
@@ -228,6 +239,7 @@ async function listarPorCampanha(
         INNER JOIN marketing_campanha_gastos g
           ON g.campanha_id = mc.id
         WHERE g.moeda = 'BRL'
+          AND mc.objetivo = 'profissional'
           ${filtroGasto}
         GROUP BY
           mc.utm_source,
