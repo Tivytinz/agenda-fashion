@@ -105,7 +105,7 @@ describe("saúde das integrações de custo no admin", () => {
     expect(screen.getByText("Parcial")).not.toBeNull();
     expect(screen.getByText("Custos automáticos ativos")).not.toBeNull();
     expect(
-      screen.getByText(/Execução a cada 6h.*desatualização após 12h/i)
+      screen.getByText("Atualização a cada 6h · alerta após 12h sem sincronização.")
     ).not.toBeNull();
     expect(
       screen.getByText(
@@ -117,8 +117,10 @@ describe("saúde das integrações de custo no admin", () => {
         "2 campanha(s) externa(s) ficaram sem vínculo na última sincronização."
       )
     ).not.toBeNull();
-    expect(screen.getByText("18 importado(s) · 0 sem vínculo")).not.toBeNull();
-    expect(screen.getByText("7 importado(s) · 2 sem vínculo")).not.toBeNull();
+    expect(screen.getByText("18 registros importados")).not.toBeNull();
+    expect(
+      screen.getByText("7 registros importados · 2 campanhas externas sem vínculo")
+    ).not.toBeNull();
   });
 
   it("explica por que o vínculo ainda não pode ser salvo", async () => {
@@ -156,7 +158,7 @@ describe("saúde das integrações de custo no admin", () => {
       await screen.findByText("Custos automáticos desativados")
     ).not.toBeNull();
     expect(
-      screen.getByText(/Sincronização manual disponível.*desatualização após 24h/i)
+      screen.getByText("Sincronização manual disponível · alerta após 24h sem atualização.")
     ).not.toBeNull();
   });
 
