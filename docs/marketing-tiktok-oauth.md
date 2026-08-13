@@ -68,9 +68,11 @@ TIKTOK_ADS_COSTS_ENABLED=false
 
 Depois configure App ID, App Secret, Advertiser ID, chave de criptografia e redirect URI. Abra o Admin e conclua `Autorizar TikTok`.
 
-Depois da autorização, valide `Testar conexão`. A conta deve retornar `BRL`, pois a versão atual do motor de custos do AF recusa outras moedas para não misturar valores sem conversão cambial.
+Quando a autorização estiver salva, altere `TIKTOK_ADS_COSTS_ENABLED=true`. Isso habilita no painel o teste de conexão, a listagem de campanhas e a sincronização do provedor. A sincronização automática global continua controlada separadamente por `MARKETING_COST_SYNC_SCHEDULE_ENABLED`.
 
-Somente após essa validação altere `TIKTOK_ADS_COSTS_ENABLED=true`. A sincronização automática global continua controlada separadamente por `MARKETING_COST_SYNC_SCHEDULE_ENABLED`.
+Execute `Testar conexão` antes de criar qualquer vínculo. A conta deve retornar `BRL`, pois a versão atual do motor de custos do AF recusa outras moedas para não misturar valores sem conversão cambial.
+
+Somente depois do teste bem-sucedido vincule uma campanha AF do canal TikTok à campanha real e execute a sincronização manual de 30 dias. Ative o worker global apenas quando os vínculos e valores importados já estiverem validados.
 
 ## Segurança
 
