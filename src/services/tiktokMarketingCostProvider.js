@@ -30,9 +30,16 @@ function config() {
   };
 }
 
+function exigirAdvertiser(valor) {
+  if (!valor.advertiserId) {
+    throw new AppError("Advertiser ID do TikTok Ads não está configurado.", 409);
+  }
+}
+
 function exigirConfigBase(valor) {
-  if (!valor.enabled || !valor.advertiserId) {
-    throw new AppError("Integração com TikTok Ads ainda não está habilitada e configurada.", 409);
+  exigirAdvertiser(valor);
+  if (!valor.enabled) {
+    throw new AppError("Importação de custos do TikTok Ads está desativada.", 409);
   }
 }
 
@@ -78,9 +85,11 @@ function urlTikTok(valor, path, params = {}) {
   return url.toString();
 }
 
-async function get(path, params = {}) {
+async function get(path, params = {}, { permitirDesativado = false } = {}) {
   const valor = config();
-  exigirConfigBase(valor);
+  if (permitirDesativado) exigirAdvertiser(valor);
+  else exigirConfigBase(valor);
+
   const accessToken = await tiktokOAuthService.obterAccessTokenValido();
 
   return fetchJson(
@@ -139,10 +148,14 @@ async function listarCampanhasRaw(filtering) {
 
 async function testarConexao() {
   const valor = config();
-  exigirConfigBase(valor);
-  const payload = await get("advertiser/info/", {
-    advertiser_ids: JSON.stringify([valor.advertiserId])
-  });
+  exigirAdvertiser(valor);
+  const payload = await get(
+    "advertiser/info/",
+    {
+      advertiser_ids: JSON.stringify([valor.advertiserId])
+    },
+    { permitirDesativado: true }
+  );
   const account = Array.isArray(payload?.data?.list)
     ? payload.data.list[0]
     : null;
