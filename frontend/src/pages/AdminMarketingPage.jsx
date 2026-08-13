@@ -45,9 +45,15 @@ const CHANNELS = {
   }
 };
 
+const OBJECTIVES = {
+  profissional: "Aquisição de profissionais",
+  cliente: "Aquisição de clientes"
+};
+
 const INITIAL_CAMPAIGN = {
   nome: "",
   canal: "meta",
+  objetivo: "",
   utmSource: "meta",
   utmMedium: "cpc",
   utmCampaign: "",
@@ -278,6 +284,8 @@ export function AdminMarketingPage() {
         campaignForm.nome,
       canal:
         campaignForm.canal,
+      objetivo:
+        campaignForm.objetivo,
       utmSource:
         campaignForm.utmSource,
       utmMedium:
@@ -336,9 +344,12 @@ export function AdminMarketingPage() {
     }
   }
 
-  async function toggleCampaign(item) {
+  async function updateCampaign(
+    item,
+    body
+  ) {
     if (campaignActionId) {
-      return;
+      return null;
     }
 
     setCampaignActionId(item.id);
@@ -351,10 +362,7 @@ export function AdminMarketingPage() {
           `/admin/marketing/gestao-campanhas/${item.id}`,
           {
             method: "PATCH",
-            body: {
-              ativo:
-                !item.ativo
-            }
+            body
           }
         );
 
@@ -371,12 +379,53 @@ export function AdminMarketingPage() {
               )
         })
       );
+
+      return result.campanha;
     } catch (requestError) {
       setCampaignError(
         requestError.message
       );
+      return null;
     } finally {
       setCampaignActionId(null);
+    }
+  }
+
+  async function toggleCampaign(item) {
+    await updateCampaign(
+      item,
+      {
+        ativo: !item.ativo
+      }
+    );
+  }
+
+  async function classifyCampaign(
+    item,
+    objetivo
+  ) {
+    const label =
+      OBJECTIVES[objetivo];
+
+    if (!label) return;
+
+    const confirmed =
+      window.confirm(
+        `Definir esta campanha como “${label}”? Essa classificação ficará travada para preservar os relatórios históricos.`
+      );
+
+    if (!confirmed) return;
+
+    const updated =
+      await updateCampaign(
+        item,
+        { objetivo }
+      );
+
+    if (updated) {
+      setCampaignMessage(
+        `Objetivo definido como ${label}.`
+      );
     }
   }
 
@@ -461,7 +510,7 @@ export function AdminMarketingPage() {
           </p>
           <h1>Marketing e tráfego pago</h1>
           <p>
-            Crie links de campanha e acompanhe quais origens terminam em agendamento.
+            Crie links de aquisição para clientes e profissionais sem misturar o objetivo dos relatórios.
           </p>
         </div>
 
@@ -522,7 +571,7 @@ export function AdminMarketingPage() {
             </p>
             <h2>Gerar link rastreável</h2>
             <p className="muted">
-              O destino precisa ser uma página interna do AF. A identidade UTM fica preservada depois da criação.
+              Defina o objetivo antes de criar. A identidade UTM e o objetivo ficam preservados para manter a leitura histórica consistente.
             </p>
           </div>
         </div>
@@ -546,6 +595,32 @@ export function AdminMarketingPage() {
                 required
                 value={campaignForm.nome}
               />
+            </label>
+
+            <label>
+              Objetivo
+              <select
+                onChange={(event) =>
+                  updateCampaignForm(
+                    "objetivo",
+                    event.target.value
+                  )
+                }
+                required
+                value={campaignForm.objetivo}
+              >
+                <option value="">Selecione o objetivo</option>
+                {Object.entries(OBJECTIVES).map(
+                  ([value, label]) => (
+                    <option key={value} value={value}>
+                      {label}
+                    </option>
+                  )
+                )}
+              </select>
+              <small>
+                Profissionais mede aquisição e assinatura; clientes mede agendamento.
+              </small>
             </label>
 
             <label>
@@ -722,6 +797,9 @@ export function AdminMarketingPage() {
               Links do AF
             </p>
             <h2>Campanhas cadastradas</h2>
+            <p className="muted">
+              Campanhas antigas precisam ser classificadas uma vez antes de entrarem nos KPIs específicos do objetivo.
+            </p>
           </div>
         </div>
 
@@ -735,6 +813,7 @@ export function AdminMarketingPage() {
               <thead>
                 <tr>
                   <th>Campanha</th>
+                  <th>Objetivo</th>
                   <th>Canal</th>
                   <th>UTM</th>
                   <th>Destino</th>
@@ -750,6 +829,28 @@ export function AdminMarketingPage() {
                         <strong>
                           {item.nome}
                         </strong>
+                      </td>
+                      <td>
+                        {OBJECTIVES[item.objetivo] || (
+                          <div className="quick-actions">
+                            <button
+                              className="button button-secondary button-small"
+                              disabled={campaignActionId === item.id}
+                              onClick={() => classifyCampaign(item, "profissional")}
+                              type="button"
+                            >
+                              Profissional
+                            </button>
+                            <button
+                              className="button button-secondary button-small"
+                              disabled={campaignActionId === item.id}
+                              onClick={() => classifyCampaign(item, "cliente")}
+                              type="button"
+                            >
+                              Cliente
+                            </button>
+                          </div>
+                        )}
                       </td>
                       <td>
                         {CHANNELS[item.canal]
