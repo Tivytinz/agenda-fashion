@@ -291,9 +291,9 @@ describe(
         ).not.toBeNull();
 
         expect(
-          screen.getByText(
-            "Aquisição de clientes"
-          )
+          screen.getByRole("cell", {
+            name: "Aquisição de clientes"
+          })
         ).not.toBeNull();
       }
     );
@@ -332,9 +332,9 @@ describe(
         });
 
         expect(
-          await screen.findByText(
-            "Aquisição de profissionais"
-          )
+          await screen.findByRole("cell", {
+            name: "Aquisição de profissionais"
+          })
         ).not.toBeNull();
         expect(
           screen.getByText(
