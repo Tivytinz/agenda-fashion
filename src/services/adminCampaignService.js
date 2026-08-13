@@ -42,6 +42,11 @@ const CANAIS = new Map([
   ],
 ]);
 
+const OBJETIVOS = new Set([
+  "profissional",
+  "cliente",
+]);
+
 const CAMPOS_IDENTIDADE = new Set([
   "canal",
   "utmSource",
@@ -139,6 +144,23 @@ function normalizarCanal(valor) {
   }
 
   return canal;
+}
+
+function normalizarObjetivo(valor) {
+  const objetivo = String(
+    valor || ""
+  )
+    .trim()
+    .toLocaleLowerCase("pt-BR");
+
+  if (!OBJETIVOS.has(objetivo)) {
+    throw new AppError(
+      "Objetivo inválido. Escolha aquisição de profissionais ou aquisição de clientes.",
+      400
+    );
+  }
+
+  return objetivo;
 }
 
 function normalizarDestino(valor) {
@@ -313,6 +335,9 @@ function mapearCampanha(
       campanha.nome,
     canal:
       campanha.canal,
+    objetivo:
+      campanha.objetivo ||
+      "indefinido",
     utmSource:
       campanha.utm_source,
     utmMedium:
@@ -361,6 +386,11 @@ function montarNovaCampanha(
       payload?.nome
     );
 
+  const objetivo =
+    normalizarObjetivo(
+      payload?.objetivo
+    );
+
   const utmSource =
     tokenizar(
       payload?.utmSource ??
@@ -401,6 +431,7 @@ function montarNovaCampanha(
   return {
     nome,
     canal,
+    objetivo,
     utmSource,
     utmMedium,
     utmCampaign,
@@ -548,6 +579,29 @@ async function atualizarCampanha({
     );
   }
 
+  let objetivo =
+    atual.objetivo ||
+    "indefinido";
+
+  if (payload?.objetivo !== undefined) {
+    const solicitado =
+      normalizarObjetivo(
+        payload.objetivo
+      );
+
+    if (
+      objetivo !== "indefinido" &&
+      solicitado !== objetivo
+    ) {
+      throw new AppError(
+        "O objetivo da campanha não pode ser alterado depois de definido. Crie uma nova campanha para preservar a leitura histórica dos resultados.",
+        400
+      );
+    }
+
+    objetivo = solicitado;
+  }
+
   const atualizada =
     await adminCampaignRepository
       .atualizar(
@@ -559,6 +613,7 @@ async function atualizarCampanha({
               : normalizarNome(
                   payload.nome
                 ),
+          objetivo,
           utmContent:
             payload?.utmContent === undefined &&
             payload?.utm_content === undefined
@@ -613,5 +668,6 @@ module.exports = {
   atualizarCampanha,
   gerarLinkRastreavel,
   normalizarDestino,
+  normalizarObjetivo,
   tokenizar,
 };
