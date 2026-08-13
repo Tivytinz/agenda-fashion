@@ -91,201 +91,155 @@ function resultado() {
 
 beforeEach(() => {
   apiRequest.mockReset();
-  apiRequest.mockResolvedValue(
-    resultado()
-  );
+  apiRequest.mockResolvedValue(resultado());
 });
 
 afterEach(cleanup);
 
-describe(
-  "AdminProfessionalFunnelPage",
-  () => {
-    it(
-      "renderiza KPIs principais, marcos independentes e abre os detalhes da decisão sob demanda",
-      async () => {
-        const user = userEvent.setup();
+describe("AdminProfessionalFunnelPage", () => {
+  it("renderiza KPIs, gráficos, marcos independentes e detalhes de decisão", async () => {
+    const user = userEvent.setup();
 
-        render(
-          <MemoryRouter>
-            <AdminProfessionalFunnelPage />
-          </MemoryRouter>
-        );
-
-        expect(
-          await screen.findByRole(
-            "heading",
-            { name: "Rentabilidade de profissionais" }
-          )
-        ).not.toBeNull();
-
-        expect(
-          screen.getByRole("heading", { name: "Marcos alcançados pela coorte" })
-        ).not.toBeNull();
-        expect(
-          screen.getByText(/cada marco é medido independentemente/i)
-        ).not.toBeNull();
-        expect(
-          screen.queryByRole("heading", { name: "Progressão da coorte" })
-        ).toBeNull();
-
-        expect(
-          screen.getAllByText("20").length
-        ).toBeGreaterThanOrEqual(1);
-
-        expect(
-          screen.getByText("profissionais_goiania")
-        ).not.toBeNull();
-        expect(screen.getByText("Meta Ads")).not.toBeNull();
-
-        expect(
-          screen.getAllByText(/R\$\s*100,00/).length
-        ).toBeGreaterThanOrEqual(1);
-
-        expect(
-          screen.getAllByText(/R\$\s*596,00/).length
-        ).toBeGreaterThanOrEqual(1);
-
-        expect(
-          screen.getAllByText("1,49x").length
-        ).toBeGreaterThanOrEqual(1);
-
-        expect(
-          screen.getAllByText("Escalar").length
-        ).toBeGreaterThanOrEqual(1);
-
-        expect(
-          screen.getByText(/Confiança alta/i)
-        ).not.toBeNull();
-
-        expect(
-          screen.getByText(/10 cadastros · 2 assinaturas/i)
-        ).not.toBeNull();
-
-        expect(
-          screen.getByText(
-            /renovações posteriores não entram no ROAS de aquisição/i
-          )
-        ).not.toBeNull();
-
-        expect(
-          screen.getByText(/reembolso zera a receita/i)
-        ).not.toBeNull();
-
-        expect(
-          screen.queryByText("Custo por checkout")
-        ).toBeNull();
-
-        expect(
-          screen.getAllByText(/R\$\s*80,00/)
-        ).toHaveLength(1);
-
-        await user.click(
-          screen.getByRole("button", {
-            name: "Ver detalhes"
-          })
-        );
-
-        expect(
-          screen.getByText("Custo por checkout")
-        ).not.toBeNull();
-        expect(
-          screen.getAllByText(/R\$\s*80,00/)
-        ).toHaveLength(2);
-        expect(
-          screen.getByText(
-            /ROAS 1\.49x está acima da faixa de escala/i
-          )
-        ).not.toBeNull();
-      }
+    render(
+      <MemoryRouter>
+        <AdminProfessionalFunnelPage />
+      </MemoryRouter>
     );
 
-    it(
-      "não chama tráfego pago sem utm_campaign de orgânico",
-      async () => {
-        const paidWithoutCampaign = resultado();
-        paidWithoutCampaign.campanhas = [
-          {
-            ...paidWithoutCampaign.campanhas[0],
-            origem: "google",
-            midia: "cpc",
-            campanha: "organico",
-            decisao: {
-              codigo: "sem_dados",
-              rotulo: "Sem dados",
-              confianca: "baixa",
-              motivo: "Sem investimento atribuído."
-            }
-          }
-        ];
-        apiRequest.mockResolvedValueOnce(paidWithoutCampaign);
+    expect(
+      await screen.findByRole("heading", { name: "Rentabilidade de profissionais" })
+    ).not.toBeNull();
 
-        render(
-          <MemoryRouter>
-            <AdminProfessionalFunnelPage />
-          </MemoryRouter>
-        );
+    expect(screen.getByRole("heading", { name: "Marcos alcançados pela coorte" })).not.toBeNull();
+    expect(screen.getByText("Atingimento por marco")).not.toBeNull();
+    expect(screen.getByText("ROAS por campanha")).not.toBeNull();
+    expect(screen.queryByRole("heading", { name: "Progressão da coorte" })).toBeNull();
 
-        expect(
-          await screen.findByText("Sem UTM de campanha")
-        ).not.toBeNull();
-        expect(
-          screen.queryByText("Orgânico / sem campanha")
-        ).toBeNull();
-        expect(screen.getByText("Google Ads")).not.toBeNull();
-        expect(screen.getByText("cpc")).not.toBeNull();
+    expect(screen.getAllByText("20").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText("profissionais_goiania").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText("Meta Ads").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText(/R\$\s*100,00/).length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText(/R\$\s*596,00/).length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText("1,49x").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText("Escalar").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getByText(/Confiança alta/i)).not.toBeNull();
+    expect(screen.getByText(/10 cadastros · 2 assinaturas/i)).not.toBeNull();
+    expect(
+      screen.getByText(/renovações posteriores não entram no ROAS/i)
+    ).not.toBeNull();
+
+    expect(screen.queryByText("Custo por checkout")).toBeNull();
+    expect(screen.getAllByText(/R\$\s*80,00/)).toHaveLength(1);
+
+    await user.click(screen.getByRole("button", { name: "Ver detalhes" }));
+
+    expect(screen.getByText("Custo por checkout")).not.toBeNull();
+    expect(screen.getAllByText(/R\$\s*80,00/)).toHaveLength(2);
+    expect(
+      screen.getByText(/ROAS 1\.49x está acima da faixa de escala/i)
+    ).not.toBeNull();
+  });
+
+  it("não chama tráfego pago sem utm_campaign de orgânico", async () => {
+    const paidWithoutCampaign = resultado();
+    paidWithoutCampaign.campanhas = [
+      {
+        ...paidWithoutCampaign.campanhas[0],
+        origem: "google",
+        midia: "cpc",
+        campanha: "organico",
+        roas: null,
+        decisao: {
+          codigo: "sem_dados",
+          rotulo: "Sem dados",
+          confianca: "baixa",
+          motivo: "Sem investimento atribuído."
+        }
       }
+    ];
+    apiRequest.mockResolvedValueOnce(paidWithoutCampaign);
+
+    render(
+      <MemoryRouter>
+        <AdminProfessionalFunnelPage />
+      </MemoryRouter>
     );
 
-    it(
-      "recarrega a coorte ao trocar período",
-      async () => {
-        const user = userEvent.setup();
+    expect(await screen.findByText("Tráfego sem UTM de campanha")).not.toBeNull();
+    expect(screen.queryByText("Orgânico / sem campanha")).toBeNull();
+    expect(screen.getAllByText("Google Ads").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getByText("CPC")).not.toBeNull();
+    expect(screen.getAllByText("Sem dados").length).toBeGreaterThanOrEqual(1);
+  });
 
-        render(
-          <MemoryRouter>
-            <AdminProfessionalFunnelPage />
-          </MemoryRouter>
-        );
-
-        await screen.findByRole(
-          "heading",
-          { name: "Rentabilidade de profissionais" }
-        );
-
-        await user.click(
-          screen.getByRole(
-            "button",
-            { name: "7 dias" }
-          )
-        );
-
-        await waitFor(() => {
-          expect(apiRequest)
-            .toHaveBeenCalledWith(
-              "/admin/marketing/funil-profissionais?periodo=7",
-              expect.any(Object)
-            );
-        });
+  it("remove o marcador técnico none do tráfego orgânico", async () => {
+    const organic = resultado();
+    organic.campanhas = [
+      {
+        ...organic.campanhas[0],
+        origem: "organico",
+        midia: "none",
+        campanha: "organico",
+        roas: null,
+        investimentoCentavos: 0,
+        receitaPrimeiroPagamentoCentavos: 0,
+        cacAssinanteCentavos: null,
+        decisao: {
+          codigo: "sem_dados",
+          rotulo: "Sem dados",
+          confianca: "baixa",
+          motivo: "Sem investimento atribuído."
+        }
       }
+    ];
+    apiRequest.mockResolvedValueOnce(organic);
+
+    render(
+      <MemoryRouter>
+        <AdminProfessionalFunnelPage />
+      </MemoryRouter>
     );
 
-    it("preserva a coorte carregada se a atualização falhar", async () => {
-      const user = userEvent.setup();
+    expect(await screen.findByText("Orgânico / sem campanha")).not.toBeNull();
+    expect(screen.getByText("Orgânico")).not.toBeNull();
+    expect(screen.queryByText("none")).toBeNull();
+  });
 
-      render(
-        <MemoryRouter>
-          <AdminProfessionalFunnelPage />
-        </MemoryRouter>
+  it("recarrega a coorte ao trocar período", async () => {
+    const user = userEvent.setup();
+
+    render(
+      <MemoryRouter>
+        <AdminProfessionalFunnelPage />
+      </MemoryRouter>
+    );
+
+    await screen.findByRole("heading", { name: "Rentabilidade de profissionais" });
+    await user.click(screen.getByRole("button", { name: "7 dias" }));
+
+    await waitFor(() => {
+      expect(apiRequest).toHaveBeenCalledWith(
+        "/admin/marketing/funil-profissionais?periodo=7",
+        expect.any(Object)
       );
-
-      await screen.findByText("profissionais_goiania");
-      apiRequest.mockRejectedValueOnce(new Error("Funil indisponível"));
-
-      await user.click(screen.getByRole("button", { name: "7 dias" }));
-
-      expect(await screen.findByRole("alert")).not.toBeNull();
-      expect(screen.getByText("profissionais_goiania")).not.toBeNull();
     });
-  }
-);
+  });
+
+  it("preserva a coorte carregada se a atualização falhar", async () => {
+    const user = userEvent.setup();
+
+    render(
+      <MemoryRouter>
+        <AdminProfessionalFunnelPage />
+      </MemoryRouter>
+    );
+
+    await screen.findByText("profissionais_goiania");
+    apiRequest.mockRejectedValueOnce(new Error("Funil indisponível"));
+
+    await user.click(screen.getByRole("button", { name: "7 dias" }));
+
+    expect(await screen.findByRole("alert")).not.toBeNull();
+    expect(screen.getAllByText("profissionais_goiania").length).toBeGreaterThanOrEqual(1);
+  });
+});
