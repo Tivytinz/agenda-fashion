@@ -142,29 +142,27 @@ afterEach(() => {
 });
 
 describe("AdminMarketingPage", () => {
-  it("carrega métricas e transforma campanha legada em pendência acionável", async () => {
+  it("carrega métricas, estatísticas e transforma campanha legada em pendência acionável", async () => {
     render(<AdminMarketingPage />);
 
     expect(
-      await screen.findByRole("heading", {
-        name: "Campanhas e tráfego pago"
-      })
+      await screen.findByRole("heading", { name: "Campanhas e tráfego pago" })
     ).not.toBeNull();
     expect(screen.getAllByText("100").length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByText("goiania_cilios").length).toBeGreaterThanOrEqual(2);
     expect(screen.getByText("Studio Bella")).not.toBeNull();
     expect(screen.getByText("Meta Cílios")).not.toBeNull();
     expect(screen.getByText("Não classificado")).not.toBeNull();
-    expect(
-      screen.getByText(/1 campanha\(s\) sem classificação/i)
-    ).not.toBeNull();
+    expect(screen.getByText(/1 campanha sem classificação/i)).not.toBeNull();
+    expect(screen.getByText("Sessões por origem")).not.toBeNull();
+    expect(screen.getByText("Resumo por origem")).not.toBeNull();
     expect(
       screen.getByRole("button", { name: "Revisar classificação" })
     ).not.toBeNull();
     expect(apiRequest).toHaveBeenCalledTimes(4);
   });
 
-  it("avisa de forma compacta quando tráfego pago chega sem utm_campaign", async () => {
+  it("avisa de forma profissional quando tráfego pago chega sem campanha UTM", async () => {
     const originalImplementation = apiRequest.getMockImplementation();
     apiRequest.mockImplementation((path, options) => {
       if (path.startsWith("/admin/marketing/campanhas")) {
@@ -189,10 +187,9 @@ describe("AdminMarketingPage", () => {
 
     render(<AdminMarketingPage />);
 
-    expect(
-      await screen.findByText(/5 sessão\(ões\) paga\(s\) sem campanha/i)
-    ).not.toBeNull();
-    expect(screen.getByText("Falta utm_campaign")).not.toBeNull();
+    expect(await screen.findByText(/5 sessões pagas sem campanha/i)).not.toBeNull();
+    expect(screen.getByText("Tráfego pago sem campanha")).not.toBeNull();
+    expect(screen.getByText("Campanha UTM não recebida")).not.toBeNull();
     expect(
       screen.getByRole("button", { name: "Copiar link correto de Meta Cílios" })
     ).not.toBeNull();
@@ -218,14 +215,9 @@ describe("AdminMarketingPage", () => {
     render(<AdminMarketingPage />);
 
     await screen.findByRole("heading", { name: "Campanhas e tráfego pago" });
-    await user.type(
-      screen.getByLabelText("Nome da campanha"),
-      "Cílios Goiânia Agosto"
-    );
+    await user.type(screen.getByLabelText("Nome da campanha"), "Cílios Goiânia Agosto");
     await user.selectOptions(screen.getByLabelText(/Objetivo/), "cliente");
-    await user.click(
-      screen.getByRole("button", { name: "Criar campanha e link" })
-    );
+    await user.click(screen.getByRole("button", { name: "Criar campanha e link" }));
 
     await waitFor(() => {
       expect(apiRequest).toHaveBeenCalledWith(
@@ -245,14 +237,10 @@ describe("AdminMarketingPage", () => {
     });
 
     expect(
-      await screen.findByText(
-        "Campanha criada. O link rastreável já está pronto para uso."
-      )
+      await screen.findByText("Campanha criada. O link rastreável já está pronto para uso.")
     ).not.toBeNull();
     expect(screen.getByText("Cílios Goiânia Agosto")).not.toBeNull();
-    expect(
-      screen.getByRole("cell", { name: "Aquisição de clientes" })
-    ).not.toBeNull();
+    expect(screen.getByRole("cell", { name: "Aquisição de clientes" })).not.toBeNull();
   });
 
   it("classifica campanha legada com confirmação explícita", async () => {
@@ -264,25 +252,16 @@ describe("AdminMarketingPage", () => {
     const campaignRow = campaignName.closest("tr");
     expect(campaignRow).not.toBeNull();
 
-    await user.click(
-      within(campaignRow).getByRole("button", { name: "Classificar" })
-    );
+    await user.click(within(campaignRow).getByRole("button", { name: "Classificar" }));
     expect(
-      within(campaignRow).getByText(
-        /Escolha uma vez\. Depois o objetivo fica travado/
-      )
+      within(campaignRow).getByText(/Escolha uma vez\. Depois o objetivo fica travado/)
     ).not.toBeNull();
-    await user.click(
-      within(campaignRow).getByRole("button", { name: "Profissional" })
-    );
+    await user.click(within(campaignRow).getByRole("button", { name: "Profissional" }));
 
     await waitFor(() => {
       expect(apiRequest).toHaveBeenCalledWith(
         "/admin/marketing/gestao-campanhas/7",
-        {
-          method: "PATCH",
-          body: { objetivo: "profissional" }
-        }
+        { method: "PATCH", body: { objetivo: "profissional" } }
       );
     });
 
@@ -308,10 +287,7 @@ describe("AdminMarketingPage", () => {
     await waitFor(() => {
       expect(apiRequest).toHaveBeenCalledWith(
         "/admin/marketing/gestao-campanhas/7",
-        {
-          method: "PATCH",
-          body: { ativo: false }
-        }
+        { method: "PATCH", body: { ativo: false } }
       );
     });
     expect(await screen.findByText("Arquivada")).not.toBeNull();
@@ -355,9 +331,7 @@ describe("AdminMarketingPage", () => {
       await screen.findByRole("heading", { name: "Campanhas e tráfego pago" })
     ).not.toBeNull();
     expect(screen.getByText("Meta Cílios")).not.toBeNull();
-    expect(screen.getByRole("alert").textContent).toContain(
-      "Parte dos dados de marketing"
-    );
+    expect(screen.getByRole("alert").textContent).toContain("Parte dos dados de marketing");
   });
 
   it("preserva a última seção carregada durante uma falha de atualização", async () => {
