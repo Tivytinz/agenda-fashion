@@ -97,7 +97,7 @@ beforeEach(() => {
 afterEach(cleanup);
 
 describe("AdminProfessionalFunnelPage", () => {
-  it("renderiza KPIs, gráficos, marcos independentes e detalhes de decisão", async () => {
+  it("renderiza KPIs, tabelas, marcos independentes e detalhes de decisão", async () => {
     const user = userEvent.setup();
 
     render(
@@ -111,8 +111,12 @@ describe("AdminProfessionalFunnelPage", () => {
     ).not.toBeNull();
 
     expect(screen.getByRole("heading", { name: "Marcos alcançados pela coorte" })).not.toBeNull();
-    expect(screen.getByText("Atingimento por marco")).not.toBeNull();
-    expect(screen.getByText("ROAS por campanha")).not.toBeNull();
+    expect(screen.getByText("Detalhamento da coorte")).not.toBeNull();
+    expect(screen.queryByText("Atingimento por marco")).toBeNull();
+    expect(screen.queryByText("ROAS por campanha")).toBeNull();
+    expect(screen.getByRole("columnheader", { name: "Marco" })).not.toBeNull();
+    expect(screen.getByRole("columnheader", { name: "ROAS" })).not.toBeNull();
+    expect(screen.getByRole("columnheader", { name: "CAC" })).not.toBeNull();
     expect(screen.queryByRole("heading", { name: "Progressão da coorte" })).toBeNull();
 
     expect(screen.getAllByText("20").length).toBeGreaterThanOrEqual(1);
