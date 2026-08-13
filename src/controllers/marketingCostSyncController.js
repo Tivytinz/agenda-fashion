@@ -1,5 +1,6 @@
 const service = require("../services/marketingCostSyncService");
 const tiktokOAuthService = require("../services/tiktokOAuthService");
+const registrador = require("../utils/registrador");
 
 const TIKTOK_CALLBACK_PATH = "/admin/trafego-pago/custos";
 
@@ -65,9 +66,7 @@ async function iniciarAutorizacaoTikTok(req, res, next) {
 function callbackEhTikTok(req) {
   return Boolean(
     req.query?.auth_code ||
-    req.query?.state ||
-    req.query?.error ||
-    req.query?.error_description
+    req.query?.error
   );
 }
 
@@ -77,6 +76,9 @@ async function callbackTikTok(req, res, next) {
   }
 
   if (req.query?.error) {
+    registrador.aviso(
+      "TikTok Ads: autorização recusada ou interrompida pelo provedor."
+    );
     return res.redirect(303, `${TIKTOK_CALLBACK_PATH}?tiktok_oauth=error`);
   }
 
@@ -88,7 +90,12 @@ async function callbackTikTok(req, res, next) {
 
     return res.redirect(303, `${TIKTOK_CALLBACK_PATH}?tiktok_oauth=success`);
   } catch (erro) {
-    req.tiktokOAuthError = erro;
+    registrador.aviso(
+      "TikTok Ads: não foi possível concluir o callback OAuth.",
+      {
+        codigo: String(erro?.code || erro?.statusCode || "oauth_error").slice(0, 80)
+      }
+    );
     return res.redirect(303, `${TIKTOK_CALLBACK_PATH}?tiktok_oauth=error`);
   }
 }
