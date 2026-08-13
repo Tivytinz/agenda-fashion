@@ -4,7 +4,8 @@ import {
   cleanup,
   render,
   screen,
-  waitFor
+  waitFor,
+  within
 } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import {
@@ -305,22 +306,25 @@ describe(
 
         render(<AdminMarketingPage />);
 
-        await screen.findByText("Meta Cílios");
+        const campaignName = await screen.findByText("Meta Cílios");
+        const campaignRow = campaignName.closest("tr");
+
+        expect(campaignRow).not.toBeNull();
 
         await user.click(
-          screen.getByRole("button", {
+          within(campaignRow).getByRole("button", {
             name: "Classificar campanha"
           })
         );
 
         expect(
-          screen.getByText(
+          within(campaignRow).getByText(
             /Escolha uma vez\. Depois o objetivo fica travado/
           )
         ).not.toBeNull();
 
         await user.click(
-          screen.getByRole("button", {
+          within(campaignRow).getByRole("button", {
             name: "Profissional"
           })
         );
