@@ -34,6 +34,8 @@ function rowFromCampaign(
       campanha.nome,
     canal:
       campanha.canal,
+    objetivo:
+      campanha.objetivo,
     utm_source:
       campanha.utmSource,
     utm_medium:
@@ -68,7 +70,7 @@ describe(
     });
 
     test(
-      "normaliza campanha e gera link interno rastreável",
+      "normaliza campanha com objetivo e gera link interno rastreável",
       async () => {
         adminCampaignRepository
           .buscarPorIdentidade
@@ -92,6 +94,8 @@ describe(
                   "Cílios Goiânia Agosto",
                 canal:
                   "meta",
+                objetivo:
+                  "cliente",
                 destinoPath:
                   "/negocio/studio-bella?servico=8&utm_source=antiga",
                 utmContent:
@@ -119,6 +123,7 @@ describe(
             nome:
               "Cílios Goiânia Agosto",
             canal: "meta",
+            objetivo: "cliente",
             utmSource: "meta",
             utmMedium: "cpc",
             utmCampaign:
@@ -129,6 +134,10 @@ describe(
             criadoPorUsuarioId: 7,
           })
         );
+
+        expect(
+          resultado.campanha.objetivo
+        ).toBe("cliente");
 
         const link =
           new URL(
@@ -162,6 +171,29 @@ describe(
       }
     );
 
+    test(
+      "exige objetivo explícito em nova campanha",
+      async () => {
+        await expect(
+          adminCampaignService
+            .criarCampanha({
+              usuarioId: 7,
+              payload: {
+                nome: "Sem objetivo",
+                canal: "meta",
+                destinoPath: "/",
+              },
+            })
+        ).rejects.toMatchObject({
+          statusCode: 400,
+        });
+
+        expect(
+          adminCampaignRepository.criar
+        ).not.toHaveBeenCalled();
+      }
+    );
+
     test.each([
       "https://exemplo.com/oferta",
       "//exemplo.com/oferta",
@@ -178,6 +210,8 @@ describe(
                   "Campanha externa",
                 canal:
                   "google",
+                objetivo:
+                  "profissional",
                 destinoPath,
               },
             })
@@ -209,6 +243,7 @@ describe(
                 nome:
                   "Cílios Goiânia",
                 canal: "meta",
+                objetivo: "cliente",
               },
             })
         ).rejects.toMatchObject({
@@ -231,6 +266,7 @@ describe(
             id: 31,
             nome: "Campanha",
             canal: "meta",
+            objetivo: "cliente",
             utm_source: "meta",
             utm_medium: "cpc",
             utm_campaign:
@@ -260,13 +296,111 @@ describe(
     );
 
     test(
-      "arquiva campanha sem alterar a identidade",
+      "permite classificar campanha legada uma única vez",
+      async () => {
+        const atual = {
+          id: 31,
+          nome: "Campanha legada",
+          canal: "google",
+          objetivo: "indefinido",
+          utm_source: "google",
+          utm_medium: "cpc",
+          utm_campaign: "legada",
+          utm_content: null,
+          utm_term: null,
+          destino_path: "/",
+          ativo: true,
+          criado_por_usuario_id: 7,
+        };
+
+        adminCampaignRepository
+          .buscarPorId
+          .mockResolvedValue(atual);
+
+        adminCampaignRepository
+          .atualizar
+          .mockImplementation(
+            async (id, campanha) => ({
+              ...atual,
+              id,
+              objetivo: campanha.objetivo,
+              nome: campanha.nome,
+              utm_content: campanha.utmContent,
+              utm_term: campanha.utmTerm,
+              destino_path: campanha.destinoPath,
+              ativo: campanha.ativo,
+            })
+          );
+
+        const resultado =
+          await adminCampaignService
+            .atualizarCampanha({
+              id: 31,
+              payload: {
+                objetivo: "profissional",
+              },
+            });
+
+        expect(
+          resultado.campanha.objetivo
+        ).toBe("profissional");
+        expect(
+          adminCampaignRepository.atualizar
+        ).toHaveBeenCalledWith(
+          31,
+          expect.objectContaining({
+            objetivo: "profissional",
+          })
+        );
+      }
+    );
+
+    test(
+      "bloqueia troca de objetivo depois da classificação",
+      async () => {
+        adminCampaignRepository
+          .buscarPorId
+          .mockResolvedValue({
+            id: 31,
+            nome: "Aquisição profissional",
+            canal: "google",
+            objetivo: "profissional",
+            utm_source: "google",
+            utm_medium: "cpc",
+            utm_campaign: "profissional",
+            utm_content: null,
+            utm_term: null,
+            destino_path: "/para-profissionais",
+            ativo: true,
+          });
+
+        await expect(
+          adminCampaignService
+            .atualizarCampanha({
+              id: 31,
+              payload: {
+                objetivo: "cliente",
+              },
+            })
+        ).rejects.toMatchObject({
+          statusCode: 400,
+        });
+
+        expect(
+          adminCampaignRepository.atualizar
+        ).not.toHaveBeenCalled();
+      }
+    );
+
+    test(
+      "arquiva campanha sem alterar objetivo nem identidade",
       async () => {
         const atual = {
           id: 31,
           nome:
             "Cílios Goiânia",
           canal: "meta",
+          objetivo: "cliente",
           utm_source: "meta",
           utm_medium: "cpc",
           utm_campaign:
@@ -291,6 +425,8 @@ describe(
             ) => ({
               ...atual,
               id,
+              objetivo:
+                campanha.objetivo,
               nome:
                 campanha.nome,
               utm_content:
@@ -319,6 +455,7 @@ describe(
         ).toHaveBeenCalledWith(
           31,
           expect.objectContaining({
+            objetivo: "cliente",
             ativo: false,
           })
         );
@@ -326,6 +463,9 @@ describe(
         expect(
           resultado.campanha.ativo
         ).toBe(false);
+        expect(
+          resultado.campanha.objetivo
+        ).toBe("cliente");
         expect(
           resultado.campanha
             .utmCampaign

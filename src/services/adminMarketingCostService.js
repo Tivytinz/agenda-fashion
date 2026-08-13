@@ -177,6 +177,12 @@ function mapearDesempenho(item) {
       item?.agendamentos_concluidos
     );
 
+  const objetivo =
+    String(
+      item?.objetivo ||
+      "indefinido"
+    );
+
   return {
     campanhaId:
       inteiro(item?.id),
@@ -184,6 +190,7 @@ function mapearDesempenho(item) {
       String(item?.nome || ""),
     canal:
       String(item?.canal || ""),
+    objetivo,
     utmSource:
       String(item?.utm_source || ""),
     utmMedium:
@@ -201,10 +208,12 @@ function mapearDesempenho(item) {
         sessoes
       ),
     cpaCentavos:
-      custoUnitario(
-        investimentoCentavos,
-        agendamentosConcluidos
-      ),
+      objetivo === "cliente"
+        ? custoUnitario(
+            investimentoCentavos,
+            agendamentosConcluidos
+          )
+        : null,
   };
 }
 
@@ -217,6 +226,9 @@ function mapearGasto(item) {
       item?.campanha_nome || null,
     canal:
       item?.canal || null,
+    objetivo:
+      item?.objetivo ||
+      "indefinido",
     utmSource:
       item?.utm_source || null,
     utmMedium:
@@ -263,21 +275,35 @@ async function buscarCustos({
     ).map(mapearDesempenho);
 
   const totais = campanhas.reduce(
-    (acumulado, campanha) => ({
-      investimentoCentavos:
-        acumulado.investimentoCentavos +
-        campanha.investimentoCentavos,
-      sessoes:
-        acumulado.sessoes +
-        campanha.sessoes,
-      agendamentosConcluidos:
-        acumulado.agendamentosConcluidos +
-        campanha.agendamentosConcluidos,
-    }),
+    (acumulado, campanha) => {
+      const cliente =
+        campanha.objetivo ===
+        "cliente";
+
+      return {
+        investimentoCentavos:
+          acumulado.investimentoCentavos +
+          campanha.investimentoCentavos,
+        sessoes:
+          acumulado.sessoes +
+          campanha.sessoes,
+        investimentoClientesCentavos:
+          acumulado.investimentoClientesCentavos +
+          (cliente
+            ? campanha.investimentoCentavos
+            : 0),
+        agendamentosClientesConcluidos:
+          acumulado.agendamentosClientesConcluidos +
+          (cliente
+            ? campanha.agendamentosConcluidos
+            : 0),
+      };
+    },
     {
       investimentoCentavos: 0,
       sessoes: 0,
-      agendamentosConcluidos: 0,
+      investimentoClientesCentavos: 0,
+      agendamentosClientesConcluidos: 0,
     }
   );
 
@@ -290,7 +316,9 @@ async function buscarCustos({
     sessoes:
       totais.sessoes,
     agendamentosConcluidos:
-      totais.agendamentosConcluidos,
+      totais.agendamentosClientesConcluidos,
+    investimentoClientesCentavos:
+      totais.investimentoClientesCentavos,
     custoPorSessaoCentavos:
       custoUnitario(
         totais.investimentoCentavos,
@@ -298,8 +326,8 @@ async function buscarCustos({
       ),
     cpaCentavos:
       custoUnitario(
-        totais.investimentoCentavos,
-        totais.agendamentosConcluidos
+        totais.investimentoClientesCentavos,
+        totais.agendamentosClientesConcluidos
       ),
     campanhas,
   };
@@ -379,6 +407,9 @@ async function registrarGasto({
         campanha.nome,
       canal:
         campanha.canal,
+      objetivo:
+        campanha.objetivo ||
+        "indefinido",
       utmSource:
         campanha.utm_source,
       utmMedium:
@@ -397,4 +428,5 @@ module.exports = {
   normalizarData,
   normalizarValorCentavos,
   normalizarPeriodo,
+  mapearDesempenho,
 };

@@ -95,6 +95,7 @@ describe(
           INSERT INTO marketing_campanhas (
             nome,
             canal,
+            objetivo,
             utm_source,
             utm_medium,
             utm_campaign,
@@ -104,6 +105,7 @@ describe(
           VALUES (
             $1,
             'meta',
+            'profissional',
             'meta',
             'cpc',
             $2,

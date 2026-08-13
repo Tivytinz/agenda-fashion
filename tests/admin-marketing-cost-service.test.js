@@ -37,7 +37,7 @@ describe(
     });
 
     test(
-      "calcula custo por sessão e CPA com centavos inteiros",
+      "calcula custo por sessão e CPA de cliente com centavos inteiros",
       async () => {
         adminMarketingCostRepository
           .listarDesempenho
@@ -46,6 +46,7 @@ describe(
               id: 4,
               nome: "Cílios Goiânia",
               canal: "meta",
+              objetivo: "cliente",
               utm_source: "meta",
               utm_medium: "cpc",
               utm_campaign: "cilios_goiania",
@@ -74,6 +75,7 @@ describe(
             periodo: "30",
             moeda: "BRL",
             investimentoCentavos: 10000,
+            investimentoClientesCentavos: 10000,
             sessoes: 20,
             agendamentosConcluidos: 4,
             custoPorSessaoCentavos: 500,
@@ -84,10 +86,62 @@ describe(
           resultado.campanhas[0]
         ).toMatchObject({
           campanhaId: 4,
+          objetivo: "cliente",
           investimentoCentavos: 10000,
           custoPorSessaoCentavos: 500,
           cpaCentavos: 2500,
         });
+      }
+    );
+
+    test(
+      "não mistura investimento profissional no CPA de agendamento",
+      async () => {
+        adminMarketingCostRepository
+          .listarDesempenho
+          .mockResolvedValue([
+            {
+              id: 4,
+              nome: "Cliente",
+              canal: "meta",
+              objetivo: "cliente",
+              utm_source: "meta",
+              utm_medium: "cpc",
+              utm_campaign: "cliente",
+              ativo: true,
+              sessoes: 20,
+              agendamentos_concluidos: 4,
+              investimento_centavos: "10000",
+            },
+            {
+              id: 5,
+              nome: "Profissional",
+              canal: "google",
+              objetivo: "profissional",
+              utm_source: "google",
+              utm_medium: "cpc",
+              utm_campaign: "profissional",
+              ativo: true,
+              sessoes: 30,
+              agendamentos_concluidos: 3,
+              investimento_centavos: "30000",
+            },
+          ]);
+
+        const resultado =
+          await adminMarketingCostService
+            .buscarCustos();
+
+        expect(resultado.investimentoCentavos)
+          .toBe(40000);
+        expect(resultado.investimentoClientesCentavos)
+          .toBe(10000);
+        expect(resultado.agendamentosConcluidos)
+          .toBe(4);
+        expect(resultado.cpaCentavos)
+          .toBe(2500);
+        expect(resultado.campanhas[1].cpaCentavos)
+          .toBeNull();
       }
     );
 
@@ -101,6 +155,7 @@ describe(
               id: 8,
               nome: "Google pesquisa",
               canal: "google",
+              objetivo: "cliente",
               utm_source: "google",
               utm_medium: "cpc",
               utm_campaign: "agenda_beleza",
@@ -130,7 +185,7 @@ describe(
     );
 
     test(
-      "registra gasto manual e permite corrigir o mesmo dia pelo repository",
+      "registra gasto manual e preserva o objetivo da campanha",
       async () => {
         adminCampaignRepository
           .buscarPorId
@@ -138,6 +193,7 @@ describe(
             id: 3,
             nome: "Meta Agosto",
             canal: "meta",
+            objetivo: "cliente",
             utm_source: "meta",
             utm_medium: "cpc",
             utm_campaign: "meta_agosto",
@@ -188,6 +244,7 @@ describe(
             id: 11,
             campanhaId: 3,
             campanhaNome: "Meta Agosto",
+            objetivo: "cliente",
             valorCentavos: 12345,
             fonte: "manual",
           });

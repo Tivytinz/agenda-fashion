@@ -51,6 +51,7 @@ describe(
               nome:
                 "Campanha CI",
               canal: "google",
+              objetivo: "cliente",
               utmSource: "google",
               utmMedium: "cpc",
               utmCampaign,
@@ -69,6 +70,7 @@ describe(
         expect(criada)
           .toMatchObject({
             canal: "google",
+            objetivo: "cliente",
             utm_source: "google",
             utm_medium: "cpc",
             utm_campaign:
@@ -109,6 +111,7 @@ describe(
               {
                 nome:
                   "Campanha CI arquivada",
+                objetivo: "cliente",
                 utmContent:
                   "criativo_02",
                 utmTerm: null,
@@ -122,6 +125,7 @@ describe(
           .toMatchObject({
             nome:
               "Campanha CI arquivada",
+            objetivo: "cliente",
             utm_campaign:
               utmCampaign,
             utm_content:
