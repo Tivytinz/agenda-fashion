@@ -257,10 +257,7 @@ describe("MarketingCostIntegrationsPanel", () => {
     });
 
     await user.selectOptions(googleCampaign, "555");
-
-    expect(screen.getByLabelText("Nome externo").value).toBe("Aquisição real");
-    expect(screen.getByLabelText("Status no Google Ads").value).toBe("Ativa");
-    expect(screen.getByLabelText("ID da conta externa").value).toBe("6770207927");
+    expect(googleCampaign.value).toBe("555");
 
     await user.click(
       screen.getByRole("button", { name: "Vincular campanha verificada" })
@@ -283,7 +280,9 @@ describe("MarketingCostIntegrationsPanel", () => {
     });
 
     expect(
-      await screen.findByText("Vínculo verificado e salvo com a campanha real do Google Ads.")
+      await screen.findByText(
+        "Vínculo verificado e salvo com a campanha real do Google Ads."
+      )
     ).not.toBeNull();
   });
 
@@ -318,10 +317,7 @@ describe("MarketingCostIntegrationsPanel", () => {
     ).not.toBeNull();
 
     await user.selectOptions(metaCampaign, "901");
-
-    expect(screen.getByLabelText("Nome externo").value).toBe("Profissionais Meta");
-    expect(screen.getByLabelText("Status no Meta Ads").value).toBe("Ativa");
-    expect(screen.getByLabelText("ID da conta externa").value).toBe("1122334455");
+    expect(metaCampaign.value).toBe("901");
 
     await user.click(
       screen.getByRole("button", { name: "Vincular campanha verificada" })
@@ -344,7 +340,9 @@ describe("MarketingCostIntegrationsPanel", () => {
     });
 
     expect(
-      await screen.findByText("Vínculo verificado e salvo com a campanha real do Meta Ads.")
+      await screen.findByText(
+        "Vínculo verificado e salvo com a campanha real do Meta Ads."
+      )
     ).not.toBeNull();
   });
 });

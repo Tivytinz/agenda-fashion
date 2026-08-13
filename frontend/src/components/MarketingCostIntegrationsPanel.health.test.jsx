@@ -101,14 +101,11 @@ describe("saúde das integrações de custo no admin", () => {
   it("mostra agenda automática, saúde e detalhes da última sincronização", async () => {
     render(<MarketingCostIntegrationsPanel />);
 
-    expect(
-      await screen.findByText("Saudável")
-    ).not.toBeNull();
+    expect(await screen.findByText("Saudável")).not.toBeNull();
     expect(screen.getByText("Parcial")).not.toBeNull();
+    expect(screen.getByText("Custos automáticos ativos")).not.toBeNull();
     expect(
-      screen.getByText(
-        /Sincronização automática ativa a cada 6h.*desatualização após 12h/i
-      )
+      screen.getByText(/Execução a cada 6h.*desatualização após 12h/i)
     ).not.toBeNull();
     expect(
       screen.getByText(
@@ -122,6 +119,45 @@ describe("saúde das integrações de custo no admin", () => {
     ).not.toBeNull();
     expect(screen.getByText("18 importado(s) · 0 sem vínculo")).not.toBeNull();
     expect(screen.getByText("7 importado(s) · 2 sem vínculo")).not.toBeNull();
+  });
+
+  it("explica por que o vínculo ainda não pode ser salvo", async () => {
+    render(<MarketingCostIntegrationsPanel />);
+
+    expect(
+      await screen.findByText(/Crie uma campanha do AF para Google Ads antes de continuar/i)
+    ).not.toBeNull();
+  });
+
+  it("destaca quando a sincronização automática está desligada", async () => {
+    const payload = integrationsPayload();
+    payload.sincronizacaoAutomatica = {
+      ...payload.sincronizacaoAutomatica,
+      habilitado: false,
+      limiteDesatualizadoHoras: 24
+    };
+
+    apiRequest.mockImplementation((path) => {
+      if (path === "/admin/marketing/custos-integracoes") {
+        return Promise.resolve(payload);
+      }
+      if (path === "/admin/marketing/gestao-campanhas") {
+        return Promise.resolve({ campanhas: [] });
+      }
+      if (path.endsWith("/campanhas")) {
+        return Promise.resolve({ contaExternaId: "6770207927", campanhas: [] });
+      }
+      return Promise.reject(new Error(`Rota inesperada: ${path}`));
+    });
+
+    render(<MarketingCostIntegrationsPanel />);
+
+    expect(
+      await screen.findByText("Custos automáticos desativados")
+    ).not.toBeNull();
+    expect(
+      screen.getByText(/Sincronização manual disponível.*desatualização após 24h/i)
+    ).not.toBeNull();
   });
 
   it("preserva integrações visíveis quando a lista de campanhas do AF falha", async () => {
