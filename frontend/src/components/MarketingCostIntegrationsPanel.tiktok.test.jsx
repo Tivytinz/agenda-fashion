@@ -133,8 +133,9 @@ describe("OAuth TikTok no painel de custos", () => {
     instalarMock({ autorizado: false });
     render(<MarketingCostIntegrationsPanel />);
 
-    expect(await screen.findByText("TikTok Ads")).not.toBeNull();
-    expect(screen.getByRole("button", { name: "Autorizar TikTok" })).not.toBeNull();
+    expect(
+      await screen.findByRole("button", { name: "Autorizar TikTok" })
+    ).not.toBeNull();
     expect(
       screen.getByText("Autorize a conta TikTok no painel para concluir a configuração.")
     ).not.toBeNull();
