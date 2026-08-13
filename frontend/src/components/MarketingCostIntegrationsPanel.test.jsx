@@ -211,6 +211,27 @@ describe("MarketingCostIntegrationsPanel", () => {
     ).toHaveLength(2);
   });
 
+  it("mostra o passo externo como pendente até escolher a campanha real", async () => {
+    const user = userEvent.setup();
+    render(<MarketingCostIntegrationsPanel />);
+
+    const googleCampaign = await screen.findByLabelText(
+      "Campanha real do Google Ads"
+    );
+
+    await waitFor(() => {
+      expect(screen.getAllByText("Concluído")).toHaveLength(2);
+    });
+    expect(screen.getByText("Pendente")).not.toBeNull();
+
+    await user.selectOptions(googleCampaign, "555");
+
+    await waitFor(() => {
+      expect(screen.getAllByText("Concluído")).toHaveLength(3);
+    });
+    expect(screen.queryByText("Pendente")).toBeNull();
+  });
+
   it("testa a conexão com Google Ads e exibe a conta identificada", async () => {
     const user = userEvent.setup();
 
