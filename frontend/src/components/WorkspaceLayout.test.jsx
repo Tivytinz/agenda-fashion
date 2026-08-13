@@ -157,7 +157,7 @@ describe("menu mobile da área de trabalho", () => {
       })
     ).not.toBeNull();
     expect(
-      screen.getAllByRole("link", { name: /Funil/ })
+      screen.getAllByRole("link", { name: /Rentabilidade/ })
     ).toHaveLength(2);
   });
 });

@@ -80,7 +80,7 @@ test("admin e consentimento permanecem navegáveis no celular", async ({ page })
     .toBeVisible();
   await expect(navigation.getByRole("link", { name: /Custos/ }))
     .toBeVisible();
-  await expect(navigation.getByRole("link", { name: /Funil/ }))
+  await expect(navigation.getByRole("link", { name: /Rentabilidade/ }))
     .toBeVisible();
   await expect(navigation.getByRole("link", { name: /Minha conta/ }))
     .toBeVisible();

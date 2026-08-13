@@ -158,11 +158,13 @@ async function listarPorCampanha(
             WHERE ct.negocio_id = dono.negocio_id
           ) AS checkout_iniciado,
 
-          primeiro_pagamento.valor_centavos IS NOT NULL
-            AS assinatura_ativada,
+          COALESCE(
+            primeiro_pagamento_aquisicao.pagamento_valido,
+            FALSE
+          ) AS assinatura_ativada,
 
           COALESCE(
-            primeiro_pagamento.valor_centavos,
+            primeiro_pagamento_aquisicao.valor_centavos,
             0
           )::BIGINT
             AS receita_primeiro_pagamento_centavos
@@ -186,8 +188,18 @@ async function listarPorCampanha(
 
         LEFT JOIN LATERAL (
           SELECT
-            ROUND(pg.valor * 100)::BIGINT
-              AS valor_centavos
+            CASE
+              WHEN UPPER(pg.status) IN (
+                'CONFIRMED',
+                'RECEIVED'
+              )
+                THEN ROUND(pg.valor * 100)::BIGINT
+              ELSE 0::BIGINT
+            END AS valor_centavos,
+            UPPER(pg.status) IN (
+              'CONFIRMED',
+              'RECEIVED'
+            ) AS pagamento_valido
           FROM assinaturas a
           INNER JOIN planos p
             ON p.id = a.plano_id
@@ -196,15 +208,11 @@ async function listarPorCampanha(
           WHERE a.negocio_id = dono.negocio_id
             AND p.valor > 0
             AND pg.data_pagamento IS NOT NULL
-            AND UPPER(pg.status) IN (
-              'CONFIRMED',
-              'RECEIVED'
-            )
           ORDER BY
             pg.data_pagamento ASC,
             pg.id ASC
           LIMIT 1
-        ) primeiro_pagamento ON TRUE
+        ) primeiro_pagamento_aquisicao ON TRUE
       ),
 
       gastos_por_campanha AS (
