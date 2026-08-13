@@ -42,13 +42,23 @@ function externalStatusLabel(value) {
 }
 
 function formatTimestamp(value) {
-  if (!value) return "Ainda não sincronizado";
+  if (!value) return "Nunca sincronizado";
   const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "Ainda não sincronizado";
+  if (Number.isNaN(date.getTime())) return "Nunca sincronizado";
   return new Intl.DateTimeFormat("pt-BR", {
     dateStyle: "short",
     timeStyle: "short"
   }).format(date);
+}
+
+function pluralize(count, singular, plural) {
+  return `${count} ${Number(count) === 1 ? singular : plural}`;
+}
+
+function linkCountLabel(count) {
+  const value = Number(count || 0);
+  if (value === 0) return "Nenhuma campanha vinculada";
+  return pluralize(value, "campanha vinculada", "campanhas vinculadas");
 }
 
 function canalEsperado(provedor) {
@@ -72,9 +82,9 @@ function connectionSummary(connection) {
 function scheduleSummary(config) {
   if (!config) return "Status do agendamento automático indisponível.";
   if (config.habilitado) {
-    return `Execução a cada ${config.intervaloHoras}h · alerta de desatualização após ${config.limiteDesatualizadoHoras}h.`;
+    return `Atualização a cada ${config.intervaloHoras}h · alerta após ${config.limiteDesatualizadoHoras}h sem sincronização.`;
   }
-  return `Sincronização manual disponível · alerta de desatualização após ${config.limiteDesatualizadoHoras || 24}h.`;
+  return `Sincronização manual disponível · alerta após ${config.limiteDesatualizadoHoras || 24}h sem atualização.`;
 }
 
 function syncDetail(item) {
@@ -82,7 +92,9 @@ function syncDetail(item) {
   if (!sync) return "";
   const imported = Number(sync.registros_importados || 0);
   const unlinked = Number(sync.campanhas_nao_vinculadas || 0);
-  return `${imported} importado(s) · ${unlinked} sem vínculo`;
+  const importedLabel = pluralize(imported, "registro importado", "registros importados");
+  if (!unlinked) return importedLabel;
+  return `${importedLabel} · ${pluralize(unlinked, "campanha externa sem vínculo", "campanhas externas sem vínculo")}`;
 }
 
 function shouldShowHealthDetail(item) {
@@ -279,9 +291,7 @@ export function MarketingCostIntegrationsPanel({ onChanged }) {
       });
       setExternalCampaignId("");
       setExternalCampaignName("");
-      setMessage(
-        `Vínculo verificado e salvo com a campanha real do ${providerLabel}.`
-      );
+      setMessage(`Vínculo salvo com a campanha real do ${providerLabel}.`);
       await load();
     } catch (requestError) {
       setError(requestError.message);
@@ -300,10 +310,12 @@ export function MarketingCostIntegrationsPanel({ onChanged }) {
         `/admin/marketing/custos-integracoes/${provedor}/sincronizar`,
         { method: "POST", body: {} }
       );
+      const imported = Number(result.registrosImportados || 0);
+      const unlinked = Number(result.campanhasNaoVinculadas || 0);
       setMessage(
-        `${PROVIDER_LABELS[provedor] || provedor}: ${result.registrosImportados || 0} registro(s) importado(s).` +
-          (result.campanhasNaoVinculadas
-            ? ` ${result.campanhasNaoVinculadas} campanha(s) externa(s) ainda sem vínculo.`
+        `${PROVIDER_LABELS[provedor] || provedor}: ${pluralize(imported, "registro importado", "registros importados")}.` +
+          (unlinked
+            ? ` ${pluralize(unlinked, "campanha externa ainda sem vínculo", "campanhas externas ainda sem vínculo")}.`
             : "")
       );
       await load();
@@ -350,23 +362,17 @@ export function MarketingCostIntegrationsPanel({ onChanged }) {
     <section className="panel" aria-busy={loading || loadingExternalCampaigns}>
       <div className="panel-heading">
         <div>
-          <p className="eyebrow">Importação automática</p>
+          <p className="eyebrow">Integrações de mídia</p>
           <h2>Campanhas e custos das plataformas</h2>
           <p className="muted">
-            Confira a saúde das contas e vincule cada campanha do AF à campanha real da plataforma. Credenciais continuam somente no backend.
+            Valide as contas, conecte campanhas do AF às campanhas reais e acompanhe a atualização dos custos.
           </p>
-          <p role="status">
-            <span
-              className={`admin-status-badge ${scheduleEnabled ? "is-success" : "is-muted"}`}
-            >
-              {scheduleEnabled
-                ? "Custos automáticos ativos"
-                : "Custos automáticos desativados"}
-            </span>{" "}
-            <span className="muted">
-              {scheduleSummary(data?.sincronizacaoAutomatica)}
+          <div className="integration-schedule-status" role="status">
+            <span className={`admin-status-badge ${scheduleEnabled ? "is-success" : "is-warning"}`}>
+              {scheduleEnabled ? "Custos automáticos ativos" : "Custos automáticos desativados"}
             </span>
-          </p>
+            <span className="muted">{scheduleSummary(data?.sincronizacaoAutomatica)}</span>
+          </div>
         </div>
       </div>
 
@@ -376,10 +382,7 @@ export function MarketingCostIntegrationsPanel({ onChanged }) {
 
       {!loading && (
         <>
-          <div
-            className="integration-health-grid"
-            aria-label="Saúde das integrações de custos"
-          >
+          <div className="integration-health-grid" aria-label="Saúde das integrações de custos">
             {(data?.provedores || []).map((item) => {
               const hasLinks = Number(item.vinculos || 0) > 0;
               const hasSync = Boolean(item.ultimaSincronizacao);
@@ -389,30 +392,22 @@ export function MarketingCostIntegrationsPanel({ onChanged }) {
                 <article className="integration-health-card" key={item.provedor}>
                   <div className="integration-health-card-heading">
                     <span>{item.nome}</span>
-                    <span
-                      className={`admin-status-badge ${healthy ? "is-success" : "is-muted"}`}
-                    >
+                    <span className={`admin-status-badge ${healthy ? "is-success" : "is-muted"}`}>
                       {statusLabel(item)}
                     </span>
                   </div>
-                  <p className="integration-health-summary muted">
-                    <strong>{item.vinculos || 0}</strong> campanha(s) vinculada(s)
+                  <p className="integration-health-summary">
+                    <strong>{linkCountLabel(item.vinculos)}</strong>
                     <span aria-hidden="true"> · </span>
-                    <span>
+                    <span className="muted">
                       {hasSync
-                        ? formatTimestamp(item.ultimaSincronizacao?.finished_at)
+                        ? `Última sincronização ${formatTimestamp(item.ultimaSincronizacao?.finished_at)}`
                         : "Nunca sincronizado"}
                     </span>
                   </p>
-                  {hasSync && (
-                    <p className="muted integration-health-detail">
-                      {syncDetail(item)}
-                    </p>
-                  )}
+                  {hasSync && <p className="muted integration-health-detail">{syncDetail(item)}</p>}
                   {shouldShowHealthDetail(item) && (
-                    <p className="muted integration-health-detail">
-                      {item.saude.detalhe}
-                    </p>
+                    <p className="muted integration-health-detail">{item.saude.detalhe}</p>
                   )}
                   {connections[item.provedor]?.conectado && (
                     <p className="muted integration-health-detail">
@@ -421,41 +416,40 @@ export function MarketingCostIntegrationsPanel({ onChanged }) {
                   )}
                   {!hasLinks && item.configurado && (
                     <small className="muted integration-health-hint">
-                      Vincule pelo menos uma campanha antes de sincronizar custos.
+                      Vincule uma campanha para liberar a sincronização de custos.
                     </small>
                   )}
                   <div className="integration-health-actions">
                     <button
                       className="button button-secondary button-small"
-                      disabled={
-                        !item.configurado || Boolean(testingProvider) || Boolean(syncing)
-                      }
+                      disabled={!item.configurado || Boolean(testingProvider) || Boolean(syncing)}
                       onClick={() => testConnection(item.provedor)}
                       type="button"
                     >
-                      {testingProvider === item.provedor
-                        ? "Testando conexão..."
-                        : "Testar conexão"}
+                      {testingProvider === item.provedor ? "Testando..." : "Testar conexão"}
                     </button>
-                    <button
-                      className="button button-secondary button-small"
-                      disabled={
-                        !item.configurado ||
-                        !hasLinks ||
-                        Boolean(syncing) ||
-                        Boolean(testingProvider)
-                      }
-                      onClick={() => sync(item.provedor)}
-                      type="button"
-                    >
-                      {syncing === item.provedor
-                        ? "Sincronizando..."
-                        : "Sincronizar 30 dias"}
-                    </button>
+                    {hasLinks && (
+                      <button
+                        className="button button-secondary button-small"
+                        disabled={!item.configurado || Boolean(syncing) || Boolean(testingProvider)}
+                        onClick={() => sync(item.provedor)}
+                        type="button"
+                      >
+                        {syncing === item.provedor ? "Sincronizando..." : "Sincronizar 30 dias"}
+                      </button>
+                    )}
                   </div>
                 </article>
               );
             })}
+          </div>
+
+          <div className="integration-link-section-heading">
+            <div>
+              <span className="eyebrow">Vincular campanha</span>
+              <strong>Conecte o AF à campanha real</strong>
+            </div>
+            <small className="muted">Três passos. O vínculo só é salvo após selecionar a campanha externa.</small>
           </div>
 
           <form className="stack-form" onSubmit={saveLink}>
@@ -465,12 +459,8 @@ export function MarketingCostIntegrationsPanel({ onChanged }) {
                 aria-labelledby="integration-step-platform"
               >
                 <div className="integration-step-heading">
-                  <span className="integration-step-number">
-                    {platformReady ? "✓" : "1"}
-                  </span>
-                  <span className="integration-step-label" id="integration-step-platform">
-                    Plataforma
-                  </span>
+                  <span className="integration-step-number">{platformReady ? "✓" : "1"}</span>
+                  <span className="integration-step-label" id="integration-step-platform">Plataforma</span>
                   <span className={`integration-step-state ${platformReady ? "is-complete" : "is-pending"}`}>
                     {platformReady ? "Concluído" : "Pendente"}
                   </span>
@@ -478,10 +468,7 @@ export function MarketingCostIntegrationsPanel({ onChanged }) {
                 <div className="form-grid">
                   <label>
                     Plataforma
-                    <select
-                      value={provider}
-                      onChange={(event) => changeProvider(event.target.value)}
-                    >
+                    <select value={provider} onChange={(event) => changeProvider(event.target.value)}>
                       <option value="google_ads">Google Ads</option>
                       <option value="meta_ads">Meta Ads</option>
                     </select>
@@ -494,12 +481,8 @@ export function MarketingCostIntegrationsPanel({ onChanged }) {
                 aria-labelledby="integration-step-af"
               >
                 <div className="integration-step-heading">
-                  <span className="integration-step-number">
-                    {afCampaignReady ? "✓" : "2"}
-                  </span>
-                  <span className="integration-step-label" id="integration-step-af">
-                    Campanha do AF
-                  </span>
+                  <span className="integration-step-number">{afCampaignReady ? "✓" : "2"}</span>
+                  <span className="integration-step-label" id="integration-step-af">Campanha do AF</span>
                   <span className={`integration-step-state ${afCampaignReady ? "is-complete" : "is-pending"}`}>
                     {afCampaignReady ? "Concluído" : "Pendente"}
                   </span>
@@ -529,12 +512,8 @@ export function MarketingCostIntegrationsPanel({ onChanged }) {
                 aria-labelledby="integration-step-external"
               >
                 <div className="integration-step-heading">
-                  <span className="integration-step-number">
-                    {externalReady ? "✓" : "3"}
-                  </span>
-                  <span className="integration-step-label" id="integration-step-external">
-                    Campanha externa
-                  </span>
+                  <span className="integration-step-number">{externalReady ? "✓" : "3"}</span>
+                  <span className="integration-step-label" id="integration-step-external">Campanha externa</span>
                   <span className={`integration-step-state ${externalReady ? "is-complete" : "is-pending"}`}>
                     {externalReady ? "Concluído" : "Pendente"}
                   </span>
@@ -549,9 +528,7 @@ export function MarketingCostIntegrationsPanel({ onChanged }) {
                       onChange={(event) => changeExternalCampaign(event.target.value)}
                     >
                       <option value="">
-                        {loadingExternalCampaigns
-                          ? "Carregando campanhas..."
-                          : "Selecione"}
+                        {loadingExternalCampaigns ? "Carregando campanhas..." : "Selecione"}
                       </option>
                       {externalCampaigns.map((item) => (
                         <option key={item.id} value={item.id}>
@@ -560,49 +537,56 @@ export function MarketingCostIntegrationsPanel({ onChanged }) {
                       ))}
                     </select>
                     {!selectedProvider?.configurado && (
-                      <small>
-                        Complete as credenciais do {providerLabel} no backend para listar campanhas reais.
-                      </small>
+                      <small>Complete as credenciais do {providerLabel} no backend para listar campanhas reais.</small>
                     )}
                   </label>
                 </div>
               </section>
             </div>
 
-            <div className="form-actions">
+            <div className="form-actions integration-link-actions">
+              <div>
+                {!canSaveLink && !saving && linkBlockReason && (
+                  <p className="muted" role="status">{linkBlockReason}</p>
+                )}
+              </div>
               <button className="button" disabled={!canSaveLink} type="submit">
-                {saving ? "Salvando vínculo..." : "Vincular campanha verificada"}
+                {saving ? "Salvando vínculo..." : "Vincular campanha"}
               </button>
             </div>
-            {!canSaveLink && !saving && linkBlockReason && (
-              <p className="muted" role="status">{linkBlockReason}</p>
-            )}
           </form>
 
           {(data?.vinculos || []).length > 0 && (
-            <div className="table-wrap">
-              <table>
-                <thead>
-                  <tr>
-                    <th>Campanha AF</th>
-                    <th>Plataforma</th>
-                    <th>ID externo</th>
-                    <th>Nome externo</th>
-                    <th>Status externo</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {data.vinculos.map((item) => (
-                    <tr key={item.id}>
-                      <td>{item.campanha_nome}</td>
-                      <td>{PROVIDER_LABELS[item.provedor] || item.provedor}</td>
-                      <td>{item.campanha_externa_id}</td>
-                      <td>{item.campanha_externa_nome || "—"}</td>
-                      <td>{liveStatus(item)}</td>
+            <div className="integration-linked-campaigns">
+              <div className="admin-stat-table-heading">
+                <strong>Campanhas vinculadas</strong>
+                <small>Relação entre a campanha do AF e a campanha externa.</small>
+              </div>
+              <div className="table-wrap">
+                <table className="admin-compact-table">
+                  <thead>
+                    <tr>
+                      <th>Campanha AF</th>
+                      <th>Plataforma</th>
+                      <th>Campanha externa</th>
+                      <th>Status</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {data.vinculos.map((item) => (
+                      <tr key={item.id}>
+                        <td>{item.campanha_nome}</td>
+                        <td>{PROVIDER_LABELS[item.provedor] || item.provedor}</td>
+                        <td>
+                          <strong>{item.campanha_externa_nome || "Sem nome"}</strong>
+                          <small className="admin-row-note">ID {item.campanha_externa_id}</small>
+                        </td>
+                        <td>{liveStatus(item)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
           )}
         </>
