@@ -327,7 +327,7 @@ export function MarketingCostIntegrationsPanel({ onChanged }) {
           <p className="eyebrow">Importação automática</p>
           <h2>Campanhas e custos das plataformas</h2>
           <p className="muted">
-            Escolha uma campanha real da conta configurada. O backend confirma o vínculo no Google Ads ou Meta Ads antes de salvar e mantém as credenciais fora do navegador.
+            Confira a saúde das contas e vincule cada campanha do AF à campanha real da plataforma. Credenciais continuam somente no backend.
           </p>
           <p className="muted" role="status">
             {scheduleSummary(data?.sincronizacaoAutomatica)}
@@ -341,119 +341,148 @@ export function MarketingCostIntegrationsPanel({ onChanged }) {
 
       {!loading && (
         <>
-          <div className="metric-grid">
-            {(data?.provedores || []).map((item) => (
-              <article className="metric-card" key={item.provedor}>
-                <span>{item.nome}</span>
-                <strong>{statusLabel(item)}</strong>
-                <small>
-                  {item.saude?.detalhe || "Estado operacional ainda não calculado."}
-                </small>
-                <small>
-                  {item.vinculos || 0} vínculo(s) · {formatTimestamp(item.ultimaSincronizacao?.finished_at)}
-                </small>
-                <small>{syncDetail(item)}</small>
-                {connections[item.provedor]?.conectado && (
-                  <small>
-                    {connectionSummary(connections[item.provedor])}
-                  </small>
-                )}
-                <button
-                  className="button button-secondary"
-                  disabled={!item.configurado || Boolean(testingProvider) || Boolean(syncing)}
-                  onClick={() => testConnection(item.provedor)}
-                  type="button"
-                >
-                  {testingProvider === item.provedor ? "Testando conexão..." : "Testar conexão"}
-                </button>
-                <button
-                  className="button button-secondary"
-                  disabled={!item.configurado || Boolean(syncing) || Boolean(testingProvider)}
-                  onClick={() => sync(item.provedor)}
-                  type="button"
-                >
-                  {syncing === item.provedor ? "Sincronizando..." : "Sincronizar 30 dias"}
-                </button>
-              </article>
-            ))}
+          <div className="integration-health-grid" aria-label="Saúde das integrações de custos">
+            {(data?.provedores || []).map((item) => {
+              const hasLinks = Number(item.vinculos || 0) > 0;
+
+              return (
+                <article className="integration-health-card" key={item.provedor}>
+                  <span>{item.nome}</span>
+                  <h3>{statusLabel(item)}</h3>
+                  <p className="muted">
+                    {item.saude?.detalhe || "Estado operacional ainda não calculado."}
+                  </p>
+                  <p className="muted">
+                    {item.vinculos || 0} vínculo(s) · {formatTimestamp(item.ultimaSincronizacao?.finished_at)}
+                  </p>
+                  <p className="muted">{syncDetail(item)}</p>
+                  {connections[item.provedor]?.conectado && (
+                    <p className="muted">
+                      {connectionSummary(connections[item.provedor])}
+                    </p>
+                  )}
+                  {!hasLinks && item.configurado && (
+                    <p className="muted">
+                      Vincule pelo menos uma campanha antes de sincronizar custos.
+                    </p>
+                  )}
+                  <div className="integration-health-actions">
+                    <button
+                      className="button button-secondary button-small"
+                      disabled={!item.configurado || Boolean(testingProvider) || Boolean(syncing)}
+                      onClick={() => testConnection(item.provedor)}
+                      type="button"
+                    >
+                      {testingProvider === item.provedor ? "Testando conexão..." : "Testar conexão"}
+                    </button>
+                    <button
+                      className="button button-secondary button-small"
+                      disabled={!item.configurado || !hasLinks || Boolean(syncing) || Boolean(testingProvider)}
+                      onClick={() => sync(item.provedor)}
+                      type="button"
+                    >
+                      {syncing === item.provedor ? "Sincronizando..." : "Sincronizar 30 dias"}
+                    </button>
+                  </div>
+                </article>
+              );
+            })}
           </div>
 
           <form className="stack-form" onSubmit={saveLink}>
-            <div className="form-grid">
-              <label>
-                Plataforma
-                <select value={provider} onChange={(event) => changeProvider(event.target.value)}>
-                  <option value="google_ads">Google Ads</option>
-                  <option value="meta_ads">Meta Ads</option>
-                </select>
-              </label>
+            <div className="integration-link-flow">
+              <section className="integration-link-step" aria-labelledby="integration-step-platform">
+                <span className="integration-step-number">1</span>
+                <span className="integration-step-label" id="integration-step-platform">Plataforma</span>
+                <div className="form-grid">
+                  <label>
+                    Plataforma
+                    <select value={provider} onChange={(event) => changeProvider(event.target.value)}>
+                      <option value="google_ads">Google Ads</option>
+                      <option value="meta_ads">Meta Ads</option>
+                    </select>
+                  </label>
 
-              <label>
-                Campanha do AF
-                <select
-                  required
-                  value={campaignId}
-                  onChange={(event) => setCampaignId(event.target.value)}
-                >
-                  <option value="">Selecione</option>
-                  {eligibleCampaigns.map((item) => (
-                    <option key={item.id} value={item.id}>{item.nome}</option>
-                  ))}
-                </select>
-                {eligibleCampaigns.length === 0 && (
-                  <small>Crie primeiro uma campanha do AF para este canal.</small>
-                )}
-              </label>
+                  <label>
+                    ID da conta externa
+                    <input
+                      required
+                      maxLength="120"
+                      placeholder="Conta configurada no backend"
+                      readOnly
+                      value={externalAccountId}
+                    />
+                  </label>
+                </div>
+              </section>
 
-              <label>
-                ID da conta externa
-                <input
-                  required
-                  maxLength="120"
-                  placeholder="Conta configurada no backend"
-                  readOnly
-                  value={externalAccountId}
-                />
-              </label>
+              <section className="integration-link-step" aria-labelledby="integration-step-af">
+                <span className="integration-step-number">2</span>
+                <span className="integration-step-label" id="integration-step-af">Campanha do AF</span>
+                <div className="form-grid">
+                  <label>
+                    Campanha do AF
+                    <select
+                      required
+                      value={campaignId}
+                      onChange={(event) => setCampaignId(event.target.value)}
+                    >
+                      <option value="">Selecione</option>
+                      {eligibleCampaigns.map((item) => (
+                        <option key={item.id} value={item.id}>{item.nome}</option>
+                      ))}
+                    </select>
+                    {eligibleCampaigns.length === 0 && (
+                      <small>Crie primeiro uma campanha do AF para este canal.</small>
+                    )}
+                  </label>
+                </div>
+              </section>
 
-              <label>
-                Campanha real do {providerLabel}
-                <select
-                  disabled={!selectedProvider?.configurado || loadingExternalCampaigns}
-                  required
-                  value={externalCampaignId}
-                  onChange={(event) => changeExternalCampaign(event.target.value)}
-                >
-                  <option value="">
-                    {loadingExternalCampaigns ? "Carregando campanhas..." : "Selecione"}
-                  </option>
-                  {externalCampaigns.map((item) => (
-                    <option key={item.id} value={item.id}>
-                      {item.nome} · {externalStatusLabel(item.status)} · {item.id}
-                    </option>
-                  ))}
-                </select>
-                {!selectedProvider?.configurado && (
-                  <small>Complete as credenciais do {providerLabel} no backend para listar campanhas reais.</small>
-                )}
-              </label>
+              <section className="integration-link-step" aria-labelledby="integration-step-external">
+                <span className="integration-step-number">3</span>
+                <span className="integration-step-label" id="integration-step-external">Campanha externa</span>
+                <div className="form-grid">
+                  <label>
+                    Campanha real do {providerLabel}
+                    <select
+                      disabled={!selectedProvider?.configurado || loadingExternalCampaigns}
+                      required
+                      value={externalCampaignId}
+                      onChange={(event) => changeExternalCampaign(event.target.value)}
+                    >
+                      <option value="">
+                        {loadingExternalCampaigns ? "Carregando campanhas..." : "Selecione"}
+                      </option>
+                      {externalCampaigns.map((item) => (
+                        <option key={item.id} value={item.id}>
+                          {item.nome} · {externalStatusLabel(item.status)} · {item.id}
+                        </option>
+                      ))}
+                    </select>
+                    {!selectedProvider?.configurado && (
+                      <small>Complete as credenciais do {providerLabel} no backend para listar campanhas reais.</small>
+                    )}
+                  </label>
 
-              <label>
-                Nome externo
-                <input
-                  maxLength="240"
-                  readOnly
-                  value={externalCampaignName}
-                />
-              </label>
+                  <label>
+                    Nome externo
+                    <input
+                      maxLength="240"
+                      readOnly
+                      value={externalCampaignName}
+                    />
+                  </label>
 
-              <label>
-                Status no {providerLabel}
-                <input
-                  readOnly
-                  value={selectedExternalCampaign ? externalStatusLabel(selectedExternalCampaign.status) : "—"}
-                />
-              </label>
+                  <label>
+                    Status no {providerLabel}
+                    <input
+                      readOnly
+                      value={selectedExternalCampaign ? externalStatusLabel(selectedExternalCampaign.status) : "—"}
+                    />
+                  </label>
+                </div>
+              </section>
             </div>
 
             <div className="form-actions">

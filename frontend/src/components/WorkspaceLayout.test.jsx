@@ -120,9 +120,9 @@ describe("menu mobile da área de trabalho", () => {
       "navigation",
       { name: "Administração do Agenda Fashion" }
     );
-    const marketing = screen.getByRole(
+    const campaigns = screen.getByRole(
       "link",
-      { name: /Marketing/ }
+      { name: /Campanhas/ }
     );
     const costs = screen.getByRole(
       "link",
@@ -132,7 +132,7 @@ describe("menu mobile da área de trabalho", () => {
     expect(
       navigation.querySelectorAll(".workspace-mobile-link")
     ).toHaveLength(4);
-    expect(marketing.classList.contains("active")).toBe(false);
+    expect(campaigns.classList.contains("active")).toBe(false);
     expect(costs.classList.contains("active")).toBe(true);
     expect(screen.queryByRole("button", { name: /mais opções/i })).toBeNull();
   });

@@ -102,8 +102,10 @@ describe(
   "AdminProfessionalFunnelPage",
   () => {
     it(
-      "renderiza CAC, receita, ROAS e decisão da campanha",
+      "renderiza KPIs principais e abre os detalhes da decisão sob demanda",
       async () => {
+        const user = userEvent.setup();
+
         render(
           <MemoryRouter>
             <AdminProfessionalFunnelPage />
@@ -113,10 +115,7 @@ describe(
         expect(
           await screen.findByRole(
             "heading",
-            {
-              name:
-                "Funil de profissionais"
-            }
+            { name: "Funil de profissionais" }
           )
         ).not.toBeNull();
 
@@ -125,21 +124,15 @@ describe(
         ).toBeGreaterThanOrEqual(1);
 
         expect(
-          screen.getByText(
-            "profissionais_goiania"
-          )
+          screen.getByText("profissionais_goiania")
         ).not.toBeNull();
 
         expect(
-          screen.getAllByText(
-            /R\$\s*100,00/
-          ).length
+          screen.getAllByText(/R\$\s*100,00/).length
         ).toBeGreaterThanOrEqual(1);
 
         expect(
-          screen.getAllByText(
-            /R\$\s*596,00/
-          ).length
+          screen.getAllByText(/R\$\s*596,00/).length
         ).toBeGreaterThanOrEqual(1);
 
         expect(
@@ -167,8 +160,32 @@ describe(
         ).not.toBeNull();
 
         expect(
+          screen.getByText(/reembolso zera a receita/i)
+        ).not.toBeNull();
+
+        expect(
+          screen.queryByText("Custo por checkout")
+        ).toBeNull();
+
+        expect(
+          screen.getAllByText(/R\$\s*80,00/)
+        ).toHaveLength(1);
+
+        await user.click(
+          screen.getByRole("button", {
+            name: "Ver detalhes"
+          })
+        );
+
+        expect(
+          screen.getByText("Custo por checkout")
+        ).not.toBeNull();
+        expect(
+          screen.getAllByText(/R\$\s*80,00/)
+        ).toHaveLength(2);
+        expect(
           screen.getByText(
-            /reembolso zera a receita/i
+            /ROAS 1\.49x está acima da faixa de escala/i
           )
         ).not.toBeNull();
       }
@@ -177,8 +194,7 @@ describe(
     it(
       "recarrega a coorte ao trocar período",
       async () => {
-        const user =
-          userEvent.setup();
+        const user = userEvent.setup();
 
         render(
           <MemoryRouter>
@@ -188,10 +204,7 @@ describe(
 
         await screen.findByRole(
           "heading",
-          {
-            name:
-              "Funil de profissionais"
-          }
+          { name: "Funil de profissionais" }
         );
 
         await user.click(
