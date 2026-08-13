@@ -102,7 +102,7 @@ describe(
   "AdminProfessionalFunnelPage",
   () => {
     it(
-      "renderiza KPIs principais e abre os detalhes da decisão sob demanda",
+      "renderiza KPIs principais, marcos independentes e abre os detalhes da decisão sob demanda",
       async () => {
         const user = userEvent.setup();
 
@@ -120,12 +120,23 @@ describe(
         ).not.toBeNull();
 
         expect(
+          screen.getByRole("heading", { name: "Marcos alcançados pela coorte" })
+        ).not.toBeNull();
+        expect(
+          screen.getByText(/cada marco é medido independentemente/i)
+        ).not.toBeNull();
+        expect(
+          screen.queryByRole("heading", { name: "Progressão da coorte" })
+        ).toBeNull();
+
+        expect(
           screen.getAllByText("20").length
         ).toBeGreaterThanOrEqual(1);
 
         expect(
           screen.getByText("profissionais_goiania")
         ).not.toBeNull();
+        expect(screen.getByText("Meta Ads")).not.toBeNull();
 
         expect(
           screen.getAllByText(/R\$\s*100,00/).length
@@ -221,7 +232,8 @@ describe(
         expect(
           screen.queryByText("Orgânico / sem campanha")
         ).toBeNull();
-        expect(screen.getByText("google · cpc")).not.toBeNull();
+        expect(screen.getByText("Google Ads")).not.toBeNull();
+        expect(screen.getByText("cpc")).not.toBeNull();
       }
     );
 
