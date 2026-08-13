@@ -1,5 +1,6 @@
 import {
   useEffect,
+  useMemo,
   useState
 } from "react";
 import { apiRequest } from "../api/client";
@@ -9,6 +10,7 @@ import {
   LoadingState
 } from "../components/ScreenState";
 import { settleRequestMap } from "../utils/asyncData";
+import { countPaidSessionsWithoutCampaign } from "../utils/marketingAttribution";
 
 const PERIODS = [
   ["today", "Hoje"],
@@ -27,126 +29,75 @@ const OBJECTIVE_LABELS = {
 function localDateValue() {
   const now = new Date();
   const local = new Date(
-    now.getTime() -
-    now.getTimezoneOffset() * 60000
+    now.getTime() - now.getTimezoneOffset() * 60000
   );
-
-  return local
-    .toISOString()
-    .slice(0, 10);
+  return local.toISOString().slice(0, 10);
 }
 
 function formatMoney(value) {
-  if (
-    value === null ||
-    value === undefined
-  ) {
-    return "—";
-  }
-
+  if (value === null || value === undefined) return "—";
   const cents = Number(value);
-
-  if (!Number.isFinite(cents)) {
-    return "—";
-  }
-
-  return new Intl.NumberFormat(
-    "pt-BR",
-    {
-      style: "currency",
-      currency: "BRL"
-    }
-  ).format(cents / 100);
+  if (!Number.isFinite(cents)) return "—";
+  return new Intl.NumberFormat("pt-BR", {
+    style: "currency",
+    currency: "BRL"
+  }).format(cents / 100);
 }
 
 function formatDate(value) {
   if (!value) return "—";
-
-  const [year, month, day] =
-    String(value)
-      .slice(0, 10)
-      .split("-");
-
-  if (!year || !month || !day) {
-    return value;
-  }
-
+  const [year, month, day] = String(value).slice(0, 10).split("-");
+  if (!year || !month || !day) return value;
   return `${day}/${month}/${year}`;
 }
 
 function moneyToCents(value) {
   const amount = Number(value);
-
-  if (
-    !Number.isFinite(amount) ||
-    amount <= 0
-  ) {
-    return null;
-  }
-
+  if (!Number.isFinite(amount) || amount <= 0) return null;
   return Math.round(amount * 100);
 }
 
 function objectiveLabel(value) {
-  return OBJECTIVE_LABELS[value] ||
-    OBJECTIVE_LABELS.indefinido;
+  return OBJECTIVE_LABELS[value] || OBJECTIVE_LABELS.indefinido;
 }
 
 export function AdminMarketingCostsPage() {
-  const [period, setPeriod] =
-    useState("30");
-
-  const [data, setData] =
-    useState(null);
-
-  const [error, setError] =
-    useState("");
-
-  const [reloadKey, setReloadKey] =
-    useState(0);
-
-  const [refreshing, setRefreshing] =
-    useState(true);
-
-  const [form, setForm] =
-    useState({
-      campanhaId: "",
-      dataGasto: localDateValue(),
-      valor: "",
-      observacao: ""
-    });
-
-  const [saving, setSaving] =
-    useState(false);
-
-  const [formError, setFormError] =
-    useState("");
-
-  const [message, setMessage] =
-    useState("");
+  const [period, setPeriod] = useState("30");
+  const [data, setData] = useState(null);
+  const [error, setError] = useState("");
+  const [reloadKey, setReloadKey] = useState(0);
+  const [refreshing, setRefreshing] = useState(true);
+  const [manualOpen, setManualOpen] = useState(false);
+  const [form, setForm] = useState({
+    campanhaId: "",
+    dataGasto: localDateValue(),
+    valor: "",
+    observacao: ""
+  });
+  const [saving, setSaving] = useState(false);
+  const [formError, setFormError] = useState("");
+  const [message, setMessage] = useState("");
 
   useEffect(() => {
-    const controller =
-      new AbortController();
-
+    const controller = new AbortController();
     let active = true;
 
     setError("");
     setRefreshing(true);
 
     settleRequestMap({
-      costs: apiRequest(
-        `/admin/marketing/custos?periodo=${period}`,
-        { signal: controller.signal }
-      ),
-      expenses: apiRequest(
-        `/admin/marketing/gastos?periodo=${period}`,
-        { signal: controller.signal }
-      ),
-      managedCampaigns: apiRequest(
-        "/admin/marketing/gestao-campanhas",
-        { signal: controller.signal }
-      )
+      costs: apiRequest(`/admin/marketing/custos?periodo=${period}`, {
+        signal: controller.signal
+      }),
+      expenses: apiRequest(`/admin/marketing/gastos?periodo=${period}`, {
+        signal: controller.signal
+      }),
+      attribution: apiRequest(`/admin/marketing/campanhas?periodo=${period}`, {
+        signal: controller.signal
+      }),
+      managedCampaigns: apiRequest("/admin/marketing/gestao-campanhas", {
+        signal: controller.signal
+      })
     })
       .then(({ values, errors }) => {
         if (!active) return;
@@ -154,18 +105,20 @@ export function AdminMarketingCostsPage() {
         if (Object.keys(values).length === 0) {
           setError(
             errors[0]?.error?.message ||
-            "Não foi possível carregar os custos de marketing."
+              "Não foi possível carregar os custos de marketing."
           );
           return;
         }
 
         setData((current) => ({
-          costs:
-            values.costs || current?.costs || {},
-          expenses:
-            values.expenses?.gastos || current?.expenses || [],
+          costs: values.costs || current?.costs || {},
+          expenses: values.expenses?.gastos || current?.expenses || [],
+          attributionCampaigns:
+            values.attribution?.campanhas || current?.attributionCampaigns || [],
           managedCampaigns:
-            values.managedCampaigns?.campanhas || current?.managedCampaigns || []
+            values.managedCampaigns?.campanhas ||
+            current?.managedCampaigns ||
+            []
         }));
 
         setForm((current) => {
@@ -177,18 +130,16 @@ export function AdminMarketingCostsPage() {
           }
 
           const firstActive =
-            values.managedCampaigns.campanhas.find(
-              (item) => item.ativo
-            ) ||
+            values.managedCampaigns.campanhas.find((item) => item.ativo) ||
             values.managedCampaigns.campanhas[0];
 
           return {
             ...current,
-            campanhaId:
-              String(firstActive.id)
+            campanhaId: String(firstActive.id)
           };
         });
-        if (errors.some(({ error }) => error?.name !== "AbortError")) {
+
+        if (errors.some(({ error: itemError }) => itemError?.name !== "AbortError")) {
           setError(
             "Parte dos custos de marketing está temporariamente indisponível."
           );
@@ -207,34 +158,20 @@ export function AdminMarketingCostsPage() {
   function updateForm(field, value) {
     setFormError("");
     setMessage("");
-
-    setForm(
-      (current) => ({
-        ...current,
-        [field]: value
-      })
-    );
+    setForm((current) => ({ ...current, [field]: value }));
   }
 
   async function submitExpense(event) {
     event.preventDefault();
-
     if (saving) return;
 
-    const cents =
-      moneyToCents(form.valor);
-
+    const cents = moneyToCents(form.valor);
     if (!cents) {
-      setFormError(
-        "Informe um valor de investimento maior que zero."
-      );
+      setFormError("Informe um valor de investimento maior que zero.");
       return;
     }
-
     if (!form.campanhaId) {
-      setFormError(
-        "Selecione uma campanha."
-      );
+      setFormError("Selecione uma campanha.");
       return;
     }
 
@@ -243,52 +180,38 @@ export function AdminMarketingCostsPage() {
     setMessage("");
 
     try {
-      await apiRequest(
-        "/admin/marketing/gastos",
-        {
-          method: "POST",
-          body: {
-            campanhaId:
-              Number(form.campanhaId),
-            dataGasto:
-              form.dataGasto,
-            valorCentavos: cents,
-            observacao:
-              form.observacao
-          }
+      await apiRequest("/admin/marketing/gastos", {
+        method: "POST",
+        body: {
+          campanhaId: Number(form.campanhaId),
+          dataGasto: form.dataGasto,
+          valorCentavos: cents,
+          observacao: form.observacao
         }
-      );
+      });
 
-      setForm(
-        (current) => ({
-          ...current,
-          valor: "",
-          observacao: ""
-        })
-      );
-
+      setForm((current) => ({ ...current, valor: "", observacao: "" }));
       setMessage(
         "Investimento salvo. O lançamento manual se torna a fonte efetiva daquele dia até uma nova sincronização automática."
       );
-
-      setReloadKey(
-        (current) => current + 1
-      );
+      setReloadKey((current) => current + 1);
     } catch (requestError) {
-      setFormError(
-        requestError.message
-      );
+      setFormError(requestError.message);
     } finally {
       setSaving(false);
     }
   }
 
+  const attributionCampaigns = data?.attributionCampaigns || [];
+  const paidWithoutCampaignSessions = useMemo(
+    () => countPaidSessionsWithoutCampaign(attributionCampaigns),
+    [attributionCampaigns]
+  );
+
   if (!data && !error) {
     return (
       <main className="workspace-page admin-workspace-page">
-        <LoadingState>
-          Carregando custos de marketing...
-        </LoadingState>
+        <LoadingState>Carregando custos de marketing...</LoadingState>
       </main>
     );
   }
@@ -298,32 +221,23 @@ export function AdminMarketingCostsPage() {
       <main className="workspace-page admin-workspace-page">
         <ErrorState
           message={error}
-          onRetry={() =>
-            setReloadKey(
-              (current) => current + 1
-            )
-          }
+          onRetry={() => setReloadKey((current) => current + 1)}
         />
       </main>
     );
   }
 
   const costs = data.costs || {};
-
   const cards = [
     [
       "Investimento",
-      formatMoney(
-        costs.investimentoCentavos
-      ),
+      formatMoney(costs.investimentoCentavos),
       "gasto total registrado no período"
     ],
     [
       "Custo por sessão",
-      formatMoney(
-        costs.custoPorSessaoCentavos
-      ),
-      `${costs.sessoes ?? 0} sessões atribuídas em todos os objetivos`
+      formatMoney(costs.custoPorSessaoCentavos),
+      `${costs.sessoes ?? 0} sessões vinculadas a campanhas cadastradas`
     ],
     [
       "Agendamentos de clientes",
@@ -332,9 +246,7 @@ export function AdminMarketingCostsPage() {
     ],
     [
       "CPA cliente",
-      formatMoney(
-        costs.cpaCentavos
-      ),
+      formatMoney(costs.cpaCentavos),
       `${formatMoney(costs.investimentoClientesCentavos)} investidos em campanhas cliente`
     ]
   ];
@@ -343,120 +255,103 @@ export function AdminMarketingCostsPage() {
     <main aria-busy={refreshing} className="workspace-page admin-workspace-page">
       <header className="workspace-heading">
         <div>
-          <p className="eyebrow">
-            Administração do AF
-          </p>
+          <p className="eyebrow">Administração do AF</p>
           <h1>Investimento e CPA</h1>
           <p>
             O investimento total continua visível, mas CPA de agendamento usa apenas campanhas de clientes. Aquisição profissional é avaliada por CAC e ROAS em Rentabilidade.
           </p>
         </div>
 
-        <div
-          className="segmented-control"
-          aria-label="Período dos custos"
-        >
-          {PERIODS.map(
-            ([value, label]) => (
-              <button
-                aria-pressed={
-                  period === value
-                }
-                className={
-                  period === value
-                    ? "active"
-                    : ""
-                }
-                key={value}
-                onClick={() =>
-                  setPeriod(value)
-                }
-                type="button"
-              >
-                {label}
-              </button>
-            )
-          )}
+        <div className="segmented-control" aria-label="Período dos custos">
+          {PERIODS.map(([value, label]) => (
+            <button
+              aria-pressed={period === value}
+              className={period === value ? "active" : ""}
+              key={value}
+              onClick={() => setPeriod(value)}
+              type="button"
+            >
+              {label}
+            </button>
+          ))}
         </div>
       </header>
 
-      {refreshing && <p className="data-refresh-status" role="status">Atualizando custos...</p>}
+      {refreshing && (
+        <p className="data-refresh-status" role="status">Atualizando custos...</p>
+      )}
       {error && <p className="form-error" role="alert">{error}</p>}
 
-      <section
-        className="metric-grid"
-        aria-label="Indicadores de custo de marketing"
-      >
-        {cards.map(
-          ([label, value, hint]) => (
-            <article
-              className="metric-card"
-              key={label}
-            >
-              <span>{label}</span>
-              <strong>{value}</strong>
-              <small>{hint}</small>
-            </article>
-          )
-        )}
+      <section className="metric-grid" aria-label="Indicadores de custo de marketing">
+        {cards.map(([label, value, hint]) => (
+          <article className="metric-card" key={label}>
+            <span>{label}</span>
+            <strong>{value}</strong>
+            <small>{hint}</small>
+          </article>
+        ))}
       </section>
 
+      {paidWithoutCampaignSessions > 0 && (
+        <section className="panel" aria-label="Diagnóstico de atribuição de custos">
+          <div className="panel-heading">
+            <div>
+              <p className="eyebrow">Atribuição pendente</p>
+              <h2>
+                {paidWithoutCampaignSessions} sessão(ões) paga(s) ainda sem campanha
+              </h2>
+              <p className="muted">
+                Essas visitas têm origem/mídia paga identificada, mas chegaram sem utm_campaign. Por isso aparecem no tráfego geral e não entram nas sessões nem no custo por sessão de uma campanha cadastrada.
+              </p>
+            </div>
+          </div>
+        </section>
+      )}
+
       <MarketingCostIntegrationsPanel
-        onChanged={() =>
-          setReloadKey(
-            (current) => current + 1
-          )
-        }
+        onChanged={() => setReloadKey((current) => current + 1)}
       />
 
       <section className="panel">
         <div className="panel-heading">
           <div>
-            <p className="eyebrow">
-              Lançamento manual
-            </p>
-            <h2>Registrar investimento</h2>
+            <p className="eyebrow">Lançamento manual</p>
+            <h2>Correção pontual de investimento</h2>
             <p className="muted">
-              Use como fallback ou correção pontual. Para a mesma campanha e data, a última fonte gravada substitui a anterior e evita dupla contagem.
+              Use somente como fallback ou correção quando a sincronização automática não estiver disponível. Para a mesma campanha e data, a última fonte gravada substitui a anterior.
             </p>
           </div>
+          <button
+            aria-expanded={manualOpen}
+            className="button button-secondary button-small"
+            disabled={data.managedCampaigns.length === 0}
+            onClick={() => setManualOpen((current) => !current)}
+            type="button"
+          >
+            {manualOpen ? "Fechar lançamento" : "+ Registrar manualmente"}
+          </button>
         </div>
 
         {data.managedCampaigns.length === 0 ? (
           <p className="muted">
             Crie uma campanha rastreável antes de registrar investimento.
           </p>
-        ) : (
-          <form
-            className="stack-form"
-            onSubmit={submitExpense}
-          >
+        ) : manualOpen ? (
+          <form className="stack-form" onSubmit={submitExpense}>
             <div className="form-grid">
               <label>
                 Campanha
                 <select
-                  onChange={(event) =>
-                    updateForm(
-                      "campanhaId",
-                      event.target.value
-                    )
-                  }
+                  onChange={(event) => updateForm("campanhaId", event.target.value)}
                   required
                   value={form.campanhaId}
                 >
-                  {data.managedCampaigns.map(
-                    (item) => (
-                      <option
-                        key={item.id}
-                        value={item.id}
-                      >
-                        {item.nome} · {objectiveLabel(item.objetivo)}
-                        {item.ativo
-                          ? ""
-                          : " (arquivada)"}
-                      </option>
-                    )
-                  )}
+                  {data.managedCampaigns.map((item) => (
+                    <option key={item.id} value={item.id}>
+                      {item.nome} · {objectiveLabel(item.objetivo)}
+                      {item.ativo ? "" : " (arquivada)"}
+                    </option>
+                  ))}
                 </select>
               </label>
 
@@ -464,12 +359,7 @@ export function AdminMarketingCostsPage() {
                 Data do gasto
                 <input
                   max={localDateValue()}
-                  onChange={(event) =>
-                    updateForm(
-                      "dataGasto",
-                      event.target.value
-                    )
-                  }
+                  onChange={(event) => updateForm("dataGasto", event.target.value)}
                   required
                   type="date"
                   value={form.dataGasto}
@@ -480,12 +370,7 @@ export function AdminMarketingCostsPage() {
                 Investimento (R$)
                 <input
                   min="0.01"
-                  onChange={(event) =>
-                    updateForm(
-                      "valor",
-                      event.target.value
-                    )
-                  }
+                  onChange={(event) => updateForm("valor", event.target.value)}
                   placeholder="Ex.: 150.00"
                   required
                   step="0.01"
@@ -498,54 +383,29 @@ export function AdminMarketingCostsPage() {
                 Observação
                 <input
                   maxLength="240"
-                  onChange={(event) =>
-                    updateForm(
-                      "observacao",
-                      event.target.value
-                    )
-                  }
+                  onChange={(event) => updateForm("observacao", event.target.value)}
                   placeholder="Opcional"
                   value={form.observacao}
                 />
               </label>
             </div>
 
-            {formError && (
-              <p
-                className="form-error"
-                role="alert"
-              >
-                {formError}
-              </p>
-            )}
-
-            {message && (
-              <p className="form-success">
-                {message}
-              </p>
-            )}
+            {formError && <p className="form-error" role="alert">{formError}</p>}
+            {message && <p className="form-success">{message}</p>}
 
             <div className="form-actions">
-              <button
-                className="button"
-                disabled={saving}
-                type="submit"
-              >
-                {saving
-                  ? "Salvando..."
-                  : "Salvar investimento"}
+              <button className="button" disabled={saving} type="submit">
+                {saving ? "Salvando..." : "Salvar investimento"}
               </button>
             </div>
           </form>
-        )}
+        ) : null}
       </section>
 
       <section className="panel">
         <div className="panel-heading">
           <div>
-            <p className="eyebrow">
-              Eficiência
-            </p>
+            <p className="eyebrow">Eficiência</p>
             <h2>Custo por campanha</h2>
             <p className="muted">
               CPA é calculado apenas para objetivo Cliente. Campanhas profissionais usam CAC/ROAS na tela de Rentabilidade; não classificadas aguardam definição.
@@ -554,9 +414,7 @@ export function AdminMarketingCostsPage() {
         </div>
 
         {!costs.campanhas?.length ? (
-          <p className="muted">
-            Ainda não há campanhas cadastradas.
-          </p>
+          <p className="muted">Ainda não há campanhas cadastradas.</p>
         ) : (
           <div className="table-wrap">
             <table>
@@ -573,36 +431,22 @@ export function AdminMarketingCostsPage() {
                 </tr>
               </thead>
               <tbody>
-                {costs.campanhas.map(
-                  (item) => (
-                    <tr key={item.campanhaId}>
-                      <td>{item.nome}</td>
-                      <td>{objectiveLabel(item.objetivo)}</td>
-                      <td>{item.canal}</td>
-                      <td>
-                        {formatMoney(
-                          item.investimentoCentavos
-                        )}
-                      </td>
-                      <td>{item.sessoes}</td>
-                      <td>
-                        {formatMoney(
-                          item.custoPorSessaoCentavos
-                        )}
-                      </td>
-                      <td>
-                        {item.objetivo === "cliente"
-                          ? item.agendamentosConcluidos
-                          : "—"}
-                      </td>
-                      <td>
-                        {formatMoney(
-                          item.cpaCentavos
-                        )}
-                      </td>
-                    </tr>
-                  )
-                )}
+                {costs.campanhas.map((item) => (
+                  <tr key={item.campanhaId}>
+                    <td>{item.nome}</td>
+                    <td>{objectiveLabel(item.objetivo)}</td>
+                    <td>{item.canal}</td>
+                    <td>{formatMoney(item.investimentoCentavos)}</td>
+                    <td>{item.sessoes}</td>
+                    <td>{formatMoney(item.custoPorSessaoCentavos)}</td>
+                    <td>
+                      {item.objetivo === "cliente"
+                        ? item.agendamentosConcluidos
+                        : "—"}
+                    </td>
+                    <td>{formatMoney(item.cpaCentavos)}</td>
+                  </tr>
+                ))}
               </tbody>
             </table>
           </div>
@@ -612,17 +456,13 @@ export function AdminMarketingCostsPage() {
       <section className="panel">
         <div className="panel-heading">
           <div>
-            <p className="eyebrow">
-              Histórico
-            </p>
+            <p className="eyebrow">Histórico</p>
             <h2>Investimentos registrados</h2>
           </div>
         </div>
 
         {data.expenses.length === 0 ? (
-          <p className="muted">
-            Nenhum investimento registrado neste período.
-          </p>
+          <p className="muted">Nenhum investimento registrado neste período.</p>
         ) : (
           <div className="table-wrap">
             <table>
@@ -638,31 +478,17 @@ export function AdminMarketingCostsPage() {
                 </tr>
               </thead>
               <tbody>
-                {data.expenses.map(
-                  (item) => (
-                    <tr key={item.id}>
-                      <td>
-                        {formatDate(
-                          item.dataGasto
-                        )}
-                      </td>
-                      <td>
-                        {item.campanhaNome || "—"}
-                      </td>
-                      <td>{objectiveLabel(item.objetivo)}</td>
-                      <td>{item.canal || "—"}</td>
-                      <td>{item.fonte || "manual"}</td>
-                      <td>
-                        {formatMoney(
-                          item.valorCentavos
-                        )}
-                      </td>
-                      <td>
-                        {item.observacao || "—"}
-                      </td>
-                    </tr>
-                  )
-                )}
+                {data.expenses.map((item) => (
+                  <tr key={item.id}>
+                    <td>{formatDate(item.dataGasto)}</td>
+                    <td>{item.campanhaNome || "—"}</td>
+                    <td>{objectiveLabel(item.objetivo)}</td>
+                    <td>{item.canal || "—"}</td>
+                    <td>{item.fonte || "manual"}</td>
+                    <td>{formatMoney(item.valorCentavos)}</td>
+                    <td>{item.observacao || "—"}</td>
+                  </tr>
+                ))}
               </tbody>
             </table>
           </div>
