@@ -43,6 +43,16 @@ const adminProfessionalFunnelController =
   );
 
 /*
+ * O TikTok redireciona o navegador para a própria tela de custos.
+ * Sem parâmetros OAuth, o middleware apenas chama next() e a SPA
+ * continua sendo servida normalmente pelo Express.
+ */
+router.get(
+  "/admin/trafego-pago/custos",
+  marketingCostSyncController.callbackTikTok
+);
+
+/*
  * Resumo geral da plataforma.
  */
 router.get(
@@ -179,6 +189,13 @@ router.get(
   auth,
   authAdmin,
   marketingCostSyncController.status
+);
+
+router.post(
+  "/admin/marketing/custos-integracoes/tiktok_ads/autorizacao",
+  auth,
+  authAdmin,
+  marketingCostSyncController.iniciarAutorizacaoTikTok
 );
 
 router.get(
