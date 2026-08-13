@@ -37,6 +37,9 @@ const {
   iniciarWorkerCustosMarketing,
   pararWorkerCustosMarketing,
 } = require("./services/marketingCostSyncWorker");
+const socialPreviewService = require(
+  "./services/socialPreviewService"
+);
 
 const app = express();
 
@@ -442,27 +445,104 @@ const rotasReact = Object.values(
   reactRoutes
 );
 
-app.get(
-  rotasReact,
-  (_req, res, next) => {
-    const indexReact =
-      path.join(
-        reactDir,
-        "index.html"
-      );
+const rotasReactNoindex = new Set([
+  reactRoutes.login,
+  reactRoutes.register,
+  reactRoutes.confirm,
+  reactRoutes.success,
+  reactRoutes.myAgenda,
+  reactRoutes.favorites,
+  reactRoutes.createBusiness,
+  reactRoutes.account,
+  reactRoutes.checkout
+]);
+
+function rotaDeveSerNoindex(caminho) {
+  return (
+    rotasReactNoindex.has(caminho) ||
+    caminho === "/painel" ||
+    caminho.startsWith("/painel/") ||
+    caminho.startsWith("/admin/") ||
+    caminho.startsWith("/profissional/")
+  );
+}
+
+function injetarRobotsNoindex(html) {
+  const semRobots = String(html || "")
+    .replace(
+      /<meta\s+name=["']robots["'][^>]*>\s*/i,
+      ""
+    );
+
+  return semRobots.replace(
+    /<\/head>/i,
+    '    <meta name="robots" content="noindex,follow" />\n  </head>'
+  );
+}
+
+async function responderDocumentoReact(
+  req,
+  res,
+  next,
+  {
+    status = 200,
+    noindex = false
+  } = {}
+) {
+  try {
+    const html = await socialPreviewService.lerHtmlReact();
+    const documento = noindex
+      ? injetarRobotsNoindex(html)
+      : html;
 
     disableDocumentCache(res);
 
-    res.sendFile(
-      indexReact,
-      (erro) => {
-        if (erro) {
-          next(erro);
-        }
+    return res
+      .status(status)
+      .type("html")
+      .send(documento);
+  } catch (erro) {
+    return next(erro);
+  }
+}
+
+app.get(
+  rotasReact,
+  (req, res, next) => {
+    return responderDocumentoReact(
+      req,
+      res,
+      next,
+      {
+        noindex: rotaDeveSerNoindex(req.path)
       }
     );
   }
 );
+
+app.get(
+  "/{*rota}",
+  (req, res, next) => {
+    const aceitaHtml = String(
+      req.headers.accept || ""
+    ).toLowerCase().includes("text/html");
+
+    if (!aceitaHtml) {
+      return next();
+    }
+
+    return responderDocumentoReact(
+      req,
+      res,
+      next,
+      {
+        status: 404,
+        noindex: true
+      }
+    );
+  }
+);
+
 app.use(
   notFound
 );
