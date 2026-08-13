@@ -142,7 +142,7 @@ afterEach(() => {
 });
 
 describe("AdminMarketingPage", () => {
-  it("carrega métricas e sinaliza campanha legada sem objetivo", async () => {
+  it("carrega métricas e transforma campanha legada em pendência acionável", async () => {
     render(<AdminMarketingPage />);
 
     expect(
@@ -156,9 +156,46 @@ describe("AdminMarketingPage", () => {
     expect(screen.getByText("Meta Cílios")).not.toBeNull();
     expect(screen.getByText("Não classificado")).not.toBeNull();
     expect(
-      screen.getByRole("button", { name: "Classificar campanha" })
+      screen.getByText(/1 campanha\(s\) precisa\(m\) de classificação/i)
+    ).not.toBeNull();
+    expect(
+      screen.getByRole("button", { name: "Revisar classificação" })
     ).not.toBeNull();
     expect(apiRequest).toHaveBeenCalledTimes(4);
+  });
+
+  it("avisa quando tráfego pago chega sem utm_campaign", async () => {
+    const originalImplementation = apiRequest.getMockImplementation();
+    apiRequest.mockImplementation((path, options) => {
+      if (path.startsWith("/admin/marketing/campanhas")) {
+        return Promise.resolve({
+          periodo: "30",
+          campanhas: [
+            {
+              origem: "meta",
+              midia: "cpc",
+              campanha: "(sem campanha)",
+              sessoes: 5,
+              perfisVisualizados: 0,
+              agendamentosIniciados: 0,
+              agendamentosConcluidos: 0,
+              taxaConversao: 0
+            }
+          ]
+        });
+      }
+      return originalImplementation(path, options);
+    });
+
+    render(<AdminMarketingPage />);
+
+    expect(
+      await screen.findByText(/5 sessão\(ões\) paga\(s\) sem identificação de campanha/i)
+    ).not.toBeNull();
+    expect(screen.getByText("Falta utm_campaign")).not.toBeNull();
+    expect(
+      screen.getByRole("button", { name: "Copiar link de Meta Cílios" })
+    ).not.toBeNull();
   });
 
   it("mantém UTMs técnicas recolhidas e permite abri-las sob demanda", async () => {
@@ -166,7 +203,6 @@ describe("AdminMarketingPage", () => {
     render(<AdminMarketingPage />);
 
     await screen.findByRole("heading", { name: "Campanhas e tráfego pago" });
-
     const summary = screen.getByText("Configurações avançadas de rastreamento");
     const details = summary.closest("details");
 
@@ -258,12 +294,16 @@ describe("AdminMarketingPage", () => {
     ).not.toBeNull();
   });
 
-  it("arquiva campanha cadastrada", async () => {
+  it("mantém arquivamento em ação secundária", async () => {
     const user = userEvent.setup();
     render(<AdminMarketingPage />);
 
-    await screen.findByText("Meta Cílios");
-    await user.click(screen.getByRole("button", { name: "Arquivar" }));
+    const campaignName = await screen.findByText("Meta Cílios");
+    const row = campaignName.closest("tr");
+    expect(row).not.toBeNull();
+
+    await user.click(within(row).getByText("Mais"));
+    await user.click(within(row).getByRole("button", { name: "Arquivar" }));
 
     await waitFor(() => {
       expect(apiRequest).toHaveBeenCalledWith(
