@@ -95,6 +95,13 @@ async function listarCatalogoLocal({
   pagina,
   limite
 }) {
+  const categoriaSolicitada = String(
+    categoriaSlug || ""
+  ).trim();
+  const localidadeSolicitadaOriginal = String(
+    localidadeSlug || ""
+  ).trim();
+
   const categoria = resolverCategoria(categoriaSlug);
   const localidadeSolicitada = resolverLocalidade(
     localidadeSlug
@@ -134,6 +141,11 @@ async function listarCatalogoLocal({
     cidade: localidade.cidade,
     estado: localidade.estado
   });
+  const localidadeCanonica =
+    caminhoCanonico.split("/").pop();
+  const precisaRedirecionar =
+    categoriaSolicitada !== categoria.slug ||
+    localidadeSolicitadaOriginal !== localidadeCanonica;
 
   return {
     ...resultado,
@@ -150,8 +162,7 @@ async function listarCatalogoLocal({
       caminho_canonico: caminhoCanonico
     },
     redirecionamento:
-      localidadeSolicitada.slug !==
-        caminhoCanonico.split("/").pop()
+      precisaRedirecionar
         ? { caminho: caminhoCanonico }
         : null,
     metadados: montarMetadados({

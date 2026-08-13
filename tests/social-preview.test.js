@@ -93,6 +93,27 @@ describe("prévia social dos links públicos", () => {
     );
   });
 
+  test("negócio inexistente responde 404 HTML com noindex", async () => {
+    perfilNegocioRepository.buscarNegocioPorSlug
+      .mockResolvedValueOnce(null);
+
+    const resposta = await request(app).get(
+      "/negocio/nao-existe"
+    );
+
+    expect(resposta.status).toBe(404);
+    expect(resposta.headers["content-type"]).toMatch(/text\/html/);
+    expect(resposta.text).toContain(
+      "<title>Negócio não encontrado | Agenda Fashion</title>"
+    );
+    expect(resposta.text).toContain(
+      'name="robots" content="noindex,follow"'
+    );
+    expect(resposta.text).toContain(
+      'rel="canonical" href="https://app.agendafashion.com.br/negocio/nao-existe"'
+    );
+  });
+
   test("entrega ao robô o HTML do serviço com Open Graph", async () => {
     const resposta = await request(app).get(
       "/negocio/beauty-vanessa?servico=11&utm_source=whatsapp"

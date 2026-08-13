@@ -5,7 +5,12 @@ import {
   useRef,
   useState
 } from "react";
-import { Link, useParams } from "react-router-dom";
+import {
+  Link,
+  useLocation,
+  useNavigate,
+  useParams
+} from "react-router-dom";
 
 import { apiRequest } from "../api/client";
 import { track } from "../analytics/track";
@@ -39,6 +44,24 @@ export function buildLocalCatalogApiPath({
   )}?${params.toString()}`;
 }
 
+export function buildCanonicalCatalogLocation({
+  canonicalPath,
+  currentPath,
+  search = ""
+}) {
+  const path = String(canonicalPath || "").trim();
+
+  if (
+    !path.startsWith("/") ||
+    path.startsWith("//") ||
+    path === currentPath
+  ) {
+    return null;
+  }
+
+  return `${path}${String(search || "")}`;
+}
+
 function flattenServices(businesses) {
   return businesses.flatMap((business) =>
     (business.servicos || []).map((service) => ({
@@ -57,6 +80,8 @@ function flattenServices(businesses) {
 
 export function LocalCatalogPage() {
   const { categoria = "", localidade = "" } = useParams();
+  const location = useLocation();
+  const navigate = useNavigate();
   const [businesses, setBusinesses] = useState([]);
   const [filter, setFilter] = useState(null);
   const [metadata, setMetadata] = useState(null);
@@ -89,6 +114,20 @@ export function LocalCatalogPage() {
         { signal }
       );
 
+      const canonicalLocation =
+        buildCanonicalCatalogLocation({
+          canonicalPath: data.redirecionamento?.caminho,
+          currentPath: location.pathname,
+          search: location.search
+        });
+
+      if (canonicalLocation) {
+        navigate(canonicalLocation, {
+          replace: true
+        });
+        return;
+      }
+
       const received = Array.isArray(data.negocios)
         ? data.negocios
         : [];
@@ -118,7 +157,13 @@ export function LocalCatalogPage() {
         setLoadingMore(false);
       }
     }
-  }, [categoria, localidade]);
+  }, [
+    categoria,
+    localidade,
+    location.pathname,
+    location.search,
+    navigate
+  ]);
 
   useEffect(() => {
     const controller = new AbortController();
