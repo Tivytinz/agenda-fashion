@@ -26,6 +26,11 @@ function mockRequests() {
   apiRequest.mockImplementation((path, options = {}) => {
     if (path === "/admin/marketing/custos-integracoes") {
       return Promise.resolve({
+        sincronizacaoAutomatica: {
+          habilitado: false,
+          intervaloHoras: 6,
+          limiteDesatualizadoHoras: 24
+        },
         provedores: [
           {
             provedor: "google_ads",
@@ -53,18 +58,8 @@ function mockRequests() {
     if (path === "/admin/marketing/gestao-campanhas") {
       return Promise.resolve({
         campanhas: [
-          {
-            id: 5,
-            nome: "Google Agosto",
-            canal: "google",
-            ativo: true
-          },
-          {
-            id: 8,
-            nome: "Meta Agosto",
-            canal: "meta",
-            ativo: true
-          }
+          { id: 5, nome: "Google Agosto", canal: "google", ativo: true },
+          { id: 8, nome: "Meta Agosto", canal: "meta", ativo: true }
         ]
       });
     }
@@ -74,18 +69,8 @@ function mockRequests() {
         provedor: "google_ads",
         contaExternaId: "6770207927",
         campanhas: [
-          {
-            id: "555",
-            nome: "Aquisição real",
-            status: "ENABLED",
-            tipo: "SEARCH"
-          },
-          {
-            id: "777",
-            nome: "Marca pausada",
-            status: "PAUSED",
-            tipo: "SEARCH"
-          }
+          { id: "555", nome: "Aquisição real", status: "ENABLED", tipo: "SEARCH" },
+          { id: "777", nome: "Marca pausada", status: "PAUSED", tipo: "SEARCH" }
         ]
       });
     }
@@ -95,18 +80,8 @@ function mockRequests() {
         provedor: "meta_ads",
         contaExternaId: "1122334455",
         campanhas: [
-          {
-            id: "901",
-            nome: "Profissionais Meta",
-            status: "ACTIVE",
-            tipo: "OUTCOME_TRAFFIC"
-          },
-          {
-            id: "902",
-            nome: "Marca Meta pausada",
-            status: "PAUSED",
-            tipo: "OUTCOME_AWARENESS"
-          }
+          { id: "901", nome: "Profissionais Meta", status: "ACTIVE", tipo: "OUTCOME_TRAFFIC" },
+          { id: "902", nome: "Marca Meta pausada", status: "PAUSED", tipo: "OUTCOME_AWARENESS" }
         ]
       });
     }
@@ -145,41 +120,7 @@ function mockRequests() {
       path === "/admin/marketing/custos-integracoes/vinculos" &&
       options.method === "POST"
     ) {
-      if (options.body?.provedor === "meta_ads") {
-        return Promise.resolve({
-          vinculo: {
-            id: 10,
-            campanha_id: 8,
-            provedor: "meta_ads",
-            conta_externa_id: "1122334455",
-            campanha_externa_id: "901",
-            campanha_externa_nome: "Profissionais Meta"
-          },
-          campanhaExterna: {
-            id: "901",
-            nome: "Profissionais Meta",
-            status: "ACTIVE",
-            tipo: "OUTCOME_TRAFFIC"
-          }
-        });
-      }
-
-      return Promise.resolve({
-        vinculo: {
-          id: 9,
-          campanha_id: 5,
-          provedor: "google_ads",
-          conta_externa_id: "6770207927",
-          campanha_externa_id: "555",
-          campanha_externa_nome: "Aquisição real"
-        },
-        campanhaExterna: {
-          id: "555",
-          nome: "Aquisição real",
-          status: "ENABLED",
-          tipo: "SEARCH"
-        }
-      });
+      return Promise.resolve({ vinculo: { id: 9 } });
     }
 
     return Promise.reject(new Error(`Rota inesperada: ${path}`));
@@ -194,20 +135,13 @@ beforeEach(() => {
 afterEach(cleanup);
 
 describe("MarketingCostIntegrationsPanel", () => {
-  it("bloqueia sincronização enquanto não existe vínculo de campanha", async () => {
+  it("esconde sincronização enquanto não existe vínculo de campanha", async () => {
     render(<MarketingCostIntegrationsPanel />);
 
-    const syncButtons = await screen.findAllByRole("button", {
-      name: "Sincronizar 30 dias"
-    });
-
-    expect(syncButtons).toHaveLength(2);
-    expect(syncButtons[0].disabled).toBe(true);
-    expect(syncButtons[1].disabled).toBe(true);
+    expect(await screen.findAllByText("Nenhuma campanha vinculada")).toHaveLength(2);
+    expect(screen.queryByRole("button", { name: "Sincronizar 30 dias" })).toBeNull();
     expect(
-      screen.getAllByText(
-        "Vincule pelo menos uma campanha antes de sincronizar custos."
-      )
+      screen.getAllByText("Vincule uma campanha para liberar a sincronização de custos.")
     ).toHaveLength(2);
   });
 
@@ -215,9 +149,7 @@ describe("MarketingCostIntegrationsPanel", () => {
     const user = userEvent.setup();
     render(<MarketingCostIntegrationsPanel />);
 
-    const googleCampaign = await screen.findByLabelText(
-      "Campanha real do Google Ads"
-    );
+    const googleCampaign = await screen.findByLabelText("Campanha real do Google Ads");
 
     await waitFor(() => {
       expect(screen.getAllByText("Concluído")).toHaveLength(2);
@@ -234,13 +166,9 @@ describe("MarketingCostIntegrationsPanel", () => {
 
   it("testa a conexão com Google Ads e exibe a conta identificada", async () => {
     const user = userEvent.setup();
-
     render(<MarketingCostIntegrationsPanel />);
 
-    const testButtons = await screen.findAllByRole("button", {
-      name: "Testar conexão"
-    });
-
+    const testButtons = await screen.findAllByRole("button", { name: "Testar conexão" });
     await user.click(testButtons[0]);
 
     await waitFor(() => {
@@ -255,34 +183,22 @@ describe("MarketingCostIntegrationsPanel", () => {
         "Google Ads conectado com sucesso. Agenda Fashion Ads · BRL · America/Sao_Paulo · v25."
       )
     ).not.toBeNull();
-
-    expect(
-      screen.getByText("Agenda Fashion Ads · BRL · America/Sao_Paulo · v25")
-    ).not.toBeNull();
+    expect(screen.getByText("Agenda Fashion Ads · BRL · America/Sao_Paulo · v25")).not.toBeNull();
   });
 
-  it("lista campanhas reais do Google e salva vínculo verificado", async () => {
+  it("lista campanhas reais do Google e salva vínculo", async () => {
     const user = userEvent.setup();
-
     render(<MarketingCostIntegrationsPanel />);
 
-    const googleCampaign = await screen.findByLabelText(
-      "Campanha real do Google Ads"
-    );
-
+    const googleCampaign = await screen.findByLabelText("Campanha real do Google Ads");
     expect(screen.getByRole("option", { name: "Google Agosto" })).not.toBeNull();
     expect(screen.queryByRole("option", { name: "Meta Agosto" })).toBeNull();
 
-    await screen.findByRole("option", {
-      name: "Aquisição real · Ativa · 555"
-    });
-
+    await screen.findByRole("option", { name: "Aquisição real · Ativa · 555" });
     await user.selectOptions(googleCampaign, "555");
     expect(googleCampaign.value).toBe("555");
 
-    await user.click(
-      screen.getByRole("button", { name: "Vincular campanha verificada" })
-    );
+    await user.click(screen.getByRole("button", { name: "Vincular campanha" }));
 
     await waitFor(() => {
       expect(apiRequest).toHaveBeenCalledWith(
@@ -300,33 +216,21 @@ describe("MarketingCostIntegrationsPanel", () => {
       );
     });
 
-    expect(
-      await screen.findByText(
-        "Vínculo verificado e salvo com a campanha real do Google Ads."
-      )
-    ).not.toBeNull();
+    expect(await screen.findByText("Vínculo salvo com a campanha real do Google Ads.")).not.toBeNull();
   });
 
-  it("testa Meta, lista campanhas reais e salva vínculo verificado", async () => {
+  it("testa Meta, lista campanhas reais e salva vínculo", async () => {
     const user = userEvent.setup();
-
     render(<MarketingCostIntegrationsPanel />);
 
-    const platform = await screen.findByRole("combobox", {
-      name: "Plataforma"
-    });
+    const platform = await screen.findByRole("combobox", { name: "Plataforma" });
     await user.selectOptions(platform, "meta_ads");
 
-    const metaCampaign = await screen.findByLabelText(
-      "Campanha real do Meta Ads"
-    );
-
+    const metaCampaign = await screen.findByLabelText("Campanha real do Meta Ads");
     expect(screen.getByRole("option", { name: "Meta Agosto" })).not.toBeNull();
     expect(screen.queryByRole("option", { name: "Google Agosto" })).toBeNull();
 
-    await screen.findByRole("option", {
-      name: "Profissionais Meta · Ativa · 901"
-    });
+    await screen.findByRole("option", { name: "Profissionais Meta · Ativa · 901" });
 
     const testButtons = screen.getAllByRole("button", { name: "Testar conexão" });
     await user.click(testButtons[1]);
@@ -339,10 +243,7 @@ describe("MarketingCostIntegrationsPanel", () => {
 
     await user.selectOptions(metaCampaign, "901");
     expect(metaCampaign.value).toBe("901");
-
-    await user.click(
-      screen.getByRole("button", { name: "Vincular campanha verificada" })
-    );
+    await user.click(screen.getByRole("button", { name: "Vincular campanha" }));
 
     await waitFor(() => {
       expect(apiRequest).toHaveBeenCalledWith(
@@ -360,10 +261,6 @@ describe("MarketingCostIntegrationsPanel", () => {
       );
     });
 
-    expect(
-      await screen.findByText(
-        "Vínculo verificado e salvo com a campanha real do Meta Ads."
-      )
-    ).not.toBeNull();
+    expect(await screen.findByText("Vínculo salvo com a campanha real do Meta Ads.")).not.toBeNull();
   });
 });
