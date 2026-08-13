@@ -2,24 +2,29 @@ const db = require(
   "../db/db"
 );
 
+const CAMPOS = `
+  id,
+  nome,
+  canal,
+  objetivo,
+  utm_source,
+  utm_medium,
+  utm_campaign,
+  utm_content,
+  utm_term,
+  destino_path,
+  ativo,
+  criado_por_usuario_id,
+  created_at,
+  updated_at
+`;
+
 async function listar() {
   const resultado =
     await db.query(
       `
       SELECT
-        id,
-        nome,
-        canal,
-        utm_source,
-        utm_medium,
-        utm_campaign,
-        utm_content,
-        utm_term,
-        destino_path,
-        ativo,
-        criado_por_usuario_id,
-        created_at,
-        updated_at
+        ${CAMPOS}
       FROM marketing_campanhas
       ORDER BY
         ativo DESC,
@@ -36,19 +41,7 @@ async function buscarPorId(id) {
     await db.query(
       `
       SELECT
-        id,
-        nome,
-        canal,
-        utm_source,
-        utm_medium,
-        utm_campaign,
-        utm_content,
-        utm_term,
-        destino_path,
-        ativo,
-        criado_por_usuario_id,
-        created_at,
-        updated_at
+        ${CAMPOS}
       FROM marketing_campanhas
       WHERE id = $1
       LIMIT 1
@@ -91,6 +84,7 @@ async function criar(campanha) {
       INSERT INTO marketing_campanhas (
         nome,
         canal,
+        objetivo,
         utm_source,
         utm_medium,
         utm_campaign,
@@ -110,26 +104,16 @@ async function criar(campanha) {
         $7,
         $8,
         $9,
-        $10
+        $10,
+        $11
       )
       RETURNING
-        id,
-        nome,
-        canal,
-        utm_source,
-        utm_medium,
-        utm_campaign,
-        utm_content,
-        utm_term,
-        destino_path,
-        ativo,
-        criado_por_usuario_id,
-        created_at,
-        updated_at
+        ${CAMPOS}
       `,
       [
         campanha.nome,
         campanha.canal,
+        campanha.objetivo,
         campanha.utmSource,
         campanha.utmMedium,
         campanha.utmCampaign,
@@ -151,30 +135,20 @@ async function atualizar(id, campanha) {
       UPDATE marketing_campanhas
       SET
         nome = $2,
-        utm_content = $3,
-        utm_term = $4,
-        destino_path = $5,
-        ativo = $6,
+        objetivo = $3,
+        utm_content = $4,
+        utm_term = $5,
+        destino_path = $6,
+        ativo = $7,
         updated_at = NOW()
       WHERE id = $1
       RETURNING
-        id,
-        nome,
-        canal,
-        utm_source,
-        utm_medium,
-        utm_campaign,
-        utm_content,
-        utm_term,
-        destino_path,
-        ativo,
-        criado_por_usuario_id,
-        created_at,
-        updated_at
+        ${CAMPOS}
       `,
       [
         id,
         campanha.nome,
+        campanha.objetivo,
         campanha.utmContent,
         campanha.utmTerm,
         campanha.destinoPath,
