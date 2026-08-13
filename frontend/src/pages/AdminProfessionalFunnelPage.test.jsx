@@ -234,7 +234,7 @@ describe("AdminProfessionalFunnelPage", () => {
       </MemoryRouter>
     );
 
-    await screen.findByText("profissionais_goiania");
+    await screen.findAllByText("profissionais_goiania");
     apiRequest.mockRejectedValueOnce(new Error("Funil indisponível"));
 
     await user.click(screen.getByRole("button", { name: "7 dias" }));
