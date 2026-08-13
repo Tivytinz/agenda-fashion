@@ -8,6 +8,15 @@ const { disableDocumentCache } = require(
   "../utils/httpCache"
 );
 
+function queryOriginal(req) {
+  const originalUrl = String(req.originalUrl || "");
+  const indice = originalUrl.indexOf("?");
+
+  return indice >= 0
+    ? originalUrl.slice(indice)
+    : "";
+}
+
 async function listarCatalogoLocal(req, res, next) {
   try {
     const resultado =
@@ -33,6 +42,19 @@ async function renderizarCatalogoLocal(req, res, next) {
         pagina: 1,
         limite: 1
       });
+
+    const caminhoCanonico =
+      resultado.redirecionamento?.caminho;
+
+    if (
+      caminhoCanonico &&
+      caminhoCanonico !== req.path
+    ) {
+      return res.redirect(
+        301,
+        `${caminhoCanonico}${queryOriginal(req)}`
+      );
+    }
 
     const html = await socialPreviewService.lerHtmlReact();
 
