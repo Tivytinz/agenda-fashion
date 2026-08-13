@@ -18,6 +18,12 @@ const PERIODS = [
   ["all", "Todo período"]
 ];
 
+const OBJECTIVE_LABELS = {
+  profissional: "Profissional",
+  cliente: "Cliente",
+  indefinido: "Não classificado"
+};
+
 function localDateValue() {
   const now = new Date();
   const local = new Date(
@@ -79,6 +85,11 @@ function moneyToCents(value) {
   }
 
   return Math.round(amount * 100);
+}
+
+function objectiveLabel(value) {
+  return OBJECTIVE_LABELS[value] ||
+    OBJECTIVE_LABELS.indefinido;
 }
 
 export function AdminMarketingCostsPage() {
@@ -305,26 +316,26 @@ export function AdminMarketingCostsPage() {
       formatMoney(
         costs.investimentoCentavos
       ),
-      "gasto registrado no período"
+      "gasto total registrado no período"
     ],
     [
       "Custo por sessão",
       formatMoney(
         costs.custoPorSessaoCentavos
       ),
-      `${costs.sessoes ?? 0} sessões atribuídas`
+      `${costs.sessoes ?? 0} sessões atribuídas em todos os objetivos`
     ],
     [
-      "Agendamentos",
+      "Agendamentos de clientes",
       costs.agendamentosConcluidos ?? 0,
-      "conversões concluídas"
+      "somente campanhas com objetivo cliente"
     ],
     [
-      "CPA",
+      "CPA cliente",
       formatMoney(
         costs.cpaCentavos
       ),
-      "investimento por agendamento"
+      `${formatMoney(costs.investimentoClientesCentavos)} investidos em campanhas cliente`
     ]
   ];
 
@@ -337,7 +348,7 @@ export function AdminMarketingCostsPage() {
           </p>
           <h1>Investimento e CPA</h1>
           <p>
-            Importe o gasto real das plataformas, mantenha correções manuais e compare custo por sessão e por agendamento concluído.
+            O investimento total continua visível, mas CPA de agendamento usa apenas campanhas de clientes. Aquisição profissional é avaliada por CAC e ROAS em Rentabilidade.
           </p>
         </div>
 
@@ -439,7 +450,7 @@ export function AdminMarketingCostsPage() {
                         key={item.id}
                         value={item.id}
                       >
-                        {item.nome}
+                        {item.nome} · {objectiveLabel(item.objetivo)}
                         {item.ativo
                           ? ""
                           : " (arquivada)"}
@@ -452,6 +463,7 @@ export function AdminMarketingCostsPage() {
               <label>
                 Data do gasto
                 <input
+                  max={localDateValue()}
                   onChange={(event) =>
                     updateForm(
                       "dataGasto",
@@ -534,7 +546,10 @@ export function AdminMarketingCostsPage() {
             <p className="eyebrow">
               Eficiência
             </p>
-            <h2>CPA por campanha</h2>
+            <h2>Custo por campanha</h2>
+            <p className="muted">
+              CPA é calculado apenas para objetivo Cliente. Campanhas profissionais usam CAC/ROAS na tela de Rentabilidade; não classificadas aguardam definição.
+            </p>
           </div>
         </div>
 
@@ -548,12 +563,13 @@ export function AdminMarketingCostsPage() {
               <thead>
                 <tr>
                   <th>Campanha</th>
+                  <th>Objetivo</th>
                   <th>Canal</th>
                   <th>Investimento</th>
                   <th>Sessões</th>
                   <th>Custo/sessão</th>
                   <th>Agendamentos</th>
-                  <th>CPA</th>
+                  <th>CPA cliente</th>
                 </tr>
               </thead>
               <tbody>
@@ -561,6 +577,7 @@ export function AdminMarketingCostsPage() {
                   (item) => (
                     <tr key={item.campanhaId}>
                       <td>{item.nome}</td>
+                      <td>{objectiveLabel(item.objetivo)}</td>
                       <td>{item.canal}</td>
                       <td>
                         {formatMoney(
@@ -574,7 +591,9 @@ export function AdminMarketingCostsPage() {
                         )}
                       </td>
                       <td>
-                        {item.agendamentosConcluidos}
+                        {item.objetivo === "cliente"
+                          ? item.agendamentosConcluidos
+                          : "—"}
                       </td>
                       <td>
                         {formatMoney(
@@ -611,6 +630,7 @@ export function AdminMarketingCostsPage() {
                 <tr>
                   <th>Data</th>
                   <th>Campanha</th>
+                  <th>Objetivo</th>
                   <th>Canal</th>
                   <th>Fonte</th>
                   <th>Valor</th>
@@ -629,6 +649,7 @@ export function AdminMarketingCostsPage() {
                       <td>
                         {item.campanhaNome || "—"}
                       </td>
+                      <td>{objectiveLabel(item.objetivo)}</td>
                       <td>{item.canal || "—"}</td>
                       <td>{item.fonte || "manual"}</td>
                       <td>
