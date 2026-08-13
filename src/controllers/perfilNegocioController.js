@@ -48,7 +48,27 @@ async function renderizarPerfilPublico(req, res, next) {
     });
 
     if (!previa) {
-      return next();
+      const origem = socialPreviewService.origemPublica();
+      const html = await socialPreviewService.lerHtmlReact();
+      const url = new URL(req.path, origem).href;
+
+      disableDocumentCache(res);
+
+      return res
+        .status(404)
+        .type("html")
+        .send(
+          socialPreviewService.injetarMetadados(
+            html,
+            {
+              titulo: "Negócio não encontrado | Agenda Fashion",
+              descricao: "Este negócio não está disponível no Agenda Fashion.",
+              imagem: `${origem}/social-preview.png`,
+              url,
+              robots: "noindex,follow"
+            }
+          )
+        );
     }
 
     if (previa.negocio.slug !== previa.slugSolicitado) {
