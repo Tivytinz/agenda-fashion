@@ -62,22 +62,15 @@ function campaignKey(item) {
 }
 
 export function AdminProfessionalFunnelPage() {
-  const [period, setPeriod] =
-    useState("30");
-  const [data, setData] =
-    useState(null);
-  const [error, setError] =
-    useState("");
-  const [reloadKey, setReloadKey] =
-    useState(0);
-  const [refreshing, setRefreshing] =
-    useState(true);
-  const [expandedCampaign, setExpandedCampaign] =
-    useState("");
+  const [period, setPeriod] = useState("30");
+  const [data, setData] = useState(null);
+  const [error, setError] = useState("");
+  const [reloadKey, setReloadKey] = useState(0);
+  const [refreshing, setRefreshing] = useState(true);
+  const [expandedCampaign, setExpandedCampaign] = useState("");
 
   useEffect(() => {
-    const controller =
-      new AbortController();
+    const controller = new AbortController();
     let active = true;
 
     setError("");
@@ -88,19 +81,11 @@ export function AdminProfessionalFunnelPage() {
       { signal: controller.signal }
     )
       .then((result) => {
-        if (active) {
-          setData(result);
-        }
+        if (active) setData(result);
       })
       .catch((requestError) => {
-        if (
-          active &&
-          requestError.name !==
-            "AbortError"
-        ) {
-          setError(
-            requestError.message
-          );
+        if (active && requestError.name !== "AbortError") {
+          setError(requestError.message);
         }
       })
       .finally(() => {
@@ -128,24 +113,16 @@ export function AdminProfessionalFunnelPage() {
       <main className="workspace-page admin-workspace-page admin-marketing-page admin-professional-funnel-page">
         <ErrorState
           message={error}
-          onRetry={() =>
-            setReloadKey(
-              (current) => current + 1
-            )
-          }
+          onRetry={() => setReloadKey((current) => current + 1)}
         />
       </main>
     );
   }
 
-  const summary =
-    data?.resumo || {};
-  const decision =
-    data?.decisao || {};
-  const decisionCounts =
-    decision?.contagem || {};
-  const campaigns =
-    data?.campanhas || [];
+  const summary = data?.resumo || {};
+  const decision = data?.decisao || {};
+  const decisionCounts = decision?.contagem || {};
+  const campaigns = data?.campanhas || [];
 
   const cards = [
     [
@@ -169,18 +146,14 @@ export function AdminProfessionalFunnelPage() {
     ],
     [
       "Investimento",
-      formatMoney(
-        summary.investimentoCentavos ?? 0
-      ),
+      formatMoney(summary.investimentoCentavos ?? 0),
       summary.custoCheckoutCentavos === null
         ? "sem custo por checkout calculável"
         : `${formatMoney(summary.custoCheckoutCentavos)} por checkout`
     ],
     [
       "Receita atribuída",
-      formatMoney(
-        summary.receitaPrimeiroPagamentoCentavos ?? 0
-      ),
+      formatMoney(summary.receitaPrimeiroPagamentoCentavos ?? 0),
       "primeiro pagamento da aquisição; reembolso zera a receita"
     ],
     [
@@ -216,9 +189,7 @@ export function AdminProfessionalFunnelPage() {
     <main aria-busy={refreshing} className="workspace-page admin-workspace-page admin-marketing-page admin-professional-funnel-page">
       <header className="workspace-heading">
         <div>
-          <p className="eyebrow">
-            Administração do AF
-          </p>
+          <p className="eyebrow">Administração do AF</p>
           <h1>Funil de profissionais</h1>
           <p>
             Acompanhe quais campanhas trazem profissionais que avançam até negócio publicado, checkout, assinatura e receita.
@@ -229,27 +200,17 @@ export function AdminProfessionalFunnelPage() {
           className="segmented-control"
           aria-label="Período do funil profissional"
         >
-          {PERIODS.map(
-            ([value, label]) => (
-              <button
-                aria-pressed={
-                  period === value
-                }
-                className={
-                  period === value
-                    ? "active"
-                    : ""
-                }
-                key={value}
-                onClick={() =>
-                  setPeriod(value)
-                }
-                type="button"
-              >
-                {label}
-              </button>
-            )
-          )}
+          {PERIODS.map(([value, label]) => (
+            <button
+              aria-pressed={period === value}
+              className={period === value ? "active" : ""}
+              key={value}
+              onClick={() => setPeriod(value)}
+              type="button"
+            >
+              {label}
+            </button>
+          ))}
         </div>
       </header>
 
@@ -260,26 +221,19 @@ export function AdminProfessionalFunnelPage() {
         className="metric-grid"
         aria-label="Indicadores do funil profissional"
       >
-        {cards.map(
-          ([label, value, hint]) => (
-            <article
-              className="metric-card"
-              key={label}
-            >
-              <span>{label}</span>
-              <strong>{value}</strong>
-              <small>{hint}</small>
-            </article>
-          )
-        )}
+        {cards.map(([label, value, hint]) => (
+          <article className="metric-card" key={label}>
+            <span>{label}</span>
+            <strong>{value}</strong>
+            <small>{hint}</small>
+          </article>
+        ))}
       </section>
 
       <section className="panel">
         <div className="panel-heading">
           <div>
-            <p className="eyebrow">
-              Ativação
-            </p>
+            <p className="eyebrow">Ativação</p>
             <h2>Progressão da coorte</h2>
             <p className="muted">
               O período define quando o profissional entrou na coorte. As etapas mostram o progresso que essas contas já alcançaram.
@@ -297,15 +251,13 @@ export function AdminProfessionalFunnelPage() {
               </tr>
             </thead>
             <tbody>
-              {stages.map(
-                ([label, value, rate]) => (
-                  <tr key={label}>
-                    <td>{label}</td>
-                    <td>{value}</td>
-                    <td>{rate}%</td>
-                  </tr>
-                )
-              )}
+              {stages.map(([label, value, rate]) => (
+                <tr key={label}>
+                  <td>{label}</td>
+                  <td>{value}</td>
+                  <td>{rate}%</td>
+                </tr>
+              ))}
             </tbody>
           </table>
         </div>
@@ -314,12 +266,10 @@ export function AdminProfessionalFunnelPage() {
       <section className="panel">
         <div className="panel-heading">
           <div>
-            <p className="eyebrow">
-              Aquisição
-            </p>
+            <p className="eyebrow">Aquisição</p>
             <h2>Retorno e decisão por campanha</h2>
             <p className="muted">
-              Compare retorno e CAC sem perder a leitura principal. Cadastros, checkouts e custos intermediários ficam disponíveis nos detalhes de cada campanha.
+              Compare retorno e CAC sem perder a leitura principal. Cadastros, checkouts e custos intermediários ficam disponíveis nos detalhes de cada campanha. A receita usa somente o primeiro pagamento da aquisição; se ele for reembolsado, a receita atribuída fica zerada e renovações posteriores não entram no ROAS de aquisição.
             </p>
             <p className="muted">
               A recomendação não altera campanhas automaticamente. Com a régua atual, uma decisão forte exige pelo menos {decision.minimoCadastros ?? "—"} cadastros e {decision.minimoAssinaturas ?? "—"} assinaturas; meta de ROAS {formatRoas(decision.metaRoas)} e escala a partir de {formatRoas(decision.faixaEscalaRoas)}.
