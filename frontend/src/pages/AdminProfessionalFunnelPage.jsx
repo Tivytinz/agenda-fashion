@@ -133,6 +133,10 @@ export function AdminProfessionalFunnelPage() {
 
   const summary =
     data?.resumo || {};
+  const decision =
+    data?.decisao || {};
+  const decisionCounts =
+    decision?.contagem || {};
   const campaigns =
     data?.campanhas || [];
 
@@ -176,6 +180,18 @@ export function AdminProfessionalFunnelPage() {
       "ROAS de aquisição",
       formatRoas(summary.roas),
       "receita atribuída ÷ investimento"
+    ],
+    [
+      "Campanhas para escalar",
+      decisionCounts.escalar ?? 0,
+      decision.faixaEscalaRoas
+        ? `faixa de escala a partir de ${formatRoas(decision.faixaEscalaRoas)}`
+        : "aguardando régua de decisão"
+    ],
+    [
+      "Campanhas para pausar",
+      decisionCounts.pausar ?? 0,
+      "somente com amostra mínima atingida"
     ]
   ];
 
@@ -294,9 +310,12 @@ export function AdminProfessionalFunnelPage() {
             <p className="eyebrow">
               Aquisição
             </p>
-            <h2>Retorno por campanha</h2>
+            <h2>Retorno e decisão por campanha</h2>
             <p className="muted">
               Investimento é cruzado com a mesma identidade UTM usada no cadastro. Receita usa somente o primeiro pagamento realizado da aquisição. Se ele for reembolsado, a receita atribuída fica zerada; renovações posteriores não entram no ROAS de aquisição.
+            </p>
+            <p className="muted">
+              A recomendação não altera campanhas automaticamente. Com a régua atual, uma decisão forte exige pelo menos {decision.minimoCadastros ?? "—"} cadastros e {decision.minimoAssinaturas ?? "—"} assinaturas; meta de ROAS {formatRoas(decision.metaRoas)} e escala a partir de {formatRoas(decision.faixaEscalaRoas)}.
             </p>
           </div>
         </div>
@@ -315,6 +334,7 @@ export function AdminProfessionalFunnelPage() {
                   <th>Investimento</th>
                   <th>Receita</th>
                   <th>ROAS</th>
+                  <th>Decisão</th>
                   <th>Cadastros</th>
                   <th>Checkouts</th>
                   <th>Assinaturas</th>
@@ -353,6 +373,23 @@ export function AdminProfessionalFunnelPage() {
                         <strong>
                           {formatRoas(item.roas)}
                         </strong>
+                      </td>
+                      <td>
+                        <strong>
+                          {item.decisao?.rotulo || "—"}
+                        </strong>
+                        <br />
+                        <small className="muted">
+                          Confiança {item.decisao?.confianca || "—"}
+                        </small>
+                        {item.decisao?.motivo && (
+                          <>
+                            <br />
+                            <small className="muted">
+                              {item.decisao.motivo}
+                            </small>
+                          </>
+                        )}
                       </td>
                       <td>{item.cadastros}</td>
                       <td>{item.checkoutsIniciados}</td>
