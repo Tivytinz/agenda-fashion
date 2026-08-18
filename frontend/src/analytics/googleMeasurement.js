@@ -390,14 +390,26 @@ export async function syncGoogleConsent() {
   return true;
 }
 
+function normalizePagePath(pathname) {
+  const raw = String(
+    pathname ||
+    `${window.location.pathname}${window.location.search}`
+  );
+
+  if (!raw) {
+    return "/";
+  }
+
+  return raw.startsWith("/")
+    ? raw
+    : `/${raw}`;
+}
+
 export async function trackGooglePageView(
   pathname,
   userId
 ) {
-  const key = String(
-    pathname ||
-    window.location.pathname
-  );
+  const key = normalizePagePath(pathname);
 
   if (lastPageView === key) {
     return false;
