@@ -170,7 +170,7 @@ export function MetaAdsBridge() {
         MARKETING_CONSENT.GRANTED
     ) {
       void trackGooglePageView(
-        location.pathname,
+        `${location.pathname}${location.search}`,
         session.usuario?.id
       );
     }
@@ -179,6 +179,7 @@ export function MetaAdsBridge() {
     googleConfig?.enabled,
     consent,
     location.pathname,
+    location.search,
     session.usuario?.id
   ]);
 

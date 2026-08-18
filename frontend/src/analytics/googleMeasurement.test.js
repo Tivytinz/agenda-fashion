@@ -18,6 +18,7 @@ import {
   resetGoogleMeasurementForTests,
   syncGoogleConsent,
   trackGoogleBeginCheckout,
+  trackGooglePageView,
   trackGoogleSignUp
 } from "./googleMeasurement";
 
@@ -123,6 +124,49 @@ describe("Google Measurement no navegador", () => {
       {
         send_page_view: false,
         user_id: "77"
+      }
+    ]);
+  });
+
+  it("preserva gclid e UTMs no page_location e diferencia query strings", async () => {
+    setMarketingConsent(
+      MARKETING_CONSENT.GRANTED
+    );
+    apiRequest.mockResolvedValue(
+      enabledConfig()
+    );
+
+    const firstPath =
+      "/para-pro?gclid=abc123&utm_source=google&utm_medium=cpc&utm_campaign=profissionais";
+    const secondPath =
+      "/para-pro?gclid=xyz987&utm_source=google&utm_medium=cpc&utm_campaign=profissionais";
+
+    expect(
+      await trackGooglePageView(firstPath)
+    ).toBe(true);
+    expect(
+      await trackGooglePageView(firstPath)
+    ).toBe(false);
+    expect(
+      await trackGooglePageView(secondPath)
+    ).toBe(true);
+
+    expect(queue()).toContainEqual([
+      "event",
+      "page_view",
+      {
+        page_title: document.title,
+        page_location:
+          `${window.location.origin}${firstPath}`
+      }
+    ]);
+    expect(queue()).toContainEqual([
+      "event",
+      "page_view",
+      {
+        page_title: document.title,
+        page_location:
+          `${window.location.origin}${secondPath}`
       }
     ]);
   });
