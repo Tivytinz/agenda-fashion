@@ -219,25 +219,37 @@ export function MetaAdsBridge() {
         <div
           aria-label="Escolha de medição de anúncios"
           className="marketing-consent-actions"
+          role="group"
         >
           <button
-            className="btn btn-secondary"
-            onClick={() => choose(MARKETING_CONSENT.DENIED)}
+            className="button button-secondary"
+            onClick={() => choose(
+              MARKETING_CONSENT.DENIED
+            )}
             type="button"
           >
-            Recusar opcionais
+            Não permitir
           </button>
           <button
-            className="btn"
-            onClick={() => choose(MARKETING_CONSENT.GRANTED)}
+            className="button button-secondary"
+            onClick={() => choose(
+              MARKETING_CONSENT.GRANTED
+            )}
             type="button"
           >
-            Permitir medição
+            Permitir
           </button>
         </div>
       </aside>
     );
   }
 
-  return null;
+  return (
+    <Link
+      className="privacy-shortcut"
+      to="/privacidade"
+    >
+      Privacidade
+    </Link>
+  );
 }
