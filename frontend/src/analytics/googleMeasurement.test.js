@@ -238,7 +238,7 @@ describe("Google Measurement no navegador", () => {
         send_to:
           "AW-123456789/checkoutLabel1",
         value: 49.9,
-        currency
+        currency: "BRL"
       }
     ]);
   });
