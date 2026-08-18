@@ -170,7 +170,7 @@ export function MetaAdsBridge() {
         MARKETING_CONSENT.GRANTED
     ) {
       void trackGooglePageView(
-        location.pathname,
+        `${location.pathname}${location.search}`,
         session.usuario?.id
       );
     }
@@ -179,6 +179,7 @@ export function MetaAdsBridge() {
     googleConfig?.enabled,
     consent,
     location.pathname,
+    location.search,
     session.usuario?.id
   ]);
 
@@ -218,37 +219,25 @@ export function MetaAdsBridge() {
         <div
           aria-label="Escolha de medição de anúncios"
           className="marketing-consent-actions"
-          role="group"
         >
           <button
-            className="button button-secondary"
-            onClick={() => choose(
-              MARKETING_CONSENT.DENIED
-            )}
+            className="btn btn-secondary"
+            onClick={() => choose(MARKETING_CONSENT.DENIED)}
             type="button"
           >
-            Não permitir
+            Recusar opcionais
           </button>
           <button
-            className="button button-secondary"
-            onClick={() => choose(
-              MARKETING_CONSENT.GRANTED
-            )}
+            className="btn"
+            onClick={() => choose(MARKETING_CONSENT.GRANTED)}
             type="button"
           >
-            Permitir
+            Permitir medição
           </button>
         </div>
       </aside>
     );
   }
 
-  return (
-    <Link
-      className="privacy-shortcut"
-      to="/privacidade"
-    >
-      Privacidade
-    </Link>
-  );
+  return null;
 }
