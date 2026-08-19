@@ -16,7 +16,7 @@ Comportamentos:
 - uma tentativa simultânea devolve HTTP 409;
 - uma tentativa com falha pode ser retomada;
 - uma chave usada com outro plano ou forma de pagamento é rejeitada;
-- PIX e cartão são conciliados no Asaas pela `externalReference`;
+- cobranças PIX são conciliadas no Asaas pela `externalReference`;
 - a assinatura atual só é desativada quando o novo pagamento é
   confirmado.
 

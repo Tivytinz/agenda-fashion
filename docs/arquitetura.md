@@ -508,6 +508,12 @@ webhook autenticado e com processamento idempotente.
 O plano Grátis mantém o slug interno `inicial` para compatibilidade com
 negócios e automações existentes.
 
+O plano Grátis é uma oferta comercial ativa, sem cobrança e sem cartão, e deve
+entregar valor real antes do upgrade. Em aquisição, termos como `grátis` e
+`gratuito` não são tráfego irrelevante por definição; a qualidade deve ser
+avaliada pela criação e ativação do negócio, separadamente da conversão para um
+plano pago. A especificação comercial completa está em `docs/planos.md`.
+
 ### Regras de consumo
 
 - agendamentos contam no mês da data marcada;

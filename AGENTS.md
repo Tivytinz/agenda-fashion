@@ -82,6 +82,25 @@ AF nao demonstra valor para os negocios.
 - Usar os arquivos oficiais de marca existentes em
   `frontend/src/assets/brand/`; nao criar logotipos substitutos.
 
+## Planos oficiais
+
+| Plano | Valor mensal | Agendamentos/mes | Profissionais | Servicos |
+| --- | ---: | ---: | ---: | ---: |
+| Gratis | R$ 0,00 | 10 | 1 | 2 |
+| Autonoma | R$ 49,90 | 20 | 1 | 4 |
+| Studio | R$ 99,90 | 30 | 1 | 10 |
+| Salao | R$ 199,90 | Ilimitados | 5 | Ilimitados |
+
+O plano Gratis e uma oferta ativa e entrega valor real, sem cobranca e sem
+cartao. Seu slug interno permanece `inicial` por compatibilidade. Planos pagos
+usam checkout por PIX e somente sao ativados depois da confirmacao autenticada
+e idempotente do Asaas.
+
+Em marketing, buscas por `gratis`, `gratuito` e variacoes sao compativeis com a
+oferta do AF e nao devem ser negativadas automaticamente. A aquisicao gratuita,
+a ativacao do negocio e a conversao para plano pago devem ser medidas como
+etapas diferentes. Os detalhes ficam em `docs/planos.md`.
+
 ## Arquitetura atual
 
 - Backend: Node.js 22, Express 5 e JavaScript CommonJS.
