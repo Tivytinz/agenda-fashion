@@ -27,7 +27,7 @@ test("landing profissional comunica valor e preserva a atribuição", async ({ p
     level: 1,
     name: "Receba agendamentos sem precisar responder cada cliente."
   })).toBeVisible();
-  await expect(page.getByText("Plano grátis para começar"))
+  await expect(page.getByText("Plano grátis para começar", { exact: true }))
     .toBeVisible();
   await expect(page.getByText(
     "Aviso de novo agendamento pelo WhatsApp"
@@ -51,7 +51,10 @@ test("landing profissional comunica valor e preserva a atribuição", async ({ p
 
   const header = page.getByRole("banner");
   await expect(header.getByRole("link", { name: "Entrar" })).toBeVisible();
-  await expect(header.getByRole("link", { name: "Início" })).toHaveCount(0);
+  await expect(header.getByRole("link", {
+    name: "Início",
+    exact: true
+  })).toHaveCount(0);
 
   const signup = page.getByRole("link", {
     name: "Criar minha agenda grátis"

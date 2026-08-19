@@ -65,7 +65,7 @@ function errorHandler(
           err?.code || null,
 
         rota:
-          req?.originalUrl ||
+          req?.path ||
           null,
 
         metodo:

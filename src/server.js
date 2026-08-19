@@ -10,6 +10,9 @@ const helmet = require("helmet");
 const {
   corsOptions,
 } = require("./config/cors");
+const {
+  obterContentSecurityPolicy,
+} = require("./config/securityHeaders");
 
 const db = require("./db/db");
 const apiRoutes = require("./routes/index");
@@ -40,6 +43,9 @@ const {
 const socialPreviewService = require(
   "./services/socialPreviewService"
 );
+const readinessService = require(
+  "./services/readinessService"
+);
 
 const app = express();
 
@@ -55,7 +61,7 @@ app.disable(
 app.use(
   helmet({
     contentSecurityPolicy:
-      false,
+      obterContentSecurityPolicy(),
 
     crossOriginOpenerPolicy: {
       policy:
@@ -147,9 +153,20 @@ app.get(
   "/health/ready",
   async (_req, res) => {
     try {
-      await db.query(
-        "SELECT 1"
-      );
+      const estado =
+        await readinessService
+          .verificarBanco(db);
+
+      if (!estado.pronto) {
+        return res
+          .status(503)
+          .json({
+            status:
+              "unavailable",
+            database:
+              "migration_pending",
+          });
+      }
 
       return res
         .status(200)
@@ -570,9 +587,15 @@ async function iniciarServidor() {
     validarConfigAsaas();
   }
 
-  await db.query(
-    "SELECT 1"
-  );
+  const estadoBanco =
+    await readinessService
+      .verificarBanco(db);
+
+  if (!estadoBanco.pronto) {
+    throw new Error(
+      `Banco com migration ${estadoBanco.migrationAtual}; esperado ${estadoBanco.versaoEsperada}.`
+    );
+  }
 
   servidor =
     app.listen(PORT, () => {
@@ -610,11 +633,48 @@ async function encerrarServidor(
   pararWorkerCustosMarketing();
 
   if (servidor) {
+    const limiteMs =
+      10000;
+
     await new Promise(
       (resolve) => {
+        let concluido = false;
+        let temporizador = null;
+
+        const concluir = () => {
+          if (concluido) {
+            return;
+          }
+
+          concluido = true;
+          clearTimeout(
+            temporizador
+          );
+          resolve();
+        };
+
         servidor.close(
-          resolve
+          concluir
         );
+
+        temporizador = setTimeout(
+          () => {
+            registrador.aviso(
+              "Encerramento excedeu o limite; conexoes restantes serao fechadas.",
+              {
+                limite_ms:
+                  limiteMs,
+              }
+            );
+
+            servidor
+              .closeAllConnections?.();
+            concluir();
+          },
+          limiteMs
+        );
+
+        temporizador.unref?.();
       }
     );
   }

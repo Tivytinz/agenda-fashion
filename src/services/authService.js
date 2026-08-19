@@ -210,11 +210,11 @@ function validarDadosCadastro({
     );
 
   if (
-    tamanhoSenhaEmBytes < 6 ||
+    tamanhoSenhaEmBytes < 8 ||
     tamanhoSenhaEmBytes > 72
   ) {
     throw new AppError(
-      "A senha deve ter entre 6 e 72 bytes.",
+      "A senha deve ter entre 8 e 72 bytes.",
       400
     );
   }

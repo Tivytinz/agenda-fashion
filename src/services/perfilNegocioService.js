@@ -55,7 +55,7 @@ async function listarNegociosPublicos({
   limite
 } = {}) {
   const paginaNormalizada =
-    normalizarInteiro(pagina, 1, 100000);
+    normalizarInteiro(pagina, 1, 1000);
 
   const limiteNormalizado =
     normalizarInteiro(limite, 12, 24);

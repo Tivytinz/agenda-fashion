@@ -390,7 +390,7 @@ describe("Autenticação com conta única", () => {
         expect(
           resposta.body.erro
         ).toBe(
-          "A senha deve ter entre 6 e 72 bytes."
+          "A senha deve ter entre 8 e 72 bytes."
         );
 
         expect(

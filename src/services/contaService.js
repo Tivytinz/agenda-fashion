@@ -151,11 +151,11 @@ function validarSenha(
     );
 
   if (
-    tamanhoEmBytes < 6 ||
+    tamanhoEmBytes < 8 ||
     tamanhoEmBytes > 72
   ) {
     throw criarErro(
-      "A nova senha deve ter entre 6 e 72 bytes.",
+      "A nova senha deve ter entre 8 e 72 bytes.",
       400
     );
   }
