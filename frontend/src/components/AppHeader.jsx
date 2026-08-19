@@ -7,7 +7,7 @@ import {
 
 import { useSession } from "../auth/SessionContext";
 import { getBusinessWorkspacePath } from "../auth/session";
-import { BrandProgressMark } from "./BrandProgressMark";
+import afLogoTransparent from "../assets/brand/af-logo-transparent.png";
 
 export function AppHeader() {
   const session = useSession();
@@ -66,9 +66,12 @@ export function AppHeader() {
             className="brand-mark"
             aria-hidden="true"
           >
-            <BrandProgressMark
+            <img
+              alt=""
               className="header-brand-logo"
-              complete
+              height="48"
+              src={afLogoTransparent}
+              width="48"
             />
           </span>
 

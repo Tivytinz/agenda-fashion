@@ -140,9 +140,11 @@
 }
 
 .professional-preview-logo {
+  display: block;
   width: 46px;
   height: 46px;
   flex: 0 0 auto;
+  object-fit: contain;
   filter: drop-shadow(0 5px 8px rgb(105 36 63 / 14%));
 }
 
