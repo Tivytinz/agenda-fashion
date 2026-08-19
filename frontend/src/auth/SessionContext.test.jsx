@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { apiRequest } from "../api/client";
 import { SessionProvider, useSession } from "./SessionContext";
@@ -12,7 +12,12 @@ vi.mock("../api/client", () => ({
 
 function SessionProbe() {
   const session = useSession();
-  return <span>{session.authenticated ? session.usuario?.nome : "Desconectada"}</span>;
+  return (
+    <>
+      <span>{session.authenticated ? session.usuario?.nome : "Desconectada"}</span>
+      <button type="button" onClick={session.logout}>Sair</button>
+    </>
+  );
 }
 
 beforeEach(() => {
@@ -39,5 +44,18 @@ describe("sincronização da sessão", () => {
     clearSession({ notify: true });
 
     await waitFor(() => expect(screen.getByText("Desconectada")).not.toBeNull());
+  });
+
+  it("limpa a sessão local e encerra o cookie no servidor", async () => {
+    render(<SessionProvider><SessionProbe /></SessionProvider>);
+    expect(await screen.findByText("Ana")).not.toBeNull();
+
+    fireEvent.click(screen.getByRole("button", { name: "Sair" }));
+
+    expect(screen.getByText("Desconectada")).not.toBeNull();
+    expect(localStorage.getItem("token")).toBeNull();
+    await waitFor(() => expect(apiRequest).toHaveBeenCalledWith("/logout", {
+      method: "POST"
+    }));
   });
 });

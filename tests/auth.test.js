@@ -180,6 +180,24 @@ describe("Autenticação com conta única", () => {
         );
 
         expect(
+          resposta.headers[
+            "cache-control"
+          ]
+        ).toBe("no-store");
+
+        expect(
+          resposta.headers[
+            "set-cookie"
+          ]
+        ).toEqual(
+          expect.arrayContaining([
+            expect.stringMatching(
+              /^af_session=.*HttpOnly.*SameSite=Lax/i
+            ),
+          ])
+        );
+
+        expect(
           resposta.body.usuario
         ).toMatchObject({
           id: 1,
@@ -767,6 +785,39 @@ describe("Autenticação com conta única", () => {
           authRepository
             .atualizarUltimoLogin
         ).not.toHaveBeenCalled();
+      }
+    );
+  });
+
+  describe("POST /logout", () => {
+    test(
+      "remove o cookie da sessão sem depender do token no navegador",
+      async () => {
+        const resposta =
+          await request(app)
+            .post("/logout");
+
+        expect(
+          resposta.status
+        ).toBe(204);
+
+        expect(
+          resposta.headers[
+            "cache-control"
+          ]
+        ).toBe("no-store");
+
+        expect(
+          resposta.headers[
+            "set-cookie"
+          ]
+        ).toEqual(
+          expect.arrayContaining([
+            expect.stringContaining(
+              "af_session=;"
+            ),
+          ])
+        );
       }
     );
   });

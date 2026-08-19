@@ -58,6 +58,7 @@ export async function apiRequest(path, options = {}) {
       ...requestOptions,
       headers,
       body,
+      credentials: requestOptions.credentials || "include",
       signal: controller.signal
     });
   } catch (requestError) {

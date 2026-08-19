@@ -91,7 +91,7 @@ export function SessionProvider({ children }) {
     }
 
     function handleStorage(event) {
-      if (["token", "usuario", "negocio"].includes(event.key) && !hasSession()) {
+      if (["token", "session_active", "usuario", "negocio"].includes(event.key) && !hasSession()) {
         handleSessionCleared();
       }
     }
@@ -149,9 +149,17 @@ export function SessionProvider({ children }) {
     };
   }, [refresh]);
 
-  const logout = useCallback(() => {
+  const logout = useCallback(async () => {
     clearSession();
     setState(SIGNED_OUT_STATE);
+
+    try {
+      await apiRequest("/logout", {
+        method: "POST"
+      });
+    } catch {
+      // A saída local precisa funcionar mesmo durante uma falha de rede.
+    }
   }, []);
 
   const value = useMemo(() => ({

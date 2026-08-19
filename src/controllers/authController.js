@@ -11,6 +11,33 @@ const metaAdsService = require(
   "../services/metaAdsService"
 );
 
+const {
+  definirCookieSessao,
+  limparCookieSessao,
+} = require(
+  "../config/sessionCookie"
+);
+
+function responderAutenticacao(
+  res,
+  status,
+  resultado
+) {
+  definirCookieSessao(
+    res,
+    resultado.token
+  );
+
+  res.set(
+    "Cache-Control",
+    "no-store"
+  );
+
+  return res
+    .status(status)
+    .json(resultado);
+}
+
 /*
  * Retira somente os campos permitidos
  * do corpo da requisição.
@@ -88,9 +115,11 @@ async function cadastro(
         });
     }
 
-    return res
-      .status(201)
-      .json(resultado);
+    return responderAutenticacao(
+      res,
+      201,
+      resultado
+    );
   } catch (erro) {
     return next(erro);
   }
@@ -116,9 +145,11 @@ async function login(
           req.body?.senha,
       });
 
-    return res
-      .status(200)
-      .json(resultado);
+    return responderAutenticacao(
+      res,
+      200,
+      resultado
+    );
   } catch (erro) {
     return next(erro);
   }
@@ -165,12 +196,30 @@ async function loginGoogle(
         });
     }
 
-    return res
-      .status(200)
-      .json(resultado);
+    return responderAutenticacao(
+      res,
+      200,
+      resultado
+    );
   } catch (erro) {
     return next(erro);
   }
+}
+
+function logout(
+  _req,
+  res
+) {
+  limparCookieSessao(res);
+
+  res.set(
+    "Cache-Control",
+    "no-store"
+  );
+
+  return res
+    .status(204)
+    .end();
 }
 
 function configuracaoPublica(
@@ -192,5 +241,6 @@ module.exports = {
   cadastro,
   login,
   loginGoogle,
+  logout,
   configuracaoPublica,
 };

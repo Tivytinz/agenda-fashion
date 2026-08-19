@@ -112,6 +112,62 @@ describe(
     );
 
     test(
+      "aceita o JWT pelo cookie HttpOnly da sessão",
+      async () => {
+        const resposta =
+          await request(
+            criarApp()
+          )
+            .get("/protegida")
+            .set(
+              "Cookie",
+              `af_session=${gerarToken()}`
+            );
+
+        expect(
+          resposta.status
+        ).toBe(200);
+
+        expect(
+          resposta.body
+        ).toEqual({
+          usuarioId: 1,
+        });
+      }
+    );
+
+    test(
+      "remove o cookie quando o JWT da sessão é inválido",
+      async () => {
+        const resposta =
+          await request(
+            criarApp()
+          )
+            .get("/protegida")
+            .set(
+              "Cookie",
+              "af_session=token-invalido"
+            );
+
+        expect(
+          resposta.status
+        ).toBe(401);
+
+        expect(
+          resposta.headers[
+            "set-cookie"
+          ]
+        ).toEqual(
+          expect.arrayContaining([
+            expect.stringContaining(
+              "af_session=;"
+            ),
+          ])
+        );
+      }
+    );
+
+    test(
       "recusa conta desativada",
       async () => {
         authSessionRepository
