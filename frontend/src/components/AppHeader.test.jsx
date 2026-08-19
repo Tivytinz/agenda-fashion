@@ -56,7 +56,7 @@ describe("cabeçalho por contexto", () => {
       logout
     });
 
-    renderHeader("/para-profissionais");
+    const { container } = renderHeader("/para-profissionais");
 
     expect(screen.queryByRole("link", { name: "Início" }))
       .toBeNull();
@@ -69,6 +69,8 @@ describe("cabeçalho por contexto", () => {
     expect(screen.getByRole("link", {
       name: "Agenda Fashion, início"
     }).getAttribute("href")).toBe("/para-profissionais");
+    expect(container.querySelector(".header-brand-logo"))
+      .toBeTruthy();
   });
 
   it("troca Minha agenda por Explorar dentro da gestão do negócio", () => {

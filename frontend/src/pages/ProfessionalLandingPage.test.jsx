@@ -69,7 +69,7 @@ describe("landing para profissionais", () => {
   });
 
   it("apresenta os diferenciais principais antes do cadastro", () => {
-    renderLanding();
+    const { container } = renderLanding();
 
     expect(screen.getByRole("heading", {
       level: 1,
@@ -83,6 +83,12 @@ describe("landing para profissionais", () => {
     expect(screen.getByText(
       "Aviso de novo agendamento pelo WhatsApp"
     )).toBeTruthy();
+    expect(container.querySelector(".professional-preview-logo"))
+      .toBeTruthy();
+    expect(container.querySelector(".professional-benefit-icon")
+      ?.textContent).toBe("📅");
+    expect(container.textContent).toContain("💅");
+    expect(container.textContent).toContain("🎉");
   });
 
   it("mantém a atribuição no CTA de criação da agenda grátis", () => {
