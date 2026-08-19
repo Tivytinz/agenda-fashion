@@ -1,23 +1,37 @@
 # Arquitetura Oficial — Agenda Fashion
 
-> Atualizada em 25 de julho de 2026.
+> Atualizada em 19 de agosto de 2026.
+>
+> O contexto permanente de produto e as instrucoes para agentes estao em
+> [`AGENTS.md`](../AGENTS.md). Os dois documentos devem permanecer alinhados.
 
 ## 1. Objetivo do produto
 
-O Agenda Fashion é uma plataforma de descoberta e agendamento para o mercado
-de beleza.
+O objetivo do Agenda Fashion e **se tornar referencia no Brasil para
+agendamento de beleza e estetica**.
+
+O AF e uma plataforma de descoberta e agendamento que conecta clientes a
+profissionais, studios, saloes, clinicas e negocios de beleza e estetica.
 
 A cliente encontra profissionais, studios e salões de unhas, cabelo, cílios e
 outros serviços, consulta horários e agenda dentro da plataforma.
 
 O produto deve:
 
+- evoluir continuamente sem aceitar regressões conhecidas ou comprometer a
+  estabilidade dos fluxos existentes;
 - aumentar os agendamentos dos negócios;
 - reduzir a dependência do WhatsApp;
 - devolver tempo às profissionais;
 - mostrar, pelo dashboard, se o negócio está crescendo;
 - incentivar o upgrade somente depois que o plano demonstrar valor;
-- tornar o Agenda Fashion uma referência para busca de serviços de beleza.
+- tornar o Agenda Fashion uma referencia nacional para descoberta e
+  agendamento de servicos de beleza e estetica.
+
+Para a profissional, a proposta de valor deve aparecer de forma direta: e
+possivel comecar gratis, conquistar clientes com um perfil publico, receber
+agendamentos sem precisar responder manualmente cada pedido, ser avisada pelo
+WhatsApp e acompanhar o crescimento do negocio pelo dashboard.
 
 ---
 
@@ -25,13 +39,18 @@ O produto deve:
 
 | Área | Tecnologia |
 | --- | --- |
-| Backend | Node.js e Express |
-| Banco de dados | PostgreSQL |
-| Frontend | HTML, CSS e JavaScript |
-| Autenticação | JWT |
-| Testes | Jest e Supertest |
+| Runtime | Node.js 22 |
+| Backend | Express 5 e JavaScript CommonJS |
+| Banco de dados | PostgreSQL e `pg` |
+| Frontend | React 19, React Router 7, Vite 7 e CSS |
+| Autenticação | JWT, bcrypt e Google Identity |
+| Uploads | Busboy, validação de imagem e Cloudinary |
+| Testes backend | Jest, Supertest e PostgreSQL de teste |
+| Testes frontend | Vitest, Testing Library e Playwright |
 | Pagamentos | Asaas |
-| Hospedagem | Railway |
+| Notificações | WhatsApp Cloud API |
+| Marketing | GA4, Google Ads, Meta CAPI e Meta Marketing API |
+| CI/CD | GitHub Actions e Railway |
 | Domínio | `app.agendafashion.com.br` |
 
 Neste momento, não há necessidade de migrar o backend para Go. A evolução
@@ -81,14 +100,24 @@ ser planejada e aplicada a todo o sistema.
 
 ```text
 agenda-fashion/
-├── agendamento-nails/
-│   ├── css/
-│   ├── html/
-│   └── js/
+├── AGENTS.md
+├── .github/
+│   └── workflows/
 ├── database/
+│   └── migrations/
 ├── docs/
 │   └── arquitetura.md
-├── migrations/
+├── frontend/
+│   ├── e2e/
+│   └── src/
+│       ├── analytics/
+│       ├── api/
+│       ├── auth/
+│       ├── components/
+│       ├── hooks/
+│       ├── pages/
+│       ├── styles/
+│       └── utils/
 ├── scripts/
 ├── src/
 │   ├── config/
@@ -104,16 +133,16 @@ agenda-fashion/
 │   ├── validators/
 │   └── server.js
 ├── tests/
-├── .env
-├── .env.test
+├── .env.example
 ├── jest.config.js
 ├── package.json
+├── railway.json
 └── package-lock.json
 ```
 
-Algumas pastas podem ser criadas gradualmente. Código antigo pode ainda não
-estar totalmente separado, mas todo módulo novo ou refatorado deve caminhar
-para esta estrutura.
+O build de producao do frontend e gerado em `agendamento-nails/react-app/` e
+servido pelo Express. Essa pasta e um artefato de build e nao faz parte do
+codigo-fonte versionado.
 
 ---
 
@@ -498,7 +527,7 @@ mês e uma tentativa concorrente deve receber uma resposta amigável.
 O código de planos depende da migration:
 
 ```text
-migrations/008_planos_limites.sql
+database/migrations/015_planos_limites.sql
 ```
 
 Ela adiciona:
@@ -829,6 +858,11 @@ Métricas prioritárias do produto:
 10. O banco de testes deve ser isolado do banco de produção.
 11. Rotas existentes não devem receber `/api` isoladamente.
 12. Mudanças no contrato devem atualizar backend, frontend e testes juntos.
+13. Não publicar mudanças com lint, build ou testes obrigatórios falhando.
+14. Toda correção de falha relevante deve incluir teste de regressão quando
+    tecnicamente aplicável.
+15. Após o deploy, executar smoke tests e acompanhar healthcheck, logs e
+    integrações afetadas.
 
 ---
 
@@ -868,20 +902,23 @@ Fluxo de implementação:
 
 Prioridades:
 
-1. executar e validar a migration de planos em todos os ambientes;
-2. corrigir telas compartilhadas para dono e profissional;
-3. mover SQL restante dos services para repositories;
-4. centralizar respostas e erros;
-5. ampliar testes ponta a ponta do frontend;
-6. tornar webhooks idempotentes e observáveis;
-7. centralizar configuração e constantes;
+1. manter o CI verde e exigir os checks antes de integrar mudanças na `main`;
+2. proteger a branch `main` contra integrações sem validação;
+3. adotar Content Security Policy gradualmente, sem quebrar Google, Meta ou
+   Cloudinary;
+4. evoluir a sessão do navegador de JWT em `localStorage` para cookie seguro;
+5. tornar os workers resistentes a reinícios e múltiplas instâncias;
+6. ampliar observabilidade de erros, webhooks, notificações e integrações;
+7. mover SQL restante dos services para repositories quando esses módulos
+   forem alterados;
 8. avaliar TypeScript gradualmente, sem reescrever o sistema inteiro.
 
 ---
 
 ## Objetivo final
 
-O Agenda Fashion deve permanecer simples para desenvolver, seguro para os
+O Agenda Fashion deve se tornar referência no Brasil para agendamento de
+beleza e estética, permanecendo simples para desenvolver, seguro para os
 negócios e confiável para as clientes.
 
 A arquitetura existe para manter:
