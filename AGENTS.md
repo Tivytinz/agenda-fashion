@@ -88,7 +88,8 @@ AF nao demonstra valor para os negocios.
 - Frontend: React 19, React Router 7, Vite 7 e CSS.
 - Banco: PostgreSQL, acessado diretamente pelo pacote `pg`.
 - Camadas: routes, controllers, services, repositories e PostgreSQL.
-- Autenticacao: JWT, bcrypt e Google Identity.
+- Autenticacao: JWT em cookie `HttpOnly`, bcrypt e Google Identity. Tokens
+  Bearer antigos continuam aceitos apenas durante a migracao compativel.
 - Imagens: Busboy, validacao de conteudo e Cloudinary.
 - Pagamentos: Asaas com confirmacao por webhook idempotente.
 - Notificacoes: WhatsApp Cloud API oficial da Meta.

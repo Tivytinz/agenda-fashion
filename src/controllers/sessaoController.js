@@ -25,6 +25,8 @@ async function obterMinhaSessao(
           usuarioId
         );
 
+    res.set("Cache-Control", "no-store");
+
     return res
       .status(200)
       .json(resultado);

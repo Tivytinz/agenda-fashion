@@ -11,6 +11,24 @@ afterEach(() => {
 });
 
 describe("cliente da API", () => {
+  it("envia cookies HttpOnly em todas as chamadas", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: vi.fn().mockResolvedValue({ ok: true })
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    await apiRequest("/minha-sessao");
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/minha-sessao",
+      expect.objectContaining({
+        credentials: "include"
+      })
+    );
+  });
+
   it("limpa e comunica a expiração da sessão ao receber 401", async () => {
     localStorage.setItem("token", "expirado");
     localStorage.setItem("usuario", JSON.stringify({ id: 1 }));

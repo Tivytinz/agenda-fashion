@@ -6,6 +6,12 @@ const authSessionRepository = require(
   "../repositories/authSessionRepository"
 );
 const registrador = require("../utils/registrador");
+const {
+  limparCookieSessao,
+  obterTokenDaRequisicao,
+} = require(
+  "../config/sessionCookie"
+);
 
 /*
  * Obtém o segredo usado para
@@ -25,35 +31,6 @@ function obterJwtSecret() {
   }
 
   return segredo;
-}
-
-/*
- * Extrai o token do cabeçalho:
- *
- * Authorization: Bearer TOKEN
- */
-function obterTokenDoCabecalho(
-  authHeader
-) {
-  if (!authHeader) {
-    return null;
-  }
-
-  const partes =
-    String(authHeader)
-      .trim()
-      .split(/\s+/);
-
-  if (
-    partes.length !== 2 ||
-    partes[0].toLowerCase() !==
-      "bearer" ||
-    !partes[1]
-  ) {
-    return null;
-  }
-
-  return partes[1];
 }
 
 /*
@@ -103,10 +80,10 @@ module.exports = async function auth(
   res,
   next
 ) {
-  const token =
-    obterTokenDoCabecalho(
-      req.headers.authorization
-    );
+  const {
+    token,
+    origem,
+  } = obterTokenDaRequisicao(req);
 
   if (!token) {
     return res
@@ -130,6 +107,10 @@ module.exports = async function auth(
       );
 
     if (!decoded?.id) {
+      if (origem === "cookie") {
+        limparCookieSessao(res);
+      }
+
       return res
         .status(401)
         .json({
@@ -153,6 +134,10 @@ module.exports = async function auth(
           .senha_alterada_em
       )
     ) {
+      if (origem === "cookie") {
+        limparCookieSessao(res);
+      }
+
       return res
         .status(401)
         .json({
@@ -189,6 +174,10 @@ module.exports = async function auth(
       erro.name ===
       "TokenExpiredError"
     ) {
+      if (origem === "cookie") {
+        limparCookieSessao(res);
+      }
+
       return res
         .status(401)
         .json({
@@ -206,6 +195,10 @@ module.exports = async function auth(
       )
     ) {
       return next(erro);
+    }
+
+    if (origem === "cookie") {
+      limparCookieSessao(res);
     }
 
     return res

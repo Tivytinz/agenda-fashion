@@ -43,7 +43,7 @@ WhatsApp e acompanhar o crescimento do negocio pelo dashboard.
 | Backend | Express 5 e JavaScript CommonJS |
 | Banco de dados | PostgreSQL e `pg` |
 | Frontend | React 19, React Router 7, Vite 7 e CSS |
-| Autenticação | JWT, bcrypt e Google Identity |
+| Autenticação | JWT em cookie `HttpOnly`, bcrypt e Google Identity |
 | Uploads | Busboy, validação de imagem e Cloudinary |
 | Testes backend | Jest, Supertest e PostgreSQL de teste |
 | Testes frontend | Vitest, Testing Library e Playwright |
@@ -354,6 +354,16 @@ O JWT atual possui o payload:
 }
 ```
 
+No navegador, o JWT fica em cookie `HttpOnly`, `SameSite=Lax` e `Secure` em
+produção. O JavaScript armazena apenas um marcador sem valor de autenticação.
+Durante a migração, o backend continua aceitando `Authorization: Bearer` para
+sessões antigas e clientes de API, mas novos logins do frontend não persistem
+o token no `localStorage`.
+
+O endpoint `POST /logout` remove o cookie. Respostas de autenticação usam
+`Cache-Control: no-store`. O cookie de produção possui o prefixo `__Host-`, não
+define domínio e sempre usa o caminho `/`.
+
 Não confiar em papel, negócio ou permissão enviados pelo frontend.
 
 ### Vínculo com negócios
@@ -386,7 +396,7 @@ Admin global não deve ser confundido com o papel `dono` de um negócio.
 
 ### Proteção do frontend
 
-O frontend usa `SessionGuard`.
+O frontend usa `ProtectedRoute` e `SessionContext`.
 
 - `exigirVinculo()` permite dono e profissional;
 - verificações específicas devem ser usadas apenas quando a tela realmente
@@ -906,7 +916,8 @@ Prioridades:
 2. proteger a branch `main` contra integrações sem validação;
 3. adotar Content Security Policy gradualmente, sem quebrar Google, Meta ou
    Cloudinary;
-4. evoluir a sessão do navegador de JWT em `localStorage` para cookie seguro;
+4. concluir a remoção da compatibilidade com JWT em `localStorage` depois que
+   as sessões antigas expirarem;
 5. tornar os workers resistentes a reinícios e múltiplas instâncias;
 6. ampliar observabilidade de erros, webhooks, notificações e integrações;
 7. mover SQL restante dos services para repositories quando esses módulos

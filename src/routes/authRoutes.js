@@ -40,4 +40,9 @@ router.post(
   authController.loginGoogle
 );
 
+router.post(
+  "/logout",
+  authController.logout
+);
+
 module.exports = router;

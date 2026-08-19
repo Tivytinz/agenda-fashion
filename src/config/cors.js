@@ -59,6 +59,8 @@ function validarOrigem(
 const corsOptions = {
   origin:
     validarOrigem,
+  credentials:
+    true,
   methods: [
     "GET",
     "POST",

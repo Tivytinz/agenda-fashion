@@ -6,6 +6,12 @@ const authSessionRepository = require(
   "../repositories/authSessionRepository"
 );
 const registrador = require("../utils/registrador");
+const {
+  limparCookieSessao,
+  obterTokenDaRequisicao,
+} = require(
+  "../config/sessionCookie"
+);
 
 const {
   tokenAnteriorATrocaDeSenha,
@@ -27,35 +33,6 @@ function obterJwtSecret() {
 }
 
 /*
- * Extrai o token do cabeçalho:
- *
- * Authorization: Bearer TOKEN
- */
-function obterTokenDoCabecalho(
-  authHeader
-) {
-  if (!authHeader) {
-    return null;
-  }
-
-  const partes =
-    String(authHeader)
-      .trim()
-      .split(/\s+/);
-
-  if (
-    partes.length !== 2 ||
-    partes[0].toLowerCase() !==
-      "bearer" ||
-    !partes[1]
-  ) {
-    return null;
-  }
-
-  return partes[1];
-}
-
-/*
  * Middleware de autenticação opcional.
  *
  * Com token válido:
@@ -70,10 +47,10 @@ module.exports =
     res,
     next
   ) {
-    const token =
-      obterTokenDoCabecalho(
-        req.headers.authorization
-      );
+    const {
+      token,
+      origem,
+    } = obterTokenDaRequisicao(req);
 
     /*
      * Nenhum token foi enviado.
@@ -104,7 +81,12 @@ module.exports =
       const decoded =
         jwt.verify(
           token,
-          jwtSecret
+          jwtSecret,
+          {
+            algorithms: [
+              "HS256",
+            ],
+          }
         );
 
       if (decoded?.id) {
@@ -127,7 +109,15 @@ module.exports =
             id:
               decoded.id,
           };
+        } else if (
+          origem === "cookie"
+        ) {
+          limparCookieSessao(res);
         }
+      } else if (
+        origem === "cookie"
+      ) {
+        limparCookieSessao(res);
       }
     } catch (erro) {
       /*
@@ -139,6 +129,10 @@ module.exports =
        */
       req.user =
         undefined;
+
+      if (origem === "cookie") {
+        limparCookieSessao(res);
+      }
 
       if (
         ![
