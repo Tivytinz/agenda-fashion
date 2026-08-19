@@ -3,9 +3,6 @@ import { Link, useLocation } from "react-router-dom";
 
 import { track } from "../analytics/track";
 import afLogoTransparent from "../assets/brand/af-logo-transparent.png";
-import beautyVanessaPasso1 from "../assets/professional-demo/beauty-vanessa-passo-1-perfil.jpg";
-import beautyVanessaPasso2 from "../assets/professional-demo/beauty-vanessa-passo-2-horario.jpg";
-import beautyVanessaPasso3 from "../assets/professional-demo/beauty-vanessa-passo-3-confirmacao.jpg";
 import "../styles/professional-landing.css";
 
 export const PROFESSIONAL_TRACKING_PARAMS = [
@@ -77,30 +74,34 @@ const BEAUTY_VANESSA_PROFILE = {
   path: "/negocio/beauty-vanessa"
 };
 
-const REAL_DEMO_SHOTS = [
+const REAL_BOOKING_STEPS = [
   {
     number: "1",
-    image: beautyVanessaPasso1,
-    alt: "Perfil real da Beauty Vanessa com os serviços disponíveis",
-    title: "A cliente encontra o perfil e escolhe",
+    icon: "🔗",
+    title: "Você divulga seu perfil",
     description:
-      "No perfil público ela vê o serviço real Design + Henna, com 60 minutos de duração e valor de R$ 40,00."
+      "Compartilhe o link do Agenda Fashion no Instagram, na bio ou pelo WhatsApp."
   },
   {
     number: "2",
-    image: beautyVanessaPasso2,
-    alt: "Agenda da Beauty Vanessa mostrando o serviço Design mais Henna e um horário disponível",
-    title: "Seleciona data e horário disponíveis",
+    icon: "💅",
+    title: "A cliente escolhe o serviço",
     description:
-      "O Agenda Fashion mostra a disponibilidade real da Vanessa e já monta o resumo do atendimento."
+      "No perfil da Beauty Vanessa, ela encontra Design + Henna, com duração de 60 minutos e valor de R$ 40,00."
   },
   {
     number: "3",
-    image: beautyVanessaPasso3,
-    alt: "Tela de confirmação do agendamento de Design mais Henna com a Vanessa",
-    title: "Confirma os dados do agendamento",
+    icon: "📅",
+    title: "Seleciona um horário livre",
     description:
-      "Antes de concluir, a cliente confere serviço, profissional, data, horário e valor — tudo sem instalar aplicativo."
+      "A agenda mostra somente os dias e horários que a Vanessa deixou disponíveis."
+  },
+  {
+    number: "4",
+    icon: "✅",
+    title: "Confirma o agendamento",
+    description:
+      "A cliente informa nome e WhatsApp, confere os dados e conclui sem instalar aplicativo."
   }
 ];
 
@@ -370,7 +371,7 @@ export function ProfessionalLandingPage() {
               </h2>
             </div>
             <p>
-              Acompanhe o perfil real da Beauty Vanessa como a cliente vê no celular: escolha do serviço, horário, confirmação e aviso no WhatsApp.
+              Um exemplo real e direto: a cliente escolhe o serviço, encontra um horário livre e confirma sem precisar chamar a profissional para marcar.
             </p>
           </div>
 
@@ -405,36 +406,22 @@ export function ProfessionalLandingPage() {
             </Link>
           </div>
 
-          <ol className="professional-demo-screenshot-grid">
-            {REAL_DEMO_SHOTS.map((step) => (
+          <ol className="professional-demo-step-grid">
+            {REAL_BOOKING_STEPS.map((step) => (
               <li key={step.number}>
-                <figure>
-                  <div className="professional-demo-screenshot-frame">
-                    <span className="professional-phone-speaker" aria-hidden="true" />
-                    <img
-                      alt={step.alt}
-                      height="844"
-                      loading="lazy"
-                      src={step.image}
-                      width="390"
-                    />
-                    <span className="professional-phone-home" aria-hidden="true" />
-                  </div>
-                  <figcaption>
-                    <span>{step.number}</span>
-                    <div>
-                      <h3>{step.title}</h3>
-                      <p>{step.description}</p>
-                    </div>
-                  </figcaption>
-                </figure>
+                <div className="professional-demo-step-topline">
+                  <span>{step.number}</span>
+                  <span aria-hidden="true">{step.icon}</span>
+                </div>
+                <h3>{step.title}</h3>
+                <p>{step.description}</p>
               </li>
             ))}
           </ol>
 
           <article className="professional-demo-final-notification">
             <div className="professional-demo-final-copy">
-              <span>4</span>
+              <span>5</span>
               <div>
                 <small>Resultado automático</small>
                 <h3>O AF envia o novo agendamento para a Vanessa no WhatsApp</h3>
