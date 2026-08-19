@@ -2,7 +2,7 @@ import { useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 
 import { track } from "../analytics/track";
-import { BrandProgressMark } from "../components/BrandProgressMark";
+import afLogoTransparent from "../assets/brand/af-logo-transparent.png";
 import "../styles/professional-landing.css";
 
 export const PROFESSIONAL_TRACKING_PARAMS = [
@@ -258,9 +258,12 @@ export function ProfessionalLandingPage() {
                 <small>Agenda Fashion</small>
                 <strong>Minha agenda</strong>
               </div>
-              <BrandProgressMark
+              <img
+                alt="Logotipo do Agenda Fashion"
                 className="professional-preview-logo"
-                complete
+                height="46"
+                src={afLogoTransparent}
+                width="46"
               />
             </div>
 
