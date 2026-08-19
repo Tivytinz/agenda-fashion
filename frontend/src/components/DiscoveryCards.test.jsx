@@ -96,4 +96,29 @@ describe("imagens dos cards do catálogo", () => {
     expect(screen.getAllByText("Estética").length).toBeGreaterThan(0);
     expect(screen.queryByText("Sobrancelhas")).toBeNull();
   });
+
+  it("identifica negócio, localização, duração e valor com emojis", () => {
+    const { container } = render(
+      <MemoryRouter>
+        <ServiceCard service={{
+          id: 13,
+          nome: "Design + Henna",
+          categoria: "sobrancelhas",
+          negocio_nome: "Beauty Vanessa",
+          negocio_slug: "beauty-vanessa",
+          negocio_bairro: "Araguaia",
+          negocio_cidade: "Aparecida de Goiânia",
+          negocio_estado: "GO",
+          valor: 40,
+          duracao_minutos: 60
+        }} />
+      </MemoryRouter>
+    );
+
+    expect(container.textContent).toContain("🏢Beauty Vanessa");
+    expect(container.textContent).toContain("📍Araguaia");
+    expect(container.textContent).toContain("🕒60 min");
+    expect(container.textContent.replace(/\u00a0/g, " "))
+      .toContain("💰R$ 40,00");
+  });
 });

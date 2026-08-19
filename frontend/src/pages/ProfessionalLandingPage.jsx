@@ -101,6 +101,50 @@ const SPECIALTIES = [
   { emoji: "💄", label: "Maquiagem" }
 ];
 
+const BEAUTY_VANESSA_PROFILE = {
+  path: "/negocio/beauty-vanessa",
+  imageUrl:
+    "https://res.cloudinary.com/dcuqxskee/image/upload/f_auto,q_auto,c_fill,w_640/v1785887392/saas-agendamento/negocios/fcgx1xzljdc3ww1blxr8.jpg",
+  categories: ["Cílios", "Sobrancelhas", "Estética"],
+  services: [
+    {
+      name: "Design + Henna",
+      details: "60 min · R$ 40"
+    },
+    {
+      name: "Extensão de Cílios",
+      details: "120 min · R$ 100"
+    },
+    {
+      name: "Limpeza de pele",
+      details: "60 min · R$ 50"
+    }
+  ]
+};
+
+const DASHBOARD_CAPABILITIES = [
+  {
+    emoji: "📅",
+    title: "Agendamentos",
+    description: "Compare períodos e acompanhe sua agenda."
+  },
+  {
+    emoji: "💰",
+    title: "Faturamento",
+    description: "Veja o valor previsto dos atendimentos."
+  },
+  {
+    emoji: "💖",
+    title: "Clientes",
+    description: "Entenda quem voltou e quem chegou agora."
+  },
+  {
+    emoji: "📈",
+    title: "Crescimento",
+    description: "Descubra o que está trazendo resultado."
+  }
+];
+
 const FAQ = [
   {
     question: "O Agenda Fashion é grátis?",
@@ -360,107 +404,131 @@ export function ProfessionalLandingPage() {
             <div>
               <p className="eyebrow">Presença e crescimento</p>
               <h2 id="growth-title">
-                Um perfil para divulgar. Um dashboard para acompanhar o negócio.
+                Veja um perfil real. Entenda como o dashboard ajuda o negócio.
               </h2>
             </div>
             <p>
-              O perfil público ajuda clientes a conhecer e agendar seus serviços. No painel, você acompanha os dados que mostram como o negócio está evoluindo.
+              A Beauty Vanessa já divulga serviços e recebe agendamentos pelo AF. Por trás do perfil público, o painel organiza os indicadores do negócio.
             </p>
           </div>
 
           <div className="professional-growth-grid">
             <article className="professional-profile-demo">
               <div className="professional-demo-label">
-                <span aria-hidden="true">⌁</span>
+                <span aria-hidden="true">💖</span>
                 <div>
-                  <small>Seu perfil de negócio</small>
-                  <strong>Pronto para divulgar</strong>
+                  <small>Exemplo real no Agenda Fashion</small>
+                  <strong>Perfil público da Beauty Vanessa</strong>
                 </div>
               </div>
 
-              <div className="professional-profile-cover" aria-hidden="true">
-                AF
-              </div>
+              <img
+                alt="Foto do perfil Beauty Vanessa"
+                className="professional-profile-cover"
+                height="250"
+                loading="lazy"
+                src={BEAUTY_VANESSA_PROFILE.imageUrl}
+                width="560"
+              />
 
               <div className="professional-profile-copy">
                 <div>
-                  <h3>Studio de beleza</h3>
-                  <p>Serviços, preços, localização e horários em um só endereço.</p>
+                  <h3>Beauty Vanessa</h3>
+                  <p>📍 Araguaia, Aparecida de Goiânia, GO</p>
                 </div>
-                <span>Perfil público</span>
+                <span>✨ Perfil real</span>
+              </div>
+
+              <div
+                aria-label="Especialidades da Beauty Vanessa"
+                className="professional-profile-categories"
+              >
+                {BEAUTY_VANESSA_PROFILE.categories.map((category) => (
+                  <span key={category}>{category}</span>
+                ))}
               </div>
 
               <div className="professional-profile-services">
-                <div>
-                  <span>Manicure</span>
-                  <strong>Ver horários</strong>
-                </div>
-                <div>
-                  <span>Design de sobrancelhas</span>
-                  <strong>Ver horários</strong>
-                </div>
+                {BEAUTY_VANESSA_PROFILE.services.map((service) => (
+                  <div key={service.name}>
+                    <span>{service.name}</span>
+                    <strong>{service.details}</strong>
+                  </div>
+                ))}
               </div>
+
+              <Link
+                className="button button-secondary professional-profile-link"
+                to={BEAUTY_VANESSA_PROFILE.path}
+              >
+                Ver perfil real da Beauty Vanessa ↗
+              </Link>
             </article>
 
             <article className="professional-dashboard-demo">
               <div className="professional-demo-label">
-                <span aria-hidden="true">↗</span>
+                <span aria-hidden="true">📊</span>
                 <div>
-                  <small>Seu dashboard</small>
-                  <strong>Acompanhe a evolução do negócio</strong>
+                  <small>Dashboard do negócio</small>
+                  <strong>Indicadores privados e protegidos</strong>
                 </div>
               </div>
 
+              <p className="professional-dashboard-intro">
+                Ao entrar no painel, a profissional acompanha os números que ajudam a decidir onde melhorar e como crescer.
+              </p>
+
               <div
-                aria-label="Exemplo ilustrativo dos indicadores do dashboard"
+                aria-label="Indicadores disponíveis no dashboard"
                 className="professional-dashboard-metrics"
               >
-                <div>
-                  <span>Agendamentos</span>
-                  <strong>24</strong>
-                  <small>no período</small>
-                </div>
-                <div>
-                  <span>Faturamento</span>
-                  <strong>R$ 1.280</strong>
-                  <small>previsto</small>
-                </div>
-                <div>
-                  <span>Clientes novos</span>
-                  <strong>8</strong>
-                  <small>descobriram você</small>
-                </div>
-                <div>
-                  <span>Conversão</span>
-                  <strong>12%</strong>
-                  <small>das visitas</small>
-                </div>
+                {DASHBOARD_CAPABILITIES.map((capability) => (
+                  <div key={capability.title}>
+                    <span
+                      aria-hidden="true"
+                      className="professional-dashboard-metric-icon"
+                    >
+                      {capability.emoji}
+                    </span>
+                    <strong>{capability.title}</strong>
+                    <small>{capability.description}</small>
+                  </div>
+                ))}
               </div>
 
               <p className="professional-demo-disclaimer">
-                Dados ilustrativos. O painel real usa os resultados do seu negócio.
+                Os números da Beauty Vanessa não são exibidos: cada negócio vê apenas os próprios dados.
               </p>
 
               <ul className="professional-dashboard-signals">
-                <li>Visitas ao perfil</li>
-                <li>Cliques no WhatsApp e no mapa</li>
-                <li>Favoritos recebidos</li>
-                <li>Serviços mais agendados</li>
+                <li>Compare os últimos 7 e 30 dias</li>
+                <li>Acompanhe a agenda do período</li>
+                <li>Veja o faturamento previsto</li>
+                <li>Encontre os serviços mais agendados</li>
               </ul>
             </article>
           </div>
 
           <div className="professional-growth-cta">
-            <p>
-              Divulgue seu negócio e acompanhe o que está trazendo resultado.
-            </p>
-            <Link
-              className="button professional-primary-cta"
-              onClick={() => trackCta("growth")}
-              to={signupPath}
-            >
-              Criar meu perfil grátis
-            </Link>
+            <div className="professional-growth-cta-copy">
+              <strong>Veja funcionando antes de criar o seu.</strong>
+              <small>Conheça o perfil real da Beauty Vanessa ou comece grátis.</small>
+            </div>
+            <div className="professional-growth-actions">
+              <Link
+                className="button button-secondary"
+                to={BEAUTY_VANESSA_PROFILE.path}
+              >
+                Ver Beauty Vanessa
+              </Link>
+              <Link
+                className="button professional-primary-cta"
+                onClick={() => trackCta("growth")}
+                to={signupPath}
+              >
+                Criar meu perfil grátis
+              </Link>
+            </div>
           </div>
         </div>
       </section>
@@ -530,20 +598,31 @@ export function ProfessionalLandingPage() {
       </section>
 
       <section className="container professional-final-cta" aria-labelledby="professional-final-title">
-        <div>
+        <div className="professional-final-copy">
           <p className="eyebrow">Comece grátis</p>
           <h2 id="professional-final-title">
             Deixe seus clientes agendarem enquanto você cuida dos atendimentos.
           </h2>
+          <p className="professional-final-lead">
+            Crie seu perfil, publique os serviços e compartilhe seu link. O cliente escolhe o horário e você recebe o aviso pelo WhatsApp.
+          </p>
+          <ul className="professional-final-benefits">
+            <li><span aria-hidden="true">🆓</span> Plano grátis</li>
+            <li><span aria-hidden="true">📲</span> Sem aplicativo</li>
+            <li><span aria-hidden="true">💖</span> Feito para beleza</li>
+          </ul>
         </div>
 
-        <Link
-          className="button professional-primary-cta"
-          to={signupPath}
-          onClick={() => trackCta("final")}
-        >
-          Criar minha agenda grátis
-        </Link>
+        <div className="professional-final-actions">
+          <Link
+            className="button professional-primary-cta"
+            to={signupPath}
+            onClick={() => trackCta("final")}
+          >
+            Criar minha agenda grátis
+          </Link>
+          <small>Sem cartão para começar.</small>
+        </div>
       </section>
     </main>
   );

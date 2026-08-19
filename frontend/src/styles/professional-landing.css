@@ -435,17 +435,12 @@
 }
 
 .professional-profile-cover {
-  display: grid;
-  min-height: 122px;
-  place-items: center;
+  display: block;
+  width: 100%;
+  height: 220px;
   border-radius: 16px;
-  color: #fff;
-  background:
-    radial-gradient(circle at 75% 30%, rgb(255 255 255 / 24%) 0, transparent 24%),
-    linear-gradient(145deg, var(--pink-500), var(--wine));
-  font-size: 1.35rem;
-  font-weight: 950;
-  letter-spacing: .08em;
+  object-fit: cover;
+  object-position: center 38%;
 }
 
 .professional-profile-copy {
@@ -482,6 +477,23 @@
   font-weight: 850;
 }
 
+.professional-profile-categories {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin-bottom: 12px;
+}
+
+.professional-profile-categories span {
+  border: 1px solid var(--pink-100);
+  border-radius: 999px;
+  padding: 5px 9px;
+  color: var(--wine);
+  background: var(--pink-50);
+  font-size: .7rem;
+  font-weight: 800;
+}
+
 .professional-profile-services {
   display: grid;
   gap: 8px;
@@ -502,11 +514,17 @@
 .professional-profile-services strong {
   color: var(--pink-700);
   font-size: .72rem;
+  text-align: right;
+}
+
+.professional-profile-link {
+  width: 100%;
+  margin-top: 14px;
 }
 
 .professional-dashboard-metrics {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 9px;
 }
 
@@ -517,33 +535,45 @@
   background: #fffafd;
 }
 
+.professional-dashboard-intro {
+  margin: -2px 0 16px;
+  color: var(--muted);
+  font-size: .88rem;
+  line-height: 1.55;
+}
+
 .professional-dashboard-metrics span,
 .professional-dashboard-metrics strong,
 .professional-dashboard-metrics small {
   display: block;
 }
 
-.professional-dashboard-metrics span {
-  color: var(--muted);
-  font-size: .68rem;
-  font-weight: 800;
+.professional-dashboard-metrics .professional-dashboard-metric-icon {
+  font-size: 1.22rem;
 }
 
 .professional-dashboard-metrics strong {
-  margin-block: 5px 2px;
+  margin-block: 8px 4px;
   color: var(--wine);
-  font-size: 1.08rem;
+  font-size: .9rem;
 }
 
 .professional-dashboard-metrics small {
   color: var(--muted);
-  font-size: .64rem;
+  font-size: .7rem;
+  line-height: 1.4;
 }
 
 .professional-demo-disclaimer {
-  margin: 9px 0 0;
-  color: var(--muted);
-  font-size: .68rem;
+  margin: 14px 0 0;
+  border-left: 3px solid var(--pink-500);
+  border-radius: 0 9px 9px 0;
+  padding: 9px 11px;
+  color: var(--wine);
+  background: var(--pink-50);
+  font-size: .72rem;
+  font-weight: 700;
+  line-height: 1.45;
 }
 
 .professional-dashboard-signals {
@@ -586,10 +616,26 @@
   background: rgb(255 255 255 / 86%);
 }
 
-.professional-growth-cta p {
-  margin: 0;
+.professional-growth-cta-copy strong,
+.professional-growth-cta-copy small {
+  display: block;
+}
+
+.professional-growth-cta-copy strong {
   color: var(--wine);
   font-weight: 800;
+}
+
+.professional-growth-cta-copy small {
+  margin-top: 4px;
+  color: var(--muted);
+  line-height: 1.45;
+}
+
+.professional-growth-actions {
+  display: flex;
+  flex: 0 0 auto;
+  gap: 10px;
 }
 
 .professional-soft-section {
@@ -754,7 +800,48 @@
 }
 
 .professional-final-cta h2 {
-  margin-bottom: 0;
+  margin-bottom: 12px;
+}
+
+.professional-final-lead {
+  max-width: 680px;
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+.professional-final-benefits {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 18px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.professional-final-benefits li {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid rgb(255 255 255 / 78%);
+  border-radius: 999px;
+  padding: 7px 10px;
+  color: var(--wine);
+  background: rgb(255 255 255 / 68%);
+  font-size: .78rem;
+  font-weight: 800;
+}
+
+.professional-final-actions {
+  display: grid;
+  flex: 0 0 auto;
+  gap: 8px;
+  text-align: center;
+}
+
+.professional-final-actions small {
+  color: var(--muted);
+  font-size: .72rem;
 }
 
 @media (max-width: 960px) {
@@ -841,7 +928,17 @@
     flex-direction: column;
   }
 
-  .professional-growth-cta .button {
+  .professional-growth-actions,
+  .professional-final-actions {
+    width: 100%;
+  }
+
+  .professional-growth-actions {
+    flex-direction: column;
+  }
+
+  .professional-growth-cta .button,
+  .professional-final-actions .button {
     width: 100%;
   }
 

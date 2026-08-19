@@ -110,21 +110,27 @@ describe("landing para profissionais", () => {
     expect(params.get("gclid")).toBe("abc-123");
   });
 
-  it("explica o perfil público e os indicadores reais do dashboard", () => {
+  it("mostra o perfil real da Beauty Vanessa sem expor métricas privadas", () => {
     renderLanding();
 
     expect(screen.getByRole("heading", {
       name:
-        "Um perfil para divulgar. Um dashboard para acompanhar o negócio."
+        "Veja um perfil real. Entenda como o dashboard ajuda o negócio."
     })).toBeTruthy();
-    expect(screen.getByText("Visitas ao perfil"))
+    expect(screen.getByText("Beauty Vanessa"))
       .toBeTruthy();
-    expect(screen.getByText("Cliques no WhatsApp e no mapa"))
+    expect(screen.getByText("Design + Henna"))
       .toBeTruthy();
-    expect(screen.getByText("Serviços mais agendados"))
+    expect(screen.getByText("120 min · R$ 100"))
       .toBeTruthy();
     expect(screen.getByText(
-      "Dados ilustrativos. O painel real usa os resultados do seu negócio."
+      "Os números da Beauty Vanessa não são exibidos: cada negócio vê apenas os próprios dados."
     )).toBeTruthy();
+    expect(screen.getByRole("link", {
+      name: "Ver perfil real da Beauty Vanessa ↗"
+    }).getAttribute("href")).toBe("/negocio/beauty-vanessa");
+    expect(screen.getByRole("link", {
+      name: "Ver Beauty Vanessa"
+    }).getAttribute("href")).toBe("/negocio/beauty-vanessa");
   });
 });

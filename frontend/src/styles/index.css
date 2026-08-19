@@ -539,6 +539,17 @@ th { color: var(--muted); font-size: .76rem; letter-spacing: .04em; text-transfo
   font-size: 0.8rem;
 }
 
+.discovery-labeled-value {
+  display: inline-flex;
+  align-items: flex-start;
+  gap: 6px;
+}
+
+.discovery-labeled-value > span[aria-hidden="true"] {
+  flex: 0 0 auto;
+  line-height: 1.15;
+}
+
 .service-discovery-meta {
   display: flex;
   align-items: center;
