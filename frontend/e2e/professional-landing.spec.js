@@ -33,8 +33,21 @@ test("landing profissional comunica valor e preserva a atribuição", async ({ p
     "Aviso de novo agendamento pelo WhatsApp"
   )).toBeVisible();
   await expect(page.getByRole("heading", {
-    name: "Um perfil para divulgar. Um dashboard para acompanhar o negócio."
+    name: "Veja um perfil real. Entenda como o dashboard ajuda o negócio."
   })).toBeVisible();
+  await expect(page.getByRole("img", {
+    name: "Foto do perfil Beauty Vanessa"
+  })).toBeVisible();
+
+  const beautyVanessaProfile = page.getByRole("link", {
+    name: "Ver perfil real da Beauty Vanessa ↗"
+  });
+  await expect(beautyVanessaProfile).toBeVisible();
+  await expect(beautyVanessaProfile)
+    .toHaveAttribute("href", "/negocio/beauty-vanessa");
+  await expect(page.getByText(
+    "Os números da Beauty Vanessa não são exibidos: cada negócio vê apenas os próprios dados."
+  )).toBeVisible();
 
   const header = page.getByRole("banner");
   await expect(header.getByRole("link", { name: "Entrar" })).toBeVisible();

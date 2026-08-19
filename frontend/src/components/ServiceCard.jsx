@@ -86,11 +86,13 @@ export function ServiceCard({
         )}
 
         <div className="service-business-info">
-          <strong>
+          <strong className="discovery-labeled-value">
+            <span aria-hidden="true">🏢</span>
             {service.negocio_nome}
           </strong>
 
-          <small>
+          <small className="discovery-labeled-value">
+            <span aria-hidden="true">📍</span>
             {formatLocation({
               cidade: service.negocio_cidade,
               bairro: service.negocio_bairro,
@@ -100,13 +102,15 @@ export function ServiceCard({
         </div>
 
         <div className="service-discovery-meta">
-          <span>
+          <span className="discovery-labeled-value">
+            <span aria-hidden="true">🕒</span>
             {service.duracao_minutos
               ? `${service.duracao_minutos} min`
               : "Consulte a duração"}
           </span>
 
-          <strong>
+          <strong className="discovery-labeled-value">
+            <span aria-hidden="true">💰</span>
             {formatCurrency(service.valor)}
           </strong>
         </div>

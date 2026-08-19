@@ -72,10 +72,13 @@ export function BusinessCard({ business }) {
       <div className="card-content">
         <div className="business-heading">
           <div>
-            <h3>{business.nome}</h3>
+            <h3 className="discovery-labeled-value">
+              <span aria-hidden="true">🏢</span>
+              {business.nome}
+            </h3>
 
-            <p className="muted location">
-              ⌖{" "}
+            <p className="muted location discovery-labeled-value">
+              <span aria-hidden="true">📍</span>
               {formatLocation(business) ||
                 "Atendimento local"}
             </p>
@@ -104,6 +107,7 @@ export function BusinessCard({ business }) {
                   <span>{service.nome}</span>
 
                   <strong>
+                    <span aria-hidden="true">💰</span>{" "}
                     {formatCurrency(
                       service.valor
                     )}
