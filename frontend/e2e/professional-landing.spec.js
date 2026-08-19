@@ -25,7 +25,7 @@ test("landing profissional comunica valor e preserva a atribuição", async ({ p
 
   await expect(page.getByRole("heading", {
     level: 1,
-    name: "Receba agendamentos sem precisar responder cada cliente."
+    name: "Sua cliente agenda. Você atende. O AF organiza e avisa."
   })).toBeVisible();
   await expect(page.getByText("Plano grátis para começar", { exact: true }))
     .toBeVisible();
@@ -33,24 +33,31 @@ test("landing profissional comunica valor e preserva a atribuição", async ({ p
     "Aviso de novo agendamento pelo WhatsApp"
   )).toBeVisible();
   await expect(page.getByText(
-    "Olá! Um novo agendamento foi realizado."
+    "Olá! Um novo agendamento foi realizado. ✨"
   )).toBeVisible();
   await expect(page.getByRole("heading", {
-    name: "Veja uma cliente agendando na Beauty Vanessa — do perfil ao aviso no WhatsApp."
+    name: "Veja o Design + Henna da Beauty Vanessa sendo agendado até o aviso no WhatsApp."
   })).toBeVisible();
-  await expect(page.getByRole("img", {
-    name: "Foto do perfil Beauty Vanessa"
-  })).toBeVisible();
+  await expect(page.locator(".professional-demo-screenshot-grid img"))
+    .toHaveCount(3);
 
   const beautyVanessaProfile = page.getByRole("link", {
-    name: "Testar o agendamento real ↗"
+    name: "Testar no perfil real ↗"
   });
   await expect(beautyVanessaProfile).toBeVisible();
   await expect(beautyVanessaProfile)
     .toHaveAttribute("href", "/negocio/beauty-vanessa");
   await expect(page.getByText(
-    "A agenda mostra somente datas e horários realmente disponíveis para a Vanessa."
+    "O AF envia o novo agendamento para a Vanessa no WhatsApp"
   )).toBeVisible();
+  await expect(page.getByText("Nail designer", { exact: true }))
+    .toBeVisible();
+  await expect(page.getByText("Lash designer", { exact: true }))
+    .toBeVisible();
+  await expect(page.getByText("Comece em poucos passos"))
+    .toHaveCount(0);
+  await expect(page.getByText("Depois do agendamento"))
+    .toHaveCount(0);
 
   const header = page.getByRole("banner");
   await expect(header.getByRole("link", { name: "Entrar" })).toBeVisible();

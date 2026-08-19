@@ -3,6 +3,9 @@ import { Link, useLocation } from "react-router-dom";
 
 import { track } from "../analytics/track";
 import afLogoTransparent from "../assets/brand/af-logo-transparent.png";
+import beautyVanessaPasso1 from "../assets/professional-demo/beauty-vanessa-passo-1-perfil.jpg";
+import beautyVanessaPasso2 from "../assets/professional-demo/beauty-vanessa-passo-2-horario.jpg";
+import beautyVanessaPasso3 from "../assets/professional-demo/beauty-vanessa-passo-3-confirmacao.jpg";
 import "../styles/professional-landing.css";
 
 export const PROFESSIONAL_TRACKING_PARAMS = [
@@ -61,125 +64,43 @@ const BENEFITS = [
   }
 ];
 
-const STEPS = [
-  {
-    number: "01",
-    emoji: "💖",
-    title: "Crie sua agenda grátis",
-    description:
-      "Faça seu cadastro profissional e comece sem precisar informar cartão."
-  },
-  {
-    number: "02",
-    emoji: "💅",
-    title: "Configure seu negócio",
-    description:
-      "Adicione serviços, horários de atendimento e as informações que seus clientes precisam ver."
-  },
-  {
-    number: "03",
-    emoji: "📲",
-    title: "Divulgue seu perfil",
-    description:
-      "Compartilhe seu endereço público para clientes conhecerem seus serviços e horários."
-  },
-  {
-    number: "04",
-    emoji: "🎉",
-    title: "Receba os agendamentos",
-    description:
-      "O cliente agenda online e o Agenda Fashion avisa o profissional ou negócio pelo WhatsApp."
-  }
-];
-
 const SPECIALTIES = [
-  { emoji: "💅", label: "Manicure" },
-  { emoji: "💇‍♀️", label: "Cabeleireira" },
+  { emoji: "💅", label: "Nail designer" },
   { emoji: "👁️", label: "Lash designer" },
-  { emoji: "✨", label: "Sobrancelhas" },
+  { emoji: "✨", label: "Designer de sobrancelhas" },
   { emoji: "🌸", label: "Estética" },
+  { emoji: "💇‍♀️", label: "Cabeleireira" },
   { emoji: "💄", label: "Maquiagem" }
 ];
 
 const BEAUTY_VANESSA_PROFILE = {
-  path: "/negocio/beauty-vanessa",
-  imageUrl:
-    "https://res.cloudinary.com/dcuqxskee/image/upload/f_auto,q_auto,c_fill,w_640/v1785887392/saas-agendamento/negocios/fcgx1xzljdc3ww1blxr8.jpg",
-  categories: ["Cílios", "Sobrancelhas", "Estética"],
-  services: [
-    {
-      name: "Design + Henna",
-      details: "60 min · R$ 40"
-    },
-    {
-      name: "Extensão de Cílios",
-      details: "120 min · R$ 100"
-    },
-    {
-      name: "Limpeza de pele",
-      details: "60 min · R$ 50"
-    }
-  ]
+  path: "/negocio/beauty-vanessa"
 };
 
-const REAL_BOOKING_STEPS = [
+const REAL_DEMO_SHOTS = [
   {
     number: "1",
-    icon: "🔎",
-    title: "A cliente encontra o perfil",
+    image: beautyVanessaPasso1,
+    alt: "Perfil real da Beauty Vanessa com os serviços disponíveis",
+    title: "A cliente encontra o perfil e escolhe",
     description:
-      "Ela conhece a Beauty Vanessa, vê as especialidades e compara os serviços publicados."
+      "No perfil público ela vê o serviço real Design + Henna, com 60 minutos de duração e valor de R$ 40,00."
   },
   {
     number: "2",
-    icon: "✨",
-    title: "Escolhe o serviço",
+    image: beautyVanessaPasso2,
+    alt: "Agenda da Beauty Vanessa mostrando o serviço Design mais Henna e um horário disponível",
+    title: "Seleciona data e horário disponíveis",
     description:
-      "Design + Henna · 60 minutos · R$ 40,00. Preço e duração aparecem antes da confirmação."
+      "O Agenda Fashion mostra a disponibilidade real da Vanessa e já monta o resumo do atendimento."
   },
   {
     number: "3",
-    icon: "📅",
-    title: "Seleciona um horário livre",
+    image: beautyVanessaPasso3,
+    alt: "Tela de confirmação do agendamento de Design mais Henna com a Vanessa",
+    title: "Confirma os dados do agendamento",
     description:
-      "A agenda mostra somente datas e horários realmente disponíveis para a Vanessa."
-  },
-  {
-    number: "4",
-    icon: "✅",
-    title: "Confirma os dados",
-    description:
-      "A cliente informa nome e WhatsApp e conclui o agendamento sem instalar aplicativo."
-  },
-  {
-    number: "5",
-    icon: "📲",
-    title: "A profissional recebe o aviso",
-    description:
-      "O Agenda Fashion envia pelo WhatsApp os dados do novo agendamento para conferência."
-  }
-];
-
-const DASHBOARD_CAPABILITIES = [
-  {
-    emoji: "📅",
-    title: "Agendamentos",
-    description: "Compare períodos e acompanhe sua agenda."
-  },
-  {
-    emoji: "💰",
-    title: "Faturamento",
-    description: "Veja o valor previsto dos atendimentos."
-  },
-  {
-    emoji: "💖",
-    title: "Clientes",
-    description: "Entenda quem voltou e quem chegou agora."
-  },
-  {
-    emoji: "📈",
-    title: "Crescimento",
-    description: "Descubra o que está trazendo resultado."
+      "Antes de concluir, a cliente confere serviço, profissional, data, horário e valor — tudo sem instalar aplicativo."
   }
 ];
 
@@ -267,7 +188,7 @@ export function ProfessionalLandingPage() {
   useEffect(() => {
     const previousTitle = document.title;
     const restoreDescription = ensureMetaDescription(
-      "Agenda online grátis para profissionais da beleza. Divulgue seus serviços, deixe clientes agendarem sozinhos e receba avisos pelo WhatsApp."
+      "Agenda online grátis para nail designers, lash designers, designers de sobrancelhas, manicures, esteticistas e salões. Receba agendamentos e avisos pelo WhatsApp."
     );
 
     document.title =
@@ -311,15 +232,15 @@ export function ProfessionalLandingPage() {
           <div className="professional-hero-copy">
             <p className="eyebrow">
               <span aria-hidden="true">✨</span>{" "}
-              Agenda online grátis para profissionais da beleza
+              Para nail, lash, sobrancelhas, estética e salões
             </p>
 
             <h1>
-              Receba agendamentos sem precisar responder cada cliente.
+              Sua cliente agenda. Você atende. O AF organiza e avisa.
             </h1>
 
             <p className="professional-lead">
-              Crie sua agenda grátis, divulgue seus serviços e deixe clientes escolherem data e horário sozinhos. Quando entrar um novo agendamento, o{" "}
+              Feito para nail designers, lash designers, designers de sobrancelhas, manicures, esteticistas e salões. Publique seus serviços e deixe a cliente escolher data e horário enquanto você atende. Quando o agendamento entrar, o{" "}
               <span className="professional-brand-inline">
                 <img
                   alt=""
@@ -364,7 +285,7 @@ export function ProfessionalLandingPage() {
               </li>
               <li>
                 <span aria-hidden="true">💖</span>
-                <span>Perfil público para divulgação</span>
+                <span>Feito para autônomas e salões</span>
               </li>
               <li>
                 <span aria-hidden="true">🔔</span>
@@ -379,7 +300,13 @@ export function ProfessionalLandingPage() {
           >
             <div className="professional-whatsapp-topbar">
               <span className="professional-whatsapp-avatar">
-                <WhatsAppIcon className="professional-whatsapp-avatar-icon" />
+                <img
+                  alt="Foto de perfil do Agenda Fashion"
+                  className="professional-whatsapp-avatar-image"
+                  height="42"
+                  src={afLogoTransparent}
+                  width="42"
+                />
               </span>
               <div>
                 <small>WhatsApp</small>
@@ -390,15 +317,30 @@ export function ProfessionalLandingPage() {
 
             <div className="professional-whatsapp-chat">
               <div className="professional-whatsapp-bubble">
-                <p>Olá! Um novo agendamento foi realizado.</p>
+                <p>Olá! Um novo agendamento foi realizado. ✨</p>
                 <dl>
-                  <div><dt>Cliente</dt><dd>Maria Oliveira</dd></div>
-                  <div><dt>Serviço</dt><dd>Design + Henna</dd></div>
-                  <div><dt>Profissional</dt><dd>Vanessa</dd></div>
-                  <div><dt>Data</dt><dd>20/08/2026</dd></div>
-                  <div><dt>Horário</dt><dd>14:00</dd></div>
+                  <div>
+                    <dt>👤 Cliente</dt>
+                    <dd>Maria Oliveira</dd>
+                  </div>
+                  <div>
+                    <dt>💅 Serviço</dt>
+                    <dd>Design + Henna</dd>
+                  </div>
+                  <div>
+                    <dt>👩 Profissional</dt>
+                    <dd>Vanessa</dd>
+                  </div>
+                  <div>
+                    <dt>📅 Data</dt>
+                    <dd>19/08/2026</dd>
+                  </div>
+                  <div>
+                    <dt>⏰ Horário</dt>
+                    <dd>19:00</dd>
+                  </div>
                 </dl>
-                <p>Abra o Agenda Fashion para conferir.</p>
+                <p>💖 Abra o Agenda Fashion para conferir.</p>
                 <small>16:32 <span aria-label="Mensagem entregue">✓✓</span></small>
               </div>
             </div>
@@ -422,103 +364,93 @@ export function ProfessionalLandingPage() {
         <div className="container professional-section">
           <div className="professional-real-demo-heading">
             <div>
-              <p className="eyebrow">Demonstração real</p>
+              <p className="eyebrow">Passo a passo real</p>
               <h2 id="real-demo-title">
-                Veja uma cliente agendando na Beauty Vanessa — do perfil ao aviso no WhatsApp.
+                Veja o Design + Henna da Beauty Vanessa sendo agendado até o aviso no WhatsApp.
               </h2>
             </div>
             <p>
-              A experiência abaixo usa o perfil e os serviços reais da Beauty Vanessa no Agenda Fashion. Você pode abrir o perfil e testar os horários disponíveis.
+              Acompanhe o perfil real da Beauty Vanessa como a cliente vê no celular: escolha do serviço, horário, confirmação e aviso no WhatsApp.
             </p>
           </div>
 
-          <div className="professional-real-demo-grid">
-            <article className="professional-profile-demo">
-              <div className="professional-demo-label">
-                <span aria-hidden="true">💖</span>
-                <div>
-                  <small>Perfil publicado no Agenda Fashion</small>
-                  <strong>Beauty Vanessa</strong>
-                </div>
+          <div className="professional-real-service-proof">
+            <div>
+              <span aria-hidden="true">💅</span>
+              <p>
+                <small>Serviço real escolhido</small>
+                <strong>Design + Henna</strong>
+              </p>
+            </div>
+            <dl>
+              <div>
+                <dt>Profissional</dt>
+                <dd>Vanessa</dd>
               </div>
-
-              <img
-                alt="Foto do perfil Beauty Vanessa"
-                className="professional-profile-cover"
-                height="250"
-                loading="lazy"
-                src={BEAUTY_VANESSA_PROFILE.imageUrl}
-                width="560"
-              />
-
-              <div className="professional-profile-copy">
-                <div>
-                  <h3>Beauty Vanessa</h3>
-                  <p>📍 Araguaia, Aparecida de Goiânia, GO</p>
-                </div>
-                <span>✨ Perfil real</span>
+              <div>
+                <dt>Duração</dt>
+                <dd>60 min</dd>
               </div>
-
-              <div
-                aria-label="Especialidades da Beauty Vanessa"
-                className="professional-profile-categories"
-              >
-                {BEAUTY_VANESSA_PROFILE.categories.map((category) => (
-                  <span key={category}>{category}</span>
-                ))}
+              <div>
+                <dt>Valor</dt>
+                <dd>R$ 40,00</dd>
               </div>
+            </dl>
+            <Link
+              className="button button-secondary"
+              onClick={trackDemo}
+              to={BEAUTY_VANESSA_PROFILE.path}
+            >
+              Testar no perfil real ↗
+            </Link>
+          </div>
 
-              <div className="professional-profile-services">
-                {BEAUTY_VANESSA_PROFILE.services.map((service) => (
-                  <div key={service.name}>
-                    <span>{service.name}</span>
-                    <strong>{service.details}</strong>
+          <ol className="professional-demo-screenshot-grid">
+            {REAL_DEMO_SHOTS.map((step) => (
+              <li key={step.number}>
+                <figure>
+                  <div className="professional-demo-screenshot-frame">
+                    <span className="professional-phone-speaker" aria-hidden="true" />
+                    <img
+                      alt={step.alt}
+                      height="844"
+                      loading="lazy"
+                      src={step.image}
+                      width="390"
+                    />
+                    <span className="professional-phone-home" aria-hidden="true" />
                   </div>
-                ))}
-              </div>
-
-              <Link
-                className="button button-secondary professional-profile-link"
-                onClick={trackDemo}
-                to={BEAUTY_VANESSA_PROFILE.path}
-              >
-                Testar o agendamento real ↗
-              </Link>
-            </article>
-
-            <article className="professional-booking-demo">
-              <div className="professional-booking-demo-topbar">
-                <div>
-                  <small>Fluxo completo</small>
-                  <strong>Da descoberta à notificação</strong>
-                </div>
-                <span>Sem aplicativo</span>
-              </div>
-
-              <ol className="professional-booking-flow">
-                {REAL_BOOKING_STEPS.map((step) => (
-                  <li key={step.number}>
-                    <span className="professional-booking-flow-marker">
-                      <span aria-hidden="true">{step.icon}</span>
-                      <small>{step.number}</small>
-                    </span>
+                  <figcaption>
+                    <span>{step.number}</span>
                     <div>
                       <h3>{step.title}</h3>
                       <p>{step.description}</p>
                     </div>
-                  </li>
-                ))}
-              </ol>
+                  </figcaption>
+                </figure>
+              </li>
+            ))}
+          </ol>
 
-              <div className="professional-booking-result">
-                <WhatsAppIcon className="professional-booking-result-icon" />
-                <div>
-                  <small>Resultado para a profissional</small>
-                  <strong>Novo agendamento recebido no WhatsApp</strong>
-                </div>
+          <article className="professional-demo-final-notification">
+            <div className="professional-demo-final-copy">
+              <span>4</span>
+              <div>
+                <small>Resultado automático</small>
+                <h3>O AF envia o novo agendamento para a Vanessa no WhatsApp</h3>
+                <p>Ela recebe cliente, serviço, data e horário sem interromper o atendimento para conferir a agenda.</p>
               </div>
-            </article>
-          </div>
+            </div>
+            <div className="professional-demo-final-message">
+              <img alt="Agenda Fashion" height="42" src={afLogoTransparent} width="42" />
+              <p>
+                <strong>✨ Novo agendamento</strong>
+                <span>💅 Design + Henna · Vanessa</span>
+                <span>📅 19/08/2026 às 19:00</span>
+              </p>
+              <WhatsAppIcon className="professional-booking-result-icon" />
+            </div>
+          </article>
 
           <div className="professional-real-demo-cta">
             <div>
@@ -565,153 +497,12 @@ export function ProfessionalLandingPage() {
         </div>
       </section>
 
-      <section
-        aria-labelledby="growth-title"
-        className="professional-growth-section"
-      >
-        <div className="container professional-section">
-          <div className="professional-growth-heading">
-            <div>
-              <p className="eyebrow">Depois do agendamento</p>
-              <h2 id="growth-title">
-                A agenda se organiza e o dashboard mostra o crescimento do negócio.
-              </h2>
-            </div>
-            <p>
-              Cada novo agendamento deixa de ser apenas uma conversa no WhatsApp e passa a fazer parte de uma rotina que você consegue acompanhar.
-            </p>
-          </div>
-
-          <div className="professional-growth-grid">
-            <article className="professional-after-booking-demo">
-              <div className="professional-demo-label">
-                <span aria-hidden="true">✨</span>
-                <div>
-                  <small>Menos trabalho manual</small>
-                  <strong>O Agenda Fashion cuida do caminho repetitivo</strong>
-                </div>
-              </div>
-
-              <div className="professional-after-booking-list">
-                <div>
-                  <span aria-hidden="true">1</span>
-                  <p><strong>O horário fica reservado</strong><small>A disponibilidade é atualizada para evitar escolhas conflitantes.</small></p>
-                </div>
-                <div>
-                  <span aria-hidden="true">2</span>
-                  <p><strong>O agendamento entra na agenda</strong><small>Serviço, profissional, cliente, data e horário ficam reunidos.</small></p>
-                </div>
-                <div>
-                  <span aria-hidden="true">3</span>
-                  <p><strong>O WhatsApp avisa a profissional</strong><small>O aviso chega sem depender de conferir a plataforma a todo momento.</small></p>
-                </div>
-                <div>
-                  <span aria-hidden="true">4</span>
-                  <p><strong>O dashboard transforma rotina em visão</strong><small>Você acompanha agenda, faturamento previsto, clientes e serviços.</small></p>
-                </div>
-              </div>
-
-              <div className="professional-after-booking-highlight">
-                <span aria-hidden="true">💡</span>
-                <p>
-                  <strong>Você continua no controle.</strong>
-                  O cliente ganha autonomia sem perder a qualidade do seu atendimento.
-                </p>
-              </div>
-            </article>
-
-            <article className="professional-dashboard-demo">
-              <div className="professional-demo-label">
-                <span aria-hidden="true">📊</span>
-                <div>
-                  <small>Dashboard do negócio</small>
-                  <strong>Indicadores privados e protegidos</strong>
-                </div>
-              </div>
-
-              <p className="professional-dashboard-intro">
-                Ao entrar no painel, a profissional acompanha os números que ajudam a decidir onde melhorar e como crescer.
-              </p>
-
-              <div
-                aria-label="Indicadores disponíveis no dashboard"
-                className="professional-dashboard-metrics"
-              >
-                {DASHBOARD_CAPABILITIES.map((capability) => (
-                  <div key={capability.title}>
-                    <span
-                      aria-hidden="true"
-                      className="professional-dashboard-metric-icon"
-                    >
-                      {capability.emoji}
-                    </span>
-                    <strong>{capability.title}</strong>
-                    <small>{capability.description}</small>
-                  </div>
-                ))}
-              </div>
-
-              <p className="professional-demo-disclaimer">
-                Os dados de cada negócio são privados: somente pessoas autorizadas acessam seus indicadores.
-              </p>
-
-              <ul className="professional-dashboard-signals">
-                <li>Compare os últimos 7 e 30 dias</li>
-                <li>Acompanhe a agenda do período</li>
-                <li>Veja o faturamento previsto</li>
-                <li>Encontre os serviços mais agendados</li>
-              </ul>
-            </article>
-          </div>
-
-          <div className="professional-growth-cta">
-            <div className="professional-growth-cta-copy">
-              <strong>Comece com o essencial e acompanhe o resultado.</strong>
-              <small>O plano grátis permite testar o valor do Agenda Fashion na rotina.</small>
-            </div>
-            <div className="professional-growth-actions">
-              <Link
-                className="button professional-primary-cta"
-                onClick={() => trackCta("growth")}
-                to={signupPath}
-              >
-                Testar grátis no meu negócio
-              </Link>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section className="professional-soft-section" id="como-funciona">
-        <div className="container professional-section">
-          <div className="professional-section-heading centered">
-            <p className="eyebrow">Comece em poucos passos</p>
-            <h2>Do cadastro grátis ao aviso de novo agendamento</h2>
-          </div>
-
-          <ol className="professional-steps">
-            {STEPS.map((step) => (
-              <li key={step.number}>
-                <span className="professional-step-marker">
-                  <span aria-hidden="true">{step.emoji}</span>
-                  <small>{step.number}</small>
-                </span>
-                <div>
-                  <h3>{step.title}</h3>
-                  <p>{step.description}</p>
-                </div>
-              </li>
-            ))}
-          </ol>
-        </div>
-      </section>
-
       <section className="container professional-section professional-audience-section">
         <div className="professional-audience-copy">
-          <p className="eyebrow">Feito para a rotina da beleza</p>
-          <h2>Para quem atende sozinho ou está construindo um negócio</h2>
+          <p className="eyebrow">Sua especialidade já cabe aqui</p>
+          <h2>Para profissionais autônomas, studios e salões de beleza</h2>
           <p>
-            Você pode começar como profissional autônomo e organizar sua operação conforme o seu atendimento cresce.
+            Seja nail, lash, sobrancelhas, estética, cabelo ou maquiagem: você configura seus próprios serviços, valores e horários.
           </p>
         </div>
 
