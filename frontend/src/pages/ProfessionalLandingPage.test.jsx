@@ -1,9 +1,38 @@
-import { describe, expect, it } from "vitest";
+// @vitest-environment jsdom
+
+import {
+  cleanup,
+  render,
+  screen
+} from "@testing-library/react";
+import { MemoryRouter } from "react-router-dom";
+import {
+  afterEach,
+  describe,
+  expect,
+  it,
+  vi
+} from "vitest";
 
 import {
   buildProfessionalSignupPath,
+  ProfessionalLandingPage,
   PROFESSIONAL_TRACKING_PARAMS
 } from "./ProfessionalLandingPage";
+
+vi.mock("../analytics/track", () => ({
+  track: vi.fn()
+}));
+
+afterEach(cleanup);
+
+function renderLanding(path = "/para-profissionais") {
+  return render(
+    <MemoryRouter initialEntries={[path]}>
+      <ProfessionalLandingPage />
+    </MemoryRouter>
+  );
+}
 
 describe("landing para profissionais", () => {
   it("leva sempre ao cadastro profissional", () => {
@@ -37,5 +66,59 @@ describe("landing para profissionais", () => {
       "gclid",
       "fbclid"
     ]);
+  });
+
+  it("apresenta os diferenciais principais antes do cadastro", () => {
+    renderLanding();
+
+    expect(screen.getByRole("heading", {
+      level: 1,
+      name:
+        "Receba agendamentos sem precisar responder cada cliente."
+    })).toBeTruthy();
+    expect(screen.getByText("Plano grátis para começar"))
+      .toBeTruthy();
+    expect(screen.getAllByText("Cliente agenda sozinho"))
+      .toHaveLength(2);
+    expect(screen.getByText(
+      "Aviso de novo agendamento pelo WhatsApp"
+    )).toBeTruthy();
+  });
+
+  it("mantém a atribuição no CTA de criação da agenda grátis", () => {
+    renderLanding(
+      "/para-profissionais?utm_source=google&utm_campaign=profissionais&gclid=abc-123"
+    );
+
+    const cta = screen.getAllByRole("link", {
+      name: "Criar minha agenda grátis"
+    })[0];
+    const href = cta.getAttribute("href");
+    const [, query = ""] = href.split("?");
+    const params = new URLSearchParams(query);
+
+    expect(params.get("tipo")).toBe("profissional");
+    expect(params.get("utm_source")).toBe("google");
+    expect(params.get("utm_campaign"))
+      .toBe("profissionais");
+    expect(params.get("gclid")).toBe("abc-123");
+  });
+
+  it("explica o perfil público e os indicadores reais do dashboard", () => {
+    renderLanding();
+
+    expect(screen.getByRole("heading", {
+      name:
+        "Um perfil para divulgar. Um dashboard para acompanhar o negócio."
+    })).toBeTruthy();
+    expect(screen.getByText("Visitas ao perfil"))
+      .toBeTruthy();
+    expect(screen.getByText("Cliques no WhatsApp e no mapa"))
+      .toBeTruthy();
+    expect(screen.getByText("Serviços mais agendados"))
+      .toBeTruthy();
+    expect(screen.getByText(
+      "Dados ilustrativos. O painel real usa os resultados do seu negócio."
+    )).toBeTruthy();
   });
 });

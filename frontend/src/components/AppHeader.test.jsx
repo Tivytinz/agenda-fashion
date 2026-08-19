@@ -46,6 +46,31 @@ beforeEach(() => {
 afterEach(cleanup);
 
 describe("cabeçalho por contexto", () => {
+  it("remove saídas desnecessárias da landing profissional", () => {
+    useSession.mockReturnValue({
+      authenticated: false,
+      ehAdministrador: false,
+      temNegocio: false,
+      negocio: null,
+      usuario: null,
+      logout
+    });
+
+    renderHeader("/para-profissionais");
+
+    expect(screen.queryByRole("link", { name: "Início" }))
+      .toBeNull();
+    expect(screen.queryByRole("link", { name: "Minha agenda" }))
+      .toBeNull();
+    expect(screen.queryByRole("link", { name: "Sou profissional" }))
+      .toBeNull();
+    expect(screen.getByRole("link", { name: "Entrar" }))
+      .toBeTruthy();
+    expect(screen.getByRole("link", {
+      name: "Agenda Fashion, início"
+    }).getAttribute("href")).toBe("/para-profissionais");
+  });
+
   it("troca Minha agenda por Explorar dentro da gestão do negócio", () => {
     renderHeader("/painel");
 
