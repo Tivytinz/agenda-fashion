@@ -74,7 +74,7 @@ describe("landing para profissionais", () => {
     expect(screen.getByRole("heading", {
       level: 1,
       name:
-        "Receba agendamentos sem precisar responder cada cliente."
+        "Sua cliente agenda. Você atende. O AF organiza e avisa."
     })).toBeTruthy();
     expect(screen.getByText("Plano grátis para começar"))
       .toBeTruthy();
@@ -84,7 +84,7 @@ describe("landing para profissionais", () => {
       "Aviso de novo agendamento pelo WhatsApp"
     )).toBeTruthy();
     expect(screen.getByText(
-      "Olá! Um novo agendamento foi realizado."
+      "Olá! Um novo agendamento foi realizado. ✨"
     )).toBeTruthy();
     expect(screen.getByText("Maria Oliveira"))
       .toBeTruthy();
@@ -92,10 +92,13 @@ describe("landing para profissionais", () => {
       .toBeTruthy();
     expect(container.querySelector(".professional-whatsapp-inline-icon"))
       .toBeTruthy();
+    expect(screen.getByAltText("Foto de perfil do Agenda Fashion"))
+      .toBeTruthy();
     expect(container.querySelector(".professional-benefit-icon")
       ?.textContent).toBe("📅");
     expect(container.textContent).toContain("💅");
-    expect(container.textContent).toContain("🎉");
+    expect(screen.getByText("Nail designer")).toBeTruthy();
+    expect(screen.getByText("Lash designer")).toBeTruthy();
   });
 
   it("mantém a atribuição no CTA de criação da agenda grátis", () => {
@@ -122,22 +125,24 @@ describe("landing para profissionais", () => {
 
     expect(screen.getByRole("heading", {
       name:
-        "Veja uma cliente agendando na Beauty Vanessa — do perfil ao aviso no WhatsApp."
+        "Veja o Design + Henna da Beauty Vanessa sendo agendado até o aviso no WhatsApp."
     })).toBeTruthy();
-    expect(screen.getAllByText("Beauty Vanessa").length)
-      .toBeGreaterThanOrEqual(2);
     expect(screen.getAllByText("Design + Henna").length)
       .toBeGreaterThanOrEqual(2);
-    expect(screen.getByText("120 min · R$ 100"))
-      .toBeTruthy();
+    expect(screen.getByText("60 min")).toBeTruthy();
+    expect(screen.getByText("R$ 40,00")).toBeTruthy();
     expect(screen.getByText(
-      "O Agenda Fashion envia pelo WhatsApp os dados do novo agendamento para conferência."
+      "O AF envia o novo agendamento para a Vanessa no WhatsApp"
     )).toBeTruthy();
     expect(screen.getByRole("link", {
-      name: "Testar o agendamento real ↗"
+      name: "Testar no perfil real ↗"
     }).getAttribute("href")).toBe("/negocio/beauty-vanessa");
-    expect(screen.getByText(
-      "A agenda se organiza e o dashboard mostra o crescimento do negócio."
-    )).toBeTruthy();
+    expect(screen.getAllByRole("img", {
+      name: /Beauty Vanessa|agendamento de Design/
+    })).toHaveLength(3);
+    expect(screen.queryByText("Comece em poucos passos"))
+      .toBeNull();
+    expect(screen.queryByText("Depois do agendamento"))
+      .toBeNull();
   });
 });
