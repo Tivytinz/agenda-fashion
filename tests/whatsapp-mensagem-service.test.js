@@ -82,6 +82,9 @@ describe(
         .WHATSAPP_TEMPLATE_LANGUAGE =
         "pt_BR";
 
+      delete process.env
+        .WHATSAPP_PROFESSIONAL_REMINDER_ENABLED;
+
       whatsappMensagemRepository
         .cancelarMensagensExpiradas
         .mockResolvedValue(0);
@@ -104,6 +107,10 @@ describe(
           .WHATSAPP_REMINDER_HOURS =
           "12";
 
+        process.env
+          .WHATSAPP_PROFESSIONAL_REMINDER_ENABLED =
+          "true";
+
         whatsappMensagemRepository
           .enfileirarNovoAgendamento
           .mockResolvedValue([
@@ -124,7 +131,8 @@ describe(
         ).toHaveBeenCalledWith(
           executor,
           99,
-          12
+          12,
+          true
         );
       }
     );
@@ -380,6 +388,43 @@ describe(
           10,
           "O estado atual do agendamento não permite o envio."
         );
+      }
+    );
+
+    test(
+      "usa os nomes aprovados dos seis templates de utilidade",
+      () => {
+        const nomesEsperados = {
+          NOVO_AGENDAMENTO_PROFISSIONAL:
+            "novo_agendamento",
+          CONFIRMACAO_AGENDAMENTO_CLIENTE:
+            "confirmacao_agendamento_cliente",
+          LEMBRETE_AGENDAMENTO_CLIENTE:
+            "lembrete_agendamento",
+          LEMBRETE_AGENDAMENTO_PROFISSIONAL:
+            "lembrete_agendamento_profissional",
+          CANCELAMENTO_AGENDAMENTO_PROFISSIONAL:
+            "cancelamento_agendamento_profissional",
+          CANCELAMENTO_AGENDAMENTO_CLIENTE:
+            "cancelamento_agendamento",
+        };
+
+        for (const nomeVariavel of [
+          "WHATSAPP_TEMPLATE_NOVO_AGENDAMENTO",
+          "WHATSAPP_TEMPLATE_CONFIRMACAO_CLIENTE",
+          "WHATSAPP_TEMPLATE_LEMBRETE_CLIENTE",
+          "WHATSAPP_TEMPLATE_LEMBRETE_PROFISSIONAL",
+          "WHATSAPP_TEMPLATE_CANCELAMENTO_PROFISSIONAL",
+          "WHATSAPP_TEMPLATE_CANCELAMENTO_CLIENTE",
+        ]) {
+          delete process.env[nomeVariavel];
+        }
+
+        for (const [tipo, nome] of Object.entries(nomesEsperados)) {
+          expect(
+            whatsappMensagemService.obterNomeTemplate(tipo)
+          ).toBe(nome);
+        }
       }
     );
 

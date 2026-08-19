@@ -29,6 +29,13 @@ const CONFIGURACOES_TEMPLATE = {
       "lembrete_agendamento",
   },
 
+  LEMBRETE_AGENDAMENTO_PROFISSIONAL: {
+    variavel:
+      "WHATSAPP_TEMPLATE_LEMBRETE_PROFISSIONAL",
+    padrao:
+      "lembrete_agendamento_profissional",
+  },
+
   CANCELAMENTO_AGENDAMENTO_PROFISSIONAL: {
     variavel:
       "WHATSAPP_TEMPLATE_CANCELAMENTO_PROFISSIONAL",
@@ -124,6 +131,13 @@ function obterAntecedenciaLembrete() {
       minimo: 1,
       maximo: 168,
     }
+  );
+}
+
+function lembreteProfissionalAtivo() {
+  return configuracaoBooleana(
+    "WHATSAPP_PROFESSIONAL_REMINDER_ENABLED",
+    false
   );
 }
 
@@ -344,7 +358,8 @@ async function enfileirarNovoAgendamento({
     .enfileirarNovoAgendamento(
       executor,
       agendamentoId,
-      obterAntecedenciaLembrete()
+      obterAntecedenciaLembrete(),
+      lembreteProfissionalAtivo()
     );
 }
 

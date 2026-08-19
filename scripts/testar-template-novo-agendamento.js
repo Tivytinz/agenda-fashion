@@ -23,6 +23,7 @@ async function executar() {
     await notificationService.novoAgendamento({
       whatsapp: numeroDestino,
       cliente: "Victor Souza",
+      clienteWhatsapp: "(62) 99999-9999",
       servico: "Alongamento de unhas",
       profissional: "Profissional Teste",
       data: "2026-07-15",

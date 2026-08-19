@@ -109,7 +109,7 @@ describe(
             numero:
               "62999999999",
             nomeTemplate:
-              "lembrete_agendamento_cliente",
+              "lembrete_agendamento",
             codigoIdioma:
               "pt_BR",
             parametrosCorpo: [
@@ -133,7 +133,7 @@ describe(
               "template",
             template: {
               name:
-                "lembrete_agendamento_cliente",
+                "lembrete_agendamento",
               language: {
                 code:
                   "pt_BR",
