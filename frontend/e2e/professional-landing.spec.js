@@ -38,8 +38,16 @@ test("landing profissional comunica valor e preserva a atribuição", async ({ p
   await expect(page.getByRole("heading", {
     name: "Veja o Design + Henna da Beauty Vanessa sendo agendado até o aviso no WhatsApp."
   })).toBeVisible();
-  await expect(page.locator(".professional-demo-screenshot-grid img"))
-    .toHaveCount(3);
+  await expect(page.getByText("Você divulga seu perfil", { exact: true }))
+    .toBeVisible();
+  await expect(page.getByText("A cliente escolhe o serviço", { exact: true }))
+    .toBeVisible();
+  await expect(page.getByText("Seleciona um horário livre", { exact: true }))
+    .toBeVisible();
+  await expect(page.getByText("Confirma o agendamento", { exact: true }))
+    .toBeVisible();
+  await expect(page.locator(".professional-demo-screenshot-grid"))
+    .toHaveCount(0);
 
   const beautyVanessaProfile = page.getByRole("link", {
     name: "Testar no perfil real ↗"

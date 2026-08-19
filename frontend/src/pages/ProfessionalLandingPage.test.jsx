@@ -137,9 +137,16 @@ describe("landing para profissionais", () => {
     expect(screen.getByRole("link", {
       name: "Testar no perfil real ↗"
     }).getAttribute("href")).toBe("/negocio/beauty-vanessa");
-    expect(screen.getAllByRole("img", {
-      name: /Beauty Vanessa|agendamento de Design/
-    })).toHaveLength(3);
+    expect(screen.getByText("Você divulga seu perfil"))
+      .toBeTruthy();
+    expect(screen.getByText("A cliente escolhe o serviço"))
+      .toBeTruthy();
+    expect(screen.getByText("Seleciona um horário livre"))
+      .toBeTruthy();
+    expect(screen.getByText("Confirma o agendamento"))
+      .toBeTruthy();
+    expect(document.querySelector(".professional-demo-screenshot-grid"))
+      .toBeNull();
     expect(screen.queryByText("Comece em poucos passos"))
       .toBeNull();
     expect(screen.queryByText("Depois do agendamento"))
