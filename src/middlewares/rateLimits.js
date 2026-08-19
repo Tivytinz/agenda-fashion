@@ -138,6 +138,15 @@ const limitarUpload =
       "Muitos uploads enviados. Tente novamente mais tarde.",
   });
 
+const limitarLeituraPublica =
+  criarLimitador({
+    limite: 240,
+    janelaMs:
+      60 * 1000,
+    mensagem:
+      "Muitas consultas públicas. Aguarde um minuto.",
+  });
+
 module.exports = {
   criarLimitador,
   limitarLogin,
@@ -146,4 +155,5 @@ module.exports = {
   limitarCheckout,
   limitarEventos,
   limitarUpload,
+  limitarLeituraPublica,
 };

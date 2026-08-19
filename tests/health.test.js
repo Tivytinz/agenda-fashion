@@ -40,6 +40,14 @@ describe("Health check", () => {
       ).toBe(
         "nosniff"
       );
+
+      expect(
+        res.headers[
+          "content-security-policy"
+        ]
+      ).toContain(
+        "script-src 'self'"
+      );
     }
   );
 });

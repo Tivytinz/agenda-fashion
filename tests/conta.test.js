@@ -834,7 +834,7 @@ describe(
         expect(
           resposta.body.erro
         ).toBe(
-          "A nova senha deve ter entre 6 e 72 bytes."
+          "A nova senha deve ter entre 8 e 72 bytes."
         );
 
         expect(

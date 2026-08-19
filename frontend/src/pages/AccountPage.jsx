@@ -159,8 +159,8 @@ export function AccountPage() {
         <form className="panel stack-form" onSubmit={savePassword}>
           <div><p className="eyebrow">Segurança</p><h2>Alterar senha</h2></div>
           <label>Senha atual<input autoComplete="current-password" onChange={(e) => setPassword({ ...password, senhaAtual: e.target.value })} required type="password" value={password.senhaAtual} /></label>
-          <label>Nova senha<input autoComplete="new-password" minLength="6" onChange={(e) => setPassword({ ...password, novaSenha: e.target.value })} required type="password" value={password.novaSenha} /></label>
-          <label>Confirme a nova senha<input autoComplete="new-password" minLength="6" onChange={(e) => setPassword({ ...password, confirmar: e.target.value })} required type="password" value={password.confirmar} /></label>
+          <label>Nova senha<input autoComplete="new-password" minLength="8" onChange={(e) => setPassword({ ...password, novaSenha: e.target.value })} required type="password" value={password.novaSenha} /></label>
+          <label>Confirme a nova senha<input autoComplete="new-password" minLength="8" onChange={(e) => setPassword({ ...password, confirmar: e.target.value })} required type="password" value={password.confirmar} /></label>
           <button className="button" disabled={saving === "password"} type="submit">{saving === "password" ? "Alterando..." : "Alterar senha"}</button>
         </form>
       </section>

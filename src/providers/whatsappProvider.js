@@ -172,17 +172,28 @@ async function enviarRequisicao(payload) {
 
     if (erro.response) {
       registrador.erro(
-        "Status HTTP:",
-        erro.response.status
-      );
-
-      registrador.erro(
-        "Resposta da Meta:",
-        JSON.stringify(
-          erro.response.data,
-          null,
-          2
-        )
+        "WhatsApp: erro devolvido pela Meta.",
+        {
+          status_http:
+            erro.response.status,
+          codigo:
+            erro.response.data
+              ?.error?.code ||
+            null,
+          subcodigo:
+            erro.response.data
+              ?.error
+              ?.error_subcode ||
+            null,
+          tipo:
+            erro.response.data
+              ?.error?.type ||
+            null,
+          rastreamento:
+            erro.response.data
+              ?.error?.fbtrace_id ||
+            null,
+        }
       );
     } else if (erro.request) {
       registrador.erro(

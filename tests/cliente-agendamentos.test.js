@@ -327,7 +327,7 @@ describe(
               email,
 
               senha:
-                "123456",
+                "Teste@123",
 
               whatsapp,
             });

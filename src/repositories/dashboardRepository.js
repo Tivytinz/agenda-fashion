@@ -569,7 +569,7 @@ async function buscarPerformanceNegocio(
       await db.query(
         `
         SELECT
-          COUNT(*) FILTER (
+          COUNT(DISTINCT sessao_id) FILTER (
             WHERE nome =
               'perfil_visualizado'
           )::INT

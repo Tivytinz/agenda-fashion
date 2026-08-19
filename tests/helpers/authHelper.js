@@ -12,7 +12,7 @@ async function criarCliente() {
         .send({
             nome: "Cliente Teste",
             email,
-            senha: "123456",
+            senha: "Teste@123",
             whatsapp,
             tipo: "cliente"
         });
@@ -21,7 +21,7 @@ async function criarCliente() {
         .post("/login")
         .send({
             email,
-            senha: "123456"
+            senha: "Teste@123"
         });
 
     return {

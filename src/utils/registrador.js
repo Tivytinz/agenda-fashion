@@ -59,6 +59,42 @@ function escrever(metodo, nivel, mensagem, contexto) {
     informacao: "[INFORMAÇÃO]",
   }[nivel];
 
+  if (
+    process.env.NODE_ENV ===
+      "production"
+  ) {
+    const contextoObjeto =
+      contexto instanceof Error
+        ? {
+            erro_nome:
+              contexto.name,
+            erro_mensagem:
+              contexto.message,
+            erro_codigo:
+              contexto.code || null,
+          }
+        : contexto &&
+      typeof contexto === "object" &&
+      !Array.isArray(contexto)
+        ? contexto
+        : contexto === undefined
+          ? {}
+          : {
+              contexto,
+            };
+
+    console[metodo](
+      JSON.stringify({
+        timestamp:
+          new Date().toISOString(),
+        nivel,
+        mensagem,
+        ...contextoObjeto,
+      })
+    );
+    return;
+  }
+
   if (contexto === undefined) {
     console[metodo](`${prefixo} ${mensagem}`);
     return;

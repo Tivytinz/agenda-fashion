@@ -3,6 +3,9 @@ const router = express.Router();
 
 const perfilNegocioController = require("../controllers/perfilNegocioController");
 const catalogoLocalController = require("../controllers/catalogoLocalController");
+const {
+  limitarLeituraPublica,
+} = require("../middlewares/rateLimits");
 
 /**
  * @swagger
@@ -81,6 +84,7 @@ const catalogoLocalController = require("../controllers/catalogoLocalController"
  */
 router.get(
   "/negocios-publicos",
+  limitarLeituraPublica,
   perfilNegocioController.listarNegociosPublicos
 );
 
@@ -136,6 +140,7 @@ router.get(
  */
 router.get(
   "/perfil-negocio/:slug",
+  limitarLeituraPublica,
   perfilNegocioController.buscarPerfilPublico
 );
 

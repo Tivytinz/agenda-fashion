@@ -152,6 +152,7 @@ describe("dashboardRepository integrado", () => {
         )
         VALUES
           ('perfil_visualizado', 'perfil_negocio', $1, $3, NOW()),
+          ('perfil_visualizado', 'perfil_negocio', $1, $3, NOW()),
           ('agendamento_concluido', 'finalizar_agendamento', $1, $3, NOW()),
           ('perfil_visualizado', 'perfil_negocio', $2, $3, NOW() - INTERVAL '20 days')
       `,

@@ -62,7 +62,7 @@ module.exports =
             metodo:
               req.method,
             rota:
-              req.originalUrl,
+              req.path,
             status:
               res.statusCode,
             duracao_ms:

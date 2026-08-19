@@ -1,13 +1,12 @@
 const express = require("express");
 const router = express.Router();
+const {
+  limitarAgendamento,
+  limitarLeituraPublica,
+} = require("../middlewares/rateLimits");
 
 const optionalAuth = require("../middlewares/optionalAuth");  
 const auth = require("../middlewares/auth");
-const {
-  limitarAgendamento
-} = require(
-  "../middlewares/rateLimits"
-);
 const agendaPublicaController = require("../controllers/agendamentoPublicoController");
 
 /**
@@ -51,6 +50,7 @@ const agendaPublicaController = require("../controllers/agendamentoPublicoContro
 
 router.get(
   "/agenda-publica",
+  limitarLeituraPublica,
   agendaPublicaController.buscarAgendaPublica
 );
 

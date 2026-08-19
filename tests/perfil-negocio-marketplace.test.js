@@ -186,6 +186,29 @@ describe(
     );
 
     test(
+      "limita pagina extrema para proteger o banco",
+      async () => {
+        repository
+          .listarNegociosPublicos
+          .mockResolvedValue([]);
+
+        await service.listarNegociosPublicos({
+          pagina: "999999",
+          limite: "24"
+        });
+
+        expect(
+          repository.listarNegociosPublicos
+        ).toHaveBeenCalledWith(
+          expect.objectContaining({
+            limite: 24,
+            offset: 23976
+          })
+        );
+      }
+    );
+
+    test(
       "normaliza negócios antigos sem serviços",
       async () => {
         repository

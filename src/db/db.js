@@ -1,5 +1,8 @@
 const { Pool } = require("pg");
 const registrador = require("../utils/registrador");
+const {
+  obterConfiguracaoPool,
+} = require("../config/databasePool");
 
 const ambiente =
   process.env.NODE_ENV ||
@@ -32,25 +35,6 @@ const usandoProxyPublicoRailway =
   databaseUrl.includes(
     ".proxy.rlwy.net"
   );
-
-function obterNumeroAmbiente(
-  nome,
-  valorPadrao
-) {
-  const valor =
-    Number(
-      process.env[nome]
-    );
-
-  if (
-    Number.isFinite(valor) &&
-    valor > 0
-  ) {
-    return valor;
-  }
-
-  return valorPadrao;
-}
 
 function ehErroTransitorio(
   erro
@@ -170,50 +154,13 @@ const pool =
           }
         : false,
 
-    /*
-     * No proxy público da Railway,
-     * poucas conexões são suficientes
-     * durante o desenvolvimento local.
-     */
-    max:
-      obterNumeroAmbiente(
-        "DB_POOL_MAX",
-        usandoProxyPublicoRailway
-          ? 3
-          : 10
-      ),
-
-    connectionTimeoutMillis:
-      obterNumeroAmbiente(
-        "DB_CONNECTION_TIMEOUT",
-        10000
-      ),
-
-    /*
-     * Conexões locais ociosas são
-     * descartadas mais rapidamente,
-     * antes que o proxy as encerre.
-     */
-    idleTimeoutMillis:
-      obterNumeroAmbiente(
-        "DB_IDLE_TIMEOUT",
-        usandoProxyPublicoRailway
-          ? 5000
-          : 30000
-      ),
-
-    keepAlive:
-      true,
-
-    keepAliveInitialDelayMillis:
-      5000,
-
-    /*
-     * Permite que o Jest finalize
-     * mesmo com conexões ociosas.
-     */
-    allowExitOnIdle:
-      isTest,
+    ...obterConfiguracaoPool({
+      env: process.env,
+      production: isProduction,
+      test: isTest,
+      proxyPublicoRailway:
+        usandoProxyPublicoRailway,
+    }),
   });
 
 /*
