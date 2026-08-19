@@ -27,7 +27,7 @@ test("landing profissional comunica valor e preserva a atribuição", async ({ p
     level: 1,
     name: "Receba agendamentos sem precisar responder cada cliente."
   })).toBeVisible();
-  await expect(page.getByText("Plano grátis para começar"))
+  await expect(page.getByText("Plano grátis para começar", { exact: true }))
     .toBeVisible();
   await expect(page.getByText(
     "Aviso de novo agendamento pelo WhatsApp"
