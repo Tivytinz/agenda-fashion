@@ -35,9 +35,10 @@ async function novoAgendamento(dados = {}) {
   return whatsappProvider.enviarNovoAgendamento(
     valorSeguro(dados.whatsapp),
     [
-      valorSeguro(dados.cliente),
-      valorSeguro(dados.servico),
       valorSeguro(dados.profissional),
+      valorSeguro(dados.cliente),
+      valorSeguro(dados.clienteWhatsapp),
+      valorSeguro(dados.servico),
       formatarData(dados.data),
       formatarHorario(dados.horario),
     ]

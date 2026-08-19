@@ -58,10 +58,12 @@ test("landing profissional comunica valor e preserva a atribuição", async ({ p
   await expect(page.getByText(
     "O AF envia o novo agendamento para a Vanessa no WhatsApp"
   )).toBeVisible();
-  await expect(page.getByText("Nail designer", { exact: true }))
-    .toBeVisible();
-  await expect(page.getByText("Lash designer", { exact: true }))
-    .toBeVisible();
+  await expect(page.getByRole("heading", {
+    name: "Para profissionais autônomas, studios e salões de beleza"
+  })).toBeVisible();
+  await expect(page.getByText(
+    "Seja nail, lash, sobrancelhas, estética, cabelo ou maquiagem: você configura seus próprios serviços, valores e horários."
+  )).toBeVisible();
   await expect(page.getByText("Comece em poucos passos"))
     .toHaveCount(0);
   await expect(page.getByText("Depois do agendamento"))

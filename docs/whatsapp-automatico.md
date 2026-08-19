@@ -5,13 +5,14 @@
 O Agenda Fashion usa a WhatsApp Cloud API oficial da Meta e uma fila
 persistente no PostgreSQL.
 
-O fluxo cria até cinco mensagens para cada agendamento:
+O fluxo cria até seis mensagens para cada agendamento:
 
 1. novo agendamento para o profissional;
 2. confirmação para a cliente;
 3. lembrete para a cliente, por padrão 24 horas antes;
-4. cancelamento para o profissional;
-5. cancelamento para a cliente.
+4. lembrete para a profissional, por padrão 24 horas antes;
+5. cancelamento para o profissional;
+6. cancelamento para a cliente.
 
 As mensagens para a cliente só são criadas quando ela marca o consentimento no
 formulário. O agendamento continua funcionando quando ela não autoriza.
@@ -56,9 +57,15 @@ Depois, execute a migration de rastreamento de entrega:
 node scripts/executar-migration.js database/migrations/022_status_entrega_whatsapp.sql
 ```
 
+Para habilitar o lembrete da profissional, execute também:
+
+```bash
+node scripts/executar-migration.js database/migrations/041_lembrete_whatsapp_profissional.sql
+```
+
 ## Templates da Meta
 
-Crie os cinco templates na categoria `UTILITY`, idioma `Portuguese (BR)`.
+Crie os seis templates na categoria `UTILITY`, idioma `Portuguese (BR)`.
 Os nomes e a ordem das variáveis precisam ser exatamente os mesmos usados pelo
 backend.
 
@@ -67,15 +74,17 @@ backend.
 Destinatário: profissional ou WhatsApp do negócio.
 
 ```text
-Olá! Um novo agendamento foi realizado.
+✨ Novo agendamento recebido!
 
-Cliente: {{1}}
-Serviço: {{2}}
-Profissional: {{3}}
-Data: {{4}}
-Horário: {{5}}
+Olá, {{1}}! Você tem um novo horário marcado pelo Agenda Fashion. 💅
 
-Abra o Agenda Fashion para conferir.
+👤 Cliente: {{2}}
+📱 WhatsApp: {{3}}
+💖 Serviço: {{4}}
+📅 Data: {{5}}
+⏰ Horário: {{6}}
+
+Prepare tudo com carinho para oferecer uma experiência incrível. Cada novo agendamento é mais um passo para o crescimento do seu negócio! ✨
 ```
 
 ### `confirmacao_agendamento_cliente`
@@ -83,29 +92,51 @@ Abra o Agenda Fashion para conferir.
 Destinatário: cliente que autorizou mensagens.
 
 ```text
-Olá, {{1}}! Seu agendamento no {{2}} foi confirmado.
+💖 Agendamento confirmado!
 
-Serviço: {{3}}
-Profissional: {{4}}
-Data: {{5}}
-Horário: {{6}}
+Olá, {{1}}! Seu horário foi reservado com sucesso pelo Agenda Fashion. ✨
 
-Se precisar cancelar, use sua agenda no Agenda Fashion.
+🏢 Negócio: {{2}}
+💅 Serviço: {{3}}
+📅 Data: {{4}}
+⏰ Horário: {{5}}
+
+Está tudo certo para o seu atendimento. Esperamos que você tenha uma experiência incrível! ✨
 ```
 
-### `lembrete_agendamento_cliente`
+### `lembrete_agendamento`
 
 Destinatário: cliente que autorizou mensagens.
 
 ```text
-Olá, {{1}}! Este é um lembrete do seu agendamento no {{2}}.
+⏰ Lembrete do seu agendamento!
 
-Serviço: {{3}}
-Profissional: {{4}}
-Data: {{5}}
-Horário: {{6}}
+Olá, {{1}}! Passando para lembrar que seu horário está chegando. 💅✨
 
-Esperamos você!
+🏢 Negócio: {{2}}
+💖 Serviço: {{3}}
+📅 Data: {{4}}
+⏰ Horário: {{5}}
+
+Organize-se para chegar no horário combinado. Esperamos por você! 💖
+```
+
+### `lembrete_agendamento_profissional`
+
+Destinatário: profissional ou WhatsApp do negócio.
+
+```text
+⏰ Atendimento chegando!
+
+Olá, {{1}}! Você tem um atendimento chegando. 💖
+
+👤 Cliente: {{2}}
+📱 WhatsApp: {{3}}
+💅 Serviço: {{4}}
+📅 Data: {{5}}
+⏰ Horário: {{6}}
+
+Confira sua agenda no Agenda Fashion e prepare-se para o atendimento.
 ```
 
 ### `cancelamento_agendamento_profissional`
@@ -113,29 +144,34 @@ Esperamos você!
 Destinatário: profissional ou WhatsApp do negócio.
 
 ```text
-Um agendamento foi cancelado.
+⚠️ Agendamento cancelado
 
-Cliente: {{1}}
-Serviço: {{2}}
-Profissional: {{3}}
-Data: {{4}}
-Horário: {{5}}
+Olá, {{1}}. Um agendamento da sua agenda foi cancelado.
 
-O horário voltou a ficar disponível no Agenda Fashion.
+👤 Cliente: {{2}}
+📱 WhatsApp: {{3}}
+💖 Serviço: {{4}}
+📅 Data: {{5}}
+⏰ Horário: {{6}}
+
+Esse horário agora está disponível novamente na sua agenda.
 ```
 
-### `cancelamento_agendamento_cliente`
+### `cancelamento_agendamento`
 
 Destinatário: cliente que autorizou mensagens.
 
 ```text
-Olá, {{1}}. Seu agendamento no {{2}} foi cancelado.
+⚠️ Agendamento cancelado
 
-Serviço: {{3}}
-Data: {{4}}
-Horário: {{5}}
+Olá, {{1}}. Seu agendamento foi cancelado.
 
-Você pode escolher um novo horário no Agenda Fashion.
+🏢 Negócio: {{2}}
+💖 Serviço: {{3}}
+📅 Data: {{4}}
+⏰ Horário: {{5}}
+
+Você pode acessar o Agenda Fashion para escolher um novo horário quando desejar. Esperamos atender você em breve! 💖
 ```
 
 ## Variáveis do Railway
@@ -149,6 +185,13 @@ WHATSAPP_ACCESS_TOKEN=
 WHATSAPP_PHONE_NUMBER_ID=
 WHATSAPP_API_VERSION=
 WHATSAPP_TEMPLATE_LANGUAGE=pt_BR
+WHATSAPP_TEMPLATE_NOVO_AGENDAMENTO=novo_agendamento
+WHATSAPP_TEMPLATE_CONFIRMACAO_CLIENTE=confirmacao_agendamento_cliente
+WHATSAPP_TEMPLATE_LEMBRETE_CLIENTE=lembrete_agendamento
+WHATSAPP_TEMPLATE_LEMBRETE_PROFISSIONAL=lembrete_agendamento_profissional
+WHATSAPP_TEMPLATE_CANCELAMENTO_PROFISSIONAL=cancelamento_agendamento_profissional
+WHATSAPP_TEMPLATE_CANCELAMENTO_CLIENTE=cancelamento_agendamento
+WHATSAPP_PROFESSIONAL_REMINDER_ENABLED=false
 WHATSAPP_WEBHOOK_VERIFY_TOKEN=
 WHATSAPP_APP_SECRET=
 ```
@@ -157,8 +200,16 @@ Use um token de acesso permanente de usuário do sistema na ativação final.
 O processador recusa iniciar se as credenciais da API ou os segredos do webhook
 estiverem ausentes.
 
-Os modelos já foram aprovados pela Meta. Mantenha
-`WHATSAPP_NOTIFICATIONS_ENABLED=true` em produção. Para um teste controlado:
+Os cinco modelos originais estão aprovados pela Meta. Ative o lembrete da
+profissional somente depois que `lembrete_agendamento_profissional` também
+aparecer como ativo. Mantenha `WHATSAPP_NOTIFICATIONS_ENABLED=true` em
+produção. Para um teste controlado:
+
+Depois da aprovação do novo modelo, altere no Railway:
+
+```text
+WHATSAPP_PROFESSIONAL_REMINDER_ENABLED=true
+```
 
 1. configure `WHATSAPP_TEST_RECIPIENT` com o número autorizado na Meta;
 2. execute `node scripts/testar-template-novo-agendamento.js`;

@@ -21,6 +21,39 @@ describe(
     });
 
     test(
+      "enfileira lembrete da profissional com as seis variáveis aprovadas",
+      async () => {
+        const executor = {
+          query: jest.fn().mockResolvedValue({
+            rows: [],
+          }),
+        };
+
+        await whatsappMensagemRepository
+          .enfileirarNovoAgendamento(
+            executor,
+            99,
+            24,
+            true
+          );
+
+        const consulta = executor.query.mock
+          .calls[0][0]
+          .replace(/\s+/g, " ");
+
+        expect(consulta).toContain(
+          "'LEMBRETE_AGENDAMENTO_PROFISSIONAL'"
+        );
+        expect(consulta).toContain(
+          "AND $3::BOOLEAN"
+        );
+        expect(consulta).toContain(
+          "JSONB_BUILD_ARRAY( profissional_nome, cliente_nome, cliente_whatsapp, servico_nome, data_formatada, horario_formatado )"
+        );
+      }
+    );
+
+    test(
       "enfileira cancelamento do profissional com as seis variáveis do template",
       async () => {
         const executor = {

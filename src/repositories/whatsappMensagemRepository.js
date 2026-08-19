@@ -4,6 +4,7 @@ const TIPOS_ATIVOS = [
   "NOVO_AGENDAMENTO_PROFISSIONAL",
   "CONFIRMACAO_AGENDAMENTO_CLIENTE",
   "LEMBRETE_AGENDAMENTO_CLIENTE",
+  "LEMBRETE_AGENDAMENTO_PROFISSIONAL",
 ];
 
 const TIPOS_CANCELAMENTO = [
@@ -28,7 +29,8 @@ function validarExecutor(
 async function enfileirarNovoAgendamento(
   executor,
   agendamentoId,
-  antecedenciaLembreteHoras = 24
+  antecedenciaLembreteHoras = 24,
+  lembreteProfissionalAtivo = false
 ) {
   validarExecutor(
     executor
@@ -193,6 +195,38 @@ async function enfileirarNovoAgendamento(
 
           SELECT
             agendamento_id,
+            'LEMBRETE_AGENDAMENTO_PROFISSIONAL',
+            profissional_whatsapp,
+            JSONB_BUILD_ARRAY(
+              profissional_nome,
+              cliente_nome,
+              cliente_whatsapp,
+              servico_nome,
+              data_formatada,
+              horario_formatado
+            ),
+            inicio_agendamento -
+              MAKE_INTERVAL(
+                hours => $2
+              ),
+            inicio_agendamento
+
+          FROM dados
+
+          WHERE profissional_whatsapp
+            ~ '^[0-9]{10,13}$'
+            AND $3::BOOLEAN
+            AND (
+              inicio_agendamento -
+              MAKE_INTERVAL(
+                hours => $2
+              )
+            ) > NOW()
+
+          UNION ALL
+
+          SELECT
+            agendamento_id,
             'LEMBRETE_AGENDAMENTO_CLIENTE',
             cliente_whatsapp,
             JSONB_BUILD_ARRAY(
@@ -259,6 +293,7 @@ async function enfileirarNovoAgendamento(
       [
         agendamentoId,
         antecedenciaLembreteHoras,
+        lembreteProfissionalAtivo,
       ]
     );
 
