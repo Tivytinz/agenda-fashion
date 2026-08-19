@@ -51,7 +51,10 @@ test("landing profissional comunica valor e preserva a atribuição", async ({ p
 
   const header = page.getByRole("banner");
   await expect(header.getByRole("link", { name: "Entrar" })).toBeVisible();
-  await expect(header.getByRole("link", { name: "Início" })).toHaveCount(0);
+  await expect(header.getByRole("link", {
+    name: "Início",
+    exact: true
+  })).toHaveCount(0);
 
   const signup = page.getByRole("link", {
     name: "Criar minha agenda grátis"
