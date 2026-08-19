@@ -165,7 +165,7 @@ export function AppHeader() {
               {!focusedProfessionalLanding && (
                 <NavLink
                   className="text-link desktop-nav-link"
-                  to="/cadastro?tipo=profissional"
+                  to="/para-profissionais"
                 >
                   Sou profissional
                 </NavLink>

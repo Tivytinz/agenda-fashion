@@ -122,6 +122,44 @@ const BEAUTY_VANESSA_PROFILE = {
   ]
 };
 
+const REAL_BOOKING_STEPS = [
+  {
+    number: "1",
+    icon: "🔎",
+    title: "A cliente encontra o perfil",
+    description:
+      "Ela conhece a Beauty Vanessa, vê as especialidades e compara os serviços publicados."
+  },
+  {
+    number: "2",
+    icon: "✨",
+    title: "Escolhe o serviço",
+    description:
+      "Design + Henna · 60 minutos · R$ 40,00. Preço e duração aparecem antes da confirmação."
+  },
+  {
+    number: "3",
+    icon: "📅",
+    title: "Seleciona um horário livre",
+    description:
+      "A agenda mostra somente datas e horários realmente disponíveis para a Vanessa."
+  },
+  {
+    number: "4",
+    icon: "✅",
+    title: "Confirma os dados",
+    description:
+      "A cliente informa nome e WhatsApp e conclui o agendamento sem instalar aplicativo."
+  },
+  {
+    number: "5",
+    icon: "📲",
+    title: "A profissional recebe o aviso",
+    description:
+      "O Agenda Fashion envia pelo WhatsApp os dados do novo agendamento para conferência."
+  }
+];
+
 const DASHBOARD_CAPABILITIES = [
   {
     emoji: "📅",
@@ -177,6 +215,21 @@ const FAQ = [
       "Pelo seu perfil público, o cliente escolhe o serviço, a data e um horário disponível diretamente no navegador."
   }
 ];
+
+function WhatsAppIcon({ className = "" }) {
+  return (
+    <svg
+      aria-hidden="true"
+      className={className}
+      viewBox="0 0 24 24"
+    >
+      <path
+        d="M12 2a9.5 9.5 0 0 0-8.16 14.38L2.5 21.5l5.25-1.38A9.5 9.5 0 1 0 12 2Zm0 17.25a7.7 7.7 0 0 1-3.92-1.06l-.28-.17-3.12.82.83-3.04-.18-.29A7.75 7.75 0 1 1 12 19.25Zm4.25-5.78c-.23-.12-1.38-.68-1.59-.76-.21-.08-.36-.12-.52.12-.15.23-.59.76-.73.91-.13.16-.27.18-.5.06-.23-.12-.98-.36-1.86-1.15-.69-.61-1.15-1.37-1.28-1.6-.14-.23-.02-.36.1-.48.11-.1.23-.27.35-.41.12-.13.16-.23.23-.39.08-.15.04-.29-.02-.41-.06-.12-.52-1.25-.71-1.71-.18-.45-.37-.39-.51-.4h-.44c-.15 0-.4.06-.61.29-.21.23-.8.78-.8 1.91s.82 2.22.94 2.37c.12.16 1.62 2.48 3.93 3.48.55.24.98.38 1.31.49.55.17 1.05.15 1.45.09.44-.07 1.38-.56 1.57-1.1.2-.55.2-1.02.14-1.11-.06-.1-.21-.16-.44-.27Z"
+        fill="currentColor"
+      />
+    </svg>
+  );
+}
 
 function ensureMetaDescription(content) {
   let element = document.querySelector('meta[name="description"]');
@@ -241,6 +294,16 @@ export function ProfessionalLandingPage() {
     });
   }
 
+  function trackDemo() {
+    track("landing_profissionais_demo_clicada", {
+      page: "para_profissionais",
+      mission: "adquirir_profissional",
+      properties: {
+        negocio: "beauty-vanessa"
+      }
+    });
+  }
+
   return (
     <main className="professional-landing">
       <section className="professional-hero">
@@ -256,7 +319,21 @@ export function ProfessionalLandingPage() {
             </h1>
 
             <p className="professional-lead">
-              Crie sua agenda grátis, divulgue seus serviços e deixe clientes escolherem data e horário sozinhos. Quando entrar um novo agendamento, o Agenda Fashion avisa você pelo WhatsApp.
+              Crie sua agenda grátis, divulgue seus serviços e deixe clientes escolherem data e horário sozinhos. Quando entrar um novo agendamento, o{" "}
+              <span className="professional-brand-inline">
+                <img
+                  alt=""
+                  height="22"
+                  src={afLogoTransparent}
+                  width="22"
+                />
+                Agenda Fashion
+              </span>{" "}
+              avisa você pelo{" "}
+              <span className="professional-whatsapp-inline">
+                <WhatsAppIcon className="professional-whatsapp-inline-icon" />
+                WhatsApp
+              </span>.
             </p>
 
             <div className="professional-hero-actions">
@@ -270,9 +347,9 @@ export function ProfessionalLandingPage() {
 
               <a
                 className="button button-secondary"
-                href="#como-funciona"
+                href="#demonstracao-real"
               >
-                Ver como funciona
+                Ver demonstração real
               </a>
             </div>
 
@@ -296,129 +373,72 @@ export function ProfessionalLandingPage() {
             </ul>
           </div>
 
-          <div className="professional-product-preview" aria-label="Exemplo visual da agenda profissional">
-            <div className="professional-preview-topbar">
-              <div>
-                <small>Agenda Fashion</small>
-                <strong>Minha agenda</strong>
-              </div>
-              <img
-                alt="Logotipo do Agenda Fashion"
-                className="professional-preview-logo"
-                height="46"
-                src={afLogoTransparent}
-                width="46"
-              />
-            </div>
-
-            <div className="professional-preview-date">
-              <span>Hoje</span>
-              <strong>Agenda de atendimento</strong>
-            </div>
-
-            <div className="professional-preview-slots">
-              <div className="professional-slot available">
-                <strong>09:00</strong>
-                <span>Horário disponível</span>
-                <small>Livre</small>
-              </div>
-              <div className="professional-slot booked">
-                <strong>10:30</strong>
-                <span>Atendimento agendado</span>
-                <small>Confirmado</small>
-              </div>
-              <div className="professional-slot available">
-                <strong>14:00</strong>
-                <span>Horário disponível</span>
-                <small>Livre</small>
-              </div>
-            </div>
-
-            <div className="professional-preview-note">
-              <span aria-hidden="true">◉</span>
-              <div>
-                <strong>Novo agendamento</strong>
-                <p>
-                  O Agenda Fashion avisou você pelo WhatsApp.
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section
-        aria-labelledby="free-plan-title"
-        className="professional-free-plan"
-      >
-        <div className="container professional-free-plan-content">
-          <div>
-            <p className="eyebrow">Comece sem custo</p>
-            <h2 id="free-plan-title">
-              Existe um plano grátis para colocar sua agenda online.
-            </h2>
-            <p>
-              Crie seu perfil, configure seus serviços e teste o fluxo de agendamento antes de escolher mais capacidade.
-            </p>
-          </div>
-
-          <Link
-            className="text-link professional-plan-link"
-            to="/planos"
+          <div
+            aria-label="Exemplo do aviso de novo agendamento no WhatsApp"
+            className="professional-product-preview professional-whatsapp-preview"
           >
-            Ver planos e limites
-          </Link>
-        </div>
-      </section>
-
-      <section className="container professional-section" aria-labelledby="benefits-title">
-        <div className="professional-section-heading">
-          <p className="eyebrow">Mais tempo para atender</p>
-          <h2 id="benefits-title">
-            O cliente encontra, escolhe e agenda pelo próprio perfil
-          </h2>
-          <p>
-            Você configura o que oferece e quando atende. O Agenda Fashion transforma essas informações em um caminho simples para o cliente marcar.
-          </p>
-        </div>
-
-        <div className="professional-benefit-grid">
-          {BENEFITS.map((benefit) => (
-            <article className="professional-benefit-card" key={benefit.title}>
-              <span className="professional-benefit-icon" aria-hidden="true">
-                {benefit.icon}
+            <div className="professional-whatsapp-topbar">
+              <span className="professional-whatsapp-avatar">
+                <WhatsAppIcon className="professional-whatsapp-avatar-icon" />
               </span>
-              <h3>{benefit.title}</h3>
-              <p>{benefit.description}</p>
-            </article>
-          ))}
+              <div>
+                <small>WhatsApp</small>
+                <strong>Agenda Fashion</strong>
+              </div>
+              <span className="professional-whatsapp-now">agora</span>
+            </div>
+
+            <div className="professional-whatsapp-chat">
+              <div className="professional-whatsapp-bubble">
+                <p>Olá! Um novo agendamento foi realizado.</p>
+                <dl>
+                  <div><dt>Cliente</dt><dd>Maria Oliveira</dd></div>
+                  <div><dt>Serviço</dt><dd>Design + Henna</dd></div>
+                  <div><dt>Profissional</dt><dd>Vanessa</dd></div>
+                  <div><dt>Data</dt><dd>20/08/2026</dd></div>
+                  <div><dt>Horário</dt><dd>14:00</dd></div>
+                </dl>
+                <p>Abra o Agenda Fashion para conferir.</p>
+                <small>16:32 <span aria-label="Mensagem entregue">✓✓</span></small>
+              </div>
+            </div>
+
+            <div className="professional-whatsapp-status">
+              <span aria-hidden="true">✓</span>
+              <div>
+                <strong>Aviso automático entregue</strong>
+                <p>Você atende. O Agenda Fashion organiza e avisa.</p>
+              </div>
+            </div>
+          </div>
         </div>
       </section>
 
       <section
-        aria-labelledby="growth-title"
-        className="professional-growth-section"
+        aria-labelledby="real-demo-title"
+        className="professional-real-demo"
+        id="demonstracao-real"
       >
         <div className="container professional-section">
-          <div className="professional-growth-heading">
+          <div className="professional-real-demo-heading">
             <div>
-              <p className="eyebrow">Presença e crescimento</p>
-              <h2 id="growth-title">
-                Veja um perfil real. Entenda como o dashboard ajuda o negócio.
+              <p className="eyebrow">Demonstração real</p>
+              <h2 id="real-demo-title">
+                Veja uma cliente agendando na Beauty Vanessa — do perfil ao aviso no WhatsApp.
               </h2>
             </div>
             <p>
-              A Beauty Vanessa já divulga serviços e recebe agendamentos pelo AF. Por trás do perfil público, o painel organiza os indicadores do negócio.
+              A experiência abaixo usa o perfil e os serviços reais da Beauty Vanessa no Agenda Fashion. Você pode abrir o perfil e testar os horários disponíveis.
             </p>
           </div>
 
-          <div className="professional-growth-grid">
+          <div className="professional-real-demo-grid">
             <article className="professional-profile-demo">
               <div className="professional-demo-label">
                 <span aria-hidden="true">💖</span>
                 <div>
-                  <small>Exemplo real no Agenda Fashion</small>
-                  <strong>Perfil público da Beauty Vanessa</strong>
+                  <small>Perfil publicado no Agenda Fashion</small>
+                  <strong>Beauty Vanessa</strong>
                 </div>
               </div>
 
@@ -459,10 +479,145 @@ export function ProfessionalLandingPage() {
 
               <Link
                 className="button button-secondary professional-profile-link"
+                onClick={trackDemo}
                 to={BEAUTY_VANESSA_PROFILE.path}
               >
-                Ver perfil real da Beauty Vanessa ↗
+                Testar o agendamento real ↗
               </Link>
+            </article>
+
+            <article className="professional-booking-demo">
+              <div className="professional-booking-demo-topbar">
+                <div>
+                  <small>Fluxo completo</small>
+                  <strong>Da descoberta à notificação</strong>
+                </div>
+                <span>Sem aplicativo</span>
+              </div>
+
+              <ol className="professional-booking-flow">
+                {REAL_BOOKING_STEPS.map((step) => (
+                  <li key={step.number}>
+                    <span className="professional-booking-flow-marker">
+                      <span aria-hidden="true">{step.icon}</span>
+                      <small>{step.number}</small>
+                    </span>
+                    <div>
+                      <h3>{step.title}</h3>
+                      <p>{step.description}</p>
+                    </div>
+                  </li>
+                ))}
+              </ol>
+
+              <div className="professional-booking-result">
+                <WhatsAppIcon className="professional-booking-result-icon" />
+                <div>
+                  <small>Resultado para a profissional</small>
+                  <strong>Novo agendamento recebido no WhatsApp</strong>
+                </div>
+              </div>
+            </article>
+          </div>
+
+          <div className="professional-real-demo-cta">
+            <div>
+              <strong>Quer esse fluxo funcionando no seu negócio?</strong>
+              <small>Comece no plano grátis, sem cartão e sem instalar aplicativo.</small>
+            </div>
+            <div>
+              <Link
+                className="button professional-primary-cta"
+                onClick={() => trackCta("real_demo")}
+                to={signupPath}
+              >
+                Criar minha agenda grátis
+              </Link>
+              <Link className="text-link" to="/planos">
+                Ver planos e limites
+              </Link>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="container professional-section" aria-labelledby="benefits-title">
+        <div className="professional-section-heading">
+          <p className="eyebrow">Mais tempo para atender</p>
+          <h2 id="benefits-title">
+            O cliente encontra, escolhe e agenda pelo próprio perfil
+          </h2>
+          <p>
+            Você configura o que oferece e quando atende. O Agenda Fashion transforma essas informações em um caminho simples para o cliente marcar.
+          </p>
+        </div>
+
+        <div className="professional-benefit-grid">
+          {BENEFITS.map((benefit) => (
+            <article className="professional-benefit-card" key={benefit.title}>
+              <span className="professional-benefit-icon" aria-hidden="true">
+                {benefit.icon}
+              </span>
+              <h3>{benefit.title}</h3>
+              <p>{benefit.description}</p>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <section
+        aria-labelledby="growth-title"
+        className="professional-growth-section"
+      >
+        <div className="container professional-section">
+          <div className="professional-growth-heading">
+            <div>
+              <p className="eyebrow">Depois do agendamento</p>
+              <h2 id="growth-title">
+                A agenda se organiza e o dashboard mostra o crescimento do negócio.
+              </h2>
+            </div>
+            <p>
+              Cada novo agendamento deixa de ser apenas uma conversa no WhatsApp e passa a fazer parte de uma rotina que você consegue acompanhar.
+            </p>
+          </div>
+
+          <div className="professional-growth-grid">
+            <article className="professional-after-booking-demo">
+              <div className="professional-demo-label">
+                <span aria-hidden="true">✨</span>
+                <div>
+                  <small>Menos trabalho manual</small>
+                  <strong>O Agenda Fashion cuida do caminho repetitivo</strong>
+                </div>
+              </div>
+
+              <div className="professional-after-booking-list">
+                <div>
+                  <span aria-hidden="true">1</span>
+                  <p><strong>O horário fica reservado</strong><small>A disponibilidade é atualizada para evitar escolhas conflitantes.</small></p>
+                </div>
+                <div>
+                  <span aria-hidden="true">2</span>
+                  <p><strong>O agendamento entra na agenda</strong><small>Serviço, profissional, cliente, data e horário ficam reunidos.</small></p>
+                </div>
+                <div>
+                  <span aria-hidden="true">3</span>
+                  <p><strong>O WhatsApp avisa a profissional</strong><small>O aviso chega sem depender de conferir a plataforma a todo momento.</small></p>
+                </div>
+                <div>
+                  <span aria-hidden="true">4</span>
+                  <p><strong>O dashboard transforma rotina em visão</strong><small>Você acompanha agenda, faturamento previsto, clientes e serviços.</small></p>
+                </div>
+              </div>
+
+              <div className="professional-after-booking-highlight">
+                <span aria-hidden="true">💡</span>
+                <p>
+                  <strong>Você continua no controle.</strong>
+                  O cliente ganha autonomia sem perder a qualidade do seu atendimento.
+                </p>
+              </div>
             </article>
 
             <article className="professional-dashboard-demo">
@@ -497,7 +652,7 @@ export function ProfessionalLandingPage() {
               </div>
 
               <p className="professional-demo-disclaimer">
-                Os números da Beauty Vanessa não são exibidos: cada negócio vê apenas os próprios dados.
+                Os dados de cada negócio são privados: somente pessoas autorizadas acessam seus indicadores.
               </p>
 
               <ul className="professional-dashboard-signals">
@@ -511,22 +666,16 @@ export function ProfessionalLandingPage() {
 
           <div className="professional-growth-cta">
             <div className="professional-growth-cta-copy">
-              <strong>Veja funcionando antes de criar o seu.</strong>
-              <small>Conheça o perfil real da Beauty Vanessa ou comece grátis.</small>
+              <strong>Comece com o essencial e acompanhe o resultado.</strong>
+              <small>O plano grátis permite testar o valor do Agenda Fashion na rotina.</small>
             </div>
             <div className="professional-growth-actions">
-              <Link
-                className="button button-secondary"
-                to={BEAUTY_VANESSA_PROFILE.path}
-              >
-                Ver Beauty Vanessa
-              </Link>
               <Link
                 className="button professional-primary-cta"
                 onClick={() => trackCta("growth")}
                 to={signupPath}
               >
-                Criar meu perfil grátis
+                Testar grátis no meu negócio
               </Link>
             </div>
           </div>

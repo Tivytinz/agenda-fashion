@@ -83,7 +83,14 @@ describe("landing para profissionais", () => {
     expect(screen.getByText(
       "Aviso de novo agendamento pelo WhatsApp"
     )).toBeTruthy();
-    expect(container.querySelector(".professional-preview-logo"))
+    expect(screen.getByText(
+      "Olá! Um novo agendamento foi realizado."
+    )).toBeTruthy();
+    expect(screen.getByText("Maria Oliveira"))
+      .toBeTruthy();
+    expect(container.querySelector(".professional-brand-inline img"))
+      .toBeTruthy();
+    expect(container.querySelector(".professional-whatsapp-inline-icon"))
       .toBeTruthy();
     expect(container.querySelector(".professional-benefit-icon")
       ?.textContent).toBe("📅");
@@ -110,27 +117,27 @@ describe("landing para profissionais", () => {
     expect(params.get("gclid")).toBe("abc-123");
   });
 
-  it("mostra o perfil real da Beauty Vanessa sem expor métricas privadas", () => {
+  it("mostra o fluxo real da Beauty Vanessa do perfil ao aviso", () => {
     renderLanding();
 
     expect(screen.getByRole("heading", {
       name:
-        "Veja um perfil real. Entenda como o dashboard ajuda o negócio."
+        "Veja uma cliente agendando na Beauty Vanessa — do perfil ao aviso no WhatsApp."
     })).toBeTruthy();
-    expect(screen.getByText("Beauty Vanessa"))
-      .toBeTruthy();
-    expect(screen.getByText("Design + Henna"))
-      .toBeTruthy();
+    expect(screen.getAllByText("Beauty Vanessa").length)
+      .toBeGreaterThanOrEqual(2);
+    expect(screen.getAllByText("Design + Henna").length)
+      .toBeGreaterThanOrEqual(2);
     expect(screen.getByText("120 min · R$ 100"))
       .toBeTruthy();
     expect(screen.getByText(
-      "Os números da Beauty Vanessa não são exibidos: cada negócio vê apenas os próprios dados."
+      "O Agenda Fashion envia pelo WhatsApp os dados do novo agendamento para conferência."
     )).toBeTruthy();
     expect(screen.getByRole("link", {
-      name: "Ver perfil real da Beauty Vanessa ↗"
+      name: "Testar o agendamento real ↗"
     }).getAttribute("href")).toBe("/negocio/beauty-vanessa");
-    expect(screen.getByRole("link", {
-      name: "Ver Beauty Vanessa"
-    }).getAttribute("href")).toBe("/negocio/beauty-vanessa");
+    expect(screen.getByText(
+      "A agenda se organiza e o dashboard mostra o crescimento do negócio."
+    )).toBeTruthy();
   });
 });

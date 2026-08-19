@@ -32,6 +32,42 @@
   line-height: 1.7;
 }
 
+.professional-brand-inline,
+.professional-whatsapp-inline {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  border-radius: 999px;
+  padding: 1px 7px 2px 3px;
+  font-weight: 850;
+  line-height: 1.35;
+  vertical-align: -.16em;
+  white-space: nowrap;
+}
+
+.professional-brand-inline {
+  color: var(--wine);
+  background: var(--pink-50);
+}
+
+.professional-brand-inline img {
+  display: block;
+  width: 22px;
+  height: 22px;
+  object-fit: contain;
+}
+
+.professional-whatsapp-inline {
+  padding-left: 6px;
+  color: #087b47;
+  background: #e8f8ef;
+}
+
+.professional-whatsapp-inline-icon {
+  width: 18px;
+  height: 18px;
+}
+
 .professional-hero-actions {
   display: flex;
   flex-wrap: wrap;
@@ -111,180 +147,375 @@
   background: rgb(105 36 63 / 8%);
 }
 
-.professional-preview-topbar,
-.professional-preview-date,
-.professional-slot,
-.professional-preview-note {
+.professional-whatsapp-preview {
+  overflow: hidden;
+  padding: 0;
+  border-color: rgb(26 133 79 / 22%);
+  background: #efeae2;
+}
+
+.professional-whatsapp-topbar {
   display: flex;
   align-items: center;
-}
-
-.professional-preview-topbar {
-  justify-content: space-between;
-  gap: 16px;
-  padding-bottom: 18px;
-  border-bottom: 1px solid var(--line);
-}
-
-.professional-preview-topbar small,
-.professional-preview-topbar strong {
-  display: block;
-}
-
-.professional-preview-topbar small {
-  margin-bottom: 3px;
-  color: var(--muted);
-  font-size: .72rem;
-  font-weight: 750;
-  text-transform: uppercase;
-}
-
-.professional-preview-logo {
-  display: block;
-  width: 46px;
-  height: 46px;
-  flex: 0 0 auto;
-  object-fit: contain;
-  filter: drop-shadow(0 5px 8px rgb(105 36 63 / 14%));
-}
-
-.professional-preview-date {
-  justify-content: space-between;
   gap: 12px;
-  padding-block: 18px 14px;
+  padding: 15px 17px;
+  color: #fff;
+  background: #075e54;
 }
 
-.professional-preview-date span {
-  border-radius: 999px;
-  padding: 6px 10px;
-  color: var(--pink-700);
-  background: var(--pink-50);
-  font-size: .78rem;
-  font-weight: 850;
-}
-
-.professional-preview-date strong {
-  color: var(--wine);
-  font-size: .9rem;
-}
-
-.professional-preview-slots {
+.professional-whatsapp-avatar {
   display: grid;
-  gap: 10px;
-}
-
-.professional-slot {
-  display: grid;
-  grid-template-columns: 56px 1fr auto;
-  gap: 12px;
-  border: 1px solid var(--line);
-  border-radius: 14px;
-  padding: 13px 14px;
-  background: #fff;
-}
-
-.professional-slot > strong {
-  color: var(--wine);
-  font-size: .92rem;
-}
-
-.professional-slot > span {
-  color: var(--muted);
-  font-size: .84rem;
-}
-
-.professional-slot > small {
-  border-radius: 999px;
-  padding: 5px 8px;
-  font-size: .7rem;
-  font-weight: 850;
-}
-
-.professional-slot.available > small {
-  color: #286b50;
-  background: #ecf8f2;
-}
-
-.professional-slot.booked {
-  border-color: var(--pink-100);
-  background: #fffafd;
-}
-
-.professional-slot.booked > small {
-  color: var(--pink-700);
-  background: var(--pink-50);
-}
-
-.professional-preview-note {
-  gap: 10px;
-  margin-top: 14px;
-  border-radius: 14px;
-  padding: 13px 14px;
-  color: var(--wine);
-  background: var(--pink-50);
-}
-
-.professional-preview-note strong,
-.professional-preview-note p {
-  display: block;
-}
-
-.professional-preview-note strong {
-  margin-bottom: 2px;
-  font-size: .84rem;
-}
-
-.professional-preview-note > span {
-  display: grid;
-  width: 26px;
-  height: 26px;
+  width: 42px;
+  height: 42px;
   flex: 0 0 auto;
   place-items: center;
   border-radius: 50%;
   color: #fff;
-  background: var(--pink-600);
-  font-size: .75rem;
+  background: #25d366;
+}
+
+.professional-whatsapp-avatar-icon {
+  width: 25px;
+  height: 25px;
+}
+
+.professional-whatsapp-topbar small,
+.professional-whatsapp-topbar strong {
+  display: block;
+}
+
+.professional-whatsapp-topbar small {
+  margin-bottom: 2px;
+  color: rgb(255 255 255 / 78%);
+  font-size: .7rem;
+}
+
+.professional-whatsapp-topbar strong {
+  font-size: .95rem;
+}
+
+.professional-whatsapp-now {
+  margin-left: auto;
+  color: rgb(255 255 255 / 78%);
+  font-size: .7rem;
+}
+
+.professional-whatsapp-chat {
+  min-height: 330px;
+  padding: 24px 18px 18px;
+  background:
+    radial-gradient(circle at 18% 20%, rgb(255 255 255 / 35%) 0 2px, transparent 3px),
+    radial-gradient(circle at 78% 70%, rgb(255 255 255 / 28%) 0 2px, transparent 3px),
+    #efeae2;
+  background-size: 32px 32px, 38px 38px, auto;
+}
+
+.professional-whatsapp-bubble {
+  position: relative;
+  width: min(92%, 390px);
+  border-radius: 4px 13px 13px 13px;
+  padding: 14px 15px 10px;
+  color: #202c33;
+  background: #fff;
+  box-shadow: 0 2px 7px rgb(32 44 51 / 12%);
+}
+
+.professional-whatsapp-bubble::before {
+  position: absolute;
+  top: 0;
+  left: -9px;
+  width: 0;
+  height: 0;
+  border-top: 10px solid #fff;
+  border-left: 10px solid transparent;
+  content: "";
+}
+
+.professional-whatsapp-bubble p {
+  margin: 0 0 11px;
+  font-size: .84rem;
+  line-height: 1.5;
+}
+
+.professional-whatsapp-bubble dl {
+  display: grid;
+  gap: 5px;
+  margin: 0 0 12px;
+}
+
+.professional-whatsapp-bubble dl > div {
+  display: grid;
+  grid-template-columns: 86px 1fr;
+  gap: 8px;
+  font-size: .78rem;
+}
+
+.professional-whatsapp-bubble dt {
+  font-weight: 850;
+}
+
+.professional-whatsapp-bubble dd {
+  margin: 0;
+}
+
+.professional-whatsapp-bubble > small {
+  display: block;
+  margin-top: -5px;
+  color: #667781;
+  font-size: .66rem;
+  text-align: right;
+}
+
+.professional-whatsapp-bubble > small span {
+  color: #53bdeb;
   font-weight: 900;
 }
 
-.professional-preview-note p {
+.professional-whatsapp-status {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 14px 17px;
+  color: #075e54;
+  background: #e8f8ef;
+}
+
+.professional-whatsapp-status > span {
+  display: grid;
+  width: 28px;
+  height: 28px;
+  flex: 0 0 auto;
+  place-items: center;
+  border-radius: 50%;
+  color: #fff;
+  background: #25d366;
+  font-weight: 900;
+}
+
+.professional-whatsapp-status strong,
+.professional-whatsapp-status p {
+  display: block;
   margin: 0;
+}
+
+.professional-whatsapp-status strong {
   font-size: .82rem;
-  font-weight: 700;
-  line-height: 1.45;
 }
 
-.professional-free-plan {
+.professional-whatsapp-status p {
+  margin-top: 2px;
+  color: #39705b;
+  font-size: .72rem;
+}
+
+.professional-real-demo {
   border-bottom: 1px solid var(--line);
-  background: #fff;
+  background:
+    radial-gradient(circle at 85% 12%, rgb(37 211 102 / 8%) 0, transparent 24%),
+    #fff;
 }
 
-.professional-free-plan-content {
+.professional-real-demo-heading {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(300px, .85fr);
+  align-items: end;
+  gap: clamp(28px, 6vw, 72px);
+  margin-bottom: 32px;
+}
+
+.professional-real-demo-heading h2,
+.professional-real-demo-heading > p {
+  margin-bottom: 0;
+}
+
+.professional-real-demo-heading > p {
+  color: var(--muted);
+  line-height: 1.65;
+}
+
+.professional-real-demo-grid {
+  display: grid;
+  grid-template-columns: minmax(0, .9fr) minmax(0, 1.1fr);
+  gap: 20px;
+}
+
+.professional-booking-demo {
+  border: 1px solid rgb(234 221 226 / 95%);
+  border-radius: 22px;
+  padding: 22px;
+  background: #fff;
+  box-shadow: 0 20px 48px rgb(105 36 63 / 10%);
+}
+
+.professional-booking-demo-topbar {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 28px;
-  padding-block: 28px;
+  gap: 14px;
+  margin-bottom: 18px;
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 16px;
 }
 
-.professional-free-plan-content > div {
-  max-width: 780px;
+.professional-booking-demo-topbar small,
+.professional-booking-demo-topbar strong {
+  display: block;
 }
 
-.professional-free-plan-content h2 {
-  margin-bottom: 6px;
-  font-size: clamp(1.2rem, 2vw, 1.55rem);
+.professional-booking-demo-topbar small {
+  margin-bottom: 3px;
+  color: var(--pink-700);
+  font-size: .7rem;
+  font-weight: 850;
+  text-transform: uppercase;
 }
 
-.professional-free-plan-content p:not(.eyebrow) {
+.professional-booking-demo-topbar strong {
+  color: var(--wine);
+}
+
+.professional-booking-demo-topbar > span {
+  border-radius: 999px;
+  padding: 6px 9px;
+  color: #286b50;
+  background: #ecf8f2;
+  font-size: .7rem;
+  font-weight: 850;
+  white-space: nowrap;
+}
+
+.professional-booking-flow {
+  display: grid;
+  gap: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.professional-booking-flow li {
+  position: relative;
+  display: grid;
+  grid-template-columns: 44px 1fr;
+  gap: 13px;
+  padding-bottom: 16px;
+}
+
+.professional-booking-flow li:not(:last-child)::before {
+  position: absolute;
+  top: 38px;
+  bottom: 0;
+  left: 21px;
+  width: 2px;
+  background: linear-gradient(var(--pink-200), #b8e8cb);
+  content: "";
+}
+
+.professional-booking-flow-marker {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  width: 44px;
+  height: 44px;
+  place-items: center;
+  border: 1px solid var(--pink-100);
+  border-radius: 13px;
+  background: var(--pink-50);
+  font-size: 1rem;
+}
+
+.professional-booking-flow-marker small {
+  position: absolute;
+  right: -4px;
+  bottom: -4px;
+  display: grid;
+  width: 17px;
+  height: 17px;
+  place-items: center;
+  border-radius: 50%;
+  color: #fff;
+  background: var(--pink-600);
+  font-size: .58rem;
+  font-weight: 900;
+}
+
+.professional-booking-flow h3 {
+  margin: 2px 0 4px;
+  color: var(--wine);
+  font-size: .92rem;
+}
+
+.professional-booking-flow p {
   margin: 0;
   color: var(--muted);
-  line-height: 1.55;
+  font-size: .78rem;
+  line-height: 1.5;
 }
 
-.professional-plan-link {
+.professional-booking-result {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border: 1px solid rgb(37 211 102 / 22%);
+  border-radius: 14px;
+  padding: 13px;
+  color: #087b47;
+  background: #e8f8ef;
+}
+
+.professional-booking-result-icon {
+  width: 30px;
+  height: 30px;
   flex: 0 0 auto;
-  font-weight: 850;
+}
+
+.professional-booking-result small,
+.professional-booking-result strong {
+  display: block;
+}
+
+.professional-booking-result small {
+  margin-bottom: 2px;
+  color: #39705b;
+  font-size: .66rem;
+  font-weight: 750;
+  text-transform: uppercase;
+}
+
+.professional-booking-result strong {
+  font-size: .84rem;
+}
+
+.professional-real-demo-cta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  margin-top: 20px;
+  border: 1px solid var(--pink-100);
+  border-radius: 18px;
+  padding: 18px 20px;
+  background: var(--pink-50);
+}
+
+.professional-real-demo-cta strong,
+.professional-real-demo-cta small {
+  display: block;
+}
+
+.professional-real-demo-cta strong {
+  color: var(--wine);
+}
+
+.professional-real-demo-cta small {
+  margin-top: 4px;
+  color: var(--muted);
+}
+
+.professional-real-demo-cta > div:last-child {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 14px;
 }
 
 .professional-section {
@@ -389,12 +620,81 @@
 }
 
 .professional-profile-demo,
+.professional-after-booking-demo,
 .professional-dashboard-demo {
   border: 1px solid rgb(234 221 226 / 95%);
   border-radius: 22px;
   padding: 22px;
   background: rgb(255 255 255 / 94%);
   box-shadow: 0 20px 48px rgb(105 36 63 / 10%);
+}
+
+.professional-after-booking-list {
+  display: grid;
+  gap: 10px;
+}
+
+.professional-after-booking-list > div {
+  display: grid;
+  grid-template-columns: 34px 1fr;
+  align-items: start;
+  gap: 11px;
+  border: 1px solid var(--line);
+  border-radius: 13px;
+  padding: 12px;
+  background: #fffafd;
+}
+
+.professional-after-booking-list > div > span {
+  display: grid;
+  width: 30px;
+  height: 30px;
+  place-items: center;
+  border-radius: 10px;
+  color: #fff;
+  background: var(--pink-600);
+  font-size: .74rem;
+  font-weight: 900;
+}
+
+.professional-after-booking-list p,
+.professional-after-booking-list strong,
+.professional-after-booking-list small {
+  display: block;
+  margin: 0;
+}
+
+.professional-after-booking-list strong {
+  margin-bottom: 3px;
+  color: var(--wine);
+  font-size: .86rem;
+}
+
+.professional-after-booking-list small {
+  color: var(--muted);
+  font-size: .72rem;
+  line-height: 1.45;
+}
+
+.professional-after-booking-highlight {
+  display: flex;
+  gap: 10px;
+  margin-top: 14px;
+  border-radius: 13px;
+  padding: 13px;
+  color: var(--wine);
+  background: var(--pink-50);
+}
+
+.professional-after-booking-highlight p {
+  margin: 0;
+  font-size: .78rem;
+  line-height: 1.5;
+}
+
+.professional-after-booking-highlight strong {
+  display: block;
+  margin-bottom: 2px;
 }
 
 .professional-demo-label {
@@ -848,6 +1148,8 @@
   .professional-hero-grid,
   .professional-audience-section,
   .professional-faq-layout,
+  .professional-real-demo-heading,
+  .professional-real-demo-grid,
   .professional-growth-heading,
   .professional-growth-grid {
     grid-template-columns: 1fr;
@@ -885,6 +1187,7 @@
 
   .professional-hero-actions,
   .professional-final-cta,
+  .professional-real-demo-cta,
   .professional-growth-cta {
     align-items: stretch;
   }
@@ -898,11 +1201,9 @@
     display: grid;
   }
 
-  .professional-free-plan-content {
-    align-items: flex-start;
+  .professional-real-demo-cta {
     flex-direction: column;
-    gap: 14px;
-    padding-block: 24px;
+    align-items: stretch;
   }
 
   .professional-product-preview {
@@ -910,13 +1211,26 @@
     border-radius: 20px;
   }
 
-  .professional-slot {
-    grid-template-columns: 54px 1fr;
+  .professional-whatsapp-preview {
+    padding: 0;
   }
 
-  .professional-slot > small {
-    grid-column: 2;
-    justify-self: start;
+  .professional-whatsapp-chat {
+    min-height: 0;
+    padding: 20px 14px;
+  }
+
+  .professional-whatsapp-bubble {
+    width: 96%;
+  }
+
+  .professional-real-demo-cta > div:last-child {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .professional-real-demo-cta .button {
+    width: 100%;
   }
 
   .professional-benefit-grid,
