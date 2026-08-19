@@ -35,37 +35,37 @@ export function buildProfessionalSignupPath(search = "") {
 
 const BENEFITS = [
   {
-    icon: "◷",
-    title: "Agenda online organizada",
+    icon: "✓",
+    title: "Cliente agenda sozinho",
     description:
-      "Centralize seus horários e deixe mais claro quando você está disponível para atender."
+      "Seu cliente escolhe serviço, data e horário disponíveis sem depender de uma conversa para marcar."
   },
   {
-    icon: "✦",
-    title: "Serviços em um só lugar",
+    icon: "◉",
+    title: "Aviso pelo WhatsApp",
     description:
-      "Cadastre seus serviços, preços e informações para apresentar seu trabalho de forma simples."
+      "Quando um novo agendamento é realizado, o Agenda Fashion envia um aviso ao WhatsApp do profissional ou do negócio."
   },
   {
     icon: "⌁",
-    title: "Página para divulgar",
+    title: "Perfil para conquistar clientes",
     description:
-      "Tenha um perfil público do seu negócio para compartilhar com clientes e usar nas suas divulgações."
+      "Divulgue serviços, preços e horários em um perfil público que ajuda novas clientes a conhecer seu trabalho."
   },
   {
-    icon: "✓",
-    title: "Agendamento pelo cliente",
+    icon: "◷",
+    title: "Rotina organizada",
     description:
-      "O cliente escolhe serviço, data e horário disponíveis pelo próprio Agenda Fashion."
+      "Centralize serviços, disponibilidade e agendamentos para saber com clareza como está o seu dia."
   }
 ];
 
 const STEPS = [
   {
     number: "01",
-    title: "Crie sua conta profissional",
+    title: "Crie sua agenda grátis",
     description:
-      "Faça seu cadastro e informe os dados básicos para começar."
+      "Faça seu cadastro profissional e comece sem precisar informar cartão."
   },
   {
     number: "02",
@@ -75,9 +75,15 @@ const STEPS = [
   },
   {
     number: "03",
-    title: "Divulgue e receba agendamentos",
+    title: "Divulgue seu perfil",
     description:
-      "Compartilhe seu perfil e deixe seus horários disponíveis para agendamento online."
+      "Compartilhe seu endereço público para clientes conhecerem seus serviços e horários."
+  },
+  {
+    number: "04",
+    title: "Receba os agendamentos",
+    description:
+      "O cliente agenda online e o Agenda Fashion avisa o profissional ou negócio pelo WhatsApp."
   }
 ];
 
@@ -92,6 +98,21 @@ const SPECIALTIES = [
 
 const FAQ = [
   {
+    question: "O Agenda Fashion é grátis?",
+    answer:
+      "Sim. Existe um plano grátis para começar. Se precisar de mais capacidade conforme sua agenda crescer, você pode comparar os demais planos antes de decidir."
+  },
+  {
+    question: "Preciso cadastrar cartão para começar?",
+    answer:
+      "Não. Você pode criar sua conta profissional e começar no plano grátis sem informar cartão."
+  },
+  {
+    question: "Vou receber os agendamentos pelo WhatsApp?",
+    answer:
+      "Quando um novo agendamento é realizado, o Agenda Fashion envia um aviso ao WhatsApp cadastrado pelo profissional ou negócio."
+  },
+  {
     question: "Preciso ter salão para usar?",
     answer:
       "Não. O Agenda Fashion atende profissionais autônomos e também negócios com equipe."
@@ -102,14 +123,9 @@ const FAQ = [
       "Não. O fluxo de descoberta e agendamento funciona pela web, direto no navegador."
   },
   {
-    question: "Consigo cadastrar meus serviços e horários?",
+    question: "Como o cliente marca um horário?",
     answer:
-      "Sim. Você pode cadastrar serviços e configurar sua disponibilidade dentro da área profissional."
-  },
-  {
-    question: "Posso divulgar meu perfil nas redes sociais?",
-    answer:
-      "Sim. Depois de configurar e publicar o negócio, você pode compartilhar o link público com seus clientes."
+      "Pelo seu perfil público, o cliente escolhe o serviço, a data e um horário disponível diretamente no navegador."
   }
 ];
 
@@ -149,11 +165,11 @@ export function ProfessionalLandingPage() {
   useEffect(() => {
     const previousTitle = document.title;
     const restoreDescription = ensureMetaDescription(
-      "Agenda online para profissionais da beleza. Organize serviços e horários, divulgue seu perfil e receba agendamentos pelo Agenda Fashion."
+      "Agenda online grátis para profissionais da beleza. Divulgue seus serviços, deixe clientes agendarem sozinhos e receba avisos pelo WhatsApp."
     );
 
     document.title =
-      "Agenda Fashion para profissionais da beleza";
+      "Agenda online grátis para profissionais | Agenda Fashion";
 
     track("landing_profissionais_visualizada", {
       page: "para_profissionais",
@@ -182,15 +198,15 @@ export function ProfessionalLandingPage() {
         <div className="container professional-hero-grid">
           <div className="professional-hero-copy">
             <p className="eyebrow">
-              Agenda online para profissionais da beleza
+              Agenda online grátis para profissionais da beleza
             </p>
 
             <h1>
-              Sua agenda organizada. Seus clientes agendando online.
+              Receba agendamentos sem precisar responder cada cliente.
             </h1>
 
             <p className="professional-lead">
-              Organize serviços e horários, divulgue seu perfil e ofereça um caminho simples para seus clientes escolherem quando querem ser atendidos.
+              Crie sua agenda grátis, divulgue seus serviços e deixe clientes escolherem data e horário sozinhos. Quando entrar um novo agendamento, o Agenda Fashion avisa você pelo WhatsApp.
             </p>
 
             <div className="professional-hero-actions">
@@ -199,7 +215,7 @@ export function ProfessionalLandingPage() {
                 to={signupPath}
                 onClick={() => trackCta("hero")}
               >
-                Criar minha conta profissional
+                Criar minha agenda grátis
               </Link>
 
               <a
@@ -211,9 +227,10 @@ export function ProfessionalLandingPage() {
             </div>
 
             <ul className="professional-trust-list" aria-label="Principais benefícios">
+              <li>Plano grátis para começar</li>
+              <li>Cliente agenda sozinho</li>
               <li>Perfil público para divulgação</li>
-              <li>Serviços e horários configuráveis</li>
-              <li>Agendamento online pelo cliente</li>
+              <li>Aviso de novo agendamento pelo WhatsApp</li>
             </ul>
           </div>
 
@@ -250,23 +267,50 @@ export function ProfessionalLandingPage() {
             </div>
 
             <div className="professional-preview-note">
-              <span aria-hidden="true">✓</span>
-              <p>
-                Seus serviços e horários ficam organizados no mesmo fluxo.
-              </p>
+              <span aria-hidden="true">◉</span>
+              <div>
+                <strong>Novo agendamento</strong>
+                <p>
+                  O Agenda Fashion avisou você pelo WhatsApp.
+                </p>
+              </div>
             </div>
           </div>
         </div>
       </section>
 
+      <section
+        aria-labelledby="free-plan-title"
+        className="professional-free-plan"
+      >
+        <div className="container professional-free-plan-content">
+          <div>
+            <p className="eyebrow">Comece sem custo</p>
+            <h2 id="free-plan-title">
+              Existe um plano grátis para colocar sua agenda online.
+            </h2>
+            <p>
+              Crie seu perfil, configure seus serviços e teste o fluxo de agendamento antes de escolher mais capacidade.
+            </p>
+          </div>
+
+          <Link
+            className="text-link professional-plan-link"
+            to="/planos"
+          >
+            Ver planos e limites
+          </Link>
+        </div>
+      </section>
+
       <section className="container professional-section" aria-labelledby="benefits-title">
         <div className="professional-section-heading">
-          <p className="eyebrow">Menos improviso na rotina</p>
+          <p className="eyebrow">Mais tempo para atender</p>
           <h2 id="benefits-title">
-            Um espaço para organizar sua presença e seus agendamentos
+            O cliente encontra, escolhe e agenda pelo próprio perfil
           </h2>
           <p>
-            O Agenda Fashion conecta a parte que você configura com a experiência que o cliente usa para encontrar e agendar seus serviços.
+            Você configura o que oferece e quando atende. O Agenda Fashion transforma essas informações em um caminho simples para o cliente marcar.
           </p>
         </div>
 
@@ -283,11 +327,125 @@ export function ProfessionalLandingPage() {
         </div>
       </section>
 
+      <section
+        aria-labelledby="growth-title"
+        className="professional-growth-section"
+      >
+        <div className="container professional-section">
+          <div className="professional-growth-heading">
+            <div>
+              <p className="eyebrow">Presença e crescimento</p>
+              <h2 id="growth-title">
+                Um perfil para divulgar. Um dashboard para acompanhar o negócio.
+              </h2>
+            </div>
+            <p>
+              O perfil público ajuda clientes a conhecer e agendar seus serviços. No painel, você acompanha os dados que mostram como o negócio está evoluindo.
+            </p>
+          </div>
+
+          <div className="professional-growth-grid">
+            <article className="professional-profile-demo">
+              <div className="professional-demo-label">
+                <span aria-hidden="true">⌁</span>
+                <div>
+                  <small>Seu perfil de negócio</small>
+                  <strong>Pronto para divulgar</strong>
+                </div>
+              </div>
+
+              <div className="professional-profile-cover" aria-hidden="true">
+                AF
+              </div>
+
+              <div className="professional-profile-copy">
+                <div>
+                  <h3>Studio de beleza</h3>
+                  <p>Serviços, preços, localização e horários em um só endereço.</p>
+                </div>
+                <span>Perfil público</span>
+              </div>
+
+              <div className="professional-profile-services">
+                <div>
+                  <span>Manicure</span>
+                  <strong>Ver horários</strong>
+                </div>
+                <div>
+                  <span>Design de sobrancelhas</span>
+                  <strong>Ver horários</strong>
+                </div>
+              </div>
+            </article>
+
+            <article className="professional-dashboard-demo">
+              <div className="professional-demo-label">
+                <span aria-hidden="true">↗</span>
+                <div>
+                  <small>Seu dashboard</small>
+                  <strong>Acompanhe a evolução do negócio</strong>
+                </div>
+              </div>
+
+              <div
+                aria-label="Exemplo ilustrativo dos indicadores do dashboard"
+                className="professional-dashboard-metrics"
+              >
+                <div>
+                  <span>Agendamentos</span>
+                  <strong>24</strong>
+                  <small>no período</small>
+                </div>
+                <div>
+                  <span>Faturamento</span>
+                  <strong>R$ 1.280</strong>
+                  <small>previsto</small>
+                </div>
+                <div>
+                  <span>Clientes novos</span>
+                  <strong>8</strong>
+                  <small>descobriram você</small>
+                </div>
+                <div>
+                  <span>Conversão</span>
+                  <strong>12%</strong>
+                  <small>das visitas</small>
+                </div>
+              </div>
+
+              <p className="professional-demo-disclaimer">
+                Dados ilustrativos. O painel real usa os resultados do seu negócio.
+              </p>
+
+              <ul className="professional-dashboard-signals">
+                <li>Visitas ao perfil</li>
+                <li>Cliques no WhatsApp e no mapa</li>
+                <li>Favoritos recebidos</li>
+                <li>Serviços mais agendados</li>
+              </ul>
+            </article>
+          </div>
+
+          <div className="professional-growth-cta">
+            <p>
+              Divulgue seu negócio e acompanhe o que está trazendo resultado.
+            </p>
+            <Link
+              className="button professional-primary-cta"
+              onClick={() => trackCta("growth")}
+              to={signupPath}
+            >
+              Criar meu perfil grátis
+            </Link>
+          </div>
+        </div>
+      </section>
+
       <section className="professional-soft-section" id="como-funciona">
         <div className="container professional-section">
           <div className="professional-section-heading centered">
             <p className="eyebrow">Comece em poucos passos</p>
-            <h2>Do cadastro ao seu perfil pronto para divulgar</h2>
+            <h2>Do cadastro grátis ao aviso de novo agendamento</h2>
           </div>
 
           <ol className="professional-steps">
@@ -324,9 +482,9 @@ export function ProfessionalLandingPage() {
         <div className="container professional-section professional-faq-layout">
           <div className="professional-faq-intro">
             <p className="eyebrow">Dúvidas comuns</p>
-            <h2>Antes de criar sua conta</h2>
+            <h2>Saiba exatamente como começar</h2>
             <p>
-              O básico que você precisa saber para começar sem transformar uma ferramenta de agenda em curso preparatório.
+              Preço, funcionamento do agendamento e avisos explicados antes do cadastro.
             </p>
           </div>
 
@@ -343,9 +501,9 @@ export function ProfessionalLandingPage() {
 
       <section className="container professional-final-cta" aria-labelledby="professional-final-title">
         <div>
-          <p className="eyebrow">Pronta para organizar sua agenda?</p>
+          <p className="eyebrow">Comece grátis</p>
           <h2 id="professional-final-title">
-            Crie seu acesso profissional e configure seu espaço no Agenda Fashion.
+            Deixe seus clientes agendarem enquanto você cuida dos atendimentos.
           </h2>
         </div>
 
@@ -354,7 +512,7 @@ export function ProfessionalLandingPage() {
           to={signupPath}
           onClick={() => trackCta("final")}
         >
-          Começar agora
+          Criar minha agenda grátis
         </Link>
       </section>
     </main>

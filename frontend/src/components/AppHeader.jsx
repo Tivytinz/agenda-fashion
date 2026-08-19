@@ -14,6 +14,9 @@ export function AppHeader() {
   const location = useLocation();
   const navigate = useNavigate();
   const accountInAdmin = location.pathname === "/conta" && session.ehAdministrador;
+  const focusedProfessionalLanding =
+    location.pathname === "/para-profissionais" &&
+    !session.authenticated;
   const adminArea = location.pathname.startsWith("/admin/") || accountInAdmin;
   const businessArea =
     location.pathname.startsWith("/painel") ||
@@ -54,7 +57,9 @@ export function AppHeader() {
       <div className="container header-content">
         <Link
           className="brand"
-          to="/"
+          to={focusedProfessionalLanding
+            ? "/para-profissionais"
+            : "/"}
           aria-label="Agenda Fashion, início"
         >
           <span
@@ -74,7 +79,7 @@ export function AppHeader() {
           className="public-navigation"
           aria-label="Navegação principal"
         >
-          {!operationalArea && (
+          {!operationalArea && !focusedProfessionalLanding && (
             <NavLink
               className={({ isActive }) =>
                 isActive
@@ -88,16 +93,18 @@ export function AppHeader() {
             </NavLink>
           )}
 
-          <NavLink
-            className={({ isActive }) =>
-              isActive
-                ? "text-link active desktop-nav-link mobile-agenda-link"
-                : "text-link desktop-nav-link mobile-agenda-link"
-            }
-            to={mobileContextPath}
-          >
-            {mobileContextLabel}
-          </NavLink>
+          {!focusedProfessionalLanding && (
+            <NavLink
+              className={({ isActive }) =>
+                isActive
+                  ? "text-link active desktop-nav-link mobile-agenda-link"
+                  : "text-link desktop-nav-link mobile-agenda-link"
+              }
+              to={mobileContextPath}
+            >
+              {mobileContextLabel}
+            </NavLink>
+          )}
 
           {session.authenticated ? (
             <>
@@ -149,12 +156,14 @@ export function AppHeader() {
             </>
           ) : (
             <>
-              <NavLink
-                className="text-link desktop-nav-link"
-                to="/cadastro?tipo=profissional"
-              >
-                Sou profissional
-              </NavLink>
+              {!focusedProfessionalLanding && (
+                <NavLink
+                  className="text-link desktop-nav-link"
+                  to="/cadastro?tipo=profissional"
+                >
+                  Sou profissional
+                </NavLink>
+              )}
 
               <NavLink
                 className="button button-small"
