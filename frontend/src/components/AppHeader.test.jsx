@@ -46,6 +46,22 @@ beforeEach(() => {
 afterEach(cleanup);
 
 describe("cabeçalho por contexto", () => {
+  it("leva profissionais para a página de conversão antes do cadastro", () => {
+    useSession.mockReturnValue({
+      authenticated: false,
+      ehAdministrador: false,
+      temNegocio: false,
+      negocio: null,
+      usuario: null,
+      logout
+    });
+
+    renderHeader("/");
+
+    expect(screen.getByRole("link", { name: "Sou profissional" })
+      .getAttribute("href")).toBe("/para-profissionais");
+  });
+
   it("remove saídas desnecessárias da landing profissional", () => {
     useSession.mockReturnValue({
       authenticated: false,
