@@ -35,8 +35,8 @@ h3 { margin-bottom: .35rem; }
 .site-header { position: sticky; top: 0; z-index: 20; border-bottom: 1px solid rgb(234 221 226 / 80%); background: rgb(255 249 251 / 92%); backdrop-filter: blur(16px); }
 .header-content { min-height: 68px; display: flex; align-items: center; justify-content: space-between; gap: 20px; }
 .brand { display: inline-flex; align-items: center; gap: 10px; text-decoration: none; }
-.brand-mark { display: grid; width: 44px; height: 44px; place-items: center; border: 2px solid #9f1f59; border-radius: 12px; color: white; background: var(--pink-500); box-shadow: 3px 3px 0 #9f1f59; font-size: 1.25rem; }
-.brand-mark svg { width: 25px; height: 25px; }
+.brand-mark { display: grid; width: 48px; height: 48px; place-items: center; }
+.brand-mark .header-brand-logo { width: 48px; height: 48px; filter: drop-shadow(0 5px 8px rgb(105 36 63 / 16%)); }
 .brand strong, .brand small { display: block; }
 .brand strong { color: var(--wine); font-size: 1.05rem; }
 .brand small { margin-top: 2px; color: var(--muted); font-size: .73rem; }

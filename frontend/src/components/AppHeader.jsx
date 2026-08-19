@@ -7,7 +7,7 @@ import {
 
 import { useSession } from "../auth/SessionContext";
 import { getBusinessWorkspacePath } from "../auth/session";
-import { AppIcon } from "./AppIcon";
+import { BrandProgressMark } from "./BrandProgressMark";
 
 export function AppHeader() {
   const session = useSession();
@@ -66,7 +66,10 @@ export function AppHeader() {
             className="brand-mark"
             aria-hidden="true"
           >
-            <AppIcon name="brand" />
+            <BrandProgressMark
+              className="header-brand-logo"
+              complete
+            />
           </span>
 
           <span className="brand-copy">

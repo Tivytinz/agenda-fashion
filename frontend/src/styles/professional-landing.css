@@ -139,16 +139,11 @@
   text-transform: uppercase;
 }
 
-.professional-preview-topbar > span {
-  display: grid;
-  width: 42px;
-  height: 42px;
-  place-items: center;
-  border-radius: 13px;
-  color: #fff;
-  background: linear-gradient(145deg, var(--pink-500), var(--wine));
-  font-size: .78rem;
-  font-weight: 900;
+.professional-preview-logo {
+  width: 46px;
+  height: 46px;
+  flex: 0 0 auto;
+  filter: drop-shadow(0 5px 8px rgb(105 36 63 / 14%));
 }
 
 .professional-preview-date {
@@ -342,7 +337,7 @@
   border-radius: 13px;
   color: var(--pink-700);
   background: var(--pink-50);
-  font-size: 1.15rem;
+  font-size: 1.35rem;
   font-weight: 900;
 }
 
@@ -618,17 +613,23 @@
   background: rgb(255 255 255 / 85%);
 }
 
-.professional-steps li > span {
+.professional-step-marker {
   display: grid;
-  width: 42px;
-  height: 42px;
+  width: 48px;
+  height: 48px;
   flex: 0 0 auto;
   place-items: center;
   border-radius: 13px;
   color: #fff;
   background: var(--pink-600);
-  font-size: .78rem;
+  font-size: 1.15rem;
   font-weight: 900;
+}
+
+.professional-step-marker small {
+  margin-top: -5px;
+  font-size: .61rem;
+  line-height: 1;
 }
 
 .professional-steps h3 {
@@ -659,6 +660,9 @@
 }
 
 .professional-specialties span {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
   border: 1px solid var(--pink-100);
   border-radius: 999px;
   padding: 11px 15px;
@@ -666,6 +670,13 @@
   background: var(--pink-50);
   font-size: .88rem;
   font-weight: 800;
+}
+
+.professional-specialties span > span {
+  border: 0;
+  padding: 0;
+  background: transparent;
+  font-size: 1rem;
 }
 
 .professional-faq-layout {

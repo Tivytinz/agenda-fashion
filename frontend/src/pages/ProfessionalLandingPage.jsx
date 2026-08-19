@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 
 import { track } from "../analytics/track";
+import { BrandProgressMark } from "../components/BrandProgressMark";
 import "../styles/professional-landing.css";
 
 export const PROFESSIONAL_TRACKING_PARAMS = [
@@ -35,25 +36,25 @@ export function buildProfessionalSignupPath(search = "") {
 
 const BENEFITS = [
   {
-    icon: "✓",
+    icon: "📅",
     title: "Cliente agenda sozinho",
     description:
       "Seu cliente escolhe serviço, data e horário disponíveis sem depender de uma conversa para marcar."
   },
   {
-    icon: "◉",
+    icon: "🔔",
     title: "Aviso pelo WhatsApp",
     description:
       "Quando um novo agendamento é realizado, o Agenda Fashion envia um aviso ao WhatsApp do profissional ou do negócio."
   },
   {
-    icon: "⌁",
+    icon: "✨",
     title: "Perfil para conquistar clientes",
     description:
       "Divulgue serviços, preços e horários em um perfil público que ajuda novas clientes a conhecer seu trabalho."
   },
   {
-    icon: "◷",
+    icon: "🗓️",
     title: "Rotina organizada",
     description:
       "Centralize serviços, disponibilidade e agendamentos para saber com clareza como está o seu dia."
@@ -63,24 +64,28 @@ const BENEFITS = [
 const STEPS = [
   {
     number: "01",
+    emoji: "💖",
     title: "Crie sua agenda grátis",
     description:
       "Faça seu cadastro profissional e comece sem precisar informar cartão."
   },
   {
     number: "02",
+    emoji: "💅",
     title: "Configure seu negócio",
     description:
       "Adicione serviços, horários de atendimento e as informações que seus clientes precisam ver."
   },
   {
     number: "03",
+    emoji: "📲",
     title: "Divulgue seu perfil",
     description:
       "Compartilhe seu endereço público para clientes conhecerem seus serviços e horários."
   },
   {
     number: "04",
+    emoji: "🎉",
     title: "Receba os agendamentos",
     description:
       "O cliente agenda online e o Agenda Fashion avisa o profissional ou negócio pelo WhatsApp."
@@ -88,12 +93,12 @@ const STEPS = [
 ];
 
 const SPECIALTIES = [
-  "Manicure",
-  "Cabeleireira",
-  "Lash designer",
-  "Sobrancelhas",
-  "Estética",
-  "Maquiagem"
+  { emoji: "💅", label: "Manicure" },
+  { emoji: "💇‍♀️", label: "Cabeleireira" },
+  { emoji: "👁️", label: "Lash designer" },
+  { emoji: "✨", label: "Sobrancelhas" },
+  { emoji: "🌸", label: "Estética" },
+  { emoji: "💄", label: "Maquiagem" }
 ];
 
 const FAQ = [
@@ -198,6 +203,7 @@ export function ProfessionalLandingPage() {
         <div className="container professional-hero-grid">
           <div className="professional-hero-copy">
             <p className="eyebrow">
+              <span aria-hidden="true">✨</span>{" "}
               Agenda online grátis para profissionais da beleza
             </p>
 
@@ -227,10 +233,22 @@ export function ProfessionalLandingPage() {
             </div>
 
             <ul className="professional-trust-list" aria-label="Principais benefícios">
-              <li>Plano grátis para começar</li>
-              <li>Cliente agenda sozinho</li>
-              <li>Perfil público para divulgação</li>
-              <li>Aviso de novo agendamento pelo WhatsApp</li>
+              <li>
+                <span aria-hidden="true">🆓</span>
+                <span>Plano grátis para começar</span>
+              </li>
+              <li>
+                <span aria-hidden="true">📅</span>
+                <span>Cliente agenda sozinho</span>
+              </li>
+              <li>
+                <span aria-hidden="true">💖</span>
+                <span>Perfil público para divulgação</span>
+              </li>
+              <li>
+                <span aria-hidden="true">🔔</span>
+                <span>Aviso de novo agendamento pelo WhatsApp</span>
+              </li>
             </ul>
           </div>
 
@@ -240,7 +258,10 @@ export function ProfessionalLandingPage() {
                 <small>Agenda Fashion</small>
                 <strong>Minha agenda</strong>
               </div>
-              <span aria-hidden="true">AF</span>
+              <BrandProgressMark
+                className="professional-preview-logo"
+                complete
+              />
             </div>
 
             <div className="professional-preview-date">
@@ -451,7 +472,10 @@ export function ProfessionalLandingPage() {
           <ol className="professional-steps">
             {STEPS.map((step) => (
               <li key={step.number}>
-                <span>{step.number}</span>
+                <span className="professional-step-marker">
+                  <span aria-hidden="true">{step.emoji}</span>
+                  <small>{step.number}</small>
+                </span>
                 <div>
                   <h3>{step.title}</h3>
                   <p>{step.description}</p>
@@ -473,7 +497,10 @@ export function ProfessionalLandingPage() {
 
         <div className="professional-specialties" aria-label="Exemplos de especialidades">
           {SPECIALTIES.map((specialty) => (
-            <span key={specialty}>{specialty}</span>
+            <span key={specialty.label}>
+              <span aria-hidden="true">{specialty.emoji}</span>
+              {specialty.label}
+            </span>
           ))}
         </div>
       </section>
