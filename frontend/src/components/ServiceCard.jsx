@@ -91,6 +91,13 @@ export function ServiceCard({
 
         <h3>{service.nome}</h3>
 
+        {service.agenda_online === true && (
+          <span className="availability-badge">
+            <span aria-hidden="true">●</span>
+            Agenda online
+          </span>
+        )}
+
         {service.descricao && (
           <p className="service-discovery-description">
             {service.descricao}
@@ -105,11 +112,16 @@ export function ServiceCard({
 
           <small className="discovery-labeled-value">
             <span aria-hidden="true">📍</span>
-            {formatLocation({
-              cidade: service.negocio_cidade,
-              bairro: service.negocio_bairro,
-              estado: service.negocio_estado
-            }) || "Atendimento local"}
+            <span className="service-location-text">
+              {formatLocation({
+                cidade: service.negocio_cidade,
+                bairro: service.negocio_bairro,
+                estado: service.negocio_estado
+              }) || "Atendimento local"}
+              {Number.isFinite(service.distancia_km) && (
+                <> · {service.distancia_km.toFixed(1).replace(".", ",")} km</>
+              )}
+            </span>
           </small>
         </div>
 

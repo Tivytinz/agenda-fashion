@@ -120,6 +120,7 @@ describe("imagens dos cards do catálogo", () => {
           negocio_nome: "Studio Aurora",
           negocio_slug: "studio-aurora",
           negocio_setor: "Sobrancelhas",
+          agenda_online: true,
           valor: 80,
           duracao_minutos: 50
         }} />
@@ -127,6 +128,7 @@ describe("imagens dos cards do catálogo", () => {
     );
 
     expect(screen.getAllByText("Estética").length).toBeGreaterThan(0);
+    expect(screen.getByText("Agenda online")).not.toBeNull();
     expect(screen.queryByText("Sobrancelhas")).toBeNull();
   });
 

@@ -18,6 +18,7 @@ import {
 } from "../components/ScreenState";
 
 import { normalizeText } from "../utils/format";
+import { serviceCategoryLabel } from "../utils/specialties";
 
 const CATEGORIES = [
   ["", "Todos"],
@@ -34,6 +35,7 @@ const PAGE_SIZE = 12;
 export function buildCatalogPath({
   query = "",
   category = "",
+  city = "",
   page = 1
 } = {}) {
   const params = new URLSearchParams({
@@ -49,7 +51,68 @@ export function buildCatalogPath({
     params.set("categoria", category);
   }
 
+  if (city) {
+    params.set("cidade", city);
+  }
+
   return `/negocios-publicos?${params.toString()}`;
+}
+
+export function distanceInKm(origin, destination) {
+  const coordinate = (value) => {
+    if (value === null || value === undefined || value === "") return null;
+    const number = Number(value);
+    return Number.isFinite(number) ? number : null;
+  };
+
+  const latitudeA = coordinate(origin?.latitude);
+  const longitudeA = coordinate(origin?.longitude);
+  const latitudeB = coordinate(destination?.latitude);
+  const longitudeB = coordinate(destination?.longitude);
+
+  if ([latitudeA, longitudeA, latitudeB, longitudeB].some((value) => value === null)) {
+    return null;
+  }
+
+  const radians = (degrees) => degrees * (Math.PI / 180);
+  const latitudeDelta = radians(latitudeB - latitudeA);
+  const longitudeDelta = radians(longitudeB - longitudeA);
+  const value =
+    Math.sin(latitudeDelta / 2) ** 2 +
+    Math.cos(radians(latitudeA)) *
+      Math.cos(radians(latitudeB)) *
+      Math.sin(longitudeDelta / 2) ** 2;
+
+  return 6371 * 2 * Math.atan2(Math.sqrt(value), Math.sqrt(1 - value));
+}
+
+export function diversifyServices(services = []) {
+  const queues = new Map();
+
+  services.forEach((service) => {
+    const key = String(service.negocio_id ?? service.negocio_slug ?? "");
+    const queue = queues.get(key) || [];
+    queue.push(service);
+    queues.set(key, queue);
+  });
+
+  const diversified = [];
+  let remaining = true;
+
+  while (remaining) {
+    remaining = false;
+
+    for (const queue of queues.values()) {
+      const service = queue.shift();
+
+      if (service) {
+        diversified.push(service);
+        remaining = true;
+      }
+    }
+  }
+
+  return diversified;
 }
 
 export function ExplorePage() {
@@ -60,6 +123,24 @@ export function ExplorePage() {
     useState("");
 
   const [category, setCategory] =
+    useState("");
+
+  const [city, setCity] =
+    useState("");
+
+  const [maximumPrice, setMaximumPrice] =
+    useState("");
+
+  const [onlineOnly, setOnlineOnly] =
+    useState(false);
+
+  const [ordering, setOrdering] =
+    useState("recommended");
+
+  const [userLocation, setUserLocation] =
+    useState(null);
+
+  const [locationMessage, setLocationMessage] =
     useState("");
 
   const [status, setStatus] =
@@ -101,6 +182,7 @@ export function ExplorePage() {
         buildCatalogPath({
           query,
           category,
+          city,
           page: requestedPage
         }),
         { signal }
@@ -149,7 +231,7 @@ export function ExplorePage() {
         setLoadingMore(false);
       }
     }
-  }, [category, query]);
+  }, [category, city, query]);
 
   useEffect(() => {
     const controller =
@@ -209,6 +291,12 @@ export function ExplorePage() {
             negocio_estado:
               business.estado,
 
+            negocio_latitude:
+              business.latitude,
+
+            negocio_longitude:
+              business.longitude,
+
             negocio_foto_url:
               business.foto_url
           }));
@@ -220,15 +308,11 @@ export function ExplorePage() {
     useMemo(() => {
       const wanted = normalizeText(query);
 
-      if (!wanted) {
-        return services;
-      }
-
       const terms = wanted
         .split(/\s+/)
         .filter(Boolean);
 
-      return services.filter((service) => {
+      const filtered = services.filter((service) => {
         const haystack = normalizeText(
           [
             service.nome,
@@ -240,16 +324,76 @@ export function ExplorePage() {
           ].join(" ")
         );
 
-        return terms.every((term) =>
-          haystack.includes(term)
-        );
+        const matchesSearch = terms.every((term) => haystack.includes(term));
+        const price = Number(service.valor);
+        const matchesPrice = !maximumPrice ||
+          (Number.isFinite(price) && price <= Number(maximumPrice));
+        const matchesOnline = !onlineOnly || service.agenda_online === true;
+
+        return matchesSearch && matchesPrice && matchesOnline;
       });
-    }, [services, query]);
+
+      const withDistance = filtered.map((service) => ({
+        ...service,
+        distancia_km: userLocation
+          ? distanceInKm(userLocation, {
+              latitude: service.negocio_latitude,
+              longitude: service.negocio_longitude
+            })
+          : null
+      }));
+
+      if (ordering === "price") {
+        return withDistance.sort((a, b) => Number(a.valor) - Number(b.valor));
+      }
+
+      if (ordering === "distance") {
+        return withDistance.sort((a, b) =>
+          (a.distancia_km ?? Number.POSITIVE_INFINITY) -
+          (b.distancia_km ?? Number.POSITIVE_INFINITY)
+        );
+      }
+
+      return diversifyServices(withDistance);
+    }, [maximumPrice, onlineOnly, ordering, query, services, userLocation]);
+
+  const serviceGroups = useMemo(() => {
+    const groups = new Map();
+
+    filteredServices.forEach((service) => {
+      const label = serviceCategoryLabel(service.categoria);
+      const group = groups.get(label) || [];
+      group.push(service);
+      groups.set(label, group);
+    });
+
+    return [...groups.entries()];
+  }, [filteredServices]);
+
+  const availableCities = useMemo(() => {
+    return [...new Set(
+      businesses
+        .map((business) => String(business.cidade || "").trim())
+        .filter(Boolean)
+    )].sort((a, b) => a.localeCompare(b, "pt-BR"));
+  }, [businesses]);
 
   const sortedBusinesses =
     useMemo(() => {
-      return [...businesses].sort(
+      return [...businesses].map((business) => ({
+        ...business,
+        distancia_km: userLocation
+          ? distanceInKm(userLocation, business)
+          : null
+      })).sort(
         (businessA, businessB) => {
+          if (ordering === "distance") {
+            return (
+              (businessA.distancia_km ?? Number.POSITIVE_INFINITY) -
+              (businessB.distancia_km ?? Number.POSITIVE_INFINITY)
+            );
+          }
+
           const servicesA =
             businessA.servicos?.length || 0;
 
@@ -271,7 +415,7 @@ export function ExplorePage() {
           );
         }
       );
-    }, [businesses]);
+    }, [businesses, ordering, userLocation]);
 
   async function loadMore() {
     await loadBusinesses({
@@ -290,6 +434,28 @@ export function ExplorePage() {
         categoria: value || "todos"
       }
     });
+  }
+
+  function requestLocation() {
+    if (!navigator.geolocation) {
+      setLocationMessage("Localização indisponível neste navegador.");
+      return;
+    }
+
+    setLocationMessage("Buscando sua localização...");
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        setUserLocation({
+          latitude: position.coords.latitude,
+          longitude: position.coords.longitude
+        });
+        setOrdering("distance");
+        setLocationMessage("Resultados ordenados por proximidade.");
+      },
+      () => setLocationMessage("Não foi possível acessar sua localização."),
+      { enableHighAccuracy: false, timeout: 8000, maximumAge: 300000 }
+    );
   }
 
   return (
@@ -379,6 +545,66 @@ export function ExplorePage() {
                 )
               )}
             </div>
+
+            <div className="catalog-filters" aria-label="Filtros do catálogo">
+              <label>
+                <span className="sr-only">Cidade</span>
+                <select value={city} onChange={(event) => setCity(event.target.value)}>
+                  <option value="">Todas as cidades</option>
+                  {availableCities.map((availableCity) => (
+                    <option value={availableCity} key={availableCity}>
+                      {availableCity}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              <label>
+                <span className="sr-only">Preço máximo</span>
+                <select
+                  value={maximumPrice}
+                  onChange={(event) => setMaximumPrice(event.target.value)}
+                >
+                  <option value="">Qualquer preço</option>
+                  <option value="50">Até R$ 50</option>
+                  <option value="100">Até R$ 100</option>
+                  <option value="150">Até R$ 150</option>
+                </select>
+              </label>
+
+              <label>
+                <span className="sr-only">Ordenar resultados</span>
+                <select value={ordering} onChange={(event) => setOrdering(event.target.value)}>
+                  <option value="recommended">Recomendados</option>
+                  <option value="price">Menor preço</option>
+                  <option value="distance" disabled={!userLocation}>Mais próximos</option>
+                </select>
+              </label>
+
+              <button
+                className={userLocation ? "location-filter active" : "location-filter"}
+                onClick={requestLocation}
+                type="button"
+              >
+                <span aria-hidden="true">⌖</span>
+                {userLocation ? "Localização ativa" : "Usar localização"}
+              </button>
+
+              <label className={onlineOnly ? "online-filter active" : "online-filter"}>
+                <input
+                  checked={onlineOnly}
+                  onChange={(event) => setOnlineOnly(event.target.checked)}
+                  type="checkbox"
+                />
+                Com agenda online
+              </label>
+            </div>
+
+            {locationMessage && (
+              <p className="catalog-location-message" role="status">
+                {locationMessage}
+              </p>
+            )}
           </div>
         </div>
       </section>
@@ -428,15 +654,22 @@ export function ExplorePage() {
         {status === "ready" &&
           filteredServices.length >
           0 && (
-            <div className="service-discovery-grid">
-              {filteredServices.map(
-                (service) => (
-                  <ServiceCard
-                    service={service}
-                    key={`${service.negocio_id}-${service.id}`}
-                  />
-                )
-              )}
+            <div className="service-rails">
+              {serviceGroups.map(([label, group]) => (
+                <section className="service-rail" key={label}>
+                  {serviceGroups.length > 1 && (
+                    <h3 className="service-rail-title">{label}</h3>
+                  )}
+                  <div className="service-rail-track">
+                    {group.map((service) => (
+                      <ServiceCard
+                        service={service}
+                        key={`${service.negocio_id}-${service.id}`}
+                      />
+                    ))}
+                  </div>
+                </section>
+              ))}
             </div>
           )}
       </section>

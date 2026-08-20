@@ -88,8 +88,12 @@ export function BusinessCard({ business }) {
 
             <p className="muted location discovery-labeled-value">
               <span aria-hidden="true">📍</span>
-              {formatLocation(business) ||
-                "Atendimento local"}
+              <span>
+                {formatLocation(business) || "Atendimento local"}
+                {Number.isFinite(business.distancia_km) && (
+                  <> · {business.distancia_km.toFixed(1).replace(".", ",")} km</>
+                )}
+              </span>
             </p>
           </div>
 

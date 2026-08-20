@@ -134,11 +134,14 @@
   }
 
   .privacy-shortcut {
-    bottom: calc(12px + env(safe-area-inset-bottom));
+    position: static;
+    display: block;
+    width: fit-content;
+    margin: 8px 12px calc(12px + env(safe-area-inset-bottom)) auto;
   }
 
   .app-shell:has(.workspace-mobile-nav)
   .privacy-shortcut {
-    bottom: calc(84px + env(safe-area-inset-bottom));
+    margin-bottom: calc(84px + env(safe-area-inset-bottom));
   }
 }

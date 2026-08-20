@@ -85,6 +85,19 @@ describe("Publicação e privacidade do perfil público", () => {
     );
   });
 
+  test("catálogo informa agenda online sem prometer vaga inexistente", async () => {
+    await repository.listarNegociosPublicos();
+
+    const sql = mockQuery.mock.calls[0][0];
+
+    expect(sql).toMatch(
+      /agenda_horarios[\s\S]*ah\.trabalha\s*=\s*TRUE[\s\S]*AS agenda_online/i
+    );
+    expect(sql).toMatch(
+      /'agenda_online',\s*n\.agenda_online/i
+    );
+  });
+
   test("perfil não seleciona identificadores internos", async () => {
     await repository.buscarNegocioPorSlug("studio");
 

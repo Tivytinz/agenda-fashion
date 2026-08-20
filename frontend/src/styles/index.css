@@ -67,6 +67,14 @@ nav { display: flex; align-items: center; gap: 18px; }
 .chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 13px; }
 .chip { min-height: 38px; border: 1px solid var(--line); border-radius: 999px; padding-inline: 15px; color: var(--wine); background: #fff; font-weight: 750; cursor: pointer; }
 .chip.active { color: #fff; border-color: var(--pink-600); background: var(--pink-600); }
+.catalog-filters { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)) auto; gap: 8px; margin-top: 12px; }
+.catalog-filters select, .location-filter, .online-filter { width: 100%; min-height: 40px; border: 1px solid var(--line); border-radius: 10px; padding-inline: 10px; color: var(--wine); background: #fff; font-size: .82rem; font-weight: 750; }
+.location-filter { display: inline-flex; align-items: center; justify-content: center; gap: 6px; cursor: pointer; white-space: nowrap; }
+.location-filter.active { color: #fff; border-color: var(--pink-600); background: var(--pink-600); }
+.online-filter { display: inline-flex; align-items: center; justify-content: center; gap: 7px; cursor: pointer; white-space: nowrap; }
+.online-filter input { width: 16px; height: 16px; accent-color: var(--pink-600); }
+.online-filter.active { border-color: var(--pink-500); background: var(--pink-50); }
+.catalog-location-message { margin: 8px 0 0; color: var(--muted); font-size: .78rem; }
 
 .content-section { padding-block: clamp(28px, 4vw, 48px); }
 .page-content { padding-block: clamp(24px, 4vw, 48px); }
@@ -98,6 +106,7 @@ nav { display: flex; align-items: center; gap: 18px; }
 .card-footer { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: auto; padding-top: 16px; }
 .business-card-available .card-footer { justify-content: flex-end; }
 .card-footer > small { color: var(--muted); }
+.business-card .card-footer .button { width: 100%; }
 .muted { color: var(--muted); }
 .rating { flex: 0 0 auto; border-radius: 999px; padding: 5px 8px; color: #7d4c00; background: #fff7db; font-size: .78rem; font-weight: 850; }
 .rating-new { color: var(--wine); background: var(--pink-50); }
@@ -457,6 +466,38 @@ th { color: var(--muted); font-size: .76rem; letter-spacing: .04em; text-transfo
   gap: 18px;
 }
 
+.service-rails {
+  display: grid;
+  gap: 26px;
+}
+
+.service-rail {
+  min-width: 0;
+}
+
+.service-rail-title {
+  margin-bottom: 12px;
+  color: var(--wine);
+  font-size: 1.15rem;
+}
+
+.service-rail-track {
+  display: flex;
+  gap: 18px;
+  overflow-x: auto;
+  padding: 3px 4px 16px;
+  margin-inline: -4px;
+  scroll-padding-inline: 4px;
+  scroll-snap-type: x proximity;
+  scrollbar-color: var(--pink-100) transparent;
+  overscroll-behavior-inline: contain;
+}
+
+.service-rail-track .service-discovery-card {
+  flex: 0 0 min(360px, calc(100vw - 40px));
+  scroll-snap-align: start;
+}
+
 .service-discovery-card {
   display: flex;
   min-width: 0;
@@ -466,7 +507,7 @@ th { color: var(--muted); font-size: .76rem; letter-spacing: .04em; text-transfo
 .service-discovery-image {
   position: relative;
   display: grid;
-  aspect-ratio: 4 / 3;
+  aspect-ratio: 16 / 9;
   place-items: center;
   overflow: hidden;
   color: var(--pink-600);
@@ -515,8 +556,8 @@ th { color: var(--muted); font-size: .76rem; letter-spacing: .04em; text-transfo
 
 .service-discovery-placeholder strong {
   display: grid;
-  width: 68px;
-  height: 68px;
+  width: 76px;
+  height: 76px;
   place-items: center;
   border-radius: 20px;
   color: #fff;
@@ -526,7 +567,7 @@ th { color: var(--muted); font-size: .76rem; letter-spacing: .04em; text-transfo
       var(--pink-500),
       var(--wine)
     );
-  font-size: 1.9rem;
+  font-size: 2.15rem;
   font-weight: 900;
 }
 
@@ -550,6 +591,21 @@ th { color: var(--muted); font-size: .76rem; letter-spacing: .04em; text-transfo
   font-size: 1.2rem;
 }
 
+.availability-badge {
+  display: inline-flex;
+  width: fit-content;
+  align-items: center;
+  gap: 6px;
+  margin: 1px 0 7px;
+  color: #287651;
+  font-size: .76rem;
+  font-weight: 850;
+}
+
+.availability-badge > span {
+  font-size: .62rem;
+}
+
 .service-discovery-description {
   display: -webkit-box;
   overflow: hidden;
@@ -568,6 +624,14 @@ th { color: var(--muted); font-size: .76rem; letter-spacing: .04em; text-transfo
   padding-top: 13px;
   border-top:
     1px solid var(--line);
+}
+
+.service-location-text,
+.business-card .location > span:last-child {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
 }
 
 .service-business-info strong {

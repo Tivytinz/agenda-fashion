@@ -213,7 +213,7 @@
   .hero-content {
     grid-template-columns: minmax(0, 1fr);
     gap: 14px;
-    padding-block: 18px 22px;
+    padding-block: 14px 18px;
   }
 
   .hero-copy,
@@ -227,7 +227,7 @@
   .hero-copy h1 {
     max-width: 100%;
     margin-bottom: 9px;
-    font-size: clamp(1.85rem, 8.7vw, 2.45rem);
+    font-size: clamp(1.78rem, 8.1vw, 2.25rem);
     line-height: 1.03;
     overflow-wrap: anywhere;
   }
@@ -272,6 +272,38 @@
     margin-inline: 0 -12px;
     padding: 2px 46px 6px 0;
     scroll-padding-right: 46px;
+    scroll-snap-type: x proximity;
+  }
+
+  .chip {
+    scroll-snap-align: start;
+  }
+
+  .catalog-filters {
+    display: flex;
+    max-width: 100%;
+    overflow-x: auto;
+    margin-inline: 0 -12px;
+    padding: 2px 46px 4px 0;
+    scroll-snap-type: x proximity;
+    scrollbar-width: none;
+  }
+
+  .catalog-filters::-webkit-scrollbar {
+    display: none;
+  }
+
+  .catalog-filters label,
+  .catalog-filters .location-filter,
+  .catalog-filters .online-filter {
+    width: auto;
+    min-width: max-content;
+    flex: 0 0 auto;
+    scroll-snap-align: start;
+  }
+
+  .catalog-filters select {
+    min-width: 142px;
   }
 
   .chip,
@@ -339,10 +371,30 @@
     grid-template-columns: 112px minmax(0, 1fr);
   }
 
+  .service-rails {
+    gap: 20px;
+  }
+
+  .service-rail-track {
+    gap: 12px;
+    margin-right: -12px;
+    padding-right: 26px;
+    scrollbar-width: none;
+    scroll-snap-type: x mandatory;
+  }
+
+  .service-rail-track::-webkit-scrollbar {
+    display: none;
+  }
+
+  .service-rail-track .service-discovery-card {
+    flex-basis: min(92vw, 360px);
+  }
+
   .service-discovery-image {
     width: 112px;
     height: 100%;
-    min-height: 178px;
+    min-height: 160px;
     aspect-ratio: auto;
   }
 
@@ -376,7 +428,7 @@
 
   .service-discovery-content {
     min-width: 0;
-    padding: 13px;
+    padding: 12px;
   }
 
   .service-discovery-content h3 {
@@ -398,7 +450,7 @@
   }
 
   .service-discovery-card .button {
-    min-height: 40px;
+    min-height: 38px;
     padding-inline: 10px;
   }
 
@@ -1190,7 +1242,8 @@
   }
 
   .brand strong {
-    max-width: 150px;
+    max-width: 132px;
+    font-size: .96rem;
   }
 
   .workspace-content {

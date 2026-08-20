@@ -150,7 +150,6 @@ export default function App() {
   return (
     <div className="app-shell">
       <AppHeader />
-      <MetaAdsBridge />
       <Suspense fallback={<main><div className="container route-loading">Carregando...</div></main>}>
         <Routes>
         <Route path={reactRoutes.home} element={<ExplorePage />} />
@@ -269,6 +268,7 @@ export default function App() {
           <Route path="*" element={<NotFoundPage />} />
         </Routes>
       </Suspense>
+      <MetaAdsBridge />
     </div>
   );
 }
