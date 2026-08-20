@@ -28,6 +28,13 @@ describe("resolveMediaUrl", () => {
     )).toContain("/image/upload/f_auto,q_auto,c_fill,w_480/");
   });
 
+  it("preserva a imagem completa quando o componente solicita contain", () => {
+    expect(resolveMediaUrl(
+      "https://res.cloudinary.com/demo/image/upload/v1/foto.jpg",
+      { width: 520, fit: "contain" }
+    )).toContain("/image/upload/f_auto,q_auto,c_fit,w_520/");
+  });
+
   it("gera uma URL diferente para a nova tentativa", () => {
     expect(withMediaRetry("https://img.exemplo/foto.jpg", 1))
       .toContain("af_retry=1");

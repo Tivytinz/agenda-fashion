@@ -3,21 +3,8 @@ import { PublicShareButton } from "../PublicShareButton";
 import { FlowSteps } from "../FlowSteps";
 import { EmptyState, ErrorState, LoadingState } from "../ScreenState";
 import { formatCurrency, formatDate } from "../../utils/format";
+import { serviceCategoryEmoji } from "../../utils/specialties";
 import { MediaThumb } from "./MediaThumb";
-
-function getServiceEmoji(name) {
-  const normalized = String(name || "")
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLocaleLowerCase("pt-BR");
-
-  if (normalized.includes("cilio") || normalized.includes("sobrancelha")) return "👁️";
-  if (normalized.includes("unha") || normalized.includes("manicure") || normalized.includes("pedicure")) return "💅";
-  if (normalized.includes("cabelo") || normalized.includes("corte") || normalized.includes("escova") || normalized.includes("penteado")) return "💇";
-  if (normalized.includes("maquiagem") || normalized.includes("make")) return "💄";
-  if (normalized.includes("pele") || normalized.includes("limpeza") || normalized.includes("massagem") || normalized.includes("estetica")) return "💆";
-  return "✨";
-}
 
 function ServiceChoices({
   businessId,
@@ -54,7 +41,7 @@ function ServiceChoices({
               <MediaThumb
                 src={service.foto_url ?? service.imagem_url ?? service.foto}
                 alt={`Foto do serviço ${service.nome}`}
-                emoji={getServiceEmoji(service.nome)}
+                emoji={serviceCategoryEmoji(service.categoria, service.nome)}
                 className="choice-media service-choice-media"
               />
               <span className="choice-copy">

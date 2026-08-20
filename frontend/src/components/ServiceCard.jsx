@@ -4,7 +4,10 @@ import {
   formatLocation
 } from "../utils/format";
 import { useRetryingMedia } from "../hooks/useRetryingMedia";
-import { serviceCategoryLabel } from "../utils/specialties";
+import {
+  serviceCategoryEmoji,
+  serviceCategoryLabel
+} from "../utils/specialties";
 import { buildLocalCatalogPath } from "../utils/localCatalog";
 
 export function ServiceCard({
@@ -14,7 +17,10 @@ export function ServiceCard({
     handleError: handleImageError,
     hasImage,
     imageUrl
-  } = useRetryingMedia(service.foto_url, { width: 520 });
+  } = useRetryingMedia(service.foto_url, {
+    width: 520,
+    fit: "contain"
+  });
 
   const bookingUrl =
     `/negocio/${encodeURIComponent(
@@ -23,6 +29,10 @@ export function ServiceCard({
       service.id
     )}`;
   const category = serviceCategoryLabel(service.categoria);
+  const categoryEmoji = serviceCategoryEmoji(
+    service.categoria,
+    service.nome
+  );
   const localCatalogPath = buildLocalCatalogPath({
     category: service.categoria,
     city: service.negocio_cidade,
@@ -46,7 +56,7 @@ export function ServiceCard({
         ) : (
           <span className="service-discovery-placeholder">
             <strong aria-hidden="true">
-              💅
+              {categoryEmoji}
             </strong>
 
             <small>

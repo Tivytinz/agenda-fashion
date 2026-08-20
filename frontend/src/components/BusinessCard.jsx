@@ -21,7 +21,10 @@ export function BusinessCard({ business }) {
     handleError: handleImageError,
     hasImage,
     imageUrl
-  } = useRetryingMedia(coverSource, { width: 420 });
+  } = useRetryingMedia(coverSource, {
+    width: 420,
+    fit: "contain"
+  });
 
   const initial = String(
     business.nome || "A"

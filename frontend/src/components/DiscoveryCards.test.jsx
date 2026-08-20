@@ -102,7 +102,7 @@ describe("imagens dos cards do catálogo", () => {
     expect(screen.queryByText("Sobrancelhas")).toBeNull();
   });
 
-  it("usa o emoji da marca quando o serviço não possui foto", () => {
+  it("usa o emoji da categoria quando o serviço não possui foto", () => {
     render(
       <MemoryRouter>
         <ServiceCard service={{
@@ -118,7 +118,7 @@ describe("imagens dos cards do catálogo", () => {
     );
 
     expect(document.querySelector(".service-discovery-placeholder strong")
-      ?.textContent).toBe("💅");
+      ?.textContent).toBe("💆");
     expect(document.querySelector(".service-discovery-placeholder")
       ?.textContent).not.toContain("D");
   });

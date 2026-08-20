@@ -474,7 +474,7 @@ th { color: var(--muted); font-size: .76rem; letter-spacing: .04em; text-transfo
 .service-discovery-image img {
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;
   transition:
     transform 0.25s ease;
 }

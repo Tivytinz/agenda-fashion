@@ -18,7 +18,7 @@ function secureUrl(url) {
   return url.toString();
 }
 
-function optimizeCloudinary(url, width) {
+function optimizeCloudinary(url, width, fit) {
   if (
     !width ||
     url.hostname !== "res.cloudinary.com" ||
@@ -29,12 +29,12 @@ function optimizeCloudinary(url, width) {
 
   url.pathname = url.pathname.replace(
     "/image/upload/",
-    `/image/upload/f_auto,q_auto,c_fill,w_${Math.max(80, Math.round(width))}/`
+    `/image/upload/f_auto,q_auto,${fit === "contain" ? "c_fit" : "c_fill"},w_${Math.max(80, Math.round(width))}/`
   );
   return url;
 }
 
-export function resolveMediaUrl(value, { width } = {}) {
+export function resolveMediaUrl(value, { width, fit = "cover" } = {}) {
   const source = String(value || "").trim();
 
   if (!source) {
@@ -47,7 +47,7 @@ export function resolveMediaUrl(value, { width } = {}) {
 
   try {
     if (/^https?:\/\//i.test(source)) {
-      return secureUrl(optimizeCloudinary(new URL(source), width));
+      return secureUrl(optimizeCloudinary(new URL(source), width, fit));
     }
 
     const origin = API_ORIGIN || (

@@ -4,8 +4,8 @@ import {
   withMediaRetry
 } from "../utils/media";
 
-export function useRetryingMedia(source, { width } = {}) {
-  const resolvedSource = resolveMediaUrl(source, { width });
+export function useRetryingMedia(source, { width, fit } = {}) {
+  const resolvedSource = resolveMediaUrl(source, { width, fit });
   const [failed, setFailed] = useState(false);
   const [retry, setRetry] = useState(0);
 

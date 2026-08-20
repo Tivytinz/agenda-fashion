@@ -18,6 +18,16 @@ const CATEGORY_LABELS = Object.freeze({
   outro: "Outro"
 });
 
+const CATEGORY_EMOJIS = Object.freeze({
+  unha: "💅",
+  cabelo: "💇",
+  cilio: "👁️",
+  sobrancelha: "👁️",
+  maquiagem: "💄",
+  estetica: "💆",
+  outro: "✨"
+});
+
 function normalizeKey(value) {
   return String(value || "")
     .normalize("NFD")
@@ -28,6 +38,22 @@ function normalizeKey(value) {
 
 export function serviceCategoryLabel(value) {
   return CATEGORY_LABELS[normalizeKey(value)] || "Serviço de beleza";
+}
+
+export function serviceCategoryEmoji(value, serviceName = "") {
+  const categoryKey = normalizeKey(value);
+
+  if (CATEGORY_EMOJIS[categoryKey]) return CATEGORY_EMOJIS[categoryKey];
+
+  const nameKey = normalizeKey(serviceName);
+
+  if (/unha|manicure|pedicure|nail|esmalta/.test(nameKey)) return "💅";
+  if (/cabelo|cabeleir|corte|escova|penteado|barba/.test(nameKey)) return "💇";
+  if (/cilio|lash|sobrancelha|brow|henna/.test(nameKey)) return "👁️";
+  if (/maquiagem|makeup|make up/.test(nameKey)) return "💄";
+  if (/estetica|pele|depil|massagem|drenagem|facial|corporal/.test(nameKey)) return "💆";
+
+  return "✨";
 }
 
 export function normalizeBusinessSpecialties(business = {}) {
