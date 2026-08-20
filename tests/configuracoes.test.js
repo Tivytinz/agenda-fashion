@@ -946,7 +946,7 @@ describe(
     );
 
     test(
-      "publica um negócio completo do dono",
+      "publica um negócio do dono mesmo sem descrição",
       async () => {
         configuracoesRepository
           .buscarNegocioDoUsuario
@@ -957,7 +957,10 @@ describe(
         configuracoesRepository
           .buscarNegocioPorId
           .mockResolvedValue(
-            criarNegocio()
+            criarNegocio({
+              descricao:
+                "",
+            })
           );
 
         configuracoesRepository
@@ -1065,7 +1068,7 @@ describe(
         expect(
           resposta.body.erro
         ).toBe(
-          "Complete o perfil antes de publicar: descrição, cidade, pelo menos um serviço ativo."
+          "Complete o perfil antes de publicar: cidade, pelo menos um serviço ativo."
         );
 
         expect(

@@ -173,8 +173,8 @@ export function BusinessPage({ create = false }) {
               ? { onboarding: true, onboardingStep: "servico" }
               : {
                   message: result.publicacao?.publicado
-                    ? "Perfil completo. Seu negócio foi publicado automaticamente."
-                    : "Perfil completo. Estamos atualizando sua publicação.",
+                    ? "Dados essenciais concluídos. Seu negócio foi publicado automaticamente."
+                    : "Dados essenciais concluídos. Estamos atualizando sua publicação.",
                   onboardingCompleted: result.publicacao?.publicado === true
                 }
           });
@@ -282,7 +282,7 @@ export function BusinessPage({ create = false }) {
             <p>
               {publication.publicado
                 ? "Clientes podem encontrar seus serviços e acessar seu perfil público."
-                : "A publicação acontece automaticamente quando o perfil está completo e há um serviço ativo."}
+                : "A publicação acontece automaticamente com os dados essenciais e um serviço ativo."}
             </p>
             {!publication.pode_publicar && publication.pendencias.length > 0 && (
               <p className="publication-pending">
@@ -364,8 +364,9 @@ export function BusinessPage({ create = false }) {
               </p>
             )}
             <label className="field-wide">
-              Descrição
+              Descrição (opcional)
               <textarea maxLength="1000" onChange={(event) => update("descricao", event.target.value)} rows="4" value={form.descricao} />
+              <small>Ajuda clientes a conhecerem seu trabalho, mas não impede a publicação.</small>
             </label>
             <fieldset className="specialty-field field-wide">
               <legend>Especialidades</legend>

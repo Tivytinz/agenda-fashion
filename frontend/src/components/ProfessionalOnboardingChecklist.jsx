@@ -38,7 +38,7 @@ export function buildOnboardingSteps({ publication }) {
       title: "Publicação automática",
       description: publication?.publicado
         ? "Seu perfil já pode ser encontrado por clientes."
-        : "Ao concluir o perfil e o serviço, publicamos seu negócio.",
+        : "Com os dados essenciais e um serviço, publicamos seu negócio.",
       complete: publication?.publicado === true,
       to: "/painel/negocio",
       action: "Verificar publicação"
@@ -103,7 +103,7 @@ export function ProfessionalOnboardingChecklist({
             Prepare seu negócio para receber agendamentos
           </h2>
           <p className="muted">
-            Complete o perfil e cadastre um serviço. A publicação é automática e gratuita.
+            Informe os dados essenciais e cadastre um serviço. A publicação é automática e gratuita.
           </p>
         </div>
         <strong className="onboarding-progress-label">

@@ -11,12 +11,13 @@ import {
 } from "../components/ScreenState";
 
 const FILTERS = [
-  ["todos", "Todos incompletos"],
-  ["sem_negocio", "Sem negócio"],
-  ["perfil", "Dados do perfil"],
-  ["servico", "Sem serviço"],
-  ["agenda", "Sem agenda"],
-  ["publicacao", "Não publicados"]
+  { value: "todos", label: "Todos que precisam de atenção" },
+  { value: "sem_negocio", label: "Sem negócio" },
+  { value: "perfil", label: "Dados essenciais" },
+  { value: "servico", label: "Sem serviço" },
+  { value: "agenda", label: "Sem agenda" },
+  { value: "publicacao", label: "Não publicados" },
+  { value: "descricao", label: "Sem descrição" }
 ];
 
 function formatDate(value) {
@@ -46,7 +47,8 @@ function whatsappHref(profile) {
   const firstName = String(profile.nome || "").trim().split(/\s+/)[0] || "tudo bem";
   const message = [
     `Olá, ${firstName}! Tudo bem?`,
-    "Sou da equipe do Agenda Fashion e notei que seu perfil ainda tem algumas etapas pendentes.",
+    "Sou da equipe do Agenda Fashion.",
+    pendingMessage(profile),
     "Posso te ajudar a concluir a configuração?"
   ].join(" ");
 
@@ -59,7 +61,7 @@ function emailHref(profile) {
   const body = [
     `Olá, ${profile.nome || "tudo bem"}!`,
     "",
-    "Notamos que seu perfil no Agenda Fashion ainda tem algumas etapas pendentes.",
+    pendingMessage(profile),
     "Podemos ajudar você a concluir a configuração?",
     "",
     "Equipe Agenda Fashion"
@@ -68,13 +70,46 @@ function emailHref(profile) {
   return `mailto:${profile.email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
 }
 
-function SummaryCard({ hint, label, value }) {
+function pendingMessage(profile) {
+  const pending = Array.isArray(profile.pendencias)
+    ? profile.pendencias
+    : [];
+  const actionable = pending.filter((item) => item.tipo !== "recomendacao");
+  const selected = actionable.length > 0 ? actionable : pending;
+  const labels = selected
+    .map((item) => String(item.rotulo || "").replace(/\s*\(recomendado\)$/i, ""))
+    .filter(Boolean);
+
+  if (labels.length === 0) {
+    return "Quero ajudar a deixar seu perfil pronto para receber clientes.";
+  }
+
+  return `Vi que falta concluir: ${labels.join(", ")}.`;
+}
+
+function formatWhatsapp(value) {
+  const digits = String(value || "").replace(/\D/g, "").replace(/^55(?=\d{10,11}$)/, "");
+  if (digits.length === 11) {
+    return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`;
+  }
+  if (digits.length === 10) {
+    return `(${digits.slice(0, 2)}) ${digits.slice(2, 6)}-${digits.slice(6)}`;
+  }
+  return value || "WhatsApp não informado";
+}
+
+function SummaryCard({ active, filter, hint, label, onSelect, value }) {
   return (
-    <article className="metric-card">
+    <button
+      aria-pressed={active}
+      className={`metric-card saas-health-metric-card${active ? " active" : ""}`}
+      onClick={() => onSelect(filter)}
+      type="button"
+    >
       <span>{label}</span>
       <strong>{value ?? 0}</strong>
       <small>{hint}</small>
-    </article>
+    </button>
   );
 }
 
@@ -90,7 +125,7 @@ function ContactActions({ profile }) {
     <div className="saas-health-actions">
       {whatsapp && (
         <a
-          className="button button-primary"
+          className="button button-primary button-small"
           href={whatsapp}
           rel="noreferrer"
           target="_blank"
@@ -99,7 +134,7 @@ function ContactActions({ profile }) {
         </a>
       )}
       {email && (
-        <a className="button button-secondary" href={email}>
+        <a className="button button-secondary button-small" href={email}>
           E-mail
         </a>
       )}
@@ -130,8 +165,9 @@ function ProfileRow({ profile }) {
         <small className="admin-row-note">Última atividade: {formatDate(profile.ultimaAtividadeEm)}</small>
       </td>
       <td>
-        <span>{profile.whatsapp || "WhatsApp não informado"}</span>
+        <span className="saas-health-contact-value">{formatWhatsapp(profile.whatsapp)}</span>
         <small className="admin-row-note">{profile.email || "E-mail não informado"}</small>
+        <ContactActions profile={profile} />
       </td>
       <td>
         <strong>{profile.negocio?.nome || "Negócio não criado"}</strong>
@@ -156,13 +192,15 @@ function ProfileRow({ profile }) {
       <td>
         <div className="saas-health-pending-list">
           {(profile.pendencias || []).map((item) => (
-            <span className="saas-health-pending-chip" key={item.codigo}>
+            <span
+              className={`saas-health-pending-chip${item.tipo === "recomendacao" ? " recommendation" : ""}`}
+              key={item.codigo}
+            >
               {item.rotulo}
             </span>
           ))}
         </div>
       </td>
-      <td><ContactActions profile={profile} /></td>
     </tr>
   );
 }
@@ -224,6 +262,12 @@ export function AdminSaasHealthPage() {
     setPage(1);
   }
 
+  function clearSearch() {
+    setSearchInput("");
+    setSearch("");
+    setPage(1);
+  }
+
   if (!data && !error) {
     return (
       <main className="workspace-page admin-workspace-page admin-marketing-page admin-saas-health-page">
@@ -257,7 +301,7 @@ export function AdminSaasHealthPage() {
           <p className="eyebrow">Administração do AF</p>
           <h1>Saúde do SaaS</h1>
           <p>
-            Identifique profissionais com cadastro incompleto e entre em contato para ajudar na ativação.
+            Identifique etapas pendentes, priorize ativações rápidas e ajude cada profissional pelo contato direto.
           </p>
         </div>
       </header>
@@ -271,18 +315,21 @@ export function AdminSaasHealthPage() {
 
       <section className="metric-grid" aria-label="Indicadores de saúde dos perfis">
         <SummaryCard
+          active={filter === "todos"}
+          filter="todos"
           hint={`de ${summary.totalProfissionais ?? 0} profissionais`}
-          label="Perfis incompletos"
+          label="Precisam de atenção"
+          onSelect={selectFilter}
           value={summary.totalIncompletos}
         />
-        <SummaryCard hint="ainda sem área profissional" label="Sem negócio" value={summary.semNegocio} />
-        <SummaryCard hint="dados obrigatórios pendentes" label="Perfil básico" value={summary.perfilIncompleto} />
-        <SummaryCard hint="negócios sem serviço ativo" label="Sem serviço" value={summary.semServico} />
-        <SummaryCard hint="horários ainda não configurados" label="Sem agenda" value={summary.semAgenda} />
-        <SummaryCard hint="perfil fora do catálogo público" label="Não publicados" value={summary.naoPublicados} />
+        <SummaryCard active={filter === "sem_negocio"} filter="sem_negocio" hint="ainda sem área profissional" label="Sem negócio" onSelect={selectFilter} value={summary.semNegocio} />
+        <SummaryCard active={filter === "perfil"} filter="perfil" hint="dados obrigatórios pendentes" label="Dados essenciais" onSelect={selectFilter} value={summary.perfilIncompleto} />
+        <SummaryCard active={filter === "servico"} filter="servico" hint="negócios sem serviço ativo" label="Sem serviço" onSelect={selectFilter} value={summary.semServico} />
+        <SummaryCard active={filter === "agenda"} filter="agenda" hint="horários ainda não configurados" label="Sem agenda" onSelect={selectFilter} value={summary.semAgenda} />
+        <SummaryCard active={filter === "publicacao"} filter="publicacao" hint="perfil fora do catálogo público" label="Não publicados" onSelect={selectFilter} value={summary.naoPublicados} />
       </section>
 
-      <section className="panel saas-health-panel">
+      <section className="panel saas-health-panel" id="saas-health-results">
         <div className="saas-health-toolbar">
           <div>
             <p className="eyebrow">Acompanhamento</p>
@@ -299,13 +346,18 @@ export function AdminSaasHealthPage() {
                 type="search"
                 value={searchInput}
               />
+              {(searchInput || search) && (
+                <button className="button button-secondary" onClick={clearSearch} type="button">
+                  Limpar
+                </button>
+              )}
               <button className="button button-secondary" type="submit">Buscar</button>
             </div>
           </form>
         </div>
 
         <div className="saas-health-filters" aria-label="Filtrar por pendência">
-          {FILTERS.map(([value, label]) => (
+          {FILTERS.map(({ value, label }) => (
             <button
               aria-pressed={filter === value}
               className={filter === value ? "active" : ""}
@@ -318,9 +370,14 @@ export function AdminSaasHealthPage() {
           ))}
         </div>
 
+        <p className="saas-health-results-count" aria-live="polite">
+          {pagination.total ?? 0} {pagination.total === 1 ? "perfil encontrado" : "perfis encontrados"}.
+          As ativações mais próximas de concluir aparecem primeiro; recomendações ficam ao final.
+        </p>
+
         {profiles.length === 0 ? (
           <EmptyState title="Nenhum perfil encontrado">
-            Não há perfis incompletos para os filtros selecionados.
+            Não há perfis que precisem de atenção para os filtros selecionados.
           </EmptyState>
         ) : (
           <div className="table-wrap saas-health-table">
@@ -332,7 +389,6 @@ export function AdminSaasHealthPage() {
                   <th>Negócio</th>
                   <th>Progresso</th>
                   <th>Pendências</th>
-                  <th>Ações</th>
                 </tr>
               </thead>
               <tbody>

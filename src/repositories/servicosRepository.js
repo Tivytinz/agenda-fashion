@@ -214,8 +214,7 @@ async function sincronizarPublicacaoAutomatica(
         SELECT
           n.id,
           (
-            NULLIF(BTRIM(COALESCE(n.descricao, '')), '') IS NOT NULL
-            AND (
+            (
               COALESCE(cardinality(n.areas), 0) > 0
               OR NULLIF(BTRIM(COALESCE(n.setor, '')), '') IS NOT NULL
             )

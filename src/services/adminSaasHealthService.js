@@ -8,6 +8,7 @@ const PENDENCIAS_PERMITIDAS =
     "todos",
     "sem_negocio",
     "perfil",
+    "descricao",
     "servico",
     "agenda",
     "publicacao",
@@ -81,7 +82,8 @@ function mapearPendencias(
   if (!textoPresente(linha.descricao)) {
     pendencias.push({
       codigo: "descricao",
-      rotulo: "Adicionar descrição",
+      rotulo: "Adicionar descrição (recomendado)",
+      tipo: "recomendacao",
     });
   }
 
@@ -209,9 +211,9 @@ function mapearPerfil(
       percentual,
     },
     prioridade:
-      etapasConcluidas <= 1
+      etapasConcluidas === 4
         ? "alta"
-        : etapasConcluidas <= 3
+        : etapasConcluidas >= 2 && etapasConcluidas <= 3
           ? "media"
           : "baixa",
     pendencias:
@@ -231,6 +233,8 @@ function mapearResumo(
       numero(linha.sem_negocio),
     perfilIncompleto:
       numero(linha.perfil_incompleto),
+    semDescricao:
+      numero(linha.sem_descricao),
     semServico:
       numero(linha.sem_servico),
     semAgenda:

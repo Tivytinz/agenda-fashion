@@ -4,6 +4,7 @@ import {
   cleanup,
   render,
   screen,
+  within,
   waitFor
 } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
@@ -29,6 +30,7 @@ const RESULT = {
     totalIncompletos: 6,
     semNegocio: 1,
     perfilIncompleto: 4,
+    semDescricao: 2,
     semServico: 3,
     semAgenda: 5,
     naoPublicados: 4,
@@ -61,6 +63,11 @@ const RESULT = {
       },
       prioridade: "alta",
       pendencias: [
+        {
+          codigo: "descricao",
+          rotulo: "Adicionar descrição (recomendado)",
+          tipo: "recomendacao"
+        },
         {
           codigo: "agenda",
           rotulo: "Configurar agenda"
@@ -97,14 +104,21 @@ describe("saúde do SaaS no admin", () => {
     expect(screen.getByText("Ana Souza")).not.toBeNull();
     expect(screen.getByText("Studio Ana")).not.toBeNull();
     expect(screen.getByText("Configurar agenda")).not.toBeNull();
+    expect(screen.getByText("Adicionar descrição (recomendado)")).not.toBeNull();
     expect(screen.getByText("Publicar perfil")).not.toBeNull();
     expect(screen.getByLabelText("40% do perfil concluído")).not.toBeNull();
+    expect(screen.getByText("(11) 98765-4321")).not.toBeNull();
+    expect(screen.queryByRole("columnheader", { name: "Ações" })).toBeNull();
 
     const whatsapp = screen.getByRole("link", { name: "WhatsApp" });
     const email = screen.getByRole("link", { name: "E-mail" });
 
     expect(whatsapp.getAttribute("href")).toContain("wa.me/5511987654321");
     expect(whatsapp.getAttribute("target")).toBe("_blank");
+    expect(decodeURIComponent(whatsapp.getAttribute("href")))
+      .toContain("Configurar agenda, Publicar perfil");
+    expect(decodeURIComponent(whatsapp.getAttribute("href")))
+      .not.toContain("Adicionar descrição");
     expect(email.getAttribute("href")).toContain("mailto:ana@example.com");
   });
 
@@ -114,11 +128,47 @@ describe("saúde do SaaS no admin", () => {
     await screen.findByText("Ana Souza");
     apiRequest.mockClear();
 
-    await user.click(screen.getByRole("button", { name: "Sem agenda" }));
+    const filters = screen.getByLabelText("Filtrar por pendência");
+    await user.click(within(filters).getByRole("button", { name: "Sem agenda" }));
 
     await waitFor(() => {
       expect(apiRequest).toHaveBeenCalledWith(
         expect.stringContaining("pendencia=agenda"),
+        expect.objectContaining({ signal: expect.any(AbortSignal) })
+      );
+    });
+  });
+
+  it("usa os indicadores como atalhos de filtro", async () => {
+    const user = userEvent.setup();
+    render(<AdminSaasHealthPage />);
+    await screen.findByText("Ana Souza");
+    apiRequest.mockClear();
+
+    await user.click(screen.getByRole("button", {
+      name: /Não publicados 4 perfil fora do catálogo público/
+    }));
+
+    await waitFor(() => {
+      expect(apiRequest).toHaveBeenCalledWith(
+        expect.stringContaining("pendencia=publicacao"),
+        expect.objectContaining({ signal: expect.any(AbortSignal) })
+      );
+    });
+  });
+
+  it("oferece filtro separado para descrição opcional", async () => {
+    const user = userEvent.setup();
+    render(<AdminSaasHealthPage />);
+    await screen.findByText("Ana Souza");
+    apiRequest.mockClear();
+
+    const filters = screen.getByLabelText("Filtrar por pendência");
+    await user.click(within(filters).getByRole("button", { name: "Sem descrição" }));
+
+    await waitFor(() => {
+      expect(apiRequest).toHaveBeenCalledWith(
+        expect.stringContaining("pendencia=descricao"),
         expect.objectContaining({ signal: expect.any(AbortSignal) })
       );
     });

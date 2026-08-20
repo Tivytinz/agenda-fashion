@@ -70,9 +70,10 @@ const PERFIS_CTE = `
     SELECT
       candidatos.*,
       negocio_id IS NOT NULL AS tem_negocio,
+      NULLIF(BTRIM(descricao), '') IS NOT NULL
+        AS descricao_preenchida,
       (
         negocio_id IS NOT NULL
-        AND NULLIF(BTRIM(descricao), '') IS NOT NULL
         AND (
           CARDINALITY(COALESCE(areas, ARRAY[]::TEXT[])) > 0
           OR NULLIF(BTRIM(setor), '') IS NOT NULL
@@ -94,7 +95,6 @@ const PERFIS_CTE = `
         (negocio_id IS NOT NULL)::INT
         + (
           negocio_id IS NOT NULL
-          AND NULLIF(BTRIM(descricao), '') IS NOT NULL
           AND (
             CARDINALITY(COALESCE(areas, ARRAY[]::TEXT[])) > 0
             OR NULLIF(BTRIM(setor), '') IS NOT NULL
@@ -128,6 +128,7 @@ async function buscarResumo() {
           COUNT(*)::INT AS total_profissionais,
           COUNT(*) FILTER (
             WHERE etapas_concluidas < 5
+              OR descricao_preenchida = FALSE
           )::INT AS total_incompletos,
           COUNT(*) FILTER (
             WHERE tem_negocio = FALSE
@@ -136,6 +137,10 @@ async function buscarResumo() {
             WHERE tem_negocio = TRUE
               AND perfil_basico_completo = FALSE
           )::INT AS perfil_incompleto,
+          COUNT(*) FILTER (
+            WHERE tem_negocio = TRUE
+              AND descricao_preenchida = FALSE
+          )::INT AS sem_descricao,
           COUNT(*) FILTER (
             WHERE tem_negocio = TRUE
               AND possui_servico_ativo = FALSE
@@ -150,6 +155,7 @@ async function buscarResumo() {
           )::INT AS nao_publicados,
           COUNT(*) FILTER (
             WHERE etapas_concluidas = 5
+              AND descricao_preenchida = TRUE
           )::INT AS completos
         FROM avaliados
       `
@@ -166,6 +172,8 @@ function filtroPendenciaSql(
       "AND tem_negocio = FALSE",
     perfil:
       "AND tem_negocio = TRUE AND perfil_basico_completo = FALSE",
+    descricao:
+      "AND tem_negocio = TRUE AND descricao_preenchida = FALSE",
     servico:
       "AND tem_negocio = TRUE AND possui_servico_ativo = FALSE",
     agenda:
@@ -210,12 +218,16 @@ async function listarPerfisIncompletos({
           configurado_em,
           ultima_atividade_em,
           tem_negocio,
+          descricao_preenchida,
           perfil_basico_completo,
           agenda_configurada,
           etapas_concluidas,
           COUNT(*) OVER()::INT AS total_resultados
         FROM avaliados
-        WHERE etapas_concluidas < 5
+        WHERE (
+          etapas_concluidas < 5
+          OR descricao_preenchida = FALSE
+        )
           AND (
             $1 = ''
             OR usuario_nome ILIKE '%' || $1 || '%'
@@ -225,7 +237,9 @@ async function listarPerfisIncompletos({
           )
           ${filtroPendenciaSql(pendencia)}
         ORDER BY
-          etapas_concluidas ASC,
+          (etapas_concluidas = 5) ASC,
+          etapas_concluidas DESC,
+          ultima_atividade_em DESC,
           cadastro_em DESC,
           usuario_id DESC
         LIMIT $2

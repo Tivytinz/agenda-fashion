@@ -94,6 +94,7 @@ describe(
           total_incompletos: 6,
           sem_negocio: 1,
           perfil_incompleto: 4,
+          sem_descricao: 5,
           sem_servico: 3,
           sem_agenda: 5,
           nao_publicados: 4,
@@ -200,6 +201,7 @@ describe(
             totalIncompletos: 6,
             semNegocio: 1,
             perfilIncompleto: 4,
+            semDescricao: 5,
             semServico: 3,
             semAgenda: 5,
             naoPublicados: 4,
@@ -228,12 +230,42 @@ describe(
           "publicacao",
         ]);
         expect(
+          resposta.body.perfis[0]
+            .pendencias[0].rotulo
+        ).toBe(
+          "Adicionar descrição (recomendado)"
+        );
+        expect(
+          resposta.body.perfis[0]
+            .pendencias[0].tipo
+        ).toBe("recomendacao");
+        expect(
           resposta.body.paginacao
         ).toEqual({
           pagina: 2,
           limite: 10,
           total: 11,
           totalPaginas: 2,
+        });
+      }
+    );
+
+    test(
+      "aceita filtrar recomendações de descrição separadamente",
+      async () => {
+        await request(criarApp())
+          .get(
+            "/admin/saude/perfis-incompletos?pendencia=descricao"
+          );
+
+        expect(
+          repository
+            .listarPerfisIncompletos
+        ).toHaveBeenCalledWith({
+          busca: "",
+          pendencia: "descricao",
+          limite: 25,
+          offset: 0,
         });
       }
     );

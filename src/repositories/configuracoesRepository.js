@@ -236,10 +236,6 @@ async function atualizarNegocio(
   ),
          publicado = CASE
   WHEN NULLIF(
-      BTRIM(COALESCE($4::TEXT, ''::TEXT)),
-      ''
-    ) IS NOT NULL
-    AND NULLIF(
       BTRIM(COALESCE($5::TEXT, ''::TEXT)),
       ''
     ) IS NOT NULL

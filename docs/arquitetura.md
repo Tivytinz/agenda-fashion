@@ -408,9 +408,12 @@ Admin global não deve ser confundido com o papel `dono` de um negócio.
 A área administrativa possui a página `Saúde do SaaS`, em `/admin/saude`.
 Ela consulta `GET /admin/saude/perfis-incompletos` para resumir e listar
 cadastros profissionais que ainda não concluíram negócio, dados obrigatórios,
-serviço, agenda ou publicação. Nome, e-mail e WhatsApp permanecem protegidos
-por `auth` e `authAdmin`; as ações de contato apenas abrem a mensagem para
-revisão do administrador e não enviam comunicação automaticamente.
+serviço, agenda ou publicação. A descrição opcional aparece separadamente como
+recomendação e não reduz o progresso de ativação. A listagem prioriza quem está
+mais perto de concluir e oferece filtros pelos indicadores e pelas pendências.
+Nome, e-mail e WhatsApp permanecem protegidos por `auth` e `authAdmin`; as ações
+de contato ficam junto dos dados de contato, abrem uma mensagem personalizada
+para revisão do administrador e não enviam comunicação automaticamente.
 
 ### Proteção do frontend
 
@@ -493,8 +496,12 @@ permitidos.
 
 A publicação é automática quando o negócio reúne os dois requisitos:
 
-1. perfil completo, com descrição, especialidade, WhatsApp, cidade e estado;
+1. dados mínimos de descoberta, com especialidade, WhatsApp, cidade e estado;
 2. pelo menos um serviço ativo.
+
+A descrição melhora a confiança e a qualidade do perfil, mas é opcional e não
+impede a publicação. A Saúde do SaaS continua sinalizando sua ausência como
+recomendação para acompanhamento administrativo.
 
 A configuração de agenda é recomendada para receber agendamentos, mas não é
 requisito de publicação. Salvar o perfil, criar, ativar, desativar ou remover

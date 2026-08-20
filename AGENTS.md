@@ -64,6 +64,9 @@ AF nao demonstra valor para os negocios.
   upgrade.
 - O perfil publico de cada negocio e uma ferramenta de aquisicao e deve ter
   link curto, estavel, compartilhavel e indexavel quando publicado.
+- A descricao do negocio melhora a qualidade do perfil, mas e opcional e nao
+  pode bloquear a publicacao; especialidade, WhatsApp, cidade, estado e ao
+  menos um servico ativo formam os requisitos minimos de descoberta.
 - Links antigos de perfis devem continuar funcionando quando o slug mudar.
 - O dashboard deve traduzir dados em crescimento compreensivel, nao apenas
   exibir numeros soltos.

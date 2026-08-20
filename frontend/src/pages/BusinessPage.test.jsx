@@ -231,13 +231,15 @@ describe("publicação do negócio", () => {
       publicacao: {
         publicado: false,
         pode_publicar: false,
-        pendencias: ["descrição", "cidade", "pelo menos um serviço ativo"]
+        pendencias: ["cidade", "pelo menos um serviço ativo"]
       }
     });
 
     renderPage();
 
-    expect(await screen.findByText(/Falta completar: descrição, cidade, pelo menos um serviço ativo/)).not.toBeNull();
+    expect(await screen.findByText(/Falta completar: cidade, pelo menos um serviço ativo/)).not.toBeNull();
+    expect(screen.getByLabelText(/Descrição \(opcional\)/)).not.toBeNull();
+    expect(screen.getByText(/não impede a publicação/)).not.toBeNull();
     expect(screen.getByRole("button", { name: "Publicar meu negócio" }).disabled).toBe(true);
     expect(apiRequest).toHaveBeenCalledTimes(1);
   });

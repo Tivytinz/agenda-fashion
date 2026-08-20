@@ -16,7 +16,7 @@ function renderChecklist(overrides = {}) {
         publication={{
           publicado: false,
           pode_publicar: false,
-          pendencias: ["descrição", "pelo menos um serviço ativo"]
+          pendencias: ["pelo menos um serviço ativo"]
         }}
         {...overrides}
       />
@@ -28,10 +28,10 @@ describe("onboarding profissional", () => {
   it("leva a profissional para a primeira etapa incompleta", () => {
     renderChecklist();
 
-    expect(screen.getByText("0 de 3")).not.toBeNull();
-    expect(screen.getByText("Falta: descrição.")).not.toBeNull();
-    expect(screen.getByRole("link", { name: "Completar perfil" })
-      .getAttribute("href")).toBe("/painel/negocio");
+    expect(screen.getByText("1 de 3")).not.toBeNull();
+    expect(screen.getByText("Nome, contato e localização estão prontos.")).not.toBeNull();
+    expect(screen.getByRole("link", { name: "Cadastrar serviço" })
+      .getAttribute("href")).toBe("/painel/servicos/novo");
   });
 
   it("prioriza o primeiro serviço depois que o perfil está completo", () => {

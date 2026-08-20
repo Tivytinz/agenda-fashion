@@ -61,7 +61,7 @@ describe("consistência da publicação do negócio", () => {
 
     for (
       const parametro
-      of [4, 5, 6, 7, 14]
+      of [5, 6, 7, 14]
     ) {
       expect(
         sqlCompacto
@@ -69,6 +69,10 @@ describe("consistência da publicação do negócio", () => {
         `NULLIF(BTRIM(COALESCE($${parametro}::TEXT,''::TEXT)),'')ISNOTNULL`
       );
     }
+
+    expect(sqlCompacto).not.toContain(
+      "NULLIF(BTRIM(COALESCE($4::TEXT,''::TEXT)),'')ISNOTNULL"
+    );
 
     expect(sqlCompacto).toContain(
       "AREAS=COALESCE($15::TEXT[],ARRAY[]::TEXT[])"
@@ -92,7 +96,7 @@ describe("consistência da publicação do negócio", () => {
     expect(params).toEqual([11]);
   });
 
-  test("perfil completo com serviço ativo é publicado automaticamente", async () => {
+  test("perfil sem descrição e com serviço ativo é publicado automaticamente", async () => {
     mockQuery.mockResolvedValueOnce({
       rows: [{ id: 11, publicado: true }]
     });
@@ -103,6 +107,7 @@ describe("consistência da publicação do negócio", () => {
 
     expect(sql).toMatch(/UPDATE negocios[\s\S]*publicado\s*=\s*e\.pode_publicar/i);
     expect(sql).toMatch(/EXISTS[\s\S]*servicos_negocio[\s\S]*s\.ativo\s*=\s*TRUE/i);
+    expect(sql).not.toMatch(/n\.descricao/i);
     expect(sql).not.toMatch(/agenda_configuracoes|configurado_em/i);
     expect(params).toEqual([11]);
     expect(resultado).toEqual({ id: 11, publicado: true });

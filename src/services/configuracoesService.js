@@ -476,21 +476,6 @@ function avaliarPublicacao(
 ) {
   const pendencias = [];
 
-  if (!normalizarTexto(
-    negocio?.descricao,
-    {
-      nomeCampo:
-        "Descrição",
-
-      tamanhoMaximo:
-        1200,
-    }
-  )) {
-    pendencias.push(
-      "descrição"
-    );
-  }
-
   const especialidades =
     normalizarEspecialidades(
       negocio?.areas,
