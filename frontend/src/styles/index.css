@@ -163,7 +163,7 @@ nav { display: flex; align-items: center; gap: 18px; }
 .choice-card { display: flex; min-height: 82px; align-items: center; justify-content: space-between; gap: 14px; border: 1px solid var(--line); border-radius: 13px; padding: 15px; color: var(--ink); background: #fff; text-align: left; cursor: pointer; }
 .choice-card:hover { border-color: var(--pink-500); }
 .choice-card.selected, .date-button.selected, .time-button.selected { border-color: var(--pink-500); background: var(--pink-50); box-shadow: inset 0 0 0 1px var(--pink-500); }
-.choice-card span:not(.avatar), .choice-card small { display: block; }
+.choice-card > span:not(.avatar):not(.af-media-thumb), .choice-card small { display: block; }
 .choice-card small { margin-top: 5px; color: var(--muted); }
 .choice-copy { min-width: 0; }
 .choice-copy > strong { display: block; }
@@ -663,7 +663,11 @@ body,
   display: grid;
   width: 100%;
   height: 100%;
+  align-items: center;
+  justify-items: center;
   place-items: center;
+  line-height: 1;
+  text-align: center;
   font-size: 1.55rem;
 }
 

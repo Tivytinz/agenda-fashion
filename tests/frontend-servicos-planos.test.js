@@ -49,4 +49,15 @@ describe("Sprint de catálogo, planos e navegação", () => {
     expect(account).toContain("Voltar à área de trabalho");
     expect(business).toContain("Voltar a explorar");
   });
+
+  test("mantém os emojis de fallback centralizados nas mídias", () => {
+    const styles = ler("frontend/src/styles/index.css");
+
+    expect(styles).toContain(
+      ".choice-card > span:not(.avatar):not(.af-media-thumb)"
+    );
+    expect(styles).toMatch(
+      /\.af-media-fallback\s*\{[\s\S]*?place-items:\s*center;[\s\S]*?line-height:\s*1;/
+    );
+  });
 });
