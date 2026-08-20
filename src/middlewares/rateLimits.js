@@ -101,6 +101,17 @@ const limitarCadastro =
       "Muitos cadastros enviados. Tente novamente mais tarde.",
   });
 
+const limitarRecuperacaoSenha =
+  criarLimitador({
+    limite: 5,
+    janelaMs:
+      60 * 60 * 1000,
+    mensagem:
+      "Muitas solicitações de recuperação. Tente novamente mais tarde.",
+    chave:
+      chaveLogin,
+  });
+
 const limitarAgendamento =
   criarLimitador({
     limite: 30,
@@ -151,6 +162,7 @@ module.exports = {
   criarLimitador,
   limitarLogin,
   limitarCadastro,
+  limitarRecuperacaoSenha,
   limitarAgendamento,
   limitarCheckout,
   limitarEventos,

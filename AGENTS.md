@@ -1,6 +1,6 @@
 # Memoria operacional do Agenda Fashion
 
-> Contexto permanente para agentes de desenvolvimento. Atualizado em 19 de
+> Contexto permanente para agentes de desenvolvimento. Atualizado em 20 de
 > agosto de 2026.
 
 Este arquivo deve ser lido antes de analisar, planejar ou alterar o projeto.
@@ -109,6 +109,8 @@ etapas diferentes. Os detalhes ficam em `docs/planos.md`.
 - Camadas: routes, controllers, services, repositories e PostgreSQL.
 - Autenticacao: JWT em cookie `HttpOnly`, bcrypt e Google Identity. Tokens
   Bearer antigos continuam aceitos apenas durante a migracao compativel.
+- Recuperacao de senha: link de uso unico enviado por e-mail, com token
+  armazenado somente como hash e validade de 30 minutos.
 - Imagens: Busboy, validacao de conteudo e Cloudinary.
 - Pagamentos: Asaas com confirmacao por webhook idempotente.
 - Notificacoes: WhatsApp Cloud API oficial da Meta.

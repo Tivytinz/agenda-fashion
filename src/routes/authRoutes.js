@@ -12,6 +12,7 @@ const router =
 const {
   limitarLogin,
   limitarCadastro,
+  limitarRecuperacaoSenha,
 } = require(
   "../middlewares/rateLimits"
 );
@@ -38,6 +39,18 @@ router.post(
   "/auth/google",
   limitarLogin,
   authController.loginGoogle
+);
+
+router.post(
+  "/auth/esqueci-senha",
+  limitarRecuperacaoSenha,
+  authController.esqueciSenha
+);
+
+router.post(
+  "/auth/redefinir-senha",
+  limitarRecuperacaoSenha,
+  authController.redefinirSenha
 );
 
 router.post(

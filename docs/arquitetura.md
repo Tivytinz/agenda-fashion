@@ -48,7 +48,7 @@ WhatsApp e acompanhar o crescimento do negocio pelo dashboard.
 | Testes backend | Jest, Supertest e PostgreSQL de teste |
 | Testes frontend | Vitest, Testing Library e Playwright |
 | Pagamentos | Asaas |
-| Notificações | WhatsApp Cloud API |
+| Notificações | WhatsApp Cloud API e e-mail transacional via Resend |
 | Marketing | GA4, Google Ads, Meta CAPI e Meta Marketing API |
 | CI/CD | GitHub Actions e Railway |
 | Domínio | `app.agendafashion.com.br` |
@@ -363,6 +363,17 @@ o token no `localStorage`.
 O endpoint `POST /logout` remove o cookie. Respostas de autenticação usam
 `Cache-Control: no-store`. O cookie de produção possui o prefixo `__Host-`, não
 define domínio e sempre usa o caminho `/`.
+
+A recuperação de senha usa `POST /auth/esqueci-senha` e
+`POST /auth/redefinir-senha`. O primeiro endpoint sempre responde de forma
+neutra para não revelar se um e-mail existe. O token aleatório possui validade
+de 30 minutos, é enviado por e-mail, armazenado no PostgreSQL somente como hash
+SHA-256 e invalidado após o primeiro uso. A troca atualiza
+`usuarios.senha_alterada_em`, encerrando a validade das sessões anteriores.
+
+O envio exige `PASSWORD_RESET_EMAIL_ENABLED=true`, `RESEND_API_KEY`,
+`PASSWORD_RESET_EMAIL_FROM` e `PUBLIC_APP_URL` configurados no serviço da
+aplicação. Chaves e tokens nunca devem ser registrados nos logs.
 
 Não confiar em papel, negócio ou permissão enviados pelo frontend.
 

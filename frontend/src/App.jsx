@@ -39,6 +39,10 @@ const AuthPage = lazyNamed(
   () => import("./pages/AuthPage"),
   "AuthPage"
 );
+const PasswordResetPage = lazyNamed(
+  () => import("./pages/PasswordResetPage"),
+  "PasswordResetPage"
+);
 const AgendaWorkspacePage = lazyNamed(
   () => import("./pages/AgendaWorkspacePage"),
   "AgendaWorkspacePage"
@@ -161,6 +165,8 @@ export default function App() {
         <Route path={reactRoutes.myAgenda} element={<MyAppointmentsPage />} />
         <Route path={reactRoutes.login} element={<AuthPage />} />
         <Route path={reactRoutes.register} element={<AuthPage mode="register" />} />
+        <Route path={reactRoutes.forgotPassword} element={<PasswordResetPage />} />
+        <Route path={reactRoutes.resetPassword} element={<PasswordResetPage mode="reset" />} />
         <Route path={reactRoutes.privacy} element={<PrivacyPage />} />
         <Route
           element={(

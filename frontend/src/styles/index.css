@@ -259,6 +259,10 @@ nav { display: flex; align-items: center; gap: 18px; }
 .auth-divider::before, .auth-divider::after { height: 1px; flex: 1; content: ""; background: var(--line); }
 .auth-switch { margin: 22px 0 0; color: var(--muted); text-align: center; }
 .auth-switch a { color: var(--pink-600); font-weight: 850; }
+.forgot-password-link { justify-self: end; margin-top: -5px; color: var(--pink-600); font-size: .86rem; font-weight: 800; }
+.password-reset-form { margin-top: 24px; }
+.password-reset-state { margin-top: 24px; }
+.form-success { margin: 0; border: 1px solid #bce6ce; border-radius: 12px; padding: 12px 14px; color: #17633c; background: #eefaf3; line-height: 1.45; }
 
 .stack-form { display: grid; gap: 18px; }
 .stack-form label, .settings-grid label { display: grid; gap: 7px; color: var(--wine); font-size: .9rem; font-weight: 800; }

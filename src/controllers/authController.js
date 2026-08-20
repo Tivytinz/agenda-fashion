@@ -11,6 +11,10 @@ const metaAdsService = require(
   "../services/metaAdsService"
 );
 
+const passwordResetService = require(
+  "../services/passwordResetService"
+);
+
 const {
   definirCookieSessao,
   limparCookieSessao,
@@ -209,6 +213,42 @@ async function loginGoogle(
   }
 }
 
+async function esqueciSenha(
+  req,
+  res,
+  next
+) {
+  try {
+    const resultado = await passwordResetService.solicitarRedefinicao({
+      email: req.body?.email,
+    });
+
+    res.set("Cache-Control", "no-store");
+    return res.status(200).json(resultado);
+  } catch (erro) {
+    return next(erro);
+  }
+}
+
+async function redefinirSenha(
+  req,
+  res,
+  next
+) {
+  try {
+    const resultado = await passwordResetService.redefinirSenha({
+      token: req.body?.token,
+      senha: req.body?.senha,
+    });
+
+    limparCookieSessao(res);
+    res.set("Cache-Control", "no-store");
+    return res.status(200).json(resultado);
+  } catch (erro) {
+    return next(erro);
+  }
+}
+
 function logout(
   _req,
   res
@@ -244,6 +284,8 @@ module.exports = {
   cadastro,
   login,
   loginGoogle,
+  esqueciSenha,
+  redefinirSenha,
   logout,
   configuracaoPublica,
 };

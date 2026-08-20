@@ -4,6 +4,8 @@
   "localCatalog": "/servicos/:categoria/em/:localidade",
   "login": "/entrar",
   "register": "/cadastro",
+  "forgotPassword": "/esqueci-senha",
+  "resetPassword": "/redefinir-senha",
   "privacy": "/privacidade",
   "confirm": "/confirmar",
   "success": "/sucesso",

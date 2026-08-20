@@ -238,6 +238,11 @@ export function AuthPage({ mode = "login" }) {
               value={form.senha}
             />
           </label>
+          {!isRegister && (
+            <Link className="forgot-password-link" to="/esqueci-senha">
+              Esqueci minha senha
+            </Link>
+          )}
           {isRegister && (
             <label>
               Confirme a senha
