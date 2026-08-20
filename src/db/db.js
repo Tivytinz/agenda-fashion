@@ -17,6 +17,7 @@ const isTest =
 const databaseUrl =
   String(
     process.env.DATABASE_URL ||
+    process.env.DATABASE_PRIVATE_URL ||
     ""
   ).trim();
 
