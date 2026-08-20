@@ -422,9 +422,14 @@
     padding: 13px;
   }
 
-  .business-card .service-preview,
   .business-card .business-heading .eyebrow {
     display: none;
+  }
+
+  .business-card .business-description {
+    margin-top: 10px;
+    padding-top: 9px;
+    -webkit-line-clamp: 2;
   }
 
   .business-card .business-heading h3,

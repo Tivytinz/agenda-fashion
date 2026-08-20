@@ -22,6 +22,7 @@ describe("imagens dos cards do catálogo", () => {
           id: 1,
           nome: "Studio Aurora",
           slug: "studio-aurora",
+          descricao: "Atendimento acolhedor para realçar sua beleza.",
           servicos: [
             { id: 1, nome: "Primeiro", valor: 20 },
             { id: 2, nome: "Segundo", valor: 30 },
@@ -38,6 +39,10 @@ describe("imagens dos cards do catálogo", () => {
 
     expect(document.querySelector(".business-card img")?.src)
       .toContain("/uploads/terceiro.jpg");
+    expect(screen.getByText("Atendimento acolhedor para realçar sua beleza."))
+      .not.toBeNull();
+    expect(screen.queryByText("Primeiro")).toBeNull();
+    expect(screen.queryByText("R$ 20,00")).toBeNull();
     expect(screen.queryByText("3 serviços")).toBeNull();
   });
 

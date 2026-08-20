@@ -1,6 +1,5 @@
 import { Link } from "react-router-dom";
 import {
-  formatCurrency,
   formatLocation,
   formatRating
 } from "../utils/format";
@@ -8,9 +7,6 @@ import { useRetryingMedia } from "../hooks/useRetryingMedia";
 import { normalizeBusinessSpecialties } from "../utils/specialties";
 
 export function BusinessCard({ business }) {
-  const featuredServices =
-    (business.servicos || []).slice(0, 2);
-
   const serviceCount =
     business.servicos?.length || 0;
 
@@ -96,26 +92,10 @@ export function BusinessCard({ business }) {
           </span>
         </div>
 
-        {featuredServices.length > 0 && (
-          <ul
-            className="service-preview"
-            aria-label="Serviços em destaque"
-          >
-            {featuredServices.map(
-              (service) => (
-                <li key={service.id}>
-                  <span>{service.nome}</span>
-
-                  <strong>
-                    <span aria-hidden="true">💰</span>{" "}
-                    {formatCurrency(
-                      service.valor
-                    )}
-                  </strong>
-                </li>
-              )
-            )}
-          </ul>
+        {business.descricao && (
+          <p className="business-description">
+            {business.descricao}
+          </p>
         )}
 
         <div className="card-footer">

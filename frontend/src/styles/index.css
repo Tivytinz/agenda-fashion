@@ -79,6 +79,7 @@ nav { display: flex; align-items: center; gap: 18px; }
 .business-card { display: flex; min-width: 0; flex-direction: column; }
 .card-image { display: grid; aspect-ratio: 16 / 8; place-items: center; overflow: hidden; color: var(--pink-600); background: linear-gradient(145deg, var(--pink-50), #fde2ed); font-size: 2.4rem; }
 .card-image img { width: 100%; height: 100%; object-fit: cover; }
+.business-card .card-image img { object-fit: contain; }
 .card-placeholder { display: grid; justify-items: center; gap: 6px; }
 .business-initial { display: grid; width: 64px; height: 64px; place-items: center; border: 2px solid rgb(197 36 107 / 22%); border-radius: 18px; color: #fff; background: linear-gradient(145deg, var(--pink-500), var(--wine)); box-shadow: 0 8px 20px rgb(105 36 63 / 18%); font-size: 1.8rem; font-weight: 900; }
 .card-placeholder small { color: var(--wine); font-size: .7rem; font-weight: 850; letter-spacing: .08em; text-transform: uppercase; }
@@ -86,10 +87,7 @@ nav { display: flex; align-items: center; gap: 18px; }
 .business-heading { display: flex; align-items: start; justify-content: space-between; gap: 12px; }
 .business-heading h3 { font-size: 1.12rem; }
 .location { margin-bottom: 0; font-size: .85rem; }
-.service-preview { display: grid; gap: 7px; margin: 15px 0 0; padding: 13px 0 0; border-top: 1px solid var(--line); list-style: none; }
-.service-preview li { display: flex; justify-content: space-between; gap: 14px; font-size: .84rem; }
-.service-preview li span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.service-preview li strong { flex: 0 0 auto; color: var(--wine); }
+.business-description { display: -webkit-box; overflow: hidden; margin: 15px 0 0; padding: 13px 0 0; border-top: 1px solid var(--line); color: var(--muted); font-size: .86rem; line-height: 1.5; overflow-wrap: anywhere; -webkit-box-orient: vertical; -webkit-line-clamp: 3; }
 .card-footer { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: auto; padding-top: 16px; }
 .business-card-available .card-footer { justify-content: flex-end; }
 .card-footer > small { color: var(--muted); }

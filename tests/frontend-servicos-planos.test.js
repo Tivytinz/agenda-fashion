@@ -60,4 +60,12 @@ describe("Sprint de catálogo, planos e navegação", () => {
       /\.af-media-fallback\s*\{[\s\S]*?place-items:\s*center;[\s\S]*?line-height:\s*1;/
     );
   });
+
+  test("exibe a foto completa nos cards de negócios", () => {
+    const styles = ler("frontend/src/styles/index.css");
+
+    expect(styles).toContain(
+      ".business-card .card-image img { object-fit: contain; }"
+    );
+  });
 });
