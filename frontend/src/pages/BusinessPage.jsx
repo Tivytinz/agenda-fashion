@@ -60,7 +60,7 @@ export function BusinessPage({ create = false }) {
   const [saving, setSaving] = useState(false);
   const [photoUploading, setPhotoUploading] = useState(false);
   const [error, setError] = useState("");
-  const [message, setMessage] = useState("");
+  const [message, setMessage] = useState(() => location.state?.message || "");
   const [publication, setPublication] = useState(null);
   const [publishing, setPublishing] = useState(false);
 
@@ -155,6 +155,30 @@ export function BusinessPage({ create = false }) {
           ? `/checkout?plano=${encodeURIComponent(selectedPlan)}`
           : requestedPath || "/painel";
         navigate(destination, { replace: true });
+      } else if (
+        location.state?.onboarding === true
+        && location.state?.onboardingStep === "perfil"
+      ) {
+        const pending = Array.isArray(result.publicacao?.pendencias)
+          ? result.publicacao.pendencias
+          : [];
+        const profilePending = pending.filter(
+          (item) => item !== "pelo menos um serviço ativo"
+        );
+
+        if (profilePending.length === 0) {
+          const servicePending = pending.includes("pelo menos um serviço ativo");
+          navigate(servicePending ? "/painel/servicos/novo" : "/painel", {
+            state: servicePending
+              ? { onboarding: true, onboardingStep: "servico" }
+              : {
+                  message: result.publicacao?.publicado
+                    ? "Perfil completo. Seu negócio foi publicado automaticamente."
+                    : "Perfil completo. Estamos atualizando sua publicação.",
+                  onboardingCompleted: result.publicacao?.publicado === true
+                }
+          });
+        }
       }
     } catch (requestError) {
       setError(requestError.message);
@@ -220,6 +244,13 @@ export function BusinessPage({ create = false }) {
       setPublication(result.publicacao);
       setMessage(result.mensagem);
       await session.refresh();
+      if (
+        nextPublished
+        && location.state?.onboarding === true
+        && location.state?.onboardingStep === "publicacao"
+      ) {
+        navigate("/painel", { replace: true });
+      }
     } catch (requestError) {
       setError(requestError.message);
     } finally {
@@ -251,7 +282,7 @@ export function BusinessPage({ create = false }) {
             <p>
               {publication.publicado
                 ? "Clientes podem encontrar seus serviços e acessar seu perfil público."
-                : "Publique quando o perfil estiver pronto para aparecer em Negócios e Serviços."}
+                : "A publicação acontece automaticamente quando o perfil está completo e há um serviço ativo."}
             </p>
             {!publication.pode_publicar && publication.pendencias.length > 0 && (
               <p className="publication-pending">

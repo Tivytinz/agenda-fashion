@@ -471,7 +471,19 @@ O dono acompanha a agenda geral do negócio.
 O profissional acompanha sua própria agenda e altera somente os agendamentos
 permitidos.
 
-### 8.3 Assinaturas e pagamentos
+### 8.3 Onboarding e publicação do negócio
+
+A publicação é automática quando o negócio reúne os dois requisitos:
+
+1. perfil completo, com descrição, especialidade, WhatsApp, cidade e estado;
+2. pelo menos um serviço ativo.
+
+A configuração de agenda é recomendada para receber agendamentos, mas não é
+requisito de publicação. Salvar o perfil, criar, ativar, desativar ou remover
+um serviço deve recalcular a publicação. Se o perfil ficar incompleto ou o
+negócio perder todos os serviços ativos, ele sai do catálogo público.
+
+### 8.4 Assinaturas e pagamentos
 
 Fluxo esperado:
 

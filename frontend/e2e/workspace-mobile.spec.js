@@ -142,3 +142,60 @@ test("ações do negócio ficam acima da navegação e mantêm foco visível", a
     );
   }
 });
+
+test("onboarding mostra somente a próxima ação e cabe no celular", async ({ page }) => {
+  await page.addInitScript(() => {
+    localStorage.setItem("token", "owner-e2e");
+    localStorage.setItem("usuario", JSON.stringify({ id: 4, nome: "Ana" }));
+    localStorage.setItem("negocio", JSON.stringify({
+      id: 11,
+      nome: "Studio Aurora",
+      papel: "dono"
+    }));
+    localStorage.setItem("af_marketing_consent_v2", JSON.stringify({
+      version: 2,
+      status: "denied",
+      updatedAt: "2026-08-11T00:00:00.000Z"
+    }));
+  });
+
+  await page.route("**/minha-sessao", (route) => json(route, {
+    usuario: { id: 4, nome: "Ana", email: "ana@example.com" },
+    negocio: { ...BUSINESS, publicado: false },
+    temNegocio: true,
+    administrador: null,
+    ehAdministrador: false
+  }));
+  await page.route("**/marketing/meta/config", (route) => json(route, {
+    enabled: false,
+    pixelId: null
+  }));
+  await page.route("**/marketing/google/config", (route) => json(route, {
+    enabled: false,
+    measurementId: null
+  }));
+  await page.route("**/dashboard-dono?periodo=7dias", (route) => json(route, {
+    resumo: {},
+    performance: {},
+    ranking_servicos: []
+  }));
+  await page.route("**/configuracoes", (route) => json(route, {
+    negocio: { ...BUSINESS, publicado: false },
+    publicacao: {
+      publicado: false,
+      pode_publicar: false,
+      pendencias: ["pelo menos um serviço ativo"]
+    }
+  }));
+  await page.goto("/painel");
+
+  await expect(page.getByRole("heading", {
+    name: "Prepare seu negócio para receber agendamentos"
+  })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Cadastrar serviço" }))
+    .toBeVisible();
+  await expect(page.getByText("1 de 3")).toBeVisible();
+
+  const diagnostics = await horizontalOverflowDiagnostics(page);
+  expect(diagnostics.scrollWidth).toBe(diagnostics.clientWidth);
+});

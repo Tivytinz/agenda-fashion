@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { apiRequest } from "../api/client";
+import { ProfessionalOnboardingChecklist } from "../components/ProfessionalOnboardingChecklist";
 import { ErrorState, LoadingState } from "../components/ScreenState";
 import { formatCurrency } from "../utils/format";
 
@@ -23,6 +24,11 @@ export function DashboardPage() {
   const [error, setError] = useState("");
   const [reloadKey, setReloadKey] = useState(0);
   const [refreshing, setRefreshing] = useState(true);
+  const [onboarding, setOnboarding] = useState({
+    businessSlug: "",
+    loading: true,
+    publication: null
+  });
 
   useEffect(() => {
     const controller = new AbortController();
@@ -50,6 +56,37 @@ export function DashboardPage() {
       controller.abort();
     };
   }, [period, reloadKey]);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    let active = true;
+
+    apiRequest("/configuracoes", { signal: controller.signal })
+      .then((businessResult) => {
+        if (!active) return;
+
+        const business = businessResult.negocio || businessResult.configuracoes || {};
+        setOnboarding({
+          businessSlug: business.slug || "",
+          loading: false,
+          publication: businessResult.publicacao || {
+            publicado: business.publicado === true,
+            pode_publicar: false,
+            pendencias: []
+          }
+        });
+      })
+      .catch((requestError) => {
+        if (active && requestError.name !== "AbortError") {
+          setOnboarding((current) => ({ ...current, loading: false }));
+        }
+      });
+
+    return () => {
+      active = false;
+      controller.abort();
+    };
+  }, []);
 
   function selectPeriod(value) {
     if (value === period) return;
@@ -94,6 +131,12 @@ export function DashboardPage() {
 
       {refreshing && <p className="data-refresh-status" role="status">Atualizando indicadores...</p>}
       {error && <p className="form-error" role="alert">{error} Os últimos dados carregados continuam visíveis.</p>}
+
+      <ProfessionalOnboardingChecklist
+        businessSlug={onboarding.businessSlug}
+        loading={onboarding.loading}
+        publication={onboarding.publication}
+      />
 
       <section className="metric-grid" aria-label="Indicadores">
         {cards.map(([label, value, hint]) => (

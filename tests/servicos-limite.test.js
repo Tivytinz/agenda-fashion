@@ -135,6 +135,12 @@ describe("Limite de serviços", () => {
         .mockResolvedValue({
           id: 10,
         });
+      servicosRepository
+        .sincronizarPublicacaoAutomatica
+        .mockResolvedValue({
+          id: 7,
+          publicado: true,
+        });
 
       const resultado =
         await servicosService.criarServico({
@@ -155,6 +161,10 @@ describe("Limite de serviços", () => {
       expect(resultado.servico).toEqual({
         id: 10,
       });
+      expect(resultado.publicacao).toEqual({
+        id: 7,
+        publicado: true,
+      });
 
       expect(
         servicosRepository
@@ -164,6 +174,10 @@ describe("Limite de serviços", () => {
         "Cabelos",
         client
       );
+      expect(
+        servicosRepository
+          .sincronizarPublicacaoAutomatica
+      ).toHaveBeenCalledWith(7, client);
     }
   );
 });

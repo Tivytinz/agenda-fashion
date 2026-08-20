@@ -42,6 +42,18 @@
     grid-template-columns: minmax(0, 1fr);
   }
 
+  .onboarding-heading {
+    align-items: flex-start;
+  }
+
+  .onboarding-steps {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .onboarding-actions .button {
+    width: 100%;
+  }
+
   .workspace-sidebar {
     position: static;
     z-index: 12;

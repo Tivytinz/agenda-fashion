@@ -149,7 +149,7 @@ async function criarServico({
   const valorNormalizado = normalizarValor(valor);
   const duracaoNormalizada = normalizarDuracao(duracaoMinutos);
   const categoriaNormalizada = normalizarCategoriaServico(categoria || "outro");
-  const servico = await db.executarTransacao(async (client) => {
+  const resultado = await db.executarTransacao(async (client) => {
     if (servicoAtivo) {
       await validarLimiteServicoAtivo(vinculo.negocio_id, client);
     }
@@ -173,12 +173,21 @@ async function criarServico({
       client
     );
 
-    return criado;
+    const publicacao = await servicosRepository
+      .sincronizarPublicacaoAutomatica(
+        vinculo.negocio_id,
+        client
+      );
+
+    return { servico: criado, publicacao };
   });
 
   return {
-    mensagem: "Serviço criado com sucesso.",
-    servico,
+    mensagem: resultado.publicacao?.publicado
+      ? "Serviço criado e negócio publicado com sucesso."
+      : "Serviço criado com sucesso.",
+    servico: resultado.servico,
+    publicacao: resultado.publicacao,
   };
 }
 
@@ -238,7 +247,7 @@ async function editarServico({
         client
       );
 
-      await servicosRepository.despublicarSemServicoAtivo(
+      await servicosRepository.sincronizarPublicacaoAutomatica(
         vinculo.negocio_id,
         client
       );
@@ -290,7 +299,7 @@ async function removerServico({ usuarioId, id }) {
         }, client);
 
       if (resultado) {
-        await servicosRepository.despublicarSemServicoAtivo(
+        await servicosRepository.sincronizarPublicacaoAutomatica(
           vinculo.negocio_id,
           client
         );

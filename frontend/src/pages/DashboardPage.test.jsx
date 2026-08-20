@@ -22,7 +22,9 @@ const DASHBOARD = {
   ranking_servicos: [{ id: 1, nome: "Manicure", total: 2, faturamento: 100 }]
 };
 
-beforeEach(() => apiRequest.mockReset());
+beforeEach(() => {
+  apiRequest.mockReset();
+});
 afterEach(cleanup);
 
 describe("dashboard", () => {
@@ -53,5 +55,31 @@ describe("dashboard", () => {
     expect(screen.getByText("descobriu você")).not.toBeNull();
     expect(screen.getByRole("heading", { name: "Serviços mais agendados" }))
       .not.toBeNull();
+  });
+
+  it("conduz o profissional para a primeira etapa incompleta", async () => {
+    apiRequest.mockImplementation((path) => {
+      if (path.startsWith("/dashboard-dono")) return Promise.resolve(DASHBOARD);
+      if (path === "/configuracoes") {
+        return Promise.resolve({
+          negocio: { slug: "studio-aurora", publicado: false },
+          publicacao: {
+            publicado: false,
+            pode_publicar: false,
+            pendencias: ["pelo menos um serviço ativo"]
+          }
+        });
+      }
+      return Promise.reject(new Error(`Rota inesperada: ${path}`));
+    });
+
+    render(<MemoryRouter><DashboardPage /></MemoryRouter>);
+
+    expect(await screen.findByRole("heading", {
+      name: "Prepare seu negócio para receber agendamentos"
+    })).not.toBeNull();
+    expect(screen.getByRole("link", { name: "Cadastrar serviço" })
+      .getAttribute("href")).toBe("/painel/servicos/novo");
+    expect(screen.getByText("1 de 3")).not.toBeNull();
   });
 });

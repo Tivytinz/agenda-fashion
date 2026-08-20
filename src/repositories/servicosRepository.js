@@ -204,6 +204,55 @@ async function despublicarSemServicoAtivo(
   return result.rows[0] || null;
 }
 
+async function sincronizarPublicacaoAutomatica(
+  negocioId,
+  executor = db
+) {
+  const result = await executor.query(
+    `
+      WITH elegibilidade AS (
+        SELECT
+          n.id,
+          (
+            NULLIF(BTRIM(COALESCE(n.descricao, '')), '') IS NOT NULL
+            AND (
+              COALESCE(cardinality(n.areas), 0) > 0
+              OR NULLIF(BTRIM(COALESCE(n.setor, '')), '') IS NOT NULL
+            )
+            AND NULLIF(BTRIM(COALESCE(n.whatsapp, '')), '') IS NOT NULL
+            AND NULLIF(BTRIM(COALESCE(n.cidade, '')), '') IS NOT NULL
+            AND UPPER(BTRIM(COALESCE(n.estado, ''))) IN (
+              'AC', 'AL', 'AP', 'AM', 'BA', 'CE', 'DF', 'ES', 'GO',
+              'MA', 'MT', 'MS', 'MG', 'PA', 'PB', 'PR', 'PE', 'PI',
+              'RJ', 'RN', 'RS', 'RO', 'RR', 'SC', 'SP', 'SE', 'TO'
+            )
+            AND EXISTS (
+              SELECT 1
+              FROM servicos_negocio s
+              WHERE s.negocio_id = n.id
+                AND s.ativo = TRUE
+            )
+          ) AS pode_publicar
+        FROM negocios n
+        WHERE n.id = $1
+      )
+      UPDATE negocios n
+      SET
+        publicado = e.pode_publicar,
+        updated_at = CASE
+          WHEN n.publicado IS DISTINCT FROM e.pode_publicar THEN NOW()
+          ELSE n.updated_at
+        END
+      FROM elegibilidade e
+      WHERE n.id = e.id
+      RETURNING n.id, n.publicado
+    `,
+    [negocioId]
+  );
+
+  return result.rows[0] || null;
+}
+
 async function adicionarEspecialidadeNegocio(
   negocioId,
   especialidade,
@@ -307,6 +356,7 @@ module.exports = {
   editarServico,
   removerServico,
   despublicarSemServicoAtivo,
+  sincronizarPublicacaoAutomatica,
   adicionarEspecialidadeNegocio,
   atualizarFotoServico,
   listarFotosServico,

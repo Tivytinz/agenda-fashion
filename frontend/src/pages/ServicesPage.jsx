@@ -177,6 +177,7 @@ export function ServicesPage() {
 
 export function ServiceEditorPage() {
   const { id } = useParams();
+  const location = useLocation();
   const navigate = useNavigate();
   const editing = Boolean(id);
   const [form, setForm] = useState(EMPTY_FORM);
@@ -249,8 +250,9 @@ export function ServiceEditorPage() {
     setSaving(true);
     setError("");
     let savedId = persistedId;
+    let saveResult = null;
     try {
-      const result = await apiRequest(savedId ? `/servicos/${savedId}` : "/servicos", {
+      saveResult = await apiRequest(savedId ? `/servicos/${savedId}` : "/servicos", {
         method: savedId ? "PUT" : "POST",
         body: {
           nome: form.nome.trim(),
@@ -261,7 +263,7 @@ export function ServiceEditorPage() {
           ativo: form.ativo
         }
       });
-      savedId = result.servico?.id || savedId;
+      savedId = saveResult.servico?.id || savedId;
       if (!savedId) {
         throw new Error("O serviço foi salvo, mas não foi possível identificar o cadastro.");
       }
@@ -281,9 +283,17 @@ export function ServiceEditorPage() {
         await uploadImage(`/servicos/${savedId}/fotos`, file);
         setGalleryFiles((current) => current.filter((item) => item !== file));
       }
-      navigate("/painel/servicos", {
+      const continueOnboarding = !editing && location.state?.onboarding === true;
+      navigate(continueOnboarding ? "/painel" : "/painel/servicos", {
         replace: true,
-        state: { message: editing ? "Serviço atualizado." : "Serviço criado." }
+        state: continueOnboarding
+          ? {
+              message: saveResult.publicacao?.publicado
+                ? "Serviço criado. Seu negócio foi publicado automaticamente."
+                : "Serviço criado. Estamos atualizando sua publicação.",
+              onboardingCompleted: saveResult.publicacao?.publicado === true
+            }
+          : { message: editing ? "Serviço atualizado." : "Serviço criado." }
       });
     } catch (requestError) {
       setError(`O serviço foi salvo, mas algumas fotos não foram enviadas. ${requestError.message} Tente novamente para enviar apenas as fotos pendentes.`);

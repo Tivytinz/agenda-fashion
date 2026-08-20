@@ -235,8 +235,7 @@ async function atualizarNegocio(
     ARRAY[]::TEXT[]
   ),
          publicado = CASE
-  WHEN negocios.publicado = TRUE
-    AND NULLIF(
+  WHEN NULLIF(
       BTRIM(COALESCE($4::TEXT, ''::TEXT)),
       ''
     ) IS NOT NULL

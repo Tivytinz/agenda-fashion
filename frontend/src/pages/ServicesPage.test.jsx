@@ -10,12 +10,13 @@ vi.mock("../api/client", () => ({
   apiRequest: vi.fn()
 }));
 
-function renderEditor() {
+function renderEditor(entry = "/painel/servicos/novo") {
   return render(
-    <MemoryRouter initialEntries={["/painel/servicos/novo"]}>
+    <MemoryRouter initialEntries={[entry]}>
       <Routes>
         <Route path="/painel/servicos/novo" element={<ServiceEditorPage />} />
         <Route path="/painel/servicos" element={<h1>Lista de serviços</h1>} />
+        <Route path="/painel" element={<h1>Visão geral publicada</h1>} />
       </Routes>
     </MemoryRouter>
   );
@@ -123,6 +124,23 @@ describe("editor de serviços", () => {
     expect(galleryUploads).toHaveLength(3);
     expect(galleryUploads[2][1].body.get("foto").name).toBe("segunda.jpg");
     await waitFor(() => expect(apiRequest).toHaveBeenCalledTimes(5));
+  });
+
+  it("conclui o onboarding quando o primeiro serviço publica o negócio", async () => {
+    apiRequest.mockResolvedValueOnce({
+      servico: { id: 55 },
+      publicacao: { publicado: true }
+    });
+
+    renderEditor({
+      pathname: "/painel/servicos/novo",
+      state: { onboarding: true, onboardingStep: "servico" }
+    });
+    fillService();
+    submit();
+
+    expect(await screen.findByRole("heading", { name: "Visão geral publicada" }))
+      .not.toBeNull();
   });
 });
 

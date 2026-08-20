@@ -61,7 +61,7 @@ describe("Edição completa de serviços", () => {
       client
     );
     expect(
-      servicosRepository.despublicarSemServicoAtivo
+      servicosRepository.sincronizarPublicacaoAutomatica
     ).toHaveBeenCalledWith(7, client);
     expect(
       servicosRepository.adicionarEspecialidadeNegocio

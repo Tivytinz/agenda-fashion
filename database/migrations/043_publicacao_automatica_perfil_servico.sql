@@ -1,0 +1,31 @@
+BEGIN;
+
+-- A agenda não faz parte da elegibilidade de publicação. Negócios existentes
+-- que já possuem perfil completo e ao menos um serviço ativo entram no
+-- catálogo sem exigir uma nova edição da profissional.
+UPDATE negocios n
+SET
+  publicado = TRUE,
+  updated_at = NOW()
+WHERE n.ativo = TRUE
+  AND n.publicado = FALSE
+  AND NULLIF(BTRIM(COALESCE(n.descricao, '')), '') IS NOT NULL
+  AND (
+    COALESCE(cardinality(n.areas), 0) > 0
+    OR NULLIF(BTRIM(COALESCE(n.setor, '')), '') IS NOT NULL
+  )
+  AND n.whatsapp ~ '^[0-9]{10,11}$'
+  AND NULLIF(BTRIM(COALESCE(n.cidade, '')), '') IS NOT NULL
+  AND UPPER(BTRIM(COALESCE(n.estado, ''))) IN (
+    'AC', 'AL', 'AP', 'AM', 'BA', 'CE', 'DF', 'ES', 'GO',
+    'MA', 'MT', 'MS', 'MG', 'PA', 'PB', 'PR', 'PE', 'PI',
+    'RJ', 'RN', 'RS', 'RO', 'RR', 'SC', 'SP', 'SE', 'TO'
+  )
+  AND EXISTS (
+    SELECT 1
+    FROM servicos_negocio s
+    WHERE s.negocio_id = n.id
+      AND s.ativo = TRUE
+  );
+
+COMMIT;

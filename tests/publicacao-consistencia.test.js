@@ -27,7 +27,7 @@ describe("consistência da publicação do negócio", () => {
     mockQuery.mockResolvedValue({ rows: [] });
   });
 
-  test("salvar perfil incompleto retira negócio publicado", async () => {
+  test("salvar perfil sincroniza a publicação pela elegibilidade atual", async () => {
     mockQuery
       .mockResolvedValueOnce({ rows: [] })
       .mockResolvedValueOnce({ rows: [{ slug: "studio" }] })
@@ -54,9 +54,8 @@ describe("consistência da publicação do negócio", () => {
 
     const sql = mockQuery.mock.calls.at(-1)[0];
 
-    expect(sql).toMatch(
-      /publicado\s*=\s*CASE[\s\S]*negocios\.publicado\s*=\s*TRUE/i
-    );
+    expect(sql).toMatch(/publicado\s*=\s*CASE/i);
+    expect(sql).not.toMatch(/negocios\.publicado\s*=\s*TRUE/i);
     const sqlCompacto =
       compactarSql(sql);
 
@@ -91,5 +90,21 @@ describe("consistência da publicação do negócio", () => {
       /NOT EXISTS[\s\S]*servicos_negocio[\s\S]*s\.ativo\s*=\s*TRUE/i
     );
     expect(params).toEqual([11]);
+  });
+
+  test("perfil completo com serviço ativo é publicado automaticamente", async () => {
+    mockQuery.mockResolvedValueOnce({
+      rows: [{ id: 11, publicado: true }]
+    });
+
+    const resultado = await servicosRepository
+      .sincronizarPublicacaoAutomatica(11);
+    const [sql, params] = mockQuery.mock.calls[0];
+
+    expect(sql).toMatch(/UPDATE negocios[\s\S]*publicado\s*=\s*e\.pode_publicar/i);
+    expect(sql).toMatch(/EXISTS[\s\S]*servicos_negocio[\s\S]*s\.ativo\s*=\s*TRUE/i);
+    expect(sql).not.toMatch(/agenda_configuracoes|configurado_em/i);
+    expect(params).toEqual([11]);
+    expect(resultado).toEqual({ id: 11, publicado: true });
   });
 });
