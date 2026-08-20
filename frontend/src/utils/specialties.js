@@ -45,6 +45,12 @@ export function serviceCategoryEmoji(value, serviceName = "") {
 
   if (CATEGORY_EMOJIS[categoryKey]) return CATEGORY_EMOJIS[categoryKey];
 
+  if (/unha|manicure|pedicure|nail|esmalta/.test(categoryKey)) return "💅";
+  if (/cabelo|cabeleir|barba|barbear/.test(categoryKey)) return "💇";
+  if (/cilio|lash|sobrancelha|brow|henna/.test(categoryKey)) return "👁️";
+  if (/maquiagem|makeup|make up/.test(categoryKey)) return "💄";
+  if (/estetica|pele|depil|massagem|drenagem|facial|corporal/.test(categoryKey)) return "💆";
+
   const nameKey = normalizeKey(serviceName);
 
   if (/unha|manicure|pedicure|nail|esmalta/.test(nameKey)) return "💅";

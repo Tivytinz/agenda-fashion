@@ -354,6 +354,10 @@
     transform: none;
   }
 
+  .service-discovery-image .service-cover-backdrop {
+    transform: scale(1.12);
+  }
+
   .service-discovery-placeholder strong {
     width: 48px;
     height: 48px;
@@ -410,7 +414,7 @@
     aspect-ratio: auto;
   }
 
-  .business-card .business-initial {
+  .business-card .business-specialty-emoji {
     width: 48px;
     height: 48px;
     border-radius: 14px;

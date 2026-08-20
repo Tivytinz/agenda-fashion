@@ -44,6 +44,31 @@ describe("imagens dos cards do catálogo", () => {
     expect(screen.queryByText("Primeiro")).toBeNull();
     expect(screen.queryByText("R$ 20,00")).toBeNull();
     expect(screen.queryByText("3 serviços")).toBeNull();
+    expect(screen.getByRole("link", { name: "Ver perfil de Studio Aurora" }))
+      .not.toBeNull();
+    expect(screen.getByText("Ver perfil")).not.toBeNull();
+    expect(screen.queryByText("Ver horários")).toBeNull();
+    expect(document.querySelectorAll(".business-cover-image")).toHaveLength(1);
+    expect(document.querySelectorAll(".business-cover-backdrop")).toHaveLength(1);
+  });
+
+  it("usa o emoji da especialidade quando o negócio não possui foto", () => {
+    render(
+      <MemoryRouter>
+        <BusinessCard business={{
+          id: 2,
+          nome: "Studio Bela",
+          slug: "studio-bela",
+          setor: "Cílios",
+          servicos: [{ id: 5, nome: "Extensão de cílios" }]
+        }} />
+      </MemoryRouter>
+    );
+
+    expect(document.querySelector(".business-specialty-emoji")?.textContent)
+      .toBe("👁️");
+    expect(document.querySelector(".business-specialty-emoji")?.textContent)
+      .not.toBe("S");
   });
 
   it("volta a tentar quando a URL do mesmo card muda", async () => {
@@ -80,6 +105,9 @@ describe("imagens dos cards do catálogo", () => {
       expect(screen.getByRole("img").src)
         .toContain("/uploads/nova.jpg");
     });
+
+    expect(document.querySelectorAll(".service-cover-image")).toHaveLength(1);
+    expect(document.querySelectorAll(".service-cover-backdrop")).toHaveLength(1);
   });
 
   it("mostra a categoria do serviço sem repetir a especialidade do negócio", () => {

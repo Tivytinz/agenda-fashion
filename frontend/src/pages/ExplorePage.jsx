@@ -22,7 +22,7 @@ import { normalizeText } from "../utils/format";
 const CATEGORIES = [
   ["", "Todos"],
   ["unha", "Unhas"],
-  ["cabelo", "Cabelo"],
+  ["cabelo", "Cabelos"],
   ["cilio", "Cílios"],
   ["sobrancelha", "Sobrancelhas"],
   ["maquiagem", "Maquiagem"],
@@ -302,7 +302,7 @@ export function ExplorePage() {
             </p>
 
             <h1>
-              Encontre o serviço que combina com você
+              Encontre serviços de beleza perto de você
             </h1>
 
             <p>
@@ -460,7 +460,11 @@ export function ExplorePage() {
             </div>
 
             {sortedBusinesses.length > 0 ? (
-              <div className="card-grid">
+              <div className={
+                sortedBusinesses.length <= 2
+                  ? "card-grid business-card-grid business-card-grid-compact"
+                  : "card-grid business-card-grid"
+              }>
                 {sortedBusinesses.map(
                   (business) => (
                     <BusinessCard

@@ -47,12 +47,21 @@ export function ServiceCard({
         aria-label={`Ver horários para ${service.nome}`}
       >
         {hasImage ? (
-          <img
-            src={imageUrl}
-            alt={`Resultado de ${service.nome}`}
-            loading="lazy"
-            onError={handleImageError}
-          />
+          <>
+            <img
+              className="service-cover-backdrop"
+              src={imageUrl}
+              alt=""
+              loading="lazy"
+            />
+            <img
+              className="service-cover-image"
+              src={imageUrl}
+              alt={`Resultado de ${service.nome}`}
+              loading="lazy"
+              onError={handleImageError}
+            />
+          </>
         ) : (
           <span className="service-discovery-placeholder">
             <strong aria-hidden="true">

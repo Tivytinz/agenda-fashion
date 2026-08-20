@@ -4,7 +4,10 @@ import {
   formatRating
 } from "../utils/format";
 import { useRetryingMedia } from "../hooks/useRetryingMedia";
-import { normalizeBusinessSpecialties } from "../utils/specialties";
+import {
+  normalizeBusinessSpecialties,
+  serviceCategoryEmoji
+} from "../utils/specialties";
 
 export function BusinessCard({ business }) {
   const serviceCount =
@@ -26,14 +29,12 @@ export function BusinessCard({ business }) {
     fit: "contain"
   });
 
-  const initial = String(
-    business.nome || "A"
-  )
-    .trim()
-    .charAt(0)
-    .toLocaleUpperCase("pt-BR");
+  const specialtyEmoji = serviceCategoryEmoji(
+    specialties[0],
+    business.setor
+  );
 
-  return (
+  const card = (
     <article
       className={
         available
@@ -42,23 +43,32 @@ export function BusinessCard({ business }) {
       }
     >
       <div
-        className="card-image"
+        className={hasImage ? "card-image card-image-photo" : "card-image"}
         aria-hidden={!hasImage}
       >
         {hasImage ? (
-          <img
-            src={imageUrl}
-            alt=""
-            loading="lazy"
-            onError={handleImageError}
-          />
+          <>
+            <img
+              className="business-cover-backdrop"
+              src={imageUrl}
+              alt=""
+              loading="lazy"
+            />
+            <img
+              className="business-cover-image"
+              src={imageUrl}
+              alt=""
+              loading="lazy"
+              onError={handleImageError}
+            />
+          </>
         ) : (
           <span className="card-placeholder">
             <span
-              className="business-initial"
+              className="business-specialty-emoji"
               aria-hidden="true"
             >
-              {initial}
+              {specialtyEmoji}
             </span>
 
             <small>
@@ -105,14 +115,9 @@ export function BusinessCard({ business }) {
           {!available && <small>Agenda em configuração</small>}
 
           {available ? (
-            <Link
-              className="button button-small"
-              to={`/negocio/${encodeURIComponent(
-                business.slug
-              )}`}
-            >
-              Ver horários
-            </Link>
+            <span className="button button-small">
+              Ver perfil
+            </span>
           ) : (
             <span
               className="button button-small button-unavailable"
@@ -124,5 +129,17 @@ export function BusinessCard({ business }) {
         </div>
       </div>
     </article>
+  );
+
+  if (!available) return card;
+
+  return (
+    <Link
+      className="business-card-link"
+      to={`/negocio/${encodeURIComponent(business.slug)}`}
+      aria-label={`Ver perfil de ${business.nome}`}
+    >
+      {card}
+    </Link>
   );
 }

@@ -68,6 +68,12 @@ describe("Sprint de catálogo, planos e navegação", () => {
       ".business-card .card-image img { object-fit: contain; }"
     );
     expect(styles).toMatch(
+      /\.business-cover-backdrop\s*\{[^}]*object-fit:\s*cover;[^}]*filter:\s*blur\(18px\);/
+    );
+    expect(styles).toMatch(
+      /\.business-cover-image\s*\{[^}]*object-fit:\s*contain;/
+    );
+    expect(styles).toMatch(
       /\.card-image img\s*\{[^}]*position:\s*absolute;[^}]*inset:\s*0;/
     );
   });
