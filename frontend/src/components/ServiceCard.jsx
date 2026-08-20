@@ -16,13 +16,6 @@ export function ServiceCard({
     imageUrl
   } = useRetryingMedia(service.foto_url, { width: 520 });
 
-  const initial = String(
-    service.nome || "S"
-  )
-    .trim()
-    .charAt(0)
-    .toLocaleUpperCase("pt-BR");
-
   const bookingUrl =
     `/negocio/${encodeURIComponent(
       service.negocio_slug
@@ -53,7 +46,7 @@ export function ServiceCard({
         ) : (
           <span className="service-discovery-placeholder">
             <strong aria-hidden="true">
-              {initial}
+              💅
             </strong>
 
             <small>

@@ -97,6 +97,27 @@ describe("imagens dos cards do catálogo", () => {
     expect(screen.queryByText("Sobrancelhas")).toBeNull();
   });
 
+  it("usa o emoji da marca quando o serviço não possui foto", () => {
+    render(
+      <MemoryRouter>
+        <ServiceCard service={{
+          id: 14,
+          nome: "Drenagem linfática",
+          categoria: "estetica",
+          negocio_nome: "Studio Aurora",
+          negocio_slug: "studio-aurora",
+          valor: 130,
+          duracao_minutos: 90
+        }} />
+      </MemoryRouter>
+    );
+
+    expect(document.querySelector(".service-discovery-placeholder strong")
+      ?.textContent).toBe("💅");
+    expect(document.querySelector(".service-discovery-placeholder")
+      ?.textContent).not.toContain("D");
+  });
+
   it("identifica negócio, localização, duração e valor com emojis", () => {
     const { container } = render(
       <MemoryRouter>
