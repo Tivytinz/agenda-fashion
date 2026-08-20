@@ -350,6 +350,20 @@ async function vincularCampanha({ payload }) {
   const campanha = await adminCampaignRepository.buscarPorId(campanhaId);
   if (!campanha) throw new AppError("Campanha não encontrada.", 404);
 
+  if (campanha.ativo === false) {
+    throw new AppError(
+      "Campanhas arquivadas não podem receber vínculos de custos.",
+      409
+    );
+  }
+
+  if (!["profissional", "cliente"].includes(campanha.objetivo)) {
+    throw new AppError(
+      "Classifique o objetivo da campanha antes de vinculá-la a uma plataforma de anúncios.",
+      409
+    );
+  }
+
   const provedor = normalizarProvedor(payload?.provedor);
   validarCanalDaCampanha(campanha, provedor);
 

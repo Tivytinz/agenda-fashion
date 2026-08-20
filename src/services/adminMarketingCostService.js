@@ -378,6 +378,23 @@ async function registrarGasto({
     );
   }
 
+  if (campanha.ativo === false) {
+    throw new AppError(
+      "Campanhas arquivadas não podem receber novos investimentos.",
+      409
+    );
+  }
+
+  if (![
+    "profissional",
+    "cliente",
+  ].includes(campanha.objetivo)) {
+    throw new AppError(
+      "Classifique o objetivo da campanha antes de registrar investimentos.",
+      409
+    );
+  }
+
   const gasto =
     await adminMarketingCostRepository
       .salvarGastoManual({

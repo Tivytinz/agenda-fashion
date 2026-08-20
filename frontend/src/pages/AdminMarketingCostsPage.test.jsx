@@ -93,6 +93,13 @@ function mockRequests() {
             canal: "meta",
             objetivo: "cliente",
             ativo: true
+          },
+          {
+            id: 4,
+            nome: "Meta arquivada",
+            canal: "meta",
+            objetivo: "indefinido",
+            ativo: false
           }
         ]
       });
@@ -149,6 +156,7 @@ describe("AdminMarketingCostsPage", () => {
 
     await user.click(screen.getByRole("button", { name: "+ Registrar manualmente" }));
     expect(screen.getByLabelText("Investimento (R$)")).not.toBeNull();
+    expect(screen.queryByRole("option", { name: /Meta arquivada/i })).toBeNull();
   });
 
   it("exibe investimento e CPA e registra gasto em centavos", async () => {

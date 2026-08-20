@@ -170,7 +170,12 @@ export function MarketingCostIntegrationsPanel({ onChanged }) {
 
   const eligibleCampaigns = useMemo(() => {
     const expected = canalEsperado(provider);
-    return campaigns.filter((item) => !expected || item.canal === expected);
+    return campaigns.filter(
+      (item) =>
+        item.ativo !== false &&
+        ["profissional", "cliente"].includes(item.objetivo) &&
+        (!expected || item.canal === expected)
+    );
   }, [campaigns, provider]);
 
   const selectedExternalCampaign = useMemo(
@@ -351,7 +356,8 @@ export function MarketingCostIntegrationsPanel({ onChanged }) {
   if (!selectedProvider?.configurado) {
     linkBlockReason = `Complete a configuração do ${providerLabel} antes de vincular campanhas.`;
   } else if (eligibleCampaigns.length === 0) {
-    linkBlockReason = `Crie uma campanha do AF para ${providerLabel} antes de continuar.`;
+    linkBlockReason =
+      `Crie ou classifique uma campanha ativa do AF para ${providerLabel} antes de continuar.`;
   } else if (loadingExternalCampaigns) {
     linkBlockReason = "Aguarde o carregamento das campanhas externas.";
   } else if (!externalCampaignId) {

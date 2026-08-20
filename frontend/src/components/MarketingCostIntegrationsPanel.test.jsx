@@ -58,8 +58,27 @@ function mockRequests() {
     if (path === "/admin/marketing/gestao-campanhas") {
       return Promise.resolve({
         campanhas: [
-          { id: 5, nome: "Google Agosto", canal: "google", ativo: true },
-          { id: 8, nome: "Meta Agosto", canal: "meta", ativo: true }
+          {
+            id: 5,
+            nome: "Google Agosto",
+            canal: "google",
+            objetivo: "profissional",
+            ativo: true
+          },
+          {
+            id: 6,
+            nome: "Google arquivada",
+            canal: "google",
+            objetivo: "indefinido",
+            ativo: false
+          },
+          {
+            id: 8,
+            nome: "Meta Agosto",
+            canal: "meta",
+            objetivo: "profissional",
+            ativo: true
+          }
         ]
       });
     }
@@ -192,6 +211,7 @@ describe("MarketingCostIntegrationsPanel", () => {
 
     const googleCampaign = await screen.findByLabelText("Campanha real do Google Ads");
     expect(screen.getByRole("option", { name: "Google Agosto" })).not.toBeNull();
+    expect(screen.queryByRole("option", { name: "Google arquivada" })).toBeNull();
     expect(screen.queryByRole("option", { name: "Meta Agosto" })).toBeNull();
 
     await screen.findByRole("option", { name: "Aquisição real · Ativa · 555" });

@@ -137,15 +137,34 @@ export function AdminMarketingCostsPage() {
         }));
 
         setForm((current) => {
-          if (current.campanhaId || !values.managedCampaigns?.campanhas?.length) {
+          const campanhasCarregadas =
+            values.managedCampaigns?.campanhas;
+
+          if (!Array.isArray(campanhasCarregadas)) {
             return current;
           }
 
-          const firstActive =
-            values.managedCampaigns.campanhas.find((item) => item.ativo) ||
-            values.managedCampaigns.campanhas[0];
+          const elegiveis =
+            campanhasCarregadas.filter(
+              (item) =>
+                item.ativo !== false &&
+                ["profissional", "cliente"].includes(item.objetivo)
+            );
 
-          return { ...current, campanhaId: String(firstActive.id) };
+          if (
+            elegiveis.some(
+              (item) => String(item.id) === current.campanhaId
+            )
+          ) {
+            return current;
+          }
+
+          const firstActive = elegiveis[0];
+
+          return {
+            ...current,
+            campanhaId: firstActive ? String(firstActive.id) : ""
+          };
         });
 
         if (errors.some(({ error: itemError }) => itemError?.name !== "AbortError")) {
@@ -210,6 +229,15 @@ export function AdminMarketingCostsPage() {
   }
 
   const attributionCampaigns = data?.attributionCampaigns || [];
+  const eligibleManagedCampaigns = useMemo(
+    () =>
+      (data?.managedCampaigns || []).filter(
+        (item) =>
+          item.ativo !== false &&
+          ["profissional", "cliente"].includes(item.objetivo)
+      ),
+    [data?.managedCampaigns]
+  );
   const paidWithoutCampaignSessions = useMemo(
     () => countPaidSessionsWithoutCampaign(attributionCampaigns),
     [attributionCampaigns]
@@ -358,7 +386,7 @@ export function AdminMarketingCostsPage() {
           <button
             aria-expanded={manualOpen}
             className="button button-secondary button-small admin-nowrap-button"
-            disabled={data.managedCampaigns.length === 0}
+            disabled={eligibleManagedCampaigns.length === 0}
             onClick={() => setManualOpen((current) => !current)}
             type="button"
           >
@@ -366,8 +394,10 @@ export function AdminMarketingCostsPage() {
           </button>
         </div>
 
-        {data.managedCampaigns.length === 0 ? (
-          <p className="muted">Crie uma campanha rastreável antes de registrar investimento.</p>
+        {eligibleManagedCampaigns.length === 0 ? (
+          <p className="muted">
+            Crie e classifique uma campanha ativa antes de registrar investimento.
+          </p>
         ) : manualOpen ? (
           <form className="stack-form" onSubmit={submitExpense}>
             <div className="form-grid">
@@ -378,10 +408,9 @@ export function AdminMarketingCostsPage() {
                   required
                   value={form.campanhaId}
                 >
-                  {data.managedCampaigns.map((item) => (
+                  {eligibleManagedCampaigns.map((item) => (
                     <option key={item.id} value={item.id}>
                       {item.nome} · {objectiveLabel(item.objetivo)}
-                      {item.ativo ? "" : " (arquivada)"}
                     </option>
                   ))}
                 </select>

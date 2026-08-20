@@ -151,7 +151,7 @@ app.get(
 
 app.get(
   "/health/ready",
-  async (_req, res) => {
+  async (req, res) => {
     try {
       const estado =
         await readinessService
@@ -176,7 +176,19 @@ app.get(
           database:
             "ok",
         });
-    } catch {
+    } catch (erro) {
+      registrador.aviso(
+        "Healthcheck: PostgreSQL indisponível.",
+        {
+          request_id:
+            req.id || null,
+          codigo:
+            erro?.code || null,
+          tipo:
+            erro?.name || "Error",
+        }
+      );
+
       return res
         .status(503)
         .json({

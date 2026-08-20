@@ -287,6 +287,8 @@ describe(
           .buscarPorId
           .mockResolvedValue({
             id: 2,
+            objetivo: "cliente",
+            ativo: true,
           });
 
         await expect(
@@ -318,6 +320,52 @@ describe(
         ).rejects.toMatchObject({
           statusCode: 400,
         });
+      }
+    );
+
+    test.each([
+      [
+        "arquivada",
+        {
+          id: 2,
+          objetivo: "profissional",
+          ativo: false,
+        },
+      ],
+      [
+        "sem objetivo classificado",
+        {
+          id: 2,
+          objetivo: "indefinido",
+          ativo: true,
+        },
+      ],
+    ])(
+      "rejeita gasto para campanha %s",
+      async (_cenario, campanha) => {
+        adminCampaignRepository
+          .buscarPorId
+          .mockResolvedValue(campanha);
+
+        await expect(
+          adminMarketingCostService
+            .registrarGasto({
+              payload: {
+                campanhaId: 2,
+                dataGasto:
+                  "2026-08-10",
+                valorCentavos: 1000,
+              },
+              usuarioId: 7,
+            })
+        ).rejects.toMatchObject({
+          statusCode: 409,
+        });
+
+        expect(
+          adminMarketingCostRepository
+            .salvarGastoManual
+        ).not.toHaveBeenCalled();
       }
     );
   }

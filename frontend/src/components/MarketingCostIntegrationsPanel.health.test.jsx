@@ -127,7 +127,9 @@ describe("saúde das integrações de custo no admin", () => {
     render(<MarketingCostIntegrationsPanel />);
 
     expect(
-      await screen.findByText(/Crie uma campanha do AF para Google Ads antes de continuar/i)
+      await screen.findByText(
+        /Crie ou classifique uma campanha ativa do AF para Google Ads antes de continuar/i
+      )
     ).not.toBeNull();
   });
 

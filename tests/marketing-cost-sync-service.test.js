@@ -344,7 +344,9 @@ describe("marketingCostSyncService", () => {
     mockCampaignRepository.buscarPorId.mockResolvedValue({
       id: 5,
       nome: "Teste",
-      canal: "google"
+      canal: "google",
+      objetivo: "profissional",
+      ativo: true
     });
     mockProviders.buscarCampanha.mockResolvedValue({
       contaExternaId: "6770207927",
@@ -392,7 +394,9 @@ describe("marketingCostSyncService", () => {
     mockCampaignRepository.buscarPorId.mockResolvedValue({
       id: 5,
       nome: "Teste",
-      canal: "google"
+      canal: "google",
+      objetivo: "profissional",
+      ativo: true
     });
     mockProviders.testarConexao.mockResolvedValue({
       conectado: true,
@@ -411,11 +415,52 @@ describe("marketingCostSyncService", () => {
     expect(mockRepository.salvarVinculo).not.toHaveBeenCalled();
   });
 
+  test.each([
+    [
+      "arquivada",
+      {
+        id: 5,
+        nome: "Google antiga",
+        canal: "google",
+        objetivo: "profissional",
+        ativo: false
+      }
+    ],
+    [
+      "sem objetivo classificado",
+      {
+        id: 5,
+        nome: "Google indefinida",
+        canal: "google",
+        objetivo: "indefinido",
+        ativo: true
+      }
+    ]
+  ])("impede vínculo com campanha %s", async (_cenario, campanha) => {
+    mockCampaignRepository.buscarPorId.mockResolvedValue(campanha);
+
+    await expect(service.vincularCampanha({
+      payload: {
+        campanhaId: 5,
+        provedor: "google_ads",
+        campanhaExternaId: "555"
+      }
+    })).rejects.toMatchObject({
+      statusCode: 409
+    });
+
+    expect(mockProviders.testarConexao).not.toHaveBeenCalled();
+    expect(mockProviders.buscarCampanha).not.toHaveBeenCalled();
+    expect(mockRepository.salvarVinculo).not.toHaveBeenCalled();
+  });
+
   test("consulta o Meta novamente e ignora nome adulterado antes de salvar", async () => {
     mockCampaignRepository.buscarPorId.mockResolvedValue({
       id: 8,
       nome: "Meta Agosto",
-      canal: "meta"
+      canal: "meta",
+      objetivo: "profissional",
+      ativo: true
     });
     mockProviders.buscarCampanha.mockResolvedValue({
       contaExternaId: "1122334455",
@@ -456,7 +501,9 @@ describe("marketingCostSyncService", () => {
     mockCampaignRepository.buscarPorId.mockResolvedValue({
       id: 8,
       nome: "Meta verão",
-      canal: "meta"
+      canal: "meta",
+      objetivo: "profissional",
+      ativo: true
     });
 
     await expect(service.vincularCampanha({
@@ -475,7 +522,9 @@ describe("marketingCostSyncService", () => {
     mockCampaignRepository.buscarPorId.mockResolvedValue({
       id: 5,
       nome: "Google Agosto",
-      canal: "google"
+      canal: "google",
+      objetivo: "profissional",
+      ativo: true
     });
 
     await expect(service.vincularCampanha({
@@ -494,7 +543,9 @@ describe("marketingCostSyncService", () => {
     mockCampaignRepository.buscarPorId.mockResolvedValue({
       id: 5,
       nome: "Teste",
-      canal: "google"
+      canal: "google",
+      objetivo: "profissional",
+      ativo: true
     });
     mockProviders.buscarCampanha.mockResolvedValue({
       contaExternaId: "6770207927",
@@ -520,7 +571,9 @@ describe("marketingCostSyncService", () => {
     mockCampaignRepository.buscarPorId.mockResolvedValue({
       id: 8,
       nome: "Meta Agosto",
-      canal: "meta"
+      canal: "meta",
+      objetivo: "profissional",
+      ativo: true
     });
     mockProviders.buscarCampanha.mockResolvedValue({
       contaExternaId: "1122334455",
