@@ -35,6 +35,10 @@ const AdminProfessionalFunnelPage = lazyNamed(
   () => import("./pages/AdminProfessionalFunnelPage"),
   "AdminProfessionalFunnelPage"
 );
+const AdminSaasHealthPage = lazyNamed(
+  () => import("./pages/AdminSaasHealthPage"),
+  "AdminSaasHealthPage"
+);
 const AuthPage = lazyNamed(
   () => import("./pages/AuthPage"),
   "AuthPage"
@@ -201,6 +205,10 @@ export default function App() {
                 <MarketingMetricGlossary terms={["CAC", "ROAS", "COORTE"]} />
               </>
             )}
+          />
+          <Route
+            path={reactRoutes.adminHealth}
+            element={<AdminSaasHealthPage />}
           />
         </Route>
         <Route

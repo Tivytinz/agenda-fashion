@@ -24,6 +24,7 @@ describe("rotas SPA servidas pelo Express", () => {
     "/admin/trafego-pago",
     "/admin/trafego-pago/custos",
     "/admin/trafego-pago/profissionais",
+    "/admin/saude",
   ])("serve %s pelo fallback da SPA", (route) => {
     expect(Object.values(routes)).toContain(route);
   });

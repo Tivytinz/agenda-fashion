@@ -46,6 +46,12 @@ const ICON_PATHS = {
       <path d="M5 10v10h14V10M9 20v-6h6v6" />
     </>
   ),
+  health: (
+    <>
+      <path d="M3 12h4l2-5 4 10 2-5h6" />
+      <path d="M19.5 5.5a4.2 4.2 0 0 0-6 0L12 7l-1.5-1.5a4.2 4.2 0 0 0-6 6L12 19l7.5-7.5a4.2 4.2 0 0 0 0-6z" opacity=".35" />
+    </>
+  ),
   marketing: (
     <>
       <path d="M4 17 10 11l4 4 6-8" />

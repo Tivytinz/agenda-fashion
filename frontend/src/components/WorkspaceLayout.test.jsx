@@ -102,7 +102,7 @@ describe("menu mobile da área de trabalho", () => {
     expect(screen.queryByRole("link", { name: /Horários/ })).toBeNull();
   });
 
-  it("mantém os quatro destinos do admin visíveis e ativa apenas a rota atual", () => {
+  it("mantém quatro destinos do admin visíveis e leva a conta para Mais", () => {
     render(
       <MemoryRouter
         initialEntries={[
@@ -132,9 +132,17 @@ describe("menu mobile da área de trabalho", () => {
     expect(
       navigation.querySelectorAll(".workspace-mobile-link")
     ).toHaveLength(4);
+    expect(
+      screen.getByRole("link", { name: /Saúde do SaaS/ })
+    ).not.toBeNull();
     expect(campaigns.classList.contains("active")).toBe(false);
     expect(costs.classList.contains("active")).toBe(true);
-    expect(screen.queryByRole("button", { name: /mais opções/i })).toBeNull();
+    expect(
+      screen.getByRole("button", { name: /Abrir mais opções/i })
+    ).not.toBeNull();
+    expect(
+      screen.queryByRole("link", { name: /Minha conta/ })
+    ).toBeNull();
   });
 
   it("renderiza a mesma navegação administrativa no conteúdo e na lateral", () => {
@@ -158,6 +166,9 @@ describe("menu mobile da área de trabalho", () => {
     ).not.toBeNull();
     expect(
       screen.getAllByRole("link", { name: /Rentabilidade/ })
+    ).toHaveLength(2);
+    expect(
+      screen.getAllByRole("link", { name: /Saúde do SaaS/ })
     ).toHaveLength(2);
   });
 });

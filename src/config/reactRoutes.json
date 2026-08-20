@@ -18,6 +18,7 @@
   "adminMarketing": "/admin/trafego-pago",
   "adminCosts": "/admin/trafego-pago/custos",
   "adminProfessionals": "/admin/trafego-pago/profissionais",
+  "adminHealth": "/admin/saude",
   "dashboard": "/painel",
   "ownerAgenda": "/painel/agenda",
   "services": "/painel/servicos",

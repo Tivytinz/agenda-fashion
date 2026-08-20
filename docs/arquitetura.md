@@ -1,6 +1,6 @@
 # Arquitetura Oficial — Agenda Fashion
 
-> Atualizada em 19 de agosto de 2026.
+> Atualizada em 20 de agosto de 2026.
 >
 > O contexto permanente de produto e as instrucoes para agentes estao em
 > [`AGENTS.md`](../AGENTS.md). Os dois documentos devem permanecer alinhados.
@@ -404,6 +404,13 @@ usuarios_administradores
 ```
 
 Admin global não deve ser confundido com o papel `dono` de um negócio.
+
+A área administrativa possui a página `Saúde do SaaS`, em `/admin/saude`.
+Ela consulta `GET /admin/saude/perfis-incompletos` para resumir e listar
+cadastros profissionais que ainda não concluíram negócio, dados obrigatórios,
+serviço, agenda ou publicação. Nome, e-mail e WhatsApp permanecem protegidos
+por `auth` e `authAdmin`; as ações de contato apenas abrem a mensagem para
+revisão do administrador e não enviam comunicação automaticamente.
 
 ### Proteção do frontend
 

@@ -1,0 +1,218 @@
+.admin-saas-health-page .metric-grid {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 165px), 1fr));
+}
+
+.admin-saas-health-page .metric-card {
+  min-height: 118px;
+}
+
+.saas-health-panel {
+  display: grid;
+  gap: 1rem;
+}
+
+.saas-health-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1rem 1.5rem;
+}
+
+.saas-health-toolbar h2,
+.saas-health-toolbar .eyebrow {
+  margin: 0;
+}
+
+.saas-health-toolbar h2 {
+  margin-top: 0.2rem;
+  color: var(--admin-ink);
+  font-size: 1.2rem;
+}
+
+.saas-health-search {
+  display: grid;
+  flex: 1 1 430px;
+  max-width: 620px;
+  gap: 0.35rem;
+}
+
+.saas-health-search label {
+  color: var(--admin-muted);
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.saas-health-search > div {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.saas-health-search input {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.saas-health-filters {
+  display: flex;
+  gap: 0.45rem;
+  max-width: 100%;
+  overflow-x: auto;
+  padding-bottom: 0.1rem;
+  scrollbar-width: thin;
+}
+
+.saas-health-filters button {
+  min-height: 38px;
+  flex: 0 0 auto;
+  border: 1px solid var(--admin-line);
+  border-radius: 999px;
+  padding: 0.48rem 0.8rem;
+  background: #fff;
+  color: var(--admin-muted);
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.saas-health-filters button:hover,
+.saas-health-filters button:focus-visible {
+  border-color: var(--admin-accent);
+  color: var(--admin-accent-dark);
+}
+
+.saas-health-filters button.active {
+  border-color: var(--admin-accent);
+  background: var(--admin-soft-strong);
+  color: var(--admin-accent-dark);
+}
+
+.saas-health-table table {
+  min-width: 1160px;
+}
+
+.saas-health-table th:nth-child(1) {
+  width: 190px;
+}
+
+.saas-health-table th:nth-child(2),
+.saas-health-table th:nth-child(3) {
+  width: 180px;
+}
+
+.saas-health-table th:nth-child(4) {
+  width: 145px;
+}
+
+.saas-health-table th:nth-child(5) {
+  width: 270px;
+}
+
+.saas-health-table th:nth-child(6) {
+  width: 140px;
+}
+
+.saas-health-table td {
+  vertical-align: top;
+}
+
+.saas-health-name {
+  display: block;
+  color: var(--admin-ink);
+}
+
+.saas-health-progress-meta {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.4rem;
+  margin-bottom: 0.4rem;
+}
+
+.saas-health-progress-meta strong {
+  color: var(--admin-accent-dark);
+  font-size: 0.88rem;
+}
+
+.saas-health-progress-meta span {
+  color: var(--admin-muted);
+  font-size: 0.68rem;
+}
+
+.saas-health-progress {
+  height: 8px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #f3e7ec;
+}
+
+.saas-health-progress > span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #d82a73, #a81c55);
+}
+
+.saas-health-pending-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.saas-health-pending-chip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 26px;
+  border: 1px solid #ecd5aa;
+  border-radius: 999px;
+  padding: 0.22rem 0.55rem;
+  background: #fff8e9;
+  color: #715214;
+  font-size: 0.7rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.saas-health-actions {
+  display: grid;
+  gap: 0.4rem;
+}
+
+.saas-health-actions .button,
+.saas-health-actions .text-button {
+  justify-content: center;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.saas-health-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.7rem;
+  border-top: 1px solid var(--admin-line);
+  padding-top: 1rem;
+}
+
+.saas-health-pagination span {
+  color: var(--admin-muted);
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+@media (max-width: 700px) {
+  .saas-health-search,
+  .saas-health-search > div {
+    width: 100%;
+  }
+
+  .saas-health-search > div {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .saas-health-pagination {
+    justify-content: space-between;
+  }
+}

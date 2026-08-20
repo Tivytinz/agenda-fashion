@@ -42,6 +42,11 @@ const adminProfessionalFunnelController =
     "../controllers/adminProfessionalFunnelController"
   );
 
+const adminSaasHealthController =
+  require(
+    "../controllers/adminSaasHealthController"
+  );
+
 /*
  * Resumo geral da plataforma.
  */
@@ -116,6 +121,20 @@ router.get(
   auth,
   authAdmin,
   adminProfessionalFunnelController.buscar
+);
+
+/*
+ * Saúde da ativação profissional.
+ * Lista somente cadastros de profissionais
+ * e mantém os dados de contato protegidos
+ * pela permissão administrativa.
+ */
+router.get(
+  "/admin/saude/perfis-incompletos",
+  auth,
+  authAdmin,
+  adminSaasHealthController
+    .listarPerfisIncompletos
 );
 
 /*

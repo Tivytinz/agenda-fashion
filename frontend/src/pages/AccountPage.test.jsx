@@ -175,13 +175,13 @@ describe("minha conta", () => {
     render(<MemoryRouter><AccountPage /></MemoryRouter>);
 
     const checkbox = await screen.findByRole("checkbox", {
-      name: /Receber mensagens sobre meus agendamentos/i
+      name: /Autorizar mensagens dos meus agendamentos/i
     });
 
     expect(checkbox.checked).toBe(true);
     fireEvent.click(checkbox);
     fireEvent.click(screen.getByRole("button", {
-      name: "Salvar mensagens"
+      name: "Salvar autorização"
     }));
 
     await waitFor(() => {
