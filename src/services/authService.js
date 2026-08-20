@@ -302,6 +302,7 @@ async function cadastro({
   email,
   senha,
   whatsapp,
+  aceitaLembretesWhatsapp = false,
   marketing,
 }) {
   const dados =
@@ -345,6 +346,8 @@ async function cadastro({
             senhaHash,
           whatsapp:
             dados.whatsapp,
+          aceitaLembretesWhatsapp:
+            aceitaLembretesWhatsapp === true,
         });
   } catch (erro) {
     if (

@@ -13,6 +13,7 @@ export function AccountPage() {
   const [user, setUser] = useState(null);
   const [profile, setProfile] = useState({ nome: "", whatsapp: "" });
   const [password, setPassword] = useState({ senhaAtual: "", novaSenha: "", confirmar: "" });
+  const [dailyReminders, setDailyReminders] = useState(false);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const [saving, setSaving] = useState("");
@@ -33,6 +34,9 @@ export function AccountPage() {
           nome: result.usuario?.nome || "",
           whatsapp: formatWhatsApp(result.usuario?.whatsapp)
         });
+        setDailyReminders(
+          result.usuario?.aceita_lembretes_whatsapp === true
+        );
       })
       .catch((requestError) => setError(requestError.message));
   }, []);
@@ -75,6 +79,34 @@ export function AccountPage() {
       });
       setMessage(result.mensagem);
       setPassword({ senhaAtual: "", novaSenha: "", confirmar: "" });
+    } catch (requestError) {
+      setError(requestError.message);
+    } finally {
+      setSaving("");
+    }
+  }
+
+  async function saveWhatsAppPreferences(event) {
+    event.preventDefault();
+    setSaving("whatsapp-preferences");
+    setError("");
+    setMessage("");
+
+    try {
+      const result = await apiRequest(
+        "/conta/preferencias-whatsapp",
+        {
+          method: "PUT",
+          body: {
+            aceitaLembretes: dailyReminders
+          }
+        }
+      );
+
+      setDailyReminders(
+        result.preferencia?.aceita_lembretes_whatsapp === true
+      );
+      setMessage(result.mensagem);
     } catch (requestError) {
       setError(requestError.message);
     } finally {
@@ -164,6 +196,39 @@ export function AccountPage() {
           <button className="button" disabled={saving === "password"} type="submit">{saving === "password" ? "Alterando..." : "Alterar senha"}</button>
         </form>
       </section>
+      {session.temNegocio && session.negocio?.papel === "dono" && (
+        <form className="panel stack-form" onSubmit={saveWhatsAppPreferences}>
+          <div>
+            <p className="eyebrow">Lembretes do negócio</p>
+            <h2>Ativação pelo WhatsApp</h2>
+            <p className="muted">
+              Escolha se deseja receber um lembrete diário para cadastrar seu primeiro serviço ou divulgar o link público do negócio.
+            </p>
+          </div>
+          <label className="switch-field">
+            <input
+              checked={dailyReminders}
+              onChange={(event) => setDailyReminders(event.target.checked)}
+              type="checkbox"
+            />
+            <span>
+              Receber um lembrete por dia no WhatsApp
+              <small className="muted">
+                Você pode desativar esta opção a qualquer momento.
+              </small>
+            </span>
+          </label>
+          <button
+            className="button button-secondary"
+            disabled={saving === "whatsapp-preferences"}
+            type="submit"
+          >
+            {saving === "whatsapp-preferences"
+              ? "Salvando..."
+              : "Salvar preferência"}
+          </button>
+        </form>
+      )}
       <button className="text-button danger-text logout-mobile" onClick={() => { session.logout(); navigate("/"); }} type="button">Sair da conta</button>
     </main>
   );

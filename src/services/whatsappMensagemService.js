@@ -49,6 +49,20 @@ const CONFIGURACOES_TEMPLATE = {
     padrao:
       "cancelamento_agendamento",
   },
+
+  LEMBRETE_PRIMEIRO_SERVICO_NEGOCIO: {
+    variavel:
+      "WHATSAPP_TEMPLATE_PRIMEIRO_SERVICO",
+    padrao:
+      "lembrete_primeiro_servico",
+  },
+
+  LEMBRETE_DIVULGAR_NEGOCIO: {
+    variavel:
+      "WHATSAPP_TEMPLATE_DIVULGAR_NEGOCIO",
+    padrao:
+      "lembrete_divulgar_negocio",
+  },
 };
 
 let workerEmExecucao =
@@ -56,6 +70,9 @@ let workerEmExecucao =
 
 let temporizadorWorker =
   null;
+
+let ultimaVarreduraLembretesNegocioEm =
+  0;
 
 function configuracaoBooleana(
   nome,
@@ -138,6 +155,31 @@ function lembreteProfissionalAtivo() {
   return configuracaoBooleana(
     "WHATSAPP_PROFESSIONAL_REMINDER_ENABLED",
     false
+  );
+}
+
+function lembretePrimeiroServicoAtivo() {
+  return configuracaoBooleana(
+    "WHATSAPP_FIRST_SERVICE_REMINDER_ENABLED",
+    false
+  );
+}
+
+function lembreteDivulgacaoAtivo() {
+  return configuracaoBooleana(
+    "WHATSAPP_SHARE_REMINDER_ENABLED",
+    false
+  );
+}
+
+function obterHoraLembretesNegocio() {
+  return obterInteiroConfiguracao(
+    "WHATSAPP_BUSINESS_REMINDER_HOUR",
+    10,
+    {
+      minimo: 0,
+      maximo: 23,
+    }
   );
 }
 
@@ -374,6 +416,52 @@ async function enfileirarCancelamento({
     );
 }
 
+async function enfileirarLembretesDiariosNegocios() {
+  const primeiroServicoAtivo =
+    lembretePrimeiroServicoAtivo();
+
+  const divulgacaoAtiva =
+    lembreteDivulgacaoAtivo();
+
+  if (
+    !primeiroServicoAtivo &&
+    !divulgacaoAtiva
+  ) {
+    return [];
+  }
+
+  const agora = Date.now();
+  const intervaloVarredura =
+    obterInteiroConfiguracao(
+      "WHATSAPP_BUSINESS_REMINDER_SCAN_INTERVAL_MS",
+      300000,
+      {
+        minimo: 60000,
+        maximo: 3600000,
+      }
+    );
+
+  if (
+    agora - ultimaVarreduraLembretesNegocioEm <
+    intervaloVarredura
+  ) {
+    return [];
+  }
+
+  const mensagens =
+    await whatsappMensagemRepository
+    .enfileirarLembretesDiariosNegocios(
+      obterHoraLembretesNegocio(),
+      primeiroServicoAtivo,
+      divulgacaoAtiva
+    );
+
+  ultimaVarreduraLembretesNegocioEm =
+    agora;
+
+  return mensagens;
+}
+
 async function processarMensagem(
   mensagem
 ) {
@@ -435,6 +523,8 @@ async function processarMensagem(
           mensagem.id,
         agendamento_id:
           mensagem.agendamento_id,
+        negocio_id:
+          mensagem.negocio_id,
         tipo:
           mensagem.tipo,
       }
@@ -474,6 +564,8 @@ async function processarMensagem(
           mensagem.id,
         agendamento_id:
           mensagem.agendamento_id,
+        negocio_id:
+          mensagem.negocio_id,
         tipo:
           mensagem.tipo,
         tentativa:
@@ -526,6 +618,8 @@ async function processarFilaWhatsapp({
     0;
 
   try {
+    await enfileirarLembretesDiariosNegocios();
+
     await whatsappMensagemRepository
       .cancelarMensagensExpiradas();
 
@@ -648,6 +742,7 @@ function pararWorkerWhatsapp() {
 module.exports = {
   enfileirarNovoAgendamento,
   enfileirarCancelamento,
+  enfileirarLembretesDiariosNegocios,
   processarFilaWhatsapp,
   iniciarWorkerWhatsapp,
   pararWorkerWhatsapp,

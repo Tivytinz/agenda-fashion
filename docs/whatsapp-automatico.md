@@ -14,6 +14,16 @@ O fluxo cria até seis mensagens para cada agendamento:
 5. cancelamento para o profissional;
 6. cancelamento para a cliente.
 
+Separadamente, o AF pode criar um lembrete diário para o dono do negócio:
+
+1. `lembrete_primeiro_servico`, quando ainda não existe serviço ativo;
+2. `lembrete_divulgar_negocio`, quando o negócio está publicado e possui ao
+   menos um serviço ativo.
+
+Esses dois modelos são mutuamente exclusivos. O banco permite no máximo uma
+mensagem por negócio e data, e a regra de elegibilidade impede que
+os dois sejam enviados para o mesmo negócio no mesmo dia.
+
 As mensagens para a cliente só são criadas quando ela marca o consentimento no
 formulário. O agendamento continua funcionando quando ela não autoriza.
 
@@ -62,6 +72,15 @@ Para habilitar o lembrete da profissional, execute também:
 ```bash
 node scripts/executar-migration.js database/migrations/041_lembrete_whatsapp_profissional.sql
 ```
+
+Para habilitar os lembretes diários dos negócios, execute:
+
+```bash
+node scripts/executar-migration.js database/migrations/044_lembretes_diarios_whatsapp_negocio.sql
+```
+
+A migration adiciona o consentimento de Marketing à conta e amplia a fila para
+mensagens ligadas ao negócio, com idempotência por negócio, tipo e dia.
 
 ## Templates da Meta
 
@@ -174,6 +193,32 @@ Olá, {{1}}. Seu agendamento foi cancelado.
 Você pode acessar o Agenda Fashion para escolher um novo horário quando desejar. Esperamos atender você em breve! 💖
 ```
 
+### `lembrete_primeiro_servico`
+
+Categoria: `MARKETING`.
+
+Destinatário: dono de negócio que autorizou o lembrete diário e permanece sem
+serviços ativos 24 horas depois do cadastro.
+
+O modelo não possui variáveis. Ele deve direcionar para:
+`https://app.agendafashion.com.br/painel/servicos/novo`.
+
+### `lembrete_divulgar_negocio`
+
+Categoria: `MARKETING`.
+
+Destinatário: dono de negócio publicado, com ao menos um serviço ativo e que
+autorizou o lembrete diário.
+
+Ordem das variáveis:
+
+1. nome do dono;
+2. nome do negócio;
+3. URL pública completa do negócio.
+
+O disparo ocorre uma vez por dia, a partir das 10h no fuso do negócio. Alterar
+o horário exige somente a variável `WHATSAPP_BUSINESS_REMINDER_HOUR`.
+
 ## Variáveis do Railway
 
 Use `docs/whatsapp.env.example` como referência. As obrigatórias para ativação
@@ -192,6 +237,12 @@ WHATSAPP_TEMPLATE_LEMBRETE_PROFISSIONAL=lembrete_agendamento_profissional
 WHATSAPP_TEMPLATE_CANCELAMENTO_PROFISSIONAL=cancelamento_agendamento_profissional
 WHATSAPP_TEMPLATE_CANCELAMENTO_CLIENTE=cancelamento_agendamento
 WHATSAPP_PROFESSIONAL_REMINDER_ENABLED=false
+WHATSAPP_TEMPLATE_PRIMEIRO_SERVICO=lembrete_primeiro_servico
+WHATSAPP_TEMPLATE_DIVULGAR_NEGOCIO=lembrete_divulgar_negocio
+WHATSAPP_FIRST_SERVICE_REMINDER_ENABLED=false
+WHATSAPP_SHARE_REMINDER_ENABLED=false
+WHATSAPP_BUSINESS_REMINDER_HOUR=10
+WHATSAPP_BUSINESS_REMINDER_SCAN_INTERVAL_MS=300000
 WHATSAPP_WEBHOOK_VERIFY_TOKEN=
 WHATSAPP_APP_SECRET=
 ```
@@ -204,6 +255,12 @@ Os cinco modelos originais estão aprovados pela Meta. Ative o lembrete da
 profissional somente depois que `lembrete_agendamento_profissional` também
 aparecer como ativo. Mantenha `WHATSAPP_NOTIFICATIONS_ENABLED=true` em
 produção. Para um teste controlado:
+
+Os lembretes diários também começam desativados. Ative cada flag somente após
+o respectivo modelo aparecer como ativo na Meta. Apenas contas com
+consentimento explícito em **Minha conta** entram na rotina. Desativar a opção
+cancela a elegibilidade imediatamente; mensagens ainda pendentes são
+invalidadas antes do envio.
 
 Depois da aprovação do novo modelo, altere no Railway:
 

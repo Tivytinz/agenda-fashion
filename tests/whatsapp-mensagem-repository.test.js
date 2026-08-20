@@ -96,6 +96,44 @@ describe(
     );
 
     test(
+      "cria lembretes diários exclusivos e idempotentes por negócio",
+      async () => {
+        db.query.mockResolvedValue({
+          rows: [],
+        });
+
+        await whatsappMensagemRepository
+          .enfileirarLembretesDiariosNegocios(
+            10,
+            true,
+            true
+          );
+
+        const [consulta, parametros] =
+          db.query.mock.calls[0];
+        const sql = consulta.replace(/\s+/g, " ");
+
+        expect(sql).toContain(
+          "LEMBRETE_PRIMEIRO_SERVICO_NEGOCIO"
+        );
+        expect(sql).toContain(
+          "LEMBRETE_DIVULGAR_NEGOCIO"
+        );
+        expect(sql).toContain(
+          "whatsapp_marketing_consentido_em IS NOT NULL"
+        );
+        expect(sql).toContain(
+          "ON CONFLICT ( negocio_id, data_referencia )"
+        );
+        expect(parametros).toEqual([
+          10,
+          true,
+          true,
+        ]);
+      }
+    );
+
+    test(
       "encerra as tentativas de uma falha permanente",
       async () => {
         db.query.mockResolvedValue({

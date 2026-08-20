@@ -17,6 +17,12 @@ async function buscarUsuarioPorId(
           nome,
           email,
           whatsapp,
+          whatsapp_marketing_consentido_em,
+          whatsapp_marketing_cancelado_em,
+          (
+            whatsapp_marketing_consentido_em IS NOT NULL
+            AND whatsapp_marketing_cancelado_em IS NULL
+          ) AS aceita_lembretes_whatsapp,
           foto_url,
           foto_public_id,
           ativo,
@@ -94,6 +100,12 @@ async function atualizarUsuario({
           nome,
           email,
           whatsapp,
+          whatsapp_marketing_consentido_em,
+          whatsapp_marketing_cancelado_em,
+          (
+            whatsapp_marketing_consentido_em IS NOT NULL
+            AND whatsapp_marketing_cancelado_em IS NULL
+          ) AS aceita_lembretes_whatsapp,
           foto_url,
           foto_public_id,
           ativo,
@@ -149,6 +161,51 @@ async function atualizarSenha({
   );
 }
 
+async function atualizarPreferenciaWhatsapp({
+  usuarioId,
+  aceitaLembretes
+}) {
+  const resultado = await db.query(
+    `
+      UPDATE usuarios
+
+      SET
+        whatsapp_marketing_consentido_em =
+          CASE
+            WHEN $1::BOOLEAN
+              THEN COALESCE(
+                whatsapp_marketing_consentido_em,
+                NOW()
+              )
+            ELSE whatsapp_marketing_consentido_em
+          END,
+        whatsapp_marketing_cancelado_em =
+          CASE
+            WHEN $1::BOOLEAN THEN NULL
+            ELSE NOW()
+          END
+
+      WHERE id = $2
+        AND ativo = TRUE
+
+      RETURNING
+        id,
+        whatsapp_marketing_consentido_em,
+        whatsapp_marketing_cancelado_em,
+        (
+          whatsapp_marketing_consentido_em IS NOT NULL
+          AND whatsapp_marketing_cancelado_em IS NULL
+        ) AS aceita_lembretes_whatsapp
+    `,
+    [
+      aceitaLembretes,
+      usuarioId,
+    ]
+  );
+
+  return resultado.rows[0] || null;
+}
+
 async function atualizarFotoUsuario({
   usuarioId,
   fotoUrl,
@@ -171,6 +228,12 @@ async function atualizarFotoUsuario({
           nome,
           email,
           whatsapp,
+          whatsapp_marketing_consentido_em,
+          whatsapp_marketing_cancelado_em,
+          (
+            whatsapp_marketing_consentido_em IS NOT NULL
+            AND whatsapp_marketing_cancelado_em IS NULL
+          ) AS aceita_lembretes_whatsapp,
           foto_url,
           foto_public_id,
           ativo,
@@ -197,6 +260,7 @@ module.exports = {
   buscarUsuarioPorId,
   buscarSenhaUsuario,
   atualizarUsuario,
+  atualizarPreferenciaWhatsapp,
   atualizarSenha,
   atualizarFotoUsuario,
 };

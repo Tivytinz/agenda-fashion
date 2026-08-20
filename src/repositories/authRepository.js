@@ -6,6 +6,8 @@ const CAMPOS_USUARIO = `
   email,
   senha,
   whatsapp,
+  whatsapp_marketing_consentido_em,
+  whatsapp_marketing_cancelado_em,
   google_sub,
   ativo,
   email_verificado_em,
@@ -83,6 +85,7 @@ async function criarUsuario({
   email,
   senha,
   whatsapp,
+  aceitaLembretesWhatsapp = false,
 }) {
   const resultado =
     await db.query(
@@ -91,9 +94,19 @@ async function criarUsuario({
         nome,
         email,
         senha,
-        whatsapp
+        whatsapp,
+        whatsapp_marketing_consentido_em
       )
-      VALUES ($1, $2, $3, $4)
+      VALUES (
+        $1,
+        $2,
+        $3,
+        $4,
+        CASE
+          WHEN $5::BOOLEAN THEN NOW()
+          ELSE NULL
+        END
+      )
       RETURNING ${CAMPOS_USUARIO}
       `,
       [
@@ -101,6 +114,7 @@ async function criarUsuario({
         email,
         senha,
         whatsapp,
+        aceitaLembretesWhatsapp,
       ]
     );
 

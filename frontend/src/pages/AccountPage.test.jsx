@@ -103,4 +103,54 @@ describe("minha conta", () => {
         ?.classList.contains("workspace-page")
     ).toBe(true);
   });
+
+  it("permite ao dono ativar os lembretes diários do negócio", async () => {
+    useSession.mockReturnValue({
+      temNegocio: true,
+      ehAdministrador: false,
+      negocio: { papel: "dono" },
+      refresh: refreshSession,
+      logout: vi.fn()
+    });
+
+    apiRequest
+      .mockResolvedValueOnce({
+        usuario: {
+          id: 7,
+          nome: "Ana",
+          email: "ana@example.com",
+          whatsapp: "62999998888",
+          aceita_lembretes_whatsapp: false
+        }
+      })
+      .mockResolvedValueOnce({
+        mensagem: "Lembretes diários do WhatsApp ativados.",
+        preferencia: {
+          aceita_lembretes_whatsapp: true
+        }
+      });
+
+    render(<MemoryRouter><AccountPage /></MemoryRouter>);
+
+    const checkbox = await screen.findByRole("checkbox", {
+      name: /Receber um lembrete por dia/i
+    });
+
+    fireEvent.click(checkbox);
+    fireEvent.click(screen.getByRole("button", {
+      name: "Salvar preferência"
+    }));
+
+    await waitFor(() => {
+      expect(apiRequest).toHaveBeenLastCalledWith(
+        "/conta/preferencias-whatsapp",
+        {
+          method: "PUT",
+          body: {
+            aceitaLembretes: true
+          }
+        }
+      );
+    });
+  });
 });

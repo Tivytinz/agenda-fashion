@@ -36,6 +36,9 @@ jest.mock(
     atualizarUsuario:
       jest.fn(),
 
+    atualizarPreferenciaWhatsapp:
+      jest.fn(),
+
     atualizarSenha:
       jest.fn(),
 
@@ -386,6 +389,46 @@ describe(
           resposta.body.erro
         ).toBe(
           "Usuário não encontrado."
+        );
+      }
+    );
+
+    test(
+      "ativa os lembretes diários com consentimento explícito",
+      async () => {
+        contaRepository
+          .buscarUsuarioPorId
+          .mockResolvedValue(
+            criarUsuario()
+          );
+
+        contaRepository
+          .atualizarPreferenciaWhatsapp
+          .mockResolvedValue({
+            id: 7,
+            aceita_lembretes_whatsapp: true,
+          });
+
+        const resposta = await request(app)
+          .put("/conta/preferencias-whatsapp")
+          .set(
+            "Authorization",
+            `Bearer ${gerarToken()}`
+          )
+          .send({
+            aceitaLembretes: true,
+          });
+
+        expect(resposta.status).toBe(200);
+        expect(
+          contaRepository
+            .atualizarPreferenciaWhatsapp
+        ).toHaveBeenCalledWith({
+          usuarioId: 7,
+          aceitaLembretes: true,
+        });
+        expect(resposta.body.mensagem).toBe(
+          "Lembretes diários do WhatsApp ativados."
         );
       }
     );

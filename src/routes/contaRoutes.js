@@ -70,6 +70,12 @@ router.put(
 );
 
 router.put(
+  "/conta/preferencias-whatsapp",
+  auth,
+  contaController.atualizarPreferenciaWhatsapp
+);
+
+router.put(
   "/conta/senha",
   auth,
   contaController.alterarSenha

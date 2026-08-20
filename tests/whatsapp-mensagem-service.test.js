@@ -5,6 +5,8 @@ jest.mock(
       jest.fn(),
     enfileirarCancelamento:
       jest.fn(),
+    enfileirarLembretesDiariosNegocios:
+      jest.fn(),
     reservarProximaMensagem:
       jest.fn(),
     mensagemContinuaValida:
@@ -84,6 +86,10 @@ describe(
 
       delete process.env
         .WHATSAPP_PROFESSIONAL_REMINDER_ENABLED;
+      delete process.env
+        .WHATSAPP_FIRST_SERVICE_REMINDER_ENABLED;
+      delete process.env
+        .WHATSAPP_SHARE_REMINDER_ENABLED;
 
       whatsappMensagemRepository
         .cancelarMensagensExpiradas
@@ -201,6 +207,42 @@ describe(
           ignorado: false,
           processadas: 1,
         });
+      }
+    );
+
+    test(
+      "enfileira no máximo um lembrete diário elegível por negócio",
+      async () => {
+        process.env
+          .WHATSAPP_FIRST_SERVICE_REMINDER_ENABLED =
+          "true";
+        process.env
+          .WHATSAPP_SHARE_REMINDER_ENABLED =
+          "true";
+        process.env
+          .WHATSAPP_BUSINESS_REMINDER_HOUR =
+          "10";
+
+        whatsappMensagemRepository
+          .enfileirarLembretesDiariosNegocios
+          .mockResolvedValue([]);
+        whatsappMensagemRepository
+          .reservarProximaMensagem
+          .mockResolvedValue(null);
+
+        await whatsappMensagemService
+          .processarFilaWhatsapp({
+            limite: 5,
+          });
+
+        expect(
+          whatsappMensagemRepository
+            .enfileirarLembretesDiariosNegocios
+        ).toHaveBeenCalledWith(
+          10,
+          true,
+          true
+        );
       }
     );
 
@@ -392,7 +434,7 @@ describe(
     );
 
     test(
-      "usa os nomes aprovados dos seis templates de utilidade",
+      "usa os nomes configurados dos templates operacionais e diários",
       () => {
         const nomesEsperados = {
           NOVO_AGENDAMENTO_PROFISSIONAL:
@@ -407,6 +449,10 @@ describe(
             "cancelamento_agendamento_profissional",
           CANCELAMENTO_AGENDAMENTO_CLIENTE:
             "cancelamento_agendamento",
+          LEMBRETE_PRIMEIRO_SERVICO_NEGOCIO:
+            "lembrete_primeiro_servico",
+          LEMBRETE_DIVULGAR_NEGOCIO:
+            "lembrete_divulgar_negocio",
         };
 
         for (const nomeVariavel of [
@@ -416,6 +462,8 @@ describe(
           "WHATSAPP_TEMPLATE_LEMBRETE_PROFISSIONAL",
           "WHATSAPP_TEMPLATE_CANCELAMENTO_PROFISSIONAL",
           "WHATSAPP_TEMPLATE_CANCELAMENTO_CLIENTE",
+          "WHATSAPP_TEMPLATE_PRIMEIRO_SERVICO",
+          "WHATSAPP_TEMPLATE_DIVULGAR_NEGOCIO",
         ]) {
           delete process.env[nomeVariavel];
         }

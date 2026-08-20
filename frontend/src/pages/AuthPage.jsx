@@ -30,7 +30,8 @@ export function AuthPage({ mode = "login" }) {
     email: "",
     whatsapp: "",
     senha: "",
-    confirmarSenha: ""
+    confirmarSenha: "",
+    aceitaLembretesWhatsapp: false
   });
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -137,6 +138,8 @@ export function AuthPage({ mode = "login" }) {
         ...(isRegister ? {
           nome: form.nome.trim(),
           whatsapp: form.whatsapp.replace(/\D/g, ""),
+          aceitaLembretesWhatsapp:
+            professionalIntent && form.aceitaLembretesWhatsapp,
           marketing: getMarketingContext(
             professionalIntent
               ? "profissional"
@@ -246,6 +249,21 @@ export function AuthPage({ mode = "login" }) {
                 type="password"
                 value={form.confirmarSenha}
               />
+            </label>
+          )}
+          {professionalIntent && (
+            <label className="checkbox-label">
+              <input
+                checked={form.aceitaLembretesWhatsapp}
+                onChange={(event) => update(
+                  "aceitaLembretesWhatsapp",
+                  event.target.checked
+                )}
+                type="checkbox"
+              />
+              <span>
+                Quero receber no WhatsApp um lembrete por dia para concluir e divulgar meu negócio. Posso desativar quando quiser.
+              </span>
             </label>
           )}
           {error && <p className="form-error" role="alert">{error}</p>}

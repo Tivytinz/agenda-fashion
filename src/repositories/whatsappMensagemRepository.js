@@ -12,6 +12,11 @@ const TIPOS_CANCELAMENTO = [
   "CANCELAMENTO_AGENDAMENTO_CLIENTE",
 ];
 
+const TIPOS_NEGOCIO = [
+  "LEMBRETE_PRIMEIRO_SERVICO_NEGOCIO",
+  "LEMBRETE_DIVULGAR_NEGOCIO",
+];
+
 function validarExecutor(
   executor
 ) {
@@ -516,6 +521,165 @@ async function enfileirarCancelamento(
   return result.rows;
 }
 
+async function enfileirarLembretesDiariosNegocios(
+  horaLocal = 10,
+  lembretePrimeiroServicoAtivo = false,
+  lembreteDivulgacaoAtivo = false
+) {
+  const result = await db.query(
+    `
+      WITH negocios_validos AS (
+        SELECT
+          n.*,
+          CASE
+            WHEN EXISTS (
+              SELECT 1
+              FROM pg_timezone_names tz
+              WHERE tz.name = n.fuso_horario
+            ) THEN n.fuso_horario
+            ELSE 'America/Sao_Paulo'
+          END AS fuso_envio
+
+        FROM negocios n
+      ),
+
+      elegiveis AS (
+        SELECT
+          n.id AS negocio_id,
+          (NOW() AT TIME ZONE n.fuso_envio)::DATE
+            AS data_referencia,
+          COALESCE(
+            NULLIF(
+              REGEXP_REPLACE(u.whatsapp, '[^0-9]', '', 'g'),
+              ''
+            ),
+            NULLIF(
+              REGEXP_REPLACE(n.whatsapp, '[^0-9]', '', 'g'),
+              ''
+            )
+          ) AS destinatario,
+          u.nome AS proprietario_nome,
+          n.nome AS negocio_nome,
+          n.slug,
+          n.publicado,
+          EXISTS (
+            SELECT 1
+            FROM servicos_negocio s
+            WHERE s.negocio_id = n.id
+              AND s.ativo = TRUE
+          ) AS possui_servico,
+          (
+            (
+              (NOW() AT TIME ZONE n.fuso_envio)::DATE + 1
+            )::TIMESTAMP AT TIME ZONE n.fuso_envio
+          ) AS expira_em
+
+        FROM negocios_validos n
+
+        JOIN usuarios_negocios un
+          ON un.negocio_id = n.id
+          AND un.papel = 'dono'
+          AND un.ativo = TRUE
+
+        JOIN usuarios u
+          ON u.id = un.usuario_id
+          AND u.ativo = TRUE
+
+        WHERE n.ativo = TRUE
+          AND n.created_at <= NOW() - INTERVAL '24 hours'
+          AND u.whatsapp_marketing_consentido_em IS NOT NULL
+          AND u.whatsapp_marketing_cancelado_em IS NULL
+          AND EXTRACT(
+            HOUR FROM NOW() AT TIME ZONE n.fuso_envio
+          ) >= $1
+      ),
+
+      mensagens AS (
+        SELECT
+          negocio_id,
+          data_referencia,
+          CASE
+            WHEN possui_servico = FALSE
+              THEN 'LEMBRETE_PRIMEIRO_SERVICO_NEGOCIO'
+            ELSE 'LEMBRETE_DIVULGAR_NEGOCIO'
+          END AS tipo,
+          destinatario,
+          CASE
+            WHEN possui_servico = FALSE
+              THEN '[]'::JSONB
+            ELSE JSONB_BUILD_ARRAY(
+              proprietario_nome,
+              negocio_nome,
+              'https://app.agendafashion.com.br/negocio/' || slug
+            )
+          END AS parametros_corpo,
+          expira_em
+
+        FROM elegiveis
+
+        WHERE destinatario ~ '^[0-9]{10,13}$'
+          AND (
+            (
+              possui_servico = FALSE
+              AND $2::BOOLEAN
+            )
+            OR
+            (
+              possui_servico = TRUE
+              AND publicado = TRUE
+              AND $3::BOOLEAN
+            )
+          )
+      )
+
+      INSERT INTO whatsapp_mensagens (
+        negocio_id,
+        data_referencia,
+        tipo,
+        destinatario,
+        parametros_corpo,
+        agendado_para,
+        expira_em,
+        proxima_tentativa_em
+      )
+
+      SELECT
+        negocio_id,
+        data_referencia,
+        tipo,
+        destinatario,
+        parametros_corpo,
+        NOW(),
+        expira_em,
+        NOW()
+
+      FROM mensagens
+
+      ON CONFLICT (
+        negocio_id,
+        data_referencia
+      )
+      WHERE negocio_id IS NOT NULL
+      DO NOTHING
+
+      RETURNING
+        id,
+        negocio_id,
+        tipo,
+        destinatario,
+        data_referencia,
+        status
+    `,
+    [
+      horaLocal,
+      lembretePrimeiroServicoAtivo,
+      lembreteDivulgacaoAtivo,
+    ]
+  );
+
+  return result.rows;
+}
+
 async function reservarProximaMensagem() {
   const result =
     await db.query(
@@ -525,9 +689,21 @@ async function reservarProximaMensagem() {
 
           FROM whatsapp_mensagens wm
 
-          JOIN agendamentos a
+          LEFT JOIN agendamentos a
             ON a.id =
               wm.agendamento_id
+
+          LEFT JOIN negocios n
+            ON n.id = wm.negocio_id
+
+          LEFT JOIN usuarios_negocios un
+            ON un.negocio_id = n.id
+            AND un.papel = 'dono'
+            AND un.ativo = TRUE
+
+          LEFT JOIN usuarios u
+            ON u.id = un.usuario_id
+            AND u.ativo = TRUE
 
           WHERE (
               (
@@ -571,6 +747,40 @@ async function reservarProximaMensagem() {
                 AND a.status =
                   'cancelado'
               )
+              OR
+              (
+                wm.tipo =
+                  ANY($3::VARCHAR[])
+                AND n.ativo = TRUE
+                AND u.whatsapp_marketing_consentido_em
+                  IS NOT NULL
+                AND u.whatsapp_marketing_cancelado_em
+                  IS NULL
+                AND (
+                  (
+                    wm.tipo =
+                      'LEMBRETE_PRIMEIRO_SERVICO_NEGOCIO'
+                    AND NOT EXISTS (
+                      SELECT 1
+                      FROM servicos_negocio s
+                      WHERE s.negocio_id = n.id
+                        AND s.ativo = TRUE
+                    )
+                  )
+                  OR
+                  (
+                    wm.tipo =
+                      'LEMBRETE_DIVULGAR_NEGOCIO'
+                    AND n.publicado = TRUE
+                    AND EXISTS (
+                      SELECT 1
+                      FROM servicos_negocio s
+                      WHERE s.negocio_id = n.id
+                        AND s.ativo = TRUE
+                    )
+                  )
+                )
+              )
             )
 
           ORDER BY
@@ -602,6 +812,7 @@ async function reservarProximaMensagem() {
       [
         TIPOS_ATIVOS,
         TIPOS_CANCELAMENTO,
+        TIPOS_NEGOCIO,
       ]
     );
 
@@ -619,9 +830,21 @@ async function mensagemContinuaValida(
 
           FROM whatsapp_mensagens wm
 
-          JOIN agendamentos a
+          LEFT JOIN agendamentos a
             ON a.id =
               wm.agendamento_id
+
+          LEFT JOIN negocios n
+            ON n.id = wm.negocio_id
+
+          LEFT JOIN usuarios_negocios un
+            ON un.negocio_id = n.id
+            AND un.papel = 'dono'
+            AND un.ativo = TRUE
+
+          LEFT JOIN usuarios u
+            ON u.id = un.usuario_id
+            AND u.ativo = TRUE
 
           WHERE wm.id = $1
             AND wm.status =
@@ -644,6 +867,40 @@ async function mensagemContinuaValida(
                 AND a.status =
                   'cancelado'
               )
+              OR
+              (
+                wm.tipo =
+                  ANY($4::VARCHAR[])
+                AND n.ativo = TRUE
+                AND u.whatsapp_marketing_consentido_em
+                  IS NOT NULL
+                AND u.whatsapp_marketing_cancelado_em
+                  IS NULL
+                AND (
+                  (
+                    wm.tipo =
+                      'LEMBRETE_PRIMEIRO_SERVICO_NEGOCIO'
+                    AND NOT EXISTS (
+                      SELECT 1
+                      FROM servicos_negocio s
+                      WHERE s.negocio_id = n.id
+                        AND s.ativo = TRUE
+                    )
+                  )
+                  OR
+                  (
+                    wm.tipo =
+                      'LEMBRETE_DIVULGAR_NEGOCIO'
+                    AND n.publicado = TRUE
+                    AND EXISTS (
+                      SELECT 1
+                      FROM servicos_negocio s
+                      WHERE s.negocio_id = n.id
+                        AND s.ativo = TRUE
+                    )
+                  )
+                )
+              )
             )
         ) AS valida
       `,
@@ -651,6 +908,7 @@ async function mensagemContinuaValida(
         mensagemId,
         TIPOS_ATIVOS,
         TIPOS_CANCELAMENTO,
+        TIPOS_NEGOCIO,
       ]
     );
 
@@ -934,6 +1192,7 @@ async function marcarCancelada(
 module.exports = {
   enfileirarNovoAgendamento,
   enfileirarCancelamento,
+  enfileirarLembretesDiariosNegocios,
   reservarProximaMensagem,
   mensagemContinuaValida,
   cancelarMensagensExpiradas,

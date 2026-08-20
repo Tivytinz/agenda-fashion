@@ -59,6 +59,9 @@ function obterDadosCadastro(req) {
     senha:
       req.body?.senha,
 
+    aceitaLembretesWhatsapp:
+      req.body?.aceitaLembretesWhatsapp,
+
     marketing:
       req.body?.marketing,
   };

@@ -337,6 +337,54 @@ async function atualizarMinhaConta({
   };
 }
 
+async function atualizarPreferenciaWhatsapp({
+  usuarioId,
+  aceitaLembretes,
+}) {
+  const id = normalizarUsuarioId(
+    usuarioId
+  );
+
+  if (
+    typeof aceitaLembretes !==
+    "boolean"
+  ) {
+    throw criarErro(
+      "Informe uma preferência válida para os lembretes do WhatsApp.",
+      400
+    );
+  }
+
+  const contaAtual =
+    await contaRepository
+      .buscarUsuarioPorId(id);
+
+  validarContaAtiva(
+    contaAtual
+  );
+
+  const preferencia =
+    await contaRepository
+      .atualizarPreferenciaWhatsapp({
+        usuarioId: id,
+        aceitaLembretes,
+      });
+
+  if (!preferencia) {
+    throw criarErro(
+      "Usuário não encontrado.",
+      404
+    );
+  }
+
+  return {
+    mensagem: aceitaLembretes
+      ? "Lembretes diários do WhatsApp ativados."
+      : "Lembretes diários do WhatsApp desativados.",
+    preferencia,
+  };
+}
+
 /*
  * PUT /conta/senha
  */
@@ -593,6 +641,7 @@ async function removerImagemSilenciosamente(
 module.exports = {
   buscarMinhaConta,
   atualizarMinhaConta,
+  atualizarPreferenciaWhatsapp,
   alterarSenha,
   enviarFotoUsuario,
 };

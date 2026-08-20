@@ -62,6 +62,29 @@ async function atualizarMinhaConta(
   }
 }
 
+async function atualizarPreferenciaWhatsapp(
+  req,
+  res,
+  next
+) {
+  try {
+    const resultado =
+      await contaService
+        .atualizarPreferenciaWhatsapp({
+          usuarioId:
+            req.user?.id,
+          aceitaLembretes:
+            req.body?.aceitaLembretes,
+        });
+
+    return res.json(
+      resultado
+    );
+  } catch (erro) {
+    return next(erro);
+  }
+}
+
 /*
  * PUT /conta/senha
  */
@@ -128,6 +151,7 @@ async function enviarFotoUsuario(
 module.exports = {
   buscarMinhaConta,
   atualizarMinhaConta,
+  atualizarPreferenciaWhatsapp,
   alterarSenha,
   enviarFotoUsuario,
 };

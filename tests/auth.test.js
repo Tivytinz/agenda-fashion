@@ -165,6 +165,9 @@ describe("Autenticação com conta única", () => {
 
           whatsapp:
             "62999999999",
+
+          aceitaLembretesWhatsapp:
+            false,
         });
 
         expect(
@@ -245,6 +248,40 @@ describe("Autenticação com conta única", () => {
           tokenDecodificado
         ).not.toHaveProperty(
           "papel"
+        );
+      }
+    );
+
+    test(
+      "registra o consentimento explícito para o lembrete diário",
+      async () => {
+        authRepository
+          .buscarUsuarioPorEmail
+          .mockResolvedValue(null);
+
+        authRepository
+          .criarUsuario
+          .mockResolvedValue(
+            criarUsuario()
+          );
+
+        const resposta = await request(app)
+          .post("/cadastro")
+          .send({
+            nome: "Ana Souza",
+            email: "ana@email.com",
+            whatsapp: "62999998888",
+            senha: "senha123",
+            aceitaLembretesWhatsapp: true,
+          });
+
+        expect(resposta.status).toBe(201);
+        expect(
+          authRepository.criarUsuario
+        ).toHaveBeenCalledWith(
+          expect.objectContaining({
+            aceitaLembretesWhatsapp: true,
+          })
         );
       }
     );
