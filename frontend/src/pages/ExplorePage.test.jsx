@@ -20,7 +20,6 @@ import {
 import { apiRequest } from "../api/client";
 import {
   buildCatalogPath,
-  distanceInKm,
   diversifyServices,
   ExplorePage
 } from "./ExplorePage";
@@ -72,22 +71,6 @@ describe("catálogo público paginado", () => {
     })).toBe(
       "/negocios-publicos?pagina=2&limite=12&busca=manicure&categoria=unha"
     );
-  });
-
-  it("envia a cidade como filtro dedicado", () => {
-    expect(buildCatalogPath({ city: "Goiânia" }))
-      .toContain("cidade=Goi%C3%A2nia");
-  });
-
-  it("calcula distância somente quando existem coordenadas válidas", () => {
-    expect(distanceInKm(
-      { latitude: -23.5505, longitude: -46.6333 },
-      { latitude: -23.5505, longitude: -46.6333 }
-    )).toBe(0);
-    expect(distanceInKm(
-      { latitude: null, longitude: null },
-      { latitude: -23.5505, longitude: -46.6333 }
-    )).toBeNull();
   });
 
   it("alterna serviços de negócios diferentes antes de repetir", () => {
@@ -231,9 +214,7 @@ describe("catálogo público paginado", () => {
     expect(screen.queryByText(/opção encontrada/i)).toBeNull();
   });
 
-  it("filtra por preço e organiza serviços em vitrines navegáveis", async () => {
-    const user = userEvent.setup();
-
+  it("organiza serviços em vitrines navegáveis sem filtros extras", async () => {
     apiRequest.mockResolvedValue({
       negocios: [{
         ...business(1, "Studio Um"),
@@ -243,15 +224,13 @@ describe("catálogo público paginado", () => {
             id: 11,
             nome: "Esmaltação",
             categoria: "unha",
-            valor: 45,
-            agenda_online: true
+            valor: 45
           },
           {
             id: 12,
             nome: "Alongamento",
             categoria: "unha",
-            valor: 180,
-            agenda_online: false
+            valor: 180
           }
         ]
       }],
@@ -263,45 +242,11 @@ describe("catálogo público paginado", () => {
     expect(await screen.findByRole("heading", { name: "Esmaltação" }))
       .not.toBeNull();
     expect(container.querySelector(".service-rail-track")).not.toBeNull();
-
-    await user.selectOptions(
-      screen.getByRole("combobox", { name: "Preço máximo" }),
-      "50"
-    );
-
-    expect(screen.queryByRole("heading", { name: "Alongamento" })).toBeNull();
-    expect(screen.getByText("Agenda online")).not.toBeNull();
-  });
-
-  it("ordena por proximidade depois da autorização da cliente", async () => {
-    const user = userEvent.setup();
-    const getCurrentPosition = vi.fn((success) => success({
-      coords: { latitude: -23.55, longitude: -46.63 }
-    }));
-
-    Object.defineProperty(navigator, "geolocation", {
-      configurable: true,
-      value: { getCurrentPosition }
-    });
-
-    apiRequest.mockResolvedValue({
-      negocios: [{
-        ...business(1, "Studio Um"),
-        cidade: "São Paulo",
-        latitude: -23.55,
-        longitude: -46.63
-      }],
-      paginacao: { total: 1, tem_mais: false }
-    });
-
-    renderExplore();
-    await screen.findByRole("heading", { name: "Studio Um" });
-    await user.click(screen.getByRole("button", { name: "Usar localização" }));
-
-    expect(getCurrentPosition).toHaveBeenCalledTimes(1);
-    expect(await screen.findByText("Resultados ordenados por proximidade."))
-      .not.toBeNull();
-    expect(screen.getByRole("combobox", { name: "Ordenar resultados" }).value)
-      .toBe("distance");
+    expect(screen.getByText("2 opções")).not.toBeNull();
+    expect(screen.getByText("Deslize →")).not.toBeNull();
+    expect(screen.getByRole("heading", { name: "Alongamento" })).not.toBeNull();
+    expect(screen.queryByText("Agenda online")).toBeNull();
+    expect(screen.queryByRole("combobox")).toBeNull();
+    expect(screen.queryByRole("button", { name: "Usar localização" })).toBeNull();
   });
 });

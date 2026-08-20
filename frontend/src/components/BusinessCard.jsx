@@ -90,9 +90,6 @@ export function BusinessCard({ business }) {
               <span aria-hidden="true">📍</span>
               <span>
                 {formatLocation(business) || "Atendimento local"}
-                {Number.isFinite(business.distancia_km) && (
-                  <> · {business.distancia_km.toFixed(1).replace(".", ",")} km</>
-                )}
               </span>
             </p>
           </div>

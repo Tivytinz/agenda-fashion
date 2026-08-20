@@ -101,19 +101,6 @@ async function listarNegociosPublicos({
     negocios_paginados AS (
       SELECT
         nf.*,
-        EXISTS (
-          SELECT 1
-          FROM usuarios_negocios un
-          INNER JOIN agenda_horarios ah
-            ON ah.profissional_id = un.usuario_id
-          INNER JOIN usuarios u
-            ON u.id = un.usuario_id
-          WHERE un.negocio_id = nf.id
-            AND un.ativo = TRUE
-            AND u.ativo = TRUE
-            AND un.papel IN ('dono', 'profissional')
-            AND ah.trabalha = TRUE
-        ) AS agenda_online,
         COUNT(*) OVER()::int AS total_resultados
       FROM negocios_filtrados nf
       ORDER BY
@@ -148,7 +135,6 @@ async function listarNegociosPublicos({
       n.longitude,
       n.publicado,
       n.total_resultados,
-      n.agenda_online,
 
       COALESCE(
         n.areas,
@@ -166,8 +152,7 @@ async function listarNegociosPublicos({
                 'valor', s.valor,
                 'duracao_minutos', s.duracao_minutos,
                 'categoria', s.categoria,
-                'foto_url', s.foto_url,
-                'agenda_online', n.agenda_online
+                'foto_url', s.foto_url
               )
 
               ORDER BY

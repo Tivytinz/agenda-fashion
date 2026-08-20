@@ -279,33 +279,6 @@
     scroll-snap-align: start;
   }
 
-  .catalog-filters {
-    display: flex;
-    max-width: 100%;
-    overflow-x: auto;
-    margin-inline: 0 -12px;
-    padding: 2px 46px 4px 0;
-    scroll-snap-type: x proximity;
-    scrollbar-width: none;
-  }
-
-  .catalog-filters::-webkit-scrollbar {
-    display: none;
-  }
-
-  .catalog-filters label,
-  .catalog-filters .location-filter,
-  .catalog-filters .online-filter {
-    width: auto;
-    min-width: max-content;
-    flex: 0 0 auto;
-    scroll-snap-align: start;
-  }
-
-  .catalog-filters select {
-    min-width: 142px;
-  }
-
   .chip,
   .date-button,
   .date-switcher button,
@@ -368,11 +341,22 @@
 
   .service-discovery-card {
     display: grid;
-    grid-template-columns: 112px minmax(0, 1fr);
+    grid-template-columns: 96px minmax(0, 1fr);
   }
 
   .service-rails {
     gap: 20px;
+  }
+
+  .service-rail-heading {
+    align-items: end;
+  }
+
+  .service-rail-hint {
+    flex-direction: column;
+    align-items: end;
+    gap: 0;
+    line-height: 1.2;
   }
 
   .service-rail-track {
@@ -388,11 +372,11 @@
   }
 
   .service-rail-track .service-discovery-card {
-    flex-basis: min(92vw, 360px);
+    flex-basis: min(calc(100vw - 72px), 340px);
   }
 
   .service-discovery-image {
-    width: 112px;
+    width: 96px;
     height: 100%;
     min-height: 160px;
     aspect-ratio: auto;

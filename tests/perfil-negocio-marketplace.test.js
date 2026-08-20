@@ -34,7 +34,6 @@ describe(
                   id: 10,
                   nome: "Alongamento em gel",
                   valor: "120.00",
-                  agenda_online: true,
                 },
               ],
             },
@@ -68,7 +67,6 @@ describe(
             id: 10,
             nome:
               "Alongamento em gel",
-            agenda_online: true,
           }),
         ]);
       }
