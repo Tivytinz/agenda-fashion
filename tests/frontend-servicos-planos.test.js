@@ -67,6 +67,9 @@ describe("Sprint de catálogo, planos e navegação", () => {
     expect(styles).toContain(
       ".business-card .card-image img { object-fit: contain; }"
     );
+    expect(styles).toMatch(
+      /\.card-image img\s*\{[^}]*position:\s*absolute;[^}]*inset:\s*0;/
+    );
   });
 
   test("exibe a foto completa nos cards de serviços", () => {
@@ -74,10 +77,20 @@ describe("Sprint de catálogo, planos e navegação", () => {
     const responsive = ler("frontend/src/styles/responsive.css");
 
     expect(styles).toMatch(
-      /\.service-discovery-image img\s*\{[\s\S]*?object-fit:\s*contain;/
+      /\.service-discovery-image img\s*\{[^}]*position:\s*absolute;[^}]*inset:\s*0;[^}]*object-fit:\s*contain;/
     );
     expect(responsive).toMatch(
       /\.service-discovery-image img\s*\{[\s\S]*?object-fit:\s*contain;/
+    );
+  });
+
+  test("usa a logotipo oficial como ícone da aba", () => {
+    const html = ler("frontend/index.html");
+
+    expect(html).toContain('rel="icon"');
+    expect(html).toContain('rel="apple-touch-icon"');
+    expect(html).toContain(
+      '/src/assets/brand/af-logo-transparent.png'
     );
   });
 });

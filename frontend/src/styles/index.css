@@ -77,8 +77,8 @@ nav { display: flex; align-items: center; gap: 18px; }
 .card { overflow: hidden; border: 1px solid var(--line); border-radius: 16px; background: var(--surface); box-shadow: var(--shadow); transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease; }
 .card:hover { transform: translateY(-3px); border-color: var(--pink-100); box-shadow: var(--shadow-hover); }
 .business-card { display: flex; min-width: 0; flex-direction: column; }
-.card-image { display: grid; aspect-ratio: 16 / 8; place-items: center; overflow: hidden; color: var(--pink-600); background: linear-gradient(145deg, var(--pink-50), #fde2ed); font-size: 2.4rem; }
-.card-image img { width: 100%; height: 100%; object-fit: cover; }
+.card-image { position: relative; display: grid; aspect-ratio: 16 / 8; place-items: center; overflow: hidden; color: var(--pink-600); background: linear-gradient(145deg, var(--pink-50), #fde2ed); font-size: 2.4rem; }
+.card-image img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
 .business-card .card-image img { object-fit: contain; }
 .card-placeholder { display: grid; justify-items: center; gap: 6px; }
 .business-initial { display: grid; width: 64px; height: 64px; place-items: center; border: 2px solid rgb(197 36 107 / 22%); border-radius: 18px; color: #fff; background: linear-gradient(145deg, var(--pink-500), var(--wine)); box-shadow: 0 8px 20px rgb(105 36 63 / 18%); font-size: 1.8rem; font-weight: 900; }
@@ -457,6 +457,7 @@ th { color: var(--muted); font-size: .76rem; letter-spacing: .04em; text-transfo
 }
 
 .service-discovery-image {
+  position: relative;
   display: grid;
   aspect-ratio: 4 / 3;
   place-items: center;
@@ -472,6 +473,8 @@ th { color: var(--muted); font-size: .76rem; letter-spacing: .04em; text-transfo
 }
 
 .service-discovery-image img {
+  position: absolute;
+  inset: 0;
   width: 100%;
   height: 100%;
   object-fit: contain;
