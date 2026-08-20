@@ -166,6 +166,9 @@ describe("Autenticação com conta única", () => {
           whatsapp:
             "62999999999",
 
+          aceitaNotificacoesWhatsapp:
+            false,
+
           aceitaLembretesWhatsapp:
             false,
         });

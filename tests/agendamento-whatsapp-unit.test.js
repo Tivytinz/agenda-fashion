@@ -93,6 +93,57 @@ function obterDataAmanhaBrasil() {
 }
 
 describe(
+  "Consentimento das mensagens da cliente",
+  () => {
+    beforeEach(() => {
+      jest.clearAllMocks();
+    });
+
+    test(
+      "usa a escolha do formulário para visitante",
+      async () => {
+        await expect(
+          agendamentoPublicoService
+            .resolverConsentimentoWhatsapp({
+              clienteId: null,
+              consentimentoVisitante: true,
+            })
+        ).resolves.toBe(true);
+
+        expect(
+          agendaPublicaRepository
+            .buscarPreferenciaNotificacoesWhatsapp
+        ).not.toHaveBeenCalled();
+      }
+    );
+
+    test(
+      "usa a preferência da conta para cliente autenticada",
+      async () => {
+        agendaPublicaRepository
+          .buscarPreferenciaNotificacoesWhatsapp
+          .mockResolvedValue({
+            aceita_notificacoes_whatsapp: false,
+          });
+
+        await expect(
+          agendamentoPublicoService
+            .resolverConsentimentoWhatsapp({
+              clienteId: 8,
+              consentimentoVisitante: true,
+            })
+        ).resolves.toBe(false);
+
+        expect(
+          agendaPublicaRepository
+            .buscarPreferenciaNotificacoesWhatsapp
+        ).toHaveBeenCalledWith(8);
+      }
+    );
+  }
+);
+
+describe(
   "Mensagens ligadas ao cancelamento",
   () => {
     beforeEach(() => {

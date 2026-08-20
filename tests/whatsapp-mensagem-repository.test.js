@@ -181,6 +181,36 @@ describe(
     );
 
     test(
+      "revalida a autorização da conta do cliente antes do envio",
+      async () => {
+        db.query.mockResolvedValue({
+          rows: [{ valida: true }],
+        });
+
+        await whatsappMensagemRepository
+          .mensagemContinuaValida(10);
+
+        const [consulta, parametros] =
+          db.query.mock.calls[0];
+        const sql = consulta.replace(/\s+/g, " ");
+
+        expect(sql).toContain(
+          "cliente_conta.whatsapp_notificacoes_consentido_em IS NOT NULL"
+        );
+        expect(sql).toContain(
+          "cliente_conta.whatsapp_notificacoes_cancelado_em IS NULL"
+        );
+        expect(parametros[4]).toEqual(
+          expect.arrayContaining([
+            "CONFIRMACAO_AGENDAMENTO_CLIENTE",
+            "LEMBRETE_AGENDAMENTO_CLIENTE",
+            "CANCELAMENTO_AGENDAMENTO_CLIENTE",
+          ])
+        );
+      }
+    );
+
+    test(
       "registra status de entrega usando o wamid",
       async () => {
         db.query.mockResolvedValue({

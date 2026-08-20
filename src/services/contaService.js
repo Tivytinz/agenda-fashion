@@ -385,6 +385,54 @@ async function atualizarPreferenciaWhatsapp({
   };
 }
 
+async function atualizarNotificacoesWhatsapp({
+  usuarioId,
+  aceitaNotificacoes,
+}) {
+  const id = normalizarUsuarioId(
+    usuarioId
+  );
+
+  if (
+    typeof aceitaNotificacoes !==
+    "boolean"
+  ) {
+    throw criarErro(
+      "Informe uma preferência válida para as mensagens do WhatsApp.",
+      400
+    );
+  }
+
+  const contaAtual =
+    await contaRepository
+      .buscarUsuarioPorId(id);
+
+  validarContaAtiva(
+    contaAtual
+  );
+
+  const preferencia =
+    await contaRepository
+      .atualizarNotificacoesWhatsapp({
+        usuarioId: id,
+        aceitaNotificacoes,
+      });
+
+  if (!preferencia) {
+    throw criarErro(
+      "Usuário não encontrado.",
+      404
+    );
+  }
+
+  return {
+    mensagem: aceitaNotificacoes
+      ? "Mensagens dos agendamentos pelo WhatsApp ativadas."
+      : "Mensagens dos agendamentos pelo WhatsApp desativadas.",
+    preferencia,
+  };
+}
+
 /*
  * PUT /conta/senha
  */
@@ -642,6 +690,7 @@ module.exports = {
   buscarMinhaConta,
   atualizarMinhaConta,
   atualizarPreferenciaWhatsapp,
+  atualizarNotificacoesWhatsapp,
   alterarSenha,
   enviarFotoUsuario,
 };

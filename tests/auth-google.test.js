@@ -214,6 +214,8 @@ describe(
             "victor@gmail.com",
           emailAutoritativo:
             true,
+          aceitaNotificacoesWhatsapp:
+            false,
         });
         expect(
           resposta.body

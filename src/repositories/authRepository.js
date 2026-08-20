@@ -6,6 +6,12 @@ const CAMPOS_USUARIO = `
   email,
   senha,
   whatsapp,
+  whatsapp_notificacoes_consentido_em,
+  whatsapp_notificacoes_cancelado_em,
+  (
+    whatsapp_notificacoes_consentido_em IS NOT NULL
+    AND whatsapp_notificacoes_cancelado_em IS NULL
+  ) AS aceita_notificacoes_whatsapp,
   whatsapp_marketing_consentido_em,
   whatsapp_marketing_cancelado_em,
   google_sub,
@@ -63,6 +69,12 @@ async function buscarUsuarioPorId(
         nome,
         email,
         whatsapp,
+        whatsapp_notificacoes_consentido_em,
+        whatsapp_notificacoes_cancelado_em,
+        (
+          whatsapp_notificacoes_consentido_em IS NOT NULL
+          AND whatsapp_notificacoes_cancelado_em IS NULL
+        ) AS aceita_notificacoes_whatsapp,
         google_sub,
         ativo,
         email_verificado_em,
@@ -86,6 +98,7 @@ async function criarUsuario({
   senha,
   whatsapp,
   aceitaLembretesWhatsapp = false,
+  aceitaNotificacoesWhatsapp = false,
 }) {
   const resultado =
     await db.query(
@@ -95,6 +108,8 @@ async function criarUsuario({
         email,
         senha,
         whatsapp,
+        whatsapp_notificacoes_consentido_em,
+        whatsapp_notificacoes_cancelado_em,
         whatsapp_marketing_consentido_em
       )
       VALUES (
@@ -105,6 +120,14 @@ async function criarUsuario({
         CASE
           WHEN $5::BOOLEAN THEN NOW()
           ELSE NULL
+        END,
+        CASE
+          WHEN $5::BOOLEAN THEN NULL
+          ELSE NOW()
+        END,
+        CASE
+          WHEN $6::BOOLEAN THEN NOW()
+          ELSE NULL
         END
       )
       RETURNING ${CAMPOS_USUARIO}
@@ -114,6 +137,7 @@ async function criarUsuario({
         email,
         senha,
         whatsapp,
+        aceitaNotificacoesWhatsapp,
         aceitaLembretesWhatsapp,
       ]
     );
@@ -125,6 +149,7 @@ async function criarUsuarioGoogle({
   nome,
   email,
   googleSub,
+  aceitaNotificacoesWhatsapp = false,
 }) {
   const resultado =
     await db.query(
@@ -135,7 +160,9 @@ async function criarUsuarioGoogle({
         senha,
         whatsapp,
         google_sub,
-        email_verificado_em
+        email_verificado_em,
+        whatsapp_notificacoes_consentido_em,
+        whatsapp_notificacoes_cancelado_em
       )
       VALUES (
         $1,
@@ -143,11 +170,24 @@ async function criarUsuarioGoogle({
         NULL,
         NULL,
         $3,
-        NOW()
+        NOW(),
+        CASE
+          WHEN $4::BOOLEAN THEN NOW()
+          ELSE NULL
+        END,
+        CASE
+          WHEN $4::BOOLEAN THEN NULL
+          ELSE NOW()
+        END
       )
       RETURNING ${CAMPOS_USUARIO}
       `,
-      [nome, email, googleSub]
+      [
+        nome,
+        email,
+        googleSub,
+        aceitaNotificacoesWhatsapp,
+      ]
     );
 
   return resultado.rows[0];

@@ -24,8 +24,15 @@ Esses dois modelos são mutuamente exclusivos. O banco permite no máximo uma
 mensagem por negócio e data, e a regra de elegibilidade impede que
 os dois sejam enviados para o mesmo negócio no mesmo dia.
 
-As mensagens para a cliente só são criadas quando ela marca o consentimento no
-formulário. O agendamento continua funcionando quando ela não autoriza.
+Para visitantes, as mensagens para a cliente só são criadas quando ela marca o
+consentimento no formulário do agendamento. Para clientes com conta, vale a
+preferência de mensagens escolhida no cadastro e disponível em **Minha conta >
+Mensagens no WhatsApp**. O agendamento continua funcionando quando ela não
+autoriza.
+
+Contas existentes são migradas como autorizadas e permanecem assim até a
+cliente desativar a preferência. A fila consulta novamente essa preferência
+antes de reservar e antes de enviar cada mensagem pendente.
 
 ## Garantias da fila
 
@@ -81,6 +88,15 @@ node scripts/executar-migration.js database/migrations/044_lembretes_diarios_wha
 
 A migration adiciona o consentimento de Marketing à conta e amplia a fila para
 mensagens ligadas ao negócio, com idempotência por negócio, tipo e dia.
+
+Para habilitar a preferência de mensagens das clientes, execute:
+
+```bash
+node scripts/executar-migration.js database/migrations/046_notificacoes_whatsapp_clientes.sql
+```
+
+A migration adiciona o consentimento à conta e autoriza os cadastros já
+existentes. Novos cadastros respeitam a escolha explícita feita no formulário.
 
 ## Templates da Meta
 

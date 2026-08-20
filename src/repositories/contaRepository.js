@@ -17,6 +17,12 @@ async function buscarUsuarioPorId(
           nome,
           email,
           whatsapp,
+          whatsapp_notificacoes_consentido_em,
+          whatsapp_notificacoes_cancelado_em,
+          (
+            whatsapp_notificacoes_consentido_em IS NOT NULL
+            AND whatsapp_notificacoes_cancelado_em IS NULL
+          ) AS aceita_notificacoes_whatsapp,
           whatsapp_marketing_consentido_em,
           whatsapp_marketing_cancelado_em,
           (
@@ -100,6 +106,12 @@ async function atualizarUsuario({
           nome,
           email,
           whatsapp,
+          whatsapp_notificacoes_consentido_em,
+          whatsapp_notificacoes_cancelado_em,
+          (
+            whatsapp_notificacoes_consentido_em IS NOT NULL
+            AND whatsapp_notificacoes_cancelado_em IS NULL
+          ) AS aceita_notificacoes_whatsapp,
           whatsapp_marketing_consentido_em,
           whatsapp_marketing_cancelado_em,
           (
@@ -206,6 +218,51 @@ async function atualizarPreferenciaWhatsapp({
   return resultado.rows[0] || null;
 }
 
+async function atualizarNotificacoesWhatsapp({
+  usuarioId,
+  aceitaNotificacoes
+}) {
+  const resultado = await db.query(
+    `
+      UPDATE usuarios
+
+      SET
+        whatsapp_notificacoes_consentido_em =
+          CASE
+            WHEN $1::BOOLEAN
+              THEN COALESCE(
+                whatsapp_notificacoes_consentido_em,
+                NOW()
+              )
+            ELSE whatsapp_notificacoes_consentido_em
+          END,
+        whatsapp_notificacoes_cancelado_em =
+          CASE
+            WHEN $1::BOOLEAN THEN NULL
+            ELSE NOW()
+          END
+
+      WHERE id = $2
+        AND ativo = TRUE
+
+      RETURNING
+        id,
+        whatsapp_notificacoes_consentido_em,
+        whatsapp_notificacoes_cancelado_em,
+        (
+          whatsapp_notificacoes_consentido_em IS NOT NULL
+          AND whatsapp_notificacoes_cancelado_em IS NULL
+        ) AS aceita_notificacoes_whatsapp
+    `,
+    [
+      aceitaNotificacoes,
+      usuarioId,
+    ]
+  );
+
+  return resultado.rows[0] || null;
+}
+
 async function atualizarFotoUsuario({
   usuarioId,
   fotoUrl,
@@ -228,6 +285,12 @@ async function atualizarFotoUsuario({
           nome,
           email,
           whatsapp,
+          whatsapp_notificacoes_consentido_em,
+          whatsapp_notificacoes_cancelado_em,
+          (
+            whatsapp_notificacoes_consentido_em IS NOT NULL
+            AND whatsapp_notificacoes_cancelado_em IS NULL
+          ) AS aceita_notificacoes_whatsapp,
           whatsapp_marketing_consentido_em,
           whatsapp_marketing_cancelado_em,
           (
@@ -261,6 +324,7 @@ module.exports = {
   buscarSenhaUsuario,
   atualizarUsuario,
   atualizarPreferenciaWhatsapp,
+  atualizarNotificacoesWhatsapp,
   atualizarSenha,
   atualizarFotoUsuario,
 };

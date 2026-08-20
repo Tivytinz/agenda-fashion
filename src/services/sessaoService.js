@@ -37,6 +37,9 @@ function sanitizarUsuario(
     whatsapp:
       usuario.whatsapp,
 
+    aceita_notificacoes_whatsapp:
+      usuario.aceita_notificacoes_whatsapp === true,
+
     ativo:
       usuario.ativo,
 

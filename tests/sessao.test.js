@@ -84,6 +84,7 @@ function criarUsuario(
     nome: "Victor Souza",
     email: "victor@email.com",
     whatsapp: "62999999999",
+    aceita_notificacoes_whatsapp: true,
     ativo: true,
     email_verificado_em: null,
     ultimo_login_em:
@@ -269,6 +270,8 @@ describe(
               "victor@email.com",
             whatsapp:
               "62999999999",
+            aceita_notificacoes_whatsapp:
+              true,
             ativo: true,
           },
 

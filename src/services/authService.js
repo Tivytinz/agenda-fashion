@@ -126,6 +126,8 @@ function sanitizarUsuario(
       usuario.email,
     whatsapp:
       usuario.whatsapp,
+    aceita_notificacoes_whatsapp:
+      usuario.aceita_notificacoes_whatsapp === true,
     ativo:
       usuario.ativo,
     googleConectado:
@@ -303,6 +305,7 @@ async function cadastro({
   senha,
   whatsapp,
   aceitaLembretesWhatsapp = false,
+  aceitaNotificacoesWhatsapp = false,
   marketing,
 }) {
   const dados =
@@ -348,6 +351,8 @@ async function cadastro({
             dados.whatsapp,
           aceitaLembretesWhatsapp:
             aceitaLembretesWhatsapp === true,
+          aceitaNotificacoesWhatsapp:
+            aceitaNotificacoesWhatsapp === true,
         });
   } catch (erro) {
     if (
@@ -528,6 +533,7 @@ async function buscarContaGoogle({
 async function loginGoogle({
   credencial,
   marketing,
+  aceitaNotificacoesWhatsapp = false,
 }) {
   const identidade =
     await googleIdentityService
@@ -546,7 +552,11 @@ async function loginGoogle({
       usuario =
         await authRepository
           .criarUsuarioGoogle(
-            identidade
+            {
+              ...identidade,
+              aceitaNotificacoesWhatsapp:
+                aceitaNotificacoesWhatsapp === true,
+            }
           );
       contaCriada = true;
     } catch (erro) {

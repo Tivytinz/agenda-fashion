@@ -85,6 +85,29 @@ async function atualizarPreferenciaWhatsapp(
   }
 }
 
+async function atualizarNotificacoesWhatsapp(
+  req,
+  res,
+  next
+) {
+  try {
+    const resultado =
+      await contaService
+        .atualizarNotificacoesWhatsapp({
+          usuarioId:
+            req.user?.id,
+          aceitaNotificacoes:
+            req.body?.aceitaNotificacoes,
+        });
+
+    return res.json(
+      resultado
+    );
+  } catch (erro) {
+    return next(erro);
+  }
+}
+
 /*
  * PUT /conta/senha
  */
@@ -152,6 +175,7 @@ module.exports = {
   buscarMinhaConta,
   atualizarMinhaConta,
   atualizarPreferenciaWhatsapp,
+  atualizarNotificacoesWhatsapp,
   alterarSenha,
   enviarFotoUsuario,
 };

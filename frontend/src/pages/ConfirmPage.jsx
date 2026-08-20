@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Navigate, useLocation, useNavigate } from "react-router-dom";
+import { Link, Navigate, useLocation, useNavigate } from "react-router-dom";
 import { apiRequest } from "../api/client";
 import { track } from "../analytics/track";
+import { useSession } from "../auth/SessionContext";
 import { FlowSteps } from "../components/FlowSteps";
 import { saveRecentAppointment } from "../utils/appointments";
 import { formatCurrency, formatDate, formatWhatsApp } from "../utils/format";
@@ -19,6 +20,7 @@ function storedBooking() {
 }
 
 export function ConfirmPage() {
+  const session = useSession();
   const location = useLocation();
   const navigate = useNavigate();
   const booking = useMemo(() => location.state || storedBooking(), [location.state]);
@@ -31,7 +33,9 @@ export function ConfirmPage() {
   }, []);
   const [name, setName] = useState(user?.nome || "");
   const [whatsapp, setWhatsapp] = useState(formatWhatsApp(user?.whatsapp));
-  const [consent, setConsent] = useState(false);
+  const [consent, setConsent] = useState(
+    session.usuario?.aceita_notificacoes_whatsapp === true
+  );
   const [status, setStatus] = useState("idle");
   const [scheduleConflict, setScheduleConflict] = useState(false);
   const [error, setError] = useState("");
@@ -164,11 +168,22 @@ export function ConfirmPage() {
                 onChange={(event) => setWhatsapp(formatWhatsApp(event.target.value))}
               />
             </label>
-            <label className="checkbox-label">
-              <input type="checkbox" checked={consent} onChange={(event) => setConsent(event.target.checked)} />
-              <span>Quero receber confirmação, lembrete e atualizações pelo WhatsApp.</span>
-            </label>
-            <small>Opcional. Você pode agendar sem autorizar mensagens.</small>
+            {session.authenticated ? (
+              <p className="muted">
+                {session.usuario?.aceita_notificacoes_whatsapp
+                  ? "Você receberá confirmação, lembrete e atualizações deste agendamento pelo WhatsApp."
+                  : "As mensagens de agendamento pelo WhatsApp estão desativadas na sua conta."}{" "}
+                <Link to="/conta#notificacoes-whatsapp">Alterar em Minha conta</Link>
+              </p>
+            ) : (
+              <>
+                <label className="checkbox-label">
+                  <input type="checkbox" checked={consent} onChange={(event) => setConsent(event.target.checked)} />
+                  <span>Quero receber confirmação, lembrete e atualizações pelo WhatsApp.</span>
+                </label>
+                <small>Opcional. Você pode agendar sem autorizar mensagens.</small>
+              </>
+            )}
 
             {error && <p className="form-error" role="alert">{error}</p>}
             {scheduleConflict && (

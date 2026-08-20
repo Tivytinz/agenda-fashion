@@ -114,6 +114,14 @@ export function AppHeader() {
 
           {session.authenticated ? (
             <>
+              {!operationalArea && (
+                <NavLink
+                  className="text-link desktop-nav-link"
+                  to="/conta#notificacoes-whatsapp"
+                >
+                  Mensagens
+                </NavLink>
+              )}
               {session.ehAdministrador && !adminArea && (
                 <NavLink
                   className="text-link desktop-nav-link"

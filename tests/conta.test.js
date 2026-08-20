@@ -39,6 +39,9 @@ jest.mock(
     atualizarPreferenciaWhatsapp:
       jest.fn(),
 
+    atualizarNotificacoesWhatsapp:
+      jest.fn(),
+
     atualizarSenha:
       jest.fn(),
 
@@ -429,6 +432,48 @@ describe(
         });
         expect(resposta.body.mensagem).toBe(
           "Lembretes diários do WhatsApp ativados."
+        );
+      }
+    );
+
+    test(
+      "permite desativar as mensagens de agendamento do WhatsApp",
+      async () => {
+        contaRepository
+          .buscarUsuarioPorId
+          .mockResolvedValue(
+            criarUsuario({
+              aceita_notificacoes_whatsapp: true,
+            })
+          );
+
+        contaRepository
+          .atualizarNotificacoesWhatsapp
+          .mockResolvedValue({
+            id: 7,
+            aceita_notificacoes_whatsapp: false,
+          });
+
+        const resposta = await request(app)
+          .put("/conta/notificacoes-whatsapp")
+          .set(
+            "Authorization",
+            `Bearer ${gerarToken()}`
+          )
+          .send({
+            aceitaNotificacoes: false,
+          });
+
+        expect(resposta.status).toBe(200);
+        expect(
+          contaRepository
+            .atualizarNotificacoesWhatsapp
+        ).toHaveBeenCalledWith({
+          usuarioId: 7,
+          aceitaNotificacoes: false,
+        });
+        expect(resposta.body.mensagem).toBe(
+          "Mensagens dos agendamentos pelo WhatsApp desativadas."
         );
       }
     );

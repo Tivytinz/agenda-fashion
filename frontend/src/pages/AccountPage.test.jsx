@@ -153,4 +153,49 @@ describe("minha conta", () => {
       );
     });
   });
+
+  it("permite ao cliente desativar as mensagens dos agendamentos", async () => {
+    apiRequest
+      .mockResolvedValueOnce({
+        usuario: {
+          id: 7,
+          nome: "Victor Souza",
+          email: "victor@example.com",
+          whatsapp: "62999998888",
+          aceita_notificacoes_whatsapp: true
+        }
+      })
+      .mockResolvedValueOnce({
+        mensagem: "Mensagens dos agendamentos pelo WhatsApp desativadas.",
+        preferencia: {
+          aceita_notificacoes_whatsapp: false
+        }
+      });
+
+    render(<MemoryRouter><AccountPage /></MemoryRouter>);
+
+    const checkbox = await screen.findByRole("checkbox", {
+      name: /Receber mensagens sobre meus agendamentos/i
+    });
+
+    expect(checkbox.checked).toBe(true);
+    fireEvent.click(checkbox);
+    fireEvent.click(screen.getByRole("button", {
+      name: "Salvar mensagens"
+    }));
+
+    await waitFor(() => {
+      expect(apiRequest).toHaveBeenLastCalledWith(
+        "/conta/notificacoes-whatsapp",
+        {
+          method: "PUT",
+          body: {
+            aceitaNotificacoes: false
+          }
+        }
+      );
+    });
+
+    expect(refreshSession).toHaveBeenCalled();
+  });
 });

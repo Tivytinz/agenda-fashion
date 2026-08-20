@@ -66,6 +66,9 @@ function obterDadosCadastro(req) {
     aceitaLembretesWhatsapp:
       req.body?.aceitaLembretesWhatsapp,
 
+    aceitaNotificacoesWhatsapp:
+      req.body?.aceitaNotificacoesWhatsapp,
+
     marketing:
       req.body?.marketing,
   };
@@ -178,6 +181,9 @@ async function loginGoogle(
             req.body?.credential,
 
           marketing,
+
+          aceitaNotificacoesWhatsapp:
+            req.body?.aceitaNotificacoesWhatsapp,
         });
 
     if (resultado.contaCriada) {

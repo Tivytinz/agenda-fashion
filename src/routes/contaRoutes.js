@@ -76,6 +76,12 @@ router.put(
 );
 
 router.put(
+  "/conta/notificacoes-whatsapp",
+  auth,
+  contaController.atualizarNotificacoesWhatsapp
+);
+
+router.put(
   "/conta/senha",
   auth,
   contaController.alterarSenha

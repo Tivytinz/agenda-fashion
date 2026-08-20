@@ -40,6 +40,16 @@ async function buscarUsuarioPorId(
         nome,
         email,
         whatsapp,
+        whatsapp_notificacoes_consentido_em,
+        whatsapp_notificacoes_cancelado_em,
+
+        CASE
+          WHEN whatsapp_notificacoes_consentido_em IS NOT NULL
+            AND whatsapp_notificacoes_cancelado_em IS NULL
+            THEN TRUE
+          ELSE FALSE
+        END AS aceita_notificacoes_whatsapp,
+
         ativo,
         email_verificado_em,
         ultimo_login_em,

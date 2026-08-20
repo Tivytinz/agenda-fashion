@@ -224,6 +224,16 @@ async function criarAgendamentoPublico(
             cliente_whatsapp,
         });
 
+    const whatsappConsentido =
+      await agendaPublicaService
+        .resolverConsentimentoWhatsapp({
+          clienteId:
+            clienteIdValidado,
+          consentimentoVisitante:
+            aceita_mensagens_whatsapp ===
+            true,
+        });
+
     const agendamento =
       await agendaPublicaService
         .criarAgendamento({
@@ -243,8 +253,7 @@ async function criarAgendamentoPublico(
             cliente_whatsapp,
 
           whatsappConsentido:
-            aceita_mensagens_whatsapp ===
-            true,
+            whatsappConsentido,
 
           servicoId:
             servico.id,

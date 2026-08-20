@@ -494,6 +494,38 @@ async function obterOuCriarCliente({
   return null;
 }
 
+async function resolverConsentimentoWhatsapp({
+  clienteId,
+  consentimentoVisitante = false,
+}) {
+  const id = normalizarId(
+    clienteId
+  );
+
+  if (!id) {
+    return consentimentoVisitante === true;
+  }
+
+  const preferencia =
+    await agendaPublicaRepository
+      .buscarPreferenciaNotificacoesWhatsapp(
+        id
+      );
+
+  if (!preferencia) {
+    throw criarErro(
+      "Usuário não autenticado.",
+      401
+    );
+  }
+
+  return (
+    preferencia
+      .aceita_notificacoes_whatsapp ===
+    true
+  );
+}
+
 async function validarHorarioDisponivel({
   profissionalId,
   data,
@@ -1265,6 +1297,7 @@ module.exports = {
   buscarDadosBaseAgenda,
   buscarDisponibilidade,
   obterOuCriarCliente,
+  resolverConsentimentoWhatsapp,
   validarHorarioDisponivel,
   criarAgendamento,
   criarNotificacaoAgendamento,

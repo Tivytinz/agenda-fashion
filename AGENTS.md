@@ -57,6 +57,9 @@ AF nao demonstra valor para os negocios.
 - A cliente deve conseguir agendar sem precisar conversar com o negocio.
 - O WhatsApp complementa o fluxo com avisos; ele nao deve ser obrigatorio para
   concluir manualmente cada agendamento.
+- Clientes com conta controlam os avisos de agendamento no cadastro e em Minha
+  Conta; cadastros anteriores a esse controle permanecem autorizados ate a
+  cliente desativar a preferencia.
 - O plano gratuito deve entregar valor real antes de qualquer pressao por
   upgrade.
 - O perfil publico de cada negocio e uma ferramenta de aquisicao e deve ter

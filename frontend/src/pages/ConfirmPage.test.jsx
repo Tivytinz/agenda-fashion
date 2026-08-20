@@ -23,6 +23,7 @@ import {
 } from "vitest";
 import { apiRequest } from "../api/client";
 import { track } from "../analytics/track";
+import { useSession } from "../auth/SessionContext";
 import { ConfirmPage } from "./ConfirmPage";
 
 vi.mock("../api/client", () => ({
@@ -31,6 +32,10 @@ vi.mock("../api/client", () => ({
 
 vi.mock("../analytics/track", () => ({
   track: vi.fn()
+}));
+
+vi.mock("../auth/SessionContext", () => ({
+  useSession: vi.fn()
 }));
 
 const BOOKING = {
@@ -67,6 +72,10 @@ beforeEach(() => {
   sessionStorage.clear();
   apiRequest.mockReset();
   track.mockReset();
+  useSession.mockReturnValue({
+    authenticated: false,
+    usuario: null
+  });
 });
 
 afterEach(cleanup);

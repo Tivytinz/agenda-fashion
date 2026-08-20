@@ -90,6 +90,30 @@ async function buscarProfissionalDoNegocio(
   return result.rows[0] || null;
 }
 
+async function buscarPreferenciaNotificacoesWhatsapp(
+  usuarioId
+) {
+  const result = await db.query(
+    `
+      SELECT
+        (
+          whatsapp_notificacoes_consentido_em IS NOT NULL
+          AND whatsapp_notificacoes_cancelado_em IS NULL
+        ) AS aceita_notificacoes_whatsapp
+
+      FROM usuarios
+
+      WHERE id = $1
+        AND ativo = TRUE
+
+      LIMIT 1
+    `,
+    [usuarioId]
+  );
+
+  return result.rows[0] || null;
+}
+
 async function listarAgendamentosOcupados(
   profissionalId,
   dataInicio,
@@ -636,6 +660,7 @@ module.exports = {
   buscarNegocioPorSlug,
   buscarServicoDoNegocio,
   buscarProfissionalDoNegocio,
+  buscarPreferenciaNotificacoesWhatsapp,
   listarAgendamentosOcupados,
   listarBloqueios,
   bloquearAgendaProfissional,

@@ -17,6 +17,12 @@ const TIPOS_NEGOCIO = [
   "LEMBRETE_DIVULGAR_NEGOCIO",
 ];
 
+const TIPOS_CLIENTE = [
+  "CONFIRMACAO_AGENDAMENTO_CLIENTE",
+  "LEMBRETE_AGENDAMENTO_CLIENTE",
+  "CANCELAMENTO_AGENDAMENTO_CLIENTE",
+];
+
 function validarExecutor(
   executor
 ) {
@@ -705,6 +711,10 @@ async function reservarProximaMensagem() {
             ON u.id = un.usuario_id
             AND u.ativo = TRUE
 
+          LEFT JOIN usuarios cliente_conta
+            ON cliente_conta.id = a.cliente_id
+            AND cliente_conta.ativo = TRUE
+
           WHERE (
               (
                 wm.status IN (
@@ -782,6 +792,16 @@ async function reservarProximaMensagem() {
                 )
               )
             )
+            AND (
+              wm.tipo <> ALL($4::VARCHAR[])
+              OR a.cliente_id IS NULL
+              OR (
+                cliente_conta.whatsapp_notificacoes_consentido_em
+                  IS NOT NULL
+                AND cliente_conta.whatsapp_notificacoes_cancelado_em
+                  IS NULL
+              )
+            )
 
           ORDER BY
             wm.agendado_para,
@@ -813,6 +833,7 @@ async function reservarProximaMensagem() {
         TIPOS_ATIVOS,
         TIPOS_CANCELAMENTO,
         TIPOS_NEGOCIO,
+        TIPOS_CLIENTE,
       ]
     );
 
@@ -845,6 +866,10 @@ async function mensagemContinuaValida(
           LEFT JOIN usuarios u
             ON u.id = un.usuario_id
             AND u.ativo = TRUE
+
+          LEFT JOIN usuarios cliente_conta
+            ON cliente_conta.id = a.cliente_id
+            AND cliente_conta.ativo = TRUE
 
           WHERE wm.id = $1
             AND wm.status =
@@ -902,6 +927,16 @@ async function mensagemContinuaValida(
                 )
               )
             )
+            AND (
+              wm.tipo <> ALL($5::VARCHAR[])
+              OR a.cliente_id IS NULL
+              OR (
+                cliente_conta.whatsapp_notificacoes_consentido_em
+                  IS NOT NULL
+                AND cliente_conta.whatsapp_notificacoes_cancelado_em
+                  IS NULL
+              )
+            )
         ) AS valida
       `,
       [
@@ -909,6 +944,7 @@ async function mensagemContinuaValida(
         TIPOS_ATIVOS,
         TIPOS_CANCELAMENTO,
         TIPOS_NEGOCIO,
+        TIPOS_CLIENTE,
       ]
     );
 

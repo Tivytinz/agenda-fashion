@@ -31,6 +31,7 @@ export function AuthPage({ mode = "login" }) {
     whatsapp: "",
     senha: "",
     confirmarSenha: "",
+    aceitaNotificacoesWhatsapp: false,
     aceitaLembretesWhatsapp: false
   });
   const [error, setError] = useState("");
@@ -80,7 +81,10 @@ export function AuthPage({ mode = "login" }) {
       const current = await session.loginWithGoogle(
         credential,
         marketing,
-        meta
+        meta,
+        isRegister
+          ? form.aceitaNotificacoesWhatsapp
+          : undefined
       );
 
       if (
@@ -106,7 +110,7 @@ export function AuthPage({ mode = "login" }) {
     } finally {
       setSubmitting(false);
     }
-  }, [finish, isRegister, professionalIntent, session]);
+  }, [finish, form.aceitaNotificacoesWhatsapp, isRegister, professionalIntent, session]);
 
   if (!session.loading && session.authenticated) {
     return <Navigate replace to={destination} />;
@@ -138,6 +142,8 @@ export function AuthPage({ mode = "login" }) {
         ...(isRegister ? {
           nome: form.nome.trim(),
           whatsapp: form.whatsapp.replace(/\D/g, ""),
+          aceitaNotificacoesWhatsapp:
+            form.aceitaNotificacoesWhatsapp,
           aceitaLembretesWhatsapp:
             professionalIntent && form.aceitaLembretesWhatsapp,
           marketing: getMarketingContext(
@@ -186,6 +192,22 @@ export function AuthPage({ mode = "login" }) {
             ? "Crie sua conta para montar seu negócio, publicar serviços e receber agendamentos."
             : "Uma conta para agendar como cliente ou administrar seu negócio."}
         </p>
+
+        {isRegister && (
+          <label className="checkbox-label">
+            <input
+              checked={form.aceitaNotificacoesWhatsapp}
+              onChange={(event) => update(
+                "aceitaNotificacoesWhatsapp",
+                event.target.checked
+              )}
+              type="checkbox"
+            />
+            <span>
+              Quero receber confirmações, lembretes e atualizações dos meus agendamentos pelo WhatsApp. Posso desativar quando quiser em Minha conta.
+            </span>
+          </label>
+        )}
 
         <GoogleLoginButton onCredential={handleGoogle} />
         <div className="auth-divider"><span>ou continue com e-mail</span></div>

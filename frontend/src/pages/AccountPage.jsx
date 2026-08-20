@@ -13,6 +13,7 @@ export function AccountPage() {
   const [user, setUser] = useState(null);
   const [profile, setProfile] = useState({ nome: "", whatsapp: "" });
   const [password, setPassword] = useState({ senhaAtual: "", novaSenha: "", confirmar: "" });
+  const [bookingNotifications, setBookingNotifications] = useState(false);
   const [dailyReminders, setDailyReminders] = useState(false);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
@@ -36,6 +37,9 @@ export function AccountPage() {
         });
         setDailyReminders(
           result.usuario?.aceita_lembretes_whatsapp === true
+        );
+        setBookingNotifications(
+          result.usuario?.aceita_notificacoes_whatsapp === true
         );
       })
       .catch((requestError) => setError(requestError.message));
@@ -107,6 +111,35 @@ export function AccountPage() {
         result.preferencia?.aceita_lembretes_whatsapp === true
       );
       setMessage(result.mensagem);
+    } catch (requestError) {
+      setError(requestError.message);
+    } finally {
+      setSaving("");
+    }
+  }
+
+  async function saveBookingNotifications(event) {
+    event.preventDefault();
+    setSaving("booking-notifications");
+    setError("");
+    setMessage("");
+
+    try {
+      const result = await apiRequest(
+        "/conta/notificacoes-whatsapp",
+        {
+          method: "PUT",
+          body: {
+            aceitaNotificacoes: bookingNotifications
+          }
+        }
+      );
+
+      setBookingNotifications(
+        result.preferencia?.aceita_notificacoes_whatsapp === true
+      );
+      setMessage(result.mensagem);
+      await session.refresh();
     } catch (requestError) {
       setError(requestError.message);
     } finally {
@@ -196,6 +229,41 @@ export function AccountPage() {
           <button className="button" disabled={saving === "password"} type="submit">{saving === "password" ? "Alterando..." : "Alterar senha"}</button>
         </form>
       </section>
+      <form
+        className="panel stack-form"
+        id="notificacoes-whatsapp"
+        onSubmit={saveBookingNotifications}
+      >
+        <div>
+          <p className="eyebrow">Seus agendamentos</p>
+          <h2>Mensagens no WhatsApp</h2>
+          <p className="muted">
+            Receba confirmações, lembretes e atualizações importantes dos seus agendamentos.
+          </p>
+        </div>
+        <label className="switch-field">
+          <input
+            checked={bookingNotifications}
+            onChange={(event) => setBookingNotifications(event.target.checked)}
+            type="checkbox"
+          />
+          <span>
+            Autorizar mensagens dos meus agendamentos
+            <small className="muted">
+              Você pode desativar esta opção a qualquer momento.
+            </small>
+          </span>
+        </label>
+        <button
+          className="button button-secondary"
+          disabled={saving === "booking-notifications"}
+          type="submit"
+        >
+          {saving === "booking-notifications"
+            ? "Salvando..."
+            : "Salvar autorização"}
+        </button>
+      </form>
       {session.temNegocio && session.negocio?.papel === "dono" && (
         <form className="panel stack-form" onSubmit={saveWhatsAppPreferences}>
           <div>

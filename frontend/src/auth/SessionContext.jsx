@@ -130,12 +130,16 @@ export function SessionProvider({ children }) {
   const loginWithGoogle = useCallback(async (
     credential,
     marketing,
-    meta
+    meta,
+    aceitaNotificacoesWhatsapp
   ) => {
     const result = await apiRequest("/auth/google", {
       method: "POST",
       body: {
         credential,
+        ...(typeof aceitaNotificacoesWhatsapp === "boolean"
+          ? { aceitaNotificacoesWhatsapp }
+          : {}),
         ...(marketing ? { marketing } : {}),
         ...(meta ? { meta } : {})
       }
