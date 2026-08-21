@@ -792,6 +792,67 @@ describe(
     );
 
     test(
+      "prioriza whatsapp quando o alias legado também é enviado",
+      async () => {
+        configuracoesRepository
+          .buscarNegocioDoUsuario
+          .mockResolvedValue(
+            criarVinculo()
+          );
+
+        configuracoesRepository
+          .buscarNegocioPorId
+          .mockResolvedValue(
+            criarNegocio()
+          );
+
+        configuracoesRepository
+          .atualizarNegocio
+          .mockResolvedValue(
+            criarNegocio({
+              whatsapp:
+                "11987654321",
+
+              whatsapp_negocio:
+                "11987654321",
+            })
+          );
+
+        const resposta =
+          await request(app)
+            .put(
+              "/configuracoes"
+            )
+            .set(
+              "Authorization",
+              `Bearer ${gerarToken()}`
+            )
+            .send({
+              whatsapp:
+                "(11) 98765-4321",
+
+              whatsapp_negocio:
+                "62999999999",
+            });
+
+        expect(
+          resposta.status
+        ).toBe(200);
+
+        expect(
+          configuracoesRepository
+            .atualizarNegocio
+        ).toHaveBeenCalledWith(
+          11,
+          expect.objectContaining({
+            whatsapp_negocio:
+              "11987654321",
+          })
+        );
+      }
+    );
+
+    test(
       "preserva campos que não foram enviados",
       async () => {
         const negocioAtual =

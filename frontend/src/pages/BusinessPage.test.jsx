@@ -23,6 +23,7 @@ const BUSINESS = {
   descricao: "Beleza e cuidados pessoais.",
   setor: "Beleza",
   whatsapp: "62999999999",
+  whatsapp_negocio: "62999999999",
   cidade: "Goiânia",
   estado: "GO",
   bairro: "Centro",
@@ -149,6 +150,7 @@ describe("publicação do negócio", () => {
 
     const [, request] = apiRequest.mock.calls.at(-1);
     expect(request.body).not.toHaveProperty("slug");
+    expect(request.body).not.toHaveProperty("whatsapp_negocio");
   });
 
   it("troca a foto do negócio pelo endpoint próprio", async () => {

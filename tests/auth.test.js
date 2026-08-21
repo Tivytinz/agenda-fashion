@@ -680,6 +680,52 @@ describe("Autenticação com conta única", () => {
     );
 
     test(
+      "mantém login compatível com senha legada de 6 caracteres",
+      async () => {
+        const usuario =
+          criarUsuario();
+
+        authRepository
+          .buscarUsuarioPorEmail
+          .mockResolvedValue(
+            usuario
+          );
+
+        bcrypt.compare
+          .mockResolvedValue(true);
+
+        authRepository
+          .atualizarUltimoLogin
+          .mockResolvedValue({
+            ultimo_login_em:
+              "2026-08-21T18:00:00.000Z",
+          });
+
+        const resposta =
+          await request(app)
+            .post("/login")
+            .send({
+              email:
+                "victor@email.com",
+
+              senha:
+                "123456",
+            });
+
+        expect(
+          resposta.status
+        ).toBe(200);
+
+        expect(
+          bcrypt.compare
+        ).toHaveBeenCalledWith(
+          "123456",
+          usuario.senha
+        );
+      }
+    );
+
+    test(
       "retorna 400 para email com formato inválido",
       async () => {
         const resposta =

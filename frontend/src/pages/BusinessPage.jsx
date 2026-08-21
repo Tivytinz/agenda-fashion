@@ -126,6 +126,10 @@ export function BusinessPage({ create = false }) {
     // carregado anteriormente, pois isso faria uma troca de nome conservar
     // um endereço desatualizado.
     delete payload.slug;
+    // O backend aceita whatsapp_negocio apenas como alias legado. Não envie
+    // a cópia carregada anteriormente, pois ela pode sobrescrever o valor
+    // atual do campo canônico whatsapp.
+    delete payload.whatsapp_negocio;
 
     try {
       const result = await apiRequest(create ? "/criar-negocio" : "/configuracoes", {

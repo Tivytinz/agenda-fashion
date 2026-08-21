@@ -672,14 +672,14 @@ async function salvarConfiguracoes({
   const whatsappRecebido =
     possuiCampo(
       entrada,
-      "whatsapp_negocio"
+      "whatsapp"
     )
-      ? entrada.whatsapp_negocio
+      ? entrada.whatsapp
       : possuiCampo(
           entrada,
-          "whatsapp"
+          "whatsapp_negocio"
         )
-        ? entrada.whatsapp
+        ? entrada.whatsapp_negocio
         : negocioAtual.whatsapp ??
           negocioAtual.whatsapp_negocio;
 

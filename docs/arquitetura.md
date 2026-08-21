@@ -360,6 +360,11 @@ Durante a migração, o backend continua aceitando `Authorization: Bearer` para
 sessões antigas e clientes de API, mas novos logins do frontend não persistem
 o token no `localStorage`.
 
+Novos cadastros, trocas e redefinições exigem senhas entre 8 e 72 bytes. O
+formulário de login não impõe o mínimo de 8 caracteres para preservar o acesso
+de contas legadas que já possuem uma senha curta válida; a autenticação continua
+dependendo da comparação segura com o hash armazenado.
+
 O endpoint `POST /logout` remove o cookie. Respostas de autenticação usam
 `Cache-Control: no-store`. O cookie de produção possui o prefixo `__Host-`, não
 define domínio e sempre usa o caminho `/`.
@@ -503,6 +508,10 @@ A publicação é automática quando o negócio reúne os dois requisitos:
 
 1. dados mínimos de descoberta, com especialidade, WhatsApp, cidade e estado;
 2. pelo menos um serviço ativo.
+
+O campo canônico do contato público é `whatsapp`. O alias
+`whatsapp_negocio` existe apenas para compatibilidade de leitura e nunca deve
+prevalecer quando os dois campos são enviados em uma atualização.
 
 A descrição melhora a confiança e a qualidade do perfil, mas é opcional e não
 impede a publicação. A Saúde do SaaS continua sinalizando sua ausência como

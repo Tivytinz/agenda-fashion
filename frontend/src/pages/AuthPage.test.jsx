@@ -1,5 +1,53 @@
-import { describe, expect, it } from "vitest";
+// @vitest-environment jsdom
+
+import {
+  cleanup,
+  render,
+  screen,
+  waitFor
+} from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { MemoryRouter } from "react-router-dom";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi
+} from "vitest";
 import { safeReturnPath, WHATSAPP_PATTERN } from "./AuthPage";
+
+const login = vi.fn();
+
+vi.mock("../auth/SessionContext", () => ({
+  useSession: () => ({
+    authenticated: false,
+    loading: false,
+    temNegocio: false,
+    ehAdministrador: false,
+    login,
+    register: vi.fn(),
+    loginWithGoogle: vi.fn()
+  })
+}));
+
+vi.mock("../components/GoogleLoginButton", () => ({
+  GoogleLoginButton: () => null
+}));
+
+const { AuthPage } = await import("./AuthPage");
+
+beforeEach(() => {
+  login.mockReset();
+  login.mockResolvedValue({
+    authenticated: true,
+    temNegocio: false,
+    ehAdministrador: true
+  });
+});
+
+afterEach(cleanup);
 
 describe("retorno após autenticação", () => {
   it("aceita somente caminhos internos", () => {
@@ -22,5 +70,42 @@ describe("validação de WhatsApp", () => {
   it("rejeita quantidades inválidas de dígitos", () => {
     expect(regex.test("629933213")).toBe(false);
     expect(regex.test("55629993322133")).toBe(false);
+  });
+});
+
+describe("compatibilidade de senha no login", () => {
+  it("permite autenticar uma conta legada com senha de 6 caracteres", async () => {
+    const user = userEvent.setup();
+
+    render(
+      <MemoryRouter>
+        <AuthPage />
+      </MemoryRouter>
+    );
+
+    const password = screen.getByLabelText("Senha");
+    expect(password.getAttribute("minlength")).toBeNull();
+
+    await user.type(screen.getByLabelText("E-mail"), "admin@agendafashion.com.br");
+    await user.type(password, "123456");
+    await user.click(screen.getByRole("button", { name: "Entrar" }));
+
+    await waitFor(() => {
+      expect(login).toHaveBeenCalledWith({
+        email: "admin@agendafashion.com.br",
+        senha: "123456"
+      });
+    });
+  });
+
+  it("mantém o mínimo de 8 caracteres para novas contas", () => {
+    render(
+      <MemoryRouter>
+        <AuthPage mode="register" />
+      </MemoryRouter>
+    );
+
+    expect(screen.getByLabelText("Senha").getAttribute("minlength")).toBe("8");
+    expect(screen.getByLabelText("Confirme a senha").getAttribute("minlength")).toBe("8");
   });
 });

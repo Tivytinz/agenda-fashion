@@ -253,7 +253,7 @@ export function AuthPage({ mode = "login" }) {
             Senha
             <input
               autoComplete={isRegister ? "new-password" : "current-password"}
-              minLength="8"
+              minLength={isRegister ? 8 : undefined}
               onChange={(event) => update("senha", event.target.value)}
               required
               type="password"
