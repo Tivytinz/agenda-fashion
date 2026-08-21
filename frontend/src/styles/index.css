@@ -1,5 +1,5 @@
 :root {
-  color: #281821;
+  color: #332c30;
   background: #fff9fb;
   font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   font-synthesis: none;
@@ -8,8 +8,8 @@
   --pink-500: #d92f7f;
   --pink-600: #c5246b;
   --pink-700: #a91d59;
-  --wine: #69243f;
-  --ink: #281821;
+  --wine: #382f34;
+  --ink: #332c30;
   --muted: #75636c;
   --line: #eadde2;
   --surface: #ffffff;
@@ -36,7 +36,7 @@ h3 { margin-bottom: .35rem; }
 .header-content { min-height: 68px; display: flex; align-items: center; justify-content: space-between; gap: 20px; }
 .brand { display: inline-flex; align-items: center; gap: 10px; text-decoration: none; }
 .brand-mark { display: grid; width: 48px; height: 48px; place-items: center; }
-.brand-mark .header-brand-logo { display: block; width: 48px; height: 48px; object-fit: contain; filter: drop-shadow(0 5px 8px rgb(105 36 63 / 16%)); }
+.brand-mark .header-brand-logo { display: block; width: 48px; height: 48px; object-fit: contain; filter: drop-shadow(0 5px 8px rgb(217 47 127 / 14%)); }
 .brand strong, .brand small { display: block; }
 .brand strong { color: var(--wine); font-size: 1.05rem; }
 .brand small { margin-top: 2px; color: var(--muted); font-size: .73rem; }
@@ -87,7 +87,7 @@ nav { display: flex; align-items: center; gap: 18px; }
 .business-card .card-image .business-cover-backdrop { z-index: 0; object-fit: cover; filter: blur(18px); opacity: .38; transform: scale(1.12); }
 .business-card .card-image .business-cover-image { z-index: 1; object-fit: contain; }
 .card-placeholder { display: grid; justify-items: center; gap: 6px; }
-.business-specialty-emoji { display: grid; width: 64px; height: 64px; place-items: center; border: 2px solid rgb(197 36 107 / 22%); border-radius: 18px; color: #fff; background: linear-gradient(145deg, var(--pink-500), var(--wine)); box-shadow: 0 8px 20px rgb(105 36 63 / 18%); font-size: 1.8rem; font-weight: 900; }
+.business-specialty-emoji { display: grid; width: 64px; height: 64px; place-items: center; border: 2px solid rgb(197 36 107 / 22%); border-radius: 18px; color: #fff; background: linear-gradient(145deg, var(--pink-500), var(--pink-700)); box-shadow: 0 8px 20px rgb(217 47 127 / 16%); font-size: 1.8rem; font-weight: 900; }
 .card-placeholder small { color: var(--wine); font-size: .7rem; font-weight: 850; letter-spacing: .08em; text-transform: uppercase; }
 .card-content { display: flex; flex: 1; flex-direction: column; padding: 17px; }
 .business-heading { display: flex; align-items: start; justify-content: space-between; gap: 12px; }
@@ -978,7 +978,7 @@ summary:focus-visible {
   width: 74px;
   height: 74px;
   overflow: visible;
-  filter: drop-shadow(0 8px 14px rgb(105 36 63 / 12%));
+  filter: drop-shadow(0 8px 14px rgb(217 47 127 / 11%));
 }
 
 .brand-progress-piece {

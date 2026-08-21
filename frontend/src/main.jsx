@@ -13,6 +13,7 @@ import "./styles/admin-marketing.css";
 import "./styles/admin-marketing-professional.css";
 import "./styles/admin-saas-health.css";
 import "./styles/admin-whatsapp.css";
+import "./styles/af-experience.css";
 
 installRuntimeRecovery();
 

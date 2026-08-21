@@ -268,7 +268,7 @@ export function BusinessPage({ create = false }) {
   return (
     <main className={create ? "container page-content narrow-page" : "workspace-page business-settings-page"}>
       <BackLink to={create ? selectedPlan ? "/planos" : "/" : "/painel"}>
-        {create ? selectedPlan ? "Voltar aos planos" : "Voltar a explorar" : "Voltar à visão geral"}
+        {create ? selectedPlan ? "Voltar aos planos" : "Voltar ao início" : "Voltar à visão geral"}
       </BackLink>
       <header className="workspace-heading">
         <div>

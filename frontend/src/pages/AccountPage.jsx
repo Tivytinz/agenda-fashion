@@ -181,7 +181,7 @@ export function AccountPage() {
     ? "Voltar à administração"
     : session.temNegocio
       ? "Voltar à área de trabalho"
-      : "Voltar a explorar";
+      : "Voltar ao início";
 
   return (
     <main className={pageClassName}>

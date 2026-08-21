@@ -256,7 +256,7 @@ export function LocalCatalogPage() {
             negócios publicados no Agenda Fashion.
           </p>
           <Link className="button" to="/">
-            Explorar outros serviços
+            Ver outros serviços
           </Link>
         </EmptyState>
       </main>

@@ -486,6 +486,43 @@ describe(
     );
 
     test(
+      "unifica o visual do AF sem retornar ao vinho",
+      () => {
+        const principal = ler(
+          "frontend/src/main.jsx"
+        );
+        const base = ler(
+          "frontend/src/styles/index.css"
+        );
+        const experiencia = ler(
+          "frontend/src/styles/af-experience.css"
+        );
+
+        expect(principal).toContain(
+          'import "./styles/af-experience.css"'
+        );
+        expect(base).toContain(
+          "--wine: #382f34"
+        );
+        expect(experiencia).toContain(
+          ".public-profile-page"
+        );
+        expect(experiencia).toContain(
+          ".workspace-heading"
+        );
+        expect(experiencia).toContain(
+          ".admin-marketing-page"
+        );
+        expect(experiencia).toContain(
+          ".professional-hero-grid"
+        );
+        expect(`${base}${experiencia}`).not.toContain(
+          "#69243f"
+        );
+      }
+    );
+
+    test(
       "mantem uma unica fonte para os breakpoints do frontend",
       () => {
         const principal = ler(

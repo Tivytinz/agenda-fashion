@@ -45,7 +45,7 @@ export function PlansPage() {
   return (
     <main className="container page-content plans-page">
       <BackLink to={session.authenticated && session.temNegocio ? "/painel/assinatura" : "/"}>
-        {session.authenticated && session.temNegocio ? "Voltar ao plano e assinatura" : "Voltar a explorar"}
+        {session.authenticated && session.temNegocio ? "Voltar ao plano e assinatura" : "Voltar ao início"}
       </BackLink>
       <header className="center-heading">
         <p className="eyebrow">Cresça no seu ritmo</p>

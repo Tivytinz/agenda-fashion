@@ -144,7 +144,7 @@ export function ConfirmPage() {
   }
 
   return (
-    <main className="container page-content narrow-page">
+    <main className="container page-content narrow-page booking-confirmation-page">
       <FlowSteps current={4} />
       <div className="confirmation-grid">
         <section className="form-card">

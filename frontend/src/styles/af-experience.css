@@ -1,0 +1,932 @@
+/*
+ * Experiência visual unificada do Agenda Fashion.
+ *
+ * Mantém a identidade oficial em rosa e aplica a organização da nova home
+ * às áreas públicas, de agendamento, profissionais e administrativas.
+ */
+
+:root {
+  --wine: #382f34;
+  --ink: #332c30;
+  --muted: #746970;
+  --line: #efdee6;
+  --surface: #ffffff;
+  --pink-700: #a92762;
+  --shadow: 0 12px 34px rgb(217 47 127 / 7%);
+  --shadow-hover: 0 18px 44px rgb(217 47 127 / 13%);
+  --af-page: #fff8fb;
+  --af-page-strong: #fff1f6;
+  --af-graphite: #382f34;
+  --af-graphite-soft: #746970;
+  --af-card-radius: 22px;
+  --af-control-radius: 14px;
+}
+
+body {
+  color: var(--af-graphite);
+  background: var(--af-page);
+}
+
+h1,
+h2,
+h3,
+h4,
+strong {
+  color: var(--af-graphite);
+}
+
+.site-header {
+  border-bottom-color: rgb(217 47 127 / 10%);
+  background: rgb(255 255 255 / 95%);
+  box-shadow: 0 8px 28px rgb(217 47 127 / 5%);
+}
+
+.brand strong,
+.text-link,
+.text-button,
+.account-button {
+  color: var(--af-graphite);
+}
+
+.text-link.active,
+.text-link:hover,
+.text-button:hover {
+  color: var(--pink-600);
+}
+
+.button {
+  border-radius: 999px;
+  box-shadow: 0 9px 22px rgb(217 47 127 / 13%);
+}
+
+.button:hover {
+  box-shadow: 0 12px 28px rgb(217 47 127 / 20%);
+}
+
+.button-secondary {
+  color: var(--af-graphite);
+  border-color: var(--pink-100);
+  background: #fff;
+  box-shadow: 0 7px 18px rgb(217 47 127 / 6%);
+}
+
+.button-secondary:hover {
+  border-color: var(--pink-500);
+  background: var(--pink-50);
+}
+
+.page-content {
+  position: relative;
+  z-index: 0;
+  width: min(1280px, calc(100% - 40px));
+  min-height: calc(100vh - 69px);
+  padding-block: clamp(28px, 4vw, 52px) 64px;
+}
+
+.page-content::before {
+  position: fixed;
+  z-index: -1;
+  inset: 69px 0 0;
+  background:
+    radial-gradient(circle at 94% 3%, rgb(251 216 231 / 62%), transparent 25%),
+    radial-gradient(circle at 5% 82%, rgb(255 226 239 / 44%), transparent 28%),
+    linear-gradient(180deg, #fffafd, #fff7fa);
+  content: "";
+  pointer-events: none;
+}
+
+.back-link {
+  min-height: 38px;
+  align-items: center;
+  border-radius: 999px;
+  padding-inline: 13px;
+  color: var(--af-graphite);
+  background: #fff;
+  box-shadow: 0 7px 20px rgb(217 47 127 / 6%);
+}
+
+.back-link:hover {
+  color: var(--pink-600);
+  background: var(--pink-50);
+}
+
+.card,
+.panel,
+.form-card,
+.booking-section,
+.booking-summary,
+.success-card,
+.appointment-card,
+.management-card,
+.plan-card,
+.screen-state {
+  border-color: rgb(217 47 127 / 10%);
+  border-radius: var(--af-card-radius);
+  box-shadow: var(--shadow);
+}
+
+.panel,
+.form-card,
+.booking-section,
+.booking-summary,
+.success-card,
+.appointment-card,
+.management-card,
+.plan-card,
+.screen-state {
+  background: rgb(255 255 255 / 97%);
+}
+
+.panel:hover,
+.metric-card:hover,
+.management-card:hover,
+.plan-card:hover {
+  border-color: rgb(217 47 127 / 22%);
+}
+
+input:not([type="checkbox"]):not([type="radio"]),
+textarea,
+select {
+  border-radius: var(--af-control-radius) !important;
+  border-color: var(--line) !important;
+  background: #fff !important;
+  transition: border-color 150ms ease, box-shadow 150ms ease;
+}
+
+input:not([type="checkbox"]):not([type="radio"]):focus,
+textarea:focus,
+select:focus {
+  border-color: var(--pink-500) !important;
+  box-shadow: 0 0 0 4px rgb(217 47 127 / 12%) !important;
+}
+
+/* Descoberta pública e fluxo de agendamento */
+
+.public-profile-page {
+  width: min(1320px, calc(100% - 40px));
+}
+
+.public-profile-page .profile-hero {
+  grid-template-columns: 132px minmax(0, 1fr) auto;
+  overflow: hidden;
+  border: 1px solid rgb(217 47 127 / 12%);
+  border-radius: 28px;
+  padding: clamp(22px, 4vw, 36px);
+  background:
+    radial-gradient(circle at 92% 8%, rgb(251 216 231 / 72%), transparent 28%),
+    linear-gradient(120deg, #fff 0%, #fff4f8 100%);
+  box-shadow: 0 20px 52px rgb(217 47 127 / 10%);
+}
+
+.public-profile-page .profile-image {
+  border-radius: 26px;
+  background: linear-gradient(145deg, #fff, #ffddeb);
+  box-shadow: 0 12px 30px rgb(217 47 127 / 12%);
+}
+
+.public-profile-page .profile-copy h1 {
+  font-size: clamp(2.2rem, 4.5vw, 3.6rem);
+  letter-spacing: -0.05em;
+}
+
+.profile-meta span,
+.profile-specialties span {
+  color: var(--af-graphite);
+  border-color: var(--pink-100);
+  background: rgb(255 255 255 / 80%);
+}
+
+.profile-action-button,
+.favorite-button,
+.public-share-button,
+.profile-distance-button {
+  color: var(--af-graphite);
+  border-color: var(--pink-100);
+  background: #fff;
+  box-shadow: 0 7px 18px rgb(217 47 127 / 7%);
+}
+
+.profile-action-button:hover,
+.favorite-button:hover,
+.public-share-button:hover,
+.profile-distance-button:hover {
+  color: var(--pink-600);
+  border-color: var(--pink-500);
+  background: var(--pink-50);
+}
+
+.flow-progress {
+  max-width: 900px;
+  margin-block: 24px;
+}
+
+.brand-progress-piece.active {
+  stroke: var(--pink-700);
+}
+
+.flow-steps li.done > span {
+  color: #fff;
+  border-color: var(--pink-500);
+  background: var(--pink-500);
+}
+
+.booking-layout {
+  gap: 20px;
+}
+
+.booking-section,
+.booking-summary,
+.form-card {
+  border-radius: 24px;
+}
+
+.booking-section .section-heading h2,
+.booking-summary h2,
+.form-card h1 {
+  color: var(--af-graphite);
+}
+
+.choice-card,
+.date-button,
+.time-button {
+  border-radius: 15px;
+}
+
+.choice-card:hover,
+.choice-card.selected,
+.date-button.selected,
+.time-button.selected {
+  border-color: var(--pink-500);
+  background: var(--pink-50);
+}
+
+.booking-summary {
+  background:
+    linear-gradient(180deg, #fff 0%, #fff6fa 100%);
+}
+
+.booking-confirmation-page .confirmation-grid {
+  gap: 20px;
+}
+
+.booking-confirmation-page .form-card,
+.booking-confirmation-page .booking-summary {
+  box-shadow: 0 16px 42px rgb(217 47 127 / 9%);
+}
+
+.booking-success-page .success-card {
+  overflow: hidden;
+  max-width: 780px;
+  border-radius: 28px;
+  background:
+    radial-gradient(circle at 88% 5%, rgb(251 216 231 / 62%), transparent 28%),
+    #fff;
+}
+
+.success-details {
+  border-color: var(--pink-100);
+  border-radius: 18px;
+  background: #fff7fa;
+}
+
+.appointments-page {
+  max-width: 1120px;
+}
+
+.appointments-header,
+.center-heading {
+  border: 1px solid rgb(217 47 127 / 11%);
+  border-radius: 26px;
+  padding: clamp(22px, 4vw, 34px);
+  background:
+    radial-gradient(circle at 93% 8%, rgb(251 216 231 / 70%), transparent 29%),
+    linear-gradient(115deg, #fff, #fff4f8);
+  box-shadow: 0 16px 42px rgb(217 47 127 / 8%);
+}
+
+.appointments-header h1,
+.center-heading h1 {
+  font-size: clamp(2.25rem, 4.6vw, 3.5rem);
+  letter-spacing: -0.05em;
+}
+
+.agenda-tabs {
+  gap: 6px;
+  overflow-x: auto;
+  border: 0;
+  border-radius: 999px;
+  padding: 6px;
+  background: #fff;
+  box-shadow: 0 9px 25px rgb(217 47 127 / 7%);
+}
+
+.agenda-tabs button {
+  min-height: 42px;
+  border: 0;
+  border-radius: 999px;
+  padding-inline: 16px;
+}
+
+.agenda-tabs button.active {
+  color: #fff;
+  border: 0;
+  background: var(--pink-600);
+}
+
+.agenda-tabs button.active span {
+  color: var(--pink-700);
+  background: #fff;
+}
+
+.appointment-card {
+  padding: 22px;
+}
+
+.appointment-date {
+  color: var(--pink-700);
+  background: linear-gradient(145deg, #fff1f6, #ffdbe9);
+}
+
+.visitor-notice,
+.agenda-message {
+  color: var(--af-graphite);
+  border-color: var(--pink-100);
+  border-radius: 18px;
+  background: #fff4f8;
+}
+
+.management-grid {
+  gap: 18px;
+}
+
+.management-card {
+  border-radius: 22px;
+  transition: transform 160ms ease, box-shadow 160ms ease;
+}
+
+.management-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-hover);
+}
+
+.management-card .service-cover {
+  background: linear-gradient(145deg, #fff1f6, #ffdbe9);
+}
+
+.local-catalog-hero {
+  border-bottom: 0;
+  padding-block: 24px 0;
+  background: transparent;
+}
+
+.local-catalog-hero-content {
+  border: 1px solid rgb(217 47 127 / 11%);
+  border-radius: 28px;
+  padding: clamp(28px, 5vw, 54px);
+  background:
+    radial-gradient(circle at 88% 12%, rgb(251 216 231 / 75%), transparent 29%),
+    linear-gradient(115deg, #fff, #fff3f8);
+  box-shadow: 0 18px 48px rgb(217 47 127 / 9%);
+}
+
+.privacy-page {
+  display: grid;
+  gap: 18px;
+}
+
+.privacy-page .workspace-heading {
+  margin-bottom: 0;
+}
+
+.privacy-section {
+  line-height: 1.68;
+}
+
+.not-found-page {
+  display: grid;
+  min-height: calc(100vh - 69px);
+  place-content: center;
+  justify-items: center;
+}
+
+/* Autenticação, planos e cobrança */
+
+.auth-page {
+  background:
+    radial-gradient(circle at 90% 6%, rgb(251 216 231 / 82%), transparent 28%),
+    radial-gradient(circle at 6% 90%, rgb(255 226 239 / 60%), transparent 31%),
+    linear-gradient(145deg, #fffafd, #fff3f8);
+}
+
+.auth-card {
+  overflow: hidden;
+  width: min(520px, 100%);
+  border-color: rgb(217 47 127 / 12%);
+  border-radius: 28px;
+  background:
+    linear-gradient(180deg, #fff 0%, #fffbfd 100%);
+  box-shadow: 0 24px 64px rgb(217 47 127 / 13%);
+}
+
+.auth-card h1 {
+  color: var(--af-graphite);
+  letter-spacing: -0.05em;
+}
+
+.plans-page .center-heading {
+  max-width: 860px;
+  margin-top: 0;
+}
+
+.plans-grid {
+  gap: 20px;
+}
+
+.plan-card {
+  border-radius: 24px;
+  transition: transform 160ms ease, border-color 160ms ease, box-shadow 160ms ease;
+}
+
+.plan-card.featured {
+  border-color: var(--pink-500);
+  background: linear-gradient(180deg, #fff 0%, #fff4f8 100%);
+  box-shadow: 0 20px 48px rgb(217 47 127 / 14%);
+}
+
+.plan-price strong,
+.subscription-price,
+.checkout-total strong {
+  color: var(--af-graphite);
+}
+
+.checkout-page > .back-link {
+  margin-bottom: 20px;
+}
+
+.checkout-grid {
+  gap: 20px;
+}
+
+.checkout-summary {
+  border-color: var(--pink-100);
+  background: linear-gradient(180deg, #fff, #fff5f9);
+}
+
+/* Área profissional e administração */
+
+.workspace-shell {
+  background:
+    radial-gradient(circle at 98% 2%, rgb(251 216 231 / 40%), transparent 22%),
+    #fff8fb;
+}
+
+.workspace-sidebar {
+  border-right-color: rgb(217 47 127 / 10%);
+  background: rgb(255 255 255 / 97%);
+  box-shadow: 10px 0 34px rgb(217 47 127 / 4%);
+}
+
+.workspace-business {
+  border-bottom-color: var(--pink-100);
+}
+
+.workspace-business > span,
+.account-avatar,
+.business-specialty-emoji,
+.service-discovery-placeholder strong {
+  background: linear-gradient(145deg, var(--pink-500), #f26aa3);
+  box-shadow: 0 9px 24px rgb(217 47 127 / 16%);
+}
+
+.workspace-link {
+  min-height: 48px;
+  border-radius: 14px;
+}
+
+.workspace-link:hover {
+  color: var(--pink-700);
+  background: #fff2f7;
+}
+
+.workspace-link.active {
+  color: #fff;
+  background: linear-gradient(105deg, var(--pink-600), #eb4a8d);
+  box-shadow: 0 9px 22px rgb(217 47 127 / 18%);
+}
+
+.workspace-link.active > span {
+  color: #fff;
+}
+
+.workspace-page {
+  width: min(1320px, calc(100% - 48px));
+  gap: 20px;
+  padding-block: 28px 56px;
+}
+
+.workspace-heading {
+  align-items: center;
+  overflow: hidden;
+  border: 1px solid rgb(217 47 127 / 10%);
+  border-radius: 26px;
+  padding: clamp(22px, 3vw, 30px);
+  background:
+    radial-gradient(circle at 94% 8%, rgb(251 216 231 / 70%), transparent 27%),
+    linear-gradient(115deg, #fff, #fff4f8);
+  box-shadow: 0 15px 40px rgb(217 47 127 / 8%);
+}
+
+.workspace-heading h1 {
+  margin-bottom: 7px;
+  color: var(--af-graphite);
+  font-size: clamp(2rem, 4vw, 3rem);
+  letter-spacing: -0.05em;
+}
+
+.workspace-heading p:last-child {
+  max-width: 760px;
+}
+
+.panel {
+  border-radius: 22px;
+}
+
+.panel-heading h2 {
+  color: var(--af-graphite);
+}
+
+.metric-grid {
+  gap: 13px;
+}
+
+.metric-card {
+  position: relative;
+  overflow: hidden;
+  min-height: 126px;
+  border-color: rgb(217 47 127 / 10%);
+  border-radius: 20px;
+  padding: 20px;
+  background: linear-gradient(180deg, #fff, #fffbfd);
+  box-shadow: var(--shadow);
+}
+
+.metric-card::before {
+  position: absolute;
+  top: 0;
+  right: 20px;
+  left: 20px;
+  height: 3px;
+  border-radius: 0 0 999px 999px;
+  background: linear-gradient(90deg, transparent, var(--pink-500), transparent);
+  content: "";
+}
+
+.metric-card strong,
+.data-list dd,
+.slot-card strong {
+  color: var(--af-graphite);
+}
+
+.segmented-control {
+  border-radius: 999px;
+  padding: 4px;
+  background: #fff;
+  box-shadow: 0 8px 22px rgb(217 47 127 / 6%);
+}
+
+.segmented-control button {
+  border: 0;
+  border-radius: 999px;
+}
+
+.segmented-control button.active {
+  background: var(--pink-600);
+}
+
+.onboarding-panel,
+.publication-panel {
+  border-radius: 24px;
+  background: linear-gradient(125deg, #fff, #fff4f8);
+}
+
+.schedule-row {
+  border-bottom-color: var(--line);
+}
+
+.slot-card,
+.date-switcher button,
+.switch-field {
+  border-radius: 14px;
+}
+
+.table-wrap {
+  border: 1px solid rgb(217 47 127 / 9%);
+  border-radius: 17px;
+  background: #fff;
+}
+
+.table-wrap table {
+  min-width: 720px;
+}
+
+th {
+  color: #76666e;
+  background: #fff5f9;
+}
+
+tbody tr {
+  transition: background-color 130ms ease;
+}
+
+tbody tr:hover {
+  background: #fffafd;
+}
+
+.admin-marketing-page {
+  --admin-surface: #ffffff;
+  --admin-soft: #fff9fc;
+  --admin-soft-strong: #fff1f6;
+  --admin-line: #efdee6;
+  --admin-ink: #382f34;
+  --admin-muted: #746970;
+  --admin-accent: #d92f7f;
+  --admin-accent-dark: #a32360;
+  --marketing-donut-1: #d92f7f;
+  --marketing-donut-2: #f06aa3;
+  --marketing-donut-3: #ff9bc3;
+  --marketing-donut-4: #5b6472;
+  --marketing-donut-5: #f6bed4;
+  --marketing-donut-6: #dd6598;
+  --marketing-donut-7: #9a8790;
+  --marketing-donut-8: #3f4855;
+}
+
+.admin-workspace-page .workspace-heading {
+  margin-bottom: 0;
+}
+
+.admin-workspace-page .panel,
+.admin-workspace-page .metric-card,
+.admin-stat-table-card,
+.marketing-bar-chart {
+  border-radius: 20px;
+}
+
+.admin-primary-action-panel,
+.admin-pending-strip,
+.admin-notice-panel,
+.admin-decision-summary {
+  border-color: rgb(217 47 127 / 12%);
+  border-radius: 20px;
+  background: linear-gradient(115deg, #fff, #fff7fa);
+  box-shadow: 0 10px 28px rgb(217 47 127 / 6%);
+}
+
+.saas-health-progress-bar span,
+.admin-funnel-progress-bar span {
+  background: linear-gradient(90deg, #e3327e, #f05b9b);
+}
+
+.admin-workspace-page .table-wrap thead th {
+  background: #fff5f9;
+}
+
+.whatsapp-status-summary,
+.whatsapp-template-card {
+  border-radius: 18px;
+}
+
+/* Landing de profissionais com a mesma linguagem da home */
+
+.professional-landing {
+  background:
+    radial-gradient(circle at 96% 3%, rgb(251 216 231 / 58%), transparent 24%),
+    #fff9fc;
+}
+
+.professional-hero {
+  border-bottom: 0;
+  padding-block: 24px;
+  background: transparent;
+}
+
+.professional-hero-grid {
+  overflow: hidden;
+  border: 1px solid rgb(217 47 127 / 11%);
+  border-radius: 30px;
+  padding: clamp(42px, 6vw, 76px);
+  background:
+    radial-gradient(circle at 88% 12%, rgb(251 216 231 / 85%), transparent 28%),
+    linear-gradient(120deg, #fff, #fff3f8);
+  box-shadow: 0 22px 58px rgb(217 47 127 / 11%);
+}
+
+.professional-hero-copy h1 {
+  color: var(--af-graphite);
+  font-size: clamp(2.7rem, 5.5vw, 5rem);
+  letter-spacing: -0.055em;
+}
+
+.professional-brand-inline {
+  color: var(--af-graphite);
+}
+
+.professional-benefit-card,
+.professional-demo-step-grid li,
+.professional-real-service-proof,
+.professional-demo-final-notification,
+.professional-audience-section,
+.professional-faq-list details,
+.professional-final-cta {
+  border-color: rgb(217 47 127 / 10%);
+  border-radius: 22px;
+  box-shadow: var(--shadow);
+}
+
+@media (max-width: 900px) {
+  .public-profile-page .profile-hero {
+    grid-template-columns: 112px minmax(0, 1fr);
+  }
+
+  .public-profile-page .profile-actions {
+    grid-column: 1 / -1;
+  }
+
+  .professional-hero-grid {
+    padding: 38px 28px;
+  }
+}
+
+@media (max-width: 800px) {
+  .page-content,
+  .public-profile-page {
+    width: calc(100% - 24px);
+    max-width: calc(100% - 24px);
+    min-height: 0;
+    padding-block: 18px 42px;
+  }
+
+  .workspace-shell {
+    display: block;
+    padding-bottom: calc(var(--workspace-mobile-nav-height) + 10px);
+  }
+
+  .workspace-sidebar {
+    display: none;
+  }
+
+  .workspace-content {
+    padding: 18px 12px 28px;
+  }
+
+  .workspace-page {
+    width: 100%;
+    gap: 16px;
+    padding-block: 4px 34px;
+  }
+
+  .workspace-heading {
+    align-items: flex-start;
+    border-radius: 20px;
+    padding: 20px;
+  }
+
+  .workspace-heading h1 {
+    font-size: clamp(1.85rem, 8vw, 2.35rem);
+  }
+
+  .panel,
+  .metric-card,
+  .booking-section,
+  .booking-summary,
+  .form-card,
+  .appointment-card,
+  .auth-card {
+    border-radius: 18px;
+  }
+
+  .public-profile-page .profile-hero {
+    grid-template-columns: 72px minmax(0, 1fr);
+    border-radius: 21px;
+    padding: 17px;
+  }
+
+  .public-profile-page .profile-image {
+    width: 72px;
+    height: 72px;
+    border-radius: 18px;
+  }
+
+  .public-profile-page .profile-copy h1 {
+    font-size: clamp(1.9rem, 8vw, 2.4rem);
+  }
+
+  .public-profile-page .profile-actions {
+    grid-column: 1 / -1;
+  }
+
+  .booking-section,
+  .booking-summary,
+  .form-card {
+    padding: 17px;
+  }
+
+  .appointments-header,
+  .center-heading {
+    align-items: flex-start;
+    border-radius: 21px;
+    padding: 20px;
+  }
+
+  .appointments-header h1,
+  .center-heading h1 {
+    font-size: clamp(2rem, 9vw, 2.7rem);
+  }
+
+  .appointment-card {
+    padding: 16px;
+  }
+
+  .agenda-tabs {
+    border-radius: 17px;
+  }
+
+  .metric-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .metric-card {
+    min-height: 112px;
+    padding: 16px;
+  }
+
+  .table-wrap {
+    border-radius: 15px;
+  }
+
+  .admin-campaigns-page .admin-campaign-table table,
+  .admin-campaigns-page .admin-stat-table-card table {
+    min-width: 0;
+  }
+
+  .professional-hero {
+    padding-block: 12px;
+  }
+
+  .professional-hero-grid {
+    border-radius: 22px;
+    padding: 30px 20px;
+  }
+
+  .professional-hero-copy h1 {
+    font-size: clamp(2.35rem, 11vw, 3.5rem);
+  }
+
+  .workspace-mobile-nav {
+    border-top-color: rgb(217 47 127 / 12%);
+    background: rgb(255 255 255 / 98%);
+    box-shadow: 0 -12px 32px rgb(217 47 127 / 8%);
+  }
+
+  .workspace-mobile-link.active,
+  .workspace-mobile-more.active > button,
+  .workspace-mobile-more > button[aria-expanded="true"] {
+    color: var(--pink-700);
+    background: var(--pink-50);
+  }
+
+  .workspace-mobile-menu-link.active {
+    color: var(--pink-700);
+    background: var(--pink-50);
+  }
+}
+
+@media (max-width: 430px) {
+  .metric-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .admin-workspace-page .metric-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .workspace-heading,
+  .appointments-header,
+  .center-heading {
+    padding: 17px;
+  }
+
+  .appointments-header .button,
+  .center-heading .button {
+    width: 100%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .management-card,
+  .plan-card,
+  .metric-card,
+  .workspace-link {
+    transition: none;
+  }
+}

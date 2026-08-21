@@ -93,7 +93,7 @@
 }
 
 .whatsapp-template-title {
-  color: var(--admin-ink, #2e1520);
+  color: var(--admin-ink, #382f34);
 }
 
 .whatsapp-template-table code {
@@ -101,7 +101,7 @@
   max-width: 255px;
   margin-top: 0.3rem;
   overflow-wrap: anywhere;
-  color: var(--admin-accent-dark, #7f163e);
+  color: var(--admin-accent-dark, #a32360);
   font-size: 0.74rem;
 }
 
@@ -143,7 +143,7 @@
 }
 
 .whatsapp-metrics-help summary {
-  color: var(--admin-accent-dark, #7f163e);
+  color: var(--admin-accent-dark, #a32360);
   cursor: pointer;
   font-weight: 750;
 }

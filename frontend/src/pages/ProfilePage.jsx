@@ -263,12 +263,12 @@ export function ProfilePage() {
   }
 
   if (status === "loading") {
-    return <main className="container page-content"><LoadingState>Carregando o perfil...</LoadingState></main>;
+    return <main className="container page-content public-profile-page"><LoadingState>Carregando o perfil...</LoadingState></main>;
   }
 
   if (status === "error") {
     return (
-      <main className="container page-content">
+      <main className="container page-content public-profile-page">
         <ErrorState
           message={error}
           onRetry={() => setProfileReload((value) => value + 1)}
@@ -278,8 +278,8 @@ export function ProfilePage() {
   }
 
   return (
-    <main className="container page-content">
-      <Link className="back-link" to="/">← Voltar para explorar</Link>
+    <main className="container page-content public-profile-page">
+      <Link className="back-link" to="/">← Voltar ao início</Link>
       <ProfileHero
         business={business}
         businessSlug={slug}

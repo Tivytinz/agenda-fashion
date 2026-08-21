@@ -49,7 +49,7 @@ export function FavoritesPage() {
     <main className="container page-content appointments-page">
       <header className="appointments-header">
         <div><p className="eyebrow">Salvos por você</p><h1>Favoritos</h1><p>Volte rapidamente aos negócios que você mais gostou.</p></div>
-        <Link className="button button-secondary" to="/">Explorar</Link>
+        <Link className="button button-secondary" to="/">Voltar ao início</Link>
       </header>
       {error && items && <p className="form-error" role="alert">{error}</p>}
       {!items && !error && <LoadingState>Carregando favoritos...</LoadingState>}

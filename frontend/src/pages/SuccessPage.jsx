@@ -70,7 +70,7 @@ export function SuccessPage() {
   const whatsappUrl = businessWhatsAppUrl(booking.business);
 
   return (
-    <main className="container page-content narrow-page">
+    <main className="container page-content narrow-page booking-success-page">
       <section className="success-card">
         <BrandProgressMark className="success-brand-mark" complete />
         <p className="eyebrow">Tudo certo</p>
@@ -107,7 +107,7 @@ export function SuccessPage() {
             </a>
           )}
           <Link className="button" to="/minha-agenda">Ver minha agenda</Link>
-          <Link className="button button-secondary" to="/">Explorar mais serviços</Link>
+          <Link className="button button-secondary" to="/">Ver mais serviços</Link>
         </div>
       </section>
     </main>

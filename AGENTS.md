@@ -1,6 +1,6 @@
 # Memoria operacional do Agenda Fashion
 
-> Contexto permanente para agentes de desenvolvimento. Atualizado em 20 de
+> Contexto permanente para agentes de desenvolvimento. Atualizado em 21 de
 > agosto de 2026.
 
 Este arquivo deve ser lido antes de analisar, planejar ou alterar o projeto.
@@ -83,6 +83,11 @@ AF nao demonstra valor para os negocios.
 - Sigla: AF.
 - Dominio principal: `https://app.agendafashion.com.br`.
 - Identidade visual: rosa, acolhedora, moderna e ligada ao universo de beleza.
+- Paleta de interface: rosa, branco e grafite suave. Vinho nao deve ser usado
+  como cor dominante ou como substituto do grafite nos textos e superficies.
+- A organizacao visual pode usar destaque amplo, hierarquia limpa e fileiras
+  horizontais inspiradas em catalogos de streaming, sem copiar outra marca e
+  sem descaracterizar o Agenda Fashion.
 - Emojis fazem parte da comunicacao da marca quando ajudam a leitura, sem
   substituir acessibilidade ou clareza.
 - Usar os arquivos oficiais de marca existentes em
