@@ -21,6 +21,7 @@ const SERVICE_CATEGORIES = [
   ["sobrancelha", "Sobrancelhas"],
   ["maquiagem", "Maquiagem"],
   ["estetica", "Estética"],
+  ["bronzeamento", "Bronzeamento"],
   ["outro", "Outro"]
 ];
 const categoryLabel = (value) => SERVICE_CATEGORIES.find(([key]) => key === value)?.[1] || "Sem categoria";

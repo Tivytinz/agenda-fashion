@@ -30,6 +30,16 @@ describe("links do catálogo local", () => {
     );
   });
 
+  it("cria o link local de Bronzeamento", () => {
+    expect(buildLocalCatalogPath({
+      category: "bronzeamento",
+      city: "Carápolis",
+      state: "SP"
+    })).toBe(
+      "/servicos/bronzeamento/em/carapolis-sp"
+    );
+  });
+
   it("não cria link local sem dados suficientes", () => {
     expect(buildLocalCatalogPath({
       category: "outro",

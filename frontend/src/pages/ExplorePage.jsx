@@ -27,7 +27,8 @@ const CATEGORIES = [
   ["cilio", "Cílios"],
   ["sobrancelha", "Sobrancelhas"],
   ["maquiagem", "Maquiagem"],
-  ["estetica", "Estética"]
+  ["estetica", "Estética"],
+  ["bronzeamento", "Bronzeamento"]
 ];
 
 const PAGE_SIZE = 12;

@@ -180,6 +180,48 @@ describe("catálogo público paginado", () => {
     );
   });
 
+  it("filtra serviços pela nova categoria Bronzeamento", async () => {
+    const user = userEvent.setup();
+
+    apiRequest
+      .mockResolvedValueOnce({
+        negocios: [],
+        paginacao: { total: 0, tem_mais: false }
+      })
+      .mockResolvedValueOnce({
+        negocios: [{
+          id: 4,
+          nome: "Sol e Cor",
+          slug: "sol-e-cor",
+          servicos: [{
+            id: 41,
+            nome: "Bronzeamento 40 min",
+            categoria: "bronzeamento",
+            valor: 99,
+            duracao_minutos: 40
+          }]
+        }],
+        paginacao: { total: 1, tem_mais: false }
+      });
+
+    renderExplore();
+    await waitFor(() =>
+      expect(apiRequest).toHaveBeenCalledTimes(1)
+    );
+
+    await user.click(screen.getByRole("button", {
+      name: "Bronzeamento"
+    }));
+
+    expect(await screen.findByRole("heading", {
+      name: "Bronzeamento 40 min"
+    })).not.toBeNull();
+    expect(apiRequest).toHaveBeenLastCalledWith(
+      expect.stringContaining("categoria=bronzeamento"),
+      expect.objectContaining({ signal: expect.any(AbortSignal) })
+    );
+  });
+
   it("mantém as seções visíveis quando o catálogo está vazio", async () => {
     apiRequest.mockResolvedValue({
       negocios: [],

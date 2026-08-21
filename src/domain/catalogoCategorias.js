@@ -34,6 +34,13 @@ const CATEGORIAS_CATALOGO = {
     "drenagem",
     "facial",
     "corporal"
+  ],
+  bronzeamento: [
+    "bronzeamento",
+    "bronze artificial",
+    "bronze natural",
+    "marquinha",
+    "spray tan"
   ]
 };
 
@@ -44,6 +51,7 @@ const CATEGORIAS_SERVICO = Object.freeze([
   "sobrancelha",
   "maquiagem",
   "estetica",
+  "bronzeamento",
   "outro"
 ]);
 

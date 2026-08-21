@@ -72,6 +72,36 @@ afterEach(() => {
 });
 
 describe("editor de serviços", () => {
+  it("oferece e envia a categoria Bronzeamento", async () => {
+    apiRequest.mockResolvedValueOnce({
+      servico: { id: 32, categoria: "bronzeamento" }
+    });
+
+    renderEditor();
+    fireEvent.change(screen.getByRole("textbox", { name: "Nome do serviço" }), {
+      target: { value: "Bronzeamento 40 min" }
+    });
+    fireEvent.change(screen.getByRole("spinbutton", { name: "Valor" }), {
+      target: { value: "99" }
+    });
+    fireEvent.change(screen.getByRole("combobox", { name: /Categoria/ }), {
+      target: { value: "bronzeamento" }
+    });
+    submit();
+
+    await waitFor(() => {
+      expect(apiRequest).toHaveBeenCalledWith(
+        "/servicos",
+        expect.objectContaining({
+          method: "POST",
+          body: expect.objectContaining({
+            categoria: "bronzeamento"
+          })
+        })
+      );
+    });
+  });
+
   it("reutiliza o serviço criado quando o upload da capa falha", async () => {
     const cover = new File(["cover"], "capa.jpg", { type: "image/jpeg" });
     apiRequest

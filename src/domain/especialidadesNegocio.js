@@ -5,6 +5,7 @@ const ESPECIALIDADES_NEGOCIO = Object.freeze([
   "Sobrancelhas",
   "Maquiagem",
   "Estética",
+  "Bronzeamento",
   "Outro",
 ]);
 
@@ -15,6 +16,7 @@ const ESPECIALIDADE_POR_CATEGORIA = Object.freeze({
   sobrancelha: "Sobrancelhas",
   maquiagem: "Maquiagem",
   estetica: "Estética",
+  bronzeamento: "Bronzeamento",
   outro: "Outro",
 });
 
@@ -36,6 +38,7 @@ function identificarEspecialidade(valor, { legado = false } = {}) {
   if (/cilio|lash/.test(chave)) return "Cílios";
   if (/sobrancelha|brow|henna|micropigmenta/.test(chave)) return "Sobrancelhas";
   if (/maquiagem|makeup|make up/.test(chave)) return "Maquiagem";
+  if (/bronzeamento|bronze artificial|bronze natural|marquinha|spray tan/.test(chave)) return "Bronzeamento";
   if (/estetica|pele|depil|massagem|drenagem|facial|corporal/.test(chave)) return "Estética";
   if (chave === "outro" || chave === "beleza" || chave.includes("salao de beleza")) return "Outro";
 

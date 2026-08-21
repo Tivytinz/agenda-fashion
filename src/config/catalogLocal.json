@@ -28,5 +28,10 @@
     "categoria": "estetica",
     "titulo": "Estética",
     "descricao": "serviços de estética, pele e cuidados corporais"
+  },
+  "bronzeamento": {
+    "categoria": "bronzeamento",
+    "titulo": "Bronzeamento",
+    "descricao": "serviços de bronzeamento natural, artificial e com spray"
   }
 }

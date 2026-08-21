@@ -5,6 +5,7 @@ export const BUSINESS_SPECIALTIES = Object.freeze([
   ["Sobrancelhas", "Sobrancelhas"],
   ["Maquiagem", "Maquiagem"],
   ["Estética", "Estética"],
+  ["Bronzeamento", "Bronzeamento"],
   ["Outro", "Outro"]
 ]);
 
@@ -15,6 +16,7 @@ const CATEGORY_LABELS = Object.freeze({
   sobrancelha: "Sobrancelhas",
   maquiagem: "Maquiagem",
   estetica: "Estética",
+  bronzeamento: "Bronzeamento",
   outro: "Outro"
 });
 
@@ -25,6 +27,7 @@ const CATEGORY_EMOJIS = Object.freeze({
   sobrancelha: "👁️",
   maquiagem: "💄",
   estetica: "💆",
+  bronzeamento: "☀️",
   outro: "✨"
 });
 
@@ -49,6 +52,7 @@ export function serviceCategoryEmoji(value, serviceName = "") {
   if (/cabelo|cabeleir|barba|barbear/.test(categoryKey)) return "💇";
   if (/cilio|lash|sobrancelha|brow|henna/.test(categoryKey)) return "👁️";
   if (/maquiagem|makeup|make up/.test(categoryKey)) return "💄";
+  if (/bronzeamento|bronze artificial|bronze natural|marquinha|spray tan/.test(categoryKey)) return "☀️";
   if (/estetica|pele|depil|massagem|drenagem|facial|corporal/.test(categoryKey)) return "💆";
 
   const nameKey = normalizeKey(serviceName);
@@ -57,6 +61,7 @@ export function serviceCategoryEmoji(value, serviceName = "") {
   if (/cabelo|cabeleir|corte|escova|penteado|barba/.test(nameKey)) return "💇";
   if (/cilio|lash|sobrancelha|brow|henna/.test(nameKey)) return "👁️";
   if (/maquiagem|makeup|make up/.test(nameKey)) return "💄";
+  if (/bronzeamento|bronze artificial|bronze natural|marquinha|spray tan/.test(nameKey)) return "☀️";
   if (/estetica|pele|depil|massagem|drenagem|facial|corporal/.test(nameKey)) return "💆";
 
   return "✨";
@@ -79,6 +84,7 @@ export function normalizeBusinessSpecialties(business = {}) {
     else if (/cilio|lash/.test(key)) found.add("Cílios");
     else if (/sobrancelha|brow|henna|micropigmenta/.test(key)) found.add("Sobrancelhas");
     else if (/maquiagem|makeup|make up/.test(key)) found.add("Maquiagem");
+    else if (/bronzeamento|bronze artificial|bronze natural|marquinha|spray tan/.test(key)) found.add("Bronzeamento");
     else if (/estetica|pele|depil|massagem|drenagem|facial|corporal/.test(key)) found.add("Estética");
     else if (key) found.add("Outro");
   });

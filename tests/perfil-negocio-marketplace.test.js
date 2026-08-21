@@ -105,6 +105,34 @@ describe(
     );
 
     test(
+      "expande a busca de bronzeamento sem misturar com Outro",
+      async () => {
+        repository
+          .listarNegociosPublicos
+          .mockResolvedValue([]);
+
+        await service.listarNegociosPublicos({
+          categoria: "bronzeamento"
+        });
+
+        expect(
+          repository.listarNegociosPublicos
+        ).toHaveBeenCalledWith(
+          expect.objectContaining({
+            categoria: "bronzeamento",
+            categoriaTermos: expect.arrayContaining([
+              "bronzeamento",
+              "bronze artificial",
+              "bronze natural",
+              "marquinha",
+              "spray tan"
+            ])
+          })
+        );
+      }
+    );
+
+    test(
       "encaminha cidade e UF como filtros dedicados sem misturar com a busca",
       async () => {
         repository

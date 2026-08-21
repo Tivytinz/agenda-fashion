@@ -17,11 +17,13 @@ describe(
             "Unha",
             "unhas",
             "Cabelo",
+            "bronzeamento",
           ])
         ).toEqual([
           "Unhas",
           "Cabelos",
           "Estética",
+          "Bronzeamento",
         ]);
       }
     );
@@ -52,6 +54,19 @@ describe(
           )
         ).toBe(
           "Sobrancelhas"
+        );
+      }
+    );
+
+    test(
+      "converte a categoria de bronzeamento em especialidade do negócio",
+      () => {
+        expect(
+          especialidadeDaCategoria(
+            "bronzeamento"
+          )
+        ).toBe(
+          "Bronzeamento"
         );
       }
     );

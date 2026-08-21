@@ -152,6 +152,27 @@ describe("imagens dos cards do catálogo", () => {
       ?.textContent).not.toContain("D");
   });
 
+  it("identifica Bronzeamento com categoria e ícone próprios", () => {
+    render(
+      <MemoryRouter>
+        <ServiceCard service={{
+          id: 15,
+          nome: "Bronzeamento 1 hora",
+          categoria: "bronzeamento",
+          negocio_nome: "Sol e Cor",
+          negocio_slug: "sol-e-cor",
+          valor: 150,
+          duracao_minutos: 60
+        }} />
+      </MemoryRouter>
+    );
+
+    expect(screen.getAllByText("Bronzeamento").length)
+      .toBeGreaterThan(0);
+    expect(document.querySelector(".service-discovery-placeholder strong")
+      ?.textContent).toBe("☀️");
+  });
+
   it("identifica negócio, localização, duração e valor com emojis", () => {
     const { container } = render(
       <MemoryRouter>

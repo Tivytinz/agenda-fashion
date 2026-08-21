@@ -111,6 +111,43 @@ describe("catálogo local SEO", () => {
     });
   });
 
+  test("cria página local canônica para bronzeamento", async () => {
+    repository.buscarLocalidadePublica.mockResolvedValue({
+      cidade: "Carápolis",
+      estado: "SP"
+    });
+    perfilNegocioService.listarNegociosPublicos.mockResolvedValue({
+      negocios: [{ id: 9, nome: "Sol e Cor", servicos: [] }],
+      paginacao: {
+        pagina: 1,
+        limite: 12,
+        total: 1,
+        tem_mais: false
+      }
+    });
+
+    const resultado = await service.listarCatalogoLocal({
+      categoria: "bronzeamento",
+      localidade: "carapolis-sp"
+    });
+
+    expect(
+      perfilNegocioService.listarNegociosPublicos
+    ).toHaveBeenCalledWith(
+      expect.objectContaining({
+        categoria: "bronzeamento",
+        cidade: "Carápolis",
+        estado: "SP"
+      })
+    );
+    expect(resultado.filtro.caminho_canonico).toBe(
+      "/servicos/bronzeamento/em/carapolis-sp"
+    );
+    expect(resultado.metadados.titulo).toContain(
+      "Bronzeamento em Carápolis - SP"
+    );
+  });
+
   test("rejeita categoria e localidade fora do padrão canônico", async () => {
     await expect(
       service.listarCatalogoLocal({

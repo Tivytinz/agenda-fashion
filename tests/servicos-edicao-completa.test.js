@@ -105,6 +105,41 @@ describe("Edição completa de serviços", () => {
     );
   });
 
+  test("salva bronzeamento e adiciona a especialidade ao negócio", async () => {
+    servicosRepository.buscarServicoDoNegocio.mockResolvedValue({
+      id: 16,
+      ativo: true,
+      categoria: "outro",
+    });
+    servicosRepository.editarServico.mockResolvedValue({
+      id: 16,
+      categoria: "bronzeamento",
+    });
+
+    await servicosService.editarServico({
+      usuarioId: 1,
+      id: 16,
+      nome: "Bronzeamento 40 min",
+      descricao: "Bronze natural com marquinha.",
+      valor: 99,
+      duracaoMinutos: 40,
+      categoria: "bronzeamento",
+      ativo: true,
+    });
+
+    expect(servicosRepository.editarServico).toHaveBeenCalledWith(
+      expect.objectContaining({ categoria: "bronzeamento" }),
+      client
+    );
+    expect(
+      servicosRepository.adicionarEspecialidadeNegocio
+    ).toHaveBeenCalledWith(
+      7,
+      "Bronzeamento",
+      client
+    );
+  });
+
   test("confere o limite antes de reativar", async () => {
     servicosRepository.buscarServicoDoNegocio.mockResolvedValue({
       id: 12,
