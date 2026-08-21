@@ -39,6 +39,7 @@ async function buscarUsuarioPorId(
         id,
         nome,
         email,
+        foto_url,
         whatsapp,
         whatsapp_notificacoes_consentido_em,
         whatsapp_notificacoes_cancelado_em,

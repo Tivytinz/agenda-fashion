@@ -88,6 +88,9 @@ AF nao demonstra valor para os negocios.
 - A organizacao visual pode usar destaque amplo, hierarquia limpa e fileiras
   horizontais inspiradas em catalogos de streaming, sem copiar outra marca e
   sem descaracterizar o Agenda Fashion.
+- A home publica segue o prototipo aprovado: cabecalho com Inicio, Buscar
+  servicos, Favoritos, Meus agendamentos, busca e foto da conta; o banner nao
+  possui campo de busca interno e funciona como carrossel navegavel.
 - Emojis fazem parte da comunicacao da marca quando ajudam a leitura, sem
   substituir acessibilidade ou clareza.
 - Usar os arquivos oficiais de marca existentes em

@@ -2,7 +2,6 @@
 
 import {
   cleanup,
-  fireEvent,
   render,
   screen,
   waitFor
@@ -48,9 +47,9 @@ function business(id, name) {
   };
 }
 
-function renderExplore() {
+function renderExplore(pathname = "/") {
   return render(
-    <MemoryRouter>
+    <MemoryRouter initialEntries={[pathname]}>
       <ExplorePage />
     </MemoryRouter>
   );
@@ -116,20 +115,13 @@ describe("catálogo público paginado", () => {
     })).toBeNull();
   });
 
-  it("envia a busca ao backend depois da digitação", async () => {
+  it("envia ao backend a busca recebida pelo cabeçalho", async () => {
     apiRequest.mockResolvedValue({
       negocios: [],
       paginacao: { total: 0, tem_mais: false }
     });
 
-    renderExplore();
-    await waitFor(() =>
-      expect(apiRequest).toHaveBeenCalledTimes(1)
-    );
-
-    fireEvent.change(screen.getByRole("searchbox"), {
-      target: { value: "cílios" }
-    });
+    renderExplore("/?busca=cílios");
 
     await waitFor(() => {
       expect(apiRequest).toHaveBeenLastCalledWith(
@@ -241,7 +233,7 @@ describe("catálogo público paginado", () => {
     )).not.toBeNull();
   });
 
-  it("apresenta a home em destaque sem criar uma aba Explorar", async () => {
+  it("apresenta o destaque do protótipo sem busca dentro do banner", async () => {
     apiRequest.mockResolvedValue({
       negocios: [],
       paginacao: { total: 0, tem_mais: false }
@@ -250,15 +242,40 @@ describe("catálogo público paginado", () => {
     renderExplore();
 
     expect(screen.getByRole("heading", {
-      name: "Seu próximo cuidado começa aqui"
+      name: "Beleza perto de você"
     })).not.toBeNull();
     expect(screen.getByRole("region", {
       name: "Categorias em destaque"
     })).not.toBeNull();
-    expect(screen.getByRole("searchbox")).not.toBeNull();
-    expect(screen.queryByRole("link", {
-      name: "Explorar"
-    })).toBeNull();
+    expect(screen.queryByRole("searchbox")).toBeNull();
+    expect(screen.getByRole("button", {
+      name: "Próximo destaque"
+    })).not.toBeNull();
+    expect(screen.getAllByRole("button", {
+      name: /Mostrar destaque/
+    })).toHaveLength(3);
+  });
+
+  it("permite passar o banner principal para o lado", async () => {
+    const user = userEvent.setup();
+
+    apiRequest.mockResolvedValue({
+      negocios: [],
+      paginacao: { total: 0, tem_mais: false }
+    });
+
+    renderExplore();
+
+    await user.click(screen.getByRole("button", {
+      name: "Próximo destaque"
+    }));
+
+    expect(screen.getByRole("heading", {
+      name: "Unhas do seu jeito"
+    })).not.toBeNull();
+    expect(screen.getByRole("button", {
+      name: "Mostrar destaque 2: Unhas do seu jeito"
+    }).getAttribute("aria-pressed")).toBe("true");
   });
 
   it("não mostra contadores redundantes acima dos catálogos", async () => {

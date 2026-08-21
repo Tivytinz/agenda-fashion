@@ -34,6 +34,9 @@ function sanitizarUsuario(
     email:
       usuario.email,
 
+    foto_url:
+      usuario.foto_url || null,
+
     whatsapp:
       usuario.whatsapp,
 

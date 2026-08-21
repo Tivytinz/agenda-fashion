@@ -338,7 +338,8 @@ describe(
 
         [
           'to="/"',
-          'to="/para-profissionais"',
+          'to="/favoritos"',
+          'to="/minha-agenda"',
           'to="/entrar"',
         ].forEach(
           (rota) => {
@@ -350,8 +351,8 @@ describe(
           }
         );
 
-        expect(cabecalho).not.toContain(
-          '"/minha-agenda"'
+        expect(cabecalho).toContain(
+          '"/para-profissionais"'
         );
 
         [
@@ -518,6 +519,64 @@ describe(
         );
         expect(`${base}${experiencia}`).not.toContain(
           "#69243f"
+        );
+      }
+    );
+
+    test(
+      "mantem a home fiel ao prototipo aprovado",
+      () => {
+        const principal = ler(
+          "frontend/src/main.jsx"
+        );
+        const cabecalho = ler(
+          "frontend/src/components/AppHeader.jsx"
+        );
+        const inicio = ler(
+          "frontend/src/pages/ExplorePage.jsx"
+        );
+        const visual = ler(
+          "frontend/src/styles/home-discovery.css"
+        );
+
+        expect(cabecalho).toContain(
+          "Buscar serviços"
+        );
+        expect(cabecalho).toContain(
+          "Favoritos"
+        );
+        expect(cabecalho).toContain(
+          "Meus agendamentos"
+        );
+        expect(cabecalho).toContain(
+          "header-search"
+        );
+        expect(cabecalho).toContain(
+          "header-account-avatar"
+        );
+        expect(inicio).toContain(
+          "HERO_SLIDES"
+        );
+        expect(inicio).toContain(
+          "home-hero-dots"
+        );
+        expect(inicio).not.toContain(
+          "home-search-panel"
+        );
+        expect(visual).toContain(
+          ".home-hero-track"
+        );
+        expect(visual).toContain(
+          ".home-location-pill"
+        );
+        expect(
+          principal.indexOf(
+            'import "./styles/home-discovery.css"'
+          )
+        ).toBeGreaterThan(
+          principal.indexOf(
+            'import "./styles/af-experience.css"'
+          )
         );
       }
     );

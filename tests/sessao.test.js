@@ -83,6 +83,7 @@ function criarUsuario(
     id: 1,
     nome: "Victor Souza",
     email: "victor@email.com",
+    foto_url: "/uploads/usuarios/victor.jpg",
     whatsapp: "62999999999",
     aceita_notificacoes_whatsapp: true,
     ativo: true,
@@ -268,6 +269,8 @@ describe(
               "Victor Souza",
             email:
               "victor@email.com",
+            foto_url:
+              "/uploads/usuarios/victor.jpg",
             whatsapp:
               "62999999999",
             aceita_notificacoes_whatsapp:

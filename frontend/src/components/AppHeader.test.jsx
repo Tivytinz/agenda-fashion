@@ -46,7 +46,7 @@ beforeEach(() => {
 afterEach(cleanup);
 
 describe("cabeçalho por contexto", () => {
-  it("leva profissionais para a página de conversão antes do cadastro", () => {
+  it("reproduz a navegação pública do protótipo", () => {
     useSession.mockReturnValue({
       authenticated: false,
       ehAdministrador: false,
@@ -60,12 +60,41 @@ describe("cabeçalho por contexto", () => {
 
     expect(screen.getAllByRole("link", { name: "Início" }))
       .toHaveLength(1);
-    expect(screen.queryByRole("link", { name: "Explorar" }))
+    expect(screen.getByRole("link", { name: "Buscar serviços" })
+      .getAttribute("href")).toBe("/#buscar-servicos");
+    expect(screen.getByRole("link", { name: "Favoritos" })
+      .getAttribute("href")).toBe("/favoritos");
+    expect(screen.getByRole("link", { name: "Meus agendamentos" })
+      .getAttribute("href")).toBe("/minha-agenda");
+    expect(screen.getByRole("searchbox", {
+      name: "Busque por serviço ou profissional"
+    })).not.toBeNull();
+    expect(screen.getByRole("link", { name: "Entrar na sua conta" })
+      .getAttribute("href")).toBe("/entrar");
+    expect(screen.queryByRole("link", { name: "Sou profissional" }))
       .toBeNull();
-    expect(screen.queryByRole("link", { name: "Minha agenda" }))
-      .toBeNull();
-    expect(screen.getByRole("link", { name: "Sou profissional" })
-      .getAttribute("href")).toBe("/para-profissionais");
+  });
+
+  it("mostra a foto da conta no cabeçalho", () => {
+    useSession.mockReturnValue({
+      authenticated: true,
+      ehAdministrador: false,
+      temNegocio: false,
+      negocio: null,
+      usuario: {
+        nome: "Victor",
+        foto_url: "/uploads/victor.jpg"
+      },
+      logout
+    });
+
+    renderHeader("/");
+
+    expect(screen.getByAltText("Foto de Victor"))
+      .not.toBeNull();
+    expect(screen.getByRole("button", {
+      name: "Abrir conta de Victor"
+    })).not.toBeNull();
   });
 
   it("remove saídas desnecessárias da landing profissional", () => {
