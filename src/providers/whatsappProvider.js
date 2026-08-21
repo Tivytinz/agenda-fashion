@@ -33,6 +33,32 @@ function validarConfiguracao() {
   }
 }
 
+function validarConfiguracaoTemplates() {
+  const {
+    WHATSAPP_ACCESS_TOKEN,
+    WHATSAPP_BUSINESS_ACCOUNT_ID,
+    WHATSAPP_API_VERSION,
+  } = process.env;
+
+  if (!WHATSAPP_ACCESS_TOKEN) {
+    throw erroConfiguracao(
+      "WHATSAPP_ACCESS_TOKEN não configurado no .env."
+    );
+  }
+
+  if (!WHATSAPP_BUSINESS_ACCOUNT_ID) {
+    throw erroConfiguracao(
+      "WHATSAPP_BUSINESS_ACCOUNT_ID não configurado no .env."
+    );
+  }
+
+  if (!WHATSAPP_API_VERSION) {
+    throw erroConfiguracao(
+      "WHATSAPP_API_VERSION não configurado no .env."
+    );
+  }
+}
+
 function limparNumero(numero) {
   if (!numero) {
     return "";
@@ -86,6 +112,65 @@ function obterUrlMensagens() {
     `${WHATSAPP_API_VERSION}/` +
     `${WHATSAPP_PHONE_NUMBER_ID}/messages`
   );
+}
+
+function obterUrlTemplates() {
+  const {
+    WHATSAPP_BUSINESS_ACCOUNT_ID,
+    WHATSAPP_API_VERSION,
+  } = process.env;
+
+  return (
+    `https://graph.facebook.com/` +
+    `${WHATSAPP_API_VERSION}/` +
+    `${WHATSAPP_BUSINESS_ACCOUNT_ID}/message_templates`
+  );
+}
+
+async function listarTemplates() {
+  validarConfiguracaoTemplates();
+
+  const {
+    WHATSAPP_ACCESS_TOKEN,
+  } = process.env;
+
+  const templates = [];
+  let cursor = null;
+  let paginas = 0;
+
+  do {
+    const response = await axios.get(
+      obterUrlTemplates(),
+      {
+        headers: {
+          Authorization:
+            `Bearer ${WHATSAPP_ACCESS_TOKEN}`,
+        },
+        params: {
+          fields:
+            "id,name,status,category,language,quality_score",
+          limit: 100,
+          ...(cursor
+            ? { after: cursor }
+            : {}),
+        },
+        timeout: 15000,
+      }
+    );
+
+    if (Array.isArray(response.data?.data)) {
+      templates.push(
+        ...response.data.data
+      );
+    }
+
+    cursor =
+      response.data?.paging?.cursors?.after ||
+      null;
+    paginas += 1;
+  } while (cursor && paginas < 10);
+
+  return templates;
 }
 
 function criarParametroTexto(valor) {
@@ -337,6 +422,8 @@ module.exports = {
   enviarMensagem,
   enviarTemplate,
   enviarNovoAgendamento,
+  listarTemplates,
   obterDestinatario,
   validarConfiguracao,
+  validarConfiguracaoTemplates,
 };

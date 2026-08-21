@@ -98,6 +98,16 @@ node scripts/executar-migration.js database/migrations/046_notificacoes_whatsapp
 A migration adiciona o consentimento à conta e autoriza os cadastros já
 existentes. Novos cadastros respeitam a escolha explícita feita no formulário.
 
+Para manter as métricas administrativas eficientes conforme a fila cresce,
+execute também:
+
+```bash
+node scripts/executar-migration.js database/migrations/048_metricas_admin_whatsapp.sql
+```
+
+A migration cria um índice por data e tipo de mensagem; ela não altera nem
+remove registros existentes.
+
 ## Templates da Meta
 
 Crie os seis templates na categoria `UTILITY`, idioma `Portuguese (BR)`.
@@ -244,6 +254,7 @@ são:
 WHATSAPP_NOTIFICATIONS_ENABLED=true
 WHATSAPP_ACCESS_TOKEN=
 WHATSAPP_PHONE_NUMBER_ID=
+WHATSAPP_BUSINESS_ACCOUNT_ID=
 WHATSAPP_API_VERSION=
 WHATSAPP_TEMPLATE_LANGUAGE=pt_BR
 WHATSAPP_TEMPLATE_NOVO_AGENDAMENTO=novo_agendamento
@@ -267,10 +278,16 @@ Use um token de acesso permanente de usuário do sistema na ativação final.
 O processador recusa iniciar se as credenciais da API ou os segredos do webhook
 estiverem ausentes.
 
-Os cinco modelos originais estão aprovados pela Meta. Ative o lembrete da
-profissional somente depois que `lembrete_agendamento_profissional` também
-aparecer como ativo. Mantenha `WHATSAPP_NOTIFICATIONS_ENABLED=true` em
-produção. Para um teste controlado:
+Não trate a aprovação como uma informação estática da documentação. Confirme
+os oito modelos em **Administração > WhatsApp**, que cruza os nomes e o idioma
+configurados com `/{WHATSAPP_BUSINESS_ACCOUNT_ID}/message_templates`. O token
+usado nessa consulta precisa ter a permissão `whatsapp_business_management`.
+O identificador da conta do WhatsApp (WABA) não é o ID do número de telefone e
+pode ser diferente do ID geral do Gerenciador de Negócios.
+
+Ative o lembrete da profissional somente depois que
+`lembrete_agendamento_profissional` aparecer como ativo. Mantenha
+`WHATSAPP_NOTIFICATIONS_ENABLED=true` em produção. Para um teste controlado:
 
 Os lembretes diários também começam desativados. Ative cada flag somente após
 o respectivo modelo aparecer como ativo na Meta. Apenas contas com
@@ -295,6 +312,22 @@ WHATSAPP_PROFESSIONAL_REMINDER_ENABLED=true
 Isso impede que um teste redirecione mensagens reais de várias clientes.
 
 ## Consulta operacional
+
+O painel **Administração > WhatsApp** é a consulta operacional preferencial.
+Ele mostra separadamente:
+
+- aprovação, categoria, idioma e qualidade consultados na Meta;
+- automações realmente habilitadas nas variáveis do ambiente;
+- mensagens geradas, pendentes, aceitas, entregues, lidas, canceladas e com
+  falha por template;
+- taxa de entrega sobre mensagens aceitas e taxa de leitura sobre mensagens
+  entregues.
+
+Se a Meta estiver indisponível ou a WABA não estiver configurada, o painel não
+inventa um status: exibe **Não verificado** e mantém as métricas locais do banco
+visíveis. A integração administrativa é somente leitura e não altera modelos.
+
+Para inspeção direta no banco:
 
 ```sql
 SELECT

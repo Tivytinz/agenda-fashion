@@ -39,6 +39,10 @@ const AdminSaasHealthPage = lazyNamed(
   () => import("./pages/AdminSaasHealthPage"),
   "AdminSaasHealthPage"
 );
+const AdminWhatsAppPage = lazyNamed(
+  () => import("./pages/AdminWhatsAppPage"),
+  "AdminWhatsAppPage"
+);
 const AuthPage = lazyNamed(
   () => import("./pages/AuthPage"),
   "AuthPage"
@@ -209,6 +213,10 @@ export default function App() {
           <Route
             path={reactRoutes.adminHealth}
             element={<AdminSaasHealthPage />}
+          />
+          <Route
+            path={reactRoutes.adminWhatsapp}
+            element={<AdminWhatsAppPage />}
           />
         </Route>
         <Route

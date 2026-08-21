@@ -19,6 +19,7 @@
   "adminCosts": "/admin/trafego-pago/custos",
   "adminProfessionals": "/admin/trafego-pago/profissionais",
   "adminHealth": "/admin/saude",
+  "adminWhatsapp": "/admin/whatsapp",
   "dashboard": "/painel",
   "ownerAgenda": "/painel/agenda",
   "services": "/painel/servicos",

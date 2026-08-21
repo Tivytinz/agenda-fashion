@@ -6,64 +6,12 @@ const whatsappProvider = require(
   "../providers/whatsappProvider"
 );
 const registrador = require("../utils/registrador");
-
-const CONFIGURACOES_TEMPLATE = {
-  NOVO_AGENDAMENTO_PROFISSIONAL: {
-    variavel:
-      "WHATSAPP_TEMPLATE_NOVO_AGENDAMENTO",
-    padrao:
-      "novo_agendamento",
-  },
-
-  CONFIRMACAO_AGENDAMENTO_CLIENTE: {
-    variavel:
-      "WHATSAPP_TEMPLATE_CONFIRMACAO_CLIENTE",
-    padrao:
-      "confirmacao_agendamento_cliente",
-  },
-
-  LEMBRETE_AGENDAMENTO_CLIENTE: {
-    variavel:
-      "WHATSAPP_TEMPLATE_LEMBRETE_CLIENTE",
-    padrao:
-      "lembrete_agendamento",
-  },
-
-  LEMBRETE_AGENDAMENTO_PROFISSIONAL: {
-    variavel:
-      "WHATSAPP_TEMPLATE_LEMBRETE_PROFISSIONAL",
-    padrao:
-      "lembrete_agendamento_profissional",
-  },
-
-  CANCELAMENTO_AGENDAMENTO_PROFISSIONAL: {
-    variavel:
-      "WHATSAPP_TEMPLATE_CANCELAMENTO_PROFISSIONAL",
-    padrao:
-      "cancelamento_agendamento_profissional",
-  },
-
-  CANCELAMENTO_AGENDAMENTO_CLIENTE: {
-    variavel:
-      "WHATSAPP_TEMPLATE_CANCELAMENTO_CLIENTE",
-    padrao:
-      "cancelamento_agendamento",
-  },
-
-  LEMBRETE_PRIMEIRO_SERVICO_NEGOCIO: {
-    variavel:
-      "WHATSAPP_TEMPLATE_PRIMEIRO_SERVICO",
-    padrao:
-      "lembrete_primeiro_servico",
-  },
-
-  LEMBRETE_DIVULGAR_NEGOCIO: {
-    variavel:
-      "WHATSAPP_TEMPLATE_DIVULGAR_NEGOCIO",
-    padrao:
-      "lembrete_divulgar_negocio",
-  },
-};
+const {
+  CONFIGURACOES_TEMPLATE,
+  obterNomeTemplate,
+} = require(
+  "../config/whatsappTemplates"
+);
 
 let workerEmExecucao =
   false;
@@ -180,34 +128,6 @@ function obterHoraLembretesNegocio() {
       minimo: 0,
       maximo: 23,
     }
-  );
-}
-
-function obterNomeTemplate(
-  tipo
-) {
-  const configuracao =
-    CONFIGURACOES_TEMPLATE[tipo];
-
-  if (!configuracao) {
-    const erro =
-      new Error(
-        `Tipo de mensagem do WhatsApp não suportado: ${tipo}.`
-      );
-
-    erro.code =
-      "WHATSAPP_MESSAGE_TYPE_UNSUPPORTED";
-
-    throw erro;
-  }
-
-  return (
-    String(
-      process.env[
-        configuracao.variavel
-      ] ||
-      configuracao.padrao
-    ).trim()
   );
 }
 

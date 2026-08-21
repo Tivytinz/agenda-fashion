@@ -47,6 +47,11 @@ const adminSaasHealthController =
     "../controllers/adminSaasHealthController"
   );
 
+const adminWhatsAppController =
+  require(
+    "../controllers/adminWhatsAppController"
+  );
+
 /*
  * Resumo geral da plataforma.
  */
@@ -135,6 +140,18 @@ router.get(
   authAdmin,
   adminSaasHealthController
     .listarPerfisIncompletos
+);
+
+/*
+ * Saúde dos templates e das entregas do WhatsApp.
+ * A consulta à Meta é somente leitura e as credenciais
+ * nunca são devolvidas para o navegador.
+ */
+router.get(
+  "/admin/whatsapp/templates",
+  auth,
+  authAdmin,
+  adminWhatsAppController.buscarPainel
 );
 
 /*

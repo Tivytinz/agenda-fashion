@@ -35,6 +35,7 @@ export const ADMIN_LINKS = [
   ["/admin/trafego-pago", "Campanhas", "marketing"],
   ["/admin/trafego-pago/custos", "Custos", "costs"],
   ["/admin/trafego-pago/profissionais", "Rentabilidade", "funnel"],
+  ["/admin/whatsapp", "WhatsApp", "whatsapp"],
   ["/conta", "Minha conta", "account"]
 ];
 
