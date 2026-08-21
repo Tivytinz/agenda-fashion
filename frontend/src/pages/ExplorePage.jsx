@@ -10,9 +10,20 @@ import { useSearchParams } from "react-router-dom";
 
 import { apiRequest } from "../api/client";
 import { track } from "../analytics/track";
+import bronzeamentoCard from "../assets/home/bronzeamento-card.webp";
+import bronzeamentoHero from "../assets/home/bronzeamento-hero.webp";
+import cabelosCard from "../assets/home/cabelos-card.webp";
+import ciliosCard from "../assets/home/cilios-card.webp";
+import ciliosHero from "../assets/home/cilios-hero.webp";
+import esteticaCard from "../assets/home/estetica-card.webp";
 import manicureHero from "../assets/home/manicure-hero.webp";
+import maquiagemCard from "../assets/home/maquiagem-card.webp";
+import maquiagemHero from "../assets/home/maquiagem-hero.webp";
 import salonHero from "../assets/home/salon-hero.webp";
 import skincareHero from "../assets/home/skincare-hero.webp";
+import sobrancelhasCard from "../assets/home/sobrancelhas-card.webp";
+import sobrancelhasHero from "../assets/home/sobrancelhas-hero.webp";
+import unhasCard from "../assets/home/unhas-card.webp";
 import { BusinessCard } from "../components/BusinessCard";
 import { ServiceCard } from "../components/ServiceCard";
 import { useRetryingMedia } from "../hooks/useRetryingMedia";
@@ -24,10 +35,7 @@ import {
 } from "../components/ScreenState";
 
 import { normalizeText } from "../utils/format";
-import {
-  serviceCategoryEmoji,
-  serviceCategoryLabel
-} from "../utils/specialties";
+import { serviceCategoryLabel } from "../utils/specialties";
 
 const CATEGORY_SPOTLIGHTS = [
   ["unha", "Unhas", "Manicure e pedicure"],
@@ -39,13 +47,23 @@ const CATEGORY_SPOTLIGHTS = [
   ["maquiagem", "Maquiagem", "Produções especiais"]
 ];
 
+const CATEGORY_CARD_IMAGES = {
+  unha: unhasCard,
+  cabelo: cabelosCard,
+  estetica: esteticaCard,
+  bronzeamento: bronzeamentoCard,
+  cilio: ciliosCard,
+  sobrancelha: sobrancelhasCard,
+  maquiagem: maquiagemCard
+};
+
 const HERO_SLIDES = [
   {
     image: salonHero,
     title: "Beleza perto de você",
-    subtitle: "Encontre seu próximo cuidado",
-    description: "Descubra profissionais, compare serviços e agende em poucos passos.",
-    category: ""
+    subtitle: "Cabelos do seu jeito",
+    description: "Encontre cortes, tratamentos e profissionais para cuidar dos seus cabelos.",
+    category: "cabelo"
   },
   {
     image: manicureHero,
@@ -60,6 +78,34 @@ const HERO_SLIDES = [
     subtitle: "Estética com praticidade",
     description: "Conheça tratamentos, profissionais e horários disponíveis perto de você.",
     category: "estetica"
+  },
+  {
+    image: bronzeamentoHero,
+    title: "Seu brilho em destaque",
+    subtitle: "Bronzeamento com praticidade",
+    description: "Compare opções de bronzeamento e escolha o cuidado ideal para você.",
+    category: "bronzeamento"
+  },
+  {
+    image: ciliosHero,
+    title: "Um olhar que encanta",
+    subtitle: "Cílios feitos para você",
+    description: "Encontre especialistas em cílios e agende seu próximo atendimento.",
+    category: "cilio"
+  },
+  {
+    image: sobrancelhasHero,
+    title: "Expressão em cada detalhe",
+    subtitle: "Sobrancelhas que valorizam você",
+    description: "Descubra profissionais de design e encontre o melhor horário perto de você.",
+    category: "sobrancelha"
+  },
+  {
+    image: maquiagemHero,
+    title: "Pronta para seu momento",
+    subtitle: "Maquiagem para toda ocasião",
+    description: "Escolha sua produção, compare profissionais e agende em poucos passos.",
+    category: "maquiagem"
   }
 ];
 
@@ -119,18 +165,24 @@ function CategorySpotlightCard({
   active,
   category,
   coverSource,
+  fallbackSource,
   label,
   onSelect,
   subtitle
 }) {
-  const {
-    handleError,
-    hasImage,
-    imageUrl
-  } = useRetryingMedia(coverSource, {
+  const primaryMedia = useRetryingMedia(coverSource, {
     width: 420,
     fit: "cover"
   });
+
+  const fallbackMedia = useRetryingMedia(fallbackSource, {
+    width: 420,
+    fit: "cover"
+  });
+
+  const media = primaryMedia.hasImage
+    ? primaryMedia
+    : fallbackMedia;
 
   return (
     <button
@@ -143,20 +195,13 @@ function CategorySpotlightCard({
       type="button"
     >
       <span className="home-category-visual">
-        {hasImage ? (
+        {media.hasImage && (
           <img
             alt=""
             loading="lazy"
-            onError={handleError}
-            src={imageUrl}
+            onError={media.handleError}
+            src={media.imageUrl}
           />
-        ) : (
-          <span
-            aria-hidden="true"
-            className="home-category-emoji"
-          >
-            {serviceCategoryEmoji(category, label)}
-          </span>
         )}
 
         <span className="home-category-shade" />
@@ -676,6 +721,7 @@ export function ExplorePage() {
               active={category === value}
               category={value}
               coverSource={categoryCovers.get(value)}
+              fallbackSource={CATEGORY_CARD_IMAGES[value]}
               key={value}
               label={label}
               onSelect={chooseCategory}

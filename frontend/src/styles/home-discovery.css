@@ -563,11 +563,6 @@
   background: linear-gradient(0deg, rgb(56 47 52 / 12%), transparent 56%);
 }
 
-.home-category-emoji {
-  font-size: 3.15rem;
-  filter: drop-shadow(0 8px 12px rgb(217 47 127 / 18%));
-}
-
 .home-category-copy {
   min-height: 52px;
   display: flex;

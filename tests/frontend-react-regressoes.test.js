@@ -560,6 +560,15 @@ describe(
         expect(inicio).toContain(
           "home-hero-dots"
         );
+        expect(inicio).toContain(
+          "CATEGORY_CARD_IMAGES"
+        );
+        expect(inicio).toContain(
+          "maquiagemHero"
+        );
+        expect(inicio).not.toContain(
+          "serviceCategoryEmoji"
+        );
         expect(inicio).not.toContain(
           "home-search-panel"
         );

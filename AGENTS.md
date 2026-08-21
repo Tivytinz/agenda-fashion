@@ -91,6 +91,9 @@ AF nao demonstra valor para os negocios.
 - A home publica segue o prototipo aprovado: cabecalho com Inicio, Buscar
   servicos, Favoritos, Meus agendamentos, busca e foto da conta; o banner nao
   possui campo de busca interno e funciona como carrossel navegavel.
+- Cada categoria da home possui uma foto panoramica propria para o carrossel e
+  outra imagem 16:9 para fallback do card; nao usar emojis quando a categoria
+  estiver sem foto cadastrada no catalogo.
 - Emojis fazem parte da comunicacao da marca quando ajudam a leitura, sem
   substituir acessibilidade ou clareza.
 - Usar os arquivos oficiais de marca existentes em

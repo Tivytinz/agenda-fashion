@@ -253,7 +253,25 @@ describe("catálogo público paginado", () => {
     })).not.toBeNull();
     expect(screen.getAllByRole("button", {
       name: /Mostrar destaque/
-    })).toHaveLength(3);
+    })).toHaveLength(7);
+  });
+
+  it("usa fotos próprias como fallback nas sete categorias", async () => {
+    apiRequest.mockResolvedValue({
+      negocios: [],
+      paginacao: { total: 0, tem_mais: false }
+    });
+
+    const { container } = renderExplore();
+
+    await screen.findByText("Nenhum serviço encontrado");
+
+    expect(container.querySelectorAll(
+      ".home-category-visual img"
+    )).toHaveLength(7);
+    expect(container.querySelector(
+      ".home-category-emoji"
+    )).toBeNull();
   });
 
   it("permite passar o banner principal para o lado", async () => {
