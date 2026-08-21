@@ -118,6 +118,10 @@ describe("AdminProfessionalFunnelPage", () => {
     expect(screen.getByRole("columnheader", { name: "ROAS" })).not.toBeNull();
     expect(screen.getByRole("columnheader", { name: "CAC" })).not.toBeNull();
     expect(screen.queryByRole("heading", { name: "Progressão da coorte" })).toBeNull();
+    expect(screen.getByText("Serviço já criado")).not.toBeNull();
+    expect(screen.getByText("Agenda já configurada")).not.toBeNull();
+    expect(screen.getByText("Negócio já publicado")).not.toBeNull();
+    expect(screen.getByText("gasto atribuído no período")).not.toBeNull();
 
     expect(screen.getAllByText("20").length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByText("profissionais_goiania").length).toBeGreaterThanOrEqual(1);
@@ -133,12 +137,12 @@ describe("AdminProfessionalFunnelPage", () => {
     ).not.toBeNull();
 
     expect(screen.queryByText("Custo por checkout")).toBeNull();
-    expect(screen.getAllByText(/R\$\s*80,00/)).toHaveLength(1);
+    expect(screen.queryByText(/R\$\s*80,00/)).toBeNull();
 
     await user.click(screen.getByRole("button", { name: "Ver detalhes" }));
 
     expect(screen.getByText("Custo por checkout")).not.toBeNull();
-    expect(screen.getAllByText(/R\$\s*80,00/)).toHaveLength(2);
+    expect(screen.getAllByText(/R\$\s*80,00/)).toHaveLength(1);
     expect(
       screen.getByText(/ROAS 1\.49x está acima da faixa de escala/i)
     ).not.toBeNull();

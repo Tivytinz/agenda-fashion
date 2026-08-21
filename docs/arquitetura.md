@@ -409,11 +409,16 @@ A área administrativa possui a página `Saúde do SaaS`, em `/admin/saude`.
 Ela consulta `GET /admin/saude/perfis-incompletos` para resumir e listar
 cadastros profissionais que ainda não concluíram negócio, dados obrigatórios,
 serviço, agenda ou publicação. A descrição opcional aparece separadamente como
-recomendação e não reduz o progresso de ativação. A listagem prioriza quem está
-mais perto de concluir e oferece filtros pelos indicadores e pelas pendências.
+recomendação, não reduz o progresso de ativação e não mantém um cadastro
+completo na fila padrão; ela pode ser consultada pelo filtro específico. A
+listagem prioriza quem está mais perto de concluir e oferece filtros pelos
+indicadores e pelas pendências.
 Nome, e-mail e WhatsApp permanecem protegidos por `auth` e `authAdmin`; as ações
 de contato ficam junto dos dados de contato, abrem uma mensagem personalizada
-para revisão do administrador e não enviam comunicação automaticamente.
+para revisão do administrador e não enviam comunicação automaticamente. O atalho
+manual de WhatsApp só aparece quando existe consentimento de ativação vigente.
+Inconsistências de publicação automática são marcadas como correção interna e
+não geram uma orientação para o administrador cobrar o profissional.
 
 ### Proteção do frontend
 

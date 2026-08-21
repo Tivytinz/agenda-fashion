@@ -157,7 +157,7 @@ export function AdminProfessionalFunnelPage() {
         : `${formatMoney(summary.custoCadastroCentavos)} por cadastro`
     ],
     [
-      "Negócios publicados",
+      "Negócios já publicados",
       summary.negociosPublicados ?? 0,
       `${summary.taxaPublicacao ?? 0}% dos cadastros`
     ],
@@ -171,9 +171,7 @@ export function AdminProfessionalFunnelPage() {
     [
       "Investimento",
       formatMoney(summary.investimentoCentavos ?? 0),
-      summary.custoCheckoutCentavos === null
-        ? "custo por checkout ainda não calculável"
-        : `${formatMoney(summary.custoCheckoutCentavos)} por checkout`
+      "gasto atribuído no período"
     ],
     [
       "Receita atribuída",
@@ -191,20 +189,20 @@ export function AdminProfessionalFunnelPage() {
     ["Cadastro", summary.cadastros ?? 0, 100],
     ["Negócio criado", summary.negociosCriados ?? 0, summary.taxaNegocio ?? 0],
     [
-      "Serviço criado",
+      "Serviço já criado",
       summary.servicosCriados ?? 0,
       summary.cadastros
         ? Number(((summary.servicosCriados / summary.cadastros) * 100).toFixed(2))
         : 0
     ],
     [
-      "Agenda configurada",
+      "Agenda já configurada",
       summary.agendasConfiguradas ?? 0,
       summary.cadastros
         ? Number(((summary.agendasConfiguradas / summary.cadastros) * 100).toFixed(2))
         : 0
     ],
-    ["Negócio publicado", summary.negociosPublicados ?? 0, summary.taxaPublicacao ?? 0],
+    ["Negócio já publicado", summary.negociosPublicados ?? 0, summary.taxaPublicacao ?? 0],
     ["Checkout iniciado", summary.checkoutsIniciados ?? 0, summary.taxaCheckout ?? 0],
     ["Assinatura ativada", summary.assinaturasAtivadas ?? 0, summary.taxaAssinatura ?? 0]
   ];

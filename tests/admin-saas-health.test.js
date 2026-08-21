@@ -144,6 +144,8 @@ describe(
                 "ana@example.com",
               usuario_whatsapp:
                 "11987654321",
+              whatsapp_contato_autorizado:
+                true,
               cadastro_em:
                 "2026-08-01T12:00:00.000Z",
               ultimo_login_em: null,
@@ -214,6 +216,7 @@ describe(
           etapasConcluidas: 1,
           totalEtapas: 5,
           percentual: 20,
+          etapasRestantes: 4,
         });
         expect(
           resposta.body.perfis[0]
@@ -222,23 +225,34 @@ describe(
               (item) => item.codigo
             )
         ).toEqual([
-          "descricao",
           "especialidade",
           "whatsapp",
           "servico",
           "agenda",
-          "publicacao",
+          "descricao",
         ]);
         expect(
           resposta.body.perfis[0]
             .pendencias[0].rotulo
         ).toBe(
-          "Adicionar descrição (recomendado)"
+          "Selecionar especialidade"
         );
         expect(
           resposta.body.perfis[0]
-            .pendencias[0].tipo
-        ).toBe("recomendacao");
+            .proximaAcao.codigo
+        ).toBe("especialidade");
+        expect(
+          resposta.body.perfis[0]
+            .pendencias.at(-1)
+        ).toEqual({
+          codigo: "descricao",
+          rotulo: "Adicionar descrição (opcional)",
+          tipo: "recomendacao",
+        });
+        expect(
+          resposta.body.perfis[0]
+            .whatsappAutorizado
+        ).toBe(true);
         expect(
           resposta.body.paginacao
         ).toEqual({

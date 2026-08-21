@@ -9,6 +9,10 @@ const PERFIS_CTE = `
       u.nome AS usuario_nome,
       u.email,
       u.whatsapp AS usuario_whatsapp,
+      (
+        u.whatsapp_marketing_consentido_em IS NOT NULL
+        AND u.whatsapp_marketing_cancelado_em IS NULL
+      ) AS whatsapp_contato_autorizado,
       u.created_at AS cadastro_em,
       u.ultimo_login_em,
       mua.utm_source,
@@ -128,7 +132,6 @@ async function buscarResumo() {
           COUNT(*)::INT AS total_profissionais,
           COUNT(*) FILTER (
             WHERE etapas_concluidas < 5
-              OR descricao_preenchida = FALSE
           )::INT AS total_incompletos,
           COUNT(*) FILTER (
             WHERE tem_negocio = FALSE
@@ -155,13 +158,20 @@ async function buscarResumo() {
           )::INT AS nao_publicados,
           COUNT(*) FILTER (
             WHERE etapas_concluidas = 5
-              AND descricao_preenchida = TRUE
           )::INT AS completos
         FROM avaliados
       `
     );
 
   return resultado.rows[0] || {};
+}
+
+function filtroEscopoSql(
+  pendencia
+) {
+  return pendencia === "descricao"
+    ? "descricao_preenchida = FALSE"
+    : "etapas_concluidas < 5";
 }
 
 function filtroPendenciaSql(
@@ -200,6 +210,7 @@ async function listarPerfisIncompletos({
           usuario_nome,
           email,
           usuario_whatsapp,
+          whatsapp_contato_autorizado,
           cadastro_em,
           ultimo_login_em,
           utm_source,
@@ -224,10 +235,7 @@ async function listarPerfisIncompletos({
           etapas_concluidas,
           COUNT(*) OVER()::INT AS total_resultados
         FROM avaliados
-        WHERE (
-          etapas_concluidas < 5
-          OR descricao_preenchida = FALSE
-        )
+        WHERE ${filtroEscopoSql(pendencia)}
           AND (
             $1 = ''
             OR usuario_nome ILIKE '%' || $1 || '%'

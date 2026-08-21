@@ -200,6 +200,7 @@ describe("AdminMarketingPage", () => {
     render(<AdminMarketingPage />);
 
     await screen.findByRole("heading", { name: "Campanhas e tráfego pago" });
+    await user.click(screen.getByRole("button", { name: "+ Nova campanha" }));
     const summary = screen.getByText("Configurações avançadas de rastreamento");
     const details = summary.closest("details");
 
@@ -215,6 +216,7 @@ describe("AdminMarketingPage", () => {
     render(<AdminMarketingPage />);
 
     await screen.findByRole("heading", { name: "Campanhas e tráfego pago" });
+    await user.click(screen.getByRole("button", { name: "+ Nova campanha" }));
     await user.type(screen.getByLabelText("Nome da campanha"), "Cílios Goiânia Agosto");
     await user.selectOptions(screen.getByLabelText(/Objetivo/), "cliente");
     await user.click(screen.getByRole("button", { name: "Criar campanha e link" }));
@@ -290,7 +292,14 @@ describe("AdminMarketingPage", () => {
         { method: "PATCH", body: { ativo: false } }
       );
     });
-    expect(await screen.findByText("Arquivada")).not.toBeNull();
+    expect(
+      await screen.findByText("Campanha arquivada e removida da visão principal.")
+    ).not.toBeNull();
+    expect(screen.queryByText("Meta Cílios")).toBeNull();
+
+    await user.click(screen.getByRole("button", { name: "Mostrar arquivadas (1)" }));
+    expect(await screen.findByText("Meta Cílios")).not.toBeNull();
+    expect(screen.getByText("Arquivada")).not.toBeNull();
   });
 
   it("recarrega as visões ao trocar o período", async () => {

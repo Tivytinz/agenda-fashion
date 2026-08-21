@@ -13,6 +13,17 @@
   flex: 1 1 520px;
 }
 
+.admin-heading-actions {
+  display: grid;
+  justify-items: end;
+  gap: 0.65rem;
+  max-width: 100%;
+}
+
+.admin-new-campaign-button {
+  min-height: 42px;
+}
+
 .admin-workspace-page .segmented-control {
   flex: 0 0 auto;
   max-width: 100%;
@@ -60,12 +71,35 @@
   width: 100%;
 }
 
+.admin-workspace-page .table-wrap thead th {
+  position: sticky;
+  top: 69px;
+  z-index: 2;
+  background: #fff;
+  box-shadow: inset 0 -1px 0 var(--line, #ead7df);
+}
+
 .admin-campaigns-page > .panel:first-of-type .stack-form > .form-grid {
   grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
 .admin-campaigns-page > .panel:first-of-type .form-actions {
   margin-top: 0.1rem;
+}
+
+@media (max-width: 800px) {
+  .admin-heading-actions {
+    width: 100%;
+    justify-items: stretch;
+  }
+
+  .admin-heading-actions .button {
+    width: 100%;
+  }
+
+  .admin-workspace-page .table-wrap thead th {
+    position: static;
+  }
 }
 
 .admin-pending-strip {

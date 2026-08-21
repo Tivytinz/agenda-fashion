@@ -68,6 +68,13 @@
   text-decoration: none;
 }
 
+.app-shell:has(.workspace-shell) > .privacy-shortcut {
+  position: static;
+  display: block;
+  width: fit-content;
+  margin: 8px 16px 16px auto;
+}
+
 .privacy-page {
   display: grid;
   gap: 16px;

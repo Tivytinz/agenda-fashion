@@ -17,7 +17,7 @@ const FILTERS = [
   { value: "servico", label: "Sem serviço" },
   { value: "agenda", label: "Sem agenda" },
   { value: "publicacao", label: "Não publicados" },
-  { value: "descricao", label: "Sem descrição" }
+  { value: "descricao", label: "Sem descrição (opcional)" }
 ];
 
 function formatDate(value) {
@@ -42,6 +42,8 @@ function whatsappNumber(value) {
 }
 
 function whatsappHref(profile) {
+  if (profile.whatsappAutorizado !== true) return "";
+  if (profile.proximaAcao?.tipo === "sistema") return "";
   const number = whatsappNumber(profile.whatsapp);
   if (!number) return "";
   const firstName = String(profile.nome || "").trim().split(/\s+/)[0] || "tudo bem";
@@ -57,6 +59,7 @@ function whatsappHref(profile) {
 
 function emailHref(profile) {
   if (!profile.email) return "";
+  if (profile.proximaAcao?.tipo === "sistema") return "";
   const subject = "Ajuda para concluir seu perfil no Agenda Fashion";
   const body = [
     `Olá, ${profile.nome || "tudo bem"}!`,
@@ -71,20 +74,19 @@ function emailHref(profile) {
 }
 
 function pendingMessage(profile) {
-  const pending = Array.isArray(profile.pendencias)
-    ? profile.pendencias
-    : [];
-  const actionable = pending.filter((item) => item.tipo !== "recomendacao");
-  const selected = actionable.length > 0 ? actionable : pending;
-  const labels = selected
-    .map((item) => String(item.rotulo || "").replace(/\s*\(recomendado\)$/i, ""))
-    .filter(Boolean);
+  const next = profile.proximaAcao ||
+    (Array.isArray(profile.pendencias)
+      ? profile.pendencias.find((item) => item.tipo !== "sistema")
+      : null);
+  const label = String(next?.rotulo || "")
+    .replace(/\s*\((opcional|recomendado)\)$/i, "")
+    .trim();
 
-  if (labels.length === 0) {
+  if (!label) {
     return "Quero ajudar a deixar seu perfil pronto para receber clientes.";
   }
 
-  return `Vi que falta concluir: ${labels.join(", ")}.`;
+  return `Seu perfil já está avançando. A próxima etapa é: ${label}.`;
 }
 
 function formatWhatsapp(value) {
@@ -116,13 +118,31 @@ function SummaryCard({ active, filter, hint, label, onSelect, value }) {
 function ContactActions({ profile }) {
   const whatsapp = whatsappHref(profile);
   const email = emailHref(profile);
+  const hasWhatsapp = Boolean(whatsappNumber(profile.whatsapp));
 
-  if (!whatsapp && !email) {
+  if (profile.proximaAcao?.tipo === "sistema") {
+    return (
+      <span className="saas-health-contact-status is-system">
+        Correção interna — não contatar
+      </span>
+    );
+  }
+
+  if (
+    !whatsapp &&
+    !email &&
+    !(hasWhatsapp && profile.whatsappAutorizado !== true)
+  ) {
     return <span className="admin-data-empty">Sem contato válido</span>;
   }
 
   return (
     <div className="saas-health-actions">
+      {hasWhatsapp && profile.whatsappAutorizado !== true && (
+        <span className="saas-health-contact-status">
+          WhatsApp não autorizado
+        </span>
+      )}
       {whatsapp && (
         <a
           className="button button-primary button-small"
@@ -156,6 +176,15 @@ function ProfileRow({ profile }) {
   const location = [profile.negocio?.cidade, profile.negocio?.estado]
     .filter(Boolean)
     .join(" / ");
+  const pending = Array.isArray(profile.pendencias)
+    ? profile.pendencias
+    : [];
+  const next = profile.proximaAcao || pending[0] || null;
+  const remaining = pending.filter(
+    (item) => item.codigo !== next?.codigo
+  );
+  const remainingStages = profile.progresso?.etapasRestantes ??
+    Math.max(0, 5 - Number(profile.progresso?.etapasConcluidas || 0));
 
   return (
     <tr>
@@ -175,8 +204,12 @@ function ProfileRow({ profile }) {
       </td>
       <td>
         <div className="saas-health-progress-meta">
-          <strong>{profile.progresso?.percentual ?? 0}%</strong>
-          <span>{profile.progresso?.etapasConcluidas ?? 0} de 5 etapas</span>
+          <strong>
+            {remainingStages === 0
+              ? "Etapas concluídas"
+              : `Faltam ${remainingStages}`}
+          </strong>
+          <span>{profile.progresso?.etapasConcluidas ?? 0} de 5 concluídas</span>
         </div>
         <div
           aria-label={`${profile.progresso?.percentual ?? 0}% do perfil concluído`}
@@ -191,14 +224,35 @@ function ProfileRow({ profile }) {
       </td>
       <td>
         <div className="saas-health-pending-list">
-          {(profile.pendencias || []).map((item) => (
-            <span
-              className={`saas-health-pending-chip${item.tipo === "recomendacao" ? " recommendation" : ""}`}
-              key={item.codigo}
-            >
-              {item.rotulo}
-            </span>
-          ))}
+          {next && (
+            <div className={`saas-health-next-action${next.tipo ? ` is-${next.tipo}` : ""}`}>
+              <small>
+                {next.tipo === "recomendacao"
+                  ? "Melhoria recomendada"
+                  : next.tipo === "sistema"
+                    ? "Ação interna"
+                    : "Próxima ação"}
+              </small>
+              <strong>{next.rotulo}</strong>
+            </div>
+          )}
+          {remaining.length > 0 && (
+            <details className="saas-health-more-pending">
+              <summary>
+                Ver mais {remaining.length} {remaining.length === 1 ? "item" : "itens"}
+              </summary>
+              <div>
+                {remaining.map((item) => (
+                  <span
+                    className={`saas-health-pending-chip${item.tipo === "recomendacao" ? " recommendation" : item.tipo === "sistema" ? " system" : ""}`}
+                    key={item.codigo}
+                  >
+                    {item.rotulo}
+                  </span>
+                ))}
+              </div>
+            </details>
+          )}
         </div>
       </td>
     </tr>
@@ -372,7 +426,9 @@ export function AdminSaasHealthPage() {
 
         <p className="saas-health-results-count" aria-live="polite">
           {pagination.total ?? 0} {pagination.total === 1 ? "perfil encontrado" : "perfis encontrados"}.
-          As ativações mais próximas de concluir aparecem primeiro; recomendações ficam ao final.
+          {filter === "descricao"
+            ? " Este filtro mostra uma melhoria opcional e não altera o progresso de ativação."
+            : " As ativações mais próximas de concluir aparecem primeiro. Descrição é uma melhoria opcional e não entra nesta contagem."}
         </p>
 
         {profiles.length === 0 ? (
@@ -388,7 +444,7 @@ export function AdminSaasHealthPage() {
                   <th>Contato</th>
                   <th>Negócio</th>
                   <th>Progresso</th>
-                  <th>Pendências</th>
+                  <th>Próxima ação</th>
                 </tr>
               </thead>
               <tbody>

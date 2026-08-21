@@ -79,14 +79,6 @@ function mapearPendencias(
     ? linha.areas
     : [];
 
-  if (!textoPresente(linha.descricao)) {
-    pendencias.push({
-      codigo: "descricao",
-      rotulo: "Adicionar descrição (recomendado)",
-      tipo: "recomendacao",
-    });
-  }
-
   if (
     areas.length === 0 &&
     !textoPresente(linha.setor)
@@ -143,14 +135,37 @@ function mapearPendencias(
     });
   }
 
-  if (!linha.publicado) {
+  if (
+    !linha.publicado &&
+    linha.perfil_basico_completo &&
+    linha.possui_servico_ativo
+  ) {
     pendencias.push({
       codigo: "publicacao",
-      rotulo: "Publicar perfil",
+      rotulo: "Reprocessar publicação automática",
+      tipo: "sistema",
+    });
+  }
+
+  if (!textoPresente(linha.descricao)) {
+    pendencias.push({
+      codigo: "descricao",
+      rotulo: "Adicionar descrição (opcional)",
+      tipo: "recomendacao",
     });
   }
 
   return pendencias;
+}
+
+function escolherProximaAcao(
+  pendencias
+) {
+  return pendencias.find(
+    (item) => !item.tipo
+  ) || pendencias.find(
+    (item) => item.tipo === "sistema"
+  ) || pendencias[0] || null;
 }
 
 function mapearPerfil(
@@ -165,6 +180,8 @@ function mapearPerfil(
       (etapasConcluidas / 5) *
         100
     );
+  const pendencias =
+    mapearPendencias(linha);
 
   return {
     usuarioId:
@@ -177,6 +194,8 @@ function mapearPerfil(
       linha.usuario_whatsapp ||
       linha.negocio_whatsapp ||
       null,
+    whatsappAutorizado:
+      linha.whatsapp_contato_autorizado === true,
     cadastroEm:
       linha.cadastro_em,
     ultimoLoginEm:
@@ -209,6 +228,11 @@ function mapearPerfil(
       etapasConcluidas,
       totalEtapas: 5,
       percentual,
+      etapasRestantes:
+        Math.max(
+          0,
+          5 - etapasConcluidas
+        ),
     },
     prioridade:
       etapasConcluidas === 4
@@ -216,8 +240,11 @@ function mapearPerfil(
         : etapasConcluidas >= 2 && etapasConcluidas <= 3
           ? "media"
           : "baixa",
-    pendencias:
-      mapearPendencias(linha),
+    proximaAcao:
+      escolherProximaAcao(
+        pendencias
+      ),
+    pendencias,
   };
 }
 

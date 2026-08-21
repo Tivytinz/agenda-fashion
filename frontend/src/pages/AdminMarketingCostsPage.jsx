@@ -3,6 +3,7 @@ import {
   useMemo,
   useState
 } from "react";
+import { Link } from "react-router-dom";
 import { apiRequest } from "../api/client";
 import { MarketingBarChart } from "../components/MarketingBarChart";
 import { MarketingCostIntegrationsPanel } from "../components/MarketingCostIntegrationsPanel";
@@ -92,6 +93,7 @@ export function AdminMarketingCostsPage() {
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState("");
   const [message, setMessage] = useState("");
+  const [showArchivedCosts, setShowArchivedCosts] = useState(false);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -264,7 +266,32 @@ export function AdminMarketingCostsPage() {
 
   const costs = data.costs || {};
   const campaignCosts = costs.campanhas || [];
-  const cards = [
+  const activeCampaignCosts = campaignCosts.filter(
+    (item) => item.ativo !== false
+  );
+  const archivedCampaignCosts = campaignCosts.filter(
+    (item) => item.ativo === false
+  );
+  const archivedCampaignCostsWithoutActivity = archivedCampaignCosts.filter(
+    (item) =>
+      Number(item.investimentoCentavos || 0) === 0 &&
+      Number(item.sessoes || 0) === 0
+  );
+  const reportedCampaignCosts = campaignCosts.filter(
+    (item) =>
+      item.ativo !== false ||
+      Number(item.investimentoCentavos || 0) > 0 ||
+      Number(item.sessoes || 0) > 0
+  );
+  const visibleCampaignCosts = showArchivedCosts
+    ? campaignCosts
+    : reportedCampaignCosts;
+  const hasClientCampaigns = campaignCosts.some(
+    (item) =>
+      item.objetivo === "cliente" &&
+      Number(item.investimentoCentavos || 0) > 0
+  );
+  const cards = hasClientCampaigns ? [
     ["Investimento", formatMoney(costs.investimentoCentavos), "gasto total no período"],
     [
       "Custo por sessão",
@@ -281,9 +308,28 @@ export function AdminMarketingCostsPage() {
       formatMoney(costs.cpaCentavos),
       `${formatMoney(costs.investimentoClientesCentavos)} em campanhas de clientes`
     ]
+  ] : [
+    ["Investimento", formatMoney(costs.investimentoCentavos), "gasto total no período"],
+    [
+      "Custo por sessão",
+      formatMoney(costs.custoPorSessaoCentavos),
+      pluralize(costs.sessoes ?? 0, "sessão vinculada", "sessões vinculadas")
+    ],
+    [
+      "Sessões sem campanha",
+      paidWithoutCampaignSessions,
+      paidWithoutCampaignSessions > 0
+        ? "precisam de correção UTM"
+        : "atribuição de campanha completa"
+    ],
+    [
+      "Campanhas com investimento",
+      activeCampaignCosts.filter((item) => Number(item.investimentoCentavos || 0) > 0).length,
+      `${activeCampaignCosts.length} campanhas ativas`
+    ]
   ];
 
-  const investmentChartItems = [...campaignCosts]
+  const investmentChartItems = [...reportedCampaignCosts]
     .sort((a, b) => Number(b.investimentoCentavos || 0) - Number(a.investimentoCentavos || 0))
     .slice(0, 8)
     .map((item) => ({
@@ -348,9 +394,14 @@ export function AdminMarketingCostsPage() {
               )}
             </strong>
           </div>
-          <p className="muted">
-            A origem paga foi reconhecida, mas a campanha UTM não chegou. Essas sessões aparecem no tráfego geral, porém não entram no custo de uma campanha cadastrada.
-          </p>
+          <div className="admin-notice-action">
+            <p className="muted">
+              A origem paga foi reconhecida, mas a campanha UTM não chegou. Essas sessões aparecem no tráfego geral, porém não entram no custo de uma campanha cadastrada.
+            </p>
+            <Link className="button button-secondary button-small" to="/admin/trafego-pago">
+              Corrigir rastreamento
+            </Link>
+          </div>
         </section>
       )}
 
@@ -472,10 +523,26 @@ export function AdminMarketingCostsPage() {
               CPA é exibido para campanhas de clientes. Campanhas profissionais usam CAC e ROAS na tela de Rentabilidade.
             </p>
           </div>
+          {archivedCampaignCostsWithoutActivity.length > 0 && (
+            <button
+              aria-pressed={showArchivedCosts}
+              className="button button-secondary button-small admin-nowrap-button"
+              onClick={() => setShowArchivedCosts((current) => !current)}
+              type="button"
+            >
+              {showArchivedCosts
+                ? "Ocultar arquivadas"
+                : `Mostrar arquivadas (${archivedCampaignCostsWithoutActivity.length})`}
+            </button>
+          )}
         </div>
 
-        {!campaignCosts.length ? (
-          <p className="muted">Ainda não há campanhas cadastradas.</p>
+        {!visibleCampaignCosts.length ? (
+          <p className="muted">
+            {campaignCosts.length === 0
+              ? "Ainda não há campanhas cadastradas."
+              : "Nenhuma campanha ativa. Mostre as arquivadas para revisar o histórico."}
+          </p>
         ) : (
           <div className="table-wrap">
             <table>
@@ -492,9 +559,14 @@ export function AdminMarketingCostsPage() {
                 </tr>
               </thead>
               <tbody>
-                {campaignCosts.map((item) => (
+                {visibleCampaignCosts.map((item) => (
                   <tr key={item.campanhaId}>
-                    <td><strong>{item.nome}</strong></td>
+                    <td>
+                      <strong>{item.nome}</strong>
+                      {item.ativo === false && (
+                        <small className="admin-table-secondary">Arquivada</small>
+                      )}
+                    </td>
                     <td>
                       <span className={`admin-status-badge ${item.objetivo === "indefinido" ? "is-warning" : ""}`}>
                         {objectiveLabel(item.objetivo)}

@@ -56,7 +56,20 @@ function mockRequests() {
             sessoes: 20,
             agendamentosConcluidos: 4,
             custoPorSessaoCentavos: 500,
-            cpaCentavos: 2500
+            cpaCentavos: 2500,
+            ativo: true
+          },
+          {
+            campanhaId: 4,
+            nome: "Meta arquivada",
+            objetivo: "indefinido",
+            canal: "meta",
+            investimentoCentavos: 0,
+            sessoes: 0,
+            agendamentosConcluidos: 0,
+            custoPorSessaoCentavos: null,
+            cpaCentavos: null,
+            ativo: false
           }
         ]
       });
@@ -157,6 +170,22 @@ describe("AdminMarketingCostsPage", () => {
     await user.click(screen.getByRole("button", { name: "+ Registrar manualmente" }));
     expect(screen.getByLabelText("Investimento (R$)")).not.toBeNull();
     expect(screen.queryByRole("option", { name: /Meta arquivada/i })).toBeNull();
+  });
+
+  it("mantém campanhas arquivadas fora da visão ativa, com consulta sob demanda", async () => {
+    const user = userEvent.setup();
+    render(
+      <MemoryRouter>
+        <AdminMarketingCostsPage />
+      </MemoryRouter>
+    );
+
+    await screen.findByRole("heading", { name: "Investimento e eficiência" });
+    expect(screen.queryByText("Meta arquivada")).toBeNull();
+
+    await user.click(screen.getByRole("button", { name: "Mostrar arquivadas (1)" }));
+    expect(screen.getByText("Meta arquivada")).not.toBeNull();
+    expect(screen.getByText("Arquivada")).not.toBeNull();
   });
 
   it("exibe investimento e CPA e registra gasto em centavos", async () => {

@@ -171,6 +171,8 @@ export function AdminMarketingPage() {
   const [campaignActionId, setCampaignActionId] = useState(null);
   const [classifyingCampaignId, setClassifyingCampaignId] = useState(null);
   const [copiedCampaignId, setCopiedCampaignId] = useState(null);
+  const [campaignCreatorOpen, setCampaignCreatorOpen] = useState(false);
+  const [showArchived, setShowArchived] = useState(false);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -290,6 +292,7 @@ export function AdminMarketingPage() {
       }));
       setCampaignForm(INITIAL_CAMPAIGN);
       setCampaignMessage("Campanha criada. O link rastreável já está pronto para uso.");
+      setCampaignCreatorOpen(false);
     } catch (requestError) {
       setCampaignError(requestError.message);
     } finally {
@@ -326,7 +329,14 @@ export function AdminMarketingPage() {
   }
 
   async function toggleCampaign(item) {
-    await updateCampaign(item, { ativo: !item.ativo });
+    const updated = await updateCampaign(item, { ativo: !item.ativo });
+    if (updated) {
+      setCampaignMessage(
+        updated.ativo
+          ? "Campanha reativada."
+          : "Campanha arquivada e removida da visão principal."
+      );
+    }
   }
 
   async function classifyCampaign(item, objetivo) {
@@ -374,8 +384,20 @@ export function AdminMarketingPage() {
     [campaigns]
   );
   const unclassifiedCampaigns = useMemo(
-    () => managedCampaigns.filter((item) => !OBJECTIVES[item.objetivo]),
+    () => managedCampaigns.filter(
+      (item) => item.ativo !== false && !OBJECTIVES[item.objetivo]
+    ),
     [managedCampaigns]
+  );
+  const archivedCampaigns = useMemo(
+    () => managedCampaigns.filter((item) => item.ativo === false),
+    [managedCampaigns]
+  );
+  const visibleManagedCampaigns = useMemo(
+    () => showArchived
+      ? managedCampaigns
+      : managedCampaigns.filter((item) => item.ativo !== false),
+    [managedCampaigns, showArchived]
   );
   const suggestedCampaign = useMemo(() => {
     const channels = [
@@ -441,18 +463,28 @@ export function AdminMarketingPage() {
           </p>
         </div>
 
-        <div className="segmented-control" aria-label="Período do marketing">
-          {PERIODS.map(([value, label]) => (
-            <button
-              aria-pressed={period === value}
-              className={period === value ? "active" : ""}
-              key={value}
-              onClick={() => selectPeriod(value)}
-              type="button"
-            >
-              {label}
-            </button>
-          ))}
+        <div className="admin-heading-actions">
+          <button
+            aria-expanded={campaignCreatorOpen}
+            className="button button-secondary admin-new-campaign-button"
+            onClick={() => setCampaignCreatorOpen((current) => !current)}
+            type="button"
+          >
+            {campaignCreatorOpen ? "Fechar criação" : "+ Nova campanha"}
+          </button>
+          <div className="segmented-control" aria-label="Período do marketing">
+            {PERIODS.map(([value, label]) => (
+              <button
+                aria-pressed={period === value}
+                className={period === value ? "active" : ""}
+                key={value}
+                onClick={() => selectPeriod(value)}
+                type="button"
+              >
+                {label}
+              </button>
+            ))}
+          </div>
         </div>
       </header>
 
@@ -462,6 +494,8 @@ export function AdminMarketingPage() {
         </p>
       )}
       {error && <p className="form-error" role="alert">{error}</p>}
+      {campaignError && <p className="form-error" role="alert">{campaignError}</p>}
+      {campaignMessage && <p className="form-success" role="status">{campaignMessage}</p>}
 
       <section className="metric-grid" aria-label="Indicadores de marketing">
         {cards.map(([label, value, hint]) => (
@@ -533,18 +567,19 @@ export function AdminMarketingPage() {
         </section>
       )}
 
-      <section className="panel admin-primary-action-panel">
-        <div className="panel-heading">
-          <div>
-            <p className="eyebrow">Nova campanha</p>
-            <h2>Gerar link rastreável</h2>
-            <p className="muted">
-              Defina nome, objetivo, canal e destino. Os parâmetros técnicos ficam disponíveis somente quando você precisar ajustá-los.
-            </p>
+      {campaignCreatorOpen && (
+        <section className="panel admin-primary-action-panel">
+          <div className="panel-heading">
+            <div>
+              <p className="eyebrow">Nova campanha</p>
+              <h2>Gerar link rastreável</h2>
+              <p className="muted">
+                Defina nome, objetivo, canal e destino. Os parâmetros técnicos ficam disponíveis somente quando você precisar ajustá-los.
+              </p>
+            </div>
           </div>
-        </div>
 
-        <form className="stack-form" onSubmit={submitCampaign}>
+          <form className="stack-form" onSubmit={submitCampaign}>
           <div className="form-grid">
             <label>
               Nome da campanha
@@ -655,9 +690,6 @@ export function AdminMarketingPage() {
             </div>
           </details>
 
-          {campaignError && <p className="form-error" role="alert">{campaignError}</p>}
-          {campaignMessage && <p className="form-success" role="status">{campaignMessage}</p>}
-
           <div className="form-actions">
             <button
               className="button"
@@ -667,8 +699,9 @@ export function AdminMarketingPage() {
               {campaignStatus === "loading" ? "Criando..." : "Criar campanha e link"}
             </button>
           </div>
-        </form>
-      </section>
+          </form>
+        </section>
+      )}
 
       <section className="panel" id="campanhas-cadastradas">
         <div className="panel-heading">
@@ -679,10 +712,26 @@ export function AdminMarketingPage() {
               Gerencie objetivo, rastreamento e status sem expor parâmetros técnicos o tempo todo.
             </p>
           </div>
+          {archivedCampaigns.length > 0 && (
+            <button
+              aria-pressed={showArchived}
+              className="button button-secondary button-small admin-nowrap-button"
+              onClick={() => setShowArchived((current) => !current)}
+              type="button"
+            >
+              {showArchived
+                ? "Ocultar arquivadas"
+                : `Mostrar arquivadas (${archivedCampaigns.length})`}
+            </button>
+          )}
         </div>
 
-        {managedCampaigns.length === 0 ? (
-          <p className="muted">Nenhuma campanha cadastrada ainda.</p>
+        {visibleManagedCampaigns.length === 0 ? (
+          <p className="muted">
+            {managedCampaigns.length === 0
+              ? "Nenhuma campanha cadastrada ainda."
+              : "Nenhuma campanha ativa. Mostre as arquivadas para revisar o histórico."}
+          </p>
         ) : (
           <div className="table-wrap admin-campaign-table">
             <table>
@@ -697,7 +746,7 @@ export function AdminMarketingPage() {
                 </tr>
               </thead>
               <tbody>
-                {managedCampaigns.map((item) => (
+                {visibleManagedCampaigns.map((item) => (
                   <tr key={item.id}>
                     <td><strong>{item.nome}</strong></td>
                     <td className="admin-objective-cell">
@@ -890,9 +939,9 @@ export function AdminMarketingPage() {
                   <th>Origem</th>
                   <th>Mídia</th>
                   <th>Sessões</th>
-                  <th>Perfis</th>
-                  <th>Iniciados</th>
-                  <th>Concluídos</th>
+                  <th>Perfis vistos</th>
+                  <th>Agendamentos iniciados</th>
+                  <th>Agendamentos concluídos</th>
                   <th>Conversão</th>
                 </tr>
               </thead>
