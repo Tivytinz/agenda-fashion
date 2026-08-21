@@ -10,6 +10,7 @@ import { apiRequest } from "../api/client";
 import { track } from "../analytics/track";
 import { BusinessCard } from "../components/BusinessCard";
 import { ServiceCard } from "../components/ServiceCard";
+import { useRetryingMedia } from "../hooks/useRetryingMedia";
 
 import {
   EmptyState,
@@ -18,17 +19,19 @@ import {
 } from "../components/ScreenState";
 
 import { normalizeText } from "../utils/format";
-import { serviceCategoryLabel } from "../utils/specialties";
+import {
+  serviceCategoryEmoji,
+  serviceCategoryLabel
+} from "../utils/specialties";
 
-const CATEGORIES = [
-  ["", "Todos"],
-  ["unha", "Unhas"],
-  ["cabelo", "Cabelos"],
-  ["cilio", "Cílios"],
-  ["sobrancelha", "Sobrancelhas"],
-  ["maquiagem", "Maquiagem"],
-  ["estetica", "Estética"],
-  ["bronzeamento", "Bronzeamento"]
+const CATEGORY_SPOTLIGHTS = [
+  ["unha", "Unhas", "Manicure e pedicure"],
+  ["cabelo", "Cabelos", "Cortes e tratamentos"],
+  ["estetica", "Estética", "Cuidados para você"],
+  ["bronzeamento", "Bronzeamento", "Seu tom, seu momento"],
+  ["cilio", "Cílios", "Realce seu olhar"],
+  ["sobrancelha", "Sobrancelhas", "Design e expressão"],
+  ["maquiagem", "Maquiagem", "Produções especiais"]
 ];
 
 const PAGE_SIZE = 12;
@@ -81,6 +84,70 @@ export function diversifyServices(services = []) {
   }
 
   return diversified;
+}
+
+function CategorySpotlightCard({
+  active,
+  category,
+  coverSource,
+  label,
+  onSelect,
+  subtitle
+}) {
+  const {
+    handleError,
+    hasImage,
+    imageUrl
+  } = useRetryingMedia(coverSource, {
+    width: 420,
+    fit: "cover"
+  });
+
+  return (
+    <button
+      aria-label={label}
+      aria-pressed={active}
+      className={active
+        ? "home-category-card active"
+        : "home-category-card"}
+      onClick={() => onSelect(category)}
+      type="button"
+    >
+      <span className="home-category-visual">
+        {hasImage ? (
+          <img
+            alt=""
+            loading="lazy"
+            onError={handleError}
+            src={imageUrl}
+          />
+        ) : (
+          <span
+            aria-hidden="true"
+            className="home-category-emoji"
+          >
+            {serviceCategoryEmoji(category, label)}
+          </span>
+        )}
+
+        <span className="home-category-shade" />
+      </span>
+
+      <span className="home-category-copy">
+        <span>
+          <strong>{label}</strong>
+          <small>{subtitle}</small>
+        </span>
+
+        <span
+          aria-hidden="true"
+          className="home-category-arrow"
+        >
+          →
+        </span>
+      </span>
+    </button>
+  );
 }
 
 export function ExplorePage() {
@@ -319,6 +386,45 @@ export function ExplorePage() {
       );
     }, [businesses]);
 
+  const featuredService = useMemo(() => {
+    return filteredServices.find(
+      (service) => service.foto_url
+    ) || filteredServices[0] || null;
+  }, [filteredServices]);
+
+  const featuredBusiness = useMemo(() => {
+    return sortedBusinesses.find(
+      (business) => business.foto_url
+    ) || sortedBusinesses[0] || null;
+  }, [sortedBusinesses]);
+
+  const {
+    handleError: handleHeroImageError,
+    hasImage: hasHeroImage,
+    imageUrl: heroImageUrl
+  } = useRetryingMedia(
+    featuredService?.foto_url ||
+      featuredBusiness?.foto_url,
+    {
+      width: 1440,
+      fit: "cover"
+    }
+  );
+
+  const categoryCovers = useMemo(() => {
+    return new Map(
+      CATEGORY_SPOTLIGHTS.map(([value]) => {
+        const matchingService = services.find(
+          (service) =>
+            service.categoria === value &&
+            service.foto_url
+        );
+
+        return [value, matchingService?.foto_url || ""];
+      })
+    );
+  }, [services]);
+
   async function loadMore() {
     await loadBusinesses({
       requestedPage: page + 1,
@@ -339,27 +445,62 @@ export function ExplorePage() {
   }
 
   return (
-    <main>
-      <section className="hero">
-        <div className="container hero-content">
-          <div className="hero-copy">
-            <p className="eyebrow">
-              Beleza perto de você
+    <main className="home-page">
+      <section className="home-hero">
+        <div
+          className={hasHeroImage
+            ? "container home-hero-frame has-image"
+            : "container home-hero-frame"}
+        >
+          {hasHeroImage && (
+            <img
+              alt=""
+              className="home-hero-image"
+              fetchPriority="high"
+              onError={handleHeroImageError}
+              src={heroImageUrl}
+            />
+          )}
+
+          <div className="home-hero-overlay" />
+
+          <div className="home-hero-content">
+            <p className="home-hero-kicker">
+              Agenda Fashion <span>•</span> Beleza perto de você
             </p>
 
             <h1>
-              Encontre serviços de beleza perto de você
+              Seu próximo cuidado começa aqui
             </h1>
 
             <p>
-              Inspire-se pelas fotos,
-              compare preços e escolha
-              um horário em poucos passos.
+              Descubra profissionais, compare serviços
+              e agende seu horário em poucos passos.
             </p>
+
+            <div className="home-hero-actions">
+              <a
+                className="button home-hero-primary"
+                href="#buscar-servicos"
+              >
+                Encontrar serviço
+                <span aria-hidden="true">→</span>
+              </a>
+
+              <a
+                className="button home-hero-secondary"
+                href="#businesses-title"
+              >
+                Ver profissionais
+              </a>
+            </div>
           </div>
 
-          <div className="discovery-panel">
-            <label className="search-box">
+          <div
+            className="home-search-panel"
+            id="buscar-servicos"
+          >
+            <label className="search-box home-search-box">
               <span
                 className="search-icon"
                 aria-hidden="true"
@@ -397,47 +538,68 @@ export function ExplorePage() {
               )}
             </label>
 
-            <div
-              className="chips"
-              aria-label="Categorias"
-            >
-              {CATEGORIES.map(
-                ([value, label]) => (
-                  <button
-                    aria-pressed={
-                      category === value
-                    }
-                    className={
-                      category === value
-                        ? "chip active"
-                        : "chip"
-                    }
-                    key={label}
-                    type="button"
-                    onClick={() =>
-                      chooseCategory(
-                        value
-                      )
-                    }
-                  >
-                    {label}
-                  </button>
-                )
-              )}
-            </div>
-
+            <span className="home-search-hint">
+              Busque por unha, cabelo, bronzeamento ou profissional
+            </span>
           </div>
         </div>
       </section>
 
       <section
-        className="container content-section"
-        aria-labelledby="services-title"
+        aria-labelledby="categories-title"
+        className="container home-category-section"
       >
-        <div className="section-heading">
+        <div className="home-section-heading">
           <div>
             <p className="eyebrow">
-              Inspire-se e agende
+              Encontre seu cuidado
+            </p>
+
+            <h2 id="categories-title">
+              Categorias em destaque
+            </h2>
+          </div>
+
+          <button
+            aria-pressed={category === ""}
+            className="home-see-all"
+            onClick={() => chooseCategory("")}
+            type="button"
+          >
+            Ver todos
+          </button>
+        </div>
+
+        <div
+          aria-label="Categorias"
+          className="home-category-rail"
+        >
+          {CATEGORY_SPOTLIGHTS.map(([
+            value,
+            label,
+            subtitle
+          ]) => (
+            <CategorySpotlightCard
+              active={category === value}
+              category={value}
+              coverSource={categoryCovers.get(value)}
+              key={value}
+              label={label}
+              onSelect={chooseCategory}
+              subtitle={subtitle}
+            />
+          ))}
+        </div>
+      </section>
+
+      <section
+        className="container content-section home-catalog-section"
+        aria-labelledby="services-title"
+      >
+        <div className="home-section-heading">
+          <div>
+            <p className="eyebrow">
+              Escolhas para você
             </p>
 
             <h2 id="services-title">
@@ -446,7 +608,6 @@ export function ExplorePage() {
                 : "Serviços para você"}
             </h2>
           </div>
-
         </div>
 
         {status === "loading" && (
@@ -511,28 +672,27 @@ export function ExplorePage() {
 
       {status === "ready" && (
           <section
-            className="container content-section businesses-section"
+            className="container content-section businesses-section home-businesses-section"
             aria-labelledby="businesses-title"
           >
-            <div className="section-heading">
+            <div className="home-section-heading">
               <div>
                 <p className="eyebrow">
-                  Conheça quem atende
+                  Profissionais e negócios
                 </p>
 
                 <h2 id="businesses-title">
-                  Negócios e profissionais
+                  Perto de você
                 </h2>
               </div>
-
             </div>
 
             {sortedBusinesses.length > 0 ? (
-              <div className={
-                sortedBusinesses.length <= 2
-                  ? "card-grid business-card-grid business-card-grid-compact"
-                  : "card-grid business-card-grid"
-              }>
+              <div
+                aria-label="Profissionais e negócios perto de você"
+                className="home-business-rail"
+                tabIndex={sortedBusinesses.length > 1 ? 0 : undefined}
+              >
                 {sortedBusinesses.map(
                   (business) => (
                     <BusinessCard

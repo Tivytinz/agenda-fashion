@@ -234,11 +234,31 @@ describe("catálogo público paginado", () => {
       "Nenhum serviço encontrado"
     )).not.toBeNull();
     expect(screen.getByRole("heading", {
-      name: "Negócios e profissionais"
+      name: "Perto de você"
     })).not.toBeNull();
     expect(screen.getByText(
       "Nenhum negócio encontrado"
     )).not.toBeNull();
+  });
+
+  it("apresenta a home em destaque sem criar uma aba Explorar", async () => {
+    apiRequest.mockResolvedValue({
+      negocios: [],
+      paginacao: { total: 0, tem_mais: false }
+    });
+
+    renderExplore();
+
+    expect(screen.getByRole("heading", {
+      name: "Seu próximo cuidado começa aqui"
+    })).not.toBeNull();
+    expect(screen.getByRole("region", {
+      name: "Categorias em destaque"
+    })).not.toBeNull();
+    expect(screen.getByRole("searchbox")).not.toBeNull();
+    expect(screen.queryByRole("link", {
+      name: "Explorar"
+    })).toBeNull();
   });
 
   it("não mostra contadores redundantes acima dos catálogos", async () => {

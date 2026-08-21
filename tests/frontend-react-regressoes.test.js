@@ -150,7 +150,7 @@ describe(
         expect(
           explorar
         ).toContain(
-          "CATEGORIES"
+          "CATEGORY_SPOTLIGHTS"
         );
 
         expect(
@@ -338,7 +338,6 @@ describe(
 
         [
           'to="/"',
-          '"/minha-agenda"',
           'to="/para-profissionais"',
           'to="/entrar"',
         ].forEach(
@@ -349,6 +348,10 @@ describe(
               rota
             );
           }
+        );
+
+        expect(cabecalho).not.toContain(
+          '"/minha-agenda"'
         );
 
         [
@@ -447,13 +450,13 @@ describe(
         expect(
           css
         ).toContain(
-          ".site-header .mobile-agenda-link"
+          ".site-header .mobile-home-link"
         );
 
         expect(
           cabecalho
         ).toContain(
-          "mobile-agenda-link"
+          "mobile-home-link"
         );
 
         expect(

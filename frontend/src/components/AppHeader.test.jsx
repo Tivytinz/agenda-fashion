@@ -58,6 +58,12 @@ describe("cabeçalho por contexto", () => {
 
     renderHeader("/");
 
+    expect(screen.getAllByRole("link", { name: "Início" }))
+      .toHaveLength(1);
+    expect(screen.queryByRole("link", { name: "Explorar" }))
+      .toBeNull();
+    expect(screen.queryByRole("link", { name: "Minha agenda" }))
+      .toBeNull();
     expect(screen.getByRole("link", { name: "Sou profissional" })
       .getAttribute("href")).toBe("/para-profissionais");
   });
@@ -89,17 +95,20 @@ describe("cabeçalho por contexto", () => {
       .toBeTruthy();
   });
 
-  it("troca Minha agenda por Explorar dentro da gestão do negócio", () => {
+  it("usa Início como única saída pública da gestão do negócio", () => {
     renderHeader("/painel");
 
-    const explore = screen.getByRole(
+    const home = screen.getByRole(
       "link",
-      { name: "Explorar" }
+      { name: "Início" }
     );
 
-    expect(explore.getAttribute("href")).toBe("/");
+    expect(home.getAttribute("href")).toBe("/");
     expect(
       screen.queryByRole("link", { name: "Minha agenda" })
+    ).toBeNull();
+    expect(
+      screen.queryByRole("link", { name: "Explorar" })
     ).toBeNull();
     expect(
       screen.queryByRole("link", { name: "Área de trabalho" })
@@ -130,7 +139,7 @@ describe("cabeçalho por contexto", () => {
     expect(screen.queryByText("Funil profissional")).toBeNull();
   });
 
-  it("usa Explorar como saída clara da administração mobile", () => {
+  it("usa Início como saída clara da administração mobile", () => {
     useSession.mockReturnValue({
       authenticated: true,
       ehAdministrador: true,
@@ -143,7 +152,7 @@ describe("cabeçalho por contexto", () => {
     renderHeader("/admin/trafego-pago");
 
     expect(
-      screen.getByRole("link", { name: "Explorar" })
+      screen.getByRole("link", { name: "Início" })
         .getAttribute("href")
     ).toBe("/");
     expect(
@@ -163,7 +172,7 @@ describe("cabeçalho por contexto", () => {
 
     renderHeader("/conta");
 
-    expect(screen.getByRole("link", { name: "Explorar" })
+    expect(screen.getByRole("link", { name: "Início" })
       .getAttribute("href")).toBe("/");
     expect(screen.getByRole("link", { name: "Área de trabalho" })
       .getAttribute("href")).toBe("/painel");

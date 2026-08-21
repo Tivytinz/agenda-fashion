@@ -17,6 +17,7 @@ export function AppHeader() {
   const focusedProfessionalLanding =
     location.pathname === "/para-profissionais" &&
     !session.authenticated;
+  const homePage = location.pathname === "/";
   const adminArea = location.pathname.startsWith("/admin/") || accountInAdmin;
   const businessArea =
     location.pathname.startsWith("/painel") ||
@@ -33,13 +34,6 @@ export function AppHeader() {
       location.pathname === "/conta" &&
       session.ehAdministrador
     );
-  const mobileContextPath = operationalArea
-    ? "/"
-    : "/minha-agenda";
-  const mobileContextLabel = operationalArea
-    ? "Explorar"
-    : "Minha agenda";
-
   function handleLogout() {
     session.logout();
     navigate("/", { replace: true });
@@ -53,7 +47,10 @@ export function AppHeader() {
     .toLocaleUpperCase("pt-BR");
 
   return (
-    <header className="site-header">
+    <header className={homePage
+      ? "site-header home-site-header"
+      : "site-header"}
+    >
       <div className="container header-content">
         <Link
           className="brand"
@@ -85,30 +82,17 @@ export function AppHeader() {
           className="public-navigation"
           aria-label="Navegação principal"
         >
-          {!operationalArea && !focusedProfessionalLanding && (
+          {!focusedProfessionalLanding && (
             <NavLink
               className={({ isActive }) =>
                 isActive
-                  ? "text-link active desktop-nav-link"
-                  : "text-link desktop-nav-link"
+                  ? "text-link active desktop-nav-link mobile-home-link"
+                  : "text-link desktop-nav-link mobile-home-link"
               }
               end
               to="/"
             >
               Início
-            </NavLink>
-          )}
-
-          {!focusedProfessionalLanding && (
-            <NavLink
-              className={({ isActive }) =>
-                isActive
-                  ? "text-link active desktop-nav-link mobile-agenda-link"
-                  : "text-link desktop-nav-link mobile-agenda-link"
-              }
-              to={mobileContextPath}
-            >
-              {mobileContextLabel}
             </NavLink>
           )}
 

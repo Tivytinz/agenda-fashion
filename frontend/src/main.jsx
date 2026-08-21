@@ -8,6 +8,7 @@ import { installRuntimeRecovery } from "./utils/runtimeRecovery";
 import "./styles/index.css";
 import "./styles/marketing-consent.css";
 import "./styles/responsive.css";
+import "./styles/home-discovery.css";
 import "./styles/admin-marketing.css";
 import "./styles/admin-marketing-professional.css";
 import "./styles/admin-saas-health.css";
