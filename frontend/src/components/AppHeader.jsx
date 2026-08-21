@@ -146,13 +146,6 @@ export function AppHeader() {
 
           {showDiscoveryNavigation && (
             <>
-              <Link
-                className="text-link header-main-link"
-                to="/#buscar-servicos"
-              >
-                Buscar serviços
-              </Link>
-
               <NavLink
                 className="text-link header-main-link"
                 to="/favoritos"

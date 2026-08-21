@@ -4,6 +4,7 @@ import {
   formatRating
 } from "../utils/format";
 import { useRetryingMedia } from "../hooks/useRetryingMedia";
+import { categoryCardImage } from "../utils/categoryMedia";
 import {
   normalizeBusinessSpecialties,
   serviceCategoryEmoji
@@ -16,6 +17,9 @@ export function BusinessCard({ business }) {
   const available = serviceCount > 0;
   const rating = formatRating(business);
   const specialties = normalizeBusinessSpecialties(business);
+  const representativeService = business.servicos?.find(
+    (service) => service.categoria || service.nome
+  );
 
   const coverSource = business.foto_url ||
     business.servicos?.find((service) => service.foto_url)?.foto_url;
@@ -28,6 +32,11 @@ export function BusinessCard({ business }) {
     width: 420,
     fit: "contain"
   });
+
+  const fallbackImage = categoryCardImage(
+    representativeService?.categoria || specialties[0] || business.setor,
+    representativeService?.nome || business.nome
+  );
 
   const specialtyEmoji = serviceCategoryEmoji(
     specialties[0],
@@ -43,8 +52,12 @@ export function BusinessCard({ business }) {
       }
     >
       <div
-        className={hasImage ? "card-image card-image-photo" : "card-image"}
-        aria-hidden={!hasImage}
+        className={hasImage
+          ? "card-image card-image-photo"
+          : fallbackImage
+            ? "card-image card-image-category"
+            : "card-image"}
+        aria-hidden="true"
       >
         {hasImage ? (
           <>
@@ -62,6 +75,13 @@ export function BusinessCard({ business }) {
               onError={handleImageError}
             />
           </>
+        ) : fallbackImage ? (
+          <img
+            alt=""
+            className="business-category-fallback"
+            loading="lazy"
+            src={fallbackImage}
+          />
         ) : (
           <span className="card-placeholder">
             <span

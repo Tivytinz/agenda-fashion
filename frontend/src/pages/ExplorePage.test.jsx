@@ -272,6 +272,33 @@ describe("catálogo público paginado", () => {
     expect(container.querySelector(
       ".home-category-emoji"
     )).toBeNull();
+    expect(screen.queryByRole("button", {
+      name: "Ver todos"
+    })).toBeNull();
+  });
+
+  it("mantém as imagens aprovadas mesmo quando o catálogo possui outra foto", async () => {
+    apiRequest.mockResolvedValue({
+      negocios: [{
+        ...business(1, "Studio Um"),
+        servicos: [{
+          id: 11,
+          nome: "Esmaltação",
+          categoria: "unha",
+          foto_url: "/uploads/foto-do-catalogo.jpg",
+          valor: 45
+        }]
+      }],
+      paginacao: { total: 1, tem_mais: false }
+    });
+
+    renderExplore();
+
+    expect(await screen.findByRole("heading", { name: "Esmaltação" }))
+      .not.toBeNull();
+    expect(screen.getByRole("button", { name: "Unhas" })
+      .querySelector("img")?.getAttribute("src"))
+      .toContain("unhas-card");
   });
 
   it("permite passar o banner principal para o lado", async () => {
@@ -339,11 +366,30 @@ describe("catálogo público paginado", () => {
     expect(await screen.findByRole("heading", { name: "Esmaltação" }))
       .not.toBeNull();
     expect(container.querySelector(".service-rail-track")).not.toBeNull();
-    expect(screen.getByText("2 opções")).not.toBeNull();
-    expect(screen.getByText("Deslize →")).not.toBeNull();
+    expect(screen.queryByText("2 opções")).toBeNull();
+    expect(screen.queryByText("Deslize →")).toBeNull();
     expect(screen.getByRole("heading", { name: "Alongamento" })).not.toBeNull();
     expect(screen.queryByText("Agenda online")).toBeNull();
     expect(screen.queryByRole("combobox")).toBeNull();
     expect(screen.queryByRole("button", { name: "Usar localização" })).toBeNull();
+  });
+
+  it("usa alfinetes na seção e na cidade próxima", async () => {
+    apiRequest.mockResolvedValue({
+      negocios: [{
+        ...business(1, "Studio Um"),
+        cidade: "Rio de Janeiro",
+        estado: "RJ"
+      }],
+      paginacao: { total: 1, tem_mais: false }
+    });
+
+    const { container } = renderExplore();
+
+    await screen.findAllByText("Rio de Janeiro, RJ");
+    expect(container.querySelector(".home-title-with-icon")?.textContent)
+      .toContain("📍Perto de você");
+    expect(container.querySelector(".home-location-pill")?.textContent)
+      .toContain("📍Rio de Janeiro, RJ");
   });
 });

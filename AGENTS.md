@@ -88,9 +88,10 @@ AF nao demonstra valor para os negocios.
 - A organizacao visual pode usar destaque amplo, hierarquia limpa e fileiras
   horizontais inspiradas em catalogos de streaming, sem copiar outra marca e
   sem descaracterizar o Agenda Fashion.
-- A home publica segue o prototipo aprovado: cabecalho com Inicio, Buscar
-  servicos, Favoritos, Meus agendamentos, busca e foto da conta; o banner nao
-  possui campo de busca interno e funciona como carrossel navegavel.
+- A home publica segue o prototipo aprovado: cabecalho com Inicio, Favoritos,
+  Meus agendamentos, busca e foto da conta; a busca substitui o atalho
+  redundante "Buscar servicos". O banner nao possui campo de busca interno e
+  funciona como carrossel navegavel.
 - Cada categoria da home possui uma foto panoramica propria para o carrossel e
   outra imagem 16:9 para fallback do card; nao usar emojis quando a categoria
   estiver sem foto cadastrada no catalogo.

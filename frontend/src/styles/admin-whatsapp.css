@@ -3,10 +3,16 @@
 }
 
 .whatsapp-heading-actions {
-  min-width: min(100%, 560px);
+  display: flex;
+  flex: 1 1 100%;
+  align-items: center;
+  justify-content: flex-end;
+  min-width: 0;
+  width: 100%;
 }
 
 .whatsapp-heading-actions .segmented-control {
+  flex: 0 1 auto;
   max-width: 100%;
   overflow-x: auto;
 }
@@ -170,7 +176,11 @@
     grid-template-columns: 1fr;
   }
 
-  .whatsapp-heading-actions,
+  .whatsapp-heading-actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
   .whatsapp-heading-actions .button {
     width: 100%;
   }

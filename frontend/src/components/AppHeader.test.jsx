@@ -60,8 +60,8 @@ describe("cabeçalho por contexto", () => {
 
     expect(screen.getAllByRole("link", { name: "Início" }))
       .toHaveLength(1);
-    expect(screen.getByRole("link", { name: "Buscar serviços" })
-      .getAttribute("href")).toBe("/#buscar-servicos");
+    expect(screen.queryByRole("link", { name: "Buscar serviços" }))
+      .toBeNull();
     expect(screen.getByRole("link", { name: "Favoritos" })
       .getAttribute("href")).toBe("/favoritos");
     expect(screen.getByRole("link", { name: "Meus agendamentos" })

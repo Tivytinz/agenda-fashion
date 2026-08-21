@@ -10,20 +10,13 @@ import { useSearchParams } from "react-router-dom";
 
 import { apiRequest } from "../api/client";
 import { track } from "../analytics/track";
-import bronzeamentoCard from "../assets/home/bronzeamento-card.webp";
 import bronzeamentoHero from "../assets/home/bronzeamento-hero.webp";
-import cabelosCard from "../assets/home/cabelos-card.webp";
-import ciliosCard from "../assets/home/cilios-card.webp";
 import ciliosHero from "../assets/home/cilios-hero.webp";
-import esteticaCard from "../assets/home/estetica-card.webp";
 import manicureHero from "../assets/home/manicure-hero.webp";
-import maquiagemCard from "../assets/home/maquiagem-card.webp";
 import maquiagemHero from "../assets/home/maquiagem-hero.webp";
 import salonHero from "../assets/home/salon-hero.webp";
 import skincareHero from "../assets/home/skincare-hero.webp";
-import sobrancelhasCard from "../assets/home/sobrancelhas-card.webp";
 import sobrancelhasHero from "../assets/home/sobrancelhas-hero.webp";
-import unhasCard from "../assets/home/unhas-card.webp";
 import { BusinessCard } from "../components/BusinessCard";
 import { ServiceCard } from "../components/ServiceCard";
 import { useRetryingMedia } from "../hooks/useRetryingMedia";
@@ -35,6 +28,7 @@ import {
 } from "../components/ScreenState";
 
 import { normalizeText } from "../utils/format";
+import { CATEGORY_CARD_IMAGES } from "../utils/categoryMedia";
 import { serviceCategoryLabel } from "../utils/specialties";
 
 const CATEGORY_SPOTLIGHTS = [
@@ -46,16 +40,6 @@ const CATEGORY_SPOTLIGHTS = [
   ["sobrancelha", "Sobrancelhas", "Design e expressão"],
   ["maquiagem", "Maquiagem", "Produções especiais"]
 ];
-
-const CATEGORY_CARD_IMAGES = {
-  unha: unhasCard,
-  cabelo: cabelosCard,
-  estetica: esteticaCard,
-  bronzeamento: bronzeamentoCard,
-  cilio: ciliosCard,
-  sobrancelha: sobrancelhasCard,
-  maquiagem: maquiagemCard
-};
 
 const HERO_SLIDES = [
   {
@@ -164,25 +148,15 @@ export function diversifyServices(services = []) {
 function CategorySpotlightCard({
   active,
   category,
-  coverSource,
-  fallbackSource,
+  imageSource,
   label,
   onSelect,
   subtitle
 }) {
-  const primaryMedia = useRetryingMedia(coverSource, {
+  const media = useRetryingMedia(imageSource, {
     width: 420,
     fit: "cover"
   });
-
-  const fallbackMedia = useRetryingMedia(fallbackSource, {
-    width: 420,
-    fit: "cover"
-  });
-
-  const media = primaryMedia.hasImage
-    ? primaryMedia
-    : fallbackMedia;
 
   return (
     <button
@@ -191,7 +165,7 @@ function CategorySpotlightCard({
       className={active
         ? "home-category-card active"
         : "home-category-card"}
-      onClick={() => onSelect(category)}
+      onClick={() => onSelect(active ? "" : category)}
       type="button"
     >
       <span className="home-category-visual">
@@ -213,12 +187,6 @@ function CategorySpotlightCard({
           <small>{subtitle}</small>
         </span>
 
-        <span
-          aria-hidden="true"
-          className="home-category-arrow"
-        >
-          →
-        </span>
       </span>
     </button>
   );
@@ -500,20 +468,6 @@ export function ExplorePage() {
       .join(", ") || "Perto de você";
   }, [sortedBusinesses]);
 
-  const categoryCovers = useMemo(() => {
-    return new Map(
-      CATEGORY_SPOTLIGHTS.map(([value]) => {
-        const matchingService = services.find(
-          (service) =>
-            service.categoria === value &&
-            service.foto_url
-        );
-
-        return [value, matchingService?.foto_url || ""];
-      })
-    );
-  }, [services]);
-
   async function loadMore() {
     await loadBusinesses({
       requestedPage: page + 1,
@@ -698,14 +652,6 @@ export function ExplorePage() {
             </h2>
           </div>
 
-          <button
-            aria-pressed={category === ""}
-            className="home-see-all"
-            onClick={() => chooseCategory("")}
-            type="button"
-          >
-            Ver todos
-          </button>
         </div>
 
         <div
@@ -720,8 +666,7 @@ export function ExplorePage() {
             <CategorySpotlightCard
               active={category === value}
               category={value}
-              coverSource={categoryCovers.get(value)}
-              fallbackSource={CATEGORY_CARD_IMAGES[value]}
+              imageSource={CATEGORY_CARD_IMAGES[value]}
               key={value}
               label={label}
               onSelect={chooseCategory}
@@ -738,7 +683,7 @@ export function ExplorePage() {
         >
           <div className="home-section-heading nearby-heading">
             <div className="home-title-with-icon">
-              <span aria-hidden="true">⌖</span>
+              <span aria-hidden="true">📍</span>
 
               <h2 id="businesses-title">
                 Perto de você
@@ -746,7 +691,7 @@ export function ExplorePage() {
             </div>
 
             <span className="home-location-pill">
-              <span aria-hidden="true">⌖</span>
+              <span aria-hidden="true">📍</span>
               {nearbyLocation}
               <span aria-hidden="true">⌄</span>
             </span>
@@ -856,12 +801,6 @@ export function ExplorePage() {
                       <h3 className="service-rail-title">{label}</h3>
                     )}
 
-                    {group.length > 1 && (
-                      <span className="service-rail-hint">
-                        {group.length} opções
-                        <strong>Deslize →</strong>
-                      </span>
-                    )}
                   </div>
 
                   <div

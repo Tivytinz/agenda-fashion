@@ -86,6 +86,7 @@ nav { display: flex; align-items: center; gap: 18px; }
 .business-card .card-image img { object-fit: contain; }
 .business-card .card-image .business-cover-backdrop { z-index: 0; object-fit: cover; filter: blur(18px); opacity: .38; transform: scale(1.12); }
 .business-card .card-image .business-cover-image { z-index: 1; object-fit: contain; }
+.business-card .card-image .business-category-fallback { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
 .card-placeholder { display: grid; justify-items: center; gap: 6px; }
 .business-specialty-emoji { display: grid; width: 64px; height: 64px; place-items: center; border: 2px solid rgb(197 36 107 / 22%); border-radius: 18px; color: #fff; background: linear-gradient(145deg, var(--pink-500), var(--pink-700)); box-shadow: 0 8px 20px rgb(217 47 127 / 16%); font-size: 1.8rem; font-weight: 900; }
 .card-placeholder small { color: var(--wine); font-size: .7rem; font-weight: 850; letter-spacing: .08em; text-transform: uppercase; }
@@ -485,18 +486,6 @@ th { color: var(--muted); font-size: .76rem; letter-spacing: .04em; text-transfo
   font-size: 1.15rem;
 }
 
-.service-rail-hint {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  color: var(--muted);
-  font-size: .78rem;
-}
-
-.service-rail-hint strong {
-  color: var(--pink-600);
-}
-
 .service-rail-track {
   display: flex;
   gap: 18px;
@@ -562,6 +551,10 @@ th { color: var(--muted); font-size: .76rem; letter-spacing: .04em; text-transfo
 .service-discovery-image .service-cover-image {
   z-index: 1;
   object-fit: contain;
+}
+
+.service-discovery-image .service-category-fallback {
+  object-fit: cover;
 }
 
 .service-discovery-card:hover

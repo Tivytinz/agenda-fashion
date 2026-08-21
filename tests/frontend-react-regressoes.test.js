@@ -524,6 +524,41 @@ describe(
     );
 
     test(
+      "evita que cabeçalhos administrativos cubram as linhas",
+      () => {
+        const admin = ler(
+          "frontend/src/styles/admin-marketing.css"
+        );
+
+        expect(admin).not.toMatch(
+          /\.admin-workspace-page \.table-wrap thead th\s*\{[^}]*position:\s*sticky/s
+        );
+      }
+    );
+
+    test(
+      "mantem retornos compactos e acoes do WhatsApp agrupadas",
+      () => {
+        const experiencia = ler(
+          "frontend/src/styles/af-experience.css"
+        );
+        const whatsapp = ler(
+          "frontend/src/styles/admin-whatsapp.css"
+        );
+
+        expect(experiencia).toMatch(
+          /\.back-link\s*\{[^}]*width:\s*fit-content/s
+        );
+        expect(whatsapp).toMatch(
+          /\.whatsapp-heading-actions\s*\{[^}]*display:\s*flex/s
+        );
+        expect(whatsapp).toMatch(
+          /\.whatsapp-heading-actions\s*\{[^}]*justify-content:\s*flex-end/s
+        );
+      }
+    );
+
+    test(
       "mantem a home fiel ao prototipo aprovado",
       () => {
         const principal = ler(
@@ -539,7 +574,7 @@ describe(
           "frontend/src/styles/home-discovery.css"
         );
 
-        expect(cabecalho).toContain(
+        expect(cabecalho).not.toContain(
           "Buscar serviços"
         );
         expect(cabecalho).toContain(
@@ -562,6 +597,12 @@ describe(
         );
         expect(inicio).toContain(
           "CATEGORY_CARD_IMAGES"
+        );
+        expect(inicio).not.toContain(
+          "Ver todos"
+        );
+        expect(inicio).not.toContain(
+          "Deslize →"
         );
         expect(inicio).toContain(
           "maquiagemHero"

@@ -96,6 +96,8 @@ strong {
 }
 
 .back-link {
+  width: fit-content;
+  justify-self: start;
   min-height: 38px;
   align-items: center;
   border-radius: 999px;

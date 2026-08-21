@@ -72,9 +72,6 @@
 }
 
 .admin-workspace-page .table-wrap thead th {
-  position: sticky;
-  top: 69px;
-  z-index: 2;
   background: #fff;
   box-shadow: inset 0 -1px 0 var(--line, #ead7df);
 }
@@ -97,9 +94,6 @@
     width: 100%;
   }
 
-  .admin-workspace-page .table-wrap thead th {
-    position: static;
-  }
 }
 
 .admin-pending-strip {

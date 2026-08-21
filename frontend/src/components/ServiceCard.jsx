@@ -4,6 +4,7 @@ import {
   formatLocation
 } from "../utils/format";
 import { useRetryingMedia } from "../hooks/useRetryingMedia";
+import { categoryCardImage } from "../utils/categoryMedia";
 import {
   serviceCategoryEmoji,
   serviceCategoryLabel
@@ -30,6 +31,10 @@ export function ServiceCard({
     )}`;
   const category = serviceCategoryLabel(service.categoria);
   const categoryEmoji = serviceCategoryEmoji(
+    service.categoria,
+    service.nome
+  );
+  const fallbackImage = categoryCardImage(
     service.categoria,
     service.nome
   );
@@ -62,6 +67,13 @@ export function ServiceCard({
               onError={handleImageError}
             />
           </>
+        ) : fallbackImage ? (
+          <img
+            alt=""
+            className="service-category-fallback"
+            loading="lazy"
+            src={fallbackImage}
+          />
         ) : (
           <span className="service-discovery-placeholder">
             <strong aria-hidden="true">
