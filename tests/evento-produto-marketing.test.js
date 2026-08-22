@@ -62,4 +62,74 @@ describe("atribuição de marketing nos eventos", () => {
       },
     });
   });
+
+  test("aceita visualização da landing profissional com atribuição", async () => {
+    await eventoProdutoService.registrar({
+      corpo: {
+        nome: "landing_profissionais_visualizada",
+        pagina: "para_profissionais",
+        missao: "adquirir_profissional",
+        sessao_id: "sessao_landing_prof_123",
+        propriedades: {
+          utm_source: "google",
+          utm_medium: "cpc",
+          utm_campaign: "agenda_profissionais",
+          gclid: "gclid-123",
+          email: "nao-deve-persistir@example.com",
+        },
+      },
+      usuarioId: null,
+    });
+
+    expect(eventoProdutoRepository.registrar).toHaveBeenCalledWith({
+      nome: "landing_profissionais_visualizada",
+      pagina: "para_profissionais",
+      missao: "adquirir_profissional",
+      sessaoId: "sessao_landing_prof_123",
+      usuarioId: null,
+      negocioId: null,
+      propriedades: {
+        utm_source: "google",
+        utm_medium: "cpc",
+        utm_campaign: "agenda_profissionais",
+        gclid: "gclid-123",
+      },
+    });
+  });
+
+  test("aceita clique no CTA e preserva somente a posição permitida", async () => {
+    await eventoProdutoService.registrar({
+      corpo: {
+        nome: "landing_profissionais_cta_clicado",
+        pagina: "para_profissionais",
+        missao: "adquirir_profissional",
+        sessao_id: "sessao_cta_prof_1234",
+        propriedades: {
+          posicao: "hero",
+          segredo: "nao-deve-persistir",
+        },
+      },
+      usuarioId: null,
+    });
+
+    expect(eventoProdutoRepository.registrar).toHaveBeenCalledWith({
+      nome: "landing_profissionais_cta_clicado",
+      pagina: "para_profissionais",
+      missao: "adquirir_profissional",
+      sessaoId: "sessao_cta_prof_1234",
+      usuarioId: null,
+      negocioId: null,
+      propriedades: {
+        posicao: "hero",
+      },
+    });
+  });
+
+  test("mantém reservado o evento de início do cadastro profissional", () => {
+    expect(
+      eventoProdutoService.EVENTOS_PERMITIDOS.has(
+        "cadastro_profissional_iniciado"
+      )
+    ).toBe(true);
+  });
 });
