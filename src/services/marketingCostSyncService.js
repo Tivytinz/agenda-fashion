@@ -1,17 +1,23 @@
 const AppError = require("../errors/AppError");
 const adminCampaignRepository = require("../repositories/adminCampaignRepository");
 const repository = require("../repositories/marketingCostSyncRepository");
-const providers = require("./marketingCostProviders");
+const providers = require("./marketingCostProviderRegistry");
 const marketingCostSyncConfig = require("../config/marketingCostSync");
 
-const PROVEDORES = new Set(["google_ads", "meta_ads"]);
+const PROVEDORES = new Set([
+  "google_ads",
+  "meta_ads",
+  "tiktok_ads"
+]);
 const CANAL_POR_PROVEDOR = Object.freeze({
   google_ads: "google",
-  meta_ads: "meta"
+  meta_ads: "meta",
+  tiktok_ads: "tiktok"
 });
 const NOME_POR_PROVEDOR = Object.freeze({
   google_ads: "Google Ads",
-  meta_ads: "Meta Ads"
+  meta_ads: "Meta Ads",
+  tiktok_ads: "TikTok Ads"
 });
 const REPORT_TIME_ZONE = "America/Sao_Paulo";
 const MOEDA_SUPORTADA = "BRL";
@@ -173,7 +179,10 @@ function saudeIntegracao(
       codigo: "configuracao_incompleta",
       rotulo: "Configuração incompleta",
       nivel: "aviso",
-      detalhe: "A integração está habilitada, mas faltam credenciais obrigatórias.",
+      detalhe:
+        item?.provedor === "tiktok_ads" && item?.autorizacao?.disponivel
+          ? "Autorize a conta TikTok no painel para concluir a configuração."
+          : "A integração está habilitada, mas faltam credenciais obrigatórias.",
       desatualizado: false,
       idadeHoras: null
     };
@@ -282,16 +291,17 @@ function saudeIntegracao(
 }
 
 async function statusIntegracoes() {
-  const [vinculos, sincronizacoes] = await Promise.all([
+  const [vinculos, sincronizacoes, statusProvedores] = await Promise.all([
     repository.listarVinculos(),
-    repository.listarUltimasSincronizacoes()
+    repository.listarUltimasSincronizacoes(),
+    providers.status()
   ]);
   const sincronizacaoAutomatica =
     marketingCostSyncConfig.statusAgendamento();
 
   return {
     sincronizacaoAutomatica,
-    provedores: providers.status().map((item) => {
+    provedores: statusProvedores.map((item) => {
       const ultimaSincronizacao =
         sincronizacoes.find((s) => s.provedor === item.provedor) || null;
 
@@ -312,11 +322,14 @@ async function statusIntegracoes() {
 
 async function listarCampanhasExternas({ provedor: valorProvedor }) {
   const provedor = normalizarProvedor(valorProvedor);
-  const campanhas = await providers.listarCampanhas(provedor);
+  const [campanhas, statusProvedores] = await Promise.all([
+    providers.listarCampanhas(provedor),
+    providers.status()
+  ]);
   return {
     provedor,
     contaExternaId: campanhas[0]?.contaExternaId ||
-      providers.status().find((item) => item.provedor === provedor)?.contaExternaId ||
+      statusProvedores.find((item) => item.provedor === provedor)?.contaExternaId ||
       null,
     campanhas: campanhas.map((item) => ({
       id: item.campanhaExternaId,

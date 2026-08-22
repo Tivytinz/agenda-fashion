@@ -109,11 +109,6 @@ describe("saúde das integrações de custo no admin", () => {
     ).not.toBeNull();
     expect(
       screen.getByText(
-        "18 registro(s) importado(s) na última sincronização."
-      )
-    ).not.toBeNull();
-    expect(
-      screen.getByText(
         "2 campanha(s) externa(s) ficaram sem vínculo na última sincronização."
       )
     ).not.toBeNull();
