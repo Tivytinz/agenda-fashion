@@ -86,7 +86,7 @@ describe("publicação do negócio", () => {
     });
   });
 
-  it("informa que o endereço acompanha o nome e envia os demais campos normalizados", async () => {
+  it("mostra ações úteis, salva apenas depois de alterações e envia os campos normalizados", async () => {
     apiRequest
       .mockResolvedValueOnce({
         negocio: BUSINESS,
@@ -98,7 +98,14 @@ describe("publicação do negócio", () => {
       })
       .mockResolvedValueOnce({
         mensagem: "Alterações salvas.",
-        negocio: BUSINESS
+        negocio: {
+          ...BUSINESS,
+          nome: "Beauty Vanessa",
+          whatsapp: "11987654321",
+          estado: "SP",
+          endereco: "Avenida Brasil",
+          cep: "01001000"
+        }
       });
 
     renderPage();
@@ -112,7 +119,11 @@ describe("publicação do negócio", () => {
     expect(screen.getByTestId("public-address-hint").textContent)
       .toContain("app.agendafashion.com.br/negocio/studio-victor");
     expect(screen.getByTestId("public-address-hint").textContent)
-      .toContain("Ao salvar um novo nome, este endereço também será atualizado");
+      .toContain("Alterar o nome também atualiza este endereço");
+    expect(screen.getByRole("button", { name: "Copiar link" })).not.toBeNull();
+    expect(screen.getByText("1 selecionada")).not.toBeNull();
+    expect(screen.queryByText("Voltar à visão geral")).toBeNull();
+    expect(screen.queryByRole("button", { name: "Salvar alterações" })).toBeNull();
     expect(whatsapp.getAttribute("placeholder")).toBe("(00) 12345-6789");
     expect(state.value).toBe("GO");
     expect(state.required).toBe(true);
@@ -132,7 +143,10 @@ describe("publicação do negócio", () => {
     fireEvent.change(state, { target: { value: "SP" } });
     fireEvent.change(address, { target: { value: "Avenida Brasil" } });
     fireEvent.change(postalCode, { target: { value: "01001-000" } });
-    fireEvent.click(screen.getByRole("button", { name: "Salvar alterações" }));
+
+    const saveButton = screen.getByRole("button", { name: "Salvar alterações" });
+    expect(saveButton).not.toBeNull();
+    fireEvent.click(saveButton);
 
     await waitFor(() => {
       expect(apiRequest).toHaveBeenLastCalledWith("/configuracoes", {
@@ -151,6 +165,36 @@ describe("publicação do negócio", () => {
     const [, request] = apiRequest.mock.calls.at(-1);
     expect(request.body).not.toHaveProperty("slug");
     expect(request.body).not.toHaveProperty("whatsapp_negocio");
+
+    await waitFor(() => {
+      expect(screen.queryByRole("button", { name: "Salvar alterações" })).toBeNull();
+    });
+  });
+
+  it("valida WhatsApp e link do Google Maps antes de salvar", async () => {
+    apiRequest.mockResolvedValueOnce({
+      negocio: BUSINESS,
+      publicacao: {
+        publicado: false,
+        pode_publicar: true,
+        pendencias: []
+      }
+    });
+
+    renderPage();
+    const whatsapp = await screen.findByLabelText("WhatsApp");
+    const maps = screen.getByLabelText("Link do Google Maps");
+
+    fireEvent.change(whatsapp, { target: { value: "123" } });
+    expect(screen.getByText(/WhatsApp com DDD/)).not.toBeNull();
+
+    fireEvent.change(whatsapp, { target: { value: "11 98765-4321" } });
+    fireEvent.change(maps, { target: { value: "https://example.com/local" } });
+    expect(screen.getByText("Use um link válido do Google Maps.")).not.toBeNull();
+
+    fireEvent.click(screen.getByRole("button", { name: "Salvar alterações" }));
+    expect(await screen.findByRole("alert")).not.toBeNull();
+    expect(apiRequest).toHaveBeenCalledTimes(1);
   });
 
   it("troca a foto do negócio pelo endpoint próprio", async () => {
