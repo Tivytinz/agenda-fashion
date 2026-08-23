@@ -7,6 +7,7 @@ import { apiRequest } from "../api/client";
 import { BusinessPage } from "./BusinessPage";
 
 const refreshSession = vi.fn();
+const cepFetch = vi.fn();
 
 vi.mock("../api/client", () => ({
   apiRequest: vi.fn()
@@ -47,10 +48,22 @@ beforeEach(() => {
   apiRequest.mockReset();
   refreshSession.mockReset();
   refreshSession.mockResolvedValue({});
+  cepFetch.mockReset();
+  cepFetch.mockResolvedValue({
+    ok: true,
+    json: async () => ({
+      logradouro: "Avenida Brasil",
+      bairro: "Centro",
+      localidade: "São Paulo",
+      uf: "SP"
+    })
+  });
+  vi.stubGlobal("fetch", cepFetch);
 });
 
 afterEach(() => {
   cleanup();
+  vi.unstubAllGlobals();
 });
 
 describe("publicação do negócio", () => {
@@ -113,7 +126,7 @@ describe("publicação do negócio", () => {
     const whatsapp = await screen.findByLabelText("WhatsApp");
     const state = screen.getByRole("combobox", { name: "Estado" });
     const address = screen.getByLabelText("Endereço");
-    const postalCode = screen.getByLabelText("CEP");
+    const postalCode = screen.getByLabelText(/CEP/);
 
     expect(whatsapp.value).toBe("(62) 99999-9999");
     expect(screen.getByTestId("public-address-hint").textContent)
@@ -169,6 +182,66 @@ describe("publicação do negócio", () => {
     await waitFor(() => {
       expect(screen.queryByRole("button", { name: "Salvar alterações" })).toBeNull();
     });
+  });
+
+  it("preenche o endereço automaticamente ao completar um CEP válido", async () => {
+    apiRequest.mockResolvedValueOnce({
+      negocio: BUSINESS,
+      publicacao: {
+        publicado: false,
+        pode_publicar: true,
+        pendencias: []
+      }
+    });
+    cepFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        logradouro: "Praça da Sé",
+        bairro: "Sé",
+        localidade: "São Paulo",
+        uf: "SP"
+      })
+    });
+
+    renderPage();
+    const postalCode = await screen.findByLabelText(/CEP/);
+
+    fireEvent.change(postalCode, { target: { value: "01001-000" } });
+
+    await waitFor(() => {
+      expect(cepFetch).toHaveBeenCalledWith("https://viacep.com.br/ws/01001000/json/");
+      expect(screen.getByLabelText("Endereço").value).toBe("Praça da Sé");
+      expect(screen.getByLabelText("Bairro").value).toBe("Sé");
+      expect(screen.getByLabelText("Cidade").value).toBe("São Paulo");
+      expect(screen.getByRole("combobox", { name: "Estado" }).value).toBe("SP");
+    });
+
+    expect(screen.getByText(/Endereço preenchido automaticamente/)).not.toBeNull();
+    expect(screen.getByLabelText("Número").value).toBe("10");
+    expect(screen.getByLabelText("Complemento").value).toBe("Sala 2");
+  });
+
+  it("informa quando o CEP não é encontrado sem apagar o endereço atual", async () => {
+    apiRequest.mockResolvedValueOnce({
+      negocio: BUSINESS,
+      publicacao: {
+        publicado: false,
+        pode_publicar: true,
+        pendencias: []
+      }
+    });
+    cepFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ erro: true })
+    });
+
+    renderPage();
+    const postalCode = await screen.findByLabelText(/CEP/);
+    fireEvent.change(postalCode, { target: { value: "00000-000" } });
+
+    expect(await screen.findByText(/CEP não encontrado/)).not.toBeNull();
+    expect(screen.getByLabelText("Endereço").value).toBe("Rua das Flores");
+    expect(screen.getByLabelText("Cidade").value).toBe("Goiânia");
   });
 
   it("valida WhatsApp e link do Google Maps antes de salvar", async () => {
