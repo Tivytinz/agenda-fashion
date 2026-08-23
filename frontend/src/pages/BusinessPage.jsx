@@ -4,6 +4,7 @@ import { apiRequest } from "../api/client";
 import { useSession } from "../auth/SessionContext";
 import { normalizePlanSlug, safeInternalPath } from "../auth/session";
 import { BackLink } from "../components/BackLink";
+import { ConfirmationIcon } from "../components/ConfirmationIcon";
 import { ErrorState, LoadingState } from "../components/ScreenState";
 import { MediaThumb } from "../components/profile/MediaThumb";
 import { formatCep, formatWhatsApp } from "../utils/format";
@@ -49,6 +50,50 @@ function validateImage(file) {
   return "";
 }
 
+function normalizeBusinessForm(business = {}) {
+  return {
+    ...EMPTY,
+    ...business,
+    whatsapp: formatWhatsApp(
+      business.whatsapp || business.whatsapp_negocio
+    ),
+    cep: formatCep(business.cep),
+    areas: normalizeBusinessSpecialties(business)
+  };
+}
+
+function serializeBusinessForm(value) {
+  return JSON.stringify({
+    ...value,
+    areas: [...(value.areas || [])].sort()
+  });
+}
+
+function isValidGoogleMapsUrl(value) {
+  if (!String(value || "").trim()) return true;
+
+  try {
+    const url = new URL(value);
+    const host = url.hostname.toLowerCase();
+    return host === "maps.app.goo.gl"
+      || host === "maps.google.com"
+      || host.endsWith(".maps.google.com")
+      || (host === "google.com" && url.pathname.startsWith("/maps"))
+      || (host.endsWith(".google.com") && url.pathname.startsWith("/maps"))
+      || (host === "goo.gl" && url.pathname.startsWith("/maps"));
+  } catch {
+    return false;
+  }
+}
+
+function validateWhatsApp(value) {
+  const digits = String(value || "").replace(/\D/g, "");
+  if (!digits) return "";
+  return digits.length === 10 || digits.length === 11
+    ? ""
+    : "Informe um WhatsApp com DDD e 10 ou 11 dígitos.";
+}
+
 export function BusinessPage({ create = false }) {
   const session = useSession();
   const navigate = useNavigate();
@@ -56,6 +101,7 @@ export function BusinessPage({ create = false }) {
   const [searchParams] = useSearchParams();
   const selectedPlan = normalizePlanSlug(searchParams.get("plano"));
   const [form, setForm] = useState(EMPTY);
+  const [savedForm, setSavedForm] = useState(EMPTY);
   const [loading, setLoading] = useState(!create);
   const [saving, setSaving] = useState(false);
   const [photoUploading, setPhotoUploading] = useState(false);
@@ -64,21 +110,23 @@ export function BusinessPage({ create = false }) {
   const [publication, setPublication] = useState(null);
   const [publishing, setPublishing] = useState(false);
 
+  const hasChanges = !create
+    && serializeBusinessForm(form) !== serializeBusinessForm(savedForm);
+  const publicUrl = form.slug
+    ? `https://app.agendafashion.com.br/negocio/${form.slug}`
+    : "";
+  const googleMapsValid = isValidGoogleMapsUrl(form.localizacao_url);
+  const whatsappError = validateWhatsApp(form.whatsapp);
+
   useEffect(() => {
     if (create) return;
 
     apiRequest("/configuracoes")
       .then((result) => {
         const business = result.negocio || result.configuracoes || {};
-        setForm({
-          ...EMPTY,
-          ...business,
-          whatsapp: formatWhatsApp(
-            business.whatsapp || business.whatsapp_negocio
-          ),
-          cep: formatCep(business.cep),
-          areas: normalizeBusinessSpecialties(business)
-        });
+        const normalized = normalizeBusinessForm(business);
+        setForm(normalized);
+        setSavedForm(normalized);
         setPublication(result.publicacao || {
           publicado: business.publicado === true,
           pode_publicar: false,
@@ -88,6 +136,24 @@ export function BusinessPage({ create = false }) {
       .catch((requestError) => setError(requestError.message))
       .finally(() => setLoading(false));
   }, [create]);
+
+  useEffect(() => {
+    if (!message) return undefined;
+    const timeout = window.setTimeout(() => setMessage(""), 2800);
+    return () => window.clearTimeout(timeout);
+  }, [message]);
+
+  useEffect(() => {
+    if (!hasChanges || saving) return undefined;
+
+    const preventAccidentalExit = (event) => {
+      event.preventDefault();
+      event.returnValue = "";
+    };
+
+    window.addEventListener("beforeunload", preventAccidentalExit);
+    return () => window.removeEventListener("beforeunload", preventAccidentalExit);
+  }, [hasChanges, saving]);
 
   function update(field, value) {
     setForm((current) => ({ ...current, [field]: value }));
@@ -102,6 +168,17 @@ export function BusinessPage({ create = false }) {
     }));
   }
 
+  async function copyPublicUrl() {
+    if (!publicUrl) return;
+
+    try {
+      await navigator.clipboard.writeText(publicUrl);
+      setMessage("Link público copiado.");
+    } catch {
+      setError("Não foi possível copiar o link automaticamente.");
+    }
+  }
+
   async function submit(event) {
     event.preventDefault();
     setError("");
@@ -109,6 +186,16 @@ export function BusinessPage({ create = false }) {
 
     if (form.areas.length === 0) {
       setError("Selecione ao menos uma especialidade.");
+      return;
+    }
+
+    if (whatsappError) {
+      setError(whatsappError);
+      return;
+    }
+
+    if (!googleMapsValid) {
+      setError("Informe um link válido do Google Maps.");
       return;
     }
 
@@ -137,19 +224,13 @@ export function BusinessPage({ create = false }) {
         body: payload
       });
       const savedBusiness = result.negocio || {};
-      setForm((current) => ({
-        ...current,
+      const normalizedSaved = normalizeBusinessForm({
+        ...form,
         ...savedBusiness,
-        whatsapp: formatWhatsApp(
-          savedBusiness.whatsapp || savedBusiness.whatsapp_negocio || current.whatsapp
-        ),
-        cep: formatCep(savedBusiness.cep || current.cep),
-        areas: normalizeBusinessSpecialties({
-          ...current,
-          ...savedBusiness,
-          areas: savedBusiness.areas || current.areas
-        })
-      }));
+        areas: savedBusiness.areas || form.areas
+      });
+      setForm(normalizedSaved);
+      if (!create) setSavedForm(normalizedSaved);
       setMessage(result.mensagem || (create ? "Negócio criado." : "Alterações salvas."));
       if (result.publicacao) setPublication(result.publicacao);
       await session.refresh();
@@ -214,15 +295,10 @@ export function BusinessPage({ create = false }) {
         body
       });
       const business = result.negocio || {};
-      setForm((current) => ({
-        ...current,
-        ...business,
-        areas: normalizeBusinessSpecialties({
-          ...current,
-          ...business,
-          areas: business.areas || current.areas
-        })
-      }));
+      if (business.foto_url !== undefined) {
+        setForm((current) => ({ ...current, foto_url: business.foto_url }));
+        setSavedForm((current) => ({ ...current, foto_url: business.foto_url }));
+      }
       if (result.publicacao) setPublication(result.publicacao);
       setMessage(result.mensagem || "Foto do negócio atualizada.");
       await session.refresh();
@@ -236,6 +312,16 @@ export function BusinessPage({ create = false }) {
 
   async function togglePublication() {
     const nextPublished = !publication?.publicado;
+
+    if (
+      publication?.publicado
+      && !window.confirm(
+        "Retirar o negócio da página inicial? Seu perfil público continuará disponível pelo link direto."
+      )
+    ) {
+      return;
+    }
+
     setPublishing(true);
     setError("");
     setMessage("");
@@ -267,9 +353,11 @@ export function BusinessPage({ create = false }) {
 
   return (
     <main className={create ? "container page-content narrow-page" : "workspace-page business-settings-page"}>
-      <BackLink to={create ? selectedPlan ? "/planos" : "/" : "/painel"}>
-        {create ? selectedPlan ? "Voltar aos planos" : "Voltar ao início" : "Voltar à visão geral"}
-      </BackLink>
+      {create && (
+        <BackLink to={selectedPlan ? "/planos" : "/"}>
+          {selectedPlan ? "Voltar aos planos" : "Voltar ao início"}
+        </BackLink>
+      )}
       <header className="workspace-heading">
         <div>
           <p className="eyebrow">{create ? "Primeiro passo" : "Presença pública"}</p>
@@ -301,7 +389,9 @@ export function BusinessPage({ create = false }) {
               </Link>
             )}
             <button
-              className={publication.publicado ? "button button-secondary" : "button"}
+              className={publication.publicado
+                ? "button button-secondary business-publication-toggle is-danger"
+                : "button business-publication-toggle"}
               disabled={publishing || (!publication.publicado && !publication.pode_publicar)}
               onClick={togglePublication}
               type="button"
@@ -322,7 +412,7 @@ export function BusinessPage({ create = false }) {
             <div className="business-form-heading">
               <p className="eyebrow">Foto</p>
               <h2>Imagem do negócio</h2>
-              <p>Ela aparece na página inicial, no perfil público e nos seus cards.</p>
+              <p>Essa imagem aparece na busca, no perfil público e nos seus cards.</p>
             </div>
             <div className="business-photo-editor">
               <MediaThumb
@@ -330,7 +420,7 @@ export function BusinessPage({ create = false }) {
                 className="business-photo-preview"
                 src={form.foto_url}
               />
-              <div>
+              <div className="business-photo-controls">
                 <label className="button button-secondary button-small">
                   {photoUploading
                     ? "Enviando..."
@@ -345,7 +435,7 @@ export function BusinessPage({ create = false }) {
                     type="file"
                   />
                 </label>
-                <small>JPG, PNG ou WEBP, até 5 MB.</small>
+                <small>JPG, PNG ou WEBP · até 5 MB.</small>
               </div>
             </div>
           </section>
@@ -362,10 +452,16 @@ export function BusinessPage({ create = false }) {
               <input minLength="2" onChange={(event) => update("nome", event.target.value)} required value={form.nome} />
             </label>
             {!create && form.slug && (
-              <p className="field-wide muted public-address-hint" data-testid="public-address-hint">
-                Endereço atual: <strong>app.agendafashion.com.br/negocio/{form.slug}</strong>.
-                Ao salvar um novo nome, este endereço também será atualizado. Links antigos continuarão funcionando.
-              </p>
+              <div className="field-wide public-address-card" data-testid="public-address-hint">
+                <div className="public-address-copy">
+                  <span>Seu link público</span>
+                  <strong>app.agendafashion.com.br/negocio/{form.slug}</strong>
+                  <small>Alterar o nome também atualiza este endereço. Links antigos continuam funcionando.</small>
+                </div>
+                <button className="button button-secondary button-small" onClick={copyPublicUrl} type="button">
+                  Copiar link
+                </button>
+              </div>
             )}
             <label className="field-wide">
               Descrição (opcional)
@@ -374,7 +470,10 @@ export function BusinessPage({ create = false }) {
             </label>
             <fieldset className="specialty-field field-wide">
               <legend>Especialidades</legend>
-              <p>Selecione tudo o que o negócio oferece.</p>
+              <div className="specialty-heading-row">
+                <p>Selecione tudo o que o negócio oferece.</p>
+                <span>{form.areas.length} {form.areas.length === 1 ? "selecionada" : "selecionadas"}</span>
+              </div>
               <div className="specialty-selector">
                 {BUSINESS_SPECIALTIES.map(([value, label]) => (
                   <label className={form.areas.includes(value) ? "specialty-option selected" : "specialty-option"} key={value}>
@@ -401,43 +500,61 @@ export function BusinessPage({ create = false }) {
               WhatsApp
               <input
                 autoComplete="tel"
+                aria-invalid={whatsappError ? "true" : undefined}
                 inputMode="tel"
                 maxLength="15"
                 onChange={(event) => update("whatsapp", formatWhatsApp(event.target.value))}
                 placeholder="(00) 12345-6789"
                 value={form.whatsapp}
               />
+              <small className={whatsappError ? "field-helper is-error" : "field-helper"}>
+                {whatsappError || "Usado para confirmações e contato das clientes."}
+              </small>
             </label>
             <label>
               Link do Google Maps
-              <input onChange={(event) => update("localizacao_url", event.target.value)} type="url" value={form.localizacao_url} />
+              <input
+                aria-invalid={!googleMapsValid ? "true" : undefined}
+                onChange={(event) => update("localizacao_url", event.target.value)}
+                placeholder="https://maps.app.goo.gl/..."
+                type="url"
+                value={form.localizacao_url}
+              />
+              <span className="maps-field-helper">
+                <small className={!googleMapsValid ? "field-helper is-error" : "field-helper"}>
+                  {!googleMapsValid
+                    ? "Use um link válido do Google Maps."
+                    : form.localizacao_url
+                      ? "Link válido do Google Maps."
+                      : "Cole o link da localização no Google Maps."}
+                </small>
+                {googleMapsValid && form.localizacao_url && (
+                  <a href={form.localizacao_url} rel="noreferrer" target="_blank">Testar link ↗</a>
+                )}
+              </span>
             </label>
           </div>
         </section>
 
-        <section className="business-form-section">
+        <section className="business-form-section business-address-section">
           <div className="business-form-heading">
             <p className="eyebrow">Endereço</p>
             <h2>Onde acontece o atendimento</h2>
+            <p>Comece pelo CEP e complete os detalhes do local.</p>
           </div>
-          <div className="form-grid">
-            <label>
-              Cidade
-              <input onChange={(event) => update("cidade", event.target.value)} value={form.cidade} />
+          <div className="form-grid business-address-grid">
+            <label className="business-cep-field">
+              CEP
+              <input
+                autoComplete="postal-code"
+                inputMode="numeric"
+                maxLength="9"
+                onChange={(event) => update("cep", formatCep(event.target.value))}
+                placeholder="00000-000"
+                value={form.cep}
+              />
             </label>
-            <label>
-              Estado
-              <select aria-label="Estado" onChange={(event) => update("estado", event.target.value)} required value={form.estado}>
-                <option value="">Selecione a UF</option>
-                {BRAZILIAN_STATES.map((state) => (
-                  <option key={state} value={state}>{state}</option>
-                ))}
-              </select>
-            </label>
-            <label>
-              Bairro
-              <input onChange={(event) => update("bairro", event.target.value)} value={form.bairro} />
-            </label>
+            <span className="field-wide business-address-divider" aria-hidden="true" />
             <label>
               Endereço
               <input autoComplete="street-address" onChange={(event) => update("endereco", event.target.value)} value={form.endereco} />
@@ -451,26 +568,40 @@ export function BusinessPage({ create = false }) {
               <input onChange={(event) => update("complemento", event.target.value)} value={form.complemento} />
             </label>
             <label>
-              CEP
-              <input
-                autoComplete="postal-code"
-                inputMode="numeric"
-                maxLength="9"
-                onChange={(event) => update("cep", formatCep(event.target.value))}
-                placeholder="00000-000"
-                value={form.cep}
-              />
+              Bairro
+              <input onChange={(event) => update("bairro", event.target.value)} value={form.bairro} />
+            </label>
+            <label>
+              Cidade
+              <input onChange={(event) => update("cidade", event.target.value)} value={form.cidade} />
+            </label>
+            <label>
+              Estado
+              <select aria-label="Estado" onChange={(event) => update("estado", event.target.value)} required value={form.estado}>
+                <option value="">Selecione a UF</option>
+                {BRAZILIAN_STATES.map((state) => (
+                  <option key={state} value={state}>{state}</option>
+                ))}
+              </select>
             </label>
           </div>
         </section>
 
-        {error && <p className="form-error" role="alert">{error}</p>}
-        {message && <p className="form-success" role="status">{message}</p>}
-        <div className="form-actions business-save-actions">
-          <button className="button" disabled={saving || photoUploading} type="submit">
-            {saving ? "Salvando..." : create ? "Criar negócio" : "Salvar alterações"}
-          </button>
-        </div>
+        {error && <p className="form-error business-form-feedback" role="alert">{error}</p>}
+        {!create && message && (
+          <div className="business-save-toast" role="status">
+            <ConfirmationIcon className="business-save-icon" />
+            <span>{message}</span>
+          </div>
+        )}
+        {create && message && <p className="form-success" role="status">{message}</p>}
+        {(create || hasChanges || saving) && (
+          <div className={create ? "form-actions business-save-actions" : "business-floating-save"}>
+            <button className="button" disabled={saving || photoUploading} type="submit">
+              {saving ? "Salvando..." : create ? "Criar negócio" : "Salvar alterações"}
+            </button>
+          </div>
+        )}
       </form>
     </main>
   );
