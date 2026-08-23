@@ -17,6 +17,7 @@ const {
   enviarFotoServico,
   listarFotosServico,
   adicionarFotoGaleriaServico,
+  definirFotoCapaServico,
   removerFotoGaleriaServico
 } = require("../controllers/servicosController");
 
@@ -128,6 +129,12 @@ router.post(
   auth,
   upload.single("foto"),
   adicionarFotoGaleriaServico
+);
+
+router.put(
+  "/:id/capa",
+  auth,
+  definirFotoCapaServico
 );
 
 router.delete(
