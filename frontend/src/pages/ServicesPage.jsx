@@ -147,7 +147,7 @@ export function ServicesPage() {
                     className="service-cover-empty-action"
                     to={`/painel/servicos/${service.id}/editar`}
                   >
-                    Adicionar foto
+                    ＋ Adicionar foto
                   </Link>
                 )}
               </div>
@@ -501,7 +501,7 @@ export function ServiceEditorPage() {
                     : <span><strong>✦</strong>Adicione uma foto de capa</span>}
               </div>
               <label className="button button-secondary button-small">
-                {cover ? "Trocar imagem escolhida" : form.foto_url ? "Enviar nova capa" : "Escolher capa"}
+                {cover ? "Trocar imagem escolhida" : form.foto_url ? "Trocar capa" : "Escolher capa"}
                 <input accept="image/jpeg,image/png,image/webp" className="sr-only" onChange={selectCover} type="file" />
               </label>
             </div>
