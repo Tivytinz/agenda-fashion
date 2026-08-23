@@ -235,9 +235,9 @@
  */
 .schedule-settings-page .schedule-save-bar {
   position: fixed;
-  right: max(24px, calc((100vw - 245px - 1240px) / 2));
+  right: max(24px, calc(50vw - 742.5px));
   bottom: 14px;
-  left: calc(245px + max(24px, calc((100vw - 245px - 1240px) / 2)));
+  left: calc(245px + max(24px, calc(50vw - 742.5px)));
   z-index: 18;
   display: flex;
   min-height: 58px;
