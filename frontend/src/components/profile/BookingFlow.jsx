@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { ConfirmationIcon } from "../ConfirmationIcon";
 import { PublicShareButton } from "../PublicShareButton";
 import { FlowSteps } from "../FlowSteps";
 import { EmptyState, ErrorState, LoadingState } from "../ScreenState";
@@ -54,7 +55,14 @@ function ServiceChoices({
               </span>
               <span className="choice-price">
                 <strong>{formatCurrency(service.valor)}</strong>
-                <small>{selected ? "Selecionado ✅" : "Escolher"}</small>
+                <small>
+                  {selected ? (
+                    <span className="selected-service-label">
+                      Selecionado
+                      <ConfirmationIcon className="selected-service-icon" />
+                    </span>
+                  ) : "Escolher"}
+                </small>
               </span>
             </button>
             <div className="service-share-actions">
@@ -214,7 +222,7 @@ function ScheduleChoices({
               onClick={() => onSelectTime(hour)}
               type="button"
             >
-              {hour === time && <span className="time-selected-check" aria-hidden="true">✅</span>}
+              {hour === time && <ConfirmationIcon className="time-selected-check" />}
               <span>{hour}</span>
             </button>
           ))}
@@ -297,6 +305,10 @@ export function BookingFlow({
     onSelectProfessional(id);
   }
 
+  const serviceComplete = Boolean(serviceId && !editingService);
+  const professionalComplete = Boolean(showProfessionalStep && professionalId && !editingProfessional);
+  const scheduleComplete = Boolean(time);
+
   return (
     <>
       <FlowSteps current={currentStep} steps={steps} />
@@ -306,7 +318,7 @@ export function BookingFlow({
       >
         <div className="booking-main">
           <section className="booking-section">
-            <div className="section-heading"><div><p className="step-label">1</p><h2>Escolha o serviço</h2></div></div>
+            <div className="section-heading"><div><p className={serviceComplete ? "step-label step-label-complete" : "step-label"}>{serviceComplete ? <ConfirmationIcon className="section-confirmation-icon" /> : 1}</p><h2>Escolha o serviço</h2></div></div>
             {serviceId && !editingService ? (
               <div className="booking-step-summary">
                 <span>
@@ -328,7 +340,7 @@ export function BookingFlow({
           </section>
           {serviceId && showProfessionalStep && (
             <section className="booking-section" id="profissional">
-              <div className="section-heading"><div><p className="step-label">2</p><h2>Escolha quem vai atender</h2></div></div>
+              <div className="section-heading"><div><p className={professionalComplete ? "step-label step-label-complete" : "step-label"}>{professionalComplete ? <ConfirmationIcon className="section-confirmation-icon" /> : 2}</p><h2>Escolha quem vai atender</h2></div></div>
               {professionalId && !editingProfessional ? (
                 <div className="booking-step-summary">
                   <span><strong>{selectedProfessional?.nome}</strong><small>Profissional selecionada</small></span>
@@ -347,7 +359,7 @@ export function BookingFlow({
           )}
           {professionalId && (
             <section className="booking-section" id="horario">
-              <div className="section-heading"><div><p className="step-label">{scheduleStep}</p><h2>Escolha o horário</h2></div></div>
+              <div className="section-heading"><div><p className={scheduleComplete ? "step-label step-label-complete" : "step-label"}>{scheduleComplete ? <ConfirmationIcon className="section-confirmation-icon" /> : scheduleStep}</p><h2>Escolha o horário</h2></div></div>
               <ScheduleChoices
                 availability={availability}
                 day={day}
