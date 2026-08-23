@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { PublicShareButton } from "../PublicShareButton";
 import { FlowSteps } from "../FlowSteps";
 import { EmptyState, ErrorState, LoadingState } from "../ScreenState";
@@ -126,6 +126,40 @@ function ScheduleChoices({
   time
 }) {
   const selectedDay = availability.find((item) => item.data === day);
+  const dateListRef = useRef(null);
+  const [dateScroll, setDateScroll] = useState({ canGoBack: false, canGoForward: false });
+
+  function updateDateScroll() {
+    const list = dateListRef.current;
+    if (!list) return;
+
+    const maxScroll = Math.max(0, list.scrollWidth - list.clientWidth);
+    setDateScroll({
+      canGoBack: list.scrollLeft > 4,
+      canGoForward: list.scrollLeft < maxScroll - 4
+    });
+  }
+
+  function scrollDates(direction) {
+    const list = dateListRef.current;
+    if (!list) return;
+
+    const distance = Math.max(220, list.clientWidth * 0.72) * direction;
+
+    if (typeof list.scrollBy === "function") {
+      list.scrollBy({ behavior: "smooth", left: distance });
+    } else {
+      list.scrollLeft += distance;
+      updateDateScroll();
+    }
+  }
+
+  useEffect(() => {
+    updateDateScroll();
+    window.addEventListener("resize", updateDateScroll);
+
+    return () => window.removeEventListener("resize", updateDateScroll);
+  }, [availability]);
 
   if (status === "loading") return <LoadingState>Buscando horários...</LoadingState>;
   if (status === "error") return <ErrorState message={error} onRetry={onRetry} />;
@@ -148,18 +182,38 @@ function ScheduleChoices({
 
   return (
     <>
-      <div className="date-list">
-        {availability.map((item) => (
-          <button
-            aria-pressed={item.data === day}
-            className={item.data === day ? "date-button selected" : "date-button"}
-            key={item.data}
-            onClick={() => onSelectDay(item.data)}
-            type="button"
-          >
-            {formatDate(item.data)}
-          </button>
-        ))}
+      <div className="date-carousel">
+        <button
+          aria-label="Ver datas anteriores"
+          className="date-scroll-button"
+          disabled={!dateScroll.canGoBack}
+          onClick={() => scrollDates(-1)}
+          type="button"
+        >
+          ‹
+        </button>
+        <div className="date-list" onScroll={updateDateScroll} ref={dateListRef}>
+          {availability.map((item) => (
+            <button
+              aria-pressed={item.data === day}
+              className={item.data === day ? "date-button selected" : "date-button"}
+              key={item.data}
+              onClick={() => onSelectDay(item.data)}
+              type="button"
+            >
+              {formatDate(item.data)}
+            </button>
+          ))}
+        </div>
+        <button
+          aria-label="Ver próximas datas"
+          className="date-scroll-button"
+          disabled={!dateScroll.canGoForward}
+          onClick={() => scrollDates(1)}
+          type="button"
+        >
+          ›
+        </button>
       </div>
       {selectedDay && (
         <div className="time-list" aria-label="Horários disponíveis">

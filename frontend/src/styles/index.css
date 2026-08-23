@@ -181,6 +181,10 @@ nav { display: flex; align-items: center; gap: 18px; }
 .booking-step-summary strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .booking-step-summary small { color: var(--muted); }
 .booking-step-summary .text-button { flex: 0 0 auto; color: var(--pink-700); }
+.date-carousel { display: grid; grid-template-columns: 40px minmax(0, 1fr) 40px; align-items: center; gap: 8px; }
+.date-scroll-button { display: grid; width: 40px; height: 40px; place-items: center; border: 1px solid var(--pink-100); border-radius: 50%; color: var(--pink-700); background: #fff; font-size: 1.55rem; line-height: 1; cursor: pointer; }
+.date-scroll-button:hover:not(:disabled) { border-color: var(--pink-500); background: var(--pink-50); }
+.date-scroll-button:disabled { color: #cdbec4; border-color: var(--line); background: #f7f3f5; cursor: not-allowed; }
 .date-list, .time-list { display: flex; overflow-x: auto; gap: 10px; padding: 2px; }
 .date-list { padding-bottom: 8px; scrollbar-color: var(--pink-100) transparent; scrollbar-width: thin; }
 .date-list::-webkit-scrollbar { height: 6px; }

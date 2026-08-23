@@ -255,6 +255,10 @@ describe("fluxo publico de agendamento", () => {
 
     expect(await screen.findByRole("button", { name: "09:00" }))
       .not.toBeNull();
+    expect(screen.getByRole("button", { name: "Ver datas anteriores" }))
+      .not.toBeNull();
+    expect(screen.getByRole("button", { name: "Ver próximas datas" }))
+      .not.toBeNull();
     expect(screen.getByRole("button", { name: "Selecione um horário" }).disabled)
       .toBe(true);
 

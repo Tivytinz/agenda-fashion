@@ -709,6 +709,17 @@
     scroll-snap-type: x mandatory;
   }
 
+  .date-carousel {
+    grid-template-columns: 34px minmax(0, 1fr) 34px;
+    gap: 6px;
+  }
+
+  .date-scroll-button {
+    width: 34px;
+    height: 34px;
+    font-size: 1.35rem;
+  }
+
   .date-list .date-button {
     width: 136px;
     min-width: 136px;
