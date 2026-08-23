@@ -64,8 +64,8 @@ describe("configuração de horários", () => {
     render(<ScheduleSettingsPage />);
 
     const interval = await screen.findByRole("combobox", { name: "Intervalo entre clientes" });
-    const bookingLead = screen.getByRole("combobox", { name: "Antecedência mínima para agendar" });
-    const cancellationLead = screen.getByRole("combobox", { name: "Antecedência mínima para cancelar" });
+    const bookingLead = screen.getByRole("combobox", { name: "Antecedência para agendar" });
+    const cancellationLead = screen.getByRole("combobox", { name: "Antecedência para cancelar" });
 
     expect(interval.selectedOptions[0].textContent).toBe("Sem intervalo");
     expect(bookingLead.selectedOptions[0].textContent).toBe("Sem antecedência");
@@ -94,6 +94,27 @@ describe("configuração de horários", () => {
 
     expect(screen.getByLabelText("Início da pausa de Segunda")).not.toBeNull();
     expect(screen.getByLabelText("Fim da pausa de Segunda")).not.toBeNull();
+  });
+
+  it("organiza a semana em colunas sem repetir os títulos no desktop", async () => {
+    apiRequest.mockResolvedValueOnce({
+      configuracao: {},
+      horarios: [{
+        dia_semana: 1,
+        trabalha: true,
+        hora_inicio: "08:00",
+        hora_fim: "18:00",
+        intervalo_inicio: null,
+        intervalo_fim: null
+      }]
+    });
+
+    render(<ScheduleSettingsPage />);
+
+    await screen.findByText("Segunda");
+    expect(screen.getByText("Dia")).not.toBeNull();
+    expect(screen.getAllByText("Atendimento")).toHaveLength(2);
+    expect(screen.getAllByText("Pausa")).toHaveLength(2);
   });
 
   it("copia um horário configurado para os demais dias ativos", async () => {
@@ -133,7 +154,7 @@ describe("configuração de horários", () => {
     const mondayEnd = screen.getByLabelText("Fim do atendimento de Segunda");
     fireEvent.change(mondayStart, { target: { value: "09:00" } });
     fireEvent.change(mondayEnd, { target: { value: "17:00" } });
-    fireEvent.click(screen.getAllByRole("button", { name: "Copiar para dias ativos" })[0]);
+    fireEvent.click(screen.getByRole("button", { name: "Copiar horário de Segunda para os dias ativos" }));
 
     expect(screen.getByLabelText("Início do atendimento de Terça").value).toBe("09:00");
     expect(screen.getByLabelText("Fim do atendimento de Terça").value).toBe("17:00");
