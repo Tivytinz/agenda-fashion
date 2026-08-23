@@ -183,6 +183,7 @@ export function ServiceEditorPage() {
   const { id } = useParams();
   const location = useLocation();
   const navigate = useNavigate();
+  const galleryRef = useRef(null);
   const editing = Boolean(id);
   const [form, setForm] = useState(EMPTY_FORM);
   const [cover, setCover] = useState(null);
@@ -232,6 +233,13 @@ export function ServiceEditorPage() {
       return form.foto_public_id === photo.foto_public_id;
     }
     return Boolean(form.foto_url && photo.foto_url && form.foto_url === photo.foto_url);
+  }
+
+  function scrollGallery(direction) {
+    const scroller = galleryRef.current;
+    if (!scroller) return;
+    const distance = Math.max(210, Math.min((scroller.clientWidth || 320) * 0.85, 440));
+    scroller.scrollBy?.({ left: direction * distance, behavior: "smooth" });
   }
 
   function selectCover(event) {
@@ -434,35 +442,64 @@ export function ServiceEditorPage() {
             <h2>Fotos do serviço</h2>
             <p className="muted service-media-help">Adicione várias fotos e escolha qual delas aparece como capa no catálogo e no perfil público.</p>
           </div>
-          <div className="cover-upload">
-            <div className="cover-preview">
-              {coverPreview
-                ? <img alt="Prévia da nova capa" src={coverPreview} />
-                : form.foto_url
-                  ? <MediaThumb alt={`Capa atual do serviço ${form.nome}`} className="editor-media" emoji="✦" src={form.foto_url} />
-                  : <span><strong>✦</strong>Adicione uma foto de capa</span>}
+
+          <div className="service-cover-section">
+            <div className="service-media-section-heading">
+              <strong>Capa do serviço</strong>
+              <small>Esta é a primeira imagem que a cliente vê.</small>
             </div>
-            <label className="button button-secondary button-small">
-              {cover ? "Trocar imagem escolhida" : form.foto_url ? "Enviar nova capa" : "Escolher capa"}
-              <input accept="image/jpeg,image/png,image/webp" className="sr-only" onChange={selectCover} type="file" />
+            <div className="cover-upload">
+              <div className="cover-preview">
+                {coverPreview
+                  ? <img alt="Prévia da nova capa" src={coverPreview} />
+                  : form.foto_url
+                    ? <MediaThumb alt={`Capa atual do serviço ${form.nome}`} className="editor-media" emoji="✦" src={form.foto_url} />
+                    : <span><strong>✦</strong>Adicione uma foto de capa</span>}
+              </div>
+              <label className="button button-secondary button-small">
+                {cover ? "Trocar imagem escolhida" : form.foto_url ? "Enviar nova capa" : "Escolher capa"}
+                <input accept="image/jpeg,image/png,image/webp" className="sr-only" onChange={selectCover} type="file" />
+              </label>
+            </div>
+          </div>
+
+          <div className="service-gallery-upload">
+            <div className="service-gallery-upload-copy">
+              <strong>Adicionar fotos à galeria</strong>
+              <small>JPG, PNG ou WEBP · até 5 MB por foto.</small>
+            </div>
+            <label className="button button-secondary button-small service-gallery-upload-button">
+              <span aria-hidden="true">＋</span>
+              Adicionar fotos
+              <input
+                accept="image/jpeg,image/png,image/webp"
+                aria-label="Adicionar fotos à galeria"
+                className="sr-only"
+                multiple
+                onChange={selectGallery}
+                type="file"
+              />
             </label>
           </div>
-          <label>
-            Adicionar fotos à galeria
-            <input accept="image/jpeg,image/png,image/webp" multiple onChange={selectGallery} type="file" />
-            <small>JPG, PNG ou WEBP, até 5 MB por foto. Depois você pode escolher qualquer foto da galeria como capa.</small>
-          </label>
           {galleryFiles.length > 0 && (
-            <p className="upload-selection">{galleryFiles.length} {galleryFiles.length === 1 ? "foto nova selecionada" : "fotos novas selecionadas"}.</p>
+            <p className="upload-selection">{galleryFiles.length} {galleryFiles.length === 1 ? "foto selecionada" : "fotos selecionadas"}.</p>
           )}
           {mediaMessage && <p className="service-media-success" role="status">{mediaMessage}</p>}
           {gallery.length > 0 && (
             <div className="service-gallery-picker-wrap">
               <div className="service-gallery-heading">
-                <strong>Galeria atual</strong>
-                <small>Deslize para navegar pelas fotos.</small>
+                <div>
+                  <strong>Galeria atual</strong>
+                  <small>{gallery.length} {gallery.length === 1 ? "foto" : "fotos"}</small>
+                </div>
+                {gallery.length > 1 && (
+                  <div className="service-gallery-nav" aria-label="Navegação da galeria">
+                    <button aria-label="Fotos anteriores" onClick={() => scrollGallery(-1)} type="button">‹</button>
+                    <button aria-label="Próximas fotos" onClick={() => scrollGallery(1)} type="button">›</button>
+                  </div>
+                )}
               </div>
-              <div className="service-gallery service-gallery-picker" aria-label="Galeria atual">
+              <div className="service-gallery service-gallery-picker" aria-label="Galeria atual" ref={galleryRef}>
                 {gallery.map((photo) => {
                   const currentCover = isGalleryCover(photo);
                   const choosing = definingCoverId === photo.id;
@@ -470,30 +507,33 @@ export function ServiceEditorPage() {
                     <figure className={currentCover ? "is-cover" : ""} key={photo.id}>
                       <div className="service-gallery-media">
                         <MediaThumb alt={`Foto da galeria de ${form.nome}`} className="editor-media" emoji="✦" src={photo.foto_url} />
-                        {currentCover && (
-                          <span className="service-cover-badge">
-                            <ConfirmationIcon className="service-cover-badge-icon" />
-                            Capa atual
-                          </span>
-                        )}
-                      </div>
-                      <figcaption>
                         <button
-                          className={currentCover ? "service-cover-choice is-current" : "service-cover-choice"}
-                          disabled={currentCover || choosing || removingPhotoId === photo.id}
-                          onClick={() => chooseGalleryCover(photo)}
-                          type="button"
-                        >
-                          {currentCover ? "Capa selecionada" : choosing ? "Escolhendo..." : "Usar como capa"}
-                        </button>
-                        <button
+                          aria-label="Remover foto da galeria"
                           className="service-gallery-remove"
                           disabled={removingPhotoId === photo.id || choosing}
                           onClick={() => removeGalleryPhoto(photo)}
+                          title="Remover foto"
                           type="button"
                         >
-                          {removingPhotoId === photo.id ? "Removendo..." : "Remover"}
+                          {removingPhotoId === photo.id ? "…" : "×"}
                         </button>
+                      </div>
+                      <figcaption>
+                        {currentCover ? (
+                          <span className="service-cover-current-label">
+                            <ConfirmationIcon className="service-cover-badge-icon" />
+                            Capa atual
+                          </span>
+                        ) : (
+                          <button
+                            className="service-cover-choice"
+                            disabled={choosing || removingPhotoId === photo.id}
+                            onClick={() => chooseGalleryCover(photo)}
+                            type="button"
+                          >
+                            {choosing ? "Escolhendo..." : "Usar como capa"}
+                          </button>
+                        )}
                       </figcaption>
                     </figure>
                   );
