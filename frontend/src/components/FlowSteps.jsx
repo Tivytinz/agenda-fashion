@@ -1,3 +1,5 @@
+import { ConfirmationIcon } from "./ConfirmationIcon";
+
 const DEFAULT_STEPS = ["Serviço", "Profissional", "Horário", "Confirmar"];
 
 export function FlowSteps({ current, steps = DEFAULT_STEPS }) {
@@ -18,7 +20,9 @@ export function FlowSteps({ current, steps = DEFAULT_STEPS }) {
 
           return (
             <li className={state} key={label} aria-current={step === current ? "step" : undefined}>
-              <span aria-hidden="true">{state === "done" ? "✓" : step}</span>
+              <span aria-hidden="true">
+                {state === "done" ? <ConfirmationIcon className="flow-confirmation-icon" /> : step}
+              </span>
               <small>{label}</small>
             </li>
           );
