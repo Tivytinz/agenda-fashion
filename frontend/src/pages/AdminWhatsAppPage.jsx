@@ -101,6 +101,7 @@ function tomQualidade(qualidade) {
 
 function TemplateRow({ template }) {
   const metricas = template.metricas || {};
+  const falhas = (metricas.falhasFila ?? 0) + (metricas.falhasEntrega ?? 0);
   const statusLabel = STATUS_META[template.statusMeta] || template.statusMeta;
   const qualityLabel = QUALIDADE_META[template.qualidadeMeta] || template.qualidadeMeta;
 
@@ -149,9 +150,9 @@ function TemplateRow({ template }) {
         <small className="admin-row-note">{metricas.lidas ?? 0} lidas</small>
       </td>
       <td>
-        <strong>{(metricas.falhasFila ?? 0) + (metricas.falhasEntrega ?? 0)}</strong>
+        <strong>{falhas > 0 ? `${falhas} falhas` : "Sem falhas"}</strong>
         <small className="admin-row-note">
-          {metricas.pendentes ?? 0} pendentes · {metricas.canceladas ?? 0} canceladas
+          {metricas.pendentes ?? 0} pendentes · {metricas.canceladas ?? 0} não enviadas
         </small>
       </td>
     </tr>
@@ -254,7 +255,11 @@ export function AdminWhatsAppPage() {
             onClick={() => setReloadKey((current) => current + 1)}
             type="button"
           >
-            {refreshing ? "Atualizando..." : "Atualizar status"}
+            {refreshing
+              ? "Atualizando..."
+              : verificacao.codigo === "CONFIGURACAO_INCOMPLETA"
+                ? "Verificar novamente"
+                : "Atualizar status"}
           </button>
         </div>
       </header>
@@ -267,10 +272,12 @@ export function AdminWhatsAppPage() {
 
       <section className="metric-grid" aria-label="Indicadores do WhatsApp">
         <MetricCard
-          hint={verificacao.disponivel ? "confirmados diretamente na Meta" : "aguardando consulta à Meta"}
-          label="Templates ativos"
+          hint={verificacao.disponivel
+            ? "confirmados diretamente na Meta"
+            : `${resumo.templatesEsperados ?? 0} templates aguardam consulta`}
+          label="Aprovados na Meta"
           value={aprovados === null || aprovados === undefined
-            ? `— de ${resumo.templatesEsperados ?? 0}`
+            ? "Não verificado"
             : `${aprovados} de ${resumo.templatesEsperados ?? 0}`}
         />
         <MetricCard
@@ -308,7 +315,7 @@ export function AdminWhatsAppPage() {
           <p>{verificacao.mensagem}</p>
           {verificacao.variaveisAusentes?.length > 0 && (
             <small>
-              Falta configurar: {verificacao.variaveisAusentes.join(", ")}.
+              Configuração necessária no ambiente: {verificacao.variaveisAusentes.join(", ")}. Depois, use “Verificar novamente”.
             </small>
           )}
         </div>
@@ -347,7 +354,7 @@ export function AdminWhatsAppPage() {
                 <th>Aceitas</th>
                 <th>Entrega</th>
                 <th>Leitura</th>
-                <th>Fila</th>
+                <th>Operação</th>
               </tr>
             </thead>
             <tbody>
@@ -366,6 +373,7 @@ export function AdminWhatsAppPage() {
           <p><strong>Automação habilitada:</strong> o AF está autorizado pelas variáveis do ambiente a usar essa rotina.</p>
           <p><strong>Aceita:</strong> a Meta recebeu a solicitação e devolveu um identificador. Isso ainda não garante entrega.</p>
           <p><strong>Falhas:</strong> somam erros da fila e recusas de entrega registradas pelo webhook.</p>
+          <p><strong>Não enviada:</strong> a mensagem foi interrompida antes de chegar à Meta porque expirou ou deixou de ser válida.</p>
         </div>
       </details>
     </main>

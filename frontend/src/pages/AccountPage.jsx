@@ -196,7 +196,7 @@ export function AccountPage() {
       <section className="account-grid">
         <form className="panel stack-form" onSubmit={saveProfile}>
           <div className="profile-editor">
-            <MediaThumb alt={`Foto de perfil de ${user.nome || "usuária"}`} className="account-avatar" emoji={String(user.nome || "A").slice(0, 1)} src={user.foto_url} />
+            <MediaThumb alt={`Foto de perfil de ${user.nome || "usuária"}`} className="account-avatar" emoji={String(user.nome || "A").trim().slice(0, 1).toUpperCase() || "A"} src={user.foto_url} />
             <label className="button button-secondary button-small">
               {saving === "photo" ? "Enviando..." : "Trocar foto"}
               <input accept="image/jpeg,image/png,image/webp" className="sr-only" disabled={saving === "photo"} onChange={uploadPhoto} type="file" />
@@ -297,7 +297,10 @@ export function AccountPage() {
           </button>
         </form>
       )}
-      <button className="text-button danger-text logout-mobile" onClick={() => { session.logout(); navigate("/"); }} type="button">Sair da conta</button>
+      <button className="button button-secondary account-logout-button" onClick={() => { session.logout(); navigate("/"); }} type="button">
+        <span aria-hidden="true">↪</span>
+        Sair da conta
+      </button>
     </main>
   );
 }

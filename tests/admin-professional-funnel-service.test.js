@@ -151,6 +151,7 @@ describe(
           resultado.campanhas[0].decisao
         ).toMatchObject({
           codigo: "sem_dados",
+          rotulo: "Sem investimento atribuído",
           confianca: "baixa",
         });
       }

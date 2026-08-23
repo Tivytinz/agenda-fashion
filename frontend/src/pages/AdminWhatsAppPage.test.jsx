@@ -102,6 +102,7 @@ describe("painel administrativo do WhatsApp", () => {
       await screen.findByRole("heading", { name: "WhatsApp e templates" })
     ).not.toBeNull();
     expect(screen.getByText("8 de 8")).not.toBeNull();
+    expect(screen.getByText("Aprovados na Meta")).not.toBeNull();
     expect(screen.getByText("6 de 8")).not.toBeNull();
     expect(screen.getAllByText("75%").length).toBeGreaterThan(0);
     expect(screen.getAllByText("50%").length).toBeGreaterThan(0);
@@ -162,7 +163,9 @@ describe("painel administrativo do WhatsApp", () => {
     ).not.toBeNull();
     expect(screen.getByText(/WHATSAPP_BUSINESS_ACCOUNT_ID/)).not.toBeNull();
     expect(screen.getByText(/envio automático está desligado/i)).not.toBeNull();
-    expect(screen.getByText("— de 8")).not.toBeNull();
+    expect(screen.getAllByText("Não verificado").length).toBeGreaterThanOrEqual(2);
+    expect(screen.getByRole("button", { name: "Verificar novamente" })).not.toBeNull();
+    expect(screen.getByText(/8 templates aguardam consulta/i)).not.toBeNull();
     expect(screen.getByText("de 10 geradas")).not.toBeNull();
   });
 });

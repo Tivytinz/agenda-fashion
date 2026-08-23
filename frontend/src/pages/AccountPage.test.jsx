@@ -11,23 +11,44 @@ vi.mock("../api/client", () => ({ apiRequest: vi.fn() }));
 vi.mock("../auth/SessionContext", () => ({ useSession: vi.fn() }));
 
 const refreshSession = vi.fn();
+const logoutSession = vi.fn();
 
 beforeEach(() => {
   apiRequest.mockReset();
   refreshSession.mockReset();
+  logoutSession.mockReset();
   refreshSession.mockResolvedValue({});
   useSession.mockReturnValue({
     temNegocio: false,
     ehAdministrador: false,
     negocio: null,
     refresh: refreshSession,
-    logout: vi.fn()
+    logout: logoutSession
   });
 });
 
 afterEach(cleanup);
 
 describe("minha conta", () => {
+  it("usa inicial maiúscula e exibe uma ação clara para sair", async () => {
+    apiRequest.mockResolvedValueOnce({
+      usuario: {
+        id: 7,
+        nome: "admin admin",
+        email: "admin@example.com",
+        whatsapp: "62999998888"
+      }
+    });
+
+    const { container } = render(<MemoryRouter><AccountPage /></MemoryRouter>);
+
+    await screen.findByRole("heading", { name: "Minha conta" });
+    expect(container.querySelector(".account-avatar .af-media-fallback")?.textContent).toBe("A");
+
+    fireEvent.click(screen.getByRole("button", { name: "Sair da conta" }));
+    expect(logoutSession).toHaveBeenCalledTimes(1);
+  });
+
   it("exibe máscara no WhatsApp e envia somente os dígitos", async () => {
     apiRequest
       .mockResolvedValueOnce({

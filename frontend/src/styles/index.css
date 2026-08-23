@@ -414,7 +414,8 @@ th { color: var(--muted); font-size: .76rem; letter-spacing: .04em; text-transfo
 .profile-editor { display: flex; align-items: center; gap: 16px; }
 .account-avatar { display: grid; width: 72px; height: 72px; place-items: center; overflow: hidden; border-radius: 20px; color: #fff; background: linear-gradient(145deg, var(--pink-500), var(--wine)); font-size: 1.8rem; font-weight: 900; }
 .account-avatar img { width: 100%; height: 100%; object-fit: cover; }
-.logout-mobile { justify-self: start; margin-top: 6px; }
+.account-logout-button { justify-self: start; margin-top: 6px; }
+.account-logout-button span { font-size: 1.1rem; transform: rotate(180deg); }
 
 .center-heading { max-width: 720px; margin: 20px auto 36px; text-align: center; }
 .center-heading h1 { margin-inline: auto; }

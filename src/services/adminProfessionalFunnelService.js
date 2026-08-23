@@ -135,7 +135,7 @@ function recomendarCampanha(
   if (investimentoCentavos <= 0) {
     return {
       codigo: "sem_dados",
-      rotulo: "Sem dados",
+      rotulo: "Sem investimento atribuído",
       confianca: "baixa",
       motivo:
         "Sem investimento atribuído, não há base para recomendar escala ou pausa.",

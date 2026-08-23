@@ -156,10 +156,13 @@ describe("AdminProfessionalFunnelPage", () => {
         origem: "google",
         midia: "cpc",
         campanha: "organico",
+        investimentoCentavos: 0,
+        receitaPrimeiroPagamentoCentavos: 0,
         roas: null,
+        cacAssinanteCentavos: null,
         decisao: {
           codigo: "sem_dados",
-          rotulo: "Sem dados",
+          rotulo: "Sem investimento atribuído",
           confianca: "baixa",
           motivo: "Sem investimento atribuído."
         }
@@ -177,7 +180,10 @@ describe("AdminProfessionalFunnelPage", () => {
     expect(screen.queryByText("Orgânico / sem campanha")).toBeNull();
     expect(screen.getAllByText("Google Ads").length).toBeGreaterThanOrEqual(1);
     expect(screen.getByText("CPC")).not.toBeNull();
-    expect(screen.getAllByText("Sem dados").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getByText("Não atribuído")).not.toBeNull();
+    expect(screen.getAllByText("Não calculável").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getByText("Sem investimento atribuído")).not.toBeNull();
+    expect(screen.queryByText("Confiança baixa")).toBeNull();
   });
 
   it("remove o marcador técnico none do tráfego orgânico", async () => {
@@ -194,7 +200,7 @@ describe("AdminProfessionalFunnelPage", () => {
         cacAssinanteCentavos: null,
         decisao: {
           codigo: "sem_dados",
-          rotulo: "Sem dados",
+          rotulo: "Sem investimento atribuído",
           confianca: "baixa",
           motivo: "Sem investimento atribuído."
         }
@@ -210,6 +216,7 @@ describe("AdminProfessionalFunnelPage", () => {
 
     expect(await screen.findByText("Orgânico / sem campanha")).not.toBeNull();
     expect(screen.getByText("Orgânico")).not.toBeNull();
+    expect(screen.getByText("Não se aplica")).not.toBeNull();
     expect(screen.queryByText("none")).toBeNull();
   });
 

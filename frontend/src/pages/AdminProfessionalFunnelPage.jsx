@@ -88,6 +88,12 @@ function mediumLabel(item) {
   return medium ? medium.toUpperCase() : "";
 }
 
+function isOrganicCampaign(item) {
+  const source = String(item?.origem || "").trim().toLowerCase();
+  const medium = String(item?.midia || "").trim().toLowerCase();
+  return source === "organico" && (!medium || medium === "none");
+}
+
 export function AdminProfessionalFunnelPage() {
   const [period, setPeriod] = useState("30");
   const [data, setData] = useState(null);
@@ -356,6 +362,9 @@ export function AdminProfessionalFunnelPage() {
               Compare investimento, receita, ROAS e CAC. A receita considera somente o primeiro pagamento da aquisição; reembolso zera a receita e renovações posteriores não entram no ROAS.
             </p>
             <p className="muted">As recomendações são analíticas e não alteram campanhas automaticamente.</p>
+            <p className="muted admin-campaign-attribution-note">
+              Cada linha representa uma identidade UTM exata. O investimento aparece somente quando essa identidade está vinculada à campanha de mídia; identidades históricas não são somadas automaticamente.
+            </p>
           </div>
         </div>
 
@@ -404,30 +413,38 @@ export function AdminProfessionalFunnelPage() {
                         <td>
                           {item.investimentoCentavos > 0
                             ? formatMoney(item.investimentoCentavos)
-                            : <span className="admin-data-empty">Sem dados</span>}
+                            : (
+                              <span className="admin-data-empty">
+                                {isOrganicCampaign(item) ? "Não se aplica" : "Não atribuído"}
+                              </span>
+                            )}
                         </td>
                         <td>
-                          {item.receitaPrimeiroPagamentoCentavos > 0
-                            ? formatMoney(item.receitaPrimeiroPagamentoCentavos)
-                            : <span className="admin-data-empty">Sem dados</span>}
+                          {formatMoney(item.receitaPrimeiroPagamentoCentavos ?? 0)}
                         </td>
                         <td>
                           <strong className={item.roas === null || item.roas === undefined ? "admin-data-empty" : ""}>
-                            {formatRoas(item.roas)}
+                            {item.roas === null || item.roas === undefined
+                              ? "Não calculável"
+                              : formatRoas(item.roas)}
                           </strong>
                         </td>
                         <td>
                           <span className={item.cacAssinanteCentavos === null || item.cacAssinanteCentavos === undefined ? "admin-data-empty" : ""}>
-                            {formatMoney(item.cacAssinanteCentavos)}
+                            {item.cacAssinanteCentavos === null || item.cacAssinanteCentavos === undefined
+                              ? "Não calculável"
+                              : formatMoney(item.cacAssinanteCentavos)}
                           </span>
                         </td>
                         <td className="admin-decision-cell">
                           <span className={decisionBadgeClass(item.decisao?.codigo)}>
                             {item.decisao?.rotulo || "Sem dados"}
                           </span>
-                          <small className="muted">
-                            Confiança {item.decisao?.confianca || "não calculada"}
-                          </small>
+                          {item.decisao?.codigo !== "sem_dados" && (
+                            <small className="muted">
+                              Confiança {item.decisao?.confianca || "não calculada"}
+                            </small>
+                          )}
                         </td>
                         <td>
                           <button

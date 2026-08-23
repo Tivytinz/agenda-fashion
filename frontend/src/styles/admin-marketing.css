@@ -278,6 +278,16 @@
   margin-bottom: 0.35rem;
 }
 
+.admin-decision-cell small {
+  display: block;
+}
+
+.admin-campaign-attribution-note {
+  max-width: 920px;
+  border-left: 3px solid var(--admin-accent, #df2f7f);
+  padding-left: 0.75rem;
+}
+
 .admin-decision-badge.is-escalar {
   border-color: #c9e8d5;
   background: #effaf3;
