@@ -340,6 +340,19 @@ async function removerServico({ usuarioId, id }) {
   };
 }
 
+async function removerFotoCapaAnteriorSeOrfa({ servicoId, fotoPublicId }) {
+  if (!fotoPublicId) return;
+
+  const usadaNaGaleria = await servicosRepository.fotoGaleriaUsaPublicId({
+    servicoId,
+    fotoPublicId,
+  });
+
+  if (!usadaNaGaleria) {
+    await removerImagemSilenciosamente(fotoPublicId);
+  }
+}
+
 async function enviarFotoServico({ usuarioId, id, file }) {
   const vinculo = await obterVinculoDono(
     usuarioId,
@@ -403,16 +416,13 @@ async function enviarFotoServico({ usuarioId, id, file }) {
   }
 
   if (
-    servicoAtual
-      .foto_public_id &&
-    servicoAtual
-      .foto_public_id !==
-      resultado.fotoPublicId
+    servicoAtual.foto_public_id &&
+    servicoAtual.foto_public_id !== resultado.fotoPublicId
   ) {
-    await removerImagemSilenciosamente(
-      servicoAtual
-        .foto_public_id
-    );
+    await removerFotoCapaAnteriorSeOrfa({
+      servicoId: id,
+      fotoPublicId: servicoAtual.foto_public_id,
+    });
   }
 
   return {
@@ -495,27 +505,102 @@ async function adicionarFotoGaleriaServico({ usuarioId, id, file }) {
   };
 }
 
+async function definirFotoCapaServico({ usuarioId, id, fotoId }) {
+  const vinculo = await obterVinculoDono(
+    usuarioId,
+    "Apenas o dono pode escolher a foto principal do serviço."
+  );
+
+  const servicoAtual = await servicosRepository.buscarServicoDoNegocio(
+    id,
+    vinculo.negocio_id
+  );
+
+  if (!servicoAtual) {
+    throw criarErro("Serviço não encontrado.", 404);
+  }
+
+  const foto = await servicosRepository.buscarFotoGaleriaDoNegocio({
+    fotoId,
+    negocioId: vinculo.negocio_id,
+  });
+
+  if (!foto || Number(foto.servico_id) !== Number(id)) {
+    throw criarErro("Foto da galeria não encontrada para este serviço.", 404);
+  }
+
+  const servico = await servicosRepository.atualizarFotoServico({
+    id,
+    negocioId: vinculo.negocio_id,
+    fotoUrl: foto.foto_url,
+    fotoPublicId: foto.foto_public_id,
+  });
+
+  if (!servico) {
+    throw criarErro("Serviço não encontrado.", 404);
+  }
+
+  if (
+    servicoAtual.foto_public_id &&
+    servicoAtual.foto_public_id !== foto.foto_public_id
+  ) {
+    await removerFotoCapaAnteriorSeOrfa({
+      servicoId: id,
+      fotoPublicId: servicoAtual.foto_public_id,
+    });
+  }
+
+  return {
+    mensagem: "Foto escolhida como capa do serviço.",
+    servico,
+  };
+}
+
 async function removerFotoGaleriaServico({ usuarioId, fotoId }) {
   const vinculo = await obterVinculoDono(
     usuarioId,
     "Apenas o dono pode remover fotos do serviço."
   );
 
-  const removida = await servicosRepository.removerFotoGaleriaServico({
-    fotoId,
-    negocioId: vinculo.negocio_id,
+  const resultado = await db.executarTransacao(async (client) => {
+    const foto = await servicosRepository.buscarFotoGaleriaDoNegocio(
+      { fotoId, negocioId: vinculo.negocio_id },
+      client
+    );
+
+    if (!foto) return null;
+
+    const capaRemovida = await servicosRepository.limparFotoServicoSeUsarPublicId(
+      {
+        id: foto.servico_id,
+        negocioId: vinculo.negocio_id,
+        fotoPublicId: foto.foto_public_id,
+      },
+      client
+    );
+
+    const removida = await servicosRepository.removerFotoGaleriaServico(
+      { fotoId, negocioId: vinculo.negocio_id },
+      client
+    );
+
+    return removida
+      ? { removida, capaRemovida: Boolean(capaRemovida) }
+      : null;
   });
 
-  if (!removida) {
+  if (!resultado?.removida) {
     throw criarErro("Foto não encontrada.", 404);
   }
 
   await removerImagemSilenciosamente(
-    removida.foto_public_id
+    resultado.removida.foto_public_id
   );
 
   return {
     mensagem: "Foto removida da galeria.",
+    capa_removida: resultado.capaRemovida,
+    servico_id: resultado.removida.servico_id,
   };
 }
 
@@ -591,5 +676,6 @@ module.exports = {
   enviarFotoServico,
   listarFotosServico,
   adicionarFotoGaleriaServico,
+  definirFotoCapaServico,
   removerFotoGaleriaServico,
 };
