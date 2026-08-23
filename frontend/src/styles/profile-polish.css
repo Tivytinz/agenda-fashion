@@ -74,8 +74,12 @@
   background-size: contain;
 }
 
-/* Preço e ação ficam em coluna para o selo de selecionado nunca cobrir o valor. */
-.public-profile-page .choice-card > .choice-price {
+/*
+ * O CSS-base tem uma regra genérica para spans de .choice-card que força
+ * display:block. Esta regra é deliberadamente mais específica para não deixar
+ * esse legado vencer a coluna de preço/estado outra vez.
+ */
+.public-profile-page .service-choice-item .choice-card > span.choice-price {
   display: flex;
   min-width: 118px;
   flex: 0 0 auto;
@@ -171,10 +175,21 @@
   box-shadow: 0 7px 18px rgb(217 47 127 / 13%);
 }
 
-/* Etapas concluídas usam check real, e a linha mantém contraste suficiente para orientar o fluxo. */
-.public-profile-page .flow-steps li.done > span {
-  font-size: .85rem;
-  font-weight: 900;
+/* Etapas concluídas usam o emoji verde de confirmação, sem círculo rosa por trás. */
+.public-profile-page .flow-steps li.done > span,
+.booking-confirmation-page .flow-steps li.done > span {
+  color: inherit;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  font-size: 0;
+}
+
+.public-profile-page .flow-steps li.done > span::before,
+.booking-confirmation-page .flow-steps li.done > span::before {
+  content: "✅";
+  font-size: 1.35rem;
+  line-height: 1;
 }
 
 .public-profile-page .flow-steps::before,
@@ -183,25 +198,22 @@
   border-color: rgb(217 47 127 / 24%);
 }
 
-/* Repete o check também no cabeçalho das seções já concluídas. */
+/* Repete o mesmo emoji verde no cabeçalho das seções já concluídas. */
 .public-profile-page .booking-section:has(.booking-step-summary) .step-label,
 .public-profile-page .booking-section:has(.time-button.selected) .step-label {
+  color: inherit;
+  background: transparent;
   font-size: 0;
 }
 
 .public-profile-page .booking-section:has(.booking-step-summary) .step-label::before,
 .public-profile-page .booking-section:has(.time-button.selected) .step-label::before {
-  content: "✓";
-  font-size: .9rem;
-  font-weight: 900;
+  content: "✅";
+  font-size: 1.15rem;
+  line-height: 1;
 }
 
 /* Confirmação: mantém a mesma linguagem visual e reduz redundâncias na última etapa. */
-.booking-confirmation-page .flow-steps li.done > span {
-  font-size: .85rem;
-  font-weight: 900;
-}
-
 .booking-confirmation-page .flow-steps li.current > span {
   box-shadow: 0 0 0 5px rgb(217 47 127 / 10%);
 }
@@ -241,7 +253,7 @@
     flex-basis: 64px;
   }
 
-  .public-profile-page .choice-card > .choice-price {
+  .public-profile-page .service-choice-item .choice-card > span.choice-price {
     min-width: 104px;
     gap: 5px;
   }
