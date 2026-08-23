@@ -15,6 +15,7 @@ function renderEditor(entry = "/painel/servicos/novo") {
     <MemoryRouter initialEntries={[entry]}>
       <Routes>
         <Route path="/painel/servicos/novo" element={<ServiceEditorPage />} />
+        <Route path="/painel/servicos/:id/editar" element={<ServiceEditorPage />} />
         <Route path="/painel/servicos" element={<h1>Lista de serviços</h1>} />
         <Route path="/painel" element={<h1>Visão geral publicada</h1>} />
       </Routes>
@@ -140,7 +141,7 @@ describe("editor de serviços", () => {
 
     renderEditor();
     fillService();
-    fireEvent.change(screen.getByLabelText(/Adicionar à galeria/), {
+    fireEvent.change(screen.getByLabelText(/Adicionar fotos à galeria/), {
       target: { files: [first, second] }
     });
     submit();
@@ -154,6 +155,60 @@ describe("editor de serviços", () => {
     expect(galleryUploads).toHaveLength(3);
     expect(galleryUploads[2][1].body.get("foto").name).toBe("segunda.jpg");
     await waitFor(() => expect(apiRequest).toHaveBeenCalledTimes(5));
+  });
+
+  it("permite navegar pela galeria e escolher uma foto existente como capa", async () => {
+    apiRequest.mockImplementation((path, options = {}) => {
+      if (path === "/servicos") {
+        return Promise.resolve({
+          servicos: [{
+            id: 9,
+            nome: "Extensão de Cílios",
+            categoria: "cilio",
+            valor: 100,
+            duracao_minutos: 120,
+            ativo: true,
+            foto_url: "https://img/cilios-1.jpg",
+            foto_public_id: "galeria/cilios-1"
+          }]
+        });
+      }
+      if (path === "/servicos/9/fotos") {
+        return Promise.resolve({
+          fotos: [
+            { id: 1, foto_url: "https://img/cilios-1.jpg", foto_public_id: "galeria/cilios-1" },
+            { id: 2, foto_url: "https://img/cilios-2.jpg", foto_public_id: "galeria/cilios-2" }
+          ]
+        });
+      }
+      if (path === "/servicos/9/capa" && options.method === "PUT") {
+        return Promise.resolve({
+          servico: {
+            id: 9,
+            foto_url: "https://img/cilios-2.jpg",
+            foto_public_id: "galeria/cilios-2"
+          }
+        });
+      }
+      return Promise.reject(new Error(`Rota inesperada: ${path}`));
+    });
+
+    renderEditor("/painel/servicos/9/editar");
+
+    expect(await screen.findByText("Capa atual")).not.toBeNull();
+    const choose = screen.getByRole("button", { name: "Usar como capa" });
+    fireEvent.click(choose);
+
+    await waitFor(() => expect(apiRequest).toHaveBeenCalledWith(
+      "/servicos/9/capa",
+      {
+        method: "PUT",
+        body: { foto_id: 2 }
+      }
+    ));
+    expect((await screen.findByRole("status")).textContent).toContain("Foto escolhida como capa");
+    expect(screen.getByRole("img", { name: "Capa atual do serviço Extensão de Cílios" }).src)
+      .toContain("cilios-2.jpg");
   });
 
   it("conclui o onboarding quando o primeiro serviço publica o negócio", async () => {
