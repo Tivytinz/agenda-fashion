@@ -115,6 +115,23 @@
   background: var(--pink-600);
 }
 
+/* Ícone vetorial próprio de confirmação: verde consistente em qualquer sistema. */
+.confirmation-icon {
+  display: block;
+  flex: 0 0 auto;
+}
+
+.public-profile-page .selected-service-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.public-profile-page .selected-service-icon {
+  width: 15px;
+  height: 15px;
+}
+
 /* Compartilhar continua secundário, mas não fica apagado demais. */
 .public-profile-page .service-share-actions {
   display: flex;
@@ -149,6 +166,11 @@
   color: inherit;
 }
 
+.public-profile-page .time-selected-check {
+  width: 17px;
+  height: 17px;
+}
+
 /* As setas já comunicam a navegação: o scrollbar visual só parecia um elemento quebrado. */
 .public-profile-page .date-list {
   padding-bottom: 2px;
@@ -175,21 +197,20 @@
   box-shadow: 0 7px 18px rgb(217 47 127 / 13%);
 }
 
-/* Etapas concluídas usam o emoji verde de confirmação, sem círculo rosa por trás. */
+/* Etapas concluídas usam o mesmo check verde vetorial, sem círculo rosa por trás. */
 .public-profile-page .flow-steps li.done > span,
 .booking-confirmation-page .flow-steps li.done > span {
   color: inherit;
   border: 0;
   background: transparent;
   box-shadow: none;
-  font-size: 0;
+  padding: 0;
 }
 
-.public-profile-page .flow-steps li.done > span::before,
-.booking-confirmation-page .flow-steps li.done > span::before {
-  content: "✅";
-  font-size: 1.35rem;
-  line-height: 1;
+.public-profile-page .flow-confirmation-icon,
+.booking-confirmation-page .flow-confirmation-icon {
+  width: 30px;
+  height: 30px;
 }
 
 .public-profile-page .flow-steps::before,
@@ -198,19 +219,15 @@
   border-color: rgb(217 47 127 / 24%);
 }
 
-/* Repete o mesmo emoji verde no cabeçalho das seções já concluídas. */
-.public-profile-page .booking-section:has(.booking-step-summary) .step-label,
-.public-profile-page .booking-section:has(.time-button.selected) .step-label {
+/* O mesmo check aparece nos cabeçalhos das seções concluídas. */
+.public-profile-page .step-label-complete {
   color: inherit;
   background: transparent;
-  font-size: 0;
 }
 
-.public-profile-page .booking-section:has(.booking-step-summary) .step-label::before,
-.public-profile-page .booking-section:has(.time-button.selected) .step-label::before {
-  content: "✅";
-  font-size: 1.15rem;
-  line-height: 1;
+.public-profile-page .section-confirmation-icon {
+  width: 27px;
+  height: 27px;
 }
 
 /* Confirmação: mantém a mesma linguagem visual e reduz redundâncias na última etapa. */
