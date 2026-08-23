@@ -81,8 +81,8 @@ async function listarNegociosPublicos({
   const categoriaTermos =
     termosDaCategoria(categoriaNormalizada);
 
-  const negocios =
-    await perfilNegocioRepository.listarNegociosPublicos({
+  const [negocios, localidades] = await Promise.all([
+    perfilNegocioRepository.listarNegociosPublicos({
       busca: buscaNormalizada,
       categoria: Object.hasOwn(CATEGORIAS_CATALOGO, categoriaNormalizada)
         ? categoriaNormalizada
@@ -94,7 +94,11 @@ async function listarNegociosPublicos({
       offset:
         (paginaNormalizada - 1) *
         limiteNormalizado
-    });
+    }),
+    paginaNormalizada === 1
+      ? perfilNegocioRepository.listarLocalidadesPublicas()
+      : Promise.resolve(null)
+  ]);
 
   const total = Number(
     negocios[0]?.total_resultados || 0
@@ -121,7 +125,21 @@ async function listarNegociosPublicos({
         paginaNormalizada *
           limiteNormalizado <
         total
-    }
+    },
+    ...(Array.isArray(localidades)
+      ? {
+          localidades: localidades
+            .map((localidade) => ({
+              cidade: normalizarBusca(localidade?.cidade, 100),
+              estado: String(localidade?.estado || "")
+                .trim()
+                .toUpperCase(),
+              total_negocios: Number(localidade?.total_negocios || 0)
+            }))
+            .filter((localidade) =>
+              localidade.cidade && /^[A-Z]{2}$/.test(localidade.estado))
+        }
+      : {})
   };
 }
 

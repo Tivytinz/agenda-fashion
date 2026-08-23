@@ -19,6 +19,12 @@ describe(
       }
     );
 
+    beforeEach(() => {
+      repository
+        .listarLocalidadesPublicas
+        .mockResolvedValue([]);
+    });
+
     test(
       "entrega os serviços junto de cada negócio",
       async () => {
@@ -210,6 +216,57 @@ describe(
         });
         expect(resultado.negocios[0])
           .not.toHaveProperty("total_resultados");
+      }
+    );
+
+    test(
+      "entrega apenas localidades publicadas e normalizadas na primeira página",
+      async () => {
+        repository
+          .listarNegociosPublicos
+          .mockResolvedValue([]);
+        repository
+          .listarLocalidadesPublicas
+          .mockResolvedValue([
+            {
+              cidade: " Goiânia ",
+              estado: "go",
+              total_negocios: "3"
+            },
+            {
+              cidade: "Cidade inválida",
+              estado: "Goiás",
+              total_negocios: "1"
+            }
+          ]);
+
+        const resultado =
+          await service.listarNegociosPublicos();
+
+        expect(resultado.localidades).toEqual([
+          {
+            cidade: "Goiânia",
+            estado: "GO",
+            total_negocios: 3
+          }
+        ]);
+      }
+    );
+
+    test(
+      "não repete a consulta de localidades ao carregar páginas seguintes",
+      async () => {
+        repository
+          .listarNegociosPublicos
+          .mockResolvedValue([]);
+
+        const resultado = await service.listarNegociosPublicos({
+          pagina: "2"
+        });
+
+        expect(repository.listarLocalidadesPublicas)
+          .not.toHaveBeenCalled();
+        expect(resultado).not.toHaveProperty("localidades");
       }
     );
 

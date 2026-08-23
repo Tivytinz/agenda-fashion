@@ -96,7 +96,7 @@ export function BusinessCard({ business }) {
 
           <span
             className={
-              rating.label === "Novo"
+              rating.empty
                 ? "rating rating-new"
                 : "rating"
             }

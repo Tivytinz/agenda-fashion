@@ -105,6 +105,35 @@ describe("Edição completa de serviços", () => {
     );
   });
 
+  test("remove marcadores soltos no início do nome do serviço", async () => {
+    servicosRepository.buscarServicoDoNegocio.mockResolvedValue({
+      id: 18,
+      ativo: true,
+      categoria: "cilio",
+    });
+    servicosRepository.editarServico.mockResolvedValue({
+      id: 18,
+      nome: "Efeito clássico",
+      categoria: "cilio",
+    });
+
+    await servicosService.editarServico({
+      usuarioId: 1,
+      id: 18,
+      nome: " • Efeito clássico ",
+      descricao: "",
+      valor: 60,
+      duracaoMinutos: 60,
+      categoria: "cilio",
+      ativo: true,
+    });
+
+    expect(servicosRepository.editarServico).toHaveBeenCalledWith(
+      expect.objectContaining({ nome: "Efeito clássico" }),
+      client
+    );
+  });
+
   test("salva bronzeamento e adiciona a especialidade ao negócio", async () => {
     servicosRepository.buscarServicoDoNegocio.mockResolvedValue({
       id: 16,

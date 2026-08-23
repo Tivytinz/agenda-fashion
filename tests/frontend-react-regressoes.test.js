@@ -463,7 +463,7 @@ describe(
         expect(
           explorar
         ).toContain(
-          'aria-label="Categorias"'
+          'ariaLabel="Categorias"'
         );
 
         expect(

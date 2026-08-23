@@ -89,7 +89,9 @@ function normalizarDuracao(duracaoMinutos) {
 }
 
 function normalizarNome(nome) {
-  const valor = String(nome ?? "").trim();
+  const valor = String(nome ?? "")
+    .replace(/^[\s•·▪◦]+/u, "")
+    .trim();
 
   if (valor.length < 2 || valor.length > 120) {
     throw criarErro("Nome do serviço inválido.", 400);

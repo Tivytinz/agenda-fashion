@@ -81,6 +81,21 @@ const {
  *                       bairro:
  *                         type: string
  *                         example: Centro
+ *                 localidades:
+ *                   type: array
+ *                   description: Localidades com oferta publicada, retornadas na primeira página
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       cidade:
+ *                         type: string
+ *                         example: Goiânia
+ *                       estado:
+ *                         type: string
+ *                         example: GO
+ *                       total_negocios:
+ *                         type: integer
+ *                         example: 3
  */
 router.get(
   "/negocios-publicos",

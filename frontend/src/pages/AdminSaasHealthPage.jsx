@@ -207,7 +207,9 @@ function ProfileRow({ profile }) {
           <strong>
             {remainingStages === 0
               ? "Etapas concluídas"
-              : `Faltam ${remainingStages}`}
+              : remainingStages === 1
+                ? "Falta 1"
+                : `Faltam ${remainingStages}`}
           </strong>
           <span>{profile.progresso?.etapasConcluidas ?? 0} de 5 concluídas</span>
         </div>

@@ -64,8 +64,9 @@ export function formatRating(business) {
 
   if (reviews <= 0) {
     return {
-      label: "Novo",
-      ariaLabel: "Negócio novo, ainda sem avaliações"
+      label: "Sem avaliações",
+      ariaLabel: "Negócio ainda sem avaliações",
+      empty: true
     };
   }
 
@@ -75,7 +76,8 @@ export function formatRating(business) {
     label: `★ ${rating.toFixed(1)}`,
     ariaLabel: `${rating.toFixed(1)} de 5, ${reviews} ${
       reviews === 1 ? "avaliação" : "avaliações"
-    }`
+    }`,
+    empty: false
   };
 }
 

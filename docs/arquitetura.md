@@ -495,6 +495,12 @@ agenda da cliente e notificações
 O endpoint público deve aceitar autenticação opcional, nunca exigir login de
 quem apenas deseja agendar.
 
+A primeira página de `/negocios-publicos` também devolve as localidades que
+possuem negócio publicado e ao menos um serviço ativo. A home usa essa lista
+para o filtro manual de cidade, envia `cidade` e `estado` como parâmetros
+dedicados e mantém "Todo o Brasil" como padrão. A cidade de um resultado nunca
+deve ser tratada como localização detectada da cliente.
+
 ### 8.2 Agenda do negócio
 
 O dono acompanha a agenda geral do negócio.

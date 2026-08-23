@@ -437,7 +437,7 @@ export function AdminMarketingPage() {
   const summary = data.summary || {};
   const cards = [
     ["Sessões atribuídas", summary.sessoes ?? 0, "visitas com origem identificada"],
-    ["Campanhas", summary.campanhas ?? 0, "origem + mídia + campanha"],
+    ["Identidades rastreadas", summary.campanhas ?? 0, "combinações de origem, mídia e campanha"],
     ["Agendamentos iniciados", summary.agendamentosIniciados ?? 0, "entraram no fluxo"],
     [
       "Agendamentos concluídos",

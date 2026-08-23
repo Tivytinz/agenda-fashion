@@ -46,7 +46,7 @@ nav { display: flex; align-items: center; gap: 18px; }
 
 .button { display: inline-flex; min-height: 48px; align-items: center; justify-content: center; border: 1px solid var(--pink-600); border-radius: 12px; padding: 0 22px; color: #fff; background: var(--pink-600); font-weight: 800; text-decoration: none; cursor: pointer; transition: transform .15s ease, box-shadow .15s ease; }
 .button:hover { transform: translateY(-1px); box-shadow: 0 8px 18px rgb(197 36 107 / 22%); }
-.button:disabled { opacity: .45; cursor: not-allowed; transform: none; box-shadow: none; }
+.button:disabled { color: #75636c; border-color: #e0d3d8; background: #f2ecef; opacity: 1; cursor: not-allowed; transform: none; box-shadow: none; }
 .button-unavailable { color: var(--muted); border-color: var(--line); background: #f6f1f3; cursor: not-allowed; }
 .button-unavailable:hover { transform: none; box-shadow: none; }
 .button-small { min-height: 40px; padding-inline: 16px; border-radius: 10px; }
@@ -100,7 +100,7 @@ nav { display: flex; align-items: center; gap: 18px; }
 .business-card .card-footer .button { width: 100%; }
 .muted { color: var(--muted); }
 .rating { flex: 0 0 auto; border-radius: 999px; padding: 5px 8px; color: #7d4c00; background: #fff7db; font-size: .78rem; font-weight: 850; }
-.rating-new { color: var(--wine); background: var(--pink-50); }
+.rating-new { color: var(--wine); background: var(--pink-50); font-size: .7rem; white-space: nowrap; }
 
 .screen-state { display: grid; min-height: 220px; place-items: center; align-content: center; gap: 12px; border: 1px dashed var(--line); border-radius: 18px; padding: 30px; color: var(--muted); text-align: center; background: #fff; }
 .screen-state p { margin: 0; }

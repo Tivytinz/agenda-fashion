@@ -57,6 +57,7 @@ function renderExplore(pathname = "/") {
 
 beforeEach(() => {
   apiRequest.mockReset();
+  window.localStorage.clear();
 });
 
 afterEach(cleanup);
@@ -69,6 +70,15 @@ describe("catálogo público paginado", () => {
       page: 2
     })).toBe(
       "/negocios-publicos?pagina=2&limite=12&busca=manicure&categoria=unha"
+    );
+  });
+
+  it("envia cidade e UF somente quando a localização foi escolhida", () => {
+    expect(buildCatalogPath({
+      city: " Goiânia ",
+      state: "go"
+    })).toBe(
+      "/negocios-publicos?pagina=1&limite=12&cidade=Goi%C3%A2nia&estado=GO"
     );
   });
 
@@ -226,7 +236,7 @@ describe("catálogo público paginado", () => {
       "Nenhum serviço encontrado"
     )).not.toBeNull();
     expect(screen.getByRole("heading", {
-      name: "Profissionais em destaque"
+      name: "Profissionais no Agenda Fashion"
     })).not.toBeNull();
     expect(screen.getByText(
       "Nenhum negócio encontrado"
@@ -242,7 +252,7 @@ describe("catálogo público paginado", () => {
     renderExplore();
 
     expect(screen.getByRole("heading", {
-      name: "Beleza perto de você"
+      name: "Beleza para você"
     })).not.toBeNull();
     expect(screen.getByRole("region", {
       name: "Categorias em destaque"
@@ -341,6 +351,27 @@ describe("catálogo público paginado", () => {
     expect(screen.queryByText(/opção encontrada/i)).toBeNull();
   });
 
+  it("mantém as vitrines de serviços na ordem oficial das categorias", async () => {
+    apiRequest.mockResolvedValue({
+      negocios: [{
+        ...business(1, "Studio Um"),
+        servicos: [
+          { id: 13, nome: "Design", categoria: "sobrancelha", valor: 50 },
+          { id: 11, nome: "Manicure", categoria: "unha", valor: 45 },
+          { id: 12, nome: "Corte", categoria: "cabelo", valor: 70 }
+        ]
+      }],
+      paginacao: { total: 1, tem_mais: false }
+    });
+
+    const { container } = renderExplore();
+
+    await screen.findByRole("heading", { name: "Manicure" });
+    expect([...container.querySelectorAll(".service-rail-title")]
+      .map((heading) => heading.textContent))
+      .toEqual(["Unhas", "Cabelos", "Sobrancelhas"]);
+  });
+
   it("organiza serviços em vitrines navegáveis sem filtros extras", async () => {
     apiRequest.mockResolvedValue({
       negocios: [{
@@ -373,7 +404,9 @@ describe("catálogo público paginado", () => {
     expect(screen.queryByText("Deslize →")).toBeNull();
     expect(screen.getByRole("heading", { name: "Alongamento" })).not.toBeNull();
     expect(screen.queryByText("Agenda online")).toBeNull();
-    expect(screen.queryByRole("combobox")).toBeNull();
+    expect(screen.getByRole("combobox", {
+      name: "Escolher localização"
+    })).not.toBeNull();
     expect(screen.queryByRole("button", { name: "Usar localização" })).toBeNull();
   });
 
@@ -391,12 +424,74 @@ describe("catálogo público paginado", () => {
 
     await screen.findAllByText("Rio de Janeiro, RJ");
     expect(container.querySelector(".home-title-with-icon")?.textContent)
-      .toContain("📍Profissionais em destaque");
-    expect(container.querySelector(".home-location-pill")?.textContent)
-      .toBe("📍Todo o Brasil");
+      .toContain("📍Profissionais no Agenda Fashion");
+    expect(screen.getByRole("combobox", {
+      name: "Escolher localização"
+    }).value).toBe("");
     expect(container.querySelector(".home-location-pill")?.textContent)
       .not.toContain("Rio de Janeiro");
     expect(container.querySelector(".home-location-pill")?.textContent)
       .not.toContain("⌄");
+  });
+
+  it("filtra por uma cidade escolhida sem fingir detectar a localização", async () => {
+    const user = userEvent.setup();
+
+    apiRequest
+      .mockResolvedValueOnce({
+        negocios: [business(1, "Studio Brasil")],
+        localidades: [
+          { cidade: "Goiânia", estado: "GO", total_negocios: 1 },
+          { cidade: "Rio de Janeiro", estado: "RJ", total_negocios: 1 }
+        ],
+        paginacao: { total: 1, tem_mais: false }
+      })
+      .mockResolvedValueOnce({
+        negocios: [{
+          ...business(2, "Studio Goiânia"),
+          cidade: "Goiânia",
+          estado: "GO"
+        }],
+        localidades: [
+          { cidade: "Goiânia", estado: "GO", total_negocios: 1 },
+          { cidade: "Rio de Janeiro", estado: "RJ", total_negocios: 1 }
+        ],
+        paginacao: { total: 1, tem_mais: false }
+      });
+
+    renderExplore();
+
+    await screen.findByRole("heading", { name: "Studio Brasil" });
+    await user.selectOptions(
+      screen.getByRole("combobox", { name: "Escolher localização" }),
+      "Goiânia::GO"
+    );
+
+    expect(await screen.findByRole("heading", {
+      name: "Profissionais em Goiânia"
+    })).not.toBeNull();
+    await waitFor(() => {
+      expect(apiRequest).toHaveBeenLastCalledWith(
+        expect.stringContaining("cidade=Goi%C3%A2nia&estado=GO"),
+        expect.objectContaining({ signal: expect.any(AbortSignal) })
+      );
+    });
+    expect(window.localStorage.getItem("af_catalog_location"))
+      .toBe("Goiânia::GO");
+  });
+
+  it("leva o botão Como funciona para uma explicação real", async () => {
+    apiRequest.mockResolvedValue({
+      negocios: [],
+      paginacao: { total: 0, tem_mais: false }
+    });
+
+    renderExplore();
+
+    expect(screen.getAllByRole("link", { name: /Como funciona/ })[0]
+      .getAttribute("href")).toBe("#como-funciona");
+    expect(screen.getByRole("heading", { name: "Como funciona" }))
+      .not.toBeNull();
+    expect(screen.getByText("Selecione o horário")).not.toBeNull();
   });
 });

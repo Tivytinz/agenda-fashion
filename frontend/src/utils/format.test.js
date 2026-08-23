@@ -39,8 +39,10 @@ describe("formatadores do frontend", () => {
       .toBe("Centro");
   });
 
-  test("mostra Novo quando ainda não há avaliações", () => {
-    expect(formatRating({ total_avaliacoes: 0 }).label).toBe("Novo");
+  test("não chama de novo um negócio apenas por ainda não ter avaliações", () => {
+    expect(formatRating({ total_avaliacoes: 0 }).label)
+      .toBe("Sem avaliações");
+    expect(formatRating({ total_avaliacoes: 0 }).empty).toBe(true);
     expect(formatRating({ total_avaliacoes: 2, media_avaliacoes: 4.5 }).label)
       .toBe("★ 4.5");
   });

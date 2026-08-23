@@ -93,8 +93,10 @@ AF nao demonstra valor para os negocios.
   redundante "Buscar servicos". O banner nao possui campo de busca interno e
   funciona como carrossel navegavel.
 - A home nao pode inferir a localizacao da cliente pela cidade do primeiro
-  negocio retornado. Sem uma localizacao escolhida ou autorizada, usar contexto
-  nacional ("Todo o Brasil") e nao afirmar que os resultados estao perto.
+  negocio retornado. A cliente escolhe manualmente entre "Todo o Brasil" e as
+  cidades com oferta publicada; a escolha fica salva no navegador. Sem uma
+  localizacao escolhida ou autorizada, usar contexto nacional e nao afirmar
+  que os resultados estao perto.
 - Cada categoria da home possui uma foto panoramica propria para o carrossel.
   As fotos editoriais ficam somente no banner; os cards de navegacao, perfis e
   servicos sem foto cadastrada mantem o fallback antigo com o icone da

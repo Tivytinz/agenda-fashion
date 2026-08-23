@@ -149,6 +149,9 @@ describe("AdminMarketingPage", () => {
       await screen.findByRole("heading", { name: "Campanhas e tráfego pago" })
     ).not.toBeNull();
     expect(screen.getAllByText("100").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getByText("Identidades rastreadas")).not.toBeNull();
+    expect(screen.getByText("combinações de origem, mídia e campanha"))
+      .not.toBeNull();
     expect(screen.getAllByText("goiania_cilios").length).toBeGreaterThanOrEqual(2);
     expect(screen.getByText("Studio Bella")).not.toBeNull();
     expect(screen.getByText("Meta Cílios")).not.toBeNull();

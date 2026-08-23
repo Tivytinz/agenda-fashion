@@ -177,14 +177,14 @@ export function AppHeader() {
               </span>
 
               <label className="sr-only" htmlFor="header-search-input">
-                Busque por serviço ou profissional
+                Busque por serviço, profissional ou cidade
               </label>
 
               <input
                 id="header-search-input"
                 onChange={(event) =>
                   setSearch(event.target.value)}
-                placeholder="Busque por serviço ou profissional"
+                placeholder="Busque por serviço, profissional ou cidade"
                 type="search"
                 value={search}
               />

@@ -228,6 +228,38 @@ async function listarNegociosPublicos({
   return resultado.rows;
 }
 
+async function listarLocalidadesPublicas() {
+  const resultado = await db.query(`
+    SELECT
+      MIN(BTRIM(n.cidade)) AS cidade,
+      UPPER(BTRIM(n.estado)) AS estado,
+      COUNT(*)::INT AS total_negocios
+
+    FROM negocios n
+
+    WHERE n.ativo = TRUE
+      AND n.publicado = TRUE
+      AND NULLIF(BTRIM(n.cidade), '') IS NOT NULL
+      AND UPPER(BTRIM(n.estado)) ~ '^[A-Z]{2}$'
+      AND EXISTS (
+        SELECT 1
+        FROM servicos_negocio s
+        WHERE s.negocio_id = n.id
+          AND s.ativo = TRUE
+      )
+
+    GROUP BY
+      LOWER(BTRIM(n.cidade)),
+      UPPER(BTRIM(n.estado))
+
+    ORDER BY
+      MIN(BTRIM(n.cidade)) ASC,
+      UPPER(BTRIM(n.estado)) ASC
+  `);
+
+  return resultado.rows;
+}
+
 async function buscarNegocioPorSlug(
   slug
 ) {
@@ -398,6 +430,7 @@ async function buscarProfissionais(
 
 module.exports = {
   listarNegociosPublicos,
+  listarLocalidadesPublicas,
   buscarNegocioPorSlug,
   incrementarVisita,
   buscarServicos,

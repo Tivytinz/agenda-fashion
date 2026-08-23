@@ -1,4 +1,5 @@
 import {
+  Children,
   useCallback,
   useEffect,
   useMemo,
@@ -42,10 +43,20 @@ const CATEGORY_SPOTLIGHTS = [
   ["maquiagem", "Maquiagem", "Produções especiais"]
 ];
 
+const CATEGORY_CODES = new Set(
+  CATEGORY_SPOTLIGHTS.map(([value]) => value)
+);
+
+const CATEGORY_ORDER = new Map(
+  CATEGORY_SPOTLIGHTS.map(([, label], index) => [label, index])
+);
+
+const LOCATION_STORAGE_KEY = "af_catalog_location";
+
 const HERO_SLIDES = [
   {
     image: salonHero,
-    title: "Beleza perto de você",
+    title: "Beleza para você",
     subtitle: "Cabelos do seu jeito",
     description: "Encontre cortes, tratamentos e profissionais para cuidar dos seus cabelos.",
     category: "cabelo"
@@ -61,7 +72,7 @@ const HERO_SLIDES = [
     image: skincareHero,
     title: "Seu momento de cuidado",
     subtitle: "Estética com praticidade",
-    description: "Conheça tratamentos, profissionais e horários disponíveis perto de você.",
+    description: "Conheça tratamentos, profissionais e horários disponíveis no Agenda Fashion.",
     category: "estetica"
   },
   {
@@ -82,7 +93,7 @@ const HERO_SLIDES = [
     image: sobrancelhasHero,
     title: "Expressão em cada detalhe",
     subtitle: "Sobrancelhas que valorizam você",
-    description: "Descubra profissionais de design e encontre o melhor horário perto de você.",
+    description: "Descubra profissionais de design e encontre o melhor horário para você.",
     category: "sobrancelha"
   },
   {
@@ -99,6 +110,8 @@ const PAGE_SIZE = 12;
 export function buildCatalogPath({
   query = "",
   category = "",
+  city = "",
+  state = "",
   page = 1
 } = {}) {
   const params = new URLSearchParams({
@@ -114,7 +127,50 @@ export function buildCatalogPath({
     params.set("categoria", category);
   }
 
+  if (city.trim()) {
+    params.set("cidade", city.trim());
+  }
+
+  if (/^[A-Z]{2}$/.test(state.trim().toUpperCase())) {
+    params.set("estado", state.trim().toUpperCase());
+  }
+
   return `/negocios-publicos?${params.toString()}`;
+}
+
+function locationKey(city, state) {
+  const normalizedCity = String(city || "").trim();
+  const normalizedState = String(state || "").trim().toUpperCase();
+
+  if (!normalizedCity || !/^[A-Z]{2}$/.test(normalizedState)) {
+    return "";
+  }
+
+  return `${normalizedCity}::${normalizedState}`;
+}
+
+function parseLocationKey(value) {
+  const key = String(value || "");
+  const separator = key.lastIndexOf("::");
+
+  if (separator < 1) {
+    return { city: "", state: "" };
+  }
+
+  const city = key.slice(0, separator).trim();
+  const state = key.slice(separator + 2).trim().toUpperCase();
+
+  return /^[A-Z]{2}$/.test(state) && city
+    ? { city, state }
+    : { city: "", state: "" };
+}
+
+function storedLocationKey() {
+  try {
+    return window.localStorage.getItem(LOCATION_STORAGE_KEY) || "";
+  } catch {
+    return "";
+  }
 }
 
 export function diversifyServices(services = []) {
@@ -185,11 +241,115 @@ function CategorySpotlightCard({
   );
 }
 
+function HorizontalRail({
+  ariaLabel,
+  children,
+  className
+}) {
+  const trackRef = useRef(null);
+  const itemCount = Children.count(children);
+  const [scrollState, setScrollState] = useState({
+    previous: false,
+    next: false
+  });
+
+  const updateScrollState = useCallback(() => {
+    const track = trackRef.current;
+
+    if (!track) return;
+
+    const maximum = Math.max(track.scrollWidth - track.clientWidth, 0);
+
+    setScrollState({
+      previous: track.scrollLeft > 4,
+      next: maximum > 4 && track.scrollLeft < maximum - 4
+    });
+  }, []);
+
+  useEffect(() => {
+    updateScrollState();
+    window.addEventListener("resize", updateScrollState);
+
+    const observer = typeof ResizeObserver === "function"
+      ? new ResizeObserver(updateScrollState)
+      : null;
+
+    if (observer && trackRef.current) {
+      observer.observe(trackRef.current);
+    }
+
+    return () => {
+      window.removeEventListener("resize", updateScrollState);
+      observer?.disconnect();
+    };
+  }, [itemCount, updateScrollState]);
+
+  function move(direction) {
+    const track = trackRef.current;
+
+    if (!track) return;
+
+    const distance = Math.max(track.clientWidth * 0.82, 280) * direction;
+
+    if (typeof track.scrollBy === "function") {
+      track.scrollBy({ left: distance, behavior: "smooth" });
+    } else {
+      track.scrollLeft += distance;
+    }
+
+    window.requestAnimationFrame(updateScrollState);
+  }
+
+  return (
+    <div className="home-rail-shell">
+      {scrollState.previous && (
+        <button
+          aria-label={`Voltar em ${ariaLabel.toLocaleLowerCase("pt-BR")}`}
+          className="home-rail-control previous"
+          onClick={() => move(-1)}
+          type="button"
+        >
+          ‹
+        </button>
+      )}
+
+      <div
+        aria-label={ariaLabel}
+        className={className}
+        onScroll={updateScrollState}
+        ref={trackRef}
+        tabIndex={scrollState.previous || scrollState.next ? 0 : undefined}
+      >
+        {children}
+      </div>
+
+      {scrollState.next && (
+        <button
+          aria-label={`Avançar em ${ariaLabel.toLocaleLowerCase("pt-BR")}`}
+          className="home-rail-control next"
+          onClick={() => move(1)}
+          type="button"
+        >
+          ›
+        </button>
+      )}
+    </div>
+  );
+}
+
 export function ExplorePage() {
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
 
   const requestedQuery =
     searchParams.get("busca") || "";
+
+  const requestedCategory =
+    searchParams.get("categoria") || "";
+
+  const requestedLocationKey = locationKey(
+    searchParams.get("cidade"),
+    searchParams.get("estado")
+  );
 
   const [businesses, setBusinesses] =
     useState([]);
@@ -201,7 +361,22 @@ export function ExplorePage() {
     useState(0);
 
   const [category, setCategory] =
-    useState("");
+    useState(
+      CATEGORY_CODES.has(requestedCategory)
+        ? requestedCategory
+        : ""
+    );
+
+  const [selectedLocationKey, setSelectedLocationKey] =
+    useState(() => {
+      if (requestedLocationKey) return requestedLocationKey;
+
+      const stored = parseLocationKey(storedLocationKey());
+      return locationKey(stored.city, stored.state);
+    });
+
+  const [locations, setLocations] =
+    useState([]);
 
   const [status, setStatus] =
     useState("loading");
@@ -220,6 +395,7 @@ export function ExplorePage() {
 
   const latestRequest = useRef(0);
   const heroTouchStart = useRef(null);
+  const selectedLocation = parseLocationKey(selectedLocationKey);
 
   const loadBusinesses = useCallback(async ({
     requestedPage = 1,
@@ -243,6 +419,8 @@ export function ExplorePage() {
         buildCatalogPath({
           query,
           category,
+          city: selectedLocation.city,
+          state: selectedLocation.state,
           page: requestedPage
         }),
         { signal }
@@ -268,6 +446,10 @@ export function ExplorePage() {
       setHasMore(
         Boolean(data.paginacao?.tem_mais)
       );
+
+      if (!append && Array.isArray(data.localidades)) {
+        setLocations(data.localidades);
+      }
       setError("");
 
       setStatus("ready");
@@ -291,11 +473,34 @@ export function ExplorePage() {
         setLoadingMore(false);
       }
     }
-  }, [category, query]);
+  }, [category, query, selectedLocation.city, selectedLocation.state]);
 
   useEffect(() => {
     setQuery(requestedQuery);
   }, [requestedQuery]);
+
+  useEffect(() => {
+    setCategory(
+      CATEGORY_CODES.has(requestedCategory)
+        ? requestedCategory
+        : ""
+    );
+  }, [requestedCategory]);
+
+  useEffect(() => {
+    if (requestedLocationKey) {
+      setSelectedLocationKey(requestedLocationKey);
+
+      try {
+        window.localStorage.setItem(
+          LOCATION_STORAGE_KEY,
+          requestedLocationKey
+        );
+      } catch {
+        // O filtro da URL continua funcionando sem armazenamento local.
+      }
+    }
+  }, [requestedLocationKey]);
 
   useEffect(() => {
     const controller =
@@ -421,8 +626,37 @@ export function ExplorePage() {
       groups.set(label, group);
     });
 
-    return [...groups.entries()];
+    return [...groups.entries()].sort(
+      ([labelA], [labelB]) =>
+        (CATEGORY_ORDER.get(labelA) ?? Number.MAX_SAFE_INTEGER) -
+        (CATEGORY_ORDER.get(labelB) ?? Number.MAX_SAFE_INTEGER) ||
+        labelA.localeCompare(labelB, "pt-BR")
+    );
   }, [filteredServices]);
+
+  const locationOptions = useMemo(() => {
+    const options = new Map();
+
+    locations.forEach((location) => {
+      const key = locationKey(location?.cidade, location?.estado);
+      if (key) options.set(key, location);
+    });
+
+    if (selectedLocationKey && !options.has(selectedLocationKey)) {
+      options.set(selectedLocationKey, {
+        cidade: selectedLocation.city,
+        estado: selectedLocation.state,
+        total_negocios: 0
+      });
+    }
+
+    return [...options.entries()].sort(([, locationA], [, locationB]) =>
+      `${locationA.cidade}-${locationA.estado}`.localeCompare(
+        `${locationB.cidade}-${locationB.estado}`,
+        "pt-BR"
+      )
+    );
+  }, [locations, selectedLocation.city, selectedLocation.state, selectedLocationKey]);
 
   const sortedBusinesses =
     useMemo(() => {
@@ -461,6 +695,16 @@ export function ExplorePage() {
   function chooseCategory(value) {
     setCategory(value);
 
+    const nextParams = new URLSearchParams(searchParams);
+
+    if (value) {
+      nextParams.set("categoria", value);
+    } else {
+      nextParams.delete("categoria");
+    }
+
+    setSearchParams(nextParams, { replace: true });
+
     track("categoria_selecionada", {
       page: "inicio",
       mission: "descobrir_servico",
@@ -468,6 +712,34 @@ export function ExplorePage() {
         categoria: value || "todos"
       }
     });
+  }
+
+  function chooseLocation(value) {
+    const nextLocation = parseLocationKey(value);
+    const nextKey = locationKey(nextLocation.city, nextLocation.state);
+    const nextParams = new URLSearchParams(searchParams);
+
+    setSelectedLocationKey(nextKey);
+
+    if (nextKey) {
+      nextParams.set("cidade", nextLocation.city);
+      nextParams.set("estado", nextLocation.state);
+    } else {
+      nextParams.delete("cidade");
+      nextParams.delete("estado");
+    }
+
+    setSearchParams(nextParams, { replace: true });
+
+    try {
+      if (nextKey) {
+        window.localStorage.setItem(LOCATION_STORAGE_KEY, nextKey);
+      } else {
+        window.localStorage.removeItem(LOCATION_STORAGE_KEY);
+      }
+    } catch {
+      // A seleção continua válida nesta sessão mesmo sem armazenamento local.
+    }
   }
 
   function showHero(index) {
@@ -637,8 +909,8 @@ export function ExplorePage() {
 
         </div>
 
-        <div
-          aria-label="Categorias"
+        <HorizontalRail
+          ariaLabel="Categorias"
           className="home-category-rail"
         >
           {CATEGORY_SPOTLIGHTS.map(([
@@ -655,7 +927,7 @@ export function ExplorePage() {
               subtitle={subtitle}
             />
           ))}
-        </div>
+        </HorizontalRail>
       </section>
 
       {status === "ready" && (
@@ -668,21 +940,36 @@ export function ExplorePage() {
               <span aria-hidden="true">📍</span>
 
               <h2 id="businesses-title">
-                Profissionais em destaque
+                {selectedLocation.city
+                  ? `Profissionais em ${selectedLocation.city}`
+                  : "Profissionais no Agenda Fashion"}
               </h2>
             </div>
 
-            <span className="home-location-pill">
+            <label className="home-location-pill">
               <span aria-hidden="true">📍</span>
-              Todo o Brasil
-            </span>
+              <span className="sr-only">Escolher localização</span>
+              <select
+                aria-label="Escolher localização"
+                onChange={(event) => chooseLocation(event.target.value)}
+                value={selectedLocationKey}
+              >
+                <option value="">Todo o Brasil</option>
+                {locationOptions.map(([key, location]) => (
+                  <option key={key} value={key}>
+                    {location.cidade}, {location.estado}
+                  </option>
+                ))}
+              </select>
+            </label>
           </div>
 
           {sortedBusinesses.length > 0 ? (
-            <div
-              aria-label="Profissionais e negócios em destaque"
+            <HorizontalRail
+              ariaLabel={selectedLocation.city
+                ? `Profissionais e negócios em ${selectedLocation.city}`
+                : "Profissionais e negócios no Agenda Fashion"}
               className="home-business-rail"
-              tabIndex={sortedBusinesses.length > 1 ? 0 : undefined}
             >
               {sortedBusinesses.map(
                 (business) => (
@@ -692,7 +979,7 @@ export function ExplorePage() {
                   />
                 )
               )}
-            </div>
+            </HorizontalRail>
           ) : (
             <EmptyState title="Nenhum negócio encontrado">
               Tente outra categoria, serviço ou localização.
@@ -732,7 +1019,7 @@ export function ExplorePage() {
       <section
         aria-labelledby="services-title"
         className="container content-section home-catalog-section"
-        id="como-funciona"
+        id="servicos"
       >
         <div className="home-section-heading">
           <div>
@@ -784,10 +1071,9 @@ export function ExplorePage() {
 
                   </div>
 
-                  <div
-                    aria-label={`Serviços de ${label}`}
+                  <HorizontalRail
+                    ariaLabel={`Serviços de ${label}`}
                     className="service-rail-track"
-                    tabIndex={group.length > 1 ? 0 : undefined}
                   >
                     {group.map((service) => (
                       <ServiceCard
@@ -795,11 +1081,48 @@ export function ExplorePage() {
                         key={`${service.negocio_id}-${service.id}`}
                       />
                     ))}
-                  </div>
+                  </HorizontalRail>
                 </section>
               ))}
             </div>
           )}
+      </section>
+
+      <section
+        aria-labelledby="how-it-works-title"
+        className="container content-section home-how-it-works"
+        id="como-funciona"
+      >
+        <div className="home-section-heading">
+          <div>
+            <p className="eyebrow">Agendamento simples</p>
+            <h2 id="how-it-works-title">Como funciona</h2>
+          </div>
+        </div>
+
+        <ol className="home-how-it-works-steps">
+          <li>
+            <span aria-hidden="true">1</span>
+            <div>
+              <strong>Escolha o serviço</strong>
+              <p>Compare opções, valores e profissionais.</p>
+            </div>
+          </li>
+          <li>
+            <span aria-hidden="true">2</span>
+            <div>
+              <strong>Selecione o horário</strong>
+              <p>Veja a disponibilidade real e escolha o melhor momento.</p>
+            </div>
+          </li>
+          <li>
+            <span aria-hidden="true">3</span>
+            <div>
+              <strong>Confirme o agendamento</strong>
+              <p>Acompanhe tudo pelo AF e receba os avisos autorizados.</p>
+            </div>
+          </li>
+        </ol>
       </section>
     </main>
   );
