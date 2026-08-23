@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { apiRequest } from "../api/client";
+import { ConfirmationIcon } from "../components/ConfirmationIcon";
 import { EmptyState, ErrorState, LoadingState } from "../components/ScreenState";
 import {
   getAgendaEntityName,
@@ -22,7 +23,8 @@ function getStatusLabel(status) {
 
 function getDatePageSize() {
   if (typeof window === "undefined") return 5;
-  if (window.innerWidth >= 1180) return 5;
+  if (window.innerWidth >= 1440) return 6;
+  if (window.innerWidth >= 1024) return 5;
   if (window.innerWidth >= 920) return 4;
   if (window.innerWidth >= 680) return 3;
   return 2;
@@ -39,6 +41,25 @@ function formatAgendaDate(value) {
   const compact = formatDate(value).replace(" de ", " ");
   if (value !== getLocalDateKey()) return compact;
   return `Hoje, ${compact.replace(/^[^,]+,\s*/, "")}`;
+}
+
+function LockIcon() {
+  return (
+    <svg
+      aria-hidden="true"
+      className="slot-lock-icon"
+      fill="none"
+      focusable="false"
+      stroke="currentColor"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth="2"
+      viewBox="0 0 24 24"
+    >
+      <rect x="5" y="10" width="14" height="10" rx="2" />
+      <path d="M8 10V7a4 4 0 0 1 8 0v3" />
+    </svg>
+  );
 }
 
 export function AgendaWorkspacePage({ owner = false }) {
@@ -79,6 +100,12 @@ export function AgendaWorkspacePage({ owner = false }) {
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
   }, []);
+
+  useEffect(() => {
+    if (!message) return undefined;
+    const timeout = window.setTimeout(() => setMessage(""), 2800);
+    return () => window.clearTimeout(timeout);
+  }, [message]);
 
   const dates = getValidAgendaDays(data?.agenda);
   const activeDay = dates.find((day) => day.data === selectedDate) || dates[0];
@@ -210,7 +237,13 @@ export function AgendaWorkspacePage({ owner = false }) {
           </section>
 
           {error && <p className="form-error" role="alert">{error}</p>}
-          {message && <p className="form-success" role="status">{message}</p>}
+          {message && (
+            <div className="agenda-feedback-toast" role="status">
+              <ConfirmationIcon className="agenda-feedback-icon" />
+              <span>{message}</span>
+              <button aria-label="Fechar aviso" onClick={() => setMessage("")} type="button">×</button>
+            </div>
+          )}
 
           {owner && professionals.length === 0 ? (
             <EmptyState title="Nenhuma profissional disponível neste dia">
@@ -243,7 +276,10 @@ export function AgendaWorkspacePage({ owner = false }) {
                     type="button"
                   >
                     <strong>{String(slot.hora).slice(0, 5)}</strong>
-                    <span>{statusLabel}</span>
+                    <span className="slot-status">
+                      {slot.status === "bloqueado" && !isUpdating && <LockIcon />}
+                      <span>{statusLabel}</span>
+                    </span>
                     {(client || service) && <small>{client || "Cliente"} · {service || "Serviço"}</small>}
                   </button>
                 );
