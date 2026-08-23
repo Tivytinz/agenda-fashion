@@ -18,7 +18,7 @@ export function FlowSteps({ current, steps = DEFAULT_STEPS }) {
 
           return (
             <li className={state} key={label} aria-current={step === current ? "step" : undefined}>
-              <span>{step}</span>
+              <span aria-hidden="true">{state === "done" ? "✓" : step}</span>
               <small>{label}</small>
             </li>
           );
