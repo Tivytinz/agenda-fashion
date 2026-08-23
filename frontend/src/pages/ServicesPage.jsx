@@ -51,6 +51,13 @@ async function uploadImage(path, file) {
   return apiRequest(path, { method: "POST", body });
 }
 
+function samePhoto(photo, fotoUrl, fotoPublicId) {
+  if (fotoPublicId && photo?.foto_public_id) {
+    return fotoPublicId === photo.foto_public_id;
+  }
+  return Boolean(fotoUrl && photo?.foto_url && fotoUrl === photo.foto_url);
+}
+
 export function ServicesPage() {
   const location = useLocation();
   const navigate = useNavigate();
@@ -100,9 +107,8 @@ export function ServicesPage() {
   }
 
   return (
-    <main className="workspace-page">
+    <main className="workspace-page services-management-page">
       <div>
-        <BackLink to="/painel">Voltar à visão geral</BackLink>
         <header className="workspace-heading">
           <div>
             <p className="eyebrow">Seu catálogo</p>
@@ -128,14 +134,22 @@ export function ServicesPage() {
       {services?.length > 0 && (
         <section className="management-grid">
           {services.map((service) => (
-            <article className="management-card" key={service.id}>
+            <article className="management-card service-management-card" key={service.id}>
               <div className="service-cover">
                 <MediaThumb
                   alt={`Capa do serviço ${service.nome}`}
-                  className="management-service-media"
+                  className={`management-service-media service-category-${service.categoria || "outro"}`}
                   emoji="✦"
                   src={service.foto_url}
                 />
+                {!service.foto_url && (
+                  <Link
+                    className="service-cover-empty-action"
+                    to={`/painel/servicos/${service.id}/editar`}
+                  >
+                    Adicionar foto
+                  </Link>
+                )}
               </div>
               <div className="management-card-body">
                 <span className={service.ativo === false ? "status-badge status-cancelado" : "status-badge status-agendado"}>
@@ -197,6 +211,21 @@ export function ServiceEditorPage() {
   const [mediaMessage, setMediaMessage] = useState("");
   const [error, setError] = useState("");
   const coverPreview = useMemo(() => cover ? URL.createObjectURL(cover) : "", [cover]);
+  const galleryItems = useMemo(() => {
+    if (!form.foto_url || gallery.some((photo) => samePhoto(photo, form.foto_url, form.foto_public_id))) {
+      return gallery;
+    }
+
+    return [
+      {
+        id: "current-cover",
+        foto_url: form.foto_url,
+        foto_public_id: form.foto_public_id,
+        virtualCover: true
+      },
+      ...gallery
+    ];
+  }, [form.foto_public_id, form.foto_url, gallery]);
 
   useEffect(() => () => {
     if (coverPreview) URL.revokeObjectURL(coverPreview);
@@ -229,10 +258,7 @@ export function ServiceEditorPage() {
   }, [editing, id]);
 
   function isGalleryCover(photo) {
-    if (form.foto_public_id && photo.foto_public_id) {
-      return form.foto_public_id === photo.foto_public_id;
-    }
-    return Boolean(form.foto_url && photo.foto_url && form.foto_url === photo.foto_url);
+    return samePhoto(photo, form.foto_url, form.foto_public_id);
   }
 
   function scrollGallery(direction) {
@@ -328,17 +354,29 @@ export function ServiceEditorPage() {
   }
 
   async function chooseGalleryCover(photo) {
-    if (!persistedId || definingCoverId || isGalleryCover(photo)) return;
+    if (!persistedId || definingCoverId || isGalleryCover(photo) || photo.virtualCover) return;
+
+    const previousCover = {
+      foto_url: form.foto_url,
+      foto_public_id: form.foto_public_id
+    };
+
     setDefiningCoverId(photo.id);
     setError("");
     setMediaMessage("");
+    setCover(null);
+    setForm((current) => ({
+      ...current,
+      foto_url: photo.foto_url || "",
+      foto_public_id: photo.foto_public_id || ""
+    }));
+
     try {
       const result = await apiRequest(`/servicos/${persistedId}/capa`, {
         method: "PUT",
         body: { foto_id: photo.id }
       });
       const service = result.servico || {};
-      setCover(null);
       setForm((current) => ({
         ...current,
         foto_url: service.foto_url || photo.foto_url || "",
@@ -346,6 +384,11 @@ export function ServiceEditorPage() {
       }));
       setMediaMessage("Foto escolhida como capa do serviço.");
     } catch (requestError) {
+      setForm((current) => ({
+        ...current,
+        foto_url: previousCover.foto_url,
+        foto_public_id: previousCover.foto_public_id
+      }));
       setError(requestError.message);
     } finally {
       setDefiningCoverId(null);
@@ -353,6 +396,7 @@ export function ServiceEditorPage() {
   }
 
   async function removeGalleryPhoto(photo) {
+    if (photo.virtualCover) return;
     const wasCover = isGalleryCover(photo);
     setRemovingPhotoId(photo.id);
     setError("");
@@ -469,8 +513,7 @@ export function ServiceEditorPage() {
               <small>JPG, PNG ou WEBP · até 5 MB por foto.</small>
             </div>
             <label className="button button-secondary button-small service-gallery-upload-button">
-              <span aria-hidden="true">＋</span>
-              Adicionar fotos
+              ＋ Adicionar fotos
               <input
                 accept="image/jpeg,image/png,image/webp"
                 aria-label="Adicionar fotos à galeria"
@@ -485,14 +528,14 @@ export function ServiceEditorPage() {
             <p className="upload-selection">{galleryFiles.length} {galleryFiles.length === 1 ? "foto selecionada" : "fotos selecionadas"}.</p>
           )}
           {mediaMessage && <p className="service-media-success" role="status">{mediaMessage}</p>}
-          {gallery.length > 0 && (
+          {galleryItems.length > 0 && (
             <div className="service-gallery-picker-wrap">
               <div className="service-gallery-heading">
                 <div>
                   <strong>Galeria atual</strong>
-                  <small>{gallery.length} {gallery.length === 1 ? "foto" : "fotos"}</small>
+                  <small>{galleryItems.length} {galleryItems.length === 1 ? "foto" : "fotos"}</small>
                 </div>
-                {gallery.length > 1 && (
+                {galleryItems.length > 1 && (
                   <div className="service-gallery-nav" aria-label="Navegação da galeria">
                     <button aria-label="Fotos anteriores" onClick={() => scrollGallery(-1)} type="button">‹</button>
                     <button aria-label="Próximas fotos" onClick={() => scrollGallery(1)} type="button">›</button>
@@ -500,23 +543,25 @@ export function ServiceEditorPage() {
                 )}
               </div>
               <div className="service-gallery service-gallery-picker" aria-label="Galeria atual" ref={galleryRef}>
-                {gallery.map((photo) => {
+                {galleryItems.map((photo) => {
                   const currentCover = isGalleryCover(photo);
                   const choosing = definingCoverId === photo.id;
                   return (
                     <figure className={currentCover ? "is-cover" : ""} key={photo.id}>
                       <div className="service-gallery-media">
                         <MediaThumb alt={`Foto da galeria de ${form.nome}`} className="editor-media" emoji="✦" src={photo.foto_url} />
-                        <button
-                          aria-label="Remover foto da galeria"
-                          className="service-gallery-remove"
-                          disabled={removingPhotoId === photo.id || choosing}
-                          onClick={() => removeGalleryPhoto(photo)}
-                          title="Remover foto"
-                          type="button"
-                        >
-                          {removingPhotoId === photo.id ? "…" : "×"}
-                        </button>
+                        {!photo.virtualCover && (
+                          <button
+                            aria-label="Remover foto da galeria"
+                            className="service-gallery-remove"
+                            disabled={removingPhotoId === photo.id || choosing}
+                            onClick={() => removeGalleryPhoto(photo)}
+                            title="Remover foto"
+                            type="button"
+                          >
+                            {removingPhotoId === photo.id ? "…" : "×"}
+                          </button>
+                        )}
                       </div>
                       <figcaption>
                         {currentCover ? (
