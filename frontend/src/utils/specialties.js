@@ -24,7 +24,7 @@ const CATEGORY_EMOJIS = Object.freeze({
   unha: "💅",
   cabelo: "💇",
   cilio: "👁️",
-  sobrancelha: "👁️",
+  sobrancelha: "〰️",
   maquiagem: "💄",
   estetica: "💆",
   bronzeamento: "☀️",
@@ -50,7 +50,8 @@ export function serviceCategoryEmoji(value, serviceName = "") {
 
   if (/unha|manicure|pedicure|nail|esmalta/.test(categoryKey)) return "💅";
   if (/cabelo|cabeleir|barba|barbear/.test(categoryKey)) return "💇";
-  if (/cilio|lash|sobrancelha|brow|henna/.test(categoryKey)) return "👁️";
+  if (/cilio|lash/.test(categoryKey)) return "👁️";
+  if (/sobrancelha|brow|henna|micropigmenta/.test(categoryKey)) return "〰️";
   if (/maquiagem|makeup|make up/.test(categoryKey)) return "💄";
   if (/bronzeamento|bronze artificial|bronze natural|marquinha|spray tan/.test(categoryKey)) return "☀️";
   if (/estetica|pele|depil|massagem|drenagem|facial|corporal/.test(categoryKey)) return "💆";
@@ -59,7 +60,8 @@ export function serviceCategoryEmoji(value, serviceName = "") {
 
   if (/unha|manicure|pedicure|nail|esmalta/.test(nameKey)) return "💅";
   if (/cabelo|cabeleir|corte|escova|penteado|barba/.test(nameKey)) return "💇";
-  if (/cilio|lash|sobrancelha|brow|henna/.test(nameKey)) return "👁️";
+  if (/cilio|lash/.test(nameKey)) return "👁️";
+  if (/sobrancelha|brow|henna|micropigmenta/.test(nameKey)) return "〰️";
   if (/maquiagem|makeup|make up/.test(nameKey)) return "💄";
   if (/bronzeamento|bronze artificial|bronze natural|marquinha|spray tan/.test(nameKey)) return "☀️";
   if (/estetica|pele|depil|massagem|drenagem|facial|corporal/.test(nameKey)) return "💆";

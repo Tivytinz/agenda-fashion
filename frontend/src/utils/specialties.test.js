@@ -21,3 +21,16 @@ describe("categoria de Bronzeamento", () => {
     ]);
   });
 });
+
+describe("ícones de Cílios e Sobrancelhas", () => {
+  it("mantém fallbacks visualmente distintos", () => {
+    expect(serviceCategoryEmoji("cilio"))
+      .toBe("👁️");
+    expect(serviceCategoryEmoji("sobrancelha"))
+      .toBe("〰️");
+    expect(serviceCategoryEmoji("", "Design com henna"))
+      .toBe("〰️");
+    expect(serviceCategoryEmoji("", "Extensão de lashes"))
+      .toBe("👁️");
+  });
+});

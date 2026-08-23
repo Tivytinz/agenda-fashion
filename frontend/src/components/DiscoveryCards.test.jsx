@@ -152,6 +152,42 @@ describe("imagens dos cards do catálogo", () => {
       ?.textContent).not.toContain("D");
   });
 
+  it("diferencia o fallback de sobrancelhas do fallback de cílios", () => {
+    const view = render(
+      <MemoryRouter>
+        <ServiceCard service={{
+          id: 16,
+          nome: "Design com henna",
+          categoria: "sobrancelha",
+          negocio_nome: "Studio Aurora",
+          negocio_slug: "studio-aurora",
+          valor: 55,
+          duracao_minutos: 60
+        }} />
+      </MemoryRouter>
+    );
+
+    expect(document.querySelector(".service-discovery-placeholder strong")
+      ?.textContent).toBe("〰️");
+
+    view.rerender(
+      <MemoryRouter>
+        <ServiceCard service={{
+          id: 17,
+          nome: "Extensão de cílios",
+          categoria: "cilio",
+          negocio_nome: "Studio Aurora",
+          negocio_slug: "studio-aurora",
+          valor: 60,
+          duracao_minutos: 90
+        }} />
+      </MemoryRouter>
+    );
+
+    expect(document.querySelector(".service-discovery-placeholder strong")
+      ?.textContent).toBe("👁️");
+  });
+
   it("identifica Bronzeamento com categoria e ícone próprios", () => {
     render(
       <MemoryRouter>
