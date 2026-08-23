@@ -1,0 +1,253 @@
+/* Refinos específicos da tela Meu negócio. */
+
+.business-settings-page {
+  padding-bottom: 92px;
+}
+
+.business-settings-page .publication-panel {
+  align-items: center;
+}
+
+.business-settings-page .publication-actions {
+  align-items: center;
+}
+
+.business-settings-page .business-publication-toggle.is-danger {
+  border-color: #f0c8d7;
+  color: #9f2857;
+  background: #fff;
+  box-shadow: none;
+}
+
+.business-settings-page .business-publication-toggle.is-danger:hover {
+  border-color: #de9bb5;
+  background: #fff7fa;
+}
+
+.business-settings-page .business-photo-editor {
+  align-items: center;
+  gap: 20px;
+}
+
+.business-settings-page .business-photo-preview {
+  width: 118px;
+  height: 118px;
+  flex: 0 0 118px;
+  border-radius: 18px;
+  object-fit: cover;
+}
+
+.business-settings-page .business-photo-controls {
+  display: grid;
+  justify-items: start;
+  gap: 9px;
+}
+
+.business-settings-page .public-address-card {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 14px 16px;
+  background: #fcfafb;
+}
+
+.business-settings-page .public-address-copy {
+  display: grid;
+  min-width: 0;
+  gap: 4px;
+}
+
+.business-settings-page .public-address-copy > span {
+  color: var(--muted);
+  font-size: .72rem;
+  font-weight: 800;
+}
+
+.business-settings-page .public-address-copy strong {
+  overflow: hidden;
+  color: var(--wine);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.business-settings-page .public-address-copy small {
+  color: var(--muted);
+  line-height: 1.4;
+}
+
+.business-settings-page .specialty-heading-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.business-settings-page .specialty-heading-row p {
+  margin: 0;
+}
+
+.business-settings-page .specialty-heading-row > span {
+  flex: 0 0 auto;
+  border-radius: 999px;
+  padding: 4px 9px;
+  color: var(--pink-700);
+  background: var(--pink-50);
+  font-size: .72rem;
+  font-weight: 850;
+}
+
+.business-settings-page .field-helper {
+  display: block;
+  margin-top: 6px;
+  color: var(--muted);
+  line-height: 1.35;
+}
+
+.business-settings-page .field-helper.is-error {
+  color: #a92d54;
+}
+
+.business-settings-page .maps-field-helper {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.business-settings-page .maps-field-helper a {
+  flex: 0 0 auto;
+  color: var(--pink-700);
+  font-size: .75rem;
+  font-weight: 800;
+}
+
+.business-settings-page .business-address-section .business-form-heading p:last-child {
+  margin-bottom: 0;
+  color: var(--muted);
+  font-size: .84rem;
+}
+
+.business-settings-page .business-address-grid {
+  align-items: end;
+}
+
+.business-settings-page .business-cep-field {
+  max-width: 280px;
+}
+
+.business-settings-page .business-address-divider {
+  height: 1px;
+  margin: 2px 0 4px;
+  background: var(--line);
+}
+
+.business-settings-page .business-form-feedback {
+  margin: 0;
+}
+
+.business-settings-page .business-floating-save {
+  position: fixed;
+  right: 18px;
+  bottom: 18px;
+  z-index: 18;
+}
+
+.business-settings-page .business-floating-save .button {
+  min-height: 46px;
+  padding-inline: 20px;
+  box-shadow: 0 10px 24px rgb(168 25 91 / 18%);
+}
+
+.business-settings-page .business-save-toast {
+  position: fixed;
+  right: 200px;
+  bottom: 20px;
+  z-index: 18;
+  display: inline-flex;
+  min-height: 42px;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid #d6ebde;
+  border-radius: 12px;
+  padding: 8px 12px;
+  color: #17633c;
+  background: #fff;
+  box-shadow: 0 8px 24px rgb(72 22 43 / 10%);
+  font-size: .82rem;
+  font-weight: 800;
+}
+
+.business-settings-page .business-save-icon {
+  width: 18px;
+  height: 18px;
+  flex: 0 0 18px;
+}
+
+@media (max-width: 900px) {
+  .business-settings-page .public-address-card {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .business-settings-page .public-address-card .button {
+    align-self: flex-start;
+  }
+
+  .business-settings-page .business-floating-save {
+    right: 16px;
+    bottom: 14px;
+  }
+
+  .business-settings-page .business-save-toast {
+    right: 198px;
+    bottom: 16px;
+  }
+}
+
+@media (max-width: 620px) {
+  .business-settings-page {
+    padding-bottom: 112px;
+  }
+
+  .business-settings-page .business-photo-editor {
+    align-items: flex-start;
+  }
+
+  .business-settings-page .business-photo-preview {
+    width: 96px;
+    height: 96px;
+    flex-basis: 96px;
+  }
+
+  .business-settings-page .specialty-heading-row,
+  .business-settings-page .maps-field-helper {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .business-settings-page .business-cep-field {
+    max-width: none;
+  }
+
+  .business-settings-page .business-floating-save {
+    right: 12px;
+    bottom: 10px;
+    left: 12px;
+  }
+
+  .business-settings-page .business-floating-save .button {
+    width: 100%;
+  }
+
+  .business-settings-page .business-save-toast {
+    right: 12px;
+    bottom: 66px;
+    left: 12px;
+    justify-content: center;
+  }
+}
