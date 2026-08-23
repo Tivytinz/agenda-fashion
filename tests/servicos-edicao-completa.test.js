@@ -18,6 +18,7 @@ jest.mock("../src/services/planoService", () => ({
 
 const db = require("../src/db/db");
 const servicosRepository = require("../src/repositories/servicosRepository");
+const uploadToCloudinary = require("../src/utils/uploadCloudinary");
 const servicosService = require("../src/services/servicosService");
 
 describe("Edição completa de serviços", () => {
@@ -25,6 +26,7 @@ describe("Edição completa de serviços", () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    uploadToCloudinary.remover = jest.fn().mockResolvedValue(undefined);
     db.executarTransacao.mockImplementation(async (callback) => callback(client));
     servicosRepository.buscarNegocioDono.mockResolvedValue({ negocio_id: 7 });
   });
@@ -194,5 +196,74 @@ describe("Edição completa de serviços", () => {
     });
 
     expect(servicosRepository.editarServico).not.toHaveBeenCalled();
+  });
+
+  test("escolhe uma foto da galeria como capa sem apagar uma capa antiga ainda usada na galeria", async () => {
+    servicosRepository.buscarServicoDoNegocio.mockResolvedValue({
+      id: 12,
+      foto_url: "https://img/antiga.jpg",
+      foto_public_id: "galeria/antiga",
+    });
+    servicosRepository.buscarFotoGaleriaDoNegocio.mockResolvedValue({
+      id: 22,
+      servico_id: 12,
+      foto_url: "https://img/nova.jpg",
+      foto_public_id: "galeria/nova",
+    });
+    servicosRepository.atualizarFotoServico.mockResolvedValue({
+      id: 12,
+      foto_url: "https://img/nova.jpg",
+      foto_public_id: "galeria/nova",
+    });
+    servicosRepository.fotoGaleriaUsaPublicId.mockResolvedValue(true);
+
+    const resultado = await servicosService.definirFotoCapaServico({
+      usuarioId: 1,
+      id: 12,
+      fotoId: 22,
+    });
+
+    expect(servicosRepository.atualizarFotoServico).toHaveBeenCalledWith({
+      id: 12,
+      negocioId: 7,
+      fotoUrl: "https://img/nova.jpg",
+      fotoPublicId: "galeria/nova",
+    });
+    expect(servicosRepository.fotoGaleriaUsaPublicId).toHaveBeenCalledWith({
+      servicoId: 12,
+      fotoPublicId: "galeria/antiga",
+    });
+    expect(uploadToCloudinary.remover).not.toHaveBeenCalled();
+    expect(resultado.servico.foto_public_id).toBe("galeria/nova");
+  });
+
+  test("ao remover da galeria a foto que era capa, limpa a capa junto", async () => {
+    servicosRepository.buscarFotoGaleriaDoNegocio.mockResolvedValue({
+      id: 31,
+      servico_id: 12,
+      foto_public_id: "galeria/capa",
+    });
+    servicosRepository.limparFotoServicoSeUsarPublicId.mockResolvedValue({ id: 12 });
+    servicosRepository.removerFotoGaleriaServico.mockResolvedValue({
+      id: 31,
+      servico_id: 12,
+      foto_public_id: "galeria/capa",
+    });
+
+    const resultado = await servicosService.removerFotoGaleriaServico({
+      usuarioId: 1,
+      fotoId: 31,
+    });
+
+    expect(servicosRepository.limparFotoServicoSeUsarPublicId).toHaveBeenCalledWith(
+      {
+        id: 12,
+        negocioId: 7,
+        fotoPublicId: "galeria/capa",
+      },
+      client
+    );
+    expect(resultado.capa_removida).toBe(true);
+    expect(uploadToCloudinary.remover).toHaveBeenCalledWith("galeria/capa");
   });
 });
