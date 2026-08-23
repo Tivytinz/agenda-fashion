@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { apiRequest } from "../api/client";
 import { useSession } from "../auth/SessionContext";
@@ -109,6 +109,8 @@ export function BusinessPage({ create = false }) {
   const [message, setMessage] = useState(() => location.state?.message || "");
   const [publication, setPublication] = useState(null);
   const [publishing, setPublishing] = useState(false);
+  const [cepLookup, setCepLookup] = useState({ status: "idle", message: "" });
+  const cepRequestRef = useRef(0);
 
   const hasChanges = !create
     && serializeBusinessForm(form) !== serializeBusinessForm(savedForm);
@@ -166,6 +168,68 @@ export function BusinessPage({ create = false }) {
         ? current.areas.filter((item) => item !== specialty)
         : [...current.areas, specialty]
     }));
+  }
+
+  async function lookupCep(value) {
+    const cepDigits = String(value || "").replace(/\D/g, "");
+    if (cepDigits.length !== 8) return;
+
+    const requestId = cepRequestRef.current + 1;
+    cepRequestRef.current = requestId;
+    setCepLookup({ status: "loading", message: "Buscando endereço..." });
+
+    try {
+      const response = await fetch(`https://viacep.com.br/ws/${cepDigits}/json/`);
+      if (!response.ok) throw new Error("cep_lookup_failed");
+
+      const result = await response.json();
+      if (requestId !== cepRequestRef.current) return;
+
+      if (result.erro) {
+        setCepLookup({
+          status: "error",
+          message: "CEP não encontrado. Confira os números ou preencha o endereço manualmente."
+        });
+        return;
+      }
+
+      setForm((current) => {
+        const currentCep = String(current.cep || "").replace(/\D/g, "");
+        if (currentCep !== cepDigits) return current;
+
+        return {
+          ...current,
+          endereco: result.logradouro || "",
+          bairro: result.bairro || "",
+          cidade: result.localidade || "",
+          estado: result.uf || ""
+        };
+      });
+      setCepLookup({
+        status: "success",
+        message: "Endereço preenchido automaticamente. Complete número e complemento."
+      });
+    } catch {
+      if (requestId !== cepRequestRef.current) return;
+      setCepLookup({
+        status: "error",
+        message: "Não foi possível consultar o CEP agora. Preencha o endereço manualmente."
+      });
+    }
+  }
+
+  function handleCepChange(event) {
+    const formattedCep = formatCep(event.target.value);
+    const cepDigits = String(formattedCep || "").replace(/\D/g, "");
+    update("cep", formattedCep);
+
+    if (cepDigits.length !== 8) {
+      cepRequestRef.current += 1;
+      setCepLookup({ status: "idle", message: "" });
+      return;
+    }
+
+    lookupCep(cepDigits);
   }
 
   async function copyPublicUrl() {
@@ -546,13 +610,21 @@ export function BusinessPage({ create = false }) {
             <label className="business-cep-field">
               CEP
               <input
+                aria-busy={cepLookup.status === "loading" ? "true" : undefined}
+                aria-invalid={cepLookup.status === "error" ? "true" : undefined}
                 autoComplete="postal-code"
                 inputMode="numeric"
                 maxLength="9"
-                onChange={(event) => update("cep", formatCep(event.target.value))}
+                onChange={handleCepChange}
                 placeholder="00000-000"
                 value={form.cep}
               />
+              <small
+                aria-live="polite"
+                className={`field-helper cep-lookup-helper is-${cepLookup.status}`}
+              >
+                {cepLookup.message || "Ao completar o CEP, rua, bairro, cidade e estado serão preenchidos."}
+              </small>
             </label>
             <span className="field-wide business-address-divider" aria-hidden="true" />
             <label>
