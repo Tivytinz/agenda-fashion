@@ -232,6 +232,12 @@ export function ServiceEditorPage() {
   }, [coverPreview]);
 
   useEffect(() => {
+    if (!mediaMessage) return undefined;
+    const timeoutId = window.setTimeout(() => setMediaMessage(""), 2800);
+    return () => window.clearTimeout(timeoutId);
+  }, [mediaMessage]);
+
+  useEffect(() => {
     if (!editing) return;
 
     Promise.all([
