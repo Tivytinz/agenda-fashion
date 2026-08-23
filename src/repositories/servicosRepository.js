@@ -283,8 +283,8 @@ async function adicionarEspecialidadeNegocio(
   return result.rows[0] || null;
 }
 
-async function atualizarFotoServico({ id, negocioId, fotoUrl, fotoPublicId }) {
-  const result = await db.query(
+async function atualizarFotoServico({ id, negocioId, fotoUrl, fotoPublicId }, executor = db) {
+  const result = await executor.query(
     `
     UPDATE servicos_negocio
     SET foto_url = $1, foto_public_id = $2
@@ -298,8 +298,8 @@ async function atualizarFotoServico({ id, negocioId, fotoUrl, fotoPublicId }) {
   return result.rows[0] || null;
 }
 
-async function listarFotosServico(servicoId) {
-  const result = await db.query(
+async function listarFotosServico(servicoId, executor = db) {
+  const result = await executor.query(
     `
     SELECT id, servico_id, foto_url, foto_public_id, created_at
     FROM fotos_servico
@@ -312,8 +312,43 @@ async function listarFotosServico(servicoId) {
   return result.rows;
 }
 
-async function adicionarFotoGaleriaServico({ servicoId, fotoUrl, fotoPublicId }) {
-  const result = await db.query(
+async function buscarFotoGaleriaDoNegocio({ fotoId, negocioId }, executor = db) {
+  const result = await executor.query(
+    `
+    SELECT fs.id, fs.servico_id, fs.foto_url, fs.foto_public_id, fs.created_at
+    FROM fotos_servico fs
+    INNER JOIN servicos_negocio s
+      ON s.id = fs.servico_id
+    WHERE fs.id = $1
+      AND s.negocio_id = $2
+    LIMIT 1
+    `,
+    [fotoId, negocioId]
+  );
+
+  return result.rows[0] || null;
+}
+
+async function fotoGaleriaUsaPublicId({ servicoId, fotoPublicId }, executor = db) {
+  if (!fotoPublicId) return false;
+
+  const result = await executor.query(
+    `
+    SELECT EXISTS (
+      SELECT 1
+      FROM fotos_servico
+      WHERE servico_id = $1
+        AND foto_public_id = $2
+    ) AS existe
+    `,
+    [servicoId, fotoPublicId]
+  );
+
+  return result.rows[0]?.existe === true;
+}
+
+async function adicionarFotoGaleriaServico({ servicoId, fotoUrl, fotoPublicId }, executor = db) {
+  const result = await executor.query(
     `
     INSERT INTO fotos_servico (servico_id, foto_url, foto_public_id)
     VALUES ($1, $2, $3)
@@ -325,8 +360,28 @@ async function adicionarFotoGaleriaServico({ servicoId, fotoUrl, fotoPublicId })
   return result.rows[0];
 }
 
-async function removerFotoGaleriaServico({ fotoId, negocioId }) {
-  const result = await db.query(
+async function limparFotoServicoSeUsarPublicId(
+  { id, negocioId, fotoPublicId },
+  executor = db
+) {
+  const result = await executor.query(
+    `
+    UPDATE servicos_negocio
+    SET foto_url = NULL,
+        foto_public_id = NULL
+    WHERE id = $1
+      AND negocio_id = $2
+      AND foto_public_id = $3
+    RETURNING *
+    `,
+    [id, negocioId, fotoPublicId]
+  );
+
+  return result.rows[0] || null;
+}
+
+async function removerFotoGaleriaServico({ fotoId, negocioId }, executor = db) {
+  const result = await executor.query(
     `
     DELETE FROM fotos_servico fs
     USING servicos_negocio s
@@ -335,6 +390,7 @@ async function removerFotoGaleriaServico({ fotoId, negocioId }) {
       AND s.negocio_id = $2
     RETURNING
       fs.id,
+      fs.servico_id,
       fs.foto_public_id
     `,
     [fotoId, negocioId]
@@ -359,6 +415,9 @@ module.exports = {
   adicionarEspecialidadeNegocio,
   atualizarFotoServico,
   listarFotosServico,
+  buscarFotoGaleriaDoNegocio,
+  fotoGaleriaUsaPublicId,
   adicionarFotoGaleriaServico,
+  limparFotoServicoSeUsarPublicId,
   removerFotoGaleriaServico,
 };
