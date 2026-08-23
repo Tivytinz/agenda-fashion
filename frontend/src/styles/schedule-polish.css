@@ -56,7 +56,7 @@
 .schedule-settings-page .schedule-column-headings,
 .schedule-settings-page .schedule-row {
   display: grid;
-  grid-template-columns: 142px minmax(270px, 330px) minmax(220px, 220px) 92px;
+  grid-template-columns: 176px minmax(260px, 320px) minmax(220px, 220px) 92px;
   align-items: center;
   justify-content: start;
   column-gap: 12px;
@@ -83,7 +83,15 @@
 }
 
 .schedule-settings-page .day-toggle {
+  display: flex;
   min-width: 0;
+  align-items: center;
+  gap: 10px;
+}
+
+.schedule-settings-page .day-toggle > input {
+  flex: 0 0 auto;
+  margin: 0;
 }
 
 .schedule-settings-page .schedule-day-name {
@@ -91,22 +99,32 @@
   min-width: 0;
   align-items: center;
   gap: 8px;
+  overflow: visible;
+  white-space: nowrap;
 }
 
 .schedule-settings-page .schedule-day-name strong {
   min-width: 0;
+  flex: 0 0 auto;
+  white-space: nowrap;
 }
 
 .schedule-settings-page .day-toggle small {
+  position: static;
+  inset: auto;
   display: inline-flex;
   min-height: 20px;
+  flex: 0 0 auto;
   align-items: center;
   border-radius: 999px;
+  margin: 0;
   padding: 2px 7px;
+  transform: none;
   color: #24704b;
   background: #eaf8f0;
   font-size: .66rem;
   font-weight: 850;
+  line-height: 1;
   white-space: nowrap;
 }
 
@@ -306,7 +324,7 @@
   }
 
   .schedule-settings-page .schedule-row {
-    grid-template-columns: 128px minmax(0, 1fr);
+    grid-template-columns: 162px minmax(0, 1fr);
     align-items: start;
     row-gap: 9px;
     padding-block: 10px;
