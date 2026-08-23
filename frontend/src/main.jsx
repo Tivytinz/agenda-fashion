@@ -15,6 +15,7 @@ import "./styles/admin-whatsapp.css";
 import "./styles/af-experience.css";
 import "./styles/home-discovery.css";
 import "./styles/profile-polish.css";
+import "./styles/dashboard-polish.css";
 
 installRuntimeRecovery();
 
