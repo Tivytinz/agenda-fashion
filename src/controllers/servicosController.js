@@ -101,6 +101,20 @@ async function adicionarFotoGaleriaServico(req, res, next) {
   }
 }
 
+async function definirFotoCapaServico(req, res, next) {
+  try {
+    const resultado = await servicosService.definirFotoCapaServico({
+      usuarioId: req.user?.id,
+      id: req.params.id,
+      fotoId: req.body.foto_id,
+    });
+
+    return res.json(resultado);
+  } catch (err) {
+    next(err);
+  }
+}
+
 async function removerFotoGaleriaServico(req, res, next) {
   try {
     const resultado = await servicosService.removerFotoGaleriaServico({
@@ -122,5 +136,6 @@ module.exports = {
   enviarFotoServico,
   listarFotosServico,
   adicionarFotoGaleriaServico,
+  definirFotoCapaServico,
   removerFotoGaleriaServico,
 };
