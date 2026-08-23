@@ -12,6 +12,7 @@ import { useSearchParams } from "react-router-dom";
 import { apiRequest } from "../api/client";
 import { track } from "../analytics/track";
 import bronzeamentoHero from "../assets/home/bronzeamento-hero.webp";
+import sobrancelhasEmoji from "../assets/icons/sobrancelhas-emoji.png";
 import ciliosHero from "../assets/home/cilios-hero.webp";
 import manicureHero from "../assets/home/manicure-hero.webp";
 import maquiagemHero from "../assets/home/maquiagem-hero.webp";
@@ -209,6 +210,8 @@ function CategorySpotlightCard({
   onSelect,
   subtitle
 }) {
+  const customEyebrowEmoji = category === "sobrancelha";
+
   return (
     <button
       aria-label={label}
@@ -222,9 +225,16 @@ function CategorySpotlightCard({
       <span className="home-category-visual">
         <span
           aria-hidden="true"
-          className="home-category-emoji"
+          className={customEyebrowEmoji
+            ? "home-category-emoji is-custom-eyebrow"
+            : "home-category-emoji"}
+          style={customEyebrowEmoji
+            ? { "--eyebrow-emoji-url": `url(${sobrancelhasEmoji})` }
+            : undefined}
         >
-          {serviceCategoryEmoji(category, label)}
+          {customEyebrowEmoji
+            ? ""
+            : serviceCategoryEmoji(category, label)}
         </span>
 
         <span className="home-category-shade" />

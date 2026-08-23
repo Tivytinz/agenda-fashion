@@ -266,7 +266,7 @@ describe("catálogo público paginado", () => {
     })).toHaveLength(7);
   });
 
-  it("usa os ícones antigos nas sete categorias", async () => {
+  it("usa ícones nas sete categorias e o emoji próprio de sobrancelhas", async () => {
     apiRequest.mockResolvedValue({
       negocios: [],
       paginacao: { total: 0, tem_mais: false }
@@ -284,6 +284,12 @@ describe("catálogo público paginado", () => {
     )).toBeNull();
     expect(container.querySelector(".home-category-emoji")?.textContent)
       .toBe("💅");
+    expect(screen.getByRole("button", { name: "Sobrancelhas" })
+      .querySelector(".home-category-emoji")
+      ?.classList.contains("is-custom-eyebrow")).toBe(true);
+    expect(screen.getByRole("button", { name: "Sobrancelhas" })
+      .querySelector(".home-category-emoji")
+      ?.getAttribute("style")).toContain("sobrancelhas-emoji.png");
     expect(screen.queryByRole("button", {
       name: "Ver todos"
     })).toBeNull();
