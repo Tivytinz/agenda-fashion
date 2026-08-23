@@ -1,13 +1,13 @@
 /* Refinos específicos da configuração de horários profissionais. */
 
 .schedule-settings-page {
-  padding-bottom: 92px;
+  padding-bottom: 72px;
 }
 
 .schedule-settings-page .schedule-settings-form {
   gap: 24px;
   overflow: visible;
-  padding-bottom: 86px;
+  padding-bottom: 18px;
 }
 
 .schedule-settings-page .schedule-general-settings {
@@ -57,7 +57,7 @@
 .schedule-settings-page .schedule-column-headings,
 .schedule-settings-page .schedule-row {
   display: grid;
-  grid-template-columns: 142px minmax(300px, 360px) minmax(220px, 280px) 92px;
+  grid-template-columns: 142px minmax(300px, 360px) minmax(230px, 288px) 92px;
   align-items: center;
   justify-content: start;
   column-gap: 12px;
@@ -169,13 +169,14 @@
 }
 
 .schedule-settings-page .schedule-pause-group {
-  grid-template-columns: minmax(112px, .72fr) minmax(0, 1.28fr);
+  grid-template-columns: minmax(132px, .78fr) minmax(0, 1.22fr);
   align-items: center;
   column-gap: 8px;
 }
 
 .schedule-settings-page .schedule-pause-select {
   grid-column: 1;
+  min-width: 132px;
 }
 
 .schedule-settings-page .schedule-pause-times {
@@ -229,31 +230,36 @@
 }
 
 /*
- * O salvamento fica sempre acessível durante a edição. A barra é ancorada
- * aos mesmos limites da workspace e o formulário reserva espaço no final,
- * evitando que o último dia fique escondido atrás da ação.
+ * Controle flutuante compacto: continua sempre acessível sem virar uma faixa
+ * sobre a agenda. A página reserva apenas o espaço necessário no fim.
  */
 .schedule-settings-page .schedule-save-bar {
   position: fixed;
   right: max(24px, calc(50vw - 742.5px));
   bottom: 14px;
-  left: calc(245px + max(24px, calc(50vw - 742.5px)));
+  left: auto;
   z-index: 18;
-  display: flex;
-  min-height: 58px;
+  display: inline-flex;
+  width: auto;
+  max-width: min(520px, calc(100vw - 293px));
+  min-height: 56px;
   align-items: center;
-  justify-content: space-between;
-  gap: 16px;
+  justify-content: flex-end;
+  gap: 12px;
   margin: 0;
   border: 1px solid rgb(234 221 226 / 96%);
   border-radius: 16px;
-  padding: 7px 14px 7px 18px;
+  padding: 6px 8px 6px 14px;
   background: #fff;
   box-shadow: 0 10px 28px rgb(72 22 43 / 12%);
 }
 
 .schedule-settings-page .schedule-save-feedback {
   min-width: 0;
+}
+
+.schedule-settings-page .schedule-save-feedback:empty {
+  display: none;
 }
 
 .schedule-settings-page .schedule-save-status {
@@ -263,6 +269,7 @@
   color: #17633c;
   font-size: .82rem;
   font-weight: 800;
+  white-space: nowrap;
 }
 
 .schedule-settings-page .schedule-save-icon {
@@ -303,7 +310,7 @@
   }
 
   .schedule-settings-page .schedule-pause-group {
-    grid-template-columns: minmax(122px, .72fr) minmax(0, 1.28fr);
+    grid-template-columns: minmax(132px, .76fr) minmax(0, 1.24fr);
   }
 
   .schedule-settings-page .schedule-pause-group .schedule-mobile-label {
@@ -318,8 +325,8 @@
 @media (max-width: 900px) {
   .schedule-settings-page .schedule-save-bar {
     right: 16px;
+    max-width: calc(100vw - 32px);
     bottom: 12px;
-    left: 16px;
   }
 }
 
@@ -356,11 +363,11 @@
 
 @media (max-width: 620px) {
   .schedule-settings-page {
-    padding-bottom: 142px;
+    padding-bottom: 116px;
   }
 
   .schedule-settings-page .schedule-settings-form {
-    padding-bottom: 128px;
+    padding-bottom: 18px;
   }
 
   .schedule-settings-page .schedule-general-settings {
@@ -375,10 +382,16 @@
     right: 12px;
     bottom: 10px;
     left: 12px;
+    width: auto;
+    max-width: none;
     min-height: 0;
     align-items: stretch;
     flex-direction: column;
     padding: 10px 12px calc(10px + env(safe-area-inset-bottom));
+  }
+
+  .schedule-settings-page .schedule-save-status {
+    white-space: normal;
   }
 
   .schedule-settings-page .schedule-save-bar .button {
