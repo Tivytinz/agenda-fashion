@@ -7,7 +7,6 @@ import { apiRequest } from "../api/client";
 import { BusinessPage } from "./BusinessPage";
 
 const refreshSession = vi.fn();
-const cepFetch = vi.fn();
 
 vi.mock("../api/client", () => ({
   apiRequest: vi.fn()
@@ -48,22 +47,10 @@ beforeEach(() => {
   apiRequest.mockReset();
   refreshSession.mockReset();
   refreshSession.mockResolvedValue({});
-  cepFetch.mockReset();
-  cepFetch.mockResolvedValue({
-    ok: true,
-    json: async () => ({
-      logradouro: "Avenida Brasil",
-      bairro: "Centro",
-      localidade: "São Paulo",
-      uf: "SP"
-    })
-  });
-  vi.stubGlobal("fetch", cepFetch);
 });
 
 afterEach(() => {
   cleanup();
-  vi.unstubAllGlobals();
 });
 
 describe("publicação do negócio", () => {
@@ -110,11 +97,19 @@ describe("publicação do negócio", () => {
         }
       })
       .mockResolvedValueOnce({
+        cep: "01001000",
+        endereco: "Avenida Brasil",
+        bairro: "Centro",
+        cidade: "São Paulo",
+        estado: "SP"
+      })
+      .mockResolvedValueOnce({
         mensagem: "Alterações salvas.",
         negocio: {
           ...BUSINESS,
           nome: "Beauty Vanessa",
           whatsapp: "11987654321",
+          cidade: "São Paulo",
           estado: "SP",
           endereco: "Avenida Brasil",
           cep: "01001000"
@@ -153,9 +148,15 @@ describe("publicação do negócio", () => {
     fireEvent.change(screen.getByLabelText("Nome do negócio"), {
       target: { value: "Beauty Vanessa" }
     });
-    fireEvent.change(state, { target: { value: "SP" } });
-    fireEvent.change(address, { target: { value: "Avenida Brasil" } });
     fireEvent.change(postalCode, { target: { value: "01001-000" } });
+
+    await waitFor(() => {
+      expect(apiRequest).toHaveBeenCalledWith("/cep/01001000", {
+        timeoutMs: 6000
+      });
+      expect(state.value).toBe("SP");
+      expect(address.value).toBe("Avenida Brasil");
+    });
 
     const saveButton = screen.getByRole("button", { name: "Salvar alterações" });
     expect(saveButton).not.toBeNull();
@@ -184,24 +185,23 @@ describe("publicação do negócio", () => {
     });
   });
 
-  it("preenche o endereço automaticamente ao completar um CEP válido", async () => {
-    apiRequest.mockResolvedValueOnce({
-      negocio: BUSINESS,
-      publicacao: {
-        publicado: false,
-        pode_publicar: true,
-        pendencias: []
-      }
-    });
-    cepFetch.mockResolvedValueOnce({
-      ok: true,
-      json: async () => ({
-        logradouro: "Praça da Sé",
-        bairro: "Sé",
-        localidade: "São Paulo",
-        uf: "SP"
+  it("preenche o endereço pelo backend ao completar um CEP válido", async () => {
+    apiRequest
+      .mockResolvedValueOnce({
+        negocio: BUSINESS,
+        publicacao: {
+          publicado: false,
+          pode_publicar: true,
+          pendencias: []
+        }
       })
-    });
+      .mockResolvedValueOnce({
+        cep: "01001000",
+        endereco: "Praça da Sé",
+        bairro: "Sé",
+        cidade: "São Paulo",
+        estado: "SP"
+      });
 
     renderPage();
     const postalCode = await screen.findByLabelText(/CEP/);
@@ -209,31 +209,66 @@ describe("publicação do negócio", () => {
     fireEvent.change(postalCode, { target: { value: "01001-000" } });
 
     await waitFor(() => {
-      expect(cepFetch).toHaveBeenCalledWith("https://viacep.com.br/ws/01001000/json/");
+      expect(apiRequest).toHaveBeenCalledWith("/cep/01001000", {
+        timeoutMs: 6000
+      });
       expect(screen.getByLabelText("Endereço").value).toBe("Praça da Sé");
       expect(screen.getByLabelText("Bairro").value).toBe("Sé");
       expect(screen.getByLabelText("Cidade").value).toBe("São Paulo");
       expect(screen.getByRole("combobox", { name: "Estado" }).value).toBe("SP");
     });
 
-    expect(screen.getByText(/Endereço preenchido automaticamente/)).not.toBeNull();
+    expect(screen.getByText(/Endereço encontrado/)).not.toBeNull();
+    expect(screen.getByLabelText("Número").value).toBe("10");
+    expect(screen.getByLabelText("Complemento").value).toBe("Sala 2");
+  });
+
+  it("consulta automaticamente um CEP salvo quando a rua ainda está vazia", async () => {
+    apiRequest
+      .mockResolvedValueOnce({
+        negocio: {
+          ...BUSINESS,
+          cep: "74981100",
+          endereco: "",
+          bairro: "Araguaia",
+          cidade: "Aparecida de Goiânia",
+          estado: "GO"
+        },
+        publicacao: {
+          publicado: false,
+          pode_publicar: true,
+          pendencias: []
+        }
+      })
+      .mockResolvedValueOnce({
+        cep: "74981100",
+        endereco: "Rua 10",
+        bairro: "Araguaia Acréscimo",
+        cidade: "Aparecida de Goiânia",
+        estado: "GO"
+      });
+
+    renderPage();
+
+    expect(await screen.findByDisplayValue("Rua 10")).not.toBeNull();
+    expect(apiRequest).toHaveBeenCalledWith("/cep/74981100", {
+      timeoutMs: 6000
+    });
     expect(screen.getByLabelText("Número").value).toBe("10");
     expect(screen.getByLabelText("Complemento").value).toBe("Sala 2");
   });
 
   it("informa quando o CEP não é encontrado sem apagar o endereço atual", async () => {
-    apiRequest.mockResolvedValueOnce({
-      negocio: BUSINESS,
-      publicacao: {
-        publicado: false,
-        pode_publicar: true,
-        pendencias: []
-      }
-    });
-    cepFetch.mockResolvedValueOnce({
-      ok: true,
-      json: async () => ({ erro: true })
-    });
+    apiRequest
+      .mockResolvedValueOnce({
+        negocio: BUSINESS,
+        publicacao: {
+          publicado: false,
+          pode_publicar: true,
+          pendencias: []
+        }
+      })
+      .mockRejectedValueOnce(new Error("CEP não encontrado."));
 
     renderPage();
     const postalCode = await screen.findByLabelText(/CEP/);
