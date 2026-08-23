@@ -24,6 +24,9 @@ const EVENTOS_PERMITIDOS =
     "acao_dashboard_selecionada",
     "periodo_dashboard_alterado",
     "upgrade_selecionado",
+    "landing_profissionais_visualizada",
+    "landing_profissionais_cta_clicado",
+    "cadastro_profissional_iniciado",
   ]);
 
 const PAGINAS_PERMITIDAS =
@@ -43,6 +46,7 @@ const PAGINAS_PERMITIDAS =
     "finalizar_agendamento",
     "inicio",
     "landing",
+    "para_profissionais",
     "login_cliente",
     "login_profissional",
     "meus_agendamentos",
@@ -64,6 +68,7 @@ const MISSOES_PERMITIDAS =
     "descobrir_servico",
     "disponibilizar_horarios",
     "entender_proposta",
+    "adquirir_profissional",
     "entrar_cliente",
     "entrar_no_negocio",
     "entrar_profissional",
@@ -87,6 +92,7 @@ const CHAVES_PROPRIEDADES =
     "origem",
     "papel",
     "periodo",
+    "posicao",
     "resultados",
     "servico_id",
     "profissional_id",
