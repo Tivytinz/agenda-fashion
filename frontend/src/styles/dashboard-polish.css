@@ -1,5 +1,9 @@
 /* Refinos específicos do painel profissional. */
 
+.workspace-content:has(.dashboard-page) {
+  background: #fcfafb;
+}
+
 .dashboard-page .onboarding-panel.is-complete {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
@@ -57,12 +61,18 @@
 }
 
 .dashboard-page .dashboard-grid {
-  align-items: start;
+  align-items: stretch;
 }
 
 .dashboard-page .dashboard-action-panel,
 .dashboard-page .dashboard-performance-panel {
+  height: 100%;
   min-height: 0;
+}
+
+.dashboard-page .dashboard-action-panel {
+  display: flex;
+  flex-direction: column;
 }
 
 .dashboard-page .dashboard-action-panel .panel-heading {
@@ -76,7 +86,8 @@
 }
 
 .dashboard-page .dashboard-quick-actions {
-  margin-top: 18px;
+  margin-top: auto;
+  padding-top: 18px;
 }
 
 .dashboard-page .dashboard-quick-actions .button {
@@ -121,5 +132,15 @@
 
   .dashboard-page .metric-card {
     min-height: 118px;
+  }
+
+  .dashboard-page .dashboard-action-panel,
+  .dashboard-page .dashboard-performance-panel {
+    height: auto;
+  }
+
+  .dashboard-page .dashboard-quick-actions {
+    margin-top: 18px;
+    padding-top: 0;
   }
 }
