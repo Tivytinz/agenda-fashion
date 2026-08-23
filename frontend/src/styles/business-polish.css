@@ -108,8 +108,19 @@
   line-height: 1.35;
 }
 
-.business-settings-page .field-helper.is-error {
+.business-settings-page .field-helper.is-error,
+.business-settings-page .cep-lookup-helper.is-error {
   color: #a92d54;
+}
+
+.business-settings-page .cep-lookup-helper.is-loading {
+  color: var(--pink-700);
+  font-weight: 750;
+}
+
+.business-settings-page .cep-lookup-helper.is-success {
+  color: #167244;
+  font-weight: 750;
 }
 
 .business-settings-page .maps-field-helper {
@@ -137,7 +148,7 @@
 }
 
 .business-settings-page .business-cep-field {
-  max-width: 280px;
+  max-width: 320px;
 }
 
 .business-settings-page .business-address-divider {
