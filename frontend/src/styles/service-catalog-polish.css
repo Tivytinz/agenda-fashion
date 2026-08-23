@@ -25,6 +25,15 @@
   flex-direction: column;
 }
 
+.services-management-page .management-card-body > .status-badge {
+  display: inline-flex;
+  width: auto;
+  max-width: 100%;
+  align-self: flex-start;
+  align-items: center;
+  padding: 5px 10px;
+}
+
 .services-management-page .management-card-body .card-actions {
   margin-top: auto;
   padding-top: 18px;
@@ -48,8 +57,9 @@
 
 .services-management-page .service-cover-empty-action {
   position: absolute;
-  right: 14px;
+  right: auto;
   bottom: 12px;
+  left: 50%;
   z-index: 2;
   display: inline-flex;
   min-height: 30px;
@@ -65,6 +75,7 @@
   font-weight: 850;
   text-decoration: none;
   white-space: nowrap;
+  transform: translateX(-50%);
 }
 
 .services-management-page .service-cover-empty-action:hover {
@@ -117,6 +128,10 @@
   white-space: nowrap;
 }
 
+.service-editor-page .service-gallery.service-gallery-picker {
+  gap: 16px;
+}
+
 /* A imagem de capa também participa visualmente da galeria. */
 .service-editor-page .service-gallery-picker figure.is-cover {
   border: 2px solid #4fbe8d;
@@ -127,6 +142,15 @@
   width: 100%;
   border-color: #8fd9b8;
   background: #e9f9f0;
+}
+
+.service-editor-page .service-editor-actions {
+  position: sticky;
+  bottom: 0;
+  z-index: 10;
+  background: #fff;
+  box-shadow: 0 -10px 24px rgb(72 22 43 / 8%);
+  isolation: isolate;
 }
 
 /* Em desktop, duas miniaturas cabem inteiras na coluna. Setas só acrescentariam decoração. */
@@ -161,7 +185,6 @@
   }
 
   .services-management-page .service-cover-empty-action {
-    right: 10px;
     bottom: 10px;
   }
 }
