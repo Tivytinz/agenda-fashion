@@ -54,7 +54,7 @@ function ServiceChoices({
               </span>
               <span className="choice-price">
                 <strong>{formatCurrency(service.valor)}</strong>
-                <small>{selected ? "Selecionado ✓" : "Escolher"}</small>
+                <small>{selected ? "Selecionado ✅" : "Escolher"}</small>
               </span>
             </button>
             <div className="service-share-actions">
@@ -214,7 +214,7 @@ function ScheduleChoices({
               onClick={() => onSelectTime(hour)}
               type="button"
             >
-              {hour === time && <span className="time-selected-check" aria-hidden="true">✓</span>}
+              {hour === time && <span className="time-selected-check" aria-hidden="true">✅</span>}
               <span>{hour}</span>
             </button>
           ))}
