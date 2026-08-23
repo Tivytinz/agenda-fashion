@@ -51,10 +51,44 @@ describe("dashboard", () => {
     render(<MemoryRouter><DashboardPage /></MemoryRouter>);
 
     expect(await screen.findByText("1,4%")).not.toBeNull();
-    expect(screen.getByText("2 de 145 visitas")).not.toBeNull();
+    expect(screen.getByText("2 agendamentos em 145 visitas")).not.toBeNull();
     expect(screen.getByText("descobriu você")).not.toBeNull();
     expect(screen.getByRole("heading", { name: "Serviços mais agendados" }))
       .not.toBeNull();
+  });
+
+  it("transforma visitas sem conversão em uma recomendação acionável", async () => {
+    apiRequest.mockImplementation((path) => {
+      if (path.startsWith("/dashboard-dono")) {
+        return Promise.resolve({
+          resumo: { agendamentos_periodo: 0, faturamento_periodo: 0, clientes_novos: 0 },
+          performance: {
+            taxa_conversao: 0,
+            visitas_perfil: 15,
+            agendamentos_concluidos: 0,
+            cliques_whatsapp: 0,
+            cliques_maps: 0,
+            favoritos_recebidos: 0
+          },
+          ranking_servicos: []
+        });
+      }
+      if (path === "/configuracoes") {
+        return Promise.resolve({
+          negocio: { slug: "studio-aurora", publicado: true },
+          publicacao: { publicado: true, pode_publicar: true, pendencias: [] }
+        });
+      }
+      return Promise.reject(new Error(`Rota inesperada: ${path}`));
+    });
+
+    render(<MemoryRouter><DashboardPage /></MemoryRouter>);
+
+    expect(await screen.findByRole("heading", { name: "Transforme visitas em agendamentos" }))
+      .not.toBeNull();
+    expect(screen.getByText(/15 pessoas visitaram seu perfil/)).not.toBeNull();
+    expect(screen.getByRole("link", { name: "Gerenciar serviços" }).getAttribute("href"))
+      .toBe("/painel/servicos");
   });
 
   it("conduz o profissional para a primeira etapa incompleta", async () => {
