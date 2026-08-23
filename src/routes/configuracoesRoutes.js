@@ -4,8 +4,10 @@ const router = express.Router();
 const auth = require("../middlewares/auth");
 const upload = require("../middlewares/upload");
 const {
+  limitarLeituraPublica,
   limitarUpload,
 } = require("../middlewares/rateLimits");
+const cepController = require("../controllers/cepController");
 const configuracoesController = require("../controllers/configuracoesController");
 
 function tratarErroUpload(
@@ -37,6 +39,13 @@ router.get(
   "/configuracoes",
   auth,
   configuracoesController.buscarConfiguracoes
+);
+
+router.get(
+  "/cep/:cep",
+  auth,
+  limitarLeituraPublica,
+  cepController.buscarCep
 );
 
 router.put(
