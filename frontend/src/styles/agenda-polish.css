@@ -22,7 +22,7 @@
 
 .agenda-workspace-page .date-switcher {
   display: grid;
-  grid-template-columns: repeat(var(--agenda-visible-dates, 5), minmax(0, 1fr));
+  grid-template-columns: repeat(var(--agenda-visible-dates, 6), minmax(0, 1fr));
   overflow: hidden;
   gap: 8px;
   min-width: 0;
@@ -68,13 +68,60 @@
 }
 
 .agenda-workspace-page .agenda-date-arrow:disabled {
-  color: #cdbec4;
-  background: #f7f3f5;
+  color: #b9aab0;
+  border-color: #ded1d6;
+  background: #f8f5f6;
+  box-shadow: inset 0 0 0 1px rgb(72 22 43 / 2%);
   cursor: not-allowed;
 }
 
 .agenda-workspace-page .agenda-toolbar > label {
   min-width: 0;
+}
+
+.agenda-workspace-page .agenda-feedback-toast {
+  position: fixed;
+  z-index: 40;
+  top: 86px;
+  right: 28px;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  width: min(360px, calc(100vw - 32px));
+  border: 1px solid #bce6ce;
+  border-radius: 14px;
+  padding: 11px 12px;
+  color: #17633c;
+  background: #f4fcf7;
+  box-shadow: 0 16px 40px rgb(44 93 70 / 16%);
+  font-size: .88rem;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+.agenda-workspace-page .agenda-feedback-icon {
+  width: 21px;
+  height: 21px;
+  flex: 0 0 21px;
+}
+
+.agenda-workspace-page .agenda-feedback-toast > button {
+  display: grid;
+  width: 28px;
+  height: 28px;
+  place-items: center;
+  border: 0;
+  border-radius: 50%;
+  color: #4f7663;
+  background: transparent;
+  font-size: 1.25rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.agenda-workspace-page .agenda-feedback-toast > button:hover {
+  background: #e4f6ec;
 }
 
 .agenda-workspace-page .slot-grid {
@@ -92,13 +139,29 @@
   font-size: 1.02rem;
 }
 
-.agenda-workspace-page .slot-card span {
+.agenda-workspace-page .slot-card > .slot-status {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
   color: #5f5358;
   font-size: .76rem;
   font-weight: 700;
 }
 
-.agenda-workspace-page .slot-livre span {
+.agenda-workspace-page .slot-status > span {
+  color: inherit;
+  font-size: inherit;
+  font-weight: inherit;
+}
+
+.agenda-workspace-page .slot-lock-icon {
+  width: 13px;
+  height: 13px;
+  flex: 0 0 13px;
+}
+
+.agenda-workspace-page .slot-livre > .slot-status {
   color: #34705a;
 }
 
@@ -115,7 +178,7 @@
   background: #fff0f3;
 }
 
-.agenda-workspace-page .slot-bloqueado span {
+.agenda-workspace-page .slot-bloqueado > .slot-status {
   color: #8c2039;
   font-weight: 800;
 }
@@ -126,8 +189,8 @@
   background: #effaf5;
 }
 
-.agenda-workspace-page .slot-agendado span,
-.agenda-workspace-page .slot-confirmado span {
+.agenda-workspace-page .slot-agendado > .slot-status,
+.agenda-workspace-page .slot-confirmado > .slot-status {
   color: #1d6248;
   font-weight: 800;
 }
@@ -155,7 +218,13 @@
   white-space: nowrap;
 }
 
-@media (max-width: 1180px) {
+@media (max-width: 1439px) {
+  .agenda-workspace-page .date-switcher {
+    --agenda-visible-dates: 5;
+  }
+}
+
+@media (max-width: 1023px) {
   .agenda-workspace-page .date-switcher {
     --agenda-visible-dates: 4;
   }
@@ -166,16 +235,18 @@
     grid-template-columns: minmax(0, 1fr);
   }
 
-  .agenda-workspace-page .date-switcher {
-    --agenda-visible-dates: 3;
-  }
-
   .agenda-workspace-page .agenda-toolbar > label {
     width: min(100%, 320px);
   }
 }
 
-@media (max-width: 680px) {
+@media (max-width: 919px) {
+  .agenda-workspace-page .date-switcher {
+    --agenda-visible-dates: 3;
+  }
+}
+
+@media (max-width: 679px) {
   .agenda-workspace-page .date-switcher {
     --agenda-visible-dates: 2;
   }
@@ -188,6 +259,11 @@
   .agenda-workspace-page .agenda-date-arrow {
     width: 36px;
     height: 36px;
+  }
+
+  .agenda-workspace-page .agenda-feedback-toast {
+    top: 78px;
+    right: 16px;
   }
 
   .agenda-workspace-page .slot-card {
