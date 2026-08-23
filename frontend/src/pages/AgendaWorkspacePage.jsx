@@ -20,6 +20,27 @@ function getStatusLabel(status) {
   }[status] || status;
 }
 
+function getDatePageSize() {
+  if (typeof window === "undefined") return 5;
+  if (window.innerWidth >= 1180) return 5;
+  if (window.innerWidth >= 920) return 4;
+  if (window.innerWidth >= 680) return 3;
+  return 2;
+}
+
+function getLocalDateKey(date = new Date()) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function formatAgendaDate(value) {
+  const compact = formatDate(value).replace(" de ", " ");
+  if (value !== getLocalDateKey()) return compact;
+  return `Hoje, ${compact.replace(/^[^,]+,\s*/, "")}`;
+}
+
 export function AgendaWorkspacePage({ owner = false }) {
   const [data, setData] = useState(null);
   const [selectedDate, setSelectedDate] = useState("");
@@ -27,6 +48,8 @@ export function AgendaWorkspacePage({ owner = false }) {
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const [updating, setUpdating] = useState("");
+  const [datePageSize, setDatePageSize] = useState(getDatePageSize);
+  const [datePageStart, setDatePageStart] = useState(0);
 
   const load = useCallback(async () => {
     setError("");
@@ -48,6 +71,15 @@ export function AgendaWorkspacePage({ owner = false }) {
 
   useEffect(() => { void load().catch(() => {}); }, [load]);
 
+  useEffect(() => {
+    function handleResize() {
+      setDatePageSize(getDatePageSize());
+    }
+
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
   const dates = getValidAgendaDays(data?.agenda);
   const activeDay = dates.find((day) => day.data === selectedDate) || dates[0];
   const professionals = owner ? getValidProfessionals(activeDay?.profissionais) : [];
@@ -55,6 +87,27 @@ export function AgendaWorkspacePage({ owner = false }) {
     ? professionals.find((item) => String(item.id) === selectedProfessional) || professionals[0]
     : null;
   const slots = getValidSlots(owner ? activeProfessional?.horarios : activeDay?.horarios);
+  const maxDatePageStart = Math.max(0, dates.length - datePageSize);
+  const safeDatePageStart = Math.min(datePageStart, maxDatePageStart);
+  const visibleDates = dates.slice(safeDatePageStart, safeDatePageStart + datePageSize);
+  const canShowPreviousDates = safeDatePageStart > 0;
+  const canShowNextDates = safeDatePageStart + datePageSize < dates.length;
+
+  useEffect(() => {
+    const selectedIndex = dates.findIndex((day) => day.data === selectedDate);
+    if (selectedIndex < 0) return;
+
+    setDatePageStart((current) => {
+      const safeCurrent = Math.min(current, Math.max(0, dates.length - datePageSize));
+      if (selectedIndex < safeCurrent) {
+        return Math.floor(selectedIndex / datePageSize) * datePageSize;
+      }
+      if (selectedIndex >= safeCurrent + datePageSize) {
+        return Math.floor(selectedIndex / datePageSize) * datePageSize;
+      }
+      return safeCurrent;
+    });
+  }, [datePageSize, dates.length, selectedDate]);
 
   function selectDate(day) {
     setSelectedDate(day.data);
@@ -63,6 +116,14 @@ export function AgendaWorkspacePage({ owner = false }) {
       const firstProfessional = getValidProfessionals(day.profissionais)[0];
       setSelectedProfessional(String(firstProfessional?.id || ""));
     }
+  }
+
+  function showPreviousDates() {
+    setDatePageStart((current) => Math.max(0, current - datePageSize));
+  }
+
+  function showNextDates() {
+    setDatePageStart((current) => Math.min(maxDatePageStart, current + datePageSize));
   }
 
   async function toggleSlot(slot) {
@@ -93,7 +154,7 @@ export function AgendaWorkspacePage({ owner = false }) {
   if (!data && error) return <div className="workspace-page"><ErrorState message={error} onRetry={() => void load().catch(() => {})} /></div>;
 
   return (
-    <main className="workspace-page">
+    <main className="workspace-page agenda-workspace-page">
       <header className="workspace-heading">
         <div>
           <p className="eyebrow">{owner ? "Seu negócio em movimento" : "Seu dia de trabalho"}</p>
@@ -108,15 +169,35 @@ export function AgendaWorkspacePage({ owner = false }) {
         </EmptyState>
       ) : (
         <>
-          <section className="agenda-toolbar panel">
-            <div className="date-switcher" aria-label="Escolha uma data">
-              {dates.map((day) => (
-                <button aria-pressed={selectedDate === day.data} className={selectedDate === day.data ? "active" : ""} key={day.data} onClick={() => selectDate(day)} type="button">
-                  {formatDate(day.data)}
-                </button>
-              ))}
+          <section className={owner && professionals.length > 1 ? "agenda-toolbar panel has-professional-filter" : "agenda-toolbar panel"}>
+            <div className="agenda-date-carousel">
+              <button
+                aria-label="Ver datas anteriores"
+                className="agenda-date-arrow"
+                disabled={!canShowPreviousDates}
+                onClick={showPreviousDates}
+                type="button"
+              >
+                ‹
+              </button>
+              <div className="date-switcher" aria-label="Escolha uma data">
+                {visibleDates.map((day) => (
+                  <button aria-pressed={selectedDate === day.data} className={selectedDate === day.data ? "active" : ""} key={day.data} onClick={() => selectDate(day)} type="button">
+                    {formatAgendaDate(day.data)}
+                  </button>
+                ))}
+              </div>
+              <button
+                aria-label="Ver próximas datas"
+                className="agenda-date-arrow"
+                disabled={!canShowNextDates}
+                onClick={showNextDates}
+                type="button"
+              >
+                ›
+              </button>
             </div>
-            {owner && (
+            {owner && professionals.length > 1 && (
               <label>
                 Profissional
                 <select onChange={(event) => setSelectedProfessional(event.target.value)} value={activeProfessional?.id || ""}>
@@ -147,16 +228,22 @@ export function AgendaWorkspacePage({ owner = false }) {
                 const key = `${selectedDate}-${slot.hora}-${activeProfessional?.id || "self"}`;
                 const client = getAgendaEntityName(slot.cliente);
                 const service = getAgendaEntityName(slot.servico);
+                const isUpdating = updating === key;
+                const statusLabel = isUpdating
+                  ? slot.status === "livre" ? "Bloqueando..." : "Liberando..."
+                  : getStatusLabel(slot.status);
+
                 return (
                   <button
-                    className={`slot-card slot-${slot.status}`}
-                    disabled={updating === key || !["livre", "bloqueado"].includes(slot.status)}
+                    aria-busy={isUpdating || undefined}
+                    className={`slot-card slot-${slot.status}${isUpdating ? " is-updating" : ""}`}
+                    disabled={isUpdating || !["livre", "bloqueado"].includes(slot.status)}
                     key={`${slot.hora}-${slot.agendamento_id || ""}`}
                     onClick={() => toggleSlot(slot)}
                     type="button"
                   >
                     <strong>{String(slot.hora).slice(0, 5)}</strong>
-                    <span>{getStatusLabel(slot.status)}</span>
+                    <span>{statusLabel}</span>
                     {(client || service) && <small>{client || "Cliente"} · {service || "Serviço"}</small>}
                   </button>
                 );
