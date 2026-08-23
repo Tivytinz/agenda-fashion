@@ -8,6 +8,15 @@ const DURATION_OPTIONS = [30, 45, 60, 90, 120];
 const INTERVAL_OPTIONS = [0, 5, 10, 15, 30];
 const LEAD_TIME_OPTIONS = [0, 1, 2, 4, 12, 24, 48, 72];
 
+function CopyIcon({ className = "" }) {
+  return (
+    <svg aria-hidden="true" className={className} focusable="false" viewBox="0 0 24 24">
+      <rect fill="none" height="12" rx="2" stroke="currentColor" strokeWidth="1.8" width="12" x="8" y="8" />
+      <path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2" fill="none" stroke="currentColor" strokeLinecap="round" strokeWidth="1.8" />
+    </svg>
+  );
+}
+
 function normalizeDay(day) {
   return {
     diaSemana: Number(day.dia_semana ?? day.diaSemana),
@@ -224,13 +233,13 @@ export function ScheduleSettingsPage() {
             </select>
           </label>
           <label>
-            Antecedência mínima para agendar
+            Antecedência para agendar
             <select onChange={(e) => setConfig({ ...config, antecedenciaAgendamento: Number(e.target.value) })} value={config.antecedenciaAgendamento}>
               {leadTimeBookingOptions.map((value) => <option key={value} value={value}>{formatLeadTime(value)}</option>)}
             </select>
           </label>
           <label>
-            Antecedência mínima para cancelar
+            Antecedência para cancelar
             <select onChange={(e) => setConfig({ ...config, antecedenciaCancelamento: Number(e.target.value) })} value={config.antecedenciaCancelamento}>
               {leadTimeCancellationOptions.map((value) => <option key={value} value={value}>{formatLeadTime(value)}</option>)}
             </select>
@@ -247,32 +256,39 @@ export function ScheduleSettingsPage() {
           </div>
 
           <div className="schedule-list" aria-label="Semana">
+            <div className="schedule-column-headings" aria-hidden="true">
+              <span>Dia</span>
+              <span>Atendimento</span>
+              <span>Pausa</span>
+              <span>Ação</span>
+            </div>
             {days.map((day, index) => {
               const pauseExpanded = expandedPauses.has(day.diaSemana);
+              const dayName = DAY_NAMES[day.diaSemana];
               return (
                 <article className={day.trabalha ? "schedule-row" : "schedule-row disabled"} key={day.diaSemana}>
                   <label className="day-toggle">
                     <input checked={day.trabalha} onChange={(e) => toggleDay(index, e.target.checked)} type="checkbox" />
-                    <span>
-                      <strong>{DAY_NAMES[day.diaSemana]}</strong>
+                    <span className="schedule-day-name">
+                      <strong>{dayName}</strong>
                       <small>{day.trabalha ? "Aberto" : "Fechado"}</small>
                     </span>
                   </label>
 
                   {day.trabalha ? (
-                    <div className="schedule-day-content">
-                      <div className="schedule-field-group">
-                        <span className="schedule-field-label">Atendimento</span>
+                    <>
+                      <div className="schedule-field-group schedule-attendance-group">
+                        <span className="schedule-mobile-label">Atendimento</span>
                         <div className="schedule-time-range">
                           <input
-                            aria-label={`Início do atendimento de ${DAY_NAMES[day.diaSemana]}`}
+                            aria-label={`Início do atendimento de ${dayName}`}
                             onChange={(e) => updateDay(index, "horaInicio", e.target.value)}
                             type="time"
                             value={day.horaInicio}
                           />
                           <span aria-hidden="true">→</span>
                           <input
-                            aria-label={`Fim do atendimento de ${DAY_NAMES[day.diaSemana]}`}
+                            aria-label={`Fim do atendimento de ${dayName}`}
                             onChange={(e) => updateDay(index, "horaFim", e.target.value)}
                             type="time"
                             value={day.horaFim}
@@ -281,28 +297,27 @@ export function ScheduleSettingsPage() {
                       </div>
 
                       <div className="schedule-field-group schedule-pause-group">
-                        <label className="schedule-pause-mode">
-                          <span className="schedule-field-label">Pausa</span>
-                          <select
-                            aria-label={`Pausa de ${DAY_NAMES[day.diaSemana]}`}
-                            onChange={(e) => setPauseMode(day, index, e.target.value === "custom")}
-                            value={pauseExpanded ? "custom" : "none"}
-                          >
-                            <option value="none">Sem pausa</option>
-                            <option value="custom">Definir pausa</option>
-                          </select>
-                        </label>
+                        <span className="schedule-mobile-label">Pausa</span>
+                        <select
+                          aria-label={`Pausa de ${dayName}`}
+                          className="schedule-pause-select"
+                          onChange={(e) => setPauseMode(day, index, e.target.value === "custom")}
+                          value={pauseExpanded ? "custom" : "none"}
+                        >
+                          <option value="none">Sem pausa</option>
+                          <option value="custom">Definir pausa</option>
+                        </select>
                         {pauseExpanded && (
                           <div className="schedule-time-range schedule-pause-times">
                             <input
-                              aria-label={`Início da pausa de ${DAY_NAMES[day.diaSemana]}`}
+                              aria-label={`Início da pausa de ${dayName}`}
                               onChange={(e) => updateDay(index, "intervaloInicio", e.target.value)}
                               type="time"
                               value={day.intervaloInicio}
                             />
                             <span aria-hidden="true">→</span>
                             <input
-                              aria-label={`Fim da pausa de ${DAY_NAMES[day.diaSemana]}`}
+                              aria-label={`Fim da pausa de ${dayName}`}
                               onChange={(e) => updateDay(index, "intervaloFim", e.target.value)}
                               type="time"
                               value={day.intervaloFim}
@@ -312,16 +327,18 @@ export function ScheduleSettingsPage() {
                       </div>
 
                       <button
+                        aria-label={`Copiar horário de ${dayName} para os dias ativos`}
                         className="text-button schedule-copy-button"
                         onClick={() => copyDayToActiveDays(index)}
+                        title="Copiar este horário para os dias ativos"
                         type="button"
                       >
-                        Copiar para dias ativos
+                        <CopyIcon className="schedule-copy-icon" />
+                        <span>Copiar</span>
                       </button>
-                    </div>
+                    </>
                   ) : (
                     <div className="schedule-closed-state">
-                      <strong>Fechado</strong>
                       <span>Este dia não será oferecido para agendamento.</span>
                     </div>
                   )}
