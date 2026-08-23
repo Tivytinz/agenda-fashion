@@ -27,7 +27,7 @@ describe(
   "compartilhamento público dos serviços",
   () => {
     it(
-      "mostra copiar e compartilhar para qualquer visitante",
+      "integra uma única ação de compartilhamento a cada serviço",
       () => {
         render(
           <BookingFlow
@@ -73,20 +73,20 @@ describe(
             "button",
             {
               name:
-                "Copiar link de Limpeza de pele"
+                "Compartilhar Limpeza de pele"
             }
           )
         ).not.toBeNull();
 
         expect(
-          screen.getByRole(
+          screen.queryByRole(
             "button",
             {
               name:
-                "Compartilhar Limpeza de pele"
+                "Copiar link de Limpeza de pele"
             }
           )
-        ).not.toBeNull();
+        ).toBeNull();
       }
     );
   }

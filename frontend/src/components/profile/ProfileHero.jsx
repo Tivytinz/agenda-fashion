@@ -87,6 +87,7 @@ export function ProfileHero({
   businessSlug,
   favorite,
   favoriteBusy,
+  favoriteStatus,
   imageSource,
   onToggleFavorite,
   rating,
@@ -214,14 +215,28 @@ export function ProfileHero({
       </div>
       <div className={whatsappUrl ? "profile-actions has-whatsapp" : "profile-actions"}>
         <button
-          aria-pressed={favorite}
-          className={favorite ? "favorite-button active" : "favorite-button"}
-          disabled={favoriteBusy}
+          aria-busy={favoriteBusy || favoriteStatus === "loading"}
+          aria-pressed={favoriteStatus === "ready" ? favorite : undefined}
+          className={favoriteStatus === "ready" && favorite
+            ? "favorite-button active"
+            : "favorite-button"}
+          disabled={favoriteBusy || favoriteStatus === "loading"}
           onClick={onToggleFavorite}
           type="button"
         >
-          <ActionIcon active={favorite} type="favorite" />
-          <span>{favoriteBusy ? "Salvando..." : favorite ? "Favoritado" : "Favoritar"}</span>
+          <ActionIcon
+            active={favoriteStatus === "ready" && favorite}
+            type="favorite"
+          />
+          <span>{favoriteBusy
+            ? "Salvando..."
+            : favoriteStatus === "loading"
+              ? "Verificando..."
+              : favoriteStatus === "error"
+                ? "Verificar favorito"
+                : favorite
+                  ? "Favoritado"
+                  : "Favoritar"}</span>
         </button>
         <PublicShareButton
           businessId={business.id}

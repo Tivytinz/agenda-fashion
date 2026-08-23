@@ -33,8 +33,12 @@ export function ProfilePage() {
   const [profileReload, setProfileReload] = useState(0);
   const [error, setError] = useState("");
   const [favorite, setFavorite] = useState(false);
+  const [favoriteStatus, setFavoriteStatus] = useState(
+    () => hasSession() ? "loading" : "ready"
+  );
   const [favoriteBusy, setFavoriteBusy] = useState(false);
   const [favoriteError, setFavoriteError] = useState("");
+  const [favoriteReload, setFavoriteReload] = useState(0);
   const searchQueryRef = useRef(searchParams.toString());
   searchQueryRef.current = searchParams.toString();
 
@@ -110,14 +114,41 @@ export function ProfilePage() {
 
   useEffect(() => {
     const businessId = business?.id;
-    if (!businessId || !hasSession()) return;
+    setFavorite(false);
+    setFavoriteError("");
 
-    apiRequest(`/favoritos/${businessId}/status`)
-      .then((result) => setFavorite(Boolean(
-        result.favoritado ?? result.favorito ?? result.is_favorito
-      )))
-      .catch(() => {});
-  }, [business?.id]);
+    if (!businessId) {
+      setFavoriteStatus(hasSession() ? "loading" : "ready");
+      return undefined;
+    }
+
+    if (!hasSession()) {
+      setFavoriteStatus("ready");
+      return undefined;
+    }
+
+    const controller = new AbortController();
+    setFavoriteStatus("loading");
+
+    apiRequest(`/favoritos/${businessId}/status`, {
+      signal: controller.signal
+    })
+      .then((result) => {
+        setFavorite(Boolean(
+          result.favoritado ?? result.favorito ?? result.is_favorito
+        ));
+        setFavoriteStatus("ready");
+      })
+      .catch((requestError) => {
+        if (requestError.name === "AbortError") return;
+        setFavoriteStatus("error");
+        setFavoriteError(
+          "Não foi possível verificar este favorito. Tente novamente."
+        );
+      });
+
+    return () => controller.abort();
+  }, [business?.id, favoriteReload]);
 
   useEffect(() => {
     if (!serviceId || !professionalId) {
@@ -248,13 +279,23 @@ export function ProfilePage() {
       return;
     }
 
+    if (favoriteStatus === "error") {
+      setFavoriteReload((value) => value + 1);
+      return;
+    }
+
+    if (favoriteStatus !== "ready") return;
+
     setFavoriteBusy(true);
     setFavoriteError("");
     try {
-      await apiRequest(`/favoritos/${business.id}`, {
+      const result = await apiRequest(`/favoritos/${business.id}`, {
         method: favorite ? "DELETE" : "POST"
       });
-      setFavorite((current) => !current);
+      const nextFavorite = result?.favoritado;
+      setFavorite(
+        typeof nextFavorite === "boolean" ? nextFavorite : !favorite
+      );
     } catch (requestError) {
       setFavoriteError(requestError.message);
     } finally {
@@ -285,6 +326,7 @@ export function ProfilePage() {
         businessSlug={slug}
         favorite={favorite}
         favoriteBusy={favoriteBusy}
+        favoriteStatus={favoriteStatus}
         imageSource={profileImageSource}
         onToggleFavorite={toggleFavorite}
         rating={formatRating(business)}

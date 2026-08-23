@@ -59,23 +59,12 @@ function ServiceChoices({
             </button>
             <div className="service-share-actions">
               <PublicShareButton
-                ariaLabel={`Copiar link de ${service.nome}`}
-                businessId={businessId}
-                businessName={businessName}
-                businessSlug={businessSlug}
-                className="service-share-button"
-                label="Copiar link"
-                mode="copy"
-                serviceId={service.id}
-                serviceName={service.nome}
-              />
-              <PublicShareButton
                 ariaLabel={`Compartilhar ${service.nome}`}
                 businessId={businessId}
                 businessName={businessName}
                 businessSlug={businessSlug}
                 className="service-share-button"
-                label="Compartilhar"
+                label="Compartilhar serviço"
                 serviceId={service.id}
                 serviceName={service.nome}
               />

@@ -169,11 +169,11 @@ select:focus {
 }
 
 .public-profile-page .profile-hero {
-  grid-template-columns: 132px minmax(0, 1fr) auto;
+  grid-template-columns: 112px minmax(0, 1fr) auto;
   overflow: hidden;
   border: 1px solid rgb(217 47 127 / 12%);
   border-radius: 28px;
-  padding: clamp(22px, 4vw, 36px);
+  padding: clamp(20px, 3vw, 28px);
   background:
     radial-gradient(circle at 92% 8%, rgb(251 216 231 / 72%), transparent 28%),
     linear-gradient(120deg, #fff 0%, #fff4f8 100%);
@@ -187,7 +187,7 @@ select:focus {
 }
 
 .public-profile-page .profile-copy h1 {
-  font-size: clamp(2.2rem, 4.5vw, 3.6rem);
+  font-size: clamp(2.1rem, 4vw, 3.15rem);
   letter-spacing: -0.05em;
 }
 
@@ -223,6 +223,13 @@ select:focus {
   border-color: var(--pink-600);
   background: var(--pink-600);
   box-shadow: 0 8px 20px rgb(197 36 107 / 22%);
+}
+
+.service-choice-item .service-share-button,
+.service-choice-item .service-share-button:hover {
+  border: 0;
+  background: transparent;
+  box-shadow: none;
 }
 
 .flow-progress {

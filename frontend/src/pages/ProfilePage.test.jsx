@@ -405,6 +405,55 @@ describe("fluxo publico de agendamento", () => {
     expect(favoriteButton.classList.contains("active")).toBe(true);
   });
 
+  it("não apresenta um favorito como desmarcado enquanto verifica o status", async () => {
+    localStorage.setItem("session_active", "1");
+    apiRequest.mockImplementation((path) => {
+      if (path.startsWith("/perfil-negocio/")) return Promise.resolve(PROFILE);
+      if (path === "/favoritos/7/status") return new Promise(() => {});
+      return Promise.reject(new Error(`Requisicao inesperada: ${path}`));
+    });
+
+    renderProfile();
+
+    const favoriteButton = await screen.findByRole("button", {
+      name: "Verificando..."
+    });
+
+    expect(favoriteButton.disabled).toBe(true);
+    expect(favoriteButton.getAttribute("aria-pressed")).toBeNull();
+    expect(favoriteButton.classList.contains("active")).toBe(false);
+  });
+
+  it("permite repetir a verificação do favorito depois de uma falha", async () => {
+    const user = userEvent.setup();
+    let statusAttempts = 0;
+    localStorage.setItem("session_active", "1");
+    apiRequest.mockImplementation((path) => {
+      if (path.startsWith("/perfil-negocio/")) return Promise.resolve(PROFILE);
+      if (path === "/favoritos/7/status") {
+        statusAttempts += 1;
+        return statusAttempts === 1
+          ? Promise.reject(new Error("Falha temporária"))
+          : Promise.resolve({ favoritado: true });
+      }
+      return Promise.reject(new Error(`Requisicao inesperada: ${path}`));
+    });
+
+    renderProfile();
+
+    const retryButton = await screen.findByRole("button", {
+      name: "Verificar favorito"
+    });
+    expect((await screen.findByRole("alert")).textContent)
+      .toContain("Não foi possível verificar este favorito");
+
+    await user.click(retryButton);
+
+    expect(await screen.findByRole("button", { name: "Favoritado" }))
+      .not.toBeNull();
+    expect(statusAttempts).toBe(2);
+  });
+
   it("permite tentar novamente quando a agenda falha", async () => {
     const user = userEvent.setup();
     let scheduleAttempts = 0;

@@ -184,7 +184,7 @@ export function AppHeader() {
                 id="header-search-input"
                 onChange={(event) =>
                   setSearch(event.target.value)}
-                placeholder="Busque por serviço, profissional ou cidade"
+                placeholder="Busque serviços ou profissionais"
                 type="search"
                 value={search}
               />

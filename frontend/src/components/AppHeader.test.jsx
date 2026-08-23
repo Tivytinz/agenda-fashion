@@ -68,7 +68,7 @@ describe("cabeçalho por contexto", () => {
       .getAttribute("href")).toBe("/minha-agenda");
     expect(screen.getByRole("searchbox", {
       name: "Busque por serviço, profissional ou cidade"
-    })).not.toBeNull();
+    }).getAttribute("placeholder")).toBe("Busque serviços ou profissionais");
     expect(screen.getByRole("link", { name: "Entrar na sua conta" })
       .getAttribute("href")).toBe("/entrar");
     expect(screen.queryByRole("link", { name: "Sou profissional" }))
