@@ -14,6 +14,7 @@ import "./styles/admin-saas-health.css";
 import "./styles/admin-whatsapp.css";
 import "./styles/af-experience.css";
 import "./styles/home-discovery.css";
+import "./styles/profile-polish.css";
 
 installRuntimeRecovery();
 
