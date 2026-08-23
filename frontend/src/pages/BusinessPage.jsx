@@ -157,6 +157,18 @@ export function BusinessPage({ create = false }) {
     return () => window.removeEventListener("beforeunload", preventAccidentalExit);
   }, [hasChanges, saving]);
 
+  useEffect(() => {
+    if (create || loading) return;
+
+    const cepDigits = String(form.cep || "").replace(/\D/g, "");
+    if (cepDigits.length === 8 && !String(form.endereco || "").trim()) {
+      lookupCep(cepDigits);
+    }
+    // A consulta automática é feita apenas quando a configuração inicial termina.
+    // Alterações posteriores são tratadas por onChange/onBlur do campo.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [create, loading]);
+
   function update(field, value) {
     setForm((current) => ({ ...current, [field]: value }));
   }
@@ -179,19 +191,10 @@ export function BusinessPage({ create = false }) {
     setCepLookup({ status: "loading", message: "Buscando endereço..." });
 
     try {
-      const response = await fetch(`https://viacep.com.br/ws/${cepDigits}/json/`);
-      if (!response.ok) throw new Error("cep_lookup_failed");
-
-      const result = await response.json();
+      const result = await apiRequest(`/cep/${cepDigits}`, {
+        timeoutMs: 6000
+      });
       if (requestId !== cepRequestRef.current) return;
-
-      if (result.erro) {
-        setCepLookup({
-          status: "error",
-          message: "CEP não encontrado. Confira os números ou preencha o endereço manualmente."
-        });
-        return;
-      }
 
       setForm((current) => {
         const currentCep = String(current.cep || "").replace(/\D/g, "");
@@ -199,21 +202,27 @@ export function BusinessPage({ create = false }) {
 
         return {
           ...current,
-          endereco: result.logradouro || "",
+          endereco: result.endereco || "",
           bairro: result.bairro || "",
-          cidade: result.localidade || "",
-          estado: result.uf || ""
+          cidade: result.cidade || "",
+          estado: result.estado || ""
         };
       });
       setCepLookup({
         status: "success",
-        message: "Endereço preenchido automaticamente. Complete número e complemento."
+        message: result.endereco
+          ? "Endereço encontrado. Complete número e complemento."
+          : "CEP encontrado. Complete o endereço, número e complemento."
       });
-    } catch {
+    } catch (requestError) {
       if (requestId !== cepRequestRef.current) return;
+
+      const notFound = /CEP não encontrado/i.test(requestError?.message || "");
       setCepLookup({
         status: "error",
-        message: "Não foi possível consultar o CEP agora. Preencha o endereço manualmente."
+        message: notFound
+          ? "CEP não encontrado. Confira os números ou preencha o endereço manualmente."
+          : "Não foi possível consultar o CEP agora. Preencha o endereço manualmente."
       });
     }
   }
@@ -230,6 +239,17 @@ export function BusinessPage({ create = false }) {
     }
 
     lookupCep(cepDigits);
+  }
+
+  function handleCepBlur() {
+    const cepDigits = String(form.cep || "").replace(/\D/g, "");
+    if (
+      cepDigits.length === 8
+      && cepLookup.status !== "loading"
+      && cepLookup.status !== "success"
+    ) {
+      lookupCep(cepDigits);
+    }
   }
 
   async function copyPublicUrl() {
@@ -615,6 +635,7 @@ export function BusinessPage({ create = false }) {
                 autoComplete="postal-code"
                 inputMode="numeric"
                 maxLength="9"
+                onBlur={handleCepBlur}
                 onChange={handleCepChange}
                 placeholder="00000-000"
                 value={form.cep}
