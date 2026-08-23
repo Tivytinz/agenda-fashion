@@ -22,7 +22,7 @@ function buildNextAction({ completedBookings, profileVisits }) {
   if (profileVisits >= 5 && completedBookings === 0) {
     return {
       title: "Transforme visitas em agendamentos",
-      description: `${profileVisits} pessoas visitaram seu perfil neste período, mas ainda não houve agendamentos. Revise serviços, preços e horários disponíveis.`,
+      description: `${profileVisits} pessoas visitaram seu perfil, mas ainda não houve agendamentos. Revise serviços, preços e horários.`,
       primary: { label: "Gerenciar serviços", to: "/painel/servicos" },
       secondary: { label: "Abrir agenda", to: "/painel/agenda" }
     };
