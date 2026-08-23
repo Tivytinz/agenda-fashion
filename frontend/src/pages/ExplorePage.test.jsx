@@ -256,7 +256,7 @@ describe("catálogo público paginado", () => {
     })).toHaveLength(7);
   });
 
-  it("usa fotos próprias como fallback nas sete categorias", async () => {
+  it("usa os ícones antigos nas sete categorias", async () => {
     apiRequest.mockResolvedValue({
       negocios: [],
       paginacao: { total: 0, tem_mais: false }
@@ -267,17 +267,19 @@ describe("catálogo público paginado", () => {
     await screen.findByText("Nenhum serviço encontrado");
 
     expect(container.querySelectorAll(
-      ".home-category-visual img"
+      ".home-category-emoji"
     )).toHaveLength(7);
     expect(container.querySelector(
-      ".home-category-emoji"
+      ".home-category-visual img"
     )).toBeNull();
+    expect(container.querySelector(".home-category-emoji")?.textContent)
+      .toBe("💅");
     expect(screen.queryByRole("button", {
       name: "Ver todos"
     })).toBeNull();
   });
 
-  it("mantém as imagens aprovadas mesmo quando o catálogo possui outra foto", async () => {
+  it("não substitui o ícone da navegação pela foto de um serviço", async () => {
     apiRequest.mockResolvedValue({
       negocios: [{
         ...business(1, "Studio Um"),
@@ -297,8 +299,9 @@ describe("catálogo público paginado", () => {
     expect(await screen.findByRole("heading", { name: "Esmaltação" }))
       .not.toBeNull();
     expect(screen.getByRole("button", { name: "Unhas" })
-      .querySelector("img")?.getAttribute("src"))
-      .toContain("unhas-card");
+      .querySelector("img")).toBeNull();
+    expect(screen.getByRole("button", { name: "Unhas" })
+      .querySelector(".home-category-emoji")?.textContent).toBe("💅");
   });
 
   it("permite passar o banner principal para o lado", async () => {

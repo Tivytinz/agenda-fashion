@@ -530,21 +530,15 @@
     linear-gradient(145deg, #fff0f6, #f6bfd6);
 }
 
-.home-category-visual img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  transition: transform 220ms ease;
-}
-
-.home-category-card:hover .home-category-visual img {
-  transform: scale(1.04);
-}
-
 .home-category-shade {
   position: absolute;
   inset: 0;
   background: linear-gradient(0deg, rgb(56 47 52 / 12%), transparent 56%);
+}
+
+.home-category-emoji {
+  font-size: 3.15rem;
+  filter: drop-shadow(0 8px 12px rgb(217 47 127 / 18%));
 }
 
 .home-category-copy {
@@ -1029,8 +1023,7 @@
 
 @media (prefers-reduced-motion: reduce) {
   .home-hero-track,
-  .home-category-card,
-  .home-category-visual img {
+  .home-category-card {
     transition: none;
   }
 }

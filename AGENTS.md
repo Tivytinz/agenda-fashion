@@ -92,10 +92,10 @@ AF nao demonstra valor para os negocios.
   Meus agendamentos, busca e foto da conta; a busca substitui o atalho
   redundante "Buscar servicos". O banner nao possui campo de busca interno e
   funciona como carrossel navegavel.
-- Cada categoria da home possui uma foto panoramica propria para o carrossel e
-  outra imagem 16:9 para o card de navegacao. Essas imagens editoriais nao sao
-  fallback de perfis ou servicos; quando nao houver foto cadastrada no
-  catalogo, manter o fallback antigo com o icone da categoria.
+- Cada categoria da home possui uma foto panoramica propria para o carrossel.
+  As fotos editoriais ficam somente no banner; os cards de navegacao, perfis e
+  servicos sem foto cadastrada mantem o fallback antigo com o icone da
+  categoria para preservar a identidade visual do AF.
 - Emojis fazem parte da comunicacao da marca quando ajudam a leitura, sem
   substituir acessibilidade ou clareza.
 - Usar os arquivos oficiais de marca existentes em

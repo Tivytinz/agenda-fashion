@@ -595,7 +595,7 @@ describe(
         expect(inicio).toContain(
           "home-hero-dots"
         );
-        expect(inicio).toContain(
+        expect(inicio).not.toContain(
           "CATEGORY_CARD_IMAGES"
         );
         expect(inicio).not.toContain(
@@ -607,7 +607,7 @@ describe(
         expect(inicio).toContain(
           "maquiagemHero"
         );
-        expect(inicio).not.toContain(
+        expect(inicio).toContain(
           "serviceCategoryEmoji"
         );
         expect(inicio).not.toContain(

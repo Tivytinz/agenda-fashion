@@ -19,7 +19,6 @@ import skincareHero from "../assets/home/skincare-hero.webp";
 import sobrancelhasHero from "../assets/home/sobrancelhas-hero.webp";
 import { BusinessCard } from "../components/BusinessCard";
 import { ServiceCard } from "../components/ServiceCard";
-import { useRetryingMedia } from "../hooks/useRetryingMedia";
 
 import {
   EmptyState,
@@ -28,8 +27,10 @@ import {
 } from "../components/ScreenState";
 
 import { normalizeText } from "../utils/format";
-import { CATEGORY_CARD_IMAGES } from "../utils/categoryMedia";
-import { serviceCategoryLabel } from "../utils/specialties";
+import {
+  serviceCategoryEmoji,
+  serviceCategoryLabel
+} from "../utils/specialties";
 
 const CATEGORY_SPOTLIGHTS = [
   ["unha", "Unhas", "Manicure e pedicure"],
@@ -148,16 +149,10 @@ export function diversifyServices(services = []) {
 function CategorySpotlightCard({
   active,
   category,
-  imageSource,
   label,
   onSelect,
   subtitle
 }) {
-  const media = useRetryingMedia(imageSource, {
-    width: 420,
-    fit: "cover"
-  });
-
   return (
     <button
       aria-label={label}
@@ -169,14 +164,12 @@ function CategorySpotlightCard({
       type="button"
     >
       <span className="home-category-visual">
-        {media.hasImage && (
-          <img
-            alt=""
-            loading="lazy"
-            onError={media.handleError}
-            src={media.imageUrl}
-          />
-        )}
+        <span
+          aria-hidden="true"
+          className="home-category-emoji"
+        >
+          {serviceCategoryEmoji(category, label)}
+        </span>
 
         <span className="home-category-shade" />
       </span>
@@ -666,7 +659,6 @@ export function ExplorePage() {
             <CategorySpotlightCard
               active={category === value}
               category={value}
-              imageSource={CATEGORY_CARD_IMAGES[value]}
               key={value}
               label={label}
               onSelect={chooseCategory}
