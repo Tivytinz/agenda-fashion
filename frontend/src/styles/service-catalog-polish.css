@@ -64,6 +64,7 @@
   font-size: .72rem;
   font-weight: 850;
   text-decoration: none;
+  white-space: nowrap;
 }
 
 .services-management-page .service-cover-empty-action:hover {
@@ -105,8 +106,8 @@
 
 /* A capa continua em destaque, mas sem empurrar a galeria para longe. */
 .service-editor-page .cover-preview {
-  height: 200px;
-  min-height: 200px;
+  height: 180px;
+  min-height: 180px;
 }
 
 .service-editor-page .service-gallery-upload-button {
@@ -118,12 +119,14 @@
 
 /* A imagem de capa também participa visualmente da galeria. */
 .service-editor-page .service-gallery-picker figure.is-cover {
-  border-color: #65c79d;
-  box-shadow: inset 0 0 0 1px #65c79d, 0 6px 16px rgb(23 99 60 / 7%);
+  border: 2px solid #4fbe8d;
+  box-shadow: 0 0 0 2px rgb(79 190 141 / 10%), 0 7px 18px rgb(23 99 60 / 9%);
 }
 
 .service-editor-page .service-cover-current-label {
   width: 100%;
+  border-color: #8fd9b8;
+  background: #e9f9f0;
 }
 
 /* Em desktop, duas miniaturas cabem inteiras na coluna. Setas só acrescentariam decoração. */
@@ -137,15 +140,15 @@
 
 @media (max-width: 900px) {
   .service-editor-page .cover-preview {
-    height: 185px;
-    min-height: 185px;
+    height: 165px;
+    min-height: 165px;
   }
 }
 
 @media (max-width: 680px) {
   .service-editor-page .cover-preview {
-    height: 170px;
-    min-height: 170px;
+    height: 155px;
+    min-height: 155px;
   }
 
   /* No celular duas fotos já podem exceder a área útil, então a navegação volta a ser útil. */
