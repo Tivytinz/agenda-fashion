@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import { ConfirmationIcon } from "./ConfirmationIcon";
 
 const SERVICE_PENDING = "pelo menos um serviço ativo";
 
@@ -70,26 +71,27 @@ export function ProfessionalOnboardingChecklist({
   if (!nextStep) {
     return (
       <section className="panel onboarding-panel is-complete">
-        <div className="onboarding-heading">
-          <div>
-            <p className="eyebrow">Configuração concluída</p>
-            <h2>Seu negócio está pronto para crescer</h2>
-            <p className="muted">
-              Compartilhe seu perfil e mantenha serviços e horários atualizados.
-            </p>
-          </div>
-          <strong className="onboarding-progress-label">3 de 3</strong>
+        <div className="onboarding-complete-copy">
+          <p className="eyebrow onboarding-complete-eyebrow">
+            <ConfirmationIcon className="onboarding-complete-icon" />
+            <span>Configuração concluída</span>
+          </p>
+          <h2>Seu negócio está pronto para crescer</h2>
+          <p className="muted">
+            Compartilhe seu perfil e mantenha serviços e horários atualizados.
+          </p>
         </div>
-        {businessSlug && (
-          <div className="onboarding-actions">
+        <div className="onboarding-complete-actions">
+          <strong className="onboarding-progress-label">3 de 3</strong>
+          {businessSlug && (
             <Link
               className="button"
               to={`/negocio/${encodeURIComponent(businessSlug)}`}
             >
-              Ver meu perfil público
+              Ver meu perfil público <span aria-hidden="true">↗</span>
             </Link>
-          </div>
-        )}
+          )}
+        </div>
       </section>
     );
   }
