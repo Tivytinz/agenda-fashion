@@ -147,7 +147,7 @@ describe("editor de serviços", () => {
     submit();
 
     expect((await screen.findByRole("alert")).textContent).toContain("algumas fotos não foram enviadas");
-    expect(screen.getByText("1 foto nova selecionada.")).not.toBeNull();
+    expect(screen.getByText("1 foto selecionada.")).not.toBeNull();
     submit();
 
     expect(await screen.findByRole("heading", { name: "Lista de serviços" })).not.toBeNull();
@@ -196,6 +196,11 @@ describe("editor de serviços", () => {
     renderEditor("/painel/servicos/9/editar");
 
     expect(await screen.findByText("Capa atual")).not.toBeNull();
+    expect(screen.getByText("2 fotos")).not.toBeNull();
+    expect(screen.getByRole("button", { name: "Fotos anteriores" })).not.toBeNull();
+    expect(screen.getByRole("button", { name: "Próximas fotos" })).not.toBeNull();
+    expect(screen.getAllByRole("button", { name: "Remover foto da galeria" })).toHaveLength(2);
+
     const choose = screen.getByRole("button", { name: "Usar como capa" });
     fireEvent.click(choose);
 
@@ -209,6 +214,14 @@ describe("editor de serviços", () => {
     expect((await screen.findByRole("status")).textContent).toContain("Foto escolhida como capa");
     expect(screen.getByRole("img", { name: "Capa atual do serviço Extensão de Cílios" }).src)
       .toContain("cilios-2.jpg");
+  });
+
+  it("usa um seletor visual para adicionar fotos sem expor o campo nativo", () => {
+    renderEditor();
+
+    const input = screen.getByLabelText("Adicionar fotos à galeria");
+    expect(input.classList.contains("sr-only")).toBe(true);
+    expect(screen.getByText("Adicionar fotos")).not.toBeNull();
   });
 
   it("conclui o onboarding quando o primeiro serviço publica o negócio", async () => {
