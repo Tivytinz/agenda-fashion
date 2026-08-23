@@ -604,6 +604,12 @@ describe(
         expect(inicio).not.toContain(
           "Deslize →"
         );
+        expect(inicio).not.toContain(
+          "nearbyLocation"
+        );
+        expect(inicio).toContain(
+          "Todo o Brasil"
+        );
         expect(inicio).toContain(
           "maquiagemHero"
         );

@@ -92,6 +92,9 @@ AF nao demonstra valor para os negocios.
   Meus agendamentos, busca e foto da conta; a busca substitui o atalho
   redundante "Buscar servicos". O banner nao possui campo de busca interno e
   funciona como carrossel navegavel.
+- A home nao pode inferir a localizacao da cliente pela cidade do primeiro
+  negocio retornado. Sem uma localizacao escolhida ou autorizada, usar contexto
+  nacional ("Todo o Brasil") e nao afirmar que os resultados estao perto.
 - Cada categoria da home possui uma foto panoramica propria para o carrossel.
   As fotos editoriais ficam somente no banner; os cards de navegacao, perfis e
   servicos sem foto cadastrada mantem o fallback antigo com o icone da

@@ -451,16 +451,6 @@ export function ExplorePage() {
       );
     }, [businesses]);
 
-  const nearbyLocation = useMemo(() => {
-    const business = sortedBusinesses[0];
-    const city = business?.cidade;
-    const state = business?.estado;
-
-    return [city, state]
-      .filter(Boolean)
-      .join(", ") || "Perto de você";
-  }, [sortedBusinesses]);
-
   async function loadMore() {
     await loadBusinesses({
       requestedPage: page + 1,
@@ -678,20 +668,19 @@ export function ExplorePage() {
               <span aria-hidden="true">📍</span>
 
               <h2 id="businesses-title">
-                Perto de você
+                Profissionais em destaque
               </h2>
             </div>
 
             <span className="home-location-pill">
               <span aria-hidden="true">📍</span>
-              {nearbyLocation}
-              <span aria-hidden="true">⌄</span>
+              Todo o Brasil
             </span>
           </div>
 
           {sortedBusinesses.length > 0 ? (
             <div
-              aria-label="Profissionais e negócios perto de você"
+              aria-label="Profissionais e negócios em destaque"
               className="home-business-rail"
               tabIndex={sortedBusinesses.length > 1 ? 0 : undefined}
             >
@@ -706,7 +695,7 @@ export function ExplorePage() {
             </div>
           ) : (
             <EmptyState title="Nenhum negócio encontrado">
-              Tente outra categoria, serviço ou cidade.
+              Tente outra categoria, serviço ou localização.
             </EmptyState>
           )}
 

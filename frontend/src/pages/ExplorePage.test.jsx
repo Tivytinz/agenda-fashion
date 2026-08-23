@@ -226,7 +226,7 @@ describe("catálogo público paginado", () => {
       "Nenhum serviço encontrado"
     )).not.toBeNull();
     expect(screen.getByRole("heading", {
-      name: "Perto de você"
+      name: "Profissionais em destaque"
     })).not.toBeNull();
     expect(screen.getByText(
       "Nenhum negócio encontrado"
@@ -377,7 +377,7 @@ describe("catálogo público paginado", () => {
     expect(screen.queryByRole("button", { name: "Usar localização" })).toBeNull();
   });
 
-  it("usa alfinetes na seção e na cidade próxima", async () => {
+  it("não inventa a localização da cliente com a cidade do primeiro negócio", async () => {
     apiRequest.mockResolvedValue({
       negocios: [{
         ...business(1, "Studio Um"),
@@ -391,8 +391,12 @@ describe("catálogo público paginado", () => {
 
     await screen.findAllByText("Rio de Janeiro, RJ");
     expect(container.querySelector(".home-title-with-icon")?.textContent)
-      .toContain("📍Perto de você");
+      .toContain("📍Profissionais em destaque");
     expect(container.querySelector(".home-location-pill")?.textContent)
-      .toContain("📍Rio de Janeiro, RJ");
+      .toBe("📍Todo o Brasil");
+    expect(container.querySelector(".home-location-pill")?.textContent)
+      .not.toContain("Rio de Janeiro");
+    expect(container.querySelector(".home-location-pill")?.textContent)
+      .not.toContain("⌄");
   });
 });
