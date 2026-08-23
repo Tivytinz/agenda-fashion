@@ -18,6 +18,33 @@ function formatPercent(value) {
   }).format(Number(value) || 0);
 }
 
+function buildNextAction({ completedBookings, profileVisits }) {
+  if (profileVisits >= 5 && completedBookings === 0) {
+    return {
+      title: "Transforme visitas em agendamentos",
+      description: `${profileVisits} pessoas visitaram seu perfil neste período, mas ainda não houve agendamentos. Revise serviços, preços e horários disponíveis.`,
+      primary: { label: "Gerenciar serviços", to: "/painel/servicos" },
+      secondary: { label: "Abrir agenda", to: "/painel/agenda" }
+    };
+  }
+
+  if (profileVisits > 0 && completedBookings > 0) {
+    return {
+      title: "Mantenha o ritmo",
+      description: `Seu perfil recebeu ${profileVisits} visitas e gerou ${completedBookings} ${completedBookings === 1 ? "agendamento" : "agendamentos"}. Continue com serviços e horários atualizados.`,
+      primary: { label: "Abrir agenda", to: "/painel/agenda" },
+      secondary: { label: "Gerenciar serviços", to: "/painel/servicos" }
+    };
+  }
+
+  return {
+    title: "Deixe a agenda pronta",
+    description: "Serviços claros e horários atualizados ajudam clientes a confirmar sem voltar ao WhatsApp.",
+    primary: { label: "Abrir agenda", to: "/painel/agenda" },
+    secondary: { label: "Gerenciar serviços", to: "/painel/servicos" }
+  };
+}
+
 export function DashboardPage() {
   const [period, setPeriod] = useState("7dias");
   const [data, setData] = useState(null);
@@ -101,6 +128,9 @@ export function DashboardPage() {
   const newClients = Number(summary.clientes_novos) || 0;
   const profileVisits = Number(performance.visitas_perfil) || 0;
   const completedBookings = Number(performance.agendamentos_concluidos) || 0;
+  const visitLabel = profileVisits === 1 ? "visita" : "visitas";
+  const bookingLabel = completedBookings === 1 ? "agendamento" : "agendamentos";
+  const nextAction = buildNextAction({ completedBookings, profileVisits });
   const cards = [
     ["Agendamentos", summary.agendamentos_periodo ?? 0, "no período"],
     ["Faturamento", formatCurrency(summary.faturamento_periodo), "previsto"],
@@ -108,12 +138,12 @@ export function DashboardPage() {
     [
       "Conversão",
       `${formatPercent(performance.taxa_conversao)}%`,
-      `${completedBookings} de ${profileVisits} visitas`
+      `${completedBookings} ${bookingLabel} em ${profileVisits} ${visitLabel}`
     ]
   ];
 
   return (
-    <main aria-busy={refreshing} className="workspace-page">
+    <main aria-busy={refreshing} className="workspace-page dashboard-page">
       <header className="workspace-heading">
         <div>
           <p className="eyebrow">Seu crescimento</p>
@@ -149,9 +179,9 @@ export function DashboardPage() {
       </section>
 
       <section className="dashboard-grid">
-        <article className="panel">
+        <article className="panel dashboard-performance-panel">
           <div className="panel-heading">
-            <div><p className="eyebrow">Aquisição</p><h2>Seu perfil está trabalhando</h2></div>
+            <div><p className="eyebrow">Aquisição</p><h2>Desempenho do perfil</h2></div>
           </div>
           <dl className="data-list">
             <div><dt>Visitas ao perfil</dt><dd>{performance.visitas_perfil ?? 0}</dd></div>
@@ -161,14 +191,14 @@ export function DashboardPage() {
           </dl>
         </article>
 
-        <article className="panel">
+        <article className="panel dashboard-action-panel">
           <div className="panel-heading">
-            <div><p className="eyebrow">Próxima ação</p><h2>Mantenha a agenda pronta</h2></div>
+            <div><p className="eyebrow">Próxima ação</p><h2>{nextAction.title}</h2></div>
           </div>
-          <p className="muted">Serviços claros e horários atualizados ajudam clientes a confirmar sem voltar ao WhatsApp.</p>
-          <div className="quick-actions">
-            <Link className="button" to="/painel/agenda">Abrir agenda</Link>
-            <Link className="button button-secondary" to="/painel/servicos">Gerenciar serviços</Link>
+          <p className="muted dashboard-action-copy">{nextAction.description}</p>
+          <div className="quick-actions dashboard-quick-actions">
+            <Link className="button" to={nextAction.primary.to}>{nextAction.primary.label}</Link>
+            <Link className="button button-secondary" to={nextAction.secondary.to}>{nextAction.secondary.label}</Link>
           </div>
         </article>
       </section>
