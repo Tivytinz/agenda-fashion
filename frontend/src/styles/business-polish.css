@@ -51,8 +51,13 @@
   gap: 18px;
   border: 1px solid var(--line);
   border-radius: 14px;
-  padding: 14px 16px;
+  padding: 12px 14px;
   background: #fcfafb;
+}
+
+.business-settings-page .public-address-card .button {
+  min-width: 116px;
+  white-space: nowrap;
 }
 
 .business-settings-page .public-address-copy {
