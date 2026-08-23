@@ -2,13 +2,13 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { apiRequest } from "../api/client";
 import { track } from "../analytics/track";
+import { hasSession } from "../auth/session";
 import { BookingFlow } from "../components/profile/BookingFlow";
 import { ProfileHero } from "../components/profile/ProfileHero";
 import { ErrorState, LoadingState } from "../components/ScreenState";
 import { usePageMetadata } from "../hooks/usePageMetadata";
 import { formatRating, normalizeAvailability } from "../utils/format";
 import {
-  readBrowserStorage,
   writeBrowserStorage
 } from "../utils/browserStorage";
 
@@ -110,7 +110,7 @@ export function ProfilePage() {
 
   useEffect(() => {
     const businessId = business?.id;
-    if (!businessId || !readBrowserStorage("local", "token")) return;
+    if (!businessId || !hasSession()) return;
 
     apiRequest(`/favoritos/${businessId}/status`)
       .then((result) => setFavorite(Boolean(
@@ -235,7 +235,7 @@ export function ProfilePage() {
       mission: "escolher_e_agendar",
       businessId: business.id,
       properties: {
-        origem: readBrowserStorage("local", "token") ? "cliente_logada" : "visitante",
+        origem: hasSession() ? "cliente_logada" : "visitante",
         servico_id: Number(serviceId)
       }
     });
@@ -243,7 +243,7 @@ export function ProfilePage() {
   }
 
   async function toggleFavorite() {
-    if (!readBrowserStorage("local", "token")) {
+    if (!hasSession()) {
       navigate("/entrar", { state: { from: `/negocio/${slug}` } });
       return;
     }
