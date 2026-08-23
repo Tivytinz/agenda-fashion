@@ -198,7 +198,7 @@ function BookingSummary({ day, onContinue, professional, service, time }) {
         <div><dt>Total</dt><dd>{service ? formatCurrency(service.valor) : "Aguardando serviço"}</dd></div>
       </dl>
       <button className="button button-full" disabled={!time} onClick={onContinue}>
-        {time ? "Revisar e confirmar" : "Escolha um horário"}
+        {time ? "Revisar e confirmar" : "Selecione um horário"}
       </button>
       <small>Você confirma seus dados na próxima etapa.</small>
     </aside>
@@ -266,7 +266,10 @@ export function BookingFlow({
             <div className="section-heading"><div><p className="step-label">1</p><h2>Escolha o serviço</h2></div></div>
             {serviceId && !editingService ? (
               <div className="booking-step-summary">
-                <span><strong>{selectedService?.nome}</strong><small>{formatCurrency(selectedService?.valor)}</small></span>
+                <span>
+                  <strong>{selectedService?.nome}</strong>
+                  <small>{formatCurrency(selectedService?.valor)}</small>
+                </span>
                 <button className="text-button" onClick={() => setEditingService(true)} type="button">Alterar</button>
               </div>
             ) : (

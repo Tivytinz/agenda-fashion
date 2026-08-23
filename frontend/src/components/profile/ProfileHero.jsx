@@ -45,12 +45,16 @@ function distanceInKm(
   );
 }
 
-function ActionIcon({ type }) {
+function ActionIcon({ active = false, type }) {
   if (type === "favorite") {
     return (
       <svg className="action-icon favorite-icon" viewBox="0 0 24 24" aria-hidden="true">
         <path
-          fill="currentColor"
+          fill={active ? "currentColor" : "none"}
+          stroke="currentColor"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth="1.8"
           d="M12 21s-7.2-4.35-9.33-8.72C.8 8.45 3.02 4.5 7.18 4.5c2.02 0 3.4 1.1 4.82 2.7 1.42-1.6 2.8-2.7 4.82-2.7 4.16 0 6.38 3.95 4.51 7.78C19.2 16.65 12 21 12 21Z"
         />
       </svg>
@@ -216,8 +220,8 @@ export function ProfileHero({
           onClick={onToggleFavorite}
           type="button"
         >
-          <ActionIcon type="favorite" />
-          <span>{favorite ? "Salvo" : "Favoritar"}</span>
+          <ActionIcon active={favorite} type="favorite" />
+          <span>{favoriteBusy ? "Salvando..." : favorite ? "Favoritado" : "Favoritar"}</span>
         </button>
         <PublicShareButton
           businessId={business.id}

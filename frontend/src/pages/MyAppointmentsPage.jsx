@@ -119,7 +119,7 @@ function AppointmentCard({ appointment, canCancel, canceling, onCancel }) {
 
         <div className="appointment-actions">
           {appointment.slug && (
-            <Link className="text-button" to={`/negocio/${encodeURIComponent(appointment.slug)}`}>
+            <Link className="button button-secondary button-small" to={`/negocio/${encodeURIComponent(appointment.slug)}`}>
               Ver negócio
             </Link>
           )}

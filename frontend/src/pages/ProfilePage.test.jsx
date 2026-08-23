@@ -255,7 +255,7 @@ describe("fluxo publico de agendamento", () => {
 
     expect(await screen.findByRole("button", { name: "09:00" }))
       .not.toBeNull();
-    expect(screen.getByRole("button", { name: "Escolha um horário" }).disabled)
+    expect(screen.getByRole("button", { name: "Selecione um horário" }).disabled)
       .toBe(true);
 
     await user.click(screen.getByRole("button", { name: "09:00" }));
@@ -351,8 +351,33 @@ describe("fluxo publico de agendamento", () => {
 
     expect(screen.getByText("Aguardando serviço", { selector: "dd" }))
       .not.toBeNull();
-    expect(screen.getByRole("button", { name: "Escolha um horário" }).disabled)
+    expect(screen.getByRole("button", { name: "Selecione um horário" }).disabled)
       .toBe(true);
+  });
+
+  it("diferencia com clareza o estado do favorito", async () => {
+    const user = userEvent.setup();
+    localStorage.setItem("token", "token-valido");
+    apiRequest.mockImplementation((path, options) => {
+      if (path.startsWith("/perfil-negocio/")) return Promise.resolve(PROFILE);
+      if (path === "/favoritos/7/status") return Promise.resolve({ favoritado: false });
+      if (path === "/favoritos/7" && options?.method === "POST") {
+        return Promise.resolve({ favoritado: true });
+      }
+      return Promise.reject(new Error(`Requisicao inesperada: ${path}`));
+    });
+
+    renderProfile();
+    const favoriteButton = await screen.findByRole("button", { name: "Favoritar" });
+
+    expect(favoriteButton.getAttribute("aria-pressed")).toBe("false");
+    expect(favoriteButton.classList.contains("active")).toBe(false);
+
+    await user.click(favoriteButton);
+
+    const favoritedButton = screen.getByRole("button", { name: "Favoritado" });
+    expect(favoritedButton.getAttribute("aria-pressed")).toBe("true");
+    expect(favoritedButton.classList.contains("active")).toBe(true);
   });
 
   it("permite tentar novamente quando a agenda falha", async () => {

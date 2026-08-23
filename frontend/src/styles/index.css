@@ -136,7 +136,7 @@ nav { display: flex; align-items: center; gap: 18px; }
 .profile-distance-button { border: 1px solid var(--pink-100); border-radius: 999px; padding: 5px 9px; color: var(--wine); background: #fff; font: inherit; font-weight: 800; cursor: pointer; }
 .profile-distance-button:hover { border-color: var(--pink-500); background: var(--pink-50); }
 .favorite-button { min-height: 42px; border: 1px solid var(--pink-100); border-radius: 999px; padding: 0 16px; color: var(--wine); background: #fff; font-weight: 850; cursor: pointer; transition: transform 160ms ease, border-color 160ms ease, background-color 160ms ease, color 160ms ease; }
-.favorite-button.active { color: var(--pink-600); border-color: var(--pink-500); background: var(--pink-50); }
+.favorite-button.active { color: #fff; border-color: var(--pink-600); background: var(--pink-600); }
 .public-share-button { display: inline-flex; min-height: 40px; align-items: center; justify-content: center; gap: 7px; border: 1px solid var(--pink-100); border-radius: 10px; padding: 0 12px; color: var(--wine); background: #fff; font-weight: 850; cursor: pointer; transition: border-color 160ms ease, background-color 160ms ease, color 160ms ease; }
 .public-share-button:hover { color: var(--pink-600); border-color: var(--pink-500); background: var(--pink-50); }
 .public-share-button:disabled { opacity: .6; cursor: wait; }
@@ -176,7 +176,16 @@ nav { display: flex; align-items: center; gap: 18px; }
 .choice-price { flex: 0 0 auto; color: var(--wine); text-align: right; }
 .choice-price small { color: var(--pink-600); font-size: .72rem; font-weight: 850; }
 .avatar { display: grid; width: 42px; height: 42px; flex: 0 0 auto; place-items: center; border-radius: 50%; color: var(--wine); background: var(--pink-100); font-weight: 900; }
+.booking-step-summary { display: flex; min-height: 58px; align-items: center; justify-content: space-between; gap: 18px; border: 1px solid var(--line); border-radius: 14px; padding: 12px 14px; background: var(--pink-50); }
+.booking-step-summary > span { display: grid; min-width: 0; gap: 4px; }
+.booking-step-summary strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.booking-step-summary small { color: var(--muted); }
+.booking-step-summary .text-button { flex: 0 0 auto; color: var(--pink-700); }
 .date-list, .time-list { display: flex; overflow-x: auto; gap: 10px; padding: 2px; }
+.date-list { padding-bottom: 8px; scrollbar-color: var(--pink-100) transparent; scrollbar-width: thin; }
+.date-list::-webkit-scrollbar { height: 6px; }
+.date-list::-webkit-scrollbar-track { background: transparent; }
+.date-list::-webkit-scrollbar-thumb { border-radius: 999px; background: var(--pink-100); }
 .time-list { flex-wrap: wrap; margin-top: 16px; overflow: visible; }
 .date-button, .time-button { min-height: 44px; flex: 0 0 auto; border: 1px solid var(--line); border-radius: 10px; padding-inline: 14px; color: var(--ink); background: #fff; font-weight: 750; cursor: pointer; }
 .booking-summary { position: static; }
@@ -233,7 +242,7 @@ nav { display: flex; align-items: center; gap: 18px; }
 .appointment-details div { min-width: 0; }
 .appointment-details dt { margin-bottom: 4px; color: var(--muted); font-size: .76rem; font-weight: 800; text-transform: uppercase; }
 .appointment-details dd { overflow: hidden; margin: 0; font-weight: 700; text-overflow: ellipsis; }
-.appointment-actions { display: flex; align-items: center; justify-content: flex-end; gap: 18px; margin-top: 18px; border-top: 1px solid var(--line); padding-top: 14px; }
+.appointment-actions { display: flex; align-items: center; justify-content: flex-end; gap: 12px; margin-top: 18px; border-top: 1px solid var(--line); padding: 14px 2px 2px; }
 .button-danger { color: #8c2039; border-color: #efc2cc; background: #fff8fa; }
 .agenda-message { border-radius: 10px; padding: 12px 14px; color: var(--wine); background: var(--pink-50); }
 .cancel-dialog { width: min(460px, calc(100% - 28px)); max-width: none; border: 1px solid var(--line); border-radius: 18px; padding: 0; color: var(--ink); background: #fff; box-shadow: 0 24px 70px rgb(72 22 43 / 24%); }

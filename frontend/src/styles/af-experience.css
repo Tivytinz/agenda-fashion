@@ -217,6 +217,14 @@ select:focus {
   background: var(--pink-50);
 }
 
+.favorite-button.active,
+.favorite-button.active:hover {
+  color: #fff;
+  border-color: var(--pink-600);
+  background: var(--pink-600);
+  box-shadow: 0 8px 20px rgb(197 36 107 / 22%);
+}
+
 .flow-progress {
   max-width: 900px;
   margin-block: 24px;
