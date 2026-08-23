@@ -52,7 +52,7 @@ describe("imagens dos cards do catálogo", () => {
     expect(document.querySelectorAll(".business-cover-backdrop")).toHaveLength(1);
   });
 
-  it("usa a imagem da categoria quando o negócio não possui foto", () => {
+  it("usa o emoji da especialidade quando o negócio não possui foto", () => {
     render(
       <MemoryRouter>
         <BusinessCard business={{
@@ -65,12 +65,10 @@ describe("imagens dos cards do catálogo", () => {
       </MemoryRouter>
     );
 
-    expect(document.querySelector(".business-category-fallback"))
-      .not.toBeNull();
-    expect(document.querySelector(".business-category-fallback")
-      ?.getAttribute("src")).toContain("cilios-card");
-    expect(document.querySelector(".business-specialty-emoji"))
-      .toBeNull();
+    expect(document.querySelector(".business-specialty-emoji")?.textContent)
+      .toBe("👁️");
+    expect(document.querySelector(".business-specialty-emoji")?.textContent)
+      .not.toBe("S");
   });
 
   it("volta a tentar quando a URL do mesmo card muda", async () => {
@@ -133,7 +131,7 @@ describe("imagens dos cards do catálogo", () => {
     expect(screen.queryByText("Sobrancelhas")).toBeNull();
   });
 
-  it("usa a imagem da categoria quando o serviço não possui foto", () => {
+  it("usa o emoji da categoria quando o serviço não possui foto", () => {
     render(
       <MemoryRouter>
         <ServiceCard service={{
@@ -148,15 +146,13 @@ describe("imagens dos cards do catálogo", () => {
       </MemoryRouter>
     );
 
-    expect(document.querySelector(".service-category-fallback"))
-      .not.toBeNull();
-    expect(document.querySelector(".service-category-fallback")
-      ?.getAttribute("src")).toContain("estetica-card");
-    expect(document.querySelector(".service-discovery-placeholder"))
-      .toBeNull();
+    expect(document.querySelector(".service-discovery-placeholder strong")
+      ?.textContent).toBe("💆");
+    expect(document.querySelector(".service-discovery-placeholder")
+      ?.textContent).not.toContain("D");
   });
 
-  it("identifica Bronzeamento com categoria e imagem próprias", () => {
+  it("identifica Bronzeamento com categoria e ícone próprios", () => {
     render(
       <MemoryRouter>
         <ServiceCard service={{
@@ -173,8 +169,8 @@ describe("imagens dos cards do catálogo", () => {
 
     expect(screen.getAllByText("Bronzeamento").length)
       .toBeGreaterThan(0);
-    expect(document.querySelector(".service-category-fallback")
-      ?.getAttribute("src")).toContain("bronzeamento-card");
+    expect(document.querySelector(".service-discovery-placeholder strong")
+      ?.textContent).toBe("☀️");
   });
 
   it("identifica negócio, localização, duração e valor com emojis", () => {

@@ -93,8 +93,9 @@ AF nao demonstra valor para os negocios.
   redundante "Buscar servicos". O banner nao possui campo de busca interno e
   funciona como carrossel navegavel.
 - Cada categoria da home possui uma foto panoramica propria para o carrossel e
-  outra imagem 16:9 para fallback do card; nao usar emojis quando a categoria
-  estiver sem foto cadastrada no catalogo.
+  outra imagem 16:9 para o card de navegacao. Essas imagens editoriais nao sao
+  fallback de perfis ou servicos; quando nao houver foto cadastrada no
+  catalogo, manter o fallback antigo com o icone da categoria.
 - Emojis fazem parte da comunicacao da marca quando ajudam a leitura, sem
   substituir acessibilidade ou clareza.
 - Usar os arquivos oficiais de marca existentes em
