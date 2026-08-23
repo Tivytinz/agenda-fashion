@@ -56,7 +56,7 @@ describe("agenda do negócio", () => {
     expect(await screen.findByRole("combobox", { name: "Profissional" })).not.toBeNull();
   });
 
-  it("mantém o horário desabilitado e informa a ação enquanto a agenda atualiza", async () => {
+  it("mantém o horário desabilitado, mostra a ação e confirma em um toast discreto", async () => {
     let finishReload;
     const refreshedAgenda = new Promise((resolve) => { finishReload = resolve; });
     apiRequest
@@ -84,7 +84,15 @@ describe("agenda do negócio", () => {
       }]
     });
 
-    expect(await screen.findByRole("button", { name: /09:00 Bloqueado/ })).not.toBeNull();
+    const blocked = await screen.findByRole("button", { name: /09:00 Bloqueado/ });
+    expect(blocked.querySelector(".slot-lock-icon")).not.toBeNull();
+
+    const feedback = screen.getByRole("status");
+    expect(feedback.className).toContain("agenda-feedback-toast");
+    expect(screen.getByText("Horário bloqueado.")).not.toBeNull();
+
+    fireEvent.click(screen.getByRole("button", { name: "Fechar aviso" }));
+    expect(screen.queryByRole("status")).toBeNull();
   });
 
   it("pagina as datas sem deixar botões cortados", async () => {
