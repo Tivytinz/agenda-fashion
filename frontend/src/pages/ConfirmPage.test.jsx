@@ -44,14 +44,15 @@ const BOOKING = {
   service: { id: 11, nome: "Manicure", valor: 50 },
   professional: { id: 21, nome: "Ana" },
   date: "2026-08-05",
-  time: "09:00"
+  time: "09:00",
+  hasProfessionalChoice: false
 };
 
-function renderConfirmation() {
+function renderConfirmation(booking = BOOKING) {
   return render(
     <MemoryRouter initialEntries={[{
       pathname: "/confirmar",
-      state: BOOKING
+      state: booking
     }]}>
       <Routes>
         <Route path="/confirmar" element={<ConfirmPage />} />
@@ -64,7 +65,10 @@ function renderConfirmation() {
 
 async function fillCustomer(user) {
   await user.type(screen.getByRole("textbox", { name: "Seu nome" }), "Victor Souza");
-  await user.type(screen.getByRole("textbox", { name: "Seu WhatsApp" }), "62999998888");
+  await user.type(
+    screen.getByRole("textbox", { name: "WhatsApp para confirmação" }),
+    "62999998888"
+  );
 }
 
 beforeEach(() => {
@@ -81,11 +85,43 @@ beforeEach(() => {
 afterEach(cleanup);
 
 describe("confirmação do agendamento", () => {
+  it("mantém três etapas quando a profissional não precisou ser escolhida", () => {
+    renderConfirmation();
+
+    const progress = screen.getByRole("list", {
+      name: "Etapas do agendamento"
+    });
+    const steps = progress.querySelectorAll("li");
+
+    expect(steps).toHaveLength(3);
+    expect(steps[0].textContent).toContain("Serviço");
+    expect(steps[0].textContent).toContain("✓");
+    expect(steps[1].textContent).toContain("Horário");
+    expect(steps[1].textContent).toContain("✓");
+    expect(steps[2].textContent).toContain("Confirmar");
+    expect(steps[2].getAttribute("aria-current")).toBe("step");
+  });
+
+  it("mantém a etapa profissional quando houve escolha entre profissionais", () => {
+    renderConfirmation({
+      ...BOOKING,
+      hasProfessionalChoice: true
+    });
+
+    const progress = screen.getByRole("list", {
+      name: "Etapas do agendamento"
+    });
+    expect(progress.querySelectorAll("li")).toHaveLength(4);
+    expect(progress.textContent).toContain("Profissional");
+  });
+
   it("mostra o exemplo e aplica a máscara do WhatsApp durante a digitação", async () => {
     const user = userEvent.setup();
     renderConfirmation();
 
-    const input = screen.getByRole("textbox", { name: "Seu WhatsApp" });
+    const input = screen.getByRole("textbox", {
+      name: "WhatsApp para confirmação"
+    });
     expect(input.getAttribute("placeholder")).toBe("(00) 12345-6789");
 
     await user.type(input, "62999998888");
