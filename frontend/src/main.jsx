@@ -19,6 +19,7 @@ import "./styles/dashboard-polish.css";
 import "./styles/agenda-polish.css";
 import "./styles/service-media-polish.css";
 import "./styles/service-catalog-polish.css";
+import "./styles/schedule-polish.css";
 
 installRuntimeRecovery();
 
