@@ -5,7 +5,7 @@ import { track } from "../analytics/track";
 import { useSession } from "../auth/SessionContext";
 import { FlowSteps } from "../components/FlowSteps";
 import { saveRecentAppointment } from "../utils/appointments";
-import { formatCurrency, formatDate, formatWhatsApp } from "../utils/format";
+import { formatCurrency, formatWhatsApp } from "../utils/format";
 import {
   readBrowserStorage,
   removeBrowserStorage
@@ -17,6 +17,16 @@ function storedBooking() {
   } catch {
     return null;
   }
+}
+
+function formatConfirmationDate(value) {
+  const date = new Date(`${value}T12:00:00`);
+
+  return new Intl.DateTimeFormat("pt-BR", {
+    day: "2-digit",
+    month: "long",
+    year: "numeric"
+  }).format(date);
 }
 
 export function ConfirmPage() {
@@ -39,6 +49,11 @@ export function ConfirmPage() {
   const [status, setStatus] = useState("idle");
   const [scheduleConflict, setScheduleConflict] = useState(false);
   const [error, setError] = useState("");
+  const [hasProfessionalChoice, setHasProfessionalChoice] = useState(
+    typeof booking?.hasProfessionalChoice === "boolean"
+      ? booking.hasProfessionalChoice
+      : null
+  );
   const submissionInFlight = useRef(false);
 
   useEffect(() => {
@@ -51,9 +66,34 @@ export function ConfirmPage() {
     }
   }, [booking]);
 
+  useEffect(() => {
+    if (!booking || hasProfessionalChoice !== null) return undefined;
+
+    const controller = new AbortController();
+
+    apiRequest(`/perfil-negocio/${encodeURIComponent(booking.slug)}`, {
+      signal: controller.signal
+    })
+      .then((profile) => {
+        setHasProfessionalChoice(
+          Array.isArray(profile?.profissionais) && profile.profissionais.length > 1
+        );
+      })
+      .catch((requestError) => {
+        if (requestError.name === "AbortError") return;
+        setHasProfessionalChoice(true);
+      });
+
+    return () => controller.abort();
+  }, [booking, hasProfessionalChoice]);
+
   if (!booking) {
     return <Navigate to="/" replace />;
   }
+
+  const confirmationSteps = hasProfessionalChoice === false
+    ? ["Serviço", "Horário", "Confirmar"]
+    : ["Serviço", "Profissional", "Horário", "Confirmar"];
 
   async function submit(event) {
     event.preventDefault();
@@ -145,12 +185,13 @@ export function ConfirmPage() {
 
   return (
     <main className="container page-content narrow-page booking-confirmation-page">
-      <FlowSteps current={4} />
+      <FlowSteps current={confirmationSteps.length} steps={confirmationSteps} />
       <div className="confirmation-grid">
         <section className="form-card">
-          <p className="eyebrow">Última etapa</p>
           <h1>Confirme seus dados</h1>
-          <p>Usaremos essas informações somente para identificar seu agendamento.</p>
+          <p className="confirmation-intro">
+            Confira seus dados antes de finalizar o agendamento.
+          </p>
 
           <form onSubmit={submit}>
             <label>
@@ -158,7 +199,7 @@ export function ConfirmPage() {
               <input autoComplete="name" value={name} onChange={(event) => setName(event.target.value)} />
             </label>
             <label>
-              Seu WhatsApp
+              WhatsApp para confirmação
               <input
                 autoComplete="tel"
                 inputMode="tel"
@@ -173,7 +214,7 @@ export function ConfirmPage() {
                 {session.usuario?.aceita_notificacoes_whatsapp
                   ? "Você receberá confirmação, lembrete e atualizações deste agendamento pelo WhatsApp."
                   : "As mensagens de agendamento pelo WhatsApp estão desativadas na sua conta."}{" "}
-                <Link to="/conta#notificacoes-whatsapp">Alterar em Minha conta</Link>
+                <Link to="/conta#notificacoes-whatsapp">Alterar dados</Link>
               </p>
             ) : (
               <>
@@ -200,7 +241,7 @@ export function ConfirmPage() {
               disabled={status === "loading"}
               type="submit"
             >
-              {status === "loading" ? "Confirmando..." : "Confirmar agendamento"}
+              {status === "loading" ? "Confirmando agendamento..." : "Confirmar agendamento"}
             </button>
           </form>
         </section>
@@ -210,12 +251,16 @@ export function ConfirmPage() {
           <h2>{booking.service.nome}</h2>
           <dl>
             <div><dt>Profissional</dt><dd>{booking.professional.nome}</dd></div>
-            <div><dt>Data</dt><dd>{formatDate(booking.date, true)}</dd></div>
+            <div><dt>Data</dt><dd>{formatConfirmationDate(booking.date)}</dd></div>
             <div><dt>Horário</dt><dd>{booking.time}</dd></div>
-            <div><dt>Valor</dt><dd>{formatCurrency(booking.service.valor)}</dd></div>
+            <div><dt>Total</dt><dd>{formatCurrency(booking.service.valor)}</dd></div>
           </dl>
-          <button className="text-button" type="button" onClick={changeSelection}>
-            Alterar escolha
+          <button
+            className="button button-secondary button-small confirmation-change-button"
+            type="button"
+            onClick={changeSelection}
+          >
+            ← Alterar serviço ou horário
           </button>
         </aside>
       </div>
