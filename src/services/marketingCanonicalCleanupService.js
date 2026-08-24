@@ -225,7 +225,7 @@ async function executarLimpezaGoogleProfissionais() {
           [CAMPANHA_OFICIAL]
         );
 
-      const eventosLegadosComGclid =
+      const eventosLegadosComSinalGoogle =
         await client.query(
           `
           UPDATE eventos_produto
@@ -249,17 +249,16 @@ async function executarLimpezaGoogleProfissionais() {
               ''
             )
           ) = ANY($1::TEXT[])
-            AND NULLIF(
-              BTRIM(
-                propriedades ->> 'gclid'
-              ),
-              ''
+            AND COALESCE(
+              NULLIF(BTRIM(propriedades ->> 'gclid'), ''),
+              NULLIF(BTRIM(propriedades ->> 'gbraid'), ''),
+              NULLIF(BTRIM(propriedades ->> 'wbraid'), '')
             ) IS NOT NULL
           `,
           [CAMPANHAS_LEGADAS]
         );
 
-      const eventosLegadosSemGclid =
+      const eventosLegadosSemSinalGoogle =
         await client.query(
           `
           UPDATE eventos_produto
@@ -277,15 +276,17 @@ async function executarLimpezaGoogleProfissionais() {
               ''
             )
           ) = ANY($1::TEXT[])
-            AND NULLIF(
-              BTRIM(
-                propriedades ->> 'gclid'
-              ),
-              ''
+            AND COALESCE(
+              NULLIF(BTRIM(propriedades ->> 'gclid'), ''),
+              NULLIF(BTRIM(propriedades ->> 'gbraid'), ''),
+              NULLIF(BTRIM(propriedades ->> 'wbraid'), '')
             ) IS NULL
           `,
           [CAMPANHAS_LEGADAS]
         );
+
+      const eventosComSinalGooglePreservados =
+        eventosLegadosComSinalGoogle.rowCount || 0;
 
       return {
         campanhaOficialId,
@@ -299,9 +300,10 @@ async function executarLimpezaGoogleProfissionais() {
           (atribuicoesPrimeiroToque.rowCount || 0) +
           (atribuicoesUltimoToque.rowCount || 0),
         eventosComGclidPreservados:
-          eventosLegadosComGclid.rowCount || 0,
+          eventosComSinalGooglePreservados,
+        eventosComSinalGooglePreservados,
         eventosLimpos:
-          eventosLegadosSemGclid.rowCount || 0,
+          eventosLegadosSemSinalGoogle.rowCount || 0,
       };
     }
   );
