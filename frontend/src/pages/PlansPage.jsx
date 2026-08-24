@@ -60,7 +60,7 @@ export function PlansPage() {
           {plans.map((plan) => {
             const paid = Number(plan.valor) > 0;
             const isCurrent = planMatches(current, plan, "plano_id", "plano_slug");
-            const isSelectedPaid = paid
+            const isAwaitingSubscription = paid
               && !isCurrent
               && session.negocio?.papel === "dono"
               && planMatches(
@@ -88,9 +88,9 @@ export function PlansPage() {
               "plan-card",
               plan.destaque ? "featured" : "",
               isCurrent ? "current" : "",
-              isSelectedPaid ? "selected-pending" : ""
+              isAwaitingSubscription ? "selected-pending" : ""
             ].filter(Boolean).join(" ");
-            const actionLabel = isSelectedPaid
+            const actionLabel = isAwaitingSubscription
               ? `Assinar ${plan.nome}`
               : paid
                 ? "Escolher plano"
@@ -99,7 +99,9 @@ export function PlansPage() {
             return (
               <article className={cardClass} key={plan.id}>
                 {plan.destaque && <span className="plan-highlight">Mais escolhido</span>}
-                {isSelectedPaid && <span className="plan-selected-badge">Escolhido</span>}
+                {isAwaitingSubscription && (
+                  <span className="plan-selected-badge">Aguardando assinatura</span>
+                )}
                 <p className="eyebrow">{paid ? "Para crescer" : "Para começar"}</p>
                 <h2>{plan.nome}</h2>
                 <p className="plan-price"><strong>{formatCurrency(plan.valor)}</strong><span>/mês</span></p>
