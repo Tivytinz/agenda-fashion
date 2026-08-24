@@ -56,7 +56,7 @@ describe("minha conta", () => {
     expect(logoutSession).toHaveBeenCalledTimes(1);
   });
 
-  it("só habilita salvar perfil após alteração e envia WhatsApp sem máscara", async () => {
+  it("só mostra salvar perfil após alteração e envia WhatsApp sem máscara", async () => {
     apiRequest
       .mockResolvedValueOnce({ usuario: baseUser() })
       .mockResolvedValueOnce({
@@ -67,12 +67,12 @@ describe("minha conta", () => {
     render(<MemoryRouter><AccountPage /></MemoryRouter>);
 
     const whatsapp = await screen.findByLabelText("WhatsApp");
-    const saveProfile = screen.getByRole("button", { name: "Salvar perfil" });
     expect(whatsapp.value).toBe("(62) 99999-8888");
     expect(whatsapp.getAttribute("placeholder")).toBe("(00) 12345-6789");
-    expect(saveProfile.disabled).toBe(true);
+    expect(screen.queryByRole("button", { name: "Salvar perfil" })).toBeNull();
 
     fireEvent.change(whatsapp, { target: { value: "11 98765-4321" } });
+    const saveProfile = screen.getByRole("button", { name: "Salvar perfil" });
     expect(saveProfile.disabled).toBe(false);
     fireEvent.click(saveProfile);
 
@@ -86,7 +86,9 @@ describe("minha conta", () => {
       });
     });
 
-    await waitFor(() => expect(screen.getByRole("button", { name: "Salvar perfil" }).disabled).toBe(true));
+    await waitFor(() => {
+      expect(screen.queryByRole("button", { name: "Salvar perfil" })).toBeNull();
+    });
   });
 
   it("deixa o e-mail claramente somente leitura", async () => {
@@ -134,7 +136,7 @@ describe("minha conta", () => {
     expect(backLink.getAttribute("href")).toBe("/");
   });
 
-  it("valida a nova senha e permite mostrar ou ocultar os campos", async () => {
+  it("valida a nova senha e usa ícones acessíveis para mostrar ou ocultar", async () => {
     apiRequest
       .mockResolvedValueOnce({ usuario: baseUser() })
       .mockResolvedValueOnce({ mensagem: "Senha atualizada." });
@@ -146,8 +148,12 @@ describe("minha conta", () => {
     const newPassword = screen.getByLabelText(/^Nova senha/);
     const confirmation = screen.getByLabelText(/^Confirme a nova senha/);
     const submit = screen.getByRole("button", { name: "Alterar senha" });
+    const showNewPassword = screen.getByRole("button", { name: "Mostrar nova senha" });
 
+    expect(showNewPassword.querySelector("svg")).not.toBeNull();
+    expect(showNewPassword.textContent).toBe("");
     expect(submit.disabled).toBe(true);
+
     fireEvent.change(currentPassword, { target: { value: "senha-atual" } });
     fireEvent.change(newPassword, { target: { value: "12345678" } });
     fireEvent.change(confirmation, { target: { value: "87654321" } });
@@ -158,7 +164,7 @@ describe("minha conta", () => {
     expect(screen.getByText("As senhas coincidem.")).not.toBeNull();
     expect(submit.disabled).toBe(false);
 
-    fireEvent.click(screen.getByRole("button", { name: "Mostrar nova senha" }));
+    fireEvent.click(showNewPassword);
     expect(newPassword.type).toBe("text");
     fireEvent.click(screen.getByRole("button", { name: "Ocultar nova senha" }));
     expect(newPassword.type).toBe("password");
@@ -172,7 +178,7 @@ describe("minha conta", () => {
     });
   });
 
-  it("permite ao dono alterar os lembretes do negócio sem texto de onboarding antigo", async () => {
+  it("agrupa as preferências do WhatsApp e só mostra salvar no item alterado", async () => {
     useSession.mockReturnValue({
       temNegocio: true,
       ehAdministrador: false,
@@ -192,17 +198,18 @@ describe("minha conta", () => {
 
     render(<MemoryRouter><AccountPage /></MemoryRouter>);
 
-    expect(await screen.findByRole("heading", { name: "Lembretes do negócio no WhatsApp" })).not.toBeNull();
+    expect(await screen.findByRole("heading", { name: "Preferências do WhatsApp" })).not.toBeNull();
+    expect(screen.getByText("Agendamentos")).not.toBeNull();
+    expect(screen.getByText("Negócio")).not.toBeNull();
     expect(screen.queryByText(/cadastrar seu primeiro serviço/i)).toBeNull();
+    expect(screen.queryByRole("button", { name: "Salvar" })).toBeNull();
 
     const checkbox = screen.getByRole("checkbox", {
       name: /Receber lembretes do negócio no WhatsApp/i
     });
-    const savePreference = screen.getByRole("button", { name: "Salvar preferência" });
 
-    expect(savePreference.disabled).toBe(true);
     fireEvent.click(checkbox);
-    expect(savePreference.disabled).toBe(false);
+    const savePreference = screen.getByRole("button", { name: "Salvar" });
     fireEvent.click(savePreference);
 
     await waitFor(() => {
@@ -217,10 +224,12 @@ describe("minha conta", () => {
       );
     });
 
-    await waitFor(() => expect(screen.getByRole("button", { name: "Salvar preferência" }).disabled).toBe(true));
+    await waitFor(() => {
+      expect(screen.queryByRole("button", { name: "Salvar" })).toBeNull();
+    });
   });
 
-  it("permite alterar mensagens dos agendamentos apenas quando a preferência muda", async () => {
+  it("permite alterar mensagens dos agendamentos sem deixar uma barra de ação desabilitada", async () => {
     apiRequest
       .mockResolvedValueOnce({
         usuario: baseUser({ aceita_notificacoes_whatsapp: true })
@@ -237,12 +246,12 @@ describe("minha conta", () => {
     const checkbox = await screen.findByRole("checkbox", {
       name: /Receber mensagens dos meus agendamentos no WhatsApp/i
     });
-    const saveAuthorization = screen.getByRole("button", { name: "Salvar autorização" });
 
     expect(checkbox.checked).toBe(true);
-    expect(saveAuthorization.disabled).toBe(true);
+    expect(screen.queryByRole("button", { name: "Salvar" })).toBeNull();
     fireEvent.click(checkbox);
-    expect(saveAuthorization.disabled).toBe(false);
+
+    const saveAuthorization = screen.getByRole("button", { name: "Salvar" });
     fireEvent.click(saveAuthorization);
 
     await waitFor(() => {
@@ -258,6 +267,8 @@ describe("minha conta", () => {
     });
 
     expect(refreshSession).toHaveBeenCalled();
-    await waitFor(() => expect(screen.getByRole("button", { name: "Salvar autorização" }).disabled).toBe(true));
+    await waitFor(() => {
+      expect(screen.queryByRole("button", { name: "Salvar" })).toBeNull();
+    });
   });
 });
