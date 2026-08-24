@@ -22,7 +22,10 @@ const ATTRIBUTION_PARAMS = [
   "fbclid",
   "msclkid",
   "ttclid",
-  "epik"
+  "epik",
+  "af_source",
+  "af_medium",
+  "af_content"
 ];
 
 function sessionId() {
