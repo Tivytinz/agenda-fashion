@@ -32,7 +32,7 @@ describe(
   "compartilhamento público",
   () => {
     it(
-      "permite copiar link de serviço sem autenticação",
+      "copia link de serviço com origem própria do AF",
       async () => {
         const writeText =
           vi.fn().mockResolvedValue();
@@ -75,7 +75,7 @@ describe(
         expect(
           writeText
         ).toHaveBeenCalledWith(
-          "https://app.agendafashion.com.br/negocio/studio-aurora?servico=12"
+          "https://app.agendafashion.com.br/negocio/studio-aurora?servico=12&af_source=agenda_fashion&af_medium=copy&af_content=servico"
         );
 
         expect(
@@ -89,14 +89,29 @@ describe(
         ).toHaveBeenCalledWith(
           "link_servico_copiado",
           expect.objectContaining({
-            businessId: 7
+            businessId: 7,
+            mission:
+              "descobrir_compartilhar_agendar",
+            properties:
+              expect.objectContaining({
+                af_source:
+                  "agenda_fashion",
+                af_medium:
+                  "copy",
+                af_content:
+                  "servico",
+                tipo_link:
+                  "servico",
+                metodo:
+                  "area_transferencia"
+              })
           })
         );
       }
     );
 
     it(
-      "abre o compartilhamento nativo do perfil",
+      "abre compartilhamento nativo com link rastreável do AF",
       async () => {
         const share =
           vi.fn().mockResolvedValue();
@@ -136,7 +151,7 @@ describe(
           text:
             "Veja os serviços de Studio Aurora e escolha seu horário no Agenda Fashion.",
           url:
-            "https://app.agendafashion.com.br/negocio/studio-aurora"
+            "https://app.agendafashion.com.br/negocio/studio-aurora?af_source=agenda_fashion&af_medium=share&af_content=negocio"
         });
 
         expect(
@@ -144,7 +159,22 @@ describe(
         ).toHaveBeenCalledWith(
           "link_negocio_compartilhado",
           expect.objectContaining({
-            businessId: 7
+            businessId: 7,
+            mission:
+              "descobrir_compartilhar_agendar",
+            properties:
+              expect.objectContaining({
+                af_source:
+                  "agenda_fashion",
+                af_medium:
+                  "share",
+                af_content:
+                  "negocio",
+                tipo_link:
+                  "negocio",
+                metodo:
+                  "compartilhamento_nativo"
+              })
           })
         );
       }
