@@ -33,7 +33,7 @@ afterEach(() => {
 });
 
 describe("plano e assinatura", () => {
-  it("mostra plano pago selecionado e os limites gratuitos enquanto não há assinatura", async () => {
+  it("mostra plano pago escolhido e os limites gratuitos enquanto não há assinatura", async () => {
     apiRequest.mockResolvedValueOnce({
       plano: { id: 2, slug: "autonoma", nome: "Autônoma", valor: 49.9 },
       assinatura: null,
@@ -52,10 +52,11 @@ describe("plano e assinatura", () => {
     renderPage();
 
     expect(await screen.findByRole("heading", { name: "Plano e assinatura" })).not.toBeNull();
-    expect(screen.getByText("Plano selecionado")).not.toBeNull();
+    expect(screen.getByText("Plano escolhido")).not.toBeNull();
     expect(screen.getByText("Sem assinatura ativa")).not.toBeNull();
     expect(screen.queryByText("Forma de pagamento")).toBeNull();
     expect(screen.queryByText("Próxima cobrança")).toBeNull();
+    expect(screen.getByText("A assinatura ainda não foi ativada. Seus limites permanecem no plano Grátis até a confirmação do pagamento.")).not.toBeNull();
 
     const subscribe = screen.getByRole("link", { name: "Assinar Autônoma" });
     expect(subscribe.getAttribute("href")).toBe("/checkout?plano=autonoma");
@@ -63,14 +64,20 @@ describe("plano e assinatura", () => {
       .toBe("/planos");
 
     expect(screen.getByText("Seus limites atuais")).not.toBeNull();
-    expect(screen.getByText("Grátis")).not.toBeNull();
+    const effectivePlan = screen.getByText(/Plano em uso:/).closest("p");
+    expect(effectivePlan).not.toBeNull();
+    expect(within(effectivePlan).getByText("Grátis")).not.toBeNull();
     expect(screen.getByText("Enquanto a assinatura não estiver ativa, valem os limites gratuitos.")).not.toBeNull();
     expect(screen.getByText("2 de 10 agendamentos · 8 disponíveis")).not.toBeNull();
     expect(screen.getByText("1 / 1")).not.toBeNull();
-    expect(screen.getByText("Limite atingido")).not.toBeNull();
+    expect(screen.getByText("Limite atingido").classList.contains("is-reached")).toBe(true);
     expect(screen.getByText("3 / 2")).not.toBeNull();
-    expect(screen.getByText("1 acima do limite")).not.toBeNull();
-    expect(screen.getByText("Você possui 3 serviços. O plano em uso permite 2. Assine um plano maior para adicionar novos serviços.")).not.toBeNull();
+    expect(screen.getByText("1 acima do limite").classList.contains("is-over")).toBe(true);
+
+    const overLimit = screen.getByRole("status");
+    expect(overLimit.textContent).toContain("Você possui 3 serviços. O plano em uso permite 2.");
+    expect(within(overLimit).getByRole("link", { name: "Ver planos" }).getAttribute("href"))
+      .toBe("/planos");
     expect(screen.getByText("Nenhum pagamento registrado ainda.")).not.toBeNull();
   });
 
@@ -114,7 +121,7 @@ describe("plano e assinatura", () => {
     renderPage();
 
     expect(await screen.findByText("Pagamento pendente")).not.toBeNull();
-    expect(screen.getByText("Plano selecionado")).not.toBeNull();
+    expect(screen.getByText("Plano escolhido")).not.toBeNull();
     expect(screen.getByText("Enquanto a assinatura não estiver ativa, valem os limites gratuitos.")).not.toBeNull();
     expect(screen.queryByRole("button", { name: "Cancelar renovação" })).toBeNull();
   });
