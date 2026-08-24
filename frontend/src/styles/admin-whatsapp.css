@@ -81,11 +81,11 @@
 }
 
 .whatsapp-template-table table {
-  min-width: 1120px;
+  min-width: 1040px;
 }
 
 .whatsapp-template-table th:first-child {
-  width: 270px;
+  width: 275px;
 }
 
 .whatsapp-template-table td {
@@ -109,6 +109,27 @@
   overflow-wrap: anywhere;
   color: var(--admin-accent-dark, #a32360);
   font-size: 0.74rem;
+}
+
+.whatsapp-meta-cell {
+  min-width: 165px;
+}
+
+.whatsapp-meta-cell .admin-row-note {
+  margin-top: 0.35rem;
+}
+
+.whatsapp-meta-quality.is-empty,
+.whatsapp-empty-metric {
+  color: #9c8c92;
+}
+
+.whatsapp-empty-metric {
+  font-weight: 650;
+}
+
+.whatsapp-accepted-value {
+  white-space: nowrap;
 }
 
 .whatsapp-status-badge {
