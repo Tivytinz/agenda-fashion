@@ -71,85 +71,101 @@ function filtroPeriodo(
 }
 
 const GCLID_SQL = `
-  NULLIF(
-    BTRIM(
-      e.propriedades ->> 'gclid'
-    ),
-    ''
-  )
+  NULLIF(BTRIM(e.propriedades ->> 'gclid'), '')
+`;
+
+const GBRAID_SQL = `
+  NULLIF(BTRIM(e.propriedades ->> 'gbraid'), '')
+`;
+
+const WBRAID_SQL = `
+  NULLIF(BTRIM(e.propriedades ->> 'wbraid'), '')
 `;
 
 const FBCLID_SQL = `
-  NULLIF(
-    BTRIM(
-      e.propriedades ->> 'fbclid'
-    ),
-    ''
-  )
+  NULLIF(BTRIM(e.propriedades ->> 'fbclid'), '')
 `;
 
 const UTM_SOURCE_SQL = `
-  NULLIF(
-    BTRIM(
-      e.propriedades ->> 'utm_source'
-    ),
-    ''
-  )
+  NULLIF(BTRIM(e.propriedades ->> 'utm_source'), '')
 `;
 
 const UTM_MEDIUM_SQL = `
-  NULLIF(
-    BTRIM(
-      e.propriedades ->> 'utm_medium'
-    ),
-    ''
-  )
+  NULLIF(BTRIM(e.propriedades ->> 'utm_medium'), '')
 `;
 
 const UTM_CAMPAIGN_SQL = `
-  NULLIF(
-    BTRIM(
-      e.propriedades ->> 'utm_campaign'
-    ),
-    ''
+  NULLIF(BTRIM(e.propriedades ->> 'utm_campaign'), '')
+`;
+
+const REFERRER_HOST_SQL = `
+  NULLIF(BTRIM(e.propriedades ->> 'referrer_host'), '')
+`;
+
+const GOOGLE_CLICK_SQL = `
+  (
+    ${GCLID_SQL} IS NOT NULL
+    OR ${GBRAID_SQL} IS NOT NULL
+    OR ${WBRAID_SQL} IS NOT NULL
   )
 `;
 
-const ATRIBUICAO_SQL = `
+const MIDIA_PAGA_SQL = `
+  LOWER(COALESCE(${UTM_MEDIUM_SQL}, '')) IN (
+    'cpc', 'ppc', 'paid', 'paid_search',
+    'paid_social', 'social_paid', 'display'
+  )
+`;
+
+const ATRIBUICAO_PAGA_SQL = `
+  (
+    ${GOOGLE_CLICK_SQL}
+    OR ${MIDIA_PAGA_SQL}
+  )
+`;
+
+const TRAFEGO_ORGANICO_SQL = `
+  (
+    NOT ${ATRIBUICAO_PAGA_SQL}
+    AND (
+      ${REFERRER_HOST_SQL} IS NOT NULL
+      OR ${FBCLID_SQL} IS NOT NULL
+      OR LOWER(COALESCE(${UTM_MEDIUM_SQL}, '')) IN (
+        'organic', 'organico', 'orgânico', 'seo',
+        'social', 'organic_social', 'referral'
+      )
+    )
+  )
+`;
+
+const ATRIBUICAO_RASTREADA_SQL = `
   (
     ${UTM_SOURCE_SQL} IS NOT NULL
+    OR ${UTM_MEDIUM_SQL} IS NOT NULL
     OR ${UTM_CAMPAIGN_SQL} IS NOT NULL
-    OR ${GCLID_SQL} IS NOT NULL
+    OR ${GOOGLE_CLICK_SQL}
     OR ${FBCLID_SQL} IS NOT NULL
   )
 `;
 
 const ORIGEM_SQL = `
   CASE
-    WHEN ${GCLID_SQL} IS NOT NULL
+    WHEN ${GOOGLE_CLICK_SQL}
       THEN 'google'
     ELSE COALESCE(
       ${UTM_SOURCE_SQL},
-      CASE
-        WHEN ${FBCLID_SQL} IS NOT NULL
-          THEN 'facebook'
-        ELSE 'desconhecida'
-      END
+      'desconhecida'
     )
   END
 `;
 
 const MIDIA_SQL = `
   CASE
-    WHEN ${GCLID_SQL} IS NOT NULL
+    WHEN ${GOOGLE_CLICK_SQL}
       THEN 'cpc'
     ELSE COALESCE(
       ${UTM_MEDIUM_SQL},
-      CASE
-        WHEN ${FBCLID_SQL} IS NOT NULL
-          THEN 'cpc'
-        ELSE 'desconhecida'
-      END
+      'desconhecida'
     )
   END
 `;
@@ -158,11 +174,19 @@ const CAMPANHA_RESOLVIDA_SQL = `
   COALESCE(
     ${UTM_CAMPAIGN_SQL},
     CASE
-      WHEN ${GCLID_SQL} IS NOT NULL
+      WHEN ${GOOGLE_CLICK_SQL}
         THEN google_oficial.campanha
       ELSE NULL
     END,
     '(sem campanha)'
+  )
+`;
+
+const GOOGLE_CLICK_RESOLVIDO_SQL = `
+  (
+    ${GOOGLE_CLICK_SQL}
+    AND ${UTM_CAMPAIGN_SQL} IS NULL
+    AND google_oficial.campanha IS NOT NULL
   )
 `;
 
@@ -240,8 +264,12 @@ async function buscarResumo(
         eventos_resolvidos AS (
           SELECT
             e.*,
-            ${ATRIBUICAO_SQL}
-              AS atribuido,
+            ${ATRIBUICAO_PAGA_SQL}
+              AS pago,
+            ${TRAFEGO_ORGANICO_SQL}
+              AS organico,
+            ${ATRIBUICAO_RASTREADA_SQL}
+              AS rastreado,
             ${ORIGEM_SQL}
               AS origem_resolvida,
             ${MIDIA_SQL}
@@ -255,17 +283,28 @@ async function buscarResumo(
         )
 
         SELECT
-          COUNT(
-            DISTINCT sessao_id
-          )::INT
+          COUNT(DISTINCT sessao_id)::INT
             AS total_sessoes,
 
-          COUNT(
-            DISTINCT sessao_id
-          ) FILTER (
-            WHERE atribuido
-          )::INT
-            AS sessoes,
+          COUNT(DISTINCT sessao_id) FILTER (
+            WHERE pago
+          )::INT AS sessoes,
+
+          COUNT(DISTINCT sessao_id) FILTER (
+            WHERE organico
+          )::INT AS sessoes_organicas,
+
+          COUNT(DISTINCT sessao_id) FILTER (
+            WHERE NOT pago
+              AND NOT organico
+              AND NOT rastreado
+          )::INT AS sessoes_autonomas,
+
+          COUNT(DISTINCT sessao_id) FILTER (
+            WHERE NOT pago
+              AND NOT organico
+              AND rastreado
+          )::INT AS sessoes_rastreamento_incompleto,
 
           COUNT(
             DISTINCT (
@@ -274,36 +313,25 @@ async function buscarResumo(
               campanha_resolvida
             )
           ) FILTER (
-            WHERE atribuido
-          )::INT
-            AS campanhas,
+            WHERE pago
+          )::INT AS campanhas,
 
-          COUNT(
-            DISTINCT sessao_id
-          ) FILTER (
-            WHERE atribuido
-              AND nome =
-                'perfil_visualizado'
-          )::INT
-            AS perfis_visualizados,
+          COUNT(DISTINCT sessao_id) FILTER (
+            WHERE pago
+              AND nome = 'perfil_visualizado'
+          )::INT AS perfis_visualizados,
 
-          COUNT(
-            DISTINCT sessao_id
-          ) FILTER (
-            WHERE atribuido
-              AND nome =
-                'agendamento_iniciado'
-          )::INT
-            AS agendamentos_iniciados,
+          COUNT(DISTINCT sessao_id) FILTER (
+            WHERE pago
+              AND nome = 'agendamento_iniciado'
+          )::INT AS agendamentos_iniciados,
 
           COUNT(
             DISTINCT ${AGENDAMENTO_CONCLUIDO_ID_SQL}
           ) FILTER (
-            WHERE atribuido
-              AND nome =
-                'agendamento_concluido'
-          )::INT
-            AS agendamentos_concluidos
+            WHERE pago
+              AND nome = 'agendamento_concluido'
+          )::INT AS agendamentos_concluidos
 
         FROM eventos_resolvidos
       `,
@@ -311,6 +339,9 @@ async function buscarResumo(
         {
           total_sessoes: 0,
           sessoes: 0,
+          sessoes_organicas: 0,
+          sessoes_autonomas: 0,
+          sessoes_rastreamento_incompleto: 0,
           campanhas: 0,
           perfis_visualizados: 0,
           agendamentos_iniciados: 0,
@@ -346,62 +377,46 @@ async function listarCampanhas(
             ${CAMPANHA_RESOLVIDA_SQL}
               AS campanha_resolvida,
             ${GCLID_RESOLVIDO_SQL}
-              AS gclid_resolvido
+              AS gclid_resolvido,
+            ${GOOGLE_CLICK_RESOLVIDO_SQL}
+              AS google_click_resolvido
           FROM eventos_produto e
           CROSS JOIN google_oficial
-          WHERE ${ATRIBUICAO_SQL}
+          WHERE ${ATRIBUICAO_PAGA_SQL}
             ${filtro}
         )
 
         SELECT
-          origem_resolvida
-            AS origem,
-          midia_resolvida
-            AS midia,
-          campanha_resolvida
-            AS campanha,
+          origem_resolvida AS origem,
+          midia_resolvida AS midia,
+          campanha_resolvida AS campanha,
 
-          COUNT(
-            DISTINCT sessao_id
-          )::INT
-            AS sessoes,
+          COUNT(DISTINCT sessao_id)::INT AS sessoes,
 
-          COUNT(
-            DISTINCT sessao_id
-          ) FILTER (
+          COUNT(DISTINCT sessao_id) FILTER (
             WHERE gclid_resolvido
-          )::INT
-            AS sessoes_resolvidas_gclid,
+          )::INT AS sessoes_resolvidas_gclid,
 
-          COUNT(
-            DISTINCT sessao_id
-          ) FILTER (
-            WHERE nome =
-              'perfil_visualizado'
-          )::INT
-            AS perfis_visualizados,
+          COUNT(DISTINCT sessao_id) FILTER (
+            WHERE google_click_resolvido
+          )::INT AS sessoes_resolvidas_google_click,
 
-          COUNT(
-            DISTINCT sessao_id
-          ) FILTER (
-            WHERE nome =
-              'agendamento_iniciado'
-          )::INT
-            AS agendamentos_iniciados,
+          COUNT(DISTINCT sessao_id) FILTER (
+            WHERE nome = 'perfil_visualizado'
+          )::INT AS perfis_visualizados,
+
+          COUNT(DISTINCT sessao_id) FILTER (
+            WHERE nome = 'agendamento_iniciado'
+          )::INT AS agendamentos_iniciados,
 
           COUNT(
             DISTINCT ${AGENDAMENTO_CONCLUIDO_ID_SQL}
           ) FILTER (
-            WHERE nome =
-              'agendamento_concluido'
-          )::INT
-            AS agendamentos_concluidos,
+            WHERE nome = 'agendamento_concluido'
+          )::INT AS agendamentos_concluidos,
 
-          MIN(created_at)
-            AS primeira_interacao,
-
-          MAX(created_at)
-            AS ultima_interacao
+          MIN(created_at) AS primeira_interacao,
+          MAX(created_at) AS ultima_interacao
 
         FROM eventos_resolvidos
 
@@ -447,12 +462,13 @@ async function listarConversoes(
             ${CAMPANHA_RESOLVIDA_SQL}
               AS campanha_resolvida,
             ${GCLID_RESOLVIDO_SQL}
-              AS gclid_resolvido
+              AS gclid_resolvido,
+            ${GOOGLE_CLICK_RESOLVIDO_SQL}
+              AS google_click_resolvido
           FROM eventos_produto e
           CROSS JOIN google_oficial
-          WHERE e.nome =
-            'agendamento_concluido'
-            AND ${ATRIBUICAO_SQL}
+          WHERE e.nome = 'agendamento_concluido'
+            AND ${ATRIBUICAO_PAGA_SQL}
             ${filtro}
         )
 
@@ -460,48 +476,17 @@ async function listarConversoes(
           e.id,
           e.sessao_id,
           e.negocio_id,
-
-          n.nome
-            AS negocio_nome,
-
-          n.slug
-            AS negocio_slug,
-
-          e.propriedades
-            ->> 'agendamento_id'
-            AS agendamento_id,
-
-          e.propriedades
-            ->> 'servico_id'
-            AS servico_id,
-
-          e.origem_resolvida
-            AS origem,
-
-          e.midia_resolvida
-            AS midia,
-
-          e.campanha_resolvida
-            AS campanha,
-
+          n.nome AS negocio_nome,
+          n.slug AS negocio_slug,
+          e.propriedades ->> 'agendamento_id' AS agendamento_id,
+          e.propriedades ->> 'servico_id' AS servico_id,
+          e.origem_resolvida AS origem,
+          e.midia_resolvida AS midia,
+          e.campanha_resolvida AS campanha,
           e.gclid_resolvido,
-
-          NULLIF(
-            BTRIM(
-              e.propriedades
-                ->> 'utm_content'
-            ),
-            ''
-          ) AS conteudo,
-
-          NULLIF(
-            BTRIM(
-              e.propriedades
-                ->> 'landing_page'
-            ),
-            ''
-          ) AS landing_page,
-
+          e.google_click_resolvido,
+          NULLIF(BTRIM(e.propriedades ->> 'utm_content'), '') AS conteudo,
+          NULLIF(BTRIM(e.propriedades ->> 'landing_page'), '') AS landing_page,
           e.created_at
 
         FROM eventos_resolvidos e
