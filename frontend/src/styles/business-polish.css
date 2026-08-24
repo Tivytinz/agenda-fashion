@@ -24,9 +24,14 @@
   background: #fff7fa;
 }
 
+.business-settings-page .business-photo-section {
+  grid-template-columns: minmax(220px, 250px) minmax(0, 1fr);
+  column-gap: 24px;
+}
+
 .business-settings-page .business-photo-editor {
   align-items: center;
-  gap: 20px;
+  gap: 16px;
 }
 
 .business-settings-page .business-photo-preview {
@@ -205,6 +210,11 @@
 }
 
 @media (max-width: 900px) {
+  .business-settings-page .business-photo-section {
+    grid-template-columns: 1fr;
+    row-gap: 18px;
+  }
+
   .business-settings-page .public-address-card {
     align-items: stretch;
     flex-direction: column;
