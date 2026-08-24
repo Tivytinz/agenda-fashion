@@ -1,5 +1,8 @@
 const registrador = require("../utils/registrador");
 const marketingCostSyncService = require("./marketingCostSyncService");
+const marketingCanonicalCleanupService = require(
+  "./marketingCanonicalCleanupService"
+);
 const {
   PRIMEIRA_EXECUCAO_MS,
   agendamentoAtivo,
@@ -9,9 +12,45 @@ const {
 let timerInicial = null;
 let timerIntervalo = null;
 let executando = false;
+let limpezaIniciada = false;
 
 function intervaloMs() {
   return intervaloHoras() * 60 * 60 * 1000;
+}
+
+async function executarLimpezaCanonica() {
+  if (limpezaIniciada) {
+    return null;
+  }
+
+  limpezaIniciada = true;
+
+  try {
+    const resultado =
+      await marketingCanonicalCleanupService
+        .executarLimpezaGoogleProfissionais();
+
+    registrador.informacao(
+      "Marketing: campanha Google de profissionais reconciliada.",
+      resultado
+    );
+
+    return resultado;
+  } catch (erro) {
+    limpezaIniciada = false;
+
+    registrador.aviso(
+      "Marketing: não foi possível concluir a limpeza da campanha Google de profissionais.",
+      {
+        codigo: erro?.code || null,
+        erro: String(
+          erro?.message || "Erro desconhecido"
+        ).slice(0, 240)
+      }
+    );
+
+    return null;
+  }
 }
 
 async function executarSincronizacaoAgendada() {
@@ -80,6 +119,8 @@ async function executarSincronizacaoAgendada() {
 }
 
 function iniciarWorkerCustosMarketing() {
+  void executarLimpezaCanonica();
+
   if (!agendamentoAtivo()) {
     return false;
   }
@@ -120,6 +161,7 @@ function pararWorkerCustosMarketing() {
 }
 
 module.exports = {
+  executarLimpezaCanonica,
   executarSincronizacaoAgendada,
   iniciarWorkerCustosMarketing,
   pararWorkerCustosMarketing,
