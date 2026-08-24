@@ -151,6 +151,7 @@ export function DashboardPage() {
 
   const summary = data.resumo || {};
   const performance = data.performance || {};
+  const hasCustomerOrigin = Boolean(data.origem_clientes);
   const customerOrigin = data.origem_clientes || {};
   const customerOriginSummary = customerOrigin.resumo || {};
   const customerOrigins = Array.isArray(customerOrigin.origens)
@@ -220,7 +221,7 @@ export function DashboardPage() {
           </div>
         </div>
 
-        {customerOrigin ? (
+        {hasCustomerOrigin ? (
           <>
             <dl className="data-list">
               <div>
