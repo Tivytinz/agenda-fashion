@@ -1,5 +1,6 @@
 const perfilNegocioRepository = require("../repositories/perfilNegocioRepository");
 const AppError = require("../errors/AppError");
+const { buscarUsoPlano } = require("./planoService");
 const {
   CATEGORIAS_CATALOGO,
   termosDaCategoria
@@ -158,6 +159,8 @@ async function buscarPerfilPublico({ slug }) {
   if (!negocio) {
     throw new AppError("Negócio não encontrado.", 404);
   }
+
+  await buscarUsoPlano(negocio.id);
 
   await perfilNegocioRepository.incrementarVisita(
     negocio.id
