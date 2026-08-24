@@ -111,6 +111,59 @@ function campanhaOficial(
     CAMPANHA_GOOGLE_PROFISSIONAIS_OFICIAL;
 }
 
+function limparToqueGoogleNaoOficial(
+  marketing,
+  {
+    source,
+    medium,
+    campaign,
+    content,
+    term,
+    gclid,
+    fbclid,
+    landing,
+  }
+) {
+  const temGclid =
+    Boolean(marketing[gclid]);
+
+  if (temGclid) {
+    marketing[source] = "google";
+    marketing[medium] = "cpc";
+    marketing[fbclid] = null;
+    return;
+  }
+
+  if (
+    campanhaOficial(
+      marketing[campaign]
+    )
+  ) {
+    marketing[source] = "google";
+    marketing[medium] = "cpc";
+    marketing[fbclid] = null;
+    return;
+  }
+
+  if (
+    !ehGoogle(
+      marketing[source],
+      null
+    )
+  ) {
+    return;
+  }
+
+  marketing[source] = null;
+  marketing[medium] = null;
+  marketing[campaign] = null;
+  marketing[content] = null;
+  marketing[term] = null;
+  marketing[gclid] = null;
+  marketing[fbclid] = null;
+  marketing[landing] = null;
+}
+
 function limparGoogleProfissionalNaoOficial(
   marketing
 ) {
@@ -121,43 +174,33 @@ function limparGoogleProfissionalNaoOficial(
     return marketing;
   }
 
-  if (
-    ehGoogle(
-      marketing.utmSource,
-      marketing.gclid
-    ) &&
-    !campanhaOficial(
-      marketing.utmCampaign
-    )
-  ) {
-    marketing.utmSource = null;
-    marketing.utmMedium = null;
-    marketing.utmCampaign = null;
-    marketing.utmContent = null;
-    marketing.utmTerm = null;
-    marketing.gclid = null;
-    marketing.fbclid = null;
-    marketing.landingPage = null;
-  }
+  limparToqueGoogleNaoOficial(
+    marketing,
+    {
+      source: "utmSource",
+      medium: "utmMedium",
+      campaign: "utmCampaign",
+      content: "utmContent",
+      term: "utmTerm",
+      gclid: "gclid",
+      fbclid: "fbclid",
+      landing: "landingPage",
+    }
+  );
 
-  if (
-    ehGoogle(
-      marketing.lastUtmSource,
-      marketing.lastGclid
-    ) &&
-    !campanhaOficial(
-      marketing.lastUtmCampaign
-    )
-  ) {
-    marketing.lastUtmSource = null;
-    marketing.lastUtmMedium = null;
-    marketing.lastUtmCampaign = null;
-    marketing.lastUtmContent = null;
-    marketing.lastUtmTerm = null;
-    marketing.lastGclid = null;
-    marketing.lastFbclid = null;
-    marketing.lastLandingPage = null;
-  }
+  limparToqueGoogleNaoOficial(
+    marketing,
+    {
+      source: "lastUtmSource",
+      medium: "lastUtmMedium",
+      campaign: "lastUtmCampaign",
+      content: "lastUtmContent",
+      term: "lastUtmTerm",
+      gclid: "lastGclid",
+      fbclid: "lastFbclid",
+      landing: "lastLandingPage",
+    }
+  );
 
   return marketing;
 }
