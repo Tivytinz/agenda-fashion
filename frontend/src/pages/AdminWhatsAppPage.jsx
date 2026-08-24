@@ -108,13 +108,6 @@ function tomStatusMeta(template) {
   return "danger";
 }
 
-function tomQualidade(qualidade) {
-  if (qualidade === "GREEN") return "success";
-  if (qualidade === "YELLOW") return "warning";
-  if (qualidade === "RED") return "danger";
-  return "muted";
-}
-
 function TemplateRow({ template }) {
   const metricas = template.metricas || {};
   const total = Number(metricas.total ?? 0);

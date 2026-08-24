@@ -24,6 +24,8 @@ describe(
     let sessionA;
     let sessionB;
     let sessionGoogleSemCampanha;
+    let sessionInternal;
+    let sessionDirect;
     let campaign;
     let managedCampaignId;
 
@@ -36,6 +38,10 @@ describe(
         `mktb_${suffix}`;
       sessionGoogleSemCampanha =
         `mktg_${suffix}`;
+      sessionInternal =
+        `mkti_${suffix}`;
+      sessionDirect =
+        `mktd_${suffix}`;
       campaign =
         `campanha_${suffix}`;
       managedCampaignId = null;
@@ -124,6 +130,8 @@ describe(
           sessionA,
           sessionB,
           sessionGoogleSemCampanha,
+          sessionInternal,
+          sessionDirect,
         ]]
       );
 
@@ -279,6 +287,84 @@ describe(
           sessoes_resolvidas_gclid: 0,
           sessoes_resolvidas_google_click: 0,
         });
+      }
+    );
+
+    test(
+      "não trata sessão iniciada no dashboard como aquisição paga",
+      async () => {
+        const internalCampaign =
+          `interna_${idCurto()}`;
+
+        await db.query(
+          `
+          INSERT INTO eventos_produto (
+            nome,
+            pagina,
+            sessao_id,
+            propriedades
+          )
+          VALUES (
+            'tela_visualizada',
+            'dashboard_dono',
+            $1,
+            $2::JSONB
+          )
+          `,
+          [
+            sessionInternal,
+            JSON.stringify({
+              utm_source: "google",
+              utm_medium: "cpc",
+              utm_campaign: internalCampaign,
+            }),
+          ]
+        );
+
+        const campanhas =
+          await adminMarketingRepository
+            .listarCampanhas("all");
+
+        expect(
+          campanhas.find(
+            (item) =>
+              item.campanha ===
+              internalCampaign
+          )
+        ).toBeUndefined();
+      }
+    );
+
+    test(
+      "classifica entrada pública sem origem como acesso direto",
+      async () => {
+        await db.query(
+          `
+          INSERT INTO eventos_produto (
+            nome,
+            pagina,
+            sessao_id,
+            propriedades
+          )
+          VALUES (
+            'tela_visualizada',
+            'inicio',
+            $1,
+            '{}'::JSONB
+          )
+          `,
+          [sessionDirect]
+        );
+
+        const resumo =
+          await adminMarketingRepository
+            .buscarResumo("all");
+
+        expect(
+          Number(
+            resumo.sessoes_diretas
+          )
+        ).toBeGreaterThanOrEqual(1);
       }
     );
   }

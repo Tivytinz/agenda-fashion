@@ -171,32 +171,29 @@ function aggregateBySource(campaigns) {
       key,
       label: sourceLabel(item.origem),
       sessoes: 0,
-      perfisVisualizados: 0,
-      agendamentosIniciados: 0,
-      sessoesConvertidas: 0,
-      agendamentosConcluidos: 0
+      campanhas: new Set(),
+      objetivos: new Set()
     };
 
     current.sessoes += Number(item.sessoes || 0);
-    current.perfisVisualizados += Number(item.perfisVisualizados || 0);
-    current.agendamentosIniciados += Number(item.agendamentosIniciados || 0);
-    current.sessoesConvertidas += Number(
-      item.sessoesConvertidas ??
-        Math.min(
-          Number(item.agendamentosConcluidos || 0),
-          Number(item.sessoes || 0)
-        )
+    current.campanhas.add(
+      `${normalize(item.origem)}|${normalize(item.midia)}|${normalize(item.campanha)}`
     );
-    current.agendamentosConcluidos += Number(item.agendamentosConcluidos || 0);
+
+    if (OBJECTIVES[item.objetivo]) {
+      current.objetivos.add(OBJECTIVES[item.objetivo]);
+    }
+
     groups.set(key, current);
   });
 
   return [...groups.values()]
     .map((item) => ({
-      ...item,
-      taxaConversao: item.sessoes
-        ? Number(((item.sessoesConvertidas / item.sessoes) * 100).toFixed(2))
-        : 0
+      key: item.key,
+      label: item.label,
+      sessoes: item.sessoes,
+      campanhas: item.campanhas.size,
+      objetivos: [...item.objetivos]
     }))
     .sort((a, b) => b.sessoes - a.sessoes);
 }
@@ -234,6 +231,10 @@ export function AdminMarketingPage() {
       conversions: apiRequest(`/admin/marketing/conversoes?periodo=${period}`, {
         signal: controller.signal
       }),
+      professionalFunnel: apiRequest(
+        `/admin/marketing/funil-profissionais?periodo=${period}`,
+        { signal: controller.signal }
+      ),
       managedCampaigns: apiRequest("/admin/marketing/gestao-campanhas", {
         signal: controller.signal
       })
@@ -253,6 +254,8 @@ export function AdminMarketingPage() {
           summary: values.summary || current?.summary || {},
           campaigns: values.campaigns?.campanhas || current?.campaigns || [],
           conversions: values.conversions?.conversoes || current?.conversions || [],
+          professionalFunnel:
+            values.professionalFunnel || current?.professionalFunnel || {},
           managedCampaigns:
             values.managedCampaigns?.campanhas || current?.managedCampaigns || []
         }));
@@ -409,6 +412,9 @@ export function AdminMarketingPage() {
   const managedCampaigns = data?.managedCampaigns || [];
   const campaigns = data?.campaigns || [];
   const conversions = data?.conversions || [];
+  const professionalFunnel = data?.professionalFunnel || {};
+  const professionalOfficialSummary = professionalFunnel?.resumoOficial || {};
+  const professionalOfficialCampaigns = professionalFunnel?.campanhasOficiais || [];
 
   const activeOfficialCampaigns = useMemo(
     () => managedCampaigns.filter((item) => item.ativo !== false),
@@ -427,6 +433,11 @@ export function AdminMarketingPage() {
         : officialIdentitySet.has(performanceIdentity(item))
     ),
     [campaigns, officialIdentitySet]
+  );
+
+  const clientOfficialPerformance = useMemo(
+    () => officialPerformance.filter((item) => item.objetivo === "cliente"),
+    [officialPerformance]
   );
 
   const paidWithoutCampaign = useMemo(
@@ -464,9 +475,13 @@ export function AdminMarketingPage() {
 
   const officialConversions = useMemo(
     () => conversions.filter(
-      (item) => hasBackendAttributionClassification(item)
-        ? item.oficial === true
-        : officialIdentitySet.has(performanceIdentity(item))
+      (item) => {
+        const official = hasBackendAttributionClassification(item)
+          ? item.oficial === true
+          : officialIdentitySet.has(performanceIdentity(item));
+
+        return official && item.objetivo === "cliente";
+      }
     ),
     [conversions, officialIdentitySet]
   );
@@ -474,6 +489,15 @@ export function AdminMarketingPage() {
   const acquisitionBySource = useMemo(
     () => aggregateBySource(officialPerformance),
     [officialPerformance]
+  );
+
+  const professionalCampaignById = useMemo(
+    () => new Map(
+      professionalOfficialCampaigns
+        .filter((item) => item.campanhaOficialId)
+        .map((item) => [Number(item.campanhaOficialId), item])
+    ),
+    [professionalOfficialCampaigns]
   );
 
   const unclassifiedCampaigns = useMemo(
@@ -517,15 +541,24 @@ export function AdminMarketingPage() {
     [officialPerformance]
   );
 
-  const officialCompleted = useMemo(
-    () => officialPerformance.reduce(
+  const clientOfficialCompleted = useMemo(
+    () => clientOfficialPerformance.reduce(
       (total, item) => total + Number(item.agendamentosConcluidos || 0),
       0
     ),
-    [officialPerformance]
+    [clientOfficialPerformance]
   );
 
-  const autonomousSessions = Number(summary.sessoesSemAtribuicao || 0);
+  const directSessions = Number(
+    summary.sessoesDiretas ??
+      summary.sessoesSemAtribuicao ??
+      0
+  );
+  const organicSessions = Number(summary.sessoesOrganicas || 0);
+  const professionalSignups = Number(professionalOfficialSummary.cadastros || 0);
+  const hasProfessionalCampaign = activeOfficialCampaigns.some(
+    (item) => item.objetivo === "profissional"
+  );
 
   if (!data && !error) {
     return (
@@ -550,22 +583,32 @@ export function AdminMarketingPage() {
     [
       "Sessões de campanhas oficiais",
       officialSessions,
-      "visitas vinculadas a campanhas cadastradas no AF"
+      "entradas públicas vinculadas a campanhas cadastradas no AF"
     ],
     [
-      "Acessos autônomos",
-      autonomousSessions,
-      "sem anúncio ou campanha identificada"
+      "Pago sem campanha identificada",
+      paidWithoutCampaignSessions,
+      "há sinal de anúncio, mas falta a identidade oficial da campanha"
     ],
     [
-      "Campanhas oficiais",
-      activeOfficialCampaigns.length,
-      "campanhas ativas reconhecidas pelo AF"
+      "Tráfego orgânico",
+      organicSessions,
+      "entradas públicas sem mídia paga, com origem orgânica reconhecida"
     ],
     [
-      "Conversões oficiais",
-      officialCompleted,
-      "agendamentos concluídos por campanhas oficiais"
+      "Acessos diretos",
+      directSessions,
+      "entradas públicas sem anúncio, UTM ou origem orgânica detectada"
+    ],
+    [
+      "Cadastros profissionais oficiais",
+      professionalSignups,
+      "cadastros atribuídos a campanhas oficiais com objetivo profissional"
+    ],
+    [
+      "Agendamentos de clientes oficiais",
+      clientOfficialCompleted,
+      "agendamentos atribuídos a campanhas oficiais com objetivo cliente"
     ]
   ];
 
@@ -582,7 +625,7 @@ export function AdminMarketingPage() {
           <p className="eyebrow">Administração do AF</p>
           <h1>Campanhas e tráfego</h1>
           <p>
-            Campanhas oficiais ficam separadas de acessos autônomos e de falhas de rastreamento.
+            O painel separa aquisição paga, orgânica e direta e mede o resultado conforme o objetivo de cada campanha.
           </p>
         </div>
 
@@ -634,9 +677,9 @@ export function AdminMarketingPage() {
         <div className="panel-heading">
           <div>
             <p className="eyebrow">Como ler o painel</p>
-            <h2>Oficial, autônomo ou rastreamento incompleto</h2>
+            <h2>Oficial, pago sem campanha, orgânico ou direto</h2>
             <p className="muted">
-              Cada acesso entra em uma categoria diferente. Uma categoria nunca é somada à outra.
+              Sessões internas iniciadas em dashboard, agenda ou administração não entram como aquisição.
             </p>
             <p className="muted">
               A atribuição usa o primeiro contato registrado em uma janela fixa de 30 dias. O último contato também é preservado para auditoria.
@@ -649,25 +692,34 @@ export function AdminMarketingPage() {
             <div>
               <strong>Campanha oficial</strong>
               <small>
-                Veio de uma campanha cadastrada e reconhecida pelo AF. Entra nos KPIs de mídia paga.
+                A entrada pública veio de uma campanha cadastrada e reconhecida pelo AF. Entra nos KPIs oficiais.
               </small>
             </div>
           </div>
 
           <div className="admin-pending-item">
             <div>
-              <strong>Acesso autônomo</strong>
+              <strong>Tráfego pago sem campanha identificada</strong>
               <small>
-                Chegou sem origem, campanha UTM ou identificador de anúncio. Pode ser acesso direto, busca orgânica ou link compartilhado. Não é considerado anúncio pago.
+                Há sinal de mídia paga, como GCLID ou mídia CPC, mas a campanha oficial não foi recebida. Fica fora de CAC e ROAS até ser identificada.
               </small>
             </div>
           </div>
 
           <div className="admin-pending-item">
             <div>
-              <strong>Rastreamento incompleto</strong>
+              <strong>Tráfego orgânico</strong>
               <small>
-                Existe sinal de mídia paga, mas não há uma campanha oficial identificada. Pode ser um anúncio real sem a etiqueta da campanha e fica fora dos KPIs até ser identificado.
+                A entrada pública não é paga e possui origem orgânica reconhecida, como busca, referência ou canal social não pago.
+              </small>
+            </div>
+          </div>
+
+          <div className="admin-pending-item">
+            <div>
+              <strong>Acesso direto</strong>
+              <small>
+                A sessão começou em uma superfície pública sem anúncio, UTM ou origem orgânica detectada. Não inclui busca orgânica.
               </small>
             </div>
           </div>
@@ -693,7 +745,7 @@ export function AdminMarketingPage() {
                     )}
                   </strong>
                   <small>
-                    Não são acessos autônomos. Há sinal de mídia paga, mas a campanha oficial não foi recebida. Pode ser anúncio real sem etiqueta.
+                    Não são acessos diretos. Há sinal de mídia paga, mas a campanha oficial não foi recebida.
                   </small>
                 </div>
                 {suggestedCampaign && (
@@ -738,7 +790,7 @@ export function AdminMarketingPage() {
                       "campanhas oficiais sem objetivo"
                     )}
                   </strong>
-                  <small>Defina o objetivo para manter CAC, CPA e ROAS no relatório correto.</small>
+                  <small>Defina o objetivo para manter cada resultado no relatório correto.</small>
                 </div>
               </div>
             )}
@@ -783,7 +835,7 @@ export function AdminMarketingPage() {
                     <option key={value} value={value}>{label}</option>
                   ))}
                 </select>
-                <small>Profissionais mede assinatura; clientes mede agendamento.</small>
+                <small>Profissionais mede cadastro, ativação e assinatura; clientes mede agendamento.</small>
               </label>
 
               <label>
@@ -886,7 +938,11 @@ export function AdminMarketingPage() {
             <p className="eyebrow">Operação</p>
             <h2>Campanhas oficiais</h2>
             <p className="muted">
-              Somente campanhas cadastradas aqui são consideradas oficiais nos indicadores.
+              {pluralize(
+                activeOfficialCampaigns.length,
+                "campanha ativa reconhecida pelo AF",
+                "campanhas ativas reconhecidas pelo AF"
+              )}. O filtro de período afeta desempenho, não o cadastro operacional da campanha.
             </p>
           </div>
           {archivedCampaigns.length > 0 && (
@@ -1033,7 +1089,7 @@ export function AdminMarketingPage() {
             <p className="eyebrow">Estatísticas oficiais</p>
             <h2>Visão de aquisição paga</h2>
             <p className="muted">
-              Somente campanhas oficiais entram neste gráfico e no resumo por origem.
+              O volume de tráfego é comparável entre campanhas; o resultado de negócio depende do objetivo cadastrado.
             </p>
           </div>
         </div>
@@ -1041,13 +1097,17 @@ export function AdminMarketingPage() {
         <div className="admin-insights-grid">
           <MarketingBarChart
             title="Sessões oficiais por origem"
-            description="Volume atribuído exclusivamente a campanhas oficiais."
+            description="Entradas públicas atribuídas exclusivamente a campanhas oficiais."
             items={acquisitionBySource.map((item) => ({
               key: item.key,
               label: item.label,
               value: item.sessoes,
               formattedValue: pluralize(item.sessoes, "sessão", "sessões"),
-              secondary: `${item.agendamentosConcluidos} concluídos · ${item.taxaConversao}% de conversão`
+              secondary: pluralize(
+                item.campanhas,
+                "campanha oficial",
+                "campanhas oficiais"
+              )
             }))}
             emptyMessage="Nenhuma sessão de campanha oficial neste período."
           />
@@ -1055,7 +1115,7 @@ export function AdminMarketingPage() {
           <div className="admin-stat-table-card">
             <div className="admin-stat-table-heading">
               <strong>Resumo oficial por origem</strong>
-              <small>Dados não oficiais e acessos autônomos ficam fora deste quadro.</small>
+              <small>Resultados de profissional e cliente não são somados como se fossem a mesma conversão.</small>
             </div>
             {acquisitionBySource.length === 0 ? (
               <p className="muted">Sem dados oficiais de aquisição no período.</p>
@@ -1066,9 +1126,8 @@ export function AdminMarketingPage() {
                     <tr>
                       <th>Origem</th>
                       <th>Sessões</th>
-                      <th>Iniciados</th>
-                      <th>Concluídos</th>
-                      <th>Conversão</th>
+                      <th>Campanhas</th>
+                      <th>Objetivos</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -1076,9 +1135,8 @@ export function AdminMarketingPage() {
                       <tr key={item.key}>
                         <td>{item.label}</td>
                         <td>{item.sessoes}</td>
-                        <td>{item.agendamentosIniciados}</td>
-                        <td>{item.agendamentosConcluidos}</td>
-                        <td>{item.taxaConversao}%</td>
+                        <td>{item.campanhas}</td>
+                        <td>{item.objetivos.join(", ") || "Sem objetivo"}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -1095,7 +1153,7 @@ export function AdminMarketingPage() {
             <p className="eyebrow">Aquisição paga</p>
             <h2>Desempenho das campanhas oficiais</h2>
             <p className="muted">
-              Identidades não cadastradas e tráfego pago sem campanha ficam apenas nas pendências de rastreamento.
+              Profissionais são medidos por cadastro e funil de ativação; clientes são medidos por agendamento concluído.
             </p>
           </div>
         </div>
@@ -1108,52 +1166,100 @@ export function AdminMarketingPage() {
               <thead>
                 <tr>
                   <th>Campanha oficial</th>
+                  <th>Objetivo</th>
                   <th>Origem</th>
                   <th>Mídia</th>
                   <th>Sessões</th>
-                  <th>Perfis vistos</th>
-                  <th>Agendamentos iniciados</th>
-                  <th>Agendamentos concluídos</th>
-                  <th>Conversão</th>
+                  <th>Resultado do objetivo</th>
                 </tr>
               </thead>
               <tbody>
-                {officialPerformance.map((item, index) => (
-                  <tr key={`${item.origem}-${item.midia}-${item.campanha}-${index}`}>
-                    <td>
-                      <strong>{campaignLabel(item)}</strong>
-                      <small className="admin-row-note">Campanha oficial reconhecida</small>
-                    </td>
-                    <td>
-                      <span className={`admin-status-badge admin-source-badge is-${sourceCode(item.origem)}`}>
-                        {sourceLabel(item.origem)}
-                      </span>
-                    </td>
-                    <td>{String(item.midia || "Não identificada").toUpperCase()}</td>
-                    <td>{item.sessoes}</td>
-                    <td>{item.perfisVisualizados}</td>
-                    <td>{item.agendamentosIniciados}</td>
-                    <td>{item.agendamentosConcluidos}</td>
-                    <td>{item.taxaConversao}%</td>
-                  </tr>
-                ))}
+                {officialPerformance.map((item, index) => {
+                  const professionalCampaign = item.objetivo === "profissional"
+                    ? professionalCampaignById.get(Number(item.campanhaOficialId))
+                    : null;
+                  const goalResult = item.objetivo === "profissional"
+                    ? pluralize(
+                        Number(professionalCampaign?.cadastros || 0),
+                        "cadastro",
+                        "cadastros"
+                      )
+                    : item.objetivo === "cliente"
+                      ? pluralize(
+                          Number(item.agendamentosConcluidos || 0),
+                          "agendamento",
+                          "agendamentos"
+                        )
+                      : "Sem objetivo definido";
+
+                  return (
+                    <tr key={`${item.origem}-${item.midia}-${item.campanha}-${index}`}>
+                      <td>
+                        <strong>{campaignLabel(item)}</strong>
+                        <small className="admin-row-note">Campanha oficial reconhecida</small>
+                      </td>
+                      <td>{OBJECTIVES[item.objetivo] || "Sem objetivo"}</td>
+                      <td>
+                        <span className={`admin-status-badge admin-source-badge is-${sourceCode(item.origem)}`}>
+                          {sourceLabel(item.origem)}
+                        </span>
+                      </td>
+                      <td>{String(item.midia || "Não identificada").toUpperCase()}</td>
+                      <td>{item.sessoes}</td>
+                      <td>{goalResult}</td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
         )}
       </section>
 
+      {hasProfessionalCampaign && (
+        <section className="panel" aria-label="Funil oficial de profissionais">
+          <div className="panel-heading">
+            <div>
+              <p className="eyebrow">Objetivo profissional</p>
+              <h2>Funil oficial de profissionais</h2>
+              <p className="muted">
+                Estes números acompanham a coorte de profissionais atribuída a campanhas oficiais, sem misturar agendamentos de clientes.
+              </p>
+            </div>
+          </div>
+
+          <div className="metric-grid">
+            {[
+              ["Cadastros", professionalOfficialSummary.cadastros],
+              ["Negócios criados", professionalOfficialSummary.negociosCriados],
+              ["Serviços cadastrados", professionalOfficialSummary.servicosCriados],
+              ["Agendas configuradas", professionalOfficialSummary.agendasConfiguradas],
+              ["Negócios publicados", professionalOfficialSummary.negociosPublicados],
+              ["Checkouts iniciados", professionalOfficialSummary.checkoutsIniciados],
+              ["Assinaturas ativadas", professionalOfficialSummary.assinaturasAtivadas]
+            ].map(([label, value]) => (
+              <article className="metric-card" key={label}>
+                <span>{label}</span>
+                <strong>{Number(value || 0)}</strong>
+              </article>
+            ))}
+          </div>
+        </section>
+      )}
+
       <section className="panel">
         <div className="panel-heading">
           <div>
-            <p className="eyebrow">Conversões oficiais</p>
-            <h2>Agendamentos atribuídos a campanhas oficiais</h2>
-            <p className="muted">Conversões de identidades não oficiais não entram nesta lista.</p>
+            <p className="eyebrow">Objetivo cliente</p>
+            <h2>Agendamentos atribuídos a campanhas de clientes</h2>
+            <p className="muted">
+              Campanhas de aquisição de profissionais não entram nesta lista, mesmo que depois gerem agendamentos no marketplace.
+            </p>
           </div>
         </div>
 
         {officialConversions.length === 0 ? (
-          <p className="muted">Nenhum agendamento de campanha oficial neste período.</p>
+          <p className="muted">Nenhum agendamento de campanha oficial de clientes neste período.</p>
         ) : (
           <div className="table-wrap">
             <table>

@@ -21,6 +21,41 @@ const PERIODOS_PERMITIDOS =
 const REPORT_TIME_ZONE =
   "America/Sao_Paulo";
 
+/*
+ * O painel de aquisição não pode tratar qualquer sessão interna do SaaS como
+ * uma nova visita. Só entram sessões cujo primeiro evento ocorreu em uma
+ * superfície pública de descoberta, entrada, cadastro ou planos.
+ */
+const PAGINAS_AQUISICAO =
+  Object.freeze([
+    "landing",
+    "para_profissionais",
+    "inicio",
+    "perfil_negocio",
+    "catalogo_local",
+    "cadastro_profissional",
+    "cadastro_cliente",
+    "login_profissional",
+    "login_cliente",
+    "planos",
+  ]);
+
+function listaSql(
+  valores
+) {
+  return valores
+    .map(
+      (valor) =>
+        `'${String(valor).replaceAll("'", "''")}'`
+    )
+    .join(", ");
+}
+
+const PAGINAS_AQUISICAO_SQL =
+  listaSql(
+    PAGINAS_AQUISICAO
+  );
+
 function normalizarPeriodo(
   valor
 ) {
@@ -75,6 +110,43 @@ function filtroPeriodo(
       : "";
 
   return `AND ${prefixo}created_at >= ${inicio}`;
+}
+
+function sessoesAquisicaoCte(
+  periodo
+) {
+  const filtro =
+    filtroPeriodo(
+      periodo,
+      "primeira"
+    );
+
+  return `
+    primeiras_interacoes AS (
+      SELECT DISTINCT ON (
+        e.sessao_id
+      )
+        e.id,
+        e.sessao_id,
+        e.pagina,
+        e.created_at
+      FROM eventos_produto e
+      ORDER BY
+        e.sessao_id,
+        e.created_at ASC,
+        e.id ASC
+    ),
+
+    sessoes_aquisicao AS (
+      SELECT
+        primeira.sessao_id
+      FROM primeiras_interacoes primeira
+      WHERE primeira.pagina IN (
+        ${PAGINAS_AQUISICAO_SQL}
+      )
+        ${filtro}
+    )
+  `;
 }
 
 const ATRIBUICAO_SQL =
@@ -145,16 +217,18 @@ async function consultarEventos(
 async function buscarResumo(
   periodo = "all"
 ) {
-  const filtro =
-    filtroPeriodo(
-      periodo,
-      "e"
+  const cteAquisicao =
+    sessoesAquisicaoCte(
+      periodo
     );
 
   const resultado =
     await consultarEventos(
       `
-        WITH eventos_resolvidos AS (
+        WITH
+        ${cteAquisicao},
+
+        eventos_resolvidos AS (
           SELECT
             e.*,
             ${ATRIBUICAO_PAGA_SQL}
@@ -170,9 +244,10 @@ async function buscarResumo(
             ${CAMPANHA_RESOLVIDA_SQL}
               AS campanha_resolvida
           FROM eventos_produto e
-          WHERE 1 = 1
-            ${filtro}
+          INNER JOIN sessoes_aquisicao sa
+            ON sa.sessao_id = e.sessao_id
         ),
+
         sessoes_classificadas AS (
           SELECT
             sessao_id,
@@ -208,7 +283,7 @@ async function buscarResumo(
             WHERE NOT pago
               AND NOT organico
               AND NOT rastreado
-          ) AS sessoes_autonomas,
+          ) AS sessoes_diretas,
 
           (
             SELECT COUNT(*)::INT
@@ -216,7 +291,7 @@ async function buscarResumo(
             WHERE NOT pago
               AND NOT organico
               AND rastreado
-          ) AS sessoes_rastreamento_incompleto,
+          ) AS sessoes_rastreadas_nao_pagas,
 
           COUNT(
             DISTINCT (
@@ -257,8 +332,8 @@ async function buscarResumo(
           total_sessoes: 0,
           sessoes: 0,
           sessoes_organicas: 0,
-          sessoes_autonomas: 0,
-          sessoes_rastreamento_incompleto: 0,
+          sessoes_diretas: 0,
+          sessoes_rastreadas_nao_pagas: 0,
           campanhas: 0,
           perfis_visualizados: 0,
           agendamentos_iniciados: 0,
@@ -274,10 +349,9 @@ async function buscarResumo(
 async function listarCampanhas(
   periodo = "all"
 ) {
-  const filtro =
-    filtroPeriodo(
-      periodo,
-      "e"
+  const cteAquisicao =
+    sessoesAquisicaoCte(
+      periodo
     );
 
   const vinculoCampanha =
@@ -295,7 +369,10 @@ async function listarCampanhas(
   const resultado =
     await consultarEventos(
       `
-        WITH eventos_resolvidos AS (
+        WITH
+        ${cteAquisicao},
+
+        eventos_resolvidos AS (
           SELECT
             e.*,
             ${ORIGEM_SQL}
@@ -309,8 +386,9 @@ async function listarCampanhas(
             ${GOOGLE_CLICK_RESOLVIDO_SQL}
               AS google_click_resolvido
           FROM eventos_produto e
+          INNER JOIN sessoes_aquisicao sa
+            ON sa.sessao_id = e.sessao_id
           WHERE ${ATRIBUICAO_PAGA_SQL}
-            ${filtro}
         ),
 
         eventos_classificados AS (
@@ -400,10 +478,9 @@ async function listarCampanhas(
 async function listarConversoes(
   periodo = "all"
 ) {
-  const filtro =
-    filtroPeriodo(
-      periodo,
-      "e"
+  const cteAquisicao =
+    sessoesAquisicaoCte(
+      periodo
     );
 
   const vinculoCampanha =
@@ -421,7 +498,10 @@ async function listarConversoes(
   const resultado =
     await consultarEventos(
       `
-        WITH eventos_resolvidos AS (
+        WITH
+        ${cteAquisicao},
+
+        eventos_resolvidos AS (
           SELECT
             e.*,
             ${ORIGEM_SQL}
@@ -435,9 +515,10 @@ async function listarConversoes(
             ${GOOGLE_CLICK_RESOLVIDO_SQL}
               AS google_click_resolvido
           FROM eventos_produto e
+          INNER JOIN sessoes_aquisicao sa
+            ON sa.sessao_id = e.sessao_id
           WHERE e.nome = 'agendamento_concluido'
             AND ${ATRIBUICAO_PAGA_SQL}
-            ${filtro}
         ),
 
         eventos_classificados AS (
@@ -504,4 +585,5 @@ module.exports = {
   listarConversoes,
   normalizarPeriodo,
   filtroPeriodo,
+  sessoesAquisicaoCte,
 };

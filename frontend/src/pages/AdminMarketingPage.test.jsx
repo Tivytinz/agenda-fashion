@@ -86,7 +86,9 @@ function mockMarketingRequests() {
         periodo: "30",
         totalSessoes: 23,
         sessoes: 19,
-        sessoesSemAtribuicao: 4,
+        sessoesOrganicas: 3,
+        sessoesDiretas: 1,
+        sessoesSemAtribuicao: 1,
         campanhas: 3,
         perfisVisualizados: 8,
         agendamentosIniciados: 2,
@@ -104,6 +106,8 @@ function mockMarketingRequests() {
             origem: "google",
             midia: "cpc",
             campanha: "google_ads_profissionais",
+            campanhaOficialId: 7,
+            objetivo: "profissional",
             oficial: true,
             classificacaoAtribuicao: "oficial",
             sessoes: 12,
@@ -148,10 +152,12 @@ function mockMarketingRequests() {
           {
             eventoId: 88,
             agendamentoId: 42,
-            negocioNome: "Studio Oficial",
+            negocioNome: "Studio Profissional",
             origem: "google",
             midia: "cpc",
             campanha: "google_ads_profissionais",
+            campanhaOficialId: 7,
+            objetivo: "profissional",
             oficial: true,
             classificacaoAtribuicao: "oficial",
             landingPage: "/cadastro",
@@ -164,10 +170,42 @@ function mockMarketingRequests() {
             origem: "meta",
             midia: "paid_social",
             campanha: "teste",
+            objetivo: "cliente",
             oficial: false,
             classificacaoAtribuicao: "identidade_nao_oficial",
             landingPage: "/",
             createdAt: "2026-08-24T02:10:00.000Z"
+          }
+        ]
+      });
+    }
+
+    if (path.startsWith("/admin/marketing/funil-profissionais")) {
+      return Promise.resolve({
+        periodo: "30",
+        resumoOficial: {
+          cadastros: 3,
+          negociosCriados: 2,
+          servicosCriados: 2,
+          agendasConfiguradas: 1,
+          negociosPublicados: 1,
+          checkoutsIniciados: 1,
+          assinaturasAtivadas: 0
+        },
+        campanhasOficiais: [
+          {
+            origem: "google",
+            midia: "cpc",
+            campanha: "google_ads_profissionais",
+            campanhaOficialId: 7,
+            oficial: true,
+            cadastros: 3,
+            negociosCriados: 2,
+            servicosCriados: 2,
+            agendasConfiguradas: 1,
+            negociosPublicados: 1,
+            checkoutsIniciados: 1,
+            assinaturasAtivadas: 0
           }
         ]
       });
@@ -188,7 +226,7 @@ afterEach(() => {
 });
 
 describe("AdminMarketingPage", () => {
-  it("mostra somente campanhas oficiais no desempenho principal", async () => {
+  it("separa tráfego e resultado conforme o objetivo da campanha", async () => {
     render(<AdminMarketingPage />);
 
     expect(
@@ -196,37 +234,48 @@ describe("AdminMarketingPage", () => {
     ).not.toBeNull();
 
     expect(screen.getByText("Sessões de campanhas oficiais")).not.toBeNull();
-    expect(screen.getByText("Acessos autônomos")).not.toBeNull();
-    expect(screen.getAllByText("Campanhas oficiais").length).toBeGreaterThanOrEqual(1);
-    expect(screen.getAllByText("Conversões oficiais").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getByText("Pago sem campanha identificada")).not.toBeNull();
+    expect(screen.getAllByText("Tráfego orgânico").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getByText("Acessos diretos")).not.toBeNull();
+    expect(screen.getByText("Cadastros profissionais oficiais")).not.toBeNull();
+    expect(screen.getByText("Agendamentos de clientes oficiais")).not.toBeNull();
 
-    expect(
-      screen.getAllByText("google_ads_profissionais").length
-    ).toBeGreaterThanOrEqual(1);
-    expect(screen.queryByText("teste")).toBeNull();
-    expect(screen.getByText("Studio Oficial")).not.toBeNull();
+    const signupCard = screen
+      .getByText("Cadastros profissionais oficiais")
+      .closest("article");
+    expect(signupCard).not.toBeNull();
+    expect(within(signupCard).getByText("3")).not.toBeNull();
+
+    const clientBookingCard = screen
+      .getByText("Agendamentos de clientes oficiais")
+      .closest("article");
+    expect(clientBookingCard).not.toBeNull();
+    expect(within(clientBookingCard).getByText("0")).not.toBeNull();
+
+    expect(screen.queryByText("Studio Profissional")).toBeNull();
     expect(screen.queryByText("Studio Teste")).toBeNull();
     expect(screen.getByText("Sessões oficiais por origem")).not.toBeNull();
     expect(screen.getByText("Resumo oficial por origem")).not.toBeNull();
-    expect(apiRequest).toHaveBeenCalledTimes(4);
+    expect(screen.getByRole("heading", { name: "Funil oficial de profissionais" })).not.toBeNull();
+    expect(apiRequest).toHaveBeenCalledTimes(5);
   });
 
-  it("explica claramente acesso autônomo e não confunde com tráfego pago incompleto", async () => {
+  it("explica tráfego direto sem confundir com orgânico ou pago incompleto", async () => {
     render(<AdminMarketingPage />);
 
-    expect(await screen.findByText("Acesso autônomo")).not.toBeNull();
+    expect(await screen.findByText("Acesso direto")).not.toBeNull();
     expect(
-      screen.getByText(/Chegou sem origem, campanha UTM ou identificador de anúncio/i)
+      screen.getByText(/A sessão começou em uma superfície pública sem anúncio, UTM ou origem orgânica detectada/i)
     ).not.toBeNull();
     expect(
-      screen.getByText(/Pode ser acesso direto, busca orgânica ou link compartilhado/i)
+      screen.getByText(/Não inclui busca orgânica/i)
     ).not.toBeNull();
 
     expect(
       screen.getByText(/6 sessões pagas com rastreamento incompleto/i)
     ).not.toBeNull();
     expect(
-      screen.getByText(/Não são acessos autônomos\. Há sinal de mídia paga/i)
+      screen.getByText(/Não são acessos diretos\. Há sinal de mídia paga/i)
     ).not.toBeNull();
     expect(
       screen.getByText(/1 sessão com identidade não oficial/i)
@@ -319,7 +368,7 @@ describe("AdminMarketingPage", () => {
     expect(screen.getByText("Arquivada")).not.toBeNull();
   });
 
-  it("recarrega os dados ao trocar o período", async () => {
+  it("recarrega todos os dados ao trocar o período", async () => {
     const user = userEvent.setup();
     render(<AdminMarketingPage />);
 
@@ -338,6 +387,10 @@ describe("AdminMarketingPage", () => {
     );
     expect(apiRequest).toHaveBeenCalledWith(
       "/admin/marketing/conversoes?periodo=7",
+      expect.any(Object)
+    );
+    expect(apiRequest).toHaveBeenCalledWith(
+      "/admin/marketing/funil-profissionais?periodo=7",
       expect.any(Object)
     );
   });

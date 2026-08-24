@@ -166,7 +166,6 @@ export function BusinessPage({ create = false }) {
     }
     // A consulta automática é feita apenas quando a configuração inicial termina.
     // Alterações posteriores são tratadas por onChange/onBlur do campo.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [create, loading]);
 
   function update(field, value) {
