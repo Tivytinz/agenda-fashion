@@ -60,7 +60,7 @@ const BillingCheckoutPage = lazyNamed(
   "BillingCheckoutPage"
 );
 const PlansPage = lazyNamed(
-  () => import("./pages/BillingPages"),
+  () => import("./pages/PlansPage"),
   "PlansPage"
 );
 const SubscriptionPage = lazyNamed(
