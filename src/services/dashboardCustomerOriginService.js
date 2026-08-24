@@ -14,29 +14,79 @@ const ORIGENS = Object.freeze({
     categoria: "pago",
     descricao: "Cliente adquirido por clique identificado do Google Ads.",
   },
+  microsoft_ads: {
+    rotulo: "Microsoft Ads",
+    categoria: "pago",
+    descricao: "Cliente adquirido por anúncio identificado da Microsoft/Bing.",
+  },
   meta_ads: {
     rotulo: "Meta Ads",
     categoria: "pago",
     descricao: "Cliente adquirido por anúncio identificado da Meta.",
   },
+  tiktok_ads: {
+    rotulo: "TikTok Ads",
+    categoria: "pago",
+    descricao: "Cliente adquirido por anúncio identificado do TikTok.",
+  },
+  pinterest_ads: {
+    rotulo: "Pinterest Ads",
+    categoria: "pago",
+    descricao: "Cliente adquirido por anúncio identificado do Pinterest.",
+  },
   outra_midia_paga: {
     rotulo: "Outra mídia paga",
     categoria: "pago",
-    descricao: "Cliente adquirido por outra mídia paga identificada.",
+    descricao: "Há sinal de mídia paga, mas o canal não pertence aos padrões conhecidos.",
   },
-  busca_organica: {
-    rotulo: "Busca orgânica",
-    categoria: "autonomo",
-    descricao: "Cliente chegou por um buscador sem sinal de anúncio pago.",
+  google_organico: {
+    rotulo: "Google orgânico",
+    categoria: "organico",
+    descricao: "Cliente chegou por resultado não pago do Google.",
   },
-  social_organico: {
-    rotulo: "Rede social orgânica",
-    categoria: "autonomo",
-    descricao: "Cliente chegou por rede social sem sinal de anúncio pago.",
+  bing_organico: {
+    rotulo: "Bing orgânico",
+    categoria: "organico",
+    descricao: "Cliente chegou por resultado não pago do Bing.",
+  },
+  duckduckgo_organico: {
+    rotulo: "DuckDuckGo orgânico",
+    categoria: "organico",
+    descricao: "Cliente chegou por resultado não pago do DuckDuckGo.",
+  },
+  yahoo_organico: {
+    rotulo: "Yahoo orgânico",
+    categoria: "organico",
+    descricao: "Cliente chegou por resultado não pago do Yahoo.",
+  },
+  instagram_organico: {
+    rotulo: "Instagram orgânico",
+    categoria: "organico",
+    descricao: "Cliente chegou pelo Instagram sem sinal de anúncio pago.",
+  },
+  facebook_organico: {
+    rotulo: "Facebook orgânico",
+    categoria: "organico",
+    descricao: "Cliente chegou pelo Facebook sem sinal de anúncio pago.",
+  },
+  meta_organico: {
+    rotulo: "Meta orgânico",
+    categoria: "organico",
+    descricao: "Cliente chegou por Facebook ou Instagram sem evidência suficiente de anúncio pago.",
+  },
+  tiktok_organico: {
+    rotulo: "TikTok orgânico",
+    categoria: "organico",
+    descricao: "Cliente chegou pelo TikTok sem sinal de anúncio pago.",
+  },
+  pinterest_organico: {
+    rotulo: "Pinterest orgânico",
+    categoria: "organico",
+    descricao: "Cliente chegou pelo Pinterest sem sinal de anúncio pago.",
   },
   referencia_externa: {
-    rotulo: "Link em outro site",
-    categoria: "autonomo",
+    rotulo: "Referência externa",
+    categoria: "organico",
     descricao: "Cliente chegou por um site externo sem sinal de mídia paga.",
   },
   outra_origem_rastreada: {
@@ -47,12 +97,12 @@ const ORIGENS = Object.freeze({
   autonomo: {
     rotulo: "Acesso autônomo",
     categoria: "autonomo",
-    descricao: "Sem sinal de anúncio. Pode ser acesso direto, favorito ou link compartilhado.",
+    descricao: "Não houve sinal de anúncio nem referência externa identificável. Pode ser acesso direto, favorito ou link compartilhado.",
   },
   nao_identificado: {
     rotulo: "Origem não identificada",
     categoria: "incompleto",
-    descricao: "O agendamento existe, mas não há evento de aquisição suficiente para identificar a origem.",
+    descricao: "O agendamento existe, mas não há dados históricos suficientes para identificar a origem.",
   },
 });
 
@@ -87,6 +137,12 @@ function somar(linhas, campo) {
   return linhas.reduce(
     (total, linha) => total + numero(linha?.[campo]),
     0
+  );
+}
+
+function filtrarCategoria(origens, categoria) {
+  return origens.filter(
+    (origem) => origem.categoria === categoria
   );
 }
 
@@ -142,6 +198,15 @@ async function buscarOrigemClientes({
       : 0;
   });
 
+  const pagas = filtrarCategoria(origens, "pago");
+  const organicas = filtrarCategoria(origens, "organico");
+  const autonomas = filtrarCategoria(origens, "autonomo");
+  const incompletas = filtrarCategoria(origens, "incompleto");
+
+  const clientesPagos = somar(pagas, "clientes");
+  const clientesOrganicos = somar(organicas, "clientes");
+  const clientesAutonomos = somar(autonomas, "clientes");
+
   return {
     periodo: periodoNormalizado,
     resumo: {
@@ -150,15 +215,23 @@ async function buscarOrigemClientes({
       clientesRecorrentes: somar(origens, "clientesRecorrentes"),
       agendamentos: somar(origens, "agendamentos"),
       faturamento: somar(origens, "faturamento"),
-      clientesPagos: origens
-        .filter((origem) => origem.categoria === "pago")
-        .reduce((total, origem) => total + origem.clientes, 0),
-      clientesAutonomos: origens
-        .filter((origem) => origem.categoria === "autonomo")
-        .reduce((total, origem) => total + origem.clientes, 0),
-      clientesSemOrigem: origens
-        .filter((origem) => origem.categoria === "incompleto")
-        .reduce((total, origem) => total + origem.clientes, 0),
+      clientesPagos,
+      clientesOrganicos,
+      clientesAutonomos,
+      clientesSemOrigem: somar(incompletas, "clientes"),
+      agendamentosPagos: somar(pagas, "agendamentos"),
+      agendamentosOrganicos: somar(organicas, "agendamentos"),
+      faturamentoPago: somar(pagas, "faturamento"),
+      faturamentoOrganico: somar(organicas, "faturamento"),
+      percentualPago: totalClientes > 0
+        ? Number(((clientesPagos / totalClientes) * 100).toFixed(1))
+        : 0,
+      percentualOrganico: totalClientes > 0
+        ? Number(((clientesOrganicos / totalClientes) * 100).toFixed(1))
+        : 0,
+      percentualAutonomo: totalClientes > 0
+        ? Number(((clientesAutonomos / totalClientes) * 100).toFixed(1))
+        : 0,
     },
     origens,
   };
