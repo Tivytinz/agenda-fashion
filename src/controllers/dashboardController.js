@@ -1,4 +1,7 @@
 const dashboardService = require("../services/dashboardService");
+const dashboardCustomerOriginService = require(
+  "../services/dashboardCustomerOriginService"
+);
 
 async function buscarDashboardProfissional(req, res, next) {
   try {
@@ -25,7 +28,22 @@ async function buscarDashboardDono(req, res, next) {
   }
 }
 
+async function buscarOrigemClientesDono(req, res, next) {
+  try {
+    const resultado = await dashboardCustomerOriginService
+      .buscarOrigemClientes({
+        usuarioId: req.user?.id,
+        periodo: req.query.periodo
+      });
+
+    return res.json(resultado);
+  } catch (err) {
+    next(err);
+  }
+}
+
 module.exports = {
   buscarDashboardProfissional,
-  buscarDashboardDono
+  buscarDashboardDono,
+  buscarOrigemClientesDono
 };
