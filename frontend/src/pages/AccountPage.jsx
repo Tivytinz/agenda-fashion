@@ -27,6 +27,16 @@ function LogoutIcon() {
   );
 }
 
+function PasswordVisibilityIcon({ visible }) {
+  return (
+    <svg aria-hidden="true" className="account-password-toggle-icon" fill="none" viewBox="0 0 24 24">
+      <path d="M2.8 12s3.4-5.2 9.2-5.2 9.2 5.2 9.2 5.2-3.4 5.2-9.2 5.2S2.8 12 2.8 12Z" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.7" />
+      <circle cx="12" cy="12" r="2.4" stroke="currentColor" strokeWidth="1.7" />
+      {visible && <path d="M5 4.8 19 19.2" stroke="currentColor" strokeLinecap="round" strokeWidth="1.8" />}
+    </svg>
+  );
+}
+
 export function AccountPage() {
   const session = useSession();
   const navigate = useNavigate();
@@ -72,8 +82,18 @@ export function AccountPage() {
 
   useEffect(load, [load]);
 
+  const profileChanged = profile.nome.trim() !== savedProfile.nome.trim()
+    || onlyDigits(profile.whatsapp) !== onlyDigits(savedProfile.whatsapp);
+  const bookingNotificationsChanged = bookingNotifications !== savedBookingNotifications;
+  const dailyRemindersChanged = dailyReminders !== savedDailyReminders;
+  const passwordsMatch = password.confirmar.length > 0 && password.novaSenha === password.confirmar;
+  const passwordValid = password.senhaAtual.length > 0
+    && password.novaSenha.length >= 8
+    && passwordsMatch;
+
   async function saveProfile(event) {
     event.preventDefault();
+    if (!profileChanged || saving === "profile") return;
     setSaving("profile");
     setError("");
     setMessage("");
@@ -126,6 +146,7 @@ export function AccountPage() {
 
   async function saveWhatsAppPreferences(event) {
     event.preventDefault();
+    if (!dailyRemindersChanged || saving === "whatsapp-preferences") return;
     setSaving("whatsapp-preferences");
     setError("");
     setMessage("");
@@ -154,6 +175,7 @@ export function AccountPage() {
 
   async function saveBookingNotifications(event) {
     event.preventDefault();
+    if (!bookingNotificationsChanged || saving === "booking-notifications") return;
     setSaving("booking-notifications");
     setError("");
     setMessage("");
@@ -217,18 +239,11 @@ export function AccountPage() {
     : session.temNegocio
       ? "Voltar à área de trabalho"
       : "Voltar ao início";
-  const profileChanged = profile.nome.trim() !== savedProfile.nome.trim()
-    || onlyDigits(profile.whatsapp) !== onlyDigits(savedProfile.whatsapp);
-  const bookingNotificationsChanged = bookingNotifications !== savedBookingNotifications;
-  const dailyRemindersChanged = dailyReminders !== savedDailyReminders;
-  const passwordsMatch = password.confirmar.length > 0 && password.novaSenha === password.confirmar;
-  const passwordValid = password.senhaAtual.length > 0
-    && password.novaSenha.length >= 8
-    && passwordsMatch;
 
   function passwordField(label, key, autoComplete) {
     const visible = passwordVisibility[key];
     const valueKey = key === "atual" ? "senhaAtual" : key === "nova" ? "novaSenha" : "confirmar";
+    const toggleLabel = `${visible ? "Ocultar" : "Mostrar"} ${label.toLowerCase()}`;
     return (
       <label className="account-password-field">
         <span>{label}</span>
@@ -242,12 +257,14 @@ export function AccountPage() {
             value={password[valueKey]}
           />
           <button
-            aria-label={`${visible ? "Ocultar" : "Mostrar"} ${label.toLowerCase()}`}
+            aria-label={toggleLabel}
+            aria-pressed={visible}
             className="account-password-toggle"
             onClick={() => setPasswordVisibility({ ...passwordVisibility, [key]: !visible })}
+            title={toggleLabel}
             type="button"
           >
-            {visible ? "Ocultar" : "Mostrar"}
+            <PasswordVisibilityIcon visible={visible} />
           </button>
         </span>
       </label>
@@ -299,7 +316,11 @@ export function AccountPage() {
               value={profile.whatsapp}
             />
           </label>
-          <button className="button" disabled={!profileChanged || saving === "profile"} type="submit">{saving === "profile" ? "Salvando..." : "Salvar perfil"}</button>
+          {(profileChanged || saving === "profile") && (
+            <button className="button account-profile-save" disabled={saving === "profile"} type="submit">
+              {saving === "profile" ? "Salvando..." : "Salvar perfil"}
+            </button>
+          )}
         </form>
         <form className="panel stack-form account-password-form" onSubmit={savePassword}>
           <div><p className="eyebrow">Segurança</p><h2>Alterar senha</h2></div>
@@ -317,74 +338,71 @@ export function AccountPage() {
           <button className="button" disabled={!passwordValid || saving === "password"} type="submit">{saving === "password" ? "Alterando..." : "Alterar senha"}</button>
         </form>
       </section>
-      <form
-        className="panel stack-form account-preference-form"
-        id="notificacoes-whatsapp"
-        onSubmit={saveBookingNotifications}
-      >
-        <div>
-          <p className="eyebrow">Seus agendamentos</p>
-          <h2>Mensagens dos agendamentos</h2>
-          <p className="muted">
-            Receba confirmações, lembretes e atualizações relacionadas aos seus agendamentos.
-          </p>
+
+      <section className="panel account-whatsapp-preferences" id="notificacoes-whatsapp">
+        <div className="account-preferences-heading">
+          <p className="eyebrow">WhatsApp</p>
+          <h2>Preferências do WhatsApp</h2>
+          <p className="muted">Escolha quais mensagens deseja receber e altere essas opções quando precisar.</p>
         </div>
-        <label className="switch-field account-switch-field">
-          <input
-            checked={bookingNotifications}
-            onChange={(event) => setBookingNotifications(event.target.checked)}
-            type="checkbox"
-          />
-          <span>
-            Receber mensagens dos meus agendamentos no WhatsApp
-            <small className="muted">
-              Você pode alterar esta autorização a qualquer momento.
-            </small>
-          </span>
-        </label>
-        <button
-          className="button button-secondary account-preference-action"
-          disabled={!bookingNotificationsChanged || saving === "booking-notifications"}
-          type="submit"
-        >
-          {saving === "booking-notifications"
-            ? "Salvando..."
-            : "Salvar autorização"}
-        </button>
-      </form>
-      {session.temNegocio && session.negocio?.papel === "dono" && (
-        <form className="panel stack-form account-preference-form" onSubmit={saveWhatsAppPreferences}>
-          <div>
-            <p className="eyebrow">Administração do negócio</p>
-            <h2>Lembretes do negócio no WhatsApp</h2>
-            <p className="muted">
-              Receba um lembrete diário sobre ações importantes para manter seu negócio ativo e visível.
-            </p>
+
+        <form className="account-preference-row" onSubmit={saveBookingNotifications}>
+          <div className="account-preference-copy">
+            <strong>Agendamentos</strong>
+            <span>Confirmações, lembretes e atualizações dos seus agendamentos.</span>
           </div>
           <label className="switch-field account-switch-field">
             <input
-              checked={dailyReminders}
-              onChange={(event) => setDailyReminders(event.target.checked)}
+              checked={bookingNotifications}
+              onChange={(event) => setBookingNotifications(event.target.checked)}
               type="checkbox"
             />
             <span>
-              Receber lembretes do negócio no WhatsApp
-              <small className="muted">
-                No máximo um lembrete por dia. Você pode desativar quando quiser.
-              </small>
+              Receber mensagens dos meus agendamentos no WhatsApp
+              <small className="muted">Você pode alterar esta autorização a qualquer momento.</small>
             </span>
           </label>
-          <button
-            className="button button-secondary account-preference-action"
-            disabled={!dailyRemindersChanged || saving === "whatsapp-preferences"}
-            type="submit"
-          >
-            {saving === "whatsapp-preferences"
-              ? "Salvando..."
-              : "Salvar preferência"}
-          </button>
+          {(bookingNotificationsChanged || saving === "booking-notifications") && (
+            <button
+              className="button button-secondary account-preference-action"
+              disabled={saving === "booking-notifications"}
+              type="submit"
+            >
+              {saving === "booking-notifications" ? "Salvando..." : "Salvar"}
+            </button>
+          )}
         </form>
-      )}
+
+        {session.temNegocio && session.negocio?.papel === "dono" && (
+          <form className="account-preference-row" onSubmit={saveWhatsAppPreferences}>
+            <div className="account-preference-copy">
+              <strong>Negócio</strong>
+              <span>Lembretes administrativos para manter seu negócio ativo e visível.</span>
+            </div>
+            <label className="switch-field account-switch-field">
+              <input
+                checked={dailyReminders}
+                onChange={(event) => setDailyReminders(event.target.checked)}
+                type="checkbox"
+              />
+              <span>
+                Receber lembretes do negócio no WhatsApp
+                <small className="muted">No máximo um lembrete por dia. Você pode desativar quando quiser.</small>
+              </span>
+            </label>
+            {(dailyRemindersChanged || saving === "whatsapp-preferences") && (
+              <button
+                className="button button-secondary account-preference-action"
+                disabled={saving === "whatsapp-preferences"}
+                type="submit"
+              >
+                {saving === "whatsapp-preferences" ? "Salvando..." : "Salvar"}
+              </button>
+            )}
+          </form>
+        )}
+      </section>
+
       <button className="button button-secondary account-logout-button" onClick={() => { session.logout(); navigate("/"); }} type="button">
         <LogoutIcon />
         Sair da conta
