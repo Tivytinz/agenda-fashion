@@ -57,12 +57,13 @@ describe("Limite de serviços", () => {
     );
 
     /*
-     * Impede que o teste unitário execute as consultas
-     * reais usadas por buscarUsoPlano.
+     * O limite deve vir do plano efetivamente liberado por
+     * buscarUsoPlano, e não apenas do plano selecionado no negócio.
      */
     planoService.buscarUsoPlano.mockResolvedValue({
       negocio_id: 7,
-      plano_nome: "Plano de teste",
+      plano_nome: "Grátis",
+      limite_servicos: 2,
       servicos_utilizados: 2,
     });
 
@@ -78,15 +79,8 @@ describe("Limite de serviços", () => {
   });
 
   test(
-    "bloqueia o terceiro serviço no plano Grátis",
+    "bloqueia o terceiro serviço usando o plano efetivo Grátis",
     async () => {
-      servicosRepository
-        .buscarPlanoDoNegocio
-        .mockResolvedValue({
-          nome: "Grátis",
-          limite_servicos: 2,
-        });
-
       servicosRepository
         .contarServicosAtivos
         .mockResolvedValue(2);
@@ -101,6 +95,12 @@ describe("Limite de serviços", () => {
       ).rejects.toMatchObject({
         statusCode: 409,
         codigo: "LIMITE_SERVICOS",
+        uso: {
+          plano_nome: "Grátis",
+          utilizados: 2,
+          limite: 2,
+          acima_do_limite: 0,
+        },
       });
 
       expect(
@@ -111,20 +111,104 @@ describe("Limite de serviços", () => {
       );
 
       expect(
+        servicosRepository.buscarPlanoDoNegocio
+      ).not.toHaveBeenCalled();
+
+      expect(
         servicosRepository.criarServico
       ).not.toHaveBeenCalled();
     }
   );
 
   test(
-    "plano Salão permite serviços ilimitados",
+    "informa quando o negócio já está acima do limite efetivo",
     async () => {
       servicosRepository
-        .buscarPlanoDoNegocio
+        .contarServicosAtivos
+        .mockResolvedValue(3);
+
+      await expect(
+        servicosService.criarServico({
+          usuarioId: 1,
+          nome: "Pedicure",
+          valor: 45,
+          duracaoMinutos: 50,
+        })
+      ).rejects.toMatchObject({
+        statusCode: 409,
+        codigo: "LIMITE_SERVICOS",
+        uso: {
+          plano_nome: "Grátis",
+          utilizados: 3,
+          limite: 2,
+          acima_do_limite: 1,
+        },
+      });
+
+      expect(
+        servicosRepository.criarServico
+      ).not.toHaveBeenCalled();
+    }
+  );
+
+  test(
+    "permite editar serviço que já estava ativo mesmo acima do limite",
+    async () => {
+      servicosRepository
+        .buscarServicoDoNegocio
         .mockResolvedValue({
-          nome: "Salão",
-          limite_servicos: null,
+          id: 9,
+          ativo: true,
+          categoria: "unha",
         });
+
+      servicosRepository
+        .editarServico
+        .mockResolvedValue({
+          id: 9,
+          nome: "Manicure premium",
+          ativo: true,
+        });
+
+      servicosRepository
+        .adicionarEspecialidadeNegocio
+        .mockResolvedValue();
+
+      servicosRepository
+        .sincronizarPublicacaoAutomatica
+        .mockResolvedValue({
+          id: 7,
+          publicado: true,
+        });
+
+      const resultado = await servicosService.editarServico({
+        usuarioId: 1,
+        id: 9,
+        nome: "Manicure premium",
+        valor: 60,
+        duracaoMinutos: 60,
+        categoria: "unha",
+        ativo: true,
+      });
+
+      expect(resultado.servico).toMatchObject({
+        id: 9,
+        ativo: true,
+      });
+      expect(planoService.buscarUsoPlano).not.toHaveBeenCalled();
+      expect(servicosRepository.editarServico).toHaveBeenCalled();
+    }
+  );
+
+  test(
+    "plano Salão permite serviços ilimitados",
+    async () => {
+      planoService.buscarUsoPlano.mockResolvedValue({
+        negocio_id: 7,
+        plano_nome: "Salão",
+        limite_servicos: null,
+        servicos_utilizados: 200,
+      });
 
       servicosRepository
         .contarServicosAtivos
