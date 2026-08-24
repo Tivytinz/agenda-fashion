@@ -162,7 +162,7 @@ export function BusinessPage({ create = false }) {
 
     const cepDigits = String(form.cep || "").replace(/\D/g, "");
     if (cepDigits.length === 8 && !String(form.endereco || "").trim()) {
-      lookupCep(cepDigits);
+      lookupCep(cepDigits, { syncBaseline: true });
     }
     // A consulta automática é feita apenas quando a configuração inicial termina.
     // Alterações posteriores são tratadas por onChange/onBlur do campo.
@@ -182,7 +182,7 @@ export function BusinessPage({ create = false }) {
     }));
   }
 
-  async function lookupCep(value) {
+  async function lookupCep(value, { syncBaseline = false } = {}) {
     const cepDigits = String(value || "").replace(/\D/g, "");
     if (cepDigits.length !== 8) return;
 
@@ -196,18 +196,35 @@ export function BusinessPage({ create = false }) {
       });
       if (requestId !== cepRequestRef.current) return;
 
+      const addressPatch = {
+        endereco: result.endereco || "",
+        bairro: result.bairro || "",
+        cidade: result.cidade || "",
+        estado: result.estado || ""
+      };
+
       setForm((current) => {
         const currentCep = String(current.cep || "").replace(/\D/g, "");
         if (currentCep !== cepDigits) return current;
 
         return {
           ...current,
-          endereco: result.endereco || "",
-          bairro: result.bairro || "",
-          cidade: result.cidade || "",
-          estado: result.estado || ""
+          ...addressPatch
         };
       });
+
+      if (syncBaseline) {
+        setSavedForm((current) => {
+          const currentCep = String(current.cep || "").replace(/\D/g, "");
+          if (currentCep !== cepDigits) return current;
+
+          return {
+            ...current,
+            ...addressPatch
+          };
+        });
+      }
+
       setCepLookup({
         status: "success",
         message: result.endereco
