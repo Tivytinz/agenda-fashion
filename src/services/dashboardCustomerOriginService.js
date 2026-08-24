@@ -39,6 +39,26 @@ const ORIGENS = Object.freeze({
     categoria: "pago",
     descricao: "Há sinal de mídia paga, mas o canal não pertence aos padrões conhecidos.",
   },
+  af_compartilhamento: {
+    rotulo: "Compartilhamento pelo AF",
+    categoria: "organico",
+    descricao: "Cliente chegou por um link compartilhado a partir do Agenda Fashion.",
+  },
+  af_link_copiado: {
+    rotulo: "Link copiado do AF",
+    categoria: "organico",
+    descricao: "Cliente chegou por um link copiado no Agenda Fashion.",
+  },
+  af_qr_code: {
+    rotulo: "QR Code do AF",
+    categoria: "organico",
+    descricao: "Cliente chegou por um QR Code rastreável gerado pelo Agenda Fashion.",
+  },
+  af_whatsapp: {
+    rotulo: "WhatsApp rastreado pelo AF",
+    categoria: "organico",
+    descricao: "Cliente chegou por um link do Agenda Fashion preparado para compartilhamento no WhatsApp.",
+  },
   google_organico: {
     rotulo: "Google orgânico",
     categoria: "organico",
@@ -102,7 +122,7 @@ const ORIGENS = Object.freeze({
   autonomo: {
     rotulo: "Acesso autônomo",
     categoria: "autonomo",
-    descricao: "Não houve sinal de anúncio nem referência externa identificável. Pode ser acesso direto, favorito ou link compartilhado.",
+    descricao: "Não houve sinal de anúncio, referência externa nem link rastreável do AF. Pode ser acesso direto, favorito ou link manual sem identificação.",
   },
   nao_identificado: {
     rotulo: "Origem não identificada",
