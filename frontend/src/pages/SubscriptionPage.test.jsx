@@ -39,12 +39,12 @@ describe("plano e assinatura", () => {
       assinatura: null,
       uso: {
         utilizados: 2,
-        limite: 20,
-        percentual: 10,
+        limite: 10,
+        percentual: 20,
         profissionais_utilizados: 1,
         limite_profissionais: 1,
         servicos_utilizados: 3,
-        limite_servicos: 4
+        limite_servicos: 2
       },
       pagamentos: []
     });
@@ -61,12 +61,14 @@ describe("plano e assinatura", () => {
     expect(subscribe.getAttribute("href")).toBe("/checkout?plano=autonoma");
     expect(screen.getByRole("link", { name: "Escolher plano" }).getAttribute("href"))
       .toBe("/planos");
+    expect(screen.queryByRole("link", { name: "Assinar plano" })).toBeNull();
 
-    expect(screen.getByText("2 de 20 agendamentos · 18 disponíveis")).not.toBeNull();
+    expect(screen.getByRole("heading", { name: "Seus limites atuais" })).not.toBeNull();
+    expect(screen.getByText("Enquanto a assinatura não estiver ativa, valem os limites gratuitos.")).not.toBeNull();
+    expect(screen.getByText("2 de 10 agendamentos · 8 disponíveis")).not.toBeNull();
     expect(screen.getByText("1 / 1")).not.toBeNull();
-    expect(screen.getByText("Limite atingido")).not.toBeNull();
-    expect(screen.getByText("3 / 4")).not.toBeNull();
-    expect(screen.getByText("1 disponível")).not.toBeNull();
+    expect(screen.getByText("3 / 2")).not.toBeNull();
+    expect(screen.getAllByText("Limite atingido")).toHaveLength(2);
     expect(screen.getByText("Nenhum pagamento registrado ainda.")).not.toBeNull();
   });
 
