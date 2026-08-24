@@ -125,6 +125,46 @@ async function executarLimpezaGoogleProfissionais() {
           campanhas.rowCount || 0;
       }
 
+      const primeiroToqueComGclid =
+        await client.query(
+          `
+          UPDATE marketing_usuario_atribuicoes
+          SET
+            utm_source = 'google',
+            utm_medium = 'cpc',
+            utm_campaign = CASE
+              WHEN LOWER(COALESCE(utm_campaign, '')) = $1
+                THEN $1
+              ELSE NULL
+            END,
+            fbclid = NULL,
+            updated_at = NOW()
+          WHERE intencao = 'profissional'
+            AND NULLIF(BTRIM(gclid), '') IS NOT NULL
+          `,
+          [CAMPANHA_OFICIAL]
+        );
+
+      const ultimoToqueComGclid =
+        await client.query(
+          `
+          UPDATE marketing_usuario_atribuicoes
+          SET
+            last_utm_source = 'google',
+            last_utm_medium = 'cpc',
+            last_utm_campaign = CASE
+              WHEN LOWER(COALESCE(last_utm_campaign, '')) = $1
+                THEN $1
+              ELSE NULL
+            END,
+            last_fbclid = NULL,
+            updated_at = NOW()
+          WHERE intencao = 'profissional'
+            AND NULLIF(BTRIM(last_gclid), '') IS NOT NULL
+          `,
+          [CAMPANHA_OFICIAL]
+        );
+
       const atribuicoesPrimeiroToque =
         await client.query(
           `
@@ -135,11 +175,11 @@ async function executarLimpezaGoogleProfissionais() {
             utm_campaign = NULL,
             utm_content = NULL,
             utm_term = NULL,
-            gclid = NULL,
             fbclid = NULL,
             landing_page = NULL,
             updated_at = NOW()
           WHERE intencao = 'profissional'
+            AND NULLIF(BTRIM(gclid), '') IS NULL
             AND LOWER(COALESCE(utm_source, '')) = 'google'
             AND LOWER(COALESCE(utm_campaign, '')) <> $1
           `,
@@ -156,18 +196,52 @@ async function executarLimpezaGoogleProfissionais() {
             last_utm_campaign = NULL,
             last_utm_content = NULL,
             last_utm_term = NULL,
-            last_gclid = NULL,
             last_fbclid = NULL,
             last_landing_page = NULL,
             updated_at = NOW()
           WHERE intencao = 'profissional'
+            AND NULLIF(BTRIM(last_gclid), '') IS NULL
             AND LOWER(COALESCE(last_utm_source, '')) = 'google'
             AND LOWER(COALESCE(last_utm_campaign, '')) <> $1
           `,
           [CAMPANHA_OFICIAL]
         );
 
-      const eventosPrimeiroToque =
+      const eventosLegadosComGclid =
+        await client.query(
+          `
+          UPDATE eventos_produto
+          SET propriedades =
+            jsonb_set(
+              jsonb_set(
+                propriedades
+                  - 'utm_campaign'
+                  - 'fbclid',
+                '{utm_source}',
+                '"google"'::jsonb,
+                TRUE
+              ),
+              '{utm_medium}',
+              '"cpc"'::jsonb,
+              TRUE
+            )
+          WHERE LOWER(
+            COALESCE(
+              propriedades ->> 'utm_campaign',
+              ''
+            )
+          ) = ANY($1::TEXT[])
+            AND NULLIF(
+              BTRIM(
+                propriedades ->> 'gclid'
+              ),
+              ''
+            ) IS NOT NULL
+          `,
+          [CAMPANHAS_LEGADAS]
+        );
+
+      const eventosLegadosSemGclid =
         await client.query(
           `
           UPDATE eventos_produto
@@ -177,7 +251,6 @@ async function executarLimpezaGoogleProfissionais() {
             - 'utm_campaign'
             - 'utm_content'
             - 'utm_term'
-            - 'gclid'
             - 'fbclid'
             - 'landing_page'
           WHERE LOWER(
@@ -186,6 +259,12 @@ async function executarLimpezaGoogleProfissionais() {
               ''
             )
           ) = ANY($1::TEXT[])
+            AND NULLIF(
+              BTRIM(
+                propriedades ->> 'gclid'
+              ),
+              ''
+            ) IS NULL
           `,
           [CAMPANHAS_LEGADAS]
         );
@@ -195,11 +274,16 @@ async function executarLimpezaGoogleProfissionais() {
         campanhasApagadas,
         gastosRemovidos,
         vinculosRemovidos,
+        atribuicoesComGclidPreservadas:
+          (primeiroToqueComGclid.rowCount || 0) +
+          (ultimoToqueComGclid.rowCount || 0),
         atribuicoesLimpas:
           (atribuicoesPrimeiroToque.rowCount || 0) +
           (atribuicoesUltimoToque.rowCount || 0),
+        eventosComGclidPreservados:
+          eventosLegadosComGclid.rowCount || 0,
         eventosLimpos:
-          eventosPrimeiroToque.rowCount || 0,
+          eventosLegadosSemGclid.rowCount || 0,
       };
     }
   );
