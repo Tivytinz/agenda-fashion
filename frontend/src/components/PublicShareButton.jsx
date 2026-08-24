@@ -4,6 +4,7 @@ import {
 } from "react";
 import { track } from "../analytics/track";
 import {
+  PUBLIC_LINK_MEDIA,
   buildPublicLink,
   copyPublicLink,
   sharePublicLink
@@ -39,21 +40,36 @@ export function PublicShareButton({
   const [status, setStatus] =
     useState("idle");
 
+  const isService =
+    Boolean(serviceId);
+
+  const acquisitionMedium =
+    mode === "copy"
+      ? PUBLIC_LINK_MEDIA.COPY
+      : PUBLIC_LINK_MEDIA.SHARE;
+
   const url = useMemo(
     () => buildPublicLink({
       businessSlug,
       serviceId,
-      origin
+      origin,
+      acquisition: {
+        medium:
+          acquisitionMedium,
+        content:
+          isService
+            ? "servico"
+            : "negocio"
+      }
     }),
     [
+      acquisitionMedium,
       businessSlug,
+      isService,
       origin,
       serviceId
     ]
   );
-
-  const isService =
-    Boolean(serviceId);
 
   const eventPrefix =
     isService
@@ -67,6 +83,14 @@ export function PublicShareButton({
     businessId,
     properties: {
       tipo_link:
+        isService
+          ? "servico"
+          : "negocio",
+      af_source:
+        "agenda_fashion",
+      af_medium:
+        acquisitionMedium,
+      af_content:
         isService
           ? "servico"
           : "negocio",
