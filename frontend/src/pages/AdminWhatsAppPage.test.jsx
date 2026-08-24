@@ -109,9 +109,11 @@ describe("painel administrativo do WhatsApp", () => {
     expect(screen.getByText("Confirmação para a cliente")).not.toBeNull();
     expect(screen.getByText("confirmacao_agendamento_cliente")).not.toBeNull();
     expect(screen.getByText("Ativo")).not.toBeNull();
-    expect(screen.getByText("Boa")).not.toBeNull();
-    expect(screen.getAllByText("8").length).toBeGreaterThan(0);
-    expect(screen.getByText("de 10 geradas")).not.toBeNull();
+    expect(screen.getByText("Qualidade: Boa")).not.toBeNull();
+    expect(screen.getByText("8 de 10 · 80%")).not.toBeNull();
+    expect(screen.getByText("aceitas pela Meta")).not.toBeNull();
+    expect(screen.getByRole("columnheader", { name: "Meta" })).not.toBeNull();
+    expect(screen.queryByRole("columnheader", { name: "Qualidade" })).toBeNull();
   });
 
   it("atualiza as métricas quando o período muda", async () => {
@@ -159,13 +161,71 @@ describe("painel administrativo do WhatsApp", () => {
     render(<AdminWhatsAppPage />);
 
     expect(
-      await screen.findByText("Status da Meta ainda não confirmado")
+      await screen.findByText("Status da Meta ainda não consultado")
     ).not.toBeNull();
     expect(screen.getByText(/WHATSAPP_BUSINESS_ACCOUNT_ID/)).not.toBeNull();
     expect(screen.getByText(/envio automático está desligado/i)).not.toBeNull();
-    expect(screen.getAllByText("Não verificado").length).toBeGreaterThanOrEqual(2);
+    expect(screen.getByText("Não consultado")).not.toBeNull();
+    expect(screen.getByText("Status não consultado")).not.toBeNull();
+    expect(screen.getByText("Qualidade: não consultada")).not.toBeNull();
     expect(screen.getByRole("button", { name: "Verificar novamente" })).not.toBeNull();
     expect(screen.getByText(/8 templates aguardam consulta/i)).not.toBeNull();
-    expect(screen.getByText("de 10 geradas")).not.toBeNull();
+    expect(screen.getByText("8 de 10 · 80%")).not.toBeNull();
+  });
+
+  it("prioriza mensagens não enviadas na operação e mostra a taxa de aceite", async () => {
+    apiRequest.mockResolvedValueOnce({
+      ...RESULT,
+      templates: [{
+        ...RESULT.templates[0],
+        metricas: {
+          total: 10,
+          pendentes: 0,
+          aceitas: 2,
+          entregues: 2,
+          lidas: 1,
+          falhasFila: 0,
+          falhasEntrega: 0,
+          canceladas: 8,
+          taxaEntrega: 100,
+          taxaLeitura: 50
+        }
+      }]
+    });
+
+    render(<AdminWhatsAppPage />);
+
+    expect(await screen.findByText("2 de 10 · 20%")).not.toBeNull();
+    expect(screen.getByText("8 não enviadas")).not.toBeNull();
+    expect(screen.getByText("0 pendentes · sem falhas")).not.toBeNull();
+  });
+
+  it("trata ausência de mensagens como falta de amostra, não como falha", async () => {
+    apiRequest.mockResolvedValueOnce({
+      ...RESULT,
+      templates: [{
+        ...RESULT.templates[0],
+        metricas: {
+          total: 0,
+          pendentes: 0,
+          aceitas: 0,
+          entregues: 0,
+          lidas: 0,
+          falhasFila: 0,
+          falhasEntrega: 0,
+          canceladas: 0,
+          taxaEntrega: null,
+          taxaLeitura: null
+        }
+      }]
+    });
+
+    render(<AdminWhatsAppPage />);
+
+    expect(await screen.findByText("0 de 0")).not.toBeNull();
+    expect(screen.getByText("sem mensagens geradas")).not.toBeNull();
+    expect(screen.getAllByText("Sem dados").length).toBeGreaterThanOrEqual(2);
+    expect(screen.getByText("Sem falhas")).not.toBeNull();
+    expect(screen.getByText("0 pendentes · 0 não enviadas")).not.toBeNull();
   });
 });
