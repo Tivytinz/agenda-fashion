@@ -109,11 +109,16 @@ async function buscarOrigemClientes(
       SELECT
         cp.*,
         ev.id IS NOT NULL AS evento_encontrado,
-        NULLIF(BTRIM(ev.propriedades ->> 'utm_source'), '') AS utm_source,
-        NULLIF(BTRIM(ev.propriedades ->> 'utm_medium'), '') AS utm_medium,
+        LOWER(NULLIF(BTRIM(ev.propriedades ->> 'utm_source'), '')) AS utm_source,
+        LOWER(NULLIF(BTRIM(ev.propriedades ->> 'utm_medium'), '')) AS utm_medium,
         NULLIF(BTRIM(ev.propriedades ->> 'utm_campaign'), '') AS utm_campaign,
         NULLIF(BTRIM(ev.propriedades ->> 'gclid'), '') AS gclid,
+        NULLIF(BTRIM(ev.propriedades ->> 'gbraid'), '') AS gbraid,
+        NULLIF(BTRIM(ev.propriedades ->> 'wbraid'), '') AS wbraid,
         NULLIF(BTRIM(ev.propriedades ->> 'fbclid'), '') AS fbclid,
+        NULLIF(BTRIM(ev.propriedades ->> 'msclkid'), '') AS msclkid,
+        NULLIF(BTRIM(ev.propriedades ->> 'ttclid'), '') AS ttclid,
+        NULLIF(BTRIM(ev.propriedades ->> 'epik'), '') AS epik,
         LOWER(
           NULLIF(BTRIM(ev.propriedades ->> 'referrer_host'), '')
         ) AS referrer_host,
@@ -142,38 +147,89 @@ async function buscarOrigemClientes(
       SELECT
         *,
         CASE
-          WHEN gclid IS NOT NULL THEN 'google_ads'
-          WHEN LOWER(COALESCE(utm_source, '')) = 'google'
-            AND LOWER(COALESCE(utm_medium, '')) IN (
+          WHEN gclid IS NOT NULL
+            OR gbraid IS NOT NULL
+            OR wbraid IS NOT NULL
+            THEN 'google_ads'
+          WHEN msclkid IS NOT NULL
+            THEN 'microsoft_ads'
+          WHEN utm_source = 'google'
+            AND utm_medium IN (
               'cpc', 'ppc', 'paid', 'paid_search'
             )
             THEN 'google_ads'
-          WHEN LOWER(COALESCE(utm_source, '')) IN (
-              'meta', 'facebook', 'instagram'
+          WHEN utm_source IN ('bing', 'microsoft')
+            AND utm_medium IN (
+              'cpc', 'ppc', 'paid', 'paid_search'
             )
-            AND LOWER(COALESCE(utm_medium, '')) IN (
-              'cpc', 'paid', 'paid_social', 'social_paid'
+            THEN 'microsoft_ads'
+          WHEN utm_source IN ('meta', 'facebook', 'instagram')
+            AND utm_medium IN (
+              'cpc', 'ppc', 'paid', 'paid_social', 'social_paid'
             )
             THEN 'meta_ads'
-          WHEN LOWER(COALESCE(utm_source, '')) IN (
-              'pinterest', 'tiktok'
+          WHEN utm_source = 'tiktok'
+            AND utm_medium IN (
+              'cpc', 'ppc', 'paid', 'paid_social', 'social_paid'
             )
-            AND LOWER(COALESCE(utm_medium, '')) IN (
-              'cpc', 'paid', 'paid_social', 'social_paid'
+            THEN 'tiktok_ads'
+          WHEN utm_source = 'pinterest'
+            AND utm_medium IN (
+              'cpc', 'ppc', 'paid', 'paid_social', 'social_paid'
+            )
+            THEN 'pinterest_ads'
+          WHEN ttclid IS NOT NULL
+            THEN 'tiktok_ads'
+          WHEN epik IS NOT NULL
+            AND utm_medium IN (
+              'cpc', 'ppc', 'paid', 'paid_social', 'social_paid'
+            )
+            THEN 'pinterest_ads'
+          WHEN utm_medium IN (
+              'cpc', 'ppc', 'paid', 'paid_search',
+              'paid_social', 'social_paid', 'display'
             )
             THEN 'outra_midia_paga'
-          WHEN fbclid IS NOT NULL THEN 'social_organico'
+
+          WHEN utm_source = 'google'
+            AND utm_medium IN ('organic', 'organico', 'orgânico', 'seo')
+            THEN 'google_organico'
+          WHEN utm_source IN ('bing', 'microsoft')
+            AND utm_medium IN ('organic', 'organico', 'orgânico', 'seo')
+            THEN 'bing_organico'
+          WHEN utm_source = 'instagram'
+            AND utm_medium IN ('organic', 'organico', 'orgânico', 'social', 'organic_social')
+            THEN 'instagram_organico'
+          WHEN utm_source IN ('facebook', 'meta')
+            AND utm_medium IN ('organic', 'organico', 'orgânico', 'social', 'organic_social')
+            THEN 'facebook_organico'
+          WHEN utm_source = 'tiktok'
+            AND utm_medium IN ('organic', 'organico', 'orgânico', 'social', 'organic_social')
+            THEN 'tiktok_organico'
+          WHEN utm_source = 'pinterest'
+            AND utm_medium IN ('organic', 'organico', 'orgânico', 'social', 'organic_social')
+            THEN 'pinterest_organico'
+
           WHEN referrer_host ~ '(^|\\.)google\\.'
-            OR referrer_host ~ '(^|\\.)bing\\.'
-            OR referrer_host ~ '(^|\\.)duckduckgo\\.'
-            OR referrer_host ~ '(^|\\.)yahoo\\.'
-            THEN 'busca_organica'
+            THEN 'google_organico'
+          WHEN referrer_host ~ '(^|\\.)bing\\.'
+            THEN 'bing_organico'
+          WHEN referrer_host ~ '(^|\\.)duckduckgo\\.'
+            THEN 'duckduckgo_organico'
+          WHEN referrer_host ~ '(^|\\.)yahoo\\.'
+            THEN 'yahoo_organico'
           WHEN referrer_host ~ '(^|\\.)instagram\\.'
-            OR referrer_host ~ '(^|\\.)facebook\\.'
-            OR referrer_host ~ '(^|\\.)tiktok\\.'
-            OR referrer_host ~ '(^|\\.)pinterest\\.'
-            THEN 'social_organico'
-          WHEN referrer_host IS NOT NULL THEN 'referencia_externa'
+            THEN 'instagram_organico'
+          WHEN referrer_host ~ '(^|\\.)facebook\\.'
+            THEN 'facebook_organico'
+          WHEN referrer_host ~ '(^|\\.)tiktok\\.'
+            THEN 'tiktok_organico'
+          WHEN referrer_host ~ '(^|\\.)pinterest\\.'
+            THEN 'pinterest_organico'
+          WHEN fbclid IS NOT NULL
+            THEN 'meta_organico'
+          WHEN referrer_host IS NOT NULL
+            THEN 'referencia_externa'
           WHEN utm_source IS NOT NULL
             OR utm_medium IS NOT NULL
             OR utm_campaign IS NOT NULL
