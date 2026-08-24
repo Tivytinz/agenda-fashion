@@ -21,6 +21,7 @@ import "./styles/service-media-polish.css";
 import "./styles/service-catalog-polish.css";
 import "./styles/schedule-polish.css";
 import "./styles/business-polish.css";
+import "./styles/subscription-polish.css";
 
 installRuntimeRecovery();
 
