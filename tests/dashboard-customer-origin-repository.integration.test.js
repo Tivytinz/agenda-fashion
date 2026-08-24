@@ -128,6 +128,7 @@ describe("origem de clientes integrada", () => {
     const clienteGoogle = await criarCliente("Cliente Google");
     const clienteAutonomo = await criarCliente("Cliente Autônomo");
     const clienteOrganico = await criarCliente("Cliente Orgânico");
+    const clienteSocial = await criarCliente("Cliente Social");
     const clienteSemHistorico = await criarCliente("Cliente Sem Histórico");
 
     const googlePrimeiro = await criarAgendamento(clienteGoogle, 0, "09:00");
@@ -143,6 +144,11 @@ describe("origem de clientes integrada", () => {
     await criarAgendamento(clienteOrganico, 0, "13:00");
     await criarEvento(organicoPrimeiro, {
       referrer_host: "www.google.com",
+    });
+
+    const social = await criarAgendamento(clienteSocial, 0, "13:30");
+    await criarEvento(social, {
+      fbclid: "facebook-click-id",
     });
 
     await criarAgendamento(clienteSemHistorico, 0, "14:00");
@@ -161,8 +167,14 @@ describe("origem de clientes integrada", () => {
     const organico = linhas.find(
       (linha) => linha.origem_codigo === "busca_organica"
     );
+    const socialOrganico = linhas.find(
+      (linha) => linha.origem_codigo === "social_organico"
+    );
     const desconhecido = linhas.find(
       (linha) => linha.origem_codigo === "nao_identificado"
+    );
+    const metaPago = linhas.find(
+      (linha) => linha.origem_codigo === "meta_ads"
     );
 
     expect(google).toMatchObject({
@@ -186,7 +198,38 @@ describe("origem de clientes integrada", () => {
       agendamentos: 1,
     });
 
+    expect(socialOrganico).toMatchObject({
+      clientes: 1,
+      clientes_novos: 1,
+      agendamentos: 1,
+    });
+    expect(metaPago).toBeUndefined();
+
     expect(desconhecido).toMatchObject({
+      clientes: 1,
+      agendamentos: 1,
+    });
+  });
+
+  test("identifica Meta Ads somente com sinal explícito de mídia paga", async () => {
+    const clienteMeta = await criarCliente("Cliente Meta Ads");
+    const primeiro = await criarAgendamento(clienteMeta, 0, "15:00");
+
+    await criarEvento(primeiro, {
+      utm_source: "instagram",
+      utm_medium: "paid_social",
+      utm_campaign: "campanha_meta_oficial",
+      fbclid: "facebook-click-id",
+    });
+
+    const linhas = await repository.buscarOrigemClientes(
+      cenario.negocioId,
+      "7dias"
+    );
+
+    expect(
+      linhas.find((linha) => linha.origem_codigo === "meta_ads")
+    ).toMatchObject({
       clientes: 1,
       agendamentos: 1,
     });
