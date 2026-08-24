@@ -197,6 +197,14 @@ export function SubscriptionPage() {
     usage.servicos_utilizados,
     usage.limite_servicos
   );
+  const overLimitAction = needsSubscription
+    ? {
+        label: plan.nome ? `Assinar ${plan.nome}` : "Assinar plano",
+        target: checkoutTarget
+      }
+    : usesFreeFallback
+      ? null
+      : { label: "Ver planos", target: "/planos" };
   const appointmentsPercent = progressPercent(
     usage.utilizados,
     usage.limite,
@@ -255,7 +263,7 @@ export function SubscriptionPage() {
               <p>
                 {isFree
                   ? "Seu plano gratuito não possui cobrança mensal."
-                  : "A assinatura ainda não foi ativada. Seus limites permanecem no plano Grátis até a confirmação do pagamento."}
+                  : `A assinatura ainda não foi ativada. Ative o ${plan.nome || "plano escolhido"} para liberar os novos limites.`}
               </p>
               {needsSubscription && (
                 <Link className="button subscription-primary-action" to={checkoutTarget}>
@@ -283,11 +291,11 @@ export function SubscriptionPage() {
           <p className="eyebrow">Uso neste mês</p>
           <h2>Seus limites atuais</h2>
           <p className="billing-effective-plan">Plano em uso: <strong>{effectivePlanName}</strong></p>
-          <p className="muted billing-usage-intro">
-            {usesFreeFallback
-              ? "Enquanto a assinatura não estiver ativa, valem os limites gratuitos."
-              : "Acompanhe o que já foi usado e o que ainda está disponível."}
-          </p>
+          {!usesFreeFallback && (
+            <p className="muted billing-usage-intro">
+              Acompanhe o que já foi usado e o que ainda está disponível.
+            </p>
+          )}
 
           <div className="usage-item subscription-usage-primary">
             <span>{appointmentSummary(usage.utilizados, usage.limite)}</span>
@@ -318,9 +326,18 @@ export function SubscriptionPage() {
           {serviceOverLimit > 0 && (
             <div className="usage-over-limit-alert" role="status">
               <span>
-                Você possui {usedAmount(usage.servicos_utilizados)} serviços. O plano em uso permite {finiteLimit(usage.limite_servicos)}. Assine um plano maior para adicionar novos serviços.
+                Você possui {usedAmount(usage.servicos_utilizados)} serviços. O plano em uso permite {finiteLimit(usage.limite_servicos)}.{" "}
+                {needsSubscription && plan.nome
+                  ? `Ative o ${plan.nome} para liberar novos limites.`
+                  : usesFreeFallback
+                    ? "Os novos limites serão liberados após a confirmação do pagamento."
+                    : "Escolha um plano maior para adicionar novos serviços."}
               </span>
-              <Link className="usage-over-limit-action" to="/planos">Ver planos</Link>
+              {overLimitAction && (
+                <Link className="usage-over-limit-action" to={overLimitAction.target}>
+                  {overLimitAction.label}
+                </Link>
+              )}
             </div>
           )}
         </article>
