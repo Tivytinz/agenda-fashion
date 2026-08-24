@@ -23,7 +23,9 @@ describe(
   () => {
     let sessionA;
     let sessionB;
+    let sessionGoogleSemCampanha;
     let campaign;
+    let managedCampaignId;
 
     beforeEach(async () => {
       const suffix = idCurto();
@@ -32,8 +34,11 @@ describe(
         `mkta_${suffix}`;
       sessionB =
         `mktb_${suffix}`;
+      sessionGoogleSemCampanha =
+        `mktg_${suffix}`;
       campaign =
         `campanha_${suffix}`;
+      managedCampaignId = null;
 
       const attribution = {
         utm_source: "facebook",
@@ -115,8 +120,22 @@ describe(
           DELETE FROM eventos_produto
           WHERE sessao_id = ANY($1::TEXT[])
         `,
-        [[sessionA, sessionB]]
+        [[
+          sessionA,
+          sessionB,
+          sessionGoogleSemCampanha,
+        ]]
       );
+
+      if (managedCampaignId) {
+        await db.query(
+          `
+          DELETE FROM marketing_campanhas
+          WHERE id = $1
+          `,
+          [managedCampaignId]
+        );
+      }
     });
 
     test(
@@ -141,6 +160,7 @@ describe(
             sessoes: 2,
             perfis_visualizados: 2,
             agendamentos_iniciados: 1,
+            sessoes_convertidas: 1,
             agendamentos_concluidos: 2,
           });
       }
@@ -184,6 +204,81 @@ describe(
           .not.toHaveProperty(
             "cliente_whatsapp"
           );
+      }
+    );
+
+    test(
+      "não reescreve clique Google sem UTM usando a campanha ativa atual",
+      async () => {
+        const suffix = idCurto();
+        const criada = await db.query(
+          `
+          INSERT INTO marketing_campanhas (
+            nome,
+            canal,
+            utm_source,
+            utm_medium,
+            utm_campaign,
+            destino_path,
+            ativo
+          )
+          VALUES (
+            $1,
+            'google',
+            'google',
+            'cpc',
+            $2,
+            '/',
+            TRUE
+          )
+          RETURNING id
+          `,
+          [
+            `Google ativa ${suffix}`,
+            `google_ativa_${suffix}`,
+          ]
+        );
+        managedCampaignId =
+          Number(criada.rows[0].id);
+
+        await db.query(
+          `
+          INSERT INTO eventos_produto (
+            nome,
+            pagina,
+            sessao_id,
+            propriedades
+          )
+          VALUES (
+            'perfil_visualizado',
+            'perfil_negocio',
+            $1,
+            $2::JSONB
+          )
+          `,
+          [
+            sessionGoogleSemCampanha,
+            JSON.stringify({
+              gclid: "click-sem-utm-campaign",
+            }),
+          ]
+        );
+
+        const campanhas =
+          await adminMarketingRepository
+            .listarCampanhas("all");
+        const encontrada = campanhas.find(
+          (item) =>
+            item.origem === "google" &&
+            item.campanha === "(sem campanha)" &&
+            Number(item.sessoes) === 1
+        );
+
+        expect(encontrada).toMatchObject({
+          midia: "cpc",
+          sessoes_resolvidas_gclid: 0,
+          sessoes_resolvidas_google_click: 0,
+        });
       }
     );
   }

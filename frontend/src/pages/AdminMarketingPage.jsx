@@ -166,12 +166,20 @@ function aggregateBySource(campaigns) {
       sessoes: 0,
       perfisVisualizados: 0,
       agendamentosIniciados: 0,
+      sessoesConvertidas: 0,
       agendamentosConcluidos: 0
     };
 
     current.sessoes += Number(item.sessoes || 0);
     current.perfisVisualizados += Number(item.perfisVisualizados || 0);
     current.agendamentosIniciados += Number(item.agendamentosIniciados || 0);
+    current.sessoesConvertidas += Number(
+      item.sessoesConvertidas ??
+        Math.min(
+          Number(item.agendamentosConcluidos || 0),
+          Number(item.sessoes || 0)
+        )
+    );
     current.agendamentosConcluidos += Number(item.agendamentosConcluidos || 0);
     groups.set(key, current);
   });
@@ -180,7 +188,7 @@ function aggregateBySource(campaigns) {
     .map((item) => ({
       ...item,
       taxaConversao: item.sessoes
-        ? Number(((item.agendamentosConcluidos / item.sessoes) * 100).toFixed(2))
+        ? Number(((item.sessoesConvertidas / item.sessoes) * 100).toFixed(2))
         : 0
     }))
     .sort((a, b) => b.sessoes - a.sessoes);
@@ -359,7 +367,7 @@ export function AdminMarketingPage() {
       setCampaignMessage(
         updated.ativo
           ? "Campanha oficial reativada."
-          : "Campanha arquivada e removida dos indicadores oficiais."
+          : "Campanha arquivada. O histórico continua nos indicadores oficiais."
       );
     }
   }
@@ -401,8 +409,8 @@ export function AdminMarketingPage() {
   );
 
   const officialIdentitySet = useMemo(
-    () => new Set(activeOfficialCampaigns.map(managedIdentity)),
-    [activeOfficialCampaigns]
+    () => new Set(managedCampaigns.map(managedIdentity)),
+    [managedCampaigns]
   );
 
   const officialPerformance = useMemo(
@@ -613,6 +621,9 @@ export function AdminMarketingPage() {
             <p className="muted">
               Cada acesso entra em uma categoria diferente. Uma categoria nunca é somada à outra.
             </p>
+            <p className="muted">
+              A atribuição usa o primeiro contato registrado em uma janela fixa de 30 dias. O último contato também é preservado para auditoria.
+            </p>
           </div>
         </div>
 
@@ -630,7 +641,7 @@ export function AdminMarketingPage() {
             <div>
               <strong>Acesso autônomo</strong>
               <small>
-                Chegou sem origem ou campanha UTM e sem GCLID/FBCLID. Pode ser acesso direto, busca orgânica ou link compartilhado. Não é considerado anúncio pago.
+                Chegou sem origem, campanha UTM ou identificador de anúncio. Pode ser acesso direto, busca orgânica ou link compartilhado. Não é considerado anúncio pago.
               </small>
             </div>
           </div>

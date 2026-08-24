@@ -1,6 +1,11 @@
 const db = require(
   "../db/db"
 );
+const {
+  criarAtribuicaoSql,
+} = require(
+  "./marketingAttributionSql"
+);
 
 const PERIODOS_PERMITIDOS =
   new Set([
@@ -70,165 +75,37 @@ function filtroPeriodo(
   return `AND ${prefixo}created_at >= ${inicio}`;
 }
 
-const GCLID_SQL = `
-  NULLIF(BTRIM(e.propriedades ->> 'gclid'), '')
-`;
+const ATRIBUICAO_SQL =
+  criarAtribuicaoSql("e");
 
-const GBRAID_SQL = `
-  NULLIF(BTRIM(e.propriedades ->> 'gbraid'), '')
-`;
+const ATRIBUICAO_PAGA_SQL =
+  ATRIBUICAO_SQL.atribuicaoPaga;
 
-const WBRAID_SQL = `
-  NULLIF(BTRIM(e.propriedades ->> 'wbraid'), '')
-`;
+const TRAFEGO_ORGANICO_SQL =
+  ATRIBUICAO_SQL.trafegoOrganico;
 
-const FBCLID_SQL = `
-  NULLIF(BTRIM(e.propriedades ->> 'fbclid'), '')
-`;
+const ATRIBUICAO_RASTREADA_SQL =
+  ATRIBUICAO_SQL.atribuicaoRastreada;
 
-const UTM_SOURCE_SQL = `
-  NULLIF(BTRIM(e.propriedades ->> 'utm_source'), '')
-`;
+const ORIGEM_SQL =
+  ATRIBUICAO_SQL.origem;
 
-const UTM_MEDIUM_SQL = `
-  NULLIF(BTRIM(e.propriedades ->> 'utm_medium'), '')
-`;
+const MIDIA_SQL =
+  ATRIBUICAO_SQL.midia;
 
-const UTM_CAMPAIGN_SQL = `
-  NULLIF(BTRIM(e.propriedades ->> 'utm_campaign'), '')
-`;
+const CAMPANHA_RESOLVIDA_SQL =
+  ATRIBUICAO_SQL.campanha;
 
-const REFERRER_HOST_SQL = `
-  NULLIF(BTRIM(e.propriedades ->> 'referrer_host'), '')
-`;
+/*
+ * Clique sem UTM confirma mídia paga, mas não identifica
+ * sozinho qual campanha originou a visita. Não inferimos a
+ * campanha pela lista ativa, pois isso reescreveria o histórico.
+ */
+const GOOGLE_CLICK_RESOLVIDO_SQL =
+  "FALSE";
 
-const GOOGLE_CLICK_SQL = `
-  (
-    ${GCLID_SQL} IS NOT NULL
-    OR ${GBRAID_SQL} IS NOT NULL
-    OR ${WBRAID_SQL} IS NOT NULL
-  )
-`;
-
-const MIDIA_PAGA_SQL = `
-  LOWER(COALESCE(${UTM_MEDIUM_SQL}, '')) IN (
-    'cpc', 'ppc', 'paid', 'paid_search',
-    'paid_social', 'social_paid', 'display'
-  )
-`;
-
-const MIDIA_ORGANICA_SQL = `
-  LOWER(COALESCE(${UTM_MEDIUM_SQL}, '')) IN (
-    'organic', 'organico', 'orgânico', 'seo',
-    'social', 'organic_social', 'referral',
-    'email', 'whatsapp', 'messaging'
-  )
-`;
-
-const UTM_PRESENTE_SQL = `
-  (
-    ${UTM_SOURCE_SQL} IS NOT NULL
-    OR ${UTM_MEDIUM_SQL} IS NOT NULL
-    OR ${UTM_CAMPAIGN_SQL} IS NOT NULL
-  )
-`;
-
-const ATRIBUICAO_PAGA_SQL = `
-  (
-    ${GOOGLE_CLICK_SQL}
-    OR ${MIDIA_PAGA_SQL}
-  )
-`;
-
-const TRAFEGO_ORGANICO_SQL = `
-  (
-    NOT ${ATRIBUICAO_PAGA_SQL}
-    AND (
-      ${MIDIA_ORGANICA_SQL}
-      OR (
-        NOT ${UTM_PRESENTE_SQL}
-        AND (
-          ${REFERRER_HOST_SQL} IS NOT NULL
-          OR ${FBCLID_SQL} IS NOT NULL
-        )
-      )
-    )
-  )
-`;
-
-const ATRIBUICAO_RASTREADA_SQL = `
-  (
-    ${UTM_PRESENTE_SQL}
-    OR ${GOOGLE_CLICK_SQL}
-    OR ${FBCLID_SQL} IS NOT NULL
-  )
-`;
-
-const ORIGEM_SQL = `
-  CASE
-    WHEN ${GOOGLE_CLICK_SQL}
-      THEN 'google'
-    ELSE COALESCE(
-      ${UTM_SOURCE_SQL},
-      'desconhecida'
-    )
-  END
-`;
-
-const MIDIA_SQL = `
-  CASE
-    WHEN ${GOOGLE_CLICK_SQL}
-      THEN 'cpc'
-    ELSE COALESCE(
-      ${UTM_MEDIUM_SQL},
-      'desconhecida'
-    )
-  END
-`;
-
-const CAMPANHA_RESOLVIDA_SQL = `
-  COALESCE(
-    ${UTM_CAMPAIGN_SQL},
-    CASE
-      WHEN ${GOOGLE_CLICK_SQL}
-        THEN google_oficial.campanha
-      ELSE NULL
-    END,
-    '(sem campanha)'
-  )
-`;
-
-const GOOGLE_CLICK_RESOLVIDO_SQL = `
-  (
-    ${GOOGLE_CLICK_SQL}
-    AND ${UTM_CAMPAIGN_SQL} IS NULL
-    AND google_oficial.campanha IS NOT NULL
-  )
-`;
-
-const GCLID_RESOLVIDO_SQL = `
-  (
-    ${GCLID_SQL} IS NOT NULL
-    AND ${UTM_CAMPAIGN_SQL} IS NULL
-    AND google_oficial.campanha IS NOT NULL
-  )
-`;
-
-const GOOGLE_OFICIAL_CTE = `
-  google_oficial AS (
-    SELECT
-      CASE
-        WHEN COUNT(*) = 1
-          THEN MIN(utm_campaign)
-        ELSE NULL
-      END AS campanha
-    FROM marketing_campanhas
-    WHERE ativo = TRUE
-      AND LOWER(COALESCE(canal, '')) = 'google'
-      AND LOWER(COALESCE(utm_source, '')) = 'google'
-      AND LOWER(COALESCE(utm_medium, '')) = 'cpc'
-  )
-`;
+const GCLID_RESOLVIDO_SQL =
+  "FALSE";
 
 const AGENDAMENTO_CONCLUIDO_ID_SQL = `
   COALESCE(
@@ -275,9 +152,7 @@ async function buscarResumo(
   const resultado =
     await consultarEventos(
       `
-        WITH
-        ${GOOGLE_OFICIAL_CTE},
-        eventos_resolvidos AS (
+        WITH eventos_resolvidos AS (
           SELECT
             e.*,
             ${ATRIBUICAO_PAGA_SQL}
@@ -293,7 +168,6 @@ async function buscarResumo(
             ${CAMPANHA_RESOLVIDA_SQL}
               AS campanha_resolvida
           FROM eventos_produto e
-          CROSS JOIN google_oficial
           WHERE 1 = 1
             ${filtro}
         ),
@@ -362,6 +236,11 @@ async function buscarResumo(
               AND nome = 'agendamento_iniciado'
           )::INT AS agendamentos_iniciados,
 
+          COUNT(DISTINCT sessao_id) FILTER (
+            WHERE pago
+              AND nome = 'agendamento_concluido'
+          )::INT AS sessoes_convertidas,
+
           COUNT(
             DISTINCT ${AGENDAMENTO_CONCLUIDO_ID_SQL}
           ) FILTER (
@@ -381,6 +260,7 @@ async function buscarResumo(
           campanhas: 0,
           perfis_visualizados: 0,
           agendamentos_iniciados: 0,
+          sessoes_convertidas: 0,
           agendamentos_concluidos: 0,
         },
       ]
@@ -401,9 +281,7 @@ async function listarCampanhas(
   const resultado =
     await consultarEventos(
       `
-        WITH
-        ${GOOGLE_OFICIAL_CTE},
-        eventos_resolvidos AS (
+        WITH eventos_resolvidos AS (
           SELECT
             e.*,
             ${ORIGEM_SQL}
@@ -417,7 +295,6 @@ async function listarCampanhas(
             ${GOOGLE_CLICK_RESOLVIDO_SQL}
               AS google_click_resolvido
           FROM eventos_produto e
-          CROSS JOIN google_oficial
           WHERE ${ATRIBUICAO_PAGA_SQL}
             ${filtro}
         )
@@ -444,6 +321,10 @@ async function listarCampanhas(
           COUNT(DISTINCT sessao_id) FILTER (
             WHERE nome = 'agendamento_iniciado'
           )::INT AS agendamentos_iniciados,
+
+          COUNT(DISTINCT sessao_id) FILTER (
+            WHERE nome = 'agendamento_concluido'
+          )::INT AS sessoes_convertidas,
 
           COUNT(
             DISTINCT ${AGENDAMENTO_CONCLUIDO_ID_SQL}
@@ -486,9 +367,7 @@ async function listarConversoes(
   const resultado =
     await consultarEventos(
       `
-        WITH
-        ${GOOGLE_OFICIAL_CTE},
-        eventos_resolvidos AS (
+        WITH eventos_resolvidos AS (
           SELECT
             e.*,
             ${ORIGEM_SQL}
@@ -502,7 +381,6 @@ async function listarConversoes(
             ${GOOGLE_CLICK_RESOLVIDO_SQL}
               AS google_click_resolvido
           FROM eventos_produto e
-          CROSS JOIN google_oficial
           WHERE e.nome = 'agendamento_concluido'
             AND ${ATRIBUICAO_PAGA_SQL}
             ${filtro}

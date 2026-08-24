@@ -259,6 +259,13 @@ async function metaListarPaginas(config, path, params = {}) {
     paginas += 1;
   } while (after && paginas < 20);
 
+  if (after) {
+    throw new AppError(
+      "A plataforma devolveu mais páginas de dados do que o limite seguro da sincronização.",
+      502
+    );
+  }
+
   return rows;
 }
 

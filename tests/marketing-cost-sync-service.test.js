@@ -7,6 +7,7 @@ const mockRepository = {
   listarUltimasSincronizacoes: jest.fn(),
   salvarVinculo: jest.fn(),
   buscarVinculosPorProvedor: jest.fn(),
+  executarComLockSincronizacao: jest.fn(),
   salvarGastoAutomatico: jest.fn(),
   reconciliarGastosAutomaticos: jest.fn(),
   iniciarSincronizacao: jest.fn(),
@@ -50,6 +51,11 @@ describe("marketingCostSyncService", () => {
       removidos: 0,
       salvos: 0
     });
+    mockRepository.executarComLockSincronizacao
+      .mockImplementation(async (_provedor, callback) => ({
+        executado: true,
+        resultado: await callback()
+      }));
     mockProviders.testarConexao.mockResolvedValue({
       conectado: true,
       moeda: "BRL"
@@ -183,6 +189,42 @@ describe("marketingCostSyncService", () => {
       dataInicio: "2026-01-01",
       dataFim: "2026-08-10"
     })).toThrow("até 90 dias");
+  });
+
+  test("aceita exatamente 90 dias inclusivos e recusa 91", () => {
+    expect(service.periodoPadrao({
+      dataInicio: "2026-05-27",
+      dataFim: "2026-08-24"
+    })).toEqual({
+      dataInicio: "2026-05-27",
+      dataFim: "2026-08-24"
+    });
+
+    expect(() => service.periodoPadrao({
+      dataInicio: "2026-05-26",
+      dataFim: "2026-08-24"
+    })).toThrow("até 90 dias");
+  });
+
+  test("impede duas sincronizações simultâneas do mesmo provedor", async () => {
+    mockRepository.executarComLockSincronizacao
+      .mockResolvedValue({
+        executado: false,
+        resultado: null
+      });
+
+    await expect(service.sincronizar({
+      provedor: "google_ads",
+      payload: {
+        dataInicio: "2026-08-01",
+        dataFim: "2026-08-10"
+      }
+    })).rejects.toMatchObject({
+      statusCode: 409
+    });
+
+    expect(mockRepository.iniciarSincronizacao)
+      .not.toHaveBeenCalled();
   });
 
   test("recusa data futura", () => {

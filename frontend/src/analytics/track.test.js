@@ -259,6 +259,37 @@ describe("track attribution", () => {
     expect(contexto).not.toHaveProperty("utm_campaign");
   });
 
+  test("não prolonga o first touch além de 30 dias após um novo anúncio", () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-08-01T12:00:00.000Z"));
+
+    window.history.replaceState(
+      {},
+      "",
+      "/cadastro?utm_source=meta&utm_medium=cpc&utm_campaign=primeira"
+    );
+    getMarketingContext("profissional");
+
+    vi.setSystemTime(new Date("2026-08-29T12:00:00.000Z"));
+    window.history.replaceState(
+      {},
+      "",
+      "/planos?utm_source=google&utm_medium=cpc&utm_campaign=remarketing"
+    );
+    expect(getMarketingContext("profissional"))
+      .toMatchObject({
+        utm_campaign: "primeira",
+        last_utm_campaign: "remarketing",
+      });
+
+    vi.setSystemTime(new Date("2026-09-01T12:00:01.000Z"));
+    window.history.replaceState({}, "", "/criar-negocio");
+
+    const contexto = getMarketingContext("profissional");
+    expect(contexto).not.toHaveProperty("utm_campaign");
+    expect(contexto).not.toHaveProperty("last_utm_campaign");
+  });
+
   test("expõe contexto seguro para vincular aquisição ao cadastro profissional", () => {
     window.history.replaceState(
       {},

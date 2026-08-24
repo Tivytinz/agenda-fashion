@@ -1,6 +1,11 @@
 const db = require(
   "../db/db"
 );
+const {
+  criarAtribuicaoSql,
+} = require(
+  "./marketingAttributionSql"
+);
 
 const PERIODOS_PERMITIDOS =
   new Set([
@@ -117,10 +122,70 @@ async function listarDesempenho(
       "g"
     );
 
+  const atribuicao =
+    criarAtribuicaoSql("e");
+
   const resultado =
     await db.query(
       `
-      WITH eventos_por_campanha AS (
+      WITH eventos_resolvidos AS (
+        SELECT
+          e.*,
+          ${atribuicao.origem}
+            AS origem_resolvida,
+          ${atribuicao.midia}
+            AS midia_resolvida,
+          ${atribuicao.campanha}
+            AS campanha_resolvida
+        FROM eventos_produto e
+        WHERE 1 = 1
+          ${eventos}
+      ),
+
+      eventos_vinculados AS (
+        SELECT
+          e.*,
+          campanha_encontrada.id
+            AS campanha_id
+        FROM eventos_resolvidos e
+        LEFT JOIN LATERAL (
+          SELECT
+            candidata.id
+          FROM marketing_campanhas candidata
+          WHERE LOWER(candidata.utm_campaign) =
+            LOWER(e.campanha_resolvida)
+            AND LOWER(candidata.utm_medium) =
+              LOWER(e.midia_resolvida)
+            AND (
+              LOWER(candidata.utm_source) =
+                LOWER(e.origem_resolvida)
+              OR CASE
+                WHEN LOWER(e.origem_resolvida) IN (
+                  'meta', 'facebook', 'instagram'
+                ) THEN 'meta'
+                WHEN LOWER(e.origem_resolvida) IN (
+                  'google', 'google_ads', 'google-ads'
+                ) THEN 'google'
+                WHEN LOWER(e.origem_resolvida) = 'pinterest'
+                  THEN 'pinterest'
+                WHEN LOWER(e.origem_resolvida) = 'tiktok'
+                  THEN 'tiktok'
+                ELSE ''
+              END = LOWER(candidata.canal)
+            )
+          ORDER BY
+            CASE
+              WHEN LOWER(candidata.utm_source) =
+                LOWER(e.origem_resolvida)
+                THEN 0
+              ELSE 1
+            END,
+            candidata.id ASC
+          LIMIT 1
+        ) campanha_encontrada ON TRUE
+      ),
+
+      eventos_por_campanha AS (
         SELECT
           mc.id AS campanha_id,
 
@@ -148,35 +213,8 @@ async function listarDesempenho(
 
         FROM marketing_campanhas mc
 
-        LEFT JOIN eventos_produto e
-          ON NULLIF(
-            BTRIM(
-              e.propriedades
-                ->> 'utm_source'
-            ),
-            ''
-          ) = mc.utm_source
-
-          AND COALESCE(
-            NULLIF(
-              BTRIM(
-                e.propriedades
-                  ->> 'utm_medium'
-              ),
-              ''
-            ),
-            'cpc'
-          ) = mc.utm_medium
-
-          AND NULLIF(
-            BTRIM(
-              e.propriedades
-                ->> 'utm_campaign'
-            ),
-            ''
-          ) = mc.utm_campaign
-
-          ${eventos}
+        LEFT JOIN eventos_vinculados e
+          ON e.campanha_id = mc.id
 
         GROUP BY mc.id
       ),

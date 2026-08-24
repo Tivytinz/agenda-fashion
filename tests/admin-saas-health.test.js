@@ -50,6 +50,8 @@ jest.mock(
   () => ({
     buscarResumo:
       jest.fn(),
+    contarPerfisIncompletos:
+      jest.fn(),
     listarPerfisIncompletos:
       jest.fn(),
   })
@@ -103,6 +105,9 @@ describe(
       repository
         .listarPerfisIncompletos
         .mockResolvedValue([]);
+      repository
+        .contarPerfisIncompletos
+        .mockResolvedValue(0);
     });
 
     test(
@@ -126,6 +131,10 @@ describe(
         expect(
           repository
             .listarPerfisIncompletos
+        ).not.toHaveBeenCalled();
+        expect(
+          repository
+            .contarPerfisIncompletos
         ).not.toHaveBeenCalled();
       }
     );
@@ -301,6 +310,42 @@ describe(
           limite: 25,
           offset: 0,
         });
+      }
+    );
+
+    test(
+      "preserva o total quando a página solicitada está vazia",
+      async () => {
+        repository
+          .contarPerfisIncompletos
+          .mockResolvedValue(26);
+
+        const resposta =
+          await request(criarApp())
+            .get(
+              "/admin/saude/perfis-incompletos?pendencia=agenda&pagina=4&limite=10&busca=Ana"
+            );
+
+        expect(resposta.status)
+          .toBe(200);
+        expect(
+          repository
+            .contarPerfisIncompletos
+        ).toHaveBeenCalledWith({
+          busca: "Ana",
+          pendencia: "agenda",
+        });
+        expect(
+          resposta.body.paginacao
+        ).toEqual({
+          pagina: 4,
+          limite: 10,
+          total: 26,
+          totalPaginas: 3,
+        });
+        expect(
+          resposta.body.perfis
+        ).toEqual([]);
       }
     );
   }

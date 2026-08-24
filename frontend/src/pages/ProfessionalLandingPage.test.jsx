@@ -64,7 +64,15 @@ describe("landing para profissionais", () => {
       "utm_content",
       "utm_term",
       "gclid",
-      "fbclid"
+      "gbraid",
+      "wbraid",
+      "fbclid",
+      "msclkid",
+      "ttclid",
+      "epik",
+      "af_source",
+      "af_medium",
+      "af_content"
     ]);
   });
 

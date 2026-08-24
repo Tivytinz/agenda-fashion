@@ -11,6 +11,9 @@ const PERIODOS_PERMITIDOS =
     "month",
   ]);
 
+const REPORT_TIME_ZONE =
+  "America/Sao_Paulo";
+
 function normalizarPeriodo(
   valor
 ) {
@@ -45,27 +48,42 @@ function filtroPeriodo(
       ? `${alias}.`
       : "";
 
+  const inicioDia =
+    `date_trunc(
+      'day',
+      NOW() AT TIME ZONE '${REPORT_TIME_ZONE}'
+    )`;
+
+  const noFusoDoBanco =
+    (expressao) =>
+      `((${expressao}) AT TIME ZONE '${REPORT_TIME_ZONE}')`;
+
   const filtros = {
     all:
       "",
 
     today:
-      `AND ${prefixo}created_at >= CURRENT_DATE`,
+      `AND ${prefixo}created_at >= ${noFusoDoBanco(
+        inicioDia
+      )}`,
 
     "7":
-      `AND ${prefixo}created_at >= NOW() - INTERVAL '7 days'`,
+      `AND ${prefixo}created_at >= ${noFusoDoBanco(
+        `${inicioDia} - INTERVAL '6 days'`
+      )}`,
 
     "30":
-      `AND ${prefixo}created_at >= NOW() - INTERVAL '30 days'`,
+      `AND ${prefixo}created_at >= ${noFusoDoBanco(
+        `${inicioDia} - INTERVAL '29 days'`
+      )}`,
 
     month:
-      `AND DATE_TRUNC(
-        'month',
-        ${prefixo}created_at
-      ) = DATE_TRUNC(
-        'month',
-        NOW()
-      )`,
+      `AND ${prefixo}created_at >= ${noFusoDoBanco(
+        `date_trunc(
+          'month',
+          NOW() AT TIME ZONE '${REPORT_TIME_ZONE}'
+        )`
+      )}`,
   };
 
   return filtros[
@@ -160,7 +178,12 @@ async function listarNegocios() {
 
               FROM usuarios_negocios un
 
+              INNER JOIN usuarios u
+                ON u.id = un.usuario_id
+                AND u.ativo = TRUE
+
               WHERE un.negocio_id = n.id
+                AND un.ativo = TRUE
                 AND un.papel IN (
                   'dono',
                   'profissional'
@@ -441,6 +464,7 @@ async function buscarIndicadoresGerais(
               'dono',
               'profissional'
             )
+              AND un.ativo = TRUE
               AND u.ativo = TRUE
               ${filtroVinculos}
           ) AS total_profissionais,
@@ -493,6 +517,24 @@ async function buscarIndicadoresGerais(
 }
 
 async function buscarIndicadoresHoje() {
+  const filtroUsuarios =
+    filtroPeriodo(
+      "today",
+      "u"
+    );
+
+  const filtroNegocios =
+    filtroPeriodo(
+      "today",
+      "n"
+    );
+
+  const filtroAgendamentos =
+    filtroPeriodo(
+      "today",
+      "a"
+    );
+
   const resultado =
     await db.query(
       `
@@ -501,30 +543,30 @@ async function buscarIndicadoresHoje() {
             SELECT
               COUNT(*)::INT
 
-            FROM usuarios
+            FROM usuarios u
 
-            WHERE created_at >=
-              CURRENT_DATE
+            WHERE 1 = 1
+              ${filtroUsuarios}
           ) AS usuarios_hoje,
 
           (
             SELECT
               COUNT(*)::INT
 
-            FROM negocios
+            FROM negocios n
 
-            WHERE created_at >=
-              CURRENT_DATE
+            WHERE 1 = 1
+              ${filtroNegocios}
           ) AS negocios_hoje,
 
           (
             SELECT
               COUNT(*)::INT
 
-            FROM agendamentos
+            FROM agendamentos a
 
-            WHERE created_at >=
-              CURRENT_DATE
+            WHERE 1 = 1
+              ${filtroAgendamentos}
           ) AS agendamentos_hoje
       `
     );
@@ -830,6 +872,7 @@ async function buscarQualidadeNegocios() {
 
               WHERE s.negocio_id =
                 n.id
+                AND s.ativo = TRUE
             )
           )::INT
             AS negocios_sem_servico,
@@ -876,11 +919,14 @@ async function buscarQualidadeNegocios() {
 
                 WHERE s.negocio_id =
                   n.id
+                  AND s.ativo = TRUE
               )
           )::INT
             AS negocios_completos
 
         FROM negocios n
+
+        WHERE n.ativo = TRUE
       `
     );
 
@@ -1188,6 +1234,8 @@ async function listarUsuariosRecentes() {
         LEFT JOIN usuarios_negocios un
           ON un.usuario_id =
             u.id
+
+          AND un.ativo = TRUE
 
         LEFT JOIN usuarios_administradores ua
           ON ua.usuario_id =

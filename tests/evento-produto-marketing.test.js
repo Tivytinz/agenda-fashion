@@ -80,6 +80,82 @@ describe("atribuição de marketing nos eventos", () => {
     });
   });
 
+  test("aceita eventos da landing profissional e preserva os dois contatos", async () => {
+    await eventoProdutoService.registrar({
+      corpo: {
+        nome: "landing_profissionais_cta_clicado",
+        pagina: "para_profissionais",
+        missao: "adquirir_profissional",
+        sessao_id: "sessao_landing_123",
+        propriedades: {
+          posicao: "hero",
+          utm_source: "meta",
+          utm_medium: "cpc",
+          utm_campaign: "profissionais_agosto",
+          last_utm_source: "google",
+          last_utm_medium: "cpc",
+          last_utm_campaign: "remarketing_profissionais",
+          last_gclid: "google-last-click",
+          last_landing_page: "/para-profissionais",
+          attribution_first_at: "2026-08-01T12:00:00.000Z",
+          attribution_last_at: "2026-08-20T12:00:00.000Z",
+        },
+      },
+      usuarioId: null,
+    });
+
+    expect(eventoProdutoRepository.registrar)
+      .toHaveBeenCalledWith(
+        expect.objectContaining({
+          nome: "landing_profissionais_cta_clicado",
+          pagina: "para_profissionais",
+          missao: "adquirir_profissional",
+          propriedades: expect.objectContaining({
+            posicao: "hero",
+            utm_source: "meta",
+            last_utm_source: "google",
+            last_utm_campaign: "remarketing_profissionais",
+            last_gclid: "google-last-click",
+            last_landing_page: "/para-profissionais",
+            attribution_first_at: "2026-08-01T12:00:00.000Z",
+            attribution_last_at: "2026-08-20T12:00:00.000Z",
+          }),
+        })
+      );
+  });
+
+  test("aceita visualização do catálogo local com contexto geográfico seguro", async () => {
+    await eventoProdutoService.registrar({
+      corpo: {
+        nome: "catalogo_local_visualizado",
+        pagina: "catalogo_local",
+        missao: "descobrir_servico",
+        sessao_id: "sessao_catalogo_123",
+        propriedades: {
+          categoria: "Cílios",
+          categoria_slug: "cilios",
+          cidade: "Goiânia",
+          estado: "GO",
+        },
+      },
+      usuarioId: null,
+    });
+
+    expect(eventoProdutoRepository.registrar)
+      .toHaveBeenCalledWith(
+        expect.objectContaining({
+          nome: "catalogo_local_visualizado",
+          pagina: "catalogo_local",
+          propriedades: {
+            categoria: "Cílios",
+            categoria_slug: "cilios",
+            cidade: "Goiânia",
+            estado: "GO",
+          },
+        })
+      );
+  });
+
   test("aceita evento de compartilhamento e origem própria do AF sem dados pessoais", async () => {
     await eventoProdutoService.registrar({
       corpo: {

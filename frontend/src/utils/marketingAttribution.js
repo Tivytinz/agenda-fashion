@@ -2,8 +2,11 @@ const PAID_MEDIA = new Set([
   "cpc",
   "ppc",
   "paid",
+  "paid_search",
   "paid_social",
-  "paid-social"
+  "paid-social",
+  "social_paid",
+  "display"
 ]);
 
 const MISSING_CAMPAIGNS = new Set([

@@ -319,7 +319,10 @@ function captureAttribution() {
     version: ATTRIBUTION_VERSION,
     first_touch: stored?.first_touch || incoming,
     last_touch: incoming,
-    expires_at: Date.now() + ATTRIBUTION_WINDOW_MS
+    expires_at:
+      stored?.first_touch
+        ? stored.expires_at
+        : Date.now() + ATTRIBUTION_WINDOW_MS
   };
 
   writeBrowserStorage(

@@ -57,4 +57,35 @@ describe("consulta da saúde do SaaS", () => {
     expect(sql).toMatch(/WHERE etapas_concluidas\s*<\s*5/i);
     expect(sql).not.toMatch(/WHERE descricao_preenchida\s*=\s*FALSE/i);
   });
+
+  test("conta a fila filtrada sem depender de existir linha na página", async () => {
+    mockQuery.mockResolvedValue({
+      rows: [
+        {
+          total: "26",
+        },
+      ],
+    });
+
+    const total =
+      await repository
+        .contarPerfisIncompletos({
+          busca: "Ana",
+          pendencia: "agenda",
+        });
+
+    const [sql, parametros] =
+      mockQuery.mock.calls[0];
+
+    expect(total).toBe(26);
+    expect(sql).toMatch(
+      /SELECT\s+COUNT\(\*\)::INT AS total/i
+    );
+    expect(sql).toMatch(
+      /AND tem_negocio\s*=\s*TRUE AND agenda_configurada\s*=\s*FALSE/i
+    );
+    expect(parametros).toEqual([
+      "Ana",
+    ]);
+  });
 });

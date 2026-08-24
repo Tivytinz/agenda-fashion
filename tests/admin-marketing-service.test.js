@@ -41,6 +41,7 @@ describe(
             campanhas: "3",
             perfis_visualizados: "24",
             agendamentos_iniciados: "10",
+            sessoes_convertidas: "4",
             agendamentos_concluidos: "5",
           });
 
@@ -72,7 +73,12 @@ describe(
             perfisVisualizados: 24,
             agendamentosIniciados: 10,
             agendamentosConcluidos: 5,
-            taxaConversao: 16.67,
+            sessoesConvertidas: 4,
+            taxaConversao: 13.33,
+            modeloAtribuicao: {
+              codigo: "first_touch_30d",
+              janelaDias: 30,
+            },
           });
       }
     );
@@ -88,6 +94,7 @@ describe(
             sessoes_organicas: 0,
             sessoes_autonomas: 0,
             sessoes_rastreamento_incompleto: 0,
+            sessoes_convertidas: 0,
             agendamentos_concluidos: 0,
           });
 
@@ -105,7 +112,7 @@ describe(
     );
 
     test(
-      "normaliza campanha e informa resolução por sinais de clique Google",
+      "normaliza campanha e calcula conversão por sessões convertidas",
       async () => {
         adminMarketingRepository
           .listarCampanhas
@@ -116,11 +123,12 @@ describe(
               campanha:
                 "google_ads_profissionais",
               sessoes: "8",
-              sessoes_resolvidas_gclid: "3",
-              sessoes_resolvidas_google_click: "5",
+              sessoes_resolvidas_gclid: "0",
+              sessoes_resolvidas_google_click: "0",
               perfis_visualizados: "6",
               agendamentos_iniciados: "3",
-              agendamentos_concluidos: "2",
+              sessoes_convertidas: "2",
+              agendamentos_concluidos: "3",
               primeira_interacao:
                 "2026-08-10T10:00:00.000Z",
               ultima_interacao:
@@ -140,8 +148,10 @@ describe(
           campanha:
             "google_ads_profissionais",
           sessoes: 8,
-          sessoesResolvidasPorGclid: 3,
-          sessoesResolvidasPorGoogle: 5,
+          sessoesResolvidasPorGclid: 0,
+          sessoesResolvidasPorGoogle: 0,
+          sessoesConvertidas: 2,
+          agendamentosConcluidos: 3,
           taxaConversao: 25,
         });
 
@@ -170,7 +180,7 @@ describe(
               campanha:
                 "google_ads_profissionais",
               gclid_resolvido: false,
-              google_click_resolvido: true,
+              google_click_resolvido: false,
               conteudo: "search_01",
               landing_page:
                 "/negocio/studio-bella",
@@ -202,7 +212,7 @@ describe(
         ).toMatchObject({
           agendamentoId: 22,
           resolvidoPorGclid: false,
-          resolvidoPorGoogle: true,
+          resolvidoPorGoogle: false,
           campanha:
             "google_ads_profissionais",
         });

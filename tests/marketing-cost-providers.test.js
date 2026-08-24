@@ -306,6 +306,26 @@ describe("marketingCostProviders Meta Ads", () => {
     }
   });
 
+  test("falha de forma explícita em vez de truncar paginação excessiva", async () => {
+    for (let pagina = 1; pagina <= 20; pagina += 1) {
+      global.fetch.mockResolvedValueOnce(response({
+        data: [],
+        paging: {
+          cursors: {
+            after: `cursor-${pagina}`
+          },
+          next: "https://graph.facebook.com/next"
+        }
+      }));
+    }
+
+    await expect(
+      providers.listarCampanhas("meta_ads")
+    ).rejects.toThrow("mais páginas de dados");
+
+    expect(global.fetch).toHaveBeenCalledTimes(20);
+  });
+
   test("busca campanha específica e confirma que pertence à conta configurada", async () => {
     global.fetch.mockResolvedValueOnce(response({
       id: "999",

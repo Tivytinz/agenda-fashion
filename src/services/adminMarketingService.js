@@ -17,6 +17,12 @@ const PERIODOS = new Map([
   ["mês", "month"],
 ]);
 
+const MODELO_ATRIBUICAO = Object.freeze({
+  codigo: "first_touch_30d",
+  rotulo: "Primeiro contato",
+  janelaDias: 30,
+});
+
 function normalizarPeriodo(
   valor
 ) {
@@ -173,6 +179,12 @@ async function buscarResumo({
         ?.agendamentos_concluidos
     );
 
+  const sessoesConvertidas =
+    inteiro(
+      resumo
+        ?.sessoes_convertidas
+    );
+
   return {
     periodo:
       periodoNormalizado,
@@ -193,12 +205,15 @@ async function buscarResumo({
     campanhas,
     perfisVisualizados,
     agendamentosIniciados,
+    sessoesConvertidas,
     agendamentosConcluidos,
     taxaConversao:
       taxa(
-        agendamentosConcluidos,
+        sessoesConvertidas,
         sessoes
       ),
+    modeloAtribuicao:
+      MODELO_ATRIBUICAO,
   };
 }
 
@@ -234,6 +249,12 @@ async function listarCampanhas({
             inteiro(
               campanha
                 ?.agendamentos_concluidos
+            );
+
+          const sessoesConvertidas =
+            inteiro(
+              campanha
+                ?.sessoes_convertidas
             );
 
           return {
@@ -273,11 +294,12 @@ async function listarCampanhas({
                 campanha
                   ?.agendamentos_iniciados
               ),
+            sessoesConvertidas,
             agendamentosConcluidos:
               concluidos,
             taxaConversao:
               taxa(
-                concluidos,
+                sessoesConvertidas,
                 sessoes
               ),
             primeiraInteracao:
@@ -293,6 +315,8 @@ async function listarCampanhas({
           };
         }
       ),
+    modeloAtribuicao:
+      MODELO_ATRIBUICAO,
   };
 }
 
@@ -313,6 +337,8 @@ async function listarConversoes({
   return {
     periodo:
       periodoNormalizado,
+    modeloAtribuicao:
+      MODELO_ATRIBUICAO,
     conversoes:
       (Array.isArray(conversoes)
         ? conversoes

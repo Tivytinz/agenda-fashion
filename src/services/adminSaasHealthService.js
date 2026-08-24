@@ -322,12 +322,32 @@ async function listarPerfisIncompletos({
       }),
   ]);
 
-  const total = linhas.length > 0
+  let total = linhas.length > 0
     ? numero(
         linhas[0]
           .total_resultados
       )
     : 0;
+
+  /*
+   * COUNT(*) OVER() não produz linha quando
+   * a página solicitada ficou além do fim.
+   * Nessa situação, recuperamos somente o
+   * total para manter a paginação verdadeira.
+   */
+  if (
+    linhas.length === 0 &&
+    paginaSegura > 1
+  ) {
+    total = numero(
+      await adminSaasHealthRepository
+        .contarPerfisIncompletos({
+          busca: buscaSegura,
+          pendencia:
+            pendenciaSegura,
+        })
+    );
+  }
 
   return {
     resumo:

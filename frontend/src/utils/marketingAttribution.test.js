@@ -47,6 +47,22 @@ describe("marketingAttribution", () => {
     ).toBe(5);
   });
 
+  it.each([
+    "paid_search",
+    "paid_social",
+    "paid-social",
+    "social_paid",
+    "display"
+  ])("reconhece a mídia paga %s sem campanha", (midia) => {
+    expect(
+      isPaidTrafficWithoutCampaign({
+        origem: "meta",
+        midia,
+        campanha: "(sem campanha)"
+      })
+    ).toBe(true);
+  });
+
   it("normaliza origens para o canal gerenciado", () => {
     expect(managedChannelForSource("google")).toBe("google");
     expect(managedChannelForSource("facebook")).toBe("meta");

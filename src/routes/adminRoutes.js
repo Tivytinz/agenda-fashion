@@ -5,6 +5,30 @@ const express = require(
 const router =
   express.Router();
 
+const {
+  disableDocumentCache,
+} = require(
+  "../utils/httpCache"
+);
+
+/*
+ * Respostas administrativas podem conter
+ * dados operacionais e de contato.
+ *
+ * Elas não devem permanecer no cache do
+ * navegador, de proxies ou de CDNs.
+ */
+router.use(
+  (
+    _req,
+    res,
+    next
+  ) => {
+    disableDocumentCache(res);
+    return next();
+  }
+);
+
 const auth = require(
   "../middlewares/auth"
 );

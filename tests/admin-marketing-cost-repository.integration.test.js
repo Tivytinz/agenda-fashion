@@ -25,6 +25,9 @@ describe(
     let utmCampaign;
     let sessionA;
     let sessionB;
+    let sessionCanonical;
+    let sessionGoogle;
+    let extraCampaignIds;
 
     beforeEach(async () => {
       const suffix = idCurto();
@@ -35,6 +38,11 @@ describe(
         `csta_${suffix}`;
       sessionB =
         `cstb_${suffix}`;
+      sessionCanonical =
+        `cstc_${suffix}`;
+      sessionGoogle =
+        `cstg_${suffix}`;
+      extraCampaignIds = [];
 
       const campanha =
         await db.query(
@@ -161,8 +169,23 @@ describe(
         DELETE FROM eventos_produto
         WHERE sessao_id = ANY($1::TEXT[])
         `,
-        [[sessionA, sessionB]]
+        [[
+          sessionA,
+          sessionB,
+          sessionCanonical,
+          sessionGoogle,
+        ]]
       );
+
+      if (extraCampaignIds.length > 0) {
+        await db.query(
+          `
+          DELETE FROM marketing_campanhas
+          WHERE id = ANY($1::bigint[])
+          `,
+          [extraCampaignIds]
+        );
+      }
 
       await db.query(
         `
@@ -244,6 +267,125 @@ describe(
             observacao:
               "Valor corrigido",
           });
+      }
+    );
+
+    test(
+      "normaliza origem histórica da Meta sem duplicar a sessão",
+      async () => {
+        await db.query(
+          `
+          INSERT INTO eventos_produto (
+            nome,
+            pagina,
+            sessao_id,
+            propriedades
+          )
+          VALUES (
+            'perfil_visualizado',
+            'perfil_negocio',
+            $1,
+            $2::JSONB
+          )
+          `,
+          [
+            sessionCanonical,
+            JSON.stringify({
+              utm_source: "facebook",
+              utm_medium: "cpc",
+              utm_campaign: utmCampaign,
+            }),
+          ]
+        );
+
+        const linhas =
+          await adminMarketingCostRepository
+            .listarDesempenho("all");
+        const encontrada = linhas.find(
+          (item) =>
+            Number(item.id) === campanhaId
+        );
+
+        expect(encontrada.sessoes).toBe(3);
+      }
+    );
+
+    test(
+      "vincula clique Google moderno quando a campanha UTM está presente",
+      async () => {
+        const suffix = idCurto();
+        const campanhaGoogle =
+          `google_${suffix}`;
+        const criada = await db.query(
+          `
+          INSERT INTO marketing_campanhas (
+            nome,
+            canal,
+            utm_source,
+            utm_medium,
+            utm_campaign,
+            destino_path,
+            ativo
+          )
+          VALUES (
+            $1,
+            'google',
+            'google',
+            'cpc',
+            $2,
+            '/',
+            TRUE
+          )
+          RETURNING id
+          `,
+          [
+            `Google custo ${suffix}`,
+            campanhaGoogle,
+          ]
+        );
+        const campanhaGoogleId =
+          Number(criada.rows[0].id);
+        extraCampaignIds.push(
+          campanhaGoogleId
+        );
+
+        await db.query(
+          `
+          INSERT INTO eventos_produto (
+            nome,
+            pagina,
+            sessao_id,
+            propriedades
+          )
+          VALUES (
+            'perfil_visualizado',
+            'perfil_negocio',
+            $1,
+            $2::JSONB
+          )
+          `,
+          [
+            sessionGoogle,
+            JSON.stringify({
+              gbraid: "google-modern-click",
+              utm_campaign: campanhaGoogle,
+            }),
+          ]
+        );
+
+        const linhas =
+          await adminMarketingCostRepository
+            .listarDesempenho("all");
+        const encontrada = linhas.find(
+          (item) =>
+            Number(item.id) ===
+              campanhaGoogleId
+        );
+
+        expect(encontrada).toMatchObject({
+          sessoes: 1,
+          agendamentos_concluidos: 0,
+        });
       }
     );
   }

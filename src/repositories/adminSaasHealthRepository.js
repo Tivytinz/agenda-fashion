@@ -195,6 +195,36 @@ function filtroPendenciaSql(
   return filtros[pendencia] || "";
 }
 
+async function contarPerfisIncompletos({
+  busca = "",
+  pendencia = "todos",
+}) {
+  const resultado =
+    await db.query(
+      `
+        ${PERFIS_CTE}
+        SELECT
+          COUNT(*)::INT AS total
+        FROM avaliados
+        WHERE ${filtroEscopoSql(pendencia)}
+          AND (
+            $1 = ''
+            OR usuario_nome ILIKE '%' || $1 || '%'
+            OR email ILIKE '%' || $1 || '%'
+            OR COALESCE(usuario_whatsapp, '') ILIKE '%' || $1 || '%'
+            OR COALESCE(negocio_nome, '') ILIKE '%' || $1 || '%'
+          )
+          ${filtroPendenciaSql(pendencia)}
+      `,
+      [busca]
+    );
+
+  return Number(
+    resultado.rows[0]?.total ||
+      0
+  );
+}
+
 async function listarPerfisIncompletos({
   busca = "",
   pendencia = "todos",
@@ -265,5 +295,6 @@ async function listarPerfisIncompletos({
 
 module.exports = {
   buscarResumo,
+  contarPerfisIncompletos,
   listarPerfisIncompletos,
 };

@@ -65,7 +65,7 @@ function periodoPadrao({ dataInicio, dataFim } = {}) {
   inicioDate.setUTCDate(inicioDate.getUTCDate() - 29);
   const inicio = dataInicio ? dataIso(dataInicio) : inicioDate.toISOString().slice(0, 10);
   const diff = (new Date(`${fim}T00:00:00Z`) - new Date(`${inicio}T00:00:00Z`)) / 86400000;
-  if (diff < 0 || diff > 90) {
+  if (diff < 0 || diff >= 90) {
     throw new AppError("A sincronização aceita períodos de até 90 dias.", 400);
   }
   return { dataInicio: inicio, dataFim: fim };
@@ -433,83 +433,140 @@ function erroSeguro(erro) {
 async function sincronizar({ provedor: valorProvedor, payload, usuarioId }) {
   const provedor = normalizarProvedor(valorProvedor);
   const periodo = periodoPadrao(payload);
-  const run = await repository.iniciarSincronizacao({
-    provedor,
-    ...periodo,
-    usuarioId: Number.isInteger(Number(usuarioId)) ? Number(usuarioId) : null
-  });
+  const bloqueio =
+    await repository
+      .executarComLockSincronizacao(
+        provedor,
+        async () => {
+          const run =
+            await repository
+              .iniciarSincronizacao({
+                provedor,
+                ...periodo,
+                usuarioId:
+                  Number.isInteger(Number(usuarioId))
+                    ? Number(usuarioId)
+                    : null
+              });
 
-  try {
-    const diagnostico = await providers.testarConexao(provedor);
-    validarMoedaConta(diagnostico, provedor);
+          try {
+            const diagnostico =
+              await providers
+                .testarConexao(provedor);
+            validarMoedaConta(
+              diagnostico,
+              provedor
+            );
 
-    const [custos, vinculos] = await Promise.all([
-      providers.listarCustos(provedor, periodo),
-      repository.buscarVinculosPorProvedor(provedor)
-    ]);
-    const porExterno = new Map(
-      vinculos.map((v) => [
-        `${String(v.conta_externa_id)}:${String(v.campanha_externa_id)}`,
-        v
-      ])
-    );
+            const [custos, vinculos] =
+              await Promise.all([
+                providers.listarCustos(
+                  provedor,
+                  periodo
+                ),
+                repository
+                  .buscarVinculosPorProvedor(
+                    provedor
+                  )
+              ]);
+            const porExterno = new Map(
+              vinculos.map((v) => [
+                `${String(v.conta_externa_id)}:${String(v.campanha_externa_id)}`,
+                v
+              ])
+            );
 
-    const naoVinculadas = new Set();
-    const gastosVinculados = [];
+            const naoVinculadas =
+              new Set();
+            const gastosVinculados = [];
 
-    for (const item of custos) {
-      const chave = `${item.contaExternaId}:${item.campanhaExternaId}`;
-      const vinculo = porExterno.get(chave);
-      if (!vinculo) {
-        naoVinculadas.add(chave);
-        continue;
-      }
+            for (const item of custos) {
+              const chave =
+                `${item.contaExternaId}:${item.campanhaExternaId}`;
+              const vinculo =
+                porExterno.get(chave);
+              if (!vinculo) {
+                naoVinculadas.add(chave);
+                continue;
+              }
 
-      const gasto = gastoVinculadoSeguro(
-        item,
-        vinculo,
-        periodo
+              const gasto =
+                gastoVinculadoSeguro(
+                  item,
+                  vinculo,
+                  periodo
+                );
+              if (gasto) {
+                gastosVinculados.push(gasto);
+              }
+            }
+
+            await repository
+              .reconciliarGastosAutomaticos({
+                provedor,
+                dataInicio:
+                  periodo.dataInicio,
+                dataFim:
+                  periodo.dataFim,
+                campanhaIds:
+                  vinculos.map(
+                    (v) =>
+                      Number(v.campanha_id)
+                  ),
+                gastos:
+                  gastosVinculados
+              });
+
+            const importados =
+              gastosVinculados.length;
+            const status =
+              naoVinculadas.size > 0
+                ? "parcial"
+                : "sucesso";
+            await repository
+              .finalizarSincronizacao({
+                id: run.id,
+                status,
+                importados,
+                naoVinculadas:
+                  naoVinculadas.size
+              });
+            return {
+              provedor,
+              status,
+              periodo,
+              registrosImportados:
+                importados,
+              campanhasNaoVinculadas:
+                naoVinculadas.size
+            };
+          } catch (erro) {
+            const seguro =
+              erroSeguro(erro);
+            await repository
+              .finalizarSincronizacao({
+                id: run.id,
+                status: "erro",
+                importados: 0,
+                naoVinculadas: 0,
+                erroCodigo:
+                  seguro.codigo,
+                erroMensagem:
+                  seguro.mensagem
+              });
+            throw erro;
+          }
+        }
       );
-      if (gasto) {
-        gastosVinculados.push(gasto);
-      }
-    }
 
-    await repository.reconciliarGastosAutomaticos({
-      provedor,
-      dataInicio: periodo.dataInicio,
-      dataFim: periodo.dataFim,
-      campanhaIds: vinculos.map((v) => Number(v.campanha_id)),
-      gastos: gastosVinculados
-    });
-
-    const importados = gastosVinculados.length;
-    const status = naoVinculadas.size > 0 ? "parcial" : "sucesso";
-    await repository.finalizarSincronizacao({
-      id: run.id,
-      status,
-      importados,
-      naoVinculadas: naoVinculadas.size
-    });
-    return {
-      provedor,
-      status,
-      periodo,
-      registrosImportados: importados,
-      campanhasNaoVinculadas: naoVinculadas.size
-    };
-  } catch (erro) {
-    const seguro = erroSeguro(erro);
-    await repository.finalizarSincronizacao({
-      id: run.id,
-      status: "erro",
-      importados: 0,
-      naoVinculadas: 0,
-      erroCodigo: seguro.codigo,
-      erroMensagem: seguro.mensagem
-    });
-    throw erro;
+  if (!bloqueio.executado) {
+    throw new AppError(
+      "Já existe uma sincronização deste provedor em andamento.",
+      409
+    );
   }
+
+  return bloqueio.resultado;
 }
 
 module.exports = {

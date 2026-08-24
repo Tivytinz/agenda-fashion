@@ -97,7 +97,7 @@ describe(
                 objetivo:
                   "cliente",
                 destinoPath:
-                  "/negocio/studio-bella?servico=8&utm_source=antiga",
+                  "/negocio/studio-bella?servico=8&utm_source=antiga&gbraid=antigo&ttclid=antigo",
                 utmContent:
                   "Vídeo 01",
               },

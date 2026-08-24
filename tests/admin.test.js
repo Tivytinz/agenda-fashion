@@ -284,6 +284,18 @@ describe(
         ).toBe(200);
 
         expect(
+          resposta.headers[
+            "cache-control"
+          ]
+        ).toBe(
+          "no-store, no-cache, must-revalidate"
+        );
+
+        expect(
+          resposta.headers.pragma
+        ).toBe("no-cache");
+
+        expect(
           adminService
             .buscarDashboardAdmin
         ).toHaveBeenCalledTimes(

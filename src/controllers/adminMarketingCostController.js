@@ -55,7 +55,8 @@ async function registrarGasto(
       await adminMarketingCostService
         .registrarGasto({
           payload: req.body,
-          usuarioId: req.user?.id,
+          usuarioId:
+            req.admin?.usuarioId,
         });
 
     return res

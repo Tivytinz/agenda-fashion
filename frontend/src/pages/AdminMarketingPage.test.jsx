@@ -90,6 +90,7 @@ function mockMarketingRequests() {
         campanhas: 3,
         perfisVisualizados: 8,
         agendamentosIniciados: 2,
+        sessoesConvertidas: 1,
         agendamentosConcluidos: 1,
         taxaConversao: 5.26
       });
@@ -106,6 +107,7 @@ function mockMarketingRequests() {
             sessoes: 12,
             perfisVisualizados: 7,
             agendamentosIniciados: 1,
+            sessoesConvertidas: 1,
             agendamentosConcluidos: 1,
             taxaConversao: 8.33
           },
@@ -204,7 +206,7 @@ describe("AdminMarketingPage", () => {
 
     expect(await screen.findByText("Acesso autônomo")).not.toBeNull();
     expect(
-      screen.getByText(/Chegou sem origem ou campanha UTM e sem GCLID\/FBCLID/i)
+      screen.getByText(/Chegou sem origem, campanha UTM ou identificador de anúncio/i)
     ).not.toBeNull();
     expect(
       screen.getByText(/Pode ser acesso direto, busca orgânica ou link compartilhado/i)
@@ -290,9 +292,12 @@ describe("AdminMarketingPage", () => {
 
     expect(
       await screen.findByText(
-        "Campanha arquivada e removida dos indicadores oficiais."
+        "Campanha arquivada. O histórico continua nos indicadores oficiais."
       )
     ).not.toBeNull();
+    expect(
+      screen.getAllByText("google_ads_profissionais").length
+    ).toBeGreaterThanOrEqual(1);
     expect(
       screen.queryByText("Google Ads · Aquisição de profissionais")
     ).toBeNull();

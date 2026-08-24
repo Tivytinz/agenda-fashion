@@ -410,6 +410,21 @@ usuarios_administradores
 
 Admin global não deve ser confundido com o papel `dono` de um negócio.
 
+Todas as rotas `/admin` exigem `auth` e `authAdmin`, consultam a permissão
+administrativa ativa no banco e respondem com cache desabilitado. Relatórios
+por dia e período usam `America/Sao_Paulo`; vínculos e serviços inativos não
+podem ser apresentados como capacidade operacional atual.
+
+O marketing administrativo usa atribuição por primeiro contato em uma janela
+fixa de 30 dias e preserva o último contato nos eventos para auditoria. Um
+identificador de clique sem `utm_campaign` confirma tráfego pago, mas permanece
+como campanha não identificada: a lista atual de campanhas nunca pode ser usada
+para reescrever o histórico. Campanhas arquivadas continuam oficiais nos
+períodos em que tiveram atividade, e desempenho, conversões e custos compartilham
+a mesma normalização de origem, mídia e campanha. A taxa de conversão usa sessões
+com ao menos um agendamento concluído; a quantidade de agendamentos permanece uma
+métrica separada e pode ser maior do que a quantidade de sessões.
+
 A área administrativa possui a página `Saúde do SaaS`, em `/admin/saude`.
 Ela consulta `GET /admin/saude/perfis-incompletos` para resumir e listar
 cadastros profissionais que ainda não concluíram negócio, dados obrigatórios,
@@ -417,7 +432,9 @@ serviço, agenda ou publicação. A descrição opcional aparece separadamente c
 recomendação, não reduz o progresso de ativação e não mantém um cadastro
 completo na fila padrão; ela pode ser consultada pelo filtro específico. A
 listagem prioriza quem está mais perto de concluir e oferece filtros pelos
-indicadores e pelas pendências.
+indicadores e pelas pendências. Mesmo quando a página solicitada fica além do
+último resultado, a API preserva o total filtrado e a quantidade real de
+páginas.
 Nome, e-mail e WhatsApp permanecem protegidos por `auth` e `authAdmin`; as ações
 de contato ficam junto dos dados de contato, abrem uma mensagem personalizada
 para revisão do administrador e não enviam comunicação automaticamente. O atalho

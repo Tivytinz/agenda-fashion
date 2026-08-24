@@ -211,7 +211,15 @@ function normalizarDestino(valor) {
     "utm_content",
     "utm_term",
     "gclid",
+    "gbraid",
+    "wbraid",
     "fbclid",
+    "msclkid",
+    "ttclid",
+    "epik",
+    "af_source",
+    "af_medium",
+    "af_content",
   ].forEach(
     (parametro) =>
       url.searchParams.delete(

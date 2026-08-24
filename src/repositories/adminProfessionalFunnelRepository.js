@@ -115,17 +115,15 @@ async function listarPorCampanha(
       `
       WITH google_oficial AS (
         SELECT
-          CASE
-            WHEN COUNT(*) = 1
-              THEN MIN(utm_campaign)
-            ELSE NULL
-          END AS campanha
+          MIN(utm_campaign)
+            AS campanha
         FROM marketing_campanhas
-        WHERE ativo = TRUE
-          AND objetivo = 'profissional'
+        WHERE objetivo = 'profissional'
           AND LOWER(COALESCE(canal, '')) = 'google'
           AND LOWER(COALESCE(utm_source, '')) = 'google'
           AND LOWER(COALESCE(utm_medium, '')) = 'cpc'
+          AND LOWER(COALESCE(utm_campaign, '')) =
+            'google_ads_profissionais'
       ),
 
       coorte AS (

@@ -41,7 +41,7 @@ async function sincronizar(req, res, next) {
     return res.status(200).json(await service.sincronizar({
       provedor: req.params?.provedor,
       payload: req.body,
-      usuarioId: req.user?.id
+      usuarioId: req.admin?.usuarioId
     }));
   } catch (erro) {
     return next(erro);
