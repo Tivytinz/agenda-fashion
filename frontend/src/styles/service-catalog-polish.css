@@ -4,6 +4,40 @@
   margin-top: 0;
 }
 
+.services-management-page .service-plan-limit-panel {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  border: 1px solid rgb(217 47 127 / 18%);
+  border-radius: 16px;
+  padding: 14px 16px;
+  background: rgb(255 247 251 / 92%);
+  box-shadow: 0 6px 18px rgb(72 22 43 / 5%);
+}
+
+.services-management-page .service-plan-limit-panel > div {
+  display: grid;
+  gap: 3px;
+}
+
+.services-management-page .service-plan-limit-panel strong {
+  color: var(--text);
+  font-size: .94rem;
+}
+
+.services-management-page .service-plan-limit-panel span,
+.services-management-page .service-plan-limit-panel small {
+  color: var(--muted);
+  font-size: .82rem;
+  line-height: 1.45;
+}
+
+.services-management-page .service-plan-limit-panel > small {
+  max-width: 280px;
+  text-align: right;
+}
+
 .services-management-page .management-grid {
   align-items: stretch;
 }
@@ -34,9 +68,19 @@
   padding: 5px 10px;
 }
 
+.services-management-page .service-visibility-toggle {
+  width: 100%;
+  margin-top: 12px;
+}
+
+.services-management-page .service-visibility-toggle:disabled {
+  cursor: not-allowed;
+  opacity: .58;
+}
+
 .services-management-page .management-card-body .card-actions {
   margin-top: auto;
-  padding-top: 18px;
+  padding-top: 14px;
 }
 
 .services-management-page .service-category-label {
@@ -170,6 +214,17 @@
 }
 
 @media (max-width: 680px) {
+  .services-management-page .service-plan-limit-panel {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .services-management-page .service-plan-limit-panel > small {
+    max-width: none;
+    text-align: left;
+  }
+
   .service-editor-page .cover-preview {
     height: 155px;
     min-height: 155px;
