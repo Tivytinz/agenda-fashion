@@ -83,6 +83,24 @@ describe("track attribution", () => {
     });
   });
 
+  test("captura sinais Google modernos mesmo sem GCLID", () => {
+    window.history.replaceState(
+      {},
+      "",
+      "/cadastro?tipo=profissional&gbraid=braid-google-123&wbraid=wbraid-google-456"
+    );
+
+    const contexto = getMarketingContext("profissional");
+
+    expect(contexto).toMatchObject({
+      gbraid: "braid-google-123",
+      wbraid: "wbraid-google-456",
+      last_gbraid: "braid-google-123",
+      last_wbraid: "wbraid-google-456",
+      landing_page: "/cadastro",
+    });
+  });
+
   test("guarda apenas o domínio externo de referência, sem URL ou busca", () => {
     Object.defineProperty(document, "referrer", {
       configurable: true,
