@@ -80,6 +80,43 @@ describe("atribuição de marketing nos eventos", () => {
     });
   });
 
+  test("aceita evento de compartilhamento e origem própria do AF sem dados pessoais", async () => {
+    await eventoProdutoService.registrar({
+      corpo: {
+        nome: "link_negocio_compartilhado",
+        pagina: "perfil_negocio",
+        missao: "descobrir_compartilhar_agendar",
+        sessao_id: "sessao_share_123",
+        negocio_id: 19,
+        propriedades: {
+          tipo_link: "negocio",
+          metodo: "compartilhamento_nativo",
+          af_source: "agenda_fashion",
+          af_medium: "share",
+          af_content: "negocio",
+          email: "nao-salvar@example.com",
+        },
+      },
+      usuarioId: null,
+    });
+
+    expect(eventoProdutoRepository.registrar).toHaveBeenCalledWith({
+      nome: "link_negocio_compartilhado",
+      pagina: "perfil_negocio",
+      missao: "descobrir_compartilhar_agendar",
+      sessaoId: "sessao_share_123",
+      usuarioId: null,
+      negocioId: 19,
+      propriedades: {
+        tipo_link: "negocio",
+        metodo: "compartilhamento_nativo",
+        af_source: "agenda_fashion",
+        af_medium: "share",
+        af_content: "negocio",
+      },
+    });
+  });
+
   test("mantém limite específico para identificadores de clique", () => {
     expect(
       eventoProdutoService
