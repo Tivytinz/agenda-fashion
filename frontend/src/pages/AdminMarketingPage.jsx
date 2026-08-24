@@ -530,7 +530,7 @@ export function AdminMarketingPage() {
     [
       "Acessos autônomos",
       autonomousSessions,
-      "sem anúncio ou mídia paga identificada"
+      "sem anúncio ou campanha identificada"
     ],
     [
       "Campanhas oficiais",
@@ -630,7 +630,7 @@ export function AdminMarketingPage() {
             <div>
               <strong>Acesso autônomo</strong>
               <small>
-                Chegou sem UTM, GCLID ou FBCLID. Pode ser acesso direto, busca orgânica ou link compartilhado. Não é considerado anúncio pago.
+                Chegou sem origem ou campanha UTM e sem GCLID/FBCLID. Pode ser acesso direto, busca orgânica ou link compartilhado. Não é considerado anúncio pago.
               </small>
             </div>
           </div>
@@ -639,7 +639,7 @@ export function AdminMarketingPage() {
             <div>
               <strong>Rastreamento incompleto</strong>
               <small>
-                Existe sinal de mídia paga, mas não há uma campanha oficial identificada. Fica fora dos KPIs até o rastreamento ser corrigido.
+                Existe sinal de mídia paga, mas não há uma campanha oficial identificada. Pode ser um anúncio real sem a etiqueta da campanha e fica fora dos KPIs até ser identificado.
               </small>
             </div>
           </div>
@@ -665,7 +665,7 @@ export function AdminMarketingPage() {
                     )}
                   </strong>
                   <small>
-                    Não são acessos autônomos. Há sinal de mídia paga, mas a campanha oficial não foi recebida.
+                    Não são acessos autônomos. Há sinal de mídia paga, mas a campanha oficial não foi recebida. Pode ser anúncio real sem etiqueta.
                   </small>
                 </div>
                 {suggestedCampaign && (
