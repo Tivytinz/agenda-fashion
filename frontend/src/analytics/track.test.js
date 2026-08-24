@@ -22,6 +22,10 @@ describe("track attribution", () => {
       randomUUID: () => "12345678-1234-1234-1234-123456789012",
     });
     vi.stubGlobal("fetch", vi.fn(() => Promise.resolve({ ok: true })));
+    Object.defineProperty(document, "referrer", {
+      configurable: true,
+      value: "",
+    });
   });
 
   afterEach(() => {
@@ -77,6 +81,47 @@ describe("track attribution", () => {
       last_utm_campaign: "goiania_cilios",
       status: "sucesso",
     });
+  });
+
+  test("guarda apenas o domínio externo de referência, sem URL ou busca", () => {
+    Object.defineProperty(document, "referrer", {
+      configurable: true,
+      value: "https://www.google.com/search?q=manicure+perto+de+mim&client=test",
+    });
+    window.history.replaceState({}, "", "/negocio/studio");
+
+    track("agendamento_concluido", {
+      page: "finalizar_agendamento",
+      mission: "confirmar_agendamento",
+      businessId: 12,
+      properties: {
+        agendamento_id: 987654,
+        status: "sucesso",
+      },
+    });
+
+    const payload = JSON.parse(fetch.mock.calls[0][1].body);
+
+    expect(payload.propriedades.referrer_host).toBe("www.google.com");
+    expect(JSON.stringify(payload.propriedades)).not.toContain("/search");
+    expect(JSON.stringify(payload.propriedades)).not.toContain("manicure+perto+de+mim");
+  });
+
+  test("não cria referência externa para navegação interna ou acesso direto", () => {
+    Object.defineProperty(document, "referrer", {
+      configurable: true,
+      value: `${window.location.origin}/explorar`,
+    });
+    window.history.replaceState({}, "", "/negocio/studio");
+
+    track("tela_visualizada", {
+      page: "perfil_negocio",
+      mission: "entrar_no_negocio",
+      businessId: 12,
+    });
+
+    const payload = JSON.parse(fetch.mock.calls[0][1].body);
+    expect(payload.propriedades).not.toHaveProperty("referrer_host");
   });
 
   test("mantém first touch e atualiza last touch em uma nova campanha", () => {
