@@ -63,16 +63,31 @@ export function ServicesPage() {
   const navigate = useNavigate();
   const removeDialogRef = useRef(null);
   const [services, setServices] = useState(null);
+  const [serviceUsage, setServiceUsage] = useState(null);
   const [error, setError] = useState("");
   const [pendingRemove, setPendingRemove] = useState(null);
   const [removing, setRemoving] = useState(false);
   const [removeError, setRemoveError] = useState("");
+  const [togglingId, setTogglingId] = useState(null);
+  const [visibilityMessage, setVisibilityMessage] = useState("");
   const [message] = useState(() => location.state?.message || "");
+
+  const activeCount = services?.filter((service) => service.ativo !== false).length || 0;
+  const serviceLimit = serviceUsage?.limite_servicos === null || serviceUsage?.limite_servicos === undefined
+    ? null
+    : Number(serviceUsage.limite_servicos);
+  const atServiceLimit = serviceLimit !== null && activeCount >= serviceLimit;
 
   const load = useCallback(() => {
     setError("");
-    apiRequest("/servicos")
-      .then((result) => setServices(extractServices(result)))
+    Promise.all([
+      apiRequest("/servicos"),
+      apiRequest("/minha-assinatura").catch(() => null)
+    ])
+      .then(([servicesResult, subscriptionResult]) => {
+        setServices(extractServices(servicesResult));
+        setServiceUsage(subscriptionResult?.uso || null);
+      })
       .catch((requestError) => setError(requestError.message));
   }, []);
 
@@ -88,6 +103,53 @@ export function ServicesPage() {
     setRemoveError("");
     setPendingRemove(service);
     removeDialogRef.current?.showModal();
+  }
+
+  async function toggleServiceVisibility(service) {
+    if (togglingId) return;
+
+    const nextActive = service.ativo === false;
+
+    if (nextActive && atServiceLimit) {
+      setError(`Seu plano permite até ${serviceLimit} serviço(s) ativo(s). Desative um serviço antes de escolher outro.`);
+      return;
+    }
+
+    setTogglingId(service.id);
+    setError("");
+    setVisibilityMessage("");
+
+    try {
+      const result = await apiRequest(`/servicos/${service.id}/ativo`, {
+        method: "PATCH",
+        body: { ativo: nextActive }
+      });
+      const updated = result.servico || { ...service, ativo: nextActive };
+
+      setServices((current) => current.map((item) => (
+        item.id === service.id
+          ? { ...item, ...updated }
+          : item
+      )));
+      setServiceUsage((current) => current
+        ? {
+            ...current,
+            servicos_utilizados: Math.max(
+              0,
+              activeCount + (nextActive ? 1 : -1)
+            )
+          }
+        : current);
+      setVisibilityMessage(
+        result.mensagem || (nextActive
+          ? "Serviço ativado no perfil."
+          : "Serviço ocultado do perfil.")
+      );
+    } catch (requestError) {
+      setError(requestError.message);
+    } finally {
+      setTogglingId(null);
+    }
   }
 
   async function remove() {
@@ -119,8 +181,19 @@ export function ServicesPage() {
         </header>
       </div>
 
+      {services && serviceLimit !== null && (
+        <section className="service-plan-limit-panel" aria-label="Limite de serviços ativos">
+          <div>
+            <strong>{activeCount} de {serviceLimit} serviços ativos</strong>
+            <span>Seu plano permite até {serviceLimit}. Escolha abaixo quais serviços aparecem no perfil público.</span>
+          </div>
+          {atServiceLimit && <small>Para trocar, desative um dos ativos e depois ative o serviço desejado.</small>}
+        </section>
+      )}
+
       {error && services && <p className="form-error" role="alert">{error}</p>}
       {message && <p className="form-success" role="status">{message}</p>}
+      {visibilityMessage && <p className="form-success" role="status">{visibilityMessage}</p>}
       {!services && !error && <LoadingState>Carregando serviços...</LoadingState>}
       {!services && error && <ErrorState message={error} onRetry={load} />}
       {services?.length === 0 && (
@@ -133,39 +206,54 @@ export function ServicesPage() {
       )}
       {services?.length > 0 && (
         <section className="management-grid">
-          {services.map((service) => (
-            <article className="management-card service-management-card" key={service.id}>
-              <div className="service-cover">
-                <MediaThumb
-                  alt={`Capa do serviço ${service.nome}`}
-                  className={`management-service-media service-category-${service.categoria || "outro"}`}
-                  emoji="✦"
-                  src={service.foto_url}
-                />
-                {!service.foto_url && (
-                  <Link
-                    className="service-cover-empty-action"
-                    to={`/painel/servicos/${service.id}/editar`}
-                  >
-                    ＋ Adicionar foto
-                  </Link>
-                )}
-              </div>
-              <div className="management-card-body">
-                <span className={service.ativo === false ? "status-badge status-cancelado" : "status-badge status-agendado"}>
-                  {service.ativo === false ? "Inativo" : "Disponível"}
-                </span>
-                <h2>{service.nome}</h2>
-                <p className="service-category-label">{categoryLabel(service.categoria)}</p>
-                {service.descricao && <p className="service-description">{service.descricao}</p>}
-                <p>{service.duracao_minutos || 0} min · <strong>{formatCurrency(service.valor)}</strong></p>
-                <div className="card-actions">
-                  <Link className="button button-secondary button-small" to={`/painel/servicos/${service.id}/editar`}>Editar</Link>
-                  <button className="text-button danger-text" onClick={() => askRemove(service)} type="button">Remover</button>
+          {services.map((service) => {
+            const active = service.ativo !== false;
+            const activatingBlocked = !active && atServiceLimit;
+            const toggling = togglingId === service.id;
+
+            return (
+              <article className="management-card service-management-card" key={service.id}>
+                <div className="service-cover">
+                  <MediaThumb
+                    alt={`Capa do serviço ${service.nome}`}
+                    className={`management-service-media service-category-${service.categoria || "outro"}`}
+                    emoji="✦"
+                    src={service.foto_url}
+                  />
+                  {!service.foto_url && (
+                    <Link
+                      className="service-cover-empty-action"
+                      to={`/painel/servicos/${service.id}/editar`}
+                    >
+                      ＋ Adicionar foto
+                    </Link>
+                  )}
                 </div>
-              </div>
-            </article>
-          ))}
+                <div className="management-card-body">
+                  <span className={active ? "status-badge status-agendado" : "status-badge status-cancelado"}>
+                    {active ? "Visível no perfil" : "Inativo"}
+                  </span>
+                  <h2>{service.nome}</h2>
+                  <p className="service-category-label">{categoryLabel(service.categoria)}</p>
+                  {service.descricao && <p className="service-description">{service.descricao}</p>}
+                  <p>{service.duracao_minutos || 0} min · <strong>{formatCurrency(service.valor)}</strong></p>
+                  <button
+                    className={`button button-small service-visibility-toggle${active ? " button-secondary" : ""}`}
+                    disabled={Boolean(togglingId) || activatingBlocked}
+                    onClick={() => toggleServiceVisibility(service)}
+                    title={activatingBlocked ? `Desative um dos ${serviceLimit} serviços ativos para liberar esta vaga.` : undefined}
+                    type="button"
+                  >
+                    {toggling ? "Atualizando..." : active ? "Ocultar do perfil" : "Ativar no perfil"}
+                  </button>
+                  <div className="card-actions">
+                    <Link className="button button-secondary button-small" to={`/painel/servicos/${service.id}/editar`}>Editar</Link>
+                    <button className="text-button danger-text" onClick={() => askRemove(service)} type="button">Remover</button>
+                  </div>
+                </div>
+              </article>
+            );
+          })}
         </section>
       )}
 
