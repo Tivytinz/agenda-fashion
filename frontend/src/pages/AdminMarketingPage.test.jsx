@@ -25,18 +25,18 @@ vi.mock("../api/client", () => ({
 
 const MANAGED_CAMPAIGN = {
   id: 7,
-  nome: "Meta Cílios",
-  canal: "meta",
-  objetivo: "indefinido",
-  utmSource: "meta",
+  nome: "Google Ads · Aquisição de profissionais",
+  canal: "google",
+  objetivo: "profissional",
+  utmSource: "google",
   utmMedium: "cpc",
-  utmCampaign: "meta_cilios",
+  utmCampaign: "google_ads_profissionais",
   utmContent: null,
   utmTerm: null,
-  destinoPath: "/",
+  destinoPath: "/cadastro?tipo=profissional",
   ativo: true,
   linkRastreavel:
-    "https://app.agendafashion.com.br/?utm_source=meta&utm_medium=cpc&utm_campaign=meta_cilios"
+    "https://app.agendafashion.com.br/cadastro?tipo=profissional&utm_source=google&utm_medium=cpc&utm_campaign=google_ads_profissionais"
 };
 
 function mockMarketingRequests() {
@@ -53,13 +53,13 @@ function mockMarketingRequests() {
           objetivo: options.body.objetivo,
           utmSource: options.body.utmSource,
           utmMedium: options.body.utmMedium,
-          utmCampaign: "cilios_goiania_agosto",
+          utmCampaign: "nova_campanha",
           utmContent: options.body.utmContent || null,
           utmTerm: options.body.utmTerm || null,
           destinoPath: options.body.destinoPath,
           ativo: true,
           linkRastreavel:
-            "https://app.agendafashion.com.br/?utm_source=meta&utm_medium=cpc&utm_campaign=cilios_goiania_agosto"
+            "https://app.agendafashion.com.br/?utm_source=meta&utm_medium=cpc&utm_campaign=nova_campanha"
         }
       });
     }
@@ -84,12 +84,14 @@ function mockMarketingRequests() {
     if (path.startsWith("/admin/marketing/resumo")) {
       return Promise.resolve({
         periodo: "30",
-        sessoes: 100,
-        campanhas: 2,
-        perfisVisualizados: 60,
-        agendamentosIniciados: 20,
-        agendamentosConcluidos: 10,
-        taxaConversao: 10
+        totalSessoes: 23,
+        sessoes: 19,
+        sessoesSemAtribuicao: 4,
+        campanhas: 3,
+        perfisVisualizados: 8,
+        agendamentosIniciados: 2,
+        agendamentosConcluidos: 1,
+        taxaConversao: 5.26
       });
     }
 
@@ -98,14 +100,34 @@ function mockMarketingRequests() {
         periodo: "30",
         campanhas: [
           {
-            origem: "facebook",
+            origem: "google",
             midia: "cpc",
-            campanha: "goiania_cilios",
-            sessoes: 100,
-            perfisVisualizados: 60,
-            agendamentosIniciados: 20,
-            agendamentosConcluidos: 10,
-            taxaConversao: 10
+            campanha: "google_ads_profissionais",
+            sessoes: 12,
+            perfisVisualizados: 7,
+            agendamentosIniciados: 1,
+            agendamentosConcluidos: 1,
+            taxaConversao: 8.33
+          },
+          {
+            origem: "google",
+            midia: "cpc",
+            campanha: "(sem campanha)",
+            sessoes: 6,
+            perfisVisualizados: 0,
+            agendamentosIniciados: 0,
+            agendamentosConcluidos: 0,
+            taxaConversao: 0
+          },
+          {
+            origem: "meta",
+            midia: "paid_social",
+            campanha: "teste",
+            sessoes: 1,
+            perfisVisualizados: 1,
+            agendamentosIniciados: 1,
+            agendamentosConcluidos: 0,
+            taxaConversao: 0
           }
         ]
       });
@@ -118,10 +140,22 @@ function mockMarketingRequests() {
           {
             eventoId: 88,
             agendamentoId: 42,
-            negocioNome: "Studio Bella",
-            campanha: "goiania_cilios",
-            landingPage: "/negocio/studio-bella",
-            createdAt: "2026-08-10T20:00:00.000Z"
+            negocioNome: "Studio Oficial",
+            origem: "google",
+            midia: "cpc",
+            campanha: "google_ads_profissionais",
+            landingPage: "/cadastro",
+            createdAt: "2026-08-24T02:00:00.000Z"
+          },
+          {
+            eventoId: 89,
+            agendamentoId: 43,
+            negocioNome: "Studio Teste",
+            origem: "meta",
+            midia: "paid_social",
+            campanha: "teste",
+            landingPage: "/",
+            createdAt: "2026-08-24T02:10:00.000Z"
           }
         ]
       });
@@ -142,87 +176,73 @@ afterEach(() => {
 });
 
 describe("AdminMarketingPage", () => {
-  it("carrega métricas, estatísticas e transforma campanha legada em pendência acionável", async () => {
+  it("mostra somente campanhas oficiais no desempenho principal", async () => {
     render(<AdminMarketingPage />);
 
     expect(
-      await screen.findByRole("heading", { name: "Campanhas e tráfego pago" })
+      await screen.findByRole("heading", { name: "Campanhas e tráfego" })
     ).not.toBeNull();
-    expect(screen.getAllByText("100").length).toBeGreaterThanOrEqual(1);
-    expect(screen.getByText("Identidades rastreadas")).not.toBeNull();
-    expect(screen.getByText("combinações de origem, mídia e campanha"))
-      .not.toBeNull();
-    expect(screen.getAllByText("goiania_cilios").length).toBeGreaterThanOrEqual(2);
-    expect(screen.getByText("Studio Bella")).not.toBeNull();
-    expect(screen.getByText("Meta Cílios")).not.toBeNull();
-    expect(screen.getByText("Não classificado")).not.toBeNull();
-    expect(screen.getByText(/1 campanha sem classificação/i)).not.toBeNull();
-    expect(screen.getByText("Sessões por origem")).not.toBeNull();
-    expect(screen.getByText("Resumo por origem")).not.toBeNull();
+
+    expect(screen.getByText("Sessões de campanhas oficiais")).not.toBeNull();
+    expect(screen.getByText("Acessos autônomos")).not.toBeNull();
+    expect(screen.getByText("Campanhas oficiais")).not.toBeNull();
+    expect(screen.getByText("Conversões oficiais")).not.toBeNull();
+
     expect(
-      screen.getByRole("button", { name: "Revisar classificação" })
-    ).not.toBeNull();
+      screen.getAllByText("google_ads_profissionais").length
+    ).toBeGreaterThanOrEqual(1);
+    expect(screen.queryByText("teste")).toBeNull();
+    expect(screen.getByText("Studio Oficial")).not.toBeNull();
+    expect(screen.queryByText("Studio Teste")).toBeNull();
+    expect(screen.getByText("Sessões oficiais por origem")).not.toBeNull();
+    expect(screen.getByText("Resumo oficial por origem")).not.toBeNull();
     expect(apiRequest).toHaveBeenCalledTimes(4);
   });
 
-  it("avisa de forma profissional quando tráfego pago chega sem campanha UTM", async () => {
-    const originalImplementation = apiRequest.getMockImplementation();
-    apiRequest.mockImplementation((path, options) => {
-      if (path.startsWith("/admin/marketing/campanhas")) {
-        return Promise.resolve({
-          periodo: "30",
-          campanhas: [
-            {
-              origem: "meta",
-              midia: "cpc",
-              campanha: "(sem campanha)",
-              sessoes: 5,
-              perfisVisualizados: 0,
-              agendamentosIniciados: 0,
-              agendamentosConcluidos: 0,
-              taxaConversao: 0
-            }
-          ]
-        });
-      }
-      return originalImplementation(path, options);
-    });
-
+  it("explica claramente acesso autônomo e não confunde com tráfego pago incompleto", async () => {
     render(<AdminMarketingPage />);
 
-    expect(await screen.findByText(/5 sessões pagas sem campanha/i)).not.toBeNull();
-    expect(screen.getByText("Tráfego pago sem campanha")).not.toBeNull();
-    expect(screen.getByText("Campanha UTM não recebida")).not.toBeNull();
+    expect(await screen.findByText("Acesso autônomo")).not.toBeNull();
     expect(
-      screen.getByRole("button", { name: "Copiar link correto de Meta Cílios" })
+      screen.getByText(/Chegou sem UTM, GCLID ou FBCLID/i)
+    ).not.toBeNull();
+    expect(
+      screen.getByText(/Pode ser acesso direto, busca orgânica ou link compartilhado/i)
+    ).not.toBeNull();
+
+    expect(
+      screen.getByText(/6 sessões pagas com rastreamento incompleto/i)
+    ).not.toBeNull();
+    expect(
+      screen.getByText(/Não são acessos autônomos\. Há sinal de mídia paga/i)
+    ).not.toBeNull();
+    expect(
+      screen.getByText(/1 sessão com identidade não oficial/i)
+    ).not.toBeNull();
+    expect(
+      screen.getByRole("button", {
+        name: "Copiar link correto de Google Ads · Aquisição de profissionais"
+      })
     ).not.toBeNull();
   });
 
-  it("mantém UTMs técnicas recolhidas e permite abri-las sob demanda", async () => {
+  it("mantém configurações técnicas recolhidas e cria nova campanha oficial", async () => {
     const user = userEvent.setup();
     render(<AdminMarketingPage />);
 
-    await screen.findByRole("heading", { name: "Campanhas e tráfego pago" });
-    await user.click(screen.getByRole("button", { name: "+ Nova campanha" }));
+    await screen.findByRole("heading", { name: "Campanhas e tráfego" });
+    await user.click(screen.getByRole("button", { name: "+ Nova campanha oficial" }));
+
     const summary = screen.getByText("Configurações avançadas de rastreamento");
     const details = summary.closest("details");
-
     expect(details?.open).toBe(false);
+
     await user.click(summary);
     expect(details?.open).toBe(true);
-    expect(screen.getByLabelText("Origem UTM").value).toBe("meta");
-    expect(screen.getByLabelText("Mídia UTM").value).toBe("cpc");
-  });
 
-  it("cria campanha somente depois de escolher o objetivo", async () => {
-    const user = userEvent.setup();
-    render(<AdminMarketingPage />);
-
-    await screen.findByRole("heading", { name: "Campanhas e tráfego pago" });
-    await user.click(screen.getByRole("button", { name: "+ Nova campanha" }));
-    await user.type(screen.getByLabelText("Nome da campanha"), "Cílios Goiânia Agosto");
+    await user.type(screen.getByLabelText("Nome da campanha"), "Nova Campanha");
     await user.selectOptions(screen.getByLabelText(/Objetivo/), "cliente");
-    await user.click(screen.getByRole("button", { name: "Criar campanha e link" }));
+    await user.click(screen.getByRole("button", { name: "Criar campanha oficial" }));
 
     await waitFor(() => {
       expect(apiRequest).toHaveBeenCalledWith(
@@ -230,63 +250,35 @@ describe("AdminMarketingPage", () => {
         expect.objectContaining({
           method: "POST",
           body: expect.objectContaining({
-            nome: "Cílios Goiânia Agosto",
-            canal: "meta",
-            objetivo: "cliente",
-            utmSource: "meta",
-            utmMedium: "cpc",
-            destinoPath: "/"
+            nome: "Nova Campanha",
+            objetivo: "cliente"
           })
         })
       );
     });
 
     expect(
-      await screen.findByText("Campanha criada. O link rastreável já está pronto para uso.")
-    ).not.toBeNull();
-    expect(screen.getByText("Cílios Goiânia Agosto")).not.toBeNull();
-    expect(screen.getByRole("cell", { name: "Aquisição de clientes" })).not.toBeNull();
-  });
-
-  it("classifica campanha legada com confirmação explícita", async () => {
-    const user = userEvent.setup();
-    vi.spyOn(window, "confirm").mockReturnValue(true);
-    render(<AdminMarketingPage />);
-
-    const campaignName = await screen.findByText("Meta Cílios");
-    const campaignRow = campaignName.closest("tr");
-    expect(campaignRow).not.toBeNull();
-
-    await user.click(within(campaignRow).getByRole("button", { name: "Classificar" }));
-    expect(
-      within(campaignRow).getByText(/Escolha uma vez\. Depois o objetivo fica travado/)
-    ).not.toBeNull();
-    await user.click(within(campaignRow).getByRole("button", { name: "Profissional" }));
-
-    await waitFor(() => {
-      expect(apiRequest).toHaveBeenCalledWith(
-        "/admin/marketing/gestao-campanhas/7",
-        { method: "PATCH", body: { objetivo: "profissional" } }
-      );
-    });
-
-    expect(
-      await screen.findByRole("cell", { name: "Aquisição de profissionais" })
-    ).not.toBeNull();
-    expect(
-      screen.getByText("Objetivo definido como Aquisição de profissionais.")
+      await screen.findByText(
+        "Campanha oficial criada. O link rastreável já está pronto para uso."
+      )
     ).not.toBeNull();
   });
 
-  it("mantém arquivamento em menu de ação secundária", async () => {
+  it("arquiva campanha oficial e a remove dos indicadores ativos", async () => {
     const user = userEvent.setup();
     render(<AdminMarketingPage />);
 
-    const campaignName = await screen.findByText("Meta Cílios");
+    const campaignName = await screen.findByText(
+      "Google Ads · Aquisição de profissionais"
+    );
     const row = campaignName.closest("tr");
     expect(row).not.toBeNull();
 
-    await user.click(within(row).getByLabelText("Mais ações de Meta Cílios"));
+    await user.click(
+      within(row).getByLabelText(
+        "Mais ações de Google Ads · Aquisição de profissionais"
+      )
+    );
     await user.click(within(row).getByRole("button", { name: "Arquivar" }));
 
     await waitFor(() => {
@@ -295,21 +287,28 @@ describe("AdminMarketingPage", () => {
         { method: "PATCH", body: { ativo: false } }
       );
     });
+
     expect(
-      await screen.findByText("Campanha arquivada e removida da visão principal.")
+      await screen.findByText(
+        "Campanha arquivada e removida dos indicadores oficiais."
+      )
     ).not.toBeNull();
-    expect(screen.queryByText("Meta Cílios")).toBeNull();
+    expect(
+      screen.queryByText("Google Ads · Aquisição de profissionais")
+    ).toBeNull();
 
     await user.click(screen.getByRole("button", { name: "Mostrar arquivadas (1)" }));
-    expect(await screen.findByText("Meta Cílios")).not.toBeNull();
+    expect(
+      await screen.findByText("Google Ads · Aquisição de profissionais")
+    ).not.toBeNull();
     expect(screen.getByText("Arquivada")).not.toBeNull();
   });
 
-  it("recarrega as visões ao trocar o período", async () => {
+  it("recarrega os dados ao trocar o período", async () => {
     const user = userEvent.setup();
     render(<AdminMarketingPage />);
 
-    await screen.findByRole("heading", { name: "Campanhas e tráfego pago" });
+    await screen.findByRole("heading", { name: "Campanhas e tráfego" });
     await user.click(screen.getByRole("button", { name: "7 dias" }));
 
     await waitFor(() => {
@@ -328,7 +327,7 @@ describe("AdminMarketingPage", () => {
     );
   });
 
-  it("mantém as seções disponíveis quando uma API falha", async () => {
+  it("mantém as seções úteis quando uma API falha", async () => {
     const originalImplementation = apiRequest.getMockImplementation();
     apiRequest.mockImplementation((path, options) => {
       if (path.startsWith("/admin/marketing/conversoes")) {
@@ -340,27 +339,11 @@ describe("AdminMarketingPage", () => {
     render(<AdminMarketingPage />);
 
     expect(
-      await screen.findByRole("heading", { name: "Campanhas e tráfego pago" })
+      await screen.findByRole("heading", { name: "Campanhas e tráfego" })
     ).not.toBeNull();
-    expect(screen.getByText("Meta Cílios")).not.toBeNull();
-    expect(screen.getByRole("alert").textContent).toContain("Parte dos dados de marketing");
-  });
-
-  it("preserva a última seção carregada durante uma falha de atualização", async () => {
-    const user = userEvent.setup();
-    render(<AdminMarketingPage />);
-    await screen.findByText("Studio Bella");
-
-    const originalImplementation = apiRequest.getMockImplementation();
-    apiRequest.mockImplementation((path, options) => {
-      if (path === "/admin/marketing/conversoes?periodo=7") {
-        return Promise.reject(new Error("Conversões indisponíveis"));
-      }
-      return originalImplementation(path, options);
-    });
-
-    await user.click(screen.getByRole("button", { name: "7 dias" }));
-    await screen.findByRole("alert");
-    expect(screen.getByText("Studio Bella")).not.toBeNull();
+    expect(screen.getByText("Google Ads · Aquisição de profissionais")).not.toBeNull();
+    expect(screen.getByRole("alert").textContent).toContain(
+      "Parte dos dados de marketing"
+    );
   });
 });
