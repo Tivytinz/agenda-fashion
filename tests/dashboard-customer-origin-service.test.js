@@ -117,6 +117,46 @@ describe("origem dos clientes no dashboard", () => {
     });
   });
 
+  test("conta link copiado pelo AF como origem orgânica rastreada, não autônoma", async () => {
+    dashboardRepository.buscarNegocioDoUsuario.mockResolvedValue({
+      negocio_id: "12",
+      papel: "dono",
+    });
+
+    originRepository.buscarOrigemClientes.mockResolvedValue([
+      {
+        origem_codigo: "af_link_copiado",
+        clientes: "2",
+        clientes_novos: "2",
+        clientes_recorrentes: "0",
+        agendamentos: "3",
+        faturamento: "210",
+      },
+    ]);
+
+    const resultado = await service.buscarOrigemClientes({
+      usuarioId: 7,
+      periodo: "7dias",
+    });
+
+    expect(resultado.origens[0]).toMatchObject({
+      codigo: "af_link_copiado",
+      rotulo: "Link copiado do AF",
+      categoria: "organico",
+      clientes: 2,
+      percentualClientes: 100,
+    });
+    expect(resultado.resumo).toMatchObject({
+      clientes: 2,
+      clientesOrganicos: 2,
+      clientesAutonomos: 0,
+      agendamentosOrganicos: 3,
+      faturamentoOrganico: 210,
+      percentualOrganico: 100,
+      percentualAutonomo: 0,
+    });
+  });
+
   test("fbclid sem mídia paga é descrito como Meta orgânico", () => {
     expect(service.normalizarLinha({
       origem_codigo: "meta_organico",
