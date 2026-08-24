@@ -209,26 +209,74 @@ async function buscarOrigemClientes(
           WHEN utm_source = 'pinterest'
             AND utm_medium IN ('organic', 'organico', 'orgânico', 'social', 'organic_social')
             THEN 'pinterest_organico'
+          WHEN utm_medium IN (
+              'organic', 'organico', 'orgânico', 'seo',
+              'social', 'organic_social', 'referral',
+              'email', 'whatsapp', 'messaging'
+            )
+            THEN 'outro_organico'
 
-          WHEN referrer_host ~ '(^|\\.)google\\.'
+          WHEN utm_source IS NULL
+            AND utm_medium IS NULL
+            AND utm_campaign IS NULL
+            AND (
+              referrer_host ~ '(^|\\.)google\\.'
+              OR referrer_host = 'com.google.android.googlequicksearchbox'
+            )
             THEN 'google_organico'
-          WHEN referrer_host ~ '(^|\\.)bing\\.'
+          WHEN utm_source IS NULL
+            AND utm_medium IS NULL
+            AND utm_campaign IS NULL
+            AND referrer_host ~ '(^|\\.)bing\\.'
             THEN 'bing_organico'
-          WHEN referrer_host ~ '(^|\\.)duckduckgo\\.'
+          WHEN utm_source IS NULL
+            AND utm_medium IS NULL
+            AND utm_campaign IS NULL
+            AND referrer_host ~ '(^|\\.)duckduckgo\\.'
             THEN 'duckduckgo_organico'
-          WHEN referrer_host ~ '(^|\\.)yahoo\\.'
+          WHEN utm_source IS NULL
+            AND utm_medium IS NULL
+            AND utm_campaign IS NULL
+            AND referrer_host ~ '(^|\\.)yahoo\\.'
             THEN 'yahoo_organico'
-          WHEN referrer_host ~ '(^|\\.)instagram\\.'
+          WHEN utm_source IS NULL
+            AND utm_medium IS NULL
+            AND utm_campaign IS NULL
+            AND (
+              referrer_host ~ '(^|\\.)instagram\\.'
+              OR referrer_host = 'com.instagram.android'
+            )
             THEN 'instagram_organico'
-          WHEN referrer_host ~ '(^|\\.)facebook\\.'
+          WHEN utm_source IS NULL
+            AND utm_medium IS NULL
+            AND utm_campaign IS NULL
+            AND (
+              referrer_host ~ '(^|\\.)facebook\\.'
+              OR referrer_host IN (
+                'com.facebook.katana',
+                'com.facebook.orca'
+              )
+            )
             THEN 'facebook_organico'
-          WHEN referrer_host ~ '(^|\\.)tiktok\\.'
+          WHEN utm_source IS NULL
+            AND utm_medium IS NULL
+            AND utm_campaign IS NULL
+            AND referrer_host ~ '(^|\\.)tiktok\\.'
             THEN 'tiktok_organico'
-          WHEN referrer_host ~ '(^|\\.)pinterest\\.'
+          WHEN utm_source IS NULL
+            AND utm_medium IS NULL
+            AND utm_campaign IS NULL
+            AND referrer_host ~ '(^|\\.)pinterest\\.'
             THEN 'pinterest_organico'
-          WHEN fbclid IS NOT NULL
+          WHEN utm_source IS NULL
+            AND utm_medium IS NULL
+            AND utm_campaign IS NULL
+            AND fbclid IS NOT NULL
             THEN 'meta_organico'
-          WHEN referrer_host IS NOT NULL
+          WHEN utm_source IS NULL
+            AND utm_medium IS NULL
+            AND utm_campaign IS NULL
+            AND referrer_host IS NOT NULL
             THEN 'referencia_externa'
           WHEN utm_source IS NOT NULL
             OR utm_medium IS NOT NULL
