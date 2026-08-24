@@ -102,14 +102,10 @@ function normalizarNome(nome) {
 
 async function validarLimiteServicoAtivo(negocioId, executor) {
   await servicosRepository.bloquearCadastroServico(executor, negocioId);
-  await buscarUsoPlano(negocioId, executor);
 
-  const plano = await servicosRepository.buscarPlanoDoNegocio(
-    negocioId,
-    executor
-  );
+  const uso = await buscarUsoPlano(negocioId, executor);
 
-  if (!plano) {
+  if (!uso) {
     throw criarErro("Plano do negócio não encontrado.", 404);
   }
 
@@ -117,16 +113,24 @@ async function validarLimiteServicoAtivo(negocioId, executor) {
     negocioId,
     executor
   );
-  const limite = plano.limite_servicos;
+  const limite = uso.limite_servicos;
+  const planoNome = uso.plano_nome || "plano atual";
 
   if (limite !== null && utilizados >= Number(limite)) {
+    const limiteNumerico = Number(limite);
+    const acimaDoLimite = Math.max(0, utilizados - limiteNumerico);
+    const mensagem = acimaDoLimite > 0
+      ? `Você possui ${utilizados} serviço(s) ativo(s), ${acimaDoLimite} acima do limite de ${limiteNumerico} do plano ${planoNome}. Faça upgrade para adicionar novos serviços.`
+      : `Você atingiu o limite de ${limiteNumerico} serviço(s) do plano ${planoNome}. Faça upgrade para cadastrar mais.`;
+
     throw criarErroLimite(
-      `Você atingiu o limite de ${limite} serviço(s) do plano ${plano.nome}. Faça upgrade para cadastrar mais.`,
+      mensagem,
       "LIMITE_SERVICOS",
       {
-        plano_nome: plano.nome,
+        plano_nome: planoNome,
         utilizados,
-        limite: Number(limite),
+        limite: limiteNumerico,
+        acima_do_limite: acimaDoLimite,
       }
     );
   }
