@@ -16,4 +16,10 @@ router.get(
   dashboardController.buscarDashboardDono
 );
 
+router.get(
+  "/dashboard-dono/origem-clientes",
+  auth,
+  dashboardController.buscarOrigemClientesDono
+);
+
 module.exports = router;
