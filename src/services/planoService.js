@@ -53,6 +53,12 @@ async function buscarUsoPlano(
       p.limite_servicos,
       p.destaque,
 
+      plano_selecionado.id AS plano_selecionado_id,
+      plano_selecionado.nome AS plano_selecionado_nome,
+      plano_selecionado.slug AS plano_selecionado_slug,
+      plano_selecionado.valor AS plano_selecionado_valor,
+      assinatura_ativa.id AS assinatura_ativa_id,
+
       (
         SELECT COUNT(*)::int
         FROM agendamentos a
@@ -88,8 +94,35 @@ async function buscarUsoPlano(
       ) AS servicos_utilizados
 
     FROM negocios n
+    INNER JOIN planos plano_selecionado
+      ON plano_selecionado.id = n.plano_id
+    LEFT JOIN LATERAL (
+      SELECT
+        a.id,
+        a.plano_id
+      FROM assinaturas a
+      WHERE a.negocio_id = n.id
+        AND a.ativo = TRUE
+      ORDER BY a.id DESC
+      LIMIT 1
+    ) assinatura_ativa ON TRUE
+    LEFT JOIN LATERAL (
+      SELECT gratis.id
+      FROM planos gratis
+      WHERE gratis.slug = 'inicial'
+        AND gratis.ativo = TRUE
+      ORDER BY gratis.id ASC
+      LIMIT 1
+    ) plano_gratis ON TRUE
     INNER JOIN planos p
-      ON p.id = n.plano_id
+      ON p.id = COALESCE(
+        assinatura_ativa.plano_id,
+        CASE
+          WHEN plano_selecionado.valor <= 0
+            THEN plano_selecionado.id
+          ELSE plano_gratis.id
+        END
+      )
     WHERE n.id = $1
     LIMIT 1
     `,
@@ -143,6 +176,17 @@ async function buscarUsoPlano(
         limite_profissionais: plano.limite_profissionais,
         limite_servicos: plano.limite_servicos,
         destaque: plano.destaque,
+
+        plano_selecionado_id:
+            plano.plano_selecionado_id,
+        plano_selecionado_nome:
+            plano.plano_selecionado_nome,
+        plano_selecionado_slug:
+            plano.plano_selecionado_slug,
+        plano_selecionado_valor:
+            plano.plano_selecionado_valor,
+        assinatura_ativa_id:
+            plano.assinatura_ativa_id || null,
 
         utilizados,
         profissionais_utilizados: Number(plano.profissionais_utilizados || 0),
