@@ -318,7 +318,7 @@ describe("lista profissional de serviços", () => {
 
     apiRequest.mockImplementation((path, options = {}) => {
       if (path === "/servicos" && !options.method) {
-        return Promise.resolve({ servicos });
+        return Promise.resolve({ servicos: services });
       }
       if (path === "/minha-assinatura") {
         return Promise.resolve({
