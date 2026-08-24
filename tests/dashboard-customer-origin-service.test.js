@@ -28,7 +28,7 @@ describe("origem dos clientes no dashboard", () => {
     jest.clearAllMocks();
   });
 
-  test("resume clientes únicos, recorrência e faturamento por origem", async () => {
+  test("separa pago, orgânico, autônomo e histórico sem origem", async () => {
     dashboardRepository.buscarNegocioDoUsuario.mockResolvedValue({
       negocio_id: "12",
       papel: "dono",
@@ -42,6 +42,14 @@ describe("origem dos clientes no dashboard", () => {
         clientes_recorrentes: "1",
         agendamentos: "5",
         faturamento: "450.50",
+      },
+      {
+        origem_codigo: "google_organico",
+        clientes: "2",
+        clientes_novos: "1",
+        clientes_recorrentes: "1",
+        agendamentos: "3",
+        faturamento: "200",
       },
       {
         origem_codigo: "autonomo",
@@ -70,14 +78,22 @@ describe("origem dos clientes no dashboard", () => {
       .toHaveBeenCalledWith(12, "30dias");
 
     expect(resultado.resumo).toEqual({
-      clientes: 5,
-      clientesNovos: 3,
-      clientesRecorrentes: 2,
-      agendamentos: 8,
-      faturamento: 650.5,
+      clientes: 7,
+      clientesNovos: 4,
+      clientesRecorrentes: 3,
+      agendamentos: 11,
+      faturamento: 850.5,
       clientesPagos: 3,
+      clientesOrganicos: 2,
       clientesAutonomos: 1,
       clientesSemOrigem: 1,
+      agendamentosPagos: 5,
+      agendamentosOrganicos: 3,
+      faturamentoPago: 450.5,
+      faturamentoOrganico: 200,
+      percentualPago: 42.9,
+      percentualOrganico: 28.6,
+      percentualAutonomo: 14.3,
     });
 
     expect(resultado.origens[0]).toMatchObject({
@@ -85,12 +101,29 @@ describe("origem dos clientes no dashboard", () => {
       rotulo: "Google Ads",
       categoria: "pago",
       clientes: 3,
-      percentualClientes: 60,
+      percentualClientes: 42.9,
     });
     expect(resultado.origens[1]).toMatchObject({
+      codigo: "google_organico",
+      rotulo: "Google orgânico",
+      categoria: "organico",
+      clientes: 2,
+      percentualClientes: 28.6,
+    });
+    expect(resultado.origens[2]).toMatchObject({
       codigo: "autonomo",
       rotulo: "Acesso autônomo",
-      percentualClientes: 20,
+      percentualClientes: 14.3,
+    });
+  });
+
+  test("fbclid sem mídia paga é descrito como Meta orgânico", () => {
+    expect(service.normalizarLinha({
+      origem_codigo: "meta_organico",
+      clientes: 1,
+    })).toMatchObject({
+      rotulo: "Meta orgânico",
+      categoria: "organico",
     });
   });
 
@@ -127,6 +160,8 @@ describe("origem dos clientes no dashboard", () => {
     });
 
     expect(resultado.resumo.clientes).toBe(0);
+    expect(resultado.resumo.percentualPago).toBe(0);
+    expect(resultado.resumo.percentualOrganico).toBe(0);
     expect(resultado.origens).toEqual([]);
   });
 });
