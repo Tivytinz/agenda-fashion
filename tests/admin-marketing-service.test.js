@@ -28,7 +28,7 @@ describe(
     });
 
     test(
-      "separa sessões pagas, orgânicas, autônomas e rastreamento incompleto",
+      "separa sessões pagas, orgânicas, diretas e rastreadas não pagas",
       async () => {
         adminMarketingRepository
           .buscarResumo
@@ -36,8 +36,8 @@ describe(
             total_sessoes: "50",
             sessoes: "30",
             sessoes_organicas: "10",
-            sessoes_autonomas: "7",
-            sessoes_rastreamento_incompleto: "3",
+            sessoes_diretas: "7",
+            sessoes_rastreadas_nao_pagas: "3",
             campanhas: "3",
             perfis_visualizados: "24",
             agendamentos_iniciados: "10",
@@ -65,10 +65,12 @@ describe(
             sessoes: 30,
             sessoesPagas: 30,
             sessoesOrganicas: 10,
+            sessoesDiretas: 7,
             sessoesAutonomas: 7,
+            sessoesRastreadasNaoPagas: 3,
             sessoesRastreamentoIncompleto: 3,
             sessoesSemAtribuicao: 7,
-            coberturaAtribuicao: 80,
+            coberturaAtribuicao: 86,
             campanhas: 3,
             perfisVisualizados: 24,
             agendamentosIniciados: 10,
@@ -92,8 +94,8 @@ describe(
             total_sessoes: 0,
             sessoes: 0,
             sessoes_organicas: 0,
-            sessoes_autonomas: 0,
-            sessoes_rastreamento_incompleto: 0,
+            sessoes_diretas: 0,
+            sessoes_rastreadas_nao_pagas: 0,
             sessoes_convertidas: 0,
             agendamentos_concluidos: 0,
           });
