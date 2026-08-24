@@ -1,4 +1,5 @@
 const servicosService = require("../services/servicosService");
+const servicoAtivacaoService = require("../services/servicoAtivacaoService");
 const servicosRepository = require("../repositories/servicosRepository");
 const { buscarUsoPlano } = require("../services/planoService");
 
@@ -46,6 +47,20 @@ async function editarServico(req, res, next) {
       valor: req.body.valor,
       duracaoMinutos: req.body.duracao_minutos,
       categoria: req.body.categoria,
+      ativo: req.body.ativo,
+    });
+
+    return res.json(resultado);
+  } catch (err) {
+    next(err);
+  }
+}
+
+async function alterarAtivoServico(req, res, next) {
+  try {
+    const resultado = await servicoAtivacaoService.alterarAtivoServico({
+      usuarioId: req.user?.id,
+      id: req.params.id,
       ativo: req.body.ativo,
     });
 
@@ -140,6 +155,7 @@ module.exports = {
   listarServicos,
   criarServico,
   editarServico,
+  alterarAtivoServico,
   removerServico,
   enviarFotoServico,
   listarFotosServico,
