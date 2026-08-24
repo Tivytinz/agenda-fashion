@@ -253,8 +253,12 @@ export function SubscriptionPage() {
 
         <article className="panel billing-usage-card">
           <p className="eyebrow">Uso neste mês</p>
-          <h2>Seus limites do plano</h2>
-          <p className="muted billing-usage-intro">Acompanhe o que já foi usado e o que ainda está disponível.</p>
+          <h2>Seus limites atuais</h2>
+          <p className="muted billing-usage-intro">
+            {needsSubscription
+              ? "Enquanto a assinatura não estiver ativa, valem os limites gratuitos."
+              : "Acompanhe o que já foi usado e o que ainda está disponível."}
+          </p>
 
           <div className="usage-item subscription-usage-primary">
             <span>{appointmentSummary(usage.utilizados, usage.limite)}</span>
@@ -296,9 +300,6 @@ export function SubscriptionPage() {
                   : "Seus pagamentos aparecerão aqui após a primeira cobrança."}
               </p>
             </div>
-            {needsSubscription && (
-              <Link className="button button-secondary button-small" to={checkoutTarget}>Assinar plano</Link>
-            )}
           </div>
         ) : (
           <div className="table-wrap">
