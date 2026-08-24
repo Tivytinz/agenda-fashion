@@ -7,6 +7,13 @@ const eventoProdutoRepository =
     "../repositories/eventoProdutoRepository"
   );
 
+const CAMPANHAS_GOOGLE_PROFISSIONAIS_LEGADAS =
+  new Set([
+    "aquisicao_profissionais",
+    "search_aquisicao_profissionais",
+    "profissionais_google_ads",
+  ]);
+
 const EVENTOS_PERMITIDOS =
   new Set([
     "tela_visualizada",
@@ -221,6 +228,34 @@ function sanitizarPropriedades(
     }
   }
 
+  const campanha =
+    String(
+      resultado.utm_campaign ||
+      ""
+    )
+      .trim()
+      .toLowerCase();
+
+  if (
+    CAMPANHAS_GOOGLE_PROFISSIONAIS_LEGADAS
+      .has(campanha)
+  ) {
+    [
+      "utm_source",
+      "utm_medium",
+      "utm_campaign",
+      "utm_content",
+      "utm_term",
+      "gclid",
+      "fbclid",
+      "landing_page",
+    ].forEach(
+      (chave) => {
+        delete resultado[chave];
+      }
+    );
+  }
+
   return resultado;
 }
 
@@ -330,7 +365,9 @@ async function registrar({
 
 module.exports = {
   registrar,
+  sanitizarPropriedades,
   EVENTOS_PERMITIDOS,
   PAGINAS_PERMITIDAS,
   MISSOES_PERMITIDAS,
+  CAMPANHAS_GOOGLE_PROFISSIONAIS_LEGADAS,
 };
