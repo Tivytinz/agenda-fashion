@@ -244,18 +244,29 @@ describe("editor de serviços", () => {
 
 describe("lista profissional de serviços", () => {
   it("mostra a falha de remoção dentro do diálogo", async () => {
-    apiRequest
-      .mockResolvedValueOnce({
-        servicos: [{
-          id: 8,
-          nome: "Design com henna",
-          categoria: "sobrancelha",
-          duracao_minutos: 50,
-          valor: 55,
-          ativo: true
-        }]
-      })
-      .mockRejectedValueOnce(new Error("Não foi possível remover o serviço"));
+    apiRequest.mockImplementation((path, options = {}) => {
+      if (path === "/servicos" && !options.method) {
+        return Promise.resolve({
+          servicos: [{
+            id: 8,
+            nome: "Design com henna",
+            categoria: "sobrancelha",
+            duracao_minutos: 50,
+            valor: 55,
+            ativo: true
+          }]
+        });
+      }
+      if (path === "/minha-assinatura") {
+        return Promise.resolve({
+          uso: { limite_servicos: 2, servicos_utilizados: 1 }
+        });
+      }
+      if (path === "/servicos/8" && options.method === "DELETE") {
+        return Promise.reject(new Error("Não foi possível remover o serviço"));
+      }
+      return Promise.reject(new Error(`Rota inesperada: ${path}`));
+    });
 
     renderServices();
     fireEvent.click(await screen.findByRole("button", { name: "Remover" }));
@@ -296,5 +307,63 @@ describe("lista profissional de serviços", () => {
     expect((await screen.findByRole("img", {
       name: "Capa do serviço Design com henna"
     })).src).toContain("/uploads/design.jpg");
+  });
+
+  it("permite trocar quais dois serviços ficam ativos no plano limitado", async () => {
+    const services = [
+      { id: 1, nome: "Manicure", categoria: "unha", duracao_minutos: 60, valor: 50, ativo: true },
+      { id: 2, nome: "Pedicure", categoria: "unha", duracao_minutos: 60, valor: 55, ativo: true },
+      { id: 3, nome: "Spa dos pés", categoria: "unha", duracao_minutos: 45, valor: 45, ativo: false }
+    ];
+
+    apiRequest.mockImplementation((path, options = {}) => {
+      if (path === "/servicos" && !options.method) {
+        return Promise.resolve({ servicos });
+      }
+      if (path === "/minha-assinatura") {
+        return Promise.resolve({
+          uso: { limite_servicos: 2, servicos_utilizados: 2 }
+        });
+      }
+      if (path === "/servicos/1/ativo" && options.method === "PATCH") {
+        return Promise.resolve({
+          mensagem: "Serviço desativado e oculto para novas clientes.",
+          servico: { ...services[0], ativo: false }
+        });
+      }
+      if (path === "/servicos/3/ativo" && options.method === "PATCH") {
+        return Promise.resolve({
+          mensagem: "Serviço ativado e visível para novas clientes.",
+          servico: { ...services[2], ativo: true }
+        });
+      }
+      return Promise.reject(new Error(`Rota inesperada: ${path}`));
+    });
+
+    renderServices();
+
+    expect(await screen.findByText("2 de 2 serviços ativos")).not.toBeNull();
+    const activate = screen.getByRole("button", { name: "Ativar no perfil" });
+    expect(activate.disabled).toBe(true);
+
+    fireEvent.click(screen.getAllByRole("button", { name: "Ocultar do perfil" })[0]);
+
+    await waitFor(() => {
+      expect(screen.getByText("1 de 2 serviços ativos")).not.toBeNull();
+      expect(screen.getByRole("button", { name: "Ativar no perfil" }).disabled).toBe(false);
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Ativar no perfil" }));
+
+    await waitFor(() => {
+      expect(apiRequest).toHaveBeenCalledWith(
+        "/servicos/3/ativo",
+        {
+          method: "PATCH",
+          body: { ativo: true }
+        }
+      );
+      expect(screen.getByText("2 de 2 serviços ativos")).not.toBeNull();
+    });
   });
 });
