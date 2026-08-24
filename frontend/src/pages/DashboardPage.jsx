@@ -47,7 +47,7 @@ function buildNextAction({ completedBookings, profileVisits }) {
 
 function customerOriginHint(item) {
   if (item?.codigo === "autonomo") {
-    return "Sem sinal de anúncio e sem referência externa identificável. Pode ser acesso direto, favorito ou link compartilhado.";
+    return "Sem sinal de anúncio, referência externa ou link rastreável do AF. Pode ser acesso direto, favorito ou link manual sem identificação.";
   }
 
   if (item?.codigo === "nao_identificado") {
@@ -315,7 +315,7 @@ export function DashboardPage() {
             )}
 
             <p className="muted">
-              <strong>Tráfego pago</strong> exige sinal confiável de anúncio, como identificador de clique ou UTM de mídia paga. <strong>Tráfego orgânico</strong> vem de busca, rede social ou referência externa sem sinal de anúncio. <strong>Acesso autônomo</strong> fica reservado para visitas sem anúncio e sem referência externa identificável. <strong>Origem não identificada</strong> é histórico sem dados suficientes para concluir.
+              <strong>Tráfego pago</strong> exige sinal confiável de anúncio, como identificador de clique ou UTM de mídia paga. <strong>Tráfego orgânico</strong> inclui busca, rede social, referência externa e links rastreáveis compartilhados pelo próprio AF sem sinal de anúncio. <strong>Acesso autônomo</strong> fica reservado para visitas sem anúncio, sem referência externa e sem link rastreável do AF. <strong>Origem não identificada</strong> é histórico sem dados suficientes para concluir.
             </p>
           </>
         ) : (
