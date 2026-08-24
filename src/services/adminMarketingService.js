@@ -236,6 +236,11 @@ async function listarCampanhas({
                 "(sem campanha)"
               ),
             sessoes,
+            sessoesResolvidasPorGclid:
+              inteiro(
+                campanha
+                  ?.sessoes_resolvidas_gclid
+              ),
             perfisVisualizados:
               inteiro(
                 campanha
@@ -347,6 +352,9 @@ async function listarConversoes({
               conversao?.campanha,
               "(sem campanha)"
             ),
+          resolvidoPorGclid:
+            conversao
+              ?.gclid_resolvido === true,
           conteudo:
             texto(
               conversao?.conteudo
