@@ -13,6 +13,18 @@ vi.mock("../auth/SessionContext", () => ({ useSession: vi.fn() }));
 const refreshSession = vi.fn();
 const logoutSession = vi.fn();
 
+function baseUser(overrides = {}) {
+  return {
+    id: 7,
+    nome: "Victor Souza",
+    email: "victor@example.com",
+    whatsapp: "62999998888",
+    aceita_lembretes_whatsapp: false,
+    aceita_notificacoes_whatsapp: false,
+    ...overrides
+  };
+}
+
 beforeEach(() => {
   apiRequest.mockReset();
   refreshSession.mockReset();
@@ -32,12 +44,7 @@ afterEach(cleanup);
 describe("minha conta", () => {
   it("usa inicial maiúscula e exibe uma ação clara para sair", async () => {
     apiRequest.mockResolvedValueOnce({
-      usuario: {
-        id: 7,
-        nome: "admin admin",
-        email: "admin@example.com",
-        whatsapp: "62999998888"
-      }
+      usuario: baseUser({ nome: "admin admin", email: "admin@example.com" })
     });
 
     const { container } = render(<MemoryRouter><AccountPage /></MemoryRouter>);
@@ -49,34 +56,25 @@ describe("minha conta", () => {
     expect(logoutSession).toHaveBeenCalledTimes(1);
   });
 
-  it("exibe máscara no WhatsApp e envia somente os dígitos", async () => {
+  it("só habilita salvar perfil após alteração e envia WhatsApp sem máscara", async () => {
     apiRequest
-      .mockResolvedValueOnce({
-        usuario: {
-          id: 7,
-          nome: "Victor Souza",
-          email: "victor@example.com",
-          whatsapp: "62999998888"
-        }
-      })
+      .mockResolvedValueOnce({ usuario: baseUser() })
       .mockResolvedValueOnce({
         mensagem: "Perfil atualizado.",
-        usuario: {
-          id: 7,
-          nome: "Victor Souza",
-          email: "victor@example.com",
-          whatsapp: "11987654321"
-        }
+        usuario: baseUser({ whatsapp: "11987654321" })
       });
 
     render(<MemoryRouter><AccountPage /></MemoryRouter>);
 
-    const whatsapp = await screen.findByLabelText("WhatsApp");
+    const whatsapp = await screen.findByLabelText(/WhatsApp/);
+    const saveProfile = screen.getByRole("button", { name: "Salvar perfil" });
     expect(whatsapp.value).toBe("(62) 99999-8888");
     expect(whatsapp.getAttribute("placeholder")).toBe("(00) 12345-6789");
+    expect(saveProfile.disabled).toBe(true);
 
     fireEvent.change(whatsapp, { target: { value: "11 98765-4321" } });
-    fireEvent.click(screen.getByRole("button", { name: "Salvar perfil" }));
+    expect(saveProfile.disabled).toBe(false);
+    fireEvent.click(saveProfile);
 
     await waitFor(() => {
       expect(apiRequest).toHaveBeenLastCalledWith("/conta", {
@@ -87,9 +85,21 @@ describe("minha conta", () => {
         }
       });
     });
+
+    await waitFor(() => expect(screen.getByRole("button", { name: "Salvar perfil" }).disabled).toBe(true));
   });
 
-  it("mantém o administrador dentro do fluxo administrativo", async () => {
+  it("deixa o e-mail claramente somente leitura", async () => {
+    apiRequest.mockResolvedValueOnce({ usuario: baseUser() });
+
+    render(<MemoryRouter><AccountPage /></MemoryRouter>);
+
+    const email = await screen.findByDisplayValue("victor@example.com");
+    expect(email.readOnly).toBe(true);
+    expect(screen.getByText("E-mail da conta. Não pode ser alterado aqui.")).not.toBeNull();
+  });
+
+  it("não repete o link de voltar quando a navegação lateral já existe", async () => {
     useSession.mockReturnValue({
       temNegocio: true,
       ehAdministrador: true,
@@ -98,12 +108,7 @@ describe("minha conta", () => {
       logout: vi.fn()
     });
     apiRequest.mockResolvedValueOnce({
-      usuario: {
-        id: 9,
-        nome: "Admin AF",
-        email: "admin@example.com",
-        whatsapp: "62999998888"
-      }
+      usuario: baseUser({ id: 9, nome: "Admin AF", email: "admin@example.com" })
     });
 
     const { container } = render(
@@ -112,20 +117,62 @@ describe("minha conta", () => {
       </MemoryRouter>
     );
 
-    const backLink = await screen.findByRole(
-      "link",
-      { name: /Voltar à administração/ }
-    );
-
-    expect(backLink.getAttribute("href"))
-      .toBe("/admin/trafego-pago");
+    await screen.findByRole("heading", { name: "Minha conta" });
+    expect(screen.queryByRole("link", { name: /Voltar à administração/ })).toBeNull();
     expect(
       container.querySelector("main")
         ?.classList.contains("workspace-page")
     ).toBe(true);
   });
 
-  it("permite ao dono ativar os lembretes diários do negócio", async () => {
+  it("mantém o link de voltar para uma conta fora da área de trabalho", async () => {
+    apiRequest.mockResolvedValueOnce({ usuario: baseUser() });
+
+    render(<MemoryRouter><AccountPage /></MemoryRouter>);
+
+    const backLink = await screen.findByRole("link", { name: /Voltar ao início/ });
+    expect(backLink.getAttribute("href")).toBe("/");
+  });
+
+  it("valida a nova senha e permite mostrar ou ocultar os campos", async () => {
+    apiRequest
+      .mockResolvedValueOnce({ usuario: baseUser() })
+      .mockResolvedValueOnce({ mensagem: "Senha atualizada." });
+
+    render(<MemoryRouter><AccountPage /></MemoryRouter>);
+    await screen.findByRole("heading", { name: "Minha conta" });
+
+    const currentPassword = screen.getByLabelText("Senha atual");
+    const newPassword = screen.getByLabelText("Nova senha");
+    const confirmation = screen.getByLabelText("Confirme a nova senha");
+    const submit = screen.getByRole("button", { name: "Alterar senha" });
+
+    expect(submit.disabled).toBe(true);
+    fireEvent.change(currentPassword, { target: { value: "senha-atual" } });
+    fireEvent.change(newPassword, { target: { value: "12345678" } });
+    fireEvent.change(confirmation, { target: { value: "87654321" } });
+    expect(screen.getByText("As senhas não coincidem.")).not.toBeNull();
+    expect(submit.disabled).toBe(true);
+
+    fireEvent.change(confirmation, { target: { value: "12345678" } });
+    expect(screen.getByText("As senhas coincidem.")).not.toBeNull();
+    expect(submit.disabled).toBe(false);
+
+    fireEvent.click(screen.getByRole("button", { name: "Mostrar nova senha" }));
+    expect(newPassword.type).toBe("text");
+    fireEvent.click(screen.getByRole("button", { name: "Ocultar nova senha" }));
+    expect(newPassword.type).toBe("password");
+
+    fireEvent.click(submit);
+    await waitFor(() => {
+      expect(apiRequest).toHaveBeenLastCalledWith("/conta/senha", {
+        method: "PUT",
+        body: { senhaAtual: "senha-atual", novaSenha: "12345678" }
+      });
+    });
+  });
+
+  it("permite ao dono alterar os lembretes do negócio sem texto de onboarding antigo", async () => {
     useSession.mockReturnValue({
       temNegocio: true,
       ehAdministrador: false,
@@ -135,15 +182,7 @@ describe("minha conta", () => {
     });
 
     apiRequest
-      .mockResolvedValueOnce({
-        usuario: {
-          id: 7,
-          nome: "Ana",
-          email: "ana@example.com",
-          whatsapp: "62999998888",
-          aceita_lembretes_whatsapp: false
-        }
-      })
+      .mockResolvedValueOnce({ usuario: baseUser() })
       .mockResolvedValueOnce({
         mensagem: "Lembretes diários do WhatsApp ativados.",
         preferencia: {
@@ -153,14 +192,18 @@ describe("minha conta", () => {
 
     render(<MemoryRouter><AccountPage /></MemoryRouter>);
 
-    const checkbox = await screen.findByRole("checkbox", {
-      name: /Receber um lembrete por dia/i
-    });
+    expect(await screen.findByRole("heading", { name: "Lembretes do negócio no WhatsApp" })).not.toBeNull();
+    expect(screen.queryByText(/cadastrar seu primeiro serviço/i)).toBeNull();
 
+    const checkbox = screen.getByRole("checkbox", {
+      name: /Receber lembretes do negócio no WhatsApp/i
+    });
+    const savePreference = screen.getByRole("button", { name: "Salvar preferência" });
+
+    expect(savePreference.disabled).toBe(true);
     fireEvent.click(checkbox);
-    fireEvent.click(screen.getByRole("button", {
-      name: "Salvar preferência"
-    }));
+    expect(savePreference.disabled).toBe(false);
+    fireEvent.click(savePreference);
 
     await waitFor(() => {
       expect(apiRequest).toHaveBeenLastCalledWith(
@@ -173,18 +216,14 @@ describe("minha conta", () => {
         }
       );
     });
+
+    await waitFor(() => expect(screen.getByRole("button", { name: "Salvar preferência" }).disabled).toBe(true));
   });
 
-  it("permite ao cliente desativar as mensagens dos agendamentos", async () => {
+  it("permite alterar mensagens dos agendamentos apenas quando a preferência muda", async () => {
     apiRequest
       .mockResolvedValueOnce({
-        usuario: {
-          id: 7,
-          nome: "Victor Souza",
-          email: "victor@example.com",
-          whatsapp: "62999998888",
-          aceita_notificacoes_whatsapp: true
-        }
+        usuario: baseUser({ aceita_notificacoes_whatsapp: true })
       })
       .mockResolvedValueOnce({
         mensagem: "Mensagens dos agendamentos pelo WhatsApp desativadas.",
@@ -196,14 +235,15 @@ describe("minha conta", () => {
     render(<MemoryRouter><AccountPage /></MemoryRouter>);
 
     const checkbox = await screen.findByRole("checkbox", {
-      name: /Autorizar mensagens dos meus agendamentos/i
+      name: /Receber mensagens dos meus agendamentos no WhatsApp/i
     });
+    const saveAuthorization = screen.getByRole("button", { name: "Salvar autorização" });
 
     expect(checkbox.checked).toBe(true);
+    expect(saveAuthorization.disabled).toBe(true);
     fireEvent.click(checkbox);
-    fireEvent.click(screen.getByRole("button", {
-      name: "Salvar autorização"
-    }));
+    expect(saveAuthorization.disabled).toBe(false);
+    fireEvent.click(saveAuthorization);
 
     await waitFor(() => {
       expect(apiRequest).toHaveBeenLastCalledWith(
@@ -218,5 +258,6 @@ describe("minha conta", () => {
     });
 
     expect(refreshSession).toHaveBeenCalled();
+    await waitFor(() => expect(screen.getByRole("button", { name: "Salvar autorização" }).disabled).toBe(true));
   });
 });
