@@ -135,6 +135,21 @@ async function buscarResumo({
       resumo?.sessoes
     );
 
+  const sessoesOrganicas =
+    inteiro(
+      resumo?.sessoes_organicas
+    );
+
+  const sessoesAutonomas =
+    inteiro(
+      resumo?.sessoes_autonomas
+    );
+
+  const sessoesRastreamentoIncompleto =
+    inteiro(
+      resumo?.sessoes_rastreamento_incompleto
+    );
+
   const campanhas =
     inteiro(
       resumo?.campanhas
@@ -163,14 +178,16 @@ async function buscarResumo({
       periodoNormalizado,
     totalSessoes,
     sessoes,
+    sessoesPagas:
+      sessoes,
+    sessoesOrganicas,
+    sessoesAutonomas,
+    sessoesRastreamentoIncompleto,
     sessoesSemAtribuicao:
-      Math.max(
-        totalSessoes - sessoes,
-        0
-      ),
+      sessoesAutonomas,
     coberturaAtribuicao:
       taxa(
-        sessoes,
+        sessoes + sessoesOrganicas,
         totalSessoes
       ),
     campanhas,
@@ -240,6 +257,11 @@ async function listarCampanhas({
               inteiro(
                 campanha
                   ?.sessoes_resolvidas_gclid
+              ),
+            sessoesResolvidasPorGoogle:
+              inteiro(
+                campanha
+                  ?.sessoes_resolvidas_google_click
               ),
             perfisVisualizados:
               inteiro(
@@ -355,6 +377,9 @@ async function listarConversoes({
           resolvidoPorGclid:
             conversao
               ?.gclid_resolvido === true,
+          resolvidoPorGoogle:
+            conversao
+              ?.google_click_resolvido === true,
           conteudo:
             texto(
               conversao?.conteudo
