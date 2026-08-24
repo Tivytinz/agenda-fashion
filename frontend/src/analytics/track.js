@@ -17,7 +17,12 @@ const ATTRIBUTION_PARAMS = [
   "utm_content",
   "utm_term",
   "gclid",
-  "fbclid"
+  "gbraid",
+  "wbraid",
+  "fbclid",
+  "msclkid",
+  "ttclid",
+  "epik"
 ];
 
 function sessionId() {
