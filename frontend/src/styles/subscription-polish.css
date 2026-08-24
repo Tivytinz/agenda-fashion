@@ -95,13 +95,25 @@
   margin-top: 14px;
 }
 
+.subscription-settings-page .billing-effective-plan {
+  margin: 10px 0 0;
+  color: var(--muted);
+  font-size: .82rem;
+  line-height: 1.35;
+}
+
+.subscription-settings-page .billing-effective-plan strong {
+  color: var(--wine);
+  font-weight: 850;
+}
+
 .subscription-settings-page .billing-usage-intro {
-  margin: 7px 0 0;
+  margin: 5px 0 0;
   line-height: 1.5;
 }
 
 .subscription-settings-page .subscription-usage-primary {
-  margin: 22px 0 16px;
+  margin: 20px 0 16px;
 }
 
 .subscription-settings-page .subscription-usage-primary > span {
@@ -127,6 +139,18 @@
 
 .subscription-settings-page .usage-limit-note.is-reached {
   color: #a91d59;
+}
+
+.subscription-settings-page .usage-over-limit-alert {
+  margin: 14px 0 0;
+  border: 1px solid #f1c9d9;
+  border-radius: 12px;
+  padding: 10px 12px;
+  color: #792044;
+  background: #fff6f9;
+  font-size: .78rem;
+  font-weight: 700;
+  line-height: 1.45;
 }
 
 .subscription-settings-page .billing-payments-panel.is-empty {
