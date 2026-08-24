@@ -1,0 +1,212 @@
+const db = require(
+  "../db/db"
+);
+
+const CAMPANHA_OFICIAL =
+  "google_ads_profissionais";
+
+const CAMPANHAS_LEGADAS = [
+  "aquisicao_profissionais",
+  "search_aquisicao_profissionais",
+  "profissionais_google_ads",
+];
+
+async function executarLimpezaGoogleProfissionais() {
+  return db.executarTransacao(
+    async (client) => {
+      const oficial =
+        await client.query(
+          `
+          INSERT INTO marketing_campanhas (
+            nome,
+            canal,
+            objetivo,
+            utm_source,
+            utm_medium,
+            utm_campaign,
+            destino_path,
+            ativo
+          )
+          VALUES (
+            'Google Ads · Aquisição de profissionais',
+            'google',
+            'profissional',
+            'google',
+            'cpc',
+            $1,
+            '/cadastro?tipo=profissional',
+            TRUE
+          )
+          ON CONFLICT (
+            utm_source,
+            utm_medium,
+            utm_campaign
+          )
+          DO UPDATE SET
+            nome = EXCLUDED.nome,
+            canal = EXCLUDED.canal,
+            objetivo = EXCLUDED.objetivo,
+            ativo = TRUE,
+            updated_at = NOW()
+          RETURNING id
+          `,
+          [CAMPANHA_OFICIAL]
+        );
+
+      const campanhaOficialId =
+        Number(
+          oficial.rows[0]?.id
+        );
+
+      const campanhasRemovidas =
+        await client.query(
+          `
+          SELECT id
+          FROM marketing_campanhas
+          WHERE id <> $1
+            AND (
+              (
+                canal = 'google'
+                AND objetivo = 'profissional'
+              )
+              OR utm_campaign = ANY($2::TEXT[])
+            )
+          `,
+          [
+            campanhaOficialId,
+            CAMPANHAS_LEGADAS,
+          ]
+        );
+
+      const idsRemover =
+        campanhasRemovidas.rows
+          .map((item) => Number(item.id))
+          .filter(Number.isInteger);
+
+      let gastosRemovidos = 0;
+      let vinculosRemovidos = 0;
+      let campanhasApagadas = 0;
+
+      if (idsRemover.length) {
+        const gastos =
+          await client.query(
+            `
+            DELETE FROM marketing_campanha_gastos
+            WHERE campanha_id = ANY($1::BIGINT[])
+            `,
+            [idsRemover]
+          );
+
+        gastosRemovidos =
+          gastos.rowCount || 0;
+
+        const vinculos =
+          await client.query(
+            `
+            DELETE FROM marketing_campanha_vinculos
+            WHERE campanha_id = ANY($1::BIGINT[])
+            `,
+            [idsRemover]
+          );
+
+        vinculosRemovidos =
+          vinculos.rowCount || 0;
+
+        const campanhas =
+          await client.query(
+            `
+            DELETE FROM marketing_campanhas
+            WHERE id = ANY($1::BIGINT[])
+            `,
+            [idsRemover]
+          );
+
+        campanhasApagadas =
+          campanhas.rowCount || 0;
+      }
+
+      const atribuicoesPrimeiroToque =
+        await client.query(
+          `
+          UPDATE marketing_usuario_atribuicoes
+          SET
+            utm_source = NULL,
+            utm_medium = NULL,
+            utm_campaign = NULL,
+            utm_content = NULL,
+            utm_term = NULL,
+            gclid = NULL,
+            fbclid = NULL,
+            landing_page = NULL,
+            updated_at = NOW()
+          WHERE intencao = 'profissional'
+            AND LOWER(COALESCE(utm_source, '')) = 'google'
+            AND LOWER(COALESCE(utm_campaign, '')) <> $1
+          `,
+          [CAMPANHA_OFICIAL]
+        );
+
+      const atribuicoesUltimoToque =
+        await client.query(
+          `
+          UPDATE marketing_usuario_atribuicoes
+          SET
+            last_utm_source = NULL,
+            last_utm_medium = NULL,
+            last_utm_campaign = NULL,
+            last_utm_content = NULL,
+            last_utm_term = NULL,
+            last_gclid = NULL,
+            last_fbclid = NULL,
+            last_landing_page = NULL,
+            updated_at = NOW()
+          WHERE intencao = 'profissional'
+            AND LOWER(COALESCE(last_utm_source, '')) = 'google'
+            AND LOWER(COALESCE(last_utm_campaign, '')) <> $1
+          `,
+          [CAMPANHA_OFICIAL]
+        );
+
+      const eventosPrimeiroToque =
+        await client.query(
+          `
+          UPDATE eventos_produto
+          SET propriedades = propriedades
+            - 'utm_source'
+            - 'utm_medium'
+            - 'utm_campaign'
+            - 'utm_content'
+            - 'utm_term'
+            - 'gclid'
+            - 'fbclid'
+            - 'landing_page'
+          WHERE LOWER(
+            COALESCE(
+              propriedades ->> 'utm_campaign',
+              ''
+            )
+          ) = ANY($1::TEXT[])
+          `,
+          [CAMPANHAS_LEGADAS]
+        );
+
+      return {
+        campanhaOficialId,
+        campanhasApagadas,
+        gastosRemovidos,
+        vinculosRemovidos,
+        atribuicoesLimpas:
+          (atribuicoesPrimeiroToque.rowCount || 0) +
+          (atribuicoesUltimoToque.rowCount || 0),
+        eventosLimpos:
+          eventosPrimeiroToque.rowCount || 0,
+      };
+    }
+  );
+}
+
+module.exports = {
+  CAMPANHA_OFICIAL,
+  CAMPANHAS_LEGADAS,
+  executarLimpezaGoogleProfissionais,
+};
