@@ -78,6 +78,27 @@
   opacity: .58;
 }
 
+/* Quando a ativação está bloqueada pelo plano, explica o motivo logo no card. */
+.services-management-page .service-visibility-toggle[title]:disabled {
+  position: relative;
+  margin-bottom: 24px;
+  overflow: visible;
+}
+
+.services-management-page .service-visibility-toggle[title]:disabled::after {
+  content: "Limite do plano atingido";
+  position: absolute;
+  top: calc(100% + 7px);
+  left: 0;
+  width: 100%;
+  color: var(--muted);
+  font-size: .72rem;
+  font-weight: 750;
+  line-height: 1.2;
+  text-align: center;
+  pointer-events: none;
+}
+
 .services-management-page .management-card-body .card-actions {
   margin-top: auto;
   padding-top: 14px;
