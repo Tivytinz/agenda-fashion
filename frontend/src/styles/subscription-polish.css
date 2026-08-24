@@ -96,19 +96,29 @@
 }
 
 .subscription-settings-page .billing-effective-plan {
+  display: inline-flex;
+  width: fit-content;
+  min-height: 30px;
+  align-items: center;
+  gap: 5px;
   margin: 10px 0 0;
+  border: 1px solid #eadde2;
+  border-radius: 999px;
+  padding: 5px 10px;
   color: var(--muted);
-  font-size: .82rem;
-  line-height: 1.35;
+  background: #fff8fb;
+  font-size: .76rem;
+  font-weight: 750;
+  line-height: 1.2;
 }
 
 .subscription-settings-page .billing-effective-plan strong {
-  color: var(--wine);
-  font-weight: 850;
+  color: var(--pink-700);
+  font-weight: 900;
 }
 
 .subscription-settings-page .billing-usage-intro {
-  margin: 5px 0 0;
+  margin: 8px 0 0;
   line-height: 1.5;
 }
 
@@ -138,19 +148,48 @@
 }
 
 .subscription-settings-page .usage-limit-note.is-reached {
-  color: #a91d59;
+  color: var(--pink-700);
+}
+
+.subscription-settings-page .usage-limit-note.is-over {
+  color: #a61b35;
+  font-weight: 900;
 }
 
 .subscription-settings-page .usage-over-limit-alert {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
   margin: 14px 0 0;
-  border: 1px solid #f1c9d9;
+  border: 1px solid #e9b6c4;
   border-radius: 12px;
   padding: 10px 12px;
   color: #792044;
-  background: #fff6f9;
+  background: #fff3f6;
   font-size: .78rem;
   font-weight: 700;
   line-height: 1.45;
+}
+
+.subscription-settings-page .usage-over-limit-alert span {
+  min-width: 0;
+}
+
+.subscription-settings-page .usage-over-limit-action {
+  flex: 0 0 auto;
+  border-radius: 999px;
+  padding: 6px 9px;
+  color: var(--pink-700);
+  background: #fff;
+  font-size: .72rem;
+  font-weight: 900;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.subscription-settings-page .usage-over-limit-action:hover {
+  text-decoration: underline;
 }
 
 .subscription-settings-page .billing-payments-panel.is-empty {
@@ -213,5 +252,10 @@
   .subscription-settings-page .subscription-primary-action,
   .subscription-settings-page .billing-empty-state .button {
     width: 100%;
+  }
+
+  .subscription-settings-page .usage-over-limit-alert {
+    align-items: flex-start;
+    flex-direction: column;
   }
 }
