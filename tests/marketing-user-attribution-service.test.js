@@ -109,6 +109,33 @@ describe(
     );
 
     test(
+      "trata GBRAID e WBRAID como sinais de clique Google",
+      () => {
+        const primeiro = service.normalizarMarketing({
+          intencao: "profissional",
+          gbraid: "gbraid-profissional-123",
+          utm_campaign: "campanha_nao_oficial",
+        });
+        const ultimo = service.normalizarMarketing({
+          intencao: "profissional",
+          last_wbraid: "wbraid-profissional-456",
+        });
+
+        expect(primeiro).toMatchObject({
+          utmSource: "google",
+          utmMedium: "cpc",
+          utmCampaign: null,
+          gclid: "gbraid-profissional-123",
+        });
+        expect(ultimo).toMatchObject({
+          lastUtmSource: "google",
+          lastUtmMedium: "cpc",
+          lastGclid: "wbraid-profissional-456",
+        });
+      }
+    );
+
+    test(
       "mantém a campanha Google oficial quando GCLID também está presente",
       () => {
         const resultado =
@@ -131,7 +158,7 @@ describe(
     );
 
     test(
-      "descarta Google manual não oficial quando não existe GCLID",
+      "descarta Google manual não oficial quando não existe sinal Google",
       () => {
         const resultado =
           service.normalizarMarketing({
