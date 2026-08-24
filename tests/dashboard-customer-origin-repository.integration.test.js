@@ -124,7 +124,7 @@ describe("origem de clientes integrada", () => {
     );
   }
 
-  test("atribui cliente ao primeiro canal e mantém retorno na origem de aquisição", async () => {
+  test("separa Google pago, Google orgânico, Meta orgânico, autônomo e histórico incompleto", async () => {
     const clienteGoogle = await criarCliente("Cliente Google");
     const clienteAutonomo = await criarCliente("Cliente Autônomo");
     const clienteOrganico = await criarCliente("Cliente Orgânico");
@@ -134,7 +134,7 @@ describe("origem de clientes integrada", () => {
     const googlePrimeiro = await criarAgendamento(clienteGoogle, 0, "09:00");
     await criarAgendamento(clienteGoogle, 0, "10:00");
     await criarEvento(googlePrimeiro, {
-      gclid: "gclid-cliente-google",
+      gbraid: "gbraid-cliente-google",
     });
 
     const autonomo = await criarAgendamento(clienteAutonomo, 0, "11:00");
@@ -165,10 +165,10 @@ describe("origem de clientes integrada", () => {
       (linha) => linha.origem_codigo === "autonomo"
     );
     const organico = linhas.find(
-      (linha) => linha.origem_codigo === "busca_organica"
+      (linha) => linha.origem_codigo === "google_organico"
     );
     const socialOrganico = linhas.find(
-      (linha) => linha.origem_codigo === "social_organico"
+      (linha) => linha.origem_codigo === "meta_organico"
     );
     const desconhecido = linhas.find(
       (linha) => linha.origem_codigo === "nao_identificado"
@@ -233,6 +233,35 @@ describe("origem de clientes integrada", () => {
       clientes: 1,
       agendamentos: 1,
     });
+  });
+
+  test("separa Instagram orgânico de Instagram pago pelas UTMs", async () => {
+    const clienteOrganico = await criarCliente("Instagram Orgânico");
+    const clientePago = await criarCliente("Instagram Pago");
+    const organico = await criarAgendamento(clienteOrganico, 0, "16:00");
+    const pago = await criarAgendamento(clientePago, 0, "17:00");
+
+    await criarEvento(organico, {
+      utm_source: "instagram",
+      utm_medium: "organic_social",
+    });
+    await criarEvento(pago, {
+      utm_source: "instagram",
+      utm_medium: "paid_social",
+      utm_campaign: "campanha-instagram",
+    });
+
+    const linhas = await repository.buscarOrigemClientes(
+      cenario.negocioId,
+      "7dias"
+    );
+
+    expect(linhas.find(
+      (linha) => linha.origem_codigo === "instagram_organico"
+    )).toMatchObject({ clientes: 1 });
+    expect(linhas.find(
+      (linha) => linha.origem_codigo === "meta_ads"
+    )).toMatchObject({ clientes: 1 });
   });
 
   test("normaliza período inválido para sete dias", () => {
