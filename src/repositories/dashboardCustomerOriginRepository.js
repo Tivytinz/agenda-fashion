@@ -119,6 +119,9 @@ async function buscarOrigemClientes(
         NULLIF(BTRIM(ev.propriedades ->> 'msclkid'), '') AS msclkid,
         NULLIF(BTRIM(ev.propriedades ->> 'ttclid'), '') AS ttclid,
         NULLIF(BTRIM(ev.propriedades ->> 'epik'), '') AS epik,
+        LOWER(NULLIF(BTRIM(ev.propriedades ->> 'af_source'), '')) AS af_source,
+        LOWER(NULLIF(BTRIM(ev.propriedades ->> 'af_medium'), '')) AS af_medium,
+        LOWER(NULLIF(BTRIM(ev.propriedades ->> 'af_content'), '')) AS af_content,
         LOWER(
           NULLIF(BTRIM(ev.propriedades ->> 'referrer_host'), '')
         ) AS referrer_host,
@@ -190,6 +193,21 @@ async function buscarOrigemClientes(
               'paid_social', 'social_paid', 'display'
             )
             THEN 'outra_midia_paga'
+
+          WHEN af_source = 'agenda_fashion'
+            AND af_medium = 'whatsapp'
+            THEN 'af_whatsapp'
+          WHEN af_source = 'agenda_fashion'
+            AND af_medium = 'qr'
+            THEN 'af_qr_code'
+          WHEN af_source = 'agenda_fashion'
+            AND af_medium = 'copy'
+            THEN 'af_link_copiado'
+          WHEN af_source = 'agenda_fashion'
+            AND af_medium = 'share'
+            THEN 'af_compartilhamento'
+          WHEN af_source = 'agenda_fashion'
+            THEN 'af_compartilhamento'
 
           WHEN utm_source = 'google'
             AND utm_medium IN ('organic', 'organico', 'orgânico', 'seo')
@@ -281,6 +299,9 @@ async function buscarOrigemClientes(
           WHEN utm_source IS NOT NULL
             OR utm_medium IS NOT NULL
             OR utm_campaign IS NOT NULL
+            OR af_source IS NOT NULL
+            OR af_medium IS NOT NULL
+            OR af_content IS NOT NULL
             THEN 'outra_origem_rastreada'
           WHEN evento_encontrado THEN 'autonomo'
           ELSE 'nao_identificado'
