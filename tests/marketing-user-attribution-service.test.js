@@ -34,13 +34,13 @@ describe(
         await service.registrarContaCriada({
           usuarioId: 7,
           marketing: {
-            intencao: "profissional",
+            intencao: "cliente",
             sessao_id: "sessao_12345678",
             utm_source: "meta",
             utm_medium: "cpc",
-            utm_campaign: "profissionais_goiania",
+            utm_campaign: "clientes_goiania",
             utm_content: "video_01",
-            gclid: "gclid-123",
+            fbclid: "fbclid-123",
             landing_page: "/cadastro",
             last_utm_source: "google",
             last_utm_medium: "cpc",
@@ -58,15 +58,15 @@ describe(
           repository.registrarConta
         ).toHaveBeenCalledWith({
           usuarioId: 7,
-          intencao: "profissional",
+          intencao: "cliente",
           sessaoId: "sessao_12345678",
           utmSource: "meta",
           utmMedium: "cpc",
-          utmCampaign: "profissionais_goiania",
+          utmCampaign: "clientes_goiania",
           utmContent: "video_01",
           utmTerm: null,
-          gclid: "gclid-123",
-          fbclid: null,
+          gclid: null,
+          fbclid: "fbclid-123",
           landingPage: "/cadastro",
           lastUtmSource: "google",
           lastUtmMedium: "cpc",
@@ -76,6 +76,79 @@ describe(
           lastGclid: "gclid-last-456",
           lastFbclid: null,
           lastLandingPage: "/planos",
+        });
+      }
+    );
+
+    test(
+      "preserva GCLID profissional sem campanha e normaliza como Google CPC",
+      () => {
+        const resultado =
+          service.normalizarMarketing({
+            intencao: "profissional",
+            utm_source: "meta",
+            utm_medium: "paid_social",
+            utm_campaign: "campanha_nao_oficial",
+            utm_content: "criativo_01",
+            gclid: "gclid-profissional-123",
+            fbclid: "fbclid-conflitante",
+            landing_page: "/cadastro",
+          });
+
+        expect(resultado).toMatchObject({
+          intencao: "profissional",
+          utmSource: "google",
+          utmMedium: "cpc",
+          utmCampaign: null,
+          utmContent: "criativo_01",
+          gclid: "gclid-profissional-123",
+          fbclid: null,
+          landingPage: "/cadastro",
+        });
+      }
+    );
+
+    test(
+      "mantém a campanha Google oficial quando GCLID também está presente",
+      () => {
+        const resultado =
+          service.normalizarMarketing({
+            intencao: "profissional",
+            utm_source: "qualquer_origem",
+            utm_medium: "qualquer_midia",
+            utm_campaign: "google_ads_profissionais",
+            gclid: "gclid-oficial-456",
+          });
+
+        expect(resultado).toMatchObject({
+          utmSource: "google",
+          utmMedium: "cpc",
+          utmCampaign:
+            "google_ads_profissionais",
+          gclid: "gclid-oficial-456",
+        });
+      }
+    );
+
+    test(
+      "descarta Google manual não oficial quando não existe GCLID",
+      () => {
+        const resultado =
+          service.normalizarMarketing({
+            intencao: "profissional",
+            utm_source: "google",
+            utm_medium: "cpc",
+            utm_campaign:
+              "search_aquisicao_profissionais",
+            landing_page: "/cadastro",
+          });
+
+        expect(resultado).toMatchObject({
+          utmSource: null,
+          utmMedium: null,
+          utmCampaign: null,
+          gclid: null,
+          landingPage: null,
         });
       }
     );
