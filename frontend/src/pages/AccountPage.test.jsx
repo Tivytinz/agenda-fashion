@@ -66,7 +66,7 @@ describe("minha conta", () => {
 
     render(<MemoryRouter><AccountPage /></MemoryRouter>);
 
-    const whatsapp = await screen.findByLabelText(/WhatsApp/);
+    const whatsapp = await screen.findByLabelText("WhatsApp");
     const saveProfile = screen.getByRole("button", { name: "Salvar perfil" });
     expect(whatsapp.value).toBe("(62) 99999-8888");
     expect(whatsapp.getAttribute("placeholder")).toBe("(00) 12345-6789");
@@ -142,9 +142,9 @@ describe("minha conta", () => {
     render(<MemoryRouter><AccountPage /></MemoryRouter>);
     await screen.findByRole("heading", { name: "Minha conta" });
 
-    const currentPassword = screen.getByLabelText("Senha atual");
-    const newPassword = screen.getByLabelText("Nova senha");
-    const confirmation = screen.getByLabelText("Confirme a nova senha");
+    const currentPassword = screen.getByLabelText(/^Senha atual/);
+    const newPassword = screen.getByLabelText(/^Nova senha/);
+    const confirmation = screen.getByLabelText(/^Confirme a nova senha/);
     const submit = screen.getByRole("button", { name: "Alterar senha" });
 
     expect(submit.disabled).toBe(true);
