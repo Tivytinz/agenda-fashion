@@ -1,0 +1,193 @@
+/* Refinos específicos da tela Plano e assinatura. */
+
+.subscription-settings-page {
+  padding-bottom: 72px;
+}
+
+.subscription-settings-page .subscription-heading {
+  align-items: center;
+}
+
+.subscription-settings-page .subscription-overview-grid {
+  align-items: stretch;
+}
+
+.subscription-settings-page .subscription-plan-card,
+.subscription-settings-page .billing-usage-card {
+  display: flex;
+  min-height: 100%;
+  flex-direction: column;
+}
+
+.subscription-settings-page .subscription-plan-heading {
+  align-items: flex-start;
+}
+
+.subscription-settings-page .subscription-plan-heading h2,
+.subscription-settings-page .billing-usage-card h2,
+.subscription-settings-page .billing-payments-panel h2 {
+  margin-bottom: 0;
+}
+
+.subscription-settings-page .subscription-state-badge,
+.subscription-settings-page .payment-state-badge {
+  display: inline-flex;
+  min-height: 28px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  padding: 5px 10px;
+  font-size: .7rem;
+  font-weight: 900;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.subscription-settings-page .subscription-state-badge.is-success,
+.subscription-settings-page .payment-state-badge.is-success {
+  border-color: #cce8da;
+  color: #17633c;
+  background: #edf8f3;
+}
+
+.subscription-settings-page .subscription-state-badge.is-neutral,
+.subscription-settings-page .payment-state-badge.is-neutral {
+  border-color: var(--line);
+  color: var(--muted);
+  background: #f7f3f5;
+}
+
+.subscription-settings-page .subscription-state-badge.is-warning,
+.subscription-settings-page .payment-state-badge.is-warning {
+  border-color: #ecdca9;
+  color: #7d5b05;
+  background: #fff9e8;
+}
+
+.subscription-settings-page .subscription-state-badge.is-danger,
+.subscription-settings-page .payment-state-badge.is-danger {
+  border-color: #efc7d0;
+  color: #942b49;
+  background: #fff4f6;
+}
+
+.subscription-settings-page .subscription-no-billing {
+  display: grid;
+  gap: 14px;
+  margin-top: 2px;
+  border-top: 1px solid var(--line);
+  padding-top: 16px;
+}
+
+.subscription-settings-page .subscription-no-billing p {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.subscription-settings-page .subscription-primary-action {
+  justify-self: start;
+}
+
+.subscription-settings-page .subscription-cancel-action {
+  align-self: flex-start;
+  margin-top: 14px;
+}
+
+.subscription-settings-page .billing-usage-intro {
+  margin: 7px 0 0;
+  line-height: 1.5;
+}
+
+.subscription-settings-page .subscription-usage-primary {
+  margin: 22px 0 16px;
+}
+
+.subscription-settings-page .subscription-usage-primary > span {
+  color: var(--wine);
+  font-weight: 750;
+}
+
+.subscription-settings-page .usage-data-list {
+  margin-top: auto;
+}
+
+.subscription-settings-page .usage-data-list dd {
+  display: grid;
+  justify-items: end;
+  gap: 3px;
+}
+
+.subscription-settings-page .usage-limit-note {
+  color: var(--muted);
+  font-size: .72rem;
+  font-weight: 750;
+}
+
+.subscription-settings-page .usage-limit-note.is-reached {
+  color: #a91d59;
+}
+
+.subscription-settings-page .billing-payments-panel.is-empty {
+  padding-bottom: 20px;
+}
+
+.subscription-settings-page .billing-empty-state {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  border-top: 1px solid var(--line);
+  padding-top: 16px;
+}
+
+.subscription-settings-page .billing-empty-state strong {
+  color: var(--wine);
+}
+
+.subscription-settings-page .billing-empty-state p {
+  margin: 5px 0 0;
+  color: var(--muted);
+  line-height: 1.45;
+}
+
+.subscription-settings-page .billing-empty-state .button {
+  flex: 0 0 auto;
+}
+
+.subscription-settings-page .payment-state-badge {
+  min-height: 24px;
+  padding: 4px 8px;
+}
+
+@media (max-width: 900px) {
+  .subscription-settings-page .subscription-heading {
+    align-items: flex-start;
+  }
+
+  .subscription-settings-page .billing-empty-state {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
+
+@media (max-width: 620px) {
+  .subscription-settings-page {
+    padding-bottom: 92px;
+  }
+
+  .subscription-settings-page .subscription-plan-heading {
+    gap: 12px;
+  }
+
+  .subscription-settings-page .subscription-state-badge {
+    white-space: normal;
+    text-align: center;
+  }
+
+  .subscription-settings-page .subscription-primary-action,
+  .subscription-settings-page .billing-empty-state .button {
+    width: 100%;
+  }
+}
