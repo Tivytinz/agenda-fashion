@@ -31,6 +31,7 @@ describe("atribuição de marketing nos eventos", () => {
         sessao_id: "sessao_marketing_123",
         negocio_id: 19,
         propriedades: {
+          agendamento_id: 987654321,
           utm_source: "facebook",
           utm_medium: "cpc",
           utm_campaign: "goiania_cilios_agosto",
@@ -39,6 +40,7 @@ describe("atribuição de marketing nos eventos", () => {
           gclid: gclidLongo,
           fbclid: "meta-click-id",
           landing_page: "/negocio/studio-bella",
+          referrer_host: "www.google.com",
           email: "cliente@example.com",
           telefone: "62999999999",
         },
@@ -54,6 +56,7 @@ describe("atribuição de marketing nos eventos", () => {
       usuarioId: null,
       negocioId: 19,
       propriedades: {
+        agendamento_id: 987654321,
         utm_source: "facebook",
         utm_medium: "cpc",
         utm_campaign: "goiania_cilios_agosto",
@@ -62,6 +65,7 @@ describe("atribuição de marketing nos eventos", () => {
         gclid: gclidLongo,
         fbclid: "meta-click-id",
         landing_page: "/negocio/studio-bella",
+        referrer_host: "www.google.com",
       },
     });
   });
@@ -79,5 +83,41 @@ describe("atribuição de marketing nos eventos", () => {
           gclid: "G".repeat(180),
         }).gclid
     ).toHaveLength(180);
+  });
+
+  test("preserva GCLID ao remover etiqueta antiga de campanha profissional", () => {
+    const propriedades = eventoProdutoService
+      .sanitizarPropriedades({
+        utm_source: "google",
+        utm_medium: "cpc",
+        utm_campaign: "aquisicao_profissionais",
+        utm_content: "legado",
+        gclid: "gclid-confirmado-123",
+        landing_page: "/cadastro",
+        referrer_host: "www.google.com",
+      });
+
+    expect(propriedades).toMatchObject({
+      utm_source: "google",
+      utm_medium: "cpc",
+      gclid: "gclid-confirmado-123",
+      landing_page: "/cadastro",
+      referrer_host: "www.google.com",
+    });
+    expect(propriedades).not.toHaveProperty("utm_campaign");
+    expect(propriedades).not.toHaveProperty("utm_content");
+  });
+
+  test("não confunde campanha antiga sem GCLID com tráfego Google confirmado", () => {
+    const propriedades = eventoProdutoService
+      .sanitizarPropriedades({
+        utm_source: "google",
+        utm_medium: "cpc",
+        utm_campaign: "search_aquisicao_profissionais",
+      });
+
+    expect(propriedades).not.toHaveProperty("utm_source");
+    expect(propriedades).not.toHaveProperty("utm_medium");
+    expect(propriedades).not.toHaveProperty("utm_campaign");
   });
 });
