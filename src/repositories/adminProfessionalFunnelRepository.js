@@ -113,33 +113,87 @@ async function listarPorCampanha(
   const resultado =
     await db.query(
       `
-      WITH coorte AS (
+      WITH google_oficial AS (
+        SELECT
+          CASE
+            WHEN COUNT(*) = 1
+              THEN MIN(utm_campaign)
+            ELSE NULL
+          END AS campanha
+        FROM marketing_campanhas
+        WHERE ativo = TRUE
+          AND objetivo = 'profissional'
+          AND LOWER(COALESCE(canal, '')) = 'google'
+          AND LOWER(COALESCE(utm_source, '')) = 'google'
+          AND LOWER(COALESCE(utm_medium, '')) = 'cpc'
+      ),
+
+      coorte AS (
         SELECT
           mua.usuario_id,
-          COALESCE(
-            NULLIF(BTRIM(mua.utm_source), ''),
-            'organico'
-          ) AS origem,
-          COALESCE(
-            NULLIF(BTRIM(mua.utm_medium), ''),
-            'none'
-          ) AS midia,
+          CASE
+            WHEN NULLIF(BTRIM(mua.gclid), '') IS NOT NULL
+              THEN 'google'
+            ELSE COALESCE(
+              NULLIF(BTRIM(mua.utm_source), ''),
+              'organico'
+            )
+          END AS origem,
+          CASE
+            WHEN NULLIF(BTRIM(mua.gclid), '') IS NOT NULL
+              THEN 'cpc'
+            ELSE COALESCE(
+              NULLIF(BTRIM(mua.utm_medium), ''),
+              'none'
+            )
+          END AS midia,
           COALESCE(
             NULLIF(BTRIM(mua.utm_campaign), ''),
+            CASE
+              WHEN NULLIF(BTRIM(mua.gclid), '') IS NOT NULL
+                THEN google_oficial.campanha
+              ELSE NULL
+            END,
             'organico'
           ) AS campanha
         FROM marketing_usuario_atribuicoes mua
+        CROSS JOIN google_oficial
         LEFT JOIN marketing_campanhas mc
-          ON mc.utm_source = NULLIF(BTRIM(mua.utm_source), '')
-          AND mc.utm_medium = COALESCE(
-            NULLIF(BTRIM(mua.utm_medium), ''),
-            'cpc'
+          ON mc.utm_source = CASE
+            WHEN NULLIF(BTRIM(mua.gclid), '') IS NOT NULL
+              THEN 'google'
+            ELSE NULLIF(BTRIM(mua.utm_source), '')
+          END
+          AND mc.utm_medium = CASE
+            WHEN NULLIF(BTRIM(mua.gclid), '') IS NOT NULL
+              THEN 'cpc'
+            ELSE COALESCE(
+              NULLIF(BTRIM(mua.utm_medium), ''),
+              'cpc'
+            )
+          END
+          AND mc.utm_campaign = NULLIF(
+            BTRIM(mua.utm_campaign),
+            ''
           )
-          AND mc.utm_campaign = NULLIF(BTRIM(mua.utm_campaign), '')
         WHERE mua.intencao = 'profissional'
           AND (
-            mc.id IS NULL
-            OR mc.objetivo = 'profissional'
+            (
+              NULLIF(BTRIM(mua.utm_source), '') IS NULL
+              AND NULLIF(BTRIM(mua.utm_medium), '') IS NULL
+              AND NULLIF(BTRIM(mua.utm_campaign), '') IS NULL
+              AND NULLIF(BTRIM(mua.gclid), '') IS NULL
+              AND NULLIF(BTRIM(mua.fbclid), '') IS NULL
+            )
+            OR (
+              mc.id IS NOT NULL
+              AND mc.objetivo = 'profissional'
+            )
+            OR (
+              NULLIF(BTRIM(mua.gclid), '') IS NOT NULL
+              AND NULLIF(BTRIM(mua.utm_campaign), '') IS NULL
+              AND google_oficial.campanha IS NOT NULL
+            )
           )
           ${filtroCoorte}
       ),
