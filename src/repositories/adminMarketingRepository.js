@@ -117,6 +117,22 @@ const MIDIA_PAGA_SQL = `
   )
 `;
 
+const MIDIA_ORGANICA_SQL = `
+  LOWER(COALESCE(${UTM_MEDIUM_SQL}, '')) IN (
+    'organic', 'organico', 'orgânico', 'seo',
+    'social', 'organic_social', 'referral',
+    'email', 'whatsapp', 'messaging'
+  )
+`;
+
+const UTM_PRESENTE_SQL = `
+  (
+    ${UTM_SOURCE_SQL} IS NOT NULL
+    OR ${UTM_MEDIUM_SQL} IS NOT NULL
+    OR ${UTM_CAMPAIGN_SQL} IS NOT NULL
+  )
+`;
+
 const ATRIBUICAO_PAGA_SQL = `
   (
     ${GOOGLE_CLICK_SQL}
@@ -128,11 +144,13 @@ const TRAFEGO_ORGANICO_SQL = `
   (
     NOT ${ATRIBUICAO_PAGA_SQL}
     AND (
-      ${REFERRER_HOST_SQL} IS NOT NULL
-      OR ${FBCLID_SQL} IS NOT NULL
-      OR LOWER(COALESCE(${UTM_MEDIUM_SQL}, '')) IN (
-        'organic', 'organico', 'orgânico', 'seo',
-        'social', 'organic_social', 'referral'
+      ${MIDIA_ORGANICA_SQL}
+      OR (
+        NOT ${UTM_PRESENTE_SQL}
+        AND (
+          ${REFERRER_HOST_SQL} IS NOT NULL
+          OR ${FBCLID_SQL} IS NOT NULL
+        )
       )
     )
   )
@@ -140,9 +158,7 @@ const TRAFEGO_ORGANICO_SQL = `
 
 const ATRIBUICAO_RASTREADA_SQL = `
   (
-    ${UTM_SOURCE_SQL} IS NOT NULL
-    OR ${UTM_MEDIUM_SQL} IS NOT NULL
-    OR ${UTM_CAMPAIGN_SQL} IS NOT NULL
+    ${UTM_PRESENTE_SQL}
     OR ${GOOGLE_CLICK_SQL}
     OR ${FBCLID_SQL} IS NOT NULL
   )
@@ -280,31 +296,51 @@ async function buscarResumo(
           CROSS JOIN google_oficial
           WHERE 1 = 1
             ${filtro}
+        ),
+        sessoes_classificadas AS (
+          SELECT
+            sessao_id,
+            BOOL_OR(pago) AS pago,
+            BOOL_OR(organico) AS organico,
+            BOOL_OR(rastreado) AS rastreado
+          FROM eventos_resolvidos
+          GROUP BY sessao_id
         )
 
         SELECT
-          COUNT(DISTINCT sessao_id)::INT
-            AS total_sessoes,
+          (
+            SELECT COUNT(*)::INT
+            FROM sessoes_classificadas
+          ) AS total_sessoes,
 
-          COUNT(DISTINCT sessao_id) FILTER (
+          (
+            SELECT COUNT(*)::INT
+            FROM sessoes_classificadas
             WHERE pago
-          )::INT AS sessoes,
+          ) AS sessoes,
 
-          COUNT(DISTINCT sessao_id) FILTER (
-            WHERE organico
-          )::INT AS sessoes_organicas,
+          (
+            SELECT COUNT(*)::INT
+            FROM sessoes_classificadas
+            WHERE NOT pago
+              AND organico
+          ) AS sessoes_organicas,
 
-          COUNT(DISTINCT sessao_id) FILTER (
+          (
+            SELECT COUNT(*)::INT
+            FROM sessoes_classificadas
             WHERE NOT pago
               AND NOT organico
               AND NOT rastreado
-          )::INT AS sessoes_autonomas,
+          ) AS sessoes_autonomas,
 
-          COUNT(DISTINCT sessao_id) FILTER (
+          (
+            SELECT COUNT(*)::INT
+            FROM sessoes_classificadas
             WHERE NOT pago
               AND NOT organico
               AND rastreado
-          )::INT AS sessoes_rastreamento_incompleto,
+          ) AS sessoes_rastreamento_incompleto,
 
           COUNT(
             DISTINCT (
