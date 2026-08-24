@@ -6,7 +6,7 @@
 
 .account-page .account-profile-form,
 .account-page .account-password-form,
-.account-page .account-preference-form {
+.account-page .account-whatsapp-preferences {
   min-width: 0;
 }
 
@@ -41,6 +41,12 @@
   line-height: 1.35;
 }
 
+.account-page .account-profile-save {
+  width: auto;
+  min-width: 180px;
+  align-self: flex-end;
+}
+
 .account-page .account-password-field {
   display: grid;
   gap: 7px;
@@ -53,27 +59,35 @@
 
 .account-page .account-password-input-wrap input {
   width: 100%;
-  padding-right: 88px;
+  padding-right: 52px;
 }
 
 .account-page .account-password-toggle {
   position: absolute;
   top: 50%;
-  right: 10px;
-  min-height: 30px;
+  right: 8px;
+  display: inline-flex;
+  width: 36px;
+  height: 36px;
+  align-items: center;
+  justify-content: center;
   transform: translateY(-50%);
   border: 0;
-  border-radius: 8px;
-  padding: 0 8px;
+  border-radius: 999px;
+  padding: 0;
   color: var(--pink-700);
   background: transparent;
-  font-size: .72rem;
-  font-weight: 850;
   cursor: pointer;
 }
 
-.account-page .account-password-toggle:hover {
+.account-page .account-password-toggle:hover,
+.account-page .account-password-toggle:focus-visible {
   background: var(--pink-50);
+}
+
+.account-page .account-password-toggle-icon {
+  width: 19px;
+  height: 19px;
 }
 
 .account-page .account-password-hint,
@@ -96,12 +110,58 @@
   color: #17633c;
 }
 
-.account-page .account-preference-form {
-  gap: 18px;
+.account-page .account-password-form > .button:disabled {
+  opacity: .72;
 }
 
-.account-page .account-preference-form h2 {
+.account-page .account-whatsapp-preferences {
+  display: grid;
+  gap: 0;
+}
+
+.account-page .account-preferences-heading {
+  padding-bottom: 4px;
+}
+
+.account-page .account-preferences-heading h2 {
   margin-bottom: 8px;
+}
+
+.account-page .account-preferences-heading p:last-child {
+  margin-bottom: 0;
+}
+
+.account-page .account-preference-row {
+  display: grid;
+  grid-template-columns: minmax(150px, .72fr) minmax(0, 1.65fr) auto;
+  align-items: center;
+  gap: 18px;
+  border-top: 1px solid var(--line);
+  padding: 18px 0;
+}
+
+.account-page .account-preference-row:first-of-type {
+  margin-top: 14px;
+}
+
+.account-page .account-preference-row:last-child {
+  padding-bottom: 0;
+}
+
+.account-page .account-preference-copy {
+  display: grid;
+  gap: 4px;
+}
+
+.account-page .account-preference-copy strong {
+  color: var(--wine);
+  font-size: .92rem;
+}
+
+.account-page .account-preference-copy span {
+  color: var(--muted);
+  font-size: .78rem;
+  line-height: 1.4;
 }
 
 .account-page .account-switch-field {
@@ -110,14 +170,10 @@
 
 .account-page .account-preference-action {
   width: auto;
-  min-width: 180px;
-  align-self: flex-end;
-}
-
-.account-page .account-preference-action:disabled,
-.account-page .account-profile-form > .button:disabled,
-.account-page .account-password-form > .button:disabled {
-  opacity: .72;
+  min-width: 108px;
+  min-height: 40px;
+  align-self: center;
+  padding-inline: 16px;
 }
 
 .account-page .account-logout-button {
@@ -139,12 +195,28 @@
   flex: 0 0 auto;
 }
 
+@media (max-width: 900px) {
+  .account-page .account-preference-row {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .account-page .account-preference-action {
+    justify-self: start;
+  }
+}
+
 @media (max-width: 620px) {
+  .account-page .account-profile-save,
   .account-page .account-preference-action {
     width: 100%;
   }
 
   .account-page .account-password-input-wrap input {
-    padding-right: 82px;
+    padding-right: 50px;
+  }
+
+  .account-page .account-preference-row {
+    padding: 16px 0;
   }
 }
