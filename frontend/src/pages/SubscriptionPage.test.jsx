@@ -33,7 +33,7 @@ afterEach(() => {
 });
 
 describe("plano e assinatura", () => {
-  it("mostra plano pago escolhido e leva o excesso de limite direto ao checkout", async () => {
+  it("mostra plano para ativar e leva o excesso de limite direto ao checkout", async () => {
     apiRequest.mockResolvedValueOnce({
       plano: { id: 2, slug: "autonoma", nome: "Autônoma", valor: 49.9 },
       assinatura: null,
@@ -52,8 +52,10 @@ describe("plano e assinatura", () => {
     renderPage();
 
     expect(await screen.findByRole("heading", { name: "Plano e assinatura" })).not.toBeNull();
-    expect(screen.getByText("Plano escolhido")).not.toBeNull();
-    expect(screen.getByText("Sem assinatura ativa")).not.toBeNull();
+    expect(screen.getByText("Plano para ativar")).not.toBeNull();
+    expect(screen.getByText("Aguardando assinatura")).not.toBeNull();
+    expect(screen.queryByText("Plano escolhido")).toBeNull();
+    expect(screen.queryByText("Escolhido")).toBeNull();
     expect(screen.queryByText("Forma de pagamento")).toBeNull();
     expect(screen.queryByText("Próxima cobrança")).toBeNull();
     expect(screen.getByText("A assinatura ainda não foi ativada. Ative o Autônoma para liberar os novos limites.")).not.toBeNull();
@@ -111,7 +113,7 @@ describe("plano e assinatura", () => {
     expect(screen.getByRole("link", { name: "Ver planos" })).not.toBeNull();
   });
 
-  it("diferencia assinatura pendente sem repetir a explicação dos limites gratuitos", async () => {
+  it("diferencia pagamento pendente sem tratar o plano como atual", async () => {
     apiRequest.mockResolvedValueOnce({
       plano: { id: 2, slug: "autonoma", nome: "Autônoma", valor: 49.9 },
       assinatura: {
@@ -126,7 +128,8 @@ describe("plano e assinatura", () => {
     renderPage();
 
     expect(await screen.findByText("Pagamento pendente")).not.toBeNull();
-    expect(screen.getByText("Plano escolhido")).not.toBeNull();
+    expect(screen.getByText("Plano para ativar")).not.toBeNull();
+    expect(screen.queryByText("Plano escolhido")).toBeNull();
     expect(screen.queryByText("Enquanto a assinatura não estiver ativa, valem os limites gratuitos.")).toBeNull();
     const effectivePlan = screen.getByText(/Plano em uso:/).closest("p");
     expect(within(effectivePlan).getByText("Grátis")).not.toBeNull();
