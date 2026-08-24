@@ -19,7 +19,7 @@ function subscriptionStatus(plan, subscription) {
   }
 
   if (!subscription) {
-    return { label: "Sem assinatura ativa", tone: "neutral", active: false };
+    return { label: "Aguardando assinatura", tone: "neutral", active: false };
   }
 
   const status = normalizeStatus(subscription.status);
@@ -231,7 +231,7 @@ export function SubscriptionPage() {
         <article className="panel subscription-card subscription-plan-card">
           <div className="panel-heading subscription-plan-heading">
             <div>
-              <p className="eyebrow">{usesFreeFallback ? "Plano escolhido" : "Plano atual"}</p>
+              <p className="eyebrow">{usesFreeFallback ? "Plano para ativar" : "Plano atual"}</p>
               <h2>{plan.nome || "Plano grátis"}</h2>
             </div>
             <span className={`subscription-state-badge is-${state.tone}`}>{state.label}</span>
@@ -263,7 +263,7 @@ export function SubscriptionPage() {
               <p>
                 {isFree
                   ? "Seu plano gratuito não possui cobrança mensal."
-                  : `A assinatura ainda não foi ativada. Ative o ${plan.nome || "plano escolhido"} para liberar os novos limites.`}
+                  : `A assinatura ainda não foi ativada. Ative o ${plan.nome || "plano"} para liberar os novos limites.`}
               </p>
               {needsSubscription && (
                 <Link className="button subscription-primary-action" to={checkoutTarget}>
