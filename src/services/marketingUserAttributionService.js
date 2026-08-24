@@ -7,6 +7,9 @@ const marketingUserAttributionRepository =
     "../repositories/marketingUserAttributionRepository"
   );
 
+const CAMPANHA_GOOGLE_PROFISSIONAIS_OFICIAL =
+  "google_ads_profissionais";
+
 const INTENCOES = new Set([
   "indefinida",
   "cliente",
@@ -89,6 +92,76 @@ function normalizarLanding(valor) {
   return landing;
 }
 
+function ehGoogle(
+  origem,
+  gclid
+) {
+  return String(
+    origem || ""
+  ).trim().toLowerCase() === "google" ||
+    Boolean(gclid);
+}
+
+function campanhaOficial(
+  campanha
+) {
+  return String(
+    campanha || ""
+  ).trim().toLowerCase() ===
+    CAMPANHA_GOOGLE_PROFISSIONAIS_OFICIAL;
+}
+
+function limparGoogleProfissionalNaoOficial(
+  marketing
+) {
+  if (
+    marketing.intencao !==
+      "profissional"
+  ) {
+    return marketing;
+  }
+
+  if (
+    ehGoogle(
+      marketing.utmSource,
+      marketing.gclid
+    ) &&
+    !campanhaOficial(
+      marketing.utmCampaign
+    )
+  ) {
+    marketing.utmSource = null;
+    marketing.utmMedium = null;
+    marketing.utmCampaign = null;
+    marketing.utmContent = null;
+    marketing.utmTerm = null;
+    marketing.gclid = null;
+    marketing.fbclid = null;
+    marketing.landingPage = null;
+  }
+
+  if (
+    ehGoogle(
+      marketing.lastUtmSource,
+      marketing.lastGclid
+    ) &&
+    !campanhaOficial(
+      marketing.lastUtmCampaign
+    )
+  ) {
+    marketing.lastUtmSource = null;
+    marketing.lastUtmMedium = null;
+    marketing.lastUtmCampaign = null;
+    marketing.lastUtmContent = null;
+    marketing.lastUtmTerm = null;
+    marketing.lastGclid = null;
+    marketing.lastFbclid = null;
+    marketing.lastLandingPage = null;
+  }
+
+  return marketing;
+}
+
 function normalizarMarketing(
   marketing = {}
 ) {
@@ -99,7 +172,7 @@ function normalizarMarketing(
       ? marketing
       : {};
 
-  return {
+  const normalizado = {
     intencao:
       normalizarIntencao(
         entrada.intencao
@@ -202,6 +275,10 @@ function normalizarMarketing(
         entrada.lastLandingPage
       ),
   };
+
+  return limparGoogleProfissionalNaoOficial(
+    normalizado
+  );
 }
 
 async function registrarContaCriada({
@@ -235,4 +312,6 @@ module.exports = {
   registrarContaCriada,
   marcarIntencaoProfissional,
   normalizarMarketing,
+  limparGoogleProfissionalNaoOficial,
+  CAMPANHA_GOOGLE_PROFISSIONAIS_OFICIAL,
 };
