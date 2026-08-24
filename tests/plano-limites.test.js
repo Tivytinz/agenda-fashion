@@ -9,6 +9,7 @@ const planoService = require(
 function criarPlano({
   capacidade = 10,
   utilizados = 0,
+  servicosUtilizados = 1,
 } = {}) {
   return {
     negocio_id: 1,
@@ -23,7 +24,7 @@ function criarPlano({
     destaque: false,
     utilizados,
     profissionais_utilizados: 1,
-    servicos_utilizados: 1,
+    servicos_utilizados: servicosUtilizados,
   };
 }
 
@@ -71,6 +72,41 @@ describe("Limites dos planos", () => {
           "COALESCE($2::date, CURRENT_DATE)"
         ),
         [1, "2026-07-20"]
+      );
+    }
+  );
+
+  test(
+    "plano Grátis mantém somente dois serviços ativos",
+    async () => {
+      const executor = {
+        query: jest
+          .fn()
+          .mockResolvedValueOnce({ rows: [] })
+          .mockResolvedValueOnce({
+            rows: [
+              criarPlano({
+                servicosUtilizados: 4,
+              }),
+            ],
+          })
+          .mockResolvedValueOnce({
+            rows: [{ total: 2 }],
+          }),
+      };
+
+      const uso = await planoService.buscarUsoPlano(
+        1,
+        executor
+      );
+
+      expect(uso.servicos_utilizados).toBe(2);
+      expect(executor.query).toHaveBeenNthCalledWith(
+        3,
+        expect.stringContaining(
+          "UPDATE servicos_negocio"
+        ),
+        [1, 2]
       );
     }
   );
