@@ -27,6 +27,61 @@ async function bloquearUsoPlano(client, negocioId) {
     );
 }
 
+async function reconciliarServicosPlanoGratis(
+    negocioId,
+    limiteServicos,
+    servicosUtilizados,
+    executor
+) {
+    const limite = Number(limiteServicos);
+    const utilizados = Number(servicosUtilizados || 0);
+
+    if (
+        !Number.isInteger(limite) ||
+        limite < 0 ||
+        utilizados <= limite
+    ) {
+        return utilizados;
+    }
+
+    const ajuste = await executor.query(
+        `
+        WITH manter AS (
+          SELECT id
+          FROM servicos_negocio
+          WHERE negocio_id = $1
+            AND ativo = TRUE
+          ORDER BY id ASC
+          LIMIT $2
+        ),
+        desativados AS (
+          UPDATE servicos_negocio s
+          SET ativo = FALSE
+          WHERE s.negocio_id = $1
+            AND s.ativo = TRUE
+            AND NOT EXISTS (
+              SELECT 1
+              FROM manter m
+              WHERE m.id = s.id
+            )
+          RETURNING s.id
+        )
+        SELECT COUNT(*)::int AS total
+        FROM desativados
+        `,
+        [negocioId, limite]
+    );
+
+    const desativados = Number(
+        ajuste.rows[0]?.total || 0
+    );
+
+    return Math.max(
+        utilizados - desativados,
+        0
+    );
+}
+
 async function buscarUsoPlano(
     negocioId,
     executor = db,
@@ -138,6 +193,27 @@ async function buscarUsoPlano(
     const capacidade = plano.capacidade_agendamentos;
     const utilizados = Number(plano.utilizados || 0);
     const ilimitado = capacidade === null;
+    const limiteServicos = plano.limite_servicos === null
+        ? null
+        : Number(plano.limite_servicos);
+
+    let servicosUtilizados = Number(
+        plano.servicos_utilizados || 0
+    );
+
+    if (
+        plano.plano_slug === "inicial" &&
+        limiteServicos !== null &&
+        servicosUtilizados > limiteServicos
+    ) {
+        servicosUtilizados =
+            await reconciliarServicosPlanoGratis(
+                negocioId,
+                limiteServicos,
+                servicosUtilizados,
+                executor
+            );
+    }
 
     const restantes = ilimitado
         ? null
@@ -190,7 +266,7 @@ async function buscarUsoPlano(
 
         utilizados,
         profissionais_utilizados: Number(plano.profissionais_utilizados || 0),
-        servicos_utilizados: Number(plano.servicos_utilizados || 0),
+        servicos_utilizados: servicosUtilizados,
         restantes,
         percentual,
         ilimitado,
