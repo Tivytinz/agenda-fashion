@@ -45,6 +45,18 @@ function buildNextAction({ completedBookings, profileVisits }) {
   };
 }
 
+function customerOriginHint(item) {
+  if (item?.codigo === "autonomo") {
+    return "Sem sinal de anúncio. Pode ser acesso direto, favorito ou link compartilhado.";
+  }
+
+  if (item?.codigo === "nao_identificado") {
+    return "O agendamento existe, mas faltou rastreamento suficiente para identificar a origem.";
+  }
+
+  return item?.descricao || "Origem identificada pelo primeiro agendamento conhecido.";
+}
+
 export function DashboardPage() {
   const [period, setPeriod] = useState("7dias");
   const [data, setData] = useState(null);
@@ -63,11 +75,25 @@ export function DashboardPage() {
 
     setError("");
     setRefreshing(true);
-    apiRequest(`/dashboard-dono?periodo=${period}`, {
-      signal: controller.signal
-    })
-      .then((result) => {
-        if (active) setData(result);
+
+    Promise.all([
+      apiRequest(`/dashboard-dono?periodo=${period}`, {
+        signal: controller.signal
+      }),
+      apiRequest(`/dashboard-dono/origem-clientes?periodo=${period}`, {
+        signal: controller.signal
+      }).catch((requestError) => {
+        if (requestError.name === "AbortError") throw requestError;
+        return null;
+      })
+    ])
+      .then(([result, customerOrigin]) => {
+        if (active) {
+          setData({
+            ...result,
+            origem_clientes: customerOrigin
+          });
+        }
       })
       .catch((requestError) => {
         if (active && requestError.name !== "AbortError") {
@@ -125,6 +151,11 @@ export function DashboardPage() {
 
   const summary = data.resumo || {};
   const performance = data.performance || {};
+  const customerOrigin = data.origem_clientes || {};
+  const customerOriginSummary = customerOrigin.resumo || {};
+  const customerOrigins = Array.isArray(customerOrigin.origens)
+    ? customerOrigin.origens
+    : [];
   const newClients = Number(summary.clientes_novos) || 0;
   const profileVisits = Number(performance.visitas_perfil) || 0;
   const completedBookings = Number(performance.agendamentos_concluidos) || 0;
@@ -176,6 +207,75 @@ export function DashboardPage() {
             <small>{hint}</small>
           </article>
         ))}
+      </section>
+
+      <section className="panel" aria-label="Origem dos clientes">
+        <div className="panel-heading">
+          <div>
+            <p className="eyebrow">Aquisição de clientes</p>
+            <h2>De onde vieram seus clientes</h2>
+            <p className="muted">
+              Cada pessoa conta uma vez. A origem é definida pelo primeiro agendamento conhecido e os retornos continuam ligados à origem que trouxe o cliente.
+            </p>
+          </div>
+        </div>
+
+        {customerOrigin ? (
+          <>
+            <dl className="data-list">
+              <div>
+                <dt>Clientes no período</dt>
+                <dd>{customerOriginSummary.clientes ?? 0}</dd>
+              </div>
+              <div>
+                <dt>Novos</dt>
+                <dd>{customerOriginSummary.clientesNovos ?? 0}</dd>
+              </div>
+              <div>
+                <dt>Recorrentes</dt>
+                <dd>{customerOriginSummary.clientesRecorrentes ?? 0}</dd>
+              </div>
+            </dl>
+
+            {customerOrigins.length > 0 ? (
+              <div className="table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Origem</th>
+                      <th>Clientes</th>
+                      <th>Participação</th>
+                      <th>Agendamentos</th>
+                      <th>Faturamento</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {customerOrigins.map((item) => (
+                      <tr key={item.codigo}>
+                        <td>
+                          <strong>{item.rotulo}</strong>
+                          <div><small className="muted">{customerOriginHint(item)}</small></div>
+                        </td>
+                        <td>{item.clientes ?? 0}</td>
+                        <td>{formatPercent(item.percentualClientes)}%</td>
+                        <td>{item.agendamentos ?? 0}</td>
+                        <td>{formatCurrency(item.faturamento)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <p className="muted">Ainda não há clientes suficientes para mostrar a origem neste período.</p>
+            )}
+
+            <p className="muted">
+              <strong>Acesso autônomo</strong> significa que não houve sinal de anúncio pago. Pode ser acesso direto, favorito, busca/link sem rastreamento ou link compartilhado. <strong>Origem não identificada</strong> significa que faltam dados históricos para concluir por onde o cliente chegou.
+            </p>
+          </>
+        ) : (
+          <p className="muted">A origem dos clientes está temporariamente indisponível. Os demais indicadores continuam válidos.</p>
+        )}
       </section>
 
       <section className="dashboard-grid">
