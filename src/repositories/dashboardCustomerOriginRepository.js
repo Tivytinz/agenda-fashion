@@ -42,7 +42,6 @@ async function buscarOrigemClientes(
         a.id,
         a.data,
         a.horario,
-        a.created_at,
         a.valor_servico,
         a.servico_id,
         COALESCE(
@@ -81,8 +80,8 @@ async function buscarOrigemClientes(
     clientes_periodo AS (
       SELECT
         a.cliente_chave,
-        MIN(pv.primeira_data) AS primeira_data,
-        MIN(pv.primeiro_agendamento_id) AS primeiro_agendamento_id,
+        pv.primeira_data,
+        pv.primeiro_agendamento_id,
         COUNT(a.id)::int AS agendamentos,
         COALESCE(
           SUM(
@@ -101,7 +100,10 @@ async function buscarOrigemClientes(
         ON s.id = a.servico_id
       CROSS JOIN parametros p
       WHERE a.data BETWEEN p.inicio AND p.hoje
-      GROUP BY a.cliente_chave
+      GROUP BY
+        a.cliente_chave,
+        pv.primeira_data,
+        pv.primeiro_agendamento_id
     ),
     clientes_com_origem AS (
       SELECT
