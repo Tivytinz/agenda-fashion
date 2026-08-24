@@ -92,14 +92,22 @@ function normalizarLanding(valor) {
   return landing;
 }
 
+function primeiroSinalGoogle(...valores) {
+  for (const valor of valores) {
+    const normalizado = normalizarTexto(valor, 200);
+    if (normalizado) return normalizado;
+  }
+  return null;
+}
+
 function ehGoogle(
   origem,
-  gclid
+  sinalGoogle
 ) {
   return String(
     origem || ""
   ).trim().toLowerCase() === "google" ||
-    Boolean(gclid);
+    Boolean(sinalGoogle);
 }
 
 function campanhaOficial(
@@ -124,10 +132,10 @@ function limparToqueGoogleNaoOficial(
     landing,
   }
 ) {
-  const temGclid =
+  const temSinalGoogle =
     Boolean(marketing[gclid]);
 
-  if (temGclid) {
+  if (temSinalGoogle) {
     marketing[source] = "google";
     marketing[medium] = "cpc";
     marketing[fbclid] = null;
@@ -265,14 +273,15 @@ function normalizarMarketing(
         140
       ),
     gclid:
-      normalizarTexto(
+      primeiroSinalGoogle(
         entrada.gclid,
-        160
+        entrada.gbraid,
+        entrada.wbraid
       ),
     fbclid:
       normalizarTexto(
         entrada.fbclid,
-        160
+        200
       ),
     landingPage:
       normalizarLanding(
@@ -310,16 +319,16 @@ function normalizarMarketing(
         140
       ),
     lastGclid:
-      normalizarTexto(
-        entrada.last_gclid ??
-        entrada.lastGclid,
-        160
+      primeiroSinalGoogle(
+        entrada.last_gclid ?? entrada.lastGclid,
+        entrada.last_gbraid ?? entrada.lastGbraid,
+        entrada.last_wbraid ?? entrada.lastWbraid
       ),
     lastFbclid:
       normalizarTexto(
         entrada.last_fbclid ??
         entrada.lastFbclid,
-        160
+        200
       ),
     lastLandingPage:
       normalizarLanding(
@@ -365,5 +374,6 @@ module.exports = {
   marcarIntencaoProfissional,
   normalizarMarketing,
   limparGoogleProfissionalNaoOficial,
+  primeiroSinalGoogle,
   CAMPANHA_GOOGLE_PROFISSIONAIS_OFICIAL,
 };
