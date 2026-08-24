@@ -7,7 +7,6 @@ import {
 const SESSION_KEY = "af_produto_sessao";
 const ATTRIBUTION_KEY = "af_marketing_attribution";
 const REFERRER_KEY = "af_acquisition_referrer_host";
-const DIRECT_REFERRER = "__direct__";
 const ATTRIBUTION_VERSION = 2;
 const ATTRIBUTION_WINDOW_MS = 30 * 24 * 60 * 60 * 1000;
 
@@ -51,42 +50,6 @@ function sessionId() {
   return created;
 }
 
-function acquisitionReferrerHost() {
-  const stored = readBrowserStorage("session", REFERRER_KEY);
-
-  if (stored) {
-    return stored === DIRECT_REFERRER ? "" : stored;
-  }
-
-  let host = "";
-
-  try {
-    const referrer = String(document.referrer || "").trim();
-
-    if (referrer) {
-      const parsed = new URL(referrer);
-      const currentOrigin = String(window.location.origin || "");
-
-      if (parsed.origin !== currentOrigin) {
-        host = parsed.hostname
-          .trim()
-          .toLowerCase()
-          .slice(0, 200);
-      }
-    }
-  } catch {
-    host = "";
-  }
-
-  writeBrowserStorage(
-    "session",
-    REFERRER_KEY,
-    host || DIRECT_REFERRER
-  );
-
-  return host;
-}
-
 function safeObject(value) {
   return value &&
     typeof value === "object" &&
@@ -105,6 +68,69 @@ function parseStored(raw) {
   } catch {
     return null;
   }
+}
+
+function currentExternalReferrerHost() {
+  try {
+    const referrer = String(document.referrer || "").trim();
+
+    if (!referrer) {
+      return "";
+    }
+
+    const parsed = new URL(referrer);
+    const currentOrigin = String(window.location.origin || "");
+
+    if (parsed.origin === currentOrigin) {
+      return "";
+    }
+
+    return parsed.hostname
+      .trim()
+      .toLowerCase()
+      .slice(0, 200);
+  } catch {
+    return "";
+  }
+}
+
+function acquisitionReferrerHost() {
+  const now = Date.now();
+  const stored = parseStored(
+    readBrowserStorage("local", REFERRER_KEY)
+  );
+  const storedHost = String(stored?.host || "").trim();
+  const storedExpiresAt = Number(stored?.expires_at);
+
+  if (
+    storedHost &&
+    Number.isFinite(storedExpiresAt) &&
+    storedExpiresAt > now
+  ) {
+    return storedHost.slice(0, 200);
+  }
+
+  if (stored) {
+    removeBrowserStorage("local", REFERRER_KEY);
+  }
+
+  const host = currentExternalReferrerHost();
+
+  if (!host) {
+    return "";
+  }
+
+  writeBrowserStorage(
+    "local",
+    REFERRER_KEY,
+    JSON.stringify({
+      host,
+      captured_at: new Date(now).toISOString(),
+      expires_at: now + ATTRIBUTION_WINDOW_MS
+    })
+  );
+
+  return host;
 }
 
 function legacyTouch(stored, capturedAt) {
