@@ -10,11 +10,44 @@ const DECISAO_PADRAO = Object.freeze({
   minimoAssinaturas: 2,
 });
 
+const GOOGLE_PROFISSIONAIS_CANONICA = Object.freeze({
+  origem: "google",
+  midia: "cpc",
+  campanha: "google_ads_profissionais",
+});
+
+const GOOGLE_PROFISSIONAIS_ALIASES = new Set([
+  "aquisicao_profissionais",
+  "search_aquisicao_profissionais",
+  "google_ads_profissionais",
+  "profissionais_google_ads",
+]);
+
+const CAMPOS_SOMA = Object.freeze([
+  "cadastros",
+  "negocios_criados",
+  "servicos_criados",
+  "agendas_configuradas",
+  "negocios_publicados",
+  "checkouts_iniciados",
+  "assinaturas_ativadas",
+  "investimento_centavos",
+  "receita_primeiro_pagamento_centavos",
+]);
+
 function numero(valor) {
   const convertido = Number(valor);
   return Number.isFinite(convertido)
     ? convertido
     : 0;
+}
+
+function texto(valor) {
+  return String(valor || "").trim();
+}
+
+function textoChave(valor) {
+  return texto(valor).toLowerCase();
 }
 
 function numeroPositivo(
@@ -115,6 +148,88 @@ function calcularRoas(
       investimentoCentavos
     ).toFixed(2)
   );
+}
+
+function identidadeExata(linha) {
+  return {
+    origem: texto(linha?.origem) || "organico",
+    midia: texto(linha?.midia) || "none",
+    campanha: texto(linha?.campanha) || "organico",
+  };
+}
+
+function identidadeCanonica(linha) {
+  const exata = identidadeExata(linha);
+  const origem = textoChave(exata.origem);
+  const midia = textoChave(exata.midia);
+  const campanha = textoChave(exata.campanha);
+
+  if (
+    origem === "google" &&
+    midia === "cpc" &&
+    GOOGLE_PROFISSIONAIS_ALIASES.has(campanha)
+  ) {
+    return GOOGLE_PROFISSIONAIS_CANONICA;
+  }
+
+  return exata;
+}
+
+function chaveIdentidade(identidade) {
+  return [
+    textoChave(identidade.origem),
+    textoChave(identidade.midia),
+    textoChave(identidade.campanha),
+  ].join("|");
+}
+
+function consolidarLinhasCampanha(linhas = []) {
+  const grupos = new Map();
+
+  for (const linha of linhas) {
+    const exata = identidadeExata(linha);
+    const canonica = identidadeCanonica(linha);
+    const chave = chaveIdentidade(canonica);
+
+    if (!grupos.has(chave)) {
+      grupos.set(chave, {
+        origem: canonica.origem,
+        midia: canonica.midia,
+        campanha: canonica.campanha,
+        identidades_utm: [],
+        ...Object.fromEntries(
+          CAMPOS_SOMA.map((campo) => [campo, 0])
+        ),
+      });
+    }
+
+    const grupo = grupos.get(chave);
+
+    for (const campo of CAMPOS_SOMA) {
+      grupo[campo] += numero(linha?.[campo]);
+    }
+
+    const chaveExata = chaveIdentidade(exata);
+    const jaIncluida = grupo.identidades_utm.some(
+      (identidade) =>
+        chaveIdentidade(identidade) === chaveExata
+    );
+
+    if (!jaIncluida) {
+      grupo.identidades_utm.push(exata);
+    }
+  }
+
+  return Array.from(grupos.values()).map((grupo) => ({
+    ...grupo,
+    identidades_utm: grupo.identidades_utm.sort(
+      (a, b) =>
+        chaveIdentidade(a).localeCompare(
+          chaveIdentidade(b),
+          "pt-BR"
+        )
+    ),
+  }));
 }
 
 function recomendarCampanha(
@@ -248,6 +363,9 @@ function mapearLinha(
     );
   const investimentoCentavos =
     numero(linha.investimento_centavos);
+  const identidadesUtm = Array.isArray(linha.identidades_utm)
+    ? linha.identidades_utm
+    : [identidadeExata(linha)];
 
   const campanha = {
     origem:
@@ -256,6 +374,9 @@ function mapearLinha(
       linha.midia,
     campanha:
       linha.campanha,
+    identidadesUtm,
+    consolidada:
+      identidadesUtm.length > 1,
     cadastros,
     negociosCriados,
     servicosCriados,
@@ -374,8 +495,11 @@ async function buscarFunil({
         periodoNormalizado
       );
 
+  const linhasConsolidadas =
+    consolidarLinhasCampanha(bruto);
+
   const campanhas =
-    bruto.map(
+    linhasConsolidadas.map(
       (linha) =>
         mapearLinha(
           linha,
@@ -500,6 +624,8 @@ async function buscarFunil({
 module.exports = {
   buscarFunil,
   mapearLinha,
+  consolidarLinhasCampanha,
+  identidadeCanonica,
   percentual,
   custoUnitario,
   calcularRoas,
