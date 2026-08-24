@@ -33,7 +33,7 @@ afterEach(() => {
 });
 
 describe("plano e assinatura", () => {
-  it("mostra plano pago escolhido e os limites gratuitos enquanto não há assinatura", async () => {
+  it("mostra plano pago escolhido e leva o excesso de limite direto ao checkout", async () => {
     apiRequest.mockResolvedValueOnce({
       plano: { id: 2, slug: "autonoma", nome: "Autônoma", valor: 49.9 },
       assinatura: null,
@@ -56,10 +56,13 @@ describe("plano e assinatura", () => {
     expect(screen.getByText("Sem assinatura ativa")).not.toBeNull();
     expect(screen.queryByText("Forma de pagamento")).toBeNull();
     expect(screen.queryByText("Próxima cobrança")).toBeNull();
-    expect(screen.getByText("A assinatura ainda não foi ativada. Seus limites permanecem no plano Grátis até a confirmação do pagamento.")).not.toBeNull();
+    expect(screen.getByText("A assinatura ainda não foi ativada. Ative o Autônoma para liberar os novos limites.")).not.toBeNull();
 
-    const subscribe = screen.getByRole("link", { name: "Assinar Autônoma" });
-    expect(subscribe.getAttribute("href")).toBe("/checkout?plano=autonoma");
+    const subscribeLinks = screen.getAllByRole("link", { name: "Assinar Autônoma" });
+    expect(subscribeLinks).toHaveLength(2);
+    subscribeLinks.forEach((subscribe) => {
+      expect(subscribe.getAttribute("href")).toBe("/checkout?plano=autonoma");
+    });
     expect(screen.getByRole("link", { name: "Escolher plano" }).getAttribute("href"))
       .toBe("/planos");
 
@@ -67,7 +70,7 @@ describe("plano e assinatura", () => {
     const effectivePlan = screen.getByText(/Plano em uso:/).closest("p");
     expect(effectivePlan).not.toBeNull();
     expect(within(effectivePlan).getByText("Grátis")).not.toBeNull();
-    expect(screen.getByText("Enquanto a assinatura não estiver ativa, valem os limites gratuitos.")).not.toBeNull();
+    expect(screen.queryByText("Enquanto a assinatura não estiver ativa, valem os limites gratuitos.")).toBeNull();
     expect(screen.getByText("2 de 10 agendamentos · 8 disponíveis")).not.toBeNull();
     expect(screen.getByText("1 / 1")).not.toBeNull();
     expect(screen.getByText("Limite atingido").classList.contains("is-reached")).toBe(true);
@@ -76,8 +79,9 @@ describe("plano e assinatura", () => {
 
     const overLimit = screen.getByRole("status");
     expect(overLimit.textContent).toContain("Você possui 3 serviços. O plano em uso permite 2.");
-    expect(within(overLimit).getByRole("link", { name: "Ver planos" }).getAttribute("href"))
-      .toBe("/planos");
+    expect(overLimit.textContent).toContain("Ative o Autônoma para liberar novos limites.");
+    expect(within(overLimit).getByRole("link", { name: "Assinar Autônoma" }).getAttribute("href"))
+      .toBe("/checkout?plano=autonoma");
     expect(screen.getByText("Nenhum pagamento registrado ainda.")).not.toBeNull();
   });
 
@@ -102,11 +106,12 @@ describe("plano e assinatura", () => {
     expect(screen.getByText("Forma de pagamento")).not.toBeNull();
     expect(screen.getByText("PIX")).not.toBeNull();
     expect(screen.getByText("Próxima cobrança")).not.toBeNull();
+    expect(screen.getByText("Acompanhe o que já foi usado e o que ainda está disponível.")).not.toBeNull();
     expect(screen.getByRole("button", { name: "Cancelar renovação" })).not.toBeNull();
     expect(screen.getByRole("link", { name: "Ver planos" })).not.toBeNull();
   });
 
-  it("diferencia assinatura pendente de assinatura ativa e mantém limites gratuitos", async () => {
+  it("diferencia assinatura pendente sem repetir a explicação dos limites gratuitos", async () => {
     apiRequest.mockResolvedValueOnce({
       plano: { id: 2, slug: "autonoma", nome: "Autônoma", valor: 49.9 },
       assinatura: {
@@ -122,7 +127,9 @@ describe("plano e assinatura", () => {
 
     expect(await screen.findByText("Pagamento pendente")).not.toBeNull();
     expect(screen.getByText("Plano escolhido")).not.toBeNull();
-    expect(screen.getByText("Enquanto a assinatura não estiver ativa, valem os limites gratuitos.")).not.toBeNull();
+    expect(screen.queryByText("Enquanto a assinatura não estiver ativa, valem os limites gratuitos.")).toBeNull();
+    const effectivePlan = screen.getByText(/Plano em uso:/).closest("p");
+    expect(within(effectivePlan).getByText("Grátis")).not.toBeNull();
     expect(screen.queryByRole("button", { name: "Cancelar renovação" })).toBeNull();
   });
 
