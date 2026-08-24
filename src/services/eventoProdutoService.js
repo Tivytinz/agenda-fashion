@@ -109,6 +109,18 @@ const CHAVES_PROPRIEDADES =
     "landing_page",
   ]);
 
+const LIMITES_PROPRIEDADES_TEXTO =
+  Object.freeze({
+    utm_source: 80,
+    utm_medium: 80,
+    utm_campaign: 140,
+    utm_content: 140,
+    utm_term: 140,
+    gclid: 200,
+    fbclid: 200,
+    landing_page: 500,
+  });
+
 function erroValidacao(
   mensagem
 ) {
@@ -149,6 +161,7 @@ function normalizarInteiroPositivo(
 }
 
 function normalizarValorPropriedade(
+  chave,
   valor
 ) {
   if (
@@ -175,7 +188,9 @@ function normalizarValorPropriedade(
   ) {
     return normalizarTexto(
       valor,
-      60
+      LIMITES_PROPRIEDADES_TEXTO[
+        chave
+      ] || 60
     );
   }
 
@@ -216,6 +231,7 @@ function sanitizarPropriedades(
 
     const valorNormalizado =
       normalizarValorPropriedade(
+        chave,
         valor
       );
 
@@ -370,4 +386,5 @@ module.exports = {
   PAGINAS_PERMITIDAS,
   MISSOES_PERMITIDAS,
   CAMPANHAS_GOOGLE_PROFISSIONAIS_LEGADAS,
+  LIMITES_PROPRIEDADES_TEXTO,
 };
