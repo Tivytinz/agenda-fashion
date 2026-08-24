@@ -1,7 +1,7 @@
 const crypto = require("crypto");
 
 const {
-  processarStatusWhatsapp,
+  processarWebhookWhatsapp,
 } = require(
   "../services/whatsappWebhookService"
 );
@@ -79,7 +79,7 @@ async function receberStatus(
 ) {
   try {
     const resultado =
-      await processarStatusWhatsapp(
+      await processarWebhookWhatsapp(
         req.body
       );
 

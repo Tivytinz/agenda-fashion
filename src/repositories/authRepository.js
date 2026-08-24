@@ -12,8 +12,18 @@ const CAMPOS_USUARIO = `
     whatsapp_notificacoes_consentido_em IS NOT NULL
     AND whatsapp_notificacoes_cancelado_em IS NULL
   ) AS aceita_notificacoes_whatsapp,
+  whatsapp_operacional_consentido_em,
+  whatsapp_operacional_cancelado_em,
+  (
+    whatsapp_operacional_consentido_em IS NOT NULL
+    AND whatsapp_operacional_cancelado_em IS NULL
+  ) AS aceita_alertas_operacionais_whatsapp,
   whatsapp_marketing_consentido_em,
   whatsapp_marketing_cancelado_em,
+  (
+    whatsapp_marketing_consentido_em IS NOT NULL
+    AND whatsapp_marketing_cancelado_em IS NULL
+  ) AS aceita_lembretes_whatsapp,
   google_sub,
   ativo,
   email_verificado_em,
@@ -75,6 +85,18 @@ async function buscarUsuarioPorId(
           whatsapp_notificacoes_consentido_em IS NOT NULL
           AND whatsapp_notificacoes_cancelado_em IS NULL
         ) AS aceita_notificacoes_whatsapp,
+        whatsapp_operacional_consentido_em,
+        whatsapp_operacional_cancelado_em,
+        (
+          whatsapp_operacional_consentido_em IS NOT NULL
+          AND whatsapp_operacional_cancelado_em IS NULL
+        ) AS aceita_alertas_operacionais_whatsapp,
+        whatsapp_marketing_consentido_em,
+        whatsapp_marketing_cancelado_em,
+        (
+          whatsapp_marketing_consentido_em IS NOT NULL
+          AND whatsapp_marketing_cancelado_em IS NULL
+        ) AS aceita_lembretes_whatsapp,
         google_sub,
         ativo,
         email_verificado_em,
@@ -97,40 +119,91 @@ async function criarUsuario({
   email,
   senha,
   whatsapp,
+  aceitaAlertasWhatsapp = false,
   aceitaLembretesWhatsapp = false,
   aceitaNotificacoesWhatsapp = false,
 }) {
   const resultado =
     await db.query(
       `
-      INSERT INTO usuarios (
-        nome,
-        email,
-        senha,
-        whatsapp,
-        whatsapp_notificacoes_consentido_em,
-        whatsapp_notificacoes_cancelado_em,
-        whatsapp_marketing_consentido_em
+      WITH novo_usuario AS (
+        INSERT INTO usuarios (
+          nome,
+          email,
+          senha,
+          whatsapp,
+          whatsapp_notificacoes_consentido_em,
+          whatsapp_notificacoes_cancelado_em,
+          whatsapp_operacional_consentido_em,
+          whatsapp_marketing_consentido_em
+        )
+        VALUES (
+          $1,
+          $2,
+          $3,
+          $4,
+          CASE
+            WHEN $5::BOOLEAN THEN NOW()
+            ELSE NULL
+          END,
+          CASE
+            WHEN $5::BOOLEAN THEN NULL
+            ELSE NOW()
+          END,
+          CASE
+            WHEN $6::BOOLEAN THEN NOW()
+            ELSE NULL
+          END,
+          CASE
+            WHEN $7::BOOLEAN THEN NOW()
+            ELSE NULL
+          END
+        )
+        RETURNING ${CAMPOS_USUARIO}
+      ),
+      consentimentos AS (
+        INSERT INTO whatsapp_consentimentos (
+          usuario_id,
+          telefone,
+          escopo,
+          acao,
+          origem,
+          texto_versao
+        )
+        SELECT
+          novo_usuario.id,
+          novo_usuario.whatsapp,
+          consentimento.escopo,
+          'CONSENTIDO',
+          'CADASTRO',
+          consentimento.texto_versao
+        FROM novo_usuario
+        CROSS JOIN (
+          VALUES
+            (
+              $5::BOOLEAN,
+              'OPERACIONAL_CLIENTE',
+              'cadastro-cliente-v1'
+            ),
+            (
+              $6::BOOLEAN,
+              'OPERACIONAL_PROFISSIONAL',
+              'cadastro-operacional-v1'
+            ),
+            (
+              $7::BOOLEAN,
+              'MARKETING_PROFISSIONAL',
+              'cadastro-marketing-v2'
+            )
+        ) AS consentimento(
+          consentido,
+          escopo,
+          texto_versao
+        )
+        WHERE consentimento.consentido
       )
-      VALUES (
-        $1,
-        $2,
-        $3,
-        $4,
-        CASE
-          WHEN $5::BOOLEAN THEN NOW()
-          ELSE NULL
-        END,
-        CASE
-          WHEN $5::BOOLEAN THEN NULL
-          ELSE NOW()
-        END,
-        CASE
-          WHEN $6::BOOLEAN THEN NOW()
-          ELSE NULL
-        END
-      )
-      RETURNING ${CAMPOS_USUARIO}
+      SELECT *
+      FROM novo_usuario
       `,
       [
         nome,
@@ -138,6 +211,7 @@ async function criarUsuario({
         senha,
         whatsapp,
         aceitaNotificacoesWhatsapp,
+        aceitaAlertasWhatsapp,
         aceitaLembretesWhatsapp,
       ]
     );

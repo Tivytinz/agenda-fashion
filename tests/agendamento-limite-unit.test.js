@@ -53,6 +53,11 @@ describe("Limite durante a criação do agendamento", () => {
     agendaPublicaRepository.criarAgendamento.mockResolvedValue({
       id: 99,
     });
+    agendaPublicaRepository
+      .registrarConsentimentoWhatsappAgendamento
+      .mockResolvedValue({
+        id: 70,
+      });
 
     const resultado = await agendamentoPublicoService.criarAgendamento({
       data: "2026-08-15",
@@ -61,6 +66,7 @@ describe("Limite durante a criação do agendamento", () => {
       clienteId: 3,
       clienteNome: "Cliente",
       clienteWhatsapp: "62999999999",
+      whatsappConsentido: true,
       servicoId: 4,
       negocioId: 5,
       duracaoServico: 60,
@@ -77,6 +83,18 @@ describe("Limite durante a criação do agendamento", () => {
         bloquear: true,
         dataReferencia: "2026-08-15",
       }
+    );
+
+    expect(
+      agendaPublicaRepository
+        .registrarConsentimentoWhatsappAgendamento
+    ).toHaveBeenCalledWith(
+      {
+        agendamentoId: 99,
+        clienteId: 3,
+        telefone: "62999999999",
+      },
+      client
     );
 
     expect(

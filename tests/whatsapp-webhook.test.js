@@ -5,6 +5,23 @@ jest.mock(
   () => ({
     registrarStatusEntrega:
       jest.fn(),
+    cancelarMarketingPorWhatsapp:
+      jest.fn(),
+    registrarInteracaoRecebida:
+      jest.fn(),
+    marcarInteracaoRespondida:
+      jest.fn(),
+    marcarInteracaoFalha:
+      jest.fn(),
+  })
+);
+
+jest.mock(
+  "../src/providers/whatsappProvider",
+  () => ({
+    enviarMensagem:
+      jest.fn()
+        .mockResolvedValue({}),
   })
 );
 
@@ -18,12 +35,17 @@ const whatsappMensagemRepository = require(
 
 const {
   processarStatusWhatsapp,
+  processarWebhookWhatsapp,
 } = require(
   "../src/services/whatsappWebhookService"
 );
 
 const whatsappWebhookController = require(
   "../src/controllers/whatsappWebhookController"
+);
+
+const whatsappProvider = require(
+  "../src/providers/whatsappProvider"
 );
 
 function criarResposta() {
@@ -58,6 +80,39 @@ describe(
       process.env
         .WHATSAPP_WEBHOOK_VERIFY_TOKEN =
         "token-verificacao";
+
+      process.env
+        .WHATSAPP_PHONE_NUMBER_ID =
+        "phone-number-af";
+
+      process.env
+        .WHATSAPP_CONVERSATION_AUTOREPLIES_ENABLED =
+        "true";
+
+      whatsappMensagemRepository
+        .registrarInteracaoRecebida
+        .mockResolvedValue({
+          id: 100,
+        });
+
+      whatsappMensagemRepository
+        .marcarInteracaoRespondida
+        .mockResolvedValue({});
+
+      whatsappMensagemRepository
+        .marcarInteracaoFalha
+        .mockResolvedValue({});
+
+      whatsappProvider
+        .enviarMensagem
+        .mockResolvedValue({
+          messages: [
+            {
+              id:
+                "wamid.resposta",
+            },
+          ],
+        });
     });
 
     afterAll(() => {
@@ -254,6 +309,324 @@ describe(
               "Mensagem não entregue - Número indisponível",
           })
         );
+      }
+    );
+
+    test(
+      "cancela marketing quando o destinatário responde SAIR",
+      async () => {
+        whatsappMensagemRepository
+          .cancelarMarketingPorWhatsapp
+          .mockResolvedValue({
+            usuarios: 1,
+            mensagensCanceladas: 2,
+          });
+
+        const resultado =
+          await processarWebhookWhatsapp({
+            entry: [
+              {
+                changes: [
+                  {
+                    field: "messages",
+                    value: {
+                      metadata: {
+                        phone_number_id:
+                          "phone-number-af",
+                      },
+                      messages: [
+                        {
+                          id:
+                            "wamid.sair",
+                          from:
+                            "5562999998888",
+                          timestamp:
+                            "1785337200",
+                          type: "text",
+                          text: {
+                            body: "SAIR",
+                          },
+                        },
+                      ],
+                    },
+                  },
+                ],
+              },
+            ],
+          });
+
+        expect(
+          whatsappMensagemRepository
+            .cancelarMarketingPorWhatsapp
+        ).toHaveBeenCalledWith(
+          "5562999998888"
+        );
+
+        expect(
+          whatsappProvider.enviarMensagem
+        ).toHaveBeenCalledWith(
+          "5562999998888",
+          expect.stringContaining(
+            "marketing"
+          )
+        );
+
+        expect(resultado).toMatchObject({
+          mensagensRecebidas: 1,
+          descadastros: 1,
+          respostasQuebraGelo: 0,
+        });
+      }
+    );
+
+    test.each([
+      [
+        "Como funciona o Agenda Fashion?",
+        "COMO_FUNCIONA",
+        "ajuda profissionais de beleza",
+      ],
+      [
+        "Quero criar minha agenda online",
+        "CRIAR_AGENDA",
+        "/cadastro?tipo=profissional",
+      ],
+      [
+        "Quais são os planos disponíveis?",
+        "PLANOS",
+        "Grátis",
+      ],
+      [
+        "Preciso de ajuda",
+        "AJUDA",
+        "contato@agendafashion.com.br",
+      ],
+    ])(
+      "responde ao quebra-gelo %s",
+      async (
+        texto,
+        intencao,
+        trechoResposta
+      ) => {
+        const resultado =
+          await processarWebhookWhatsapp({
+            entry: [
+              {
+                changes: [
+                  {
+                    field:
+                      "messages",
+                    value: {
+                      metadata: {
+                        phone_number_id:
+                          "phone-number-af",
+                      },
+                      messages: [
+                        {
+                          id:
+                            `wamid.${intencao}`,
+                          from:
+                            "5562999998888",
+                          timestamp:
+                            "1785337200",
+                          type:
+                            "text",
+                          text: {
+                            body: texto,
+                          },
+                        },
+                      ],
+                    },
+                  },
+                ],
+              },
+            ],
+          });
+
+        expect(
+          whatsappMensagemRepository
+            .registrarInteracaoRecebida
+        ).toHaveBeenCalledWith(
+          expect.objectContaining({
+            metaMessageId:
+              `wamid.${intencao}`,
+            telefone:
+              "5562999998888",
+            intencao,
+          })
+        );
+
+        expect(
+          whatsappProvider
+            .enviarMensagem
+        ).toHaveBeenCalledWith(
+          "5562999998888",
+          expect.stringContaining(
+            trechoResposta
+          )
+        );
+
+        await new Promise(
+          (resolve) =>
+            setImmediate(resolve)
+        );
+
+        expect(
+          whatsappMensagemRepository
+            .marcarInteracaoRespondida
+        ).toHaveBeenCalledWith(
+          100,
+          "wamid.resposta"
+        );
+
+        expect(resultado)
+          .toMatchObject({
+            mensagensRecebidas: 1,
+            respostasQuebraGelo: 1,
+          });
+      }
+    );
+
+    test(
+      "mantém os quebra-gelos desligados pela flag operacional",
+      async () => {
+        process.env
+          .WHATSAPP_CONVERSATION_AUTOREPLIES_ENABLED =
+          "false";
+
+        await processarWebhookWhatsapp({
+          entry: [
+            {
+              changes: [
+                {
+                  field:
+                    "messages",
+                  value: {
+                    metadata: {
+                      phone_number_id:
+                        "phone-number-af",
+                    },
+                    messages: [
+                      {
+                        id:
+                          "wamid.desativada",
+                        from:
+                          "5562999998888",
+                        type: "text",
+                        text: {
+                          body:
+                            "Preciso de ajuda",
+                        },
+                      },
+                    ],
+                  },
+                },
+              ],
+            },
+          ],
+        });
+
+        expect(
+          whatsappMensagemRepository
+            .registrarInteracaoRecebida
+        ).not.toHaveBeenCalled();
+
+        expect(
+          whatsappProvider
+            .enviarMensagem
+        ).not.toHaveBeenCalled();
+      }
+    );
+
+    test(
+      "não responde duas vezes ao mesmo wamid",
+      async () => {
+        whatsappMensagemRepository
+          .registrarInteracaoRecebida
+          .mockResolvedValue(null);
+
+        await processarWebhookWhatsapp({
+          entry: [
+            {
+              changes: [
+                {
+                  field:
+                    "messages",
+                  value: {
+                    metadata: {
+                      phone_number_id:
+                        "phone-number-af",
+                    },
+                    messages: [
+                      {
+                        id:
+                          "wamid.repetida",
+                        from:
+                          "5562999998888",
+                        type: "text",
+                        text: {
+                          body:
+                            "Preciso de ajuda",
+                        },
+                      },
+                    ],
+                  },
+                },
+              ],
+            },
+          ],
+        });
+
+        expect(
+          whatsappProvider
+            .enviarMensagem
+        ).not.toHaveBeenCalled();
+      }
+    );
+
+    test(
+      "ignora mensagens entregues a outro número da conta",
+      async () => {
+        await processarWebhookWhatsapp({
+          entry: [
+            {
+              changes: [
+                {
+                  field:
+                    "messages",
+                  value: {
+                    metadata: {
+                      phone_number_id:
+                        "outro-numero",
+                    },
+                    messages: [
+                      {
+                        id:
+                          "wamid.outro",
+                        from:
+                          "5562999998888",
+                        type: "text",
+                        text: {
+                          body:
+                            "Como funciona o Agenda Fashion?",
+                        },
+                      },
+                    ],
+                  },
+                },
+              ],
+            },
+          ],
+        });
+
+        expect(
+          whatsappMensagemRepository
+            .registrarInteracaoRecebida
+        ).not.toHaveBeenCalled();
+
+        expect(
+          whatsappProvider
+            .enviarMensagem
+        ).not.toHaveBeenCalled();
       }
     );
   }

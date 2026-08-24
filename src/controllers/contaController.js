@@ -73,8 +73,14 @@ async function atualizarPreferenciaWhatsapp(
         .atualizarPreferenciaWhatsapp({
           usuarioId:
             req.user?.id,
+          aceitaAlertasOperacionais:
+            req.body?.aceitaAlertasOperacionais,
           aceitaLembretes:
             req.body?.aceitaLembretes,
+          origem:
+            req.body?.origem === "painel"
+              ? "PAINEL"
+              : "MINHA_CONTA",
         });
 
     return res.json(

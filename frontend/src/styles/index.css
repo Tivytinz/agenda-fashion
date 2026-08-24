@@ -370,6 +370,11 @@ th { color: var(--muted); font-size: .76rem; letter-spacing: .04em; text-transfo
 .switch-field input { width: 20px; height: 20px; flex: 0 0 auto; accent-color: var(--pink-600); }
 .switch-field span, .switch-field small { display: block; }
 .switch-field small { margin-top: 3px; }
+.whatsapp-reminders-panel { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 20px; border-color: #efbad0; background: linear-gradient(135deg, #fff 0%, #fff2f7 100%); }
+.whatsapp-reminders-panel h2 { margin: 4px 0 8px; }
+.whatsapp-reminders-panel .muted { max-width: 720px; margin: 0; }
+.whatsapp-reminders-actions { display: flex; flex-direction: column; align-items: stretch; gap: 10px; min-width: 250px; }
+.whatsapp-reminders-actions .text-button { justify-content: center; text-align: center; }
 
 .publication-panel { display: flex; align-items: center; justify-content: space-between; gap: 24px; margin-bottom: 20px; border-color: #f0bfd3; background: linear-gradient(135deg, #fff 0%, #fff4f8 100%); }
 .publication-panel-live { border-color: #a9dfca; background: linear-gradient(135deg, #fff 0%, #edf9f4 100%); }

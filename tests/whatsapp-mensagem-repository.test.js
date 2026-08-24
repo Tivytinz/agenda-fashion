@@ -2,6 +2,8 @@ jest.mock(
   "../src/db/db",
   () => ({
     query: jest.fn(),
+    executarTransacao:
+      jest.fn(),
   })
 );
 
@@ -46,6 +48,12 @@ describe(
         );
         expect(consulta).toContain(
           "AND $3::BOOLEAN"
+        );
+        expect(consulta).toContain(
+          "profissional.whatsapp_operacional_consentido_em"
+        );
+        expect(consulta).toContain(
+          "AND profissional_whatsapp_consentido"
         );
         expect(consulta).toContain(
           "JSONB_BUILD_ARRAY( profissional_nome, cliente_nome, cliente_whatsapp, servico_nome, data_formatada, horario_formatado )"
@@ -125,10 +133,18 @@ describe(
         expect(sql).toContain(
           "ON CONFLICT ( negocio_id, data_referencia )"
         );
+        expect(sql).toContain(
+          "COUNT(*) FROM whatsapp_mensagens historico"
+        );
+        expect(sql).toContain(
+          "candidata.data_referencia - $5::INTEGER"
+        );
         expect(parametros).toEqual([
           10,
           true,
           true,
+          3,
+          3,
         ]);
       }
     );
@@ -200,12 +216,72 @@ describe(
         expect(sql).toContain(
           "cliente_conta.whatsapp_notificacoes_cancelado_em IS NULL"
         );
-        expect(parametros[4]).toEqual(
+        expect(parametros[5]).toEqual(
           expect.arrayContaining([
             "CONFIRMACAO_AGENDAMENTO_CLIENTE",
             "LEMBRETE_AGENDAMENTO_CLIENTE",
             "CANCELAMENTO_AGENDAMENTO_CLIENTE",
           ])
+        );
+      }
+    );
+
+    test(
+      "cancela a preferência e a fila quando recebe SAIR",
+      async () => {
+        const executor = {
+          query: jest.fn()
+            .mockResolvedValueOnce({
+              rows: [
+                {
+                  id: 7,
+                  whatsapp:
+                    "62999998888",
+                },
+              ],
+              rowCount: 1,
+            })
+            .mockResolvedValueOnce({
+              rows: [],
+              rowCount: 1,
+            })
+            .mockResolvedValueOnce({
+              rows: [
+                { id: 50 },
+              ],
+              rowCount: 1,
+            }),
+        };
+
+        db.executarTransacao
+          .mockImplementation(
+            async (callback) =>
+              callback(executor)
+          );
+
+        const resultado =
+          await whatsappMensagemRepository
+            .cancelarMarketingPorWhatsapp(
+              "5562999998888"
+            );
+
+        expect(resultado).toEqual({
+          usuarios: 1,
+          mensagensCanceladas: 1,
+        });
+
+        expect(
+          executor.query.mock
+            .calls[0][1]
+        ).toEqual([
+          "62999998888",
+        ]);
+
+        expect(
+          executor.query.mock
+            .calls[2][0]
+        ).toContain(
+          "Marketing cancelado pelo destinatário"
         );
       }
     );
@@ -258,6 +334,87 @@ describe(
           "wamid.teste",
           "DELIVERED",
           ocorridoEm,
+        ]);
+      }
+    );
+
+    test(
+      "registra a mensagem recebida de forma idempotente pelo wamid",
+      async () => {
+        db.query.mockResolvedValue({
+          rows: [
+            {
+              id: 70,
+            },
+          ],
+        });
+
+        const recebidoEm =
+          new Date(
+            "2026-08-24T23:00:00Z"
+          );
+
+        await whatsappMensagemRepository
+          .registrarInteracaoRecebida({
+            metaMessageId:
+              "wamid.quebra-gelo",
+            telefone:
+              "+55 (62) 99999-8888",
+            intencao:
+              "COMO_FUNCIONA",
+            recebidoEm,
+          });
+
+        const [
+          consulta,
+          parametros,
+        ] = db.query.mock.calls[0];
+
+        expect(consulta).toContain(
+          "ON CONFLICT"
+        );
+        expect(consulta).toContain(
+          "meta_message_id"
+        );
+        expect(parametros).toEqual([
+          "wamid.quebra-gelo",
+          "5562999998888",
+          "COMO_FUNCIONA",
+          recebidoEm,
+        ]);
+      }
+    );
+
+    test(
+      "marca a interação com o wamid da resposta",
+      async () => {
+        db.query.mockResolvedValue({
+          rows: [
+            {
+              id: 70,
+              status:
+                "RESPONDIDA",
+            },
+          ],
+        });
+
+        await whatsappMensagemRepository
+          .marcarInteracaoRespondida(
+            70,
+            "wamid.resposta"
+          );
+
+        const [
+          consulta,
+          parametros,
+        ] = db.query.mock.calls[0];
+
+        expect(consulta).toContain(
+          "status = 'RESPONDIDA'"
+        );
+        expect(parametros).toEqual([
+          70,
+          "wamid.resposta",
         ]);
       }
     );

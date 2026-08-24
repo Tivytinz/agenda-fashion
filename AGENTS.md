@@ -138,9 +138,13 @@ etapas diferentes. Os detalhes ficam em `docs/planos.md`.
 - Imagens: Busboy, validacao de conteudo e Cloudinary.
 - Pagamentos: Asaas com confirmacao por webhook idempotente.
 - Notificacoes: WhatsApp Cloud API oficial da Meta.
-- Ativacao de negocios: lembretes de WhatsApp podem ocorrer diariamente, mas
-  somente com consentimento explicito, no maximo uma vez por negocio e dia e
-  com cancelamento imediato quando a preferencia for desativada.
+- Conversas no WhatsApp: os quatro quebra-gelos oficiais possuem respostas
+  livres somente dentro da janela iniciada pela pessoa, com deduplicacao pelo
+  `wamid`, validacao do numero destinatario e flag operacional de ativacao.
+- Ativacao de negocios: orientacoes de WhatsApp exigem consentimento explicito,
+  ficam limitadas a tres mensagens no total, respeitam intervalo minimo de tres
+  dias e param imediatamente quando a preferencia for desativada ou a pessoa
+  responder SAIR/PARAR.
 - Marketing: eventos de produto, atribuicao, GA4, Google Ads, Meta CAPI e
   leitura de custos de Google Ads e Meta Ads. A classificacao oficial de
   campanhas e resolvida no backend; cliques pagos sem `utm_campaign` permanecem

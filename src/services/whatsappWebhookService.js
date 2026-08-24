@@ -2,12 +2,57 @@ const whatsappMensagemRepository = require(
   "../repositories/whatsappMensagemRepository"
 );
 
+const whatsappProvider = require(
+  "../providers/whatsappProvider"
+);
+const registrador = require(
+  "../utils/registrador"
+);
+
 const STATUS_SUPORTADOS =
   new Set([
     "sent",
     "delivered",
     "read",
     "failed",
+  ]);
+
+const RESPOSTAS_QUEBRA_GELO =
+  new Map([
+    [
+      "como funciona o agenda fashion",
+      {
+        intencao:
+          "COMO_FUNCIONA",
+        texto:
+          "💅 O Agenda Fashion ajuda profissionais de beleza a criar uma agenda online, divulgar serviços e receber agendamentos automaticamente. A cliente escolhe o serviço, a data e o horário pelo seu link, e você acompanha tudo pelo painel.\n\nConheça: https://app.agendafashion.com.br",
+      },
+    ],
+    [
+      "quero criar minha agenda online",
+      {
+        intencao:
+          "CRIAR_AGENDA",
+        texto:
+          "Que bom ter você aqui! 💗 Você pode começar gratuitamente e criar sua agenda online neste link:\n\nhttps://app.agendafashion.com.br/cadastro?tipo=profissional",
+      },
+    ],
+    [
+      "quais sao os planos disponiveis",
+      {
+        intencao: "PLANOS",
+        texto:
+          "O Agenda Fashion possui estes planos:\n\n💗 Grátis — R$ 0/mês\n💅 Autônoma — R$ 49,90/mês\n✨ Studio — R$ 99,90/mês\n🏢 Salão — R$ 199,90/mês\n\nCompare os benefícios: https://app.agendafashion.com.br/planos",
+      },
+    ],
+    [
+      "preciso de ajuda",
+      {
+        intencao: "AJUDA",
+        texto:
+          "Claro! 💗 Envie sua dúvida para contato@agendafashion.com.br e informe, se possível, seu nome e o nome do negócio. Nossa equipe responderá pelo e-mail.",
+      },
+    ],
   ]);
 
 function extrairStatus(
@@ -48,6 +93,189 @@ function extrairStatus(
   }
 
   return encontrados;
+}
+
+function extrairMensagensRecebidas(
+  payload
+) {
+  const encontradas = [];
+
+  for (
+    const entrada of
+      payload?.entry || []
+  ) {
+    for (
+      const alteracao of
+        entrada?.changes || []
+    ) {
+      if (
+        alteracao?.field !==
+        "messages"
+      ) {
+        continue;
+      }
+
+      for (
+        const mensagem of
+          alteracao?.value
+            ?.messages || []
+      ) {
+        const texto =
+          mensagem?.text?.body ||
+          mensagem?.button?.text ||
+          mensagem?.button?.payload ||
+          mensagem?.interactive
+            ?.button_reply?.title ||
+          mensagem?.interactive
+            ?.button_reply?.id ||
+          mensagem?.interactive
+            ?.list_reply?.title ||
+          mensagem?.interactive
+            ?.list_reply?.id ||
+          "";
+
+        if (
+          mensagem?.id &&
+          mensagem?.from &&
+          texto
+        ) {
+          encontradas.push({
+            id: mensagem.id,
+            from:
+              mensagem.from,
+            texto,
+            timestamp:
+              mensagem.timestamp,
+            phoneNumberId:
+              alteracao?.value
+                ?.metadata
+                ?.phone_number_id ||
+              null,
+          });
+        }
+      }
+    }
+  }
+
+  return encontradas;
+}
+
+function normalizarComando(
+  texto
+) {
+  return String(texto || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9 ]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function ehPedidoDescadastro(
+  texto
+) {
+  return new Set([
+    "sair",
+    "parar",
+    "stop",
+    "parar marketing",
+    "cancelar marketing",
+    "nao quero receber marketing",
+  ]).has(
+    normalizarComando(texto)
+  );
+}
+
+function respostasAutomaticasAtivas() {
+  return String(
+    process.env
+      .WHATSAPP_CONVERSATION_AUTOREPLIES_ENABLED ||
+    ""
+  ).toLowerCase() === "true";
+}
+
+function mensagemPertenceAoNumeroConfigurado(
+  mensagem
+) {
+  const numeroConfigurado =
+    String(
+      process.env
+        .WHATSAPP_PHONE_NUMBER_ID ||
+      ""
+    ).trim();
+
+  if (!numeroConfigurado) {
+    return true;
+  }
+
+  return (
+    String(
+      mensagem?.phoneNumberId ||
+      ""
+    ) === numeroConfigurado
+  );
+}
+
+function obterRespostaQuebraGelo(
+  texto
+) {
+  return (
+    RESPOSTAS_QUEBRA_GELO.get(
+      normalizarComando(texto)
+    ) || null
+  );
+}
+
+function metaMessageIdResposta(
+  resultado
+) {
+  return (
+    resultado?.messages?.[0]?.id ||
+    null
+  );
+}
+
+function enviarRespostaRegistrada(
+  interacao,
+  destinatario,
+  texto
+) {
+  Promise.resolve(
+    whatsappProvider
+      .enviarMensagem(
+        destinatario,
+        texto
+      )
+  )
+    .then((resultado) =>
+      whatsappMensagemRepository
+        .marcarInteracaoRespondida(
+          interacao.id,
+          metaMessageIdResposta(
+            resultado
+          )
+        )
+    )
+    .catch(async (erro) => {
+      try {
+        await whatsappMensagemRepository
+          .marcarInteracaoFalha(
+            interacao.id,
+            erro?.message
+          );
+      } catch (erroRegistro) {
+        registrador.aviso(
+          "WhatsApp: não foi possível registrar a falha da resposta automática.",
+          erroRegistro?.message
+        );
+      }
+
+      registrador.aviso(
+        "WhatsApp: não foi possível enviar a resposta automática.",
+        erro?.message
+      );
+    });
 }
 
 function dataEvento(
@@ -129,7 +357,128 @@ async function processarStatusWhatsapp(
   };
 }
 
+async function processarWebhookWhatsapp(
+  payload
+) {
+  const resultadoStatus =
+    await processarStatusWhatsapp(
+      payload
+    );
+
+  const recebidas =
+    extrairMensagensRecebidas(
+      payload
+    );
+
+  let descadastros = 0;
+  let respostasQuebraGelo = 0;
+
+  for (
+    const mensagem of recebidas
+  ) {
+    if (
+      !mensagemPertenceAoNumeroConfigurado(
+        mensagem
+      )
+    ) {
+      continue;
+    }
+
+    const pedidoDescadastro =
+      ehPedidoDescadastro(
+        mensagem.texto
+      );
+
+    const respostaQuebraGelo =
+      obterRespostaQuebraGelo(
+        mensagem.texto
+      );
+
+    if (
+      !pedidoDescadastro &&
+      (!respostaQuebraGelo ||
+        !respostasAutomaticasAtivas())
+    ) {
+      continue;
+    }
+
+    const intencao =
+      pedidoDescadastro
+        ? "MARKETING_OPTOUT"
+        : respostaQuebraGelo
+            .intencao;
+
+    const interacao =
+      await whatsappMensagemRepository
+        .registrarInteracaoRecebida({
+          metaMessageId:
+            mensagem.id,
+          telefone:
+            mensagem.from,
+          intencao,
+          recebidoEm:
+            dataEvento(
+              mensagem.timestamp
+            ),
+        });
+
+    if (!interacao) {
+      continue;
+    }
+
+    if (!pedidoDescadastro) {
+      respostasQuebraGelo += 1;
+
+      enviarRespostaRegistrada(
+        interacao,
+        mensagem.from,
+        respostaQuebraGelo
+          .texto
+      );
+
+      continue;
+    }
+
+    const resultado =
+      await whatsappMensagemRepository
+        .cancelarMarketingPorWhatsapp(
+          mensagem.from
+        );
+
+    if (
+      resultado.usuarios > 0
+    ) {
+      descadastros +=
+        resultado.usuarios;
+    }
+
+    const confirmacao =
+      resultado.usuarios > 0
+        ? "As orientações de marketing do Agenda Fashion foram desativadas. Avisos operacionais de agendamentos seguem a preferência da sua conta."
+        : "Não existem orientações de marketing ativas para este número no Agenda Fashion.";
+
+    enviarRespostaRegistrada(
+      interacao,
+      mensagem.from,
+      confirmacao
+    );
+  }
+
+  return {
+    ...resultadoStatus,
+    mensagensRecebidas:
+      recebidas.length,
+    descadastros,
+    respostasQuebraGelo,
+  };
+}
+
 module.exports = {
   extrairStatus,
+  extrairMensagensRecebidas,
+  ehPedidoDescadastro,
+  obterRespostaQuebraGelo,
+  respostasAutomaticasAtivas,
   processarStatusWhatsapp,
+  processarWebhookWhatsapp,
 };

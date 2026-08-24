@@ -428,10 +428,14 @@ describe(
             .atualizarPreferenciaWhatsapp
         ).toHaveBeenCalledWith({
           usuarioId: 7,
-          aceitaLembretes: true,
+          escopo: "marketing",
+          consentido: true,
+          origem: "MINHA_CONTA",
+          textoVersao:
+            "conta-marketing-v2",
         });
         expect(resposta.body.mensagem).toBe(
-          "Lembretes diários do WhatsApp ativados."
+          "Preferências do WhatsApp atualizadas."
         );
       }
     );
@@ -475,6 +479,52 @@ describe(
         expect(resposta.body.mensagem).toBe(
           "Mensagens dos agendamentos pelo WhatsApp desativadas."
         );
+      }
+    );
+
+    test(
+      "registra separadamente o consentimento operacional do WhatsApp",
+      async () => {
+        contaRepository
+          .buscarUsuarioPorId
+          .mockResolvedValue(
+            criarUsuario({
+              whatsapp:
+                "62999999999",
+            })
+          );
+
+        contaRepository
+          .atualizarPreferenciaWhatsapp
+          .mockResolvedValue({
+            id: 7,
+            aceita_alertas_operacionais_whatsapp:
+              true,
+          });
+
+        const resposta = await request(app)
+          .put("/conta/preferencias-whatsapp")
+          .set(
+            "Authorization",
+            `Bearer ${gerarToken()}`
+          )
+          .send({
+            aceitaAlertasOperacionais:
+              true,
+          });
+
+        expect(resposta.status).toBe(200);
+        expect(
+          contaRepository
+            .atualizarPreferenciaWhatsapp
+        ).toHaveBeenCalledWith({
+          usuarioId: 7,
+          escopo: "operacional",
+          consentido: true,
+          origem: "MINHA_CONTA",
+          textoVersao:
+            "conta-operacional-v1",
+        });
       }
     );
 

@@ -407,6 +407,46 @@ async function criarAgendamento(
   return result.rows[0] || null;
 }
 
+async function registrarConsentimentoWhatsappAgendamento(
+  {
+    agendamentoId,
+    clienteId = null,
+    telefone,
+  },
+  executor = db
+) {
+  const result = await executor.query(
+    `
+      INSERT INTO whatsapp_consentimentos (
+        usuario_id,
+        agendamento_id,
+        telefone,
+        escopo,
+        acao,
+        origem,
+        texto_versao
+      )
+      VALUES (
+        $1,
+        $2,
+        $3,
+        'OPERACIONAL_CLIENTE',
+        'CONSENTIDO',
+        'AGENDAMENTO',
+        'agendamento-cliente-v1'
+      )
+      RETURNING id
+    `,
+    [
+      clienteId,
+      agendamentoId,
+      telefone,
+    ]
+  );
+
+  return result.rows[0] || null;
+}
+
 async function criarNotificacaoAgendamento({
   usuarioId,
   negocioId,
@@ -667,6 +707,7 @@ module.exports = {
   buscarBloqueioHorario,
   buscarAgendamentoNoHorario,
   criarAgendamento,
+  registrarConsentimentoWhatsappAgendamento,
   criarNotificacaoAgendamento,
   listarMeusAgendamentos,
   buscarAgendamentoCliente,

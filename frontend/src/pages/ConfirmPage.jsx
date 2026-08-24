@@ -220,7 +220,7 @@ export function ConfirmPage() {
               <>
                 <label className="checkbox-label">
                   <input type="checkbox" checked={consent} onChange={(event) => setConsent(event.target.checked)} />
-                  <span>Quero receber confirmação, lembrete e atualizações pelo WhatsApp.</span>
+                  <span>Quero receber pelo WhatsApp confirmações, lembretes, alterações e cancelamentos deste agendamento enviados pelo Agenda Fashion.</span>
                 </label>
                 <small>Opcional. Você pode agendar sem autorizar mensagens.</small>
               </>

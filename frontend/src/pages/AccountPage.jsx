@@ -47,6 +47,8 @@ export function AccountPage() {
   const [passwordVisibility, setPasswordVisibility] = useState({ atual: false, nova: false, confirmar: false });
   const [bookingNotifications, setBookingNotifications] = useState(false);
   const [savedBookingNotifications, setSavedBookingNotifications] = useState(false);
+  const [operationalAlerts, setOperationalAlerts] = useState(false);
+  const [savedOperationalAlerts, setSavedOperationalAlerts] = useState(false);
   const [dailyReminders, setDailyReminders] = useState(false);
   const [savedDailyReminders, setSavedDailyReminders] = useState(false);
   const [error, setError] = useState("");
@@ -57,6 +59,9 @@ export function AccountPage() {
     session.temNegocio ||
     session.ehAdministrador
   );
+  const isBusinessOwner =
+    session.temNegocio &&
+    session.negocio?.papel === "dono";
   const pageClassName = insideNavigation
     ? "workspace-page account-page"
     : "container page-content account-page";
@@ -68,6 +73,7 @@ export function AccountPage() {
         const nextProfile = profileSnapshot(result.usuario);
         const nextDailyReminders = result.usuario?.aceita_lembretes_whatsapp === true;
         const nextBookingNotifications = result.usuario?.aceita_notificacoes_whatsapp === true;
+        const nextOperationalAlerts = result.usuario?.aceita_alertas_operacionais_whatsapp === true;
 
         setUser(result.usuario);
         setProfile(nextProfile);
@@ -76,6 +82,8 @@ export function AccountPage() {
         setSavedDailyReminders(nextDailyReminders);
         setBookingNotifications(nextBookingNotifications);
         setSavedBookingNotifications(nextBookingNotifications);
+        setOperationalAlerts(nextOperationalAlerts);
+        setSavedOperationalAlerts(nextOperationalAlerts);
       })
       .catch((requestError) => setError(requestError.message));
   }, []);
@@ -85,6 +93,7 @@ export function AccountPage() {
   const profileChanged = profile.nome.trim() !== savedProfile.nome.trim()
     || onlyDigits(profile.whatsapp) !== onlyDigits(savedProfile.whatsapp);
   const bookingNotificationsChanged = bookingNotifications !== savedBookingNotifications;
+  const operationalAlertsChanged = operationalAlerts !== savedOperationalAlerts;
   const dailyRemindersChanged = dailyReminders !== savedDailyReminders;
   const passwordsMatch = password.confirmar.length > 0 && password.novaSenha === password.confirmar;
   const passwordValid = password.senhaAtual.length > 0
@@ -146,7 +155,10 @@ export function AccountPage() {
 
   async function saveWhatsAppPreferences(event) {
     event.preventDefault();
-    if (!dailyRemindersChanged || saving === "whatsapp-preferences") return;
+    if (
+      (!operationalAlertsChanged && !dailyRemindersChanged)
+      || saving === "whatsapp-preferences"
+    ) return;
     setSaving("whatsapp-preferences");
     setError("");
     setMessage("");
@@ -157,14 +169,20 @@ export function AccountPage() {
         {
           method: "PUT",
           body: {
-            aceitaLembretes: dailyReminders
+            aceitaAlertasOperacionais: operationalAlerts,
+            ...(isBusinessOwner
+              ? { aceitaLembretes: dailyReminders }
+              : {})
           }
         }
       );
 
       const nextValue = result.preferencia?.aceita_lembretes_whatsapp === true;
+      const nextOperationalValue = result.preferencia?.aceita_alertas_operacionais_whatsapp === true;
       setDailyReminders(nextValue);
       setSavedDailyReminders(nextValue);
+      setOperationalAlerts(nextOperationalValue);
+      setSavedOperationalAlerts(nextOperationalValue);
       setMessage(result.mensagem);
     } catch (requestError) {
       setError(requestError.message);
@@ -338,7 +356,6 @@ export function AccountPage() {
           <button className="button" disabled={!passwordValid || saving === "password"} type="submit">{saving === "password" ? "Alterando..." : "Alterar senha"}</button>
         </form>
       </section>
-
       <section className="panel account-whatsapp-preferences" id="notificacoes-whatsapp">
         <div className="account-preferences-heading">
           <p className="eyebrow">WhatsApp</p>
@@ -373,24 +390,45 @@ export function AccountPage() {
           )}
         </form>
 
-        {session.temNegocio && session.negocio?.papel === "dono" && (
+        {session.temNegocio && (
           <form className="account-preference-row" onSubmit={saveWhatsAppPreferences}>
             <div className="account-preference-copy">
-              <strong>Negócio</strong>
-              <span>Lembretes administrativos para manter seu negócio ativo e visível.</span>
+              <strong>Comunicação do negócio</strong>
+              <span>
+                {isBusinessOwner
+                  ? "Avisos operacionais e orientações de marketing ficam separados."
+                  : "Escolha se deseja receber os avisos operacionais do Agenda Fashion."}
+              </span>
             </div>
             <label className="switch-field account-switch-field">
               <input
-                checked={dailyReminders}
-                onChange={(event) => setDailyReminders(event.target.checked)}
+                checked={operationalAlerts}
+                onChange={(event) => setOperationalAlerts(event.target.checked)}
                 type="checkbox"
               />
               <span>
-                Receber lembretes do negócio no WhatsApp
-                <small className="muted">No máximo um lembrete por dia. Você pode desativar quando quiser.</small>
+                Receber avisos operacionais de agendamentos
+                <small className="muted">
+                  Inclui novos agendamentos, lembretes, alterações e cancelamentos. Não inclui promoções.
+                </small>
               </span>
             </label>
-            {(dailyRemindersChanged || saving === "whatsapp-preferences") && (
+            {isBusinessOwner && (
+              <label className="switch-field account-switch-field">
+                <input
+                  checked={dailyReminders}
+                  onChange={(event) => setDailyReminders(event.target.checked)}
+                  type="checkbox"
+                />
+                <span>
+                  Receber orientações do AF pelo WhatsApp
+                  <small className="muted">
+                    Até três mensagens de marketing, com intervalo mínimo de três dias. Desmarque ou responda SAIR para interromper imediatamente.
+                  </small>
+                </span>
+              </label>
+            )}
+            {(operationalAlertsChanged || dailyRemindersChanged || saving === "whatsapp-preferences") && (
               <button
                 className="button button-secondary account-preference-action"
                 disabled={saving === "whatsapp-preferences"}

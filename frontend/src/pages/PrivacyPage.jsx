@@ -167,6 +167,19 @@ export function PrivacyPage() {
       </section>
 
       <section className="panel privacy-section">
+        <h2>Mensagens pelo WhatsApp</h2>
+        <p>
+          O Agenda Fashion só envia mensagens automáticas pelo WhatsApp depois de uma autorização clara. Avisos operacionais de agendamentos e orientações de marketing são preferências separadas.
+        </p>
+        <p>
+          Clientes podem concluir o agendamento sem autorizar mensagens. Profissionais podem alterar as preferências em Minha conta, e orientações de marketing também podem ser interrompidas respondendo SAIR ou PARAR no WhatsApp.
+        </p>
+        <p>
+          Registramos a data, o telefone, a finalidade e a origem da autorização ou do cancelamento para respeitar e comprovar a escolha realizada.
+        </p>
+      </section>
+
+      <section className="panel privacy-section">
         <div className="panel-heading">
           <div>
             <p className="eyebrow">Preferência atual</p>

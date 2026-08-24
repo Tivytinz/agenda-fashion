@@ -78,6 +78,12 @@ export function DashboardPage() {
     loading: true,
     publication: null
   });
+  const [whatsappReminders, setWhatsappReminders] = useState({
+    enabled: null,
+    operationalEnabled: null,
+    error: "",
+    saving: false
+  });
 
   useEffect(() => {
     const controller = new AbortController();
@@ -151,6 +157,113 @@ export function DashboardPage() {
     };
   }, []);
 
+  useEffect(() => {
+    const controller = new AbortController();
+    let active = true;
+
+    apiRequest("/conta", { signal: controller.signal })
+      .then((result) => {
+        if (!active) return;
+
+        setWhatsappReminders((current) => ({
+          ...current,
+          enabled:
+            result.usuario?.aceita_lembretes_whatsapp === true,
+          operationalEnabled:
+            result.usuario?.aceita_alertas_operacionais_whatsapp === true,
+          error: ""
+        }));
+      })
+      .catch((requestError) => {
+        if (active && requestError.name !== "AbortError") {
+          setWhatsappReminders((current) => ({
+            ...current,
+            enabled: null,
+            operationalEnabled: null
+          }));
+        }
+      });
+
+    return () => {
+      active = false;
+      controller.abort();
+    };
+  }, []);
+
+  async function enableWhatsappReminders() {
+    setWhatsappReminders((current) => ({
+      ...current,
+      error: "",
+      saving: true
+    }));
+
+    try {
+      const result = await apiRequest(
+        "/conta/preferencias-whatsapp",
+        {
+          method: "PUT",
+          body: {
+            aceitaLembretes: true,
+            origem: "painel"
+          }
+        }
+      );
+
+      setWhatsappReminders((current) => ({
+        ...current,
+        enabled:
+          result.preferencia?.aceita_lembretes_whatsapp === true,
+        operationalEnabled:
+          result.preferencia?.aceita_alertas_operacionais_whatsapp === undefined
+            ? current.operationalEnabled
+            : result.preferencia?.aceita_alertas_operacionais_whatsapp === true,
+        error: "",
+        saving: false
+      }));
+    } catch (requestError) {
+      setWhatsappReminders((current) => ({
+        ...current,
+        error: requestError.message,
+        saving: false
+      }));
+    }
+  }
+
+  async function enableOperationalWhatsappAlerts() {
+    setWhatsappReminders((current) => ({
+      ...current,
+      error: "",
+      saving: true
+    }));
+
+    try {
+      const result = await apiRequest(
+        "/conta/preferencias-whatsapp",
+        {
+          method: "PUT",
+          body: {
+            aceitaAlertasOperacionais: true,
+            origem: "painel"
+          }
+        }
+      );
+
+      setWhatsappReminders((current) => ({
+        ...current,
+        operationalEnabled:
+          result.preferencia?.aceita_alertas_operacionais_whatsapp === true,
+        error: "",
+        saving: false
+      }));
+    } catch (requestError) {
+      setWhatsappReminders((current) => ({
+        ...current,
+        error: requestError.message,
+        saving: false
+      }));
+    }
+  }
+
   function selectPeriod(value) {
     if (value === period) return;
     setPeriod(value);
@@ -209,6 +322,79 @@ export function DashboardPage() {
         loading={onboarding.loading}
         publication={onboarding.publication}
       />
+
+      {whatsappReminders.operationalEnabled === false && (
+        <section
+          aria-labelledby="whatsapp-operational-title"
+          className="panel whatsapp-reminders-panel"
+        >
+          <div>
+            <p className="eyebrow">Avisos de agendamento</p>
+            <h2 id="whatsapp-operational-title">
+              Acompanhe sua agenda pelo WhatsApp
+            </h2>
+            <p className="muted">
+              Autorize avisos operacionais do Agenda Fashion sobre novos
+              agendamentos, lembretes, alterações e cancelamentos. Não inclui
+              promoções e você pode desativar quando quiser.
+            </p>
+          </div>
+          <div className="whatsapp-reminders-actions">
+            <button
+              className="button"
+              disabled={whatsappReminders.saving}
+              onClick={enableOperationalWhatsappAlerts}
+              type="button"
+            >
+              {whatsappReminders.saving
+                ? "Ativando..."
+                : "Ativar avisos de agendamento"}
+            </button>
+            <Link className="text-button" to="/conta">
+              Gerenciar em Minha conta
+            </Link>
+          </div>
+        </section>
+      )}
+
+      {whatsappReminders.enabled === false && (
+        <section
+          aria-labelledby="whatsapp-reminders-title"
+          className="panel whatsapp-reminders-panel"
+        >
+          <div>
+            <p className="eyebrow">Acompanhamento pelo WhatsApp</p>
+            <h2 id="whatsapp-reminders-title">
+              Não deixe seu negócio parado
+            </h2>
+            <p className="muted">
+              Autorize até três orientações, com intervalo mínimo de três dias,
+              para cadastrar seu primeiro serviço e divulgar seu perfil.
+              Você pode desativar em Minha conta ou responder SAIR.
+            </p>
+          </div>
+          <div className="whatsapp-reminders-actions">
+            <button
+              className="button"
+              disabled={whatsappReminders.saving}
+              onClick={enableWhatsappReminders}
+              type="button"
+            >
+              {whatsappReminders.saving
+                ? "Ativando..."
+                : "Ativar lembretes no WhatsApp"}
+            </button>
+            <Link className="text-button" to="/conta">
+              Gerenciar em Minha conta
+            </Link>
+          </div>
+          {whatsappReminders.error && (
+            <p className="form-error" role="alert">
+              {whatsappReminders.error}
+            </p>
+          )}
+        </section>
+      )}
 
       <section className="metric-grid" aria-label="Indicadores">
         {cards.map(([label, value, hint]) => (

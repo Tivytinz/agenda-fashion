@@ -7,6 +7,19 @@
  */
 
 @media (max-width: 900px) {
+  .whatsapp-reminders-panel {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .whatsapp-reminders-actions {
+    min-width: 0;
+    width: 100%;
+  }
+
+  .whatsapp-reminders-actions .button {
+    width: 100%;
+  }
+
   .hero-content,
   .booking-layout,
   .confirmation-grid,

@@ -156,8 +156,10 @@ describe("dashboard", () => {
       .not.toBeNull();
     expect(screen.getByText("Google Ads")).not.toBeNull();
     expect(screen.getByText("Google orgânico")).not.toBeNull();
-    expect(screen.getByText("Acesso autônomo", { selector: "strong" })).not.toBeNull();
-    expect(screen.getByText("Origem não identificada", { selector: "strong" })).not.toBeNull();
+    expect(screen.getAllByText("Acesso autônomo", { selector: "strong" }).length)
+      .toBeGreaterThan(0);
+    expect(screen.getAllByText("Origem não identificada", { selector: "strong" }).length)
+      .toBeGreaterThan(0);
     expect(screen.getByText("Tráfego pago", { selector: "dt" })).not.toBeNull();
     expect(screen.getByText("Tráfego orgânico", { selector: "dt" })).not.toBeNull();
     expect(screen.getByText("Pago · faturamento")).not.toBeNull();
@@ -280,5 +282,138 @@ describe("dashboard", () => {
     expect(screen.getByRole("link", { name: "Cadastrar serviço" })
       .getAttribute("href")).toBe("/painel/servicos/novo");
     expect(screen.getByText("1 de 3")).not.toBeNull();
+  });
+
+  it("destaca a ativação do WhatsApp e registra a autorização em um toque", async () => {
+    apiRequest.mockImplementation((path, options = {}) => {
+      if (path.startsWith("/dashboard-dono")) {
+        return Promise.resolve(DASHBOARD);
+      }
+      if (path === "/configuracoes") {
+        return Promise.resolve({
+          negocio: { slug: "studio-aurora", publicado: true },
+          publicacao: {
+            publicado: true,
+            pode_publicar: true,
+            pendencias: []
+          }
+        });
+      }
+      if (path === "/conta" && !options.method) {
+        return Promise.resolve({
+          usuario: {
+            aceita_lembretes_whatsapp: false,
+            aceita_alertas_operacionais_whatsapp: true
+          }
+        });
+      }
+      if (
+        path === "/conta/preferencias-whatsapp" &&
+        options.method === "PUT"
+      ) {
+        return Promise.resolve({
+          preferencia: {
+            aceita_lembretes_whatsapp: true
+          }
+        });
+      }
+      return Promise.reject(new Error(`Rota inesperada: ${path}`));
+    });
+
+    render(<MemoryRouter><DashboardPage /></MemoryRouter>);
+
+    const button = await screen.findByRole("button", {
+      name: "Ativar lembretes no WhatsApp"
+    });
+
+    expect(screen.getByRole("heading", {
+      name: "Não deixe seu negócio parado"
+    })).not.toBeNull();
+
+    fireEvent.click(button);
+
+    await waitFor(() => {
+      expect(apiRequest).toHaveBeenCalledWith(
+        "/conta/preferencias-whatsapp",
+        {
+          method: "PUT",
+          body: {
+            aceitaLembretes: true,
+            origem: "painel"
+          }
+        }
+      );
+    });
+
+    await waitFor(() => {
+      expect(screen.queryByRole("button", {
+        name: "Ativar lembretes no WhatsApp"
+      })).toBeNull();
+    });
+  });
+
+  it("solicita consentimento operacional separado do marketing", async () => {
+    apiRequest.mockImplementation((path, options = {}) => {
+      if (path.startsWith("/dashboard-dono")) {
+        return Promise.resolve(DASHBOARD);
+      }
+      if (path === "/configuracoes") {
+        return Promise.resolve({
+          negocio: { slug: "studio-aurora", publicado: true },
+          publicacao: {
+            publicado: true,
+            pode_publicar: true,
+            pendencias: []
+          }
+        });
+      }
+      if (path === "/conta" && !options.method) {
+        return Promise.resolve({
+          usuario: {
+            aceita_lembretes_whatsapp: true,
+            aceita_alertas_operacionais_whatsapp: false
+          }
+        });
+      }
+      if (
+        path === "/conta/preferencias-whatsapp" &&
+        options.method === "PUT"
+      ) {
+        return Promise.resolve({
+          preferencia: {
+            aceita_lembretes_whatsapp: true,
+            aceita_alertas_operacionais_whatsapp: true
+          }
+        });
+      }
+      return Promise.reject(new Error(`Rota inesperada: ${path}`));
+    });
+
+    render(<MemoryRouter><DashboardPage /></MemoryRouter>);
+
+    const button = await screen.findByRole("button", {
+      name: "Ativar avisos de agendamento"
+    });
+
+    fireEvent.click(button);
+
+    await waitFor(() => {
+      expect(apiRequest).toHaveBeenCalledWith(
+        "/conta/preferencias-whatsapp",
+        {
+          method: "PUT",
+          body: {
+            aceitaAlertasOperacionais: true,
+            origem: "painel"
+          }
+        }
+      );
+    });
+
+    await waitFor(() => {
+      expect(screen.queryByRole("button", {
+        name: "Ativar avisos de agendamento"
+      })).toBeNull();
+    });
   });
 });

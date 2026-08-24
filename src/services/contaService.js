@@ -309,6 +309,10 @@ async function atualizarMinhaConta({
     contaAtual
   );
 
+  const whatsappAlterado =
+    contaAtual.whatsapp !==
+    whatsappNormalizado;
+
   const usuario =
     await contaRepository
       .atualizarUsuario({
@@ -331,7 +335,9 @@ async function atualizarMinhaConta({
 
   return {
     mensagem:
-      "Conta atualizada com sucesso.",
+      whatsappAlterado
+        ? "Conta atualizada. Reative as mensagens que deseja receber no novo WhatsApp."
+        : "Conta atualizada com sucesso.",
 
     usuario,
   };
@@ -339,18 +345,28 @@ async function atualizarMinhaConta({
 
 async function atualizarPreferenciaWhatsapp({
   usuarioId,
+  aceitaAlertasOperacionais,
   aceitaLembretes,
+  origem = "MINHA_CONTA",
 }) {
   const id = normalizarUsuarioId(
     usuarioId
   );
 
+  const atualizaOperacional =
+    typeof aceitaAlertasOperacionais ===
+    "boolean";
+
+  const atualizaMarketing =
+    typeof aceitaLembretes ===
+    "boolean";
+
   if (
-    typeof aceitaLembretes !==
-    "boolean"
+    !atualizaOperacional &&
+    !atualizaMarketing
   ) {
     throw criarErro(
-      "Informe uma preferência válida para os lembretes do WhatsApp.",
+      "Informe uma preferência válida para o WhatsApp.",
       400
     );
   }
@@ -363,12 +379,50 @@ async function atualizarPreferenciaWhatsapp({
     contaAtual
   );
 
-  const preferencia =
-    await contaRepository
-      .atualizarPreferenciaWhatsapp({
-        usuarioId: id,
-        aceitaLembretes,
-      });
+  if (
+    !String(
+      contaAtual.whatsapp ||
+      ""
+    ).match(/^[0-9]{10,11}$/)
+  ) {
+    throw criarErro(
+      "Cadastre um WhatsApp válido antes de ativar as mensagens.",
+      400
+    );
+  }
+
+  let preferencia =
+    contaAtual;
+
+  if (atualizaOperacional) {
+    preferencia =
+      await contaRepository
+        .atualizarPreferenciaWhatsapp({
+          usuarioId: id,
+          escopo:
+            "operacional",
+          consentido:
+            aceitaAlertasOperacionais,
+          origem,
+          textoVersao:
+            "conta-operacional-v1",
+        });
+  }
+
+  if (atualizaMarketing) {
+    preferencia =
+      await contaRepository
+        .atualizarPreferenciaWhatsapp({
+          usuarioId: id,
+          escopo:
+            "marketing",
+          consentido:
+            aceitaLembretes,
+          origem,
+          textoVersao:
+            "conta-marketing-v2",
+        });
+  }
 
   if (!preferencia) {
     throw criarErro(
@@ -378,9 +432,8 @@ async function atualizarPreferenciaWhatsapp({
   }
 
   return {
-    mensagem: aceitaLembretes
-      ? "Lembretes diários do WhatsApp ativados."
-      : "Lembretes diários do WhatsApp desativados.",
+    mensagem:
+      "Preferências do WhatsApp atualizadas.",
     preferencia,
   };
 }

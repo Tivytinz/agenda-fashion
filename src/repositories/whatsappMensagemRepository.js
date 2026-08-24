@@ -23,6 +23,12 @@ const TIPOS_CLIENTE = [
   "CANCELAMENTO_AGENDAMENTO_CLIENTE",
 ];
 
+const TIPOS_PROFISSIONAL = [
+  "NOVO_AGENDAMENTO_PROFISSIONAL",
+  "LEMBRETE_AGENDAMENTO_PROFISSIONAL",
+  "CANCELAMENTO_AGENDAMENTO_PROFISSIONAL",
+];
+
 function validarExecutor(
   executor
 ) {
@@ -81,23 +87,19 @@ async function enfileirarNovoAgendamento(
               )
             ) AS cliente_whatsapp,
 
-            COALESCE(
-              NULLIF(
-                REGEXP_REPLACE(
-                  profissional.whatsapp,
-                  '[^0-9]',
-                  '',
-                  'g'
-                ),
-                ''
-              ),
-              REGEXP_REPLACE(
-                n.whatsapp,
-                '[^0-9]',
-                '',
-                'g'
-              )
+            REGEXP_REPLACE(
+              profissional.whatsapp,
+              '[^0-9]',
+              '',
+              'g'
             ) AS profissional_whatsapp,
+
+            (
+              profissional.whatsapp_operacional_consentido_em
+                IS NOT NULL
+              AND profissional.whatsapp_operacional_cancelado_em
+                IS NULL
+            ) AS profissional_whatsapp_consentido,
 
             profissional.nome
               AS profissional_nome,
@@ -178,6 +180,7 @@ async function enfileirarNovoAgendamento(
 
           WHERE profissional_whatsapp
             ~ '^[0-9]{10,13}$'
+            AND profissional_whatsapp_consentido
 
           UNION ALL
 
@@ -226,6 +229,7 @@ async function enfileirarNovoAgendamento(
 
           WHERE profissional_whatsapp
             ~ '^[0-9]{10,13}$'
+            AND profissional_whatsapp_consentido
             AND $3::BOOLEAN
             AND (
               inicio_agendamento -
@@ -377,23 +381,19 @@ async function enfileirarCancelamento(
               )
             ) AS cliente_whatsapp,
 
-            COALESCE(
-              NULLIF(
-                REGEXP_REPLACE(
-                  profissional.whatsapp,
-                  '[^0-9]',
-                  '',
-                  'g'
-                ),
-                ''
-              ),
-              REGEXP_REPLACE(
-                n.whatsapp,
-                '[^0-9]',
-                '',
-                'g'
-              )
+            REGEXP_REPLACE(
+              profissional.whatsapp,
+              '[^0-9]',
+              '',
+              'g'
             ) AS profissional_whatsapp,
+
+            (
+              profissional.whatsapp_operacional_consentido_em
+                IS NOT NULL
+              AND profissional.whatsapp_operacional_cancelado_em
+                IS NULL
+            ) AS profissional_whatsapp_consentido,
 
             n.nome
               AS negocio_nome,
@@ -462,6 +462,7 @@ async function enfileirarCancelamento(
 
           WHERE profissional_whatsapp
             ~ '^[0-9]{10,13}$'
+            AND profissional_whatsapp_consentido
 
           UNION ALL
 
@@ -530,7 +531,9 @@ async function enfileirarCancelamento(
 async function enfileirarLembretesDiariosNegocios(
   horaLocal = 10,
   lembretePrimeiroServicoAtivo = false,
-  lembreteDivulgacaoAtivo = false
+  lembreteDivulgacaoAtivo = false,
+  maximoEnvios = 3,
+  intervaloMinimoDias = 3
 ) {
   const result = await db.query(
     `
@@ -600,7 +603,7 @@ async function enfileirarLembretesDiariosNegocios(
           ) >= $1
       ),
 
-      mensagens AS (
+      mensagens_candidatas AS (
         SELECT
           negocio_id,
           data_referencia,
@@ -635,6 +638,40 @@ async function enfileirarLembretesDiariosNegocios(
               AND publicado = TRUE
               AND $3::BOOLEAN
             )
+          )
+      ),
+
+      mensagens AS (
+        SELECT candidata.*
+
+        FROM mensagens_candidatas candidata
+
+        WHERE (
+            SELECT COUNT(*)
+            FROM whatsapp_mensagens historico
+            WHERE historico.negocio_id =
+              candidata.negocio_id
+              AND historico.tipo IN (
+                'LEMBRETE_PRIMEIRO_SERVICO_NEGOCIO',
+                'LEMBRETE_DIVULGAR_NEGOCIO'
+              )
+              AND historico.status <>
+                'CANCELED'
+          ) < $4::INTEGER
+          AND NOT EXISTS (
+            SELECT 1
+            FROM whatsapp_mensagens recente
+            WHERE recente.negocio_id =
+              candidata.negocio_id
+              AND recente.tipo IN (
+                'LEMBRETE_PRIMEIRO_SERVICO_NEGOCIO',
+                'LEMBRETE_DIVULGAR_NEGOCIO'
+              )
+              AND recente.status <>
+                'CANCELED'
+              AND recente.data_referencia >
+                candidata.data_referencia -
+                  $5::INTEGER
           )
       )
 
@@ -680,6 +717,8 @@ async function enfileirarLembretesDiariosNegocios(
       horaLocal,
       lembretePrimeiroServicoAtivo,
       lembreteDivulgacaoAtivo,
+      maximoEnvios,
+      intervaloMinimoDias,
     ]
   );
 
@@ -701,6 +740,10 @@ async function reservarProximaMensagem() {
 
           LEFT JOIN negocios n
             ON n.id = wm.negocio_id
+
+          LEFT JOIN usuarios profissional_agendamento
+            ON profissional_agendamento.id =
+              a.profissional_id
 
           LEFT JOIN usuarios_negocios un
             ON un.negocio_id = n.id
@@ -794,6 +837,15 @@ async function reservarProximaMensagem() {
             )
             AND (
               wm.tipo <> ALL($4::VARCHAR[])
+              OR (
+                profissional_agendamento.whatsapp_operacional_consentido_em
+                  IS NOT NULL
+                AND profissional_agendamento.whatsapp_operacional_cancelado_em
+                  IS NULL
+              )
+            )
+            AND (
+              wm.tipo <> ALL($5::VARCHAR[])
               OR a.cliente_id IS NULL
               OR (
                 cliente_conta.whatsapp_notificacoes_consentido_em
@@ -833,6 +885,7 @@ async function reservarProximaMensagem() {
         TIPOS_ATIVOS,
         TIPOS_CANCELAMENTO,
         TIPOS_NEGOCIO,
+        TIPOS_PROFISSIONAL,
         TIPOS_CLIENTE,
       ]
     );
@@ -857,6 +910,10 @@ async function mensagemContinuaValida(
 
           LEFT JOIN negocios n
             ON n.id = wm.negocio_id
+
+          LEFT JOIN usuarios profissional_agendamento
+            ON profissional_agendamento.id =
+              a.profissional_id
 
           LEFT JOIN usuarios_negocios un
             ON un.negocio_id = n.id
@@ -929,6 +986,15 @@ async function mensagemContinuaValida(
             )
             AND (
               wm.tipo <> ALL($5::VARCHAR[])
+              OR (
+                profissional_agendamento.whatsapp_operacional_consentido_em
+                  IS NOT NULL
+                AND profissional_agendamento.whatsapp_operacional_cancelado_em
+                  IS NULL
+              )
+            )
+            AND (
+              wm.tipo <> ALL($6::VARCHAR[])
               OR a.cliente_id IS NULL
               OR (
                 cliente_conta.whatsapp_notificacoes_consentido_em
@@ -944,6 +1010,7 @@ async function mensagemContinuaValida(
         TIPOS_ATIVOS,
         TIPOS_CANCELAMENTO,
         TIPOS_NEGOCIO,
+        TIPOS_PROFISSIONAL,
         TIPOS_CLIENTE,
       ]
     );
@@ -978,6 +1045,238 @@ async function cancelarMensagensExpiradas() {
     );
 
   return result.rowCount || 0;
+}
+
+async function cancelarMarketingPorWhatsapp(
+  telefone
+) {
+  const telefoneNacional =
+    String(telefone || "")
+      .replace(/\D/g, "")
+      .replace(/^55(?=\d{10,11}$)/, "");
+
+  if (
+    !/^[0-9]{10,11}$/.test(
+      telefoneNacional
+    )
+  ) {
+    return {
+      usuarios: 0,
+      mensagensCanceladas: 0,
+    };
+  }
+
+  return db.executarTransacao(
+    async (executor) => {
+      const usuarios =
+        await executor.query(
+          `
+            UPDATE usuarios
+            SET
+              whatsapp_marketing_cancelado_em =
+                NOW()
+            WHERE ativo = TRUE
+              AND whatsapp_marketing_consentido_em
+                IS NOT NULL
+              AND whatsapp_marketing_cancelado_em
+                IS NULL
+              AND REGEXP_REPLACE(
+                whatsapp,
+                '[^0-9]',
+                '',
+                'g'
+              ) = $1
+            RETURNING
+              id,
+              whatsapp
+          `,
+          [telefoneNacional]
+        );
+
+      if (usuarios.rowCount > 0) {
+        await executor.query(
+          `
+            INSERT INTO whatsapp_consentimentos (
+              usuario_id,
+              telefone,
+              escopo,
+              acao,
+              origem,
+              texto_versao
+            )
+            SELECT
+              usuario_cancelado.id,
+              usuario_cancelado.whatsapp,
+              'MARKETING_PROFISSIONAL',
+              'CANCELADO',
+              'WHATSAPP',
+              'optout-whatsapp-v1'
+            FROM JSONB_TO_RECORDSET($1::JSONB)
+              AS usuario_cancelado(
+                id BIGINT,
+                whatsapp VARCHAR(13)
+              )
+          `,
+          [JSON.stringify(usuarios.rows)]
+        );
+      }
+
+      const mensagens =
+        await executor.query(
+          `
+            UPDATE whatsapp_mensagens
+            SET
+              status = 'CANCELED',
+              bloqueado_em = NULL,
+              ultimo_erro =
+                'Marketing cancelado pelo destinatário no WhatsApp.'
+            WHERE tipo = ANY($1::VARCHAR[])
+              AND destinatario = ANY($2::VARCHAR[])
+              AND status IN (
+                'PENDING',
+                'FAILED',
+                'PROCESSING'
+              )
+            RETURNING id
+          `,
+          [
+            TIPOS_NEGOCIO,
+            [
+              telefoneNacional,
+              `55${telefoneNacional}`,
+            ],
+          ]
+        );
+
+      return {
+        usuarios:
+          usuarios.rowCount || 0,
+        mensagensCanceladas:
+          mensagens.rowCount || 0,
+      };
+    }
+  );
+}
+
+async function registrarInteracaoRecebida({
+  metaMessageId,
+  telefone,
+  intencao,
+  recebidoEm = new Date(),
+}) {
+  const result =
+    await db.query(
+      `
+        INSERT INTO whatsapp_interacoes_recebidas (
+          meta_message_id,
+          telefone,
+          intencao,
+          recebido_em
+        )
+
+        VALUES (
+          $1,
+          $2,
+          $3,
+          $4
+        )
+
+        ON CONFLICT (
+          meta_message_id
+        )
+        DO NOTHING
+
+        RETURNING *
+      `,
+      [
+        metaMessageId,
+        String(telefone || "")
+          .replace(/\D/g, ""),
+        intencao,
+        recebidoEm,
+      ]
+    );
+
+  return result.rows[0] || null;
+}
+
+async function marcarInteracaoRespondida(
+  interacaoId,
+  metaMessageId
+) {
+  const result =
+    await db.query(
+      `
+        UPDATE whatsapp_interacoes_recebidas
+
+        SET
+          status = 'RESPONDIDA',
+          respondido_em = NOW(),
+          resposta_meta_message_id = $2,
+          ultimo_erro = NULL
+
+        WHERE id = $1
+
+        RETURNING *
+      `,
+      [
+        interacaoId,
+        metaMessageId || null,
+      ]
+    );
+
+  return result.rows[0] || null;
+}
+
+async function marcarInteracaoSemResposta(
+  interacaoId
+) {
+  const result =
+    await db.query(
+      `
+        UPDATE whatsapp_interacoes_recebidas
+
+        SET
+          status = 'SEM_RESPOSTA',
+          ultimo_erro = NULL
+
+        WHERE id = $1
+
+        RETURNING *
+      `,
+      [interacaoId]
+    );
+
+  return result.rows[0] || null;
+}
+
+async function marcarInteracaoFalha(
+  interacaoId,
+  erro
+) {
+  const result =
+    await db.query(
+      `
+        UPDATE whatsapp_interacoes_recebidas
+
+        SET
+          status = 'FALHA',
+          ultimo_erro = $2
+
+        WHERE id = $1
+
+        RETURNING *
+      `,
+      [
+        interacaoId,
+        String(
+          erro ||
+          "Falha ao responder pelo WhatsApp."
+        ).slice(0, 2000),
+      ]
+    );
+
+  return result.rows[0] || null;
 }
 
 async function marcarEnviada(
@@ -1232,6 +1531,11 @@ module.exports = {
   reservarProximaMensagem,
   mensagemContinuaValida,
   cancelarMensagensExpiradas,
+  cancelarMarketingPorWhatsapp,
+  registrarInteracaoRecebida,
+  marcarInteracaoRespondida,
+  marcarInteracaoSemResposta,
+  marcarInteracaoFalha,
   marcarEnviada,
   marcarFalha,
   marcarCancelada,

@@ -32,6 +32,7 @@ export function AuthPage({ mode = "login" }) {
     senha: "",
     confirmarSenha: "",
     aceitaNotificacoesWhatsapp: false,
+    aceitaAlertasWhatsapp: false,
     aceitaLembretesWhatsapp: false
   });
   const [error, setError] = useState("");
@@ -144,6 +145,8 @@ export function AuthPage({ mode = "login" }) {
           whatsapp: form.whatsapp.replace(/\D/g, ""),
           aceitaNotificacoesWhatsapp:
             form.aceitaNotificacoesWhatsapp,
+          aceitaAlertasWhatsapp:
+            professionalIntent && form.aceitaAlertasWhatsapp,
           aceitaLembretesWhatsapp:
             professionalIntent && form.aceitaLembretesWhatsapp,
           marketing: getMarketingContext(
@@ -281,6 +284,21 @@ export function AuthPage({ mode = "login" }) {
           {professionalIntent && (
             <label className="checkbox-label">
               <input
+                checked={form.aceitaAlertasWhatsapp}
+                onChange={(event) => update(
+                  "aceitaAlertasWhatsapp",
+                  event.target.checked
+                )}
+                type="checkbox"
+              />
+              <span>
+                Quero receber pelo WhatsApp avisos operacionais do Agenda Fashion sobre novos agendamentos, lembretes, alterações e cancelamentos. Posso desativar quando quiser.
+              </span>
+            </label>
+          )}
+          {professionalIntent && (
+            <label className="checkbox-label">
+              <input
                 checked={form.aceitaLembretesWhatsapp}
                 onChange={(event) => update(
                   "aceitaLembretesWhatsapp",
@@ -289,7 +307,7 @@ export function AuthPage({ mode = "login" }) {
                 type="checkbox"
               />
               <span>
-                Quero receber no WhatsApp um lembrete por dia para concluir e divulgar meu negócio. Posso desativar quando quiser.
+                Quero receber pelo WhatsApp até três orientações de marketing do Agenda Fashion para concluir e divulgar meu negócio, com intervalo mínimo de três dias. Posso desativar quando quiser.
               </span>
             </label>
           )}

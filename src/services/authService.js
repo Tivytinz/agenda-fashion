@@ -304,6 +304,7 @@ async function cadastro({
   email,
   senha,
   whatsapp,
+  aceitaAlertasWhatsapp = false,
   aceitaLembretesWhatsapp = false,
   aceitaNotificacoesWhatsapp = false,
   marketing,
@@ -349,6 +350,8 @@ async function cadastro({
             senhaHash,
           whatsapp:
             dados.whatsapp,
+          aceitaAlertasWhatsapp:
+            aceitaAlertasWhatsapp === true,
           aceitaLembretesWhatsapp:
             aceitaLembretesWhatsapp === true,
           aceitaNotificacoesWhatsapp:

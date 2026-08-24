@@ -800,6 +800,23 @@ async function criarAgendamento({
           );
         }
 
+        if (
+          whatsappConsentido === true
+        ) {
+          await agendaPublicaRepository
+            .registrarConsentimentoWhatsappAgendamento(
+              {
+                agendamentoId:
+                  criado.id,
+                clienteId:
+                  clienteIdNormalizado,
+                telefone:
+                  whatsappNormalizado,
+              },
+              client
+            );
+        }
+
         /*
          * O agendamento e suas mensagens entram no banco
          * juntos. Se qualquer INSERT falhar, nada é

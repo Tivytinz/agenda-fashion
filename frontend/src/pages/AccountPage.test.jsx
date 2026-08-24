@@ -21,6 +21,7 @@ function baseUser(overrides = {}) {
     whatsapp: "62999998888",
     aceita_lembretes_whatsapp: false,
     aceita_notificacoes_whatsapp: false,
+    aceita_alertas_operacionais_whatsapp: false,
     ...overrides
   };
 }
@@ -200,12 +201,12 @@ describe("minha conta", () => {
 
     expect(await screen.findByRole("heading", { name: "Preferências do WhatsApp" })).not.toBeNull();
     expect(screen.getByText("Agendamentos")).not.toBeNull();
-    expect(screen.getByText("Negócio")).not.toBeNull();
+    expect(screen.getByText("Comunicação do negócio")).not.toBeNull();
     expect(screen.queryByText(/cadastrar seu primeiro serviço/i)).toBeNull();
     expect(screen.queryByRole("button", { name: "Salvar" })).toBeNull();
 
     const checkbox = screen.getByRole("checkbox", {
-      name: /Receber lembretes do negócio no WhatsApp/i
+      name: /Receber orientações do AF/i
     });
 
     fireEvent.click(checkbox);
@@ -218,6 +219,7 @@ describe("minha conta", () => {
         {
           method: "PUT",
           body: {
+            aceitaAlertasOperacionais: false,
             aceitaLembretes: true
           }
         }
@@ -269,6 +271,56 @@ describe("minha conta", () => {
     expect(refreshSession).toHaveBeenCalled();
     await waitFor(() => {
       expect(screen.queryByRole("button", { name: "Salvar" })).toBeNull();
+    });
+  });
+
+  it("mantém visível o controle para interromper os próximos envios", async () => {
+    useSession.mockReturnValue({
+      temNegocio: true,
+      ehAdministrador: false,
+      negocio: { papel: "dono" },
+      refresh: refreshSession,
+      logout: vi.fn()
+    });
+
+    apiRequest
+      .mockResolvedValueOnce({
+        usuario: {
+          id: 7,
+          nome: "Ana",
+          email: "ana@example.com",
+          whatsapp: "62999998888",
+          aceita_lembretes_whatsapp: true
+        }
+      })
+      .mockResolvedValueOnce({
+        mensagem: "Lembretes diários do WhatsApp desativados.",
+        preferencia: {
+          aceita_lembretes_whatsapp: false
+        }
+      });
+
+    render(<MemoryRouter><AccountPage /></MemoryRouter>);
+
+    const checkbox = await screen.findByRole("checkbox", {
+      name: /Receber orientações do AF/i
+    });
+
+    expect(checkbox.checked).toBe(true);
+    fireEvent.click(checkbox);
+    fireEvent.click(screen.getByRole("button", { name: "Salvar" }));
+
+    await waitFor(() => {
+      expect(apiRequest).toHaveBeenLastCalledWith(
+        "/conta/preferencias-whatsapp",
+        {
+          method: "PUT",
+          body: {
+            aceitaAlertasOperacionais: false,
+            aceitaLembretes: false
+          }
+        }
+      );
     });
   });
 });

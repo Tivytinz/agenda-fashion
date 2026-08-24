@@ -169,6 +169,9 @@ describe("Autenticação com conta única", () => {
           aceitaNotificacoesWhatsapp:
             false,
 
+          aceitaAlertasWhatsapp:
+            false,
+
           aceitaLembretesWhatsapp:
             false,
         });
@@ -275,6 +278,7 @@ describe("Autenticação com conta única", () => {
             email: "ana@email.com",
             whatsapp: "62999998888",
             senha: "senha123",
+            aceitaAlertasWhatsapp: true,
             aceitaLembretesWhatsapp: true,
           });
 
@@ -283,6 +287,7 @@ describe("Autenticação com conta única", () => {
           authRepository.criarUsuario
         ).toHaveBeenCalledWith(
           expect.objectContaining({
+            aceitaAlertasWhatsapp: true,
             aceitaLembretesWhatsapp: true,
           })
         );

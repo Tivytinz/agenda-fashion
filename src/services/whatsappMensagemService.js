@@ -131,6 +131,28 @@ function obterHoraLembretesNegocio() {
   );
 }
 
+function obterMaximoLembretesNegocio() {
+  return obterInteiroConfiguracao(
+    "WHATSAPP_BUSINESS_REMINDER_MAX_SENDS",
+    3,
+    {
+      minimo: 1,
+      maximo: 10,
+    }
+  );
+}
+
+function obterIntervaloLembretesNegocioDias() {
+  return obterInteiroConfiguracao(
+    "WHATSAPP_BUSINESS_REMINDER_INTERVAL_DAYS",
+    3,
+    {
+      minimo: 1,
+      maximo: 30,
+    }
+  );
+}
+
 function obterCodigoIdioma() {
   return String(
     process.env
@@ -373,7 +395,9 @@ async function enfileirarLembretesDiariosNegocios() {
     .enfileirarLembretesDiariosNegocios(
       obterHoraLembretesNegocio(),
       primeiroServicoAtivo,
-      divulgacaoAtiva
+      divulgacaoAtiva,
+      obterMaximoLembretesNegocio(),
+      obterIntervaloLembretesNegocioDias()
     );
 
   ultimaVarreduraLembretesNegocioEm =

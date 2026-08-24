@@ -241,7 +241,9 @@ describe(
         ).toHaveBeenCalledWith(
           10,
           true,
-          true
+          true,
+          3,
+          3
         );
       }
     );

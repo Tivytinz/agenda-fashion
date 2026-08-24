@@ -95,9 +95,9 @@ describe("confirmação do agendamento", () => {
 
     expect(steps).toHaveLength(3);
     expect(steps[0].textContent).toContain("Serviço");
-    expect(steps[0].textContent).toContain("✓");
+    expect(steps[0].querySelector(".flow-confirmation-icon")).not.toBeNull();
     expect(steps[1].textContent).toContain("Horário");
-    expect(steps[1].textContent).toContain("✓");
+    expect(steps[1].querySelector(".flow-confirmation-icon")).not.toBeNull();
     expect(steps[2].textContent).toContain("Confirmar");
     expect(steps[2].getAttribute("aria-current")).toBe("step");
   });

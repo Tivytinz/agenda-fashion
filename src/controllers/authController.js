@@ -68,6 +68,8 @@ function obterDadosCadastro(req) {
 
     aceitaNotificacoesWhatsapp:
       req.body?.aceitaNotificacoesWhatsapp,
+    aceitaAlertasWhatsapp:
+      req.body?.aceitaAlertasWhatsapp,
 
     marketing:
       req.body?.marketing,

@@ -1,6 +1,6 @@
 # Arquitetura Oficial — Agenda Fashion
 
-> Atualizada em 20 de agosto de 2026.
+> Atualizada em 24 de agosto de 2026.
 >
 > O contexto permanente de produto e as instrucoes para agentes estao em
 > [`AGENTS.md`](../AGENTS.md). Os dois documentos devem permanecer alinhados.
@@ -581,6 +581,20 @@ negócio recebe o novo plano
 
 O retorno do navegador não confirma pagamento. A confirmação deve ocorrer por
 webhook autenticado e com processamento idempotente.
+
+### 8.5 Conversas iniciadas no WhatsApp
+
+O webhook autenticado da Meta recebe estados de entrega, pedidos de
+descadastro e os quatro quebra-gelos oficiais do AF. Somente intenções
+reconhecidas são persistidas em `whatsapp_interacoes_recebidas`; o conteúdo
+livre de outras mensagens não é armazenado por esse fluxo.
+
+As respostas aos quebra-gelos usam mensagem livre porque a própria pessoa
+acabou de iniciar a janela de atendimento. O processamento confere o
+`WHATSAPP_PHONE_NUMBER_ID`, deduplica cada evento pelo `wamid` e registra o
+`wamid` da resposta ou a falha. A flag
+`WHATSAPP_CONVERSATION_AUTOREPLIES_ENABLED` funciona como chave operacional e
+permanece desativada até a migration 053 e o webhook serem validados.
 
 ---
 
