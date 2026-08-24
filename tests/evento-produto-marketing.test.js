@@ -38,7 +38,12 @@ describe("atribuição de marketing nos eventos", () => {
           utm_content: "video_01",
           utm_term: "lash_designer",
           gclid: gclidLongo,
+          gbraid: "gbraid-google",
+          wbraid: "wbraid-google",
           fbclid: "meta-click-id",
+          msclkid: "microsoft-click-id",
+          ttclid: "tiktok-click-id",
+          epik: "pinterest-click-id",
           landing_page: "/negocio/studio-bella",
           referrer_host: "www.google.com",
           email: "cliente@example.com",
@@ -63,7 +68,12 @@ describe("atribuição de marketing nos eventos", () => {
         utm_content: "video_01",
         utm_term: "lash_designer",
         gclid: gclidLongo,
+        gbraid: "gbraid-google",
+        wbraid: "wbraid-google",
         fbclid: "meta-click-id",
+        msclkid: "microsoft-click-id",
+        ttclid: "tiktok-click-id",
+        epik: "pinterest-click-id",
         landing_page: "/negocio/studio-bella",
         referrer_host: "www.google.com",
       },
@@ -85,14 +95,14 @@ describe("atribuição de marketing nos eventos", () => {
     ).toHaveLength(180);
   });
 
-  test("preserva GCLID ao remover etiqueta antiga de campanha profissional", () => {
+  test("preserva sinais Google modernos ao remover etiqueta antiga", () => {
     const propriedades = eventoProdutoService
       .sanitizarPropriedades({
         utm_source: "google",
         utm_medium: "cpc",
         utm_campaign: "aquisicao_profissionais",
         utm_content: "legado",
-        gclid: "gclid-confirmado-123",
+        gbraid: "gbraid-confirmado-123",
         landing_page: "/cadastro",
         referrer_host: "www.google.com",
       });
@@ -100,7 +110,7 @@ describe("atribuição de marketing nos eventos", () => {
     expect(propriedades).toMatchObject({
       utm_source: "google",
       utm_medium: "cpc",
-      gclid: "gclid-confirmado-123",
+      gbraid: "gbraid-confirmado-123",
       landing_page: "/cadastro",
       referrer_host: "www.google.com",
     });
@@ -108,7 +118,7 @@ describe("atribuição de marketing nos eventos", () => {
     expect(propriedades).not.toHaveProperty("utm_content");
   });
 
-  test("não confunde campanha antiga sem GCLID com tráfego Google confirmado", () => {
+  test("não confunde campanha antiga sem sinal Google com tráfego confirmado", () => {
     const propriedades = eventoProdutoService
       .sanitizarPropriedades({
         utm_source: "google",
