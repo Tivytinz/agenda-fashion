@@ -163,8 +163,13 @@ function identidadeCanonica(linha) {
   const origem = textoChave(exata.origem);
   const midia = textoChave(exata.midia);
   const campanha = textoChave(exata.campanha);
+  const classificacao = textoChave(
+    linha?.classificacao_atribuicao ??
+    linha?.classificacaoAtribuicao
+  );
 
   if (
+    (!classificacao || classificacao === "oficial") &&
     origem === "google" &&
     midia === "cpc" &&
     GOOGLE_PROFISSIONAIS_ALIASES.has(campanha)
@@ -196,6 +201,12 @@ function consolidarLinhasCampanha(linhas = []) {
         origem: canonica.origem,
         midia: canonica.midia,
         campanha: canonica.campanha,
+        campanha_oficial_id:
+          linha?.campanha_oficial_id ||
+          null,
+        classificacao_atribuicao:
+          linha?.classificacao_atribuicao ||
+          null,
         identidades_utm: [],
         ...Object.fromEntries(
           CAMPOS_SOMA.map((campo) => [campo, 0])
@@ -204,6 +215,28 @@ function consolidarLinhasCampanha(linhas = []) {
     }
 
     const grupo = grupos.get(chave);
+
+    if (
+      !grupo.campanha_oficial_id &&
+      linha?.campanha_oficial_id
+    ) {
+      grupo.campanha_oficial_id =
+        linha.campanha_oficial_id;
+    }
+
+    if (
+      linha?.classificacao_atribuicao ===
+      "oficial"
+    ) {
+      grupo.classificacao_atribuicao =
+        "oficial";
+    } else if (
+      !grupo.classificacao_atribuicao &&
+      linha?.classificacao_atribuicao
+    ) {
+      grupo.classificacao_atribuicao =
+        linha.classificacao_atribuicao;
+    }
 
     for (const campo of CAMPOS_SOMA) {
       grupo[campo] += numero(linha?.[campo]);
@@ -366,6 +399,50 @@ function mapearLinha(
   const identidadesUtm = Array.isArray(linha.identidades_utm)
     ? linha.identidades_utm
     : [identidadeExata(linha)];
+  const campanhaOficialId =
+    linha?.campanha_oficial_id
+      ? numero(
+          linha.campanha_oficial_id
+        )
+      : null;
+  const classificacaoInformada =
+    texto(
+      linha?.classificacao_atribuicao
+    );
+  const identidade =
+    identidadeExata(linha);
+  const campanhaAusente = [
+    "",
+    "(sem campanha)",
+    "sem campanha",
+    "organico",
+    "orgânico",
+  ].includes(
+    textoChave(
+      identidade.campanha
+    )
+  );
+  const origemOrganica = [
+    "organico",
+    "orgânico",
+  ].includes(
+    textoChave(
+      identidade.origem
+    )
+  );
+  const classificacaoAtribuicao =
+    classificacaoInformada || (
+      campanhaOficialId ||
+      numero(
+        linha?.investimento_centavos
+      ) > 0
+        ? "oficial"
+        : origemOrganica
+          ? "organico"
+          : campanhaAusente
+            ? "rastreamento_incompleto"
+            : "identidade_nao_oficial"
+    );
 
   const campanha = {
     origem:
@@ -374,6 +451,11 @@ function mapearLinha(
       linha.midia,
     campanha:
       linha.campanha,
+    campanhaOficialId,
+    classificacaoAtribuicao,
+    oficial:
+      classificacaoAtribuicao ===
+        "oficial",
     identidadesUtm,
     consolidada:
       identidadesUtm.length > 1,
@@ -448,65 +530,7 @@ function somar(
   );
 }
 
-function resumirDecisoes(campanhas) {
-  const resumo = {
-    escalar: 0,
-    manter: 0,
-    observar: 0,
-    revisar: 0,
-    pausar: 0,
-    semDados: 0,
-  };
-
-  campanhas.forEach((campanha) => {
-    const codigo =
-      campanha.decisao?.codigo;
-
-    if (codigo === "sem_dados") {
-      resumo.semDados += 1;
-      return;
-    }
-
-    if (
-      Object.prototype.hasOwnProperty.call(
-        resumo,
-        codigo
-      )
-    ) {
-      resumo[codigo] += 1;
-    }
-  });
-
-  return resumo;
-}
-
-async function buscarFunil({
-  periodo,
-} = {}) {
-  const periodoNormalizado =
-    adminProfessionalFunnelRepository
-      .periodoSeguro(periodo);
-  const decisaoConfig =
-    configuracaoDecisao();
-
-  const bruto =
-    await adminProfessionalFunnelRepository
-      .listarPorCampanha(
-        periodoNormalizado
-      );
-
-  const linhasConsolidadas =
-    consolidarLinhasCampanha(bruto);
-
-  const campanhas =
-    linhasConsolidadas.map(
-      (linha) =>
-        mapearLinha(
-          linha,
-          decisaoConfig
-        )
-    );
-
+function criarResumo(campanhas) {
   const resumo = {
     cadastros:
       somar(
@@ -596,10 +620,126 @@ async function buscarFunil({
       resumo.investimentoCentavos
     );
 
+  return resumo;
+}
+
+function resumirDecisoes(campanhas) {
+  const resumo = {
+    escalar: 0,
+    manter: 0,
+    observar: 0,
+    revisar: 0,
+    pausar: 0,
+    semDados: 0,
+  };
+
+  campanhas.forEach((campanha) => {
+    const codigo =
+      campanha.decisao?.codigo;
+
+    if (codigo === "sem_dados") {
+      resumo.semDados += 1;
+      return;
+    }
+
+    if (
+      Object.prototype.hasOwnProperty.call(
+        resumo,
+        codigo
+      )
+    ) {
+      resumo[codigo] += 1;
+    }
+  });
+
+  return resumo;
+}
+
+async function buscarFunil({
+  periodo,
+} = {}) {
+  const periodoNormalizado =
+    adminProfessionalFunnelRepository
+      .periodoSeguro(periodo);
+  const decisaoConfig =
+    configuracaoDecisao();
+
+  const bruto =
+    await adminProfessionalFunnelRepository
+      .listarPorCampanha(
+        periodoNormalizado
+      );
+
+  const linhasConsolidadas =
+    consolidarLinhasCampanha(bruto);
+
+  const campanhas =
+    linhasConsolidadas.map(
+      (linha) =>
+        mapearLinha(
+          linha,
+          decisaoConfig
+        )
+    );
+
+  const campanhasOficiais =
+    campanhas.filter(
+      (campanha) => campanha.oficial
+    );
+
+  const resumo =
+    criarResumo(campanhas);
+
+  const resumoOficial =
+    criarResumo(
+      campanhasOficiais
+    );
+
+  const cadastrosPorClassificacao =
+    campanhas.reduce(
+      (acumulado, campanha) => {
+        const classificacao =
+          campanha.classificacaoAtribuicao;
+
+        if (
+          Object.prototype.hasOwnProperty.call(
+            acumulado,
+            classificacao
+          )
+        ) {
+          acumulado[classificacao] +=
+            campanha.cadastros;
+        }
+
+        return acumulado;
+      },
+      {
+        oficial: 0,
+        rastreamento_incompleto: 0,
+        identidade_nao_oficial: 0,
+        organico: 0,
+      }
+    );
+
   return {
     periodo:
       periodoNormalizado,
     resumo,
+    resumoOficial,
+    diagnosticoAtribuicao: {
+      cadastrosOficiais:
+        cadastrosPorClassificacao
+          .oficial,
+      cadastrosSemCampanha:
+        cadastrosPorClassificacao
+          .rastreamento_incompleto,
+      cadastrosIdentidadeNaoOficial:
+        cadastrosPorClassificacao
+          .identidade_nao_oficial,
+      cadastrosOrganicos:
+        cadastrosPorClassificacao
+          .organico,
+    },
     decisao: {
       metaRoas:
         decisaoConfig.metaRoas,
@@ -615,9 +755,12 @@ async function buscarFunil({
       minimoAssinaturas:
         decisaoConfig.minimoAssinaturas,
       contagem:
-        resumirDecisoes(campanhas),
+        resumirDecisoes(
+          campanhasOficiais
+        ),
     },
     campanhas,
+    campanhasOficiais,
   };
 }
 
@@ -632,4 +775,5 @@ module.exports = {
   configuracaoDecisao,
   recomendarCampanha,
   resumirDecisoes,
+  criarResumo,
 };

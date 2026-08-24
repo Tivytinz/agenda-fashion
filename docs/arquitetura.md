@@ -425,6 +425,20 @@ a mesma normalização de origem, mídia e campanha. A taxa de conversão usa se
 com ao menos um agendamento concluído; a quantidade de agendamentos permanece uma
 métrica separada e pode ser maior do que a quantidade de sessões.
 
+A classificação de campanha oficial é resolvida no backend e entregue junto das
+linhas de desempenho e conversão. Campanhas, Custos e Rentabilidade consomem essa
+mesma decisão; o navegador não precisa reconstruí-la pela lista atual de
+campanhas. O funil profissional expõe separadamente a coorte geral, a coorte
+oficial e o diagnóstico de cadastros orgânicos, pagos sem campanha ou com
+identidade não oficial. CAC, ROAS e recomendações usam somente a coorte oficial,
+sem diluição por cadastros orgânicos ou por cliques sem `utm_campaign`.
+
+A atribuição persistida da conta aceita os mesmos identificadores mantidos pelo
+frontend: `gclid`, `gbraid`, `wbraid`, `fbclid`, `msclkid`, `ttclid`, `epik` e os
+campos internos `af_*`, tanto no primeiro quanto no último contato. Esses sinais
+identificam o canal pago, mas continuam sem inventar uma campanha quando a UTM de
+campanha não foi recebida.
+
 A área administrativa possui a página `Saúde do SaaS`, em `/admin/saude`.
 Ela consulta `GET /admin/saude/perfis-incompletos` para resumir e listar
 cadastros profissionais que ainda não concluíram negócio, dados obrigatórios,

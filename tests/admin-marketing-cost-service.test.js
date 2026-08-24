@@ -9,6 +9,8 @@ jest.mock(
   "../src/repositories/adminMarketingCostRepository",
   () => ({
     listarDesempenho: jest.fn(),
+    buscarDiagnosticoAtribuicao:
+      jest.fn(),
     listarGastos: jest.fn(),
     salvarGastoManual: jest.fn(),
   })
@@ -34,6 +36,13 @@ describe(
   () => {
     beforeEach(() => {
       jest.clearAllMocks();
+      adminMarketingCostRepository
+        .buscarDiagnosticoAtribuicao
+        .mockResolvedValue({
+          sessoes_oficiais: 0,
+          sessoes_sem_campanha: 0,
+          sessoes_identidade_nao_oficial: 0,
+        });
     });
 
     test(
@@ -56,6 +65,13 @@ describe(
               investimento_centavos: "10000",
             },
           ]);
+        adminMarketingCostRepository
+          .buscarDiagnosticoAtribuicao
+          .mockResolvedValue({
+            sessoes_oficiais: 20,
+            sessoes_sem_campanha: 3,
+            sessoes_identidade_nao_oficial: 2,
+          });
 
         const resultado =
           await adminMarketingCostService
@@ -80,6 +96,13 @@ describe(
             agendamentosConcluidos: 4,
             custoPorSessaoCentavos: 500,
             cpaCentavos: 2500,
+            sessoesSemCampanha: 3,
+            sessoesIdentidadeNaoOficial: 2,
+            diagnosticoAtribuicao: {
+              sessoesOficiais: 20,
+              sessoesSemCampanha: 3,
+              sessoesIdentidadeNaoOficial: 2,
+            },
           });
 
         expect(
@@ -127,6 +150,13 @@ describe(
               investimento_centavos: "30000",
             },
           ]);
+        adminMarketingCostRepository
+          .buscarDiagnosticoAtribuicao
+          .mockResolvedValue({
+            sessoes_oficiais: 50,
+            sessoes_sem_campanha: 0,
+            sessoes_identidade_nao_oficial: 0,
+          });
 
         const resultado =
           await adminMarketingCostService
@@ -165,6 +195,13 @@ describe(
               investimento_centavos: "5000",
             },
           ]);
+        adminMarketingCostRepository
+          .buscarDiagnosticoAtribuicao
+          .mockResolvedValue({
+            sessoes_oficiais: 10,
+            sessoes_sem_campanha: 0,
+            sessoes_identidade_nao_oficial: 0,
+          });
 
         const resultado =
           await adminMarketingCostService

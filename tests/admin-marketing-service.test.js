@@ -122,6 +122,12 @@ describe(
               midia: "cpc",
               campanha:
                 "google_ads_profissionais",
+              campanha_oficial_id: "12",
+              campanha_oficial_objetivo:
+                "profissional",
+              campanha_oficial_ativa: false,
+              classificacao_atribuicao:
+                "oficial",
               sessoes: "8",
               sessoes_resolvidas_gclid: "0",
               sessoes_resolvidas_google_click: "0",
@@ -147,6 +153,12 @@ describe(
         ).toMatchObject({
           campanha:
             "google_ads_profissionais",
+          campanhaOficialId: 12,
+          objetivo: "profissional",
+          oficial: true,
+          campanhaAtiva: false,
+          classificacaoAtribuicao:
+            "oficial",
           sessoes: 8,
           sessoesResolvidasPorGclid: 0,
           sessoesResolvidasPorGoogle: 0,
@@ -179,6 +191,12 @@ describe(
               midia: "cpc",
               campanha:
                 "google_ads_profissionais",
+              campanha_oficial_id: 12,
+              campanha_oficial_objetivo:
+                "profissional",
+              campanha_oficial_ativa: true,
+              classificacao_atribuicao:
+                "oficial",
               gclid_resolvido: false,
               google_click_resolvido: false,
               conteudo: "search_01",
@@ -215,6 +233,12 @@ describe(
           resolvidoPorGoogle: false,
           campanha:
             "google_ads_profissionais",
+          campanhaOficialId: 12,
+          objetivo: "profissional",
+          oficial: true,
+          campanhaAtiva: true,
+          classificacaoAtribuicao:
+            "oficial",
         });
       }
     );

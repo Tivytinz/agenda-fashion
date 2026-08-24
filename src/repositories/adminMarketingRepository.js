@@ -2,7 +2,9 @@ const db = require(
   "../db/db"
 );
 const {
+  campanhaAusenteSql,
   criarAtribuicaoSql,
+  criarVinculoCampanhaOficialSql,
 } = require(
   "./marketingAttributionSql"
 );
@@ -278,6 +280,18 @@ async function listarCampanhas(
       "e"
     );
 
+  const vinculoCampanha =
+    criarVinculoCampanhaOficialSql({
+      origem: "e.origem_resolvida",
+      midia: "e.midia_resolvida",
+      campanha: "e.campanha_resolvida",
+    });
+
+  const campanhaAusente =
+    campanhaAusenteSql(
+      "e.campanha_resolvida"
+    );
+
   const resultado =
     await consultarEventos(
       `
@@ -297,12 +311,36 @@ async function listarCampanhas(
           FROM eventos_produto e
           WHERE ${ATRIBUICAO_PAGA_SQL}
             ${filtro}
+        ),
+
+        eventos_classificados AS (
+          SELECT
+            e.*,
+            campanha_oficial.id
+              AS campanha_oficial_id,
+            campanha_oficial.objetivo
+              AS campanha_oficial_objetivo,
+            campanha_oficial.ativo
+              AS campanha_oficial_ativa,
+            CASE
+              WHEN campanha_oficial.id IS NOT NULL
+                THEN 'oficial'
+              WHEN ${campanhaAusente}
+                THEN 'rastreamento_incompleto'
+              ELSE 'identidade_nao_oficial'
+            END AS classificacao_atribuicao
+          FROM eventos_resolvidos e
+          ${vinculoCampanha}
         )
 
         SELECT
           origem_resolvida AS origem,
           midia_resolvida AS midia,
           campanha_resolvida AS campanha,
+          campanha_oficial_id,
+          campanha_oficial_objetivo,
+          campanha_oficial_ativa,
+          classificacao_atribuicao,
 
           COUNT(DISTINCT sessao_id)::INT AS sessoes,
 
@@ -335,12 +373,16 @@ async function listarCampanhas(
           MIN(created_at) AS primeira_interacao,
           MAX(created_at) AS ultima_interacao
 
-        FROM eventos_resolvidos
+        FROM eventos_classificados
 
         GROUP BY
           origem_resolvida,
           midia_resolvida,
-          campanha_resolvida
+          campanha_resolvida,
+          campanha_oficial_id,
+          campanha_oficial_objetivo,
+          campanha_oficial_ativa,
+          classificacao_atribuicao
 
         ORDER BY
           agendamentos_concluidos DESC,
@@ -364,6 +406,18 @@ async function listarConversoes(
       "e"
     );
 
+  const vinculoCampanha =
+    criarVinculoCampanhaOficialSql({
+      origem: "e.origem_resolvida",
+      midia: "e.midia_resolvida",
+      campanha: "e.campanha_resolvida",
+    });
+
+  const campanhaAusente =
+    campanhaAusenteSql(
+      "e.campanha_resolvida"
+    );
+
   const resultado =
     await consultarEventos(
       `
@@ -384,6 +438,26 @@ async function listarConversoes(
           WHERE e.nome = 'agendamento_concluido'
             AND ${ATRIBUICAO_PAGA_SQL}
             ${filtro}
+        ),
+
+        eventos_classificados AS (
+          SELECT
+            e.*,
+            campanha_oficial.id
+              AS campanha_oficial_id,
+            campanha_oficial.objetivo
+              AS campanha_oficial_objetivo,
+            campanha_oficial.ativo
+              AS campanha_oficial_ativa,
+            CASE
+              WHEN campanha_oficial.id IS NOT NULL
+                THEN 'oficial'
+              WHEN ${campanhaAusente}
+                THEN 'rastreamento_incompleto'
+              ELSE 'identidade_nao_oficial'
+            END AS classificacao_atribuicao
+          FROM eventos_resolvidos e
+          ${vinculoCampanha}
         )
 
         SELECT
@@ -397,13 +471,17 @@ async function listarConversoes(
           e.origem_resolvida AS origem,
           e.midia_resolvida AS midia,
           e.campanha_resolvida AS campanha,
+          e.campanha_oficial_id,
+          e.campanha_oficial_objetivo,
+          e.campanha_oficial_ativa,
+          e.classificacao_atribuicao,
           e.gclid_resolvido,
           e.google_click_resolvido,
           NULLIF(BTRIM(e.propriedades ->> 'utm_content'), '') AS conteudo,
           NULLIF(BTRIM(e.propriedades ->> 'landing_page'), '') AS landing_page,
           e.created_at
 
-        FROM eventos_resolvidos e
+        FROM eventos_classificados e
 
         LEFT JOIN negocios n
           ON n.id = e.negocio_id

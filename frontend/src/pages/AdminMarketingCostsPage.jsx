@@ -241,8 +241,14 @@ export function AdminMarketingCostsPage() {
     [data?.managedCampaigns]
   );
   const paidWithoutCampaignSessions = useMemo(
-    () => countPaidSessionsWithoutCampaign(attributionCampaigns),
-    [attributionCampaigns]
+    () => {
+      const backendValue = data?.costs?.sessoesSemCampanha;
+
+      return backendValue === null || backendValue === undefined
+        ? countPaidSessionsWithoutCampaign(attributionCampaigns)
+        : Number(backendValue || 0);
+    },
+    [attributionCampaigns, data?.costs?.sessoesSemCampanha]
   );
 
   if (!data && !error) {

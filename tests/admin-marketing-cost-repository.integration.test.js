@@ -388,5 +388,59 @@ describe(
         });
       }
     );
+
+    test(
+      "mantém clique pago sem UTM fora do custo da campanha oficial",
+      async () => {
+        await db.query(
+          `
+          INSERT INTO eventos_produto (
+            nome,
+            pagina,
+            sessao_id,
+            propriedades
+          )
+          VALUES (
+            'perfil_visualizado',
+            'perfil_negocio',
+            $1,
+            $2::JSONB
+          )
+          `,
+          [
+            sessionGoogle,
+            JSON.stringify({
+              gclid:
+                "google-click-sem-campanha",
+            }),
+          ]
+        );
+
+        const diagnostico =
+          await adminMarketingCostRepository
+            .buscarDiagnosticoAtribuicao(
+              "all"
+            );
+
+        expect(
+          Number(
+            diagnostico
+              .sessoes_sem_campanha
+          )
+        ).toBeGreaterThanOrEqual(1);
+
+        const linhas =
+          await adminMarketingCostRepository
+            .listarDesempenho("all");
+        const encontrada = linhas.find(
+          (item) =>
+            Number(item.id) ===
+            campanhaId
+        );
+
+        expect(encontrada.sessoes)
+          .toBe(2);
+      }
+    );
   }
 );

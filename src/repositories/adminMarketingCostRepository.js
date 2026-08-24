@@ -2,7 +2,9 @@ const db = require(
   "../db/db"
 );
 const {
+  campanhaAusenteSql,
   criarAtribuicaoSql,
+  criarVinculoCampanhaOficialSql,
 } = require(
   "./marketingAttributionSql"
 );
@@ -125,6 +127,14 @@ async function listarDesempenho(
   const atribuicao =
     criarAtribuicaoSql("e");
 
+  const vinculoCampanha =
+    criarVinculoCampanhaOficialSql({
+      origem: "e.origem_resolvida",
+      midia: "e.midia_resolvida",
+      campanha: "e.campanha_resolvida",
+      alias: "campanha_encontrada",
+    });
+
   const resultado =
     await db.query(
       `
@@ -148,41 +158,7 @@ async function listarDesempenho(
           campanha_encontrada.id
             AS campanha_id
         FROM eventos_resolvidos e
-        LEFT JOIN LATERAL (
-          SELECT
-            candidata.id
-          FROM marketing_campanhas candidata
-          WHERE LOWER(candidata.utm_campaign) =
-            LOWER(e.campanha_resolvida)
-            AND LOWER(candidata.utm_medium) =
-              LOWER(e.midia_resolvida)
-            AND (
-              LOWER(candidata.utm_source) =
-                LOWER(e.origem_resolvida)
-              OR CASE
-                WHEN LOWER(e.origem_resolvida) IN (
-                  'meta', 'facebook', 'instagram'
-                ) THEN 'meta'
-                WHEN LOWER(e.origem_resolvida) IN (
-                  'google', 'google_ads', 'google-ads'
-                ) THEN 'google'
-                WHEN LOWER(e.origem_resolvida) = 'pinterest'
-                  THEN 'pinterest'
-                WHEN LOWER(e.origem_resolvida) = 'tiktok'
-                  THEN 'tiktok'
-                ELSE ''
-              END = LOWER(candidata.canal)
-            )
-          ORDER BY
-            CASE
-              WHEN LOWER(candidata.utm_source) =
-                LOWER(e.origem_resolvida)
-                THEN 0
-              ELSE 1
-            END,
-            candidata.id ASC
-          LIMIT 1
-        ) campanha_encontrada ON TRUE
+        ${vinculoCampanha}
       ),
 
       eventos_por_campanha AS (
@@ -282,6 +258,87 @@ async function listarDesempenho(
     );
 
   return resultado.rows;
+}
+
+async function buscarDiagnosticoAtribuicao(
+  periodo = "30"
+) {
+  const eventos =
+    filtroEvento(
+      periodo,
+      "e"
+    );
+
+  const atribuicao =
+    criarAtribuicaoSql("e");
+
+  const vinculoCampanha =
+    criarVinculoCampanhaOficialSql({
+      origem: "e.origem_resolvida",
+      midia: "e.midia_resolvida",
+      campanha: "e.campanha_resolvida",
+    });
+
+  const campanhaAusente =
+    campanhaAusenteSql(
+      "e.campanha_resolvida"
+    );
+
+  const resultado =
+    await db.query(
+      `
+      WITH eventos_resolvidos AS (
+        SELECT
+          e.*,
+          ${atribuicao.origem}
+            AS origem_resolvida,
+          ${atribuicao.midia}
+            AS midia_resolvida,
+          ${atribuicao.campanha}
+            AS campanha_resolvida
+        FROM eventos_produto e
+        WHERE ${atribuicao.atribuicaoPaga}
+          ${eventos}
+      ),
+
+      eventos_classificados AS (
+        SELECT
+          e.sessao_id,
+          campanha_oficial.id IS NOT NULL
+            AS oficial,
+          ${campanhaAusente}
+            AS campanha_ausente
+        FROM eventos_resolvidos e
+        ${vinculoCampanha}
+      ),
+
+      sessoes AS (
+        SELECT
+          sessao_id,
+          BOOL_OR(oficial) AS oficial,
+          BOOL_OR(campanha_ausente)
+            AS campanha_ausente
+        FROM eventos_classificados
+        GROUP BY sessao_id
+      )
+
+      SELECT
+        COUNT(*) FILTER (
+          WHERE oficial
+        )::INT AS sessoes_oficiais,
+        COUNT(*) FILTER (
+          WHERE NOT oficial
+            AND campanha_ausente
+        )::INT AS sessoes_sem_campanha,
+        COUNT(*) FILTER (
+          WHERE NOT oficial
+            AND NOT campanha_ausente
+        )::INT AS sessoes_identidade_nao_oficial
+      FROM sessoes
+      `
+    );
+
+  return resultado.rows[0] || {};
 }
 
 async function listarGastos(
@@ -405,6 +462,7 @@ async function salvarGastoManual({
 
 module.exports = {
   listarDesempenho,
+  buscarDiagnosticoAtribuicao,
   listarGastos,
   salvarGastoManual,
   filtroEvento,

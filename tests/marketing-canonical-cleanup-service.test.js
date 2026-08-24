@@ -68,10 +68,19 @@ describe(
           consultas.join("\n");
 
         expect(sql).toContain(
-          "NULLIF(BTRIM(gclid), '') IS NOT NULL"
+          "NULLIF(BTRIM(gclid), '')"
         );
         expect(sql).toContain(
-          "AND NULLIF(BTRIM(gclid), '') IS NULL"
+          "NULLIF(BTRIM(gbraid), '')"
+        );
+        expect(sql).toContain(
+          "NULLIF(BTRIM(wbraid), '')"
+        );
+        expect(sql).toMatch(
+          /COALESCE\([\s\S]*?gclid[\s\S]*?gbraid[\s\S]*?wbraid[\s\S]*?\) IS NOT NULL/i
+        );
+        expect(sql).toMatch(
+          /COALESCE\([\s\S]*?gclid[\s\S]*?gbraid[\s\S]*?wbraid[\s\S]*?\) IS NULL/i
         );
         expect(sql).toContain(
           "jsonb_set"

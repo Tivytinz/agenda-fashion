@@ -151,6 +151,62 @@ describe("AdminProfessionalFunnelPage", () => {
     ).not.toBeNull();
   });
 
+  it("usa a coorte oficial calculada pelo backend nos KPIs de rentabilidade", async () => {
+    const aligned = resultado();
+    aligned.resumo.cadastros = 13;
+    aligned.resumo.custoCadastroCentavos = 1538;
+    aligned.resumoOficial = {
+      ...aligned.resumo,
+      cadastros: 7,
+      negociosCriados: 6,
+      servicosCriados: 5,
+      agendasConfiguradas: 2,
+      negociosPublicados: 4,
+      checkoutsIniciados: 0,
+      assinaturasAtivadas: 0,
+      custoCadastroCentavos: 2857,
+      taxaNegocio: 85.71,
+      taxaPublicacao: 57.14,
+      taxaCheckout: 0,
+      taxaAssinatura: 0,
+      receitaPrimeiroPagamentoCentavos: 0,
+      roas: 0
+    };
+    aligned.campanhas = [
+      ...aligned.campanhas,
+      {
+        ...aligned.campanhas[0],
+        campanha: "(sem campanha)",
+        cadastros: 6,
+        investimentoCentavos: 0
+      }
+    ];
+    aligned.campanhasOficiais = [
+      {
+        ...aligned.campanhas[0],
+        cadastros: 7,
+        custoCadastroCentavos: 2857
+      }
+    ];
+    apiRequest.mockResolvedValueOnce(aligned);
+
+    render(
+      <MemoryRouter>
+        <AdminProfessionalFunnelPage />
+      </MemoryRouter>
+    );
+
+    expect(
+      await screen.findAllByText("7")
+    ).not.toHaveLength(0);
+    expect(
+      screen.getAllByText(/R\$\s*28,57/).length
+    ).toBeGreaterThanOrEqual(1);
+    expect(
+      screen.queryByText("Tráfego sem UTM de campanha")
+    ).toBeNull();
+  });
+
   it("mostra campanha canônica e preserva as identidades UTM nos detalhes", async () => {
     const user = userEvent.setup();
     const consolidated = resultado();

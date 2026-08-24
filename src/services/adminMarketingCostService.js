@@ -262,11 +262,19 @@ async function buscarCustos({
   const periodoNormalizado =
     normalizarPeriodo(periodo);
 
-  const linhas =
-    await adminMarketingCostRepository
+  const [
+    linhas,
+    diagnosticoBruto,
+  ] = await Promise.all([
+    adminMarketingCostRepository
       .listarDesempenho(
         periodoNormalizado
-      );
+      ),
+    adminMarketingCostRepository
+      .buscarDiagnosticoAtribuicao(
+        periodoNormalizado
+      ),
+  ]);
 
   const campanhas =
     (Array.isArray(linhas)
@@ -307,6 +315,29 @@ async function buscarCustos({
     }
   );
 
+  const sessoesSemCampanha =
+    inteiro(
+      diagnosticoBruto
+        ?.sessoes_sem_campanha
+    );
+
+  const sessoesIdentidadeNaoOficial =
+    inteiro(
+      diagnosticoBruto
+        ?.sessoes_identidade_nao_oficial
+    );
+
+  const sessoesOficiais =
+    Object.prototype.hasOwnProperty.call(
+      diagnosticoBruto || {},
+      "sessoes_oficiais"
+    )
+      ? inteiro(
+          diagnosticoBruto
+            .sessoes_oficiais
+        )
+      : totais.sessoes;
+
   return {
     periodo:
       periodoNormalizado,
@@ -314,7 +345,17 @@ async function buscarCustos({
     investimentoCentavos:
       totais.investimentoCentavos,
     sessoes:
-      totais.sessoes,
+      sessoesOficiais,
+    sessoesOficiais:
+      sessoesOficiais,
+    sessoesSemCampanha,
+    sessoesIdentidadeNaoOficial,
+    diagnosticoAtribuicao: {
+      sessoesOficiais:
+        sessoesOficiais,
+      sessoesSemCampanha,
+      sessoesIdentidadeNaoOficial,
+    },
     agendamentosConcluidos:
       totais.agendamentosClientesConcluidos,
     investimentoClientesCentavos:
@@ -322,7 +363,7 @@ async function buscarCustos({
     custoPorSessaoCentavos:
       custoUnitario(
         totais.investimentoCentavos,
-        totais.sessoes
+        sessoesOficiais
       ),
     cpaCentavos:
       custoUnitario(

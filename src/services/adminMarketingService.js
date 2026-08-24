@@ -273,6 +273,40 @@ async function listarCampanhas({
                 campanha?.campanha,
                 "(sem campanha)"
               ),
+            campanhaOficialId:
+              campanha
+                ?.campanha_oficial_id
+                ? inteiro(
+                    campanha
+                      .campanha_oficial_id
+                  )
+                : null,
+            objetivo:
+              texto(
+                campanha
+                  ?.campanha_oficial_objetivo
+              ) || null,
+            oficial:
+              campanha
+                ?.classificacao_atribuicao ===
+                  "oficial" ||
+              Boolean(
+                campanha
+                  ?.campanha_oficial_id
+              ),
+            campanhaAtiva:
+              campanha
+                ?.campanha_oficial_id
+                ? campanha
+                    .campanha_oficial_ativa !==
+                  false
+                : null,
+            classificacaoAtribuicao:
+              texto(
+                campanha
+                  ?.classificacao_atribuicao,
+                "identidade_nao_oficial"
+              ),
             sessoes,
             sessoesResolvidasPorGclid:
               inteiro(
@@ -399,6 +433,40 @@ async function listarConversoes({
             texto(
               conversao?.campanha,
               "(sem campanha)"
+            ),
+          campanhaOficialId:
+            conversao
+              ?.campanha_oficial_id
+              ? inteiro(
+                  conversao
+                    .campanha_oficial_id
+                )
+              : null,
+          objetivo:
+            texto(
+              conversao
+                ?.campanha_oficial_objetivo
+            ) || null,
+          oficial:
+            conversao
+              ?.classificacao_atribuicao ===
+                "oficial" ||
+            Boolean(
+              conversao
+                ?.campanha_oficial_id
+            ),
+          campanhaAtiva:
+            conversao
+              ?.campanha_oficial_id
+              ? conversao
+                  .campanha_oficial_ativa !==
+                false
+              : null,
+          classificacaoAtribuicao:
+            texto(
+              conversao
+                ?.classificacao_atribuicao,
+              "identidade_nao_oficial"
             ),
           resolvidoPorGclid:
             conversao

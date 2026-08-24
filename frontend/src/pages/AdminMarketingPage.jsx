@@ -115,6 +115,13 @@ function managedIdentity(item) {
   ].join("|");
 }
 
+function hasBackendAttributionClassification(item) {
+  return Object.prototype.hasOwnProperty.call(
+    item || {},
+    "oficial"
+  );
+}
+
 function isMissingCampaign(value) {
   return ["", "(sem campanha)", "sem campanha"].includes(normalize(value));
 }
@@ -415,7 +422,9 @@ export function AdminMarketingPage() {
 
   const officialPerformance = useMemo(
     () => campaigns.filter(
-      (item) => officialIdentitySet.has(performanceIdentity(item))
+      (item) => hasBackendAttributionClassification(item)
+        ? item.oficial === true
+        : officialIdentitySet.has(performanceIdentity(item))
     ),
     [campaigns, officialIdentitySet]
   );
@@ -432,9 +441,15 @@ export function AdminMarketingPage() {
 
   const unofficialAttributed = useMemo(
     () => campaigns.filter(
-      (item) =>
-        !officialIdentitySet.has(performanceIdentity(item)) &&
-        !isPaidTrafficWithoutCampaign(item)
+      (item) => {
+        if (hasBackendAttributionClassification(item)) {
+          return item.classificacaoAtribuicao ===
+            "identidade_nao_oficial";
+        }
+
+        return !officialIdentitySet.has(performanceIdentity(item)) &&
+          !isPaidTrafficWithoutCampaign(item);
+      }
     ),
     [campaigns, officialIdentitySet]
   );
@@ -449,7 +464,9 @@ export function AdminMarketingPage() {
 
   const officialConversions = useMemo(
     () => conversions.filter(
-      (item) => officialIdentitySet.has(performanceIdentity(item))
+      (item) => hasBackendAttributionClassification(item)
+        ? item.oficial === true
+        : officialIdentitySet.has(performanceIdentity(item))
     ),
     [conversions, officialIdentitySet]
   );

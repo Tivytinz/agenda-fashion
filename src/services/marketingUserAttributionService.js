@@ -128,17 +128,31 @@ function limparToqueGoogleNaoOficial(
     content,
     term,
     gclid,
+    gbraid,
+    wbraid,
     fbclid,
+    msclkid,
+    ttclid,
+    epik,
     landing,
   }
 ) {
   const temSinalGoogle =
-    Boolean(marketing[gclid]);
+    Boolean(
+      primeiroSinalGoogle(
+        marketing[gclid],
+        marketing[gbraid],
+        marketing[wbraid]
+      )
+    );
 
   if (temSinalGoogle) {
     marketing[source] = "google";
     marketing[medium] = "cpc";
     marketing[fbclid] = null;
+    marketing[msclkid] = null;
+    marketing[ttclid] = null;
+    marketing[epik] = null;
 
     if (
       !campanhaOficial(
@@ -159,6 +173,9 @@ function limparToqueGoogleNaoOficial(
     marketing[source] = "google";
     marketing[medium] = "cpc";
     marketing[fbclid] = null;
+    marketing[msclkid] = null;
+    marketing[ttclid] = null;
+    marketing[epik] = null;
     return;
   }
 
@@ -177,7 +194,12 @@ function limparToqueGoogleNaoOficial(
   marketing[content] = null;
   marketing[term] = null;
   marketing[gclid] = null;
+  marketing[gbraid] = null;
+  marketing[wbraid] = null;
   marketing[fbclid] = null;
+  marketing[msclkid] = null;
+  marketing[ttclid] = null;
+  marketing[epik] = null;
   marketing[landing] = null;
 }
 
@@ -200,7 +222,12 @@ function limparGoogleProfissionalNaoOficial(
       content: "utmContent",
       term: "utmTerm",
       gclid: "gclid",
+      gbraid: "gbraid",
+      wbraid: "wbraid",
       fbclid: "fbclid",
+      msclkid: "msclkid",
+      ttclid: "ttclid",
+      epik: "epik",
       landing: "landingPage",
     }
   );
@@ -214,7 +241,12 @@ function limparGoogleProfissionalNaoOficial(
       content: "lastUtmContent",
       term: "lastUtmTerm",
       gclid: "lastGclid",
+      gbraid: "lastGbraid",
+      wbraid: "lastWbraid",
       fbclid: "lastFbclid",
+      msclkid: "lastMsclkid",
+      ttclid: "lastTtclid",
+      epik: "lastEpik",
       landing: "lastLandingPage",
     }
   );
@@ -273,15 +305,57 @@ function normalizarMarketing(
         140
       ),
     gclid:
-      primeiroSinalGoogle(
+      normalizarTexto(
         entrada.gclid,
+        200
+      ),
+    gbraid:
+      normalizarTexto(
         entrada.gbraid,
-        entrada.wbraid
+        200
+      ),
+    wbraid:
+      normalizarTexto(
+        entrada.wbraid,
+        200
       ),
     fbclid:
       normalizarTexto(
         entrada.fbclid,
         200
+      ),
+    msclkid:
+      normalizarTexto(
+        entrada.msclkid,
+        200
+      ),
+    ttclid:
+      normalizarTexto(
+        entrada.ttclid,
+        200
+      ),
+    epik:
+      normalizarTexto(
+        entrada.epik,
+        200
+      ),
+    afSource:
+      normalizarTexto(
+        entrada.af_source ??
+        entrada.afSource,
+        80
+      ),
+    afMedium:
+      normalizarTexto(
+        entrada.af_medium ??
+        entrada.afMedium,
+        80
+      ),
+    afContent:
+      normalizarTexto(
+        entrada.af_content ??
+        entrada.afContent,
+        80
       ),
     landingPage:
       normalizarLanding(
@@ -319,16 +393,64 @@ function normalizarMarketing(
         140
       ),
     lastGclid:
-      primeiroSinalGoogle(
-        entrada.last_gclid ?? entrada.lastGclid,
-        entrada.last_gbraid ?? entrada.lastGbraid,
-        entrada.last_wbraid ?? entrada.lastWbraid
+      normalizarTexto(
+        entrada.last_gclid ??
+        entrada.lastGclid,
+        200
+      ),
+    lastGbraid:
+      normalizarTexto(
+        entrada.last_gbraid ??
+        entrada.lastGbraid,
+        200
+      ),
+    lastWbraid:
+      normalizarTexto(
+        entrada.last_wbraid ??
+        entrada.lastWbraid,
+        200
       ),
     lastFbclid:
       normalizarTexto(
         entrada.last_fbclid ??
         entrada.lastFbclid,
         200
+      ),
+    lastMsclkid:
+      normalizarTexto(
+        entrada.last_msclkid ??
+        entrada.lastMsclkid,
+        200
+      ),
+    lastTtclid:
+      normalizarTexto(
+        entrada.last_ttclid ??
+        entrada.lastTtclid,
+        200
+      ),
+    lastEpik:
+      normalizarTexto(
+        entrada.last_epik ??
+        entrada.lastEpik,
+        200
+      ),
+    lastAfSource:
+      normalizarTexto(
+        entrada.last_af_source ??
+        entrada.lastAfSource,
+        80
+      ),
+    lastAfMedium:
+      normalizarTexto(
+        entrada.last_af_medium ??
+        entrada.lastAfMedium,
+        80
+      ),
+    lastAfContent:
+      normalizarTexto(
+        entrada.last_af_content ??
+        entrada.lastAfContent,
+        80
       ),
     lastLandingPage:
       normalizarLanding(

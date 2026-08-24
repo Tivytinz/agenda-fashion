@@ -394,6 +394,10 @@ describe(
             origem: "meta",
             midia: "cpc",
             campanha: utmCampaign,
+            campanha_oficial_id:
+              campanhaId,
+            classificacao_atribuicao:
+              "oficial",
             cadastros: 1,
             negocios_criados: 1,
             servicos_criados: 1,

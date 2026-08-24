@@ -248,6 +248,104 @@ describe(
     );
 
     test(
+      "separa a coorte oficial de cadastros pagos sem campanha e orgânicos",
+      async () => {
+        repository.listarPorCampanha
+          .mockResolvedValue([
+            {
+              origem: "google",
+              midia: "cpc",
+              campanha:
+                "google_ads_profissionais",
+              campanha_oficial_id: 9,
+              classificacao_atribuicao:
+                "oficial",
+              cadastros: 7,
+              negocios_criados: 6,
+              servicos_criados: 5,
+              agendas_configuradas: 2,
+              negocios_publicados: 4,
+              checkouts_iniciados: 0,
+              assinaturas_ativadas: 0,
+              investimento_centavos: 20000,
+              receita_primeiro_pagamento_centavos: 0,
+            },
+            {
+              origem: "google",
+              midia: "cpc",
+              campanha: "(sem campanha)",
+              classificacao_atribuicao:
+                "rastreamento_incompleto",
+              cadastros: 6,
+              negocios_criados: 5,
+              servicos_criados: 2,
+              agendas_configuradas: 0,
+              negocios_publicados: 3,
+              checkouts_iniciados: 0,
+              assinaturas_ativadas: 0,
+              investimento_centavos: 0,
+              receita_primeiro_pagamento_centavos: 0,
+            },
+            {
+              origem: "organico",
+              midia: "none",
+              campanha: "organico",
+              classificacao_atribuicao:
+                "organico",
+              cadastros: 2,
+              negocios_criados: 1,
+              servicos_criados: 1,
+              agendas_configuradas: 0,
+              negocios_publicados: 0,
+              checkouts_iniciados: 0,
+              assinaturas_ativadas: 0,
+              investimento_centavos: 0,
+              receita_primeiro_pagamento_centavos: 0,
+            },
+          ]);
+
+        const resultado =
+          await service.buscarFunil({
+            periodo: "30",
+          });
+
+        expect(resultado.resumo)
+          .toMatchObject({
+            cadastros: 15,
+            investimentoCentavos: 20000,
+            custoCadastroCentavos: 1333,
+          });
+
+        expect(resultado.resumoOficial)
+          .toMatchObject({
+            cadastros: 7,
+            negociosPublicados: 4,
+            investimentoCentavos: 20000,
+            custoCadastroCentavos: 2857,
+          });
+
+        expect(
+          resultado.campanhasOficiais
+        ).toHaveLength(1);
+        expect(
+          resultado
+            .diagnosticoAtribuicao
+        ).toEqual({
+          cadastrosOficiais: 7,
+          cadastrosSemCampanha: 6,
+          cadastrosIdentidadeNaoOficial: 0,
+          cadastrosOrganicos: 2,
+        });
+        expect(
+          resultado.decisao.contagem
+        ).toMatchObject({
+          observar: 1,
+          semDados: 0,
+        });
+      }
+    );
+
+    test(
       "observa amostra pequena antes de recomendar escala ou pausa",
       () => {
         const decisao =

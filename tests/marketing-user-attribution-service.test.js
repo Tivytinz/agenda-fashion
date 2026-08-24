@@ -66,7 +66,15 @@ describe(
           utmContent: "video_01",
           utmTerm: null,
           gclid: null,
+          gbraid: null,
+          wbraid: null,
           fbclid: "fbclid-123",
+          msclkid: null,
+          ttclid: null,
+          epik: null,
+          afSource: null,
+          afMedium: null,
+          afContent: null,
           landingPage: "/cadastro",
           lastUtmSource: "google",
           lastUtmMedium: "cpc",
@@ -74,7 +82,15 @@ describe(
           lastUtmContent: "search_01",
           lastUtmTerm: null,
           lastGclid: "gclid-last-456",
+          lastGbraid: null,
+          lastWbraid: null,
           lastFbclid: null,
+          lastMsclkid: null,
+          lastTtclid: null,
+          lastEpik: null,
+          lastAfSource: null,
+          lastAfMedium: null,
+          lastAfContent: null,
           lastLandingPage: "/planos",
         });
       }
@@ -125,12 +141,43 @@ describe(
           utmSource: "google",
           utmMedium: "cpc",
           utmCampaign: null,
-          gclid: "gbraid-profissional-123",
+          gclid: null,
+          gbraid: "gbraid-profissional-123",
         });
         expect(ultimo).toMatchObject({
           lastUtmSource: "google",
           lastUtmMedium: "cpc",
-          lastGclid: "wbraid-profissional-456",
+          lastGclid: null,
+          lastWbraid: "wbraid-profissional-456",
+        });
+      }
+    );
+
+    test(
+      "preserva os identificadores modernos enviados pelo frontend",
+      () => {
+        const resultado =
+          service.normalizarMarketing({
+            intencao: "cliente",
+            msclkid: "microsoft-click",
+            ttclid: "tiktok-click",
+            epik: "pinterest-click",
+            af_source: "compartilhamento",
+            af_medium: "link",
+            af_content: "perfil",
+            last_msclkid: "microsoft-last",
+            last_af_source: "catalogo",
+          });
+
+        expect(resultado).toMatchObject({
+          msclkid: "microsoft-click",
+          ttclid: "tiktok-click",
+          epik: "pinterest-click",
+          afSource: "compartilhamento",
+          afMedium: "link",
+          afContent: "perfil",
+          lastMsclkid: "microsoft-last",
+          lastAfSource: "catalogo",
         });
       }
     );

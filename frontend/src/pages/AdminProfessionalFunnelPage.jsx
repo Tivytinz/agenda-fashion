@@ -51,7 +51,15 @@ function campaignLabel(item) {
     return "Google Ads · Aquisição de profissionais";
   }
 
-  if (!campaign || campaign.toLowerCase() === "organico") {
+  if (
+    !campaign ||
+    [
+      "organico",
+      "orgânico",
+      "(sem campanha)",
+      "sem campanha"
+    ].includes(campaign.toLowerCase())
+  ) {
     if (source === "organico" && (!medium || medium === "none")) {
       return "Orgânico / sem campanha";
     }
@@ -165,17 +173,17 @@ export function AdminProfessionalFunnelPage() {
     );
   }
 
-  const summary = data?.resumo || {};
+  const summary = data?.resumoOficial || data?.resumo || {};
   const decision = data?.decisao || {};
   const decisionCounts = decision?.contagem || {};
-  const campaigns = data?.campanhas || [];
+  const campaigns = data?.campanhasOficiais || data?.campanhas || [];
 
   const cards = [
     [
       "Cadastros profissionais",
       summary.cadastros ?? 0,
       summary.custoCadastroCentavos === null
-        ? "coorte adquirida no período"
+        ? "atribuídos a campanhas oficiais"
         : `${formatMoney(summary.custoCadastroCentavos)} por cadastro`
     ],
     [
@@ -327,7 +335,7 @@ export function AdminProfessionalFunnelPage() {
             <p className="eyebrow">Ativação</p>
             <h2>Marcos alcançados pela coorte</h2>
             <p className="muted">
-              Cada marco é medido de forma independente para os profissionais que entraram na coorte durante o período selecionado.
+              Cada marco é medido de forma independente para os profissionais atribuídos a campanhas oficiais no período selecionado.
             </p>
           </div>
         </div>
@@ -335,7 +343,7 @@ export function AdminProfessionalFunnelPage() {
         <div className="admin-insights-grid">
           <MarketingBarChart
             title="Atingimento por marco"
-            description="Percentual da coorte que já alcançou cada marco."
+            description="Percentual da coorte oficial que já alcançou cada marco."
             items={stageChartItems}
             emptyMessage="Ainda não há profissionais nesta coorte."
           />
@@ -343,7 +351,7 @@ export function AdminProfessionalFunnelPage() {
           <div className="admin-stat-table-card">
             <div className="admin-stat-table-heading">
               <strong>Detalhamento da coorte</strong>
-              <small>Quantidade e participação sobre os cadastros.</small>
+              <small>Quantidade e participação sobre os cadastros oficiais.</small>
             </div>
             <div className="table-wrap">
               <table className="admin-compact-table">

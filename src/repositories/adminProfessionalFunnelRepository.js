@@ -1,6 +1,13 @@
 const db = require(
   "../db/db"
 );
+const {
+  campanhaAusenteSql,
+  criarAtribuicaoUsuarioSql,
+  criarVinculoCampanhaOficialSql,
+} = require(
+  "./marketingAttributionSql"
+);
 
 const PERIODOS_PERMITIDOS =
   new Set([
@@ -110,90 +117,72 @@ async function listarPorCampanha(
       "g.data_gasto"
     );
 
+  const atribuicao =
+    criarAtribuicaoUsuarioSql(
+      "mua"
+    );
+
+  const vinculoCampanha =
+    criarVinculoCampanhaOficialSql({
+      origem: "a.origem",
+      midia: "a.midia",
+      campanha: "a.campanha",
+      objetivo: "profissional",
+    });
+
+  const campanhaAusente =
+    campanhaAusenteSql(
+      "a.campanha"
+    );
+
   const resultado =
     await db.query(
       `
-      WITH google_oficial AS (
+      WITH atribuicoes_resolvidas AS (
         SELECT
-          MIN(utm_campaign)
+          mua.usuario_id,
+          ${atribuicao.atribuicaoPaga}
+            AS pago,
+          ${atribuicao.origem}
+            AS origem,
+          ${atribuicao.midia}
+            AS midia,
+          ${atribuicao.campanha}
             AS campanha
-        FROM marketing_campanhas
-        WHERE objetivo = 'profissional'
-          AND LOWER(COALESCE(canal, '')) = 'google'
-          AND LOWER(COALESCE(utm_source, '')) = 'google'
-          AND LOWER(COALESCE(utm_medium, '')) = 'cpc'
-          AND LOWER(COALESCE(utm_campaign, '')) =
-            'google_ads_profissionais'
+        FROM marketing_usuario_atribuicoes mua
+        WHERE mua.intencao = 'profissional'
+          ${filtroCoorte}
       ),
 
       coorte AS (
         SELECT
-          mua.usuario_id,
-          CASE
-            WHEN NULLIF(BTRIM(mua.gclid), '') IS NOT NULL
-              THEN 'google'
-            ELSE COALESCE(
-              NULLIF(BTRIM(mua.utm_source), ''),
-              'organico'
-            )
-          END AS origem,
-          CASE
-            WHEN NULLIF(BTRIM(mua.gclid), '') IS NOT NULL
-              THEN 'cpc'
-            ELSE COALESCE(
-              NULLIF(BTRIM(mua.utm_medium), ''),
-              'none'
-            )
-          END AS midia,
+          a.usuario_id,
           COALESCE(
-            NULLIF(BTRIM(mua.utm_campaign), ''),
-            CASE
-              WHEN NULLIF(BTRIM(mua.gclid), '') IS NOT NULL
-                THEN google_oficial.campanha
-              ELSE NULL
-            END,
-            'organico'
-          ) AS campanha
-        FROM marketing_usuario_atribuicoes mua
-        CROSS JOIN google_oficial
-        LEFT JOIN marketing_campanhas mc
-          ON mc.utm_source = CASE
-            WHEN NULLIF(BTRIM(mua.gclid), '') IS NOT NULL
-              THEN 'google'
-            ELSE NULLIF(BTRIM(mua.utm_source), '')
+            campanha_oficial.utm_source,
+            a.origem
+          ) AS origem,
+          COALESCE(
+            campanha_oficial.utm_medium,
+            a.midia
+          ) AS midia,
+          COALESCE(
+            campanha_oficial.utm_campaign,
+            a.campanha
+          ) AS campanha,
+          campanha_oficial.id
+            AS campanha_oficial_id,
+          CASE
+            WHEN campanha_oficial.id IS NOT NULL
+              THEN 'oficial'
+            WHEN a.pago AND ${campanhaAusente}
+              THEN 'rastreamento_incompleto'
+            WHEN a.pago
+              THEN 'identidade_nao_oficial'
+            ELSE 'organico'
           END
-          AND mc.utm_medium = CASE
-            WHEN NULLIF(BTRIM(mua.gclid), '') IS NOT NULL
-              THEN 'cpc'
-            ELSE COALESCE(
-              NULLIF(BTRIM(mua.utm_medium), ''),
-              'cpc'
-            )
-          END
-          AND mc.utm_campaign = NULLIF(
-            BTRIM(mua.utm_campaign),
-            ''
-          )
-        WHERE mua.intencao = 'profissional'
-          AND (
-            (
-              NULLIF(BTRIM(mua.utm_source), '') IS NULL
-              AND NULLIF(BTRIM(mua.utm_medium), '') IS NULL
-              AND NULLIF(BTRIM(mua.utm_campaign), '') IS NULL
-              AND NULLIF(BTRIM(mua.gclid), '') IS NULL
-              AND NULLIF(BTRIM(mua.fbclid), '') IS NULL
-            )
-            OR (
-              mc.id IS NOT NULL
-              AND mc.objetivo = 'profissional'
-            )
-            OR (
-              NULLIF(BTRIM(mua.gclid), '') IS NOT NULL
-              AND NULLIF(BTRIM(mua.utm_campaign), '') IS NULL
-              AND google_oficial.campanha IS NOT NULL
-            )
-          )
-          ${filtroCoorte}
+            AS classificacao_atribuicao
+        FROM atribuicoes_resolvidas a
+        ${vinculoCampanha}
       ),
 
       funil AS (
@@ -202,6 +191,8 @@ async function listarPorCampanha(
           c.origem,
           c.midia,
           c.campanha,
+          c.campanha_oficial_id,
+          c.classificacao_atribuicao,
 
           dono.negocio_id IS NOT NULL
             AS negocio_criado,
@@ -280,6 +271,7 @@ async function listarPorCampanha(
 
       gastos_por_campanha AS (
         SELECT
+          mc.id AS campanha_oficial_id,
           mc.utm_source AS origem,
           mc.utm_medium AS midia,
           mc.utm_campaign AS campanha,
@@ -294,6 +286,7 @@ async function listarPorCampanha(
           AND mc.objetivo = 'profissional'
           ${filtroGasto}
         GROUP BY
+          mc.id,
           mc.utm_source,
           mc.utm_medium,
           mc.utm_campaign
@@ -304,6 +297,8 @@ async function listarPorCampanha(
           f.origem,
           f.midia,
           f.campanha,
+          f.campanha_oficial_id,
+          f.classificacao_atribuicao,
           COUNT(*)::INT AS cadastros,
           COUNT(*) FILTER (
             WHERE f.negocio_criado
@@ -334,7 +329,9 @@ async function listarPorCampanha(
         GROUP BY
           f.origem,
           f.midia,
-          f.campanha
+          f.campanha,
+          f.campanha_oficial_id,
+          f.classificacao_atribuicao
       )
 
       SELECT
@@ -350,6 +347,14 @@ async function listarPorCampanha(
           a.campanha,
           g.campanha
         ) AS campanha,
+        COALESCE(
+          a.campanha_oficial_id,
+          g.campanha_oficial_id
+        ) AS campanha_oficial_id,
+        COALESCE(
+          a.classificacao_atribuicao,
+          'oficial'
+        ) AS classificacao_atribuicao,
         COALESCE(
           a.cadastros,
           0
@@ -389,9 +394,8 @@ async function listarPorCampanha(
         )::BIGINT AS investimento_centavos
       FROM agrupado a
       FULL OUTER JOIN gastos_por_campanha g
-        ON g.origem = a.origem
-        AND g.midia = a.midia
-        AND g.campanha = a.campanha
+        ON g.campanha_oficial_id =
+          a.campanha_oficial_id
       ORDER BY
         assinaturas_ativadas DESC,
         receita_primeiro_pagamento_centavos DESC,

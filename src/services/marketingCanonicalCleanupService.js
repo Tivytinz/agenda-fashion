@@ -140,7 +140,11 @@ async function executarLimpezaGoogleProfissionais() {
             fbclid = NULL,
             updated_at = NOW()
           WHERE intencao = 'profissional'
-            AND NULLIF(BTRIM(gclid), '') IS NOT NULL
+            AND COALESCE(
+              NULLIF(BTRIM(gclid), ''),
+              NULLIF(BTRIM(gbraid), ''),
+              NULLIF(BTRIM(wbraid), '')
+            ) IS NOT NULL
             AND (
               LOWER(COALESCE(utm_source, '')) <> 'google'
               OR LOWER(COALESCE(utm_medium, '')) <> 'cpc'
@@ -169,7 +173,11 @@ async function executarLimpezaGoogleProfissionais() {
             last_fbclid = NULL,
             updated_at = NOW()
           WHERE intencao = 'profissional'
-            AND NULLIF(BTRIM(last_gclid), '') IS NOT NULL
+            AND COALESCE(
+              NULLIF(BTRIM(last_gclid), ''),
+              NULLIF(BTRIM(last_gbraid), ''),
+              NULLIF(BTRIM(last_wbraid), '')
+            ) IS NOT NULL
             AND (
               LOWER(COALESCE(last_utm_source, '')) <> 'google'
               OR LOWER(COALESCE(last_utm_medium, '')) <> 'cpc'
@@ -197,7 +205,11 @@ async function executarLimpezaGoogleProfissionais() {
             landing_page = NULL,
             updated_at = NOW()
           WHERE intencao = 'profissional'
-            AND NULLIF(BTRIM(gclid), '') IS NULL
+            AND COALESCE(
+              NULLIF(BTRIM(gclid), ''),
+              NULLIF(BTRIM(gbraid), ''),
+              NULLIF(BTRIM(wbraid), '')
+            ) IS NULL
             AND LOWER(COALESCE(utm_source, '')) = 'google'
             AND LOWER(COALESCE(utm_campaign, '')) <> $1
           `,
@@ -218,7 +230,11 @@ async function executarLimpezaGoogleProfissionais() {
             last_landing_page = NULL,
             updated_at = NOW()
           WHERE intencao = 'profissional'
-            AND NULLIF(BTRIM(last_gclid), '') IS NULL
+            AND COALESCE(
+              NULLIF(BTRIM(last_gclid), ''),
+              NULLIF(BTRIM(last_gbraid), ''),
+              NULLIF(BTRIM(last_wbraid), '')
+            ) IS NULL
             AND LOWER(COALESCE(last_utm_source, '')) = 'google'
             AND LOWER(COALESCE(last_utm_campaign, '')) <> $1
           `,
