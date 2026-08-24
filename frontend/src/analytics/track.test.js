@@ -101,6 +101,50 @@ describe("track attribution", () => {
     });
   });
 
+  test("persiste origem própria de link compartilhado pelo AF até o agendamento", () => {
+    window.history.replaceState(
+      {},
+      "",
+      "/negocio/studio?af_source=agenda_fashion&af_medium=share&af_content=negocio"
+    );
+
+    track("perfil_visualizado", {
+      page: "perfil_negocio",
+      mission: "entrar_no_negocio",
+      businessId: 12,
+    });
+
+    const entrada = JSON.parse(fetch.mock.calls[0][1].body);
+    expect(entrada.propriedades).toMatchObject({
+      af_source: "agenda_fashion",
+      af_medium: "share",
+      af_content: "negocio",
+      last_af_source: "agenda_fashion",
+      last_af_medium: "share",
+      landing_page: "/negocio/studio",
+    });
+
+    window.history.replaceState({}, "", "/confirmar");
+
+    track("agendamento_concluido", {
+      page: "finalizar_agendamento",
+      mission: "confirmar_agendamento",
+      businessId: 12,
+      properties: {
+        agendamento_id: 987654,
+        status: "sucesso",
+      },
+    });
+
+    const conclusao = JSON.parse(fetch.mock.calls[1][1].body);
+    expect(conclusao.propriedades).toMatchObject({
+      af_source: "agenda_fashion",
+      af_medium: "share",
+      af_content: "negocio",
+      agendamento_id: 987654,
+    });
+  });
+
   test("guarda apenas o domínio externo de referência, sem URL ou busca", () => {
     Object.defineProperty(document, "referrer", {
       configurable: true,
