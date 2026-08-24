@@ -62,23 +62,40 @@ function finiteLimit(value) {
   return Number.isFinite(parsed) ? parsed : null;
 }
 
+function usedAmount(value) {
+  return Math.max(0, Number(value) || 0);
+}
+
+function overLimitAmount(usedValue, limitValue) {
+  const limit = finiteLimit(limitValue);
+  if (limit === null) return 0;
+  return Math.max(0, usedAmount(usedValue) - limit);
+}
+
+function atOrAboveLimit(usedValue, limitValue) {
+  const limit = finiteLimit(limitValue);
+  return limit !== null && usedAmount(usedValue) >= limit;
+}
+
 function remainingLabel(usedValue, limitValue) {
-  const used = Math.max(0, Number(usedValue) || 0);
+  const used = usedAmount(usedValue);
   const limit = finiteLimit(limitValue);
   if (limit === null) return "Sem limite";
+  const overLimit = Math.max(0, used - limit);
+  if (overLimit > 0) return `${overLimit} acima do limite`;
   const remaining = Math.max(0, limit - used);
   if (remaining === 0) return "Limite atingido";
   return `${remaining} ${remaining === 1 ? "disponível" : "disponíveis"}`;
 }
 
 function usageValue(usedValue, limitValue) {
-  const used = Math.max(0, Number(usedValue) || 0);
+  const used = usedAmount(usedValue);
   const limit = finiteLimit(limitValue);
   return `${used} / ${limit === null ? "∞" : limit}`;
 }
 
 function appointmentSummary(usedValue, limitValue) {
-  const used = Math.max(0, Number(usedValue) || 0);
+  const used = usedAmount(usedValue);
   const limit = finiteLimit(limitValue);
   if (limit === null) return `${used} agendamentos · sem limite`;
   const remaining = Math.max(0, limit - used);
@@ -89,7 +106,7 @@ function progressPercent(usedValue, limitValue, backendPercent) {
   const backend = Number(backendPercent);
   if (Number.isFinite(backend)) return Math.max(0, Math.min(100, backend));
 
-  const used = Math.max(0, Number(usedValue) || 0);
+  const used = usedAmount(usedValue);
   const limit = finiteLimit(limitValue);
   if (limit === null || limit <= 0) return 0;
   return Math.max(0, Math.min(100, (used / limit) * 100));
@@ -162,6 +179,7 @@ export function SubscriptionPage() {
   const payments = Array.isArray(data.pagamentos) ? data.pagamentos : [];
   const state = subscriptionStatus(plan, subscription);
   const isFree = Number(plan.valor) === 0;
+  const usesFreeFallback = !isFree && !state.active;
   const needsSubscription = !isFree && !subscription;
   const rawStatus = normalizeStatus(subscription?.status);
   const canCancel = ACTIVE_STATUSES.has(rawStatus) && subscription?.ativo !== false;
@@ -169,6 +187,11 @@ export function SubscriptionPage() {
   const checkoutTarget = planSlug
     ? `/checkout?plano=${encodeURIComponent(planSlug)}`
     : "/planos";
+  const effectivePlanName = usesFreeFallback ? "Grátis" : plan.nome || "Grátis";
+  const serviceOverLimit = overLimitAmount(
+    usage.servicos_utilizados,
+    usage.limite_servicos
+  );
   const appointmentsPercent = progressPercent(
     usage.utilizados,
     usage.limite,
@@ -184,7 +207,7 @@ export function SubscriptionPage() {
           <p>Acompanhe uso, pagamentos e a próxima renovação.</p>
         </div>
         <Link className="button button-secondary" to="/planos">
-          {needsSubscription ? "Escolher plano" : "Ver planos"}
+          {usesFreeFallback ? "Escolher plano" : "Ver planos"}
         </Link>
       </header>
 
@@ -195,7 +218,7 @@ export function SubscriptionPage() {
         <article className="panel subscription-card subscription-plan-card">
           <div className="panel-heading subscription-plan-heading">
             <div>
-              <p className="eyebrow">{needsSubscription ? "Plano disponível" : "Plano atual"}</p>
+              <p className="eyebrow">{usesFreeFallback ? "Plano selecionado" : "Plano atual"}</p>
               <h2>{plan.nome || "Plano grátis"}</h2>
             </div>
             <span className={`subscription-state-badge is-${state.tone}`}>{state.label}</span>
@@ -254,8 +277,9 @@ export function SubscriptionPage() {
         <article className="panel billing-usage-card">
           <p className="eyebrow">Uso neste mês</p>
           <h2>Seus limites atuais</h2>
+          <p className="billing-effective-plan">Plano em uso: <strong>{effectivePlanName}</strong></p>
           <p className="muted billing-usage-intro">
-            {needsSubscription
+            {usesFreeFallback
               ? "Enquanto a assinatura não estiver ativa, valem os limites gratuitos."
               : "Acompanhe o que já foi usado e o que ainda está disponível."}
           </p>
@@ -270,7 +294,7 @@ export function SubscriptionPage() {
               <dt>Profissionais</dt>
               <dd>
                 <strong>{usageValue(usage.profissionais_utilizados, usage.limite_profissionais)}</strong>
-                <small className={remainingLabel(usage.profissionais_utilizados, usage.limite_profissionais) === "Limite atingido" ? "usage-limit-note is-reached" : "usage-limit-note"}>
+                <small className={atOrAboveLimit(usage.profissionais_utilizados, usage.limite_profissionais) ? "usage-limit-note is-reached" : "usage-limit-note"}>
                   {remainingLabel(usage.profissionais_utilizados, usage.limite_profissionais)}
                 </small>
               </dd>
@@ -279,12 +303,18 @@ export function SubscriptionPage() {
               <dt>Serviços</dt>
               <dd>
                 <strong>{usageValue(usage.servicos_utilizados, usage.limite_servicos)}</strong>
-                <small className={remainingLabel(usage.servicos_utilizados, usage.limite_servicos) === "Limite atingido" ? "usage-limit-note is-reached" : "usage-limit-note"}>
+                <small className={atOrAboveLimit(usage.servicos_utilizados, usage.limite_servicos) ? "usage-limit-note is-reached" : "usage-limit-note"}>
                   {remainingLabel(usage.servicos_utilizados, usage.limite_servicos)}
                 </small>
               </dd>
             </div>
           </dl>
+
+          {serviceOverLimit > 0 && (
+            <p className="usage-over-limit-alert" role="status">
+              Você possui {usedAmount(usage.servicos_utilizados)} serviços. O plano em uso permite {finiteLimit(usage.limite_servicos)}. Assine um plano maior para adicionar novos serviços.
+            </p>
+          )}
         </article>
       </section>
 
