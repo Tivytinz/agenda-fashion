@@ -1,6 +1,21 @@
 const DEFAULT_PUBLIC_ORIGIN =
   "https://app.agendafashion.com.br";
 
+export const PUBLIC_LINK_MEDIA =
+  Object.freeze({
+    SHARE: "share",
+    COPY: "copy",
+    QR: "qr",
+    WHATSAPP: "whatsapp",
+  });
+
+const PUBLIC_LINK_MEDIA_VALIDOS =
+  new Set(
+    Object.values(
+      PUBLIC_LINK_MEDIA
+    )
+  );
+
 function resolveOrigin(origin) {
   const value = String(
     origin ||
@@ -25,10 +40,60 @@ function resolveOrigin(origin) {
   return url.origin;
 }
 
+function aplicarOrigemAf(
+  url,
+  acquisition
+) {
+  if (
+    !acquisition ||
+    typeof acquisition !== "object"
+  ) {
+    return;
+  }
+
+  const medium = String(
+    acquisition.medium || ""
+  )
+    .trim()
+    .toLowerCase();
+
+  if (
+    !PUBLIC_LINK_MEDIA_VALIDOS.has(
+      medium
+    )
+  ) {
+    return;
+  }
+
+  const content = String(
+    acquisition.content || ""
+  )
+    .trim()
+    .toLowerCase()
+    .slice(0, 80);
+
+  url.searchParams.set(
+    "af_source",
+    "agenda_fashion"
+  );
+  url.searchParams.set(
+    "af_medium",
+    medium
+  );
+
+  if (content) {
+    url.searchParams.set(
+      "af_content",
+      content
+    );
+  }
+}
+
 export function buildPublicLink({
   businessSlug,
   serviceId,
-  origin
+  origin,
+  acquisition
 }) {
   const slug = String(
     businessSlug || ""
@@ -53,6 +118,11 @@ export function buildPublicLink({
       String(serviceId)
     );
   }
+
+  aplicarOrigemAf(
+    url,
+    acquisition
+  );
 
   return url.toString();
 }
