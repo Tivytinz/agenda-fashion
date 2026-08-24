@@ -135,6 +135,9 @@ describe("AdminProfessionalFunnelPage", () => {
     expect(
       screen.getByText(/renovações posteriores não entram no ROAS/i)
     ).not.toBeNull();
+    expect(
+      screen.getByText(/identidades UTM históricas equivalentes são consolidadas/i)
+    ).not.toBeNull();
 
     expect(screen.queryByText("Custo por checkout")).toBeNull();
     expect(screen.queryByText(/R\$\s*80,00/)).toBeNull();
@@ -145,6 +148,62 @@ describe("AdminProfessionalFunnelPage", () => {
     expect(screen.getAllByText(/R\$\s*80,00/)).toHaveLength(1);
     expect(
       screen.getByText(/ROAS 1\.49x está acima da faixa de escala/i)
+    ).not.toBeNull();
+  });
+
+  it("mostra campanha canônica e preserva as identidades UTM nos detalhes", async () => {
+    const user = userEvent.setup();
+    const consolidated = resultado();
+    consolidated.campanhas = [
+      {
+        ...consolidated.campanhas[0],
+        origem: "google",
+        midia: "cpc",
+        campanha: "google_ads_profissionais",
+        cadastros: 12,
+        investimentoCentavos: 20000,
+        receitaPrimeiroPagamentoCentavos: 0,
+        roas: 0,
+        custoCadastroCentavos: 1667,
+        custoCheckoutCentavos: null,
+        cacAssinanteCentavos: null,
+        consolidada: true,
+        identidadesUtm: [
+          { origem: "google", midia: "cpc", campanha: "aquisicao_profissionais" },
+          { origem: "google", midia: "cpc", campanha: "search_aquisicao_profissionais" },
+          { origem: "google", midia: "cpc", campanha: "google_ads_profissionais" }
+        ],
+        decisao: {
+          codigo: "pausar",
+          rotulo: "Pausar",
+          confianca: "media",
+          motivo: "A campanha já atingiu 12 cadastros e ainda não gerou assinatura ativada."
+        }
+      }
+    ];
+    apiRequest.mockResolvedValueOnce(consolidated);
+
+    render(
+      <MemoryRouter>
+        <AdminProfessionalFunnelPage />
+      </MemoryRouter>
+    );
+
+    expect(
+      await screen.findByText("Google Ads · Aquisição de profissionais")
+    ).not.toBeNull();
+    expect(screen.getByText("3 identidades vinculadas")).not.toBeNull();
+    expect(screen.getByText(/R\$\s*200,00/)).not.toBeNull();
+    expect(screen.queryByText("aquisicao_profissionais")).toBeNull();
+
+    await user.click(screen.getByRole("button", { name: "Ver detalhes" }));
+
+    expect(screen.getByText("Identidades UTM incluídas")).not.toBeNull();
+    expect(
+      screen.getByText(/google \/ cpc \/ aquisicao_profissionais/)
+    ).not.toBeNull();
+    expect(
+      screen.getByText(/google \/ cpc \/ search_aquisicao_profissionais/)
     ).not.toBeNull();
   });
 
