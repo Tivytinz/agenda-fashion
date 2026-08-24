@@ -107,7 +107,14 @@ const CHAVES_PROPRIEDADES =
     "gclid",
     "fbclid",
     "landing_page",
+    "referrer_host",
   ]);
+
+const CHAVES_ID = new Set([
+  "agendamento_id",
+  "servico_id",
+  "profissional_id",
+]);
 
 const LIMITES_PROPRIEDADES_TEXTO =
   Object.freeze({
@@ -119,6 +126,7 @@ const LIMITES_PROPRIEDADES_TEXTO =
     gclid: 200,
     fbclid: 200,
     landing_page: 500,
+    referrer_host: 200,
   });
 
 function erroValidacao(
@@ -174,6 +182,12 @@ function normalizarValorPropriedade(
     typeof valor === "number" &&
     Number.isFinite(valor)
   ) {
+    if (CHAVES_ID.has(chave)) {
+      return Number.isSafeInteger(valor) && valor > 0
+        ? valor
+        : undefined;
+    }
+
     return Math.max(
       Math.min(
         valor,
@@ -256,20 +270,27 @@ function sanitizarPropriedades(
     CAMPANHAS_GOOGLE_PROFISSIONAIS_LEGADAS
       .has(campanha)
   ) {
+    const temGclid = Boolean(
+      String(resultado.gclid || "").trim()
+    );
+
     [
-      "utm_source",
-      "utm_medium",
       "utm_campaign",
       "utm_content",
       "utm_term",
-      "gclid",
-      "fbclid",
-      "landing_page",
     ].forEach(
       (chave) => {
         delete resultado[chave];
       }
     );
+
+    if (temGclid) {
+      resultado.utm_source = "google";
+      resultado.utm_medium = "cpc";
+    } else {
+      delete resultado.utm_source;
+      delete resultado.utm_medium;
+    }
   }
 
   return resultado;
