@@ -131,6 +131,15 @@ function limparToqueGoogleNaoOficial(
     marketing[source] = "google";
     marketing[medium] = "cpc";
     marketing[fbclid] = null;
+
+    if (
+      !campanhaOficial(
+        marketing[campaign]
+      )
+    ) {
+      marketing[campaign] = null;
+    }
+
     return;
   }
 
