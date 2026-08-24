@@ -6,6 +6,8 @@ import {
 
 const SESSION_KEY = "af_produto_sessao";
 const ATTRIBUTION_KEY = "af_marketing_attribution";
+const REFERRER_KEY = "af_acquisition_referrer_host";
+const DIRECT_REFERRER = "__direct__";
 const ATTRIBUTION_VERSION = 2;
 const ATTRIBUTION_WINDOW_MS = 30 * 24 * 60 * 60 * 1000;
 
@@ -47,6 +49,42 @@ function sessionId() {
 
   writeBrowserStorage("session", SESSION_KEY, created);
   return created;
+}
+
+function acquisitionReferrerHost() {
+  const stored = readBrowserStorage("session", REFERRER_KEY);
+
+  if (stored) {
+    return stored === DIRECT_REFERRER ? "" : stored;
+  }
+
+  let host = "";
+
+  try {
+    const referrer = String(document.referrer || "").trim();
+
+    if (referrer) {
+      const parsed = new URL(referrer);
+      const currentOrigin = String(window.location.origin || "");
+
+      if (parsed.origin !== currentOrigin) {
+        host = parsed.hostname
+          .trim()
+          .toLowerCase()
+          .slice(0, 200);
+      }
+    }
+  } catch {
+    host = "";
+  }
+
+  writeBrowserStorage(
+    "session",
+    REFERRER_KEY,
+    host || DIRECT_REFERRER
+  );
+
+  return host;
 }
 
 function safeObject(value) {
@@ -280,6 +318,7 @@ export function track(name, {
 }) {
   try {
     const attribution = captureAttribution();
+    const referrerHost = acquisitionReferrerHost();
 
     const payload = {
       nome: name,
@@ -288,6 +327,7 @@ export function track(name, {
       sessao_id: sessionId(),
       negocio_id: businessId || undefined,
       propriedades: {
+        ...(referrerHost ? { referrer_host: referrerHost } : {}),
         ...attribution,
         ...properties
       }
