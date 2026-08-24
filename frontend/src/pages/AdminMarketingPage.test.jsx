@@ -185,8 +185,8 @@ describe("AdminMarketingPage", () => {
 
     expect(screen.getByText("Sessões de campanhas oficiais")).not.toBeNull();
     expect(screen.getByText("Acessos autônomos")).not.toBeNull();
-    expect(screen.getByText("Campanhas oficiais")).not.toBeNull();
-    expect(screen.getByText("Conversões oficiais")).not.toBeNull();
+    expect(screen.getAllByText("Campanhas oficiais").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText("Conversões oficiais").length).toBeGreaterThanOrEqual(1);
 
     expect(
       screen.getAllByText("google_ads_profissionais").length
@@ -204,7 +204,7 @@ describe("AdminMarketingPage", () => {
 
     expect(await screen.findByText("Acesso autônomo")).not.toBeNull();
     expect(
-      screen.getByText(/Chegou sem UTM, GCLID ou FBCLID/i)
+      screen.getByText(/Chegou sem origem ou campanha UTM e sem GCLID\/FBCLID/i)
     ).not.toBeNull();
     expect(
       screen.getByText(/Pode ser acesso direto, busca orgânica ou link compartilhado/i)
