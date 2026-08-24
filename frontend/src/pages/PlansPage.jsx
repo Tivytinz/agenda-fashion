@@ -87,7 +87,8 @@ export function PlansPage() {
             const cardClass = [
               "plan-card",
               plan.destaque ? "featured" : "",
-              isCurrent ? "current" : ""
+              isCurrent ? "current" : "",
+              isSelectedPaid ? "selected-pending" : ""
             ].filter(Boolean).join(" ");
             const actionLabel = isSelectedPaid
               ? `Assinar ${plan.nome}`
@@ -98,6 +99,7 @@ export function PlansPage() {
             return (
               <article className={cardClass} key={plan.id}>
                 {plan.destaque && <span className="plan-highlight">Mais escolhido</span>}
+                {isSelectedPaid && <span className="plan-selected-badge">Escolhido</span>}
                 <p className="eyebrow">{paid ? "Para crescer" : "Para começar"}</p>
                 <h2>{plan.nome}</h2>
                 <p className="plan-price"><strong>{formatCurrency(plan.valor)}</strong><span>/mês</span></p>
