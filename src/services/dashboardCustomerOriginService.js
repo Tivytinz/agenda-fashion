@@ -84,6 +84,11 @@ const ORIGENS = Object.freeze({
     categoria: "organico",
     descricao: "Cliente chegou pelo Pinterest sem sinal de anúncio pago.",
   },
+  outro_organico: {
+    rotulo: "Outro tráfego orgânico",
+    categoria: "organico",
+    descricao: "Cliente chegou por uma origem não paga rastreada, como referência, mensagem ou outro canal orgânico.",
+  },
   referencia_externa: {
     rotulo: "Referência externa",
     categoria: "organico",
@@ -92,7 +97,7 @@ const ORIGENS = Object.freeze({
   outra_origem_rastreada: {
     rotulo: "Outra origem rastreada",
     categoria: "rastreado",
-    descricao: "Existe origem informada, mas ela não pertence aos canais padronizados.",
+    descricao: "Existe origem informada, mas ela não pertence aos canais padronizados ou está incompleta.",
   },
   autonomo: {
     rotulo: "Acesso autônomo",
