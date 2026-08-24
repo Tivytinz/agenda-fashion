@@ -43,6 +43,14 @@ function campaignLabel(item) {
   const source = String(item?.origem || "").trim().toLowerCase();
   const medium = String(item?.midia || "").trim().toLowerCase();
 
+  if (
+    source === "google" &&
+    medium === "cpc" &&
+    campaign.toLowerCase() === "google_ads_profissionais"
+  ) {
+    return "Google Ads · Aquisição de profissionais";
+  }
+
   if (!campaign || campaign.toLowerCase() === "organico") {
     if (source === "organico" && (!medium || medium === "none")) {
       return "Orgânico / sem campanha";
@@ -55,6 +63,14 @@ function campaignLabel(item) {
 
 function campaignKey(item) {
   return `${item.origem}-${item.midia}-${item.campanha}`;
+}
+
+function utmIdentityLabel(item) {
+  return [
+    item?.origem || "organico",
+    item?.midia || "none",
+    item?.campanha || "organico"
+  ].join(" / ");
 }
 
 function decisionBadgeClass(code) {
@@ -363,7 +379,7 @@ export function AdminProfessionalFunnelPage() {
             </p>
             <p className="muted">As recomendações são analíticas e não alteram campanhas automaticamente.</p>
             <p className="muted admin-campaign-attribution-note">
-              Cada linha representa uma identidade UTM exata. O investimento aparece somente quando essa identidade está vinculada à campanha de mídia; identidades históricas não são somadas automaticamente.
+              Identidades UTM históricas equivalentes são consolidadas na campanha canônica para unir investimento e conversões. Os nomes originais continuam disponíveis nos detalhes para auditoria.
             </p>
           </div>
         </div>
@@ -397,6 +413,9 @@ export function AdminProfessionalFunnelPage() {
                   const expanded = expandedCampaign === key;
                   const source = sourceMeta(item);
                   const medium = mediumLabel(item);
+                  const identities = Array.isArray(item.identidadesUtm)
+                    ? item.identidadesUtm
+                    : [];
 
                   return (
                     <Fragment key={key}>
@@ -408,6 +427,11 @@ export function AdminProfessionalFunnelPage() {
                               {source.label}
                             </span>
                             {medium && <small className="admin-medium-label">{medium}</small>}
+                            {identities.length > 1 && (
+                              <small className="admin-medium-label">
+                                {identities.length} identidades vinculadas
+                              </small>
+                            )}
                           </div>
                         </td>
                         <td>
@@ -482,6 +506,14 @@ export function AdminProfessionalFunnelPage() {
                                 <span>Custo por checkout</span>
                                 <strong>{formatMoney(item.custoCheckoutCentavos)}</strong>
                               </div>
+                              {identities.length > 1 && (
+                                <div className="admin-campaign-decision-reason">
+                                  <span>Identidades UTM incluídas</span>
+                                  <strong>
+                                    {identities.map(utmIdentityLabel).join(" · ")}
+                                  </strong>
+                                </div>
+                              )}
                               {item.decisao?.motivo && (
                                 <div className="admin-campaign-decision-reason">
                                   <span>Motivo da recomendação</span>
