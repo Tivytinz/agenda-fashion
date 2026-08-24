@@ -143,7 +143,6 @@ async function buscarOrigemClientes(
         *,
         CASE
           WHEN gclid IS NOT NULL THEN 'google_ads'
-          WHEN fbclid IS NOT NULL THEN 'meta_ads'
           WHEN LOWER(COALESCE(utm_source, '')) = 'google'
             AND LOWER(COALESCE(utm_medium, '')) IN (
               'cpc', 'ppc', 'paid', 'paid_search'
@@ -163,6 +162,7 @@ async function buscarOrigemClientes(
               'cpc', 'paid', 'paid_social', 'social_paid'
             )
             THEN 'outra_midia_paga'
+          WHEN fbclid IS NOT NULL THEN 'social_organico'
           WHEN referrer_host ~ '(^|\\.)google\\.'
             OR referrer_host ~ '(^|\\.)bing\\.'
             OR referrer_host ~ '(^|\\.)duckduckgo\\.'
