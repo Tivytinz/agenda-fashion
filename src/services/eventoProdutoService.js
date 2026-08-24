@@ -105,7 +105,12 @@ const CHAVES_PROPRIEDADES =
     "utm_content",
     "utm_term",
     "gclid",
+    "gbraid",
+    "wbraid",
     "fbclid",
+    "msclkid",
+    "ttclid",
+    "epik",
     "landing_page",
     "referrer_host",
   ]);
@@ -124,7 +129,12 @@ const LIMITES_PROPRIEDADES_TEXTO =
     utm_content: 140,
     utm_term: 140,
     gclid: 200,
+    gbraid: 200,
+    wbraid: 200,
     fbclid: 200,
+    msclkid: 200,
+    ttclid: 200,
+    epik: 200,
     landing_page: 500,
     referrer_host: 200,
   });
@@ -270,8 +280,12 @@ function sanitizarPropriedades(
     CAMPANHAS_GOOGLE_PROFISSIONAIS_LEGADAS
       .has(campanha)
   ) {
-    const temGclid = Boolean(
-      String(resultado.gclid || "").trim()
+    const temSinalGoogle = [
+      resultado.gclid,
+      resultado.gbraid,
+      resultado.wbraid,
+    ].some(
+      (valor) => Boolean(String(valor || "").trim())
     );
 
     [
@@ -284,7 +298,7 @@ function sanitizarPropriedades(
       }
     );
 
-    if (temGclid) {
+    if (temSinalGoogle) {
       resultado.utm_source = "google";
       resultado.utm_medium = "cpc";
     } else {
