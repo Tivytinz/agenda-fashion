@@ -24,11 +24,22 @@ const DASHBOARD = {
 
 const CUSTOMER_ORIGIN = {
   resumo: {
-    clientes: 4,
-    clientesNovos: 3,
-    clientesRecorrentes: 1,
-    agendamentos: 6,
-    faturamento: 390
+    clientes: 6,
+    clientesNovos: 4,
+    clientesRecorrentes: 2,
+    agendamentos: 9,
+    faturamento: 590,
+    clientesPagos: 2,
+    clientesOrganicos: 2,
+    clientesAutonomos: 1,
+    clientesSemOrigem: 1,
+    agendamentosPagos: 3,
+    agendamentosOrganicos: 3,
+    faturamentoPago: 230,
+    faturamentoOrganico: 200,
+    percentualPago: 33.3,
+    percentualOrganico: 33.3,
+    percentualAutonomo: 16.7
   },
   origens: [
     {
@@ -37,16 +48,26 @@ const CUSTOMER_ORIGIN = {
       categoria: "pago",
       descricao: "Cliente adquirido por clique identificado do Google Ads.",
       clientes: 2,
-      percentualClientes: 50,
+      percentualClientes: 33.3,
       agendamentos: 3,
       faturamento: 230
+    },
+    {
+      codigo: "google_organico",
+      rotulo: "Google orgânico",
+      categoria: "organico",
+      descricao: "Cliente chegou por resultado não pago do Google.",
+      clientes: 2,
+      percentualClientes: 33.3,
+      agendamentos: 3,
+      faturamento: 200
     },
     {
       codigo: "autonomo",
       rotulo: "Acesso autônomo",
       categoria: "autonomo",
       clientes: 1,
-      percentualClientes: 25,
+      percentualClientes: 16.7,
       agendamentos: 2,
       faturamento: 100
     },
@@ -55,7 +76,7 @@ const CUSTOMER_ORIGIN = {
       rotulo: "Origem não identificada",
       categoria: "incompleto",
       clientes: 1,
-      percentualClientes: 25,
+      percentualClientes: 16.7,
       agendamentos: 1,
       faturamento: 60
     }
@@ -127,17 +148,21 @@ describe("dashboard", () => {
       .not.toBeNull();
   });
 
-  it("mostra clientes únicos e separa origem paga, autônoma e não identificada", async () => {
+  it("separa tráfego pago, orgânico e acesso autônomo", async () => {
     mockDashboardRequests();
     render(<MemoryRouter><DashboardPage /></MemoryRouter>);
 
     expect(await screen.findByRole("heading", { name: "De onde vieram seus clientes" }))
       .not.toBeNull();
     expect(screen.getByText("Google Ads")).not.toBeNull();
+    expect(screen.getByText("Google orgânico")).not.toBeNull();
     expect(screen.getByText("Acesso autônomo", { selector: "strong" })).not.toBeNull();
     expect(screen.getByText("Origem não identificada", { selector: "strong" })).not.toBeNull();
-    expect(screen.getByText(/Cada pessoa conta uma vez/)).not.toBeNull();
-    expect(screen.getByText(/Pode ser acesso direto, favorito, busca\/link sem rastreamento ou link compartilhado/))
+    expect(screen.getByText("Tráfego pago", { selector: "dt" })).not.toBeNull();
+    expect(screen.getByText("Tráfego orgânico", { selector: "dt" })).not.toBeNull();
+    expect(screen.getByText("Pago · faturamento")).not.toBeNull();
+    expect(screen.getByText("Orgânico · faturamento")).not.toBeNull();
+    expect(screen.getByText(/sem anúncio e sem referência externa identificável/i))
       .not.toBeNull();
   });
 
