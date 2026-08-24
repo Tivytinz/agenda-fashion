@@ -13,6 +13,7 @@ const {
   listarServicos,
   criarServico,
   editarServico,
+  alterarAtivoServico,
   removerServico,
   enviarFotoServico,
   listarFotosServico,
@@ -112,6 +113,7 @@ const {
 router.get("/", auth, listarServicos);
 router.post("/", auth, criarServico);
 router.put("/:id", auth, editarServico);
+router.patch("/:id/ativo", auth, alterarAtivoServico);
 router.delete("/:id", auth, removerServico);
 router.post(
   "/:id/foto",
