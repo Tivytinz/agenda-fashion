@@ -72,9 +72,14 @@ function overLimitAmount(usedValue, limitValue) {
   return Math.max(0, usedAmount(usedValue) - limit);
 }
 
-function atOrAboveLimit(usedValue, limitValue) {
+function usageLimitClass(usedValue, limitValue) {
   const limit = finiteLimit(limitValue);
-  return limit !== null && usedAmount(usedValue) >= limit;
+  if (limit === null) return "usage-limit-note";
+
+  const used = usedAmount(usedValue);
+  if (used > limit) return "usage-limit-note is-over";
+  if (used === limit) return "usage-limit-note is-reached";
+  return "usage-limit-note";
 }
 
 function remainingLabel(usedValue, limitValue) {
@@ -218,7 +223,7 @@ export function SubscriptionPage() {
         <article className="panel subscription-card subscription-plan-card">
           <div className="panel-heading subscription-plan-heading">
             <div>
-              <p className="eyebrow">{usesFreeFallback ? "Plano selecionado" : "Plano atual"}</p>
+              <p className="eyebrow">{usesFreeFallback ? "Plano escolhido" : "Plano atual"}</p>
               <h2>{plan.nome || "Plano grátis"}</h2>
             </div>
             <span className={`subscription-state-badge is-${state.tone}`}>{state.label}</span>
@@ -250,7 +255,7 @@ export function SubscriptionPage() {
               <p>
                 {isFree
                   ? "Seu plano gratuito não possui cobrança mensal."
-                  : "Este plano ainda não possui uma assinatura ativa nem cobrança agendada."}
+                  : "A assinatura ainda não foi ativada. Seus limites permanecem no plano Grátis até a confirmação do pagamento."}
               </p>
               {needsSubscription && (
                 <Link className="button subscription-primary-action" to={checkoutTarget}>
@@ -294,7 +299,7 @@ export function SubscriptionPage() {
               <dt>Profissionais</dt>
               <dd>
                 <strong>{usageValue(usage.profissionais_utilizados, usage.limite_profissionais)}</strong>
-                <small className={atOrAboveLimit(usage.profissionais_utilizados, usage.limite_profissionais) ? "usage-limit-note is-reached" : "usage-limit-note"}>
+                <small className={usageLimitClass(usage.profissionais_utilizados, usage.limite_profissionais)}>
                   {remainingLabel(usage.profissionais_utilizados, usage.limite_profissionais)}
                 </small>
               </dd>
@@ -303,7 +308,7 @@ export function SubscriptionPage() {
               <dt>Serviços</dt>
               <dd>
                 <strong>{usageValue(usage.servicos_utilizados, usage.limite_servicos)}</strong>
-                <small className={atOrAboveLimit(usage.servicos_utilizados, usage.limite_servicos) ? "usage-limit-note is-reached" : "usage-limit-note"}>
+                <small className={usageLimitClass(usage.servicos_utilizados, usage.limite_servicos)}>
                   {remainingLabel(usage.servicos_utilizados, usage.limite_servicos)}
                 </small>
               </dd>
@@ -311,9 +316,12 @@ export function SubscriptionPage() {
           </dl>
 
           {serviceOverLimit > 0 && (
-            <p className="usage-over-limit-alert" role="status">
-              Você possui {usedAmount(usage.servicos_utilizados)} serviços. O plano em uso permite {finiteLimit(usage.limite_servicos)}. Assine um plano maior para adicionar novos serviços.
-            </p>
+            <div className="usage-over-limit-alert" role="status">
+              <span>
+                Você possui {usedAmount(usage.servicos_utilizados)} serviços. O plano em uso permite {finiteLimit(usage.limite_servicos)}. Assine um plano maior para adicionar novos serviços.
+              </span>
+              <Link className="usage-over-limit-action" to="/planos">Ver planos</Link>
+            </div>
           )}
         </article>
       </section>
