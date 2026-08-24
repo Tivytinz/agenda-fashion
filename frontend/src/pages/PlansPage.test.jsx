@@ -78,7 +78,7 @@ describe("continuidade do plano", () => {
       .getAttribute("href")).toBe("/profissional/agenda");
   });
 
-  it("marca como escolhido o plano pago sem tratá-lo como plano atual", async () => {
+  it("mostra plano pago aguardando assinatura sem tratá-lo como plano atual", async () => {
     sessionState = {
       authenticated: true,
       temNegocio: true,
@@ -105,7 +105,8 @@ describe("continuidade do plano", () => {
 
     expect(within(gratis).getByText("✓ Plano atual")).not.toBeNull();
     expect(within(autonoma).queryByText("✓ Plano atual")).toBeNull();
-    expect(within(autonoma).getByText("Escolhido")).not.toBeNull();
+    expect(within(autonoma).getByText("Aguardando assinatura")).not.toBeNull();
+    expect(within(autonoma).queryByText("Escolhido")).toBeNull();
     expect(autonoma.classList.contains("selected-pending")).toBe(true);
     expect(within(autonoma).getByRole("link", { name: "Assinar Autônoma" })
       .getAttribute("href")).toBe("/checkout?plano=autonoma");
@@ -136,6 +137,7 @@ describe("continuidade do plano", () => {
     const autonoma = (await screen.findByRole("heading", { name: "Autônoma" })).closest("article");
 
     expect(within(autonoma).getByText("✓ Plano atual")).not.toBeNull();
+    expect(within(autonoma).queryByText("Aguardando assinatura")).toBeNull();
     expect(within(autonoma).queryByText("Escolhido")).toBeNull();
     expect(within(autonoma).queryByRole("link", { name: "Assinar Autônoma" })).toBeNull();
   });
