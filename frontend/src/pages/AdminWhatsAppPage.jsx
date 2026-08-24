@@ -28,7 +28,7 @@ const STATUS_META = {
   LIMIT_EXCEEDED: "Limite excedido",
   IDIOMA_AUSENTE: "Idioma não encontrado",
   AUSENTE: "Não encontrado",
-  NAO_VERIFICADO: "Não verificado",
+  NAO_VERIFICADO: "Status não consultado",
   UNKNOWN: "Status desconhecido",
 };
 
@@ -36,7 +36,7 @@ const QUALIDADE_META = {
   GREEN: "Boa",
   YELLOW: "Atenção",
   RED: "Baixa",
-  UNKNOWN: "Sem avaliação",
+  UNKNOWN: "Sem avaliação da Meta",
 };
 
 function formatarPercentual(valor) {
@@ -50,6 +50,22 @@ function formatarPercentual(valor) {
   return `${new Intl.NumberFormat("pt-BR", {
     maximumFractionDigits: 1
   }).format(valor)}%`;
+}
+
+function calcularTaxaAceite(metricas = {}) {
+  const total = Number(metricas.total ?? 0);
+  const aceitas = Number(metricas.aceitas ?? 0);
+
+  if (!Number.isFinite(total) || total <= 0 || !Number.isFinite(aceitas)) {
+    return null;
+  }
+
+  return Number(((aceitas / total) * 100).toFixed(1));
+}
+
+function quantidadeLabel(quantidade, singular, plural) {
+  const valor = Number(quantidade ?? 0);
+  return `${valor} ${valor === 1 ? singular : plural}`;
 }
 
 function formatarDataHora(valor) {
@@ -101,9 +117,33 @@ function tomQualidade(qualidade) {
 
 function TemplateRow({ template }) {
   const metricas = template.metricas || {};
-  const falhas = (metricas.falhasFila ?? 0) + (metricas.falhasEntrega ?? 0);
+  const total = Number(metricas.total ?? 0);
+  const aceitas = Number(metricas.aceitas ?? 0);
+  const pendentes = Number(metricas.pendentes ?? 0);
+  const naoEnviadas = Number(metricas.canceladas ?? 0);
+  const falhas = Number(metricas.falhasFila ?? 0) + Number(metricas.falhasEntrega ?? 0);
+  const taxaAceite = calcularTaxaAceite(metricas);
   const statusLabel = STATUS_META[template.statusMeta] || template.statusMeta;
-  const qualityLabel = QUALIDADE_META[template.qualidadeMeta] || template.qualidadeMeta;
+  const statusNaoConsultado = template.statusMeta === "NAO_VERIFICADO";
+  const qualityLabel = template.qualidadeMeta
+    ? (QUALIDADE_META[template.qualidadeMeta] || template.qualidadeMeta)
+    : statusNaoConsultado
+      ? "não consultada"
+      : "sem avaliação da Meta";
+
+  let operacaoPrincipal = "Sem falhas";
+  let operacaoDetalhe = "0 pendentes · 0 não enviadas";
+
+  if (falhas > 0) {
+    operacaoPrincipal = quantidadeLabel(falhas, "falha", "falhas");
+    operacaoDetalhe = `${quantidadeLabel(pendentes, "pendente", "pendentes")} · ${quantidadeLabel(naoEnviadas, "não enviada", "não enviadas")}`;
+  } else if (naoEnviadas > 0) {
+    operacaoPrincipal = quantidadeLabel(naoEnviadas, "não enviada", "não enviadas");
+    operacaoDetalhe = `${quantidadeLabel(pendentes, "pendente", "pendentes")} · sem falhas`;
+  } else if (pendentes > 0) {
+    operacaoPrincipal = quantidadeLabel(pendentes, "pendente", "pendentes");
+    operacaoDetalhe = "aguardando processamento · sem falhas";
+  }
 
   return (
     <tr>
@@ -119,8 +159,11 @@ function TemplateRow({ template }) {
           {template.automacaoHabilitada ? "Habilitada" : "Desligada"}
         </StatusBadge>
       </td>
-      <td>
+      <td className="whatsapp-meta-cell">
         <StatusBadge tone={tomStatusMeta(template)}>{statusLabel}</StatusBadge>
+        <small className={`admin-row-note whatsapp-meta-quality ${template.qualidadeMeta ? "" : "is-empty"}`}>
+          Qualidade: {qualityLabel}
+        </small>
         {template.categoriaMeta && (
           <small className="admin-row-note">
             {template.categoriaMeta}
@@ -129,31 +172,28 @@ function TemplateRow({ template }) {
         )}
       </td>
       <td>
-        {template.qualidadeMeta ? (
-          <StatusBadge tone={tomQualidade(template.qualidadeMeta)}>
-            {qualityLabel}
-          </StatusBadge>
-        ) : (
-          <span className="admin-data-empty">—</span>
-        )}
+        <strong className="whatsapp-accepted-value">
+          {aceitas} de {total}{taxaAceite === null ? "" : ` · ${formatarPercentual(taxaAceite)}`}
+        </strong>
+        <small className="admin-row-note">
+          {total > 0 ? "aceitas pela Meta" : "sem mensagens geradas"}
+        </small>
       </td>
       <td>
-        <strong>{metricas.aceitas ?? 0}</strong>
-        <small className="admin-row-note">de {metricas.total ?? 0} geradas</small>
-      </td>
-      <td>
-        <strong>{formatarPercentual(metricas.taxaEntrega)}</strong>
+        <strong className={metricas.taxaEntrega === null || metricas.taxaEntrega === undefined ? "whatsapp-empty-metric" : ""}>
+          {formatarPercentual(metricas.taxaEntrega)}
+        </strong>
         <small className="admin-row-note">{metricas.entregues ?? 0} entregues</small>
       </td>
       <td>
-        <strong>{formatarPercentual(metricas.taxaLeitura)}</strong>
+        <strong className={metricas.taxaLeitura === null || metricas.taxaLeitura === undefined ? "whatsapp-empty-metric" : ""}>
+          {formatarPercentual(metricas.taxaLeitura)}
+        </strong>
         <small className="admin-row-note">{metricas.lidas ?? 0} lidas</small>
       </td>
       <td>
-        <strong>{falhas > 0 ? `${falhas} falhas` : "Sem falhas"}</strong>
-        <small className="admin-row-note">
-          {metricas.pendentes ?? 0} pendentes · {metricas.canceladas ?? 0} não enviadas
-        </small>
+        <strong>{operacaoPrincipal}</strong>
+        <small className="admin-row-note">{operacaoDetalhe}</small>
       </td>
     </tr>
   );
@@ -277,7 +317,7 @@ export function AdminWhatsAppPage() {
             : `${resumo.templatesEsperados ?? 0} templates aguardam consulta`}
           label="Aprovados na Meta"
           value={aprovados === null || aprovados === undefined
-            ? "Não verificado"
+            ? "Não consultado"
             : `${aprovados} de ${resumo.templatesEsperados ?? 0}`}
         />
         <MetricCard
@@ -310,7 +350,7 @@ export function AdminWhatsAppPage() {
           <strong>
             {verificacao.disponivel
               ? "Verificação da Meta concluída"
-              : "Status da Meta ainda não confirmado"}
+              : "Status da Meta ainda não consultado"}
           </strong>
           <p>{verificacao.mensagem}</p>
           {verificacao.variaveisAusentes?.length > 0 && (
@@ -350,7 +390,6 @@ export function AdminWhatsAppPage() {
                 <th>Template</th>
                 <th>Automação</th>
                 <th>Meta</th>
-                <th>Qualidade</th>
                 <th>Aceitas</th>
                 <th>Entrega</th>
                 <th>Leitura</th>
@@ -370,6 +409,7 @@ export function AdminWhatsAppPage() {
         <summary>Como interpretar estas métricas</summary>
         <div>
           <p><strong>Ativo:</strong> o modelo está aprovado na Meta, no idioma e na categoria esperados.</p>
+          <p><strong>Status não consultado:</strong> o AF ainda não conseguiu consultar aprovação e qualidade diretamente na Meta; isso não invalida as métricas locais de envio.</p>
           <p><strong>Automação habilitada:</strong> o AF está autorizado pelas variáveis do ambiente a usar essa rotina.</p>
           <p><strong>Aceita:</strong> a Meta recebeu a solicitação e devolveu um identificador. Isso ainda não garante entrega.</p>
           <p><strong>Falhas:</strong> somam erros da fila e recusas de entrega registradas pelo webhook.</p>
