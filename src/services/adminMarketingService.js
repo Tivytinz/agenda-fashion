@@ -146,14 +146,16 @@ async function buscarResumo({
       resumo?.sessoes_organicas
     );
 
-  const sessoesAutonomas =
+  const sessoesDiretas =
     inteiro(
-      resumo?.sessoes_autonomas
+      resumo?.sessoes_diretas ??
+        resumo?.sessoes_autonomas
     );
 
-  const sessoesRastreamentoIncompleto =
+  const sessoesRastreadasNaoPagas =
     inteiro(
-      resumo?.sessoes_rastreamento_incompleto
+      resumo?.sessoes_rastreadas_nao_pagas ??
+        resumo?.sessoes_rastreamento_incompleto
     );
 
   const campanhas =
@@ -193,13 +195,19 @@ async function buscarResumo({
     sessoesPagas:
       sessoes,
     sessoesOrganicas,
-    sessoesAutonomas,
-    sessoesRastreamentoIncompleto,
+    sessoesDiretas,
+    sessoesAutonomas:
+      sessoesDiretas,
+    sessoesRastreadasNaoPagas,
+    sessoesRastreamentoIncompleto:
+      sessoesRastreadasNaoPagas,
     sessoesSemAtribuicao:
-      sessoesAutonomas,
+      sessoesDiretas,
     coberturaAtribuicao:
       taxa(
-        sessoes + sessoesOrganicas,
+        sessoes +
+          sessoesOrganicas +
+          sessoesRastreadasNaoPagas,
         totalSessoes
       ),
     campanhas,
