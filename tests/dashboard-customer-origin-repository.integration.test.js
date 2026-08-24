@@ -264,6 +264,61 @@ describe("origem de clientes integrada", () => {
     )).toMatchObject({ clientes: 1 });
   });
 
+  test("identifica cliente vindo de link compartilhado pelo próprio AF", async () => {
+    const cliente = await criarCliente("Cliente Compartilhamento AF");
+    const primeiro = await criarAgendamento(cliente, 0, "18:00");
+
+    await criarEvento(primeiro, {
+      af_source: "agenda_fashion",
+      af_medium: "share",
+      af_content: "negocio",
+    });
+
+    const linhas = await repository.buscarOrigemClientes(
+      cenario.negocioId,
+      "7dias"
+    );
+
+    expect(linhas.find(
+      (linha) => linha.origem_codigo === "af_compartilhamento"
+    )).toMatchObject({
+      clientes: 1,
+      clientes_novos: 1,
+      agendamentos: 1,
+    });
+
+    expect(linhas.find(
+      (linha) => linha.origem_codigo === "autonomo"
+    )).toBeUndefined();
+  });
+
+  test("prioriza sinal pago sobre etiqueta de compartilhamento do AF", async () => {
+    const cliente = await criarCliente("Cliente AF depois Google Ads");
+    const primeiro = await criarAgendamento(cliente, 0, "19:00");
+
+    await criarEvento(primeiro, {
+      af_source: "agenda_fashion",
+      af_medium: "share",
+      af_content: "negocio",
+      gclid: "gclid-confirmado-prioridade",
+    });
+
+    const linhas = await repository.buscarOrigemClientes(
+      cenario.negocioId,
+      "7dias"
+    );
+
+    expect(linhas.find(
+      (linha) => linha.origem_codigo === "google_ads"
+    )).toMatchObject({
+      clientes: 1,
+      agendamentos: 1,
+    });
+    expect(linhas.find(
+      (linha) => linha.origem_codigo === "af_compartilhamento"
+    )).toBeUndefined();
+  });
+
   test("normaliza período inválido para sete dias", () => {
     expect(repository.periodoSeguro("qualquer"))
       .toBe("7dias");
