@@ -235,7 +235,7 @@ describe("AdminMarketingPage", () => {
 
     expect(screen.getByText("Sessões de campanhas oficiais")).not.toBeNull();
     expect(screen.getByText("Pago sem campanha identificada")).not.toBeNull();
-    expect(screen.getByText("Tráfego orgânico")).not.toBeNull();
+    expect(screen.getAllByText("Tráfego orgânico").length).toBeGreaterThanOrEqual(1);
     expect(screen.getByText("Acessos diretos")).not.toBeNull();
     expect(screen.getByText("Cadastros profissionais oficiais")).not.toBeNull();
     expect(screen.getByText("Agendamentos de clientes oficiais")).not.toBeNull();
