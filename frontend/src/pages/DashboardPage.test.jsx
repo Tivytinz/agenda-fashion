@@ -162,7 +162,53 @@ describe("dashboard", () => {
     expect(screen.getByText("Tráfego orgânico", { selector: "dt" })).not.toBeNull();
     expect(screen.getByText("Pago · faturamento")).not.toBeNull();
     expect(screen.getByText("Orgânico · faturamento")).not.toBeNull();
-    expect(screen.getByText(/sem anúncio e sem referência externa identificável/i))
+    expect(screen.getByText(/sem sinal de anúncio, referência externa ou link rastreável do AF/i))
+      .not.toBeNull();
+  });
+
+  it("mostra compartilhamento rastreado pelo AF como orgânico e não autônomo", async () => {
+    mockDashboardRequests({
+      origin: {
+        resumo: {
+          clientes: 1,
+          clientesNovos: 1,
+          clientesRecorrentes: 0,
+          agendamentos: 1,
+          faturamento: 90,
+          clientesPagos: 0,
+          clientesOrganicos: 1,
+          clientesAutonomos: 0,
+          clientesSemOrigem: 0,
+          agendamentosPagos: 0,
+          agendamentosOrganicos: 1,
+          faturamentoPago: 0,
+          faturamentoOrganico: 90,
+          percentualPago: 0,
+          percentualOrganico: 100,
+          percentualAutonomo: 0
+        },
+        origens: [
+          {
+            codigo: "af_compartilhamento",
+            rotulo: "Compartilhamento pelo AF",
+            categoria: "organico",
+            descricao: "Cliente chegou por um link compartilhado a partir do Agenda Fashion.",
+            clientes: 1,
+            percentualClientes: 100,
+            agendamentos: 1,
+            faturamento: 90
+          }
+        ]
+      }
+    });
+
+    render(<MemoryRouter><DashboardPage /></MemoryRouter>);
+
+    expect(await screen.findByText("Compartilhamento pelo AF"))
+      .not.toBeNull();
+    expect(screen.getByText(/link compartilhado a partir do Agenda Fashion/))
+      .not.toBeNull();
+    expect(screen.getByText(/links rastreáveis compartilhados pelo próprio AF/))
       .not.toBeNull();
   });
 
