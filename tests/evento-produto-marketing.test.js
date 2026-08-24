@@ -20,6 +20,9 @@ describe("atribuição de marketing nos eventos", () => {
   });
 
   test("preserva parâmetros de campanha permitidos e remove dados pessoais", async () => {
+    const gclidLongo =
+      "gclid_" + "A".repeat(120);
+
     await eventoProdutoService.registrar({
       corpo: {
         nome: "agendamento_concluido",
@@ -33,7 +36,7 @@ describe("atribuição de marketing nos eventos", () => {
           utm_campaign: "goiania_cilios_agosto",
           utm_content: "video_01",
           utm_term: "lash_designer",
-          gclid: "google-click-id",
+          gclid: gclidLongo,
           fbclid: "meta-click-id",
           landing_page: "/negocio/studio-bella",
           email: "cliente@example.com",
@@ -56,10 +59,25 @@ describe("atribuição de marketing nos eventos", () => {
         utm_campaign: "goiania_cilios_agosto",
         utm_content: "video_01",
         utm_term: "lash_designer",
-        gclid: "google-click-id",
+        gclid: gclidLongo,
         fbclid: "meta-click-id",
         landing_page: "/negocio/studio-bella",
       },
     });
+  });
+
+  test("mantém limite específico para identificadores de clique", () => {
+    expect(
+      eventoProdutoService
+        .LIMITES_PROPRIEDADES_TEXTO
+        .gclid
+    ).toBeGreaterThan(60);
+
+    expect(
+      eventoProdutoService
+        .sanitizarPropriedades({
+          gclid: "G".repeat(180),
+        }).gclid
+    ).toHaveLength(180);
   });
 });
