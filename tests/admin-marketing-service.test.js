@@ -95,7 +95,7 @@ describe(
     );
 
     test(
-      "normaliza campanha e calcula taxa individual",
+      "normaliza campanha, calcula taxa e informa sessões resolvidas por GCLID",
       async () => {
         adminMarketingRepository
           .listarCampanhas
@@ -103,8 +103,10 @@ describe(
             {
               origem: "google",
               midia: "cpc",
-              campanha: "unhas_goiania",
+              campanha:
+                "google_ads_profissionais",
               sessoes: "8",
+              sessoes_resolvidas_gclid: "3",
               perfis_visualizados: "6",
               agendamentos_iniciados: "3",
               agendamentos_concluidos: "2",
@@ -123,8 +125,13 @@ describe(
 
         expect(
           resultado.campanhas[0]
-            .taxaConversao
-        ).toBe(25);
+        ).toMatchObject({
+          campanha:
+            "google_ads_profissionais",
+          sessoes: 8,
+          sessoesResolvidasPorGclid: 3,
+          taxaConversao: 25,
+        });
 
         expect(
           resultado.periodo
@@ -133,7 +140,7 @@ describe(
     );
 
     test(
-      "conversão administrativa não inclui PII",
+      "conversão administrativa não inclui PII e informa resolução por GCLID",
       async () => {
         adminMarketingRepository
           .listarConversoes
@@ -146,11 +153,14 @@ describe(
               negocio_slug: "studio-bella",
               agendamento_id: "22",
               servico_id: "9",
-              origem: "facebook",
+              origem: "google",
               midia: "cpc",
-              campanha: "cilios",
-              conteudo: "video_01",
-              landing_page: "/negocio/studio-bella",
+              campanha:
+                "google_ads_profissionais",
+              gclid_resolvido: true,
+              conteudo: "search_01",
+              landing_page:
+                "/negocio/studio-bella",
               created_at:
                 "2026-08-10T12:00:00.000Z",
               cliente_nome: "Não deve sair",
@@ -176,8 +186,12 @@ describe(
 
         expect(
           resultado.conversoes[0]
-            .agendamentoId
-        ).toBe(22);
+        ).toMatchObject({
+          agendamentoId: 22,
+          resolvidoPorGclid: true,
+          campanha:
+            "google_ads_profissionais",
+        });
       }
     );
   }
