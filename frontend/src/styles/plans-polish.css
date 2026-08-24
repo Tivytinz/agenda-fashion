@@ -1,0 +1,32 @@
+/* Refinos de estado para comparação de planos. */
+
+.plans-page .plan-card.selected-pending {
+  border-color: #efbfd2;
+  box-shadow: 0 12px 30px rgb(169 29 89 / 9%);
+}
+
+.plans-page .plan-selected-badge {
+  position: absolute;
+  top: -14px;
+  left: 22px;
+  display: inline-flex;
+  min-height: 28px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #efbfd2;
+  border-radius: 999px;
+  padding: 6px 11px;
+  color: var(--pink-700);
+  background: #fff6fa;
+  box-shadow: 0 5px 14px rgb(169 29 89 / 10%);
+  font-size: .7rem;
+  font-weight: 900;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+@media (max-width: 620px) {
+  .plans-page .plan-selected-badge {
+    left: 16px;
+  }
+}
