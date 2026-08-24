@@ -1,7 +1,15 @@
 const servicosService = require("../services/servicosService");
+const servicosRepository = require("../repositories/servicosRepository");
+const { buscarUsoPlano } = require("../services/planoService");
 
 async function listarServicos(req, res, next) {
   try {
+    const vinculo = await servicosRepository.buscarNegocioUsuario(req.user?.id);
+
+    if (vinculo?.negocio_id) {
+      await buscarUsoPlano(vinculo.negocio_id);
+    }
+
     const resultado = await servicosService.listarServicos(req.user?.id);
 
     return res.json(resultado);
