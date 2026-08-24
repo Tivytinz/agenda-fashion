@@ -63,6 +63,12 @@ function pluralize(count, singular, plural) {
   return `${count} ${Number(count) === 1 ? singular : plural}`;
 }
 
+function normalize(value) {
+  return String(value || "")
+    .trim()
+    .toLocaleLowerCase("pt-BR");
+}
+
 function titleCase(value) {
   const text = String(value || "").trim();
   if (!text) return "Não identificada";
@@ -70,30 +76,54 @@ function titleCase(value) {
 }
 
 function sourceLabel(value) {
-  const source = String(value || "").trim().toLowerCase();
+  const source = normalize(value);
   if (source === "google") return "Google Ads";
   if (["meta", "facebook", "instagram"].includes(source)) return "Meta Ads";
   if (source === "pinterest") return "Pinterest";
   if (source === "tiktok") return "TikTok";
-  if (source === "organico") return "Orgânico";
+  if (["organico", "orgânico"].includes(source)) return "Orgânico";
   return titleCase(source);
 }
 
 function sourceCode(value) {
-  const source = String(value || "").trim().toLowerCase();
+  const source = normalize(value);
   if (source === "google") return "google";
   if (["meta", "facebook", "instagram"].includes(source)) return "meta";
   if (source === "pinterest") return "pinterest";
   if (source === "tiktok") return "tiktok";
-  if (source === "organico") return "organico";
+  if (["organico", "orgânico"].includes(source)) return "organico";
   return "outro";
+}
+
+function canonicalSource(value) {
+  return managedChannelForSource(value) || normalize(value);
+}
+
+function performanceIdentity(item) {
+  return [
+    canonicalSource(item?.origem),
+    normalize(item?.midia),
+    normalize(item?.campanha)
+  ].join("|");
+}
+
+function managedIdentity(item) {
+  return [
+    canonicalSource(item?.utmSource),
+    normalize(item?.utmMedium),
+    normalize(item?.utmCampaign)
+  ].join("|");
+}
+
+function isMissingCampaign(value) {
+  return ["", "(sem campanha)", "sem campanha"].includes(normalize(value));
 }
 
 function campaignLabel(item) {
   const campaign = String(item?.campanha || "").trim();
-  if (campaign && campaign !== "(sem campanha)") return campaign;
-  if (isPaidTrafficWithoutCampaign(item)) return "Tráfego pago sem campanha";
-  return "Sem campanha identificada";
+  return campaign && !isMissingCampaign(campaign)
+    ? campaign
+    : "Campanha não identificada";
 }
 
 function tokenPreview(value) {
@@ -120,7 +150,6 @@ async function copyText(value) {
   textarea.style.opacity = "0";
   document.body.appendChild(textarea);
   textarea.select();
-
   const copied = document.execCommand("copy");
   textarea.remove();
   if (!copied) throw new Error("Não foi possível copiar o link.");
@@ -130,8 +159,7 @@ function aggregateBySource(campaigns) {
   const groups = new Map();
 
   campaigns.forEach((item) => {
-    const managed = managedChannelForSource(item.origem);
-    const key = managed || String(item.origem || "nao_identificada").toLowerCase();
+    const key = canonicalSource(item.origem) || "nao_identificada";
     const current = groups.get(key) || {
       key,
       label: sourceLabel(item.origem),
@@ -209,12 +237,9 @@ export function AdminMarketingPage() {
         setData((current) => ({
           summary: values.summary || current?.summary || {},
           campaigns: values.campaigns?.campanhas || current?.campaigns || [],
-          conversions:
-            values.conversions?.conversoes || current?.conversions || [],
+          conversions: values.conversions?.conversoes || current?.conversions || [],
           managedCampaigns:
-            values.managedCampaigns?.campanhas ||
-            current?.managedCampaigns ||
-            []
+            values.managedCampaigns?.campanhas || current?.managedCampaigns || []
         }));
 
         if (errors.some(({ error: itemError }) => itemError?.name !== "AbortError")) {
@@ -291,7 +316,7 @@ export function AdminMarketingPage() {
         ]
       }));
       setCampaignForm(INITIAL_CAMPAIGN);
-      setCampaignMessage("Campanha criada. O link rastreável já está pronto para uso.");
+      setCampaignMessage("Campanha oficial criada. O link rastreável já está pronto para uso.");
       setCampaignCreatorOpen(false);
     } catch (requestError) {
       setCampaignError(requestError.message);
@@ -333,8 +358,8 @@ export function AdminMarketingPage() {
     if (updated) {
       setCampaignMessage(
         updated.ativo
-          ? "Campanha reativada."
-          : "Campanha arquivada e removida da visão principal."
+          ? "Campanha oficial reativada."
+          : "Campanha arquivada e removida dos indicadores oficiais."
       );
     }
   }
@@ -365,40 +390,84 @@ export function AdminMarketingPage() {
     }
   }
 
-  function reviewClassification(item) {
-    setClassifyingCampaignId(item.id);
-    document
-      .getElementById("campanhas-cadastradas")
-      ?.scrollIntoView?.({ behavior: "smooth", block: "start" });
-  }
-
+  const summary = data?.summary || {};
   const managedCampaigns = data?.managedCampaigns || [];
   const campaigns = data?.campaigns || [];
-  const acquisitionBySource = useMemo(() => aggregateBySource(campaigns), [campaigns]);
+  const conversions = data?.conversions || [];
+
+  const activeOfficialCampaigns = useMemo(
+    () => managedCampaigns.filter((item) => item.ativo !== false),
+    [managedCampaigns]
+  );
+
+  const officialIdentitySet = useMemo(
+    () => new Set(activeOfficialCampaigns.map(managedIdentity)),
+    [activeOfficialCampaigns]
+  );
+
+  const officialPerformance = useMemo(
+    () => campaigns.filter(
+      (item) => officialIdentitySet.has(performanceIdentity(item))
+    ),
+    [campaigns, officialIdentitySet]
+  );
+
   const paidWithoutCampaign = useMemo(
     () => campaigns.filter(isPaidTrafficWithoutCampaign),
     [campaigns]
   );
+
   const paidWithoutCampaignSessions = useMemo(
     () => countPaidSessionsWithoutCampaign(campaigns),
     [campaigns]
   );
-  const unclassifiedCampaigns = useMemo(
-    () => managedCampaigns.filter(
-      (item) => item.ativo !== false && !OBJECTIVES[item.objetivo]
+
+  const unofficialAttributed = useMemo(
+    () => campaigns.filter(
+      (item) =>
+        !officialIdentitySet.has(performanceIdentity(item)) &&
+        !isPaidTrafficWithoutCampaign(item)
     ),
-    [managedCampaigns]
+    [campaigns, officialIdentitySet]
   );
+
+  const unofficialAttributedSessions = useMemo(
+    () => unofficialAttributed.reduce(
+      (total, item) => total + Number(item.sessoes || 0),
+      0
+    ),
+    [unofficialAttributed]
+  );
+
+  const officialConversions = useMemo(
+    () => conversions.filter(
+      (item) => officialIdentitySet.has(performanceIdentity(item))
+    ),
+    [conversions, officialIdentitySet]
+  );
+
+  const acquisitionBySource = useMemo(
+    () => aggregateBySource(officialPerformance),
+    [officialPerformance]
+  );
+
+  const unclassifiedCampaigns = useMemo(
+    () => activeOfficialCampaigns.filter((item) => !OBJECTIVES[item.objetivo]),
+    [activeOfficialCampaigns]
+  );
+
   const archivedCampaigns = useMemo(
     () => managedCampaigns.filter((item) => item.ativo === false),
     [managedCampaigns]
   );
+
   const visibleManagedCampaigns = useMemo(
     () => showArchived
       ? managedCampaigns
-      : managedCampaigns.filter((item) => item.ativo !== false),
-    [managedCampaigns, showArchived]
+      : activeOfficialCampaigns,
+    [managedCampaigns, activeOfficialCampaigns, showArchived]
   );
+
   const suggestedCampaign = useMemo(() => {
     const channels = [
       ...new Set(
@@ -409,11 +478,29 @@ export function AdminMarketingPage() {
     ];
     if (channels.length !== 1) return null;
 
-    const candidates = managedCampaigns.filter(
-      (item) => item.ativo && item.canal === channels[0]
+    const candidates = activeOfficialCampaigns.filter(
+      (item) => item.canal === channels[0]
     );
     return candidates.length === 1 ? candidates[0] : null;
-  }, [managedCampaigns, paidWithoutCampaign]);
+  }, [activeOfficialCampaigns, paidWithoutCampaign]);
+
+  const officialSessions = useMemo(
+    () => officialPerformance.reduce(
+      (total, item) => total + Number(item.sessoes || 0),
+      0
+    ),
+    [officialPerformance]
+  );
+
+  const officialCompleted = useMemo(
+    () => officialPerformance.reduce(
+      (total, item) => total + Number(item.agendamentosConcluidos || 0),
+      0
+    ),
+    [officialPerformance]
+  );
+
+  const autonomousSessions = Number(summary.sessoesSemAtribuicao || 0);
 
   if (!data && !error) {
     return (
@@ -434,15 +521,26 @@ export function AdminMarketingPage() {
     );
   }
 
-  const summary = data.summary || {};
   const cards = [
-    ["Sessões atribuídas", summary.sessoes ?? 0, "visitas com origem identificada"],
-    ["Identidades rastreadas", summary.campanhas ?? 0, "combinações de origem, mídia e campanha"],
-    ["Agendamentos iniciados", summary.agendamentosIniciados ?? 0, "entraram no fluxo"],
     [
-      "Agendamentos concluídos",
-      summary.agendamentosConcluidos ?? 0,
-      `${summary.taxaConversao ?? 0}% das sessões`
+      "Sessões de campanhas oficiais",
+      officialSessions,
+      "visitas vinculadas a campanhas cadastradas no AF"
+    ],
+    [
+      "Acessos autônomos",
+      autonomousSessions,
+      "sem anúncio ou mídia paga identificada"
+    ],
+    [
+      "Campanhas oficiais",
+      activeOfficialCampaigns.length,
+      "campanhas ativas reconhecidas pelo AF"
+    ],
+    [
+      "Conversões oficiais",
+      officialCompleted,
+      "agendamentos concluídos por campanhas oficiais"
     ]
   ];
 
@@ -457,9 +555,9 @@ export function AdminMarketingPage() {
       <header className="workspace-heading">
         <div>
           <p className="eyebrow">Administração do AF</p>
-          <h1>Campanhas e tráfego pago</h1>
+          <h1>Campanhas e tráfego</h1>
           <p>
-            Crie, acompanhe e corrija campanhas de aquisição sem misturar objetivos ou perder a rastreabilidade.
+            Campanhas oficiais ficam separadas de acessos autônomos e de falhas de rastreamento.
           </p>
         </div>
 
@@ -470,7 +568,7 @@ export function AdminMarketingPage() {
             onClick={() => setCampaignCreatorOpen((current) => !current)}
             type="button"
           >
-            {campaignCreatorOpen ? "Fechar criação" : "+ Nova campanha"}
+            {campaignCreatorOpen ? "Fechar criação" : "+ Nova campanha oficial"}
           </button>
           <div className="segmented-control" aria-label="Período do marketing">
             {PERIODS.map(([value, label]) => (
@@ -507,11 +605,52 @@ export function AdminMarketingPage() {
         ))}
       </section>
 
-      {(paidWithoutCampaignSessions > 0 || unclassifiedCampaigns.length > 0) && (
+      <section className="panel" aria-label="Como o AF classifica os acessos">
+        <div className="panel-heading">
+          <div>
+            <p className="eyebrow">Como ler o painel</p>
+            <h2>Oficial, autônomo ou rastreamento incompleto</h2>
+            <p className="muted">
+              Cada acesso entra em uma categoria diferente. Uma categoria nunca é somada à outra.
+            </p>
+          </div>
+        </div>
+
+        <div className="admin-pending-list">
+          <div className="admin-pending-item">
+            <div>
+              <strong>Campanha oficial</strong>
+              <small>
+                Veio de uma campanha cadastrada e reconhecida pelo AF. Entra nos KPIs de mídia paga.
+              </small>
+            </div>
+          </div>
+
+          <div className="admin-pending-item">
+            <div>
+              <strong>Acesso autônomo</strong>
+              <small>
+                Chegou sem UTM, GCLID ou FBCLID. Pode ser acesso direto, busca orgânica ou link compartilhado. Não é considerado anúncio pago.
+              </small>
+            </div>
+          </div>
+
+          <div className="admin-pending-item">
+            <div>
+              <strong>Rastreamento incompleto</strong>
+              <small>
+                Existe sinal de mídia paga, mas não há uma campanha oficial identificada. Fica fora dos KPIs até o rastreamento ser corrigido.
+              </small>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {(paidWithoutCampaignSessions > 0 || unofficialAttributedSessions > 0 || unclassifiedCampaigns.length > 0) && (
         <section className="admin-pending-strip" aria-label="Pendências de rastreamento">
           <div className="admin-pending-strip-heading">
             <p className="eyebrow">Atenção operacional</p>
-            <strong>Pendências que afetam os KPIs</strong>
+            <strong>Dados excluídos dos KPIs oficiais</strong>
           </div>
 
           <div className="admin-pending-list">
@@ -521,11 +660,13 @@ export function AdminMarketingPage() {
                   <strong>
                     {pluralize(
                       paidWithoutCampaignSessions,
-                      "sessão paga sem campanha",
-                      "sessões pagas sem campanha"
+                      "sessão paga com rastreamento incompleto",
+                      "sessões pagas com rastreamento incompleto"
                     )}
                   </strong>
-                  <small>Origem e mídia foram identificadas, mas faltou a campanha UTM.</small>
+                  <small>
+                    Não são acessos autônomos. Há sinal de mídia paga, mas a campanha oficial não foi recebida.
+                  </small>
                 </div>
                 {suggestedCampaign && (
                   <button
@@ -536,9 +677,26 @@ export function AdminMarketingPage() {
                   >
                     {copiedCampaignId === suggestedCampaign.id
                       ? "Link copiado"
-                      : "Copiar link correto"}
+                      : "Copiar link oficial"}
                   </button>
                 )}
+              </div>
+            )}
+
+            {unofficialAttributedSessions > 0 && (
+              <div className="admin-pending-item">
+                <div>
+                  <strong>
+                    {pluralize(
+                      unofficialAttributedSessions,
+                      "sessão com identidade não oficial",
+                      "sessões com identidade não oficial"
+                    )}
+                  </strong>
+                  <small>
+                    Essas identidades não estão cadastradas como campanhas oficiais e não aparecem no desempenho principal.
+                  </small>
+                </div>
               </div>
             )}
 
@@ -548,19 +706,12 @@ export function AdminMarketingPage() {
                   <strong>
                     {pluralize(
                       unclassifiedCampaigns.length,
-                      "campanha sem classificação",
-                      "campanhas sem classificação"
+                      "campanha oficial sem objetivo",
+                      "campanhas oficiais sem objetivo"
                     )}
                   </strong>
-                  <small>Defina o objetivo para habilitar CPA, CAC e ROAS no relatório correto.</small>
+                  <small>Defina o objetivo para manter CAC, CPA e ROAS no relatório correto.</small>
                 </div>
-                <button
-                  className="button button-secondary button-small"
-                  onClick={() => reviewClassification(unclassifiedCampaigns[0])}
-                  type="button"
-                >
-                  Revisar classificação
-                </button>
               </div>
             )}
           </div>
@@ -571,134 +722,132 @@ export function AdminMarketingPage() {
         <section className="panel admin-primary-action-panel">
           <div className="panel-heading">
             <div>
-              <p className="eyebrow">Nova campanha</p>
+              <p className="eyebrow">Nova campanha oficial</p>
               <h2>Gerar link rastreável</h2>
               <p className="muted">
-                Defina nome, objetivo, canal e destino. Os parâmetros técnicos ficam disponíveis somente quando você precisar ajustá-los.
+                Campanhas criadas aqui passam a ser reconhecidas como oficiais pelo painel.
               </p>
             </div>
           </div>
 
           <form className="stack-form" onSubmit={submitCampaign}>
-          <div className="form-grid">
-            <label>
-              Nome da campanha
-              <input
-                maxLength="140"
-                onChange={(event) => updateCampaignForm("nome", event.target.value)}
-                placeholder="Ex.: Profissionais Goiânia Agosto"
-                required
-                value={campaignForm.nome}
-              />
-            </label>
-
-            <label>
-              Objetivo
-              <select
-                onChange={(event) => updateCampaignForm("objetivo", event.target.value)}
-                required
-                value={campaignForm.objetivo}
-              >
-                <option value="">Selecione o objetivo</option>
-                {Object.entries(OBJECTIVES).map(([value, label]) => (
-                  <option key={value} value={value}>{label}</option>
-                ))}
-              </select>
-              <small>Profissionais mede assinatura; clientes mede agendamento.</small>
-            </label>
-
-            <label>
-              Canal
-              <select
-                onChange={(event) => updateCampaignForm("canal", event.target.value)}
-                value={campaignForm.canal}
-              >
-                {Object.entries(CHANNELS).map(([value, item]) => (
-                  <option key={value} value={value}>{item.label}</option>
-                ))}
-              </select>
-            </label>
-
-            <label>
-              Destino dentro do AF
-              <input
-                maxLength="500"
-                onChange={(event) => updateCampaignForm("destinoPath", event.target.value)}
-                placeholder="/ ou /para-profissionais"
-                required
-                value={campaignForm.destinoPath}
-              />
-              <small>Use apenas caminhos internos iniciados por /.</small>
-            </label>
-          </div>
-
-          <details className="admin-advanced-fields">
-            <summary>Configurações avançadas de rastreamento</summary>
             <div className="form-grid">
               <label>
-                Origem UTM
+                Nome da campanha
                 <input
-                  maxLength="80"
-                  onChange={(event) => updateCampaignForm("utmSource", event.target.value)}
-                  placeholder="Ex.: meta"
+                  maxLength="140"
+                  onChange={(event) => updateCampaignForm("nome", event.target.value)}
+                  placeholder="Ex.: Profissionais Goiânia Agosto"
                   required
-                  value={campaignForm.utmSource}
+                  value={campaignForm.nome}
                 />
               </label>
+
               <label>
-                Mídia UTM
-                <input
-                  maxLength="80"
-                  onChange={(event) => updateCampaignForm("utmMedium", event.target.value)}
-                  placeholder="Ex.: cpc"
+                Objetivo
+                <select
+                  onChange={(event) => updateCampaignForm("objetivo", event.target.value)}
                   required
-                  value={campaignForm.utmMedium}
-                />
+                  value={campaignForm.objetivo}
+                >
+                  <option value="">Selecione o objetivo</option>
+                  {Object.entries(OBJECTIVES).map(([value, label]) => (
+                    <option key={value} value={value}>{label}</option>
+                  ))}
+                </select>
+                <small>Profissionais mede assinatura; clientes mede agendamento.</small>
               </label>
+
               <label>
-                Identificador UTM
-                <input
-                  maxLength="140"
-                  onChange={(event) => updateCampaignForm("utmCampaign", event.target.value)}
-                  placeholder={tokenPreview(campaignForm.nome) || "gerado pelo nome"}
-                  value={campaignForm.utmCampaign}
-                />
-                <small>
-                  {campaignIdentifier
-                    ? `Será usado: ${campaignIdentifier}`
-                    : "Se ficar vazio, será gerado pelo nome."}
-                </small>
+                Canal
+                <select
+                  onChange={(event) => updateCampaignForm("canal", event.target.value)}
+                  value={campaignForm.canal}
+                >
+                  {Object.entries(CHANNELS).map(([value, item]) => (
+                    <option key={value} value={value}>{item.label}</option>
+                  ))}
+                </select>
               </label>
+
               <label>
-                Conteúdo / criativo
+                Destino dentro do AF
                 <input
-                  maxLength="140"
-                  onChange={(event) => updateCampaignForm("utmContent", event.target.value)}
-                  placeholder="Ex.: video_01"
-                  value={campaignForm.utmContent}
+                  maxLength="500"
+                  onChange={(event) => updateCampaignForm("destinoPath", event.target.value)}
+                  placeholder="/ ou /para-profissionais"
+                  required
+                  value={campaignForm.destinoPath}
                 />
-              </label>
-              <label>
-                Termo UTM
-                <input
-                  maxLength="140"
-                  onChange={(event) => updateCampaignForm("utmTerm", event.target.value)}
-                  placeholder="Opcional"
-                  value={campaignForm.utmTerm}
-                />
+                <small>Use apenas caminhos internos iniciados por /.</small>
               </label>
             </div>
-          </details>
 
-          <div className="form-actions">
-            <button
-              className="button"
-              disabled={campaignStatus === "loading"}
-              type="submit"
-            >
-              {campaignStatus === "loading" ? "Criando..." : "Criar campanha e link"}
-            </button>
-          </div>
+            <details className="admin-advanced-fields">
+              <summary>Configurações avançadas de rastreamento</summary>
+              <div className="form-grid">
+                <label>
+                  Origem UTM
+                  <input
+                    maxLength="80"
+                    onChange={(event) => updateCampaignForm("utmSource", event.target.value)}
+                    required
+                    value={campaignForm.utmSource}
+                  />
+                </label>
+                <label>
+                  Mídia UTM
+                  <input
+                    maxLength="80"
+                    onChange={(event) => updateCampaignForm("utmMedium", event.target.value)}
+                    required
+                    value={campaignForm.utmMedium}
+                  />
+                </label>
+                <label>
+                  Identificador UTM
+                  <input
+                    maxLength="140"
+                    onChange={(event) => updateCampaignForm("utmCampaign", event.target.value)}
+                    placeholder={tokenPreview(campaignForm.nome) || "gerado pelo nome"}
+                    value={campaignForm.utmCampaign}
+                  />
+                  <small>
+                    {campaignIdentifier
+                      ? `Será usado: ${campaignIdentifier}`
+                      : "Se ficar vazio, será gerado pelo nome."}
+                  </small>
+                </label>
+                <label>
+                  Conteúdo / criativo
+                  <input
+                    maxLength="140"
+                    onChange={(event) => updateCampaignForm("utmContent", event.target.value)}
+                    placeholder="Ex.: video_01"
+                    value={campaignForm.utmContent}
+                  />
+                </label>
+                <label>
+                  Termo UTM
+                  <input
+                    maxLength="140"
+                    onChange={(event) => updateCampaignForm("utmTerm", event.target.value)}
+                    placeholder="Opcional"
+                    value={campaignForm.utmTerm}
+                  />
+                </label>
+              </div>
+            </details>
+
+            <div className="form-actions">
+              <button
+                className="button"
+                disabled={campaignStatus === "loading"}
+                type="submit"
+              >
+                {campaignStatus === "loading" ? "Criando..." : "Criar campanha oficial"}
+              </button>
+            </div>
           </form>
         </section>
       )}
@@ -707,9 +856,9 @@ export function AdminMarketingPage() {
         <div className="panel-heading">
           <div>
             <p className="eyebrow">Operação</p>
-            <h2>Campanhas cadastradas</h2>
+            <h2>Campanhas oficiais</h2>
             <p className="muted">
-              Gerencie objetivo, rastreamento e status sem expor parâmetros técnicos o tempo todo.
+              Somente campanhas cadastradas aqui são consideradas oficiais nos indicadores.
             </p>
           </div>
           {archivedCampaigns.length > 0 && (
@@ -727,11 +876,7 @@ export function AdminMarketingPage() {
         </div>
 
         {visibleManagedCampaigns.length === 0 ? (
-          <p className="muted">
-            {managedCampaigns.length === 0
-              ? "Nenhuma campanha cadastrada ainda."
-              : "Nenhuma campanha ativa. Mostre as arquivadas para revisar o histórico."}
-          </p>
+          <p className="muted">Nenhuma campanha oficial ativa.</p>
         ) : (
           <div className="table-wrap admin-campaign-table">
             <table>
@@ -756,45 +901,40 @@ export function AdminMarketingPage() {
                         </span>
                       ) : (
                         <div className="admin-classification-actions">
-                          <span className="admin-status-badge is-warning">Não classificado</span>
+                          <span className="admin-status-badge is-warning">Sem objetivo</span>
                           {classifyingCampaignId === item.id ? (
-                            <>
-                              <small className="muted">
-                                Escolha uma vez. Depois o objetivo fica travado para preservar o histórico.
-                              </small>
-                              <div className="admin-classification-options">
-                                <button
-                                  className="button button-secondary button-small"
-                                  disabled={campaignActionId === item.id}
-                                  onClick={() => classifyCampaign(item, "profissional")}
-                                  type="button"
-                                >
-                                  Profissional
-                                </button>
-                                <button
-                                  className="button button-secondary button-small"
-                                  disabled={campaignActionId === item.id}
-                                  onClick={() => classifyCampaign(item, "cliente")}
-                                  type="button"
-                                >
-                                  Cliente
-                                </button>
-                                <button
-                                  className="text-button"
-                                  onClick={() => setClassifyingCampaignId(null)}
-                                  type="button"
-                                >
-                                  Cancelar
-                                </button>
-                              </div>
-                            </>
+                            <div className="admin-classification-options">
+                              <button
+                                className="button button-secondary button-small"
+                                disabled={campaignActionId === item.id}
+                                onClick={() => classifyCampaign(item, "profissional")}
+                                type="button"
+                              >
+                                Profissional
+                              </button>
+                              <button
+                                className="button button-secondary button-small"
+                                disabled={campaignActionId === item.id}
+                                onClick={() => classifyCampaign(item, "cliente")}
+                                type="button"
+                              >
+                                Cliente
+                              </button>
+                              <button
+                                className="text-button"
+                                onClick={() => setClassifyingCampaignId(null)}
+                                type="button"
+                              >
+                                Cancelar
+                              </button>
+                            </div>
                           ) : (
                             <button
                               className="button button-secondary button-small admin-classify-trigger"
                               onClick={() => setClassifyingCampaignId(item.id)}
                               type="button"
                             >
-                              Classificar
+                              Definir objetivo
                             </button>
                           )}
                         </div>
@@ -805,17 +945,19 @@ export function AdminMarketingPage() {
                         <span className={`admin-status-badge admin-source-badge is-${sourceCode(item.utmSource)}`}>
                           {CHANNELS[item.canal]?.label || sourceLabel(item.utmSource)}
                         </span>
-                        <span className="admin-medium-label">{String(item.utmMedium || "").toUpperCase()}</span>
+                        <span className="admin-medium-label">
+                          {String(item.utmMedium || "").toUpperCase()}
+                        </span>
                       </div>
                       <details className="admin-inline-details">
-                        <summary>Ver UTM</summary>
+                        <summary>Ver UTM oficial</summary>
                         <code>{item.utmSource}/{item.utmMedium}/{item.utmCampaign}</code>
                       </details>
                     </td>
                     <td>{item.destinoPath}</td>
                     <td>
                       <span className={`admin-status-badge ${item.ativo ? "is-success" : "is-muted"}`}>
-                        {item.ativo ? "Ativa" : "Arquivada"}
+                        {item.ativo ? "Oficial ativa" : "Arquivada"}
                       </span>
                     </td>
                     <td>
@@ -825,7 +967,7 @@ export function AdminMarketingPage() {
                           onClick={() => copyCampaignLink(item)}
                           type="button"
                         >
-                          {copiedCampaignId === item.id ? "Copiado" : "Copiar link"}
+                          {copiedCampaignId === item.id ? "Copiado" : "Copiar link oficial"}
                         </button>
                         <details className="admin-more-actions">
                           <summary
@@ -860,18 +1002,18 @@ export function AdminMarketingPage() {
       <section className="panel">
         <div className="panel-heading">
           <div>
-            <p className="eyebrow">Estatísticas</p>
-            <h2>Visão de aquisição</h2>
+            <p className="eyebrow">Estatísticas oficiais</p>
+            <h2>Visão de aquisição paga</h2>
             <p className="muted">
-              Compare volume e conversão por origem antes de analisar cada campanha individualmente.
+              Somente campanhas oficiais entram neste gráfico e no resumo por origem.
             </p>
           </div>
         </div>
 
         <div className="admin-insights-grid">
           <MarketingBarChart
-            title="Sessões por origem"
-            description="Volume de visitas atribuídas no período selecionado."
+            title="Sessões oficiais por origem"
+            description="Volume atribuído exclusivamente a campanhas oficiais."
             items={acquisitionBySource.map((item) => ({
               key: item.key,
               label: item.label,
@@ -879,16 +1021,16 @@ export function AdminMarketingPage() {
               formattedValue: pluralize(item.sessoes, "sessão", "sessões"),
               secondary: `${item.agendamentosConcluidos} concluídos · ${item.taxaConversao}% de conversão`
             }))}
-            emptyMessage="Ainda não há sessões atribuídas neste período."
+            emptyMessage="Nenhuma sessão de campanha oficial neste período."
           />
 
           <div className="admin-stat-table-card">
             <div className="admin-stat-table-heading">
-              <strong>Resumo por origem</strong>
-              <small>Do acesso até o agendamento concluído.</small>
+              <strong>Resumo oficial por origem</strong>
+              <small>Dados não oficiais e acessos autônomos ficam fora deste quadro.</small>
             </div>
             {acquisitionBySource.length === 0 ? (
-              <p className="muted">Sem dados de aquisição no período.</p>
+              <p className="muted">Sem dados oficiais de aquisição no período.</p>
             ) : (
               <div className="table-wrap">
                 <table className="admin-compact-table">
@@ -922,20 +1064,22 @@ export function AdminMarketingPage() {
       <section className="panel">
         <div className="panel-heading">
           <div>
-            <p className="eyebrow">Aquisição</p>
-            <h2>Desempenho detalhado</h2>
-            <p className="muted">Acompanhe cada identidade de campanha e identifique falhas de rastreamento.</p>
+            <p className="eyebrow">Aquisição paga</p>
+            <h2>Desempenho das campanhas oficiais</h2>
+            <p className="muted">
+              Identidades não cadastradas e tráfego pago sem campanha ficam apenas nas pendências de rastreamento.
+            </p>
           </div>
         </div>
 
-        {campaigns.length === 0 ? (
-          <p className="muted">Ainda não há sessões atribuídas neste período.</p>
+        {officialPerformance.length === 0 ? (
+          <p className="muted">Nenhuma campanha oficial teve sessões neste período.</p>
         ) : (
           <div className="table-wrap">
             <table>
               <thead>
                 <tr>
-                  <th>Campanha</th>
+                  <th>Campanha oficial</th>
                   <th>Origem</th>
                   <th>Mídia</th>
                   <th>Sessões</th>
@@ -946,13 +1090,11 @@ export function AdminMarketingPage() {
                 </tr>
               </thead>
               <tbody>
-                {campaigns.map((item, index) => (
+                {officialPerformance.map((item, index) => (
                   <tr key={`${item.origem}-${item.midia}-${item.campanha}-${index}`}>
                     <td>
                       <strong>{campaignLabel(item)}</strong>
-                      {isPaidTrafficWithoutCampaign(item) && (
-                        <small className="admin-row-note">Campanha UTM não recebida</small>
-                      )}
+                      <small className="admin-row-note">Campanha oficial reconhecida</small>
                     </td>
                     <td>
                       <span className={`admin-status-badge admin-source-badge is-${sourceCode(item.origem)}`}>
@@ -976,27 +1118,28 @@ export function AdminMarketingPage() {
       <section className="panel">
         <div className="panel-heading">
           <div>
-            <p className="eyebrow">Conversões</p>
-            <h2>Agendamentos atribuídos</h2>
+            <p className="eyebrow">Conversões oficiais</p>
+            <h2>Agendamentos atribuídos a campanhas oficiais</h2>
+            <p className="muted">Conversões de identidades não oficiais não entram nesta lista.</p>
           </div>
         </div>
 
-        {data.conversions.length === 0 ? (
-          <p className="muted">Nenhum agendamento atribuído neste período.</p>
+        {officialConversions.length === 0 ? (
+          <p className="muted">Nenhum agendamento de campanha oficial neste período.</p>
         ) : (
           <div className="table-wrap">
             <table>
               <thead>
                 <tr>
                   <th>Data</th>
-                  <th>Campanha</th>
+                  <th>Campanha oficial</th>
                   <th>Negócio</th>
                   <th>Agendamento</th>
                   <th>Landing page</th>
                 </tr>
               </thead>
               <tbody>
-                {data.conversions.map((item) => (
+                {officialConversions.map((item) => (
                   <tr key={item.eventoId}>
                     <td>{formatDateTime(item.createdAt)}</td>
                     <td>{campaignLabel(item)}</td>
