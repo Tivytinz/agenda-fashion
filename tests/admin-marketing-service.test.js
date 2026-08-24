@@ -28,13 +28,16 @@ describe(
     });
 
     test(
-      "calcula conversão e cobertura sobre sessões atribuídas",
+      "separa sessões pagas, orgânicas, autônomas e rastreamento incompleto",
       async () => {
         adminMarketingRepository
           .buscarResumo
           .mockResolvedValue({
             total_sessoes: "50",
-            sessoes: "40",
+            sessoes: "30",
+            sessoes_organicas: "10",
+            sessoes_autonomas: "7",
+            sessoes_rastreamento_incompleto: "3",
             campanhas: "3",
             perfis_visualizados: "24",
             agendamentos_iniciados: "10",
@@ -58,14 +61,18 @@ describe(
           .toMatchObject({
             periodo: "30",
             totalSessoes: 50,
-            sessoes: 40,
-            sessoesSemAtribuicao: 10,
+            sessoes: 30,
+            sessoesPagas: 30,
+            sessoesOrganicas: 10,
+            sessoesAutonomas: 7,
+            sessoesRastreamentoIncompleto: 3,
+            sessoesSemAtribuicao: 7,
             coberturaAtribuicao: 80,
             campanhas: 3,
             perfisVisualizados: 24,
             agendamentosIniciados: 10,
             agendamentosConcluidos: 5,
-            taxaConversao: 12.5,
+            taxaConversao: 16.67,
           });
       }
     );
@@ -78,6 +85,9 @@ describe(
           .mockResolvedValue({
             total_sessoes: 0,
             sessoes: 0,
+            sessoes_organicas: 0,
+            sessoes_autonomas: 0,
+            sessoes_rastreamento_incompleto: 0,
             agendamentos_concluidos: 0,
           });
 
@@ -95,7 +105,7 @@ describe(
     );
 
     test(
-      "normaliza campanha, calcula taxa e informa sessões resolvidas por GCLID",
+      "normaliza campanha e informa resolução por sinais de clique Google",
       async () => {
         adminMarketingRepository
           .listarCampanhas
@@ -107,6 +117,7 @@ describe(
                 "google_ads_profissionais",
               sessoes: "8",
               sessoes_resolvidas_gclid: "3",
+              sessoes_resolvidas_google_click: "5",
               perfis_visualizados: "6",
               agendamentos_iniciados: "3",
               agendamentos_concluidos: "2",
@@ -130,6 +141,7 @@ describe(
             "google_ads_profissionais",
           sessoes: 8,
           sessoesResolvidasPorGclid: 3,
+          sessoesResolvidasPorGoogle: 5,
           taxaConversao: 25,
         });
 
@@ -140,7 +152,7 @@ describe(
     );
 
     test(
-      "conversão administrativa não inclui PII e informa resolução por GCLID",
+      "conversão administrativa não inclui PII e informa resolução Google",
       async () => {
         adminMarketingRepository
           .listarConversoes
@@ -157,7 +169,8 @@ describe(
               midia: "cpc",
               campanha:
                 "google_ads_profissionais",
-              gclid_resolvido: true,
+              gclid_resolvido: false,
+              google_click_resolvido: true,
               conteudo: "search_01",
               landing_page:
                 "/negocio/studio-bella",
@@ -188,7 +201,8 @@ describe(
           resultado.conversoes[0]
         ).toMatchObject({
           agendamentoId: 22,
-          resolvidoPorGclid: true,
+          resolvidoPorGclid: false,
+          resolvidoPorGoogle: true,
           campanha:
             "google_ads_profissionais",
         });
