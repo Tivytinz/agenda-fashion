@@ -1,0 +1,150 @@
+/* Refinos específicos da tela Minha conta. */
+
+.account-page .account-heading {
+  margin-bottom: 20px;
+}
+
+.account-page .account-profile-form,
+.account-page .account-password-form,
+.account-page .account-preference-form {
+  min-width: 0;
+}
+
+.account-page .account-profile-editor {
+  align-items: center;
+}
+
+.account-page .account-photo-actions {
+  display: grid;
+  justify-items: start;
+  gap: 7px;
+}
+
+.account-page .account-photo-feedback {
+  color: #17633c;
+  font-size: .75rem;
+  font-weight: 800;
+}
+
+.account-page .account-email-field input[readonly] {
+  color: #75636c;
+  border-color: #eadde2;
+  background: #f7f3f5;
+  cursor: default;
+}
+
+.account-page .account-email-field > small {
+  display: block;
+  margin-top: 6px;
+  font-size: .73rem;
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+.account-page .account-password-field {
+  display: grid;
+  gap: 7px;
+}
+
+.account-page .account-password-input-wrap {
+  position: relative;
+  display: block;
+}
+
+.account-page .account-password-input-wrap input {
+  width: 100%;
+  padding-right: 88px;
+}
+
+.account-page .account-password-toggle {
+  position: absolute;
+  top: 50%;
+  right: 10px;
+  min-height: 30px;
+  transform: translateY(-50%);
+  border: 0;
+  border-radius: 8px;
+  padding: 0 8px;
+  color: var(--pink-700);
+  background: transparent;
+  font-size: .72rem;
+  font-weight: 850;
+  cursor: pointer;
+}
+
+.account-page .account-password-toggle:hover {
+  background: var(--pink-50);
+}
+
+.account-page .account-password-hint,
+.account-page .account-password-match {
+  margin-top: -8px;
+  font-size: .73rem;
+  font-weight: 700;
+}
+
+.account-page .account-password-hint {
+  color: var(--muted);
+}
+
+.account-page .account-password-hint.is-warning,
+.account-page .account-password-match.is-invalid {
+  color: #a61b35;
+}
+
+.account-page .account-password-match.is-valid {
+  color: #17633c;
+}
+
+.account-page .account-preference-form {
+  gap: 18px;
+}
+
+.account-page .account-preference-form h2 {
+  margin-bottom: 8px;
+}
+
+.account-page .account-switch-field {
+  margin: 0;
+}
+
+.account-page .account-preference-action {
+  width: auto;
+  min-width: 180px;
+  align-self: flex-end;
+}
+
+.account-page .account-preference-action:disabled,
+.account-page .account-profile-form > .button:disabled,
+.account-page .account-password-form > .button:disabled {
+  opacity: .72;
+}
+
+.account-page .account-logout-button {
+  gap: 8px;
+  color: #8f2943;
+  border-color: #efc7d0;
+  background: #fff9fa;
+}
+
+.account-page .account-logout-button:hover {
+  color: #7a1f37;
+  border-color: #e7aebe;
+  background: #fff3f6;
+}
+
+.account-page .account-logout-icon {
+  width: 18px;
+  height: 18px;
+  flex: 0 0 auto;
+}
+
+@media (max-width: 620px) {
+  .account-page .account-preference-action {
+    width: 100%;
+  }
+
+  .account-page .account-password-input-wrap input {
+    padding-right: 82px;
+  }
+}
