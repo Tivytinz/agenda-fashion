@@ -47,14 +47,24 @@ function buildNextAction({ completedBookings, profileVisits }) {
 
 function customerOriginHint(item) {
   if (item?.codigo === "autonomo") {
-    return "Sem sinal de anúncio. Pode ser acesso direto, favorito ou link compartilhado.";
+    return "Sem sinal de anúncio e sem referência externa identificável. Pode ser acesso direto, favorito ou link compartilhado.";
   }
 
   if (item?.codigo === "nao_identificado") {
-    return "O agendamento existe, mas faltou rastreamento suficiente para identificar a origem.";
+    return "O agendamento existe, mas faltou rastreamento histórico suficiente para identificar a origem.";
   }
 
   return item?.descricao || "Origem identificada pelo primeiro agendamento conhecido.";
+}
+
+function customerOriginCategoryLabel(category) {
+  return {
+    pago: "Tráfego pago",
+    organico: "Tráfego orgânico",
+    autonomo: "Acesso autônomo",
+    rastreado: "Origem rastreada",
+    incompleto: "Rastreamento incompleto"
+  }[category] || "Origem";
 }
 
 export function DashboardPage() {
@@ -216,7 +226,7 @@ export function DashboardPage() {
             <p className="eyebrow">Aquisição de clientes</p>
             <h2>De onde vieram seus clientes</h2>
             <p className="muted">
-              Cada pessoa conta uma vez. A origem é definida pelo primeiro agendamento conhecido e os retornos continuam ligados à origem que trouxe o cliente.
+              Cada pessoa conta uma vez. Pago, orgânico e acesso autônomo ficam separados para você enxergar o que realmente trouxe clientes.
             </p>
           </div>
         </div>
@@ -229,14 +239,48 @@ export function DashboardPage() {
                 <dd>{customerOriginSummary.clientes ?? 0}</dd>
               </div>
               <div>
-                <dt>Novos</dt>
-                <dd>{customerOriginSummary.clientesNovos ?? 0}</dd>
+                <dt>Tráfego pago</dt>
+                <dd>
+                  {customerOriginSummary.clientesPagos ?? 0}
+                  <small> · {formatPercent(customerOriginSummary.percentualPago)}%</small>
+                </dd>
               </div>
               <div>
-                <dt>Recorrentes</dt>
-                <dd>{customerOriginSummary.clientesRecorrentes ?? 0}</dd>
+                <dt>Tráfego orgânico</dt>
+                <dd>
+                  {customerOriginSummary.clientesOrganicos ?? 0}
+                  <small> · {formatPercent(customerOriginSummary.percentualOrganico)}%</small>
+                </dd>
+              </div>
+              <div>
+                <dt>Acesso autônomo</dt>
+                <dd>
+                  {customerOriginSummary.clientesAutonomos ?? 0}
+                  <small> · {formatPercent(customerOriginSummary.percentualAutonomo)}%</small>
+                </dd>
               </div>
             </dl>
+
+            {(Number(customerOriginSummary.clientesPagos) > 0 || Number(customerOriginSummary.clientesOrganicos) > 0) && (
+              <dl className="data-list" aria-label="Resultado por tipo de tráfego">
+                <div>
+                  <dt>Pago · agendamentos</dt>
+                  <dd>{customerOriginSummary.agendamentosPagos ?? 0}</dd>
+                </div>
+                <div>
+                  <dt>Pago · faturamento</dt>
+                  <dd>{formatCurrency(customerOriginSummary.faturamentoPago)}</dd>
+                </div>
+                <div>
+                  <dt>Orgânico · agendamentos</dt>
+                  <dd>{customerOriginSummary.agendamentosOrganicos ?? 0}</dd>
+                </div>
+                <div>
+                  <dt>Orgânico · faturamento</dt>
+                  <dd>{formatCurrency(customerOriginSummary.faturamentoOrganico)}</dd>
+                </div>
+              </dl>
+            )}
 
             {customerOrigins.length > 0 ? (
               <div className="table-wrap">
@@ -255,7 +299,7 @@ export function DashboardPage() {
                       <tr key={item.codigo}>
                         <td>
                           <strong>{item.rotulo}</strong>
-                          <div><small className="muted">{customerOriginHint(item)}</small></div>
+                          <div><small className="muted">{customerOriginCategoryLabel(item.categoria)} · {customerOriginHint(item)}</small></div>
                         </td>
                         <td>{item.clientes ?? 0}</td>
                         <td>{formatPercent(item.percentualClientes)}%</td>
@@ -271,7 +315,7 @@ export function DashboardPage() {
             )}
 
             <p className="muted">
-              <strong>Acesso autônomo</strong> significa que não houve sinal de anúncio pago. Pode ser acesso direto, favorito, busca/link sem rastreamento ou link compartilhado. <strong>Origem não identificada</strong> significa que faltam dados históricos para concluir por onde o cliente chegou.
+              <strong>Tráfego pago</strong> exige sinal confiável de anúncio, como identificador de clique ou UTM de mídia paga. <strong>Tráfego orgânico</strong> vem de busca, rede social ou referência externa sem sinal de anúncio. <strong>Acesso autônomo</strong> fica reservado para visitas sem anúncio e sem referência externa identificável. <strong>Origem não identificada</strong> é histórico sem dados suficientes para concluir.
             </p>
           </>
         ) : (
