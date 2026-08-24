@@ -33,7 +33,7 @@ afterEach(() => {
 });
 
 describe("plano e assinatura", () => {
-  it("não apresenta plano pago sem assinatura como assinatura ativa", async () => {
+  it("mostra plano pago selecionado e os limites gratuitos enquanto não há assinatura", async () => {
     apiRequest.mockResolvedValueOnce({
       plano: { id: 2, slug: "autonoma", nome: "Autônoma", valor: 49.9 },
       assinatura: null,
@@ -52,7 +52,7 @@ describe("plano e assinatura", () => {
     renderPage();
 
     expect(await screen.findByRole("heading", { name: "Plano e assinatura" })).not.toBeNull();
-    expect(screen.getByText("Plano disponível")).not.toBeNull();
+    expect(screen.getByText("Plano selecionado")).not.toBeNull();
     expect(screen.getByText("Sem assinatura ativa")).not.toBeNull();
     expect(screen.queryByText("Forma de pagamento")).toBeNull();
     expect(screen.queryByText("Próxima cobrança")).toBeNull();
@@ -61,14 +61,16 @@ describe("plano e assinatura", () => {
     expect(subscribe.getAttribute("href")).toBe("/checkout?plano=autonoma");
     expect(screen.getByRole("link", { name: "Escolher plano" }).getAttribute("href"))
       .toBe("/planos");
-    expect(screen.queryByRole("link", { name: "Assinar plano" })).toBeNull();
 
-    expect(screen.getByRole("heading", { name: "Seus limites atuais" })).not.toBeNull();
+    expect(screen.getByText("Seus limites atuais")).not.toBeNull();
+    expect(screen.getByText("Grátis")).not.toBeNull();
     expect(screen.getByText("Enquanto a assinatura não estiver ativa, valem os limites gratuitos.")).not.toBeNull();
     expect(screen.getByText("2 de 10 agendamentos · 8 disponíveis")).not.toBeNull();
     expect(screen.getByText("1 / 1")).not.toBeNull();
+    expect(screen.getByText("Limite atingido")).not.toBeNull();
     expect(screen.getByText("3 / 2")).not.toBeNull();
-    expect(screen.getAllByText("Limite atingido")).toHaveLength(2);
+    expect(screen.getByText("1 acima do limite")).not.toBeNull();
+    expect(screen.getByText("Você possui 3 serviços. O plano em uso permite 2. Assine um plano maior para adicionar novos serviços.")).not.toBeNull();
     expect(screen.getByText("Nenhum pagamento registrado ainda.")).not.toBeNull();
   });
 
@@ -89,6 +91,7 @@ describe("plano e assinatura", () => {
 
     expect(await screen.findByText("Assinatura ativa")).not.toBeNull();
     expect(screen.getByText("Plano atual")).not.toBeNull();
+    expect(screen.getByText("Autônoma", { selector: "strong" })).not.toBeNull();
     expect(screen.getByText("Forma de pagamento")).not.toBeNull();
     expect(screen.getByText("PIX")).not.toBeNull();
     expect(screen.getByText("Próxima cobrança")).not.toBeNull();
@@ -96,7 +99,7 @@ describe("plano e assinatura", () => {
     expect(screen.getByRole("link", { name: "Ver planos" })).not.toBeNull();
   });
 
-  it("diferencia assinatura pendente de assinatura ativa", async () => {
+  it("diferencia assinatura pendente de assinatura ativa e mantém limites gratuitos", async () => {
     apiRequest.mockResolvedValueOnce({
       plano: { id: 2, slug: "autonoma", nome: "Autônoma", valor: 49.9 },
       assinatura: {
@@ -111,6 +114,8 @@ describe("plano e assinatura", () => {
     renderPage();
 
     expect(await screen.findByText("Pagamento pendente")).not.toBeNull();
+    expect(screen.getByText("Plano selecionado")).not.toBeNull();
+    expect(screen.getByText("Enquanto a assinatura não estiver ativa, valem os limites gratuitos.")).not.toBeNull();
     expect(screen.queryByRole("button", { name: "Cancelar renovação" })).toBeNull();
   });
 
