@@ -141,6 +141,15 @@ async function executarLimpezaGoogleProfissionais() {
             updated_at = NOW()
           WHERE intencao = 'profissional'
             AND NULLIF(BTRIM(gclid), '') IS NOT NULL
+            AND (
+              LOWER(COALESCE(utm_source, '')) <> 'google'
+              OR LOWER(COALESCE(utm_medium, '')) <> 'cpc'
+              OR (
+                NULLIF(BTRIM(utm_campaign), '') IS NOT NULL
+                AND LOWER(utm_campaign) <> $1
+              )
+              OR NULLIF(BTRIM(fbclid), '') IS NOT NULL
+            )
           `,
           [CAMPANHA_OFICIAL]
         );
@@ -161,6 +170,15 @@ async function executarLimpezaGoogleProfissionais() {
             updated_at = NOW()
           WHERE intencao = 'profissional'
             AND NULLIF(BTRIM(last_gclid), '') IS NOT NULL
+            AND (
+              LOWER(COALESCE(last_utm_source, '')) <> 'google'
+              OR LOWER(COALESCE(last_utm_medium, '')) <> 'cpc'
+              OR (
+                NULLIF(BTRIM(last_utm_campaign), '') IS NOT NULL
+                AND LOWER(last_utm_campaign) <> $1
+              )
+              OR NULLIF(BTRIM(last_fbclid), '') IS NOT NULL
+            )
           `,
           [CAMPANHA_OFICIAL]
         );
