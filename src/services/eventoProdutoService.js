@@ -27,6 +27,10 @@ const EVENTOS_PERMITIDOS =
     "agendamento_iniciado",
     "agendamento_concluido",
     "agendamento_cancelado",
+    "link_negocio_copiado",
+    "link_negocio_compartilhado",
+    "link_servico_copiado",
+    "link_servico_compartilhado",
     "mensagem_crescimento_visualizada",
     "acao_dashboard_selecionada",
     "periodo_dashboard_alterado",
@@ -69,6 +73,7 @@ const MISSOES_PERMITIDAS =
     "criar_conta_cliente",
     "criar_conta_profissional",
     "descobrir_servico",
+    "descobrir_compartilhar_agendar",
     "disponibilizar_horarios",
     "entender_proposta",
     "entrar_cliente",
@@ -99,6 +104,9 @@ const CHAVES_PROPRIEDADES =
     "profissional_id",
     "status",
     "termo_presente",
+    "tipo_link",
+    "servico_nome",
+    "metodo",
     "utm_source",
     "utm_medium",
     "utm_campaign",
@@ -111,6 +119,9 @@ const CHAVES_PROPRIEDADES =
     "msclkid",
     "ttclid",
     "epik",
+    "af_source",
+    "af_medium",
+    "af_content",
     "landing_page",
     "referrer_host",
   ]);
@@ -123,6 +134,9 @@ const CHAVES_ID = new Set([
 
 const LIMITES_PROPRIEDADES_TEXTO =
   Object.freeze({
+    tipo_link: 40,
+    servico_nome: 120,
+    metodo: 60,
     utm_source: 80,
     utm_medium: 80,
     utm_campaign: 140,
@@ -135,6 +149,9 @@ const LIMITES_PROPRIEDADES_TEXTO =
     msclkid: 200,
     ttclid: 200,
     epik: 200,
+    af_source: 80,
+    af_medium: 80,
+    af_content: 80,
     landing_page: 500,
     referrer_host: 200,
   });
