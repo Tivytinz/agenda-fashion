@@ -103,6 +103,96 @@ describe(
     );
 
     test(
+      "consolida UTMs históricas do Google Ads com o investimento da campanha canônica",
+      async () => {
+        repository.listarPorCampanha
+          .mockResolvedValue([
+            {
+              origem: "google",
+              midia: "cpc",
+              campanha: "aquisicao_profissionais",
+              cadastros: 8,
+              investimento_centavos: 0,
+              receita_primeiro_pagamento_centavos: 0,
+            },
+            {
+              origem: "google",
+              midia: "cpc",
+              campanha: "search_aquisicao_profissionais",
+              cadastros: 4,
+              investimento_centavos: 0,
+              receita_primeiro_pagamento_centavos: 0,
+            },
+            {
+              origem: "google",
+              midia: "cpc",
+              campanha: "google_ads_profissionais",
+              cadastros: 0,
+              investimento_centavos: 20000,
+              receita_primeiro_pagamento_centavos: 0,
+            },
+            {
+              origem: "organico",
+              midia: "none",
+              campanha: "organico",
+              cadastros: 1,
+              investimento_centavos: 0,
+              receita_primeiro_pagamento_centavos: 0,
+            },
+          ]);
+
+        const resultado = await service.buscarFunil({
+          periodo: "30",
+        });
+
+        expect(resultado.campanhas).toHaveLength(2);
+
+        const google = resultado.campanhas.find(
+          (campanha) =>
+            campanha.campanha === "google_ads_profissionais"
+        );
+
+        expect(google).toMatchObject({
+          origem: "google",
+          midia: "cpc",
+          campanha: "google_ads_profissionais",
+          cadastros: 12,
+          investimentoCentavos: 20000,
+          custoCadastroCentavos: 1667,
+          consolidada: true,
+          decisao: {
+            codigo: "pausar",
+            confianca: "media",
+          },
+        });
+        expect(google.identidadesUtm).toEqual(
+          expect.arrayContaining([
+            {
+              origem: "google",
+              midia: "cpc",
+              campanha: "aquisicao_profissionais",
+            },
+            {
+              origem: "google",
+              midia: "cpc",
+              campanha: "search_aquisicao_profissionais",
+            },
+            {
+              origem: "google",
+              midia: "cpc",
+              campanha: "google_ads_profissionais",
+            },
+          ])
+        );
+        expect(resultado.resumo).toMatchObject({
+          cadastros: 13,
+          investimentoCentavos: 20000,
+          custoCadastroCentavos: 1538,
+        });
+      }
+    );
+
+    test(
       "não inventa CAC, ROAS ou decisão forte quando não existe investimento",
       async () => {
         repository.listarPorCampanha
