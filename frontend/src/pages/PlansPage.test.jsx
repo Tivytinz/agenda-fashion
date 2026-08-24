@@ -1,10 +1,10 @@
 // @vitest-environment jsdom
 
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, render, screen, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { apiRequest } from "../api/client";
-import { PlansPage } from "./BillingPages";
+import { PlansPage } from "./PlansPage";
 
 let sessionState;
 
@@ -76,5 +76,64 @@ describe("continuidade do plano", () => {
 
     expect((await screen.findByRole("link", { name: "Escolher plano" }))
       .getAttribute("href")).toBe("/profissional/agenda");
+  });
+
+  it("não chama plano pago sem assinatura de plano atual", async () => {
+    sessionState = {
+      authenticated: true,
+      temNegocio: true,
+      negocio: { papel: "dono" }
+    };
+    apiRequest.mockImplementation((path) => {
+      if (path === "/planos") return Promise.resolve({ planos: PLANS });
+      if (path === "/meu-plano") {
+        return Promise.resolve({
+          plano_id: 1,
+          plano_slug: "gratis",
+          plano_selecionado_id: 2,
+          plano_selecionado_slug: "autonoma",
+          assinatura_ativa_id: null
+        });
+      }
+      return Promise.reject(new Error(`Rota inesperada: ${path}`));
+    });
+
+    renderPage();
+
+    const autonoma = (await screen.findByRole("heading", { name: "Autônoma" })).closest("article");
+    const gratis = screen.getByRole("heading", { name: "Grátis" }).closest("article");
+
+    expect(within(gratis).getByText("✓ Plano atual")).not.toBeNull();
+    expect(within(autonoma).queryByText("✓ Plano atual")).toBeNull();
+    expect(within(autonoma).getByRole("link", { name: "Assinar Autônoma" })
+      .getAttribute("href")).toBe("/checkout?plano=autonoma");
+  });
+
+  it("marca o plano pago como atual após a assinatura ficar ativa", async () => {
+    sessionState = {
+      authenticated: true,
+      temNegocio: true,
+      negocio: { papel: "dono" }
+    };
+    apiRequest.mockImplementation((path) => {
+      if (path === "/planos") return Promise.resolve({ planos: PLANS });
+      if (path === "/meu-plano") {
+        return Promise.resolve({
+          plano_id: 2,
+          plano_slug: "autonoma",
+          plano_selecionado_id: 2,
+          plano_selecionado_slug: "autonoma",
+          assinatura_ativa_id: 91
+        });
+      }
+      return Promise.reject(new Error(`Rota inesperada: ${path}`));
+    });
+
+    renderPage();
+
+    const autonoma = (await screen.findByRole("heading", { name: "Autônoma" })).closest("article");
+
+    expect(within(autonoma).getByText("✓ Plano atual")).not.toBeNull();
+    expect(within(autonoma).queryByRole("link", { name: "Assinar Autônoma" })).toBeNull();
   });
 });
