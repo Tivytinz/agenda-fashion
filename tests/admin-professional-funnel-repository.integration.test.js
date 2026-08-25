@@ -395,7 +395,7 @@ describe(
             midia: "cpc",
             campanha: utmCampaign,
             campanha_oficial_id:
-              campanhaId,
+              String(campanhaId),
             classificacao_atribuicao:
               "oficial",
             cadastros: 1,
