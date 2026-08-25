@@ -237,7 +237,7 @@
 
 @media (max-width: 620px) {
   .business-settings-page {
-    padding-bottom: 112px;
+    padding-bottom: calc(var(--workspace-mobile-nav-height) + 68px);
   }
 
   .business-settings-page .business-photo-editor {
@@ -262,7 +262,7 @@
 
   .business-settings-page .business-floating-save {
     right: 12px;
-    bottom: 10px;
+    bottom: calc(var(--workspace-mobile-nav-height) + 10px);
     left: 12px;
   }
 
@@ -272,7 +272,7 @@
 
   .business-settings-page .business-save-toast {
     right: 12px;
-    bottom: 66px;
+    bottom: calc(var(--workspace-mobile-nav-height) + 66px);
     left: 12px;
     justify-content: center;
   }

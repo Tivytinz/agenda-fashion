@@ -82,8 +82,16 @@ test("admin e consentimento permanecem navegáveis no celular", async ({ page })
     .toBeVisible();
   await expect(navigation.getByRole("link", { name: /Rentabilidade/ }))
     .toBeVisible();
+  const more = navigation.getByRole("button", {
+    name: /Abrir mais opções/
+  });
+  await expect(more).toBeVisible();
+  await more.click();
+  await expect(navigation.getByRole("link", { name: /WhatsApp/ }))
+    .toBeVisible();
   await expect(navigation.getByRole("link", { name: /Minha conta/ }))
     .toBeVisible();
+  await navigation.getByRole("button", { name: /Fechar mais opções/ }).click();
 
   const consent = page.getByRole("complementary", {
     name: "Preferências de privacidade"
