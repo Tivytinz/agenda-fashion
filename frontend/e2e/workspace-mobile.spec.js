@@ -102,6 +102,7 @@ test("ações do negócio ficam acima da navegação e mantêm foco visível", a
   }));
 
   await page.goto("/painel/negocio");
+  await page.getByLabel("Nome do negócio").fill("Studio Aurora atualizado");
 
   const save = page.getByRole("button", { name: "Salvar alterações" });
   const navigation = page.getByRole("navigation", {
