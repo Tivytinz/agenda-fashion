@@ -263,6 +263,9 @@ function normalizarMarketing(
     !Array.isArray(marketing)
       ? marketing
       : {};
+  const consentimentoMarketing =
+    entrada.consentimento_marketing === true ||
+    entrada.consentimentoMarketing === true;
 
   const normalizado = {
     intencao:
@@ -459,9 +462,20 @@ function normalizarMarketing(
       ),
   };
 
-  return limparGoogleProfissionalNaoOficial(
-    normalizado
-  );
+  if (!consentimentoMarketing) {
+    for (const chave of Object.keys(normalizado)) {
+      if (
+        chave !== "intencao" &&
+        chave !== "sessaoId"
+      ) {
+        normalizado[chave] = null;
+      }
+    }
+
+    return normalizado;
+  }
+
+  return limparGoogleProfissionalNaoOficial(normalizado);
 }
 
 async function registrarContaCriada({

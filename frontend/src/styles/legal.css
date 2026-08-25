@@ -1,0 +1,129 @@
+.legal-page {
+  display: grid;
+  gap: 16px;
+}
+
+.legal-heading,
+.legal-section {
+  margin-bottom: 0;
+}
+
+.legal-heading small,
+.legal-section p,
+.legal-section li {
+  color: var(--muted);
+  line-height: 1.65;
+}
+
+.legal-section h2 {
+  margin-bottom: 12px;
+  font-size: clamp(1.2rem, 2.4vw, 1.55rem);
+}
+
+.legal-section p:last-child {
+  margin-bottom: 0;
+}
+
+.legal-section a,
+.legal-footer a {
+  color: var(--pink-700);
+  font-weight: 800;
+}
+
+.legal-footer {
+  border-top: 1px solid var(--line);
+  background: var(--surface);
+}
+
+.legal-footer-content {
+  display: flex;
+  min-height: 74px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  padding-block: 16px;
+}
+
+.legal-footer p {
+  margin: 0;
+  color: var(--muted);
+  font-size: .85rem;
+}
+
+.legal-footer nav {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 16px;
+  font-size: .85rem;
+}
+
+.legal-agreement {
+  display: block;
+  color: var(--muted);
+  line-height: 1.5;
+  text-align: center;
+}
+
+.legal-agreement a,
+.checkout-commercial-notice a,
+.plans-commercial-details a {
+  color: var(--pink-700);
+  font-weight: 800;
+}
+
+.checkout-commercial-notice {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 14px;
+  background: var(--pink-50);
+}
+
+.checkout-commercial-notice p {
+  margin: 6px 0;
+  color: var(--muted);
+  font-size: .9rem;
+  line-height: 1.5;
+}
+
+.checkout-commercial-notice small {
+  color: var(--muted);
+  line-height: 1.45;
+}
+
+.plans-commercial-details {
+  max-width: 820px;
+  margin: 24px auto 0;
+  text-align: center;
+}
+
+.plans-commercial-details h2 {
+  font-size: clamp(1.25rem, 2.5vw, 1.65rem);
+}
+
+.plans-commercial-details p {
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+.plans-commercial-details p:last-child {
+  margin-bottom: 0;
+}
+
+.app-shell:has(.workspace-mobile-nav)
+.legal-footer {
+  padding-bottom: var(--workspace-mobile-nav-height);
+}
+
+@media (max-width: 640px) {
+  .legal-footer-content {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .legal-footer nav {
+    justify-content: flex-start;
+    gap: 12px 16px;
+  }
+}

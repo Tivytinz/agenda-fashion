@@ -216,6 +216,9 @@ async function gerarSitemap() {
 
   adicionar("/", null);
   adicionar("/para-profissionais", null);
+  adicionar("/planos", null);
+  adicionar("/privacidade", null);
+  adicionar("/termos", null);
 
   for (const linha of linhas) {
     if (linha.slug) {

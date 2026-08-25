@@ -1,6 +1,10 @@
 // @vitest-environment jsdom
 
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
+import {
+  MARKETING_CONSENT,
+  setMarketingConsent
+} from "./marketingConsent";
 import { getMarketingContext, track } from "./track";
 
 function storage() {
@@ -22,6 +26,9 @@ describe("track attribution", () => {
       randomUUID: () => "12345678-1234-1234-1234-123456789012",
     });
     vi.stubGlobal("fetch", vi.fn(() => Promise.resolve({ ok: true })));
+    setMarketingConsent(
+      MARKETING_CONSENT.GRANTED
+    );
     Object.defineProperty(document, "referrer", {
       configurable: true,
       value: "",
@@ -339,6 +346,38 @@ describe("track attribution", () => {
 
     const payload = JSON.parse(fetch.mock.calls[0][1].body);
     expect(payload.sessao_id).toMatch(/^[A-Za-z0-9_-]{8,64}$/);
+  });
+
+  test("não guarda nem envia atribuição de anúncios sem consentimento", () => {
+    setMarketingConsent(
+      MARKETING_CONSENT.DENIED
+    );
+    window.history.replaceState(
+      {},
+      "",
+      "/cadastro?utm_source=google&utm_medium=cpc&gclid=click-secreto"
+    );
+
+    const contexto =
+      getMarketingContext("profissional");
+
+    expect(contexto).not.toHaveProperty("gclid");
+    expect(contexto).not.toHaveProperty("utm_source");
+    expect(contexto.consentimento_marketing)
+      .toBe(false);
+
+    track("cadastro_visualizado", {
+      page: "cadastro",
+      mission: "adquirir_profissional"
+    });
+
+    const payload = JSON.parse(
+      fetch.mock.calls[0][1].body
+    );
+    expect(JSON.stringify(payload))
+      .not.toContain("click-secreto");
+    expect(payload.propriedades)
+      .not.toHaveProperty("utm_source");
   });
 
   test("analytics não derruba a interface quando o storage é bloqueado", () => {

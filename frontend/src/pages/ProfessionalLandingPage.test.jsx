@@ -89,7 +89,7 @@ describe("landing para profissionais", () => {
     expect(screen.getAllByText("Cliente agenda sozinho"))
       .toHaveLength(2);
     expect(screen.getByText(
-      "Aviso de novo agendamento pelo WhatsApp"
+      "Aviso pelo WhatsApp com sua autorização"
     )).toBeTruthy();
     expect(screen.getByText(
       "Olá! Um novo agendamento foi realizado. ✨"
@@ -133,14 +133,14 @@ describe("landing para profissionais", () => {
 
     expect(screen.getByRole("heading", {
       name:
-        "Veja o Design + Henna da Beauty Vanessa sendo agendado até o aviso no WhatsApp."
+        "Veja o Design + Henna da Beauty Vanessa sendo agendado até o aviso autorizado no WhatsApp."
     })).toBeTruthy();
     expect(screen.getAllByText("Design + Henna").length)
       .toBeGreaterThanOrEqual(2);
     expect(screen.getByText("60 min")).toBeTruthy();
     expect(screen.getByText("R$ 40,00")).toBeTruthy();
     expect(screen.getByText(
-      "O AF envia o novo agendamento para a Vanessa no WhatsApp"
+      "Com os avisos autorizados, o AF envia o novo agendamento para a Vanessa"
     )).toBeTruthy();
     expect(screen.getByRole("link", {
       name: "Testar no perfil real ↗"

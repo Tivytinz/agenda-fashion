@@ -9,7 +9,20 @@ const registrador = require("../utils/registrador");
 // =============================
 // 📋 LISTAR PLANOS
 // =============================
-router.get("/planos", async (req, res) => {
+router.get("/planos", async (req, res, next) => {
+  const accept = String(
+    req.headers.accept || ""
+  ).toLowerCase();
+  const solicitaJson =
+    accept.includes("application/json") &&
+    !accept.includes("text/html");
+
+  res.vary("Accept");
+
+  if (!solicitaJson) {
+    return next();
+  }
+
   try {
     const resultado = await db.query(
       `

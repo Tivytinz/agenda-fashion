@@ -1,4 +1,5 @@
 import {
+  useCallback,
   useEffect,
   useState
 } from "react";
@@ -10,6 +11,7 @@ import { useSession } from "../auth/SessionContext";
 import {
   applyGoogleConsentDefault,
   getGoogleConfig,
+  hasPendingGoogleConsentSync,
   initializeGoogleMeasurement,
   syncGoogleConsent,
   trackGooglePageView,
@@ -22,12 +24,18 @@ import {
   setMarketingConsent
 } from "../analytics/marketingConsent";
 import {
+  clearMarketingAttribution
+} from "../analytics/track";
+import {
   getMetaConfig,
   initializeMetaAds,
   revokeMetaConsent,
   syncMetaConsent,
   trackMetaPageView
 } from "../analytics/metaAds";
+import {
+  GOOGLE_BUSINESS_DATA_URL
+} from "../config/legal";
 
 export function MetaAdsBridge() {
   const location = useLocation();
@@ -38,6 +46,22 @@ export function MetaAdsBridge() {
     useState(null);
   const [consent, setConsent] =
     useState(getMarketingConsent);
+  const [googleSyncError, setGoogleSyncError] =
+    useState(false);
+
+  const retryGoogleSync = useCallback(
+    async () => {
+      try {
+        await syncGoogleConsent();
+        setGoogleSyncError(false);
+        return true;
+      } catch {
+        setGoogleSyncError(true);
+        return false;
+      }
+    },
+    []
+  );
 
   useEffect(() => {
     let active = true;
@@ -123,7 +147,7 @@ export function MetaAdsBridge() {
   ]);
 
   useEffect(() => {
-    if (!googleConfig?.enabled) {
+    if (googleConfig === null) {
       return;
     }
 
@@ -131,11 +155,17 @@ export function MetaAdsBridge() {
       consent ===
         MARKETING_CONSENT.GRANTED
     ) {
+      if (!googleConfig.enabled) {
+        return;
+      }
+
       void initializeGoogleMeasurement(
         session.usuario?.id
       )
-        .then(() => syncGoogleConsent())
-        .catch(() => {});
+        .then(() => retryGoogleSync())
+        .catch(() => {
+          setGoogleSyncError(true);
+        });
       return;
     }
 
@@ -146,17 +176,65 @@ export function MetaAdsBridge() {
       updateGoogleConsent(
         MARKETING_CONSENT.DENIED
       );
-      void syncGoogleConsent()
-        .catch(() => {});
+      clearMarketingAttribution();
+      void retryGoogleSync();
       return;
     }
 
-    applyGoogleConsentDefault();
+    if (googleConfig.enabled) {
+      applyGoogleConsentDefault();
+    }
   }, [
     googleConfig?.enabled,
     consent,
     session.authenticated,
-    session.usuario?.id
+    session.usuario?.id,
+    retryGoogleSync
+  ]);
+
+  useEffect(() => {
+    if (
+      googleConfig === null ||
+      !session.authenticated ||
+      consent === MARKETING_CONSENT.UNKNOWN ||
+      (
+        consent === MARKETING_CONSENT.GRANTED &&
+        !googleConfig.enabled
+      )
+    ) {
+      return undefined;
+    }
+
+    const retry = () => {
+      void retryGoogleSync();
+    };
+    const retryWhenVisible = () => {
+      if (
+        document.visibilityState === "visible" &&
+        hasPendingGoogleConsentSync()
+      ) {
+        retry();
+      }
+    };
+
+    window.addEventListener("online", retry);
+    document.addEventListener(
+      "visibilitychange",
+      retryWhenVisible
+    );
+
+    return () => {
+      window.removeEventListener("online", retry);
+      document.removeEventListener(
+        "visibilitychange",
+        retryWhenVisible
+      );
+    };
+  }, [
+    googleConfig,
+    session.authenticated,
+    consent,
+    retryGoogleSync
   ]);
 
   useEffect(() => {
@@ -176,7 +254,7 @@ export function MetaAdsBridge() {
         MARKETING_CONSENT.GRANTED
     ) {
       void trackGooglePageView(
-        `${location.pathname}${location.search}`,
+        location.pathname,
         session.usuario?.id
       );
     }
@@ -185,11 +263,14 @@ export function MetaAdsBridge() {
     googleConfig?.enabled,
     consent,
     location.pathname,
-    location.search,
     session.usuario?.id
   ]);
 
   function choose(status) {
+    if (status === MARKETING_CONSENT.DENIED) {
+      clearMarketingAttribution();
+    }
+
     setMarketingConsent(status);
     setConsent(status);
   }
@@ -200,7 +281,7 @@ export function MetaAdsBridge() {
       googleConfig?.enabled
     );
 
-  if (!measurementEnabled) {
+  if (!measurementEnabled && !googleSyncError) {
     return null;
   }
 
@@ -216,11 +297,19 @@ export function MetaAdsBridge() {
         <div className="marketing-consent-copy">
           <strong>Privacidade e medição de anúncios</strong>
           <p>
-            O Agenda Fashion pode usar ferramentas opcionais da Meta e do Google para entender se anúncios resultam em cadastros e assinaturas. Elas só são ativadas se você permitir.
+            Se você permitir, o Agenda Fashion usará cookies e identificadores pseudônimos do Google Analytics, Google Ads e Meta para medir visitas, cadastros e assinaturas gerados por anúncios. Publicidade personalizada permanece desativada. Negar não limita o uso da plataforma.
           </p>
           <Link to="/privacidade">
             Entender como funciona
           </Link>
+          <span aria-hidden="true"> · </span>
+          <a
+            href={GOOGLE_BUSINESS_DATA_URL}
+            rel="noreferrer"
+            target="_blank"
+          >
+            Como o Google usa dados
+          </a>
         </div>
         <div
           aria-label="Escolha de medição de anúncios"
@@ -251,11 +340,31 @@ export function MetaAdsBridge() {
   }
 
   return (
-    <Link
-      className="privacy-shortcut"
-      to="/privacidade"
-    >
-      Privacidade
-    </Link>
+    <>
+      {googleSyncError && session.authenticated && (
+        <aside
+          aria-label="Sincronização de privacidade pendente"
+          className="privacy-sync-warning"
+          role="status"
+        >
+          <span>
+            Sua escolha vale neste navegador, mas ainda não foi sincronizada com a conta.
+          </span>
+          <button
+            className="text-button"
+            onClick={() => void retryGoogleSync()}
+            type="button"
+          >
+            Tentar novamente
+          </button>
+        </aside>
+      )}
+      <Link
+        className="privacy-shortcut"
+        to="/privacidade"
+      >
+        Privacidade
+      </Link>
+    </>
   );
 }

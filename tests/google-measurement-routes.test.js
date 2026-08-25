@@ -75,7 +75,10 @@ beforeEach(() => {
       consentimento:
         body.consentimento === true,
       clientId:
-        body.client_id || null
+        body.client_id || null,
+      textoVersao:
+        body.texto_versao ||
+        "legado-sem-versao"
     }));
   service
     .salvarConsentimento
@@ -129,7 +132,8 @@ describe("rotas Google Measurement", () => {
       .send({
         consentimento: true,
         client_id:
-          "123456.987654"
+          "123456.987654",
+        texto_versao: "2026-08-25"
       })
       .expect(200);
 
@@ -139,7 +143,8 @@ describe("rotas Google Measurement", () => {
     ).toHaveBeenCalledWith({
       consentimento: true,
       client_id:
-        "123456.987654"
+        "123456.987654",
+      texto_versao: "2026-08-25"
     });
     expect(
       service.salvarConsentimento
@@ -148,7 +153,8 @@ describe("rotas Google Measurement", () => {
       google: {
         consentimento: true,
         client_id:
-          "123456.987654"
+          "123456.987654",
+        texto_versao: "2026-08-25"
       }
     });
     expect(response.body).toEqual({

@@ -63,6 +63,9 @@ apagar dados existentes nem impedir a edição do que já foi cadastrado.
 - Ao cancelar a renovação, o acesso pago continua até o fim do período já
   quitado.
 - Após o encerramento do ciclo pago, o negócio retorna ao plano gratuito.
+- Antes de gerar o PIX, o checkout informa ciclo mensal, renovação,
+  cancelamento, ausência de taxa de adesão e disponibiliza Termos de uso,
+  Política de Privacidade e contato de suporte.
 
 Se o uso atual estiver acima dos limites do plano gratuito após o retorno, os
 dados existentes devem ser preservados. Novas criações ficam sujeitas aos
@@ -93,6 +96,8 @@ negócio e conversão para plano pago.
 - Catálogo e limites: `database/migrations/015_planos_limites.sql`.
 - Normalização dos nomes: `database/migrations/025_corrigir_nomes_planos.sql`.
 - Consulta pública: `GET /planos`.
+- Oferta pública em HTML: `/planos` com `Accept: text/html`.
+- Transparência: `/termos` e `/privacidade`.
 - Uso do negócio: `GET /meu-plano`.
 - Checkout pago: `POST /checkout`.
 - Visão técnica completa: `docs/arquitetura.md`.

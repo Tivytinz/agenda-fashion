@@ -6,6 +6,7 @@ import { useSession } from "./auth/SessionContext";
 import { AppHeader } from "./components/AppHeader";
 import { MarketingMetricGlossary } from "./components/MarketingMetricGlossary";
 import { MetaAdsBridge } from "./components/MetaAdsBridge";
+import { LegalFooter } from "./components/LegalFooter";
 import {
   AdminLayout,
   WorkspaceLayout
@@ -127,6 +128,10 @@ const PrivacyPage = lazyNamed(
   () => import("./pages/PrivacyPage"),
   "PrivacyPage"
 );
+const TermsPage = lazyNamed(
+  () => import("./pages/TermsPage"),
+  "TermsPage"
+);
 const ProfessionalLandingPage = lazyNamed(
   () => import("./pages/ProfessionalLandingPage"),
   "ProfessionalLandingPage"
@@ -176,6 +181,7 @@ export default function App() {
         <Route path={reactRoutes.forgotPassword} element={<PasswordResetPage />} />
         <Route path={reactRoutes.resetPassword} element={<PasswordResetPage mode="reset" />} />
         <Route path={reactRoutes.privacy} element={<PrivacyPage />} />
+        <Route path={reactRoutes.terms} element={<TermsPage />} />
         <Route
           element={(
             <ProtectedRoute adminOnly>
@@ -291,6 +297,7 @@ export default function App() {
         </Routes>
       </Suspense>
       <MetaAdsBridge />
+      <LegalFooter />
     </div>
   );
 }

@@ -20,7 +20,8 @@ import {
   vi
 } from "vitest";
 import {
-  getGoogleConfig
+  getGoogleConfig,
+  syncGoogleConsent
 } from "../analytics/googleMeasurement";
 import {
   getMarketingConsent,
@@ -64,6 +65,8 @@ vi.mock("../analytics/metaAds", () => ({
 vi.mock("../analytics/googleMeasurement", () => ({
   applyGoogleConsentDefault: vi.fn(),
   getGoogleConfig: vi.fn(),
+  hasPendingGoogleConsentSync:
+    vi.fn().mockReturnValue(false),
   initializeGoogleMeasurement:
     vi.fn().mockResolvedValue(true),
   syncGoogleConsent:
@@ -71,6 +74,10 @@ vi.mock("../analytics/googleMeasurement", () => ({
   trackGooglePageView:
     vi.fn().mockResolvedValue(true),
   updateGoogleConsent: vi.fn()
+}));
+
+vi.mock("../analytics/track", () => ({
+  clearMarketingAttribution: vi.fn()
 }));
 
 beforeEach(() => {
@@ -118,7 +125,7 @@ describe("consentimento de marketing", () => {
     expect(actions.querySelectorAll("button"))
       .toHaveLength(2);
     expect(region.textContent)
-      .toContain("Meta e do Google");
+      .toContain("Google Analytics, Google Ads e Meta");
 
     await user.click(
       screen.getByRole("button", { name: "Permitir" })
@@ -172,6 +179,32 @@ describe("consentimento de marketing", () => {
 
     await waitFor(() => {
       expect(revokeMetaConsent)
+        .toHaveBeenCalled();
+    });
+  });
+
+  it("sincroniza uma recusa histórica mesmo com Google desativado", async () => {
+    getMarketingConsent.mockReturnValue(
+      MARKETING_CONSENT.DENIED
+    );
+    getMetaConfig.mockResolvedValue({
+      enabled: false,
+      pixelId: null
+    });
+    getGoogleConfig.mockResolvedValue({
+      enabled: false,
+      measurementId: null,
+      adsId: null
+    });
+
+    render(
+      <MemoryRouter>
+        <MetaAdsBridge />
+      </MemoryRouter>
+    );
+
+    await waitFor(() => {
+      expect(syncGoogleConsent)
         .toHaveBeenCalled();
     });
   });

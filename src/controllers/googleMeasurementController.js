@@ -49,7 +49,9 @@ async function atualizarConsentimento(
           consentimento:
             contexto.consentimento,
           client_id:
-            contexto.clientId
+            contexto.clientId,
+          texto_versao:
+            contexto.textoVersao
         }
       });
 

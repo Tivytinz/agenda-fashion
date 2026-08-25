@@ -437,7 +437,23 @@ A atribuição persistida da conta aceita os mesmos identificadores mantidos pel
 frontend: `gclid`, `gbraid`, `wbraid`, `fbclid`, `msclkid`, `ttclid`, `epik` e os
 campos internos `af_*`, tanto no primeiro quanto no último contato. Esses sinais
 identificam o canal pago, mas continuam sem inventar uma campanha quando a UTM de
-campanha não foi recebida.
+campanha não foi recebida. O frontend só inclui esses campos quando existe
+consentimento opcional de marketing; o backend exige a evidência booleana no
+contexto de cadastro antes de persistir a atribuição.
+
+Google Analytics e Google Ads operam em modo básico de consentimento: o estado
+inicial é `denied` e a tag não é carregada antes da autorização. Mesmo após o
+aceite, `ad_personalization` e os sinais de personalização permanecem
+desativados. Toda rota enviada ao Google passa por uma lista de caminhos
+genéricos: buscas, tokens e parâmetros são removidos; slugs e identificadores
+dinâmicos viram modelos como `/negocio/:slug`. O referenciador não é enviado.
+
+A escolha Google autenticada possui estado atual e histórico auditável na
+tabela `marketing_google_consentimentos`. A revogação limpa o client ID e a
+atribuição opcional vinculada à conta, mantém retentativa local se a rede falhar
+e bloqueia eventos pelo Measurement Protocol. Conversões usam IDs de transação
+estáveis para deduplicação; `purchase` representa somente o primeiro pagamento
+confirmado, nunca a renovação mensal.
 
 A área administrativa possui a página `Saúde do SaaS`, em `/admin/saude`.
 Ela consulta `GET /admin/saude/perfis-incompletos` para resumir e listar

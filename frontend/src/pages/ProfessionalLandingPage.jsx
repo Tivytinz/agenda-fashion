@@ -53,7 +53,7 @@ const BENEFITS = [
     icon: "🔔",
     title: "Aviso pelo WhatsApp",
     description:
-      "Quando um novo agendamento é realizado, o Agenda Fashion envia um aviso ao WhatsApp do profissional ou do negócio."
+      "Se você autorizar os avisos operacionais, o Agenda Fashion envia o novo agendamento ao WhatsApp cadastrado."
   },
   {
     icon: "✨",
@@ -127,7 +127,7 @@ const FAQ = [
   {
     question: "Vou receber os agendamentos pelo WhatsApp?",
     answer:
-      "Quando um novo agendamento é realizado, o Agenda Fashion envia um aviso ao WhatsApp cadastrado pelo profissional ou negócio."
+      "Sim, se você autorizar os avisos operacionais. A preferência começa desmarcada, pode ser alterada na conta e não é necessária para usar a agenda."
   },
   {
     question: "Preciso ter salão para usar?",
@@ -197,7 +197,7 @@ export function ProfessionalLandingPage() {
   useEffect(() => {
     const previousTitle = document.title;
     const restoreDescription = ensureMetaDescription(
-      "Agenda online grátis para nail designers, lash designers, designers de sobrancelhas, manicures, esteticistas e salões. Receba agendamentos e avisos pelo WhatsApp."
+      "Agenda online grátis para nail designers, lash designers, designers de sobrancelhas, manicures, esteticistas e salões. Receba agendamentos e, se autorizar, avisos pelo WhatsApp."
     );
 
     document.title =
@@ -259,11 +259,11 @@ export function ProfessionalLandingPage() {
                 />
                 Agenda Fashion
               </span>{" "}
-              avisa você pelo{" "}
+              pode avisar você pelo{" "}
               <span className="professional-whatsapp-inline">
                 <WhatsAppIcon className="professional-whatsapp-inline-icon" />
                 WhatsApp
-              </span>.
+              </span>, se você autorizar essa preferência.
             </p>
 
             <div className="professional-hero-actions">
@@ -298,7 +298,7 @@ export function ProfessionalLandingPage() {
               </li>
               <li>
                 <span aria-hidden="true">🔔</span>
-                <span>Aviso de novo agendamento pelo WhatsApp</span>
+                <span>Aviso pelo WhatsApp com sua autorização</span>
               </li>
             </ul>
           </div>
@@ -357,7 +357,7 @@ export function ProfessionalLandingPage() {
             <div className="professional-whatsapp-status">
               <span aria-hidden="true">✓</span>
               <div>
-                <strong>Aviso automático entregue</strong>
+                <strong>Aviso autorizado entregue</strong>
                 <p>Você atende. O Agenda Fashion organiza e avisa.</p>
               </div>
             </div>
@@ -375,7 +375,7 @@ export function ProfessionalLandingPage() {
             <div>
               <p className="eyebrow">Passo a passo real</p>
               <h2 id="real-demo-title">
-                Veja o Design + Henna da Beauty Vanessa sendo agendado até o aviso no WhatsApp.
+                Veja o Design + Henna da Beauty Vanessa sendo agendado até o aviso autorizado no WhatsApp.
               </h2>
             </div>
             <p>
@@ -432,8 +432,8 @@ export function ProfessionalLandingPage() {
               <span>5</span>
               <div>
                 <small>Resultado automático</small>
-                <h3>O AF envia o novo agendamento para a Vanessa no WhatsApp</h3>
-                <p>Ela recebe cliente, serviço, data e horário sem interromper o atendimento para conferir a agenda.</p>
+                <h3>Com os avisos autorizados, o AF envia o novo agendamento para a Vanessa</h3>
+                <p>Ela recebe cliente, serviço, data e horário no WhatsApp sem interromper o atendimento para conferir a agenda.</p>
               </div>
             </div>
             <div className="professional-demo-final-message">
@@ -539,7 +539,7 @@ export function ProfessionalLandingPage() {
             Deixe seus clientes agendarem enquanto você cuida dos atendimentos.
           </h2>
           <p className="professional-final-lead">
-            Crie seu perfil, publique os serviços e compartilhe seu link. O cliente escolhe o horário e você recebe o aviso pelo WhatsApp.
+            Crie seu perfil, publique os serviços e compartilhe seu link. O cliente escolhe o horário e, se você autorizar os avisos, o AF envia a confirmação pelo WhatsApp.
           </p>
           <ul className="professional-final-benefits">
             <li><span aria-hidden="true">🆓</span> Plano grátis</li>

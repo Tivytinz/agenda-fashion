@@ -96,14 +96,17 @@ describe("catálogo público paginado", () => {
     const user = userEvent.setup();
 
     apiRequest
-      .mockResolvedValueOnce({
+      .mockImplementation((path) => Promise.resolve(
+        String(path).includes("pagina=2")
+          ? {
+            negocios: [business(2, "Studio Dois")],
+            paginacao: { total: 2, tem_mais: false }
+          }
+          : {
         negocios: [business(1, "Studio Um")],
         paginacao: { total: 2, tem_mais: true }
-      })
-      .mockResolvedValueOnce({
-        negocios: [business(2, "Studio Dois")],
-        paginacao: { total: 2, tem_mais: false }
-      });
+          }
+      ));
 
     renderExplore();
 

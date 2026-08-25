@@ -102,11 +102,13 @@ describe("Google Measurement service", () => {
     expect(
       service.sanitizarContextoCliente({
         consentimento: true,
-        client_id: "123456.987654"
+        client_id: "123456.987654",
+        texto_versao: "2026-08-25"
       })
     ).toEqual({
       consentimento: true,
-      clientId: "123456.987654"
+      clientId: "123456.987654",
+      textoVersao: "2026-08-25"
     });
 
     expect(
@@ -116,7 +118,8 @@ describe("Google Measurement service", () => {
       })
     ).toEqual({
       consentimento: false,
-      clientId: null
+      clientId: null,
+      textoVersao: "legado-sem-versao"
     });
 
     expect(
@@ -125,6 +128,32 @@ describe("Google Measurement service", () => {
         client_id: "id inválido"
       }).clientId
     ).toBeNull();
+  });
+
+  test("persiste origem segura e a versão validada do texto", async () => {
+    repository
+      .salvarConsentimentoUsuario
+      .mockResolvedValue({ usuario_id: 7 });
+
+    await service.salvarConsentimento({
+      usuarioId: 7,
+      google: {
+        consentimento: true,
+        client_id: "123456.987654",
+        texto_versao: "2026-08-25",
+        origem: "FORJADA"
+      }
+    });
+
+    expect(
+      repository.salvarConsentimentoUsuario
+    ).toHaveBeenCalledWith({
+      usuarioId: 7,
+      consentido: true,
+      clientId: "123456.987654",
+      origem: "NAVEGADOR",
+      textoVersao: "2026-08-25"
+    });
   });
 
   test("envia purchase pelo Measurement Protocol com transaction id", async () => {
@@ -245,8 +274,12 @@ describe("Google Measurement service", () => {
       .buscarPerfilPorNegocio
       .mockResolvedValue({
         usuario_id: 77,
+        google_consentimento_status:
+          true,
         google_consentido_em:
           new Date().toISOString(),
+        google_revogado_em:
+          null,
         google_client_id:
           "123456.987654"
       });
@@ -285,5 +318,43 @@ describe("Google Measurement service", () => {
           value: 49.9
         }
       });
+  });
+
+  test("não envia compra quando a última escolha explícita é recusa", async () => {
+    configurarGoogle();
+    repository
+      .ehPrimeiroPagamentoAssinatura
+      .mockResolvedValue(true);
+    repository
+      .buscarPerfilPorNegocio
+      .mockResolvedValue({
+        usuario_id: 77,
+        google_consentimento_status:
+          false,
+        google_consentido_em:
+          new Date().toISOString(),
+        google_revogado_em:
+          new Date().toISOString(),
+        google_client_id:
+          "123456.987654"
+      });
+
+    service
+      .enviarAssinaturaAtivadaSeguro({
+        negocioId: 10,
+        assinaturaId: 20,
+        pagamentoId: "pay_recusado",
+        valor: 49.9
+      });
+
+    await new Promise(
+      (resolve) => setImmediate(resolve)
+    );
+    await new Promise(
+      (resolve) => setImmediate(resolve)
+    );
+
+    expect(global.fetch)
+      .not.toHaveBeenCalled();
   });
 });

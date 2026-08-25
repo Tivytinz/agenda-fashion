@@ -1,6 +1,6 @@
 # Memoria operacional do Agenda Fashion
 
-> Contexto permanente para agentes de desenvolvimento. Atualizado em 24 de
+> Contexto permanente para agentes de desenvolvimento. Atualizado em 25 de
 > agosto de 2026.
 
 Este arquivo deve ser lido antes de analisar, planejar ou alterar o projeto.
@@ -151,6 +151,11 @@ etapas diferentes. Os detalhes ficam em `docs/planos.md`.
   leitura de custos de Google Ads e Meta Ads. A classificacao oficial de
   campanhas e resolvida no backend; cliques pagos sem `utm_campaign` permanecem
   como rastreamento incompleto e nao entram em CAC, ROAS ou recomendacoes.
+  Atribuicao publicitaria, GA4 e Google Ads exigem consentimento opcional;
+  rotas enviadas ao Google sao genericas, sem query strings, tokens, slugs ou
+  referenciador. `ad_personalization` permanece negado e a revogacao apaga os
+  identificadores opcionais da conta, registra historico auditavel e bloqueia
+  eventos server-side.
 - Testes backend: Jest, Supertest e PostgreSQL de teste.
 - Testes frontend: Vitest e Testing Library.
 - Testes de jornada: Playwright em Chromium e WebKit, com foco mobile.

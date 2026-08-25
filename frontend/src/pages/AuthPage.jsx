@@ -101,7 +101,10 @@ export function AuthPage({ mode = "login" }) {
         }
 
         void trackGoogleSignUp(
-          "google"
+          "google",
+          current?.usuario?.id
+            ? `af-signup-${current.usuario.id}`
+            : undefined
         );
       }
 
@@ -173,7 +176,10 @@ export function AuthPage({ mode = "login" }) {
         }
 
         void trackGoogleSignUp(
-          "email"
+          "email",
+          current?.usuario?.id
+            ? `af-signup-${current.usuario.id}`
+            : undefined
         );
       }
 
@@ -315,6 +321,11 @@ export function AuthPage({ mode = "login" }) {
           <button className="button button-full" disabled={submitting} type="submit">
             {submitting ? "Aguarde..." : isRegister ? "Criar conta" : "Entrar"}
           </button>
+          {isRegister && (
+            <small className="legal-agreement">
+              Ao criar a conta, você declara que leu e concorda com os <Link to="/termos">Termos de uso</Link> e a <Link to="/privacidade">Política de Privacidade</Link>.
+            </small>
+          )}
         </form>
 
         <p className="auth-switch">

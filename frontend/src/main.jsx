@@ -7,6 +7,7 @@ import { ErrorBoundary } from "./components/ErrorBoundary";
 import { installRuntimeRecovery } from "./utils/runtimeRecovery";
 import "./styles/index.css";
 import "./styles/marketing-consent.css";
+import "./styles/legal.css";
 import "./styles/responsive.css";
 import "./styles/admin-marketing.css";
 import "./styles/admin-marketing-professional.css";

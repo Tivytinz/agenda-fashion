@@ -3,6 +3,10 @@ import {
   removeBrowserStorage,
   writeBrowserStorage
 } from "../utils/browserStorage";
+import {
+  getMarketingConsent,
+  MARKETING_CONSENT
+} from "./marketingConsent";
 
 const SESSION_KEY = "af_produto_sessao";
 const ATTRIBUTION_KEY = "af_marketing_attribution";
@@ -210,9 +214,10 @@ function normalizeStored(stored) {
   };
 }
 
-function clearStoredAttribution() {
+export function clearMarketingAttribution() {
   removeBrowserStorage("local", ATTRIBUTION_KEY);
   removeBrowserStorage("session", ATTRIBUTION_KEY);
+  removeBrowserStorage("local", REFERRER_KEY);
 }
 
 function readStoredAttribution() {
@@ -242,7 +247,7 @@ function readStoredAttribution() {
     return legacySession;
   }
 
-  clearStoredAttribution();
+  clearMarketingAttribution();
   return null;
 }
 
@@ -308,6 +313,14 @@ function contextFromStored(stored) {
 }
 
 function captureAttribution() {
+  if (
+    getMarketingConsent() !==
+      MARKETING_CONSENT.GRANTED
+  ) {
+    clearMarketingAttribution();
+    return {};
+  }
+
   const incoming = incomingTouch();
   const stored = readStoredAttribution();
 
@@ -338,11 +351,16 @@ function captureAttribution() {
 export function getMarketingContext(
   intent = "indefinida"
 ) {
+  const marketingAllowed =
+    getMarketingConsent() ===
+      MARKETING_CONSENT.GRANTED;
   const attribution = captureAttribution();
 
   return {
     intencao: intent,
     sessao_id: sessionId(),
+    consentimento_marketing:
+      marketingAllowed,
     ...attribution
   };
 }
@@ -355,7 +373,12 @@ export function track(name, {
 }) {
   try {
     const attribution = captureAttribution();
-    const referrerHost = acquisitionReferrerHost();
+    const marketingAllowed =
+      getMarketingConsent() ===
+        MARKETING_CONSENT.GRANTED;
+    const referrerHost = marketingAllowed
+      ? acquisitionReferrerHost()
+      : "";
 
     const payload = {
       nome: name,

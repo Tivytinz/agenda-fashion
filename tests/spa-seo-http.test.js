@@ -30,9 +30,32 @@ describe("SEO e 404 das rotas React", () => {
       .set("Accept", "text/html");
 
     expect(resposta.status).toBe(200);
+    expect(resposta.headers["content-type"]).toMatch(/text\/html/);
+    expect(resposta.text).toContain('<div id="root"></div>');
     expect(resposta.text).not.toContain(
       'name="robots" content="noindex,follow"'
     );
+  });
+
+  test("mantém a consulta JSON de planos para o frontend", async () => {
+    const resposta = await request(app)
+      .get("/planos")
+      .set("Accept", "application/json");
+
+    expect(resposta.headers["content-type"])
+      .toMatch(/application\/json/);
+  });
+
+  test("entrega a página de planos para robôs com Accept genérico", async () => {
+    const resposta = await request(app)
+      .get("/planos")
+      .set("Accept", "*/*");
+
+    expect(resposta.status).toBe(200);
+    expect(resposta.headers["content-type"])
+      .toMatch(/text\/html/);
+    expect(resposta.text)
+      .toContain('<div id="root"></div>');
   });
 
   test("rota HTML desconhecida devolve documento React com status 404", async () => {

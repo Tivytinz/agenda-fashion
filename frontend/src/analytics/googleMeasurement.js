@@ -1,13 +1,57 @@
 import { apiRequest } from "../api/client";
 import { hasSession } from "../auth/session";
 import {
+  readBrowserStorage,
+  removeBrowserStorage,
+  writeBrowserStorage
+} from "../utils/browserStorage";
+import {
   getMarketingConsent,
+  getMarketingConsentRecord,
   MARKETING_CONSENT
 } from "./marketingConsent";
 
 const GOOGLE_SCRIPT_ID =
   "af-google-tag-script";
 const CLIENT_ID_TIMEOUT_MS = 1200;
+const GOOGLE_CONSENT_SYNC_KEY =
+  "af_google_consent_sync_pending_v1";
+const GOOGLE_CONSENT_SOURCE =
+  "NAVEGADOR";
+
+const SAFE_STATIC_PAGE_PATHS = new Set([
+  "/",
+  "/para-profissionais",
+  "/planos",
+  "/privacidade",
+  "/termos",
+  "/entrar",
+  "/cadastro",
+  "/esqueci-senha",
+  "/redefinir-senha",
+  "/confirmar",
+  "/sucesso",
+  "/minha-agenda",
+  "/favoritos",
+  "/criar-negocio",
+  "/conta",
+  "/checkout",
+  "/painel",
+  "/painel/agenda",
+  "/painel/servicos",
+  "/painel/servicos/novo",
+  "/painel/profissionais",
+  "/painel/horarios",
+  "/painel/negocio",
+  "/painel/assinatura",
+  "/profissional/agenda",
+  "/profissional/horarios",
+  "/admin/trafego-pago",
+  "/admin/trafego-pago/custos",
+  "/admin/trafego-pago/profissionais",
+  "/admin/saude",
+  "/admin/whatsapp"
+]);
 
 let configPromise = null;
 let initializedMeasurementId = null;
@@ -74,6 +118,106 @@ function safeConfig(result) {
   };
 }
 
+function pathnameFrom(value) {
+  try {
+    const fallbackOrigin =
+      window.location.origin ||
+      "https://app.agendafashion.com.br";
+    const parsed = new URL(
+      String(value || window.location.pathname),
+      fallbackOrigin
+    );
+
+    return parsed.pathname || "/";
+  } catch {
+    return "/pagina";
+  }
+}
+
+export function sanitizeGooglePagePath(value) {
+  const rawPath = pathnameFrom(value)
+    .replace(/\/{2,}/g, "/");
+  const pathname =
+    rawPath.length > 1
+      ? rawPath.replace(/\/$/, "")
+      : rawPath;
+
+  if (SAFE_STATIC_PAGE_PATHS.has(pathname)) {
+    return pathname;
+  }
+
+  if (/^\/negocio\/[^/]+$/i.test(pathname)) {
+    return "/negocio/:slug";
+  }
+
+  if (
+    /^\/servicos\/[^/]+\/em\/[^/]+$/i
+      .test(pathname)
+  ) {
+    return "/servicos/:categoria/em/:localidade";
+  }
+
+  if (
+    /^\/painel\/servicos\/[^/]+\/editar$/i
+      .test(pathname)
+  ) {
+    return "/painel/servicos/:id/editar";
+  }
+
+  return "/pagina";
+}
+
+function safeGooglePageTitle(pathname) {
+  if (pathname === "/para-profissionais") {
+    return "Agenda Fashion para profissionais";
+  }
+
+  if (pathname === "/planos") {
+    return "Planos | Agenda Fashion";
+  }
+
+  if (pathname === "/privacidade") {
+    return "Privacidade | Agenda Fashion";
+  }
+
+  if (pathname === "/termos") {
+    return "Termos de uso | Agenda Fashion";
+  }
+
+  if (pathname === "/negocio/:slug") {
+    return "Perfil profissional | Agenda Fashion";
+  }
+
+  if (
+    pathname ===
+      "/servicos/:categoria/em/:localidade"
+  ) {
+    return "Serviços de beleza | Agenda Fashion";
+  }
+
+  if (
+    pathname.startsWith("/painel") ||
+    pathname.startsWith("/profissional") ||
+    pathname.startsWith("/admin")
+  ) {
+    return "Área de trabalho | Agenda Fashion";
+  }
+
+  return "Agenda Fashion";
+}
+
+function safeGooglePageContext(value) {
+  const pathname = sanitizeGooglePagePath(value);
+
+  return {
+    page_location:
+      `${window.location.origin}${pathname}`,
+    page_title:
+      safeGooglePageTitle(pathname),
+    page_referrer: ""
+  };
+}
+
 export function getGoogleConfig() {
   if (!configPromise) {
     configPromise = apiRequest(
@@ -115,7 +259,8 @@ function consentPayload(granted) {
     analytics_storage: value,
     ad_storage: value,
     ad_user_data: value,
-    ad_personalization: value
+    // O AF mede conversões, mas não habilita publicidade personalizada.
+    ad_personalization: "denied"
   };
 }
 
@@ -210,6 +355,10 @@ export async function initializeGoogleMeasurement(
   const nextUserId = userId
     ? String(userId)
     : null;
+  const pageContext =
+    safeGooglePageContext(
+      window.location.pathname
+    );
   const needsMeasurementConfig =
     initializedMeasurementId !==
       config.measurementId ||
@@ -221,7 +370,15 @@ export async function initializeGoogleMeasurement(
       config.measurementId,
       {
         send_page_view: false,
-        user_id: nextUserId
+        user_id: nextUserId,
+        allow_google_signals: false,
+        allow_ad_personalization_signals: false,
+        page_location:
+          pageContext.page_location,
+        page_title:
+          pageContext.page_title,
+        page_referrer:
+          pageContext.page_referrer
       }
     );
     initializedMeasurementId =
@@ -235,7 +392,16 @@ export async function initializeGoogleMeasurement(
   ) {
     gtag(
       "config",
-      config.adsId
+      config.adsId,
+      {
+        allow_ad_personalization_signals: false,
+        page_location:
+          pageContext.page_location,
+        page_title:
+          pageContext.page_title,
+        page_referrer:
+          pageContext.page_referrer
+      }
     );
     initializedAdsId = config.adsId;
   }
@@ -247,16 +413,48 @@ export async function initializeGoogleMeasurement(
   return true;
 }
 
+export function googleCookieDomainCandidates(hostname) {
+  const normalized = String(hostname || "")
+    .trim()
+    .toLowerCase()
+    .replace(/^\.+/, "");
+  const parts = normalized
+    .split(".")
+    .filter(Boolean);
+
+  if (
+    parts.length < 2 ||
+    normalized === "localhost" ||
+    /^\d{1,3}(?:\.\d{1,3}){3}$/.test(normalized)
+  ) {
+    return [];
+  }
+
+  const countrySecondLevel =
+    parts.at(-1)?.length === 2 &&
+    parts.at(-2)?.length <= 3;
+  const registrableSize =
+    countrySecondLevel && parts.length >= 3
+      ? 3
+      : 2;
+  const registrableDomain =
+    parts.slice(-registrableSize).join(".");
+
+  return [...new Set([
+    normalized,
+    registrableDomain
+  ])];
+}
+
 function expireCookie(name) {
   document.cookie =
     `${name}=; Max-Age=0; Path=/; SameSite=Lax`;
 
-  const hostname =
-    window.location.hostname;
-
-  if (hostname.includes(".")) {
+  for (const domain of googleCookieDomainCandidates(
+    window.location.hostname
+  )) {
     document.cookie =
-      `${name}=; Max-Age=0; Path=/; Domain=.${hostname}; SameSite=Lax`;
+      `${name}=; Max-Age=0; Path=/; Domain=.${domain}; SameSite=Lax`;
   }
 }
 
@@ -334,6 +532,51 @@ export async function getGoogleClientId() {
   });
 }
 
+function markGoogleConsentSyncPending(status) {
+  const record = getMarketingConsentRecord();
+
+  writeBrowserStorage(
+    "local",
+    GOOGLE_CONSENT_SYNC_KEY,
+    JSON.stringify({
+      status,
+      updatedAt:
+        record?.updatedAt ||
+        new Date().toISOString(),
+      textVersion:
+        record?.textVersion || null
+    })
+  );
+}
+
+function clearGoogleConsentSyncPending() {
+  removeBrowserStorage(
+    "local",
+    GOOGLE_CONSENT_SYNC_KEY
+  );
+}
+
+export function hasPendingGoogleConsentSync() {
+  try {
+    const pending = JSON.parse(
+      readBrowserStorage(
+        "local",
+        GOOGLE_CONSENT_SYNC_KEY
+      ) || "null"
+    );
+
+    return (
+      pending?.status ===
+        MARKETING_CONSENT.GRANTED ||
+      pending?.status ===
+        MARKETING_CONSENT.DENIED
+    );
+  } catch {
+    clearGoogleConsentSyncPending();
+    return false;
+  }
+}
+
 export async function syncGoogleConsent() {
   const status =
     getMarketingConsent();
@@ -352,6 +595,11 @@ export async function syncGoogleConsent() {
     return false;
   }
 
+  markGoogleConsentSyncPending(status);
+
+  const consentRecord =
+    getMarketingConsentRecord();
+
   if (
     status ===
       MARKETING_CONSENT.DENIED
@@ -361,12 +609,17 @@ export async function syncGoogleConsent() {
       {
         method: "POST",
         body: {
-          consentimento: false
+          consentimento: false,
+          origem:
+            GOOGLE_CONSENT_SOURCE,
+          texto_versao:
+            consentRecord?.textVersion || null
         },
         timeoutMs: 5000
       }
     );
 
+    clearGoogleConsentSyncPending();
     return true;
   }
 
@@ -379,6 +632,10 @@ export async function syncGoogleConsent() {
       method: "POST",
       body: {
         consentimento: true,
+        origem:
+          GOOGLE_CONSENT_SOURCE,
+        texto_versao:
+          consentRecord?.textVersion || null,
         ...(clientId
           ? { client_id: clientId }
           : {})
@@ -387,22 +644,14 @@ export async function syncGoogleConsent() {
     }
   );
 
+  clearGoogleConsentSyncPending();
   return true;
 }
 
 function normalizePagePath(pathname) {
-  const raw = String(
-    pathname ||
-    `${window.location.pathname}${window.location.search}`
+  return sanitizeGooglePagePath(
+    pathname || window.location.pathname
   );
-
-  if (!raw) {
-    return "/";
-  }
-
-  return raw.startsWith("/")
-    ? raw
-    : `/${raw}`;
 }
 
 export async function trackGooglePageView(
@@ -428,9 +677,11 @@ export async function trackGooglePageView(
     "event",
     "page_view",
     {
-      page_title: document.title,
+      page_title:
+        safeGooglePageTitle(key),
       page_location:
-        `${window.location.origin}${key}`
+        `${window.location.origin}${key}`,
+      page_referrer: ""
     }
   );
   lastPageView = key;
@@ -456,6 +707,9 @@ async function trackAdsConversion(
     {
       send_to:
         `${config.adsId}/${label}`,
+      ...safeGooglePageContext(
+        window.location.pathname
+      ),
       ...params
     }
   );
@@ -463,8 +717,53 @@ async function trackAdsConversion(
   return true;
 }
 
+function safeTransactionId(value) {
+  const text = String(value || "").trim();
+
+  return /^[A-Za-z0-9._:-]{8,100}$/.test(text)
+    ? text
+    : null;
+}
+
+function safeSignUpMethod(value) {
+  return ["email", "google"].includes(value)
+    ? value
+    : "other";
+}
+
+function safeCurrency(value) {
+  const currency = String(value || "BRL")
+    .trim()
+    .toUpperCase();
+
+  return /^[A-Z]{3}$/.test(currency)
+    ? currency
+    : "BRL";
+}
+
+function safePlanId(value) {
+  const id = String(value || "plan")
+    .trim()
+    .toLowerCase();
+
+  return /^[a-z0-9_-]{1,40}$/.test(id)
+    ? id
+    : "plan";
+}
+
+function safePlanName(value) {
+  const name = String(
+    value || "Plano Agenda Fashion"
+  ).trim();
+
+  return /^[\p{L}\p{N} ._-]{1,60}$/u.test(name)
+    ? name
+    : "Plano Agenda Fashion";
+}
+
 export async function trackGoogleSignUp(
-  method = "email"
+  method = "email",
+  transactionId
 ) {
   const ready =
     await initializeGoogleMeasurement();
@@ -474,16 +773,29 @@ export async function trackGoogleSignUp(
   }
 
   const config = await getGoogleConfig();
+  const safeId =
+    safeTransactionId(transactionId);
 
   ensureGtag()(
     "event",
     "sign_up",
-    { method }
+    {
+      ...safeGooglePageContext(
+        window.location.pathname
+      ),
+      method: safeSignUpMethod(method),
+      ...(safeId
+        ? { transaction_id: safeId }
+        : {})
+    }
   );
 
   await trackAdsConversion(
     config,
-    config.signUpLabel
+    config.signUpLabel,
+    safeId
+      ? { transaction_id: safeId }
+      : {}
   );
 
   return true;
@@ -493,7 +805,8 @@ export async function trackGoogleBeginCheckout({
   currency = "BRL",
   value = 0,
   planId,
-  planName
+  planName,
+  transactionId
 } = {}) {
   const ready =
     await initializeGoogleMeasurement();
@@ -506,24 +819,31 @@ export async function trackGoogleBeginCheckout({
   const numericValue = Number(value || 0);
   const safeValue =
     Number.isFinite(numericValue)
-      ? numericValue
+      ? Math.max(0, numericValue)
       : 0;
+  const normalizedCurrency =
+    safeCurrency(currency);
+  const safeId =
+    safeTransactionId(transactionId);
 
   ensureGtag()(
     "event",
     "begin_checkout",
     {
-      currency,
+      ...safeGooglePageContext(
+        window.location.pathname
+      ),
+      currency: normalizedCurrency,
       value: safeValue,
+      ...(safeId
+        ? { transaction_id: safeId }
+        : {}),
       items: [
         {
           item_id:
-            String(planId || "plan"),
+            safePlanId(planId),
           item_name:
-            String(
-              planName ||
-              "Plano Agenda Fashion"
-            ),
+            safePlanName(planName),
           price: safeValue,
           quantity: 1
         }
@@ -536,7 +856,10 @@ export async function trackGoogleBeginCheckout({
     config.beginCheckoutLabel,
     {
       value: safeValue,
-      currency
+      currency: normalizedCurrency,
+      ...(safeId
+        ? { transaction_id: safeId }
+        : {})
     }
   );
 

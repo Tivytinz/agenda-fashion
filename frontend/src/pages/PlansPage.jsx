@@ -120,6 +120,15 @@ export function PlansPage() {
           })}
         </section>
       )}
+      <section className="panel plans-commercial-details" aria-label="Condições dos planos">
+        <h2>Condições claras antes de assinar</h2>
+        <p>
+          O plano Grátis não exige cartão. Planos pagos têm ciclo mensal, cobrança por PIX e não possuem taxa de adesão. Você pode cancelar a renovação na sua conta; o acesso pago continua até o fim do período já quitado.
+        </p>
+        <p>
+          Consulte os <Link to="/termos">Termos de uso</Link>, a <Link to="/privacidade">Política de Privacidade</Link> ou fale com <a href="mailto:contato@agendafashion.com.br">contato@agendafashion.com.br</a>.
+        </p>
+      </section>
     </main>
   );
 }

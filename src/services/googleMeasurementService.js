@@ -6,6 +6,12 @@ const registrador = require(
 );
 
 const DEFAULT_TIMEOUT_MS = 1800;
+const GOOGLE_CONSENT_SOURCE =
+  "NAVEGADOR";
+const GOOGLE_CONSENT_TEXT_VERSION =
+  "2026-08-25";
+const GOOGLE_LEGACY_CONSENT_TEXT_VERSION =
+  "legado-sem-versao";
 
 function normalizarTexto(valor) {
   return String(valor ?? "").trim();
@@ -115,6 +121,11 @@ function normalizarClientId(valor) {
 function sanitizarContextoCliente(google) {
   const consentimento =
     google?.consentimento === true;
+  const textoVersao =
+    normalizarTexto(google?.texto_versao) ===
+      GOOGLE_CONSENT_TEXT_VERSION
+      ? GOOGLE_CONSENT_TEXT_VERSION
+      : GOOGLE_LEGACY_CONSENT_TEXT_VERSION;
 
   return {
     consentimento,
@@ -122,7 +133,8 @@ function sanitizarContextoCliente(google) {
       ? normalizarClientId(
           google?.client_id
         )
-      : null
+      : null,
+    textoVersao
   };
 }
 
@@ -143,7 +155,11 @@ async function salvarConsentimento({
       consentido:
         contexto.consentimento,
       clientId:
-        contexto.clientId
+        contexto.clientId,
+      origem:
+        GOOGLE_CONSENT_SOURCE,
+      textoVersao:
+        contexto.textoVersao
     });
 }
 
@@ -294,7 +310,9 @@ function enviarAssinaturaAtivadaSeguro({
           );
 
       if (
+        perfil?.google_consentimento_status !== true ||
         !perfil?.google_consentido_em ||
+        perfil?.google_revogado_em ||
         !perfil?.google_client_id
       ) {
         return {

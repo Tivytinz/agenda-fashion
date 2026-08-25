@@ -34,6 +34,7 @@ describe(
         await service.registrarContaCriada({
           usuarioId: 7,
           marketing: {
+            consentimento_marketing: true,
             intencao: "cliente",
             sessao_id: "sessao_12345678",
             utm_source: "meta",
@@ -101,6 +102,7 @@ describe(
       () => {
         const resultado =
           service.normalizarMarketing({
+            consentimento_marketing: true,
             intencao: "profissional",
             utm_source: "meta",
             utm_medium: "paid_social",
@@ -128,11 +130,13 @@ describe(
       "trata GBRAID e WBRAID como sinais de clique Google",
       () => {
         const primeiro = service.normalizarMarketing({
+          consentimento_marketing: true,
           intencao: "profissional",
           gbraid: "gbraid-profissional-123",
           utm_campaign: "campanha_nao_oficial",
         });
         const ultimo = service.normalizarMarketing({
+          consentimento_marketing: true,
           intencao: "profissional",
           last_wbraid: "wbraid-profissional-456",
         });
@@ -158,6 +162,7 @@ describe(
       () => {
         const resultado =
           service.normalizarMarketing({
+            consentimento_marketing: true,
             intencao: "cliente",
             msclkid: "microsoft-click",
             ttclid: "tiktok-click",
@@ -187,6 +192,7 @@ describe(
       () => {
         const resultado =
           service.normalizarMarketing({
+            consentimento_marketing: true,
             intencao: "profissional",
             utm_source: "qualquer_origem",
             utm_medium: "qualquer_midia",
@@ -209,6 +215,7 @@ describe(
       () => {
         const resultado =
           service.normalizarMarketing({
+            consentimento_marketing: true,
             intencao: "profissional",
             utm_source: "google",
             utm_medium: "cpc",
@@ -255,6 +262,30 @@ describe(
             lastLandingPage: null,
           })
         );
+      }
+    );
+
+    test(
+      "descarta toda atribuição opcional sem consentimento comprovado",
+      () => {
+        const resultado = service.normalizarMarketing({
+          consentimento_marketing: false,
+          intencao: "profissional",
+          sessao_id: "sessao_12345678",
+          utm_source: "google",
+          utm_medium: "cpc",
+          gclid: "gclid-sem-consentimento",
+          landing_page: "/cadastro"
+        });
+
+        expect(resultado).toMatchObject({
+          intencao: "profissional",
+          sessaoId: "sessao_12345678",
+          utmSource: null,
+          utmMedium: null,
+          gclid: null,
+          landingPage: null
+        });
       }
     );
 

@@ -9,6 +9,9 @@ const LEGACY_STORAGE_KEYS = [
   "af_marketing_consent_v1"
 ];
 
+export const MARKETING_CONSENT_TEXT_VERSION =
+  "2026-08-25";
+
 export const MARKETING_CONSENT_EVENT =
   "af:marketing-consent";
 
@@ -19,6 +22,11 @@ export const MARKETING_CONSENT = {
 };
 
 export function getMarketingConsent() {
+  return getMarketingConsentRecord()?.status ||
+    MARKETING_CONSENT.UNKNOWN;
+}
+
+export function getMarketingConsentRecord() {
   try {
     const stored = JSON.parse(
       readBrowserStorage("local", STORAGE_KEY) ||
@@ -34,13 +42,23 @@ export function getMarketingConsent() {
           MARKETING_CONSENT.DENIED
       )
     ) {
-      return stored.status;
+      return {
+        status: stored.status,
+        updatedAt:
+          typeof stored.updatedAt === "string"
+            ? stored.updatedAt
+            : null,
+        textVersion:
+          typeof stored.textVersion === "string"
+            ? stored.textVersion
+            : null
+      };
     }
   } catch {
     // Preferimos perguntar novamente a presumir consentimento.
   }
 
-  return MARKETING_CONSENT.UNKNOWN;
+  return null;
 }
 
 export function setMarketingConsent(status) {
@@ -59,7 +77,9 @@ export function setMarketingConsent(status) {
     JSON.stringify({
       version: 2,
       status,
-      updatedAt: new Date().toISOString()
+      updatedAt: new Date().toISOString(),
+      textVersion:
+        MARKETING_CONSENT_TEXT_VERSION
     })
   );
 

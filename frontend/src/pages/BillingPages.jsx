@@ -341,6 +341,8 @@ export function BillingCheckoutPage() {
     try {
       const metaContext =
         checkoutAttemptRef.current.meta;
+      const checkoutTransactionId =
+        checkoutAttemptRef.current.key;
       const result = await apiRequest("/checkout", {
         method: "POST",
         headers: { "Idempotency-Key": checkoutAttemptRef.current.key },
@@ -374,7 +376,9 @@ export function BillingCheckoutPage() {
         currency: "BRL",
         value: Number(plan.valor || 0),
         planId: plan.slug || plan.id,
-        planName: plan.nome
+        planName: plan.nome,
+        transactionId:
+          checkoutTransactionId
       });
 
       if (paymentConfirmed(result)) {
@@ -428,6 +432,15 @@ export function BillingCheckoutPage() {
           </fieldset>
           <label>CPF ou CNPJ<input inputMode="numeric" onChange={(e) => setDocument(e.target.value)} required value={document} /></label>
           {error && <p className="form-error" role="alert">{error}</p>}
+          <div className="checkout-commercial-notice">
+            <strong>Assinatura mensal por PIX</strong>
+            <p>
+              Uma nova cobrança PIX pode ser gerada a cada ciclo enquanto a renovação estiver ativa. Você pode cancelar antes da próxima renovação; o acesso continua até o fim do período pago.
+            </p>
+            <small>
+              Ao gerar o PIX, você concorda com os <Link to="/termos">Termos de uso</Link> e a <Link to="/privacidade">Política de Privacidade</Link>.
+            </small>
+          </div>
           {pix && (
             <section className="pix-box">
               <h2>PIX gerado</h2>
@@ -450,7 +463,7 @@ export function BillingCheckoutPage() {
           <p className="eyebrow">Resumo</p><h2>{plan.nome}</h2>
           <ul>{planFeatures(plan).map((feature) => <li key={feature}>✓ {feature}</li>)}</ul>
           <div className="checkout-total"><span>Total mensal</span><strong>{formatCurrency(plan.valor)}</strong></div>
-          <small>O plano só é ativado depois que o pagamento for confirmado.</small>
+          <small>Sem taxa de adesão. O plano só é ativado depois que o pagamento for confirmado.</small>
         </aside>
       </div>
     </main>

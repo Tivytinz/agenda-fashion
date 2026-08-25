@@ -41,6 +41,34 @@
   font-weight: 800;
 }
 
+.privacy-sync-warning {
+  position: fixed;
+  right: 16px;
+  bottom: 58px;
+  z-index: 36;
+  display: flex;
+  max-width: min(520px, calc(100% - 32px));
+  align-items: center;
+  gap: 12px;
+  border: 1px solid #efc2cc;
+  border-radius: 12px;
+  padding: 11px 13px;
+  color: #6f1d36;
+  background: #fff8fa;
+  box-shadow: var(--shadow);
+  font-size: .82rem;
+  line-height: 1.4;
+}
+
+.privacy-sync-warning .text-button {
+  flex: 0 0 auto;
+  color: var(--pink-700);
+}
+
+.privacy-sync-message {
+  margin-top: 14px;
+}
+
 .marketing-consent-actions {
   display: flex;
   flex: 0 0 auto;
@@ -145,6 +173,15 @@
     display: block;
     width: fit-content;
     margin: 8px 12px calc(12px + env(safe-area-inset-bottom)) auto;
+  }
+
+  .privacy-sync-warning {
+    position: static;
+    width: auto;
+    max-width: none;
+    margin: 8px 12px;
+    align-items: flex-start;
+    flex-direction: column;
   }
 
   .app-shell:has(.workspace-mobile-nav)

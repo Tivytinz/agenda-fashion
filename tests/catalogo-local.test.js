@@ -208,6 +208,15 @@ describe("catálogo local SEO", () => {
     expect(xml).toContain(
       "https://app.agendafashion.com.br/servicos/cabelo/em/goiania-go"
     );
+    expect(xml).toContain(
+      "https://app.agendafashion.com.br/planos"
+    );
+    expect(xml).toContain(
+      "https://app.agendafashion.com.br/privacidade"
+    );
+    expect(xml).toContain(
+      "https://app.agendafashion.com.br/termos"
+    );
     expect(xml).not.toContain(
       "/servicos/outro/"
     );
