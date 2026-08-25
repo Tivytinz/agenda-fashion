@@ -227,7 +227,7 @@ describe(
     );
 
     test(
-      "cancela a preferência e a fila quando recebe SAIR",
+      "cancela a preferência e a fila de marketing",
       async () => {
         const executor = {
           query: jest.fn()
@@ -282,6 +282,100 @@ describe(
             .calls[2][0]
         ).toContain(
           "Marketing cancelado pelo destinatário"
+        );
+      }
+    );
+
+    test(
+      "cancela todas as preferências e mensagens no opt-out global",
+      async () => {
+        const executor = {
+          query: jest.fn()
+            .mockResolvedValueOnce({
+              rows: [
+                {
+                  id: 7,
+                  whatsapp:
+                    "62999998888",
+                  cliente_ativo: true,
+                  profissional_ativo:
+                    true,
+                  marketing_ativo:
+                    true,
+                },
+              ],
+              rowCount: 1,
+            })
+            .mockResolvedValueOnce({
+              rows: [],
+              rowCount: 3,
+            })
+            .mockResolvedValueOnce({
+              rows: [
+                { id: 50 },
+                { id: 51 },
+              ],
+              rowCount: 2,
+            }),
+        };
+
+        db.executarTransacao
+          .mockImplementation(
+            async (callback) =>
+              callback(executor)
+          );
+
+        const resultado =
+          await whatsappMensagemRepository
+            .cancelarTodasComunicacoesPorWhatsapp(
+              "5562999998888"
+            );
+
+        expect(resultado).toEqual({
+          usuarios: 1,
+          mensagensCanceladas: 2,
+        });
+
+        const consultaUsuario =
+          executor.query.mock
+            .calls[0][0];
+
+        expect(consultaUsuario).toContain(
+          "whatsapp_notificacoes_cancelado_em"
+        );
+        expect(consultaUsuario).toContain(
+          "whatsapp_operacional_cancelado_em"
+        );
+        expect(consultaUsuario).toContain(
+          "whatsapp_marketing_cancelado_em"
+        );
+
+        const consultaAuditoria =
+          executor.query.mock
+            .calls[1][0];
+
+        expect(consultaAuditoria).toContain(
+          "OPERACIONAL_CLIENTE"
+        );
+        expect(consultaAuditoria).toContain(
+          "OPERACIONAL_PROFISSIONAL"
+        );
+        expect(consultaAuditoria).toContain(
+          "MARKETING_PROFISSIONAL"
+        );
+        expect(consultaAuditoria).toContain(
+          "optout-global-whatsapp-v1"
+        );
+
+        const consultaFila =
+          executor.query.mock
+            .calls[2][0];
+
+        expect(consultaFila).toContain(
+          "Mensagens canceladas pelo destinatário"
+        );
+        expect(consultaFila).not.toContain(
+          "tipo = ANY"
         );
       }
     );

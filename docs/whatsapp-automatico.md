@@ -30,8 +30,8 @@ preferência de mensagens escolhida no cadastro e disponível em **Minha conta >
 Mensagens no WhatsApp**. O agendamento continua funcionando quando ela não
 autoriza.
 
-Contas existentes são migradas como autorizadas e permanecem assim até a
-cliente desativar a preferência. A fila consulta novamente essa preferência
+Contas antigas sem evento auditável de consentimento ficam desativadas até a
+cliente autorizar explicitamente. A fila consulta novamente essa preferência
 antes de reservar e antes de enviar cada mensagem pendente.
 
 Avisos para profissionais possuem consentimento operacional separado das
@@ -98,8 +98,10 @@ Para habilitar a preferência de mensagens das clientes, execute:
 node scripts/executar-migration.js database/migrations/046_notificacoes_whatsapp_clientes.sql
 ```
 
-A migration adiciona o consentimento à conta e autoriza os cadastros já
-existentes. Novos cadastros respeitam a escolha explícita feita no formulário.
+A migration adicionou a preferência à conta e, por compatibilidade histórica,
+autorizou cadastros existentes. Essa autorização presumida é posteriormente
+revogada pela migration 054 quando não existe evidência auditável de opt-in.
+Novos cadastros respeitam a escolha explícita feita no formulário.
 
 Para manter as métricas administrativas eficientes conforme a fila cresce,
 execute também:
@@ -129,6 +131,16 @@ node scripts/executar-migration.js database/migrations/053_respostas_conversa_wh
 A migration registra somente o `wamid`, o telefone e a intenção reconhecida.
 Mensagens livres que não correspondem aos quebra-gelos ou ao descadastro não
 são armazenadas nessa tabela.
+
+Para exigir consentimento comprovável e diferenciar os pedidos de descadastro,
+aplique também:
+
+```bash
+node scripts/executar-migration.js database/migrations/054_consentimento_comprovavel_optout_global.sql
+```
+
+A migration desativa autorizações legadas sem evento explícito, cancela as
+mensagens pendentes afetadas e permite registrar separadamente opt-out global.
 
 ## Templates da Meta
 
@@ -336,8 +348,9 @@ mantém o controle permanente para interromper os envios. Contas antigas sem
 consentimento não são ativadas silenciosamente: recebem o convite no painel
 para que a autorização fique comprovável. Desativar a opção cancela a
 elegibilidade imediatamente; mensagens ainda pendentes são invalidadas antes
-do envio. Respostas `SAIR`, `PARAR` e `STOP` também cancelam o marketing e são
-registradas pelo webhook.
+do envio. A resposta `PARAR MARKETING` cancela somente essa categoria. Pedidos
+genéricos `SAIR`, `PARAR` e `STOP` interrompem todas as preferências e cancelam
+as mensagens pendentes para o número; todos são registrados pelo webhook.
 
 Depois da aprovação do novo modelo, altere no Railway:
 

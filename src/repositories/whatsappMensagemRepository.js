@@ -43,6 +43,24 @@ function validarExecutor(
   }
 }
 
+function normalizarTelefoneNacional(
+  telefone
+) {
+  const normalizado =
+    String(telefone || "")
+      .replace(/\D/g, "")
+      .replace(
+        /^55(?=\d{10,11}$)/,
+        ""
+      );
+
+  return /^[0-9]{10,11}$/.test(
+    normalizado
+  )
+    ? normalizado
+    : null;
+}
+
 async function enfileirarNovoAgendamento(
   executor,
   agendamentoId,
@@ -1051,15 +1069,11 @@ async function cancelarMarketingPorWhatsapp(
   telefone
 ) {
   const telefoneNacional =
-    String(telefone || "")
-      .replace(/\D/g, "")
-      .replace(/^55(?=\d{10,11}$)/, "");
+    normalizarTelefoneNacional(
+      telefone
+    );
 
-  if (
-    !/^[0-9]{10,11}$/.test(
-      telefoneNacional
-    )
-  ) {
+  if (!telefoneNacional) {
     return {
       usuarios: 0,
       mensagensCanceladas: 0,
@@ -1146,6 +1160,177 @@ async function cancelarMarketingPorWhatsapp(
               `55${telefoneNacional}`,
             ],
           ]
+        );
+
+      return {
+        usuarios:
+          usuarios.rowCount || 0,
+        mensagensCanceladas:
+          mensagens.rowCount || 0,
+      };
+    }
+  );
+}
+
+async function cancelarTodasComunicacoesPorWhatsapp(
+  telefone
+) {
+  const telefoneNacional =
+    normalizarTelefoneNacional(
+      telefone
+    );
+
+  if (!telefoneNacional) {
+    return {
+      usuarios: 0,
+      mensagensCanceladas: 0,
+    };
+  }
+
+  return db.executarTransacao(
+    async (executor) => {
+      const usuarios =
+        await executor.query(
+          `
+            WITH anteriores AS (
+              SELECT
+                id,
+                whatsapp,
+                (
+                  whatsapp_notificacoes_consentido_em
+                    IS NOT NULL
+                  AND whatsapp_notificacoes_cancelado_em
+                    IS NULL
+                ) AS cliente_ativo,
+                (
+                  whatsapp_operacional_consentido_em
+                    IS NOT NULL
+                  AND whatsapp_operacional_cancelado_em
+                    IS NULL
+                ) AS profissional_ativo,
+                (
+                  whatsapp_marketing_consentido_em
+                    IS NOT NULL
+                  AND whatsapp_marketing_cancelado_em
+                    IS NULL
+                ) AS marketing_ativo
+              FROM usuarios
+              WHERE ativo = TRUE
+                AND REGEXP_REPLACE(
+                  whatsapp,
+                  '[^0-9]',
+                  '',
+                  'g'
+                ) = $1
+              FOR UPDATE
+            ),
+            atualizados AS (
+              UPDATE usuarios usuario
+              SET
+                whatsapp_notificacoes_cancelado_em =
+                  CASE
+                    WHEN anterior.cliente_ativo
+                      THEN NOW()
+                    ELSE usuario.whatsapp_notificacoes_cancelado_em
+                  END,
+                whatsapp_operacional_cancelado_em =
+                  CASE
+                    WHEN anterior.profissional_ativo
+                      THEN NOW()
+                    ELSE usuario.whatsapp_operacional_cancelado_em
+                  END,
+                whatsapp_marketing_cancelado_em =
+                  CASE
+                    WHEN anterior.marketing_ativo
+                      THEN NOW()
+                    ELSE usuario.whatsapp_marketing_cancelado_em
+                  END
+              FROM anteriores anterior
+              WHERE usuario.id = anterior.id
+              RETURNING
+                usuario.id,
+                usuario.whatsapp,
+                anterior.cliente_ativo,
+                anterior.profissional_ativo,
+                anterior.marketing_ativo
+            )
+            SELECT *
+            FROM atualizados
+            WHERE cliente_ativo
+              OR profissional_ativo
+              OR marketing_ativo
+          `,
+          [telefoneNacional]
+        );
+
+      if (usuarios.rowCount > 0) {
+        await executor.query(
+          `
+            INSERT INTO whatsapp_consentimentos (
+              usuario_id,
+              telefone,
+              escopo,
+              acao,
+              origem,
+              texto_versao
+            )
+            SELECT
+              usuario_cancelado.id,
+              usuario_cancelado.whatsapp,
+              preferencia.escopo,
+              'CANCELADO',
+              'WHATSAPP',
+              'optout-global-whatsapp-v1'
+            FROM JSONB_TO_RECORDSET($1::JSONB)
+              AS usuario_cancelado(
+                id BIGINT,
+                whatsapp VARCHAR(13),
+                cliente_ativo BOOLEAN,
+                profissional_ativo BOOLEAN,
+                marketing_ativo BOOLEAN
+              )
+            CROSS JOIN LATERAL (
+              VALUES
+                (
+                  usuario_cancelado.cliente_ativo,
+                  'OPERACIONAL_CLIENTE'
+                ),
+                (
+                  usuario_cancelado.profissional_ativo,
+                  'OPERACIONAL_PROFISSIONAL'
+                ),
+                (
+                  usuario_cancelado.marketing_ativo,
+                  'MARKETING_PROFISSIONAL'
+                )
+            ) AS preferencia(ativa, escopo)
+            WHERE preferencia.ativa
+          `,
+          [JSON.stringify(usuarios.rows)]
+        );
+      }
+
+      const mensagens =
+        await executor.query(
+          `
+            UPDATE whatsapp_mensagens
+            SET
+              status = 'CANCELED',
+              bloqueado_em = NULL,
+              ultimo_erro =
+                'Mensagens canceladas pelo destinatário no WhatsApp.'
+            WHERE destinatario = ANY($1::VARCHAR[])
+              AND status IN (
+                'PENDING',
+                'FAILED',
+                'PROCESSING'
+              )
+            RETURNING id
+          `,
+          [[
+            telefoneNacional,
+            `55${telefoneNacional}`,
+          ]]
         );
 
       return {
@@ -1532,6 +1717,7 @@ module.exports = {
   mensagemContinuaValida,
   cancelarMensagensExpiradas,
   cancelarMarketingPorWhatsapp,
+  cancelarTodasComunicacoesPorWhatsapp,
   registrarInteracaoRecebida,
   marcarInteracaoRespondida,
   marcarInteracaoSemResposta,

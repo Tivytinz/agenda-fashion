@@ -58,8 +58,8 @@ AF nao demonstra valor para os negocios.
 - O WhatsApp complementa o fluxo com avisos; ele nao deve ser obrigatorio para
   concluir manualmente cada agendamento.
 - Clientes com conta controlam os avisos de agendamento no cadastro e em Minha
-  Conta; cadastros anteriores a esse controle permanecem autorizados ate a
-  cliente desativar a preferencia.
+  Conta; cadastros anteriores sem evidencia auditavel de consentimento ficam
+  desativados ate a cliente autorizar explicitamente.
 - O plano gratuito deve entregar valor real antes de qualquer pressao por
   upgrade.
 - O perfil publico de cada negocio e uma ferramenta de aquisicao e deve ter
@@ -144,7 +144,8 @@ etapas diferentes. Os detalhes ficam em `docs/planos.md`.
 - Ativacao de negocios: orientacoes de WhatsApp exigem consentimento explicito,
   ficam limitadas a tres mensagens no total, respeitam intervalo minimo de tres
   dias e param imediatamente quando a preferencia for desativada ou a pessoa
-  responder SAIR/PARAR.
+  responder PARAR MARKETING. Pedidos genericos SAIR, PARAR ou STOP interrompem
+  todas as categorias e cancelam as mensagens ainda pendentes para o numero.
 - Marketing: eventos de produto, atribuicao, GA4, Google Ads, Meta CAPI e
   leitura de custos de Google Ads e Meta Ads. A classificacao oficial de
   campanhas e resolvida no backend; cliques pagos sem `utm_campaign` permanecem

@@ -17,6 +17,20 @@ const STATUS_SUPORTADOS =
     "failed",
   ]);
 
+const COMANDOS_OPTOUT_GLOBAL =
+  new Set([
+    "sair",
+    "parar",
+    "stop",
+  ]);
+
+const COMANDOS_OPTOUT_MARKETING =
+  new Set([
+    "parar marketing",
+    "cancelar marketing",
+    "nao quero receber marketing",
+  ]);
+
 const RESPOSTAS_QUEBRA_GELO =
   new Map([
     [
@@ -172,19 +186,66 @@ function normalizarComando(
     .trim();
 }
 
+function obterEscopoDescadastro(
+  texto
+) {
+  const comando =
+    normalizarComando(
+      texto
+    );
+
+  if (
+    COMANDOS_OPTOUT_GLOBAL
+      .has(comando)
+  ) {
+    return "GLOBAL";
+  }
+
+  if (
+    COMANDOS_OPTOUT_MARKETING
+      .has(comando)
+  ) {
+    return "MARKETING";
+  }
+
+  return null;
+}
+
 function ehPedidoDescadastro(
   texto
 ) {
-  return new Set([
-    "sair",
-    "parar",
-    "stop",
-    "parar marketing",
-    "cancelar marketing",
-    "nao quero receber marketing",
-  ]).has(
-    normalizarComando(texto)
+  return Boolean(
+    obterEscopoDescadastro(
+      texto
+    )
   );
+}
+
+function obterIntencaoDescadastro(
+  escopo
+) {
+  return escopo === "GLOBAL"
+    ? "GLOBAL_OPTOUT"
+    : "MARKETING_OPTOUT";
+}
+
+function obterConfirmacaoDescadastro(
+  escopo,
+  resultado
+) {
+  const houveAlteracao =
+    resultado.usuarios > 0 ||
+    resultado.mensagensCanceladas > 0;
+
+  if (escopo === "GLOBAL") {
+    return houveAlteracao
+      ? "Todas as mensagens automáticas do Agenda Fashion foram desativadas para este número. Para voltar a receber, autorize novamente em sua conta ou em um novo agendamento."
+      : "Não existem mensagens automáticas ativas para este número no Agenda Fashion.";
+  }
+
+  return resultado.usuarios > 0
+    ? "As orientações de marketing do Agenda Fashion foram desativadas. Avisos operacionais de agendamentos seguem a preferência da sua conta."
+    : "Não existem orientações de marketing ativas para este número no Agenda Fashion.";
 }
 
 function respostasAutomaticasAtivas() {
@@ -384,9 +445,14 @@ async function processarWebhookWhatsapp(
       continue;
     }
 
-    const pedidoDescadastro =
-      ehPedidoDescadastro(
+    const escopoDescadastro =
+      obterEscopoDescadastro(
         mensagem.texto
+      );
+
+    const pedidoDescadastro =
+      Boolean(
+        escopoDescadastro
       );
 
     const respostaQuebraGelo =
@@ -404,7 +470,9 @@ async function processarWebhookWhatsapp(
 
     const intencao =
       pedidoDescadastro
-        ? "MARKETING_OPTOUT"
+        ? obterIntencaoDescadastro(
+            escopoDescadastro
+          )
         : respostaQuebraGelo
             .intencao;
 
@@ -440,10 +508,16 @@ async function processarWebhookWhatsapp(
     }
 
     const resultado =
-      await whatsappMensagemRepository
-        .cancelarMarketingPorWhatsapp(
-          mensagem.from
-        );
+      escopoDescadastro ===
+      "GLOBAL"
+        ? await whatsappMensagemRepository
+            .cancelarTodasComunicacoesPorWhatsapp(
+              mensagem.from
+            )
+        : await whatsappMensagemRepository
+            .cancelarMarketingPorWhatsapp(
+              mensagem.from
+            );
 
     if (
       resultado.usuarios > 0
@@ -453,9 +527,10 @@ async function processarWebhookWhatsapp(
     }
 
     const confirmacao =
-      resultado.usuarios > 0
-        ? "As orientações de marketing do Agenda Fashion foram desativadas. Avisos operacionais de agendamentos seguem a preferência da sua conta."
-        : "Não existem orientações de marketing ativas para este número no Agenda Fashion.";
+      obterConfirmacaoDescadastro(
+        escopoDescadastro,
+        resultado
+      );
 
     enviarRespostaRegistrada(
       interacao,
@@ -477,6 +552,7 @@ module.exports = {
   extrairStatus,
   extrairMensagensRecebidas,
   ehPedidoDescadastro,
+  obterEscopoDescadastro,
   obterRespostaQuebraGelo,
   respostasAutomaticasAtivas,
   processarStatusWhatsapp,

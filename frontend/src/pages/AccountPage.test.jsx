@@ -202,6 +202,7 @@ describe("minha conta", () => {
     expect(await screen.findByRole("heading", { name: "Preferências do WhatsApp" })).not.toBeNull();
     expect(screen.getByText("Agendamentos")).not.toBeNull();
     expect(screen.getByText("Comunicação do negócio")).not.toBeNull();
+    expect(screen.getByText(/responda PARAR MARKETING/i)).not.toBeNull();
     expect(screen.queryByText(/cadastrar seu primeiro serviço/i)).toBeNull();
     expect(screen.queryByRole("button", { name: "Salvar" })).toBeNull();
 

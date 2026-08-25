@@ -370,7 +370,7 @@ export function DashboardPage() {
             <p className="muted">
               Autorize até três orientações, com intervalo mínimo de três dias,
               para cadastrar seu primeiro serviço e divulgar seu perfil.
-              Você pode desativar em Minha conta ou responder SAIR.
+              Você pode desativar em Minha conta ou responder PARAR MARKETING.
             </p>
           </div>
           <div className="whatsapp-reminders-actions">

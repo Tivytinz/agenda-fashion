@@ -172,7 +172,7 @@ export function PrivacyPage() {
           O Agenda Fashion só envia mensagens automáticas pelo WhatsApp depois de uma autorização clara. Avisos operacionais de agendamentos e orientações de marketing são preferências separadas.
         </p>
         <p>
-          Clientes podem concluir o agendamento sem autorizar mensagens. Profissionais podem alterar as preferências em Minha conta, e orientações de marketing também podem ser interrompidas respondendo SAIR ou PARAR no WhatsApp.
+          Clientes podem concluir o agendamento sem autorizar mensagens. Profissionais podem alterar as preferências em Minha conta. No WhatsApp, PARAR MARKETING interrompe somente essa categoria; SAIR, PARAR ou STOP interrompem todas as mensagens automáticas para o número.
         </p>
         <p>
           Registramos a data, o telefone, a finalidade e a origem da autorização ou do cancelamento para respeitar e comprovar a escolha realizada.

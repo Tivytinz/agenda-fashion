@@ -329,6 +329,7 @@ describe("dashboard", () => {
     expect(screen.getByRole("heading", {
       name: "Não deixe seu negócio parado"
     })).not.toBeNull();
+    expect(screen.getByText(/responder PARAR MARKETING/i)).not.toBeNull();
 
     fireEvent.click(button);
 

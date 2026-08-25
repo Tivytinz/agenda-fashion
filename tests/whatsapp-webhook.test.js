@@ -7,6 +7,8 @@ jest.mock(
       jest.fn(),
     cancelarMarketingPorWhatsapp:
       jest.fn(),
+    cancelarTodasComunicacoesPorWhatsapp:
+      jest.fn(),
     registrarInteracaoRecebida:
       jest.fn(),
     marcarInteracaoRespondida:
@@ -34,6 +36,7 @@ const whatsappMensagemRepository = require(
 );
 
 const {
+  obterEscopoDescadastro,
   processarStatusWhatsapp,
   processarWebhookWhatsapp,
 } = require(
@@ -313,10 +316,10 @@ describe(
     );
 
     test(
-      "cancela marketing quando o destinatário responde SAIR",
+      "cancela todas as mensagens quando o destinatário responde SAIR",
       async () => {
         whatsappMensagemRepository
-          .cancelarMarketingPorWhatsapp
+          .cancelarTodasComunicacoesPorWhatsapp
           .mockResolvedValue({
             usuarios: 1,
             mensagensCanceladas: 2,
@@ -357,9 +360,129 @@ describe(
 
         expect(
           whatsappMensagemRepository
+            .cancelarTodasComunicacoesPorWhatsapp
+        ).toHaveBeenCalledWith(
+          "5562999998888"
+        );
+
+        expect(
+          whatsappMensagemRepository
+            .cancelarMarketingPorWhatsapp
+        ).not.toHaveBeenCalled();
+
+        expect(
+          whatsappMensagemRepository
+            .registrarInteracaoRecebida
+        ).toHaveBeenCalledWith(
+          expect.objectContaining({
+            intencao:
+              "GLOBAL_OPTOUT",
+          })
+        );
+
+        expect(
+          whatsappProvider.enviarMensagem
+        ).toHaveBeenCalledWith(
+          "5562999998888",
+          expect.stringContaining(
+            "Todas as mensagens"
+          )
+        );
+
+        expect(resultado).toMatchObject({
+          mensagensRecebidas: 1,
+          descadastros: 1,
+          respostasQuebraGelo: 0,
+        });
+      }
+    );
+
+    test.each([
+      ["SAIR", "GLOBAL"],
+      ["parar", "GLOBAL"],
+      ["STOP", "GLOBAL"],
+      [
+        "PARAR MARKETING",
+        "MARKETING",
+      ],
+      [
+        "Não quero receber marketing",
+        "MARKETING",
+      ],
+    ])(
+      "classifica o descadastro %s como %s",
+      (texto, escopo) => {
+        expect(
+          obterEscopoDescadastro(
+            texto
+          )
+        ).toBe(escopo);
+      }
+    );
+
+    test(
+      "cancela somente marketing quando o pedido especifica a categoria",
+      async () => {
+        whatsappMensagemRepository
+          .cancelarMarketingPorWhatsapp
+          .mockResolvedValue({
+            usuarios: 1,
+            mensagensCanceladas: 1,
+          });
+
+        await processarWebhookWhatsapp({
+          entry: [
+            {
+              changes: [
+                {
+                  field: "messages",
+                  value: {
+                    metadata: {
+                      phone_number_id:
+                        "phone-number-af",
+                    },
+                    messages: [
+                      {
+                        id:
+                          "wamid.parar-marketing",
+                        from:
+                          "5562999998888",
+                        timestamp:
+                          "1785337200",
+                        type: "text",
+                        text: {
+                          body:
+                            "PARAR MARKETING",
+                        },
+                      },
+                    ],
+                  },
+                },
+              ],
+            },
+          ],
+        });
+
+        expect(
+          whatsappMensagemRepository
             .cancelarMarketingPorWhatsapp
         ).toHaveBeenCalledWith(
           "5562999998888"
+        );
+
+        expect(
+          whatsappMensagemRepository
+            .cancelarTodasComunicacoesPorWhatsapp
+        ).not.toHaveBeenCalled();
+
+        expect(
+          whatsappMensagemRepository
+            .registrarInteracaoRecebida
+        ).toHaveBeenCalledWith(
+          expect.objectContaining({
+            intencao:
+              "MARKETING_OPTOUT",
+          })
         );
 
         expect(
@@ -370,12 +493,6 @@ describe(
             "marketing"
           )
         );
-
-        expect(resultado).toMatchObject({
-          mensagensRecebidas: 1,
-          descadastros: 1,
-          respostasQuebraGelo: 0,
-        });
       }
     );
 

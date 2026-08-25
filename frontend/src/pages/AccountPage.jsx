@@ -423,7 +423,7 @@ export function AccountPage() {
                 <span>
                   Receber orientações do AF pelo WhatsApp
                   <small className="muted">
-                    Até três mensagens de marketing, com intervalo mínimo de três dias. Desmarque ou responda SAIR para interromper imediatamente.
+                    Até três mensagens de marketing, com intervalo mínimo de três dias. Desmarque ou responda PARAR MARKETING para interromper apenas essa categoria.
                   </small>
                 </span>
               </label>
