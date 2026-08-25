@@ -34,6 +34,12 @@ describe(
         expect(migration).toContain(
           "'revogacao-sem-evidencia-v1'"
         );
+        expect(migration).toContain(
+          "usuario.whatsapp IS NOT NULL"
+        );
+        expect(migration).toContain(
+          "usuario.whatsapp ~ '^[0-9]{10,13}$'"
+        );
       }
     );
 

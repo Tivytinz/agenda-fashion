@@ -73,7 +73,9 @@ SELECT
   'CANCELADO',
   'MIGRACAO',
   'revogacao-sem-evidencia-v1'
-FROM usuarios_atualizados usuario;
+FROM usuarios_atualizados usuario
+WHERE usuario.whatsapp IS NOT NULL
+  AND usuario.whatsapp ~ '^[0-9]{10,13}$';
 
 UPDATE whatsapp_mensagens mensagem
 SET
