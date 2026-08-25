@@ -30,13 +30,13 @@ test("landing profissional comunica valor e preserva a atribuição", async ({ p
   await expect(page.getByText("Plano grátis para começar", { exact: true }))
     .toBeVisible();
   await expect(page.getByText(
-    "Aviso de novo agendamento pelo WhatsApp"
+    "Aviso pelo WhatsApp com sua autorização"
   )).toBeVisible();
   await expect(page.getByText(
     "Olá! Um novo agendamento foi realizado. ✨"
   )).toBeVisible();
   await expect(page.getByRole("heading", {
-    name: "Veja o Design + Henna da Beauty Vanessa sendo agendado até o aviso no WhatsApp."
+    name: "Veja o Design + Henna da Beauty Vanessa sendo agendado até o aviso autorizado no WhatsApp."
   })).toBeVisible();
   await expect(page.getByText("Você divulga seu perfil", { exact: true }))
     .toBeVisible();
@@ -56,7 +56,7 @@ test("landing profissional comunica valor e preserva a atribuição", async ({ p
   await expect(beautyVanessaProfile)
     .toHaveAttribute("href", "/negocio/beauty-vanessa");
   await expect(page.getByText(
-    "O AF envia o novo agendamento para a Vanessa no WhatsApp"
+    "Com os avisos autorizados, o AF envia o novo agendamento para a Vanessa"
   )).toBeVisible();
   await expect(page.getByRole("heading", {
     name: "Para profissionais autônomas, studios e salões de beleza"
