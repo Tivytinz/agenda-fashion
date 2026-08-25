@@ -401,12 +401,73 @@ describe(
       ["SAIR", "GLOBAL"],
       ["parar", "GLOBAL"],
       ["STOP", "GLOBAL"],
+      ["unsubscribe", "GLOBAL"],
+      [
+        "Não quero mais mensagens",
+        "GLOBAL",
+      ],
+      [
+        "Não quero receber mais mensagens",
+        "GLOBAL",
+      ],
+      [
+        "Pare de me mandar mensagens",
+        "GLOBAL",
+      ],
+      [
+        "Por favor, não me envie mais mensagens.",
+        "GLOBAL",
+      ],
+      [
+        "Quero sair do WhatsApp",
+        "GLOBAL",
+      ],
+      [
+        "Me descadastre",
+        "GLOBAL",
+      ],
+      [
+        "Remova meu número da lista",
+        "GLOBAL",
+      ],
+      [
+        "Não quero mais comunicações do Agenda Fashion",
+        "GLOBAL",
+      ],
+      [
+        "Não quero mais notificações",
+        "GLOBAL",
+      ],
       [
         "PARAR MARKETING",
         "MARKETING",
       ],
       [
         "Não quero receber marketing",
+        "MARKETING",
+      ],
+      [
+        "Não quero mais mensagens de marketing",
+        "MARKETING",
+      ],
+      [
+        "Pare de me enviar marketing",
+        "MARKETING",
+      ],
+      [
+        "Cancelar mensagens de marketing",
+        "MARKETING",
+      ],
+      [
+        "Não me envie mais marketing",
+        "MARKETING",
+      ],
+      [
+        "Não quero mais propaganda",
+        "MARKETING",
+      ],
+      [
+        "Pare de enviar promoções",
         "MARKETING",
       ],
     ])(
@@ -417,6 +478,25 @@ describe(
             texto
           )
         ).toBe(escopo);
+      }
+    );
+
+    test.each([
+      "Quero receber mensagens",
+      "Quero parar de perder clientes",
+      "Não quero cancelar meu agendamento",
+      "Não quero cancelar marketing",
+      "Não quero parar de receber mensagens",
+      "Como funciona o marketing?",
+      "Preciso de ajuda",
+    ])(
+      "não confunde a frase %s com descadastro",
+      (texto) => {
+        expect(
+          obterEscopoDescadastro(
+            texto
+          )
+        ).toBeNull();
       }
     );
 

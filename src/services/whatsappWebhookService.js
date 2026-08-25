@@ -22,6 +22,7 @@ const COMANDOS_OPTOUT_GLOBAL =
     "sair",
     "parar",
     "stop",
+    "unsubscribe",
   ]);
 
 const COMANDOS_OPTOUT_MARKETING =
@@ -30,6 +31,30 @@ const COMANDOS_OPTOUT_MARKETING =
     "cancelar marketing",
     "nao quero receber marketing",
   ]);
+
+const PADROES_INTENCAO_OPTOUT = [
+  /\bnao (?:quero|desejo|aceito)\b/,
+  /\bnao (?:me )?(?:mande|envie)\b/,
+  /\b(?:pare|parar|cancele|cancelar)\b/,
+  /\bdescadastr(?:ar|e|o)\b/,
+  /\b(?:remova|remover|retire|retirar|tire|tirar|bloqueie|bloquear)\b/,
+  /\bquero sair\b/,
+];
+
+const PADRAO_CONTEXTO_COMUNICACAO =
+  /\b(?:mensagens?|avisos?|notificac(?:ao|oes)|comunicac(?:ao|oes)|whatsapp|contatos?|envios?|lista)\b/;
+
+const PADRAO_CONTEXTO_MARKETING =
+  /\b(?:marketing|propagandas?|promoc(?:ao|oes)|ofertas?)\b/;
+
+const PADRAO_RECUSA_OPTOUT =
+  /\bnao (?:quero|desejo|pretendo) (?:mais )?(?:parar|cancelar|descadastrar|remover|retirar|bloquear)\b/;
+
+const PADROES_OPTOUT_DIRETO = [
+  /^(?:por favor )?(?:me )?descadastr(?:e|ar)(?: do agenda fashion)?$/,
+  /^(?:por favor )?(?:eu )?quero sair(?: do agenda fashion)?$/,
+  /^(?:por favor )?solicito (?:o )?descadastro(?: do agenda fashion)?$/,
+];
 
 const RESPOSTAS_QUEBRA_GELO =
   new Map([
@@ -195,17 +220,62 @@ function obterEscopoDescadastro(
     );
 
   if (
+    PADRAO_RECUSA_OPTOUT
+      .test(comando)
+  ) {
+    return null;
+  }
+
+  if (
+    COMANDOS_OPTOUT_MARKETING
+      .has(comando) ||
+    (
+      PADRAO_CONTEXTO_MARKETING
+        .test(comando) &&
+      PADROES_INTENCAO_OPTOUT
+        .some(
+          (padrao) =>
+            padrao.test(
+              comando
+            )
+        )
+    )
+  ) {
+    return "MARKETING";
+  }
+
+  if (
     COMANDOS_OPTOUT_GLOBAL
       .has(comando)
   ) {
     return "GLOBAL";
   }
 
+  const pedidoDireto =
+    PADROES_OPTOUT_DIRETO
+      .some(
+        (padrao) =>
+          padrao.test(
+            comando
+          )
+      );
+
+  const pedidoComContexto =
+    PADRAO_CONTEXTO_COMUNICACAO
+      .test(comando) &&
+    PADROES_INTENCAO_OPTOUT
+      .some(
+        (padrao) =>
+          padrao.test(
+            comando
+          )
+      );
+
   if (
-    COMANDOS_OPTOUT_MARKETING
-      .has(comando)
+    pedidoDireto ||
+    pedidoComContexto
   ) {
-    return "MARKETING";
+    return "GLOBAL";
   }
 
   return null;

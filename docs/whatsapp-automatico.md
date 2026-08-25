@@ -350,7 +350,10 @@ para que a autorização fique comprovável. Desativar a opção cancela a
 elegibilidade imediatamente; mensagens ainda pendentes são invalidadas antes
 do envio. A resposta `PARAR MARKETING` cancela somente essa categoria. Pedidos
 genéricos `SAIR`, `PARAR` e `STOP` interrompem todas as preferências e cancelam
-as mensagens pendentes para o número; todos são registrados pelo webhook.
+as mensagens pendentes para o número. O webhook também reconhece pedidos claros
+em linguagem natural, como `não quero mais mensagens`, `pare de me enviar
+mensagens` e `me descadastre`, sem confundir frases que não tratam de
+comunicações; todos os pedidos são registrados.
 
 Depois da aprovação do novo modelo, altere no Railway:
 
