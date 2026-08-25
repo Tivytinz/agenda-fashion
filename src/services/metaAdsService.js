@@ -136,7 +136,10 @@ function normalizarSourceUrl(valor) {
 
 function sanitizarContextoCliente(meta) {
   const consentimento =
-    meta?.consentimento === true;
+    typeof meta?.consentimento ===
+      "boolean"
+      ? meta.consentimento
+      : null;
 
   return {
     consentimento,
@@ -280,8 +283,14 @@ function contextoConsentido(
   contexto,
   perfil
 ) {
+  if (
+    typeof contexto?.consentimento ===
+      "boolean"
+  ) {
+    return contexto.consentimento;
+  }
+
   return Boolean(
-    contexto?.consentimento ||
     perfil?.meta_consentido_em
   );
 }

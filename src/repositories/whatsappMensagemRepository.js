@@ -864,12 +864,85 @@ async function reservarProximaMensagem() {
             )
             AND (
               wm.tipo <> ALL($5::VARCHAR[])
-              OR a.cliente_id IS NULL
               OR (
-                cliente_conta.whatsapp_notificacoes_consentido_em
+                a.whatsapp_consentido_em
                   IS NOT NULL
-                AND cliente_conta.whatsapp_notificacoes_cancelado_em
-                  IS NULL
+                AND (
+                  a.cliente_id IS NULL
+                  OR (
+                    cliente_conta.whatsapp_notificacoes_consentido_em
+                      IS NOT NULL
+                    AND cliente_conta.whatsapp_notificacoes_cancelado_em
+                      IS NULL
+                    AND REGEXP_REPLACE(
+                      cliente_conta.whatsapp,
+                      '[^0-9]',
+                      '',
+                      'g'
+                    ) = CASE
+                      WHEN REGEXP_REPLACE(
+                        wm.destinatario,
+                        '[^0-9]',
+                        '',
+                        'g'
+                      ) ~ '^55[0-9]{10,11}$'
+                        THEN SUBSTRING(
+                          REGEXP_REPLACE(
+                            wm.destinatario,
+                            '[^0-9]',
+                            '',
+                            'g'
+                          )
+                          FROM 3
+                        )
+                      ELSE REGEXP_REPLACE(
+                        wm.destinatario,
+                        '[^0-9]',
+                        '',
+                        'g'
+                      )
+                    END
+                  )
+                )
+                AND NOT EXISTS (
+                  SELECT 1
+                  FROM whatsapp_interacoes_recebidas optout
+                  WHERE optout.intencao =
+                      'GLOBAL_OPTOUT'
+                    AND optout.recebido_em >=
+                      a.whatsapp_consentido_em
+                    AND CASE
+                      WHEN optout.telefone
+                        ~ '^55[0-9]{10,11}$'
+                        THEN SUBSTRING(
+                          optout.telefone
+                          FROM 3
+                        )
+                      ELSE optout.telefone
+                    END = CASE
+                      WHEN REGEXP_REPLACE(
+                        wm.destinatario,
+                        '[^0-9]',
+                        '',
+                        'g'
+                      ) ~ '^55[0-9]{10,11}$'
+                        THEN SUBSTRING(
+                          REGEXP_REPLACE(
+                            wm.destinatario,
+                            '[^0-9]',
+                            '',
+                            'g'
+                          )
+                          FROM 3
+                        )
+                      ELSE REGEXP_REPLACE(
+                        wm.destinatario,
+                        '[^0-9]',
+                        '',
+                        'g'
+                      )
+                    END
+                )
               )
             )
 
@@ -1013,12 +1086,85 @@ async function mensagemContinuaValida(
             )
             AND (
               wm.tipo <> ALL($6::VARCHAR[])
-              OR a.cliente_id IS NULL
               OR (
-                cliente_conta.whatsapp_notificacoes_consentido_em
+                a.whatsapp_consentido_em
                   IS NOT NULL
-                AND cliente_conta.whatsapp_notificacoes_cancelado_em
-                  IS NULL
+                AND (
+                  a.cliente_id IS NULL
+                  OR (
+                    cliente_conta.whatsapp_notificacoes_consentido_em
+                      IS NOT NULL
+                    AND cliente_conta.whatsapp_notificacoes_cancelado_em
+                      IS NULL
+                    AND REGEXP_REPLACE(
+                      cliente_conta.whatsapp,
+                      '[^0-9]',
+                      '',
+                      'g'
+                    ) = CASE
+                      WHEN REGEXP_REPLACE(
+                        wm.destinatario,
+                        '[^0-9]',
+                        '',
+                        'g'
+                      ) ~ '^55[0-9]{10,11}$'
+                        THEN SUBSTRING(
+                          REGEXP_REPLACE(
+                            wm.destinatario,
+                            '[^0-9]',
+                            '',
+                            'g'
+                          )
+                          FROM 3
+                        )
+                      ELSE REGEXP_REPLACE(
+                        wm.destinatario,
+                        '[^0-9]',
+                        '',
+                        'g'
+                      )
+                    END
+                  )
+                )
+                AND NOT EXISTS (
+                  SELECT 1
+                  FROM whatsapp_interacoes_recebidas optout
+                  WHERE optout.intencao =
+                      'GLOBAL_OPTOUT'
+                    AND optout.recebido_em >=
+                      a.whatsapp_consentido_em
+                    AND CASE
+                      WHEN optout.telefone
+                        ~ '^55[0-9]{10,11}$'
+                        THEN SUBSTRING(
+                          optout.telefone
+                          FROM 3
+                        )
+                      ELSE optout.telefone
+                    END = CASE
+                      WHEN REGEXP_REPLACE(
+                        wm.destinatario,
+                        '[^0-9]',
+                        '',
+                        'g'
+                      ) ~ '^55[0-9]{10,11}$'
+                        THEN SUBSTRING(
+                          REGEXP_REPLACE(
+                            wm.destinatario,
+                            '[^0-9]',
+                            '',
+                            'g'
+                          )
+                          FROM 3
+                        )
+                      ELSE REGEXP_REPLACE(
+                        wm.destinatario,
+                        '[^0-9]',
+                        '',
+                        'g'
+                      )
+                    END
+                )
               )
             )
         ) AS valida
@@ -1183,6 +1329,7 @@ async function cancelarTodasComunicacoesPorWhatsapp(
   if (!telefoneNacional) {
     return {
       usuarios: 0,
+      agendamentos: 0,
       mensagensCanceladas: 0,
     };
   }
@@ -1310,6 +1457,54 @@ async function cancelarTodasComunicacoesPorWhatsapp(
         );
       }
 
+      const agendamentos =
+        await executor.query(
+          `
+            WITH revogados AS (
+              UPDATE agendamentos agendamento
+              SET
+                whatsapp_consentido_em = NULL
+              WHERE agendamento.whatsapp_consentido_em
+                  IS NOT NULL
+                AND REGEXP_REPLACE(
+                  agendamento.cliente_whatsapp,
+                  '[^0-9]',
+                  '',
+                  'g'
+                ) = ANY(
+                  ARRAY[
+                    $1,
+                    '55' || $1
+                  ]::TEXT[]
+                )
+              RETURNING
+                agendamento.id,
+                agendamento.cliente_id,
+                $1::VARCHAR AS telefone
+            )
+            INSERT INTO whatsapp_consentimentos (
+              usuario_id,
+              agendamento_id,
+              telefone,
+              escopo,
+              acao,
+              origem,
+              texto_versao
+            )
+            SELECT
+              revogado.cliente_id,
+              revogado.id,
+              revogado.telefone,
+              'OPERACIONAL_CLIENTE',
+              'CANCELADO',
+              'WHATSAPP',
+              'optout-global-agendamento-v1'
+            FROM revogados revogado
+            RETURNING agendamento_id
+          `,
+          [telefoneNacional]
+        );
+
       const mensagens =
         await executor.query(
           `
@@ -1336,6 +1531,8 @@ async function cancelarTodasComunicacoesPorWhatsapp(
       return {
         usuarios:
           usuarios.rowCount || 0,
+        agendamentos:
+          agendamentos.rowCount || 0,
         mensagensCanceladas:
           mensagens.rowCount || 0,
       };

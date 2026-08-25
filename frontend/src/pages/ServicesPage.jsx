@@ -225,7 +225,7 @@ export function ServicesPage() {
                       className="service-cover-empty-action"
                       to={`/painel/servicos/${service.id}/editar`}
                     >
-                      ＋ Adicionar foto
+                      <span aria-hidden="true">＋</span> Adicionar foto
                     </Link>
                   )}
                 </div>
@@ -607,7 +607,7 @@ export function ServiceEditorPage() {
               <small>JPG, PNG ou WEBP · até 5 MB por foto.</small>
             </div>
             <label className="button button-secondary button-small service-gallery-upload-button">
-              ＋ Adicionar fotos
+              <span aria-hidden="true">＋</span> Adicionar fotos
               <input
                 accept="image/jpeg,image/png,image/webp"
                 aria-label="Adicionar fotos à galeria"

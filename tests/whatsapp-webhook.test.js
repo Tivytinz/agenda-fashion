@@ -322,6 +322,7 @@ describe(
           .cancelarTodasComunicacoesPorWhatsapp
           .mockResolvedValue({
             usuarios: 1,
+            agendamentos: 2,
             mensagensCanceladas: 2,
           });
 
@@ -394,6 +395,60 @@ describe(
           descadastros: 1,
           respostasQuebraGelo: 0,
         });
+      }
+    );
+
+    test(
+      "confirma o opt-out global quando somente agendamentos de visitante foram revogados",
+      async () => {
+        whatsappMensagemRepository
+          .cancelarTodasComunicacoesPorWhatsapp
+          .mockResolvedValue({
+            usuarios: 0,
+            agendamentos: 2,
+            mensagensCanceladas: 0,
+          });
+
+        await processarWebhookWhatsapp({
+          entry: [
+            {
+              changes: [
+                {
+                  field: "messages",
+                  value: {
+                    metadata: {
+                      phone_number_id:
+                        "phone-number-af",
+                    },
+                    messages: [
+                      {
+                        id:
+                          "wamid.sair-visitante",
+                        from:
+                          "5562999998888",
+                        timestamp:
+                          "1785337200",
+                        type: "text",
+                        text: {
+                          body: "SAIR",
+                        },
+                      },
+                    ],
+                  },
+                },
+              ],
+            },
+          ],
+        });
+
+        expect(
+          whatsappProvider.enviarMensagem
+        ).toHaveBeenCalledWith(
+          "5562999998888",
+          expect.stringContaining(
+            "Todas as mensagens"
+          )
+        );
       }
     );
 

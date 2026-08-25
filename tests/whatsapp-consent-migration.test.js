@@ -12,6 +12,14 @@ describe(
         ),
         "utf8"
       );
+    const durableOptoutMigration =
+      fs.readFileSync(
+        path.resolve(
+          __dirname,
+          "../database/migrations/055_optout_global_duravel_whatsapp.sql"
+        ),
+        "utf8"
+      );
 
     test(
       "revoga somente autorização ativa sem último evento explícito de consentimento",
@@ -54,6 +62,37 @@ describe(
         );
         expect(migration).toContain(
           "'MIGRACAO'"
+        );
+      }
+    );
+
+    test(
+      "revoga agendamentos anteriores ao opt-out sem apagar um novo aceite",
+      () => {
+        expect(
+          durableOptoutMigration
+        ).toContain(
+          "whatsapp_consentido_em = NULL"
+        );
+        expect(
+          durableOptoutMigration
+        ).toMatch(
+          /whatsapp_consentido_em\s+<= optout\.recebido_em/
+        );
+        expect(
+          durableOptoutMigration
+        ).toContain(
+          "'optout-global-retroativo-v1'"
+        );
+        expect(
+          durableOptoutMigration
+        ).toContain(
+          "whatsapp_interacoes_optout_telefone_idx"
+        );
+        expect(
+          durableOptoutMigration
+        ).toContain(
+          "'CANCELAMENTO_AGENDAMENTO_CLIENTE'"
         );
       }
     );

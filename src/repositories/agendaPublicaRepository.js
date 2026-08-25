@@ -96,6 +96,7 @@ async function buscarPreferenciaNotificacoesWhatsapp(
   const result = await db.query(
     `
       SELECT
+        whatsapp,
         (
           whatsapp_notificacoes_consentido_em IS NOT NULL
           AND whatsapp_notificacoes_cancelado_em IS NULL

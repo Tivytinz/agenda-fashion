@@ -77,17 +77,24 @@ describe("capa integrada à galeria do serviço", () => {
   });
 
   it("oferece adicionar foto direto no card quando o serviço ainda não tem capa", async () => {
-    apiRequest.mockResolvedValueOnce({
-      servicos: [{
-        id: 11,
-        nome: "Extensão de Cílios",
-        categoria: "cilio",
-        valor: 100,
-        duracao_minutos: 120,
-        ativo: true,
-        foto_url: ""
-      }]
-    });
+    apiRequest
+      .mockResolvedValueOnce({
+        servicos: [{
+          id: 11,
+          nome: "Extensão de Cílios",
+          categoria: "cilio",
+          valor: 100,
+          duracao_minutos: 120,
+          ativo: true,
+          foto_url: ""
+        }]
+      })
+      .mockResolvedValueOnce({
+        uso: {
+          limite_servicos: 2,
+          servicos_utilizados: 1
+        }
+      });
 
     renderServices();
 

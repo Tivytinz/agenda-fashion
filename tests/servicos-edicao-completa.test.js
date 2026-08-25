@@ -19,6 +19,7 @@ jest.mock("../src/services/planoService", () => ({
 const db = require("../src/db/db");
 const servicosRepository = require("../src/repositories/servicosRepository");
 const uploadToCloudinary = require("../src/utils/uploadCloudinary");
+const planoService = require("../src/services/planoService");
 const servicosService = require("../src/services/servicosService");
 
 describe("Edição completa de serviços", () => {
@@ -176,8 +177,8 @@ describe("Edição completa de serviços", () => {
       id: 12,
       ativo: false,
     });
-    servicosRepository.buscarPlanoDoNegocio.mockResolvedValue({
-      nome: "Grátis",
+    planoService.buscarUsoPlano.mockResolvedValue({
+      plano_nome: "Grátis",
       limite_servicos: 2,
     });
     servicosRepository.contarServicosAtivos.mockResolvedValue(2);

@@ -43,11 +43,11 @@ describe("Sprint de catálogo, planos e navegação", () => {
     const account = ler("frontend/src/pages/AccountPage.jsx");
     const business = ler("frontend/src/pages/BusinessPage.jsx");
 
-    expect(services).toContain("Voltar à visão geral");
     expect(services).toContain("Voltar aos serviços");
     expect(billing).toContain("Voltar ao plano e assinatura");
     expect(account).toContain("Voltar à área de trabalho");
-    expect(business).toContain("Voltar a explorar");
+    expect(business).toContain("Voltar ao início");
+    expect(business).toContain("Voltar aos planos");
   });
 
   test("mantém os emojis de fallback centralizados nas mídias", () => {

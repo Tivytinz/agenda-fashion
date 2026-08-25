@@ -145,7 +145,8 @@ etapas diferentes. Os detalhes ficam em `docs/planos.md`.
   ficam limitadas a tres mensagens no total, respeitam intervalo minimo de tres
   dias e param imediatamente quando a preferencia for desativada ou a pessoa
   responder PARAR MARKETING. Pedidos genericos SAIR, PARAR ou STOP interrompem
-  todas as categorias e cancelam as mensagens ainda pendentes para o numero.
+  todas as categorias, revogam os agendamentos ja consentidos para o numero e
+  cancelam as mensagens ainda pendentes.
 - Marketing: eventos de produto, atribuicao, GA4, Google Ads, Meta CAPI e
   leitura de custos de Google Ads e Meta Ads. A classificacao oficial de
   campanhas e resolvida no backend; cliques pagos sem `utm_campaign` permanecem

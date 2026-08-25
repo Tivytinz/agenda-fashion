@@ -108,6 +108,22 @@ describe("Meta Ads service", () => {
     });
   });
 
+  test("distingue contexto ausente de uma recusa explícita", () => {
+    expect(
+      metaAdsService
+        .sanitizarContextoCliente()
+        .consentimento
+    ).toBeNull();
+
+    expect(
+      metaAdsService
+        .sanitizarContextoCliente({
+          consentimento: false
+        })
+        .consentimento
+    ).toBe(false);
+  });
+
   test("envia hashes em vez de email e telefone em texto puro", async () => {
     configurarMeta();
     global.fetch.mockResolvedValue({
@@ -195,6 +211,33 @@ describe("Meta Ads service", () => {
         usuarioId: 77,
         contexto: {
           consentimento: false
+        }
+      });
+
+    expect(resultado).toEqual({
+      enviado: false,
+      motivo: "sem_consentimento"
+    });
+    expect(global.fetch)
+      .not.toHaveBeenCalled();
+  });
+
+  test("recusa explícita prevalece sobre consentimento antigo salvo", async () => {
+    configurarMeta();
+
+    const resultado =
+      await metaAdsService.enviarEvento({
+        eventName:
+          "InitiateCheckout",
+        eventId:
+          "af:checkout:12345678",
+        usuarioId: 77,
+        contexto: {
+          consentimento: false
+        },
+        perfil: {
+          meta_consentido_em:
+            new Date()
         }
       });
 

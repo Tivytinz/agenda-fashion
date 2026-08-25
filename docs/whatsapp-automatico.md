@@ -142,6 +142,17 @@ node scripts/executar-migration.js database/migrations/054_consentimento_comprov
 A migration desativa autorizações legadas sem evento explícito, cancela as
 mensagens pendentes afetadas e permite registrar separadamente opt-out global.
 
+Para tornar retroativo o opt-out global aos agendamentos que já existiam,
+aplique em seguida:
+
+```bash
+node scripts/executar-migration.js database/migrations/055_optout_global_duravel_whatsapp.sql
+```
+
+A migration revoga a autorização dos agendamentos consentidos antes do último
+pedido global de descadastro, registra a revogação e cancela a fila vinculada.
+Um consentimento novo, posterior ao pedido de descadastro, é preservado.
+
 ## Templates da Meta
 
 Crie os seis templates transacionais na categoria `UTILITY`, idioma

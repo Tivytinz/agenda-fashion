@@ -594,11 +594,15 @@ acabou de iniciar a janela de atendimento. O processamento confere o
 `WHATSAPP_PHONE_NUMBER_ID`, deduplica cada evento pelo `wamid` e registra o
 `wamid` da resposta ou a falha. A flag
 `WHATSAPP_CONVERSATION_AUTOREPLIES_ENABLED` funciona como chave operacional e
-permanece desativada até as migrations 053 e 054 e o webhook serem validados.
+permanece desativada até as migrations 053, 054 e 055 e o webhook serem
+validados.
 `PARAR MARKETING` cancela apenas orientações de marketing; os pedidos genéricos
 `SAIR`, `PARAR` e `STOP` cancelam todas as preferências e mensagens pendentes
-para o número. Autorizações legadas sem evidência auditável são revogadas pela
-migration 054.
+para o número e revogam o consentimento dos agendamentos existentes. Assim,
+uma atualização ou um cancelamento posterior não recria mensagens para quem
+já saiu. Autorizações legadas sem evidência auditável são revogadas pela
+migration 054; a migration 055 corrige retroativamente os opt-outs globais já
+recebidos, preservando autorizações novas concedidas depois do pedido.
 
 ---
 

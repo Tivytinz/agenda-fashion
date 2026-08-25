@@ -128,6 +128,43 @@ describe("confirmação do agendamento", () => {
     expect(input.value).toBe("(62) 99999-8888");
   });
 
+  it("não herda a autorização da conta ao trocar o número do agendamento", async () => {
+    const user = userEvent.setup();
+    useSession.mockReturnValue({
+      authenticated: true,
+      usuario: {
+        whatsapp:
+          "62999998888",
+        aceita_notificacoes_whatsapp:
+          true
+      }
+    });
+
+    renderConfirmation();
+
+    expect(screen.getByText(
+      /Você receberá confirmação/
+    )).not.toBeNull();
+
+    const input = screen.getByRole(
+      "textbox",
+      {
+        name:
+          "WhatsApp para confirmação"
+      }
+    );
+
+    await user.clear(input);
+    await user.type(
+      input,
+      "62911112222"
+    );
+
+    expect(screen.getByText(
+      /diferente do WhatsApp autorizado/
+    )).not.toBeNull();
+  });
+
   it("envia os dados normalizados e abre a tela de sucesso", async () => {
     const user = userEvent.setup();
     apiRequest.mockResolvedValue({

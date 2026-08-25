@@ -197,6 +197,35 @@ describe(
     );
 
     test(
+      "bloqueia opt-out global antes de reservar uma mensagem da cliente",
+      async () => {
+        db.query.mockResolvedValue({
+          rows: [],
+        });
+
+        await whatsappMensagemRepository
+          .reservarProximaMensagem();
+
+        const [consulta] =
+          db.query.mock.calls[0];
+        const sql = consulta.replace(
+          /\s+/g,
+          " "
+        );
+
+        expect(sql).toContain(
+          "a.whatsapp_consentido_em IS NOT NULL"
+        );
+        expect(sql).toContain(
+          "FROM whatsapp_interacoes_recebidas optout"
+        );
+        expect(sql).toContain(
+          "optout.recebido_em >= a.whatsapp_consentido_em"
+        );
+      }
+    );
+
+    test(
       "revalida a autorização da conta do cliente antes do envio",
       async () => {
         db.query.mockResolvedValue({
@@ -214,7 +243,22 @@ describe(
           "cliente_conta.whatsapp_notificacoes_consentido_em IS NOT NULL"
         );
         expect(sql).toContain(
+          "a.whatsapp_consentido_em IS NOT NULL"
+        );
+        expect(sql).toContain(
           "cliente_conta.whatsapp_notificacoes_cancelado_em IS NULL"
+        );
+        expect(sql).toContain(
+          "REGEXP_REPLACE( cliente_conta.whatsapp, '[^0-9]', '', 'g' ) = CASE"
+        );
+        expect(sql).toContain(
+          "wm.destinatario"
+        );
+        expect(sql).toContain(
+          "FROM whatsapp_interacoes_recebidas optout"
+        );
+        expect(sql).toContain(
+          "optout.recebido_em >= a.whatsapp_consentido_em"
         );
         expect(parametros[5]).toEqual(
           expect.arrayContaining([
@@ -312,6 +356,15 @@ describe(
             })
             .mockResolvedValueOnce({
               rows: [
+                {
+                  agendamento_id:
+                    40,
+                },
+              ],
+              rowCount: 1,
+            })
+            .mockResolvedValueOnce({
+              rows: [
                 { id: 50 },
                 { id: 51 },
               ],
@@ -333,6 +386,7 @@ describe(
 
         expect(resultado).toEqual({
           usuarios: 1,
+          agendamentos: 1,
           mensagensCanceladas: 2,
         });
 
@@ -367,9 +421,24 @@ describe(
           "optout-global-whatsapp-v1"
         );
 
-        const consultaFila =
+        const consultaAgendamentos =
           executor.query.mock
             .calls[2][0];
+
+        expect(
+          consultaAgendamentos
+        ).toContain(
+          "whatsapp_consentido_em = NULL"
+        );
+        expect(
+          consultaAgendamentos
+        ).toContain(
+          "optout-global-agendamento-v1"
+        );
+
+        const consultaFila =
+          executor.query.mock
+            .calls[3][0];
 
         expect(consultaFila).toContain(
           "Mensagens canceladas pelo destinatário"

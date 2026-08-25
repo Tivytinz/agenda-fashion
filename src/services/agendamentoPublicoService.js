@@ -496,6 +496,7 @@ async function obterOuCriarCliente({
 
 async function resolverConsentimentoWhatsapp({
   clienteId,
+  clienteWhatsapp,
   consentimentoVisitante = false,
 }) {
   const id = normalizarId(
@@ -519,10 +520,24 @@ async function resolverConsentimentoWhatsapp({
     );
   }
 
+  const whatsappConta =
+    normalizarWhatsapp(
+      preferencia.whatsapp
+    );
+  const whatsappAgendamento =
+    normalizarWhatsapp(
+      clienteWhatsapp
+    );
+
   return (
     preferencia
       .aceita_notificacoes_whatsapp ===
-    true
+      true &&
+    [10, 11].includes(
+      whatsappConta.length
+    ) &&
+    whatsappConta ===
+      whatsappAgendamento
   );
 }
 

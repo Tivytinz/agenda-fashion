@@ -237,13 +237,19 @@ describe(
         expect(
           dashboard
         ).toContain(
-          'to="/painel/agenda"'
+          'to: "/painel/agenda"'
         );
 
         expect(
           dashboard
         ).toContain(
-          'to="/painel/servicos"'
+          'to: "/painel/servicos"'
+        );
+
+        expect(
+          dashboard
+        ).toContain(
+          "to={nextAction.primary.to}"
         );
       }
     );

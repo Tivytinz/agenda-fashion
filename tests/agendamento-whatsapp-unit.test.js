@@ -106,6 +106,8 @@ describe(
           agendamentoPublicoService
             .resolverConsentimentoWhatsapp({
               clienteId: null,
+              clienteWhatsapp:
+                "62999998888",
               consentimentoVisitante: true,
             })
         ).resolves.toBe(true);
@@ -123,6 +125,8 @@ describe(
         agendaPublicaRepository
           .buscarPreferenciaNotificacoesWhatsapp
           .mockResolvedValue({
+            whatsapp:
+              "62999998888",
             aceita_notificacoes_whatsapp: false,
           });
 
@@ -130,6 +134,8 @@ describe(
           agendamentoPublicoService
             .resolverConsentimentoWhatsapp({
               clienteId: 8,
+              clienteWhatsapp:
+                "62999998888",
               consentimentoVisitante: true,
             })
         ).resolves.toBe(false);
@@ -138,6 +144,39 @@ describe(
           agendaPublicaRepository
             .buscarPreferenciaNotificacoesWhatsapp
         ).toHaveBeenCalledWith(8);
+      }
+    );
+
+    test(
+      "autoriza somente o mesmo número registrado na conta",
+      async () => {
+        agendaPublicaRepository
+          .buscarPreferenciaNotificacoesWhatsapp
+          .mockResolvedValue({
+            whatsapp:
+              "62999998888",
+            aceita_notificacoes_whatsapp: true,
+          });
+
+        await expect(
+          agendamentoPublicoService
+            .resolverConsentimentoWhatsapp({
+              clienteId: 8,
+              clienteWhatsapp:
+                "+55 (62) 99999-8888",
+              consentimentoVisitante: false,
+            })
+        ).resolves.toBe(true);
+
+        await expect(
+          agendamentoPublicoService
+            .resolverConsentimentoWhatsapp({
+              clienteId: 8,
+              clienteWhatsapp:
+                "62911112222",
+              consentimentoVisitante: true,
+            })
+        ).resolves.toBe(false);
       }
     );
   }

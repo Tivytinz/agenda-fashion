@@ -16,6 +16,7 @@ import {
   createMetaEventContext,
   initializeMetaAds,
   resetMetaAdsForTests,
+  revokeMetaConsent,
   syncMetaConsent,
   trackMetaEvent
 } from "./metaAds";
@@ -85,6 +86,11 @@ describe("Meta Ads no navegador", () => {
     ).toBe(
       "https://connect.facebook.net/en_US/fbevents.js"
     );
+    expect(window.fbq.queue)
+      .toContainEqual([
+        "consent",
+        "grant"
+      ]);
 
     await trackMetaEvent(
       "CompleteRegistration",
@@ -131,7 +137,11 @@ describe("Meta Ads no navegador", () => {
   });
 
   it("sincroniza recusa sem enviar identificadores Meta", async () => {
-    localStorage.setItem("token", "token-test");
+    localStorage.setItem(
+      "session_active",
+      "1"
+    );
+    window.fbq = vi.fn();
     setMarketingConsent(
       MARKETING_CONSENT.DENIED
     );
@@ -154,5 +164,39 @@ describe("Meta Ads no navegador", () => {
           }
         })
       );
+    expect(window.fbq)
+      .toHaveBeenCalledWith(
+        "consent",
+        "revoke"
+      );
+  });
+
+  it("revoga o Pixel localmente mesmo sem sessão autenticada", async () => {
+    window.fbq = vi.fn();
+    setMarketingConsent(
+      MARKETING_CONSENT.DENIED
+    );
+
+    expect(
+      await syncMetaConsent()
+    ).toBe(false);
+
+    expect(window.fbq)
+      .toHaveBeenCalledWith(
+        "consent",
+        "revoke"
+      );
+    expect(apiRequest)
+      .not.toHaveBeenCalled();
+  });
+
+  it("não repete o comando de revogação no mesmo carregamento", () => {
+    window.fbq = vi.fn();
+
+    revokeMetaConsent();
+    revokeMetaConsent();
+
+    expect(window.fbq)
+      .toHaveBeenCalledTimes(1);
   });
 });

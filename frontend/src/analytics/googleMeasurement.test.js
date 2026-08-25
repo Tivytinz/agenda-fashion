@@ -245,8 +245,8 @@ describe("Google Measurement no navegador", () => {
 
   it("sincroniza recusa sem enviar client id", async () => {
     localStorage.setItem(
-      "token",
-      "token-test"
+      "session_active",
+      "1"
     );
     setMarketingConsent(
       MARKETING_CONSENT.DENIED

@@ -19,6 +19,15 @@ function storedBooking() {
   }
 }
 
+function normalizeWhatsApp(value) {
+  return String(value || "")
+    .replace(/\D/g, "")
+    .replace(
+      /^55(?=\d{10,11}$)/,
+      ""
+    );
+}
+
 function formatConfirmationDate(value) {
   const date = new Date(`${value}T12:00:00`);
 
@@ -41,8 +50,14 @@ export function ConfirmPage() {
       return null;
     }
   }, []);
+  const accountWhatsApp =
+    session.usuario?.whatsapp ||
+    user?.whatsapp ||
+    "";
   const [name, setName] = useState(user?.nome || "");
-  const [whatsapp, setWhatsapp] = useState(formatWhatsApp(user?.whatsapp));
+  const [whatsapp, setWhatsapp] = useState(
+    formatWhatsApp(accountWhatsApp)
+  );
   const [consent, setConsent] = useState(
     session.usuario?.aceita_notificacoes_whatsapp === true
   );
@@ -91,6 +106,22 @@ export function ConfirmPage() {
     return <Navigate to="/" replace />;
   }
 
+  const normalizedAccountWhatsApp =
+    normalizeWhatsApp(accountWhatsApp);
+  const normalizedBookingWhatsApp =
+    normalizeWhatsApp(whatsapp);
+  const accountAllowsNotifications =
+    session.usuario
+      ?.aceita_notificacoes_whatsapp ===
+    true;
+  const accountConsentMatchesPhone =
+    accountAllowsNotifications &&
+    [10, 11].includes(
+      normalizedAccountWhatsApp.length
+    ) &&
+    normalizedAccountWhatsApp ===
+      normalizedBookingWhatsApp;
+
   const confirmationSteps = hasProfessionalChoice === false
     ? ["Serviço", "Horário", "Confirmar"]
     : ["Serviço", "Profissional", "Horário", "Confirmar"];
@@ -101,7 +132,8 @@ export function ConfirmPage() {
     if (submissionInFlight.current) return;
 
     const normalizedName = name.trim().replace(/\s+/g, " ");
-    const normalizedPhone = whatsapp.replace(/\D/g, "");
+    const normalizedPhone =
+      normalizeWhatsApp(whatsapp);
 
     if (normalizedName.length < 2) {
       setError("Informe seu nome.");
@@ -129,7 +161,10 @@ export function ConfirmPage() {
           horario: booking.time,
           cliente_nome: normalizedName,
           cliente_whatsapp: normalizedPhone,
-          aceita_mensagens_whatsapp: consent
+          aceita_mensagens_whatsapp:
+            session.authenticated
+              ? accountConsentMatchesPhone
+              : consent
         }
       });
 
@@ -211,10 +246,12 @@ export function ConfirmPage() {
             </label>
             {session.authenticated ? (
               <p className="muted">
-                {session.usuario?.aceita_notificacoes_whatsapp
+                {accountConsentMatchesPhone
                   ? "Você receberá confirmação, lembrete e atualizações deste agendamento pelo WhatsApp."
-                  : "As mensagens de agendamento pelo WhatsApp estão desativadas na sua conta."}{" "}
-                <Link to="/conta#notificacoes-whatsapp">Alterar dados</Link>
+                  : accountAllowsNotifications
+                    ? "Este número é diferente do WhatsApp autorizado na sua conta. O agendamento será concluído sem mensagens automáticas."
+                    : "As mensagens de agendamento pelo WhatsApp estão desativadas na sua conta."}{" "}
+                <Link to="/conta#notificacoes-whatsapp">Atualizar na conta</Link>
               </p>
             ) : (
               <>

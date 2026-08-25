@@ -1,5 +1,5 @@
 import { apiRequest } from "../api/client";
-import { readBrowserStorage } from "../utils/browserStorage";
+import { hasSession } from "../auth/session";
 import {
   getMarketingConsent,
   MARKETING_CONSENT
@@ -348,7 +348,7 @@ export async function syncGoogleConsent() {
 
   updateGoogleConsent(status);
 
-  if (!readBrowserStorage("local", "token")) {
+  if (!hasSession()) {
     return false;
   }
 

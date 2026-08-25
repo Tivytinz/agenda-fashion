@@ -29,7 +29,8 @@ import {
 } from "../analytics/marketingConsent";
 import {
   getMetaConfig,
-  initializeMetaAds
+  initializeMetaAds,
+  revokeMetaConsent
 } from "../analytics/metaAds";
 import { MetaAdsBridge } from "./MetaAdsBridge";
 
@@ -55,6 +56,7 @@ vi.mock("../analytics/metaAds", () => ({
   clearMetaCookies: vi.fn(),
   getMetaConfig: vi.fn(),
   initializeMetaAds: vi.fn(),
+  revokeMetaConsent: vi.fn(),
   syncMetaConsent: vi.fn().mockResolvedValue(true),
   trackMetaPageView: vi.fn().mockResolvedValue(true)
 }));
@@ -72,6 +74,7 @@ vi.mock("../analytics/googleMeasurement", () => ({
 }));
 
 beforeEach(() => {
+  vi.clearAllMocks();
   getMarketingConsent.mockReturnValue(
     MARKETING_CONSENT.UNKNOWN
   );
@@ -144,5 +147,32 @@ describe("consentimento de marketing", () => {
     );
     expect(css).toContain("width: auto");
     expect(css).toContain("min-width: 0");
+  });
+
+  it("revoga o Pixel mesmo quando apenas a medição do Google está ativa", async () => {
+    getMarketingConsent.mockReturnValue(
+      MARKETING_CONSENT.DENIED
+    );
+    getMetaConfig.mockResolvedValue({
+      enabled: false,
+      pixelId: null
+    });
+    getGoogleConfig.mockResolvedValue({
+      enabled: true,
+      measurementId:
+        "G-123456789",
+      adsId: null
+    });
+
+    render(
+      <MemoryRouter>
+        <MetaAdsBridge />
+      </MemoryRouter>
+    );
+
+    await waitFor(() => {
+      expect(revokeMetaConsent)
+        .toHaveBeenCalled();
+    });
   });
 });

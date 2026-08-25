@@ -1,5 +1,5 @@
 import { apiRequest } from "../api/client";
-import { readBrowserStorage } from "../utils/browserStorage";
+import { hasSession } from "../auth/session";
 import {
   getMarketingConsent,
   MARKETING_CONSENT
@@ -11,6 +11,7 @@ const PIXEL_SCRIPT_ID =
 let configPromise = null;
 let initializedPixelId = null;
 let lastPageView = "";
+let appliedConsent = null;
 
 function safeConfig(result) {
   const pixelId = String(
@@ -119,6 +120,11 @@ export async function initializeMetaAds() {
       config.pixelId;
   }
 
+  if (appliedConsent !== "grant") {
+    fbq("consent", "grant");
+    appliedConsent = "grant";
+  }
+
   appendPixelScript();
   return true;
 }
@@ -159,6 +165,18 @@ function expireCookie(name) {
 export function clearMetaCookies() {
   expireCookie("_fbp");
   expireCookie("_fbc");
+}
+
+export function revokeMetaConsent() {
+  if (
+    typeof window.fbq === "function" &&
+    appliedConsent !== "revoke"
+  ) {
+    window.fbq("consent", "revoke");
+    appliedConsent = "revoke";
+  }
+
+  clearMetaCookies();
 }
 
 function safeNamespace(value) {
@@ -285,14 +303,14 @@ export async function syncMetaConsent() {
     return false;
   }
 
-  if (!readBrowserStorage("local", "token")) {
-    if (
-      status ===
-        MARKETING_CONSENT.DENIED
-    ) {
-      clearMetaCookies();
-    }
+  if (
+    status ===
+      MARKETING_CONSENT.DENIED
+  ) {
+    revokeMetaConsent();
+  }
 
+  if (!hasSession()) {
     return false;
   }
 
@@ -300,8 +318,6 @@ export async function syncMetaConsent() {
     status ===
       MARKETING_CONSENT.DENIED
   ) {
-    clearMetaCookies();
-
     await apiRequest(
       "/marketing/meta/consentimento",
       {
@@ -338,4 +354,5 @@ export function resetMetaAdsForTests() {
   configPromise = null;
   initializedPixelId = null;
   lastPageView = "";
+  appliedConsent = null;
 }

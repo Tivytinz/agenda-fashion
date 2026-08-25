@@ -229,6 +229,8 @@ async function criarAgendamentoPublico(
         .resolverConsentimentoWhatsapp({
           clienteId:
             clienteIdValidado,
+          clienteWhatsapp:
+            cliente_whatsapp,
           consentimentoVisitante:
             aceita_mensagens_whatsapp ===
             true,

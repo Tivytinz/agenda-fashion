@@ -118,7 +118,7 @@ describe("publicação do negócio", () => {
 
     renderPage();
 
-    const whatsapp = await screen.findByLabelText("WhatsApp");
+    const whatsapp = await screen.findByLabelText(/WhatsApp/);
     const state = screen.getByRole("combobox", { name: "Estado" });
     const address = screen.getByLabelText("Endereço");
     const postalCode = screen.getByLabelText(/CEP/);
@@ -290,8 +290,8 @@ describe("publicação do negócio", () => {
     });
 
     renderPage();
-    const whatsapp = await screen.findByLabelText("WhatsApp");
-    const maps = screen.getByLabelText("Link do Google Maps");
+    const whatsapp = await screen.findByLabelText(/WhatsApp/);
+    const maps = screen.getByLabelText(/Link do Google Maps/);
 
     fireEvent.change(whatsapp, { target: { value: "123" } });
     expect(screen.getByText(/WhatsApp com DDD/)).not.toBeNull();

@@ -279,7 +279,14 @@ describe("lista profissional de serviços", () => {
   });
 
   it("mostra a confirmação recebida após salvar um serviço", async () => {
-    apiRequest.mockResolvedValueOnce({ servicos: [] });
+    apiRequest
+      .mockResolvedValueOnce({ servicos: [] })
+      .mockResolvedValueOnce({
+        uso: {
+          limite_servicos: 2,
+          servicos_utilizados: 0
+        }
+      });
 
     renderServices({
       pathname: "/painel/servicos",
@@ -290,17 +297,24 @@ describe("lista profissional de serviços", () => {
   });
 
   it("resolve caminhos relativos de capa com o mesmo tratamento do catálogo", async () => {
-    apiRequest.mockResolvedValueOnce({
-      servicos: [{
-        id: 8,
-        nome: "Design com henna",
-        categoria: "sobrancelha",
-        foto_url: "/uploads/design.jpg",
-        duracao_minutos: 50,
-        valor: 55,
-        ativo: true
-      }]
-    });
+    apiRequest
+      .mockResolvedValueOnce({
+        servicos: [{
+          id: 8,
+          nome: "Design com henna",
+          categoria: "sobrancelha",
+          foto_url: "/uploads/design.jpg",
+          duracao_minutos: 50,
+          valor: 55,
+          ativo: true
+        }]
+      })
+      .mockResolvedValueOnce({
+        uso: {
+          limite_servicos: 2,
+          servicos_utilizados: 1
+        }
+      });
 
     renderServices();
 
@@ -318,7 +332,7 @@ describe("lista profissional de serviços", () => {
 
     apiRequest.mockImplementation((path, options = {}) => {
       if (path === "/servicos" && !options.method) {
-        return Promise.resolve({ servicos });
+        return Promise.resolve({ servicos: services });
       }
       if (path === "/minha-assinatura") {
         return Promise.resolve({
@@ -350,10 +364,10 @@ describe("lista profissional de serviços", () => {
 
     await waitFor(() => {
       expect(screen.getByText("1 de 2 serviços ativos")).not.toBeNull();
-      expect(screen.getByRole("button", { name: "Ativar no perfil" }).disabled).toBe(false);
+      expect(activate.disabled).toBe(false);
     });
 
-    fireEvent.click(screen.getByRole("button", { name: "Ativar no perfil" }));
+    fireEvent.click(activate);
 
     await waitFor(() => {
       expect(apiRequest).toHaveBeenCalledWith(

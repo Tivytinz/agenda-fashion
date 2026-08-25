@@ -22,9 +22,9 @@ import {
   setMarketingConsent
 } from "../analytics/marketingConsent";
 import {
-  clearMetaCookies,
   getMetaConfig,
   initializeMetaAds,
+  revokeMetaConsent,
   syncMetaConsent,
   trackMetaPageView
 } from "../analytics/metaAds";
@@ -88,6 +88,20 @@ export function MetaAdsBridge() {
   }, []);
 
   useEffect(() => {
+    if (
+      consent ===
+        MARKETING_CONSENT.DENIED
+    ) {
+      revokeMetaConsent();
+
+      if (metaConfig?.enabled) {
+        void syncMetaConsent()
+          .catch(() => {});
+      }
+
+      return;
+    }
+
     if (!metaConfig?.enabled) {
       return;
     }
@@ -102,14 +116,6 @@ export function MetaAdsBridge() {
       return;
     }
 
-    if (
-      consent ===
-        MARKETING_CONSENT.DENIED
-    ) {
-      clearMetaCookies();
-      void syncMetaConsent()
-        .catch(() => {});
-    }
   }, [
     metaConfig?.enabled,
     consent,

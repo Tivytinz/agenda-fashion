@@ -305,6 +305,7 @@ function obterConfirmacaoDescadastro(
 ) {
   const houveAlteracao =
     resultado.usuarios > 0 ||
+    resultado.agendamentos > 0 ||
     resultado.mensagensCanceladas > 0;
 
   if (escopo === "GLOBAL") {
