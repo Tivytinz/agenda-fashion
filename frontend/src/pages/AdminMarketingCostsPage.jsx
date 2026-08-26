@@ -16,6 +16,7 @@ import { settleRequestMap } from "../utils/asyncData";
 import { countPaidSessionsWithoutCampaign } from "../utils/marketingAttribution";
 import {
   formatMetricPercent,
+  metricPercentage,
   paidAttributionQuality
 } from "../utils/marketingMetrics";
 
@@ -82,6 +83,44 @@ function pluralize(count, singular, plural) {
   return `${count} ${Number(count) === 1 ? singular : plural}`;
 }
 
+function campaignSessionsWithCost(item) {
+  const sessions = Math.max(0, Number(item?.sessoes || 0));
+  return Math.min(
+    sessions,
+    Math.max(
+      0,
+      Number(
+        item?.sessoesComCusto ??
+          (Number(item?.investimentoCentavos || 0) > 0 ? sessions : 0)
+      ) || 0
+    )
+  );
+}
+
+function campaignCostCoverage(item) {
+  return item?.coberturaCustos ?? metricPercentage(
+    campaignSessionsWithCost(item),
+    item?.sessoes
+  );
+}
+
+function campaignConversionsWithCost(item) {
+  const conversions = Math.max(
+    0,
+    Number(item?.agendamentosConcluidos || 0)
+  );
+  return Math.min(
+    conversions,
+    Math.max(
+      0,
+      Number(
+        item?.agendamentosConcluidosComCusto ??
+          (Number(item?.investimentoCentavos || 0) > 0 ? conversions : 0)
+      ) || 0
+    )
+  );
+}
+
 export function AdminMarketingCostsPage() {
   const [period, setPeriod] = useState("30");
   const [data, setData] = useState(null);
@@ -124,23 +163,32 @@ export function AdminMarketingCostsPage() {
       .then(({ values, errors }) => {
         if (!active) return;
 
-        if (Object.keys(values).length === 0) {
+        const criticalKeys = [
+          "costs",
+          "managedCampaigns"
+        ];
+        const criticalDataReady = criticalKeys.every(
+          (key) => Object.prototype.hasOwnProperty.call(values, key)
+        );
+
+        if (!criticalDataReady) {
+          const criticalError = errors.find(({ key }) =>
+            criticalKeys.includes(key)
+          );
           setError(
-            errors[0]?.error?.message ||
+            criticalError?.error?.message ||
               "Não foi possível carregar os custos de marketing."
           );
           return;
         }
 
         setData((current) => ({
-          costs: values.costs || current?.costs || {},
+          costs: values.costs,
           expenses: values.expenses?.gastos || current?.expenses || [],
           attributionCampaigns:
             values.attribution?.campanhas || current?.attributionCampaigns || [],
           managedCampaigns:
-            values.managedCampaigns?.campanhas ||
-            current?.managedCampaigns ||
-            []
+            values.managedCampaigns?.campanhas || []
         }));
 
         setForm((current) => {
@@ -192,6 +240,13 @@ export function AdminMarketingCostsPage() {
     setFormError("");
     setMessage("");
     setForm((current) => ({ ...current, [field]: value }));
+  }
+
+  function selectPeriod(value) {
+    if (value === period) return;
+    setData(null);
+    setError("");
+    setPeriod(value);
   }
 
   async function submitExpense(event) {
@@ -277,9 +332,6 @@ export function AdminMarketingCostsPage() {
 
   const costs = data.costs || {};
   const campaignCosts = costs.campanhas || [];
-  const activeCampaignCosts = campaignCosts.filter(
-    (item) => item.ativo !== false
-  );
   const archivedCampaignCosts = campaignCosts.filter(
     (item) => item.ativo === false
   );
@@ -305,6 +357,34 @@ export function AdminMarketingCostsPage() {
     missingCampaign: paidWithoutCampaignSessions,
     unofficialIdentity: unofficialAttributionSessions
   });
+  const costCoveredSessions = Math.min(
+    attributionQuality.officialSessions,
+    Math.max(
+      0,
+      Number(
+        costs.sessoesComCusto ??
+          attributionQuality.officialSessions
+      ) || 0
+    )
+  );
+  const officialSessionsWithoutCost = Math.max(
+    0,
+    Number(
+      costs.sessoesOficiaisSemCusto ??
+        attributionQuality.officialSessions - costCoveredSessions
+    ) || 0
+  );
+  const costCoverage = costs.coberturaCustos ?? metricPercentage(
+    costCoveredSessions,
+    attributionQuality.officialSessions
+  );
+  const clientConversionsWithCost = Math.max(
+    0,
+    Number(
+      costs.agendamentosClientesComCusto ??
+        costs.agendamentosConcluidos
+    ) || 0
+  );
   const professionalInvestment = costs.investimentoProfissionaisCentavos ??
     campaignCosts
       .filter((item) => item.objetivo === "profissional")
@@ -320,23 +400,44 @@ export function AdminMarketingCostsPage() {
         0
       );
   const campaignsWithInvestment = costs.campanhasComInvestimento ??
-    activeCampaignCosts.filter(
+    campaignCosts.filter(
       (item) => Number(item.investimentoCentavos || 0) > 0
     ).length;
-  const efficiencyTone = Number(costs.investimentoCentavos || 0) <= 0
+  const hasInvestment = Number(costs.investimentoCentavos || 0) > 0;
+  const hasAttributionGap = attributionQuality.pendingSessions > 0;
+  const hasCostGap = hasInvestment && (
+    costCoverage === null ||
+    Number(costCoverage) < 100
+  );
+  const criticalAttribution = attributionQuality.detectedPaidSessions > 0 && (
+    attributionQuality.coverage === null ||
+    Number(attributionQuality.coverage) < 80
+  );
+  const criticalCostCoverage = hasInvestment && (
+    costCoverage === null ||
+    Number(costCoverage) < 80
+  );
+  const warningAttribution = attributionQuality.detectedPaidSessions > 0 &&
+    Number(attributionQuality.coverage) < 95;
+  const warningCostCoverage = hasInvestment &&
+    costCoverage !== null &&
+    Number(costCoverage) < 95;
+  const efficiencyTone = !hasInvestment
     ? "neutral"
-    : attributionQuality.coverage < 80
+    : criticalAttribution || criticalCostCoverage
       ? "critical"
-      : attributionQuality.coverage < 95
+      : warningAttribution || warningCostCoverage
         ? "warning"
         : "success";
-  const efficiencyStatus = Number(costs.investimentoCentavos || 0) <= 0
+  const efficiencyStatus = !hasInvestment
     ? "Sem investimento"
-    : attributionQuality.coverage < 80
-      ? "Custo subatribuído"
-      : attributionQuality.coverage < 95
-        ? "Eficiência em atenção"
-        : "Medição confiável";
+    : costCoverage === null || Number(costCoverage) < 80
+      ? "Custos incompletos"
+      : attributionQuality.coverage === null || Number(attributionQuality.coverage) < 80
+        ? "Custo subatribuído"
+        : warningAttribution || warningCostCoverage
+          ? "Eficiência em atenção"
+          : "Medição confiável";
   const cards = [
     ["Investimento total", formatMoney(costs.investimentoCentavos), "gasto registrado no período"],
     [
@@ -345,9 +446,11 @@ export function AdminMarketingCostsPage() {
       "vinculadas a campanhas do AF"
     ],
     [
-      "Custo por sessão oficial",
+      "Custo por sessão coberta",
       formatMoney(costs.custoPorSessaoCentavos),
-      `${formatMoney(costs.investimentoCentavos)} ÷ ${attributionQuality.officialSessions} sessões`
+      costCoveredSessions > 0
+        ? `${formatMoney(costs.investimentoCentavos)} ÷ ${costCoveredSessions} sessões com custo`
+        : "não calculável sem sessão coberta por custo"
     ],
     [
       "Cobertura do tráfego pago",
@@ -355,16 +458,20 @@ export function AdminMarketingCostsPage() {
       `${attributionQuality.pendingSessions} sessões fora dos KPIs`
     ],
     [
+      "Cobertura dos custos",
+      formatMetricPercent(costCoverage),
+      attributionQuality.officialSessions > 0
+        ? `${costCoveredSessions} de ${attributionQuality.officialSessions} sessões oficiais`
+        : "sem sessão oficial no período"
+    ],
+    [
       "CPA cliente",
       formatMoney(costs.cpaCentavos),
       Number(clientInvestment || 0) > 0
-        ? `${formatMoney(clientInvestment)} em campanhas de clientes`
+        ? clientConversionsWithCost > 0
+          ? `${formatMoney(clientInvestment)} ÷ ${clientConversionsWithCost} agendamentos com custo`
+          : "não calculável sem agendamento coberto por custo"
         : "sem investimento em campanhas de clientes"
-    ],
-    [
-      "Campanhas com investimento",
-      campaignsWithInvestment,
-      pluralize(activeCampaignCosts.length, "campanha ativa", "campanhas ativas")
     ]
   ];
 
@@ -399,7 +506,7 @@ export function AdminMarketingCostsPage() {
               aria-pressed={period === value}
               className={period === value ? "active" : ""}
               key={value}
-              onClick={() => setPeriod(value)}
+              onClick={() => selectPeriod(value)}
               type="button"
             >
               {label}
@@ -422,9 +529,13 @@ export function AdminMarketingCostsPage() {
       </section>
 
       <MarketingExecutivePanel
-        action={attributionQuality.pendingSessions > 0
-          ? "corrija as UTMs ausentes e cadastre as identidades não oficiais; até lá, custos por campanha e decisões de escala usam uma base incompleta."
-          : "compare CPA de clientes e CAC de profissionais antes de redistribuir orçamento."}
+        action={hasAttributionGap && hasCostGap
+          ? "corrija as UTMs pendentes e sincronize os custos das campanhas com tráfego antes de comparar eficiência ou aumentar orçamento."
+          : hasAttributionGap
+            ? "corrija as UTMs ausentes e cadastre as identidades não oficiais; até lá, custos por campanha usam uma base incompleta."
+            : hasCostGap
+              ? "sincronize os custos das campanhas com tráfego; sessões sem custo ficam fora de CPS e CPA para não reduzir artificialmente os indicadores."
+              : "compare CPA de clientes e CAC de profissionais antes de redistribuir orçamento."}
         metrics={[
           {
             label: "Aquisição profissional",
@@ -442,20 +553,49 @@ export function AdminMarketingCostsPage() {
             hint: "inclui pendências"
           },
           {
-            label: "Base oficial para custos",
-            value: attributionQuality.officialSessions,
-            hint: "denominador do custo por sessão"
+            label: "Campanhas com investimento",
+            value: campaignsWithInvestment,
+            hint: pluralize(campaignCosts.length, "campanha cadastrada", "campanhas cadastradas")
           }
         ]}
         status={efficiencyStatus}
         summary={Number(costs.investimentoCentavos || 0) <= 0
           ? "Não há investimento registrado no período selecionado."
-          : attributionQuality.pendingSessions > 0
-            ? `${formatMetricPercent(attributionQuality.coverage)} do tráfego pago detectado entra nos custos por campanha. A eficiência real pode estar melhor ou pior do que o valor exibido.`
-            : "Todo o tráfego pago detectado está atribuído a campanhas oficiais; os custos podem ser comparados com segurança dentro deste período."}
+          : hasCostGap
+            ? costCoverage === null
+              ? "Há investimento registrado, mas nenhuma sessão oficial possui custo sincronizado. CPS e CPA permanecem sem cálculo para evitar números artificialmente baixos."
+              : `${formatMetricPercent(costCoverage)} das sessões oficiais possuem custo sincronizado. CPS e CPA usam somente essa base coberta para não parecerem melhores do que realmente são.`
+            : hasAttributionGap
+              ? `${formatMetricPercent(attributionQuality.coverage)} do tráfego pago detectado entra nos custos por campanha. A eficiência real pode estar melhor ou pior do que o valor exibido.`
+              : "Todo o tráfego pago detectado está atribuído a campanhas oficiais; os custos podem ser comparados com segurança dentro deste período."}
         title="Eficiência e confiabilidade dos custos"
         tone={efficiencyTone}
       />
+
+      {hasCostGap && (
+        <section className="admin-notice-panel" aria-label="Diagnóstico de cobertura dos custos">
+          <div>
+            <p className="eyebrow">Custos incompletos</p>
+            <strong>
+              {officialSessionsWithoutCost > 0
+                ? pluralize(
+                    officialSessionsWithoutCost,
+                    "sessão oficial está sem custo",
+                    "sessões oficiais estão sem custo"
+                  )
+                : "Nenhuma sessão oficial está coberta por custo"}
+            </strong>
+          </div>
+          <div className="admin-notice-action">
+            <p className="muted">
+              Essas sessões não entram no denominador de CPS ou CPA. Assim, o painel não reduz artificialmente os custos enquanto a sincronização estiver incompleta.
+            </p>
+            <a className="button button-secondary button-small" href="#integracoes-custos">
+              Revisar sincronização
+            </a>
+          </div>
+        </section>
+      )}
 
       {attributionQuality.pendingSessions > 0 && (
         <section className="admin-notice-panel" aria-label="Diagnóstico de atribuição de custos">
@@ -636,6 +776,7 @@ export function AdminMarketingCostsPage() {
                   <th>Canal</th>
                   <th>Investimento</th>
                   <th>Sessões</th>
+                  <th>Cobertura custos</th>
                   <th>Custo/sessão</th>
                   <th>Agendamentos</th>
                   <th>CPA cliente</th>
@@ -658,8 +799,23 @@ export function AdminMarketingCostsPage() {
                     <td>{channelLabel(item.canal)}</td>
                     <td>{formatMoney(item.investimentoCentavos)}</td>
                     <td>{item.sessoes}</td>
+                    <td>
+                      <strong>{formatMetricPercent(campaignCostCoverage(item))}</strong>
+                      <small className="admin-table-secondary">
+                        {campaignSessionsWithCost(item)} com custo
+                      </small>
+                    </td>
                     <td>{formatMoney(item.custoPorSessaoCentavos)}</td>
-                    <td>{item.objetivo === "cliente" ? item.agendamentosConcluidos : "Não se aplica"}</td>
+                    <td>
+                      {item.objetivo === "cliente" ? (
+                        <>
+                          {item.agendamentosConcluidos}
+                          <small className="admin-table-secondary">
+                            {campaignConversionsWithCost(item)} com custo
+                          </small>
+                        </>
+                      ) : "Não se aplica"}
+                    </td>
                     <td>{item.objetivo === "cliente" ? formatMoney(item.cpaCentavos) : "Não se aplica"}</td>
                   </tr>
                 ))}

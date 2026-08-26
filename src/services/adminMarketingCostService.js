@@ -192,9 +192,49 @@ function mapearDesempenho(item) {
   const sessoes =
     inteiro(item?.sessoes);
 
+  const sessoesComCusto =
+    Math.min(
+      Math.max(0, sessoes),
+      Math.max(
+        0,
+        Object.prototype.hasOwnProperty.call(
+          item || {},
+          "sessoes_com_custo"
+        )
+          ? inteiro(
+              item?.sessoes_com_custo
+            )
+          : investimentoCentavos > 0
+            ? sessoes
+            : 0
+      )
+    );
+
   const agendamentosConcluidos =
     inteiro(
       item?.agendamentos_concluidos
+    );
+
+  const agendamentosConcluidosComCusto =
+    Math.min(
+      Math.max(
+        0,
+        agendamentosConcluidos
+      ),
+      Math.max(
+        0,
+        Object.prototype.hasOwnProperty.call(
+          item || {},
+          "agendamentos_concluidos_com_custo"
+        )
+          ? inteiro(
+              item
+                ?.agendamentos_concluidos_com_custo
+            )
+          : investimentoCentavos > 0
+            ? agendamentosConcluidos
+            : 0
+      )
     );
 
   const objetivo =
@@ -221,17 +261,40 @@ function mapearDesempenho(item) {
       item?.ativo !== false,
     investimentoCentavos,
     sessoes,
+    sessoesComCusto,
+    sessoesSemCusto:
+      Math.max(
+        0,
+        sessoes - sessoesComCusto
+      ),
+    coberturaCustos:
+      percentual(
+        sessoesComCusto,
+        sessoes
+      ),
     agendamentosConcluidos,
+    agendamentosConcluidosComCusto,
+    agendamentosConcluidosSemCusto:
+      Math.max(
+        0,
+        agendamentosConcluidos -
+          agendamentosConcluidosComCusto
+      ),
+    coberturaCustosConversoes:
+      percentual(
+        agendamentosConcluidosComCusto,
+        agendamentosConcluidos
+      ),
     custoPorSessaoCentavos:
       custoUnitario(
         investimentoCentavos,
-        sessoes
+        sessoesComCusto
       ),
     cpaCentavos:
       objetivo === "cliente"
         ? custoUnitario(
             investimentoCentavos,
-            agendamentosConcluidos
+            agendamentosConcluidosComCusto
           )
         : null,
   };
@@ -318,6 +381,9 @@ async function buscarCustos({
         sessoes:
           acumulado.sessoes +
           campanha.sessoes,
+        sessoesComCusto:
+          acumulado.sessoesComCusto +
+          campanha.sessoesComCusto,
         investimentoClientesCentavos:
           acumulado.investimentoClientesCentavos +
           (cliente
@@ -331,7 +397,6 @@ async function buscarCustos({
         campanhasComInvestimento:
           acumulado.campanhasComInvestimento +
           (
-            campanha.ativo &&
             campanha.investimentoCentavos > 0
               ? 1
               : 0
@@ -341,15 +406,22 @@ async function buscarCustos({
           (cliente
             ? campanha.agendamentosConcluidos
             : 0),
+        agendamentosClientesComCusto:
+          acumulado.agendamentosClientesComCusto +
+          (cliente
+            ? campanha.agendamentosConcluidosComCusto
+            : 0),
       };
     },
     {
       investimentoCentavos: 0,
       sessoes: 0,
+      sessoesComCusto: 0,
       investimentoClientesCentavos: 0,
       investimentoProfissionaisCentavos: 0,
       campanhasComInvestimento: 0,
       agendamentosClientesConcluidos: 0,
+      agendamentosClientesComCusto: 0,
     }
   );
 
@@ -387,6 +459,38 @@ async function buscarCustos({
       sessoesPagasDetectadas
     );
 
+  const sessoesComCusto =
+    Math.min(
+      totais.sessoesComCusto,
+      sessoesOficiais
+    );
+
+  const sessoesOficiaisSemCusto =
+    Math.max(
+      0,
+      sessoesOficiais -
+        sessoesComCusto
+    );
+
+  const coberturaCustos =
+    percentual(
+      sessoesComCusto,
+      sessoesOficiais
+    );
+
+  const agendamentosClientesSemCusto =
+    Math.max(
+      0,
+      totais.agendamentosClientesConcluidos -
+        totais.agendamentosClientesComCusto
+    );
+
+  const coberturaCustosClientes =
+    percentual(
+      totais.agendamentosClientesComCusto,
+      totais.agendamentosClientesConcluidos
+    );
+
   return {
     periodo:
       periodoNormalizado,
@@ -397,6 +501,9 @@ async function buscarCustos({
       sessoesOficiais,
     sessoesOficiais:
       sessoesOficiais,
+    sessoesComCusto,
+    sessoesOficiaisSemCusto,
+    coberturaCustos,
     sessoesPagasDetectadas,
     coberturaAtribuicaoPaga,
     sessoesSemCampanha,
@@ -411,21 +518,37 @@ async function buscarCustos({
     },
     agendamentosConcluidos:
       totais.agendamentosClientesConcluidos,
+    agendamentosClientesComCusto:
+      totais.agendamentosClientesComCusto,
+    agendamentosClientesSemCusto,
+    coberturaCustosClientes,
     investimentoClientesCentavos:
       totais.investimentoClientesCentavos,
     investimentoProfissionaisCentavos:
       totais.investimentoProfissionaisCentavos,
     campanhasComInvestimento:
       totais.campanhasComInvestimento,
+    diagnosticoCustos: {
+      sessoesOficiais,
+      sessoesComCusto,
+      sessoesOficiaisSemCusto,
+      coberturaCustos,
+      agendamentosClientes:
+        totais.agendamentosClientesConcluidos,
+      agendamentosClientesComCusto:
+        totais.agendamentosClientesComCusto,
+      agendamentosClientesSemCusto,
+      coberturaCustosClientes,
+    },
     custoPorSessaoCentavos:
       custoUnitario(
         totais.investimentoCentavos,
-        sessoesOficiais
+        sessoesComCusto
       ),
     cpaCentavos:
       custoUnitario(
         totais.investimentoClientesCentavos,
-        totais.agendamentosClientesConcluidos
+        totais.agendamentosClientesComCusto
       ),
     campanhas,
   };

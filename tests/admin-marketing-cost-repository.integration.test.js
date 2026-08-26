@@ -216,7 +216,59 @@ describe(
             utm_medium: "cpc",
             utm_campaign: utmCampaign,
             sessoes: 2,
+            sessoes_com_custo: 2,
             agendamentos_concluidos: 2,
+            agendamentos_concluidos_com_custo: 2,
+            investimento_centavos: "5000",
+          });
+      }
+    );
+
+    test(
+      "separa sessões de dias que ainda não possuem custo sincronizado",
+      async () => {
+        await db.query(
+          `
+          INSERT INTO eventos_produto (
+            nome,
+            pagina,
+            sessao_id,
+            propriedades,
+            created_at
+          )
+          VALUES (
+            'agendamento_concluido',
+            'finalizar_agendamento',
+            $1,
+            $2::JSONB,
+            NOW() - INTERVAL '1 day'
+          )
+          `,
+          [
+            sessionCanonical,
+            JSON.stringify({
+              utm_source: "meta",
+              utm_medium: "cpc",
+              utm_campaign: utmCampaign,
+              agendamento_id: 55003,
+            }),
+          ]
+        );
+
+        const linhas =
+          await adminMarketingCostRepository
+            .listarDesempenho("all");
+        const encontrada = linhas.find(
+          (item) =>
+            Number(item.id) === campanhaId
+        );
+
+        expect(encontrada)
+          .toMatchObject({
+            sessoes: 3,
+            sessoes_com_custo: 2,
+            agendamentos_concluidos: 3,
+            agendamentos_concluidos_com_custo: 2,
             investimento_centavos: "5000",
           });
       }

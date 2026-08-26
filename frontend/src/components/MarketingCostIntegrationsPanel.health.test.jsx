@@ -101,17 +101,19 @@ describe("saúde das integrações de custo no admin", () => {
   it("mostra agenda automática, saúde e detalhes da última sincronização", async () => {
     render(<MarketingCostIntegrationsPanel />);
 
-    expect(await screen.findByText("Saudável")).not.toBeNull();
-    expect(screen.getByText("Parcial")).not.toBeNull();
+    const healthyBadge = await screen.findByText("Saudável");
+    const partialBadge = screen.getByText("Parcial");
+    expect(healthyBadge.classList.contains("is-success")).toBe(true);
+    expect(partialBadge.classList.contains("is-warning")).toBe(true);
     expect(screen.getByText("Custos automáticos ativos")).not.toBeNull();
     expect(
       screen.getByText("Atualização a cada 6h · alerta após 12h sem sincronização.")
     ).not.toBeNull();
     expect(
-      screen.getByText(
+      screen.queryByText(
         "18 registro(s) importado(s) na última sincronização."
       )
-    ).not.toBeNull();
+    ).toBeNull();
     expect(
       screen.getByText(
         "2 campanha(s) externa(s) ficaram sem vínculo na última sincronização."
@@ -121,6 +123,35 @@ describe("saúde das integrações de custo no admin", () => {
     expect(
       screen.getByText("7 registros importados · 2 campanhas externas sem vínculo")
     ).not.toBeNull();
+  });
+
+  it("destaca falha da integração como estado crítico", async () => {
+    const payload = integrationsPayload();
+    payload.provedores[0].saude = {
+      codigo: "erro",
+      rotulo: "Erro",
+      nivel: "erro",
+      detalhe: "A última sincronização falhou."
+    };
+
+    apiRequest.mockImplementation((path) => {
+      if (path === "/admin/marketing/custos-integracoes") {
+        return Promise.resolve(payload);
+      }
+      if (path === "/admin/marketing/gestao-campanhas") {
+        return Promise.resolve({ campanhas: [] });
+      }
+      if (path.endsWith("/campanhas")) {
+        return Promise.resolve({ contaExternaId: "6770207927", campanhas: [] });
+      }
+      return Promise.reject(new Error(`Rota inesperada: ${path}`));
+    });
+
+    render(<MarketingCostIntegrationsPanel />);
+
+    const errorBadge = await screen.findByText("Erro");
+    expect(errorBadge.classList.contains("is-critical")).toBe(true);
+    expect(screen.getByText("A última sincronização falhou.")).not.toBeNull();
   });
 
   it("explica por que o vínculo ainda não pode ser salvo", async () => {

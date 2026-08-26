@@ -219,6 +219,16 @@
   color: #7c5b16;
 }
 
+.admin-status-badge.is-critical {
+  border-color: #efc1c5;
+  background: #fff1f2;
+  color: #a12b36;
+}
+
+#integracoes-custos {
+  scroll-margin-top: 1rem;
+}
+
 .admin-notice-panel {
   display: grid;
   grid-template-columns: minmax(220px, 0.65fr) minmax(0, 1.8fr);

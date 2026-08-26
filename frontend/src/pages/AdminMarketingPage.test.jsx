@@ -386,6 +386,29 @@ describe("AdminMarketingPage", () => {
     );
   });
 
+  it("não reaproveita métricas de outro período quando uma API crítica falha", async () => {
+    const user = userEvent.setup();
+    render(<AdminMarketingPage />);
+
+    await screen.findByRole("heading", { name: "Campanhas e tráfego" });
+
+    const originalImplementation = apiRequest.getMockImplementation();
+    apiRequest.mockImplementation((path, options) => {
+      if (path === "/admin/marketing/resumo?periodo=7") {
+        return Promise.reject(new Error("Resumo de 7 dias indisponível"));
+      }
+      return originalImplementation(path, options);
+    });
+
+    await user.click(screen.getByRole("button", { name: "7 dias" }));
+
+    const alert = await screen.findByRole("alert");
+    expect(alert.textContent).toContain("Resumo de 7 dias indisponível");
+    expect(
+      screen.queryByText("Google Ads · Aquisição de profissionais")
+    ).toBeNull();
+  });
+
   it("mantém as seções úteis quando uma API falha", async () => {
     const originalImplementation = apiRequest.getMockImplementation();
     apiRequest.mockImplementation((path, options) => {

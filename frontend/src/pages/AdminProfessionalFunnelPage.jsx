@@ -160,6 +160,14 @@ export function AdminProfessionalFunnelPage() {
     };
   }, [period, reloadKey]);
 
+  function selectPeriod(value) {
+    if (value === period) return;
+    setData(null);
+    setError("");
+    setExpandedCampaign("");
+    setPeriod(value);
+  }
+
   if (!data && !error) {
     return (
       <main className="workspace-page admin-workspace-page admin-marketing-page admin-professional-funnel-page">
@@ -312,7 +320,7 @@ export function AdminProfessionalFunnelPage() {
               aria-pressed={period === value}
               className={period === value ? "active" : ""}
               key={value}
-              onClick={() => setPeriod(value)}
+              onClick={() => selectPeriod(value)}
               type="button"
             >
               {label}

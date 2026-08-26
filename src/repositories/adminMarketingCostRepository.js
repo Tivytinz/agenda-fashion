@@ -161,6 +161,27 @@ async function listarDesempenho(
         ${vinculoCampanha}
       ),
 
+      gastos_por_campanha_dia AS (
+        SELECT
+          g.campanha_id,
+          g.data_gasto,
+
+          COALESCE(
+            SUM(g.valor_centavos),
+            0
+          )::BIGINT
+            AS investimento_centavos
+
+        FROM marketing_campanha_gastos g
+
+        WHERE g.moeda = 'BRL'
+          ${gastos}
+
+        GROUP BY
+          g.campanha_id,
+          g.data_gasto
+      ),
+
       eventos_por_campanha AS (
         SELECT
           mc.id AS campanha_id,
@@ -170,6 +191,16 @@ async function listarDesempenho(
           ) FILTER (
             WHERE e.id IS NOT NULL
           )::INT AS sessoes,
+
+          COUNT(
+            DISTINCT e.sessao_id
+          ) FILTER (
+            WHERE e.id IS NOT NULL
+              AND COALESCE(
+                gcd.investimento_centavos,
+                0
+              ) > 0
+          )::INT AS sessoes_com_custo,
 
           COUNT(
             DISTINCT COALESCE(
@@ -185,32 +216,60 @@ async function listarDesempenho(
           ) FILTER (
             WHERE e.nome =
               'agendamento_concluido'
-          )::INT AS agendamentos_concluidos
+          )::INT AS agendamentos_concluidos,
+
+          COUNT(
+            DISTINCT COALESCE(
+              NULLIF(
+                BTRIM(
+                  e.propriedades
+                    ->> 'agendamento_id'
+                ),
+                ''
+              ),
+              e.id::TEXT
+            )
+          ) FILTER (
+            WHERE e.nome =
+                'agendamento_concluido'
+              AND COALESCE(
+                gcd.investimento_centavos,
+                0
+              ) > 0
+          )::INT
+            AS agendamentos_concluidos_com_custo
 
         FROM marketing_campanhas mc
 
         LEFT JOIN eventos_vinculados e
           ON e.campanha_id = mc.id
 
+        LEFT JOIN gastos_por_campanha_dia gcd
+          ON gcd.campanha_id = mc.id
+          AND gcd.data_gasto =
+            (
+              e.created_at AT TIME ZONE
+                '${REPORT_TIME_ZONE}'
+            )::date
+
         GROUP BY mc.id
       ),
 
       gastos_por_campanha AS (
         SELECT
-          g.campanha_id,
+          gcd.campanha_id,
 
           COALESCE(
-            SUM(g.valor_centavos),
+            SUM(
+              gcd.investimento_centavos
+            ),
             0
           )::BIGINT
             AS investimento_centavos
 
-        FROM marketing_campanha_gastos g
+        FROM gastos_por_campanha_dia gcd
 
-        WHERE g.moeda = 'BRL'
-          ${gastos}
-
-        GROUP BY g.campanha_id
+        GROUP BY gcd.campanha_id
       )
 
       SELECT
@@ -229,10 +288,21 @@ async function listarDesempenho(
         )::INT AS sessoes,
 
         COALESCE(
+          epc.sessoes_com_custo,
+          0
+        )::INT AS sessoes_com_custo,
+
+        COALESCE(
           epc.agendamentos_concluidos,
           0
         )::INT
           AS agendamentos_concluidos,
+
+        COALESCE(
+          epc.agendamentos_concluidos_com_custo,
+          0
+        )::INT
+          AS agendamentos_concluidos_com_custo,
 
         COALESCE(
           gpc.investimento_centavos,

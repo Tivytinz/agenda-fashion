@@ -43,9 +43,15 @@ function mockRequests() {
         investimentoCentavos: 10000,
         investimentoClientesCentavos: 10000,
         sessoes: 20,
+        sessoesComCusto: 20,
+        sessoesOficiaisSemCusto: 0,
+        coberturaCustos: 100,
         sessoesSemCampanha: 6,
         sessoesIdentidadeNaoOficial: 1,
         agendamentosConcluidos: 4,
+        agendamentosClientesComCusto: 4,
+        agendamentosClientesSemCusto: 0,
+        coberturaCustosClientes: 100,
         custoPorSessaoCentavos: 500,
         cpaCentavos: 2500,
         campanhas: [
@@ -56,6 +62,9 @@ function mockRequests() {
             canal: "meta",
             investimentoCentavos: 10000,
             sessoes: 20,
+            sessoesComCusto: 20,
+            sessoesSemCusto: 0,
+            coberturaCustos: 100,
             agendamentosConcluidos: 4,
             custoPorSessaoCentavos: 500,
             cpaCentavos: 2500,
@@ -153,12 +162,78 @@ describe("AdminMarketingCostsPage", () => {
       await screen.findByRole("heading", { name: "Investimento e eficiência" })
     ).not.toBeNull();
     expect(screen.getByText("Sessões oficiais")).not.toBeNull();
-    expect(screen.getByText("Custo por sessão oficial")).not.toBeNull();
+    expect(screen.getByText("Custo por sessão coberta")).not.toBeNull();
+    expect(screen.getByText("Cobertura dos custos")).not.toBeNull();
+    expect(screen.getAllByText("100%").length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByText("74,1%").length).toBeGreaterThanOrEqual(1);
     expect(screen.getByText(/7 sessões pagas fora dos KPIs/i)).not.toBeNull();
     expect(screen.getByText(/1 sessão usa identidade não oficial/i)).not.toBeNull();
     expect(screen.getByText("Investimento por campanha")).not.toBeNull();
     expect(screen.getAllByText("Meta Agosto").length).toBeGreaterThanOrEqual(2);
+  });
+
+  it("não reduz CPS e CPA quando parte das sessões ainda está sem custo", async () => {
+    const originalImplementation = apiRequest.getMockImplementation();
+    apiRequest.mockImplementation((path, options) => {
+      if (path.startsWith("/admin/marketing/custos?")) {
+        return Promise.resolve({
+          periodo: "30",
+          moeda: "BRL",
+          investimentoCentavos: 10000,
+          investimentoClientesCentavos: 10000,
+          investimentoProfissionaisCentavos: 0,
+          sessoes: 50,
+          sessoesOficiais: 50,
+          sessoesComCusto: 20,
+          sessoesOficiaisSemCusto: 30,
+          coberturaCustos: 40,
+          sessoesSemCampanha: 0,
+          sessoesIdentidadeNaoOficial: 0,
+          agendamentosConcluidos: 10,
+          agendamentosClientesComCusto: 4,
+          agendamentosClientesSemCusto: 6,
+          coberturaCustosClientes: 40,
+          custoPorSessaoCentavos: 500,
+          cpaCentavos: 2500,
+          campanhasComInvestimento: 1,
+          campanhas: [
+            {
+              campanhaId: 3,
+              nome: "Meta Agosto",
+              objetivo: "cliente",
+              canal: "meta",
+              investimentoCentavos: 10000,
+              sessoes: 50,
+              sessoesComCusto: 20,
+              sessoesSemCusto: 30,
+              coberturaCustos: 40,
+              agendamentosConcluidos: 10,
+              agendamentosConcluidosComCusto: 4,
+              custoPorSessaoCentavos: 500,
+              cpaCentavos: 2500,
+              ativo: true
+            }
+          ]
+        });
+      }
+      return originalImplementation(path, options);
+    });
+
+    render(
+      <MemoryRouter>
+        <AdminMarketingCostsPage />
+      </MemoryRouter>
+    );
+
+    expect(
+      (await screen.findAllByText("Custos incompletos")).length
+    ).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText("40%").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getByText(/30 sessões oficiais estão sem custo/i)).not.toBeNull();
+    expect(
+      screen.getByText(/R\$\s*100,00 ÷ 20 sessões com custo/i)
+    ).not.toBeNull();
+    expect(screen.getAllByText(/R\$\s*25,00/).length).toBeGreaterThanOrEqual(1);
   });
 
   it("mantém lançamento manual fechado até o administrador pedir", async () => {
@@ -276,7 +351,7 @@ describe("AdminMarketingCostsPage", () => {
     expect(screen.getByRole("alert").textContent).toContain("Parte dos custos de marketing");
   });
 
-  it("preserva os últimos custos se apenas a atualização deles falhar", async () => {
+  it("não reaproveita custos de outro período quando a atualização falha", async () => {
     const user = userEvent.setup();
     render(
       <MemoryRouter>
@@ -294,7 +369,8 @@ describe("AdminMarketingCostsPage", () => {
     });
 
     await user.click(screen.getByRole("button", { name: "7 dias" }));
-    await screen.findByRole("alert");
-    expect(screen.getAllByText(/R\$\s*100,00/).length).toBeGreaterThanOrEqual(1);
+    const alert = await screen.findByRole("alert");
+    expect(alert.textContent).toContain("Custos indisponíveis");
+    expect(screen.queryByText(/R\$\s*100,00/)).toBeNull();
   });
 });

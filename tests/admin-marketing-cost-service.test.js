@@ -95,9 +95,15 @@ describe(
             investimentoProfissionaisCentavos: 0,
             campanhasComInvestimento: 1,
             sessoes: 20,
+            sessoesComCusto: 20,
+            sessoesOficiaisSemCusto: 0,
+            coberturaCustos: 100,
             sessoesPagasDetectadas: 25,
             coberturaAtribuicaoPaga: 80,
             agendamentosConcluidos: 4,
+            agendamentosClientesComCusto: 4,
+            agendamentosClientesSemCusto: 0,
+            coberturaCustosClientes: 100,
             custoPorSessaoCentavos: 500,
             cpaCentavos: 2500,
             sessoesSemCampanha: 3,
@@ -117,9 +123,83 @@ describe(
           campanhaId: 4,
           objetivo: "cliente",
           investimentoCentavos: 10000,
+          sessoesComCusto: 20,
+          sessoesSemCusto: 0,
+          coberturaCustos: 100,
           custoPorSessaoCentavos: 500,
           cpaCentavos: 2500,
         });
+      }
+    );
+
+    test(
+      "não reduz CPS ou CPA usando sessões e conversões sem custo sincronizado",
+      async () => {
+        adminMarketingCostRepository
+          .listarDesempenho
+          .mockResolvedValue([
+            {
+              id: 4,
+              nome: "Cliente com custo",
+              canal: "google",
+              objetivo: "cliente",
+              utm_source: "google",
+              utm_medium: "cpc",
+              utm_campaign: "cliente_com_custo",
+              ativo: true,
+              sessoes: 50,
+              sessoes_com_custo: 20,
+              agendamentos_concluidos: 10,
+              agendamentos_concluidos_com_custo: 4,
+              investimento_centavos: "10000",
+            },
+          ]);
+        adminMarketingCostRepository
+          .buscarDiagnosticoAtribuicao
+          .mockResolvedValue({
+            sessoes_oficiais: 50,
+            sessoes_sem_campanha: 0,
+            sessoes_identidade_nao_oficial: 0,
+          });
+
+        const resultado =
+          await adminMarketingCostService
+            .buscarCustos();
+
+        expect(resultado)
+          .toMatchObject({
+            investimentoCentavos: 10000,
+            sessoesOficiais: 50,
+            sessoesComCusto: 20,
+            sessoesOficiaisSemCusto: 30,
+            coberturaCustos: 40,
+            agendamentosConcluidos: 10,
+            agendamentosClientesComCusto: 4,
+            agendamentosClientesSemCusto: 6,
+            coberturaCustosClientes: 40,
+            custoPorSessaoCentavos: 500,
+            cpaCentavos: 2500,
+            campanhasComInvestimento: 1,
+          });
+
+        expect(resultado.diagnosticoCustos)
+          .toMatchObject({
+            sessoesComCusto: 20,
+            sessoesOficiaisSemCusto: 30,
+            agendamentosClientesComCusto: 4,
+            agendamentosClientesSemCusto: 6,
+          });
+
+        expect(resultado.campanhas[0])
+          .toMatchObject({
+            sessoes: 50,
+            sessoesComCusto: 20,
+            sessoesSemCusto: 30,
+            coberturaCustos: 40,
+            agendamentosConcluidos: 10,
+            agendamentosConcluidosComCusto: 4,
+            coberturaCustosConversoes: 40,
+          });
       }
     );
 
@@ -246,6 +326,7 @@ describe(
           .toMatchObject({
             sessoesPagasDetectadas: 0,
             coberturaAtribuicaoPaga: null,
+            coberturaCustos: null,
             custoPorSessaoCentavos: null,
             cpaCentavos: null,
             campanhasComInvestimento: 0,

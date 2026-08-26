@@ -98,11 +98,37 @@ function syncDetail(item) {
 }
 
 function shouldShowHealthDetail(item) {
-  const state = String(item?.saude?.estado || "");
+  const state = String(
+    item?.saude?.codigo ||
+      item?.saude?.estado ||
+      ""
+  ).toLowerCase();
   return Boolean(
     item?.saude?.detalhe &&
       !["saudavel", "nao_sincronizado"].includes(state)
   );
+}
+
+function healthBadgeClass(item) {
+  const level = String(item?.saude?.nivel || "").toLowerCase();
+  const code = String(
+    item?.saude?.codigo ||
+      item?.saude?.estado ||
+      ""
+  ).toLowerCase();
+
+  if (level === "sucesso" || code === "saudavel") return "is-success";
+  if (level === "erro" || code === "erro") return "is-critical";
+  if (level === "aviso" || [
+    "configuracao_incompleta",
+    "nao_sincronizado",
+    "parcial",
+    "desatualizado"
+  ].includes(code)) {
+    return "is-warning";
+  }
+
+  return "is-muted";
 }
 
 export function MarketingCostIntegrationsPanel({ onChanged }) {
@@ -346,15 +372,17 @@ export function MarketingCostIntegrationsPanel({ onChanged }) {
   const externalReady = Boolean(selectedExternalCampaign);
   const canSaveLink = Boolean(
     !saving &&
-      eligibleCampaigns.length > 0 &&
-      selectedProvider?.configurado &&
-      !loadingExternalCampaigns &&
-      externalCampaignId
+      platformReady &&
+      afCampaignReady &&
+      externalReady &&
+      !loadingExternalCampaigns
   );
 
   let linkBlockReason = "";
   if (!selectedProvider?.configurado) {
     linkBlockReason = `Complete a configuração do ${providerLabel} antes de vincular campanhas.`;
+  } else if (!platformReady) {
+    linkBlockReason = `A conta externa do ${providerLabel} não foi identificada. Teste a conexão antes de continuar.`;
   } else if (eligibleCampaigns.length === 0) {
     linkBlockReason =
       `Crie ou classifique uma campanha ativa do AF para ${providerLabel} antes de continuar.`;
@@ -365,7 +393,11 @@ export function MarketingCostIntegrationsPanel({ onChanged }) {
   }
 
   return (
-    <section className="panel" aria-busy={loading || loadingExternalCampaigns}>
+    <section
+      aria-busy={loading || loadingExternalCampaigns}
+      className="panel"
+      id="integracoes-custos"
+    >
       <div className="panel-heading">
         <div>
           <p className="eyebrow">Integrações de mídia</p>
@@ -392,13 +424,12 @@ export function MarketingCostIntegrationsPanel({ onChanged }) {
             {(data?.provedores || []).map((item) => {
               const hasLinks = Number(item.vinculos || 0) > 0;
               const hasSync = Boolean(item.ultimaSincronizacao);
-              const healthy = item.saude?.estado === "saudavel";
 
               return (
                 <article className="integration-health-card" key={item.provedor}>
                   <div className="integration-health-card-heading">
                     <span>{item.nome}</span>
-                    <span className={`admin-status-badge ${healthy ? "is-success" : "is-muted"}`}>
+                    <span className={`admin-status-badge ${healthBadgeClass(item)}`}>
                       {statusLabel(item)}
                     </span>
                   </div>

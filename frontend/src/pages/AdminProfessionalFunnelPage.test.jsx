@@ -439,7 +439,7 @@ describe("AdminProfessionalFunnelPage", () => {
     });
   });
 
-  it("preserva a coorte carregada se a atualização falhar", async () => {
+  it("não reaproveita a coorte de outro período se a atualização falhar", async () => {
     const user = userEvent.setup();
 
     render(
@@ -453,7 +453,8 @@ describe("AdminProfessionalFunnelPage", () => {
 
     await user.click(screen.getByRole("button", { name: "7 dias" }));
 
-    expect(await screen.findByRole("alert")).not.toBeNull();
-    expect(screen.getAllByText("profissionais_goiania").length).toBeGreaterThanOrEqual(1);
+    const alert = await screen.findByRole("alert");
+    expect(alert.textContent).toContain("Funil indisponível");
+    expect(screen.queryByText("profissionais_goiania")).toBeNull();
   });
 });

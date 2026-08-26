@@ -235,21 +235,33 @@ export function AdminMarketingPage() {
       .then(({ values, errors }) => {
         if (!active) return;
 
-        if (Object.keys(values).length === 0) {
+        const criticalKeys = [
+          "summary",
+          "campaigns",
+          "managedCampaigns"
+        ];
+        const criticalDataReady = criticalKeys.every(
+          (key) => Object.prototype.hasOwnProperty.call(values, key)
+        );
+
+        if (!criticalDataReady) {
+          const criticalError = errors.find(({ key }) =>
+            criticalKeys.includes(key)
+          );
           setError(
-            errors[0]?.error?.message ||
+            criticalError?.error?.message ||
               "Não foi possível carregar os dados de marketing."
           );
           return;
         }
 
-        setData((current) => ({
-          summary: values.summary || current?.summary || {},
-          campaigns: values.campaigns?.campanhas || current?.campaigns || [],
-          conversions: values.conversions?.conversoes || current?.conversions || [],
+        setData({
+          summary: values.summary,
+          campaigns: values.campaigns?.campanhas || [],
+          conversions: values.conversions?.conversoes || [],
           managedCampaigns:
-            values.managedCampaigns?.campanhas || current?.managedCampaigns || []
-        }));
+            values.managedCampaigns?.campanhas || []
+        });
 
         if (errors.some(({ error: itemError }) => itemError?.name !== "AbortError")) {
           setError("Parte dos dados de marketing está temporariamente indisponível.");
@@ -266,7 +278,10 @@ export function AdminMarketingPage() {
   }, [period, reloadKey]);
 
   function selectPeriod(value) {
-    if (value !== period) setPeriod(value);
+    if (value === period) return;
+    setData(null);
+    setError("");
+    setPeriod(value);
   }
 
   function updateCampaignForm(field, value) {
