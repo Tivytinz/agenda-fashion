@@ -7,12 +7,17 @@ import { Link } from "react-router-dom";
 import { apiRequest } from "../api/client";
 import { MarketingBarChart } from "../components/MarketingBarChart";
 import { MarketingCostIntegrationsPanel } from "../components/MarketingCostIntegrationsPanel";
+import { MarketingExecutivePanel } from "../components/MarketingExecutivePanel";
 import {
   ErrorState,
   LoadingState
 } from "../components/ScreenState";
 import { settleRequestMap } from "../utils/asyncData";
 import { countPaidSessionsWithoutCampaign } from "../utils/marketingAttribution";
+import {
+  formatMetricPercent,
+  paidAttributionQuality
+} from "../utils/marketingMetrics";
 
 const PERIODS = [
   ["today", "Hoje"],
@@ -292,46 +297,74 @@ export function AdminMarketingCostsPage() {
   const visibleCampaignCosts = showArchivedCosts
     ? campaignCosts
     : reportedCampaignCosts;
-  const hasClientCampaigns = campaignCosts.some(
-    (item) =>
-      item.objetivo === "cliente" &&
-      Number(item.investimentoCentavos || 0) > 0
+  const unofficialAttributionSessions = Number(
+    costs.sessoesIdentidadeNaoOficial || 0
   );
-  const cards = hasClientCampaigns ? [
-    ["Investimento", formatMoney(costs.investimentoCentavos), "gasto total no período"],
+  const attributionQuality = paidAttributionQuality({
+    official: costs.sessoesOficiais ?? costs.sessoes,
+    missingCampaign: paidWithoutCampaignSessions,
+    unofficialIdentity: unofficialAttributionSessions
+  });
+  const professionalInvestment = costs.investimentoProfissionaisCentavos ??
+    campaignCosts
+      .filter((item) => item.objetivo === "profissional")
+      .reduce(
+        (total, item) => total + Number(item.investimentoCentavos || 0),
+        0
+      );
+  const clientInvestment = costs.investimentoClientesCentavos ??
+    campaignCosts
+      .filter((item) => item.objetivo === "cliente")
+      .reduce(
+        (total, item) => total + Number(item.investimentoCentavos || 0),
+        0
+      );
+  const campaignsWithInvestment = costs.campanhasComInvestimento ??
+    activeCampaignCosts.filter(
+      (item) => Number(item.investimentoCentavos || 0) > 0
+    ).length;
+  const efficiencyTone = Number(costs.investimentoCentavos || 0) <= 0
+    ? "neutral"
+    : attributionQuality.coverage < 80
+      ? "critical"
+      : attributionQuality.coverage < 95
+        ? "warning"
+        : "success";
+  const efficiencyStatus = Number(costs.investimentoCentavos || 0) <= 0
+    ? "Sem investimento"
+    : attributionQuality.coverage < 80
+      ? "Custo subatribuído"
+      : attributionQuality.coverage < 95
+        ? "Eficiência em atenção"
+        : "Medição confiável";
+  const cards = [
+    ["Investimento total", formatMoney(costs.investimentoCentavos), "gasto registrado no período"],
     [
-      "Custo por sessão",
-      formatMoney(costs.custoPorSessaoCentavos),
-      pluralize(costs.sessoes ?? 0, "sessão vinculada", "sessões vinculadas")
+      "Sessões oficiais",
+      attributionQuality.officialSessions,
+      "vinculadas a campanhas do AF"
     ],
     [
-      "Agendamentos de clientes",
-      costs.agendamentosConcluidos ?? 0,
-      "somente campanhas de clientes"
+      "Custo por sessão oficial",
+      formatMoney(costs.custoPorSessaoCentavos),
+      `${formatMoney(costs.investimentoCentavos)} ÷ ${attributionQuality.officialSessions} sessões`
+    ],
+    [
+      "Cobertura do tráfego pago",
+      formatMetricPercent(attributionQuality.coverage),
+      `${attributionQuality.pendingSessions} sessões fora dos KPIs`
     ],
     [
       "CPA cliente",
       formatMoney(costs.cpaCentavos),
-      `${formatMoney(costs.investimentoClientesCentavos)} em campanhas de clientes`
-    ]
-  ] : [
-    ["Investimento", formatMoney(costs.investimentoCentavos), "gasto total no período"],
-    [
-      "Custo por sessão",
-      formatMoney(costs.custoPorSessaoCentavos),
-      pluralize(costs.sessoes ?? 0, "sessão vinculada", "sessões vinculadas")
-    ],
-    [
-      "Sessões sem campanha",
-      paidWithoutCampaignSessions,
-      paidWithoutCampaignSessions > 0
-        ? "precisam de correção UTM"
-        : "atribuição de campanha completa"
+      Number(clientInvestment || 0) > 0
+        ? `${formatMoney(clientInvestment)} em campanhas de clientes`
+        : "sem investimento em campanhas de clientes"
     ],
     [
       "Campanhas com investimento",
-      activeCampaignCosts.filter((item) => Number(item.investimentoCentavos || 0) > 0).length,
-      `${activeCampaignCosts.length} campanhas ativas`
+      campaignsWithInvestment,
+      pluralize(activeCampaignCosts.length, "campanha ativa", "campanhas ativas")
     ]
   ];
 
@@ -388,21 +421,65 @@ export function AdminMarketingCostsPage() {
         ))}
       </section>
 
-      {paidWithoutCampaignSessions > 0 && (
+      <MarketingExecutivePanel
+        action={attributionQuality.pendingSessions > 0
+          ? "corrija as UTMs ausentes e cadastre as identidades não oficiais; até lá, custos por campanha e decisões de escala usam uma base incompleta."
+          : "compare CPA de clientes e CAC de profissionais antes de redistribuir orçamento."}
+        metrics={[
+          {
+            label: "Aquisição profissional",
+            value: formatMoney(professionalInvestment),
+            hint: "investimento por objetivo"
+          },
+          {
+            label: "Aquisição de clientes",
+            value: formatMoney(clientInvestment),
+            hint: "investimento por objetivo"
+          },
+          {
+            label: "Tráfego pago detectado",
+            value: attributionQuality.detectedPaidSessions,
+            hint: "inclui pendências"
+          },
+          {
+            label: "Base oficial para custos",
+            value: attributionQuality.officialSessions,
+            hint: "denominador do custo por sessão"
+          }
+        ]}
+        status={efficiencyStatus}
+        summary={Number(costs.investimentoCentavos || 0) <= 0
+          ? "Não há investimento registrado no período selecionado."
+          : attributionQuality.pendingSessions > 0
+            ? `${formatMetricPercent(attributionQuality.coverage)} do tráfego pago detectado entra nos custos por campanha. A eficiência real pode estar melhor ou pior do que o valor exibido.`
+            : "Todo o tráfego pago detectado está atribuído a campanhas oficiais; os custos podem ser comparados com segurança dentro deste período."}
+        title="Eficiência e confiabilidade dos custos"
+        tone={efficiencyTone}
+      />
+
+      {attributionQuality.pendingSessions > 0 && (
         <section className="admin-notice-panel" aria-label="Diagnóstico de atribuição de custos">
           <div>
             <p className="eyebrow">Atribuição pendente</p>
             <strong>
-              {pluralize(
-                paidWithoutCampaignSessions,
-                "sessão paga ainda sem campanha",
-                "sessões pagas ainda sem campanha"
-              )}
+              {pluralize(attributionQuality.pendingSessions, "sessão paga fora dos KPIs", "sessões pagas fora dos KPIs")}
             </strong>
           </div>
           <div className="admin-notice-action">
             <p className="muted">
-              A origem paga foi reconhecida, mas a campanha UTM não chegou. Essas sessões aparecem no tráfego geral, porém não entram no custo de uma campanha cadastrada.
+              {paidWithoutCampaignSessions > 0 && (
+                <>
+                  {pluralize(paidWithoutCampaignSessions, "sessão está sem campanha", "sessões estão sem campanha")}.
+                  {" "}
+                </>
+              )}
+              {unofficialAttributionSessions > 0 && (
+                <>
+                  {pluralize(unofficialAttributionSessions, "sessão usa identidade não oficial", "sessões usam identidade não oficial")}.
+                  {" "}
+                </>
+              )}
+              Elas aparecem no tráfego geral, porém não entram no custo de uma campanha cadastrada.
             </p>
             <Link className="button button-secondary button-small" to="/admin/trafego-pago">
               Corrigir rastreamento

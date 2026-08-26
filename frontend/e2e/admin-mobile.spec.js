@@ -52,26 +52,85 @@ test("admin e consentimento permanecem navegáveis no celular", async ({ page })
     body: ""
   }));
   await page.route("**/admin/marketing/resumo**", (route) => json(route, {
-    sessoes: 12,
-    campanhas: 2,
-    agendamentosIniciados: 4,
-    agendamentosConcluidos: 2,
-    taxaConversao: 16.67
+    totalSessoes: 229,
+    sessoes: 20,
+    sessoesAutonomas: 209,
+    sessoesSemAtribuicao: 209,
+    campanhas: 1,
+    agendamentosIniciados: 0,
+    agendamentosConcluidos: 0,
+    taxaConversao: 0
   }));
   await page.route("**/admin/marketing/campanhas**", (route) => json(route, {
-    campanhas: []
+    campanhas: [
+      {
+        origem: "google",
+        midia: "cpc",
+        campanha: "google_ads_profissionais",
+        objetivo: "profissional",
+        oficial: true,
+        classificacaoAtribuicao: "oficial",
+        sessoes: 13,
+        perfisVisualizados: 7,
+        agendamentosIniciados: 0,
+        agendamentosConcluidos: 0,
+        taxaConversao: 0
+      },
+      {
+        origem: "google",
+        midia: "cpc",
+        campanha: "(sem campanha)",
+        oficial: false,
+        classificacaoAtribuicao: "rastreamento_incompleto",
+        sessoes: 6,
+        perfisVisualizados: 0,
+        agendamentosIniciados: 0,
+        agendamentosConcluidos: 0,
+        taxaConversao: 0
+      },
+      {
+        origem: "google",
+        midia: "cpc",
+        campanha: "identidade_antiga",
+        oficial: false,
+        classificacaoAtribuicao: "identidade_nao_oficial",
+        sessoes: 1,
+        perfisVisualizados: 0,
+        agendamentosIniciados: 0,
+        agendamentosConcluidos: 0,
+        taxaConversao: 0
+      }
+    ]
   }));
   await page.route("**/admin/marketing/conversoes**", (route) => json(route, {
     conversoes: []
   }));
   await page.route("**/admin/marketing/gestao-campanhas", (route) => json(route, {
-    campanhas: []
+    campanhas: [
+      {
+        id: 7,
+        nome: "Google Ads · Aquisição de profissionais",
+        canal: "google",
+        objetivo: "profissional",
+        utmSource: "google",
+        utmMedium: "cpc",
+        utmCampaign: "google_ads_profissionais",
+        destinoPath: "/para-profissionais",
+        ativo: true,
+        linkRastreavel: "https://app.agendafashion.com.br/para-profissionais?utm_source=google&utm_medium=cpc&utm_campaign=google_ads_profissionais"
+      }
+    ]
   }));
 
   await page.goto("/admin/trafego-pago");
 
   await expect(
     page.getByRole("heading", { name: "Campanhas e tráfego" })
+  ).toBeVisible();
+  await expect(page.getByText("Cobertura do tráfego pago")).toBeVisible();
+  await expect(page.getByText("65%", { exact: true })).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Qualidade da medição paga" })
   ).toBeVisible();
   const navigation = page.getByRole("navigation", {
     name: "Administração do Agenda Fashion"

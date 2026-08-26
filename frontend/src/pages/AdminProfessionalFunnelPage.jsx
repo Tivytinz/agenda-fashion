@@ -5,10 +5,16 @@ import {
 } from "react";
 import { apiRequest } from "../api/client";
 import { MarketingBarChart } from "../components/MarketingBarChart";
+import { MarketingExecutivePanel } from "../components/MarketingExecutivePanel";
 import {
   ErrorState,
   LoadingState
 } from "../components/ScreenState";
+import {
+  formatMetricPercent,
+  metricPercentage,
+  paidAttributionQuality
+} from "../utils/marketingMetrics";
 
 const PERIODS = [
   ["today", "Hoje"],
@@ -177,6 +183,31 @@ export function AdminProfessionalFunnelPage() {
   const decision = data?.decisao || {};
   const decisionCounts = decision?.contagem || {};
   const campaigns = data?.campanhasOficiais || data?.campanhas || [];
+  const attributionDiagnostic = data?.diagnosticoAtribuicao || {};
+  const signupAttributionQuality = paidAttributionQuality({
+    official: attributionDiagnostic.cadastrosOficiais ?? summary.cadastros,
+    missingCampaign: attributionDiagnostic.cadastrosSemCampanha,
+    unofficialIdentity: attributionDiagnostic.cadastrosIdentidadeNaoOficial
+  });
+  const investment = Number(summary.investimentoCentavos || 0);
+  const signups = Number(summary.cadastros || 0);
+  const subscriptions = Number(summary.assinaturasAtivadas || 0);
+  const profitabilityTone = investment <= 0
+    ? "neutral"
+    : signups === 0
+      ? "critical"
+      : subscriptions === 0 || Number(summary.roas || 0) < Number(decision.metaRoas || 1)
+        ? "warning"
+        : "success";
+  const profitabilityStatus = investment <= 0
+    ? "Sem investimento"
+    : signups === 0
+      ? "Aquisição sem cadastro"
+      : subscriptions === 0
+        ? "Ativação em atenção"
+        : Number(summary.roas || 0) < Number(decision.metaRoas || 1)
+          ? "Retorno abaixo da meta"
+          : "Aquisição rentável";
 
   const cards = [
     [
@@ -187,7 +218,7 @@ export function AdminProfessionalFunnelPage() {
         : `${formatMoney(summary.custoCadastroCentavos)} por cadastro`
     ],
     [
-      "Negócios já publicados",
+      "Negócios publicados",
       summary.negociosPublicados ?? 0,
       `${summary.taxaPublicacao ?? 0}% dos cadastros`
     ],
@@ -216,23 +247,27 @@ export function AdminProfessionalFunnelPage() {
   ];
 
   const stages = [
-    ["Cadastro", summary.cadastros ?? 0, 100],
+    ["Cadastro", summary.cadastros ?? 0, summary.cadastros ? 100 : 0],
     ["Negócio criado", summary.negociosCriados ?? 0, summary.taxaNegocio ?? 0],
     [
-      "Serviço já criado",
+      "Serviço criado",
       summary.servicosCriados ?? 0,
-      summary.cadastros
-        ? Number(((summary.servicosCriados / summary.cadastros) * 100).toFixed(2))
-        : 0
+      summary.taxaServico ?? metricPercentage(
+        summary.servicosCriados,
+        summary.cadastros,
+        2
+      ) ?? 0
     ],
     [
-      "Agenda já configurada",
+      "Agenda configurada",
       summary.agendasConfiguradas ?? 0,
-      summary.cadastros
-        ? Number(((summary.agendasConfiguradas / summary.cadastros) * 100).toFixed(2))
-        : 0
+      summary.taxaAgenda ?? metricPercentage(
+        summary.agendasConfiguradas,
+        summary.cadastros,
+        2
+      ) ?? 0
     ],
-    ["Negócio já publicado", summary.negociosPublicados ?? 0, summary.taxaPublicacao ?? 0],
+    ["Negócio publicado", summary.negociosPublicados ?? 0, summary.taxaPublicacao ?? 0],
     ["Checkout iniciado", summary.checkoutsIniciados ?? 0, summary.taxaCheckout ?? 0],
     ["Assinatura ativada", summary.assinaturasAtivadas ?? 0, summary.taxaAssinatura ?? 0]
   ];
@@ -303,6 +338,69 @@ export function AdminProfessionalFunnelPage() {
         ))}
       </section>
 
+      <MarketingExecutivePanel
+        action={investment > 0 && signups === 0
+          ? "não aumente o orçamento ainda. Valide a landing page, o formulário de cadastro, o evento de conversão e a preservação do identificador de clique."
+          : subscriptions === 0 && signups > 0
+            ? "identifique o primeiro marco com maior perda antes de alterar segmentação ou orçamento."
+            : "compare CAC e ROAS com a régua de decisão antes de escalar."}
+        metrics={[
+          {
+            label: "Custo por cadastro",
+            value: formatMoney(summary.custoCadastroCentavos),
+            hint: signups > 0 ? `${signups} cadastros oficiais` : "não calculável sem cadastro"
+          },
+          {
+            label: "CAC assinante",
+            value: formatMoney(summary.cacAssinanteCentavos),
+            hint: subscriptions > 0 ? `${subscriptions} assinaturas ativadas` : "não calculável sem assinatura"
+          },
+          {
+            label: "ROAS",
+            value: formatRoas(summary.roas),
+            hint: `meta ${formatRoas(decision.metaRoas)}`
+          },
+          {
+            label: "Cobertura dos cadastros pagos",
+            value: formatMetricPercent(signupAttributionQuality.coverage),
+            hint: `${signupAttributionQuality.pendingSessions} cadastros pagos fora da coorte oficial`
+          }
+        ]}
+        status={profitabilityStatus}
+        summary={investment <= 0
+          ? "Não há investimento profissional registrado no período selecionado."
+          : signups === 0
+            ? `${formatMoney(investment)} foram investidos, mas nenhum cadastro profissional oficial foi atribuído. CAC não é zero: ele ainda não pode ser calculado.`
+            : subscriptions === 0
+              ? `A campanha gerou ${signups} cadastros, mas nenhuma assinatura ativada. O gargalo está depois da aquisição.`
+              : `A coorte gerou ${subscriptions} assinaturas e ROAS de ${formatRoas(summary.roas)} no primeiro pagamento.`}
+        title="Diagnóstico de aquisição profissional"
+        tone={profitabilityTone}
+      />
+
+      <section className="admin-attribution-overview" aria-label="Qualidade da atribuição dos cadastros">
+        <div>
+          <span>Oficiais</span>
+          <strong>{attributionDiagnostic.cadastrosOficiais ?? summary.cadastros ?? 0}</strong>
+          <small>entram em CAC e ROAS</small>
+        </div>
+        <div>
+          <span>Sem campanha</span>
+          <strong>{attributionDiagnostic.cadastrosSemCampanha ?? 0}</strong>
+          <small>pagos com UTM incompleta</small>
+        </div>
+        <div>
+          <span>Identidade não oficial</span>
+          <strong>{attributionDiagnostic.cadastrosIdentidadeNaoOficial ?? 0}</strong>
+          <small>pagos fora da campanha cadastrada</small>
+        </div>
+        <div>
+          <span>Orgânicos</span>
+          <strong>{attributionDiagnostic.cadastrosOrganicos ?? 0}</strong>
+          <small>fora do retorno de mídia paga</small>
+        </div>
+      </section>
+
       <section className="admin-decision-summary" aria-label="Resumo das recomendações de campanha">
         <div>
           <span>Para escalar</span>
@@ -312,6 +410,18 @@ export function AdminProfessionalFunnelPage() {
               ? `ROAS a partir de ${formatRoas(decision.faixaEscalaRoas)}`
               : "Aguardando régua"}
           </small>
+        </div>
+        <div>
+          <span>Para manter</span>
+          <strong>{decisionCounts.manter ?? 0}</strong>
+          <small>Meta de ROAS atingida, sem faixa de escala</small>
+        </div>
+        <div>
+          <span>Em análise</span>
+          <strong>
+            {(decisionCounts.observar ?? 0) + (decisionCounts.revisar ?? 0)}
+          </strong>
+          <small>Amostra pequena ou otimização necessária</small>
         </div>
         <div>
           <span>Para pausar</span>

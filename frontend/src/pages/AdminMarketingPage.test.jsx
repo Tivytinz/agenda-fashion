@@ -188,33 +188,36 @@ afterEach(() => {
 });
 
 describe("AdminMarketingPage", () => {
-  it("mostra somente campanhas oficiais no desempenho principal", async () => {
+  it("separa tráfego oficial, atribuição e resultados pelo objetivo", async () => {
     render(<AdminMarketingPage />);
 
     expect(
       await screen.findByRole("heading", { name: "Campanhas e tráfego" })
     ).not.toBeNull();
 
-    expect(screen.getByText("Sessões de campanhas oficiais")).not.toBeNull();
-    expect(screen.getByText("Acessos autônomos")).not.toBeNull();
-    expect(screen.getAllByText("Campanhas oficiais").length).toBeGreaterThanOrEqual(1);
-    expect(screen.getAllByText("Conversões oficiais").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getByText("Sessões oficiais")).not.toBeNull();
+    expect(screen.getByText("Cobertura do tráfego pago")).not.toBeNull();
+    expect(screen.getByText("Campanhas ativas")).not.toBeNull();
+    expect(screen.getByText("Agendamentos de clientes")).not.toBeNull();
+    expect(screen.getByText("Qualidade da medição paga")).not.toBeNull();
+    expect(screen.getAllByText("Aquisição de profissionais").length).toBeGreaterThanOrEqual(1);
 
     expect(
       screen.getAllByText("google_ads_profissionais").length
     ).toBeGreaterThanOrEqual(1);
     expect(screen.queryByText("teste")).toBeNull();
-    expect(screen.getByText("Studio Oficial")).not.toBeNull();
+    expect(screen.queryByText("Studio Oficial")).toBeNull();
     expect(screen.queryByText("Studio Teste")).toBeNull();
     expect(screen.getByText("Sessões oficiais por origem")).not.toBeNull();
     expect(screen.getByText("Resumo oficial por origem")).not.toBeNull();
+    expect(screen.getByText("Ver Rentabilidade")).not.toBeNull();
     expect(apiRequest).toHaveBeenCalledTimes(4);
   });
 
   it("explica claramente acesso autônomo e não confunde com tráfego pago incompleto", async () => {
     render(<AdminMarketingPage />);
 
-    expect(await screen.findByText("Acesso autônomo")).not.toBeNull();
+    expect(await screen.findByText(/Acesso autônomo ·/)).not.toBeNull();
     expect(
       screen.getByText(/Chegou sem origem, campanha UTM ou identificador de anúncio/i)
     ).not.toBeNull();
@@ -236,6 +239,47 @@ describe("AdminMarketingPage", () => {
         name: "Copiar link correto de Google Ads · Aquisição de profissionais"
       })
     ).not.toBeNull();
+  });
+
+  it("lista agendamentos somente quando a campanha oficial tem objetivo cliente", async () => {
+    const originalImplementation = apiRequest.getMockImplementation();
+    apiRequest.mockImplementation((path, options) => {
+      if (path === "/admin/marketing/gestao-campanhas") {
+        return Promise.resolve({
+          campanhas: [{ ...MANAGED_CAMPAIGN, objetivo: "cliente" }]
+        });
+      }
+
+      if (path.startsWith("/admin/marketing/campanhas")) {
+        return Promise.resolve({
+          periodo: "30",
+          campanhas: [
+            {
+              origem: "google",
+              midia: "cpc",
+              campanha: "google_ads_profissionais",
+              objetivo: "cliente",
+              oficial: true,
+              classificacaoAtribuicao: "oficial",
+              sessoes: 12,
+              perfisVisualizados: 7,
+              agendamentosIniciados: 1,
+              sessoesConvertidas: 1,
+              agendamentosConcluidos: 1,
+              taxaConversao: 8.33
+            }
+          ]
+        });
+      }
+
+      return originalImplementation(path, options);
+    });
+
+    render(<AdminMarketingPage />);
+
+    expect(await screen.findByText("Studio Oficial")).not.toBeNull();
+    expect(screen.getAllByText("Aquisição de clientes").length).toBeGreaterThanOrEqual(1);
+    expect(screen.queryByText("Ver Rentabilidade")).toBeNull();
   });
 
   it("mantém configurações técnicas recolhidas e cria nova campanha oficial", async () => {

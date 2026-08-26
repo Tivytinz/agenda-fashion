@@ -478,6 +478,16 @@ function mapearLinha(
         negociosCriados,
         cadastros
       ),
+    taxaServico:
+      percentual(
+        servicosCriados,
+        cadastros
+      ),
+    taxaAgenda:
+      percentual(
+        agendasConfiguradas,
+        cadastros
+      ),
     taxaPublicacao:
       percentual(
         negociosPublicados,
@@ -587,6 +597,16 @@ function criarResumo(campanhas) {
   resumo.taxaPublicacao =
     percentual(
       resumo.negociosPublicados,
+      resumo.cadastros
+    );
+  resumo.taxaServico =
+    percentual(
+      resumo.servicosCriados,
+      resumo.cadastros
+    );
+  resumo.taxaAgenda =
+    percentual(
+      resumo.agendasConfiguradas,
       resumo.cadastros
     );
   resumo.taxaCheckout =

@@ -63,6 +63,8 @@ describe(
           cacAssinanteCentavos: 10000,
           receitaPrimeiroPagamentoCentavos: 59600,
           roas: 1.49,
+          taxaServico: 50,
+          taxaAgenda: 40,
           decisao: {
             codigo: "escalar",
             rotulo: "Escalar",

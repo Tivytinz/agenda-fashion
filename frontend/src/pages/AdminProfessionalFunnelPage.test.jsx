@@ -45,6 +45,12 @@ function resultado() {
       custoCheckoutCentavos: 8000,
       cacAssinanteCentavos: 10000
     },
+    diagnosticoAtribuicao: {
+      cadastrosOficiais: 20,
+      cadastrosSemCampanha: 0,
+      cadastrosIdentidadeNaoOficial: 0,
+      cadastrosOrganicos: 0
+    },
     decisao: {
       metaRoas: 1,
       faixaEscalaRoas: 1.2,
@@ -118,10 +124,13 @@ describe("AdminProfessionalFunnelPage", () => {
     expect(screen.getByRole("columnheader", { name: "ROAS" })).not.toBeNull();
     expect(screen.getByRole("columnheader", { name: "CAC" })).not.toBeNull();
     expect(screen.queryByRole("heading", { name: "Progressão da coorte" })).toBeNull();
-    expect(screen.getByText("Serviço já criado")).not.toBeNull();
-    expect(screen.getByText("Agenda já configurada")).not.toBeNull();
-    expect(screen.getByText("Negócio já publicado")).not.toBeNull();
+    expect(screen.getByText("Serviço criado")).not.toBeNull();
+    expect(screen.getByText("Agenda configurada")).not.toBeNull();
+    expect(screen.getByText("Negócio publicado")).not.toBeNull();
     expect(screen.getByText("gasto atribuído no período")).not.toBeNull();
+    expect(screen.getByText("Diagnóstico de aquisição profissional")).not.toBeNull();
+    expect(screen.getByText("Aquisição rentável")).not.toBeNull();
+    expect(screen.getByText("Cobertura dos cadastros pagos")).not.toBeNull();
 
     expect(screen.getAllByText("20").length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByText("profissionais_goiania").length).toBeGreaterThanOrEqual(1);
@@ -149,6 +158,81 @@ describe("AdminProfessionalFunnelPage", () => {
     expect(
       screen.getByText(/ROAS 1\.49x está acima da faixa de escala/i)
     ).not.toBeNull();
+  });
+
+  it("não mostra 100% no cadastro quando a coorte está vazia", async () => {
+    const empty = resultado();
+    empty.resumo = {
+      cadastros: 0,
+      negociosCriados: 0,
+      servicosCriados: 0,
+      agendasConfiguradas: 0,
+      negociosPublicados: 0,
+      checkoutsIniciados: 0,
+      assinaturasAtivadas: 0,
+      investimentoCentavos: 20000,
+      receitaPrimeiroPagamentoCentavos: 0,
+      roas: 0,
+      taxaNegocio: 0,
+      taxaPublicacao: 0,
+      taxaCheckout: 0,
+      taxaAssinatura: 0,
+      custoCadastroCentavos: null,
+      custoCheckoutCentavos: null,
+      cacAssinanteCentavos: null
+    };
+    empty.diagnosticoAtribuicao = {
+      cadastrosOficiais: 0,
+      cadastrosSemCampanha: 0,
+      cadastrosIdentidadeNaoOficial: 0,
+      cadastrosOrganicos: 0
+    };
+    empty.decisao.contagem = {
+      escalar: 0,
+      manter: 0,
+      observar: 1,
+      revisar: 0,
+      pausar: 0,
+      semDados: 0
+    };
+    empty.campanhas = [
+      {
+        ...empty.campanhas[0],
+        cadastros: 0,
+        negociosCriados: 0,
+        servicosCriados: 0,
+        agendasConfiguradas: 0,
+        negociosPublicados: 0,
+        checkoutsIniciados: 0,
+        assinaturasAtivadas: 0,
+        investimentoCentavos: 20000,
+        receitaPrimeiroPagamentoCentavos: 0,
+        roas: 0,
+        custoCadastroCentavos: null,
+        custoCheckoutCentavos: null,
+        cacAssinanteCentavos: null,
+        decisao: {
+          codigo: "observar",
+          rotulo: "Observar",
+          confianca: "baixa",
+          motivo: "Amostra pequena."
+        }
+      }
+    ];
+    apiRequest.mockResolvedValueOnce(empty);
+
+    render(
+      <MemoryRouter>
+        <AdminProfessionalFunnelPage />
+      </MemoryRouter>
+    );
+
+    expect(
+      await screen.findByRole("row", { name: "Cadastro 0 0%" })
+    ).not.toBeNull();
+    expect(screen.queryByRole("row", { name: "Cadastro 0 100%" })).toBeNull();
+    expect(screen.getByText("Aquisição sem cadastro")).not.toBeNull();
+    expect(screen.getByText("Em análise").parentElement?.textContent).toContain("1");
   });
 
   it("usa a coorte oficial calculada pelo backend nos KPIs de rentabilidade", async () => {

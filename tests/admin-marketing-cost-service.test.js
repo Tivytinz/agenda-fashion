@@ -92,7 +92,11 @@ describe(
             moeda: "BRL",
             investimentoCentavos: 10000,
             investimentoClientesCentavos: 10000,
+            investimentoProfissionaisCentavos: 0,
+            campanhasComInvestimento: 1,
             sessoes: 20,
+            sessoesPagasDetectadas: 25,
+            coberturaAtribuicaoPaga: 80,
             agendamentosConcluidos: 4,
             custoPorSessaoCentavos: 500,
             cpaCentavos: 2500,
@@ -102,6 +106,8 @@ describe(
               sessoesOficiais: 20,
               sessoesSemCampanha: 3,
               sessoesIdentidadeNaoOficial: 2,
+              sessoesPagasDetectadas: 25,
+              coberturaAtribuicaoPaga: 80,
             },
           });
 
@@ -166,6 +172,10 @@ describe(
           .toBe(40000);
         expect(resultado.investimentoClientesCentavos)
           .toBe(10000);
+        expect(resultado.investimentoProfissionaisCentavos)
+          .toBe(30000);
+        expect(resultado.campanhasComInvestimento)
+          .toBe(2);
         expect(resultado.agendamentosConcluidos)
           .toBe(4);
         expect(resultado.cpaCentavos)
@@ -218,6 +228,28 @@ describe(
         expect(
           resultado.custoPorSessaoCentavos
         ).toBe(500);
+      }
+    );
+
+    test(
+      "não inventa cobertura ou custo quando não existe tráfego pago",
+      async () => {
+        adminMarketingCostRepository
+          .listarDesempenho
+          .mockResolvedValue([]);
+
+        const resultado =
+          await adminMarketingCostService
+            .buscarCustos();
+
+        expect(resultado)
+          .toMatchObject({
+            sessoesPagasDetectadas: 0,
+            coberturaAtribuicaoPaga: null,
+            custoPorSessaoCentavos: null,
+            cpaCentavos: null,
+            campanhasComInvestimento: 0,
+          });
       }
     );
 

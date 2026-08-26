@@ -44,6 +44,7 @@ function mockRequests() {
         investimentoClientesCentavos: 10000,
         sessoes: 20,
         sessoesSemCampanha: 6,
+        sessoesIdentidadeNaoOficial: 1,
         agendamentosConcluidos: 4,
         custoPorSessaoCentavos: 500,
         cpaCentavos: 2500,
@@ -151,8 +152,11 @@ describe("AdminMarketingCostsPage", () => {
     expect(
       await screen.findByRole("heading", { name: "Investimento e eficiência" })
     ).not.toBeNull();
-    expect(screen.getByText("20 sessões vinculadas")).not.toBeNull();
-    expect(screen.getByText(/6 sessões pagas ainda sem campanha/i)).not.toBeNull();
+    expect(screen.getByText("Sessões oficiais")).not.toBeNull();
+    expect(screen.getByText("Custo por sessão oficial")).not.toBeNull();
+    expect(screen.getAllByText("74,1%").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getByText(/7 sessões pagas fora dos KPIs/i)).not.toBeNull();
+    expect(screen.getByText(/1 sessão usa identidade não oficial/i)).not.toBeNull();
     expect(screen.getByText("Investimento por campanha")).not.toBeNull();
     expect(screen.getAllByText("Meta Agosto").length).toBeGreaterThanOrEqual(2);
   });

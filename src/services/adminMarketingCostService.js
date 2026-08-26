@@ -70,6 +70,26 @@ function custoUnitario(
   );
 }
 
+function percentual(
+  parte,
+  total
+) {
+  const totalNormalizado =
+    inteiro(total);
+
+  if (totalNormalizado <= 0) {
+    return null;
+  }
+
+  return Number(
+    (
+      (inteiro(parte) /
+        totalNormalizado) *
+      100
+    ).toFixed(2)
+  );
+}
+
 function normalizarId(valor) {
   const id = Number(valor);
 
@@ -287,6 +307,9 @@ async function buscarCustos({
       const cliente =
         campanha.objetivo ===
         "cliente";
+      const profissional =
+        campanha.objetivo ===
+        "profissional";
 
       return {
         investimentoCentavos:
@@ -300,6 +323,19 @@ async function buscarCustos({
           (cliente
             ? campanha.investimentoCentavos
             : 0),
+        investimentoProfissionaisCentavos:
+          acumulado.investimentoProfissionaisCentavos +
+          (profissional
+            ? campanha.investimentoCentavos
+            : 0),
+        campanhasComInvestimento:
+          acumulado.campanhasComInvestimento +
+          (
+            campanha.ativo &&
+            campanha.investimentoCentavos > 0
+              ? 1
+              : 0
+          ),
         agendamentosClientesConcluidos:
           acumulado.agendamentosClientesConcluidos +
           (cliente
@@ -311,6 +347,8 @@ async function buscarCustos({
       investimentoCentavos: 0,
       sessoes: 0,
       investimentoClientesCentavos: 0,
+      investimentoProfissionaisCentavos: 0,
+      campanhasComInvestimento: 0,
       agendamentosClientesConcluidos: 0,
     }
   );
@@ -338,6 +376,17 @@ async function buscarCustos({
         )
       : totais.sessoes;
 
+  const sessoesPagasDetectadas =
+    sessoesOficiais +
+    sessoesSemCampanha +
+    sessoesIdentidadeNaoOficial;
+
+  const coberturaAtribuicaoPaga =
+    percentual(
+      sessoesOficiais,
+      sessoesPagasDetectadas
+    );
+
   return {
     periodo:
       periodoNormalizado,
@@ -348,6 +397,8 @@ async function buscarCustos({
       sessoesOficiais,
     sessoesOficiais:
       sessoesOficiais,
+    sessoesPagasDetectadas,
+    coberturaAtribuicaoPaga,
     sessoesSemCampanha,
     sessoesIdentidadeNaoOficial,
     diagnosticoAtribuicao: {
@@ -355,11 +406,17 @@ async function buscarCustos({
         sessoesOficiais,
       sessoesSemCampanha,
       sessoesIdentidadeNaoOficial,
+      sessoesPagasDetectadas,
+      coberturaAtribuicaoPaga,
     },
     agendamentosConcluidos:
       totais.agendamentosClientesConcluidos,
     investimentoClientesCentavos:
       totais.investimentoClientesCentavos,
+    investimentoProfissionaisCentavos:
+      totais.investimentoProfissionaisCentavos,
+    campanhasComInvestimento:
+      totais.campanhasComInvestimento,
     custoPorSessaoCentavos:
       custoUnitario(
         totais.investimentoCentavos,
@@ -483,6 +540,7 @@ module.exports = {
   listarGastos,
   registrarGasto,
   custoUnitario,
+  percentual,
   normalizarData,
   normalizarValorCentavos,
   normalizarPeriodo,
