@@ -70,7 +70,7 @@ async function repararVinculoGoogleAutomaticamente(
   }
 }
 
-async function sincronizarGoogleAposReparo() {
+async function sincronizarGoogleAposVinculoVerificado() {
   try {
     const resultado =
       await marketingCostSyncService
@@ -81,7 +81,7 @@ async function sincronizarGoogleAposReparo() {
         });
 
     registrador.informacao(
-      "Marketing: Google Ads reconciliado automaticamente após reparar o vínculo original.",
+      "Marketing: Google Ads reconciliado automaticamente após verificar o vínculo original.",
       {
         status: resultado?.status || null,
         registrosImportados:
@@ -94,7 +94,7 @@ async function sincronizarGoogleAposReparo() {
     return resultado;
   } catch (erro) {
     registrador.aviso(
-      "Marketing: o vínculo Google foi reparado, mas a reconciliação automática falhou.",
+      "Marketing: o vínculo Google foi verificado, mas a reconciliação automática falhou.",
       {
         codigo: erro?.code || null,
         erro: String(
@@ -152,13 +152,18 @@ async function executarLimpezaCanonica() {
       );
 
     /*
-     * Se o reparo foi necessário, a reconciliação roda imediatamente. Assim a
-     * correção histórica não depende de clique manual nem do próximo intervalo
-     * do worker. As execuções agendadas continuam responsáveis pela rotina.
+     * Uma sincronização anterior pode continuar não auditável mesmo quando o
+     * vínculo original já estava correto. Por isso, no startup, reconciliamos
+     * tanto um vínculo recém-reparado quanto um vínculo já verificado. Essa
+     * execução é independente da flag do agendamento periódico.
      */
-    const sincronizacaoAposReparo =
-      reparoVinculoGoogle?.reparado
-        ? await sincronizarGoogleAposReparo()
+    const vinculoGoogleVerificado = Boolean(
+      reparoVinculoGoogle?.reparado ||
+      reparoVinculoGoogle?.jaVinculado
+    );
+    const sincronizacaoAposVinculoVerificado =
+      vinculoGoogleVerificado
+        ? await sincronizarGoogleAposVinculoVerificado()
         : null;
 
     const consolidado = {
@@ -166,7 +171,7 @@ async function executarLimpezaCanonica() {
       atribuicoesRecuperadasAntesDaLimpeza:
         recuperacaoAntesDaLimpeza.rowCount || 0,
       reparoVinculoGoogle,
-      sincronizacaoAposReparo,
+      sincronizacaoAposVinculoVerificado,
     };
 
     registrador.informacao(

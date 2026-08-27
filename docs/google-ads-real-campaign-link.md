@@ -25,6 +25,6 @@ A campanha canônica `google_ads_profissionais` pode ter perdido seu vínculo ex
 
 Se nenhuma campanha puder ser comprovada ou se mais de uma candidata permanecer possível, o backend mantém o rastreamento incompleto. Ele não escolhe por quantidade de campanhas internas, por nome de usuário, por cidade, nem por conhecimento manual de quem veio do anúncio.
 
-Quando o vínculo é reparado, o backend executa imediatamente uma nova reconciliação Google Ads. Portanto a recuperação histórica não depende de sincronização manual. O worker agendado continua verificando o vínculo antes das sincronizações futuras e pode tentar novamente em execuções posteriores caso a API tenha ficado temporariamente indisponível.
+No startup, depois de verificar a identidade original do Google Ads, o backend executa uma nova reconciliação tanto quando o vínculo foi reparado quanto quando ele já estava válido. Isso garante que sincronizações históricas ainda não auditáveis possam ser atualizadas sem depender da flag do agendamento periódico ou de sincronização manual. O worker agendado continua verificando o vínculo antes das sincronizações futuras e pode tentar novamente em execuções posteriores caso a API tenha ficado temporariamente indisponível.
 
 Esse comportamento mantém a regra de atribuição conservadora do AF: CAC, ROAS e funil oficial só recebem aquisições cuja campanha possa ser demonstrada por evidência persistida e verificável.

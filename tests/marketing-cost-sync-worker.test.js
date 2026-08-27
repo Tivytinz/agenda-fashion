@@ -96,20 +96,10 @@ describe("marketingCostSyncWorker", () => {
     process.env = envOriginal;
   });
 
-  test("recupera atribuição, repara o vínculo original e reconcilia sem ação manual", async () => {
+  test("reconcilia vínculo original já verificado no startup sem ação manual", async () => {
     mockRecoveryRepository
       .recuperarGoogleProfissionaisPorEventos
       .mockResolvedValue({ rowCount: 4 });
-    mockGoogleCampaignLinkService
-      .repararVinculoGoogleProfissionais
-      .mockResolvedValue({
-        reparado: true,
-        jaVinculado: false,
-        campanhaId: 1,
-        campanhaExternaId: "555",
-        motivo:
-          "campanha_original_google_verificada",
-      });
     mockSyncService.sincronizar
       .mockResolvedValue({
         status: "sucesso",
@@ -153,10 +143,10 @@ describe("marketingCostSyncWorker", () => {
       campanhaOficialId: 1,
       atribuicoesRecuperadasAntesDaLimpeza: 4,
       reparoVinculoGoogle: {
-        reparado: true,
-        campanhaExternaId: "555",
+        reparado: false,
+        jaVinculado: true,
       },
-      sincronizacaoAposReparo: {
+      sincronizacaoAposVinculoVerificado: {
         status: "sucesso",
         campanhasNaoVinculadas: 0,
       },
