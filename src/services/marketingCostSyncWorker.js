@@ -70,6 +70,43 @@ async function repararVinculoGoogleAutomaticamente(
   }
 }
 
+async function sincronizarGoogleAposReparo() {
+  try {
+    const resultado =
+      await marketingCostSyncService
+        .sincronizar({
+          provedor: "google_ads",
+          payload: {},
+          usuarioId: null,
+        });
+
+    registrador.informacao(
+      "Marketing: Google Ads reconciliado automaticamente após reparar o vínculo original.",
+      {
+        status: resultado?.status || null,
+        registrosImportados:
+          resultado?.registrosImportados || 0,
+        campanhasNaoVinculadas:
+          resultado?.campanhasNaoVinculadas || 0,
+      }
+    );
+
+    return resultado;
+  } catch (erro) {
+    registrador.aviso(
+      "Marketing: o vínculo Google foi reparado, mas a reconciliação automática falhou.",
+      {
+        codigo: erro?.code || null,
+        erro: String(
+          erro?.message || "Erro desconhecido"
+        ).slice(0, 240)
+      }
+    );
+
+    return null;
+  }
+}
+
 async function executarLimpezaCanonica() {
   if (limpezaIniciada) {
     return null;
@@ -114,11 +151,22 @@ async function executarLimpezaCanonica() {
         "limpeza_canonica"
       );
 
+    /*
+     * Se o reparo foi necessário, a reconciliação roda imediatamente. Assim a
+     * correção histórica não depende de clique manual nem do próximo intervalo
+     * do worker. As execuções agendadas continuam responsáveis pela rotina.
+     */
+    const sincronizacaoAposReparo =
+      reparoVinculoGoogle?.reparado
+        ? await sincronizarGoogleAposReparo()
+        : null;
+
     const consolidado = {
       ...resultado,
       atribuicoesRecuperadasAntesDaLimpeza:
         recuperacaoAntesDaLimpeza.rowCount || 0,
       reparoVinculoGoogle,
+      sincronizacaoAposReparo,
     };
 
     registrador.informacao(
