@@ -1,6 +1,7 @@
 const mockSyncService = {
   statusIntegracoes: jest.fn(),
-  sincronizar: jest.fn()
+  sincronizar: jest.fn(),
+  periodoPadrao: jest.fn(),
 };
 
 const mockCanonicalCleanupService = {
@@ -12,6 +13,11 @@ const mockCanonicalCleanupService = {
     "profissionais_google_ads",
   ],
   executarLimpezaGoogleProfissionais:
+    jest.fn(),
+};
+
+const mockGoogleCampaignLinkService = {
+  repararVinculoGoogleProfissionais:
     jest.fn(),
 };
 
@@ -37,6 +43,11 @@ jest.mock(
 );
 
 jest.mock(
+  "../src/services/marketingGoogleCampaignLinkService",
+  () => mockGoogleCampaignLinkService
+);
+
+jest.mock(
   "../src/repositories/marketingAttributionRecoveryRepository",
   () => mockRecoveryRepository
 );
@@ -52,11 +63,17 @@ const worker = require(
 
 describe("marketingCostSyncWorker", () => {
   const envOriginal = process.env;
+  const periodo = {
+    dataInicio: "2026-07-29",
+    dataFim: "2026-08-27",
+  };
 
   beforeEach(() => {
     jest.clearAllMocks();
     process.env = { ...envOriginal };
     worker.pararWorkerCustosMarketing();
+    mockSyncService.periodoPadrao
+      .mockReturnValue(periodo);
     mockRecoveryRepository
       .recuperarGoogleProfissionaisPorEventos
       .mockResolvedValue({ rowCount: 0 });
@@ -65,6 +82,13 @@ describe("marketingCostSyncWorker", () => {
       .mockResolvedValue({
         campanhaOficialId: 1,
       });
+    mockGoogleCampaignLinkService
+      .repararVinculoGoogleProfissionais
+      .mockResolvedValue({
+        reparado: false,
+        jaVinculado: true,
+        motivo: "vinculo_original_verificado",
+      });
   });
 
   afterEach(() => {
@@ -72,10 +96,26 @@ describe("marketingCostSyncWorker", () => {
     process.env = envOriginal;
   });
 
-  test("recupera atribuição histórica antes da limpeza canônica", async () => {
+  test("recupera atribuição, repara o vínculo original e reconcilia sem ação manual", async () => {
     mockRecoveryRepository
       .recuperarGoogleProfissionaisPorEventos
       .mockResolvedValue({ rowCount: 4 });
+    mockGoogleCampaignLinkService
+      .repararVinculoGoogleProfissionais
+      .mockResolvedValue({
+        reparado: true,
+        jaVinculado: false,
+        campanhaId: 1,
+        campanhaExternaId: "555",
+        motivo:
+          "campanha_original_google_verificada",
+      });
+    mockSyncService.sincronizar
+      .mockResolvedValue({
+        status: "sucesso",
+        registrosImportados: 3,
+        campanhasNaoVinculadas: 0,
+      });
 
     const resultado =
       await worker.executarLimpezaCanonica();
@@ -97,13 +137,33 @@ describe("marketingCostSyncWorker", () => {
       mockCanonicalCleanupService
         .executarLimpezaGoogleProfissionais
     ).toHaveBeenCalledTimes(1);
+    expect(
+      mockGoogleCampaignLinkService
+        .repararVinculoGoogleProfissionais
+    ).toHaveBeenCalledWith({
+      periodo,
+    });
+    expect(mockSyncService.sincronizar)
+      .toHaveBeenCalledWith({
+        provedor: "google_ads",
+        payload: {},
+        usuarioId: null,
+      });
     expect(resultado).toMatchObject({
       campanhaOficialId: 1,
       atribuicoesRecuperadasAntesDaLimpeza: 4,
+      reparoVinculoGoogle: {
+        reparado: true,
+        campanhaExternaId: "555",
+      },
+      sincronizacaoAposReparo: {
+        status: "sucesso",
+        campanhasNaoVinculadas: 0,
+      },
     });
   });
 
-  test("sincroniza somente provedores configurados", async () => {
+  test("sincroniza somente provedores configurados e repara o Google antes da sincronização", async () => {
     mockSyncService.statusIntegracoes.mockResolvedValue({
       provedores: [
         {
@@ -126,6 +186,12 @@ describe("marketingCostSyncWorker", () => {
     const resultado =
       await worker.executarSincronizacaoAgendada();
 
+    expect(
+      mockGoogleCampaignLinkService
+        .repararVinculoGoogleProfissionais
+    ).toHaveBeenCalledWith({
+      periodo,
+    });
     expect(mockSyncService.sincronizar)
       .toHaveBeenCalledTimes(1);
     expect(mockSyncService.sincronizar)
@@ -193,6 +259,47 @@ describe("marketingCostSyncWorker", () => {
           status: "sucesso"
         })
       ]);
+  });
+
+  test("falha no reparo do vínculo não impede a sincronização automática", async () => {
+    mockSyncService.statusIntegracoes.mockResolvedValue({
+      provedores: [
+        {
+          provedor: "google_ads",
+          configurado: true,
+        },
+      ],
+    });
+    mockGoogleCampaignLinkService
+      .repararVinculoGoogleProfissionais
+      .mockRejectedValue(
+        new Error("Google temporariamente indisponível")
+      );
+    mockSyncService.sincronizar.mockResolvedValue({
+      status: "parcial",
+      registrosImportados: 0,
+      campanhasNaoVinculadas: 1,
+    });
+
+    const resultado =
+      await worker.executarSincronizacaoAgendada();
+
+    expect(mockSyncService.sincronizar)
+      .toHaveBeenCalledTimes(1);
+    expect(mockRegistrador.aviso)
+      .toHaveBeenCalledWith(
+        expect.stringContaining(
+          "reparar automaticamente"
+        ),
+        expect.objectContaining({
+          contexto: "sincronizacao_agendada",
+        })
+      );
+    expect(resultado.resultados[0])
+      .toMatchObject({
+        provedor: "google_ads",
+        status: "parcial",
+      });
   });
 
   test("worker permanece desligado sem flag explícita", () => {

@@ -3,6 +3,9 @@ const marketingCostSyncService = require("./marketingCostSyncService");
 const marketingCanonicalCleanupService = require(
   "./marketingCanonicalCleanupService"
 );
+const marketingGoogleCampaignLinkService = require(
+  "./marketingGoogleCampaignLinkService"
+);
 const marketingAttributionRecoveryRepository = require(
   "../repositories/marketingAttributionRecoveryRepository"
 );
@@ -19,6 +22,89 @@ let limpezaIniciada = false;
 
 function intervaloMs() {
   return intervaloHoras() * 60 * 60 * 1000;
+}
+
+async function repararVinculoGoogleAutomaticamente(
+  contexto
+) {
+  try {
+    const resultado =
+      await marketingGoogleCampaignLinkService
+        .repararVinculoGoogleProfissionais({
+          periodo:
+            marketingCostSyncService
+              .periodoPadrao({}),
+        });
+
+    if (resultado?.reparado) {
+      registrador.informacao(
+        "Marketing: vínculo com a campanha original do Google Ads reparado automaticamente.",
+        {
+          contexto,
+          campanhaId:
+            resultado.campanhaId || null,
+          campanhaExternaId:
+            resultado.campanhaExternaId || null,
+        }
+      );
+    }
+
+    return resultado;
+  } catch (erro) {
+    registrador.aviso(
+      "Marketing: não foi possível reparar automaticamente o vínculo com a campanha original do Google Ads.",
+      {
+        contexto,
+        codigo: erro?.code || null,
+        erro: String(
+          erro?.message || "Erro desconhecido"
+        ).slice(0, 240)
+      }
+    );
+
+    return {
+      reparado: false,
+      jaVinculado: false,
+      motivo: "erro_reparo_automatico",
+    };
+  }
+}
+
+async function sincronizarGoogleAposReparo() {
+  try {
+    const resultado =
+      await marketingCostSyncService
+        .sincronizar({
+          provedor: "google_ads",
+          payload: {},
+          usuarioId: null,
+        });
+
+    registrador.informacao(
+      "Marketing: Google Ads reconciliado automaticamente após reparar o vínculo original.",
+      {
+        status: resultado?.status || null,
+        registrosImportados:
+          resultado?.registrosImportados || 0,
+        campanhasNaoVinculadas:
+          resultado?.campanhasNaoVinculadas || 0,
+      }
+    );
+
+    return resultado;
+  } catch (erro) {
+    registrador.aviso(
+      "Marketing: o vínculo Google foi reparado, mas a reconciliação automática falhou.",
+      {
+        codigo: erro?.code || null,
+        erro: String(
+          erro?.message || "Erro desconhecido"
+        ).slice(0, 240)
+      }
+    );
+
+    return null;
+  }
 }
 
 async function executarLimpezaCanonica() {
@@ -54,10 +140,33 @@ async function executarLimpezaCanonica() {
       await marketingCanonicalCleanupService
         .executarLimpezaGoogleProfissionais();
 
+    /*
+     * A campanha interna canônica nunca substitui a identidade do Google Ads.
+     * Depois da limpeza, tentamos reconstruir o vínculo usando exclusivamente
+     * a campanha original devolvida pela API do Google, com conta e campaign.id
+     * reais. A rotina é conservadora e não grava nada quando há ambiguidade.
+     */
+    const reparoVinculoGoogle =
+      await repararVinculoGoogleAutomaticamente(
+        "limpeza_canonica"
+      );
+
+    /*
+     * Se o reparo foi necessário, a reconciliação roda imediatamente. Assim a
+     * correção histórica não depende de clique manual nem do próximo intervalo
+     * do worker. As execuções agendadas continuam responsáveis pela rotina.
+     */
+    const sincronizacaoAposReparo =
+      reparoVinculoGoogle?.reparado
+        ? await sincronizarGoogleAposReparo()
+        : null;
+
     const consolidado = {
       ...resultado,
       atribuicoesRecuperadasAntesDaLimpeza:
         recuperacaoAntesDaLimpeza.rowCount || 0,
+      reparoVinculoGoogle,
+      sincronizacaoAposReparo,
     };
 
     registrador.informacao(
@@ -106,6 +215,12 @@ async function executarSincronizacaoAgendada() {
 
     for (const item of provedores) {
       try {
+        if (item.provedor === "google_ads") {
+          await repararVinculoGoogleAutomaticamente(
+            "sincronizacao_agendada"
+          );
+        }
+
         const resultado =
           await marketingCostSyncService.sincronizar({
             provedor: item.provedor,
