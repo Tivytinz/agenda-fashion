@@ -158,8 +158,15 @@ test("admin e consentimento permanecem navegáveis no celular", async ({ page })
   await expect(
     page.getByRole("heading", { name: "Campanhas e tráfego pago" })
   ).toBeVisible();
-  await expect(page.getByText("Cobertura de atribuição")).toBeVisible();
-  await expect(page.getByText("100%", { exact: true })).toBeVisible();
+  const attributionCoverageCard = page
+    .locator("article.metric-card")
+    .filter({
+      has: page.getByText("Cobertura de atribuição", { exact: true })
+    });
+  await expect(attributionCoverageCard).toBeVisible();
+  await expect(
+    attributionCoverageCard.getByText("100%", { exact: true })
+  ).toBeVisible();
   await expect(page.getByText("13 diretas + 7 assistidas")).toBeVisible();
   await expect(
     page.getByRole("heading", { name: "Qualidade da medição paga" })
@@ -225,8 +232,16 @@ test("admin e consentimento permanecem navegáveis no celular", async ({ page })
   await expect(
     page.getByRole("heading", { name: "Investimento e eficiência" })
   ).toBeVisible();
-  await expect(page.getByText("Cobertura de atribuição")).toBeVisible();
-  await expect(page.getByText("Cobertura financeira").first()).toBeVisible();
+  await expect(
+    page.getByRole("progressbar", {
+      name: "Cobertura de atribuição: 100%"
+    })
+  ).toBeVisible();
+  await expect(
+    page.getByRole("progressbar", {
+      name: "Cobertura financeira: 100%"
+    })
+  ).toBeVisible();
   await expect(page.getByText("13 diretas + 7 assistidas")).toBeVisible();
   await expect(page.getByRole("progressbar")).toHaveCount(2);
   await expect(page.getByText("Investimento por campanha")).toBeVisible();
