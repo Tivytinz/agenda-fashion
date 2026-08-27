@@ -102,11 +102,25 @@ async function validarVinculoExistente(
     return null;
   }
 
-  const campanhaOriginal =
-    await providers.buscarCampanha(
-      PROVEDOR,
-      existente.campanha_externa_id
+  let campanhaOriginal;
+
+  try {
+    campanhaOriginal =
+      await providers.buscarCampanha(
+        PROVEDOR,
+        existente.campanha_externa_id
+      );
+  } catch (erro) {
+    const status = Number(
+      erro?.statusCode || erro?.status || 0
     );
+
+    if (status === 404) {
+      return null;
+    }
+
+    throw erro;
+  }
 
   const chavePersistida =
     chaveExterna(existente);
