@@ -5,13 +5,41 @@ const db = require(
 async function recuperarGoogleProfissionaisPorEventos({
   client = db,
   campanhaOficial,
+  campanhasAceitas = [campanhaOficial],
 }) {
+  const identidadesAceitas = Array.from(
+    new Set(
+      (campanhasAceitas || [])
+        .map((item) =>
+          String(item || "")
+            .trim()
+            .toLowerCase()
+        )
+        .filter(Boolean)
+    )
+  );
+
+  if (!identidadesAceitas.includes(
+    String(campanhaOficial || "")
+      .trim()
+      .toLowerCase()
+  )) {
+    identidadesAceitas.push(
+      String(campanhaOficial || "")
+        .trim()
+        .toLowerCase()
+    );
+  }
+
   return client.query(
     `
     WITH evidencia_google AS (
-      SELECT DISTINCT ON (e.usuario_id)
-        e.usuario_id,
-        e.sessao_id,
+      SELECT DISTINCT ON (mua_existente.usuario_id)
+        mua_existente.usuario_id,
+        COALESCE(
+          NULLIF(BTRIM(mua_existente.sessao_id), ''),
+          e.sessao_id
+        ) AS sessao_id,
         u.created_at AS atribuicao_em,
         CASE
           WHEN LOWER(
@@ -24,7 +52,7 @@ async function recuperarGoogleProfissionaisPorEventos({
               ),
               ''
             )
-          ) = $1
+          ) = ANY($2::TEXT[])
             THEN $1
           ELSE NULL
         END AS utm_campaign,
@@ -64,15 +92,25 @@ async function recuperarGoogleProfissionaisPorEventos({
             THEN e.propriedades ->> 'landing_page'
           ELSE NULL
         END AS landing_page
-      FROM eventos_produto e
+      FROM marketing_usuario_atribuicoes mua_existente
       INNER JOIN usuarios u
-        ON u.id = e.usuario_id
-      INNER JOIN marketing_usuario_atribuicoes mua_existente
-        ON mua_existente.usuario_id = e.usuario_id
-       AND mua_existente.intencao = 'profissional'
-      WHERE e.usuario_id IS NOT NULL
+        ON u.id = mua_existente.usuario_id
+      INNER JOIN eventos_produto e
+        ON (
+          e.usuario_id = mua_existente.usuario_id
+          OR (
+            e.usuario_id IS NULL
+            AND NULLIF(
+              BTRIM(mua_existente.sessao_id),
+              ''
+            ) IS NOT NULL
+            AND e.sessao_id =
+              mua_existente.sessao_id
+          )
+        )
+      WHERE mua_existente.intencao = 'profissional'
         AND e.created_at >=
-          u.created_at - INTERVAL '5 minutes'
+          u.created_at - INTERVAL '24 hours'
         AND e.created_at <=
           u.created_at + INTERVAL '24 hours'
         AND (
@@ -104,17 +142,26 @@ async function recuperarGoogleProfissionaisPorEventos({
                 e.propriedades ->> 'utm_campaign',
                 ''
               )
-            ) = $1
+            ) = ANY($2::TEXT[])
           )
         )
       ORDER BY
-        e.usuario_id,
+        mua_existente.usuario_id,
+        CASE
+          WHEN e.usuario_id =
+            mua_existente.usuario_id
+            THEN 0
+          ELSE 1
+        END,
         e.created_at ASC,
         e.id ASC
     )
     UPDATE marketing_usuario_atribuicoes mua
     SET
-      sessao_id = eg.sessao_id,
+      sessao_id = COALESCE(
+        NULLIF(BTRIM(mua.sessao_id), ''),
+        eg.sessao_id
+      ),
       utm_source = 'google',
       utm_medium = 'cpc',
       utm_campaign = eg.utm_campaign,
@@ -170,7 +217,10 @@ async function recuperarGoogleProfissionaisPorEventos({
         NULLIF(BTRIM(mua.epik), '')
       ) IS NULL
     `,
-    [campanhaOficial]
+    [
+      campanhaOficial,
+      identidadesAceitas,
+    ]
   );
 }
 

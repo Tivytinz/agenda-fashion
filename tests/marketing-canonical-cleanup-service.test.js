@@ -22,7 +22,7 @@ describe(
     });
 
     test(
-      "preserva GCLID ao retirar campanha Google legada",
+      "preserva sinais Google e tenta recuperar a sessão anterior ao cadastro",
       async () => {
         const consultas = [];
         let chamada = 0;
@@ -89,13 +89,22 @@ describe(
           "propriedades ->> 'gclid'"
         );
         expect(sql).toContain(
-          "FROM eventos_produto e"
+          "INNER JOIN eventos_produto e"
+        );
+        expect(sql).toContain(
+          "u.created_at - INTERVAL '24 hours'"
         );
         expect(sql).toContain(
           "u.created_at + INTERVAL '24 hours'"
         );
         expect(sql).toContain(
           "mua_existente.intencao = 'profissional'"
+        );
+        expect(sql).toContain(
+          "e.usuario_id IS NULL"
+        );
+        expect(sql).toContain(
+          "e.sessao_id ="
         );
         expect(sql).toContain(
           "UPDATE marketing_usuario_atribuicoes mua"

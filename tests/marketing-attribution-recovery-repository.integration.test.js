@@ -42,29 +42,33 @@ async function criarProfissional(prefixo) {
 
   const usuarioId =
     Number(usuario.rows[0].id);
+  const sessaoId = `sessao_${id}`;
 
   await db.query(
     `
     INSERT INTO marketing_usuario_atribuicoes (
       usuario_id,
       intencao,
+      sessao_id,
       atribuicao_em
     )
     VALUES (
       $1,
       'profissional',
-      $2
+      $2,
+      $3
     )
     `,
     [
       usuarioId,
+      sessaoId,
       usuario.rows[0].created_at,
     ]
   );
 
   return {
     usuarioId,
-    sessaoId: `sessao_${id}`,
+    sessaoId,
   };
 }
 
@@ -72,6 +76,7 @@ async function registrarEvento({
   usuarioId,
   sessaoId,
   propriedades,
+  momento,
 }) {
   await db.query(
     `
@@ -81,7 +86,8 @@ async function registrarEvento({
       missao,
       sessao_id,
       usuario_id,
-      propriedades
+      propriedades,
+      created_at
     )
     VALUES (
       'tela_visualizada',
@@ -89,13 +95,15 @@ async function registrarEvento({
       'organizar_negocio',
       $1,
       $2,
-      $3::JSONB
+      $3::JSONB,
+      COALESCE($4::TIMESTAMPTZ, NOW())
     )
     `,
     [
       sessaoId,
-      usuarioId,
+      usuarioId ?? null,
       JSON.stringify(propriedades),
+      momento || null,
     ]
   );
 }
@@ -104,29 +112,39 @@ describe(
   "recuperação integrada da atribuição profissional",
   () => {
     const usuarios = [];
+    const sessoes = [];
 
     afterEach(async () => {
-      if (!usuarios.length) {
-        return;
+      if (sessoes.length) {
+        await db.query(
+          `
+          DELETE FROM eventos_produto
+          WHERE sessao_id = ANY($1::VARCHAR[])
+          `,
+          [sessoes]
+        );
       }
 
-      await db.query(
-        `
-        DELETE FROM eventos_produto
-        WHERE usuario_id = ANY($1::BIGINT[])
-        `,
-        [usuarios]
-      );
+      if (usuarios.length) {
+        await db.query(
+          `
+          DELETE FROM eventos_produto
+          WHERE usuario_id = ANY($1::BIGINT[])
+          `,
+          [usuarios]
+        );
 
-      await db.query(
-        `
-        DELETE FROM usuarios
-        WHERE id = ANY($1::BIGINT[])
-        `,
-        [usuarios]
-      );
+        await db.query(
+          `
+          DELETE FROM usuarios
+          WHERE id = ANY($1::BIGINT[])
+          `,
+          [usuarios]
+        );
+      }
 
       usuarios.length = 0;
+      sessoes.length = 0;
     });
 
     test(
@@ -143,6 +161,11 @@ describe(
           comClique.usuarioId,
           utmOficial.usuarioId,
           naoVerificado.usuarioId
+        );
+        sessoes.push(
+          comClique.sessaoId,
+          utmOficial.sessaoId,
+          naoVerificado.sessaoId
         );
 
         await registrarEvento({
@@ -255,7 +278,113 @@ describe(
           utm_medium: null,
           utm_campaign: null,
           gclid: null,
-          sessao_id: null,
+          sessao_id:
+            naoVerificado.sessaoId,
+        });
+      }
+    );
+
+    test(
+      "recupera clique anônimo pré-cadastro pela mesma sessão sem cruzar outra sessão",
+      async () => {
+        const alvo =
+          await criarProfissional("AnonimoAlvo");
+        const outro =
+          await criarProfissional("AnonimoOutro");
+
+        usuarios.push(
+          alvo.usuarioId,
+          outro.usuarioId
+        );
+        sessoes.push(
+          alvo.sessaoId,
+          outro.sessaoId
+        );
+
+        const criacao = await db.query(
+          `
+          SELECT created_at
+          FROM usuarios
+          WHERE id = $1
+          `,
+          [alvo.usuarioId]
+        );
+        const momentoAntes = new Date(
+          new Date(criacao.rows[0].created_at).getTime() -
+            (30 * 60 * 1000)
+        ).toISOString();
+
+        await registrarEvento({
+          usuarioId: null,
+          sessaoId: alvo.sessaoId,
+          momento: momentoAntes,
+          propriedades: {
+            gclid: `gclid-anonimo-${suffix()}`,
+            utm_source: "google",
+            utm_medium: "cpc",
+            landing_page: "/para-profissionais",
+          },
+        });
+
+        await registrarEvento({
+          usuarioId: null,
+          sessaoId: `sessao_nao_relacionada_${suffix()}`,
+          momento: momentoAntes,
+          propriedades: {
+            gclid: `gclid-errado-${suffix()}`,
+            utm_source: "google",
+            utm_medium: "cpc",
+          },
+        });
+
+        const resultado =
+          await repository
+            .recuperarGoogleProfissionaisPorEventos({
+              client: db,
+              campanhaOficial:
+                "google_ads_profissionais",
+            });
+
+        expect(resultado.rowCount)
+          .toBeGreaterThanOrEqual(1);
+
+        const atribuicoes = await db.query(
+          `
+          SELECT
+            usuario_id,
+            utm_source,
+            utm_medium,
+            gclid
+          FROM marketing_usuario_atribuicoes
+          WHERE usuario_id = ANY($1::BIGINT[])
+          ORDER BY usuario_id
+          `,
+          [[alvo.usuarioId, outro.usuarioId]]
+        );
+
+        const porUsuario = new Map(
+          atribuicoes.rows.map((item) => [
+            Number(item.usuario_id),
+            item,
+          ])
+        );
+
+        expect(
+          porUsuario.get(alvo.usuarioId)
+        ).toMatchObject({
+          utm_source: "google",
+          utm_medium: "cpc",
+        });
+        expect(
+          porUsuario.get(alvo.usuarioId).gclid
+        ).toMatch(/^gclid-anonimo-/);
+
+        expect(
+          porUsuario.get(outro.usuarioId)
+        ).toMatchObject({
+          utm_source: null,
+          utm_medium: null,
+          gclid: null,
         });
       }
     );

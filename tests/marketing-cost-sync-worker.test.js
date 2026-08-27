@@ -3,6 +3,23 @@ const mockSyncService = {
   sincronizar: jest.fn()
 };
 
+const mockCanonicalCleanupService = {
+  CAMPANHA_OFICIAL:
+    "google_ads_profissionais",
+  CAMPANHAS_LEGADAS: [
+    "aquisicao_profissionais",
+    "search_aquisicao_profissionais",
+    "profissionais_google_ads",
+  ],
+  executarLimpezaGoogleProfissionais:
+    jest.fn(),
+};
+
+const mockRecoveryRepository = {
+  recuperarGoogleProfissionaisPorEventos:
+    jest.fn(),
+};
+
 const mockRegistrador = {
   informacao: jest.fn(),
   aviso: jest.fn(),
@@ -12,6 +29,16 @@ const mockRegistrador = {
 jest.mock(
   "../src/services/marketingCostSyncService",
   () => mockSyncService
+);
+
+jest.mock(
+  "../src/services/marketingCanonicalCleanupService",
+  () => mockCanonicalCleanupService
+);
+
+jest.mock(
+  "../src/repositories/marketingAttributionRecoveryRepository",
+  () => mockRecoveryRepository
 );
 
 jest.mock(
@@ -30,11 +57,50 @@ describe("marketingCostSyncWorker", () => {
     jest.clearAllMocks();
     process.env = { ...envOriginal };
     worker.pararWorkerCustosMarketing();
+    mockRecoveryRepository
+      .recuperarGoogleProfissionaisPorEventos
+      .mockResolvedValue({ rowCount: 0 });
+    mockCanonicalCleanupService
+      .executarLimpezaGoogleProfissionais
+      .mockResolvedValue({
+        campanhaOficialId: 1,
+      });
   });
 
   afterEach(() => {
     worker.pararWorkerCustosMarketing();
     process.env = envOriginal;
+  });
+
+  test("recupera atribuição histórica antes da limpeza canônica", async () => {
+    mockRecoveryRepository
+      .recuperarGoogleProfissionaisPorEventos
+      .mockResolvedValue({ rowCount: 4 });
+
+    const resultado =
+      await worker.executarLimpezaCanonica();
+
+    expect(
+      mockRecoveryRepository
+        .recuperarGoogleProfissionaisPorEventos
+    ).toHaveBeenCalledWith({
+      campanhaOficial:
+        "google_ads_profissionais",
+      campanhasAceitas: [
+        "google_ads_profissionais",
+        "aquisicao_profissionais",
+        "search_aquisicao_profissionais",
+        "profissionais_google_ads",
+      ],
+    });
+    expect(
+      mockCanonicalCleanupService
+        .executarLimpezaGoogleProfissionais
+    ).toHaveBeenCalledTimes(1);
+    expect(resultado).toMatchObject({
+      campanhaOficialId: 1,
+      atribuicoesRecuperadasAntesDaLimpeza: 4,
+    });
   });
 
   test("sincroniza somente provedores configurados", async () => {
