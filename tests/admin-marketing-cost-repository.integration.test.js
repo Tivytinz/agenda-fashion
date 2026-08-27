@@ -158,12 +158,17 @@ describe(
     });
 
     afterEach(async () => {
+      const campaignIds = [
+        campanhaId,
+        ...extraCampaignIds,
+      ].filter(Number.isFinite);
+
       await db.query(
         `
         DELETE FROM marketing_campanha_gastos
-        WHERE campanha_id = $1
+        WHERE campanha_id = ANY($1::bigint[])
         `,
-        [campanhaId]
+        [campaignIds]
       );
 
       await db.query(
@@ -179,16 +184,6 @@ describe(
         ]]
       );
 
-      if (extraCampaignIds.length > 0) {
-        await db.query(
-          `
-          DELETE FROM marketing_campanhas
-          WHERE id = ANY($1::bigint[])
-          `,
-          [extraCampaignIds]
-        );
-      }
-
       if (extraSyncIds.length > 0) {
         await db.query(
           `
@@ -202,9 +197,9 @@ describe(
       await db.query(
         `
         DELETE FROM marketing_campanhas
-        WHERE id = $1
+        WHERE id = ANY($1::bigint[])
         `,
-        [campanhaId]
+        [campaignIds]
       );
     });
 
