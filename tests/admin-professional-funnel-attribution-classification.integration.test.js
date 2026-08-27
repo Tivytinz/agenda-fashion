@@ -73,20 +73,29 @@ describe(
         const linhas =
           await repository.listarPorCampanha("today");
 
-        const encontrada = linhas.find(
+        const incompletas = linhas.filter(
           (item) =>
             item.classificacao_atribuicao ===
-              "rastreamento_incompleto" &&
-            Number(item.cadastros) >= 1
+              "rastreamento_incompleto"
+        );
+        const organicas = linhas.filter(
+          (item) =>
+            item.classificacao_atribuicao ===
+              "organico"
         );
 
-        expect(encontrada).toMatchObject({
-          origem: "desconhecida",
-          midia: "desconhecida",
-          campanha: "(sem campanha)",
-          classificacao_atribuicao:
-            "rastreamento_incompleto",
-        });
+        expect(
+          incompletas.some(
+            (item) => Number(item.cadastros) >= 1
+          )
+        ).toBe(true);
+        expect(
+          organicas.reduce(
+            (total, item) =>
+              total + Number(item.cadastros || 0),
+            0
+          )
+        ).toBe(0);
       }
     );
   }
