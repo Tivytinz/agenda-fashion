@@ -5,7 +5,32 @@ const db = require(
 async function recuperarGoogleProfissionaisPorEventos({
   client = db,
   campanhaOficial,
+  campanhasAceitas = [campanhaOficial],
 }) {
+  const identidadesAceitas = Array.from(
+    new Set(
+      (campanhasAceitas || [])
+        .map((item) =>
+          String(item || "")
+            .trim()
+            .toLowerCase()
+        )
+        .filter(Boolean)
+    )
+  );
+
+  if (!identidadesAceitas.includes(
+    String(campanhaOficial || "")
+      .trim()
+      .toLowerCase()
+  )) {
+    identidadesAceitas.push(
+      String(campanhaOficial || "")
+        .trim()
+        .toLowerCase()
+    );
+  }
+
   return client.query(
     `
     WITH evidencia_google AS (
@@ -27,7 +52,7 @@ async function recuperarGoogleProfissionaisPorEventos({
               ),
               ''
             )
-          ) = $1
+          ) = ANY($2::TEXT[])
             THEN $1
           ELSE NULL
         END AS utm_campaign,
@@ -117,7 +142,7 @@ async function recuperarGoogleProfissionaisPorEventos({
                 e.propriedades ->> 'utm_campaign',
                 ''
               )
-            ) = $1
+            ) = ANY($2::TEXT[])
           )
         )
       ORDER BY
@@ -192,7 +217,10 @@ async function recuperarGoogleProfissionaisPorEventos({
         NULLIF(BTRIM(mua.epik), '')
       ) IS NULL
     `,
-    [campanhaOficial]
+    [
+      campanhaOficial,
+      identidadesAceitas,
+    ]
   );
 }
 
