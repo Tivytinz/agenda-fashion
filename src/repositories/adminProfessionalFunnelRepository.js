@@ -145,6 +145,10 @@ async function listarPorCampanha(
           mua.atribuicao_em,
           ${atribuicao.atribuicaoPaga}
             AS pago,
+          ${atribuicao.atribuicaoRastreada}
+            AS rastreado,
+          ${atribuicao.trafegoOrganico}
+            AS organico,
           ${atribuicao.origem}
             AS origem,
           ${atribuicao.midia}
@@ -180,7 +184,11 @@ async function listarPorCampanha(
               THEN 'rastreamento_incompleto'
             WHEN a.pago
               THEN 'identidade_nao_oficial'
-            ELSE 'organico'
+            WHEN NOT a.rastreado
+              THEN 'rastreamento_incompleto'
+            WHEN a.organico
+              THEN 'organico'
+            ELSE 'rastreamento_incompleto'
           END
             AS classificacao_atribuicao
         FROM atribuicoes_resolvidas a
