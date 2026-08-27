@@ -44,6 +44,10 @@ const service = require(
 describe(
   "reparo de vínculo Google obsoleto",
   () => {
+    beforeEach(() => {
+      jest.clearAllMocks();
+    });
+
     test(
       "substitui vínculo removido somente depois de comprovar a campanha original atual",
       async () => {
