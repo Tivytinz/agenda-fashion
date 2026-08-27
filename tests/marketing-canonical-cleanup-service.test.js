@@ -88,9 +88,22 @@ describe(
         expect(sql).toContain(
           "propriedades ->> 'gclid'"
         );
+        expect(sql).toContain(
+          "FROM eventos_produto e"
+        );
+        expect(sql).toContain(
+          "u.created_at + INTERVAL '24 hours'"
+        );
+        expect(sql).toContain(
+          "mua_existente.intencao = 'profissional'"
+        );
+        expect(sql).toContain(
+          "UPDATE marketing_usuario_atribuicoes mua"
+        );
         expect(resultado).toMatchObject({
           campanhaOficialId: 42,
           atribuicoesComGclidPreservadas: 0,
+          atribuicoesRecuperadasDeEventos: 0,
           eventosComGclidPreservados: 0,
         });
       }
