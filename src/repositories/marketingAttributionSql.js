@@ -151,11 +151,11 @@ function criarVinculoCampanhaOficialSql({
           sincronizacao.status = 'sucesso'
           AND sincronizacao.campanhas_nao_vinculadas = 0
           AND sincronizacao.reconciliacao_campanhas_completa = TRUE
+        FROM marketing_custo_sincronizacoes sincronizacao
+        WHERE sincronizacao.provedor = ${provedorResolvido}
           AND ${dataAtribuicao}
             BETWEEN sincronizacao.data_inicio
               AND sincronizacao.data_fim
-        FROM marketing_custo_sincronizacoes sincronizacao
-        WHERE sincronizacao.provedor = ${provedorResolvido}
         ORDER BY
           sincronizacao.created_at DESC,
           sincronizacao.id DESC
