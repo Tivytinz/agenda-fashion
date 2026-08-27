@@ -2,6 +2,11 @@ const db = require(
   "../db/db"
 );
 
+const marketingAttributionRecoveryRepository =
+  require(
+    "../repositories/marketingAttributionRecoveryRepository"
+  );
+
 const CAMPANHA_OFICIAL =
   "google_ads_profissionais";
 
@@ -301,6 +306,20 @@ async function executarLimpezaGoogleProfissionais() {
           [CAMPANHAS_LEGADAS]
         );
 
+      /*
+       * Se a gravação da atribuição no cadastro falhou, uma navegação
+       * autenticada logo depois ainda pode conter a evidência do clique.
+       * A recuperação é conservadora: só preenche first touch vazio e deixa
+       * a resolução final da campanha para as regras oficiais já existentes.
+       */
+      const atribuicoesRecuperadas =
+        await marketingAttributionRecoveryRepository
+          .recuperarGoogleProfissionaisPorEventos({
+            client,
+            campanhaOficial:
+              CAMPANHA_OFICIAL,
+          });
+
       const eventosComSinalGooglePreservados =
         eventosLegadosComSinalGoogle.rowCount || 0;
 
@@ -315,6 +334,8 @@ async function executarLimpezaGoogleProfissionais() {
         atribuicoesLimpas:
           (atribuicoesPrimeiroToque.rowCount || 0) +
           (atribuicoesUltimoToque.rowCount || 0),
+        atribuicoesRecuperadasDeEventos:
+          atribuicoesRecuperadas.rowCount || 0,
         eventosComGclidPreservados:
           eventosComSinalGooglePreservados,
         eventosComSinalGooglePreservados,
