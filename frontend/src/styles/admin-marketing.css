@@ -164,6 +164,48 @@
   white-space: nowrap;
 }
 
+.admin-pending-identities {
+  display: grid;
+  gap: 0.45rem;
+  margin: 0.65rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.admin-pending-identities li {
+  display: grid;
+  gap: 0.25rem;
+  min-width: 0;
+  padding: 0.55rem 0.65rem;
+  border-radius: 10px;
+  background: var(--surface-soft, #fff7fb);
+}
+
+.admin-pending-identities li > div {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.25rem 0.65rem;
+  min-width: 0;
+}
+
+.admin-pending-identities code {
+  overflow-wrap: anywhere;
+  color: var(--text, #342a2e);
+  font-weight: 800;
+}
+
+.admin-pending-identities span,
+.admin-pending-identities small {
+  color: var(--muted, #795f68);
+  font-size: 0.78rem;
+}
+
+.admin-pending-identities small {
+  margin: 0;
+}
+
 .admin-advanced-fields {
   border: 1px solid var(--line, #ead7df);
   border-radius: 14px;

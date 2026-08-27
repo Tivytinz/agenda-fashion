@@ -91,6 +91,22 @@ function sourceLabel(value) {
   return titleCase(source);
 }
 
+function mediumLabel(value) {
+  const medium = normalize(value);
+  const labels = {
+    cpc: "CPC",
+    ppc: "PPC",
+    paid: "Mídia paga",
+    paid_search: "Busca paga",
+    paid_social: "Social pago",
+    "paid-social": "Social pago",
+    social_paid: "Social pago",
+    display: "Display"
+  };
+
+  return labels[medium] || titleCase(medium.replaceAll("_", " "));
+}
+
 function sourceCode(value) {
   const source = normalize(value);
   if (source === "google") return "google";
@@ -829,8 +845,30 @@ export function AdminMarketingPage() {
                     )}
                   </strong>
                   <small>
-                    Essas identidades não estão cadastradas como campanhas oficiais e não aparecem no desempenho principal.
+                    Revise a origem e o identificador antes de associar. Enquanto não houver evidência, essas sessões ficam fora do desempenho principal.
                   </small>
+                  <ul
+                    aria-label="Identidades não oficiais detectadas"
+                    className="admin-pending-identities"
+                  >
+                    {unofficialAttributed.map((item) => (
+                      <li key={performanceIdentity(item)}>
+                        <div>
+                          <code>{campaignLabel(item)}</code>
+                          <span>
+                            {sourceLabel(item.origem)} · {mediumLabel(item.midia)}
+                          </span>
+                        </div>
+                        <small>
+                          {pluralize(
+                            item.sessoes,
+                            "sessão detectada",
+                            "sessões detectadas"
+                          )} · última interação {formatDateTime(item.ultimaInteracao)}
+                        </small>
+                      </li>
+                    ))}
+                  </ul>
                 </div>
               </div>
             )}

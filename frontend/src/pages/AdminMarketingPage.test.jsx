@@ -276,6 +276,16 @@ describe("AdminMarketingPage", () => {
       screen.getByText(/Não são acessos autônomos\. Há sinal de mídia paga/i)
     ).not.toBeNull();
     expect(screen.getByText(/1 sessão com identidade não oficial/i)).not.toBeNull();
+    const unofficialIdentities = screen.getByRole("list", {
+      name: "Identidades não oficiais detectadas"
+    });
+    expect(within(unofficialIdentities).getByText("teste")).not.toBeNull();
+    expect(
+      within(unofficialIdentities).getByText("Meta Ads · Social pago")
+    ).not.toBeNull();
+    expect(
+      within(unofficialIdentities).getByText(/1 sessão detectada/i)
+    ).not.toBeNull();
     expect(
       screen.getByRole("button", {
         name: "Copiar link correto de Google Ads · Aquisição de profissionais"
