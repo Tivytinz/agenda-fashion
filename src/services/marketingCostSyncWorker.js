@@ -3,6 +3,9 @@ const marketingCostSyncService = require("./marketingCostSyncService");
 const marketingCanonicalCleanupService = require(
   "./marketingCanonicalCleanupService"
 );
+const marketingAttributionRecoveryRepository = require(
+  "../repositories/marketingAttributionRecoveryRepository"
+);
 const {
   PRIMEIRA_EXECUCAO_MS,
   agendamentoAtivo,
@@ -26,16 +29,43 @@ async function executarLimpezaCanonica() {
   limpezaIniciada = true;
 
   try {
+    const campanhasAceitas = [
+      marketingCanonicalCleanupService
+        .CAMPANHA_OFICIAL,
+      ...marketingCanonicalCleanupService
+        .CAMPANHAS_LEGADAS,
+    ];
+
+    /*
+     * Recuperamos primeiro a evidência histórica ainda bruta. Isso evita que
+     * uma limpeza de aliases legados apague o único vínculo auditável entre
+     * a sessão anônima do anúncio e a conta criada depois.
+     */
+    const recuperacaoAntesDaLimpeza =
+      await marketingAttributionRecoveryRepository
+        .recuperarGoogleProfissionaisPorEventos({
+          campanhaOficial:
+            marketingCanonicalCleanupService
+              .CAMPANHA_OFICIAL,
+          campanhasAceitas,
+        });
+
     const resultado =
       await marketingCanonicalCleanupService
         .executarLimpezaGoogleProfissionais();
 
+    const consolidado = {
+      ...resultado,
+      atribuicoesRecuperadasAntesDaLimpeza:
+        recuperacaoAntesDaLimpeza.rowCount || 0,
+    };
+
     registrador.informacao(
       "Marketing: campanha Google de profissionais reconciliada.",
-      resultado
+      consolidado
     );
 
-    return resultado;
+    return consolidado;
   } catch (erro) {
     limpezaIniciada = false;
 
