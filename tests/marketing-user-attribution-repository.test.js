@@ -79,5 +79,45 @@ describe(
         expect(parametros[34]).toBe("/planos");
       }
     );
+
+    test(
+      "enriquece registro parcial existente sem apagar evidência anterior",
+      async () => {
+        await repository.registrarConta({
+          usuarioId: 7,
+          intencao: "profissional",
+          sessaoId: "sessao_12345678",
+          utmSource: "google",
+          utmMedium: "cpc",
+          utmCampaign: null,
+          gclid: "gclid-123",
+        });
+
+        const [sql] =
+          mockQuery.mock.calls[0];
+
+        expect(sql).toContain(
+          "ON CONFLICT (usuario_id)"
+        );
+        expect(sql).toContain(
+          "DO UPDATE SET"
+        );
+        expect(sql).not.toContain(
+          "DO NOTHING"
+        );
+        expect(sql).toContain(
+          "marketing_usuario_atribuicoes.utm_source"
+        );
+        expect(sql).toContain(
+          "marketing_usuario_atribuicoes.gclid"
+        );
+        expect(sql).toContain(
+          "EXCLUDED.gclid"
+        );
+        expect(sql).toContain(
+          "OR EXCLUDED.intencao = 'profissional'"
+        );
+      }
+    );
   }
 );
