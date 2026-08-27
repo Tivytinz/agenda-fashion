@@ -26,6 +26,7 @@ describe(
     let sessionGoogleSemCampanha;
     let campaign;
     let managedCampaignId;
+    let managedSyncId;
 
     beforeEach(async () => {
       const suffix = idCurto();
@@ -39,6 +40,7 @@ describe(
       campaign =
         `campanha_${suffix}`;
       managedCampaignId = null;
+      managedSyncId = null;
 
       const attribution = {
         utm_source: "facebook",
@@ -134,6 +136,16 @@ describe(
           WHERE id = $1
           `,
           [managedCampaignId]
+        );
+      }
+
+      if (managedSyncId) {
+        await db.query(
+          `
+          DELETE FROM marketing_custo_sincronizacoes
+          WHERE id = $1
+          `,
+          [managedSyncId]
         );
       }
     });
@@ -279,6 +291,208 @@ describe(
           sessoes_resolvidas_gclid: 0,
           sessoes_resolvidas_google_click: 0,
         });
+      }
+    );
+
+    test(
+      "atribui clique Google sem UTM quando existe um único vínculo verificado",
+      async () => {
+        const suffix = idCurto();
+        const criada = await db.query(
+          `
+          INSERT INTO marketing_campanhas (
+            nome,
+            canal,
+            objetivo,
+            utm_source,
+            utm_medium,
+            utm_campaign,
+            destino_path,
+            ativo
+          )
+          VALUES (
+            $1,
+            'google',
+            'profissional',
+            'google',
+            'cpc',
+            $2,
+            '/',
+            TRUE
+          )
+          RETURNING id
+          `,
+          [
+            `Google vinculada ${suffix}`,
+            `google_vinculada_${suffix}`,
+          ]
+        );
+        managedCampaignId =
+          Number(criada.rows[0].id);
+
+        await db.query(
+          `
+          INSERT INTO marketing_campanha_vinculos (
+            campanha_id,
+            provedor,
+            conta_externa_id,
+            campanha_externa_id,
+            campanha_externa_nome
+          )
+          VALUES ($1, 'google_ads', $2, $3, $4)
+          `,
+          [
+            managedCampaignId,
+            `conta${suffix}`,
+            `campanha${suffix}`,
+            `Campanha Google ${suffix}`,
+          ]
+        );
+
+        const sincronizacao = await db.query(
+          `
+          INSERT INTO marketing_custo_sincronizacoes (
+            provedor,
+            status,
+            data_inicio,
+            data_fim,
+            campanhas_nao_vinculadas,
+            reconciliacao_campanhas_completa,
+            finished_at
+          )
+          VALUES (
+            'google_ads',
+            'sucesso',
+            (NOW() AT TIME ZONE 'America/Sao_Paulo')::date - 29,
+            (NOW() AT TIME ZONE 'America/Sao_Paulo')::date,
+            0,
+            TRUE,
+            NOW()
+          )
+          RETURNING id
+          `
+        );
+        managedSyncId = Number(
+          sincronizacao.rows[0].id
+        );
+
+        await db.query(
+          `
+          INSERT INTO eventos_produto (
+            nome,
+            pagina,
+            sessao_id,
+            propriedades
+          )
+          VALUES (
+            'perfil_visualizado',
+            'perfil_negocio',
+            $1,
+            $2::JSONB
+          )
+          `,
+          [
+            sessionGoogleSemCampanha,
+            JSON.stringify({
+              gclid: "click-resolvido-por-vinculo",
+            }),
+          ]
+        );
+
+        const campanhas =
+          await adminMarketingRepository
+            .listarCampanhas("all");
+        const encontrada = campanhas.find(
+          (item) =>
+            Number(item.campanha_oficial_id) ===
+              managedCampaignId
+        );
+
+        expect(encontrada).toMatchObject({
+          campanha:
+            `google_vinculada_${suffix}`,
+          classificacao_atribuicao:
+            "oficial",
+          sessoes: 1,
+          sessoes_atribuicao_direta: 0,
+          sessoes_atribuicao_assistida: 1,
+        });
+
+        await db.query(
+          `
+          UPDATE marketing_custo_sincronizacoes
+          SET
+            status = 'parcial',
+            campanhas_nao_vinculadas = 1
+          WHERE id = $1
+          `,
+          [managedSyncId]
+        );
+
+        const comReconciliacaoParcial =
+          await adminMarketingRepository
+            .listarCampanhas("all");
+
+        expect(
+          comReconciliacaoParcial.some(
+            (item) =>
+              Number(item.campanha_oficial_id) ===
+                managedCampaignId
+          )
+        ).toBe(false);
+
+        await db.query(
+          `
+          UPDATE marketing_custo_sincronizacoes
+          SET
+            status = 'sucesso',
+            campanhas_nao_vinculadas = 0,
+            data_inicio =
+              (NOW() AT TIME ZONE 'America/Sao_Paulo')::date - 60,
+            data_fim =
+              (NOW() AT TIME ZONE 'America/Sao_Paulo')::date - 31
+          WHERE id = $1
+          `,
+          [managedSyncId]
+        );
+
+        const foraDaJanelaComprovada =
+          await adminMarketingRepository
+            .listarCampanhas("all");
+
+        expect(
+          foraDaJanelaComprovada.some(
+            (item) =>
+              Number(item.campanha_oficial_id) ===
+                managedCampaignId
+          )
+        ).toBe(false);
+
+        await db.query(
+          `
+          UPDATE marketing_custo_sincronizacoes
+          SET
+            data_inicio =
+              (NOW() AT TIME ZONE 'America/Sao_Paulo')::date - 29,
+            data_fim =
+              (NOW() AT TIME ZONE 'America/Sao_Paulo')::date,
+            reconciliacao_campanhas_completa = FALSE
+          WHERE id = $1
+          `,
+          [managedSyncId]
+        );
+
+        const semEvidenciaDaVersaoAtual =
+          await adminMarketingRepository
+            .listarCampanhas("all");
+
+        expect(
+          semEvidenciaDaVersaoAtual.some(
+            (item) =>
+              Number(item.campanha_oficial_id) ===
+                managedCampaignId
+          )
+        ).toBe(false);
       }
     );
   }

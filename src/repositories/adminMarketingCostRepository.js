@@ -132,6 +132,7 @@ async function listarDesempenho(
       origem: "e.origem_resolvida",
       midia: "e.midia_resolvida",
       campanha: "e.campanha_resolvida",
+      momento: "e.created_at",
       alias: "campanha_encontrada",
     });
 
@@ -156,7 +157,9 @@ async function listarDesempenho(
         SELECT
           e.*,
           campanha_encontrada.id
-            AS campanha_id
+            AS campanha_id,
+          campanha_encontrada.metodo_resolucao
+            AS metodo_resolucao
         FROM eventos_resolvidos e
         ${vinculoCampanha}
       ),
@@ -182,79 +185,6 @@ async function listarDesempenho(
           g.data_gasto
       ),
 
-      eventos_por_campanha AS (
-        SELECT
-          mc.id AS campanha_id,
-
-          COUNT(
-            DISTINCT e.sessao_id
-          ) FILTER (
-            WHERE e.id IS NOT NULL
-          )::INT AS sessoes,
-
-          COUNT(
-            DISTINCT e.sessao_id
-          ) FILTER (
-            WHERE e.id IS NOT NULL
-              AND COALESCE(
-                gcd.investimento_centavos,
-                0
-              ) > 0
-          )::INT AS sessoes_com_custo,
-
-          COUNT(
-            DISTINCT COALESCE(
-              NULLIF(
-                BTRIM(
-                  e.propriedades
-                    ->> 'agendamento_id'
-                ),
-                ''
-              ),
-              e.id::TEXT
-            )
-          ) FILTER (
-            WHERE e.nome =
-              'agendamento_concluido'
-          )::INT AS agendamentos_concluidos,
-
-          COUNT(
-            DISTINCT COALESCE(
-              NULLIF(
-                BTRIM(
-                  e.propriedades
-                    ->> 'agendamento_id'
-                ),
-                ''
-              ),
-              e.id::TEXT
-            )
-          ) FILTER (
-            WHERE e.nome =
-                'agendamento_concluido'
-              AND COALESCE(
-                gcd.investimento_centavos,
-                0
-              ) > 0
-          )::INT
-            AS agendamentos_concluidos_com_custo
-
-        FROM marketing_campanhas mc
-
-        LEFT JOIN eventos_vinculados e
-          ON e.campanha_id = mc.id
-
-        LEFT JOIN gastos_por_campanha_dia gcd
-          ON gcd.campanha_id = mc.id
-          AND gcd.data_gasto =
-            (
-              e.created_at AT TIME ZONE
-                '${REPORT_TIME_ZONE}'
-            )::date
-
-        GROUP BY mc.id
-      ),
-
       gastos_por_campanha AS (
         SELECT
           gcd.campanha_id,
@@ -270,6 +200,50 @@ async function listarDesempenho(
         FROM gastos_por_campanha_dia gcd
 
         GROUP BY gcd.campanha_id
+      ),
+
+      eventos_por_campanha AS (
+        SELECT
+          mc.id AS campanha_id,
+
+          COUNT(
+            DISTINCT e.sessao_id
+          ) FILTER (
+            WHERE e.id IS NOT NULL
+          )::INT AS sessoes,
+
+          COUNT(
+            DISTINCT e.sessao_id
+          ) FILTER (
+            WHERE e.id IS NOT NULL
+              AND e.metodo_resolucao <>
+                'utm_exata'
+          )::INT
+            AS sessoes_atribuicao_assistida,
+
+          COUNT(
+            DISTINCT COALESCE(
+              NULLIF(
+                BTRIM(
+                  e.propriedades
+                    ->> 'agendamento_id'
+                ),
+                ''
+              ),
+              e.id::TEXT
+            )
+          ) FILTER (
+            WHERE e.nome =
+              'agendamento_concluido'
+          )::INT
+            AS agendamentos_concluidos
+
+        FROM marketing_campanhas mc
+
+        LEFT JOIN eventos_vinculados e
+          ON e.campanha_id = mc.id
+
+        GROUP BY mc.id
       )
 
       SELECT
@@ -287,10 +261,23 @@ async function listarDesempenho(
           0
         )::INT AS sessoes,
 
+        CASE
+          WHEN COALESCE(
+            gpc.investimento_centavos,
+            0
+          ) > 0
+            THEN COALESCE(
+              epc.sessoes,
+              0
+            )
+          ELSE 0
+        END::INT AS sessoes_com_custo,
+
         COALESCE(
-          epc.sessoes_com_custo,
+          epc.sessoes_atribuicao_assistida,
           0
-        )::INT AS sessoes_com_custo,
+        )::INT
+          AS sessoes_atribuicao_assistida,
 
         COALESCE(
           epc.agendamentos_concluidos,
@@ -298,10 +285,17 @@ async function listarDesempenho(
         )::INT
           AS agendamentos_concluidos,
 
-        COALESCE(
-          epc.agendamentos_concluidos_com_custo,
-          0
-        )::INT
+        CASE
+          WHEN COALESCE(
+            gpc.investimento_centavos,
+            0
+          ) > 0
+            THEN COALESCE(
+              epc.agendamentos_concluidos,
+              0
+            )
+          ELSE 0
+        END::INT
           AS agendamentos_concluidos_com_custo,
 
         COALESCE(
@@ -347,6 +341,7 @@ async function buscarDiagnosticoAtribuicao(
       origem: "e.origem_resolvida",
       midia: "e.midia_resolvida",
       campanha: "e.campanha_resolvida",
+      momento: "e.created_at",
     });
 
   const campanhaAusente =
@@ -376,6 +371,7 @@ async function buscarDiagnosticoAtribuicao(
           e.sessao_id,
           campanha_oficial.id IS NOT NULL
             AS oficial,
+          campanha_oficial.metodo_resolucao,
           ${campanhaAusente}
             AS campanha_ausente
         FROM eventos_resolvidos e
@@ -386,6 +382,16 @@ async function buscarDiagnosticoAtribuicao(
         SELECT
           sessao_id,
           BOOL_OR(oficial) AS oficial,
+          BOOL_OR(
+            oficial
+            AND metodo_resolucao =
+              'utm_exata'
+          ) AS atribuicao_direta,
+          BOOL_OR(
+            oficial
+            AND metodo_resolucao <>
+              'utm_exata'
+          ) AS atribuicao_assistida,
           BOOL_OR(campanha_ausente)
             AS campanha_ausente
         FROM eventos_classificados
@@ -396,6 +402,17 @@ async function buscarDiagnosticoAtribuicao(
         COUNT(*) FILTER (
           WHERE oficial
         )::INT AS sessoes_oficiais,
+        COUNT(*) FILTER (
+          WHERE oficial
+            AND atribuicao_direta
+        )::INT
+          AS sessoes_atribuicao_direta,
+        COUNT(*) FILTER (
+          WHERE oficial
+            AND NOT atribuicao_direta
+            AND atribuicao_assistida
+        )::INT
+          AS sessoes_atribuicao_assistida,
         COUNT(*) FILTER (
           WHERE NOT oficial
             AND campanha_ausente

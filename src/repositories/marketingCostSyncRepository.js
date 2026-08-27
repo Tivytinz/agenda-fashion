@@ -199,18 +199,35 @@ async function iniciarSincronizacao({ provedor, dataInicio, dataFim, usuarioId }
   return resultado.rows[0];
 }
 
-async function finalizarSincronizacao({ id, status, importados, naoVinculadas, erroCodigo, erroMensagem }) {
+async function finalizarSincronizacao({
+  id,
+  status,
+  importados,
+  naoVinculadas,
+  reconciliacaoCampanhasCompleta = false,
+  erroCodigo,
+  erroMensagem
+}) {
   await db.query(`
     UPDATE marketing_custo_sincronizacoes
     SET
       status = $2,
       registros_importados = $3,
       campanhas_nao_vinculadas = $4,
-      erro_codigo = $5,
-      erro_mensagem = $6,
+      reconciliacao_campanhas_completa = $5,
+      erro_codigo = $6,
+      erro_mensagem = $7,
       finished_at = NOW()
     WHERE id = $1
-  `, [id, status, importados, naoVinculadas, erroCodigo || null, erroMensagem || null]);
+  `, [
+    id,
+    status,
+    importados,
+    naoVinculadas,
+    reconciliacaoCampanhasCompleta === true,
+    erroCodigo || null,
+    erroMensagem || null
+  ]);
 }
 
 async function listarUltimasSincronizacoes() {
@@ -218,6 +235,7 @@ async function listarUltimasSincronizacoes() {
     SELECT DISTINCT ON (provedor)
       id, provedor, status, data_inicio, data_fim,
       registros_importados, campanhas_nao_vinculadas,
+      reconciliacao_campanhas_completa,
       erro_codigo, erro_mensagem, created_at, finished_at
     FROM marketing_custo_sincronizacoes
     ORDER BY provedor, created_at DESC, id DESC

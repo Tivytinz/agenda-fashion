@@ -69,10 +69,42 @@ function canalCanonicoSql(expressao) {
   )`;
 }
 
+function provedorCanonicoSql(expressao) {
+  const canal =
+    canalCanonicoSql(expressao);
+
+  return `(
+    CASE
+      WHEN ${canal} = 'google'
+        THEN 'google_ads'
+      WHEN ${canal} = 'meta'
+        THEN 'meta_ads'
+      ELSE NULL
+    END
+  )`;
+}
+
+function identidadeComparavelSql(expressao) {
+  return `(
+    REGEXP_REPLACE(
+      LOWER(
+        COALESCE(
+          NULLIF(BTRIM(${expressao}), ''),
+          ''
+        )
+      ),
+      '[^a-z0-9]+',
+      '_',
+      'g'
+    )
+  )`;
+}
+
 function criarVinculoCampanhaOficialSql({
   origem,
   midia,
   campanha,
+  momento = null,
   alias = "campanha_oficial",
   objetivo = null,
 }) {
@@ -91,30 +123,161 @@ function criarVinculoCampanhaOficialSql({
     ? `AND candidata.objetivo = '${objetivo}'`
     : "";
 
+  const filtroObjetivoVinculado = objetivo
+    ? `AND campanha_vinculada.objetivo = '${objetivo}'`
+    : "";
+
+  const filtroObjetivoVinculoExterno = objetivo
+    ? `AND campanha_externa.objetivo = '${objetivo}'`
+    : "";
+
+  const canal =
+    canalCanonicoSql(origem);
+  const provedor =
+    provedorCanonicoSql(origem);
+  const canalResolvido =
+    "contexto_atribuicao.canal_resolvido";
+  const provedorResolvido =
+    "contexto_atribuicao.provedor_resolvido";
+
+  const dataAtribuicao = momento
+    ? `((${momento}) AT TIME ZONE 'America/Sao_Paulo')::date`
+    : null;
+
+  const sincronizacaoCompleta = dataAtribuicao
+    ? `(
+      COALESCE((
+        SELECT
+          sincronizacao.status = 'sucesso'
+          AND sincronizacao.campanhas_nao_vinculadas = 0
+          AND sincronizacao.reconciliacao_campanhas_completa = TRUE
+          AND ${dataAtribuicao}
+            BETWEEN sincronizacao.data_inicio
+              AND sincronizacao.data_fim
+        FROM marketing_custo_sincronizacoes sincronizacao
+        WHERE sincronizacao.provedor = ${provedorResolvido}
+        ORDER BY
+          sincronizacao.created_at DESC,
+          sincronizacao.id DESC
+        LIMIT 1
+      ), FALSE)
+    )`
+    : "FALSE";
+
+  const identidadeExata = `(
+    LOWER(candidata.utm_campaign) = LOWER(${campanha})
+    AND LOWER(candidata.utm_medium) = LOWER(${midia})
+    AND (
+      LOWER(candidata.utm_source) = LOWER(${origem})
+      OR LOWER(candidata.canal) = ${canalResolvido}
+    )
+  )`;
+
+  const identidadeVinculoExterno = (alias) => `(
+    LOWER(${alias}.campanha_externa_id) =
+      LOWER(${campanha})
+    OR LOWER(${alias}.campanha_externa_nome) =
+      LOWER(${campanha})
+    OR ${identidadeComparavelSql(
+      `${alias}.campanha_externa_nome`
+    )} = ${identidadeComparavelSql(campanha)}
+  )`;
+
+  const vinculoExterno = `(
+    EXISTS (
+      SELECT 1
+      FROM marketing_campanha_vinculos vinculo_externo
+      WHERE vinculo_externo.campanha_id = candidata.id
+        AND vinculo_externo.provedor = ${provedorResolvido}
+        AND ${identidadeVinculoExterno(
+          "vinculo_externo"
+        )}
+    )
+    AND 1 = (
+      SELECT COUNT(DISTINCT vinculo_identidade.campanha_id)
+      FROM marketing_campanha_vinculos vinculo_identidade
+      INNER JOIN marketing_campanhas campanha_externa
+        ON campanha_externa.id = vinculo_identidade.campanha_id
+      WHERE vinculo_identidade.provedor = ${provedorResolvido}
+        AND ${identidadeVinculoExterno(
+          "vinculo_identidade"
+        )}
+        ${filtroObjetivoVinculoExterno}
+    )
+  )`;
+
+  const vinculoUnico = `(
+    ${provedorResolvido} IS NOT NULL
+    AND ${campanhaAusenteSql(campanha)}
+    AND ${sincronizacaoCompleta}
+    AND LOWER(candidata.canal) = ${canalResolvido}
+    AND LOWER(candidata.utm_medium) = LOWER(${midia})
+    AND EXISTS (
+      SELECT 1
+      FROM marketing_campanha_vinculos vinculo_candidato
+      WHERE vinculo_candidato.campanha_id = candidata.id
+        AND vinculo_candidato.provedor = ${provedorResolvido}
+    )
+    AND 1 = (
+      SELECT COUNT(DISTINCT vinculo_unico.campanha_id)
+      FROM marketing_campanha_vinculos vinculo_unico
+      INNER JOIN marketing_campanhas campanha_vinculada
+        ON campanha_vinculada.id = vinculo_unico.campanha_id
+      WHERE vinculo_unico.provedor = ${provedorResolvido}
+        AND LOWER(campanha_vinculada.canal) = ${canalResolvido}
+        AND LOWER(campanha_vinculada.utm_medium) = LOWER(${midia})
+        ${filtroObjetivoVinculado}
+    )
+  )`;
+
   return `
     LEFT JOIN LATERAL (
       SELECT
-        candidata.id,
-        candidata.objetivo,
-        candidata.ativo,
-        candidata.utm_source,
-        candidata.utm_medium,
-        candidata.utm_campaign
-      FROM marketing_campanhas candidata
-      WHERE LOWER(candidata.utm_campaign) = LOWER(${campanha})
-        AND LOWER(candidata.utm_medium) = LOWER(${midia})
-        AND (
-          LOWER(candidata.utm_source) = LOWER(${origem})
-          OR LOWER(candidata.canal) = ${canalCanonicoSql(origem)}
-        )
-        ${filtroObjetivo}
+        resolvida.id,
+        resolvida.objetivo,
+        resolvida.ativo,
+        resolvida.utm_source,
+        resolvida.utm_medium,
+        resolvida.utm_campaign,
+        resolvida.metodo_resolucao
+      FROM (
+        SELECT
+          candidata.id,
+          candidata.objetivo,
+          candidata.ativo,
+          candidata.utm_source,
+          candidata.utm_medium,
+          candidata.utm_campaign,
+          CASE
+            WHEN ${identidadeExata}
+              THEN 'utm_exata'
+            WHEN ${vinculoExterno}
+              THEN 'vinculo_plataforma'
+            WHEN ${vinculoUnico}
+              THEN 'vinculo_unico'
+            ELSE NULL
+          END AS metodo_resolucao
+        FROM marketing_campanhas candidata
+        CROSS JOIN LATERAL (
+          SELECT
+            ${canal} AS canal_resolvido,
+            ${provedor} AS provedor_resolvido
+        ) contexto_atribuicao
+        WHERE 1 = 1
+          ${filtroObjetivo}
+      ) resolvida
+      WHERE resolvida.metodo_resolucao IS NOT NULL
       ORDER BY
         CASE
-          WHEN LOWER(candidata.utm_source) = LOWER(${origem})
+          WHEN resolvida.metodo_resolucao =
+            'utm_exata'
             THEN 0
-          ELSE 1
+          WHEN resolvida.metodo_resolucao =
+            'vinculo_plataforma'
+            THEN 1
+          ELSE 2
         END,
-        candidata.id ASC
+        resolvida.id ASC
       LIMIT 1
     ) ${alias} ON TRUE
   `;
@@ -345,6 +508,7 @@ module.exports = {
   CAMPANHAS_AUSENTES,
   campanhaAusenteSql,
   canalCanonicoSql,
+  provedorCanonicoSql,
   criarAtribuicaoSql,
   criarAtribuicaoUsuarioSql,
   criarVinculoCampanhaOficialSql,

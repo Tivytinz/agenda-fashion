@@ -464,6 +464,7 @@ export function AdminProfessionalFunnelPage() {
             description="Percentual da coorte oficial que já alcançou cada marco."
             items={stageChartItems}
             emptyMessage="Ainda não há profissionais nesta coorte."
+            variant="none"
           />
 
           <div className="admin-stat-table-card">
@@ -515,6 +516,7 @@ export function AdminProfessionalFunnelPage() {
           description="Comparação das campanhas com ROAS calculável no período."
           items={roasChartItems}
           emptyMessage="Nenhuma campanha possui investimento e receita suficientes para calcular ROAS neste período."
+          variant="none"
         />
 
         {campaigns.length === 0 ? (

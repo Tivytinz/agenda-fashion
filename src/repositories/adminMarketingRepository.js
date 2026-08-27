@@ -285,6 +285,7 @@ async function listarCampanhas(
       origem: "e.origem_resolvida",
       midia: "e.midia_resolvida",
       campanha: "e.campanha_resolvida",
+      momento: "e.created_at",
     });
 
   const campanhaAusente =
@@ -316,12 +317,25 @@ async function listarCampanhas(
         eventos_classificados AS (
           SELECT
             e.*,
+            COALESCE(
+              campanha_oficial.utm_source,
+              e.origem_resolvida
+            ) AS origem_atribuida,
+            COALESCE(
+              campanha_oficial.utm_medium,
+              e.midia_resolvida
+            ) AS midia_atribuida,
+            COALESCE(
+              campanha_oficial.utm_campaign,
+              e.campanha_resolvida
+            ) AS campanha_atribuida,
             campanha_oficial.id
               AS campanha_oficial_id,
             campanha_oficial.objetivo
               AS campanha_oficial_objetivo,
             campanha_oficial.ativo
               AS campanha_oficial_ativa,
+            campanha_oficial.metodo_resolucao,
             CASE
               WHEN campanha_oficial.id IS NOT NULL
                 THEN 'oficial'
@@ -334,15 +348,28 @@ async function listarCampanhas(
         )
 
         SELECT
-          origem_resolvida AS origem,
-          midia_resolvida AS midia,
-          campanha_resolvida AS campanha,
+          origem_atribuida AS origem,
+          midia_atribuida AS midia,
+          campanha_atribuida AS campanha,
           campanha_oficial_id,
           campanha_oficial_objetivo,
           campanha_oficial_ativa,
           classificacao_atribuicao,
 
           COUNT(DISTINCT sessao_id)::INT AS sessoes,
+
+          COUNT(DISTINCT sessao_id) FILTER (
+            WHERE metodo_resolucao =
+              'utm_exata'
+          )::INT
+            AS sessoes_atribuicao_direta,
+
+          COUNT(DISTINCT sessao_id) FILTER (
+            WHERE metodo_resolucao IS NOT NULL
+              AND metodo_resolucao <>
+                'utm_exata'
+          )::INT
+            AS sessoes_atribuicao_assistida,
 
           COUNT(DISTINCT sessao_id) FILTER (
             WHERE gclid_resolvido
@@ -376,9 +403,9 @@ async function listarCampanhas(
         FROM eventos_classificados
 
         GROUP BY
-          origem_resolvida,
-          midia_resolvida,
-          campanha_resolvida,
+          origem_atribuida,
+          midia_atribuida,
+          campanha_atribuida,
           campanha_oficial_id,
           campanha_oficial_objetivo,
           campanha_oficial_ativa,
@@ -411,6 +438,7 @@ async function listarConversoes(
       origem: "e.origem_resolvida",
       midia: "e.midia_resolvida",
       campanha: "e.campanha_resolvida",
+      momento: "e.created_at",
     });
 
   const campanhaAusente =
@@ -443,12 +471,25 @@ async function listarConversoes(
         eventos_classificados AS (
           SELECT
             e.*,
+            COALESCE(
+              campanha_oficial.utm_source,
+              e.origem_resolvida
+            ) AS origem_atribuida,
+            COALESCE(
+              campanha_oficial.utm_medium,
+              e.midia_resolvida
+            ) AS midia_atribuida,
+            COALESCE(
+              campanha_oficial.utm_campaign,
+              e.campanha_resolvida
+            ) AS campanha_atribuida,
             campanha_oficial.id
               AS campanha_oficial_id,
             campanha_oficial.objetivo
               AS campanha_oficial_objetivo,
             campanha_oficial.ativo
               AS campanha_oficial_ativa,
+            campanha_oficial.metodo_resolucao,
             CASE
               WHEN campanha_oficial.id IS NOT NULL
                 THEN 'oficial'
@@ -468,13 +509,15 @@ async function listarConversoes(
           n.slug AS negocio_slug,
           e.propriedades ->> 'agendamento_id' AS agendamento_id,
           e.propriedades ->> 'servico_id' AS servico_id,
-          e.origem_resolvida AS origem,
-          e.midia_resolvida AS midia,
-          e.campanha_resolvida AS campanha,
+          e.origem_atribuida AS origem,
+          e.midia_atribuida AS midia,
+          e.campanha_atribuida AS campanha,
+          e.campanha_resolvida AS campanha_original,
           e.campanha_oficial_id,
           e.campanha_oficial_objetivo,
           e.campanha_oficial_ativa,
           e.classificacao_atribuicao,
+          e.metodo_resolucao,
           e.gclid_resolvido,
           e.google_click_resolvido,
           NULLIF(BTRIM(e.propriedades ->> 'utm_content'), '') AS conteudo,

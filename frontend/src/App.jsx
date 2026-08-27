@@ -194,7 +194,7 @@ export default function App() {
             element={(
               <>
                 <AdminMarketingPage />
-                <MarketingMetricGlossary terms={["UTM", "CPC", "CONVERSAO"]} />
+                <MarketingMetricGlossary terms={["UTM", "ATRIBUICAO", "CONVERSAO"]} />
               </>
             )}
           />
@@ -203,7 +203,7 @@ export default function App() {
             element={(
               <>
                 <AdminMarketingCostsPage />
-                <MarketingMetricGlossary terms={["CPA", "CPC", "UTM"]} />
+                <MarketingMetricGlossary terms={["CPS", "CPA", "COBERTURA"]} />
               </>
             )}
           />

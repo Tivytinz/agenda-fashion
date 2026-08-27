@@ -28,6 +28,7 @@ describe(
     let sessionCanonical;
     let sessionGoogle;
     let extraCampaignIds;
+    let extraSyncIds;
 
     beforeEach(async () => {
       const suffix = idCurto();
@@ -43,6 +44,7 @@ describe(
       sessionGoogle =
         `cstg_${suffix}`;
       extraCampaignIds = [];
+      extraSyncIds = [];
 
       const campanha =
         await db.query(
@@ -187,6 +189,16 @@ describe(
         );
       }
 
+      if (extraSyncIds.length > 0) {
+        await db.query(
+          `
+          DELETE FROM marketing_custo_sincronizacoes
+          WHERE id = ANY($1::bigint[])
+          `,
+          [extraSyncIds]
+        );
+      }
+
       await db.query(
         `
         DELETE FROM marketing_campanhas
@@ -225,7 +237,7 @@ describe(
     );
 
     test(
-      "separa sessões de dias que ainda não possuem custo sincronizado",
+      "usa o investimento agregado do período em todas as sessões atribuídas da campanha",
       async () => {
         await db.query(
           `
@@ -266,9 +278,9 @@ describe(
         expect(encontrada)
           .toMatchObject({
             sessoes: 3,
-            sessoes_com_custo: 2,
+            sessoes_com_custo: 3,
             agendamentos_concluidos: 3,
-            agendamentos_concluidos_com_custo: 2,
+            agendamentos_concluidos_com_custo: 3,
             investimento_centavos: "5000",
           });
       }
@@ -492,6 +504,164 @@ describe(
 
         expect(encontrada.sessoes)
           .toBe(2);
+      }
+    );
+
+    test(
+      "cobre clique pago sem UTM com o único vínculo validado do canal",
+      async () => {
+        const suffix = idCurto();
+        const campanhaGoogle =
+          `google_coberta_${suffix}`;
+        const criada = await db.query(
+          `
+          INSERT INTO marketing_campanhas (
+            nome,
+            canal,
+            objetivo,
+            utm_source,
+            utm_medium,
+            utm_campaign,
+            destino_path,
+            ativo
+          )
+          VALUES (
+            $1,
+            'google',
+            'profissional',
+            'google',
+            'cpc',
+            $2,
+            '/',
+            TRUE
+          )
+          RETURNING id
+          `,
+          [
+            `Google coberta ${suffix}`,
+            campanhaGoogle,
+          ]
+        );
+        const campanhaGoogleId =
+          Number(criada.rows[0].id);
+        extraCampaignIds.push(
+          campanhaGoogleId
+        );
+
+        await db.query(
+          `
+          INSERT INTO marketing_campanha_vinculos (
+            campanha_id,
+            provedor,
+            conta_externa_id,
+            campanha_externa_id,
+            campanha_externa_nome
+          )
+          VALUES ($1, 'google_ads', $2, $3, $4)
+          `,
+          [
+            campanhaGoogleId,
+            `conta${suffix}`,
+            `campanha${suffix}`,
+            `Campanha Google ${suffix}`,
+          ]
+        );
+
+        const sincronizacao = await db.query(
+          `
+          INSERT INTO marketing_custo_sincronizacoes (
+            provedor,
+            status,
+            data_inicio,
+            data_fim,
+            campanhas_nao_vinculadas,
+            reconciliacao_campanhas_completa,
+            finished_at
+          )
+          VALUES (
+            'google_ads',
+            'sucesso',
+            (NOW() AT TIME ZONE 'America/Sao_Paulo')::date - 29,
+            (NOW() AT TIME ZONE 'America/Sao_Paulo')::date,
+            0,
+            TRUE,
+            NOW()
+          )
+          RETURNING id
+          `
+        );
+        extraSyncIds.push(
+          Number(sincronizacao.rows[0].id)
+        );
+
+        await db.query(
+          `
+          INSERT INTO marketing_campanha_gastos (
+            campanha_id,
+            data_gasto,
+            valor_centavos,
+            moeda,
+            fonte
+          )
+          VALUES (
+            $1,
+            (NOW() AT TIME ZONE 'America/Sao_Paulo')::date,
+            2500,
+            'BRL',
+            'google_ads'
+          )
+          `,
+          [campanhaGoogleId]
+        );
+
+        await db.query(
+          `
+          INSERT INTO eventos_produto (
+            nome,
+            pagina,
+            sessao_id,
+            propriedades
+          )
+          VALUES (
+            'perfil_visualizado',
+            'perfil_negocio',
+            $1,
+            $2::JSONB
+          )
+          `,
+          [
+            sessionGoogle,
+            JSON.stringify({
+              gclid:
+                "google-click-vinculado",
+            }),
+          ]
+        );
+
+        const diagnostico =
+          await adminMarketingCostRepository
+            .buscarDiagnosticoAtribuicao(
+              "all"
+            );
+        const linhas =
+          await adminMarketingCostRepository
+            .listarDesempenho("all");
+        const encontrada = linhas.find(
+          (item) =>
+            Number(item.id) ===
+              campanhaGoogleId
+        );
+
+        expect(diagnostico).toMatchObject({
+          sessoes_atribuicao_assistida: 1,
+          sessoes_sem_campanha: 0,
+        });
+        expect(encontrada).toMatchObject({
+          sessoes: 1,
+          sessoes_atribuicao_assistida: 1,
+          sessoes_com_custo: 1,
+          investimento_centavos: "2500",
+        });
       }
     );
   }

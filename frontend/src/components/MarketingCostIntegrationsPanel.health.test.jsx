@@ -40,6 +40,7 @@ function integrationsPayload() {
           status: "sucesso",
           registros_importados: 18,
           campanhas_nao_vinculadas: 0,
+          reconciliacao_campanhas_completa: true,
           finished_at: "2026-08-12T20:00:00Z"
         },
         saude: {
@@ -152,6 +153,44 @@ describe("saúde das integrações de custo no admin", () => {
     const errorBadge = await screen.findByText("Erro");
     expect(errorBadge.classList.contains("is-critical")).toBe(true);
     expect(screen.getByText("A última sincronização falhou.")).not.toBeNull();
+  });
+
+  it("solicita nova reconciliação quando a execução antiga não auditou todas as campanhas", async () => {
+    const payload = integrationsPayload();
+    payload.provedores[0].ultimaSincronizacao = {
+      ...payload.provedores[0].ultimaSincronizacao,
+      reconciliacao_campanhas_completa: false
+    };
+    payload.provedores[0].saude = {
+      codigo: "reconciliacao_pendente",
+      rotulo: "Reconciliar",
+      nivel: "aviso",
+      detalhe:
+        "Execute uma nova sincronização para comprovar todas as campanhas externas operacionais, inclusive as sem gasto."
+    };
+
+    apiRequest.mockImplementation((path) => {
+      if (path === "/admin/marketing/custos-integracoes") {
+        return Promise.resolve(payload);
+      }
+      if (path === "/admin/marketing/gestao-campanhas") {
+        return Promise.resolve({ campanhas: [] });
+      }
+      if (path.endsWith("/campanhas")) {
+        return Promise.resolve({ contaExternaId: "6770207927", campanhas: [] });
+      }
+      return Promise.reject(new Error(`Rota inesperada: ${path}`));
+    });
+
+    render(<MarketingCostIntegrationsPanel />);
+
+    const badge = await screen.findByText("Reconciliar");
+    expect(badge.classList.contains("is-warning")).toBe(true);
+    expect(
+      screen.getByText(
+        "Execute uma nova sincronização para comprovar todas as campanhas externas operacionais, inclusive as sem gasto."
+      )
+    ).not.toBeNull();
   });
 
   it("explica por que o vínculo ainda não pode ser salvo", async () => {

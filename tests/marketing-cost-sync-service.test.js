@@ -60,6 +60,7 @@ describe("marketingCostSyncService", () => {
       conectado: true,
       moeda: "BRL"
     });
+    mockProviders.listarCampanhas.mockResolvedValue([]);
     mockProviders.status.mockReturnValue([
       {
         provedor: "google_ads",
@@ -131,7 +132,8 @@ describe("marketingCostSyncService", () => {
         id: 10,
         status: "parcial",
         importados: 1,
-        naoVinculadas: 1
+        naoVinculadas: 1,
+        reconciliacaoCampanhasCompleta: true
       })
     );
   });
@@ -156,9 +158,143 @@ describe("marketingCostSyncService", () => {
       expect.objectContaining({
         id: 10,
         status: "erro",
+        reconciliacaoCampanhasCompleta: false,
         erroCodigo: "http_422"
       })
     );
+  });
+
+  test("audita campanha externa ativa mesmo quando ela ainda não possui gasto", async () => {
+    mockRepository.buscarVinculosPorProvedor.mockResolvedValue([
+      {
+        campanha_id: 7,
+        conta_externa_id: "6770207927",
+        campanha_externa_id: "123"
+      }
+    ]);
+    mockProviders.listarCustos.mockResolvedValue([]);
+    mockProviders.listarCampanhas.mockResolvedValue([
+      {
+        contaExternaId: "6770207927",
+        campanhaExternaId: "123",
+        status: "ENABLED"
+      },
+      {
+        contaExternaId: "6770207927",
+        campanhaExternaId: "999",
+        status: "ENABLED"
+      },
+      {
+        contaExternaId: "6770207927",
+        campanhaExternaId: "888",
+        status: "PAUSED"
+      }
+    ]);
+
+    const result = await service.sincronizar({
+      provedor: "google_ads",
+      payload: {
+        dataInicio: "2026-08-01",
+        dataFim: "2026-08-10"
+      }
+    });
+
+    expect(result).toMatchObject({
+      status: "parcial",
+      registrosImportados: 0,
+      campanhasNaoVinculadas: 1
+    });
+    expect(mockRepository.finalizarSincronizacao)
+      .toHaveBeenCalledWith(
+        expect.objectContaining({
+          status: "parcial",
+          naoVinculadas: 1,
+          reconciliacaoCampanhasCompleta: true
+        })
+      );
+  });
+
+  test("conclui a reconciliação quando todas as campanhas operacionais estão vinculadas", async () => {
+    mockRepository.buscarVinculosPorProvedor.mockResolvedValue([
+      {
+        campanha_id: 7,
+        conta_externa_id: "6770207927",
+        campanha_externa_id: "123"
+      },
+      {
+        campanha_id: 8,
+        conta_externa_id: "6770207927",
+        campanha_externa_id: "999"
+      }
+    ]);
+    mockProviders.listarCustos.mockResolvedValue([
+      {
+        contaExternaId: "6770207927",
+        campanhaExternaId: "123",
+        dataGasto: "2026-08-10",
+        valorCentavos: 2500
+      }
+    ]);
+    mockProviders.listarCampanhas.mockResolvedValue([
+      {
+        contaExternaId: "6770207927",
+        campanhaExternaId: "123",
+        status: "ENABLED"
+      },
+      {
+        contaExternaId: "6770207927",
+        campanhaExternaId: "999",
+        status: "ENABLED"
+      },
+      {
+        contaExternaId: "6770207927",
+        campanhaExternaId: "888",
+        status: "PAUSED"
+      }
+    ]);
+
+    const result = await service.sincronizar({
+      provedor: "google_ads",
+      payload: {
+        dataInicio: "2026-08-01",
+        dataFim: "2026-08-10"
+      }
+    });
+
+    expect(result).toMatchObject({
+      status: "sucesso",
+      registrosImportados: 1,
+      campanhasNaoVinculadas: 0,
+      reconciliacaoCampanhasCompleta: true
+    });
+    expect(mockRepository.finalizarSincronizacao)
+      .toHaveBeenCalledWith(
+        expect.objectContaining({
+          status: "sucesso",
+          naoVinculadas: 0,
+          reconciliacaoCampanhasCompleta: true
+        })
+      );
+  });
+
+  test("normaliza a identidade externa e classifica estados sem entrega", () => {
+    expect(service.chaveCampanhaExterna({
+      contaExternaId: "act_677-020-7927",
+      campanhaExternaId: "123-456"
+    })).toBe("6770207927:123456");
+
+    expect(service.campanhaExternaOperacional({
+      status: "ACTIVE"
+    })).toBe(true);
+    expect(service.campanhaExternaOperacional({
+      status: "PAUSED"
+    })).toBe(false);
+    expect(service.campanhaExternaOperacional({
+      status: "ARCHIVED"
+    })).toBe(false);
+    expect(service.campanhaExternaOperacional({
+      status: "REMOVED"
+    })).toBe(false);
   });
 
   test("registra erro de sincronização sem engolir a falha", async () => {
@@ -179,6 +315,7 @@ describe("marketingCostSyncService", () => {
       expect.objectContaining({
         id: 10,
         status: "erro",
+        reconciliacaoCampanhasCompleta: false,
         erroCodigo: "http_502"
       })
     );

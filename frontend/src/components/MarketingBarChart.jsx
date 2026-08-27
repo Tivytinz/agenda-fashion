@@ -9,16 +9,6 @@ const DONUT_COLORS = [
   "var(--marketing-donut-8)"
 ];
 
-const DONUT_TITLES = new Set([
-  "Sessões por origem",
-  "Investimento por campanha"
-]);
-
-const TABLE_ONLY_TITLES = new Set([
-  "Atingimento por marco",
-  "ROAS por campanha"
-]);
-
 function numericValue(value) {
   const number = Number(value);
   return Number.isFinite(number) && number > 0 ? number : 0;
@@ -46,7 +36,12 @@ function donutGradient(items, total) {
     : "none";
 }
 
-function DonutChart({ normalized, totalValue }) {
+function DonutChart({
+  normalized,
+  totalValue,
+  totalFormattedValue,
+  totalLabel
+}) {
   const gradient = donutGradient(normalized, totalValue);
   const items = normalized.filter((item) => item.numericValue > 0);
 
@@ -64,8 +59,8 @@ function DonutChart({ normalized, totalValue }) {
         style={{ background: gradient }}
       >
         <div className="marketing-donut-center">
-          <strong>100%</strong>
-          <span>do total</span>
+          <strong>{totalFormattedValue ?? totalValue}</strong>
+          <span>{totalLabel || "no total"}</span>
         </div>
       </div>
 
@@ -96,7 +91,9 @@ function BarChart({ normalized, maxValue }) {
   return (
     <ol className="marketing-bar-chart-list">
       {normalized.map((item, index) => {
-        const width = Math.max(4, (item.numericValue / maxValue) * 100);
+        const width = item.numericValue > 0
+          ? Math.max(4, (item.numericValue / maxValue) * 100)
+          : 0;
         return (
           <li key={item.key || `${item.label}-${index}`}>
             <div className="marketing-bar-chart-meta">
@@ -118,9 +115,12 @@ export function MarketingBarChart({
   title,
   description,
   items = [],
-  emptyMessage = "Ainda não há dados suficientes para este gráfico."
+  emptyMessage = "Ainda não há dados suficientes para este gráfico.",
+  totalFormattedValue,
+  totalLabel,
+  variant = "bars"
 }) {
-  if (TABLE_ONLY_TITLES.has(title)) return null;
+  if (variant === "none") return null;
 
   const normalized = items.map((item) => ({
     ...item,
@@ -128,7 +128,7 @@ export function MarketingBarChart({
   }));
   const maxValue = Math.max(0, ...normalized.map((item) => item.numericValue));
   const totalValue = normalized.reduce((sum, item) => sum + item.numericValue, 0);
-  const donut = DONUT_TITLES.has(title);
+  const donut = variant === "donut";
 
   return (
     <figure className={`marketing-bar-chart ${donut ? "is-donut" : "is-bars"}`}>
@@ -140,7 +140,12 @@ export function MarketingBarChart({
       {normalized.length === 0 || maxValue <= 0 ? (
         <p className="marketing-chart-empty muted">{emptyMessage}</p>
       ) : donut ? (
-        <DonutChart normalized={normalized} totalValue={totalValue} />
+        <DonutChart
+          normalized={normalized}
+          totalFormattedValue={totalFormattedValue}
+          totalLabel={totalLabel}
+          totalValue={totalValue}
+        />
       ) : (
         <BarChart normalized={normalized} maxValue={maxValue} />
       )}

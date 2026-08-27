@@ -43,11 +43,14 @@ function mockRequests() {
         investimentoCentavos: 10000,
         investimentoClientesCentavos: 10000,
         sessoes: 20,
+        sessoesOficiais: 20,
+        sessoesAtribuicaoDireta: 13,
+        sessoesAtribuicaoAssistida: 7,
         sessoesComCusto: 20,
         sessoesOficiaisSemCusto: 0,
         coberturaCustos: 100,
-        sessoesSemCampanha: 6,
-        sessoesIdentidadeNaoOficial: 1,
+        sessoesSemCampanha: 0,
+        sessoesIdentidadeNaoOficial: 0,
         agendamentosConcluidos: 4,
         agendamentosClientesComCusto: 4,
         agendamentosClientesSemCusto: 0,
@@ -62,6 +65,8 @@ function mockRequests() {
             canal: "meta",
             investimentoCentavos: 10000,
             sessoes: 20,
+            sessoesAtribuicaoDireta: 13,
+            sessoesAtribuicaoAssistida: 7,
             sessoesComCusto: 20,
             sessoesSemCusto: 0,
             coberturaCustos: 100,
@@ -151,7 +156,7 @@ beforeEach(() => {
 });
 
 describe("AdminMarketingCostsPage", () => {
-  it("distingue sessões vinculadas de tráfego pago sem campanha e mostra estatística de investimento", async () => {
+  it("mostra cobertura integral auditável e estatísticas profissionais de investimento", async () => {
     render(
       <MemoryRouter>
         <AdminMarketingCostsPage />
@@ -161,15 +166,78 @@ describe("AdminMarketingCostsPage", () => {
     expect(
       await screen.findByRole("heading", { name: "Investimento e eficiência" })
     ).not.toBeNull();
-    expect(screen.getByText("Sessões oficiais")).not.toBeNull();
-    expect(screen.getByText("Custo por sessão coberta")).not.toBeNull();
-    expect(screen.getByText("Cobertura dos custos")).not.toBeNull();
-    expect(screen.getAllByText("100%").length).toBeGreaterThanOrEqual(1);
-    expect(screen.getAllByText("74,1%").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText("Sessões atribuídas").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getByText("Custo por sessão (CPS)")).not.toBeNull();
+    expect(screen.getByText("Cobertura de atribuição")).not.toBeNull();
+    expect(screen.getAllByText("Cobertura financeira").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getByText("Padrão operacional · 100%")).not.toBeNull();
+    expect(screen.getAllByText("100%").length).toBeGreaterThanOrEqual(2);
+    expect(screen.getByText("13 diretas + 7 assistidas")).not.toBeNull();
+    expect(screen.getByText(/7 recuperadas por vínculo verificado/i)).not.toBeNull();
+    expect(screen.queryByText(/sessões pagas fora dos KPIs/i)).toBeNull();
+    expect(screen.getByText("Investimento por campanha")).not.toBeNull();
+    expect(screen.getByText("Sessões atribuídas por campanha")).not.toBeNull();
+    expect(screen.getAllByText("Meta Agosto").length).toBeGreaterThanOrEqual(2);
+  });
+
+  it("mantém pendências reais visíveis quando não há resolução segura", async () => {
+    const originalImplementation = apiRequest.getMockImplementation();
+    apiRequest.mockImplementation((path, options) => {
+      if (path.startsWith("/admin/marketing/custos?")) {
+        return Promise.resolve({
+          periodo: "30",
+          moeda: "BRL",
+          investimentoCentavos: 10000,
+          investimentoClientesCentavos: 10000,
+          sessoes: 13,
+          sessoesOficiais: 13,
+          sessoesAtribuicaoDireta: 13,
+          sessoesAtribuicaoAssistida: 0,
+          sessoesComCusto: 13,
+          sessoesOficiaisSemCusto: 0,
+          coberturaCustos: 100,
+          sessoesSemCampanha: 6,
+          sessoesIdentidadeNaoOficial: 1,
+          agendamentosConcluidos: 4,
+          agendamentosClientesComCusto: 4,
+          agendamentosClientesSemCusto: 0,
+          coberturaCustosClientes: 100,
+          custoPorSessaoCentavos: 769,
+          cpaCentavos: 2500,
+          campanhas: [
+            {
+              campanhaId: 3,
+              nome: "Meta Agosto",
+              objetivo: "cliente",
+              canal: "meta",
+              investimentoCentavos: 10000,
+              sessoes: 13,
+              sessoesAtribuicaoDireta: 13,
+              sessoesAtribuicaoAssistida: 0,
+              sessoesComCusto: 13,
+              sessoesSemCusto: 0,
+              coberturaCustos: 100,
+              agendamentosConcluidos: 4,
+              custoPorSessaoCentavos: 769,
+              cpaCentavos: 2500,
+              ativo: true
+            }
+          ]
+        });
+      }
+      return originalImplementation(path, options);
+    });
+
+    render(
+      <MemoryRouter>
+        <AdminMarketingCostsPage />
+      </MemoryRouter>
+    );
+
+    expect(await screen.findByText("Atribuição pendente")).not.toBeNull();
     expect(screen.getByText(/7 sessões pagas fora dos KPIs/i)).not.toBeNull();
     expect(screen.getByText(/1 sessão usa identidade não oficial/i)).not.toBeNull();
-    expect(screen.getByText("Investimento por campanha")).not.toBeNull();
-    expect(screen.getAllByText("Meta Agosto").length).toBeGreaterThanOrEqual(2);
+    expect(screen.getAllByText("65%").length).toBeGreaterThanOrEqual(1);
   });
 
   it("não reduz CPS e CPA quando parte das sessões ainda está sem custo", async () => {
@@ -229,9 +297,11 @@ describe("AdminMarketingCostsPage", () => {
       (await screen.findAllByText("Custos incompletos")).length
     ).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByText("40%").length).toBeGreaterThanOrEqual(1);
-    expect(screen.getByText(/30 sessões oficiais estão sem custo/i)).not.toBeNull();
     expect(
-      screen.getByText(/R\$\s*100,00 ÷ 20 sessões com custo/i)
+      screen.getByText(/30 sessões atribuídas estão sem cobertura financeira/i)
+    ).not.toBeNull();
+    expect(
+      screen.getByText(/R\$\s*100,00 ÷ 20 sessões atribuídas/i)
     ).not.toBeNull();
     expect(screen.getAllByText(/R\$\s*25,00/).length).toBeGreaterThanOrEqual(1);
   });
@@ -265,7 +335,9 @@ describe("AdminMarketingCostsPage", () => {
 
     await user.click(screen.getByRole("button", { name: "Mostrar arquivadas (1)" }));
     expect(screen.getByText("Meta arquivada")).not.toBeNull();
-    expect(screen.getByText("Arquivada")).not.toBeNull();
+    expect(
+      screen.getByText(/Meta Ads · Objetivo não classificado · Arquivada/i)
+    ).not.toBeNull();
   });
 
   it("exibe investimento e CPA e registra gasto em centavos", async () => {

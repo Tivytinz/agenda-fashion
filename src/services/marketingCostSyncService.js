@@ -15,6 +15,13 @@ const NOME_POR_PROVEDOR = Object.freeze({
 });
 const REPORT_TIME_ZONE = "America/Sao_Paulo";
 const MOEDA_SUPORTADA = "BRL";
+const STATUS_CAMPANHA_INATIVA = new Set([
+  "ARCHIVED",
+  "DELETED",
+  "ENDED",
+  "PAUSED",
+  "REMOVED"
+]);
 
 function normalizarProvedor(valor) {
   const provedor = String(valor || "").trim().toLowerCase();
@@ -79,6 +86,33 @@ function normalizarIdExterno(valor, maximo = 120) {
   return normalizarTexto(valor, maximo)
     .replace(/^act_/i, "")
     .replace(/\D/g, "");
+}
+
+function chaveCampanhaExterna(item) {
+  const conta = normalizarIdExterno(
+    item?.contaExternaId ??
+      item?.conta_externa_id
+  );
+  const campanha = normalizarIdExterno(
+    item?.campanhaExternaId ??
+      item?.campanha_externa_id
+  );
+
+  return conta && campanha
+    ? `${conta}:${campanha}`
+    : null;
+}
+
+function campanhaExternaOperacional(item) {
+  const status = String(
+    item?.status || "UNKNOWN"
+  )
+    .trim()
+    .toUpperCase();
+
+  return !STATUS_CAMPANHA_INATIVA.has(
+    status
+  );
 }
 
 function validarCanalDaCampanha(campanha, provedor) {
@@ -241,6 +275,22 @@ function saudeIntegracao(
         semVinculo > 0
           ? `${semVinculo} campanha(s) externa(s) ficaram sem vínculo na última sincronização.`
           : "A última sincronização foi concluída apenas parcialmente.",
+      desatualizado: false,
+      idadeHoras: horas
+    };
+  }
+
+  if (
+    status === "sucesso" &&
+    ultimaSincronizacao
+      .reconciliacao_campanhas_completa !== true
+  ) {
+    return {
+      codigo: "reconciliacao_pendente",
+      rotulo: "Reconciliar",
+      nivel: "aviso",
+      detalhe:
+        "Execute uma nova sincronização para comprovar todas as campanhas externas operacionais, inclusive as sem gasto.",
       desatualizado: false,
       idadeHoras: horas
     };
@@ -458,11 +508,18 @@ async function sincronizar({ provedor: valorProvedor, payload, usuarioId }) {
               provedor
             );
 
-            const [custos, vinculos] =
+            const [
+              custos,
+              campanhasExternas,
+              vinculos
+            ] =
               await Promise.all([
                 providers.listarCustos(
                   provedor,
                   periodo
+                ),
+                providers.listarCampanhas(
+                  provedor
                 ),
                 repository
                   .buscarVinculosPorProvedor(
@@ -470,23 +527,55 @@ async function sincronizar({ provedor: valorProvedor, payload, usuarioId }) {
                   )
               ]);
             const porExterno = new Map(
-              vinculos.map((v) => [
-                `${String(v.conta_externa_id)}:${String(v.campanha_externa_id)}`,
-                v
-              ])
+              vinculos
+                .map((v) => [
+                  chaveCampanhaExterna(v),
+                  v
+                ])
+                .filter(([chave]) =>
+                  Boolean(chave)
+                )
             );
 
             const naoVinculadas =
               new Set();
             const gastosVinculados = [];
 
+            for (
+              const campanhaExterna of
+              campanhasExternas
+            ) {
+              if (
+                !campanhaExternaOperacional(
+                  campanhaExterna
+                )
+              ) {
+                continue;
+              }
+
+              const chave =
+                chaveCampanhaExterna(
+                  campanhaExterna
+                );
+              if (
+                chave &&
+                !porExterno.has(chave)
+              ) {
+                naoVinculadas.add(chave);
+              }
+            }
+
             for (const item of custos) {
               const chave =
-                `${item.contaExternaId}:${item.campanhaExternaId}`;
+                chaveCampanhaExterna(item);
               const vinculo =
-                porExterno.get(chave);
+                chave
+                  ? porExterno.get(chave)
+                  : null;
               if (!vinculo) {
-                naoVinculadas.add(chave);
+                if (chave) {
+                  naoVinculadas.add(chave);
+                }
                 continue;
               }
 
@@ -529,7 +618,9 @@ async function sincronizar({ provedor: valorProvedor, payload, usuarioId }) {
                 status,
                 importados,
                 naoVinculadas:
-                  naoVinculadas.size
+                  naoVinculadas.size,
+                reconciliacaoCampanhasCompleta:
+                  true
               });
             return {
               provedor,
@@ -538,7 +629,9 @@ async function sincronizar({ provedor: valorProvedor, payload, usuarioId }) {
               registrosImportados:
                 importados,
               campanhasNaoVinculadas:
-                naoVinculadas.size
+                naoVinculadas.size,
+              reconciliacaoCampanhasCompleta:
+                true
             };
           } catch (erro) {
             const seguro =
@@ -549,6 +642,8 @@ async function sincronizar({ provedor: valorProvedor, payload, usuarioId }) {
                 status: "erro",
                 importados: 0,
                 naoVinculadas: 0,
+                reconciliacaoCampanhasCompleta:
+                  false,
                 erroCodigo:
                   seguro.codigo,
                 erroMensagem:
@@ -579,6 +674,8 @@ module.exports = {
   periodoPadrao,
   hojeNoFusoRelatorio,
   normalizarIdExterno,
+  chaveCampanhaExterna,
+  campanhaExternaOperacional,
   validarCanalDaCampanha,
   validarMoedaConta,
   gastoVinculadoSeguro,

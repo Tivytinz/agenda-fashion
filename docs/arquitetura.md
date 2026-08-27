@@ -417,29 +417,51 @@ podem ser apresentados como capacidade operacional atual.
 
 O marketing administrativo usa atribuição por primeiro contato em uma janela
 fixa de 30 dias e preserva o último contato nos eventos para auditoria. Um
-identificador de clique sem `utm_campaign` confirma tráfego pago, mas permanece
-como campanha não identificada: a lista atual de campanhas nunca pode ser usada
-para reescrever o histórico. Campanhas arquivadas continuam oficiais nos
-períodos em que tiveram atividade, e desempenho, conversões e custos compartilham
-a mesma normalização de origem, mídia e campanha. A taxa de conversão usa sessões
-com ao menos um agendamento concluído; a quantidade de agendamentos permanece uma
-métrica separada e pode ser maior do que a quantidade de sessões.
+identificador de clique sem `utm_campaign` confirma tráfego pago. A resolução
+prefere sempre a identidade UTM exata; sem ela, o backend só faz atribuição
+assistida quando encontra a identidade externa correspondente ou exatamente um
+vínculo persistido e verificado para o mesmo provedor, canal, mídia e, quando
+aplicável, objetivo. A inferência por vínculo único só é aceita quando a última
+sincronização do provedor cobre a data do evento, terminou com sucesso e
+comprovou que todas as campanhas externas operacionais estão vinculadas,
+inclusive as que não tiveram gasto no período. Mais de uma candidata, uma
+sincronização parcial, uma reconciliação fora da janela ou uma campanha externa
+operacional sem vínculo mantêm a sessão como campanha não identificada. A lista
+atual de campanhas sem essa comprovação nunca pode ser usada para inventar
+atribuição nem reescrever o evento histórico. Campanhas arquivadas continuam
+reconhecidas nos períodos em que tiveram atividade, e desempenho, conversões e
+custos compartilham a mesma normalização de origem, mídia e campanha. Cada
+resultado informa se a resolução foi direta ou assistida. A taxa de conversão
+usa sessões com ao menos um agendamento concluído; a quantidade de agendamentos
+permanece uma métrica separada e pode ser maior do que a quantidade de sessões.
+Execuções anteriores à migration `057` não possuem essa evidência e permanecem
+inelegíveis até uma nova sincronização completa; a migration não promove o
+histórico antigo para sucesso por suposição.
 
 A classificação de campanha oficial é resolvida no backend e entregue junto das
 linhas de desempenho e conversão. Campanhas, Custos e Rentabilidade consomem essa
 mesma decisão; o navegador não precisa reconstruí-la pela lista atual de
 campanhas. O funil profissional expõe separadamente a coorte geral, a coorte
-oficial e o diagnóstico de cadastros orgânicos, pagos sem campanha ou com
-identidade não oficial. CAC, ROAS e recomendações usam somente a coorte oficial,
-sem diluição por cadastros orgânicos ou por cliques sem `utm_campaign`.
+atribuída e o diagnóstico de cadastros orgânicos, pagos sem campanha ou com
+identidade não verificada. CAC, ROAS e recomendações usam somente a coorte
+atribuída com segurança, direta ou assistida, sem diluição por cadastros
+orgânicos ou por cliques que continuam ambíguos.
 
 A atribuição persistida da conta aceita os mesmos identificadores mantidos pelo
 frontend: `gclid`, `gbraid`, `wbraid`, `fbclid`, `msclkid`, `ttclid`, `epik` e os
 campos internos `af_*`, tanto no primeiro quanto no último contato. Esses sinais
-identificam o canal pago, mas continuam sem inventar uma campanha quando a UTM de
-campanha não foi recebida. O frontend só inclui esses campos quando existe
-consentimento opcional de marketing; o backend exige a evidência booleana no
-contexto de cadastro antes de persistir a atribuição.
+identificam o canal pago, mas não inventam campanha quando a UTM não foi recebida
+e não existe um vínculo externo único e verificado. O frontend só inclui esses
+campos quando existe consentimento opcional de marketing; o backend exige a
+evidência booleana no contexto de cadastro antes de persistir a atribuição.
+
+Nos relatórios de custos, a cobertura financeira é calculada no mesmo período
+selecionado: todas as sessões atribuídas a uma campanha entram no CPS e no CPA
+quando essa campanha possui investimento positivo no período. Dias isolados sem
+lançamento não removem sessões do denominador, porque o gasto e os resultados
+são comparados de forma agregada. Campanhas com sessões e nenhum investimento no
+período continuam explicitamente fora da base coberta. Assim, 100% significa
+cobertura real do universo atribuído, e não um valor fixado pela interface.
 
 Google Analytics e Google Ads operam em modo básico de consentimento: o estado
 inicial é `denied` e a tag não é carregada antes da autorização. Mesmo após o

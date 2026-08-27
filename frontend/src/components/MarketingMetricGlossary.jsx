@@ -14,6 +14,11 @@ const DEFINITIONS = {
     description:
       "No AF, mostra quanto foi gasto, em média, para gerar um agendamento concluído em campanhas com objetivo Cliente."
   },
+  CPS: {
+    title: "CPS · Custo por sessão",
+    description:
+      "Divide o investimento do período pelas sessões atribuídas a campanhas com cobertura financeira. Indica quanto custou, em média, trazer uma visita mensurável."
+  },
   CPC: {
     title: "CPC · Custo por clique",
     description:
@@ -22,7 +27,17 @@ const DEFINITIONS = {
   UTM: {
     title: "UTM · Identificação do tráfego",
     description:
-      "Parâmetros adicionados ao link para registrar origem, mídia e campanha. Sem a UTM de campanha, o AF reconhece o tráfego pago, mas não consegue atribuí-lo à campanha correta."
+      "Parâmetros adicionados ao link para registrar origem, mídia e campanha. A UTM é a atribuição direta preferencial; sem ela, o AF só resolve a campanha quando existe um vínculo único e verificado com a plataforma."
+  },
+  ATRIBUICAO: {
+    title: "Atribuição direta e assistida",
+    description:
+      "Atribuição direta usa a UTM oficial recebida na visita. A assistida recupera a campanha por uma identidade ou vínculo único e verificado da plataforma, mantendo o método visível para auditoria."
+  },
+  COBERTURA: {
+    title: "Cobertura de atribuição e financeira",
+    description:
+      "A cobertura de atribuição mede a parcela do tráfego pago ligada com segurança a uma campanha. A financeira mede a parcela dessas sessões em campanhas com investimento no período. O padrão operacional é 100% em ambas."
   },
   COORTE: {
     title: "Coorte",

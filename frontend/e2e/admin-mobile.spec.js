@@ -70,32 +70,10 @@ test("admin e consentimento permanecem navegáveis no celular", async ({ page })
         objetivo: "profissional",
         oficial: true,
         classificacaoAtribuicao: "oficial",
-        sessoes: 13,
+        sessoes: 20,
+        sessoesAtribuicaoDireta: 13,
+        sessoesAtribuicaoAssistida: 7,
         perfisVisualizados: 7,
-        agendamentosIniciados: 0,
-        agendamentosConcluidos: 0,
-        taxaConversao: 0
-      },
-      {
-        origem: "google",
-        midia: "cpc",
-        campanha: "(sem campanha)",
-        oficial: false,
-        classificacaoAtribuicao: "rastreamento_incompleto",
-        sessoes: 6,
-        perfisVisualizados: 0,
-        agendamentosIniciados: 0,
-        agendamentosConcluidos: 0,
-        taxaConversao: 0
-      },
-      {
-        origem: "google",
-        midia: "cpc",
-        campanha: "identidade_antiga",
-        oficial: false,
-        classificacaoAtribuicao: "identidade_nao_oficial",
-        sessoes: 1,
-        perfisVisualizados: 0,
         agendamentosIniciados: 0,
         agendamentosConcluidos: 0,
         taxaConversao: 0
@@ -121,14 +99,68 @@ test("admin e consentimento permanecem navegáveis no celular", async ({ page })
       }
     ]
   }));
+  await page.route(/\/admin\/marketing\/custos(?:\?.*)?$/, (route) => json(route, {
+    periodo: "30",
+    moeda: "BRL",
+    investimentoCentavos: 20000,
+    investimentoProfissionaisCentavos: 20000,
+    investimentoClientesCentavos: 0,
+    sessoes: 20,
+    sessoesOficiais: 20,
+    sessoesAtribuicaoDireta: 13,
+    sessoesAtribuicaoAssistida: 7,
+    sessoesComCusto: 20,
+    sessoesOficiaisSemCusto: 0,
+    coberturaCustos: 100,
+    sessoesSemCampanha: 0,
+    sessoesIdentidadeNaoOficial: 0,
+    agendamentosConcluidos: 0,
+    agendamentosClientesComCusto: 0,
+    custoPorSessaoCentavos: 1000,
+    cpaCentavos: null,
+    campanhas: [
+      {
+        campanhaId: 7,
+        nome: "Google Ads · Aquisição de profissionais",
+        canal: "google",
+        objetivo: "profissional",
+        ativo: true,
+        investimentoCentavos: 20000,
+        sessoes: 20,
+        sessoesAtribuicaoDireta: 13,
+        sessoesAtribuicaoAssistida: 7,
+        sessoesComCusto: 20,
+        sessoesSemCusto: 0,
+        coberturaCustos: 100,
+        agendamentosConcluidos: 0,
+        agendamentosConcluidosComCusto: 0,
+        custoPorSessaoCentavos: 1000,
+        cpaCentavos: null
+      }
+    ]
+  }));
+  await page.route(/\/admin\/marketing\/gastos(?:\?.*)?$/, (route) => json(route, {
+    periodo: "30",
+    gastos: []
+  }));
+  await page.route("**/admin/marketing/custos-integracoes", (route) => json(route, {
+    sincronizacaoAutomatica: {
+      habilitado: false,
+      intervaloHoras: 6,
+      limiteDesatualizadoHoras: 24
+    },
+    provedores: [],
+    vinculos: []
+  }));
 
   await page.goto("/admin/trafego-pago");
 
   await expect(
-    page.getByRole("heading", { name: "Campanhas e tráfego" })
+    page.getByRole("heading", { name: "Campanhas e tráfego pago" })
   ).toBeVisible();
-  await expect(page.getByText("Cobertura do tráfego pago")).toBeVisible();
-  await expect(page.getByText("65%", { exact: true })).toBeVisible();
+  await expect(page.getByText("Cobertura de atribuição")).toBeVisible();
+  await expect(page.getByText("100%", { exact: true })).toBeVisible();
+  await expect(page.getByText("13 diretas + 7 assistidas")).toBeVisible();
   await expect(
     page.getByRole("heading", { name: "Qualidade da medição paga" })
   ).toBeVisible();
@@ -187,5 +219,17 @@ test("admin e consentimento permanecem navegáveis no celular", async ({ page })
 
   await allow.click();
   await expect(consent).toBeHidden();
+  await expectNoHorizontalOverflow(page);
+
+  await navigation.getByRole("link", { name: /Custos/ }).click();
+  await expect(
+    page.getByRole("heading", { name: "Investimento e eficiência" })
+  ).toBeVisible();
+  await expect(page.getByText("Cobertura de atribuição")).toBeVisible();
+  await expect(page.getByText("Cobertura financeira").first()).toBeVisible();
+  await expect(page.getByText("13 diretas + 7 assistidas")).toBeVisible();
+  await expect(page.getByRole("progressbar")).toHaveCount(2);
+  await expect(page.getByText("Investimento por campanha")).toBeVisible();
+  await expect(page.getByText("Sessões atribuídas por campanha")).toBeVisible();
   await expectNoHorizontalOverflow(page);
 });

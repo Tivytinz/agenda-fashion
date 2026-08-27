@@ -192,6 +192,17 @@ function mapearDesempenho(item) {
   const sessoes =
     inteiro(item?.sessoes);
 
+  const sessoesAtribuicaoAssistida =
+    Math.min(
+      Math.max(0, sessoes),
+      Math.max(
+        0,
+        inteiro(
+          item?.sessoes_atribuicao_assistida
+        )
+      )
+    );
+
   const sessoesComCusto =
     Math.min(
       Math.max(0, sessoes),
@@ -261,6 +272,13 @@ function mapearDesempenho(item) {
       item?.ativo !== false,
     investimentoCentavos,
     sessoes,
+    sessoesAtribuicaoDireta:
+      Math.max(
+        0,
+        sessoes -
+          sessoesAtribuicaoAssistida
+      ),
+    sessoesAtribuicaoAssistida,
     sessoesComCusto,
     sessoesSemCusto:
       Math.max(
@@ -384,6 +402,9 @@ async function buscarCustos({
         sessoesComCusto:
           acumulado.sessoesComCusto +
           campanha.sessoesComCusto,
+        sessoesAtribuicaoAssistida:
+          acumulado.sessoesAtribuicaoAssistida +
+          campanha.sessoesAtribuicaoAssistida,
         investimentoClientesCentavos:
           acumulado.investimentoClientesCentavos +
           (cliente
@@ -417,6 +438,7 @@ async function buscarCustos({
       investimentoCentavos: 0,
       sessoes: 0,
       sessoesComCusto: 0,
+      sessoesAtribuicaoAssistida: 0,
       investimentoClientesCentavos: 0,
       investimentoProfissionaisCentavos: 0,
       campanhasComInvestimento: 0,
@@ -447,6 +469,27 @@ async function buscarCustos({
             .sessoes_oficiais
         )
       : totais.sessoes;
+
+  const sessoesAtribuicaoAssistida =
+    Math.min(
+      sessoesOficiais,
+      Object.prototype.hasOwnProperty.call(
+        diagnosticoBruto || {},
+        "sessoes_atribuicao_assistida"
+      )
+        ? inteiro(
+            diagnosticoBruto
+              .sessoes_atribuicao_assistida
+          )
+        : totais.sessoesAtribuicaoAssistida
+    );
+
+  const sessoesAtribuicaoDireta =
+    Math.max(
+      0,
+      sessoesOficiais -
+        sessoesAtribuicaoAssistida
+    );
 
   const sessoesPagasDetectadas =
     sessoesOficiais +
@@ -501,6 +544,8 @@ async function buscarCustos({
       sessoesOficiais,
     sessoesOficiais:
       sessoesOficiais,
+    sessoesAtribuicaoDireta,
+    sessoesAtribuicaoAssistida,
     sessoesComCusto,
     sessoesOficiaisSemCusto,
     coberturaCustos,
@@ -511,6 +556,8 @@ async function buscarCustos({
     diagnosticoAtribuicao: {
       sessoesOficiais:
         sessoesOficiais,
+      sessoesAtribuicaoDireta,
+      sessoesAtribuicaoAssistida,
       sessoesSemCampanha,
       sessoesIdentidadeNaoOficial,
       sessoesPagasDetectadas,

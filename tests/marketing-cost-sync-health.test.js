@@ -114,6 +114,7 @@ describe("saúde das integrações de custos", () => {
       {
         status: "sucesso",
         registros_importados: 12,
+        reconciliacao_campanhas_completa: true,
         finished_at: "2026-08-12T10:00:00Z"
       },
       schedule,
@@ -129,6 +130,7 @@ describe("saúde das integrações de custos", () => {
       {
         status: "sucesso",
         registros_importados: 12,
+        reconciliacao_campanhas_completa: true,
         finished_at: "2026-08-12T23:00:00Z"
       },
       schedule,
@@ -137,6 +139,22 @@ describe("saúde das integrações de custos", () => {
       codigo: "saudavel",
       rotulo: "Saudável",
       desatualizado: false
+    });
+
+    expect(service.saudeIntegracao(
+      provider,
+      {
+        status: "sucesso",
+        registros_importados: 12,
+        reconciliacao_campanhas_completa: false,
+        finished_at: "2026-08-12T23:00:00Z"
+      },
+      schedule,
+      now
+    )).toMatchObject({
+      codigo: "reconciliacao_pendente",
+      rotulo: "Reconciliar",
+      nivel: "aviso"
     });
   });
 

@@ -84,10 +84,10 @@ function mockMarketingRequests() {
     if (path.startsWith("/admin/marketing/resumo")) {
       return Promise.resolve({
         periodo: "30",
-        totalSessoes: 23,
-        sessoes: 19,
-        sessoesSemAtribuicao: 4,
-        campanhas: 3,
+        totalSessoes: 229,
+        sessoes: 20,
+        sessoesSemAtribuicao: 209,
+        campanhas: 1,
         perfisVisualizados: 8,
         agendamentosIniciados: 2,
         sessoesConvertidas: 1,
@@ -106,36 +106,14 @@ function mockMarketingRequests() {
             campanha: "google_ads_profissionais",
             oficial: true,
             classificacaoAtribuicao: "oficial",
-            sessoes: 12,
+            sessoes: 20,
+            sessoesAtribuicaoDireta: 13,
+            sessoesAtribuicaoAssistida: 7,
             perfisVisualizados: 7,
             agendamentosIniciados: 1,
             sessoesConvertidas: 1,
             agendamentosConcluidos: 1,
             taxaConversao: 8.33
-          },
-          {
-            origem: "google",
-            midia: "cpc",
-            campanha: "(sem campanha)",
-            oficial: false,
-            classificacaoAtribuicao: "rastreamento_incompleto",
-            sessoes: 6,
-            perfisVisualizados: 0,
-            agendamentosIniciados: 0,
-            agendamentosConcluidos: 0,
-            taxaConversao: 0
-          },
-          {
-            origem: "meta",
-            midia: "paid_social",
-            campanha: "teste",
-            oficial: false,
-            classificacaoAtribuicao: "identidade_nao_oficial",
-            sessoes: 1,
-            perfisVisualizados: 1,
-            agendamentosIniciados: 1,
-            agendamentosConcluidos: 0,
-            taxaConversao: 0
           }
         ]
       });
@@ -188,17 +166,19 @@ afterEach(() => {
 });
 
 describe("AdminMarketingPage", () => {
-  it("separa tráfego oficial, atribuição e resultados pelo objetivo", async () => {
+  it("apresenta cobertura integral, atribuição auditável e resultados pelo objetivo", async () => {
     render(<AdminMarketingPage />);
 
     expect(
-      await screen.findByRole("heading", { name: "Campanhas e tráfego" })
+      await screen.findByRole("heading", { name: "Campanhas e tráfego pago" })
     ).not.toBeNull();
 
-    expect(screen.getByText("Sessões oficiais")).not.toBeNull();
-    expect(screen.getByText("Cobertura do tráfego pago")).not.toBeNull();
-    expect(screen.getByText("Campanhas ativas")).not.toBeNull();
-    expect(screen.getByText("Agendamentos de clientes")).not.toBeNull();
+    expect(screen.getByText("Sessões atribuídas")).not.toBeNull();
+    expect(screen.getByText("Cobertura de atribuição")).not.toBeNull();
+    expect(screen.getByText("Campanhas monitoradas")).not.toBeNull();
+    expect(screen.getByText("Conversões de clientes")).not.toBeNull();
+    expect(screen.getByText("13 diretas + 7 assistidas")).not.toBeNull();
+    expect(screen.getAllByText("100%").length).toBeGreaterThanOrEqual(1);
     expect(screen.getByText("Qualidade da medição paga")).not.toBeNull();
     expect(screen.getAllByText("Aquisição de profissionais").length).toBeGreaterThanOrEqual(1);
 
@@ -208,13 +188,13 @@ describe("AdminMarketingPage", () => {
     expect(screen.queryByText("teste")).toBeNull();
     expect(screen.queryByText("Studio Oficial")).toBeNull();
     expect(screen.queryByText("Studio Teste")).toBeNull();
-    expect(screen.getByText("Sessões oficiais por origem")).not.toBeNull();
-    expect(screen.getByText("Resumo oficial por origem")).not.toBeNull();
-    expect(screen.getByText("Ver Rentabilidade")).not.toBeNull();
+    expect(screen.getByText("Sessões atribuídas por origem")).not.toBeNull();
+    expect(screen.getByText("Resumo atribuído por origem")).not.toBeNull();
+    expect(screen.getByText("Analisar em Rentabilidade")).not.toBeNull();
     expect(apiRequest).toHaveBeenCalledTimes(4);
   });
 
-  it("explica claramente acesso autônomo e não confunde com tráfego pago incompleto", async () => {
+  it("explica claramente acesso autônomo e a atribuição assistida", async () => {
     render(<AdminMarketingPage />);
 
     expect(await screen.findByText(/Acesso autônomo ·/)).not.toBeNull();
@@ -226,14 +206,76 @@ describe("AdminMarketingPage", () => {
     ).not.toBeNull();
 
     expect(
-      screen.getByText(/6 sessões pagas com rastreamento incompleto/i)
+      screen.getByText(/Cobertura integral: 13 sessões foram atribuídas diretamente e 7 por vínculo verificado/i)
+    ).not.toBeNull();
+    expect(
+      screen.getByText(/Reconhecida pela UTM oficial ou por um vínculo único e verificado/i)
+    ).not.toBeNull();
+    expect(
+      screen.queryByText(/sessões pagas com rastreamento incompleto/i)
+    ).toBeNull();
+  });
+
+  it("mantém tráfego pago realmente ambíguo fora dos KPIs", async () => {
+    const originalImplementation = apiRequest.getMockImplementation();
+    apiRequest.mockImplementation((path, options) => {
+      if (path.startsWith("/admin/marketing/campanhas")) {
+        return Promise.resolve({
+          periodo: "30",
+          campanhas: [
+            {
+              origem: "google",
+              midia: "cpc",
+              campanha: "google_ads_profissionais",
+              oficial: true,
+              classificacaoAtribuicao: "oficial",
+              sessoes: 13,
+              sessoesAtribuicaoDireta: 13,
+              sessoesAtribuicaoAssistida: 0,
+              perfisVisualizados: 7,
+              agendamentosIniciados: 0,
+              agendamentosConcluidos: 0,
+              taxaConversao: 0
+            },
+            {
+              origem: "google",
+              midia: "cpc",
+              campanha: "(sem campanha)",
+              oficial: false,
+              classificacaoAtribuicao: "rastreamento_incompleto",
+              sessoes: 6,
+              perfisVisualizados: 0,
+              agendamentosIniciados: 0,
+              agendamentosConcluidos: 0,
+              taxaConversao: 0
+            },
+            {
+              origem: "meta",
+              midia: "paid_social",
+              campanha: "teste",
+              oficial: false,
+              classificacaoAtribuicao: "identidade_nao_oficial",
+              sessoes: 1,
+              perfisVisualizados: 1,
+              agendamentosIniciados: 1,
+              agendamentosConcluidos: 0,
+              taxaConversao: 0
+            }
+          ]
+        });
+      }
+      return originalImplementation(path, options);
+    });
+
+    render(<AdminMarketingPage />);
+
+    expect(
+      await screen.findByText(/6 sessões pagas com rastreamento incompleto/i)
     ).not.toBeNull();
     expect(
       screen.getByText(/Não são acessos autônomos\. Há sinal de mídia paga/i)
     ).not.toBeNull();
-    expect(
-      screen.getByText(/1 sessão com identidade não oficial/i)
-    ).not.toBeNull();
+    expect(screen.getByText(/1 sessão com identidade não oficial/i)).not.toBeNull();
     expect(
       screen.getByRole("button", {
         name: "Copiar link correto de Google Ads · Aquisição de profissionais"
@@ -279,14 +321,14 @@ describe("AdminMarketingPage", () => {
 
     expect(await screen.findByText("Studio Oficial")).not.toBeNull();
     expect(screen.getAllByText("Aquisição de clientes").length).toBeGreaterThanOrEqual(1);
-    expect(screen.queryByText("Ver Rentabilidade")).toBeNull();
+    expect(screen.queryByText("Analisar em Rentabilidade")).toBeNull();
   });
 
   it("mantém configurações técnicas recolhidas e cria nova campanha oficial", async () => {
     const user = userEvent.setup();
     render(<AdminMarketingPage />);
 
-    await screen.findByRole("heading", { name: "Campanhas e tráfego" });
+    await screen.findByRole("heading", { name: "Campanhas e tráfego pago" });
     await user.click(screen.getByRole("button", { name: "+ Nova campanha oficial" }));
 
     const summary = screen.getByText("Configurações avançadas de rastreamento");
@@ -367,7 +409,7 @@ describe("AdminMarketingPage", () => {
     const user = userEvent.setup();
     render(<AdminMarketingPage />);
 
-    await screen.findByRole("heading", { name: "Campanhas e tráfego" });
+    await screen.findByRole("heading", { name: "Campanhas e tráfego pago" });
     await user.click(screen.getByRole("button", { name: "7 dias" }));
 
     await waitFor(() => {
@@ -390,7 +432,7 @@ describe("AdminMarketingPage", () => {
     const user = userEvent.setup();
     render(<AdminMarketingPage />);
 
-    await screen.findByRole("heading", { name: "Campanhas e tráfego" });
+    await screen.findByRole("heading", { name: "Campanhas e tráfego pago" });
 
     const originalImplementation = apiRequest.getMockImplementation();
     apiRequest.mockImplementation((path, options) => {
@@ -421,7 +463,7 @@ describe("AdminMarketingPage", () => {
     render(<AdminMarketingPage />);
 
     expect(
-      await screen.findByRole("heading", { name: "Campanhas e tráfego" })
+      await screen.findByRole("heading", { name: "Campanhas e tráfego pago" })
     ).not.toBeNull();
     expect(screen.getByText("Google Ads · Aquisição de profissionais")).not.toBeNull();
     expect(screen.getByRole("alert").textContent).toContain(

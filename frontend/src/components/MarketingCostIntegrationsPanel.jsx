@@ -343,11 +343,14 @@ export function MarketingCostIntegrationsPanel({ onChanged }) {
       );
       const imported = Number(result.registrosImportados || 0);
       const unlinked = Number(result.campanhasNaoVinculadas || 0);
+      const reconciled = result.reconciliacaoCampanhasCompleta === true;
       setMessage(
         `${PROVIDER_LABELS[provedor] || provedor}: ${pluralize(imported, "registro importado", "registros importados")}.` +
           (unlinked
             ? ` ${pluralize(unlinked, "campanha externa ainda sem vínculo", "campanhas externas ainda sem vínculo")}.`
-            : "")
+            : reconciled
+              ? " Reconciliação completa das campanhas externas."
+              : "")
       );
       await load();
       onChanged?.();

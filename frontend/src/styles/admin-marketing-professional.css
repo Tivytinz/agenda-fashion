@@ -54,6 +54,127 @@
   letter-spacing: -0.025em;
 }
 
+.admin-costs-page .metric-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.marketing-coverage-panel {
+  display: grid;
+  gap: 1rem;
+  margin-bottom: 1rem;
+  border-color: #e6d3db;
+  background: linear-gradient(135deg, #fff 0%, #fff8fb 100%);
+}
+
+.marketing-coverage-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.marketing-coverage-heading .eyebrow,
+.marketing-coverage-heading h2,
+.marketing-coverage-heading p {
+  margin-top: 0;
+}
+
+.marketing-coverage-heading h2 {
+  margin-bottom: 0.3rem;
+  color: var(--admin-ink);
+  font-size: clamp(1.2rem, 2vw, 1.45rem);
+}
+
+.marketing-coverage-heading p:last-child {
+  max-width: 760px;
+  margin-bottom: 0;
+  line-height: 1.45;
+}
+
+.marketing-coverage-standard {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  min-height: 32px;
+  border: 1px solid #e5c7d4;
+  border-radius: 999px;
+  padding: 0.3rem 0.7rem;
+  background: #fff;
+  color: var(--admin-accent-dark);
+  font-size: 0.72rem;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.marketing-coverage-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.8rem;
+}
+
+.marketing-coverage-item {
+  min-width: 0;
+  border: 1px solid #eadce2;
+  border-radius: 14px;
+  padding: 0.9rem;
+  background: rgba(255, 255, 255, 0.92);
+}
+
+.marketing-coverage-meta {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.marketing-coverage-meta span {
+  color: var(--admin-ink);
+  font-size: 0.82rem;
+  font-weight: 750;
+}
+
+.marketing-coverage-meta strong {
+  color: var(--admin-accent-dark);
+  font-size: 1.2rem;
+  letter-spacing: -0.025em;
+}
+
+.marketing-coverage-track {
+  height: 9px;
+  margin-top: 0.6rem;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #f1e7eb;
+}
+
+.marketing-coverage-track > span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: #8d7f85;
+  transition: width 180ms ease;
+}
+
+.marketing-coverage-item.is-success .marketing-coverage-track > span {
+  background: linear-gradient(90deg, #2f7a4b, #55a36f);
+}
+
+.marketing-coverage-item.is-warning .marketing-coverage-track > span {
+  background: linear-gradient(90deg, #a86f18, #d3a142);
+}
+
+.marketing-coverage-item.is-critical .marketing-coverage-track > span {
+  background: linear-gradient(90deg, #ad294a, #d85676);
+}
+
+.marketing-coverage-item small {
+  display: block;
+  margin-top: 0.55rem;
+  color: var(--admin-muted);
+  font-size: 0.75rem;
+  line-height: 1.4;
+}
+
 .marketing-executive-panel {
   display: grid;
   gap: 1rem;
@@ -538,6 +659,60 @@
   align-items: center;
 }
 
+.admin-cost-insights-grid {
+  grid-template-columns: minmax(0, 0.92fr) minmax(0, 1.08fr);
+}
+
+.admin-performance-table {
+  min-width: 840px;
+  font-variant-numeric: tabular-nums;
+}
+
+.admin-performance-table th,
+.admin-performance-table td {
+  vertical-align: middle;
+}
+
+.admin-performance-table th:first-child,
+.admin-performance-table td:first-child {
+  min-width: 220px;
+}
+
+.admin-performance-table td:first-child > strong {
+  display: block;
+  color: var(--admin-ink);
+}
+
+.admin-table-secondary {
+  display: block;
+  margin-top: 0.25rem;
+  color: var(--admin-muted);
+  font-size: 0.72rem;
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+.admin-numeric-cell {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.admin-numeric-cell .admin-table-secondary {
+  text-align: right;
+}
+
+.admin-attribution-performance-table {
+  min-width: 920px;
+}
+
+.admin-attribution-performance-table .admin-campaign-source {
+  flex-wrap: wrap;
+}
+
+.admin-conversion-table {
+  min-width: 760px;
+}
+
 .admin-campaigns-page .admin-campaign-table table {
   min-width: 790px;
 }
@@ -560,11 +735,6 @@
 
 /* Donut somente para distribuicoes. Coorte e ROAS ficam em tabelas. */
 .marketing-donut-chart {
-  display: none;
-}
-
-.admin-campaigns-page .marketing-bar-chart-list,
-.admin-costs-page .marketing-bar-chart-list {
   display: none;
 }
 
@@ -607,8 +777,9 @@
 
 .marketing-donut-center strong {
   color: var(--admin-ink);
-  font-size: 1.15rem;
+  font-size: clamp(0.88rem, 1.5vw, 1.15rem);
   line-height: 1;
+  white-space: nowrap;
 }
 
 .marketing-donut-center span {
@@ -768,10 +939,24 @@
   .admin-notice-panel {
     grid-template-columns: 1fr;
   }
+
+  .admin-costs-page .metric-grid,
+  .marketing-coverage-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .admin-cost-insights-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (max-width: 800px) {
   .marketing-executive-heading {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .marketing-coverage-heading {
     align-items: flex-start;
     flex-direction: column;
   }
@@ -828,6 +1013,11 @@
 }
 
 @media (max-width: 520px) {
+  .admin-costs-page .metric-grid,
+  .marketing-coverage-grid {
+    grid-template-columns: 1fr;
+  }
+
   .marketing-executive-metrics,
   .admin-attribution-overview,
   .admin-professional-funnel-page .admin-decision-summary {

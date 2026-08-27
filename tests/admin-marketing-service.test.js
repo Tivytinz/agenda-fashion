@@ -129,6 +129,8 @@ describe(
               classificacao_atribuicao:
                 "oficial",
               sessoes: "8",
+              sessoes_atribuicao_direta: "5",
+              sessoes_atribuicao_assistida: "3",
               sessoes_resolvidas_gclid: "0",
               sessoes_resolvidas_google_click: "0",
               perfis_visualizados: "6",
@@ -160,6 +162,8 @@ describe(
           classificacaoAtribuicao:
             "oficial",
           sessoes: 8,
+          sessoesAtribuicaoDireta: 5,
+          sessoesAtribuicaoAssistida: 3,
           sessoesResolvidasPorGclid: 0,
           sessoesResolvidasPorGoogle: 0,
           sessoesConvertidas: 2,
@@ -191,12 +195,16 @@ describe(
               midia: "cpc",
               campanha:
                 "google_ads_profissionais",
+              campanha_original:
+                "(sem campanha)",
               campanha_oficial_id: 12,
               campanha_oficial_objetivo:
                 "profissional",
               campanha_oficial_ativa: true,
               classificacao_atribuicao:
                 "oficial",
+              metodo_resolucao:
+                "vinculo_unico",
               gclid_resolvido: false,
               google_click_resolvido: false,
               conteudo: "search_01",
@@ -233,12 +241,17 @@ describe(
           resolvidoPorGoogle: false,
           campanha:
             "google_ads_profissionais",
+          campanhaOriginal:
+            "(sem campanha)",
           campanhaOficialId: 12,
           objetivo: "profissional",
           oficial: true,
           campanhaAtiva: true,
           classificacaoAtribuicao:
             "oficial",
+          metodoResolucao:
+            "vinculo_unico",
+          atribuicaoAssistida: true,
         });
       }
     );

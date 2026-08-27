@@ -127,6 +127,7 @@ async function listarPorCampanha(
       origem: "a.origem",
       midia: "a.midia",
       campanha: "a.campanha",
+      momento: "a.atribuicao_em",
       objetivo: "profissional",
     });
 
@@ -141,6 +142,7 @@ async function listarPorCampanha(
       WITH atribuicoes_resolvidas AS (
         SELECT
           mua.usuario_id,
+          mua.atribuicao_em,
           ${atribuicao.atribuicaoPaga}
             AS pago,
           ${atribuicao.origem}

@@ -1,6 +1,6 @@
 # Memoria operacional do Agenda Fashion
 
-> Contexto permanente para agentes de desenvolvimento. Atualizado em 25 de
+> Contexto permanente para agentes de desenvolvimento. Atualizado em 26 de
 > agosto de 2026.
 
 Este arquivo deve ser lido antes de analisar, planejar ou alterar o projeto.
@@ -149,8 +149,16 @@ etapas diferentes. Os detalhes ficam em `docs/planos.md`.
   cancelam as mensagens ainda pendentes.
 - Marketing: eventos de produto, atribuicao, GA4, Google Ads, Meta CAPI e
   leitura de custos de Google Ads e Meta Ads. A classificacao oficial de
-  campanhas e resolvida no backend; cliques pagos sem `utm_campaign` permanecem
-  como rastreamento incompleto e nao entram em CAC, ROAS ou recomendacoes.
+  campanhas e resolvida no backend. A UTM exata tem prioridade; na ausencia
+  dela, uma sessao paga so recebe atribuicao assistida quando existe identidade
+  externa correspondente ou um unico vinculo persistido e verificado para o
+  provedor, canal e midia. A inferencia por vinculo unico exige que a ultima
+  sincronizacao do provedor cubra a data do evento, tenha terminado com sucesso
+  e nao possua campanha externa operacional sem vinculo, mesmo quando ela nao
+  teve gasto no periodo. Ambiguidade permanece como rastreamento incompleto e
+  nao entra em CAC, ROAS ou recomendacoes. O metodo de resolucao continua
+  exposto para auditoria. Sincronizacoes anteriores a migration `057` nao
+  comprovam essa reconciliacao e exigem uma nova execucao.
   Atribuicao publicitaria, GA4 e Google Ads exigem consentimento opcional;
   rotas enviadas ao Google sao genericas, sem query strings, tokens, slugs ou
   referenciador. `ad_personalization` permanece negado e a revogacao apaga os

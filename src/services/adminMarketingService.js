@@ -308,6 +308,16 @@ async function listarCampanhas({
                 "identidade_nao_oficial"
               ),
             sessoes,
+            sessoesAtribuicaoDireta:
+              inteiro(
+                campanha
+                  ?.sessoes_atribuicao_direta
+              ),
+            sessoesAtribuicaoAssistida:
+              inteiro(
+                campanha
+                  ?.sessoes_atribuicao_assistida
+              ),
             sessoesResolvidasPorGclid:
               inteiro(
                 campanha
@@ -434,6 +444,11 @@ async function listarConversoes({
               conversao?.campanha,
               "(sem campanha)"
             ),
+          campanhaOriginal:
+            texto(
+              conversao
+                ?.campanha_original
+            ) || null,
           campanhaOficialId:
             conversao
               ?.campanha_oficial_id
@@ -467,6 +482,19 @@ async function listarConversoes({
               conversao
                 ?.classificacao_atribuicao,
               "identidade_nao_oficial"
+            ),
+          metodoResolucao:
+            texto(
+              conversao
+                ?.metodo_resolucao
+            ) || null,
+          atribuicaoAssistida:
+            Boolean(
+              conversao
+                ?.metodo_resolucao &&
+              conversao
+                .metodo_resolucao !==
+                "utm_exata"
             ),
           resolvidoPorGclid:
             conversao
