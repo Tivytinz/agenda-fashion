@@ -26,7 +26,7 @@ vi.mock("../api/client", () => ({
 vi.mock("../components/MarketingGa4Panel", () => ({
   MarketingGa4Panel: ({ data }) => (
     <section data-testid="marketing-ga4-panel">
-      {data?.erro ? `GA4: ${data.erro}` : "Google Analytics 4"}
+      {data?.erro ? `GA4: ${data.erro}` : "Comportamento no site"}
     </section>
   )
 }));
@@ -94,7 +94,14 @@ function mockRequests() {
       return Promise.resolve({
         habilitado: true,
         configurado: true,
-        resumo: { sessoes: 40 }
+        resumo: {
+          sessoes: 90,
+          usuarios: 64,
+          novosUsuarios: 28,
+          sessoesEngajadas: 51,
+          taxaEngajamentoPercentual: 56.7,
+          visualizacoes: 170
+        }
       });
     }
 
@@ -113,7 +120,7 @@ afterEach(() => {
 });
 
 describe("AdminMarketingPage", () => {
-  it("prioriza sincronização, GA4, funil e resultado final", async () => {
+  it("prioriza jornada, comportamento, funil e resultado final", async () => {
     render(
       <MemoryRouter>
         <AdminMarketingPage />
@@ -121,18 +128,22 @@ describe("AdminMarketingPage", () => {
     );
 
     expect(
-      await screen.findByRole("heading", { name: "Campanhas e tráfego pago" })
+      await screen.findByRole("heading", { name: "Marketing e aquisição" })
     ).not.toBeNull();
 
+    expect(screen.getByText("Sessões no site")).not.toBeNull();
+    expect(screen.getByText("90")).not.toBeNull();
     expect(screen.getByText("Cadastros profissionais")).not.toBeNull();
-    expect(screen.getByText("Negócios publicados")).not.toBeNull();
     expect(screen.getByText("Primeiros agendamentos")).not.toBeNull();
     expect(screen.getByText("Assinaturas ativadas")).not.toBeNull();
-    expect(screen.getByText("Qualidade da medição paga")).not.toBeNull();
+    expect(screen.getByText("Comportamento + funil + atribuição")).not.toBeNull();
+    expect(screen.getByText("GA4 conectado")).not.toBeNull();
+    expect(screen.getByText("100% atribuído")).not.toBeNull();
     expect(screen.getByText("30 diretas + 10 assistidas")).not.toBeNull();
     expect(screen.getByTestId("marketing-ga4-panel")).not.toBeNull();
     expect(screen.getByTestId("marketing-sync-panel")).not.toBeNull();
     expect(screen.getByText("Da aquisição ao resultado")).not.toBeNull();
+    expect(screen.getByText("Campanhas reconhecidas pelo AF")).not.toBeNull();
     expect(screen.getByText("123456")).not.toBeNull();
 
     expect(
@@ -160,9 +171,10 @@ describe("AdminMarketingPage", () => {
     );
 
     expect(
-      await screen.findByRole("heading", { name: "Campanhas e tráfego pago" })
+      await screen.findByRole("heading", { name: "Marketing e aquisição" })
     ).not.toBeNull();
     expect(screen.getByText("Cadastros profissionais")).not.toBeNull();
+    expect(screen.getByText("GA4 indisponível")).not.toBeNull();
     expect(screen.getByText("GA4: GA4 indisponível")).not.toBeNull();
     expect(
       screen.queryByText(
