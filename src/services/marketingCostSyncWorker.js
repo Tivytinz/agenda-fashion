@@ -1,5 +1,5 @@
 const registrador = require("../utils/registrador");
-const marketingCostSyncService = require("./marketingCostSyncService");
+const marketingCostSyncService = require("./marketingSyncOrchestratorService");
 const marketingCanonicalCleanupService = require(
   "./marketingCanonicalCleanupService"
 );
@@ -122,11 +122,6 @@ async function executarLimpezaCanonica() {
         .CAMPANHAS_LEGADAS,
     ];
 
-    /*
-     * Recuperamos primeiro a evidência histórica ainda bruta. Isso evita que
-     * uma limpeza de aliases legados apague o único vínculo auditável entre
-     * a sessão anônima do anúncio e a conta criada depois.
-     */
     const recuperacaoAntesDaLimpeza =
       await marketingAttributionRecoveryRepository
         .recuperarGoogleProfissionaisPorEventos({
@@ -140,23 +135,11 @@ async function executarLimpezaCanonica() {
       await marketingCanonicalCleanupService
         .executarLimpezaGoogleProfissionais();
 
-    /*
-     * A campanha interna canônica nunca substitui a identidade do Google Ads.
-     * Depois da limpeza, tentamos reconstruir o vínculo usando exclusivamente
-     * a campanha original devolvida pela API do Google, com conta e campaign.id
-     * reais. A rotina é conservadora e não grava nada quando há ambiguidade.
-     */
     const reparoVinculoGoogle =
       await repararVinculoGoogleAutomaticamente(
         "limpeza_canonica"
       );
 
-    /*
-     * Uma sincronização anterior pode continuar não auditável mesmo quando o
-     * vínculo original já estava correto. Por isso, no startup, reconciliamos
-     * tanto um vínculo recém-reparado quanto um vínculo já verificado. Essa
-     * execução é independente da flag do agendamento periódico.
-     */
     const vinculoGoogleVerificado = Boolean(
       reparoVinculoGoogle?.reparado ||
       reparoVinculoGoogle?.jaVinculado
