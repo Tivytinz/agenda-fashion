@@ -37,6 +37,15 @@ import {
   GOOGLE_BUSINESS_DATA_URL
 } from "../config/legal";
 
+export function isAdminMeasurementRoute(pathname) {
+  const normalized = String(pathname || "")
+    .replace(/\/{2,}/g, "/")
+    .replace(/\/$/, "");
+
+  return normalized === "/admin" ||
+    normalized.startsWith("/admin/");
+}
+
 export function MetaAdsBridge() {
   const location = useLocation();
   const session = useSession();
@@ -48,6 +57,8 @@ export function MetaAdsBridge() {
     useState(getMarketingConsent);
   const [googleSyncError, setGoogleSyncError] =
     useState(false);
+  const adminMeasurementRoute =
+    isAdminMeasurementRoute(location.pathname);
 
   const retryGoogleSync = useCallback(
     async () => {
@@ -151,6 +162,13 @@ export function MetaAdsBridge() {
       return;
     }
 
+    if (adminMeasurementRoute) {
+      updateGoogleConsent(
+        MARKETING_CONSENT.DENIED
+      );
+      return;
+    }
+
     if (
       consent ===
         MARKETING_CONSENT.GRANTED
@@ -189,7 +207,8 @@ export function MetaAdsBridge() {
     consent,
     session.authenticated,
     session.usuario?.id,
-    retryGoogleSync
+    retryGoogleSync,
+    adminMeasurementRoute
   ]);
 
   useEffect(() => {
@@ -251,7 +270,8 @@ export function MetaAdsBridge() {
     if (
       googleConfig?.enabled &&
       consent ===
-        MARKETING_CONSENT.GRANTED
+        MARKETING_CONSENT.GRANTED &&
+      !adminMeasurementRoute
     ) {
       void trackGooglePageView(
         location.pathname,
@@ -263,7 +283,8 @@ export function MetaAdsBridge() {
     googleConfig?.enabled,
     consent,
     location.pathname,
-    session.usuario?.id
+    session.usuario?.id,
+    adminMeasurementRoute
   ]);
 
   function choose(status) {

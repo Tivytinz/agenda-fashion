@@ -75,6 +75,16 @@ O painel pode apresentar, entre outros:
 
 Quando o GA4 sinalizar amostragem, perda por cardinalidade ou limiar de privacidade, o painel deve avisar que a leitura possui limitações.
 
+### Exclusão da área administrativa
+
+Rotas `/admin` e `/admin/*` são tráfego interno e não representam aquisição, ativação, retenção ou uso real do produto por profissionais, negócios ou clientes finais.
+
+O frontend não deve inicializar nem enviar `page_view` do Google nessas rotas. Ao entrar na área administrativa, a coleta Google fica temporariamente negada no runtime sem alterar a preferência persistida da conta. Ao voltar para uma rota de produto, a medição pode ser retomada conforme o consentimento já concedido.
+
+A leitura administrativa pela Data API também exclui sessões cuja `landingPage` começa com `/admin`. Essa segunda proteção evita que tráfego administrativo histórico distorça sessões, usuários, canais, campanhas, dispositivos, localidades e landing pages exibidos no painel.
+
+A exclusão é baseada no prefixo `/admin`, e não em uma lista fechada de páginas, para que novas rotas administrativas também fiquem fora da mensuração por padrão.
+
 ## Fonte de verdade
 
 GA4 explica **comportamento e navegação**. Ele não substitui o banco do Agenda Fashion como fonte canônica para resultado do produto.
