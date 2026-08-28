@@ -1,7 +1,11 @@
+const AppError = require("../errors/AppError");
 const costSyncService = require("./marketingCostSyncService");
 const campaignSyncService = require("./marketingCampaignSyncService");
 const providers = require("./marketingCostProviders");
 const repository = require("../repositories/marketingCostSyncRepository");
+const campaignLockRepository = require(
+  "../repositories/marketingCampaignSyncLockRepository"
+);
 
 const INACTIVE_STATUSES = new Set([
   "ARCHIVED",
@@ -25,29 +29,42 @@ async function reconcileProviderCampaigns({
 }) {
   const provider = costSyncService.normalizarProvedor(provedor);
   const periodo = costSyncService.periodoPadrao(payload);
-
-  /*
-   * Valida conexão e moeda antes de criar qualquer identidade interna.
-   * Assim uma conta incompatível não deixa campanhas importadas pela metade.
-   */
-  await costSyncService.testarIntegracao({
-    provedor: provider
-  });
-
-  const [externalCampaigns, costs, links] = await Promise.all([
-    providers.listarCampanhas(provider),
-    providers.listarCustos(provider, periodo),
-    repository.buscarVinculosPorProvedor(provider)
-  ]);
-
-  return campaignSyncService.reconcileExternalCampaigns({
+  const bloqueio = await campaignLockRepository.executarComLock(
     provider,
-    externalCampaigns,
-    costs,
-    links,
-    userId: usuarioId,
-    isOperational
-  });
+    async () => {
+      /*
+       * Valida conexão e moeda antes de criar qualquer identidade interna.
+       * Assim uma conta incompatível não deixa campanhas importadas pela metade.
+       */
+      await costSyncService.testarIntegracao({
+        provedor: provider
+      });
+
+      const [externalCampaigns, costs, links] = await Promise.all([
+        providers.listarCampanhas(provider),
+        providers.listarCustos(provider, periodo),
+        repository.buscarVinculosPorProvedor(provider)
+      ]);
+
+      return campaignSyncService.reconcileExternalCampaigns({
+        provider,
+        externalCampaigns,
+        costs,
+        links,
+        userId: usuarioId,
+        isOperational
+      });
+    }
+  );
+
+  if (!bloqueio.executado) {
+    throw new AppError(
+      "Já existe uma reconciliação de campanhas deste provedor em andamento.",
+      409
+    );
+  }
+
+  return bloqueio.resultado;
 }
 
 async function sincronizar(args) {
