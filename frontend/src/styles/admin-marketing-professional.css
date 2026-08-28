@@ -864,14 +864,11 @@
 }
 
 .admin-professional-funnel-page .metric-card strong {
+  min-width: 0;
   font-size: clamp(1.45rem, 2vw, 2rem);
   line-height: 1.08;
-}
-
-@media (min-width: 1181px) {
-  .admin-professional-funnel-page .metric-card strong {
-    white-space: nowrap;
-  }
+  overflow-wrap: anywhere;
+  white-space: normal;
 }
 
 /* Glossario compacto, aberto apenas quando o admin quiser contexto. */
