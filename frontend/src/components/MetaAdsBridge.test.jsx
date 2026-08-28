@@ -21,7 +21,10 @@ import {
 } from "vitest";
 import {
   getGoogleConfig,
-  syncGoogleConsent
+  initializeGoogleMeasurement,
+  syncGoogleConsent,
+  trackGooglePageView,
+  updateGoogleConsent
 } from "../analytics/googleMeasurement";
 import {
   getMarketingConsent,
@@ -33,7 +36,10 @@ import {
   initializeMetaAds,
   revokeMetaConsent
 } from "../analytics/metaAds";
-import { MetaAdsBridge } from "./MetaAdsBridge";
+import {
+  isAdminMeasurementRoute,
+  MetaAdsBridge
+} from "./MetaAdsBridge";
 
 vi.mock("../auth/SessionContext", () => ({
   useSession: () => ({
@@ -207,5 +213,50 @@ describe("consentimento de marketing", () => {
       expect(syncGoogleConsent)
         .toHaveBeenCalled();
     });
+  });
+
+  it("classifica qualquer rota administrativa como interna", () => {
+    expect(isAdminMeasurementRoute("/admin"))
+      .toBe(true);
+    expect(isAdminMeasurementRoute("/admin/saude"))
+      .toBe(true);
+    expect(
+      isAdminMeasurementRoute("/admin/nova-funcionalidade")
+    ).toBe(true);
+    expect(isAdminMeasurementRoute("/painel"))
+      .toBe(false);
+  });
+
+  it("não inicializa nem envia page_view do Google em rota administrativa", async () => {
+    getMarketingConsent.mockReturnValue(
+      MARKETING_CONSENT.GRANTED
+    );
+    getMetaConfig.mockResolvedValue({
+      enabled: false,
+      pixelId: null
+    });
+    getGoogleConfig.mockResolvedValue({
+      enabled: true,
+      measurementId: "G-123456789",
+      adsId: "AW-123456789"
+    });
+
+    render(
+      <MemoryRouter
+        initialEntries={["/admin/nova-funcionalidade"]}
+      >
+        <MetaAdsBridge />
+      </MemoryRouter>
+    );
+
+    await waitFor(() => {
+      expect(updateGoogleConsent)
+        .toHaveBeenCalledWith(MARKETING_CONSENT.DENIED);
+    });
+
+    expect(initializeGoogleMeasurement)
+      .not.toHaveBeenCalled();
+    expect(trackGooglePageView)
+      .not.toHaveBeenCalled();
   });
 });

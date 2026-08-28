@@ -143,6 +143,21 @@ function orderBySessions() {
   return [{ metric: { metricName: "sessions" }, desc: true }];
 }
 
+function adminLandingPageFilter() {
+  return {
+    notExpression: {
+      filter: {
+        fieldName: "landingPage",
+        stringFilter: {
+          matchType: "BEGINS_WITH",
+          value: "/admin",
+          caseSensitive: false
+        }
+      }
+    }
+  };
+}
+
 function montarRequests(periodo) {
   const dateRanges = [{
     startDate: periodo.dataInicio,
@@ -152,6 +167,7 @@ function montarRequests(periodo) {
   return [
     {
       dateRanges,
+      dimensionFilter: adminLandingPageFilter(),
       metrics: [
         metric("sessions"),
         metric("totalUsers"),
@@ -164,6 +180,7 @@ function montarRequests(periodo) {
     },
     {
       dateRanges,
+      dimensionFilter: adminLandingPageFilter(),
       dimensions: [
         dimension("sessionDefaultChannelGroup"),
         dimension("sessionSource"),
@@ -180,6 +197,7 @@ function montarRequests(periodo) {
     },
     {
       dateRanges,
+      dimensionFilter: adminLandingPageFilter(),
       dimensions: [
         dimension("sessionCampaignId"),
         dimension("sessionCampaignName"),
@@ -197,6 +215,7 @@ function montarRequests(periodo) {
     },
     {
       dateRanges,
+      dimensionFilter: adminLandingPageFilter(),
       dimensions: [dimension("landingPage")],
       metrics: [
         metric("sessions"),
@@ -208,6 +227,7 @@ function montarRequests(periodo) {
     },
     {
       dateRanges,
+      dimensionFilter: adminLandingPageFilter(),
       dimensions: [dimension("deviceCategory")],
       metrics: [metric("sessions"), metric("totalUsers")],
       orderBys: orderBySessions(),
@@ -222,6 +242,7 @@ function montarLocationRequest(periodo) {
       startDate: periodo.dataInicio,
       endDate: periodo.dataFim
     }],
+    dimensionFilter: adminLandingPageFilter(),
     dimensions: [
       dimension("country"),
       dimension("region"),
@@ -499,6 +520,7 @@ module.exports = {
   configuracao,
   normalizarPeriodo,
   normalizarPrivateKey,
+  adminLandingPageFilter,
   montarRequests,
   montarLocationRequest,
   mapearResposta,
