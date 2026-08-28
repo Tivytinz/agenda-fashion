@@ -368,6 +368,21 @@ describe(
           '["/painel/profissionais", "Equipe"',
           '["/profissional/agenda", "Minha agenda"',
           '["/profissional/horarios", "Meus horários"',
+          '["/admin/saude", "Saúde do SaaS"',
+          '["/admin/trafego-pago", "Marketing"',
+          '["/admin/whatsapp", "WhatsApp"',
+          '["/conta", "Minha conta"',
+        ].forEach(
+          (rota) => {
+            expect(
+              workspace
+            ).toContain(
+              rota
+            );
+          }
+        );
+
+        [
           '["/admin/trafego-pago", "Campanhas"',
           '["/admin/trafego-pago/custos", "Custos"',
           '["/admin/trafego-pago/profissionais", "Aquisição e retorno"',
@@ -375,7 +390,7 @@ describe(
           (rota) => {
             expect(
               workspace
-            ).toContain(
+            ).not.toContain(
               rota
             );
           }
