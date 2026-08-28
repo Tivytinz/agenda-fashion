@@ -439,13 +439,31 @@ inelegíveis até uma nova sincronização completa; a migration não promove o
 histórico antigo para sucesso por suposição.
 
 A classificação de campanha oficial é resolvida no backend e entregue junto das
-linhas de desempenho e conversão. Campanhas, Custos e Rentabilidade consomem essa
-mesma decisão; o navegador não precisa reconstruí-la pela lista atual de
-campanhas. O funil profissional expõe separadamente a coorte geral, a coorte
-atribuída e o diagnóstico de cadastros orgânicos, pagos sem campanha ou com
-identidade não verificada. CAC, ROAS e recomendações usam somente a coorte
-atribuída com segurança, direta ou assistida, sem diluição por cadastros
-orgânicos ou por cliques que continuam ambíguos.
+linhas de desempenho e conversão. As telas Campanhas, Custos e Aquisição e
+retorno consomem essa mesma decisão; o navegador não precisa reconstruí-la pela
+lista atual de campanhas. O funil profissional expõe separadamente a coorte geral, a coorte
+atribuída e o diagnóstico de cadastros orgânicos, pagos sem campanha, com
+identidade não verificada ou sem evidência suficiente para distinguir mídia
+paga, orgânica e acesso direto. A cobertura paga divide cadastros oficiais por
+todos os cadastros pagos detectados; a cobertura de origem exclui do numerador
+os registros sem evidência. CAC e ROAS brutos permanecem auditáveis, mas a
+interface e a régua de decisão os bloqueiam enquanto a cobertura paga estiver
+abaixo de `MARKETING_DECISION_MIN_ATTRIBUTION_COVERAGE` ou houver cadastro sem
+evidência.
+
+Os marcos da coorte incluem primeiro agendamento recebido, além de negócio,
+serviço, agenda, publicação, checkout e assinatura. A régua só avalia ativação
+depois de `MARKETING_DECISION_ACTIVATION_MATURITY_DAYS` e monetização depois de
+`MARKETING_DECISION_MONETIZATION_MATURITY_DAYS`. Para uma coorte madura, a
+publicação e o primeiro agendamento só contam na decisão de ativação quando
+ocorrem dentro da janela configurada a partir do cadastro; a assinatura segue a
+mesma regra na janela de monetização. Os totais históricos continuam separados
+e preservam o primeiro agendamento mesmo quando ele é cancelado. Como o plano
+gratuito entrega valor real, ausência de assinatura madura recomenda revisar
+monetização e nunca pausa mídia por si só. Escala, manutenção ou pausa por ROAS
+exigem cobertura completa, cadastros maduros e o mínimo configurado de
+assinaturas maduras; são sinais operacionais, não uma declaração de confiança
+estatística nem de lucro.
 
 A atribuição persistida da conta aceita os mesmos identificadores mantidos pelo
 frontend: `gclid`, `gbraid`, `wbraid`, `fbclid`, `msclkid`, `ttclid`, `epik` e os

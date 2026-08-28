@@ -37,8 +37,14 @@ describe(
               servicos_criados: "10",
               agendas_configuradas: "8",
               negocios_publicados: "7",
+              primeiros_agendamentos: "6",
               checkouts_iniciados: "5",
               assinaturas_ativadas: "4",
+              cadastros_maduros_ativacao: "20",
+              cadastros_maduros_monetizacao: "20",
+              negocios_publicados_maduros_ativacao: "7",
+              primeiros_agendamentos_maduros_ativacao: "6",
+              assinaturas_ativadas_maduras_monetizacao: "4",
               investimento_centavos: "40000",
               receita_primeiro_pagamento_centavos:
                 "59600",
@@ -55,6 +61,7 @@ describe(
         ).toMatchObject({
           cadastros: 20,
           negociosCriados: 12,
+          primeirosAgendamentos: 6,
           assinaturasAtivadas: 4,
           taxaNegocio: 60,
           taxaAssinatura: 20,
@@ -65,10 +72,11 @@ describe(
           roas: 1.49,
           taxaServico: 50,
           taxaAgenda: 40,
+          taxaPrimeiroAgendamento: 30,
           decisao: {
             codigo: "escalar",
             rotulo: "Escalar",
-            confianca: "alta",
+            confianca: "operacional",
           },
         });
 
@@ -98,6 +106,7 @@ describe(
             observar: 0,
             revisar: 0,
             pausar: 0,
+            mensuracaoIncompleta: 0,
             semDados: 0,
           },
         });
@@ -114,6 +123,10 @@ describe(
               midia: "cpc",
               campanha: "aquisicao_profissionais",
               cadastros: 8,
+              cadastros_maduros_ativacao: 8,
+              cadastros_maduros_monetizacao: 8,
+              negocios_publicados_maduros_ativacao: 4,
+              primeiros_agendamentos_maduros_ativacao: 2,
               investimento_centavos: 0,
               receita_primeiro_pagamento_centavos: 0,
             },
@@ -122,6 +135,10 @@ describe(
               midia: "cpc",
               campanha: "search_aquisicao_profissionais",
               cadastros: 4,
+              cadastros_maduros_ativacao: 4,
+              cadastros_maduros_monetizacao: 4,
+              negocios_publicados_maduros_ativacao: 2,
+              primeiros_agendamentos_maduros_ativacao: 1,
               investimento_centavos: 0,
               receita_primeiro_pagamento_centavos: 0,
             },
@@ -163,8 +180,9 @@ describe(
           custoCadastroCentavos: 1667,
           consolidada: true,
           decisao: {
-            codigo: "pausar",
-            confianca: "media",
+            codigo: "revisar",
+            rotulo: "Revisar monetização",
+            confianca: "operacional",
           },
         });
         expect(google.identidadesUtm).toEqual(
@@ -191,6 +209,43 @@ describe(
           investimentoCentavos: 20000,
           custoCadastroCentavos: 1538,
         });
+      }
+    );
+
+    test(
+      "não mistura orgânico e sem evidência quando a identidade técnica coincide",
+      () => {
+        const linhas =
+          service.consolidarLinhasCampanha([
+            {
+              origem: "organico",
+              midia: "none",
+              campanha: "organico",
+              classificacao_atribuicao: "organico",
+              cadastros: 2,
+            },
+            {
+              origem: "organico",
+              midia: "none",
+              campanha: "organico",
+              classificacao_atribuicao: "sem_evidencia",
+              cadastros: 1,
+            },
+          ]);
+
+        expect(linhas).toHaveLength(2);
+        expect(linhas).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({
+              classificacao_atribuicao: "organico",
+              cadastros: 2,
+            }),
+            expect.objectContaining({
+              classificacao_atribuicao: "sem_evidencia",
+              cadastros: 1,
+            }),
+          ])
+        );
       }
     );
 
@@ -336,12 +391,21 @@ describe(
           cadastrosOficiais: 7,
           cadastrosSemCampanha: 6,
           cadastrosIdentidadeNaoOficial: 0,
+          cadastrosSemEvidencia: 0,
           cadastrosOrganicos: 2,
+        });
+        expect(
+          resultado.qualidadeMensuracao
+        ).toMatchObject({
+          coberturaAtribuicaoPagaPercentual: 53.85,
+          coberturaOrigemPercentual: 100,
+          prontaParaDecisao: false,
         });
         expect(
           resultado.decisao.contagem
         ).toMatchObject({
-          observar: 1,
+          observar: 0,
+          mensuracaoIncompleta: 1,
           semDados: 0,
         });
       }
@@ -375,13 +439,49 @@ describe(
     );
 
     test(
-      "recomenda pausar quando a campanha tem amostra suficiente sem assinatura",
+      "revisa monetização sem pausar automaticamente uma campanha freemium",
       () => {
         const decisao =
           service.recomendarCampanha(
             {
               investimentoCentavos: 40000,
               cadastros: 12,
+              assinaturasAtivadas: 0,
+              cadastrosMadurosAtivacao: 12,
+              cadastrosMadurosMonetizacao: 12,
+              negociosPublicadosMadurosAtivacao: 6,
+              primeirosAgendamentosMadurosAtivacao: 3,
+              assinaturasAtivadasMadurasMonetizacao: 0,
+              roas: 0,
+            },
+            {
+              metaRoas: 1,
+              multiplicadorEscala: 1.2,
+              minimoCadastros: 10,
+              minimoAssinaturas: 2,
+              diasMaturacaoAtivacao: 14,
+              diasMaturacaoMonetizacao: 30,
+            }
+          );
+
+        expect(decisao)
+          .toMatchObject({
+            codigo: "revisar",
+            rotulo: "Revisar monetização",
+            confianca: "operacional",
+          });
+      }
+    );
+
+    test(
+      "aguarda a janela de ativação antes de avaliar uma coorte recente",
+      () => {
+        const decisao =
+          service.recomendarCampanha(
+            {
+              investimentoCentavos: 40000,
+              cadastros: 20,
+              cadastrosMadurosAtivacao: 5,
               assinaturasAtivadas: 0,
               roas: 0,
             },
@@ -390,14 +490,45 @@ describe(
               multiplicadorEscala: 1.2,
               minimoCadastros: 10,
               minimoAssinaturas: 2,
+              diasMaturacaoAtivacao: 14,
             }
           );
 
-        expect(decisao)
-          .toMatchObject({
-            codigo: "pausar",
-            confianca: "media",
-          });
+        expect(decisao).toMatchObject({
+          codigo: "observar",
+          rotulo: "Aguardar maturidade",
+          confianca: "baixa",
+        });
+      }
+    );
+
+    test(
+      "bloqueia decisão quando existem cadastros sem evidência de origem",
+      () => {
+        const qualidade =
+          service.criarQualidadeMensuracao(
+            {
+              oficial: 10,
+              rastreamento_incompleto: 0,
+              identidade_nao_oficial: 0,
+              sem_evidencia: 1,
+              organico: 0,
+            },
+            {
+              coberturaMinimaPercentual: 100,
+            }
+          );
+
+        expect(qualidade).toMatchObject({
+          coberturaAtribuicaoPagaPercentual: 100,
+          coberturaOrigemPercentual: 90.91,
+          prontaParaDecisao: false,
+          bloqueios: [
+            {
+              codigo: "origem_sem_evidencia",
+            },
+          ],
+        });
       }
     );
 
@@ -452,12 +583,21 @@ describe(
               "20",
             MARKETING_DECISION_MIN_SUBSCRIPTIONS:
               "4",
+            MARKETING_DECISION_MIN_ATTRIBUTION_COVERAGE:
+              "95",
+            MARKETING_DECISION_ACTIVATION_MATURITY_DAYS:
+              "10",
+            MARKETING_DECISION_MONETIZATION_MATURITY_DAYS:
+              "21",
           })
         ).toEqual({
           metaRoas: 1.5,
           multiplicadorEscala: 1.3,
           minimoCadastros: 20,
           minimoAssinaturas: 4,
+          coberturaMinimaPercentual: 95,
+          diasMaturacaoAtivacao: 10,
+          diasMaturacaoMonetizacao: 21,
         });
       }
     );

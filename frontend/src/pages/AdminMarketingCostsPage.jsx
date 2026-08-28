@@ -529,7 +529,7 @@ export function AdminMarketingCostsPage() {
           <p className="eyebrow">Administração do AF</p>
           <h1>Investimento e eficiência</h1>
           <p>
-            Acompanhe investimento, custo por sessão e CPA. Campanhas profissionais seguem para CAC e ROAS em Rentabilidade.
+            Acompanhe investimento, custo por sessão e CPA. Campanhas profissionais seguem para CAC e ROAS em Aquisição e retorno.
           </p>
         </div>
 
@@ -813,7 +813,7 @@ export function AdminMarketingCostsPage() {
             <p className="eyebrow">Eficiência</p>
             <h2>Custo por campanha</h2>
             <p className="muted">
-              CPA é exibido para campanhas de clientes. Campanhas profissionais usam CAC e ROAS na tela de Rentabilidade.
+              CPA é exibido para campanhas de clientes. Campanhas profissionais usam CAC e ROAS na tela de Aquisição e retorno.
             </p>
           </div>
           {archivedCampaignCostsWithoutActivity.length > 0 && (
@@ -886,7 +886,7 @@ export function AdminMarketingCostsPage() {
                           </small>
                         </>
                       ) : (
-                        <span className="admin-data-empty">CAC em Rentabilidade</span>
+                        <span className="admin-data-empty">CAC em Aquisição e retorno</span>
                       )}
                     </td>
                     <td className="admin-numeric-cell">

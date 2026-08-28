@@ -22,6 +22,7 @@ describe(
   () => {
     let usuarioId;
     let negocioId;
+    let servicoId;
     let campanhaId;
     let assinaturaId;
     let utmCampaign;
@@ -192,7 +193,7 @@ describe(
         [usuarioId, negocioId]
       );
 
-      await db.query(
+      const servico = await db.query(
         `
         INSERT INTO servicos_negocio (
           negocio_id,
@@ -208,8 +209,41 @@ describe(
           60,
           TRUE
         )
+        RETURNING id
         `,
         [negocioId]
+      );
+
+      servicoId = Number(
+        servico.rows[0].id
+      );
+
+      await db.query(
+        `
+        INSERT INTO agendamentos (
+          negocio_id,
+          servico_id,
+          profissional_id,
+          cliente_id,
+          data,
+          horario,
+          status
+        )
+        VALUES (
+          $1,
+          $2,
+          $3,
+          $3,
+          CURRENT_DATE + 1,
+          '10:00',
+          'agendado'
+        )
+        `,
+        [
+          negocioId,
+          servicoId,
+          usuarioId,
+        ]
       );
 
       await db.query(
@@ -344,6 +378,14 @@ describe(
     afterEach(async () => {
       await db.query(
         `
+        DELETE FROM agendamentos
+        WHERE negocio_id = $1
+        `,
+        [negocioId]
+      );
+
+      await db.query(
+        `
         DELETE FROM marketing_campanha_gastos
         WHERE campanha_id = $1
         `,
@@ -403,6 +445,7 @@ describe(
             servicos_criados: 1,
             agendas_configuradas: 1,
             negocios_publicados: 1,
+            primeiros_agendamentos: 1,
             checkouts_iniciados: 1,
             assinaturas_ativadas: 1,
             investimento_centavos: "12000",
@@ -502,8 +545,111 @@ describe(
     );
 
     test(
+      "preserva o marco de primeiro agendamento depois de cancelamento",
+      async () => {
+        await db.query(
+          `
+          UPDATE agendamentos
+          SET status = 'cancelado',
+              cancelado_em = NOW()
+          WHERE negocio_id = $1
+          `,
+          [negocioId]
+        );
+
+        const linhas = await repository
+          .listarPorCampanha("today");
+        const encontrada = linhas.find(
+          (item) =>
+            item.campanha === utmCampaign
+        );
+
+        expect(encontrada).toMatchObject({
+          primeiros_agendamentos: 1,
+        });
+      }
+    );
+
+    test(
+      "só considera ativação e monetização maduras quando o marco ocorreu dentro da janela",
+      async () => {
+        await db.query(
+          `
+          UPDATE marketing_usuario_atribuicoes
+          SET atribuicao_em = NOW() - INTERVAL '30 days'
+          WHERE usuario_id = $1
+          `,
+          [usuarioId]
+        );
+
+        let linhas = await repository
+          .listarPorCampanha("all");
+        let encontrada = linhas.find(
+          (item) =>
+            item.campanha === utmCampaign
+        );
+
+        expect(encontrada).toMatchObject({
+          cadastros_maduros_ativacao: 1,
+          cadastros_maduros_monetizacao: 1,
+          negocios_publicados_maduros_ativacao: 0,
+          primeiros_agendamentos_maduros_ativacao: 0,
+          assinaturas_ativadas_maduras_monetizacao: 0,
+        });
+
+        await db.query(
+          `
+          UPDATE negocios
+          SET primeira_publicacao_em = NOW() - INTERVAL '20 days'
+          WHERE id = $1
+          `,
+          [negocioId]
+        );
+
+        await db.query(
+          `
+          UPDATE agendamentos
+          SET created_at = NOW() - INTERVAL '18 days'
+          WHERE negocio_id = $1
+          `,
+          [negocioId]
+        );
+
+        await db.query(
+          `
+          UPDATE pagamentos
+          SET data_pagamento = CURRENT_DATE - 10
+          WHERE assinatura_id = $1
+          `,
+          [assinaturaId]
+        );
+
+        linhas = await repository
+          .listarPorCampanha("all");
+        encontrada = linhas.find(
+          (item) =>
+            item.campanha === utmCampaign
+        );
+
+        expect(encontrada).toMatchObject({
+          negocios_publicados_maduros_ativacao: 1,
+          primeiros_agendamentos_maduros_ativacao: 1,
+          assinaturas_ativadas_maduras_monetizacao: 1,
+        });
+      }
+    );
+
+    test(
       "preserva marcos de serviço e publicação depois de mudanças de estado",
       async () => {
+        await db.query(
+          `
+          DELETE FROM agendamentos
+          WHERE negocio_id = $1
+          `,
+          [negocioId]
+        );
+
         await db.query(
           `
           DELETE FROM servicos_negocio

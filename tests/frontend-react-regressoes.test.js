@@ -370,7 +370,7 @@ describe(
           '["/profissional/horarios", "Meus horários"',
           '["/admin/trafego-pago", "Campanhas"',
           '["/admin/trafego-pago/custos", "Custos"',
-          '["/admin/trafego-pago/profissionais", "Rentabilidade"',
+          '["/admin/trafego-pago/profissionais", "Aquisição e retorno"',
         ].forEach(
           (rota) => {
             expect(

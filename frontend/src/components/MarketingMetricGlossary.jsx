@@ -7,7 +7,7 @@ const DEFINITIONS = {
   ROAS: {
     title: "ROAS · Retorno sobre investimento em anúncios",
     description:
-      "Compara a receita atribuída à campanha com o valor investido. Ex.: ROAS 1,20x significa R$ 1,20 de receita atribuída para cada R$ 1,00 investido."
+      "Compara a receita atribuída à campanha com o valor investido. Ex.: ROAS 1,20x significa R$ 1,20 de receita atribuída para cada R$ 1,00 investido. Não desconta custos operacionais, impostos ou margem e, portanto, não representa lucro."
   },
   CPA: {
     title: "CPA · Custo por aquisição",
@@ -42,7 +42,7 @@ const DEFINITIONS = {
   COORTE: {
     title: "Coorte",
     description:
-      "Grupo de profissionais que entrou no AF dentro do período selecionado. Os marcos mostram o que esse mesmo grupo já alcançou depois do cadastro."
+      "Grupo de profissionais que entrou no AF dentro do período selecionado. Os marcos mostram o que esse mesmo grupo já alcançou depois do cadastro; a régua respeita janelas mínimas de ativação e monetização."
   },
   CONVERSAO: {
     title: "Taxa de conversão",

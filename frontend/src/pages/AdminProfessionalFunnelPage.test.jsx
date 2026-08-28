@@ -32,6 +32,7 @@ function resultado() {
       servicosCriados: 10,
       agendasConfiguradas: 8,
       negociosPublicados: 7,
+      primeirosAgendamentos: 6,
       checkoutsIniciados: 5,
       assinaturasAtivadas: 4,
       investimentoCentavos: 40000,
@@ -39,6 +40,7 @@ function resultado() {
       roas: 1.49,
       taxaNegocio: 60,
       taxaPublicacao: 35,
+      taxaPrimeiroAgendamento: 30,
       taxaCheckout: 25,
       taxaAssinatura: 20,
       custoCadastroCentavos: 2000,
@@ -49,19 +51,35 @@ function resultado() {
       cadastrosOficiais: 20,
       cadastrosSemCampanha: 0,
       cadastrosIdentidadeNaoOficial: 0,
+      cadastrosSemEvidencia: 0,
       cadastrosOrganicos: 0
+    },
+    qualidadeMensuracao: {
+      cadastrosTotais: 20,
+      cadastrosPagosDetectados: 20,
+      cadastrosPagosPendentes: 0,
+      cadastrosSemEvidencia: 0,
+      coberturaAtribuicaoPagaPercentual: 100,
+      coberturaOrigemPercentual: 100,
+      coberturaMinimaPercentual: 100,
+      prontaParaDecisao: true,
+      bloqueios: []
     },
     decisao: {
       metaRoas: 1,
       faixaEscalaRoas: 1.2,
       minimoCadastros: 10,
       minimoAssinaturas: 2,
+      coberturaMinimaPercentual: 100,
+      diasMaturacaoAtivacao: 14,
+      diasMaturacaoMonetizacao: 21,
       contagem: {
         escalar: 1,
         manter: 0,
         observar: 0,
         revisar: 0,
         pausar: 0,
+        mensuracaoIncompleta: 0,
         semDados: 0
       }
     },
@@ -70,24 +88,32 @@ function resultado() {
         origem: "meta",
         midia: "cpc",
         campanha: "profissionais_goiania",
+        classificacaoAtribuicao: "oficial",
         cadastros: 20,
         negociosCriados: 12,
         servicosCriados: 10,
         agendasConfiguradas: 8,
         negociosPublicados: 7,
+        primeirosAgendamentos: 6,
         checkoutsIniciados: 5,
         assinaturasAtivadas: 4,
         investimentoCentavos: 40000,
         receitaPrimeiroPagamentoCentavos: 59600,
         roas: 1.49,
         taxaAssinatura: 20,
+        taxaPrimeiroAgendamento: 30,
+        cadastrosMadurosAtivacao: 20,
+        cadastrosMadurosMonetizacao: 20,
+        negociosPublicadosMadurosAtivacao: 7,
+        primeirosAgendamentosMadurosAtivacao: 6,
+        assinaturasAtivadasMadurasMonetizacao: 4,
         custoCadastroCentavos: 2000,
         custoCheckoutCentavos: 8000,
         cacAssinanteCentavos: 10000,
         decisao: {
           codigo: "escalar",
           rotulo: "Escalar",
-          confianca: "alta",
+          confianca: "operacional",
           motivo: "ROAS 1.49x está acima da faixa de escala de 1.20x com volume mínimo atingido."
         }
       }
@@ -113,7 +139,7 @@ describe("AdminProfessionalFunnelPage", () => {
     );
 
     expect(
-      await screen.findByRole("heading", { name: "Rentabilidade de profissionais" })
+      await screen.findByRole("heading", { name: "Aquisição e retorno de profissionais" })
     ).not.toBeNull();
 
     expect(screen.getByRole("heading", { name: "Marcos alcançados pela coorte" })).not.toBeNull();
@@ -127,6 +153,7 @@ describe("AdminProfessionalFunnelPage", () => {
     expect(screen.getByText("Serviço criado")).not.toBeNull();
     expect(screen.getByText("Agenda configurada")).not.toBeNull();
     expect(screen.getByText("Negócio publicado")).not.toBeNull();
+    expect(screen.getByText("Primeiro agendamento")).not.toBeNull();
     expect(screen.getByText("gasto atribuído no período")).not.toBeNull();
     expect(screen.getByText("Diagnóstico de aquisição profissional")).not.toBeNull();
     expect(screen.getByText("Aquisição rentável")).not.toBeNull();
@@ -139,7 +166,7 @@ describe("AdminProfessionalFunnelPage", () => {
     expect(screen.getAllByText(/R\$\s*596,00/).length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByText("1,49x").length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByText("Escalar").length).toBeGreaterThanOrEqual(1);
-    expect(screen.getByText(/Confiança alta/i)).not.toBeNull();
+    expect(screen.getByText("Sinal operacional")).not.toBeNull();
     expect(screen.getByText(/10 cadastros · 2 assinaturas/i)).not.toBeNull();
     expect(
       screen.getByText(/renovações posteriores não entram no ROAS/i)
@@ -154,6 +181,14 @@ describe("AdminProfessionalFunnelPage", () => {
     await user.click(screen.getByRole("button", { name: "Ver detalhes" }));
 
     expect(screen.getByText("Custo por checkout")).not.toBeNull();
+    expect(screen.getByText("Ativação na janela")).not.toBeNull();
+    expect(screen.getByText("Monetização na janela")).not.toBeNull();
+    expect(
+      screen.getByText(/7 publicados · 6 com primeiro agendamento em até 14 dias/i)
+    ).not.toBeNull();
+    expect(
+      screen.getByText(/4 assinaturas em até 21 dias/i)
+    ).not.toBeNull();
     expect(screen.getAllByText(/R\$\s*80,00/)).toHaveLength(1);
     expect(
       screen.getByText(/ROAS 1\.49x está acima da faixa de escala/i)
@@ -246,6 +281,7 @@ describe("AdminProfessionalFunnelPage", () => {
       servicosCriados: 5,
       agendasConfiguradas: 2,
       negociosPublicados: 4,
+      primeirosAgendamentos: 0,
       checkoutsIniciados: 0,
       assinaturasAtivadas: 0,
       custoCadastroCentavos: 2857,
@@ -253,6 +289,7 @@ describe("AdminProfessionalFunnelPage", () => {
       taxaPublicacao: 57.14,
       taxaCheckout: 0,
       taxaAssinatura: 0,
+      taxaPrimeiroAgendamento: 0,
       receitaPrimeiroPagamentoCentavos: 0,
       roas: 0
     };
@@ -269,9 +306,47 @@ describe("AdminProfessionalFunnelPage", () => {
       {
         ...aligned.campanhas[0],
         cadastros: 7,
-        custoCadastroCentavos: 2857
+        custoCadastroCentavos: 2857,
+        decisao: {
+          codigo: "mensuracao_incompleta",
+          rotulo: "Aguardar mensuração",
+          confianca: "bloqueada",
+          motivo: "Corrija a atribuição antes de alterar investimento."
+        }
       }
     ];
+    aligned.diagnosticoAtribuicao = {
+      cadastrosOficiais: 7,
+      cadastrosSemCampanha: 6,
+      cadastrosIdentidadeNaoOficial: 0,
+      cadastrosSemEvidencia: 0,
+      cadastrosOrganicos: 0
+    };
+    aligned.qualidadeMensuracao = {
+      cadastrosTotais: 13,
+      cadastrosPagosDetectados: 13,
+      cadastrosPagosPendentes: 6,
+      cadastrosSemEvidencia: 0,
+      coberturaAtribuicaoPagaPercentual: 53.85,
+      coberturaOrigemPercentual: 100,
+      coberturaMinimaPercentual: 100,
+      prontaParaDecisao: false,
+      bloqueios: [
+        {
+          codigo: "atribuicao_paga_incompleta",
+          mensagem: "Cobertura incompleta."
+        }
+      ]
+    };
+    aligned.decisao.contagem = {
+      escalar: 0,
+      manter: 0,
+      observar: 0,
+      revisar: 0,
+      pausar: 0,
+      mensuracaoIncompleta: 1,
+      semDados: 0
+    };
     apiRequest.mockResolvedValueOnce(aligned);
 
     render(
@@ -283,12 +358,70 @@ describe("AdminProfessionalFunnelPage", () => {
     expect(
       await screen.findAllByText("7")
     ).not.toHaveLength(0);
+    expect(screen.getByText("Mensuração incompleta")).not.toBeNull();
+    expect(screen.getByText("Aguardar mensuração")).not.toBeNull();
+    expect(screen.getByText("Decisão bloqueada")).not.toBeNull();
     expect(
-      screen.getAllByText(/R\$\s*28,57/).length
+      screen.getAllByText("Aguardando cobertura").length
     ).toBeGreaterThanOrEqual(1);
+    expect(screen.queryByText(/R\$\s*28,57/)).toBeNull();
     expect(
       screen.queryByText("Tráfego sem UTM de campanha")
     ).toBeNull();
+  });
+
+  it("separa cadastro sem evidência de orgânico e bloqueia a decisão", async () => {
+    const unknownOrigin = resultado();
+    unknownOrigin.diagnosticoAtribuicao = {
+      cadastrosOficiais: 20,
+      cadastrosSemCampanha: 0,
+      cadastrosIdentidadeNaoOficial: 0,
+      cadastrosSemEvidencia: 1,
+      cadastrosOrganicos: 0
+    };
+    unknownOrigin.qualidadeMensuracao = {
+      cadastrosTotais: 21,
+      cadastrosPagosDetectados: 20,
+      cadastrosPagosPendentes: 0,
+      cadastrosSemEvidencia: 1,
+      coberturaAtribuicaoPagaPercentual: 100,
+      coberturaOrigemPercentual: 95.24,
+      coberturaMinimaPercentual: 100,
+      prontaParaDecisao: false,
+      bloqueios: [
+        {
+          codigo: "origem_sem_evidencia",
+          mensagem: "Há um cadastro sem evidência."
+        }
+      ]
+    };
+    unknownOrigin.decisao.contagem = {
+      escalar: 0,
+      manter: 0,
+      observar: 0,
+      revisar: 0,
+      pausar: 0,
+      mensuracaoIncompleta: 1,
+      semDados: 0
+    };
+    unknownOrigin.campanhas[0].decisao = {
+      codigo: "mensuracao_incompleta",
+      rotulo: "Aguardar mensuração",
+      confianca: "bloqueada",
+      motivo: "Corrija a origem antes de alterar investimento."
+    };
+    apiRequest.mockResolvedValueOnce(unknownOrigin);
+
+    render(
+      <MemoryRouter>
+        <AdminProfessionalFunnelPage />
+      </MemoryRouter>
+    );
+
+    expect(await screen.findByText("Mensuração incompleta")).not.toBeNull();
+    expect(screen.getByText("Sem evidência").parentElement?.textContent).toContain("1");
+    expect(screen.getByText("95,2%")).not.toBeNull();
+    expect(screen.queryByText("Orgânico / sem campanha")).toBeNull();
   });
 
   it("mostra campanha canônica e preserva as identidades UTM nos detalhes", async () => {
@@ -314,10 +447,10 @@ describe("AdminProfessionalFunnelPage", () => {
           { origem: "google", midia: "cpc", campanha: "google_ads_profissionais" }
         ],
         decisao: {
-          codigo: "pausar",
-          rotulo: "Pausar",
-          confianca: "media",
-          motivo: "A campanha já atingiu 12 cadastros e ainda não gerou assinatura ativada."
+          codigo: "revisar",
+          rotulo: "Revisar monetização",
+          confianca: "operacional",
+          motivo: "No modelo freemium, revise a conversão para o plano pago."
         }
       }
     ];
@@ -355,6 +488,7 @@ describe("AdminProfessionalFunnelPage", () => {
         origem: "google",
         midia: "cpc",
         campanha: "organico",
+        classificacaoAtribuicao: "rastreamento_incompleto",
         investimentoCentavos: 0,
         receitaPrimeiroPagamentoCentavos: 0,
         roas: null,
@@ -393,6 +527,7 @@ describe("AdminProfessionalFunnelPage", () => {
         origem: "organico",
         midia: "none",
         campanha: "organico",
+        classificacaoAtribuicao: "organico",
         roas: null,
         investimentoCentavos: 0,
         receitaPrimeiroPagamentoCentavos: 0,
@@ -428,7 +563,7 @@ describe("AdminProfessionalFunnelPage", () => {
       </MemoryRouter>
     );
 
-    await screen.findByRole("heading", { name: "Rentabilidade de profissionais" });
+    await screen.findByRole("heading", { name: "Aquisição e retorno de profissionais" });
     await user.click(screen.getByRole("button", { name: "7 dias" }));
 
     await waitFor(() => {

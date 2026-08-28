@@ -355,6 +355,12 @@
   color: #9a2049;
 }
 
+.admin-decision-badge.is-mensuracao_incompleta {
+  border-color: #ecd5aa;
+  background: #fff8e9;
+  color: #7c5b16;
+}
+
 .admin-decision-badge.is-sem_dados {
   background: #f8f5f6;
   color: #69565e;
@@ -454,7 +460,7 @@
 }
 
 .admin-professional-funnel-page .metric-grid {
-  grid-template-columns: repeat(6, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
 .admin-decision-summary {

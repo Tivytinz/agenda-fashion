@@ -165,7 +165,7 @@ describe("menu mobile da área de trabalho", () => {
       })
     ).not.toBeNull();
     expect(
-      screen.getAllByRole("link", { name: /Rentabilidade/ })
+      screen.getAllByRole("link", { name: /Aquisição e retorno/ })
     ).toHaveLength(2);
     expect(
       screen.getAllByRole("link", { name: /Saúde do SaaS/ })

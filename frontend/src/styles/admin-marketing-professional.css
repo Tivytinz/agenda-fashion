@@ -263,7 +263,7 @@
 .marketing-executive-metrics,
 .admin-attribution-overview {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 170px), 1fr));
   gap: 0.7rem;
 }
 
@@ -322,7 +322,7 @@
 }
 
 .admin-professional-funnel-page .admin-decision-summary {
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 180px), 1fr));
 }
 
 .admin-professional-funnel-page .admin-decision-rule {

@@ -34,7 +34,7 @@ export const ADMIN_LINKS = [
   ["/admin/saude", "Saúde do SaaS", "health"],
   ["/admin/trafego-pago", "Campanhas", "marketing"],
   ["/admin/trafego-pago/custos", "Custos", "costs"],
-  ["/admin/trafego-pago/profissionais", "Rentabilidade", "funnel"],
+  ["/admin/trafego-pago/profissionais", "Aquisição e retorno", "funnel"],
   ["/admin/whatsapp", "WhatsApp", "whatsapp"],
   ["/conta", "Minha conta", "account"]
 ];

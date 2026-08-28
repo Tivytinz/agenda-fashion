@@ -190,7 +190,7 @@ describe("AdminMarketingPage", () => {
     expect(screen.queryByText("Studio Teste")).toBeNull();
     expect(screen.getByText("Sessões atribuídas por origem")).not.toBeNull();
     expect(screen.getByText("Resumo atribuído por origem")).not.toBeNull();
-    expect(screen.getByText("Analisar em Rentabilidade")).not.toBeNull();
+    expect(screen.getByText("Analisar em Aquisição e retorno")).not.toBeNull();
     expect(apiRequest).toHaveBeenCalledTimes(4);
   });
 
@@ -331,7 +331,7 @@ describe("AdminMarketingPage", () => {
 
     expect(await screen.findByText("Studio Oficial")).not.toBeNull();
     expect(screen.getAllByText("Aquisição de clientes").length).toBeGreaterThanOrEqual(1);
-    expect(screen.queryByText("Analisar em Rentabilidade")).toBeNull();
+    expect(screen.queryByText("Analisar em Aquisição e retorno")).toBeNull();
   });
 
   it("mantém configurações técnicas recolhidas e cria nova campanha oficial", async () => {

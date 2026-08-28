@@ -39,9 +39,24 @@ describe(
         expect(sql).toContain(
           "THEN 'rastreamento_incompleto'"
         );
+        expect(sql).toContain(
+          "THEN 'sem_evidencia'"
+        );
         expect(sql).toMatch(
           /campanha_oficial\.id IS NOT NULL[\s\S]*THEN 'oficial'/i
         );
+        expect(sql).toContain(
+          "AS primeiros_agendamentos"
+        );
+        expect(sql).toMatch(
+          /f\.primeiro_agendamento_em\s*<=\s*f\.atribuicao_em\s*\+/i
+        );
+        expect(sql).toMatch(
+          /f\.primeiro_pagamento_em\s*<=[\s\S]*f\.atribuicao_em AT TIME ZONE/i
+        );
+        expect(
+          mockQuery.mock.calls[0][1]
+        ).toEqual([14, 21]);
       }
     );
 

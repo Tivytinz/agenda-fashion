@@ -1315,7 +1315,7 @@ export function AdminMarketingPage() {
                       <td className="admin-numeric-cell">
                         {clientCampaign
                           ? formatMetricPercent(item.taxaConversao)
-                          : <span className="admin-data-empty">Analisar em Rentabilidade</span>}
+                          : <span className="admin-data-empty">Analisar em Aquisição e retorno</span>}
                       </td>
                     </tr>
                   );
@@ -1332,7 +1332,7 @@ export function AdminMarketingPage() {
             <p className="eyebrow">Conversões oficiais</p>
             <h2>Agendamentos de campanhas de clientes</h2>
             <p className="muted">
-              Cadastros de profissionais são analisados em Rentabilidade. Aqui entram apenas agendamentos de campanhas oficiais com objetivo cliente.
+              Cadastros de profissionais são analisados em Aquisição e retorno. Aqui entram apenas agendamentos de campanhas oficiais com objetivo cliente.
             </p>
           </div>
         </div>

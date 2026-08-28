@@ -156,8 +156,16 @@ etapas diferentes. Os detalhes ficam em `docs/planos.md`.
   sincronizacao do provedor cubra a data do evento, tenha terminado com sucesso
   e nao possua campanha externa operacional sem vinculo, mesmo quando ela nao
   teve gasto no periodo. Ambiguidade permanece como rastreamento incompleto e
-  nao entra em CAC, ROAS ou recomendacoes. O metodo de resolucao continua
-  exposto para auditoria. Sincronizacoes anteriores a migration `057` nao
+  nao entra em CAC, ROAS ou recomendacoes. Cadastro sem sinal de origem fica
+  em `sem_evidencia`, separado de trafego pago incompleto e de organico. CAC,
+  ROAS e decisoes de orcamento ficam bloqueados enquanto a cobertura paga
+  estiver abaixo da regua configurada ou existir cadastro sem evidencia. No
+  funil profissional, primeiro agendamento e janelas de maturacao de ativacao e
+  monetizacao antecedem recomendacoes fortes; cada marco maduro precisa ocorrer
+  dentro da respectiva janela contada desde o cadastro. Ausencia de assinatura,
+  sozinha, nunca pausa automaticamente aquisicao no modelo freemium. O metodo de
+  resolucao continua exposto para auditoria. Sincronizacoes anteriores a
+  migration `057` nao
   comprovam essa reconciliacao e exigem uma nova execucao.
   Atribuicao publicitaria, GA4 e Google Ads exigem consentimento opcional;
   rotas enviadas ao Google sao genericas, sem query strings, tokens, slugs ou

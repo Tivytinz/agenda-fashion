@@ -8,6 +8,9 @@ const DECISAO_PADRAO = Object.freeze({
   multiplicadorEscala: 1.2,
   minimoCadastros: 10,
   minimoAssinaturas: 2,
+  coberturaMinimaPercentual: 100,
+  diasMaturacaoAtivacao: 14,
+  diasMaturacaoMonetizacao: 21,
 });
 
 const GOOGLE_PROFISSIONAIS_CANONICA = Object.freeze({
@@ -29,8 +32,14 @@ const CAMPOS_SOMA = Object.freeze([
   "servicos_criados",
   "agendas_configuradas",
   "negocios_publicados",
+  "primeiros_agendamentos",
   "checkouts_iniciados",
   "assinaturas_ativadas",
+  "cadastros_maduros_ativacao",
+  "cadastros_maduros_monetizacao",
+  "negocios_publicados_maduros_ativacao",
+  "primeiros_agendamentos_maduros_ativacao",
+  "assinaturas_ativadas_maduras_monetizacao",
   "investimento_centavos",
   "receita_primeiro_pagamento_centavos",
 ]);
@@ -75,6 +84,19 @@ function inteiroPositivo(
     : fallback;
 }
 
+function percentualConfiguravel(
+  valor,
+  fallback
+) {
+  const convertido = Number(valor);
+
+  return Number.isFinite(convertido) &&
+    convertido > 0 &&
+    convertido <= 100
+    ? convertido
+    : fallback;
+}
+
 function configuracaoDecisao(
   env = process.env
 ) {
@@ -98,6 +120,21 @@ function configuracaoDecisao(
       inteiroPositivo(
         env.MARKETING_DECISION_MIN_SUBSCRIPTIONS,
         DECISAO_PADRAO.minimoAssinaturas
+      ),
+    coberturaMinimaPercentual:
+      percentualConfiguravel(
+        env.MARKETING_DECISION_MIN_ATTRIBUTION_COVERAGE,
+        DECISAO_PADRAO.coberturaMinimaPercentual
+      ),
+    diasMaturacaoAtivacao:
+      inteiroPositivo(
+        env.MARKETING_DECISION_ACTIVATION_MATURITY_DAYS,
+        DECISAO_PADRAO.diasMaturacaoAtivacao
+      ),
+    diasMaturacaoMonetizacao:
+      inteiroPositivo(
+        env.MARKETING_DECISION_MONETIZATION_MATURITY_DAYS,
+        DECISAO_PADRAO.diasMaturacaoMonetizacao
       ),
   };
 }
@@ -194,7 +231,14 @@ function consolidarLinhasCampanha(linhas = []) {
   for (const linha of linhas) {
     const exata = identidadeExata(linha);
     const canonica = identidadeCanonica(linha);
-    const chave = chaveIdentidade(canonica);
+    const classificacao = textoChave(
+      linha?.classificacao_atribuicao ??
+      linha?.classificacaoAtribuicao
+    );
+    const chave = [
+      chaveIdentidade(canonica),
+      classificacao,
+    ].join("|");
 
     if (!grupos.has(chave)) {
       grupos.set(chave, {
@@ -275,6 +319,41 @@ function recomendarCampanha(
     numero(campanha.cadastros);
   const assinaturas =
     numero(campanha.assinaturasAtivadas);
+  const cadastrosMadurosAtivacao =
+    campanha.cadastrosMadurosAtivacao === null ||
+    campanha.cadastrosMadurosAtivacao === undefined
+      ? cadastros
+      : numero(
+          campanha.cadastrosMadurosAtivacao
+        );
+  const cadastrosMadurosMonetizacao =
+    campanha.cadastrosMadurosMonetizacao === null ||
+    campanha.cadastrosMadurosMonetizacao === undefined
+      ? cadastros
+      : numero(
+          campanha.cadastrosMadurosMonetizacao
+        );
+  const publicadosMadurosAtivacao =
+    campanha.negociosPublicadosMadurosAtivacao === null ||
+    campanha.negociosPublicadosMadurosAtivacao === undefined
+      ? cadastrosMadurosAtivacao
+      : numero(
+          campanha.negociosPublicadosMadurosAtivacao
+        );
+  const agendamentosMadurosAtivacao =
+    campanha.primeirosAgendamentosMadurosAtivacao === null ||
+    campanha.primeirosAgendamentosMadurosAtivacao === undefined
+      ? cadastrosMadurosAtivacao
+      : numero(
+          campanha.primeirosAgendamentosMadurosAtivacao
+        );
+  const assinaturasMadurasMonetizacao =
+    campanha.assinaturasAtivadasMadurasMonetizacao === null ||
+    campanha.assinaturasAtivadasMadurasMonetizacao === undefined
+      ? assinaturas
+      : numero(
+          campanha.assinaturasAtivadasMadurasMonetizacao
+        );
   const roas = campanha.roas === null ||
     campanha.roas === undefined
     ? null
@@ -299,30 +378,88 @@ function recomendarCampanha(
       rotulo: "Observar",
       confianca: "baixa",
       motivo:
-        `Amostra pequena: ${cadastros} de ${configuracao.minimoCadastros} cadastros mínimos para uma decisão forte.`,
-    };
-  }
-
-  if (assinaturas === 0) {
-    return {
-      codigo: "pausar",
-      rotulo: "Pausar",
-      confianca: "media",
-      motivo:
-        `A campanha já atingiu ${cadastros} cadastros e ainda não gerou assinatura ativada.`,
+        `Amostra pequena: ${cadastros} de ${configuracao.minimoCadastros} cadastros mínimos para aplicar a régua operacional.`,
     };
   }
 
   if (
-    assinaturas <
+    cadastrosMadurosAtivacao <
+    configuracao.minimoCadastros
+  ) {
+    return {
+      codigo: "observar",
+      rotulo: "Aguardar maturidade",
+      confianca: "baixa",
+      motivo:
+        `${cadastrosMadurosAtivacao} de ${cadastros} cadastros já completaram ${configuracao.diasMaturacaoAtivacao} dias. Aguarde a janela mínima de ativação antes de otimizar investimento.`,
+    };
+  }
+
+  if (
+    publicadosMadurosAtivacao === 0
+  ) {
+    return {
+      codigo: "revisar",
+      rotulo: "Revisar ativação",
+      confianca: "operacional",
+      motivo:
+        `Há ${cadastrosMadurosAtivacao} cadastros com janela de ativação completa, mas nenhum negócio foi publicado dentro de ${configuracao.diasMaturacaoAtivacao} dias. Revise o onboarding antes de alterar mídia.`,
+    };
+  }
+
+  if (agendamentosMadurosAtivacao === 0) {
+    return {
+      codigo: "revisar",
+      rotulo: "Revisar ativação",
+      confianca: "operacional",
+      motivo:
+        `Há ${cadastrosMadurosAtivacao} cadastros com janela de ativação completa, mas nenhum primeiro agendamento foi recebido dentro de ${configuracao.diasMaturacaoAtivacao} dias. Revise publicação, oferta e descoberta antes de alterar mídia.`,
+    };
+  }
+
+  if (
+    cadastrosMadurosMonetizacao <
+    configuracao.minimoCadastros
+  ) {
+    return {
+      codigo: "observar",
+      rotulo: "Aguardar monetização",
+      confianca: "baixa",
+      motivo:
+        `${cadastrosMadurosMonetizacao} de ${cadastros} cadastros já completaram ${configuracao.diasMaturacaoMonetizacao} dias. Aguarde a janela de monetização antes de avaliar retorno.`,
+    };
+  }
+
+  if (assinaturasMadurasMonetizacao === 0) {
+    return {
+      codigo: "revisar",
+      rotulo: "Revisar monetização",
+      confianca: "operacional",
+      motivo:
+        `Nenhum dos ${cadastrosMadurosMonetizacao} cadastros com janela de monetização completa ativou assinatura dentro de ${configuracao.diasMaturacaoMonetizacao} dias. No modelo freemium, isso exige revisar a conversão para o plano pago, não pausar mídia automaticamente.`,
+    };
+  }
+
+  if (
+    assinaturasMadurasMonetizacao <
     configuracao.minimoAssinaturas
   ) {
     return {
       codigo: "observar",
       rotulo: "Observar",
-      confianca: "media",
+      confianca: "baixa",
       motivo:
-        `Há conversão, mas apenas ${assinaturas} de ${configuracao.minimoAssinaturas} assinaturas mínimas para validar rentabilidade.`,
+        `Há conversão, mas apenas ${assinaturasMadurasMonetizacao} de ${configuracao.minimoAssinaturas} assinaturas maduras mínimas para aplicar a régua de ROAS.`,
+    };
+  }
+
+  if (roas === null) {
+    return {
+      codigo: "observar",
+      rotulo: "Aguardar retorno",
+      confianca: "baixa",
+      motivo:
+        "O investimento existe, mas ainda não há base financeira consistente para calcular ROAS.",
     };
   }
 
@@ -334,7 +471,7 @@ function recomendarCampanha(
     return {
       codigo: "escalar",
       rotulo: "Escalar",
-      confianca: "alta",
+      confianca: "operacional",
       motivo:
         `ROAS ${roas.toFixed(2)}x está acima da faixa de escala de ${metaEscala.toFixed(2)}x com volume mínimo atingido.`,
     };
@@ -344,7 +481,7 @@ function recomendarCampanha(
     return {
       codigo: "manter",
       rotulo: "Manter",
-      confianca: "alta",
+      confianca: "operacional",
       motivo:
         `ROAS ${roas.toFixed(2)}x atingiu a meta de ${configuracao.metaRoas.toFixed(2)}x, mas ainda não a faixa de escala.`,
     };
@@ -357,7 +494,7 @@ function recomendarCampanha(
     return {
       codigo: "revisar",
       rotulo: "Revisar",
-      confianca: "alta",
+      confianca: "operacional",
       motivo:
         `ROAS ${roas.toFixed(2)}x está abaixo da meta de ${configuracao.metaRoas.toFixed(2)}x. Revise criativo, oferta e segmentação antes de aumentar orçamento.`,
     };
@@ -366,7 +503,7 @@ function recomendarCampanha(
   return {
     codigo: "pausar",
     rotulo: "Pausar",
-    confianca: "alta",
+    confianca: "operacional",
     motivo:
       `ROAS ${roas.toFixed(2)}x está muito abaixo da meta de ${configuracao.metaRoas.toFixed(2)}x com volume mínimo já atingido.`,
   };
@@ -386,10 +523,32 @@ function mapearLinha(
     numero(linha.agendas_configuradas);
   const negociosPublicados =
     numero(linha.negocios_publicados);
+  const primeirosAgendamentos =
+    numero(linha.primeiros_agendamentos);
   const checkoutsIniciados =
     numero(linha.checkouts_iniciados);
   const assinaturasAtivadas =
     numero(linha.assinaturas_ativadas);
+  const cadastrosMadurosAtivacao =
+    numero(
+      linha.cadastros_maduros_ativacao
+    );
+  const cadastrosMadurosMonetizacao =
+    numero(
+      linha.cadastros_maduros_monetizacao
+    );
+  const negociosPublicadosMadurosAtivacao =
+    numero(
+      linha.negocios_publicados_maduros_ativacao
+    );
+  const primeirosAgendamentosMadurosAtivacao =
+    numero(
+      linha.primeiros_agendamentos_maduros_ativacao
+    );
+  const assinaturasAtivadasMadurasMonetizacao =
+    numero(
+      linha.assinaturas_ativadas_maduras_monetizacao
+    );
   const receitaPrimeiroPagamentoCentavos =
     numero(
       linha.receita_primeiro_pagamento_centavos
@@ -430,6 +589,20 @@ function mapearLinha(
       identidade.origem
     )
   );
+  const midiaPaga = [
+    "cpc",
+    "ppc",
+    "paid",
+    "paid_search",
+    "paid_social",
+    "paid-social",
+    "social_paid",
+    "display",
+  ].includes(
+    textoChave(
+      identidade.midia
+    )
+  );
   const classificacaoAtribuicao =
     classificacaoInformada || (
       campanhaOficialId ||
@@ -437,11 +610,15 @@ function mapearLinha(
         linha?.investimento_centavos
       ) > 0
         ? "oficial"
-        : origemOrganica
-          ? "organico"
-          : campanhaAusente
-            ? "rastreamento_incompleto"
-            : "identidade_nao_oficial"
+        : midiaPaga && campanhaAusente
+          ? "rastreamento_incompleto"
+          : midiaPaga
+            ? "identidade_nao_oficial"
+            : origemOrganica
+              ? "organico"
+              : campanhaAusente
+                ? "sem_evidencia"
+                : "identidade_nao_oficial"
     );
 
   const campanha = {
@@ -464,8 +641,14 @@ function mapearLinha(
     servicosCriados,
     agendasConfiguradas,
     negociosPublicados,
+    primeirosAgendamentos,
     checkoutsIniciados,
     assinaturasAtivadas,
+    cadastrosMadurosAtivacao,
+    cadastrosMadurosMonetizacao,
+    negociosPublicadosMadurosAtivacao,
+    primeirosAgendamentosMadurosAtivacao,
+    assinaturasAtivadasMadurasMonetizacao,
     investimentoCentavos,
     receitaPrimeiroPagamentoCentavos,
     roas:
@@ -491,6 +674,11 @@ function mapearLinha(
     taxaPublicacao:
       percentual(
         negociosPublicados,
+        cadastros
+      ),
+    taxaPrimeiroAgendamento:
+      percentual(
+        primeirosAgendamentos,
         cadastros
       ),
     taxaCheckout:
@@ -567,6 +755,11 @@ function criarResumo(campanhas) {
         campanhas,
         "negociosPublicados"
       ),
+    primeirosAgendamentos:
+      somar(
+        campanhas,
+        "primeirosAgendamentos"
+      ),
     checkoutsIniciados:
       somar(
         campanhas,
@@ -576,6 +769,31 @@ function criarResumo(campanhas) {
       somar(
         campanhas,
         "assinaturasAtivadas"
+      ),
+    cadastrosMadurosAtivacao:
+      somar(
+        campanhas,
+        "cadastrosMadurosAtivacao"
+      ),
+    cadastrosMadurosMonetizacao:
+      somar(
+        campanhas,
+        "cadastrosMadurosMonetizacao"
+      ),
+    negociosPublicadosMadurosAtivacao:
+      somar(
+        campanhas,
+        "negociosPublicadosMadurosAtivacao"
+      ),
+    primeirosAgendamentosMadurosAtivacao:
+      somar(
+        campanhas,
+        "primeirosAgendamentosMadurosAtivacao"
+      ),
+    assinaturasAtivadasMadurasMonetizacao:
+      somar(
+        campanhas,
+        "assinaturasAtivadasMadurasMonetizacao"
       ),
     investimentoCentavos:
       somar(
@@ -597,6 +815,11 @@ function criarResumo(campanhas) {
   resumo.taxaPublicacao =
     percentual(
       resumo.negociosPublicados,
+      resumo.cadastros
+    );
+  resumo.taxaPrimeiroAgendamento =
+    percentual(
+      resumo.primeirosAgendamentos,
       resumo.cadastros
     );
   resumo.taxaServico =
@@ -643,6 +866,122 @@ function criarResumo(campanhas) {
   return resumo;
 }
 
+function criarQualidadeMensuracao(
+  cadastrosPorClassificacao,
+  configuracao = configuracaoDecisao()
+) {
+  const cadastrosOficiais =
+    numero(
+      cadastrosPorClassificacao.oficial
+    );
+  const cadastrosSemCampanha =
+    numero(
+      cadastrosPorClassificacao
+        .rastreamento_incompleto
+    );
+  const cadastrosIdentidadeNaoOficial =
+    numero(
+      cadastrosPorClassificacao
+        .identidade_nao_oficial
+    );
+  const cadastrosSemEvidencia =
+    numero(
+      cadastrosPorClassificacao
+        .sem_evidencia
+    );
+  const cadastrosOrganicos =
+    numero(
+      cadastrosPorClassificacao.organico
+    );
+  const cadastrosPagosPendentes =
+    cadastrosSemCampanha +
+    cadastrosIdentidadeNaoOficial;
+  const cadastrosPagosDetectados =
+    cadastrosOficiais +
+    cadastrosPagosPendentes;
+  const cadastrosTotais =
+    cadastrosPagosDetectados +
+    cadastrosSemEvidencia +
+    cadastrosOrganicos;
+  const coberturaAtribuicaoPagaPercentual =
+    cadastrosPagosDetectados > 0
+      ? percentual(
+          cadastrosOficiais,
+          cadastrosPagosDetectados
+        )
+      : null;
+  const coberturaOrigemPercentual =
+    cadastrosTotais > 0
+      ? percentual(
+          cadastrosTotais -
+            cadastrosSemEvidencia,
+          cadastrosTotais
+        )
+      : null;
+  const bloqueios = [];
+
+  if (
+    coberturaAtribuicaoPagaPercentual !== null &&
+    coberturaAtribuicaoPagaPercentual <
+      configuracao.coberturaMinimaPercentual
+  ) {
+    bloqueios.push({
+      codigo: "atribuicao_paga_incompleta",
+      mensagem:
+        `A cobertura dos cadastros pagos está em ${coberturaAtribuicaoPagaPercentual.toFixed(2)}%, abaixo do mínimo operacional de ${configuracao.coberturaMinimaPercentual.toFixed(2)}%.`,
+    });
+  }
+
+  if (cadastrosSemEvidencia > 0) {
+    bloqueios.push({
+      codigo: "origem_sem_evidencia",
+      mensagem:
+        `${cadastrosSemEvidencia} cadastro(s) não têm evidência suficiente para separar mídia paga, orgânica ou acesso direto.`,
+    });
+  }
+
+  return {
+    cadastrosTotais,
+    cadastrosPagosDetectados,
+    cadastrosPagosPendentes,
+    cadastrosSemEvidencia,
+    coberturaAtribuicaoPagaPercentual,
+    coberturaOrigemPercentual,
+    coberturaMinimaPercentual:
+      configuracao.coberturaMinimaPercentual,
+    prontaParaDecisao:
+      bloqueios.length === 0,
+    bloqueios,
+  };
+}
+
+function bloquearDecisaoPorMensuracao(
+  campanha,
+  qualidadeMensuracao
+) {
+  if (
+    qualidadeMensuracao.prontaParaDecisao ||
+    numero(campanha.investimentoCentavos) <= 0
+  ) {
+    return campanha;
+  }
+
+  const motivo = qualidadeMensuracao.bloqueios
+    .map((bloqueio) => bloqueio.mensagem)
+    .join(" ");
+
+  return {
+    ...campanha,
+    decisao: {
+      codigo: "mensuracao_incompleta",
+      rotulo: "Aguardar mensuração",
+      confianca: "bloqueada",
+      motivo:
+        `${motivo} Corrija a atribuição antes de escalar, manter ou pausar investimento.`,
+    },
+  };
+}
+
 function resumirDecisoes(campanhas) {
   const resumo = {
     escalar: 0,
@@ -650,6 +989,7 @@ function resumirDecisoes(campanhas) {
     observar: 0,
     revisar: 0,
     pausar: 0,
+    mensuracaoIncompleta: 0,
     semDados: 0,
   };
 
@@ -659,6 +999,14 @@ function resumirDecisoes(campanhas) {
 
     if (codigo === "sem_dados") {
       resumo.semDados += 1;
+      return;
+    }
+
+    if (
+      codigo ===
+      "mensuracao_incompleta"
+    ) {
+      resumo.mensuracaoIncompleta += 1;
       return;
     }
 
@@ -687,13 +1035,19 @@ async function buscarFunil({
   const bruto =
     await adminProfessionalFunnelRepository
       .listarPorCampanha(
-        periodoNormalizado
+        periodoNormalizado,
+        {
+          diasMaturacaoAtivacao:
+            decisaoConfig.diasMaturacaoAtivacao,
+          diasMaturacaoMonetizacao:
+            decisaoConfig.diasMaturacaoMonetizacao,
+        }
       );
 
   const linhasConsolidadas =
     consolidarLinhasCampanha(bruto);
 
-  const campanhas =
+  const campanhasCalculadas =
     linhasConsolidadas.map(
       (linha) =>
         mapearLinha(
@@ -702,21 +1056,8 @@ async function buscarFunil({
         )
     );
 
-  const campanhasOficiais =
-    campanhas.filter(
-      (campanha) => campanha.oficial
-    );
-
-  const resumo =
-    criarResumo(campanhas);
-
-  const resumoOficial =
-    criarResumo(
-      campanhasOficiais
-    );
-
   const cadastrosPorClassificacao =
-    campanhas.reduce(
+    campanhasCalculadas.reduce(
       (acumulado, campanha) => {
         const classificacao =
           campanha.classificacaoAtribuicao;
@@ -737,8 +1078,37 @@ async function buscarFunil({
         oficial: 0,
         rastreamento_incompleto: 0,
         identidade_nao_oficial: 0,
+        sem_evidencia: 0,
         organico: 0,
       }
+    );
+
+  const qualidadeMensuracao =
+    criarQualidadeMensuracao(
+      cadastrosPorClassificacao,
+      decisaoConfig
+    );
+
+  const campanhas =
+    campanhasCalculadas.map(
+      (campanha) =>
+        bloquearDecisaoPorMensuracao(
+          campanha,
+          qualidadeMensuracao
+        )
+    );
+
+  const campanhasOficiais =
+    campanhas.filter(
+      (campanha) => campanha.oficial
+    );
+
+  const resumo =
+    criarResumo(campanhas);
+
+  const resumoOficial =
+    criarResumo(
+      campanhasOficiais
     );
 
   return {
@@ -756,10 +1126,14 @@ async function buscarFunil({
       cadastrosIdentidadeNaoOficial:
         cadastrosPorClassificacao
           .identidade_nao_oficial,
+      cadastrosSemEvidencia:
+        cadastrosPorClassificacao
+          .sem_evidencia,
       cadastrosOrganicos:
         cadastrosPorClassificacao
           .organico,
     },
+    qualidadeMensuracao,
     decisao: {
       metaRoas:
         decisaoConfig.metaRoas,
@@ -774,6 +1148,15 @@ async function buscarFunil({
         decisaoConfig.minimoCadastros,
       minimoAssinaturas:
         decisaoConfig.minimoAssinaturas,
+      coberturaMinimaPercentual:
+        decisaoConfig
+          .coberturaMinimaPercentual,
+      diasMaturacaoAtivacao:
+        decisaoConfig
+          .diasMaturacaoAtivacao,
+      diasMaturacaoMonetizacao:
+        decisaoConfig
+          .diasMaturacaoMonetizacao,
       contagem:
         resumirDecisoes(
           campanhasOficiais
@@ -796,4 +1179,6 @@ module.exports = {
   recomendarCampanha,
   resumirDecisoes,
   criarResumo,
+  criarQualidadeMensuracao,
+  bloquearDecisaoPorMensuracao,
 };

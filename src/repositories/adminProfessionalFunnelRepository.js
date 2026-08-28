@@ -21,6 +21,26 @@ const PERIODOS_PERMITIDOS =
 const REPORT_TIME_ZONE =
   "America/Sao_Paulo";
 
+const MATURIDADE_PADRAO = Object.freeze({
+  ativacao: 14,
+  monetizacao: 21,
+});
+
+function diasMaturidadeSeguro(
+  valor,
+  fallback
+) {
+  const convertido = Number.parseInt(
+    valor,
+    10
+  );
+
+  return Number.isInteger(convertido) &&
+    convertido > 0
+    ? convertido
+    : fallback;
+}
+
 function periodoSeguro(valor) {
   const periodo = String(
     valor || "30"
@@ -103,8 +123,19 @@ function filtroData(
 }
 
 async function listarPorCampanha(
-  periodo = "30"
+  periodo = "30",
+  maturidade = {}
 ) {
+  const diasMaturacaoAtivacao =
+    diasMaturidadeSeguro(
+      maturidade.diasMaturacaoAtivacao,
+      MATURIDADE_PADRAO.ativacao
+    );
+  const diasMaturacaoMonetizacao =
+    diasMaturidadeSeguro(
+      maturidade.diasMaturacaoMonetizacao,
+      MATURIDADE_PADRAO.monetizacao
+    );
   const filtroCoorte =
     filtroTimestamp(
       periodo,
@@ -163,6 +194,7 @@ async function listarPorCampanha(
       coorte AS (
         SELECT
           a.usuario_id,
+          a.atribuicao_em,
           COALESCE(
             campanha_oficial.utm_source,
             a.origem
@@ -185,10 +217,10 @@ async function listarPorCampanha(
             WHEN a.pago
               THEN 'identidade_nao_oficial'
             WHEN NOT a.rastreado
-              THEN 'rastreamento_incompleto'
+              THEN 'sem_evidencia'
             WHEN a.organico
               THEN 'organico'
-            ELSE 'rastreamento_incompleto'
+            ELSE 'sem_evidencia'
           END
             AS classificacao_atribuicao
         FROM atribuicoes_resolvidas a
@@ -198,6 +230,7 @@ async function listarPorCampanha(
       funil AS (
         SELECT
           c.usuario_id,
+          c.atribuicao_em,
           c.origem,
           c.midia,
           c.campanha,
@@ -216,6 +249,14 @@ async function listarPorCampanha(
           n.primeira_publicacao_em IS NOT NULL
             AS negocio_publicado,
 
+          n.primeira_publicacao_em,
+
+          primeiro_agendamento.primeiro_agendamento_em
+            IS NOT NULL
+            AS primeiro_agendamento,
+
+          primeiro_agendamento.primeiro_agendamento_em,
+
           EXISTS (
             SELECT 1
             FROM checkout_tentativas ct
@@ -231,7 +272,9 @@ async function listarPorCampanha(
             primeiro_pagamento_aquisicao.valor_centavos,
             0
           )::BIGINT
-            AS receita_primeiro_pagamento_centavos
+            AS receita_primeiro_pagamento_centavos,
+
+          primeiro_pagamento_aquisicao.primeiro_pagamento_em
 
         FROM coorte c
 
@@ -252,6 +295,14 @@ async function listarPorCampanha(
 
         LEFT JOIN LATERAL (
           SELECT
+            MIN(ag.created_at)
+              AS primeiro_agendamento_em
+          FROM agendamentos ag
+          WHERE ag.negocio_id = dono.negocio_id
+        ) primeiro_agendamento ON TRUE
+
+        LEFT JOIN LATERAL (
+          SELECT
             CASE
               WHEN UPPER(pg.status) IN (
                 'CONFIRMED',
@@ -263,7 +314,9 @@ async function listarPorCampanha(
             UPPER(pg.status) IN (
               'CONFIRMED',
               'RECEIVED'
-            ) AS pagamento_valido
+            ) AS pagamento_valido,
+            pg.data_pagamento
+              AS primeiro_pagamento_em
           FROM assinaturas a
           INNER JOIN planos p
             ON p.id = a.plano_id
@@ -323,11 +376,49 @@ async function listarPorCampanha(
             WHERE f.negocio_publicado
           )::INT AS negocios_publicados,
           COUNT(*) FILTER (
+            WHERE f.primeiro_agendamento
+          )::INT AS primeiros_agendamentos,
+          COUNT(*) FILTER (
             WHERE f.checkout_iniciado
           )::INT AS checkouts_iniciados,
           COUNT(*) FILTER (
             WHERE f.assinatura_ativada
           )::INT AS assinaturas_ativadas,
+          COUNT(*) FILTER (
+            WHERE f.atribuicao_em <=
+              NOW() - ($1::INT * INTERVAL '1 day')
+          )::INT AS cadastros_maduros_ativacao,
+          COUNT(*) FILTER (
+            WHERE f.atribuicao_em <=
+              NOW() - ($2::INT * INTERVAL '1 day')
+          )::INT AS cadastros_maduros_monetizacao,
+          COUNT(*) FILTER (
+            WHERE f.negocio_publicado
+              AND f.atribuicao_em <=
+                NOW() - ($1::INT * INTERVAL '1 day')
+              AND f.primeira_publicacao_em <=
+                f.atribuicao_em +
+                  ($1::INT * INTERVAL '1 day')
+          )::INT AS negocios_publicados_maduros_ativacao,
+          COUNT(*) FILTER (
+            WHERE f.primeiro_agendamento
+              AND f.atribuicao_em <=
+                NOW() - ($1::INT * INTERVAL '1 day')
+              AND f.primeiro_agendamento_em <=
+                f.atribuicao_em +
+                  ($1::INT * INTERVAL '1 day')
+          )::INT AS primeiros_agendamentos_maduros_ativacao,
+          COUNT(*) FILTER (
+            WHERE f.assinatura_ativada
+              AND f.atribuicao_em <=
+                NOW() - ($2::INT * INTERVAL '1 day')
+              AND f.primeiro_pagamento_em <=
+                (
+                  f.atribuicao_em AT TIME ZONE
+                    '${REPORT_TIME_ZONE}' +
+                  ($2::INT * INTERVAL '1 day')
+                )::date
+          )::INT AS assinaturas_ativadas_maduras_monetizacao,
           COALESCE(
             SUM(
               f.receita_primeiro_pagamento_centavos
@@ -386,6 +477,10 @@ async function listarPorCampanha(
           0
         )::INT AS negocios_publicados,
         COALESCE(
+          a.primeiros_agendamentos,
+          0
+        )::INT AS primeiros_agendamentos,
+        COALESCE(
           a.checkouts_iniciados,
           0
         )::INT AS checkouts_iniciados,
@@ -393,6 +488,26 @@ async function listarPorCampanha(
           a.assinaturas_ativadas,
           0
         )::INT AS assinaturas_ativadas,
+        COALESCE(
+          a.cadastros_maduros_ativacao,
+          0
+        )::INT AS cadastros_maduros_ativacao,
+        COALESCE(
+          a.cadastros_maduros_monetizacao,
+          0
+        )::INT AS cadastros_maduros_monetizacao,
+        COALESCE(
+          a.negocios_publicados_maduros_ativacao,
+          0
+        )::INT AS negocios_publicados_maduros_ativacao,
+        COALESCE(
+          a.primeiros_agendamentos_maduros_ativacao,
+          0
+        )::INT AS primeiros_agendamentos_maduros_ativacao,
+        COALESCE(
+          a.assinaturas_ativadas_maduras_monetizacao,
+          0
+        )::INT AS assinaturas_ativadas_maduras_monetizacao,
         COALESCE(
           a.receita_primeiro_pagamento_centavos,
           0
@@ -414,7 +529,11 @@ async function listarPorCampanha(
         investimento_centavos DESC,
         origem ASC,
         campanha ASC
-      `
+      `,
+      [
+        diasMaturacaoAtivacao,
+        diasMaturacaoMonetizacao,
+      ]
     );
 
   return resultado.rows;

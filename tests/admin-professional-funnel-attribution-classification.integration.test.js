@@ -73,10 +73,10 @@ describe(
         const linhas =
           await repository.listarPorCampanha("today");
 
-        const incompletas = linhas.filter(
+        const semEvidencia = linhas.filter(
           (item) =>
             item.classificacao_atribuicao ===
-              "rastreamento_incompleto"
+              "sem_evidencia"
         );
         const organicas = linhas.filter(
           (item) =>
@@ -85,7 +85,7 @@ describe(
         );
 
         expect(
-          incompletas.some(
+          semEvidencia.some(
             (item) => Number(item.cadastros) >= 1
           )
         ).toBe(true);

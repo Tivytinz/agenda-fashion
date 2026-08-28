@@ -48,6 +48,13 @@ function campaignLabel(item) {
   const campaign = String(item?.campanha || "").trim();
   const source = String(item?.origem || "").trim().toLowerCase();
   const medium = String(item?.midia || "").trim().toLowerCase();
+  const classification = String(
+    item?.classificacaoAtribuicao || ""
+  ).trim().toLowerCase();
+
+  if (classification === "sem_evidencia") {
+    return "Origem não identificada";
+  }
 
   if (
     source === "google" &&
@@ -76,7 +83,7 @@ function campaignLabel(item) {
 }
 
 function campaignKey(item) {
-  return `${item.origem}-${item.midia}-${item.campanha}`;
+  return `${item.classificacaoAtribuicao || "sem_classificacao"}-${item.origem}-${item.midia}-${item.campanha}`;
 }
 
 function utmIdentityLabel(item) {
@@ -94,6 +101,13 @@ function decisionBadgeClass(code) {
 
 function sourceMeta(item) {
   const source = String(item?.origem || "").trim().toLowerCase();
+  const classification = String(
+    item?.classificacaoAtribuicao || ""
+  ).trim().toLowerCase();
+
+  if (classification === "sem_evidencia") {
+    return { code: "outro", label: "Origem não identificada" };
+  }
 
   if (source === "google") return { code: "google", label: "Google Ads" };
   if (["meta", "facebook", "instagram"].includes(source)) {
@@ -121,7 +135,21 @@ function mediumLabel(item) {
 function isOrganicCampaign(item) {
   const source = String(item?.origem || "").trim().toLowerCase();
   const medium = String(item?.midia || "").trim().toLowerCase();
-  return source === "organico" && (!medium || medium === "none");
+  const classification = String(
+    item?.classificacaoAtribuicao || ""
+  ).trim().toLowerCase();
+
+  return classification === "organico" || (
+    !classification &&
+    source === "organico" &&
+    (!medium || medium === "none")
+  );
+}
+
+function decisionSignalLabel(confidence) {
+  if (confidence === "operacional") return "Sinal operacional";
+  if (confidence === "bloqueada") return "Decisão bloqueada";
+  return "Base ainda insuficiente";
 }
 
 export function AdminProfessionalFunnelPage() {
@@ -171,7 +199,7 @@ export function AdminProfessionalFunnelPage() {
   if (!data && !error) {
     return (
       <main className="workspace-page admin-workspace-page admin-marketing-page admin-professional-funnel-page">
-        <LoadingState>Carregando rentabilidade profissional...</LoadingState>
+        <LoadingState>Carregando aquisição e retorno profissional...</LoadingState>
       </main>
     );
   }
@@ -192,28 +220,69 @@ export function AdminProfessionalFunnelPage() {
   const decisionCounts = decision?.contagem || {};
   const campaigns = data?.campanhasOficiais || data?.campanhas || [];
   const attributionDiagnostic = data?.diagnosticoAtribuicao || {};
+  const measurementQuality = data?.qualidadeMensuracao || {};
   const signupAttributionQuality = paidAttributionQuality({
     official: attributionDiagnostic.cadastrosOficiais ?? summary.cadastros,
     missingCampaign: attributionDiagnostic.cadastrosSemCampanha,
     unofficialIdentity: attributionDiagnostic.cadastrosIdentidadeNaoOficial
   });
+  const signupsWithoutEvidence = Number(
+    attributionDiagnostic.cadastrosSemEvidencia ??
+    measurementQuality.cadastrosSemEvidencia ??
+    0
+  );
+  const totalAttributedSignups = Number(
+    measurementQuality.cadastrosTotais ??
+    (
+      signupAttributionQuality.detectedPaidSessions +
+      Number(attributionDiagnostic.cadastrosOrganicos || 0) +
+      signupsWithoutEvidence
+    )
+  );
+  const paidCoverage =
+    measurementQuality.coberturaAtribuicaoPagaPercentual ??
+    signupAttributionQuality.coverage;
+  const originCoverage =
+    measurementQuality.coberturaOrigemPercentual ??
+    metricPercentage(
+      totalAttributedSignups - signupsWithoutEvidence,
+      totalAttributedSignups
+    );
+  const minimumCoverage = Number(
+    measurementQuality.coberturaMinimaPercentual ??
+    decision.coberturaMinimaPercentual ??
+    100
+  );
+  const measurementReady =
+    measurementQuality.prontaParaDecisao ??
+    (
+      signupsWithoutEvidence === 0 &&
+      (paidCoverage === null || Number(paidCoverage) >= minimumCoverage)
+    );
   const investment = Number(summary.investimentoCentavos || 0);
   const signups = Number(summary.cadastros || 0);
   const subscriptions = Number(summary.assinaturasAtivadas || 0);
-  const profitabilityTone = investment <= 0
+  const firstAppointments = Number(summary.primeirosAgendamentos || 0);
+  const profitabilityTone = !measurementReady
+    ? "warning"
+    : investment <= 0
     ? "neutral"
     : signups === 0
       ? "critical"
-      : subscriptions === 0 || Number(summary.roas || 0) < Number(decision.metaRoas || 1)
+      : firstAppointments === 0 || subscriptions === 0 || Number(summary.roas || 0) < Number(decision.metaRoas || 1)
         ? "warning"
         : "success";
-  const profitabilityStatus = investment <= 0
+  const profitabilityStatus = !measurementReady
+    ? "Mensuração incompleta"
+    : investment <= 0
     ? "Sem investimento"
     : signups === 0
       ? "Aquisição sem cadastro"
-      : subscriptions === 0
+      : firstAppointments === 0
         ? "Ativação em atenção"
-        : Number(summary.roas || 0) < Number(decision.metaRoas || 1)
+        : subscriptions === 0
+          ? "Monetização em análise"
+          : Number(summary.roas || 0) < Number(decision.metaRoas || 1)
           ? "Retorno abaixo da meta"
           : "Aquisição rentável";
 
@@ -221,7 +290,9 @@ export function AdminProfessionalFunnelPage() {
     [
       "Cadastros profissionais",
       summary.cadastros ?? 0,
-      summary.custoCadastroCentavos === null
+      !measurementReady
+        ? "coorte oficial parcial; custo bloqueado"
+        : summary.custoCadastroCentavos === null
         ? "atribuídos a campanhas oficiais"
         : `${formatMoney(summary.custoCadastroCentavos)} por cadastro`
     ],
@@ -231,9 +302,16 @@ export function AdminProfessionalFunnelPage() {
       `${summary.taxaPublicacao ?? 0}% dos cadastros`
     ],
     [
+      "Primeiros agendamentos",
+      summary.primeirosAgendamentos ?? 0,
+      `${summary.taxaPrimeiroAgendamento ?? 0}% dos cadastros`
+    ],
+    [
       "Assinaturas ativadas",
       summary.assinaturasAtivadas ?? 0,
-      summary.cacAssinanteCentavos === null
+      !measurementReady
+        ? "resultado parcial; CAC bloqueado"
+        : summary.cacAssinanteCentavos === null
         ? `${summary.taxaAssinatura ?? 0}% dos cadastros`
         : `CAC ${formatMoney(summary.cacAssinanteCentavos)}`
     ],
@@ -245,12 +323,16 @@ export function AdminProfessionalFunnelPage() {
     [
       "Receita atribuída",
       formatMoney(summary.receitaPrimeiroPagamentoCentavos ?? 0),
-      "primeiro pagamento da aquisição"
+      measurementReady
+        ? "primeiro pagamento da aquisição"
+        : "valor parcial; não usar para decisão"
     ],
     [
       "ROAS de aquisição",
-      formatRoas(summary.roas),
-      "receita atribuída ÷ investimento"
+      measurementReady ? formatRoas(summary.roas) : "Aguardando cobertura",
+      measurementReady
+        ? "receita atribuída ÷ investimento"
+        : "decisão financeira bloqueada"
     ]
   ];
 
@@ -276,6 +358,15 @@ export function AdminProfessionalFunnelPage() {
       ) ?? 0
     ],
     ["Negócio publicado", summary.negociosPublicados ?? 0, summary.taxaPublicacao ?? 0],
+    [
+      "Primeiro agendamento",
+      summary.primeirosAgendamentos ?? 0,
+      summary.taxaPrimeiroAgendamento ?? metricPercentage(
+        summary.primeirosAgendamentos,
+        summary.cadastros,
+        2
+      ) ?? 0
+    ],
     ["Checkout iniciado", summary.checkoutsIniciados ?? 0, summary.taxaCheckout ?? 0],
     ["Assinatura ativada", summary.assinaturasAtivadas ?? 0, summary.taxaAssinatura ?? 0]
   ];
@@ -288,7 +379,7 @@ export function AdminProfessionalFunnelPage() {
     secondary: `${value} profissionais`
   }));
 
-  const roasChartItems = campaigns
+  const roasChartItems = (measurementReady ? campaigns : [])
     .filter((item) => Number.isFinite(Number(item.roas)) && Number(item.roas) > 0)
     .sort((a, b) => Number(b.roas) - Number(a.roas))
     .slice(0, 8)
@@ -308,9 +399,9 @@ export function AdminProfessionalFunnelPage() {
       <header className="workspace-heading">
         <div>
           <p className="eyebrow">Administração do AF</p>
-          <h1>Rentabilidade de profissionais</h1>
+          <h1>Aquisição e retorno de profissionais</h1>
           <p>
-            Acompanhe aquisição, ativação, CAC e ROAS para decidir onde escalar, revisar ou pausar investimento.
+            Acompanhe aquisição, ativação, primeiro agendamento e retorno atribuído. CAC e ROAS só orientam orçamento quando a mensuração está completa.
           </p>
         </div>
 
@@ -329,7 +420,7 @@ export function AdminProfessionalFunnelPage() {
         </div>
       </header>
 
-      {refreshing && <p className="data-refresh-status" role="status">Atualizando rentabilidade...</p>}
+      {refreshing && <p className="data-refresh-status" role="status">Atualizando aquisição e retorno...</p>}
       {error && (
         <p className="form-error" role="alert">
           {error} Os últimos dados carregados continuam visíveis.
@@ -347,40 +438,65 @@ export function AdminProfessionalFunnelPage() {
       </section>
 
       <MarketingExecutivePanel
-        action={investment > 0 && signups === 0
+        action={!measurementReady
+          ? "corrija os cadastros pagos pendentes e os registros sem evidência de origem antes de alterar orçamento."
+          : investment > 0 && signups === 0
           ? "não aumente o orçamento ainda. Valide a landing page, o formulário de cadastro, o evento de conversão e a preservação do identificador de clique."
-          : subscriptions === 0 && signups > 0
+          : firstAppointments === 0 && signups > 0
             ? "identifique o primeiro marco com maior perda antes de alterar segmentação ou orçamento."
+            : subscriptions === 0 && signups > 0
+              ? "revise a proposta do plano pago sem tratar o uso gratuito como falha de aquisição."
             : "compare CAC e ROAS com a régua de decisão antes de escalar."}
         metrics={[
           {
             label: "Custo por cadastro",
-            value: formatMoney(summary.custoCadastroCentavos),
-            hint: signups > 0 ? `${signups} cadastros oficiais` : "não calculável sem cadastro"
+            value: measurementReady
+              ? formatMoney(summary.custoCadastroCentavos)
+              : "Aguardando cobertura",
+            hint: measurementReady
+              ? (signups > 0 ? `${signups} cadastros oficiais` : "não calculável sem cadastro")
+              : "coorte oficial ainda parcial"
           },
           {
             label: "CAC assinante",
-            value: formatMoney(summary.cacAssinanteCentavos),
-            hint: subscriptions > 0 ? `${subscriptions} assinaturas ativadas` : "não calculável sem assinatura"
+            value: measurementReady
+              ? formatMoney(summary.cacAssinanteCentavos)
+              : "Aguardando cobertura",
+            hint: measurementReady
+              ? (subscriptions > 0 ? `${subscriptions} assinaturas ativadas` : "não calculável sem assinatura")
+              : "não use o valor parcial para decisão"
           },
           {
             label: "ROAS",
-            value: formatRoas(summary.roas),
-            hint: `meta ${formatRoas(decision.metaRoas)}`
+            value: measurementReady
+              ? formatRoas(summary.roas)
+              : "Aguardando cobertura",
+            hint: measurementReady
+              ? `meta ${formatRoas(decision.metaRoas)}`
+              : "decisão financeira bloqueada"
           },
           {
             label: "Cobertura dos cadastros pagos",
-            value: formatMetricPercent(signupAttributionQuality.coverage),
+            value: formatMetricPercent(paidCoverage),
             hint: `${signupAttributionQuality.pendingSessions} cadastros pagos fora da coorte oficial`
+          },
+          {
+            label: "Cobertura de origem",
+            value: formatMetricPercent(originCoverage),
+            hint: `${signupsWithoutEvidence} cadastros sem evidência de origem`
           }
         ]}
         status={profitabilityStatus}
-        summary={investment <= 0
+        summary={!measurementReady
+          ? `A coorte oficial ainda está incompleta: ${signupAttributionQuality.pendingSessions} cadastro(s) pago(s) aguardam vínculo e ${signupsWithoutEvidence} não têm evidência de origem. CAC, ROAS e decisões de orçamento permanecem bloqueados.`
+          : investment <= 0
           ? "Não há investimento profissional registrado no período selecionado."
           : signups === 0
             ? `${formatMoney(investment)} foram investidos, mas nenhum cadastro profissional oficial foi atribuído. CAC não é zero: ele ainda não pode ser calculado.`
-            : subscriptions === 0
-              ? `A campanha gerou ${signups} cadastros, mas nenhuma assinatura ativada. O gargalo está depois da aquisição.`
+            : firstAppointments === 0
+              ? `A campanha gerou ${signups} cadastros, mas nenhum primeiro agendamento. O gargalo está na ativação do valor gratuito.`
+              : subscriptions === 0
+                ? `A coorte já recebeu ${firstAppointments} primeiro(s) agendamento(s), mas ainda não ativou assinatura paga. Revise monetização sem pausar mídia apenas por esse motivo.`
               : `A coorte gerou ${subscriptions} assinaturas e ROAS de ${formatRoas(summary.roas)} no primeiro pagamento.`}
         title="Diagnóstico de aquisição profissional"
         tone={profitabilityTone}
@@ -390,7 +506,7 @@ export function AdminProfessionalFunnelPage() {
         <div>
           <span>Oficiais</span>
           <strong>{attributionDiagnostic.cadastrosOficiais ?? summary.cadastros ?? 0}</strong>
-          <small>entram em CAC e ROAS</small>
+          <small>{measurementReady ? "entram em CAC e ROAS" : "base oficial ainda parcial"}</small>
         </div>
         <div>
           <span>Sem campanha</span>
@@ -403,6 +519,11 @@ export function AdminProfessionalFunnelPage() {
           <small>pagos fora da campanha cadastrada</small>
         </div>
         <div>
+          <span>Sem evidência</span>
+          <strong>{signupsWithoutEvidence}</strong>
+          <small>origem paga, orgânica ou direta não comprovada</small>
+        </div>
+        <div>
           <span>Orgânicos</span>
           <strong>{attributionDiagnostic.cadastrosOrganicos ?? 0}</strong>
           <small>fora do retorno de mídia paga</small>
@@ -410,6 +531,11 @@ export function AdminProfessionalFunnelPage() {
       </section>
 
       <section className="admin-decision-summary" aria-label="Resumo das recomendações de campanha">
+        <div>
+          <span>Mensuração bloqueada</span>
+          <strong>{decisionCounts.mensuracaoIncompleta ?? 0}</strong>
+          <small>Sem decisão financeira até atingir a cobertura mínima</small>
+        </div>
         <div>
           <span>Para escalar</span>
           <strong>{decisionCounts.escalar ?? 0}</strong>
@@ -442,7 +568,10 @@ export function AdminProfessionalFunnelPage() {
             {decision.minimoCadastros ?? "Sem dados"} cadastros · {decision.minimoAssinaturas ?? "Sem dados"} assinaturas
           </strong>
           <small>
-            Meta de ROAS {formatRoas(decision.metaRoas)} · escala em {formatRoas(decision.faixaEscalaRoas)}
+            Cobertura mínima {formatMetricPercent(minimumCoverage)} · ativação em {decision.diasMaturacaoAtivacao ?? 14} dias · monetização em {decision.diasMaturacaoMonetizacao ?? 21} dias
+          </small>
+          <small>
+            Meta de ROAS {formatRoas(decision.metaRoas)} · escala em {formatRoas(decision.faixaEscalaRoas)} · sinal operacional, não confiança estatística
           </small>
         </div>
       </section>
@@ -502,7 +631,7 @@ export function AdminProfessionalFunnelPage() {
             <p className="eyebrow">Retorno</p>
             <h2>Retorno e decisão por campanha</h2>
             <p className="muted">
-              Compare investimento, receita, ROAS e CAC. A receita considera somente o primeiro pagamento da aquisição; reembolso zera a receita e renovações posteriores não entram no ROAS.
+              Compare investimento, receita atribuída, ROAS e CAC. Estes indicadores não representam lucro: custos operacionais, impostos e margem não entram no cálculo. A receita considera somente o primeiro pagamento da aquisição; reembolso zera a receita e renovações posteriores não entram no ROAS.
             </p>
             <p className="muted">As recomendações são analíticas e não alteram campanhas automaticamente.</p>
             <p className="muted admin-campaign-attribution-note">
@@ -515,7 +644,9 @@ export function AdminProfessionalFunnelPage() {
           title="ROAS por campanha"
           description="Comparação das campanhas com ROAS calculável no período."
           items={roasChartItems}
-          emptyMessage="Nenhuma campanha possui investimento e receita suficientes para calcular ROAS neste período."
+          emptyMessage={measurementReady
+            ? "Nenhuma campanha possui investimento e receita suficientes para calcular ROAS neste período."
+            : "ROAS oculto enquanto a cobertura de atribuição estiver incompleta."}
           variant="none"
         />
 
@@ -573,17 +704,24 @@ export function AdminProfessionalFunnelPage() {
                         </td>
                         <td>
                           {formatMoney(item.receitaPrimeiroPagamentoCentavos ?? 0)}
+                          {!measurementReady && (
+                            <small className="admin-data-empty">Parcial</small>
+                          )}
                         </td>
                         <td>
-                          <strong className={item.roas === null || item.roas === undefined ? "admin-data-empty" : ""}>
-                            {item.roas === null || item.roas === undefined
+                          <strong className={!measurementReady || item.roas === null || item.roas === undefined ? "admin-data-empty" : ""}>
+                            {!measurementReady
+                              ? "Aguardando cobertura"
+                              : item.roas === null || item.roas === undefined
                               ? "Não calculável"
                               : formatRoas(item.roas)}
                           </strong>
                         </td>
                         <td>
-                          <span className={item.cacAssinanteCentavos === null || item.cacAssinanteCentavos === undefined ? "admin-data-empty" : ""}>
-                            {item.cacAssinanteCentavos === null || item.cacAssinanteCentavos === undefined
+                          <span className={!measurementReady || item.cacAssinanteCentavos === null || item.cacAssinanteCentavos === undefined ? "admin-data-empty" : ""}>
+                            {!measurementReady
+                              ? "Aguardando cobertura"
+                              : item.cacAssinanteCentavos === null || item.cacAssinanteCentavos === undefined
                               ? "Não calculável"
                               : formatMoney(item.cacAssinanteCentavos)}
                           </span>
@@ -594,7 +732,7 @@ export function AdminProfessionalFunnelPage() {
                           </span>
                           {item.decisao?.codigo !== "sem_dados" && (
                             <small className="muted">
-                              Confiança {item.decisao?.confianca || "não calculada"}
+                              {decisionSignalLabel(item.decisao?.confianca)}
                             </small>
                           )}
                         </td>
@@ -623,16 +761,46 @@ export function AdminProfessionalFunnelPage() {
                                 <strong>{item.checkoutsIniciados}</strong>
                               </div>
                               <div>
+                                <span>Primeiros agendamentos</span>
+                                <strong>{item.primeirosAgendamentos ?? 0} · {item.taxaPrimeiroAgendamento ?? 0}%</strong>
+                              </div>
+                              <div>
                                 <span>Assinaturas</span>
                                 <strong>{item.assinaturasAtivadas} · {item.taxaAssinatura}%</strong>
                               </div>
                               <div>
                                 <span>Custo por cadastro</span>
-                                <strong>{formatMoney(item.custoCadastroCentavos)}</strong>
+                                <strong>
+                                  {measurementReady
+                                    ? formatMoney(item.custoCadastroCentavos)
+                                    : "Aguardando cobertura"}
+                                </strong>
                               </div>
                               <div>
                                 <span>Custo por checkout</span>
-                                <strong>{formatMoney(item.custoCheckoutCentavos)}</strong>
+                                <strong>
+                                  {measurementReady
+                                    ? formatMoney(item.custoCheckoutCentavos)
+                                    : "Aguardando cobertura"}
+                                </strong>
+                              </div>
+                              <div>
+                                <span>Cadastros maduros</span>
+                                <strong>
+                                  {item.cadastrosMadurosAtivacao ?? 0} ativação · {item.cadastrosMadurosMonetizacao ?? 0} monetização
+                                </strong>
+                              </div>
+                              <div>
+                                <span>Ativação na janela</span>
+                                <strong>
+                                  {item.negociosPublicadosMadurosAtivacao ?? 0} publicados · {item.primeirosAgendamentosMadurosAtivacao ?? 0} com primeiro agendamento em até {decision.diasMaturacaoAtivacao ?? 14} dias
+                                </strong>
+                              </div>
+                              <div>
+                                <span>Monetização na janela</span>
+                                <strong>
+                                  {item.assinaturasAtivadasMadurasMonetizacao ?? 0} assinaturas em até {decision.diasMaturacaoMonetizacao ?? 21} dias
+                                </strong>
                               </div>
                               {identities.length > 1 && (
                                 <div className="admin-campaign-decision-reason">

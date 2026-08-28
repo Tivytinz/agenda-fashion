@@ -212,7 +212,7 @@ export default function App() {
             element={(
               <>
                 <AdminProfessionalFunnelPage />
-                <MarketingMetricGlossary terms={["CAC", "ROAS", "COORTE"]} />
+                <MarketingMetricGlossary terms={["CAC", "ROAS", "COORTE", "COBERTURA"]} />
               </>
             )}
           />
