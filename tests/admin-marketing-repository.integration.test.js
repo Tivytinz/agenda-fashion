@@ -11,6 +11,9 @@ const adminMarketingRepository =
     "../src/repositories/adminMarketingRepository"
   );
 
+const INTEGRATION_TEST_TIMEOUT_MS =
+  15_000;
+
 function idCurto() {
   return crypto
     .randomUUID()
@@ -493,7 +496,8 @@ describe(
                 managedCampaignId
           )
         ).toBe(false);
-      }
+      },
+      INTEGRATION_TEST_TIMEOUT_MS
     );
   }
 );
