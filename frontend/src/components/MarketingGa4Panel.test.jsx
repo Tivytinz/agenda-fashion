@@ -7,19 +7,21 @@ import { MarketingGa4Panel } from "./MarketingGa4Panel";
 afterEach(() => cleanup());
 
 describe("MarketingGa4Panel", () => {
-  it("explica a diferença entre coleta e leitura quando a Data API não está configurada", () => {
+  it("explica quando a leitura da Data API não está disponível", () => {
     render(
       <MarketingGa4Panel
         data={{ habilitado: false, configurado: false }}
       />
     );
 
-    expect(screen.getByRole("heading", { name: "Google Analytics 4" })).not.toBeNull();
-    expect(screen.getByText(/coleta e leitura são configurações diferentes/i)).not.toBeNull();
-    expect(screen.getByText(/o AF já possui suporte à coleta GA4 com consentimento/i)).not.toBeNull();
+    expect(
+      screen.getByRole("heading", { name: "O que acontece depois do clique" })
+    ).not.toBeNull();
+    expect(screen.getByText(/leitura do GA4 ainda não está disponível/i)).not.toBeNull();
+    expect(screen.getByText(/coleta e a leitura administrativa são configurações diferentes/i)).not.toBeNull();
   });
 
-  it("mostra comportamento sem chamar GA4 de fonte financeira", () => {
+  it("mostra comportamento priorizado sem chamar GA4 de fonte financeira", () => {
     render(
       <MarketingGa4Panel
         data={{
@@ -81,13 +83,16 @@ describe("MarketingGa4Panel", () => {
       />
     );
 
+    expect(screen.getByText("GA4 conectado")).not.toBeNull();
     expect(screen.getByText("100")).not.toBeNull();
     expect(screen.getByText("Paid Search")).not.toBeNull();
     expect(screen.getByText("Profissionais")).not.toBeNull();
     expect(screen.getByText("/para-profissionais")).not.toBeNull();
     expect(screen.getByText("Celular")).not.toBeNull();
     expect(screen.getByText("Goiânia")).not.toBeNull();
-    expect(screen.getByText(/ativação, agendamento, assinatura e receita continuam vindo do banco/i)).not.toBeNull();
+    expect(screen.getByText("De onde chegam")).not.toBeNull();
+    expect(screen.getByText("Onde entram")).not.toBeNull();
+    expect(screen.getByText(/ativação, agendamento, assinatura/i)).not.toBeNull();
   });
 
   it("mantém aviso quando o relatório é amostrado", () => {
