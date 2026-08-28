@@ -142,8 +142,8 @@ describe("AdminProfessionalFunnelPage", () => {
       await screen.findByRole("heading", { name: "Aquisição e retorno de profissionais" })
     ).not.toBeNull();
 
-    expect(screen.getByRole("heading", { name: "Marcos alcançados pela coorte" })).not.toBeNull();
-    expect(screen.getByText("Detalhamento da coorte")).not.toBeNull();
+    expect(screen.getByRole("heading", { name: "Marcos alcançados no período" })).not.toBeNull();
+    expect(screen.getByText("Detalhamento do funil")).not.toBeNull();
     expect(screen.queryByText("Atingimento por marco")).toBeNull();
     expect(screen.queryByText("ROAS por campanha")).toBeNull();
     expect(screen.getByRole("columnheader", { name: "Marco" })).not.toBeNull();
@@ -154,7 +154,7 @@ describe("AdminProfessionalFunnelPage", () => {
     expect(screen.getByText("Agenda configurada")).not.toBeNull();
     expect(screen.getByText("Negócio publicado")).not.toBeNull();
     expect(screen.getByText("Primeiro agendamento")).not.toBeNull();
-    expect(screen.getByText("gasto atribuído no período")).not.toBeNull();
+    expect(screen.getByText("gasto atribuído a campanhas oficiais no período")).not.toBeNull();
     expect(screen.getByText("Diagnóstico de aquisição profissional")).not.toBeNull();
     expect(screen.getByText("Aquisição rentável")).not.toBeNull();
     expect(screen.getByText("Cobertura dos cadastros pagos")).not.toBeNull();
@@ -266,7 +266,7 @@ describe("AdminProfessionalFunnelPage", () => {
       await screen.findByRole("row", { name: "Cadastro 0 0%" })
     ).not.toBeNull();
     expect(screen.queryByRole("row", { name: "Cadastro 0 100%" })).toBeNull();
-    expect(screen.getByText("Aquisição sem cadastro")).not.toBeNull();
+    expect(screen.getByText("Aquisição sem cadastro atribuído")).not.toBeNull();
     expect(screen.getByText("Em análise").parentElement?.textContent).toContain("1");
   });
 
@@ -361,6 +361,8 @@ describe("AdminProfessionalFunnelPage", () => {
     expect(screen.getByText("Mensuração incompleta")).not.toBeNull();
     expect(screen.getByText("Aguardar mensuração")).not.toBeNull();
     expect(screen.getByText("Decisão bloqueada")).not.toBeNull();
+    expect(screen.getByText("Investimento por cadastro total")).not.toBeNull();
+    expect(screen.getByText(/R\$\s*30,77/)).not.toBeNull();
     expect(
       screen.getAllByText("Aguardando cobertura").length
     ).toBeGreaterThanOrEqual(1);
