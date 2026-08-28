@@ -70,7 +70,8 @@ async function garantirCampanhaGoogleProfissionais({
       alias,
       '/para-profissionais',
       FALSE
-    FROM UNNEST($1::TEXT[]) AS alias
+    FROM UNNEST($1::TEXT[])
+      AS aliases(alias)
     ON CONFLICT (
       utm_source,
       utm_medium,

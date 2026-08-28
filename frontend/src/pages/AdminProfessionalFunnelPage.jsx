@@ -272,12 +272,6 @@ export function AdminProfessionalFunnelPage() {
   const officialSignups = Number(
     financialSummary.cadastros || 0
   );
-  const subscriptions = Number(
-    operationalSummary.assinaturasAtivadas || 0
-  );
-  const firstAppointments = Number(
-    operationalSummary.primeirosAgendamentos || 0
-  );
   const officialSubscriptions = Number(
     financialSummary.assinaturasAtivadas || 0
   );

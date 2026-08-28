@@ -44,13 +44,9 @@ describe(
           "UPDATE marketing_usuario_atribuicoes mua"
         );
         expect(consulta).toContain(
-          "COALESCE("
-        );
-        expect(consulta).toContain(
-          ") IS NULL"
+          "= ANY($1::TEXT[])"
         );
         expect(parametros).toEqual([
-          "google_ads_profissionais",
           [
             "google_ads_profissionais",
             "aquisicao_profissionais",

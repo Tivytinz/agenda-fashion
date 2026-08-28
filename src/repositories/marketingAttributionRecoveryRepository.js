@@ -131,7 +131,7 @@ async function recuperarGoogleProfissionaisPorEventos({
                 e.propriedades ->> 'utm_campaign',
                 ''
               )
-            ) = ANY($2::TEXT[])
+            ) = ANY($1::TEXT[])
           )
         )
       ORDER BY
@@ -206,10 +206,7 @@ async function recuperarGoogleProfissionaisPorEventos({
         NULLIF(BTRIM(mua.epik), '')
       ) IS NULL
     `,
-    [
-      campanhaOficial,
-      identidadesAceitas,
-    ]
+    [identidadesAceitas]
   );
 }
 
