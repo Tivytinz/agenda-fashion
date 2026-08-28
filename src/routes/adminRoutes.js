@@ -61,6 +61,11 @@ const marketingCostSyncController =
     "../controllers/marketingCostSyncController"
   );
 
+const adminGoogleAnalyticsController =
+  require(
+    "../controllers/adminGoogleAnalyticsController"
+  );
+
 const adminProfessionalFunnelController =
   require(
     "../controllers/adminProfessionalFunnelController"
@@ -140,6 +145,18 @@ router.get(
   auth,
   authAdmin,
   adminMarketingController.listarConversoes
+);
+
+/*
+ * Comportamento no Google Analytics 4.
+ * A leitura usa a Analytics Data API no backend e não altera
+ * os marcos comerciais canônicos do Agenda Fashion.
+ */
+router.get(
+  "/admin/marketing/ga4",
+  auth,
+  authAdmin,
+  adminGoogleAnalyticsController.buscar
 );
 
 /*
