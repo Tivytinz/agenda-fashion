@@ -104,13 +104,23 @@ Uma indisponibilidade da Data API do GA4 não pode derrubar o painel de Marketin
 
 ## UX administrativa
 
-A visão principal de Marketing deve priorizar:
+A área administrativa usa **Marketing** como entrada única para aquisição e mensuração. Custos e funil continuam em rotas próprias, mas funcionam como subáreas da mesma seção e não como destinos concorrentes na navegação global.
 
-1. saúde e cobertura da mensuração;
-2. evolução do funil profissional;
-3. comportamento do GA4;
-4. sincronização das plataformas;
-5. desempenho das campanhas reconhecidas;
-6. atalhos para custos e análise completa do funil.
+A visão principal deve responder primeiro à jornada de negócio:
+
+1. quantas sessões chegaram ao site segundo o GA4;
+2. quantos profissionais se cadastraram;
+3. quantos chegaram ao primeiro agendamento;
+4. quantos ativaram assinatura.
+
+Depois dessa leitura executiva, a tela aprofunda na seguinte ordem:
+
+1. funil profissional completo, preservando os marcos reais do produto;
+2. comportamento no GA4, priorizando canais, landing pages, campanhas, dispositivos e localização;
+3. campanhas que o AF conseguiu reconhecer com evidência suficiente;
+4. sincronização das plataformas como infraestrutura operacional secundária;
+5. atalhos para custos e retorno e para o funil detalhado.
+
+Cobertura de atribuição deve aparecer de forma compacta como sinal de confiança, sem duplicar cartões ou competir visualmente com os resultados do funil.
 
 Cadastrar campanha manualmente não é a ação principal da tela.

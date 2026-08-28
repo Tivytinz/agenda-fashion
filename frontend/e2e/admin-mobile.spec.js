@@ -51,6 +51,7 @@ test("admin e consentimento permanecem navegáveis no celular", async ({ page })
     contentType: "application/javascript",
     body: ""
   }));
+
   await page.route("**/admin/marketing/resumo**", (route) => json(route, {
     totalSessoes: 229,
     sessoes: 20,
@@ -112,9 +113,33 @@ test("admin e consentimento permanecem navegáveis no celular", async ({ page })
       taxaEngajamentoPercentual: 65,
       visualizacoes: 40
     },
-    canais: [],
-    campanhas: [],
-    landingPages: [],
+    canais: [
+      {
+        canal: "Paid Search",
+        origem: "google",
+        midia: "cpc",
+        sessoes: 20,
+        usuarios: 16
+      }
+    ],
+    campanhas: [
+      {
+        id: "123",
+        nome: "Profissionais",
+        origem: "google",
+        midia: "cpc",
+        sessoes: 20,
+        usuarios: 16,
+        sessoesEngajadas: 13
+      }
+    ],
+    landingPages: [
+      {
+        pagina: "/para-profissionais",
+        sessoes: 20,
+        usuarios: 16
+      }
+    ],
     dispositivos: [
       {
         categoria: "mobile",
@@ -200,43 +225,32 @@ test("admin e consentimento permanecem navegáveis no celular", async ({ page })
   await page.goto("/admin/trafego-pago");
 
   await expect(
-    page.getByRole("heading", { name: "Campanhas e tráfego pago" })
+    page.getByRole("heading", { name: "Marketing e aquisição" })
   ).toBeVisible();
-  const attributionCoverageCard = page
-    .locator("article.metric-card")
-    .filter({
-      has: page.getByText("Cobertura de atribuição", { exact: true })
-    });
-  await expect(attributionCoverageCard).toBeVisible();
-  await expect(
-    attributionCoverageCard.getByText("100%", { exact: true })
-  ).toBeVisible();
+  await expect(page.getByText("Sessões no site")).toBeVisible();
+  await expect(page.getByText("GA4 conectado", { exact: true }).first()).toBeVisible();
+  await expect(page.getByText("100% atribuído", { exact: true })).toBeVisible();
   await expect(page.getByText("13 diretas + 7 assistidas")).toBeVisible();
   await expect(
-    page.getByRole("heading", { name: "Qualidade da medição paga" })
+    page.getByRole("heading", { name: "O que acontece depois do clique" })
   ).toBeVisible();
-  await expect(
-    page.getByRole("heading", { name: "Google Analytics 4" })
-  ).toBeVisible();
+  await expect(page.getByText("Paid Search")).toBeVisible();
+  await expect(page.getByText("/para-profissionais")).toBeVisible();
+
   const navigation = page.getByRole("navigation", {
     name: "Administração do Agenda Fashion"
   });
-  await expect(navigation.getByRole("link", { name: /Campanhas/ }))
+  await expect(navigation.getByRole("link", { name: /Saúde do SaaS/ }))
     .toBeVisible();
-  await expect(navigation.getByRole("link", { name: /Custos/ }))
+  await expect(navigation.getByRole("link", { name: /Marketing/ }))
     .toBeVisible();
-  await expect(navigation.getByRole("link", { name: /Aquisição e retorno/ }))
-    .toBeVisible();
-  const more = navigation.getByRole("button", {
-    name: /Abrir mais opções/
-  });
-  await expect(more).toBeVisible();
-  await more.click();
   await expect(navigation.getByRole("link", { name: /WhatsApp/ }))
     .toBeVisible();
   await expect(navigation.getByRole("link", { name: /Minha conta/ }))
     .toBeVisible();
-  await navigation.getByRole("button", { name: /Fechar mais opções/ }).click();
+  await expect(
+    navigation.getByRole("button", { name: /Abrir mais opções/ })
+  ).toHaveCount(0);
 
   const consent = page.getByRole("complementary", {
     name: "Preferências de privacidade"
@@ -275,7 +289,7 @@ test("admin e consentimento permanecem navegáveis no celular", async ({ page })
   await expect(consent).toBeHidden();
   await expectNoHorizontalOverflow(page);
 
-  await navigation.getByRole("link", { name: /Custos/ }).click();
+  await page.getByRole("link", { name: "Custos e retorno", exact: true }).click();
   await expect(
     page.getByRole("heading", { name: "Investimento e eficiência" })
   ).toBeVisible();
@@ -293,5 +307,8 @@ test("admin e consentimento permanecem navegáveis no celular", async ({ page })
   await expect(page.getByRole("progressbar")).toHaveCount(2);
   await expect(page.getByText("Investimento por campanha")).toBeVisible();
   await expect(page.getByText("Sessões atribuídas por campanha")).toBeVisible();
+  await expect(
+    navigation.getByRole("link", { name: /Marketing/ })
+  ).toHaveClass(/active/);
   await expectNoHorizontalOverflow(page);
 });

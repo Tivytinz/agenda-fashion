@@ -229,7 +229,7 @@ export function AdminMarketingPage() {
 
   if (!data && !error) {
     return (
-      <main className="workspace-page admin-workspace-page admin-marketing-page marketing-command-page">
+      <main className="workspace-page admin-workspace-page admin-marketing-page marketing-command-page marketing-command-page-v3">
         <LoadingState>Carregando Marketing...</LoadingState>
       </main>
     );
@@ -237,7 +237,7 @@ export function AdminMarketingPage() {
 
   if (!data && error) {
     return (
-      <main className="workspace-page admin-workspace-page admin-marketing-page marketing-command-page">
+      <main className="workspace-page admin-workspace-page admin-marketing-page marketing-command-page marketing-command-page-v3">
         <ErrorState
           message={error}
           onRetry={() => setReloadKey((current) => current + 1)}
@@ -246,16 +246,24 @@ export function AdminMarketingPage() {
     );
   }
 
-  const headlineCards = [
+  const paidCoverage =
+    data?.funnel?.qualidadeMensuracao?.coberturaAtribuicaoPagaPercentual ??
+    attribution.coverage;
+  const ga4Configured = data?.ga4?.configurado === true;
+  const ga4Summary = data?.ga4?.resumo || {};
+
+  const journeyCards = [
+    [
+      "Sessões no site",
+      ga4Configured ? number(ga4Summary.sessoes) : "—",
+      ga4Configured
+        ? `${number(ga4Summary.usuarios)} usuários no GA4`
+        : "GA4 indisponível para este período"
+    ],
     [
       "Cadastros profissionais",
       number(professionalSummary.cadastros),
       "entrada do funil profissional"
-    ],
-    [
-      "Negócios publicados",
-      number(professionalSummary.negociosPublicados),
-      `${formatMetricPercent(professionalSummary.taxaPublicacao)} dos cadastros`
     ],
     [
       "Primeiros agendamentos",
@@ -269,21 +277,17 @@ export function AdminMarketingPage() {
     ]
   ];
 
-  const paidCoverage =
-    data?.funnel?.qualidadeMensuracao?.coberturaAtribuicaoPagaPercentual ??
-    attribution.coverage;
-
   return (
     <main
       aria-busy={refreshing}
-      className="workspace-page admin-workspace-page admin-marketing-page marketing-command-page"
+      className="workspace-page admin-workspace-page admin-marketing-page marketing-command-page marketing-command-page-v3"
     >
-      <header className="marketing-command-hero">
+      <header className="marketing-command-hero marketing-command-hero-v3">
         <div>
-          <p className="eyebrow">Marketing · sincronização + análise</p>
-          <h1>Campanhas e tráfego pago</h1>
+          <p className="eyebrow">Marketing</p>
+          <h1>Marketing e aquisição</h1>
           <p>
-            Sincronize as plataformas e acompanhe o caminho real da aquisição até ativação, primeiro agendamento e monetização.
+            Entenda de onde as pessoas chegam, como navegam e quantas avançam até ativação, primeiro agendamento e assinatura.
           </p>
         </div>
 
@@ -320,54 +324,57 @@ export function AdminMarketingPage() {
       )}
       {error && <p className="form-error" role="alert">{error}</p>}
 
-      <section className="marketing-health-strip" aria-label="Confiabilidade da mensuração">
-        <div>
-          <span>Mensuração paga</span>
-          <h2>Qualidade da medição paga</h2>
-          <strong>
+      <section className="marketing-trust-bar" aria-label="Confiabilidade dos dados">
+        <div className="marketing-trust-copy">
+          <span>Dados conectados</span>
+          <strong>Comportamento + funil + atribuição</strong>
+          <small>
+            GA4 explica a navegação. O banco do AF continua sendo a fonte para ativação, agendamento, assinatura e receita.
+          </small>
+        </div>
+
+        <div className="marketing-trust-signals">
+          <span className={`marketing-trust-chip ${ga4Configured ? "is-success" : "is-warning"}`}>
+            {ga4Configured ? "GA4 conectado" : "GA4 indisponível"}
+          </span>
+          <span className={`marketing-trust-chip ${pendingSessions > 0 ? "is-warning" : "is-success"}`}>
             {attribution.detectedPaidSessions === 0
-              ? "Sem volume pago"
-              : formatMetricPercent(paidCoverage)}
-          </strong>
+              ? "Sem tráfego pago"
+              : `${formatMetricPercent(paidCoverage)} atribuído`}
+          </span>
           {officialSessions > 0 && (
             <small>{directSessions} diretas + {assistedSessions} assistidas</small>
           )}
         </div>
-        <article className="metric-card marketing-coverage-card">
-          <span>Cobertura de atribuição</span>
-          <strong>{formatMetricPercent(paidCoverage)}</strong>
-          <small>
-            {pendingSessions > 0
-              ? `${pendingSessions} sessão(ões) paga(s) ainda fora dos KPIs por campanha`
-              : "tráfego pago atribuível com segurança"}
-          </small>
-        </article>
       </section>
 
-      <section className="marketing-kpi-grid" aria-label="Resultados do funil profissional">
-        {headlineCards.map(([label, value, hint]) => (
-          <article className="marketing-kpi-card" key={label}>
-            <span>{label}</span>
-            <strong>{value}</strong>
-            <small>{hint}</small>
+      <section className="marketing-journey-grid" aria-label="Jornada de aquisição">
+        {journeyCards.map(([label, value, hint], index) => (
+          <article className="marketing-journey-card" key={label}>
+            <span className="marketing-journey-index">{index + 1}</span>
+            <div>
+              <span>{label}</span>
+              <strong>{value}</strong>
+              <small>{hint}</small>
+            </div>
           </article>
         ))}
       </section>
 
-      <section className="panel marketing-funnel-panel">
+      <section className="panel marketing-funnel-panel marketing-funnel-panel-v3">
         <div className="panel-heading">
           <div>
             <p className="eyebrow">Funil profissional</p>
             <h2>Da aquisição ao resultado</h2>
             <p className="muted">
-              Cadastro não é sucesso final. O AF acompanha a progressão até o primeiro agendamento e a assinatura.
+              O AF mede o avanço real depois do cadastro. Publicação, primeiro agendamento e assinatura valem mais do que volume bruto de entrada.
             </p>
           </div>
           <Link
             className="button button-secondary button-small"
             to="/admin/trafego-pago/profissionais"
           >
-            Ver análise completa
+            Ver funil completo
           </Link>
         </div>
 
@@ -387,24 +394,20 @@ export function AdminMarketingPage() {
 
       <MarketingGa4Panel data={data?.ga4} />
 
-      <MarketingSyncPanel
-        onChanged={() => setReloadKey((current) => current + 1)}
-      />
-
-      <section className="panel marketing-analysis-panel">
+      <section className="panel marketing-analysis-panel marketing-analysis-panel-v3">
         <div className="panel-heading">
           <div>
-            <p className="eyebrow">Campanhas</p>
-            <h2>Tráfego reconhecido</h2>
+            <p className="eyebrow">Aquisição comprovada</p>
+            <h2>Campanhas reconhecidas pelo AF</h2>
             <p className="muted">
-              O painel mostra a origem que o AF conseguiu comprovar. Campanhas ambíguas continuam nas pendências de atribuição.
+              Aqui entram apenas origens que o AF conseguiu comprovar. Ambiguidade continua fora de CAC, ROAS e decisões por campanha.
             </p>
           </div>
           <Link
             className="button button-secondary button-small"
             to="/admin/trafego-pago/custos"
           >
-            Ver custos
+            Ver custos e retorno
           </Link>
         </div>
 
@@ -466,6 +469,10 @@ export function AdminMarketingPage() {
           </div>
         )}
       </section>
+
+      <MarketingSyncPanel
+        onChanged={() => setReloadKey((current) => current + 1)}
+      />
     </main>
   );
 }

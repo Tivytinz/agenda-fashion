@@ -23,6 +23,10 @@ function EmptyList({ children }) {
   return <p className="muted marketing-ga4-empty">{children}</p>;
 }
 
+function AnalyticsList({ children }) {
+  return <div className="marketing-ga4-list marketing-ga4-list-v3">{children}</div>;
+}
+
 export function MarketingGa4Panel({ data }) {
   const configured = data?.configurado === true;
   const enabled = data?.habilitado === true;
@@ -34,14 +38,17 @@ export function MarketingGa4Panel({ data }) {
   const locations = data?.localidades || [];
 
   return (
-    <section className="panel marketing-ga4-panel" aria-label="Google Analytics 4">
-      <div className="marketing-ga4-heading">
+    <section
+      className="panel marketing-ga4-panel marketing-ga4-panel-v3"
+      aria-label="Google Analytics 4"
+    >
+      <div className="marketing-ga4-heading marketing-ga4-heading-v3">
         <div>
-          <p className="eyebrow">Comportamento</p>
-          <h2>Google Analytics 4</h2>
+          <p className="eyebrow">Comportamento no site</p>
+          <h2>O que acontece depois do clique</h2>
           <p className="muted">
-            O GA4 explica como as pessoas chegam e navegam. Ativação, agendamento,
-            assinatura e receita continuam vindo do banco do Agenda Fashion.
+            O GA4 mostra navegação e interesse. Ativação, agendamento, assinatura
+            e receita continuam vindo do banco do Agenda Fashion.
           </p>
         </div>
         <span
@@ -50,7 +57,7 @@ export function MarketingGa4Panel({ data }) {
           }`}
         >
           {configured
-            ? "Leitura conectada"
+            ? "GA4 conectado"
             : enabled
               ? "Configuração incompleta"
               : "Leitura desativada"}
@@ -64,11 +71,11 @@ export function MarketingGa4Panel({ data }) {
         </div>
       ) : !configured ? (
         <div className="marketing-ga4-notice">
-          <strong>Coleta e leitura são configurações diferentes</strong>
+          <strong>Leitura do GA4 ainda não está disponível</strong>
           <p>
-            O AF já possui suporte à coleta GA4 com consentimento. Para exibir relatórios aqui,
-            configure a Data API e conceda acesso de leitura da propriedade à conta
-            de serviço do backend.
+            A coleta e a leitura administrativa são configurações diferentes.
+            Quando a Data API estiver disponível, o comportamento aparecerá aqui
+            sem alterar a fonte de verdade do funil do AF.
           </p>
         </div>
       ) : (
@@ -81,38 +88,43 @@ export function MarketingGa4Panel({ data }) {
                 {data.dadosLimitados
                   ? "Também pode haver agregação por cardinalidade ou limiar de privacidade. "
                   : ""}
-                Use estes números como leitura de comportamento; as métricas comerciais
-                e financeiras continuam vindo do AF.
+                Use estes números como leitura de comportamento; as métricas
+                comerciais e financeiras continuam vindo do AF.
               </p>
             </div>
           )}
 
-          <div className="marketing-ga4-kpis" aria-label="Resumo do GA4">
+          <div className="marketing-ga4-kpis marketing-ga4-kpis-v3" aria-label="Resumo do GA4">
             {[
-              ["Sessões", number(summary.sessoes)],
-              ["Usuários", number(summary.usuarios)],
-              ["Novos usuários", number(summary.novosUsuarios)],
-              ["Sessões engajadas", number(summary.sessoesEngajadas)],
-              ["Taxa de engajamento", formatPercent(summary.taxaEngajamentoPercentual)],
-              ["Visualizações", number(summary.visualizacoes)]
-            ].map(([label, value]) => (
+              ["Sessões", number(summary.sessoes), "visitas no período"],
+              ["Usuários", number(summary.usuarios), `${number(summary.novosUsuarios)} novos`],
+              [
+                "Engajamento",
+                formatPercent(summary.taxaEngajamentoPercentual),
+                `${number(summary.sessoesEngajadas)} sessões engajadas`
+              ],
+              ["Visualizações", number(summary.visualizacoes), "páginas e telas vistas"]
+            ].map(([label, value, hint]) => (
               <article key={label}>
                 <span>{label}</span>
                 <strong>{value}</strong>
+                <small>{hint}</small>
               </article>
             ))}
           </div>
 
-          <div className="marketing-ga4-grid">
+          <div className="marketing-ga4-priority-grid">
             <section className="marketing-ga4-block" aria-label="Canais no GA4">
               <div className="marketing-ga4-block-heading">
-                <strong>Canais</strong>
-                <small>Origem da sessão</small>
+                <div>
+                  <strong>De onde chegam</strong>
+                  <small>Canais e origem da sessão</small>
+                </div>
               </div>
               {channels.length === 0 ? (
                 <EmptyList>Sem sessões por canal neste período.</EmptyList>
               ) : (
-                <div className="marketing-ga4-list">
+                <AnalyticsList>
                   {channels.slice(0, 8).map((item, index) => (
                     <article key={`${item.canal}-${item.origem}-${item.midia}-${index}`}>
                       <div>
@@ -125,20 +137,76 @@ export function MarketingGa4Panel({ data }) {
                       </div>
                     </article>
                   ))}
+                </AnalyticsList>
+              )}
+            </section>
+
+            <section className="marketing-ga4-block" aria-label="Landing pages no GA4">
+              <div className="marketing-ga4-block-heading">
+                <div>
+                  <strong>Onde entram</strong>
+                  <small>Landing pages sem query string ou click IDs</small>
                 </div>
+              </div>
+              {landingPages.length === 0 ? (
+                <EmptyList>Sem landing pages no período selecionado.</EmptyList>
+              ) : (
+                <div className="marketing-ga4-landing-list marketing-ga4-landing-list-v3">
+                  {landingPages.slice(0, 8).map((item, index) => (
+                    <article key={`${item.pagina}-${index}`}>
+                      <strong>{item.pagina}</strong>
+                      <span>{number(item.sessoes)} sessões</span>
+                      <span>{number(item.usuarios)} usuários</span>
+                    </article>
+                  ))}
+                </div>
+              )}
+            </section>
+          </div>
+
+          <div className="marketing-ga4-secondary-grid">
+            <section className="marketing-ga4-block" aria-label="Campanhas vistas pelo GA4">
+              <div className="marketing-ga4-block-heading">
+                <div>
+                  <strong>Campanhas no GA4</strong>
+                  <small>Comportamento, não atribuição financeira</small>
+                </div>
+              </div>
+              {campaigns.length === 0 ? (
+                <EmptyList>Nenhuma campanha identificada pelo GA4 neste período.</EmptyList>
+              ) : (
+                <AnalyticsList>
+                  {campaigns.slice(0, 6).map((item, index) => (
+                    <article key={`${item.id || item.nome}-${index}`}>
+                      <div>
+                        <strong>{item.nome || "Campanha não identificada"}</strong>
+                        <small>
+                          {item.origem} / {item.midia}
+                          {item.id && item.id !== "(not set)" ? ` · ID ${item.id}` : ""}
+                        </small>
+                      </div>
+                      <div className="marketing-ga4-list-value">
+                        <strong>{number(item.sessoes)}</strong>
+                        <small>{number(item.sessoesEngajadas)} engajadas</small>
+                      </div>
+                    </article>
+                  ))}
+                </AnalyticsList>
               )}
             </section>
 
             <section className="marketing-ga4-block" aria-label="Dispositivos no GA4">
               <div className="marketing-ga4-block-heading">
-                <strong>Dispositivos</strong>
-                <small>Onde a experiência acontece</small>
+                <div>
+                  <strong>Dispositivos</strong>
+                  <small>Onde a experiência acontece</small>
+                </div>
               </div>
               {devices.length === 0 ? (
                 <EmptyList>Sem dados de dispositivo neste período.</EmptyList>
               ) : (
-                <div className="marketing-ga4-list">
-                  {devices.map((item, index) => (
+                <AnalyticsList>
+                  {devices.slice(0, 5).map((item, index) => (
                     <article key={`${item.categoria}-${index}`}>
                       <div>
                         <strong>{deviceLabel(item.categoria)}</strong>
@@ -150,26 +218,26 @@ export function MarketingGa4Panel({ data }) {
                       </div>
                     </article>
                   ))}
-                </div>
+                </AnalyticsList>
               )}
             </section>
 
             <section className="marketing-ga4-block" aria-label="Localidades no GA4">
               <div className="marketing-ga4-block-heading">
-                <strong>Localização</strong>
-                <small>Distribuição geográfica agregada</small>
+                <div>
+                  <strong>Localização</strong>
+                  <small>Distribuição geográfica agregada</small>
+                </div>
               </div>
               {locations.length === 0 ? (
                 <EmptyList>Sem dados de localização neste período.</EmptyList>
               ) : (
-                <div className="marketing-ga4-list">
-                  {locations.slice(0, 8).map((item, index) => (
+                <AnalyticsList>
+                  {locations.slice(0, 6).map((item, index) => (
                     <article key={`${item.pais}-${item.regiao}-${item.cidade}-${index}`}>
                       <div>
                         <strong>{item.cidade || "Não identificada"}</strong>
-                        <small>
-                          {[item.regiao, item.pais].filter(Boolean).join(" · ")}
-                        </small>
+                        <small>{[item.regiao, item.pais].filter(Boolean).join(" · ")}</small>
                       </div>
                       <div className="marketing-ga4-list-value">
                         <strong>{number(item.sessoes)}</strong>
@@ -177,59 +245,10 @@ export function MarketingGa4Panel({ data }) {
                       </div>
                     </article>
                   ))}
-                </div>
+                </AnalyticsList>
               )}
             </section>
           </div>
-
-          <section className="marketing-ga4-block" aria-label="Campanhas vistas pelo GA4">
-            <div className="marketing-ga4-block-heading">
-              <strong>Campanhas vistas pelo GA4</strong>
-              <small>Para comparar comportamento com a atribuição oficial do AF</small>
-            </div>
-            {campaigns.length === 0 ? (
-              <EmptyList>Nenhuma campanha identificada pelo GA4 neste período.</EmptyList>
-            ) : (
-              <div className="marketing-ga4-campaign-grid">
-                {campaigns.slice(0, 8).map((item, index) => (
-                  <article key={`${item.id || item.nome}-${index}`}>
-                    <div>
-                      <strong>{item.nome || "Campanha não identificada"}</strong>
-                      <small>
-                        {item.origem} / {item.midia}
-                        {item.id && item.id !== "(not set)" ? ` · ID ${item.id}` : ""}
-                      </small>
-                    </div>
-                    <div className="marketing-ga4-mini-metrics">
-                      <span><strong>{number(item.sessoes)}</strong> sessões</span>
-                      <span><strong>{number(item.usuarios)}</strong> usuários</span>
-                      <span><strong>{number(item.sessoesEngajadas)}</strong> engajadas</span>
-                    </div>
-                  </article>
-                ))}
-              </div>
-            )}
-          </section>
-
-          <section className="marketing-ga4-block" aria-label="Landing pages no GA4">
-            <div className="marketing-ga4-block-heading">
-              <strong>Landing pages</strong>
-              <small>Caminho sem query string, UTMs ou click IDs</small>
-            </div>
-            {landingPages.length === 0 ? (
-              <EmptyList>Sem landing pages no período selecionado.</EmptyList>
-            ) : (
-              <div className="marketing-ga4-landing-list">
-                {landingPages.slice(0, 8).map((item, index) => (
-                  <article key={`${item.pagina}-${index}`}>
-                    <strong>{item.pagina}</strong>
-                    <span>{number(item.sessoes)} sessões</span>
-                    <span>{number(item.usuarios)} usuários</span>
-                  </article>
-                ))}
-              </div>
-            )}
-          </section>
 
           <p className="marketing-ga4-footnote">
             Fonte: {data.fonte || "Google Analytics 4"}
