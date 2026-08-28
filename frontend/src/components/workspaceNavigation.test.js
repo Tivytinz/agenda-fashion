@@ -49,20 +49,20 @@ describe("navegação mobile da área de trabalho", () => {
     ).toBe(false);
   });
 
-  it("mantém a raiz do admin exata nas páginas de Custos e Funil", () => {
+  it("mantém Marketing ativo nas páginas internas de custos e funil", () => {
     expect(
       isExactNavigationRoute("/admin/trafego-pago")
-    ).toBe(true);
+    ).toBe(false);
     expect(
       isWorkspaceRouteActive(
         "/admin/trafego-pago/custos",
         "/admin/trafego-pago"
       )
-    ).toBe(false);
+    ).toBe(true);
     expect(
       isWorkspaceRouteActive(
-        "/admin/trafego-pago/custos",
-        "/admin/trafego-pago/custos"
+        "/admin/trafego-pago/profissionais",
+        "/admin/trafego-pago"
       )
     ).toBe(true);
   });
