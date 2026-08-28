@@ -1,5 +1,6 @@
 const costSyncService = require("./marketingCostSyncService");
 const campaignSyncService = require("./marketingCampaignSyncService");
+const providers = require("./marketingCostProviders");
 const repository = require("../repositories/marketingCostSyncRepository");
 
 const INACTIVE_STATUSES = new Set([
@@ -17,26 +18,32 @@ function isOperational(item) {
   return !INACTIVE_STATUSES.has(status);
 }
 
-async function reconcileProviderCampaigns({ provedor, usuarioId }) {
+async function reconcileProviderCampaigns({
+  provedor,
+  usuarioId,
+  payload
+}) {
   const provider = costSyncService.normalizarProvedor(provedor);
-  const [external, links] = await Promise.all([
-    costSyncService.listarCampanhasExternas({ provedor: provider }),
+  const periodo = costSyncService.periodoPadrao(payload);
+
+  /*
+   * Valida conexão e moeda antes de criar qualquer identidade interna.
+   * Assim uma conta incompatível não deixa campanhas importadas pela metade.
+   */
+  await costSyncService.testarIntegracao({
+    provedor: provider
+  });
+
+  const [externalCampaigns, costs, links] = await Promise.all([
+    providers.listarCampanhas(provider),
+    providers.listarCustos(provider, periodo),
     repository.buscarVinculosPorProvedor(provider)
   ]);
-
-  const accountId = external?.contaExternaId || null;
-  const externalCampaigns = (external?.campanhas || []).map((item) => ({
-    contaExternaId: accountId,
-    campanhaExternaId: item.id,
-    campanhaExternaNome: item.nome,
-    status: item.status,
-    tipo: item.tipo
-  }));
 
   return campaignSyncService.reconcileExternalCampaigns({
     provider,
     externalCampaigns,
-    costs: [],
+    costs,
     links,
     userId: usuarioId,
     isOperational
@@ -46,7 +53,8 @@ async function reconcileProviderCampaigns({ provedor, usuarioId }) {
 async function sincronizar(args) {
   const reconciliacao = await reconcileProviderCampaigns({
     provedor: args?.provedor,
-    usuarioId: args?.usuarioId
+    usuarioId: args?.usuarioId,
+    payload: args?.payload
   });
 
   const resultado = await costSyncService.sincronizar(args);
