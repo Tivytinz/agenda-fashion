@@ -215,14 +215,18 @@ export function AdminProfessionalFunnelPage() {
     );
   }
 
-  const summary = data?.resumoOficial || data?.resumo || {};
+  const operationalSummary = data?.resumo || data?.resumoOficial || {};
+  const financialSummary = data?.resumoOficial || data?.resumo || {};
+  const summary = operationalSummary;
   const decision = data?.decisao || {};
   const decisionCounts = decision?.contagem || {};
   const campaigns = data?.campanhasOficiais || data?.campanhas || [];
   const attributionDiagnostic = data?.diagnosticoAtribuicao || {};
   const measurementQuality = data?.qualidadeMensuracao || {};
   const signupAttributionQuality = paidAttributionQuality({
-    official: attributionDiagnostic.cadastrosOficiais ?? summary.cadastros,
+    official:
+      attributionDiagnostic.cadastrosOficiais ??
+      financialSummary.cadastros,
     missingCampaign: attributionDiagnostic.cadastrosSemCampanha,
     unofficialIdentity: attributionDiagnostic.cadastrosIdentidadeNaoOficial
   });
@@ -259,77 +263,96 @@ export function AdminProfessionalFunnelPage() {
       signupsWithoutEvidence === 0 &&
       (paidCoverage === null || Number(paidCoverage) >= minimumCoverage)
     );
-  const investment = Number(summary.investimentoCentavos || 0);
-  const signups = Number(summary.cadastros || 0);
-  const subscriptions = Number(summary.assinaturasAtivadas || 0);
-  const firstAppointments = Number(summary.primeirosAgendamentos || 0);
+  const investment = Number(
+    financialSummary.investimentoCentavos || 0
+  );
+  const signups = Number(
+    operationalSummary.cadastros || 0
+  );
+  const officialSignups = Number(
+    financialSummary.cadastros || 0
+  );
+  const officialSubscriptions = Number(
+    financialSummary.assinaturasAtivadas || 0
+  );
+  const officialFirstAppointments = Number(
+    financialSummary.primeirosAgendamentos || 0
+  );
+  const grossInvestmentPerSignup =
+    investment > 0 && signups > 0
+      ? Math.round(investment / signups)
+      : null;
   const profitabilityTone = !measurementReady
     ? "warning"
     : investment <= 0
     ? "neutral"
-    : signups === 0
+    : officialSignups === 0
       ? "critical"
-      : firstAppointments === 0 || subscriptions === 0 || Number(summary.roas || 0) < Number(decision.metaRoas || 1)
+      : officialFirstAppointments === 0 ||
+        officialSubscriptions === 0 ||
+        Number(financialSummary.roas || 0) < Number(decision.metaRoas || 1)
         ? "warning"
         : "success";
   const profitabilityStatus = !measurementReady
     ? "Mensuração incompleta"
     : investment <= 0
     ? "Sem investimento"
-    : signups === 0
-      ? "Aquisição sem cadastro"
-      : firstAppointments === 0
+    : officialSignups === 0
+      ? "Aquisição sem cadastro atribuído"
+      : officialFirstAppointments === 0
         ? "Ativação em atenção"
-        : subscriptions === 0
+        : officialSubscriptions === 0
           ? "Monetização em análise"
-          : Number(summary.roas || 0) < Number(decision.metaRoas || 1)
+          : Number(financialSummary.roas || 0) < Number(decision.metaRoas || 1)
           ? "Retorno abaixo da meta"
           : "Aquisição rentável";
 
   const cards = [
     [
       "Cadastros profissionais",
-      summary.cadastros ?? 0,
+      operationalSummary.cadastros ?? 0,
       !measurementReady
-        ? "coorte oficial parcial; custo bloqueado"
-        : summary.custoCadastroCentavos === null
-        ? "atribuídos a campanhas oficiais"
-        : `${formatMoney(summary.custoCadastroCentavos)} por cadastro`
+        ? `${officialSignups} oficiais · ${signupAttributionQuality.pendingSessions} pagos pendentes · ${signupsWithoutEvidence} sem evidência`
+        : financialSummary.custoCadastroCentavos === null
+        ? `${officialSignups} com atribuição oficial`
+        : `${officialSignups} oficiais · ${formatMoney(financialSummary.custoCadastroCentavos)} por cadastro atribuído`
     ],
     [
       "Negócios publicados",
-      summary.negociosPublicados ?? 0,
-      `${summary.taxaPublicacao ?? 0}% dos cadastros`
+      operationalSummary.negociosPublicados ?? 0,
+      `${operationalSummary.taxaPublicacao ?? 0}% dos cadastros do período`
     ],
     [
       "Primeiros agendamentos",
-      summary.primeirosAgendamentos ?? 0,
-      `${summary.taxaPrimeiroAgendamento ?? 0}% dos cadastros`
+      operationalSummary.primeirosAgendamentos ?? 0,
+      `${operationalSummary.taxaPrimeiroAgendamento ?? 0}% dos cadastros do período`
     ],
     [
       "Assinaturas ativadas",
-      summary.assinaturasAtivadas ?? 0,
+      operationalSummary.assinaturasAtivadas ?? 0,
       !measurementReady
-        ? "resultado parcial; CAC bloqueado"
-        : summary.cacAssinanteCentavos === null
-        ? `${summary.taxaAssinatura ?? 0}% dos cadastros`
-        : `CAC ${formatMoney(summary.cacAssinanteCentavos)}`
+        ? "total operacional; CAC atribuído bloqueado"
+        : financialSummary.cacAssinanteCentavos === null
+        ? `${officialSubscriptions} assinaturas na coorte oficial`
+        : `${officialSubscriptions} oficiais · CAC ${formatMoney(financialSummary.cacAssinanteCentavos)}`
     ],
     [
       "Investimento",
-      formatMoney(summary.investimentoCentavos ?? 0),
-      "gasto atribuído no período"
+      formatMoney(financialSummary.investimentoCentavos ?? 0),
+      "gasto atribuído a campanhas oficiais no período"
     ],
     [
       "Receita atribuída",
-      formatMoney(summary.receitaPrimeiroPagamentoCentavos ?? 0),
+      formatMoney(financialSummary.receitaPrimeiroPagamentoCentavos ?? 0),
       measurementReady
-        ? "primeiro pagamento da aquisição"
+        ? "primeiro pagamento da aquisição atribuída"
         : "valor parcial; não usar para decisão"
     ],
     [
       "ROAS de aquisição",
-      measurementReady ? formatRoas(summary.roas) : "Aguardando cobertura",
+      measurementReady
+        ? formatRoas(financialSummary.roas)
+        : "Aguardando cobertura",
       measurementReady
         ? "receita atribuída ÷ investimento"
         : "decisão financeira bloqueada"
@@ -401,7 +424,7 @@ export function AdminProfessionalFunnelPage() {
           <p className="eyebrow">Administração do AF</p>
           <h1>Aquisição e retorno de profissionais</h1>
           <p>
-            Acompanhe aquisição, ativação, primeiro agendamento e retorno atribuído. CAC e ROAS só orientam orçamento quando a mensuração está completa.
+            Acompanhe o funil operacional completo e, separadamente, o retorno atribuído. CAC e ROAS só orientam orçamento quando a mensuração está completa.
           </p>
         </div>
 
@@ -440,36 +463,44 @@ export function AdminProfessionalFunnelPage() {
       <MarketingExecutivePanel
         action={!measurementReady
           ? "corrija os cadastros pagos pendentes e os registros sem evidência de origem antes de alterar orçamento."
-          : investment > 0 && signups === 0
+          : investment > 0 && officialSignups === 0
           ? "não aumente o orçamento ainda. Valide a landing page, o formulário de cadastro, o evento de conversão e a preservação do identificador de clique."
-          : firstAppointments === 0 && signups > 0
+          : officialFirstAppointments === 0 && officialSignups > 0
             ? "identifique o primeiro marco com maior perda antes de alterar segmentação ou orçamento."
-            : subscriptions === 0 && signups > 0
+            : officialSubscriptions === 0 && officialSignups > 0
               ? "revise a proposta do plano pago sem tratar o uso gratuito como falha de aquisição."
             : "compare CAC e ROAS com a régua de decisão antes de escalar."}
         metrics={[
           {
-            label: "Custo por cadastro",
+            label: measurementReady
+              ? "Custo por cadastro atribuído"
+              : "Investimento por cadastro total",
             value: measurementReady
-              ? formatMoney(summary.custoCadastroCentavos)
-              : "Aguardando cobertura",
+              ? formatMoney(financialSummary.custoCadastroCentavos)
+              : formatMoney(grossInvestmentPerSignup),
             hint: measurementReady
-              ? (signups > 0 ? `${signups} cadastros oficiais` : "não calculável sem cadastro")
-              : "coorte oficial ainda parcial"
+              ? (officialSignups > 0
+                ? `${officialSignups} cadastros oficiais`
+                : "não calculável sem cadastro atribuído")
+              : grossInvestmentPerSignup !== null
+                ? "investimento oficial ÷ todos os cadastros; diagnóstico bruto, não CPA atribuído"
+                : "sem base para o diagnóstico bruto"
           },
           {
             label: "CAC assinante",
             value: measurementReady
-              ? formatMoney(summary.cacAssinanteCentavos)
+              ? formatMoney(financialSummary.cacAssinanteCentavos)
               : "Aguardando cobertura",
             hint: measurementReady
-              ? (subscriptions > 0 ? `${subscriptions} assinaturas ativadas` : "não calculável sem assinatura")
+              ? (officialSubscriptions > 0
+                ? `${officialSubscriptions} assinaturas ativadas na coorte oficial`
+                : "não calculável sem assinatura atribuída")
               : "não use o valor parcial para decisão"
           },
           {
             label: "ROAS",
             value: measurementReady
-              ? formatRoas(summary.roas)
+              ? formatRoas(financialSummary.roas)
               : "Aguardando cobertura",
             hint: measurementReady
               ? `meta ${formatRoas(decision.metaRoas)}`
@@ -488,16 +519,16 @@ export function AdminProfessionalFunnelPage() {
         ]}
         status={profitabilityStatus}
         summary={!measurementReady
-          ? `A coorte oficial ainda está incompleta: ${signupAttributionQuality.pendingSessions} cadastro(s) pago(s) aguardam vínculo e ${signupsWithoutEvidence} não têm evidência de origem. CAC, ROAS e decisões de orçamento permanecem bloqueados.`
+          ? `O período tem ${signups} cadastro(s) profissional(is), dos quais ${officialSignups} têm atribuição oficial. ${signupAttributionQuality.pendingSessions} cadastro(s) pago(s) aguardam vínculo e ${signupsWithoutEvidence} não têm evidência suficiente de origem. CAC, ROAS e decisões de orçamento permanecem bloqueados.`
           : investment <= 0
           ? "Não há investimento profissional registrado no período selecionado."
-          : signups === 0
+          : officialSignups === 0
             ? `${formatMoney(investment)} foram investidos, mas nenhum cadastro profissional oficial foi atribuído. CAC não é zero: ele ainda não pode ser calculado.`
-            : firstAppointments === 0
-              ? `A campanha gerou ${signups} cadastros, mas nenhum primeiro agendamento. O gargalo está na ativação do valor gratuito.`
-              : subscriptions === 0
-                ? `A coorte já recebeu ${firstAppointments} primeiro(s) agendamento(s), mas ainda não ativou assinatura paga. Revise monetização sem pausar mídia apenas por esse motivo.`
-              : `A coorte gerou ${subscriptions} assinaturas e ROAS de ${formatRoas(summary.roas)} no primeiro pagamento.`}
+            : officialFirstAppointments === 0
+              ? `A coorte oficial gerou ${officialSignups} cadastros, mas nenhum primeiro agendamento. O gargalo está na ativação do valor gratuito.`
+              : officialSubscriptions === 0
+                ? `A coorte oficial já recebeu ${officialFirstAppointments} primeiro(s) agendamento(s), mas ainda não ativou assinatura paga. Revise monetização sem pausar mídia apenas por esse motivo.`
+              : `A coorte oficial gerou ${officialSubscriptions} assinaturas e ROAS de ${formatRoas(financialSummary.roas)} no primeiro pagamento.`}
         title="Diagnóstico de aquisição profissional"
         tone={profitabilityTone}
       />
@@ -505,7 +536,7 @@ export function AdminProfessionalFunnelPage() {
       <section className="admin-attribution-overview" aria-label="Qualidade da atribuição dos cadastros">
         <div>
           <span>Oficiais</span>
-          <strong>{attributionDiagnostic.cadastrosOficiais ?? summary.cadastros ?? 0}</strong>
+          <strong>{attributionDiagnostic.cadastrosOficiais ?? officialSignups}</strong>
           <small>{measurementReady ? "entram em CAC e ROAS" : "base oficial ainda parcial"}</small>
         </div>
         <div>
@@ -580,9 +611,9 @@ export function AdminProfessionalFunnelPage() {
         <div className="panel-heading">
           <div>
             <p className="eyebrow">Ativação</p>
-            <h2>Marcos alcançados pela coorte</h2>
+            <h2>Marcos alcançados no período</h2>
             <p className="muted">
-              Cada marco é medido de forma independente para os profissionais atribuídos a campanhas oficiais no período selecionado.
+              Cada marco é medido de forma independente para todos os profissionais cadastrados no período selecionado. A atribuição de mídia é analisada separadamente.
             </p>
           </div>
         </div>
@@ -590,16 +621,16 @@ export function AdminProfessionalFunnelPage() {
         <div className="admin-insights-grid">
           <MarketingBarChart
             title="Atingimento por marco"
-            description="Percentual da coorte oficial que já alcançou cada marco."
+            description="Percentual de todos os cadastros profissionais do período que já alcançou cada marco."
             items={stageChartItems}
-            emptyMessage="Ainda não há profissionais nesta coorte."
+            emptyMessage="Ainda não há profissionais cadastrados neste período."
             variant="none"
           />
 
           <div className="admin-stat-table-card">
             <div className="admin-stat-table-heading">
-              <strong>Detalhamento da coorte</strong>
-              <small>Quantidade e participação sobre os cadastros oficiais.</small>
+              <strong>Detalhamento do funil</strong>
+              <small>Quantidade e participação sobre todos os cadastros profissionais do período.</small>
             </div>
             <div className="table-wrap">
               <table className="admin-compact-table">
@@ -631,11 +662,11 @@ export function AdminProfessionalFunnelPage() {
             <p className="eyebrow">Retorno</p>
             <h2>Retorno e decisão por campanha</h2>
             <p className="muted">
-              Compare investimento, receita atribuída, ROAS e CAC. Estes indicadores não representam lucro: custos operacionais, impostos e margem não entram no cálculo. A receita considera somente o primeiro pagamento da aquisição; reembolso zera a receita e renovações posteriores não entram no ROAS.
+              Compare investimento, receita atribuída, ROAS e CAC somente na coorte com atribuição oficial. Estes indicadores não representam lucro: custos operacionais, impostos e margem não entram no cálculo. A receita considera somente o primeiro pagamento da aquisição; reembolso zera a receita e renovações posteriores não entram no ROAS.
             </p>
             <p className="muted">As recomendações são analíticas e não alteram campanhas automaticamente.</p>
             <p className="muted admin-campaign-attribution-note">
-              Identidades UTM históricas equivalentes são consolidadas na campanha canônica para unir investimento e conversões. Os nomes originais continuam disponíveis nos detalhes para auditoria.
+              Identidades UTM históricas equivalentes são consolidadas na campanha canônica para unir investimento e conversões sem reescrever a evidência capturada. Os nomes originais continuam disponíveis nos detalhes para auditoria.
             </p>
           </div>
         </div>
@@ -651,7 +682,7 @@ export function AdminProfessionalFunnelPage() {
         />
 
         {campaigns.length === 0 ? (
-          <p className="muted">Ainda não há profissionais nesta coorte.</p>
+          <p className="muted">Ainda não há campanhas com atribuição oficial nesta coorte.</p>
         ) : (
           <div className="table-wrap admin-chart-table-spacing">
             <table className="admin-decision-table">

@@ -41,21 +41,10 @@ async function recuperarGoogleProfissionaisPorEventos({
           e.sessao_id
         ) AS sessao_id,
         u.created_at AS atribuicao_em,
-        CASE
-          WHEN LOWER(
-            COALESCE(
-              NULLIF(
-                BTRIM(
-                  e.propriedades ->> 'utm_campaign'
-                ),
-                ''
-              ),
-              ''
-            )
-          ) = ANY($2::TEXT[])
-            THEN $1
-          ELSE NULL
-        END AS utm_campaign,
+        NULLIF(
+          BTRIM(e.propriedades ->> 'utm_campaign'),
+          ''
+        ) AS utm_campaign,
         NULLIF(
           BTRIM(e.propriedades ->> 'gclid'),
           ''
@@ -142,7 +131,7 @@ async function recuperarGoogleProfissionaisPorEventos({
                 e.propriedades ->> 'utm_campaign',
                 ''
               )
-            ) = ANY($2::TEXT[])
+            ) = ANY($1::TEXT[])
           )
         )
       ORDER BY
@@ -217,10 +206,7 @@ async function recuperarGoogleProfissionaisPorEventos({
         NULLIF(BTRIM(mua.epik), '')
       ) IS NULL
     `,
-    [
-      campanhaOficial,
-      identidadesAceitas,
-    ]
+    [identidadesAceitas]
   );
 }
 
