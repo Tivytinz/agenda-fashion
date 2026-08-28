@@ -1,5 +1,5 @@
 const registrador = require("../utils/registrador");
-const marketingCostSyncService = require("./marketingCostSyncService");
+const marketingCostSyncService = require("./marketingSyncOrchestratorService");
 const marketingCanonicalCleanupService = require(
   "./marketingCanonicalCleanupService"
 );

@@ -1,4 +1,4 @@
-const service = require("../services/marketingCostSyncService");
+const service = require("../services/marketingSyncOrchestratorService");
 
 async function status(req, res, next) {
   try {

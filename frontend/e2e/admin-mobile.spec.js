@@ -80,6 +80,50 @@ test("admin e consentimento permanecem navegáveis no celular", async ({ page })
       }
     ]
   }));
+  await page.route("**/admin/marketing/funil-profissionais**", (route) => json(route, {
+    resumo: {
+      cadastros: 10,
+      negociosCriados: 8,
+      servicosCriados: 7,
+      negociosPublicados: 6,
+      primeirosAgendamentos: 3,
+      checkoutsIniciados: 2,
+      assinaturasAtivadas: 1,
+      taxaNegocio: 80,
+      taxaServico: 70,
+      taxaPublicacao: 60,
+      taxaPrimeiroAgendamento: 30,
+      taxaCheckout: 20,
+      taxaAssinatura: 10
+    },
+    qualidadeMensuracao: {
+      coberturaAtribuicaoPagaPercentual: 100
+    }
+  }));
+  await page.route("**/admin/marketing/ga4**", (route) => json(route, {
+    habilitado: true,
+    configurado: true,
+    fonte: "Google Analytics 4 · Data API",
+    resumo: {
+      sessoes: 20,
+      usuarios: 16,
+      novosUsuarios: 8,
+      sessoesEngajadas: 13,
+      taxaEngajamentoPercentual: 65,
+      visualizacoes: 40
+    },
+    canais: [],
+    campanhas: [],
+    landingPages: [],
+    dispositivos: [
+      {
+        categoria: "mobile",
+        sessoes: 20,
+        usuarios: 16
+      }
+    ],
+    localidades: []
+  }));
   await page.route("**/admin/marketing/conversoes**", (route) => json(route, {
     conversoes: []
   }));
@@ -170,6 +214,9 @@ test("admin e consentimento permanecem navegáveis no celular", async ({ page })
   await expect(page.getByText("13 diretas + 7 assistidas")).toBeVisible();
   await expect(
     page.getByRole("heading", { name: "Qualidade da medição paga" })
+  ).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Google Analytics 4" })
   ).toBeVisible();
   const navigation = page.getByRole("navigation", {
     name: "Administração do Agenda Fashion"
