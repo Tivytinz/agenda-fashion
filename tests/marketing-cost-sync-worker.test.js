@@ -33,7 +33,7 @@ const mockRegistrador = {
 };
 
 jest.mock(
-  "../src/services/marketingCostSyncService",
+  "../src/services/marketingSyncOrchestratorService",
   () => mockSyncService
 );
 
