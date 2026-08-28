@@ -102,7 +102,7 @@ describe("menu mobile da área de trabalho", () => {
     expect(screen.queryByRole("link", { name: /Horários/ })).toBeNull();
   });
 
-  it("mantém quatro destinos do admin visíveis e leva a conta para Mais", () => {
+  it("mantém os quatro destinos do admin visíveis e Marketing ativo nas rotas internas", () => {
     render(
       <MemoryRouter
         initialEntries={[
@@ -120,13 +120,9 @@ describe("menu mobile da área de trabalho", () => {
       "navigation",
       { name: "Administração do Agenda Fashion" }
     );
-    const campaigns = screen.getByRole(
+    const marketing = screen.getByRole(
       "link",
-      { name: /Campanhas/ }
-    );
-    const costs = screen.getByRole(
-      "link",
-      { name: /Custos/ }
+      { name: /Marketing/ }
     );
 
     expect(
@@ -135,13 +131,11 @@ describe("menu mobile da área de trabalho", () => {
     expect(
       screen.getByRole("link", { name: /Saúde do SaaS/ })
     ).not.toBeNull();
-    expect(campaigns.classList.contains("active")).toBe(false);
-    expect(costs.classList.contains("active")).toBe(true);
+    expect(marketing.classList.contains("active")).toBe(true);
+    expect(screen.getByRole("link", { name: /WhatsApp/ })).not.toBeNull();
+    expect(screen.getByRole("link", { name: /Minha conta/ })).not.toBeNull();
     expect(
-      screen.getByRole("button", { name: /Abrir mais opções/i })
-    ).not.toBeNull();
-    expect(
-      screen.queryByRole("link", { name: /Minha conta/ })
+      screen.queryByRole("button", { name: /Abrir mais opções/i })
     ).toBeNull();
   });
 
@@ -165,7 +159,7 @@ describe("menu mobile da área de trabalho", () => {
       })
     ).not.toBeNull();
     expect(
-      screen.getAllByRole("link", { name: /Aquisição e retorno/ })
+      screen.getAllByRole("link", { name: /Marketing/ })
     ).toHaveLength(2);
     expect(
       screen.getAllByRole("link", { name: /Saúde do SaaS/ })
