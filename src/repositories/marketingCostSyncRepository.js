@@ -12,6 +12,8 @@ async function listarVinculos() {
       v.updated_at,
       c.nome AS campanha_nome,
       c.canal,
+      c.objetivo,
+      c.ativo,
       c.utm_source,
       c.utm_campaign
     FROM marketing_campanha_vinculos v
@@ -37,11 +39,222 @@ async function salvarVinculo({ campanhaId, provedor, contaExternaId, campanhaExt
   return resultado.rows[0];
 }
 
+async function garantirCampanhaImportadaComVinculo({
+  nome,
+  canal,
+  objetivo,
+  utmSource,
+  utmMedium,
+  utmCampaign,
+  utmContent,
+  utmTerm,
+  destinoPath,
+  ativo,
+  criadoPorUsuarioId,
+  provedor,
+  contaExternaId,
+  campanhaExternaId,
+  campanhaExternaNome
+}) {
+  return db.executarTransacao(async (client) => {
+    const vinculoExterno = await client.query(`
+      SELECT
+        v.*,
+        c.nome AS campanha_nome,
+        c.objetivo,
+        c.canal,
+        c.ativo
+      FROM marketing_campanha_vinculos v
+      INNER JOIN marketing_campanhas c
+        ON c.id = v.campanha_id
+      WHERE v.provedor = $1
+        AND v.conta_externa_id = $2
+        AND v.campanha_externa_id = $3
+      LIMIT 1
+      FOR UPDATE OF v
+    `, [
+      provedor,
+      contaExternaId,
+      campanhaExternaId
+    ]);
+
+    if (vinculoExterno.rows[0]) {
+      return {
+        campanhaCriada: false,
+        vinculoCriado: false,
+        campanha: {
+          id: Number(vinculoExterno.rows[0].campanha_id),
+          nome: vinculoExterno.rows[0].campanha_nome,
+          objetivo: vinculoExterno.rows[0].objetivo,
+          canal: vinculoExterno.rows[0].canal,
+          ativo: vinculoExterno.rows[0].ativo
+        },
+        vinculo: vinculoExterno.rows[0]
+      };
+    }
+
+    let campanhaResultado = await client.query(`
+      SELECT
+        id,
+        nome,
+        canal,
+        objetivo,
+        ativo,
+        utm_source,
+        utm_medium,
+        utm_campaign
+      FROM marketing_campanhas
+      WHERE utm_source = $1
+        AND utm_medium = $2
+        AND utm_campaign = $3
+      LIMIT 1
+      FOR UPDATE
+    `, [
+      utmSource,
+      utmMedium,
+      utmCampaign
+    ]);
+
+    let campanha = campanhaResultado.rows[0] || null;
+    let campanhaCriada = false;
+
+    if (!campanha) {
+      campanhaResultado = await client.query(`
+        INSERT INTO marketing_campanhas (
+          nome,
+          canal,
+          objetivo,
+          utm_source,
+          utm_medium,
+          utm_campaign,
+          utm_content,
+          utm_term,
+          destino_path,
+          ativo,
+          criado_por_usuario_id
+        )
+        VALUES (
+          $1, $2, $3, $4, $5, $6,
+          $7, $8, $9, $10, $11
+        )
+        RETURNING
+          id,
+          nome,
+          canal,
+          objetivo,
+          ativo,
+          utm_source,
+          utm_medium,
+          utm_campaign
+      `, [
+        nome,
+        canal,
+        objetivo,
+        utmSource,
+        utmMedium,
+        utmCampaign,
+        utmContent,
+        utmTerm,
+        destinoPath,
+        ativo,
+        criadoPorUsuarioId
+      ]);
+
+      campanha = campanhaResultado.rows[0];
+      campanhaCriada = true;
+    }
+
+    if (
+      campanha.canal !== canal ||
+      (campanha.ativo === false && ativo !== false)
+    ) {
+      return {
+        conflito: true,
+        motivo:
+          campanha.canal !== canal
+            ? "identidade_interna_outro_canal"
+            : "campanha_interna_arquivada",
+        campanhaCriada: false,
+        vinculoCriado: false,
+        campanha,
+        vinculo: null
+      };
+    }
+
+    const vinculoDaCampanha = await client.query(`
+      SELECT *
+      FROM marketing_campanha_vinculos
+      WHERE campanha_id = $1
+        AND provedor = $2
+      LIMIT 1
+      FOR UPDATE
+    `, [
+      campanha.id,
+      provedor
+    ]);
+
+    const existente = vinculoDaCampanha.rows[0] || null;
+
+    if (existente) {
+      const mesmoVinculo =
+        existente.conta_externa_id === contaExternaId &&
+        existente.campanha_externa_id === campanhaExternaId;
+
+      return mesmoVinculo
+        ? {
+            campanhaCriada,
+            vinculoCriado: false,
+            campanha,
+            vinculo: existente
+          }
+        : {
+            conflito: true,
+            motivo: "campanha_interna_ja_vinculada",
+            campanhaCriada: false,
+            vinculoCriado: false,
+            campanha,
+            vinculo: null
+          };
+    }
+
+    const vinculoResultado = await client.query(`
+      INSERT INTO marketing_campanha_vinculos (
+        campanha_id,
+        provedor,
+        conta_externa_id,
+        campanha_externa_id,
+        campanha_externa_nome
+      )
+      VALUES ($1, $2, $3, $4, $5)
+      RETURNING *
+    `, [
+      campanha.id,
+      provedor,
+      contaExternaId,
+      campanhaExternaId,
+      campanhaExternaNome
+    ]);
+
+    return {
+      campanhaCriada,
+      vinculoCriado: true,
+      campanha,
+      vinculo: vinculoResultado.rows[0]
+    };
+  });
+}
+
 async function buscarVinculosPorProvedor(provedor) {
   const resultado = await db.query(`
-    SELECT *
-    FROM marketing_campanha_vinculos
-    WHERE provedor = $1
+    SELECT
+      v.*,
+      c.objetivo,
+      c.ativo,
+      c.canal
+    FROM marketing_campanha_vinculos v
+    INNER JOIN marketing_campanhas c
+      ON c.id = v.campanha_id
+    WHERE v.provedor = $1
   `, [provedor]);
   return resultado.rows;
 }
@@ -246,6 +459,7 @@ async function listarUltimasSincronizacoes() {
 module.exports = {
   listarVinculos,
   salvarVinculo,
+  garantirCampanhaImportadaComVinculo,
   buscarVinculosPorProvedor,
   executarComLockSincronizacao,
   salvarGastoAutomatico,
