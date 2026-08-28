@@ -137,9 +137,12 @@ describe("MarketingSyncPanel", () => {
       screen.queryByText("Campanha do AF")
     ).toBeNull();
 
-    await user.click(
-      screen.getByRole("button", { name: "Sincronizar agora" })
-    );
+    const syncButton = screen
+      .getAllByRole("button", { name: "Sincronizar agora" })
+      .find((button) => !button.disabled);
+
+    expect(syncButton).toBeTruthy();
+    await user.click(syncButton);
 
     await waitFor(() => {
       expect(apiRequest).toHaveBeenCalledWith(
