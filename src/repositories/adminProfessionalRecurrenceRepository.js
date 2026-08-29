@@ -128,6 +128,7 @@ async function listarRecorrencia(
 
     SELECT
       c.usuario_id,
+      c.atribuicao_em,
       c.semana_cadastro,
       c.origem,
       c.midia,
