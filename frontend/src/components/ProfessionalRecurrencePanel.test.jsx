@@ -82,6 +82,11 @@ describe(
         ).not.toBeNull();
         expect(
           screen.getByText(
+            /agendamentos cancelados não contam/i
+          )
+        ).not.toBeNull();
+        expect(
+          screen.getByText(
             /não é retenção D30/i
           )
         ).not.toBeNull();
