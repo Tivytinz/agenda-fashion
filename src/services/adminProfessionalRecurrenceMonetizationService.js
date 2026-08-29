@@ -13,6 +13,11 @@ const {
 } = require(
   "./adminProfessionalRecurrenceCampaignService"
 );
+const {
+  dataLocalSaoPaulo,
+} = require(
+  "./adminProfessionalAcquisitionCostService"
+);
 
 const DIA_MS = 24 * 60 * 60 * 1000;
 const JANELAS_RECORRENCIA = Object.freeze([
@@ -55,6 +60,42 @@ function timestamp(valor) {
     : null;
 }
 
+function ordinalData(valor) {
+  const partes = String(valor || "")
+    .split("-")
+    .map((parte) => Number(parte));
+
+  if (
+    partes.length !== 3 ||
+    partes.some((parte) =>
+      !Number.isInteger(parte)
+    )
+  ) {
+    return null;
+  }
+
+  const [ano, mes, dia] = partes;
+  const convertido = Date.UTC(
+    ano,
+    mes - 1,
+    dia
+  );
+
+  return Number.isFinite(convertido)
+    ? Math.floor(convertido / DIA_MS)
+    : null;
+}
+
+function dataPagamentoLocal(valor) {
+  const texto = String(valor || "").trim();
+
+  if (/^\d{4}-\d{2}-\d{2}$/.test(texto)) {
+    return texto;
+  }
+
+  return dataLocalSaoPaulo(valor);
+}
+
 function estaMaduroDesdeAquisicao(
   atribuicaoEm,
   agora,
@@ -95,10 +136,28 @@ function pagamentoInicialNaJanela(
     return false;
   }
 
-  return ocorreuDentroDaJanela(
-    linha?.atribuicao_em,
-    linha?.primeiro_pagamento_em,
-    diasMonetizacao
+  const aquisicao = ordinalData(
+    dataLocalSaoPaulo(
+      linha?.atribuicao_em
+    )
+  );
+  const pagamento = ordinalData(
+    dataPagamentoLocal(
+      linha?.primeiro_pagamento_em
+    )
+  );
+
+  if (
+    aquisicao === null ||
+    pagamento === null ||
+    pagamento < aquisicao
+  ) {
+    return false;
+  }
+
+  return (
+    pagamento - aquisicao <=
+    numero(diasMonetizacao)
   );
 }
 
@@ -344,7 +403,7 @@ function enriquecerRecorrenciaComMonetizacao({
     metodologia: {
       ...(recorrencia.metodologia || {}),
       monetizacaoRecorrencia:
-        "a monetização usa somente o primeiro pagamento datado de um plano pago do negócio e o considera válido quando seu status atual é CONFIRMED ou RECEIVED, preservando a mesma regra do funil profissional. O pagamento deve ocorrer entre a atribuição e a janela configurada de monetização. As janelas D7, D14 e D30 usam coortes cujo timestamp de aquisição já completou o maior prazo entre monetização e ativação somada à janela de repetição. As taxas mostram coexistência entre repetição de valor e assinatura paga na mesma coorte madura; não provam causalidade e não definem retenção, LTV, payback ou ROAS.",
+        "a monetização usa somente o primeiro pagamento datado de um plano pago do negócio e o considera válido quando seu status atual é CONFIRMED ou RECEIVED, preservando a mesma regra do funil profissional. Como pagamentos.data_pagamento é DATE, a janela financeira é comparada por dia civil em America/Sao_Paulo, entre o dia local da atribuição e o dia-limite configurado. As janelas D7, D14 e D30 usam coortes cujo timestamp de aquisição já completou o maior prazo entre monetização e ativação somada à janela de repetição. As taxas mostram coexistência entre repetição de valor e assinatura paga na mesma coorte madura; não provam causalidade e não definem retenção, LTV, payback ou ROAS.",
     },
   };
 }
@@ -352,6 +411,7 @@ function enriquecerRecorrenciaComMonetizacao({
 module.exports = {
   criarJanelaMonetizacao,
   criarMonetizacaoPorCampanha,
+  dataPagamentoLocal,
   enriquecerRecorrenciaComMonetizacao,
   estaMaduroDesdeAquisicao,
   pagamentoInicialNaJanela,
