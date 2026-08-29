@@ -505,34 +505,33 @@ function criarQualidadeCampanhasOficiais(
   });
 }
 
-async function buscarRecorrencia({
-  periodo,
-  agora = new Date(),
-} = {}) {
-  const resultado =
-    await repository.listarRecorrencia(
-      periodo
-    );
+function criarRespostaRecorrencia(
+  resultado,
+  agora = new Date()
+) {
+  const linhas = Array.isArray(
+    resultado?.linhas
+  )
+    ? resultado.linhas
+    : [];
   const coortesSemanais =
     criarCoortesSemanais(
-      resultado.linhas,
+      linhas,
       agora
     );
 
   return {
-    periodo: resultado.periodo,
+    periodo: resultado?.periodo || "30",
     resumo:
-      criarResumo(
-        resultado.linhas
-      ),
+      criarResumo(linhas),
     tempos:
       criarAnaliseTemporal(
-        resultado.linhas,
+        linhas,
         agora
       ),
     janelasCandidatas:
       criarJanelasCandidatas(
-        resultado.linhas,
+        linhas,
         agora
       ),
     coortesSemanais,
@@ -542,12 +541,12 @@ async function buscarRecorrencia({
       ),
     qualidadeAquisicao:
       criarQualidadeAquisicaoPorOrigem(
-        resultado.linhas,
+        linhas,
         agora
       ),
     qualidadeCampanhasOficiais:
       criarQualidadeCampanhasOficiais(
-        resultado.linhas,
+        linhas,
         agora
       ),
     metodologia: {
@@ -572,8 +571,55 @@ async function buscarRecorrencia({
   };
 }
 
+async function buscarBaseRecorrencia(
+  periodo
+) {
+  return repository.listarRecorrencia(
+    periodo
+  );
+}
+
+async function buscarRecorrencia({
+  periodo,
+  agora = new Date(),
+} = {}) {
+  const resultado =
+    await buscarBaseRecorrencia(
+      periodo
+    );
+
+  return criarRespostaRecorrencia(
+    resultado,
+    agora
+  );
+}
+
+async function buscarRecorrenciaComBase({
+  periodo,
+  agora = new Date(),
+} = {}) {
+  const resultado =
+    await buscarBaseRecorrencia(
+      periodo
+    );
+
+  return {
+    recorrencia:
+      criarRespostaRecorrencia(
+        resultado,
+        agora
+      ),
+    linhas:
+      Array.isArray(resultado?.linhas)
+        ? resultado.linhas
+        : [],
+  };
+}
+
 module.exports = {
   buscarRecorrencia,
+  buscarRecorrenciaComBase,
+  criarRespostaRecorrencia,
   criarResumo,
   criarAnaliseTemporal,
   criarEstatistica,
