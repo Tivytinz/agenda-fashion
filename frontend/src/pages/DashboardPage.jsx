@@ -74,6 +74,7 @@ export function DashboardPage() {
   const [reloadKey, setReloadKey] = useState(0);
   const [refreshing, setRefreshing] = useState(true);
   const [onboarding, setOnboarding] = useState({
+    businessId: null,
     businessSlug: "",
     loading: true,
     publication: null
@@ -136,6 +137,7 @@ export function DashboardPage() {
 
         const business = businessResult.negocio || businessResult.configuracoes || {};
         setOnboarding({
+          businessId: business.id ?? business.negocio_id ?? null,
           businessSlug: business.slug || "",
           loading: false,
           publication: businessResult.publicacao || {
@@ -318,6 +320,7 @@ export function DashboardPage() {
       {error && <p className="form-error" role="alert">{error} Os últimos dados carregados continuam visíveis.</p>}
 
       <ProfessionalOnboardingChecklist
+        businessId={onboarding.businessId}
         businessSlug={onboarding.businessSlug}
         loading={onboarding.loading}
         publication={onboarding.publication}
