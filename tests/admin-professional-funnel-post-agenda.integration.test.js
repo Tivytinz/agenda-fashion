@@ -453,7 +453,7 @@ describe(
     });
 
     test(
-      "liga divulgação, visita externa, início e conclusão a um agendamento real",
+      "liga divulgação, visita externa, início e conclusão ao primeiro agendamento real",
       async () => {
         const linhas = await repository
           .listarPorCampanha("today");
@@ -467,6 +467,56 @@ describe(
           visitas_pos_divulgacao: 1,
           agendamentos_iniciados_pos_divulgacao: 1,
           primeiros_agendamentos_via_divulgacao: 1,
+          primeiros_agendamentos: 1,
+        });
+      }
+    );
+
+    test(
+      "não promove uma conclusão posterior quando o negócio já tinha primeiro agendamento",
+      async () => {
+        await db.query(
+          `
+          INSERT INTO agendamentos (
+            negocio_id,
+            servico_id,
+            profissional_id,
+            cliente_id,
+            data,
+            horario,
+            status,
+            created_at
+          )
+          VALUES (
+            $1,
+            $2,
+            $3,
+            $3,
+            CURRENT_DATE + 1,
+            '11:00',
+            'agendado',
+            NOW() - INTERVAL '9 minutes'
+          )
+          `,
+          [
+            negocioId,
+            servicoId,
+            usuarioId,
+          ]
+        );
+
+        const linhas = await repository
+          .listarPorCampanha("today");
+
+        const encontrada = linhas.find(
+          (item) => item.campanha === utmCampaign
+        );
+
+        expect(encontrada).toMatchObject({
+          perfis_divulgados: 1,
+          visitas_pos_divulgacao: 1,
+          agendamentos_iniciados_pos_divulgacao: 1,
+          primeiros_agendamentos_via_divulgacao: 0,
           primeiros_agendamentos: 1,
         });
       }
