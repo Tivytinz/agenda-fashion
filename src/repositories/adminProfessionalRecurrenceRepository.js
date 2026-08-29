@@ -7,6 +7,13 @@ const {
 } = require(
   "./adminProfessionalFunnelRepository"
 );
+const {
+  campanhaAusenteSql,
+  criarAtribuicaoUsuarioSql,
+  criarVinculoCampanhaOficialSql,
+} = require(
+  "./marketingAttributionSql"
+);
 
 async function listarRecorrencia(
   periodo = "30"
@@ -18,13 +25,92 @@ async function listarRecorrencia(
       periodoNormalizado,
       "mua.atribuicao_em"
     );
+  const atribuicao =
+    criarAtribuicaoUsuarioSql(
+      "mua"
+    );
+  const vinculoCampanha =
+    criarVinculoCampanhaOficialSql({
+      origem: "a.origem",
+      midia: "a.midia",
+      campanha: "a.campanha",
+      momento: "a.atribuicao_em",
+      objetivo: "profissional",
+    });
+  const campanhaAusente =
+    campanhaAusenteSql(
+      "a.campanha"
+    );
 
   const resultado = await db.query(
     `
-    WITH coorte AS (
-      SELECT DISTINCT ON (mua.usuario_id)
+    WITH atribuicoes_resolvidas AS (
+      SELECT
         mua.usuario_id,
         mua.atribuicao_em,
+        ${atribuicao.atribuicaoPaga}
+          AS pago,
+        ${atribuicao.atribuicaoRastreada}
+          AS rastreado,
+        ${atribuicao.trafegoOrganico}
+          AS organico,
+        ${atribuicao.origem}
+          AS origem,
+        ${atribuicao.midia}
+          AS midia,
+        ${atribuicao.campanha}
+          AS campanha
+      FROM marketing_usuario_atribuicoes mua
+      WHERE mua.intencao = 'profissional'
+        ${filtroCoorte}
+    ),
+
+    atribuicoes_classificadas AS (
+      SELECT
+        a.usuario_id,
+        a.atribuicao_em,
+        COALESCE(
+          campanha_oficial.utm_source,
+          a.origem
+        ) AS origem,
+        COALESCE(
+          campanha_oficial.utm_medium,
+          a.midia
+        ) AS midia,
+        COALESCE(
+          campanha_oficial.utm_campaign,
+          a.campanha
+        ) AS campanha,
+        campanha_oficial.id
+          AS campanha_oficial_id,
+        campanha_oficial.metodo_resolucao,
+        CASE
+          WHEN campanha_oficial.id IS NOT NULL
+            THEN 'oficial'
+          WHEN a.pago AND ${campanhaAusente}
+            THEN 'rastreamento_incompleto'
+          WHEN a.pago
+            THEN 'identidade_nao_oficial'
+          WHEN NOT a.rastreado
+            THEN 'sem_evidencia'
+          WHEN a.organico
+            THEN 'organico'
+          ELSE 'sem_evidencia'
+        END AS classificacao_atribuicao
+      FROM atribuicoes_resolvidas a
+      ${vinculoCampanha}
+    ),
+
+    coorte AS (
+      SELECT DISTINCT ON (a.usuario_id)
+        a.usuario_id,
+        a.atribuicao_em,
+        a.origem,
+        a.midia,
+        a.campanha,
+        a.campanha_oficial_id,
+        a.metodo_resolucao,
+        a.classificacao_atribuicao,
         TO_CHAR(
           DATE_TRUNC(
             'week',
@@ -32,19 +118,23 @@ async function listarRecorrencia(
           ),
           'YYYY-MM-DD'
         ) AS semana_cadastro
-      FROM marketing_usuario_atribuicoes mua
+      FROM atribuicoes_classificadas a
       INNER JOIN usuarios u
-        ON u.id = mua.usuario_id
-      WHERE mua.intencao = 'profissional'
-        ${filtroCoorte}
+        ON u.id = a.usuario_id
       ORDER BY
-        mua.usuario_id,
-        mua.atribuicao_em ASC
+        a.usuario_id,
+        a.atribuicao_em ASC
     )
 
     SELECT
       c.usuario_id,
       c.semana_cadastro,
+      c.origem,
+      c.midia,
+      c.campanha,
+      c.campanha_oficial_id,
+      c.metodo_resolucao,
+      c.classificacao_atribuicao,
       dono.negocio_id,
       COALESCE(
         recorrencia.total_agendamentos,

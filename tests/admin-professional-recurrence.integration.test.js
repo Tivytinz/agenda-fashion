@@ -68,8 +68,8 @@ describe(
           $1,
           'profissional',
           $2,
-          'organico',
-          'none',
+          'google',
+          'organic',
           'organico',
           '/para-profissionais',
           NOW() - INTERVAL '10 days'
@@ -212,7 +212,7 @@ describe(
     });
 
     test(
-      "preserva semana de cadastro e os tres primeiros marcos por criacao",
+      "preserva semana, classificacao de aquisicao e os tres primeiros marcos por criacao",
       async () => {
         const resultado =
           await repository
@@ -227,6 +227,12 @@ describe(
         expect(linha).toMatchObject({
           negocio_id: String(negocioId),
           semana_cadastro: "2026-08-17",
+          classificacao_atribuicao: "organico",
+          origem: "google",
+          midia: "organic",
+          campanha: "organico",
+          campanha_oficial_id: null,
+          metodo_resolucao: null,
           total_agendamentos: 3,
         });
 
