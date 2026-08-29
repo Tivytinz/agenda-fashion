@@ -111,6 +111,28 @@ function rotuloLeituraCusto(valor) {
     "Leitura não classificada";
 }
 
+function rotuloLeituraCustoMaduro(valor) {
+  const rotulos = {
+    aguardando_gasto_maduro:
+      "Aguardando gasto maduro",
+    gasto_maduro_sem_profissional:
+      "Gasto maduro sem profissional",
+    cobertura_custo_incompleta:
+      "Cobertura de custo incompleta",
+    origem_sem_evidencia:
+      "Origem sem evidência",
+    atribuicao_paga_incompleta:
+      "Atribuição paga incompleta",
+    amostra_madura_pequena:
+      "Amostra madura pequena",
+    base_madura_comparavel:
+      "Base madura comparável",
+  };
+
+  return rotulos[valor] ||
+    "Leitura não classificada";
+}
+
 function resumoJanela(
   grupo,
   janelaDias
@@ -177,6 +199,19 @@ export function ProfessionalRecurrenceCampaignTable({
       return janelas.map((janela) => ({
         grupo,
         janela,
+      }));
+    });
+  const linhasCustosMaduros =
+    grupos.flatMap((grupo) => {
+      const custos = Array.isArray(
+        grupo.custosRecorrenciaMadura
+      )
+        ? grupo.custosRecorrenciaMadura
+        : [];
+
+      return custos.map((custo) => ({
+        grupo,
+        custo,
       }));
     });
 
@@ -325,7 +360,7 @@ export function ProfessionalRecurrenceCampaignTable({
       <div className="admin-stat-table-heading">
         <strong>Investimento e qualidade observada</strong>
         <small>
-          O gasto e a coorte usam o mesmo período e são ligados somente pelo ID canônico da campanha. O custo por profissional e por 1º agendamento é descritivo, não CAC. D7, D14 e D30 aparecem como contexto de qualidade; não calculamos custo por recorrente porque o gasto do período também inclui aquisições que ainda podem estar imaturas.
+          O gasto e a coorte usam o mesmo período e são ligados somente pelo ID canônico da campanha. O custo por profissional e por 1º agendamento é descritivo, não CAC. A recorrência ao lado continua sendo uma leitura de qualidade; o custo de repetição só aparece na tabela madura abaixo.
         </small>
         <small>
           {resumoMedicao(grupos)}
@@ -393,6 +428,112 @@ export function ProfessionalRecurrenceCampaignTable({
               <tr>
                 <td colSpan="11">
                   Ainda não há campanhas profissionais oficiais ou investimento para relacionar nesta seleção.
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      <div className="admin-stat-table-heading">
+        <strong>Custo de recorrência com coorte madura</strong>
+        <small>
+          Esta é a leitura temporalmente alinhada. A base usa apenas dias completos de gasto que já tiveram tempo para a janela de ativação mais D7, D14 ou D30, e somente profissionais oficialmente atribuídos nesses mesmos dias. Primeiro agendamento precisa ocorrer dentro da janela de ativação. O resultado continua sendo custo observado por repetição, não CAC, ROAS ou recomendação automática de orçamento.
+        </small>
+      </div>
+
+      <div className="table-wrap">
+        <table className="admin-compact-table">
+          <thead>
+            <tr>
+              <th>Campanha</th>
+              <th>Janela</th>
+              <th>Maturidade total</th>
+              <th>Investimento maduro</th>
+              <th>Dias c/ gasto</th>
+              <th>Base madura</th>
+              <th>Mad. sem gasto</th>
+              <th>1º na ativação</th>
+              <th>2º</th>
+              <th>Custo / 2º</th>
+              <th>3º</th>
+              <th>Custo / 3º</th>
+              <th>Leitura</th>
+            </tr>
+          </thead>
+          <tbody>
+            {linhasCustosMaduros.length ? (
+              linhasCustosMaduros.map(
+                ({ grupo, custo }) => (
+                  <tr
+                    key={`custo-maduro-${grupo.chave}-${custo.janelaDias}`}
+                  >
+                    <td>{rotuloCampanha(grupo)}</td>
+                    <td>D{numero(custo.janelaDias)}</td>
+                    <td>
+                      {numero(custo.diasNecessarios)} dias
+                    </td>
+                    <td>
+                      {numero(
+                        custo.investimentoMaduroCentavos
+                      ) > 0
+                        ? formatarMoedaCentavos(
+                            custo.investimentoMaduroCentavos
+                          )
+                        : "Sem gasto maduro"}
+                    </td>
+                    <td>
+                      {numero(
+                        custo.diasMadurosComGasto
+                      )}
+                    </td>
+                    <td>
+                      {numero(
+                        custo.profissionaisMadurosComGasto
+                      )}
+                    </td>
+                    <td>
+                      {numero(
+                        custo.profissionaisMadurosSemGasto
+                      )}
+                    </td>
+                    <td>
+                      {numero(
+                        custo.comPrimeiroNaAtivacao
+                      )}
+                    </td>
+                    <td>
+                      {numero(
+                        custo.comSegundoNaJanela
+                      )}
+                    </td>
+                    <td>
+                      {formatarMoedaCentavos(
+                        custo.custoObservadoSegundoMaduroCentavos
+                      )}
+                    </td>
+                    <td>
+                      {numero(
+                        custo.comTerceiroNaJanela
+                      )}
+                    </td>
+                    <td>
+                      {formatarMoedaCentavos(
+                        custo.custoObservadoTerceiroMaduroCentavos
+                      )}
+                    </td>
+                    <td>
+                      {rotuloLeituraCustoMaduro(
+                        custo.leitura
+                      )}
+                    </td>
+                  </tr>
+                )
+              )
+            ) : (
+              <tr>
+                <td colSpan="13">
+                  Ainda não há base financeira madura para relacionar gasto e recorrência nesta seleção.
                 </td>
               </tr>
             )}
