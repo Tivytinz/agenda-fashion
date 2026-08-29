@@ -112,13 +112,23 @@ describe("onboarding profissional", () => {
     );
   });
 
-  it("mantém o fluxo disponível se a leitura da agenda falhar", async () => {
+  it("não declara sucesso quando a leitura da agenda falha", async () => {
     apiRequest.mockRejectedValue(new Error("agenda indisponível"));
 
-    renderChecklist({ scheduleConfigured: undefined });
+    renderChecklist({
+      publication: {
+        publicado: true,
+        pode_publicar: true,
+        pendencias: []
+      },
+      scheduleConfigured: undefined
+    });
 
-    expect(await screen.findByText("1 de 3")).not.toBeNull();
-    expect(screen.getByRole("link", { name: "Cadastrar serviço" }))
+    expect(await screen.findByText("3 de 4")).not.toBeNull();
+    expect(screen.queryByText("Configuração concluída")).toBeNull();
+    expect(screen.getByText(/Não conseguimos confirmar seus horários agora/))
       .not.toBeNull();
+    expect(screen.getByRole("link", { name: "Verificar horários" })
+      .getAttribute("href")).toBe("/painel/horarios");
   });
 });
