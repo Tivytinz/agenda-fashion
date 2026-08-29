@@ -1,11 +1,23 @@
 // @vitest-environment jsdom
 
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { apiRequest } from "../api/client";
 import { ScheduleSettingsPage, validateSchedule } from "./ScheduleSettingsPage";
 
 vi.mock("../api/client", () => ({ apiRequest: vi.fn() }));
+
+function validWeek() {
+  return Array.from({ length: 7 }, (_, diaSemana) => ({
+    dia_semana: diaSemana,
+    trabalha: diaSemana > 0,
+    hora_inicio: diaSemana > 0 ? "08:00" : null,
+    hora_fim: diaSemana > 0 ? "18:00" : null,
+    intervalo_inicio: diaSemana > 0 ? "12:00" : null,
+    intervalo_fim: diaSemana > 0 ? "13:00" : null
+  }));
+}
 
 beforeEach(() => {
   apiRequest.mockReset();
@@ -160,5 +172,152 @@ describe("configuração de horários", () => {
     expect(screen.getByLabelText("Fim do atendimento de Terça").value).toBe("17:00");
     expect(screen.queryByLabelText("Início do atendimento de Quarta")).toBeNull();
     expect(screen.getAllByText("Fechado").length).toBeGreaterThan(0);
+  });
+
+  it("depois da primeira configuração conduz para compartilhar ou copiar o perfil", async () => {
+    apiRequest.mockImplementation((path, options = {}) => {
+      if (path === "/agenda-configuracao" && !options.method) {
+        return Promise.resolve({
+          configuracao: {
+            duracao_padrao: 60,
+            intervalo_minutos: 0,
+            antecedencia_agendamento: 0,
+            antecedencia_cancelamento: 24,
+            configurado_em: null
+          },
+          horarios: validWeek()
+        });
+      }
+
+      if (path === "/agenda-configuracao" && options.method === "PUT") {
+        return Promise.resolve({
+          mensagem: "Sua agenda está pronta para receber clientes.",
+          configuracao: {
+            configurado_em: "2026-08-29T01:00:00.000Z"
+          },
+          horarios: validWeek()
+        });
+      }
+
+      if (path === "/configuracoes") {
+        return Promise.resolve({
+          negocio: {
+            id: 11,
+            nome: "Studio Aurora",
+            slug: "studio-aurora",
+            publicado: true
+          }
+        });
+      }
+
+      return Promise.reject(new Error(`Rota inesperada: ${path}`));
+    });
+
+    render(
+      <MemoryRouter>
+        <ScheduleSettingsPage />
+      </MemoryRouter>
+    );
+
+    const save = await screen.findByRole("button", { name: "Salvar horários" });
+    expect(apiRequest.mock.calls.some(([path]) => path === "/configuracoes")).toBe(false);
+
+    fireEvent.click(save);
+
+    expect(await screen.findByRole("heading", { name: "Agora divulgue seu perfil" }))
+      .not.toBeNull();
+    expect(screen.getByText("Sua agenda está pronta para receber clientes."))
+      .not.toBeNull();
+    expect(await screen.findByRole("button", { name: "Compartilhar perfil" }))
+      .not.toBeNull();
+    expect(screen.getByRole("button", { name: "Copiar link" }))
+      .not.toBeNull();
+    expect(screen.getByRole("link", { name: "Ver perfil público" })
+      .getAttribute("href")).toBe("/negocio/studio-aurora");
+  });
+
+  it("não repete a missão de primeiro agendamento em edições posteriores", async () => {
+    apiRequest.mockImplementation((path, options = {}) => {
+      if (path === "/agenda-configuracao" && !options.method) {
+        return Promise.resolve({
+          configuracao: {
+            duracao_padrao: 60,
+            intervalo_minutos: 0,
+            antecedencia_agendamento: 0,
+            antecedencia_cancelamento: 24,
+            configurado_em: "2026-08-28T22:00:00.000Z"
+          },
+          horarios: validWeek()
+        });
+      }
+
+      if (path === "/agenda-configuracao" && options.method === "PUT") {
+        return Promise.resolve({
+          mensagem: "Horários de atendimento atualizados com sucesso.",
+          configuracao: {
+            configurado_em: "2026-08-28T22:00:00.000Z"
+          },
+          horarios: validWeek()
+        });
+      }
+
+      return Promise.reject(new Error(`Rota inesperada: ${path}`));
+    });
+
+    render(<ScheduleSettingsPage />);
+
+    fireEvent.click(await screen.findByRole("button", { name: "Salvar horários" }));
+
+    await waitFor(() => {
+      expect(screen.getByText("Horários de atendimento atualizados com sucesso."))
+        .not.toBeNull();
+    });
+    expect(screen.queryByRole("heading", { name: "Agora divulgue seu perfil" }))
+      .toBeNull();
+    expect(apiRequest.mock.calls.some(([path]) => path === "/configuracoes"))
+      .toBe(false);
+  });
+
+  it("mantém a agenda salva mesmo se o contexto do compartilhamento falhar", async () => {
+    apiRequest.mockImplementation((path, options = {}) => {
+      if (path === "/agenda-configuracao" && !options.method) {
+        return Promise.resolve({
+          configuracao: {
+            configurado_em: null
+          },
+          horarios: validWeek()
+        });
+      }
+
+      if (path === "/agenda-configuracao" && options.method === "PUT") {
+        return Promise.resolve({
+          mensagem: "Sua agenda está pronta para receber clientes.",
+          configuracao: {
+            configurado_em: "2026-08-29T01:00:00.000Z"
+          },
+          horarios: validWeek()
+        });
+      }
+
+      if (path === "/configuracoes") {
+        return Promise.reject(new Error("perfil indisponível"));
+      }
+
+      return Promise.reject(new Error(`Rota inesperada: ${path}`));
+    });
+
+    render(
+      <MemoryRouter>
+        <ScheduleSettingsPage />
+      </MemoryRouter>
+    );
+
+    fireEvent.click(await screen.findByRole("button", { name: "Salvar horários" }));
+
+    expect(await screen.findByRole("heading", { name: "Agora divulgue seu perfil" }))
+      .not.toBeNull();
+    expect(await screen.findByRole("link", { name: "Ir para o painel" }))
+      .not.toBeNull();
+    expect(screen.queryByRole("alert")).toBeNull();
   });
 });
