@@ -35,7 +35,9 @@ export function PublicShareButton({
   mode = "share",
   origin,
   serviceId,
-  serviceName
+  serviceName,
+  trackingMission = "descobrir_compartilhar_agendar",
+  trackingPage = "perfil_negocio"
 }) {
   const [status, setStatus] =
     useState("idle");
@@ -77,9 +79,9 @@ export function PublicShareButton({
       : "link_negocio";
 
   const trackingBase = {
-    page: "perfil_negocio",
+    page: trackingPage,
     mission:
-      "descobrir_compartilhar_agendar",
+      trackingMission,
     businessId,
     properties: {
       tipo_link:
