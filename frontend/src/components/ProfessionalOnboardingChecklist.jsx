@@ -9,7 +9,7 @@ function normalizePending(publication) {
     : [];
 }
 
-export function buildOnboardingSteps({ publication }) {
+export function buildOnboardingSteps({ publication, scheduleConfigured }) {
   const pending = normalizePending(publication);
   const profilePending = pending.filter((item) => item !== SERVICE_PENDING);
 
@@ -43,6 +43,18 @@ export function buildOnboardingSteps({ publication }) {
       complete: publication?.publicado === true,
       to: "/painel/negocio",
       action: "Verificar publicação"
+    },
+    {
+      id: "agenda",
+      title: "Configure seus horários",
+      description: scheduleConfigured === true
+        ? "Seus horários estão prontos para receber agendamentos."
+        : publication?.publicado
+          ? "Seu perfil está no ar. Agora escolha quando clientes podem agendar."
+          : "Depois da publicação, defina quando clientes podem agendar.",
+      complete: scheduleConfigured === true,
+      to: "/painel/horarios",
+      action: "Configurar horários"
     }
   ];
 }
@@ -50,7 +62,8 @@ export function buildOnboardingSteps({ publication }) {
 export function ProfessionalOnboardingChecklist({
   businessSlug,
   loading,
-  publication
+  publication,
+  scheduleConfigured
 }) {
   if (!loading && !publication) return null;
 
@@ -63,7 +76,7 @@ export function ProfessionalOnboardingChecklist({
     );
   }
 
-  const steps = buildOnboardingSteps({ publication });
+  const steps = buildOnboardingSteps({ publication, scheduleConfigured });
   const completed = steps.filter((step) => step.complete).length;
   const nextStep = steps.find((step) => !step.complete);
   const progress = Math.round((completed / steps.length) * 100);
@@ -76,13 +89,13 @@ export function ProfessionalOnboardingChecklist({
             <ConfirmationIcon className="onboarding-complete-icon" />
             <span>Configuração concluída</span>
           </p>
-          <h2>Seu negócio está pronto para crescer</h2>
+          <h2>Seu negócio está pronto para receber clientes</h2>
           <p className="muted">
-            Compartilhe seu perfil e mantenha serviços e horários atualizados.
+            Sua agenda está configurada. Compartilhe seu perfil e mantenha serviços e horários atualizados.
           </p>
         </div>
         <div className="onboarding-complete-actions">
-          <strong className="onboarding-progress-label">3 de 3</strong>
+          <strong className="onboarding-progress-label">4 de 4</strong>
           {businessSlug && (
             <Link
               className="button"
@@ -105,7 +118,7 @@ export function ProfessionalOnboardingChecklist({
             Prepare seu negócio para receber agendamentos
           </h2>
           <p className="muted">
-            Informe os dados essenciais e cadastre um serviço. A publicação é automática e gratuita.
+            Complete o perfil, cadastre um serviço e confirme seus horários. A publicação continua automática e gratuita.
           </p>
         </div>
         <strong className="onboarding-progress-label">
