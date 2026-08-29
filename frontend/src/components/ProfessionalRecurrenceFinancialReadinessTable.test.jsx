@@ -15,10 +15,6 @@ describe(
       () => {
         render(
           <ProfessionalRecurrenceFinancialReadinessTable
-            diagnostico={{
-              minimoCadastros: 10,
-              minimoAssinaturas: 2,
-            }}
             campanhas={[
               {
                 chave: "campanha:10",
@@ -61,7 +57,7 @@ describe(
           )
         ).toBeInTheDocument();
         expect(
-          screen.getByText("R$ 120,00")
+          screen.getByText(/R\$\s*120,00/)
         ).toBeInTheDocument();
         expect(
           screen.getByText("2/2 atingido")
