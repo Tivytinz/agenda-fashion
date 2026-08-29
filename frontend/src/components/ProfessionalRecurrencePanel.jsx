@@ -6,6 +6,9 @@ import { apiRequest } from "../api/client";
 import {
   ProfessionalRecurrenceStabilityTable,
 } from "./ProfessionalRecurrenceStabilityTable";
+import {
+  ProfessionalRecurrenceAcquisitionTable,
+} from "./ProfessionalRecurrenceAcquisitionTable";
 
 function numero(valor) {
   const convertido = Number(valor);
@@ -138,6 +141,10 @@ export function ProfessionalRecurrencePanel({
   const estabilidadeCoortes =
     Array.isArray(data?.estabilidadeCoortes)
       ? data.estabilidadeCoortes
+      : [];
+  const qualidadeAquisicao =
+    Array.isArray(data?.qualidadeAquisicao)
+      ? data.qualidadeAquisicao
       : [];
   const primeiro = numero(
     resumo.comPrimeiroAgendamento
@@ -416,6 +423,10 @@ export function ProfessionalRecurrencePanel({
 
       <ProfessionalRecurrenceStabilityTable
         diagnosticos={estabilidadeCoortes}
+      />
+
+      <ProfessionalRecurrenceAcquisitionTable
+        origens={qualidadeAquisicao}
       />
 
       <p className="muted admin-campaign-attribution-note">
