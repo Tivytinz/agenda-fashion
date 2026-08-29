@@ -48,6 +48,28 @@ async function buscarNegocioDoUsuario(
   );
 }
 
+async function buscarAgendaConfigurada(
+  usuarioId
+) {
+  const resultado =
+    await db.query(
+      `
+        SELECT
+          configurado_em IS NOT NULL
+            AS configurada
+        FROM agenda_configuracoes
+        WHERE profissional_id = $1
+        LIMIT 1
+      `,
+      [usuarioId]
+    );
+
+  return (
+    resultado.rows[0]
+      ?.configurada === true
+  );
+}
+
 /*
  * No banco, a coluna atual é "whatsapp".
  *
@@ -404,6 +426,7 @@ async function atualizarFotoNegocio({
 
 module.exports = {
   buscarNegocioDoUsuario,
+  buscarAgendaConfigurada,
   buscarNegocioPorId,
   atualizarNegocio,
   atualizarFotoNegocio,
