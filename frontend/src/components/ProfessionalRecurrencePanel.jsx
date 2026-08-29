@@ -144,7 +144,7 @@ export function ProfessionalRecurrencePanel({
           <p className="eyebrow">Recorrência</p>
           <h2>Depois do primeiro agendamento</h2>
           <p className="muted">
-            Mede quantos profissionais da coorte chegaram ao primeiro, segundo e terceiro agendamento no primeiro negócio em que aparecem como donos.
+            Mede quantos profissionais da coorte chegaram ao primeiro, segundo e terceiro agendamento não cancelado no primeiro negócio em que aparecem como donos.
           </p>
           <p className="muted">{diagnostico}</p>
         </div>
@@ -154,7 +154,7 @@ export function ProfessionalRecurrencePanel({
         <div className="admin-stat-table-heading">
           <strong>Repetição de valor</strong>
           <small>
-            A conversão compara cada marco com o imediatamente anterior. Não é retenção D30 e não confirma atendimento realizado ou receita.
+            A conversão compara cada marco com o imediatamente anterior. Agendamentos cancelados não contam. Não é retenção D30 e não confirma atendimento realizado ou receita.
           </small>
         </div>
 
