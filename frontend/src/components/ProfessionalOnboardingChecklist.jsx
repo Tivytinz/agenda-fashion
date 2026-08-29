@@ -1,4 +1,6 @@
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import { apiRequest } from "../api/client";
 import { ConfirmationIcon } from "./ConfirmationIcon";
 
 const SERVICE_PENDING = "pelo menos um serviço ativo";
@@ -12,8 +14,7 @@ function normalizePending(publication) {
 export function buildOnboardingSteps({ publication, scheduleConfigured }) {
   const pending = normalizePending(publication);
   const profilePending = pending.filter((item) => item !== SERVICE_PENDING);
-
-  return [
+  const steps = [
     {
       id: "perfil",
       title: "Complete seu perfil",
@@ -43,31 +44,81 @@ export function buildOnboardingSteps({ publication, scheduleConfigured }) {
       complete: publication?.publicado === true,
       to: "/painel/negocio",
       action: "Verificar publicação"
-    },
-    {
+    }
+  ];
+
+  if (typeof scheduleConfigured === "boolean") {
+    steps.push({
       id: "agenda",
       title: "Configure seus horários",
-      description: scheduleConfigured === true
+      description: scheduleConfigured
         ? "Seus horários estão prontos para receber agendamentos."
         : publication?.publicado
           ? "Seu perfil está no ar. Agora escolha quando clientes podem agendar."
           : "Depois da publicação, defina quando clientes podem agendar.",
-      complete: scheduleConfigured === true,
+      complete: scheduleConfigured,
       to: "/painel/horarios",
       action: "Configurar horários"
-    }
-  ];
+    });
+  }
+
+  return steps;
 }
 
 export function ProfessionalOnboardingChecklist({
   businessSlug,
   loading,
   publication,
-  scheduleConfigured
+  scheduleConfigured: scheduleConfiguredProp
 }) {
+  const [scheduleState, setScheduleState] = useState(() => ({
+    configured: typeof scheduleConfiguredProp === "boolean"
+      ? scheduleConfiguredProp
+      : null,
+    loading: typeof scheduleConfiguredProp !== "boolean"
+  }));
+
+  useEffect(() => {
+    if (typeof scheduleConfiguredProp === "boolean") {
+      setScheduleState({
+        configured: scheduleConfiguredProp,
+        loading: false
+      });
+      return undefined;
+    }
+
+    const controller = new AbortController();
+    let active = true;
+
+    setScheduleState({ configured: null, loading: true });
+
+    apiRequest("/agenda-configuracao", { signal: controller.signal })
+      .then((result) => {
+        if (!active) return;
+
+        setScheduleState({
+          configured: Boolean(result.configuracao?.configurado_em),
+          loading: false
+        });
+      })
+      .catch((requestError) => {
+        if (!active || requestError.name === "AbortError") return;
+
+        setScheduleState({
+          configured: null,
+          loading: false
+        });
+      });
+
+    return () => {
+      active = false;
+      controller.abort();
+    };
+  }, [scheduleConfiguredProp]);
+
   if (!loading && !publication) return null;
 
-  if (loading) {
+  if (loading || scheduleState.loading) {
     return (
       <section className="panel onboarding-panel" aria-busy="true">
         <p className="eyebrow">Primeiros passos</p>
@@ -76,7 +127,10 @@ export function ProfessionalOnboardingChecklist({
     );
   }
 
-  const steps = buildOnboardingSteps({ publication, scheduleConfigured });
+  const steps = buildOnboardingSteps({
+    publication,
+    scheduleConfigured: scheduleState.configured
+  });
   const completed = steps.filter((step) => step.complete).length;
   const nextStep = steps.find((step) => !step.complete);
   const progress = Math.round((completed / steps.length) * 100);
@@ -95,7 +149,9 @@ export function ProfessionalOnboardingChecklist({
           </p>
         </div>
         <div className="onboarding-complete-actions">
-          <strong className="onboarding-progress-label">4 de 4</strong>
+          <strong className="onboarding-progress-label">
+            {completed} de {steps.length}
+          </strong>
           {businessSlug && (
             <Link
               className="button"
