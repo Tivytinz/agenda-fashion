@@ -71,6 +71,7 @@ export function buildOnboardingSteps({ publication, scheduleConfigured }) {
 }
 
 export function ProfessionalOnboardingChecklist({
+  businessId,
   businessSlug,
   loading,
   publication,
@@ -160,6 +161,7 @@ export function ProfessionalOnboardingChecklist({
           {businessSlug && (
             <>
               <PublicShareButton
+                businessId={businessId}
                 businessSlug={businessSlug}
                 className="button"
                 label="Compartilhar perfil"
