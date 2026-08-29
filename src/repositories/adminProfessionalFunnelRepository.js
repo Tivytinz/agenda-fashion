@@ -420,6 +420,19 @@ async function listarPorCampanha(
               agendamento_iniciado.primeiro_inicio_em
             AND ag.created_at >=
               agendamento_iniciado.primeiro_inicio_em
+            AND NOT EXISTS (
+              SELECT 1
+              FROM agendamentos ag_anterior
+              WHERE ag_anterior.negocio_id =
+                  ag.negocio_id
+                AND (
+                  ag_anterior.created_at < ag.created_at OR
+                  (
+                    ag_anterior.created_at = ag.created_at AND
+                    ag_anterior.id < ag.id
+                  )
+                )
+            )
           ORDER BY ep.created_at ASC, ep.id ASC
           LIMIT 1
         ) agendamento_via_divulgacao ON TRUE
