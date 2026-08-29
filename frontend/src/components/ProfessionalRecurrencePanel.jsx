@@ -9,6 +9,9 @@ import {
 import {
   ProfessionalRecurrenceAcquisitionTable,
 } from "./ProfessionalRecurrenceAcquisitionTable";
+import {
+  ProfessionalRecurrenceCampaignTable,
+} from "./ProfessionalRecurrenceCampaignTable";
 
 function numero(valor) {
   const convertido = Number(valor);
@@ -145,6 +148,10 @@ export function ProfessionalRecurrencePanel({
   const qualidadeAquisicao =
     Array.isArray(data?.qualidadeAquisicao)
       ? data.qualidadeAquisicao
+      : [];
+  const qualidadeCampanhasOficiais =
+    Array.isArray(data?.qualidadeCampanhasOficiais)
+      ? data.qualidadeCampanhasOficiais
       : [];
   const primeiro = numero(
     resumo.comPrimeiroAgendamento
@@ -427,6 +434,10 @@ export function ProfessionalRecurrencePanel({
 
       <ProfessionalRecurrenceAcquisitionTable
         origens={qualidadeAquisicao}
+      />
+
+      <ProfessionalRecurrenceCampaignTable
+        campanhas={qualidadeCampanhasOficiais}
       />
 
       <p className="muted admin-campaign-attribution-note">
