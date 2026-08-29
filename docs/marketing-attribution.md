@@ -74,6 +74,10 @@ A recorrência também é quebrada por **origem de aquisição**, reutilizando e
 
 Essa leitura responde à qualidade operacional dos profissionais adquiridos, não ao retorno financeiro da mídia. Ela não calcula CAC, não recalcula ROAS, não atribui receita e não libera ou bloqueia orçamento isoladamente. Comparações entre Google Ads, Meta Ads, orgânico e origens incompletas só são válidas dentro da qualidade de evidência explicitamente exibida.
 
+Dentro da atribuição oficial, o painel também quebra a recorrência por **campanha oficial** usando `campanha_oficial_id` e a identidade canônica resolvida pelo backend. Somente linhas classificadas como `oficial` e vinculadas a uma campanha oficial entram nessa visão. Os métodos `utm_exata`, `vinculo_plataforma` e `vinculo_unico` permanecem expostos para auditoria, e tráfego orgânico, incompleto, não oficial ou sem evidência fica fora da tabela de campanhas mesmo quando apresenta boa recorrência.
+
+Para cada campanha oficial são mostrados profissionais adquiridos, primeiro, segundo e terceiro agendamento e as mesmas janelas maduras D7, D14 e D30 recalculadas dentro da própria campanha. Essa camada continua sendo operacional: ela ainda não combina investimento com recorrência, não calcula custo por profissional ativado ou recorrente e não altera CAC, ROAS, receita atribuída ou recomendação de orçamento.
+
 D7, D14 e D30 continuam sendo comparações descritivas, não definições oficiais de retenção. A escolha de uma régua futura deve considerar tamanho da amostra, estabilidade entre coortes, comportamento real de repetição e objetivo de produto antes de virar KPI ou regra de decisão. Essas janelas não alteram CAC, ROAS ou orçamento de mídia por si só.
 
 Essas estatísticas são descritivas e não criam por si só uma janela oficial de retenção. A escolha futura de D7, D30 ou outro intervalo deve usar o comportamento observado, tamanho da amostra e objetivo de produto antes de virar regra de decisão.
