@@ -1,6 +1,6 @@
 # Memoria operacional do Agenda Fashion
 
-> Contexto permanente para agentes de desenvolvimento. Atualizado em 26 de
+> Contexto permanente para agentes de desenvolvimento. Atualizado em 28 de
 > agosto de 2026.
 
 Este arquivo deve ser lido antes de analisar, planejar ou alterar o projeto.
@@ -67,6 +67,10 @@ AF nao demonstra valor para os negocios.
 - A descricao do negocio melhora a qualidade do perfil, mas e opcional e nao
   pode bloquear a publicacao; especialidade, WhatsApp, cidade, estado e ao
   menos um servico ativo formam os requisitos minimos de descoberta.
+- A publicacao automatica nao depende da agenda. O onboarding profissional,
+  porem, so e considerado concluido depois que o dono salva os horarios pela
+  primeira vez; `agenda_configuracoes.configurado_em` e o marco canonico dessa
+  ativacao. Publicacao e agenda sao etapas distintas do funil.
 - Links antigos de perfis devem continuar funcionando quando o slug mudar.
 - O dashboard deve traduzir dados em crescimento compreensivel, nao apenas
   exibir numeros soltos.
