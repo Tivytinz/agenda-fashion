@@ -60,8 +60,18 @@ function criarDiagnosticoJanela(
   janelaDias
 ) {
   const maduras = [];
+  const ordenadas = [
+    ...coortesSemanais,
+  ].sort((coorteA, coorteB) =>
+    String(coorteB.semanaCadastro || "")
+      .localeCompare(
+        String(
+          coorteA.semanaCadastro || ""
+        )
+      )
+  );
 
-  for (const coorte of coortesSemanais) {
+  for (const coorte of ordenadas) {
     const janela = encontrarJanela(
       coorte,
       janelaDias
@@ -89,11 +99,13 @@ function criarDiagnosticoJanela(
 
   const maisRecente = maduras[0] || null;
   const anterior = maduras[1] || null;
-  const estado = maduras.length === 0
-    ? "sem_base_madura"
-    : maduras.length === 1
-      ? "uma_coorte_madura"
-      : "comparacao_disponivel";
+  let estado = "comparacao_disponivel";
+
+  if (maduras.length === 0) {
+    estado = "sem_base_madura";
+  } else if (maduras.length === 1) {
+    estado = "uma_coorte_madura";
+  }
 
   return {
     janelaDias,
