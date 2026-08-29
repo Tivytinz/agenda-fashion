@@ -107,6 +107,10 @@ export function ProfessionalRecurrencePanel({
 
   const resumo = data?.resumo || {};
   const tempos = data?.tempos || {};
+  const janelasCandidatas =
+    Array.isArray(data?.janelasCandidatas)
+      ? data.janelasCandidatas
+      : [];
   const primeiro = numero(
     resumo.comPrimeiroAgendamento
   );
@@ -235,6 +239,42 @@ export function ProfessionalRecurrencePanel({
                   <td>{numero(transicao.dados.amostra)}</td>
                   <td>{formatarDias(transicao.dados.medianaDias)}</td>
                   <td>{formatarDias(transicao.dados.p75Dias)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div className="admin-stat-table-card">
+        <div className="admin-stat-table-heading">
+          <strong>Janelas maduras de repetição</strong>
+          <small>
+            D7, D14 e D30 são candidatas de análise, não retenção oficial. Em cada linha, só entram como elegíveis profissionais cujo primeiro agendamento já tem idade suficiente para completar a janela.
+          </small>
+        </div>
+
+        <div className="table-wrap">
+          <table className="admin-compact-table">
+            <thead>
+              <tr>
+                <th>Janela</th>
+                <th>Elegíveis</th>
+                <th>2º na janela</th>
+                <th>Taxa 2º</th>
+                <th>3º na janela</th>
+                <th>Taxa 3º</th>
+              </tr>
+            </thead>
+            <tbody>
+              {janelasCandidatas.map((janela) => (
+                <tr key={janela.janelaDias}>
+                  <td>D{numero(janela.janelaDias)}</td>
+                  <td>{numero(janela.elegiveis)}</td>
+                  <td>{numero(janela.comSegundoNaJanela)}</td>
+                  <td>{numero(janela.taxaSegundoNaJanela)}%</td>
+                  <td>{numero(janela.comTerceiroNaJanela)}</td>
+                  <td>{numero(janela.taxaTerceiroNaJanela)}%</td>
                 </tr>
               ))}
             </tbody>
