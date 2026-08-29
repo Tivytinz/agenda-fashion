@@ -26,6 +26,23 @@ function formatarDias(valor) {
   ).format(Number(valor))} dias`;
 }
 
+function formatarSemanaCadastro(valor) {
+  const partes = String(valor || "")
+    .split("-");
+
+  if (
+    partes.length !== 3 ||
+    partes.some((parte) =>
+      !/^\d+$/.test(parte)
+    )
+  ) {
+    return "Semana desconhecida";
+  }
+
+  const [ano, mes, dia] = partes;
+  return `${dia}/${mes}/${ano}`;
+}
+
 export function ProfessionalRecurrencePanel({
   period = "30"
 }) {
@@ -111,6 +128,10 @@ export function ProfessionalRecurrencePanel({
     Array.isArray(data?.janelasCandidatas)
       ? data.janelasCandidatas
       : [];
+  const coortesSemanais =
+    Array.isArray(data?.coortesSemanais)
+      ? data.coortesSemanais
+      : [];
   const primeiro = numero(
     resumo.comPrimeiroAgendamento
   );
@@ -170,6 +191,26 @@ export function ProfessionalRecurrencePanel({
 
   const maturidade =
     tempos.maturidadeDesdePrimeiro || {};
+  const linhasCoortes =
+    coortesSemanais.flatMap((coorte) => {
+      const janelas = Array.isArray(
+        coorte.janelasCandidatas
+      )
+        ? coorte.janelasCandidatas
+        : [];
+
+      return janelas.map((janela) => ({
+        semanaCadastro:
+          coorte.semanaCadastro,
+        profissionais:
+          numero(coorte.profissionais),
+        primeiro:
+          numero(
+            coorte.comPrimeiroAgendamento
+          ),
+        janela,
+      }));
+    });
 
   return (
     <section className="panel">
@@ -277,6 +318,90 @@ export function ProfessionalRecurrencePanel({
                   <td>{numero(janela.taxaTerceiroNaJanela)}%</td>
                 </tr>
               ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div className="admin-stat-table-card">
+        <div className="admin-stat-table-heading">
+          <strong>Recorrência por semana de cadastro</strong>
+          <small>
+            A semana começa na segunda-feira e usa o cadastro real do usuário em America/Sao_Paulo. As taxas D7, D14 e D30 continuam usando somente profissionais maduros para cada janela, permitindo comparar coortes sem penalizar as mais novas.
+          </small>
+        </div>
+
+        <div className="table-wrap">
+          <table className="admin-compact-table">
+            <thead>
+              <tr>
+                <th>Semana</th>
+                <th>Profissionais</th>
+                <th>1º agendamento</th>
+                <th>Janela</th>
+                <th>Elegíveis</th>
+                <th>2º</th>
+                <th>Taxa 2º</th>
+                <th>3º</th>
+                <th>Taxa 3º</th>
+              </tr>
+            </thead>
+            <tbody>
+              {linhasCoortes.length ? (
+                linhasCoortes.map((linha) => (
+                  <tr
+                    key={`${linha.semanaCadastro}-${linha.janela.janelaDias}`}
+                  >
+                    <td>
+                      {formatarSemanaCadastro(
+                        linha.semanaCadastro
+                      )}
+                    </td>
+                    <td>{linha.profissionais}</td>
+                    <td>{linha.primeiro}</td>
+                    <td>
+                      D{numero(
+                        linha.janela.janelaDias
+                      )}
+                    </td>
+                    <td>
+                      {numero(
+                        linha.janela.elegiveis
+                      )}
+                    </td>
+                    <td>
+                      {numero(
+                        linha.janela
+                          .comSegundoNaJanela
+                      )}
+                    </td>
+                    <td>
+                      {numero(
+                        linha.janela
+                          .taxaSegundoNaJanela
+                      )}%
+                    </td>
+                    <td>
+                      {numero(
+                        linha.janela
+                          .comTerceiroNaJanela
+                      )}
+                    </td>
+                    <td>
+                      {numero(
+                        linha.janela
+                          .taxaTerceiroNaJanela
+                      )}%
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan="9">
+                    Ainda não há coortes semanais com dados suficientes para esta seleção.
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>
