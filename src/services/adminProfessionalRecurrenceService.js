@@ -90,7 +90,7 @@ async function buscarRecorrencia({
     metodologia: {
       unidade: "profissional",
       criterio:
-        "quantidade de agendamentos criados no primeiro negócio em que o profissional aparece como dono",
+        "quantidade de agendamentos não cancelados criados no primeiro negócio em que o profissional aparece como dono",
       observacao:
         "Esta leitura mede recorrência observada e não representa retenção D30, atendimento realizado ou receita.",
     },
