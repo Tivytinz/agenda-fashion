@@ -11,6 +11,11 @@ const {
 } = require(
   "./adminProfessionalRecurrenceAcquisitionService"
 );
+const {
+  agruparPorCampanhaOficial,
+} = require(
+  "./adminProfessionalRecurrenceCampaignService"
+);
 
 const DIA_MS = 24 * 60 * 60 * 1000;
 const JANELAS_CANDIDATAS_DIAS = [7, 14, 30];
@@ -454,6 +459,52 @@ function criarQualidadeAquisicaoPorOrigem(
   });
 }
 
+function criarQualidadeCampanhasOficiais(
+  linhas = [],
+  agora = new Date(),
+  janelas = JANELAS_CANDIDATAS_DIAS
+) {
+  return agruparPorCampanhaOficial(
+    linhas
+  ).map((grupo) => {
+    const resumo =
+      criarResumo(grupo.linhas);
+
+    return {
+      chave: grupo.chave,
+      campanhaOficialId:
+        grupo.campanhaOficialId,
+      origem: grupo.origem,
+      midia: grupo.midia,
+      campanha: grupo.campanha,
+      metodosResolucao:
+        grupo.metodosResolucao,
+      profissionais: grupo.linhas.length,
+      comPrimeiroAgendamento:
+        resumo.comPrimeiroAgendamento,
+      taxaPrimeiroSobreProfissionais:
+        percentual(
+          resumo.comPrimeiroAgendamento,
+          grupo.linhas.length
+        ),
+      comSegundoAgendamento:
+        resumo.comSegundoAgendamento,
+      taxaSegundoSobrePrimeiro:
+        resumo.taxaSegundoSobrePrimeiro,
+      comTerceiroAgendamento:
+        resumo.comTerceiroAgendamento,
+      taxaTerceiroSobrePrimeiro:
+        resumo.taxaTerceiroSobrePrimeiro,
+      janelasCandidatas:
+        criarJanelasCandidatas(
+          grupo.linhas,
+          agora,
+          janelas
+        ),
+    };
+  });
+}
+
 async function buscarRecorrencia({
   periodo,
   agora = new Date(),
@@ -494,6 +545,11 @@ async function buscarRecorrencia({
         resultado.linhas,
         agora
       ),
+    qualidadeCampanhasOficiais:
+      criarQualidadeCampanhasOficiais(
+        resultado.linhas,
+        agora
+      ),
     metodologia: {
       unidade: "profissional",
       criterio:
@@ -508,6 +564,8 @@ async function buscarRecorrencia({
         "a comparação entre coortes é descritiva: mostra faixa, amplitude e variação da coorte madura mais recente contra a anterior, sem inferir tendência estatística nem impor um tamanho mínimo de amostra inexistente no produto",
       aquisicao:
         "a qualidade por origem reutiliza a classificação oficial de atribuição do backend e separa origem oficial, orgânica, rastreamento incompleto, identidade não oficial e ausência de evidência; a recorrência por origem não altera CAC, ROAS nem decisões de orçamento por si só",
+      campanhas:
+        "a qualidade por campanha inclui somente campanhas com atribuição oficial resolvida pelo backend, agrupadas por campanha_oficial_id e identidade canônica; tráfego orgânico, incompleto, não oficial ou sem evidência não é promovido para esta visão pela recorrência observada",
       observacao:
         "Esta leitura mede recorrência observada e maturidade da amostra. As janelas candidatas ainda não são uma definição oficial de retenção, não confirmam atendimento realizado e não representam receita.",
     },
@@ -522,6 +580,7 @@ module.exports = {
   criarJanelasCandidatas,
   criarCoortesSemanais,
   criarQualidadeAquisicaoPorOrigem,
+  criarQualidadeCampanhasOficiais,
   diasEntre,
   estaMaduroParaJanela,
   ocorreuDentroDaJanela,
