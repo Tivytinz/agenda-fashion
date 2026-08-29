@@ -1,5 +1,8 @@
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import { apiRequest } from "../api/client";
 import { ConfirmationIcon } from "./ConfirmationIcon";
+import { PublicShareButton } from "./PublicShareButton";
 
 const SERVICE_PENDING = "pelo menos um serviço ativo";
 
@@ -9,11 +12,10 @@ function normalizePending(publication) {
     : [];
 }
 
-export function buildOnboardingSteps({ publication }) {
+export function buildOnboardingSteps({ publication, scheduleConfigured }) {
   const pending = normalizePending(publication);
   const profilePending = pending.filter((item) => item !== SERVICE_PENDING);
-
-  return [
+  const steps = [
     {
       id: "perfil",
       title: "Complete seu perfil",
@@ -45,16 +47,84 @@ export function buildOnboardingSteps({ publication }) {
       action: "Verificar publicação"
     }
   ];
+
+  if (scheduleConfigured !== undefined) {
+    const statusConhecido = typeof scheduleConfigured === "boolean";
+
+    steps.push({
+      id: "agenda",
+      title: "Configure seus horários",
+      description: scheduleConfigured === true
+        ? "Seus horários estão prontos para receber agendamentos."
+        : scheduleConfigured === false
+          ? publication?.publicado
+            ? "Seu perfil está no ar. Agora escolha quando clientes podem agendar."
+            : "Depois da publicação, defina quando clientes podem agendar."
+          : "Não conseguimos confirmar seus horários agora. Abra a configuração para conferir.",
+      complete: scheduleConfigured === true,
+      to: "/painel/horarios",
+      action: statusConhecido ? "Configurar horários" : "Verificar horários"
+    });
+  }
+
+  return steps;
 }
 
 export function ProfessionalOnboardingChecklist({
+  businessId,
   businessSlug,
   loading,
-  publication
+  publication,
+  scheduleConfigured: scheduleConfiguredProp
 }) {
+  const [scheduleState, setScheduleState] = useState(() => ({
+    configured: typeof scheduleConfiguredProp === "boolean"
+      ? scheduleConfiguredProp
+      : null,
+    loading: typeof scheduleConfiguredProp !== "boolean"
+  }));
+
+  useEffect(() => {
+    if (typeof scheduleConfiguredProp === "boolean") {
+      setScheduleState({
+        configured: scheduleConfiguredProp,
+        loading: false
+      });
+      return undefined;
+    }
+
+    const controller = new AbortController();
+    let active = true;
+
+    setScheduleState({ configured: null, loading: true });
+
+    apiRequest("/agenda-configuracao/status", { signal: controller.signal })
+      .then((result) => {
+        if (!active) return;
+
+        setScheduleState({
+          configured: result.configurada === true,
+          loading: false
+        });
+      })
+      .catch((requestError) => {
+        if (!active || requestError.name === "AbortError") return;
+
+        setScheduleState({
+          configured: null,
+          loading: false
+        });
+      });
+
+    return () => {
+      active = false;
+      controller.abort();
+    };
+  }, [scheduleConfiguredProp]);
+
   if (!loading && !publication) return null;
 
-  if (loading) {
+  if (loading || scheduleState.loading) {
     return (
       <section className="panel onboarding-panel" aria-busy="true">
         <p className="eyebrow">Primeiros passos</p>
@@ -63,7 +133,10 @@ export function ProfessionalOnboardingChecklist({
     );
   }
 
-  const steps = buildOnboardingSteps({ publication });
+  const steps = buildOnboardingSteps({
+    publication,
+    scheduleConfigured: scheduleState.configured
+  });
   const completed = steps.filter((step) => step.complete).length;
   const nextStep = steps.find((step) => !step.complete);
   const progress = Math.round((completed / steps.length) * 100);
@@ -76,20 +149,32 @@ export function ProfessionalOnboardingChecklist({
             <ConfirmationIcon className="onboarding-complete-icon" />
             <span>Configuração concluída</span>
           </p>
-          <h2>Seu negócio está pronto para crescer</h2>
+          <h2>Sua agenda está pronta. Agora traga seu primeiro agendamento</h2>
           <p className="muted">
-            Compartilhe seu perfil e mantenha serviços e horários atualizados.
+            Compartilhe seu perfil para levar clientes direto aos seus serviços e horários disponíveis.
           </p>
         </div>
         <div className="onboarding-complete-actions">
-          <strong className="onboarding-progress-label">3 de 3</strong>
+          <strong className="onboarding-progress-label">
+            {completed} de {steps.length}
+          </strong>
           {businessSlug && (
-            <Link
-              className="button"
-              to={`/negocio/${encodeURIComponent(businessSlug)}`}
-            >
-              Ver meu perfil público <span aria-hidden="true">↗</span>
-            </Link>
+            <>
+              <PublicShareButton
+                businessId={businessId}
+                businessSlug={businessSlug}
+                className="button"
+                label="Compartilhar perfil"
+                trackingMission="gerenciar_crescimento"
+                trackingPage="dashboard_dono"
+              />
+              <Link
+                className="button button-secondary"
+                to={`/negocio/${encodeURIComponent(businessSlug)}`}
+              >
+                Ver meu perfil público <span aria-hidden="true">↗</span>
+              </Link>
+            </>
           )}
         </div>
       </section>
@@ -105,7 +190,7 @@ export function ProfessionalOnboardingChecklist({
             Prepare seu negócio para receber agendamentos
           </h2>
           <p className="muted">
-            Informe os dados essenciais e cadastre um serviço. A publicação é automática e gratuita.
+            Complete o perfil, cadastre um serviço e confirme seus horários. A publicação continua automática e gratuita.
           </p>
         </div>
         <strong className="onboarding-progress-label">

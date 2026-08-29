@@ -2,15 +2,23 @@ const agendaConfiguracaoService = require(
   "../services/agendaConfiguracaoService"
 );
 
-const marketingProfessionalMilestoneService =
-  require(
-    "../services/marketingProfessionalMilestoneService"
-  );
-
 async function buscarMinhaConfiguracao(req, res, next) {
   try {
     const resultado =
       await agendaConfiguracaoService.buscarMinhaConfiguracao({
+        usuarioId: req.user?.id,
+      });
+
+    return res.json(resultado);
+  } catch (err) {
+    next(err);
+  }
+}
+
+async function buscarStatusConfiguracao(req, res, next) {
+  try {
+    const resultado =
+      await agendaConfiguracaoService.buscarStatusConfiguracao({
         usuarioId: req.user?.id,
       });
 
@@ -34,11 +42,6 @@ async function salvarMinhaConfiguracao(req, res, next) {
         horarios: req.body.horarios,
       });
 
-    await marketingProfessionalMilestoneService
-      .marcarAgendaConfigurada(
-        req.user?.id
-      );
-
     return res.json(resultado);
   } catch (err) {
     next(err);
@@ -47,5 +50,6 @@ async function salvarMinhaConfiguracao(req, res, next) {
 
 module.exports = {
   buscarMinhaConfiguracao,
+  buscarStatusConfiguracao,
   salvarMinhaConfiguracao,
 };

@@ -188,6 +188,10 @@ test("onboarding mostra somente a próxima ação e cabe no celular", async ({ p
       pendencias: ["pelo menos um serviço ativo"]
     }
   }));
+  await page.route("**/agenda-configuracao/status", (route) => json(route, {
+    configurada: false,
+    configurado_em: null
+  }));
   await page.goto("/painel");
 
   await expect(page.getByRole("heading", {
@@ -195,7 +199,7 @@ test("onboarding mostra somente a próxima ação e cabe no celular", async ({ p
   })).toBeVisible();
   await expect(page.getByRole("link", { name: "Cadastrar serviço" }))
     .toBeVisible();
-  await expect(page.getByText("1 de 3")).toBeVisible();
+  await expect(page.getByText("1 de 4")).toBeVisible();
 
   const diagnostics = await horizontalOverflowDiagnostics(page);
   expect(diagnostics.scrollWidth).toBe(diagnostics.clientWidth);

@@ -1,10 +1,15 @@
 const express = require("express");
 const router = express.Router();
 
-
 const auth = require("../middlewares/auth");
 const agendaConfiguracaoController = require(
   "../controllers/agendaConfiguracaoController"
+);
+
+router.get(
+  "/agenda-configuracao/status",
+  auth,
+  agendaConfiguracaoController.buscarStatusConfiguracao
 );
 
 router.get(

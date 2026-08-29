@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 import { apiRequest } from "../api/client";
 import { ConfirmationIcon } from "../components/ConfirmationIcon";
+import { PublicShareButton } from "../components/PublicShareButton";
 import { ErrorState, LoadingState } from "../components/ScreenState";
 
 const DAY_NAMES = ["Domingo", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"];
@@ -78,6 +80,9 @@ export function ScheduleSettingsPage() {
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const [saving, setSaving] = useState(false);
+  const [activationNextStep, setActivationNextStep] = useState(false);
+  const [businessContext, setBusinessContext] = useState(null);
+  const [businessContextLoading, setBusinessContextLoading] = useState(false);
 
   const load = useCallback(() => {
     setError("");
@@ -92,7 +97,8 @@ export function ScheduleSettingsPage() {
           duracaoPadrao: current.duracao_padrao ?? current.duracaoPadrao ?? 60,
           intervaloMinutos: current.intervalo_minutos ?? current.intervaloMinutos ?? 0,
           antecedenciaAgendamento: current.antecedencia_agendamento ?? current.antecedenciaAgendamento ?? 0,
-          antecedenciaCancelamento: current.antecedencia_cancelamento ?? current.antecedenciaCancelamento ?? 24
+          antecedenciaCancelamento: current.antecedencia_cancelamento ?? current.antecedenciaCancelamento ?? 24,
+          configuradoEm: current.configurado_em ?? current.configuradoEm ?? null
         });
         setDays(normalizedDays);
         setExpandedPauses(new Set(
@@ -107,10 +113,10 @@ export function ScheduleSettingsPage() {
   useEffect(load, [load]);
 
   useEffect(() => {
-    if (!message) return undefined;
+    if (!message || activationNextStep) return undefined;
     const timeout = window.setTimeout(() => setMessage(""), 2800);
     return () => window.clearTimeout(timeout);
-  }, [message]);
+  }, [activationNextStep, message]);
 
   const leadTimeBookingOptions = useMemo(
     () => withCurrentOption(LEAD_TIME_OPTIONS, config?.antecedenciaAgendamento),
@@ -180,6 +186,30 @@ export function ScheduleSettingsPage() {
     setMessage("Horário copiado para os dias ativos.");
   }
 
+  async function loadBusinessContext() {
+    setBusinessContextLoading(true);
+
+    try {
+      const result = await apiRequest("/configuracoes");
+      const business = result.negocio || result.configuracoes || {};
+
+      if (!business.slug) {
+        setBusinessContext(null);
+        return;
+      }
+
+      setBusinessContext({
+        id: business.id ?? business.negocio_id,
+        name: business.nome ?? business.nome_negocio ?? "Seu negócio",
+        slug: business.slug
+      });
+    } catch {
+      setBusinessContext(null);
+    } finally {
+      setBusinessContextLoading(false);
+    }
+  }
+
   async function submit(event) {
     event.preventDefault();
     setError("");
@@ -190,13 +220,30 @@ export function ScheduleSettingsPage() {
       return;
     }
 
+    const primeiraConfiguracao = !config?.configuradoEm;
+
     setSaving(true);
     try {
       const result = await apiRequest("/agenda-configuracao", {
         method: "PUT",
         body: { ...config, horarios: days }
       });
+      const savedConfig = result.configuracao || {};
+      const configuradoEm = savedConfig.configurado_em
+        ?? savedConfig.configuradoEm
+        ?? config.configuradoEm
+        ?? null;
+
+      setConfig((current) => ({
+        ...current,
+        configuradoEm
+      }));
       setMessage(result.mensagem || "Horários atualizados.");
+
+      if (primeiraConfiguracao && configuradoEm) {
+        setActivationNextStep(true);
+        void loadBusinessContext();
+      }
     } catch (requestError) {
       setError(requestError.message);
     } finally {
@@ -361,6 +408,63 @@ export function ScheduleSettingsPage() {
           <button className="button" disabled={saving} type="submit">{saving ? "Salvando..." : "Salvar horários"}</button>
         </div>
       </form>
+
+      {activationNextStep && (
+        <section className="panel onboarding-panel is-complete" aria-labelledby="schedule-next-step-title">
+          <div className="onboarding-complete-copy">
+            <p className="eyebrow onboarding-complete-eyebrow">
+              <ConfirmationIcon className="onboarding-complete-icon" />
+              <span>Agenda pronta</span>
+            </p>
+            <h2 id="schedule-next-step-title">Agora divulgue seu perfil</h2>
+            <p className="muted">
+              Seus horários já podem virar agendamentos. Compartilhe o perfil para levar clientes direto aos serviços e à disponibilidade real.
+            </p>
+          </div>
+
+          <div className="onboarding-complete-actions">
+            {businessContextLoading && (
+              <span className="muted" role="status">Preparando seu link...</span>
+            )}
+
+            {!businessContextLoading && businessContext && (
+              <>
+                <PublicShareButton
+                  businessId={businessContext.id}
+                  businessName={businessContext.name}
+                  businessSlug={businessContext.slug}
+                  className="button"
+                  label="Compartilhar perfil"
+                  trackingMission="disponibilizar_horarios"
+                  trackingPage="configuracao_agenda"
+                />
+                <PublicShareButton
+                  businessId={businessContext.id}
+                  businessName={businessContext.name}
+                  businessSlug={businessContext.slug}
+                  className="button button-secondary"
+                  label="Copiar link"
+                  mode="copy"
+                  trackingMission="disponibilizar_horarios"
+                  trackingPage="configuracao_agenda"
+                />
+                <Link
+                  className="text-button"
+                  to={`/negocio/${encodeURIComponent(businessContext.slug)}`}
+                >
+                  Ver perfil público <span aria-hidden="true">↗</span>
+                </Link>
+              </>
+            )}
+
+            {!businessContextLoading && !businessContext && (
+              <Link className="button" to="/painel">
+                Ir para o painel
+              </Link>
+            )}
+          </div>
+        </section>
+      )}
     </main>
   );
 }

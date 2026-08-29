@@ -373,6 +373,30 @@ async function buscarMinhaConfiguracao({ usuarioId }) {
     );
 }
 
+async function buscarStatusConfiguracao({ usuarioId }) {
+  exigirUsuario(usuarioId);
+
+  await exigirProfissionalAtivo(
+    usuarioId
+  );
+
+  const configuracao =
+    await agendaConfiguracaoRepository
+      .buscarConfiguracao(
+        usuarioId
+      );
+
+  return {
+    configurada:
+      Boolean(
+        configuracao?.configurado_em
+      ),
+    configurado_em:
+      configuracao?.configurado_em ||
+      null,
+  };
+}
+
 async function salvarMinhaConfiguracao({
   usuarioId,
   duracaoPadrao,
@@ -450,6 +474,10 @@ async function salvarMinhaConfiguracao({
               client
             );
 
+        const primeiraConfiguracao =
+          !configuracaoExistente
+            ?.configurado_em;
+
         let configuracao;
 
         const dadosConfiguracao = {
@@ -503,9 +531,22 @@ async function salvarMinhaConfiguracao({
           );
         }
 
+        const configuracaoMarcada =
+          await agendaConfiguracaoRepository
+            .marcarConfigurada(
+              usuarioId,
+              client
+            );
+
+        configuracao =
+          configuracaoMarcada ||
+          configuracao;
+
         return {
           mensagem:
-            "Horários de atendimento atualizados com sucesso.",
+            primeiraConfiguracao
+              ? "Sua agenda está pronta para receber clientes."
+              : "Horários de atendimento atualizados com sucesso.",
           configuracao,
           horarios:
             horariosSalvos.map(
@@ -518,5 +559,6 @@ async function salvarMinhaConfiguracao({
 
 module.exports = {
   buscarMinhaConfiguracao,
+  buscarStatusConfiguracao,
   salvarMinhaConfiguracao,
 };

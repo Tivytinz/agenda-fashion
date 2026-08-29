@@ -9,6 +9,8 @@ jest.mock(
       jest.fn(),
     atualizarConfiguracao:
       jest.fn(),
+    marcarConfigurada:
+      jest.fn(),
     listarHorarios:
       jest.fn(),
     salvarHorario:
@@ -107,6 +109,7 @@ describe(
         .buscarConfiguracao
         .mockResolvedValue({
           profissional_id: 7,
+          configurado_em: null,
         });
 
       repository
@@ -114,6 +117,16 @@ describe(
         .mockResolvedValue({
           profissional_id: 7,
           duracao_padrao: 60,
+          configurado_em: null,
+        });
+
+      repository
+        .marcarConfigurada
+        .mockResolvedValue({
+          profissional_id: 7,
+          duracao_padrao: 60,
+          configurado_em:
+            "2026-08-28T22:00:00.000Z",
         });
 
       repository
@@ -125,6 +138,48 @@ describe(
             )
         );
     });
+
+    test(
+      "consulta o status sem criar configuração ou horários",
+      async () => {
+        repository
+          .buscarConfiguracao
+          .mockResolvedValue({
+            profissional_id: 7,
+            configurado_em:
+              "2026-08-28T22:00:00.000Z",
+          });
+
+        const resultado =
+          await service
+            .buscarStatusConfiguracao({
+              usuarioId: 7,
+            });
+
+        expect(
+          resultado
+        ).toEqual({
+          configurada: true,
+          configurado_em:
+            "2026-08-28T22:00:00.000Z",
+        });
+
+        expect(
+          repository
+            .criarConfiguracao
+        ).not.toHaveBeenCalled();
+
+        expect(
+          repository
+            .salvarHorario
+        ).not.toHaveBeenCalled();
+
+        expect(
+          repository
+            .executarTransacao
+        ).not.toHaveBeenCalled();
+      }
+    );
 
     test(
       "salva configuração e sete dias na mesma transação",
@@ -168,6 +223,37 @@ describe(
             chamada[1]
           ).toBe(client);
         }
+
+        expect(
+          repository
+            .marcarConfigurada
+        ).toHaveBeenCalledWith(
+          7,
+          client
+        );
+
+        expect(
+          repository
+            .marcarConfigurada
+            .mock.invocationCallOrder[0]
+        ).toBeGreaterThan(
+          Math.max(
+            ...repository
+              .salvarHorario
+              .mock.invocationCallOrder
+          )
+        );
+
+        expect(
+          resultado.configuracao
+            .configurado_em
+        ).toBeTruthy();
+
+        expect(
+          resultado.mensagem
+        ).toBe(
+          "Sua agenda está pronta para receber clientes."
+        );
 
         expect(
           resultado.horarios
@@ -238,6 +324,11 @@ describe(
         ).rejects.toThrow(
           "Falha simulada"
         );
+
+        expect(
+          repository
+            .marcarConfigurada
+        ).not.toHaveBeenCalled();
       }
     );
   }

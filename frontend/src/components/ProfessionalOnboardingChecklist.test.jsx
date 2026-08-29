@@ -1,9 +1,20 @@
 // @vitest-environment jsdom
 
 import { cleanup, render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { apiRequest } from "../api/client";
+import { track } from "../analytics/track";
 import { ProfessionalOnboardingChecklist } from "./ProfessionalOnboardingChecklist";
+
+vi.mock("../api/client", () => ({ apiRequest: vi.fn() }));
+vi.mock("../analytics/track", () => ({ track: vi.fn() }));
+
+beforeEach(() => {
+  apiRequest.mockReset();
+  track.mockReset();
+});
 
 afterEach(cleanup);
 
@@ -11,6 +22,7 @@ function renderChecklist(overrides = {}) {
   return render(
     <MemoryRouter>
       <ProfessionalOnboardingChecklist
+        businessId={7}
         businessSlug="studio-victor"
         loading={false}
         publication={{
@@ -18,6 +30,7 @@ function renderChecklist(overrides = {}) {
           pode_publicar: false,
           pendencias: ["pelo menos um serviço ativo"]
         }}
+        scheduleConfigured={false}
         {...overrides}
       />
     </MemoryRouter>
@@ -28,7 +41,7 @@ describe("onboarding profissional", () => {
   it("leva a profissional para a primeira etapa incompleta", () => {
     renderChecklist();
 
-    expect(screen.getByText("1 de 3")).not.toBeNull();
+    expect(screen.getByText("1 de 4")).not.toBeNull();
     expect(screen.getByText("Nome, contato e localização estão prontos.")).not.toBeNull();
     expect(screen.getByRole("link", { name: "Cadastrar serviço" })
       .getAttribute("href")).toBe("/painel/servicos/novo");
@@ -43,25 +56,104 @@ describe("onboarding profissional", () => {
       }
     });
 
-    expect(screen.getByText("1 de 3")).not.toBeNull();
+    expect(screen.getByText("1 de 4")).not.toBeNull();
     expect(screen.getByRole("link", { name: "Cadastrar serviço" })
       .getAttribute("href")).toBe("/painel/servicos/novo");
   });
 
-  it("celebra a ativação e oferece o perfil público", () => {
+  it("continua o onboarding depois que o perfil é publicado", () => {
     renderChecklist({
       publication: {
         publicado: true,
         pode_publicar: true,
         pendencias: []
-      }
+      },
+      scheduleConfigured: false
     });
 
-    expect(screen.getByText("3 de 3")).not.toBeNull();
+    expect(screen.getByText("3 de 4")).not.toBeNull();
+    expect(screen.getByText(/Seu perfil está no ar/)).not.toBeNull();
+    expect(screen.getByRole("link", { name: "Configurar horários" })
+      .getAttribute("href")).toBe("/painel/horarios");
+  });
+
+  it("transforma a ativação concluída em missão de divulgação vinculada ao negócio", async () => {
+    const share = vi.fn().mockResolvedValue();
+
+    Object.defineProperty(navigator, "share", {
+      configurable: true,
+      value: share
+    });
+
+    renderChecklist({
+      publication: {
+        publicado: true,
+        pode_publicar: true,
+        pendencias: []
+      },
+      scheduleConfigured: true
+    });
+
+    expect(screen.getByText("4 de 4")).not.toBeNull();
     expect(screen.getByRole("heading", {
-      name: "Seu negócio está pronto para crescer"
+      name: "Sua agenda está pronta. Agora traga seu primeiro agendamento"
     })).not.toBeNull();
+
+    await userEvent.click(
+      screen.getByRole("button", { name: "Compartilhar perfil" })
+    );
+
+    expect(track).toHaveBeenCalledWith(
+      "link_negocio_compartilhado",
+      expect.objectContaining({
+        businessId: 7,
+        page: "dashboard_dono",
+        mission: "gerenciar_crescimento"
+      })
+    );
     expect(screen.getByRole("link", { name: "Ver meu perfil público" })
       .getAttribute("href")).toBe("/negocio/studio-victor");
+  });
+
+  it("consulta o marco real da agenda quando a página não fornece o estado", async () => {
+    apiRequest.mockResolvedValue({
+      configurada: true,
+      configurado_em: "2026-08-28T22:00:00.000Z"
+    });
+
+    renderChecklist({
+      publication: {
+        publicado: true,
+        pode_publicar: true,
+        pendencias: []
+      },
+      scheduleConfigured: undefined
+    });
+
+    expect(await screen.findByText("4 de 4")).not.toBeNull();
+    expect(apiRequest).toHaveBeenCalledWith(
+      "/agenda-configuracao/status",
+      expect.objectContaining({ signal: expect.any(AbortSignal) })
+    );
+  });
+
+  it("não declara sucesso quando a leitura da agenda falha", async () => {
+    apiRequest.mockRejectedValue(new Error("agenda indisponível"));
+
+    renderChecklist({
+      publication: {
+        publicado: true,
+        pode_publicar: true,
+        pendencias: []
+      },
+      scheduleConfigured: undefined
+    });
+
+    expect(await screen.findByText("3 de 4")).not.toBeNull();
+    expect(screen.queryByText("Configuração concluída")).toBeNull();
+    expect(screen.getByText(/Não conseguimos confirmar seus horários agora/))
+      .not.toBeNull();
+    expect(screen.getByRole("link", { name: "Verificar horários" })
+      .getAttribute("href")).toBe("/painel/horarios");
   });
 });

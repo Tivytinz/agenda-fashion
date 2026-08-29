@@ -92,6 +92,8 @@ describe(
             businessId: 7,
             mission:
               "descobrir_compartilhar_agendar",
+            page:
+              "perfil_negocio",
             properties:
               expect.objectContaining({
                 af_source:
@@ -162,6 +164,8 @@ describe(
             businessId: 7,
             mission:
               "descobrir_compartilhar_agendar",
+            page:
+              "perfil_negocio",
             properties:
               expect.objectContaining({
                 af_source:
@@ -175,6 +179,56 @@ describe(
                 metodo:
                   "compartilhamento_nativo"
               })
+          })
+        );
+      }
+    );
+
+    it(
+      "aceita contexto da jornada sem alterar o link rastreável",
+      async () => {
+        const writeText =
+          vi.fn().mockResolvedValue();
+
+        Object.defineProperty(
+          navigator,
+          "clipboard",
+          {
+            configurable: true,
+            value: {
+              writeText
+            }
+          }
+        );
+
+        render(
+          <PublicShareButton
+            businessId={7}
+            businessName="Studio Aurora"
+            businessSlug="studio-aurora"
+            label="Copiar link"
+            mode="copy"
+            origin="https://app.agendafashion.com.br"
+            trackingMission="disponibilizar_horarios"
+            trackingPage="configuracao_agenda"
+          />
+        );
+
+        await userEvent.click(
+          screen.getByRole("button", {
+            name: "Copiar link"
+          })
+        );
+
+        expect(writeText).toHaveBeenCalledWith(
+          "https://app.agendafashion.com.br/negocio/studio-aurora?af_source=agenda_fashion&af_medium=copy&af_content=negocio"
+        );
+        expect(track).toHaveBeenCalledWith(
+          "link_negocio_copiado",
+          expect.objectContaining({
+            businessId: 7,
+            page: "configuracao_agenda",
+            mission: "disponibilizar_horarios"
           })
         );
       }
