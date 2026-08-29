@@ -1,4 +1,5 @@
 const {
+  criarCustosRecorrenciaMadura,
   criarDiagnosticoMedicao,
   enriquecerCampanhas,
   enriquecerRecorrencia,
@@ -34,11 +35,27 @@ function campanhaBase() {
   };
 }
 
+function linhaOficial({
+  atribuicao,
+  primeiro,
+  segundo,
+  terceiro = null,
+} = {}) {
+  return {
+    classificacao_atribuicao: "oficial",
+    campanha_oficial_id: "10",
+    atribuicao_em: atribuicao,
+    primeiro_agendamento_em: primeiro,
+    segundo_agendamento_em: segundo,
+    terceiro_agendamento_em: terceiro,
+  };
+}
+
 describe(
   "adminProfessionalAcquisitionCostService",
   () => {
     test(
-      "calcula custo observado sem chamar de custo por recorrente",
+      "calcula custo observado simples sem misturar custo de recorrencia madura",
       () => {
         const campanhas = enriquecerCampanhas({
           qualidadeCampanhasOficiais: [
@@ -176,7 +193,235 @@ describe(
     );
 
     test(
-      "preserva o contrato da recorrencia e adiciona metodologia de custo",
+      "alinha gasto e profissionais na base madura de D7 e respeita a fronteira de D14",
+      () => {
+        const custos =
+          criarCustosRecorrenciaMadura({
+            campanha: campanhaBase(),
+            agora:
+              new Date(
+                "2026-08-29T12:00:00.000Z"
+              ),
+            configuracao: {
+              minimoCadastros: 2,
+              coberturaMinimaPercentual: 100,
+              diasMaturacaoAtivacao: 14,
+            },
+            medicao: {
+              coberturaAtribuicaoPaga: 100,
+              profissionaisSemEvidencia: 0,
+            },
+            investimentosDiarios: [
+              {
+                campanha_id: "10",
+                data_gasto: "2026-08-01",
+                idade_dias: 28,
+                investimento_centavos: "6000",
+              },
+              {
+                campanha_id: "10",
+                data_gasto: "2026-08-20",
+                idade_dias: 9,
+                investimento_centavos: "4000",
+              },
+            ],
+            linhasRecorrencia: [
+              linhaOficial({
+                atribuicao:
+                  "2026-08-01T14:00:00.000Z",
+                primeiro:
+                  "2026-08-05T14:00:00.000Z",
+                segundo:
+                  "2026-08-10T14:00:00.000Z",
+                terceiro:
+                  "2026-08-13T14:00:00.000Z",
+              }),
+              linhaOficial({
+                atribuicao:
+                  "2026-08-01T18:00:00.000Z",
+                primeiro:
+                  "2026-08-10T18:00:00.000Z",
+                segundo:
+                  "2026-08-18T18:00:00.000Z",
+              }),
+              linhaOficial({
+                atribuicao:
+                  "2026-08-20T14:00:00.000Z",
+                primeiro:
+                  "2026-08-21T14:00:00.000Z",
+                segundo:
+                  "2026-08-22T14:00:00.000Z",
+              }),
+            ],
+          });
+
+        const d7 = custos.find(
+          (item) => item.janelaDias === 7
+        );
+        const d14 = custos.find(
+          (item) => item.janelaDias === 14
+        );
+
+        expect(d7).toMatchObject({
+          diasMaturacaoAtivacao: 14,
+          diasNecessarios: 21,
+          investimentoMaduroCentavos: 6000,
+          diasMadurosComGasto: 1,
+          profissionaisMadurosComGasto: 2,
+          profissionaisMadurosSemGasto: 0,
+          comPrimeiroNaAtivacao: 2,
+          comSegundoNaJanela: 1,
+          comTerceiroNaJanela: 0,
+          custoObservadoPrimeiroMaduroCentavos: 3000,
+          custoObservadoSegundoMaduroCentavos: 6000,
+          custoObservadoTerceiroMaduroCentavos: null,
+          baseComparavel: true,
+          leitura: "base_madura_comparavel",
+        });
+        expect(d14).toMatchObject({
+          diasNecessarios: 28,
+          investimentoMaduroCentavos: 0,
+          diasMadurosComGasto: 0,
+          profissionaisMadurosComGasto: 0,
+          leitura: "aguardando_gasto_maduro",
+          baseComparavel: false,
+        });
+      }
+    );
+
+    test(
+      "bloqueia comparacao quando existe profissional maduro em dia sem gasto registrado",
+      () => {
+        const custos =
+          criarCustosRecorrenciaMadura({
+            campanha: campanhaBase(),
+            agora:
+              new Date(
+                "2026-08-29T12:00:00.000Z"
+              ),
+            configuracao: {
+              minimoCadastros: 1,
+              coberturaMinimaPercentual: 100,
+              diasMaturacaoAtivacao: 14,
+            },
+            medicao: {
+              coberturaAtribuicaoPaga: 100,
+              profissionaisSemEvidencia: 0,
+            },
+            investimentosDiarios: [
+              {
+                campanha_id: "10",
+                data_gasto: "2026-08-01",
+                idade_dias: 28,
+                investimento_centavos: 5000,
+              },
+            ],
+            linhasRecorrencia: [
+              linhaOficial({
+                atribuicao:
+                  "2026-08-01T14:00:00.000Z",
+                primeiro:
+                  "2026-08-02T14:00:00.000Z",
+                segundo:
+                  "2026-08-04T14:00:00.000Z",
+              }),
+              linhaOficial({
+                atribuicao:
+                  "2026-07-30T14:00:00.000Z",
+                primeiro:
+                  "2026-08-01T14:00:00.000Z",
+                segundo:
+                  "2026-08-03T14:00:00.000Z",
+              }),
+            ],
+          });
+
+        expect(custos[0]).toMatchObject({
+          janelaDias: 7,
+          profissionaisMadurosComGasto: 1,
+          profissionaisMadurosSemGasto: 1,
+          baseComparavel: false,
+          leitura:
+            "cobertura_custo_incompleta",
+        });
+      }
+    );
+
+    test(
+      "reutiliza as reguas de atribuicao e tamanho minimo antes de liberar comparacao madura",
+      () => {
+        const base = {
+          campanha: campanhaBase(),
+          agora:
+            new Date(
+              "2026-08-29T12:00:00.000Z"
+            ),
+          investimentosDiarios: [
+            {
+              campanha_id: "10",
+              data_gasto: "2026-08-01",
+              idade_dias: 28,
+              investimento_centavos: 5000,
+            },
+          ],
+          linhasRecorrencia: [
+            linhaOficial({
+              atribuicao:
+                "2026-08-01T14:00:00.000Z",
+              primeiro:
+                "2026-08-02T14:00:00.000Z",
+              segundo:
+                "2026-08-03T14:00:00.000Z",
+            }),
+          ],
+        };
+
+        const atribuicaoIncompleta =
+          criarCustosRecorrenciaMadura({
+            ...base,
+            configuracao: {
+              minimoCadastros: 1,
+              coberturaMinimaPercentual: 100,
+              diasMaturacaoAtivacao: 14,
+            },
+            medicao: {
+              coberturaAtribuicaoPaga: 80,
+              profissionaisSemEvidencia: 0,
+            },
+          });
+
+        expect(atribuicaoIncompleta[0])
+          .toMatchObject({
+            baseComparavel: false,
+            leitura:
+              "atribuicao_paga_incompleta",
+          });
+
+        const amostraPequena =
+          criarCustosRecorrenciaMadura({
+            ...base,
+            configuracao: {
+              minimoCadastros: 2,
+              coberturaMinimaPercentual: 100,
+              diasMaturacaoAtivacao: 14,
+            },
+            medicao: {
+              coberturaAtribuicaoPaga: 100,
+              profissionaisSemEvidencia: 0,
+            },
+          });
+
+        expect(amostraPequena[0])
+          .toMatchObject({
+            minimoCadastros: 2,
+            baseComparavel: false,
+            leitura: "amostra_madura_pequena",
+          });
+      }
+    );
+
+    test(
+      "preserva o contrato da recorrencia e documenta a metodologia madura",
       () => {
         const resultado = enriquecerRecorrencia({
           recorrencia: {
@@ -197,6 +442,7 @@ describe(
               unidade: "profissional",
             },
           },
+          linhasRecorrencia: [],
           investimentos: [
             {
               campanha_id: 10,
@@ -204,6 +450,12 @@ describe(
               dias_com_gasto: 3,
             },
           ],
+          investimentosDiarios: [],
+          configuracao: {
+            minimoCadastros: 10,
+            coberturaMinimaPercentual: 100,
+            diasMaturacaoAtivacao: 14,
+          },
         });
 
         expect(resultado.periodo).toBe("30");
@@ -215,11 +467,18 @@ describe(
             .custoObservadoPorProfissionalCentavos
         ).toBe(3000);
         expect(
-          resultado.metodologia.custos
-        ).toMatch(/não são CAC ou ROAS/i);
+          resultado.qualidadeCampanhasOficiais[0]
+            .custosRecorrenciaMadura
+        ).toHaveLength(3);
         expect(
           resultado.metodologia.custos
-        ).toMatch(/não é calculado custo por recorrente/i);
+        ).toMatch(/não CAC ou ROAS/i);
+        expect(
+          resultado.metodologia.custosRecorrencia
+        ).toMatch(/dias completos de gasto/i);
+        expect(
+          resultado.metodologia.custosRecorrencia
+        ).toMatch(/14 dias de ativação/i);
       }
     );
 
