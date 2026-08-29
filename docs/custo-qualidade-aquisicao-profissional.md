@@ -6,9 +6,9 @@ Esta leitura conecta investimento de campanhas de aquisição de profissionais �
 
 Ela responde, de forma descritiva, quanto investimento foi registrado no período por campanha oficial e qual foi o custo observado por profissional oficialmente atribuído e por profissional que chegou ao primeiro agendamento.
 
-Ela também pode relacionar investimento a segundo e terceiro agendamento quando gasto e aquisição pertencem a uma base temporalmente madura e verificável.
+Ela também pode relacionar investimento a segundo e terceiro agendamento quando gasto e aquisição pertencem a uma base temporalmente madura e verificável, além de mostrar como a assinatura paga coexistiu com esses marcos dentro da mesma coorte madura.
 
-Ela não redefine CAC, ROAS, receita atribuída, retenção oficial ou regras de orçamento.
+Ela não redefine CAC, ROAS, receita atribuída, retenção oficial, LTV, payback ou regras de orçamento.
 
 ## Fontes de verdade
 
@@ -17,6 +17,8 @@ O investimento usa `marketing_campanha_gastos` e considera somente valores em BR
 A qualidade do profissional continua vindo da coorte de recorrência. O primeiro, segundo e terceiro agendamento são derivados de registros reais de `agendamentos`, excluindo status `cancelado`, conforme a metodologia já documentada em `docs/marketing-attribution.md`.
 
 A ligação entre investimento e qualidade usa exclusivamente `campanha_oficial_id`. Nome, UTM textual ou origem isolada não são usados como chave financeira.
+
+A monetização preserva a regra já usada pelo funil profissional: considera o primeiro pagamento datado de um plano cujo valor é maior que zero. Esse pagamento só é válido enquanto seu status atual for `CONFIRMED` ou `RECEIVED`.
 
 ## Alinhamento temporal
 
@@ -111,11 +113,59 @@ Os demais estados permanecem explícitos:
 
 Esses estados são guardrails de leitura. Eles não representam comandos automáticos de mídia.
 
+## Recorrência madura e monetização
+
+A análise de monetização usa a mesma coorte oficial da recorrência e acrescenta o primeiro pagamento de plano pago já reconhecido pelo funil profissional.
+
+A janela de monetização continua configurável por `MARKETING_DECISION_MONETIZATION_MATURITY_DAYS` e tem padrão de 21 dias. Para comparar assinatura e repetição sem censurar profissionais recentes, a idade mínima da aquisição em cada janela é o maior valor entre:
+
+- a janela de monetização; e
+- a janela de ativação somada à janela candidata de recorrência.
+
+Com ativação de 14 dias e monetização de 21 dias, os mínimos atuais são:
+
+- D7: `max(21, 14 + 7)` = 21 dias;
+- D14: `max(21, 14 + 14)` = 28 dias;
+- D30: `max(21, 14 + 30)` = 44 dias.
+
+Diferentemente do gasto diário, `atribuicao_em` possui timestamp exato. Por isso, a maturidade comportamental usa comparação inclusiva no limite: uma aquisição com exatamente 28 dias completos já pode entrar na base D14. A regra conservadora `idade_dias > limite` permanece exclusiva do gasto agregado por dia, cujo horário da aquisição não está representado no registro de custo.
+
+### Primeiro pagamento da aquisição
+
+A recorrência preserva a mesma semântica do funil:
+
+1. entram apenas assinaturas de planos com `planos.valor > 0`;
+2. é selecionado o primeiro pagamento com `data_pagamento` do negócio, ordenado por data e ID;
+3. esse pagamento só conta como monetização quando seu status atual é `CONFIRMED` ou `RECEIVED`;
+4. ele precisa ocorrer entre `atribuicao_em` e o limite da janela de monetização;
+5. uma renovação posterior não substitui o primeiro pagamento da aquisição;
+6. se o primeiro pagamento for reembolsado ou deixar de ter status válido, a monetização inicial deixa de contar mesmo que exista uma renovação posterior recebida.
+
+Essa regra evita inflar aquisição paga com receita posterior que não corresponde ao primeiro pagamento da relação comercial.
+
+### Leitura permitida
+
+Para cada campanha oficial e janela madura, o painel pode mostrar:
+
+- profissionais cuja aquisição já amadureceu para a análise;
+- profissionais que chegaram ao primeiro agendamento dentro da janela de ativação;
+- profissionais que chegaram ao segundo e ao terceiro agendamento dentro da janela candidata;
+- assinaturas válidas dentro da janela de monetização;
+- assinaturas entre quem chegou ao primeiro, segundo e terceiro agendamento;
+- taxas de assinatura dentro de cada denominador, exibindo `Sem base` quando o denominador é zero;
+- indicação de amostra abaixo da régua operacional já usada pelo funil.
+
+“Assinaturas entre quem chegou ao segundo agendamento” significa interseção dos dois comportamentos na mesma coorte. Não significa que o segundo agendamento causou a assinatura nem que o pagamento ocorreu necessariamente depois da repetição.
+
+No modelo freemium do AF, um profissional pode obter valor real sem converter para plano pago dentro da janela. Ausência de assinatura não deve ser interpretada isoladamente como falha de produto ou motivo automático para pausar aquisição.
+
+Esta camada não calcula LTV, payback, CAC recuperado ou ROAS e não transforma D7, D14 ou D30 em retenção oficial.
+
 ## Efeito do período selecionado
 
 A seleção do painel continua limitando quais aquisições e gastos entram no relatório.
 
-Com a configuração padrão, D30 exige 44 dias de maturidade desde a aquisição. Assim, uma seleção de apenas 30 dias pode legitimamente mostrar **sem gasto maduro** para D30. Isso não significa recorrência zero nem falha da campanha; significa que aquela seleção não contém dias de aquisição antigos o suficiente para uma comparação financeira D30.
+Com a configuração padrão, D30 exige 44 dias de maturidade desde a aquisição. Assim, uma seleção de apenas 30 dias pode legitimamente mostrar **sem gasto maduro** para D30 e nenhuma coorte comportamental D30 madura. Isso não significa recorrência zero nem falha da campanha; significa que aquela seleção não contém aquisições antigas o suficiente para a comparação.
 
 Para análises de janelas longas, períodos maiores ou `all` podem ser necessários, sempre preservando os mesmos guardrails de atribuição e custo.
 
@@ -145,6 +195,6 @@ Um profissional oficial cuja aquisição já amadureceu, mas cujo dia não possu
 
 ## Decisões de orçamento
 
-Esta camada é diagnóstica. Custo observado por segundo ou terceiro agendamento maduro não é CAC, ROAS, LTV ou retenção oficial.
+Esta camada é diagnóstica. Custo observado por segundo ou terceiro agendamento maduro e coexistência com assinatura paga não são CAC, ROAS, LTV, payback ou retenção oficial.
 
 Nenhum desses valores libera aumento de orçamento, pausa automática de campanha ou conclusão de rentabilidade. Decisões financeiras continuam exigindo cobertura de atribuição adequada, custo confiável, maturidade suficiente, receita comprovável quando aplicável e amostra compatível com a decisão.
