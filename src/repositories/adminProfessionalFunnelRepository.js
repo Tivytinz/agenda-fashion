@@ -333,9 +333,7 @@ async function listarPorCampanha(
         LEFT JOIN LATERAL (
           SELECT
             ep.created_at
-              AS primeira_visita_em,
-            ep.sessao_id
-              AS sessao_visita
+              AS primeira_visita_em
           FROM eventos_produto ep
           WHERE ep.negocio_id = dono.negocio_id
             AND ep.nome = 'perfil_visualizado'
@@ -357,15 +355,39 @@ async function listarPorCampanha(
         LEFT JOIN LATERAL (
           SELECT
             ep.created_at
-              AS primeiro_inicio_em
+              AS primeiro_inicio_em,
+            ep.sessao_id
+              AS sessao_inicio
           FROM eventos_produto ep
           WHERE ep.negocio_id = dono.negocio_id
             AND ep.nome = 'agendamento_iniciado'
             AND ep.pagina = 'perfil_negocio'
-            AND visita.primeira_visita_em
+            AND divulgacao.primeira_divulgacao_em
               IS NOT NULL
-            AND ep.sessao_id = visita.sessao_visita
-            AND ep.created_at >= visita.primeira_visita_em
+            AND ep.created_at >=
+              divulgacao.primeira_divulgacao_em
+            AND ep.sessao_id <>
+              divulgacao.sessao_divulgacao
+            AND EXISTS (
+              SELECT 1
+              FROM eventos_produto ep_visita
+              WHERE ep_visita.negocio_id =
+                  dono.negocio_id
+                AND ep_visita.nome =
+                  'perfil_visualizado'
+                AND ep_visita.pagina =
+                  'perfil_negocio'
+                AND ep_visita.sessao_id =
+                  ep.sessao_id
+                AND ep_visita.created_at >=
+                  divulgacao.primeira_divulgacao_em
+                AND ep_visita.created_at <=
+                  ep.created_at
+                AND (
+                  ep_visita.usuario_id IS NULL OR
+                  ep_visita.usuario_id <> c.usuario_id
+                )
+            )
           ORDER BY ep.created_at ASC, ep.id ASC
           LIMIT 1
         ) agendamento_iniciado ON TRUE
@@ -392,7 +414,8 @@ async function listarPorCampanha(
             AND ep.pagina = 'finalizar_agendamento'
             AND agendamento_iniciado.primeiro_inicio_em
               IS NOT NULL
-            AND ep.sessao_id = visita.sessao_visita
+            AND ep.sessao_id =
+              agendamento_iniciado.sessao_inicio
             AND ep.created_at >=
               agendamento_iniciado.primeiro_inicio_em
             AND ag.created_at >=
