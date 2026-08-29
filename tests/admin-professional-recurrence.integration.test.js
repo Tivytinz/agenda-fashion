@@ -159,7 +159,8 @@ describe(
         VALUES
           ($1, $2, $3, $3, CURRENT_DATE + 1, '09:00', 'agendado'),
           ($1, $2, $3, $3, CURRENT_DATE + 2, '10:00', 'agendado'),
-          ($1, $2, $3, $3, CURRENT_DATE + 3, '11:00', 'agendado')
+          ($1, $2, $3, $3, CURRENT_DATE + 3, '11:00', 'agendado'),
+          ($1, $2, $3, $3, CURRENT_DATE + 4, '12:00', 'cancelado')
         `,
         [
           negocioId,
@@ -208,7 +209,7 @@ describe(
     });
 
     test(
-      "conta o terceiro agendamento do profissional sem depender da agregacao global",
+      "conta somente agendamentos não cancelados do profissional",
       async () => {
         const resultado =
           await repository
