@@ -71,6 +71,10 @@ AF nao demonstra valor para os negocios.
   porem, so e considerado concluido depois que o dono salva os horarios pela
   primeira vez; `agenda_configuracoes.configurado_em` e o marco canonico dessa
   ativacao. Publicacao e agenda sao etapas distintas do funil.
+- Depois da primeira configuracao valida da agenda, a proxima missao de produto
+  e conduzir o negocio para divulgacao do perfil e primeiro agendamento. O
+  compartilhamento deve reutilizar os links publicos rastreaveis do AF, sem
+  criar uma segunda mecanica de share ou perder a origem do acesso.
 - Links antigos de perfis devem continuar funcionando quando o slug mudar.
 - O dashboard deve traduzir dados em crescimento compreensivel, nao apenas
   exibir numeros soltos.
