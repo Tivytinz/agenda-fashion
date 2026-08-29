@@ -22,34 +22,11 @@ describe(
   "adminProfessionalRecurrenceStabilityService",
   () => {
     test(
-      "compara somente coortes maduras e preserva a ordem recente",
+      "compara somente coortes maduras e ordena a base recente",
       () => {
         const resultado =
           criarDiagnosticoEstabilidade(
             [
-              {
-                semanaCadastro: "2026-08-18",
-                janelasCandidatas: [
-                  janela({
-                    janelaDias: 7,
-                    elegiveis: 3,
-                    taxaSegundoNaJanela: 66.67,
-                    taxaTerceiroNaJanela: 33.33,
-                  }),
-                  janela({
-                    janelaDias: 14,
-                    elegiveis: 0,
-                    taxaSegundoNaJanela: 0,
-                    taxaTerceiroNaJanela: 0,
-                  }),
-                  janela({
-                    janelaDias: 30,
-                    elegiveis: 0,
-                    taxaSegundoNaJanela: 0,
-                    taxaTerceiroNaJanela: 0,
-                  }),
-                ],
-              },
               {
                 semanaCadastro: "2026-08-11",
                 janelasCandidatas: [
@@ -63,6 +40,29 @@ describe(
                     janelaDias: 14,
                     elegiveis: 2,
                     taxaSegundoNaJanela: 50,
+                    taxaTerceiroNaJanela: 0,
+                  }),
+                  janela({
+                    janelaDias: 30,
+                    elegiveis: 0,
+                    taxaSegundoNaJanela: 0,
+                    taxaTerceiroNaJanela: 0,
+                  }),
+                ],
+              },
+              {
+                semanaCadastro: "2026-08-18",
+                janelasCandidatas: [
+                  janela({
+                    janelaDias: 7,
+                    elegiveis: 3,
+                    taxaSegundoNaJanela: 66.67,
+                    taxaTerceiroNaJanela: 33.33,
+                  }),
+                  janela({
+                    janelaDias: 14,
+                    elegiveis: 0,
+                    taxaSegundoNaJanela: 0,
                     taxaTerceiroNaJanela: 0,
                   }),
                   janela({
