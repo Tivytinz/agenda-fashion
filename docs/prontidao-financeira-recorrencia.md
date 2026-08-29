@@ -99,6 +99,54 @@ Os estados específicos desta camada são:
 
 Os códigos de bloqueio da base madura de custo são preservados sem renomear, para facilitar auditoria e evitar duas taxonomias para o mesmo problema.
 
+## Diagnóstico executivo
+
+A visão executiva consolida os estados D7, D14 e D30 já calculados pela prontidão. Ela não recalcula custo, atribuição, maturidade, recorrência ou monetização e não consulta uma nova fonte de dados.
+
+Por campanha, o diagnóstico informa:
+
+- janelas com leitura conjunta disponível;
+- janelas bloqueadas;
+- todos os códigos de bloqueio preservados;
+- bloqueio principal;
+- janelas afetadas por cada bloqueio;
+- evidência técnica ainda necessária.
+
+Os estados consolidados são:
+
+- `todas_janelas_disponiveis`: todas as janelas presentes estão disponíveis;
+- `leitura_parcial`: existe ao menos uma janela disponível e ao menos uma bloqueada;
+- `leitura_bloqueada`: nenhuma janela presente está disponível;
+- `sem_janelas`: ainda não existem estados de prontidão para consolidar.
+
+### Precedência do bloqueio principal
+
+O bloqueio principal não representa gravidade comercial, qualidade da campanha nem recomendação de mídia. É somente uma ordem técnica para facilitar investigação.
+
+A precedência prioriza:
+
+1. integridade da base;
+2. cobertura e atribuição;
+3. cobertura de custo e existência das bases necessárias;
+4. alinhamento e maturidade temporal;
+5. tamanho da amostra.
+
+Essa ordem existe porque uma base inconsistente ou incompleta precisa ser corrigida antes que maturidade ou tamanho de amostra possam sustentar uma leitura confiável.
+
+Quando vários bloqueios aparecem na mesma campanha, todos permanecem visíveis. O bloqueio principal apenas evita que o administrador precise interpretar manualmente três janelas para descobrir qual guardrail técnico deve ser investigado primeiro.
+
+### Resumo da seleção
+
+O diagnóstico também agrega, sem ranquear campanhas:
+
+- quantidade de campanhas com leitura completa;
+- quantidade com leitura parcial;
+- quantidade bloqueada;
+- quantidade de campanhas afetadas por cada código;
+- número de combinações campanha × janela afetadas por cada bloqueio.
+
+A contagem de campanhas é deduplicada por código. Assim, se D14 e D30 da mesma campanha estiverem em `aguardando_gasto_maduro`, isso representa uma campanha afetada e duas ocorrências de janela.
+
 ## Interpretação permitida
 
 “Leitura conjunta disponível” significa somente que investimento, atribuição, recorrência e monetização foram alinhados de forma suficiente para uma leitura descritiva na mesma base.
@@ -112,5 +160,7 @@ Não significa:
 - LTV conhecido;
 - retenção comprovada;
 - autorização para escalar, manter ou pausar orçamento.
+
+O diagnóstico executivo também não transforma resultado baixo ou zero de recorrência, assinatura ou ROAS em bloqueio técnico.
 
 Essas conclusões exigem as regras e evidências específicas de cada métrica e continuam fora desta camada.
