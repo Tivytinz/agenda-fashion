@@ -51,6 +51,7 @@ async function listarRecorrencia(
     ) dono ON TRUE
     LEFT JOIN agendamentos ag
       ON ag.negocio_id = dono.negocio_id
+      AND ag.status <> 'cancelado'
     GROUP BY
       c.usuario_id,
       dono.negocio_id
