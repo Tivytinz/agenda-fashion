@@ -92,10 +92,8 @@ describe("onboarding profissional", () => {
 
   it("consulta o marco real da agenda quando a página não fornece o estado", async () => {
     apiRequest.mockResolvedValue({
-      configuracao: {
-        configurado_em: "2026-08-28T22:00:00.000Z"
-      },
-      horarios: []
+      configurada: true,
+      configurado_em: "2026-08-28T22:00:00.000Z"
     });
 
     renderChecklist({
@@ -109,7 +107,7 @@ describe("onboarding profissional", () => {
 
     expect(await screen.findByText("4 de 4")).not.toBeNull();
     expect(apiRequest).toHaveBeenCalledWith(
-      "/agenda-configuracao",
+      "/agenda-configuracao/status",
       expect.objectContaining({ signal: expect.any(AbortSignal) })
     );
   });
