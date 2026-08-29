@@ -41,7 +41,7 @@ export function ProfessionalPostAgendaFunnel({
     summary.agendamentosIniciadosPosDivulgacao
   );
   const confirmados = numero(
-    summary.primeirosAgendamentosViaDivulgacao
+    summary.primeirosAgendamentosJornada
   );
 
   const etapas = [
@@ -82,7 +82,7 @@ export function ProfessionalPostAgendaFunnel({
       )
     },
     {
-      label: "Agendamento confirmado pela jornada",
+      label: "Primeiro agendamento da jornada",
       quantidade: confirmados,
       acumulada: percentual(confirmados, agendas),
       conversao: taxaInformada(
@@ -110,7 +110,7 @@ export function ProfessionalPostAgendaFunnel({
       "O perfil recebeu visita após divulgação, mas nenhuma dessas sessões avançou até iniciar o agendamento.";
   } else if (confirmados === 0) {
     diagnostico =
-      "Há sessões iniciando o agendamento, mas nenhuma conclusão rastreada aponta para um agendamento real do mesmo negócio.";
+      "Há sessões iniciando o agendamento, mas nenhuma conclusão rastreada aponta para o primeiro agendamento real do mesmo negócio.";
   }
 
   return (
@@ -120,7 +120,7 @@ export function ProfessionalPostAgendaFunnel({
           <p className="eyebrow">Pós-agenda</p>
           <h2>Da divulgação ao agendamento</h2>
           <p className="muted">
-            Sequência estrita: o dono divulga o perfil depois de configurar a agenda, outra sessão visita o negócio, uma sessão visitante inicia o agendamento e a conclusão precisa apontar para um agendamento real do mesmo negócio.
+            Sequência estrita: o dono divulga o perfil depois de configurar a agenda, outra sessão visita o negócio, uma sessão visitante inicia o agendamento e a conclusão precisa apontar para o primeiro agendamento real do mesmo negócio.
           </p>
           <p className="muted">{diagnostico}</p>
         </div>
@@ -159,7 +159,7 @@ export function ProfessionalPostAgendaFunnel({
       </div>
 
       <p className="muted admin-campaign-attribution-note">
-        O último marco é conservador: eventos de intenção não contam como agendamento. Se um evento de produto não chegar, a jornada rastreada pode ficar abaixo do total real de primeiros agendamentos.
+        “Após divulgação” descreve ordem temporal, não prova que a visita veio do link compartilhado. Eventos de intenção não contam como agendamento. Se um evento de produto não chegar, a jornada rastreada pode ficar abaixo do total real de primeiros agendamentos.
       </p>
     </section>
   );
