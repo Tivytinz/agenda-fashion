@@ -74,6 +74,12 @@ describe(
             taxaTerceiroSobreSegundo: 50,
             taxaTerceiroSobrePrimeiro: 33.33,
           },
+          metodologia: {
+            unidade: "profissional",
+            criterio: expect.stringMatching(
+              /não cancelados/i
+            ),
+          },
         });
       }
     );
