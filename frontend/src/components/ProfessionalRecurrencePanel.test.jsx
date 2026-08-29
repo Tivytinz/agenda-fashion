@@ -217,11 +217,16 @@ describe(
             /não é retenção D30/i
           )
         ).not.toBeNull();
-        expect(
+
+        const tituloProntidao =
           screen.getByText(
-            /Régua operacional atual: 10 cadastros maduros e 2 assinaturas/i
-          )
-        ).not.toBeNull();
+            "Prontidão da leitura financeira conjunta"
+          );
+        expect(
+          tituloProntidao.parentElement?.textContent
+        ).toMatch(
+          /Régua operacional atual:\s*10\s*cadastros maduros e\s*2\s*assinaturas/i
+        );
         expect(
           screen.getByText(
             "Diagnóstico executivo da prontidão financeira"
