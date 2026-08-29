@@ -103,8 +103,27 @@ function resumoMinimoAssinaturas(janela) {
   }`;
 }
 
+function textoRegua(diagnostico = {}) {
+  const minimoCadastros = numero(
+    diagnostico?.minimoCadastros
+  );
+  const minimoAssinaturas = numero(
+    diagnostico?.minimoAssinaturas
+  );
+
+  if (
+    minimoCadastros > 0 &&
+    minimoAssinaturas > 0
+  ) {
+    return `Régua operacional atual: ${minimoCadastros} cadastros maduros e ${minimoAssinaturas} assinaturas para a etapa de ROAS. Esses limites são apenas contexto e não liberam decisão financeira sozinhos.`;
+  }
+
+  return "O mínimo de assinaturas exibido em cada linha reutiliza a régua já configurada no funil e aparece apenas como contexto. Atingi-lo, sozinho, não libera decisão financeira.";
+}
+
 export function ProfessionalRecurrenceFinancialReadinessTable({
   campanhas = [],
+  diagnostico = {},
 }) {
   const grupos = Array.isArray(campanhas)
     ? campanhas
@@ -135,7 +154,7 @@ export function ProfessionalRecurrenceFinancialReadinessTable({
           “Leitura conjunta disponível” significa que custo, recorrência e primeiro pagamento podem ser lidos na mesma base madura. Não significa que a campanha deve escalar, manter ou pausar. A decisão de ROAS continua no funil profissional. Resultado zero de recorrência ou assinatura não invalida uma base íntegra.
         </small>
         <small>
-          O mínimo de assinaturas exibido em cada linha reutiliza a régua já configurada no funil e aparece apenas como contexto. Atingi-lo, sozinho, não libera decisão financeira.
+          {textoRegua(diagnostico)}
         </small>
       </div>
 
