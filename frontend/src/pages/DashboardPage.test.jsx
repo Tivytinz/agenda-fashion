@@ -281,7 +281,7 @@ describe("dashboard", () => {
     })).not.toBeNull();
     expect(screen.getByRole("link", { name: "Cadastrar serviço" })
       .getAttribute("href")).toBe("/painel/servicos/novo");
-    expect(screen.getByText("1 de 3")).not.toBeNull();
+    expect(screen.getByText("1 de 4")).not.toBeNull();
   });
 
   it("destaca a ativação do WhatsApp e registra a autorização em um toque", async () => {
