@@ -35,7 +35,7 @@ describe(
     });
 
     it(
-      "usa o mesmo periodo e mostra repeticao, tempo e maturidade",
+      "usa o mesmo periodo e mostra repeticao, tempo, maturidade e janelas candidatas",
       async () => {
         apiRequest.mockResolvedValue({
           periodo: "7",
@@ -66,6 +66,32 @@ describe(
               maximoDias: 31,
             },
           },
+          janelasCandidatas: [
+            {
+              janelaDias: 7,
+              elegiveis: 6,
+              comSegundoNaJanela: 4,
+              taxaSegundoNaJanela: 66.67,
+              comTerceiroNaJanela: 2,
+              taxaTerceiroNaJanela: 33.33,
+            },
+            {
+              janelaDias: 14,
+              elegiveis: 4,
+              comSegundoNaJanela: 3,
+              taxaSegundoNaJanela: 75,
+              comTerceiroNaJanela: 2,
+              taxaTerceiroNaJanela: 50,
+            },
+            {
+              janelaDias: 30,
+              elegiveis: 1,
+              comSegundoNaJanela: 1,
+              taxaSegundoNaJanela: 100,
+              comTerceiroNaJanela: 1,
+              taxaTerceiroNaJanela: 100,
+            },
+          ],
         });
 
         render(
@@ -108,6 +134,21 @@ describe(
           screen.getByRole("row", {
             name: "2º → 3º agendamento 3 5 dias 7,25 dias"
           })
+        ).not.toBeNull();
+        expect(
+          screen.getByRole("row", {
+            name: "D7 6 4 66.67% 2 33.33%"
+          })
+        ).not.toBeNull();
+        expect(
+          screen.getByRole("row", {
+            name: "D30 1 1 100% 1 100%"
+          })
+        ).not.toBeNull();
+        expect(
+          screen.getByText(
+            /só entram como elegíveis profissionais cujo primeiro agendamento já tem idade suficiente/i
+          )
         ).not.toBeNull();
         expect(
           screen.getByText(
@@ -155,6 +196,16 @@ describe(
               maximoDias: 5,
             },
           },
+          janelasCandidatas: [
+            {
+              janelaDias: 7,
+              elegiveis: 0,
+              comSegundoNaJanela: 0,
+              taxaSegundoNaJanela: 0,
+              comTerceiroNaJanela: 0,
+              taxaTerceiroNaJanela: 0,
+            },
+          ],
         });
 
         render(
@@ -169,6 +220,11 @@ describe(
         expect(
           screen.getByRole("row", {
             name: "1º → 2º agendamento 0 Sem base Sem base"
+          })
+        ).not.toBeNull();
+        expect(
+          screen.getByRole("row", {
+            name: "D7 0 0 0% 0 0%"
           })
         ).not.toBeNull();
       }
