@@ -21,10 +21,14 @@ describe(
   "ProfessionalRecurrenceFinancialReadinessTable",
   () => {
     test(
-      "exibe base madura comparável sem transformar prontidão em decisão de orçamento",
+      "exibe base madura comparável e a régua configurada sem transformar prontidão em decisão de orçamento",
       () => {
         render(
           <ProfessionalRecurrenceFinancialReadinessTable
+            diagnostico={{
+              minimoCadastros: 10,
+              minimoAssinaturas: 2,
+            }}
             campanhas={[
               {
                 chave: "campanha:10",
@@ -75,6 +79,11 @@ describe(
         expect(
           screen.getByText(
             "Leitura conjunta disponível"
+          )
+        ).not.toBeNull();
+        expect(
+          screen.getByText(
+            /Régua operacional atual: 10 cadastros maduros e 2 assinaturas/i
           )
         ).not.toBeNull();
         expect(
