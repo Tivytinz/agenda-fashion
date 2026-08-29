@@ -41,7 +41,8 @@ export function ProfessionalPostAgendaFunnel({
     summary.agendamentosIniciadosPosDivulgacao
   );
   const confirmados = numero(
-    summary.primeirosAgendamentosJornada
+    summary.primeirosAgendamentosJornada ??
+    summary.primeirosAgendamentosViaDivulgacao
   );
 
   const etapas = [
