@@ -32,6 +32,10 @@ const CAMPOS_SOMA = Object.freeze([
   "servicos_criados",
   "agendas_configuradas",
   "negocios_publicados",
+  "perfis_divulgados",
+  "visitas_pos_divulgacao",
+  "agendamentos_iniciados_pos_divulgacao",
+  "primeiros_agendamentos_via_divulgacao",
   "primeiros_agendamentos",
   "checkouts_iniciados",
   "assinaturas_ativadas",
@@ -523,6 +527,18 @@ function mapearLinha(
     numero(linha.agendas_configuradas);
   const negociosPublicados =
     numero(linha.negocios_publicados);
+  const perfisDivulgados =
+    numero(linha.perfis_divulgados);
+  const visitasPosDivulgacao =
+    numero(linha.visitas_pos_divulgacao);
+  const agendamentosIniciadosPosDivulgacao =
+    numero(
+      linha.agendamentos_iniciados_pos_divulgacao
+    );
+  const primeirosAgendamentosViaDivulgacao =
+    numero(
+      linha.primeiros_agendamentos_via_divulgacao
+    );
   const primeirosAgendamentos =
     numero(linha.primeiros_agendamentos);
   const checkoutsIniciados =
@@ -641,6 +657,10 @@ function mapearLinha(
     servicosCriados,
     agendasConfiguradas,
     negociosPublicados,
+    perfisDivulgados,
+    visitasPosDivulgacao,
+    agendamentosIniciadosPosDivulgacao,
+    primeirosAgendamentosViaDivulgacao,
     primeirosAgendamentos,
     checkoutsIniciados,
     assinaturasAtivadas,
@@ -675,6 +695,26 @@ function mapearLinha(
       percentual(
         negociosPublicados,
         cadastros
+      ),
+    taxaDivulgacaoPosAgenda:
+      percentual(
+        perfisDivulgados,
+        agendasConfiguradas
+      ),
+    taxaVisitaPosDivulgacao:
+      percentual(
+        visitasPosDivulgacao,
+        perfisDivulgados
+      ),
+    taxaInicioPosVisita:
+      percentual(
+        agendamentosIniciadosPosDivulgacao,
+        visitasPosDivulgacao
+      ),
+    taxaConclusaoPosInicio:
+      percentual(
+        primeirosAgendamentosViaDivulgacao,
+        agendamentosIniciadosPosDivulgacao
       ),
     taxaPrimeiroAgendamento:
       percentual(
@@ -755,6 +795,26 @@ function criarResumo(campanhas) {
         campanhas,
         "negociosPublicados"
       ),
+    perfisDivulgados:
+      somar(
+        campanhas,
+        "perfisDivulgados"
+      ),
+    visitasPosDivulgacao:
+      somar(
+        campanhas,
+        "visitasPosDivulgacao"
+      ),
+    agendamentosIniciadosPosDivulgacao:
+      somar(
+        campanhas,
+        "agendamentosIniciadosPosDivulgacao"
+      ),
+    primeirosAgendamentosViaDivulgacao:
+      somar(
+        campanhas,
+        "primeirosAgendamentosViaDivulgacao"
+      ),
     primeirosAgendamentos:
       somar(
         campanhas,
@@ -831,6 +891,26 @@ function criarResumo(campanhas) {
     percentual(
       resumo.agendasConfiguradas,
       resumo.cadastros
+    );
+  resumo.taxaDivulgacaoPosAgenda =
+    percentual(
+      resumo.perfisDivulgados,
+      resumo.agendasConfiguradas
+    );
+  resumo.taxaVisitaPosDivulgacao =
+    percentual(
+      resumo.visitasPosDivulgacao,
+      resumo.perfisDivulgados
+    );
+  resumo.taxaInicioPosVisita =
+    percentual(
+      resumo.agendamentosIniciadosPosDivulgacao,
+      resumo.visitasPosDivulgacao
+    );
+  resumo.taxaConclusaoPosInicio =
+    percentual(
+      resumo.primeirosAgendamentosViaDivulgacao,
+      resumo.agendamentosIniciadosPosDivulgacao
     );
   resumo.taxaCheckout =
     percentual(
