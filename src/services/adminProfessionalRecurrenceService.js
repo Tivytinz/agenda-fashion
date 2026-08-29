@@ -6,6 +6,11 @@ const {
 } = require(
   "./adminProfessionalRecurrenceStabilityService"
 );
+const {
+  agruparPorOrigemAquisicao,
+} = require(
+  "./adminProfessionalRecurrenceAcquisitionService"
+);
 
 const DIA_MS = 24 * 60 * 60 * 1000;
 const JANELAS_CANDIDATAS_DIAS = [7, 14, 30];
@@ -407,6 +412,48 @@ function criarCoortesSemanais(
     });
 }
 
+function criarQualidadeAquisicaoPorOrigem(
+  linhas = [],
+  agora = new Date(),
+  janelas = JANELAS_CANDIDATAS_DIAS
+) {
+  return agruparPorOrigemAquisicao(
+    linhas
+  ).map((grupo) => {
+    const resumo =
+      criarResumo(grupo.linhas);
+
+    return {
+      chave: grupo.chave,
+      classificacaoAtribuicao:
+        grupo.classificacaoAtribuicao,
+      origem: grupo.origem,
+      profissionais: grupo.linhas.length,
+      comPrimeiroAgendamento:
+        resumo.comPrimeiroAgendamento,
+      taxaPrimeiroSobreProfissionais:
+        percentual(
+          resumo.comPrimeiroAgendamento,
+          grupo.linhas.length
+        ),
+      comSegundoAgendamento:
+        resumo.comSegundoAgendamento,
+      taxaSegundoSobrePrimeiro:
+        resumo.taxaSegundoSobrePrimeiro,
+      comTerceiroAgendamento:
+        resumo.comTerceiroAgendamento,
+      taxaTerceiroSobrePrimeiro:
+        resumo.taxaTerceiroSobrePrimeiro,
+      janelasCandidatas:
+        criarJanelasCandidatas(
+          grupo.linhas,
+          agora,
+          janelas
+        ),
+    };
+  });
+}
+
 async function buscarRecorrencia({
   periodo,
   agora = new Date(),
@@ -442,6 +489,11 @@ async function buscarRecorrencia({
       criarDiagnosticoEstabilidade(
         coortesSemanais
       ),
+    qualidadeAquisicao:
+      criarQualidadeAquisicaoPorOrigem(
+        resultado.linhas,
+        agora
+      ),
     metodologia: {
       unidade: "profissional",
       criterio:
@@ -454,6 +506,8 @@ async function buscarRecorrencia({
         "as coortes semanais usam a semana de cadastro do usuário em America/Sao_Paulo e reaplicam as mesmas janelas maduras dentro de cada grupo",
       estabilidade:
         "a comparação entre coortes é descritiva: mostra faixa, amplitude e variação da coorte madura mais recente contra a anterior, sem inferir tendência estatística nem impor um tamanho mínimo de amostra inexistente no produto",
+      aquisicao:
+        "a qualidade por origem reutiliza a classificação oficial de atribuição do backend e separa origem oficial, orgânica, rastreamento incompleto, identidade não oficial e ausência de evidência; a recorrência por origem não altera CAC, ROAS nem decisões de orçamento por si só",
       observacao:
         "Esta leitura mede recorrência observada e maturidade da amostra. As janelas candidatas ainda não são uma definição oficial de retenção, não confirmam atendimento realizado e não representam receita.",
     },
@@ -467,6 +521,7 @@ module.exports = {
   criarEstatistica,
   criarJanelasCandidatas,
   criarCoortesSemanais,
+  criarQualidadeAquisicaoPorOrigem,
   diasEntre,
   estaMaduroParaJanela,
   ocorreuDentroDaJanela,
