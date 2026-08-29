@@ -48,7 +48,7 @@ jest.mock(
 jest.mock(
   "../src/services/adminProfessionalRecurrenceService",
   () => ({
-    buscarRecorrencia:
+    buscarRecorrenciaComBase:
       jest.fn(),
   })
 );
@@ -57,6 +57,8 @@ jest.mock(
   "../src/services/adminProfessionalAcquisitionCostService",
   () => ({
     buscarInvestimentos:
+      jest.fn(),
+    buscarInvestimentosDiarios:
       jest.fn(),
     enriquecerRecorrencia:
       jest.fn(),
@@ -103,6 +105,9 @@ describe(
         .buscarInvestimentos
         .mockResolvedValue([]);
       acquisitionCostService
+        .buscarInvestimentosDiarios
+        .mockResolvedValue([]);
+      acquisitionCostService
         .enriquecerRecorrencia
         .mockImplementation(
           ({ recorrencia }) =>
@@ -126,17 +131,21 @@ describe(
         expect(resposta.status)
           .toBe(403);
         expect(
-          service.buscarRecorrencia
+          service.buscarRecorrenciaComBase
         ).not.toHaveBeenCalled();
         expect(
           acquisitionCostService
             .buscarInvestimentos
         ).not.toHaveBeenCalled();
+        expect(
+          acquisitionCostService
+            .buscarInvestimentosDiarios
+        ).not.toHaveBeenCalled();
       }
     );
 
     test(
-      "encaminha o periodo, combina investimento e retorna a recorrencia observada",
+      "encaminha o periodo, reutiliza a base e combina gasto diario com recorrencia",
       async () => {
         const recorrencia = {
           periodo: "7",
@@ -146,21 +155,41 @@ describe(
             comTerceiroAgendamento: 2,
           },
         };
+        const linhas = [
+          {
+            usuario_id: 9,
+            campanha_oficial_id: 10,
+          },
+        ];
         const investimentos = [
           {
             campanha_id: 10,
             investimento_centavos: 5000,
           },
         ];
+        const investimentosDiarios = [
+          {
+            campanha_id: 10,
+            data_gasto: "2026-08-01",
+            idade_dias: 28,
+            investimento_centavos: 5000,
+          },
+        ];
 
-        service.buscarRecorrencia
-          .mockResolvedValue(
-            recorrencia
-          );
+        service.buscarRecorrenciaComBase
+          .mockResolvedValue({
+            recorrencia,
+            linhas,
+          });
         acquisitionCostService
           .buscarInvestimentos
           .mockResolvedValue(
             investimentos
+          );
+        acquisitionCostService
+          .buscarInvestimentosDiarios
+          .mockResolvedValue(
+            investimentosDiarios
           );
         acquisitionCostService
           .enriquecerRecorrencia
@@ -180,7 +209,7 @@ describe(
         expect(resposta.status)
           .toBe(200);
         expect(
-          service.buscarRecorrencia
+          service.buscarRecorrenciaComBase
         ).toHaveBeenCalledWith({
           periodo: "7",
         });
@@ -190,10 +219,16 @@ describe(
         ).toHaveBeenCalledWith("7");
         expect(
           acquisitionCostService
+            .buscarInvestimentosDiarios
+        ).toHaveBeenCalledWith("7");
+        expect(
+          acquisitionCostService
             .enriquecerRecorrencia
         ).toHaveBeenCalledWith({
           recorrencia,
+          linhasRecorrencia: linhas,
           investimentos,
+          investimentosDiarios,
         });
         expect(
           resposta.body.resumo
