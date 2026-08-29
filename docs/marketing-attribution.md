@@ -42,11 +42,13 @@ A sequência rastreada é:
 1. o dono copia ou compartilha o link público do próprio negócio pelo dashboard ou pela configuração da agenda, depois de a agenda estar configurada;
 2. outra sessão visualiza o perfil público depois dessa divulgação, excluindo a sessão que divulgou e visualizações autenticadas do próprio dono;
 3. uma sessão visitante que visualizou o perfil avança para `agendamento_iniciado`;
-4. a mesma sessão registra `agendamento_concluido`, e o `agendamento_id` do evento precisa apontar para uma linha real de `agendamentos` do mesmo negócio, criada depois do início.
+4. a mesma sessão registra `agendamento_concluido`, o `agendamento_id` do evento aponta para uma linha real de `agendamentos` do mesmo negócio, criada depois do início, e essa linha é o primeiro agendamento registrado para aquele negócio.
 
 A primeira visita não precisa ser a sessão que converte. Se uma pessoa visualizar e sair, uma visita posterior ainda pode representar o avanço do negócio até o início e a conclusão do agendamento.
 
-Os eventos de produto medem intenção e progressão, mas não substituem a fonte transacional. `agendamento_iniciado` e `agendamento_concluido` isolados nunca devem ser tratados como receita ou como agendamento real. O marco final da jornada rastreada só existe quando o evento de conclusão é validado contra a tabela `agendamentos`.
+A expressão “após divulgação” descreve ordem temporal. Ela não prova que a visita foi causada pelo link compartilhado, porque o funil de produto não usa esse encadeamento como modelo de atribuição de origem.
+
+Os eventos de produto medem intenção e progressão, mas não substituem a fonte transacional. `agendamento_iniciado` e `agendamento_concluido` isolados nunca devem ser tratados como receita ou como agendamento real. O marco final da jornada rastreada só existe quando o evento de conclusão é validado contra o primeiro registro real da tabela `agendamentos` daquele negócio.
 
 Como a sequência depende da chegada dos eventos de produto, ela pode subestimar a jornada quando houver perda de telemetria. O total geral de primeiros agendamentos continua sendo calculado diretamente a partir da tabela `agendamentos` e permanece a referência operacional para saber se o negócio recebeu seu primeiro agendamento.
 
