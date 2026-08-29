@@ -81,6 +81,14 @@ jest.mock(
   })
 );
 
+jest.mock(
+  "../src/services/adminProfessionalRecurrenceFinancialDiagnosisService",
+  () => ({
+    enriquecerRecorrenciaComDiagnosticoExecutivo:
+      jest.fn(),
+  })
+);
+
 const service = require(
   "../src/services/adminProfessionalRecurrenceService"
 );
@@ -92,6 +100,9 @@ const monetizationService = require(
 );
 const financialReadinessService = require(
   "../src/services/adminProfessionalRecurrenceFinancialReadinessService"
+);
+const financialDiagnosisService = require(
+  "../src/services/adminProfessionalRecurrenceFinancialDiagnosisService"
 );
 const adminRoutes = require(
   "../src/routes/adminRoutes"
@@ -147,6 +158,12 @@ describe(
           ({ recorrencia }) =>
             recorrencia
         );
+      financialDiagnosisService
+        .enriquecerRecorrenciaComDiagnosticoExecutivo
+        .mockImplementation(
+          ({ recorrencia }) =>
+            recorrencia
+        );
     });
 
     test(
@@ -183,11 +200,15 @@ describe(
           financialReadinessService
             .enriquecerRecorrenciaComProntidaoFinanceira
         ).not.toHaveBeenCalled();
+        expect(
+          financialDiagnosisService
+            .enriquecerRecorrenciaComDiagnosticoExecutivo
+        ).not.toHaveBeenCalled();
       }
     );
 
     test(
-      "encaminha o periodo e combina custo, monetizacao e prontidao financeira sobre a mesma base",
+      "encaminha o periodo e combina custo, monetizacao, prontidao e diagnostico executivo sobre a mesma base",
       async () => {
         const recorrencia = {
           periodo: "7",
@@ -236,6 +257,15 @@ describe(
             minimoAssinaturas: 2,
           },
         };
+        const comDiagnostico = {
+          ...comProntidao,
+          diagnosticoExecutivoProntidaoFinanceira: {
+            resumo: {
+              campanhas: 1,
+              bloqueadas: 0,
+            },
+          },
+        };
 
         service.buscarRecorrenciaComBase
           .mockResolvedValue({
@@ -261,6 +291,9 @@ describe(
         financialReadinessService
           .enriquecerRecorrenciaComProntidaoFinanceira
           .mockReturnValue(comProntidao);
+        financialDiagnosisService
+          .enriquecerRecorrenciaComDiagnosticoExecutivo
+          .mockReturnValue(comDiagnostico);
 
         const resposta =
           await request(criarApp())
@@ -300,10 +333,16 @@ describe(
           investimentosDiarios,
         });
         expect(
+          financialDiagnosisService
+            .enriquecerRecorrenciaComDiagnosticoExecutivo
+        ).toHaveBeenCalledWith({
+          recorrencia: comProntidao,
+        });
+        expect(
           resposta.body
-            .diagnosticoProntidaoFinanceira
-            .minimoAssinaturas
-        ).toBe(2);
+            .diagnosticoExecutivoProntidaoFinanceira
+            .resumo.campanhas
+        ).toBe(1);
       }
     );
   }

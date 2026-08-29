@@ -15,6 +15,12 @@ import {
 import {
   ProfessionalRecurrenceMonetizationTable,
 } from "./ProfessionalRecurrenceMonetizationTable";
+import {
+  ProfessionalRecurrenceFinancialReadinessTable,
+} from "./ProfessionalRecurrenceFinancialReadinessTable";
+import {
+  ProfessionalRecurrenceFinancialDiagnosisTable,
+} from "./ProfessionalRecurrenceFinancialDiagnosisTable";
 
 function numero(valor) {
   const convertido = Number(valor);
@@ -158,6 +164,10 @@ export function ProfessionalRecurrencePanel({
       : [];
   const diagnosticoMonetizacao =
     data?.diagnosticoMonetizacaoRecorrencia || {};
+  const diagnosticoProntidaoFinanceira =
+    data?.diagnosticoProntidaoFinanceira || {};
+  const diagnosticoExecutivoFinanceiro =
+    data?.diagnosticoExecutivoProntidaoFinanceira || {};
   const primeiro = numero(
     resumo.comPrimeiroAgendamento
   );
@@ -448,6 +458,15 @@ export function ProfessionalRecurrencePanel({
       <ProfessionalRecurrenceMonetizationTable
         campanhas={qualidadeCampanhasOficiais}
         diagnostico={diagnosticoMonetizacao}
+      />
+
+      <ProfessionalRecurrenceFinancialReadinessTable
+        campanhas={qualidadeCampanhasOficiais}
+        diagnostico={diagnosticoProntidaoFinanceira}
+      />
+
+      <ProfessionalRecurrenceFinancialDiagnosisTable
+        diagnostico={diagnosticoExecutivoFinanceiro}
       />
 
       <p className="muted admin-campaign-attribution-note">

@@ -125,6 +125,20 @@ describe(
               ],
             },
           ],
+          diagnosticoProntidaoFinanceira: {
+            minimoCadastros: 10,
+            minimoAssinaturas: 2,
+          },
+          diagnosticoExecutivoProntidaoFinanceira: {
+            campanhas: [],
+            resumo: {
+              campanhas: 0,
+              comLeituraCompleta: 0,
+              comLeituraParcial: 0,
+              bloqueadas: 0,
+              bloqueios: [],
+            },
+          },
         });
 
         render(
@@ -201,6 +215,21 @@ describe(
         expect(
           screen.getByText(
             /não é retenção D30/i
+          )
+        ).not.toBeNull();
+
+        const tituloProntidao =
+          screen.getByText(
+            "Prontidão da leitura financeira conjunta"
+          );
+        expect(
+          tituloProntidao.parentElement?.textContent
+        ).toMatch(
+          /Régua operacional atual:\s*10\s*cadastros maduros e\s*2\s*assinaturas/i
+        );
+        expect(
+          screen.getByText(
+            "Diagnóstico executivo da prontidão financeira"
           )
         ).not.toBeNull();
       }
