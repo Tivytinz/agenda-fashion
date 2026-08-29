@@ -32,13 +32,15 @@ describe(
           nome,
           email,
           senha,
-          whatsapp
+          whatsapp,
+          created_at
         )
         VALUES (
           $1,
           $2,
           'hash-teste',
-          '62999999999'
+          '62999999999',
+          '2026-08-19T15:00:00.000Z'
         )
         RETURNING id
         `,
@@ -210,7 +212,7 @@ describe(
     });
 
     test(
-      "conta agendamentos nao cancelados e preserva os tres primeiros marcos por criacao",
+      "preserva semana de cadastro e os tres primeiros marcos por criacao",
       async () => {
         const resultado =
           await repository
@@ -224,6 +226,7 @@ describe(
 
         expect(linha).toMatchObject({
           negocio_id: String(negocioId),
+          semana_cadastro: "2026-08-17",
           total_agendamentos: 3,
         });
 

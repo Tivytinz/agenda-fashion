@@ -66,6 +66,8 @@ Para cada transição são mostrados tamanho da amostra, mediana e percentil 75 
 
 O painel também compara D7, D14 e D30 como **janelas candidatas de recorrência com maturidade corrigida**. Para uma janela de `N` dias, o denominador inclui somente profissionais cujo primeiro agendamento aconteceu há pelo menos `N` dias. O segundo agendamento conta na janela quando foi criado até `N` dias depois do primeiro; o terceiro segue a mesma regra, sempre contado a partir do primeiro agendamento. Isso evita reduzir artificialmente a taxa por incluir profissionais que ainda não tiveram tempo para completar a janela observada.
 
+As mesmas janelas são quebradas por **semana de cadastro do profissional**, usando `usuarios.created_at` agrupado por semana iniciada na segunda-feira em `America/Sao_Paulo`. Cada semana reaplica sua própria elegibilidade D7, D14 e D30, de modo que uma coorte recente pode aparecer com zero elegíveis sem ser classificada como baixa recorrência. Essa visão serve para verificar estabilidade entre coortes e localizar períodos específicos de aquisição ou ativação que destoem do agregado.
+
 D7, D14 e D30 continuam sendo comparações descritivas, não definições oficiais de retenção. A escolha de uma régua futura deve considerar tamanho da amostra, estabilidade entre coortes, comportamento real de repetição e objetivo de produto antes de virar KPI ou regra de decisão. Essas janelas não alteram CAC, ROAS ou orçamento de mídia por si só.
 
 Essas estatísticas são descritivas e não criam por si só uma janela oficial de retenção. A escolha futura de D7, D30 ou outro intervalo deve usar o comportamento observado, tamanho da amostra e objetivo de produto antes de virar regra de decisão.

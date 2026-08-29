@@ -348,6 +348,60 @@ function criarJanelasCandidatas(
   });
 }
 
+function criarCoortesSemanais(
+  linhas = [],
+  agora = new Date(),
+  janelas = JANELAS_CANDIDATAS_DIAS
+) {
+  const grupos = new Map();
+
+  for (const linha of linhas) {
+    const semanaCadastro = String(
+      linha.semana_cadastro || ""
+    );
+
+    if (
+      !/^\d{4}-\d{2}-\d{2}$/.test(
+        semanaCadastro
+      )
+    ) {
+      continue;
+    }
+
+    if (!grupos.has(semanaCadastro)) {
+      grupos.set(semanaCadastro, []);
+    }
+
+    grupos.get(semanaCadastro).push(linha);
+  }
+
+  return [...grupos.entries()]
+    .sort(([semanaA], [semanaB]) =>
+      semanaB.localeCompare(semanaA)
+    )
+    .map(([semanaCadastro, grupo]) => {
+      const resumo = criarResumo(grupo);
+
+      return {
+        semanaCadastro,
+        profissionais: grupo.length,
+        comPrimeiroAgendamento:
+          resumo.comPrimeiroAgendamento,
+        taxaPrimeiroSobreProfissionais:
+          percentual(
+            resumo.comPrimeiroAgendamento,
+            grupo.length
+          ),
+        janelasCandidatas:
+          criarJanelasCandidatas(
+            grupo,
+            agora,
+            janelas
+          ),
+      };
+    });
+}
+
 async function buscarRecorrencia({
   periodo,
   agora = new Date(),
@@ -373,6 +427,11 @@ async function buscarRecorrencia({
         resultado.linhas,
         agora
       ),
+    coortesSemanais:
+      criarCoortesSemanais(
+        resultado.linhas,
+        agora
+      ),
     metodologia: {
       unidade: "profissional",
       criterio:
@@ -381,6 +440,8 @@ async function buscarRecorrencia({
         "os intervalos usam created_at, isto é, o momento em que cada agendamento entrou no AF, e não a data futura marcada para o atendimento",
       janelas:
         "D7, D14 e D30 são janelas candidatas de recorrência. Cada denominador inclui somente profissionais cujo primeiro agendamento já tem pelo menos a idade da janela analisada.",
+      coortes:
+        "as coortes semanais usam a semana de cadastro do usuário em America/Sao_Paulo e reaplicam as mesmas janelas maduras dentro de cada grupo",
       observacao:
         "Esta leitura mede recorrência observada e maturidade da amostra. As janelas candidatas ainda não são uma definição oficial de retenção, não confirmam atendimento realizado e não representam receita.",
     },
@@ -393,6 +454,7 @@ module.exports = {
   criarAnaliseTemporal,
   criarEstatistica,
   criarJanelasCandidatas,
+  criarCoortesSemanais,
   diasEntre,
   estaMaduroParaJanela,
   ocorreuDentroDaJanela,

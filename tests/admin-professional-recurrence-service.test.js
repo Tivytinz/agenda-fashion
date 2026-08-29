@@ -159,6 +159,9 @@ describe(
             janelas: expect.stringMatching(
               /somente profissionais/i
             ),
+            coortes: expect.stringMatching(
+              /semana de cadastro/i
+            ),
           },
         });
       }
@@ -255,6 +258,116 @@ describe(
             taxaTerceiroNaJanela: 0,
           },
         ]);
+      }
+    );
+
+    test(
+      "separa janelas maduras por semana de cadastro sem penalizar coorte nova",
+      () => {
+        const resultado =
+          service.criarCoortesSemanais(
+            [
+              {
+                semana_cadastro: "2026-07-20",
+                negocio_id: 11,
+                total_agendamentos: 3,
+                primeiro_agendamento_em:
+                  "2026-07-20T00:00:00.000Z",
+                segundo_agendamento_em:
+                  "2026-07-25T00:00:00.000Z",
+                terceiro_agendamento_em:
+                  "2026-08-01T00:00:00.000Z",
+              },
+              {
+                semana_cadastro: "2026-07-20",
+                negocio_id: 12,
+                total_agendamentos: 1,
+                primeiro_agendamento_em:
+                  "2026-07-21T00:00:00.000Z",
+                segundo_agendamento_em: null,
+                terceiro_agendamento_em: null,
+              },
+              {
+                semana_cadastro: "2026-08-24",
+                negocio_id: 13,
+                total_agendamentos: 2,
+                primeiro_agendamento_em:
+                  "2026-08-26T00:00:00.000Z",
+                segundo_agendamento_em:
+                  "2026-08-27T00:00:00.000Z",
+                terceiro_agendamento_em: null,
+              },
+            ],
+            new Date(
+              "2026-08-29T00:00:00.000Z"
+            ),
+            [7, 14, 30]
+          );
+
+        expect(resultado[0]).toEqual({
+          semanaCadastro: "2026-08-24",
+          profissionais: 1,
+          comPrimeiroAgendamento: 1,
+          taxaPrimeiroSobreProfissionais: 100,
+          janelasCandidatas: [
+            {
+              janelaDias: 7,
+              elegiveis: 0,
+              comSegundoNaJanela: 0,
+              taxaSegundoNaJanela: 0,
+              comTerceiroNaJanela: 0,
+              taxaTerceiroNaJanela: 0,
+            },
+            {
+              janelaDias: 14,
+              elegiveis: 0,
+              comSegundoNaJanela: 0,
+              taxaSegundoNaJanela: 0,
+              comTerceiroNaJanela: 0,
+              taxaTerceiroNaJanela: 0,
+            },
+            {
+              janelaDias: 30,
+              elegiveis: 0,
+              comSegundoNaJanela: 0,
+              taxaSegundoNaJanela: 0,
+              comTerceiroNaJanela: 0,
+              taxaTerceiroNaJanela: 0,
+            },
+          ],
+        });
+
+        expect(resultado[1]).toMatchObject({
+          semanaCadastro: "2026-07-20",
+          profissionais: 2,
+          comPrimeiroAgendamento: 2,
+          janelasCandidatas: [
+            {
+              janelaDias: 7,
+              elegiveis: 2,
+              comSegundoNaJanela: 1,
+              taxaSegundoNaJanela: 50,
+              comTerceiroNaJanela: 0,
+              taxaTerceiroNaJanela: 0,
+            },
+            {
+              janelaDias: 14,
+              elegiveis: 2,
+              comSegundoNaJanela: 1,
+              taxaSegundoNaJanela: 50,
+              comTerceiroNaJanela: 1,
+              taxaTerceiroNaJanela: 50,
+            },
+            {
+              janelaDias: 30,
+              elegiveis: 2,
+              comSegundoNaJanela: 1,
+              taxaSegundoNaJanela: 50,
+              comTerceiroNaJanela: 1,
+              taxaTerceiroNaJanela: 50,
+            },
+          ],
+        });
       }
     );
   }

@@ -35,7 +35,7 @@ describe(
     });
 
     it(
-      "usa o mesmo periodo e mostra repeticao, tempo, maturidade e janelas candidatas",
+      "usa o mesmo periodo e mostra recorrencia por semana de cadastro",
       async () => {
         apiRequest.mockResolvedValue({
           periodo: "7",
@@ -92,6 +92,39 @@ describe(
               taxaTerceiroNaJanela: 100,
             },
           ],
+          coortesSemanais: [
+            {
+              semanaCadastro: "2026-08-18",
+              profissionais: 5,
+              comPrimeiroAgendamento: 4,
+              janelasCandidatas: [
+                {
+                  janelaDias: 7,
+                  elegiveis: 3,
+                  comSegundoNaJanela: 2,
+                  taxaSegundoNaJanela: 66.67,
+                  comTerceiroNaJanela: 1,
+                  taxaTerceiroNaJanela: 33.33,
+                },
+                {
+                  janelaDias: 14,
+                  elegiveis: 1,
+                  comSegundoNaJanela: 1,
+                  taxaSegundoNaJanela: 100,
+                  comTerceiroNaJanela: 0,
+                  taxaTerceiroNaJanela: 0,
+                },
+                {
+                  janelaDias: 30,
+                  elegiveis: 0,
+                  comSegundoNaJanela: 0,
+                  taxaSegundoNaJanela: 0,
+                  comTerceiroNaJanela: 0,
+                  taxaTerceiroNaJanela: 0,
+                },
+              ],
+            },
+          ],
         });
 
         render(
@@ -146,8 +179,13 @@ describe(
           })
         ).not.toBeNull();
         expect(
+          screen.getByRole("row", {
+            name: "18/08/2026 5 4 D7 3 2 66.67% 1 33.33%"
+          })
+        ).not.toBeNull();
+        expect(
           screen.getByText(
-            /só entram como elegíveis profissionais cujo primeiro agendamento já tem idade suficiente/i
+            /semana começa na segunda-feira/i
           )
         ).not.toBeNull();
         expect(
@@ -169,7 +207,7 @@ describe(
     );
 
     it(
-      "explica quando o primeiro valor ainda nao se repetiu e nao inventa tempo",
+      "explica quando o primeiro valor ainda nao se repetiu e nao inventa coorte",
       async () => {
         apiRequest.mockResolvedValue({
           resumo: {
@@ -206,6 +244,7 @@ describe(
               taxaTerceiroNaJanela: 0,
             },
           ],
+          coortesSemanais: [],
         });
 
         render(
@@ -226,6 +265,11 @@ describe(
           screen.getByRole("row", {
             name: "D7 0 0 0% 0 0%"
           })
+        ).not.toBeNull();
+        expect(
+          screen.getByText(
+            /ainda não há coortes semanais com dados suficientes/i
+          )
         ).not.toBeNull();
       }
     );

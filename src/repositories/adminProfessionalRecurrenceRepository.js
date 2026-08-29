@@ -24,8 +24,17 @@ async function listarRecorrencia(
     WITH coorte AS (
       SELECT DISTINCT ON (mua.usuario_id)
         mua.usuario_id,
-        mua.atribuicao_em
+        mua.atribuicao_em,
+        TO_CHAR(
+          DATE_TRUNC(
+            'week',
+            u.created_at AT TIME ZONE 'America/Sao_Paulo'
+          ),
+          'YYYY-MM-DD'
+        ) AS semana_cadastro
       FROM marketing_usuario_atribuicoes mua
+      INNER JOIN usuarios u
+        ON u.id = mua.usuario_id
       WHERE mua.intencao = 'profissional'
         ${filtroCoorte}
       ORDER BY
@@ -35,6 +44,7 @@ async function listarRecorrencia(
 
     SELECT
       c.usuario_id,
+      c.semana_cadastro,
       dono.negocio_id,
       COALESCE(
         recorrencia.total_agendamentos,
