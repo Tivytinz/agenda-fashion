@@ -140,6 +140,48 @@ describe(
     });
 
     test(
+      "consulta o status sem criar configuração ou horários",
+      async () => {
+        repository
+          .buscarConfiguracao
+          .mockResolvedValue({
+            profissional_id: 7,
+            configurado_em:
+              "2026-08-28T22:00:00.000Z",
+          });
+
+        const resultado =
+          await service
+            .buscarStatusConfiguracao({
+              usuarioId: 7,
+            });
+
+        expect(
+          resultado
+        ).toEqual({
+          configurada: true,
+          configurado_em:
+            "2026-08-28T22:00:00.000Z",
+        });
+
+        expect(
+          repository
+            .criarConfiguracao
+        ).not.toHaveBeenCalled();
+
+        expect(
+          repository
+            .salvarHorario
+        ).not.toHaveBeenCalled();
+
+        expect(
+          repository
+            .executarTransacao
+        ).not.toHaveBeenCalled();
+      }
+    );
+
+    test(
       "salva configuração e sete dias na mesma transação",
       async () => {
         const resultado =
