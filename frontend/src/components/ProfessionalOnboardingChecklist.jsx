@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { apiRequest } from "../api/client";
 import { ConfirmationIcon } from "./ConfirmationIcon";
+import { PublicShareButton } from "./PublicShareButton";
 
 const SERVICE_PENDING = "pelo menos um serviço ativo";
 
@@ -147,9 +148,9 @@ export function ProfessionalOnboardingChecklist({
             <ConfirmationIcon className="onboarding-complete-icon" />
             <span>Configuração concluída</span>
           </p>
-          <h2>Seu negócio está pronto para receber clientes</h2>
+          <h2>Sua agenda está pronta. Agora traga seu primeiro agendamento</h2>
           <p className="muted">
-            Sua agenda está configurada. Compartilhe seu perfil e mantenha serviços e horários atualizados.
+            Compartilhe seu perfil para levar clientes direto aos seus serviços e horários disponíveis.
           </p>
         </div>
         <div className="onboarding-complete-actions">
@@ -157,12 +158,21 @@ export function ProfessionalOnboardingChecklist({
             {completed} de {steps.length}
           </strong>
           {businessSlug && (
-            <Link
-              className="button"
-              to={`/negocio/${encodeURIComponent(businessSlug)}`}
-            >
-              Ver meu perfil público <span aria-hidden="true">↗</span>
-            </Link>
+            <>
+              <PublicShareButton
+                businessSlug={businessSlug}
+                className="button"
+                label="Compartilhar perfil"
+                trackingMission="gerenciar_crescimento"
+                trackingPage="dashboard_dono"
+              />
+              <Link
+                className="button button-secondary"
+                to={`/negocio/${encodeURIComponent(businessSlug)}`}
+              >
+                Ver meu perfil público <span aria-hidden="true">↗</span>
+              </Link>
+            </>
           )}
         </div>
       </section>
