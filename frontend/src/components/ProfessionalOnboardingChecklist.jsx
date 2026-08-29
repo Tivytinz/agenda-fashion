@@ -92,12 +92,12 @@ export function ProfessionalOnboardingChecklist({
 
     setScheduleState({ configured: null, loading: true });
 
-    apiRequest("/agenda-configuracao", { signal: controller.signal })
+    apiRequest("/agenda-configuracao/status", { signal: controller.signal })
       .then((result) => {
         if (!active) return;
 
         setScheduleState({
-          configured: Boolean(result.configuracao?.configurado_em),
+          configured: result.configurada === true,
           loading: false
         });
       })
