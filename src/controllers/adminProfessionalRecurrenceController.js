@@ -7,6 +7,9 @@ const acquisitionCostService = require(
 const monetizationService = require(
   "../services/adminProfessionalRecurrenceMonetizationService"
 );
+const financialReadinessService = require(
+  "../services/adminProfessionalRecurrenceFinancialReadinessService"
+);
 
 async function buscar(
   req,
@@ -43,12 +46,20 @@ async function buscar(
           investimentos,
           investimentosDiarios,
         });
-    const resultado =
+    const comMonetizacao =
       monetizationService
         .enriquecerRecorrenciaComMonetizacao({
           recorrencia: comCustos,
           linhasRecorrencia:
             baseRecorrencia.linhas,
+        });
+    const resultado =
+      financialReadinessService
+        .enriquecerRecorrenciaComProntidaoFinanceira({
+          recorrencia: comMonetizacao,
+          linhasRecorrencia:
+            baseRecorrencia.linhas,
+          investimentosDiarios,
         });
 
     return res
