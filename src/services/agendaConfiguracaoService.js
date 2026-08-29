@@ -373,6 +373,30 @@ async function buscarMinhaConfiguracao({ usuarioId }) {
     );
 }
 
+async function buscarStatusConfiguracao({ usuarioId }) {
+  exigirUsuario(usuarioId);
+
+  await exigirProfissionalAtivo(
+    usuarioId
+  );
+
+  const configuracao =
+    await agendaConfiguracaoRepository
+      .buscarConfiguracao(
+        usuarioId
+      );
+
+  return {
+    configurada:
+      Boolean(
+        configuracao?.configurado_em
+      ),
+    configurado_em:
+      configuracao?.configurado_em ||
+      null,
+  };
+}
+
 async function salvarMinhaConfiguracao({
   usuarioId,
   duracaoPadrao,
@@ -535,5 +559,6 @@ async function salvarMinhaConfiguracao({
 
 module.exports = {
   buscarMinhaConfiguracao,
+  buscarStatusConfiguracao,
   salvarMinhaConfiguracao,
 };
