@@ -16,7 +16,7 @@ import { ProfessionalPostAgendaFunnel } from "./ProfessionalPostAgendaFunnel";
 afterEach(cleanup);
 
 describe("ProfessionalPostAgendaFunnel", () => {
-  it("mostra a progressão estrita entre agenda, divulgação, visita, início e confirmação", () => {
+  it("mostra a progressão estrita entre agenda, divulgação, visita, início e primeiro agendamento", () => {
     render(
       <ProfessionalPostAgendaFunnel
         summary={{
@@ -24,7 +24,7 @@ describe("ProfessionalPostAgendaFunnel", () => {
           perfisDivulgados: 6,
           visitasPosDivulgacao: 4,
           agendamentosIniciadosPosDivulgacao: 3,
-          primeirosAgendamentosViaDivulgacao: 2,
+          primeirosAgendamentosJornada: 2,
           taxaDivulgacaoPosAgenda: 75,
           taxaVisitaPosDivulgacao: 66.67,
           taxaInicioPosVisita: 75,
@@ -60,11 +60,14 @@ describe("ProfessionalPostAgendaFunnel", () => {
     ).not.toBeNull();
     expect(
       screen.getByRole("row", {
-        name: "Agendamento confirmado pela jornada 2 25% 66.67%"
+        name: "Primeiro agendamento da jornada 2 25% 66.67%"
       })
     ).not.toBeNull();
     expect(
       screen.getByText(/jornada completa já aparece na coorte/i)
+    ).not.toBeNull();
+    expect(
+      screen.getByText(/ordem temporal, não prova que a visita veio do link/i)
     ).not.toBeNull();
   });
 
