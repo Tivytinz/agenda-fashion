@@ -104,9 +104,12 @@ describe(
           resultado.qualidadeCampanhasOficiais
         ).toHaveLength(2);
 
-        expect(
-          resultado.qualidadeCampanhasOficiais[0]
-        ).toMatchObject({
+        const google =
+          resultado.qualidadeCampanhasOficiais[0];
+        const meta =
+          resultado.qualidadeCampanhasOficiais[1];
+
+        expect(google).toMatchObject({
           campanhaOficialId: "10",
           origem: "google",
           midia: "cpc",
@@ -122,34 +125,34 @@ describe(
           taxaSegundoSobrePrimeiro: 50,
           comTerceiroAgendamento: 1,
           taxaTerceiroSobrePrimeiro: 50,
-          janelasCandidatas: [
-            {
-              janelaDias: 7,
-              elegiveis: 2,
-              comSegundoNaJanela: 1,
-              taxaSegundoNaJanela: 50,
-              comTerceiroNaJanela: 1,
-              taxaTerceiroNaJanela: 50,
-            },
-          ],
         });
+        expect(google.janelasCandidatas)
+          .toHaveLength(3);
+        expect(google.janelasCandidatas[0])
+          .toEqual({
+            janelaDias: 7,
+            elegiveis: 2,
+            comSegundoNaJanela: 1,
+            taxaSegundoNaJanela: 50,
+            comTerceiroNaJanela: 1,
+            taxaTerceiroNaJanela: 50,
+          });
 
-        expect(
-          resultado.qualidadeCampanhasOficiais[1]
-        ).toMatchObject({
+        expect(meta).toMatchObject({
           campanhaOficialId: "20",
           origem: "meta",
           profissionais: 1,
           comPrimeiroAgendamento: 1,
-          janelasCandidatas: [
-            {
-              janelaDias: 7,
-              elegiveis: 0,
-              comSegundoNaJanela: 0,
-              comTerceiroNaJanela: 0,
-            },
-          ],
         });
+        expect(meta.janelasCandidatas)
+          .toHaveLength(3);
+        expect(meta.janelasCandidatas[0])
+          .toMatchObject({
+            janelaDias: 7,
+            elegiveis: 0,
+            comSegundoNaJanela: 0,
+            comTerceiroNaJanela: 0,
+          });
 
         expect(
           resultado.metodologia.campanhas
