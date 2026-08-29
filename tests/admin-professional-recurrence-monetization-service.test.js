@@ -17,16 +17,15 @@ function linhaBase(overrides = {}) {
     midia: "cpc",
     campanha: "google_ads_profissionais",
     atribuicao_em:
-      "2026-07-01T00:00:00.000Z",
+      "2026-07-01T12:00:00.000Z",
     primeiro_agendamento_em:
-      "2026-07-05T00:00:00.000Z",
+      "2026-07-05T12:00:00.000Z",
     segundo_agendamento_em:
-      "2026-07-10T00:00:00.000Z",
+      "2026-07-10T12:00:00.000Z",
     terceiro_agendamento_em:
-      "2026-07-12T00:00:00.000Z",
+      "2026-07-12T12:00:00.000Z",
     pagamento_inicial_valido: true,
-    primeiro_pagamento_em:
-      "2026-07-13T00:00:00.000Z",
+    primeiro_pagamento_em: "2026-07-13",
     receita_primeiro_pagamento_centavos:
       "4990",
     ...overrides,
@@ -62,15 +61,15 @@ describe(
     );
 
     test(
-      "aceita primeiro pagamento válido no limite e rejeita depois, antes ou inválido",
+      "compara o pagamento por dia civil e inclui o dia limite",
       () => {
         expect(
           service.pagamentoInicialNaJanela(
             linhaBase({
               atribuicao_em:
-                "2026-08-01T00:00:00.000Z",
+                "2026-08-01T12:00:00.000Z",
               primeiro_pagamento_em:
-                "2026-08-22T00:00:00.000Z",
+                "2026-08-22",
             }),
             21
           )
@@ -80,9 +79,9 @@ describe(
           service.pagamentoInicialNaJanela(
             linhaBase({
               atribuicao_em:
-                "2026-08-01T00:00:00.000Z",
+                "2026-08-01T12:00:00.000Z",
               primeiro_pagamento_em:
-                "2026-08-22T00:00:00.001Z",
+                "2026-08-23",
             }),
             21
           )
@@ -92,9 +91,9 @@ describe(
           service.pagamentoInicialNaJanela(
             linhaBase({
               atribuicao_em:
-                "2026-08-01T00:00:00.000Z",
+                "2026-08-01T12:00:00.000Z",
               primeiro_pagamento_em:
-                "2026-07-31T23:59:59.999Z",
+                "2026-07-31",
             }),
             21
           )
@@ -124,22 +123,22 @@ describe(
                 terceiro_agendamento_em: null,
                 pagamento_inicial_valido: false,
                 primeiro_pagamento_em:
-                  "2026-07-15T00:00:00.000Z",
+                  "2026-07-15",
               }),
               linhaBase({
                 usuario_id: 3,
                 primeiro_agendamento_em:
-                  "2026-07-20T00:00:00.000Z",
+                  "2026-07-20T12:00:00.000Z",
                 segundo_agendamento_em:
-                  "2026-07-21T00:00:00.000Z",
+                  "2026-07-21T12:00:00.000Z",
                 terceiro_agendamento_em: null,
                 primeiro_pagamento_em:
-                  "2026-07-18T00:00:00.000Z",
+                  "2026-07-18",
               }),
             ],
             7,
             new Date(
-              "2026-08-29T00:00:00.000Z"
+              "2026-08-29T12:00:00.000Z"
             ),
             CONFIGURACAO
           );
@@ -172,7 +171,7 @@ describe(
           service.criarMonetizacaoPorCampanha({
             linhas: [linhaBase()],
             agora: new Date(
-              "2026-08-29T00:00:00.000Z"
+              "2026-08-29T12:00:00.000Z"
             ),
             configuracao: CONFIGURACAO,
           });
@@ -210,7 +209,7 @@ describe(
             [],
             30,
             new Date(
-              "2026-08-29T00:00:00.000Z"
+              "2026-08-29T12:00:00.000Z"
             ),
             CONFIGURACAO
           );
@@ -254,7 +253,7 @@ describe(
                 linhaBase(),
               ],
               agora: new Date(
-                "2026-08-29T00:00:00.000Z"
+                "2026-08-29T12:00:00.000Z"
               ),
               configuracao: CONFIGURACAO,
             });
@@ -272,6 +271,10 @@ describe(
           diasMaturacaoMonetizacao: 21,
           minimoCadastros: 10,
         });
+        expect(
+          resultado.metodologia
+            .monetizacaoRecorrencia
+        ).toMatch(/dia civil/i);
         expect(
           resultado.metodologia
             .monetizacaoRecorrencia
