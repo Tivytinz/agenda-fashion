@@ -60,6 +60,12 @@ Depois do primeiro agendamento, o AF mede separadamente se o profissional da coo
 
 Essa leitura usa registros reais da tabela `agendamentos`, exclui registros com status `cancelado` e responde se o valor inicial começou a se repetir. As conversões principais são primeiro para segundo agendamento, segundo para terceiro e primeiro para terceiro.
 
+Além da quantidade de profissionais que atingem cada marco, o painel mede o tempo observado do primeiro para o segundo e do segundo para o terceiro agendamento. O relógio usa `agendamentos.created_at`, isto é, quando cada agendamento entrou no AF. A data futura marcada para o atendimento (`data` + `horario`) não é usada nesse cálculo porque a pergunta aqui é quando o uso do produto se repetiu, não a distância entre datas de atendimento.
+
+Para cada transição são mostrados tamanho da amostra, mediana e percentil 75 do tempo em dias. A idade da amostra desde o primeiro agendamento também é resumida por mediana, P75, mínimo e máximo. Essa leitura de maturidade existe para evitar interpretar uma coorte recém-chegada como se já tivesse tido tempo suficiente para repetir o valor.
+
+Essas estatísticas são descritivas e não criam por si só uma janela oficial de retenção. A escolha futura de D7, D30 ou outro intervalo deve usar o comportamento observado, tamanho da amostra e objetivo de produto antes de virar regra de decisão.
+
 Esse indicador deve ser chamado de **recorrência observada** ou **repetição de valor**. Ele não é retenção D30, não prova que o atendimento foi realizado e não representa receita. Uma definição temporal de retenção só deve ser adotada quando a janela e o comportamento esperado estiverem explicitamente definidos e testados.
 
 A recorrência é operacional e independente da régua financeira de CAC e ROAS. Ela pode ajudar a localizar problemas de hábito, oferta e uso continuado do AF, mas não deve liberar ou bloquear investimento de mídia isoladamente.
