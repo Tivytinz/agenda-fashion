@@ -202,13 +202,73 @@ describe(
     );
 
     test(
+      "lista gasto diario com idade local e exclui campanha de cliente",
+      async () => {
+        const dataHoje = await db.query(
+          `
+          SELECT
+            (NOW() AT TIME ZONE 'America/Sao_Paulo')::date::text
+              AS hoje
+          `
+        );
+        const hojeLocal =
+          dataHoje.rows[0].hoje;
+        const resultado =
+          await repository
+            .listarInvestimentosDiarios("all");
+        const linhasProfissionais =
+          resultado.linhas.filter(
+            (linha) =>
+              Number(linha.campanha_id) ===
+              campanhaProfissionalId
+          );
+        const hoje =
+          linhasProfissionais.find(
+            (linha) =>
+              linha.data_gasto === hojeLocal
+          );
+        const ontem =
+          linhasProfissionais.find(
+            (linha) =>
+              Number(linha.idade_dias) === 1
+          );
+
+        expect(resultado.periodo).toBe("all");
+        expect(linhasProfissionais)
+          .toHaveLength(2);
+        expect(hoje).toMatchObject({
+          objetivo: "profissional",
+          investimento_centavos: "5000",
+          idade_dias: 0,
+        });
+        expect(ontem).toMatchObject({
+          investimento_centavos: "2000",
+          idade_dias: 1,
+        });
+        expect(
+          resultado.linhas.some(
+            (linha) =>
+              Number(linha.campanha_id) ===
+              campanhaClienteId
+          )
+        ).toBe(false);
+      }
+    );
+
+    test(
       "normaliza periodo invalido para 30 dias",
       async () => {
         const resultado =
           await repository
             .listarInvestimentos("invalido");
+        const diarios =
+          await repository
+            .listarInvestimentosDiarios(
+              "invalido"
+            );
 
         expect(resultado.periodo).toBe("30");
+        expect(diarios.periodo).toBe("30");
       }
     );
   }
