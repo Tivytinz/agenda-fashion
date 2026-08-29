@@ -53,8 +53,21 @@ jest.mock(
   })
 );
 
+jest.mock(
+  "../src/services/adminProfessionalAcquisitionCostService",
+  () => ({
+    buscarInvestimentos:
+      jest.fn(),
+    enriquecerRecorrencia:
+      jest.fn(),
+  })
+);
+
 const service = require(
   "../src/services/adminProfessionalRecurrenceService"
+);
+const acquisitionCostService = require(
+  "../src/services/adminProfessionalAcquisitionCostService"
 );
 const adminRoutes = require(
   "../src/routes/adminRoutes"
@@ -86,6 +99,15 @@ describe(
   () => {
     beforeEach(() => {
       jest.clearAllMocks();
+      acquisitionCostService
+        .buscarInvestimentos
+        .mockResolvedValue([]);
+      acquisitionCostService
+        .enriquecerRecorrencia
+        .mockImplementation(
+          ({ recorrencia }) =>
+            recorrencia
+        );
     });
 
     test(
@@ -106,19 +128,46 @@ describe(
         expect(
           service.buscarRecorrencia
         ).not.toHaveBeenCalled();
+        expect(
+          acquisitionCostService
+            .buscarInvestimentos
+        ).not.toHaveBeenCalled();
       }
     );
 
     test(
-      "encaminha o periodo e retorna a recorrencia observada",
+      "encaminha o periodo, combina investimento e retorna a recorrencia observada",
       async () => {
+        const recorrencia = {
+          periodo: "7",
+          resumo: {
+            comPrimeiroAgendamento: 4,
+            comSegundoAgendamento: 3,
+            comTerceiroAgendamento: 2,
+          },
+        };
+        const investimentos = [
+          {
+            campanha_id: 10,
+            investimento_centavos: 5000,
+          },
+        ];
+
         service.buscarRecorrencia
-          .mockResolvedValue({
-            periodo: "7",
-            resumo: {
-              comPrimeiroAgendamento: 4,
-              comSegundoAgendamento: 3,
-              comTerceiroAgendamento: 2,
+          .mockResolvedValue(
+            recorrencia
+          );
+        acquisitionCostService
+          .buscarInvestimentos
+          .mockResolvedValue(
+            investimentos
+          );
+        acquisitionCostService
+          .enriquecerRecorrencia
+          .mockReturnValue({
+            ...recorrencia,
+            diagnosticoCustoAquisicao: {
+              profissionaisOficiais: 4,
             },
           });
 
@@ -136,9 +185,25 @@ describe(
           periodo: "7",
         });
         expect(
+          acquisitionCostService
+            .buscarInvestimentos
+        ).toHaveBeenCalledWith("7");
+        expect(
+          acquisitionCostService
+            .enriquecerRecorrencia
+        ).toHaveBeenCalledWith({
+          recorrencia,
+          investimentos,
+        });
+        expect(
           resposta.body.resumo
             .comTerceiroAgendamento
         ).toBe(2);
+        expect(
+          resposta.body
+            .diagnosticoCustoAquisicao
+            .profissionaisOficiais
+        ).toBe(4);
       }
     );
   }
