@@ -3,6 +3,7 @@ const repository = require(
 );
 
 const DIA_MS = 24 * 60 * 60 * 1000;
+const JANELAS_CANDIDATAS_DIAS = [7, 14, 30];
 
 function numero(valor) {
   const convertido = Number(valor);
@@ -31,20 +32,27 @@ function arredondar(valor) {
   return Number(valor.toFixed(2));
 }
 
+function timestamp(valor) {
+  if (!valor) {
+    return null;
+  }
+
+  const convertido = new Date(valor).getTime();
+  return Number.isFinite(convertido)
+    ? convertido
+    : null;
+}
+
 function diasEntre(
   inicio,
   fim
 ) {
-  if (!inicio || !fim) {
-    return null;
-  }
-
-  const inicioMs = new Date(inicio).getTime();
-  const fimMs = new Date(fim).getTime();
+  const inicioMs = timestamp(inicio);
+  const fimMs = timestamp(fim);
 
   if (
-    !Number.isFinite(inicioMs) ||
-    !Number.isFinite(fimMs) ||
+    inicioMs === null ||
+    fimMs === null ||
     fimMs < inicioMs
   ) {
     return null;
@@ -230,6 +238,116 @@ function criarAnaliseTemporal(
   };
 }
 
+function ocorreuDentroDaJanela(
+  inicio,
+  fim,
+  janelaDias
+) {
+  const inicioMs = timestamp(inicio);
+  const fimMs = timestamp(fim);
+
+  if (
+    inicioMs === null ||
+    fimMs === null ||
+    fimMs < inicioMs
+  ) {
+    return false;
+  }
+
+  return (
+    fimMs - inicioMs <=
+    janelaDias * DIA_MS
+  );
+}
+
+function estaMaduroParaJanela(
+  primeiro,
+  agora,
+  janelaDias
+) {
+  const primeiroMs = timestamp(primeiro);
+  const agoraMs = timestamp(agora);
+
+  if (
+    primeiroMs === null ||
+    agoraMs === null ||
+    agoraMs < primeiroMs
+  ) {
+    return false;
+  }
+
+  return (
+    agoraMs - primeiroMs >=
+    janelaDias * DIA_MS
+  );
+}
+
+function criarJanelasCandidatas(
+  linhas = [],
+  agora = new Date(),
+  janelas = JANELAS_CANDIDATAS_DIAS
+) {
+  return janelas.map((janelaDias) => {
+    let elegiveis = 0;
+    let segundoNaJanela = 0;
+    let terceiroNaJanela = 0;
+
+    for (const linha of linhas) {
+      const primeiro =
+        linha.primeiro_agendamento_em;
+
+      if (
+        !estaMaduroParaJanela(
+          primeiro,
+          agora,
+          janelaDias
+        )
+      ) {
+        continue;
+      }
+
+      elegiveis += 1;
+
+      if (
+        ocorreuDentroDaJanela(
+          primeiro,
+          linha.segundo_agendamento_em,
+          janelaDias
+        )
+      ) {
+        segundoNaJanela += 1;
+      }
+
+      if (
+        ocorreuDentroDaJanela(
+          primeiro,
+          linha.terceiro_agendamento_em,
+          janelaDias
+        )
+      ) {
+        terceiroNaJanela += 1;
+      }
+    }
+
+    return {
+      janelaDias,
+      elegiveis,
+      comSegundoNaJanela: segundoNaJanela,
+      taxaSegundoNaJanela:
+        percentual(
+          segundoNaJanela,
+          elegiveis
+        ),
+      comTerceiroNaJanela: terceiroNaJanela,
+      taxaTerceiroNaJanela:
+        percentual(
+          terceiroNaJanela,
+          elegiveis
+        ),
+    };
+  });
+}
+
 async function buscarRecorrencia({
   periodo,
   agora = new Date(),
@@ -250,14 +368,21 @@ async function buscarRecorrencia({
         resultado.linhas,
         agora
       ),
+    janelasCandidatas:
+      criarJanelasCandidatas(
+        resultado.linhas,
+        agora
+      ),
     metodologia: {
       unidade: "profissional",
       criterio:
         "quantidade de agendamentos não cancelados criados no primeiro negócio em que o profissional aparece como dono",
       tempo:
         "os intervalos usam created_at, isto é, o momento em que cada agendamento entrou no AF, e não a data futura marcada para o atendimento",
+      janelas:
+        "D7, D14 e D30 são janelas candidatas de recorrência. Cada denominador inclui somente profissionais cujo primeiro agendamento já tem pelo menos a idade da janela analisada.",
       observacao:
-        "Esta leitura mede recorrência observada e maturidade da amostra. Não representa retenção D30, atendimento realizado ou receita.",
+        "Esta leitura mede recorrência observada e maturidade da amostra. As janelas candidatas ainda não são uma definição oficial de retenção, não confirmam atendimento realizado e não representam receita.",
     },
   };
 }
@@ -267,6 +392,9 @@ module.exports = {
   criarResumo,
   criarAnaliseTemporal,
   criarEstatistica,
+  criarJanelasCandidatas,
   diasEntre,
+  estaMaduroParaJanela,
+  ocorreuDentroDaJanela,
   percentual,
 };
