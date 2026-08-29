@@ -36,8 +36,13 @@ async function listarRecorrencia(
     SELECT
       c.usuario_id,
       dono.negocio_id,
-      COUNT(ag.id)::INT
-        AS total_agendamentos
+      COALESCE(
+        recorrencia.total_agendamentos,
+        0
+      )::INT AS total_agendamentos,
+      recorrencia.primeiro_agendamento_em,
+      recorrencia.segundo_agendamento_em,
+      recorrencia.terceiro_agendamento_em
     FROM coorte c
     LEFT JOIN LATERAL (
       SELECT un.negocio_id
@@ -49,12 +54,38 @@ async function listarRecorrencia(
         un.id ASC
       LIMIT 1
     ) dono ON TRUE
-    LEFT JOIN agendamentos ag
-      ON ag.negocio_id = dono.negocio_id
-      AND ag.status <> 'cancelado'
-    GROUP BY
-      c.usuario_id,
-      dono.negocio_id
+    LEFT JOIN LATERAL (
+      SELECT
+        COUNT(ag.id)::INT
+          AS total_agendamentos,
+        (
+          ARRAY_AGG(
+            ag.created_at
+            ORDER BY
+              ag.created_at ASC,
+              ag.id ASC
+          )
+        )[1] AS primeiro_agendamento_em,
+        (
+          ARRAY_AGG(
+            ag.created_at
+            ORDER BY
+              ag.created_at ASC,
+              ag.id ASC
+          )
+        )[2] AS segundo_agendamento_em,
+        (
+          ARRAY_AGG(
+            ag.created_at
+            ORDER BY
+              ag.created_at ASC,
+              ag.id ASC
+          )
+        )[3] AS terceiro_agendamento_em
+      FROM agendamentos ag
+      WHERE ag.negocio_id = dono.negocio_id
+        AND ag.status <> 'cancelado'
+    ) recorrencia ON TRUE
     ORDER BY c.usuario_id ASC
     `
   );
