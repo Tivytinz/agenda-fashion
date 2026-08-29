@@ -14,22 +14,31 @@ async function buscar(
     const periodo =
       req.query?.periodo;
     const [
-      recorrencia,
+      baseRecorrencia,
       investimentos,
+      investimentosDiarios,
     ] = await Promise.all([
-      service.buscarRecorrencia({
+      service.buscarRecorrenciaComBase({
         periodo,
       }),
       acquisitionCostService
         .buscarInvestimentos(
           periodo
         ),
+      acquisitionCostService
+        .buscarInvestimentosDiarios(
+          periodo
+        ),
     ]);
     const resultado =
       acquisitionCostService
         .enriquecerRecorrencia({
-          recorrencia,
+          recorrencia:
+            baseRecorrencia.recorrencia,
+          linhasRecorrencia:
+            baseRecorrencia.linhas,
           investimentos,
+          investimentosDiarios,
         });
 
     return res
