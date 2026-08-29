@@ -242,7 +242,7 @@ export function ScheduleSettingsPage() {
 
       if (primeiraConfiguracao && configuradoEm) {
         setActivationNextStep(true);
-        await loadBusinessContext();
+        void loadBusinessContext();
       }
     } catch (requestError) {
       setError(requestError.message);
