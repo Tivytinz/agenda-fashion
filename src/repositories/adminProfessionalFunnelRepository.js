@@ -251,6 +251,20 @@ async function listarPorCampanha(
 
           n.primeira_publicacao_em,
 
+          divulgacao.primeira_divulgacao_em IS NOT NULL
+            AS perfil_divulgado,
+
+          visita.primeira_visita_em IS NOT NULL
+            AS visita_pos_divulgacao,
+
+          agendamento_iniciado.primeiro_inicio_em IS NOT NULL
+            AS agendamento_iniciado_pos_divulgacao,
+
+          agendamento_via_divulgacao
+            .primeiro_agendamento_via_divulgacao_em
+            IS NOT NULL
+            AS primeiro_agendamento_via_divulgacao,
+
           primeiro_agendamento.primeiro_agendamento_em
             IS NOT NULL
             AS primeiro_agendamento,
@@ -292,6 +306,100 @@ async function listarPorCampanha(
 
         LEFT JOIN agenda_configuracoes ac
           ON ac.profissional_id = c.usuario_id
+
+        LEFT JOIN LATERAL (
+          SELECT
+            ep.created_at
+              AS primeira_divulgacao_em,
+            ep.sessao_id
+              AS sessao_divulgacao
+          FROM eventos_produto ep
+          WHERE ep.negocio_id = dono.negocio_id
+            AND ep.usuario_id = c.usuario_id
+            AND ep.nome IN (
+              'link_negocio_copiado',
+              'link_negocio_compartilhado'
+            )
+            AND ep.pagina IN (
+              'dashboard_dono',
+              'configuracao_agenda'
+            )
+            AND ac.configurado_em IS NOT NULL
+            AND ep.created_at >= ac.configurado_em
+          ORDER BY ep.created_at ASC, ep.id ASC
+          LIMIT 1
+        ) divulgacao ON TRUE
+
+        LEFT JOIN LATERAL (
+          SELECT
+            ep.created_at
+              AS primeira_visita_em,
+            ep.sessao_id
+              AS sessao_visita
+          FROM eventos_produto ep
+          WHERE ep.negocio_id = dono.negocio_id
+            AND ep.nome = 'perfil_visualizado'
+            AND ep.pagina = 'perfil_negocio'
+            AND divulgacao.primeira_divulgacao_em
+              IS NOT NULL
+            AND ep.created_at >=
+              divulgacao.primeira_divulgacao_em
+            AND ep.sessao_id <>
+              divulgacao.sessao_divulgacao
+            AND (
+              ep.usuario_id IS NULL OR
+              ep.usuario_id <> c.usuario_id
+            )
+          ORDER BY ep.created_at ASC, ep.id ASC
+          LIMIT 1
+        ) visita ON TRUE
+
+        LEFT JOIN LATERAL (
+          SELECT
+            ep.created_at
+              AS primeiro_inicio_em
+          FROM eventos_produto ep
+          WHERE ep.negocio_id = dono.negocio_id
+            AND ep.nome = 'agendamento_iniciado'
+            AND ep.pagina = 'perfil_negocio'
+            AND visita.primeira_visita_em
+              IS NOT NULL
+            AND ep.sessao_id = visita.sessao_visita
+            AND ep.created_at >= visita.primeira_visita_em
+          ORDER BY ep.created_at ASC, ep.id ASC
+          LIMIT 1
+        ) agendamento_iniciado ON TRUE
+
+        LEFT JOIN LATERAL (
+          SELECT
+            ep.created_at
+              AS primeiro_agendamento_via_divulgacao_em
+          FROM eventos_produto ep
+          INNER JOIN agendamentos ag
+            ON ag.id = CASE
+              WHEN COALESCE(
+                ep.propriedades ->> 'agendamento_id',
+                ''
+              ) ~ '^[1-9][0-9]*$'
+                THEN (
+                  ep.propriedades ->> 'agendamento_id'
+                )::BIGINT
+              ELSE NULL
+            END
+            AND ag.negocio_id = dono.negocio_id
+          WHERE ep.negocio_id = dono.negocio_id
+            AND ep.nome = 'agendamento_concluido'
+            AND ep.pagina = 'finalizar_agendamento'
+            AND agendamento_iniciado.primeiro_inicio_em
+              IS NOT NULL
+            AND ep.sessao_id = visita.sessao_visita
+            AND ep.created_at >=
+              agendamento_iniciado.primeiro_inicio_em
+            AND ag.created_at >=
+              agendamento_iniciado.primeiro_inicio_em
+          ORDER BY ep.created_at ASC, ep.id ASC
+          LIMIT 1
+        ) agendamento_via_divulgacao ON TRUE
 
         LEFT JOIN LATERAL (
           SELECT
@@ -375,6 +483,18 @@ async function listarPorCampanha(
           COUNT(*) FILTER (
             WHERE f.negocio_publicado
           )::INT AS negocios_publicados,
+          COUNT(*) FILTER (
+            WHERE f.perfil_divulgado
+          )::INT AS perfis_divulgados,
+          COUNT(*) FILTER (
+            WHERE f.visita_pos_divulgacao
+          )::INT AS visitas_pos_divulgacao,
+          COUNT(*) FILTER (
+            WHERE f.agendamento_iniciado_pos_divulgacao
+          )::INT AS agendamentos_iniciados_pos_divulgacao,
+          COUNT(*) FILTER (
+            WHERE f.primeiro_agendamento_via_divulgacao
+          )::INT AS primeiros_agendamentos_via_divulgacao,
           COUNT(*) FILTER (
             WHERE f.primeiro_agendamento
           )::INT AS primeiros_agendamentos,
@@ -476,6 +596,22 @@ async function listarPorCampanha(
           a.negocios_publicados,
           0
         )::INT AS negocios_publicados,
+        COALESCE(
+          a.perfis_divulgados,
+          0
+        )::INT AS perfis_divulgados,
+        COALESCE(
+          a.visitas_pos_divulgacao,
+          0
+        )::INT AS visitas_pos_divulgacao,
+        COALESCE(
+          a.agendamentos_iniciados_pos_divulgacao,
+          0
+        )::INT AS agendamentos_iniciados_pos_divulgacao,
+        COALESCE(
+          a.primeiros_agendamentos_via_divulgacao,
+          0
+        )::INT AS primeiros_agendamentos_via_divulgacao,
         COALESCE(
           a.primeiros_agendamentos,
           0
