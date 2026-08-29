@@ -54,6 +54,16 @@ Como a sequência depende da chegada dos eventos de produto, ela pode subestimar
 
 Essa leitura pós-agenda serve para localizar perdas entre divulgação, visita, início e conclusão. Ela não altera sozinha CAC, ROAS nem as regras de decisão financeira por campanha.
 
+## Recorrência após o primeiro agendamento
+
+Depois do primeiro agendamento, o AF mede separadamente se o profissional da coorte chega ao segundo e ao terceiro agendamento no primeiro negócio em que aparece como dono.
+
+Essa leitura usa registros reais da tabela `agendamentos` e responde se o valor inicial começou a se repetir. As conversões principais são primeiro para segundo agendamento, segundo para terceiro e primeiro para terceiro.
+
+Esse indicador deve ser chamado de **recorrência observada** ou **repetição de valor**. Ele não é retenção D30, não prova que o atendimento foi realizado e não representa receita. Uma definição temporal de retenção só deve ser adotada quando a janela e o comportamento esperado estiverem explicitamente definidos e testados.
+
+A recorrência é operacional e independente da régua financeira de CAC e ROAS. Ela pode ajudar a localizar problemas de hábito, oferta e uso continuado do AF, mas não deve liberar ou bloquear investimento de mídia isoladamente.
+
 ## Operações em lote
 
 Antes de qualquer rotina destrutiva ou atualização em lote sobre dados de atribuição, deve existir uma estratégia verificável de recuperação, como backup, PITR ou rollback equivalente. Na ausência dela, prefira correções de leitura, metadados auxiliares e mudanças reversíveis.
