@@ -1,13 +1,21 @@
 // @vitest-environment jsdom
 
 import {
+  cleanup,
   render,
   screen,
 } from "@testing-library/react";
-import { describe, expect, test } from "vitest";
+import {
+  afterEach,
+  describe,
+  expect,
+  test,
+} from "vitest";
 import {
   ProfessionalRecurrenceFinancialReadinessTable,
 } from "./ProfessionalRecurrenceFinancialReadinessTable";
+
+afterEach(cleanup);
 
 describe(
   "ProfessionalRecurrenceFinancialReadinessTable",
@@ -52,28 +60,28 @@ describe(
           screen.getByText(
             "Prontidão da leitura financeira conjunta"
           )
-        ).toBeInTheDocument();
+        ).not.toBeNull();
         expect(
           screen.getByText(
             "google_ads_profissionais"
           )
-        ).toBeInTheDocument();
+        ).not.toBeNull();
         expect(
           screen.getByText(/R\$\s*120,00/)
-        ).toBeInTheDocument();
+        ).not.toBeNull();
         expect(
           screen.getByText("2/2 atingido")
-        ).toBeInTheDocument();
+        ).not.toBeNull();
         expect(
           screen.getByText(
             "Leitura conjunta disponível"
           )
-        ).toBeInTheDocument();
+        ).not.toBeNull();
         expect(
           screen.getByText(
             /não significa que a campanha deve escalar, manter ou pausar/i
           )
-        ).toBeInTheDocument();
+        ).not.toBeNull();
       }
     );
 
@@ -114,10 +122,10 @@ describe(
           screen.getByText(
             "Atribuição paga incompleta"
           )
-        ).toBeInTheDocument();
+        ).not.toBeNull();
         expect(
           screen.getByText("0/2")
-        ).toBeInTheDocument();
+        ).not.toBeNull();
       }
     );
 
@@ -132,7 +140,7 @@ describe(
           screen.getByText(
             /ainda não há campanhas com base suficiente/i
           )
-        ).toBeInTheDocument();
+        ).not.toBeNull();
       }
     );
   }
