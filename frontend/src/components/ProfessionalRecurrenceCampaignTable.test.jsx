@@ -149,7 +149,7 @@ describe(
         ).not.toBeNull();
         expect(
           screen.getByText(
-            /sem profissional atribuído/i
+            /^sem profissional atribuído$/i
           )
         ).not.toBeNull();
       }
