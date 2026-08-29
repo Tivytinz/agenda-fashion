@@ -71,6 +71,11 @@ const adminProfessionalFunnelController =
     "../controllers/adminProfessionalFunnelController"
   );
 
+const adminProfessionalRecurrenceController =
+  require(
+    "../controllers/adminProfessionalRecurrenceController"
+  );
+
 const adminSaasHealthController =
   require(
     "../controllers/adminSaasHealthController"
@@ -167,6 +172,18 @@ router.get(
   auth,
   authAdmin,
   adminProfessionalFunnelController.buscar
+);
+
+/*
+ * Recorrência observada após o primeiro agendamento.
+ * A leitura mede repetição de uso e não altera a régua
+ * financeira de CAC, ROAS ou monetização.
+ */
+router.get(
+  "/admin/marketing/recorrencia-profissionais",
+  auth,
+  authAdmin,
+  adminProfessionalRecurrenceController.buscar
 );
 
 /*

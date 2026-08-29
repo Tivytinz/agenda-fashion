@@ -7,6 +7,7 @@ import { apiRequest } from "../api/client";
 import { MarketingBarChart } from "../components/MarketingBarChart";
 import { MarketingExecutivePanel } from "../components/MarketingExecutivePanel";
 import { ProfessionalPostAgendaFunnel } from "../components/ProfessionalPostAgendaFunnel";
+import { ProfessionalRecurrencePanel } from "../components/ProfessionalRecurrencePanel";
 import {
   ErrorState,
   LoadingState
@@ -658,6 +659,7 @@ export function AdminProfessionalFunnelPage() {
       </section>
 
       <ProfessionalPostAgendaFunnel summary={summary} />
+      <ProfessionalRecurrencePanel period={period} />
 
       <section className="panel">
         <div className="panel-heading">
