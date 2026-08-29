@@ -72,7 +72,7 @@ describe("onboarding profissional", () => {
       .getAttribute("href")).toBe("/painel/horarios");
   });
 
-  it("celebra a ativação só depois que os horários foram configurados", () => {
+  it("transforma a ativação concluída em missão de divulgação", () => {
     renderChecklist({
       publication: {
         publicado: true,
@@ -84,8 +84,10 @@ describe("onboarding profissional", () => {
 
     expect(screen.getByText("4 de 4")).not.toBeNull();
     expect(screen.getByRole("heading", {
-      name: "Seu negócio está pronto para receber clientes"
+      name: "Sua agenda está pronta. Agora traga seu primeiro agendamento"
     })).not.toBeNull();
+    expect(screen.getByRole("button", { name: "Compartilhar perfil" }))
+      .not.toBeNull();
     expect(screen.getByRole("link", { name: "Ver meu perfil público" })
       .getAttribute("href")).toBe("/negocio/studio-victor");
   });
