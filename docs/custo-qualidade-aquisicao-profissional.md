@@ -141,6 +141,8 @@ A recorrência preserva a mesma semântica do funil:
 5. uma renovação posterior não substitui o primeiro pagamento da aquisição;
 6. se o primeiro pagamento for reembolsado ou deixar de ter status válido, a monetização inicial deixa de contar mesmo que exista uma renovação posterior recebida.
 
+`pagamentos.data_pagamento` é um campo `DATE`. Portanto, a janela de monetização não inventa horário de pagamento: ela usa o dia civil em `America/Sao_Paulo`, do dia local da atribuição até o dia-limite configurado, inclusive. A precisão horária continua sendo usada apenas onde a fonte realmente a possui, como `atribuicao_em` e `agendamentos.created_at`.
+
 Essa regra evita inflar aquisição paga com receita posterior que não corresponde ao primeiro pagamento da relação comercial.
 
 ### Leitura permitida
