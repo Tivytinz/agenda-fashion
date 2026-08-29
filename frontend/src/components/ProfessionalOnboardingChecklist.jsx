@@ -47,18 +47,22 @@ export function buildOnboardingSteps({ publication, scheduleConfigured }) {
     }
   ];
 
-  if (typeof scheduleConfigured === "boolean") {
+  if (scheduleConfigured !== undefined) {
+    const statusConhecido = typeof scheduleConfigured === "boolean";
+
     steps.push({
       id: "agenda",
       title: "Configure seus horários",
-      description: scheduleConfigured
+      description: scheduleConfigured === true
         ? "Seus horários estão prontos para receber agendamentos."
-        : publication?.publicado
-          ? "Seu perfil está no ar. Agora escolha quando clientes podem agendar."
-          : "Depois da publicação, defina quando clientes podem agendar.",
-      complete: scheduleConfigured,
+        : scheduleConfigured === false
+          ? publication?.publicado
+            ? "Seu perfil está no ar. Agora escolha quando clientes podem agendar."
+            : "Depois da publicação, defina quando clientes podem agendar."
+          : "Não conseguimos confirmar seus horários agora. Abra a configuração para conferir.",
+      complete: scheduleConfigured === true,
       to: "/painel/horarios",
-      action: "Configurar horários"
+      action: statusConhecido ? "Configurar horários" : "Verificar horários"
     });
   }
 
