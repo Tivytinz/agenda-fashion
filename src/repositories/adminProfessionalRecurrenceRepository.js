@@ -143,7 +143,16 @@ async function listarRecorrencia(
       )::INT AS total_agendamentos,
       recorrencia.primeiro_agendamento_em,
       recorrencia.segundo_agendamento_em,
-      recorrencia.terceiro_agendamento_em
+      recorrencia.terceiro_agendamento_em,
+      COALESCE(
+        primeiro_pagamento_aquisicao.pagamento_valido,
+        FALSE
+      ) AS pagamento_inicial_valido,
+      COALESCE(
+        primeiro_pagamento_aquisicao.valor_centavos,
+        0
+      )::BIGINT AS receita_primeiro_pagamento_centavos,
+      primeiro_pagamento_aquisicao.primeiro_pagamento_em
     FROM coorte c
     LEFT JOIN LATERAL (
       SELECT un.negocio_id
@@ -187,6 +196,35 @@ async function listarRecorrencia(
       WHERE ag.negocio_id = dono.negocio_id
         AND ag.status <> 'cancelado'
     ) recorrencia ON TRUE
+    LEFT JOIN LATERAL (
+      SELECT
+        CASE
+          WHEN UPPER(pg.status) IN (
+            'CONFIRMED',
+            'RECEIVED'
+          )
+            THEN ROUND(pg.valor * 100)::BIGINT
+          ELSE 0::BIGINT
+        END AS valor_centavos,
+        UPPER(pg.status) IN (
+          'CONFIRMED',
+          'RECEIVED'
+        ) AS pagamento_valido,
+        pg.data_pagamento
+          AS primeiro_pagamento_em
+      FROM assinaturas a
+      INNER JOIN planos p
+        ON p.id = a.plano_id
+      INNER JOIN pagamentos pg
+        ON pg.assinatura_id = a.id
+      WHERE a.negocio_id = dono.negocio_id
+        AND p.valor > 0
+        AND pg.data_pagamento IS NOT NULL
+      ORDER BY
+        pg.data_pagamento ASC,
+        pg.id ASC
+      LIMIT 1
+    ) primeiro_pagamento_aquisicao ON TRUE
     ORDER BY c.usuario_id ASC
     `
   );
