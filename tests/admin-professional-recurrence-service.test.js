@@ -20,7 +20,7 @@ describe(
     });
 
     test(
-      "calcula repeticao, tempo entre marcos e maturidade observada",
+      "calcula repeticao, tempo, maturidade e janelas candidatas",
       async () => {
         repository
           .listarRecorrencia
@@ -122,6 +122,32 @@ describe(
               maximoDias: 28,
             },
           },
+          janelasCandidatas: [
+            {
+              janelaDias: 7,
+              elegiveis: 3,
+              comSegundoNaJanela: 2,
+              taxaSegundoNaJanela: 66.67,
+              comTerceiroNaJanela: 0,
+              taxaTerceiroNaJanela: 0,
+            },
+            {
+              janelaDias: 14,
+              elegiveis: 2,
+              comSegundoNaJanela: 2,
+              taxaSegundoNaJanela: 100,
+              comTerceiroNaJanela: 1,
+              taxaTerceiroNaJanela: 50,
+            },
+            {
+              janelaDias: 30,
+              elegiveis: 0,
+              comSegundoNaJanela: 0,
+              taxaSegundoNaJanela: 0,
+              comTerceiroNaJanela: 0,
+              taxaTerceiroNaJanela: 0,
+            },
+          ],
           metodologia: {
             unidade: "profissional",
             criterio: expect.stringMatching(
@@ -129,6 +155,9 @@ describe(
             ),
             tempo: expect.stringMatching(
               /created_at/i
+            ),
+            janelas: expect.stringMatching(
+              /somente profissionais/i
             ),
           },
         });
@@ -187,6 +216,45 @@ describe(
             maximoDias: null,
           },
         });
+      }
+    );
+
+    test(
+      "inclui o profissional exatamente no limite da janela",
+      () => {
+        expect(
+          service.criarJanelasCandidatas(
+            [
+              {
+                primeiro_agendamento_em:
+                  "2026-08-22T00:00:00.000Z",
+                segundo_agendamento_em:
+                  "2026-08-29T00:00:00.000Z",
+                terceiro_agendamento_em: null,
+              },
+              {
+                primeiro_agendamento_em:
+                  "2026-08-25T00:00:00.000Z",
+                segundo_agendamento_em:
+                  "2026-08-26T00:00:00.000Z",
+                terceiro_agendamento_em: null,
+              },
+            ],
+            new Date(
+              "2026-08-29T00:00:00.000Z"
+            ),
+            [7]
+          )
+        ).toEqual([
+          {
+            janelaDias: 7,
+            elegiveis: 1,
+            comSegundoNaJanela: 1,
+            taxaSegundoNaJanela: 100,
+            comTerceiroNaJanela: 0,
+            taxaTerceiroNaJanela: 0,
+          },
+        ]);
       }
     );
   }
