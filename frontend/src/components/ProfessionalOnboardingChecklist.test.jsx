@@ -2,8 +2,15 @@
 
 import { cleanup, render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { apiRequest } from "../api/client";
 import { ProfessionalOnboardingChecklist } from "./ProfessionalOnboardingChecklist";
+
+vi.mock("../api/client", () => ({ apiRequest: vi.fn() }));
+
+beforeEach(() => {
+  apiRequest.mockReset();
+});
 
 afterEach(cleanup);
 
@@ -81,5 +88,39 @@ describe("onboarding profissional", () => {
     })).not.toBeNull();
     expect(screen.getByRole("link", { name: "Ver meu perfil público" })
       .getAttribute("href")).toBe("/negocio/studio-victor");
+  });
+
+  it("consulta o marco real da agenda quando a página não fornece o estado", async () => {
+    apiRequest.mockResolvedValue({
+      configuracao: {
+        configurado_em: "2026-08-28T22:00:00.000Z"
+      },
+      horarios: []
+    });
+
+    renderChecklist({
+      publication: {
+        publicado: true,
+        pode_publicar: true,
+        pendencias: []
+      },
+      scheduleConfigured: undefined
+    });
+
+    expect(await screen.findByText("4 de 4")).not.toBeNull();
+    expect(apiRequest).toHaveBeenCalledWith(
+      "/agenda-configuracao",
+      expect.objectContaining({ signal: expect.any(AbortSignal) })
+    );
+  });
+
+  it("mantém o fluxo disponível se a leitura da agenda falhar", async () => {
+    apiRequest.mockRejectedValue(new Error("agenda indisponível"));
+
+    renderChecklist({ scheduleConfigured: undefined });
+
+    expect(await screen.findByText("1 de 3")).not.toBeNull();
+    expect(screen.getByRole("link", { name: "Cadastrar serviço" }))
+      .not.toBeNull();
   });
 });
