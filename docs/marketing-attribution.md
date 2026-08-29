@@ -58,7 +58,7 @@ Essa leitura pós-agenda serve para localizar perdas entre divulgação, visita,
 
 Depois do primeiro agendamento, o AF mede separadamente se o profissional da coorte chega ao segundo e ao terceiro agendamento no primeiro negócio em que aparece como dono.
 
-Essa leitura usa registros reais da tabela `agendamentos` e responde se o valor inicial começou a se repetir. As conversões principais são primeiro para segundo agendamento, segundo para terceiro e primeiro para terceiro.
+Essa leitura usa registros reais da tabela `agendamentos`, exclui registros com status `cancelado` e responde se o valor inicial começou a se repetir. As conversões principais são primeiro para segundo agendamento, segundo para terceiro e primeiro para terceiro.
 
 Esse indicador deve ser chamado de **recorrência observada** ou **repetição de valor**. Ele não é retenção D30, não prova que o atendimento foi realizado e não representa receita. Uma definição temporal de retenção só deve ser adotada quando a janela e o comportamento esperado estiverem explicitamente definidos e testados.
 
