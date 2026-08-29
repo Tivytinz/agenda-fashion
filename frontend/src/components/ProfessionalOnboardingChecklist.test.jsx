@@ -1,15 +1,19 @@
 // @vitest-environment jsdom
 
 import { cleanup, render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { apiRequest } from "../api/client";
+import { track } from "../analytics/track";
 import { ProfessionalOnboardingChecklist } from "./ProfessionalOnboardingChecklist";
 
 vi.mock("../api/client", () => ({ apiRequest: vi.fn() }));
+vi.mock("../analytics/track", () => ({ track: vi.fn() }));
 
 beforeEach(() => {
   apiRequest.mockReset();
+  track.mockReset();
 });
 
 afterEach(cleanup);
@@ -18,6 +22,7 @@ function renderChecklist(overrides = {}) {
   return render(
     <MemoryRouter>
       <ProfessionalOnboardingChecklist
+        businessId={7}
         businessSlug="studio-victor"
         loading={false}
         publication={{
@@ -72,7 +77,14 @@ describe("onboarding profissional", () => {
       .getAttribute("href")).toBe("/painel/horarios");
   });
 
-  it("transforma a ativação concluída em missão de divulgação", () => {
+  it("transforma a ativação concluída em missão de divulgação vinculada ao negócio", async () => {
+    const share = vi.fn().mockResolvedValue();
+
+    Object.defineProperty(navigator, "share", {
+      configurable: true,
+      value: share
+    });
+
     renderChecklist({
       publication: {
         publicado: true,
@@ -86,8 +98,19 @@ describe("onboarding profissional", () => {
     expect(screen.getByRole("heading", {
       name: "Sua agenda está pronta. Agora traga seu primeiro agendamento"
     })).not.toBeNull();
-    expect(screen.getByRole("button", { name: "Compartilhar perfil" }))
-      .not.toBeNull();
+
+    await userEvent.click(
+      screen.getByRole("button", { name: "Compartilhar perfil" })
+    );
+
+    expect(track).toHaveBeenCalledWith(
+      "link_negocio_compartilhado",
+      expect.objectContaining({
+        businessId: 7,
+        page: "dashboard_dono",
+        mission: "gerenciar_crescimento"
+      })
+    );
     expect(screen.getByRole("link", { name: "Ver meu perfil público" })
       .getAttribute("href")).toBe("/negocio/studio-victor");
   });
