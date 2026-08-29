@@ -3,6 +3,9 @@ import {
   useState
 } from "react";
 import { apiRequest } from "../api/client";
+import {
+  ProfessionalRecurrenceStabilityTable,
+} from "./ProfessionalRecurrenceStabilityTable";
 
 function numero(valor) {
   const convertido = Number(valor);
@@ -131,6 +134,10 @@ export function ProfessionalRecurrencePanel({
   const coortesSemanais =
     Array.isArray(data?.coortesSemanais)
       ? data.coortesSemanais
+      : [];
+  const estabilidadeCoortes =
+    Array.isArray(data?.estabilidadeCoortes)
+      ? data.estabilidadeCoortes
       : [];
   const primeiro = numero(
     resumo.comPrimeiroAgendamento
@@ -406,6 +413,10 @@ export function ProfessionalRecurrencePanel({
           </table>
         </div>
       </div>
+
+      <ProfessionalRecurrenceStabilityTable
+        diagnosticos={estabilidadeCoortes}
+      />
 
       <p className="muted admin-campaign-attribution-note">
         {numero(resumo.taxaTerceiroSobrePrimeiro)}% dos profissionais que chegaram ao primeiro agendamento também chegaram ao terceiro.

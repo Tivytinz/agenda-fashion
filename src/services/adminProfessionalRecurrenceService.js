@@ -1,6 +1,11 @@
 const repository = require(
   "../repositories/adminProfessionalRecurrenceRepository"
 );
+const {
+  criarDiagnosticoEstabilidade,
+} = require(
+  "./adminProfessionalRecurrenceStabilityService"
+);
 
 const DIA_MS = 24 * 60 * 60 * 1000;
 const JANELAS_CANDIDATAS_DIAS = [7, 14, 30];
@@ -410,6 +415,11 @@ async function buscarRecorrencia({
     await repository.listarRecorrencia(
       periodo
     );
+  const coortesSemanais =
+    criarCoortesSemanais(
+      resultado.linhas,
+      agora
+    );
 
   return {
     periodo: resultado.periodo,
@@ -427,10 +437,10 @@ async function buscarRecorrencia({
         resultado.linhas,
         agora
       ),
-    coortesSemanais:
-      criarCoortesSemanais(
-        resultado.linhas,
-        agora
+    coortesSemanais,
+    estabilidadeCoortes:
+      criarDiagnosticoEstabilidade(
+        coortesSemanais
       ),
     metodologia: {
       unidade: "profissional",
@@ -442,6 +452,8 @@ async function buscarRecorrencia({
         "D7, D14 e D30 são janelas candidatas de recorrência. Cada denominador inclui somente profissionais cujo primeiro agendamento já tem pelo menos a idade da janela analisada.",
       coortes:
         "as coortes semanais usam a semana de cadastro do usuário em America/Sao_Paulo e reaplicam as mesmas janelas maduras dentro de cada grupo",
+      estabilidade:
+        "a comparação entre coortes é descritiva: mostra faixa, amplitude e variação da coorte madura mais recente contra a anterior, sem inferir tendência estatística nem impor um tamanho mínimo de amostra inexistente no produto",
       observacao:
         "Esta leitura mede recorrência observada e maturidade da amostra. As janelas candidatas ainda não são uma definição oficial de retenção, não confirmam atendimento realizado e não representam receita.",
     },
