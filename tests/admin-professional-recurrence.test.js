@@ -65,11 +65,22 @@ jest.mock(
   })
 );
 
+jest.mock(
+  "../src/services/adminProfessionalRecurrenceMonetizationService",
+  () => ({
+    enriquecerRecorrenciaComMonetizacao:
+      jest.fn(),
+  })
+);
+
 const service = require(
   "../src/services/adminProfessionalRecurrenceService"
 );
 const acquisitionCostService = require(
   "../src/services/adminProfessionalAcquisitionCostService"
+);
+const monetizationService = require(
+  "../src/services/adminProfessionalRecurrenceMonetizationService"
 );
 const adminRoutes = require(
   "../src/routes/adminRoutes"
@@ -113,6 +124,12 @@ describe(
           ({ recorrencia }) =>
             recorrencia
         );
+      monetizationService
+        .enriquecerRecorrenciaComMonetizacao
+        .mockImplementation(
+          ({ recorrencia }) =>
+            recorrencia
+        );
     });
 
     test(
@@ -141,11 +158,15 @@ describe(
           acquisitionCostService
             .buscarInvestimentosDiarios
         ).not.toHaveBeenCalled();
+        expect(
+          monetizationService
+            .enriquecerRecorrenciaComMonetizacao
+        ).not.toHaveBeenCalled();
       }
     );
 
     test(
-      "encaminha o periodo, reutiliza a base e combina gasto diario com recorrencia",
+      "encaminha o periodo, reutiliza a base e combina custo e monetizacao",
       async () => {
         const recorrencia = {
           periodo: "7",
@@ -159,6 +180,7 @@ describe(
           {
             usuario_id: 9,
             campanha_oficial_id: 10,
+            pagamento_inicial_valido: true,
           },
         ];
         const investimentos = [
@@ -175,6 +197,18 @@ describe(
             investimento_centavos: 5000,
           },
         ];
+        const comCustos = {
+          ...recorrencia,
+          diagnosticoCustoAquisicao: {
+            profissionaisOficiais: 4,
+          },
+        };
+        const comMonetizacao = {
+          ...comCustos,
+          diagnosticoMonetizacaoRecorrencia: {
+            diasMaturacaoMonetizacao: 21,
+          },
+        };
 
         service.buscarRecorrenciaComBase
           .mockResolvedValue({
@@ -193,12 +227,10 @@ describe(
           );
         acquisitionCostService
           .enriquecerRecorrencia
-          .mockReturnValue({
-            ...recorrencia,
-            diagnosticoCustoAquisicao: {
-              profissionaisOficiais: 4,
-            },
-          });
+          .mockReturnValue(comCustos);
+        monetizationService
+          .enriquecerRecorrenciaComMonetizacao
+          .mockReturnValue(comMonetizacao);
 
         const resposta =
           await request(criarApp())
@@ -231,14 +263,21 @@ describe(
           investimentosDiarios,
         });
         expect(
+          monetizationService
+            .enriquecerRecorrenciaComMonetizacao
+        ).toHaveBeenCalledWith({
+          recorrencia: comCustos,
+          linhasRecorrencia: linhas,
+        });
+        expect(
           resposta.body.resumo
             .comTerceiroAgendamento
         ).toBe(2);
         expect(
           resposta.body
-            .diagnosticoCustoAquisicao
-            .profissionaisOficiais
-        ).toBe(4);
+            .diagnosticoMonetizacaoRecorrencia
+            .diasMaturacaoMonetizacao
+        ).toBe(21);
       }
     );
   }
