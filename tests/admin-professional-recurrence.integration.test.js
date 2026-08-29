@@ -70,7 +70,7 @@ describe(
           'none',
           'organico',
           '/para-profissionais',
-          NOW()
+          NOW() - INTERVAL '10 days'
         )
         `,
         [
@@ -154,13 +154,14 @@ describe(
           cliente_id,
           data,
           horario,
-          status
+          status,
+          created_at
         )
         VALUES
-          ($1, $2, $3, $3, CURRENT_DATE + 1, '09:00', 'agendado'),
-          ($1, $2, $3, $3, CURRENT_DATE + 2, '10:00', 'agendado'),
-          ($1, $2, $3, $3, CURRENT_DATE + 3, '11:00', 'agendado'),
-          ($1, $2, $3, $3, CURRENT_DATE + 4, '12:00', 'cancelado')
+          ($1, $2, $3, $3, CURRENT_DATE + 1, '09:00', 'agendado', NOW() - INTERVAL '8 days'),
+          ($1, $2, $3, $3, CURRENT_DATE + 2, '10:00', 'agendado', NOW() - INTERVAL '5 days'),
+          ($1, $2, $3, $3, CURRENT_DATE + 3, '11:00', 'agendado', NOW()),
+          ($1, $2, $3, $3, CURRENT_DATE + 4, '12:00', 'cancelado', NOW() - INTERVAL '7 days')
         `,
         [
           negocioId,
@@ -209,11 +210,11 @@ describe(
     });
 
     test(
-      "conta somente agendamentos não cancelados do profissional",
+      "conta agendamentos nao cancelados e preserva os tres primeiros marcos por criacao",
       async () => {
         const resultado =
           await repository
-            .listarRecorrencia("today");
+            .listarRecorrencia("30");
 
         const linha =
           resultado.linhas.find(
@@ -225,6 +226,25 @@ describe(
           negocio_id: String(negocioId),
           total_agendamentos: 3,
         });
+
+        const primeiro = new Date(
+          linha.primeiro_agendamento_em
+        ).getTime();
+        const segundo = new Date(
+          linha.segundo_agendamento_em
+        ).getTime();
+        const terceiro = new Date(
+          linha.terceiro_agendamento_em
+        ).getTime();
+
+        expect(segundo - primeiro)
+          .toBeGreaterThanOrEqual(
+            3 * 24 * 60 * 60 * 1000 - 1000
+          );
+        expect(terceiro - segundo)
+          .toBeGreaterThanOrEqual(
+            5 * 24 * 60 * 60 * 1000 - 1000
+          );
       }
     );
   }
