@@ -1,6 +1,9 @@
 const service = require(
   "../services/adminProfessionalRecurrenceService"
 );
+const acquisitionCostService = require(
+  "../services/adminProfessionalAcquisitionCostService"
+);
 
 async function buscar(
   req,
@@ -8,11 +11,26 @@ async function buscar(
   next
 ) {
   try {
+    const periodo =
+      req.query?.periodo;
+    const [
+      recorrencia,
+      investimentos,
+    ] = await Promise.all([
+      service.buscarRecorrencia({
+        periodo,
+      }),
+      acquisitionCostService
+        .buscarInvestimentos(
+          periodo
+        ),
+    ]);
     const resultado =
-      await service.buscarRecorrencia({
-        periodo:
-          req.query?.periodo,
-      });
+      acquisitionCostService
+        .enriquecerRecorrencia({
+          recorrencia,
+          investimentos,
+        });
 
     return res
       .status(200)
