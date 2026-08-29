@@ -21,17 +21,28 @@ function percentual(
   );
 }
 
-function mapearResumo(linha = {}) {
+function criarResumo(linhas = []) {
   const profissionaisCohorte =
-    numero(linha.profissionais_coorte);
+    linhas.length;
   const negociosCriados =
-    numero(linha.negocios_criados);
+    linhas.filter(
+      (linha) => linha.negocio_id
+    ).length;
   const primeiro =
-    numero(linha.com_primeiro_agendamento);
+    linhas.filter(
+      (linha) =>
+        numero(linha.total_agendamentos) >= 1
+    ).length;
   const segundo =
-    numero(linha.com_segundo_agendamento);
+    linhas.filter(
+      (linha) =>
+        numero(linha.total_agendamentos) >= 2
+    ).length;
   const terceiro =
-    numero(linha.com_terceiro_agendamento);
+    linhas.filter(
+      (linha) =>
+        numero(linha.total_agendamentos) >= 3
+    ).length;
 
   return {
     profissionaisCohorte,
@@ -66,15 +77,15 @@ async function buscarRecorrencia({
   periodo,
 } = {}) {
   const resultado =
-    await repository.buscarResumo(
+    await repository.listarRecorrencia(
       periodo
     );
 
   return {
     periodo: resultado.periodo,
     resumo:
-      mapearResumo(
-        resultado.resumo
+      criarResumo(
+        resultado.linhas
       ),
     metodologia: {
       unidade: "profissional",
@@ -88,6 +99,6 @@ async function buscarRecorrencia({
 
 module.exports = {
   buscarRecorrencia,
-  mapearResumo,
+  criarResumo,
   percentual,
 };
