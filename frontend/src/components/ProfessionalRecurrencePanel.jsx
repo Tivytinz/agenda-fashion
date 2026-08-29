@@ -11,6 +11,21 @@ function numero(valor) {
     : 0;
 }
 
+function formatarDias(valor) {
+  if (
+    valor === null ||
+    valor === undefined ||
+    !Number.isFinite(Number(valor))
+  ) {
+    return "Sem base";
+  }
+
+  return `${new Intl.NumberFormat(
+    "pt-BR",
+    { maximumFractionDigits: 2 }
+  ).format(Number(valor))} dias`;
+}
+
 export function ProfessionalRecurrencePanel({
   period = "30"
 }) {
@@ -91,6 +106,7 @@ export function ProfessionalRecurrencePanel({
   }
 
   const resumo = data?.resumo || {};
+  const tempos = data?.tempos || {};
   const primeiro = numero(
     resumo.comPrimeiroAgendamento
   );
@@ -137,6 +153,20 @@ export function ProfessionalRecurrencePanel({
     }
   ];
 
+  const transicoes = [
+    {
+      label: "1º → 2º agendamento",
+      dados: tempos.primeiroParaSegundo || {}
+    },
+    {
+      label: "2º → 3º agendamento",
+      dados: tempos.segundoParaTerceiro || {}
+    }
+  ];
+
+  const maturidade =
+    tempos.maturidadeDesdePrimeiro || {};
+
   return (
     <section className="panel">
       <div className="panel-heading">
@@ -180,8 +210,44 @@ export function ProfessionalRecurrencePanel({
         </div>
       </div>
 
+      <div className="admin-stat-table-card">
+        <div className="admin-stat-table-heading">
+          <strong>Tempo até repetir o valor</strong>
+          <small>
+            Os intervalos usam o momento em que cada agendamento foi criado no AF, não a data futura marcada para o atendimento. Mediana e P75 descrevem a amostra observada, sem definir uma janela de retenção.
+          </small>
+        </div>
+
+        <div className="table-wrap">
+          <table className="admin-compact-table">
+            <thead>
+              <tr>
+                <th>Transição</th>
+                <th>Amostra</th>
+                <th>Mediana</th>
+                <th>P75</th>
+              </tr>
+            </thead>
+            <tbody>
+              {transicoes.map((transicao) => (
+                <tr key={transicao.label}>
+                  <td>{transicao.label}</td>
+                  <td>{numero(transicao.dados.amostra)}</td>
+                  <td>{formatarDias(transicao.dados.medianaDias)}</td>
+                  <td>{formatarDias(transicao.dados.p75Dias)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
       <p className="muted admin-campaign-attribution-note">
         {numero(resumo.taxaTerceiroSobrePrimeiro)}% dos profissionais que chegaram ao primeiro agendamento também chegaram ao terceiro.
+      </p>
+
+      <p className="muted admin-campaign-attribution-note">
+        Maturidade observada desde o primeiro agendamento: {numero(maturidade.amostra)} profissionais na amostra, mediana de {formatarDias(maturidade.medianaDias)}, P75 de {formatarDias(maturidade.p75Dias)} e intervalo de {formatarDias(maturidade.minimoDias)} a {formatarDias(maturidade.maximoDias)}. Essa idade da amostra ajuda a escolher uma futura janela de retenção sem penalizar coortes novas.
       </p>
     </section>
   );
