@@ -15,7 +15,7 @@ function CopyIcon({ className = "" }) {
   return (
     <svg aria-hidden="true" className={className} focusable="false" viewBox="0 0 24 24">
       <rect fill="none" height="12" rx="2" stroke="currentColor" strokeWidth="1.8" width="12" x="8" y="8" />
-      <path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 1 0-2 2v8a2 2 0 0 0 2 2h2" fill="none" stroke="currentColor" strokeLinecap="round" strokeWidth="1.8" />
+      <path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2" fill="none" stroke="currentColor" strokeLinecap="round" strokeWidth="1.8" />
     </svg>
   );
 }
