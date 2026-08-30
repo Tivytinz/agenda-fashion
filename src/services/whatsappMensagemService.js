@@ -1,6 +1,9 @@
 const whatsappMensagemRepository = require(
   "../repositories/whatsappMensagemRepository"
 );
+const whatsappAgendaRepository = require(
+  "../repositories/whatsappAgendaRepository"
+);
 
 const whatsappProvider = require(
   "../providers/whatsappProvider"
@@ -406,7 +409,7 @@ async function enfileirarLembretesDiariosNegocios() {
   return mensagens;
 }
 
-async function processarMensagem(
+async function mensagemContinuaElegivel(
   mensagem
 ) {
   const valida =
@@ -416,10 +419,46 @@ async function processarMensagem(
       );
 
   if (!valida) {
+    return false;
+  }
+
+  if (
+    mensagem.tipo !==
+    "LEMBRETE_DIVULGAR_NEGOCIO"
+  ) {
+    return true;
+  }
+
+  return whatsappAgendaRepository
+    .negocioTemAgendaConfigurada(
+      mensagem.negocio_id
+    );
+}
+
+function motivoCancelamento(
+  mensagem
+) {
+  return mensagem.tipo ===
+    "LEMBRETE_DIVULGAR_NEGOCIO"
+      ? "O estado atual do negócio não permite a divulgação."
+      : "O estado atual do agendamento não permite o envio.";
+}
+
+async function processarMensagem(
+  mensagem
+) {
+  const valida =
+    await mensagemContinuaElegivel(
+      mensagem
+    );
+
+  if (!valida) {
     await whatsappMensagemRepository
       .marcarCancelada(
         mensagem.id,
-        "O estado atual do agendamento não permite o envio."
+        motivoCancelamento(
+          mensagem
+        )
       );
 
     return {

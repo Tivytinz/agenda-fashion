@@ -96,10 +96,10 @@ describe(
         );
 
         expect(
-  consultaInsercao
-).toContain(
-  "JSONB_BUILD_ARRAY( profissional_nome, cliente_nome, cliente_whatsapp, servico_nome, data_formatada, horario_formatado ) AS parametros_corpo"
-);
+          consultaInsercao
+        ).toContain(
+          "JSONB_BUILD_ARRAY( profissional_nome, cliente_nome, cliente_whatsapp, servico_nome, data_formatada, horario_formatado ) AS parametros_corpo"
+        );
       }
     );
 
@@ -126,6 +126,12 @@ describe(
         );
         expect(sql).toContain(
           "LEMBRETE_DIVULGAR_NEGOCIO"
+        );
+        expect(sql).toContain(
+          "ac.configurado_em IS NOT NULL"
+        );
+        expect(sql).toContain(
+          "agenda_configurada = TRUE"
         );
         expect(sql).toContain(
           "whatsapp_marketing_consentido_em IS NOT NULL"

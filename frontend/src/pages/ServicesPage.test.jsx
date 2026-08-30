@@ -17,6 +17,7 @@ function renderEditor(entry = "/painel/servicos/novo") {
         <Route path="/painel/servicos/novo" element={<ServiceEditorPage />} />
         <Route path="/painel/servicos/:id/editar" element={<ServiceEditorPage />} />
         <Route path="/painel/servicos" element={<h1>Lista de serviços</h1>} />
+        <Route path="/painel/horarios" element={<h1>Horários após publicação</h1>} />
         <Route path="/painel" element={<h1>Visão geral publicada</h1>} />
       </Routes>
     </MemoryRouter>
@@ -237,7 +238,7 @@ describe("editor de serviços", () => {
     fillService();
     submit();
 
-    expect(await screen.findByRole("heading", { name: "Visão geral publicada" }))
+    expect(await screen.findByRole("heading", { name: "Horários após publicação" }))
       .not.toBeNull();
   });
 });

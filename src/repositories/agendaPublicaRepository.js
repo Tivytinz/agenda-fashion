@@ -15,6 +15,7 @@ async function buscarNegocioPorSlug(
 
       WHERE slug = $1
         AND ativo = TRUE
+        AND publicado = TRUE
 
       LIMIT 1
     `,

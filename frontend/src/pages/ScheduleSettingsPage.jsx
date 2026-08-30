@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
+import { track } from "../analytics/track";
 import { apiRequest } from "../api/client";
 import { ConfirmationIcon } from "../components/ConfirmationIcon";
 import { PublicShareButton } from "../components/PublicShareButton";
@@ -106,6 +107,16 @@ export function ScheduleSettingsPage() {
             .filter((day) => day.intervaloInicio || day.intervaloFim)
             .map((day) => day.diaSemana)
         ));
+
+        track("agenda_configuracao_visualizada", {
+          page: "configuracao_agenda",
+          mission: "disponibilizar_horarios",
+          properties: {
+            status: current.configurado_em
+              ? "configurada"
+              : "pendente"
+          }
+        });
       })
       .catch((requestError) => setError(requestError.message));
   }, []);
@@ -214,9 +225,27 @@ export function ScheduleSettingsPage() {
     event.preventDefault();
     setError("");
     setMessage("");
+
+    track("agenda_configuracao_salvamento_tentado", {
+      page: "configuracao_agenda",
+      mission: "disponibilizar_horarios",
+      properties: {
+        status: config?.configuradoEm
+          ? "edicao"
+          : "primeira_configuracao"
+      }
+    });
+
     const validationError = validateSchedule(days);
     if (validationError) {
       setError(validationError);
+      track("agenda_configuracao_erro", {
+        page: "configuracao_agenda",
+        mission: "disponibilizar_horarios",
+        properties: {
+          status: "validacao_cliente"
+        }
+      });
       return;
     }
 
@@ -241,11 +270,25 @@ export function ScheduleSettingsPage() {
       setMessage(result.mensagem || "Horários atualizados.");
 
       if (primeiraConfiguracao && configuradoEm) {
+        track("agenda_configurada", {
+          page: "configuracao_agenda",
+          mission: "disponibilizar_horarios",
+          properties: {
+            status: "sucesso"
+          }
+        });
         setActivationNextStep(true);
         void loadBusinessContext();
       }
     } catch (requestError) {
       setError(requestError.message);
+      track("agenda_configuracao_erro", {
+        page: "configuracao_agenda",
+        mission: "disponibilizar_horarios",
+        properties: {
+          status: "erro_api"
+        }
+      });
     } finally {
       setSaving(false);
     }
@@ -263,6 +306,30 @@ export function ScheduleSettingsPage() {
           <p>A cliente verá apenas horários que realmente podem ser agendados.</p>
         </div>
       </header>
+
+      {!config.configuradoEm && (
+        <section
+          aria-labelledby="schedule-activation-title"
+          className="panel"
+          role="status"
+        >
+          <p className="eyebrow">
+            Último passo para liberar agendamentos
+          </p>
+          <h2 id="schedule-activation-title">
+            Confirme quando você atende
+          </h2>
+          <p className="muted">
+            Seu perfil pode ser encontrado por clientes, mas o agendamento
+            online só é liberado depois que você confirmar seus horários.
+          </p>
+          <p className="muted">
+            Os horários abaixo são uma sugestão inicial e só ficam disponíveis
+            para clientes depois que você salvar.
+          </p>
+        </section>
+      )}
+
       <form className="panel stack-form schedule-settings-form" onSubmit={submit}>
         <section className="settings-grid schedule-general-settings" aria-label="Configurações gerais da agenda">
           <label>

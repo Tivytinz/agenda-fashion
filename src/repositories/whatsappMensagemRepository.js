@@ -595,6 +595,22 @@ async function enfileirarLembretesDiariosNegocios(
             WHERE s.negocio_id = n.id
               AND s.ativo = TRUE
           ) AS possui_servico,
+          EXISTS (
+            SELECT 1
+            FROM usuarios_negocios agenda_un
+            INNER JOIN agenda_configuracoes ac
+              ON ac.profissional_id =
+                agenda_un.usuario_id
+            WHERE agenda_un.negocio_id =
+                n.id
+              AND agenda_un.ativo = TRUE
+              AND agenda_un.papel IN (
+                'dono',
+                'profissional'
+              )
+              AND ac.configurado_em
+                IS NOT NULL
+          ) AS agenda_configurada,
           (
             (
               (NOW() AT TIME ZONE n.fuso_envio)::DATE + 1
@@ -654,6 +670,7 @@ async function enfileirarLembretesDiariosNegocios(
             (
               possui_servico = TRUE
               AND publicado = TRUE
+              AND agenda_configurada = TRUE
               AND $3::BOOLEAN
             )
           )
