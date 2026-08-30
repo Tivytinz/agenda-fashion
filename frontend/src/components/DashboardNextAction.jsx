@@ -13,16 +13,61 @@ function publicProfilePath(
     : "";
 }
 
+function scheduleAction() {
+  return {
+    kind: "schedule",
+    title: "Deixe a agenda pronta",
+    description:
+      "Confirme seus horários para liberar horários reais no perfil e permitir agendamentos online.",
+    primary: {
+      label: "Configurar horários",
+      to: "/painel/horarios",
+    },
+    secondary: {
+      label: "Gerenciar serviços",
+      to: "/painel/servicos",
+    },
+  };
+}
+
+function conversionAction(
+  profileVisits
+) {
+  return {
+    kind: "conversion",
+    title:
+      "Transforme visitas em agendamentos",
+    description:
+      `${profileVisits} pessoas visitaram seu perfil, mas seu primeiro agendamento ainda não chegou. Revise serviços, preços e horários.`,
+    primary: {
+      label: "Gerenciar serviços",
+      to: "/painel/servicos",
+    },
+    secondary: {
+      label: "Revisar horários",
+      to: "/painel/horarios",
+    },
+  };
+}
+
 function resolveNextAction({
   activation,
   profileVisits,
 }) {
+  if (!activation) {
+    return profileVisits >= 5
+      ? conversionAction(
+          profileVisits
+        )
+      : scheduleAction();
+  }
+
   const published =
-    activation?.negocio_publicado === true;
+    activation.negocio_publicado === true;
   const scheduleConfigured =
-    activation?.agenda_configurada === true;
+    activation.agenda_configurada === true;
   const firstBookingReceived =
-    activation?.primeiro_agendamento_recebido === true;
+    activation.primeiro_agendamento_recebido === true;
 
   if (!published) {
     return {
@@ -43,20 +88,7 @@ function resolveNextAction({
   }
 
   if (!scheduleConfigured) {
-    return {
-      kind: "schedule",
-      title: "Deixe a agenda pronta",
-      description:
-        "Confirme seus horários para liberar horários reais no perfil e permitir agendamentos online.",
-      primary: {
-        label: "Configurar horários",
-        to: "/painel/horarios",
-      },
-      secondary: {
-        label: "Gerenciar serviços",
-        to: "/painel/servicos",
-      },
-    };
+    return scheduleAction();
   }
 
   if (firstBookingReceived) {
@@ -77,21 +109,9 @@ function resolveNextAction({
   }
 
   if (profileVisits >= 5) {
-    return {
-      kind: "conversion",
-      title:
-        "Transforme visitas em agendamentos",
-      description:
-        `${profileVisits} pessoas visitaram seu perfil, mas seu primeiro agendamento ainda não chegou. Revise serviços, preços e horários.`,
-      primary: {
-        label: "Gerenciar serviços",
-        to: "/painel/servicos",
-      },
-      secondary: {
-        label: "Revisar horários",
-        to: "/painel/horarios",
-      },
-    };
+    return conversionAction(
+      profileVisits
+    );
   }
 
   return {
