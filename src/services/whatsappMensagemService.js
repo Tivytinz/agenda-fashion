@@ -435,6 +435,15 @@ async function mensagemContinuaElegivel(
     );
 }
 
+function motivoCancelamento(
+  mensagem
+) {
+  return mensagem.tipo ===
+    "LEMBRETE_DIVULGAR_NEGOCIO"
+      ? "O estado atual do negócio não permite a divulgação."
+      : "O estado atual do agendamento não permite o envio.";
+}
+
 async function processarMensagem(
   mensagem
 ) {
@@ -447,7 +456,9 @@ async function processarMensagem(
     await whatsappMensagemRepository
       .marcarCancelada(
         mensagem.id,
-        "O estado atual não permite o envio desta mensagem."
+        motivoCancelamento(
+          mensagem
+        )
       );
 
     return {

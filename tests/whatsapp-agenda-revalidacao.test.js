@@ -133,7 +133,7 @@ describe(
             .marcarCancelada
         ).toHaveBeenCalledWith(
           81,
-          "O estado atual não permite o envio desta mensagem."
+          "O estado atual do negócio não permite a divulgação."
         );
 
         expect(resultado).toEqual({
