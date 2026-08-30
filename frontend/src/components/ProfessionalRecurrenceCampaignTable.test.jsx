@@ -22,7 +22,7 @@ describe(
   "ProfessionalRecurrenceCampaignTable",
   () => {
     it(
-      "mostra qualidade e recorrencia madura da campanha oficial",
+      "mostra qualidade, custo observado e custo de recorrencia em base madura",
       () => {
         render(
           <ProfessionalRecurrenceCampaignTable
@@ -44,6 +44,17 @@ describe(
                 taxaSegundoSobrePrimeiro: 66.67,
                 comTerceiroAgendamento: 1,
                 taxaTerceiroSobrePrimeiro: 33.33,
+                investimentoCentavos: 12000,
+                diasComGasto: 3,
+                custoObservadoPorProfissionalCentavos: 3000,
+                custoObservadoPrimeiroAgendamentoCentavos: 4000,
+                leituraCusto:
+                  "observado_medicao_incompleta",
+                medicaoCusto: {
+                  coberturaAtribuicaoPaga: 80,
+                  pagosSemAtribuicaoOficial: 1,
+                  profissionaisSemEvidencia: 2,
+                },
                 janelasCandidatas: [
                   {
                     janelaDias: 7,
@@ -52,6 +63,32 @@ describe(
                     taxaSegundoNaJanela: 66.67,
                     comTerceiroNaJanela: 1,
                     taxaTerceiroNaJanela: 33.33,
+                  },
+                  {
+                    janelaDias: 14,
+                    elegiveis: 0,
+                    comSegundoNaJanela: 0,
+                    taxaSegundoNaJanela: 0,
+                    comTerceiroNaJanela: 0,
+                    taxaTerceiroNaJanela: 0,
+                  },
+                ],
+                custosRecorrenciaMadura: [
+                  {
+                    janelaDias: 7,
+                    diasMaturacaoAtivacao: 14,
+                    diasNecessarios: 21,
+                    investimentoMaduroCentavos: 9000,
+                    diasMadurosComGasto: 2,
+                    profissionaisMadurosComGasto: 3,
+                    profissionaisMadurosSemGasto: 0,
+                    comPrimeiroNaAtivacao: 2,
+                    comSegundoNaJanela: 1,
+                    comTerceiroNaJanela: 1,
+                    custoObservadoSegundoMaduroCentavos: 9000,
+                    custoObservadoTerceiroMaduroCentavos: 9000,
+                    leitura: "amostra_madura_pequena",
+                    baseComparavel: false,
                   },
                 ],
               },
@@ -70,13 +107,93 @@ describe(
           })
         ).not.toBeNull();
         expect(
+          screen.getByRole("row", {
+            name: /google_ads_profissionais.*120,00.*3.*4.*30,00.*3.*40,00.*66.67%.*sem base madura.*observado com atribuição incompleta/i,
+          })
+        ).not.toBeNull();
+        expect(
+          screen.getByRole("row", {
+            name: /google_ads_profissionais.*D7.*21 dias.*90,00.*2.*3.*0.*2.*1.*90,00.*1.*90,00.*amostra madura pequena/i,
+          })
+        ).not.toBeNull();
+        expect(
           screen.getByText(
-            /somente campanhas que o backend conseguiu resolver como oficiais/i
+            /80% de cobertura entre sinais pagos classificáveis/i
           )
         ).not.toBeNull();
         expect(
           screen.getByText(
-            /não calcula CAC, ROAS ou receita/i
+            /leitura temporalmente alinhada/i
+          )
+        ).not.toBeNull();
+        expect(
+          screen.getByText(
+            /não CAC, ROAS ou recomendação automática de orçamento/i
+          )
+        ).not.toBeNull();
+      }
+    );
+
+    it(
+      "explicita investimento sem profissional oficialmente atribuido",
+      () => {
+        render(
+          <ProfessionalRecurrenceCampaignTable
+            campanhas={[
+              {
+                chave: "campanha:20",
+                campanhaOficialId: "20",
+                origem: "meta",
+                campanha: "meta_profissionais",
+                metodosResolucao: [],
+                profissionais: 0,
+                comPrimeiroAgendamento: 0,
+                investimentoCentavos: 8000,
+                diasComGasto: 2,
+                custoObservadoPorProfissionalCentavos: null,
+                custoObservadoPrimeiroAgendamentoCentavos: null,
+                leituraCusto:
+                  "investimento_sem_profissional_atribuido",
+                medicaoCusto: {
+                  coberturaAtribuicaoPaga: null,
+                  pagosSemAtribuicaoOficial: 0,
+                  profissionaisSemEvidencia: 0,
+                },
+                janelasCandidatas: [],
+                custosRecorrenciaMadura: [
+                  {
+                    janelaDias: 7,
+                    diasNecessarios: 21,
+                    investimentoMaduroCentavos: 8000,
+                    diasMadurosComGasto: 2,
+                    profissionaisMadurosComGasto: 0,
+                    profissionaisMadurosSemGasto: 0,
+                    comPrimeiroNaAtivacao: 0,
+                    comSegundoNaJanela: 0,
+                    comTerceiroNaJanela: 0,
+                    custoObservadoSegundoMaduroCentavos: null,
+                    custoObservadoTerceiroMaduroCentavos: null,
+                    leitura: "gasto_maduro_sem_profissional",
+                  },
+                ],
+              },
+            ]}
+          />
+        );
+
+        expect(
+          screen.getByRole("row", {
+            name: /meta_profissionais.*80,00.*2.*0.*sem base.*0.*sem base.*sem base madura.*gasto sem profissional atribuído/i,
+          })
+        ).not.toBeNull();
+        expect(
+          screen.getByText(
+            /^sem profissional atribuído$/i
+          )
+        ).not.toBeNull();
+        expect(
+          screen.getByText(
+            /gasto maduro sem profissional/i
           )
         ).not.toBeNull();
       }
@@ -93,12 +210,22 @@ describe(
 
         expect(
           screen.getByText(
-            /ainda não há campanhas oficiais com profissionais/i
+            /ainda não há campanhas oficiais com profissionais ou investimento/i
           )
         ).not.toBeNull();
         expect(
           screen.getByText(
             /ainda não há janelas maduras para campanhas oficiais/i
+          )
+        ).not.toBeNull();
+        expect(
+          screen.getByText(
+            /ainda não há campanhas profissionais oficiais ou investimento/i
+          )
+        ).not.toBeNull();
+        expect(
+          screen.getByText(
+            /ainda não há base financeira madura/i
           )
         ).not.toBeNull();
       }

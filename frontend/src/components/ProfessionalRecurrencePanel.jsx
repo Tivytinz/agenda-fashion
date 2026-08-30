@@ -12,6 +12,9 @@ import {
 import {
   ProfessionalRecurrenceCampaignTable,
 } from "./ProfessionalRecurrenceCampaignTable";
+import {
+  ProfessionalRecurrenceMonetizationTable,
+} from "./ProfessionalRecurrenceMonetizationTable";
 
 function numero(valor) {
   const convertido = Number(valor);
@@ -153,6 +156,8 @@ export function ProfessionalRecurrencePanel({
     Array.isArray(data?.qualidadeCampanhasOficiais)
       ? data.qualidadeCampanhasOficiais
       : [];
+  const diagnosticoMonetizacao =
+    data?.diagnosticoMonetizacaoRecorrencia || {};
   const primeiro = numero(
     resumo.comPrimeiroAgendamento
   );
@@ -438,6 +443,11 @@ export function ProfessionalRecurrencePanel({
 
       <ProfessionalRecurrenceCampaignTable
         campanhas={qualidadeCampanhasOficiais}
+      />
+
+      <ProfessionalRecurrenceMonetizationTable
+        campanhas={qualidadeCampanhasOficiais}
+        diagnostico={diagnosticoMonetizacao}
       />
 
       <p className="muted admin-campaign-attribution-note">

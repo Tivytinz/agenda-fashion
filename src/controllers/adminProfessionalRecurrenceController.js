@@ -1,6 +1,15 @@
 const service = require(
   "../services/adminProfessionalRecurrenceService"
 );
+const acquisitionCostService = require(
+  "../services/adminProfessionalAcquisitionCostService"
+);
+const monetizationService = require(
+  "../services/adminProfessionalRecurrenceMonetizationService"
+);
+const financialReadinessService = require(
+  "../services/adminProfessionalRecurrenceFinancialReadinessService"
+);
 
 async function buscar(
   req,
@@ -8,11 +17,50 @@ async function buscar(
   next
 ) {
   try {
+    const periodo =
+      req.query?.periodo;
+    const [
+      baseRecorrencia,
+      investimentos,
+      investimentosDiarios,
+    ] = await Promise.all([
+      service.buscarRecorrenciaComBase({
+        periodo,
+      }),
+      acquisitionCostService
+        .buscarInvestimentos(
+          periodo
+        ),
+      acquisitionCostService
+        .buscarInvestimentosDiarios(
+          periodo
+        ),
+    ]);
+    const comCustos =
+      acquisitionCostService
+        .enriquecerRecorrencia({
+          recorrencia:
+            baseRecorrencia.recorrencia,
+          linhasRecorrencia:
+            baseRecorrencia.linhas,
+          investimentos,
+          investimentosDiarios,
+        });
+    const comMonetizacao =
+      monetizationService
+        .enriquecerRecorrenciaComMonetizacao({
+          recorrencia: comCustos,
+          linhasRecorrencia:
+            baseRecorrencia.linhas,
+        });
     const resultado =
-      await service.buscarRecorrencia({
-        periodo:
-          req.query?.periodo,
-      });
+      financialReadinessService
+        .enriquecerRecorrenciaComProntidaoFinanceira({
+          recorrencia: comMonetizacao,
+          linhasRecorrencia:
+            baseRecorrencia.linhas,
+          investimentosDiarios,
+        });
 
     return res
       .status(200)

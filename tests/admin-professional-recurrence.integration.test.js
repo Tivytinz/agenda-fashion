@@ -212,7 +212,7 @@ describe(
     });
 
     test(
-      "preserva semana, classificacao de aquisicao e os tres primeiros marcos por criacao",
+      "preserva atribuicao, semana, classificacao e os tres primeiros marcos por criacao",
       async () => {
         const resultado =
           await repository
@@ -235,6 +235,17 @@ describe(
           metodo_resolucao: null,
           total_agendamentos: 3,
         });
+        expect(linha.atribuicao_em)
+          .toBeTruthy();
+
+        const idadeAtribuicao =
+          Date.now() - new Date(
+            linha.atribuicao_em
+          ).getTime();
+        expect(idadeAtribuicao)
+          .toBeGreaterThanOrEqual(
+            10 * 24 * 60 * 60 * 1000 - 2000
+          );
 
         const primeiro = new Date(
           linha.primeiro_agendamento_em
