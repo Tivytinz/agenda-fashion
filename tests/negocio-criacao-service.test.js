@@ -57,7 +57,7 @@ describe(
     });
 
     test(
-      "delega a criação quando todas as informações estão preenchidas sem exigir foto",
+      "delega a criação quando todas as informações obrigatórias estão preenchidas sem exigir foto",
       async () => {
         const dados =
           dadosCompletos();
@@ -82,6 +82,29 @@ describe(
       }
     );
 
+    test(
+      "permite criação sem complemento",
+      async () => {
+        const dados = dadosCompletos({
+          complemento: "",
+        });
+
+        await expect(
+          negocioCriacaoService.criar(
+            dados
+          )
+        ).resolves.toEqual({
+          temNegocio: true,
+        });
+
+        expect(
+          negocioService.criar
+        ).toHaveBeenCalledWith(
+          dados
+        );
+      }
+    );
+
     test.each([
       ["nome", "Nome do negócio"],
       ["descricao", "Descrição"],
@@ -91,7 +114,6 @@ describe(
       ["bairro", "Bairro"],
       ["endereco", "Endereço"],
       ["numero", "Número"],
-      ["complemento", "Complemento"],
       ["cep", "CEP"],
       ["localizacao_url", "Link do Google Maps"],
     ])(
