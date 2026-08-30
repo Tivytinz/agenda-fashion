@@ -81,10 +81,14 @@ describe("ProfessionalActivationFunnel", () => {
     expect(
       screen.getByText(/não exibimos uma conversão enganosa/i)
     ).not.toBeNull();
+    expect(screen.getByText("Primeiro serviço")).not.toBeNull();
 
     expect(
-      container.querySelector('[data-stage="agenda"]')?.className
+      container.querySelector('[data-stage="servico"]')?.className
     ).toContain("is-bottleneck");
+    expect(
+      container.querySelector('[data-stage="publicado"]')?.className
+    ).not.toContain("is-bottleneck");
   });
 
   it("trata a coorte vazia sem mostrar um falso gargalo ou uma falsa independência", () => {
