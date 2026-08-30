@@ -199,9 +199,9 @@ export function ServicesPage() {
       {services?.length === 0 && (
         <EmptyState
           action={<Link className="button" to="/painel/servicos/novo">Cadastrar primeiro serviço</Link>}
-          title="Seu catálogo começa aqui"
+          title="💅 Seu catálogo começa aqui"
         >
-          Cadastre um serviço com foto para liberar o agendamento no perfil público.
+          Cadastre seu primeiro serviço para colocar o perfil no ar. Fotos ajudam a cliente a escolher, mas podem ser adicionadas depois.
         </EmptyState>
       )}
       {services?.length > 0 && (
@@ -540,7 +540,7 @@ export function ServiceEditorPage() {
           <div>
             <p className="eyebrow">Catálogo</p>
             <h1>{editing ? "Editar serviço" : "Novo serviço"}</h1>
-            <p>Uma boa imagem e uma descrição clara ajudam a cliente a escolher.</p>
+            <p>Preencha os dados do serviço. Fotos e descrição ajudam a cliente a escolher, mas podem ser melhoradas depois.</p>
           </div>
         </header>
       </div>
@@ -597,7 +597,7 @@ export function ServiceEditorPage() {
           <div>
             <p className="eyebrow">Apresentação</p>
             <h2>Fotos do serviço</h2>
-            <p className="muted service-media-help">Adicione várias fotos e escolha qual delas aparece como capa no catálogo e no perfil público.</p>
+            <p className="muted service-media-help">Opcional para publicar. Adicione fotos quando quiser e escolha qual delas aparece como capa no catálogo e no perfil público.</p>
           </div>
 
           <div className="service-cover-section">
