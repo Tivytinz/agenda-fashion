@@ -282,7 +282,7 @@ export function ProfessionalActivationFunnel({ summary = {} }) {
                   <td>{etapa.acumulada}%</td>
                   <td>
                     {index === 0
-                      ? "100%"
+                      ? `${etapa.conversaoAnterior}%`
                       : etapa.comparavel
                         ? `${etapa.conversaoAnterior}%`
                         : "Não comparável"}
