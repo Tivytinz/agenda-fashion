@@ -121,6 +121,16 @@ export function BusinessPage({ create = false }) {
   const whatsappError = validateWhatsApp(form.whatsapp);
 
   useEffect(() => {
+    if (!create) return;
+    const accountWhatsapp = formatWhatsApp(session.usuario?.whatsapp);
+    if (!accountWhatsapp) return;
+
+    setForm((current) => current.whatsapp
+      ? current
+      : { ...current, whatsapp: accountWhatsapp });
+  }, [create, session.usuario?.whatsapp]);
+
+  useEffect(() => {
     if (create) return;
 
     apiRequest("/configuracoes")
@@ -164,8 +174,6 @@ export function BusinessPage({ create = false }) {
     if (cepDigits.length === 8 && !String(form.endereco || "").trim()) {
       lookupCep(cepDigits, { syncBaseline: true });
     }
-    // A consulta automática é feita apenas quando a configuração inicial termina.
-    // Alterações posteriores são tratadas por onChange/onBlur do campo.
   }, [create, loading]);
 
   function update(field, value) {
@@ -309,13 +317,7 @@ export function BusinessPage({ create = false }) {
       areas: form.areas
     };
 
-    // O endereço público é derivado do nome pelo backend. Não envie o slug
-    // carregado anteriormente, pois isso faria uma troca de nome conservar
-    // um endereço desatualizado.
     delete payload.slug;
-    // O backend aceita whatsapp_negocio apenas como alias legado. Não envie
-    // a cópia carregada anteriormente, pois ela pode sobrescrever o valor
-    // atual do campo canônico whatsapp.
     delete payload.whatsapp_negocio;
 
     try {
@@ -451,6 +453,61 @@ export function BusinessPage({ create = false }) {
   if (loading) return <div className="workspace-page"><LoadingState>Carregando negócio...</LoadingState></div>;
   if (error && !form.nome && !create) return <div className="workspace-page"><ErrorState message={error} /></div>;
 
+  const addressFields = (
+    <div className="form-grid business-address-grid">
+      <label className="business-cep-field">
+        CEP
+        <input
+          aria-busy={cepLookup.status === "loading" ? "true" : undefined}
+          aria-invalid={cepLookup.status === "error" ? "true" : undefined}
+          autoComplete="postal-code"
+          inputMode="numeric"
+          maxLength="9"
+          onBlur={handleCepBlur}
+          onChange={handleCepChange}
+          placeholder="00000-000"
+          value={form.cep}
+        />
+        <small
+          aria-live="polite"
+          className={`field-helper cep-lookup-helper is-${cepLookup.status}`}
+        >
+          {cepLookup.message || "Ao completar o CEP, rua, bairro, cidade e estado serão preenchidos."}
+        </small>
+      </label>
+      <span className="field-wide business-address-divider" aria-hidden="true" />
+      <label>
+        Endereço
+        <input autoComplete="street-address" onChange={(event) => update("endereco", event.target.value)} value={form.endereco} />
+      </label>
+      <label>
+        Número
+        <input onChange={(event) => update("numero", event.target.value)} value={form.numero} />
+      </label>
+      <label>
+        Complemento
+        <input onChange={(event) => update("complemento", event.target.value)} value={form.complemento} />
+      </label>
+      <label>
+        Bairro
+        <input onChange={(event) => update("bairro", event.target.value)} value={form.bairro} />
+      </label>
+      <label>
+        Cidade
+        <input onChange={(event) => update("cidade", event.target.value)} value={form.cidade} />
+      </label>
+      <label>
+        Estado
+        <select aria-label="Estado" onChange={(event) => update("estado", event.target.value)} required value={form.estado}>
+          <option value="">Selecione a UF</option>
+          {BRAZILIAN_STATES.map((state) => (
+            <option key={state} value={state}>{state}</option>
+          ))}
+        </select>
+      </label>
+    </div>
+  );
+
   return (
     <main className={create ? "container page-content narrow-page" : "workspace-page business-settings-page"}>
       {create && (
@@ -460,11 +517,25 @@ export function BusinessPage({ create = false }) {
       )}
       <header className="workspace-heading">
         <div>
-          <p className="eyebrow">{create ? "Primeiro passo" : "Presença pública"}</p>
+          <p className="eyebrow">{create ? "✨ Primeiro passo" : "Presença pública"}</p>
           <h1>{create ? "Crie seu negócio" : "Meu negócio"}</h1>
-          <p>Esses dados ajudam clientes a encontrar, confiar e agendar com você.</p>
+          <p>
+            {create
+              ? "Comece com o essencial. Depois do primeiro serviço, o AF publica seu perfil automaticamente."
+              : "Esses dados ajudam clientes a encontrar, confiar e agendar com você."}
+          </p>
         </div>
       </header>
+
+      {create && (
+        <section className="panel" aria-labelledby="business-create-guide-title">
+          <p className="eyebrow"><span aria-hidden="true">💅</span>{" "}Perfil no ar sem enrolação</p>
+          <h2 id="business-create-guide-title">Complete só o necessário agora</h2>
+          <p className="muted">
+            Nome, especialidade, WhatsApp, cidade e estado deixam o negócio pronto para o próximo passo. Foto, descrição, mapa e endereço completo podem ser adicionados depois.
+          </p>
+        </section>
+      )}
 
       {!create && publication && (
         <section className={`panel publication-panel ${publication.publicado ? "publication-panel-live" : ""}`}>
@@ -563,11 +634,13 @@ export function BusinessPage({ create = false }) {
                 </button>
               </div>
             )}
-            <label className="field-wide">
-              Descrição (opcional)
-              <textarea maxLength="1000" onChange={(event) => update("descricao", event.target.value)} rows="4" value={form.descricao} />
-              <small>Ajuda clientes a conhecerem seu trabalho, mas não impede a publicação.</small>
-            </label>
+            {!create && (
+              <label className="field-wide">
+                Descrição (opcional)
+                <textarea maxLength="1000" onChange={(event) => update("descricao", event.target.value)} rows="4" value={form.descricao} />
+                <small>Ajuda clientes a conhecerem seu trabalho, mas não impede a publicação.</small>
+              </label>
+            )}
             <fieldset className="specialty-field field-wide">
               <legend>Especialidades</legend>
               <div className="specialty-heading-row">
@@ -605,96 +678,75 @@ export function BusinessPage({ create = false }) {
                 maxLength="15"
                 onChange={(event) => update("whatsapp", formatWhatsApp(event.target.value))}
                 placeholder="(00) 12345-6789"
+                required={create}
                 value={form.whatsapp}
               />
               <small className={whatsappError ? "field-helper is-error" : "field-helper"}>
-                {whatsappError || "Usado para confirmações e contato das clientes."}
+                {whatsappError || (create
+                  ? "Trouxemos o número da sua conta. Você pode trocar antes de continuar."
+                  : "Usado para confirmações e contato das clientes.")}
               </small>
             </label>
-            <label>
-              Link do Google Maps
-              <input
-                aria-invalid={!googleMapsValid ? "true" : undefined}
-                onChange={(event) => update("localizacao_url", event.target.value)}
-                placeholder="https://maps.app.goo.gl/..."
-                type="url"
-                value={form.localizacao_url}
-              />
-              <span className="maps-field-helper">
-                <small className={!googleMapsValid ? "field-helper is-error" : "field-helper"}>
-                  {!googleMapsValid
-                    ? "Use um link válido do Google Maps."
-                    : form.localizacao_url
-                      ? "Link válido do Google Maps."
-                      : "Cole o link da localização no Google Maps."}
-                </small>
-                {googleMapsValid && form.localizacao_url && (
-                  <a href={form.localizacao_url} rel="noreferrer" target="_blank">Testar link ↗</a>
-                )}
-              </span>
-            </label>
+            {!create && (
+              <label>
+                Link do Google Maps
+                <input
+                  aria-invalid={!googleMapsValid ? "true" : undefined}
+                  onChange={(event) => update("localizacao_url", event.target.value)}
+                  placeholder="https://maps.app.goo.gl/..."
+                  type="url"
+                  value={form.localizacao_url}
+                />
+                <span className="maps-field-helper">
+                  <small className={!googleMapsValid ? "field-helper is-error" : "field-helper"}>
+                    {!googleMapsValid
+                      ? "Use um link válido do Google Maps."
+                      : form.localizacao_url
+                        ? "Link válido do Google Maps."
+                        : "Cole o link da localização no Google Maps."}
+                  </small>
+                  {googleMapsValid && form.localizacao_url && (
+                    <a href={form.localizacao_url} rel="noreferrer" target="_blank">Testar link ↗</a>
+                  )}
+                </span>
+              </label>
+            )}
           </div>
         </section>
 
-        <section className="business-form-section business-address-section">
-          <div className="business-form-heading">
-            <p className="eyebrow">Endereço</p>
-            <h2>Onde acontece o atendimento</h2>
-            <p>Comece pelo CEP e complete os detalhes do local.</p>
-          </div>
-          <div className="form-grid business-address-grid">
-            <label className="business-cep-field">
-              CEP
-              <input
-                aria-busy={cepLookup.status === "loading" ? "true" : undefined}
-                aria-invalid={cepLookup.status === "error" ? "true" : undefined}
-                autoComplete="postal-code"
-                inputMode="numeric"
-                maxLength="9"
-                onBlur={handleCepBlur}
-                onChange={handleCepChange}
-                placeholder="00000-000"
-                value={form.cep}
-              />
-              <small
-                aria-live="polite"
-                className={`field-helper cep-lookup-helper is-${cepLookup.status}`}
-              >
-                {cepLookup.message || "Ao completar o CEP, rua, bairro, cidade e estado serão preenchidos."}
-              </small>
-            </label>
-            <span className="field-wide business-address-divider" aria-hidden="true" />
-            <label>
-              Endereço
-              <input autoComplete="street-address" onChange={(event) => update("endereco", event.target.value)} value={form.endereco} />
-            </label>
-            <label>
-              Número
-              <input onChange={(event) => update("numero", event.target.value)} value={form.numero} />
-            </label>
-            <label>
-              Complemento
-              <input onChange={(event) => update("complemento", event.target.value)} value={form.complemento} />
-            </label>
-            <label>
-              Bairro
-              <input onChange={(event) => update("bairro", event.target.value)} value={form.bairro} />
-            </label>
-            <label>
-              Cidade
-              <input onChange={(event) => update("cidade", event.target.value)} value={form.cidade} />
-            </label>
-            <label>
-              Estado
-              <select aria-label="Estado" onChange={(event) => update("estado", event.target.value)} required value={form.estado}>
-                <option value="">Selecione a UF</option>
-                {BRAZILIAN_STATES.map((state) => (
-                  <option key={state} value={state}>{state}</option>
-                ))}
-              </select>
-            </label>
-          </div>
-        </section>
+        {create ? (
+          <section className="business-form-section business-address-section">
+            <div className="business-form-heading">
+              <p className="eyebrow">Localização</p>
+              <h2>Onde clientes encontram você</h2>
+              <p>Cidade e estado são suficientes para seguir agora.</p>
+            </div>
+            <div className="form-grid">
+              <label>
+                Cidade
+                <input onChange={(event) => update("cidade", event.target.value)} required value={form.cidade} />
+              </label>
+              <label>
+                Estado
+                <select aria-label="Estado" onChange={(event) => update("estado", event.target.value)} required value={form.estado}>
+                  <option value="">Selecione a UF</option>
+                  {BRAZILIAN_STATES.map((state) => (
+                    <option key={state} value={state}>{state}</option>
+                  ))}
+                </select>
+              </label>
+            </div>
+          </section>
+        ) : (
+          <section className="business-form-section business-address-section">
+            <div className="business-form-heading">
+              <p className="eyebrow">Endereço</p>
+              <h2>Onde acontece o atendimento</h2>
+              <p>Comece pelo CEP e complete os detalhes do local.</p>
+            </div>
+            {addressFields}
+          </section>
+        )}
 
         {error && <p className="form-error business-form-feedback" role="alert">{error}</p>}
         {!create && message && (
