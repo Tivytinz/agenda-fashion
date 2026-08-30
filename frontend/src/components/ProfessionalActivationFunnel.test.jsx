@@ -65,7 +65,7 @@ describe("ProfessionalActivationFunnel", () => {
   });
 
   it("não inventa conversão quando um marco independente supera o anterior", () => {
-    render(
+    const { container } = render(
       <ProfessionalActivationFunnel
         summary={{
           cadastros: 20,
@@ -83,7 +83,7 @@ describe("ProfessionalActivationFunnel", () => {
     ).not.toBeNull();
 
     expect(
-      screen.getByText("Agenda configurada").closest("li")?.className
+      container.querySelector('[data-stage="agenda"]')?.className
     ).toContain("is-bottleneck");
   });
 
