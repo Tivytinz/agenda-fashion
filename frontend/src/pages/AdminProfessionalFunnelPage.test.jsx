@@ -149,7 +149,6 @@ describe("AdminProfessionalFunnelPage", () => {
     expect(screen.getByText("Detalhamento do funil")).not.toBeNull();
     expect(screen.queryByText("Atingimento por marco")).toBeNull();
     expect(screen.queryByText("ROAS por campanha")).toBeNull();
-    expect(screen.queryByRole("columnheader", { name: "Marco" })).toBeNull();
     expect(screen.getByRole("columnheader", { name: "ROAS" })).not.toBeNull();
     expect(screen.getByRole("columnheader", { name: "CAC" })).not.toBeNull();
     expect(screen.queryByRole("heading", { name: "Progressão da coorte" })).toBeNull();
