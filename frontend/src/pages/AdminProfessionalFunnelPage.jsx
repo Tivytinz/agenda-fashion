@@ -6,6 +6,7 @@ import {
 import { apiRequest } from "../api/client";
 import { MarketingBarChart } from "../components/MarketingBarChart";
 import { MarketingExecutivePanel } from "../components/MarketingExecutivePanel";
+import { ProfessionalActivationFunnel } from "../components/ProfessionalActivationFunnel";
 import { ProfessionalPostAgendaFunnel } from "../components/ProfessionalPostAgendaFunnel";
 import { ProfessionalRecurrencePanel } from "../components/ProfessionalRecurrencePanel";
 import {
@@ -361,49 +362,6 @@ export function AdminProfessionalFunnelPage() {
     ]
   ];
 
-  const stages = [
-    ["Cadastro", summary.cadastros ?? 0, summary.cadastros ? 100 : 0],
-    ["Negócio criado", summary.negociosCriados ?? 0, summary.taxaNegocio ?? 0],
-    [
-      "Serviço criado",
-      summary.servicosCriados ?? 0,
-      summary.taxaServico ?? metricPercentage(
-        summary.servicosCriados,
-        summary.cadastros,
-        2
-      ) ?? 0
-    ],
-    [
-      "Agenda configurada",
-      summary.agendasConfiguradas ?? 0,
-      summary.taxaAgenda ?? metricPercentage(
-        summary.agendasConfiguradas,
-        summary.cadastros,
-        2
-      ) ?? 0
-    ],
-    ["Negócio publicado", summary.negociosPublicados ?? 0, summary.taxaPublicacao ?? 0],
-    [
-      "Primeiro agendamento",
-      summary.primeirosAgendamentos ?? 0,
-      summary.taxaPrimeiroAgendamento ?? metricPercentage(
-        summary.primeirosAgendamentos,
-        summary.cadastros,
-        2
-      ) ?? 0
-    ],
-    ["Checkout iniciado", summary.checkoutsIniciados ?? 0, summary.taxaCheckout ?? 0],
-    ["Assinatura ativada", summary.assinaturasAtivadas ?? 0, summary.taxaAssinatura ?? 0]
-  ];
-
-  const stageChartItems = stages.map(([label, value, rate]) => ({
-    key: label,
-    label,
-    value: rate,
-    formattedValue: `${rate}%`,
-    secondary: `${value} profissionais`
-  }));
-
   const roasChartItems = (measurementReady ? campaigns : [])
     .filter((item) => Number.isFinite(Number(item.roas)) && Number(item.roas) > 0)
     .sort((a, b) => Number(b.roas) - Number(a.roas))
@@ -609,55 +567,7 @@ export function AdminProfessionalFunnelPage() {
         </div>
       </section>
 
-      <section className="panel">
-        <div className="panel-heading">
-          <div>
-            <p className="eyebrow">Ativação</p>
-            <h2>Marcos alcançados no período</h2>
-            <p className="muted">
-              Cada marco é medido de forma independente para todos os profissionais cadastrados no período selecionado. A atribuição de mídia é analisada separadamente.
-            </p>
-          </div>
-        </div>
-
-        <div className="admin-insights-grid">
-          <MarketingBarChart
-            title="Atingimento por marco"
-            description="Percentual de todos os cadastros profissionais do período que já alcançou cada marco."
-            items={stageChartItems}
-            emptyMessage="Ainda não há profissionais cadastrados neste período."
-            variant="none"
-          />
-
-          <div className="admin-stat-table-card">
-            <div className="admin-stat-table-heading">
-              <strong>Detalhamento do funil</strong>
-              <small>Quantidade e participação sobre todos os cadastros profissionais do período.</small>
-            </div>
-            <div className="table-wrap">
-              <table className="admin-compact-table">
-                <thead>
-                  <tr>
-                    <th>Marco</th>
-                    <th>Profissionais</th>
-                    <th>% dos cadastros</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {stages.map(([label, value, rate]) => (
-                    <tr key={label}>
-                      <td>{label}</td>
-                      <td>{value}</td>
-                      <td>{rate}%</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-      </section>
-
+      <ProfessionalActivationFunnel summary={summary} />
       <ProfessionalPostAgendaFunnel summary={summary} />
       <ProfessionalRecurrencePanel period={period} />
 
