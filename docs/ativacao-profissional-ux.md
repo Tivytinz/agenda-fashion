@@ -37,7 +37,7 @@ O cadastro de cliente continua podendo oferecer separadamente a preferência de 
 
 ## Criação do negócio
 
-Todo novo negócio deve nascer com as informações estruturais do perfil preenchidas. A criação exige:
+Todo novo negócio deve nascer com as informações estruturais essenciais do perfil preenchidas. A criação exige:
 
 - nome do negócio;
 - descrição;
@@ -47,16 +47,13 @@ Todo novo negócio deve nascer com as informações estruturais do perfil preenc
 - CEP;
 - endereço;
 - número;
-- complemento;
 - bairro;
 - cidade;
 - estado.
 
-A única informação visual que pode ficar para depois é a foto. O upload de foto continua opcional e acontece pelo fluxo próprio depois que o negócio existe.
+Foto e complemento são opcionais. O upload de foto continua acontecendo pelo fluxo próprio depois que o negócio existe. O complemento pode ser preenchido quando fizer sentido para o endereço, sem bloquear a criação quando não existir.
 
 O WhatsApp da conta autenticada pode preencher inicialmente o WhatsApp do negócio, mas permanece editável e o backend continua validando o valor recebido.
-
-Quando o endereço não possuir complemento físico, a profissional deve registrar explicitamente `Sem complemento`, evitando valor vazio e mantendo a completude do cadastro.
 
 Esta exigência vale para **criação de novos negócios**. Ela não altera retroativamente os requisitos canônicos de publicação de negócios existentes, preservando compatibilidade com perfis legados.
 
