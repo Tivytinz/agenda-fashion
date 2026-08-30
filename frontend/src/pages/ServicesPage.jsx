@@ -429,17 +429,36 @@ export function ServiceEditorPage() {
         setGalleryFiles((current) => current.filter((item) => item !== file));
       }
       const continueOnboarding = !editing && location.state?.onboarding === true;
-      navigate(continueOnboarding ? "/painel" : "/painel/servicos", {
-        replace: true,
-        state: continueOnboarding
-          ? {
-              message: saveResult.publicacao?.publicado
-                ? "Serviço criado. Seu negócio foi publicado automaticamente."
-                : "Serviço criado. Estamos atualizando sua publicação.",
-              onboardingCompleted: saveResult.publicacao?.publicado === true
-            }
-          : { message: editing ? "Serviço atualizado." : "Serviço criado." }
-      });
+      const publishedDuringOnboarding =
+        continueOnboarding &&
+        saveResult.publicacao?.publicado === true;
+
+      navigate(
+        publishedDuringOnboarding
+          ? "/painel/horarios"
+          : continueOnboarding
+            ? "/painel"
+            : "/painel/servicos",
+        {
+          replace: true,
+          state: publishedDuringOnboarding
+            ? {
+                message:
+                  "Seu perfil está no ar. Agora confirme quando você atende para liberar os agendamentos online."
+              }
+            : continueOnboarding
+              ? {
+                  message:
+                    "Serviço criado. Estamos atualizando sua publicação.",
+                  onboardingCompleted: false
+                }
+              : {
+                  message: editing
+                    ? "Serviço atualizado."
+                    : "Serviço criado."
+                }
+        }
+      );
     } catch (requestError) {
       setError(`O serviço foi salvo, mas algumas fotos não foram enviadas. ${requestError.message} Tente novamente para enviar apenas as fotos pendentes.`);
     } finally {

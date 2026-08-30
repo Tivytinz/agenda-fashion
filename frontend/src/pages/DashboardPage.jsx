@@ -40,7 +40,7 @@ function buildNextAction({ completedBookings, profileVisits }) {
   return {
     title: "Deixe a agenda pronta",
     description: "Serviços claros e horários atualizados ajudam clientes a confirmar sem voltar ao WhatsApp.",
-    primary: { label: "Abrir agenda", to: "/painel/agenda" },
+    primary: { label: "Configurar horários", to: "/painel/horarios" },
     secondary: { label: "Gerenciar serviços", to: "/painel/servicos" }
   };
 }

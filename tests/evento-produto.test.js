@@ -237,6 +237,61 @@ describe(
     );
 
     test(
+      "aceita a conclusão observacional da configuração da agenda",
+      async () => {
+        const resposta =
+          await request(
+            criarApp()
+          )
+            .post(
+              "/eventos-produto"
+            )
+            .set(
+              "x-test-user",
+              "7"
+            )
+            .send({
+              nome:
+                "agenda_configurada",
+              pagina:
+                "configuracao_agenda",
+              missao:
+                "disponibilizar_horarios",
+              sessao_id:
+                "sessao_agenda_123",
+              propriedades: {
+                status:
+                  "sucesso",
+              },
+            });
+
+        expect(
+          resposta.status
+        ).toBe(202);
+
+        expect(
+          eventoProdutoRepository
+            .registrar
+        ).toHaveBeenCalledWith(
+          expect.objectContaining({
+            nome:
+              "agenda_configurada",
+            pagina:
+              "configuracao_agenda",
+            missao:
+              "disponibilizar_horarios",
+            usuarioId:
+              7,
+            propriedades: {
+              status:
+                "sucesso",
+            },
+          })
+        );
+      }
+    );
+
+    test(
       "rejeita nomes de evento fora do contrato",
       async () => {
         const resposta =

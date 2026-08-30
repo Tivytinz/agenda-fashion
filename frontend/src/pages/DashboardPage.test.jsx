@@ -262,6 +262,39 @@ describe("dashboard", () => {
       .toBe("/painel/servicos");
   });
 
+  it("leva a ação de preparar agenda para a configuração de horários", async () => {
+    mockDashboardRequests({
+      dashboard: {
+        resumo: {
+          agendamentos_periodo: 0,
+          faturamento_periodo: 0,
+          clientes_novos: 0
+        },
+        performance: {
+          taxa_conversao: 0,
+          visitas_perfil: 0,
+          agendamentos_concluidos: 0
+        },
+        ranking_servicos: []
+      }
+    });
+
+    render(<MemoryRouter><DashboardPage /></MemoryRouter>);
+
+    const heading = await screen.findByRole("heading", {
+      name: "Deixe a agenda pronta"
+    });
+    const section = heading.closest("section");
+    const action = section?.querySelector(
+      'a[href="/painel/horarios"]'
+    );
+
+    expect(action).not.toBeNull();
+    expect(action?.textContent).toContain(
+      "Configurar horários"
+    );
+  });
+
   it("conduz o profissional para a primeira etapa incompleta", async () => {
     mockDashboardRequests({
       publication: {

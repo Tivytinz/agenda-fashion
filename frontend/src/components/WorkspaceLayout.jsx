@@ -17,8 +17,8 @@ const OWNER_LINKS = [
   ["/painel", "Visão geral", "home"],
   ["/painel/agenda", "Agenda", "calendar"],
   ["/painel/servicos", "Serviços", "services"],
-  ["/painel/profissionais", "Equipe", "team"],
   ["/painel/horarios", "Horários", "clock"],
+  ["/painel/profissionais", "Equipe", "team"],
   ["/painel/negocio", "Meu negócio", "business"],
   ["/painel/assinatura", "Plano e assinatura", "plan"],
   ["/conta", "Minha conta", "account"]

@@ -39,6 +39,10 @@ const EVENTOS_PERMITIDOS =
     "landing_profissionais_cta_clicado",
     "landing_profissionais_demo_clicada",
     "catalogo_local_visualizado",
+    "agenda_configuracao_visualizada",
+    "agenda_configuracao_salvamento_tentado",
+    "agenda_configuracao_erro",
+    "agenda_configurada",
   ]);
 
 const PAGINAS_PERMITIDAS =

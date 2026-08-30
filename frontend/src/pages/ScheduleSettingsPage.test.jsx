@@ -3,9 +3,11 @@
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { track } from "../analytics/track";
 import { apiRequest } from "../api/client";
 import { ScheduleSettingsPage, validateSchedule } from "./ScheduleSettingsPage";
 
+vi.mock("../analytics/track", () => ({ track: vi.fn() }));
 vi.mock("../api/client", () => ({ apiRequest: vi.fn() }));
 
 function validWeek() {
@@ -21,6 +23,7 @@ function validWeek() {
 
 beforeEach(() => {
   apiRequest.mockReset();
+  track.mockReset();
   apiRequest.mockResolvedValue({
     configuracao: {},
     horarios: [{
@@ -35,6 +38,42 @@ beforeEach(() => {
 afterEach(cleanup);
 
 describe("configuração de horários", () => {
+  it("explica que horários sugeridos ainda não estão ativos", async () => {
+    apiRequest.mockResolvedValueOnce({
+      configuracao: {
+        duracao_padrao: 60,
+        intervalo_minutos: 0,
+        antecedencia_agendamento: 0,
+        antecedencia_cancelamento: 24,
+        configurado_em: null
+      },
+      horarios: validWeek()
+    });
+
+    render(<ScheduleSettingsPage />);
+
+    expect(await screen.findByRole("heading", {
+      name: "Confirme quando você atende"
+    })).not.toBeNull();
+
+    expect(screen.getByText(
+      /sugestão inicial e só ficam disponíveis/i
+    )).not.toBeNull();
+
+    await waitFor(() => {
+      expect(track).toHaveBeenCalledWith(
+        "agenda_configuracao_visualizada",
+        expect.objectContaining({
+          page: "configuracao_agenda",
+          mission: "disponibilizar_horarios",
+          properties: {
+            status: "pendente"
+          }
+        })
+      );
+    });
+  });
+
   it("valida pausas incompletas", () => {
     expect(validateSchedule([{
       diaSemana: 1,
