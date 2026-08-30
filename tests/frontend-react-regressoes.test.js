@@ -203,6 +203,10 @@ describe(
           ler(
             "frontend/src/pages/DashboardPage.jsx"
           );
+        const proximaAcao =
+          ler(
+            "frontend/src/components/DashboardNextAction.jsx"
+          );
 
         expect(
           dashboard
@@ -237,19 +241,49 @@ describe(
         expect(
           dashboard
         ).toContain(
-          'to: "/painel/agenda"'
+          "<DashboardNextAction"
         );
 
         expect(
           dashboard
+        ).toContain(
+          "activation={data.ativacao}"
+        );
+
+        expect(
+          proximaAcao
+        ).toContain(
+          'to: "/painel/agenda"'
+        );
+
+        expect(
+          proximaAcao
         ).toContain(
           'to: "/painel/servicos"'
         );
 
         expect(
-          dashboard
+          proximaAcao
         ).toContain(
-          "to={nextAction.primary.to}"
+          'to: "/painel/horarios"'
+        );
+
+        expect(
+          proximaAcao
+        ).toContain(
+          "Divulgue seu perfil"
+        );
+
+        expect(
+          proximaAcao
+        ).toContain(
+          "Compartilhar perfil"
+        );
+
+        expect(
+          proximaAcao
+        ).toContain(
+          "to={action.primary.to}"
         );
       }
     );
