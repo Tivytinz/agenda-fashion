@@ -372,7 +372,8 @@ export function DashboardPage() {
             </h2>
             <p className="muted">
               Autorize até três orientações, com intervalo mínimo de três dias,
-              para cadastrar seu primeiro serviço e divulgar seu perfil.
+              para cadastrar seu primeiro serviço e, quando sua agenda estiver pronta,
+              divulgar seu perfil.
               Você pode desativar em Minha conta ou responder PARAR MARKETING.
             </p>
           </div>
