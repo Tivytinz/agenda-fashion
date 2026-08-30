@@ -45,16 +45,16 @@ describe("criação do negócio", () => {
       .not.toBeNull();
 
     const requiredFields = [
-      "Nome do negócio",
-      "Descrição",
-      "WhatsApp",
-      "Link do Google Maps",
-      "CEP",
-      "Endereço",
-      "Número",
-      "Complemento",
-      "Bairro",
-      "Cidade"
+      /Nome do negócio/,
+      /Descrição/,
+      /WhatsApp/,
+      /Link do Google Maps/,
+      /CEP/,
+      /Endereço/,
+      /Número/,
+      /Complemento/,
+      /Bairro/,
+      /Cidade/
     ];
 
     for (const label of requiredFields) {
@@ -63,7 +63,7 @@ describe("criação do negócio", () => {
 
     expect(screen.getByRole("combobox", { name: "Estado" }).required).toBe(true);
 
-    const whatsapp = screen.getByLabelText("WhatsApp");
+    const whatsapp = screen.getByLabelText(/WhatsApp/);
     expect(whatsapp.value).toBe("(62) 99999-9999");
     expect(screen.getByText(/Trouxemos o número da sua conta/i)).not.toBeNull();
     expect(screen.getByText(/Sem complemento/i)).not.toBeNull();
@@ -77,7 +77,7 @@ describe("criação do negócio", () => {
       </MemoryRouter>
     );
 
-    fireEvent.change(screen.getByLabelText("Nome do negócio"), {
+    fireEvent.change(screen.getByLabelText(/Nome do negócio/), {
       target: { value: "Studio Aurora" }
     });
     fireEvent.click(screen.getByLabelText("Unhas"));
