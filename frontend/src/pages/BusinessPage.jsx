@@ -38,6 +38,20 @@ const EMPTY = {
   areas: []
 };
 
+const CREATION_REQUIRED_FIELDS = [
+  ["nome", "Nome do negócio"],
+  ["descricao", "Descrição"],
+  ["whatsapp", "WhatsApp"],
+  ["cidade", "Cidade"],
+  ["estado", "Estado"],
+  ["bairro", "Bairro"],
+  ["endereco", "Endereço"],
+  ["numero", "Número"],
+  ["complemento", "Complemento"],
+  ["cep", "CEP"],
+  ["localizacao_url", "Link do Google Maps"]
+];
+
 function validateImage(file) {
   if (!ACCEPTED_IMAGE_TYPES.includes(file.type)) {
     return "Use uma imagem JPG, PNG ou WEBP.";
@@ -92,6 +106,20 @@ function validateWhatsApp(value) {
   return digits.length === 10 || digits.length === 11
     ? ""
     : "Informe um WhatsApp com DDD e 10 ou 11 dígitos.";
+}
+
+function validateCreationCompleteness(form) {
+  if (!Array.isArray(form.areas) || form.areas.length === 0) {
+    return "Preencha todas as informações do negócio antes de continuar. Campo pendente: Especialidades.";
+  }
+
+  for (const [field, label] of CREATION_REQUIRED_FIELDS) {
+    if (!String(form[field] ?? "").trim()) {
+      return `Preencha todas as informações do negócio antes de continuar. Campo pendente: ${label}.`;
+    }
+  }
+
+  return "";
 }
 
 export function BusinessPage({ create = false }) {
@@ -292,7 +320,13 @@ export function BusinessPage({ create = false }) {
     setError("");
     setMessage("");
 
-    if (form.areas.length === 0) {
+    if (create) {
+      const completenessError = validateCreationCompleteness(form);
+      if (completenessError) {
+        setError(completenessError);
+        return;
+      }
+    } else if (form.areas.length === 0) {
       setError("Selecione ao menos uma especialidade.");
       return;
     }
@@ -466,6 +500,7 @@ export function BusinessPage({ create = false }) {
           onBlur={handleCepBlur}
           onChange={handleCepChange}
           placeholder="00000-000"
+          required={create}
           value={form.cep}
         />
         <small
@@ -478,23 +513,24 @@ export function BusinessPage({ create = false }) {
       <span className="field-wide business-address-divider" aria-hidden="true" />
       <label>
         Endereço
-        <input autoComplete="street-address" onChange={(event) => update("endereco", event.target.value)} value={form.endereco} />
+        <input autoComplete="street-address" onChange={(event) => update("endereco", event.target.value)} required={create} value={form.endereco} />
       </label>
       <label>
         Número
-        <input onChange={(event) => update("numero", event.target.value)} value={form.numero} />
+        <input onChange={(event) => update("numero", event.target.value)} required={create} value={form.numero} />
       </label>
       <label>
         Complemento
-        <input onChange={(event) => update("complemento", event.target.value)} value={form.complemento} />
+        <input onChange={(event) => update("complemento", event.target.value)} required={create} value={form.complemento} />
+        {create && <small>Se o endereço não tiver complemento, informe “Sem complemento”.</small>}
       </label>
       <label>
         Bairro
-        <input onChange={(event) => update("bairro", event.target.value)} value={form.bairro} />
+        <input onChange={(event) => update("bairro", event.target.value)} required={create} value={form.bairro} />
       </label>
       <label>
         Cidade
-        <input onChange={(event) => update("cidade", event.target.value)} value={form.cidade} />
+        <input onChange={(event) => update("cidade", event.target.value)} required={create} value={form.cidade} />
       </label>
       <label>
         Estado
@@ -521,7 +557,7 @@ export function BusinessPage({ create = false }) {
           <h1>{create ? "Crie seu negócio" : "Meu negócio"}</h1>
           <p>
             {create
-              ? "Comece com o essencial. Depois do primeiro serviço, o AF publica seu perfil automaticamente."
+              ? "Complete as informações do negócio para começar com um perfil consistente. Depois, cadastre o primeiro serviço."
               : "Esses dados ajudam clientes a encontrar, confiar e agendar com você."}
           </p>
         </div>
@@ -529,10 +565,10 @@ export function BusinessPage({ create = false }) {
 
       {create && (
         <section className="panel" aria-labelledby="business-create-guide-title">
-          <p className="eyebrow"><span aria-hidden="true">💅</span>{" "}Perfil no ar sem enrolação</p>
-          <h2 id="business-create-guide-title">Complete só o necessário agora</h2>
+          <p className="eyebrow"><span aria-hidden="true">💅</span>{" "}Negócio completo desde o início</p>
+          <h2 id="business-create-guide-title">Preencha todas as informações do perfil</h2>
           <p className="muted">
-            Nome, especialidade, WhatsApp, cidade e estado deixam o negócio pronto para o próximo passo. Foto, descrição, mapa e endereço completo podem ser adicionados depois.
+            Dados completos melhoram descoberta, confiança e qualidade do catálogo. A única informação que pode ficar para depois é a foto do negócio.
           </p>
         </section>
       )}
@@ -634,13 +670,21 @@ export function BusinessPage({ create = false }) {
                 </button>
               </div>
             )}
-            {!create && (
-              <label className="field-wide">
-                Descrição (opcional)
-                <textarea maxLength="1000" onChange={(event) => update("descricao", event.target.value)} rows="4" value={form.descricao} />
-                <small>Ajuda clientes a conhecerem seu trabalho, mas não impede a publicação.</small>
-              </label>
-            )}
+            <label className="field-wide">
+              {create ? "Descrição" : "Descrição (opcional)"}
+              <textarea
+                maxLength="1000"
+                onChange={(event) => update("descricao", event.target.value)}
+                required={create}
+                rows="4"
+                value={form.descricao}
+              />
+              <small>
+                {create
+                  ? "Conte brevemente o que diferencia seu negócio."
+                  : "Ajuda clientes a conhecerem seu trabalho, mas não impede a publicação."}
+              </small>
+            </label>
             <fieldset className="specialty-field field-wide">
               <legend>Especialidades</legend>
               <div className="specialty-heading-row">
@@ -687,66 +731,46 @@ export function BusinessPage({ create = false }) {
                   : "Usado para confirmações e contato das clientes.")}
               </small>
             </label>
-            {!create && (
-              <label>
-                Link do Google Maps
-                <input
-                  aria-invalid={!googleMapsValid ? "true" : undefined}
-                  onChange={(event) => update("localizacao_url", event.target.value)}
-                  placeholder="https://maps.app.goo.gl/..."
-                  type="url"
-                  value={form.localizacao_url}
-                />
-                <span className="maps-field-helper">
-                  <small className={!googleMapsValid ? "field-helper is-error" : "field-helper"}>
-                    {!googleMapsValid
-                      ? "Use um link válido do Google Maps."
-                      : form.localizacao_url
-                        ? "Link válido do Google Maps."
+            <label>
+              Link do Google Maps
+              <input
+                aria-invalid={!googleMapsValid ? "true" : undefined}
+                onChange={(event) => update("localizacao_url", event.target.value)}
+                placeholder="https://maps.app.goo.gl/..."
+                required={create}
+                type="url"
+                value={form.localizacao_url}
+              />
+              <span className="maps-field-helper">
+                <small className={!googleMapsValid ? "field-helper is-error" : "field-helper"}>
+                  {!googleMapsValid
+                    ? "Use um link válido do Google Maps."
+                    : form.localizacao_url
+                      ? "Link válido do Google Maps."
+                      : create
+                        ? "Obrigatório na criação. Cole o link da localização no Google Maps."
                         : "Cole o link da localização no Google Maps."}
-                  </small>
-                  {googleMapsValid && form.localizacao_url && (
-                    <a href={form.localizacao_url} rel="noreferrer" target="_blank">Testar link ↗</a>
-                  )}
-                </span>
-              </label>
-            )}
+                </small>
+                {googleMapsValid && form.localizacao_url && (
+                  <a href={form.localizacao_url} rel="noreferrer" target="_blank">Testar link ↗</a>
+                )}
+              </span>
+            </label>
           </div>
         </section>
 
-        {create ? (
-          <section className="business-form-section business-address-section">
-            <div className="business-form-heading">
-              <p className="eyebrow">Localização</p>
-              <h2>Onde clientes encontram você</h2>
-              <p>Cidade e estado são suficientes para seguir agora.</p>
-            </div>
-            <div className="form-grid">
-              <label>
-                Cidade
-                <input onChange={(event) => update("cidade", event.target.value)} required value={form.cidade} />
-              </label>
-              <label>
-                Estado
-                <select aria-label="Estado" onChange={(event) => update("estado", event.target.value)} required value={form.estado}>
-                  <option value="">Selecione a UF</option>
-                  {BRAZILIAN_STATES.map((state) => (
-                    <option key={state} value={state}>{state}</option>
-                  ))}
-                </select>
-              </label>
-            </div>
-          </section>
-        ) : (
-          <section className="business-form-section business-address-section">
-            <div className="business-form-heading">
-              <p className="eyebrow">Endereço</p>
-              <h2>Onde acontece o atendimento</h2>
-              <p>Comece pelo CEP e complete os detalhes do local.</p>
-            </div>
-            {addressFields}
-          </section>
-        )}
+        <section className="business-form-section business-address-section">
+          <div className="business-form-heading">
+            <p className="eyebrow">Endereço</p>
+            <h2>Onde acontece o atendimento</h2>
+            <p>
+              {create
+                ? "Preencha o endereço completo. O CEP ajuda a preencher parte dos dados automaticamente."
+                : "Comece pelo CEP e complete os detalhes do local."}
+            </p>
+          </div>
+          {addressFields}
+        </section>
 
         {error && <p className="form-error business-form-feedback" role="alert">{error}</p>}
         {!create && message && (
