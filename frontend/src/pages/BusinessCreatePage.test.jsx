@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { apiRequest } from "../api/client";
@@ -31,7 +31,7 @@ beforeEach(() => {
 afterEach(cleanup);
 
 describe("criação do negócio", () => {
-  it("reaproveita o WhatsApp da conta e mostra somente o essencial para avançar", async () => {
+  it("reaproveita o WhatsApp da conta e exige todas as informações exceto foto", () => {
     render(
       <MemoryRouter initialEntries={["/criar-negocio"]}>
         <BusinessPage create />
@@ -39,20 +39,52 @@ describe("criação do negócio", () => {
     );
 
     expect(screen.getByRole("heading", {
-      name: "Complete só o necessário agora"
+      name: "Preencha todas as informações do perfil"
     })).not.toBeNull();
-    expect(screen.getByText(/Foto, descrição, mapa e endereço completo podem ser adicionados depois/i))
+    expect(screen.getByText(/A única informação que pode ficar para depois é a foto/i))
       .not.toBeNull();
 
-    const whatsapp = screen.getByLabelText(/WhatsApp/);
-    expect(whatsapp.value).toBe("(62) 99999-9999");
-    expect(whatsapp.required).toBe(true);
-    expect(screen.getByText(/Trouxemos o número da sua conta/i)).not.toBeNull();
+    const requiredFields = [
+      "Nome do negócio",
+      "Descrição",
+      "WhatsApp",
+      "Link do Google Maps",
+      "CEP",
+      "Endereço",
+      "Número",
+      "Complemento",
+      "Bairro",
+      "Cidade"
+    ];
 
-    expect(screen.getByLabelText("Cidade").required).toBe(true);
+    for (const label of requiredFields) {
+      expect(screen.getByLabelText(label).required).toBe(true);
+    }
+
     expect(screen.getByRole("combobox", { name: "Estado" }).required).toBe(true);
-    expect(screen.queryByLabelText(/Descrição/)).toBeNull();
-    expect(screen.queryByLabelText(/Link do Google Maps/)).toBeNull();
-    expect(screen.queryByLabelText(/CEP/)).toBeNull();
+
+    const whatsapp = screen.getByLabelText("WhatsApp");
+    expect(whatsapp.value).toBe("(62) 99999-9999");
+    expect(screen.getByText(/Trouxemos o número da sua conta/i)).not.toBeNull();
+    expect(screen.getByText(/Sem complemento/i)).not.toBeNull();
+    expect(screen.queryByLabelText(/Adicionar foto/i)).toBeNull();
+  });
+
+  it("não envia a criação quando faltar uma informação obrigatória", () => {
+    render(
+      <MemoryRouter initialEntries={["/criar-negocio"]}>
+        <BusinessPage create />
+      </MemoryRouter>
+    );
+
+    fireEvent.change(screen.getByLabelText("Nome do negócio"), {
+      target: { value: "Studio Aurora" }
+    });
+    fireEvent.click(screen.getByLabelText("Unhas"));
+    fireEvent.submit(screen.getByRole("button", { name: "Criar negócio" }).closest("form"));
+
+    expect(screen.getByRole("alert").textContent)
+      .toContain("Campo pendente: Descrição");
+    expect(apiRequest).not.toHaveBeenCalled();
   });
 });
