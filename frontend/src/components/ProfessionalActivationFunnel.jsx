@@ -268,7 +268,7 @@ export function ProfessionalActivationFunnel({ summary = {} }) {
           <table className="admin-compact-table">
             <thead>
               <tr>
-                <th>Marco</th>
+                <th>Etapa de ativação</th>
                 <th>Profissionais</th>
                 <th>% dos cadastros</th>
                 <th>Conversão da etapa anterior</th>
