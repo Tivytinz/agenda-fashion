@@ -44,7 +44,7 @@ describe("criação do negócio", () => {
     expect(screen.getByText(/Foto, descrição, mapa e endereço completo podem ser adicionados depois/i))
       .not.toBeNull();
 
-    const whatsapp = screen.getByLabelText("WhatsApp");
+    const whatsapp = screen.getByLabelText(/WhatsApp/);
     expect(whatsapp.value).toBe("(62) 99999-9999");
     expect(whatsapp.required).toBe(true);
     expect(screen.getByText(/Trouxemos o número da sua conta/i)).not.toBeNull();
