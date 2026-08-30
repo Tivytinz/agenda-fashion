@@ -13,10 +13,22 @@ function percentual(parte, total) {
 }
 
 const PRIORIDADES = {
-  "Negócio criado": "reduzir o abandono entre cadastro e criação do negócio",
-  "Serviço criado": "levar negócios novos ao primeiro serviço",
-  "Negócio publicado": "concluir os requisitos mínimos e publicar o perfil",
-  "Agenda configurada": "conduzir perfis publicados à confirmação da agenda"
+  "Negócio criado": {
+    label: "Criação do negócio",
+    action: "reduzir o abandono entre cadastro e criação do negócio"
+  },
+  "Serviço criado": {
+    label: "Primeiro serviço",
+    action: "levar negócios novos ao primeiro serviço"
+  },
+  "Negócio publicado": {
+    label: "Publicação do perfil",
+    action: "concluir os requisitos mínimos e publicar o perfil"
+  },
+  "Agenda configurada": {
+    label: "Configuração da agenda",
+    action: "conduzir perfis publicados à confirmação da agenda"
+  }
 };
 
 function montarEtapas(summary) {
@@ -26,30 +38,35 @@ function montarEtapas(summary) {
     {
       key: "cadastro",
       label: "Cadastro",
+      cardLabel: "Cadastro",
       quantidade: cadastros,
       acumulada: cadastros ? 100 : 0
     },
     {
       key: "negocio",
       label: "Negócio criado",
+      cardLabel: "Negócio",
       quantidade: numero(summary.negociosCriados),
       acumulada: percentual(numero(summary.negociosCriados), cadastros)
     },
     {
       key: "servico",
       label: "Serviço criado",
+      cardLabel: "Serviço",
       quantidade: numero(summary.servicosCriados),
       acumulada: percentual(numero(summary.servicosCriados), cadastros)
     },
     {
       key: "publicado",
       label: "Negócio publicado",
+      cardLabel: "Perfil publicado",
       quantidade: numero(summary.negociosPublicados),
       acumulada: percentual(numero(summary.negociosPublicados), cadastros)
     },
     {
       key: "agenda",
       label: "Agenda configurada",
+      cardLabel: "Agenda",
       quantidade: numero(summary.agendasConfiguradas),
       acumulada: percentual(numero(summary.agendasConfiguradas), cadastros)
     }
@@ -110,6 +127,9 @@ export function ProfessionalActivationFunnel({ summary = {} }) {
   const etapas = montarEtapas(summary);
   const gargalo = encontrarGargalo(etapas);
   const cadastros = etapas[0].quantidade;
+  const prioridade = gargalo
+    ? PRIORIDADES[gargalo.label]
+    : null;
 
   let diagnostico =
     "Não há uma perda dominante entre os marcos comparáveis desta coorte.";
@@ -148,15 +168,15 @@ export function ProfessionalActivationFunnel({ summary = {} }) {
         >
           <span>Prioridade atual</span>
           <strong>
-            {gargalo
-              ? gargalo.label
+            {prioridade
+              ? prioridade.label
               : cadastros
                 ? "Sem gargalo dominante"
                 : "Aguardando base"}
           </strong>
           <small>
-            {gargalo
-              ? PRIORIDADES[gargalo.label]
+            {prioridade
+              ? prioridade.action
               : cadastros
                 ? "continue acompanhando a passagem entre os marcos"
                 : "gere uma coorte antes de concluir sobre ativação"}
@@ -190,7 +210,7 @@ export function ProfessionalActivationFunnel({ summary = {} }) {
                 {gargaloAtual && <strong>Maior perda</strong>}
               </div>
 
-              <h3>{etapa.label}</h3>
+              <h3>{etapa.cardLabel}</h3>
               <p className="professional-activation-value">
                 {etapa.quantidade}
                 <small> profissionais</small>
@@ -226,7 +246,7 @@ export function ProfessionalActivationFunnel({ summary = {} }) {
       </ol>
 
       <details className="professional-activation-details">
-        <summary>Ver detalhamento do funil</summary>
+        <summary>Detalhamento do funil</summary>
         <div className="table-wrap">
           <table className="admin-compact-table">
             <thead>
