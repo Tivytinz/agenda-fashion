@@ -47,7 +47,6 @@ const CREATION_REQUIRED_FIELDS = [
   ["bairro", "Bairro"],
   ["endereco", "Endereço"],
   ["numero", "Número"],
-  ["complemento", "Complemento"],
   ["cep", "CEP"],
   ["localizacao_url", "Link do Google Maps"]
 ];
@@ -263,8 +262,8 @@ export function BusinessPage({ create = false }) {
       setCepLookup({
         status: "success",
         message: result.endereco
-          ? "Endereço encontrado. Complete número e complemento."
-          : "CEP encontrado. Complete o endereço, número e complemento."
+          ? "Endereço encontrado. Complete o número. O complemento é opcional."
+          : "CEP encontrado. Complete o endereço e o número. O complemento é opcional."
       });
     } catch (requestError) {
       if (requestId !== cepRequestRef.current) return;
@@ -520,9 +519,8 @@ export function BusinessPage({ create = false }) {
         <input onChange={(event) => update("numero", event.target.value)} required={create} value={form.numero} />
       </label>
       <label>
-        Complemento
-        <input onChange={(event) => update("complemento", event.target.value)} required={create} value={form.complemento} />
-        {create && <small>Se o endereço não tiver complemento, informe “Sem complemento”.</small>}
+        {create ? "Complemento (opcional)" : "Complemento"}
+        <input onChange={(event) => update("complemento", event.target.value)} value={form.complemento} />
       </label>
       <label>
         Bairro
@@ -566,9 +564,9 @@ export function BusinessPage({ create = false }) {
       {create && (
         <section className="panel" aria-labelledby="business-create-guide-title">
           <p className="eyebrow"><span aria-hidden="true">💅</span>{" "}Negócio completo desde o início</p>
-          <h2 id="business-create-guide-title">Preencha todas as informações do perfil</h2>
+          <h2 id="business-create-guide-title">Preencha os dados essenciais do perfil</h2>
           <p className="muted">
-            Dados completos melhoram descoberta, confiança e qualidade do catálogo. A única informação que pode ficar para depois é a foto do negócio.
+            Dados completos melhoram descoberta, confiança e qualidade do catálogo. Foto e complemento são opcionais; os demais dados do perfil são necessários para criar o negócio.
           </p>
         </section>
       )}
@@ -765,7 +763,7 @@ export function BusinessPage({ create = false }) {
             <h2>Onde acontece o atendimento</h2>
             <p>
               {create
-                ? "Preencha o endereço completo. O CEP ajuda a preencher parte dos dados automaticamente."
+                ? "Preencha os dados principais do endereço. O complemento é opcional, e o CEP ajuda a preencher parte dos dados automaticamente."
                 : "Comece pelo CEP e complete os detalhes do local."}
             </p>
           </div>
