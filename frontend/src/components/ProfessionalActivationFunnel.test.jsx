@@ -87,7 +87,7 @@ describe("ProfessionalActivationFunnel", () => {
     ).toContain("is-bottleneck");
   });
 
-  it("trata a coorte vazia sem mostrar um falso gargalo", () => {
+  it("trata a coorte vazia sem mostrar um falso gargalo ou uma falsa independência", () => {
     render(
       <ProfessionalActivationFunnel
         summary={{
@@ -104,6 +104,8 @@ describe("ProfessionalActivationFunnel", () => {
     expect(
       screen.getByText(/ainda não há cadastros profissionais/i)
     ).not.toBeNull();
+    expect(screen.getAllByText("Sem base anterior").length).toBeGreaterThan(0);
     expect(screen.queryByText("Maior perda")).toBeNull();
+    expect(screen.queryByText("Marco independente")).toBeNull();
   });
 });
