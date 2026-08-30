@@ -2,6 +2,9 @@ const dashboardService = require("../services/dashboardService");
 const dashboardCustomerOriginService = require(
   "../services/dashboardCustomerOriginService"
 );
+const dashboardActivationService = require(
+  "../services/dashboardActivationService"
+);
 
 async function buscarDashboardProfissional(req, res, next) {
   try {
@@ -22,7 +25,15 @@ async function buscarDashboardDono(req, res, next) {
       periodo: req.query.periodo
     });
 
-    return res.json(resultado);
+    const ativacao = await dashboardActivationService
+      .buscarAtivacaoNegocio({
+        negocioId: resultado.negocio?.negocio_id
+      });
+
+    return res.json({
+      ...resultado,
+      ativacao
+    });
   } catch (err) {
     next(err);
   }
