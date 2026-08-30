@@ -66,6 +66,14 @@ async function expectNoHorizontalOverflow(page) {
   }));
 }
 
+function serviceField(page, labelText, control) {
+  return page
+    .locator("label")
+    .filter({ hasText: labelText })
+    .locator(control)
+    .first();
+}
+
 test("profissional vai da landing até agenda pronta para divulgação", async ({ page }) => {
   let businessCreated = false;
   let serviceCreated = false;
@@ -293,10 +301,10 @@ test("profissional vai da landing até agenda pronta para divulgação", async (
   await page.getByRole("link", { name: "Cadastrar serviço" }).click();
 
   await expect(page).toHaveURL(/\/painel\/servicos\/novo$/);
-  await page.getByLabel("Nome do serviço").fill("Design + Henna");
-  await page.getByLabel("Categoria").selectOption("unha");
-  await page.getByLabel("Valor").fill("40");
-  await page.getByLabel("Duração em minutos").fill("60");
+  await serviceField(page, "Nome do serviço", "input").fill("Design + Henna");
+  await serviceField(page, "Categoria", "select").selectOption("unha");
+  await serviceField(page, "Valor", "input").fill("40");
+  await serviceField(page, "Duração em minutos", "input").fill("60");
   await page.getByRole("button", { name: "Salvar serviço" }).click();
 
   await expect(page).toHaveURL(/\/painel\/horarios$/);
