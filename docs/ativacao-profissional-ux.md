@@ -4,11 +4,11 @@ Este documento registra decisões duráveis da primeira jornada da profissional 
 
 ## Objetivo
 
-A primeira experiência deve levar a profissional ao valor com o menor número possível de decisões:
+A primeira experiência deve levar a profissional ao valor com uma jornada clara e com dados de qualidade:
 
-`conta → negócio → primeiro serviço → publicação automática → horários confirmados → compartilhar perfil → primeiro agendamento`
+`conta → negócio completo → primeiro serviço → publicação automática → horários confirmados → compartilhar perfil → primeiro agendamento`
 
-A interface não deve fazer a profissional sentir que precisa configurar todo o SaaS antes de começar.
+A interface deve evitar decisões que não pertencem ao momento atual, mas não deve sacrificar a qualidade dos dados estruturais do negócio.
 
 ## Emojis e identidade
 
@@ -37,23 +37,34 @@ O cadastro de cliente continua podendo oferecer separadamente a preferência de 
 
 ## Criação do negócio
 
-Na criação inicial, priorizar somente o necessário para avançar para publicação:
+Todo novo negócio deve nascer com as informações estruturais do perfil preenchidas. A criação exige:
 
 - nome do negócio;
+- descrição;
 - pelo menos uma especialidade;
 - WhatsApp;
+- link de localização do Google Maps;
+- CEP;
+- endereço;
+- número;
+- complemento;
+- bairro;
 - cidade;
 - estado.
 
+A única informação visual que pode ficar para depois é a foto. O upload de foto continua opcional e acontece pelo fluxo próprio depois que o negócio existe.
+
 O WhatsApp da conta autenticada pode preencher inicialmente o WhatsApp do negócio, mas permanece editável e o backend continua validando o valor recebido.
 
-Foto, descrição, Google Maps e endereço completo enriquecem o perfil e podem ser adicionados depois. Não devem parecer requisitos para iniciar a ativação.
+Quando o endereço não possuir complemento físico, a profissional deve registrar explicitamente `Sem complemento`, evitando valor vazio e mantendo a completude do cadastro.
+
+Esta exigência vale para **criação de novos negócios**. Ela não altera retroativamente os requisitos canônicos de publicação de negócios existentes, preservando compatibilidade com perfis legados.
 
 ## Primeiro serviço
 
 A foto do serviço é recomendada para conversão, mas não é requisito para publicar o negócio ou liberar a etapa seguinte.
 
-A interface deve deixar claro que o primeiro serviço ativo é o marco necessário. Fotos e descrição podem ser aprimoradas depois.
+A interface deve deixar claro que o primeiro serviço ativo é o marco necessário. Fotos e descrição do serviço podem ser aprimoradas depois.
 
 ## Primeira configuração da agenda
 
