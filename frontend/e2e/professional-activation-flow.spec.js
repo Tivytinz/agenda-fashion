@@ -260,7 +260,7 @@ test("profissional vai da landing até agenda pronta para divulgação", async (
   await page.getByLabel("Nome completo").fill("Ana Profissional");
   await page.getByLabel("E-mail").fill("ana@example.com");
   await page.getByLabel("WhatsApp com DDD").fill("62 99999-9999");
-  await page.getByLabel("Senha").fill("senha-e2e-123");
+  await page.getByLabel("Senha", { exact: true }).fill("senha-e2e-123");
   await page.getByLabel("Confirme a senha").fill("senha-e2e-123");
   await page.getByRole("button", { name: "Criar conta" }).click();
 
