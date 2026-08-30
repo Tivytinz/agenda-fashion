@@ -9,6 +9,14 @@ const pagina = fs.readFileSync(
   "utf8"
 );
 
+const funilAtivacao = fs.readFileSync(
+  path.join(
+    __dirname,
+    "../frontend/src/components/ProfessionalActivationFunnel.jsx"
+  ),
+  "utf8"
+);
+
 describe(
   "painel administrativo do funil profissional",
   () => {
@@ -28,7 +36,13 @@ describe(
           "diagnóstico bruto, não CPA atribuído"
         );
         expect(pagina).toContain(
-          "todos os profissionais cadastrados no período selecionado"
+          "<ProfessionalActivationFunnel summary={summary} />"
+        );
+        expect(funilAtivacao).toContain(
+          "Leitura operacional da ativação"
+        );
+        expect(funilAtivacao).toContain(
+          "acumulada: cadastros ? 100 : 0"
         );
         expect(pagina).toContain(
           "somente na coorte com atribuição oficial"
