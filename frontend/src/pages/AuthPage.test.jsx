@@ -73,6 +73,34 @@ describe("validação de WhatsApp", () => {
   });
 });
 
+describe("cadastro profissional enxuto", () => {
+  it("deixa consentimentos de WhatsApp para o momento contextual no painel", () => {
+    render(
+      <MemoryRouter initialEntries={["/cadastro?tipo=profissional"]}>
+        <AuthPage mode="register" />
+      </MemoryRouter>
+    );
+
+    expect(screen.getByText(/Depois da conta, você cria o negócio/i)).not.toBeNull();
+    expect(screen.getByText(/Avisos do WhatsApp são opcionais/i)).not.toBeNull();
+    expect(screen.queryByText(/avisos operacionais do Agenda Fashion/i)).toBeNull();
+    expect(screen.queryByText(/orientações de marketing do Agenda Fashion/i)).toBeNull();
+    expect(screen.queryByText(/confirmações, lembretes e atualizações dos meus agendamentos/i)).toBeNull();
+  });
+
+  it("mantém a preferência de mensagens no cadastro de cliente", () => {
+    render(
+      <MemoryRouter initialEntries={["/cadastro"]}>
+        <AuthPage mode="register" />
+      </MemoryRouter>
+    );
+
+    expect(
+      screen.getByText(/confirmações, lembretes e atualizações dos meus agendamentos/i)
+    ).not.toBeNull();
+  });
+});
+
 describe("compatibilidade de senha no login", () => {
   it("permite autenticar uma conta legada com senha de 6 caracteres", async () => {
     const user = userEvent.setup();
