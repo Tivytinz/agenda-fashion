@@ -76,21 +76,30 @@ function montarEtapas(summary) {
         ...etapa,
         conversaoAnterior: etapa.quantidade ? 100 : 0,
         perdaAnterior: 0,
-        comparavel: true
+        comparavel: true,
+        motivoComparacao: null
       };
     }
 
     const anterior = etapas[index - 1];
-    const comparavel =
-      anterior.quantidade > 0 &&
-      etapa.quantidade <= anterior.quantidade;
 
-    if (!comparavel) {
+    if (anterior.quantidade <= 0) {
       return {
         ...etapa,
         conversaoAnterior: null,
         perdaAnterior: null,
-        comparavel: false
+        comparavel: false,
+        motivoComparacao: "sem_base"
+      };
+    }
+
+    if (etapa.quantidade > anterior.quantidade) {
+      return {
+        ...etapa,
+        conversaoAnterior: null,
+        perdaAnterior: null,
+        comparavel: false,
+        motivoComparacao: "marco_independente"
       };
     }
 
@@ -101,7 +110,8 @@ function montarEtapas(summary) {
         anterior.quantidade
       ),
       perdaAnterior: anterior.quantidade - etapa.quantidade,
-      comparavel: true
+      comparavel: true,
+      motivoComparacao: null
     };
   });
 }
@@ -228,6 +238,13 @@ export function ProfessionalActivationFunnel({ summary = {} }) {
                       </strong>
                       <small>
                         {etapa.perdaAnterior} não chegaram aqui desde “{anterior.label}”
+                      </small>
+                    </>
+                  ) : etapa.motivoComparacao === "sem_base" ? (
+                    <>
+                      <strong>Sem base anterior</strong>
+                      <small>
+                        “{anterior.label}” ainda não tem profissionais suficientes para calcular a passagem
                       </small>
                     </>
                   ) : (
