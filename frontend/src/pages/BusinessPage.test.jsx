@@ -88,14 +88,14 @@ describe("publicação do negócio", () => {
     fireEvent.change(screen.getByLabelText("Nome do negócio"), {
       target: { value: "Studio Victor" }
     });
-    fireEvent.change(screen.getByLabelText("Descrição"), {
+    fireEvent.change(screen.getByLabelText(/Descrição/), {
       target: { value: "Beleza e cuidados pessoais." }
     });
     fireEvent.click(screen.getByLabelText("Unhas"));
-    fireEvent.change(screen.getByLabelText("WhatsApp"), {
+    fireEvent.change(screen.getByLabelText(/WhatsApp/), {
       target: { value: "62 99999-9999" }
     });
-    fireEvent.change(screen.getByLabelText("Link do Google Maps"), {
+    fireEvent.change(screen.getByLabelText(/Link do Google Maps/), {
       target: { value: "https://maps.google.com/?q=goiania" }
     });
     fireEvent.change(screen.getByLabelText(/CEP/), {
@@ -112,7 +112,7 @@ describe("publicação do negócio", () => {
     fireEvent.change(screen.getByLabelText("Número"), {
       target: { value: "10" }
     });
-    fireEvent.change(screen.getByLabelText("Complemento"), {
+    fireEvent.change(screen.getByLabelText(/Complemento/), {
       target: { value: "Sala 2" }
     });
     fireEvent.submit(screen.getByRole("button", { name: "Criar negócio" }).closest("form"));
