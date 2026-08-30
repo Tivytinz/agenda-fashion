@@ -31,7 +31,7 @@ beforeEach(() => {
 afterEach(cleanup);
 
 describe("criação do negócio", () => {
-  it("reaproveita o WhatsApp da conta e exige todas as informações exceto foto", () => {
+  it("reaproveita o WhatsApp da conta e exige os dados essenciais, com foto e complemento opcionais", () => {
     render(
       <MemoryRouter initialEntries={["/criar-negocio"]}>
         <BusinessPage create />
@@ -39,9 +39,9 @@ describe("criação do negócio", () => {
     );
 
     expect(screen.getByRole("heading", {
-      name: "Preencha todas as informações do perfil"
+      name: "Preencha os dados essenciais do perfil"
     })).not.toBeNull();
-    expect(screen.getByText(/A única informação que pode ficar para depois é a foto/i))
+    expect(screen.getByText(/Foto e complemento são opcionais/i))
       .not.toBeNull();
 
     const requiredFields = [
@@ -52,7 +52,6 @@ describe("criação do negócio", () => {
       /CEP/,
       /Endereço/,
       /Número/,
-      /Complemento/,
       /Bairro/,
       /Cidade/
     ];
@@ -61,12 +60,13 @@ describe("criação do negócio", () => {
       expect(screen.getByLabelText(label).required).toBe(true);
     }
 
+    expect(screen.getByLabelText(/Complemento/).required).toBe(false);
     expect(screen.getByRole("combobox", { name: "Estado" }).required).toBe(true);
 
     const whatsapp = screen.getByLabelText(/WhatsApp/);
     expect(whatsapp.value).toBe("(62) 99999-9999");
     expect(screen.getByText(/Trouxemos o número da sua conta/i)).not.toBeNull();
-    expect(screen.getByText(/Sem complemento/i)).not.toBeNull();
+    expect(screen.queryByText(/Sem complemento/i)).toBeNull();
     expect(screen.queryByLabelText(/Adicionar foto/i)).toBeNull();
   });
 
