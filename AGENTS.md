@@ -1,6 +1,6 @@
 # Memoria operacional do Agenda Fashion
 
-> Contexto permanente para agentes de desenvolvimento. Atualizado em 28 de
+> Contexto permanente para agentes de desenvolvimento. Atualizado em 30 de
 > agosto de 2026.
 
 Este arquivo deve ser lido antes de analisar, planejar ou alterar o projeto.
@@ -64,6 +64,13 @@ AF nao demonstra valor para os negocios.
   upgrade.
 - O perfil publico de cada negocio e uma ferramenta de aquisicao e deve ter
   link curto, estavel, compartilhavel e indexavel quando publicado.
+- Todo novo negocio deve ser criado com os dados estruturais completos: nome,
+  descricao, ao menos uma especialidade, WhatsApp, link do Google Maps, CEP,
+  endereco, numero, complemento, bairro, cidade e estado. Foto e a unica
+  informacao de perfil que pode ficar para depois. Quando nao houver
+  complemento fisico, registrar explicitamente `Sem complemento`. Esta regra
+  vale para criacao e nao altera retroativamente os criterios de publicacao de
+  negocios legados.
 - A descricao do negocio melhora a qualidade do perfil, mas e opcional e nao
   pode bloquear a publicacao; especialidade, WhatsApp, cidade, estado e ao
   menos um servico ativo formam os requisitos minimos de descoberta.
