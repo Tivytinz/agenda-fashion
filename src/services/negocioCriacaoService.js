@@ -15,7 +15,6 @@ const CAMPOS_OBRIGATORIOS = [
   ["bairro", "Bairro"],
   ["endereco", "Endereço"],
   ["numero", "Número"],
-  ["complemento", "Complemento"],
   ["cep", "CEP"],
   ["localizacao_url", "Link do Google Maps"],
 ];
