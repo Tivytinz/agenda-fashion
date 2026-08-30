@@ -273,6 +273,122 @@ describe(
     );
 
     test(
+      "não oferece horários antes da confirmação explícita da agenda",
+      async () => {
+        const servico =
+          cenarioTeste.servico;
+
+        const profissional =
+          cenarioTeste.profissional;
+
+        await db.query(
+          `
+            UPDATE agenda_configuracoes
+            SET configurado_em = NULL
+            WHERE profissional_id = $1
+          `,
+          [
+            profissional.id,
+          ]
+        );
+
+        try {
+          const agenda =
+            await request(app)
+              .get(
+                "/agenda-publica"
+              )
+              .query({
+                slug:
+                  cenarioTeste.slug,
+
+                servicoId:
+                  servico.id,
+
+                profissionalId:
+                  profissional.id,
+              });
+
+          exigirStatus(
+            agenda,
+            200,
+            "Agenda pública sem confirmação"
+          );
+
+          expect(
+            Array.isArray(
+              agenda.body.disponibilidade
+            )
+          ).toBe(true);
+
+          expect(
+            agenda.body.disponibilidade
+              .every(
+                (dia) =>
+                  Array.isArray(
+                    dia.horarios
+                  ) &&
+                  dia.horarios.length === 0
+              )
+          ).toBe(true);
+
+          const data =
+            agenda.body.disponibilidade[0]
+              ?.data;
+
+          expect(data).toBeTruthy();
+
+          const tentativa =
+            await request(app)
+              .post(
+                "/agendamentos"
+              )
+              .send({
+                slug:
+                  cenarioTeste.slug,
+
+                servico_id:
+                  servico.id,
+
+                profissional_id:
+                  profissional.id,
+
+                data,
+                horario:
+                  "08:00",
+
+                cliente_nome:
+                  "Visitante Sem Agenda",
+
+                cliente_whatsapp:
+                  gerarWhatsappValido(),
+              });
+
+          expect(
+            tentativa.statusCode
+          ).toBe(409);
+
+          expect(
+            tentativa.body.erro
+          ).toMatch(
+            /horário não está mais disponível/i
+          );
+        } finally {
+          await db.query(
+            `
+              UPDATE agenda_configuracoes
+              SET configurado_em = NOW()
+              WHERE profissional_id = $1
+            `,
+            [
+              profissional.id,
+            ]
+          );
+        }
+      }
+    );
+
+    test(
       "visitante consegue abrir o perfil e agendar",
       async () => {
         const {

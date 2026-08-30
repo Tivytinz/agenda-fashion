@@ -71,6 +71,14 @@ AF nao demonstra valor para os negocios.
   porem, so e considerado concluido depois que o dono salva os horarios pela
   primeira vez; `agenda_configuracoes.configurado_em` e o marco canonico dessa
   ativacao. Publicacao e agenda sao etapas distintas do funil.
+- Um perfil publicado sem `agenda_configuracoes.configurado_em` continua
+  descobrivel e compartilhavel, mas nao pode oferecer horarios reservaveis nem
+  aceitar agendamentos online. Horarios padrao sao apenas uma sugestao ate a
+  confirmacao explicita do profissional; configuracoes legadas so podem ser
+  recuperadas quando houver evidencia persistida de edicao anterior.
+- Quando o primeiro servico concluir a publicacao automatica, a interface deve
+  conduzir o dono diretamente para confirmar os horarios antes de pedir
+  divulgacao do perfil.
 - Depois da primeira configuracao valida da agenda, a proxima missao de produto
   e conduzir o negocio para divulgacao do perfil e primeiro agendamento. O
   compartilhamento deve reutilizar os links publicos rastreaveis do AF, sem

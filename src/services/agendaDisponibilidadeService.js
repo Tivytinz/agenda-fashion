@@ -445,16 +445,28 @@ async function buscarDisponibilidade({
     quantidadeDias
   );
 
+  const configuracao =
+    await agendaConfiguracaoRepository
+      .buscarConfiguracao(
+        profissionalId
+      );
+
+  /*
+   * Publicacao e configuracao da agenda sao marcos diferentes.
+   * Sem confirmacao explicita, defaults nunca viram disponibilidade publica.
+   */
+  if (!configuracao?.configurado_em) {
+    return dias.map((data) => ({
+      data,
+      horarios: [],
+    }));
+  }
+
   const [
-    configuracao,
     horariosConfigurados,
     agendamentos,
     bloqueios,
   ] = await Promise.all([
-    agendaConfiguracaoRepository.buscarConfiguracao(
-      profissionalId
-    ),
-
     agendaConfiguracaoRepository.listarHorarios(
       profissionalId
     ),

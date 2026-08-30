@@ -158,9 +158,10 @@ async function criarCenarioAgendamento(
           duracao_padrao,
           intervalo_minutos,
           antecedencia_agendamento,
-          antecedencia_cancelamento
+          antecedencia_cancelamento,
+          configurado_em
         )
-        VALUES ($1, 60, 0, 0, 0)
+        VALUES ($1, 60, 0, 0, 0, NOW())
       `,
       [
         profissional.id,
