@@ -325,10 +325,19 @@ test("profissional vai da landing até agenda pronta para divulgação", async (
     level: 2,
     name: "Confirme quando você atende"
   })).toBeVisible();
-  await expect(page.locator("details.schedule-advanced-settings")).not.toHaveAttribute("open", "");
-  await expect(page.getByLabel("Início do atendimento de Segunda")).toHaveValue("09:00");
-  await expect(page.getByLabel("Fim do atendimento de Segunda")).toHaveValue("18:00");
-  await page.getByRole("button", { name: "Salvar horários" }).click();
+  await expect(page.getByText("Seg")).toBeVisible();
+  await expect(page.getByText("09:00–18:00")).toBeVisible();
+  await expect(page.getByRole("button", {
+    name: "Confirmar horários e publicar"
+  })).toBeVisible();
+  await expect(page.getByRole("button", {
+    name: "Ajustar horários"
+  })).toBeVisible();
+  await expect(page.locator("details.schedule-advanced-settings")).toHaveCount(0);
+
+  await page.getByRole("button", {
+    name: "Confirmar horários e publicar"
+  }).click();
 
   await expect(page.getByRole("heading", {
     name: "Agora divulgue seu perfil"

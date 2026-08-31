@@ -71,6 +71,22 @@ A primeira configuração deve priorizar:
 3. pausas, quando existirem;
 4. confirmação explícita por `Salvar horários`.
 
+### Confirmação rápida da primeira disponibilidade
+
+Quando a agenda ainda não tiver `configurado_em` e houver horários sugeridos válidos, a primeira tela deve priorizar uma confirmação rápida antes do editor semanal completo:
+
+1. resumir os dias, faixas de atendimento e pausas sugeridas;
+2. oferecer `Confirmar horários e publicar` como ação principal;
+3. oferecer `Ajustar horários` como ação secundária, abrindo o editor completo existente;
+4. deixar explícito que nenhum horário fica disponível para clientes antes da confirmação;
+5. exigir pelo menos um dia ativo na primeira confirmação, sem impedir que uma agenda já configurada seja posteriormente fechada em todos os dias quando necessário.
+
+A confirmação rápida não altera a fonte de verdade: o frontend envia os sete dias ao endpoint existente, o backend valida e persiste a configuração, marca `agenda_configuracoes.configurado_em` e somente então recalcula a elegibilidade de publicação.
+
+Os eventos existentes de agenda devem distinguir a origem da interação por `propriedades.origem`, usando `confirmacao_rapida`, `ajuste_manual` ou `editor`, sem criar um segundo funil de analytics.
+
+Depois que o backend confirmar a primeira configuração e a publicação, o editor deixa de competir visualmente com a missão seguinte. A interface deve priorizar imediatamente o `PublicShareButton` e a cópia do link rastreável para conduzir a profissional à divulgação e ao primeiro agendamento.
+
 Duração padrão, intervalo entre clientes e antecedências são ajustes avançados. Na primeira configuração, ficam recolhidos para reduzir carga cognitiva. Em uma agenda já configurada, ficam abertos para facilitar a gestão recorrente.
 
 Nenhum horário sugerido deve ser considerado confirmado antes do primeiro salvamento válido. A fonte canônica continua sendo `agenda_configuracoes.configurado_em`.
