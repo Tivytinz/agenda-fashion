@@ -89,6 +89,12 @@ function AppointmentCard({ appointment, canCancel, canceling, onCancel }) {
     [APPOINTMENT_STATUS.completed]: "Realizado",
     [APPOINTMENT_STATUS.canceled]: "Cancelado"
   }[appointment.status];
+  const repeatBookingUrl =
+    appointment.status === APPOINTMENT_STATUS.completed &&
+    appointment.slug &&
+    appointment.servico_id
+      ? `/negocio/${encodeURIComponent(appointment.slug)}?servico=${encodeURIComponent(appointment.servico_id)}`
+      : "";
 
   return (
     <article className="appointment-card">
@@ -118,6 +124,11 @@ function AppointmentCard({ appointment, canCancel, canceling, onCancel }) {
         </dl>
 
         <div className="appointment-actions">
+          {repeatBookingUrl && (
+            <Link className="button button-small" to={repeatBookingUrl}>
+              Agendar novamente
+            </Link>
+          )}
           {appointment.slug && (
             <Link className="button button-secondary button-small" to={`/negocio/${encodeURIComponent(appointment.slug)}`}>
               Ver negócio
