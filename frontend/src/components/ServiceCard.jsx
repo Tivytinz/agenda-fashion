@@ -22,12 +22,18 @@ export function ServiceCard({
     fit: "contain"
   });
 
-  const bookingUrl =
+  const profileUrl =
     `/negocio/${encodeURIComponent(
       service.negocio_slug
-    )}?servico=${encodeURIComponent(
+    )}`;
+  const bookingUrl =
+    `${profileUrl}?servico=${encodeURIComponent(
       service.id
     )}`;
+  const bookingAvailable =
+    service.agendamento_online_disponivel === true;
+  const destinationUrl =
+    bookingAvailable ? bookingUrl : profileUrl;
   const category = serviceCategoryLabel(service.categoria);
   const categoryEmoji = serviceCategoryEmoji(
     service.categoria,
@@ -43,8 +49,12 @@ export function ServiceCard({
     <article className="card service-discovery-card">
       <Link
         className="service-discovery-image"
-        to={bookingUrl}
-        aria-label={`Ver horários para ${service.nome}`}
+        to={destinationUrl}
+        aria-label={
+          bookingAvailable
+            ? `Ver horários para ${service.nome}`
+            : `Ver perfil de ${service.negocio_nome}`
+        }
       >
         {hasImage ? (
           <>
@@ -129,11 +139,17 @@ export function ServiceCard({
           </strong>
         </div>
 
+        {!bookingAvailable && (
+          <small className="muted">
+            Agenda online em configuração
+          </small>
+        )}
+
         <Link
           className="button button-full"
-          to={bookingUrl}
+          to={destinationUrl}
         >
-          Ver horários
+          {bookingAvailable ? "Ver horários" : "Ver perfil"}
         </Link>
       </div>
     </article>
