@@ -1,6 +1,6 @@
 # Memoria operacional do Agenda Fashion
 
-> Contexto permanente para agentes de desenvolvimento. Atualizado em 30 de
+> Contexto permanente para agentes de desenvolvimento. Atualizado em 31 de
 > agosto de 2026.
 
 Este arquivo deve ser lido antes de analisar, planejar ou alterar o projeto.
@@ -65,30 +65,33 @@ AF nao demonstra valor para os negocios.
 - O perfil publico de cada negocio e uma ferramenta de aquisicao e deve ter
   link curto, estavel, compartilhavel e indexavel quando publicado.
 - Todo novo negocio deve ser criado com os dados estruturais essenciais: nome,
-  descricao, ao menos uma especialidade, WhatsApp, link do Google Maps, CEP,
-  endereco, numero, bairro, cidade e estado. Foto e complemento sao opcionais;
-  o complemento pode ser preenchido quando fizer sentido para o endereco, sem
-  bloquear a criacao quando nao existir. Esta regra vale para criacao e nao
-  altera retroativamente os criterios de publicacao de negocios legados.
+  ao menos uma especialidade, WhatsApp, link do Google Maps, CEP, endereco,
+  numero, bairro, cidade e estado. Descricao, foto e complemento sao
+  opcionais; o complemento pode ser preenchido quando fizer sentido para o
+  endereco, sem bloquear a criacao quando nao existir. Esta regra vale para
+  criacao e nao altera retroativamente os criterios de publicacao de negocios
+  legados.
 - A descricao do negocio melhora a qualidade do perfil, mas e opcional e nao
-  pode bloquear a publicacao; especialidade, WhatsApp, cidade, estado e ao
-  menos um servico ativo formam os requisitos minimos de descoberta.
-- A publicacao automatica nao depende da agenda. O onboarding profissional,
-  porem, so e considerado concluido depois que o dono salva os horarios pela
-  primeira vez; `agenda_configuracoes.configurado_em` e o marco canonico dessa
-  ativacao. Publicacao e agenda sao etapas distintas do funil.
-- Um perfil publicado sem `agenda_configuracoes.configurado_em` continua
-  descobrivel e compartilhavel, mas nao pode oferecer horarios reservaveis nem
-  aceitar agendamentos online. Horarios padrao sao apenas uma sugestao ate a
-  confirmacao explicita do profissional; configuracoes legadas so podem ser
-  recuperadas quando houver evidencia persistida de edicao anterior.
-- Quando o primeiro servico concluir a publicacao automatica, a interface deve
-  conduzir o dono diretamente para confirmar os horarios antes de pedir
-  divulgacao do perfil.
-- Depois da primeira configuracao valida da agenda, a proxima missao de produto
-  e conduzir o negocio para divulgacao do perfil e primeiro agendamento. O
-  compartilhamento deve reutilizar os links publicos rastreaveis do AF, sem
-  criar uma segunda mecanica de share ou perder a origem do acesso.
+  pode bloquear a criacao ou a publicacao.
+- Negocios criados no fluxo novo so podem ser publicados depois de reunir
+  todos os dados obrigatorios da criacao, ao menos um servico ativo e horarios
+  confirmados. `agenda_configuracoes.configurado_em` e o marco canonico da
+  confirmacao. O marcador `negocios.publicacao_exige_agenda` separa essa regra
+  da compatibilidade legada.
+- Negocios existentes antes desse gate preservam os criterios anteriores de
+  publicacao, sem despublicacao ou exigencia retroativa da agenda. Um perfil
+  legado ainda pode permanecer publico antes de confirmar horarios, mas nao
+  deve oferecer horarios reservaveis nem aceitar agendamentos online.
+- Horarios padrao sao apenas uma sugestao ate a confirmacao explicita do
+  profissional; configuracoes legadas so podem ser recuperadas quando houver
+  evidencia persistida de edicao anterior.
+- O primeiro servico nao publica sozinho um negocio do fluxo novo. A interface
+  deve conduzir o dono diretamente para confirmar os horarios.
+- Depois da primeira configuracao valida, o backend recalcula a elegibilidade;
+  se todos os requisitos estiverem confirmados, publica o negocio e conduz para
+  divulgacao do perfil e primeiro agendamento. O compartilhamento deve
+  reutilizar os links publicos rastreaveis do AF, sem criar uma segunda
+  mecanica de share ou perder a origem do acesso.
 - Links antigos de perfis devem continuar funcionando quando o slug mudar.
 - O dashboard deve traduzir dados em crescimento compreensivel, nao apenas
   exibir numeros soltos.

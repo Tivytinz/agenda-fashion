@@ -280,8 +280,13 @@ export function ScheduleSettingsPage() {
             status: "sucesso"
           }
         });
-        setActivationNextStep(true);
-        void loadBusinessContext();
+        const publicadoAgora =
+          result.publicacao?.publicado === true;
+
+        setActivationNextStep(publicadoAgora);
+        if (publicadoAgora) {
+          void loadBusinessContext();
+        }
       }
     } catch (requestError) {
       setError(requestError.message);
@@ -318,14 +323,14 @@ export function ScheduleSettingsPage() {
         >
           <p className="eyebrow">
             <span aria-hidden="true">📅</span>{" "}
-            Último passo para liberar agendamentos
+            Último passo da configuração
           </p>
           <h2 id="schedule-activation-title">
             Confirme quando você atende
           </h2>
           <p className="muted">
-            Seu perfil pode ser encontrado por clientes, mas o agendamento
-            online só é liberado depois que você confirmar seus horários.
+            Confirme seus horários para liberar agendamentos online. Nos novos
+            cadastros, esta confirmação também libera a publicação automática.
           </p>
           <p className="muted">
             Primeiro escolha os dias e horários de atendimento. Os ajustes de
@@ -499,11 +504,11 @@ export function ScheduleSettingsPage() {
           <div className="onboarding-complete-copy">
             <p className="eyebrow onboarding-complete-eyebrow">
               <ConfirmationIcon className="onboarding-complete-icon" />
-              <span>Agenda pronta <span aria-hidden="true">✨</span></span>
+              <span>Negócio publicado <span aria-hidden="true">✨</span></span>
             </p>
             <h2 id="schedule-next-step-title">Agora divulgue seu perfil</h2>
             <p className="muted">
-              Seus horários já podem virar agendamentos. Compartilhe o perfil para levar clientes direto aos serviços e à disponibilidade real.
+              Seus horários foram confirmados e o perfil está no ar. Compartilhe o link para levar clientes direto aos serviços e à disponibilidade real.
             </p>
           </div>
 

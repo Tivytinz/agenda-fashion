@@ -504,6 +504,7 @@ export function DashboardPage() {
           businessId={data.negocio?.negocio_id}
           businessName={data.negocio?.nome}
           businessSlug={data.negocio?.slug}
+          publication={onboarding.publication}
           profileVisits={profileVisits}
         />
       </section>

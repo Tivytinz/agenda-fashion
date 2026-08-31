@@ -31,7 +31,7 @@ beforeEach(() => {
 afterEach(cleanup);
 
 describe("criação do negócio", () => {
-  it("reaproveita o WhatsApp da conta e exige os dados essenciais, com foto e complemento opcionais", () => {
+  it("reaproveita o WhatsApp da conta e deixa descrição, foto e complemento opcionais", () => {
     render(
       <MemoryRouter initialEntries={["/criar-negocio"]}>
         <BusinessPage create />
@@ -41,12 +41,11 @@ describe("criação do negócio", () => {
     expect(screen.getByRole("heading", {
       name: "Preencha os dados essenciais do perfil"
     })).not.toBeNull();
-    expect(screen.getByText(/Foto e complemento são opcionais/i))
+    expect(screen.getByText(/Descrição, foto e complemento são opcionais/i))
       .not.toBeNull();
 
     const requiredFields = [
       /Nome do negócio/,
-      /Descrição/,
       /WhatsApp/,
       /Link do Google Maps/,
       /CEP/,
@@ -60,6 +59,8 @@ describe("criação do negócio", () => {
       expect(screen.getByLabelText(label).required).toBe(true);
     }
 
+    expect(screen.getByLabelText(/Descrição \(opcional\)/).required)
+      .toBe(false);
     expect(screen.getByLabelText(/Complemento/).required).toBe(false);
     expect(screen.getByRole("combobox", { name: "Estado" }).required).toBe(true);
 
@@ -84,7 +85,7 @@ describe("criação do negócio", () => {
     fireEvent.submit(screen.getByRole("button", { name: "Criar negócio" }).closest("form"));
 
     expect(screen.getByRole("alert").textContent)
-      .toContain("Campo pendente: Descrição");
+      .toContain("Campo pendente: Cidade");
     expect(apiRequest).not.toHaveBeenCalled();
   });
 });

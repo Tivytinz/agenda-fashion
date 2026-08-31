@@ -1240,6 +1240,103 @@ describe(
     );
 
     test(
+      "impede publicar um novo negócio antes de confirmar os horários",
+      async () => {
+        configuracoesRepository
+          .buscarNegocioDoUsuario
+          .mockResolvedValue(
+            criarVinculo()
+          );
+
+        configuracoesRepository
+          .buscarNegocioPorId
+          .mockResolvedValue(
+            criarNegocio({
+              descricao: "",
+              complemento: "",
+              foto_url: null,
+              publicacao_exige_agenda: true,
+              agenda_configurada: false,
+            })
+          );
+
+        const resposta =
+          await request(app)
+            .patch(
+              "/configuracoes/publicacao"
+            )
+            .set(
+              "Authorization",
+              `Bearer ${gerarToken()}`
+            )
+            .send({
+              publicado: true,
+            });
+
+        expect(
+          resposta.status
+        ).toBe(400);
+
+        expect(
+          resposta.body.erro
+        ).toBe(
+          "Complete o perfil antes de publicar: confirmar os horários de atendimento."
+        );
+
+        expect(
+          configuracoesRepository
+            .atualizarPublicacao
+        ).not.toHaveBeenCalled();
+      }
+    );
+
+    test(
+      "mantém endereço obrigatório no fluxo novo sem exigir os campos opcionais",
+      async () => {
+        configuracoesRepository
+          .buscarNegocioDoUsuario
+          .mockResolvedValue(
+            criarVinculo()
+          );
+
+        configuracoesRepository
+          .buscarNegocioPorId
+          .mockResolvedValue(
+            criarNegocio({
+              descricao: "",
+              complemento: "",
+              foto_url: null,
+              bairro: "",
+              publicacao_exige_agenda: true,
+              agenda_configurada: true,
+            })
+          );
+
+        const resposta =
+          await request(app)
+            .patch(
+              "/configuracoes/publicacao"
+            )
+            .set(
+              "Authorization",
+              `Bearer ${gerarToken()}`
+            )
+            .send({
+              publicado: true,
+            });
+
+        expect(
+          resposta.status
+        ).toBe(400);
+        expect(
+          resposta.body.erro
+        ).toBe(
+          "Complete o perfil antes de publicar: bairro."
+        );
+      }
+    );
+
+    test(
       "permite ao dono retirar o negócio da página inicial",
       async () => {
         configuracoesRepository

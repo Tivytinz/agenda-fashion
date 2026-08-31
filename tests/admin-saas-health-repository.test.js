@@ -21,6 +21,9 @@ describe("consulta da saúde do SaaS", () => {
 
     expect(sql).toMatch(/AS descricao_preenchida/i);
     expect(sql).toMatch(/AS perfil_basico_completo/i);
+    expect(sql).toMatch(
+      /publicacao_exige_agenda\s*=\s*FALSE[\s\S]*BTRIM\(bairro\)[\s\S]*BTRIM\(localizacao_url\)/i
+    );
     expect(sql).toMatch(/AS sem_descricao/i);
     expect(sql).toMatch(/WHERE etapas_concluidas\s*<\s*5/i);
     expect(sql).not.toMatch(

@@ -17,7 +17,7 @@ function renderEditor(entry = "/painel/servicos/novo") {
         <Route path="/painel/servicos/novo" element={<ServiceEditorPage />} />
         <Route path="/painel/servicos/:id/editar" element={<ServiceEditorPage />} />
         <Route path="/painel/servicos" element={<h1>Lista de serviços</h1>} />
-        <Route path="/painel/horarios" element={<h1>Horários após publicação</h1>} />
+        <Route path="/painel/horarios" element={<h1>Confirmar horários para publicar</h1>} />
         <Route path="/painel" element={<h1>Visão geral publicada</h1>} />
       </Routes>
     </MemoryRouter>
@@ -225,10 +225,14 @@ describe("editor de serviços", () => {
     expect(screen.getByText("Adicionar fotos")).not.toBeNull();
   });
 
-  it("conclui o onboarding quando o primeiro serviço publica o negócio", async () => {
+  it("leva à confirmação de horários sem publicar ao cadastrar o primeiro serviço", async () => {
     apiRequest.mockResolvedValueOnce({
       servico: { id: 55 },
-      publicacao: { publicado: true }
+      publicacao: {
+        publicado: false,
+        pode_publicar: false,
+        pendencias: ["confirmar os horários de atendimento"]
+      }
     });
 
     renderEditor({
@@ -238,7 +242,27 @@ describe("editor de serviços", () => {
     fillService();
     submit();
 
-    expect(await screen.findByRole("heading", { name: "Horários após publicação" }))
+    expect(await screen.findByRole("heading", { name: "Confirmar horários para publicar" }))
+      .not.toBeNull();
+  });
+
+  it("mantém negócios legados publicados no caminho de confirmação dos horários", async () => {
+    apiRequest.mockResolvedValueOnce({
+      servico: { id: 56 },
+      publicacao: {
+        publicado: true,
+        pode_publicar: true
+      }
+    });
+
+    renderEditor({
+      pathname: "/painel/servicos/novo",
+      state: { onboarding: true, onboardingStep: "servico" }
+    });
+    fillService();
+    submit();
+
+    expect(await screen.findByRole("heading", { name: "Confirmar horários para publicar" }))
       .not.toBeNull();
   });
 });

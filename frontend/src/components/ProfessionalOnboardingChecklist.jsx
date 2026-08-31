@@ -5,6 +5,7 @@ import { ConfirmationIcon } from "./ConfirmationIcon";
 import { PublicShareButton } from "./PublicShareButton";
 
 const SERVICE_PENDING = "pelo menos um serviço ativo";
+const SCHEDULE_PENDING = "confirmar os horários de atendimento";
 
 function normalizePending(publication) {
   return Array.isArray(publication?.pendencias)
@@ -14,7 +15,14 @@ function normalizePending(publication) {
 
 export function buildOnboardingSteps({ publication, scheduleConfigured }) {
   const pending = normalizePending(publication);
-  const profilePending = pending.filter((item) => item !== SERVICE_PENDING);
+  const scheduleBlocksPublication =
+    pending.includes(SCHEDULE_PENDING);
+  const profilePending = pending.filter(
+    (item) => ![
+      SERVICE_PENDING,
+      SCHEDULE_PENDING
+    ].includes(item)
+  );
   const steps = [
     {
       id: "perfil",
@@ -35,36 +43,54 @@ export function buildOnboardingSteps({ publication, scheduleConfigured }) {
       complete: !pending.includes(SERVICE_PENDING),
       to: "/painel/servicos/novo",
       action: "Cadastrar serviço"
-    },
-    {
-      id: "publicacao",
-      title: "Publicação automática",
-      description: publication?.publicado
-        ? "Seu perfil já pode ser encontrado por clientes."
-        : "Com os dados essenciais e um serviço, publicamos seu negócio.",
-      complete: publication?.publicado === true,
-      to: "/painel/negocio",
-      action: "Verificar publicação"
     }
   ];
 
+  const publicationStep = {
+    id: "publicacao",
+    title: "Publicação automática",
+    description: publication?.publicado
+      ? "Seu perfil já pode ser encontrado por clientes."
+      : scheduleBlocksPublication
+        ? "Publicamos depois que perfil, serviço e horários estiverem confirmados."
+        : "Com os dados essenciais e um serviço, publicamos seu negócio.",
+    complete: publication?.publicado === true,
+    to: "/painel/negocio",
+    action: "Verificar publicação"
+  };
+
   if (scheduleConfigured !== undefined) {
     const statusConhecido = typeof scheduleConfigured === "boolean";
-
-    steps.push({
+    const scheduleStep = {
       id: "agenda",
       title: "Configure seus horários",
       description: scheduleConfigured === true
         ? "Seus horários estão prontos para receber agendamentos."
         : scheduleConfigured === false
-          ? publication?.publicado
-            ? "Seu perfil está no ar. Agora escolha quando clientes podem agendar."
-            : "Depois da publicação, defina quando clientes podem agendar."
+          ? scheduleBlocksPublication
+            ? "Confirme quando clientes podem agendar. Essa etapa libera a publicação."
+            : publication?.publicado
+              ? "Seu perfil está no ar. Agora escolha quando clientes podem agendar."
+              : "Depois da publicação, defina quando clientes podem agendar."
           : "Não conseguimos confirmar seus horários agora. Abra a configuração para conferir.",
       complete: scheduleConfigured === true,
       to: "/painel/horarios",
       action: statusConhecido ? "Configurar horários" : "Verificar horários"
-    });
+    };
+
+    if (scheduleBlocksPublication) {
+      steps.push(
+        scheduleStep,
+        publicationStep
+      );
+    } else {
+      steps.push(
+        publicationStep,
+        scheduleStep
+      );
+    }
+  } else {
+    steps.push(publicationStep);
   }
 
   return steps;

@@ -8,7 +8,6 @@ const AppError = require(
 
 const CAMPOS_OBRIGATORIOS = [
   ["nome", "Nome do negócio"],
-  ["descricao", "Descrição"],
   ["whatsapp", "WhatsApp"],
   ["cidade", "Cidade"],
   ["estado", "Estado"],

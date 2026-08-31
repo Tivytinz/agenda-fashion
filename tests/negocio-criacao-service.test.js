@@ -57,10 +57,13 @@ describe(
     });
 
     test(
-      "delega a criação quando todas as informações obrigatórias estão preenchidas sem exigir foto",
+      "delega a criação sem exigir foto, descrição ou complemento",
       async () => {
         const dados =
-          dadosCompletos();
+          dadosCompletos({
+            descricao: "",
+            complemento: "",
+          });
 
         await expect(
           negocioCriacaoService.criar(
@@ -107,7 +110,6 @@ describe(
 
     test.each([
       ["nome", "Nome do negócio"],
-      ["descricao", "Descrição"],
       ["whatsapp", "WhatsApp"],
       ["cidade", "Cidade"],
       ["estado", "Estado"],

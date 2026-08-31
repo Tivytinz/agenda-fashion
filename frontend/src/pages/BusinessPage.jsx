@@ -40,7 +40,6 @@ const EMPTY = {
 
 const CREATION_REQUIRED_FIELDS = [
   ["nome", "Nome do negócio"],
-  ["descricao", "Descrição"],
   ["whatsapp", "WhatsApp"],
   ["cidade", "Cidade"],
   ["estado", "Estado"],
@@ -50,6 +49,10 @@ const CREATION_REQUIRED_FIELDS = [
   ["cep", "CEP"],
   ["localizacao_url", "Link do Google Maps"]
 ];
+const SERVICE_PUBLICATION_PENDING =
+  "pelo menos um serviço ativo";
+const SCHEDULE_PUBLICATION_PENDING =
+  "confirmar os horários de atendimento";
 
 function validateImage(file) {
   if (!ACCEPTED_IMAGE_TYPES.includes(file.type)) {
@@ -383,17 +386,38 @@ export function BusinessPage({ create = false }) {
           ? result.publicacao.pendencias
           : [];
         const profilePending = pending.filter(
-          (item) => item !== "pelo menos um serviço ativo"
+          (item) => ![
+            SERVICE_PUBLICATION_PENDING,
+            SCHEDULE_PUBLICATION_PENDING
+          ].includes(item)
         );
 
         if (profilePending.length === 0) {
-          const servicePending = pending.includes("pelo menos um serviço ativo");
-          navigate(servicePending ? "/painel/servicos/novo" : "/painel", {
+          const servicePending = pending.includes(
+            SERVICE_PUBLICATION_PENDING
+          );
+          const schedulePending = pending.includes(
+            SCHEDULE_PUBLICATION_PENDING
+          );
+          const destination = servicePending
+            ? "/painel/servicos/novo"
+            : schedulePending
+              ? "/painel/horarios"
+              : "/painel";
+
+          navigate(destination, {
             state: servicePending
               ? { onboarding: true, onboardingStep: "servico" }
+              : schedulePending
+                ? {
+                    message:
+                      "Dados essenciais concluídos. Agora confirme seus horários para publicar o negócio.",
+                    onboarding: true,
+                    onboardingStep: "agenda"
+                  }
               : {
                   message: result.publicacao?.publicado
-                    ? "Dados essenciais concluídos. Seu negócio foi publicado automaticamente."
+                    ? "Dados essenciais concluídos. Seu negócio está publicado."
                     : "Dados essenciais concluídos. Estamos atualizando sua publicação.",
                   onboardingCompleted: result.publicacao?.publicado === true
                 }
@@ -566,7 +590,7 @@ export function BusinessPage({ create = false }) {
           <p className="eyebrow"><span aria-hidden="true">💅</span>{" "}Negócio completo desde o início</p>
           <h2 id="business-create-guide-title">Preencha os dados essenciais do perfil</h2>
           <p className="muted">
-            Dados completos melhoram descoberta, confiança e qualidade do catálogo. Foto e complemento são opcionais; os demais dados do perfil são necessários para criar o negócio.
+            Dados completos melhoram descoberta, confiança e qualidade do catálogo. Descrição, foto e complemento são opcionais; os demais dados do perfil são necessários para criar o negócio.
           </p>
         </section>
       )}
@@ -579,7 +603,9 @@ export function BusinessPage({ create = false }) {
             <p>
               {publication.publicado
                 ? "Clientes podem encontrar seus serviços e acessar seu perfil público."
-                : "A publicação acontece automaticamente com os dados essenciais e um serviço ativo."}
+                : form.publicacao_exige_agenda
+                  ? "A publicação acontece automaticamente depois de confirmar os dados essenciais, um serviço ativo e os horários de atendimento."
+                  : "A publicação acontece automaticamente com os dados essenciais e um serviço ativo."}
             </p>
             {!publication.pode_publicar && publication.pendencias.length > 0 && (
               <p className="publication-pending">
@@ -669,18 +695,15 @@ export function BusinessPage({ create = false }) {
               </div>
             )}
             <label className="field-wide">
-              {create ? "Descrição" : "Descrição (opcional)"}
+              Descrição (opcional)
               <textarea
                 maxLength="1000"
                 onChange={(event) => update("descricao", event.target.value)}
-                required={create}
                 rows="4"
                 value={form.descricao}
               />
               <small>
-                {create
-                  ? "Conte brevemente o que diferencia seu negócio."
-                  : "Ajuda clientes a conhecerem seu trabalho, mas não impede a publicação."}
+                Ajuda clientes a conhecerem seu trabalho, mas não impede a criação nem a publicação.
               </small>
             </label>
             <fieldset className="specialty-field field-wide">
