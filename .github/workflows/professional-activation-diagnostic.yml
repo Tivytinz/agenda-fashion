@@ -1,0 +1,50 @@
+name: Professional Activation Diagnostic
+
+on:
+  push:
+    branches:
+      - fix/professional-funnel-ux
+
+permissions:
+  contents: read
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install frontend dependencies
+        run: npm --prefix frontend ci
+
+      - name: Install mobile browsers quietly
+        shell: bash
+        run: |
+          set +e
+          npm --prefix frontend exec -- playwright install --with-deps chromium webkit > /tmp/playwright-install.log 2>&1
+          status=$?
+          if [ "$status" -ne 0 ]; then
+            tail -n 120 /tmp/playwright-install.log
+            exit "$status"
+          fi
+
+      - name: Diagnose professional activation flow
+        shell: bash
+        run: |
+          set +e
+          npm --prefix frontend exec -- playwright test e2e/professional-activation-flow.spec.js > /tmp/professional-activation.log 2>&1
+          status=$?
+          if [ "$status" -ne 0 ]; then
+            tail -n 180 /tmp/professional-activation.log
+            exit "$status"
+          fi
+          cat /tmp/professional-activation.log
