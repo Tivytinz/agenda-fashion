@@ -317,10 +317,13 @@ test("profissional vai da landing até agenda pronta para divulgação", async (
   }));
 
   await expect(page.getByRole("heading", {
-    name: "Defina seus horários de atendimento"
+    level: 1,
+    name: "Horários de atendimento"
   })).toBeVisible();
-  await expect(page.getByText("Confirme quando você atende", { exact: true }))
-    .toBeVisible();
+  await expect(page.getByRole("heading", {
+    level: 2,
+    name: "Confirme quando você atende"
+  })).toBeVisible();
   await expect(page.locator("details.schedule-advanced-settings")).not.toHaveAttribute("open", "");
   await expect(page.getByLabel("Início do atendimento de Segunda")).toHaveValue("09:00");
   await expect(page.getByLabel("Fim do atendimento de Segunda")).toHaveValue("18:00");
