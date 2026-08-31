@@ -310,6 +310,89 @@ describe(
     );
 
     test(
+      "não confirma a primeira agenda sem nenhum dia ativo",
+      async () => {
+        const horariosFechados = horarios.map(
+          (horario) => ({
+            ...horario,
+            trabalha: false,
+            horaInicio: null,
+            horaFim: null,
+            intervaloInicio: null,
+            intervaloFim: null,
+          })
+        );
+
+        await expect(
+          service.salvarMinhaConfiguracao({
+            usuarioId: 7,
+            duracaoPadrao: 60,
+            intervaloMinutos: 10,
+            antecedenciaAgendamento: 2,
+            antecedenciaCancelamento: 24,
+            horarios: horariosFechados,
+          })
+        ).rejects.toMatchObject({
+          statusCode: 400,
+          message:
+            "Escolha pelo menos um dia de atendimento antes de confirmar a agenda.",
+        });
+
+        expect(
+          repository.atualizarConfiguracao
+        ).not.toHaveBeenCalled();
+        expect(
+          repository.salvarHorario
+        ).not.toHaveBeenCalled();
+        expect(
+          repository.marcarConfigurada
+        ).not.toHaveBeenCalled();
+        expect(
+          servicosRepository.sincronizarPublicacaoAutomatica
+        ).not.toHaveBeenCalled();
+      }
+    );
+
+    test(
+      "permite fechar todos os dias em uma agenda já confirmada",
+      async () => {
+        repository.buscarConfiguracao.mockResolvedValue({
+          profissional_id: 7,
+          configurado_em: "2026-08-28T22:00:00.000Z",
+        });
+
+        const horariosFechados = horarios.map(
+          (horario) => ({
+            ...horario,
+            trabalha: false,
+            horaInicio: null,
+            horaFim: null,
+            intervaloInicio: null,
+            intervaloFim: null,
+          })
+        );
+
+        await expect(
+          service.salvarMinhaConfiguracao({
+            usuarioId: 7,
+            duracaoPadrao: 60,
+            intervaloMinutos: 10,
+            antecedenciaAgendamento: 2,
+            antecedenciaCancelamento: 24,
+            horarios: horariosFechados,
+          })
+        ).resolves.toMatchObject({
+          mensagem:
+            "Horários de atendimento atualizados com sucesso.",
+        });
+
+        expect(
+          repository.salvarHorario
+        ).toHaveBeenCalledTimes(7);
+      }
+    );
+
+    test(
       "não permite conta sem vínculo ativo",
       async () => {
         repository

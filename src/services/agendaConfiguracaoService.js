@@ -482,6 +482,19 @@ async function salvarMinhaConfiguracao({
           !configuracaoExistente
             ?.configurado_em;
 
+        if (
+          primeiraConfiguracao &&
+          !horariosValidados.some(
+            (horario) =>
+              horario.trabalha
+          )
+        ) {
+          throw criarErro(
+            "Escolha pelo menos um dia de atendimento antes de confirmar a agenda.",
+            400
+          );
+        }
+
         let configuracao;
 
         const dadosConfiguracao = {
