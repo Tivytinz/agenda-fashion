@@ -27,6 +27,8 @@ export function normalizeAppointment(item, source = "account") {
     status,
     avaliacao: item.avaliacao ?? null,
     negocio_id: Number(item.negocio_id) || null,
+    servico_id: Number(item.servico_id) || null,
+    profissional_id: Number(item.profissional_id) || null,
     negocio: item.negocio || "Negócio",
     slug: item.slug || "",
     profissional: item.profissional || "Profissional",
@@ -44,6 +46,8 @@ export function saveRecentAppointment({ booking, appointment }) {
   const recent = normalizeAppointment({
     ...appointment,
     negocio_id: booking.business?.id,
+    servico_id: appointment.servico_id ?? booking.service?.id,
+    profissional_id: appointment.profissional_id ?? booking.professional?.id,
     negocio: booking.business?.nome,
     slug: booking.slug,
     profissional: booking.professional?.nome,
