@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { apiRequest } from "../api/client";
 import { AgendaWorkspacePage } from "./AgendaWorkspacePage";
@@ -110,6 +110,7 @@ describe("agenda do negócio", () => {
     expect(await screen.findByRole("button", { name: /03 ago/ })).not.toBeNull();
     expect(screen.getByRole("button", { name: /05 ago/ })).not.toBeNull();
     expect(screen.queryByRole("button", { name: /06 ago/ })).toBeNull();
+    await act(async () => {});
 
     fireEvent.click(screen.getByRole("button", { name: "Ver próximas datas" }));
 

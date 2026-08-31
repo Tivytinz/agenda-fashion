@@ -1,6 +1,9 @@
 const negocioService = require(
   "../services/negocioService"
 );
+const negocioCriacaoService = require(
+  "../services/negocioCriacaoService"
+);
 
 /*
  * Retira somente os campos permitidos
@@ -83,7 +86,7 @@ async function criarNegocio(
 ) {
   try {
     const resultado =
-      await negocioService.criar({
+      await negocioCriacaoService.criar({
         usuarioId:
           req.user?.id,
 

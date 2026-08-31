@@ -31,9 +31,7 @@ export function AuthPage({ mode = "login" }) {
     whatsapp: "",
     senha: "",
     confirmarSenha: "",
-    aceitaNotificacoesWhatsapp: false,
-    aceitaAlertasWhatsapp: false,
-    aceitaLembretesWhatsapp: false
+    aceitaNotificacoesWhatsapp: false
   });
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -83,7 +81,7 @@ export function AuthPage({ mode = "login" }) {
         credential,
         marketing,
         meta,
-        isRegister
+        isRegister && !professionalIntent
           ? form.aceitaNotificacoesWhatsapp
           : undefined
       );
@@ -147,11 +145,9 @@ export function AuthPage({ mode = "login" }) {
           nome: form.nome.trim(),
           whatsapp: form.whatsapp.replace(/\D/g, ""),
           aceitaNotificacoesWhatsapp:
-            form.aceitaNotificacoesWhatsapp,
-          aceitaAlertasWhatsapp:
-            professionalIntent && form.aceitaAlertasWhatsapp,
-          aceitaLembretesWhatsapp:
-            professionalIntent && form.aceitaLembretesWhatsapp,
+            professionalIntent
+              ? false
+              : form.aceitaNotificacoesWhatsapp,
           marketing: getMarketingContext(
             professionalIntent
               ? "profissional"
@@ -202,7 +198,13 @@ export function AuthPage({ mode = "login" }) {
             : "Uma conta para agendar como cliente ou administrar seu negócio."}
         </p>
 
-        {isRegister && (
+        {professionalIntent && (
+          <p className="muted">
+            ✨ Depois da conta, você cria o negócio, cadastra seu primeiro serviço e confirma os horários. Avisos do WhatsApp são opcionais e podem ser ativados no painel.
+          </p>
+        )}
+
+        {isRegister && !professionalIntent && (
           <label className="checkbox-label">
             <input
               checked={form.aceitaNotificacoesWhatsapp}
@@ -285,36 +287,6 @@ export function AuthPage({ mode = "login" }) {
                 type="password"
                 value={form.confirmarSenha}
               />
-            </label>
-          )}
-          {professionalIntent && (
-            <label className="checkbox-label">
-              <input
-                checked={form.aceitaAlertasWhatsapp}
-                onChange={(event) => update(
-                  "aceitaAlertasWhatsapp",
-                  event.target.checked
-                )}
-                type="checkbox"
-              />
-              <span>
-                Quero receber pelo WhatsApp avisos operacionais do Agenda Fashion sobre novos agendamentos, lembretes, alterações e cancelamentos. Posso desativar quando quiser.
-              </span>
-            </label>
-          )}
-          {professionalIntent && (
-            <label className="checkbox-label">
-              <input
-                checked={form.aceitaLembretesWhatsapp}
-                onChange={(event) => update(
-                  "aceitaLembretesWhatsapp",
-                  event.target.checked
-                )}
-                type="checkbox"
-              />
-              <span>
-                Quero receber pelo WhatsApp até três orientações de marketing do Agenda Fashion para concluir e divulgar meu negócio, com intervalo mínimo de três dias. Posso desativar quando quiser.
-              </span>
             </label>
           )}
           {error && <p className="form-error" role="alert">{error}</p>}

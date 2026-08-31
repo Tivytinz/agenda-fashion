@@ -78,6 +78,7 @@ export function ScheduleSettingsPage() {
   const [config, setConfig] = useState(null);
   const [days, setDays] = useState([]);
   const [expandedPauses, setExpandedPauses] = useState(() => new Set());
+  const [advancedOpen, setAdvancedOpen] = useState(false);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const [saving, setSaving] = useState(false);
@@ -93,14 +94,16 @@ export function ScheduleSettingsPage() {
         const normalizedDays = (result.horarios || [])
           .map(normalizeDay)
           .sort((a, b) => a.diaSemana - b.diaSemana);
+        const configuredAt = current.configurado_em ?? current.configuradoEm ?? null;
 
         setConfig({
           duracaoPadrao: current.duracao_padrao ?? current.duracaoPadrao ?? 60,
           intervaloMinutos: current.intervalo_minutos ?? current.intervaloMinutos ?? 0,
           antecedenciaAgendamento: current.antecedencia_agendamento ?? current.antecedenciaAgendamento ?? 0,
           antecedenciaCancelamento: current.antecedencia_cancelamento ?? current.antecedenciaCancelamento ?? 24,
-          configuradoEm: current.configurado_em ?? current.configuradoEm ?? null
+          configuradoEm: configuredAt
         });
+        setAdvancedOpen(Boolean(configuredAt));
         setDays(normalizedDays);
         setExpandedPauses(new Set(
           normalizedDays
@@ -112,7 +115,7 @@ export function ScheduleSettingsPage() {
           page: "configuracao_agenda",
           mission: "disponibilizar_horarios",
           properties: {
-            status: current.configurado_em
+            status: configuredAt
               ? "configurada"
               : "pendente"
           }
@@ -314,6 +317,7 @@ export function ScheduleSettingsPage() {
           role="status"
         >
           <p className="eyebrow">
+            <span aria-hidden="true">📅</span>{" "}
             Último passo para liberar agendamentos
           </p>
           <h2 id="schedule-activation-title">
@@ -324,42 +328,14 @@ export function ScheduleSettingsPage() {
             online só é liberado depois que você confirmar seus horários.
           </p>
           <p className="muted">
-            Os horários abaixo são uma sugestão inicial e só ficam disponíveis
-            para clientes depois que você salvar.
+            Primeiro escolha os dias e horários de atendimento. Os ajustes de
+            duração, intervalo e antecedência são opcionais e podem ser feitos
+            agora ou depois.
           </p>
         </section>
       )}
 
       <form className="panel stack-form schedule-settings-form" onSubmit={submit}>
-        <section className="settings-grid schedule-general-settings" aria-label="Configurações gerais da agenda">
-          <label>
-            Duração padrão
-            <select onChange={(e) => setConfig({ ...config, duracaoPadrao: Number(e.target.value) })} value={config.duracaoPadrao}>
-              {withCurrentOption(DURATION_OPTIONS, config.duracaoPadrao).map((value) => <option key={value} value={value}>{value} minutos</option>)}
-            </select>
-          </label>
-          <label>
-            Intervalo entre clientes
-            <select onChange={(e) => setConfig({ ...config, intervaloMinutos: Number(e.target.value) })} value={config.intervaloMinutos}>
-              {withCurrentOption(INTERVAL_OPTIONS, config.intervaloMinutos).map((value) => (
-                <option key={value} value={value}>{value === 0 ? "Sem intervalo" : `${value} minutos`}</option>
-              ))}
-            </select>
-          </label>
-          <label>
-            Antecedência para agendar
-            <select onChange={(e) => setConfig({ ...config, antecedenciaAgendamento: Number(e.target.value) })} value={config.antecedenciaAgendamento}>
-              {leadTimeBookingOptions.map((value) => <option key={value} value={value}>{formatLeadTime(value)}</option>)}
-            </select>
-          </label>
-          <label>
-            Antecedência para cancelar
-            <select onChange={(e) => setConfig({ ...config, antecedenciaCancelamento: Number(e.target.value) })} value={config.antecedenciaCancelamento}>
-              {leadTimeCancellationOptions.map((value) => <option key={value} value={value}>{formatLeadTime(value)}</option>)}
-            </select>
-          </label>
-        </section>
-
         <section className="schedule-week-section" aria-labelledby="schedule-week-title">
           <div className="schedule-week-heading">
             <div>
@@ -462,6 +438,48 @@ export function ScheduleSettingsPage() {
           </div>
         </section>
 
+        <details
+          className="schedule-advanced-settings"
+          onToggle={(event) => setAdvancedOpen(event.currentTarget.open)}
+          open={advancedOpen}
+        >
+          <summary>
+            <span aria-hidden="true">⚙️</span>{" "}
+            Ajustes avançados
+          </summary>
+          <p className="muted">
+            Personalize duração padrão, intervalo entre clientes e antecedências. Você pode voltar a estes ajustes quando quiser.
+          </p>
+          <section className="settings-grid schedule-general-settings" aria-label="Configurações gerais da agenda">
+            <label>
+              Duração padrão
+              <select onChange={(e) => setConfig({ ...config, duracaoPadrao: Number(e.target.value) })} value={config.duracaoPadrao}>
+                {withCurrentOption(DURATION_OPTIONS, config.duracaoPadrao).map((value) => <option key={value} value={value}>{value} minutos</option>)}
+              </select>
+            </label>
+            <label>
+              Intervalo entre clientes
+              <select onChange={(e) => setConfig({ ...config, intervaloMinutos: Number(e.target.value) })} value={config.intervaloMinutos}>
+                {withCurrentOption(INTERVAL_OPTIONS, config.intervaloMinutos).map((value) => (
+                  <option key={value} value={value}>{value === 0 ? "Sem intervalo" : `${value} minutos`}</option>
+                ))}
+              </select>
+            </label>
+            <label>
+              Antecedência para agendar
+              <select onChange={(e) => setConfig({ ...config, antecedenciaAgendamento: Number(e.target.value) })} value={config.antecedenciaAgendamento}>
+                {leadTimeBookingOptions.map((value) => <option key={value} value={value}>{formatLeadTime(value)}</option>)}
+              </select>
+            </label>
+            <label>
+              Antecedência para cancelar
+              <select onChange={(e) => setConfig({ ...config, antecedenciaCancelamento: Number(e.target.value) })} value={config.antecedenciaCancelamento}>
+                {leadTimeCancellationOptions.map((value) => <option key={value} value={value}>{formatLeadTime(value)}</option>)}
+              </select>
+            </label>
+          </section>
+        </details>
+
         {error && <p className="form-error schedule-settings-error" role="alert">{error}</p>}
         <div className="form-actions schedule-save-bar">
           <div className="schedule-save-feedback" aria-live="polite">
@@ -481,7 +499,7 @@ export function ScheduleSettingsPage() {
           <div className="onboarding-complete-copy">
             <p className="eyebrow onboarding-complete-eyebrow">
               <ConfirmationIcon className="onboarding-complete-icon" />
-              <span>Agenda pronta</span>
+              <span>Agenda pronta <span aria-hidden="true">✨</span></span>
             </p>
             <h2 id="schedule-next-step-title">Agora divulgue seu perfil</h2>
             <p className="muted">

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { apiRequest } from "../api/client";
+import { DashboardNextAction } from "../components/DashboardNextAction";
 import { ProfessionalOnboardingChecklist } from "../components/ProfessionalOnboardingChecklist";
 import { ErrorState, LoadingState } from "../components/ScreenState";
 import { formatCurrency } from "../utils/format";
@@ -16,33 +17,6 @@ function formatPercent(value) {
   return new Intl.NumberFormat("pt-BR", {
     maximumFractionDigits: 1
   }).format(Number(value) || 0);
-}
-
-function buildNextAction({ completedBookings, profileVisits }) {
-  if (profileVisits >= 5 && completedBookings === 0) {
-    return {
-      title: "Transforme visitas em agendamentos",
-      description: `${profileVisits} pessoas visitaram seu perfil, mas ainda não houve agendamentos. Revise serviços, preços e horários.`,
-      primary: { label: "Gerenciar serviços", to: "/painel/servicos" },
-      secondary: { label: "Abrir agenda", to: "/painel/agenda" }
-    };
-  }
-
-  if (profileVisits > 0 && completedBookings > 0) {
-    return {
-      title: "Mantenha o ritmo",
-      description: `Seu perfil recebeu ${profileVisits} visitas e gerou ${completedBookings} ${completedBookings === 1 ? "agendamento" : "agendamentos"}. Continue com serviços e horários atualizados.`,
-      primary: { label: "Abrir agenda", to: "/painel/agenda" },
-      secondary: { label: "Gerenciar serviços", to: "/painel/servicos" }
-    };
-  }
-
-  return {
-    title: "Deixe a agenda pronta",
-    description: "Serviços claros e horários atualizados ajudam clientes a confirmar sem voltar ao WhatsApp.",
-    primary: { label: "Configurar horários", to: "/painel/horarios" },
-    secondary: { label: "Gerenciar serviços", to: "/painel/servicos" }
-  };
 }
 
 function customerOriginHint(item) {
@@ -287,7 +261,6 @@ export function DashboardPage() {
   const completedBookings = Number(performance.agendamentos_concluidos) || 0;
   const visitLabel = profileVisits === 1 ? "visita" : "visitas";
   const bookingLabel = completedBookings === 1 ? "agendamento" : "agendamentos";
-  const nextAction = buildNextAction({ completedBookings, profileVisits });
   const cards = [
     ["Agendamentos", summary.agendamentos_periodo ?? 0, "no período"],
     ["Faturamento", formatCurrency(summary.faturamento_periodo), "previsto"],
@@ -526,16 +499,13 @@ export function DashboardPage() {
           </dl>
         </article>
 
-        <article className="panel dashboard-action-panel">
-          <div className="panel-heading">
-            <div><p className="eyebrow">Próxima ação</p><h2>{nextAction.title}</h2></div>
-          </div>
-          <p className="muted dashboard-action-copy">{nextAction.description}</p>
-          <div className="quick-actions dashboard-quick-actions">
-            <Link className="button" to={nextAction.primary.to}>{nextAction.primary.label}</Link>
-            <Link className="button button-secondary" to={nextAction.secondary.to}>{nextAction.secondary.label}</Link>
-          </div>
-        </article>
+        <DashboardNextAction
+          activation={data.ativacao}
+          businessId={data.negocio?.negocio_id}
+          businessName={data.negocio?.nome}
+          businessSlug={data.negocio?.slug}
+          profileVisits={profileVisits}
+        />
       </section>
 
       {Array.isArray(data.ranking_servicos) && data.ranking_servicos.length > 0 && (

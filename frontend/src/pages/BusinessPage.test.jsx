@@ -54,10 +54,26 @@ afterEach(() => {
 });
 
 describe("publicação do negócio", () => {
-  it("continua no checkout depois de criar o negócio de um plano pago", async () => {
-    apiRequest.mockResolvedValueOnce({
-      mensagem: "Negócio criado.",
-      negocio: BUSINESS
+  it("continua no checkout depois de criar um negócio completo de um plano pago", async () => {
+    apiRequest.mockImplementation((path, options = {}) => {
+      if (path === "/cep/74000123") {
+        return Promise.resolve({
+          cep: "74000123",
+          endereco: "Rua das Flores",
+          bairro: "Centro",
+          cidade: "Goiânia",
+          estado: "GO"
+        });
+      }
+
+      if (path === "/criar-negocio" && options.method === "POST") {
+        return Promise.resolve({
+          mensagem: "Negócio criado.",
+          negocio: BUSINESS
+        });
+      }
+
+      return Promise.reject(new Error(`Rota inesperada: ${path}`));
     });
 
     render(
@@ -72,7 +88,33 @@ describe("publicação do negócio", () => {
     fireEvent.change(screen.getByLabelText("Nome do negócio"), {
       target: { value: "Studio Victor" }
     });
+    fireEvent.change(screen.getByLabelText(/Descrição/), {
+      target: { value: "Beleza e cuidados pessoais." }
+    });
     fireEvent.click(screen.getByLabelText("Unhas"));
+    fireEvent.change(screen.getByLabelText(/WhatsApp/), {
+      target: { value: "62 99999-9999" }
+    });
+    fireEvent.change(screen.getByLabelText(/Link do Google Maps/), {
+      target: { value: "https://maps.google.com/?q=goiania" }
+    });
+    fireEvent.change(screen.getByLabelText(/CEP/), {
+      target: { value: "74000-123" }
+    });
+
+    await waitFor(() => {
+      expect(screen.getByLabelText("Endereço").value).toBe("Rua das Flores");
+      expect(screen.getByLabelText("Bairro").value).toBe("Centro");
+      expect(screen.getByLabelText("Cidade").value).toBe("Goiânia");
+      expect(screen.getByRole("combobox", { name: "Estado" }).value).toBe("GO");
+    });
+
+    fireEvent.change(screen.getByLabelText("Número"), {
+      target: { value: "10" }
+    });
+    fireEvent.change(screen.getByLabelText(/Complemento/), {
+      target: { value: "Sala 2" }
+    });
     fireEvent.submit(screen.getByRole("button", { name: "Criar negócio" }).closest("form"));
 
     expect(await screen.findByRole("heading", { name: "Checkout do plano" }))
@@ -81,7 +123,17 @@ describe("publicação do negócio", () => {
       method: "POST",
       body: expect.objectContaining({
         nome: "Studio Victor",
-        especialidades: ["Unhas"]
+        descricao: "Beleza e cuidados pessoais.",
+        especialidades: ["Unhas"],
+        whatsapp: "62999999999",
+        cidade: "Goiânia",
+        estado: "GO",
+        bairro: "Centro",
+        endereco: "Rua das Flores",
+        numero: "10",
+        complemento: "Sala 2",
+        cep: "74000123",
+        localizacao_url: "https://maps.google.com/?q=goiania"
       })
     });
   });
