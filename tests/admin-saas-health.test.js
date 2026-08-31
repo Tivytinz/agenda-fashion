@@ -294,6 +294,59 @@ describe(
     );
 
     test(
+      "trata a agenda como pendência do negócio novo sem acusar falha de publicação",
+      async () => {
+        repository
+          .listarPerfisIncompletos
+          .mockResolvedValue([
+            {
+              usuario_id: "42",
+              usuario_nome: "Ana Souza",
+              email: "ana@example.com",
+              negocio_id: "19",
+              negocio_nome: "Studio Ana",
+              negocio_slug: "studio-ana",
+              descricao: "",
+              areas: ["Unhas"],
+              setor: "Unhas",
+              negocio_whatsapp: "11987654321",
+              cidade: "São Paulo",
+              estado: "SP",
+              bairro: "Centro",
+              endereco: "Rua das Flores",
+              numero: "10",
+              cep: "01001000",
+              localizacao_url: "https://maps.google.com/",
+              publicacao_exige_agenda: true,
+              publicado: false,
+              possui_servico_ativo: true,
+              configurado_em: null,
+              tem_negocio: true,
+              perfil_basico_completo: true,
+              agenda_configurada: false,
+              etapas_concluidas: 3,
+              total_resultados: "1",
+            },
+          ]);
+
+        const resposta =
+          await request(criarApp())
+            .get(
+              "/admin/saude/perfis-incompletos"
+            );
+
+        expect(
+          resposta.body.perfis[0]
+            .pendencias
+            .map((item) => item.codigo)
+        ).toEqual([
+          "agenda",
+          "descricao",
+        ]);
+      }
+    );
+
+    test(
       "normaliza filtros e paginação inválidos",
       async () => {
         await request(criarApp())

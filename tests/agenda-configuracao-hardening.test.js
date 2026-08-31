@@ -20,8 +20,19 @@ jest.mock(
   })
 );
 
+jest.mock(
+  "../src/repositories/servicosRepository",
+  () => ({
+    sincronizarPublicacaoAutomatica:
+      jest.fn(),
+  })
+);
+
 const repository = require(
   "../src/repositories/agendaConfiguracaoRepository"
+);
+const servicosRepository = require(
+  "../src/repositories/servicosRepository"
 );
 
 const service = require(
@@ -137,6 +148,14 @@ describe(
               dados
             )
         );
+
+      servicosRepository
+        .sincronizarPublicacaoAutomatica
+        .mockResolvedValue({
+          id: 11,
+          publicado: true,
+          pode_publicar: true,
+        });
     });
 
     test(
@@ -245,6 +264,28 @@ describe(
         );
 
         expect(
+          servicosRepository
+            .sincronizarPublicacaoAutomatica
+        ).toHaveBeenCalledWith(
+          11,
+          client,
+          {
+            preservarPublicacaoLegada:
+              true,
+          }
+        );
+
+        expect(
+          servicosRepository
+            .sincronizarPublicacaoAutomatica
+            .mock.invocationCallOrder[0]
+        ).toBeGreaterThan(
+          repository
+            .marcarConfigurada
+            .mock.invocationCallOrder[0]
+        );
+
+        expect(
           resultado.configuracao
             .configurado_em
         ).toBeTruthy();
@@ -252,8 +293,15 @@ describe(
         expect(
           resultado.mensagem
         ).toBe(
-          "Sua agenda está pronta para receber clientes."
+          "Horários confirmados. Seu negócio está publicado."
         );
+
+        expect(
+          resultado.publicacao
+        ).toEqual({
+          publicado: true,
+          pode_publicar: true,
+        });
 
         expect(
           resultado.horarios
@@ -328,6 +376,11 @@ describe(
         expect(
           repository
             .marcarConfigurada
+        ).not.toHaveBeenCalled();
+
+        expect(
+          servicosRepository
+            .sincronizarPublicacaoAutomatica
         ).not.toHaveBeenCalled();
       }
     );

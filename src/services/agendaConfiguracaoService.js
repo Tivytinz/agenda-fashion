@@ -1,6 +1,9 @@
 const agendaConfiguracaoRepository = require(
   "../repositories/agendaConfiguracaoRepository"
 );
+const servicosRepository = require(
+  "../repositories/servicosRepository"
+);
 
 function criarErro(mensagem, statusCode) {
   const err = new Error(mensagem);
@@ -462,10 +465,11 @@ async function salvarMinhaConfiguracao({
   return agendaConfiguracaoRepository
     .executarTransacao(
       async (client) => {
-        await exigirProfissionalAtivo(
-          usuarioId,
-          client
-        );
+        const profissional =
+          await exigirProfissionalAtivo(
+            usuarioId,
+            client
+          );
 
         const configuracaoExistente =
           await agendaConfiguracaoRepository
@@ -542,16 +546,37 @@ async function salvarMinhaConfiguracao({
           configuracaoMarcada ||
           configuracao;
 
+        const publicacao =
+          await servicosRepository
+            .sincronizarPublicacaoAutomatica(
+              profissional.negocio_id,
+              client,
+              {
+                preservarPublicacaoLegada:
+                  true,
+              }
+            );
+
         return {
           mensagem:
             primeiraConfiguracao
-              ? "Sua agenda está pronta para receber clientes."
+              ? publicacao?.publicado
+                ? "Horários confirmados. Seu negócio está publicado."
+                : "Horários de atendimento confirmados com sucesso."
               : "Horários de atendimento atualizados com sucesso.",
           configuracao,
           horarios:
             horariosSalvos.map(
               formatarHorarioBanco
             ),
+          publicacao: publicacao
+            ? {
+                publicado:
+                  publicacao.publicado === true,
+                pode_publicar:
+                  publicacao.pode_publicar === true,
+              }
+            : null,
         };
       }
     );

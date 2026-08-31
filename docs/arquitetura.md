@@ -597,23 +597,35 @@ permitidos.
 
 ### 8.3 Onboarding e publicação do negócio
 
-A publicação é automática quando o negócio reúne os dois requisitos:
+A publicação continua automática, com dois regimes compatíveis:
 
-1. dados mínimos de descoberta, com especialidade, WhatsApp, cidade e estado;
-2. pelo menos um serviço ativo.
+1. negócios legados preservam os requisitos anteriores: especialidade,
+   WhatsApp, cidade, estado e pelo menos um serviço ativo;
+2. negócios criados no fluxo novo exigem todos os dados obrigatórios da
+   criação, pelo menos um serviço ativo e uma agenda confirmada por um dono ou
+   profissional ativo do negócio.
+
+A coluna `negocios.publicacao_exige_agenda` identifica o fluxo novo. A
+migration cria a coluna com `DEFAULT FALSE` para não alterar negócios já
+existentes. O repositório do fluxo novo grava `TRUE` explicitamente nos novos
+cadastros.
 
 O campo canônico do contato público é `whatsapp`. O alias
 `whatsapp_negocio` existe apenas para compatibilidade de leitura e nunca deve
 prevalecer quando os dois campos são enviados em uma atualização.
 
 A descrição melhora a confiança e a qualidade do perfil, mas é opcional e não
-impede a publicação. A Saúde do SaaS continua sinalizando sua ausência como
-recomendação para acompanhamento administrativo.
+impede a criação ou a publicação. Foto e complemento também são opcionais. A
+Saúde do SaaS continua sinalizando a ausência da descrição como recomendação
+para acompanhamento administrativo.
 
-A configuração de agenda é recomendada para receber agendamentos, mas não é
-requisito de publicação. Salvar o perfil, criar, ativar, desativar ou remover
-um serviço deve recalcular a publicação. Se o perfil ficar incompleto ou o
-negócio perder todos os serviços ativos, ele sai do catálogo público.
+Para o fluxo novo, `agenda_configuracoes.configurado_em` é o marco canônico da
+confirmação dos horários e faz parte da elegibilidade. Salvar o perfil, criar,
+ativar, desativar ou remover um serviço e confirmar a agenda devem recalcular a
+publicação na mesma transação da alteração principal. Se o perfil ficar
+incompleto ou o negócio perder todos os serviços ativos, ele sai do catálogo
+público. A confirmação de agenda não é exigida retroativamente dos negócios
+legados.
 
 ### 8.4 Assinaturas e pagamentos
 

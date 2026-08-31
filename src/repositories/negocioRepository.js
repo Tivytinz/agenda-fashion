@@ -149,6 +149,7 @@ async function buscarNegocioDoDono(
         n.fuso_horario,
         n.ativo,
         n.publicado,
+        n.publicacao_exige_agenda,
         n.created_at,
         n.updated_at,
 
@@ -227,7 +228,8 @@ async function criarNegocio(
         fuso_horario,
         areas,
         ativo,
-        publicado
+        publicado,
+        publicacao_exige_agenda
       )
       VALUES (
         $1,
@@ -250,7 +252,8 @@ async function criarNegocio(
         $18,
         $19,
         TRUE,
-        FALSE
+        FALSE,
+        TRUE
       )
 
       RETURNING
@@ -276,6 +279,7 @@ async function criarNegocio(
         COALESCE(areas, ARRAY[]::TEXT[]) AS areas,
         ativo,
         publicado,
+        publicacao_exige_agenda,
         created_at,
         updated_at
       `,

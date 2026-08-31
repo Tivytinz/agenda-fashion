@@ -62,6 +62,9 @@ describe("configuração de horários", () => {
     expect(screen.getByText(
       /ajustes de duração, intervalo e antecedência são opcionais/i
     )).not.toBeNull();
+    expect(screen.getByText(
+      /novos cadastros, esta confirmação também libera a publicação automática/i
+    )).not.toBeNull();
 
     const advanced = screen.getByText("Ajustes avançados").closest("details");
     expect(advanced?.open).toBe(false);
@@ -258,11 +261,15 @@ describe("configuração de horários", () => {
 
       if (path === "/agenda-configuracao" && options.method === "PUT") {
         return Promise.resolve({
-          mensagem: "Sua agenda está pronta para receber clientes.",
+          mensagem: "Horários confirmados. Seu negócio está publicado.",
           configuracao: {
             configurado_em: "2026-08-29T01:00:00.000Z"
           },
-          horarios: validWeek()
+          horarios: validWeek(),
+          publicacao: {
+            publicado: true,
+            pode_publicar: true
+          }
         });
       }
 
@@ -293,7 +300,7 @@ describe("configuração de horários", () => {
 
     expect(await screen.findByRole("heading", { name: "Agora divulgue seu perfil" }))
       .not.toBeNull();
-    expect(screen.getByText("Sua agenda está pronta para receber clientes."))
+    expect(screen.getByText("Horários confirmados. Seu negócio está publicado."))
       .not.toBeNull();
     expect(await screen.findByRole("button", { name: "Compartilhar perfil" }))
       .not.toBeNull();
@@ -301,7 +308,47 @@ describe("configuração de horários", () => {
       .not.toBeNull();
     expect(screen.getByRole("link", { name: "Ver perfil público" })
       .getAttribute("href")).toBe("/negocio/studio-aurora");
-    expect(screen.getByText(/Agenda pronta/).textContent).toContain("✨");
+    expect(screen.getByText(/Negócio publicado/).textContent).toContain("✨");
+  });
+
+  it("não oferece compartilhamento quando ainda existe alguma pendência de publicação", async () => {
+    apiRequest.mockImplementation((path, options = {}) => {
+      if (path === "/agenda-configuracao" && !options.method) {
+        return Promise.resolve({
+          configuracao: {
+            configurado_em: null
+          },
+          horarios: validWeek()
+        });
+      }
+
+      if (path === "/agenda-configuracao" && options.method === "PUT") {
+        return Promise.resolve({
+          mensagem: "Horários de atendimento confirmados com sucesso.",
+          configuracao: {
+            configurado_em: "2026-08-29T01:00:00.000Z"
+          },
+          horarios: validWeek(),
+          publicacao: {
+            publicado: false,
+            pode_publicar: false
+          }
+        });
+      }
+
+      return Promise.reject(new Error(`Rota inesperada: ${path}`));
+    });
+
+    render(<ScheduleSettingsPage />);
+
+    fireEvent.click(await screen.findByRole("button", { name: "Salvar horários" }));
+
+    expect(await screen.findByText("Horários de atendimento confirmados com sucesso."))
+      .not.toBeNull();
+    expect(screen.queryByRole("heading", { name: "Agora divulgue seu perfil" }))
+      .toBeNull();
+    expect(apiRequest.mock.calls.some(([path]) => path === "/configuracoes"))
+      .toBe(false);
   });
 
   it("não repete a missão de primeiro agendamento em edições posteriores", async () => {
@@ -359,11 +406,15 @@ describe("configuração de horários", () => {
 
       if (path === "/agenda-configuracao" && options.method === "PUT") {
         return Promise.resolve({
-          mensagem: "Sua agenda está pronta para receber clientes.",
+          mensagem: "Horários confirmados. Seu negócio está publicado.",
           configuracao: {
             configurado_em: "2026-08-29T01:00:00.000Z"
           },
-          horarios: validWeek()
+          horarios: validWeek(),
+          publicacao: {
+            publicado: true,
+            pode_publicar: true
+          }
         });
       }
 

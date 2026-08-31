@@ -61,6 +61,23 @@ describe("onboarding profissional", () => {
       .getAttribute("href")).toBe("/painel/servicos/novo");
   });
 
+  it("prioriza os horários depois do primeiro serviço sem declarar o perfil publicado", () => {
+    renderChecklist({
+      publication: {
+        publicado: false,
+        pode_publicar: false,
+        pendencias: ["confirmar os horários de atendimento"]
+      },
+      scheduleConfigured: false
+    });
+
+    expect(screen.getByText("2 de 4")).not.toBeNull();
+    expect(screen.getByText(/Essa etapa libera a publicação/)).not.toBeNull();
+    expect(screen.getByRole("link", { name: "Configurar horários" })
+      .getAttribute("href")).toBe("/painel/horarios");
+    expect(screen.queryByText("Configuração concluída")).toBeNull();
+  });
+
   it("continua o onboarding depois que o perfil é publicado", () => {
     renderChecklist({
       publication: {

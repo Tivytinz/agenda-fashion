@@ -206,32 +206,65 @@ async function despublicarSemServicoAtivo(
 
 async function sincronizarPublicacaoAutomatica(
   negocioId,
-  executor = db
+  executor = db,
+  {
+    preservarPublicacaoLegada = false,
+  } = {}
 ) {
   const result = await executor.query(
     `
       WITH elegibilidade AS (
         SELECT
           n.id,
-          (
-            (
-              COALESCE(cardinality(n.areas), 0) > 0
-              OR NULLIF(BTRIM(COALESCE(n.setor, '')), '') IS NOT NULL
+          CASE
+            WHEN
+              $2::BOOLEAN = TRUE
+              AND n.publicacao_exige_agenda IS NOT TRUE
+            THEN n.publicado
+            ELSE (
+              (
+                COALESCE(cardinality(n.areas), 0) > 0
+                OR NULLIF(BTRIM(COALESCE(n.setor, '')), '') IS NOT NULL
+              )
+              AND NULLIF(BTRIM(COALESCE(n.whatsapp, '')), '') IS NOT NULL
+              AND NULLIF(BTRIM(COALESCE(n.cidade, '')), '') IS NOT NULL
+              AND UPPER(BTRIM(COALESCE(n.estado, ''))) IN (
+                'AC', 'AL', 'AP', 'AM', 'BA', 'CE', 'DF', 'ES', 'GO',
+                'MA', 'MT', 'MS', 'MG', 'PA', 'PB', 'PR', 'PE', 'PI',
+                'RJ', 'RN', 'RS', 'RO', 'RR', 'SC', 'SP', 'SE', 'TO'
+              )
+              AND EXISTS (
+                SELECT 1
+                FROM servicos_negocio s
+                WHERE s.negocio_id = n.id
+                  AND s.ativo = TRUE
+              )
+              AND (
+                n.publicacao_exige_agenda IS NOT TRUE
+                OR (
+                  NULLIF(BTRIM(COALESCE(n.nome, '')), '') IS NOT NULL
+                  AND NULLIF(BTRIM(COALESCE(n.bairro, '')), '') IS NOT NULL
+                  AND NULLIF(BTRIM(COALESCE(n.endereco, '')), '') IS NOT NULL
+                  AND NULLIF(BTRIM(COALESCE(n.numero, '')), '') IS NOT NULL
+                  AND NULLIF(BTRIM(COALESCE(n.cep, '')), '') IS NOT NULL
+                  AND NULLIF(BTRIM(COALESCE(n.localizacao_url, '')), '') IS NOT NULL
+                  AND EXISTS (
+                    SELECT 1
+                    FROM usuarios_negocios un
+                    INNER JOIN usuarios u
+                      ON u.id = un.usuario_id
+                    INNER JOIN agenda_configuracoes ac
+                      ON ac.profissional_id = un.usuario_id
+                    WHERE un.negocio_id = n.id
+                      AND un.ativo = TRUE
+                      AND u.ativo = TRUE
+                      AND un.papel IN ('dono', 'profissional')
+                      AND ac.configurado_em IS NOT NULL
+                  )
+                )
+              )
             )
-            AND NULLIF(BTRIM(COALESCE(n.whatsapp, '')), '') IS NOT NULL
-            AND NULLIF(BTRIM(COALESCE(n.cidade, '')), '') IS NOT NULL
-            AND UPPER(BTRIM(COALESCE(n.estado, ''))) IN (
-              'AC', 'AL', 'AP', 'AM', 'BA', 'CE', 'DF', 'ES', 'GO',
-              'MA', 'MT', 'MS', 'MG', 'PA', 'PB', 'PR', 'PE', 'PI',
-              'RJ', 'RN', 'RS', 'RO', 'RR', 'SC', 'SP', 'SE', 'TO'
-            )
-            AND EXISTS (
-              SELECT 1
-              FROM servicos_negocio s
-              WHERE s.negocio_id = n.id
-                AND s.ativo = TRUE
-            )
-          ) AS pode_publicar
+          END AS pode_publicar
         FROM negocios n
         WHERE n.id = $1
       )
@@ -244,9 +277,15 @@ async function sincronizarPublicacaoAutomatica(
         END
       FROM elegibilidade e
       WHERE n.id = e.id
-      RETURNING n.id, n.publicado
+      RETURNING
+        n.id,
+        n.publicado,
+        n.publicado AS pode_publicar
     `,
-    [negocioId]
+    [
+      negocioId,
+      preservarPublicacaoLegada,
+    ]
   );
 
   return result.rows[0] || null;

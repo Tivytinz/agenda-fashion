@@ -26,6 +26,15 @@ const PERFIS_CTE = `
       n.whatsapp AS negocio_whatsapp,
       n.cidade,
       n.estado,
+      n.bairro,
+      n.endereco,
+      n.numero,
+      n.cep,
+      n.localizacao_url,
+      COALESCE(
+        n.publicacao_exige_agenda,
+        FALSE
+      ) AS publicacao_exige_agenda,
       COALESCE(n.publicado, FALSE) AS publicado,
       COALESCE(servico.possui_servico_ativo, FALSE)
         AS possui_servico_ativo,
@@ -93,6 +102,17 @@ const PERFIS_CTE = `
           'PB', 'PR', 'PE', 'PI', 'RJ', 'RN', 'RS',
           'RO', 'RR', 'SC', 'SP', 'SE', 'TO'
         )
+        AND (
+          publicacao_exige_agenda = FALSE
+          OR (
+            NULLIF(BTRIM(negocio_nome), '') IS NOT NULL
+            AND NULLIF(BTRIM(bairro), '') IS NOT NULL
+            AND NULLIF(BTRIM(endereco), '') IS NOT NULL
+            AND NULLIF(BTRIM(numero), '') IS NOT NULL
+            AND NULLIF(BTRIM(cep), '') IS NOT NULL
+            AND NULLIF(BTRIM(localizacao_url), '') IS NOT NULL
+          )
+        )
       ) AS perfil_basico_completo,
       configurado_em IS NOT NULL AS agenda_configurada,
       (
@@ -113,6 +133,17 @@ const PERFIS_CTE = `
             'ES', 'GO', 'MA', 'MT', 'MS', 'MG', 'PA',
             'PB', 'PR', 'PE', 'PI', 'RJ', 'RN', 'RS',
             'RO', 'RR', 'SC', 'SP', 'SE', 'TO'
+          )
+          AND (
+            publicacao_exige_agenda = FALSE
+            OR (
+              NULLIF(BTRIM(negocio_nome), '') IS NOT NULL
+              AND NULLIF(BTRIM(bairro), '') IS NOT NULL
+              AND NULLIF(BTRIM(endereco), '') IS NOT NULL
+              AND NULLIF(BTRIM(numero), '') IS NOT NULL
+              AND NULLIF(BTRIM(cep), '') IS NOT NULL
+              AND NULLIF(BTRIM(localizacao_url), '') IS NOT NULL
+            )
           )
         )::INT
         + possui_servico_ativo::INT
@@ -254,6 +285,12 @@ async function listarPerfisIncompletos({
           negocio_whatsapp,
           cidade,
           estado,
+          bairro,
+          endereco,
+          numero,
+          cep,
+          localizacao_url,
+          publicacao_exige_agenda,
           publicado,
           possui_servico_ativo,
           configurado_em,

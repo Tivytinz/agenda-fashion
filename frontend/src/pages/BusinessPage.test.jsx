@@ -445,7 +445,7 @@ describe("publicação do negócio", () => {
 
     expect(await screen.findByText(/Falta completar: cidade, pelo menos um serviço ativo/)).not.toBeNull();
     expect(screen.getByLabelText(/Descrição \(opcional\)/)).not.toBeNull();
-    expect(screen.getByText(/não impede a publicação/)).not.toBeNull();
+    expect(screen.getByText(/não impede a criação nem a publicação/)).not.toBeNull();
     expect(screen.getByRole("button", { name: "Publicar meu negócio" }).disabled).toBe(true);
     expect(apiRequest).toHaveBeenCalledTimes(1);
   });

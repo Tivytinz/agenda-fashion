@@ -1,6 +1,9 @@
 import { Link } from "react-router-dom";
 import { PublicShareButton } from "./PublicShareButton";
 
+const SCHEDULE_PENDING =
+  "confirmar os horários de atendimento";
+
 function publicProfilePath(
   businessSlug
 ) {
@@ -13,12 +16,18 @@ function publicProfilePath(
     : "";
 }
 
-function scheduleAction() {
+function scheduleAction({
+  publishesProfile = false,
+} = {}) {
   return {
     kind: "schedule",
-    title: "Deixe a agenda pronta",
+    title: publishesProfile
+      ? "Confirme horários para publicar"
+      : "Deixe a agenda pronta",
     description:
-      "Confirme seus horários para liberar horários reais no perfil e permitir agendamentos online.",
+      publishesProfile
+        ? "Este é o último passo: confirme quando você atende para publicar o perfil e liberar agendamentos online."
+        : "Confirme seus horários para liberar horários reais no perfil e permitir agendamentos online.",
     primary: {
       label: "Configurar horários",
       to: "/painel/horarios",
@@ -52,6 +61,7 @@ function conversionAction(
 
 function resolveNextAction({
   activation,
+  publication,
   profileVisits,
 }) {
   if (!activation) {
@@ -68,8 +78,25 @@ function resolveNextAction({
     activation.agenda_configurada === true;
   const firstBookingReceived =
     activation.primeiro_agendamento_recebido === true;
+  const publicationPending =
+    Array.isArray(publication?.pendencias)
+      ? publication.pendencias
+      : [];
+  const onlySchedulePending =
+    !published &&
+    !scheduleConfigured &&
+    publicationPending.length > 0 &&
+    publicationPending.every(
+      (item) => item === SCHEDULE_PENDING
+    );
 
   if (!published) {
+    if (onlySchedulePending) {
+      return scheduleAction({
+        publishesProfile: true,
+      });
+    }
+
     return {
       kind: "profile",
       title:
@@ -127,10 +154,12 @@ export function DashboardNextAction({
   businessId,
   businessName,
   businessSlug,
+  publication,
   profileVisits = 0,
 }) {
   const action = resolveNextAction({
     activation,
+    publication,
     profileVisits:
       Number(profileVisits) || 0,
   });

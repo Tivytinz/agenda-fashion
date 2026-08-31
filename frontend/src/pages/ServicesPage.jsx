@@ -201,7 +201,7 @@ export function ServicesPage() {
           action={<Link className="button" to="/painel/servicos/novo">Cadastrar primeiro serviço</Link>}
           title="💅 Seu catálogo começa aqui"
         >
-          Cadastre seu primeiro serviço para colocar o perfil no ar. Fotos ajudam a cliente a escolher, mas podem ser adicionadas depois.
+          Cadastre seu primeiro serviço. Nos novos cadastros, depois confirme seus horários para colocar o perfil no ar. Fotos ajudam a cliente a escolher, mas podem ser adicionadas depois.
         </EmptyState>
       )}
       {services?.length > 0 && (
@@ -429,34 +429,30 @@ export function ServiceEditorPage() {
         setGalleryFiles((current) => current.filter((item) => item !== file));
       }
       const continueOnboarding = !editing && location.state?.onboarding === true;
-      const publishedDuringOnboarding =
+      const onboardingAlreadyPublished =
         continueOnboarding &&
         saveResult.publicacao?.publicado === true;
 
       navigate(
-        publishedDuringOnboarding
+        continueOnboarding
           ? "/painel/horarios"
-          : continueOnboarding
-            ? "/painel"
-            : "/painel/servicos",
+          : "/painel/servicos",
         {
           replace: true,
-          state: publishedDuringOnboarding
+          state: continueOnboarding
             ? {
                 message:
-                  "Seu perfil está no ar. Agora confirme quando você atende para liberar os agendamentos online."
+                  onboardingAlreadyPublished
+                    ? "Seu perfil está no ar. Agora confirme quando você atende para liberar os agendamentos online."
+                    : "Serviço cadastrado. Agora confirme seus horários para publicar o perfil e liberar agendamentos online.",
+                onboarding: true,
+                onboardingStep: "agenda"
               }
-            : continueOnboarding
-              ? {
-                  message:
-                    "Serviço criado. Estamos atualizando sua publicação.",
-                  onboardingCompleted: false
-                }
-              : {
-                  message: editing
-                    ? "Serviço atualizado."
-                    : "Serviço criado."
-                }
+            : {
+                message: editing
+                  ? "Serviço atualizado."
+                  : "Serviço criado."
+              }
         }
       );
     } catch (requestError) {

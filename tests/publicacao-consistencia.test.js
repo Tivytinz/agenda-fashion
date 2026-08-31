@@ -32,7 +32,21 @@ describe("consistência da publicação do negócio", () => {
       .mockResolvedValueOnce({ rows: [] })
       .mockResolvedValueOnce({ rows: [{ slug: "studio" }] })
       .mockResolvedValueOnce({ rows: [] })
-      .mockResolvedValueOnce({ rows: [] });
+      .mockResolvedValueOnce({
+        rows: [{
+          id: 11,
+          publicado: false,
+          publicacao_exige_agenda: true,
+          agenda_configurada: false
+        }]
+      })
+      .mockResolvedValueOnce({
+        rows: [{
+          id: 11,
+          publicado: false,
+          pode_publicar: false
+        }]
+      });
 
     await configuracoesRepository.atualizarNegocio(11, {
       nome: "Studio",
@@ -52,33 +66,18 @@ describe("consistência da publicação do negócio", () => {
       areas: []
     });
 
-    const sql = mockQuery.mock.calls.at(-1)[0];
+    const sqlAtualizacao = mockQuery.mock.calls[3][0];
+    const sqlPublicacao = mockQuery.mock.calls[4][0];
 
-    expect(sql).toMatch(/publicado\s*=\s*CASE/i);
-    expect(sql).not.toMatch(/negocios\.publicado\s*=\s*TRUE/i);
+    expect(sqlAtualizacao).not.toMatch(/publicado\s*=/i);
     const sqlCompacto =
-      compactarSql(sql);
-
-    for (
-      const parametro
-      of [5, 6, 7, 14]
-    ) {
-      expect(
-        sqlCompacto
-      ).toContain(
-        `NULLIF(BTRIM(COALESCE($${parametro}::TEXT,''::TEXT)),'')ISNOTNULL`
-      );
-    }
-
-    expect(sqlCompacto).not.toContain(
-      "NULLIF(BTRIM(COALESCE($4::TEXT,''::TEXT)),'')ISNOTNULL"
-    );
+      compactarSql(sqlAtualizacao);
 
     expect(sqlCompacto).toContain(
       "AREAS=COALESCE($15::TEXT[],ARRAY[]::TEXT[])"
     );
-    expect(sql).toMatch(
-      /EXISTS[\s\S]*servicos_negocio[\s\S]*s\.ativo\s*=\s*TRUE/i
+    expect(sqlPublicacao).toMatch(
+      /UPDATE negocios[\s\S]*publicado\s*=\s*e\.pode_publicar/i
     );
   });
 
@@ -96,9 +95,67 @@ describe("consistência da publicação do negócio", () => {
     expect(params).toEqual([11]);
   });
 
-  test("perfil sem descrição e com serviço ativo é publicado automaticamente", async () => {
+  test("pedido manual de publicação também passa pela elegibilidade central", async () => {
     mockQuery.mockResolvedValueOnce({
-      rows: [{ id: 11, publicado: true }]
+      rows: [{
+        id: 11,
+        publicado: false,
+        pode_publicar: false
+      }]
+    });
+
+    const resultado =
+      await configuracoesRepository
+        .atualizarPublicacao(
+          11,
+          true
+        );
+    const [sql, params] =
+      mockQuery.mock.calls[0];
+
+    expect(sql).toMatch(
+      /WITH elegibilidade[\s\S]*UPDATE negocios[\s\S]*publicado\s*=\s*e\.pode_publicar/i
+    );
+    expect(sql).not.toMatch(
+      /SET\s+publicado\s*=\s*\$1/i
+    );
+    expect(params).toEqual([11, false]);
+    expect(resultado.publicado).toBe(false);
+  });
+
+  test("confirmação da agenda preserva a publicação dos negócios legados", async () => {
+    mockQuery.mockResolvedValueOnce({
+      rows: [{
+        id: 11,
+        publicado: false,
+        pode_publicar: false
+      }]
+    });
+
+    await servicosRepository
+      .sincronizarPublicacaoAutomatica(
+        11,
+        undefined,
+        {
+          preservarPublicacaoLegada: true
+        }
+      );
+    const [sql, params] =
+      mockQuery.mock.calls[0];
+
+    expect(sql).toMatch(
+      /\$2::BOOLEAN\s*=\s*TRUE[\s\S]*publicacao_exige_agenda\s+IS\s+NOT\s+TRUE[\s\S]*THEN n\.publicado/i
+    );
+    expect(params).toEqual([11, true]);
+  });
+
+  test("novos negócios exigem agenda e todos os dados obrigatórios sem exigir descrição", async () => {
+    mockQuery.mockResolvedValueOnce({
+      rows: [{
+        id: 11,
+        publicado: true,
+        pode_publicar: true
+      }]
     });
 
     const resultado = await servicosRepository
@@ -108,8 +165,18 @@ describe("consistência da publicação do negócio", () => {
     expect(sql).toMatch(/UPDATE negocios[\s\S]*publicado\s*=\s*e\.pode_publicar/i);
     expect(sql).toMatch(/EXISTS[\s\S]*servicos_negocio[\s\S]*s\.ativo\s*=\s*TRUE/i);
     expect(sql).not.toMatch(/n\.descricao/i);
-    expect(sql).not.toMatch(/agenda_configuracoes|configurado_em/i);
-    expect(params).toEqual([11]);
-    expect(resultado).toEqual({ id: 11, publicado: true });
+    expect(sql).toMatch(/n\.publicacao_exige_agenda\s+IS\s+NOT\s+TRUE/i);
+    expect(sql).toMatch(/n\.bairro/i);
+    expect(sql).toMatch(/n\.endereco/i);
+    expect(sql).toMatch(/n\.numero/i);
+    expect(sql).toMatch(/n\.cep/i);
+    expect(sql).toMatch(/n\.localizacao_url/i);
+    expect(sql).toMatch(/agenda_configuracoes[\s\S]*configurado_em\s+IS\s+NOT\s+NULL/i);
+    expect(params).toEqual([11, false]);
+    expect(resultado).toEqual({
+      id: 11,
+      publicado: true,
+      pode_publicar: true
+    });
   });
 });

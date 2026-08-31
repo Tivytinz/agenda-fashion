@@ -121,6 +121,32 @@ function mapearPendencias(
     });
   }
 
+  if (linha.publicacao_exige_agenda) {
+    const camposObrigatorios = [
+      ["bairro", "bairro", "Informar bairro"],
+      ["endereco", "endereco", "Informar endereço"],
+      ["numero", "numero", "Informar número"],
+      ["cep", "cep", "Informar CEP"],
+      [
+        "localizacao_url",
+        "localizacao",
+        "Informar link do Google Maps",
+      ],
+    ];
+
+    for (
+      const [campo, codigo, rotulo]
+      of camposObrigatorios
+    ) {
+      if (!textoPresente(linha[campo])) {
+        pendencias.push({
+          codigo,
+          rotulo,
+        });
+      }
+    }
+  }
+
   if (!linha.possui_servico_ativo) {
     pendencias.push({
       codigo: "servico",
@@ -138,7 +164,11 @@ function mapearPendencias(
   if (
     !linha.publicado &&
     linha.perfil_basico_completo &&
-    linha.possui_servico_ativo
+    linha.possui_servico_ativo &&
+    (
+      !linha.publicacao_exige_agenda ||
+      linha.agenda_configurada
+    )
   ) {
     pendencias.push({
       codigo: "publicacao",

@@ -11,7 +11,7 @@ const BUSINESS = {
   id: 11,
   slug: "studio-aurora",
   nome: "Studio Aurora",
-  descricao: "Beleza com atendimento personalizado.",
+  descricao: "",
   whatsapp: "62999999999",
   whatsapp_negocio: "62999999999",
   cidade: "Goiânia",
@@ -120,7 +120,7 @@ test("profissional vai da landing até agenda pronta para divulgação", async (
     negocio: businessCreated
       ? {
           ...BUSINESS,
-          publicado: serviceCreated
+          publicado: serviceCreated && scheduleConfigured
         }
       : null,
     temNegocio: businessCreated,
@@ -163,7 +163,7 @@ test("profissional vai da landing até agenda pronta para divulgação", async (
     },
     ranking_servicos: [],
     ativacao: {
-      negocio_publicado: serviceCreated,
+      negocio_publicado: serviceCreated && scheduleConfigured,
       agenda_configurada: scheduleConfigured,
       primeiro_agendamento_recebido: false
     }
@@ -183,19 +183,16 @@ test("profissional vai da landing até agenda pronta para divulgação", async (
   await page.route("**/configuracoes", (route) => json(route, {
     negocio: {
       ...BUSINESS,
-      publicado: serviceCreated
+      publicado: serviceCreated && scheduleConfigured
     },
-    publicacao: serviceCreated
-      ? {
-          publicado: true,
-          pode_publicar: true,
-          pendencias: []
-        }
-      : {
-          publicado: false,
-          pode_publicar: false,
-          pendencias: ["pelo menos um serviço ativo"]
-        }
+    publicacao: {
+      publicado: serviceCreated && scheduleConfigured,
+      pode_publicar: serviceCreated && scheduleConfigured,
+      pendencias: [
+        ...(!serviceCreated ? ["pelo menos um serviço ativo"] : []),
+        ...(!scheduleConfigured ? ["confirmar os horários de atendimento"] : [])
+      ]
+    }
   }));
 
   await page.route("**/agenda-configuracao/status", (route) => json(route, {
@@ -217,9 +214,9 @@ test("profissional vai da landing até agenda pronta para divulgação", async (
       mensagem: "Serviço criado.",
       servico: SERVICE,
       publicacao: {
-        publicado: true,
-        pode_publicar: true,
-        pendencias: []
+        publicado: false,
+        pode_publicar: false,
+        pendencias: ["confirmar os horários de atendimento"]
       }
     }, 201);
   });
@@ -236,6 +233,10 @@ test("profissional vai da landing até agenda pronta para divulgação", async (
           antecedencia_agendamento: 0,
           antecedencia_cancelamento: 24,
           configurado_em: "2026-08-30T12:00:00.000Z"
+        },
+        publicacao: {
+          publicado: true,
+          pode_publicar: true
         }
       });
       return;
@@ -274,7 +275,7 @@ test("profissional vai da landing até agenda pronta para divulgação", async (
 
   await expect(page.getByRole("heading", { name: "Crie seu negócio" })).toBeVisible();
   await page.getByLabel("Nome do negócio").fill("Studio Aurora");
-  await page.getByLabel("Descrição").fill("Beleza com atendimento personalizado.");
+  await expect(page.getByLabel("Descrição (opcional)")).toHaveValue("");
   await page.getByLabel("Unhas").check();
   await expect(page.getByLabel("WhatsApp")).toHaveValue("(62) 99999-9999");
   await page.getByLabel("Link do Google Maps").fill("https://maps.google.com/?q=goiania");
@@ -288,7 +289,7 @@ test("profissional vai da landing até agenda pronta para divulgação", async (
   await expect(page).toHaveURL(/\/painel$/);
   expect(businessPayload).toEqual(expect.objectContaining({
     nome: "Studio Aurora",
-    descricao: "Beleza com atendimento personalizado.",
+    descricao: "",
     especialidades: ["Unhas"],
     whatsapp: "62999999999",
     complemento: "",

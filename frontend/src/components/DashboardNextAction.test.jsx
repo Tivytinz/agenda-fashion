@@ -38,6 +38,7 @@ afterEach(cleanup);
 
 function renderAction({
   activation,
+  publication,
   profileVisits = 0,
 } = {}) {
   return render(
@@ -47,6 +48,7 @@ function renderAction({
         businessId={12}
         businessName="Studio Aurora"
         businessSlug="studio-aurora"
+        publication={publication}
         profileVisits={profileVisits}
       />
     </MemoryRouter>
@@ -73,6 +75,47 @@ describe(
             {
               name:
                 "Deixe a agenda pronta",
+            }
+          )
+        ).not.toBeNull();
+        expect(
+          screen.getByRole(
+            "link",
+            {
+              name:
+                "Configurar horários",
+            }
+          ).getAttribute("href")
+        ).toBe(
+          "/painel/horarios"
+        );
+      }
+    );
+
+    it(
+      "leva aos horários quando essa é a única pendência para publicar",
+      () => {
+        renderAction({
+          activation: {
+            negocio_publicado: false,
+            agenda_configurada: false,
+            primeiro_agendamento_recebido: false,
+          },
+          publication: {
+            publicado: false,
+            pode_publicar: false,
+            pendencias: [
+              "confirmar os horários de atendimento",
+            ],
+          },
+        });
+
+        expect(
+          screen.getByRole(
+            "heading",
+            {
+              name:
+                "Confirme horários para publicar",
             }
           )
         ).not.toBeNull();
