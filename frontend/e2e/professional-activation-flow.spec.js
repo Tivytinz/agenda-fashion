@@ -279,7 +279,7 @@ test("profissional vai da landing até agenda pronta para divulgação", async (
   await expect(page.getByLabel("WhatsApp")).toHaveValue("(62) 99999-9999");
   await page.getByLabel("Link do Google Maps").fill("https://maps.google.com/?q=goiania");
   await page.getByLabel("CEP").fill("74000-123");
-  await expect(page.getByLabel("Endereço")).toHaveValue("Rua das Flores");
+  await expect(page.getByLabel("Endereço", { exact: true })).toHaveValue("Rua das Flores");
   await expect(page.getByLabel("Cidade")).toHaveValue("Goiânia");
   await page.getByLabel("Número").fill("10");
   await expect(page.getByLabel("Complemento (opcional)")).toHaveValue("");
