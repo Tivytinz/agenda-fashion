@@ -38,7 +38,7 @@ beforeEach(() => {
 afterEach(cleanup);
 
 describe("configuração de horários", () => {
-  it("explica que horários sugeridos ainda não estão ativos", async () => {
+  it("explica que a primeira missão é confirmar dias e horários", async () => {
     apiRequest.mockResolvedValueOnce({
       configuracao: {
         duracao_padrao: 60,
@@ -57,8 +57,14 @@ describe("configuração de horários", () => {
     })).not.toBeNull();
 
     expect(screen.getByText(
-      /sugestão inicial e só ficam disponíveis/i
+      /Primeiro escolha os dias e horários de atendimento/i
     )).not.toBeNull();
+    expect(screen.getByText(
+      /ajustes de duração, intervalo e antecedência são opcionais/i
+    )).not.toBeNull();
+
+    const advanced = screen.getByText("Ajustes avançados").closest("details");
+    expect(advanced?.open).toBe(false);
 
     await waitFor(() => {
       expect(track).toHaveBeenCalledWith(
@@ -72,6 +78,27 @@ describe("configuração de horários", () => {
         })
       );
     });
+  });
+
+  it("abre os ajustes avançados por padrão quando a agenda já foi configurada", async () => {
+    apiRequest.mockResolvedValueOnce({
+      configuracao: {
+        duracao_padrao: 60,
+        intervalo_minutos: 0,
+        antecedencia_agendamento: 0,
+        antecedencia_cancelamento: 24,
+        configurado_em: "2026-08-29T01:00:00.000Z"
+      },
+      horarios: validWeek()
+    });
+
+    render(<ScheduleSettingsPage />);
+
+    await screen.findByText("Quando você recebe clientes");
+    const advanced = screen.getByText("Ajustes avançados").closest("details");
+    expect(advanced?.open).toBe(true);
+    expect(screen.getByRole("combobox", { name: "Intervalo entre clientes" }))
+      .not.toBeNull();
   });
 
   it("valida pausas incompletas", () => {
@@ -100,7 +127,8 @@ describe("configuração de horários", () => {
         duracao_padrao: 60,
         intervalo_minutos: 0,
         antecedencia_agendamento: 0,
-        antecedencia_cancelamento: 24
+        antecedencia_cancelamento: 24,
+        configurado_em: "2026-08-29T01:00:00.000Z"
       },
       horarios: [{
         dia_semana: 1,
@@ -273,6 +301,7 @@ describe("configuração de horários", () => {
       .not.toBeNull();
     expect(screen.getByRole("link", { name: "Ver perfil público" })
       .getAttribute("href")).toBe("/negocio/studio-aurora");
+    expect(screen.getByText(/Agenda pronta/).textContent).toContain("✨");
   });
 
   it("não repete a missão de primeiro agendamento em edições posteriores", async () => {
