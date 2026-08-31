@@ -42,7 +42,7 @@ jobs:
         run: |
           set +e
           cd frontend
-          npx playwright test e2e/professional-activation-flow.spec.js > /tmp/professional-activation.log 2>&1
+          npx playwright test e2e/professional-activation-flow.spec.js --project=mobile-chromium --retries=0 > /tmp/professional-activation.log 2>&1
           status=$?
           if [ "$status" -ne 0 ]; then
             tail -n 180 /tmp/professional-activation.log
