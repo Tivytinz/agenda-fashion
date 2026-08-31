@@ -392,11 +392,17 @@
   }
 }
 
-@media (max-width: 620px) {
+@media (max-width: 800px) {
   .schedule-settings-page {
-    padding-bottom: 106px;
+    padding-bottom: calc(var(--workspace-mobile-nav-height) + 68px);
   }
 
+  .schedule-settings-page .schedule-save-bar {
+    bottom: calc(var(--workspace-mobile-nav-height) + 10px);
+  }
+}
+
+@media (max-width: 620px) {
   .schedule-settings-page .schedule-general-settings {
     grid-template-columns: 1fr;
   }
@@ -407,7 +413,6 @@
 
   .schedule-settings-page .schedule-save-bar {
     right: 12px;
-    bottom: 10px;
     left: 12px;
     width: auto;
     align-items: stretch;
