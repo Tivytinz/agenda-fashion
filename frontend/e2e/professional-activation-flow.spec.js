@@ -281,7 +281,7 @@ test("profissional vai da landing até agenda pronta para divulgação", async (
   await page.getByLabel("CEP").fill("74000-123");
   await expect(page.getByLabel("Endereço", { exact: true })).toHaveValue("Rua das Flores");
   await expect(page.getByLabel("Cidade", { exact: true })).toHaveValue("Goiânia");
-  await page.getByLabel("Número").fill("10");
+  await page.getByLabel("Número", { exact: true }).fill("10");
   await expect(page.getByLabel("Complemento (opcional)")).toHaveValue("");
   await page.getByRole("button", { name: "Criar negócio" }).click();
 
