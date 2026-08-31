@@ -41,7 +41,8 @@ jobs:
         shell: bash
         run: |
           set +e
-          npm --prefix frontend exec -- playwright test e2e/professional-activation-flow.spec.js > /tmp/professional-activation.log 2>&1
+          cd frontend
+          npx playwright test e2e/professional-activation-flow.spec.js > /tmp/professional-activation.log 2>&1
           status=$?
           if [ "$status" -ne 0 ]; then
             tail -n 180 /tmp/professional-activation.log
