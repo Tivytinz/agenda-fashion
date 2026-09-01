@@ -88,6 +88,37 @@ function dadosLog(evento) {
   };
 }
 
+function leaseTentativa(evento) {
+  return Number.isInteger(
+    evento?.lease_tentativa
+  )
+    ? evento.lease_tentativa
+    : null;
+}
+
+async function marcarConcluido(
+  evento,
+  status
+) {
+  const lease =
+    leaseTentativa(evento);
+
+  if (lease === null) {
+    return webhookEventoRepository
+      .marcarConcluido(
+        evento.id,
+        status
+      );
+  }
+
+  return webhookEventoRepository
+    .marcarConcluido(
+      evento.id,
+      status,
+      lease
+    );
+}
+
 async function enfileirarWebhookAsaas({
   eventoId,
   tipoEvento,
@@ -162,12 +193,25 @@ async function enfileirarWebhookAsaas({
 
 async function registrarFalha(evento, erro) {
   try {
-    await webhookEventoRepository
-      .marcarFalha(
-        evento.id,
-        erro?.message ||
-        "Falha desconhecida."
-      );
+    const lease =
+      leaseTentativa(evento);
+
+    if (lease === null) {
+      await webhookEventoRepository
+        .marcarFalha(
+          evento.id,
+          erro?.message ||
+          "Falha desconhecida."
+        );
+    } else {
+      await webhookEventoRepository
+        .marcarFalha(
+          evento.id,
+          erro?.message ||
+          "Falha desconhecida.",
+          lease
+        );
+    }
   } catch (erroRegistro) {
     registrador.erro(
       "Webhook Asaas: falha ao registrar o erro do evento.",
@@ -224,11 +268,10 @@ async function processarRegistro(evento) {
         );
 
       if (!resultado) {
-        await webhookEventoRepository
-          .marcarConcluido(
-            evento.id,
-            "IGNORED"
-          );
+        await marcarConcluido(
+          evento,
+          "IGNORED"
+        );
 
         registrador.informacao(
           "Webhook Asaas: assinatura sem vínculo local ignorada.",
@@ -241,11 +284,10 @@ async function processarRegistro(evento) {
         };
       }
 
-      await webhookEventoRepository
-        .marcarConcluido(
-          evento.id,
-          "PROCESSED"
-        );
+      await marcarConcluido(
+        evento,
+        "PROCESSED"
+      );
 
       registrador.informacao(
         "Webhook Asaas: evento de assinatura processado.",
@@ -264,11 +306,10 @@ async function processarRegistro(evento) {
       !EVENTOS_SINCRONIZACAO
         .has(evento.tipo_evento)
     ) {
-      await webhookEventoRepository
-        .marcarConcluido(
-          evento.id,
-          "IGNORED"
-        );
+      await marcarConcluido(
+        evento,
+        "IGNORED"
+      );
 
       registrador.informacao(
         "Webhook Asaas: evento ignorado.",
@@ -349,11 +390,10 @@ async function processarRegistro(evento) {
     }
 
     if (!resultado) {
-      await webhookEventoRepository
-        .marcarConcluido(
-          evento.id,
-          "IGNORED"
-        );
+      await marcarConcluido(
+        evento,
+        "IGNORED"
+      );
 
       registrador.informacao(
         "Webhook Asaas: pagamento sem vínculo local ignorado.",
@@ -366,11 +406,10 @@ async function processarRegistro(evento) {
       };
     }
 
-    await webhookEventoRepository
-      .marcarConcluido(
-        evento.id,
-        "PROCESSED"
-      );
+    await marcarConcluido(
+      evento,
+      "PROCESSED"
+    );
 
     registrador.informacao(
       "Webhook Asaas: evento processado.",
@@ -424,6 +463,9 @@ function agendarProcessamentoWebhook(eventoId) {
 
 async function processarFilaWebhook(limite = 20) {
   let processados = 0;
+
+  await webhookEventoRepository
+    .marcarProcessamentosEsgotados();
 
   while (processados < limite) {
     const evento =

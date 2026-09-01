@@ -1,5 +1,7 @@
 const db = require("../db/db");
 
+const MAX_TENTATIVAS = 10;
+
 async function registrarRecebimento({
   provedor,
   eventoId,
@@ -65,10 +67,13 @@ async function registrarRecebimento({
 function condicaoDisponivel() {
   return `
     (
-      status = 'PENDING'
+      (
+        status = 'PENDING'
+        AND tentativas < ${MAX_TENTATIVAS}
+      )
       OR (
         status = 'FAILED'
-        AND tentativas < 10
+        AND tentativas < ${MAX_TENTATIVAS}
         AND (
           proxima_tentativa_em IS NULL
           OR proxima_tentativa_em <= NOW()
@@ -76,6 +81,7 @@ function condicaoDisponivel() {
       )
       OR (
         status = 'PROCESSING'
+        AND tentativas < ${MAX_TENTATIVAS}
         AND ultima_tentativa_em
           < NOW() - INTERVAL '5 minutes'
       )
@@ -96,7 +102,7 @@ async function reservarPorId(id) {
       processado_em = NULL
     WHERE id = $1
       AND ${condicaoDisponivel()}
-    RETURNING *
+    RETURNING *, tentativas AS lease_tentativa
     `,
     [id]
   );
@@ -125,14 +131,32 @@ async function reservarProximo() {
       processado_em = NULL
     FROM candidato
     WHERE evento.id = candidato.id
-    RETURNING evento.*
+    RETURNING
+      evento.*,
+      evento.tentativas AS lease_tentativa
     `
   );
 
   return resultado.rows[0] || null;
 }
 
-async function marcarConcluido(id, status) {
+async function marcarConcluido(
+  id,
+  status,
+  leaseTentativa = null
+) {
+  const possuiLease =
+    Number.isInteger(leaseTentativa);
+
+  const parametros = [
+    id,
+    status
+  ];
+
+  if (possuiLease) {
+    parametros.push(leaseTentativa);
+  }
+
   const resultado = await db.query(
     `
     UPDATE webhook_eventos
@@ -142,18 +166,38 @@ async function marcarConcluido(id, status) {
       proxima_tentativa_em = NULL,
       processado_em = NOW()
     WHERE id = $1
+      ${
+        possuiLease
+          ? `AND status = 'PROCESSING'
+      AND tentativas = $3`
+          : ""
+      }
     RETURNING *
     `,
-    [
-      id,
-      status
-    ]
+    parametros
   );
 
   return resultado.rows[0] || null;
 }
 
-async function marcarFalha(id, erro) {
+async function marcarFalha(
+  id,
+  erro,
+  leaseTentativa = null
+) {
+  const possuiLease =
+    Number.isInteger(leaseTentativa);
+
+  const parametros = [
+    id,
+    String(erro || "")
+      .slice(0, 2000)
+  ];
+
+  if (possuiLease) {
+    parametros.push(leaseTentativa);
+  }
+
   const resultado = await db.query(
     `
     UPDATE webhook_eventos
@@ -161,22 +205,54 @@ async function marcarFalha(id, erro) {
       status = 'FAILED',
       erro = $2,
       proxima_tentativa_em =
-        NOW() + (
-          INTERVAL '1 minute' *
-          LEAST(GREATEST(tentativas, 1), 10)
-        ),
+        CASE
+          WHEN tentativas < ${MAX_TENTATIVAS}
+            THEN NOW() + (
+              INTERVAL '1 minute' *
+              LEAST(
+                GREATEST(tentativas, 1),
+                ${MAX_TENTATIVAS}
+              )
+            )
+          ELSE NULL
+        END,
       processado_em = NULL
     WHERE id = $1
+      ${
+        possuiLease
+          ? `AND status = 'PROCESSING'
+      AND tentativas = $3`
+          : ""
+      }
     RETURNING *
     `,
-    [
-      id,
-      String(erro || "")
-        .slice(0, 2000)
-    ]
+    parametros
   );
 
   return resultado.rows[0] || null;
+}
+
+async function marcarProcessamentosEsgotados() {
+  const resultado = await db.query(
+    `
+    UPDATE webhook_eventos
+    SET
+      status = 'FAILED',
+      erro = COALESCE(
+        NULLIF(erro, ''),
+        'Limite máximo de tentativas atingido durante o processamento do webhook.'
+      ),
+      proxima_tentativa_em = NULL,
+      processado_em = NULL
+    WHERE status = 'PROCESSING'
+      AND tentativas >= ${MAX_TENTATIVAS}
+      AND ultima_tentativa_em
+        < NOW() - INTERVAL '5 minutes'
+    RETURNING *
+    `
+  );
+
+  return resultado.rows;
 }
 
 module.exports = {
@@ -184,5 +260,6 @@ module.exports = {
   reservarPorId,
   reservarProximo,
   marcarConcluido,
-  marcarFalha
+  marcarFalha,
+  marcarProcessamentosEsgotados
 };
