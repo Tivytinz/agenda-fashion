@@ -21,7 +21,7 @@ describe("contextos visuais do workspace", () => {
     render(
       <MemoryRouter>
         <AdminLayout>
-          <h1>Operação interna</h1>
+          <h1>Visão administrativa</h1>
         </AdminLayout>
       </MemoryRouter>
     );
@@ -34,6 +34,7 @@ describe("contextos visuais do workspace", () => {
     expect(shell?.classList.contains("workspace-shell--professional")).toBe(false);
     expect(screen.getByText("AF Admin")).not.toBeNull();
     expect(screen.getByText("Operação interna")).not.toBeNull();
+    expect(screen.getByRole("heading", { name: "Visão administrativa" })).not.toBeNull();
   });
 
   it("mantém a área profissional no contexto visual do Agenda Fashion", () => {
