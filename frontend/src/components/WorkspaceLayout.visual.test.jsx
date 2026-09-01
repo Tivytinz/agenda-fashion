@@ -1,0 +1,56 @@
+// @vitest-environment jsdom
+
+import { cleanup, render, screen } from "@testing-library/react";
+import { MemoryRouter } from "react-router-dom";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { AdminLayout, WorkspaceLayout } from "./WorkspaceLayout";
+
+vi.mock("../auth/SessionContext", () => ({
+  useSession: () => ({
+    negocio: {
+      nome: "Studio Aurora",
+      papel: "dono"
+    }
+  })
+}));
+
+afterEach(cleanup);
+
+describe("contextos visuais do workspace", () => {
+  it("marca o administrativo como console neutro", () => {
+    render(
+      <MemoryRouter>
+        <AdminLayout>
+          <h1>Operação interna</h1>
+        </AdminLayout>
+      </MemoryRouter>
+    );
+
+    const shell = screen
+      .getByRole("complementary", { name: "Administração do Agenda Fashion" })
+      .closest(".workspace-shell");
+
+    expect(shell?.classList.contains("workspace-shell--admin")).toBe(true);
+    expect(shell?.classList.contains("workspace-shell--professional")).toBe(false);
+    expect(screen.getByText("AF Admin")).not.toBeNull();
+    expect(screen.getByText("Operação interna")).not.toBeNull();
+  });
+
+  it("mantém a área profissional no contexto visual do Agenda Fashion", () => {
+    render(
+      <MemoryRouter>
+        <WorkspaceLayout>
+          <h1>Área profissional</h1>
+        </WorkspaceLayout>
+      </MemoryRouter>
+    );
+
+    const shell = screen
+      .getByRole("complementary", { name: "Área de trabalho" })
+      .closest(".workspace-shell");
+
+    expect(shell?.classList.contains("workspace-shell--professional")).toBe(true);
+    expect(shell?.classList.contains("workspace-shell--admin")).toBe(false);
+    expect(screen.getByText("Studio Aurora")).not.toBeNull();
+  });
+});
