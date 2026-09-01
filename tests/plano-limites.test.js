@@ -77,7 +77,7 @@ describe("Limites dos planos", () => {
   );
 
   test(
-    "plano Grátis mantém somente dois serviços ativos",
+    "plano Grátis preserva serviços ativos acima do limite após downgrade",
     async () => {
       const executor = {
         query: jest
@@ -89,9 +89,6 @@ describe("Limites dos planos", () => {
                 servicosUtilizados: 4,
               }),
             ],
-          })
-          .mockResolvedValueOnce({
-            rows: [{ total: 2 }],
           }),
       };
 
@@ -100,14 +97,14 @@ describe("Limites dos planos", () => {
         executor
       );
 
-      expect(uso.servicos_utilizados).toBe(2);
-      expect(executor.query).toHaveBeenNthCalledWith(
-        3,
-        expect.stringContaining(
-          "UPDATE servicos_negocio"
-        ),
-        [1, 2]
-      );
+      expect(uso.servicos_utilizados).toBe(4);
+      expect(uso.limite_servicos).toBe(2);
+      expect(executor.query).toHaveBeenCalledTimes(2);
+      expect(
+        executor.query.mock.calls.some(
+          ([sql]) => String(sql).includes("UPDATE servicos_negocio")
+        )
+      ).toBe(false);
     }
   );
 
