@@ -137,7 +137,7 @@ export function AppHeader() {
           aria-label="Navegação principal"
           className="public-navigation"
         >
-          {!focusedProfessionalLanding && !adminArea && (
+          {!focusedProfessionalLanding && (
             <NavLink
               className={({ isActive }) =>
                 isActive
