@@ -1,0 +1,418 @@
+/*
+ * Contexto visual do administrativo interno.
+ *
+ * A área profissional preserva a identidade rosa do Agenda Fashion.
+ * O /admin usa superfícies neutras e cores semânticas para leitura operacional.
+ */
+
+.workspace-shell--admin {
+  --admin-bg: #f4f6f8;
+  --admin-surface: #ffffff;
+  --admin-surface-soft: #f8f9fa;
+  --admin-line: #dfe3e7;
+  --admin-line-strong: #cfd5db;
+  --admin-ink: #20262d;
+  --admin-muted: #66717d;
+  --admin-accent: #59636e;
+  --admin-accent-dark: #343d46;
+  --admin-soft: #f3f5f7;
+  --admin-soft-strong: #e9edf1;
+  --admin-success: #28734f;
+  --admin-warning: #8a6517;
+  --admin-danger: #a33a4f;
+  --admin-info: #476b8a;
+
+  /* Neutraliza tokens globais somente dentro do console interno. */
+  --pink-50: #f3f5f7;
+  --pink-100: #dde2e7;
+  --pink-500: #66717d;
+  --pink-600: #46515c;
+  --pink-700: #343d46;
+  --wine: #20262d;
+  --ink: #20262d;
+  --muted: #66717d;
+  --line: #dfe3e7;
+  --surface: #ffffff;
+  --shadow: 0 8px 22px rgb(24 31 38 / 5%);
+  --shadow-hover: 0 10px 26px rgb(24 31 38 / 8%);
+
+  background: var(--admin-bg);
+}
+
+.workspace-shell--admin .workspace-sidebar {
+  border-right-color: var(--admin-line);
+  background: #fff;
+}
+
+.workspace-shell--admin .workspace-business {
+  border-bottom-color: var(--admin-line);
+}
+
+.workspace-shell--admin .workspace-business > span {
+  border: 1px solid #313942;
+  border-radius: 9px;
+  color: #fff;
+  background: #343d46;
+  box-shadow: none;
+}
+
+.workspace-shell--admin .workspace-business strong {
+  color: var(--admin-ink);
+  font-size: .91rem;
+  letter-spacing: -.01em;
+}
+
+.workspace-shell--admin .workspace-business small {
+  color: var(--admin-muted);
+  font-size: .68rem;
+}
+
+.workspace-shell--admin .workspace-sidebar nav {
+  gap: 3px;
+}
+
+.workspace-shell--admin .workspace-link {
+  min-height: 42px;
+  border-radius: 7px;
+  color: var(--admin-muted);
+  font-size: .84rem;
+  font-weight: 680;
+}
+
+.workspace-shell--admin .workspace-link > span {
+  color: #7a8590;
+}
+
+.workspace-shell--admin .workspace-link:hover {
+  color: var(--admin-ink);
+  background: #f4f6f8;
+}
+
+.workspace-shell--admin .workspace-link.active {
+  color: #1e252c;
+  background: #e9edf1;
+  box-shadow: inset 3px 0 0 #59636e;
+}
+
+.workspace-shell--admin .workspace-link.active > span {
+  color: #343d46;
+}
+
+.workspace-shell--admin .workspace-content {
+  background: var(--admin-bg);
+}
+
+.workspace-shell--admin .workspace-page {
+  width: min(1320px, calc(100% - 48px));
+  gap: 18px;
+  padding-block: 28px 44px;
+}
+
+.workspace-shell--admin .workspace-heading {
+  align-items: flex-start;
+}
+
+.workspace-shell--admin .workspace-heading h1 {
+  margin-bottom: 7px;
+  color: var(--admin-ink);
+  font-size: clamp(1.75rem, 3vw, 2.35rem);
+  letter-spacing: -.035em;
+}
+
+.workspace-shell--admin .workspace-heading p:last-child,
+.workspace-shell--admin .muted {
+  color: var(--admin-muted);
+}
+
+.workspace-shell--admin .eyebrow {
+  color: #69737d;
+  font-size: .69rem;
+  letter-spacing: .09em;
+}
+
+.workspace-shell--admin .panel,
+.workspace-shell--admin .metric-card,
+.workspace-shell--admin .screen-state {
+  border-color: var(--admin-line);
+  border-radius: 10px;
+  background: var(--admin-surface);
+  box-shadow: 0 5px 16px rgb(24 31 38 / 4%);
+}
+
+.workspace-shell--admin .card:hover,
+.workspace-shell--admin .metric-card:hover {
+  border-color: var(--admin-line-strong);
+  box-shadow: 0 8px 22px rgb(24 31 38 / 7%);
+}
+
+.workspace-shell--admin .button {
+  min-height: 42px;
+  border-color: #343d46;
+  border-radius: 8px;
+  background: #343d46;
+  box-shadow: none;
+  font-weight: 720;
+}
+
+.workspace-shell--admin .button:hover {
+  border-color: #20262d;
+  background: #20262d;
+  box-shadow: 0 5px 14px rgb(24 31 38 / 12%);
+}
+
+.workspace-shell--admin .button-secondary {
+  color: var(--admin-ink);
+  border-color: var(--admin-line-strong);
+  background: #fff;
+}
+
+.workspace-shell--admin .button-secondary:hover {
+  color: var(--admin-ink);
+  border-color: #aeb6be;
+  background: #f6f7f8;
+}
+
+.workspace-shell--admin input,
+.workspace-shell--admin select,
+.workspace-shell--admin textarea {
+  border-color: var(--admin-line-strong);
+  border-radius: 8px;
+  color: var(--admin-ink);
+  background: #fff;
+}
+
+.workspace-shell--admin input:focus,
+.workspace-shell--admin select:focus,
+.workspace-shell--admin textarea:focus {
+  border-color: #76818c;
+  outline: 0;
+  box-shadow: 0 0 0 3px rgb(89 99 110 / 11%);
+}
+
+.workspace-shell--admin .segmented-control {
+  border-color: var(--admin-line);
+  border-radius: 8px;
+  background: #edf0f3;
+}
+
+.workspace-shell--admin .segmented-control button {
+  color: var(--admin-muted);
+  border-radius: 6px;
+}
+
+.workspace-shell--admin .segmented-control button.active,
+.workspace-shell--admin .segmented-control button[aria-pressed="true"] {
+  color: var(--admin-ink);
+  background: #fff;
+  box-shadow: 0 1px 4px rgb(24 31 38 / 9%);
+}
+
+.workspace-shell--admin .table-wrap {
+  border-color: var(--admin-line);
+  border-radius: 9px;
+  background: #fff;
+}
+
+.workspace-shell--admin table {
+  color: var(--admin-ink);
+}
+
+.workspace-shell--admin th {
+  color: #59636e;
+  background: #f7f8f9;
+}
+
+.workspace-shell--admin td,
+.workspace-shell--admin th {
+  border-color: #e7eaed;
+}
+
+/* Marketing: mantém a arquitetura de informação, mas remove o branding rosa. */
+.workspace-shell--admin .marketing-command-page {
+  --marketing-v2-accent: #59636e;
+  --marketing-v2-accent-dark: #343d46;
+  --marketing-v2-ink: #20262d;
+  --marketing-v2-muted: #66717d;
+  --marketing-v2-line: #dfe3e7;
+  --marketing-v2-soft: #f6f7f8;
+  --marketing-v2-success: #28734f;
+}
+
+.workspace-shell--admin .marketing-command-nav a,
+.workspace-shell--admin .marketing-command-nav span,
+.workspace-shell--admin .marketing-trust-chip,
+.workspace-shell--admin .marketing-funnel-stage,
+.workspace-shell--admin .marketing-kpi-card,
+.workspace-shell--admin .marketing-ga4-kpis-v3 article {
+  border-color: var(--admin-line);
+  background: #fff;
+  box-shadow: none;
+}
+
+.workspace-shell--admin .marketing-command-nav span[aria-current="page"] {
+  border-color: #bdc5cc;
+  background: #edf0f3;
+  color: #343d46;
+}
+
+.workspace-shell--admin .marketing-health-strip,
+.workspace-shell--admin .marketing-journey-card,
+.workspace-shell--admin .marketing-ga4-kpis-v3 article {
+  border-color: var(--admin-line);
+  background: #fff;
+}
+
+.workspace-shell--admin .marketing-health-strip,
+.workspace-shell--admin .marketing-journey-card,
+.workspace-shell--admin .marketing-funnel-panel-v3,
+.workspace-shell--admin .marketing-analysis-panel-v3,
+.workspace-shell--admin .marketing-ga4-panel-v3,
+.workspace-shell--admin .marketing-trust-bar {
+  box-shadow: 0 5px 16px rgb(24 31 38 / 4%);
+}
+
+.workspace-shell--admin .marketing-journey-index,
+.workspace-shell--admin .marketing-funnel-step {
+  background: #e9edf1;
+  color: #343d46;
+}
+
+.workspace-shell--admin .marketing-journey-card:not(:last-child)::after {
+  border-color: #dfe3e7;
+  color: #7a8590;
+}
+
+.workspace-shell--admin .marketing-funnel-stage:not(:last-child)::after {
+  background: #cbd2d8;
+}
+
+.workspace-shell--admin .marketing-command-page-v3 .marketing-sync-panel {
+  border-color: #cfd5db;
+  background: #fafbfc;
+}
+
+/* Saúde: cor comunica estado, não marca. */
+.workspace-shell--admin .saas-health-progress {
+  background: #e8ecef;
+}
+
+.workspace-shell--admin .saas-health-progress > span {
+  background: #5f7488;
+}
+
+.workspace-shell--admin .saas-health-metric-card:hover,
+.workspace-shell--admin .saas-health-metric-card:focus-visible,
+.workspace-shell--admin .saas-health-metric-card.active {
+  border-color: #7a8590;
+  box-shadow: 0 6px 16px rgb(24 31 38 / 7%);
+}
+
+.workspace-shell--admin .saas-health-next-action {
+  border-left-color: #7a8590;
+  background: #f3f5f7;
+}
+
+/* WhatsApp continua verde quando o estado é saudável; o restante fica neutro. */
+.workspace-shell--admin .whatsapp-template-table code,
+.workspace-shell--admin .whatsapp-metrics-help summary {
+  color: #46515c;
+}
+
+.workspace-shell--admin .whatsapp-health-notice,
+.workspace-shell--admin .whatsapp-templates-panel {
+  border-radius: 10px;
+}
+
+/* Navegação mobile do admin herda o mesmo console neutro. */
+.workspace-shell--admin .workspace-mobile-nav {
+  border-color: var(--admin-line);
+  background: rgb(255 255 255 / 97%);
+  box-shadow: 0 -6px 20px rgb(24 31 38 / 7%);
+}
+
+.workspace-shell--admin .workspace-mobile-link,
+.workspace-shell--admin .workspace-mobile-more > button,
+.workspace-shell--admin .workspace-mobile-menu-link {
+  color: var(--admin-muted);
+}
+
+.workspace-shell--admin .workspace-mobile-link.active,
+.workspace-shell--admin .workspace-mobile-more.active > button,
+.workspace-shell--admin .workspace-mobile-menu-link.active {
+  color: var(--admin-ink);
+  background: #edf0f3;
+}
+
+.workspace-shell--admin .workspace-mobile-menu {
+  border-color: var(--admin-line);
+  background: #fff;
+  box-shadow: 0 12px 28px rgb(24 31 38 / 14%);
+}
+
+/* Cabeçalho global quando a rota pertence ao administrativo. */
+.admin-site-header {
+  border-bottom-color: #dfe3e7;
+  background: rgb(255 255 255 / 97%);
+  backdrop-filter: blur(10px);
+}
+
+.admin-site-header .container {
+  width: min(1320px, calc(100% - 32px));
+}
+
+.admin-site-header .header-brand-logo {
+  filter: grayscale(1);
+  opacity: .68;
+}
+
+.admin-site-header .brand strong {
+  color: #20262d;
+}
+
+.admin-site-header .brand small {
+  color: #6b7681;
+}
+
+.admin-site-header .header-account-avatar,
+.admin-site-header .header-guest-avatar {
+  border-color: #d7dce1;
+}
+
+.admin-site-header .header-account-popover {
+  border-color: #dfe3e7;
+  border-radius: 9px;
+  background: #fff;
+  box-shadow: 0 12px 30px rgb(24 31 38 / 13%);
+}
+
+.admin-site-header .header-account-popover a,
+.admin-site-header .header-account-popover button {
+  color: #343d46;
+}
+
+.admin-site-header .header-account-popover a:hover,
+.admin-site-header .header-account-popover button:hover {
+  background: #f3f5f7;
+}
+
+/* Rodapé global quando o admin está ativo. */
+.admin-legal-footer {
+  border-top-color: #dfe3e7;
+  color: #717b85;
+  background: #f4f6f8;
+}
+
+.admin-legal-footer a {
+  color: #59636e;
+}
+
+@media (max-width: 800px) {
+  .workspace-shell--admin .workspace-page {
+    width: min(100% - 28px, 1320px);
+    padding-block: 22px calc(var(--workspace-mobile-nav-height) + 28px);
+  }
+
+  .admin-site-header .brand-copy small {
+    display: none;
+  }
+}
