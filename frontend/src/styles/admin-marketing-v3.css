@@ -1,5 +1,6 @@
 .marketing-command-page-v3 {
   gap: 1.15rem;
+  min-width: 0;
   padding-bottom: 2rem;
 }
 
@@ -7,6 +8,14 @@
   align-items: start;
   border-bottom: 1px solid var(--marketing-v2-line);
   padding-bottom: 1rem;
+}
+
+.marketing-command-hero-v3 > *,
+.marketing-command-actions,
+.marketing-command-nav,
+.marketing-command-actions .segmented-control {
+  min-width: 0;
+  max-width: 100%;
 }
 
 .marketing-command-hero-v3 h1 {
@@ -271,6 +280,35 @@
 
 .marketing-command-page-v3 .marketing-sync-heading .eyebrow {
   color: var(--marketing-v2-muted);
+}
+
+/*
+ * O Marketing vive dentro do workspace administrativo, que perde largura para
+ * a sidebar. A troca de layout responde ao container real, não apenas à
+ * viewport, evitando corte dos controles em desktops intermediários.
+ */
+@container admin-marketing (max-width: 1180px) {
+  .marketing-command-hero-v3 {
+    grid-template-columns: 1fr;
+  }
+
+  .marketing-command-actions {
+    width: 100%;
+    justify-items: start;
+  }
+
+  .marketing-command-nav {
+    justify-content: flex-start;
+  }
+
+  .marketing-command-actions .segmented-control {
+    width: min(100%, 560px);
+  }
+
+  .marketing-command-actions .segmented-control button {
+    min-width: 0;
+    flex: 1 1 auto;
+  }
 }
 
 @media (max-width: 980px) {

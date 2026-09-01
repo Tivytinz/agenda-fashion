@@ -108,6 +108,12 @@
   padding-block: 28px 44px;
 }
 
+.workspace-shell--admin .admin-marketing-page {
+  min-width: 0;
+  container-name: admin-marketing;
+  container-type: inline-size;
+}
+
 .workspace-shell--admin .workspace-heading {
   align-items: flex-start;
 }
