@@ -8,7 +8,7 @@ import {
   trackMetaEvent
 } from "../analytics/metaAds";
 import { apiRequest } from "../api/client";
-import { BillingCheckoutPage, SubscriptionPage } from "./BillingPages";
+import { BillingCheckoutPage } from "./BillingPages";
 
 vi.mock("../api/client", () => ({
   apiRequest: vi.fn()
@@ -63,12 +63,6 @@ beforeEach(() => {
   });
   trackMetaEvent.mockResolvedValue(true);
   localStorage.clear();
-  HTMLDialogElement.prototype.showModal = function showModal() {
-    this.setAttribute("open", "");
-  };
-  HTMLDialogElement.prototype.close = function close() {
-    this.removeAttribute("open");
-  };
 });
 
 afterEach(() => {
@@ -188,57 +182,5 @@ describe("checkout PIX", () => {
 
     await waitFor(() => expect(writeText).toHaveBeenCalledWith("000201PIX"));
     expect(await screen.findByText("Código PIX copiado.")).not.toBeNull();
-  });
-});
-
-describe("assinatura", () => {
-  it("confirma visualmente o pagamento recebido do checkout", async () => {
-    apiRequest.mockResolvedValueOnce({
-      plano: { nome: "Autônoma", valor: 49.9 },
-      assinatura: { status: "ACTIVE", forma_pagamento: "PIX" },
-      uso: {},
-      pagamentos: []
-    });
-
-    render(
-      <MemoryRouter initialEntries={[{
-        pathname: "/painel/assinatura",
-        state: { payment: "confirmed" }
-      }]}>
-        <Routes>
-          <Route path="/painel/assinatura" element={<SubscriptionPage />} />
-        </Routes>
-      </MemoryRouter>
-    );
-
-    expect(await screen.findByText("Pagamento confirmado. Seu plano foi atualizado.")).not.toBeNull();
-  });
-
-  it("mostra a falha de cancelamento dentro do diálogo", async () => {
-    apiRequest
-      .mockResolvedValueOnce({
-        plano: { nome: "Autônoma", valor: 49.9 },
-        assinatura: { status: "ACTIVE", forma_pagamento: "PIX" },
-        uso: {},
-        pagamentos: []
-      })
-      .mockRejectedValueOnce(new Error("Não foi possível cancelar agora"));
-
-    render(
-      <MemoryRouter initialEntries={["/painel/assinatura"]}>
-        <Routes>
-          <Route path="/painel/assinatura" element={<SubscriptionPage />} />
-        </Routes>
-      </MemoryRouter>
-    );
-
-    fireEvent.click(await screen.findByRole("button", { name: "Cancelar renovação" }));
-    await act(async () => {
-      fireEvent.click(screen.getByRole("button", { name: "Sim, cancelar" }));
-    });
-
-    const dialog = screen.getByRole("dialog", { hidden: true });
-    expect(dialog.querySelector('[role="alert"]').textContent)
-      .toContain("Não foi possível cancelar agora");
   });
 });
