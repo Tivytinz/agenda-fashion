@@ -27,6 +27,7 @@ import "./styles/business-polish.css";
 import "./styles/subscription-polish.css";
 import "./styles/plans-polish.css";
 import "./styles/account-polish.css";
+import "./styles/admin-shell.css";
 
 installRuntimeRecovery();
 

@@ -94,19 +94,25 @@ export function AppHeader() {
     ? "Área de trabalho"
     : "Criar negócio";
 
+  const headerClassName = [
+    "site-header",
+    homePage ? "home-site-header" : "",
+    adminArea ? "admin-site-header" : ""
+  ]
+    .filter(Boolean)
+    .join(" ");
+
   return (
-    <header
-      className={homePage
-        ? "site-header home-site-header"
-        : "site-header"}
-    >
+    <header className={headerClassName}>
       <div className="container header-content">
         <Link
-          aria-label="Agenda Fashion, início"
+          aria-label={adminArea ? "Agenda Fashion Admin" : "Agenda Fashion, início"}
           className="brand"
-          to={focusedProfessionalLanding
-            ? "/para-profissionais"
-            : "/"}
+          to={adminArea
+            ? "/admin/saude"
+            : focusedProfessionalLanding
+              ? "/para-profissionais"
+              : "/"}
         >
           <span
             aria-hidden="true"
@@ -122,8 +128,8 @@ export function AppHeader() {
           </span>
 
           <span className="brand-copy">
-            <strong>Agenda Fashion</strong>
-            <small>Descubra e agende beleza</small>
+            <strong>{adminArea ? "AF Admin" : "Agenda Fashion"}</strong>
+            <small>{adminArea ? "Operação interna" : "Descubra e agende beleza"}</small>
           </span>
         </Link>
 
