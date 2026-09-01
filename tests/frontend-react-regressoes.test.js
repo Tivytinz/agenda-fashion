@@ -535,7 +535,7 @@ describe(
         expect(
           assinatura
         ).toContain(
-          "O limite é o seu sucesso crescendo"
+          "Seus limites atuais"
         );
 
         expect(
