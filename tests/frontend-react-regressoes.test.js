@@ -468,9 +468,14 @@ describe(
             "frontend/src/components/AppHeader.jsx"
           );
 
-        const cobranca =
+        const assinatura =
           ler(
-            "frontend/src/pages/BillingPages.jsx"
+            "frontend/src/pages/SubscriptionPage.jsx"
+          );
+
+        const planos =
+          ler(
+            "frontend/src/pages/PlansPage.jsx"
           );
 
         expect(
@@ -528,13 +533,13 @@ describe(
         );
 
         expect(
-          cobranca
+          assinatura
         ).toContain(
           "O limite é o seu sucesso crescendo"
         );
 
         expect(
-          cobranca
+          planos
         ).toContain(
           "Planos que acompanham seu sucesso"
         );
