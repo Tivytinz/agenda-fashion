@@ -161,10 +161,11 @@ function NavigationShell({
   ariaLabel,
   children,
   identity,
-  links
+  links,
+  variant = "professional"
 }) {
   return (
-    <div className="workspace-shell">
+    <div className={`workspace-shell workspace-shell--${variant}`}>
       <aside
         className="workspace-sidebar"
         aria-label={ariaLabel}
@@ -201,10 +202,11 @@ export function AdminLayout({ children }) {
       ariaLabel="Administração do Agenda Fashion"
       identity={{
         initial: "AF",
-        title: "Agenda Fashion",
-        subtitle: "Administração global"
+        title: "AF Admin",
+        subtitle: "Operação interna"
       }}
       links={ADMIN_LINKS}
+      variant="admin"
     >
       {children}
     </NavigationShell>
@@ -230,6 +232,7 @@ export function WorkspaceLayout({ children }) {
           : "Área profissional"
       }}
       links={links}
+      variant="professional"
     >
       {children}
     </NavigationShell>
