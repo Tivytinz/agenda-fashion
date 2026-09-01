@@ -197,6 +197,16 @@ function NavigationShell({
 }
 
 export function AdminLayout({ children }) {
+  const { pathname } = useLocation();
+
+  useEffect(() => {
+    if (!pathname.startsWith("/admin/trafego-pago")) return;
+
+    void import("../styles/admin-marketing-entry.js").catch((error) => {
+      console.error("Falha ao carregar estilos do Marketing administrativo.", error);
+    });
+  }, [pathname]);
+
   return (
     <NavigationShell
       ariaLabel="Administração do Agenda Fashion"
