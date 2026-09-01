@@ -502,6 +502,8 @@ async function listarMeusAgendamentos(
       SELECT
         a.id,
         a.negocio_id,
+        a.servico_id,
+        a.profissional_id,
 
         TO_CHAR(
           a.data,

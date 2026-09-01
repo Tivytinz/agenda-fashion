@@ -1,19 +1,15 @@
 // @vitest-environment jsdom
 
-import { cleanup, render, screen } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
+import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { apiRequest } from "../api/client";
-import { track } from "../analytics/track";
 import { ProfessionalOnboardingChecklist } from "./ProfessionalOnboardingChecklist";
 
 vi.mock("../api/client", () => ({ apiRequest: vi.fn() }));
-vi.mock("../analytics/track", () => ({ track: vi.fn() }));
 
 beforeEach(() => {
   apiRequest.mockReset();
-  track.mockReset();
 });
 
 afterEach(cleanup);
@@ -94,15 +90,8 @@ describe("onboarding profissional", () => {
       .getAttribute("href")).toBe("/painel/horarios");
   });
 
-  it("transforma a ativação concluída em missão de divulgação vinculada ao negócio", async () => {
-    const share = vi.fn().mockResolvedValue();
-
-    Object.defineProperty(navigator, "share", {
-      configurable: true,
-      value: share
-    });
-
-    renderChecklist({
+  it("sai do dashboard quando a ativação termina e deixa a próxima missão para o DashboardNextAction", () => {
+    const { container } = renderChecklist({
       publication: {
         publicado: true,
         pode_publicar: true,
@@ -111,25 +100,9 @@ describe("onboarding profissional", () => {
       scheduleConfigured: true
     });
 
-    expect(screen.getByText("4 de 4")).not.toBeNull();
-    expect(screen.getByRole("heading", {
-      name: "Sua agenda está pronta. Agora traga seu primeiro agendamento"
-    })).not.toBeNull();
-
-    await userEvent.click(
-      screen.getByRole("button", { name: "Compartilhar perfil" })
-    );
-
-    expect(track).toHaveBeenCalledWith(
-      "link_negocio_compartilhado",
-      expect.objectContaining({
-        businessId: 7,
-        page: "dashboard_dono",
-        mission: "gerenciar_crescimento"
-      })
-    );
-    expect(screen.getByRole("link", { name: "Ver meu perfil público" })
-      .getAttribute("href")).toBe("/negocio/studio-victor");
+    expect(container.innerHTML).toBe("");
+    expect(screen.queryByText("Primeiros passos")).toBeNull();
+    expect(screen.queryByText("Configuração concluída")).toBeNull();
   });
 
   it("consulta o marco real da agenda quando a página não fornece o estado", async () => {
@@ -138,7 +111,7 @@ describe("onboarding profissional", () => {
       configurado_em: "2026-08-28T22:00:00.000Z"
     });
 
-    renderChecklist({
+    const { container } = renderChecklist({
       publication: {
         publicado: true,
         pode_publicar: true,
@@ -147,11 +120,13 @@ describe("onboarding profissional", () => {
       scheduleConfigured: undefined
     });
 
-    expect(await screen.findByText("4 de 4")).not.toBeNull();
-    expect(apiRequest).toHaveBeenCalledWith(
-      "/agenda-configuracao/status",
-      expect.objectContaining({ signal: expect.any(AbortSignal) })
-    );
+    await waitFor(() => {
+      expect(apiRequest).toHaveBeenCalledWith(
+        "/agenda-configuracao/status",
+        expect.objectContaining({ signal: expect.any(AbortSignal) })
+      );
+      expect(container.innerHTML).toBe("");
+    });
   });
 
   it("não declara sucesso quando a leitura da agenda falha", async () => {

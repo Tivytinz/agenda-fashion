@@ -14,6 +14,8 @@ vi.mock("../auth/SessionContext", () => ({ useSession: vi.fn() }));
 const APPOINTMENT = {
   id: 12,
   negocio_id: 4,
+  servico_id: 9,
+  profissional_id: 3,
   negocio: "Studio Aurora",
   slug: "studio-aurora",
   servico: "Manicure",
@@ -42,7 +44,7 @@ beforeEach(() => {
 afterEach(cleanup);
 
 describe("agenda da cliente", () => {
-  it("relaciona as três abas ao conteúdo e permite navegar pelo teclado", async () => {
+  it("relaciona as três abas ao conteúdo, navega pelo teclado e facilita repetir o serviço", async () => {
     useSession.mockReturnValue({ authenticated: true, loading: false });
     apiRequest.mockResolvedValue({
       agendamentos: [
@@ -67,6 +69,31 @@ describe("agenda da cliente", () => {
     expect(completedTab.getAttribute("aria-selected")).toBe("true");
     expect(document.activeElement).toBe(completedTab);
     expect(screen.getByRole("tabpanel").textContent).toContain("Pedicure");
+
+    const repeatLink = screen.getByRole("link", { name: "Agendar novamente" });
+    expect(repeatLink.getAttribute("href"))
+      .toBe("/negocio/studio-aurora?servico=9");
+    expect(repeatLink.getAttribute("href")).not.toContain("profissional");
+  });
+
+  it("mantém o histórico legado utilizável quando não existe servico_id", async () => {
+    useSession.mockReturnValue({ authenticated: true, loading: false });
+    apiRequest.mockResolvedValue({
+      agendamentos: [{
+        ...APPOINTMENT,
+        id: 14,
+        status: "realizado",
+        servico_id: null
+      }]
+    });
+
+    render(<MemoryRouter><MyAppointmentsPage /></MemoryRouter>);
+
+    fireEvent.click(await screen.findByRole("tab", { name: /Realizados/ }));
+
+    expect(screen.queryByRole("link", { name: "Agendar novamente" })).toBeNull();
+    expect(screen.getByRole("link", { name: "Ver negócio" })
+      .getAttribute("href")).toBe("/negocio/studio-aurora");
   });
 
   it("mantém o diálogo aberto e mostra o erro quando o cancelamento falha", async () => {

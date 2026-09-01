@@ -1,8 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { apiRequest } from "../api/client";
-import { ConfirmationIcon } from "./ConfirmationIcon";
-import { PublicShareButton } from "./PublicShareButton";
 
 const SERVICE_PENDING = "pelo menos um serviço ativo";
 const SCHEDULE_PENDING = "confirmar os horários de atendimento";
@@ -97,8 +95,6 @@ export function buildOnboardingSteps({ publication, scheduleConfigured }) {
 }
 
 export function ProfessionalOnboardingChecklist({
-  businessId,
-  businessSlug,
   loading,
   publication,
   scheduleConfigured: scheduleConfiguredProp
@@ -167,45 +163,7 @@ export function ProfessionalOnboardingChecklist({
   const nextStep = steps.find((step) => !step.complete);
   const progress = Math.round((completed / steps.length) * 100);
 
-  if (!nextStep) {
-    return (
-      <section className="panel onboarding-panel is-complete">
-        <div className="onboarding-complete-copy">
-          <p className="eyebrow onboarding-complete-eyebrow">
-            <ConfirmationIcon className="onboarding-complete-icon" />
-            <span>Configuração concluída</span>
-          </p>
-          <h2>Sua agenda está pronta. Agora traga seu primeiro agendamento</h2>
-          <p className="muted">
-            Compartilhe seu perfil para levar clientes direto aos seus serviços e horários disponíveis.
-          </p>
-        </div>
-        <div className="onboarding-complete-actions">
-          <strong className="onboarding-progress-label">
-            {completed} de {steps.length}
-          </strong>
-          {businessSlug && (
-            <>
-              <PublicShareButton
-                businessId={businessId}
-                businessSlug={businessSlug}
-                className="button"
-                label="Compartilhar perfil"
-                trackingMission="gerenciar_crescimento"
-                trackingPage="dashboard_dono"
-              />
-              <Link
-                className="button button-secondary"
-                to={`/negocio/${encodeURIComponent(businessSlug)}`}
-              >
-                Ver meu perfil público <span aria-hidden="true">↗</span>
-              </Link>
-            </>
-          )}
-        </div>
-      </section>
-    );
-  }
+  if (!nextStep) return null;
 
   return (
     <section className="panel onboarding-panel">
