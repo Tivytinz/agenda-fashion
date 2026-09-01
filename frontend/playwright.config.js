@@ -43,6 +43,22 @@ export default defineConfig({
         browserName: "chromium",
         viewport: { width: 390, height: 844 }
       }
+    },
+    {
+      name: "desktop-chromium-admin",
+      testMatch: /admin-desktop\.spec\.js/,
+      use: {
+        browserName: "chromium",
+        viewport: { width: 1366, height: 768 }
+      }
+    },
+    {
+      name: "desktop-webkit-admin",
+      testMatch: /admin-desktop\.spec\.js/,
+      use: {
+        browserName: "webkit",
+        viewport: { width: 1366, height: 768 }
+      }
     }
   ],
   webServer: {
