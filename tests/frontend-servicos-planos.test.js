@@ -39,12 +39,12 @@ describe("Sprint de catálogo, planos e navegação", () => {
 
   test("mantém retornos contextuais nas telas prioritárias", () => {
     const services = ler("frontend/src/pages/ServicesPage.jsx");
-    const billing = ler("frontend/src/pages/BillingPages.jsx");
+    const plans = ler("frontend/src/pages/PlansPage.jsx");
     const account = ler("frontend/src/pages/AccountPage.jsx");
     const business = ler("frontend/src/pages/BusinessPage.jsx");
 
     expect(services).toContain("Voltar aos serviços");
-    expect(billing).toContain("Voltar ao plano e assinatura");
+    expect(plans).toContain("Voltar ao plano e assinatura");
     expect(account).toContain("Voltar à área de trabalho");
     expect(business).toContain("Voltar ao início");
     expect(business).toContain("Voltar aos planos");

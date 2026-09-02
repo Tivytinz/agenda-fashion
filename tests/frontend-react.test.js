@@ -402,6 +402,9 @@ describe(
         const cobranca = ler(
           "frontend/src/pages/BillingPages.jsx"
         );
+        const assinatura = ler(
+          "frontend/src/pages/SubscriptionPage.jsx"
+        );
         const planos = ler(
           "frontend/src/utils/plans.js"
         );
@@ -433,7 +436,7 @@ describe(
         expect(cobranca).toContain(
           '"Idempotency-Key"'
         );
-        expect(cobranca).toContain(
+        expect(assinatura).toContain(
           '"/minha-assinatura"'
         );
         expect(cobranca).toContain(

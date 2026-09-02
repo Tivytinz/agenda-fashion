@@ -10,9 +10,9 @@ vi.mock("../api/client", () => ({
   apiRequest: vi.fn()
 }));
 
-function renderPage() {
+function renderPage(initialEntry = "/painel/assinatura") {
   return render(
-    <MemoryRouter initialEntries={["/painel/assinatura"]}>
+    <MemoryRouter initialEntries={[initialEntry]}>
       <SubscriptionPage />
     </MemoryRouter>
   );
@@ -33,6 +33,24 @@ afterEach(() => {
 });
 
 describe("plano e assinatura", () => {
+  it("confirma visualmente o pagamento recebido do checkout", async () => {
+    apiRequest.mockResolvedValueOnce({
+      plano: { id: 2, slug: "autonoma", nome: "Autônoma", valor: 49.9 },
+      assinatura: { status: "ACTIVE", ativo: true, forma_pagamento: "pix" },
+      uso: {},
+      pagamentos: []
+    });
+
+    renderPage({
+      pathname: "/painel/assinatura",
+      state: { payment: "confirmed" }
+    });
+
+    expect(
+      await screen.findByText("Pagamento confirmado. Seu plano foi atualizado.")
+    ).not.toBeNull();
+  });
+
   it("mostra plano para ativar e leva o excesso de limite direto ao checkout", async () => {
     apiRequest.mockResolvedValueOnce({
       plano: { id: 2, slug: "autonoma", nome: "Autônoma", valor: 49.9 },
