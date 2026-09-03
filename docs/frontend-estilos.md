@@ -36,6 +36,26 @@ As três rotas administrativas de Marketing carregam `admin-marketing.css` no me
 
 A folha mobile de campanhas também deixou de ser referenciada diretamente por `frontend/index.html`, evitando carregar CSS administrativo na experiência pública ou profissional.
 
+## Estilos específicos das rotas
+
+Páginas já carregadas por `React.lazy` devem manter seus refinamentos visuais fora de `main.jsx` quando o ownership do CSS for exclusivo daquela feature. O carregamento do estilo deve acontecer junto da mesma rota, antes da renderização da página, evitando tanto CSS global desnecessário quanto flash de conteúdo sem estilo.
+
+O primeiro grupo migrado segue esse padrão:
+
+- `DashboardPage`: `dashboard-polish.css`;
+- `AgendaWorkspacePage`: `agenda-polish.css`;
+- `ScheduleSettingsPage`: `schedule-polish.css`;
+- `ServicesPage` e `ServiceEditorPage`: `service-media-polish.css` e `service-catalog-polish.css`;
+- `BusinessPage`: `business-polish.css`;
+- `SubscriptionPage`: `subscription-polish.css`;
+- `PlansPage`: `plans-polish.css`.
+
+Esses estilos são carregados pelo mesmo helper `lazyNamedWithStyles` usado pelo Marketing administrativo. O Vite pode então associar os recursos ao carregamento das rotas correspondentes, enquanto `main.jsx` permanece responsável apenas por fundações e estilos realmente compartilhados.
+
+Não mover um arquivo apenas pelo nome. Antes é obrigatório verificar seletores compartilhados, componentes usados em mais de uma rota e a ordem da cascata. Por isso `home-discovery.css`, `profile-polish.css`, `account-polish.css`, `admin-saas-health.css` e `admin-whatsapp.css` permanecem globais nesta etapa: eles ainda atravessam header global, confirmação de agendamento, conta em múltiplos shells ou o tema administrativo e exigem auditoria própria antes de qualquer isolamento.
+
+O teste `tests/frontend-route-css-regressoes.test.js` protege esse ownership: estilos já migrados não podem voltar para `main.jsx`, e suas páginas devem continuar usando carregamento lazy sincronizado com o CSS.
+
 ## Responsividade do admin
 
 O workspace administrativo possui sidebar fixa em desktop, portanto a largura útil de uma página é menor que a viewport. O Marketing define `admin-marketing-page` como container inline e reorganiza o cabeçalho conforme esse espaço real.
@@ -51,4 +71,5 @@ Antes de adicionar CSS novo:
 - evitar sobrescrever uma regra antiga se ela puder ser substituída com segurança;
 - não criar uma nova geração `vN` para corrigir outra geração;
 - manter uma entrada canônica por feature e módulos internos com nomes de responsabilidade;
+- carregar CSS exclusivo junto da rota lazy correspondente, em vez de adicioná-lo à entrada global;
 - testar faixas intermediárias de largura, não apenas celular e desktop grande.
