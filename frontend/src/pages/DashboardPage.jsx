@@ -13,20 +13,17 @@ const PERIODS = [
 ];
 
 function formatPercent(value) {
-  return new Intl.NumberFormat("pt-BR", {
-    maximumFractionDigits: 1
-  }).format(Number(value) || 0);
+  return new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 1 })
+    .format(Number(value) || 0);
 }
 
 function customerOriginHint(item) {
   if (item?.codigo === "autonomo") {
     return "Sem sinal de anúncio, referência externa ou link rastreável do AF. Pode ser acesso direto, favorito ou link manual sem identificação.";
   }
-
   if (item?.codigo === "nao_identificado") {
     return "O agendamento existe, mas faltou rastreamento histórico suficiente para identificar a origem.";
   }
-
   return item?.descricao || "Origem identificada pelo primeiro agendamento conhecido.";
 }
 
@@ -73,10 +70,7 @@ export function DashboardPage() {
     ])
       .then(([result, customerOrigin]) => {
         if (active) {
-          setData({
-            ...result,
-            origem_clientes: customerOrigin
-          });
+          setData({ ...result, origem_clientes: customerOrigin });
         }
       })
       .catch((requestError) => {
@@ -101,11 +95,9 @@ export function DashboardPage() {
     apiRequest("/conta", { signal: controller.signal })
       .then((result) => {
         if (!active) return;
-
         setWhatsappReminders((current) => ({
           ...current,
-          enabled:
-            result.usuario?.aceita_lembretes_whatsapp === true,
+          enabled: result.usuario?.aceita_lembretes_whatsapp === true,
           operationalEnabled:
             result.usuario?.aceita_alertas_operacionais_whatsapp === true,
           error: ""
@@ -128,28 +120,15 @@ export function DashboardPage() {
   }, []);
 
   async function enableWhatsappReminders() {
-    setWhatsappReminders((current) => ({
-      ...current,
-      error: "",
-      saving: true
-    }));
-
+    setWhatsappReminders((current) => ({ ...current, error: "", saving: true }));
     try {
-      const result = await apiRequest(
-        "/conta/preferencias-whatsapp",
-        {
-          method: "PUT",
-          body: {
-            aceitaLembretes: true,
-            origem: "painel"
-          }
-        }
-      );
-
+      const result = await apiRequest("/conta/preferencias-whatsapp", {
+        method: "PUT",
+        body: { aceitaLembretes: true, origem: "painel" }
+      });
       setWhatsappReminders((current) => ({
         ...current,
-        enabled:
-          result.preferencia?.aceita_lembretes_whatsapp === true,
+        enabled: result.preferencia?.aceita_lembretes_whatsapp === true,
         operationalEnabled:
           result.preferencia?.aceita_alertas_operacionais_whatsapp === undefined
             ? current.operationalEnabled
@@ -167,24 +146,12 @@ export function DashboardPage() {
   }
 
   async function enableOperationalWhatsappAlerts() {
-    setWhatsappReminders((current) => ({
-      ...current,
-      error: "",
-      saving: true
-    }));
-
+    setWhatsappReminders((current) => ({ ...current, error: "", saving: true }));
     try {
-      const result = await apiRequest(
-        "/conta/preferencias-whatsapp",
-        {
-          method: "PUT",
-          body: {
-            aceitaAlertasOperacionais: true,
-            origem: "painel"
-          }
-        }
-      );
-
+      const result = await apiRequest("/conta/preferencias-whatsapp", {
+        method: "PUT",
+        body: { aceitaAlertasOperacionais: true, origem: "painel" }
+      });
       setWhatsappReminders((current) => ({
         ...current,
         operationalEnabled:
@@ -202,12 +169,22 @@ export function DashboardPage() {
   }
 
   function selectPeriod(value) {
-    if (value === period) return;
-    setPeriod(value);
+    if (value !== period) setPeriod(value);
   }
 
-  if (!data && !error) return <div className="workspace-page"><LoadingState>Montando seu painel...</LoadingState></div>;
-  if (!data && error) return <div className="workspace-page"><ErrorState message={error} onRetry={() => setReloadKey((current) => current + 1)} /></div>;
+  if (!data && !error) {
+    return <div className="workspace-page"><LoadingState>Montando seu painel...</LoadingState></div>;
+  }
+  if (!data && error) {
+    return (
+      <div className="workspace-page">
+        <ErrorState
+          message={error}
+          onRetry={() => setReloadKey((current) => current + 1)}
+        />
+      </div>
+    );
+  }
 
   const summary = data.resumo || {};
   const performance = data.performance || {};
@@ -243,7 +220,13 @@ export function DashboardPage() {
         </div>
         <div className="segmented-control" aria-label="Período">
           {PERIODS.map(([value, label]) => (
-            <button aria-pressed={period === value} className={period === value ? "active" : ""} key={value} onClick={() => selectPeriod(value)} type="button">
+            <button
+              aria-pressed={period === value}
+              className={period === value ? "active" : ""}
+              key={value}
+              onClick={() => selectPeriod(value)}
+              type="button"
+            >
               {label}
             </button>
           ))}
@@ -253,20 +236,23 @@ export function DashboardPage() {
       {refreshing && <p className="data-refresh-status" role="status">Atualizando indicadores...</p>}
       {error && <p className="form-error" role="alert">{error} Os últimos dados carregados continuam visíveis.</p>}
 
+      <DashboardNextAction
+        nextAction={data.proxima_acao_ativacao}
+        activation={data.ativacao}
+        businessId={data.negocio?.negocio_id}
+        businessName={data.negocio?.nome}
+        businessSlug={data.negocio?.slug}
+      />
+
       {whatsappReminders.operationalEnabled === false && (
-        <section
-          aria-labelledby="whatsapp-operational-title"
-          className="panel whatsapp-reminders-panel"
-        >
+        <section aria-labelledby="whatsapp-operational-title" className="panel whatsapp-reminders-panel">
           <div>
             <p className="eyebrow">Avisos de agendamento</p>
-            <h2 id="whatsapp-operational-title">
-              Acompanhe sua agenda pelo WhatsApp
-            </h2>
+            <h2 id="whatsapp-operational-title">Acompanhe sua agenda pelo WhatsApp</h2>
             <p className="muted">
-              Autorize avisos operacionais do Agenda Fashion sobre novos
-              agendamentos, lembretes, alterações e cancelamentos. Não inclui
-              promoções e você pode desativar quando quiser.
+              Autorize avisos operacionais do Agenda Fashion sobre novos agendamentos,
+              lembretes, alterações e cancelamentos. Não inclui promoções e você pode
+              desativar quando quiser.
             </p>
           </div>
           <div className="whatsapp-reminders-actions">
@@ -276,32 +262,22 @@ export function DashboardPage() {
               onClick={enableOperationalWhatsappAlerts}
               type="button"
             >
-              {whatsappReminders.saving
-                ? "Ativando..."
-                : "Ativar avisos de agendamento"}
+              {whatsappReminders.saving ? "Ativando..." : "Ativar avisos de agendamento"}
             </button>
-            <Link className="text-button" to="/conta">
-              Gerenciar em Minha conta
-            </Link>
+            <Link className="text-button" to="/conta">Gerenciar em Minha conta</Link>
           </div>
         </section>
       )}
 
       {whatsappReminders.enabled === false && (
-        <section
-          aria-labelledby="whatsapp-reminders-title"
-          className="panel whatsapp-reminders-panel"
-        >
+        <section aria-labelledby="whatsapp-reminders-title" className="panel whatsapp-reminders-panel">
           <div>
             <p className="eyebrow">Acompanhamento pelo WhatsApp</p>
-            <h2 id="whatsapp-reminders-title">
-              Não deixe seu negócio parado
-            </h2>
+            <h2 id="whatsapp-reminders-title">Não deixe seu negócio parado</h2>
             <p className="muted">
               Autorize até três orientações, com intervalo mínimo de três dias,
               para cadastrar seu primeiro serviço e, quando sua agenda estiver pronta,
-              divulgar seu perfil.
-              Você pode desativar em Minha conta ou responder PARAR MARKETING.
+              divulgar seu perfil. Você pode desativar em Minha conta ou responder PARAR MARKETING.
             </p>
           </div>
           <div className="whatsapp-reminders-actions">
@@ -311,18 +287,12 @@ export function DashboardPage() {
               onClick={enableWhatsappReminders}
               type="button"
             >
-              {whatsappReminders.saving
-                ? "Ativando..."
-                : "Ativar lembretes no WhatsApp"}
+              {whatsappReminders.saving ? "Ativando..." : "Ativar lembretes no WhatsApp"}
             </button>
-            <Link className="text-button" to="/conta">
-              Gerenciar em Minha conta
-            </Link>
+            <Link className="text-button" to="/conta">Gerenciar em Minha conta</Link>
           </div>
           {whatsappReminders.error && (
-            <p className="form-error" role="alert">
-              {whatsappReminders.error}
-            </p>
+            <p className="form-error" role="alert">{whatsappReminders.error}</p>
           )}
         </section>
       )}
@@ -357,45 +327,24 @@ export function DashboardPage() {
               </div>
               <div>
                 <dt>Tráfego pago</dt>
-                <dd>
-                  {customerOriginSummary.clientesPagos ?? 0}
-                  <small> · {formatPercent(customerOriginSummary.percentualPago)}%</small>
-                </dd>
+                <dd>{customerOriginSummary.clientesPagos ?? 0}<small> · {formatPercent(customerOriginSummary.percentualPago)}%</small></dd>
               </div>
               <div>
                 <dt>Tráfego orgânico</dt>
-                <dd>
-                  {customerOriginSummary.clientesOrganicos ?? 0}
-                  <small> · {formatPercent(customerOriginSummary.percentualOrganico)}%</small>
-                </dd>
+                <dd>{customerOriginSummary.clientesOrganicos ?? 0}<small> · {formatPercent(customerOriginSummary.percentualOrganico)}%</small></dd>
               </div>
               <div>
                 <dt>Acesso autônomo</dt>
-                <dd>
-                  {customerOriginSummary.clientesAutonomos ?? 0}
-                  <small> · {formatPercent(customerOriginSummary.percentualAutonomo)}%</small>
-                </dd>
+                <dd>{customerOriginSummary.clientesAutonomos ?? 0}<small> · {formatPercent(customerOriginSummary.percentualAutonomo)}%</small></dd>
               </div>
             </dl>
 
             {(Number(customerOriginSummary.clientesPagos) > 0 || Number(customerOriginSummary.clientesOrganicos) > 0) && (
               <dl className="data-list" aria-label="Resultado por tipo de tráfego">
-                <div>
-                  <dt>Pago · agendamentos</dt>
-                  <dd>{customerOriginSummary.agendamentosPagos ?? 0}</dd>
-                </div>
-                <div>
-                  <dt>Pago · faturamento</dt>
-                  <dd>{formatCurrency(customerOriginSummary.faturamentoPago)}</dd>
-                </div>
-                <div>
-                  <dt>Orgânico · agendamentos</dt>
-                  <dd>{customerOriginSummary.agendamentosOrganicos ?? 0}</dd>
-                </div>
-                <div>
-                  <dt>Orgânico · faturamento</dt>
-                  <dd>{formatCurrency(customerOriginSummary.faturamentoOrganico)}</dd>
-                </div>
+                <div><dt>Pago · agendamentos</dt><dd>{customerOriginSummary.agendamentosPagos ?? 0}</dd></div>
+                <div><dt>Pago · faturamento</dt><dd>{formatCurrency(customerOriginSummary.faturamentoPago)}</dd></div>
+                <div><dt>Orgânico · agendamentos</dt><dd>{customerOriginSummary.agendamentosOrganicos ?? 0}</dd></div>
+                <div><dt>Orgânico · faturamento</dt><dd>{formatCurrency(customerOriginSummary.faturamentoOrganico)}</dd></div>
               </dl>
             )}
 
@@ -452,14 +401,6 @@ export function DashboardPage() {
             <div><dt>Favoritos recebidos</dt><dd>{performance.favoritos_recebidos ?? 0}</dd></div>
           </dl>
         </article>
-
-        <DashboardNextAction
-          nextAction={data.proxima_acao_ativacao}
-          activation={data.ativacao}
-          businessId={data.negocio?.negocio_id}
-          businessName={data.negocio?.nome}
-          businessSlug={data.negocio?.slug}
-        />
       </section>
 
       {Array.isArray(data.ranking_servicos) && data.ranking_servicos.length > 0 && (
