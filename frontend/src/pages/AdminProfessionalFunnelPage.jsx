@@ -4,8 +4,8 @@ import {
   useState
 } from "react";
 import { apiRequest } from "../api/client";
-import { MarketingBarChart } from "../components/MarketingBarChart";
 import { MarketingExecutivePanel } from "../components/MarketingExecutivePanel";
+import { ProfessionalFunnelExecutiveOverview } from "../components/ProfessionalFunnelExecutiveOverview";
 import { ProfessionalPostAgendaFunnel } from "../components/ProfessionalPostAgendaFunnel";
 import { ProfessionalRecurrencePanel } from "../components/ProfessionalRecurrencePanel";
 import {
@@ -373,6 +373,7 @@ export function AdminProfessionalFunnelPage() {
         2
       ) ?? 0
     ],
+    ["Negócio publicado", summary.negociosPublicados ?? 0, summary.taxaPublicacao ?? 0],
     [
       "Agenda configurada",
       summary.agendasConfiguradas ?? 0,
@@ -382,7 +383,6 @@ export function AdminProfessionalFunnelPage() {
         2
       ) ?? 0
     ],
-    ["Negócio publicado", summary.negociosPublicados ?? 0, summary.taxaPublicacao ?? 0],
     [
       "Primeiro agendamento",
       summary.primeirosAgendamentos ?? 0,
@@ -395,26 +395,6 @@ export function AdminProfessionalFunnelPage() {
     ["Checkout iniciado", summary.checkoutsIniciados ?? 0, summary.taxaCheckout ?? 0],
     ["Assinatura ativada", summary.assinaturasAtivadas ?? 0, summary.taxaAssinatura ?? 0]
   ];
-
-  const stageChartItems = stages.map(([label, value, rate]) => ({
-    key: label,
-    label,
-    value: rate,
-    formattedValue: `${rate}%`,
-    secondary: `${value} profissionais`
-  }));
-
-  const roasChartItems = (measurementReady ? campaigns : [])
-    .filter((item) => Number.isFinite(Number(item.roas)) && Number(item.roas) > 0)
-    .sort((a, b) => Number(b.roas) - Number(a.roas))
-    .slice(0, 8)
-    .map((item) => ({
-      key: campaignKey(item),
-      label: campaignLabel(item),
-      value: Number(item.roas),
-      formattedValue: formatRoas(item.roas),
-      secondary: `${sourceMeta(item).label} · CAC ${formatMoney(item.cacAssinanteCentavos)}`
-    }));
 
   return (
     <main
@@ -461,6 +441,8 @@ export function AdminProfessionalFunnelPage() {
           </article>
         ))}
       </section>
+
+      <ProfessionalFunnelExecutiveOverview summary={summary} />
 
       <MarketingExecutivePanel
         action={!measurementReady
@@ -621,18 +603,10 @@ export function AdminProfessionalFunnelPage() {
         </div>
 
         <div className="admin-insights-grid">
-          <MarketingBarChart
-            title="Atingimento por marco"
-            description="Percentual de todos os cadastros profissionais do período que já alcançou cada marco."
-            items={stageChartItems}
-            emptyMessage="Ainda não há profissionais cadastrados neste período."
-            variant="none"
-          />
-
           <div className="admin-stat-table-card">
             <div className="admin-stat-table-heading">
-              <strong>Detalhamento do funil</strong>
-              <small>Quantidade e participação sobre todos os cadastros profissionais do período.</small>
+              <strong>Detalhamento dos marcos</strong>
+              <small>Quantidade e cobertura sobre todos os cadastros profissionais do período.</small>
             </div>
             <div className="table-wrap">
               <table className="admin-compact-table">
@@ -675,16 +649,6 @@ export function AdminProfessionalFunnelPage() {
             </p>
           </div>
         </div>
-
-        <MarketingBarChart
-          title="ROAS por campanha"
-          description="Comparação das campanhas com ROAS calculável no período."
-          items={roasChartItems}
-          emptyMessage={measurementReady
-            ? "Nenhuma campanha possui investimento e receita suficientes para calcular ROAS neste período."
-            : "ROAS oculto enquanto a cobertura de atribuição estiver incompleta."}
-          variant="none"
-        />
 
         {campaigns.length === 0 ? (
           <p className="muted">Ainda não há campanhas com atribuição oficial nesta coorte.</p>
