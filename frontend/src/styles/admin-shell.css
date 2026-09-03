@@ -108,12 +108,6 @@
   padding-block: 28px 44px;
 }
 
-.workspace-shell--admin .admin-marketing-page {
-  min-width: 0;
-  container-name: admin-marketing;
-  container-type: inline-size;
-}
-
 .workspace-shell--admin .workspace-heading {
   align-items: flex-start;
 }
@@ -231,70 +225,6 @@
 .workspace-shell--admin td,
 .workspace-shell--admin th {
   border-color: #e7eaed;
-}
-
-/* Marketing: mantém a arquitetura de informação, mas remove o branding rosa. */
-.workspace-shell--admin .marketing-command-page {
-  --marketing-v2-accent: #59636e;
-  --marketing-v2-accent-dark: #343d46;
-  --marketing-v2-ink: #20262d;
-  --marketing-v2-muted: #66717d;
-  --marketing-v2-line: #dfe3e7;
-  --marketing-v2-soft: #f6f7f8;
-  --marketing-v2-success: #28734f;
-}
-
-.workspace-shell--admin .marketing-command-nav a,
-.workspace-shell--admin .marketing-command-nav span,
-.workspace-shell--admin .marketing-trust-chip,
-.workspace-shell--admin .marketing-funnel-stage,
-.workspace-shell--admin .marketing-kpi-card,
-.workspace-shell--admin .marketing-ga4-kpis-v3 article {
-  border-color: var(--admin-line);
-  background: #fff;
-  box-shadow: none;
-}
-
-.workspace-shell--admin .marketing-command-nav span[aria-current="page"] {
-  border-color: #bdc5cc;
-  background: #edf0f3;
-  color: #343d46;
-}
-
-.workspace-shell--admin .marketing-health-strip,
-.workspace-shell--admin .marketing-journey-card,
-.workspace-shell--admin .marketing-ga4-kpis-v3 article {
-  border-color: var(--admin-line);
-  background: #fff;
-}
-
-.workspace-shell--admin .marketing-health-strip,
-.workspace-shell--admin .marketing-journey-card,
-.workspace-shell--admin .marketing-funnel-panel-v3,
-.workspace-shell--admin .marketing-analysis-panel-v3,
-.workspace-shell--admin .marketing-ga4-panel-v3,
-.workspace-shell--admin .marketing-trust-bar {
-  box-shadow: 0 5px 16px rgb(24 31 38 / 4%);
-}
-
-.workspace-shell--admin .marketing-journey-index,
-.workspace-shell--admin .marketing-funnel-step {
-  background: #e9edf1;
-  color: #343d46;
-}
-
-.workspace-shell--admin .marketing-journey-card:not(:last-child)::after {
-  border-color: #dfe3e7;
-  color: #7a8590;
-}
-
-.workspace-shell--admin .marketing-funnel-stage:not(:last-child)::after {
-  background: #cbd2d8;
-}
-
-.workspace-shell--admin .marketing-command-page-v3 .marketing-sync-panel {
-  border-color: #cfd5db;
-  background: #fafbfc;
 }
 
 /* Saúde: cor comunica estado, não marca. */

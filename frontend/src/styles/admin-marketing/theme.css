@@ -1,0 +1,79 @@
+/*
+ * Tema neutro da feature Marketing dentro do console administrativo.
+ *
+ * O shell fornece os tokens administrativos. A feature decide como aplicá-los.
+ * Os aliases `--marketing-v2-*` permanecem apenas para compatibilidade interna
+ * dos módulos consolidados e não devem ser usados em CSS novo.
+ */
+.workspace-shell--admin .admin-marketing-page {
+  min-width: 0;
+  container-name: admin-marketing;
+  container-type: inline-size;
+  --marketing-accent: var(--admin-accent);
+  --marketing-accent-dark: var(--admin-accent-dark);
+  --marketing-ink: var(--admin-ink);
+  --marketing-muted: var(--admin-muted);
+  --marketing-line: var(--admin-line);
+  --marketing-soft: var(--admin-surface-soft);
+  --marketing-success: var(--admin-success);
+  --marketing-v2-accent: var(--marketing-accent);
+  --marketing-v2-accent-dark: var(--marketing-accent-dark);
+  --marketing-v2-ink: var(--marketing-ink);
+  --marketing-v2-muted: var(--marketing-muted);
+  --marketing-v2-line: var(--marketing-line);
+  --marketing-v2-soft: var(--marketing-soft);
+  --marketing-v2-success: var(--marketing-success);
+}
+
+.workspace-shell--admin .marketing-command-nav a,
+.workspace-shell--admin .marketing-command-nav span,
+.workspace-shell--admin .marketing-trust-chip,
+.workspace-shell--admin .marketing-funnel-stage,
+.workspace-shell--admin .marketing-kpi-card,
+.workspace-shell--admin .marketing-ga4-kpis-v3 article {
+  border-color: var(--admin-line);
+  background: #fff;
+  box-shadow: none;
+}
+
+.workspace-shell--admin .marketing-command-nav span[aria-current="page"] {
+  border-color: #bdc5cc;
+  background: #edf0f3;
+  color: var(--admin-accent-dark);
+}
+
+.workspace-shell--admin .marketing-health-strip,
+.workspace-shell--admin .marketing-journey-card,
+.workspace-shell--admin .marketing-ga4-kpis-v3 article {
+  border-color: var(--admin-line);
+  background: #fff;
+}
+
+.workspace-shell--admin .marketing-health-strip,
+.workspace-shell--admin .marketing-journey-card,
+.workspace-shell--admin .marketing-funnel-panel-v3,
+.workspace-shell--admin .marketing-analysis-panel-v3,
+.workspace-shell--admin .marketing-ga4-panel-v3,
+.workspace-shell--admin .marketing-trust-bar {
+  box-shadow: 0 5px 16px rgb(24 31 38 / 4%);
+}
+
+.workspace-shell--admin .marketing-journey-index,
+.workspace-shell--admin .marketing-funnel-step {
+  background: var(--admin-soft-strong);
+  color: var(--admin-accent-dark);
+}
+
+.workspace-shell--admin .marketing-journey-card:not(:last-child)::after {
+  border-color: var(--admin-line);
+  color: #7a8590;
+}
+
+.workspace-shell--admin .marketing-funnel-stage:not(:last-child)::after {
+  background: #cbd2d8;
+}
+
+.workspace-shell--admin .marketing-command-page-v3 .marketing-sync-panel {
+  border-color: var(--admin-line-strong);
+  background: #fafbfc;
+}
