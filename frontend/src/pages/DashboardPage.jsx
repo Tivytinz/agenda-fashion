@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { apiRequest } from "../api/client";
 import { DashboardNextAction } from "../components/DashboardNextAction";
-import { ProfessionalOnboardingChecklist } from "../components/ProfessionalOnboardingChecklist";
 import { ErrorState, LoadingState } from "../components/ScreenState";
 import { formatCurrency } from "../utils/format";
 
@@ -47,12 +46,6 @@ export function DashboardPage() {
   const [error, setError] = useState("");
   const [reloadKey, setReloadKey] = useState(0);
   const [refreshing, setRefreshing] = useState(true);
-  const [onboarding, setOnboarding] = useState({
-    businessId: null,
-    businessSlug: "",
-    loading: true,
-    publication: null
-  });
   const [whatsappReminders, setWhatsappReminders] = useState({
     enabled: null,
     operationalEnabled: null,
@@ -100,38 +93,6 @@ export function DashboardPage() {
       controller.abort();
     };
   }, [period, reloadKey]);
-
-  useEffect(() => {
-    const controller = new AbortController();
-    let active = true;
-
-    apiRequest("/configuracoes", { signal: controller.signal })
-      .then((businessResult) => {
-        if (!active) return;
-
-        const business = businessResult.negocio || businessResult.configuracoes || {};
-        setOnboarding({
-          businessId: business.id ?? business.negocio_id ?? null,
-          businessSlug: business.slug || "",
-          loading: false,
-          publication: businessResult.publicacao || {
-            publicado: business.publicado === true,
-            pode_publicar: false,
-            pendencias: []
-          }
-        });
-      })
-      .catch((requestError) => {
-        if (active && requestError.name !== "AbortError") {
-          setOnboarding((current) => ({ ...current, loading: false }));
-        }
-      });
-
-    return () => {
-      active = false;
-      controller.abort();
-    };
-  }, []);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -291,13 +252,6 @@ export function DashboardPage() {
 
       {refreshing && <p className="data-refresh-status" role="status">Atualizando indicadores...</p>}
       {error && <p className="form-error" role="alert">{error} Os últimos dados carregados continuam visíveis.</p>}
-
-      <ProfessionalOnboardingChecklist
-        businessId={onboarding.businessId}
-        businessSlug={onboarding.businessSlug}
-        loading={onboarding.loading}
-        publication={onboarding.publication}
-      />
 
       {whatsappReminders.operationalEnabled === false && (
         <section
@@ -500,12 +454,10 @@ export function DashboardPage() {
         </article>
 
         <DashboardNextAction
-          activation={data.ativacao}
+          copilot={data.copilot_ativacao}
           businessId={data.negocio?.negocio_id}
           businessName={data.negocio?.nome}
           businessSlug={data.negocio?.slug}
-          publication={onboarding.publication}
-          profileVisits={profileVisits}
         />
       </section>
 
