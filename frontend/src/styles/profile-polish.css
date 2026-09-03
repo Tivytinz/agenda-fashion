@@ -12,11 +12,23 @@
 
 .public-profile-page .profile-actions > .favorite-button,
 .public-profile-page .profile-actions > .profile-action-button,
-.public-profile-page .profile-actions > .public-share-button {
+.public-profile-page .profile-actions > .public-share-button,
+.public-profile-page .profile-actions > .profile-book-button {
   min-height: 46px;
   border-radius: 999px;
   padding-inline: 18px;
   font-weight: 800;
+}
+
+.public-profile-page .profile-actions > .profile-book-button {
+  border-color: var(--pink-600);
+  color: #fff;
+  background: var(--pink-600);
+  box-shadow: 0 10px 22px rgb(168 25 91 / 18%);
+}
+
+.public-profile-page #agendar {
+  scroll-margin-top: 92px;
 }
 
 /* Cards de serviço: altura natural, imagem maior e estados menos ambíguos. */
@@ -282,9 +294,14 @@
 
   .public-profile-page .profile-actions > .favorite-button,
   .public-profile-page .profile-actions > .profile-action-button,
-  .public-profile-page .profile-actions > .public-share-button {
+  .public-profile-page .profile-actions > .public-share-button,
+  .public-profile-page .profile-actions > .profile-book-button {
     min-height: 44px;
     padding-inline: 14px;
+  }
+
+  .public-profile-page .profile-actions > .profile-book-button {
+    grid-column: 1 / -1;
   }
 
   .booking-confirmation-page .form-card h1 {

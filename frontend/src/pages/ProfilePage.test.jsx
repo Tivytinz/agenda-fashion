@@ -49,7 +49,8 @@ const PROFILE = {
       nome: "Manicure completa",
       descricao: "Cuidado completo para as unhas",
       duracao_minutos: 60,
-      valor: 50
+      valor: 50,
+      agendamento_online_disponivel: true
     },
     {
       id: 12,
@@ -132,6 +133,15 @@ beforeEach(() => {
 afterEach(cleanup);
 
 describe("fluxo publico de agendamento", () => {
+  it("destaca o agendamento quando há horários online disponíveis", async () => {
+    mockSuccessfulRequests();
+    renderProfile();
+
+    const action = await screen.findByRole("link", { name: "Agendar agora" });
+    expect(action.getAttribute("href")).toBe("#agendar");
+    expect(document.getElementById("agendar")).not.toBeNull();
+  });
+
   it("leva um endereço antigo ao endereço público atual sem perder parâmetros", async () => {
     apiRequest.mockImplementation((path) => {
       if (path === "/perfil-negocio/victor") {

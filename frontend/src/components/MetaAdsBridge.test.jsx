@@ -134,7 +134,7 @@ describe("consentimento de marketing", () => {
       .toContain("Google Analytics, Google Ads e Meta");
 
     await user.click(
-      screen.getByRole("button", { name: "Permitir" })
+      screen.getByRole("button", { name: "Permitir medição" })
     );
 
     expect(setMarketingConsent)

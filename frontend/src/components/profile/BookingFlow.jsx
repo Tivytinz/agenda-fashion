@@ -317,7 +317,7 @@ export function BookingFlow({
         : "booking-layout"}
       >
         <div className="booking-main">
-          <section className="booking-section">
+          <section className="booking-section" id="agendar">
             <div className="section-heading"><div><p className={serviceComplete ? "step-label step-label-complete" : "step-label"}>{serviceComplete ? <ConfirmationIcon className="section-confirmation-icon" /> : 1}</p><h2>Escolha o serviço</h2></div></div>
             {serviceId && !editingService ? (
               <div className="booking-step-summary">

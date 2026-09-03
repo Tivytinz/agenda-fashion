@@ -7,6 +7,7 @@ import { AppHeader } from "./components/AppHeader";
 import { MarketingMetricGlossary } from "./components/MarketingMetricGlossary";
 import { MetaAdsBridge } from "./components/MetaAdsBridge";
 import { LegalFooter } from "./components/LegalFooter";
+import { RouteScrollManager } from "./components/RouteScrollManager";
 import {
   AdminLayout,
   WorkspaceLayout
@@ -214,6 +215,7 @@ function AccountRoute() {
 export default function App() {
   return (
     <div className="app-shell">
+      <RouteScrollManager />
       <AppHeader />
       <Suspense fallback={<main><div className="container route-loading">Carregando...</div></main>}>
         <Routes>

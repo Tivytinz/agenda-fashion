@@ -218,6 +218,31 @@
   isolation: isolate;
 }
 
+.service-editor-page .service-editor-grid-activation > .panel:first-child {
+  width: min(100%, 780px);
+  grid-column: 1 / -1;
+}
+
+.service-editor-page .service-activation-note {
+  display: grid;
+  gap: 4px;
+  border: 1px solid rgb(217 47 127 / 18%);
+  border-radius: 14px;
+  padding: 14px 16px;
+  color: var(--muted);
+  background: var(--pink-50);
+}
+
+.service-editor-page .service-activation-note small {
+  line-height: 1.45;
+}
+
+@media (max-width: 800px) {
+  .workspace-shell .service-editor-page .service-editor-actions {
+    bottom: var(--workspace-mobile-nav-height);
+  }
+}
+
 /* Em desktop, duas miniaturas cabem inteiras na coluna. Setas só acrescentariam decoração. */
 .service-editor-page .service-gallery-picker-wrap:not(:has(.service-gallery-picker figure:nth-child(3))) .service-gallery-nav {
   display: none;

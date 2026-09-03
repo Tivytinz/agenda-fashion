@@ -45,6 +45,9 @@ export function ProfilePage() {
   const business = profile?.negocio;
   const services = profile?.servicos ?? EMPTY_LIST;
   const professionals = profile?.profissionais ?? EMPTY_LIST;
+  const bookingAvailable = services.some(
+    (service) => service.agendamento_online_disponivel === true
+  );
   const profileImageSource = business?.foto_url ||
     business?.imagem_url ||
     business?.logo_url ||
@@ -322,6 +325,7 @@ export function ProfilePage() {
     <main className="container page-content public-profile-page">
       <Link className="back-link" to="/">← Voltar ao início</Link>
       <ProfileHero
+        bookingAvailable={bookingAvailable}
         business={business}
         businessSlug={slug}
         favorite={favorite}

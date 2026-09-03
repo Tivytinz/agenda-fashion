@@ -128,7 +128,7 @@
 
   body,
   #root {
-    overflow-x: hidden;
+    overflow-x: clip;
   }
 
   img,

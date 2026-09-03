@@ -287,6 +287,7 @@ export function ServiceEditorPage() {
   const navigate = useNavigate();
   const galleryRef = useRef(null);
   const editing = Boolean(id);
+  const activationMode = !editing && location.state?.onboarding === true;
   const [form, setForm] = useState(EMPTY_FORM);
   const [cover, setCover] = useState(null);
   const [galleryFiles, setGalleryFiles] = useState([]);
@@ -541,7 +542,12 @@ export function ServiceEditorPage() {
         </header>
       </div>
 
-      <form className="service-editor-grid" onSubmit={submit}>
+      <form
+        className={activationMode
+          ? "service-editor-grid service-editor-grid-activation"
+          : "service-editor-grid"}
+        onSubmit={submit}
+      >
         <section className="panel stack-form">
           <div><p className="eyebrow">Informações</p><h2>Detalhes do serviço</h2></div>
           <label>
@@ -587,9 +593,19 @@ export function ServiceEditorPage() {
             <input checked={form.ativo} onChange={(event) => setForm({ ...form, ativo: event.target.checked })} type="checkbox" />
             <span><strong>Serviço disponível</strong><small>Quando inativo, ele não aparece para novos agendamentos.</small></span>
           </label>
+          {activationMode && (
+            <div className="service-activation-note">
+              <strong>Fotos podem ser adicionadas depois</strong>
+              <small>
+                Salve os dados essenciais agora. Em seguida, você confirma os
+                horários para publicar o perfil.
+              </small>
+            </div>
+          )}
         </section>
 
-        <section className="panel stack-form service-media-panel">
+        {!activationMode && (
+          <section className="panel stack-form service-media-panel">
           <div>
             <p className="eyebrow">Apresentação</p>
             <h2>Fotos do serviço</h2>
@@ -695,7 +711,8 @@ export function ServiceEditorPage() {
               </div>
             </div>
           )}
-        </section>
+          </section>
+        )}
 
         {error && <p className="form-error service-editor-message" role="alert">{error}</p>}
         <div className="form-actions service-editor-actions">
