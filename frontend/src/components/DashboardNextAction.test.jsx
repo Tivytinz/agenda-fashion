@@ -191,13 +191,21 @@ describe(
         });
 
         expect(
-          screen.queryByText(
-            /Transforme visitas em agendamentos/i
+          screen.queryByRole(
+            "heading",
+            {
+              name:
+                "Transforme visitas em agendamentos",
+            }
           )
         ).toBeNull();
         expect(
-          screen.queryByText(
-            /Mantenha o ritmo/i
+          screen.queryByRole(
+            "heading",
+            {
+              name:
+                "Mantenha o ritmo",
+            }
           )
         ).toBeNull();
       }
