@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
 import { PublicShareButton } from "./PublicShareButton";
 
-const COPILOT_ROUTES = Object.freeze({
+const ACTIVATION_ROUTES = Object.freeze({
   agenda: {
     to: "/painel/agenda",
   },
@@ -18,7 +18,7 @@ const COPILOT_ROUTES = Object.freeze({
 
 const ALLOWED_NAVIGATION_DESTINATIONS = new Set(
   Object.values(
-    COPILOT_ROUTES
+    ACTIVATION_ROUTES
   ).map(
     (item) => item.to
   )
@@ -36,7 +36,7 @@ function publicProfilePath(
     : "";
 }
 
-function fallbackCopilot() {
+function fallbackNextAction() {
   return {
     estado: "INDISPONIVEL",
     concluido: false,
@@ -47,19 +47,19 @@ function fallbackCopilot() {
       tipo: "NAVEGAR",
       rotulo: "Revisar meu negócio",
       destino:
-        COPILOT_ROUTES.business.to,
+        ACTIVATION_ROUTES.business.to,
     },
   };
 }
 
 function normalizeAction(
-  copilot
+  nextAction
 ) {
   const source =
-    copilot &&
-    typeof copilot === "object"
-      ? copilot
-      : fallbackCopilot();
+    nextAction &&
+    typeof nextAction === "object"
+      ? nextAction
+      : fallbackNextAction();
   const shareAction =
     source.acao?.tipo ===
       "COMPARTILHAR_PERFIL";
@@ -71,7 +71,7 @@ function normalizeAction(
     ALLOWED_NAVIGATION_DESTINATIONS
       .has(requestedDestination)
       ? requestedDestination
-      : COPILOT_ROUTES.business.to;
+      : ACTIVATION_ROUTES.business.to;
 
   return {
     ...source,
@@ -100,14 +100,14 @@ function normalizeAction(
 }
 
 export function DashboardNextAction({
-  copilot,
+  nextAction,
   businessId,
   businessName,
   businessSlug,
 }) {
   const action =
     normalizeAction(
-      copilot
+      nextAction
     );
   const profilePath =
     publicProfilePath(
@@ -121,7 +121,7 @@ export function DashboardNextAction({
       <div className="panel-heading">
         <div>
           <p className="eyebrow">
-            🤖 Copilot AF
+            Próximo passo
           </p>
           <h2>{action.title}</h2>
         </div>
