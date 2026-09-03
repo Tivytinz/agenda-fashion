@@ -37,12 +37,12 @@ vi.mock(
 afterEach(cleanup);
 
 function renderAction(
-  copilot
+  nextAction
 ) {
   return render(
     <MemoryRouter>
       <DashboardNextAction
-        copilot={copilot}
+        nextAction={nextAction}
         businessId={12}
         businessName="Studio Aurora"
         businessSlug="studio-aurora"
@@ -103,9 +103,14 @@ describe(
 
         expect(
           screen.getByText(
-            "🤖 Copilot AF"
+            "Próximo passo"
           )
         ).not.toBeNull();
+        expect(
+          screen.queryByText(
+            /Copilot AF/i
+          )
+        ).toBeNull();
         expect(
           screen.getByRole(
             "heading",
@@ -239,7 +244,7 @@ describe(
     );
 
     it(
-      "mantém uma saída segura quando o contrato do Copilot não está disponível",
+      "mantém uma saída segura quando a próxima ação não está disponível",
       () => {
         renderAction(null);
 
