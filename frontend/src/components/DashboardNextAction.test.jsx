@@ -204,6 +204,33 @@ describe(
     );
 
     it(
+      "impede que um destino não permitido vindo do contrato controle a navegação",
+      () => {
+        renderAction({
+          estado: "DESCONHECIDO",
+          concluido: false,
+          titulo: "Ação inválida",
+          mensagem:
+            "Contrato com destino não permitido.",
+          acao: {
+            tipo: "NAVEGAR",
+            rotulo: "Continuar",
+            destino: "https://exemplo-malicioso.test",
+          },
+        });
+
+        expect(
+          screen.getByRole(
+            "link",
+            { name: "Continuar" }
+          ).getAttribute("href")
+        ).toBe(
+          "/painel/negocio"
+        );
+      }
+    );
+
+    it(
       "mantém uma saída segura quando o contrato do Copilot não está disponível",
       () => {
         renderAction(null);
