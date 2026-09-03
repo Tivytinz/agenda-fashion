@@ -56,6 +56,47 @@ function scheduleDays() {
   }));
 }
 
+function activationCopilot({ serviceCreated, scheduleConfigured }) {
+  if (!serviceCreated) {
+    return {
+      estado: "GARANTIR_SERVICO_ATIVO",
+      concluido: false,
+      titulo: "Ative seus serviços",
+      mensagem: "Mantenha pelo menos um serviço ativo para receber novos agendamentos.",
+      acao: {
+        tipo: "NAVEGAR",
+        rotulo: "Gerenciar serviços",
+        destino: "/painel/servicos"
+      }
+    };
+  }
+
+  if (!scheduleConfigured) {
+    return {
+      estado: "CONFIRMAR_AGENDA",
+      concluido: false,
+      titulo: "Confirme seus horários",
+      mensagem: "Confirme quando você atende para liberar horários reais.",
+      acao: {
+        tipo: "NAVEGAR",
+        rotulo: "Confirmar horários",
+        destino: "/painel/horarios"
+      }
+    };
+  }
+
+  return {
+    estado: "CONQUISTAR_PRIMEIRO_AGENDAMENTO",
+    concluido: false,
+    titulo: "Divulgue seu perfil",
+    mensagem: "Compartilhe o link para conquistar o primeiro agendamento.",
+    acao: {
+      tipo: "COMPARTILHAR_PERFIL",
+      rotulo: "Compartilhar perfil"
+    }
+  };
+}
+
 async function expectNoHorizontalOverflow(page) {
   await expect.poll(() => page.evaluate(() => ({
     clientWidth: document.documentElement.clientWidth,
@@ -151,6 +192,12 @@ test("profissional vai da landing até agenda pronta para divulgação", async (
   });
 
   await page.route("**/dashboard-dono?periodo=7dias", (route) => json(route, {
+    negocio: {
+      negocio_id: BUSINESS.id,
+      papel: "dono",
+      nome: BUSINESS.nome,
+      slug: BUSINESS.slug
+    },
     resumo: {
       agendamentos_periodo: 0,
       faturamento_periodo: 0,
@@ -163,10 +210,15 @@ test("profissional vai da landing até agenda pronta para divulgação", async (
     },
     ranking_servicos: [],
     ativacao: {
+      possui_servico_ativo: serviceCreated,
       negocio_publicado: serviceCreated && scheduleConfigured,
       agenda_configurada: scheduleConfigured,
       primeiro_agendamento_recebido: false
-    }
+    },
+    copilot_ativacao: activationCopilot({
+      serviceCreated,
+      scheduleConfigured
+    })
   }));
   await page.route("**/dashboard-dono/origem-clientes?periodo=7dias", (route) => json(route, {
     resumo: {},
@@ -200,6 +252,13 @@ test("profissional vai da landing até agenda pronta para divulgação", async (
     configurado_em: scheduleConfigured
       ? "2026-08-30T12:00:00.000Z"
       : null
+  }));
+
+  await page.route("**/minha-assinatura", (route) => json(route, {
+    uso: {
+      servicos_utilizados: serviceCreated ? 1 : 0,
+      limite_servicos: 2
+    }
   }));
 
   await page.route("**/servicos", async (route) => {
@@ -296,10 +355,14 @@ test("profissional vai da landing até agenda pronta para divulgação", async (
     cep: "74000123"
   }));
 
+  await expect(page.getByText("🤖 Copilot AF")).toBeVisible();
   await expect(page.getByRole("heading", {
-    name: "Prepare seu negócio para receber agendamentos"
+    name: "Ative seus serviços"
   })).toBeVisible();
-  await page.getByRole("link", { name: "Cadastrar serviço" }).click();
+  await page.getByRole("link", { name: "Gerenciar serviços" }).click();
+
+  await expect(page).toHaveURL(/\/painel\/servicos$/);
+  await page.getByRole("link", { name: "Cadastrar primeiro serviço" }).click();
 
   await expect(page).toHaveURL(/\/painel\/servicos\/novo$/);
   await serviceField(page, "Nome do serviço", "input").fill("Design + Henna");
@@ -354,6 +417,15 @@ test("profissional vai da landing até agenda pronta para divulgação", async (
       horaFim: "18:00"
     })
   ]));
+
+  await page.goto("/painel");
+  await expect(page.getByText("🤖 Copilot AF")).toBeVisible();
+  await expect(page.getByRole("heading", {
+    name: "Divulgue seu perfil"
+  })).toBeVisible();
+  await expect(page.getByRole("button", {
+    name: "Compartilhar perfil"
+  })).toBeVisible();
 
   await expectNoHorizontalOverflow(page);
 });
