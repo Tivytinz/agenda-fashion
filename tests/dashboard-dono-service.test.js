@@ -15,9 +15,9 @@ jest.mock(
 );
 
 jest.mock(
-  "../src/services/copilotActivationService",
+  "../src/services/activationNextActionService",
   () => ({
-    resolverCopilotAtivacao:
+    resolverProximaAcaoAtivacao:
       jest.fn(),
   })
 );
@@ -28,8 +28,8 @@ const dashboardService = require(
 const dashboardActivationService = require(
   "../src/services/dashboardActivationService"
 );
-const copilotActivationService = require(
-  "../src/services/copilotActivationService"
+const activationNextActionService = require(
+  "../src/services/activationNextActionService"
 );
 const dashboardDonoService = require(
   "../src/services/dashboardDonoService"
@@ -43,7 +43,7 @@ describe(
     });
 
     test(
-      "combina dashboard autorizado com ativação e Copilot canônicos",
+      "combina dashboard autorizado com ativação e próxima ação canônicas",
       async () => {
         dashboardService
           .buscarDashboardDono
@@ -65,7 +65,7 @@ describe(
           agenda_configurada: true,
           primeiro_agendamento_recebido: false,
         };
-        const copilotAtivacao = {
+        const proximaAcaoAtivacao = {
           estado:
             "CONQUISTAR_PRIMEIRO_AGENDAMENTO",
           concluido: false,
@@ -83,10 +83,10 @@ describe(
           .mockResolvedValue(
             ativacao
           );
-        copilotActivationService
-          .resolverCopilotAtivacao
+        activationNextActionService
+          .resolverProximaAcaoAtivacao
           .mockReturnValue(
-            copilotAtivacao
+            proximaAcaoAtivacao
           );
 
         await expect(
@@ -106,8 +106,8 @@ describe(
           resumo: {},
           performance: {},
           ativacao,
-          copilot_ativacao:
-            copilotAtivacao,
+          proxima_acao_ativacao:
+            proximaAcaoAtivacao,
         });
 
         expect(
@@ -124,8 +124,8 @@ describe(
           negocioId: 18,
         });
         expect(
-          copilotActivationService
-            .resolverCopilotAtivacao
+          activationNextActionService
+            .resolverProximaAcaoAtivacao
         ).toHaveBeenCalledWith(
           ativacao
         );
@@ -133,7 +133,7 @@ describe(
     );
 
     test(
-      "não consulta ativação nem Copilot quando o dashboard principal falha",
+      "não consulta ativação nem próxima ação quando o dashboard principal falha",
       async () => {
         dashboardService
           .buscarDashboardDono
@@ -156,8 +156,8 @@ describe(
             .buscarAtivacaoNegocio
         ).not.toHaveBeenCalled();
         expect(
-          copilotActivationService
-            .resolverCopilotAtivacao
+          activationNextActionService
+            .resolverProximaAcaoAtivacao
         ).not.toHaveBeenCalled();
       }
     );
