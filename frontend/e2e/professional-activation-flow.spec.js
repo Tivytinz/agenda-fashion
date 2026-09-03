@@ -286,7 +286,7 @@ test("profissional vai da landing até agenda pronta para divulgação", async (
   await expect(page.getByLabel("Complemento (opcional)")).toHaveValue("");
   await page.getByRole("button", { name: "Criar negócio" }).click();
 
-  await expect(page).toHaveURL(/\/painel$/);
+  await expect(page).toHaveURL(/\/painel\/servicos\/novo$/);
   expect(businessPayload).toEqual(expect.objectContaining({
     nome: "Studio Aurora",
     descricao: "",
@@ -296,12 +296,6 @@ test("profissional vai da landing até agenda pronta para divulgação", async (
     cep: "74000123"
   }));
 
-  await expect(page.getByRole("heading", {
-    name: "Prepare seu negócio para receber agendamentos"
-  })).toBeVisible();
-  await page.getByRole("link", { name: "Cadastrar serviço" }).click();
-
-  await expect(page).toHaveURL(/\/painel\/servicos\/novo$/);
   await serviceField(page, "Nome do serviço", "input").fill("Design + Henna");
   await serviceField(page, "Categoria", "select").selectOption("unha");
   await serviceField(page, "Valor", "input").fill("40");
