@@ -227,38 +227,6 @@
   border-color: #e7eaed;
 }
 
-/* Saúde: cor comunica estado, não marca. */
-.workspace-shell--admin .saas-health-progress {
-  background: #e8ecef;
-}
-
-.workspace-shell--admin .saas-health-progress > span {
-  background: #5f7488;
-}
-
-.workspace-shell--admin .saas-health-metric-card:hover,
-.workspace-shell--admin .saas-health-metric-card:focus-visible,
-.workspace-shell--admin .saas-health-metric-card.active {
-  border-color: #7a8590;
-  box-shadow: 0 6px 16px rgb(24 31 38 / 7%);
-}
-
-.workspace-shell--admin .saas-health-next-action {
-  border-left-color: #7a8590;
-  background: #f3f5f7;
-}
-
-/* WhatsApp continua verde quando o estado é saudável; o restante fica neutro. */
-.workspace-shell--admin .whatsapp-template-table code,
-.workspace-shell--admin .whatsapp-metrics-help summary {
-  color: #46515c;
-}
-
-.workspace-shell--admin .whatsapp-health-notice,
-.workspace-shell--admin .whatsapp-templates-panel {
-  border-radius: 10px;
-}
-
 /* Navegação mobile do admin herda o mesmo console neutro. */
 .workspace-shell--admin .workspace-mobile-nav {
   border-color: var(--admin-line);
