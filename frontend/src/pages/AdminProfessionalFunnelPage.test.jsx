@@ -129,7 +129,7 @@ beforeEach(() => {
 afterEach(cleanup);
 
 describe("AdminProfessionalFunnelPage", () => {
-  it("renderiza KPIs, tabelas, marcos independentes e detalhes de decisão", async () => {
+  it("renderiza KPIs, funil executivo, marcos independentes e detalhes de decisão", async () => {
     const user = userEvent.setup();
 
     render(
@@ -143,21 +143,30 @@ describe("AdminProfessionalFunnelPage", () => {
     ).not.toBeNull();
 
     expect(screen.getByRole("heading", { name: "Marcos alcançados no período" })).not.toBeNull();
+    expect(screen.getByText("Prioridade atual")).not.toBeNull();
+    expect(screen.getByText("Maior perda")).not.toBeNull();
+    expect(screen.getByText("Marco independente")).not.toBeNull();
     expect(screen.getByText("Detalhamento do funil")).not.toBeNull();
     expect(screen.queryByText("Atingimento por marco")).toBeNull();
     expect(screen.queryByText("ROAS por campanha")).toBeNull();
-    expect(screen.getByRole("columnheader", { name: "Marco" })).not.toBeNull();
     expect(screen.getByRole("columnheader", { name: "ROAS" })).not.toBeNull();
     expect(screen.getByRole("columnheader", { name: "CAC" })).not.toBeNull();
     expect(screen.queryByRole("heading", { name: "Progressão da coorte" })).toBeNull();
-    expect(screen.getByText("Serviço criado")).not.toBeNull();
-    expect(screen.getByText("Agenda configurada")).not.toBeNull();
-    expect(screen.getByText("Negócio publicado")).not.toBeNull();
-    expect(screen.getByText("Primeiro agendamento")).not.toBeNull();
+    expect(screen.getByRole("heading", { name: "Serviço" })).not.toBeNull();
+    expect(screen.getByRole("heading", { name: "Perfil publicado" })).not.toBeNull();
+    expect(screen.getByRole("heading", { name: "Agenda" })).not.toBeNull();
+    expect(screen.getByText("Primeiro agendamento da jornada")).not.toBeNull();
     expect(screen.getByText("gasto atribuído a campanhas oficiais no período")).not.toBeNull();
     expect(screen.getByText("Diagnóstico de aquisição profissional")).not.toBeNull();
     expect(screen.getByText("Aquisição rentável")).not.toBeNull();
     expect(screen.getByText("Cobertura dos cadastros pagos")).not.toBeNull();
+
+    await user.click(screen.getByText("Detalhamento do funil"));
+
+    expect(screen.getByRole("columnheader", { name: "Marco" })).not.toBeNull();
+    expect(screen.getByText("Serviço criado")).not.toBeNull();
+    expect(screen.getByText("Agenda configurada")).not.toBeNull();
+    expect(screen.getByText("Negócio publicado")).not.toBeNull();
 
     expect(screen.getAllByText("20").length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByText("profissionais_goiania").length).toBeGreaterThanOrEqual(1);
@@ -196,6 +205,7 @@ describe("AdminProfessionalFunnelPage", () => {
   });
 
   it("não mostra 100% no cadastro quando a coorte está vazia", async () => {
+    const user = userEvent.setup();
     const empty = resultado();
     empty.resumo = {
       cadastros: 0,
@@ -262,10 +272,13 @@ describe("AdminProfessionalFunnelPage", () => {
       </MemoryRouter>
     );
 
+    expect(await screen.findByText("Aguardando base")).not.toBeNull();
+    await user.click(screen.getByText("Detalhamento do funil"));
+
     expect(
-      await screen.findByRole("row", { name: "Cadastro 0 0%" })
+      screen.getByRole("row", { name: "Cadastro 0 0% 0%" })
     ).not.toBeNull();
-    expect(screen.queryByRole("row", { name: "Cadastro 0 100%" })).toBeNull();
+    expect(screen.queryByRole("row", { name: "Cadastro 0 0% 100%" })).toBeNull();
     expect(screen.getByText("Aquisição sem cadastro atribuído")).not.toBeNull();
     expect(screen.getByText("Em análise").parentElement?.textContent).toContain("1");
   });

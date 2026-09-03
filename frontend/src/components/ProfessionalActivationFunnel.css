@@ -1,0 +1,209 @@
+.professional-activation-funnel {
+  display: grid;
+  gap: 1rem;
+}
+
+.professional-activation-heading {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(240px, 320px);
+  gap: 1rem;
+  align-items: start;
+}
+
+.professional-activation-priority {
+  min-width: 0;
+  padding: 0.9rem 1rem;
+  border: 1px solid var(--line, #ead7df);
+  border-radius: 14px;
+  background: #fffafd;
+}
+
+.professional-activation-priority.is-attention {
+  border-color: #f0c8d4;
+  background: #fff4f8;
+}
+
+.professional-activation-priority span,
+.professional-activation-priority small {
+  display: block;
+}
+
+.professional-activation-priority span {
+  color: var(--muted, #795f68);
+  font-size: 0.74rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.professional-activation-priority strong {
+  display: block;
+  margin-top: 0.2rem;
+  color: #a32360;
+  font-size: 1.12rem;
+}
+
+.professional-activation-priority small {
+  margin-top: 0.3rem;
+  color: var(--muted, #795f68);
+  line-height: 1.4;
+}
+
+.professional-activation-diagnosis {
+  margin: 0;
+  padding: 0.8rem 0.9rem;
+  border-left: 3px solid var(--admin-accent, #df2f7f);
+  border-radius: 0 10px 10px 0;
+  background: #fffafd;
+  color: var(--text, #342a2e);
+  line-height: 1.45;
+}
+
+.professional-activation-steps {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 0.7rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.professional-activation-step {
+  position: relative;
+  min-width: 0;
+  padding: 0.9rem;
+  border: 1px solid var(--line, #ead7df);
+  border-radius: 14px;
+  background: #fff;
+}
+
+.professional-activation-step.is-bottleneck {
+  border-color: #e8a9bf;
+  box-shadow: inset 0 0 0 1px #f3d5df;
+  background: #fff7fa;
+}
+
+.professional-activation-step-topline {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.professional-activation-step-topline > span {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  background: #fff0f6;
+  color: #a32360;
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.professional-activation-step-topline > strong {
+  color: #9a2049;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.professional-activation-step h3 {
+  margin: 0.75rem 0 0;
+  font-size: 0.96rem;
+}
+
+.professional-activation-value {
+  margin: 0.45rem 0 0;
+  color: #a32360;
+  font-size: 1.7rem;
+  font-weight: 850;
+  line-height: 1;
+}
+
+.professional-activation-value small {
+  color: var(--muted, #795f68);
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.professional-activation-step > .muted {
+  margin: 0.35rem 0 0;
+  font-size: 0.78rem;
+}
+
+.professional-activation-transition {
+  display: grid;
+  gap: 0.2rem;
+  margin-top: 0.8rem;
+  padding-top: 0.7rem;
+  border-top: 1px solid var(--line, #ead7df);
+}
+
+.professional-activation-transition strong {
+  font-size: 0.8rem;
+}
+
+.professional-activation-transition small {
+  color: var(--muted, #795f68);
+  font-size: 0.72rem;
+  line-height: 1.35;
+}
+
+.professional-activation-details {
+  border-top: 1px solid var(--line, #ead7df);
+  padding-top: 0.85rem;
+}
+
+.professional-activation-details > summary {
+  width: fit-content;
+  cursor: pointer;
+  color: #a32360;
+  font-weight: 800;
+}
+
+.professional-activation-details[open] > summary {
+  margin-bottom: 0.8rem;
+}
+
+@media (max-width: 1180px) {
+  .professional-activation-steps {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 760px) {
+  .professional-activation-heading {
+    grid-template-columns: 1fr;
+  }
+
+  .professional-activation-steps {
+    grid-template-columns: 1fr;
+  }
+
+  .professional-activation-step {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 0.25rem 0.8rem;
+    align-items: start;
+  }
+
+  .professional-activation-step-topline,
+  .professional-activation-step h3,
+  .professional-activation-transition {
+    grid-column: 1 / -1;
+  }
+
+  .professional-activation-value {
+    grid-column: 1;
+  }
+
+  .professional-activation-step > .muted {
+    grid-column: 2;
+    align-self: end;
+    margin-bottom: 0.1rem;
+    text-align: right;
+  }
+}
