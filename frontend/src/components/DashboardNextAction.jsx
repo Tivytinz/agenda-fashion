@@ -3,6 +3,7 @@ import { PublicShareButton } from "./PublicShareButton";
 
 const SCHEDULE_PENDING =
   "confirmar os horários de atendimento";
+const CONVERSION_REVIEW_MIN_VISITS = 15;
 
 function publicProfilePath(
   businessSlug
@@ -65,7 +66,7 @@ function resolveNextAction({
   profileVisits,
 }) {
   if (!activation) {
-    return profileVisits >= 5
+    return profileVisits >= CONVERSION_REVIEW_MIN_VISITS
       ? conversionAction(
           profileVisits
         )
@@ -135,7 +136,7 @@ function resolveNextAction({
     };
   }
 
-  if (profileVisits >= 5) {
+  if (profileVisits >= CONVERSION_REVIEW_MIN_VISITS) {
     return conversionAction(
       profileVisits
     );
@@ -170,7 +171,7 @@ export function DashboardNextAction({
     );
 
   return (
-    <article
+    <section
       className="panel dashboard-action-panel"
     >
       <div className="panel-heading">
@@ -225,6 +226,6 @@ export function DashboardNextAction({
           </>
         )}
       </div>
-    </article>
+    </section>
   );
 }

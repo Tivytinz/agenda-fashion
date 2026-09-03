@@ -261,6 +261,9 @@ export function DashboardPage() {
   const completedBookings = Number(performance.agendamentos_concluidos) || 0;
   const visitLabel = profileVisits === 1 ? "visita" : "visitas";
   const bookingLabel = completedBookings === 1 ? "agendamento" : "agendamentos";
+  const scheduleConfigured = typeof data.ativacao?.agenda_configurada === "boolean"
+    ? data.ativacao.agenda_configurada
+    : undefined;
   const cards = [
     ["Agendamentos", summary.agendamentos_periodo ?? 0, "no período"],
     ["Faturamento", formatCurrency(summary.faturamento_periodo), "previsto"],
@@ -297,7 +300,19 @@ export function DashboardPage() {
         businessSlug={onboarding.businessSlug}
         loading={onboarding.loading}
         publication={onboarding.publication}
+        scheduleConfigured={scheduleConfigured}
       />
+
+      {onboarding.publication?.publicado === true && (
+        <DashboardNextAction
+          activation={data.ativacao}
+          businessId={data.negocio?.negocio_id ?? onboarding.businessId}
+          businessName={data.negocio?.nome}
+          businessSlug={data.negocio?.slug || onboarding.businessSlug}
+          publication={onboarding.publication}
+          profileVisits={profileVisits}
+        />
+      )}
 
       {whatsappReminders.operationalEnabled === false && (
         <section
@@ -486,27 +501,16 @@ export function DashboardPage() {
         )}
       </section>
 
-      <section className="dashboard-grid">
-        <article className="panel dashboard-performance-panel">
-          <div className="panel-heading">
-            <div><p className="eyebrow">Aquisição</p><h2>Desempenho do perfil</h2></div>
-          </div>
-          <dl className="data-list">
-            <div><dt>Visitas ao perfil</dt><dd>{performance.visitas_perfil ?? 0}</dd></div>
-            <div><dt>Cliques no WhatsApp</dt><dd>{performance.cliques_whatsapp ?? 0}</dd></div>
-            <div><dt>Cliques no mapa</dt><dd>{performance.cliques_maps ?? 0}</dd></div>
-            <div><dt>Favoritos recebidos</dt><dd>{performance.favoritos_recebidos ?? 0}</dd></div>
-          </dl>
-        </article>
-
-        <DashboardNextAction
-          activation={data.ativacao}
-          businessId={data.negocio?.negocio_id}
-          businessName={data.negocio?.nome}
-          businessSlug={data.negocio?.slug}
-          publication={onboarding.publication}
-          profileVisits={profileVisits}
-        />
+      <section className="panel dashboard-performance-panel" aria-label="Desempenho do perfil">
+        <div className="panel-heading">
+          <div><p className="eyebrow">Aquisição</p><h2>Desempenho do perfil</h2></div>
+        </div>
+        <dl className="data-list">
+          <div><dt>Visitas ao perfil</dt><dd>{performance.visitas_perfil ?? 0}</dd></div>
+          <div><dt>Cliques no WhatsApp</dt><dd>{performance.cliques_whatsapp ?? 0}</dd></div>
+          <div><dt>Cliques no mapa</dt><dd>{performance.cliques_maps ?? 0}</dd></div>
+          <div><dt>Favoritos recebidos</dt><dd>{performance.favoritos_recebidos ?? 0}</dd></div>
+        </dl>
       </section>
 
       {Array.isArray(data.ranking_servicos) && data.ranking_servicos.length > 0 && (
