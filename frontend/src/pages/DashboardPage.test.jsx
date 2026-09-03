@@ -8,7 +8,33 @@ import { DashboardPage } from "./DashboardPage";
 
 vi.mock("../api/client", () => ({ apiRequest: vi.fn() }));
 
+function copilotNavigate({
+  estado,
+  titulo,
+  mensagem = "Mensagem definida pelo backend.",
+  rotulo,
+  destino,
+  concluido = false
+}) {
+  return {
+    estado,
+    concluido,
+    titulo,
+    mensagem,
+    acao: {
+      tipo: "NAVEGAR",
+      rotulo,
+      destino
+    }
+  };
+}
+
 const DASHBOARD = {
+  negocio: {
+    negocio_id: 11,
+    nome: "Studio Aurora",
+    slug: "studio-aurora"
+  },
   resumo: {
     agendamentos_periodo: 2,
     faturamento_periodo: 100,
@@ -18,6 +44,22 @@ const DASHBOARD = {
     taxa_conversao: 1.4,
     visitas_perfil: 145,
     agendamentos_concluidos: 2
+  },
+  ativacao: {
+    possui_servico_ativo: true,
+    negocio_publicado: true,
+    agenda_configurada: true,
+    primeiro_agendamento_recebido: false
+  },
+  copilot_ativacao: {
+    estado: "CONQUISTAR_PRIMEIRO_AGENDAMENTO",
+    concluido: false,
+    titulo: "Divulgue seu perfil",
+    mensagem: "Compartilhe o link para conquistar o primeiro agendamento.",
+    acao: {
+      tipo: "COMPARTILHAR_PERFIL",
+      rotulo: "Compartilhar perfil"
+    }
   },
   ranking_servicos: [{ id: 1, nome: "Manicure", total: 2, faturamento: 100 }]
 };
@@ -86,9 +128,11 @@ const CUSTOMER_ORIGIN = {
 function mockDashboardRequests({
   dashboard = DASHBOARD,
   origin = CUSTOMER_ORIGIN,
-  publication = {
-    negocio: { slug: "studio-aurora", publicado: true },
-    publicacao: { publicado: true, pode_publicar: true, pendencias: [] }
+  account = {
+    usuario: {
+      aceita_lembretes_whatsapp: true,
+      aceita_alertas_operacionais_whatsapp: true
+    }
   }
 } = {}) {
   apiRequest.mockImplementation((path) => {
@@ -98,8 +142,8 @@ function mockDashboardRequests({
     if (path.startsWith("/dashboard-dono")) {
       return Promise.resolve(dashboard);
     }
-    if (path === "/configuracoes") {
-      return Promise.resolve(publication);
+    if (path === "/conta") {
+      return Promise.resolve(account);
     }
     return Promise.reject(new Error(`Rota inesperada: ${path}`));
   });
@@ -134,7 +178,8 @@ describe("dashboard", () => {
       expect.objectContaining({ signal: expect.any(AbortSignal) })
     );
     expect(initialSignal.aborted).toBe(true);
-    expect((await screen.findByRole("button", { name: "Hoje" })).getAttribute("aria-pressed")).toBe("true");
+    expect((await screen.findByRole("button", { name: "Hoje" })).getAttribute("aria-pressed"))
+      .toBe("true");
   });
 
   it("explica a conversão, pluraliza clientes e nomeia o ranking corretamente", async () => {
@@ -220,10 +265,12 @@ describe("dashboard", () => {
         return Promise.reject(new Error("origem indisponível"));
       }
       if (path.startsWith("/dashboard-dono")) return Promise.resolve(DASHBOARD);
-      if (path === "/configuracoes") {
+      if (path === "/conta") {
         return Promise.resolve({
-          negocio: { slug: "studio-aurora", publicado: true },
-          publicacao: { publicado: true, pode_publicar: true, pendencias: [] }
+          usuario: {
+            aceita_lembretes_whatsapp: true,
+            aceita_alertas_operacionais_whatsapp: true
+          }
         });
       }
       return Promise.reject(new Error(`Rota inesperada: ${path}`));
@@ -237,10 +284,15 @@ describe("dashboard", () => {
       .not.toBeNull();
   });
 
-  it("transforma visitas sem conversão em uma recomendação acionável", async () => {
+  it("usa a recomendação canônica do backend mesmo quando as métricas poderiam sugerir outra ação", async () => {
     mockDashboardRequests({
       dashboard: {
-        resumo: { agendamentos_periodo: 0, faturamento_periodo: 0, clientes_novos: 0 },
+        ...DASHBOARD,
+        resumo: {
+          agendamentos_periodo: 0,
+          faturamento_periodo: 0,
+          clientes_novos: 0
+        },
         performance: {
           taxa_conversao: 0,
           visitas_perfil: 15,
@@ -249,88 +301,94 @@ describe("dashboard", () => {
           cliques_maps: 0,
           favoritos_recebidos: 0
         },
+        ativacao: {
+          possui_servico_ativo: true,
+          negocio_publicado: false,
+          agenda_configurada: true,
+          primeiro_agendamento_recebido: false
+        },
+        copilot_ativacao: copilotNavigate({
+          estado: "REVISAR_PUBLICACAO",
+          titulo: "Revise a publicação",
+          rotulo: "Revisar meu negócio",
+          destino: "/painel/negocio"
+        }),
         ranking_servicos: []
       }
     });
 
     render(<MemoryRouter><DashboardPage /></MemoryRouter>);
 
-    expect(await screen.findByRole("heading", { name: "Transforme visitas em agendamentos" }))
+    expect(await screen.findByRole("heading", { name: "Revise a publicação" }))
       .not.toBeNull();
-    expect(screen.getByText(/15 pessoas visitaram seu perfil/)).not.toBeNull();
+    expect(screen.getByRole("link", { name: "Revisar meu negócio" }).getAttribute("href"))
+      .toBe("/painel/negocio");
+    expect(screen.queryByRole("heading", { name: "Transforme visitas em agendamentos" }))
+      .toBeNull();
+  });
+
+  it("leva a ação de agenda para a configuração de horários", async () => {
+    mockDashboardRequests({
+      dashboard: {
+        ...DASHBOARD,
+        ativacao: {
+          possui_servico_ativo: true,
+          negocio_publicado: false,
+          agenda_configurada: false,
+          primeiro_agendamento_recebido: false
+        },
+        copilot_ativacao: copilotNavigate({
+          estado: "CONFIRMAR_AGENDA",
+          titulo: "Confirme seus horários",
+          rotulo: "Confirmar horários",
+          destino: "/painel/horarios"
+        })
+      }
+    });
+
+    render(<MemoryRouter><DashboardPage /></MemoryRouter>);
+
+    expect(await screen.findByRole("heading", { name: "Confirme seus horários" }))
+      .not.toBeNull();
+    expect(screen.getByRole("link", { name: "Confirmar horários" }).getAttribute("href"))
+      .toBe("/painel/horarios");
+  });
+
+  it("conduz o profissional para serviço ativo como primeira etapa incompleta", async () => {
+    mockDashboardRequests({
+      dashboard: {
+        ...DASHBOARD,
+        ativacao: {
+          possui_servico_ativo: false,
+          negocio_publicado: false,
+          agenda_configurada: false,
+          primeiro_agendamento_recebido: false
+        },
+        copilot_ativacao: copilotNavigate({
+          estado: "GARANTIR_SERVICO_ATIVO",
+          titulo: "Ative seus serviços",
+          rotulo: "Gerenciar serviços",
+          destino: "/painel/servicos"
+        })
+      }
+    });
+
+    render(<MemoryRouter><DashboardPage /></MemoryRouter>);
+
+    expect(await screen.findByText("🤖 Copilot AF")).not.toBeNull();
+    expect(screen.getByRole("heading", { name: "Ative seus serviços" }))
+      .not.toBeNull();
     expect(screen.getByRole("link", { name: "Gerenciar serviços" }).getAttribute("href"))
       .toBe("/painel/servicos");
   });
 
-  it("leva a ação de preparar agenda para a configuração de horários", async () => {
-    mockDashboardRequests({
-      dashboard: {
-        resumo: {
-          agendamentos_periodo: 0,
-          faturamento_periodo: 0,
-          clientes_novos: 0
-        },
-        performance: {
-          taxa_conversao: 0,
-          visitas_perfil: 0,
-          agendamentos_concluidos: 0
-        },
-        ranking_servicos: []
-      }
-    });
-
-    render(<MemoryRouter><DashboardPage /></MemoryRouter>);
-
-    const heading = await screen.findByRole("heading", {
-      name: "Deixe a agenda pronta"
-    });
-    const section = heading.closest("section");
-    const action = section?.querySelector(
-      'a[href="/painel/horarios"]'
-    );
-
-    expect(action).not.toBeNull();
-    expect(action?.textContent).toContain(
-      "Configurar horários"
-    );
-  });
-
-  it("conduz o profissional para a primeira etapa incompleta", async () => {
-    mockDashboardRequests({
-      publication: {
-        negocio: { slug: "studio-aurora", publicado: false },
-        publicacao: {
-          publicado: false,
-          pode_publicar: false,
-          pendencias: ["pelo menos um serviço ativo"]
-        }
-      }
-    });
-
-    render(<MemoryRouter><DashboardPage /></MemoryRouter>);
-
-    expect(await screen.findByRole("heading", {
-      name: "Prepare seu negócio para receber agendamentos"
-    })).not.toBeNull();
-    expect(screen.getByRole("link", { name: "Cadastrar serviço" })
-      .getAttribute("href")).toBe("/painel/servicos/novo");
-    expect(screen.getByText("1 de 4")).not.toBeNull();
-  });
-
   it("destaca a ativação do WhatsApp e registra a autorização em um toque", async () => {
     apiRequest.mockImplementation((path, options = {}) => {
+      if (path.startsWith("/dashboard-dono/origem-clientes")) {
+        return Promise.resolve(CUSTOMER_ORIGIN);
+      }
       if (path.startsWith("/dashboard-dono")) {
         return Promise.resolve(DASHBOARD);
-      }
-      if (path === "/configuracoes") {
-        return Promise.resolve({
-          negocio: { slug: "studio-aurora", publicado: true },
-          publicacao: {
-            publicado: true,
-            pode_publicar: true,
-            pendencias: []
-          }
-        });
       }
       if (path === "/conta" && !options.method) {
         return Promise.resolve({
@@ -388,18 +446,11 @@ describe("dashboard", () => {
 
   it("solicita consentimento operacional separado do marketing", async () => {
     apiRequest.mockImplementation((path, options = {}) => {
+      if (path.startsWith("/dashboard-dono/origem-clientes")) {
+        return Promise.resolve(CUSTOMER_ORIGIN);
+      }
       if (path.startsWith("/dashboard-dono")) {
         return Promise.resolve(DASHBOARD);
-      }
-      if (path === "/configuracoes") {
-        return Promise.resolve({
-          negocio: { slug: "studio-aurora", publicado: true },
-          publicacao: {
-            publicado: true,
-            pode_publicar: true,
-            pendencias: []
-          }
-        });
       }
       if (path === "/conta" && !options.method) {
         return Promise.resolve({
