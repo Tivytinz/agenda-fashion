@@ -52,7 +52,7 @@ describe(
             agenda_configurada: true,
             primeiro_agendamento_recebido: false,
           },
-          copilot_ativacao: {
+          proxima_acao_ativacao: {
             estado:
               "CONQUISTAR_PRIMEIRO_AGENDAMENTO",
             concluido: false,
