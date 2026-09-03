@@ -454,6 +454,7 @@ export function DashboardPage() {
         </article>
 
         <DashboardNextAction
+          activation={data.ativacao}
           copilot={data.copilot_ativacao}
           businessId={data.negocio?.negocio_id}
           businessName={data.negocio?.nome}
