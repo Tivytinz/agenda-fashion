@@ -1,6 +1,29 @@
 import { Link } from "react-router-dom";
 import { PublicShareButton } from "./PublicShareButton";
 
+const COPILOT_ROUTES = Object.freeze({
+  agenda: {
+    to: "/painel/agenda",
+  },
+  services: {
+    to: "/painel/servicos",
+  },
+  schedule: {
+    to: "/painel/horarios",
+  },
+  business: {
+    to: "/painel/negocio",
+  },
+});
+
+const ALLOWED_NAVIGATION_DESTINATIONS = new Set(
+  Object.values(
+    COPILOT_ROUTES
+  ).map(
+    (item) => item.to
+  )
+);
+
 function publicProfilePath(
   businessSlug
 ) {
@@ -23,8 +46,56 @@ function fallbackCopilot() {
     acao: {
       tipo: "NAVEGAR",
       rotulo: "Revisar meu negócio",
-      destino: "/painel/negocio",
+      destino:
+        COPILOT_ROUTES.business.to,
     },
+  };
+}
+
+function normalizeAction(
+  copilot
+) {
+  const source =
+    copilot &&
+    typeof copilot === "object"
+      ? copilot
+      : fallbackCopilot();
+  const shareAction =
+    source.acao?.tipo ===
+      "COMPARTILHAR_PERFIL";
+  const requestedDestination =
+    typeof source.acao?.destino === "string"
+      ? source.acao.destino
+      : "";
+  const safeDestination =
+    ALLOWED_NAVIGATION_DESTINATIONS
+      .has(requestedDestination)
+      ? requestedDestination
+      : COPILOT_ROUTES.business.to;
+
+  return {
+    ...source,
+    title:
+      source.titulo ||
+      (shareAction
+        ? "Divulgue seu perfil"
+        : "Continue configurando seu negócio"),
+    description:
+      source.mensagem ||
+      "Continue a configuração do negócio para avançar na ativação.",
+    kind:
+      shareAction
+        ? "share"
+        : "navigate",
+    primary:
+      shareAction
+        ? null
+        : {
+            label:
+              source.acao?.rotulo ||
+              "Revisar meu negócio",
+            to: safeDestination,
+          },
   };
 }
 
@@ -35,21 +106,13 @@ export function DashboardNextAction({
   businessSlug,
 }) {
   const action =
-    copilot &&
-    typeof copilot === "object"
-      ? copilot
-      : fallbackCopilot();
+    normalizeAction(
+      copilot
+    );
   const profilePath =
     publicProfilePath(
       businessSlug
     );
-  const shareAction =
-    action.acao?.tipo ===
-      "COMPARTILHAR_PERFIL";
-  const navigationAction =
-    action.acao?.tipo === "NAVEGAR" &&
-    typeof action.acao?.destino === "string" &&
-    action.acao.destino.length > 0;
 
   return (
     <article
@@ -60,23 +123,23 @@ export function DashboardNextAction({
           <p className="eyebrow">
             🤖 Copilot AF
           </p>
-          <h2>{action.titulo}</h2>
+          <h2>{action.title}</h2>
         </div>
       </div>
 
       <p className="muted dashboard-action-copy">
-        {action.mensagem}
+        {action.description}
       </p>
 
       <div className="quick-actions dashboard-quick-actions">
-        {shareAction && (
+        {action.kind === "share" ? (
           <>
             <PublicShareButton
               businessId={businessId}
               businessName={businessName}
               businessSlug={businessSlug}
               className="button"
-              label={action.acao.rotulo || "Compartilhar perfil"}
+              label={action.acao?.rotulo || "Compartilhar perfil"}
               trackingMission="gerenciar_crescimento"
               trackingPage="dashboard_dono"
             />
@@ -90,14 +153,12 @@ export function DashboardNextAction({
               </Link>
             )}
           </>
-        )}
-
-        {!shareAction && navigationAction && (
+        ) : (
           <Link
             className="button"
-            to={action.acao.destino}
+            to={action.primary.to}
           >
-            {action.acao.rotulo}
+            {action.primary.label}
           </Link>
         )}
       </div>
