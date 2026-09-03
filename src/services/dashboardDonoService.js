@@ -4,6 +4,9 @@ const dashboardService = require(
 const dashboardActivationService = require(
   "./dashboardActivationService"
 );
+const copilotActivationService = require(
+  "./copilotActivationService"
+);
 
 async function buscarDashboardDono({
   usuarioId,
@@ -23,9 +26,17 @@ async function buscarDashboardDono({
           resultado.negocio?.negocio_id,
       });
 
+  const copilotAtivacao =
+    copilotActivationService
+      .resolverCopilotAtivacao(
+        ativacao
+      );
+
   return {
     ...resultado,
     ativacao,
+    copilot_ativacao:
+      copilotAtivacao,
   };
 }
 
