@@ -24,15 +24,32 @@ function lazyNamed(importer, name) {
   );
 }
 
-const AdminMarketingPage = lazyNamed(
+function lazyNamedWithStyles(stylesImporter, importer, name) {
+  return lazy(() =>
+    Promise.all([stylesImporter(), importer()]).then(([, module]) => {
+      markRuntimeReady();
+      return {
+        default: module[name]
+      };
+    })
+  );
+}
+
+const loadAdminMarketingStyles = () =>
+  import("./styles/admin-marketing/index.css");
+
+const AdminMarketingPage = lazyNamedWithStyles(
+  loadAdminMarketingStyles,
   () => import("./pages/AdminMarketingPage"),
   "AdminMarketingPage"
 );
-const AdminMarketingCostsPage = lazyNamed(
+const AdminMarketingCostsPage = lazyNamedWithStyles(
+  loadAdminMarketingStyles,
   () => import("./pages/AdminMarketingCostsPage"),
   "AdminMarketingCostsPage"
 );
-const AdminProfessionalFunnelPage = lazyNamed(
+const AdminProfessionalFunnelPage = lazyNamedWithStyles(
+  loadAdminMarketingStyles,
   () => import("./pages/AdminProfessionalFunnelPage"),
   "AdminProfessionalFunnelPage"
 );
