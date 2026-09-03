@@ -37,6 +37,10 @@ function lazyNamedWithStyles(stylesImporter, importer, name) {
 
 const loadAdminMarketingStyles = () =>
   import("./styles/admin-marketing.css");
+const loadAdminSaasHealthStyles = () =>
+  import("./styles/admin-saas-health.css");
+const loadAdminWhatsAppStyles = () =>
+  import("./styles/admin-whatsapp.css");
 const loadDashboardStyles = () =>
   import("./styles/dashboard-polish.css");
 const loadAgendaStyles = () =>
@@ -70,11 +74,13 @@ const AdminProfessionalFunnelPage = lazyNamedWithStyles(
   () => import("./pages/AdminProfessionalFunnelPage"),
   "AdminProfessionalFunnelPage"
 );
-const AdminSaasHealthPage = lazyNamed(
+const AdminSaasHealthPage = lazyNamedWithStyles(
+  loadAdminSaasHealthStyles,
   () => import("./pages/AdminSaasHealthPage"),
   "AdminSaasHealthPage"
 );
-const AdminWhatsAppPage = lazyNamed(
+const AdminWhatsAppPage = lazyNamedWithStyles(
+  loadAdminWhatsAppStyles,
   () => import("./pages/AdminWhatsAppPage"),
   "AdminWhatsAppPage"
 );
