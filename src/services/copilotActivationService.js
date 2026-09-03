@@ -58,7 +58,7 @@ function resolverCopilotAtivacao(
       concluido: false,
       titulo: "Confirme seus horários",
       mensagem:
-        "Confirme quando você atende para liberar horários reais e manter os agendamentos online disponíveis.",
+        "Confirme quando você atende para liberar horários reais e preparar os agendamentos online.",
       acao: acaoNavegacao(
         "Confirmar horários",
         "/painel/horarios"
