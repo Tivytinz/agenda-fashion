@@ -186,6 +186,17 @@
   color: var(--admin-muted, #795f68);
 }
 
+/* O shell fornece tokens neutros; a feature preserva verde apenas para saúde. */
+.workspace-shell--admin .whatsapp-template-table code,
+.workspace-shell--admin .whatsapp-metrics-help summary {
+  color: #46515c;
+}
+
+.workspace-shell--admin .whatsapp-health-notice,
+.workspace-shell--admin .whatsapp-templates-panel {
+  border-radius: 10px;
+}
+
 @media (max-width: 1100px) {
   .admin-whatsapp-page .metric-grid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
