@@ -25,23 +25,11 @@ function json(route, body, status = 200) {
   });
 }
 
-function watchCssRequests(page) {
-  const requests = [];
-
-  page.on("request", (request) => {
-    const url = new URL(request.url());
-    if (url.pathname.endsWith(".css")) {
-      requests.push(url.pathname);
-    }
-  });
-
-  return requests;
-}
-
-async function expectCssRequested(requests, fileName) {
-  await expect.poll(() => requests.some((pathname) => (
-    pathname.includes(fileName)
-  ))).toBe(true);
+async function expectComputedStyle(locator, property, expected) {
+  await expect.poll(() => locator.evaluate(
+    (element, styleProperty) => getComputedStyle(element)[styleProperty],
+    property
+  )).toBe(expected);
 }
 
 async function expectNoHorizontalOverflow(page) {
@@ -109,21 +97,27 @@ async function installAdminSession(page) {
   }));
 }
 
-test("planos carrega o CSS exclusivo da rota antes de renderizar", async ({ page }) => {
-  const cssRequests = watchCssRequests(page);
+test("planos aplica o CSS exclusivo da rota antes de renderizar", async ({ page }) => {
   await disableMarketingMeasurement(page);
+  await installOwnerSession(page);
 
   await page.route("**/planos", (route) => json(route, {
     planos: [{
-      id: 1,
-      nome: "Grátis",
-      slug: "inicial",
-      valor: 0,
-      capacidade_agendamentos: 10,
-      limite_profissionais: 1,
-      limite_servicos: 2,
+      id: 2,
+      nome: "Profissional",
+      slug: "profissional",
+      valor: 39.9,
+      capacidade_agendamentos: 100,
+      limite_profissionais: 3,
+      limite_servicos: 20,
       destaque: false
     }]
+  }));
+  await page.route("**/meu-plano", (route) => json(route, {
+    plano_id: 1,
+    plano_slug: "inicial",
+    plano_selecionado_id: 2,
+    plano_selecionado_slug: "profissional"
   }));
 
   await page.goto("/planos");
@@ -132,12 +126,15 @@ test("planos carrega o CSS exclusivo da rota antes de renderizar", async ({ page
     level: 1,
     name: "Planos que acompanham seu sucesso"
   })).toBeVisible();
-  await expectCssRequested(cssRequests, "plans-polish.css");
+
+  const selectedBadge = page.locator(".plans-page .plan-selected-badge");
+  await expect(selectedBadge).toBeVisible();
+  await expectComputedStyle(selectedBadge, "position", "absolute");
+  await expectComputedStyle(selectedBadge, "minHeight", "28px");
   await expectNoHorizontalOverflow(page);
 });
 
-test("dashboard carrega o CSS profissional somente ao entrar no workspace", async ({ page }) => {
-  const cssRequests = watchCssRequests(page);
+test("dashboard aplica o CSS profissional ao entrar no workspace", async ({ page }) => {
   await disableMarketingMeasurement(page);
   await installOwnerSession(page);
 
@@ -173,12 +170,13 @@ test("dashboard carrega o CSS profissional somente ao entrar no workspace", asyn
   await page.goto("/painel");
 
   await expect(page.locator("main.dashboard-page")).toBeVisible();
-  await expectCssRequested(cssRequests, "dashboard-polish.css");
+  const metricCard = page.locator(".dashboard-page .metric-card").first();
+  await expect(metricCard).toBeVisible();
+  await expectComputedStyle(metricCard, "minHeight", "118px");
   await expectNoHorizontalOverflow(page);
 });
 
-test("saúde do SaaS carrega seu CSS administrativo sob demanda", async ({ page }) => {
-  const cssRequests = watchCssRequests(page);
+test("saúde do SaaS aplica seu CSS administrativo sob demanda", async ({ page }) => {
   await disableMarketingMeasurement(page);
   await installAdminSession(page);
 
@@ -206,12 +204,15 @@ test("saúde do SaaS carrega seu CSS administrativo sob demanda", async ({ page 
     level: 1,
     name: "Saúde do SaaS"
   })).toBeVisible();
-  await expectCssRequested(cssRequests, "admin-saas-health.css");
+
+  const metricCard = page.locator(".saas-health-metric-card").first();
+  await expect(metricCard).toBeVisible();
+  await expectComputedStyle(metricCard, "cursor", "pointer");
+  await expectComputedStyle(metricCard, "textAlign", "left");
   await expectNoHorizontalOverflow(page);
 });
 
-test("WhatsApp administrativo carrega seu CSS sob demanda", async ({ page }) => {
-  const cssRequests = watchCssRequests(page);
+test("WhatsApp administrativo aplica seu CSS sob demanda", async ({ page }) => {
   await disableMarketingMeasurement(page);
   await installAdminSession(page);
 
@@ -244,6 +245,9 @@ test("WhatsApp administrativo carrega seu CSS sob demanda", async ({ page }) => 
     level: 1,
     name: "WhatsApp e templates"
   })).toBeVisible();
-  await expectCssRequested(cssRequests, "admin-whatsapp.css");
+
+  const healthNotice = page.locator(".whatsapp-health-notice");
+  await expect(healthNotice).toBeVisible();
+  await expectComputedStyle(healthNotice, "borderRadius", "10px");
   await expectNoHorizontalOverflow(page);
 });
