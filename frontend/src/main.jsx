@@ -14,14 +14,6 @@ import "./styles/admin-whatsapp.css";
 import "./styles/af-experience.css";
 import "./styles/home-discovery.css";
 import "./styles/profile-polish.css";
-import "./styles/dashboard-polish.css";
-import "./styles/agenda-polish.css";
-import "./styles/service-media-polish.css";
-import "./styles/service-catalog-polish.css";
-import "./styles/schedule-polish.css";
-import "./styles/business-polish.css";
-import "./styles/subscription-polish.css";
-import "./styles/plans-polish.css";
 import "./styles/account-polish.css";
 import "./styles/admin-shell.css";
 

@@ -37,6 +37,23 @@ function lazyNamedWithStyles(stylesImporter, importer, name) {
 
 const loadAdminMarketingStyles = () =>
   import("./styles/admin-marketing.css");
+const loadDashboardStyles = () =>
+  import("./styles/dashboard-polish.css");
+const loadAgendaStyles = () =>
+  import("./styles/agenda-polish.css");
+const loadScheduleStyles = () =>
+  import("./styles/schedule-polish.css");
+const loadServicesStyles = () =>
+  Promise.all([
+    import("./styles/service-media-polish.css"),
+    import("./styles/service-catalog-polish.css")
+  ]);
+const loadBusinessStyles = () =>
+  import("./styles/business-polish.css");
+const loadSubscriptionStyles = () =>
+  import("./styles/subscription-polish.css");
+const loadPlansStyles = () =>
+  import("./styles/plans-polish.css");
 
 const AdminMarketingPage = lazyNamedWithStyles(
   loadAdminMarketingStyles,
@@ -69,7 +86,8 @@ const PasswordResetPage = lazyNamed(
   () => import("./pages/PasswordResetPage"),
   "PasswordResetPage"
 );
-const AgendaWorkspacePage = lazyNamed(
+const AgendaWorkspacePage = lazyNamedWithStyles(
+  loadAgendaStyles,
   () => import("./pages/AgendaWorkspacePage"),
   "AgendaWorkspacePage"
 );
@@ -77,19 +95,23 @@ const BillingCheckoutPage = lazyNamed(
   () => import("./pages/BillingPages"),
   "BillingCheckoutPage"
 );
-const PlansPage = lazyNamed(
+const PlansPage = lazyNamedWithStyles(
+  loadPlansStyles,
   () => import("./pages/PlansPage"),
   "PlansPage"
 );
-const SubscriptionPage = lazyNamed(
+const SubscriptionPage = lazyNamedWithStyles(
+  loadSubscriptionStyles,
   () => import("./pages/SubscriptionPage"),
   "SubscriptionPage"
 );
-const BusinessPage = lazyNamed(
+const BusinessPage = lazyNamedWithStyles(
+  loadBusinessStyles,
   () => import("./pages/BusinessPage"),
   "BusinessPage"
 );
-const DashboardPage = lazyNamed(
+const DashboardPage = lazyNamedWithStyles(
+  loadDashboardStyles,
   () => import("./pages/DashboardPage"),
   "DashboardPage"
 );
@@ -101,15 +123,18 @@ const AccountPage = lazyNamed(
   () => import("./pages/AccountPage"),
   "AccountPage"
 );
-const ScheduleSettingsPage = lazyNamed(
+const ScheduleSettingsPage = lazyNamedWithStyles(
+  loadScheduleStyles,
   () => import("./pages/ScheduleSettingsPage"),
   "ScheduleSettingsPage"
 );
-const ServiceEditorPage = lazyNamed(
+const ServiceEditorPage = lazyNamedWithStyles(
+  loadServicesStyles,
   () => import("./pages/ServicesPage"),
   "ServiceEditorPage"
 );
-const ServicesPage = lazyNamed(
+const ServicesPage = lazyNamedWithStyles(
+  loadServicesStyles,
   () => import("./pages/ServicesPage"),
   "ServicesPage"
 );
