@@ -56,7 +56,7 @@ function scheduleDays() {
   }));
 }
 
-function activationCopilot({ serviceCreated, scheduleConfigured }) {
+function activationNextAction({ serviceCreated, scheduleConfigured }) {
   if (!serviceCreated) {
     return {
       estado: "GARANTIR_SERVICO_ATIVO",
@@ -215,7 +215,7 @@ test("profissional vai da landing até agenda pronta para divulgação", async (
       agenda_configurada: scheduleConfigured,
       primeiro_agendamento_recebido: false
     },
-    copilot_ativacao: activationCopilot({
+    proxima_acao_ativacao: activationNextAction({
       serviceCreated,
       scheduleConfigured
     })
@@ -355,7 +355,8 @@ test("profissional vai da landing até agenda pronta para divulgação", async (
     cep: "74000123"
   }));
 
-  await expect(page.getByText("🤖 Copilot AF")).toBeVisible();
+  await expect(page.getByText("Próximo passo")).toBeVisible();
+  await expect(page.getByText(/Copilot AF/i)).toHaveCount(0);
   await expect(page.getByRole("heading", {
     name: "Ative seus serviços"
   })).toBeVisible();
@@ -419,7 +420,8 @@ test("profissional vai da landing até agenda pronta para divulgação", async (
   ]));
 
   await page.goto("/painel");
-  await expect(page.getByText("🤖 Copilot AF")).toBeVisible();
+  await expect(page.getByText("Próximo passo")).toBeVisible();
+  await expect(page.getByText(/Copilot AF/i)).toHaveCount(0);
   await expect(page.getByRole("heading", {
     name: "Divulgue seu perfil"
   })).toBeVisible();
