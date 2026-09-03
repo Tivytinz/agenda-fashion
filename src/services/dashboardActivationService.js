@@ -14,6 +14,7 @@ async function buscarAtivacaoNegocio({
     id <= 0
   ) {
     return {
+      possui_servico_ativo: false,
       negocio_publicado: false,
       agenda_configurada: false,
       primeiro_agendamento_recebido: false,
@@ -27,6 +28,8 @@ async function buscarAtivacaoNegocio({
       );
 
   return {
+    possui_servico_ativo:
+      estado?.possui_servico_ativo === true,
     negocio_publicado:
       estado?.negocio_publicado === true,
     agenda_configurada:
