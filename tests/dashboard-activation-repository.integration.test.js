@@ -116,7 +116,7 @@ describe(
               )
               VALUES (
                 $1,
-                'Serviço Ativo Copilot',
+                'Serviço Ativo Teste',
                 'Serviço criado para validar o estado de ativação.',
                 75,
                 60,
