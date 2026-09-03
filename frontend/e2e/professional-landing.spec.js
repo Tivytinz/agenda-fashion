@@ -19,6 +19,12 @@ test("landing profissional comunica valor e preserva a atribuição", async ({ p
     }));
   });
 
+  await page.route("**/eventos-produto", (route) => route.fulfill({
+    status: 201,
+    contentType: "application/json",
+    body: JSON.stringify({ ok: true })
+  }));
+
   await page.goto(
     "/para-profissionais?utm_source=google&utm_campaign=profissionais&gclid=e2e-123"
   );

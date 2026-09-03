@@ -20,7 +20,9 @@ describe("ownership de CSS por rota", () => {
       "service-catalog-polish.css",
       "business-polish.css",
       "subscription-polish.css",
-      "plans-polish.css"
+      "plans-polish.css",
+      "admin-saas-health.css",
+      "admin-whatsapp.css"
     ];
 
     estilos.forEach((estilo) => {
@@ -36,7 +38,9 @@ describe("ownership de CSS por rota", () => {
       ["SubscriptionPage", "loadSubscriptionStyles"],
       ["PlansPage", "loadPlansStyles"],
       ["ServiceEditorPage", "loadServicesStyles"],
-      ["ServicesPage", "loadServicesStyles"]
+      ["ServicesPage", "loadServicesStyles"],
+      ["AdminSaasHealthPage", "loadAdminSaasHealthStyles"],
+      ["AdminWhatsAppPage", "loadAdminWhatsAppStyles"]
     ].forEach(([pagina, loader]) => {
       expect(app).toMatch(
         new RegExp(`const ${pagina} = lazyNamedWithStyles\\(\\s*${loader},`)
@@ -50,11 +54,16 @@ describe("ownership de CSS por rota", () => {
     [
       "home-discovery.css",
       "profile-polish.css",
-      "account-polish.css",
-      "admin-saas-health.css",
-      "admin-whatsapp.css"
+      "account-polish.css"
     ].forEach((estilo) => {
       expect(entrada).toContain(`import "./styles/${estilo}"`);
     });
+  });
+
+  test("mantem o shell administrativo sem ownership de Saude ou WhatsApp", () => {
+    const shell = ler("frontend/src/styles/admin-shell.css");
+
+    expect(shell).not.toContain("saas-health-");
+    expect(shell).not.toContain("whatsapp-");
   });
 });

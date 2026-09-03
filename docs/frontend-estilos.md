@@ -48,13 +48,17 @@ O primeiro grupo migrado segue esse padrão:
 - `ServicesPage` e `ServiceEditorPage`: `service-media-polish.css` e `service-catalog-polish.css`;
 - `BusinessPage`: `business-polish.css`;
 - `SubscriptionPage`: `subscription-polish.css`;
-- `PlansPage`: `plans-polish.css`.
+- `PlansPage`: `plans-polish.css`;
+- `AdminSaasHealthPage`: `admin-saas-health.css`;
+- `AdminWhatsAppPage`: `admin-whatsapp.css`.
 
 Esses estilos são carregados pelo mesmo helper `lazyNamedWithStyles` usado pelo Marketing administrativo. O Vite pode então associar os recursos ao carregamento das rotas correspondentes, enquanto `main.jsx` permanece responsável apenas por fundações e estilos realmente compartilhados.
 
-Não mover um arquivo apenas pelo nome. Antes é obrigatório verificar seletores compartilhados, componentes usados em mais de uma rota e a ordem da cascata. Por isso `home-discovery.css`, `profile-polish.css`, `account-polish.css`, `admin-saas-health.css` e `admin-whatsapp.css` permanecem globais nesta etapa: eles ainda atravessam header global, confirmação de agendamento, conta em múltiplos shells ou o tema administrativo e exigem auditoria própria antes de qualquer isolamento.
+Não mover um arquivo apenas pelo nome. Antes é obrigatório verificar seletores compartilhados, componentes usados em mais de uma rota e a ordem da cascata. Por isso `home-discovery.css`, `profile-polish.css` e `account-polish.css` permanecem globais nesta etapa: eles ainda atravessam header global, confirmação de agendamento ou conta em múltiplos shells e exigem auditoria própria antes de qualquer isolamento.
 
-O teste `tests/frontend-route-css-regressoes.test.js` protege esse ownership: estilos já migrados não podem voltar para `main.jsx`, e suas páginas devem continuar usando carregamento lazy sincronizado com o CSS.
+`admin-saas-health.css` e `admin-whatsapp.css` foram auditados como estilos exclusivos das respectivas features administrativas e passaram a carregar junto das páginas lazy. Os refinamentos neutros dessas telas também ficam nas próprias folhas de feature; `admin-shell.css` continua global apenas para tokens, estrutura, navegação, controles e superfícies compartilhadas do console.
+
+O teste `tests/frontend-route-css-regressoes.test.js` protege esse ownership: estilos já migrados não podem voltar para `main.jsx`, e suas páginas devem continuar usando carregamento lazy sincronizado com o CSS. O smoke test `frontend/e2e/route-css-smoke.spec.js` valida no navegador que CSS exclusivo é realmente solicitado quando a rota correspondente é aberta.
 
 ## Responsividade do admin
 
