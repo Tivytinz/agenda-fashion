@@ -374,10 +374,23 @@ export function BusinessPage({ create = false }) {
       await session.refresh();
       if (create) {
         const requestedPath = safeInternalPath(location.state?.from);
-        const destination = selectedPlan
-          ? `/checkout?plano=${encodeURIComponent(selectedPlan)}`
-          : requestedPath || "/painel";
-        navigate(destination, { replace: true });
+
+        if (selectedPlan) {
+          navigate(
+            `/checkout?plano=${encodeURIComponent(selectedPlan)}`,
+            { replace: true }
+          );
+        } else if (requestedPath) {
+          navigate(requestedPath, { replace: true });
+        } else {
+          navigate("/painel/servicos/novo", {
+            replace: true,
+            state: {
+              onboarding: true,
+              onboardingStep: "servico"
+            }
+          });
+        }
       } else if (
         location.state?.onboarding === true
         && location.state?.onboardingStep === "perfil"
