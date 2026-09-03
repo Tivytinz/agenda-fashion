@@ -318,7 +318,10 @@ export function MetaAdsBridge() {
         <div className="marketing-consent-copy">
           <strong>Privacidade e medição de anúncios</strong>
           <p>
-            Se você permitir, o Agenda Fashion usará cookies e identificadores pseudônimos do Google Analytics, Google Ads e Meta para medir visitas, cadastros e assinaturas gerados por anúncios. Publicidade personalizada permanece desativada. Negar não limita o uso da plataforma.
+            Com sua permissão, usamos cookies opcionais do Google Analytics,
+            Google Ads e Meta para entender quais anúncios geram visitas,
+            cadastros e assinaturas. Negar não limita o AF e a publicidade
+            personalizada permanece desativada.
           </p>
           <Link to="/privacidade">
             Entender como funciona
@@ -344,7 +347,7 @@ export function MetaAdsBridge() {
             )}
             type="button"
           >
-            Não permitir
+            Recusar
           </button>
           <button
             className="button button-secondary"
@@ -353,7 +356,7 @@ export function MetaAdsBridge() {
             )}
             type="button"
           >
-            Permitir
+            Permitir medição
           </button>
         </div>
       </aside>

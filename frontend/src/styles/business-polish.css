@@ -111,60 +111,64 @@
   font-weight: 850;
 }
 
-.business-settings-page .field-helper {
+.business-settings-form .field-helper {
   display: block;
   margin-top: 6px;
   color: var(--muted);
   line-height: 1.35;
 }
 
-.business-settings-page .field-helper.is-error,
-.business-settings-page .cep-lookup-helper.is-error {
+.business-settings-form .field-helper.is-error,
+.business-settings-form .cep-lookup-helper.is-error {
   color: #a92d54;
 }
 
-.business-settings-page .cep-lookup-helper.is-loading {
+.business-settings-form .cep-lookup-helper.is-loading {
   color: var(--pink-700);
   font-weight: 750;
 }
 
-.business-settings-page .cep-lookup-helper.is-success {
+.business-settings-form .cep-lookup-helper.is-success {
   color: #167244;
   font-weight: 750;
 }
 
-.business-settings-page .maps-field-helper {
+.business-settings-form .maps-field-helper {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 10px;
 }
 
-.business-settings-page .maps-field-helper a {
+.business-settings-form .maps-field-helper a {
   flex: 0 0 auto;
   color: var(--pink-700);
   font-size: .75rem;
   font-weight: 800;
 }
 
-.business-settings-page .business-address-section .business-form-heading p:last-child {
+.business-settings-form .business-address-section .business-form-heading p:last-child {
   margin-bottom: 0;
   color: var(--muted);
   font-size: .84rem;
 }
 
-.business-settings-page .business-address-grid {
+.business-settings-form .business-address-grid {
   align-items: end;
 }
 
-.business-settings-page .business-cep-field {
+.business-settings-form .business-cep-field {
   max-width: 320px;
 }
 
-.business-settings-page .business-address-divider {
+.business-settings-form .business-address-divider {
   height: 1px;
   margin: 2px 0 4px;
   background: var(--line);
+}
+
+.business-settings-form .business-maps-grid {
+  margin-top: 18px;
 }
 
 .business-settings-page .business-form-feedback {
@@ -251,12 +255,12 @@
   }
 
   .business-settings-page .specialty-heading-row,
-  .business-settings-page .maps-field-helper {
+  .business-settings-form .maps-field-helper {
     align-items: flex-start;
     flex-direction: column;
   }
 
-  .business-settings-page .business-cep-field {
+  .business-settings-form .business-cep-field {
     max-width: none;
   }
 

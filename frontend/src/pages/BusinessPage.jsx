@@ -9,6 +9,11 @@ import { ErrorState, LoadingState } from "../components/ScreenState";
 import { MediaThumb } from "../components/profile/MediaThumb";
 import { formatCep, formatWhatsApp } from "../utils/format";
 import {
+  readBrowserStorage,
+  removeBrowserStorage,
+  writeBrowserStorage
+} from "../utils/browserStorage";
+import {
   BUSINESS_SPECIALTIES,
   normalizeBusinessSpecialties
 } from "../utils/specialties";
@@ -20,6 +25,7 @@ const BRAZILIAN_STATES = [
 ];
 const ACCEPTED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"];
 const MAX_IMAGE_SIZE = 5 * 1024 * 1024;
+const BUSINESS_CREATION_DRAFT_KEY = "af_business_creation_draft";
 
 const EMPTY = {
   nome: "",
@@ -78,6 +84,35 @@ function normalizeBusinessForm(business = {}) {
   };
 }
 
+function restoreBusinessCreationDraft() {
+  const draft = readBrowserStorage("session", BUSINESS_CREATION_DRAFT_KEY);
+  if (!draft) return EMPTY;
+
+  try {
+    return normalizeBusinessForm(JSON.parse(draft));
+  } catch {
+    removeBrowserStorage("session", BUSINESS_CREATION_DRAFT_KEY);
+    return EMPTY;
+  }
+}
+
+function buildGoogleMapsSearchUrl(form) {
+  if (!String(form.endereco || "").trim() || !String(form.cidade || "").trim()) {
+    return "";
+  }
+
+  const query = [
+    form.endereco,
+    form.numero,
+    form.bairro,
+    form.cidade,
+    form.estado,
+    form.cep
+  ].map((value) => String(value || "").trim()).filter(Boolean).join(", ");
+
+  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`;
+}
+
 function serializeBusinessForm(value) {
   return JSON.stringify({
     ...value,
@@ -130,7 +165,9 @@ export function BusinessPage({ create = false }) {
   const location = useLocation();
   const [searchParams] = useSearchParams();
   const selectedPlan = normalizePlanSlug(searchParams.get("plano"));
-  const [form, setForm] = useState(EMPTY);
+  const [form, setForm] = useState(() => (
+    create ? restoreBusinessCreationDraft() : EMPTY
+  ));
   const [savedForm, setSavedForm] = useState(EMPTY);
   const [loading, setLoading] = useState(!create);
   const [saving, setSaving] = useState(false);
@@ -148,7 +185,17 @@ export function BusinessPage({ create = false }) {
     ? `https://app.agendafashion.com.br/negocio/${form.slug}`
     : "";
   const googleMapsValid = isValidGoogleMapsUrl(form.localizacao_url);
+  const googleMapsSearchUrl = buildGoogleMapsSearchUrl(form);
   const whatsappError = validateWhatsApp(form.whatsapp);
+
+  useEffect(() => {
+    if (!create) return;
+    writeBrowserStorage(
+      "session",
+      BUSINESS_CREATION_DRAFT_KEY,
+      serializeBusinessForm(form)
+    );
+  }, [create, form]);
 
   useEffect(() => {
     if (!create) return;
@@ -367,17 +414,31 @@ export function BusinessPage({ create = false }) {
         ...savedBusiness,
         areas: savedBusiness.areas || form.areas
       });
-      setForm(normalizedSaved);
-      if (!create) setSavedForm(normalizedSaved);
+      if (!create) {
+        setForm(normalizedSaved);
+        setSavedForm(normalizedSaved);
+      }
       setMessage(result.mensagem || (create ? "Negócio criado." : "Alterações salvas."));
       if (result.publicacao) setPublication(result.publicacao);
       await session.refresh();
       if (create) {
+        removeBrowserStorage("session", BUSINESS_CREATION_DRAFT_KEY);
         const requestedPath = safeInternalPath(location.state?.from);
         const destination = selectedPlan
           ? `/checkout?plano=${encodeURIComponent(selectedPlan)}`
-          : requestedPath || "/painel";
-        navigate(destination, { replace: true });
+          : requestedPath || "/painel/servicos/novo";
+        const continueActivation = !selectedPlan && !requestedPath;
+
+        navigate(destination, {
+          replace: true,
+          state: continueActivation
+            ? {
+                message: "Negócio criado. Agora cadastre seu primeiro serviço.",
+                onboarding: true,
+                onboardingStep: "servico"
+              }
+            : undefined
+        });
       } else if (
         location.state?.onboarding === true
         && location.state?.onboardingStep === "perfil"
@@ -752,7 +813,22 @@ export function BusinessPage({ create = false }) {
                   : "Usado para confirmações e contato das clientes.")}
               </small>
             </label>
-            <label>
+          </div>
+        </section>
+
+        <section className="business-form-section business-address-section">
+          <div className="business-form-heading">
+            <p className="eyebrow">Endereço</p>
+            <h2>Onde acontece o atendimento</h2>
+            <p>
+              {create
+                ? "Preencha os dados principais do endereço. O complemento é opcional, e o CEP ajuda a preencher parte dos dados automaticamente."
+                : "Comece pelo CEP e complete os detalhes do local."}
+            </p>
+          </div>
+          {addressFields}
+          <div className="form-grid business-maps-grid">
+            <label className="field-wide">
               Link do Google Maps
               <input
                 aria-invalid={!googleMapsValid ? "true" : undefined}
@@ -769,28 +845,19 @@ export function BusinessPage({ create = false }) {
                     : form.localizacao_url
                       ? "Link válido do Google Maps."
                       : create
-                        ? "Obrigatório na criação. Cole o link da localização no Google Maps."
-                        : "Cole o link da localização no Google Maps."}
+                        ? "Abra o endereço no Google Maps, confirme o local e cole aqui o link compartilhado. O preenchimento fica salvo nesta aba."
+                        : "Cole o link compartilhado da localização no Google Maps."}
                 </small>
-                {googleMapsValid && form.localizacao_url && (
+                {googleMapsValid && form.localizacao_url ? (
                   <a href={form.localizacao_url} rel="noreferrer" target="_blank">Testar link ↗</a>
-                )}
+                ) : googleMapsSearchUrl ? (
+                  <a href={googleMapsSearchUrl} rel="noreferrer" target="_blank">
+                    Abrir este endereço no Google Maps ↗
+                  </a>
+                ) : null}
               </span>
             </label>
           </div>
-        </section>
-
-        <section className="business-form-section business-address-section">
-          <div className="business-form-heading">
-            <p className="eyebrow">Endereço</p>
-            <h2>Onde acontece o atendimento</h2>
-            <p>
-              {create
-                ? "Preencha os dados principais do endereço. O complemento é opcional, e o CEP ajuda a preencher parte dos dados automaticamente."
-                : "Comece pelo CEP e complete os detalhes do local."}
-            </p>
-          </div>
-          {addressFields}
         </section>
 
         {error && <p className="form-error business-form-feedback" role="alert">{error}</p>}

@@ -44,6 +44,7 @@ function renderPage() {
 }
 
 beforeEach(() => {
+  sessionStorage.clear();
   apiRequest.mockReset();
   refreshSession.mockReset();
   refreshSession.mockResolvedValue({});

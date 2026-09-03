@@ -1,7 +1,7 @@
 # Memoria operacional do Agenda Fashion
 
-> Contexto permanente para agentes de desenvolvimento. Atualizado em 31 de
-> agosto de 2026.
+> Contexto permanente para agentes de desenvolvimento. Atualizado em 3 de
+> setembro de 2026.
 
 Este arquivo deve ser lido antes de analisar, planejar ou alterar o projeto.
 Ele registra a direcao do produto e as regras que nao podem ser perdidas entre
@@ -86,7 +86,13 @@ AF nao demonstra valor para os negocios.
   profissional; configuracoes legadas so podem ser recuperadas quando houver
   evidencia persistida de edicao anterior.
 - O primeiro servico nao publica sozinho um negocio do fluxo novo. A interface
-  deve conduzir o dono diretamente para confirmar os horarios.
+  deve conduzir o dono da criacao do negocio ao primeiro servico e depois
+  diretamente para confirmar os horarios. Fotos opcionais do servico nao devem
+  competir com os dados essenciais nessa primeira ativacao.
+- Enquanto houver configuracao inicial pendente, o dashboard deve mostrar o
+  checklist de ativacao sem `DashboardNextAction` nem paineis de consentimento
+  do WhatsApp concorrentes. Depois da ativacao, o checklist sai de cena e a
+  proxima missao operacional assume a orientacao.
 - Depois da primeira configuracao valida, o backend recalcula a elegibilidade;
   se todos os requisitos estiverem confirmados, publica o negocio e conduz para
   divulgacao do perfil e primeiro agendamento. O compartilhamento deve

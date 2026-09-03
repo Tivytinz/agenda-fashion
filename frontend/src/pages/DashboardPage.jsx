@@ -259,6 +259,12 @@ export function DashboardPage() {
   const newClients = Number(summary.clientes_novos) || 0;
   const profileVisits = Number(performance.visitas_perfil) || 0;
   const completedBookings = Number(performance.agendamentos_concluidos) || 0;
+  const scheduleConfigured = typeof data.ativacao?.agenda_configurada === "boolean"
+    ? data.ativacao.agenda_configurada
+    : undefined;
+  const initialSetupComplete = !onboarding.loading
+    && onboarding.publication?.publicado === true
+    && scheduleConfigured !== false;
   const visitLabel = profileVisits === 1 ? "visita" : "visitas";
   const bookingLabel = completedBookings === 1 ? "agendamento" : "agendamentos";
   const cards = [
@@ -297,9 +303,10 @@ export function DashboardPage() {
         businessSlug={onboarding.businessSlug}
         loading={onboarding.loading}
         publication={onboarding.publication}
+        scheduleConfigured={scheduleConfigured}
       />
 
-      {whatsappReminders.operationalEnabled === false && (
+      {initialSetupComplete && whatsappReminders.operationalEnabled === false && (
         <section
           aria-labelledby="whatsapp-operational-title"
           className="panel whatsapp-reminders-panel"
@@ -333,7 +340,7 @@ export function DashboardPage() {
         </section>
       )}
 
-      {whatsappReminders.enabled === false && (
+      {initialSetupComplete && whatsappReminders.enabled === false && (
         <section
           aria-labelledby="whatsapp-reminders-title"
           className="panel whatsapp-reminders-panel"
@@ -499,14 +506,16 @@ export function DashboardPage() {
           </dl>
         </article>
 
-        <DashboardNextAction
-          activation={data.ativacao}
-          businessId={data.negocio?.negocio_id}
-          businessName={data.negocio?.nome}
-          businessSlug={data.negocio?.slug}
-          publication={onboarding.publication}
-          profileVisits={profileVisits}
-        />
+        {initialSetupComplete && (
+          <DashboardNextAction
+            activation={data.ativacao}
+            businessId={data.negocio?.negocio_id}
+            businessName={data.negocio?.nome}
+            businessSlug={data.negocio?.slug}
+            publication={onboarding.publication}
+            profileVisits={profileVisits}
+          />
+        )}
       </section>
 
       {Array.isArray(data.ranking_servicos) && data.ranking_servicos.length > 0 && (

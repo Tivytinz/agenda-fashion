@@ -315,6 +315,10 @@ describe("dashboard", () => {
     expect(screen.getByRole("link", { name: "Cadastrar serviço" })
       .getAttribute("href")).toBe("/painel/servicos/novo");
     expect(screen.getByText("1 de 4")).not.toBeNull();
+    expect(screen.queryByText("Próxima ação")).toBeNull();
+    expect(screen.queryByRole("button", {
+      name: "Ativar lembretes no WhatsApp"
+    })).toBeNull();
   });
 
   it("destaca a ativação do WhatsApp e registra a autorização em um toque", async () => {

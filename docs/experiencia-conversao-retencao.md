@@ -6,6 +6,8 @@ Este documento registra regras duráveis de UX do Agenda Fashion para a transiç
 
 O onboarding do dashboard existe somente enquanto houver configuração inicial pendente.
 
+Enquanto ele estiver visível, `DashboardNextAction` e os painéis de consentimento do WhatsApp não devem competir com a etapa indicada pelo checklist.
+
 Quando perfil, serviço, agenda e publicação estiverem concluídos, o checklist deixa de ser exibido. A partir desse ponto, a próxima missão operacional é responsabilidade do `DashboardNextAction`, evitando dois componentes concorrentes orientando a profissional ao mesmo tempo.
 
 A sequência de produto continua acompanhando o funil real: configurar, publicar, divulgar, converter visitas, obter o primeiro agendamento e aumentar recorrência.
@@ -19,9 +21,14 @@ O marco canônico é `agenda_configuracoes.configurado_em`. O backend expõe `ag
 Regras:
 
 - `agendamento_online_disponivel = true`: o serviço pode direcionar para o perfil com o serviço pré-selecionado e usar `Ver horários`;
+- quando ao menos um serviço do perfil possui esse sinal, o hero pode destacar `Agendar agora` e levar à primeira etapa do fluxo;
 - sinal `false` ou ausente: o serviço direciona apenas para o perfil e usa `Ver perfil`;
 - um perfil legado não é despublicado apenas por não possuir o marco de confirmação;
 - a disponibilidade real continua sendo calculada e validada no backend. O sinal do catálogo não substitui a validação dos slots.
+
+## Navegação pública: contexto previsível
+
+Mudanças de rota devem iniciar no topo da nova tela. Fragmentos explícitos, como `#agendar`, levam ao destino indicado e preservam a folga do cabeçalho fixo. A correção não deve transformar `html`, `body` ou `#root` em contêineres de rolagem que invalidem o comportamento sticky do cabeçalho.
 
 ## Cliente: agendar novamente
 

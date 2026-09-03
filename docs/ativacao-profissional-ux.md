@@ -54,6 +54,10 @@ Descrição, foto e complemento são opcionais. O upload de foto continua aconte
 
 O WhatsApp da conta autenticada pode preencher inicialmente o WhatsApp do negócio, mas permanece editável e o backend continua validando o valor recebido.
 
+Durante a criação, o formulário mantém um rascunho na sessão da aba. Ao abrir a busca do endereço no Google Maps em outra aba, os dados já preenchidos não devem ser perdidos. O endereço estruturado monta a busca inicial, mas o link compartilhado confirmado pela profissional continua obrigatório e sujeito à validação existente.
+
+Depois da criação bem-sucedida, a jornada gratuita segue diretamente para o cadastro do primeiro serviço. Checkout de plano pago e destinos internos protegidos solicitados antes da criação preservam sua prioridade.
+
 Esta exigência vale para **criação de novos negócios**. Ela não altera retroativamente os requisitos canônicos de publicação de negócios existentes, preservando compatibilidade com perfis legados.
 
 ## Primeiro serviço
@@ -61,6 +65,8 @@ Esta exigência vale para **criação de novos negócios**. Ela não altera retr
 A foto do serviço é recomendada para conversão, mas não é requisito para liberar a etapa seguinte ou publicar o negócio depois da confirmação dos horários.
 
 A interface deve deixar claro que o primeiro serviço ativo é necessário, mas não publica sozinho um negócio novo. Depois dele, o fluxo segue diretamente para a confirmação dos horários. Fotos e descrição do serviço podem ser aprimoradas depois.
+
+No modo de primeira ativação, o editor prioriza nome, categoria, valor, duração e disponibilidade. O painel opcional de fotos fica fora dessa etapa e volta a aparecer na criação recorrente e na edição do serviço.
 
 ## Primeira configuração da agenda
 

@@ -83,6 +83,7 @@ function ActionIcon({ active = false, type }) {
 }
 
 export function ProfileHero({
+  bookingAvailable,
   business,
   businessSlug,
   favorite,
@@ -214,6 +215,11 @@ export function ProfileHero({
         </div>
       </div>
       <div className={whatsappUrl ? "profile-actions has-whatsapp" : "profile-actions"}>
+        {bookingAvailable && (
+          <a className="button profile-book-button" href="#agendar">
+            Agendar agora
+          </a>
+        )}
         <button
           aria-busy={favoriteBusy || favoriteStatus === "loading"}
           aria-pressed={favoriteStatus === "ready" ? favorite : undefined}

@@ -225,6 +225,18 @@ describe("editor de serviços", () => {
     expect(screen.getByText("Adicionar fotos")).not.toBeNull();
   });
 
+  it("prioriza os dados essenciais durante o cadastro do primeiro serviço", () => {
+    renderEditor({
+      pathname: "/painel/servicos/novo",
+      state: { onboarding: true, onboardingStep: "servico" }
+    });
+
+    expect(screen.getByText("Fotos podem ser adicionadas depois")).not.toBeNull();
+    expect(screen.queryByLabelText("Escolher capa")).toBeNull();
+    expect(screen.queryByLabelText("Adicionar fotos à galeria")).toBeNull();
+    expect(screen.getByRole("button", { name: "Salvar serviço" })).not.toBeNull();
+  });
+
   it("leva à confirmação de horários sem publicar ao cadastrar o primeiro serviço", async () => {
     apiRequest.mockResolvedValueOnce({
       servico: { id: 55 },
