@@ -36,7 +36,7 @@ function lazyNamedWithStyles(stylesImporter, importer, name) {
 }
 
 const loadAdminMarketingStyles = () =>
-  import("./styles/admin-marketing/index.css");
+  import("./styles/admin-marketing.css");
 
 const AdminMarketingPage = lazyNamedWithStyles(
   loadAdminMarketingStyles,

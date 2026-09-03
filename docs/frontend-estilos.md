@@ -15,22 +15,26 @@ Este documento registra a direção adotada para evoluir o CSS do Agenda Fashion
 
 ## Marketing administrativo
 
-A consolidação das antigas camadas `admin-marketing.css`, `admin-marketing-professional.css`, `admin-marketing-v2.css` e `admin-marketing-v3.css` foi concluída na estrutura de feature `frontend/src/styles/admin-marketing/`.
+A consolidação das antigas camadas `admin-marketing-professional.css`, `admin-marketing-v2.css` e `admin-marketing-v3.css` foi concluída sob uma única entrada canônica: `frontend/src/styles/admin-marketing.css`.
 
-Existe uma única entrada canônica para o restante da aplicação:
+Os módulos internos ficam em `frontend/src/styles/admin-marketing/` e são organizados por responsabilidade:
 
-- `index.css`: entrada da feature e ordem explícita dos módulos;
+- `campaigns-mobile.css`: UX específica das campanhas em telas estreitas, antes carregada diretamente pelo HTML;
 - `core.css`: fundações compartilhadas das telas administrativas de Marketing;
 - `reporting.css`: relatórios, custos, funil, gráficos e tabelas;
 - `command.css`: visão geral, sincronização, campanhas e GA4;
 - `overview.css`: jornada, confiabilidade, refinamentos do overview e responsividade baseada em container;
 - `theme.css`: aplicação dos tokens neutros do console administrativo à feature.
 
+O restante da aplicação importa somente `admin-marketing.css`. Os módulos internos não são entradas públicas da feature.
+
 Os nomes internos antigos de alguns seletores e custom properties podem permanecer temporariamente como compatibilidade de markup, mas não representam novas camadas arquiteturais e não devem ser usados em código novo. A evolução deve convergir para nomes semânticos quando esses componentes forem tocados.
 
 `admin-shell.css` não contém mais seletores específicos de Marketing. Ele é responsável por sidebar, header, footer, superfícies, controles e tokens do console.
 
-As três rotas administrativas de Marketing carregam `index.css` no mesmo `Promise` usado pelo `React.lazy`. Assim, página e estilos são resolvidos juntos antes da renderização da rota; o `AdminLayout` não baixa CSS de feature por `useEffect`.
+As três rotas administrativas de Marketing carregam `admin-marketing.css` no mesmo `Promise` usado pelo `React.lazy`. Assim, página e estilos são resolvidos juntos antes da renderização da rota; o `AdminLayout` não baixa CSS de feature por `useEffect`.
+
+A folha mobile de campanhas também deixou de ser referenciada diretamente por `frontend/index.html`, evitando carregar CSS administrativo na experiência pública ou profissional.
 
 ## Responsividade do admin
 

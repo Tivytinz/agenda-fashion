@@ -1,0 +1,12 @@
+/*
+ * Entrada canônica da feature Marketing administrativo.
+ *
+ * Os módulos internos são organizados por responsabilidade, não por geração
+ * visual. O restante do frontend importa somente este arquivo.
+ */
+@import "./admin-marketing/campaigns-mobile.css";
+@import "./admin-marketing/core.css";
+@import "./admin-marketing/reporting.css";
+@import "./admin-marketing/command.css";
+@import "./admin-marketing/overview.css";
+@import "./admin-marketing/theme.css";
