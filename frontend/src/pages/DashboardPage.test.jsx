@@ -8,7 +8,7 @@ import { DashboardPage } from "./DashboardPage";
 
 vi.mock("../api/client", () => ({ apiRequest: vi.fn() }));
 
-function copilotNavigate({
+function nextActionNavigate({
   estado,
   titulo,
   mensagem = "Mensagem definida pelo backend.",
@@ -51,7 +51,7 @@ const DASHBOARD = {
     agenda_configurada: true,
     primeiro_agendamento_recebido: false
   },
-  copilot_ativacao: {
+  proxima_acao_ativacao: {
     estado: "CONQUISTAR_PRIMEIRO_AGENDAMENTO",
     concluido: false,
     titulo: "Divulgue seu perfil",
@@ -307,7 +307,7 @@ describe("dashboard", () => {
           agenda_configurada: true,
           primeiro_agendamento_recebido: false
         },
-        copilot_ativacao: copilotNavigate({
+        proxima_acao_ativacao: nextActionNavigate({
           estado: "REVISAR_PUBLICACAO",
           titulo: "Revise a publicação",
           rotulo: "Revisar meu negócio",
@@ -337,7 +337,7 @@ describe("dashboard", () => {
           agenda_configurada: false,
           primeiro_agendamento_recebido: false
         },
-        copilot_ativacao: copilotNavigate({
+        proxima_acao_ativacao: nextActionNavigate({
           estado: "CONFIRMAR_AGENDA",
           titulo: "Confirme seus horários",
           rotulo: "Confirmar horários",
@@ -364,7 +364,7 @@ describe("dashboard", () => {
           agenda_configurada: false,
           primeiro_agendamento_recebido: false
         },
-        copilot_ativacao: copilotNavigate({
+        proxima_acao_ativacao: nextActionNavigate({
           estado: "GARANTIR_SERVICO_ATIVO",
           titulo: "Ative seus serviços",
           rotulo: "Gerenciar serviços",
@@ -375,7 +375,8 @@ describe("dashboard", () => {
 
     render(<MemoryRouter><DashboardPage /></MemoryRouter>);
 
-    expect(await screen.findByText("🤖 Copilot AF")).not.toBeNull();
+    expect(await screen.findByText("Próximo passo")).not.toBeNull();
+    expect(screen.queryByText(/Copilot AF/i)).toBeNull();
     expect(screen.getByRole("heading", { name: "Ative seus serviços" }))
       .not.toBeNull();
     expect(screen.getByRole("link", { name: "Gerenciar serviços" }).getAttribute("href"))
