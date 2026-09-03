@@ -10,10 +10,17 @@ import { ServiceEditorPage } from "./ServicesPage";
 
 const refreshSession = vi.fn(() => Promise.resolve());
 
-vi.mock("../api/client", () => ({ apiRequest: vi.fn() }));
+vi.mock("../api/client", () => ({
+  apiRequest: vi.fn()
+}));
+
 vi.mock("../auth/SessionContext", () => ({
   useSession: () => ({
-    usuario: { id: 7, nome: "Ana", whatsapp: "62999999999" },
+    usuario: {
+      id: 7,
+      nome: "Ana",
+      whatsapp: "62999999999"
+    },
     refresh: refreshSession
   })
 }));
@@ -79,6 +86,20 @@ describe("jornada de ativação profissional", () => {
           ranking_servicos: []
         });
       }
+      if (path === "/configuracoes") {
+        return Promise.resolve({
+          negocio: {
+            id: 11,
+            slug: "studio-aurora",
+            publicado: true
+          },
+          publicacao: {
+            publicado: true,
+            pode_publicar: true,
+            pendencias: []
+          }
+        });
+      }
       if (path === "/conta") {
         return Promise.resolve({
           usuario: {
@@ -124,7 +145,10 @@ describe("jornada de ativação profissional", () => {
       }
       if (path === "/criar-negocio" && options.method === "POST") {
         return Promise.resolve({
-          negocio: { id: 99, nome: "Studio Aurora" },
+          negocio: {
+            id: 99,
+            nome: "Studio Aurora"
+          },
           publicacao: {
             publicado: false,
             pode_publicar: false,
@@ -185,7 +209,10 @@ describe("jornada de ativação profissional", () => {
       <MemoryRouter
         initialEntries={[{
           pathname: "/painel/servicos/novo",
-          state: { onboarding: true, onboardingStep: "servico" }
+          state: {
+            onboarding: true,
+            onboardingStep: "servico"
+          }
         }]}
       >
         <Routes>
@@ -197,14 +224,28 @@ describe("jornada de ativação profissional", () => {
       </MemoryRouter>
     );
 
-    expect(screen.getByText(/informe nome, categoria, valor e duração/i)).not.toBeNull();
-    expect(screen.getByRole("textbox", { name: "Nome do serviço" })).not.toBeNull();
-    expect(screen.getByRole("combobox", { name: /Categoria/ })).not.toBeNull();
-    expect(screen.getByRole("spinbutton", { name: "Valor" })).not.toBeNull();
-    expect(screen.getByRole("spinbutton", { name: "Duração em minutos" })).not.toBeNull();
+    expect(screen.getByText(
+      /informe nome, categoria, valor e duração/i
+    )).not.toBeNull();
+    expect(screen.getByRole("textbox", {
+      name: "Nome do serviço"
+    })).not.toBeNull();
+    expect(screen.getByRole("combobox", {
+      name: /Categoria/
+    })).not.toBeNull();
+    expect(screen.getByRole("spinbutton", {
+      name: "Valor"
+    })).not.toBeNull();
+    expect(screen.getByRole("spinbutton", {
+      name: "Duração em minutos"
+    })).not.toBeNull();
 
-    expect(screen.queryByRole("textbox", { name: /Descrição/ })).toBeNull();
-    expect(screen.queryByRole("heading", { name: "Fotos do serviço" })).toBeNull();
+    expect(screen.queryByRole("textbox", {
+      name: /Descrição/
+    })).toBeNull();
+    expect(screen.queryByRole("heading", {
+      name: "Fotos do serviço"
+    })).toBeNull();
     expect(screen.queryByText("Serviço disponível")).toBeNull();
   });
 });
