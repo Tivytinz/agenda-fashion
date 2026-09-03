@@ -313,6 +313,27 @@
   font-weight: 700;
 }
 
+/* O shell fornece tokens neutros; a feature aplica o tema aos próprios estados. */
+.workspace-shell--admin .saas-health-progress {
+  background: #e8ecef;
+}
+
+.workspace-shell--admin .saas-health-progress > span {
+  background: #5f7488;
+}
+
+.workspace-shell--admin .saas-health-metric-card:hover,
+.workspace-shell--admin .saas-health-metric-card:focus-visible,
+.workspace-shell--admin .saas-health-metric-card.active {
+  border-color: #7a8590;
+  box-shadow: 0 6px 16px rgb(24 31 38 / 7%);
+}
+
+.workspace-shell--admin .saas-health-next-action {
+  border-left-color: #7a8590;
+  background: #f3f5f7;
+}
+
 @media (max-width: 700px) {
   .admin-saas-health-page .metric-grid {
     grid-template-columns: 1fr;
