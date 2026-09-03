@@ -8,9 +8,6 @@ import { serviceCategoryEmoji } from "../../utils/specialties";
 import { MediaThumb } from "./MediaThumb";
 
 function ServiceChoices({
-  businessId,
-  businessName,
-  businessSlug,
   services,
   selectedId,
   onSelect
@@ -65,18 +62,6 @@ function ServiceChoices({
                 </small>
               </span>
             </button>
-            <div className="service-share-actions">
-              <PublicShareButton
-                ariaLabel={`Compartilhar ${service.nome}`}
-                businessId={businessId}
-                businessName={businessName}
-                businessSlug={businessSlug}
-                className="service-share-button"
-                label="Compartilhar serviço"
-                serviceId={service.id}
-                serviceName={service.nome}
-              />
-            </div>
           </article>
         );
       })}
@@ -325,13 +310,24 @@ export function BookingFlow({
                   <strong>{selectedService?.nome}</strong>
                   <small>{formatCurrency(selectedService?.valor)}</small>
                 </span>
-                <button className="text-button" onClick={() => setEditingService(true)} type="button">Alterar</button>
+                <div className="service-share-actions">
+                  {selectedService && (
+                    <PublicShareButton
+                      ariaLabel={`Compartilhar ${selectedService.nome}`}
+                      businessId={businessId}
+                      businessName={businessName}
+                      businessSlug={businessSlug}
+                      className="service-share-button"
+                      label="Compartilhar serviço"
+                      serviceId={selectedService.id}
+                      serviceName={selectedService.nome}
+                    />
+                  )}
+                  <button className="text-button" onClick={() => setEditingService(true)} type="button">Alterar</button>
+                </div>
               </div>
             ) : (
               <ServiceChoices
-                businessId={businessId}
-                businessName={businessName}
-                businessSlug={businessSlug}
                 services={services}
                 selectedId={serviceId}
                 onSelect={selectService}

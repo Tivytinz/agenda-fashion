@@ -52,6 +52,8 @@ Todo novo negócio deve nascer com as informações estruturais essenciais do pe
 
 Descrição, foto e complemento são opcionais. O upload de foto continua acontecendo pelo fluxo próprio depois que o negócio existe. A descrição pode ser melhorada depois e o complemento pode ser preenchido quando fizer sentido para o endereço, sem bloquear a criação quando não existir.
 
+Na criação padrão, sem checkout de plano nem rota explícita de retorno, a interface deve continuar diretamente para o cadastro do primeiro serviço. O dashboard não deve introduzir uma decisão intermediária antes dessa etapa.
+
 O WhatsApp da conta autenticada pode preencher inicialmente o WhatsApp do negócio, mas permanece editável e o backend continua validando o valor recebido.
 
 Esta exigência vale para **criação de novos negócios**. Ela não altera retroativamente os requisitos canônicos de publicação de negócios existentes, preservando compatibilidade com perfis legados.
@@ -61,6 +63,8 @@ Esta exigência vale para **criação de novos negócios**. Ela não altera retr
 A foto do serviço é recomendada para conversão, mas não é requisito para liberar a etapa seguinte ou publicar o negócio depois da confirmação dos horários.
 
 A interface deve deixar claro que o primeiro serviço ativo é necessário, mas não publica sozinho um negócio novo. Depois dele, o fluxo segue diretamente para a confirmação dos horários. Fotos e descrição do serviço podem ser aprimoradas depois.
+
+Durante essa primeira missão de onboarding, o formulário deve priorizar apenas nome, categoria, valor e duração. Descrição, fotos e o controle de visibilidade ficam para a gestão posterior; o primeiro serviço nasce ativo para não criar uma pendência contraditória imediatamente antes da confirmação dos horários.
 
 ## Primeira configuração da agenda
 
@@ -98,5 +102,9 @@ Negócios anteriores a essa regra mantêm os critérios legados. Eles não devem
 ## Pós-agenda
 
 Depois da primeira configuração válida e da publicação confirmada pelo backend, a próxima missão é compartilhar o perfil rastreável do AF e conquistar o primeiro agendamento. Se ainda houver alguma pendência obrigatória, a interface não deve oferecer o compartilhamento como se o perfil estivesse no ar.
+
+No dashboard, essa missão deve aparecer antes de métricas e relatórios. Enquanto o perfil tiver menos de 15 visitas e ainda não tiver recebido o primeiro agendamento, a interface continua incentivando divulgação em vez de diagnosticar baixa conversão com uma amostra pequena. A partir desse volume, o AF pode sugerir revisão de serviços, preços e horários como orientação, sem tratar o número isolado como prova estatística de problema.
+
+No fluxo público de agendamento, compartilhar um serviço é uma ação secundária. Ela não deve competir com a escolha do serviço em cada card; pode ser oferecida depois que a cliente já tiver selecionado o serviço.
 
 Não criar um segundo mecanismo de compartilhamento. Reutilizar os links públicos rastreáveis e o `PublicShareButton` existentes.

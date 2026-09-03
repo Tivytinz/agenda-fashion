@@ -287,6 +287,10 @@ export function ServiceEditorPage() {
   const navigate = useNavigate();
   const galleryRef = useRef(null);
   const editing = Boolean(id);
+  const firstServiceOnboarding =
+    !editing
+    && location.state?.onboarding === true
+    && location.state?.onboardingStep === "servico";
   const [form, setForm] = useState(EMPTY_FORM);
   const [cover, setCover] = useState(null);
   const [galleryFiles, setGalleryFiles] = useState([]);
@@ -536,7 +540,11 @@ export function ServiceEditorPage() {
           <div>
             <p className="eyebrow">Catálogo</p>
             <h1>{editing ? "Editar serviço" : "Novo serviço"}</h1>
-            <p>Preencha os dados do serviço. Fotos e descrição ajudam a cliente a escolher, mas podem ser melhoradas depois.</p>
+            <p>
+              {firstServiceOnboarding
+                ? "Para continuar, informe nome, categoria, valor e duração. Descrição e fotos podem ser adicionadas depois."
+                : "Preencha os dados do serviço. Fotos e descrição ajudam a cliente a escolher, mas podem ser melhoradas depois."}
+            </p>
           </div>
         </header>
       </div>
@@ -562,17 +570,19 @@ export function ServiceEditorPage() {
             </select>
             <small>Ajuda a cliente a encontrar este serviço na página inicial.</small>
           </label>
-          <label>
-            Descrição
-            <textarea
-              maxLength="1200"
-              onChange={(event) => setForm({ ...form, descricao: event.target.value })}
-              placeholder="Explique o resultado, materiais ou diferenciais."
-              rows="5"
-              value={form.descricao}
-            />
-            <small>{form.descricao.length}/1200 caracteres</small>
-          </label>
+          {!firstServiceOnboarding && (
+            <label>
+              Descrição
+              <textarea
+                maxLength="1200"
+                onChange={(event) => setForm({ ...form, descricao: event.target.value })}
+                placeholder="Explique o resultado, materiais ou diferenciais."
+                rows="5"
+                value={form.descricao}
+              />
+              <small>{form.descricao.length}/1200 caracteres</small>
+            </label>
+          )}
           <div className="form-grid">
             <label>
               Valor
@@ -583,125 +593,133 @@ export function ServiceEditorPage() {
               <input min="5" onChange={(event) => setForm({ ...form, duracao_minutos: event.target.value })} required step="5" type="number" value={form.duracao_minutos} />
             </label>
           </div>
-          <label className="switch-field">
-            <input checked={form.ativo} onChange={(event) => setForm({ ...form, ativo: event.target.checked })} type="checkbox" />
-            <span><strong>Serviço disponível</strong><small>Quando inativo, ele não aparece para novos agendamentos.</small></span>
-          </label>
+          {!firstServiceOnboarding && (
+            <label className="switch-field">
+              <input checked={form.ativo} onChange={(event) => setForm({ ...form, ativo: event.target.checked })} type="checkbox" />
+              <span><strong>Serviço disponível</strong><small>Quando inativo, ele não aparece para novos agendamentos.</small></span>
+            </label>
+          )}
         </section>
 
-        <section className="panel stack-form service-media-panel">
-          <div>
-            <p className="eyebrow">Apresentação</p>
-            <h2>Fotos do serviço</h2>
-            <p className="muted service-media-help">Opcional para publicar. Adicione fotos quando quiser e escolha qual delas aparece como capa no catálogo e no perfil público.</p>
-          </div>
-
-          <div className="service-cover-section">
-            <div className="service-media-section-heading">
-              <strong>Capa do serviço</strong>
-              <small>Esta é a primeira imagem que a cliente vê.</small>
+        {!firstServiceOnboarding && (
+          <section className="panel stack-form service-media-panel">
+            <div>
+              <p className="eyebrow">Apresentação</p>
+              <h2>Fotos do serviço</h2>
+              <p className="muted service-media-help">Opcional para publicar. Adicione fotos quando quiser e escolha qual delas aparece como capa no catálogo e no perfil público.</p>
             </div>
-            <div className="cover-upload">
-              <div className="cover-preview">
-                {coverPreview
-                  ? <img alt="Prévia da nova capa" src={coverPreview} />
-                  : form.foto_url
-                    ? <MediaThumb alt={`Capa atual do serviço ${form.nome}`} className="editor-media" emoji="✦" src={form.foto_url} />
-                    : <span><strong>✦</strong>Adicione uma foto de capa</span>}
+
+            <div className="service-cover-section">
+              <div className="service-media-section-heading">
+                <strong>Capa do serviço</strong>
+                <small>Esta é a primeira imagem que a cliente vê.</small>
               </div>
-              <label className="button button-secondary button-small">
-                {cover ? "Trocar imagem escolhida" : form.foto_url ? "Trocar capa" : "Escolher capa"}
-                <input accept="image/jpeg,image/png,image/webp" className="sr-only" onChange={selectCover} type="file" />
+              <div className="cover-upload">
+                <div className="cover-preview">
+                  {coverPreview
+                    ? <img alt="Prévia da nova capa" src={coverPreview} />
+                    : form.foto_url
+                      ? <MediaThumb alt={`Capa atual do serviço ${form.nome}`} className="editor-media" emoji="✦" src={form.foto_url} />
+                      : <span><strong>✦</strong>Adicione uma foto de capa</span>}
+                </div>
+                <label className="button button-secondary button-small">
+                  {cover ? "Trocar imagem escolhida" : form.foto_url ? "Trocar capa" : "Escolher capa"}
+                  <input accept="image/jpeg,image/png,image/webp" className="sr-only" onChange={selectCover} type="file" />
+                </label>
+              </div>
+            </div>
+
+            <div className="service-gallery-upload">
+              <div className="service-gallery-upload-copy">
+                <strong>Adicionar fotos à galeria</strong>
+                <small>JPG, PNG ou WEBP · até 5 MB por foto.</small>
+              </div>
+              <label className="button button-secondary button-small service-gallery-upload-button">
+                <span aria-hidden="true">＋</span> Adicionar fotos
+                <input
+                  accept="image/jpeg,image/png,image/webp"
+                  aria-label="Adicionar fotos à galeria"
+                  className="sr-only"
+                  multiple
+                  onChange={selectGallery}
+                  type="file"
+                />
               </label>
             </div>
-          </div>
-
-          <div className="service-gallery-upload">
-            <div className="service-gallery-upload-copy">
-              <strong>Adicionar fotos à galeria</strong>
-              <small>JPG, PNG ou WEBP · até 5 MB por foto.</small>
-            </div>
-            <label className="button button-secondary button-small service-gallery-upload-button">
-              <span aria-hidden="true">＋</span> Adicionar fotos
-              <input
-                accept="image/jpeg,image/png,image/webp"
-                aria-label="Adicionar fotos à galeria"
-                className="sr-only"
-                multiple
-                onChange={selectGallery}
-                type="file"
-              />
-            </label>
-          </div>
-          {galleryFiles.length > 0 && (
-            <p className="upload-selection">{galleryFiles.length} {galleryFiles.length === 1 ? "foto selecionada" : "fotos selecionadas"}.</p>
-          )}
-          {mediaMessage && <p className="service-media-success" role="status">{mediaMessage}</p>}
-          {galleryItems.length > 0 && (
-            <div className="service-gallery-picker-wrap">
-              <div className="service-gallery-heading">
-                <div>
-                  <strong>Galeria atual</strong>
-                  <small>{galleryItems.length} {galleryItems.length === 1 ? "foto" : "fotos"}</small>
-                </div>
-                {galleryItems.length > 1 && (
-                  <div className="service-gallery-nav" aria-label="Navegação da galeria">
-                    <button aria-label="Fotos anteriores" onClick={() => scrollGallery(-1)} type="button">‹</button>
-                    <button aria-label="Próximas fotos" onClick={() => scrollGallery(1)} type="button">›</button>
+            {galleryFiles.length > 0 && (
+              <p className="upload-selection">{galleryFiles.length} {galleryFiles.length === 1 ? "foto selecionada" : "fotos selecionadas"}.</p>
+            )}
+            {mediaMessage && <p className="service-media-success" role="status">{mediaMessage}</p>}
+            {galleryItems.length > 0 && (
+              <div className="service-gallery-picker-wrap">
+                <div className="service-gallery-heading">
+                  <div>
+                    <strong>Galeria atual</strong>
+                    <small>{galleryItems.length} {galleryItems.length === 1 ? "foto" : "fotos"}</small>
                   </div>
-                )}
+                  {galleryItems.length > 1 && (
+                    <div className="service-gallery-nav" aria-label="Navegação da galeria">
+                      <button aria-label="Fotos anteriores" onClick={() => scrollGallery(-1)} type="button">‹</button>
+                      <button aria-label="Próximas fotos" onClick={() => scrollGallery(1)} type="button">›</button>
+                    </div>
+                  )}
+                </div>
+                <div className="service-gallery service-gallery-picker" aria-label="Galeria atual" ref={galleryRef}>
+                  {galleryItems.map((photo) => {
+                    const currentCover = isGalleryCover(photo);
+                    const choosing = definingCoverId === photo.id;
+                    return (
+                      <figure className={currentCover ? "is-cover" : ""} key={photo.id}>
+                        <div className="service-gallery-media">
+                          <MediaThumb alt={`Foto da galeria de ${form.nome}`} className="editor-media" emoji="✦" src={photo.foto_url} />
+                          {!photo.virtualCover && (
+                            <button
+                              aria-label="Remover foto da galeria"
+                              className="service-gallery-remove"
+                              disabled={removingPhotoId === photo.id || choosing}
+                              onClick={() => removeGalleryPhoto(photo)}
+                              title="Remover foto"
+                              type="button"
+                            >
+                              {removingPhotoId === photo.id ? "…" : "×"}
+                            </button>
+                          )}
+                        </div>
+                        <figcaption>
+                          {currentCover ? (
+                            <span className="service-cover-current-label">
+                              <ConfirmationIcon className="service-cover-badge-icon" />
+                              Capa atual
+                            </span>
+                          ) : (
+                            <button
+                              className="service-cover-choice"
+                              disabled={choosing || removingPhotoId === photo.id}
+                              onClick={() => chooseGalleryCover(photo)}
+                              type="button"
+                            >
+                              {choosing ? "Escolhendo..." : "Usar como capa"}
+                            </button>
+                          )}
+                        </figcaption>
+                      </figure>
+                    );
+                  })}
+                </div>
               </div>
-              <div className="service-gallery service-gallery-picker" aria-label="Galeria atual" ref={galleryRef}>
-                {galleryItems.map((photo) => {
-                  const currentCover = isGalleryCover(photo);
-                  const choosing = definingCoverId === photo.id;
-                  return (
-                    <figure className={currentCover ? "is-cover" : ""} key={photo.id}>
-                      <div className="service-gallery-media">
-                        <MediaThumb alt={`Foto da galeria de ${form.nome}`} className="editor-media" emoji="✦" src={photo.foto_url} />
-                        {!photo.virtualCover && (
-                          <button
-                            aria-label="Remover foto da galeria"
-                            className="service-gallery-remove"
-                            disabled={removingPhotoId === photo.id || choosing}
-                            onClick={() => removeGalleryPhoto(photo)}
-                            title="Remover foto"
-                            type="button"
-                          >
-                            {removingPhotoId === photo.id ? "…" : "×"}
-                          </button>
-                        )}
-                      </div>
-                      <figcaption>
-                        {currentCover ? (
-                          <span className="service-cover-current-label">
-                            <ConfirmationIcon className="service-cover-badge-icon" />
-                            Capa atual
-                          </span>
-                        ) : (
-                          <button
-                            className="service-cover-choice"
-                            disabled={choosing || removingPhotoId === photo.id}
-                            onClick={() => chooseGalleryCover(photo)}
-                            type="button"
-                          >
-                            {choosing ? "Escolhendo..." : "Usar como capa"}
-                          </button>
-                        )}
-                      </figcaption>
-                    </figure>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-        </section>
+            )}
+          </section>
+        )}
 
         {error && <p className="form-error service-editor-message" role="alert">{error}</p>}
         <div className="form-actions service-editor-actions">
           <Link className="button button-secondary" to="/painel/servicos">Cancelar</Link>
           <button className="button" disabled={saving} type="submit">
-            {saving ? "Salvando e enviando fotos..." : "Salvar serviço"}
+            {saving
+              ? firstServiceOnboarding
+                ? "Salvando..."
+                : "Salvando e enviando fotos..."
+              : "Salvar serviço"}
           </button>
         </div>
       </form>
