@@ -24,6 +24,13 @@ const ALLOWED_NAVIGATION_DESTINATIONS = new Set(
   )
 );
 
+const ACTIVATION_STEP_KEYS = Object.freeze([
+  "possui_servico_ativo",
+  "agenda_configurada",
+  "negocio_publicado",
+  "primeiro_agendamento_recebido",
+]);
+
 function publicProfilePath(
   businessSlug
 ) {
@@ -99,8 +106,27 @@ function normalizeAction(
   };
 }
 
+function activationProgress(
+  activation
+) {
+  if (
+    !activation ||
+    typeof activation !== "object"
+  ) {
+    return null;
+  }
+
+  return ACTIVATION_STEP_KEYS.reduce(
+    (total, key) =>
+      total +
+      (activation[key] === true ? 1 : 0),
+    0
+  );
+}
+
 export function DashboardNextAction({
   nextAction,
+  activation,
   businessId,
   businessName,
   businessSlug,
@@ -112,6 +138,10 @@ export function DashboardNextAction({
   const profilePath =
     publicProfilePath(
       businessSlug
+    );
+  const completedSteps =
+    activationProgress(
+      activation
     );
 
   return (
@@ -130,6 +160,15 @@ export function DashboardNextAction({
       <p className="muted dashboard-action-copy">
         {action.description}
       </p>
+
+      {completedSteps !== null && (
+        <p
+          aria-label="Progresso da ativação"
+          className="muted dashboard-action-progress"
+        >
+          {completedSteps} de 4 etapas concluídas
+        </p>
+      )}
 
       <div className="quick-actions dashboard-quick-actions">
         {action.kind === "share" ? (
