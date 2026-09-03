@@ -101,18 +101,25 @@ test("planos aplica o CSS exclusivo da rota antes de renderizar", async ({ page 
   await disableMarketingMeasurement(page);
   await installOwnerSession(page);
 
-  await page.route("**/planos", (route) => json(route, {
-    planos: [{
-      id: 2,
-      nome: "Profissional",
-      slug: "profissional",
-      valor: 39.9,
-      capacidade_agendamentos: 100,
-      limite_profissionais: 3,
-      limite_servicos: 20,
-      destaque: false
-    }]
-  }));
+  await page.route("**/planos", async (route) => {
+    if (route.request().isNavigationRequest()) {
+      await route.continue();
+      return;
+    }
+
+    await json(route, {
+      planos: [{
+        id: 2,
+        nome: "Profissional",
+        slug: "profissional",
+        valor: 39.9,
+        capacidade_agendamentos: 100,
+        limite_profissionais: 3,
+        limite_servicos: 20,
+        destaque: false
+      }]
+    });
+  });
   await page.route("**/meu-plano", (route) => json(route, {
     plano_id: 1,
     plano_slug: "inicial",
