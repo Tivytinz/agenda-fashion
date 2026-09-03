@@ -455,6 +455,7 @@ export function DashboardPage() {
 
         <DashboardNextAction
           nextAction={data.proxima_acao_ativacao}
+          activation={data.ativacao}
           businessId={data.negocio?.negocio_id}
           businessName={data.negocio?.nome}
           businessSlug={data.negocio?.slug}
