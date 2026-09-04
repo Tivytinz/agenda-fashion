@@ -4,6 +4,9 @@ const dashboardService = require(
 const dashboardActivationService = require(
   "./dashboardActivationService"
 );
+const activationNextActionService = require(
+  "./activationNextActionService"
+);
 
 async function buscarDashboardDono({
   usuarioId,
@@ -23,9 +26,17 @@ async function buscarDashboardDono({
           resultado.negocio?.negocio_id,
       });
 
+  const proximaAcaoAtivacao =
+    activationNextActionService
+      .resolverProximaAcaoAtivacao(
+        ativacao
+      );
+
   return {
     ...resultado,
     ativacao,
+    proxima_acao_ativacao:
+      proximaAcaoAtivacao,
   };
 }
 

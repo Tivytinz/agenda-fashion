@@ -144,7 +144,7 @@ test("ações do negócio ficam acima da navegação e mantêm foco visível", a
   }
 });
 
-test("onboarding mostra somente a próxima ação e cabe no celular", async ({ page }) => {
+test("próxima ação de ativação cabe no celular e mostra somente a missão atual", async ({ page }) => {
   await page.addInitScript(() => {
     localStorage.setItem("token", "owner-e2e");
     localStorage.setItem("usuario", JSON.stringify({ id: 4, nome: "Ana" }));
@@ -178,28 +178,38 @@ test("onboarding mostra somente a próxima ação e cabe no celular", async ({ p
   await page.route("**/dashboard-dono?periodo=7dias", (route) => json(route, {
     resumo: {},
     performance: {},
-    ranking_servicos: []
-  }));
-  await page.route("**/configuracoes", (route) => json(route, {
-    negocio: { ...BUSINESS, publicado: false },
-    publicacao: {
-      publicado: false,
-      pode_publicar: false,
-      pendencias: ["pelo menos um serviço ativo"]
+    ranking_servicos: [],
+    negocio: {
+      negocio_id: 11,
+      nome: "Studio Aurora",
+      slug: "studio-aurora"
+    },
+    ativacao: {
+      possui_servico_ativo: false,
+      agenda_configurada: false,
+      negocio_publicado: false,
+      primeiro_agendamento_recebido: false
+    },
+    proxima_acao_ativacao: {
+      estado: "GARANTIR_SERVICO_ATIVO",
+      concluido: false,
+      titulo: "Ative seus serviços",
+      mensagem: "Mantenha pelo menos um serviço ativo para receber novos agendamentos.",
+      acao: {
+        tipo: "NAVEGAR",
+        rotulo: "Gerenciar serviços",
+        destino: "/painel/servicos"
+      }
     }
-  }));
-  await page.route("**/agenda-configuracao/status", (route) => json(route, {
-    configurada: false,
-    configurado_em: null
   }));
   await page.goto("/painel");
 
   await expect(page.getByRole("heading", {
-    name: "Prepare seu negócio para receber agendamentos"
+    name: "Ative seus serviços"
   })).toBeVisible();
-  await expect(page.getByRole("link", { name: "Cadastrar serviço" }))
+  await expect(page.getByRole("link", { name: "Gerenciar serviços" }))
     .toBeVisible();
-  await expect(page.getByText("1 de 4")).toBeVisible();
+  await expect(page.getByText("0 de 4 etapas concluídas")).toBeVisible();
 
   const diagnostics = await horizontalOverflowDiagnostics(page);
   expect(diagnostics.scrollWidth).toBe(diagnostics.clientWidth);

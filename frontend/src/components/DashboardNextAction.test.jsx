@@ -36,20 +36,16 @@ vi.mock(
 
 afterEach(cleanup);
 
-function renderAction({
-  activation,
-  publication,
-  profileVisits = 0,
-} = {}) {
+function renderAction(
+  nextAction
+) {
   return render(
     <MemoryRouter>
       <DashboardNextAction
-        activation={activation}
+        nextAction={nextAction}
         businessId={12}
         businessName="Studio Aurora"
         businessSlug="studio-aurora"
-        publication={publication}
-        profileVisits={profileVisits}
       />
     </MemoryRouter>
   );
@@ -58,101 +54,93 @@ function renderAction({
 describe(
   "DashboardNextAction",
   () => {
-    it(
-      "leva para horários quando a agenda ainda não foi confirmada",
-      () => {
+    it.each([
+      [
+        "GARANTIR_SERVICO_ATIVO",
+        "Ative seus serviços",
+        "Gerenciar serviços",
+        "/painel/servicos",
+      ],
+      [
+        "CONFIRMAR_AGENDA",
+        "Confirme seus horários",
+        "Confirmar horários",
+        "/painel/horarios",
+      ],
+      [
+        "REVISAR_PUBLICACAO",
+        "Revise a publicação",
+        "Revisar meu negócio",
+        "/painel/negocio",
+      ],
+      [
+        "ATIVADO",
+        "Ativação concluída",
+        "Abrir agenda",
+        "/painel/agenda",
+      ],
+    ])(
+      "renderiza a navegação canônica do estado %s",
+      (
+        estado,
+        titulo,
+        rotulo,
+        destino
+      ) => {
         renderAction({
-          activation: {
-            negocio_publicado: true,
-            agenda_configurada: false,
-            primeiro_agendamento_recebido: false,
+          estado,
+          concluido:
+            estado === "ATIVADO",
+          titulo,
+          mensagem:
+            "Mensagem definida pelo backend.",
+          acao: {
+            tipo: "NAVEGAR",
+            rotulo,
+            destino,
           },
         });
 
         expect(
+          screen.getByText(
+            "Próximo passo"
+          )
+        ).not.toBeNull();
+        expect(
+          screen.queryByText(
+            /Copilot AF/i
+          )
+        ).toBeNull();
+        expect(
           screen.getByRole(
             "heading",
-            {
-              name:
-                "Deixe a agenda pronta",
-            }
+            { name: titulo }
           )
         ).not.toBeNull();
         expect(
           screen.getByRole(
             "link",
-            {
-              name:
-                "Configurar horários",
-            }
+            { name: rotulo }
           ).getAttribute("href")
-        ).toBe(
-          "/painel/horarios"
-        );
+        ).toBe(destino);
       }
     );
 
     it(
-      "leva aos horários quando essa é a única pendência para publicar",
+      "usa o compartilhamento rastreável no estado de primeiro agendamento",
       () => {
         renderAction({
-          activation: {
-            negocio_publicado: false,
-            agenda_configurada: false,
-            primeiro_agendamento_recebido: false,
-          },
-          publication: {
-            publicado: false,
-            pode_publicar: false,
-            pendencias: [
-              "confirmar os horários de atendimento",
-            ],
+          estado:
+            "CONQUISTAR_PRIMEIRO_AGENDAMENTO",
+          concluido: false,
+          titulo: "Divulgue seu perfil",
+          mensagem:
+            "Compartilhe o link para conquistar o primeiro agendamento.",
+          acao: {
+            tipo: "COMPARTILHAR_PERFIL",
+            rotulo: "Compartilhar perfil",
           },
         });
-
-        expect(
-          screen.getByRole(
-            "heading",
-            {
-              name:
-                "Confirme horários para publicar",
-            }
-          )
-        ).not.toBeNull();
-        expect(
-          screen.getByRole(
-            "link",
-            {
-              name:
-                "Configurar horários",
-            }
-          ).getAttribute("href")
-        ).toBe(
-          "/painel/horarios"
-        );
-      }
-    );
-
-    it(
-      "prioriza divulgação depois da agenda e antes do primeiro agendamento",
-      () => {
-        renderAction({
-          activation: {
-            negocio_publicado: true,
-            agenda_configurada: true,
-            primeiro_agendamento_recebido: false,
-          },
-        });
-
-        expect(
-          screen.getByRole(
-            "heading",
-            {
-              name:
-                "Divulgue seu perfil",
-            }
-          )
-        ).not.toBeNull();
 
         const share =
           screen.getByRole(
@@ -192,52 +180,80 @@ describe(
     );
 
     it(
-      "troca divulgação por otimização quando há visitas suficientes sem primeiro agendamento",
+      "não recalcula ação a partir de métricas do frontend",
       () => {
         renderAction({
-          activation: {
-            negocio_publicado: true,
-            agenda_configurada: true,
-            primeiro_agendamento_recebido: false,
+          estado:
+            "CONQUISTAR_PRIMEIRO_AGENDAMENTO",
+          concluido: false,
+          titulo: "Divulgue seu perfil",
+          mensagem:
+            "A decisão já veio pronta do backend.",
+          acao: {
+            tipo: "COMPARTILHAR_PERFIL",
+            rotulo: "Compartilhar perfil",
           },
-          profileVisits: 15,
         });
 
         expect(
-          screen.getByRole(
+          screen.queryByRole(
             "heading",
             {
               name:
                 "Transforme visitas em agendamentos",
             }
           )
-        ).not.toBeNull();
+        ).toBeNull();
         expect(
-          screen.getByText(
-            /15 pessoas visitaram seu perfil/i
+          screen.queryByRole(
+            "heading",
+            {
+              name:
+                "Mantenha o ritmo",
+            }
           )
-        ).not.toBeNull();
+        ).toBeNull();
       }
     );
 
     it(
-      "usa o primeiro agendamento canônico para avançar à retenção",
+      "impede que um destino não permitido vindo do contrato controle a navegação",
       () => {
         renderAction({
-          activation: {
-            negocio_publicado: true,
-            agenda_configurada: true,
-            primeiro_agendamento_recebido: true,
+          estado: "DESCONHECIDO",
+          concluido: false,
+          titulo: "Ação inválida",
+          mensagem:
+            "Contrato com destino não permitido.",
+          acao: {
+            tipo: "NAVEGAR",
+            rotulo: "Continuar",
+            destino: "https://exemplo-malicioso.test",
           },
-          profileVisits: 0,
         });
+
+        expect(
+          screen.getByRole(
+            "link",
+            { name: "Continuar" }
+          ).getAttribute("href")
+        ).toBe(
+          "/painel/negocio"
+        );
+      }
+    );
+
+    it(
+      "mantém uma saída segura quando a próxima ação não está disponível",
+      () => {
+        renderAction(null);
 
         expect(
           screen.getByRole(
             "heading",
             {
               name:
-                "Mantenha o ritmo",
+                "Continue configurando seu negócio",
             }
           )
         ).not.toBeNull();
@@ -246,44 +262,12 @@ describe(
             "link",
             {
               name:
-                "Abrir agenda",
+                "Revisar meu negócio",
             }
           ).getAttribute("href")
         ).toBe(
-          "/painel/agenda"
+          "/painel/negocio"
         );
-      }
-    );
-
-    it(
-      "não oferece divulgação enquanto o negócio não estiver publicado",
-      () => {
-        renderAction({
-          activation: {
-            negocio_publicado: false,
-            agenda_configurada: true,
-            primeiro_agendamento_recebido: false,
-          },
-        });
-
-        expect(
-          screen.getByRole(
-            "heading",
-            {
-              name:
-                "Finalize seu perfil para aparecer",
-            }
-          )
-        ).not.toBeNull();
-        expect(
-          screen.queryByRole(
-            "button",
-            {
-              name:
-                "Compartilhar perfil",
-            }
-          )
-        ).toBeNull();
       }
     );
   }

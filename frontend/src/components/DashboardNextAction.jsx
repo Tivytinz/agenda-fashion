@@ -1,191 +1,115 @@
 import { Link } from "react-router-dom";
 import { PublicShareButton } from "./PublicShareButton";
 
-const SCHEDULE_PENDING =
-  "confirmar os horários de atendimento";
-const CONVERSION_REVIEW_MIN_VISITS = 15;
+const ACTIVATION_ROUTES = Object.freeze({
+  agenda: { to: "/painel/agenda" },
+  services: { to: "/painel/servicos" },
+  schedule: { to: "/painel/horarios" },
+  business: { to: "/painel/negocio" },
+});
 
-function publicProfilePath(
-  businessSlug
-) {
-  const slug = String(
-    businessSlug || ""
-  ).trim();
+const ALLOWED_NAVIGATION_DESTINATIONS = new Set(
+  Object.values(ACTIVATION_ROUTES).map((item) => item.to)
+);
 
-  return slug
-    ? `/negocio/${encodeURIComponent(slug)}`
-    : "";
+const ACTIVATION_STEP_KEYS = Object.freeze([
+  "possui_servico_ativo",
+  "agenda_configurada",
+  "negocio_publicado",
+  "primeiro_agendamento_recebido",
+]);
+
+function publicProfilePath(businessSlug) {
+  const slug = String(businessSlug || "").trim();
+  return slug ? `/negocio/${encodeURIComponent(slug)}` : "";
 }
 
-function scheduleAction({
-  publishesProfile = false,
-} = {}) {
+function fallbackNextAction() {
   return {
-    kind: "schedule",
-    title: publishesProfile
-      ? "Confirme horários para publicar"
-      : "Deixe a agenda pronta",
-    description:
-      publishesProfile
-        ? "Este é o último passo: confirme quando você atende para publicar o perfil e liberar agendamentos online."
-        : "Confirme seus horários para liberar horários reais no perfil e permitir agendamentos online.",
-    primary: {
-      label: "Configurar horários",
-      to: "/painel/horarios",
-    },
-    secondary: {
-      label: "Gerenciar serviços",
-      to: "/painel/servicos",
+    estado: "INDISPONIVEL",
+    concluido: false,
+    titulo: "Continue configurando seu negócio",
+    mensagem:
+      "Não conseguimos calcular sua próxima etapa agora. Revise os dados do negócio para continuar.",
+    acao: {
+      tipo: "NAVEGAR",
+      rotulo: "Revisar meu negócio",
+      destino: ACTIVATION_ROUTES.business.to,
     },
   };
 }
 
-function conversionAction(
-  profileVisits
-) {
+function normalizeAction(nextAction) {
+  const source =
+    nextAction && typeof nextAction === "object"
+      ? nextAction
+      : fallbackNextAction();
+  const shareAction = source.acao?.tipo === "COMPARTILHAR_PERFIL";
+  const requestedDestination =
+    typeof source.acao?.destino === "string" ? source.acao.destino : "";
+  const safeDestination = ALLOWED_NAVIGATION_DESTINATIONS.has(requestedDestination)
+    ? requestedDestination
+    : ACTIVATION_ROUTES.business.to;
+
   return {
-    kind: "conversion",
+    ...source,
     title:
-      "Transforme visitas em agendamentos",
+      source.titulo ||
+      (shareAction ? "Divulgue seu perfil" : "Continue configurando seu negócio"),
     description:
-      `${profileVisits} pessoas visitaram seu perfil, mas seu primeiro agendamento ainda não chegou. Revise serviços, preços e horários.`,
-    primary: {
-      label: "Gerenciar serviços",
-      to: "/painel/servicos",
-    },
-    secondary: {
-      label: "Revisar horários",
-      to: "/painel/horarios",
-    },
+      source.mensagem ||
+      "Continue a configuração do negócio para avançar na ativação.",
+    kind: shareAction ? "share" : "navigate",
+    primary: shareAction
+      ? null
+      : {
+          label: source.acao?.rotulo || "Revisar meu negócio",
+          to: safeDestination,
+        },
   };
 }
 
-function resolveNextAction({
-  activation,
-  publication,
-  profileVisits,
-}) {
-  if (!activation) {
-    return profileVisits >= CONVERSION_REVIEW_MIN_VISITS
-      ? conversionAction(
-          profileVisits
-        )
-      : scheduleAction();
-  }
+function activationProgress(activation) {
+  if (!activation || typeof activation !== "object") return null;
 
-  const published =
-    activation.negocio_publicado === true;
-  const scheduleConfigured =
-    activation.agenda_configurada === true;
-  const firstBookingReceived =
-    activation.primeiro_agendamento_recebido === true;
-  const publicationPending =
-    Array.isArray(publication?.pendencias)
-      ? publication.pendencias
-      : [];
-  const onlySchedulePending =
-    !published &&
-    !scheduleConfigured &&
-    publicationPending.length > 0 &&
-    publicationPending.every(
-      (item) => item === SCHEDULE_PENDING
-    );
-
-  if (!published) {
-    if (onlySchedulePending) {
-      return scheduleAction({
-        publishesProfile: true,
-      });
-    }
-
-    return {
-      kind: "profile",
-      title:
-        "Finalize seu perfil para aparecer",
-      description:
-        "Complete os dados essenciais do negócio e mantenha pelo menos um serviço ativo para liberar o perfil público.",
-      primary: {
-        label: "Revisar meu negócio",
-        to: "/painel/negocio",
-      },
-      secondary: {
-        label: "Gerenciar serviços",
-        to: "/painel/servicos",
-      },
-    };
-  }
-
-  if (!scheduleConfigured) {
-    return scheduleAction();
-  }
-
-  if (firstBookingReceived) {
-    return {
-      kind: "retention",
-      title: "Mantenha o ritmo",
-      description:
-        "Seu negócio já recebeu o primeiro agendamento. Mantenha serviços e horários atualizados para transformar novas visitas em recorrência.",
-      primary: {
-        label: "Abrir agenda",
-        to: "/painel/agenda",
-      },
-      secondary: {
-        label: "Gerenciar serviços",
-        to: "/painel/servicos",
-      },
-    };
-  }
-
-  if (profileVisits >= CONVERSION_REVIEW_MIN_VISITS) {
-    return conversionAction(
-      profileVisits
-    );
-  }
-
-  return {
-    kind: "share",
-    title: "Divulgue seu perfil",
-    description:
-      "Sua agenda está pronta e seu perfil está no ar. Compartilhe seu link para trazer visitas e conquistar o primeiro agendamento.",
-  };
+  return ACTIVATION_STEP_KEYS.reduce(
+    (total, key) => total + (activation[key] === true ? 1 : 0),
+    0
+  );
 }
 
 export function DashboardNextAction({
+  nextAction,
   activation,
   businessId,
   businessName,
   businessSlug,
-  publication,
-  profileVisits = 0,
 }) {
-  const action = resolveNextAction({
-    activation,
-    publication,
-    profileVisits:
-      Number(profileVisits) || 0,
-  });
-
-  const profilePath =
-    publicProfilePath(
-      businessSlug
-    );
+  const action = normalizeAction(nextAction);
+  const profilePath = publicProfilePath(businessSlug);
+  const completedSteps = activationProgress(activation);
 
   return (
     <section
-      className="panel dashboard-action-panel"
+      className={`panel dashboard-action-panel${action.concluido === true ? " is-complete" : ""}`}
     >
       <div className="panel-heading">
         <div>
-          <p className="eyebrow">
-            Próxima ação
-          </p>
+          <p className="eyebrow">Próximo passo</p>
           <h2>{action.title}</h2>
         </div>
       </div>
 
-      <p className="muted dashboard-action-copy">
-        {action.description}
-      </p>
+      <p className="muted dashboard-action-copy">{action.description}</p>
+
+      {completedSteps !== null && (
+        <p
+          aria-label="Progresso da ativação"
+          className="muted dashboard-action-progress"
+        >
+          {completedSteps} de 4 etapas concluídas
+        </p>
+      )}
 
       <div className="quick-actions dashboard-quick-actions">
         {action.kind === "share" ? (
@@ -195,35 +119,21 @@ export function DashboardNextAction({
               businessName={businessName}
               businessSlug={businessSlug}
               className="button"
-              label="Compartilhar perfil"
+              label={action.acao?.rotulo || "Compartilhar perfil"}
               trackingMission="gerenciar_crescimento"
               trackingPage="dashboard_dono"
             />
 
             {profilePath && (
-              <Link
-                className="button button-secondary"
-                to={profilePath}
-              >
+              <Link className="button button-secondary" to={profilePath}>
                 Ver perfil público
               </Link>
             )}
           </>
         ) : (
-          <>
-            <Link
-              className="button"
-              to={action.primary.to}
-            >
-              {action.primary.label}
-            </Link>
-            <Link
-              className="button button-secondary"
-              to={action.secondary.to}
-            >
-              {action.secondary.label}
-            </Link>
-          </>
+          <Link className="button" to={action.primary.to}>
+            {action.primary.label}
+          </Link>
         )}
       </div>
     </section>

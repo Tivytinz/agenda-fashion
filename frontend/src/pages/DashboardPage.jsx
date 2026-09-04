@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { apiRequest } from "../api/client";
 import { DashboardNextAction } from "../components/DashboardNextAction";
-import { ProfessionalOnboardingChecklist } from "../components/ProfessionalOnboardingChecklist";
 import { ErrorState, LoadingState } from "../components/ScreenState";
 import { formatCurrency } from "../utils/format";
 
@@ -47,12 +46,6 @@ export function DashboardPage() {
   const [error, setError] = useState("");
   const [reloadKey, setReloadKey] = useState(0);
   const [refreshing, setRefreshing] = useState(true);
-  const [onboarding, setOnboarding] = useState({
-    businessId: null,
-    businessSlug: "",
-    loading: true,
-    publication: null
-  });
   const [whatsappReminders, setWhatsappReminders] = useState({
     enabled: null,
     operationalEnabled: null,
@@ -100,38 +93,6 @@ export function DashboardPage() {
       controller.abort();
     };
   }, [period, reloadKey]);
-
-  useEffect(() => {
-    const controller = new AbortController();
-    let active = true;
-
-    apiRequest("/configuracoes", { signal: controller.signal })
-      .then((businessResult) => {
-        if (!active) return;
-
-        const business = businessResult.negocio || businessResult.configuracoes || {};
-        setOnboarding({
-          businessId: business.id ?? business.negocio_id ?? null,
-          businessSlug: business.slug || "",
-          loading: false,
-          publication: businessResult.publicacao || {
-            publicado: business.publicado === true,
-            pode_publicar: false,
-            pendencias: []
-          }
-        });
-      })
-      .catch((requestError) => {
-        if (active && requestError.name !== "AbortError") {
-          setOnboarding((current) => ({ ...current, loading: false }));
-        }
-      });
-
-    return () => {
-      active = false;
-      controller.abort();
-    };
-  }, []);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -261,9 +222,6 @@ export function DashboardPage() {
   const completedBookings = Number(performance.agendamentos_concluidos) || 0;
   const visitLabel = profileVisits === 1 ? "visita" : "visitas";
   const bookingLabel = completedBookings === 1 ? "agendamento" : "agendamentos";
-  const scheduleConfigured = typeof data.ativacao?.agenda_configurada === "boolean"
-    ? data.ativacao.agenda_configurada
-    : undefined;
   const cards = [
     ["Agendamentos", summary.agendamentos_periodo ?? 0, "no período"],
     ["Faturamento", formatCurrency(summary.faturamento_periodo), "previsto"],
@@ -295,24 +253,13 @@ export function DashboardPage() {
       {refreshing && <p className="data-refresh-status" role="status">Atualizando indicadores...</p>}
       {error && <p className="form-error" role="alert">{error} Os últimos dados carregados continuam visíveis.</p>}
 
-      <ProfessionalOnboardingChecklist
-        businessId={onboarding.businessId}
-        businessSlug={onboarding.businessSlug}
-        loading={onboarding.loading}
-        publication={onboarding.publication}
-        scheduleConfigured={scheduleConfigured}
+      <DashboardNextAction
+        nextAction={data.proxima_acao_ativacao}
+        activation={data.ativacao}
+        businessId={data.negocio?.negocio_id}
+        businessName={data.negocio?.nome}
+        businessSlug={data.negocio?.slug}
       />
-
-      {onboarding.publication?.publicado === true && (
-        <DashboardNextAction
-          activation={data.ativacao}
-          businessId={data.negocio?.negocio_id ?? onboarding.businessId}
-          businessName={data.negocio?.nome}
-          businessSlug={data.negocio?.slug || onboarding.businessSlug}
-          publication={onboarding.publication}
-          profileVisits={profileVisits}
-        />
-      )}
 
       {whatsappReminders.operationalEnabled === false && (
         <section

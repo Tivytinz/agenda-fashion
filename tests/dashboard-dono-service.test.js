@@ -14,11 +14,22 @@ jest.mock(
   })
 );
 
+jest.mock(
+  "../src/services/activationNextActionService",
+  () => ({
+    resolverProximaAcaoAtivacao:
+      jest.fn(),
+  })
+);
+
 const dashboardService = require(
   "../src/services/dashboardService"
 );
 const dashboardActivationService = require(
   "../src/services/dashboardActivationService"
+);
+const activationNextActionService = require(
+  "../src/services/activationNextActionService"
 );
 const dashboardDonoService = require(
   "../src/services/dashboardDonoService"
@@ -32,7 +43,7 @@ describe(
     });
 
     test(
-      "combina dashboard autorizado com estado canônico de ativação",
+      "combina dashboard autorizado com ativação e próxima ação canônicas",
       async () => {
         dashboardService
           .buscarDashboardDono
@@ -48,13 +59,35 @@ describe(
             performance: {},
           });
 
+        const ativacao = {
+          possui_servico_ativo: true,
+          negocio_publicado: true,
+          agenda_configurada: true,
+          primeiro_agendamento_recebido: false,
+        };
+        const proximaAcaoAtivacao = {
+          estado:
+            "CONQUISTAR_PRIMEIRO_AGENDAMENTO",
+          concluido: false,
+          titulo: "Divulgue seu perfil",
+          mensagem:
+            "Compartilhe seu perfil.",
+          acao: {
+            tipo: "COMPARTILHAR_PERFIL",
+            rotulo: "Compartilhar perfil",
+          },
+        };
+
         dashboardActivationService
           .buscarAtivacaoNegocio
-          .mockResolvedValue({
-            negocio_publicado: true,
-            agenda_configurada: true,
-            primeiro_agendamento_recebido: false,
-          });
+          .mockResolvedValue(
+            ativacao
+          );
+        activationNextActionService
+          .resolverProximaAcaoAtivacao
+          .mockReturnValue(
+            proximaAcaoAtivacao
+          );
 
         await expect(
           dashboardDonoService
@@ -72,11 +105,9 @@ describe(
           },
           resumo: {},
           performance: {},
-          ativacao: {
-            negocio_publicado: true,
-            agenda_configurada: true,
-            primeiro_agendamento_recebido: false,
-          },
+          ativacao,
+          proxima_acao_ativacao:
+            proximaAcaoAtivacao,
         });
 
         expect(
@@ -92,11 +123,17 @@ describe(
         ).toHaveBeenCalledWith({
           negocioId: 18,
         });
+        expect(
+          activationNextActionService
+            .resolverProximaAcaoAtivacao
+        ).toHaveBeenCalledWith(
+          ativacao
+        );
       }
     );
 
     test(
-      "não consulta ativação quando o dashboard principal falha",
+      "não consulta ativação nem próxima ação quando o dashboard principal falha",
       async () => {
         dashboardService
           .buscarDashboardDono
@@ -117,6 +154,10 @@ describe(
         expect(
           dashboardActivationService
             .buscarAtivacaoNegocio
+        ).not.toHaveBeenCalled();
+        expect(
+          activationNextActionService
+            .resolverProximaAcaoAtivacao
         ).not.toHaveBeenCalled();
       }
     );

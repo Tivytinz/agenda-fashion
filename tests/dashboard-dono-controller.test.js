@@ -47,9 +47,24 @@ describe(
           resumo: {},
           performance: {},
           ativacao: {
+            possui_servico_ativo: true,
             negocio_publicado: true,
             agenda_configurada: true,
             primeiro_agendamento_recebido: false,
+          },
+          proxima_acao_ativacao: {
+            estado:
+              "CONQUISTAR_PRIMEIRO_AGENDAMENTO",
+            concluido: false,
+            titulo: "Divulgue seu perfil",
+            mensagem:
+              "Compartilhe seu perfil.",
+            acao: {
+              tipo:
+                "COMPARTILHAR_PERFIL",
+              rotulo:
+                "Compartilhar perfil",
+            },
           },
         };
 

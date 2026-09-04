@@ -42,7 +42,7 @@ beforeEach(() => {
 afterEach(cleanup);
 
 describe("jornada de ativação profissional", () => {
-  it("prioriza a missão de divulgação antes dos indicadores e reutiliza o status da agenda", async () => {
+  it("prioriza a missão determinística de divulgação antes dos indicadores", async () => {
     apiRequest.mockImplementation((path) => {
       if (path.startsWith("/dashboard-dono/origem-clientes")) {
         return Promise.resolve({ resumo: {}, origens: [] });
@@ -68,9 +68,20 @@ describe("jornada de ativação profissional", () => {
             slug: "studio-aurora"
           },
           ativacao: {
+            possui_servico_ativo: true,
             negocio_publicado: true,
             agenda_configurada: true,
             primeiro_agendamento_recebido: false
+          },
+          proxima_acao_ativacao: {
+            estado: "CONQUISTAR_PRIMEIRO_AGENDAMENTO",
+            concluido: false,
+            titulo: "Divulgue seu perfil",
+            mensagem: "Compartilhe o link para conquistar o primeiro agendamento.",
+            acao: {
+              tipo: "COMPARTILHAR_PERFIL",
+              rotulo: "Compartilhar perfil"
+            }
           },
           ranking_servicos: []
         });
@@ -119,6 +130,7 @@ describe("jornada de ativação profissional", () => {
     expect(apiRequest.mock.calls.some(
       ([path]) => path === "/agenda-configuracao/status"
     )).toBe(false);
+    expect(screen.queryByText(/Copilot AF/i)).toBeNull();
   });
 
   it("continua direto para o primeiro serviço depois da criação padrão", async () => {
