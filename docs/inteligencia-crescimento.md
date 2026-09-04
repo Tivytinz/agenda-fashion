@@ -38,6 +38,7 @@ A camada é secundária ao dashboard. Se a análise lançar uma exceção inespe
 {
   "inteligencia_crescimento": {
     "status": "OPORTUNIDADE_PRIORIZADA",
+    "periodo": "30dias",
     "oportunidade_principal": {
       "codigo": "CONVERSAO_SEM_AGENDAMENTO",
       "categoria": "conversao",
@@ -123,14 +124,21 @@ Esses nomes e as propriedades `codigo_oportunidade`, `categoria_oportunidade` e 
 
 Esses eventos medem uso da recomendação, não sucesso. O resultado deve ser analisado depois pelos marcos reais do negócio, como evolução da conversão, agendamentos e recorrência.
 
-## Evolução para LLM
+## Copilot AF V1
 
-Uma futura camada de LLM pode receber a oportunidade estruturada para:
+A primeira camada generativa usa a oportunidade estruturada somente quando o motor determinístico recomenda `COMPARTILHAR_PERFIL`. O fluxo, contratos de privacidade, fallback, rate limit e configuração do provider estão em [`copilot-v1.md`](./copilot-v1.md).
 
-- explicar em linguagem mais natural;
-- personalizar a orientação;
-- gerar texto de divulgação;
-- comparar hipóteses;
-- responder perguntas sobre os sinais autorizados.
+O LLM pode redigir uma mensagem mais natural e personalizada, mas não recalcula métricas nem decide qual oportunidade deve ser priorizada. O backend continua sendo a autoridade para ativação, oportunidade, permissões, disponibilidade, preços, planos, publicação e regras financeiras.
 
-O LLM não deve recalcular métricas canônicas, escolher permissões, publicar negócios, alterar horários, preços, planos ou regras financeiras. Se o provedor de IA estiver indisponível, o motor de oportunidades continua funcionando integralmente.
+Se a integração de IA estiver indisponível, a geração cai para um texto determinístico e o mecanismo rastreável de compartilhamento continua funcionando.
+
+## Evolução posterior
+
+Depois de validar uso, custo, qualidade e impacto no funil, uma futura camada pode:
+
+- explicar oportunidades em linguagem mais natural;
+- comparar hipóteses com amostra suficiente;
+- responder perguntas sobre sinais agregados autorizados;
+- ajudar a melhorar descrições opcionais de perfil e serviço.
+
+Mesmo nessas fases, o LLM não deve recalcular métricas canônicas, escolher permissões, publicar negócios, alterar horários, preços, planos ou regras financeiras. A máquina determinística deve continuar plenamente funcional quando a IA estiver indisponível.

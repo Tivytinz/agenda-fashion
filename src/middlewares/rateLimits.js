@@ -158,6 +158,17 @@ const limitarLeituraPublica =
       "Muitas consultas públicas. Aguarde um minuto.",
   });
 
+const limitarCopilot =
+  criarLimitador({
+    limite: 12,
+    janelaMs:
+      60 * 60 * 1000,
+    mensagem:
+      "Muitas solicitações ao Copilot. Tente novamente mais tarde.",
+    chave:
+      chaveUsuarioOuIp,
+  });
+
 module.exports = {
   criarLimitador,
   limitarLogin,
@@ -168,4 +179,5 @@ module.exports = {
   limitarEventos,
   limitarUpload,
   limitarLeituraPublica,
+  limitarCopilot,
 };

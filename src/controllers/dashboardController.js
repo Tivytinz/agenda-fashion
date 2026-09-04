@@ -5,6 +5,9 @@ const dashboardDonoService = require(
 const dashboardCustomerOriginService = require(
   "../services/dashboardCustomerOriginService"
 );
+const copilotShareService = require(
+  "../services/copilotShareService"
+);
 
 async function buscarDashboardProfissional(req, res, next) {
   try {
@@ -45,8 +48,23 @@ async function buscarOrigemClientesDono(req, res, next) {
   }
 }
 
+async function gerarDivulgacaoCopilot(req, res, next) {
+  try {
+    const resultado = await copilotShareService.gerarDivulgacao({
+      usuarioId: req.user?.id,
+      periodo: req.body?.periodo,
+      canal: req.body?.canal,
+    });
+
+    return res.json(resultado);
+  } catch (err) {
+    next(err);
+  }
+}
+
 module.exports = {
   buscarDashboardProfissional,
   buscarDashboardDono,
-  buscarOrigemClientesDono
+  buscarOrigemClientesDono,
+  gerarDivulgacaoCopilot,
 };
