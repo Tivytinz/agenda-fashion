@@ -127,10 +127,10 @@ export function buildPublicLink({
   return url.toString();
 }
 
-export async function copyPublicLink(url) {
-  if (!url) {
+async function copyText(text) {
+  if (!text) {
     throw new Error(
-      "Link indisponível."
+      "Conteúdo indisponível."
     );
   }
 
@@ -138,7 +138,7 @@ export async function copyPublicLink(url) {
     navigator.clipboard?.writeText
   ) {
     await navigator.clipboard.writeText(
-      url
+      text
     );
     return;
   }
@@ -148,7 +148,7 @@ export async function copyPublicLink(url) {
       "textarea"
     );
 
-  input.value = url;
+  input.value = text;
   input.setAttribute(
     "readonly",
     ""
@@ -169,15 +169,26 @@ export async function copyPublicLink(url) {
 
   if (!copied) {
     throw new Error(
-      "Não foi possível copiar o link."
+      "Não foi possível copiar o conteúdo."
     );
   }
+}
+
+export async function copyPublicLink(url) {
+  if (!url) {
+    throw new Error(
+      "Link indisponível."
+    );
+  }
+
+  await copyText(url);
 }
 
 export async function sharePublicLink({
   title,
   text,
-  url
+  url,
+  fallbackText
 }) {
   if (
     typeof navigator.share ===
@@ -201,6 +212,11 @@ export async function sharePublicLink({
     }
   }
 
-  await copyPublicLink(url);
+  const composedFallback = String(fallbackText || "").trim();
+  if (composedFallback) {
+    await copyText(composedFallback);
+  } else {
+    await copyPublicLink(url);
+  }
   return "copied";
 }
