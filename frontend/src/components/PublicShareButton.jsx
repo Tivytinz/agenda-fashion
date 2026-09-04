@@ -37,6 +37,8 @@ export function PublicShareButton({
   origin,
   serviceId,
   serviceName,
+  shareText,
+  shareTitle,
   trackingMission = "descobrir_compartilhar_agendar",
   trackingPage = "perfil_negocio"
 }) {
@@ -108,13 +110,21 @@ export function PublicShareButton({
     }
   };
 
-  const title = isService
+  const defaultTitle = isService
     ? `${serviceName || "Serviço"} em ${businessName || "Agenda Fashion"}`
     : `${businessName || "Negócio"} | Agenda Fashion`;
 
-  const text = isService
+  const defaultText = isService
     ? `Veja ${serviceName || "este serviço"} e escolha seu horário no Agenda Fashion.`
     : `Veja os serviços de ${businessName || "este negócio"} e escolha seu horário no Agenda Fashion.`;
+
+  const title = String(shareTitle || defaultTitle)
+    .trim()
+    .slice(0, 120);
+  const text = String(shareText || defaultText)
+    .trim()
+    .slice(0, 800);
+  const customShareText = Boolean(String(shareText || "").trim());
 
   async function handleClick(
     event
@@ -155,7 +165,10 @@ export function PublicShareButton({
         await sharePublicLink({
           title,
           text,
-          url
+          url,
+          fallbackText: customShareText
+            ? `${text}\n\n${url}`
+            : ""
         });
 
       if (
