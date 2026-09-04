@@ -2,6 +2,9 @@ const express = require("express");
 const router = express.Router();
 
 const auth = require("../middlewares/auth");
+const {
+  limitarCopilot,
+} = require("../middlewares/rateLimits");
 const dashboardController = require("../controllers/dashboardController");
 
 router.get(
@@ -20,6 +23,13 @@ router.get(
   "/dashboard-dono/origem-clientes",
   auth,
   dashboardController.buscarOrigemClientesDono
+);
+
+router.post(
+  "/dashboard-dono/copilot/divulgacao",
+  auth,
+  limitarCopilot,
+  dashboardController.gerarDivulgacaoCopilot
 );
 
 module.exports = router;
