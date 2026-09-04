@@ -212,7 +212,9 @@ export function PublicShareButton({
         ? "Copiando..."
         : "Abrindo..."
       : status === "copied"
-        ? "Link copiado"
+        ? customShareText
+          ? "Texto e link copiados"
+          : "Link copiado"
         : status === "shared"
           ? "Compartilhado"
           : status === "error"
