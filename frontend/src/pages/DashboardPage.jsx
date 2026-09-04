@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { apiRequest } from "../api/client";
 import { DashboardNextAction } from "../components/DashboardNextAction";
+import { DashboardGrowthInsight } from "../components/DashboardGrowthInsight";
 import { ErrorState, LoadingState } from "../components/ScreenState";
 import { formatCurrency } from "../utils/format";
 
@@ -256,6 +257,13 @@ export function DashboardPage() {
       <DashboardNextAction
         nextAction={data.proxima_acao_ativacao}
         activation={data.ativacao}
+        businessId={data.negocio?.negocio_id}
+        businessName={data.negocio?.nome}
+        businessSlug={data.negocio?.slug}
+      />
+
+      <DashboardGrowthInsight
+        insight={data.inteligencia_crescimento}
         businessId={data.negocio?.negocio_id}
         businessName={data.negocio?.nome}
         businessSlug={data.negocio?.slug}

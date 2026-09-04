@@ -22,6 +22,20 @@ jest.mock(
   })
 );
 
+jest.mock(
+  "../src/services/growthIntelligenceService",
+  () => ({
+    analyzeGrowthIntelligence:
+      jest.fn(),
+    unavailableGrowthIntelligence:
+      jest.fn(() => ({
+        status: "INDISPONIVEL",
+        oportunidade_principal: null,
+        oportunidades: [],
+      })),
+  })
+);
+
 const dashboardService = require(
   "../src/services/dashboardService"
 );
@@ -30,6 +44,9 @@ const dashboardActivationService = require(
 );
 const activationNextActionService = require(
   "../src/services/activationNextActionService"
+);
+const growthIntelligenceService = require(
+  "../src/services/growthIntelligenceService"
 );
 const dashboardDonoService = require(
   "../src/services/dashboardDonoService"
@@ -40,24 +57,33 @@ describe(
   () => {
     beforeEach(() => {
       jest.resetAllMocks();
+      growthIntelligenceService
+        .unavailableGrowthIntelligence
+        .mockReturnValue({
+          status: "INDISPONIVEL",
+          oportunidade_principal: null,
+          oportunidades: [],
+        });
     });
 
     test(
-      "combina dashboard autorizado com ativação e próxima ação canônicas",
+      "combina dashboard autorizado com ativação, próxima ação e inteligência de crescimento",
       async () => {
+        const dashboard = {
+          periodo: "7dias",
+          negocio: {
+            negocio_id: 18,
+            papel: "dono",
+            nome: "Studio Aurora",
+            slug: "studio-aurora",
+          },
+          resumo: {},
+          performance: {},
+        };
+
         dashboardService
           .buscarDashboardDono
-          .mockResolvedValue({
-            periodo: "7dias",
-            negocio: {
-              negocio_id: 18,
-              papel: "dono",
-              nome: "Studio Aurora",
-              slug: "studio-aurora",
-            },
-            resumo: {},
-            performance: {},
-          });
+          .mockResolvedValue(dashboard);
 
         const ativacao = {
           possui_servico_ativo: true,
@@ -77,6 +103,11 @@ describe(
             rotulo: "Compartilhar perfil",
           },
         };
+        const inteligenciaCrescimento = {
+          status: "AGUARDANDO_ATIVACAO",
+          oportunidade_principal: null,
+          oportunidades: [],
+        };
 
         dashboardActivationService
           .buscarAtivacaoNegocio
@@ -88,6 +119,11 @@ describe(
           .mockReturnValue(
             proximaAcaoAtivacao
           );
+        growthIntelligenceService
+          .analyzeGrowthIntelligence
+          .mockReturnValue(
+            inteligenciaCrescimento
+          );
 
         await expect(
           dashboardDonoService
@@ -96,18 +132,12 @@ describe(
               periodo: "7dias",
             })
         ).resolves.toEqual({
-          periodo: "7dias",
-          negocio: {
-            negocio_id: 18,
-            papel: "dono",
-            nome: "Studio Aurora",
-            slug: "studio-aurora",
-          },
-          resumo: {},
-          performance: {},
+          ...dashboard,
           ativacao,
           proxima_acao_ativacao:
             proximaAcaoAtivacao,
+          inteligencia_crescimento:
+            inteligenciaCrescimento,
         });
 
         expect(
@@ -129,11 +159,81 @@ describe(
         ).toHaveBeenCalledWith(
           ativacao
         );
+        expect(
+          growthIntelligenceService
+            .analyzeGrowthIntelligence
+        ).toHaveBeenCalledWith({
+          dashboard,
+          ativacao,
+          proximaAcaoAtivacao,
+        });
       }
     );
 
     test(
-      "não consulta ativação nem próxima ação quando o dashboard principal falha",
+      "mantém o dashboard disponível quando a inteligência falha",
+      async () => {
+        const dashboard = {
+          periodo: "7dias",
+          negocio: {
+            negocio_id: 18,
+            papel: "dono",
+            nome: "Studio Aurora",
+            slug: "studio-aurora",
+          },
+          resumo: {},
+          performance: {},
+        };
+        const ativacao = {
+          possui_servico_ativo: true,
+          negocio_publicado: true,
+          agenda_configurada: true,
+          primeiro_agendamento_recebido: true,
+        };
+        const proximaAcaoAtivacao = {
+          estado: "ATIVADO",
+          concluido: true,
+        };
+
+        dashboardService
+          .buscarDashboardDono
+          .mockResolvedValue(dashboard);
+        dashboardActivationService
+          .buscarAtivacaoNegocio
+          .mockResolvedValue(ativacao);
+        activationNextActionService
+          .resolverProximaAcaoAtivacao
+          .mockReturnValue(proximaAcaoAtivacao);
+        growthIntelligenceService
+          .analyzeGrowthIntelligence
+          .mockImplementation(() => {
+            throw new Error("falha interna");
+          });
+
+        await expect(
+          dashboardDonoService.buscarDashboardDono({
+            usuarioId: 7,
+            periodo: "7dias",
+          })
+        ).resolves.toEqual({
+          ...dashboard,
+          ativacao,
+          proxima_acao_ativacao: proximaAcaoAtivacao,
+          inteligencia_crescimento: {
+            status: "INDISPONIVEL",
+            oportunidade_principal: null,
+            oportunidades: [],
+          },
+        });
+
+        expect(
+          growthIntelligenceService.unavailableGrowthIntelligence
+        ).toHaveBeenCalledTimes(1);
+      }
+    );
+
+    test(
+      "não consulta ativação nem inteligência quando o dashboard principal falha",
       async () => {
         dashboardService
           .buscarDashboardDono
@@ -158,6 +258,10 @@ describe(
         expect(
           activationNextActionService
             .resolverProximaAcaoAtivacao
+        ).not.toHaveBeenCalled();
+        expect(
+          growthIntelligenceService
+            .analyzeGrowthIntelligence
         ).not.toHaveBeenCalled();
       }
     );

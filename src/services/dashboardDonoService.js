@@ -7,6 +7,27 @@ const dashboardActivationService = require(
 const activationNextActionService = require(
   "./activationNextActionService"
 );
+const growthIntelligenceService = require(
+  "./growthIntelligenceService"
+);
+
+function analisarInteligenciaCrescimentoSegura({
+  dashboard,
+  ativacao,
+  proximaAcaoAtivacao,
+}) {
+  try {
+    return growthIntelligenceService
+      .analyzeGrowthIntelligence({
+        dashboard,
+        ativacao,
+        proximaAcaoAtivacao,
+      });
+  } catch {
+    return growthIntelligenceService
+      .unavailableGrowthIntelligence();
+  }
+}
 
 async function buscarDashboardDono({
   usuarioId,
@@ -32,11 +53,20 @@ async function buscarDashboardDono({
         ativacao
       );
 
+  const inteligenciaCrescimento =
+    analisarInteligenciaCrescimentoSegura({
+      dashboard: resultado,
+      ativacao,
+      proximaAcaoAtivacao,
+    });
+
   return {
     ...resultado,
     ativacao,
     proxima_acao_ativacao:
       proximaAcaoAtivacao,
+    inteligencia_crescimento:
+      inteligenciaCrescimento,
   };
 }
 
