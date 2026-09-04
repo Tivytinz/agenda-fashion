@@ -113,10 +113,12 @@ describe(
     );
 
     it(
-      "abre compartilhamento nativo com link rastreável do AF",
+      "registra a intenção antes do compartilhamento nativo e preserva o evento de conclusão",
       async () => {
         const share =
           vi.fn().mockResolvedValue();
+        const onIntent =
+          vi.fn();
 
         Object.defineProperty(
           navigator,
@@ -132,6 +134,7 @@ describe(
             businessId={7}
             businessName="Studio Aurora"
             businessSlug="studio-aurora"
+            onIntent={onIntent}
             origin="https://app.agendafashion.com.br"
           />
         );
@@ -144,6 +147,8 @@ describe(
             }
           )
         );
+
+        expect(onIntent).toHaveBeenCalledTimes(1);
 
         expect(
           share

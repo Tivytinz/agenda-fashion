@@ -292,6 +292,121 @@ describe(
     );
 
     test(
+      "aceita observabilidade da próxima ação sem persistir dados pessoais",
+      async () => {
+        const resposta =
+          await request(
+            criarApp()
+          )
+            .post(
+              "/eventos-produto"
+            )
+            .set(
+              "x-test-user",
+              "7"
+            )
+            .send({
+              nome:
+                "proxima_acao_ativacao_visualizada",
+              pagina:
+                "dashboard_dono",
+              missao:
+                "gerenciar_crescimento",
+              sessao_id:
+                "sessao_ativacao_123",
+              negocio_id:
+                11,
+              propriedades: {
+                estado_ativacao:
+                  "CONFIRMAR_AGENDA",
+                tipo_acao:
+                  "NAVEGAR",
+                telefone:
+                  "62999999999",
+                email:
+                  "cliente@email.com",
+              },
+            });
+
+        expect(
+          resposta.status
+        ).toBe(202);
+
+        expect(
+          eventoProdutoRepository
+            .registrar
+        ).toHaveBeenCalledWith({
+          nome:
+            "proxima_acao_ativacao_visualizada",
+          pagina:
+            "dashboard_dono",
+          missao:
+            "gerenciar_crescimento",
+          sessaoId:
+            "sessao_ativacao_123",
+          usuarioId:
+            7,
+          negocioId:
+            11,
+          propriedades: {
+            estado_ativacao:
+              "CONFIRMAR_AGENDA",
+            tipo_acao:
+              "NAVEGAR",
+          },
+        });
+      }
+    );
+
+    test(
+      "aceita seleção observacional da próxima ação",
+      async () => {
+        const resposta =
+          await request(
+            criarApp()
+          )
+            .post(
+              "/eventos-produto"
+            )
+            .send({
+              nome:
+                "proxima_acao_ativacao_selecionada",
+              pagina:
+                "dashboard_dono",
+              missao:
+                "gerenciar_crescimento",
+              sessao_id:
+                "sessao_ativacao_456",
+              propriedades: {
+                estado_ativacao:
+                  "CONQUISTAR_PRIMEIRO_AGENDAMENTO",
+                tipo_acao:
+                  "COMPARTILHAR_PERFIL",
+              },
+            });
+
+        expect(
+          resposta.status
+        ).toBe(202);
+        expect(
+          eventoProdutoRepository
+            .registrar
+        ).toHaveBeenCalledWith(
+          expect.objectContaining({
+            nome:
+              "proxima_acao_ativacao_selecionada",
+            propriedades: {
+              estado_ativacao:
+                "CONQUISTAR_PRIMEIRO_AGENDAMENTO",
+              tipo_acao:
+                "COMPARTILHAR_PERFIL",
+            },
+          })
+        );
+      }
+    );
+
+    test(
       "rejeita nomes de evento fora do contrato",
       async () => {
         const resposta =

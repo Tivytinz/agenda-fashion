@@ -33,6 +33,7 @@ export function PublicShareButton({
   className = "",
   label = "Compartilhar",
   mode = "share",
+  onIntent,
   origin,
   serviceId,
   serviceName,
@@ -122,6 +123,12 @@ export function PublicShareButton({
 
     if (!url || status === "busy") {
       return;
+    }
+
+    try {
+      onIntent?.();
+    } catch {
+      // Observabilidade opcional nunca bloqueia o compartilhamento.
     }
 
     setStatus("busy");
