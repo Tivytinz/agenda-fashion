@@ -144,7 +144,7 @@ test("ações do negócio ficam acima da navegação e mantêm foco visível", a
   }
 });
 
-test("onboarding mostra somente a próxima ação e cabe no celular", async ({ page }) => {
+test("próxima ação de ativação cabe no celular e mostra somente a missão atual", async ({ page }) => {
   await page.addInitScript(() => {
     localStorage.setItem("token", "owner-e2e");
     localStorage.setItem("usuario", JSON.stringify({ id: 4, nome: "Ana" }));
