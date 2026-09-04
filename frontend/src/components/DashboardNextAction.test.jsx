@@ -5,6 +5,7 @@ import {
   render,
   screen,
 } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import {
   afterEach,
@@ -13,19 +14,29 @@ import {
   it,
   vi,
 } from "vitest";
+import { track } from "../analytics/track";
 import { DashboardNextAction } from "./DashboardNextAction";
+
+vi.mock(
+  "../analytics/track",
+  () => ({
+    track: vi.fn(),
+  })
+);
 
 vi.mock(
   "./PublicShareButton",
   () => ({
     PublicShareButton: ({
       label,
+      onIntent,
       trackingMission,
       trackingPage,
     }) => (
       <button
         data-mission={trackingMission}
         data-page={trackingPage}
+        onClick={onIntent}
         type="button"
       >
         {label}
@@ -34,7 +45,10 @@ vi.mock(
   })
 );
 
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  vi.clearAllMocks();
+});
 
 function renderAction(
   nextAction
@@ -127,8 +141,96 @@ describe(
     );
 
     it(
-      "usa o compartilhamento rastreável no estado de primeiro agendamento",
+      "registra a visualização da ação canônica sem transformar exposição em sucesso",
       () => {
+        renderAction({
+          estado:
+            "CONFIRMAR_AGENDA",
+          concluido: false,
+          titulo:
+            "Confirme seus horários",
+          mensagem:
+            "Mensagem definida pelo backend.",
+          acao: {
+            tipo: "NAVEGAR",
+            rotulo:
+              "Confirmar horários",
+            destino:
+              "/painel/horarios",
+          },
+        });
+
+        expect(track).toHaveBeenCalledWith(
+          "proxima_acao_ativacao_visualizada",
+          {
+            businessId: 12,
+            mission:
+              "gerenciar_crescimento",
+            page:
+              "dashboard_dono",
+            properties: {
+              estado_ativacao:
+                "CONFIRMAR_AGENDA",
+              tipo_acao:
+                "NAVEGAR",
+            },
+          }
+        );
+      }
+    );
+
+    it(
+      "registra seleção antes de navegar para a próxima etapa",
+      async () => {
+        renderAction({
+          estado:
+            "GARANTIR_SERVICO_ATIVO",
+          concluido: false,
+          titulo:
+            "Ative seus serviços",
+          mensagem:
+            "Mensagem definida pelo backend.",
+          acao: {
+            tipo: "NAVEGAR",
+            rotulo:
+              "Gerenciar serviços",
+            destino:
+              "/painel/servicos",
+          },
+        });
+
+        await userEvent.click(
+          screen.getByRole(
+            "link",
+            {
+              name:
+                "Gerenciar serviços",
+            }
+          )
+        );
+
+        expect(track).toHaveBeenCalledWith(
+          "proxima_acao_ativacao_selecionada",
+          {
+            businessId: 12,
+            mission:
+              "gerenciar_crescimento",
+            page:
+              "dashboard_dono",
+            properties: {
+              estado_ativacao:
+                "GARANTIR_SERVICO_ATIVO",
+              tipo_acao:
+                "NAVEGAR",
+            },
+          }
+        );
+      }
+    );
+
+    it(
+      "usa o compartilhamento rastreável no estado de primeiro agendamento",
+      async () => {
         renderAction({
           estado:
             "CONQUISTAR_PRIMEIRO_AGENDAMENTO",
@@ -175,6 +277,25 @@ describe(
           ).getAttribute("href")
         ).toBe(
           "/negocio/studio-aurora"
+        );
+
+        await userEvent.click(share);
+
+        expect(track).toHaveBeenCalledWith(
+          "proxima_acao_ativacao_selecionada",
+          {
+            businessId: 12,
+            mission:
+              "gerenciar_crescimento",
+            page:
+              "dashboard_dono",
+            properties: {
+              estado_ativacao:
+                "CONQUISTAR_PRIMEIRO_AGENDAMENTO",
+              tipo_acao:
+                "COMPARTILHAR_PERFIL",
+            },
+          }
         );
       }
     );
