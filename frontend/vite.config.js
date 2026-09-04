@@ -24,6 +24,17 @@ export default defineConfig({
   },
   build: {
     outDir: "../agendamento-nails/react-app",
-    emptyOutDir: true
+    emptyOutDir: true,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          "vendor-react": [
+            "react",
+            "react-dom",
+            "react-router-dom"
+          ]
+        }
+      }
+    }
   }
 });
