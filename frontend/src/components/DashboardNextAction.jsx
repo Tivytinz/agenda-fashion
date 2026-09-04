@@ -1,4 +1,6 @@
+import { useEffect } from "react";
 import { Link } from "react-router-dom";
+import { track } from "../analytics/track";
 import { PublicShareButton } from "./PublicShareButton";
 
 const ACTIVATION_ROUTES = Object.freeze({
@@ -18,6 +20,11 @@ const ACTIVATION_STEP_KEYS = Object.freeze([
   "negocio_publicado",
   "primeiro_agendamento_recebido",
 ]);
+
+const ACTIVATION_TRACKING_CONTEXT = Object.freeze({
+  page: "dashboard_dono",
+  mission: "gerenciar_crescimento",
+});
 
 function publicProfilePath(businessSlug) {
   const slug = String(businessSlug || "").trim();
@@ -78,6 +85,15 @@ function activationProgress(activation) {
   );
 }
 
+function activationTrackingProperties(action) {
+  return {
+    estado_ativacao:
+      String(action.estado || "INDISPONIVEL"),
+    tipo_acao:
+      String(action.acao?.tipo || "NAVEGAR"),
+  };
+}
+
 export function DashboardNextAction({
   nextAction,
   activation,
@@ -88,6 +104,34 @@ export function DashboardNextAction({
   const action = normalizeAction(nextAction);
   const profilePath = publicProfilePath(businessSlug);
   const completedSteps = activationProgress(activation);
+  const actionState = String(action.estado || "INDISPONIVEL");
+  const actionType = String(action.acao?.tipo || "NAVEGAR");
+
+  useEffect(() => {
+    track(
+      "proxima_acao_ativacao_visualizada",
+      {
+        ...ACTIVATION_TRACKING_CONTEXT,
+        businessId,
+        properties: {
+          estado_ativacao: actionState,
+          tipo_acao: actionType,
+        },
+      }
+    );
+  }, [actionState, actionType, businessId]);
+
+  function trackSelection() {
+    track(
+      "proxima_acao_ativacao_selecionada",
+      {
+        ...ACTIVATION_TRACKING_CONTEXT,
+        businessId,
+        properties:
+          activationTrackingProperties(action),
+      }
+    );
+  }
 
   return (
     <section
@@ -120,6 +164,7 @@ export function DashboardNextAction({
               businessSlug={businessSlug}
               className="button"
               label={action.acao?.rotulo || "Compartilhar perfil"}
+              onIntent={trackSelection}
               trackingMission="gerenciar_crescimento"
               trackingPage="dashboard_dono"
             />
@@ -131,7 +176,11 @@ export function DashboardNextAction({
             )}
           </>
         ) : (
-          <Link className="button" to={action.primary.to}>
+          <Link
+            className="button"
+            onClick={trackSelection}
+            to={action.primary.to}
+          >
             {action.primary.label}
           </Link>
         )}
