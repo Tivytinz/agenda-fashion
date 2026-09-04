@@ -33,6 +33,8 @@ const EVENTOS_PERMITIDOS =
     "link_servico_compartilhado",
     "mensagem_crescimento_visualizada",
     "acao_dashboard_selecionada",
+    "proxima_acao_ativacao_visualizada",
+    "proxima_acao_ativacao_selecionada",
     "periodo_dashboard_alterado",
     "upgrade_selecionado",
     "landing_profissionais_visualizada",
@@ -116,6 +118,8 @@ const CHAVES_PROPRIEDADES =
     "status",
     "posicao",
     "negocio",
+    "estado_ativacao",
+    "tipo_acao",
     "categoria_slug",
     "cidade",
     "estado",
@@ -168,6 +172,8 @@ const CHAVES_ID = new Set([
 
 const LIMITES_PROPRIEDADES_TEXTO =
   Object.freeze({
+    estado_ativacao: 60,
+    tipo_acao: 60,
     tipo_link: 40,
     servico_nome: 120,
     metodo: 60,
