@@ -33,10 +33,15 @@ function hasEnoughData(signals) {
   );
 }
 
+function periodoProperty(dashboard) {
+  const periodo = String(dashboard?.periodo || "").trim();
+  return periodo ? { periodo } : {};
+}
+
 function unavailableGrowthIntelligence(periodo = null) {
   return {
     status: GROWTH_INTELLIGENCE_STATUS.INDISPONIVEL,
-    periodo,
+    ...(periodo ? { periodo: String(periodo) } : {}),
     oportunidade_principal: null,
     oportunidades: [],
   };
@@ -47,12 +52,12 @@ function analyzeGrowthIntelligence({
   ativacao = {},
   proximaAcaoAtivacao = {},
 } = {}) {
-  const periodo = String(dashboard?.periodo || "7dias");
+  const period = periodoProperty(dashboard);
 
   if (!activationComplete({ ativacao, proximaAcaoAtivacao })) {
     return {
       status: GROWTH_INTELLIGENCE_STATUS.AGUARDANDO_ATIVACAO,
-      periodo,
+      ...period,
       oportunidade_principal: null,
       oportunidades: [],
     };
@@ -67,7 +72,7 @@ function analyzeGrowthIntelligence({
   if (oportunidadePrincipal) {
     return {
       status: GROWTH_INTELLIGENCE_STATUS.OPORTUNIDADE_PRIORIZADA,
-      periodo,
+      ...period,
       oportunidade_principal: oportunidadePrincipal,
       oportunidades: oportunidades.slice(0, 3),
     };
@@ -77,7 +82,7 @@ function analyzeGrowthIntelligence({
     status: hasEnoughData(sinais)
       ? GROWTH_INTELLIGENCE_STATUS.SEM_OPORTUNIDADE_PRIORITARIA
       : GROWTH_INTELLIGENCE_STATUS.DADOS_INSUFICIENTES,
-    periodo,
+    ...period,
     oportunidade_principal: null,
     oportunidades: [],
   };
