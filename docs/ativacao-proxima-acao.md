@@ -58,6 +58,31 @@ Exemplo:
 
 Ações de navegação usam `tipo = NAVEGAR`, `rotulo` e `destino`. Divulgação usa `tipo = COMPARTILHAR_PERFIL` para reutilizar o mecanismo rastreável de compartilhamento já existente no AF.
 
+## Medição da jornada
+
+A interface registra observabilidade da recomendação com eventos de produto próprios:
+
+- `proxima_acao_ativacao_visualizada`: a recomendação foi efetivamente apresentada no dashboard;
+- `proxima_acao_ativacao_selecionada`: a profissional selecionou a ação principal recomendada.
+
+Os eventos usam `dashboard_dono`, missão `gerenciar_crescimento` e apenas propriedades operacionais não sensíveis: `estado_ativacao` e `tipo_acao`.
+
+No estado `CONQUISTAR_PRIMEIRO_AGENDAMENTO`, a seleção da recomendação e a conclusão do compartilhamento são fatos diferentes. A seleção registra intenção; `link_negocio_compartilhado` ou `link_negocio_copiado` continua registrando o resultado do mecanismo de share.
+
+Nenhum desses eventos substitui os marcos canônicos do backend. Clique, visualização e compartilhamento são sinais de comportamento, não ativação. O resultado deve ser medido pela progressão real do negócio entre os sinais canônicos e, por fim, pelo primeiro agendamento registrado.
+
+A análise recomendada é:
+
+```text
+recomendação visualizada
+  -> ação selecionada
+  -> marco canônico correspondente concluído
+  -> próxima etapa de ativação
+  -> primeiro agendamento registrado
+```
+
+Isso permite medir taxa de seleção e taxa de progressão por estado sem tratar clique como sucesso de produto.
+
 ## Limite entre regra e IA
 
 Regras de publicação, serviço ativo, agenda confirmada, permissões, limites de plano, preços, pagamentos e disponibilidade continuam determinísticas e sob autoridade do backend.
@@ -97,5 +122,7 @@ As transições devem permanecer protegidas em três níveis:
 1. teste unitário da máquina de estados, incluindo estados normais, legados e regressões;
 2. teste de integração do repository para serviço ativo, publicação, agenda e primeiro agendamento;
 3. testes de frontend e jornada para confirmar que o dashboard apresenta o contrato do backend e mantém o compartilhamento rastreável.
+
+A observabilidade também deve ser protegida por testes do contrato de eventos e por testes de interface que diferenciem visualização, seleção e conclusão do compartilhamento.
 
 Mudanças futuras nessa ordem ou na definição de qualquer sinal canônico devem atualizar esta documentação e os testes correspondentes.
