@@ -99,10 +99,11 @@ describe("painel administrativo do WhatsApp", () => {
     render(<AdminWhatsAppPage />);
 
     expect(
-      await screen.findByRole("heading", { name: "WhatsApp e templates" })
+      await screen.findByRole("heading", { name: "WhatsApp e automações" })
     ).not.toBeNull();
     expect(screen.getByText("8 de 8")).not.toBeNull();
     expect(screen.getByText("Aprovados na Meta")).not.toBeNull();
+    expect(screen.getByText("Envios aceitos")).not.toBeNull();
     expect(screen.getByText("6 de 8")).not.toBeNull();
     expect(screen.getAllByText("75%").length).toBeGreaterThan(0);
     expect(screen.getAllByText("50%").length).toBeGreaterThan(0);

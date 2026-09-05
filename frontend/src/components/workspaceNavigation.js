@@ -1,7 +1,9 @@
 const EXACT_NAVIGATION_ROUTES = new Set([
   "/painel",
   "/profissional/agenda",
-  "/admin/saude"
+  "/admin",
+  "/admin/saude",
+  "/admin/operacao"
 ]);
 
 export function splitMobileLinks(links, primaryLimit = 4) {

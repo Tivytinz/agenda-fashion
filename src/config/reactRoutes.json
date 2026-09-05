@@ -16,6 +16,8 @@
   "account": "/conta",
   "plans": "/planos",
   "checkout": "/checkout",
+  "adminOverview": "/admin",
+  "adminOperation": "/admin/operacao",
   "adminMarketing": "/admin/trafego-pago",
   "adminCosts": "/admin/trafego-pago/custos",
   "adminProfessionals": "/admin/trafego-pago/profissionais",

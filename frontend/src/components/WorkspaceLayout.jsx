@@ -31,7 +31,9 @@ const PROFESSIONAL_LINKS = [
 ];
 
 export const ADMIN_LINKS = [
-  ["/admin/saude", "Saúde do SaaS", "health"],
+  ["/admin", "Visão geral", "home"],
+  ["/admin/saude", "Ativação", "health"],
+  ["/admin/operacao", "Operação", "business"],
   ["/admin/trafego-pago", "Marketing", "marketing"],
   ["/admin/whatsapp", "WhatsApp", "whatsapp"],
   ["/conta", "Minha conta", "account"]
@@ -167,17 +169,19 @@ function NavigationShell({
   return (
     <div className={`workspace-shell workspace-shell--${variant}`}>
       <aside
-        className="workspace-sidebar"
+        className={identity ? "workspace-sidebar" : "workspace-sidebar workspace-sidebar--nav-only"}
         aria-label={ariaLabel}
       >
-        <div className="workspace-business">
-          <span>{identity.initial}</span>
+        {identity && (
+          <div className="workspace-business">
+            <span>{identity.initial}</span>
 
-          <div>
-            <strong>{identity.title}</strong>
-            <small>{identity.subtitle}</small>
+            <div>
+              <strong>{identity.title}</strong>
+              <small>{identity.subtitle}</small>
+            </div>
           </div>
-        </div>
+        )}
 
         <nav>
           <WorkspaceLinks links={links} />
@@ -200,11 +204,7 @@ export function AdminLayout({ children }) {
   return (
     <NavigationShell
       ariaLabel="Administração do Agenda Fashion"
-      identity={{
-        initial: "AF",
-        title: "AF Admin",
-        subtitle: "Operação interna"
-      }}
+      identity={null}
       links={ADMIN_LINKS}
       variant="admin"
     >

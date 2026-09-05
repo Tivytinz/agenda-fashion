@@ -260,10 +260,10 @@ export function AdminWhatsAppPage() {
     >
       <header className="workspace-heading">
         <div>
-          <p className="eyebrow">Administração do AF</p>
-          <h1>WhatsApp e templates</h1>
+          <p className="eyebrow">WhatsApp</p>
+          <h1>WhatsApp e automações</h1>
           <p>
-            Confira aprovação, qualidade e desempenho das mensagens automáticas sem sair do Agenda Fashion.
+            Acompanhe templates, automações, aceite, entrega e leitura das mensagens do Agenda Fashion.
           </p>
         </div>
 
@@ -292,7 +292,7 @@ export function AdminWhatsAppPage() {
               ? "Atualizando..."
               : verificacao.codigo === "CONFIGURACAO_INCOMPLETA"
                 ? "Verificar novamente"
-                : "Atualizar status"}
+                : "Atualizar agora"}
           </button>
         </div>
       </header>
@@ -319,8 +319,8 @@ export function AdminWhatsAppPage() {
           value={`${resumo.automacoesHabilitadas ?? 0} de ${resumo.templatesEsperados ?? 0}`}
         />
         <MetricCard
-          hint={`${resumo.total ?? 0} mensagens geradas no período`}
-          label="Aceitas pela Meta"
+          hint={`${resumo.total ?? 0} mensagens geradas no período · aceitas pela Meta`}
+          label="Envios aceitos"
           value={resumo.aceitas ?? 0}
         />
         <MetricCard
@@ -354,7 +354,7 @@ export function AdminWhatsAppPage() {
         </div>
         {verificacao.consultadoEm && (
           <time dateTime={verificacao.consultadoEm}>
-            {formatarDataHora(verificacao.consultadoEm)}
+            Última consulta: {formatarDataHora(verificacao.consultadoEm)}
           </time>
         )}
       </section>

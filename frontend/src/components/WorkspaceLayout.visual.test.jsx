@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, render, screen, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { AdminLayout, WorkspaceLayout } from "./WorkspaceLayout";
@@ -17,7 +17,7 @@ vi.mock("../auth/SessionContext", () => ({
 afterEach(cleanup);
 
 describe("contextos visuais do workspace", () => {
-  it("marca o administrativo como console neutro", () => {
+  it("marca o administrativo como console neutro sem duplicar a identidade do admin", () => {
     render(
       <MemoryRouter>
         <AdminLayout>
@@ -26,14 +26,20 @@ describe("contextos visuais do workspace", () => {
       </MemoryRouter>
     );
 
-    const shell = screen
-      .getByRole("complementary", { name: "Administração do Agenda Fashion" })
-      .closest(".workspace-shell");
+    const sidebar = screen.getByRole("complementary", {
+      name: "Administração do Agenda Fashion"
+    });
+    const sidebarQueries = within(sidebar);
+    const shell = sidebar.closest(".workspace-shell");
 
     expect(shell?.classList.contains("workspace-shell--admin")).toBe(true);
     expect(shell?.classList.contains("workspace-shell--professional")).toBe(false);
-    expect(screen.getByText("AF Admin")).not.toBeNull();
-    expect(screen.getByText("Operação interna")).not.toBeNull();
+    expect(sidebar.classList.contains("workspace-sidebar--nav-only")).toBe(true);
+    expect(screen.queryByText("AF Admin")).toBeNull();
+    expect(screen.queryByText("Operação interna")).toBeNull();
+    expect(sidebarQueries.getByText("Visão geral")).not.toBeNull();
+    expect(sidebarQueries.getByText("Ativação")).not.toBeNull();
+    expect(sidebarQueries.getByText("Operação")).not.toBeNull();
     expect(screen.getByRole("heading", { name: "Visão administrativa" })).not.toBeNull();
   });
 

@@ -229,7 +229,9 @@ test("admin e consentimento permanecem navegáveis no celular", async ({ page })
   ).toBeVisible();
   await expect(page.getByText("Sessões no site")).toBeVisible();
   await expect(page.getByText("GA4 conectado", { exact: true }).first()).toBeVisible();
-  await expect(page.getByText("100% atribuído", { exact: true })).toBeVisible();
+  await expect(
+    page.getByText("100% do tráfego pago identificado", { exact: true })
+  ).toBeVisible();
   await expect(page.getByText("13 diretas + 7 assistidas")).toBeVisible();
   await expect(
     page.getByRole("heading", { name: "O que acontece depois do clique" })
@@ -240,17 +242,24 @@ test("admin e consentimento permanecem navegáveis no celular", async ({ page })
   const navigation = page.getByRole("navigation", {
     name: "Administração do Agenda Fashion"
   });
-  await expect(navigation.getByRole("link", { name: /Saúde do SaaS/ }))
+  await expect(navigation.getByRole("link", { name: /Visão geral/ }))
+    .toBeVisible();
+  await expect(navigation.getByRole("link", { name: /Ativação/ }))
+    .toBeVisible();
+  await expect(navigation.getByRole("link", { name: /Operação/ }))
     .toBeVisible();
   await expect(navigation.getByRole("link", { name: /Marketing/ }))
     .toBeVisible();
+  const moreAdmin = navigation.getByRole("button", {
+    name: /mais opções da área de trabalho/
+  });
+  await expect(moreAdmin).toBeVisible();
+  await moreAdmin.click();
   await expect(navigation.getByRole("link", { name: /WhatsApp/ }))
     .toBeVisible();
   await expect(navigation.getByRole("link", { name: /Minha conta/ }))
     .toBeVisible();
-  await expect(
-    navigation.getByRole("button", { name: /Abrir mais opções/ })
-  ).toHaveCount(0);
+  await moreAdmin.click();
 
   const consent = page.getByRole("complementary", {
     name: "Preferências de privacidade"

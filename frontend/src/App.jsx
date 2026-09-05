@@ -35,6 +35,8 @@ function lazyNamedWithStyles(stylesImporter, importer, name) {
   );
 }
 
+const loadAdminCommandStyles = () =>
+  import("./styles/admin-command.css");
 const loadAdminMarketingStyles = () =>
   import("./styles/admin-marketing.css");
 const loadAdminSaasHealthStyles = () =>
@@ -59,6 +61,16 @@ const loadSubscriptionStyles = () =>
 const loadPlansStyles = () =>
   import("./styles/plans-polish.css");
 
+const AdminOverviewPage = lazyNamedWithStyles(
+  loadAdminCommandStyles,
+  () => import("./pages/AdminOverviewPage"),
+  "AdminOverviewPage"
+);
+const AdminOperationPage = lazyNamedWithStyles(
+  loadAdminCommandStyles,
+  () => import("./pages/AdminOperationPage"),
+  "AdminOperationPage"
+);
 const AdminMarketingPage = lazyNamedWithStyles(
   loadAdminMarketingStyles,
   () => import("./pages/AdminMarketingPage"),
@@ -237,6 +249,14 @@ export default function App() {
             </ProtectedRoute>
           )}
         >
+          <Route
+            path={reactRoutes.adminOverview}
+            element={<AdminOverviewPage />}
+          />
+          <Route
+            path={reactRoutes.adminOperation}
+            element={<AdminOperationPage />}
+          />
           <Route
             path={reactRoutes.adminMarketing}
             element={(

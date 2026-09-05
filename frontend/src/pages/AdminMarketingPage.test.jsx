@@ -138,7 +138,7 @@ describe("AdminMarketingPage", () => {
     expect(screen.getByText("Assinaturas ativadas")).not.toBeNull();
     expect(screen.getByText("Comportamento + funil + atribuição")).not.toBeNull();
     expect(screen.getByText("GA4 conectado")).not.toBeNull();
-    expect(screen.getByText("100% atribuído")).not.toBeNull();
+    expect(screen.getByText("100% do tráfego pago identificado")).not.toBeNull();
     expect(screen.getByText("30 diretas + 10 assistidas")).not.toBeNull();
     expect(screen.getByTestId("marketing-ga4-panel")).not.toBeNull();
     expect(screen.getByTestId("marketing-sync-panel")).not.toBeNull();

@@ -327,7 +327,7 @@ export function AdminSaasHealthPage() {
   if (!data && !error) {
     return (
       <main className="workspace-page admin-workspace-page admin-marketing-page admin-saas-health-page">
-        <LoadingState>Carregando saúde do SaaS...</LoadingState>
+        <LoadingState>Carregando ativação profissional...</LoadingState>
       </main>
     );
   }
@@ -354,10 +354,10 @@ export function AdminSaasHealthPage() {
     >
       <header className="workspace-heading">
         <div>
-          <p className="eyebrow">Administração do AF</p>
-          <h1>Saúde do SaaS</h1>
+          <p className="eyebrow">Ativação</p>
+          <h1>Ativação profissional</h1>
           <p>
-            Identifique etapas pendentes, priorize ativações rápidas e ajude cada profissional pelo contato direto.
+            Identifique onde cada profissional está travando, priorize a próxima ação e acompanhe o avanço até publicação e primeiro agendamento.
           </p>
         </div>
       </header>
@@ -369,7 +369,7 @@ export function AdminSaasHealthPage() {
         </p>
       )}
 
-      <section className="metric-grid" aria-label="Indicadores de saúde dos perfis">
+      <section className="metric-grid" aria-label="Indicadores de ativação profissional">
         <SummaryCard
           active={filter === "todos"}
           filter="todos"
@@ -389,7 +389,7 @@ export function AdminSaasHealthPage() {
         <div className="saas-health-toolbar">
           <div>
             <p className="eyebrow">Acompanhamento</p>
-            <h2>Perfis que precisam de ajuda</h2>
+            <h2>Profissionais que precisam de ajuda</h2>
           </div>
 
           <form className="saas-health-search" onSubmit={submitSearch} role="search">

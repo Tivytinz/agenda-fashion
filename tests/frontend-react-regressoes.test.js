@@ -402,7 +402,9 @@ describe(
           '["/painel/profissionais", "Equipe"',
           '["/profissional/agenda", "Minha agenda"',
           '["/profissional/horarios", "Meus horários"',
-          '["/admin/saude", "Saúde do SaaS"',
+          '["/admin", "Visão geral"',
+          '["/admin/saude", "Ativação"',
+          '["/admin/operacao", "Operação"',
           '["/admin/trafego-pago", "Marketing"',
           '["/admin/whatsapp", "WhatsApp"',
           '["/conta", "Minha conta"',
@@ -414,6 +416,12 @@ describe(
               rota
             );
           }
+        );
+
+        expect(
+          workspace
+        ).not.toContain(
+          '["/admin/saude", "Saúde do SaaS"'
         );
 
         [
