@@ -14,6 +14,7 @@ import {
 } from "../components/ScreenState";
 import {
   ADMIN_PERIODS,
+  adminPathWithPeriod,
   adminPeriodLabel,
   normalizeAdminPeriod,
   setPeriodSearchParam
@@ -81,7 +82,7 @@ function profileActivationLink(profile) {
     : "/admin/saude";
 }
 
-function bottleneckFrom(stages) {
+function bottleneckFrom(stages, period) {
   const transitions = stages.slice(1).map((stage, index) => {
     const previous = stages[index];
     const loss = Math.max(0, previous.value - stage.value);
@@ -107,7 +108,7 @@ function bottleneckFrom(stages) {
     ...largest,
     href: largest.action
       ? activationLink(largest.action)
-      : "/admin/trafego-pago/profissionais"
+      : adminPathWithPeriod("/admin/trafego-pago/profissionais", period)
   };
 }
 
@@ -152,9 +153,6 @@ export function AdminOverviewPage() {
           key === "dashboard" || key === "funnel"
         );
 
-        // Dashboard e funil precisam pertencer ao mesmo período antes de trocar
-        // o rótulo temporal. Ativação/readiness são estado corrente e podem usar
-        // o último valor válido em caso de falha parcial.
         if (!values.dashboard || !values.funnel) {
           setError(
             periodError?.error?.message ||
@@ -166,7 +164,7 @@ export function AdminOverviewPage() {
         setData((current) => ({
           period,
           dashboard: values.dashboard,
-          activation: values.activation || current?.activation || {},
+          activation: values.activation || current?.activation || null,
           funnel: values.funnel,
           readiness: values.readiness || current?.readiness || null
         }));
@@ -188,7 +186,8 @@ export function AdminOverviewPage() {
   }, [period, reloadKey]);
 
   const dashboard = data?.dashboard || {};
-  const activation = data?.activation || {};
+  const activationAvailable = Boolean(data?.activation);
+  const activation = data?.activation || null;
   const summary = activation?.resumo || {};
   const profiles = activation?.perfis || [];
   const funnelSummary =
@@ -208,8 +207,8 @@ export function AdminOverviewPage() {
   ], [funnelSummary]);
 
   const bottleneck = useMemo(
-    () => bottleneckFrom(funnelStages),
-    [funnelStages]
+    () => bottleneckFrom(funnelStages, period),
+    [funnelStages, period]
   );
 
   if (!data && !error) {
@@ -237,6 +236,11 @@ export function AdminOverviewPage() {
   const highlights = dashboard.destaques || dashboard;
   const loadedPeriod = data?.period || period;
   const loadedPeriodLabel = adminPeriodLabel(loadedPeriod);
+  const funnelPath = adminPathWithPeriod("/admin/trafego-pago/profissionais", period);
+  const activationValue = (key) => activationAvailable ? number(summary[key]) : "—";
+  const activationHint = (availableHint) => activationAvailable
+    ? availableHint
+    : "Dados de ativação indisponíveis nesta leitura";
 
   return (
     <main
@@ -290,10 +294,12 @@ export function AdminOverviewPage() {
             value={system.label}
           />
           <StatusCard
-            hint={`de ${number(summary.totalProfissionais)} profissionais`}
+            hint={activationHint(`de ${number(summary.totalProfissionais)} profissionais`)}
             label="Ativações pendentes"
-            tone={number(summary.totalIncompletos) > 0 ? "warning" : "success"}
-            value={number(summary.totalIncompletos)}
+            tone={activationAvailable
+              ? number(summary.totalIncompletos) > 0 ? "warning" : "success"
+              : "neutral"}
+            value={activationValue("totalIncompletos")}
           />
         </div>
       </section>
@@ -314,32 +320,32 @@ export function AdminOverviewPage() {
 
         <div className="admin-attention-grid">
           <AttentionCard
-            hint="horários ainda não configurados"
+            hint={activationHint("horários ainda não configurados")}
             label="Sem agenda"
             to={activationLink("agenda")}
-            value={number(summary.semAgenda)}
+            value={activationValue("semAgenda")}
           />
           <AttentionCard
-            hint="negócios sem serviço ativo"
+            hint={activationHint("negócios sem serviço ativo")}
             label="Sem serviço"
             to={activationLink("servico")}
-            value={number(summary.semServico)}
+            value={activationValue("semServico")}
           />
           <AttentionCard
-            hint="fora do catálogo público"
+            hint={activationHint("fora do catálogo público")}
             label="Não publicados"
             to={activationLink("publicacao")}
-            value={number(summary.naoPublicados)}
+            value={activationValue("naoPublicados")}
           />
           <AttentionCard
-            hint="ainda sem área profissional"
+            hint={activationHint("ainda sem área profissional")}
             label="Sem negócio"
             to={activationLink("sem_negocio")}
-            value={number(summary.semNegocio)}
+            value={activationValue("semNegocio")}
           />
         </div>
 
-        {profiles.length > 0 && (
+        {activationAvailable && profiles.length > 0 && (
           <div className="admin-priority-list" aria-label="Profissionais prioritários">
             <h3>Próximos profissionais a ajudar</h3>
             {profiles.map((profile) => (
@@ -382,7 +388,7 @@ export function AdminOverviewPage() {
               Cadastro não é resultado final: o AF acompanha negócio, serviço, agenda, publicação, primeiro agendamento e assinatura.
             </p>
           </div>
-          <Link className="button button-secondary button-small" to="/admin/trafego-pago/profissionais">
+          <Link className="button button-secondary button-small" to={funnelPath}>
             Ver funil completo
           </Link>
         </div>
