@@ -65,7 +65,9 @@ test("ativação usa deep link e vira cartões sem overflow no celular", async (
 
   await page.goto("/admin/saude?pendencia=agenda");
   await expect(page.getByRole("heading", { name: "Ativação profissional" })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Sem agenda" })).toHaveAttribute("aria-pressed", "true");
+  await expect(page.getByLabel("Filtrar por pendência")
+    .getByRole("button", { name: "Sem agenda", exact: true }))
+    .toHaveAttribute("aria-pressed", "true");
   await expect(page.getByText("Ana Souza")).toBeVisible();
   await expect(page.getByText("Configurar agenda")).toBeVisible();
   await expectNoHorizontalOverflow(page);
@@ -160,7 +162,8 @@ test("operação pesquisa no servidor e preserva privacidade do cliente", async 
   await expect(page.getByText("Studio Aurora")).toBeVisible();
   await page.getByRole("button", { name: "Agendamentos" }).click();
   await expect(page.getByText("Maria")).toBeVisible();
-  await expect(page.getByText("Cancelado")).toBeVisible();
+  await expect(page.getByRole("region", { name: "Agendamentos da plataforma" })
+    .getByText("Cancelado", { exact: true })).toBeVisible();
   await expect(page.getByText("62999999999")).toHaveCount(0);
   await expectNoHorizontalOverflow(page);
 });
