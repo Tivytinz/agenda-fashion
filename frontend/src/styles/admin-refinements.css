@@ -105,79 +105,6 @@
   font-weight: 700;
 }
 
-.admin-mobile-only {
-  display: none;
-}
-
-.admin-activation-mobile-list,
-.admin-whatsapp-mobile-list {
-  display: grid;
-  gap: 10px;
-}
-
-.admin-activation-mobile-card,
-.admin-whatsapp-mobile-card {
-  display: grid;
-  gap: 12px;
-  border: 1px solid var(--admin-line);
-  border-radius: 10px;
-  padding: 15px;
-  background: #fff;
-}
-
-.admin-mobile-card-head {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 12px;
-}
-
-.admin-mobile-card-head > div {
-  display: grid;
-  gap: 3px;
-}
-
-.admin-mobile-card-head small,
-.admin-mobile-card-meta,
-.admin-mobile-metric small {
-  color: var(--admin-muted);
-}
-
-.admin-activation-mobile-progress {
-  display: grid;
-  gap: 7px;
-}
-
-.admin-activation-mobile-progress > div:first-child {
-  display: flex;
-  justify-content: space-between;
-  gap: 12px;
-}
-
-.admin-activation-mobile-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 7px;
-}
-
-.admin-whatsapp-mobile-metrics {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 8px;
-}
-
-.admin-mobile-metric {
-  display: grid;
-  gap: 3px;
-  border-radius: 7px;
-  padding: 9px;
-  background: var(--admin-surface-soft);
-}
-
-.admin-mobile-metric strong {
-  color: var(--admin-ink);
-}
-
 @media (max-width: 800px) {
   .admin-command-summary-grid.is-period-summary {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -200,23 +127,95 @@
 }
 
 @media (max-width: 700px) {
-  .admin-desktop-only {
-    display: none !important;
-  }
-
-  .admin-mobile-only {
-    display: grid;
-  }
-
   .admin-operation-pagination {
     justify-content: space-between;
+  }
+
+  .admin-card-table-mobile {
+    overflow: visible;
+    border: 0;
+    background: transparent;
+  }
+
+  .admin-card-table-mobile table {
+    display: block;
+    min-width: 0 !important;
+    width: 100%;
+  }
+
+  .admin-card-table-mobile thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  .admin-card-table-mobile tbody {
+    display: grid;
+    gap: 10px;
+  }
+
+  .admin-card-table-mobile tr {
+    display: grid;
+    gap: 0;
+    border: 1px solid var(--admin-line);
+    border-radius: 10px;
+    padding: 5px 14px;
+    background: #fff;
+    box-shadow: 0 4px 14px rgb(24 31 38 / 4%);
+  }
+
+  .admin-card-table-mobile td {
+    display: grid;
+    gap: 4px;
+    width: 100% !important;
+    border: 0;
+    border-bottom: 1px solid var(--admin-line);
+    padding: 11px 0;
+  }
+
+  .admin-card-table-mobile td:last-child {
+    border-bottom: 0;
+  }
+
+  .admin-card-table-mobile td::before {
+    color: var(--admin-muted);
+    font-size: .66rem;
+    font-weight: 800;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+  }
+
+  .saas-health-table td:nth-child(1)::before { content: "Profissional"; }
+  .saas-health-table td:nth-child(2)::before { content: "Contato"; }
+  .saas-health-table td:nth-child(3)::before { content: "Negócio"; }
+  .saas-health-table td:nth-child(4)::before { content: "Progresso"; }
+  .saas-health-table td:nth-child(5)::before { content: "Próxima ação"; }
+
+  .whatsapp-template-table td:nth-child(1)::before { content: "Template"; }
+  .whatsapp-template-table td:nth-child(2)::before { content: "Automação"; }
+  .whatsapp-template-table td:nth-child(3)::before { content: "Meta"; }
+  .whatsapp-template-table td:nth-child(4)::before { content: "Aceitas"; }
+  .whatsapp-template-table td:nth-child(5)::before { content: "Entrega"; }
+  .whatsapp-template-table td:nth-child(6)::before { content: "Leitura"; }
+  .whatsapp-template-table td:nth-child(7)::before { content: "Operação"; }
+
+  .admin-card-table-mobile .saas-health-actions {
+    margin-top: 4px;
+  }
+
+  .admin-card-table-mobile .whatsapp-template-table code,
+  .admin-card-table-mobile code {
+    max-width: 100%;
   }
 }
 
 @media (max-width: 520px) {
   .admin-command-now-grid,
-  .admin-command-summary-grid.is-period-summary,
-  .admin-whatsapp-mobile-metrics {
+  .admin-command-summary-grid.is-period-summary {
     grid-template-columns: 1fr;
   }
 }
