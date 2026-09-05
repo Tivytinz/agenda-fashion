@@ -11,13 +11,14 @@ describe("adminOperationService", () => {
     jest.clearAllMocks();
   });
 
-  test("normaliza busca e paginação de negócios", async () => {
+  test("normaliza busca, paginação e preserva alias legado de WhatsApp dos negócios", async () => {
     repository.listarNegocios.mockResolvedValue({
       total: 51,
       rows: [{
         id: 9,
         nome: "Studio Aurora",
         cidade: "Goiânia",
+        whatsapp: "62999999999",
         ativo: true,
         total_profissionais: "2",
         total_servicos: "4",
@@ -45,6 +46,8 @@ describe("adminOperationService", () => {
     expect(result.negocios[0]).toEqual(expect.objectContaining({
       id: 9,
       nome: "Studio Aurora",
+      whatsapp: "62999999999",
+      whatsapp_negocio: "62999999999",
       total_profissionais: 2,
       total_servicos: 4,
       total_agendamentos: 12
