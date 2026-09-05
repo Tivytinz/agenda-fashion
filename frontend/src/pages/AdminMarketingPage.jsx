@@ -17,6 +17,8 @@ import {
 } from "../components/ScreenState";
 import {
   ADMIN_PERIODS,
+  adminPathWithPeriod,
+  adminPeriodLabel,
   normalizeAdminPeriod,
   setPeriodSearchParam
 } from "../utils/adminPeriods";
@@ -253,6 +255,12 @@ export function AdminMarketingPage() {
     );
   }
 
+  const loadedPeriod = data?.period || period;
+  const periodPending = loadedPeriod !== period;
+  const loadedPeriodLabel = adminPeriodLabel(loadedPeriod);
+  const requestedPeriodLabel = adminPeriodLabel(period);
+  const funnelPath = adminPathWithPeriod("/admin/trafego-pago/profissionais", period);
+  const costsPath = adminPathWithPeriod("/admin/trafego-pago/custos", period);
   const paidCoverage =
     data?.funnel?.qualidadeMensuracao?.coberturaAtribuicaoPagaPercentual ??
     attribution.coverage;
@@ -301,8 +309,8 @@ export function AdminMarketingPage() {
         <div className="marketing-command-actions">
           <nav className="marketing-command-nav" aria-label="Áreas do marketing">
             <span aria-current="page">Visão geral</span>
-            <Link to="/admin/trafego-pago/profissionais">Funil completo</Link>
-            <Link to="/admin/trafego-pago/custos">Custos e retorno</Link>
+            <Link to={funnelPath}>Funil completo</Link>
+            <Link to={costsPath}>Custos e retorno</Link>
           </nav>
 
           <div className="segmented-control" aria-label="Período do marketing">
@@ -326,9 +334,17 @@ export function AdminMarketingPage() {
       </header>
 
       {refreshing && data && (
-        <p className="data-refresh-status" role="status">Atualizando análise sem ocultar os últimos dados...</p>
+        <p className="data-refresh-status" role="status">
+          {periodPending
+            ? `Mostrando os últimos dados de ${loadedPeriodLabel} enquanto ${requestedPeriodLabel} é atualizado…`
+            : "Atualizando análise sem ocultar os últimos dados…"}
+        </p>
       )}
-      {error && <p className="form-error" role="alert">{error}</p>}
+      {error && (
+        <p className="form-error" role="alert">
+          {error}{periodPending ? ` Os dados abaixo ainda correspondem a ${loadedPeriodLabel}.` : ""}
+        </p>
+      )}
 
       <section className="marketing-trust-bar" aria-label="Confiabilidade dos dados">
         <div className="marketing-trust-copy">
@@ -378,7 +394,7 @@ export function AdminMarketingPage() {
           </div>
           <Link
             className="button button-secondary button-small"
-            to="/admin/trafego-pago/profissionais"
+            to={funnelPath}
           >
             Ver funil completo
           </Link>
@@ -411,7 +427,7 @@ export function AdminMarketingPage() {
           </div>
           <Link
             className="button button-secondary button-small"
-            to="/admin/trafego-pago/custos"
+            to={costsPath}
           >
             Ver custos e retorno
           </Link>
