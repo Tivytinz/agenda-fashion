@@ -81,7 +81,10 @@ async function listarAgendamentos({ busca, status, limite, offset }) {
       $1::TEXT IS NULL OR
       CONCAT_WS(
         ' ',
-        COALESCE(c.nome, a.cliente_nome),
+        COALESCE(
+          NULLIF(BTRIM(c.nome), ''),
+          NULLIF(BTRIM(a.cliente_nome), '')
+        ),
         n.nome,
         s.nome,
         p.nome,
