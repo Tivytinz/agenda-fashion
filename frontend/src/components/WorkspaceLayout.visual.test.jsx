@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, render, screen, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { AdminLayout, WorkspaceLayout } from "./WorkspaceLayout";
@@ -29,6 +29,7 @@ describe("contextos visuais do workspace", () => {
     const sidebar = screen.getByRole("complementary", {
       name: "Administração do Agenda Fashion"
     });
+    const sidebarQueries = within(sidebar);
     const shell = sidebar.closest(".workspace-shell");
 
     expect(shell?.classList.contains("workspace-shell--admin")).toBe(true);
@@ -36,9 +37,9 @@ describe("contextos visuais do workspace", () => {
     expect(sidebar.classList.contains("workspace-sidebar--nav-only")).toBe(true);
     expect(screen.queryByText("AF Admin")).toBeNull();
     expect(screen.queryByText("Operação interna")).toBeNull();
-    expect(screen.getByText("Visão geral")).not.toBeNull();
-    expect(screen.getByText("Ativação")).not.toBeNull();
-    expect(screen.getByText("Operação")).not.toBeNull();
+    expect(sidebarQueries.getByText("Visão geral")).not.toBeNull();
+    expect(sidebarQueries.getByText("Ativação")).not.toBeNull();
+    expect(sidebarQueries.getByText("Operação")).not.toBeNull();
     expect(screen.getByRole("heading", { name: "Visão administrativa" })).not.toBeNull();
   });
 
