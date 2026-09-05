@@ -96,19 +96,28 @@ jest.mock(
     buscarDashboardAdmin:
       jest.fn(),
 
+    buscarMarketingAdmin:
+      jest.fn(),
+  })
+);
+
+jest.mock(
+  "../src/services/adminOperationService",
+  () => ({
     listarNegociosAdmin:
       jest.fn(),
 
     listarAgendamentosAdmin:
-      jest.fn(),
-
-    buscarMarketingAdmin:
       jest.fn(),
   })
 );
 
 const adminService = require(
   "../src/services/adminService"
+);
+
+const adminOperationService = require(
+  "../src/services/adminOperationService"
 );
 
 const adminRoutes = require(
@@ -200,7 +209,7 @@ describe(
         ).not.toHaveBeenCalled();
 
         expect(
-          adminService
+          adminOperationService
             .listarNegociosAdmin
         ).not.toHaveBeenCalled();
       }
@@ -380,9 +389,9 @@ describe(
     );
 
     test(
-      "lista os negócios administrativos",
+      "lista os negócios administrativos e encaminha a paginação",
       async () => {
-        adminService
+        adminOperationService
           .listarNegociosAdmin
           .mockResolvedValue({
             negocios: [
@@ -402,9 +411,6 @@ describe(
                 whatsapp:
                   "62999999999",
 
-                whatsapp_negocio:
-                  "62999999999",
-
                 ativo:
                   true,
 
@@ -418,12 +424,18 @@ describe(
                   20,
               },
             ],
+            paginacao: {
+              pagina: 2,
+              limite: 25,
+              total: 30,
+              totalPaginas: 2,
+            },
           });
 
         const resposta =
           await request(app)
             .get(
-              "/admin/negocios"
+              "/admin/negocios?busca=Victor&pagina=2&limite=25"
             );
 
         expect(
@@ -431,16 +443,22 @@ describe(
         ).toBe(200);
 
         expect(
-          adminService
+          adminOperationService
             .listarNegociosAdmin
         ).toHaveBeenCalledTimes(
           1
         );
 
         expect(
-          adminService
+          adminOperationService
             .listarNegociosAdmin
-        ).toHaveBeenCalledWith();
+        ).toHaveBeenCalledWith(
+          expect.objectContaining({
+            busca: "Victor",
+            pagina: "2",
+            limite: "25",
+          })
+        );
 
         expect(
           resposta.body.negocios
@@ -461,13 +479,20 @@ describe(
           ativo:
             true,
         });
+
+        expect(
+          resposta.body.paginacao
+        ).toMatchObject({
+          pagina: 2,
+          total: 30,
+        });
       }
     );
 
     test(
-      "lista os agendamentos administrativos",
+      "lista os agendamentos administrativos sem contato do cliente final",
       async () => {
-        adminService
+        adminOperationService
           .listarAgendamentosAdmin
           .mockResolvedValue({
             agendamentos: [
@@ -482,16 +507,13 @@ describe(
                   "14:00",
 
                 status:
-                  "agendado",
+                  "cancelado",
 
                 cliente_id:
                   null,
 
                 cliente_nome:
                   "Maria",
-
-                cliente_whatsapp:
-                  "62988887777",
 
                 negocio_id:
                   11,
@@ -515,12 +537,18 @@ describe(
                   80,
               },
             ],
+            paginacao: {
+              pagina: 1,
+              limite: 25,
+              total: 1,
+              totalPaginas: 1,
+            },
           });
 
         const resposta =
           await request(app)
             .get(
-              "/admin/agendamentos"
+              "/admin/agendamentos?busca=Maria&status=cancelado"
             );
 
         expect(
@@ -528,10 +556,20 @@ describe(
         ).toBe(200);
 
         expect(
-          adminService
+          adminOperationService
             .listarAgendamentosAdmin
         ).toHaveBeenCalledTimes(
           1
+        );
+
+        expect(
+          adminOperationService
+            .listarAgendamentosAdmin
+        ).toHaveBeenCalledWith(
+          expect.objectContaining({
+            busca: "Maria",
+            status: "cancelado",
+          })
         );
 
         expect(
@@ -559,6 +597,12 @@ describe(
           valor:
             80,
         });
+
+        expect(
+          resposta.body.agendamentos[0]
+        ).not.toHaveProperty(
+          "cliente_whatsapp"
+        );
       }
     );
 
