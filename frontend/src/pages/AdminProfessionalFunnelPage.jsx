@@ -3,6 +3,7 @@ import {
   useEffect,
   useState
 } from "react";
+import { useSearchParams } from "react-router-dom";
 import { apiRequest } from "../api/client";
 import { MarketingBarChart } from "../components/MarketingBarChart";
 import { MarketingExecutivePanel } from "../components/MarketingExecutivePanel";
@@ -13,18 +14,16 @@ import {
   LoadingState
 } from "../components/ScreenState";
 import {
+  ADMIN_PERIODS,
+  adminPeriodLabel,
+  normalizeAdminPeriod,
+  setPeriodSearchParam
+} from "../utils/adminPeriods";
+import {
   formatMetricPercent,
   metricPercentage,
   paidAttributionQuality
 } from "../utils/marketingMetrics";
-
-const PERIODS = [
-  ["today", "Hoje"],
-  ["7", "7 dias"],
-  ["30", "30 dias"],
-  ["month", "Este mês"],
-  ["all", "Todo período"]
-];
 
 function formatMoney(value) {
   if (value === null || value === undefined) return "Sem dados";
@@ -155,7 +154,8 @@ function decisionSignalLabel(confidence) {
 }
 
 export function AdminProfessionalFunnelPage() {
-  const [period, setPeriod] = useState("30");
+  const [searchParams, setSearchParams] = useSearchParams();
+  const period = normalizeAdminPeriod(searchParams.get("periodo"));
   const [data, setData] = useState(null);
   const [error, setError] = useState("");
   const [reloadKey, setReloadKey] = useState(0);
@@ -173,7 +173,7 @@ export function AdminProfessionalFunnelPage() {
       signal: controller.signal
     })
       .then((result) => {
-        if (active) setData(result);
+        if (active) setData({ ...result, __period: period });
       })
       .catch((requestError) => {
         if (active && requestError.name !== "AbortError") {
@@ -192,10 +192,9 @@ export function AdminProfessionalFunnelPage() {
 
   function selectPeriod(value) {
     if (value === period) return;
-    setData(null);
     setError("");
     setExpandedCampaign("");
-    setPeriod(value);
+    setSearchParams(setPeriodSearchParam(searchParams, value));
   }
 
   if (!data && !error) {
@@ -217,6 +216,10 @@ export function AdminProfessionalFunnelPage() {
     );
   }
 
+  const loadedPeriod = data?.__period || period;
+  const periodPending = loadedPeriod !== period;
+  const loadedPeriodLabel = adminPeriodLabel(loadedPeriod);
+  const requestedPeriodLabel = adminPeriodLabel(period);
   const operationalSummary = data?.resumo || data?.resumoOficial || {};
   const financialSummary = data?.resumoOficial || data?.resumo || {};
   const summary = operationalSummary;
@@ -431,10 +434,11 @@ export function AdminProfessionalFunnelPage() {
         </div>
 
         <div className="segmented-control" aria-label="Período do funil profissional">
-          {PERIODS.map(([value, label]) => (
+          {ADMIN_PERIODS.map(([value, label]) => (
             <button
               aria-pressed={period === value}
               className={period === value ? "active" : ""}
+              disabled={refreshing}
               key={value}
               onClick={() => selectPeriod(value)}
               type="button"
@@ -445,10 +449,18 @@ export function AdminProfessionalFunnelPage() {
         </div>
       </header>
 
-      {refreshing && <p className="data-refresh-status" role="status">Atualizando aquisição e retorno...</p>}
+      {refreshing && data && (
+        <p className="data-refresh-status" role="status">
+          {periodPending
+            ? `Mostrando os últimos dados de ${loadedPeriodLabel} enquanto ${requestedPeriodLabel} é atualizado…`
+            : "Atualizando aquisição e retorno sem ocultar os últimos dados…"}
+        </p>
+      )}
       {error && (
         <p className="form-error" role="alert">
-          {error} Os últimos dados carregados continuam visíveis.
+          {error}{periodPending
+            ? ` Os dados abaixo ainda correspondem a ${loadedPeriodLabel}.`
+            : " Os últimos dados carregados continuam visíveis."}
         </p>
       )}
 
@@ -659,7 +671,7 @@ export function AdminProfessionalFunnelPage() {
       </section>
 
       <ProfessionalPostAgendaFunnel summary={summary} />
-      <ProfessionalRecurrencePanel period={period} />
+      <ProfessionalRecurrencePanel period={loadedPeriod} />
 
       <section className="panel">
         <div className="panel-heading">

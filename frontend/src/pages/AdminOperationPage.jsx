@@ -2,6 +2,7 @@ import {
   useEffect,
   useState
 } from "react";
+import { useSearchParams } from "react-router-dom";
 import { apiRequest } from "../api/client";
 import {
   EmptyState,
@@ -24,6 +25,9 @@ const APPOINTMENT_STATUS = [
   ["concluido", "Concluído"],
   ["cancelado", "Cancelado"]
 ];
+
+const TAB_VALUES = new Set(TABS.map(([value]) => value));
+const STATUS_VALUES = new Set(APPOINTMENT_STATUS.map(([value]) => value));
 
 function formatDate(value) {
   if (!value) return "Data não informada";
@@ -141,16 +145,36 @@ function Pagination({ pagination, refreshing, onPage }) {
   );
 }
 
+function sameContext(context, { page, search, status, tab }) {
+  if (!context) return false;
+  return context.tab === tab &&
+    context.page === page &&
+    context.search === search &&
+    context.status === status;
+}
+
 export function AdminOperationPage() {
-  const [tab, setTab] = useState("negocios");
+  const [searchParams, setSearchParams] = useSearchParams();
+  const requestedTab = searchParams.get("aba");
+  const tab = TAB_VALUES.has(requestedTab) ? requestedTab : "negocios";
+  const search = String(searchParams.get("busca") || "").trim();
+  const rawStatus = tab === "agendamentos"
+    ? String(searchParams.get("status") || "")
+    : "";
+  const status = STATUS_VALUES.has(rawStatus) ? rawStatus : "";
+  const page = Math.max(
+    1,
+    Number.parseInt(searchParams.get("pagina") || "1", 10) || 1
+  );
   const [data, setData] = useState(null);
   const [error, setError] = useState("");
   const [refreshing, setRefreshing] = useState(true);
   const [reloadKey, setReloadKey] = useState(0);
-  const [searchInput, setSearchInput] = useState("");
-  const [search, setSearch] = useState("");
-  const [status, setStatus] = useState("");
-  const [page, setPage] = useState(1);
+  const [searchInput, setSearchInput] = useState(search);
+
+  useEffect(() => {
+    setSearchInput(search);
+  }, [search]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -169,12 +193,17 @@ export function AdminOperationPage() {
       path = `/admin/${tab}?${params.toString()}`;
     }
 
+    const context = { tab, search, status, page };
+
     apiRequest(path, { signal: controller.signal })
       .then((result) => {
         if (!active) return;
         setData((current) => ({
           ...(current || {}),
-          [tab]: result
+          [tab]: {
+            ...result,
+            __context: context
+          }
         }));
       })
       .catch((requestError) => {
@@ -192,24 +221,52 @@ export function AdminOperationPage() {
     };
   }, [page, reloadKey, search, status, tab]);
 
+  function updateParams({
+    nextTab = tab,
+    nextSearch = search,
+    nextStatus = status,
+    nextPage = page
+  }) {
+    const next = new URLSearchParams(searchParams);
+    if (nextTab === "negocios") next.delete("aba");
+    else next.set("aba", nextTab);
+
+    if (nextSearch) next.set("busca", nextSearch);
+    else next.delete("busca");
+
+    if (nextTab === "agendamentos" && nextStatus) {
+      next.set("status", nextStatus);
+    } else {
+      next.delete("status");
+    }
+
+    if (nextPage > 1) next.set("pagina", String(nextPage));
+    else next.delete("pagina");
+
+    setSearchParams(next);
+  }
+
   function selectTab(value) {
-    setTab(value);
     setSearchInput("");
-    setSearch("");
-    setStatus("");
-    setPage(1);
+    updateParams({
+      nextTab: value,
+      nextSearch: "",
+      nextStatus: "",
+      nextPage: 1
+    });
   }
 
   function submitSearch(event) {
     event.preventDefault();
-    setPage(1);
-    setSearch(searchInput.trim());
+    updateParams({
+      nextSearch: searchInput.trim(),
+      nextPage: 1
+    });
   }
 
   function clearSearch() {
     setSearchInput("");
-    setSearch("");
-    setPage(1);
+    updateParams({ nextSearch: "", nextPage: 1 });
   }
 
   if (!data && !error) {
@@ -242,6 +299,11 @@ export function AdminOperationPage() {
   const pagination = tab === "negocios"
     ? businessData.paginacao || {}
     : appointmentData.paginacao || {};
+  const currentTabData = data?.[tab];
+  const currentTabLoaded = Boolean(currentTabData);
+  const requestedContext = { tab, search, status, page };
+  const contextPending = currentTabLoaded &&
+    !sameContext(currentTabData.__context, requestedContext);
 
   return (
     <main
@@ -266,8 +328,20 @@ export function AdminOperationPage() {
         </button>
       </header>
 
-      {refreshing && data && <p className="data-refresh-status" role="status">Atualizando esta visão...</p>}
-      {error && data && <p className="form-error" role="alert">{error} Os últimos dados válidos continuam visíveis.</p>}
+      {refreshing && data && (
+        <p className="data-refresh-status" role="status">
+          {contextPending
+            ? "Mostrando os últimos resultados deste módulo enquanto o novo recorte é atualizado…"
+            : "Atualizando esta visão..."}
+        </p>
+      )}
+      {error && data && (
+        <p className="form-error" role="alert">
+          {error}{contextPending
+            ? " Os resultados abaixo ainda correspondem ao recorte anterior."
+            : " Os últimos dados válidos continuam visíveis."}
+        </p>
+      )}
 
       <div className="admin-operation-toolbar">
         <nav className="admin-command-tabs" aria-label="Áreas da operação">
@@ -301,8 +375,10 @@ export function AdminOperationPage() {
                 <select
                   aria-label="Status do agendamento"
                   onChange={(event) => {
-                    setStatus(event.target.value);
-                    setPage(1);
+                    updateParams({
+                      nextStatus: event.target.value,
+                      nextPage: 1
+                    });
                   }}
                   value={status}
                 >
@@ -322,72 +398,111 @@ export function AdminOperationPage() {
 
       {tab === "negocios" && (
         <section aria-label="Negócios cadastrados">
-          <p className="admin-operation-count">{businessData.paginacao?.total ?? businesses.length} negócios encontrados na base.</p>
-          {businesses.length === 0 ? (
-            <EmptyState title="Nenhum negócio encontrado">
-              Ajuste a busca para ampliar os resultados.
-            </EmptyState>
+          {!currentTabLoaded && refreshing ? (
+            <LoadingState>Carregando negócios...</LoadingState>
+          ) : !currentTabLoaded && error ? (
+            <ErrorState
+              message={error}
+              onRetry={() => setReloadKey((current) => current + 1)}
+            />
           ) : (
-            <div className="admin-operation-grid">
-              {businesses.map((business) => (
-                <BusinessCard business={business} key={business.id} />
-              ))}
-            </div>
+            <>
+              <p className="admin-operation-count">{businessData.paginacao?.total ?? businesses.length} negócios encontrados na base.</p>
+              {businesses.length === 0 ? (
+                <EmptyState title="Nenhum negócio encontrado">
+                  Ajuste a busca para ampliar os resultados.
+                </EmptyState>
+              ) : (
+                <div className="admin-operation-grid">
+                  {businesses.map((business) => (
+                    <BusinessCard business={business} key={business.id} />
+                  ))}
+                </div>
+              )}
+              <Pagination
+                pagination={pagination}
+                refreshing={refreshing}
+                onPage={(nextPage) => updateParams({ nextPage })}
+              />
+            </>
           )}
-          <Pagination pagination={pagination} refreshing={refreshing} onPage={setPage} />
         </section>
       )}
 
       {tab === "agendamentos" && (
         <section aria-label="Agendamentos da plataforma">
-          <p className="admin-operation-count">{appointmentData.paginacao?.total ?? appointments.length} agendamentos encontrados na base.</p>
-          {appointments.length === 0 ? (
-            <EmptyState title="Nenhum agendamento encontrado">
-              Ajuste a busca ou o status para ampliar os resultados.
-            </EmptyState>
+          {!currentTabLoaded && refreshing ? (
+            <LoadingState>Carregando agendamentos...</LoadingState>
+          ) : !currentTabLoaded && error ? (
+            <ErrorState
+              message={error}
+              onRetry={() => setReloadKey((current) => current + 1)}
+            />
           ) : (
-            <div className="admin-operation-grid">
-              {appointments.map((appointment) => (
-                <AppointmentCard appointment={appointment} key={appointment.id} />
-              ))}
-            </div>
+            <>
+              <p className="admin-operation-count">{appointmentData.paginacao?.total ?? appointments.length} agendamentos encontrados na base.</p>
+              {appointments.length === 0 ? (
+                <EmptyState title="Nenhum agendamento encontrado">
+                  Ajuste a busca ou o status para ampliar os resultados.
+                </EmptyState>
+              ) : (
+                <div className="admin-operation-grid">
+                  {appointments.map((appointment) => (
+                    <AppointmentCard appointment={appointment} key={appointment.id} />
+                  ))}
+                </div>
+              )}
+              <Pagination
+                pagination={pagination}
+                refreshing={refreshing}
+                onPage={(nextPage) => updateParams({ nextPage })}
+              />
+            </>
           )}
-          <Pagination pagination={pagination} refreshing={refreshing} onPage={setPage} />
         </section>
       )}
 
       {tab === "marketplace" && (
-        <div className="admin-marketplace-grid">
-          <RankingList items={booked} title="Negócios mais agendados">
-            {booked.slice(0, 8).map((business, index) => (
-              <article key={business.id || `${business.nome}-${index}`}>
-                <span>{index + 1}</span>
-                <div><strong>{business.nome}</strong><small>{business.cidade || "Cidade não informada"}</small></div>
-                <b>{business.total ?? 0} agendamentos</b>
-              </article>
-            ))}
-          </RankingList>
+        !currentTabLoaded && refreshing ? (
+          <LoadingState>Carregando sinais do marketplace...</LoadingState>
+        ) : !currentTabLoaded && error ? (
+          <ErrorState
+            message={error}
+            onRetry={() => setReloadKey((current) => current + 1)}
+          />
+        ) : (
+          <div className="admin-marketplace-grid">
+            <RankingList items={booked} title="Negócios mais agendados">
+              {booked.slice(0, 8).map((business, index) => (
+                <article key={business.id || `${business.nome}-${index}`}>
+                  <span>{index + 1}</span>
+                  <div><strong>{business.nome}</strong><small>{business.cidade || "Cidade não informada"}</small></div>
+                  <b>{business.total ?? 0} agendamentos</b>
+                </article>
+              ))}
+            </RankingList>
 
-          <RankingList items={viewed} title="Negócios mais vistos">
-            {viewed.slice(0, 8).map((business, index) => (
-              <article key={business.id || `${business.nome}-${index}`}>
-                <span>{index + 1}</span>
-                <div><strong>{business.nome}</strong><small>{business.cidade || "Cidade não informada"}</small></div>
-                <b>{business.visitas ?? 0} visitas</b>
-              </article>
-            ))}
-          </RankingList>
+            <RankingList items={viewed} title="Negócios mais vistos">
+              {viewed.slice(0, 8).map((business, index) => (
+                <article key={business.id || `${business.nome}-${index}`}>
+                  <span>{index + 1}</span>
+                  <div><strong>{business.nome}</strong><small>{business.cidade || "Cidade não informada"}</small></div>
+                  <b>{business.visitas ?? 0} visitas</b>
+                </article>
+              ))}
+            </RankingList>
 
-          <RankingList items={cities} title="Cidades com atividade">
-            {cities.slice(0, 10).map((city, index) => (
-              <article key={`${city.cidade}-${index}`}>
-                <span>{index + 1}</span>
-                <div><strong>{city.cidade}</strong><small>atividade registrada no AF</small></div>
-                <b>{city.total ?? 0}</b>
-              </article>
-            ))}
-          </RankingList>
-        </div>
+            <RankingList items={cities} title="Cidades com atividade">
+              {cities.slice(0, 10).map((city, index) => (
+                <article key={`${city.cidade}-${index}`}>
+                  <span>{index + 1}</span>
+                  <div><strong>{city.cidade}</strong><small>atividade registrada no AF</small></div>
+                  <b>{city.total ?? 0}</b>
+                </article>
+              ))}
+            </RankingList>
+          </div>
+        )
       )}
     </main>
   );

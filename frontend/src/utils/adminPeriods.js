@@ -29,6 +29,12 @@ export function adminPeriodLabel(value) {
   return ADMIN_PERIODS.find(([period]) => period === value)?.[1] || "30 dias";
 }
 
+export function adminPathWithPeriod(path, period) {
+  const params = new URLSearchParams();
+  params.set("periodo", normalizeAdminPeriod(period));
+  return `${path}?${params.toString()}`;
+}
+
 export function setPeriodSearchParam(searchParams, value) {
   const next = new URLSearchParams(searchParams);
   next.set("periodo", value);

@@ -377,7 +377,7 @@ describe("AdminMarketingCostsPage", () => {
   it("recarrega custos, atribuição e gastos quando muda o período", async () => {
     const user = userEvent.setup();
     render(
-      <MemoryRouter>
+      <MemoryRouter initialEntries={["/admin/trafego-pago/custos?periodo=30"]}>
         <AdminMarketingCostsPage />
       </MemoryRouter>
     );
@@ -423,7 +423,7 @@ describe("AdminMarketingCostsPage", () => {
     expect(screen.getByRole("alert").textContent).toContain("Parte dos custos de marketing");
   });
 
-  it("não reaproveita custos de outro período quando a atualização falha", async () => {
+  it("mantém custos do período carregado identificados quando a atualização falha", async () => {
     const user = userEvent.setup();
     render(
       <MemoryRouter>
@@ -443,6 +443,7 @@ describe("AdminMarketingCostsPage", () => {
     await user.click(screen.getByRole("button", { name: "7 dias" }));
     const alert = await screen.findByRole("alert");
     expect(alert.textContent).toContain("Custos indisponíveis");
-    expect(screen.queryByText(/R\$\s*100,00/)).toBeNull();
+    expect(alert.textContent).toContain("30 dias");
+    expect(screen.getAllByText(/R\$\s*100,00/).length).toBeGreaterThanOrEqual(1);
   });
 });

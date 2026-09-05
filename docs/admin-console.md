@@ -34,6 +34,10 @@ Os rótulos devem indicar essa diferença. “Clientes que agendaram”, por exe
 
 Períodos administrativos navegáveis são persistidos em `?periodo=` quando a página suporta essa dimensão. Durante troca de período, os últimos dados válidos permanecem visíveis enquanto a nova leitura é carregada; o primeiro carregamento continua usando o estado de loading completo.
 
+Quando a URL ou um filtro já representa um novo contexto, mas a leitura desse contexto ainda não terminou, a interface deve distinguir o **contexto solicitado** do **contexto efetivamente carregado**. Dados anteriores podem permanecer visíveis para evitar saltos e telas vazias, mas devem ser identificados como pertencentes ao recorte anterior. Se a atualização falhar, essa identificação continua obrigatória. Ausência de uma fonte ou falha de leitura não pode ser convertida em zero: `0` significa valor confirmado igual a zero; indisponibilidade deve aparecer como `—`, “não verificado” ou estado equivalente.
+
+As subpáginas de Marketing compartilham o mesmo `?periodo=`. Navegar entre Visão geral, Funil completo e Custos e retorno deve preservar o período selecionado.
+
 ## Funil profissional
 
 O funil operacional deve preservar a sequência canônica:
@@ -72,6 +76,8 @@ O limite padrão é 25 e o backend limita a página a no máximo 100 registros. 
 
 A listagem administrativa de agendamentos não precisa devolver o WhatsApp do cliente final para cumprir sua finalidade operacional.
 
+A interface de Operação mantém `aba`, `busca`, `status` e `pagina` na query string quando aplicáveis. Isso permite reload, histórico do navegador e compartilhamento do mesmo recorte sem transformar uma aba ainda não carregada em um falso estado vazio.
+
 ## Deep links de ativação
 
 A fila de ativação aceita estado navegável por query string:
@@ -105,6 +111,8 @@ Na Ativação, contatos de profissionais continuam condicionados às regras exis
 - loading, erro e dados parciais devem ser tratados por bloco;
 - falha de uma fonte não deve apagar dados válidos das demais;
 - troca de período deve manter os dados anteriores visíveis até a nova leitura terminar;
+- quando dados anteriores permanecem visíveis, a interface deve deixar claro a qual período, filtro, busca, aba ou página eles pertencem;
+- ausência ou falha de leitura não deve ser exibida como valor `0` sem evidência de que o valor real é zero;
 - navegação precisa funcionar em mobile e WebKit;
 - tabelas operacionais podem permanecer tabulares no desktop, mas no mobile devem se reorganizar como cartões sem exigir rolagem horizontal;
 - a operação usa busca e paginação no servidor para continuar correta conforme a base cresce;

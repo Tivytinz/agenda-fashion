@@ -38,6 +38,10 @@ const QUALIDADE_META = {
   UNKNOWN: "Sem avaliação da Meta",
 };
 
+function periodLabel(value) {
+  return WHATSAPP_PERIODS.find(([period]) => period === value)?.[1] || "30 dias";
+}
+
 function formatarPercentual(valor) {
   if (
     valor === null ||
@@ -211,7 +215,7 @@ export function AdminWhatsAppPage() {
       { signal: controller.signal }
     )
       .then((result) => {
-        if (active) setData(result);
+        if (active) setData({ ...result, __period: periodo });
       })
       .catch((requestError) => {
         if (active && requestError.name !== "AbortError") {
@@ -247,6 +251,10 @@ export function AdminWhatsAppPage() {
     );
   }
 
+  const loadedPeriod = data?.__period || periodo;
+  const periodPending = loadedPeriod !== periodo;
+  const loadedPeriodLabel = periodLabel(loadedPeriod);
+  const requestedPeriodLabel = periodLabel(periodo);
   const resumo = data?.resumo || {};
   const verificacao = data?.verificacaoMeta || {};
   const configuracao = data?.configuracao || {};
@@ -300,10 +308,18 @@ export function AdminWhatsAppPage() {
         </div>
       </header>
 
-      {refreshing && data && <p className="data-refresh-status" role="status">Atualizando métricas sem ocultar os últimos dados...</p>}
+      {refreshing && data && (
+        <p className="data-refresh-status" role="status">
+          {periodPending
+            ? `Mostrando os últimos dados de ${loadedPeriodLabel} enquanto ${requestedPeriodLabel} é atualizado…`
+            : "Atualizando métricas sem ocultar os últimos dados…"}
+        </p>
+      )}
       {error && (
         <p className="form-error" role="alert">
-          {error} Os últimos dados carregados continuam visíveis.
+          {error}{periodPending
+            ? ` Os dados abaixo ainda correspondem a ${loadedPeriodLabel}.`
+            : " Os últimos dados carregados continuam visíveis."}
         </p>
       )}
 

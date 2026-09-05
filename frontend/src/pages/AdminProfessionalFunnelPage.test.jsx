@@ -556,11 +556,11 @@ describe("AdminProfessionalFunnelPage", () => {
     expect(screen.queryByText("none")).toBeNull();
   });
 
-  it("recarrega a coorte ao trocar período", async () => {
+  it("recarrega a coorte ao trocar período e persiste a seleção na URL", async () => {
     const user = userEvent.setup();
 
     render(
-      <MemoryRouter>
+      <MemoryRouter initialEntries={["/admin/trafego-pago/profissionais?periodo=30"]}>
         <AdminProfessionalFunnelPage />
       </MemoryRouter>
     );
@@ -576,7 +576,7 @@ describe("AdminProfessionalFunnelPage", () => {
     });
   });
 
-  it("não reaproveita a coorte de outro período se a atualização falhar", async () => {
+  it("mantém a coorte carregada identificada se a atualização falhar", async () => {
     const user = userEvent.setup();
 
     render(
@@ -592,6 +592,7 @@ describe("AdminProfessionalFunnelPage", () => {
 
     const alert = await screen.findByRole("alert");
     expect(alert.textContent).toContain("Funil indisponível");
-    expect(screen.queryByText("profissionais_goiania")).toBeNull();
+    expect(alert.textContent).toContain("30 dias");
+    expect(screen.getAllByText("profissionais_goiania").length).toBeGreaterThanOrEqual(1);
   });
 });

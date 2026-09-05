@@ -24,6 +24,10 @@ const FILTERS = [
 
 const FILTER_VALUES = new Set(FILTERS.map(({ value }) => value));
 
+function filterLabel(value) {
+  return FILTERS.find((item) => item.value === value)?.label || FILTERS[0].label;
+}
+
 function formatDate(value) {
   if (!value) return "Sem atividade";
   const date = new Date(value);
@@ -300,7 +304,14 @@ export function AdminSaasHealthPage() {
 
     apiRequest(requestPath, { signal: controller.signal })
       .then((result) => {
-        if (active) setData(result);
+        if (active) {
+          setData({
+            ...result,
+            __filter: filter,
+            __search: search,
+            __page: page
+          });
+        }
       })
       .catch((requestError) => {
         if (active && requestError.name !== "AbortError") {
@@ -315,7 +326,7 @@ export function AdminSaasHealthPage() {
       active = false;
       controller.abort();
     };
-  }, [reloadKey, requestPath]);
+  }, [filter, page, reloadKey, requestPath, search]);
 
   function updateParams({ nextFilter = filter, nextSearch = search }) {
     const next = new URLSearchParams(searchParams);
@@ -365,6 +376,14 @@ export function AdminSaasHealthPage() {
   const summary = data?.resumo || {};
   const profiles = data?.perfis || [];
   const pagination = data?.paginacao || {};
+  const loadedFilter = data?.__filter || filter;
+  const loadedSearch = data?.__search || "";
+  const loadedPage = data?.__page || 1;
+  const contextPending = loadedFilter !== filter ||
+    loadedSearch !== search ||
+    loadedPage !== page;
+  const loadedContextLabel = filterLabel(loadedFilter);
+  const requestedContextLabel = filterLabel(filter);
 
   return (
     <main
@@ -381,10 +400,18 @@ export function AdminSaasHealthPage() {
         </div>
       </header>
 
-      {refreshing && <p className="data-refresh-status" role="status">Atualizando perfis...</p>}
+      {refreshing && data && (
+        <p className="data-refresh-status" role="status">
+          {contextPending
+            ? `Mostrando os últimos resultados de “${loadedContextLabel}” enquanto “${requestedContextLabel}” é atualizado…`
+            : "Atualizando perfis sem ocultar os últimos resultados…"}
+        </p>
+      )}
       {error && (
         <p className="form-error" role="alert">
-          {error} Os últimos dados carregados continuam visíveis.
+          {error}{contextPending
+            ? ` Os resultados abaixo ainda correspondem a “${loadedContextLabel}”.`
+            : " Os últimos dados carregados continuam visíveis."}
         </p>
       )}
 
@@ -440,14 +467,14 @@ export function AdminSaasHealthPage() {
 
         <p className="saas-health-results-count" aria-live="polite">
           {pagination.total ?? 0} {pagination.total === 1 ? "perfil encontrado" : "perfis encontrados"}.
-          {filter === "descricao"
+          {loadedFilter === "descricao"
             ? " Este filtro mostra uma melhoria opcional e não altera o progresso de ativação."
             : " As ativações mais próximas de concluir aparecem primeiro. Descrição é uma melhoria opcional e não entra nesta contagem."}
         </p>
 
         {profiles.length === 0 ? (
           <EmptyState title="Nenhum perfil encontrado">
-            Não há perfis que precisem de atenção para os filtros selecionados.
+            Não há perfis que precisem de atenção para o contexto carregado.
           </EmptyState>
         ) : (
           <div className="table-wrap saas-health-table admin-card-table-mobile">
