@@ -3,7 +3,7 @@ import {
   useMemo,
   useState
 } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { apiRequest } from "../api/client";
 import { MarketingBarChart } from "../components/MarketingBarChart";
 import { MarketingCostIntegrationsPanel } from "../components/MarketingCostIntegrationsPanel";
@@ -13,6 +13,13 @@ import {
   ErrorState,
   LoadingState
 } from "../components/ScreenState";
+import {
+  ADMIN_PERIODS,
+  adminPathWithPeriod,
+  adminPeriodLabel,
+  normalizeAdminPeriod,
+  setPeriodSearchParam
+} from "../utils/adminPeriods";
 import { settleRequestMap } from "../utils/asyncData";
 import { countPaidSessionsWithoutCampaign } from "../utils/marketingAttribution";
 import {
@@ -20,14 +27,6 @@ import {
   metricPercentage,
   paidAttributionQuality
 } from "../utils/marketingMetrics";
-
-const PERIODS = [
-  ["today", "Hoje"],
-  ["7", "7 dias"],
-  ["30", "30 dias"],
-  ["month", "Este mês"],
-  ["all", "Todo período"]
-];
 
 const OBJECTIVE_LABELS = {
   profissional: "Aquisição de profissionais",
@@ -133,7 +132,8 @@ function campaignConversionsWithCost(item) {
 }
 
 export function AdminMarketingCostsPage() {
-  const [period, setPeriod] = useState("30");
+  const [searchParams, setSearchParams] = useSearchParams();
+  const period = normalizeAdminPeriod(searchParams.get("periodo"));
   const [data, setData] = useState(null);
   const [error, setError] = useState("");
   const [reloadKey, setReloadKey] = useState(0);
@@ -194,12 +194,13 @@ export function AdminMarketingCostsPage() {
         }
 
         setData((current) => ({
+          period,
           costs: values.costs,
           expenses: values.expenses?.gastos || current?.expenses || [],
           attributionCampaigns:
             values.attribution?.campanhas || current?.attributionCampaigns || [],
           managedCampaigns:
-            values.managedCampaigns?.campanhas || []
+            values.managedCampaigns?.campanhas || current?.managedCampaigns || []
         }));
 
         setForm((current) => {
@@ -255,9 +256,8 @@ export function AdminMarketingCostsPage() {
 
   function selectPeriod(value) {
     if (value === period) return;
-    setData(null);
     setError("");
-    setPeriod(value);
+    setSearchParams(setPeriodSearchParam(searchParams, value));
   }
 
   async function submitExpense(event) {
@@ -341,6 +341,10 @@ export function AdminMarketingCostsPage() {
     );
   }
 
+  const loadedPeriod = data?.period || period;
+  const periodPending = loadedPeriod !== period;
+  const loadedPeriodLabel = adminPeriodLabel(loadedPeriod);
+  const requestedPeriodLabel = adminPeriodLabel(period);
   const costs = data.costs || {};
   const campaignCosts = costs.campanhas || [];
   const archivedCampaignCosts = campaignCosts.filter(
@@ -534,10 +538,11 @@ export function AdminMarketingCostsPage() {
         </div>
 
         <div className="segmented-control" aria-label="Período dos custos">
-          {PERIODS.map(([value, label]) => (
+          {ADMIN_PERIODS.map(([value, label]) => (
             <button
               aria-pressed={period === value}
               className={period === value ? "active" : ""}
+              disabled={refreshing}
               key={value}
               onClick={() => selectPeriod(value)}
               type="button"
@@ -548,8 +553,18 @@ export function AdminMarketingCostsPage() {
         </div>
       </header>
 
-      {refreshing && <p className="data-refresh-status" role="status">Atualizando custos...</p>}
-      {error && <p className="form-error" role="alert">{error}</p>}
+      {refreshing && data && (
+        <p className="data-refresh-status" role="status">
+          {periodPending
+            ? `Mostrando os últimos dados de ${loadedPeriodLabel} enquanto ${requestedPeriodLabel} é atualizado…`
+            : "Atualizando custos sem ocultar os últimos dados…"}
+        </p>
+      )}
+      {error && (
+        <p className="form-error" role="alert">
+          {error}{periodPending ? ` Os dados abaixo ainda correspondem a ${loadedPeriodLabel}.` : ""}
+        </p>
+      )}
 
       <section className="metric-grid" aria-label="Indicadores de custo de marketing">
         {cards.map(([label, value, hint]) => (
@@ -680,7 +695,10 @@ export function AdminMarketingCostsPage() {
               )}
               Elas aparecem no tráfego geral, porém não entram no custo de uma campanha cadastrada.
             </p>
-            <Link className="button button-secondary button-small" to="/admin/trafego-pago">
+            <Link
+              className="button button-secondary button-small"
+              to={adminPathWithPeriod("/admin/trafego-pago", period)}
+            >
               Corrigir rastreamento
             </Link>
           </div>
