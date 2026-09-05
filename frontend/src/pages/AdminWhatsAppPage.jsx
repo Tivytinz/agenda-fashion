@@ -2,19 +2,18 @@ import {
   useEffect,
   useState
 } from "react";
+import { useSearchParams } from "react-router-dom";
 import { apiRequest } from "../api/client";
 import {
   ErrorState,
   LoadingState
 } from "../components/ScreenState";
-
-const PERIODOS = [
-  ["hoje", "Hoje"],
-  ["7", "7 dias"],
-  ["30", "30 dias"],
-  ["90", "90 dias"],
-  ["total", "Todo período"],
-];
+import {
+  WHATSAPP_PERIODS,
+  normalizeWhatsappPeriod,
+  setPeriodSearchParam
+} from "../utils/adminPeriods";
+import "../styles/admin-refinements.css";
 
 const STATUS_META = {
   APPROVED: "Ativo",
@@ -193,9 +192,10 @@ function TemplateRow({ template }) {
 }
 
 export function AdminWhatsAppPage() {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const periodo = normalizeWhatsappPeriod(searchParams.get("periodo"));
   const [data, setData] = useState(null);
   const [error, setError] = useState("");
-  const [periodo, setPeriodo] = useState("30");
   const [reloadKey, setReloadKey] = useState(0);
   const [refreshing, setRefreshing] = useState(true);
 
@@ -269,13 +269,16 @@ export function AdminWhatsAppPage() {
 
         <div className="admin-heading-actions whatsapp-heading-actions">
           <div className="segmented-control" aria-label="Período das métricas">
-            {PERIODOS.map(([value, label]) => (
+            {WHATSAPP_PERIODS.map(([value, label]) => (
               <button
                 aria-pressed={periodo === value}
                 className={periodo === value ? "active" : ""}
                 disabled={refreshing}
                 key={value}
-                onClick={() => setPeriodo(value)}
+                onClick={() => {
+                  if (value === periodo) return;
+                  setSearchParams(setPeriodSearchParam(searchParams, value));
+                }}
                 type="button"
               >
                 {label}
@@ -297,6 +300,7 @@ export function AdminWhatsAppPage() {
         </div>
       </header>
 
+      {refreshing && data && <p className="data-refresh-status" role="status">Atualizando métricas sem ocultar os últimos dados...</p>}
       {error && (
         <p className="form-error" role="alert">
           {error} Os últimos dados carregados continuam visíveis.
@@ -371,12 +375,12 @@ export function AdminWhatsAppPage() {
             <p className="eyebrow">Operação</p>
             <h2>Saúde por template</h2>
             <p>
-              Entrega considera mensagens aceitas pela Meta. Leitura considera somente mensagens já entregues.
+              Entrega considera mensagens aceitas pela Meta. Leitura considera somente mensagens já entregues. No celular, cada linha vira um cartão operacional.
             </p>
           </div>
         </div>
 
-        <div className="table-wrap whatsapp-template-table">
+        <div className="table-wrap whatsapp-template-table admin-card-table-mobile">
           <table>
             <thead>
               <tr>
