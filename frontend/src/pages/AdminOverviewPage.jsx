@@ -3,21 +3,22 @@ import {
   useMemo,
   useState
 } from "react";
-import { Link } from "react-router-dom";
+import {
+  Link,
+  useSearchParams
+} from "react-router-dom";
 import { apiRequest } from "../api/client";
 import {
   ErrorState,
   LoadingState
 } from "../components/ScreenState";
+import {
+  ADMIN_PERIODS,
+  adminPeriodLabel,
+  normalizeAdminPeriod,
+  setPeriodSearchParam
+} from "../utils/adminPeriods";
 import { settleRequestMap } from "../utils/asyncData";
-
-const PERIODS = [
-  ["today", "Hoje"],
-  ["7", "7 dias"],
-  ["30", "30 dias"],
-  ["month", "Este mês"],
-  ["all", "Todo período"]
-];
 
 function number(value) {
   const parsed = Number(value);
@@ -34,9 +35,9 @@ function StatusCard({ hint, label, tone = "neutral", value }) {
   );
 }
 
-function AttentionCard({ hint, label, value }) {
+function AttentionCard({ hint, label, to, value }) {
   return (
-    <Link className="admin-attention-card" to="/admin/saude">
+    <Link className="admin-attention-card" to={to}>
       <span>{label}</span>
       <strong>{value}</strong>
       <small>{hint}</small>
@@ -69,8 +70,50 @@ function readinessState(readiness) {
   };
 }
 
+function activationLink(filter) {
+  return `/admin/saude?pendencia=${encodeURIComponent(filter)}`;
+}
+
+function profileActivationLink(profile) {
+  const name = String(profile?.nome || "").trim();
+  return name
+    ? `/admin/saude?busca=${encodeURIComponent(name)}`
+    : "/admin/saude";
+}
+
+function bottleneckFrom(stages, period) {
+  const transitions = stages.slice(1).map((stage, index) => {
+    const previous = stages[index];
+    const loss = Math.max(0, previous.value - stage.value);
+    const rate = previous.value > 0
+      ? Math.round((stage.value / previous.value) * 1000) / 10
+      : 0;
+
+    return {
+      from: previous.label,
+      to: stage.label,
+      loss,
+      rate,
+      action: stage.action
+    };
+  });
+
+  const largest = transitions.reduce((best, item) =>
+    item.loss > (best?.loss ?? -1) ? item : best, null);
+
+  if (!largest || largest.loss <= 0) return null;
+
+  return {
+    ...largest,
+    href: largest.action
+      ? activationLink(largest.action)
+      : `/admin/trafego-pago/profissionais?periodo=${encodeURIComponent(period)}`
+  };
+}
+
 export function AdminOverviewPage() {
-  const [period, setPeriod] = useState("30");
+  const [searchParams, setSearchParams] = useSearchParams();
+  const period = normalizeAdminPeriod(searchParams.get("periodo"));
   const [data, setData] = useState(null);
   const [error, setError] = useState("");
   const [refreshing, setRefreshing] = useState(true);
@@ -112,21 +155,22 @@ export function AdminOverviewPage() {
         if (!hasCoreData) {
           setError(
             nonAbortErrors[0]?.error?.message ||
-              "Não foi possível carregar o centro de comando."
+              "Não foi possível atualizar o centro de comando."
           );
           return;
         }
 
-        setData({
-          dashboard: values.dashboard || {},
-          activation: values.activation || {},
-          funnel: values.funnel || {},
-          readiness: values.readiness || null
-        });
+        setData((current) => ({
+          period,
+          dashboard: values.dashboard || current?.dashboard || {},
+          activation: values.activation || current?.activation || {},
+          funnel: values.funnel || current?.funnel || {},
+          readiness: values.readiness || current?.readiness || null
+        }));
 
         if (nonAbortErrors.length > 0) {
           setError(
-            "Parte dos indicadores está temporariamente indisponível. Os dados carregados continuam visíveis."
+            "Parte dos indicadores está temporariamente indisponível. Os últimos dados válidos continuam visíveis."
           );
         }
       })
@@ -151,14 +195,19 @@ export function AdminOverviewPage() {
   const system = readinessState(data?.readiness);
 
   const funnelStages = useMemo(() => [
-    ["Cadastros", number(funnelSummary.cadastros)],
-    ["Negócios", number(funnelSummary.negociosCriados)],
-    ["Serviços", number(funnelSummary.servicosCriados)],
-    ["Agendas", number(funnelSummary.agendasConfiguradas)],
-    ["Publicados", number(funnelSummary.negociosPublicados)],
-    ["1º agendamento", number(funnelSummary.primeirosAgendamentos)],
-    ["Assinaturas", number(funnelSummary.assinaturasAtivadas)]
+    { label: "Cadastros", value: number(funnelSummary.cadastros) },
+    { label: "Negócios", value: number(funnelSummary.negociosCriados), action: "sem_negocio" },
+    { label: "Serviços", value: number(funnelSummary.servicosCriados), action: "servico" },
+    { label: "Agendas", value: number(funnelSummary.agendasConfiguradas), action: "agenda" },
+    { label: "Publicados", value: number(funnelSummary.negociosPublicados), action: "publicacao" },
+    { label: "1º agendamento", value: number(funnelSummary.primeirosAgendamentos) },
+    { label: "Assinaturas", value: number(funnelSummary.assinaturasAtivadas) }
   ], [funnelSummary]);
+
+  const bottleneck = useMemo(
+    () => bottleneckFrom(funnelStages, data?.period || period),
+    [data?.period, funnelStages, period]
+  );
 
   if (!data && !error) {
     return (
@@ -183,6 +232,8 @@ export function AdminOverviewPage() {
   const behavior = dashboard.comportamento || {};
   const metrics = dashboard.metricas || dashboard;
   const highlights = dashboard.destaques || dashboard;
+  const loadedPeriod = data?.period || period;
+  const loadedPeriodLabel = adminPeriodLabel(loadedPeriod);
 
   return (
     <main
@@ -194,12 +245,12 @@ export function AdminOverviewPage() {
           <p className="eyebrow">Administração</p>
           <h1>Centro de comando</h1>
           <p>
-            Veja o que está acontecendo no Agenda Fashion agora, onde o funil está travando e qual área precisa de ação.
+            Veja o estado atual da operação, onde profissionais estão travando e como o funil avançou no período escolhido.
           </p>
         </div>
 
         <div className="segmented-control" aria-label="Período do centro de comando">
-          {PERIODS.map(([value, label]) => (
+          {ADMIN_PERIODS.map(([value, label]) => (
             <button
               aria-pressed={period === value}
               className={period === value ? "active" : ""}
@@ -207,9 +258,7 @@ export function AdminOverviewPage() {
               key={value}
               onClick={() => {
                 if (value === period) return;
-                setData(null);
-                setError("");
-                setPeriod(value);
+                setSearchParams(setPeriodSearchParam(searchParams, value));
               }}
               type="button"
             >
@@ -220,46 +269,39 @@ export function AdminOverviewPage() {
       </header>
 
       {refreshing && data && (
-        <p className="data-refresh-status" role="status">Atualizando centro de comando...</p>
+        <p className="data-refresh-status" role="status">Atualizando centro de comando sem ocultar os últimos dados...</p>
       )}
       {error && data && <p className="form-error" role="alert">{error}</p>}
 
-      <section className="admin-command-summary-grid" aria-label="Resumo da plataforma">
-        <StatusCard
-          hint={system.hint}
-          label="Sistema"
-          tone={system.tone}
-          value={system.label}
-        />
-        <StatusCard
-          hint="base profissional"
-          label="Profissionais"
-          value={number(indicators.totalProfissionais)}
-        />
-        <StatusCard
-          hint="negócios no AF"
-          label="Negócios"
-          value={number(indicators.totalNegocios)}
-        />
-        <StatusCard
-          hint="clientes finais"
-          label="Clientes"
-          value={number(indicators.totalClientes)}
-        />
-        <StatusCard
-          hint="no período selecionado"
-          label="Agendamentos"
-          value={number(indicators.totalAgendamentos)}
-        />
+      <section aria-labelledby="admin-now-heading">
+        <div className="admin-section-heading">
+          <p className="eyebrow">Agora</p>
+          <h2 id="admin-now-heading">Situação atual</h2>
+          <p className="muted">Readiness e fila de ativação representam o estado atual, independentemente do período selecionado.</p>
+        </div>
+        <div className="admin-command-now-grid">
+          <StatusCard
+            hint={system.hint}
+            label="Sistema"
+            tone={system.tone}
+            value={system.label}
+          />
+          <StatusCard
+            hint={`de ${number(summary.totalProfissionais)} profissionais`}
+            label="Ativações pendentes"
+            tone={number(summary.totalIncompletos) > 0 ? "warning" : "success"}
+            value={number(summary.totalIncompletos)}
+          />
+        </div>
       </section>
 
       <section className="panel admin-command-attention-panel">
         <div className="panel-heading">
           <div>
-            <p className="eyebrow">Prioridade</p>
-            <h2>Precisa da sua atenção</h2>
+            <p className="eyebrow">Prioridade operacional</p>
+            <h2>Profissionais que precisam de atenção</h2>
             <p className="muted">
-              {number(summary.totalIncompletos)} de {number(summary.totalProfissionais)} profissionais ainda têm etapas de ativação pendentes.
+              Abra diretamente o filtro correspondente ao bloqueio observado agora.
             </p>
           </div>
           <Link className="button button-secondary button-small" to="/admin/saude">
@@ -271,21 +313,25 @@ export function AdminOverviewPage() {
           <AttentionCard
             hint="horários ainda não configurados"
             label="Sem agenda"
+            to={activationLink("agenda")}
             value={number(summary.semAgenda)}
           />
           <AttentionCard
             hint="negócios sem serviço ativo"
             label="Sem serviço"
+            to={activationLink("servico")}
             value={number(summary.semServico)}
           />
           <AttentionCard
             hint="fora do catálogo público"
             label="Não publicados"
+            to={activationLink("publicacao")}
             value={number(summary.naoPublicados)}
           />
           <AttentionCard
             hint="ainda sem área profissional"
             label="Sem negócio"
+            to={activationLink("sem_negocio")}
             value={number(summary.semNegocio)}
           />
         </div>
@@ -303,11 +349,25 @@ export function AdminOverviewPage() {
                   <span>Próxima ação</span>
                   <strong>{profile.proximaAcao?.rotulo || "Revisar ativação"}</strong>
                 </div>
-                <Link to="/admin/saude">Abrir ativação →</Link>
+                <Link to={profileActivationLink(profile)}>Abrir ativação →</Link>
               </article>
             ))}
           </div>
         )}
+      </section>
+
+      <section aria-labelledby="admin-period-heading">
+        <div className="admin-section-heading">
+          <p className="eyebrow">Período</p>
+          <h2 id="admin-period-heading">Desempenho — {loadedPeriodLabel}</h2>
+          <p className="muted">Estes indicadores usam o período informado e não representam automaticamente a base total atual do AF.</p>
+        </div>
+        <div className="admin-command-summary-grid is-period-summary" aria-label={`Indicadores de ${loadedPeriodLabel}`}>
+          <StatusCard hint="profissionais vinculados no período" label="Profissionais no período" value={number(indicators.totalProfissionais)} />
+          <StatusCard hint="criados no período" label="Negócios criados" value={number(indicators.totalNegocios)} />
+          <StatusCard hint="pessoas distintas observadas em agendamentos" label="Clientes que agendaram" value={number(indicators.totalClientes)} />
+          <StatusCard hint="criados no período selecionado" label="Agendamentos" value={number(indicators.totalAgendamentos)} />
+        </div>
       </section>
 
       <section className="panel admin-command-funnel-panel">
@@ -316,16 +376,16 @@ export function AdminOverviewPage() {
             <p className="eyebrow">Jornada de valor</p>
             <h2>Da aquisição ao resultado</h2>
             <p className="muted">
-              Cadastro não é resultado final: o AF acompanha o avanço até agenda, primeiro agendamento e assinatura.
+              Cadastro não é resultado final: o AF acompanha negócio, serviço, agenda, publicação, primeiro agendamento e assinatura.
             </p>
           </div>
-          <Link className="button button-secondary button-small" to="/admin/trafego-pago/profissionais">
+          <Link className="button button-secondary button-small" to={`/admin/trafego-pago/profissionais?periodo=${encodeURIComponent(loadedPeriod)}`}>
             Ver funil completo
           </Link>
         </div>
 
         <div className="admin-command-funnel">
-          {funnelStages.map(([label, value], index) => (
+          {funnelStages.map(({ label, value }, index) => (
             <article key={label}>
               <span>{index + 1}</span>
               <small>{label}</small>
@@ -333,6 +393,19 @@ export function AdminOverviewPage() {
             </article>
           ))}
         </div>
+
+        {bottleneck && (
+          <aside className="admin-bottleneck" aria-label="Maior perda observada no funil">
+            <div>
+              <p className="eyebrow">Prioridade do funil</p>
+              <strong>Maior perda observada: {bottleneck.from} → {bottleneck.to}</strong>
+              <span>{bottleneck.loss} não avançaram nessa transição · conversão observada de {bottleneck.rate}%.</span>
+            </div>
+            <Link className="button button-secondary button-small" to={bottleneck.href}>
+              Investigar etapa
+            </Link>
+          </aside>
+        )}
       </section>
 
       <div className="admin-command-two-column">
@@ -368,13 +441,6 @@ export function AdminOverviewPage() {
           </dl>
         </section>
       </div>
-
-      <section className="admin-command-shortcuts" aria-label="Áreas da administração">
-        <Link to="/admin/saude"><strong>Ativação</strong><span>Profissionais e próxima ação</span></Link>
-        <Link to="/admin/operacao"><strong>Operação</strong><span>Negócios, agendamentos e marketplace</span></Link>
-        <Link to="/admin/trafego-pago"><strong>Marketing</strong><span>Aquisição, funil, custos e retorno</span></Link>
-        <Link to="/admin/whatsapp"><strong>WhatsApp</strong><span>Templates, automações e entrega</span></Link>
-      </section>
     </main>
   );
 }
