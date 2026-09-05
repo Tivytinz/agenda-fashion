@@ -47,49 +47,45 @@ function dashboard() {
   };
 }
 
+function funnel() {
+  return {
+    resumo: {
+      cadastros: 13,
+      negociosCriados: 11,
+      servicosCriados: 7,
+      agendasConfiguradas: 2,
+      negociosPublicados: 2,
+      primeirosAgendamentos: 1,
+      assinaturasAtivadas: 0
+    }
+  };
+}
+
+function activation() {
+  return {
+    resumo: {
+      totalProfissionais: 14,
+      totalIncompletos: 11,
+      semAgenda: 9,
+      semServico: 4,
+      naoPublicados: 4,
+      semNegocio: 2
+    },
+    perfis: [{
+      usuarioId: 9,
+      nome: "Ana Nails",
+      negocio: { nome: "Studio Ana" },
+      proximaAcao: { rotulo: "Configurar agenda" }
+    }]
+  };
+}
+
 function mockRequests() {
   apiRequest.mockImplementation((path) => {
-    if (path.startsWith("/admin/dashboard")) {
-      return Promise.resolve(dashboard());
-    }
-
-    if (path.startsWith("/admin/saude/perfis-incompletos")) {
-      return Promise.resolve({
-        resumo: {
-          totalProfissionais: 14,
-          totalIncompletos: 11,
-          semAgenda: 9,
-          semServico: 4,
-          naoPublicados: 4,
-          semNegocio: 2
-        },
-        perfis: [{
-          usuarioId: 9,
-          nome: "Ana Nails",
-          negocio: { nome: "Studio Ana" },
-          proximaAcao: { rotulo: "Configurar agenda" }
-        }]
-      });
-    }
-
-    if (path.startsWith("/admin/marketing/funil-profissionais")) {
-      return Promise.resolve({
-        resumo: {
-          cadastros: 13,
-          negociosCriados: 11,
-          servicosCriados: 7,
-          agendasConfiguradas: 2,
-          negociosPublicados: 2,
-          primeirosAgendamentos: 1,
-          assinaturasAtivadas: 0
-        }
-      });
-    }
-
-    if (path === "/health/ready") {
-      return Promise.resolve({ status: "ready", database: "ok" });
-    }
-
+    if (path.startsWith("/admin/dashboard")) return Promise.resolve(dashboard());
+    if (path.startsWith("/admin/saude/perfis-incompletos")) return Promise.resolve(activation());
+    if (path.startsWith("/admin/marketing/funil-profissionais")) return Promise.resolve(funnel());
+    if (path === "/health/ready") return Promise.resolve({ status: "ready", database: "ok" });
     return Promise.reject(new Error(`Rota inesperada: ${path}`));
   });
 }
@@ -127,6 +123,9 @@ describe("centro de comando do admin", () => {
     const ana = screen.getByRole("link", { name: "Abrir ativação →" });
     expect(ana.getAttribute("href")).toContain("busca=Ana");
 
+    const fullFunnel = screen.getByRole("link", { name: "Ver funil completo" });
+    expect(fullFunnel.getAttribute("href")).toBe("/admin/trafego-pago/profissionais");
+
     await waitFor(() => {
       expect(apiRequest).toHaveBeenCalledTimes(4);
     });
@@ -158,5 +157,38 @@ describe("centro de comando do admin", () => {
         expect.objectContaining({ signal: expect.any(AbortSignal) })
       );
     });
+  });
+
+  it("não rotula dados antigos como se fossem do novo período quando um indicador temporal falha", async () => {
+    const user = userEvent.setup();
+    render(
+      <MemoryRouter initialEntries={["/admin?periodo=7"]}>
+        <AdminOverviewPage />
+      </MemoryRouter>
+    );
+
+    await screen.findByRole("heading", { name: "Desempenho — 7 dias" });
+
+    apiRequest.mockImplementation((path) => {
+      if (path === "/admin/dashboard?periodo=today") {
+        return Promise.reject(new Error("Dashboard indisponível"));
+      }
+      if (path === "/admin/marketing/funil-profissionais?periodo=today") {
+        return Promise.resolve(funnel());
+      }
+      if (path.startsWith("/admin/saude/perfis-incompletos")) {
+        return Promise.resolve(activation());
+      }
+      if (path === "/health/ready") {
+        return Promise.resolve({ status: "ready", database: "ok" });
+      }
+      return Promise.reject(new Error(`Rota inesperada: ${path}`));
+    });
+
+    await user.click(screen.getByRole("button", { name: "Hoje" }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("Dashboard indisponível");
+    expect(screen.getByRole("heading", { name: "Desempenho — 7 dias" })).not.toBeNull();
+    expect(screen.queryByRole("heading", { name: "Desempenho — Hoje" })).toBeNull();
   });
 });
