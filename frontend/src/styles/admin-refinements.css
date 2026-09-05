@@ -1,0 +1,221 @@
+.admin-section-heading {
+  display: grid;
+  gap: 4px;
+  margin-bottom: 10px;
+}
+
+.admin-section-heading h2,
+.admin-section-heading p {
+  margin: 0;
+}
+
+.admin-section-heading h2 {
+  color: var(--admin-ink);
+  font-size: 1.15rem;
+}
+
+.admin-command-now-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.admin-command-summary-grid.is-period-summary {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.admin-bottleneck {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  border: 1px solid var(--admin-line);
+  border-left: 3px solid var(--admin-warning);
+  border-radius: 9px;
+  padding: 14px 16px;
+  background: #fffaf0;
+}
+
+.admin-bottleneck > div {
+  display: grid;
+  gap: 4px;
+}
+
+.admin-bottleneck p,
+.admin-bottleneck strong,
+.admin-bottleneck span {
+  margin: 0;
+}
+
+.admin-bottleneck strong {
+  color: var(--admin-ink);
+}
+
+.admin-bottleneck span {
+  color: var(--admin-muted);
+  font-size: .78rem;
+}
+
+.admin-command-status.is-info {
+  border-color: #cad8e4;
+  color: var(--admin-info);
+  background: #f3f7fa;
+}
+
+.admin-command-status.is-warning {
+  border-color: #ead6a9;
+  color: var(--admin-warning);
+  background: #fff9ed;
+}
+
+.admin-command-status.is-danger {
+  border-color: #efc0ca;
+  color: var(--admin-danger);
+  background: #fff3f5;
+}
+
+.admin-operation-search-row {
+  display: flex;
+  align-items: stretch;
+  gap: 7px;
+}
+
+.admin-operation-search-row input {
+  min-width: 180px;
+  flex: 1 1 260px;
+}
+
+.admin-operation-search-row select {
+  min-width: 150px;
+}
+
+.admin-operation-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 14px;
+  border-top: 1px solid var(--admin-line);
+  padding-top: 14px;
+}
+
+.admin-operation-pagination span {
+  color: var(--admin-muted);
+  font-size: .8rem;
+  font-weight: 700;
+}
+
+@media (max-width: 800px) {
+  .admin-command-summary-grid.is-period-summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .admin-bottleneck {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .admin-operation-search-row {
+    flex-wrap: wrap;
+  }
+
+  .admin-operation-search-row input,
+  .admin-operation-search-row select {
+    width: 100%;
+    flex-basis: 100%;
+  }
+}
+
+@media (max-width: 700px) {
+  .admin-operation-pagination {
+    justify-content: space-between;
+  }
+
+  .admin-card-table-mobile {
+    overflow: visible;
+    border: 0;
+    background: transparent;
+  }
+
+  .admin-card-table-mobile table {
+    display: block;
+    min-width: 0 !important;
+    width: 100%;
+  }
+
+  .admin-card-table-mobile thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  .admin-card-table-mobile tbody {
+    display: grid;
+    gap: 10px;
+  }
+
+  .admin-card-table-mobile tr {
+    display: grid;
+    gap: 0;
+    border: 1px solid var(--admin-line);
+    border-radius: 10px;
+    padding: 5px 14px;
+    background: #fff;
+    box-shadow: 0 4px 14px rgb(24 31 38 / 4%);
+  }
+
+  .admin-card-table-mobile td {
+    display: grid;
+    gap: 4px;
+    width: 100% !important;
+    border: 0;
+    border-bottom: 1px solid var(--admin-line);
+    padding: 11px 0;
+  }
+
+  .admin-card-table-mobile td:last-child {
+    border-bottom: 0;
+  }
+
+  .admin-card-table-mobile td::before {
+    color: var(--admin-muted);
+    font-size: .66rem;
+    font-weight: 800;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+  }
+
+  .saas-health-table td:nth-child(1)::before { content: "Profissional"; }
+  .saas-health-table td:nth-child(2)::before { content: "Contato"; }
+  .saas-health-table td:nth-child(3)::before { content: "Negócio"; }
+  .saas-health-table td:nth-child(4)::before { content: "Progresso"; }
+  .saas-health-table td:nth-child(5)::before { content: "Próxima ação"; }
+
+  .whatsapp-template-table td:nth-child(1)::before { content: "Template"; }
+  .whatsapp-template-table td:nth-child(2)::before { content: "Automação"; }
+  .whatsapp-template-table td:nth-child(3)::before { content: "Meta"; }
+  .whatsapp-template-table td:nth-child(4)::before { content: "Aceitas"; }
+  .whatsapp-template-table td:nth-child(5)::before { content: "Entrega"; }
+  .whatsapp-template-table td:nth-child(6)::before { content: "Leitura"; }
+  .whatsapp-template-table td:nth-child(7)::before { content: "Operação"; }
+
+  .admin-card-table-mobile .saas-health-actions {
+    margin-top: 4px;
+  }
+
+  .admin-card-table-mobile .whatsapp-template-table code,
+  .admin-card-table-mobile code {
+    max-width: 100%;
+  }
+}
+
+@media (max-width: 520px) {
+  .admin-command-now-grid,
+  .admin-command-summary-grid.is-period-summary {
+    grid-template-columns: 1fr;
+  }
+}

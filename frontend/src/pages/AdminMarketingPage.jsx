@@ -3,7 +3,10 @@ import {
   useMemo,
   useState
 } from "react";
-import { Link } from "react-router-dom";
+import {
+  Link,
+  useSearchParams
+} from "react-router-dom";
 
 import { apiRequest } from "../api/client";
 import { MarketingGa4Panel } from "../components/MarketingGa4Panel";
@@ -12,20 +15,17 @@ import {
   ErrorState,
   LoadingState
 } from "../components/ScreenState";
+import {
+  ADMIN_PERIODS,
+  normalizeAdminPeriod,
+  setPeriodSearchParam
+} from "../utils/adminPeriods";
 import { settleRequestMap } from "../utils/asyncData";
 import {
   formatMetricPercent,
   metricPercentage,
   paidAttributionQuality
 } from "../utils/marketingMetrics";
-
-const PERIODS = [
-  ["today", "Hoje"],
-  ["7", "7 dias"],
-  ["30", "30 dias"],
-  ["month", "Este mês"],
-  ["all", "Todo período"]
-];
 
 const OBJECTIVES = {
   profissional: "Profissionais",
@@ -74,6 +74,11 @@ function professionalStages(summary) {
       summary?.taxaServico ?? metricPercentage(summary?.servicosCriados, signups) ?? 0
     ],
     [
+      "Agenda configurada",
+      number(summary?.agendasConfiguradas),
+      summary?.taxaAgenda ?? metricPercentage(summary?.agendasConfiguradas, signups) ?? 0
+    ],
+    [
       "Negócio publicado",
       number(summary?.negociosPublicados),
       summary?.taxaPublicacao ?? metricPercentage(summary?.negociosPublicados, signups) ?? 0
@@ -99,7 +104,8 @@ function professionalStages(summary) {
 }
 
 export function AdminMarketingPage() {
-  const [period, setPeriod] = useState("30");
+  const [searchParams, setSearchParams] = useSearchParams();
+  const period = normalizeAdminPeriod(searchParams.get("periodo"));
   const [data, setData] = useState(null);
   const [error, setError] = useState("");
   const [refreshing, setRefreshing] = useState(true);
@@ -135,7 +141,7 @@ export function AdminMarketingPage() {
           );
           setError(
             critical?.error?.message ||
-              "Não foi possível carregar a análise de marketing."
+              "Não foi possível atualizar a análise de marketing."
           );
           return;
         }
@@ -148,6 +154,7 @@ export function AdminMarketingPage() {
         );
 
         setData({
+          period,
           funnel: values.funnel,
           traffic: values.traffic?.campanhas || [],
           summary: values.summary || {},
@@ -299,16 +306,15 @@ export function AdminMarketingPage() {
           </nav>
 
           <div className="segmented-control" aria-label="Período do marketing">
-            {PERIODS.map(([value, label]) => (
+            {ADMIN_PERIODS.map(([value, label]) => (
               <button
                 aria-pressed={period === value}
                 className={period === value ? "active" : ""}
+                disabled={refreshing}
                 key={value}
                 onClick={() => {
                   if (value === period) return;
-                  setData(null);
-                  setError("");
-                  setPeriod(value);
+                  setSearchParams(setPeriodSearchParam(searchParams, value));
                 }}
                 type="button"
               >
@@ -319,8 +325,8 @@ export function AdminMarketingPage() {
         </div>
       </header>
 
-      {refreshing && (
-        <p className="data-refresh-status" role="status">Atualizando análise...</p>
+      {refreshing && data && (
+        <p className="data-refresh-status" role="status">Atualizando análise sem ocultar os últimos dados...</p>
       )}
       {error && <p className="form-error" role="alert">{error}</p>}
 
@@ -367,7 +373,7 @@ export function AdminMarketingPage() {
             <p className="eyebrow">Funil profissional</p>
             <h2>Da aquisição ao resultado</h2>
             <p className="muted">
-              O AF mede o avanço real depois do cadastro. Publicação, primeiro agendamento e assinatura valem mais do que volume bruto de entrada.
+              O AF mede o avanço real depois do cadastro. A agenda confirmada é uma etapa explícita antes da publicação no fluxo novo.
             </p>
           </div>
           <Link

@@ -6,6 +6,7 @@ import {
 } from "react";
 import { NavLink, Outlet, useLocation } from "react-router-dom";
 import { useSession } from "../auth/SessionContext";
+import "../styles/admin-refinements.css";
 import { AppIcon } from "./AppIcon";
 import {
   isExactNavigationRoute,

@@ -1,6 +1,5 @@
 import {
   useEffect,
-  useMemo,
   useState
 } from "react";
 import { apiRequest } from "../api/client";
@@ -9,7 +8,7 @@ import {
   ErrorState,
   LoadingState
 } from "../components/ScreenState";
-import { settleRequestMap } from "../utils/asyncData";
+import "../styles/admin-refinements.css";
 
 const TABS = [
   ["negocios", "Negócios"],
@@ -17,13 +16,14 @@ const TABS = [
   ["marketplace", "Marketplace"]
 ];
 
-function normalize(value) {
-  return String(value || "")
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase()
-    .trim();
-}
+const APPOINTMENT_STATUS = [
+  ["", "Todos os status"],
+  ["agendado", "Agendado"],
+  ["confirmado", "Confirmado"],
+  ["pendente", "Pendente"],
+  ["concluido", "Concluído"],
+  ["cancelado", "Cancelado"]
+];
 
 function formatDate(value) {
   if (!value) return "Data não informada";
@@ -35,6 +35,15 @@ function formatDate(value) {
 function formatStatus(value) {
   const label = String(value || "agendado").replace(/_/g, " ").trim();
   return label.charAt(0).toLocaleUpperCase("pt-BR") + label.slice(1);
+}
+
+function statusTone(value) {
+  const status = String(value || "agendado").toLowerCase();
+  if (["concluido", "concluído", "finalizado"].includes(status)) return "success";
+  if (["cancelado", "cancelada", "nao_compareceu", "não_compareceu"].includes(status)) return "danger";
+  if (["pendente", "aguardando"].includes(status)) return "warning";
+  if (["confirmado", "confirmada", "agendado"].includes(status)) return "info";
+  return "muted";
 }
 
 function BusinessCard({ business }) {
@@ -78,7 +87,9 @@ function AppointmentCard({ appointment }) {
           <strong>{appointment.negocio}</strong>
           <small>{formatDate(appointment.data)} · {appointment.horario || "horário não informado"}</small>
         </div>
-        <span className="admin-command-status">{formatStatus(appointment.status)}</span>
+        <span className={`admin-command-status is-${statusTone(appointment.status)}`}>
+          {formatStatus(appointment.status)}
+        </span>
       </div>
       <dl>
         <div><dt>Cliente</dt><dd>{appointment.cliente_nome}</dd></div>
@@ -102,54 +113,73 @@ function RankingList({ children, items, title }) {
   );
 }
 
+function Pagination({ pagination, refreshing, onPage }) {
+  const totalPages = Number(pagination?.totalPaginas || 0);
+  if (totalPages <= 1) return null;
+  const current = Number(pagination?.pagina || 1);
+
+  return (
+    <nav className="admin-operation-pagination" aria-label="Paginação da operação">
+      <button
+        className="button button-secondary button-small"
+        disabled={refreshing || current <= 1}
+        onClick={() => onPage(current - 1)}
+        type="button"
+      >
+        Anterior
+      </button>
+      <span>Página {current} de {totalPages}</span>
+      <button
+        className="button button-secondary button-small"
+        disabled={refreshing || current >= totalPages}
+        onClick={() => onPage(current + 1)}
+        type="button"
+      >
+        Próxima
+      </button>
+    </nav>
+  );
+}
+
 export function AdminOperationPage() {
+  const [tab, setTab] = useState("negocios");
   const [data, setData] = useState(null);
   const [error, setError] = useState("");
   const [refreshing, setRefreshing] = useState(true);
   const [reloadKey, setReloadKey] = useState(0);
-  const [tab, setTab] = useState("negocios");
+  const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
+  const [status, setStatus] = useState("");
+  const [page, setPage] = useState(1);
 
   useEffect(() => {
     const controller = new AbortController();
     let active = true;
-
     setRefreshing(true);
     setError("");
 
-    settleRequestMap({
-      businesses: apiRequest("/admin/negocios", { signal: controller.signal }),
-      appointments: apiRequest("/admin/agendamentos", { signal: controller.signal }),
-      marketplace: apiRequest("/admin/marketing", { signal: controller.signal })
-    })
-      .then(({ values, errors }) => {
+    let path = "/admin/marketing";
+    if (tab !== "marketplace") {
+      const params = new URLSearchParams({
+        pagina: String(page),
+        limite: "25"
+      });
+      if (search) params.set("busca", search);
+      if (tab === "agendamentos" && status) params.set("status", status);
+      path = `/admin/${tab}?${params.toString()}`;
+    }
+
+    apiRequest(path, { signal: controller.signal })
+      .then((result) => {
         if (!active) return;
-
-        const nonAbortErrors = errors.filter(
-          ({ error: requestError }) => requestError?.name !== "AbortError"
-        );
-        const hasData = Boolean(
-          values.businesses || values.appointments || values.marketplace
-        );
-
-        if (!hasData) {
-          setError(
-            nonAbortErrors[0]?.error?.message ||
-              "Não foi possível carregar a operação da plataforma."
-          );
-          return;
-        }
-
-        setData({
-          businesses: values.businesses?.negocios || [],
-          appointments: values.appointments?.agendamentos || [],
-          marketplace: values.marketplace || {}
-        });
-
-        if (nonAbortErrors.length > 0) {
-          setError(
-            "Parte da operação está temporariamente indisponível. Os dados carregados continuam visíveis."
-          );
+        setData((current) => ({
+          ...(current || {}),
+          [tab]: result
+        }));
+      })
+      .catch((requestError) => {
+        if (active && requestError.name !== "AbortError") {
+          setError(requestError.message || "Não foi possível carregar a operação da plataforma.");
         }
       })
       .finally(() => {
@@ -160,31 +190,27 @@ export function AdminOperationPage() {
       active = false;
       controller.abort();
     };
-  }, [reloadKey]);
+  }, [page, reloadKey, search, status, tab]);
 
-  const query = normalize(search);
-  const businesses = useMemo(() => {
-    const items = data?.businesses || [];
-    if (!query) return items;
-    return items.filter((business) => normalize([
-      business.nome,
-      business.cidade,
-      business.bairro,
-      business.setor
-    ].join(" ")).includes(query));
-  }, [data?.businesses, query]);
+  function selectTab(value) {
+    setTab(value);
+    setSearchInput("");
+    setSearch("");
+    setStatus("");
+    setPage(1);
+  }
 
-  const appointments = useMemo(() => {
-    const items = data?.appointments || [];
-    if (!query) return items;
-    return items.filter((appointment) => normalize([
-      appointment.cliente_nome,
-      appointment.negocio,
-      appointment.servico,
-      appointment.profissional,
-      appointment.status
-    ].join(" ")).includes(query));
-  }, [data?.appointments, query]);
+  function submitSearch(event) {
+    event.preventDefault();
+    setPage(1);
+    setSearch(searchInput.trim());
+  }
+
+  function clearSearch() {
+    setSearchInput("");
+    setSearch("");
+    setPage(1);
+  }
 
   if (!data && !error) {
     return (
@@ -205,10 +231,17 @@ export function AdminOperationPage() {
     );
   }
 
+  const businessData = data?.negocios || {};
+  const appointmentData = data?.agendamentos || {};
+  const businesses = businessData.negocios || [];
+  const appointments = appointmentData.agendamentos || [];
   const marketplace = data?.marketplace || {};
   const booked = marketplace.negociosMaisAgendados || [];
   const viewed = marketplace.negociosMaisVistos || [];
   const cities = marketplace.cidades || [];
+  const pagination = tab === "negocios"
+    ? businessData.paginacao || {}
+    : appointmentData.paginacao || {};
 
   return (
     <main
@@ -220,7 +253,7 @@ export function AdminOperationPage() {
           <p className="eyebrow">Operação</p>
           <h1>Operação da plataforma</h1>
           <p>
-            Acompanhe negócios, agendamentos e sinais do marketplace sem misturar operação com aquisição.
+            Pesquise a base administrativa inteira com paginação no servidor, sem misturar operação com aquisição.
           </p>
         </div>
         <button
@@ -233,7 +266,8 @@ export function AdminOperationPage() {
         </button>
       </header>
 
-      {error && data && <p className="form-error" role="alert">{error}</p>}
+      {refreshing && data && <p className="data-refresh-status" role="status">Atualizando esta visão...</p>}
+      {error && data && <p className="form-error" role="alert">{error} Os últimos dados válidos continuam visíveis.</p>}
 
       <div className="admin-operation-toolbar">
         <nav className="admin-command-tabs" aria-label="Áreas da operação">
@@ -242,10 +276,7 @@ export function AdminOperationPage() {
               aria-pressed={tab === value}
               className={tab === value ? "active" : ""}
               key={value}
-              onClick={() => {
-                setTab(value);
-                setSearch("");
-              }}
+              onClick={() => selectTab(value)}
               type="button"
             >
               {label}
@@ -254,23 +285,44 @@ export function AdminOperationPage() {
         </nav>
 
         {tab !== "marketplace" && (
-          <label className="admin-operation-search">
-            <span>Buscar</span>
-            <input
-              onChange={(event) => setSearch(event.target.value)}
-              placeholder={tab === "negocios"
-                ? "Negócio, cidade, bairro ou setor"
-                : "Cliente, negócio, serviço ou profissional"}
-              type="search"
-              value={search}
-            />
-          </label>
+          <form className="admin-operation-search" onSubmit={submitSearch} role="search">
+            <label htmlFor="admin-operation-search">Buscar na base</label>
+            <div className="admin-operation-search-row">
+              <input
+                id="admin-operation-search"
+                onChange={(event) => setSearchInput(event.target.value)}
+                placeholder={tab === "negocios"
+                  ? "Negócio, cidade, bairro ou setor"
+                  : "Cliente, negócio, serviço ou profissional"}
+                type="search"
+                value={searchInput}
+              />
+              {tab === "agendamentos" && (
+                <select
+                  aria-label="Status do agendamento"
+                  onChange={(event) => {
+                    setStatus(event.target.value);
+                    setPage(1);
+                  }}
+                  value={status}
+                >
+                  {APPOINTMENT_STATUS.map(([value, label]) => (
+                    <option key={value || "todos"} value={value}>{label}</option>
+                  ))}
+                </select>
+              )}
+              {(searchInput || search) && (
+                <button className="button button-secondary button-small" onClick={clearSearch} type="button">Limpar</button>
+              )}
+              <button className="button button-secondary button-small" disabled={refreshing} type="submit">Buscar</button>
+            </div>
+          </form>
         )}
       </div>
 
       {tab === "negocios" && (
         <section aria-label="Negócios cadastrados">
-          <p className="admin-operation-count">{businesses.length} negócios nesta visão.</p>
+          <p className="admin-operation-count">{businessData.paginacao?.total ?? businesses.length} negócios encontrados na base.</p>
           {businesses.length === 0 ? (
             <EmptyState title="Nenhum negócio encontrado">
               Ajuste a busca para ampliar os resultados.
@@ -282,15 +334,16 @@ export function AdminOperationPage() {
               ))}
             </div>
           )}
+          <Pagination pagination={pagination} refreshing={refreshing} onPage={setPage} />
         </section>
       )}
 
       {tab === "agendamentos" && (
         <section aria-label="Agendamentos da plataforma">
-          <p className="admin-operation-count">{appointments.length} agendamentos nesta visão.</p>
+          <p className="admin-operation-count">{appointmentData.paginacao?.total ?? appointments.length} agendamentos encontrados na base.</p>
           {appointments.length === 0 ? (
             <EmptyState title="Nenhum agendamento encontrado">
-              Ajuste a busca para ampliar os resultados.
+              Ajuste a busca ou o status para ampliar os resultados.
             </EmptyState>
           ) : (
             <div className="admin-operation-grid">
@@ -299,6 +352,7 @@ export function AdminOperationPage() {
               ))}
             </div>
           )}
+          <Pagination pagination={pagination} refreshing={refreshing} onPage={setPage} />
         </section>
       )}
 

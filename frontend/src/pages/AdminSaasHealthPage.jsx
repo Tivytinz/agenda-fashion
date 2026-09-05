@@ -3,12 +3,14 @@ import {
   useMemo,
   useState
 } from "react";
+import { useSearchParams } from "react-router-dom";
 import { apiRequest } from "../api/client";
 import {
   EmptyState,
   ErrorState,
   LoadingState
 } from "../components/ScreenState";
+import "../styles/admin-refinements.css";
 
 const FILTERS = [
   { value: "todos", label: "Todos que precisam de atenção" },
@@ -19,6 +21,8 @@ const FILTERS = [
   { value: "publicacao", label: "Não publicados" },
   { value: "descricao", label: "Sem descrição (opcional)" }
 ];
+
+const FILTER_VALUES = new Set(FILTERS.map(({ value }) => value));
 
 function formatDate(value) {
   if (!value) return "Sem atividade";
@@ -262,14 +266,20 @@ function ProfileRow({ profile }) {
 }
 
 export function AdminSaasHealthPage() {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const requestedFilter = searchParams.get("pendencia") || "todos";
+  const filter = FILTER_VALUES.has(requestedFilter) ? requestedFilter : "todos";
+  const search = String(searchParams.get("busca") || "").trim();
   const [data, setData] = useState(null);
   const [error, setError] = useState("");
   const [refreshing, setRefreshing] = useState(true);
   const [reloadKey, setReloadKey] = useState(0);
-  const [filter, setFilter] = useState("todos");
   const [page, setPage] = useState(1);
-  const [searchInput, setSearchInput] = useState("");
-  const [search, setSearch] = useState("");
+  const [searchInput, setSearchInput] = useState(search);
+
+  useEffect(() => {
+    setSearchInput(search);
+  }, [search]);
 
   const requestPath = useMemo(() => {
     const params = new URLSearchParams({
@@ -307,21 +317,30 @@ export function AdminSaasHealthPage() {
     };
   }, [reloadKey, requestPath]);
 
+  function updateParams({ nextFilter = filter, nextSearch = search }) {
+    const next = new URLSearchParams(searchParams);
+    if (nextFilter === "todos") next.delete("pendencia");
+    else next.set("pendencia", nextFilter);
+    if (nextSearch) next.set("busca", nextSearch);
+    else next.delete("busca");
+    setSearchParams(next);
+  }
+
   function submitSearch(event) {
     event.preventDefault();
     setPage(1);
-    setSearch(searchInput.trim());
+    updateParams({ nextSearch: searchInput.trim() });
   }
 
   function selectFilter(value) {
-    setFilter(value);
     setPage(1);
+    updateParams({ nextFilter: value });
   }
 
   function clearSearch() {
     setSearchInput("");
-    setSearch("");
     setPage(1);
+    updateParams({ nextSearch: "" });
   }
 
   if (!data && !error) {
@@ -370,14 +389,7 @@ export function AdminSaasHealthPage() {
       )}
 
       <section className="metric-grid" aria-label="Indicadores de ativação profissional">
-        <SummaryCard
-          active={filter === "todos"}
-          filter="todos"
-          hint={`de ${summary.totalProfissionais ?? 0} profissionais`}
-          label="Precisam de atenção"
-          onSelect={selectFilter}
-          value={summary.totalIncompletos}
-        />
+        <SummaryCard active={filter === "todos"} filter="todos" hint={`de ${summary.totalProfissionais ?? 0} profissionais`} label="Precisam de atenção" onSelect={selectFilter} value={summary.totalIncompletos} />
         <SummaryCard active={filter === "sem_negocio"} filter="sem_negocio" hint="ainda sem área profissional" label="Sem negócio" onSelect={selectFilter} value={summary.semNegocio} />
         <SummaryCard active={filter === "perfil"} filter="perfil" hint="dados obrigatórios pendentes" label="Dados essenciais" onSelect={selectFilter} value={summary.perfilIncompleto} />
         <SummaryCard active={filter === "servico"} filter="servico" hint="negócios sem serviço ativo" label="Sem serviço" onSelect={selectFilter} value={summary.semServico} />
@@ -438,7 +450,7 @@ export function AdminSaasHealthPage() {
             Não há perfis que precisem de atenção para os filtros selecionados.
           </EmptyState>
         ) : (
-          <div className="table-wrap saas-health-table">
+          <div className="table-wrap saas-health-table admin-card-table-mobile">
             <table>
               <thead>
                 <tr>

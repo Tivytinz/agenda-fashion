@@ -1,6 +1,9 @@
 const adminService = require(
   "../services/adminService"
 );
+const adminOperationService = require(
+  "../services/adminOperationService"
+);
 
 /*
  * GET /admin/dashboard
@@ -36,8 +39,10 @@ async function listarNegociosAdmin(
 ) {
   try {
     const resultado =
-      await adminService
-        .listarNegociosAdmin();
+      await adminOperationService
+        .listarNegociosAdmin(
+          req.query || {}
+        );
 
     return res
       .status(200)
@@ -57,8 +62,10 @@ async function listarAgendamentosAdmin(
 ) {
   try {
     const resultado =
-      await adminService
-        .listarAgendamentosAdmin();
+      await adminOperationService
+        .listarAgendamentosAdmin(
+          req.query || {}
+        );
 
     return res
       .status(200)
