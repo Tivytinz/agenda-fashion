@@ -122,7 +122,7 @@ afterEach(() => {
 });
 
 describe("AdminMarketingPage", () => {
-  it("prioriza jornada, comportamento e o funil completo até resultado", async () => {
+  it("prioriza jornada, comportamento e preserva o período entre as áreas", async () => {
     render(
       <MemoryRouter initialEntries={["/admin/trafego-pago?periodo=7"]}>
         <AdminMarketingPage />
@@ -151,7 +151,13 @@ describe("AdminMarketingPage", () => {
     expect(screen.getByRole("button", { name: "7 dias" }).getAttribute("aria-pressed")).toBe("true");
 
     const funnelLink = screen.getAllByRole("link", { name: "Ver funil completo" })[0];
-    expect(funnelLink.getAttribute("href")).toBe("/admin/trafego-pago/profissionais");
+    expect(funnelLink.getAttribute("href")).toBe("/admin/trafego-pago/profissionais?periodo=7");
+    expect(
+      screen.getByRole("link", { name: "Custos e retorno" }).getAttribute("href")
+    ).toBe("/admin/trafego-pago/custos?periodo=7");
+    expect(
+      screen.getByRole("link", { name: "Ver custos e retorno" }).getAttribute("href")
+    ).toBe("/admin/trafego-pago/custos?periodo=7");
 
     expect(
       screen.queryByRole("button", { name: /Nova campanha oficial/i })
