@@ -47,12 +47,14 @@ function mockRequests() {
           cadastros: 20,
           negociosCriados: 15,
           servicosCriados: 13,
+          agendasConfiguradas: 12,
           negociosPublicados: 11,
           primeirosAgendamentos: 6,
           checkoutsIniciados: 3,
           assinaturasAtivadas: 2,
           taxaNegocio: 75,
           taxaServico: 65,
+          taxaAgenda: 60,
           taxaPublicacao: 55,
           taxaPrimeiroAgendamento: 30,
           taxaCheckout: 15,
@@ -120,9 +122,9 @@ afterEach(() => {
 });
 
 describe("AdminMarketingPage", () => {
-  it("prioriza jornada, comportamento, funil e resultado final", async () => {
+  it("prioriza jornada, comportamento e o funil completo até resultado", async () => {
     render(
-      <MemoryRouter>
+      <MemoryRouter initialEntries={["/admin/trafego-pago?periodo=7"]}>
         <AdminMarketingPage />
       </MemoryRouter>
     );
@@ -143,15 +145,23 @@ describe("AdminMarketingPage", () => {
     expect(screen.getByTestId("marketing-ga4-panel")).not.toBeNull();
     expect(screen.getByTestId("marketing-sync-panel")).not.toBeNull();
     expect(screen.getByText("Da aquisição ao resultado")).not.toBeNull();
+    expect(screen.getByText("Agenda configurada")).not.toBeNull();
     expect(screen.getByText("Campanhas reconhecidas pelo AF")).not.toBeNull();
     expect(screen.getByText("123456")).not.toBeNull();
+    expect(screen.getByRole("button", { name: "7 dias" }).getAttribute("aria-pressed")).toBe("true");
+
+    const funnelLink = screen.getAllByRole("link", { name: "Ver funil completo" })[0];
+    expect(funnelLink.getAttribute("href")).toContain("periodo=7");
 
     expect(
       screen.queryByRole("button", { name: /Nova campanha oficial/i })
     ).toBeNull();
 
     await waitFor(() => {
-      expect(apiRequest).toHaveBeenCalledTimes(4);
+      expect(apiRequest).toHaveBeenCalledWith(
+        "/admin/marketing/funil-profissionais?periodo=7",
+        expect.objectContaining({ signal: expect.any(AbortSignal) })
+      );
     });
   });
 
