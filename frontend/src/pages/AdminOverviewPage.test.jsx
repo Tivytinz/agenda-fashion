@@ -187,7 +187,8 @@ describe("centro de comando do admin", () => {
 
     await user.click(screen.getByRole("button", { name: "Hoje" }));
 
-    expect(await screen.findByRole("alert")).toHaveTextContent("Dashboard indisponível");
+    const alert = await screen.findByRole("alert");
+    expect(alert.textContent).toContain("Dashboard indisponível");
     expect(screen.getByRole("heading", { name: "Desempenho — 7 dias" })).not.toBeNull();
     expect(screen.queryByRole("heading", { name: "Desempenho — Hoje" })).toBeNull();
   });
