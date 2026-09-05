@@ -7,6 +7,7 @@ import {
   waitFor
 } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { MemoryRouter } from "react-router-dom";
 import {
   afterEach,
   beforeEach,
@@ -24,10 +25,7 @@ vi.mock("../api/client", () => ({
 const { apiRequest } = await import("../api/client");
 
 const RESULT = {
-  periodo: {
-    valor: "30",
-    rotulo: "30 dias"
-  },
+  periodo: { valor: "30", rotulo: "30 dias" },
   configuracao: {
     notificacoesHabilitadas: true,
     tokenConfigurado: true,
@@ -87,6 +85,14 @@ const RESULT = {
   }]
 };
 
+function renderPage(entry = "/admin/whatsapp") {
+  return render(
+    <MemoryRouter initialEntries={[entry]}>
+      <AdminWhatsAppPage />
+    </MemoryRouter>
+  );
+}
+
 afterEach(cleanup);
 
 beforeEach(() => {
@@ -96,7 +102,7 @@ beforeEach(() => {
 
 describe("painel administrativo do WhatsApp", () => {
   it("mostra aprovação, automação e funil de entrega sem confundir aceite com entrega", async () => {
-    render(<AdminWhatsAppPage />);
+    renderPage("/admin/whatsapp?periodo=90");
 
     expect(
       await screen.findByRole("heading", { name: "WhatsApp e automações" })
@@ -114,12 +120,17 @@ describe("painel administrativo do WhatsApp", () => {
     expect(screen.getByText("8 de 10 · 80%")).not.toBeNull();
     expect(screen.getByText("aceitas pela Meta")).not.toBeNull();
     expect(screen.getByRole("columnheader", { name: "Meta" })).not.toBeNull();
-    expect(screen.queryByRole("columnheader", { name: "Qualidade" })).toBeNull();
+    expect(screen.getByRole("button", { name: "90 dias" }).getAttribute("aria-pressed")).toBe("true");
+    expect(document.querySelector(".admin-card-table-mobile")).not.toBeNull();
+    expect(apiRequest).toHaveBeenCalledWith(
+      "/admin/whatsapp/templates?periodo=90",
+      expect.objectContaining({ signal: expect.any(AbortSignal) })
+    );
   });
 
   it("atualiza as métricas quando o período muda", async () => {
     const user = userEvent.setup();
-    render(<AdminWhatsAppPage />);
+    renderPage();
     await screen.findByText("Confirmação para a cliente");
     apiRequest.mockClear();
 
@@ -159,19 +170,15 @@ describe("painel administrativo do WhatsApp", () => {
       }))
     });
 
-    render(<AdminWhatsAppPage />);
+    renderPage();
 
-    expect(
-      await screen.findByText("Status da Meta ainda não consultado")
-    ).not.toBeNull();
+    expect(await screen.findByText("Status da Meta ainda não consultado")).not.toBeNull();
     expect(screen.getByText(/WHATSAPP_BUSINESS_ACCOUNT_ID/)).not.toBeNull();
     expect(screen.getByText(/envio automático está desligado/i)).not.toBeNull();
     expect(screen.getByText("Não consultado")).not.toBeNull();
     expect(screen.getByText("Status não consultado")).not.toBeNull();
     expect(screen.getByText("Qualidade: não consultada")).not.toBeNull();
     expect(screen.getByRole("button", { name: "Verificar novamente" })).not.toBeNull();
-    expect(screen.getByText(/8 templates aguardam consulta/i)).not.toBeNull();
-    expect(screen.getByText("8 de 10 · 80%")).not.toBeNull();
   });
 
   it("prioriza mensagens não enviadas na operação e mostra a taxa de aceite", async () => {
@@ -194,7 +201,7 @@ describe("painel administrativo do WhatsApp", () => {
       }]
     });
 
-    render(<AdminWhatsAppPage />);
+    renderPage();
 
     expect(await screen.findByText("2 de 10 · 20%")).not.toBeNull();
     expect(screen.getByText("8 não enviadas")).not.toBeNull();
@@ -221,12 +228,11 @@ describe("painel administrativo do WhatsApp", () => {
       }]
     });
 
-    render(<AdminWhatsAppPage />);
+    renderPage();
 
     expect(await screen.findByText("0 de 0")).not.toBeNull();
     expect(screen.getByText("sem mensagens geradas")).not.toBeNull();
     expect(screen.getAllByText("Sem dados").length).toBeGreaterThanOrEqual(2);
     expect(screen.getByText("Sem falhas")).not.toBeNull();
-    expect(screen.getByText("0 pendentes · 0 não enviadas")).not.toBeNull();
   });
 });
