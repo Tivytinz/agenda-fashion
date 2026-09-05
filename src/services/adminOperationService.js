@@ -37,6 +37,8 @@ function boolean(value, fallback = true) {
 }
 
 function business(item = {}) {
+  const whatsapp = text(item.whatsapp || item.whatsapp_negocio) || null;
+
   return {
     id: number(item.id),
     nome: text(item.nome) || "Negócio sem nome",
@@ -44,7 +46,9 @@ function business(item = {}) {
     cidade: text(item.cidade) || null,
     bairro: text(item.bairro) || null,
     setor: text(item.setor) || null,
-    whatsapp: text(item.whatsapp) || null,
+    whatsapp,
+    // Alias legado preservado para consumidores administrativos antigos.
+    whatsapp_negocio: whatsapp,
     foto_url: text(item.foto_url, 500) || null,
     ativo: boolean(item.ativo, true),
     total_profissionais: number(item.total_profissionais),
