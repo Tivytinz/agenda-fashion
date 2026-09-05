@@ -81,7 +81,7 @@ function profileActivationLink(profile) {
     : "/admin/saude";
 }
 
-function bottleneckFrom(stages, period) {
+function bottleneckFrom(stages) {
   const transitions = stages.slice(1).map((stage, index) => {
     const previous = stages[index];
     const loss = Math.max(0, previous.value - stage.value);
@@ -107,7 +107,7 @@ function bottleneckFrom(stages, period) {
     ...largest,
     href: largest.action
       ? activationLink(largest.action)
-      : `/admin/trafego-pago/profissionais?periodo=${encodeURIComponent(period)}`
+      : "/admin/trafego-pago/profissionais"
   };
 }
 
@@ -148,29 +148,32 @@ export function AdminOverviewPage() {
         const nonAbortErrors = errors.filter(
           ({ error: requestError }) => requestError?.name !== "AbortError"
         );
-        const hasCoreData = Boolean(
-          values.dashboard || values.activation || values.funnel
+        const periodError = nonAbortErrors.find(({ key }) =>
+          key === "dashboard" || key === "funnel"
         );
 
-        if (!hasCoreData) {
+        // Dashboard e funil precisam pertencer ao mesmo período antes de trocar
+        // o rótulo temporal. Ativação/readiness são estado corrente e podem usar
+        // o último valor válido em caso de falha parcial.
+        if (!values.dashboard || !values.funnel) {
           setError(
-            nonAbortErrors[0]?.error?.message ||
-              "Não foi possível atualizar o centro de comando."
+            periodError?.error?.message ||
+              "Não foi possível atualizar os indicadores do período selecionado."
           );
           return;
         }
 
         setData((current) => ({
           period,
-          dashboard: values.dashboard || current?.dashboard || {},
+          dashboard: values.dashboard,
           activation: values.activation || current?.activation || {},
-          funnel: values.funnel || current?.funnel || {},
+          funnel: values.funnel,
           readiness: values.readiness || current?.readiness || null
         }));
 
         if (nonAbortErrors.length > 0) {
           setError(
-            "Parte dos indicadores está temporariamente indisponível. Os últimos dados válidos continuam visíveis."
+            "Parte dos indicadores atuais está temporariamente indisponível. Os últimos dados válidos continuam visíveis."
           );
         }
       })
@@ -205,8 +208,8 @@ export function AdminOverviewPage() {
   ], [funnelSummary]);
 
   const bottleneck = useMemo(
-    () => bottleneckFrom(funnelStages, data?.period || period),
-    [data?.period, funnelStages, period]
+    () => bottleneckFrom(funnelStages),
+    [funnelStages]
   );
 
   if (!data && !error) {
@@ -379,7 +382,7 @@ export function AdminOverviewPage() {
               Cadastro não é resultado final: o AF acompanha negócio, serviço, agenda, publicação, primeiro agendamento e assinatura.
             </p>
           </div>
-          <Link className="button button-secondary button-small" to={`/admin/trafego-pago/profissionais?periodo=${encodeURIComponent(loadedPeriod)}`}>
+          <Link className="button button-secondary button-small" to="/admin/trafego-pago/profissionais">
             Ver funil completo
           </Link>
         </div>
