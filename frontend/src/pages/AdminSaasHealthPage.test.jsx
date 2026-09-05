@@ -8,6 +8,7 @@ import {
   waitFor
 } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { MemoryRouter } from "react-router-dom";
 import {
   afterEach,
   beforeEach,
@@ -89,6 +90,14 @@ const RESULT = {
   }
 };
 
+function renderPage(entry = "/admin/saude") {
+  return render(
+    <MemoryRouter initialEntries={[entry]}>
+      <AdminSaasHealthPage />
+    </MemoryRouter>
+  );
+}
+
 afterEach(cleanup);
 
 beforeEach(() => {
@@ -98,7 +107,7 @@ beforeEach(() => {
 
 describe("ativação profissional no admin", () => {
   it("mostra os indicadores, pendências e ações de contato", async () => {
-    render(<AdminSaasHealthPage />);
+    renderPage();
 
     expect(
       await screen.findByRole("heading", { name: "Ativação profissional" })
@@ -111,6 +120,7 @@ describe("ativação profissional no admin", () => {
     expect(screen.getByLabelText("40% do perfil concluído")).not.toBeNull();
     expect(screen.getByText("(11) 98765-4321")).not.toBeNull();
     expect(screen.queryByRole("columnheader", { name: "Ações" })).toBeNull();
+    expect(document.querySelector(".admin-card-table-mobile")).not.toBeNull();
 
     const whatsapp = screen.getByRole("link", { name: "WhatsApp" });
     const email = screen.getByRole("link", { name: "E-mail" });
@@ -124,9 +134,21 @@ describe("ativação profissional no admin", () => {
     expect(email.getAttribute("href")).toContain("mailto:ana@example.com");
   });
 
+  it("inicializa filtro e busca a partir do deep link", async () => {
+    renderPage("/admin/saude?pendencia=agenda&busca=Ana%20Souza");
+
+    await screen.findByText("Ana Souza");
+    expect(screen.getByRole("button", { name: "Sem agenda" }).getAttribute("aria-pressed")).toBe("true");
+    expect(screen.getByRole("searchbox", { name: "Buscar profissional" }).value).toBe("Ana Souza");
+    expect(apiRequest).toHaveBeenCalledWith(
+      expect.stringMatching(/pendencia=agenda.*busca=Ana\+Souza/),
+      expect.objectContaining({ signal: expect.any(AbortSignal) })
+    );
+  });
+
   it("aplica filtro de agenda e volta para a primeira página", async () => {
     const user = userEvent.setup();
-    render(<AdminSaasHealthPage />);
+    renderPage();
     await screen.findByText("Ana Souza");
     apiRequest.mockClear();
 
@@ -143,7 +165,7 @@ describe("ativação profissional no admin", () => {
 
   it("usa os indicadores como atalhos de filtro", async () => {
     const user = userEvent.setup();
-    render(<AdminSaasHealthPage />);
+    renderPage();
     await screen.findByText("Ana Souza");
     apiRequest.mockClear();
 
@@ -161,7 +183,7 @@ describe("ativação profissional no admin", () => {
 
   it("oferece filtro separado para descrição opcional", async () => {
     const user = userEvent.setup();
-    render(<AdminSaasHealthPage />);
+    renderPage();
     await screen.findByText("Ana Souza");
     apiRequest.mockClear();
 
@@ -185,7 +207,7 @@ describe("ativação profissional no admin", () => {
       }]
     });
 
-    render(<AdminSaasHealthPage />);
+    renderPage();
 
     await screen.findByText("Ana Souza");
     expect(screen.queryByRole("link", { name: "WhatsApp" })).toBeNull();
@@ -195,7 +217,7 @@ describe("ativação profissional no admin", () => {
 
   it("busca por nome, e-mail, WhatsApp ou negócio", async () => {
     const user = userEvent.setup();
-    render(<AdminSaasHealthPage />);
+    renderPage();
     await screen.findByText("Ana Souza");
     apiRequest.mockClear();
 
