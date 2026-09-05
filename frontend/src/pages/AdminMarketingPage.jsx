@@ -258,7 +258,6 @@ export function AdminMarketingPage() {
     attribution.coverage;
   const ga4Configured = data?.ga4?.configurado === true;
   const ga4Summary = data?.ga4?.resumo || {};
-  const loadedPeriod = data?.period || period;
 
   const journeyCards = [
     [
@@ -302,7 +301,7 @@ export function AdminMarketingPage() {
         <div className="marketing-command-actions">
           <nav className="marketing-command-nav" aria-label="Áreas do marketing">
             <span aria-current="page">Visão geral</span>
-            <Link to={`/admin/trafego-pago/profissionais?periodo=${encodeURIComponent(loadedPeriod)}`}>Funil completo</Link>
+            <Link to="/admin/trafego-pago/profissionais">Funil completo</Link>
             <Link to="/admin/trafego-pago/custos">Custos e retorno</Link>
           </nav>
 
@@ -379,7 +378,7 @@ export function AdminMarketingPage() {
           </div>
           <Link
             className="button button-secondary button-small"
-            to={`/admin/trafego-pago/profissionais?periodo=${encodeURIComponent(loadedPeriod)}`}
+            to="/admin/trafego-pago/profissionais"
           >
             Ver funil completo
           </Link>
