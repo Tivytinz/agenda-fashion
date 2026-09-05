@@ -132,8 +132,9 @@ describe("operação administrativa", () => {
     expect(screen.getByText("Manicure")).not.toBeNull();
     expect(screen.queryByText("62999999999")).toBeNull();
 
-    const status = screen.getByText("Cancelado");
-    expect(status.className).toContain("is-danger");
+    const status = document.querySelector(".admin-command-status.is-danger");
+    expect(status).not.toBeNull();
+    expect(status.textContent).toBe("Cancelado");
 
     await user.type(screen.getByRole("searchbox"), "Maria");
     await user.selectOptions(screen.getByLabelText("Status do agendamento"), "cancelado");
