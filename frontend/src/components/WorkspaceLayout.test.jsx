@@ -102,7 +102,8 @@ describe("menu mobile da área de trabalho", () => {
     expect(screen.queryByRole("link", { name: /Horários/ })).toBeNull();
   });
 
-  it("mantém os quatro destinos do admin visíveis e Marketing ativo nas rotas internas", () => {
+  it("prioriza visão geral, ativação, operação e Marketing no admin mobile", async () => {
+    const user = userEvent.setup();
     render(
       <MemoryRouter
         initialEntries={[
@@ -128,15 +129,19 @@ describe("menu mobile da área de trabalho", () => {
     expect(
       navigation.querySelectorAll(".workspace-mobile-link")
     ).toHaveLength(4);
-    expect(
-      screen.getByRole("link", { name: /Saúde do SaaS/ })
-    ).not.toBeNull();
+    expect(screen.getByRole("link", { name: /Visão geral/ })).not.toBeNull();
+    expect(screen.getByRole("link", { name: /Ativação/ })).not.toBeNull();
+    expect(screen.getByRole("link", { name: /Operação/ })).not.toBeNull();
     expect(marketing.classList.contains("active")).toBe(true);
+    expect(screen.queryByRole("link", { name: /WhatsApp/ })).toBeNull();
+    expect(screen.queryByRole("link", { name: /Minha conta/ })).toBeNull();
+
+    await user.click(
+      screen.getByRole("button", { name: /Abrir mais opções/i })
+    );
+
     expect(screen.getByRole("link", { name: /WhatsApp/ })).not.toBeNull();
     expect(screen.getByRole("link", { name: /Minha conta/ })).not.toBeNull();
-    expect(
-      screen.queryByRole("button", { name: /Abrir mais opções/i })
-    ).toBeNull();
   });
 
   it("renderiza a mesma navegação administrativa no conteúdo e na lateral", () => {
@@ -162,7 +167,11 @@ describe("menu mobile da área de trabalho", () => {
       screen.getAllByRole("link", { name: /Marketing/ })
     ).toHaveLength(2);
     expect(
-      screen.getAllByRole("link", { name: /Saúde do SaaS/ })
+      screen.getAllByRole("link", { name: /Ativação/ })
     ).toHaveLength(2);
+    expect(
+      screen.getAllByRole("link", { name: /Visão geral/ })
+    ).toHaveLength(2);
+    expect(screen.queryByText("Operação interna")).toBeNull();
   });
 });

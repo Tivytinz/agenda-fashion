@@ -32,6 +32,7 @@ export function AppHeader() {
   const homePage = location.pathname === "/";
 
   const adminArea =
+    location.pathname === "/admin" ||
     location.pathname.startsWith("/admin/") ||
     accountInAdmin;
 
@@ -109,7 +110,7 @@ export function AppHeader() {
           aria-label={adminArea ? "Agenda Fashion Admin" : "Agenda Fashion, início"}
           className="brand"
           to={adminArea
-            ? "/admin/saude"
+            ? "/admin"
             : focusedProfessionalLanding
               ? "/para-profissionais"
               : "/"}
@@ -225,7 +226,7 @@ export function AppHeader() {
                 </NavLink>
 
                 {session.ehAdministrador && !adminArea && (
-                  <NavLink to="/admin/trafego-pago">
+                  <NavLink to="/admin">
                     Administração
                   </NavLink>
                 )}

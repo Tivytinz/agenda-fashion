@@ -183,7 +183,7 @@ test("dashboard aplica o CSS profissional ao entrar no workspace", async ({ page
   await expectNoHorizontalOverflow(page);
 });
 
-test("saúde do SaaS aplica seu CSS administrativo sob demanda", async ({ page }) => {
+test("ativação profissional aplica seu CSS administrativo sob demanda", async ({ page }) => {
   await disableMarketingMeasurement(page);
   await installAdminSession(page);
 
@@ -209,7 +209,7 @@ test("saúde do SaaS aplica seu CSS administrativo sob demanda", async ({ page }
 
   await expect(page.getByRole("heading", {
     level: 1,
-    name: "Saúde do SaaS"
+    name: "Ativação profissional"
   })).toBeVisible();
 
   const metricCard = page.locator(".saas-health-metric-card").first();
@@ -250,7 +250,7 @@ test("WhatsApp administrativo aplica seu CSS sob demanda", async ({ page }) => {
 
   await expect(page.getByRole("heading", {
     level: 1,
-    name: "WhatsApp e templates"
+    name: "WhatsApp e automações"
   })).toBeVisible();
 
   const healthNotice = page.locator(".whatsapp-health-notice");

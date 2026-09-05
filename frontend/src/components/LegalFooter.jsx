@@ -7,7 +7,8 @@ import {
 export function LegalFooter() {
   const { pathname } = useLocation();
   const session = useSession();
-  const adminArea = pathname.startsWith("/admin/")
+  const adminArea = pathname === "/admin"
+    || pathname.startsWith("/admin/")
     || (pathname === "/conta" && session.ehAdministrador);
 
   return (

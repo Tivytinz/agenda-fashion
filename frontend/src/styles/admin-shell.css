@@ -44,6 +44,10 @@
   background: #fff;
 }
 
+.workspace-shell--admin .workspace-sidebar--nav-only nav {
+  margin-top: 0;
+}
+
 .workspace-shell--admin .workspace-business {
   border-bottom-color: var(--admin-line);
 }

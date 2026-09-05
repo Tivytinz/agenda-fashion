@@ -491,6 +491,7 @@ function rotaDeveSerNoindex(caminho) {
     rotasReactNoindex.has(caminho) ||
     caminho === "/painel" ||
     caminho.startsWith("/painel/") ||
+    caminho === "/admin" ||
     caminho.startsWith("/admin/") ||
     caminho.startsWith("/profissional/")
   );
@@ -553,7 +554,8 @@ app.get(
   "/{*rota}",
   (req, res, next) => {
     const aceitaHtml = String(
-      req.headers.accept || ""
+      req.headers.accept ||
+      ""
     ).toLowerCase().includes("text/html");
 
     if (!aceitaHtml) {

@@ -340,7 +340,7 @@ export function AdminMarketingPage() {
           <span className={`marketing-trust-chip ${pendingSessions > 0 ? "is-warning" : "is-success"}`}>
             {attribution.detectedPaidSessions === 0
               ? "Sem tráfego pago"
-              : `${formatMetricPercent(paidCoverage)} atribuído`}
+              : `${formatMetricPercent(paidCoverage)} do tráfego pago identificado`}
           </span>
           {officialSessions > 0 && (
             <small>{directSessions} diretas + {assistedSessions} assistidas</small>

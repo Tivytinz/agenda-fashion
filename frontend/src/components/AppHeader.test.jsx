@@ -162,7 +162,7 @@ describe("cabeçalho por contexto", () => {
     );
 
     expect(administration.getAttribute("href"))
-      .toBe("/admin/trafego-pago");
+      .toBe("/admin");
     expect(screen.queryByText("Marketing Admin")).toBeNull();
     expect(screen.queryByText("Custos & CPA")).toBeNull();
     expect(screen.queryByText("Funil profissional")).toBeNull();
@@ -178,12 +178,16 @@ describe("cabeçalho por contexto", () => {
       logout
     });
 
-    renderHeader("/admin/trafego-pago");
+    renderHeader("/admin");
 
     expect(
       screen.getByRole("link", { name: "Início" })
         .getAttribute("href")
     ).toBe("/");
+    expect(
+      screen.getByRole("link", { name: "Agenda Fashion Admin" })
+        .getAttribute("href")
+    ).toBe("/admin");
     expect(
       screen.queryByRole("link", { name: "Administração" })
     ).toBeNull();

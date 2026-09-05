@@ -96,12 +96,12 @@ beforeEach(() => {
   apiRequest.mockResolvedValue(RESULT);
 });
 
-describe("saúde do SaaS no admin", () => {
+describe("ativação profissional no admin", () => {
   it("mostra os indicadores, pendências e ações de contato", async () => {
     render(<AdminSaasHealthPage />);
 
     expect(
-      await screen.findByRole("heading", { name: "Saúde do SaaS" })
+      await screen.findByRole("heading", { name: "Ativação profissional" })
     ).not.toBeNull();
     expect(screen.getByText("Ana Souza")).not.toBeNull();
     expect(screen.getByText("Studio Ana")).not.toBeNull();
