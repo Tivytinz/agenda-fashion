@@ -151,7 +151,7 @@ describe("AdminMarketingPage", () => {
     expect(screen.getByRole("button", { name: "7 dias" }).getAttribute("aria-pressed")).toBe("true");
 
     const funnelLink = screen.getAllByRole("link", { name: "Ver funil completo" })[0];
-    expect(funnelLink.getAttribute("href")).toContain("periodo=7");
+    expect(funnelLink.getAttribute("href")).toBe("/admin/trafego-pago/profissionais");
 
     expect(
       screen.queryByRole("button", { name: /Nova campanha oficial/i })
