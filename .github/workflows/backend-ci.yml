@@ -77,6 +77,9 @@ jobs:
       - name: Audit production dependencies
         run: npm audit --omit=dev --audit-level=high
 
+      - name: Audit frontend dependencies
+        run: npm --prefix frontend audit --audit-level=high
+
       - name: Install mobile browsers
         run: npm --prefix frontend exec -- playwright install --with-deps chromium webkit
 
