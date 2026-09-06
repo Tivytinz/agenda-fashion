@@ -1,0 +1,72 @@
+name: Nanoid remediation
+
+on:
+  push:
+    branches:
+      - fix/nanoid-cve-2026-67213
+
+permissions:
+  contents: write
+
+jobs:
+  remediate:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: fix/nanoid-cve-2026-67213
+
+      - name: Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Refresh only the vulnerable nanoid resolution
+        shell: bash
+        run: |
+          set -euo pipefail
+          cp frontend/package-lock.json /tmp/package-lock.before.json
+          npm --prefix frontend audit fix --package-lock-only --audit-level=high
+          node <<'NODE'
+          const fs = require('fs');
+          const before = JSON.parse(fs.readFileSync('/tmp/package-lock.before.json', 'utf8'));
+          const after = JSON.parse(fs.readFileSync('frontend/package-lock.json', 'utf8'));
+          const key = 'node_modules/nanoid';
+          const resolved = after.packages?.[key];
+          if (!resolved) throw new Error('nanoid não encontrado no lockfile atualizado');
+          if (resolved.version !== '3.3.18') {
+            throw new Error(`Versão inesperada de nanoid: ${resolved.version}`);
+          }
+          if (resolved.resolved !== 'https://registry.npmjs.org/nanoid/-/nanoid-3.3.18.tgz') {
+            throw new Error(`Tarball inesperado: ${resolved.resolved}`);
+          }
+          if (resolved.integrity !== 'sha512-DTg4MJbGMWkfi6VZFdNt2/caMbQy4Ou+Op/hJQvGEWcnVfoA1QA+xzRKAzw9jD6+GVOOeYr/mIcuDSdug6F6+w==') {
+            throw new Error(`Integrity inesperada: ${resolved.integrity}`);
+          }
+          const beforeNanoid = before.packages?.[key];
+          delete before.packages[key];
+          delete after.packages[key];
+          if (JSON.stringify(before) !== JSON.stringify(after)) {
+            throw new Error('npm audit fix alterou conteúdo além do bloco nanoid');
+          }
+          console.log(`nanoid: ${beforeNanoid?.version} -> ${resolved.version}`);
+          NODE
+
+      - name: Verify frontend audit
+        run: npm --prefix frontend audit --audit-level=high
+
+      - name: Commit lockfile remediation
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add frontend/package-lock.json
+          git diff --cached --quiet && exit 0
+          git commit -m "fix(security): update nanoid to 3.3.18"
+          git push origin HEAD:fix/nanoid-cve-2026-67213
