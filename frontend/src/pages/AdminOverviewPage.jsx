@@ -3,10 +3,7 @@ import {
   useMemo,
   useState
 } from "react";
-import {
-  Link,
-  useSearchParams
-} from "react-router-dom";
+import { useSearchParams } from "react-router-dom";
 import { apiRequest } from "../api/client";
 import {
   ErrorState,
@@ -14,7 +11,6 @@ import {
 } from "../components/ScreenState";
 import {
   ADMIN_PERIODS,
-  adminPathWithPeriod,
   adminPeriodLabel,
   normalizeAdminPeriod,
   setPeriodSearchParam
@@ -31,65 +27,6 @@ function StatusCard({ hint, label, tone = "neutral", value }) {
       <small>{hint}</small>
     </article>
   );
-}
-
-function AttentionCard({ hint, label, to, value }) {
-  return (
-    <Link className="admin-attention-card" to={to}>
-      <span>{label}</span>
-      <strong>{value}</strong>
-      <small>{hint}</small>
-      <b>Ver profissionais →</b>
-    </Link>
-  );
-}
-
-function readinessState(readiness) {
-  if (readiness?.status === "ready" && readiness?.database === "ok") {
-    return {
-      label: "Operacional",
-      hint: "Aplicação + banco prontos",
-      tone: "success"
-    };
-  }
-
-  if (readiness) {
-    return {
-      label: "Atenção",
-      hint: "Readiness da aplicação requer verificação",
-      tone: "warning"
-    };
-  }
-
-  return {
-    label: "Não verificado",
-    hint: "Readiness indisponível nesta leitura",
-    tone: "neutral"
-  };
-}
-
-function activationLink(filter) {
-  return `/admin/saude?pendencia=${encodeURIComponent(filter)}`;
-}
-
-function profileActivationLink(profile) {
-  const name = String(profile?.nome || "").trim();
-  return name
-    ? `/admin/saude?busca=${encodeURIComponent(name)}`
-    : "/admin/saude";
-}
-
-function inactivityLabel(value) {
-  if (!value) return "Sem atividade registrada";
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "Sem atividade registrada";
-
-  const elapsed = Math.max(0, Date.now() - date.getTime());
-  const days = Math.floor(elapsed / (24 * 60 * 60 * 1000));
-
-  if (days === 0) return "Atividade hoje";
-  if (days === 1) return "Sem atividade há 1 dia";
-  return `Sem atividade há ${days} dias`;
 }
 
 function recurrenceValue(recurrence, key) {
@@ -137,19 +74,11 @@ export function AdminOverviewPage() {
       dashboard: apiRequest(`/admin/dashboard?periodo=${period}`, {
         signal: controller.signal
       }),
-      activation: apiRequest(
-        "/admin/saude/perfis-incompletos?pendencia=todos&pagina=1&limite=25",
-        { signal: controller.signal }
-      ),
       funnel: apiRequest(`/admin/marketing/funil-profissionais?periodo=${period}`, {
         signal: controller.signal
       }),
       recurrence: apiRequest(`/admin/marketing/recorrencia-profissionais?periodo=${period}`, {
         signal: controller.signal
-      }),
-      readiness: apiRequest("/health/ready", {
-        signal: controller.signal,
-        timeoutMs: 8000
       })
     })
       .then(({ values, errors }) => {
@@ -165,7 +94,7 @@ export function AdminOverviewPage() {
         if (!values.dashboard || !values.funnel) {
           setError(
             periodError?.error?.message ||
-              "Não foi possível atualizar os indicadores do período selecionado."
+              "Não foi possível atualizar as métricas do período selecionado."
           );
           return;
         }
@@ -173,15 +102,15 @@ export function AdminOverviewPage() {
         setData((current) => ({
           period,
           dashboard: values.dashboard,
-          activation: values.activation || current?.activation || null,
           funnel: values.funnel,
-          recurrence: values.recurrence || current?.recurrence || null,
-          readiness: values.readiness || current?.readiness || null
+          recurrence:
+            values.recurrence ||
+            (current?.period === period ? current.recurrence : null)
         }));
 
         if (nonAbortErrors.length > 0) {
           setError(
-            "Parte dos indicadores atuais está temporariamente indisponível. Os últimos dados válidos continuam visíveis."
+            "Parte das métricas está temporariamente indisponível. Os últimos dados válidos do mesmo período continuam visíveis quando disponíveis."
           );
         }
       })
@@ -196,19 +125,11 @@ export function AdminOverviewPage() {
   }, [period, reloadKey]);
 
   const dashboard = data?.dashboard || {};
-  const activationAvailable = Boolean(data?.activation);
-  const activation = data?.activation || null;
-  const summary = activation?.resumo || {};
-  const profiles = useMemo(
-    () => (activation?.perfis || []).slice(0, 5),
-    [activation?.perfis]
-  );
   const funnelSummary =
     data?.funnel?.resumo ||
     data?.funnel?.resumoOficial ||
     {};
   const recurrence = data?.recurrence || null;
-  const system = readinessState(data?.readiness);
 
   const activationMilestones = useMemo(() => [
     { label: "Cadastros", value: toFiniteNumber(funnelSummary.cadastros) },
@@ -222,7 +143,7 @@ export function AdminOverviewPage() {
   if (!data && !error) {
     return (
       <main className="workspace-page admin-workspace-page admin-command-page">
-        <LoadingState>Carregando centro de comando...</LoadingState>
+        <LoadingState>Carregando métricas do Agenda Fashion...</LoadingState>
       </main>
     );
   }
@@ -241,14 +162,8 @@ export function AdminOverviewPage() {
   const indicators = dashboard.indicadores || dashboard;
   const behavior = dashboard.comportamento || {};
   const metrics = dashboard.metricas || dashboard;
-  const highlights = dashboard.destaques || dashboard;
   const loadedPeriod = data?.period || period;
   const loadedPeriodLabel = adminPeriodLabel(loadedPeriod);
-  const funnelPath = adminPathWithPeriod("/admin/trafego-pago/profissionais", period);
-  const activationValue = (key) => activationAvailable ? toFiniteNumber(summary[key]) : "—";
-  const activationHint = (availableHint) => activationAvailable
-    ? availableHint
-    : "Dados de ativação indisponíveis nesta leitura";
 
   return (
     <main
@@ -258,13 +173,13 @@ export function AdminOverviewPage() {
       <header className="workspace-heading admin-command-heading">
         <div>
           <p className="eyebrow">Administração</p>
-          <h1>Centro de comando</h1>
+          <h1>Visão geral</h1>
           <p>
-            Veja o estado atual da operação, onde profissionais estão travando e como os principais marcos avançaram no período escolhido.
+            Métricas consolidadas do Agenda Fashion para acompanhar aquisição, ativação, uso, retenção, monetização e demanda sem misturar operação individual nesta tela.
           </p>
         </div>
 
-        <div className="segmented-control" aria-label="Período do centro de comando">
+        <div className="segmented-control" aria-label="Período da visão geral">
           {ADMIN_PERIODS.map(([value, label]) => (
             <button
               aria-pressed={period === value}
@@ -284,119 +199,41 @@ export function AdminOverviewPage() {
       </header>
 
       {refreshing && data && (
-        <p className="data-refresh-status" role="status">Atualizando centro de comando sem ocultar os últimos dados...</p>
+        <p className="data-refresh-status" role="status">
+          Atualizando métricas sem ocultar os últimos dados do período carregado...
+        </p>
       )}
       {error && data && <p className="form-error" role="alert">{error}</p>}
 
-      <section aria-labelledby="admin-now-heading">
-        <div className="admin-section-heading">
-          <p className="eyebrow">Agora</p>
-          <h2 id="admin-now-heading">Situação atual</h2>
-          <p className="muted">Readiness e fila de ativação representam o estado atual, independentemente do período selecionado.</p>
-        </div>
-        <div className="admin-command-now-grid">
-          <StatusCard
-            hint={system.hint}
-            label="Sistema"
-            tone={system.tone}
-            value={system.label}
-          />
-          <StatusCard
-            hint={activationHint(`de ${toFiniteNumber(summary.totalProfissionais)} profissionais`)}
-            label="Ativações pendentes"
-            tone={activationAvailable
-              ? toFiniteNumber(summary.totalIncompletos) > 0 ? "warning" : "success"
-              : "neutral"}
-            value={activationValue("totalIncompletos")}
-          />
-        </div>
-      </section>
-
-      <section className="panel admin-command-attention-panel">
-        <div className="panel-heading">
-          <div>
-            <p className="eyebrow">Prioridade operacional</p>
-            <h2>Profissionais que precisam de atenção</h2>
-            <p className="muted">
-              Os cards mostram pendências independentes: o mesmo profissional pode aparecer em mais de um bloqueio. A lista abaixo prioriza quem está mais perto de ativar e está há mais tempo sem atividade.
-            </p>
-          </div>
-          <Link className="button button-secondary button-small" to="/admin/saude">
-            Abrir ativação
-          </Link>
-        </div>
-
-        <div className="admin-attention-grid">
-          <AttentionCard
-            hint={activationHint("ainda sem área profissional")}
-            label="Sem negócio"
-            to={activationLink("sem_negocio")}
-            value={activationValue("semNegocio")}
-          />
-          <AttentionCard
-            hint={activationHint("dados obrigatórios pendentes")}
-            label="Dados essenciais"
-            to={activationLink("perfil")}
-            value={activationValue("perfilIncompleto")}
-          />
-          <AttentionCard
-            hint={activationHint("negócios sem serviço ativo")}
-            label="Sem serviço"
-            to={activationLink("servico")}
-            value={activationValue("semServico")}
-          />
-          <AttentionCard
-            hint={activationHint("horários ainda não configurados")}
-            label="Sem agenda"
-            to={activationLink("agenda")}
-            value={activationValue("semAgenda")}
-          />
-          <AttentionCard
-            hint={activationHint("fora do catálogo público")}
-            label="Não publicados"
-            to={activationLink("publicacao")}
-            value={activationValue("naoPublicados")}
-          />
-          <AttentionCard
-            hint={activationHint("publicados ainda sem reserva válida")}
-            label="Sem 1º agendamento"
-            to={activationLink("primeiro_agendamento")}
-            value={activationValue("semPrimeiroAgendamento")}
-          />
-        </div>
-
-        {activationAvailable && profiles.length > 0 && (
-          <div className="admin-priority-list" aria-label="Profissionais prioritários">
-            <h3>Próximos profissionais a ajudar</h3>
-            {profiles.map((profile) => (
-              <article key={profile.usuarioId || profile.email || profile.nome}>
-                <div>
-                  <strong>{profile.nome || "Profissional"}</strong>
-                  <small>{profile.negocio?.nome || "Negócio ainda não criado"}</small>
-                  <small>{inactivityLabel(profile.ultimaAtividadeEm)}</small>
-                </div>
-                <div>
-                  <span>Próxima ação</span>
-                  <strong>{profile.proximaAcao?.rotulo || "Revisar ativação"}</strong>
-                </div>
-                <Link to={profileActivationLink(profile)}>Abrir ativação →</Link>
-              </article>
-            ))}
-          </div>
-        )}
-      </section>
-
       <section aria-labelledby="admin-period-heading">
         <div className="admin-section-heading">
-          <p className="eyebrow">Período</p>
-          <h2 id="admin-period-heading">Desempenho — {loadedPeriodLabel}</h2>
-          <p className="muted">Estes indicadores usam o período informado e não representam automaticamente a base total atual do AF.</p>
+          <p className="eyebrow">Resumo</p>
+          <h2 id="admin-period-heading">Métricas — {loadedPeriodLabel}</h2>
+          <p className="muted">
+            Todos os números desta visão são indicadores agregados do AF no recorte informado; detalhes operacionais ficam nas áreas específicas do Admin.
+          </p>
         </div>
         <div className="admin-command-summary-grid is-period-summary" aria-label={`Indicadores de ${loadedPeriodLabel}`}>
-          <StatusCard hint="profissionais vinculados no período" label="Profissionais no período" value={toFiniteNumber(indicators.totalProfissionais)} />
-          <StatusCard hint="criados no período" label="Negócios criados" value={toFiniteNumber(indicators.totalNegocios)} />
-          <StatusCard hint="pessoas distintas observadas em agendamentos" label="Clientes que agendaram" value={toFiniteNumber(indicators.totalClientes)} />
-          <StatusCard hint="criados no período selecionado" label="Agendamentos" value={toFiniteNumber(indicators.totalAgendamentos)} />
+          <StatusCard
+            hint="profissionais vinculados no período"
+            label="Profissionais no período"
+            value={toFiniteNumber(indicators.totalProfissionais)}
+          />
+          <StatusCard
+            hint="negócios criados no período"
+            label="Negócios criados"
+            value={toFiniteNumber(indicators.totalNegocios)}
+          />
+          <StatusCard
+            hint="reservas registradas no período"
+            label="Agendamentos"
+            value={toFiniteNumber(indicators.totalAgendamentos)}
+          />
+          <StatusCard
+            hint="pessoas distintas observadas em agendamentos"
+            label="Clientes que agendaram"
+            value={toFiniteNumber(indicators.totalClientes)}
+          />
         </div>
       </section>
 
@@ -409,9 +246,6 @@ export function AdminOverviewPage() {
               Os números mostram quais marcos cada profissional da coorte atingiu. Eles não são conversões adjacentes e podem subir entre etapas por compatibilidade com negócios legados. O primeiro agendamento ignora reservas canceladas.
             </p>
           </div>
-          <Link className="button button-secondary button-small" to={funnelPath}>
-            Ver análise completa
-          </Link>
         </div>
 
         <div className="admin-command-funnel">
@@ -431,12 +265,9 @@ export function AdminOverviewPage() {
             <p className="eyebrow">Monetização</p>
             <h2>Intenção de compra e receita</h2>
             <p className="muted">
-              Checkout é intenção; assinatura paga é monetização. Esses números preservam os eventos financeiros reais e não são tratados como consequência automática dos marcos de ativação.
+              Checkout é intenção; assinatura paga é monetização. Os dois indicadores permanecem separados para não tratar tentativa de compra como receita.
             </p>
           </div>
-          <Link className="button button-secondary button-small" to={funnelPath}>
-            Ver monetização completa
-          </Link>
         </div>
         <div className="admin-command-now-grid">
           <StatusCard
@@ -462,12 +293,6 @@ export function AdminOverviewPage() {
               Mede profissionais cujo primeiro negócio recebeu novos agendamentos não cancelados. Não representa cliente recorrente nem atendimento realizado.
             </p>
           </div>
-          <Link
-            className="button button-secondary button-small"
-            to={funnelPath}
-          >
-            Ver análise completa
-          </Link>
         </div>
         <dl className="admin-command-data-list">
           <div><dt>Com 1º agendamento</dt><dd>{recurrenceValue(recurrence, "comPrimeiroAgendamento")}</dd></div>
@@ -481,8 +306,8 @@ export function AdminOverviewPage() {
         <section className="panel">
           <div className="panel-heading">
             <div>
-              <p className="eyebrow">Cliente final</p>
-              <h2>Sinais de descoberta</h2>
+              <p className="eyebrow">Demanda</p>
+              <h2>Sinais de descoberta e agendamento</h2>
               <p className="muted">
                 São contagens de sessões com cada evento no período, não uma conversão sequencial entre etapas.
               </p>
@@ -501,15 +326,16 @@ export function AdminOverviewPage() {
             <div>
               <p className="eyebrow">Marketplace</p>
               <h2>Sinais da plataforma</h2>
+              <p className="muted">
+                Interações agregadas com perfis e recursos públicos do AF no período carregado.
+              </p>
             </div>
-            <Link className="text-button" to="/admin/operacao">Ver operação →</Link>
           </div>
           <dl className="admin-command-data-list">
             <div><dt>Visitas a perfis</dt><dd>{toFiniteNumber(metrics.visitasPlataforma)}</dd></div>
             <div><dt>Cliques no WhatsApp</dt><dd>{toFiniteNumber(metrics.cliquesWhatsapp)}</dd></div>
             <div><dt>Cliques em mapas</dt><dd>{toFiniteNumber(metrics.cliquesMaps)}</dd></div>
             <div><dt>Favoritos</dt><dd>{toFiniteNumber(metrics.favoritosTotais)}</dd></div>
-            <div><dt>Cidade com mais negócios</dt><dd>{highlights.cidadeTop || "—"}</dd></div>
           </dl>
         </section>
       </div>

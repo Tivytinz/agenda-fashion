@@ -101,7 +101,7 @@ describe("menu mobile da área de trabalho", () => {
     expect(screen.queryByRole("link", { name: /Horários/ })).toBeNull();
   });
 
-  it("prioriza visão geral, ativação, operação e Marketing no admin mobile", async () => {
+  it("prioriza os módulos do AF e mantém Minha conta fora do admin mobile", async () => {
     const user = userEvent.setup();
     render(
       <MemoryRouter
@@ -140,7 +140,7 @@ describe("menu mobile da área de trabalho", () => {
     );
 
     expect(screen.getByRole("link", { name: /WhatsApp/ })).not.toBeNull();
-    expect(screen.getByRole("link", { name: /Minha conta/ })).not.toBeNull();
+    expect(screen.queryByRole("link", { name: /Minha conta/ })).toBeNull();
   });
 
   it("renderiza a mesma navegação administrativa no conteúdo e na lateral", () => {
