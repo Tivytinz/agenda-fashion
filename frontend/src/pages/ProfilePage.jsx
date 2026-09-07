@@ -214,6 +214,15 @@ export function ProfilePage() {
     [professionalId, professionals]
   );
 
+  function trackContactSelection(action) {
+    track("contato_selecionado", {
+      page: "perfil_negocio",
+      mission: "escolher_e_agendar",
+      businessId: business.id,
+      properties: { acao: action }
+    });
+  }
+
   function selectService(id) {
     const nextProfessionalId = professionals.length === 1
       ? String(professionals[0].id)
@@ -329,6 +338,7 @@ export function ProfilePage() {
         favoriteStatus={favoriteStatus}
         imageSource={profileImageSource}
         onToggleFavorite={toggleFavorite}
+        onContactSelected={trackContactSelection}
         rating={formatRating(business)}
         selectedService={selectedService}
       />

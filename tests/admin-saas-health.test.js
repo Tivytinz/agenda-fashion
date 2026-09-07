@@ -100,7 +100,8 @@ describe(
           sem_servico: 3,
           sem_agenda: 5,
           nao_publicados: 4,
-          completos: 2,
+          sem_primeiro_agendamento: 1,
+          completos: 1,
         });
       repository
         .listarPerfisIncompletos
@@ -216,16 +217,17 @@ describe(
             semServico: 3,
             semAgenda: 5,
             naoPublicados: 4,
-            completos: 2,
+            semPrimeiroAgendamento: 1,
+            completos: 1,
           });
         expect(
           resposta.body.perfis[0]
             .progresso
         ).toEqual({
           etapasConcluidas: 1,
-          totalEtapas: 5,
-          percentual: 20,
-          etapasRestantes: 4,
+          totalEtapas: 6,
+          percentual: 17,
+          etapasRestantes: 5,
         });
         expect(
           resposta.body.perfis[0]
@@ -343,6 +345,57 @@ describe(
           "agenda",
           "descricao",
         ]);
+      }
+    );
+
+    test(
+      "mantém perfil publicado na ativação até o primeiro agendamento válido",
+      async () => {
+        repository
+          .listarPerfisIncompletos
+          .mockResolvedValue([{
+            usuario_id: "55",
+            usuario_nome: "Bia Lima",
+            email: "bia@example.com",
+            negocio_id: "23",
+            negocio_nome: "Studio Bia",
+            negocio_slug: "studio-bia",
+            descricao: "Unhas e cuidados",
+            areas: ["Unhas"],
+            setor: "Unhas",
+            negocio_whatsapp: "11987654321",
+            cidade: "São Paulo",
+            estado: "SP",
+            publicado: true,
+            possui_servico_ativo: true,
+            configurado_em: "2026-08-05T12:00:00.000Z",
+            tem_negocio: true,
+            perfil_basico_completo: true,
+            agenda_configurada: true,
+            primeiro_agendamento_valido: false,
+            etapas_concluidas: 5,
+            total_resultados: "1",
+          }]);
+
+        const resposta = await request(criarApp())
+          .get("/admin/saude/perfis-incompletos?pendencia=primeiro_agendamento");
+
+        expect(repository.listarPerfisIncompletos).toHaveBeenCalledWith({
+          busca: "",
+          pendencia: "primeiro_agendamento",
+          limite: 25,
+          offset: 0,
+        });
+        expect(resposta.body.perfis[0].progresso).toEqual({
+          etapasConcluidas: 5,
+          totalEtapas: 6,
+          percentual: 83,
+          etapasRestantes: 1,
+        });
+        expect(resposta.body.perfis[0].proximaAcao).toEqual({
+          codigo: "primeiro_agendamento",
+          rotulo: "Divulgar perfil para conquistar o 1º agendamento",
+        });
       }
     );
 

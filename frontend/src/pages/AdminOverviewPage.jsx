@@ -79,24 +79,6 @@ function profileActivationLink(profile) {
     : "/admin/saude";
 }
 
-function timestamp(value) {
-  if (!value) return Number.POSITIVE_INFINITY;
-  const result = new Date(value).getTime();
-  return Number.isFinite(result) ? result : Number.POSITIVE_INFINITY;
-}
-
-function prioritizeProfiles(profiles) {
-  return [...profiles]
-    .sort((a, b) => {
-      const progressA = toFiniteNumber(a?.progresso?.etapasConcluidas);
-      const progressB = toFiniteNumber(b?.progresso?.etapasConcluidas);
-
-      if (progressA !== progressB) return progressB - progressA;
-      return timestamp(a?.ultimaAtividadeEm) - timestamp(b?.ultimaAtividadeEm);
-    })
-    .slice(0, 5);
-}
-
 function inactivityLabel(value) {
   if (!value) return "Sem atividade registrada";
   const date = new Date(value);
@@ -117,8 +99,23 @@ function recurrenceValue(recurrence, key) {
 
 function recurrenceTime(recurrence) {
   if (!recurrence) return "—";
-  const value = recurrence?.tempos?.primeiroParaSegundo?.medianaDias;
-  return Number.isFinite(Number(value)) ? `${Number(value)} dias` : "Amostra insuficiente";
+  const stats = recurrence?.tempos?.primeiroParaSegundo || {};
+  const sample = Number(stats.amostra);
+  const value = stats.medianaDias;
+
+  if (
+    !Number.isFinite(sample) ||
+    sample <= 0 ||
+    value === null ||
+    value === undefined ||
+    value === ""
+  ) {
+    return "Amostra insuficiente";
+  }
+
+  const days = Number(value);
+  if (!Number.isFinite(days)) return "Amostra insuficiente";
+  return `${days} ${days === 1 ? "dia" : "dias"}`;
 }
 
 export function AdminOverviewPage() {
@@ -203,7 +200,7 @@ export function AdminOverviewPage() {
   const activation = data?.activation || null;
   const summary = activation?.resumo || {};
   const profiles = useMemo(
-    () => prioritizeProfiles(activation?.perfis || []),
+    () => (activation?.perfis || []).slice(0, 5),
     [activation?.perfis]
   );
   const funnelSummary =
@@ -331,10 +328,16 @@ export function AdminOverviewPage() {
 
         <div className="admin-attention-grid">
           <AttentionCard
-            hint={activationHint("horários ainda não configurados")}
-            label="Sem agenda"
-            to={activationLink("agenda")}
-            value={activationValue("semAgenda")}
+            hint={activationHint("ainda sem área profissional")}
+            label="Sem negócio"
+            to={activationLink("sem_negocio")}
+            value={activationValue("semNegocio")}
+          />
+          <AttentionCard
+            hint={activationHint("dados obrigatórios pendentes")}
+            label="Dados essenciais"
+            to={activationLink("perfil")}
+            value={activationValue("perfilIncompleto")}
           />
           <AttentionCard
             hint={activationHint("negócios sem serviço ativo")}
@@ -343,16 +346,22 @@ export function AdminOverviewPage() {
             value={activationValue("semServico")}
           />
           <AttentionCard
+            hint={activationHint("horários ainda não configurados")}
+            label="Sem agenda"
+            to={activationLink("agenda")}
+            value={activationValue("semAgenda")}
+          />
+          <AttentionCard
             hint={activationHint("fora do catálogo público")}
             label="Não publicados"
             to={activationLink("publicacao")}
             value={activationValue("naoPublicados")}
           />
           <AttentionCard
-            hint={activationHint("ainda sem área profissional")}
-            label="Sem negócio"
-            to={activationLink("sem_negocio")}
-            value={activationValue("semNegocio")}
+            hint={activationHint("publicados ainda sem reserva válida")}
+            label="Sem 1º agendamento"
+            to={activationLink("primeiro_agendamento")}
+            value={activationValue("semPrimeiroAgendamento")}
           />
         </div>
 

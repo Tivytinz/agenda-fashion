@@ -12,6 +12,7 @@ const PENDENCIAS_PERMITIDAS =
     "servico",
     "agenda",
     "publicacao",
+    "primeiro_agendamento",
   ]);
 
 const ESTADOS_BRASILEIROS =
@@ -177,6 +178,16 @@ function mapearPendencias(
     });
   }
 
+  if (
+    linha.publicado === true &&
+    linha.primeiro_agendamento_valido !== true
+  ) {
+    pendencias.push({
+      codigo: "primeiro_agendamento",
+      rotulo: "Divulgar perfil para conquistar o 1º agendamento",
+    });
+  }
+
   if (!textoPresente(linha.descricao)) {
     pendencias.push({
       codigo: "descricao",
@@ -207,7 +218,7 @@ function mapearPerfil(
     );
   const percentual =
     Math.round(
-      (etapasConcluidas / 5) *
+      (etapasConcluidas / 6) *
         100
     );
   const pendencias =
@@ -256,18 +267,18 @@ function mapearPerfil(
       : null,
     progresso: {
       etapasConcluidas,
-      totalEtapas: 5,
+      totalEtapas: 6,
       percentual,
       etapasRestantes:
         Math.max(
           0,
-          5 - etapasConcluidas
+          6 - etapasConcluidas
         ),
     },
     prioridade:
-      etapasConcluidas === 4
+      etapasConcluidas === 5
         ? "alta"
-        : etapasConcluidas >= 2 && etapasConcluidas <= 3
+        : etapasConcluidas >= 3 && etapasConcluidas <= 4
           ? "media"
           : "baixa",
     proximaAcao:
@@ -298,6 +309,8 @@ function mapearResumo(
       numero(linha.sem_agenda),
     naoPublicados:
       numero(linha.nao_publicados),
+    semPrimeiroAgendamento:
+      numero(linha.sem_primeiro_agendamento),
     completos:
       numero(linha.completos),
   };

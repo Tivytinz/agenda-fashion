@@ -54,7 +54,7 @@
 
 .admin-attention-grid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 12px;
 }
 
@@ -137,7 +137,7 @@
 
 .admin-command-funnel {
   display: grid;
-  grid-template-columns: repeat(7, minmax(0, 1fr));
+  grid-template-columns: repeat(6, minmax(0, 1fr));
   gap: 8px;
 }
 
@@ -164,16 +164,21 @@
 }
 
 .admin-command-funnel small {
-  overflow: hidden;
+  min-height: 2.4em;
   color: var(--admin-muted);
   font-size: .7rem;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  line-height: 1.2;
+  white-space: normal;
 }
 
 .admin-command-funnel strong {
   color: var(--admin-ink);
   font-size: 1.45rem;
+}
+
+.admin-command-page .panel-heading > .button {
+  flex: 0 0 auto;
+  white-space: nowrap;
 }
 
 .admin-command-two-column {
@@ -455,7 +460,7 @@
   }
 
   .admin-command-funnel {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
   .admin-marketplace-grid {

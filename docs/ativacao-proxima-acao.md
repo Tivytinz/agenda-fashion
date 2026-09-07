@@ -83,6 +83,14 @@ recomendação visualizada
 
 Isso permite medir taxa de seleção e taxa de progressão por estado sem tratar clique como sucesso de produto.
 
+## Ativação no administrativo
+
+O administrativo usa a mesma definição de resultado da máquina de ativação. Em `/admin/saude`, a fila operacional possui seis marcos: negócio criado, dados essenciais completos, serviço ativo, agenda confirmada, negócio publicado e primeiro agendamento não cancelado. Publicação, isoladamente, não encerra a ativação administrativa.
+
+`Descrição` permanece uma melhoria opcional e não entra no denominador do progresso. Os bloqueios podem se sobrepor para diagnóstico, mas a próxima ação respeita a ordem canônica e só orienta divulgação para primeiro agendamento quando o negócio já está publicado.
+
+Na priorização operacional, profissionais mais próximos de concluir vêm primeiro; em empate de progresso, quem está há mais tempo sem atividade vem antes. Essa regra deve ser aplicada no backend para que Visão geral e Ativação apresentem a mesma fila.
+
 ## Pós-ativação e retenção
 
 `ATIVADO` permanece como estado canônico da máquina, mas deixa de competir visualmente com a próxima oportunidade de crescimento. No dashboard, a ativação concluída deve ser apresentada como marco secundário; quando houver uma oportunidade determinística de Growth, ela pode aparecer primeiro.

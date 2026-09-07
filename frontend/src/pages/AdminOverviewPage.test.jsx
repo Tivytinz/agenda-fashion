@@ -71,6 +71,7 @@ function recurrence() {
     },
     tempos: {
       primeiroParaSegundo: {
+        amostra: 2,
         medianaDias: 12
       }
     }
@@ -84,8 +85,10 @@ function activation() {
       totalIncompletos: 11,
       semAgenda: 9,
       semServico: 4,
+      perfilIncompleto: 0,
       naoPublicados: 4,
-      semNegocio: 2
+      semNegocio: 2,
+      semPrimeiroAgendamento: 1
     },
     perfis: [{
       usuarioId: 9,
@@ -161,6 +164,41 @@ describe("centro de comando do admin", () => {
     await waitFor(() => {
       expect(apiRequest).toHaveBeenCalledTimes(5);
     });
+  });
+
+  it("não exibe zero dias quando ainda não existe segundo agendamento", async () => {
+    apiRequest.mockImplementation((path) => {
+      if (path.startsWith("/admin/dashboard")) return Promise.resolve(dashboard());
+      if (path.startsWith("/admin/saude/perfis-incompletos")) return Promise.resolve(activation());
+      if (path.startsWith("/admin/marketing/funil-profissionais")) return Promise.resolve(funnel());
+      if (path.startsWith("/admin/marketing/recorrencia-profissionais")) {
+        return Promise.resolve({
+          resumo: {
+            comPrimeiroAgendamento: 1,
+            comSegundoAgendamento: 0,
+            taxaSegundoSobrePrimeiro: 0
+          },
+          tempos: {
+            primeiroParaSegundo: {
+              amostra: 0,
+              medianaDias: null
+            }
+          }
+        });
+      }
+      if (path === "/health/ready") return Promise.resolve({ status: "ready", database: "ok" });
+      return Promise.reject(new Error(`Rota inesperada: ${path}`));
+    });
+
+    render(
+      <MemoryRouter initialEntries={["/admin?periodo=30"]}>
+        <AdminOverviewPage />
+      </MemoryRouter>
+    );
+
+    await screen.findByRole("heading", { name: "Centro de comando" });
+    expect(screen.getByText("Amostra insuficiente")).not.toBeNull();
+    expect(screen.queryByText("0 dias")).toBeNull();
   });
 
   it("lê e atualiza o período pela URL sem apagar os dados anteriores", async () => {

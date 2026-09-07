@@ -90,6 +90,7 @@ export function ProfileHero({
   favoriteStatus,
   imageSource,
   onToggleFavorite,
+  onContactSelected,
   rating,
   selectedService
 }) {
@@ -246,12 +247,24 @@ export function ProfileHero({
           label="Compartilhar"
         />
         {whatsappUrl && (
-          <a className="profile-action-button whatsapp" href={whatsappUrl} target="_blank" rel="noreferrer">
+          <a
+            className="profile-action-button whatsapp"
+            href={whatsappUrl}
+            onClick={() => onContactSelected?.("whatsapp")}
+            target="_blank"
+            rel="noreferrer"
+          >
             <ActionIcon type="whatsapp" />
             <span>WhatsApp</span>
           </a>
         )}
-        <a className="profile-action-button maps" href={mapsUrl} target="_blank" rel="noreferrer">
+        <a
+          className="profile-action-button maps"
+          href={mapsUrl}
+          onClick={() => onContactSelected?.("maps")}
+          target="_blank"
+          rel="noreferrer"
+        >
           <ActionIcon type="maps" />
           <span>Como chegar</span>
         </a>
