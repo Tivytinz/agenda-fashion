@@ -1,6 +1,9 @@
 const dashboardRepository = require(
   "../repositories/dashboardRepository"
 );
+const dashboardRetentionRepository = require(
+  "../repositories/dashboardRetentionRepository"
+);
 
 const AppError = require(
   "../errors/AppError"
@@ -413,7 +416,7 @@ async function buscarDashboardDono({
 
   const [
     resumo,
-    clientesRecorrentes,
+    resumoRetencao,
     performance,
     favoritos,
     resumoDias,
@@ -427,8 +430,8 @@ async function buscarDashboardDono({
         filtro
       ),
 
-    dashboardRepository
-      .buscarClientesRecorrentes(
+    dashboardRetentionRepository
+      .buscarResumoRetencao(
         negocioId
       ),
 
@@ -490,12 +493,34 @@ async function buscarDashboardDono({
       resumo.faturamento_periodo
     );
 
+  const clientesUnicos =
+    converterNumero(
+      resumoRetencao
+        .clientes_unicos
+    );
+
+  const clientesRecorrentes =
+    converterNumero(
+      resumoRetencao
+        .clientes_recorrentes
+    );
+
   const taxaConversao =
     totalVisitas > 0
       ? Number(
           ((
             agendamentosConvertidos /
             totalVisitas
+          ) * 100).toFixed(1)
+        )
+      : 0;
+
+  const taxaRecorrencia =
+    clientesUnicos > 0
+      ? Number(
+          ((
+            clientesRecorrentes /
+            clientesUnicos
           ) * 100).toFixed(1)
         )
       : 0;
@@ -541,10 +566,14 @@ async function buscarDashboardDono({
           resumo.clientes_novos
         ),
 
+      clientes_unicos:
+        clientesUnicos,
+
       clientes_recorrentes:
-        converterNumero(
-          clientesRecorrentes
-        ),
+        clientesRecorrentes,
+
+      taxa_recorrencia:
+        taxaRecorrencia,
 
       servicos_vendidos:
         converterNumero(
