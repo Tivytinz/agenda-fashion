@@ -4,6 +4,12 @@ const {
 } = require(
   "../src/services/growthIntelligenceService"
 );
+const {
+  MIN_PROFILE_VISITS_FOR_CONVERSION,
+  buildGrowthSignals,
+} = require(
+  "../src/services/growthIntelligence/signalService"
+);
 
 const ATIVACAO_CONCLUIDA = Object.freeze({
   possui_servico_ativo: true,
@@ -30,6 +36,16 @@ function analyze(dashboard, overrides = {}) {
 }
 
 describe("growthIntelligenceService", () => {
+  test("mantém 20 visitas como limiar canônico para avaliar conversão", () => {
+    expect(MIN_PROFILE_VISITS_FOR_CONVERSION).toBe(20);
+    expect(buildGrowthSignals({
+      performance: { visitas_perfil: 19 },
+    }).amostra_conversao_suficiente).toBe(false);
+    expect(buildGrowthSignals({
+      performance: { visitas_perfil: 20 },
+    }).amostra_conversao_suficiente).toBe(true);
+  });
+
   test("não compete com a máquina de ativação antes do primeiro agendamento", () => {
     const result = analyze(
       {
