@@ -23,7 +23,9 @@ jobs:
           node-version: 22
           cache: npm
       - name: Apply targeted security patch
-        run: node .github/scripts/prepare-dependency-security-fix.mjs
+        run: |
+          node .github/scripts/prepare-dependency-security-fix.mjs
+          node .github/scripts/patch-browserslist-security.mjs
       - name: Validate clean install and audits
         run: |
           npm ci
