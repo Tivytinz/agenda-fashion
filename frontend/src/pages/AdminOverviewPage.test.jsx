@@ -37,7 +37,6 @@ function dashboard() {
       cliquesMaps: 4,
       favoritosTotais: 5
     },
-    destaques: { cidadeTop: "Goiânia" },
     comportamento: {
       descobriram: 20,
       avaliaram: 10,
@@ -78,36 +77,11 @@ function recurrence() {
   };
 }
 
-function activation() {
-  return {
-    resumo: {
-      totalProfissionais: 14,
-      totalIncompletos: 11,
-      semAgenda: 9,
-      semServico: 4,
-      perfilIncompleto: 0,
-      naoPublicados: 4,
-      semNegocio: 2,
-      semPrimeiroAgendamento: 1
-    },
-    perfis: [{
-      usuarioId: 9,
-      nome: "Ana Nails",
-      negocio: { nome: "Studio Ana" },
-      progresso: { etapasConcluidas: 4 },
-      ultimaAtividadeEm: "2026-09-01T12:00:00.000Z",
-      proximaAcao: { rotulo: "Configurar agenda" }
-    }]
-  };
-}
-
 function mockRequests() {
   apiRequest.mockImplementation((path) => {
     if (path.startsWith("/admin/dashboard")) return Promise.resolve(dashboard());
-    if (path.startsWith("/admin/saude/perfis-incompletos")) return Promise.resolve(activation());
     if (path.startsWith("/admin/marketing/funil-profissionais")) return Promise.resolve(funnel());
     if (path.startsWith("/admin/marketing/recorrencia-profissionais")) return Promise.resolve(recurrence());
-    if (path === "/health/ready") return Promise.resolve({ status: "ready", database: "ok" });
     return Promise.reject(new Error(`Rota inesperada: ${path}`));
   });
 }
@@ -119,8 +93,8 @@ beforeEach(() => {
 
 afterEach(cleanup);
 
-describe("centro de comando do admin", () => {
-  it("separa estado atual, marcos de ativação, monetização e retenção", async () => {
+describe("visão geral do admin", () => {
+  it("exibe somente métricas agregadas do AF sem misturar operação individual", async () => {
     render(
       <MemoryRouter initialEntries={["/admin?periodo=30"]}>
         <AdminOverviewPage />
@@ -128,10 +102,9 @@ describe("centro de comando do admin", () => {
     );
 
     expect(
-      await screen.findByRole("heading", { name: "Centro de comando" })
+      await screen.findByRole("heading", { name: "Visão geral" })
     ).not.toBeNull();
-    expect(screen.getByRole("heading", { name: "Situação atual" })).not.toBeNull();
-    expect(screen.getByRole("heading", { name: "Desempenho — 30 dias" })).not.toBeNull();
+    expect(screen.getByRole("heading", { name: "Métricas — 30 dias" })).not.toBeNull();
     expect(screen.getByText("Profissionais no período")).not.toBeNull();
     expect(screen.getByText("Negócios criados")).not.toBeNull();
     expect(screen.getByText("Clientes que agendaram")).not.toBeNull();
@@ -145,31 +118,25 @@ describe("centro de comando do admin", () => {
     expect(screen.getByText("40%")).not.toBeNull();
     expect(screen.getByText("12 dias")).not.toBeNull();
     expect(screen.getByText("Reservas criadas")).not.toBeNull();
-    expect(screen.getByText(/contagens de sessões com cada evento/)).not.toBeNull();
-    expect(screen.getByText(/mesmo profissional pode aparecer em mais de um bloqueio/)).not.toBeNull();
-    expect(screen.getByText("Goiânia")).not.toBeNull();
+    expect(screen.getByRole("heading", { name: "Sinais da plataforma" })).not.toBeNull();
 
-    const semAgenda = screen.getByRole("link", { name: /Sem agenda/ });
-    expect(semAgenda.getAttribute("href")).toBe("/admin/saude?pendencia=agenda");
-
-    const ana = screen.getByRole("link", { name: "Abrir ativação →" });
-    expect(ana.getAttribute("href")).toContain("busca=Ana");
-
-    const analysisLinks = screen.getAllByRole("link", { name: "Ver análise completa" });
-    expect(analysisLinks.length).toBe(2);
-    expect(analysisLinks.every((link) =>
-      link.getAttribute("href") === "/admin/trafego-pago/profissionais?periodo=30"
-    )).toBe(true);
+    expect(screen.queryByRole("heading", { name: "Situação atual" })).toBeNull();
+    expect(screen.queryByRole("heading", { name: "Profissionais que precisam de atenção" })).toBeNull();
+    expect(screen.queryByText("Ativações pendentes")).toBeNull();
+    expect(screen.queryByText("Sistema")).toBeNull();
+    expect(screen.queryByRole("link", { name: /Abrir ativação/ })).toBeNull();
 
     await waitFor(() => {
-      expect(apiRequest).toHaveBeenCalledTimes(5);
+      expect(apiRequest).toHaveBeenCalledTimes(3);
     });
+    const requestedPaths = apiRequest.mock.calls.map(([path]) => path);
+    expect(requestedPaths.some((path) => path.startsWith("/admin/saude"))).toBe(false);
+    expect(requestedPaths.includes("/health/ready")).toBe(false);
   });
 
   it("não exibe zero dias quando ainda não existe segundo agendamento", async () => {
     apiRequest.mockImplementation((path) => {
       if (path.startsWith("/admin/dashboard")) return Promise.resolve(dashboard());
-      if (path.startsWith("/admin/saude/perfis-incompletos")) return Promise.resolve(activation());
       if (path.startsWith("/admin/marketing/funil-profissionais")) return Promise.resolve(funnel());
       if (path.startsWith("/admin/marketing/recorrencia-profissionais")) {
         return Promise.resolve({
@@ -186,7 +153,6 @@ describe("centro de comando do admin", () => {
           }
         });
       }
-      if (path === "/health/ready") return Promise.resolve({ status: "ready", database: "ok" });
       return Promise.reject(new Error(`Rota inesperada: ${path}`));
     });
 
@@ -196,7 +162,7 @@ describe("centro de comando do admin", () => {
       </MemoryRouter>
     );
 
-    await screen.findByRole("heading", { name: "Centro de comando" });
+    await screen.findByRole("heading", { name: "Visão geral" });
     expect(screen.getByText("Amostra insuficiente")).not.toBeNull();
     expect(screen.queryByText("0 dias")).toBeNull();
   });
@@ -209,9 +175,8 @@ describe("centro de comando do admin", () => {
       </MemoryRouter>
     );
 
-    await screen.findByText("Ana Nails");
+    await screen.findByRole("heading", { name: "Métricas — 7 dias" });
     expect(screen.getByRole("button", { name: "7 dias" }).getAttribute("aria-pressed")).toBe("true");
-    expect(screen.getByRole("heading", { name: "Desempenho — 7 dias" })).not.toBeNull();
 
     apiRequest.mockClear();
     const never = new Promise(() => {});
@@ -219,8 +184,8 @@ describe("centro de comando do admin", () => {
 
     await user.click(screen.getByRole("button", { name: "Hoje" }));
 
-    expect(screen.getByText("Goiânia")).not.toBeNull();
-    expect(screen.getByText(/Atualizando centro de comando sem ocultar/)).not.toBeNull();
+    expect(screen.getByRole("heading", { name: "Métricas — 7 dias" })).not.toBeNull();
+    expect(screen.getByText(/Atualizando métricas sem ocultar/)).not.toBeNull();
     await waitFor(() => {
       expect(apiRequest).toHaveBeenCalledWith(
         "/admin/dashboard?periodo=today",
@@ -237,7 +202,7 @@ describe("centro de comando do admin", () => {
       </MemoryRouter>
     );
 
-    await screen.findByRole("heading", { name: "Desempenho — 7 dias" });
+    await screen.findByRole("heading", { name: "Métricas — 7 dias" });
 
     apiRequest.mockImplementation((path) => {
       if (path === "/admin/dashboard?periodo=today") {
@@ -249,12 +214,6 @@ describe("centro de comando do admin", () => {
       if (path.startsWith("/admin/marketing/recorrencia-profissionais")) {
         return Promise.resolve(recurrence());
       }
-      if (path.startsWith("/admin/saude/perfis-incompletos")) {
-        return Promise.resolve(activation());
-      }
-      if (path === "/health/ready") {
-        return Promise.resolve({ status: "ready", database: "ok" });
-      }
       return Promise.reject(new Error(`Rota inesperada: ${path}`));
     });
 
@@ -262,35 +221,34 @@ describe("centro de comando do admin", () => {
 
     const alert = await screen.findByRole("alert");
     expect(alert.textContent).toContain("Dashboard indisponível");
-    expect(screen.getByRole("heading", { name: "Desempenho — 7 dias" })).not.toBeNull();
-    expect(screen.queryByRole("heading", { name: "Desempenho — Hoje" })).toBeNull();
+    expect(screen.getByRole("heading", { name: "Métricas — 7 dias" })).not.toBeNull();
+    expect(screen.queryByRole("heading", { name: "Métricas — Hoje" })).toBeNull();
   });
 
-  it("não converte falhas opcionais em zero", async () => {
-    apiRequest.mockImplementation((path) => {
-      if (path.startsWith("/admin/dashboard")) return Promise.resolve(dashboard());
-      if (path.startsWith("/admin/saude/perfis-incompletos")) {
-        return Promise.reject(new Error("Ativação indisponível"));
-      }
-      if (path.startsWith("/admin/marketing/funil-profissionais")) return Promise.resolve(funnel());
-      if (path.startsWith("/admin/marketing/recorrencia-profissionais")) {
-        return Promise.reject(new Error("Recorrência indisponível"));
-      }
-      if (path === "/health/ready") return Promise.resolve({ status: "ready", database: "ok" });
-      return Promise.reject(new Error(`Rota inesperada: ${path}`));
-    });
-
+  it("não reaproveita recorrência de outro período quando a métrica opcional falha", async () => {
+    const user = userEvent.setup();
     render(
-      <MemoryRouter initialEntries={["/admin?periodo=30"]}>
+      <MemoryRouter initialEntries={["/admin?periodo=7"]}>
         <AdminOverviewPage />
       </MemoryRouter>
     );
 
-    await screen.findByRole("heading", { name: "Centro de comando" });
-    const pendingCard = screen.getByText("Ativações pendentes").closest("article");
-    expect(pendingCard?.textContent).toContain("—");
-    expect(pendingCard?.textContent).toContain("Dados de ativação indisponíveis");
-    expect(screen.queryByText("Ana Nails")).toBeNull();
+    await screen.findByText("12 dias");
+
+    apiRequest.mockImplementation((path) => {
+      if (path === "/admin/dashboard?periodo=today") return Promise.resolve(dashboard());
+      if (path === "/admin/marketing/funil-profissionais?periodo=today") return Promise.resolve(funnel());
+      if (path === "/admin/marketing/recorrencia-profissionais?periodo=today") {
+        return Promise.reject(new Error("Recorrência indisponível"));
+      }
+      return Promise.reject(new Error(`Rota inesperada: ${path}`));
+    });
+
+    await user.click(screen.getByRole("button", { name: "Hoje" }));
+
+    await screen.findByRole("heading", { name: "Métricas — Hoje" });
     expect(screen.getByText("Com 2º agendamento").closest("div")?.textContent).toContain("—");
+    expect(screen.queryByText("12 dias")).toBeNull();
+    expect(screen.getByRole("alert").textContent).toContain("Parte das métricas");
   });
 });
