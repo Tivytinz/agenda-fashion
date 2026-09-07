@@ -557,21 +557,10 @@ async function listarPorCampanha(
               AND f.primeiro_agendamento
           )::INT AS primeiros_agendamentos,
           COUNT(*) FILTER (
-            WHERE f.negocio_criado
-              AND f.servico_criado
-              AND f.agenda_configurada
-              AND f.negocio_publicado
-              AND f.primeiro_agendamento
-              AND f.checkout_iniciado
+            WHERE f.checkout_iniciado
           )::INT AS checkouts_iniciados,
           COUNT(*) FILTER (
-            WHERE f.negocio_criado
-              AND f.servico_criado
-              AND f.agenda_configurada
-              AND f.negocio_publicado
-              AND f.primeiro_agendamento
-              AND f.checkout_iniciado
-              AND f.assinatura_ativada
+            WHERE f.assinatura_ativada
           )::INT AS assinaturas_ativadas,
           COUNT(*) FILTER (
             WHERE f.atribuicao_em <=
@@ -605,13 +594,7 @@ async function listarPorCampanha(
                   ($1::INT * INTERVAL '1 day')
           )::INT AS primeiros_agendamentos_maduros_ativacao,
           COUNT(*) FILTER (
-            WHERE f.negocio_criado
-              AND f.servico_criado
-              AND f.agenda_configurada
-              AND f.negocio_publicado
-              AND f.primeiro_agendamento
-              AND f.checkout_iniciado
-              AND f.assinatura_ativada
+            WHERE f.assinatura_ativada
               AND f.atribuicao_em <=
                 NOW() - ($2::INT * INTERVAL '1 day')
               AND f.primeiro_pagamento_em <=
@@ -624,14 +607,6 @@ async function listarPorCampanha(
           COALESCE(
             SUM(
               f.receita_primeiro_pagamento_centavos
-            ) FILTER (
-              WHERE f.negocio_criado
-                AND f.servico_criado
-                AND f.agenda_configurada
-                AND f.negocio_publicado
-                AND f.primeiro_agendamento
-                AND f.checkout_iniciado
-                AND f.assinatura_ativada
             ),
             0
           )::BIGINT
