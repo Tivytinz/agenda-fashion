@@ -117,7 +117,7 @@ beforeEach(() => {
 afterEach(cleanup);
 
 describe("centro de comando do admin", () => {
-  it("separa estado atual, funil cumulativo, monetização e retenção", async () => {
+  it("separa estado atual, marcos de ativação, monetização e retenção", async () => {
     render(
       <MemoryRouter initialEntries={["/admin?periodo=30"]}>
         <AdminOverviewPage />
@@ -136,7 +136,8 @@ describe("centro de comando do admin", () => {
     expect(screen.getByText("1º agendamento válido")).not.toBeNull();
     expect(screen.getByText("Checkouts iniciados")).not.toBeNull();
     expect(screen.getByText("Assinaturas pagas")).not.toBeNull();
-    expect(screen.getByText(/Maior perda observada: Serviços → Agendas/)).not.toBeNull();
+    expect(screen.getByRole("heading", { name: "Marcos de ativação da coorte" })).not.toBeNull();
+    expect(screen.getByText(/não são conversões adjacentes/)).not.toBeNull();
     expect(screen.getByRole("heading", { name: "Repetição de uso após o primeiro agendamento" })).not.toBeNull();
     expect(screen.getByText("40%")).not.toBeNull();
     expect(screen.getByText("12 dias")).not.toBeNull();
@@ -151,7 +152,7 @@ describe("centro de comando do admin", () => {
     const ana = screen.getByRole("link", { name: "Abrir ativação →" });
     expect(ana.getAttribute("href")).toContain("busca=Ana");
 
-    const fullFunnel = screen.getByRole("link", { name: "Ver funil completo" });
+    const fullFunnel = screen.getByRole("link", { name: "Ver análise completa" });
     expect(fullFunnel.getAttribute("href")).toBe("/admin/trafego-pago/profissionais?periodo=30");
 
     await waitFor(() => {
