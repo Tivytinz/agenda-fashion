@@ -109,6 +109,48 @@ function bottleneckFrom(stages, period) {
   };
 }
 
+function timestamp(value) {
+  if (!value) return Number.POSITIVE_INFINITY;
+  const result = new Date(value).getTime();
+  return Number.isFinite(result) ? result : Number.POSITIVE_INFINITY;
+}
+
+function prioritizeProfiles(profiles) {
+  return [...profiles]
+    .sort((a, b) => {
+      const progressA = toFiniteNumber(a?.progresso?.etapasConcluidas);
+      const progressB = toFiniteNumber(b?.progresso?.etapasConcluidas);
+
+      if (progressA !== progressB) return progressB - progressA;
+      return timestamp(a?.ultimaAtividadeEm) - timestamp(b?.ultimaAtividadeEm);
+    })
+    .slice(0, 5);
+}
+
+function inactivityLabel(value) {
+  if (!value) return "Sem atividade registrada";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "Sem atividade registrada";
+
+  const elapsed = Math.max(0, Date.now() - date.getTime());
+  const days = Math.floor(elapsed / (24 * 60 * 60 * 1000));
+
+  if (days === 0) return "Atividade hoje";
+  if (days === 1) return "Sem atividade há 1 dia";
+  return `Sem atividade há ${days} dias`;
+}
+
+function recurrenceValue(recurrence, key) {
+  if (!recurrence) return "—";
+  return toFiniteNumber(recurrence?.resumo?.[key]);
+}
+
+function recurrenceTime(recurrence) {
+  if (!recurrence) return "—";
+  const value = recurrence?.tempos?.primeiroParaSegundo?.medianaDias;
+  return Number.isFinite(Number(value)) ? `${Number(value)} dias` : "Amostra insuficiente";
+}
+
 export function AdminOverviewPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const period = normalizeAdminPeriod(searchParams.get("periodo"));
@@ -129,10 +171,13 @@ export function AdminOverviewPage() {
         signal: controller.signal
       }),
       activation: apiRequest(
-        "/admin/saude/perfis-incompletos?pendencia=todos&pagina=1&limite=5",
+        "/admin/saude/perfis-incompletos?pendencia=todos&pagina=1&limite=25",
         { signal: controller.signal }
       ),
       funnel: apiRequest(`/admin/marketing/funil-profissionais?periodo=${period}`, {
+        signal: controller.signal
+      }),
+      recurrence: apiRequest(`/admin/marketing/recorrencia-profissionais?periodo=${period}`, {
         signal: controller.signal
       }),
       readiness: apiRequest("/health/ready", {
@@ -163,6 +208,7 @@ export function AdminOverviewPage() {
           dashboard: values.dashboard,
           activation: values.activation || current?.activation || null,
           funnel: values.funnel,
+          recurrence: values.recurrence || current?.recurrence || null,
           readiness: values.readiness || current?.readiness || null
         }));
 
@@ -186,11 +232,15 @@ export function AdminOverviewPage() {
   const activationAvailable = Boolean(data?.activation);
   const activation = data?.activation || null;
   const summary = activation?.resumo || {};
-  const profiles = activation?.perfis || [];
+  const profiles = useMemo(
+    () => prioritizeProfiles(activation?.perfis || []),
+    [activation?.perfis]
+  );
   const funnelSummary =
     data?.funnel?.resumo ||
     data?.funnel?.resumoOficial ||
     {};
+  const recurrence = data?.recurrence || null;
   const system = readinessState(data?.readiness);
 
   const funnelStages = useMemo(() => [
@@ -199,8 +249,9 @@ export function AdminOverviewPage() {
     { label: "Serviços", value: toFiniteNumber(funnelSummary.servicosCriados), action: "servico" },
     { label: "Agendas", value: toFiniteNumber(funnelSummary.agendasConfiguradas), action: "agenda" },
     { label: "Publicados", value: toFiniteNumber(funnelSummary.negociosPublicados), action: "publicacao" },
-    { label: "1º agendamento", value: toFiniteNumber(funnelSummary.primeirosAgendamentos) },
-    { label: "Assinaturas", value: toFiniteNumber(funnelSummary.assinaturasAtivadas) }
+    { label: "1º agendamento válido", value: toFiniteNumber(funnelSummary.primeirosAgendamentos) },
+    { label: "Checkout", value: toFiniteNumber(funnelSummary.checkoutsIniciados) },
+    { label: "Assinaturas pagas", value: toFiniteNumber(funnelSummary.assinaturasAtivadas) }
   ], [funnelSummary]);
 
   const bottleneck = useMemo(
@@ -307,7 +358,7 @@ export function AdminOverviewPage() {
             <p className="eyebrow">Prioridade operacional</p>
             <h2>Profissionais que precisam de atenção</h2>
             <p className="muted">
-              Abra diretamente o filtro correspondente ao bloqueio observado agora.
+              Os cards mostram pendências independentes: o mesmo profissional pode aparecer em mais de um bloqueio. A lista abaixo prioriza quem está mais perto de ativar e está há mais tempo sem atividade.
             </p>
           </div>
           <Link className="button button-secondary button-small" to="/admin/saude">
@@ -350,6 +401,7 @@ export function AdminOverviewPage() {
                 <div>
                   <strong>{profile.nome || "Profissional"}</strong>
                   <small>{profile.negocio?.nome || "Negócio ainda não criado"}</small>
+                  <small>{inactivityLabel(profile.ultimaAtividadeEm)}</small>
                 </div>
                 <div>
                   <span>Próxima ação</span>
@@ -380,9 +432,9 @@ export function AdminOverviewPage() {
         <div className="panel-heading">
           <div>
             <p className="eyebrow">Jornada de valor</p>
-            <h2>Da aquisição ao resultado</h2>
+            <h2>Da aquisição à monetização</h2>
             <p className="muted">
-              Cadastro não é resultado final: o AF acompanha negócio, serviço, agenda, publicação, primeiro agendamento e assinatura.
+              O funil é cumulativo: cada etapa só conta profissionais que também cumpriram os marcos anteriores. O primeiro agendamento ignora reservas canceladas.
             </p>
           </div>
           <Link className="button button-secondary button-small" to={funnelPath}>
@@ -414,19 +466,46 @@ export function AdminOverviewPage() {
         )}
       </section>
 
+      <section className="panel">
+        <div className="panel-heading">
+          <div>
+            <p className="eyebrow">Retenção</p>
+            <h2>Repetição de uso após o primeiro agendamento</h2>
+            <p className="muted">
+              Mede profissionais cujo primeiro negócio recebeu novos agendamentos não cancelados. Não representa cliente recorrente nem atendimento realizado.
+            </p>
+          </div>
+          <Link
+            className="button button-secondary button-small"
+            to={adminPathWithPeriod("/admin/trafego-pago/profissionais", period)}
+          >
+            Ver análise completa
+          </Link>
+        </div>
+        <dl className="admin-command-data-list">
+          <div><dt>Com 1º agendamento</dt><dd>{recurrenceValue(recurrence, "comPrimeiroAgendamento")}</dd></div>
+          <div><dt>Com 2º agendamento</dt><dd>{recurrenceValue(recurrence, "comSegundoAgendamento")}</dd></div>
+          <div><dt>2º sobre 1º</dt><dd>{recurrence ? `${toFiniteNumber(recurrence?.resumo?.taxaSegundoSobrePrimeiro)}%` : "—"}</dd></div>
+          <div><dt>Mediana até o 2º</dt><dd>{recurrenceTime(recurrence)}</dd></div>
+        </dl>
+      </section>
+
       <div className="admin-command-two-column">
         <section className="panel">
           <div className="panel-heading">
             <div>
               <p className="eyebrow">Cliente final</p>
-              <h2>Comportamento de descoberta</h2>
+              <h2>Sinais de descoberta</h2>
+              <p className="muted">
+                São contagens de sessões com cada evento no período, não uma conversão sequencial entre etapas.
+              </p>
             </div>
           </div>
           <dl className="admin-command-data-list">
             <div><dt>Descobriram</dt><dd>{toFiniteNumber(behavior.descobriram)}</dd></div>
             <div><dt>Avaliaram</dt><dd>{toFiniteNumber(behavior.avaliaram)}</dd></div>
             <div><dt>Iniciaram agendamento</dt><dd>{toFiniteNumber(behavior.iniciaram)}</dd></div>
-            <div><dt>Concluíram agendamento</dt><dd>{toFiniteNumber(behavior.concluiram)}</dd></div>
+            <div><dt>Reservas criadas</dt><dd>{toFiniteNumber(behavior.concluiram)}</dd></div>
           </dl>
         </section>
 
