@@ -134,7 +134,7 @@ describe("centro de comando do admin", () => {
     expect(screen.getByText("Clientes que agendaram")).not.toBeNull();
     expect(screen.getByText("Agendas")).not.toBeNull();
     expect(screen.getByText("1º agendamento válido")).not.toBeNull();
-    expect(screen.getByText("Checkout")).not.toBeNull();
+    expect(screen.getByText("Checkouts iniciados")).not.toBeNull();
     expect(screen.getByText("Assinaturas pagas")).not.toBeNull();
     expect(screen.getByText(/Maior perda observada: Serviços → Agendas/)).not.toBeNull();
     expect(screen.getByRole("heading", { name: "Repetição de uso após o primeiro agendamento" })).not.toBeNull();
