@@ -152,8 +152,11 @@ describe("centro de comando do admin", () => {
     const ana = screen.getByRole("link", { name: "Abrir ativação →" });
     expect(ana.getAttribute("href")).toContain("busca=Ana");
 
-    const fullFunnel = screen.getByRole("link", { name: "Ver análise completa" });
-    expect(fullFunnel.getAttribute("href")).toBe("/admin/trafego-pago/profissionais?periodo=30");
+    const analysisLinks = screen.getAllByRole("link", { name: "Ver análise completa" });
+    expect(analysisLinks.length).toBe(2);
+    expect(analysisLinks.every((link) =>
+      link.getAttribute("href") === "/admin/trafego-pago/profissionais?periodo=30"
+    )).toBe(true);
 
     await waitFor(() => {
       expect(apiRequest).toHaveBeenCalledTimes(5);
