@@ -523,19 +523,13 @@ async function listarPorCampanha(
             WHERE f.negocio_criado
           )::INT AS negocios_criados,
           COUNT(*) FILTER (
-            WHERE f.negocio_criado
-              AND f.servico_criado
+            WHERE f.servico_criado
           )::INT AS servicos_criados,
           COUNT(*) FILTER (
-            WHERE f.negocio_criado
-              AND f.servico_criado
-              AND f.agenda_configurada
+            WHERE f.agenda_configurada
           )::INT AS agendas_configuradas,
           COUNT(*) FILTER (
-            WHERE f.negocio_criado
-              AND f.servico_criado
-              AND f.agenda_configurada
-              AND f.negocio_publicado
+            WHERE f.negocio_publicado
           )::INT AS negocios_publicados,
           COUNT(*) FILTER (
             WHERE f.perfil_divulgado
@@ -550,11 +544,7 @@ async function listarPorCampanha(
             WHERE f.primeiro_agendamento_via_divulgacao
           )::INT AS primeiros_agendamentos_via_divulgacao,
           COUNT(*) FILTER (
-            WHERE f.negocio_criado
-              AND f.servico_criado
-              AND f.agenda_configurada
-              AND f.negocio_publicado
-              AND f.primeiro_agendamento
+            WHERE f.primeiro_agendamento
           )::INT AS primeiros_agendamentos,
           COUNT(*) FILTER (
             WHERE f.checkout_iniciado
@@ -571,10 +561,7 @@ async function listarPorCampanha(
               NOW() - ($2::INT * INTERVAL '1 day')
           )::INT AS cadastros_maduros_monetizacao,
           COUNT(*) FILTER (
-            WHERE f.negocio_criado
-              AND f.servico_criado
-              AND f.agenda_configurada
-              AND f.negocio_publicado
+            WHERE f.negocio_publicado
               AND f.atribuicao_em <=
                 NOW() - ($1::INT * INTERVAL '1 day')
               AND f.primeira_publicacao_em <=
@@ -582,11 +569,7 @@ async function listarPorCampanha(
                   ($1::INT * INTERVAL '1 day')
           )::INT AS negocios_publicados_maduros_ativacao,
           COUNT(*) FILTER (
-            WHERE f.negocio_criado
-              AND f.servico_criado
-              AND f.agenda_configurada
-              AND f.negocio_publicado
-              AND f.primeiro_agendamento
+            WHERE f.primeiro_agendamento
               AND f.atribuicao_em <=
                 NOW() - ($1::INT * INTERVAL '1 day')
               AND f.primeiro_agendamento_em <=
