@@ -82,7 +82,7 @@ describe(
     );
 
     test(
-      "mantém os marcos principais como funil cumulativo",
+      "mantém a ativação cumulativa sem rebaixar a verdade financeira",
       async () => {
         await repository
           .listarPorCampanha("30");
@@ -91,16 +91,22 @@ describe(
           mockQuery.mock.calls[0];
 
         expect(sql).toMatch(
-          /AS servicos_criados[\s\S]*WHERE f\.negocio_criado\s+AND f\.servico_criado/i
+          /WHERE f\.negocio_criado\s+AND f\.servico_criado\s*\)\s*::INT AS servicos_criados/i
         );
         expect(sql).toMatch(
-          /WHERE f\.negocio_criado\s+AND f\.servico_criado\s+AND f\.agenda_configurada\s+AND f\.negocio_publicado[\s\S]*AS negocios_publicados/i
+          /WHERE f\.negocio_criado\s+AND f\.servico_criado\s+AND f\.agenda_configurada\s*\)\s*::INT AS agendas_configuradas/i
         );
         expect(sql).toMatch(
-          /WHERE f\.negocio_criado[\s\S]*AND f\.primeiro_agendamento\s+AND f\.checkout_iniciado[\s\S]*AS checkouts_iniciados/i
+          /WHERE f\.negocio_criado\s+AND f\.servico_criado\s+AND f\.agenda_configurada\s+AND f\.negocio_publicado\s*\)\s*::INT AS negocios_publicados/i
         );
         expect(sql).toMatch(
-          /AND f\.checkout_iniciado\s+AND f\.assinatura_ativada[\s\S]*AS assinaturas_ativadas/i
+          /WHERE f\.negocio_criado[\s\S]*AND f\.primeiro_agendamento\s*\)\s*::INT AS primeiros_agendamentos/i
+        );
+        expect(sql).toMatch(
+          /COUNT\(\*\) FILTER \(\s*WHERE f\.checkout_iniciado\s*\)::INT AS checkouts_iniciados/i
+        );
+        expect(sql).toMatch(
+          /COUNT\(\*\) FILTER \(\s*WHERE f\.assinatura_ativada\s*\)::INT AS assinaturas_ativadas/i
         );
       }
     );
