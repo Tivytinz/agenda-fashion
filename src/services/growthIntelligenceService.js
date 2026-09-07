@@ -29,7 +29,8 @@ function activationComplete({ ativacao, proximaAcaoAtivacao }) {
 function hasEnoughData(signals) {
   return (
     signals.amostra_conversao_suficiente === true ||
-    signals.amostra_servicos_suficiente === true
+    signals.amostra_servicos_suficiente === true ||
+    signals.amostra_recorrencia_suficiente === true
   );
 }
 
