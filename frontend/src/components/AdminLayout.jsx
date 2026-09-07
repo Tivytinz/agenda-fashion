@@ -5,8 +5,7 @@ export const ADMIN_LINKS = [
   ["/admin/saude", "Ativação", "health"],
   ["/admin/operacao", "Operação", "business"],
   ["/admin/trafego-pago", "Marketing", "marketing"],
-  ["/admin/whatsapp", "WhatsApp", "whatsapp"],
-  ["/conta", "Minha conta", "account"]
+  ["/admin/whatsapp", "WhatsApp", "whatsapp"]
 ];
 
 export function AdminLayout({ children }) {
