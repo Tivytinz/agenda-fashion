@@ -82,7 +82,7 @@ describe(
     );
 
     test(
-      "mantém a ativação cumulativa sem rebaixar a verdade financeira",
+      "preserva os marcos compartilhados e a verdade financeira como contagens independentes",
       async () => {
         await repository
           .listarPorCampanha("30");
@@ -91,16 +91,16 @@ describe(
           mockQuery.mock.calls[0];
 
         expect(sql).toMatch(
-          /WHERE f\.negocio_criado\s+AND f\.servico_criado\s*\)\s*::INT AS servicos_criados/i
+          /COUNT\(\*\) FILTER \(\s*WHERE f\.servico_criado\s*\)::INT AS servicos_criados/i
         );
         expect(sql).toMatch(
-          /WHERE f\.negocio_criado\s+AND f\.servico_criado\s+AND f\.agenda_configurada\s*\)\s*::INT AS agendas_configuradas/i
+          /COUNT\(\*\) FILTER \(\s*WHERE f\.agenda_configurada\s*\)::INT AS agendas_configuradas/i
         );
         expect(sql).toMatch(
-          /WHERE f\.negocio_criado\s+AND f\.servico_criado\s+AND f\.agenda_configurada\s+AND f\.negocio_publicado\s*\)\s*::INT AS negocios_publicados/i
+          /COUNT\(\*\) FILTER \(\s*WHERE f\.negocio_publicado\s*\)::INT AS negocios_publicados/i
         );
         expect(sql).toMatch(
-          /WHERE f\.negocio_criado[\s\S]*AND f\.primeiro_agendamento\s*\)\s*::INT AS primeiros_agendamentos/i
+          /COUNT\(\*\) FILTER \(\s*WHERE f\.primeiro_agendamento\s*\)::INT AS primeiros_agendamentos/i
         );
         expect(sql).toMatch(
           /COUNT\(\*\) FILTER \(\s*WHERE f\.checkout_iniciado\s*\)::INT AS checkouts_iniciados/i
