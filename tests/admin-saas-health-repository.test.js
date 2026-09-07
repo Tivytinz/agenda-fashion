@@ -24,10 +24,14 @@ describe("consulta da saúde do SaaS", () => {
     expect(sql).toMatch(
       /publicacao_exige_agenda\s*=\s*FALSE[\s\S]*BTRIM\(bairro\)[\s\S]*BTRIM\(localizacao_url\)/i
     );
+    expect(sql).toMatch(
+      /EXISTS[\s\S]*FROM agendamentos a[\s\S]*a.status <> 'cancelado'[\s\S]*AS primeiro_agendamento_valido/i
+    );
+    expect(sql).toMatch(/AS sem_primeiro_agendamento/i);
     expect(sql).toMatch(/AS sem_descricao/i);
-    expect(sql).toMatch(/WHERE etapas_concluidas\s*<\s*5/i);
+    expect(sql).toMatch(/WHERE etapas_concluidas\s*<\s*6/i);
     expect(sql).not.toMatch(
-      /etapas_concluidas\s*<\s*5[\s\S]*OR descricao_preenchida\s*=\s*FALSE/i
+      /etapas_concluidas\s*<\s*6[\s\S]*OR descricao_preenchida\s*=\s*FALSE/i
     );
     expect(sql).toMatch(
       /whatsapp_marketing_consentido_em IS NOT NULL[\s\S]*whatsapp_marketing_cancelado_em IS NULL/i
@@ -48,7 +52,7 @@ describe("consulta da saúde do SaaS", () => {
       /AND tem_negocio\s*=\s*TRUE AND descricao_preenchida\s*=\s*FALSE/i
     );
     expect(sql).toMatch(
-      /ORDER BY[\s\S]*\(etapas_concluidas\s*=\s*5\) ASC[\s\S]*etapas_concluidas DESC[\s\S]*ultima_atividade_em DESC/i
+      /ORDER BY[\s\S]*\(etapas_concluidas\s*=\s*6\) ASC[\s\S]*etapas_concluidas DESC[\s\S]*ultima_atividade_em ASC NULLS LAST/i
     );
   });
 
@@ -57,8 +61,20 @@ describe("consulta da saúde do SaaS", () => {
 
     const [sql] = mockQuery.mock.calls[0];
 
-    expect(sql).toMatch(/WHERE etapas_concluidas\s*<\s*5/i);
+    expect(sql).toMatch(/WHERE etapas_concluidas\s*<\s*6/i);
     expect(sql).not.toMatch(/WHERE descricao_preenchida\s*=\s*FALSE/i);
+  });
+
+  test("filtra publicados que ainda não conquistaram o primeiro agendamento válido", async () => {
+    await repository.listarPerfisIncompletos({
+      pendencia: "primeiro_agendamento",
+    });
+
+    const [sql] = mockQuery.mock.calls[0];
+
+    expect(sql).toMatch(
+      /AND tem_negocio\s*=\s*TRUE AND publicado\s*=\s*TRUE AND primeiro_agendamento_valido\s*=\s*FALSE/i
+    );
   });
 
   test("conta a fila filtrada sem depender de existir linha na página", async () => {

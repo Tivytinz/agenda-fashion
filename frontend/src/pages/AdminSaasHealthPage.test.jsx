@@ -35,7 +35,8 @@ const RESULT = {
     semServico: 3,
     semAgenda: 5,
     naoPublicados: 4,
-    completos: 2
+    semPrimeiroAgendamento: 1,
+    completos: 1
   },
   filtros: {
     busca: "",
@@ -60,9 +61,9 @@ const RESULT = {
       },
       progresso: {
         etapasConcluidas: 2,
-        totalEtapas: 5,
-        percentual: 40,
-        etapasRestantes: 3
+        totalEtapas: 6,
+        percentual: 33,
+        etapasRestantes: 4
       },
       prioridade: "alta",
       proximaAcao: {
@@ -117,7 +118,7 @@ describe("ativação profissional no admin", () => {
     expect(screen.getByText("Configurar agenda")).not.toBeNull();
     expect(screen.getByText("Ver mais 1 item")).not.toBeNull();
     expect(screen.queryByText("Publicar perfil")).toBeNull();
-    expect(screen.getByLabelText("40% do perfil concluído")).not.toBeNull();
+    expect(screen.getByLabelText("33% da ativação concluída")).not.toBeNull();
     expect(screen.getByText("(11) 98765-4321")).not.toBeNull();
     expect(screen.queryByRole("columnheader", { name: "Ações" })).toBeNull();
     expect(document.querySelector(".admin-card-table-mobile")).not.toBeNull();
@@ -181,13 +182,31 @@ describe("ativação profissional no admin", () => {
     });
   });
 
+  it("usa o primeiro agendamento válido como sexta etapa da ativação", async () => {
+    const user = userEvent.setup();
+    renderPage();
+    await screen.findByText("Ana Souza");
+    apiRequest.mockClear();
+
+    await user.click(screen.getByRole("button", {
+      name: /Sem 1º agendamento 1 publicados ainda sem reserva válida/
+    }));
+
+    await waitFor(() => {
+      expect(apiRequest).toHaveBeenCalledWith(
+        expect.stringContaining("pendencia=primeiro_agendamento"),
+        expect.objectContaining({ signal: expect.any(AbortSignal) })
+      );
+    });
+  });
+
   it("oferece filtro separado para descrição opcional", async () => {
     const user = userEvent.setup();
     renderPage();
     await screen.findByText("Ana Souza");
     apiRequest.mockClear();
 
-    const filters = screen.getByLabelText("Filtrar por pendência");
+    const filters = screen.getByLabelText("Filtrar melhorias opcionais");
     await user.click(within(filters).getByRole("button", { name: "Sem descrição (opcional)" }));
 
     await waitFor(() => {

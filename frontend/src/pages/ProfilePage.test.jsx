@@ -22,6 +22,7 @@ import {
   vi
 } from "vitest";
 import { apiRequest } from "../api/client";
+import { track } from "../analytics/track";
 import { ProfilePage } from "./ProfilePage";
 
 vi.mock("../api/client", () => ({
@@ -121,6 +122,7 @@ beforeEach(() => {
   localStorage.clear();
   sessionStorage.clear();
   apiRequest.mockReset();
+  track.mockClear();
   Object.defineProperty(navigator, "geolocation", {
     configurable: true,
     value: {
@@ -505,6 +507,56 @@ describe("fluxo publico de agendamento", () => {
     expect(await screen.findByRole("button", { name: "09:00" }))
       .not.toBeNull();
     expect(screen.getByText("Beatriz", { selector: "dd" })).not.toBeNull();
+  });
+
+  it("registra WhatsApp e Maps como sinais de interesse sem enviar PII", async () => {
+    const user = userEvent.setup();
+    const profileWithContact = {
+      ...PROFILE,
+      negocio: {
+        ...PROFILE.negocio,
+        whatsapp: "11999999999",
+        endereco: "Rua das Flores",
+        numero: "10"
+      }
+    };
+
+    apiRequest.mockImplementation((path) => {
+      if (path.startsWith("/perfil-negocio/")) {
+        return Promise.resolve(profileWithContact);
+      }
+      return Promise.reject(new Error(`Requisicao inesperada: ${path}`));
+    });
+
+    renderProfile();
+    await screen.findByRole("heading", { name: "Studio Aurora" });
+
+    await user.click(screen.getByRole("link", { name: "WhatsApp" }));
+    await user.click(screen.getByRole("link", { name: "Como chegar" }));
+
+    expect(track).toHaveBeenCalledWith(
+      "contato_selecionado",
+      expect.objectContaining({
+        page: "perfil_negocio",
+        mission: "escolher_e_agendar",
+        businessId: 7,
+        properties: { acao: "whatsapp" }
+      })
+    );
+    expect(track).toHaveBeenCalledWith(
+      "contato_selecionado",
+      expect.objectContaining({
+        page: "perfil_negocio",
+        mission: "escolher_e_agendar",
+        businessId: 7,
+        properties: { acao: "maps" }
+      })
+    );
+
+    const contactCalls = track.mock.calls.filter(([name]) => name === "contato_selecionado");
+    const serialized = JSON.stringify(contactCalls);
+    expect(serialized).not.toContain("11999999999");
+    expect(serialized).not.toContain("Rua das Flores");
   });
 
   it("solicita localizacao somente depois da escolha da cliente", async () => {

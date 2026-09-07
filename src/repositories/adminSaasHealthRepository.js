@@ -39,6 +39,12 @@ const PERFIS_CTE = `
       COALESCE(servico.possui_servico_ativo, FALSE)
         AS possui_servico_ativo,
       ac.configurado_em,
+      EXISTS (
+        SELECT 1
+        FROM agendamentos a
+        WHERE a.negocio_id = n.id
+          AND a.status <> 'cancelado'
+      ) AS primeiro_agendamento_valido,
       GREATEST(
         u.updated_at,
         COALESCE(u.ultimo_login_em, u.created_at),
@@ -149,6 +155,7 @@ const PERFIS_CTE = `
         + possui_servico_ativo::INT
         + (configurado_em IS NOT NULL)::INT
         + publicado::INT
+        + primeiro_agendamento_valido::INT
       ) AS etapas_concluidas
     FROM candidatos
   )
@@ -162,7 +169,7 @@ async function buscarResumo() {
         SELECT
           COUNT(*)::INT AS total_profissionais,
           COUNT(*) FILTER (
-            WHERE etapas_concluidas < 5
+            WHERE etapas_concluidas < 6
           )::INT AS total_incompletos,
           COUNT(*) FILTER (
             WHERE tem_negocio = FALSE
@@ -188,7 +195,12 @@ async function buscarResumo() {
               AND publicado = FALSE
           )::INT AS nao_publicados,
           COUNT(*) FILTER (
-            WHERE etapas_concluidas = 5
+            WHERE tem_negocio = TRUE
+              AND publicado = TRUE
+              AND primeiro_agendamento_valido = FALSE
+          )::INT AS sem_primeiro_agendamento,
+          COUNT(*) FILTER (
+            WHERE etapas_concluidas = 6
           )::INT AS completos
         FROM avaliados
       `
@@ -202,7 +214,7 @@ function filtroEscopoSql(
 ) {
   return pendencia === "descricao"
     ? "descricao_preenchida = FALSE"
-    : "etapas_concluidas < 5";
+    : "etapas_concluidas < 6";
 }
 
 function filtroPendenciaSql(
@@ -221,6 +233,8 @@ function filtroPendenciaSql(
       "AND tem_negocio = TRUE AND agenda_configurada = FALSE",
     publicacao:
       "AND tem_negocio = TRUE AND publicado = FALSE",
+    primeiro_agendamento:
+      "AND tem_negocio = TRUE AND publicado = TRUE AND primeiro_agendamento_valido = FALSE",
   };
 
   return filtros[pendencia] || "";
@@ -299,6 +313,7 @@ async function listarPerfisIncompletos({
           descricao_preenchida,
           perfil_basico_completo,
           agenda_configurada,
+          primeiro_agendamento_valido,
           etapas_concluidas,
           COUNT(*) OVER()::INT AS total_resultados
         FROM avaliados
@@ -312,11 +327,11 @@ async function listarPerfisIncompletos({
           )
           ${filtroPendenciaSql(pendencia)}
         ORDER BY
-          (etapas_concluidas = 5) ASC,
+          (etapas_concluidas = 6) ASC,
           etapas_concluidas DESC,
-          ultima_atividade_em DESC,
-          cadastro_em DESC,
-          usuario_id DESC
+          ultima_atividade_em ASC NULLS LAST,
+          cadastro_em ASC,
+          usuario_id ASC
         LIMIT $2
         OFFSET $3
       `,
