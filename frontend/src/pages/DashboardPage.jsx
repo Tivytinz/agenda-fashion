@@ -248,16 +248,50 @@ export function DashboardPage() {
   const completedBookings = Number(performance.agendamentos_concluidos) || 0;
   const visitLabel = profileVisits === 1 ? "visita" : "visitas";
   const bookingLabel = completedBookings === 1 ? "agendamento" : "agendamentos";
+  const activationCompleted =
+    data.proxima_acao_ativacao?.estado === "ATIVADO" &&
+    data.proxima_acao_ativacao?.concluido === true;
+  const recurringClients = Number(summary.clientes_recorrentes) || 0;
+  const uniqueClients = Number(summary.clientes_unicos) || 0;
+  const recurringHint =
+    uniqueClients === 1
+      ? "de 1 cliente com agendamento"
+      : `de ${uniqueClients} clientes com agendamento`;
   const cards = [
     ["Agendamentos", summary.agendamentos_periodo ?? 0, "no período"],
     ["Faturamento", formatCurrency(summary.faturamento_periodo), "previsto"],
     ["Clientes novos", newClients, newClients === 1 ? "descobriu você" : "descobriram você"],
-    [
-      "Conversão",
-      `${formatPercent(performance.taxa_conversao)}%`,
-      `${completedBookings} ${bookingLabel} em ${profileVisits} ${visitLabel}`
-    ]
+    activationCompleted
+      ? [
+          "Clientes que voltaram",
+          recurringClients,
+          recurringHint
+        ]
+      : [
+          "Conversão",
+          `${formatPercent(performance.taxa_conversao)}%`,
+          `${completedBookings} ${bookingLabel} em ${profileVisits} ${visitLabel}`
+        ]
   ];
+
+  const activationPanel = (
+    <DashboardNextAction
+      nextAction={data.proxima_acao_ativacao}
+      activation={data.ativacao}
+      businessId={data.negocio?.negocio_id}
+      businessName={data.negocio?.nome}
+      businessSlug={data.negocio?.slug}
+    />
+  );
+
+  const growthPanel = (
+    <DashboardGrowthInsight
+      insight={data.inteligencia_crescimento}
+      businessId={data.negocio?.negocio_id}
+      businessName={data.negocio?.nome}
+      businessSlug={data.negocio?.slug}
+    />
+  );
 
   return (
     <main aria-busy={refreshing} className="workspace-page dashboard-page">
@@ -279,20 +313,17 @@ export function DashboardPage() {
       {refreshing && <p className="data-refresh-status" role="status">Atualizando indicadores...</p>}
       {error && <p className="form-error" role="alert">{error} Os últimos dados carregados continuam visíveis.</p>}
 
-      <DashboardNextAction
-        nextAction={data.proxima_acao_ativacao}
-        activation={data.ativacao}
-        businessId={data.negocio?.negocio_id}
-        businessName={data.negocio?.nome}
-        businessSlug={data.negocio?.slug}
-      />
-
-      <DashboardGrowthInsight
-        insight={data.inteligencia_crescimento}
-        businessId={data.negocio?.negocio_id}
-        businessName={data.negocio?.nome}
-        businessSlug={data.negocio?.slug}
-      />
+      {activationCompleted ? (
+        <>
+          {growthPanel}
+          {activationPanel}
+        </>
+      ) : (
+        <>
+          {activationPanel}
+          {growthPanel}
+        </>
+      )}
 
       {whatsappConsentVisibility.operational && (
         <section
@@ -489,6 +520,7 @@ export function DashboardPage() {
           <div><dt>Cliques no WhatsApp</dt><dd>{performance.cliques_whatsapp ?? 0}</dd></div>
           <div><dt>Cliques no mapa</dt><dd>{performance.cliques_maps ?? 0}</dd></div>
           <div><dt>Favoritos recebidos</dt><dd>{performance.favoritos_recebidos ?? 0}</dd></div>
+          <div><dt>Conversão do perfil</dt><dd>{formatPercent(performance.taxa_conversao)}%</dd></div>
         </dl>
       </section>
 
