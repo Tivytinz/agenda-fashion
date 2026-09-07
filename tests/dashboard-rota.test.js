@@ -55,6 +55,13 @@ jest.mock(
   })
 );
 
+jest.mock(
+  "../src/repositories/dashboardRetentionRepository",
+  () => ({
+    buscarResumoRetencao: jest.fn(),
+  })
+);
+
 const jwt = require(
   "jsonwebtoken"
 );
@@ -69,6 +76,10 @@ const app = require(
 
 const dashboardRepository = require(
   "../src/repositories/dashboardRepository"
+);
+
+const dashboardRetentionRepository = require(
+  "../src/repositories/dashboardRetentionRepository"
 );
 
 const authSessionRepository =
@@ -178,11 +189,15 @@ function configurarRepositorioDono() {
         "6",
     });
 
-  dashboardRepository
-    .buscarClientesRecorrentes
-    .mockResolvedValue(
-      "2"
-    );
+  dashboardRetentionRepository
+    .buscarResumoRetencao
+    .mockResolvedValue({
+      clientes_unicos:
+        "5",
+
+      clientes_recorrentes:
+        "2",
+    });
 
   dashboardRepository
     .buscarPerformanceNegocio
@@ -518,6 +533,13 @@ describe(
         );
 
         expect(
+          dashboardRetentionRepository
+            .buscarResumoRetencao
+        ).toHaveBeenCalledWith(
+          11
+        );
+
+        expect(
           resposta.body
         ).toMatchObject({
           periodo:
@@ -553,8 +575,14 @@ describe(
             clientes_novos:
               5,
 
+            clientes_unicos:
+              5,
+
             clientes_recorrentes:
               2,
+
+            taxa_recorrencia:
+              40,
 
             servicos_vendidos:
               6,
