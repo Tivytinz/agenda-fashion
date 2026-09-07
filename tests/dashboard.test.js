@@ -32,8 +32,19 @@ jest.mock(
   })
 );
 
+jest.mock(
+  "../src/repositories/dashboardRetentionRepository",
+  () => ({
+    buscarResumoRetencao: jest.fn(),
+  })
+);
+
 const dashboardRepository = require(
   "../src/repositories/dashboardRepository"
+);
+
+const dashboardRetentionRepository = require(
+  "../src/repositories/dashboardRetentionRepository"
 );
 
 const dashboardService = require(
@@ -299,9 +310,12 @@ describe(
             servicos_vendidos: "5"
           });
 
-        dashboardRepository
-          .buscarClientesRecorrentes
-          .mockResolvedValue("2");
+        dashboardRetentionRepository
+          .buscarResumoRetencao
+          .mockResolvedValue({
+            clientes_unicos: "5",
+            clientes_recorrentes: "2"
+          });
 
         dashboardRepository
           .buscarPerformanceNegocio
@@ -377,6 +391,11 @@ describe(
           )
         );
 
+        expect(
+          dashboardRetentionRepository
+            .buscarResumoRetencao
+        ).toHaveBeenCalledWith(11);
+
         expect(resultado.periodo).toBe(
           "7dias"
         );
@@ -394,7 +413,9 @@ describe(
           faturamento_hoje: 300,
           faturamento_periodo: 500,
           clientes_novos: 4,
+          clientes_unicos: 5,
           clientes_recorrentes: 2,
+          taxa_recorrencia: 40,
           servicos_vendidos: 5,
           ticket_medio: 100
         });
