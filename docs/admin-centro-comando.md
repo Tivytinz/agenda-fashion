@@ -2,9 +2,9 @@
 
 Este documento registra a semântica durável dos indicadores usados na visão administrativa principal do Agenda Fashion.
 
-## Funil profissional de ativação
+## Marcos profissionais de ativação
 
-O funil principal de ativação do Centro de comando é **cumulativo**. Cada etapa só contabiliza profissionais da mesma coorte que também cumpriram todos os marcos anteriores:
+O Centro de comando apresenta os principais marcos atingidos pelos profissionais da coorte:
 
 1. cadastro profissional;
 2. negócio criado;
@@ -13,11 +13,13 @@ O funil principal de ativação do Centro de comando é **cumulativo**. Cada eta
 5. negócio publicado;
 6. primeiro agendamento válido.
 
-A compatibilidade de publicação de negócios legados continua preservada no produto. O fato de um negócio legado poder permanecer publicado sem ter passado pelo gate atual de agenda não autoriza uma subida artificial no funil cumulativo do Centro de comando.
+Esses números são **marcos independentes dentro da mesma coorte**, não um funil sequencial garantido entre etapas. Por compatibilidade com negócios legados e com regras históricas de publicação, uma etapa posterior pode ter valor igual ou maior que uma etapa anterior.
+
+Por isso, o Centro de comando não deve calcular nem apresentar automaticamente perdas ou taxas de conversão adjacentes entre esses marcos. A análise detalhada de aquisição pode usar coortes e regras específicas quando houver base suficiente para isso.
 
 ### Primeiro agendamento válido
 
-Para ativação e para o funil administrativo, o primeiro agendamento válido é o primeiro agendamento do negócio cujo status não é `cancelado`.
+Para ativação e para o relatório administrativo, o primeiro agendamento válido é o primeiro agendamento do negócio cujo status não é `cancelado`.
 
 - `agendado`: conta;
 - `confirmado`: conta;
@@ -30,14 +32,14 @@ Esta regra mede a primeira reserva válida recebida pelo negócio. Ela **não** 
 
 ## Monetização
 
-Checkout e assinatura são indicadores separados do funil cumulativo de ativação.
+Checkout e assinatura paga são indicadores separados dos marcos de ativação.
 
 O Centro de comando deve expor ambos para distinguir:
 
 - checkout iniciado: sinal de intenção de compra;
 - assinatura paga: primeiro pagamento válido de um plano pago.
 
-Esses indicadores não devem ser artificialmente rebaixados para obrigá-los a seguir a sequência da ativação, porque a verdade financeira do backend tem prioridade sobre a apresentação visual do funil.
+Esses indicadores preservam a verdade financeira do backend e não devem ser apresentados como consequência automática de um marco operacional anterior.
 
 A assinatura paga continua dependente das regras financeiras canônicas do backend. O painel não infere receita a partir de clique, cadastro ou checkout.
 
