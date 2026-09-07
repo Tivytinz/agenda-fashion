@@ -1,12 +1,17 @@
 import { Navigate, useLocation } from "react-router-dom";
 import { LoadingState } from "../components/ScreenState";
 import { useSession } from "./SessionContext";
-import { getBusinessCreationPath, normalizePlanSlug } from "./session";
+import {
+  getBusinessCreationPath,
+  getPlanIntentPath,
+  normalizePlanSlug
+} from "./session";
 
 export function ProtectedRoute({
   children,
   ownerOnly = false,
   businessRequired = false,
+  publishedBusinessRequired = false,
   adminOnly = false
 }) {
   const session = useSession();
@@ -59,6 +64,19 @@ export function ProtectedRoute({
 
   if (ownerOnly && session.negocio?.papel !== "dono") {
     return <Navigate replace to="/profissional/agenda" />;
+  }
+
+  if (publishedBusinessRequired && session.negocio?.publicado !== true) {
+    const planSlug = normalizePlanSlug(
+      new URLSearchParams(location.search).get("plano")
+    );
+
+    return (
+      <Navigate
+        replace
+        to={getPlanIntentPath("/painel", planSlug)}
+      />
+    );
   }
 
   return children;

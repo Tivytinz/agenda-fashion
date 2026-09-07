@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { track } from "../analytics/track";
 import { apiRequest } from "../api/client";
+import { getPlanIntentPath, normalizePlanSlug } from "../auth/session";
 import { ConfirmationIcon } from "../components/ConfirmationIcon";
 import { PublicShareButton } from "../components/PublicShareButton";
 import { ErrorState, LoadingState } from "../components/ScreenState";
@@ -18,6 +19,27 @@ function CopyIcon({ className = "" }) {
       <rect fill="none" height="12" rx="2" stroke="currentColor" strokeWidth="1.8" width="12" x="8" y="8" />
       <path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2" fill="none" stroke="currentColor" strokeLinecap="round" strokeWidth="1.8" />
     </svg>
+  );
+}
+
+function SelectedPlanCheckoutLink() {
+  const [searchParams] = useSearchParams();
+  const selectedPlan = normalizePlanSlug(searchParams.get("plano"));
+
+  if (!selectedPlan) {
+    return null;
+  }
+
+  return (
+    <p className="muted">
+      Se quiser, você também pode concluir agora o plano que escolheu.{" "}
+      <Link
+        className="text-button"
+        to={getPlanIntentPath("/checkout", selectedPlan)}
+      >
+        Concluir plano escolhido
+      </Link>
+    </p>
   );
 }
 
@@ -453,6 +475,7 @@ export function ScheduleSettingsPage() {
               </Link>
             )}
           </div>
+          <SelectedPlanCheckoutLink />
         </section>
       ) : (
         <form className="panel stack-form schedule-settings-form" onSubmit={submit}>

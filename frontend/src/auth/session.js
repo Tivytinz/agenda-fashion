@@ -60,6 +60,18 @@ export function normalizePlanSlug(value) {
     : "";
 }
 
+export function getPlanIntentPath(path, planSlug) {
+  const safePath = safeInternalPath(path);
+  const plan = normalizePlanSlug(planSlug);
+
+  if (!safePath || !plan) {
+    return safePath;
+  }
+
+  const separator = safePath.includes("?") ? "&" : "?";
+  return `${safePath}${separator}plano=${encodeURIComponent(plan)}`;
+}
+
 export function getBusinessWorkspacePath(session) {
   if (!session?.temNegocio) {
     return "/criar-negocio";
@@ -79,10 +91,7 @@ export function getWorkspacePath(session) {
 }
 
 export function getBusinessCreationPath(planSlug) {
-  const plan = normalizePlanSlug(planSlug);
-  return plan
-    ? `/criar-negocio?plano=${encodeURIComponent(plan)}`
-    : "/criar-negocio";
+  return getPlanIntentPath("/criar-negocio", planSlug);
 }
 
 export function getAuthDestination(session, {
@@ -115,7 +124,9 @@ export function getAuthDestination(session, {
     }
 
     if (session.negocio?.papel === "dono") {
-      return `/checkout?plano=${encodeURIComponent(plan)}`;
+      return session.negocio?.publicado === true
+        ? getPlanIntentPath("/checkout", plan)
+        : getPlanIntentPath("/painel", plan);
     }
   }
 

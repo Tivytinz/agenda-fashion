@@ -33,6 +33,8 @@ Consentimentos de WhatsApp com finalidades profissionais não devem competir com
 - orientações de ativação e divulgação continuam com consentimento separado e também são oferecidas no painel;
 - as duas preferências começam desativadas até ação explícita da profissional.
 
+No dashboard, esses convites também não devem competir com uma etapa canônica de ativação antes da publicação. Depois que o negócio estiver publicado, a interface oferece no máximo um convite de WhatsApp por vez: primeiro os avisos operacionais de agendamento; depois, se ainda não houver primeiro agendamento e o consentimento operacional já estiver resolvido, as orientações de divulgação.
+
 O cadastro de cliente continua podendo oferecer separadamente a preferência de notificações dos próprios agendamentos.
 
 ## Criação do negócio
@@ -52,7 +54,7 @@ Todo novo negócio deve nascer com as informações estruturais essenciais do pe
 
 Descrição, foto e complemento são opcionais. O upload de foto continua acontecendo pelo fluxo próprio depois que o negócio existe. A descrição pode ser melhorada depois e o complemento pode ser preenchido quando fizer sentido para o endereço, sem bloquear a criação quando não existir.
 
-Na criação padrão, sem checkout de plano nem rota explícita de retorno, a interface deve continuar diretamente para o cadastro do primeiro serviço. O dashboard não deve introduzir uma decisão intermediária antes dessa etapa.
+Na criação padrão, a interface deve continuar diretamente para o cadastro do primeiro serviço. Isso também vale quando a profissional chega com um plano pago pré-selecionado: a escolha pode ser carregada como intenção durante `negócio → primeiro serviço → horários`, mas não deve abrir checkout antes de concluir a preparação e a publicação do negócio. Depois da publicação, compartilhar o perfil continua sendo a ação principal; concluir o plano escolhido pode aparecer apenas como ação secundária opcional. O dashboard não deve introduzir uma decisão intermediária antes do primeiro serviço.
 
 O WhatsApp da conta autenticada pode preencher inicialmente o WhatsApp do negócio, mas permanece editável e o backend continua validando o valor recebido.
 
@@ -103,7 +105,7 @@ Negócios anteriores a essa regra mantêm os critérios legados. Eles não devem
 
 Depois da primeira configuração válida e da publicação confirmada pelo backend, a próxima missão é compartilhar o perfil rastreável do AF e conquistar o primeiro agendamento. Se ainda houver alguma pendência obrigatória, a interface não deve oferecer o compartilhamento como se o perfil estivesse no ar.
 
-No dashboard, essa missão deve aparecer antes de métricas e relatórios. Enquanto o perfil tiver menos de 15 visitas e ainda não tiver recebido o primeiro agendamento, a interface continua incentivando divulgação em vez de diagnosticar baixa conversão com uma amostra pequena. A partir desse volume, o AF pode sugerir revisão de serviços, preços e horários como orientação, sem tratar o número isolado como prova estatística de problema.
+No dashboard, essa missão deve aparecer antes de métricas e relatórios. Enquanto o perfil tiver menos de 20 visitas e ainda não tiver recebido o primeiro agendamento, a interface continua incentivando divulgação em vez de diagnosticar baixa conversão com uma amostra pequena. A partir desse volume, o AF pode sugerir revisão de serviços, preços e horários como orientação, sem tratar o número isolado como prova estatística de problema.
 
 No fluxo público de agendamento, compartilhar um serviço é uma ação secundária. Ela não deve competir com a escolha do serviço em cada card; pode ser oferecida depois que a cliente já tiver selecionado o serviço.
 

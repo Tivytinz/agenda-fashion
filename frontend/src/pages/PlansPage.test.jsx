@@ -82,7 +82,7 @@ describe("continuidade do plano", () => {
     sessionState = {
       authenticated: true,
       temNegocio: true,
-      negocio: { papel: "dono" }
+      negocio: { papel: "dono", publicado: true }
     };
     apiRequest.mockImplementation((path) => {
       if (path === "/planos") return Promise.resolve({ planos: PLANS });
@@ -112,11 +112,42 @@ describe("continuidade do plano", () => {
       .getAttribute("href")).toBe("/checkout?plano=autonoma");
   });
 
+  it("impede checkout enquanto o negócio da dona ainda não está publicado", async () => {
+    sessionState = {
+      authenticated: true,
+      temNegocio: true,
+      negocio: { papel: "dono", publicado: false }
+    };
+    apiRequest.mockImplementation((path) => {
+      if (path === "/planos") return Promise.resolve({ planos: PLANS });
+      if (path === "/meu-plano") {
+        return Promise.resolve({
+          plano_id: 1,
+          plano_slug: "gratis",
+          plano_selecionado_id: null,
+          plano_selecionado_slug: null,
+          assinatura_ativa_id: null
+        });
+      }
+      return Promise.reject(new Error(`Rota inesperada: ${path}`));
+    });
+
+    renderPage();
+
+    const autonoma = (await screen.findByRole("heading", { name: "Autônoma" })).closest("article");
+    const action = within(autonoma).getByRole("link", {
+      name: "Concluir ativação para assinar"
+    });
+
+    expect(action.getAttribute("href")).toBe("/painel?plano=autonoma");
+    expect(action.getAttribute("href")).not.toContain("/checkout");
+  });
+
   it("marca o plano pago como atual após a assinatura ficar ativa", async () => {
     sessionState = {
       authenticated: true,
       temNegocio: true,
-      negocio: { papel: "dono" }
+      negocio: { papel: "dono", publicado: true }
     };
     apiRequest.mockImplementation((path) => {
       if (path === "/planos") return Promise.resolve({ planos: PLANS });

@@ -29,7 +29,7 @@ function DestinationProbe() {
   const location = useLocation();
   return (
     <output data-testid="destination">
-      {location.pathname}|{location.state?.onboardingStep || ""}
+      {location.pathname}{location.search}|{location.state?.onboardingStep || ""}
     </output>
   );
 }
@@ -133,7 +133,19 @@ describe("jornada de ativação profissional", () => {
     expect(screen.queryByText(/Copilot AF/i)).toBeNull();
   });
 
-  it("continua direto para o primeiro serviço depois da criação padrão", async () => {
+  it.each([
+    [
+      "/criar-negocio",
+      "/painel/servicos/novo|servico"
+    ],
+    [
+      "/criar-negocio?plano=autonoma",
+      "/painel/servicos/novo?plano=autonoma|servico"
+    ]
+  ])("continua direto para o primeiro serviço sem antecipar checkout (%s)", async (
+    initialEntry,
+    expectedDestination
+  ) => {
     apiRequest.mockImplementation((path, options = {}) => {
       if (path === "/cep/74000000") {
         return Promise.resolve({
@@ -163,7 +175,7 @@ describe("jornada de ativação profissional", () => {
     });
 
     render(
-      <MemoryRouter initialEntries={["/criar-negocio"]}>
+      <MemoryRouter initialEntries={[initialEntry]}>
         <Routes>
           <Route path="/criar-negocio" element={<BusinessPage create />} />
           <Route path="*" element={<DestinationProbe />} />
@@ -200,7 +212,7 @@ describe("jornada de ativação profissional", () => {
     );
 
     expect((await screen.findByTestId("destination")).textContent)
-      .toBe("/painel/servicos/novo|servico");
+      .toBe(expectedDestination);
     expect(refreshSession).toHaveBeenCalledTimes(1);
   });
 

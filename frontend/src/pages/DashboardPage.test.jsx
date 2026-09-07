@@ -4,7 +4,10 @@ import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/re
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { apiRequest } from "../api/client";
-import { DashboardPage } from "./DashboardPage";
+import {
+  DashboardPage,
+  getWhatsappConsentVisibility
+} from "./DashboardPage";
 
 vi.mock("../api/client", () => ({ apiRequest: vi.fn() }));
 
@@ -155,6 +158,52 @@ beforeEach(() => {
 afterEach(cleanup);
 
 describe("dashboard", () => {
+  it("não deixa convites de WhatsApp competir com a ativação antes da publicação", () => {
+    expect(getWhatsappConsentVisibility({
+      activation: {
+        negocio_publicado: false,
+        primeiro_agendamento_recebido: false
+      },
+      reminders: {
+        enabled: false,
+        operationalEnabled: false
+      }
+    })).toEqual({
+      operational: false,
+      activation: false
+    });
+  });
+
+  it("oferece no máximo um consentimento de WhatsApp por vez após a publicação", () => {
+    expect(getWhatsappConsentVisibility({
+      activation: {
+        negocio_publicado: true,
+        primeiro_agendamento_recebido: false
+      },
+      reminders: {
+        enabled: false,
+        operationalEnabled: false
+      }
+    })).toEqual({
+      operational: true,
+      activation: false
+    });
+
+    expect(getWhatsappConsentVisibility({
+      activation: {
+        negocio_publicado: true,
+        primeiro_agendamento_recebido: false
+      },
+      reminders: {
+        enabled: false,
+        operationalEnabled: true
+      }
+    })).toEqual({
+      operational: false,
+      activation: true
+    });
+  });
+
   it("cancela as consultas anteriores e identifica o período selecionado", async () => {
     mockDashboardRequests();
     render(<MemoryRouter><DashboardPage /></MemoryRouter>);

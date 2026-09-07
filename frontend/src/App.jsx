@@ -311,7 +311,7 @@ export default function App() {
         />
         <Route
           path={reactRoutes.checkout}
-          element={<ProtectedRoute ownerOnly businessRequired><BillingCheckoutPage /></ProtectedRoute>}
+          element={<ProtectedRoute ownerOnly businessRequired publishedBusinessRequired><BillingCheckoutPage /></ProtectedRoute>}
         />
         <Route
           element={<ProtectedRoute businessRequired><WorkspaceLayout /></ProtectedRoute>}
