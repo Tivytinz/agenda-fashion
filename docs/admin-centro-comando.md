@@ -2,18 +2,16 @@
 
 Este documento registra a semântica durável dos indicadores usados na visão administrativa principal do Agenda Fashion.
 
-## Funil profissional
+## Funil profissional de ativação
 
-O funil principal do Centro de comando é **cumulativo**. Cada etapa só contabiliza profissionais da mesma coorte que também cumpriram todos os marcos anteriores:
+O funil principal de ativação do Centro de comando é **cumulativo**. Cada etapa só contabiliza profissionais da mesma coorte que também cumpriram todos os marcos anteriores:
 
 1. cadastro profissional;
 2. negócio criado;
 3. serviço criado;
 4. agenda configurada;
 5. negócio publicado;
-6. primeiro agendamento válido;
-7. checkout iniciado;
-8. assinatura paga.
+6. primeiro agendamento válido.
 
 A compatibilidade de publicação de negócios legados continua preservada no produto. O fato de um negócio legado poder permanecer publicado sem ter passado pelo gate atual de agenda não autoriza uma subida artificial no funil cumulativo do Centro de comando.
 
@@ -32,11 +30,14 @@ Esta regra mede a primeira reserva válida recebida pelo negócio. Ela **não** 
 
 ## Monetização
 
-Checkout e assinatura são etapas diferentes. O Centro de comando deve expor ambos para distinguir:
+Checkout e assinatura são indicadores separados do funil cumulativo de ativação.
 
-- ativação sem intenção de compra;
-- checkout iniciado sem pagamento;
-- assinatura efetivamente paga.
+O Centro de comando deve expor ambos para distinguir:
+
+- checkout iniciado: sinal de intenção de compra;
+- assinatura paga: primeiro pagamento válido de um plano pago.
+
+Esses indicadores não devem ser artificialmente rebaixados para obrigá-los a seguir a sequência da ativação, porque a verdade financeira do backend tem prioridade sobre a apresentação visual do funil.
 
 A assinatura paga continua dependente das regras financeiras canônicas do backend. O painel não infere receita a partir de clique, cadastro ou checkout.
 
