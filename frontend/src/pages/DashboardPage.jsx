@@ -41,6 +41,27 @@ function customerOriginCategoryLabel(category) {
   }[category] || "Origem";
 }
 
+export function getWhatsappConsentVisibility({
+  activation = {},
+  reminders = {}
+} = {}) {
+  const businessPublished = activation.negocio_publicado === true;
+  const awaitingFirstBooking =
+    businessPublished &&
+    activation.primeiro_agendamento_recebido !== true;
+  const operational =
+    businessPublished &&
+    reminders.operationalEnabled === false;
+
+  return {
+    operational,
+    activation:
+      awaitingFirstBooking &&
+      !operational &&
+      reminders.enabled === false
+  };
+}
+
 export function DashboardPage() {
   const [period, setPeriod] = useState("7dias");
   const [data, setData] = useState(null);
@@ -218,6 +239,10 @@ export function DashboardPage() {
   const customerOrigins = Array.isArray(customerOrigin.origens)
     ? customerOrigin.origens
     : [];
+  const whatsappConsentVisibility = getWhatsappConsentVisibility({
+    activation: data.ativacao,
+    reminders: whatsappReminders
+  });
   const newClients = Number(summary.clientes_novos) || 0;
   const profileVisits = Number(performance.visitas_perfil) || 0;
   const completedBookings = Number(performance.agendamentos_concluidos) || 0;
@@ -269,7 +294,7 @@ export function DashboardPage() {
         businessSlug={data.negocio?.slug}
       />
 
-      {whatsappReminders.operationalEnabled === false && (
+      {whatsappConsentVisibility.operational && (
         <section
           aria-labelledby="whatsapp-operational-title"
           className="panel whatsapp-reminders-panel"
@@ -303,7 +328,7 @@ export function DashboardPage() {
         </section>
       )}
 
-      {whatsappReminders.enabled === false && (
+      {whatsappConsentVisibility.activation && (
         <section
           aria-labelledby="whatsapp-reminders-title"
           className="panel whatsapp-reminders-panel"
@@ -315,8 +340,7 @@ export function DashboardPage() {
             </h2>
             <p className="muted">
               Autorize até três orientações, com intervalo mínimo de três dias,
-              para cadastrar seu primeiro serviço e, quando sua agenda estiver pronta,
-              divulgar seu perfil.
+              para divulgar seu perfil e conquistar o primeiro agendamento.
               Você pode desativar em Minha conta ou responder PARAR MARKETING.
             </p>
           </div>
