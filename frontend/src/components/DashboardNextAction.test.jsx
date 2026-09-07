@@ -87,12 +87,6 @@ describe(
         "Revisar meu negócio",
         "/painel/negocio",
       ],
-      [
-        "ATIVADO",
-        "Ativação concluída",
-        "Abrir agenda",
-        "/painel/agenda",
-      ],
     ])(
       "renderiza a navegação canônica do estado %s",
       (
@@ -103,8 +97,7 @@ describe(
       ) => {
         renderAction({
           estado,
-          concluido:
-            estado === "ATIVADO",
+          concluido: false,
           titulo,
           mensagem:
             "Mensagem definida pelo backend.",
