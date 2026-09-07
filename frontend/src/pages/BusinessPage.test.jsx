@@ -134,7 +134,7 @@ describe("publicação do negócio", () => {
     expect(await screen.findByRole("heading", { name: "Primeiro serviço" }))
       .not.toBeNull();
     expect(screen.getByTestId("activation-destination").textContent)
-      .toBe("/painel/servicos/novo?plano=autonoma|servico");
+      .toBe("/painel/servicos/novo?onboarding=servico&plano=autonoma|servico");
     expect(screen.queryByRole("heading", { name: "Checkout do plano" }))
       .toBeNull();
     expect(apiRequest).toHaveBeenCalledWith("/criar-negocio", {
@@ -437,7 +437,7 @@ describe("publicação do negócio", () => {
       });
 
     renderPage();
-    fireEvent.click(await screen.findByRole("button", { name: "Publicar meu negócio" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Mostrar na busca" }));
 
     await waitFor(() => {
       expect(apiRequest).toHaveBeenCalledWith("/configuracoes/publicacao", {
@@ -445,7 +445,7 @@ describe("publicação do negócio", () => {
         body: { publicado: true }
       });
     });
-    expect(await screen.findByRole("heading", { name: "Seu negócio está publicado" })).not.toBeNull();
+    expect(await screen.findByRole("heading", { name: "Seu negócio está visível para clientes" })).not.toBeNull();
     expect(refreshSession).toHaveBeenCalledTimes(1);
   });
 
@@ -464,7 +464,7 @@ describe("publicação do negócio", () => {
     expect(await screen.findByText(/Falta completar: cidade, pelo menos um serviço ativo/)).not.toBeNull();
     expect(screen.getByLabelText(/Descrição \(opcional\)/)).not.toBeNull();
     expect(screen.getByText(/não impede a criação nem a publicação/)).not.toBeNull();
-    expect(screen.getByRole("button", { name: "Publicar meu negócio" }).disabled).toBe(true);
+    expect(screen.getByRole("button", { name: "Mostrar na busca" }).disabled).toBe(true);
     expect(apiRequest).toHaveBeenCalledTimes(1);
   });
 });

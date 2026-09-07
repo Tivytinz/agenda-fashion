@@ -1,9 +1,4 @@
-function numero(valor) {
-  const convertido = Number(valor);
-  return Number.isFinite(convertido)
-    ? convertido
-    : 0;
-}
+import { toFiniteNumber } from "../utils/format";
 
 function rotuloCampanha(item) {
   const campanha = String(
@@ -48,7 +43,7 @@ function formatarValorOuSemBase(valor) {
     return "Sem base";
   }
 
-  return String(numero(valor));
+  return String(toFiniteNumber(valor));
 }
 
 function rotuloProntidao(leitura = {}) {
@@ -85,10 +80,10 @@ function rotuloProntidao(leitura = {}) {
 }
 
 function resumoMinimoAssinaturas(janela) {
-  const minimo = numero(
+  const minimo = toFiniteNumber(
     janela?.minimoAssinaturasReguaRoas
   );
-  const observadas = numero(
+  const observadas = toFiniteNumber(
     janela?.assinaturasNaMonetizacao
   );
 
@@ -162,9 +157,9 @@ export function ProfessionalRecurrenceFinancialReadinessTable({
                   key={`prontidao-${campanha.chave || campanha.campanhaOficialId}-${janela.janelaDias}`}
                 >
                   <td>{rotuloCampanha(campanha)}</td>
-                  <td>D{numero(janela.janelaDias)}</td>
+                  <td>D{toFiniteNumber(janela.janelaDias)}</td>
                   <td>
-                    {numero(
+                    {toFiniteNumber(
                       janela.diasMaturidadeFinanceira
                     )} dias
                   </td>
@@ -179,17 +174,17 @@ export function ProfessionalRecurrenceFinancialReadinessTable({
                     )}
                   </td>
                   <td>
-                    {numero(
+                    {toFiniteNumber(
                       janela.comSegundoNaJanela
                     )}
                   </td>
                   <td>
-                    {numero(
+                    {toFiniteNumber(
                       janela.comTerceiroNaJanela
                     )}
                   </td>
                   <td>
-                    {numero(
+                    {toFiniteNumber(
                       janela.assinaturasNaMonetizacao
                     )}
                   </td>

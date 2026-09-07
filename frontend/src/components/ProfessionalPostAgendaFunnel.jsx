@@ -1,9 +1,4 @@
-function numero(valor) {
-  const convertido = Number(valor);
-  return Number.isFinite(convertido)
-    ? convertido
-    : 0;
-}
+import { toFiniteNumber } from "../utils/format";
 
 function percentual(parte, total) {
   if (!total) return 0;
@@ -28,19 +23,19 @@ function taxaInformada(valor, parte, total) {
 export function ProfessionalPostAgendaFunnel({
   summary = {}
 }) {
-  const agendas = numero(
+  const agendas = toFiniteNumber(
     summary.agendasConfiguradas
   );
-  const divulgados = numero(
+  const divulgados = toFiniteNumber(
     summary.perfisDivulgados
   );
-  const visitas = numero(
+  const visitas = toFiniteNumber(
     summary.visitasPosDivulgacao
   );
-  const iniciados = numero(
+  const iniciados = toFiniteNumber(
     summary.agendamentosIniciadosPosDivulgacao
   );
-  const confirmados = numero(
+  const confirmados = toFiniteNumber(
     summary.primeirosAgendamentosJornada ??
     summary.primeirosAgendamentosViaDivulgacao
   );

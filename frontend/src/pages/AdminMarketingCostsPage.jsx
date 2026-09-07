@@ -9,6 +9,8 @@ import { MarketingBarChart } from "../components/MarketingBarChart";
 import { MarketingCostIntegrationsPanel } from "../components/MarketingCostIntegrationsPanel";
 import { MarketingCoveragePanel } from "../components/MarketingCoveragePanel";
 import { MarketingExecutivePanel } from "../components/MarketingExecutivePanel";
+import { MarketingCampaignCostTable } from "../components/MarketingCampaignCostTable";
+import { MarketingExpenseHistory } from "../components/MarketingExpenseHistory";
 import {
   ErrorState,
   LoadingState
@@ -27,109 +29,15 @@ import {
   metricPercentage,
   paidAttributionQuality
 } from "../utils/marketingMetrics";
-
-const OBJECTIVE_LABELS = {
-  profissional: "Aquisição de profissionais",
-  cliente: "Aquisição de clientes",
-  indefinido: "Objetivo não classificado"
-};
-
-const CHANNEL_LABELS = {
-  google: "Google Ads",
-  meta: "Meta Ads",
-  pinterest: "Pinterest",
-  tiktok: "TikTok",
-  outro: "Outro"
-};
-
-const COST_SOURCE_LABELS = {
-  google_ads: "Google Ads · automático",
-  meta_ads: "Meta Ads · automático",
-  manual: "Lançamento manual"
-};
-
-function localDateValue() {
-  const now = new Date();
-  const local = new Date(now.getTime() - now.getTimezoneOffset() * 60000);
-  return local.toISOString().slice(0, 10);
-}
-
-function formatMoney(value) {
-  if (value === null || value === undefined) return "Sem dados";
-  const cents = Number(value);
-  if (!Number.isFinite(cents)) return "Sem dados";
-  return new Intl.NumberFormat("pt-BR", {
-    style: "currency",
-    currency: "BRL"
-  }).format(cents / 100);
-}
-
-function formatDate(value) {
-  if (!value) return "Sem data";
-  const [year, month, day] = String(value).slice(0, 10).split("-");
-  if (!year || !month || !day) return value;
-  return `${day}/${month}/${year}`;
-}
-
-function moneyToCents(value) {
-  const amount = Number(value);
-  if (!Number.isFinite(amount) || amount <= 0) return null;
-  return Math.round(amount * 100);
-}
-
-function objectiveLabel(value) {
-  return OBJECTIVE_LABELS[value] || OBJECTIVE_LABELS.indefinido;
-}
-
-function channelLabel(value) {
-  return CHANNEL_LABELS[value] || String(value || "Não identificado");
-}
-
-function costSourceLabel(value) {
-  return COST_SOURCE_LABELS[value] || String(value || "Não identificada");
-}
-
-function pluralize(count, singular, plural) {
-  return `${count} ${Number(count) === 1 ? singular : plural}`;
-}
-
-function campaignSessionsWithCost(item) {
-  const sessions = Math.max(0, Number(item?.sessoes || 0));
-  return Math.min(
-    sessions,
-    Math.max(
-      0,
-      Number(
-        item?.sessoesComCusto ??
-          (Number(item?.investimentoCentavos || 0) > 0 ? sessions : 0)
-      ) || 0
-    )
-  );
-}
-
-function campaignCostCoverage(item) {
-  return item?.coberturaCustos ?? metricPercentage(
-    campaignSessionsWithCost(item),
-    item?.sessoes
-  );
-}
-
-function campaignConversionsWithCost(item) {
-  const conversions = Math.max(
-    0,
-    Number(item?.agendamentosConcluidos || 0)
-  );
-  return Math.min(
-    conversions,
-    Math.max(
-      0,
-      Number(
-        item?.agendamentosConcluidosComCusto ??
-          (Number(item?.investimentoCentavos || 0) > 0 ? conversions : 0)
-      ) || 0
-    )
-  );
-}
+import {
+  campaignCostCoverage,
+  channelLabel,
+  formatMarketingMoney,
+  localDateValue,
+  moneyToCents,
+  objectiveLabel,
+  pluralize
+} from "../utils/marketingCosts";
 
 export function AdminMarketingCostsPage() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -473,7 +381,7 @@ export function AdminMarketingCostsPage() {
           ? "Eficiência em atenção"
           : "Medição confiável";
   const cards = [
-    ["Investimento total", formatMoney(costs.investimentoCentavos), "gasto registrado no período"],
+    ["Investimento total", formatMarketingMoney(costs.investimentoCentavos), "gasto registrado no período"],
     [
       "Sessões atribuídas",
       attributionQuality.officialSessions,
@@ -483,17 +391,17 @@ export function AdminMarketingCostsPage() {
     ],
     [
       "Custo por sessão (CPS)",
-      formatMoney(costs.custoPorSessaoCentavos),
+      formatMarketingMoney(costs.custoPorSessaoCentavos),
       costCoveredSessions > 0
-        ? `${formatMoney(costs.investimentoCentavos)} ÷ ${costCoveredSessions} sessões atribuídas`
+        ? `${formatMarketingMoney(costs.investimentoCentavos)} ÷ ${costCoveredSessions} sessões atribuídas`
         : "não calculável sem sessão atribuída a investimento"
     ],
     [
       "CPA de cliente",
-      formatMoney(costs.cpaCentavos),
+      formatMarketingMoney(costs.cpaCentavos),
       Number(clientInvestment || 0) > 0
         ? clientConversionsWithCost > 0
-          ? `${formatMoney(clientInvestment)} ÷ ${clientConversionsWithCost} agendamentos com custo`
+          ? `${formatMarketingMoney(clientInvestment)} ÷ ${clientConversionsWithCost} agendamentos com custo`
           : "não calculável sem agendamento coberto por custo"
         : "sem investimento em campanhas de clientes"
     ]
@@ -507,8 +415,8 @@ export function AdminMarketingCostsPage() {
       key: item.campanhaId,
       label: item.nome,
       value: Number(item.investimentoCentavos || 0),
-      formattedValue: formatMoney(item.investimentoCentavos),
-      secondary: `${channelLabel(item.canal)} · ${item.sessoes} sessões · CPS ${formatMoney(item.custoPorSessaoCentavos)}`
+      formattedValue: formatMarketingMoney(item.investimentoCentavos),
+      secondary: `${channelLabel(item.canal)} · ${item.sessoes} sessões · CPS ${formatMarketingMoney(item.custoPorSessaoCentavos)}`
     }));
 
   const sessionChartItems = [...reportedCampaignCosts]
@@ -520,7 +428,7 @@ export function AdminMarketingCostsPage() {
       label: item.nome,
       value: Number(item.sessoes || 0),
       formattedValue: pluralize(Number(item.sessoes || 0), "sessão", "sessões"),
-      secondary: `${formatMoney(item.investimentoCentavos)} investidos · Cobertura ${formatMetricPercent(campaignCostCoverage(item))}`
+      secondary: `${formatMarketingMoney(item.investimentoCentavos)} investidos · Cobertura ${formatMetricPercent(campaignCostCoverage(item))}`
     }));
 
   return (
@@ -609,12 +517,12 @@ export function AdminMarketingCostsPage() {
         metrics={[
           {
             label: "Aquisição de profissionais",
-            value: formatMoney(professionalInvestment),
+            value: formatMarketingMoney(professionalInvestment),
             hint: "investimento por objetivo"
           },
           {
             label: "Aquisição de clientes",
-            value: formatMoney(clientInvestment),
+            value: formatMarketingMoney(clientInvestment),
             hint: "investimento por objetivo"
           },
           {
@@ -719,7 +627,7 @@ export function AdminMarketingCostsPage() {
             description="Participação de cada campanha no orçamento selecionado."
             items={investmentChartItems}
             emptyMessage="Nenhum investimento foi registrado no período selecionado."
-            totalFormattedValue={formatMoney(costs.investimentoCentavos)}
+            totalFormattedValue={formatMarketingMoney(costs.investimentoCentavos)}
             totalLabel="investidos"
             variant="donut"
           />
@@ -855,68 +763,7 @@ export function AdminMarketingCostsPage() {
               : "Nenhuma campanha ativa. Mostre as arquivadas para revisar o histórico."}
           </p>
         ) : (
-          <div className="table-wrap">
-            <table className="admin-performance-table">
-              <caption className="sr-only">Desempenho financeiro por campanha</caption>
-              <thead>
-                <tr>
-                  <th>Campanha</th>
-                  <th className="admin-numeric-cell">Investimento</th>
-                  <th className="admin-numeric-cell">Sessões atribuídas</th>
-                  <th className="admin-numeric-cell">Cobertura financeira</th>
-                  <th className="admin-numeric-cell">CPS</th>
-                  <th className="admin-numeric-cell">Conversões</th>
-                  <th className="admin-numeric-cell">CPA</th>
-                </tr>
-              </thead>
-              <tbody>
-                {visibleCampaignCosts.map((item) => (
-                  <tr key={item.campanhaId}>
-                    <td>
-                      <strong>{item.nome}</strong>
-                      <small className="admin-table-secondary">
-                        {channelLabel(item.canal)} · {objectiveLabel(item.objetivo)}
-                        {item.ativo === false ? " · Arquivada" : ""}
-                      </small>
-                    </td>
-                    <td className="admin-numeric-cell">{formatMoney(item.investimentoCentavos)}</td>
-                    <td className="admin-numeric-cell">
-                      <strong>{item.sessoes}</strong>
-                      <small className="admin-table-secondary">
-                        {Number(item.sessoesAtribuicaoAssistida || 0) > 0
-                          ? `${Number(item.sessoesAtribuicaoAssistida)} assistidas`
-                          : "atribuição direta"}
-                      </small>
-                    </td>
-                    <td className="admin-numeric-cell">
-                      <strong>{formatMetricPercent(campaignCostCoverage(item))}</strong>
-                      <small className="admin-table-secondary">
-                        {campaignSessionsWithCost(item)} de {item.sessoes}
-                      </small>
-                    </td>
-                    <td className="admin-numeric-cell">{formatMoney(item.custoPorSessaoCentavos)}</td>
-                    <td className="admin-numeric-cell">
-                      {item.objetivo === "cliente" ? (
-                        <>
-                          {item.agendamentosConcluidos}
-                          <small className="admin-table-secondary">
-                            {campaignConversionsWithCost(item)} com custo
-                          </small>
-                        </>
-                      ) : (
-                        <span className="admin-data-empty">CAC em Aquisição e retorno</span>
-                      )}
-                    </td>
-                    <td className="admin-numeric-cell">
-                      {item.objetivo === "cliente"
-                        ? formatMoney(item.cpaCentavos)
-                        : <span className="admin-data-empty">—</span>}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <MarketingCampaignCostTable campaigns={visibleCampaignCosts} />
         )}
       </section>
 
@@ -928,38 +775,7 @@ export function AdminMarketingCostsPage() {
           </div>
         </div>
 
-        {data.expenses.length === 0 ? (
-          <p className="muted">Nenhum investimento registrado neste período.</p>
-        ) : (
-          <div className="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>Data</th>
-                  <th>Campanha</th>
-                  <th>Objetivo</th>
-                  <th>Canal</th>
-                  <th>Fonte</th>
-                  <th>Valor</th>
-                  <th>Observação</th>
-                </tr>
-              </thead>
-              <tbody>
-                {data.expenses.map((item) => (
-                  <tr key={item.id}>
-                    <td>{formatDate(item.dataGasto)}</td>
-                    <td>{item.campanhaNome || "Campanha indisponível"}</td>
-                    <td>{objectiveLabel(item.objetivo)}</td>
-                    <td>{channelLabel(item.canal)}</td>
-                    <td>{costSourceLabel(item.fonte)}</td>
-                    <td>{formatMoney(item.valorCentavos)}</td>
-                    <td>{item.observacao || "Sem observação"}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+        <MarketingExpenseHistory expenses={data.expenses} />
       </section>
     </main>
   );

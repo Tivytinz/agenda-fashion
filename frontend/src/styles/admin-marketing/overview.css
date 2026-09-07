@@ -320,10 +320,6 @@
     justify-items: start;
   }
 
-  .marketing-command-nav {
-    justify-content: flex-start;
-  }
-
   .marketing-trust-bar {
     grid-template-columns: 1fr;
   }

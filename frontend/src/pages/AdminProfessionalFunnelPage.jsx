@@ -1,14 +1,11 @@
-import {
-  Fragment,
-  useEffect,
-  useState
-} from "react";
+import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { apiRequest } from "../api/client";
 import { MarketingBarChart } from "../components/MarketingBarChart";
 import { MarketingExecutivePanel } from "../components/MarketingExecutivePanel";
 import { ProfessionalPostAgendaFunnel } from "../components/ProfessionalPostAgendaFunnel";
 import { ProfessionalRecurrencePanel } from "../components/ProfessionalRecurrencePanel";
+import { ProfessionalCampaignDecisionTable } from "../components/ProfessionalCampaignDecisionTable";
 import {
   ErrorState,
   LoadingState
@@ -24,134 +21,13 @@ import {
   metricPercentage,
   paidAttributionQuality
 } from "../utils/marketingMetrics";
-
-function formatMoney(value) {
-  if (value === null || value === undefined) return "Sem dados";
-  const number = Number(value);
-  if (!Number.isFinite(number)) return "Sem dados";
-  return new Intl.NumberFormat("pt-BR", {
-    style: "currency",
-    currency: "BRL"
-  }).format(number / 100);
-}
-
-function formatRoas(value) {
-  if (value === null || value === undefined) return "Sem dados";
-  const number = Number(value);
-  if (!Number.isFinite(number)) return "Sem dados";
-  return `${new Intl.NumberFormat("pt-BR", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2
-  }).format(number)}x`;
-}
-
-function campaignLabel(item) {
-  const campaign = String(item?.campanha || "").trim();
-  const source = String(item?.origem || "").trim().toLowerCase();
-  const medium = String(item?.midia || "").trim().toLowerCase();
-  const classification = String(
-    item?.classificacaoAtribuicao || ""
-  ).trim().toLowerCase();
-
-  if (classification === "sem_evidencia") {
-    return "Origem não identificada";
-  }
-
-  if (
-    source === "google" &&
-    medium === "cpc" &&
-    campaign.toLowerCase() === "google_ads_profissionais"
-  ) {
-    return "Google Ads · Aquisição de profissionais";
-  }
-
-  if (
-    !campaign ||
-    [
-      "organico",
-      "orgânico",
-      "(sem campanha)",
-      "sem campanha"
-    ].includes(campaign.toLowerCase())
-  ) {
-    if (source === "organico" && (!medium || medium === "none")) {
-      return "Orgânico / sem campanha";
-    }
-    return "Tráfego sem UTM de campanha";
-  }
-
-  return campaign;
-}
-
-function campaignKey(item) {
-  return `${item.classificacaoAtribuicao || "sem_classificacao"}-${item.origem}-${item.midia}-${item.campanha}`;
-}
-
-function utmIdentityLabel(item) {
-  return [
-    item?.origem || "organico",
-    item?.midia || "none",
-    item?.campanha || "organico"
-  ].join(" / ");
-}
-
-function decisionBadgeClass(code) {
-  const safeCode = String(code || "sem_dados").replace(/[^a-z_]/g, "");
-  return `admin-status-badge admin-decision-badge is-${safeCode}`;
-}
-
-function sourceMeta(item) {
-  const source = String(item?.origem || "").trim().toLowerCase();
-  const classification = String(
-    item?.classificacaoAtribuicao || ""
-  ).trim().toLowerCase();
-
-  if (classification === "sem_evidencia") {
-    return { code: "outro", label: "Origem não identificada" };
-  }
-
-  if (source === "google") return { code: "google", label: "Google Ads" };
-  if (["meta", "facebook", "instagram"].includes(source)) {
-    return { code: "meta", label: "Meta Ads" };
-  }
-  if (source === "pinterest") return { code: "pinterest", label: "Pinterest" };
-  if (source === "tiktok") return { code: "tiktok", label: "TikTok" };
-  if (source === "organico") return { code: "organico", label: "Orgânico" };
-
-  return {
-    code: "outro",
-    label: source
-      ? source.charAt(0).toUpperCase() + source.slice(1)
-      : "Origem não identificada"
-  };
-}
-
-function mediumLabel(item) {
-  const source = String(item?.origem || "").trim().toLowerCase();
-  const medium = String(item?.midia || "").trim().toLowerCase();
-  if (source === "organico" && (!medium || medium === "none")) return "";
-  return medium ? medium.toUpperCase() : "";
-}
-
-function isOrganicCampaign(item) {
-  const source = String(item?.origem || "").trim().toLowerCase();
-  const medium = String(item?.midia || "").trim().toLowerCase();
-  const classification = String(
-    item?.classificacaoAtribuicao || ""
-  ).trim().toLowerCase();
-
-  return classification === "organico" || (
-    !classification &&
-    source === "organico" &&
-    (!medium || medium === "none")
-  );
-}
-
-function decisionSignalLabel(confidence) {
-  if (confidence === "operacional") return "Sinal operacional";
-  if (confidence === "bloqueada") return "Decisão bloqueada";
-  return "Base ainda insuficiente";
-}
+import {
+  campaignKey,
+  campaignLabel,
+  campaignSourceMeta,
+  formatCampaignMoney,
+  formatCampaignRoas
+} from "../utils/professionalCampaigns";
 
 export function AdminProfessionalFunnelPage() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -320,7 +196,7 @@ export function AdminProfessionalFunnelPage() {
         ? `${officialSignups} oficiais · ${signupAttributionQuality.pendingSessions} pagos pendentes · ${signupsWithoutEvidence} sem evidência`
         : financialSummary.custoCadastroCentavos === null
         ? `${officialSignups} com atribuição oficial`
-        : `${officialSignups} oficiais · ${formatMoney(financialSummary.custoCadastroCentavos)} por cadastro atribuído`
+        : `${officialSignups} oficiais · ${formatCampaignMoney(financialSummary.custoCadastroCentavos)} por cadastro atribuído`
     ],
     [
       "Negócios publicados",
@@ -339,16 +215,16 @@ export function AdminProfessionalFunnelPage() {
         ? "total operacional; CAC atribuído bloqueado"
         : financialSummary.cacAssinanteCentavos === null
         ? `${officialSubscriptions} assinaturas na coorte oficial`
-        : `${officialSubscriptions} oficiais · CAC ${formatMoney(financialSummary.cacAssinanteCentavos)}`
+        : `${officialSubscriptions} oficiais · CAC ${formatCampaignMoney(financialSummary.cacAssinanteCentavos)}`
     ],
     [
       "Investimento",
-      formatMoney(financialSummary.investimentoCentavos ?? 0),
+      formatCampaignMoney(financialSummary.investimentoCentavos ?? 0),
       "gasto atribuído a campanhas oficiais no período"
     ],
     [
       "Receita atribuída",
-      formatMoney(financialSummary.receitaPrimeiroPagamentoCentavos ?? 0),
+      formatCampaignMoney(financialSummary.receitaPrimeiroPagamentoCentavos ?? 0),
       measurementReady
         ? "primeiro pagamento da aquisição atribuída"
         : "valor parcial; não usar para decisão"
@@ -356,7 +232,7 @@ export function AdminProfessionalFunnelPage() {
     [
       "ROAS de aquisição",
       measurementReady
-        ? formatRoas(financialSummary.roas)
+        ? formatCampaignRoas(financialSummary.roas)
         : "Aguardando cobertura",
       measurementReady
         ? "receita atribuída ÷ investimento"
@@ -415,8 +291,8 @@ export function AdminProfessionalFunnelPage() {
       key: campaignKey(item),
       label: campaignLabel(item),
       value: Number(item.roas),
-      formattedValue: formatRoas(item.roas),
-      secondary: `${sourceMeta(item).label} · CAC ${formatMoney(item.cacAssinanteCentavos)}`
+      formattedValue: formatCampaignRoas(item.roas),
+      secondary: `${campaignSourceMeta(item).label} · CAC ${formatCampaignMoney(item.cacAssinanteCentavos)}`
     }));
 
   return (
@@ -490,8 +366,8 @@ export function AdminProfessionalFunnelPage() {
               ? "Custo por cadastro atribuído"
               : "Investimento por cadastro total",
             value: measurementReady
-              ? formatMoney(financialSummary.custoCadastroCentavos)
-              : formatMoney(grossInvestmentPerSignup),
+              ? formatCampaignMoney(financialSummary.custoCadastroCentavos)
+              : formatCampaignMoney(grossInvestmentPerSignup),
             hint: measurementReady
               ? (officialSignups > 0
                 ? `${officialSignups} cadastros oficiais`
@@ -503,7 +379,7 @@ export function AdminProfessionalFunnelPage() {
           {
             label: "CAC assinante",
             value: measurementReady
-              ? formatMoney(financialSummary.cacAssinanteCentavos)
+              ? formatCampaignMoney(financialSummary.cacAssinanteCentavos)
               : "Aguardando cobertura",
             hint: measurementReady
               ? (officialSubscriptions > 0
@@ -514,10 +390,10 @@ export function AdminProfessionalFunnelPage() {
           {
             label: "ROAS",
             value: measurementReady
-              ? formatRoas(financialSummary.roas)
+              ? formatCampaignRoas(financialSummary.roas)
               : "Aguardando cobertura",
             hint: measurementReady
-              ? `meta ${formatRoas(decision.metaRoas)}`
+              ? `meta ${formatCampaignRoas(decision.metaRoas)}`
               : "decisão financeira bloqueada"
           },
           {
@@ -537,12 +413,12 @@ export function AdminProfessionalFunnelPage() {
           : investment <= 0
           ? "Não há investimento profissional registrado no período selecionado."
           : officialSignups === 0
-            ? `${formatMoney(investment)} foram investidos, mas nenhum cadastro profissional oficial foi atribuído. CAC não é zero: ele ainda não pode ser calculado.`
+            ? `${formatCampaignMoney(investment)} foram investidos, mas nenhum cadastro profissional oficial foi atribuído. CAC não é zero: ele ainda não pode ser calculado.`
             : officialFirstAppointments === 0
               ? `A coorte oficial gerou ${officialSignups} cadastros, mas nenhum primeiro agendamento. O gargalo está na ativação do valor gratuito.`
               : officialSubscriptions === 0
                 ? `A coorte oficial já recebeu ${officialFirstAppointments} primeiro(s) agendamento(s), mas ainda não ativou assinatura paga. Revise monetização sem pausar mídia apenas por esse motivo.`
-              : `A coorte oficial gerou ${officialSubscriptions} assinaturas e ROAS de ${formatRoas(financialSummary.roas)} no primeiro pagamento.`}
+              : `A coorte oficial gerou ${officialSubscriptions} assinaturas e ROAS de ${formatCampaignRoas(financialSummary.roas)} no primeiro pagamento.`}
         title="Diagnóstico de aquisição profissional"
         tone={profitabilityTone}
       />
@@ -586,7 +462,7 @@ export function AdminProfessionalFunnelPage() {
           <strong>{decisionCounts.escalar ?? 0}</strong>
           <small>
             {decision.faixaEscalaRoas
-              ? `ROAS a partir de ${formatRoas(decision.faixaEscalaRoas)}`
+              ? `ROAS a partir de ${formatCampaignRoas(decision.faixaEscalaRoas)}`
               : "Aguardando régua"}
           </small>
         </div>
@@ -616,7 +492,7 @@ export function AdminProfessionalFunnelPage() {
             Cobertura mínima {formatMetricPercent(minimumCoverage)} · ativação em {decision.diasMaturacaoAtivacao ?? 14} dias · monetização em {decision.diasMaturacaoMonetizacao ?? 21} dias
           </small>
           <small>
-            Meta de ROAS {formatRoas(decision.metaRoas)} · escala em {formatRoas(decision.faixaEscalaRoas)} · sinal operacional, não confiança estatística
+            Meta de ROAS {formatCampaignRoas(decision.metaRoas)} · escala em {formatCampaignRoas(decision.faixaEscalaRoas)} · sinal operacional, não confiança estatística
           </small>
         </div>
       </section>
@@ -698,183 +574,13 @@ export function AdminProfessionalFunnelPage() {
           variant="none"
         />
 
-        {campaigns.length === 0 ? (
-          <p className="muted">Ainda não há campanhas com atribuição oficial nesta coorte.</p>
-        ) : (
-          <div className="table-wrap admin-chart-table-spacing">
-            <table className="admin-decision-table">
-              <thead>
-                <tr>
-                  <th>Campanha</th>
-                  <th>Investimento</th>
-                  <th>Receita</th>
-                  <th>ROAS</th>
-                  <th>CAC</th>
-                  <th>Decisão</th>
-                  <th>Detalhes</th>
-                </tr>
-              </thead>
-              <tbody>
-                {campaigns.map((item) => {
-                  const key = campaignKey(item);
-                  const expanded = expandedCampaign === key;
-                  const source = sourceMeta(item);
-                  const medium = mediumLabel(item);
-                  const identities = Array.isArray(item.identidadesUtm)
-                    ? item.identidadesUtm
-                    : [];
-
-                  return (
-                    <Fragment key={key}>
-                      <tr>
-                        <td>
-                          <strong>{campaignLabel(item)}</strong>
-                          <div className="admin-campaign-source">
-                            <span className={`admin-status-badge admin-source-badge is-${source.code}`}>
-                              {source.label}
-                            </span>
-                            {medium && <small className="admin-medium-label">{medium}</small>}
-                            {identities.length > 1 && (
-                              <small className="admin-medium-label">
-                                {identities.length} identidades vinculadas
-                              </small>
-                            )}
-                          </div>
-                        </td>
-                        <td>
-                          {item.investimentoCentavos > 0
-                            ? formatMoney(item.investimentoCentavos)
-                            : (
-                              <span className="admin-data-empty">
-                                {isOrganicCampaign(item) ? "Não se aplica" : "Não atribuído"}
-                              </span>
-                            )}
-                        </td>
-                        <td>
-                          {formatMoney(item.receitaPrimeiroPagamentoCentavos ?? 0)}
-                          {!measurementReady && (
-                            <small className="admin-data-empty">Parcial</small>
-                          )}
-                        </td>
-                        <td>
-                          <strong className={!measurementReady || item.roas === null || item.roas === undefined ? "admin-data-empty" : ""}>
-                            {!measurementReady
-                              ? "Aguardando cobertura"
-                              : item.roas === null || item.roas === undefined
-                              ? "Não calculável"
-                              : formatRoas(item.roas)}
-                          </strong>
-                        </td>
-                        <td>
-                          <span className={!measurementReady || item.cacAssinanteCentavos === null || item.cacAssinanteCentavos === undefined ? "admin-data-empty" : ""}>
-                            {!measurementReady
-                              ? "Aguardando cobertura"
-                              : item.cacAssinanteCentavos === null || item.cacAssinanteCentavos === undefined
-                              ? "Não calculável"
-                              : formatMoney(item.cacAssinanteCentavos)}
-                          </span>
-                        </td>
-                        <td className="admin-decision-cell">
-                          <span className={decisionBadgeClass(item.decisao?.codigo)}>
-                            {item.decisao?.rotulo || "Sem dados"}
-                          </span>
-                          {item.decisao?.codigo !== "sem_dados" && (
-                            <small className="muted">
-                              {decisionSignalLabel(item.decisao?.confianca)}
-                            </small>
-                          )}
-                        </td>
-                        <td>
-                          <button
-                            aria-expanded={expanded}
-                            className="button button-secondary button-small admin-detail-toggle"
-                            onClick={() => setExpandedCampaign(expanded ? "" : key)}
-                            type="button"
-                          >
-                            {expanded ? "Ocultar detalhes" : "Ver detalhes"}
-                          </button>
-                        </td>
-                      </tr>
-
-                      {expanded && (
-                        <tr className="admin-campaign-detail-row">
-                          <td colSpan="7">
-                            <div className="admin-campaign-detail-grid">
-                              <div>
-                                <span>Cadastros</span>
-                                <strong>{item.cadastros}</strong>
-                              </div>
-                              <div>
-                                <span>Checkouts</span>
-                                <strong>{item.checkoutsIniciados}</strong>
-                              </div>
-                              <div>
-                                <span>Primeiros agendamentos</span>
-                                <strong>{item.primeirosAgendamentos ?? 0} · {item.taxaPrimeiroAgendamento ?? 0}%</strong>
-                              </div>
-                              <div>
-                                <span>Assinaturas</span>
-                                <strong>{item.assinaturasAtivadas} · {item.taxaAssinatura}%</strong>
-                              </div>
-                              <div>
-                                <span>Custo por cadastro</span>
-                                <strong>
-                                  {measurementReady
-                                    ? formatMoney(item.custoCadastroCentavos)
-                                    : "Aguardando cobertura"}
-                                </strong>
-                              </div>
-                              <div>
-                                <span>Custo por checkout</span>
-                                <strong>
-                                  {measurementReady
-                                    ? formatMoney(item.custoCheckoutCentavos)
-                                    : "Aguardando cobertura"}
-                                </strong>
-                              </div>
-                              <div>
-                                <span>Cadastros maduros</span>
-                                <strong>
-                                  {item.cadastrosMadurosAtivacao ?? 0} ativação · {item.cadastrosMadurosMonetizacao ?? 0} monetização
-                                </strong>
-                              </div>
-                              <div>
-                                <span>Ativação na janela</span>
-                                <strong>
-                                  {item.negociosPublicadosMadurosAtivacao ?? 0} publicados · {item.primeirosAgendamentosMadurosAtivacao ?? 0} com primeiro agendamento em até {decision.diasMaturacaoAtivacao ?? 14} dias
-                                </strong>
-                              </div>
-                              <div>
-                                <span>Monetização na janela</span>
-                                <strong>
-                                  {item.assinaturasAtivadasMadurasMonetizacao ?? 0} assinaturas em até {decision.diasMaturacaoMonetizacao ?? 21} dias
-                                </strong>
-                              </div>
-                              {identities.length > 1 && (
-                                <div className="admin-campaign-decision-reason">
-                                  <span>Identidades UTM incluídas</span>
-                                  <strong>
-                                    {identities.map(utmIdentityLabel).join(" · ")}
-                                  </strong>
-                                </div>
-                              )}
-                              {item.decisao?.motivo && (
-                                <div className="admin-campaign-decision-reason">
-                                  <span>Motivo da recomendação</span>
-                                  <strong>{item.decisao.motivo}</strong>
-                                </div>
-                              )}
-                            </div>
-                          </td>
-                        </tr>
-                      )}
-                    </Fragment>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
+        <ProfessionalCampaignDecisionTable
+          campaigns={campaigns}
+          decision={decision}
+          expandedCampaign={expandedCampaign}
+          measurementReady={measurementReady}
+          onToggle={setExpandedCampaign}
+        />
       </section>
     </main>
   );

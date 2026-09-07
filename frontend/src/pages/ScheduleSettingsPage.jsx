@@ -4,6 +4,7 @@ import { track } from "../analytics/track";
 import { apiRequest } from "../api/client";
 import { getPlanIntentPath, normalizePlanSlug } from "../auth/session";
 import { ConfirmationIcon } from "../components/ConfirmationIcon";
+import { FlowSteps } from "../components/FlowSteps";
 import { PublicShareButton } from "../components/PublicShareButton";
 import { ErrorState, LoadingState } from "../components/ScreenState";
 
@@ -12,6 +13,7 @@ const DAY_SHORT_NAMES = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
 const DURATION_OPTIONS = [30, 45, 60, 90, 120];
 const INTERVAL_OPTIONS = [0, 5, 10, 15, 30];
 const LEAD_TIME_OPTIONS = [0, 1, 2, 4, 12, 24, 48, 72];
+const ACTIVATION_STEPS = ["Negócio", "Serviço", "Horários"];
 
 function CopyIcon({ className = "" }) {
   return (
@@ -410,6 +412,14 @@ export function ScheduleSettingsPage() {
           <p>A cliente verá apenas horários que realmente podem ser agendados.</p>
         </div>
       </header>
+
+      {firstConfiguration && !activationNextStep && (
+        <FlowSteps
+          ariaLabel="Etapas para publicar o negócio"
+          current={3}
+          steps={ACTIVATION_STEPS}
+        />
+      )}
 
       {activationNextStep ? (
         <section

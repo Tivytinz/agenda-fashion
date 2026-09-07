@@ -3,7 +3,8 @@
 import { cleanup, render, screen, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { AdminLayout, WorkspaceLayout } from "./WorkspaceLayout";
+import { AdminLayout } from "./AdminLayout";
+import { WorkspaceLayout } from "./WorkspaceLayout";
 
 vi.mock("../auth/SessionContext", () => ({
   useSession: () => ({

@@ -13,7 +13,6 @@ import "./styles/af-experience.css";
 import "./styles/home-discovery.css";
 import "./styles/profile-polish.css";
 import "./styles/account-polish.css";
-import "./styles/admin-shell.css";
 
 installRuntimeRecovery();
 

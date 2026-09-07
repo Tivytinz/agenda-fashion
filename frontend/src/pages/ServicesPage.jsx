@@ -10,6 +10,7 @@ import { apiRequest } from "../api/client";
 import { getPlanIntentPath, normalizePlanSlug } from "../auth/session";
 import { BackLink } from "../components/BackLink";
 import { ConfirmationIcon } from "../components/ConfirmationIcon";
+import { FlowSteps } from "../components/FlowSteps";
 import { EmptyState, ErrorState, LoadingState } from "../components/ScreenState";
 import { MediaThumb } from "../components/profile/MediaThumb";
 import { formatCurrency } from "../utils/format";
@@ -37,6 +38,7 @@ const SERVICE_CATEGORIES = [
 const categoryLabel = (value) => SERVICE_CATEGORIES.find(([key]) => key === value)?.[1] || "Sem categoria";
 const ACCEPTED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"];
 const MAX_IMAGE_SIZE = 5 * 1024 * 1024;
+const ACTIVATION_STEPS = ["Negócio", "Serviço", "Horários"];
 
 function extractServices(result) {
   return Array.isArray(result) ? result : result?.servicos || [];
@@ -298,8 +300,13 @@ export function ServiceEditorPage() {
   const editing = Boolean(id);
   const firstServiceOnboarding =
     !editing
-    && location.state?.onboarding === true
-    && location.state?.onboardingStep === "servico";
+    && (
+      searchParams.get("onboarding") === "servico"
+      || (
+        location.state?.onboarding === true
+        && location.state?.onboardingStep === "servico"
+      )
+    );
   const [form, setForm] = useState(EMPTY_FORM);
   const [cover, setCover] = useState(null);
   const [galleryFiles, setGalleryFiles] = useState([]);
@@ -441,7 +448,7 @@ export function ServiceEditorPage() {
         await uploadImage(`/servicos/${savedId}/fotos`, file);
         setGalleryFiles((current) => current.filter((item) => item !== file));
       }
-      const continueOnboarding = !editing && location.state?.onboarding === true;
+      const continueOnboarding = firstServiceOnboarding;
       const onboardingAlreadyPublished =
         continueOnboarding &&
         saveResult.publicacao?.publicado === true;
@@ -545,6 +552,13 @@ export function ServiceEditorPage() {
     <main className="workspace-page service-editor-page">
       <div>
         <BackLink to="/painel/servicos">Voltar aos serviços</BackLink>
+        {firstServiceOnboarding && (
+          <FlowSteps
+            ariaLabel="Etapas para publicar o negócio"
+            current={2}
+            steps={ACTIVATION_STEPS}
+          />
+        )}
         <header className="workspace-heading">
           <div>
             <p className="eyebrow">Catálogo</p>

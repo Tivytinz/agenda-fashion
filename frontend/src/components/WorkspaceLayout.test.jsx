@@ -10,10 +10,9 @@ import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, describe, expect, it } from "vitest";
 import {
-  ADMIN_LINKS,
-  AdminLayout,
   MobileWorkspaceNavigation
 } from "./WorkspaceLayout";
+import { ADMIN_LINKS, AdminLayout } from "./AdminLayout";
 
 const LINKS = [
   ["/painel", "Visão geral", "⌂"],

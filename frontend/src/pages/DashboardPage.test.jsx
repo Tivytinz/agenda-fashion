@@ -418,8 +418,8 @@ describe("dashboard", () => {
         proxima_acao_ativacao: nextActionNavigate({
           estado: "GARANTIR_SERVICO_ATIVO",
           titulo: "Ative seus serviços",
-          rotulo: "Gerenciar serviços",
-          destino: "/painel/servicos"
+          rotulo: "Cadastrar primeiro serviço",
+          destino: "/painel/servicos/novo?onboarding=servico"
         })
       }
     });
@@ -430,8 +430,8 @@ describe("dashboard", () => {
     expect(screen.queryByText(/Copilot AF/i)).toBeNull();
     expect(screen.getByRole("heading", { name: "Ative seus serviços" }))
       .not.toBeNull();
-    expect(screen.getByRole("link", { name: "Gerenciar serviços" }).getAttribute("href"))
-      .toBe("/painel/servicos");
+    expect(screen.getByRole("link", { name: "Cadastrar primeiro serviço" }).getAttribute("href"))
+      .toBe("/painel/servicos/novo?onboarding=servico");
   });
 
   it("destaca a ativação do WhatsApp e registra a autorização em um toque", async () => {
