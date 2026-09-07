@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { MemoryRouter, Route, Routes } from "react-router-dom";
+import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { apiRequest } from "../api/client";
 import { BusinessPage } from "./BusinessPage";
@@ -43,6 +43,19 @@ function renderPage() {
   );
 }
 
+function ActivationDestination() {
+  const location = useLocation();
+
+  return (
+    <>
+      <h1>Primeiro serviço</h1>
+      <output data-testid="activation-destination">
+        {location.pathname}{location.search}|{location.state?.onboardingStep || ""}
+      </output>
+    </>
+  );
+}
+
 beforeEach(() => {
   apiRequest.mockReset();
   refreshSession.mockReset();
@@ -54,7 +67,7 @@ afterEach(() => {
 });
 
 describe("publicação do negócio", () => {
-  it("continua no checkout depois de criar um negócio completo de um plano pago", async () => {
+  it("continua a ativação no primeiro serviço sem abrir checkout de um plano pago", async () => {
     apiRequest.mockImplementation((path, options = {}) => {
       if (path === "/cep/74000123") {
         return Promise.resolve({
@@ -80,6 +93,7 @@ describe("publicação do negócio", () => {
       <MemoryRouter initialEntries={["/criar-negocio?plano=autonoma"]}>
         <Routes>
           <Route path="/criar-negocio" element={<BusinessPage create />} />
+          <Route path="/painel/servicos/novo" element={<ActivationDestination />} />
           <Route path="/checkout" element={<h1>Checkout do plano</h1>} />
         </Routes>
       </MemoryRouter>
@@ -117,8 +131,12 @@ describe("publicação do negócio", () => {
     });
     fireEvent.submit(screen.getByRole("button", { name: "Criar negócio" }).closest("form"));
 
-    expect(await screen.findByRole("heading", { name: "Checkout do plano" }))
+    expect(await screen.findByRole("heading", { name: "Primeiro serviço" }))
       .not.toBeNull();
+    expect(screen.getByTestId("activation-destination").textContent)
+      .toBe("/painel/servicos/novo?plano=autonoma|servico");
+    expect(screen.queryByRole("heading", { name: "Checkout do plano" }))
+      .toBeNull();
     expect(apiRequest).toHaveBeenCalledWith("/criar-negocio", {
       method: "POST",
       body: expect.objectContaining({
