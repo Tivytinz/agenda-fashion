@@ -61,6 +61,51 @@ describe(
     );
 
     test(
+      "usa somente agendamentos não cancelados como primeiro valor",
+      async () => {
+        await repository
+          .listarPorCampanha("30");
+
+        const [sql] =
+          mockQuery.mock.calls[0];
+
+        expect(sql).toMatch(
+          /MIN\(ag\.created_at\)[\s\S]*COALESCE\([\s\S]*ag\.status[\s\S]*'agendado'[\s\S]*\)\s*<>\s*'cancelado'/i
+        );
+        expect(sql).toMatch(
+          /ag\.negocio_id = dono\.negocio_id[\s\S]*ag\.status[\s\S]*<>\s*'cancelado'/i
+        );
+        expect(sql).toMatch(
+          /ag_anterior\.status[\s\S]*<>\s*'cancelado'/i
+        );
+      }
+    );
+
+    test(
+      "mantém os marcos principais como funil cumulativo",
+      async () => {
+        await repository
+          .listarPorCampanha("30");
+
+        const [sql] =
+          mockQuery.mock.calls[0];
+
+        expect(sql).toMatch(
+          /AS servicos_criados[\s\S]*WHERE f\.negocio_criado\s+AND f\.servico_criado/i
+        );
+        expect(sql).toMatch(
+          /WHERE f\.negocio_criado\s+AND f\.servico_criado\s+AND f\.agenda_configurada\s+AND f\.negocio_publicado[\s\S]*AS negocios_publicados/i
+        );
+        expect(sql).toMatch(
+          /WHERE f\.negocio_criado[\s\S]*AND f\.primeiro_agendamento\s+AND f\.checkout_iniciado[\s\S]*AS checkouts_iniciados/i
+        );
+        expect(sql).toMatch(
+          /AND f\.checkout_iniciado\s+AND f\.assinatura_ativada[\s\S]*AS assinaturas_ativadas/i
+        );
+      }
+    );
+
+    test(
       "reconhece somente campanha cadastrada com objetivo profissional",
       async () => {
         await repository
