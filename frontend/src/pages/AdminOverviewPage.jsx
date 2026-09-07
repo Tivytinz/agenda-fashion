@@ -79,36 +79,6 @@ function profileActivationLink(profile) {
     : "/admin/saude";
 }
 
-function bottleneckFrom(stages, period) {
-  const transitions = stages.slice(1).map((stage, index) => {
-    const previous = stages[index];
-    const loss = Math.max(0, previous.value - stage.value);
-    const rate = previous.value > 0
-      ? Math.round((stage.value / previous.value) * 1000) / 10
-      : 0;
-
-    return {
-      from: previous.label,
-      to: stage.label,
-      loss,
-      rate,
-      action: stage.action
-    };
-  });
-
-  const largest = transitions.reduce((best, item) =>
-    item.loss > (best?.loss ?? -1) ? item : best, null);
-
-  if (!largest || largest.loss <= 0) return null;
-
-  return {
-    ...largest,
-    href: largest.action
-      ? activationLink(largest.action)
-      : adminPathWithPeriod("/admin/trafego-pago/profissionais", period)
-  };
-}
-
 function timestamp(value) {
   if (!value) return Number.POSITIVE_INFINITY;
   const result = new Date(value).getTime();
@@ -243,19 +213,14 @@ export function AdminOverviewPage() {
   const recurrence = data?.recurrence || null;
   const system = readinessState(data?.readiness);
 
-  const activationStages = useMemo(() => [
+  const activationMilestones = useMemo(() => [
     { label: "Cadastros", value: toFiniteNumber(funnelSummary.cadastros) },
-    { label: "Negócios", value: toFiniteNumber(funnelSummary.negociosCriados), action: "sem_negocio" },
-    { label: "Serviços", value: toFiniteNumber(funnelSummary.servicosCriados), action: "servico" },
-    { label: "Agendas", value: toFiniteNumber(funnelSummary.agendasConfiguradas), action: "agenda" },
-    { label: "Publicados", value: toFiniteNumber(funnelSummary.negociosPublicados), action: "publicacao" },
+    { label: "Negócios", value: toFiniteNumber(funnelSummary.negociosCriados) },
+    { label: "Serviços", value: toFiniteNumber(funnelSummary.servicosCriados) },
+    { label: "Agendas", value: toFiniteNumber(funnelSummary.agendasConfiguradas) },
+    { label: "Publicados", value: toFiniteNumber(funnelSummary.negociosPublicados) },
     { label: "1º agendamento válido", value: toFiniteNumber(funnelSummary.primeirosAgendamentos) }
   ], [funnelSummary]);
-
-  const bottleneck = useMemo(
-    () => bottleneckFrom(activationStages, period),
-    [activationStages, period]
-  );
 
   if (!data && !error) {
     return (
@@ -298,7 +263,7 @@ export function AdminOverviewPage() {
           <p className="eyebrow">Administração</p>
           <h1>Centro de comando</h1>
           <p>
-            Veja o estado atual da operação, onde profissionais estão travando e como o funil avançou no período escolhido.
+            Veja o estado atual da operação, onde profissionais estão travando e como os principais marcos avançaram no período escolhido.
           </p>
         </div>
 
@@ -430,18 +395,18 @@ export function AdminOverviewPage() {
         <div className="panel-heading">
           <div>
             <p className="eyebrow">Ativação</p>
-            <h2>Da aquisição ao primeiro valor</h2>
+            <h2>Marcos de ativação da coorte</h2>
             <p className="muted">
-              Este funil é cumulativo: cada etapa só conta profissionais que também cumpriram os marcos anteriores. O primeiro agendamento ignora reservas canceladas.
+              Os números mostram quais marcos cada profissional da coorte atingiu. Eles não são conversões adjacentes e podem subir entre etapas por compatibilidade com negócios legados. O primeiro agendamento ignora reservas canceladas.
             </p>
           </div>
           <Link className="button button-secondary button-small" to={funnelPath}>
-            Ver funil completo
+            Ver análise completa
           </Link>
         </div>
 
         <div className="admin-command-funnel">
-          {activationStages.map(({ label, value }, index) => (
+          {activationMilestones.map(({ label, value }, index) => (
             <article key={label}>
               <span>{index + 1}</span>
               <small>{label}</small>
@@ -449,19 +414,6 @@ export function AdminOverviewPage() {
             </article>
           ))}
         </div>
-
-        {bottleneck && (
-          <aside className="admin-bottleneck" aria-label="Maior perda observada no funil">
-            <div>
-              <p className="eyebrow">Prioridade do funil</p>
-              <strong>Maior perda observada: {bottleneck.from} → {bottleneck.to}</strong>
-              <span>{bottleneck.loss} não avançaram nessa transição · conversão observada de {bottleneck.rate}%.</span>
-            </div>
-            <Link className="button button-secondary button-small" to={bottleneck.href}>
-              Investigar etapa
-            </Link>
-          </aside>
-        )}
       </section>
 
       <section className="panel">
@@ -470,7 +422,7 @@ export function AdminOverviewPage() {
             <p className="eyebrow">Monetização</p>
             <h2>Intenção de compra e receita</h2>
             <p className="muted">
-              Checkout é intenção; assinatura paga é monetização. Esses números preservam os eventos financeiros reais e não são forçados a caber no funil cumulativo de ativação.
+              Checkout é intenção; assinatura paga é monetização. Esses números preservam os eventos financeiros reais e não são tratados como consequência automática dos marcos de ativação.
             </p>
           </div>
           <Link className="button button-secondary button-small" to={funnelPath}>
@@ -548,7 +500,7 @@ export function AdminOverviewPage() {
             <div><dt>Cliques no WhatsApp</dt><dd>{toFiniteNumber(metrics.cliquesWhatsapp)}</dd></div>
             <div><dt>Cliques em mapas</dt><dd>{toFiniteNumber(metrics.cliquesMaps)}</dd></div>
             <div><dt>Favoritos</dt><dd>{toFiniteNumber(metrics.favoritosTotais)}</dd></div>
-            <div><dt>Cidade em destaque</dt><dd>{highlights.cidadeTop || "—"}</dd></div>
+            <div><dt>Cidade com mais negócios</dt><dd>{highlights.cidadeTop || "—"}</dd></div>
           </dl>
         </section>
       </div>
