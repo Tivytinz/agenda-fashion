@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { MemoryRouter, Route, Routes } from "react-router-dom";
+import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { apiRequest } from "../api/client";
 import { ServicesPage, ServiceEditorPage } from "./ServicesPage";
@@ -10,6 +10,19 @@ vi.mock("../api/client", () => ({
   apiRequest: vi.fn()
 }));
 
+function ScheduleDestination() {
+  const location = useLocation();
+
+  return (
+    <>
+      <h1>Confirmar horários para publicar</h1>
+      <output data-testid="schedule-destination">
+        {location.pathname}{location.search}
+      </output>
+    </>
+  );
+}
+
 function renderEditor(entry = "/painel/servicos/novo") {
   return render(
     <MemoryRouter initialEntries={[entry]}>
@@ -17,7 +30,7 @@ function renderEditor(entry = "/painel/servicos/novo") {
         <Route path="/painel/servicos/novo" element={<ServiceEditorPage />} />
         <Route path="/painel/servicos/:id/editar" element={<ServiceEditorPage />} />
         <Route path="/painel/servicos" element={<h1>Lista de serviços</h1>} />
-        <Route path="/painel/horarios" element={<h1>Confirmar horários para publicar</h1>} />
+        <Route path="/painel/horarios" element={<ScheduleDestination />} />
         <Route path="/painel" element={<h1>Visão geral publicada</h1>} />
       </Routes>
     </MemoryRouter>
@@ -244,6 +257,28 @@ describe("editor de serviços", () => {
 
     expect(await screen.findByRole("heading", { name: "Confirmar horários para publicar" }))
       .not.toBeNull();
+  });
+
+  it("preserva a intenção de plano até a confirmação dos horários", async () => {
+    apiRequest.mockResolvedValueOnce({
+      servico: { id: 57 },
+      publicacao: {
+        publicado: false,
+        pode_publicar: false,
+        pendencias: ["confirmar os horários de atendimento"]
+      }
+    });
+
+    renderEditor({
+      pathname: "/painel/servicos/novo",
+      search: "?plano=autonoma",
+      state: { onboarding: true, onboardingStep: "servico" }
+    });
+    fillService();
+    submit();
+
+    expect((await screen.findByTestId("schedule-destination")).textContent)
+      .toBe("/painel/horarios?plano=autonoma");
   });
 
   it("mantém negócios legados publicados no caminho de confirmação dos horários", async () => {
