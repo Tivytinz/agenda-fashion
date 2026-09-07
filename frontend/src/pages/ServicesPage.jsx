@@ -1,6 +1,13 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
+import {
+  Link,
+  useLocation,
+  useNavigate,
+  useParams,
+  useSearchParams
+} from "react-router-dom";
 import { apiRequest } from "../api/client";
+import { getPlanIntentPath, normalizePlanSlug } from "../auth/session";
 import { BackLink } from "../components/BackLink";
 import { ConfirmationIcon } from "../components/ConfirmationIcon";
 import { EmptyState, ErrorState, LoadingState } from "../components/ScreenState";
@@ -285,6 +292,8 @@ export function ServiceEditorPage() {
   const { id } = useParams();
   const location = useLocation();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const selectedPlan = normalizePlanSlug(searchParams.get("plano"));
   const galleryRef = useRef(null);
   const editing = Boolean(id);
   const firstServiceOnboarding =
@@ -439,7 +448,7 @@ export function ServiceEditorPage() {
 
       navigate(
         continueOnboarding
-          ? "/painel/horarios"
+          ? getPlanIntentPath("/painel/horarios", selectedPlan)
           : "/painel/servicos",
         {
           replace: true,
