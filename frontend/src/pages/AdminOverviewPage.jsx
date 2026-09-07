@@ -243,20 +243,18 @@ export function AdminOverviewPage() {
   const recurrence = data?.recurrence || null;
   const system = readinessState(data?.readiness);
 
-  const funnelStages = useMemo(() => [
+  const activationStages = useMemo(() => [
     { label: "Cadastros", value: toFiniteNumber(funnelSummary.cadastros) },
     { label: "Negócios", value: toFiniteNumber(funnelSummary.negociosCriados), action: "sem_negocio" },
     { label: "Serviços", value: toFiniteNumber(funnelSummary.servicosCriados), action: "servico" },
     { label: "Agendas", value: toFiniteNumber(funnelSummary.agendasConfiguradas), action: "agenda" },
     { label: "Publicados", value: toFiniteNumber(funnelSummary.negociosPublicados), action: "publicacao" },
-    { label: "1º agendamento válido", value: toFiniteNumber(funnelSummary.primeirosAgendamentos) },
-    { label: "Checkout", value: toFiniteNumber(funnelSummary.checkoutsIniciados) },
-    { label: "Assinaturas pagas", value: toFiniteNumber(funnelSummary.assinaturasAtivadas) }
+    { label: "1º agendamento válido", value: toFiniteNumber(funnelSummary.primeirosAgendamentos) }
   ], [funnelSummary]);
 
   const bottleneck = useMemo(
-    () => bottleneckFrom(funnelStages, period),
-    [funnelStages, period]
+    () => bottleneckFrom(activationStages, period),
+    [activationStages, period]
   );
 
   if (!data && !error) {
@@ -431,10 +429,10 @@ export function AdminOverviewPage() {
       <section className="panel admin-command-funnel-panel">
         <div className="panel-heading">
           <div>
-            <p className="eyebrow">Jornada de valor</p>
-            <h2>Da aquisição à monetização</h2>
+            <p className="eyebrow">Ativação</p>
+            <h2>Da aquisição ao primeiro valor</h2>
             <p className="muted">
-              O funil é cumulativo: cada etapa só conta profissionais que também cumpriram os marcos anteriores. O primeiro agendamento ignora reservas canceladas.
+              Este funil é cumulativo: cada etapa só conta profissionais que também cumpriram os marcos anteriores. O primeiro agendamento ignora reservas canceladas.
             </p>
           </div>
           <Link className="button button-secondary button-small" to={funnelPath}>
@@ -443,7 +441,7 @@ export function AdminOverviewPage() {
         </div>
 
         <div className="admin-command-funnel">
-          {funnelStages.map(({ label, value }, index) => (
+          {activationStages.map(({ label, value }, index) => (
             <article key={label}>
               <span>{index + 1}</span>
               <small>{label}</small>
@@ -469,6 +467,34 @@ export function AdminOverviewPage() {
       <section className="panel">
         <div className="panel-heading">
           <div>
+            <p className="eyebrow">Monetização</p>
+            <h2>Intenção de compra e receita</h2>
+            <p className="muted">
+              Checkout é intenção; assinatura paga é monetização. Esses números preservam os eventos financeiros reais e não são forçados a caber no funil cumulativo de ativação.
+            </p>
+          </div>
+          <Link className="button button-secondary button-small" to={funnelPath}>
+            Ver monetização completa
+          </Link>
+        </div>
+        <div className="admin-command-now-grid">
+          <StatusCard
+            hint="tentativas de checkout observadas na coorte"
+            label="Checkouts iniciados"
+            value={toFiniteNumber(funnelSummary.checkoutsIniciados)}
+          />
+          <StatusCard
+            hint="assinaturas com primeiro pagamento válido"
+            label="Assinaturas pagas"
+            tone={toFiniteNumber(funnelSummary.assinaturasAtivadas) > 0 ? "success" : "neutral"}
+            value={toFiniteNumber(funnelSummary.assinaturasAtivadas)}
+          />
+        </div>
+      </section>
+
+      <section className="panel">
+        <div className="panel-heading">
+          <div>
             <p className="eyebrow">Retenção</p>
             <h2>Repetição de uso após o primeiro agendamento</h2>
             <p className="muted">
@@ -477,7 +503,7 @@ export function AdminOverviewPage() {
           </div>
           <Link
             className="button button-secondary button-small"
-            to={adminPathWithPeriod("/admin/trafego-pago/profissionais", period)}
+            to={funnelPath}
           >
             Ver análise completa
           </Link>
