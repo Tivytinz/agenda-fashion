@@ -69,7 +69,7 @@ function renderCheckoutRoute() {
         <Route
           path="/checkout"
           element={(
-            <ProtectedRoute ownerOnly businessRequired>
+            <ProtectedRoute ownerOnly businessRequired publishedBusinessRequired>
               <h1>Checkout</h1>
             </ProtectedRoute>
           )}
@@ -81,6 +81,10 @@ function renderCheckoutRoute() {
         <Route
           path="/entrar"
           element={<><h1>Entrar</h1><LocationProbe /></>}
+        />
+        <Route
+          path="/painel"
+          element={<><h1>Painel</h1><LocationProbe /></>}
         />
       </Routes>
     </MemoryRouter>
@@ -192,5 +196,42 @@ describe("ProtectedRoute businessRequired", () => {
     expect(screen.getByRole("heading", { name: "Entrar" })).not.toBeNull();
     expect(screen.getByTestId("location").textContent)
       .toBe("/entrar?tipo=profissional&plano=autonoma");
+  });
+
+  it("bloqueia checkout direto enquanto o negócio ainda não está publicado", () => {
+    sessionState = {
+      loading: false,
+      authenticated: true,
+      ehAdministrador: false,
+      temNegocio: true,
+      negocio: {
+        papel: "dono",
+        publicado: false
+      }
+    };
+
+    renderCheckoutRoute();
+
+    expect(screen.getByRole("heading", { name: "Painel" })).not.toBeNull();
+    expect(screen.getByTestId("location").textContent)
+      .toBe("/painel?plano=autonoma");
+    expect(screen.queryByRole("heading", { name: "Checkout" })).toBeNull();
+  });
+
+  it("libera checkout direto quando a publicação já foi confirmada", () => {
+    sessionState = {
+      loading: false,
+      authenticated: true,
+      ehAdministrador: false,
+      temNegocio: true,
+      negocio: {
+        papel: "dono",
+        publicado: true
+      }
+    };
+
+    renderCheckoutRoute();
+
+    expect(screen.getByRole("heading", { name: "Checkout" })).not.toBeNull();
   });
 });
