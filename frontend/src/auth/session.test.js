@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   getAuthDestination,
+  getPlanIntentPath,
   getBusinessWorkspacePath,
   getWorkspacePath,
   normalizePlanSlug,
@@ -48,14 +49,40 @@ describe("continuidade do plano escolhido", () => {
     expect(safeInternalPath("//site-malicioso.test")).toBe("");
   });
 
-  it("leva uma nova profissional ao negócio e depois ao checkout", () => {
+  it("carrega a intenção de plano somente em caminhos internos e com slug seguro", () => {
+    expect(getPlanIntentPath(
+      "/painel/servicos/novo",
+      "Autonoma-Pro"
+    )).toBe("/painel/servicos/novo?plano=autonoma-pro");
+    expect(getPlanIntentPath(
+      "/painel/horarios?origem=onboarding",
+      "autonoma"
+    )).toBe("/painel/horarios?origem=onboarding&plano=autonoma");
+    expect(getPlanIntentPath(
+      "/painel/servicos/novo",
+      "../../checkout"
+    )).toBe("/painel/servicos/novo");
+    expect(getPlanIntentPath(
+      "//site-malicioso.test",
+      "autonoma"
+    )).toBe("");
+  });
+
+  it("leva uma nova profissional ao negócio e só libera checkout quando o negócio está publicado", () => {
     expect(getAuthDestination({ temNegocio: false }, {
       planSlug: "autonoma"
     })).toBe("/criar-negocio?plano=autonoma");
 
     expect(getAuthDestination({
       temNegocio: true,
-      negocio: { papel: "dono" }
+      negocio: { papel: "dono", publicado: false }
+    }, {
+      planSlug: "autonoma"
+    })).toBe("/painel?plano=autonoma");
+
+    expect(getAuthDestination({
+      temNegocio: true,
+      negocio: { papel: "dono", publicado: true }
     }, {
       planSlug: "autonoma"
     })).toBe("/checkout?plano=autonoma");
