@@ -1,3 +1,7 @@
+const {
+  MIN_UNIQUE_CUSTOMERS_FOR_RECURRENCE,
+} = require("./signalService");
+
 function clamp01(value) {
   const number = Number(value);
   if (!Number.isFinite(number)) return 0;
@@ -145,6 +149,70 @@ function interestWithoutBookingOpportunity(signals) {
   };
 }
 
+function recurrenceOpportunity(signals) {
+  if (!signals.amostra_recorrencia_suficiente) return null;
+
+  const customers = signals.clientes_unicos;
+  const recurring = signals.clientes_recorrentes;
+  const rate = signals.taxa_recorrencia;
+
+  if (rate >= 25) return null;
+
+  const confidence = sampleConfidence(
+    customers,
+    MIN_UNIQUE_CUSTOMERS_FOR_RECURRENCE,
+    20
+  );
+  const gap = clamp01((25 - rate) / 25);
+  const message =
+    recurring === 0
+      ? (
+          `No histórico do negócio, ${customers} clientes já fizeram ` +
+          "agendamentos não cancelados e ainda não há cliente com um segundo " +
+          "agendamento. Isso não identifica uma causa, mas indica espaço para " +
+          "acompanhar a recorrência."
+        )
+      : (
+          `No histórico do negócio, ${customers} clientes já fizeram ` +
+          `agendamentos não cancelados e ${recurring} já voltaram a agendar ` +
+          `(${round(rate, 1)}%). Isso não identifica uma causa, mas indica ` +
+          "espaço para acompanhar a recorrência."
+        );
+
+  return {
+    codigo: "RECORRENCIA_BAIXA_COM_AMOSTRA",
+    categoria: "retencao",
+    titulo: "Fortaleça o retorno das clientes",
+    mensagem: message,
+    impacto: 0.62 + gap * 0.13,
+    confianca: confidence,
+    urgencia: 0.62,
+    evidencias: [
+      evidence(
+        "clientes_unicos",
+        "Clientes com agendamento",
+        customers
+      ),
+      evidence(
+        "clientes_recorrentes",
+        "Clientes que voltaram",
+        recurring
+      ),
+      evidence(
+        "taxa_recorrencia",
+        "Recorrência histórica",
+        round(rate, 1),
+        "%"
+      ),
+    ],
+    acao: {
+      tipo: "NAVEGAR",
+      rotulo: "Abrir agenda",
+      destino: "/painel/agenda",
+    },
+  };
+}
+
 function topServiceOpportunity(signals) {
   if (!signals.amostra_servicos_suficiente) return null;
 
@@ -192,6 +260,7 @@ function topServiceOpportunity(signals) {
 const OPPORTUNITY_EVALUATORS = Object.freeze([
   conversionOpportunity,
   interestWithoutBookingOpportunity,
+  recurrenceOpportunity,
   topServiceOpportunity,
 ]);
 

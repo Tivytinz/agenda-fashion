@@ -2,7 +2,7 @@
 
 ## Objetivo
 
-A próxima ação de ativação orienta a dona do negócio para o passo obrigatório mais importante até o primeiro agendamento registrado.
+A próxima ação de ativação orienta a dona do negócio para o passo obrigatório mais importante até o primeiro agendamento válido, isto é, um agendamento que não esteja cancelado.
 
 Ela existe para reduzir abandono entre criação do negócio, serviço ativo, agenda confirmada, publicação e primeiro agendamento. Essa camada é uma máquina de estados determinística: não é IA, não usa LLM e não deve ser apresentada ao usuário como inteligência artificial.
 
@@ -13,7 +13,7 @@ A decisão é feita no backend a partir do estado canônico do negócio:
 - `possui_servico_ativo`: existe ao menos um registro ativo em `servicos_negocio` para o negócio;
 - `agenda_configurada`: existe profissional ativo do negócio com `agenda_configuracoes.configurado_em` preenchido;
 - `negocio_publicado`: `negocios.publicado = TRUE`;
-- `primeiro_agendamento_recebido`: existe ao menos um agendamento registrado para o negócio, mesmo que ele seja cancelado posteriormente.
+- `primeiro_agendamento_recebido`: existe ao menos um agendamento não cancelado para o negócio. O nome do campo é preservado por compatibilidade, mas um cancelamento deixa de encerrar a ativação se não existir outro agendamento válido.
 
 O frontend não deve recalcular a próxima etapa usando visitas ao perfil, métricas de conversão, pendências de publicação ou outras heurísticas.
 
@@ -69,7 +69,7 @@ Os eventos usam `dashboard_dono`, missão `gerenciar_crescimento` e apenas propr
 
 No estado `CONQUISTAR_PRIMEIRO_AGENDAMENTO`, a seleção da recomendação e a conclusão do compartilhamento são fatos diferentes. A seleção registra intenção; `link_negocio_compartilhado` ou `link_negocio_copiado` continua registrando o resultado do mecanismo de share.
 
-Nenhum desses eventos substitui os marcos canônicos do backend. Clique, visualização e compartilhamento são sinais de comportamento, não ativação. O resultado deve ser medido pela progressão real do negócio entre os sinais canônicos e, por fim, pelo primeiro agendamento registrado.
+Nenhum desses eventos substitui os marcos canônicos do backend. Clique, visualização e compartilhamento são sinais de comportamento, não ativação. O resultado deve ser medido pela progressão real do negócio entre os sinais canônicos e, por fim, pelo primeiro agendamento não cancelado.
 
 A análise recomendada é:
 
@@ -78,31 +78,39 @@ recomendação visualizada
   -> ação selecionada
   -> marco canônico correspondente concluído
   -> próxima etapa de ativação
-  -> primeiro agendamento registrado
+  -> primeiro agendamento não cancelado
 ```
 
 Isso permite medir taxa de seleção e taxa de progressão por estado sem tratar clique como sucesso de produto.
+
+## Pós-ativação e retenção
+
+`ATIVADO` permanece como estado canônico da máquina, mas deixa de competir visualmente com a próxima oportunidade de crescimento. No dashboard, a ativação concluída deve ser apresentada como marco secundário; quando houver uma oportunidade determinística de Growth, ela pode aparecer primeiro.
+
+A recorrência usa somente dados agregados do negócio e exclui agendamentos cancelados. O resumo canônico expõe `clientes_unicos`, `clientes_recorrentes` e `taxa_recorrencia`. A identidade usada para deduplicação segue o padrão já adotado pelo dashboard: conta do cliente quando conhecida ou WhatsApp normalizado do agendamento visitante. Esses identificadores não são enviados à inteligência de crescimento.
+
+A oportunidade `RECORRENCIA_BAIXA_COM_AMOSTRA` só pode ser avaliada após a amostra mínima definida no serviço de sinais. Ela é uma heurística de priorização, não uma inferência causal: a mensagem deve declarar que os dados não identificam a causa da recorrência observada.
 
 ## Limite entre regra e IA
 
 Regras de publicação, serviço ativo, agenda confirmada, permissões, limites de plano, preços, pagamentos e disponibilidade continuam determinísticas e sob autoridade do backend.
 
-Uma futura camada de IA pode agregar valor quando houver interpretação de múltiplos sinais, linguagem natural ou personalização. Exemplos: explicar por que a conversão caiu, resumir desempenho, comparar períodos ou sugerir hipóteses de melhoria usando métricas já calculadas e autorizadas pelo backend.
+Camadas de inteligência podem agregar valor quando houver interpretação de múltiplos sinais, linguagem natural ou personalização. Exemplos: explicar desempenho, comparar períodos ou sugerir hipóteses de melhoria usando métricas já calculadas e autorizadas pelo backend.
 
-Essa futura IA não pode:
+Essa inteligência não pode:
 
 - decidir se um negócio pode ser publicado;
 - alterar a ordem canônica das etapas de ativação;
 - liberar horários inexistentes;
 - alterar preços, limites, permissões ou regras financeiras;
 - substituir validações do backend;
-- tratar recomendação probabilística como fato operacional.
+- tratar recomendação probabilística ou heurística como fato operacional.
 
-A máquina de estados deve funcionar integralmente mesmo se qualquer integração futura de IA estiver indisponível.
+A máquina de estados deve funcionar integralmente mesmo se qualquer integração de IA estiver indisponível.
 
-## Escopo do V1
+## Escopo da máquina de ativação
 
-O V1 não usa:
+A máquina de ativação não usa:
 
 - LLM;
 - OpenAI API;
@@ -113,7 +121,7 @@ O V1 não usa:
 - nova rota;
 - nova migration.
 
-Retenção, recorrência, otimização de conversão e recomendações baseadas em métricas podem alimentar uma futura camada de inteligência, mas não devem alterar esta máquina de estados.
+Retenção, recorrência, otimização de conversão e recomendações baseadas em métricas não alteram esta máquina de estados. Depois de `ATIVADO`, a interface reduz o marco de ativação a um status secundário e pode priorizar oportunidades de crescimento determinísticas, incluindo recorrência quando houver amostra agregada suficiente.
 
 ## Proteção por testes
 

@@ -1,5 +1,6 @@
 const MIN_PROFILE_VISITS_FOR_CONVERSION = 20;
 const MIN_BOOKINGS_FOR_SERVICE_SIGNAL = 8;
+const MIN_UNIQUE_CUSTOMERS_FOR_RECURRENCE = 5;
 
 function nonNegativeNumber(value) {
   const number = Number(value);
@@ -57,6 +58,24 @@ function buildGrowthSignals(dashboard = {}) {
   const agendamentosPeriodo = nonNegativeInteger(
     summary.servicos_vendidos
   );
+  const clientesUnicos = nonNegativeInteger(
+    summary.clientes_unicos
+  );
+  const clientesRecorrentes = Math.min(
+    nonNegativeInteger(
+      summary.clientes_recorrentes
+    ),
+    clientesUnicos
+  );
+  const taxaRecorrencia =
+    clientesUnicos > 0
+      ? clampPercent(
+          (
+            clientesRecorrentes /
+            clientesUnicos
+          ) * 100
+        )
+      : 0;
 
   const acoesInteresse =
     cliquesWhatsapp +
@@ -86,15 +105,24 @@ function buildGrowthSignals(dashboard = {}) {
     servico_destaque: servicoDestaque,
     participacao_servico_destaque:
       participacaoServicoDestaque,
+    clientes_unicos:
+      clientesUnicos,
+    clientes_recorrentes:
+      clientesRecorrentes,
+    taxa_recorrencia:
+      taxaRecorrencia,
     amostra_conversao_suficiente:
       visitasPerfil >= MIN_PROFILE_VISITS_FOR_CONVERSION,
     amostra_servicos_suficiente:
       agendamentosPeriodo >= MIN_BOOKINGS_FOR_SERVICE_SIGNAL,
+    amostra_recorrencia_suficiente:
+      clientesUnicos >= MIN_UNIQUE_CUSTOMERS_FOR_RECURRENCE,
   };
 }
 
 module.exports = {
   MIN_PROFILE_VISITS_FOR_CONVERSION,
   MIN_BOOKINGS_FOR_SERVICE_SIGNAL,
+  MIN_UNIQUE_CUSTOMERS_FOR_RECURRENCE,
   buildGrowthSignals,
 };

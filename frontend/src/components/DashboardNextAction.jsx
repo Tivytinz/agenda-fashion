@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { Link } from "react-router-dom";
 import { track } from "../analytics/track";
+import { ConfirmationIcon } from "./ConfirmationIcon";
 import { PublicShareButton } from "./PublicShareButton";
 
 const ACTIVATION_ROUTES = Object.freeze({
@@ -106,8 +107,13 @@ export function DashboardNextAction({
   const completedSteps = activationProgress(activation);
   const actionState = String(action.estado || "INDISPONIVEL");
   const actionType = String(action.acao?.tipo || "NAVEGAR");
+  const activationCompleted =
+    action.concluido === true ||
+    actionState === "ATIVADO";
 
   useEffect(() => {
+    if (activationCompleted) return;
+
     track(
       "proxima_acao_ativacao_visualizada",
       {
@@ -119,7 +125,12 @@ export function DashboardNextAction({
         },
       }
     );
-  }, [actionState, actionType, businessId]);
+  }, [
+    actionState,
+    actionType,
+    activationCompleted,
+    businessId,
+  ]);
 
   function trackSelection() {
     track(
@@ -133,10 +144,39 @@ export function DashboardNextAction({
     );
   }
 
+  if (activationCompleted) {
+    return (
+      <section
+        aria-label="Negócio ativado"
+        className="panel onboarding-panel is-complete dashboard-activation-complete"
+      >
+        <div className="onboarding-complete-copy">
+          <p className="eyebrow onboarding-complete-eyebrow">
+            <ConfirmationIcon className="onboarding-complete-icon" />
+            Negócio ativado
+          </p>
+          <h2>{action.title}</h2>
+          <p className="muted">
+            {action.description}
+          </p>
+        </div>
+
+        <div className="onboarding-complete-actions">
+          {action.primary?.to && (
+            <Link
+              className="button button-secondary button-small"
+              to={action.primary.to}
+            >
+              {action.primary.label}
+            </Link>
+          )}
+        </div>
+      </section>
+    );
+  }
+
   return (
-    <section
-      className={`panel dashboard-action-panel${action.concluido === true ? " is-complete" : ""}`}
-    >
+    <section className="panel dashboard-action-panel">
       <div className="panel-heading">
         <div>
           <p className="eyebrow">Próximo passo</p>

@@ -150,7 +150,7 @@ describe(
     );
 
     test(
-      "considera o primeiro agendamento real mesmo se ele for cancelado depois",
+      "encerra a ativação somente enquanto existir agendamento não cancelado",
       async () => {
         const inserido = await db.query(
           `
@@ -181,6 +181,16 @@ describe(
           ]
         );
 
+        let estado =
+          await dashboardActivationRepository
+            .buscarEstadoAtivacao(
+              cenario.negocioId
+            );
+
+        expect(
+          estado.primeiro_agendamento_recebido
+        ).toBe(true);
+
         await db.query(
           `
             UPDATE agendamentos
@@ -190,7 +200,26 @@ describe(
           [inserido.rows[0].id]
         );
 
-        const estado =
+        estado =
+          await dashboardActivationRepository
+            .buscarEstadoAtivacao(
+              cenario.negocioId
+            );
+
+        expect(
+          estado.primeiro_agendamento_recebido
+        ).toBe(false);
+
+        await db.query(
+          `
+            UPDATE agendamentos
+            SET status = 'realizado'
+            WHERE id = $1
+          `,
+          [inserido.rows[0].id]
+        );
+
+        estado =
           await dashboardActivationRepository
             .buscarEstadoAtivacao(
               cenario.negocioId

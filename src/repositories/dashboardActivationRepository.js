@@ -39,6 +39,7 @@ async function buscarEstadoAtivacao(
           SELECT 1
           FROM agendamentos a
           WHERE a.negocio_id = n.id
+            AND a.status <> 'cancelado'
         ) AS primeiro_agendamento_recebido
 
       FROM negocios n
