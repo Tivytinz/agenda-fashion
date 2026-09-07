@@ -545,7 +545,7 @@ describe(
     );
 
     test(
-      "preserva o marco de primeiro agendamento depois de cancelamento",
+      "ignora cancelado e reconhece reserva válida posterior",
       async () => {
         await db.query(
           `
@@ -557,9 +557,48 @@ describe(
           [negocioId]
         );
 
-        const linhas = await repository
+        let linhas = await repository
           .listarPorCampanha("today");
-        const encontrada = linhas.find(
+        let encontrada = linhas.find(
+          (item) =>
+            item.campanha === utmCampaign
+        );
+
+        expect(encontrada).toMatchObject({
+          primeiros_agendamentos: 0,
+        });
+
+        await db.query(
+          `
+          INSERT INTO agendamentos (
+            negocio_id,
+            servico_id,
+            profissional_id,
+            cliente_id,
+            data,
+            horario,
+            status
+          )
+          VALUES (
+            $1,
+            $2,
+            $3,
+            $3,
+            CURRENT_DATE + 2,
+            '11:00',
+            'agendado'
+          )
+          `,
+          [
+            negocioId,
+            servicoId,
+            usuarioId,
+          ]
+        );
+
+        linhas = await repository
+          .listarPorCampanha("today");
+        encontrada = linhas.find(
           (item) =>
             item.campanha === utmCampaign
         );

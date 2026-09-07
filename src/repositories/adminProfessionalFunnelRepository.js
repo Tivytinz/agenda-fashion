@@ -409,6 +409,10 @@ async function listarPorCampanha(
               ELSE NULL
             END
             AND ag.negocio_id = dono.negocio_id
+            AND COALESCE(
+              ag.status,
+              'agendado'
+            ) <> 'cancelado'
           WHERE ep.negocio_id = dono.negocio_id
             AND ep.nome = 'agendamento_concluido'
             AND ep.pagina = 'finalizar_agendamento'
@@ -425,6 +429,10 @@ async function listarPorCampanha(
               FROM agendamentos ag_anterior
               WHERE ag_anterior.negocio_id =
                   ag.negocio_id
+                AND COALESCE(
+                  ag_anterior.status,
+                  'agendado'
+                ) <> 'cancelado'
                 AND (
                   ag_anterior.created_at < ag.created_at OR
                   (
@@ -443,6 +451,10 @@ async function listarPorCampanha(
               AS primeiro_agendamento_em
           FROM agendamentos ag
           WHERE ag.negocio_id = dono.negocio_id
+            AND COALESCE(
+              ag.status,
+              'agendado'
+            ) <> 'cancelado'
         ) primeiro_agendamento ON TRUE
 
         LEFT JOIN LATERAL (

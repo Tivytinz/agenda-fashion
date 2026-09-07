@@ -61,6 +61,57 @@ describe(
     );
 
     test(
+      "usa somente agendamentos não cancelados como primeiro valor",
+      async () => {
+        await repository
+          .listarPorCampanha("30");
+
+        const [sql] =
+          mockQuery.mock.calls[0];
+
+        expect(sql).toMatch(
+          /MIN\(ag\.created_at\)[\s\S]*COALESCE\([\s\S]*ag\.status[\s\S]*'agendado'[\s\S]*\)\s*<>\s*'cancelado'/i
+        );
+        expect(sql).toMatch(
+          /ag\.negocio_id = dono\.negocio_id[\s\S]*ag\.status[\s\S]*<>\s*'cancelado'/i
+        );
+        expect(sql).toMatch(
+          /ag_anterior\.status[\s\S]*<>\s*'cancelado'/i
+        );
+      }
+    );
+
+    test(
+      "preserva os marcos compartilhados e a verdade financeira como contagens independentes",
+      async () => {
+        await repository
+          .listarPorCampanha("30");
+
+        const [sql] =
+          mockQuery.mock.calls[0];
+
+        expect(sql).toMatch(
+          /COUNT\(\*\) FILTER \(\s*WHERE f\.servico_criado\s*\)::INT AS servicos_criados/i
+        );
+        expect(sql).toMatch(
+          /COUNT\(\*\) FILTER \(\s*WHERE f\.agenda_configurada\s*\)::INT AS agendas_configuradas/i
+        );
+        expect(sql).toMatch(
+          /COUNT\(\*\) FILTER \(\s*WHERE f\.negocio_publicado\s*\)::INT AS negocios_publicados/i
+        );
+        expect(sql).toMatch(
+          /COUNT\(\*\) FILTER \(\s*WHERE f\.primeiro_agendamento\s*\)::INT AS primeiros_agendamentos/i
+        );
+        expect(sql).toMatch(
+          /COUNT\(\*\) FILTER \(\s*WHERE f\.checkout_iniciado\s*\)::INT AS checkouts_iniciados/i
+        );
+        expect(sql).toMatch(
+          /COUNT\(\*\) FILTER \(\s*WHERE f\.assinatura_ativada\s*\)::INT AS assinaturas_ativadas/i
+        );
+      }
+    );
+
+    test(
       "reconhece somente campanha cadastrada com objetivo profissional",
       async () => {
         await repository

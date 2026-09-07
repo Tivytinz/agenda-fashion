@@ -56,7 +56,23 @@ function funnel() {
       agendasConfiguradas: 2,
       negociosPublicados: 2,
       primeirosAgendamentos: 1,
+      checkoutsIniciados: 1,
       assinaturasAtivadas: 0
+    }
+  };
+}
+
+function recurrence() {
+  return {
+    resumo: {
+      comPrimeiroAgendamento: 5,
+      comSegundoAgendamento: 2,
+      taxaSegundoSobrePrimeiro: 40
+    },
+    tempos: {
+      primeiroParaSegundo: {
+        medianaDias: 12
+      }
     }
   };
 }
@@ -75,6 +91,8 @@ function activation() {
       usuarioId: 9,
       nome: "Ana Nails",
       negocio: { nome: "Studio Ana" },
+      progresso: { etapasConcluidas: 4 },
+      ultimaAtividadeEm: "2026-09-01T12:00:00.000Z",
       proximaAcao: { rotulo: "Configurar agenda" }
     }]
   };
@@ -85,6 +103,7 @@ function mockRequests() {
     if (path.startsWith("/admin/dashboard")) return Promise.resolve(dashboard());
     if (path.startsWith("/admin/saude/perfis-incompletos")) return Promise.resolve(activation());
     if (path.startsWith("/admin/marketing/funil-profissionais")) return Promise.resolve(funnel());
+    if (path.startsWith("/admin/marketing/recorrencia-profissionais")) return Promise.resolve(recurrence());
     if (path === "/health/ready") return Promise.resolve({ status: "ready", database: "ok" });
     return Promise.reject(new Error(`Rota inesperada: ${path}`));
   });
@@ -98,7 +117,7 @@ beforeEach(() => {
 afterEach(cleanup);
 
 describe("centro de comando do admin", () => {
-  it("separa estado atual de desempenho temporal e aponta a maior perda", async () => {
+  it("separa estado atual, marcos de ativação, monetização e retenção", async () => {
     render(
       <MemoryRouter initialEntries={["/admin?periodo=30"]}>
         <AdminOverviewPage />
@@ -114,7 +133,17 @@ describe("centro de comando do admin", () => {
     expect(screen.getByText("Negócios criados")).not.toBeNull();
     expect(screen.getByText("Clientes que agendaram")).not.toBeNull();
     expect(screen.getByText("Agendas")).not.toBeNull();
-    expect(screen.getByText(/Maior perda observada: Serviços → Agendas/)).not.toBeNull();
+    expect(screen.getByText("1º agendamento válido")).not.toBeNull();
+    expect(screen.getByText("Checkouts iniciados")).not.toBeNull();
+    expect(screen.getByText("Assinaturas pagas")).not.toBeNull();
+    expect(screen.getByRole("heading", { name: "Marcos de ativação da coorte" })).not.toBeNull();
+    expect(screen.getByText(/não são conversões adjacentes/)).not.toBeNull();
+    expect(screen.getByRole("heading", { name: "Repetição de uso após o primeiro agendamento" })).not.toBeNull();
+    expect(screen.getByText("40%")).not.toBeNull();
+    expect(screen.getByText("12 dias")).not.toBeNull();
+    expect(screen.getByText("Reservas criadas")).not.toBeNull();
+    expect(screen.getByText(/contagens de sessões com cada evento/)).not.toBeNull();
+    expect(screen.getByText(/mesmo profissional pode aparecer em mais de um bloqueio/)).not.toBeNull();
     expect(screen.getByText("Goiânia")).not.toBeNull();
 
     const semAgenda = screen.getByRole("link", { name: /Sem agenda/ });
@@ -123,11 +152,14 @@ describe("centro de comando do admin", () => {
     const ana = screen.getByRole("link", { name: "Abrir ativação →" });
     expect(ana.getAttribute("href")).toContain("busca=Ana");
 
-    const fullFunnel = screen.getByRole("link", { name: "Ver funil completo" });
-    expect(fullFunnel.getAttribute("href")).toBe("/admin/trafego-pago/profissionais?periodo=30");
+    const analysisLinks = screen.getAllByRole("link", { name: "Ver análise completa" });
+    expect(analysisLinks.length).toBe(2);
+    expect(analysisLinks.every((link) =>
+      link.getAttribute("href") === "/admin/trafego-pago/profissionais?periodo=30"
+    )).toBe(true);
 
     await waitFor(() => {
-      expect(apiRequest).toHaveBeenCalledTimes(4);
+      expect(apiRequest).toHaveBeenCalledTimes(5);
     });
   });
 
@@ -176,6 +208,9 @@ describe("centro de comando do admin", () => {
       if (path === "/admin/marketing/funil-profissionais?periodo=today") {
         return Promise.resolve(funnel());
       }
+      if (path.startsWith("/admin/marketing/recorrencia-profissionais")) {
+        return Promise.resolve(recurrence());
+      }
       if (path.startsWith("/admin/saude/perfis-incompletos")) {
         return Promise.resolve(activation());
       }
@@ -193,13 +228,16 @@ describe("centro de comando do admin", () => {
     expect(screen.queryByRole("heading", { name: "Desempenho — Hoje" })).toBeNull();
   });
 
-  it("não converte falha da ativação em zero", async () => {
+  it("não converte falhas opcionais em zero", async () => {
     apiRequest.mockImplementation((path) => {
       if (path.startsWith("/admin/dashboard")) return Promise.resolve(dashboard());
       if (path.startsWith("/admin/saude/perfis-incompletos")) {
         return Promise.reject(new Error("Ativação indisponível"));
       }
       if (path.startsWith("/admin/marketing/funil-profissionais")) return Promise.resolve(funnel());
+      if (path.startsWith("/admin/marketing/recorrencia-profissionais")) {
+        return Promise.reject(new Error("Recorrência indisponível"));
+      }
       if (path === "/health/ready") return Promise.resolve({ status: "ready", database: "ok" });
       return Promise.reject(new Error(`Rota inesperada: ${path}`));
     });
@@ -215,5 +253,6 @@ describe("centro de comando do admin", () => {
     expect(pendingCard?.textContent).toContain("—");
     expect(pendingCard?.textContent).toContain("Dados de ativação indisponíveis");
     expect(screen.queryByText("Ana Nails")).toBeNull();
+    expect(screen.getByText("Com 2º agendamento").closest("div")?.textContent).toContain("—");
   });
 });
