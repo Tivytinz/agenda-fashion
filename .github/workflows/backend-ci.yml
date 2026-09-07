@@ -74,6 +74,9 @@ jobs:
       - name: Run tests with coverage
         run: npm run test:coverage
 
+      - name: Audit backend and tooling dependencies
+        run: npm audit --audit-level=high
+
       - name: Audit production dependencies
         run: npm audit --omit=dev --audit-level=high
 
