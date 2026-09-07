@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { apiRequest } from "../api/client";
@@ -235,7 +235,9 @@ describe("dashboard", () => {
     mockDashboardRequests();
     render(<MemoryRouter><DashboardPage /></MemoryRouter>);
 
-    expect(await screen.findByText("1,4%")).not.toBeNull();
+    const conversionCard = (await screen.findByText("Conversão")).closest(".metric-card");
+    expect(conversionCard).not.toBeNull();
+    expect(within(conversionCard).getByText("1,4%")).not.toBeNull();
     expect(screen.getByText("2 agendamentos em 145 visitas")).not.toBeNull();
     expect(screen.getByText("descobriu você")).not.toBeNull();
     expect(screen.getByRole("heading", { name: "Serviços mais agendados" }))
