@@ -2,7 +2,11 @@ import { useEffect, useRef, useState } from "react";
 import { Link, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { apiRequest } from "../api/client";
 import { useSession } from "../auth/SessionContext";
-import { normalizePlanSlug, safeInternalPath } from "../auth/session";
+import {
+  getPlanIntentPath,
+  normalizePlanSlug,
+  safeInternalPath
+} from "../auth/session";
 import { BackLink } from "../components/BackLink";
 import { ConfirmationIcon } from "../components/ConfirmationIcon";
 import { ErrorState, LoadingState } from "../components/ScreenState";
@@ -375,15 +379,13 @@ export function BusinessPage({ create = false }) {
       if (create) {
         const requestedPath = safeInternalPath(location.state?.from);
 
-        if (selectedPlan) {
-          navigate(
-            `/checkout?plano=${encodeURIComponent(selectedPlan)}`,
-            { replace: true }
-          );
-        } else if (requestedPath) {
+        if (!selectedPlan && requestedPath) {
           navigate(requestedPath, { replace: true });
         } else {
-          navigate("/painel/servicos/novo", {
+          navigate(getPlanIntentPath(
+            "/painel/servicos/novo",
+            selectedPlan
+          ), {
             replace: true,
             state: {
               onboarding: true,
