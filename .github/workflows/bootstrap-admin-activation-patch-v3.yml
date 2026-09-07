@@ -1,0 +1,54 @@
+name: Bootstrap admin activation patch v3
+
+on:
+  push:
+    branches:
+      - fix/admin-activation-ux-20260907
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Verify expected base ancestry
+        run: git merge-base --is-ancestor d1b056a5e306cc9a5d80686d0869fcac97a2b284 HEAD
+      - name: Rebuild and apply prepared patch deterministically
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import base64
+          import gzip
+
+          workflow = Path('.github/workflows/bootstrap-admin-activation-patch.yml').read_text()
+          marker = "cat > /tmp/patch.b64 <<'EOF'\n"
+          payload_block = workflow.split(marker, 1)[1].split('\n          EOF', 1)[0]
+          payload = ''.join(line.strip() for line in payload_block.splitlines())
+          script = gzip.decompress(base64.b64decode(payload)).decode('utf-8')
+
+          old_anchor = '        """.admin-saas-health-page .metric-grid {""",'
+          new_anchor = '        """.admin-saas-health-page .metric-grid {\\n  grid-template-columns: repeat(3, minmax(0, 1fr));\\n}""",'
+          if script.count(old_anchor) != 1:
+              raise SystemExit('anchor CSS esperado não encontrado exatamente uma vez')
+          script = script.replace(old_anchor, new_anchor, 1)
+
+          Path('/tmp/apply.py').write_text(script)
+          PY
+          python /tmp/apply.py
+      - name: Remove bootstrap workflows
+        run: rm .github/workflows/bootstrap-admin-activation-patch.yml .github/workflows/bootstrap-admin-activation-patch-v2.yml .github/workflows/bootstrap-admin-activation-patch-v3.yml
+      - name: Commit patch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git diff --cached --check
+          git commit -m "feat: alinha ativação administrativa ao primeiro agendamento"
+          git push origin HEAD:fix/admin-activation-ux-20260907
