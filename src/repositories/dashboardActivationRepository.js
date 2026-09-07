@@ -10,6 +10,12 @@ async function buscarEstadoAtivacao(
           SELECT 1
           FROM servicos_negocio s
           WHERE s.negocio_id = n.id
+        ) AS possui_servico,
+
+        EXISTS (
+          SELECT 1
+          FROM servicos_negocio s
+          WHERE s.negocio_id = n.id
             AND s.ativo = TRUE
         ) AS possui_servico_ativo,
 

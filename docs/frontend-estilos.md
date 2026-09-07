@@ -52,11 +52,13 @@ O primeiro grupo migrado segue esse padrão:
 - `AdminSaasHealthPage`: `admin-saas-health.css`;
 - `AdminWhatsAppPage`: `admin-whatsapp.css`.
 
+`admin-refinements.css` também pertence exclusivamente ao administrativo. Ele é importado pelas páginas administrativas que usam seus componentes e não pelo `WorkspaceLayout`, porque esse layout participa do bundle profissional e não deve transportar regras do console para outras áreas.
+
 Esses estilos são carregados pelo mesmo helper `lazyNamedWithStyles` usado pelo Marketing administrativo. O Vite pode então associar os recursos ao carregamento das rotas correspondentes, enquanto `main.jsx` permanece responsável apenas por fundações e estilos realmente compartilhados.
 
 Não mover um arquivo apenas pelo nome. Antes é obrigatório verificar seletores compartilhados, componentes usados em mais de uma rota e a ordem da cascata. Por isso `home-discovery.css`, `profile-polish.css` e `account-polish.css` permanecem globais nesta etapa: eles ainda atravessam header global, confirmação de agendamento ou conta em múltiplos shells e exigem auditoria própria antes de qualquer isolamento.
 
-`admin-saas-health.css` e `admin-whatsapp.css` foram auditados como estilos exclusivos das respectivas features administrativas e passaram a carregar junto das páginas lazy. Os refinamentos neutros dessas telas também ficam nas próprias folhas de feature; `admin-shell.css` continua global apenas para tokens, estrutura, navegação, controles e superfícies compartilhadas do console.
+`admin-saas-health.css` e `admin-whatsapp.css` foram auditados como estilos exclusivos das respectivas features administrativas e passaram a carregar junto das páginas lazy. Os refinamentos neutros dessas telas também ficam nas próprias folhas de feature. `AdminLayout` vive em módulo separado do `WorkspaceLayout` profissional e carrega `admin-shell.css` pelo mesmo mecanismo lazy das rotas administrativas; o shell do console não faz mais parte da entrada global.
 
 O teste `tests/frontend-route-css-regressoes.test.js` protege esse ownership: estilos já migrados não podem voltar para `main.jsx`, e suas páginas devem continuar usando carregamento lazy sincronizado com o CSS. O smoke test `frontend/e2e/route-css-smoke.spec.js` valida no navegador que CSS exclusivo é realmente solicitado quando a rota correspondente é aberta.
 
@@ -77,3 +79,9 @@ Antes de adicionar CSS novo:
 - manter uma entrada canônica por feature e módulos internos com nomes de responsabilidade;
 - carregar CSS exclusivo junto da rota lazy correspondente, em vez de adicioná-lo à entrada global;
 - testar faixas intermediárias de largura, não apenas celular e desktop grande.
+
+Enquanto a base histórica ainda estiver sendo consolidada, `index.css` deve permanecer como fundação canônica e `af-experience.css` deve ser tratado como camada transitória: regras novas não devem duplicar seletores de fundação entre os dois arquivos. A remoção de sobreposições existentes precisa ser feita por grupos de componentes, com validação visual das rotas afetadas, pois a ordem atual da cascata ainda participa do comportamento responsivo.
+
+Conversões e formatações compartilhadas também devem permanecer em `frontend/src/utils/format.js`. Componentes administrativos e de recorrência devem reutilizar `toFiniteNumber` para normalizar números recebidos pela API, em vez de manter cópias locais da mesma função.
+
+Páginas administrativas devem concentrar carregamento, estado e composição. Tabelas extensas e regras puramente de apresentação ficam em componentes e utilitários próprios. O funil profissional usa `ProfessionalCampaignDecisionTable` e `professionalCampaigns.js`; custos de marketing usam `MarketingCampaignCostTable`, `MarketingExpenseHistory` e `marketingCosts.js`.

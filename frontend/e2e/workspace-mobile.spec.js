@@ -197,8 +197,8 @@ test("próxima ação de ativação cabe no celular e mostra somente a missão a
       mensagem: "Mantenha pelo menos um serviço ativo para receber novos agendamentos.",
       acao: {
         tipo: "NAVEGAR",
-        rotulo: "Gerenciar serviços",
-        destino: "/painel/servicos"
+        rotulo: "Cadastrar primeiro serviço",
+        destino: "/painel/servicos/novo?onboarding=servico"
       }
     }
   }));
@@ -207,7 +207,7 @@ test("próxima ação de ativação cabe no celular e mostra somente a missão a
   await expect(page.getByRole("heading", {
     name: "Ative seus serviços"
   })).toBeVisible();
-  await expect(page.getByRole("link", { name: "Gerenciar serviços" }))
+  await expect(page.getByRole("link", { name: "Cadastrar primeiro serviço" }))
     .toBeVisible();
   await expect(page.getByText("0 de 4 etapas concluídas")).toBeVisible();
 

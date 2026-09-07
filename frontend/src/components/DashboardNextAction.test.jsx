@@ -72,8 +72,8 @@ describe(
       [
         "GARANTIR_SERVICO_ATIVO",
         "Ative seus serviços",
-        "Gerenciar serviços",
-        "/painel/servicos",
+        "Cadastrar primeiro serviço",
+        "/painel/servicos/novo?onboarding=servico",
       ],
       [
         "CONFIRMAR_AGENDA",
@@ -186,9 +186,9 @@ describe(
           acao: {
             tipo: "NAVEGAR",
             rotulo:
-              "Gerenciar serviços",
+              "Cadastrar primeiro serviço",
             destino:
-              "/painel/servicos",
+              "/painel/servicos/novo?onboarding=servico",
           },
         });
 
@@ -197,7 +197,7 @@ describe(
             "link",
             {
               name:
-                "Gerenciar serviços",
+                "Cadastrar primeiro serviço",
             }
           )
         );

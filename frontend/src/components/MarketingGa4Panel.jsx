@@ -1,7 +1,4 @@
-function number(value) {
-  const parsed = Number(value);
-  return Number.isFinite(parsed) ? parsed : 0;
-}
+import { toFiniteNumber } from "../utils/format";
 
 function formatPercent(value) {
   const parsed = Number(value);
@@ -96,14 +93,14 @@ export function MarketingGa4Panel({ data }) {
 
           <div className="marketing-ga4-kpis marketing-ga4-kpis-v3" aria-label="Resumo do GA4">
             {[
-              ["Sessões", number(summary.sessoes), "visitas no período"],
-              ["Usuários", number(summary.usuarios), `${number(summary.novosUsuarios)} novos`],
+              ["Sessões", toFiniteNumber(summary.sessoes), "visitas no período"],
+              ["Usuários", toFiniteNumber(summary.usuarios), `${toFiniteNumber(summary.novosUsuarios)} novos`],
               [
                 "Engajamento",
                 formatPercent(summary.taxaEngajamentoPercentual),
-                `${number(summary.sessoesEngajadas)} sessões engajadas`
+                `${toFiniteNumber(summary.sessoesEngajadas)} sessões engajadas`
               ],
-              ["Visualizações", number(summary.visualizacoes), "páginas e telas vistas"]
+              ["Visualizações", toFiniteNumber(summary.visualizacoes), "páginas e telas vistas"]
             ].map(([label, value, hint]) => (
               <article key={label}>
                 <span>{label}</span>
@@ -132,7 +129,7 @@ export function MarketingGa4Panel({ data }) {
                         <small>{item.origem} / {item.midia}</small>
                       </div>
                       <div className="marketing-ga4-list-value">
-                        <strong>{number(item.sessoes)}</strong>
+                        <strong>{toFiniteNumber(item.sessoes)}</strong>
                         <small>sessões</small>
                       </div>
                     </article>
@@ -155,8 +152,8 @@ export function MarketingGa4Panel({ data }) {
                   {landingPages.slice(0, 8).map((item, index) => (
                     <article key={`${item.pagina}-${index}`}>
                       <strong>{item.pagina}</strong>
-                      <span>{number(item.sessoes)} sessões</span>
-                      <span>{number(item.usuarios)} usuários</span>
+                      <span>{toFiniteNumber(item.sessoes)} sessões</span>
+                      <span>{toFiniteNumber(item.usuarios)} usuários</span>
                     </article>
                   ))}
                 </div>
@@ -186,8 +183,8 @@ export function MarketingGa4Panel({ data }) {
                         </small>
                       </div>
                       <div className="marketing-ga4-list-value">
-                        <strong>{number(item.sessoes)}</strong>
-                        <small>{number(item.sessoesEngajadas)} engajadas</small>
+                        <strong>{toFiniteNumber(item.sessoes)}</strong>
+                        <small>{toFiniteNumber(item.sessoesEngajadas)} engajadas</small>
                       </div>
                     </article>
                   ))}
@@ -210,10 +207,10 @@ export function MarketingGa4Panel({ data }) {
                     <article key={`${item.categoria}-${index}`}>
                       <div>
                         <strong>{deviceLabel(item.categoria)}</strong>
-                        <small>{number(item.usuarios)} usuários</small>
+                        <small>{toFiniteNumber(item.usuarios)} usuários</small>
                       </div>
                       <div className="marketing-ga4-list-value">
-                        <strong>{number(item.sessoes)}</strong>
+                        <strong>{toFiniteNumber(item.sessoes)}</strong>
                         <small>sessões</small>
                       </div>
                     </article>
@@ -240,7 +237,7 @@ export function MarketingGa4Panel({ data }) {
                         <small>{[item.regiao, item.pais].filter(Boolean).join(" · ")}</small>
                       </div>
                       <div className="marketing-ga4-list-value">
-                        <strong>{number(item.sessoes)}</strong>
+                        <strong>{toFiniteNumber(item.sessoes)}</strong>
                         <small>sessões</small>
                       </div>
                     </article>

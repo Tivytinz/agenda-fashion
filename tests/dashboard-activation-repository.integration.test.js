@@ -43,6 +43,7 @@ describe(
             );
 
         expect(estado).toMatchObject({
+          possui_servico: true,
           possui_servico_ativo: true,
           negocio_publicado: true,
           agenda_configurada: true,
@@ -83,6 +84,7 @@ describe(
             );
 
         expect(atualizado).toMatchObject({
+          possui_servico: true,
           possui_servico_ativo: false,
           negocio_publicado: false,
           agenda_configurada: false,

@@ -2,7 +2,11 @@ import { ConfirmationIcon } from "./ConfirmationIcon";
 
 const DEFAULT_STEPS = ["Serviço", "Profissional", "Horário", "Confirmar"];
 
-export function FlowSteps({ current, steps = DEFAULT_STEPS }) {
+export function FlowSteps({
+  ariaLabel = "Etapas do agendamento",
+  current,
+  steps = DEFAULT_STEPS
+}) {
   return (
     <div className="flow-progress">
       <p>
@@ -11,7 +15,7 @@ export function FlowSteps({ current, steps = DEFAULT_STEPS }) {
       </p>
       <ol
         className="flow-steps"
-        aria-label="Etapas do agendamento"
+        aria-label={ariaLabel}
         style={{ "--flow-step-count": steps.length }}
       >
         {steps.map((label, index) => {

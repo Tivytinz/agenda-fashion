@@ -375,6 +375,9 @@ describe(
           ler(
             "frontend/src/components/WorkspaceLayout.jsx"
           );
+        const layouts = `${workspace}\n${ler(
+          "frontend/src/components/AdminLayout.jsx"
+        )}`;
 
         [
           'to="/"',
@@ -411,7 +414,7 @@ describe(
         ].forEach(
           (rota) => {
             expect(
-              workspace
+              layouts
             ).toContain(
               rota
             );
@@ -419,7 +422,7 @@ describe(
         );
 
         expect(
-          workspace
+          layouts
         ).not.toContain(
           '["/admin/saude", "Saúde do SaaS"'
         );
@@ -445,9 +448,13 @@ describe(
         );
 
         expect(
-          workspace
+          layouts
         ).toContain(
           "export function AdminLayout"
+        );
+
+        expect(app).toContain(
+          '() => import("./components/AdminLayout")'
         );
 
         expect(

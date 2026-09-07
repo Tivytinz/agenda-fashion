@@ -6,6 +6,11 @@ export function normalizeText(value) {
     .trim();
 }
 
+export function toFiniteNumber(value) {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
 export function formatCurrency(value) {
   return new Intl.NumberFormat("pt-BR", {
     style: "currency",

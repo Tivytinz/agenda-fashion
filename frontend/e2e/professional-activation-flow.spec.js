@@ -52,7 +52,11 @@ function activationNextAction({ serviceCreated, scheduleConfigured }) {
       concluido: false,
       titulo: "Ative seus serviços",
       mensagem: "Mantenha pelo menos um serviço ativo para receber novos agendamentos.",
-      acao: { tipo: "NAVEGAR", rotulo: "Gerenciar serviços", destino: "/painel/servicos" }
+      acao: {
+        tipo: "NAVEGAR",
+        rotulo: "Cadastrar primeiro serviço",
+        destino: "/painel/servicos/novo?onboarding=servico"
+      }
     };
   }
   if (!scheduleConfigured) {
@@ -257,7 +261,7 @@ test("profissional vai da landing até agenda pronta para divulgação", async (
   await page.getByLabel("Número", { exact: true }).fill("10");
   await page.getByRole("button", { name: "Criar negócio" }).click();
 
-  await expect(page).toHaveURL(/\/painel\/servicos\/novo$/);
+  await expect(page).toHaveURL(/\/painel\/servicos\/novo\?onboarding=servico$/);
   expect(businessPayload).toEqual(expect.objectContaining({
     nome: "Studio Aurora",
     descricao: "",

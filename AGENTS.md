@@ -86,7 +86,10 @@ AF nao demonstra valor para os negocios.
   profissional; configuracoes legadas so podem ser recuperadas quando houver
   evidencia persistida de edicao anterior.
 - O primeiro servico nao publica sozinho um negocio do fluxo novo. A interface
-  deve conduzir o dono diretamente para confirmar os horarios.
+  deve conduzir o dono diretamente para confirmar os horarios. O progresso
+  `Negocio → Servico → Horarios` deve permanecer visivel e a missao do primeiro
+  servico deve sobreviver a recarga por URL, sem depender apenas de estado de
+  navegacao em memoria.
 - Depois da primeira configuracao valida, o backend recalcula a elegibilidade;
   se todos os requisitos estiverem confirmados, publica o negocio e conduz para
   divulgacao do perfil e primeiro agendamento. O compartilhamento deve

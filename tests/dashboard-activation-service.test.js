@@ -26,6 +26,7 @@ describe(
         dashboardActivationRepository
           .buscarEstadoAtivacao
           .mockResolvedValue({
+            possui_servico: true,
             possui_servico_ativo: true,
             negocio_publicado: true,
             agenda_configurada: true,
@@ -38,6 +39,7 @@ describe(
               negocioId: "12",
             })
         ).resolves.toEqual({
+          possui_servico: true,
           possui_servico_ativo: true,
           negocio_publicado: true,
           agenda_configurada: true,
@@ -57,6 +59,7 @@ describe(
         dashboardActivationRepository
           .buscarEstadoAtivacao
           .mockResolvedValue({
+            possui_servico: 1,
             possui_servico_ativo: 1,
             negocio_publicado: "true",
             agenda_configurada: null,
@@ -69,6 +72,7 @@ describe(
               negocioId: 12,
             })
         ).resolves.toEqual({
+          possui_servico: false,
           possui_servico_ativo: false,
           negocio_publicado: false,
           agenda_configurada: false,
@@ -86,6 +90,7 @@ describe(
               negocioId: null,
             })
         ).resolves.toEqual({
+          possui_servico: false,
           possui_servico_ativo: false,
           negocio_publicado: false,
           agenda_configurada: false,

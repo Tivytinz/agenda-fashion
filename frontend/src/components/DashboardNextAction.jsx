@@ -7,6 +7,7 @@ import { PublicShareButton } from "./PublicShareButton";
 const ACTIVATION_ROUTES = Object.freeze({
   agenda: { to: "/painel/agenda" },
   services: { to: "/painel/servicos" },
+  firstService: { to: "/painel/servicos/novo?onboarding=servico" },
   schedule: { to: "/painel/horarios" },
   business: { to: "/painel/negocio" },
 });

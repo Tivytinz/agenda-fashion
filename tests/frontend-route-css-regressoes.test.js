@@ -30,6 +30,12 @@ describe("ownership de CSS por rota", () => {
       expect(app).toContain(`import("./styles/${estilo}")`);
     });
 
+    expect(entrada).not.toContain('import "./styles/admin-shell.css"');
+    expect(app).toContain('import("./styles/admin-shell.css")');
+    expect(app).toMatch(
+      /const AdminLayout = lazyNamedWithStyles\(\s*loadAdminShellStyles,/
+    );
+
     [
       ["DashboardPage", "loadDashboardStyles"],
       ["AgendaWorkspacePage", "loadAgendaStyles"],
@@ -65,5 +71,13 @@ describe("ownership de CSS por rota", () => {
 
     expect(shell).not.toContain("saas-health-");
     expect(shell).not.toContain("whatsapp-");
+  });
+
+  test("nao carrega refinamentos administrativos pelo workspace profissional", () => {
+    const workspace = ler("frontend/src/components/WorkspaceLayout.jsx");
+    const overview = ler("frontend/src/pages/AdminOverviewPage.jsx");
+
+    expect(workspace).not.toContain('import "../styles/admin-refinements.css"');
+    expect(overview).toContain('import "../styles/admin-refinements.css"');
   });
 });
