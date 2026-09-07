@@ -12,6 +12,7 @@ describe(
       [
         "prioriza serviço ativo quando toda a ativação está pendente",
         {
+          possui_servico: false,
           possui_servico_ativo: false,
           agenda_configurada: false,
           negocio_publicado: false,
@@ -78,6 +79,7 @@ describe(
       [
         "volta para serviço ativo quando uma operação já ativada perde todos os serviços ativos",
         {
+          possui_servico: true,
           possui_servico_ativo: false,
           agenda_configurada: true,
           negocio_publicado: true,
@@ -118,10 +120,28 @@ describe(
     );
 
     test(
-      "não chama ausência de serviço ativo de primeiro serviço",
+      "leva à gestão quando já existem somente serviços inativos",
       () => {
         const resultado =
           resolverProximaAcaoAtivacao({
+            possui_servico: true,
+            possui_servico_ativo: false,
+          });
+
+        expect(resultado.acao).toEqual({
+          tipo: "NAVEGAR",
+          rotulo: "Gerenciar serviços",
+          destino: "/painel/servicos",
+        });
+      }
+    );
+
+    test(
+      "leva diretamente ao cadastro do primeiro serviço quando a ativação ainda não começou",
+      () => {
+        const resultado =
+          resolverProximaAcaoAtivacao({
+            possui_servico: false,
             possui_servico_ativo: false,
           });
 
@@ -132,16 +152,10 @@ describe(
           concluido: false,
           acao: {
             tipo: "NAVEGAR",
-            rotulo: "Gerenciar serviços",
-            destino: "/painel/servicos",
+            rotulo: "Cadastrar primeiro serviço",
+            destino: "/painel/servicos/novo?onboarding=servico",
           },
         });
-        expect(
-          resultado.titulo
-            .toLowerCase()
-        ).not.toContain(
-          "primeiro"
-        );
       }
     );
 

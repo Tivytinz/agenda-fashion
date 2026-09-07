@@ -23,6 +23,7 @@ import {
   setPeriodSearchParam
 } from "../utils/adminPeriods";
 import { settleRequestMap } from "../utils/asyncData";
+import { toFiniteNumber } from "../utils/format";
 import {
   formatMetricPercent,
   metricPercentage,
@@ -33,11 +34,6 @@ const OBJECTIVES = {
   profissional: "Profissionais",
   cliente: "Clientes"
 };
-
-function number(value) {
-  const parsed = Number(value);
-  return Number.isFinite(parsed) ? parsed : 0;
-}
 
 function sourceLabel(value) {
   const source = String(value || "").trim().toLowerCase();
@@ -61,45 +57,45 @@ function campaignKey(item, index) {
 }
 
 function professionalStages(summary) {
-  const signups = number(summary?.cadastros);
+  const signups = toFiniteNumber(summary?.cadastros);
 
   return [
     ["Cadastro", signups, signups ? 100 : 0],
     [
       "Negócio criado",
-      number(summary?.negociosCriados),
+      toFiniteNumber(summary?.negociosCriados),
       summary?.taxaNegocio ?? metricPercentage(summary?.negociosCriados, signups) ?? 0
     ],
     [
       "Serviço cadastrado",
-      number(summary?.servicosCriados),
+      toFiniteNumber(summary?.servicosCriados),
       summary?.taxaServico ?? metricPercentage(summary?.servicosCriados, signups) ?? 0
     ],
     [
       "Agenda configurada",
-      number(summary?.agendasConfiguradas),
+      toFiniteNumber(summary?.agendasConfiguradas),
       summary?.taxaAgenda ?? metricPercentage(summary?.agendasConfiguradas, signups) ?? 0
     ],
     [
       "Negócio publicado",
-      number(summary?.negociosPublicados),
+      toFiniteNumber(summary?.negociosPublicados),
       summary?.taxaPublicacao ?? metricPercentage(summary?.negociosPublicados, signups) ?? 0
     ],
     [
       "Primeiro agendamento",
-      number(summary?.primeirosAgendamentos),
+      toFiniteNumber(summary?.primeirosAgendamentos),
       summary?.taxaPrimeiroAgendamento ??
         metricPercentage(summary?.primeirosAgendamentos, signups) ??
         0
     ],
     [
       "Checkout iniciado",
-      number(summary?.checkoutsIniciados),
+      toFiniteNumber(summary?.checkoutsIniciados),
       summary?.taxaCheckout ?? metricPercentage(summary?.checkoutsIniciados, signups) ?? 0
     ],
     [
       "Assinatura ativada",
-      number(summary?.assinaturasAtivadas),
+      toFiniteNumber(summary?.assinaturasAtivadas),
       summary?.taxaAssinatura ?? metricPercentage(summary?.assinaturasAtivadas, signups) ?? 0
     ]
   ];
@@ -210,19 +206,19 @@ export function AdminMarketingPage() {
   );
 
   const officialSessions = officialTraffic.reduce(
-    (total, item) => total + number(item?.sessoes),
+    (total, item) => total + toFiniteNumber(item?.sessoes),
     0
   );
   const directSessions = officialTraffic.reduce(
-    (total, item) => total + number(item?.sessoesAtribuicaoDireta),
+    (total, item) => total + toFiniteNumber(item?.sessoesAtribuicaoDireta),
     0
   );
   const assistedSessions = officialTraffic.reduce(
-    (total, item) => total + number(item?.sessoesAtribuicaoAssistida),
+    (total, item) => total + toFiniteNumber(item?.sessoesAtribuicaoAssistida),
     0
   );
   const pendingSessions = pendingTraffic.reduce(
-    (total, item) => total + number(item?.sessoes),
+    (total, item) => total + toFiniteNumber(item?.sessoes),
     0
   );
 
@@ -230,10 +226,10 @@ export function AdminMarketingPage() {
     official: officialSessions,
     missingCampaign: pendingTraffic
       .filter((item) => item?.classificacaoAtribuicao === "rastreamento_incompleto")
-      .reduce((total, item) => total + number(item?.sessoes), 0),
+      .reduce((total, item) => total + toFiniteNumber(item?.sessoes), 0),
     unofficialIdentity: pendingTraffic
       .filter((item) => item?.classificacaoAtribuicao === "identidade_nao_oficial")
-      .reduce((total, item) => total + number(item?.sessoes), 0)
+      .reduce((total, item) => total + toFiniteNumber(item?.sessoes), 0)
   });
 
   if (!data && !error) {
@@ -270,24 +266,24 @@ export function AdminMarketingPage() {
   const journeyCards = [
     [
       "Sessões no site",
-      ga4Configured ? number(ga4Summary.sessoes) : "—",
+      ga4Configured ? toFiniteNumber(ga4Summary.sessoes) : "—",
       ga4Configured
-        ? `${number(ga4Summary.usuarios)} usuários no GA4`
+        ? `${toFiniteNumber(ga4Summary.usuarios)} usuários no GA4`
         : "GA4 indisponível para este período"
     ],
     [
       "Cadastros profissionais",
-      number(professionalSummary.cadastros),
+      toFiniteNumber(professionalSummary.cadastros),
       "entrada do funil profissional"
     ],
     [
       "Primeiros agendamentos",
-      number(professionalSummary.primeirosAgendamentos),
+      toFiniteNumber(professionalSummary.primeirosAgendamentos),
       `${formatMetricPercent(professionalSummary.taxaPrimeiroAgendamento)} dos cadastros`
     ],
     [
       "Assinaturas ativadas",
-      number(professionalSummary.assinaturasAtivadas),
+      toFiniteNumber(professionalSummary.assinaturasAtivadas),
       `${formatMetricPercent(professionalSummary.taxaAssinatura)} dos cadastros`
     ]
   ];
@@ -439,7 +435,7 @@ export function AdminMarketingPage() {
           <div className="marketing-campaign-performance-grid">
             {traffic
               .slice()
-              .sort((a, b) => number(b.sessoes) - number(a.sessoes))
+              .sort((a, b) => toFiniteNumber(b.sessoes) - toFiniteNumber(a.sessoes))
               .slice(0, 12)
               .map((item, index) => {
                 const objective = item.objetivo || "indefinido";
@@ -470,17 +466,17 @@ export function AdminMarketingPage() {
                     <div className="marketing-performance-metrics">
                       <div>
                         <span>Sessões</span>
-                        <strong>{number(item.sessoes)}</strong>
+                        <strong>{toFiniteNumber(item.sessoes)}</strong>
                       </div>
                       <div>
                         <span>Perfis vistos</span>
-                        <strong>{number(item.perfisVisualizados)}</strong>
+                        <strong>{toFiniteNumber(item.perfisVisualizados)}</strong>
                       </div>
                       <div>
                         <span>{objective === "cliente" ? "Agendamentos" : "Objetivo"}</span>
                         <strong>
                           {objective === "cliente"
-                            ? number(item.agendamentosConcluidos)
+                            ? toFiniteNumber(item.agendamentosConcluidos)
                             : OBJECTIVES[objective] || "A classificar"}
                         </strong>
                       </div>

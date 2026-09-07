@@ -7,10 +7,7 @@ import { AppHeader } from "./components/AppHeader";
 import { MarketingMetricGlossary } from "./components/MarketingMetricGlossary";
 import { MetaAdsBridge } from "./components/MetaAdsBridge";
 import { LegalFooter } from "./components/LegalFooter";
-import {
-  AdminLayout,
-  WorkspaceLayout
-} from "./components/WorkspaceLayout";
+import { WorkspaceLayout } from "./components/WorkspaceLayout";
 import { markRuntimeReady } from "./utils/runtimeRecovery";
 
 function lazyNamed(importer, name) {
@@ -37,6 +34,8 @@ function lazyNamedWithStyles(stylesImporter, importer, name) {
 
 const loadAdminCommandStyles = () =>
   import("./styles/admin-command.css");
+const loadAdminShellStyles = () =>
+  import("./styles/admin-shell.css");
 const loadAdminMarketingStyles = () =>
   import("./styles/admin-marketing.css");
 const loadAdminSaasHealthStyles = () =>
@@ -60,6 +59,12 @@ const loadSubscriptionStyles = () =>
   import("./styles/subscription-polish.css");
 const loadPlansStyles = () =>
   import("./styles/plans-polish.css");
+
+const AdminLayout = lazyNamedWithStyles(
+  loadAdminShellStyles,
+  () => import("./components/AdminLayout"),
+  "AdminLayout"
+);
 
 const AdminOverviewPage = lazyNamedWithStyles(
   loadAdminCommandStyles,

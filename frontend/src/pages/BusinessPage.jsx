@@ -9,6 +9,7 @@ import {
 } from "../auth/session";
 import { BackLink } from "../components/BackLink";
 import { ConfirmationIcon } from "../components/ConfirmationIcon";
+import { FlowSteps } from "../components/FlowSteps";
 import { ErrorState, LoadingState } from "../components/ScreenState";
 import { MediaThumb } from "../components/profile/MediaThumb";
 import { formatCep, formatWhatsApp } from "../utils/format";
@@ -57,6 +58,9 @@ const SERVICE_PUBLICATION_PENDING =
   "pelo menos um serviço ativo";
 const SCHEDULE_PUBLICATION_PENDING =
   "confirmar os horários de atendimento";
+const ACTIVATION_STEPS = ["Negócio", "Serviço", "Horários"];
+const FIRST_SERVICE_ONBOARDING_PATH =
+  "/painel/servicos/novo?onboarding=servico";
 
 function validateImage(file) {
   if (!ACCEPTED_IMAGE_TYPES.includes(file.type)) {
@@ -383,7 +387,7 @@ export function BusinessPage({ create = false }) {
           navigate(requestedPath, { replace: true });
         } else {
           navigate(getPlanIntentPath(
-            "/painel/servicos/novo",
+            FIRST_SERVICE_ONBOARDING_PATH,
             selectedPlan
           ), {
             replace: true,
@@ -415,7 +419,7 @@ export function BusinessPage({ create = false }) {
             SCHEDULE_PUBLICATION_PENDING
           );
           const destination = servicePending
-            ? "/painel/servicos/novo"
+            ? FIRST_SERVICE_ONBOARDING_PATH
             : schedulePending
               ? "/painel/horarios"
               : "/painel";
@@ -601,6 +605,14 @@ export function BusinessPage({ create = false }) {
       </header>
 
       {create && (
+        <FlowSteps
+          ariaLabel="Etapas para publicar o negócio"
+          current={1}
+          steps={ACTIVATION_STEPS}
+        />
+      )}
+
+      {create && (
         <section className="panel" aria-labelledby="business-create-guide-title">
           <p className="eyebrow"><span aria-hidden="true">💅</span>{" "}Negócio completo desde o início</p>
           <h2 id="business-create-guide-title">Preencha os dados essenciais do perfil</h2>
@@ -613,8 +625,8 @@ export function BusinessPage({ create = false }) {
       {!create && publication && (
         <section className={`panel publication-panel ${publication.publicado ? "publication-panel-live" : ""}`}>
           <div>
-            <p className="eyebrow">Visibilidade na página inicial</p>
-            <h2>{publication.publicado ? "Seu negócio está publicado" : "Seu negócio ainda não está publicado"}</h2>
+            <p className="eyebrow">Descoberta no Agenda Fashion</p>
+            <h2>{publication.publicado ? "Seu negócio está visível para clientes" : "Seu negócio não está aparecendo na busca"}</h2>
             <p>
               {publication.publicado
                 ? "Clientes podem encontrar seus serviços e acessar seu perfil público."
@@ -645,8 +657,8 @@ export function BusinessPage({ create = false }) {
               {publishing
                 ? "Atualizando..."
                 : publication.publicado
-                  ? "Retirar da página inicial"
-                  : "Publicar meu negócio"}
+                  ? "Ocultar da busca"
+                  : "Mostrar na busca"}
             </button>
           </div>
         </section>

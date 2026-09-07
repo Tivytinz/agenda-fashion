@@ -788,10 +788,6 @@ tbody tr:hover {
     padding-bottom: calc(var(--workspace-mobile-nav-height) + 10px);
   }
 
-  .workspace-sidebar {
-    display: none;
-  }
-
   .workspace-content {
     padding: 18px 12px 28px;
   }
@@ -903,13 +899,6 @@ tbody tr:hover {
     border-top-color: rgb(217 47 127 / 12%);
     background: rgb(255 255 255 / 98%);
     box-shadow: 0 -12px 32px rgb(217 47 127 / 8%);
-  }
-
-  .workspace-mobile-link.active,
-  .workspace-mobile-more.active > button,
-  .workspace-mobile-more > button[aria-expanded="true"] {
-    color: var(--pink-700);
-    background: var(--pink-50);
   }
 
   .workspace-mobile-menu-link.active {

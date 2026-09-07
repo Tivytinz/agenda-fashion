@@ -1,9 +1,4 @@
-function numero(valor) {
-  const convertido = Number(valor);
-  return Number.isFinite(convertido)
-    ? convertido
-    : 0;
-}
+import { toFiniteNumber } from "../utils/format";
 
 function formatarNumero(valor) {
   return new Intl.NumberFormat(
@@ -80,7 +75,7 @@ function formatarSemana(valor) {
 }
 
 function formatarBaseComparacao(diagnostico) {
-  const coortes = numero(
+  const coortes = toFiniteNumber(
     diagnostico.coortesComBase
   );
 
@@ -143,9 +138,9 @@ export function ProfessionalRecurrenceStabilityTable({
             {linhas.length ? (
               linhas.map((diagnostico) => (
                 <tr key={diagnostico.janelaDias}>
-                  <td>D{numero(diagnostico.janelaDias)}</td>
-                  <td>{numero(diagnostico.coortesComBase)}</td>
-                  <td>{numero(diagnostico.elegiveisTotal)}</td>
+                  <td>D{toFiniteNumber(diagnostico.janelaDias)}</td>
+                  <td>{toFiniteNumber(diagnostico.coortesComBase)}</td>
+                  <td>{toFiniteNumber(diagnostico.elegiveisTotal)}</td>
                   <td>
                     {formatarFaixa(
                       diagnostico.faixaTaxaSegundo

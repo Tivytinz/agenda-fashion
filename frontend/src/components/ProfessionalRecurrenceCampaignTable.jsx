@@ -1,9 +1,4 @@
-function numero(valor) {
-  const convertido = Number(valor);
-  return Number.isFinite(convertido)
-    ? convertido
-    : 0;
-}
+import { toFiniteNumber } from "../utils/format";
 
 function rotuloOrigem(valor) {
   const origem = String(valor || "")
@@ -144,18 +139,18 @@ function resumoJanela(
     : [];
   const janela = janelas.find(
     (item) =>
-      numero(item?.janelaDias) === janelaDias
+      toFiniteNumber(item?.janelaDias) === janelaDias
   );
 
-  if (!janela || numero(janela.elegiveis) <= 0) {
+  if (!janela || toFiniteNumber(janela.elegiveis) <= 0) {
     return "Sem base madura";
   }
 
-  return `${numero(
+  return `${toFiniteNumber(
     janela.taxaSegundoNaJanela
-  )}% (${numero(
+  )}% (${toFiniteNumber(
     janela.comSegundoNaJanela
-  )}/${numero(janela.elegiveis)})`;
+  )}/${toFiniteNumber(janela.elegiveis)})`;
 }
 
 function resumoMedicao(grupos) {
@@ -173,11 +168,11 @@ function resumoMedicao(grupos) {
     cobertura === null ||
     cobertura === undefined
       ? "sem base paga classificável"
-      : `${numero(cobertura)}% de cobertura entre sinais pagos classificáveis`;
+      : `${toFiniteNumber(cobertura)}% de cobertura entre sinais pagos classificáveis`;
 
-  return `${coberturaTexto}; ${numero(
+  return `${coberturaTexto}; ${toFiniteNumber(
     medicao.pagosSemAtribuicaoOficial
-  )} profissionais com sinal pago sem atribuição oficial e ${numero(
+  )} profissionais com sinal pago sem atribuição oficial e ${toFiniteNumber(
     medicao.profissionaisSemEvidencia
   )} sem evidência de origem.`;
 }
@@ -251,34 +246,34 @@ export function ProfessionalRecurrenceCampaignTable({
                       grupo.metodosResolucao
                     )}
                   </td>
-                  <td>{numero(grupo.profissionais)}</td>
+                  <td>{toFiniteNumber(grupo.profissionais)}</td>
                   <td>
-                    {numero(
+                    {toFiniteNumber(
                       grupo.comPrimeiroAgendamento
                     )}
                   </td>
                   <td>
-                    {numero(
+                    {toFiniteNumber(
                       grupo.taxaPrimeiroSobreProfissionais
                     )}%
                   </td>
                   <td>
-                    {numero(
+                    {toFiniteNumber(
                       grupo.comSegundoAgendamento
                     )}
                   </td>
                   <td>
-                    {numero(
+                    {toFiniteNumber(
                       grupo.taxaSegundoSobrePrimeiro
                     )}%
                   </td>
                   <td>
-                    {numero(
+                    {toFiniteNumber(
                       grupo.comTerceiroAgendamento
                     )}
                   </td>
                   <td>
-                    {numero(
+                    {toFiniteNumber(
                       grupo.taxaTerceiroSobrePrimeiro
                     )}%
                   </td>
@@ -322,25 +317,25 @@ export function ProfessionalRecurrenceCampaignTable({
                   key={`${grupo.chave}-${janela.janelaDias}`}
                 >
                   <td>{rotuloCampanha(grupo)}</td>
-                  <td>D{numero(janela.janelaDias)}</td>
-                  <td>{numero(janela.elegiveis)}</td>
+                  <td>D{toFiniteNumber(janela.janelaDias)}</td>
+                  <td>{toFiniteNumber(janela.elegiveis)}</td>
                   <td>
-                    {numero(
+                    {toFiniteNumber(
                       janela.comSegundoNaJanela
                     )}
                   </td>
                   <td>
-                    {numero(
+                    {toFiniteNumber(
                       janela.taxaSegundoNaJanela
                     )}%
                   </td>
                   <td>
-                    {numero(
+                    {toFiniteNumber(
                       janela.comTerceiroNaJanela
                     )}
                   </td>
                   <td>
-                    {numero(
+                    {toFiniteNumber(
                       janela.taxaTerceiroNaJanela
                     )}%
                   </td>
@@ -397,15 +392,15 @@ export function ProfessionalRecurrenceCampaignTable({
                           grupo.investimentoCentavos
                         )}
                   </td>
-                  <td>{numero(grupo.diasComGasto)}</td>
-                  <td>{numero(grupo.profissionais)}</td>
+                  <td>{toFiniteNumber(grupo.diasComGasto)}</td>
+                  <td>{toFiniteNumber(grupo.profissionais)}</td>
                   <td>
                     {formatarMoedaCentavos(
                       grupo.custoObservadoPorProfissionalCentavos
                     )}
                   </td>
                   <td>
-                    {numero(
+                    {toFiniteNumber(
                       grupo.comPrimeiroAgendamento
                     )}
                   </td>
@@ -469,12 +464,12 @@ export function ProfessionalRecurrenceCampaignTable({
                     key={`custo-maduro-${grupo.chave}-${custo.janelaDias}`}
                   >
                     <td>{rotuloCampanha(grupo)}</td>
-                    <td>D{numero(custo.janelaDias)}</td>
+                    <td>D{toFiniteNumber(custo.janelaDias)}</td>
                     <td>
-                      {numero(custo.diasNecessarios)} dias
+                      {toFiniteNumber(custo.diasNecessarios)} dias
                     </td>
                     <td>
-                      {numero(
+                      {toFiniteNumber(
                         custo.investimentoMaduroCentavos
                       ) > 0
                         ? formatarMoedaCentavos(
@@ -483,27 +478,27 @@ export function ProfessionalRecurrenceCampaignTable({
                         : "Sem gasto maduro"}
                     </td>
                     <td>
-                      {numero(
+                      {toFiniteNumber(
                         custo.diasMadurosComGasto
                       )}
                     </td>
                     <td>
-                      {numero(
+                      {toFiniteNumber(
                         custo.profissionaisMadurosComGasto
                       )}
                     </td>
                     <td>
-                      {numero(
+                      {toFiniteNumber(
                         custo.profissionaisMadurosSemGasto
                       )}
                     </td>
                     <td>
-                      {numero(
+                      {toFiniteNumber(
                         custo.comPrimeiroNaAtivacao
                       )}
                     </td>
                     <td>
-                      {numero(
+                      {toFiniteNumber(
                         custo.comSegundoNaJanela
                       )}
                     </td>
@@ -513,7 +508,7 @@ export function ProfessionalRecurrenceCampaignTable({
                       )}
                     </td>
                     <td>
-                      {numero(
+                      {toFiniteNumber(
                         custo.comTerceiroNaJanela
                       )}
                     </td>

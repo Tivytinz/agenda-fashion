@@ -1,13 +1,7 @@
 import {
   ProfessionalRecurrenceFinancialReadinessTable,
 } from "./ProfessionalRecurrenceFinancialReadinessTable";
-
-function numero(valor) {
-  const convertido = Number(valor);
-  return Number.isFinite(convertido)
-    ? convertido
-    : 0;
-}
+import { toFiniteNumber } from "../utils/format";
 
 function rotuloCampanha(item) {
   const campanha = String(
@@ -59,10 +53,10 @@ export function ProfessionalRecurrenceMonetizationTable({
       janela,
     }));
   });
-  const diasAtivacao = numero(
+  const diasAtivacao = toFiniteNumber(
     diagnostico?.diasMaturacaoAtivacao
   );
-  const diasMonetizacao = numero(
+  const diasMonetizacao = toFiniteNumber(
     diagnostico?.diasMaturacaoMonetizacao
   );
 
@@ -107,19 +101,19 @@ export function ProfessionalRecurrenceMonetizationTable({
                     key={`${campanha.chave || campanha.campanhaOficialId}-${janela.janelaDias}`}
                   >
                     <td>{rotuloCampanha(campanha)}</td>
-                    <td>D{numero(janela.janelaDias)}</td>
+                    <td>D{toFiniteNumber(janela.janelaDias)}</td>
                     <td>
-                      {numero(
+                      {toFiniteNumber(
                         janela.diasMaturidadeNecessarios
                       )} dias
                     </td>
                     <td>
-                      {numero(
+                      {toFiniteNumber(
                         janela.profissionaisMaduros
                       )}
                     </td>
                     <td>
-                      {numero(
+                      {toFiniteNumber(
                         janela.assinaturasNaMonetizacao
                       )}
                     </td>
@@ -129,12 +123,12 @@ export function ProfessionalRecurrenceMonetizationTable({
                       )}
                     </td>
                     <td>
-                      {numero(
+                      {toFiniteNumber(
                         janela.comSegundoNaJanela
                       )}
                     </td>
                     <td>
-                      {numero(
+                      {toFiniteNumber(
                         janela.assinaturasEntreSegundo
                       )}
                     </td>
@@ -144,12 +138,12 @@ export function ProfessionalRecurrenceMonetizationTable({
                       )}
                     </td>
                     <td>
-                      {numero(
+                      {toFiniteNumber(
                         janela.comTerceiroNaJanela
                       )}
                     </td>
                     <td>
-                      {numero(
+                      {toFiniteNumber(
                         janela.assinaturasEntreTerceiro
                       )}
                     </td>
@@ -160,7 +154,7 @@ export function ProfessionalRecurrenceMonetizationTable({
                     </td>
                     <td>
                       {janela.baseAbaixoReguaOperacional
-                        ? `Abaixo da régua operacional (${numero(
+                        ? `Abaixo da régua operacional (${toFiniteNumber(
                             janela.minimoCadastrosReguaOperacional
                           )} cadastros)`
                         : "Base acima da régua operacional"}

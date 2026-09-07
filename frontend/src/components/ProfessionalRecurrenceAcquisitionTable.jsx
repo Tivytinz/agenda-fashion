@@ -1,9 +1,4 @@
-function numero(valor) {
-  const convertido = Number(valor);
-  return Number.isFinite(convertido)
-    ? convertido
-    : 0;
-}
+import { toFiniteNumber } from "../utils/format";
 
 function nomeOrigem(valor) {
   const origem = String(valor || "")
@@ -152,34 +147,34 @@ export function ProfessionalRecurrenceAcquisitionTable({
                       grupo.classificacaoAtribuicao
                     )}
                   </td>
-                  <td>{numero(grupo.profissionais)}</td>
+                  <td>{toFiniteNumber(grupo.profissionais)}</td>
                   <td>
-                    {numero(
+                    {toFiniteNumber(
                       grupo.comPrimeiroAgendamento
                     )}
                   </td>
                   <td>
-                    {numero(
+                    {toFiniteNumber(
                       grupo.taxaPrimeiroSobreProfissionais
                     )}%
                   </td>
                   <td>
-                    {numero(
+                    {toFiniteNumber(
                       grupo.comSegundoAgendamento
                     )}
                   </td>
                   <td>
-                    {numero(
+                    {toFiniteNumber(
                       grupo.taxaSegundoSobrePrimeiro
                     )}%
                   </td>
                   <td>
-                    {numero(
+                    {toFiniteNumber(
                       grupo.comTerceiroAgendamento
                     )}
                   </td>
                   <td>
-                    {numero(
+                    {toFiniteNumber(
                       grupo.taxaTerceiroSobrePrimeiro
                     )}%
                   </td>
@@ -223,25 +218,25 @@ export function ProfessionalRecurrenceAcquisitionTable({
                   key={`${grupo.chave}-${janela.janelaDias}`}
                 >
                   <td>{rotuloOrigem(grupo)}</td>
-                  <td>D{numero(janela.janelaDias)}</td>
-                  <td>{numero(janela.elegiveis)}</td>
+                  <td>D{toFiniteNumber(janela.janelaDias)}</td>
+                  <td>{toFiniteNumber(janela.elegiveis)}</td>
                   <td>
-                    {numero(
+                    {toFiniteNumber(
                       janela.comSegundoNaJanela
                     )}
                   </td>
                   <td>
-                    {numero(
+                    {toFiniteNumber(
                       janela.taxaSegundoNaJanela
                     )}%
                   </td>
                   <td>
-                    {numero(
+                    {toFiniteNumber(
                       janela.comTerceiroNaJanela
                     )}
                   </td>
                   <td>
-                    {numero(
+                    {toFiniteNumber(
                       janela.taxaTerceiroNaJanela
                     )}%
                   </td>

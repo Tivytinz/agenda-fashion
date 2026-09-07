@@ -20,11 +20,8 @@ import {
   setPeriodSearchParam
 } from "../utils/adminPeriods";
 import { settleRequestMap } from "../utils/asyncData";
-
-function number(value) {
-  const parsed = Number(value);
-  return Number.isFinite(parsed) ? parsed : 0;
-}
+import { toFiniteNumber } from "../utils/format";
+import "../styles/admin-refinements.css";
 
 function StatusCard({ hint, label, tone = "neutral", value }) {
   return (
@@ -197,13 +194,13 @@ export function AdminOverviewPage() {
   const system = readinessState(data?.readiness);
 
   const funnelStages = useMemo(() => [
-    { label: "Cadastros", value: number(funnelSummary.cadastros) },
-    { label: "Negócios", value: number(funnelSummary.negociosCriados), action: "sem_negocio" },
-    { label: "Serviços", value: number(funnelSummary.servicosCriados), action: "servico" },
-    { label: "Agendas", value: number(funnelSummary.agendasConfiguradas), action: "agenda" },
-    { label: "Publicados", value: number(funnelSummary.negociosPublicados), action: "publicacao" },
-    { label: "1º agendamento", value: number(funnelSummary.primeirosAgendamentos) },
-    { label: "Assinaturas", value: number(funnelSummary.assinaturasAtivadas) }
+    { label: "Cadastros", value: toFiniteNumber(funnelSummary.cadastros) },
+    { label: "Negócios", value: toFiniteNumber(funnelSummary.negociosCriados), action: "sem_negocio" },
+    { label: "Serviços", value: toFiniteNumber(funnelSummary.servicosCriados), action: "servico" },
+    { label: "Agendas", value: toFiniteNumber(funnelSummary.agendasConfiguradas), action: "agenda" },
+    { label: "Publicados", value: toFiniteNumber(funnelSummary.negociosPublicados), action: "publicacao" },
+    { label: "1º agendamento", value: toFiniteNumber(funnelSummary.primeirosAgendamentos) },
+    { label: "Assinaturas", value: toFiniteNumber(funnelSummary.assinaturasAtivadas) }
   ], [funnelSummary]);
 
   const bottleneck = useMemo(
@@ -237,7 +234,7 @@ export function AdminOverviewPage() {
   const loadedPeriod = data?.period || period;
   const loadedPeriodLabel = adminPeriodLabel(loadedPeriod);
   const funnelPath = adminPathWithPeriod("/admin/trafego-pago/profissionais", period);
-  const activationValue = (key) => activationAvailable ? number(summary[key]) : "—";
+  const activationValue = (key) => activationAvailable ? toFiniteNumber(summary[key]) : "—";
   const activationHint = (availableHint) => activationAvailable
     ? availableHint
     : "Dados de ativação indisponíveis nesta leitura";
@@ -294,10 +291,10 @@ export function AdminOverviewPage() {
             value={system.label}
           />
           <StatusCard
-            hint={activationHint(`de ${number(summary.totalProfissionais)} profissionais`)}
+            hint={activationHint(`de ${toFiniteNumber(summary.totalProfissionais)} profissionais`)}
             label="Ativações pendentes"
             tone={activationAvailable
-              ? number(summary.totalIncompletos) > 0 ? "warning" : "success"
+              ? toFiniteNumber(summary.totalIncompletos) > 0 ? "warning" : "success"
               : "neutral"}
             value={activationValue("totalIncompletos")}
           />
@@ -372,10 +369,10 @@ export function AdminOverviewPage() {
           <p className="muted">Estes indicadores usam o período informado e não representam automaticamente a base total atual do AF.</p>
         </div>
         <div className="admin-command-summary-grid is-period-summary" aria-label={`Indicadores de ${loadedPeriodLabel}`}>
-          <StatusCard hint="profissionais vinculados no período" label="Profissionais no período" value={number(indicators.totalProfissionais)} />
-          <StatusCard hint="criados no período" label="Negócios criados" value={number(indicators.totalNegocios)} />
-          <StatusCard hint="pessoas distintas observadas em agendamentos" label="Clientes que agendaram" value={number(indicators.totalClientes)} />
-          <StatusCard hint="criados no período selecionado" label="Agendamentos" value={number(indicators.totalAgendamentos)} />
+          <StatusCard hint="profissionais vinculados no período" label="Profissionais no período" value={toFiniteNumber(indicators.totalProfissionais)} />
+          <StatusCard hint="criados no período" label="Negócios criados" value={toFiniteNumber(indicators.totalNegocios)} />
+          <StatusCard hint="pessoas distintas observadas em agendamentos" label="Clientes que agendaram" value={toFiniteNumber(indicators.totalClientes)} />
+          <StatusCard hint="criados no período selecionado" label="Agendamentos" value={toFiniteNumber(indicators.totalAgendamentos)} />
         </div>
       </section>
 
@@ -426,10 +423,10 @@ export function AdminOverviewPage() {
             </div>
           </div>
           <dl className="admin-command-data-list">
-            <div><dt>Descobriram</dt><dd>{number(behavior.descobriram)}</dd></div>
-            <div><dt>Avaliaram</dt><dd>{number(behavior.avaliaram)}</dd></div>
-            <div><dt>Iniciaram agendamento</dt><dd>{number(behavior.iniciaram)}</dd></div>
-            <div><dt>Concluíram agendamento</dt><dd>{number(behavior.concluiram)}</dd></div>
+            <div><dt>Descobriram</dt><dd>{toFiniteNumber(behavior.descobriram)}</dd></div>
+            <div><dt>Avaliaram</dt><dd>{toFiniteNumber(behavior.avaliaram)}</dd></div>
+            <div><dt>Iniciaram agendamento</dt><dd>{toFiniteNumber(behavior.iniciaram)}</dd></div>
+            <div><dt>Concluíram agendamento</dt><dd>{toFiniteNumber(behavior.concluiram)}</dd></div>
           </dl>
         </section>
 
@@ -442,10 +439,10 @@ export function AdminOverviewPage() {
             <Link className="text-button" to="/admin/operacao">Ver operação →</Link>
           </div>
           <dl className="admin-command-data-list">
-            <div><dt>Visitas a perfis</dt><dd>{number(metrics.visitasPlataforma)}</dd></div>
-            <div><dt>Cliques no WhatsApp</dt><dd>{number(metrics.cliquesWhatsapp)}</dd></div>
-            <div><dt>Cliques em mapas</dt><dd>{number(metrics.cliquesMaps)}</dd></div>
-            <div><dt>Favoritos</dt><dd>{number(metrics.favoritosTotais)}</dd></div>
+            <div><dt>Visitas a perfis</dt><dd>{toFiniteNumber(metrics.visitasPlataforma)}</dd></div>
+            <div><dt>Cliques no WhatsApp</dt><dd>{toFiniteNumber(metrics.cliquesWhatsapp)}</dd></div>
+            <div><dt>Cliques em mapas</dt><dd>{toFiniteNumber(metrics.cliquesMaps)}</dd></div>
+            <div><dt>Favoritos</dt><dd>{toFiniteNumber(metrics.favoritosTotais)}</dd></div>
             <div><dt>Cidade em destaque</dt><dd>{highlights.cidadeTop || "—"}</dd></div>
           </dl>
         </section>

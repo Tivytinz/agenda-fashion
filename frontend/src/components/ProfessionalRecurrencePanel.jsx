@@ -3,6 +3,7 @@ import {
   useState
 } from "react";
 import { apiRequest } from "../api/client";
+import { toFiniteNumber } from "../utils/format";
 import {
   ProfessionalRecurrenceStabilityTable,
 } from "./ProfessionalRecurrenceStabilityTable";
@@ -15,13 +16,6 @@ import {
 import {
   ProfessionalRecurrenceMonetizationTable,
 } from "./ProfessionalRecurrenceMonetizationTable";
-
-function numero(valor) {
-  const convertido = Number(valor);
-  return Number.isFinite(convertido)
-    ? convertido
-    : 0;
-}
 
 function formatarDias(valor) {
   if (
@@ -158,13 +152,13 @@ export function ProfessionalRecurrencePanel({
       : [];
   const diagnosticoMonetizacao =
     data?.diagnosticoMonetizacaoRecorrencia || {};
-  const primeiro = numero(
+  const primeiro = toFiniteNumber(
     resumo.comPrimeiroAgendamento
   );
-  const segundo = numero(
+  const segundo = toFiniteNumber(
     resumo.comSegundoAgendamento
   );
-  const terceiro = numero(
+  const terceiro = toFiniteNumber(
     resumo.comTerceiroAgendamento
   );
 
@@ -191,14 +185,14 @@ export function ProfessionalRecurrencePanel({
     {
       label: "Segundo agendamento",
       quantidade: segundo,
-      conversao: numero(
+      conversao: toFiniteNumber(
         resumo.taxaSegundoSobrePrimeiro
       )
     },
     {
       label: "Terceiro agendamento",
       quantidade: terceiro,
-      conversao: numero(
+      conversao: toFiniteNumber(
         resumo.taxaTerceiroSobreSegundo
       )
     }
@@ -229,9 +223,9 @@ export function ProfessionalRecurrencePanel({
         semanaCadastro:
           coorte.semanaCadastro,
         profissionais:
-          numero(coorte.profissionais),
+          toFiniteNumber(coorte.profissionais),
         primeiro:
-          numero(
+          toFiniteNumber(
             coorte.comPrimeiroAgendamento
           ),
         janela,
@@ -303,7 +297,7 @@ export function ProfessionalRecurrencePanel({
               {transicoes.map((transicao) => (
                 <tr key={transicao.label}>
                   <td>{transicao.label}</td>
-                  <td>{numero(transicao.dados.amostra)}</td>
+                  <td>{toFiniteNumber(transicao.dados.amostra)}</td>
                   <td>{formatarDias(transicao.dados.medianaDias)}</td>
                   <td>{formatarDias(transicao.dados.p75Dias)}</td>
                 </tr>
@@ -336,12 +330,12 @@ export function ProfessionalRecurrencePanel({
             <tbody>
               {janelasCandidatas.map((janela) => (
                 <tr key={janela.janelaDias}>
-                  <td>D{numero(janela.janelaDias)}</td>
-                  <td>{numero(janela.elegiveis)}</td>
-                  <td>{numero(janela.comSegundoNaJanela)}</td>
-                  <td>{numero(janela.taxaSegundoNaJanela)}%</td>
-                  <td>{numero(janela.comTerceiroNaJanela)}</td>
-                  <td>{numero(janela.taxaTerceiroNaJanela)}%</td>
+                  <td>D{toFiniteNumber(janela.janelaDias)}</td>
+                  <td>{toFiniteNumber(janela.elegiveis)}</td>
+                  <td>{toFiniteNumber(janela.comSegundoNaJanela)}</td>
+                  <td>{toFiniteNumber(janela.taxaSegundoNaJanela)}%</td>
+                  <td>{toFiniteNumber(janela.comTerceiroNaJanela)}</td>
+                  <td>{toFiniteNumber(janela.taxaTerceiroNaJanela)}%</td>
                 </tr>
               ))}
             </tbody>
@@ -386,35 +380,35 @@ export function ProfessionalRecurrencePanel({
                     <td>{linha.profissionais}</td>
                     <td>{linha.primeiro}</td>
                     <td>
-                      D{numero(
+                      D{toFiniteNumber(
                         linha.janela.janelaDias
                       )}
                     </td>
                     <td>
-                      {numero(
+                      {toFiniteNumber(
                         linha.janela.elegiveis
                       )}
                     </td>
                     <td>
-                      {numero(
+                      {toFiniteNumber(
                         linha.janela
                           .comSegundoNaJanela
                       )}
                     </td>
                     <td>
-                      {numero(
+                      {toFiniteNumber(
                         linha.janela
                           .taxaSegundoNaJanela
                       )}%
                     </td>
                     <td>
-                      {numero(
+                      {toFiniteNumber(
                         linha.janela
                           .comTerceiroNaJanela
                       )}
                     </td>
                     <td>
-                      {numero(
+                      {toFiniteNumber(
                         linha.janela
                           .taxaTerceiroNaJanela
                       )}%
@@ -451,11 +445,11 @@ export function ProfessionalRecurrencePanel({
       />
 
       <p className="muted admin-campaign-attribution-note">
-        {numero(resumo.taxaTerceiroSobrePrimeiro)}% dos profissionais que chegaram ao primeiro agendamento também chegaram ao terceiro.
+        {toFiniteNumber(resumo.taxaTerceiroSobrePrimeiro)}% dos profissionais que chegaram ao primeiro agendamento também chegaram ao terceiro.
       </p>
 
       <p className="muted admin-campaign-attribution-note">
-        Maturidade observada desde o primeiro agendamento: {numero(maturidade.amostra)} profissionais na amostra, mediana de {formatarDias(maturidade.medianaDias)}, P75 de {formatarDias(maturidade.p75Dias)} e intervalo de {formatarDias(maturidade.minimoDias)} a {formatarDias(maturidade.maximoDias)}. Essa idade da amostra ajuda a escolher uma futura janela de retenção sem penalizar coortes novas.
+        Maturidade observada desde o primeiro agendamento: {toFiniteNumber(maturidade.amostra)} profissionais na amostra, mediana de {formatarDias(maturidade.medianaDias)}, P75 de {formatarDias(maturidade.p75Dias)} e intervalo de {formatarDias(maturidade.minimoDias)} a {formatarDias(maturidade.maximoDias)}. Essa idade da amostra ajuda a escolher uma futura janela de retenção sem penalizar coortes novas.
       </p>
     </section>
   );

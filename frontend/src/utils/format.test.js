@@ -6,7 +6,8 @@ import {
   formatRating,
   formatWhatsApp,
   normalizeAvailability,
-  normalizeText
+  normalizeText,
+  toFiniteNumber
 } from "./format";
 
 describe("formatadores do frontend", () => {
@@ -16,6 +17,12 @@ describe("formatadores do frontend", () => {
 
   test("formata valores em reais", () => {
     expect(formatCurrency(35)).toContain("35,00");
+  });
+
+  test("normaliza somente valores numéricos finitos", () => {
+    expect(toFiniteNumber("12.5")).toBe(12.5);
+    expect(toFiniteNumber("inválido")).toBe(0);
+    expect(toFiniteNumber(Infinity)).toBe(0);
   });
 
   test("formata WhatsApp com DDD sem manter caracteres extras", () => {

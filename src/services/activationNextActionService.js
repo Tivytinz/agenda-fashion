@@ -15,6 +15,7 @@ function acaoNavegacao(rotulo, destino) {
 }
 
 function resolverProximaAcaoAtivacao(ativacao = {}) {
+  const possuiServico = ativacao?.possui_servico === true;
   const possuiServicoAtivo = ativacao?.possui_servico_ativo === true;
   const agendaConfigurada = ativacao?.agenda_configurada === true;
   const negocioPublicado = ativacao?.negocio_publicado === true;
@@ -22,13 +23,22 @@ function resolverProximaAcaoAtivacao(ativacao = {}) {
     ativacao?.primeiro_agendamento_recebido === true;
 
   if (!possuiServicoAtivo) {
+    const primeiraInclusao = !possuiServico;
+
     return {
       estado: ESTADOS_PROXIMA_ACAO_ATIVACAO.GARANTIR_SERVICO_ATIVO,
       concluido: false,
       titulo: "Ative seus serviços",
       mensagem:
         "Mantenha pelo menos um serviço ativo para receber novos agendamentos.",
-      acao: acaoNavegacao("Gerenciar serviços", "/painel/servicos"),
+      acao: acaoNavegacao(
+        primeiraInclusao
+          ? "Cadastrar primeiro serviço"
+          : "Gerenciar serviços",
+        primeiraInclusao
+          ? "/painel/servicos/novo?onboarding=servico"
+          : "/painel/servicos"
+      ),
     };
   }
 

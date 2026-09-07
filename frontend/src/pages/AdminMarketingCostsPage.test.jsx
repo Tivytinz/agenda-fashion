@@ -8,6 +8,7 @@ import {
 } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import {
+  afterEach,
   beforeEach,
   describe,
   expect,
@@ -154,6 +155,8 @@ beforeEach(() => {
   apiRequest.mockReset();
   mockRequests();
 });
+
+afterEach(cleanup);
 
 describe("AdminMarketingCostsPage", () => {
   it("mostra cobertura integral auditável e estatísticas profissionais de investimento", async () => {

@@ -56,6 +56,8 @@ Descrição, foto e complemento são opcionais. O upload de foto continua aconte
 
 Na criação padrão, a interface deve continuar diretamente para o cadastro do primeiro serviço. Isso também vale quando a profissional chega com um plano pago pré-selecionado: a escolha pode ser carregada como intenção durante `negócio → primeiro serviço → horários`, mas não deve abrir checkout antes de concluir a preparação e a publicação do negócio. Depois da publicação, compartilhar o perfil continua sendo a ação principal; concluir o plano escolhido pode aparecer apenas como ação secundária opcional. O dashboard não deve introduzir uma decisão intermediária antes do primeiro serviço.
 
+As três etapas de preparação — `Negócio`, `Serviço` e `Horários` — devem aparecer como progresso compacto nas respectivas telas. A entrada do primeiro serviço usa `?onboarding=servico` como marcador navegável, em vez de depender apenas de estado transitório do React Router; assim, atualizar a página ou reabrir o link não transforma acidentalmente a primeira missão no editor completo. Quando a ativação ainda não possui nenhum serviço, a próxima ação do dashboard deve abrir diretamente esse cadastro. Se já houver apenas serviços inativos, deve abrir a gestão para permitir reativação em vez de chamar o próximo cadastro de primeiro serviço.
+
 O WhatsApp da conta autenticada pode preencher inicialmente o WhatsApp do negócio, mas permanece editável e o backend continua validando o valor recebido.
 
 Esta exigência vale para **criação de novos negócios**. Ela não altera retroativamente os requisitos canônicos de publicação de negócios existentes, preservando compatibilidade com perfis legados.

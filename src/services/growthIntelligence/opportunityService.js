@@ -207,7 +207,7 @@ function recurrenceOpportunity(signals) {
     ],
     acao: {
       tipo: "NAVEGAR",
-      rotulo: "Abrir agenda",
+      rotulo: "Revisar clientes na agenda",
       destino: "/painel/agenda",
     },
   };

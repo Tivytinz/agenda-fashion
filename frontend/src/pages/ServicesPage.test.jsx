@@ -248,10 +248,7 @@ describe("editor de serviços", () => {
       }
     });
 
-    renderEditor({
-      pathname: "/painel/servicos/novo",
-      state: { onboarding: true, onboardingStep: "servico" }
-    });
+    renderEditor("/painel/servicos/novo?onboarding=servico");
     fillService();
     submit();
 
@@ -271,8 +268,7 @@ describe("editor de serviços", () => {
 
     renderEditor({
       pathname: "/painel/servicos/novo",
-      search: "?plano=autonoma",
-      state: { onboarding: true, onboardingStep: "servico" }
+      search: "?onboarding=servico&plano=autonoma"
     });
     fillService();
     submit();

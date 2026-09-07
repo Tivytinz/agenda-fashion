@@ -6,7 +6,6 @@ import {
 } from "react";
 import { NavLink, Outlet, useLocation } from "react-router-dom";
 import { useSession } from "../auth/SessionContext";
-import "../styles/admin-refinements.css";
 import { AppIcon } from "./AppIcon";
 import {
   isExactNavigationRoute,
@@ -28,15 +27,6 @@ const OWNER_LINKS = [
 const PROFESSIONAL_LINKS = [
   ["/profissional/agenda", "Minha agenda", "calendar"],
   ["/profissional/horarios", "Meus horários", "clock"],
-  ["/conta", "Minha conta", "account"]
-];
-
-export const ADMIN_LINKS = [
-  ["/admin", "Visão geral", "home"],
-  ["/admin/saude", "Ativação", "health"],
-  ["/admin/operacao", "Operação", "business"],
-  ["/admin/trafego-pago", "Marketing", "marketing"],
-  ["/admin/whatsapp", "WhatsApp", "whatsapp"],
   ["/conta", "Minha conta", "account"]
 ];
 
@@ -160,7 +150,7 @@ export function MobileWorkspaceNavigation({
   );
 }
 
-function NavigationShell({
+export function NavigationShell({
   ariaLabel,
   children,
   identity,
@@ -198,19 +188,6 @@ function NavigationShell({
         links={links}
       />
     </div>
-  );
-}
-
-export function AdminLayout({ children }) {
-  return (
-    <NavigationShell
-      ariaLabel="Administração do Agenda Fashion"
-      identity={null}
-      links={ADMIN_LINKS}
-      variant="admin"
-    >
-      {children}
-    </NavigationShell>
   );
 }
 

@@ -136,11 +136,11 @@ describe("jornada de ativação profissional", () => {
   it.each([
     [
       "/criar-negocio",
-      "/painel/servicos/novo|servico"
+      "/painel/servicos/novo?onboarding=servico|servico"
     ],
     [
       "/criar-negocio?plano=autonoma",
-      "/painel/servicos/novo?plano=autonoma|servico"
+      "/painel/servicos/novo?onboarding=servico&plano=autonoma|servico"
     ]
   ])("continua direto para o primeiro serviço sem antecipar checkout (%s)", async (
     initialEntry,
@@ -221,10 +221,7 @@ describe("jornada de ativação profissional", () => {
       <MemoryRouter
         initialEntries={[{
           pathname: "/painel/servicos/novo",
-          state: {
-            onboarding: true,
-            onboardingStep: "servico"
-          }
+          search: "?onboarding=servico"
         }]}
       >
         <Routes>
@@ -251,6 +248,8 @@ describe("jornada de ativação profissional", () => {
     expect(screen.getByRole("spinbutton", {
       name: "Duração em minutos"
     })).not.toBeNull();
+    expect(screen.getByLabelText("Etapas para publicar o negócio").textContent)
+      .toContain("Serviço");
 
     expect(screen.queryByRole("textbox", {
       name: /Descrição/
