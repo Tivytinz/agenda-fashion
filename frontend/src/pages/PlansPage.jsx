@@ -2,7 +2,10 @@ import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { apiRequest } from "../api/client";
 import { useSession } from "../auth/SessionContext";
-import { getBusinessWorkspacePath } from "../auth/session";
+import {
+  getAuthDestination,
+  getBusinessWorkspacePath
+} from "../auth/session";
 import { BackLink } from "../components/BackLink";
 import { ErrorState, LoadingState } from "../components/ScreenState";
 import { formatCurrency } from "../utils/format";
@@ -73,6 +76,12 @@ export function PlansPage() {
               tipo: "profissional",
               ...(paid ? { plano: plan.slug } : {})
             });
+            const checkoutBlockedByActivation =
+              paid
+              && session.authenticated
+              && session.temNegocio
+              && session.negocio?.papel === "dono"
+              && session.negocio?.publicado !== true;
             const target = !session.authenticated
               ? `/cadastro?${professionalRegistration}`
               : !session.temNegocio
@@ -82,7 +91,7 @@ export function PlansPage() {
                 : session.negocio?.papel !== "dono"
                   ? getBusinessWorkspacePath(session)
                 : paid
-                  ? `/checkout?plano=${encodeURIComponent(plan.slug)}`
+                  ? getAuthDestination(session, { planSlug: plan.slug })
                   : "/painel";
             const cardClass = [
               "plan-card",
@@ -90,11 +99,13 @@ export function PlansPage() {
               isCurrent ? "current" : "",
               isAwaitingSubscription ? "selected-pending" : ""
             ].filter(Boolean).join(" ");
-            const actionLabel = isAwaitingSubscription
-              ? `Assinar ${plan.nome}`
-              : paid
-                ? "Escolher plano"
-                : "Começar grátis";
+            const actionLabel = checkoutBlockedByActivation
+              ? "Concluir ativação para assinar"
+              : isAwaitingSubscription
+                ? `Assinar ${plan.nome}`
+                : paid
+                  ? "Escolher plano"
+                  : "Começar grátis";
 
             return (
               <article className={cardClass} key={plan.id}>
