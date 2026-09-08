@@ -63,8 +63,12 @@ jobs:
           mkdir -p /tmp/tiktok-implementation
           unzip -q /tmp/tiktok-implementation.zip -d /tmp/tiktok-implementation
           PATCH="/tmp/tiktok-implementation/agenda-fashion-tiktok-implementation/agenda-fashion-tiktok-new.patch"
-          git apply --check "$PATCH"
-          git apply "$PATCH"
+          git apply --3way "$PATCH"
+          if git ls-files -u | grep -q .; then
+            echo "Patch produced merge conflicts:" >&2
+            git status --short >&2
+            exit 1
+          fi
           git diff --check
           git diff --stat
 
