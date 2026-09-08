@@ -103,6 +103,34 @@ function normalizarEventId(valor) {
   return texto;
 }
 
+function normalizarEventTime(valor) {
+  if (!valor) {
+    return Math.floor(
+      Date.now() / 1000
+    );
+  }
+
+  const data =
+    valor instanceof Date
+      ? valor
+      : new Date(valor);
+  const milissegundos =
+    data.getTime();
+
+  if (
+    !Number.isFinite(milissegundos) ||
+    milissegundos <= 0
+  ) {
+    return Math.floor(
+      Date.now() / 1000
+    );
+  }
+
+  return Math.floor(
+    milissegundos / 1000
+  );
+}
+
 function obterOrigemPublica() {
   const configurada = normalizarTexto(
     process.env.PUBLIC_APP_URL
@@ -303,7 +331,8 @@ async function enviarEvento({
   whatsapp,
   contexto,
   perfil,
-  customData
+  customData,
+  ocorridoEm = null
 }) {
   if (!capiHabilitada()) {
     return {
@@ -338,7 +367,9 @@ async function enviarEvento({
       {
         event_name: eventName,
         event_time:
-          Math.floor(Date.now() / 1000),
+          normalizarEventTime(
+            ocorridoEm
+          ),
         event_id: id,
         action_source: "website",
         event_source_url:

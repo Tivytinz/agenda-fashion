@@ -16,6 +16,16 @@ jest.mock(
   })
 );
 
+jest.mock(
+  "../src/services/marketingConversionDeliveryService",
+  () => ({
+    enfileirarAssinaturaAtivadaSeguro:
+      jest.fn(),
+    processarFilaConversoes:
+      jest.fn()
+  })
+);
+
 const webhookEventoRepository = require(
   "../src/repositories/webhookEventoRepository"
 );
@@ -27,6 +37,9 @@ const {
   suspenderAssinaturaPorPagamento
 } = require(
   "../src/services/assinaturaService"
+);
+const marketingConversionDeliveryService = require(
+  "../src/services/marketingConversionDeliveryService"
 );
 
 const {
@@ -42,6 +55,28 @@ describe(
   () => {
     beforeEach(() => {
       jest.clearAllMocks();
+
+      webhookEventoRepository
+        .marcarConcluido
+        .mockResolvedValue({
+          id: 999,
+          status: "PROCESSED"
+        });
+      webhookEventoRepository
+        .marcarFalha
+        .mockResolvedValue({
+          id: 999,
+          status: "FAILED"
+        });
+      webhookEventoRepository
+        .marcarProcessamentosEsgotados
+        .mockResolvedValue([]);
+      marketingConversionDeliveryService
+        .enfileirarAssinaturaAtivadaSeguro
+        .mockResolvedValue([]);
+      marketingConversionDeliveryService
+        .processarFilaConversoes
+        .mockResolvedValue(0);
 
       jest.spyOn(
         console,
@@ -123,6 +158,8 @@ describe(
         ativarAssinaturaPorPagamento
           .mockResolvedValue({
             id: 20,
+            negocio_id: 7,
+            valor: 49.9,
             status: "ACTIVE"
           });
 
@@ -138,6 +175,15 @@ describe(
             id: "pay_1"
           })
         );
+        expect(
+          marketingConversionDeliveryService
+            .enfileirarAssinaturaAtivadaSeguro
+        ).toHaveBeenCalledWith({
+          negocioId: 7,
+          assinaturaId: 20,
+          pagamentoId: "pay_1",
+          valor: 49.9
+        });
         expect(
           webhookEventoRepository
             .marcarConcluido
@@ -504,7 +550,9 @@ describe(
 
         ativarAssinaturaPorPagamento
           .mockResolvedValue({
-            id: 21
+            id: 21,
+            negocio_id: 8,
+            valor: 79.9
           });
 
         const quantidade =

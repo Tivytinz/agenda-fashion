@@ -140,6 +140,21 @@ async function reservarProximo() {
   return resultado.rows[0] || null;
 }
 
+function condicaoFinalizacaoComLease() {
+  return `
+    (
+      status = 'PROCESSING'
+      OR (
+        status = 'FAILED'
+        AND tentativas >= ${MAX_TENTATIVAS}
+        AND proxima_tentativa_em IS NULL
+        AND ultima_tentativa_em
+          < NOW() - INTERVAL '5 minutes'
+      )
+    )
+  `;
+}
+
 async function marcarConcluido(
   id,
   status,
@@ -168,8 +183,8 @@ async function marcarConcluido(
     WHERE id = $1
       ${
         possuiLease
-          ? `AND status = 'PROCESSING'
-      AND tentativas = $3`
+          ? `AND tentativas = $3
+      AND ${condicaoFinalizacaoComLease()}`
           : ""
       }
     RETURNING *
