@@ -22,7 +22,7 @@ jest.mock(
 );
 
 jest.mock(
-  "../src/services/marketingCostProviders",
+  "../src/services/marketingCostProviderRegistry",
   () => mockProviders
 );
 
@@ -184,7 +184,7 @@ describe("saúde das integrações de custos", () => {
     process.env.MARKETING_COST_SYNC_SCHEDULE_ENABLED = "true";
     process.env.MARKETING_COST_SYNC_INTERVAL_HOURS = "6";
 
-    mockProviders.status.mockReturnValue([
+    mockProviders.status.mockResolvedValue([
       {
         provedor: "google_ads",
         nome: "Google Ads",
@@ -234,6 +234,27 @@ describe("saúde das integrações de custos", () => {
       saude: {
         codigo: "configuracao_incompleta"
       }
+    });
+  });
+
+  test("expõe autorização pendente do TikTok sem consultar custos", () => {
+    const schedule = config.statusAgendamento();
+
+    expect(service.saudeIntegracao(
+      {
+        habilitado: true,
+        configurado: false,
+        requerAutorizacao: true,
+        autorizacao: {
+          disponivel: true,
+          autorizado: false
+        }
+      },
+      null,
+      schedule
+    )).toMatchObject({
+      codigo: "autorizacao_pendente",
+      rotulo: "Autorizar"
     });
   });
 });

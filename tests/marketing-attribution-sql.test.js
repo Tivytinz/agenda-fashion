@@ -2,6 +2,7 @@ const {
   campanhaAusenteSql,
   criarAtribuicaoUsuarioSql,
   criarVinculoCampanhaOficialSql,
+  provedorCanonicoSql,
 } = require(
   "../src/repositories/marketingAttributionSql"
 );
@@ -29,6 +30,16 @@ describe(
           .toContain("mua.epik");
         expect(atribuicao.campanha)
           .toContain("'(sem campanha)'");
+      }
+    );
+
+    test(
+      "resolve TikTok para o provedor externo usado nos vínculos verificados",
+      () => {
+        const provedor = provedorCanonicoSql("e.origem");
+
+        expect(provedor).toContain("= 'tiktok'");
+        expect(provedor).toContain("THEN 'tiktok_ads'");
       }
     );
 

@@ -9,12 +9,19 @@ import { apiRequest } from "../api/client";
 
 const PROVIDER_LABELS = {
   google_ads: "Google Ads",
-  meta_ads: "Meta Ads"
+  meta_ads: "Meta Ads",
+  tiktok_ads: "TikTok Ads"
 };
 
 const EXTERNAL_STATUS_LABELS = {
   ENABLED: "Ativa",
   ACTIVE: "Ativa",
+  ENABLE: "Ativa",
+  STATUS_ENABLE: "Ativa",
+  DISABLE: "Pausada",
+  STATUS_DISABLE: "Pausada",
+  DELETE: "Excluída",
+  STATUS_DELETE: "Excluída",
   PAUSED: "Pausada",
   REMOVED: "Removida",
   DELETED: "Excluída",
@@ -64,6 +71,7 @@ function linkCountLabel(count) {
 function canalEsperado(provedor) {
   if (provedor === "google_ads") return "google";
   if (provedor === "meta_ads") return "meta";
+  if (provedor === "tiktok_ads") return "tiktok";
   return "";
 }
 
@@ -121,6 +129,7 @@ function healthBadgeClass(item) {
   if (level === "erro" || code === "erro") return "is-critical";
   if (level === "aviso" || [
     "configuracao_incompleta",
+    "autorizacao_pendente",
     "nao_sincronizado",
     "parcial",
     "desatualizado"
@@ -143,6 +152,7 @@ export function MarketingCostIntegrationsPanel({ onChanged }) {
   const [loadingExternalCampaigns, setLoadingExternalCampaigns] = useState(false);
   const [connections, setConnections] = useState({});
   const [testingProvider, setTestingProvider] = useState("");
+  const [authorizingProvider, setAuthorizingProvider] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [syncing, setSyncing] = useState("");
@@ -188,6 +198,29 @@ export function MarketingCostIntegrationsPanel({ onChanged }) {
   useEffect(() => {
     void load();
   }, [load]);
+
+  useEffect(() => {
+    const url = new URL(window.location.href);
+    const oauthResult = url.searchParams.get("tiktok_oauth");
+    if (!oauthResult) return;
+
+    if (oauthResult === "success") {
+      setMessage(
+        "TikTok Ads autorizado. Ative a integração de custos no backend e teste a conexão."
+      );
+    } else {
+      setError(
+        "Não foi possível concluir a autorização do TikTok Ads. Tente novamente."
+      );
+    }
+
+    url.searchParams.delete("tiktok_oauth");
+    window.history.replaceState(
+      window.history.state,
+      "",
+      `${url.pathname}${url.search}${url.hash}`
+    );
+  }, []);
 
   const selectedProvider = useMemo(
     () => data?.provedores?.find((item) => item.provedor === provider) || null,
@@ -278,6 +311,32 @@ export function MarketingCostIntegrationsPanel({ onChanged }) {
       (item) => String(item.id) === String(value)
     );
     setExternalCampaignName(campaign?.nome || "");
+  }
+
+  async function authorizeTikTok() {
+    if (authorizingProvider) return;
+    setAuthorizingProvider("tiktok_ads");
+    setError("");
+    setMessage("");
+
+    try {
+      const result = await apiRequest(
+        "/admin/marketing/custos-integracoes/tiktok_ads/autorizacao",
+        { method: "POST", body: {} }
+      );
+      const authorizationUrl = new URL(result?.authorizationUrl || "");
+      if (
+        authorizationUrl.protocol !== "https:" ||
+        authorizationUrl.hostname !== "ads.tiktok.com" ||
+        authorizationUrl.pathname !== "/marketing_api/auth"
+      ) {
+        throw new Error("O backend devolveu uma URL de autorização TikTok inválida.");
+      }
+      window.location.assign(authorizationUrl.toString());
+    } catch (requestError) {
+      setError(requestError.message);
+      setAuthorizingProvider("");
+    }
   }
 
   async function testConnection(provedor) {
@@ -382,7 +441,13 @@ export function MarketingCostIntegrationsPanel({ onChanged }) {
   );
 
   let linkBlockReason = "";
-  if (!selectedProvider?.configurado) {
+  if (
+    provider === "tiktok_ads" &&
+    selectedProvider?.autorizacao?.disponivel &&
+    !selectedProvider?.autorizacao?.autorizado
+  ) {
+    linkBlockReason = "Autorize o TikTok Ads antes de vincular campanhas.";
+  } else if (!selectedProvider?.configurado) {
     linkBlockReason = `Complete a configuração do ${providerLabel} antes de vincular campanhas.`;
   } else if (!platformReady) {
     linkBlockReason = `A conta externa do ${providerLabel} não foi identificada. Teste a conexão antes de continuar.`;
@@ -427,6 +492,11 @@ export function MarketingCostIntegrationsPanel({ onChanged }) {
             {(data?.provedores || []).map((item) => {
               const hasLinks = Number(item.vinculos || 0) > 0;
               const hasSync = Boolean(item.ultimaSincronizacao);
+              const needsTikTokAuthorization = Boolean(
+                item.provedor === "tiktok_ads" &&
+                item.autorizacao?.disponivel &&
+                !item.autorizacao?.autorizado
+              );
 
               return (
                 <article className="integration-health-card" key={item.provedor}>
@@ -460,9 +530,21 @@ export function MarketingCostIntegrationsPanel({ onChanged }) {
                     </small>
                   )}
                   <div className="integration-health-actions">
+                    {needsTikTokAuthorization && (
+                      <button
+                        className="button button-secondary button-small"
+                        disabled={Boolean(authorizingProvider)}
+                        onClick={authorizeTikTok}
+                        type="button"
+                      >
+                        {authorizingProvider === "tiktok_ads"
+                          ? "Abrindo TikTok..."
+                          : "Autorizar TikTok"}
+                      </button>
+                    )}
                     <button
                       className="button button-secondary button-small"
-                      disabled={!item.configurado || Boolean(testingProvider) || Boolean(syncing)}
+                      disabled={!item.configurado || Boolean(testingProvider) || Boolean(syncing) || Boolean(authorizingProvider)}
                       onClick={() => testConnection(item.provedor)}
                       type="button"
                     >
@@ -511,6 +593,7 @@ export function MarketingCostIntegrationsPanel({ onChanged }) {
                     <select value={provider} onChange={(event) => changeProvider(event.target.value)}>
                       <option value="google_ads">Google Ads</option>
                       <option value="meta_ads">Meta Ads</option>
+                      <option value="tiktok_ads">TikTok Ads</option>
                     </select>
                   </label>
                 </div>
@@ -577,7 +660,13 @@ export function MarketingCostIntegrationsPanel({ onChanged }) {
                       ))}
                     </select>
                     {!selectedProvider?.configurado && (
-                      <small>Complete as credenciais do {providerLabel} no backend para listar campanhas reais.</small>
+                      <small>
+                        {provider === "tiktok_ads" &&
+                        selectedProvider?.autorizacao?.disponivel &&
+                        !selectedProvider?.autorizacao?.autorizado
+                          ? "Autorize o TikTok Ads para listar campanhas reais."
+                          : `Complete as credenciais do ${providerLabel} no backend para listar campanhas reais.`}
+                      </small>
                     )}
                   </label>
                 </div>
