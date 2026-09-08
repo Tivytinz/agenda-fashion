@@ -478,7 +478,7 @@ describe(
         const diagnostico =
           await adminMarketingCostRepository
             .buscarDiagnosticoAtribuicao(
-              "all"
+              "30"
             );
 
         expect(
@@ -490,7 +490,7 @@ describe(
 
         const linhas =
           await adminMarketingCostRepository
-            .listarDesempenho("all");
+            .listarDesempenho("30");
         const encontrada = linhas.find(
           (item) =>
             Number(item.id) ===
@@ -636,11 +636,11 @@ describe(
         const diagnostico =
           await adminMarketingCostRepository
             .buscarDiagnosticoAtribuicao(
-              "all"
+              "30"
             );
         const linhas =
           await adminMarketingCostRepository
-            .listarDesempenho("all");
+            .listarDesempenho("30");
         const encontrada = linhas.find(
           (item) =>
             Number(item.id) ===
