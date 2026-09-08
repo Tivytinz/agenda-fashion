@@ -149,7 +149,7 @@ describe("visão geral do admin", () => {
     const details = screen.getByText("Como interpretar estes marcos").closest("details");
     expect(details).not.toBeNull();
     expect(details?.textContent).toContain("não são conversões adjacentes");
-    expect(details?.textContent).toContain("negócios legados");
+    expect(details?.textContent).toMatch(/negócios legados/i);
   });
 
   it("não exibe zero dias quando ainda não existe segundo agendamento", async () => {
