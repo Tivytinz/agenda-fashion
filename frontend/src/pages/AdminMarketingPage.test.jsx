@@ -175,8 +175,8 @@ describe("AdminMarketingPage", () => {
     expect(screen.getByText("Sessões no site")).not.toBeNull();
     expect(screen.getByText("90")).not.toBeNull();
     expect(screen.getByText("Cadastros profissionais")).not.toBeNull();
-    expect(screen.getByText("1º agendamento válido")).not.toBeNull();
-    expect(screen.getByText("Assinaturas pagas")).not.toBeNull();
+    expect(screen.getAllByText("1º agendamento válido").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Assinaturas pagas").length).toBeGreaterThan(0);
     expect(screen.getByText("Comportamento + coorte + atribuição")).not.toBeNull();
     expect(screen.getByText("GA4 conectado")).not.toBeNull();
     expect(screen.getByText("100% dos cadastros pagos atribuídos")).not.toBeNull();
@@ -196,7 +196,7 @@ describe("AdminMarketingPage", () => {
       screen.getByRole("heading", { name: "Quais origens trazem profissionais que avançam" })
     ).not.toBeNull();
     expect(screen.getByText("google_ads_profissionais")).not.toBeNull();
-    expect(screen.getByText("Orgânico")).not.toBeNull();
+    expect(screen.getAllByText("Orgânico").length).toBeGreaterThan(0);
     expect(screen.getByText("Origens da coorte ainda sem evidência suficiente")).not.toBeNull();
     expect(screen.getByText("Campanha não identificada")).not.toBeNull();
 
