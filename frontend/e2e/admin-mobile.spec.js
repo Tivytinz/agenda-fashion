@@ -86,20 +86,47 @@ test("admin e consentimento permanecem navegáveis no celular", async ({ page })
       cadastros: 10,
       negociosCriados: 8,
       servicosCriados: 7,
+      agendasConfiguradas: 5,
       negociosPublicados: 6,
       primeirosAgendamentos: 3,
       checkoutsIniciados: 2,
       assinaturasAtivadas: 1,
       taxaNegocio: 80,
       taxaServico: 70,
+      taxaAgenda: 50,
       taxaPublicacao: 60,
       taxaPrimeiroAgendamento: 30,
       taxaCheckout: 20,
       taxaAssinatura: 10
     },
     qualidadeMensuracao: {
-      coberturaAtribuicaoPagaPercentual: 100
-    }
+      cadastrosPagosDetectados: 10,
+      coberturaAtribuicaoPagaPercentual: 80,
+      coberturaMinimaPercentual: 100
+    },
+    campanhas: [
+      {
+        origem: "google",
+        midia: "cpc",
+        campanha: "google_ads_profissionais",
+        classificacaoAtribuicao: "oficial",
+        oficial: true,
+        cadastros: 8,
+        primeirosAgendamentos: 3,
+        taxaPrimeiroAgendamento: 37.5,
+        assinaturasAtivadas: 1
+      },
+      {
+        origem: "google",
+        midia: "cpc",
+        campanha: "(sem campanha)",
+        classificacaoAtribuicao: "rastreamento_incompleto",
+        oficial: false,
+        cadastros: 2,
+        primeirosAgendamentos: 0,
+        assinaturasAtivadas: 0
+      }
+    ]
   }));
   await page.route("**/admin/marketing/ga4**", (route) => json(route, {
     habilitado: true,
@@ -230,9 +257,25 @@ test("admin e consentimento permanecem navegáveis no celular", async ({ page })
   await expect(page.getByText("Sessões no site")).toBeVisible();
   await expect(page.getByText("GA4 conectado", { exact: true }).first()).toBeVisible();
   await expect(
-    page.getByText("100% do tráfego pago identificado", { exact: true })
+    page.getByText("80% dos cadastros pagos atribuídos", { exact: true })
   ).toBeVisible();
-  await expect(page.getByText("13 diretas + 7 assistidas")).toBeVisible();
+  await expect(
+    page.getByText("Sessões pagas com campanha reconhecida: 100% · 13 diretas + 7 assistidas", { exact: true })
+  ).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Marcos da coorte profissional" })
+  ).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Quais origens trazem profissionais que avançam" })
+  ).toBeVisible();
+  await expect(page.getByText("google_ads_profissionais", { exact: true })).toBeVisible();
+  await expect(page.getByText("37,5%", { exact: true })).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Origens da coorte ainda sem evidência suficiente" })
+  ).toBeVisible();
+  await expect(page.getByText("Campanha não identificada", { exact: true })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Integrações", exact: true }))
+    .toHaveAttribute("href", "/admin/trafego-pago/custos?periodo=30#integracoes-custos");
   await expect(
     page.getByRole("heading", { name: "O que acontece depois do clique" })
   ).toBeVisible();

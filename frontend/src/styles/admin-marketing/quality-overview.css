@@ -1,0 +1,180 @@
+.marketing-command-page-v3 .marketing-journey-card {
+  grid-template-columns: 1fr;
+}
+
+.marketing-command-page-v3 .marketing-journey-card::after {
+  display: none;
+}
+
+.marketing-journey-source {
+  display: inline-flex;
+  width: fit-content;
+  margin-bottom: 0.55rem;
+  border: 1px solid #eadde2;
+  border-radius: 999px;
+  padding: 0.2rem 0.5rem;
+  background: #faf7f8;
+  color: var(--marketing-v2-muted);
+  font-size: 0.68rem;
+  font-weight: 800;
+}
+
+.marketing-command-page-v3 .marketing-funnel-rail {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  overflow: visible;
+}
+
+.marketing-command-page-v3 .marketing-funnel-stage:not(:last-child)::after {
+  display: none;
+}
+
+.marketing-command-page-v3 .marketing-funnel-stage > div {
+  margin-top: 0;
+}
+
+.marketing-quality-grid,
+.marketing-attribution-pending-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.marketing-quality-card,
+.marketing-attribution-pending-card {
+  min-width: 0;
+  border: 1px solid var(--marketing-v2-line);
+  border-radius: 16px;
+  padding: 0.95rem;
+  background: #fff;
+}
+
+.marketing-quality-card-head,
+.marketing-attribution-pending-card-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.marketing-quality-card-head > div,
+.marketing-attribution-pending-card-head > div {
+  min-width: 0;
+}
+
+.marketing-quality-card-head strong,
+.marketing-attribution-pending-card-head strong {
+  display: block;
+  overflow-wrap: anywhere;
+  color: var(--marketing-v2-ink);
+}
+
+.marketing-quality-card-head small,
+.marketing-attribution-pending-card-head small {
+  display: block;
+  margin-top: 0.2rem;
+  color: var(--marketing-v2-muted);
+}
+
+.marketing-quality-metrics,
+.marketing-attribution-pending-metrics {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.45rem;
+  margin-top: 0.8rem;
+}
+
+.marketing-attribution-pending-metrics {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.marketing-quality-metrics > div,
+.marketing-attribution-pending-metrics > div {
+  min-width: 0;
+  border-radius: 11px;
+  padding: 0.6rem;
+  background: var(--marketing-v2-soft);
+}
+
+.marketing-quality-metrics span,
+.marketing-quality-metrics strong,
+.marketing-attribution-pending-metrics span,
+.marketing-attribution-pending-metrics strong {
+  display: block;
+}
+
+.marketing-quality-metrics span,
+.marketing-attribution-pending-metrics span {
+  color: var(--marketing-v2-muted);
+  font-size: 0.68rem;
+  font-weight: 700;
+}
+
+.marketing-quality-metrics strong,
+.marketing-attribution-pending-metrics strong {
+  margin-top: 0.2rem;
+  overflow-wrap: anywhere;
+  color: var(--marketing-v2-ink);
+  font-size: 0.98rem;
+}
+
+.marketing-attribution-pending-section {
+  margin-top: 1rem;
+  border-top: 1px solid var(--marketing-v2-line);
+  padding-top: 1rem;
+}
+
+.marketing-attribution-pending-section h3 {
+  margin: 0;
+  color: var(--marketing-v2-ink);
+  font-size: 1.05rem;
+}
+
+.marketing-attribution-pending-section > p {
+  margin-top: 0.25rem;
+}
+
+.marketing-integrations-shortcut {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  border: 1px dashed var(--marketing-v2-line);
+  border-radius: 16px;
+  padding: 0.9rem 1rem;
+  background: #fffdfd;
+}
+
+.marketing-integrations-shortcut p {
+  margin: 0.2rem 0 0;
+}
+
+@container admin-marketing (max-width: 980px) {
+  .marketing-command-page-v3 .marketing-funnel-rail,
+  .marketing-quality-grid,
+  .marketing-attribution-pending-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .marketing-quality-metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 680px) {
+  .marketing-command-page-v3 .marketing-funnel-rail,
+  .marketing-quality-grid,
+  .marketing-attribution-pending-grid,
+  .marketing-quality-metrics,
+  .marketing-attribution-pending-metrics {
+    grid-template-columns: 1fr;
+  }
+
+  .marketing-integrations-shortcut {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .marketing-integrations-shortcut .button {
+    width: 100%;
+  }
+}
