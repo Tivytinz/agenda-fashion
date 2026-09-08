@@ -16,7 +16,7 @@ jobs:
   prepare:
     if: github.actor != 'github-actions[bot]'
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 35
 
     services:
       postgres:
@@ -54,20 +54,366 @@ jobs:
           node-version: 22
           cache: npm
 
-      - name: Diagnose patch against current main
+      - name: Apply TikTok implementation to current main
         shell: bash
         run: |
-          set -uo pipefail
+          set -euo pipefail
           cat .github/tiktok-deploy/part*.b64 > /tmp/tiktok-implementation.b64
           base64 -d /tmp/tiktok-implementation.b64 > /tmp/tiktok-implementation.zip
           mkdir -p /tmp/tiktok-implementation
           unzip -q /tmp/tiktok-implementation.zip -d /tmp/tiktok-implementation
           PATCH="/tmp/tiktok-implementation/agenda-fashion-tiktok-implementation/agenda-fashion-tiktok-new.patch"
           git apply --reject --whitespace=fix "$PATCH" || true
-          echo '=== STATUS ==='
+
+          python3 <<'PY'
+          from pathlib import Path
+          import subprocess
+
+          def replace_once(path, old, new):
+              file = Path(path)
+              text = file.read_text()
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit(f"{path}: expected exactly one merge marker, found {count}")
+              file.write_text(text.replace(old, new, 1))
+
+          replace_once(
+              "AGENTS.md",
+              "- Marketing: eventos de produto, atribuicao, GA4, Google Ads, Meta CAPI e\n"
+              "  leitura de custos de Google Ads e Meta Ads. A classificacao oficial de\n",
+              "- Marketing: eventos de produto, atribuicao, GA4, Google Ads, Meta CAPI e\n"
+              "  leitura de custos de Google Ads, Meta Ads e TikTok Ads. O TikTok usa o\n"
+              "  OAuth oficial de Advertiser/Marketing API, com `state` de uso unico e access\n"
+              "  token de longo prazo criptografado no backend; a integracao e somente de\n"
+              "  leitura e nunca cria, edita, pausa ou exclui campanhas. A classificacao oficial de\n",
+          )
+
+          replace_once(
+              "src/routes/adminRoutes.js",
+              "const marketingCostSyncController =\n"
+              "  require(\n"
+              "    \"../controllers/marketingCostSyncController\"\n"
+              "  );\n\n"
+              "const adminGoogleAnalyticsController =",
+              "const marketingCostSyncController =\n"
+              "  require(\n"
+              "    \"../controllers/marketingCostSyncController\"\n"
+              "  );\n\n"
+              "const tiktokMarketingOAuthController =\n"
+              "  require(\n"
+              "    \"../controllers/tiktokMarketingOAuthController\"\n"
+              "  );\n\n"
+              "const adminGoogleAnalyticsController =",
+          )
+
+          replace_once(
+              "tests/marketing-cost-sync-health.test.js",
+              "    mockProviders.status.mockReturnValue([\n",
+              "    mockProviders.status.mockResolvedValue([\n",
+          )
+
+          sync_panel = "frontend/src/components/MarketingSyncPanel.jsx"
+          replace_once(
+              sync_panel,
+              "  useEffect(() => {\n"
+              "    void load();\n"
+              "  }, [load]);\n\n"
+              "  const linksByExternal = useMemo(() => {",
+              "  useEffect(() => {\n"
+              "    void load();\n"
+              "  }, [load]);\n\n"
+              "  useEffect(() => {\n"
+              "    const url = new URL(window.location.href);\n"
+              "    const oauthResult = url.searchParams.get(\"tiktok_oauth\");\n"
+              "    if (!oauthResult) return;\n\n"
+              "    if (oauthResult === \"success\") {\n"
+              "      setMessage(\"TikTok Ads autorizado. Agora teste a sincronização da conta.\");\n"
+              "    } else {\n"
+              "      setError(\"Não foi possível concluir a autorização do TikTok Ads. Tente novamente.\");\n"
+              "    }\n\n"
+              "    url.searchParams.delete(\"tiktok_oauth\");\n"
+              "    window.history.replaceState(\n"
+              "      window.history.state,\n"
+              "      \"\",\n"
+              "      `${url.pathname}${url.search}${url.hash}`\n"
+              "    );\n"
+              "  }, []);\n\n"
+              "  async function authorizeTikTok() {\n"
+              "    if (authorizing) return;\n"
+              "    setAuthorizing(true);\n"
+              "    setError(\"\");\n"
+              "    setMessage(\"\");\n"
+              "    try {\n"
+              "      const result = await apiRequest(\n"
+              "        \"/admin/marketing/custos-integracoes/tiktok_ads/autorizacao\",\n"
+              "        { method: \"POST\", body: {} }\n"
+              "      );\n"
+              "      const url = new URL(result?.authorizationUrl || \"\");\n"
+              "      if (\n"
+              "        url.protocol !== \"https:\" ||\n"
+              "        url.hostname !== \"ads.tiktok.com\" ||\n"
+              "        url.pathname !== \"/marketing_api/auth\"\n"
+              "      ) {\n"
+              "        throw new Error(\"O backend devolveu uma URL de autorização TikTok inválida.\");\n"
+              "      }\n"
+              "      window.location.assign(url.toString());\n"
+              "    } catch (requestError) {\n"
+              "      setError(requestError.message);\n"
+              "      setAuthorizing(false);\n"
+              "    }\n"
+              "  }\n\n"
+              "  const linksByExternal = useMemo(() => {",
+          )
+          replace_once(
+              sync_panel,
+              "          <h2>Google Ads e Meta Ads</h2>",
+              "          <h2>Google Ads, Meta Ads e TikTok Ads</h2>",
+          )
+          replace_once(
+              sync_panel,
+              "          ).length;\n\n"
+              "          return (",
+              "          ).length;\n"
+              "          const needsTikTokAuthorization = Boolean(\n"
+              "            provider.provedor === \"tiktok_ads\" &&\n"
+              "            provider.autorizacao?.disponivel &&\n"
+              "            !provider.autorizacao?.autorizado\n"
+              "          );\n\n"
+              "          return (",
+          )
+          replace_once(
+              sync_panel,
+              "              <button\n"
+              "                className=\"button button-secondary\"\n"
+              "                disabled={!provider.configurado || Boolean(syncing)}\n"
+              "                onClick={() => sync(provider.provedor)}\n"
+              "                type=\"button\"\n"
+              "              >\n"
+              "                {syncing === provider.provedor ? \"Sincronizando...\" : \"Sincronizar agora\"}\n"
+              "              </button>",
+              "              {needsTikTokAuthorization ? (\n"
+              "                <button\n"
+              "                  className=\"button button-secondary\"\n"
+              "                  disabled={authorizing || Boolean(syncing)}\n"
+              "                  onClick={authorizeTikTok}\n"
+              "                  type=\"button\"\n"
+              "                >\n"
+              "                  {authorizing ? \"Abrindo TikTok...\" : \"Autorizar TikTok\"}\n"
+              "                </button>\n"
+              "              ) : (\n"
+              "                <button\n"
+              "                  className=\"button button-secondary\"\n"
+              "                  disabled={!provider.configurado || Boolean(syncing) || authorizing}\n"
+              "                  onClick={() => sync(provider.provedor)}\n"
+              "                  type=\"button\"\n"
+              "                >\n"
+              "                  {syncing === provider.provedor ? \"Sincronizando...\" : \"Sincronizar agora\"}\n"
+              "                </button>\n"
+              "              )}",
+          )
+
+          costs_panel = "frontend/src/components/MarketingCostIntegrationsPanel.jsx"
+          replace_once(
+              costs_panel,
+              "  useEffect(() => {\n"
+              "    void load();\n"
+              "  }, [load]);\n\n"
+              "  const selectedProvider = useMemo(",
+              "  useEffect(() => {\n"
+              "    void load();\n"
+              "  }, [load]);\n\n"
+              "  useEffect(() => {\n"
+              "    const url = new URL(window.location.href);\n"
+              "    const oauthResult = url.searchParams.get(\"tiktok_oauth\");\n"
+              "    if (!oauthResult) return;\n\n"
+              "    if (oauthResult === \"success\") {\n"
+              "      setMessage(\n"
+              "        \"TikTok Ads autorizado. Ative a integração de custos no backend e teste a conexão.\"\n"
+              "      );\n"
+              "    } else {\n"
+              "      setError(\n"
+              "        \"Não foi possível concluir a autorização do TikTok Ads. Tente novamente.\"\n"
+              "      );\n"
+              "    }\n\n"
+              "    url.searchParams.delete(\"tiktok_oauth\");\n"
+              "    window.history.replaceState(\n"
+              "      window.history.state,\n"
+              "      \"\",\n"
+              "      `${url.pathname}${url.search}${url.hash}`\n"
+              "    );\n"
+              "  }, []);\n\n"
+              "  const selectedProvider = useMemo(",
+          )
+          replace_once(
+              costs_panel,
+              "  function changeExternalCampaign(value) {\n"
+              "    setExternalCampaignId(value);\n"
+              "    const campaign = externalCampaigns.find(\n"
+              "      (item) => String(item.id) === String(value)\n"
+              "    );\n"
+              "    setExternalCampaignName(campaign?.nome || \"\");\n"
+              "  }\n\n"
+              "  async function testConnection(provedor) {",
+              "  function changeExternalCampaign(value) {\n"
+              "    setExternalCampaignId(value);\n"
+              "    const campaign = externalCampaigns.find(\n"
+              "      (item) => String(item.id) === String(value)\n"
+              "    );\n"
+              "    setExternalCampaignName(campaign?.nome || \"\");\n"
+              "  }\n\n"
+              "  async function authorizeTikTok() {\n"
+              "    if (authorizingProvider) return;\n"
+              "    setAuthorizingProvider(\"tiktok_ads\");\n"
+              "    setError(\"\");\n"
+              "    setMessage(\"\");\n\n"
+              "    try {\n"
+              "      const result = await apiRequest(\n"
+              "        \"/admin/marketing/custos-integracoes/tiktok_ads/autorizacao\",\n"
+              "        { method: \"POST\", body: {} }\n"
+              "      );\n"
+              "      const authorizationUrl = new URL(result?.authorizationUrl || \"\");\n"
+              "      if (\n"
+              "        authorizationUrl.protocol !== \"https:\" ||\n"
+              "        authorizationUrl.hostname !== \"ads.tiktok.com\" ||\n"
+              "        authorizationUrl.pathname !== \"/marketing_api/auth\"\n"
+              "      ) {\n"
+              "        throw new Error(\"O backend devolveu uma URL de autorização TikTok inválida.\");\n"
+              "      }\n"
+              "      window.location.assign(authorizationUrl.toString());\n"
+              "    } catch (requestError) {\n"
+              "      setError(requestError.message);\n"
+              "      setAuthorizingProvider(\"\");\n"
+              "    }\n"
+              "  }\n\n"
+              "  async function testConnection(provedor) {",
+          )
+          replace_once(
+              costs_panel,
+              "              const hasLinks = Number(item.vinculos || 0) > 0;\n"
+              "              const hasSync = Boolean(item.ultimaSincronizacao);\n\n"
+              "              return (",
+              "              const hasLinks = Number(item.vinculos || 0) > 0;\n"
+              "              const hasSync = Boolean(item.ultimaSincronizacao);\n"
+              "              const needsTikTokAuthorization = Boolean(\n"
+              "                item.provedor === \"tiktok_ads\" &&\n"
+              "                item.autorizacao?.disponivel &&\n"
+              "                !item.autorizacao?.autorizado\n"
+              "              );\n\n"
+              "              return (",
+          )
+          replace_once(
+              costs_panel,
+              "                  <div className=\"integration-health-actions\">\n"
+              "                    <button\n"
+              "                      className=\"button button-secondary button-small\"\n"
+              "                      disabled={!item.configurado || Boolean(testingProvider) || Boolean(syncing)}",
+              "                  <div className=\"integration-health-actions\">\n"
+              "                    {needsTikTokAuthorization && (\n"
+              "                      <button\n"
+              "                        className=\"button button-secondary button-small\"\n"
+              "                        disabled={Boolean(authorizingProvider)}\n"
+              "                        onClick={authorizeTikTok}\n"
+              "                        type=\"button\"\n"
+              "                      >\n"
+              "                        {authorizingProvider === \"tiktok_ads\"\n"
+              "                          ? \"Abrindo TikTok...\"\n"
+              "                          : \"Autorizar TikTok\"}\n"
+              "                      </button>\n"
+              "                    )}\n"
+              "                    <button\n"
+              "                      className=\"button button-secondary button-small\"\n"
+              "                      disabled={!item.configurado || Boolean(testingProvider) || Boolean(syncing) || Boolean(authorizingProvider)}",
+          )
+
+          for reject in Path(".").rglob("*.rej"):
+              reject.unlink()
+
+          expected = {
+              ".env.example",
+              "AGENTS.md",
+              "database/migrations/061_marketing_tiktok_ads.sql",
+              "docs/marketing-tiktok-ads.md",
+              "frontend/src/components/MarketingCostIntegrationsPanel.jsx",
+              "frontend/src/components/MarketingCostIntegrationsPanel.tiktok.test.jsx",
+              "frontend/src/components/MarketingSyncPanel.jsx",
+              "frontend/src/components/MarketingSyncPanel.tiktok.test.jsx",
+              "frontend/src/utils/marketingCosts.js",
+              "src/controllers/tiktokMarketingOAuthController.js",
+              "src/repositories/marketingAttributionSql.js",
+              "src/repositories/tiktokMarketingOAuthRepository.js",
+              "src/routes/adminRoutes.js",
+              "src/services/marketingCampaignSyncService.js",
+              "src/services/marketingCostProviderRegistry.js",
+              "src/services/marketingCostSyncService.js",
+              "src/services/marketingSyncOrchestratorService.js",
+              "src/services/tiktokMarketingCostProvider.js",
+              "src/services/tiktokMarketingOAuthService.js",
+              "tests/marketing-attribution-sql.test.js",
+              "tests/marketing-cost-sync-health.test.js",
+              "tests/marketing-sync-orchestrator-service.test.js",
+              "tests/tiktok-marketing-cost-provider.test.js",
+              "tests/tiktok-marketing-oauth-service.test.js",
+          }
+          tracked = set(subprocess.check_output(["git", "diff", "--name-only"], text=True).splitlines())
+          untracked = set(subprocess.check_output(
+              ["git", "ls-files", "--others", "--exclude-standard"], text=True
+          ).splitlines())
+          actual = tracked | untracked
+          if actual != expected:
+              raise SystemExit(
+                  "Unexpected implementation diff. "
+                  f"Missing={sorted(expected - actual)} Extra={sorted(actual - expected)}"
+              )
+          PY
+
+          git diff --check
           git status --short
-          echo '=== REJECTS ==='
-          find . -name '*.rej' -type f -print -exec cat {} \;
-          if find . -name '*.rej' -type f | grep -q .; then
-            exit 1
-          fi
+          git diff --stat
+
+      - name: Install backend dependencies
+        run: npm ci
+
+      - name: Install frontend dependencies
+        run: npm --prefix frontend ci
+
+      - name: Lint React frontend
+        run: npm --prefix frontend run lint
+
+      - name: Build React frontend
+        run: npm run frontend:build
+
+      - name: Test React frontend
+        run: npm run frontend:test
+
+      - name: Apply test migrations
+        run: npm run migrate:test
+
+      - name: Run backend tests with coverage
+        run: npm run test:coverage
+
+      - name: Audit backend and tooling dependencies
+        run: npm audit --audit-level=high
+
+      - name: Audit production dependencies
+        run: npm audit --omit=dev --audit-level=high
+
+      - name: Audit frontend dependencies
+        run: npm --prefix frontend audit --audit-level=high
+
+      - name: Install mobile browsers
+        run: npm --prefix frontend exec -- playwright install --with-deps chromium webkit
+
+      - name: Test mobile frontend
+        run: npm --prefix frontend run test:e2e
+
+      - name: Commit validated implementation
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "Agenda Fashion CI"
+          git config user.email "actions@users.noreply.github.com"
+          git add -A
+          git diff --cached --check
+          git diff --cached --stat
+          git commit -m "feat: integra custos do TikTok Ads"
+          git push origin HEAD:feat/tiktok-ads-production-20260907
