@@ -1,40 +1,82 @@
 const db = require("../db/db");
 
+function executorConsulta(client) {
+  return client || db;
+}
+
 async function ehPrimeiroPagamentoAssinatura({
   assinaturaId,
-  pagamentoId
+  pagamentoId,
+  client = null
 }) {
-  const resultado = await db.query(
-    `
-    SELECT
-      COUNT(*) FILTER (
-        WHERE p.data_pagamento IS NOT NULL
-      )::INT AS pagamentos_confirmados,
-      BOOL_OR(
-        p.asaas_payment_id = $2
+  const resultado = await executorConsulta(client)
+    .query(
+      `
+      SELECT EXISTS (
+        SELECT 1
+        FROM pagamentos atual
+        WHERE atual.assinatura_id = $1
+          AND atual.asaas_payment_id = $2
+          AND atual.data_pagamento IS NOT NULL
+          AND NOT EXISTS (
+            SELECT 1
+            FROM pagamentos anterior
+            WHERE anterior.assinatura_id =
+              atual.assinatura_id
+              AND anterior.data_pagamento
+                IS NOT NULL
+              AND (
+                anterior.data_pagamento <
+                  atual.data_pagamento
+                OR (
+                  anterior.data_pagamento =
+                    atual.data_pagamento
+                  AND anterior.id < atual.id
+                )
+              )
+          )
+      ) AS primeiro_pagamento
+      `,
+      [
+        assinaturaId,
+        pagamentoId
+      ]
+    );
+
+  return resultado.rows[0]
+    ?.primeiro_pagamento === true;
+}
+
+async function buscarPagamentoConfirmado({
+  assinaturaId,
+  pagamentoId,
+  client = null
+}) {
+  const resultado = await executorConsulta(client)
+    .query(
+      `
+      SELECT
+        p.id,
+        p.assinatura_id,
+        p.asaas_payment_id,
+        p.valor,
+        p.data_pagamento
+      FROM pagamentos p
+      WHERE p.assinatura_id = $1
+        AND p.asaas_payment_id = $2
         AND p.data_pagamento IS NOT NULL
-      ) AS pagamento_atual_confirmado
-    FROM pagamentos p
-    INNER JOIN assinaturas a
-      ON a.id = p.assinatura_id
-    WHERE p.assinatura_id = $1
-      AND a.ativo = TRUE
-      AND UPPER(a.status) = 'ACTIVE'
-    `,
-    [
-      assinaturaId,
-      pagamentoId
-    ]
-  );
+      LIMIT 1
+      `,
+      [
+        assinaturaId,
+        pagamentoId
+      ]
+    );
 
-  const linha = resultado.rows[0] || {};
-
-  return (
-    Number(linha.pagamentos_confirmados) === 1 &&
-    linha.pagamento_atual_confirmado === true
-  );
+  return resultado.rows[0] || null;
 }
 
 module.exports = {
-  ehPrimeiroPagamentoAssinatura
+  ehPrimeiroPagamentoAssinatura,
+  buscarPagamentoConfirmado
 };
