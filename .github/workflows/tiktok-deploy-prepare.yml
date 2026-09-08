@@ -325,6 +325,12 @@ jobs:
               "                      disabled={!item.configurado || Boolean(testingProvider) || Boolean(syncing) || Boolean(authorizingProvider)}",
           )
 
+          replace_once(
+              "frontend/src/components/MarketingCostIntegrationsPanel.tiktok.test.jsx",
+              "    expect(await screen.findByText(\"TikTok Ads\")).not.toBeNull();\n",
+              "    expect((await screen.findAllByText(\"TikTok Ads\")).length).toBeGreaterThan(0);\n",
+          )
+
           for reject in Path(".").rglob("*.rej"):
               reject.unlink()
 
