@@ -234,6 +234,35 @@ async function marcarFalha(
   return resultado.rows[0] || null;
 }
 
+async function marcarFalhaTerminal(
+  id,
+  leaseTentativa,
+  erro
+) {
+  const resultado = await db.query(
+    `
+    UPDATE marketing_conversoes_entregas
+    SET
+      status = 'FAILED',
+      ultimo_erro = $3,
+      proxima_tentativa_em = NULL,
+      updated_at = NOW()
+    WHERE id = $1
+      AND tentativas = $2
+      AND status = 'PROCESSING'
+    RETURNING *
+    `,
+    [
+      id,
+      leaseTentativa,
+      String(erro || "Falha terminal")
+        .slice(0, 2000)
+    ]
+  );
+
+  return resultado.rows[0] || null;
+}
+
 async function marcarProcessamentosEsgotados() {
   const resultado = await db.query(
     `
@@ -263,5 +292,6 @@ module.exports = {
   marcarEnviado,
   marcarIgnorado,
   marcarFalha,
+  marcarFalhaTerminal,
   marcarProcessamentosEsgotados
 };
