@@ -54,68 +54,20 @@ jobs:
           node-version: 22
           cache: npm
 
-      - name: Restore and apply implementation
+      - name: Diagnose patch against current main
         shell: bash
         run: |
-          set -euo pipefail
+          set -uo pipefail
           cat .github/tiktok-deploy/part*.b64 > /tmp/tiktok-implementation.b64
           base64 -d /tmp/tiktok-implementation.b64 > /tmp/tiktok-implementation.zip
           mkdir -p /tmp/tiktok-implementation
           unzip -q /tmp/tiktok-implementation.zip -d /tmp/tiktok-implementation
           PATCH="/tmp/tiktok-implementation/agenda-fashion-tiktok-implementation/agenda-fashion-tiktok-new.patch"
-          git apply --3way "$PATCH"
-          if git ls-files -u | grep -q .; then
-            echo "Patch produced merge conflicts:" >&2
-            git status --short >&2
+          git apply --reject --whitespace=fix "$PATCH" || true
+          echo '=== STATUS ==='
+          git status --short
+          echo '=== REJECTS ==='
+          find . -name '*.rej' -type f -print -exec cat {} \;
+          if find . -name '*.rej' -type f | grep -q .; then
             exit 1
           fi
-          git diff --check
-          git diff --stat
-
-      - name: Install backend dependencies
-        run: npm ci
-
-      - name: Install frontend dependencies
-        run: npm --prefix frontend ci
-
-      - name: Lint React frontend
-        run: npm --prefix frontend run lint
-
-      - name: Build React frontend
-        run: npm run frontend:build
-
-      - name: Test React frontend
-        run: npm run frontend:test
-
-      - name: Apply test migrations
-        run: npm run migrate:test
-
-      - name: Run backend tests with coverage
-        run: npm run test:coverage
-
-      - name: Audit backend and tooling dependencies
-        run: npm audit --audit-level=high
-
-      - name: Audit production dependencies
-        run: npm audit --omit=dev --audit-level=high
-
-      - name: Audit frontend dependencies
-        run: npm --prefix frontend audit --audit-level=high
-
-      - name: Install mobile browsers
-        run: npm --prefix frontend exec -- playwright install --with-deps chromium webkit
-
-      - name: Test mobile frontend
-        run: npm --prefix frontend run test:e2e
-
-      - name: Commit validated implementation
-        shell: bash
-        run: |
-          set -euo pipefail
-          git config user.name "Agenda Fashion CI"
-          git config user.email "actions@users.noreply.github.com"
-          git add -A
-          git diff --cached --check
-          git diff --cached --stat
-          git commit -m "feat: integra custos do TikTok Ads"
-          git push origin HEAD:feat/tiktok-ads-production-20260907
