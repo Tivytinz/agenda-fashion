@@ -99,7 +99,7 @@ async function enfileirarAssinaturaAtivadaSeguro(
       }
     );
 
-    return [];
+    throw erro;
   }
 }
 
