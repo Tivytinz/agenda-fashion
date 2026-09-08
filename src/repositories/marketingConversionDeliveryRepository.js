@@ -78,10 +78,8 @@ function condicaoDisponivel() {
       OR (
         status = 'FAILED'
         AND tentativas < ${MAX_TENTATIVAS}
-        AND (
-          proxima_tentativa_em IS NULL
-          OR proxima_tentativa_em <= NOW()
-        )
+        AND proxima_tentativa_em IS NOT NULL
+        AND proxima_tentativa_em <= NOW()
       )
       OR (
         status = 'PROCESSING'
@@ -180,7 +178,7 @@ async function marcarIgnorado(
       updated_at = NOW()
     WHERE id = $1
       AND tentativas = $2
-      AND status = 'PROCESSING'
+      AND ${condicaoLeaseTerminal()}
     RETURNING *
     `,
     [
