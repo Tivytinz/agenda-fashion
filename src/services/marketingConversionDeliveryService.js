@@ -78,24 +78,29 @@ async function enfileirarAssinaturaAtivada(
   ]);
 }
 
-function enfileirarAssinaturaAtivadaSeguro(
+async function enfileirarAssinaturaAtivadaSeguro(
   dados
 ) {
-  void enfileirarAssinaturaAtivada(dados)
-    .catch((erro) => {
-      registrador.aviso(
-        "Conversão de assinatura: falha ao persistir entrega.",
-        {
-          assinatura_id:
-            dados?.assinaturaId || null,
-          pagamento_id:
-            dados?.pagamentoId || null,
-          erro:
-            erro?.message ||
-            "Falha desconhecida"
-        }
-      );
-    });
+  try {
+    return await enfileirarAssinaturaAtivada(
+      dados
+    );
+  } catch (erro) {
+    registrador.aviso(
+      "Conversão de assinatura: falha ao persistir entrega.",
+      {
+        assinatura_id:
+          dados?.assinaturaId || null,
+        pagamento_id:
+          dados?.pagamentoId || null,
+        erro:
+          erro?.message ||
+          "Falha desconhecida"
+      }
+    );
+
+    return [];
+  }
 }
 
 async function entregarMeta(payload) {
