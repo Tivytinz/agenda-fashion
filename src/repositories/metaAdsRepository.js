@@ -111,8 +111,9 @@ async function buscarPerfilPorNegocio(negocioId) {
       ON mua.usuario_id = u.id
     WHERE un.negocio_id = $1
       AND un.papel = 'dono'
+      AND un.ativo = TRUE
+      AND u.ativo = TRUE
     ORDER BY
-      un.ativo DESC,
       un.created_at ASC,
       un.id ASC
     LIMIT 1
