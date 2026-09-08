@@ -14,10 +14,14 @@ As regras financeiras processadas pelo webhook continuam devendo ser idempotente
 
 ## Conversões Meta e Google
 
-Conversões de assinatura originadas por webhooks financeiros são persistidas em `marketing_conversoes_entregas` antes do envio aos provedores. A chave `(provedor, tipo_evento, chave_evento)` é única, de modo que eventos Asaas diferentes referentes à mesma ativação não criem múltiplas entregas para Meta ou Google.
+Conversões de assinatura originadas por webhooks financeiros são persistidas em `marketing_conversoes_entregas` antes do envio aos provedores. O webhook financeiro só é concluído depois que essa persistência termina; se a gravação falhar ou o processo morrer antes dela, o próprio registro durável em `webhook_eventos` permanece elegível a retry. A chave `(provedor, tipo_evento, chave_evento)` é única, de modo que eventos Asaas diferentes referentes à mesma ativação não criem múltiplas entregas para Meta ou Google.
 
-A fila de conversões usa os estados `PENDING`, `PROCESSING`, `SENT`, `IGNORED` e `FAILED`, reserva com `FOR UPDATE SKIP LOCKED`, possui no máximo cinco tentativas e recupera processamento abandonado após cinco minutos. Falhas temporárias do provedor entram em retry sem bloquear pagamento, assinatura ou o webhook financeiro.
+A identificação do primeiro pagamento é histórica: ela usa os pagamentos confirmados da assinatura e não depende de a assinatura continuar atualmente `ACTIVE`. Isso permite reconstruir com segurança a entrega durante um retry mesmo quando, depois da confirmação original, o negócio já trocou ou cancelou a assinatura. O valor enviado aos provedores é relido da cobrança confirmada em `pagamentos`, em vez de confiar no preço armazenado no payload da outbox.
+
+A fila de conversões usa os estados `PENDING`, `PROCESSING`, `SENT`, `IGNORED` e `FAILED`, reserva com `FOR UPDATE SKIP LOCKED`, possui no máximo cinco tentativas e recupera processamento abandonado após cinco minutos. Dentro de uma mesma instância da aplicação, ticks concorrentes compartilham a execução já em andamento; entre instâncias, `FOR UPDATE SKIP LOCKED` e o lease continuam sendo a proteção de concorrência.
 
 `Subscribe` da Meta mantém `event_id` estável no formato `subscribe:<assinatura_id>`. O evento `purchase` do Google mantém `transaction_id` estável no formato `af-subscription-<assinatura_id>`. Esses identificadores complementam a outbox local: como uma chamada HTTP externa pode ter sido aceita antes de uma queda impedir a confirmação local, a entrega é operacionalmente *at-least-once* e depende também das chaves estáveis para deduplicação no provedor.
 
-Renovação, falta de consentimento ou integração desabilitada são resultados terminais e ficam como `IGNORED`; erros HTTP, timeout e falhas temporárias permanecem elegíveis a retry até o limite configurado.
+Renovação, falta de consentimento ou integração intencionalmente desabilitada são resultados terminais e ficam como `IGNORED`. Identificadores inválidos e provedor desconhecido são falhas técnicas terminais e ficam como `FAILED`, sem novo retry. Erros HTTP, timeout e outras falhas temporárias permanecem elegíveis a retry até o limite configurado. Ao esgotar o limite, o worker registra um aviso operacional com identificador da entrega, provedor, tentativa e erro, sem incluir o payload ou dados pessoais.
+
+Ao buscar o perfil para Meta CAPI ou Google Measurement, somente o vínculo de dono ativo e uma conta de usuário ativa podem fornecer consentimento e identificadores de marketing.
