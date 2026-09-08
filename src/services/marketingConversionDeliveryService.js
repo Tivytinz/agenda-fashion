@@ -202,6 +202,8 @@ async function entregarMeta(payload) {
       perfil.whatsapp,
     contexto,
     perfil,
+    ocorridoEm:
+      pagamento.data_pagamento,
     customData: {
       currency: "BRL",
       value:
@@ -259,6 +261,8 @@ async function entregarGoogle(payload) {
       userId:
         perfil.usuario_id,
       eventName: "purchase",
+      ocorridoEm:
+        pagamento.data_pagamento,
       params: {
         transaction_id:
           `af-subscription-${payload.assinaturaId}`,
