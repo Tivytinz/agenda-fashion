@@ -134,15 +134,18 @@ async function entregarMeta(payload) {
   }
 
   const contexto = {
-    consentimento: true,
-    eventId:
-      `subscribe:${payload.assinaturaId}`,
-    fbp:
-      perfil.meta_fbp || null,
-    fbc:
-      perfil.meta_fbc || null,
-    sourceUrl:
-      "/painel/assinatura",
+    ...metaAdsService
+      .sanitizarContextoCliente({
+        consentimento: true,
+        event_id:
+          `subscribe:${payload.assinaturaId}`,
+        fbp:
+          perfil.meta_fbp || null,
+        fbc:
+          perfil.meta_fbc || null,
+        source_url:
+          "/painel/assinatura"
+      }),
     clientIp: null,
     userAgent: null
   };
