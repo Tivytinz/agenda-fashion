@@ -40,7 +40,7 @@ afterAll(() => {
 });
 
 test(
-  "purchase usa timestamp_micros da confirmação financeira",
+  "purchase respeita timestamp_micros quando um timestamp explícito é fornecido",
   async () => {
     const ocorridoEm =
       "2026-09-08T18:00:00.000Z";
