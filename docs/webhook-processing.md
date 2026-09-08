@@ -14,7 +14,7 @@ As regras financeiras processadas pelo webhook continuam devendo ser idempotente
 
 ## Conversões Meta e Google
 
-Conversões de assinatura originadas por webhooks financeiros são persistidas em `marketing_conversoes_entregas` antes do envio aos provedores. O webhook financeiro só é concluído depois que essa persistência termina; se a gravação falhar ou o processo morrer antes dela, o próprio registro durável em `webhook_eventos` permanece elegível a retry. A chave `(provedor, tipo_evento, chave_evento)` é única, de modo que eventos Asaas diferentes referentes à mesma ativação não criem múltiplas entregas para Meta ou Google.
+Conversões de assinatura originadas por webhooks financeiros são persistidas em `marketing_conversoes_entregas` antes do envio aos provedores. O estado financeiro é confirmado pela transação própria do domínio; depois disso, o webhook só é concluído quando a persistência das entregas termina. Se a gravação da outbox falhar ou o processo morrer antes dela, o registro durável em `webhook_eventos` permanece elegível a retry e consegue reconstruir a conversão a partir do pagamento confirmado. A chave `(provedor, tipo_evento, chave_evento)` é única, de modo que eventos Asaas diferentes referentes à mesma ativação não criem múltiplas entregas para Meta ou Google.
 
 A identificação do primeiro pagamento é histórica: ela usa os pagamentos confirmados da assinatura e não depende de a assinatura continuar atualmente `ACTIVE`. Isso permite reconstruir com segurança a entrega durante um retry mesmo quando, depois da confirmação original, o negócio já trocou ou cancelou a assinatura. O valor enviado aos provedores é relido da cobrança confirmada em `pagamentos`, em vez de confiar no preço armazenado no payload da outbox.
 
