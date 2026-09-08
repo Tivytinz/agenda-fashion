@@ -29,6 +29,20 @@ jest.mock(
 jest.mock(
   "../src/services/metaAdsService",
   () => ({
+    sanitizarContextoCliente: jest.fn(
+      (meta) => ({
+        consentimento:
+          meta?.consentimento === true,
+        eventId:
+          meta?.event_id || null,
+        fbp:
+          meta?.fbp || null,
+        fbc:
+          meta?.fbc || null,
+        sourceUrl:
+          "https://app.agendafashion.com.br/painel/assinatura"
+      })
+    ),
     enviarEvento: jest.fn()
   })
 );
@@ -74,7 +88,38 @@ const payload = {
 };
 
 beforeEach(() => {
-  jest.clearAllMocks();
+  deliveryRepository
+    .enfileirar.mockReset();
+  deliveryRepository
+    .reservarProximo.mockReset();
+  deliveryRepository
+    .marcarEnviado.mockReset();
+  deliveryRepository
+    .marcarIgnorado.mockReset();
+  deliveryRepository
+    .marcarFalha.mockReset();
+  deliveryRepository
+    .marcarProcessamentosEsgotados
+    .mockReset();
+
+  metaAdsRepository
+    .ehPrimeiroPagamentoAssinatura
+    .mockReset();
+  metaAdsRepository
+    .buscarPerfilPorNegocio
+    .mockReset();
+  googleMeasurementRepository
+    .ehPrimeiroPagamentoAssinatura
+    .mockReset();
+  googleMeasurementRepository
+    .buscarPerfilPorNegocio
+    .mockReset();
+  metaAdsService
+    .enviarEvento.mockReset();
+  googleMeasurementService
+    .enviarEventoMeasurementProtocol
+    .mockReset();
+
   deliveryRepository
     .marcarProcessamentosEsgotados
     .mockResolvedValue([]);
@@ -99,8 +144,7 @@ test(
         provedor: "meta",
         payload,
         lease_tentativa: 1
-      })
-      .mockResolvedValueOnce(null);
+      });
 
     metaAdsRepository
       .ehPrimeiroPagamentoAssinatura
@@ -125,6 +169,16 @@ test(
     await service
       .processarFilaConversoes(1);
 
+    expect(
+      metaAdsService.sanitizarContextoCliente
+    ).toHaveBeenCalledWith(
+      expect.objectContaining({
+        consentimento: true,
+        event_id: "subscribe:11",
+        source_url:
+          "/painel/assinatura"
+      })
+    );
     expect(metaAdsService.enviarEvento)
       .toHaveBeenCalledWith(
         expect.objectContaining({
@@ -148,8 +202,7 @@ test(
         provedor: "google",
         payload,
         lease_tentativa: 2
-      })
-      .mockResolvedValueOnce(null);
+      });
 
     googleMeasurementRepository
       .ehPrimeiroPagamentoAssinatura
@@ -201,8 +254,7 @@ test(
         provedor: "meta",
         payload,
         lease_tentativa: 1
-      })
-      .mockResolvedValueOnce(null);
+      });
 
     metaAdsRepository
       .ehPrimeiroPagamentoAssinatura
@@ -233,5 +285,29 @@ test(
     expect(
       deliveryRepository.marcarEnviado
     ).not.toHaveBeenCalled();
+  }
+);
+
+test(
+  "falha ao persistir a outbox é propagada para permitir retry do webhook",
+  async () => {
+    deliveryRepository
+      .enfileirar
+      .mockRejectedValueOnce(
+        new Error("banco indisponível")
+      )
+      .mockResolvedValueOnce({
+        novo: true,
+        entrega: { id: 2 }
+      });
+
+    await expect(
+      service
+        .enfileirarAssinaturaAtivadaSeguro(
+          payload
+        )
+    ).rejects.toThrow(
+      "banco indisponível"
+    );
   }
 );
