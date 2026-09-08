@@ -94,7 +94,7 @@ beforeEach(() => {
 afterEach(cleanup);
 
 describe("visão geral do admin", () => {
-  it("exibe somente métricas agregadas do AF sem misturar operação individual", async () => {
+  it("prioriza KPIs e métricas agregadas do AF sem misturar operação individual", async () => {
     render(
       <MemoryRouter initialEntries={["/admin?periodo=30"]}>
         <AdminOverviewPage />
@@ -105,20 +105,24 @@ describe("visão geral do admin", () => {
       await screen.findByRole("heading", { name: "Visão geral" })
     ).not.toBeNull();
     expect(screen.getByRole("heading", { name: "Métricas — 30 dias" })).not.toBeNull();
-    expect(screen.getByText("Profissionais no período")).not.toBeNull();
-    expect(screen.getByText("Negócios criados")).not.toBeNull();
-    expect(screen.getByText("Clientes que agendaram")).not.toBeNull();
-    expect(screen.getByText("Agendas")).not.toBeNull();
-    expect(screen.getByText("1º agendamento válido")).not.toBeNull();
-    expect(screen.getByText("Checkouts iniciados")).not.toBeNull();
-    expect(screen.getByText("Assinaturas pagas")).not.toBeNull();
-    expect(screen.getByRole("heading", { name: "Marcos de ativação da coorte" })).not.toBeNull();
-    expect(screen.getByText(/não são conversões adjacentes/)).not.toBeNull();
-    expect(screen.getByRole("heading", { name: "Repetição de uso após o primeiro agendamento" })).not.toBeNull();
+    expect(screen.getAllByText("Cadastros profissionais").length).toBeGreaterThan(0);
+    expect(screen.getByText("Ativações")).not.toBeNull();
+    expect(screen.getByText("Agendamentos")).not.toBeNull();
+    expect(screen.getAllByText("Assinaturas pagas").length).toBeGreaterThan(0);
+    expect(screen.getByRole("heading", { name: "Ativação da coorte profissional" })).not.toBeNull();
+    expect(screen.getByText("Taxa de ativação da coorte")).not.toBeNull();
+    expect(screen.getAllByText(/7[,.]7%/).length).toBeGreaterThan(0);
+    expect(screen.getByRole("heading", { name: "Conversão para assinatura" })).not.toBeNull();
+    expect(screen.getByText("Taxa de assinatura na coorte")).not.toBeNull();
+    expect(screen.getByRole("heading", { name: "Retenção dos negócios" })).not.toBeNull();
     expect(screen.getByText("40%")).not.toBeNull();
     expect(screen.getByText("12 dias")).not.toBeNull();
-    expect(screen.getByText("Reservas criadas")).not.toBeNull();
-    expect(screen.getByRole("heading", { name: "Sinais da plataforma" })).not.toBeNull();
+    expect(screen.getByText("Sessões na página inicial")).not.toBeNull();
+    expect(screen.getByText("Sessões que viram perfis")).not.toBeNull();
+    expect(screen.getByText("Sessões que iniciaram agendamento")).not.toBeNull();
+    expect(screen.getByText("Sessões com reserva criada")).not.toBeNull();
+    expect(screen.getByText("Clientes distintos que agendaram")).not.toBeNull();
+    expect(screen.getByRole("heading", { name: "Interações na plataforma" })).not.toBeNull();
 
     expect(screen.queryByRole("heading", { name: "Situação atual" })).toBeNull();
     expect(screen.queryByRole("heading", { name: "Profissionais que precisam de atenção" })).toBeNull();
@@ -132,6 +136,20 @@ describe("visão geral do admin", () => {
     const requestedPaths = apiRequest.mock.calls.map(([path]) => path);
     expect(requestedPaths.some((path) => path.startsWith("/admin/saude"))).toBe(false);
     expect(requestedPaths.includes("/health/ready")).toBe(false);
+  });
+
+  it("explica que os marcos da ativação não formam conversões adjacentes", async () => {
+    render(
+      <MemoryRouter initialEntries={["/admin?periodo=30"]}>
+        <AdminOverviewPage />
+      </MemoryRouter>
+    );
+
+    await screen.findByRole("heading", { name: "Ativação da coorte profissional" });
+    const details = screen.getByText("Como interpretar estes marcos").closest("details");
+    expect(details).not.toBeNull();
+    expect(details?.textContent).toContain("não são conversões adjacentes");
+    expect(details?.textContent).toMatch(/negócios legados/i);
   });
 
   it("não exibe zero dias quando ainda não existe segundo agendamento", async () => {
@@ -165,6 +183,34 @@ describe("visão geral do admin", () => {
     await screen.findByRole("heading", { name: "Visão geral" });
     expect(screen.getByText("Amostra insuficiente")).not.toBeNull();
     expect(screen.queryByText("0 dias")).toBeNull();
+  });
+
+  it("mostra taxa indisponível quando a coorte não tem cadastros", async () => {
+    apiRequest.mockImplementation((path) => {
+      if (path.startsWith("/admin/dashboard")) return Promise.resolve(dashboard());
+      if (path.startsWith("/admin/marketing/funil-profissionais")) {
+        return Promise.resolve({
+          resumo: {
+            ...funnel().resumo,
+            cadastros: 0,
+            primeirosAgendamentos: 0,
+            assinaturasAtivadas: 0
+          }
+        });
+      }
+      if (path.startsWith("/admin/marketing/recorrencia-profissionais")) return Promise.resolve(recurrence());
+      return Promise.reject(new Error(`Rota inesperada: ${path}`));
+    });
+
+    render(
+      <MemoryRouter initialEntries={["/admin?periodo=today"]}>
+        <AdminOverviewPage />
+      </MemoryRouter>
+    );
+
+    await screen.findByRole("heading", { name: "Métricas — Hoje" });
+    expect(screen.getByText("Taxa de ativação da coorte").closest("div")?.parentElement?.textContent).toContain("—");
+    expect(screen.getByText("Taxa de assinatura na coorte").closest("div")?.textContent).toContain("—");
   });
 
   it("lê e atualiza o período pela URL sem apagar os dados anteriores", async () => {

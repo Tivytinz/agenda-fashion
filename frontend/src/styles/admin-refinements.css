@@ -24,6 +24,68 @@
   grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
+.admin-command-funnel.is-milestones article {
+  align-content: start;
+  min-height: 92px;
+  gap: 10px;
+}
+
+.admin-command-funnel.is-milestones small {
+  min-height: 0;
+  font-size: .74rem;
+  line-height: 1.3;
+}
+
+.admin-command-rate-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  border-top: 1px solid var(--admin-line);
+  padding-top: 16px;
+}
+
+.admin-command-rate-summary > div {
+  display: grid;
+  gap: 3px;
+}
+
+.admin-command-rate-summary span {
+  color: var(--admin-ink);
+  font-weight: 800;
+}
+
+.admin-command-rate-summary small {
+  color: var(--admin-muted);
+}
+
+.admin-command-rate-summary > strong {
+  color: var(--admin-ink);
+  font-size: 1.65rem;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.admin-metric-definition {
+  border-top: 1px solid var(--admin-line);
+  padding-top: 12px;
+  color: var(--admin-muted);
+  font-size: .78rem;
+}
+
+.admin-metric-definition summary {
+  width: fit-content;
+  color: var(--admin-accent-dark);
+  cursor: pointer;
+  font-weight: 800;
+}
+
+.admin-metric-definition p {
+  max-width: 900px;
+  margin: 8px 0 0;
+  line-height: 1.5;
+}
+
 .admin-bottleneck {
   display: flex;
   align-items: center;
@@ -217,5 +279,11 @@
   .admin-command-now-grid,
   .admin-command-summary-grid.is-period-summary {
     grid-template-columns: 1fr;
+  }
+
+  .admin-command-rate-summary {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 8px;
   }
 }
