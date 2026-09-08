@@ -95,5 +95,42 @@ describe(
         );
       }
     );
+
+    test(
+      "falha técnica terminal não fica elegível a retry",
+      async () => {
+        db.query.mockResolvedValueOnce({
+          rows: []
+        });
+
+        await repository
+          .marcarFalhaTerminal(
+            9,
+            2,
+            "event_id_invalido"
+          );
+
+        const [sql, parametros] =
+          db.query.mock.calls[0];
+
+        expect(sql).toContain(
+          "status = 'FAILED'"
+        );
+        expect(sql).toContain(
+          "proxima_tentativa_em = NULL"
+        );
+        expect(sql).toContain(
+          "status = 'PROCESSING'"
+        );
+        expect(sql).not.toContain(
+          "WHEN tentativas < 5"
+        );
+        expect(parametros).toEqual([
+          9,
+          2,
+          "event_id_invalido"
+        ]);
+      }
+    );
   }
 );
