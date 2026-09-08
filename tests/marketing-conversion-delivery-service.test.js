@@ -125,9 +125,7 @@ beforeEach(() => {
       id: 30,
       assinatura_id: 11,
       asaas_payment_id: "pay_123",
-      valor: "59.90",
-      data_pagamento:
-        "2026-09-08T18:00:00.000Z"
+      valor: "59.90"
     });
 });
 
@@ -181,6 +179,7 @@ test(
         expect.objectContaining({
           eventName: "Subscribe",
           eventId: "subscribe:11",
+          ocorridoEm: undefined,
           customData:
             expect.objectContaining({
               value: 59.9
@@ -233,6 +232,7 @@ test(
     ).toHaveBeenCalledWith(
       expect.objectContaining({
         eventName: "purchase",
+        ocorridoEm: undefined,
         params: expect.objectContaining({
           transaction_id:
             "af-subscription-11",
