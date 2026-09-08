@@ -44,7 +44,7 @@ afterAll(() => {
 });
 
 test(
-  "Subscribe usa event_time da confirmação financeira",
+  "Subscribe respeita event_time quando um timestamp explícito é fornecido",
   async () => {
     const ocorridoEm =
       "2026-09-08T18:00:00.000Z";
