@@ -2,11 +2,8 @@ const webhookEventoRepository = require(
   "../repositories/webhookEventoRepository"
 );
 const registrador = require("../utils/registrador");
-const metaAdsService = require(
-  "./metaAdsService"
-);
-const googleMeasurementService = require(
-  "./googleMeasurementService"
+const marketingConversionDeliveryService = require(
+  "./marketingConversionDeliveryService"
 );
 
 const {
@@ -96,6 +93,17 @@ function leaseTentativa(evento) {
     : null;
 }
 
+function criarErroLeasePerdido(evento) {
+  const erro = new Error(
+    "Lease do webhook não é mais válido para finalizar o evento."
+  );
+  erro.code =
+    "WEBHOOK_LEASE_LOST";
+  erro.webhookEventoId =
+    evento?.id || null;
+  return erro;
+}
+
 async function marcarConcluido(
   evento,
   status
@@ -103,20 +111,27 @@ async function marcarConcluido(
   const lease =
     leaseTentativa(evento);
 
-  if (lease === null) {
-    return webhookEventoRepository
-      .marcarConcluido(
-        evento.id,
-        status
-      );
+  const atualizado =
+    lease === null
+      ? await webhookEventoRepository
+          .marcarConcluido(
+            evento.id,
+            status
+          )
+      : await webhookEventoRepository
+          .marcarConcluido(
+            evento.id,
+            status,
+            lease
+          );
+
+  if (!atualizado) {
+    throw criarErroLeasePerdido(
+      evento
+    );
   }
 
-  return webhookEventoRepository
-    .marcarConcluido(
-      evento.id,
-      status,
-      lease
-    );
+  return atualizado;
 }
 
 async function enfileirarWebhookAsaas({
@@ -348,25 +363,16 @@ async function processarRegistro(evento) {
         );
 
       if (resultado) {
-        const conversao = {
-          negocioId:
-            resultado.negocio_id,
-          assinaturaId:
-            resultado.id,
-          pagamentoId,
-          valor:
-            resultado.valor
-        };
-
-        metaAdsService
-          .enviarAssinaturaAtivadaSeguro(
-            conversao
-          );
-
-        googleMeasurementService
-          .enviarAssinaturaAtivadaSeguro(
-            conversao
-          );
+        marketingConversionDeliveryService
+          .enfileirarAssinaturaAtivadaSeguro({
+            negocioId:
+              resultado.negocio_id,
+            assinaturaId:
+              resultado.id,
+            pagamentoId,
+            valor:
+              resultado.valor
+          });
       }
     } else if (
       EVENTOS_SUSPENSAO
@@ -421,6 +427,22 @@ async function processarRegistro(evento) {
       status: "PROCESSED"
     };
   } catch (erro) {
+    if (
+      erro?.code ===
+      "WEBHOOK_LEASE_LOST"
+    ) {
+      registrador.aviso(
+        "Webhook Asaas: resultado descartado porque o lease foi perdido.",
+        {
+          ...contexto,
+          codigo:
+            erro.code
+        }
+      );
+
+      throw erro;
+    }
+
     await registrarFalha(
       evento,
       erro
@@ -495,6 +517,17 @@ function iniciarWorkerWebhook() {
       .catch((erro) => {
         registrador.erro(
           "Webhook Asaas: falha no processador da fila.",
+          {
+            erro: erro?.message
+          }
+        );
+      });
+
+    marketingConversionDeliveryService
+      .processarFilaConversoes()
+      .catch((erro) => {
+        registrador.aviso(
+          "Conversões de marketing: falha no processador da fila.",
           {
             erro: erro?.message
           }
