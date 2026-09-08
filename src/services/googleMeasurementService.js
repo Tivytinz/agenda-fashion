@@ -118,6 +118,37 @@ function normalizarClientId(valor) {
   return texto;
 }
 
+function normalizarTimestampMicros(valor) {
+  if (!valor) {
+    return null;
+  }
+
+  const data =
+    valor instanceof Date
+      ? valor
+      : new Date(valor);
+  const milissegundos =
+    data.getTime();
+
+  if (
+    !Number.isFinite(milissegundos) ||
+    milissegundos <= 0
+  ) {
+    return null;
+  }
+
+  const microssegundos =
+    Math.trunc(
+      milissegundos * 1000
+    );
+
+  return Number.isSafeInteger(
+    microssegundos
+  )
+    ? microssegundos
+    : null;
+}
+
 function sanitizarContextoCliente(google) {
   const consentimento =
     google?.consentimento === true;
@@ -167,7 +198,8 @@ async function enviarEventoMeasurementProtocol({
   clientId,
   userId,
   eventName,
-  params
+  params,
+  ocorridoEm = null
 }) {
   if (!measurementProtocolHabilitado()) {
     return {
@@ -186,10 +218,21 @@ async function enviarEventoMeasurementProtocol({
     };
   }
 
+  const timestampMicros =
+    normalizarTimestampMicros(
+      ocorridoEm
+    );
+
   const payload = {
     client_id: clientIdNormalizado,
     ...(userId
       ? { user_id: String(userId) }
+      : {}),
+    ...(timestampMicros
+      ? {
+          timestamp_micros:
+            timestampMicros
+        }
       : {}),
     events: [
       {
