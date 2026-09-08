@@ -1,6 +1,9 @@
 const marketingConversionDeliveryRepository = require(
   "../repositories/marketingConversionDeliveryRepository"
 );
+const marketingConversaoRepository = require(
+  "../repositories/marketingConversaoRepository"
+);
 const metaAdsRepository = require(
   "../repositories/metaAdsRepository"
 );
@@ -19,6 +22,8 @@ const registrador = require(
 
 const TIPO_ASSINATURA_ATIVADA =
   "SUBSCRIPTION_ACTIVATED";
+
+let processamentoFilaAtual = null;
 
 function normalizarPayload(dados = {}) {
   return {
@@ -103,6 +108,36 @@ async function enfileirarAssinaturaAtivadaSeguro(
   }
 }
 
+async function buscarPagamentoConfirmado(
+  payload
+) {
+  const pagamento =
+    await marketingConversaoRepository
+      .buscarPagamentoConfirmado({
+        assinaturaId:
+          payload.assinaturaId,
+        pagamentoId:
+          payload.pagamentoId
+      });
+
+  if (!pagamento) {
+    throw new Error(
+      "Pagamento confirmado não encontrado para entregar a conversão."
+    );
+  }
+
+  const valor =
+    Number(pagamento.valor);
+
+  return {
+    ...pagamento,
+    valor:
+      Number.isFinite(valor)
+        ? valor
+        : 0
+  };
+}
+
 async function entregarMeta(payload) {
   const primeiroPagamento =
     await metaAdsRepository
@@ -119,6 +154,11 @@ async function entregarMeta(payload) {
       motivo: "renovacao"
     };
   }
+
+  const pagamento =
+    await buscarPagamentoConfirmado(
+      payload
+    );
 
   const perfil =
     await metaAdsRepository
@@ -165,7 +205,7 @@ async function entregarMeta(payload) {
     customData: {
       currency: "BRL",
       value:
-        Number(payload.valor || 0),
+        pagamento.valor,
       content_name:
         "Assinatura Agenda Fashion"
     }
@@ -189,6 +229,11 @@ async function entregarGoogle(payload) {
     };
   }
 
+  const pagamento =
+    await buscarPagamentoConfirmado(
+      payload
+    );
+
   const perfil =
     await googleMeasurementRepository
       .buscarPerfilPorNegocio(
@@ -207,13 +252,6 @@ async function entregarGoogle(payload) {
     };
   }
 
-  const valor =
-    Number(payload.valor || 0);
-  const valorSeguro =
-    Number.isFinite(valor)
-      ? valor
-      : 0;
-
   return googleMeasurementService
     .enviarEventoMeasurementProtocol({
       clientId:
@@ -226,7 +264,7 @@ async function entregarGoogle(payload) {
           `af-subscription-${payload.assinaturaId}`,
         currency: "BRL",
         value:
-          valorSeguro,
+          pagamento.valor,
         items: [
           {
             item_id:
@@ -234,7 +272,7 @@ async function entregarGoogle(payload) {
             item_name:
               "Assinatura Agenda Fashion",
             price:
-              valorSeguro,
+              pagamento.valor,
             quantity: 1
           }
         ]
@@ -254,10 +292,13 @@ function executorProvedor(provedor) {
   return null;
 }
 
-const MOTIVOS_TERMINAIS = new Set([
+const MOTIVOS_IGNORADOS = new Set([
   "renovacao",
   "sem_consentimento",
-  "desabilitado",
+  "desabilitado"
+]);
+
+const MOTIVOS_FALHA_TERMINAL = new Set([
   "event_id_invalido",
   "client_id_invalido"
 ]);
@@ -289,6 +330,43 @@ async function finalizarComLease(
   return atualizado;
 }
 
+function contextoLog(entrega) {
+  return {
+    entrega_id:
+      entrega?.id || null,
+    provedor:
+      entrega?.provedor || null,
+    tentativa:
+      entrega?.lease_tentativa ??
+      entrega?.tentativas ??
+      null
+  };
+}
+
+async function registrarFalhaTerminal(
+  entrega,
+  motivo
+) {
+  await finalizarComLease(
+    () =>
+      marketingConversionDeliveryRepository
+        .marcarFalhaTerminal(
+          entrega.id,
+          entrega.lease_tentativa,
+          motivo
+        ),
+    entrega
+  );
+
+  registrador.aviso(
+    "Conversão de assinatura: falha terminal na entrega.",
+    {
+      ...contextoLog(entrega),
+      erro: motivo
+    }
+  );
+}
+
 async function processarRegistro(entrega) {
   const executor =
     executorProvedor(
@@ -296,20 +374,16 @@ async function processarRegistro(entrega) {
     );
 
   if (!executor) {
-    await finalizarComLease(
-      () =>
-        marketingConversionDeliveryRepository
-          .marcarIgnorado(
-            entrega.id,
-            entrega.lease_tentativa,
-            "provedor_desconhecido"
-          ),
-      entrega
+    await registrarFalhaTerminal(
+      entrega,
+      "provedor_desconhecido"
     );
 
     return {
       enviado: false,
-      ignorado: true
+      ignorado: false,
+      falhaTerminal: true,
+      motivo: "provedor_desconhecido"
     };
   }
 
@@ -341,7 +415,7 @@ async function processarRegistro(entrega) {
         resultado?.motivo || ""
       ).trim();
 
-    if (MOTIVOS_TERMINAIS.has(motivo)) {
+    if (MOTIVOS_IGNORADOS.has(motivo)) {
       await finalizarComLease(
         () =>
           marketingConversionDeliveryRepository
@@ -360,6 +434,23 @@ async function processarRegistro(entrega) {
       };
     }
 
+    if (
+      MOTIVOS_FALHA_TERMINAL
+        .has(motivo)
+    ) {
+      await registrarFalhaTerminal(
+        entrega,
+        motivo
+      );
+
+      return {
+        enviado: false,
+        ignorado: false,
+        falhaTerminal: true,
+        motivo
+      };
+    }
+
     throw new Error(
       `Entrega da conversão sem confirmação do provedor${
         motivo
@@ -374,36 +465,28 @@ async function processarRegistro(entrega) {
     ) {
       registrador.aviso(
         "Conversão de assinatura: lease perdido durante a finalização.",
-        {
-          entrega_id:
-            entrega.id,
-          provedor:
-            entrega.provedor,
-          tentativa:
-            entrega.lease_tentativa
-        }
+        contextoLog(entrega)
       );
 
       throw erro;
     }
 
-    await marketingConversionDeliveryRepository
-      .marcarFalha(
-        entrega.id,
-        entrega.lease_tentativa,
-        erro?.message ||
-          "Falha desconhecida"
-      );
+    await finalizarComLease(
+      () =>
+        marketingConversionDeliveryRepository
+          .marcarFalha(
+            entrega.id,
+            entrega.lease_tentativa,
+            erro?.message ||
+              "Falha desconhecida"
+          ),
+      entrega
+    );
 
     registrador.aviso(
       "Conversão de assinatura: falha temporária na entrega.",
       {
-        entrega_id:
-          entrega.id,
-        provedor:
-          entrega.provedor,
-        tentativa:
-          entrega.lease_tentativa,
+        ...contextoLog(entrega),
         erro:
           erro?.name === "AbortError"
             ? "timeout"
@@ -415,13 +498,30 @@ async function processarRegistro(entrega) {
   }
 }
 
-async function processarFilaConversoes(
-  limite = 20
+async function executarFilaConversoes(
+  limite
 ) {
   let processados = 0;
 
-  await marketingConversionDeliveryRepository
-    .marcarProcessamentosEsgotados();
+  const esgotados =
+    await marketingConversionDeliveryRepository
+      .marcarProcessamentosEsgotados();
+
+  for (const entrega of esgotados || []) {
+    registrador.aviso(
+      "Conversão de assinatura: tentativas esgotadas.",
+      {
+        entrega_id:
+          entrega.id,
+        provedor:
+          entrega.provedor,
+        tentativa:
+          entrega.tentativas,
+        erro:
+          entrega.ultimo_erro || null
+      }
+    );
+  }
 
   while (processados < limite) {
     const entrega =
@@ -439,6 +539,22 @@ async function processarFilaConversoes(
   }
 
   return processados;
+}
+
+function processarFilaConversoes(
+  limite = 20
+) {
+  if (processamentoFilaAtual) {
+    return processamentoFilaAtual;
+  }
+
+  processamentoFilaAtual =
+    executarFilaConversoes(limite)
+      .finally(() => {
+        processamentoFilaAtual = null;
+      });
+
+  return processamentoFilaAtual;
 }
 
 module.exports = {
