@@ -1,0 +1,89 @@
+name: Prepare Pinterest Ads
+
+on:
+  push:
+    branches:
+      - feat/pinterest-ads-integration
+
+permissions:
+  contents: write
+
+concurrency:
+  group: pinterest-prepare
+  cancel-in-progress: true
+
+jobs:
+  prepare-and-validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_DB: agenda_fashion_test
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d agenda_fashion_test"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      NODE_ENV: test
+      DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/agenda_fashion_test
+      JWT_SECRET: ci-jwt-secret-with-at-least-32-characters
+      ASAAS_API_URL: https://api-sandbox.asaas.com/v3
+      ASAAS_API_KEY: ci-asaas-key
+      ASAAS_WEBHOOK_TOKEN: ci-webhook-token-with-at-least-32-characters
+      WHATSAPP_NOTIFICATIONS_ENABLED: "false"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Apply Pinterest implementation
+        run: |
+          cat scripts/.pinterest_payload_00 scripts/.pinterest_payload_01 scripts/.pinterest_payload_02 scripts/.pinterest_payload_03 > /tmp/apply-pinterest.py
+          python /tmp/apply-pinterest.py
+          rm -f scripts/apply-pinterest-ads-integration.py
+          rm -f scripts/.pinterest_payload_00 scripts/.pinterest_payload_01 scripts/.pinterest_payload_02 scripts/.pinterest_payload_03
+          rm -f .github/workflows/pinterest-prepare.yml
+          git diff --check
+          node --check src/services/pinterestMarketingOAuthService.js
+          node --check src/services/pinterestMarketingCostProvider.js
+          node --check src/repositories/pinterestMarketingOAuthRepository.js
+          node --check src/controllers/pinterestMarketingOAuthController.js
+      - name: Install dependencies
+        run: npm ci
+      - name: Install frontend dependencies
+        run: npm --prefix frontend ci
+      - name: Lint React frontend
+        run: npm --prefix frontend run lint
+      - name: Build React frontend
+        run: npm run frontend:build
+      - name: Test React frontend
+        run: npm run frontend:test
+      - name: Apply test migrations
+        run: npm run migrate:test
+      - name: Run tests with coverage
+        run: npm run test:coverage
+      - name: Audit backend and tooling dependencies
+        run: npm audit --audit-level=high
+      - name: Audit production dependencies
+        run: npm audit --omit=dev --audit-level=high
+      - name: Audit frontend dependencies
+        run: npm --prefix frontend audit --audit-level=high
+      - name: Install mobile browsers
+        run: npm --prefix frontend exec -- playwright install --with-deps chromium webkit
+      - name: Test mobile frontend
+        run: npm --prefix frontend run test:e2e
+      - name: Commit validated implementation
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "feat: integra Pinterest Ads com OAuth e custos"
+          git push origin HEAD:feat/pinterest-ads-integration
