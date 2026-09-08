@@ -10,7 +10,23 @@ import { apiRequest } from "../api/client";
 const PROVIDER_LABELS = {
   google_ads: "Google Ads",
   meta_ads: "Meta Ads",
-  tiktok_ads: "TikTok Ads"
+  tiktok_ads: "TikTok Ads",
+  pinterest_ads: "Pinterest Ads"
+};
+
+const OAUTH_PROVIDERS = {
+  tiktok_ads: {
+    resultParam: "tiktok_oauth",
+    shortLabel: "TikTok",
+    hostname: "ads.tiktok.com",
+    pathname: "/marketing_api/auth"
+  },
+  pinterest_ads: {
+    resultParam: "pinterest_oauth",
+    shortLabel: "Pinterest",
+    hostname: "www.pinterest.com",
+    pathname: "/oauth/"
+  }
 };
 
 const EXTERNAL_STATUS_LABELS = {
@@ -72,6 +88,7 @@ function canalEsperado(provedor) {
   if (provedor === "google_ads") return "google";
   if (provedor === "meta_ads") return "meta";
   if (provedor === "tiktok_ads") return "tiktok";
+  if (provedor === "pinterest_ads") return "pinterest";
   return "";
 }
 
@@ -201,20 +218,26 @@ export function MarketingCostIntegrationsPanel({ onChanged }) {
 
   useEffect(() => {
     const url = new URL(window.location.href);
-    const oauthResult = url.searchParams.get("tiktok_oauth");
-    if (!oauthResult) return;
+    const entry = Object.entries(OAUTH_PROVIDERS).find(([, config]) =>
+      url.searchParams.has(config.resultParam)
+    );
+    if (!entry) return;
+
+    const [providerId, oauthConfig] = entry;
+    const oauthResult = url.searchParams.get(oauthConfig.resultParam);
+    const label = PROVIDER_LABELS[providerId] || providerId;
 
     if (oauthResult === "success") {
       setMessage(
-        "TikTok Ads autorizado. Ative a integração de custos no backend e teste a conexão."
+        `${label} autorizado. Ative a integração de custos no backend e teste a conexão.`
       );
     } else {
       setError(
-        "Não foi possível concluir a autorização do TikTok Ads. Tente novamente."
+        `Não foi possível concluir a autorização do ${label}. Tente novamente.`
       );
     }
 
-    url.searchParams.delete("tiktok_oauth");
+    url.searchParams.delete(oauthConfig.resultParam);
     window.history.replaceState(
       window.history.state,
       "",
@@ -313,24 +336,29 @@ export function MarketingCostIntegrationsPanel({ onChanged }) {
     setExternalCampaignName(campaign?.nome || "");
   }
 
-  async function authorizeTikTok() {
+  async function authorizeOAuth(provedor) {
     if (authorizingProvider) return;
-    setAuthorizingProvider("tiktok_ads");
+    const oauthConfig = OAUTH_PROVIDERS[provedor];
+    if (!oauthConfig) return;
+
+    setAuthorizingProvider(provedor);
     setError("");
     setMessage("");
 
     try {
       const result = await apiRequest(
-        "/admin/marketing/custos-integracoes/tiktok_ads/autorizacao",
+        `/admin/marketing/custos-integracoes/${provedor}/autorizacao`,
         { method: "POST", body: {} }
       );
       const authorizationUrl = new URL(result?.authorizationUrl || "");
       if (
         authorizationUrl.protocol !== "https:" ||
-        authorizationUrl.hostname !== "ads.tiktok.com" ||
-        authorizationUrl.pathname !== "/marketing_api/auth"
+        authorizationUrl.hostname !== oauthConfig.hostname ||
+        authorizationUrl.pathname !== oauthConfig.pathname
       ) {
-        throw new Error("O backend devolveu uma URL de autorização TikTok inválida.");
+        throw new Error(
+          `O backend devolveu uma URL de autorização ${oauthConfig.shortLabel} inválida.`
+        );
       }
       window.location.assign(authorizationUrl.toString());
     } catch (requestError) {
@@ -442,11 +470,11 @@ export function MarketingCostIntegrationsPanel({ onChanged }) {
 
   let linkBlockReason = "";
   if (
-    provider === "tiktok_ads" &&
+    selectedProvider?.requerAutorizacao &&
     selectedProvider?.autorizacao?.disponivel &&
     !selectedProvider?.autorizacao?.autorizado
   ) {
-    linkBlockReason = "Autorize o TikTok Ads antes de vincular campanhas.";
+    linkBlockReason = `Autorize o ${providerLabel} antes de vincular campanhas.`;
   } else if (!selectedProvider?.configurado) {
     linkBlockReason = `Complete a configuração do ${providerLabel} antes de vincular campanhas.`;
   } else if (!platformReady) {
@@ -492,8 +520,8 @@ export function MarketingCostIntegrationsPanel({ onChanged }) {
             {(data?.provedores || []).map((item) => {
               const hasLinks = Number(item.vinculos || 0) > 0;
               const hasSync = Boolean(item.ultimaSincronizacao);
-              const needsTikTokAuthorization = Boolean(
-                item.provedor === "tiktok_ads" &&
+              const needsAuthorization = Boolean(
+                item.requerAutorizacao &&
                 item.autorizacao?.disponivel &&
                 !item.autorizacao?.autorizado
               );
@@ -530,16 +558,16 @@ export function MarketingCostIntegrationsPanel({ onChanged }) {
                     </small>
                   )}
                   <div className="integration-health-actions">
-                    {needsTikTokAuthorization && (
+                    {needsAuthorization && OAUTH_PROVIDERS[item.provedor] && (
                       <button
                         className="button button-secondary button-small"
                         disabled={Boolean(authorizingProvider)}
-                        onClick={authorizeTikTok}
+                        onClick={() => authorizeOAuth(item.provedor)}
                         type="button"
                       >
-                        {authorizingProvider === "tiktok_ads"
-                          ? "Abrindo TikTok..."
-                          : "Autorizar TikTok"}
+                        {authorizingProvider === item.provedor
+                          ? `Abrindo ${OAUTH_PROVIDERS[item.provedor].shortLabel}...`
+                          : `Autorizar ${OAUTH_PROVIDERS[item.provedor].shortLabel}`}
                       </button>
                     )}
                     <button
@@ -664,7 +692,7 @@ export function MarketingCostIntegrationsPanel({ onChanged }) {
                         {provider === "tiktok_ads" &&
                         selectedProvider?.autorizacao?.disponivel &&
                         !selectedProvider?.autorizacao?.autorizado
-                          ? "Autorize o TikTok Ads para listar campanhas reais."
+                          ? `Autorize o ${providerLabel} para listar campanhas reais.`
                           : `Complete as credenciais do ${providerLabel} no backend para listar campanhas reais.`}
                       </small>
                     )}

@@ -66,6 +66,11 @@ const tiktokMarketingOAuthController =
     "../controllers/tiktokMarketingOAuthController"
   );
 
+const pinterestMarketingOAuthController =
+  require(
+    "../controllers/pinterestMarketingOAuthController"
+  );
+
 const adminGoogleAnalyticsController =
   require(
     "../controllers/adminGoogleAnalyticsController"
@@ -289,6 +294,23 @@ router.post(
 router.get(
   "/admin/marketing/custos-integracoes/tiktok_ads/callback",
   tiktokMarketingOAuthController.callback
+);
+
+/*
+ * OAuth do Pinterest Ads.
+ * O início exige sessão administrativa e o callback público só conclui com
+ * state de uso único previamente criado no backend. A integração é read-only.
+ */
+router.post(
+  "/admin/marketing/custos-integracoes/pinterest_ads/autorizacao",
+  auth,
+  authAdmin,
+  pinterestMarketingOAuthController.iniciar
+);
+
+router.get(
+  "/admin/marketing/custos-integracoes/pinterest_ads/callback",
+  pinterestMarketingOAuthController.callback
 );
 
 router.get(

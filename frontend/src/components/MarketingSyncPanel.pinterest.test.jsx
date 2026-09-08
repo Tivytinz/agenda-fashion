@@ -1,37 +1,22 @@
 // @vitest-environment jsdom
 
-import {
-  cleanup,
-  render,
-  screen
-} from "@testing-library/react";
-import {
-  afterEach,
-  beforeEach,
-  describe,
-  expect,
-  it,
-  vi
-} from "vitest";
+import { cleanup, render, screen } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { apiRequest } from "../api/client";
 import { MarketingSyncPanel } from "./MarketingSyncPanel";
 
-vi.mock("../api/client", () => ({
-  apiRequest: vi.fn()
-}));
+vi.mock("../api/client", () => ({ apiRequest: vi.fn() }));
 
 beforeEach(() => {
   apiRequest.mockReset();
   apiRequest.mockImplementation((path) => {
     if (path === "/admin/marketing/custos-integracoes") {
       return Promise.resolve({
-        sincronizacaoAutomatica: {
-          habilitado: false
-        },
+        sincronizacaoAutomatica: { habilitado: false },
         provedores: [{
-          provedor: "tiktok_ads",
-          nome: "TikTok Ads",
+          provedor: "pinterest_ads",
+          nome: "Pinterest Ads",
           habilitado: true,
           configurado: false,
           contaExternaId: "777888999",
@@ -46,7 +31,7 @@ beforeEach(() => {
             codigo: "autorizacao_pendente",
             rotulo: "Autorizar",
             nivel: "aviso",
-            detalhe: "Autorize a conta TikTok Ads no painel antes de testar ou sincronizar custos."
+            detalhe: "Autorize a conta Pinterest Ads no painel antes de testar ou sincronizar custos."
           }
         }],
         vinculos: []
@@ -58,8 +43,8 @@ beforeEach(() => {
 
 afterEach(cleanup);
 
-describe("MarketingSyncPanel com TikTok Ads", () => {
-  it("mostra TikTok e exige OAuth antes da sincronização", async () => {
+describe("MarketingSyncPanel com Pinterest Ads", () => {
+  it("mostra Pinterest e exige OAuth antes da sincronização", async () => {
     render(<MarketingSyncPanel />);
 
     expect(
@@ -67,9 +52,9 @@ describe("MarketingSyncPanel com TikTok Ads", () => {
         name: "Google Ads, Meta Ads, TikTok Ads e Pinterest Ads"
       })
     ).not.toBeNull();
-    expect(screen.getByText("TikTok Ads")).not.toBeNull();
+    expect(screen.getByText("Pinterest Ads")).not.toBeNull();
     expect(
-      screen.getByRole("button", { name: "Autorizar TikTok" })
+      screen.getByRole("button", { name: "Autorizar Pinterest" })
     ).not.toBeNull();
     expect(
       screen.queryByRole("button", { name: "Sincronizar agora" })

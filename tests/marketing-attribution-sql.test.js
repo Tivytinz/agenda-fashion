@@ -34,12 +34,14 @@ describe(
     );
 
     test(
-      "resolve TikTok para o provedor externo usado nos vínculos verificados",
+      "resolve TikTok e Pinterest para provedores externos usados nos vínculos verificados",
       () => {
         const provedor = provedorCanonicoSql("e.origem");
 
         expect(provedor).toContain("= 'tiktok'");
         expect(provedor).toContain("THEN 'tiktok_ads'");
+        expect(provedor).toContain("= 'pinterest'");
+        expect(provedor).toContain("THEN 'pinterest_ads'");
       }
     );
 
