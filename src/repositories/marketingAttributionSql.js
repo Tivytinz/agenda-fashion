@@ -81,6 +81,8 @@ function provedorCanonicoSql(expressao) {
         THEN 'meta_ads'
       WHEN ${canal} = 'tiktok'
         THEN 'tiktok_ads'
+      WHEN ${canal} = 'pinterest'
+        THEN 'pinterest_ads'
       ELSE NULL
     END
   )`;

@@ -18,6 +18,7 @@ const COST_SOURCE_LABELS = {
   google_ads: "Google Ads · automático",
   meta_ads: "Meta Ads · automático",
   tiktok_ads: "TikTok Ads · automático",
+  pinterest_ads: "Pinterest Ads · automático",
   manual: "Lançamento manual"
 };
 

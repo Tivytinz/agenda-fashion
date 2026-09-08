@@ -4,16 +4,18 @@ const repository = require("../repositories/marketingCostSyncRepository");
 const providers = require("./marketingCostProviderRegistry");
 const marketingCostSyncConfig = require("../config/marketingCostSync");
 
-const PROVEDORES = new Set(["google_ads", "meta_ads", "tiktok_ads"]);
+const PROVEDORES = new Set(["google_ads", "meta_ads", "tiktok_ads", "pinterest_ads"]);
 const CANAL_POR_PROVEDOR = Object.freeze({
   google_ads: "google",
   meta_ads: "meta",
-  tiktok_ads: "tiktok"
+  tiktok_ads: "tiktok",
+  pinterest_ads: "pinterest"
 });
 const NOME_POR_PROVEDOR = Object.freeze({
   google_ads: "Google Ads",
   meta_ads: "Meta Ads",
-  tiktok_ads: "TikTok Ads"
+  tiktok_ads: "TikTok Ads",
+  pinterest_ads: "Pinterest Ads"
 });
 const REPORT_TIME_ZONE = "America/Sao_Paulo";
 const MOEDA_SUPORTADA = "BRL";
@@ -217,7 +219,7 @@ function saudeIntegracao(
       codigo: "autorizacao_pendente",
       rotulo: "Autorizar",
       nivel: "aviso",
-      detalhe: "Autorize a conta TikTok Ads no painel antes de testar ou sincronizar custos.",
+      detalhe: `Autorize a conta ${item?.nome || "de anúncios"} no painel antes de testar ou sincronizar custos.`,
       desatualizado: false,
       idadeHoras: null
     };

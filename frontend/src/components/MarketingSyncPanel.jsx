@@ -10,7 +10,23 @@ import { apiRequest } from "../api/client";
 const PROVIDERS = {
   google_ads: { label: "Google Ads" },
   meta_ads: { label: "Meta Ads" },
-  tiktok_ads: { label: "TikTok Ads" }
+  tiktok_ads: { label: "TikTok Ads" },
+  pinterest_ads: { label: "Pinterest Ads" }
+};
+
+const OAUTH_PROVIDERS = {
+  tiktok_ads: {
+    resultParam: "tiktok_oauth",
+    shortLabel: "TikTok",
+    hostname: "ads.tiktok.com",
+    pathname: "/marketing_api/auth"
+  },
+  pinterest_ads: {
+    resultParam: "pinterest_oauth",
+    shortLabel: "Pinterest",
+    hostname: "www.pinterest.com",
+    pathname: "/oauth/"
+  }
 };
 
 const OBJECTIVES = {
@@ -78,7 +94,7 @@ export function MarketingSyncPanel({ onChanged }) {
   const [externalCampaigns, setExternalCampaigns] = useState({});
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState("");
-  const [authorizing, setAuthorizing] = useState(false);
+  const [authorizing, setAuthorizing] = useState("");
   const [classifying, setClassifying] = useState(null);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
@@ -128,16 +144,21 @@ export function MarketingSyncPanel({ onChanged }) {
 
   useEffect(() => {
     const url = new URL(window.location.href);
-    const oauthResult = url.searchParams.get("tiktok_oauth");
-    if (!oauthResult) return;
+    const entry = Object.entries(OAUTH_PROVIDERS).find(([, config]) =>
+      url.searchParams.has(config.resultParam)
+    );
+    if (!entry) return;
 
+    const [providerId, oauthConfig] = entry;
+    const oauthResult = url.searchParams.get(oauthConfig.resultParam);
+    const label = PROVIDERS[providerId]?.label || providerId;
     if (oauthResult === "success") {
-      setMessage("TikTok Ads autorizado. Agora teste a sincronização da conta.");
+      setMessage(`${label} autorizado. Agora teste a sincronização da conta.`);
     } else {
-      setError("Não foi possível concluir a autorização do TikTok Ads. Tente novamente.");
+      setError(`Não foi possível concluir a autorização do ${label}. Tente novamente.`);
     }
 
-    url.searchParams.delete("tiktok_oauth");
+    url.searchParams.delete(oauthConfig.resultParam);
     window.history.replaceState(
       window.history.state,
       "",
@@ -145,28 +166,33 @@ export function MarketingSyncPanel({ onChanged }) {
     );
   }, []);
 
-  async function authorizeTikTok() {
+  async function authorizeOAuth(provedor) {
     if (authorizing) return;
-    setAuthorizing(true);
+    const oauthConfig = OAUTH_PROVIDERS[provedor];
+    if (!oauthConfig) return;
+
+    setAuthorizing(provedor);
     setError("");
     setMessage("");
     try {
       const result = await apiRequest(
-        "/admin/marketing/custos-integracoes/tiktok_ads/autorizacao",
+        `/admin/marketing/custos-integracoes/${provedor}/autorizacao`,
         { method: "POST", body: {} }
       );
       const url = new URL(result?.authorizationUrl || "");
       if (
         url.protocol !== "https:" ||
-        url.hostname !== "ads.tiktok.com" ||
-        url.pathname !== "/marketing_api/auth"
+        url.hostname !== oauthConfig.hostname ||
+        url.pathname !== oauthConfig.pathname
       ) {
-        throw new Error("O backend devolveu uma URL de autorização TikTok inválida.");
+        throw new Error(
+          `O backend devolveu uma URL de autorização ${oauthConfig.shortLabel} inválida.`
+        );
       }
       window.location.assign(url.toString());
     } catch (requestError) {
       setError(requestError.message);
-      setAuthorizing(false);
+      setAuthorizing("");
     }
   }
 
@@ -257,7 +283,7 @@ export function MarketingSyncPanel({ onChanged }) {
       <div className="marketing-sync-heading">
         <div>
           <p className="eyebrow">Sincronização + análise</p>
-          <h2>Google Ads, Meta Ads e TikTok Ads</h2>
+          <h2>Google Ads, Meta Ads, TikTok Ads e Pinterest Ads</h2>
           <p className="muted">
             O AF reconhece as campanhas reais das plataformas e mantém os vínculos usados por custos e atribuição. Você só classifica o objetivo quando ele ainda não estiver definido.
           </p>
@@ -282,8 +308,8 @@ export function MarketingSyncPanel({ onChanged }) {
               externalKey(provider.provedor, accountId, campaign.id)
             )
           ).length;
-          const needsTikTokAuthorization = Boolean(
-            provider.provedor === "tiktok_ads" &&
+          const needsAuthorization = Boolean(
+            provider.requerAutorizacao &&
             provider.autorizacao?.disponivel &&
             !provider.autorizacao?.autorizado
           );
@@ -316,19 +342,21 @@ export function MarketingSyncPanel({ onChanged }) {
                 <p className="marketing-provider-note">{provider.saude.detalhe}</p>
               )}
 
-              {needsTikTokAuthorization ? (
+              {needsAuthorization && OAUTH_PROVIDERS[provider.provedor] ? (
                 <button
                   className="button button-secondary"
-                  disabled={authorizing || Boolean(syncing)}
-                  onClick={authorizeTikTok}
+                  disabled={Boolean(authorizing) || Boolean(syncing)}
+                  onClick={() => authorizeOAuth(provider.provedor)}
                   type="button"
                 >
-                  {authorizing ? "Abrindo TikTok..." : "Autorizar TikTok"}
+                  {authorizing === provider.provedor
+                    ? `Abrindo ${OAUTH_PROVIDERS[provider.provedor].shortLabel}...`
+                    : `Autorizar ${OAUTH_PROVIDERS[provider.provedor].shortLabel}`}
                 </button>
               ) : (
                 <button
                   className="button button-secondary"
-                  disabled={!provider.configurado || Boolean(syncing) || authorizing}
+                  disabled={!provider.configurado || Boolean(syncing) || Boolean(authorizing)}
                   onClick={() => sync(provider.provedor)}
                   type="button"
                 >

@@ -176,10 +176,11 @@ etapas diferentes. Os detalhes ficam em `docs/planos.md`.
   todas as categorias, revogam os agendamentos ja consentidos para o numero e
   cancelam as mensagens ainda pendentes.
 - Marketing: eventos de produto, atribuicao, GA4, Google Ads, Meta CAPI e
-  leitura de custos de Google Ads, Meta Ads e TikTok Ads. O TikTok usa o
-  OAuth oficial de Advertiser/Marketing API, com `state` de uso unico e access
-  token de longo prazo criptografado no backend; a integracao e somente de
-  leitura e nunca cria, edita, pausa ou exclui campanhas. A classificacao oficial de
+  leitura de custos de Google Ads, Meta Ads, TikTok Ads e Pinterest Ads. TikTok
+  e Pinterest usam OAuth server-side com `state` de uso unico e tokens
+  criptografados no backend; o Pinterest solicita apenas `ads:read` e renova o
+  access token com refresh token continuo. As integracoes de custos sao somente
+  leitura e nunca criam, editam, pausam ou excluem campanhas. A classificacao oficial de
   campanhas e resolvida no backend. A UTM exata tem prioridade; na ausencia
   dela, uma sessao paga so recebe atribuicao assistida quando existe identidade
   externa correspondente ou um unico vinculo persistido e verificado para o
