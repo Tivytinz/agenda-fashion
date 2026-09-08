@@ -1,17 +1,19 @@
 const AppError = require("../errors/AppError");
 const adminCampaignRepository = require("../repositories/adminCampaignRepository");
 const repository = require("../repositories/marketingCostSyncRepository");
-const providers = require("./marketingCostProviders");
+const providers = require("./marketingCostProviderRegistry");
 const marketingCostSyncConfig = require("../config/marketingCostSync");
 
-const PROVEDORES = new Set(["google_ads", "meta_ads"]);
+const PROVEDORES = new Set(["google_ads", "meta_ads", "tiktok_ads"]);
 const CANAL_POR_PROVEDOR = Object.freeze({
   google_ads: "google",
-  meta_ads: "meta"
+  meta_ads: "meta",
+  tiktok_ads: "tiktok"
 });
 const NOME_POR_PROVEDOR = Object.freeze({
   google_ads: "Google Ads",
-  meta_ads: "Meta Ads"
+  meta_ads: "Meta Ads",
+  tiktok_ads: "TikTok Ads"
 });
 const REPORT_TIME_ZONE = "America/Sao_Paulo";
 const MOEDA_SUPORTADA = "BRL";
@@ -20,7 +22,11 @@ const STATUS_CAMPANHA_INATIVA = new Set([
   "DELETED",
   "ENDED",
   "PAUSED",
-  "REMOVED"
+  "REMOVED",
+  "DISABLE",
+  "DELETE",
+  "CAMPAIGN_STATUS_DISABLE",
+  "CAMPAIGN_STATUS_DELETE"
 ]);
 
 function normalizarProvedor(valor) {
@@ -202,6 +208,21 @@ function saudeIntegracao(
     };
   }
 
+  if (
+    item?.requerAutorizacao &&
+    item?.autorizacao?.disponivel &&
+    !item?.autorizacao?.autorizado
+  ) {
+    return {
+      codigo: "autorizacao_pendente",
+      rotulo: "Autorizar",
+      nivel: "aviso",
+      detalhe: "Autorize a conta TikTok Ads no painel antes de testar ou sincronizar custos.",
+      desatualizado: false,
+      idadeHoras: null
+    };
+  }
+
   if (!item?.configurado) {
     return {
       codigo: "configuracao_incompleta",
@@ -332,16 +353,17 @@ function saudeIntegracao(
 }
 
 async function statusIntegracoes() {
-  const [vinculos, sincronizacoes] = await Promise.all([
+  const [vinculos, sincronizacoes, providerStatus] = await Promise.all([
     repository.listarVinculos(),
-    repository.listarUltimasSincronizacoes()
+    repository.listarUltimasSincronizacoes(),
+    providers.status()
   ]);
   const sincronizacaoAutomatica =
     marketingCostSyncConfig.statusAgendamento();
 
   return {
     sincronizacaoAutomatica,
-    provedores: providers.status().map((item) => {
+    provedores: providerStatus.map((item) => {
       const ultimaSincronizacao =
         sincronizacoes.find((s) => s.provedor === item.provedor) || null;
 
@@ -362,11 +384,14 @@ async function statusIntegracoes() {
 
 async function listarCampanhasExternas({ provedor: valorProvedor }) {
   const provedor = normalizarProvedor(valorProvedor);
-  const campanhas = await providers.listarCampanhas(provedor);
+  const [campanhas, providerStatus] = await Promise.all([
+    providers.listarCampanhas(provedor),
+    providers.status()
+  ]);
   return {
     provedor,
     contaExternaId: campanhas[0]?.contaExternaId ||
-      providers.status().find((item) => item.provedor === provedor)?.contaExternaId ||
+      providerStatus.find((item) => item.provedor === provedor)?.contaExternaId ||
       null,
     campanhas: campanhas.map((item) => ({
       id: item.campanhaExternaId,

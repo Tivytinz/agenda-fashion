@@ -31,7 +31,7 @@ jest.mock(
   () => mockCampaignSyncService
 );
 jest.mock(
-  "../src/services/marketingCostProviders",
+  "../src/services/marketingCostProviderRegistry",
   () => mockProviders
 );
 jest.mock(

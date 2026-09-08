@@ -1,7 +1,7 @@
 const AppError = require("../errors/AppError");
 const costSyncService = require("./marketingCostSyncService");
 const campaignSyncService = require("./marketingCampaignSyncService");
-const providers = require("./marketingCostProviders");
+const providers = require("./marketingCostProviderRegistry");
 const repository = require("../repositories/marketingCostSyncRepository");
 const campaignLockRepository = require(
   "../repositories/marketingCampaignSyncLockRepository"
@@ -12,7 +12,11 @@ const INACTIVE_STATUSES = new Set([
   "DELETED",
   "ENDED",
   "PAUSED",
-  "REMOVED"
+  "REMOVED",
+  "DISABLE",
+  "DELETE",
+  "CAMPAIGN_STATUS_DISABLE",
+  "CAMPAIGN_STATUS_DELETE"
 ]);
 
 function isOperational(item) {

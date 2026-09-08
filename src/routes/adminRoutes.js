@@ -61,6 +61,11 @@ const marketingCostSyncController =
     "../controllers/marketingCostSyncController"
   );
 
+const tiktokMarketingOAuthController =
+  require(
+    "../controllers/tiktokMarketingOAuthController"
+  );
+
 const adminGoogleAnalyticsController =
   require(
     "../controllers/adminGoogleAnalyticsController"
@@ -266,6 +271,24 @@ router.post(
   auth,
   authAdmin,
   adminMarketingCostController.registrarGasto
+);
+
+/*
+ * OAuth do TikTok Ads.
+ * O início exige sessão administrativa. O callback é público porque o TikTok
+ * retorna por navegação externa, mas só conclui com state de uso único criado
+ * previamente por um administrador e nunca aceita redirect arbitrário.
+ */
+router.post(
+  "/admin/marketing/custos-integracoes/tiktok_ads/autorizacao",
+  auth,
+  authAdmin,
+  tiktokMarketingOAuthController.iniciar
+);
+
+router.get(
+  "/admin/marketing/custos-integracoes/tiktok_ads/callback",
+  tiktokMarketingOAuthController.callback
 );
 
 router.get(

@@ -10,6 +10,10 @@ const PROVIDER_META = Object.freeze({
   meta_ads: {
     canal: "meta",
     nome: "Meta Ads"
+  },
+  tiktok_ads: {
+    canal: "tiktok",
+    nome: "TikTok Ads"
   }
 });
 
