@@ -65,7 +65,7 @@ describe(
     );
 
     test(
-      "carrega valor e data do pagamento confirmado que originou a conversão",
+      "carrega valor do pagamento confirmado sem inventar precisão temporal",
       async () => {
         db.query.mockResolvedValueOnce({
           rows: [
@@ -73,9 +73,7 @@ describe(
               id: 30,
               assinatura_id: 11,
               asaas_payment_id: "pay_1",
-              valor: "49.90",
-              data_pagamento:
-                "2026-09-08T18:00:00.000Z"
+              valor: "49.90"
             }
           ]
         });
@@ -88,8 +86,10 @@ describe(
             });
 
         expect(pagamento)
-          .toMatchObject({
+          .toEqual({
             id: 30,
+            assinatura_id: 11,
+            asaas_payment_id: "pay_1",
             valor: "49.90"
           });
 
@@ -98,6 +98,9 @@ describe(
 
         expect(sql).toContain(
           "p.data_pagamento IS NOT NULL"
+        );
+        expect(sql).not.toContain(
+          "p.valor,\n        p.data_pagamento"
         );
       }
     );
