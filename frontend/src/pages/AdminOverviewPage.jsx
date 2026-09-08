@@ -55,6 +55,20 @@ function recurrenceTime(recurrence) {
   return `${days} ${days === 1 ? "dia" : "dias"}`;
 }
 
+function percentage(part, total) {
+  const denominator = toFiniteNumber(total);
+  if (denominator <= 0) return "—";
+
+  const rate = (
+    toFiniteNumber(part) /
+    denominator
+  ) * 100;
+
+  return `${new Intl.NumberFormat("pt-BR", {
+    maximumFractionDigits: 1
+  }).format(rate)}%`;
+}
+
 export function AdminOverviewPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const period = normalizeAdminPeriod(searchParams.get("periodo"));
@@ -132,11 +146,11 @@ export function AdminOverviewPage() {
   const recurrence = data?.recurrence || null;
 
   const activationMilestones = useMemo(() => [
-    { label: "Cadastros", value: toFiniteNumber(funnelSummary.cadastros) },
-    { label: "Negócios", value: toFiniteNumber(funnelSummary.negociosCriados) },
-    { label: "Serviços", value: toFiniteNumber(funnelSummary.servicosCriados) },
-    { label: "Agendas", value: toFiniteNumber(funnelSummary.agendasConfiguradas) },
-    { label: "Publicados", value: toFiniteNumber(funnelSummary.negociosPublicados) },
+    { label: "Cadastros profissionais", value: toFiniteNumber(funnelSummary.cadastros) },
+    { label: "Negócios criados", value: toFiniteNumber(funnelSummary.negociosCriados) },
+    { label: "Serviços cadastrados", value: toFiniteNumber(funnelSummary.servicosCriados) },
+    { label: "Agendas configuradas", value: toFiniteNumber(funnelSummary.agendasConfiguradas) },
+    { label: "Negócios publicados", value: toFiniteNumber(funnelSummary.negociosPublicados) },
     { label: "1º agendamento válido", value: toFiniteNumber(funnelSummary.primeirosAgendamentos) }
   ], [funnelSummary]);
 
@@ -164,6 +178,11 @@ export function AdminOverviewPage() {
   const metrics = dashboard.metricas || dashboard;
   const loadedPeriod = data?.period || period;
   const loadedPeriodLabel = adminPeriodLabel(loadedPeriod);
+  const activationCount = toFiniteNumber(funnelSummary.primeirosAgendamentos);
+  const signupCount = toFiniteNumber(funnelSummary.cadastros);
+  const paidSubscriptions = toFiniteNumber(funnelSummary.assinaturasAtivadas);
+  const activationRate = percentage(activationCount, signupCount);
+  const subscriptionRate = percentage(paidSubscriptions, signupCount);
 
   return (
     <main
@@ -175,7 +194,7 @@ export function AdminOverviewPage() {
           <p className="eyebrow">Administração</p>
           <h1>Visão geral</h1>
           <p>
-            Métricas consolidadas do Agenda Fashion para acompanhar aquisição, ativação, uso, retenção, monetização e demanda sem misturar operação individual nesta tela.
+            Indicadores consolidados do Agenda Fashion no período selecionado.
           </p>
         </div>
 
@@ -209,20 +228,18 @@ export function AdminOverviewPage() {
         <div className="admin-section-heading">
           <p className="eyebrow">Resumo</p>
           <h2 id="admin-period-heading">Métricas — {loadedPeriodLabel}</h2>
-          <p className="muted">
-            Todos os números desta visão são indicadores agregados do AF no recorte informado; detalhes operacionais ficam nas áreas específicas do Admin.
-          </p>
         </div>
         <div className="admin-command-summary-grid is-period-summary" aria-label={`Indicadores de ${loadedPeriodLabel}`}>
           <StatusCard
-            hint="profissionais vinculados no período"
-            label="Profissionais no período"
-            value={toFiniteNumber(indicators.totalProfissionais)}
+            hint="cadastros profissionais observados na coorte"
+            label="Cadastros profissionais"
+            value={signupCount}
           />
           <StatusCard
-            hint="negócios criados no período"
-            label="Negócios criados"
-            value={toFiniteNumber(indicators.totalNegocios)}
+            hint={`${activationRate} dos cadastros chegaram ao 1º agendamento válido`}
+            label="Ativações"
+            tone={activationCount > 0 ? "success" : "neutral"}
+            value={activationCount}
           />
           <StatusCard
             hint="reservas registradas no período"
@@ -230,9 +247,10 @@ export function AdminOverviewPage() {
             value={toFiniteNumber(indicators.totalAgendamentos)}
           />
           <StatusCard
-            hint="pessoas distintas observadas em agendamentos"
-            label="Clientes que agendaram"
-            value={toFiniteNumber(indicators.totalClientes)}
+            hint={`${subscriptionRate} dos cadastros chegaram a uma assinatura paga`}
+            label="Assinaturas pagas"
+            tone={paidSubscriptions > 0 ? "success" : "neutral"}
+            value={paidSubscriptions}
           />
         </div>
       </section>
@@ -241,56 +259,74 @@ export function AdminOverviewPage() {
         <div className="panel-heading">
           <div>
             <p className="eyebrow">Ativação</p>
-            <h2>Marcos de ativação da coorte</h2>
+            <h2>Ativação da coorte profissional</h2>
             <p className="muted">
-              Os números mostram quais marcos cada profissional da coorte atingiu. Eles não são conversões adjacentes e podem subir entre etapas por compatibilidade com negócios legados. O primeiro agendamento ignora reservas canceladas.
+              Marcos atingidos pelos profissionais cadastrados no recorte selecionado.
             </p>
           </div>
         </div>
 
-        <div className="admin-command-funnel">
-          {activationMilestones.map(({ label, value }, index) => (
+        <div className="admin-command-funnel is-milestones">
+          {activationMilestones.map(({ label, value }) => (
             <article key={label}>
-              <span>{index + 1}</span>
               <small>{label}</small>
               <strong>{value}</strong>
             </article>
           ))}
         </div>
+
+        <div className="admin-command-rate-summary">
+          <div>
+            <span>Taxa de ativação da coorte</span>
+            <small>1º agendamento válido ÷ cadastros profissionais</small>
+          </div>
+          <strong>{activationRate}</strong>
+        </div>
+
+        <details className="admin-metric-definition">
+          <summary>Como interpretar estes marcos</summary>
+          <p>
+            Os marcos não são conversões adjacentes. Negócios legados podem estar publicados sem agenda confirmada, então uma etapa pode ter contagem maior que a anterior. O primeiro agendamento válido ignora reservas canceladas.
+          </p>
+        </details>
       </section>
 
       <section className="panel">
         <div className="panel-heading">
           <div>
             <p className="eyebrow">Monetização</p>
-            <h2>Intenção de compra e receita</h2>
-            <p className="muted">
-              Checkout é intenção; assinatura paga é monetização. Os dois indicadores permanecem separados para não tratar tentativa de compra como receita.
-            </p>
+            <h2>Conversão para assinatura</h2>
           </div>
         </div>
-        <div className="admin-command-now-grid">
-          <StatusCard
-            hint="tentativas de checkout observadas na coorte"
-            label="Checkouts iniciados"
-            value={toFiniteNumber(funnelSummary.checkoutsIniciados)}
-          />
-          <StatusCard
-            hint="assinaturas com primeiro pagamento válido"
-            label="Assinaturas pagas"
-            tone={toFiniteNumber(funnelSummary.assinaturasAtivadas) > 0 ? "success" : "neutral"}
-            value={toFiniteNumber(funnelSummary.assinaturasAtivadas)}
-          />
-        </div>
+        <dl className="admin-command-data-list">
+          <div>
+            <dt>Checkouts iniciados</dt>
+            <dd>{toFiniteNumber(funnelSummary.checkoutsIniciados)}</dd>
+          </div>
+          <div>
+            <dt>Assinaturas pagas</dt>
+            <dd>{paidSubscriptions}</dd>
+          </div>
+          <div>
+            <dt>Taxa de assinatura na coorte</dt>
+            <dd>{subscriptionRate}</dd>
+          </div>
+        </dl>
+        <details className="admin-metric-definition">
+          <summary>Como interpretar monetização</summary>
+          <p>
+            Checkout é intenção de compra. Apenas assinatura com primeiro pagamento válido conta como monetização.
+          </p>
+        </details>
       </section>
 
       <section className="panel">
         <div className="panel-heading">
           <div>
             <p className="eyebrow">Retenção</p>
-            <h2>Repetição de uso após o primeiro agendamento</h2>
+            <h2>Retenção dos negócios</h2>
             <p className="muted">
-              Mede profissionais cujo primeiro negócio recebeu novos agendamentos não cancelados. Não representa cliente recorrente nem atendimento realizado.
+              Negócios que continuam recebendo agendamentos depois do primeiro valor entregue.
             </p>
           </div>
         </div>
@@ -300,6 +336,12 @@ export function AdminOverviewPage() {
           <div><dt>2º sobre 1º</dt><dd>{recurrence ? `${toFiniteNumber(recurrence?.resumo?.taxaSegundoSobrePrimeiro)}%` : "—"}</dd></div>
           <div><dt>Mediana até o 2º</dt><dd>{recurrenceTime(recurrence)}</dd></div>
         </dl>
+        <details className="admin-metric-definition">
+          <summary>Como interpretar retenção</summary>
+          <p>
+            Esta leitura acompanha repetição de agendamentos não cancelados por negócio. Não representa, sozinha, cliente recorrente nem atendimento realizado.
+          </p>
+        </details>
       </section>
 
       <div className="admin-command-two-column">
@@ -307,28 +349,29 @@ export function AdminOverviewPage() {
           <div className="panel-heading">
             <div>
               <p className="eyebrow">Demanda</p>
-              <h2>Sinais de descoberta e agendamento</h2>
-              <p className="muted">
-                São contagens de sessões com cada evento no período, não uma conversão sequencial entre etapas.
-              </p>
+              <h2>Descoberta e agendamento</h2>
             </div>
           </div>
           <dl className="admin-command-data-list">
-            <div><dt>Descobriram</dt><dd>{toFiniteNumber(behavior.descobriram)}</dd></div>
-            <div><dt>Avaliaram</dt><dd>{toFiniteNumber(behavior.avaliaram)}</dd></div>
-            <div><dt>Iniciaram agendamento</dt><dd>{toFiniteNumber(behavior.iniciaram)}</dd></div>
-            <div><dt>Reservas criadas</dt><dd>{toFiniteNumber(behavior.concluiram)}</dd></div>
+            <div><dt>Sessões na página inicial</dt><dd>{toFiniteNumber(behavior.descobriram)}</dd></div>
+            <div><dt>Sessões que viram perfis</dt><dd>{toFiniteNumber(behavior.avaliaram)}</dd></div>
+            <div><dt>Sessões que iniciaram agendamento</dt><dd>{toFiniteNumber(behavior.iniciaram)}</dd></div>
+            <div><dt>Sessões com reserva criada</dt><dd>{toFiniteNumber(behavior.concluiram)}</dd></div>
+            <div><dt>Clientes distintos que agendaram</dt><dd>{toFiniteNumber(indicators.totalClientes)}</dd></div>
           </dl>
+          <details className="admin-metric-definition">
+            <summary>Como interpretar demanda</summary>
+            <p>
+              Cada linha conta sessões que emitiram aquele evento no período. Elas são sinais independentes e não formam automaticamente uma conversão sequencial entre etapas.
+            </p>
+          </details>
         </section>
 
         <section className="panel">
           <div className="panel-heading">
             <div>
               <p className="eyebrow">Marketplace</p>
-              <h2>Sinais da plataforma</h2>
-              <p className="muted">
-                Interações agregadas com perfis e recursos públicos do AF no período carregado.
-              </p>
+              <h2>Interações na plataforma</h2>
             </div>
           </div>
           <dl className="admin-command-data-list">
