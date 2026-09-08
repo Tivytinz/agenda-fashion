@@ -59,8 +59,7 @@ async function buscarPagamentoConfirmado({
         p.id,
         p.assinatura_id,
         p.asaas_payment_id,
-        p.valor,
-        p.data_pagamento
+        p.valor
       FROM pagamentos p
       WHERE p.assinatura_id = $1
         AND p.asaas_payment_id = $2
