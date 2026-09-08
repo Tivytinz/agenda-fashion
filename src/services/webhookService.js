@@ -363,7 +363,7 @@ async function processarRegistro(evento) {
         );
 
       if (resultado) {
-        marketingConversionDeliveryService
+        await marketingConversionDeliveryService
           .enfileirarAssinaturaAtivadaSeguro({
             negocioId:
               resultado.negocio_id,
