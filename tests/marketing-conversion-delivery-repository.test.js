@@ -20,7 +20,7 @@ describe(
     });
 
     test(
-      "reserva com SKIP LOCKED e limita a cinco tentativas",
+      "reserva com SKIP LOCKED, limita a cinco tentativas e só repete FAILED agendado",
       async () => {
         db.query.mockResolvedValueOnce({
           rows: []
@@ -38,6 +38,12 @@ describe(
         expect(
           sql.match(/tentativas < 5/g)
         ).toHaveLength(3);
+        expect(sql).toContain(
+          "proxima_tentativa_em IS NOT NULL"
+        );
+        expect(sql).toContain(
+          "proxima_tentativa_em <= NOW()"
+        );
       }
     );
 
@@ -66,6 +72,40 @@ describe(
         expect(parametros).toEqual([
           9,
           5
+        ]);
+      }
+    );
+
+    test(
+      "resultado ignorado também reconcilia a mesma tentativa terminal",
+      async () => {
+        db.query.mockResolvedValueOnce({
+          rows: []
+        });
+
+        await repository
+          .marcarIgnorado(
+            9,
+            5,
+            "sem_consentimento"
+          );
+
+        const [sql, parametros] =
+          db.query.mock.calls[0];
+
+        expect(sql).toContain(
+          "tentativas = $2"
+        );
+        expect(sql).toContain(
+          "status = 'FAILED'"
+        );
+        expect(sql).toContain(
+          "tentativas >= 5"
+        );
+        expect(parametros).toEqual([
+          9,
+          5,
+          "sem_consentimento"
         ]);
       }
     );
