@@ -10,7 +10,6 @@ import {
 
 import { apiRequest } from "../api/client";
 import { MarketingGa4Panel } from "../components/MarketingGa4Panel";
-import { MarketingSyncPanel } from "../components/MarketingSyncPanel";
 import {
   ErrorState,
   LoadingState
@@ -29,11 +28,6 @@ import {
   metricPercentage,
   paidAttributionQuality
 } from "../utils/marketingMetrics";
-
-const OBJECTIVES = {
-  profissional: "Profissionais",
-  cliente: "Clientes"
-};
 
 function sourceLabel(value) {
   const source = String(value || "").trim().toLowerCase();
@@ -54,6 +48,16 @@ function campaignLabel(item) {
 
 function campaignKey(item, index) {
   return [item?.origem, item?.midia, item?.campanha, index].join("|");
+}
+
+function classificationLabel(value) {
+  const classification = String(value || "").toLowerCase();
+  if (classification === "oficial") return "Atribuída";
+  if (classification === "organico") return "Orgânico";
+  if (classification === "rastreamento_incompleto") return "Rastreamento incompleto";
+  if (classification === "identidade_nao_oficial") return "Identidade não oficial";
+  if (classification === "sem_evidencia") return "Sem evidência";
+  return "A revisar";
 }
 
 function professionalStages(summary) {
@@ -82,7 +86,7 @@ function professionalStages(summary) {
       summary?.taxaPublicacao ?? metricPercentage(summary?.negociosPublicados, signups) ?? 0
     ],
     [
-      "Primeiro agendamento",
+      "1º agendamento válido",
       toFiniteNumber(summary?.primeirosAgendamentos),
       summary?.taxaPrimeiroAgendamento ??
         metricPercentage(summary?.primeirosAgendamentos, signups) ??
@@ -94,7 +98,7 @@ function professionalStages(summary) {
       summary?.taxaCheckout ?? metricPercentage(summary?.checkoutsIniciados, signups) ?? 0
     ],
     [
-      "Assinatura ativada",
+      "Assinatura paga",
       toFiniteNumber(summary?.assinaturasAtivadas),
       summary?.taxaAssinatura ?? metricPercentage(summary?.assinaturasAtivadas, signups) ?? 0
     ]
@@ -123,9 +127,6 @@ export function AdminMarketingPage() {
       funnel: apiRequest(`/admin/marketing/funil-profissionais?periodo=${period}`, {
         signal: controller.signal
       }),
-      summary: apiRequest(`/admin/marketing/resumo?periodo=${period}`, {
-        signal: controller.signal
-      }),
       ga4: apiRequest(`/admin/marketing/ga4?periodo=${period}`, {
         signal: controller.signal
       })
@@ -147,27 +148,17 @@ export function AdminMarketingPage() {
         const ga4Error = errors.find(({ key, error: itemError }) =>
           key === "ga4" && itemError?.name !== "AbortError"
         );
-        const nonGa4Errors = errors.filter(({ key, error: itemError }) =>
-          key !== "ga4" && itemError?.name !== "AbortError"
-        );
 
         setData({
           period,
           funnel: values.funnel,
           traffic: values.traffic?.campanhas || [],
-          summary: values.summary || {},
           ga4: values.ga4 || {
             habilitado: true,
             configurado: false,
             erro: ga4Error?.error?.message || ""
           }
         });
-
-        if (nonGa4Errors.length > 0) {
-          setError(
-            "Parte dos indicadores está temporariamente indisponível. Os dados carregados continuam visíveis."
-          );
-        }
       })
       .finally(() => {
         if (active) setRefreshing(false);
@@ -204,6 +195,26 @@ export function AdminMarketingPage() {
     ),
     [traffic]
   );
+  const professionalCampaigns = data?.funnel?.campanhas || [];
+  const qualityCampaigns = useMemo(
+    () => professionalCampaigns.filter((item) =>
+      ["oficial", "organico"].includes(item?.classificacaoAtribuicao) &&
+      (
+        toFiniteNumber(item?.cadastros) > 0 ||
+        toFiniteNumber(item?.primeirosAgendamentos) > 0 ||
+        toFiniteNumber(item?.assinaturasAtivadas) > 0 ||
+        toFiniteNumber(item?.investimentoCentavos) > 0
+      )
+    ),
+    [professionalCampaigns]
+  );
+  const unresolvedCampaigns = useMemo(
+    () => professionalCampaigns.filter((item) =>
+      !["oficial", "organico"].includes(item?.classificacaoAtribuicao) &&
+      toFiniteNumber(item?.cadastros) > 0
+    ),
+    [professionalCampaigns]
+  );
 
   const officialSessions = officialTraffic.reduce(
     (total, item) => total + toFiniteNumber(item?.sessoes),
@@ -215,10 +226,6 @@ export function AdminMarketingPage() {
   );
   const assistedSessions = officialTraffic.reduce(
     (total, item) => total + toFiniteNumber(item?.sessoesAtribuicaoAssistida),
-    0
-  );
-  const pendingSessions = pendingTraffic.reduce(
-    (total, item) => total + toFiniteNumber(item?.sessoes),
     0
   );
 
@@ -257,36 +264,54 @@ export function AdminMarketingPage() {
   const requestedPeriodLabel = adminPeriodLabel(period);
   const funnelPath = adminPathWithPeriod("/admin/trafego-pago/profissionais", period);
   const costsPath = adminPathWithPeriod("/admin/trafego-pago/custos", period);
-  const paidCoverage =
-    data?.funnel?.qualidadeMensuracao?.coberturaAtribuicaoPagaPercentual ??
-    attribution.coverage;
+  const integrationsPath = `${costsPath}#integracoes-custos`;
+  const measurementQuality = data?.funnel?.qualidadeMensuracao || {};
+  const paidSignupCoverage = measurementQuality.coberturaAtribuicaoPagaPercentual;
+  const paidSignupsDetected = toFiniteNumber(measurementQuality.cadastrosPagosDetectados);
+  const minimumCoverage = toFiniteNumber(measurementQuality.coberturaMinimaPercentual) || 100;
+  const paidSignupCoverageWarning =
+    paidSignupCoverage !== null &&
+    paidSignupCoverage !== undefined &&
+    Number(paidSignupCoverage) < minimumCoverage;
   const ga4Configured = data?.ga4?.configurado === true;
   const ga4Summary = data?.ga4?.resumo || {};
 
   const journeyCards = [
-    [
-      "Sessões no site",
-      ga4Configured ? toFiniteNumber(ga4Summary.sessoes) : "—",
-      ga4Configured
+    {
+      label: "Sessões no site",
+      value: ga4Configured ? toFiniteNumber(ga4Summary.sessoes) : "—",
+      hint: ga4Configured
         ? `${toFiniteNumber(ga4Summary.usuarios)} usuários no GA4`
-        : "GA4 indisponível para este período"
-    ],
-    [
-      "Cadastros profissionais",
-      toFiniteNumber(professionalSummary.cadastros),
-      "entrada do funil profissional"
-    ],
-    [
-      "Primeiros agendamentos",
-      toFiniteNumber(professionalSummary.primeirosAgendamentos),
-      `${formatMetricPercent(professionalSummary.taxaPrimeiroAgendamento)} dos cadastros`
-    ],
-    [
-      "Assinaturas ativadas",
-      toFiniteNumber(professionalSummary.assinaturasAtivadas),
-      `${formatMetricPercent(professionalSummary.taxaAssinatura)} dos cadastros`
-    ]
+        : "GA4 indisponível para este período",
+      source: "GA4"
+    },
+    {
+      label: "Cadastros profissionais",
+      value: toFiniteNumber(professionalSummary.cadastros),
+      hint: "coorte profissional do período",
+      source: "Banco AF"
+    },
+    {
+      label: "1º agendamento válido",
+      value: toFiniteNumber(professionalSummary.primeirosAgendamentos),
+      hint: `${formatMetricPercent(professionalSummary.taxaPrimeiroAgendamento)} dos cadastros`,
+      source: "Banco AF"
+    },
+    {
+      label: "Assinaturas pagas",
+      value: toFiniteNumber(professionalSummary.assinaturasAtivadas),
+      hint: `${formatMetricPercent(professionalSummary.taxaAssinatura)} dos cadastros`,
+      source: "Banco AF"
+    }
   ];
+
+  const sortedQualityCampaigns = qualityCampaigns
+    .slice()
+    .sort((a, b) =>
+      toFiniteNumber(b?.primeirosAgendamentos) - toFiniteNumber(a?.primeirosAgendamentos) ||
+      toFiniteNumber(b?.cadastros) - toFiniteNumber(a?.cadastros)
+    )
+    .slice(0, 12);
 
   return (
     <main
@@ -298,7 +323,7 @@ export function AdminMarketingPage() {
           <p className="eyebrow">Marketing</p>
           <h1>Marketing e aquisição</h1>
           <p>
-            Entenda de onde as pessoas chegam, como navegam e quantas avançam até ativação, primeiro agendamento e assinatura.
+            Entenda de onde as pessoas chegam e quais origens trazem profissionais que avançam até o primeiro agendamento e a monetização.
           </p>
         </div>
 
@@ -307,6 +332,7 @@ export function AdminMarketingPage() {
             <span aria-current="page">Visão geral</span>
             <Link to={funnelPath}>Funil completo</Link>
             <Link to={costsPath}>Custos e retorno</Link>
+            <Link to={integrationsPath}>Integrações</Link>
           </nav>
 
           <div className="segmented-control" aria-label="Período do marketing">
@@ -345,9 +371,9 @@ export function AdminMarketingPage() {
       <section className="marketing-trust-bar" aria-label="Confiabilidade dos dados">
         <div className="marketing-trust-copy">
           <span>Dados conectados</span>
-          <strong>Comportamento + funil + atribuição</strong>
+          <strong>Comportamento + coorte + atribuição</strong>
           <small>
-            GA4 explica a navegação. O banco do AF continua sendo a fonte para ativação, agendamento, assinatura e receita.
+            GA4 explica navegação. O banco do AF continua sendo a fonte para cadastro, primeiro agendamento, assinatura e receita.
           </small>
         </div>
 
@@ -355,21 +381,24 @@ export function AdminMarketingPage() {
           <span className={`marketing-trust-chip ${ga4Configured ? "is-success" : "is-warning"}`}>
             {ga4Configured ? "GA4 conectado" : "GA4 indisponível"}
           </span>
-          <span className={`marketing-trust-chip ${pendingSessions > 0 ? "is-warning" : "is-success"}`}>
-            {attribution.detectedPaidSessions === 0
-              ? "Sem tráfego pago"
-              : `${formatMetricPercent(paidCoverage)} do tráfego pago identificado`}
+          <span className={`marketing-trust-chip ${paidSignupCoverageWarning ? "is-warning" : "is-success"}`}>
+            {paidSignupsDetected === 0
+              ? "Sem cadastro pago detectado"
+              : `${formatMetricPercent(paidSignupCoverage)} dos cadastros pagos atribuídos`}
           </span>
-          {officialSessions > 0 && (
-            <small>{directSessions} diretas + {assistedSessions} assistidas</small>
+          {attribution.detectedPaidSessions > 0 && (
+            <small>
+              Sessões pagas com campanha reconhecida: {formatMetricPercent(attribution.coverage)}
+              {officialSessions > 0 ? ` · ${directSessions} diretas + ${assistedSessions} assistidas` : ""}
+            </small>
           )}
         </div>
       </section>
 
-      <section className="marketing-journey-grid" aria-label="Jornada de aquisição">
-        {journeyCards.map(([label, value, hint], index) => (
+      <section className="marketing-journey-grid" aria-label="Indicadores de aquisição">
+        {journeyCards.map(({ label, value, hint, source }) => (
           <article className="marketing-journey-card" key={label}>
-            <span className="marketing-journey-index">{index + 1}</span>
+            <span className="marketing-journey-source">{source}</span>
             <div>
               <span>{label}</span>
               <strong>{value}</strong>
@@ -382,115 +411,147 @@ export function AdminMarketingPage() {
       <section className="panel marketing-funnel-panel marketing-funnel-panel-v3">
         <div className="panel-heading">
           <div>
-            <p className="eyebrow">Funil profissional</p>
-            <h2>Da aquisição ao resultado</h2>
+            <p className="eyebrow">Coorte profissional</p>
+            <h2>Marcos da coorte profissional</h2>
             <p className="muted">
-              O AF mede o avanço real depois do cadastro. A agenda confirmada é uma etapa explícita antes da publicação no fluxo novo.
+              Todos os percentuais usam os cadastros da coorte como base. Os marcos não são conversões adjacentes; negócios legados podem estar publicados sem agenda confirmada.
             </p>
           </div>
           <Link
             className="button button-secondary button-small"
             to={funnelPath}
           >
-            Ver funil completo
+            Ver análise completa
           </Link>
         </div>
 
         <div className="marketing-funnel-rail">
-          {stages.map(([label, value, rate], index) => (
+          {stages.map(([label, value, rate]) => (
             <article className="marketing-funnel-stage" key={label}>
-              <span className="marketing-funnel-step">{index + 1}</span>
               <div>
                 <small>{label}</small>
                 <strong>{value}</strong>
-                <span>{formatMetricPercent(rate)}</span>
+                <span>{formatMetricPercent(rate)} dos cadastros</span>
               </div>
             </article>
           ))}
         </div>
       </section>
 
-      <MarketingGa4Panel data={data?.ga4} />
-
       <section className="panel marketing-analysis-panel marketing-analysis-panel-v3">
         <div className="panel-heading">
           <div>
-            <p className="eyebrow">Aquisição comprovada</p>
-            <h2>Campanhas reconhecidas pelo AF</h2>
+            <p className="eyebrow">Qualidade da aquisição</p>
+            <h2>Quais origens trazem profissionais que avançam</h2>
             <p className="muted">
-              Aqui entram apenas origens que o AF conseguiu comprovar. Ambiguidade continua fora de CAC, ROAS e decisões por campanha.
+              A leitura abaixo usa a coorte atribuída do AF. Volume de sessão no GA4 é contexto e não substitui cadastro, primeiro agendamento ou pagamento.
             </p>
           </div>
           <Link
             className="button button-secondary button-small"
-            to={costsPath}
+            to={funnelPath}
           >
-            Ver custos e retorno
+            Ver funil e retorno
           </Link>
         </div>
 
-        {traffic.length === 0 ? (
-          <p className="muted">Nenhuma campanha teve tráfego neste período.</p>
+        {sortedQualityCampaigns.length === 0 ? (
+          <p className="muted">
+            Ainda não há origem oficial ou orgânica com base suficiente nesta seleção.
+          </p>
         ) : (
-          <div className="marketing-campaign-performance-grid">
-            {traffic
-              .slice()
-              .sort((a, b) => toFiniteNumber(b.sessoes) - toFiniteNumber(a.sessoes))
-              .slice(0, 12)
-              .map((item, index) => {
-                const objective = item.objetivo || "indefinido";
-                const official =
-                  item.oficial === true ||
-                  item.classificacaoAtribuicao === "oficial";
-
-                return (
-                  <article
-                    className="marketing-performance-card"
-                    key={campaignKey(item, index)}
+          <div className="marketing-quality-grid">
+            {sortedQualityCampaigns.map((item, index) => (
+              <article className="marketing-quality-card" key={campaignKey(item, index)}>
+                <div className="marketing-quality-card-head">
+                  <div>
+                    <strong>{campaignLabel(item)}</strong>
+                    <small>
+                      {sourceLabel(item.origem)}
+                      {item.midia ? ` · ${String(item.midia).toUpperCase()}` : ""}
+                    </small>
+                  </div>
+                  <span
+                    className={`admin-status-badge ${item.oficial ? "is-success" : "is-muted"}`}
                   >
-                    <div className="marketing-performance-card-head">
-                      <div>
-                        <strong>{campaignLabel(item)}</strong>
-                        <small>
-                          {sourceLabel(item.origem)}
-                          {item.midia ? ` · ${String(item.midia).toUpperCase()}` : ""}
-                        </small>
-                      </div>
-                      <span
-                        className={`admin-status-badge ${official ? "is-success" : "is-warning"}`}
-                      >
-                        {official ? "Atribuída" : "Pendente"}
-                      </span>
-                    </div>
+                    {classificationLabel(item.classificacaoAtribuicao)}
+                  </span>
+                </div>
 
-                    <div className="marketing-performance-metrics">
-                      <div>
-                        <span>Sessões</span>
-                        <strong>{toFiniteNumber(item.sessoes)}</strong>
-                      </div>
-                      <div>
-                        <span>Perfis vistos</span>
-                        <strong>{toFiniteNumber(item.perfisVisualizados)}</strong>
-                      </div>
-                      <div>
-                        <span>{objective === "cliente" ? "Agendamentos" : "Objetivo"}</span>
-                        <strong>
-                          {objective === "cliente"
-                            ? toFiniteNumber(item.agendamentosConcluidos)
-                            : OBJECTIVES[objective] || "A classificar"}
-                        </strong>
-                      </div>
+                <div className="marketing-quality-metrics">
+                  <div>
+                    <span>Cadastros</span>
+                    <strong>{toFiniteNumber(item.cadastros)}</strong>
+                  </div>
+                  <div>
+                    <span>1º agendamento</span>
+                    <strong>{toFiniteNumber(item.primeirosAgendamentos)}</strong>
+                  </div>
+                  <div>
+                    <span>Taxa de ativação</span>
+                    <strong>{formatMetricPercent(item.taxaPrimeiroAgendamento)}</strong>
+                  </div>
+                  <div>
+                    <span>Assinaturas pagas</span>
+                    <strong>{toFiniteNumber(item.assinaturasAtivadas)}</strong>
+                  </div>
+                </div>
+              </article>
+            ))}
+          </div>
+        )}
+
+        {unresolvedCampaigns.length > 0 && (
+          <div className="marketing-attribution-pending-section">
+            <h3>Origens da coorte ainda sem evidência suficiente</h3>
+            <p className="muted">
+              Esses cadastros continuam visíveis para diagnóstico, mas não entram em CAC, ROAS ou decisão forte por campanha.
+            </p>
+            <div className="marketing-attribution-pending-grid">
+              {unresolvedCampaigns.slice(0, 8).map((item, index) => (
+                <article
+                  className="marketing-attribution-pending-card"
+                  key={campaignKey(item, index)}
+                >
+                  <div className="marketing-attribution-pending-card-head">
+                    <div>
+                      <strong>{campaignLabel(item)}</strong>
+                      <small>{sourceLabel(item.origem)}</small>
                     </div>
-                  </article>
-                );
-              })}
+                    <span className="admin-status-badge is-warning">
+                      {classificationLabel(item.classificacaoAtribuicao)}
+                    </span>
+                  </div>
+                  <div className="marketing-attribution-pending-metrics">
+                    <div>
+                      <span>Cadastros</span>
+                      <strong>{toFiniteNumber(item.cadastros)}</strong>
+                    </div>
+                    <div>
+                      <span>1º agendamento</span>
+                      <strong>{toFiniteNumber(item.primeirosAgendamentos)}</strong>
+                    </div>
+                  </div>
+                </article>
+              ))}
+            </div>
           </div>
         )}
       </section>
 
-      <MarketingSyncPanel
-        onChanged={() => setReloadKey((current) => current + 1)}
-      />
+      <MarketingGa4Panel data={data?.ga4} />
+
+      <section className="marketing-integrations-shortcut" aria-label="Integrações de marketing">
+        <div>
+          <strong>Integrações e sincronização</strong>
+          <p className="muted">
+            Saúde, OAuth, vínculos e sincronização das plataformas são estado operacional atual e ficam no painel canônico de custos.
+          </p>
+        </div>
+        <Link className="button button-secondary button-small" to={integrationsPath}>
+          Gerenciar integrações
+        </Link>
+      </section>
     </main>
   );
 }
