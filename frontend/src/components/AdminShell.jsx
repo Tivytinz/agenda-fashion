@@ -14,15 +14,6 @@ import {
 import afLogoTransparent from "../assets/brand/af-logo-transparent.png";
 import { AppIcon } from "./AppIcon";
 
-export const ADMIN_LINKS = [
-  ["/admin", "Visão geral", "home"],
-  ["/admin/aquisicao", "Aquisição", "marketing"],
-  ["/admin/jornada", "Jornada", "health"],
-  ["/admin/retencao", "Retenção", "business"],
-  ["/admin/receita", "Receita", "plan"],
-  ["/admin/operacao", "Operação", "calendar"]
-];
-
 const LEGACY_ADMIN_CONTEXTS = [
   ["/admin/profissionais", "Aquisição"],
   ["/admin/trafego-pago", "Aquisição"],
@@ -36,8 +27,8 @@ function isAdminRouteActive(pathname, route) {
   return pathname === route || pathname.startsWith(`${route}/`);
 }
 
-function currentAdminLabel(pathname) {
-  const current = ADMIN_LINKS.find(([route]) =>
+function currentAdminLabel(pathname, links) {
+  const current = links.find(([route]) =>
     isAdminRouteActive(pathname, route)
   );
 
@@ -75,7 +66,7 @@ function AdminNavLinks({ links, mobile = false, menu = false, onNavigate }) {
   ));
 }
 
-export function AdminMobileNavigation({ links = ADMIN_LINKS }) {
+export function AdminMobileNavigation({ links = [] }) {
   const { pathname } = useLocation();
   const [menuOpen, setMenuOpen] = useState(false);
   const menuId = useId();
@@ -158,9 +149,9 @@ export function AdminMobileNavigation({ links = ADMIN_LINKS }) {
   );
 }
 
-export function AdminShell({ children }) {
+export function AdminShell({ children, links = [] }) {
   const { pathname } = useLocation();
-  const currentLabel = currentAdminLabel(pathname);
+  const currentLabel = currentAdminLabel(pathname, links);
 
   useLayoutEffect(() => {
     document.documentElement.classList.add("admin-context-active");
@@ -198,7 +189,7 @@ export function AdminShell({ children }) {
         <div className="admin-nav-section">
           <span className="admin-nav-caption">GESTÃO DO SAAS</span>
           <nav aria-label="Módulos administrativos">
-            <AdminNavLinks links={ADMIN_LINKS} />
+            <AdminNavLinks links={links} />
           </nav>
         </div>
 
@@ -238,7 +229,7 @@ export function AdminShell({ children }) {
         </section>
       </div>
 
-      <AdminMobileNavigation />
+      <AdminMobileNavigation links={links} />
     </div>
   );
 }
