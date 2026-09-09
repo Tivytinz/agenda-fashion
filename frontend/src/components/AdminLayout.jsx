@@ -2,10 +2,11 @@ import { NavigationShell } from "./WorkspaceLayout";
 
 export const ADMIN_LINKS = [
   ["/admin", "Visão geral", "home"],
-  ["/admin/saude", "Ativação", "health"],
-  ["/admin/operacao", "Operação", "business"],
-  ["/admin/trafego-pago", "Marketing", "marketing"],
-  ["/admin/whatsapp", "WhatsApp", "whatsapp"]
+  ["/admin/aquisicao", "Aquisição", "marketing"],
+  ["/admin/jornada", "Jornada", "health"],
+  ["/admin/retencao", "Retenção", "business"],
+  ["/admin/receita", "Receita", "billing"],
+  ["/admin/operacao", "Operação", "agenda"]
 ];
 
 export function AdminLayout({ children }) {
