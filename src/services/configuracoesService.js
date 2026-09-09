@@ -47,9 +47,6 @@ const ESTADOS_BRASILEIROS = new Set([
   "RJ", "RN", "RS", "RO", "RR", "SC", "SP", "SE", "TO",
 ]);
 
-const PENDENCIA_AGENDA =
-  "confirmar os horários de atendimento";
-
 const TAMANHO_MAXIMO_FOTO =
   5 * 1024 * 1024;
 
@@ -479,6 +476,27 @@ function avaliarPublicacao(
 ) {
   const pendencias = [];
 
+  const camposObrigatorios = [
+    ["nome", "nome do negócio"],
+    ["bairro", "bairro"],
+    ["endereco", "endereço"],
+    ["numero", "número"],
+    ["localizacao_url", "link do Google Maps"],
+  ];
+
+  for (
+    const [campo, rotulo]
+    of camposObrigatorios
+  ) {
+    if (
+      !String(
+        negocio?.[campo] ?? ""
+      ).trim()
+    ) {
+      pendencias.push(rotulo);
+    }
+  }
+
   const especialidades =
     normalizarEspecialidades(
       negocio?.areas,
@@ -497,14 +515,21 @@ function avaliarPublicacao(
     );
   }
 
-  if (!normalizarWhatsapp(
-    negocio?.whatsapp ??
-      negocio?.whatsapp_negocio,
-    {
-      validar:
-        false,
-    }
-  )) {
+  const whatsapp =
+    normalizarWhatsapp(
+      negocio?.whatsapp ??
+        negocio?.whatsapp_negocio,
+      {
+        validar:
+          false,
+      }
+    );
+
+  if (
+    ![10, 11].includes(
+      whatsapp.length
+    )
+  ) {
     pendencias.push(
       "WhatsApp"
     );
@@ -537,35 +562,14 @@ function avaliarPublicacao(
     );
   }
 
-  const exigeOnboardingCompleto =
-    negocio?.publicacao_exige_agenda ===
-    true;
+  const cep = String(
+    negocio?.cep ?? ""
+  ).replace(/\D/g, "");
 
-  if (exigeOnboardingCompleto) {
-    const camposObrigatorios = [
-      ["nome", "nome do negócio"],
-      ["bairro", "bairro"],
-      ["endereco", "endereço"],
-      ["numero", "número"],
-      ["cep", "CEP"],
-      [
-        "localizacao_url",
-        "link do Google Maps",
-      ],
-    ];
-
-    for (
-      const [campo, rotulo]
-      of camposObrigatorios
-    ) {
-      if (
-        !String(
-          negocio?.[campo] ?? ""
-        ).trim()
-      ) {
-        pendencias.push(rotulo);
-      }
-    }
+  if (!/^\d{8}$/.test(cep)) {
+    pendencias.push(
+      "CEP"
+    );
   }
 
   if (
@@ -574,16 +578,6 @@ function avaliarPublicacao(
   ) {
     pendencias.push(
       "pelo menos um serviço ativo"
-    );
-  }
-
-  if (
-    exigeOnboardingCompleto &&
-    negocio?.agenda_configurada !==
-      true
-  ) {
-    pendencias.push(
-      PENDENCIA_AGENDA
     );
   }
 
@@ -1205,4 +1199,5 @@ module.exports = {
   salvarConfiguracoes,
   enviarFotoNegocio,
   alterarPublicacao,
+  avaliarPublicacao,
 };
