@@ -3,6 +3,8 @@ const adminSaasHealthRepository =
     "../repositories/adminSaasHealthRepository"
   );
 
+const TOTAL_ETAPAS_ATIVACAO = 5;
+
 const PENDENCIAS_PERMITIDAS =
   new Set([
     "todos",
@@ -10,7 +12,7 @@ const PENDENCIAS_PERMITIDAS =
     "perfil",
     "descricao",
     "servico",
-    "agenda",
+    "disponibilidade",
     "publicacao",
     "primeiro_agendamento",
   ]);
@@ -63,6 +65,38 @@ function textoPresente(
   );
 }
 
+function urlPublicacaoValida(
+  valor
+) {
+  const texto = String(
+    valor || ""
+  ).trim();
+
+  if (!texto) {
+    return false;
+  }
+
+  try {
+    const url = new URL(texto);
+    return [
+      "http:",
+      "https:",
+    ].includes(url.protocol);
+  } catch {
+    return false;
+  }
+}
+
+function cepValido(
+  valor
+) {
+  const cep = String(
+    valor || ""
+  ).replace(/\D/g, "");
+
+  return /^\d{8}$/.test(cep);
+}
+
 function mapearPendencias(
   linha
 ) {
@@ -79,6 +113,13 @@ function mapearPendencias(
   const areas = Array.isArray(linha.areas)
     ? linha.areas
     : [];
+
+  if (!textoPresente(linha.negocio_nome)) {
+    pendencias.push({
+      codigo: "nome",
+      rotulo: "Informar nome do negócio",
+    });
+  }
 
   if (
     areas.length === 0 &&
@@ -114,6 +155,8 @@ function mapearPendencias(
   if (
     !ESTADOS_BRASILEIROS.has(
       String(linha.estado || "")
+        .trim()
+        .toUpperCase()
     )
   ) {
     pendencias.push({
@@ -122,30 +165,36 @@ function mapearPendencias(
     });
   }
 
-  if (linha.publicacao_exige_agenda) {
-    const camposObrigatorios = [
-      ["bairro", "bairro", "Informar bairro"],
-      ["endereco", "endereco", "Informar endereço"],
-      ["numero", "numero", "Informar número"],
-      ["cep", "cep", "Informar CEP"],
-      [
-        "localizacao_url",
-        "localizacao",
-        "Informar link do Google Maps",
-      ],
-    ];
+  const camposObrigatorios = [
+    ["bairro", "bairro", "Informar bairro"],
+    ["endereco", "endereco", "Informar endereço"],
+    ["numero", "numero", "Informar número"],
+  ];
 
-    for (
-      const [campo, codigo, rotulo]
-      of camposObrigatorios
-    ) {
-      if (!textoPresente(linha[campo])) {
-        pendencias.push({
-          codigo,
-          rotulo,
-        });
-      }
+  for (
+    const [campo, codigo, rotulo]
+    of camposObrigatorios
+  ) {
+    if (!textoPresente(linha[campo])) {
+      pendencias.push({
+        codigo,
+        rotulo,
+      });
     }
+  }
+
+  if (!cepValido(linha.cep)) {
+    pendencias.push({
+      codigo: "cep",
+      rotulo: "Informar CEP válido",
+    });
+  }
+
+  if (!urlPublicacaoValida(linha.localizacao_url)) {
+    pendencias.push({
+      codigo: "localizacao",
+      rotulo: "Informar link válido do Google Maps",
+    });
   }
 
   if (!linha.possui_servico_ativo) {
@@ -155,25 +204,32 @@ function mapearPendencias(
     });
   }
 
-  if (!linha.agenda_configurada) {
-    pendencias.push({
-      codigo: "agenda",
-      rotulo: "Configurar agenda",
-    });
-  }
-
+  /*
+   * Publicação pertence ao funil de ativação. Se o negócio já cumpre
+   * todos os requisitos do runtime e continua fora do catálogo, isso é
+   * uma correção interna prioritária — nunca uma tarefa da profissional.
+   */
   if (
     !linha.publicado &&
-    linha.perfil_basico_completo &&
-    linha.possui_servico_ativo &&
-    (
-      !linha.publicacao_exige_agenda ||
-      linha.agenda_configurada
-    )
+    linha.perfil_basico_completo === true &&
+    linha.possui_servico_ativo === true
   ) {
     pendencias.push({
       codigo: "publicacao",
       rotulo: "Reprocessar publicação automática",
+      tipo: "sistema",
+    });
+  }
+
+  /*
+   * Disponibilidade padrão é infraestrutura operacional, não etapa de
+   * ativação. Mantemos o diagnóstico para correção interna sem alterar
+   * percentual, publicação ou comunicação de onboarding.
+   */
+  if (linha.disponibilidade_inicializada !== true) {
+    pendencias.push({
+      codigo: "disponibilidade",
+      rotulo: "Reprocessar disponibilidade inicial",
       tipo: "sistema",
     });
   }
@@ -202,10 +258,33 @@ function mapearPendencias(
 function escolherProximaAcao(
   pendencias
 ) {
-  return pendencias.find(
+  const acaoUsuario = pendencias.find(
     (item) => !item.tipo
-  ) || pendencias.find(
+  );
+
+  if (acaoUsuario) {
+    return acaoUsuario;
+  }
+
+  /*
+   * Quando os dois problemas técnicos coexistem, publicação vem primeiro:
+   * ela é um marco de ativação; disponibilidade padrão não é.
+   */
+  const reprocessarPublicacao =
+    pendencias.find(
+      (item) =>
+        item.tipo === "sistema" &&
+        item.codigo === "publicacao"
+    );
+
+  if (reprocessarPublicacao) {
+    return reprocessarPublicacao;
+  }
+
+  return pendencias.find(
     (item) => item.tipo === "sistema"
+  ) || pendencias.find(
+    (item) => item.tipo === "recomendacao"
   ) || pendencias[0] || null;
 }
 
@@ -213,13 +292,21 @@ function mapearPerfil(
   linha
 ) {
   const etapasConcluidas =
-    numero(
-      linha.etapas_concluidas
+    Math.min(
+      TOTAL_ETAPAS_ATIVACAO,
+      Math.max(
+        0,
+        numero(
+          linha.etapas_concluidas
+        )
+      )
     );
   const percentual =
     Math.round(
-      (etapasConcluidas / 6) *
-        100
+      (
+        etapasConcluidas /
+        TOTAL_ETAPAS_ATIVACAO
+      ) * 100
     );
   const pendencias =
     mapearPendencias(linha);
@@ -267,18 +354,20 @@ function mapearPerfil(
       : null,
     progresso: {
       etapasConcluidas,
-      totalEtapas: 6,
+      totalEtapas:
+        TOTAL_ETAPAS_ATIVACAO,
       percentual,
       etapasRestantes:
         Math.max(
           0,
-          6 - etapasConcluidas
+          TOTAL_ETAPAS_ATIVACAO -
+            etapasConcluidas
         ),
     },
     prioridade:
-      etapasConcluidas === 5
+      etapasConcluidas === 4
         ? "alta"
-        : etapasConcluidas >= 3 && etapasConcluidas <= 4
+        : etapasConcluidas >= 2 && etapasConcluidas <= 3
           ? "media"
           : "baixa",
     proximaAcao:
@@ -305,8 +394,10 @@ function mapearResumo(
       numero(linha.sem_descricao),
     semServico:
       numero(linha.sem_servico),
-    semAgenda:
-      numero(linha.sem_agenda),
+    disponibilidadeNaoInicializada:
+      numero(
+        linha.sem_disponibilidade_inicial
+      ),
     naoPublicados:
       numero(linha.nao_publicados),
     semPrimeiroAgendamento:
@@ -419,4 +510,7 @@ async function listarPerfisIncompletos({
 
 module.exports = {
   listarPerfisIncompletos,
+  mapearPendencias,
+  escolherProximaAcao,
+  mapearPerfil,
 };
