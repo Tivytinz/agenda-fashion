@@ -65,36 +65,12 @@ function textoPresente(
   );
 }
 
-function urlPublicacaoValida(
+function cepPublicacaoValido(
   valor
 ) {
-  const texto = String(
-    valor || ""
-  ).trim();
-
-  if (!texto) {
-    return false;
-  }
-
-  try {
-    const url = new URL(texto);
-    return [
-      "http:",
-      "https:",
-    ].includes(url.protocol);
-  } catch {
-    return false;
-  }
-}
-
-function cepValido(
-  valor
-) {
-  const cep = String(
-    valor || ""
-  ).replace(/\D/g, "");
-
-  return /^\d{8}$/.test(cep);
+  return /^[0-9]{8}$/.test(
+    String(valor || "")
+  );
 }
 
 function mapearPendencias(
@@ -183,17 +159,17 @@ function mapearPendencias(
     }
   }
 
-  if (!cepValido(linha.cep)) {
+  if (!cepPublicacaoValido(linha.cep)) {
     pendencias.push({
       codigo: "cep",
       rotulo: "Informar CEP válido",
     });
   }
 
-  if (!urlPublicacaoValida(linha.localizacao_url)) {
+  if (!textoPresente(linha.localizacao_url)) {
     pendencias.push({
       codigo: "localizacao",
-      rotulo: "Informar link válido do Google Maps",
+      rotulo: "Informar link do Google Maps",
     });
   }
 
