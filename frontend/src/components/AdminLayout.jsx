@@ -1,4 +1,4 @@
-import { NavigationShell } from "./WorkspaceLayout";
+import { AdminShell } from "./AdminShell";
 
 export const ADMIN_LINKS = [
   ["/admin", "Visão geral", "home"],
@@ -11,13 +11,8 @@ export const ADMIN_LINKS = [
 
 export function AdminLayout({ children }) {
   return (
-    <NavigationShell
-      ariaLabel="Administração do Agenda Fashion"
-      identity={null}
-      links={ADMIN_LINKS}
-      variant="admin"
-    >
+    <AdminShell links={ADMIN_LINKS}>
       {children}
-    </NavigationShell>
+    </AdminShell>
   );
 }

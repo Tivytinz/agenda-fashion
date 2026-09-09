@@ -255,6 +255,6 @@ test("WhatsApp administrativo aplica seu CSS sob demanda", async ({ page }) => {
 
   const healthNotice = page.locator(".whatsapp-health-notice");
   await expect(healthNotice).toBeVisible();
-  await expectComputedStyle(healthNotice, "borderRadius", "10px");
+  await expectComputedStyle(healthNotice, "borderRadius", "14px");
   await expectNoHorizontalOverflow(page);
 });

@@ -88,3 +88,12 @@ jobs:
 
       - name: Test mobile frontend
         run: npm --prefix frontend run test:e2e
+
+      - name: Upload Playwright failure artifacts
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-failure-${{ github.run_id }}
+          path: frontend/test-results
+          if-no-files-found: ignore
+          retention-days: 3
