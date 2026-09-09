@@ -97,12 +97,8 @@ WHERE n.ativo = TRUE
   AND NULLIF(BTRIM(n.cep), '') IS NOT NULL
   AND NULLIF(BTRIM(n.localizacao_url), '') IS NOT NULL
   AND (
-    NULLIF(BTRIM(n.setor), '') IS NOT NULL
-    OR EXISTS (
-      SELECT 1
-      FROM negocio_areas na
-      WHERE na.negocio_id = n.id
-    )
+    COALESCE(CARDINALITY(n.areas), 0) > 0
+    OR NULLIF(BTRIM(COALESCE(n.setor, '')), '') IS NOT NULL
   )
   AND EXISTS (
     SELECT 1
