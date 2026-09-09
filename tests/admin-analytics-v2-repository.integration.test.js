@@ -7,7 +7,7 @@ const {
 describe("Admin Analytics V2 repository - regressão de CTE", () => {
   afterAll(() => db.end());
 
-  test("Visão geral consulta a tabela de negócios sem shadowing da CTE", async () => {
+  test("Visão geral resolve negócios, agendamentos e pagamentos nas tabelas físicas", async () => {
     await expect(buscarVisaoGeral("today")).resolves.toEqual(
       expect.objectContaining({
         periodo: "today",
