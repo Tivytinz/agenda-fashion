@@ -110,6 +110,10 @@ const perfilNegocioRoutes = require(
 /*
  * ADMINISTRAÇÃO
  */
+const adminAnalyticsV2Routes = require(
+  "./adminAnalyticsV2Routes"
+);
+
 const adminRoutes = require(
   "./adminRoutes"
 );
@@ -208,6 +212,10 @@ router.use(
 
 router.use(
   perfilNegocioRoutes
+);
+
+router.use(
+  adminAnalyticsV2Routes
 );
 
 router.use(
