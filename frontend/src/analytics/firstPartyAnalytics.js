@@ -57,6 +57,18 @@ function parseJson(value) {
   }
 }
 
+function mergeDefined(base = {}, incoming = {}) {
+  const merged = { ...base };
+
+  for (const [key, value] of Object.entries(incoming || {})) {
+    if (value !== undefined && value !== null && value !== "") {
+      merged[key] = value;
+    }
+  }
+
+  return merged;
+}
+
 function visitorUuid() {
   const current = readBrowserStorage("local", VISITOR_KEY);
   if (uuidValido(current)) return current.toLowerCase();
@@ -128,7 +140,10 @@ function ensureSession() {
       sequence: Number.isInteger(Number(stored.sequence))
         ? Number(stored.sequence)
         : 0,
-      acquisition: stored.acquisition || captureAcquisition()
+      acquisition: mergeDefined(
+        stored.acquisition || {},
+        captureAcquisition()
+      )
     });
   }
 
@@ -224,6 +239,18 @@ async function send(items, { keepalive = false } = {}) {
     if (!Array.isArray(items) || items.length === 0) return;
     const session = touchSession(ensureSession());
     const token = readBrowserStorage("local", "token");
+    const acquisition = mergeDefined(
+      session.acquisition || {},
+      captureAcquisition()
+    );
+
+    if (JSON.stringify(acquisition) !== JSON.stringify(session.acquisition || {})) {
+      writeSession({
+        ...session,
+        acquisition,
+        lastActivityAt: Date.now()
+      });
+    }
 
     await fetch(`${API_URL}/analytics/collect`, {
       method: "POST",
@@ -237,10 +264,7 @@ async function send(items, { keepalive = false } = {}) {
         visitorUuid: visitorUuid(),
         sessionUuid: session.id,
         device: deviceInfo(),
-        acquisition: {
-          ...session.acquisition,
-          ...captureAcquisition()
-        },
+        acquisition,
         items
       })
     });
@@ -474,5 +498,6 @@ export const firstPartyAnalyticsInternals = {
   route,
   captureAcquisition,
   deviceInfo,
+  mergeDefined,
   uuidValido
 };
