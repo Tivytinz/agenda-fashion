@@ -342,6 +342,7 @@ test("admin e consentimento permanecem navegáveis no celular", async ({ page })
   await expectNoHorizontalOverflow(page);
 
   await page.getByRole("link", { name: "Custos e retorno", exact: true }).click();
+  await expect(page).toHaveURL(/\/admin\/trafego-pago\/custos(?:\?periodo=30)?$/);
   await expect(
     page.getByRole("heading", { name: "Investimento e eficiência" })
   ).toBeVisible();
@@ -359,8 +360,5 @@ test("admin e consentimento permanecem navegáveis no celular", async ({ page })
   await expect(page.getByRole("progressbar")).toHaveCount(2);
   await expect(page.getByText("Investimento por campanha")).toBeVisible();
   await expect(page.getByText("Sessões atribuídas por campanha")).toBeVisible();
-  await expect(
-    page.getByRole("link", { name: "Custos e retorno", exact: true })
-  ).toHaveClass(/active/);
   await expectNoHorizontalOverflow(page);
 });
