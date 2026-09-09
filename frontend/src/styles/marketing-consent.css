@@ -163,6 +163,8 @@
   }
 
   .app-shell:has(.workspace-mobile-nav)
+  .marketing-consent-banner,
+  .app-shell:has(.admin-mobile-nav)
   .marketing-consent-banner {
     bottom: calc(82px + env(safe-area-inset-bottom));
     max-height: calc(100dvh - 94px - env(safe-area-inset-bottom));
