@@ -34,13 +34,14 @@ function percentual(parte, total) {
   return Number(((numero(parte) / denominator) * 100).toFixed(2));
 }
 
-function mapearVisaoGeral(bruto) {
+function mapearVisaoGeral(bruto, resumoFunil = {}) {
   const sessoes = numero(bruto.sessoes);
-  const cadastros = numero(bruto.cadastros_profissionais);
-  const negocios = numero(bruto.negocios_criados);
-  const publicados = numero(bruto.negocios_publicados);
-  const primeirosAgendamentos = numero(bruto.primeiros_agendamentos);
-  const negociosComPagamento = numero(bruto.negocios_com_pagamento);
+  const cadastros = numero(resumoFunil.cadastros);
+  const negocios = numero(resumoFunil.negociosCriados);
+  const servicos = numero(resumoFunil.servicosCriados);
+  const publicados = numero(resumoFunil.negociosPublicados);
+  const primeirosAgendamentos = numero(resumoFunil.primeirosAgendamentos);
+  const assinaturasAtivadas = numero(resumoFunil.assinaturasAtivadas);
 
   return {
     periodo: bruto.periodo,
@@ -58,30 +59,46 @@ function mapearVisaoGeral(bruto) {
     },
     ativacao: {
       negociosCriados: negocios,
+      servicosCriados: servicos,
       negociosPublicados: publicados,
       primeirosAgendamentos,
-      taxaNegocioSobreCadastro: percentual(negocios, cadastros),
-      taxaPublicacaoSobreCadastro: percentual(publicados, cadastros),
+      taxaNegocioSobreCadastro:
+        resumoFunil.taxaNegocio === undefined
+          ? percentual(negocios, cadastros)
+          : numero(resumoFunil.taxaNegocio),
+      taxaServicoSobreCadastro:
+        resumoFunil.taxaServico === undefined
+          ? percentual(servicos, cadastros)
+          : numero(resumoFunil.taxaServico),
+      taxaPublicacaoSobreCadastro:
+        resumoFunil.taxaPublicacao === undefined
+          ? percentual(publicados, cadastros)
+          : numero(resumoFunil.taxaPublicacao),
       taxaPrimeiroAgendamentoSobreCadastro:
-        percentual(primeirosAgendamentos, cadastros),
+        resumoFunil.taxaPrimeiroAgendamento === undefined
+          ? percentual(primeirosAgendamentos, cadastros)
+          : numero(resumoFunil.taxaPrimeiroAgendamento),
     },
     demanda: {
       agendamentosValidos: numero(bruto.agendamentos_validos),
     },
     receita: {
       pagamentosConfirmados: numero(bruto.pagamentos_confirmados),
-      negociosComPagamento,
+      negociosComPagamento: numero(bruto.negocios_com_pagamento),
       receitaConfirmada: numero(bruto.receita_confirmada),
-      taxaPagamentoSobreCadastro:
-        percentual(negociosComPagamento, cadastros),
+      assinaturasAtivadasCohorte: assinaturasAtivadas,
+      taxaAssinaturaSobreCadastro:
+        resumoFunil.taxaAssinatura === undefined
+          ? percentual(assinaturasAtivadas, cadastros)
+          : numero(resumoFunil.taxaAssinatura),
     },
     metodologia: {
       audiencia:
         "Sessões e tempo vêm do analytics first-party do AF e excluem a navegação em /admin.",
       ativacao:
-        "Cadastro profissional usa a atribuição canônica do backend; publicação usa primeira_publicacao_em; primeiro agendamento usa a primeira reserva não cancelada de cada negócio.",
+        "As taxas de cadastro, negócio, serviço, publicação e primeiro agendamento acompanham a mesma coorte de profissionais cadastrados no período, usando o funil profissional canônico do backend.",
       receita:
-        "Receita inclui somente pagamentos CONFIRMED/RECEIVED de planos pagos. Checkout e cadastro não contam como receita.",
+        "Conversão para assinatura usa a mesma coorte profissional. Receita e pagamentos confirmados são fatos financeiros ocorridos no período e não são divididos pelos cadastros como se fossem a mesma coorte.",
     },
   };
 }
@@ -113,8 +130,16 @@ function mapearCampanhasFunil(funil) {
 }
 
 async function buscarOverview(periodo) {
-  const bruto = await repository.buscarVisaoGeral(periodo);
-  return mapearVisaoGeral(bruto);
+  const periodoSeguro = repository.periodoSeguro(periodo);
+  const [bruto, funil] = await Promise.all([
+    repository.buscarVisaoGeral(periodoSeguro),
+    professionalFunnelService.buscarFunil({ periodo: periodoSeguro }),
+  ]);
+
+  return mapearVisaoGeral(
+    bruto,
+    funil?.resumo || {}
+  );
 }
 
 async function buscarAcquisition(periodo) {
