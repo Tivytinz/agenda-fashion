@@ -243,7 +243,6 @@ test("profissional vai da landing à publicação e divulgação sem confirmar h
   expect(schedulePayload).toBeNull();
   await expect(page.getByRole("button", { name: "Confirmar horários e publicar" })).toHaveCount(0);
 
-  await page.goto("/painel");
   await expect(page.getByText("Próximo passo")).toBeVisible();
   await expect(page.getByText(/Copilot AF/i)).toHaveCount(0);
   await expect(page.getByRole("heading", { name: "Divulgue seu perfil" })).toBeVisible();
