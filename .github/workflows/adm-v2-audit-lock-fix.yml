@@ -27,7 +27,7 @@ jobs:
       - name: Refresh audited lockfiles
         run: |
           npm audit fix --package-lock-only --ignore-scripts
-          npm --prefix frontend audit fix --package-lock-only --ignore-scripts
+          npm --prefix frontend audit fix --package-lock-only --ignore-scripts || true
           git checkout -- package.json frontend/package.json
 
       - name: Verify audits
