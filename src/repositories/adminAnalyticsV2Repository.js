@@ -325,14 +325,16 @@ async function buscarReceita(periodo = "30") {
           ${filtroPagamento}
       ),
       primeiros AS (
-        SELECT
+        SELECT DISTINCT ON (pg.assinatura_id)
           pg.assinatura_id,
-          MIN(pg.id) FILTER (
-            WHERE UPPER(pg.status) IN ('CONFIRMED', 'RECEIVED')
-              AND pg.data_pagamento IS NOT NULL
-          ) AS pagamento_id
+          pg.id AS pagamento_id
         FROM pagamentos pg
-        GROUP BY pg.assinatura_id
+        WHERE UPPER(pg.status) IN ('CONFIRMED', 'RECEIVED')
+          AND pg.data_pagamento IS NOT NULL
+        ORDER BY
+          pg.assinatura_id,
+          pg.data_pagamento ASC,
+          pg.id ASC
       ),
       primeiros_pagamentos AS (
         SELECT
@@ -345,8 +347,7 @@ async function buscarReceita(periodo = "30") {
           ON a.id = fp.assinatura_id
         INNER JOIN planos pl
           ON pl.id = a.plano_id
-        WHERE p.pagamento_id IS NOT NULL
-          AND pl.valor > 0
+        WHERE pl.valor > 0
           ${filtroPrimeiroPagamento}
       ),
       ativas AS (
