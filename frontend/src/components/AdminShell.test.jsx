@@ -50,9 +50,11 @@ describe("AdminShell", () => {
   it("mantém os módulos principais no desktop e na navegação mobile", () => {
     renderAdmin("/admin/aquisicao?periodo=30d");
 
-    expect(
-      screen.getAllByRole("link", { name: /Aquisição/ })
-    ).toHaveLength(2);
+    const acquisitionLinks = screen.getAllByRole("link", {
+      name: /Aquisição/
+    });
+
+    expect(acquisitionLinks).toHaveLength(2);
     expect(
       screen.getAllByRole("link", { name: /Jornada/ })
     ).toHaveLength(2);
@@ -68,7 +70,7 @@ describe("AdminShell", () => {
       mobileNavigation.querySelectorAll(".admin-mobile-link")
     ).toHaveLength(4);
     expect(
-      screen.getByRole("link", { name: /Aquisição/ }).classList.contains("active")
+      acquisitionLinks.every((link) => link.classList.contains("active"))
     ).toBe(true);
   });
 
