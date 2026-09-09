@@ -47,7 +47,7 @@ function filtroData(periodo, expressao) {
   return inicio ? `AND ${expressao} >= ${inicio}` : "";
 }
 
-async function buscarVisaoGeral(periodo = "30") {
+async function buscarVisaoGeral(periodo = "30", executor = db) {
   const seguro = periodoSeguro(periodo);
   const filtroSessao = filtroTimestamp(seguro, "s.iniciada_em");
   const filtroCadastro = filtroTimestamp(seguro, "mua.atribuicao_em");
@@ -57,7 +57,7 @@ async function buscarVisaoGeral(periodo = "30") {
   const filtroPrimeiroAgendamento = filtroTimestamp(seguro, "p.primeiro_agendamento_em");
   const filtroPagamento = filtroData(seguro, "pg.data_pagamento");
 
-  const resultado = await db.query(
+  const resultado = await executor.query(
     `
     WITH
     sessoes AS (
@@ -291,14 +291,14 @@ async function buscarJornada(periodo = "30") {
   };
 }
 
-async function buscarReceita(periodo = "30") {
+async function buscarReceita(periodo = "30", executor = db) {
   const seguro = periodoSeguro(periodo);
   const filtroCheckout = filtroTimestamp(seguro, "ct.created_at");
   const filtroPagamento = filtroData(seguro, "pg.data_pagamento");
   const filtroPrimeiroPagamento = filtroData(seguro, "fp.data_pagamento");
 
   const [resumo, planos] = await Promise.all([
-    db.query(
+    executor.query(
       `
       WITH checkouts AS (
         SELECT
@@ -399,7 +399,7 @@ async function buscarReceita(periodo = "30") {
       CROSS JOIN ativas a
       `
     ),
-    db.query(
+    executor.query(
       `
       SELECT
         pl.id,
