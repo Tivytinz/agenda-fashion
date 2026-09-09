@@ -33,7 +33,7 @@ const RESULT = {
     perfilIncompleto: 4,
     semDescricao: 2,
     semServico: 3,
-    semAgenda: 5,
+    disponibilidadeNaoInicializada: 5,
     naoPublicados: 4,
     semPrimeiroAgendamento: 1,
     completos: 1
@@ -61,19 +61,19 @@ const RESULT = {
       },
       progresso: {
         etapasConcluidas: 2,
-        totalEtapas: 6,
-        percentual: 33,
-        etapasRestantes: 4
+        totalEtapas: 5,
+        percentual: 40,
+        etapasRestantes: 3
       },
       prioridade: "alta",
       proximaAcao: {
-        codigo: "agenda",
-        rotulo: "Configurar agenda"
+        codigo: "servico",
+        rotulo: "Cadastrar primeiro serviço"
       },
       pendencias: [
         {
-          codigo: "agenda",
-          rotulo: "Configurar agenda"
+          codigo: "servico",
+          rotulo: "Cadastrar primeiro serviço"
         },
         {
           codigo: "descricao",
@@ -115,10 +115,11 @@ describe("ativação profissional no admin", () => {
     ).not.toBeNull();
     expect(screen.getByText("Ana Souza")).not.toBeNull();
     expect(screen.getByText("Studio Ana")).not.toBeNull();
-    expect(screen.getByText("Configurar agenda")).not.toBeNull();
+    expect(screen.getByText("Cadastrar primeiro serviço")).not.toBeNull();
     expect(screen.getByText("Ver mais 1 item")).not.toBeNull();
     expect(screen.queryByText("Publicar perfil")).toBeNull();
-    expect(screen.getByLabelText("33% da ativação concluída")).not.toBeNull();
+    expect(screen.getByLabelText("40% da ativação concluída")).not.toBeNull();
+    expect(screen.getByText("2 de 5 concluídas")).not.toBeNull();
     expect(screen.getByText("(11) 98765-4321")).not.toBeNull();
     expect(screen.queryByRole("columnheader", { name: "Ações" })).toBeNull();
     expect(document.querySelector(".admin-card-table-mobile")).not.toBeNull();
@@ -129,36 +130,38 @@ describe("ativação profissional no admin", () => {
     expect(whatsapp.getAttribute("href")).toContain("wa.me/5511987654321");
     expect(whatsapp.getAttribute("target")).toBe("_blank");
     expect(decodeURIComponent(whatsapp.getAttribute("href")))
-      .toContain("Configurar agenda");
+      .toContain("Cadastrar primeiro serviço");
     expect(decodeURIComponent(whatsapp.getAttribute("href")))
       .not.toContain("Adicionar descrição");
     expect(email.getAttribute("href")).toContain("mailto:ana@example.com");
   });
 
   it("inicializa filtro e busca a partir do deep link", async () => {
-    renderPage("/admin/saude?pendencia=agenda&busca=Ana%20Souza");
+    renderPage("/admin/saude?pendencia=disponibilidade&busca=Ana%20Souza");
 
     await screen.findByText("Ana Souza");
-    expect(screen.getByRole("button", { name: "Sem agenda" }).getAttribute("aria-pressed")).toBe("true");
+    expect(screen.getByRole("button", { name: "Disponibilidade não inicializada (5)" }).getAttribute("aria-pressed")).toBe("true");
     expect(screen.getByRole("searchbox", { name: "Buscar profissional" }).value).toBe("Ana Souza");
     expect(apiRequest).toHaveBeenCalledWith(
-      expect.stringMatching(/pendencia=agenda.*busca=Ana\+Souza/),
+      expect.stringMatching(/pendencia=disponibilidade.*busca=Ana\+Souza/),
       expect.objectContaining({ signal: expect.any(AbortSignal) })
     );
   });
 
-  it("aplica filtro de agenda e volta para a primeira página", async () => {
+  it("separa disponibilidade técnica das pendências de ativação", async () => {
     const user = userEvent.setup();
     renderPage();
     await screen.findByText("Ana Souza");
     apiRequest.mockClear();
 
-    const filters = screen.getByLabelText("Filtrar por pendência");
-    await user.click(within(filters).getByRole("button", { name: "Sem agenda" }));
+    const activationFilters = screen.getByLabelText("Filtrar por pendência de ativação");
+    expect(within(activationFilters).queryByRole("button", { name: /Disponibilidade|agenda$/ })).toBeNull();
+    const filters = screen.getByLabelText("Filtrar diagnósticos técnicos");
+    await user.click(within(filters).getByRole("button", { name: "Disponibilidade não inicializada (5)" }));
 
     await waitFor(() => {
       expect(apiRequest).toHaveBeenCalledWith(
-        expect.stringContaining("pendencia=agenda"),
+        expect.stringContaining("pendencia=disponibilidade&pagina=1"),
         expect.objectContaining({ signal: expect.any(AbortSignal) })
       );
     });
@@ -182,7 +185,7 @@ describe("ativação profissional no admin", () => {
     });
   });
 
-  it("usa o primeiro agendamento válido como sexta etapa da ativação", async () => {
+  it("usa o primeiro agendamento válido como quinta etapa da ativação", async () => {
     const user = userEvent.setup();
     renderPage();
     await screen.findByText("Ana Souza");

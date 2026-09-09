@@ -9,10 +9,11 @@ describe("navegação administrativa", () => {
   it("mantém apenas módulos do AF no nível principal", () => {
     expect(ADMIN_LINKS).toEqual([
       ["/admin", "Visão geral", "home"],
-      ["/admin/saude", "Ativação", "health"],
-      ["/admin/operacao", "Operação", "business"],
-      ["/admin/trafego-pago", "Marketing", "marketing"],
-      ["/admin/whatsapp", "WhatsApp", "whatsapp"]
+      ["/admin/aquisicao", "Aquisição", "marketing"],
+      ["/admin/jornada", "Jornada", "health"],
+      ["/admin/retencao", "Retenção", "business"],
+      ["/admin/receita", "Receita", "plan"],
+      ["/admin/operacao", "Operação", "calendar"]
     ]);
     expect(ADMIN_LINKS.some(([path]) => path === "/conta")).toBe(false);
   });

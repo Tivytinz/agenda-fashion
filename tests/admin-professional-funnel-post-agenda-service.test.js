@@ -12,19 +12,14 @@ function linha(overrides = {}) {
     cadastros: 10,
     negocios_criados: 9,
     servicos_criados: 8,
-    agendas_configuradas: 8,
     negocios_publicados: 7,
-    perfis_divulgados: 6,
-    visitas_pos_divulgacao: 4,
-    agendamentos_iniciados_pos_divulgacao: 3,
-    primeiros_agendamentos_via_divulgacao: 2,
     primeiros_agendamentos: 3,
     checkouts_iniciados: 1,
     assinaturas_ativadas: 0,
-    cadastros_maduros_ativacao: 0,
+    cadastros_maduros_ativacao: 10,
     cadastros_maduros_monetizacao: 0,
-    negocios_publicados_maduros_ativacao: 0,
-    primeiros_agendamentos_maduros_ativacao: 0,
+    negocios_publicados_maduros_ativacao: 7,
+    primeiros_agendamentos_maduros_ativacao: 3,
     assinaturas_ativadas_maduras_monetizacao: 0,
     investimento_centavos: 10000,
     receita_primeiro_pagamento_centavos: 0,
@@ -32,76 +27,44 @@ function linha(overrides = {}) {
   };
 }
 
-describe("funil profissional pós-agenda", () => {
-  test("mapeia quantidades e conversões entre etapas consecutivas", () => {
-    const campanha = service.mapearLinha(
-      linha()
-    );
+describe("funil profissional canônico", () => {
+  test("mapeia os marcos de aquisição sem transformar disponibilidade em etapa", () => {
+    const campanha = service.mapearLinha(linha());
 
     expect(campanha).toMatchObject({
-      agendasConfiguradas: 8,
-      perfisDivulgados: 6,
-      visitasPosDivulgacao: 4,
-      agendamentosIniciadosPosDivulgacao: 3,
-      primeirosAgendamentosViaDivulgacao: 2,
-      taxaDivulgacaoPosAgenda: 75,
-      taxaVisitaPosDivulgacao: 66.67,
-      taxaInicioPosVisita: 75,
-      taxaConclusaoPosInicio: 66.67,
+      cadastros: 10,
+      negociosCriados: 9,
+      servicosCriados: 8,
+      negociosPublicados: 7,
+      primeirosAgendamentos: 3,
+      checkoutsIniciados: 1,
+      assinaturasAtivadas: 0,
+      taxaPublicacao: 70,
+      taxaPrimeiroAgendamento: 30,
+      taxaCheckout: 10,
     });
+    expect(campanha).not.toHaveProperty("agendasConfiguradas");
+    expect(campanha).not.toHaveProperty("taxaAgenda");
+    expect(campanha).not.toHaveProperty("perfisDivulgados");
+    expect(campanha).not.toHaveProperty("taxaDivulgacaoPosAgenda");
   });
 
-  test("consolida e resume os novos marcos sem alterar o primeiro agendamento real", () => {
-    const consolidadas =
-      service.consolidarLinhasCampanha([
-        linha({
-          cadastros: 5,
-          agendas_configuradas: 4,
-          perfis_divulgados: 3,
-          visitas_pos_divulgacao: 2,
-          agendamentos_iniciados_pos_divulgacao: 1,
-          primeiros_agendamentos_via_divulgacao: 1,
-          primeiros_agendamentos: 2,
-        }),
-        linha({
-          cadastros: 5,
-          agendas_configuradas: 4,
-          perfis_divulgados: 3,
-          visitas_pos_divulgacao: 2,
-          agendamentos_iniciados_pos_divulgacao: 2,
-          primeiros_agendamentos_via_divulgacao: 1,
-          primeiros_agendamentos: 1,
-        }),
-      ]);
+  test("consolida somente os marcos canônicos por identidade e classificação", () => {
+    const consolidadas = service.consolidarLinhasCampanha([
+      linha({ cadastros: 5, primeiros_agendamentos: 2 }),
+      linha({ cadastros: 5, primeiros_agendamentos: 1 }),
+    ]);
 
     expect(consolidadas).toHaveLength(1);
     expect(consolidadas[0]).toMatchObject({
       cadastros: 10,
-      agendas_configuradas: 8,
-      perfis_divulgados: 6,
-      visitas_pos_divulgacao: 4,
-      agendamentos_iniciados_pos_divulgacao: 3,
-      primeiros_agendamentos_via_divulgacao: 2,
+      negocios_criados: 18,
+      servicos_criados: 16,
+      negocios_publicados: 14,
       primeiros_agendamentos: 3,
+      checkouts_iniciados: 2,
     });
-
-    const resumo = service.criarResumo(
-      consolidadas.map((item) =>
-        service.mapearLinha(item)
-      )
-    );
-
-    expect(resumo).toMatchObject({
-      agendasConfiguradas: 8,
-      perfisDivulgados: 6,
-      visitasPosDivulgacao: 4,
-      agendamentosIniciadosPosDivulgacao: 3,
-      primeirosAgendamentosViaDivulgacao: 2,
-      primeirosAgendamentos: 3,
-      taxaDivulgacaoPosAgenda: 75,
-      taxaVisitaPosDivulgacao: 66.67,
-      taxaInicioPosVisita: 75,
-      taxaConclusaoPosInicio: 66.67,
-    });
+    expect(consolidadas[0]).not.toHaveProperty("agendas_configuradas");
+    expect(consolidadas[0]).not.toHaveProperty("perfis_divulgados");
   });
 });

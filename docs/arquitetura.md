@@ -597,35 +597,38 @@ permitidos.
 
 ### 8.3 Onboarding e publicação do negócio
 
-A publicação continua automática, com dois regimes compatíveis:
+A publicação é automática quando o negócio possui todos os dados estruturais
+obrigatórios e pelo menos um serviço ativo. Horários, descrição, complemento e
+fotos não são requisitos de publicação. O campo `publicacao_exige_agenda`
+permanece somente por compatibilidade; as migrations 064/065 removem o gate e
+inicializam a disponibilidade ausente.
 
-1. negócios legados preservam os requisitos anteriores: especialidade,
-   WhatsApp, cidade, estado e pelo menos um serviço ativo;
-2. negócios criados no fluxo novo exigem todos os dados obrigatórios da
-   criação, pelo menos um serviço ativo e uma agenda confirmada por um dono ou
-   profissional ativo do negócio.
+O contato público canônico é `whatsapp`. O alias `whatsapp_negocio` permanece
+para leitura e nunca prevalece sobre o campo canônico em uma atualização.
+WhatsApp, CEP, UF e URL HTTP/HTTPS de localização são validados no backend;
+publicação automática e backfill também rejeitam texto sem URL ou sem host.
 
-A coluna `negocios.publicacao_exige_agenda` identifica o fluxo novo. A
-migration cria a coluna com `DEFAULT FALSE` para não alterar negócios já
-existentes. O repositório do fluxo novo grava `TRUE` explicitamente nos novos
-cadastros.
+Criar o negócio inicializa a disponibilidade na mesma transação: segunda a
+sexta, 08:00–18:00 com pausa 12:00–13:00; sábado, 08:00–13:00; domingo fechado.
+`configurado_em` indica inicialização técnica. `origem_horarios` diferencia
+`padrao_af`, `personalizado` e `legado_desconhecido`. A migração preserva horários
+com edição anterior comprovada e não os substitui pela sugestão automática.
 
-O campo canônico do contato público é `whatsapp`. O alias
-`whatsapp_negocio` existe apenas para compatibilidade de leitura e nunca deve
-prevalecer quando os dois campos são enviados em uma atualização.
+Salvar o perfil e alterar serviços recalcula a publicação na mesma transação.
+Um perfil sem dados obrigatórios ou sem serviço ativo perde a elegibilidade.
+Após publicar, a sessão é atualizada antes de navegar ao painel ou ao checkout
+do plano previamente escolhido. A intenção de plano permanece na URL quando
+é necessário corrigir os dados do negócio.
 
-A descrição melhora a confiança e a qualidade do perfil, mas é opcional e não
-impede a criação ou a publicação. Foto e complemento também são opcionais. A
-Saúde do SaaS continua sinalizando a ausência da descrição como recomendação
-para acompanhamento administrativo.
+A Saúde do SaaS usa cinco etapas: negócio, dados essenciais, serviço ativo,
+publicação e primeiro agendamento não cancelado. Disponibilidade é diagnóstico
+técnico; descrição é recomendação opcional. Reprocessar publicação automática
+tem prioridade sobre reparar disponibilidade quando ambos coexistem.
 
-Para o fluxo novo, `agenda_configuracoes.configurado_em` é o marco canônico da
-confirmação dos horários e faz parte da elegibilidade. Salvar o perfil, criar,
-ativar, desativar ou remover um serviço e confirmar a agenda devem recalcular a
-publicação na mesma transação da alteração principal. Se o perfil ficar
-incompleto ou o negócio perder todos os serviços ativos, ele sai do catálogo
-público. A confirmação de agenda não é exigida retroativamente dos negócios
-legados.
+O Admin 2.0 organiza Visão geral, Aquisição, Jornada, Retenção e Receita a partir
+de analytics first-party e fatos do backend. Receita continua dependendo de
+pagamentos confirmados. A rota antiga de funil profissional abre Aquisição 2.0;
+seus componentes de pós-agenda foram removidos.
 
 ### 8.4 Assinaturas e pagamentos
 

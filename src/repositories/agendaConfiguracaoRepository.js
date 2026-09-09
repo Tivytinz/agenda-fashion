@@ -67,9 +67,10 @@ async function criarConfiguracao({
       duracao_padrao,
       intervalo_minutos,
       antecedencia_agendamento,
-      antecedencia_cancelamento
+      antecedencia_cancelamento,
+      origem_horarios
     )
-    VALUES ($1,$2,$3,$4,$5)
+    VALUES ($1,$2,$3,$4,$5,'padrao_af')
     RETURNING *
     `,
     [
@@ -127,6 +128,12 @@ async function marcarConfigurada(
         configurado_em,
         NOW()
       ),
+      origem_horarios = 'personalizado',
+      primeira_personalizacao_em = COALESCE(
+        primeira_personalizacao_em,
+        NOW()
+      ),
+      ultima_personalizacao_em = NOW(),
       updated_at = NOW()
     WHERE profissional_id = $1
     RETURNING *

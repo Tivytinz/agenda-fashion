@@ -1,7 +1,7 @@
 # Memoria operacional do Agenda Fashion
 
-> Contexto permanente para agentes de desenvolvimento. Atualizado em 31 de
-> agosto de 2026.
+> Contexto permanente para agentes de desenvolvimento. Atualizado em 9 de
+> setembro de 2026.
 
 Este arquivo deve ser lido antes de analisar, planejar ou alterar o projeto.
 Ele registra a direcao do produto e as regras que nao podem ser perdidas entre
@@ -73,31 +73,40 @@ AF nao demonstra valor para os negocios.
   legados.
 - A descricao do negocio melhora a qualidade do perfil, mas e opcional e nao
   pode bloquear a criacao ou a publicacao.
-- Negocios criados no fluxo novo so podem ser publicados depois de reunir
-  todos os dados obrigatorios da criacao, ao menos um servico ativo e horarios
-  confirmados. `agenda_configuracoes.configurado_em` e o marco canonico da
-  confirmacao. O marcador `negocios.publicacao_exige_agenda` separa essa regra
-  da compatibilidade legada.
-- Negocios existentes antes desse gate preservam os criterios anteriores de
-  publicacao, sem despublicacao ou exigencia retroativa da agenda. Um perfil
-  legado ainda pode permanecer publico antes de confirmar horarios, mas nao
-  deve oferecer horarios reservaveis nem aceitar agendamentos online.
-- Horarios padrao sao apenas uma sugestao ate a confirmacao explicita do
-  profissional; configuracoes legadas so podem ser recuperadas quando houver
-  evidencia persistida de edicao anterior.
-- O primeiro servico nao publica sozinho um negocio do fluxo novo. A interface
-  deve conduzir o dono diretamente para confirmar os horarios. O progresso
-  `Negocio → Servico → Horarios` deve permanecer visivel e a missao do primeiro
-  servico deve sobreviver a recarga por URL, sem depender apenas de estado de
-  navegacao em memoria.
-- Depois da primeira configuracao valida, o backend recalcula a elegibilidade;
-  se todos os requisitos estiverem confirmados, publica o negocio e conduz para
-  divulgacao do perfil e primeiro agendamento. O compartilhamento deve
-  reutilizar os links publicos rastreaveis do AF, sem criar uma segunda
-  mecanica de share ou perder a origem do acesso.
+- A publicacao e automatica quando o negocio possui os dados estruturais
+  obrigatorios e ao menos um servico ativo. Confirmar ou editar horarios nao e
+  requisito para publicar e nao deve ser reintroduzido como gate de ativacao.
+- O campo `negocios.publicacao_exige_agenda` permanece apenas por
+  compatibilidade com migrations e dados legados. O runtime atual nao deve
+  usa-lo para exigir confirmacao manual de agenda antes da publicacao.
+- Ao criar o negocio, o backend cria na mesma transacao uma disponibilidade
+  inicial padrao para o dono: segunda a sexta das 08:00 as 18:00, com intervalo
+  das 12:00 as 13:00; sabado das 08:00 as 13:00; domingo sem atendimento. A
+  origem `padrao_af` identifica esse estado automatico e o profissional pode
+  personaliza-lo depois.
+- `agenda_configuracoes.configurado_em` e um marcador tecnico de
+  disponibilidade inicializada. Ele nao representa confirmacao manual, nao e
+  etapa de ativacao e nao pode ser usado para bloquear publicacao ou medir
+  conclusao de onboarding.
+- O primeiro servico ativo pode publicar automaticamente o negocio quando o
+  restante do perfil ja estiver elegivel. O onboarding principal deve conduzir
+  `Negocio → Servico → Divulgacao/primeiro agendamento`; personalizar horarios
+  e uma configuracao posterior, acessivel e importante para qualidade, mas nao
+  uma escolha obrigatoria antes de entregar valor.
+- A elegibilidade de publicacao deve continuar sendo recalculada no backend.
+  Se o negocio perder o ultimo servico ativo ou deixar de atender os requisitos
+  estruturais obrigatorios, ele pode ser despublicado ate voltar a ficar
+  elegivel.
+- Depois da publicacao, a interface deve conduzir para divulgacao do perfil e
+  primeiro agendamento. O compartilhamento deve reutilizar os links publicos
+  rastreaveis do AF, sem criar uma segunda mecanica de share ou perder a origem
+  do acesso.
 - Links antigos de perfis devem continuar funcionando quando o slug mudar.
 - O dashboard deve traduzir dados em crescimento compreensivel, nao apenas
   exibir numeros soltos.
+- A ativacao administrativa tem cinco etapas: negocio criado, dados essenciais,
+  servico ativo, publicacao e primeiro agendamento nao cancelado. Disponibilidade
+  e diagnostico tecnico separado, sem alterar o percentual de ativacao.
 - A experiencia deve ser simples no celular, inclusive em telas pequenas e no
   Safari/WebKit.
 - Estados de carregamento, vazio, erro, sucesso e sessao expirada fazem parte

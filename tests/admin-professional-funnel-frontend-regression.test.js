@@ -1,41 +1,30 @@
 const fs = require("fs");
 const path = require("path");
 
-const pagina = fs.readFileSync(
+const paginas = fs.readFileSync(
   path.join(
     __dirname,
-    "../frontend/src/pages/AdminProfessionalFunnelPage.jsx"
+    "../frontend/src/pages/AdminAnalyticsV2Pages.jsx"
   ),
+  "utf8"
+);
+const app = fs.readFileSync(
+  path.join(__dirname, "../frontend/src/App.jsx"),
   "utf8"
 );
 
 describe(
-  "painel administrativo do funil profissional",
+  "painel administrativo de aquisição 2.0",
   () => {
     test(
-      "separa funil operacional de métricas financeiras atribuídas",
+      "mantém métricas de aquisição e a compatibilidade da rota legada",
       () => {
-        expect(pagina).toContain(
-          "const operationalSummary = data?.resumo"
-        );
-        expect(pagina).toContain(
-          "const financialSummary = data?.resumoOficial"
-        );
-        expect(pagina).toContain(
-          "Investimento por cadastro total"
-        );
-        expect(pagina).toContain(
-          "diagnóstico bruto, não CPA atribuído"
-        );
-        expect(pagina).toContain(
-          "todos os profissionais cadastrados no período selecionado"
-        );
-        expect(pagina).toContain(
-          "somente na coorte com atribuição oficial"
-        );
-        expect(pagina).toContain(
-          "CAC, ROAS e decisões de orçamento permanecem bloqueados"
-        );
+        expect(paginas).toContain("AdminAcquisitionV2Page");
+        expect(paginas).toContain("CAC");
+        expect(paginas).toContain("ROAS");
+        expect(paginas).toContain("qualidadeMensuracao");
+        expect(app).toContain("path={reactRoutes.adminProfessionals}");
+        expect(app).toContain("element={<AdminAcquisitionPage />}");
       }
     );
   }

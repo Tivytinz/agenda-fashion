@@ -4,6 +4,9 @@ import {
   writeBrowserStorage
 } from "../utils/browserStorage";
 import {
+  trackFirstPartyEvent
+} from "./firstPartyAnalytics";
+import {
   getMarketingConsent,
   MARKETING_CONSENT
 } from "./marketingConsent";
@@ -372,6 +375,12 @@ export function track(name, {
   properties = {}
 }) {
   try {
+    trackFirstPartyEvent(name, {
+      businessId,
+      serviceId: properties.servico_id,
+      properties
+    });
+
     const attribution = captureAttribution();
     const marketingAllowed =
       getMarketingConsent() ===

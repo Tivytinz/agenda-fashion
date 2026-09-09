@@ -20,19 +20,8 @@ jest.mock(
   })
 );
 
-jest.mock(
-  "../src/repositories/servicosRepository",
-  () => ({
-    sincronizarPublicacaoAutomatica:
-      jest.fn(),
-  })
-);
-
 const repository = require(
   "../src/repositories/agendaConfiguracaoRepository"
-);
-const servicosRepository = require(
-  "../src/repositories/servicosRepository"
 );
 
 const service = require(
@@ -149,13 +138,6 @@ describe(
             )
         );
 
-      servicosRepository
-        .sincronizarPublicacaoAutomatica
-        .mockResolvedValue({
-          id: 11,
-          publicado: true,
-          pode_publicar: true,
-        });
     });
 
     test(
@@ -181,6 +163,8 @@ describe(
           configurada: true,
           configurado_em:
             "2026-08-28T22:00:00.000Z",
+          origem_horarios: "padrao_af",
+          personalizada: false,
         });
 
         expect(
@@ -264,28 +248,6 @@ describe(
         );
 
         expect(
-          servicosRepository
-            .sincronizarPublicacaoAutomatica
-        ).toHaveBeenCalledWith(
-          11,
-          client,
-          {
-            preservarPublicacaoLegada:
-              true,
-          }
-        );
-
-        expect(
-          servicosRepository
-            .sincronizarPublicacaoAutomatica
-            .mock.invocationCallOrder[0]
-        ).toBeGreaterThan(
-          repository
-            .marcarConfigurada
-            .mock.invocationCallOrder[0]
-        );
-
-        expect(
           resultado.configuracao
             .configurado_em
         ).toBeTruthy();
@@ -293,15 +255,12 @@ describe(
         expect(
           resultado.mensagem
         ).toBe(
-          "Horários confirmados. Seu negócio está publicado."
+          "Horários personalizados com sucesso."
         );
 
         expect(
           resultado.publicacao
-        ).toEqual({
-          publicado: true,
-          pode_publicar: true,
-        });
+        ).toBeNull();
 
         expect(
           resultado.horarios
@@ -310,7 +269,7 @@ describe(
     );
 
     test(
-      "não confirma a primeira agenda sem nenhum dia ativo",
+      "permite salvar uma disponibilidade sem dia ativo sem bloquear a publicação",
       async () => {
         const horariosFechados = horarios.map(
           (horario) => ({
@@ -332,24 +291,20 @@ describe(
             antecedenciaCancelamento: 24,
             horarios: horariosFechados,
           })
-        ).rejects.toMatchObject({
-          statusCode: 400,
-          message:
-            "Escolha pelo menos um dia de atendimento antes de confirmar a agenda.",
+        ).resolves.toMatchObject({
+          mensagem: "Horários personalizados com sucesso.",
+          publicacao: null,
         });
 
         expect(
           repository.atualizarConfiguracao
-        ).not.toHaveBeenCalled();
+        ).toHaveBeenCalled();
         expect(
           repository.salvarHorario
-        ).not.toHaveBeenCalled();
+        ).toHaveBeenCalledTimes(7);
         expect(
           repository.marcarConfigurada
-        ).not.toHaveBeenCalled();
-        expect(
-          servicosRepository.sincronizarPublicacaoAutomatica
-        ).not.toHaveBeenCalled();
+        ).toHaveBeenCalled();
       }
     );
 
@@ -359,6 +314,7 @@ describe(
         repository.buscarConfiguracao.mockResolvedValue({
           profissional_id: 7,
           configurado_em: "2026-08-28T22:00:00.000Z",
+          origem_horarios: "personalizado",
         });
 
         const horariosFechados = horarios.map(
@@ -383,7 +339,7 @@ describe(
           })
         ).resolves.toMatchObject({
           mensagem:
-            "Horários de atendimento atualizados com sucesso.",
+            "Horários atualizados com sucesso.",
         });
 
         expect(
@@ -461,10 +417,6 @@ describe(
             .marcarConfigurada
         ).not.toHaveBeenCalled();
 
-        expect(
-          servicosRepository
-            .sincronizarPublicacaoAutomatica
-        ).not.toHaveBeenCalled();
       }
     );
   }

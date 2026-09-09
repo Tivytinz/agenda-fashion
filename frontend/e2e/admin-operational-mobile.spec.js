@@ -44,7 +44,7 @@ test("ativação usa deep link e vira cartões sem overflow no celular", async (
       semNegocio: 1,
       perfilIncompleto: 1,
       semServico: 2,
-      semAgenda: 5,
+      disponibilidadeNaoInicializada: 5,
       naoPublicados: 3
     },
     perfis: [{
@@ -57,19 +57,19 @@ test("ativação usa deep link e vira cartões sem overflow no celular", async (
       ultimaAtividadeEm: "2026-09-04T12:00:00.000Z",
       negocio: { nome: "Studio Ana", cidade: "São Paulo", estado: "SP", publicado: false },
       progresso: { etapasConcluidas: 3, percentual: 60, etapasRestantes: 2 },
-      proximaAcao: { codigo: "agenda", rotulo: "Configurar agenda" },
-      pendencias: [{ codigo: "agenda", rotulo: "Configurar agenda" }]
+      proximaAcao: { codigo: "disponibilidade", rotulo: "Reprocessar disponibilidade inicial", tipo: "sistema" },
+      pendencias: [{ codigo: "disponibilidade", rotulo: "Reprocessar disponibilidade inicial", tipo: "sistema" }]
     }],
     paginacao: { pagina: 1, limite: 25, total: 1, totalPaginas: 1 }
   }));
 
-  await page.goto("/admin/saude?pendencia=agenda");
+  await page.goto("/admin/saude?pendencia=disponibilidade");
   await expect(page.getByRole("heading", { name: "Ativação profissional" })).toBeVisible();
-  await expect(page.getByLabel("Filtrar por pendência")
-    .getByRole("button", { name: "Sem agenda", exact: true }))
+  await expect(page.getByLabel("Filtrar diagnósticos técnicos")
+    .getByRole("button", { name: "Disponibilidade não inicializada (5)", exact: true }))
     .toHaveAttribute("aria-pressed", "true");
   await expect(page.getByText("Ana Souza")).toBeVisible();
-  await expect(page.getByText("Configurar agenda")).toBeVisible();
+  await expect(page.getByText("Reprocessar disponibilidade inicial")).toBeVisible();
   await expectNoHorizontalOverflow(page);
 });
 

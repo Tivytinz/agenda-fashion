@@ -62,6 +62,13 @@ jest.mock(
   })
 );
 
+jest.mock(
+  "../src/repositories/dashboardActivationRepository",
+  () => ({
+    buscarEstadoAtivacao: jest.fn(),
+  })
+);
+
 const jwt = require(
   "jsonwebtoken"
 );
@@ -80,6 +87,10 @@ const dashboardRepository = require(
 
 const dashboardRetentionRepository = require(
   "../src/repositories/dashboardRetentionRepository"
+);
+
+const dashboardActivationRepository = require(
+  "../src/repositories/dashboardActivationRepository"
 );
 
 const authSessionRepository =
@@ -308,6 +319,16 @@ describe(
     beforeEach(
       () => {
         jest.resetAllMocks();
+
+        dashboardActivationRepository
+          .buscarEstadoAtivacao
+          .mockResolvedValue({
+            possui_servico: true,
+            possui_servico_ativo: true,
+            negocio_publicado: true,
+            agenda_configurada: false,
+            primeiro_agendamento_recebido: false,
+          });
 
         authSessionRepository
           .buscarEstadoDaSessao

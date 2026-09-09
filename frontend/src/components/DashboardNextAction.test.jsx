@@ -76,10 +76,10 @@ describe(
         "/painel/servicos/novo?onboarding=servico",
       ],
       [
-        "CONFIRMAR_AGENDA",
-        "Confirme seus horários",
-        "Confirmar horários",
-        "/painel/horarios",
+        "GARANTIR_SERVICO_ATIVO",
+        "Ative seus serviços",
+        "Gerenciar serviços",
+        "/painel/servicos",
       ],
       [
         "REVISAR_PUBLICACAO",
@@ -138,18 +138,18 @@ describe(
       () => {
         renderAction({
           estado:
-            "CONFIRMAR_AGENDA",
+            "REVISAR_PUBLICACAO",
           concluido: false,
           titulo:
-            "Confirme seus horários",
+            "Revise os dados do negócio",
           mensagem:
             "Mensagem definida pelo backend.",
           acao: {
             tipo: "NAVEGAR",
             rotulo:
-              "Confirmar horários",
+              "Revisar meu negócio",
             destino:
-              "/painel/horarios",
+              "/painel/negocio",
           },
         });
 
@@ -163,7 +163,7 @@ describe(
               "dashboard_dono",
             properties: {
               estado_ativacao:
-                "CONFIRMAR_AGENDA",
+                "REVISAR_PUBLICACAO",
               tipo_acao:
                 "NAVEGAR",
             },

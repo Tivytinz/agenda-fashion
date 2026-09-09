@@ -8,6 +8,7 @@ import {
 } from "react-router-dom";
 import { apiRequest } from "../api/client";
 import { getPlanIntentPath, normalizePlanSlug } from "../auth/session";
+import { useSession } from "../auth/SessionContext";
 import { BackLink } from "../components/BackLink";
 import { ConfirmationIcon } from "../components/ConfirmationIcon";
 import { FlowSteps } from "../components/FlowSteps";
@@ -38,7 +39,7 @@ const SERVICE_CATEGORIES = [
 const categoryLabel = (value) => SERVICE_CATEGORIES.find(([key]) => key === value)?.[1] || "Sem categoria";
 const ACCEPTED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"];
 const MAX_IMAGE_SIZE = 5 * 1024 * 1024;
-const ACTIVATION_STEPS = ["Negócio", "Serviço", "Horários"];
+const ACTIVATION_STEPS = ["Negócio", "Serviço"];
 
 function extractServices(result) {
   return Array.isArray(result) ? result : result?.servicos || [];
@@ -210,7 +211,7 @@ export function ServicesPage() {
           action={<Link className="button" to="/painel/servicos/novo">Cadastrar primeiro serviço</Link>}
           title="💅 Seu catálogo começa aqui"
         >
-          Cadastre seu primeiro serviço. Nos novos cadastros, depois confirme seus horários para colocar o perfil no ar. Fotos ajudam a cliente a escolher, mas podem ser adicionadas depois.
+          Cadastre seu primeiro serviço para colocar o perfil no ar. O Agenda Fashion já prepara uma sugestão de horários, que você pode ajustar quando quiser. Fotos ajudam a cliente a escolher, mas podem ser adicionadas depois.
         </EmptyState>
       )}
       {services?.length > 0 && (
@@ -291,6 +292,7 @@ export function ServicesPage() {
 }
 
 export function ServiceEditorPage() {
+  const session = useSession();
   const { id } = useParams();
   const location = useLocation();
   const navigate = useNavigate();
@@ -448,33 +450,43 @@ export function ServiceEditorPage() {
         await uploadImage(`/servicos/${savedId}/fotos`, file);
         setGalleryFiles((current) => current.filter((item) => item !== file));
       }
-      const continueOnboarding = firstServiceOnboarding;
-      const onboardingAlreadyPublished =
-        continueOnboarding &&
-        saveResult.publicacao?.publicado === true;
 
-      navigate(
-        continueOnboarding
-          ? getPlanIntentPath("/painel/horarios", selectedPlan)
-          : "/painel/servicos",
-        {
+      if (firstServiceOnboarding) {
+        const published = saveResult.publicacao?.publicado === true;
+        if (published) await session.refresh();
+        const destination = !published
+          ? getPlanIntentPath("/painel/negocio", selectedPlan)
+          : selectedPlan
+            ? getPlanIntentPath("/checkout", selectedPlan)
+            : "/painel";
+
+        navigate(destination, {
           replace: true,
-          state: continueOnboarding
+          state: !published
             ? {
-                message:
-                  onboardingAlreadyPublished
-                    ? "Seu perfil está no ar. Agora confirme quando você atende para liberar os agendamentos online."
-                    : "Serviço cadastrado. Agora confirme seus horários para publicar o perfil e liberar agendamentos online.",
+                message: "Serviço cadastrado. Revise os dados obrigatórios do negócio para concluir a publicação.",
                 onboarding: true,
-                onboardingStep: "agenda"
+                onboardingStep: "perfil"
               }
-            : {
-                message: editing
-                  ? "Serviço atualizado."
-                  : "Serviço criado."
-              }
+            : selectedPlan
+              ? {
+                  message: "Serviço cadastrado e perfil publicado. Agora conclua o plano que você escolheu."
+                }
+              : {
+                  message: "Serviço cadastrado. Seu perfil está no ar e já pode receber agendamentos."
+                }
+        });
+        return;
+      }
+
+      navigate("/painel/servicos", {
+        replace: true,
+        state: {
+          message: editing
+            ? "Serviço atualizado."
+            : "Serviço criado."
         }
-      );
+      });
     } catch (requestError) {
       setError(`O serviço foi salvo, mas algumas fotos não foram enviadas. ${requestError.message} Tente novamente para enviar apenas as fotos pendentes.`);
     } finally {
@@ -565,7 +577,7 @@ export function ServiceEditorPage() {
             <h1>{editing ? "Editar serviço" : "Novo serviço"}</h1>
             <p>
               {firstServiceOnboarding
-                ? "Para continuar, informe nome, categoria, valor e duração. Descrição e fotos podem ser adicionadas depois."
+                ? "Informe nome, categoria, valor e duração. Ao salvar, o AF publica o perfil automaticamente quando os dados do negócio estiverem completos. Descrição, fotos e horários podem ser ajustados depois."
                 : "Preencha os dados do serviço. Fotos e descrição ajudam a cliente a escolher, mas podem ser melhoradas depois."}
             </p>
           </div>
@@ -739,10 +751,10 @@ export function ServiceEditorPage() {
           <Link className="button button-secondary" to="/painel/servicos">Cancelar</Link>
           <button className="button" disabled={saving} type="submit">
             {saving
-              ? firstServiceOnboarding
-                ? "Salvando..."
-                : "Salvando e enviando fotos..."
-              : "Salvar serviço"}
+              ? "Salvando..."
+              : firstServiceOnboarding
+                ? "Salvar serviço e publicar"
+                : "Salvar serviço"}
           </button>
         </div>
       </form>

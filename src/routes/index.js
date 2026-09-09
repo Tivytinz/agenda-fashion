@@ -59,7 +59,7 @@ const webhookRoutes = require(
 );
 
 /*
- * EXPERIÊNCIA DO USUÁRIO
+ * EXPERIÊNCIA DO USUÁRIO E ANALYTICS
  */
 const favoritosRoutes = require(
   "./favoritosRoutes"
@@ -75,6 +75,10 @@ const notificacoesRoutes = require(
 
 const eventoProdutoRoutes = require(
   "./eventoProdutoRoutes"
+);
+
+const analyticsV2Routes = require(
+  "./analyticsV2Routes"
 );
 
 const metaAdsRoutes = require(
@@ -106,6 +110,10 @@ const perfilNegocioRoutes = require(
 /*
  * ADMINISTRAÇÃO
  */
+const adminAnalyticsV2Routes = require(
+  "./adminAnalyticsV2Routes"
+);
+
 const adminRoutes = require(
   "./adminRoutes"
 );
@@ -114,14 +122,8 @@ const adminRoutes = require(
  * =========================================================
  * REGISTRO DAS ROTAS
  * =========================================================
- *
- * Os módulos que já possuem seus caminhos completos são
- * registrados diretamente no router principal.
  */
 
-/*
- * AUTENTICAÇÃO E SESSÃO
- */
 router.use(
   authRoutes
 );
@@ -130,9 +132,6 @@ router.use(
   sessaoRoutes
 );
 
-/*
- * NEGÓCIOS E CONTA
- */
 router.use(
   negocioRoutes
 );
@@ -149,20 +148,11 @@ router.use(
   profissionaisRoutes
 );
 
-/*
- * SERVIÇOS
- *
- * Este módulo é montado em /servicos porque suas rotas
- * internas utilizam caminhos relativos a esse prefixo.
- */
 router.use(
   "/servicos",
   servicosRoutes
 );
 
-/*
- * ASSINATURAS E PAGAMENTOS
- */
 router.use(
   checkoutRoutes
 );
@@ -179,9 +169,6 @@ router.use(
   webhookRoutes
 );
 
-/*
- * EXPERIÊNCIA DO USUÁRIO
- */
 router.use(
   favoritosRoutes
 );
@@ -194,8 +181,17 @@ router.use(
   notificacoesRoutes
 );
 
+/*
+ * Mantém o coletor legado enquanto a Administração 2.0 passa a utilizar
+ * sessões e jornadas first-party. A remoção do legado só ocorrerá depois
+ * de validação em produção.
+ */
 router.use(
   eventoProdutoRoutes
+);
+
+router.use(
+  analyticsV2Routes
 );
 
 router.use(
@@ -206,9 +202,6 @@ router.use(
   googleMeasurementRoutes
 );
 
-/*
- * AGENDAS
- */
 router.use(
   agendaRoutes
 );
@@ -217,23 +210,14 @@ router.use(
   agendaPublicaRoutes
 );
 
-/*
- * PERFIL PÚBLICO
- */
 router.use(
   perfilNegocioRoutes
 );
 
-/*
- * ADMINISTRAÇÃO
- *
- * O adminRoutes já contém caminhos completos:
- *
- * /admin/dashboard
- * /admin/negocios
- * /admin/agendamentos
- * /admin/marketing
- */
+router.use(
+  adminAnalyticsV2Routes
+);
+
 router.use(
   adminRoutes
 );

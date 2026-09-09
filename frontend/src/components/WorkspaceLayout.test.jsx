@@ -106,7 +106,7 @@ describe("menu mobile da área de trabalho", () => {
     render(
       <MemoryRouter
         initialEntries={[
-          "/admin/trafego-pago/custos"
+          "/admin/aquisicao?periodo=30d"
         ]}
       >
         <MobileWorkspaceNavigation
@@ -120,26 +120,28 @@ describe("menu mobile da área de trabalho", () => {
       "navigation",
       { name: "Administração do Agenda Fashion" }
     );
-    const marketing = screen.getByRole(
+    const acquisition = screen.getByRole(
       "link",
-      { name: /Marketing/ }
+      { name: /Aquisição/ }
     );
 
     expect(
       navigation.querySelectorAll(".workspace-mobile-link")
     ).toHaveLength(4);
     expect(screen.getByRole("link", { name: /Visão geral/ })).not.toBeNull();
-    expect(screen.getByRole("link", { name: /Ativação/ })).not.toBeNull();
-    expect(screen.getByRole("link", { name: /Operação/ })).not.toBeNull();
-    expect(marketing.classList.contains("active")).toBe(true);
-    expect(screen.queryByRole("link", { name: /WhatsApp/ })).toBeNull();
+    expect(screen.getByRole("link", { name: /Jornada/ })).not.toBeNull();
+    expect(screen.getByRole("link", { name: /Retenção/ })).not.toBeNull();
+    expect(acquisition.classList.contains("active")).toBe(true);
+    expect(screen.queryByRole("link", { name: /Receita/ })).toBeNull();
+    expect(screen.queryByRole("link", { name: /Operação/ })).toBeNull();
     expect(screen.queryByRole("link", { name: /Minha conta/ })).toBeNull();
 
     await user.click(
       screen.getByRole("button", { name: /Abrir mais opções/i })
     );
 
-    expect(screen.getByRole("link", { name: /WhatsApp/ })).not.toBeNull();
+    expect(screen.getByRole("link", { name: /Receita/ })).not.toBeNull();
+    expect(screen.getByRole("link", { name: /Operação/ })).not.toBeNull();
     expect(screen.queryByRole("link", { name: /Minha conta/ })).toBeNull();
   });
 
@@ -163,10 +165,10 @@ describe("menu mobile da área de trabalho", () => {
       })
     ).not.toBeNull();
     expect(
-      screen.getAllByRole("link", { name: /Marketing/ })
+      screen.getAllByRole("link", { name: /Aquisição/ })
     ).toHaveLength(2);
     expect(
-      screen.getAllByRole("link", { name: /Ativação/ })
+      screen.getAllByRole("link", { name: /Jornada/ })
     ).toHaveLength(2);
     expect(
       screen.getAllByRole("link", { name: /Visão geral/ })

@@ -265,7 +265,7 @@ describe(
         expect(
           proximaAcao
         ).toContain(
-          'to: "/painel/horarios"'
+          'to: "/painel/servicos/novo?onboarding=servico"'
         );
 
         expect(
@@ -406,10 +406,11 @@ describe(
           '["/profissional/agenda", "Minha agenda"',
           '["/profissional/horarios", "Meus horários"',
           '["/admin", "Visão geral"',
-          '["/admin/saude", "Ativação"',
+          '["/admin/aquisicao", "Aquisição"',
+          '["/admin/jornada", "Jornada"',
+          '["/admin/retencao", "Retenção"',
+          '["/admin/receita", "Receita"',
           '["/admin/operacao", "Operação"',
-          '["/admin/trafego-pago", "Marketing"',
-          '["/admin/whatsapp", "WhatsApp"',
           '["/conta", "Minha conta"',
         ].forEach(
           (rota) => {

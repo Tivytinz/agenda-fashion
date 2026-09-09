@@ -85,6 +85,45 @@ function criarApp() {
   return app;
 }
 
+function perfilBase(sobrescritas = {}) {
+  return {
+    usuario_id: "42",
+    usuario_nome: "Ana Souza",
+    email: "ana@example.com",
+    usuario_whatsapp: "11987654321",
+    whatsapp_contato_autorizado: true,
+    cadastro_em: "2026-08-01T12:00:00.000Z",
+    ultimo_login_em: null,
+    ultima_atividade_em: "2026-08-02T12:00:00.000Z",
+    utm_source: "meta",
+    utm_campaign: "profissionais-sp",
+    negocio_id: "19",
+    negocio_nome: "Studio Ana",
+    negocio_slug: "studio-ana",
+    descricao: "Descrição",
+    areas: ["Unhas"],
+    setor: "Unhas",
+    negocio_whatsapp: "11987654321",
+    cidade: "São Paulo",
+    estado: "SP",
+    bairro: "Centro",
+    endereco: "Rua das Flores",
+    numero: "10",
+    cep: "01001000",
+    localizacao_url: "https://maps.google.com/",
+    publicado: false,
+    possui_servico_ativo: false,
+    configurado_em: null,
+    tem_negocio: true,
+    perfil_basico_completo: true,
+    disponibilidade_inicializada: false,
+    primeiro_agendamento_valido: false,
+    etapas_concluidas: 2,
+    total_resultados: "1",
+    ...sobrescritas,
+  };
+}
+
 describe(
   "saúde do SaaS",
   () => {
@@ -98,7 +137,7 @@ describe(
           perfil_incompleto: 4,
           sem_descricao: 5,
           sem_servico: 3,
-          sem_agenda: 5,
+          sem_disponibilidade_inicial: 2,
           nao_publicados: 4,
           sem_primeiro_agendamento: 1,
           completos: 1,
@@ -141,59 +180,26 @@ describe(
     );
 
     test(
-      "filtra, pagina e explica as pendências do perfil",
+      "usa cinco etapas e mantém disponibilidade como diagnóstico técnico",
       async () => {
         repository
           .listarPerfisIncompletos
           .mockResolvedValue([
-            {
-              usuario_id: "42",
-              usuario_nome:
-                "Ana Souza",
-              email:
-                "ana@example.com",
-              usuario_whatsapp:
-                "11987654321",
-              whatsapp_contato_autorizado:
-                true,
-              cadastro_em:
-                "2026-08-01T12:00:00.000Z",
-              ultimo_login_em: null,
-              ultima_atividade_em:
-                "2026-08-02T12:00:00.000Z",
-              utm_source: "meta",
-              utm_campaign:
-                "profissionais-sp",
-              negocio_id: "19",
-              negocio_nome:
-                "Studio Ana",
-              negocio_slug:
-                "studio-ana",
+            perfilBase({
               descricao: null,
               areas: [],
               setor: null,
               negocio_whatsapp: null,
-              cidade:
-                "São Paulo",
-              estado: "SP",
-              publicado: false,
-              possui_servico_ativo:
-                false,
-              configurado_em: null,
-              tem_negocio: true,
-              perfil_basico_completo:
-                false,
-              agenda_configurada:
-                false,
+              perfil_basico_completo: false,
               etapas_concluidas: 1,
               total_resultados: "11",
-            },
+            }),
           ]);
 
         const resposta =
           await request(criarApp())
             .get(
-              "/admin/saude/perfis-incompletos?pendencia=agenda&pagina=2&limite=10&busca=%20Ana%20"
+              "/admin/saude/perfis-incompletos?pendencia=perfil&pagina=2&limite=10&busca=%20Ana%20"
             );
 
         expect(resposta.status)
@@ -203,7 +209,7 @@ describe(
             .listarPerfisIncompletos
         ).toHaveBeenCalledWith({
           busca: "Ana",
-          pendencia: "agenda",
+          pendencia: "perfil",
           limite: 10,
           offset: 10,
         });
@@ -215,7 +221,7 @@ describe(
             perfilIncompleto: 4,
             semDescricao: 5,
             semServico: 3,
-            semAgenda: 5,
+            disponibilidadeNaoInicializada: 2,
             naoPublicados: 4,
             semPrimeiroAgendamento: 1,
             completos: 1,
@@ -225,9 +231,9 @@ describe(
             .progresso
         ).toEqual({
           etapasConcluidas: 1,
-          totalEtapas: 6,
-          percentual: 17,
-          etapasRestantes: 5,
+          totalEtapas: 5,
+          percentual: 20,
+          etapasRestantes: 4,
         });
         expect(
           resposta.body.perfis[0]
@@ -239,19 +245,23 @@ describe(
           "especialidade",
           "whatsapp",
           "servico",
-          "agenda",
+          "disponibilidade",
           "descricao",
         ]);
         expect(
           resposta.body.perfis[0]
-            .pendencias[0].rotulo
-        ).toBe(
-          "Selecionar especialidade"
-        );
-        expect(
-          resposta.body.perfis[0]
             .proximaAcao.codigo
         ).toBe("especialidade");
+        expect(
+          resposta.body.perfis[0]
+            .pendencias.find(
+              (item) => item.codigo === "disponibilidade"
+            )
+        ).toEqual({
+          codigo: "disponibilidade",
+          rotulo: "Reprocessar disponibilidade inicial",
+          tipo: "sistema",
+        });
         expect(
           resposta.body.perfis[0]
             .pendencias.at(-1)
@@ -296,39 +306,19 @@ describe(
     );
 
     test(
-      "trata a agenda como pendência do negócio novo sem acusar falha de publicação",
+      "prioriza reprocessar publicação quando publicação e disponibilidade falham juntas",
       async () => {
         repository
           .listarPerfisIncompletos
           .mockResolvedValue([
-            {
-              usuario_id: "42",
-              usuario_nome: "Ana Souza",
-              email: "ana@example.com",
-              negocio_id: "19",
-              negocio_nome: "Studio Ana",
-              negocio_slug: "studio-ana",
+            perfilBase({
               descricao: "",
-              areas: ["Unhas"],
-              setor: "Unhas",
-              negocio_whatsapp: "11987654321",
-              cidade: "São Paulo",
-              estado: "SP",
-              bairro: "Centro",
-              endereco: "Rua das Flores",
-              numero: "10",
-              cep: "01001000",
-              localizacao_url: "https://maps.google.com/",
-              publicacao_exige_agenda: true,
-              publicado: false,
               possui_servico_ativo: true,
-              configurado_em: null,
-              tem_negocio: true,
               perfil_basico_completo: true,
-              agenda_configurada: false,
+              publicado: false,
+              disponibilidade_inicializada: false,
               etapas_concluidas: 3,
-              total_resultados: "1",
-            },
+            }),
           ]);
 
         const resposta =
@@ -342,59 +332,103 @@ describe(
             .pendencias
             .map((item) => item.codigo)
         ).toEqual([
-          "agenda",
+          "publicacao",
+          "disponibilidade",
           "descricao",
         ]);
+        expect(
+          resposta.body.perfis[0]
+            .proximaAcao
+        ).toEqual({
+          codigo: "publicacao",
+          rotulo: "Reprocessar publicação automática",
+          tipo: "sistema",
+        });
+        expect(
+          resposta.body.perfis[0]
+            .progresso
+        ).toEqual({
+          etapasConcluidas: 3,
+          totalEtapas: 5,
+          percentual: 60,
+          etapasRestantes: 2,
+        });
       }
     );
 
     test(
-      "mantém perfil publicado na ativação até o primeiro agendamento válido",
+      "agenda não bloqueia publicação nem reduz a ativação de perfil publicado",
       async () => {
         repository
           .listarPerfisIncompletos
-          .mockResolvedValue([{
-            usuario_id: "55",
-            usuario_nome: "Bia Lima",
-            email: "bia@example.com",
-            negocio_id: "23",
-            negocio_nome: "Studio Bia",
-            negocio_slug: "studio-bia",
-            descricao: "Unhas e cuidados",
-            areas: ["Unhas"],
-            setor: "Unhas",
-            negocio_whatsapp: "11987654321",
-            cidade: "São Paulo",
-            estado: "SP",
-            publicado: true,
-            possui_servico_ativo: true,
-            configurado_em: "2026-08-05T12:00:00.000Z",
-            tem_negocio: true,
-            perfil_basico_completo: true,
-            agenda_configurada: true,
-            primeiro_agendamento_valido: false,
-            etapas_concluidas: 5,
-            total_resultados: "1",
-          }]);
+          .mockResolvedValue([
+            perfilBase({
+              publicado: true,
+              possui_servico_ativo: true,
+              disponibilidade_inicializada: false,
+              primeiro_agendamento_valido: false,
+              etapas_concluidas: 4,
+            }),
+          ]);
 
         const resposta = await request(criarApp())
           .get("/admin/saude/perfis-incompletos?pendencia=primeiro_agendamento");
 
-        expect(repository.listarPerfisIncompletos).toHaveBeenCalledWith({
-          busca: "",
-          pendencia: "primeiro_agendamento",
-          limite: 25,
-          offset: 0,
-        });
         expect(resposta.body.perfis[0].progresso).toEqual({
-          etapasConcluidas: 5,
-          totalEtapas: 6,
-          percentual: 83,
+          etapasConcluidas: 4,
+          totalEtapas: 5,
+          percentual: 80,
           etapasRestantes: 1,
         });
         expect(resposta.body.perfis[0].proximaAcao).toEqual({
           codigo: "primeiro_agendamento",
           rotulo: "Divulgar perfil para conquistar o 1º agendamento",
+        });
+        expect(
+          resposta.body.perfis[0]
+            .pendencias
+            .map((item) => item.codigo)
+        ).toEqual([
+          "disponibilidade",
+          "primeiro_agendamento",
+        ]);
+      }
+    );
+
+    test(
+      "primeiro agendamento válido conclui 100% mesmo sem disponibilidade inicializada",
+      async () => {
+        repository
+          .listarPerfisIncompletos
+          .mockResolvedValue([
+            perfilBase({
+              publicado: true,
+              possui_servico_ativo: true,
+              disponibilidade_inicializada: false,
+              primeiro_agendamento_valido: true,
+              etapas_concluidas: 5,
+            }),
+          ]);
+
+        const resposta = await request(criarApp())
+          .get("/admin/saude/perfis-incompletos?pendencia=disponibilidade");
+
+        expect(repository.listarPerfisIncompletos).toHaveBeenCalledWith({
+          busca: "",
+          pendencia: "disponibilidade",
+          limite: 25,
+          offset: 0,
+        });
+        expect(resposta.body.perfis[0].progresso).toEqual({
+          etapasConcluidas: 5,
+          totalEtapas: 5,
+          percentual: 100,
+          etapasRestantes: 0,
+        });
+        expect(resposta.body.perfis[0].proximaAcao).toEqual({
+          codigo: "disponibilidade",
+          rotulo: "Reprocessar disponibilidade inicial",
+          tipo: "sistema",
         });
       }
     );
@@ -404,7 +438,7 @@ describe(
       async () => {
         await request(criarApp())
           .get(
-            "/admin/saude/perfis-incompletos?pendencia=desconhecida&pagina=0&limite=500"
+            "/admin/saude/perfis-incompletos?pendencia=agenda&pagina=0&limite=500"
           );
 
         expect(
@@ -420,7 +454,7 @@ describe(
     );
 
     test(
-      "preserva o total quando a página solicitada está vazia",
+      "preserva o total do diagnóstico técnico quando a página solicitada está vazia",
       async () => {
         repository
           .contarPerfisIncompletos
@@ -429,7 +463,7 @@ describe(
         const resposta =
           await request(criarApp())
             .get(
-              "/admin/saude/perfis-incompletos?pendencia=agenda&pagina=4&limite=10&busca=Ana"
+              "/admin/saude/perfis-incompletos?pendencia=disponibilidade&pagina=4&limite=10&busca=Ana"
             );
 
         expect(resposta.status)
@@ -439,7 +473,7 @@ describe(
             .contarPerfisIncompletos
         ).toHaveBeenCalledWith({
           busca: "Ana",
-          pendencia: "agenda",
+          pendencia: "disponibilidade",
         });
         expect(
           resposta.body.paginacao

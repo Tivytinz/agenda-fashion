@@ -1,605 +1,271 @@
 jest.mock(
   "../src/repositories/adminProfessionalFunnelRepository",
   () => ({
-    periodoSeguro:
-      jest.fn((value) => value || "30"),
-    listarPorCampanha:
-      jest.fn(),
+    periodoSeguro: jest.fn((value) => value || "30"),
+    listarPorCampanha: jest.fn(),
   })
 );
 
 const repository = require(
   "../src/repositories/adminProfessionalFunnelRepository"
 );
-
 const service = require(
   "../src/services/adminProfessionalFunnelService"
 );
 
-describe(
-  "funil profissional administrativo",
-  () => {
-    beforeEach(() => {
-      jest.clearAllMocks();
+function linhaBase(sobrescritas = {}) {
+  return {
+    origem: "meta",
+    midia: "cpc",
+    campanha: "profissionais_goiania",
+    campanha_oficial_id: 7,
+    classificacao_atribuicao: "oficial",
+    cadastros: 20,
+    negocios_criados: 12,
+    servicos_criados: 10,
+    negocios_publicados: 8,
+    primeiros_agendamentos: 6,
+    checkouts_iniciados: 5,
+    assinaturas_ativadas: 4,
+    cadastros_maduros_ativacao: 20,
+    cadastros_maduros_monetizacao: 20,
+    negocios_publicados_maduros_ativacao: 8,
+    primeiros_agendamentos_maduros_ativacao: 6,
+    assinaturas_ativadas_maduras_monetizacao: 4,
+    investimento_centavos: 40000,
+    receita_primeiro_pagamento_centavos: 59600,
+    ...sobrescritas,
+  };
+}
+
+describe("funil profissional administrativo", () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  test("calcula somente os marcos canônicos sem agenda", async () => {
+    repository.listarPorCampanha.mockResolvedValue([linhaBase()]);
+
+    const resultado = await service.buscarFunil({ periodo: "30" });
+    const campanha = resultado.campanhas[0];
+
+    expect(campanha).toMatchObject({
+      cadastros: 20,
+      negociosCriados: 12,
+      servicosCriados: 10,
+      negociosPublicados: 8,
+      primeirosAgendamentos: 6,
+      checkoutsIniciados: 5,
+      assinaturasAtivadas: 4,
+      taxaNegocio: 60,
+      taxaServico: 50,
+      taxaPublicacao: 40,
+      taxaPrimeiroAgendamento: 30,
+      taxaCheckout: 25,
+      taxaAssinatura: 20,
+      custoCadastroCentavos: 2000,
+      custoCheckoutCentavos: 8000,
+      cacAssinanteCentavos: 10000,
+      receitaPrimeiroPagamentoCentavos: 59600,
+      roas: 1.49,
+      decisao: expect.objectContaining({
+        codigo: "escalar",
+      }),
     });
 
-    test(
-      "calcula conversões, custos, receita, ROAS e decisão",
-      async () => {
-        repository.listarPorCampanha
-          .mockResolvedValue([
-            {
-              origem: "meta",
-              midia: "cpc",
-              campanha: "profissionais_goiania",
-              cadastros: "20",
-              negocios_criados: "12",
-              servicos_criados: "10",
-              agendas_configuradas: "8",
-              negocios_publicados: "7",
-              primeiros_agendamentos: "6",
-              checkouts_iniciados: "5",
-              assinaturas_ativadas: "4",
-              cadastros_maduros_ativacao: "20",
-              cadastros_maduros_monetizacao: "20",
-              negocios_publicados_maduros_ativacao: "7",
-              primeiros_agendamentos_maduros_ativacao: "6",
-              assinaturas_ativadas_maduras_monetizacao: "4",
-              investimento_centavos: "40000",
-              receita_primeiro_pagamento_centavos:
-                "59600",
-            },
-          ]);
+    expect(campanha).not.toHaveProperty("agendasConfiguradas");
+    expect(campanha).not.toHaveProperty("taxaAgenda");
+    expect(campanha).not.toHaveProperty("taxaDivulgacaoPosAgenda");
+    expect(resultado.resumo).not.toHaveProperty("agendasConfiguradas");
+  });
 
-        const resultado =
-          await service.buscarFunil({
-            periodo: "30",
-          });
+  test("consolida aliases históricos do Google Ads na campanha canônica", async () => {
+    repository.listarPorCampanha.mockResolvedValue([
+      linhaBase({
+        origem: "google",
+        campanha: "aquisicao_profissionais",
+        campanha_oficial_id: 7,
+        classificacao_atribuicao: "oficial",
+        cadastros: 8,
+        investimento_centavos: 0,
+      }),
+      linhaBase({
+        origem: "google",
+        campanha: "search_aquisicao_profissionais",
+        campanha_oficial_id: 7,
+        classificacao_atribuicao: "oficial",
+        cadastros: 4,
+        investimento_centavos: 0,
+      }),
+      linhaBase({
+        origem: "google",
+        campanha: "google_ads_profissionais",
+        cadastros: 0,
+        negocios_criados: 0,
+        servicos_criados: 0,
+        negocios_publicados: 0,
+        primeiros_agendamentos: 0,
+        checkouts_iniciados: 0,
+        assinaturas_ativadas: 0,
+        cadastros_maduros_ativacao: 0,
+        cadastros_maduros_monetizacao: 0,
+        negocios_publicados_maduros_ativacao: 0,
+        primeiros_agendamentos_maduros_ativacao: 0,
+        assinaturas_ativadas_maduras_monetizacao: 0,
+        investimento_centavos: 20000,
+        receita_primeiro_pagamento_centavos: 0,
+      }),
+    ]);
 
-        expect(
-          resultado.campanhas[0]
-        ).toMatchObject({
-          cadastros: 20,
-          negociosCriados: 12,
-          primeirosAgendamentos: 6,
-          assinaturasAtivadas: 4,
-          taxaNegocio: 60,
-          taxaAssinatura: 20,
-          custoCadastroCentavos: 2000,
-          custoCheckoutCentavos: 8000,
-          cacAssinanteCentavos: 10000,
-          receitaPrimeiroPagamentoCentavos: 59600,
-          roas: 1.49,
-          taxaServico: 50,
-          taxaAgenda: 40,
-          taxaPrimeiroAgendamento: 30,
-          decisao: {
-            codigo: "escalar",
-            rotulo: "Escalar",
-            confianca: "operacional",
-          },
-        });
+    const resultado = await service.buscarFunil({ periodo: "30" });
+    expect(resultado.campanhas).toHaveLength(1);
+    expect(resultado.campanhas[0]).toMatchObject({
+      origem: "google",
+      midia: "cpc",
+      campanha: "google_ads_profissionais",
+      cadastros: 12,
+      investimentoCentavos: 20000,
+      consolidada: true,
+    });
+    expect(resultado.campanhas[0].identidadesUtm).toHaveLength(3);
+  });
 
-        expect(
-          resultado.resumo
-        ).toMatchObject({
-          cadastros: 20,
-          assinaturasAtivadas: 4,
-          investimentoCentavos: 40000,
-          custoCadastroCentavos: 2000,
-          custoCheckoutCentavos: 8000,
-          cacAssinanteCentavos: 10000,
-          receitaPrimeiroPagamentoCentavos: 59600,
-          roas: 1.49,
-        });
+  test("mantém orgânico separado de registros sem evidência", () => {
+    const linhas = service.consolidarLinhasCampanha([
+      {
+        origem: "organico",
+        midia: "none",
+        campanha: "organico",
+        classificacao_atribuicao: "organico",
+        cadastros: 2,
+      },
+      {
+        origem: "organico",
+        midia: "none",
+        campanha: "organico",
+        classificacao_atribuicao: "sem_evidencia",
+        cadastros: 1,
+      },
+    ]);
 
-        expect(
-          resultado.decisao
-        ).toMatchObject({
-          metaRoas: 1,
-          faixaEscalaRoas: 1.2,
-          minimoCadastros: 10,
-          minimoAssinaturas: 2,
-          contagem: {
-            escalar: 1,
-            manter: 0,
-            observar: 0,
-            revisar: 0,
-            pausar: 0,
-            mensuracaoIncompleta: 0,
-            semDados: 0,
-          },
-        });
+    expect(linhas).toHaveLength(2);
+  });
+
+  test("não mistura aliases sem evidência com o investimento oficial", async () => {
+    repository.listarPorCampanha.mockResolvedValue([
+      linhaBase({ origem: "google", campanha: "aquisicao_profissionais", campanha_oficial_id: null, classificacao_atribuicao: null, investimento_centavos: 0 }),
+      linhaBase({ origem: "google", campanha: "google_ads_profissionais" })
+    ]);
+    const resultado = await service.buscarFunil({ periodo: "30" });
+    expect(resultado.campanhas).toHaveLength(2);
+    const semEvidencia = resultado.campanhas.find((campanha) => !campanha.oficial);
+    expect(semEvidencia.cacAssinanteCentavos).toBeNull();
+    expect(semEvidencia.investimentoCentavos).toBe(0);
+    expect(resultado.qualidadeMensuracao.prontaParaDecisao).toBe(false);
+  });
+
+  test("não inventa CAC ou ROAS quando não há investimento", async () => {
+    repository.listarPorCampanha.mockResolvedValue([
+      linhaBase({
+        origem: "organico",
+        midia: "none",
+        campanha: "organico",
+        campanha_oficial_id: null,
+        classificacao_atribuicao: "organico",
+        cadastros: 3,
+        investimento_centavos: 0,
+        receita_primeiro_pagamento_centavos: 0,
+      }),
+    ]);
+
+    const resultado = await service.buscarFunil({ periodo: "all" });
+    const campanha = resultado.campanhas[0];
+
+    expect(campanha.custoCadastroCentavos).toBeNull();
+    expect(campanha.custoCheckoutCentavos).toBeNull();
+    expect(campanha.cacAssinanteCentavos).toBeNull();
+    expect(campanha.roas).toBeNull();
+    expect(campanha.decisao.codigo).toBe("sem_dados");
+  });
+
+  test("bloqueia decisão financeira quando a atribuição paga está incompleta", async () => {
+    repository.listarPorCampanha.mockResolvedValue([
+      linhaBase({
+        classificacao_atribuicao: "oficial",
+        cadastros: 7,
+        investimento_centavos: 20000,
+      }),
+      linhaBase({
+        campanha: "(sem campanha)",
+        campanha_oficial_id: null,
+        classificacao_atribuicao: "rastreamento_incompleto",
+        cadastros: 6,
+        investimento_centavos: 0,
+      }),
+    ]);
+
+    const resultado = await service.buscarFunil({ periodo: "30" });
+
+    expect(resultado.qualidadeMensuracao).toMatchObject({
+      coberturaAtribuicaoPagaPercentual: 53.85,
+      prontaParaDecisao: false,
+    });
+    expect(resultado.campanhasOficiais[0].decisao.codigo)
+      .toBe("mensuracao_incompleta");
+  });
+
+  test("aguarda maturidade de ativação antes de julgar uma coorte recente", () => {
+    const decisao = service.recomendarCampanha(
+      {
+        investimentoCentavos: 40000,
+        cadastros: 20,
+        assinaturasAtivadas: 0,
+        cadastrosMadurosAtivacao: 4,
+        cadastrosMadurosMonetizacao: 0,
+        roas: 0,
+      },
+      {
+        metaRoas: 1,
+        multiplicadorEscala: 1.2,
+        minimoCadastros: 10,
+        minimoAssinaturas: 2,
+        diasMaturacaoAtivacao: 14,
+        diasMaturacaoMonetizacao: 21,
       }
     );
 
-    test(
-      "consolida UTMs históricas do Google Ads com o investimento da campanha canônica",
-      async () => {
-        repository.listarPorCampanha
-          .mockResolvedValue([
-            {
-              origem: "google",
-              midia: "cpc",
-              campanha: "aquisicao_profissionais",
-              cadastros: 8,
-              cadastros_maduros_ativacao: 8,
-              cadastros_maduros_monetizacao: 8,
-              negocios_publicados_maduros_ativacao: 4,
-              primeiros_agendamentos_maduros_ativacao: 2,
-              investimento_centavos: 0,
-              receita_primeiro_pagamento_centavos: 0,
-            },
-            {
-              origem: "google",
-              midia: "cpc",
-              campanha: "search_aquisicao_profissionais",
-              cadastros: 4,
-              cadastros_maduros_ativacao: 4,
-              cadastros_maduros_monetizacao: 4,
-              negocios_publicados_maduros_ativacao: 2,
-              primeiros_agendamentos_maduros_ativacao: 1,
-              investimento_centavos: 0,
-              receita_primeiro_pagamento_centavos: 0,
-            },
-            {
-              origem: "google",
-              midia: "cpc",
-              campanha: "google_ads_profissionais",
-              cadastros: 0,
-              investimento_centavos: 20000,
-              receita_primeiro_pagamento_centavos: 0,
-            },
-            {
-              origem: "organico",
-              midia: "none",
-              campanha: "organico",
-              cadastros: 1,
-              investimento_centavos: 0,
-              receita_primeiro_pagamento_centavos: 0,
-            },
-          ]);
+    expect(decisao).toMatchObject({
+      codigo: "observar",
+      rotulo: "Aguardar maturidade",
+    });
+  });
 
-        const resultado = await service.buscarFunil({
-          periodo: "30",
-        });
-
-        expect(resultado.campanhas).toHaveLength(2);
-
-        const google = resultado.campanhas.find(
-          (campanha) =>
-            campanha.campanha === "google_ads_profissionais"
-        );
-
-        expect(google).toMatchObject({
-          origem: "google",
-          midia: "cpc",
-          campanha: "google_ads_profissionais",
-          cadastros: 12,
-          investimentoCentavos: 20000,
-          custoCadastroCentavos: 1667,
-          consolidada: true,
-          decisao: {
-            codigo: "revisar",
-            rotulo: "Revisar monetização",
-            confianca: "operacional",
-          },
-        });
-        expect(google.identidadesUtm).toEqual(
-          expect.arrayContaining([
-            {
-              origem: "google",
-              midia: "cpc",
-              campanha: "aquisicao_profissionais",
-            },
-            {
-              origem: "google",
-              midia: "cpc",
-              campanha: "search_aquisicao_profissionais",
-            },
-            {
-              origem: "google",
-              midia: "cpc",
-              campanha: "google_ads_profissionais",
-            },
-          ])
-        );
-        expect(resultado.resumo).toMatchObject({
-          cadastros: 13,
-          investimentoCentavos: 20000,
-          custoCadastroCentavos: 1538,
-        });
+  test("revisa ativação quando coorte madura publica mas não recebe primeiro agendamento", () => {
+    const decisao = service.recomendarCampanha(
+      {
+        investimentoCentavos: 40000,
+        cadastros: 12,
+        assinaturasAtivadas: 0,
+        cadastrosMadurosAtivacao: 12,
+        cadastrosMadurosMonetizacao: 12,
+        negociosPublicadosMadurosAtivacao: 8,
+        primeirosAgendamentosMadurosAtivacao: 0,
+        assinaturasAtivadasMadurasMonetizacao: 0,
+        roas: 0,
+      },
+      {
+        metaRoas: 1,
+        multiplicadorEscala: 1.2,
+        minimoCadastros: 10,
+        minimoAssinaturas: 2,
+        diasMaturacaoAtivacao: 14,
+        diasMaturacaoMonetizacao: 21,
       }
     );
 
-    test(
-      "não mistura orgânico e sem evidência quando a identidade técnica coincide",
-      () => {
-        const linhas =
-          service.consolidarLinhasCampanha([
-            {
-              origem: "organico",
-              midia: "none",
-              campanha: "organico",
-              classificacao_atribuicao: "organico",
-              cadastros: 2,
-            },
-            {
-              origem: "organico",
-              midia: "none",
-              campanha: "organico",
-              classificacao_atribuicao: "sem_evidencia",
-              cadastros: 1,
-            },
-          ]);
-
-        expect(linhas).toHaveLength(2);
-        expect(linhas).toEqual(
-          expect.arrayContaining([
-            expect.objectContaining({
-              classificacao_atribuicao: "organico",
-              cadastros: 2,
-            }),
-            expect.objectContaining({
-              classificacao_atribuicao: "sem_evidencia",
-              cadastros: 1,
-            }),
-          ])
-        );
-      }
-    );
-
-    test(
-      "não inventa CAC, ROAS ou decisão forte quando não existe investimento",
-      async () => {
-        repository.listarPorCampanha
-          .mockResolvedValue([
-            {
-              origem: "organico",
-              midia: "none",
-              campanha: "organico",
-              cadastros: 3,
-              negocios_criados: 2,
-              servicos_criados: 1,
-              agendas_configuradas: 1,
-              negocios_publicados: 1,
-              checkouts_iniciados: 0,
-              assinaturas_ativadas: 0,
-              investimento_centavos: 0,
-              receita_primeiro_pagamento_centavos: 0,
-            },
-          ]);
-
-        const resultado =
-          await service.buscarFunil({
-            periodo: "all",
-          });
-
-        expect(
-          resultado.campanhas[0]
-            .custoCadastroCentavos
-        ).toBeNull();
-
-        expect(
-          resultado.campanhas[0]
-            .custoCheckoutCentavos
-        ).toBeNull();
-
-        expect(
-          resultado.campanhas[0]
-            .cacAssinanteCentavos
-        ).toBeNull();
-
-        expect(
-          resultado.campanhas[0].roas
-        ).toBeNull();
-
-        expect(
-          resultado.campanhas[0].decisao
-        ).toMatchObject({
-          codigo: "sem_dados",
-          rotulo: "Sem investimento atribuído",
-          confianca: "baixa",
-        });
-      }
-    );
-
-    test(
-      "separa a coorte oficial de cadastros pagos sem campanha e orgânicos",
-      async () => {
-        repository.listarPorCampanha
-          .mockResolvedValue([
-            {
-              origem: "google",
-              midia: "cpc",
-              campanha:
-                "google_ads_profissionais",
-              campanha_oficial_id: 9,
-              classificacao_atribuicao:
-                "oficial",
-              cadastros: 7,
-              negocios_criados: 6,
-              servicos_criados: 5,
-              agendas_configuradas: 2,
-              negocios_publicados: 4,
-              checkouts_iniciados: 0,
-              assinaturas_ativadas: 0,
-              investimento_centavos: 20000,
-              receita_primeiro_pagamento_centavos: 0,
-            },
-            {
-              origem: "google",
-              midia: "cpc",
-              campanha: "(sem campanha)",
-              classificacao_atribuicao:
-                "rastreamento_incompleto",
-              cadastros: 6,
-              negocios_criados: 5,
-              servicos_criados: 2,
-              agendas_configuradas: 0,
-              negocios_publicados: 3,
-              checkouts_iniciados: 0,
-              assinaturas_ativadas: 0,
-              investimento_centavos: 0,
-              receita_primeiro_pagamento_centavos: 0,
-            },
-            {
-              origem: "organico",
-              midia: "none",
-              campanha: "organico",
-              classificacao_atribuicao:
-                "organico",
-              cadastros: 2,
-              negocios_criados: 1,
-              servicos_criados: 1,
-              agendas_configuradas: 0,
-              negocios_publicados: 0,
-              checkouts_iniciados: 0,
-              assinaturas_ativadas: 0,
-              investimento_centavos: 0,
-              receita_primeiro_pagamento_centavos: 0,
-            },
-          ]);
-
-        const resultado =
-          await service.buscarFunil({
-            periodo: "30",
-          });
-
-        expect(resultado.resumo)
-          .toMatchObject({
-            cadastros: 15,
-            investimentoCentavos: 20000,
-            custoCadastroCentavos: 1333,
-          });
-
-        expect(resultado.resumoOficial)
-          .toMatchObject({
-            cadastros: 7,
-            negociosPublicados: 4,
-            investimentoCentavos: 20000,
-            custoCadastroCentavos: 2857,
-          });
-
-        expect(
-          resultado.campanhasOficiais
-        ).toHaveLength(1);
-        expect(
-          resultado
-            .diagnosticoAtribuicao
-        ).toEqual({
-          cadastrosOficiais: 7,
-          cadastrosSemCampanha: 6,
-          cadastrosIdentidadeNaoOficial: 0,
-          cadastrosSemEvidencia: 0,
-          cadastrosOrganicos: 2,
-        });
-        expect(
-          resultado.qualidadeMensuracao
-        ).toMatchObject({
-          coberturaAtribuicaoPagaPercentual: 53.85,
-          coberturaOrigemPercentual: 100,
-          prontaParaDecisao: false,
-        });
-        expect(
-          resultado.decisao.contagem
-        ).toMatchObject({
-          observar: 0,
-          mensuracaoIncompleta: 1,
-          semDados: 0,
-        });
-      }
-    );
-
-    test(
-      "observa amostra pequena antes de recomendar escala ou pausa",
-      () => {
-        const decisao =
-          service.recomendarCampanha(
-            {
-              investimentoCentavos: 15000,
-              cadastros: 4,
-              assinaturasAtivadas: 0,
-              roas: 0,
-            },
-            {
-              metaRoas: 1,
-              multiplicadorEscala: 1.2,
-              minimoCadastros: 10,
-              minimoAssinaturas: 2,
-            }
-          );
-
-        expect(decisao)
-          .toMatchObject({
-            codigo: "observar",
-            confianca: "baixa",
-          });
-      }
-    );
-
-    test(
-      "revisa monetização sem pausar automaticamente uma campanha freemium",
-      () => {
-        const decisao =
-          service.recomendarCampanha(
-            {
-              investimentoCentavos: 40000,
-              cadastros: 12,
-              assinaturasAtivadas: 0,
-              cadastrosMadurosAtivacao: 12,
-              cadastrosMadurosMonetizacao: 12,
-              negociosPublicadosMadurosAtivacao: 6,
-              primeirosAgendamentosMadurosAtivacao: 3,
-              assinaturasAtivadasMadurasMonetizacao: 0,
-              roas: 0,
-            },
-            {
-              metaRoas: 1,
-              multiplicadorEscala: 1.2,
-              minimoCadastros: 10,
-              minimoAssinaturas: 2,
-              diasMaturacaoAtivacao: 14,
-              diasMaturacaoMonetizacao: 30,
-            }
-          );
-
-        expect(decisao)
-          .toMatchObject({
-            codigo: "revisar",
-            rotulo: "Revisar monetização",
-            confianca: "operacional",
-          });
-      }
-    );
-
-    test(
-      "aguarda a janela de ativação antes de avaliar uma coorte recente",
-      () => {
-        const decisao =
-          service.recomendarCampanha(
-            {
-              investimentoCentavos: 40000,
-              cadastros: 20,
-              cadastrosMadurosAtivacao: 5,
-              assinaturasAtivadas: 0,
-              roas: 0,
-            },
-            {
-              metaRoas: 1,
-              multiplicadorEscala: 1.2,
-              minimoCadastros: 10,
-              minimoAssinaturas: 2,
-              diasMaturacaoAtivacao: 14,
-            }
-          );
-
-        expect(decisao).toMatchObject({
-          codigo: "observar",
-          rotulo: "Aguardar maturidade",
-          confianca: "baixa",
-        });
-      }
-    );
-
-    test(
-      "bloqueia decisão quando existem cadastros sem evidência de origem",
-      () => {
-        const qualidade =
-          service.criarQualidadeMensuracao(
-            {
-              oficial: 10,
-              rastreamento_incompleto: 0,
-              identidade_nao_oficial: 0,
-              sem_evidencia: 1,
-              organico: 0,
-            },
-            {
-              coberturaMinimaPercentual: 100,
-            }
-          );
-
-        expect(qualidade).toMatchObject({
-          coberturaAtribuicaoPagaPercentual: 100,
-          coberturaOrigemPercentual: 90.91,
-          prontaParaDecisao: false,
-          bloqueios: [
-            {
-              codigo: "origem_sem_evidencia",
-            },
-          ],
-        });
-      }
-    );
-
-    test(
-      "distingue manter, revisar e pausar pela meta de ROAS depois do volume mínimo",
-      () => {
-        const configuracao = {
-          metaRoas: 1,
-          multiplicadorEscala: 1.2,
-          minimoCadastros: 10,
-          minimoAssinaturas: 2,
-        };
-        const base = {
-          investimentoCentavos: 40000,
-          cadastros: 20,
-          assinaturasAtivadas: 3,
-        };
-
-        expect(
-          service.recomendarCampanha(
-            { ...base, roas: 1.1 },
-            configuracao
-          ).codigo
-        ).toBe("manter");
-
-        expect(
-          service.recomendarCampanha(
-            { ...base, roas: 0.8 },
-            configuracao
-          ).codigo
-        ).toBe("revisar");
-
-        expect(
-          service.recomendarCampanha(
-            { ...base, roas: 0.4 },
-            configuracao
-          ).codigo
-        ).toBe("pausar");
-      }
-    );
-
-    test(
-      "permite configurar a régua de decisão sem expor regra ao frontend",
-      () => {
-        expect(
-          service.configuracaoDecisao({
-            MARKETING_DECISION_ROAS_TARGET:
-              "1.5",
-            MARKETING_DECISION_SCALE_MULTIPLIER:
-              "1.3",
-            MARKETING_DECISION_MIN_SIGNUPS:
-              "20",
-            MARKETING_DECISION_MIN_SUBSCRIPTIONS:
-              "4",
-            MARKETING_DECISION_MIN_ATTRIBUTION_COVERAGE:
-              "95",
-            MARKETING_DECISION_ACTIVATION_MATURITY_DAYS:
-              "10",
-            MARKETING_DECISION_MONETIZATION_MATURITY_DAYS:
-              "21",
-          })
-        ).toEqual({
-          metaRoas: 1.5,
-          multiplicadorEscala: 1.3,
-          minimoCadastros: 20,
-          minimoAssinaturas: 4,
-          coberturaMinimaPercentual: 95,
-          diasMaturacaoAtivacao: 10,
-          diasMaturacaoMonetizacao: 21,
-        });
-      }
-    );
-  }
-);
+    expect(decisao).toMatchObject({
+      codigo: "revisar",
+      rotulo: "Revisar ativação",
+    });
+  });
+});

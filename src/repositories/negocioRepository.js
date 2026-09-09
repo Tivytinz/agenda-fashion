@@ -253,7 +253,7 @@ async function criarNegocio(
         $19,
         TRUE,
         FALSE,
-        TRUE
+        FALSE
       )
 
       RETURNING
@@ -379,12 +379,82 @@ async function criarVinculoDono(
   return resultado.rows[0];
 }
 
+async function criarDisponibilidadePadrao(
+  usuarioId,
+  executor = db
+) {
+  const idUsuario =
+    normalizarId(
+      usuarioId
+    );
+
+  if (!idUsuario) {
+    throw new TypeError(
+      "Usuário inválido para criação da disponibilidade padrão."
+    );
+  }
+
+  const conexao =
+    obterExecutor(
+      executor
+    );
+
+  await conexao.query(
+    `
+    INSERT INTO agenda_configuracoes (
+      profissional_id,
+      duracao_padrao,
+      intervalo_minutos,
+      antecedencia_agendamento,
+      antecedencia_cancelamento,
+      origem_horarios
+    )
+    VALUES ($1, 60, 0, 0, 24, 'padrao_af')
+    ON CONFLICT (profissional_id)
+    DO NOTHING
+    `,
+    [idUsuario]
+  );
+
+  await conexao.query(
+    `
+    INSERT INTO agenda_horarios (
+      profissional_id,
+      dia_semana,
+      trabalha,
+      hora_inicio,
+      hora_fim,
+      intervalo_inicio,
+      intervalo_fim
+    )
+    SELECT
+      $1,
+      d.dia_semana,
+      d.trabalha,
+      d.hora_inicio,
+      d.hora_fim,
+      d.intervalo_inicio,
+      d.intervalo_fim
+    FROM (
+      VALUES
+        (0::SMALLINT, FALSE, NULL::TIME, NULL::TIME, NULL::TIME, NULL::TIME),
+        (1::SMALLINT, TRUE,  TIME '08:00', TIME '18:00', TIME '12:00', TIME '13:00'),
+        (2::SMALLINT, TRUE,  TIME '08:00', TIME '18:00', TIME '12:00', TIME '13:00'),
+        (3::SMALLINT, TRUE,  TIME '08:00', TIME '18:00', TIME '12:00', TIME '13:00'),
+        (4::SMALLINT, TRUE,  TIME '08:00', TIME '18:00', TIME '12:00', TIME '13:00'),
+        (5::SMALLINT, TRUE,  TIME '08:00', TIME '18:00', TIME '12:00', TIME '13:00'),
+        (6::SMALLINT, TRUE,  TIME '08:00', TIME '13:00', NULL::TIME, NULL::TIME)
+    ) AS d(dia_semana, trabalha, hora_inicio, hora_fim, intervalo_inicio, intervalo_fim)
+    ON CONFLICT (profissional_id, dia_semana)
+    DO NOTHING
+    `,
+    [idUsuario]
+  );
+}
+
 /*
- * Cria o negócio e o vínculo de dono
- * dentro da mesma transação.
- *
- * Se qualquer INSERT falhar,
- * nenhuma alteração permanece no banco.
+ * Cria o negócio, o vínculo de dono e a disponibilidade sugerida pelo AF
+ * dentro da mesma transação. Se qualquer etapa falhar, nada é persistido.
  */
 async function criarNegocioComDono({
   usuarioId,
@@ -405,11 +475,6 @@ async function criarNegocioComDono({
     async (
       client
     ) => {
-      /*
-       * Bloqueia a conta durante a
-       * transação para reduzir risco
-       * de criações simultâneas.
-       */
       const usuarioResultado =
         await client.query(
           `
@@ -497,6 +562,11 @@ async function criarNegocioComDono({
           client
         );
 
+      await criarDisponibilidadePadrao(
+        idUsuario,
+        client
+      );
+
       return {
         negocio: {
           ...negocioCriado,
@@ -523,5 +593,6 @@ module.exports = {
   buscarNegocioDoDono,
   criarNegocio,
   criarVinculoDono,
+  criarDisponibilidadePadrao,
   criarNegocioComDono,
 };

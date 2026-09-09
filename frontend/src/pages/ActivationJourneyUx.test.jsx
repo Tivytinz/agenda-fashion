@@ -34,6 +34,29 @@ function DestinationProbe() {
   );
 }
 
+function preencherPrimeiroServico() {
+  fireEvent.change(screen.getByRole("textbox", {
+    name: "Nome do serviço"
+  }), {
+    target: { value: "Alongamento em gel" }
+  });
+  fireEvent.change(screen.getByRole("combobox", {
+    name: /Categoria/
+  }), {
+    target: { value: "unha" }
+  });
+  fireEvent.change(screen.getByRole("spinbutton", {
+    name: "Valor"
+  }), {
+    target: { value: "120" }
+  });
+  fireEvent.change(screen.getByRole("spinbutton", {
+    name: "Duração em minutos"
+  }), {
+    target: { value: "90" }
+  });
+}
+
 beforeEach(() => {
   apiRequest.mockReset();
   refreshSession.mockClear();
@@ -165,8 +188,7 @@ describe("jornada de ativação profissional", () => {
             publicado: false,
             pode_publicar: false,
             pendencias: [
-              "pelo menos um serviço ativo",
-              "confirmar os horários de atendimento"
+              "pelo menos um serviço ativo"
             ]
           }
         });
@@ -216,6 +238,84 @@ describe("jornada de ativação profissional", () => {
     expect(refreshSession).toHaveBeenCalledTimes(1);
   });
 
+  it.each([
+    [
+      "perfil publicado sem plano escolhido",
+      "/painel/servicos/novo?onboarding=servico",
+      true,
+      "/painel|"
+    ],
+    [
+      "perfil publicado com plano escolhido",
+      "/painel/servicos/novo?onboarding=servico&plano=autonoma",
+      true,
+      "/checkout?plano=autonoma|"
+    ],
+    [
+      "perfil ainda incompleto depois do serviço",
+      "/painel/servicos/novo?onboarding=servico",
+      false,
+      "/painel/negocio|perfil"
+    ]
+  ])("resolve o próximo passo após o primeiro serviço: %s", async (
+    _descricao,
+    initialEntry,
+    publicado,
+    expectedDestination
+  ) => {
+    apiRequest.mockImplementation((path, options = {}) => {
+      if (path === "/servicos" && options.method === "POST") {
+        return Promise.resolve({
+          servico: {
+            id: 321,
+            nome: "Alongamento em gel",
+            ativo: true
+          },
+          publicacao: {
+            publicado,
+            pode_publicar: publicado
+          }
+        });
+      }
+
+      return Promise.reject(new Error(`Rota inesperada: ${path}`));
+    });
+
+    render(
+      <MemoryRouter initialEntries={[initialEntry]}>
+        <Routes>
+          <Route
+            path="/painel/servicos/novo"
+            element={<ServiceEditorPage />}
+          />
+          <Route path="*" element={<DestinationProbe />} />
+        </Routes>
+      </MemoryRouter>
+    );
+
+    preencherPrimeiroServico();
+    fireEvent.click(screen.getByRole("button", {
+      name: "Salvar serviço e publicar"
+    }));
+
+    expect((await screen.findByTestId("destination")).textContent)
+      .toBe(expectedDestination);
+
+    expect(apiRequest).toHaveBeenCalledWith(
+      "/servicos",
+      expect.objectContaining({
+        method: "POST",
+        body: expect.objectContaining({
+          nome: "Alongamento em gel",
+          categoria: "unha",
+          valor: 120,
+          duracao_minutos: 90,
+          ativo: true
+        })
+      })
+    );
+  });
+
   it("mostra somente os dados essenciais no primeiro serviço do onboarding", () => {
     render(
       <MemoryRouter
@@ -250,6 +350,8 @@ describe("jornada de ativação profissional", () => {
     })).not.toBeNull();
     expect(screen.getByLabelText("Etapas para publicar o negócio").textContent)
       .toContain("Serviço");
+    expect(screen.getByLabelText("Etapas para publicar o negócio").textContent)
+      .not.toContain("Horários");
 
     expect(screen.queryByRole("textbox", {
       name: /Descrição/
