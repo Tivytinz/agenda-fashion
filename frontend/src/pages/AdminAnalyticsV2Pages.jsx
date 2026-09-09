@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { apiRequest } from "../api/client";
 import {
@@ -695,15 +695,48 @@ export function AdminRevenueV2Page() {
               <MetricCard label="Assinaturas pagas ativas" hint="estoque atual, não criação no período" value={formatNumber(summary.assinaturasPagasAtivas)} />
             </section>
 
+            <div className="admin-command-two-column">
+              <section className="panel">
+                <div className="panel-heading">
+                  <div>
+                    <p className="eyebrow">Coorte de checkout</p>
+                    <h2>Da intenção à assinatura paga</h2>
+                    <p className="muted">A taxa acompanha os mesmos negócios que iniciaram checkout no período.</p>
+                  </div>
+                </div>
+                <dl className="admin-command-data-list">
+                  <div><dt>Negócios que iniciaram checkout</dt><dd>{formatNumber(summary.negociosComCheckoutCohorte)}</dd></div>
+                  <div><dt>Já converteram em assinatura paga</dt><dd>{formatNumber(summary.negociosCheckoutConvertidos)}</dd></div>
+                  <div><dt>Checkout → assinatura paga</dt><dd>{formatPercent(summary.conversaoCheckoutParaAssinaturaPaga)}</dd></div>
+                </dl>
+              </section>
+
+              <section className="panel">
+                <div className="panel-heading">
+                  <div>
+                    <p className="eyebrow">Processamento técnico</p>
+                    <h2>Tentativas de checkout</h2>
+                  </div>
+                </div>
+                <dl className="admin-command-data-list">
+                  <div><dt>Checkouts iniciados</dt><dd>{formatNumber(summary.checkoutsIniciados)}</dd></div>
+                  <div><dt>Concluídos tecnicamente</dt><dd>{formatNumber(summary.checkoutsConcluidos)}</dd></div>
+                  <div><dt>Com falha</dt><dd>{formatNumber(summary.checkoutsFalhos)}</dd></div>
+                </dl>
+              </section>
+            </div>
+
             <section className="panel">
-              <div className="panel-heading"><div><p className="eyebrow">Checkout</p><h2>Da intenção de compra ao pagamento</h2></div></div>
+              <div className="panel-heading">
+                <div>
+                  <p className="eyebrow">Fatos financeiros</p>
+                  <h2>O que aconteceu no período</h2>
+                </div>
+              </div>
               <dl className="admin-command-data-list">
-                <div><dt>Checkouts iniciados</dt><dd>{formatNumber(summary.checkoutsIniciados)}</dd></div>
-                <div><dt>Checkouts concluídos tecnicamente</dt><dd>{formatNumber(summary.checkoutsConcluidos)}</dd></div>
-                <div><dt>Checkouts com falha</dt><dd>{formatNumber(summary.checkoutsFalhos)}</dd></div>
                 <div><dt>Novas assinaturas pagas</dt><dd>{formatNumber(summary.novasAssinaturasPagas)}</dd></div>
-                <div><dt>Checkout → nova assinatura paga</dt><dd>{formatPercent(summary.conversaoCheckoutParaNovaAssinatura)}</dd></div>
-                <div><dt>Pagamentos confirmados no período</dt><dd>{formatNumber(summary.pagamentosConfirmados)}</dd></div>
+                <div><dt>Pagamentos confirmados</dt><dd>{formatNumber(summary.pagamentosConfirmados)}</dd></div>
+                <div><dt>Negócios com pagamento</dt><dd>{formatNumber(summary.negociosPagantes)}</dd></div>
               </dl>
             </section>
 
@@ -732,6 +765,7 @@ export function AdminRevenueV2Page() {
             <details className="admin-metric-definition">
               <summary>Critérios financeiros</summary>
               <p>{data.metodologia?.checkout}</p>
+              <p>{data.metodologia?.conversaoCheckout}</p>
               <p>{data.metodologia?.novaAssinatura}</p>
               <p>{data.metodologia?.receita}</p>
               <p>{data.metodologia?.ativas}</p>
