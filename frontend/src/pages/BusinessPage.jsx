@@ -56,9 +56,7 @@ const CREATION_REQUIRED_FIELDS = [
 ];
 const SERVICE_PUBLICATION_PENDING =
   "pelo menos um serviço ativo";
-const SCHEDULE_PUBLICATION_PENDING =
-  "confirmar os horários de atendimento";
-const ACTIVATION_STEPS = ["Negócio", "Serviço", "Horários"];
+const ACTIVATION_STEPS = ["Negócio", "Serviço"];
 const FIRST_SERVICE_ONBOARDING_PATH =
   "/painel/servicos/novo?onboarding=servico";
 
@@ -405,42 +403,30 @@ export function BusinessPage({ create = false }) {
           ? result.publicacao.pendencias
           : [];
         const profilePending = pending.filter(
-          (item) => ![
-            SERVICE_PUBLICATION_PENDING,
-            SCHEDULE_PUBLICATION_PENDING
-          ].includes(item)
+          (item) => item !== SERVICE_PUBLICATION_PENDING
         );
 
         if (profilePending.length === 0) {
           const servicePending = pending.includes(
             SERVICE_PUBLICATION_PENDING
           );
-          const schedulePending = pending.includes(
-            SCHEDULE_PUBLICATION_PENDING
-          );
-          const destination = servicePending
-            ? FIRST_SERVICE_ONBOARDING_PATH
-            : schedulePending
-              ? "/painel/horarios"
-              : "/painel";
 
-          navigate(destination, {
-            state: servicePending
-              ? { onboarding: true, onboardingStep: "servico" }
-              : schedulePending
-                ? {
-                    message:
-                      "Dados essenciais concluídos. Agora confirme seus horários para publicar o negócio.",
-                    onboarding: true,
-                    onboardingStep: "agenda"
+          navigate(
+            servicePending
+              ? FIRST_SERVICE_ONBOARDING_PATH
+              : "/painel",
+            {
+              replace: true,
+              state: servicePending
+                ? { onboarding: true, onboardingStep: "servico" }
+                : {
+                    message: result.publicacao?.publicado
+                      ? "Dados essenciais concluídos. Seu negócio está publicado."
+                      : "Dados essenciais concluídos. Estamos atualizando sua publicação.",
+                    onboardingCompleted: result.publicacao?.publicado === true
                   }
-              : {
-                  message: result.publicacao?.publicado
-                    ? "Dados essenciais concluídos. Seu negócio está publicado."
-                    : "Dados essenciais concluídos. Estamos atualizando sua publicação.",
-                  onboardingCompleted: result.publicacao?.publicado === true
-                }
-          });
+            }
+          );
         }
       }
     } catch (requestError) {
@@ -598,7 +584,7 @@ export function BusinessPage({ create = false }) {
           <h1>{create ? "Crie seu negócio" : "Meu negócio"}</h1>
           <p>
             {create
-              ? "Complete as informações do negócio para começar com um perfil consistente. Depois, cadastre o primeiro serviço."
+              ? "Complete as informações do negócio e, em seguida, cadastre seu primeiro serviço. É só isso para colocar o perfil no ar."
               : "Esses dados ajudam clientes a encontrar, confiar e agendar com você."}
           </p>
         </div>
@@ -630,9 +616,7 @@ export function BusinessPage({ create = false }) {
             <p>
               {publication.publicado
                 ? "Clientes podem encontrar seus serviços e acessar seu perfil público."
-                : form.publicacao_exige_agenda
-                  ? "A publicação acontece automaticamente depois de confirmar os dados essenciais, um serviço ativo e os horários de atendimento."
-                  : "A publicação acontece automaticamente com os dados essenciais e um serviço ativo."}
+                : "A publicação acontece automaticamente com os dados essenciais e pelo menos um serviço ativo. O AF já prepara uma sugestão de horários, que pode ser alterada depois."}
             </p>
             {!publication.pode_publicar && publication.pendencias.length > 0 && (
               <p className="publication-pending">
