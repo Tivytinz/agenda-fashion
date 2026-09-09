@@ -47,9 +47,6 @@ const ESTADOS_BRASILEIROS = new Set([
   "RJ", "RN", "RS", "RO", "RR", "SC", "SP", "SE", "TO",
 ]);
 
-const PENDENCIA_AGENDA_LEGADA =
-  "confirmar os horários de atendimento";
-
 const TAMANHO_MAXIMO_FOTO =
   5 * 1024 * 1024;
 
@@ -415,6 +412,28 @@ function normalizarUrl(
   return urlValidada.toString();
 }
 
+function urlPublicacaoValida(
+  valor
+) {
+  const texto = String(
+    valor ?? ""
+  ).trim();
+
+  if (!texto) {
+    return false;
+  }
+
+  try {
+    const url = new URL(texto);
+    return [
+      "http:",
+      "https:",
+    ].includes(url.protocol);
+  } catch {
+    return false;
+  }
+}
+
 function normalizarNegocio(
   negocio,
   papel
@@ -484,7 +503,6 @@ function avaliarPublicacao(
     ["bairro", "bairro"],
     ["endereco", "endereço"],
     ["numero", "número"],
-    ["localizacao_url", "link do Google Maps"],
   ];
 
   for (
@@ -498,6 +516,16 @@ function avaliarPublicacao(
     ) {
       pendencias.push(rotulo);
     }
+  }
+
+  if (
+    !urlPublicacaoValida(
+      negocio?.localizacao_url
+    )
+  ) {
+    pendencias.push(
+      "link do Google Maps"
+    );
   }
 
   const especialidades =
@@ -581,22 +609,6 @@ function avaliarPublicacao(
   ) {
     pendencias.push(
       "pelo menos um serviço ativo"
-    );
-  }
-
-  /*
-   * Compatibilidade transitória para bases que ainda não executaram a migration
-   * que transforma este flag em legado. Após 064/065, ele fica FALSE e a
-   * disponibilidade padrão é inicializada automaticamente, sem ação do usuário.
-   */
-  if (
-    negocio?.publicacao_exige_agenda ===
-      true &&
-    negocio?.agenda_configurada !==
-      true
-  ) {
-    pendencias.push(
-      PENDENCIA_AGENDA_LEGADA
     );
   }
 
