@@ -228,7 +228,7 @@ async function sincronizarPublicacaoAutomatica(
                 COALESCE(cardinality(n.areas), 0) > 0
                 OR NULLIF(BTRIM(COALESCE(n.setor, '')), '') IS NOT NULL
               )
-              AND NULLIF(BTRIM(COALESCE(n.whatsapp, '')), '') IS NOT NULL
+              AND COALESCE(n.whatsapp, '') ~ '^[0-9]{10,11}$'
               AND NULLIF(BTRIM(COALESCE(n.cidade, '')), '') IS NOT NULL
               AND UPPER(BTRIM(COALESCE(n.estado, ''))) IN (
                 'AC', 'AL', 'AP', 'AM', 'BA', 'CE', 'DF', 'ES', 'GO',
@@ -238,7 +238,7 @@ async function sincronizarPublicacaoAutomatica(
               AND NULLIF(BTRIM(COALESCE(n.bairro, '')), '') IS NOT NULL
               AND NULLIF(BTRIM(COALESCE(n.endereco, '')), '') IS NOT NULL
               AND NULLIF(BTRIM(COALESCE(n.numero, '')), '') IS NOT NULL
-              AND NULLIF(BTRIM(COALESCE(n.cep, '')), '') IS NOT NULL
+              AND COALESCE(n.cep, '') ~ '^[0-9]{8}$'
               AND NULLIF(BTRIM(COALESCE(n.localizacao_url, '')), '') IS NOT NULL
               AND EXISTS (
                 SELECT 1
@@ -298,7 +298,7 @@ async function adicionarEspecialidadeNegocio(
           )
         END,
         setor = COALESCE(
-          NULLIF(BTRIM(setor), ''),
+          NULLIF(BTRIM(setor, ''),
           $2
         ),
         updated_at = NOW()
