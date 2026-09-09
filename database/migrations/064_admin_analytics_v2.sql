@@ -80,7 +80,8 @@ DO UPDATE SET
   intervalo_inicio = EXCLUDED.intervalo_inicio,
   intervalo_fim = EXCLUDED.intervalo_fim;
 
--- Publica negócios que já estavam prontos e só aguardavam o gate removido.
+-- Publica somente negócios que atendem à mesma elegibilidade usada pelo runtime.
+-- Descrição, complemento e fotos continuam opcionais; horários não são gate.
 UPDATE negocios n
 SET
   publicado = TRUE,
@@ -88,14 +89,18 @@ SET
 WHERE n.ativo = TRUE
   AND n.publicado = FALSE
   AND NULLIF(BTRIM(n.nome), '') IS NOT NULL
-  AND NULLIF(BTRIM(n.whatsapp), '') IS NOT NULL
+  AND REGEXP_REPLACE(COALESCE(n.whatsapp, ''), '[^0-9]', '', 'g') ~ '^[0-9]{10,11}$'
   AND NULLIF(BTRIM(n.cidade), '') IS NOT NULL
-  AND NULLIF(BTRIM(n.estado), '') IS NOT NULL
+  AND UPPER(BTRIM(COALESCE(n.estado, ''))) IN (
+    'AC', 'AL', 'AP', 'AM', 'BA', 'CE', 'DF', 'ES', 'GO',
+    'MA', 'MT', 'MS', 'MG', 'PA', 'PB', 'PR', 'PE', 'PI',
+    'RJ', 'RN', 'RS', 'RO', 'RR', 'SC', 'SP', 'SE', 'TO'
+  )
   AND NULLIF(BTRIM(n.bairro), '') IS NOT NULL
   AND NULLIF(BTRIM(n.endereco), '') IS NOT NULL
   AND NULLIF(BTRIM(n.numero), '') IS NOT NULL
-  AND NULLIF(BTRIM(n.cep), '') IS NOT NULL
-  AND NULLIF(BTRIM(n.localizacao_url), '') IS NOT NULL
+  AND REGEXP_REPLACE(COALESCE(n.cep, ''), '[^0-9]', '', 'g') ~ '^[0-9]{8}$'
+  AND BTRIM(COALESCE(n.localizacao_url, '')) ~* '^https?://'
   AND (
     COALESCE(CARDINALITY(n.areas), 0) > 0
     OR NULLIF(BTRIM(COALESCE(n.setor, '')), '') IS NOT NULL
