@@ -91,7 +91,7 @@ async function buscarVisaoGeral(periodo = "30") {
       WHERE n.primeira_publicacao_em IS NOT NULL
         ${filtroPublicado}
     ),
-    agendamentos AS (
+    agendamentos_resumo AS (
       SELECT COUNT(*)::INT AS agendamentos_validos
       FROM agendamentos ag
       WHERE COALESCE(ag.status, 'agendado') <> 'cancelado'
@@ -111,7 +111,7 @@ async function buscarVisaoGeral(periodo = "30") {
       WHERE 1 = 1
         ${filtroPrimeiroAgendamento}
     ),
-    pagamentos AS (
+    pagamentos_resumo AS (
       SELECT
         COUNT(*)::INT AS pagamentos_confirmados,
         COUNT(DISTINCT a.negocio_id)::INT AS negocios_com_pagamento,
@@ -143,9 +143,9 @@ async function buscarVisaoGeral(periodo = "30") {
     CROSS JOIN profissionais p
     CROSS JOIN negocios_criados n
     CROSS JOIN publicados pub
-    CROSS JOIN agendamentos ag
+    CROSS JOIN agendamentos_resumo ag
     CROSS JOIN primeiros_agendamentos pa
-    CROSS JOIN pagamentos pg
+    CROSS JOIN pagamentos_resumo pg
     `
   );
 
