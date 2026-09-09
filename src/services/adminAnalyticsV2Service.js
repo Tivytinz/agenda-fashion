@@ -175,30 +175,39 @@ async function buscarRetention(periodo) {
 async function buscarRevenue(periodo) {
   const resultado = await repository.buscarReceita(periodo);
   const resumo = resultado.resumo || {};
-  const checkouts = numero(resumo.checkouts_iniciados);
-  const novasPagas = numero(resumo.novas_assinaturas_pagas);
+  const negociosComCheckout = numero(resumo.negocios_com_checkout);
+  const negociosCheckoutConvertidos = numero(
+    resumo.negocios_checkout_convertidos
+  );
 
   return {
     periodo: resultado.periodo,
     resumo: {
-      checkoutsIniciados: checkouts,
+      checkoutsIniciados: numero(resumo.checkouts_iniciados),
       checkoutsConcluidos: numero(resumo.checkouts_concluidos),
       checkoutsFalhos: numero(resumo.checkouts_falhos),
+      negociosComCheckoutCohorte: negociosComCheckout,
+      negociosCheckoutConvertidos,
+      conversaoCheckoutParaAssinaturaPaga:
+        percentual(
+          negociosCheckoutConvertidos,
+          negociosComCheckout
+        ),
       pagamentosConfirmados: numero(resumo.pagamentos_confirmados),
       negociosPagantes: numero(resumo.negocios_pagantes),
-      novasAssinaturasPagas: novasPagas,
+      novasAssinaturasPagas: numero(resumo.novas_assinaturas_pagas),
       assinaturasPagasAtivas: numero(resumo.assinaturas_pagas_ativas),
       receitaTotal: numero(resumo.receita_total),
       receitaPrimeiroPagamento: numero(resumo.receita_primeiro_pagamento),
-      conversaoCheckoutParaNovaAssinatura:
-        percentual(novasPagas, checkouts),
     },
     planos: resultado.planos,
     metodologia: {
       checkout:
-        "Checkout iniciado mede tentativa de compra, não receita.",
+        "Checkouts iniciados, concluídos e falhos contam tentativas técnicas criadas no período e não representam receita.",
+      conversaoCheckout:
+        "A conversão de checkout usa uma coorte de negócios distintos que iniciaram checkout no período. O numerador inclui somente os negócios cujo próprio checkout do recorte está vinculado a uma assinatura que já recebeu pagamento CONFIRMED/RECEIVED. A taxa pode amadurecer depois do fim do período.",
       novaAssinatura:
-        "Nova assinatura paga é a assinatura cujo primeiro pagamento CONFIRMED/RECEIVED caiu no período.",
+        "Nova assinatura paga é a assinatura cujo primeiro pagamento CONFIRMED/RECEIVED caiu no período. Esse total é um fato financeiro do período e não é usado como numerador da coorte de checkout.",
       receita:
         "Receita total soma pagamentos CONFIRMED/RECEIVED no período e pode incluir renovações; receita de primeiro pagamento isola monetização inicial.",
       ativas:
