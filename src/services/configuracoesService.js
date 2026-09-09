@@ -47,6 +47,9 @@ const ESTADOS_BRASILEIROS = new Set([
   "RJ", "RN", "RS", "RO", "RR", "SC", "SP", "SE", "TO",
 ]);
 
+const PENDENCIA_AGENDA_LEGADA =
+  "confirmar os horários de atendimento";
+
 const TAMANHO_MAXIMO_FOTO =
   5 * 1024 * 1024;
 
@@ -578,6 +581,22 @@ function avaliarPublicacao(
   ) {
     pendencias.push(
       "pelo menos um serviço ativo"
+    );
+  }
+
+  /*
+   * Compatibilidade transitória para bases que ainda não executaram a migration
+   * que transforma este flag em legado. Após 064/065, ele fica FALSE e a
+   * disponibilidade padrão é inicializada automaticamente, sem ação do usuário.
+   */
+  if (
+    negocio?.publicacao_exige_agenda ===
+      true &&
+    negocio?.agenda_configurada !==
+      true
+  ) {
+    pendencias.push(
+      PENDENCIA_AGENDA_LEGADA
     );
   }
 
