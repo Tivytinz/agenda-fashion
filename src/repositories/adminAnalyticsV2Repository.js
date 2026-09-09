@@ -309,6 +309,28 @@ async function buscarReceita(periodo = "30") {
         WHERE 1 = 1
           ${filtroCheckout}
       ),
+      checkout_coorte AS (
+        SELECT
+          COUNT(DISTINCT ct.negocio_id)::INT AS negocios_com_checkout,
+          COUNT(DISTINCT ct.negocio_id) FILTER (
+            WHERE ct.assinatura_id IS NOT NULL
+              AND EXISTS (
+                SELECT 1
+                FROM pagamentos cpg
+                INNER JOIN assinaturas ca
+                  ON ca.id = cpg.assinatura_id
+                INNER JOIN planos cpl
+                  ON cpl.id = ca.plano_id
+                WHERE cpg.assinatura_id = ct.assinatura_id
+                  AND UPPER(cpg.status) IN ('CONFIRMED', 'RECEIVED')
+                  AND cpg.data_pagamento IS NOT NULL
+                  AND cpl.valor > 0
+              )
+          )::INT AS negocios_checkout_convertidos
+        FROM checkout_tentativas ct
+        WHERE 1 = 1
+          ${filtroCheckout}
+      ),
       pagamentos AS (
         SELECT
           COUNT(*)::INT AS pagamentos_confirmados,
@@ -362,6 +384,8 @@ async function buscarReceita(periodo = "30") {
         c.iniciados AS checkouts_iniciados,
         c.concluidos AS checkouts_concluidos,
         c.falhos AS checkouts_falhos,
+        cc.negocios_com_checkout,
+        cc.negocios_checkout_convertidos,
         p.pagamentos_confirmados,
         p.negocios_pagantes,
         p.receita_total,
@@ -369,6 +393,7 @@ async function buscarReceita(periodo = "30") {
         fp.receita_primeiro_pagamento,
         a.assinaturas_pagas_ativas
       FROM checkouts c
+      CROSS JOIN checkout_coorte cc
       CROSS JOIN pagamentos p
       CROSS JOIN primeiros_pagamentos fp
       CROSS JOIN ativas a
