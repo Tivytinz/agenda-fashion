@@ -4,11 +4,18 @@ Este documento registra decisões duráveis da primeira jornada da profissional 
 
 ## Objetivo
 
-A primeira experiência deve levar a profissional ao valor com uma jornada clara e com dados de qualidade:
+A primeira experiência deve levar a profissional ao valor com uma jornada curta, clara e com dados estruturais suficientes para publicar um perfil utilizável:
 
-`conta → negócio completo → primeiro serviço → horários confirmados → publicação automática → compartilhar perfil → primeiro agendamento`
+`conta → negócio completo → primeiro serviço → publicação automática → compartilhar perfil → primeiro agendamento`
 
-A interface deve evitar decisões que não pertencem ao momento atual, mas não deve sacrificar a qualidade dos dados estruturais do negócio.
+A preparação inicial possui somente duas etapas visíveis:
+
+1. `Negócio`;
+2. `Serviço`.
+
+Configurar horários não é etapa obrigatória de onboarding nem requisito de publicação. O Agenda Fashion inicializa uma disponibilidade sugerida para que o perfil possa receber agendamentos e a profissional pode personalizá-la depois.
+
+A interface deve evitar decisões que não pertencem ao momento atual, sem sacrificar a qualidade dos dados estruturais do negócio.
 
 ## Emojis e identidade
 
@@ -43,69 +50,95 @@ Todo novo negócio deve nascer com as informações estruturais essenciais do pe
 
 - nome do negócio;
 - pelo menos uma especialidade;
-- WhatsApp;
-- link de localização do Google Maps;
-- CEP;
+- WhatsApp válido com DDD;
+- link de localização com URL HTTP/HTTPS válida;
+- CEP válido;
 - endereço;
 - número;
 - bairro;
 - cidade;
-- estado.
+- estado brasileiro válido.
 
 Descrição, foto e complemento são opcionais. O upload de foto continua acontecendo pelo fluxo próprio depois que o negócio existe. A descrição pode ser melhorada depois e o complemento pode ser preenchido quando fizer sentido para o endereço, sem bloquear a criação quando não existir.
 
-Na criação padrão, a interface deve continuar diretamente para o cadastro do primeiro serviço. Isso também vale quando a profissional chega com um plano pago pré-selecionado: a escolha pode ser carregada como intenção durante `negócio → primeiro serviço → horários`, mas não deve abrir checkout antes de concluir a preparação e a publicação do negócio. Depois da publicação, compartilhar o perfil continua sendo a ação principal; concluir o plano escolhido pode aparecer apenas como ação secundária opcional. O dashboard não deve introduzir uma decisão intermediária antes do primeiro serviço.
+O backend é a fonte de verdade desses requisitos. Não basta o frontend apresentar seletores ou máscaras: WhatsApp, CEP, UF, URL e demais campos obrigatórios continuam validados no servidor.
 
-As três etapas de preparação — `Negócio`, `Serviço` e `Horários` — devem aparecer como progresso compacto nas respectivas telas. A entrada do primeiro serviço usa `?onboarding=servico` como marcador navegável, em vez de depender apenas de estado transitório do React Router; assim, atualizar a página ou reabrir o link não transforma acidentalmente a primeira missão no editor completo. Quando a ativação ainda não possui nenhum serviço, a próxima ação do dashboard deve abrir diretamente esse cadastro. Se já houver apenas serviços inativos, deve abrir a gestão para permitir reativação em vez de chamar o próximo cadastro de primeiro serviço.
+Na criação padrão, a interface deve continuar diretamente para o cadastro do primeiro serviço. Isso também vale quando a profissional chega com um plano pago pré-selecionado: a escolha pode ser carregada como intenção durante `Negócio → Serviço`, mas o checkout não deve abrir antes de o primeiro serviço ser salvo e o perfil estar publicado. Depois da publicação, o fluxo pode conduzir ao checkout do plano já escolhido; sem intenção de plano pago, segue para o painel e para a missão de divulgação.
+
+As duas etapas de preparação — `Negócio` e `Serviço` — devem aparecer como progresso compacto nas respectivas telas. A entrada do primeiro serviço usa `?onboarding=servico` como marcador navegável, em vez de depender apenas de estado transitório do React Router; assim, atualizar a página ou reabrir o link não transforma acidentalmente a primeira missão no editor completo. Quando a ativação ainda não possui nenhum serviço, a próxima ação do dashboard deve abrir diretamente esse cadastro. Se já houver apenas serviços inativos, deve abrir a gestão para permitir reativação em vez de chamar o próximo cadastro de primeiro serviço.
 
 O WhatsApp da conta autenticada pode preencher inicialmente o WhatsApp do negócio, mas permanece editável e o backend continua validando o valor recebido.
 
-Esta exigência vale para **criação de novos negócios**. Ela não altera retroativamente os requisitos canônicos de publicação de negócios existentes, preservando compatibilidade com perfis legados.
+## Primeiro serviço e publicação
 
-## Primeiro serviço
+O primeiro serviço deve priorizar somente os dados necessários para colocar a oferta no ar:
 
-A foto do serviço é recomendada para conversão, mas não é requisito para liberar a etapa seguinte ou publicar o negócio depois da confirmação dos horários.
+- nome;
+- categoria;
+- valor;
+- duração.
 
-A interface deve deixar claro que o primeiro serviço ativo é necessário, mas não publica sozinho um negócio novo. Depois dele, o fluxo segue diretamente para a confirmação dos horários. Fotos e descrição do serviço podem ser aprimoradas depois.
+Descrição e fotos do serviço podem ser aprimoradas depois. Durante a primeira missão, o serviço nasce ativo para não criar uma pendência contraditória antes da publicação.
 
-Durante essa primeira missão de onboarding, o formulário deve priorizar apenas nome, categoria, valor e duração. Descrição, fotos e o controle de visibilidade ficam para a gestão posterior; o primeiro serviço nasce ativo para não criar uma pendência contraditória imediatamente antes da confirmação dos horários.
+Depois de salvar o primeiro serviço ativo, o backend recalcula a elegibilidade do negócio. A publicação automática exige simultaneamente:
 
-## Primeira configuração da agenda
+- nome do negócio;
+- pelo menos uma especialidade;
+- WhatsApp válido;
+- cidade;
+- estado brasileiro válido;
+- bairro;
+- endereço;
+- número;
+- CEP válido;
+- link de localização HTTP/HTTPS válido;
+- pelo menos um serviço ativo.
 
-A primeira configuração deve priorizar:
+Descrição, complemento e fotos não bloqueiam a publicação. Horários também não bloqueiam a publicação.
 
-1. dias em que a profissional atende;
-2. horário de início e fim;
-3. pausas, quando existirem;
-4. confirmação explícita por `Salvar horários`.
+Se algum dado estrutural obrigatório estiver ausente ou inválido, o serviço continua salvo, mas o fluxo retorna para a edição do negócio com a pendência explícita em vez de apresentar o perfil como publicado.
 
-### Confirmação rápida da primeira disponibilidade
+A mesma regra deve ser usada pela publicação manual, pela publicação automática após alterações de serviço e por qualquer backfill de migration. Não pode existir um caminho mais permissivo que outro.
 
-Quando a agenda ainda não tiver `configurado_em` e houver horários sugeridos válidos, a primeira tela deve priorizar uma confirmação rápida antes do editor semanal completo:
+## Disponibilidade padrão automática
 
-1. resumir os dias, faixas de atendimento e pausas sugeridas;
-2. oferecer `Confirmar horários e publicar` como ação principal;
-3. oferecer `Ajustar horários` como ação secundária, abrindo o editor completo existente;
-4. deixar explícito que nenhum horário fica disponível para clientes antes da confirmação;
-5. exigir pelo menos um dia ativo na primeira confirmação, sem impedir que uma agenda já configurada seja posteriormente fechada em todos os dias quando necessário.
+A disponibilidade é infraestrutura de agendamento, não uma terceira etapa de onboarding.
 
-A confirmação rápida não altera a fonte de verdade: o frontend envia os sete dias ao endpoint existente, o backend valida e persiste a configuração, marca `agenda_configuracoes.configurado_em` e somente então recalcula a elegibilidade de publicação.
+Ao criar um novo negócio, a mesma transação que cria o negócio e o vínculo da dona inicializa a configuração de agenda e os sete dias da semana. A sugestão padrão do AF é:
 
-Os eventos existentes de agenda devem distinguir a origem da interação por `propriedades.origem`, usando `confirmacao_rapida`, `ajuste_manual` ou `editor`, sem criar um segundo funil de analytics.
+- domingo: fechado;
+- segunda a sexta: 08:00–18:00, com pausa 12:00–13:00;
+- sábado: 08:00–13:00.
 
-Depois que o backend confirmar a primeira configuração e a publicação, o editor deixa de competir visualmente com a missão seguinte. A interface deve priorizar imediatamente o `PublicShareButton` e a cópia do link rastreável para conduzir a profissional à divulgação e ao primeiro agendamento.
+Essa sugestão permite que um perfil elegível e publicado tenha disponibilidade utilizável sem exigir uma confirmação manual prévia. Se a inicialização da agenda falhar, a criação do negócio também deve falhar e a transação deve ser revertida, evitando negócio parcialmente criado sem disponibilidade.
 
-Duração padrão, intervalo entre clientes e antecedências são ajustes avançados. Na primeira configuração, ficam recolhidos para reduzir carga cognitiva. Em uma agenda já configurada, ficam abertos para facilitar a gestão recorrente.
+`agenda_configuracoes.configurado_em` deixa de representar uma etapa de ativação. Ele é apenas um marcador técnico de disponibilidade inicializada. A origem deve ser registrada separadamente:
 
-Nenhum horário sugerido deve ser considerado confirmado antes do primeiro salvamento válido. A fonte canônica continua sendo `agenda_configuracoes.configurado_em`.
+- `padrao_af`: sugestão automática ainda não personalizada;
+- `personalizado`: a profissional salvou sua própria disponibilidade;
+- `legado_desconhecido`: configuração histórica cuja origem não pode ser provada.
 
-Para negócios criados no fluxo novo, a agenda confirmada é requisito de publicação. O primeiro salvamento válido recalcula a elegibilidade no backend e publica automaticamente apenas quando os dados obrigatórios e o serviço ativo também estiverem presentes.
+Ao salvar alterações de horários, o backend marca a origem como `personalizado` e registra os timestamps de primeira e última personalização. A profissional pode editar dias, faixas, pausas, duração padrão, intervalos e antecedências quando quiser no painel.
 
-Negócios anteriores a essa regra mantêm os critérios legados. Eles não devem ser despublicados nem obrigados retroativamente a confirmar a agenda.
+A disponibilidade sugerida nunca deve sobrescrever silenciosamente uma agenda comprovadamente personalizada.
 
-## Pós-agenda
+## Negócios existentes e migração
 
-Depois da primeira configuração válida e da publicação confirmada pelo backend, a próxima missão é compartilhar o perfil rastreável do AF e conquistar o primeiro agendamento. Se ainda houver alguma pendência obrigatória, a interface não deve oferecer o compartilhamento como se o perfil estivesse no ar.
+O campo `negocios.publicacao_exige_agenda` é legado e não deve voltar a ser usado como gate de publicação.
+
+A migração da regra deve:
+
+- desativar o gate legado;
+- preservar agendas personalizadas ou de origem não comprovada;
+- normalizar automaticamente apenas configurações identificadas com segurança como padrão do AF;
+- inicializar disponibilidade ausente para vínculos ativos;
+- publicar retroativamente somente negócios que atendam a todos os requisitos estruturais atuais e possuam serviço ativo.
+
+O backfill não pode publicar perfis com UF inexistente, WhatsApp/CEP inválidos ou link de localização sem HTTP/HTTPS apenas porque os campos estão preenchidos.
+
+## Pós-publicação
+
+Depois da publicação confirmada pelo backend, a próxima missão é compartilhar o perfil rastreável do AF e conquistar o primeiro agendamento. Se ainda houver alguma pendência obrigatória, a interface não deve oferecer compartilhamento como se o perfil estivesse no ar.
 
 No dashboard, essa missão deve aparecer antes de métricas e relatórios. Enquanto o perfil tiver menos de 20 visitas e ainda não tiver recebido o primeiro agendamento, a interface continua incentivando divulgação em vez de diagnosticar baixa conversão com uma amostra pequena. A partir desse volume, o AF pode sugerir revisão de serviços, preços e horários como orientação, sem tratar o número isolado como prova estatística de problema.
 
