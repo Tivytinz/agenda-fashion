@@ -2,6 +2,39 @@ const db = require(
   "../db/db"
 );
 
+/*
+ * A saúde da ativação deve espelhar a elegibilidade usada pelo runtime.
+ * Horários/disponibilidade são diagnóstico técnico e não fazem parte
+ * das cinco etapas de ativação.
+ */
+const PERFIL_ESSENCIAL_SQL = `
+  negocio_id IS NOT NULL
+  AND NULLIF(BTRIM(negocio_nome), '') IS NOT NULL
+  AND (
+    CARDINALITY(COALESCE(areas, ARRAY[]::TEXT[])) > 0
+    OR NULLIF(BTRIM(setor), '') IS NOT NULL
+  )
+  AND COALESCE(
+    negocio_whatsapp ~ '^[0-9]{10,11}$',
+    FALSE
+  )
+  AND NULLIF(BTRIM(cidade), '') IS NOT NULL
+  AND UPPER(BTRIM(COALESCE(estado, ''))) IN (
+    'AC', 'AL', 'AP', 'AM', 'BA', 'CE', 'DF',
+    'ES', 'GO', 'MA', 'MT', 'MS', 'MG', 'PA',
+    'PB', 'PR', 'PE', 'PI', 'RJ', 'RN', 'RS',
+    'RO', 'RR', 'SC', 'SP', 'SE', 'TO'
+  )
+  AND NULLIF(BTRIM(bairro), '') IS NOT NULL
+  AND NULLIF(BTRIM(endereco), '') IS NOT NULL
+  AND NULLIF(BTRIM(numero), '') IS NOT NULL
+  AND REGEXP_REPLACE(COALESCE(cep, ''), '[^0-9]', '', 'g') ~ '^[0-9]{8}$'
+  AND COALESCE(
+    BTRIM(localizacao_url) ~* '^https?://[^[:space:]]+$',
+    FALSE
+  )
+`;
+
 const PERFIS_CTE = `
   WITH candidatos AS (
     SELECT
@@ -31,10 +64,6 @@ const PERFIS_CTE = `
       n.numero,
       n.cep,
       n.localizacao_url,
-      COALESCE(
-        n.publicacao_exige_agenda,
-        FALSE
-      ) AS publicacao_exige_agenda,
       COALESCE(n.publicado, FALSE) AS publicado,
       COALESCE(servico.possui_servico_ativo, FALSE)
         AS possui_servico_ativo,
@@ -91,69 +120,12 @@ const PERFIS_CTE = `
       negocio_id IS NOT NULL AS tem_negocio,
       NULLIF(BTRIM(descricao), '') IS NOT NULL
         AS descricao_preenchida,
-      (
-        negocio_id IS NOT NULL
-        AND (
-          CARDINALITY(COALESCE(areas, ARRAY[]::TEXT[])) > 0
-          OR NULLIF(BTRIM(setor), '') IS NOT NULL
-        )
-        AND COALESCE(
-          negocio_whatsapp ~ '^[0-9]{10,11}$',
-          FALSE
-        )
-        AND NULLIF(BTRIM(cidade), '') IS NOT NULL
-        AND estado IN (
-          'AC', 'AL', 'AP', 'AM', 'BA', 'CE', 'DF',
-          'ES', 'GO', 'MA', 'MT', 'MS', 'MG', 'PA',
-          'PB', 'PR', 'PE', 'PI', 'RJ', 'RN', 'RS',
-          'RO', 'RR', 'SC', 'SP', 'SE', 'TO'
-        )
-        AND (
-          publicacao_exige_agenda = FALSE
-          OR (
-            NULLIF(BTRIM(negocio_nome), '') IS NOT NULL
-            AND NULLIF(BTRIM(bairro), '') IS NOT NULL
-            AND NULLIF(BTRIM(endereco), '') IS NOT NULL
-            AND NULLIF(BTRIM(numero), '') IS NOT NULL
-            AND NULLIF(BTRIM(cep), '') IS NOT NULL
-            AND NULLIF(BTRIM(localizacao_url), '') IS NOT NULL
-          )
-        )
-      ) AS perfil_basico_completo,
-      configurado_em IS NOT NULL AS agenda_configurada,
+      (${PERFIL_ESSENCIAL_SQL}) AS perfil_basico_completo,
+      configurado_em IS NOT NULL AS disponibilidade_inicializada,
       (
         (negocio_id IS NOT NULL)::INT
-        + (
-          negocio_id IS NOT NULL
-          AND (
-            CARDINALITY(COALESCE(areas, ARRAY[]::TEXT[])) > 0
-            OR NULLIF(BTRIM(setor), '') IS NOT NULL
-          )
-          AND COALESCE(
-            negocio_whatsapp ~ '^[0-9]{10,11}$',
-            FALSE
-          )
-          AND NULLIF(BTRIM(cidade), '') IS NOT NULL
-          AND estado IN (
-            'AC', 'AL', 'AP', 'AM', 'BA', 'CE', 'DF',
-            'ES', 'GO', 'MA', 'MT', 'MS', 'MG', 'PA',
-            'PB', 'PR', 'PE', 'PI', 'RJ', 'RN', 'RS',
-            'RO', 'RR', 'SC', 'SP', 'SE', 'TO'
-          )
-          AND (
-            publicacao_exige_agenda = FALSE
-            OR (
-              NULLIF(BTRIM(negocio_nome), '') IS NOT NULL
-              AND NULLIF(BTRIM(bairro), '') IS NOT NULL
-              AND NULLIF(BTRIM(endereco), '') IS NOT NULL
-              AND NULLIF(BTRIM(numero), '') IS NOT NULL
-              AND NULLIF(BTRIM(cep), '') IS NOT NULL
-              AND NULLIF(BTRIM(localizacao_url), '') IS NOT NULL
-            )
-          )
-        )::INT
+        + (${PERFIL_ESSENCIAL_SQL})::INT
         + possui_servico_ativo::INT
-        + (configurado_em IS NOT NULL)::INT
         + publicado::INT
         + primeiro_agendamento_valido::INT
       ) AS etapas_concluidas
@@ -169,7 +141,7 @@ async function buscarResumo() {
         SELECT
           COUNT(*)::INT AS total_profissionais,
           COUNT(*) FILTER (
-            WHERE etapas_concluidas < 6
+            WHERE etapas_concluidas < 5
           )::INT AS total_incompletos,
           COUNT(*) FILTER (
             WHERE tem_negocio = FALSE
@@ -188,8 +160,8 @@ async function buscarResumo() {
           )::INT AS sem_servico,
           COUNT(*) FILTER (
             WHERE tem_negocio = TRUE
-              AND agenda_configurada = FALSE
-          )::INT AS sem_agenda,
+              AND disponibilidade_inicializada = FALSE
+          )::INT AS sem_disponibilidade_inicial,
           COUNT(*) FILTER (
             WHERE tem_negocio = TRUE
               AND publicado = FALSE
@@ -200,7 +172,7 @@ async function buscarResumo() {
               AND primeiro_agendamento_valido = FALSE
           )::INT AS sem_primeiro_agendamento,
           COUNT(*) FILTER (
-            WHERE etapas_concluidas = 6
+            WHERE etapas_concluidas = 5
           )::INT AS completos
         FROM avaliados
       `
@@ -212,9 +184,15 @@ async function buscarResumo() {
 function filtroEscopoSql(
   pendencia
 ) {
-  return pendencia === "descricao"
-    ? "descricao_preenchida = FALSE"
-    : "etapas_concluidas < 6";
+  if (pendencia === "descricao") {
+    return "descricao_preenchida = FALSE";
+  }
+
+  if (pendencia === "disponibilidade") {
+    return "tem_negocio = TRUE AND disponibilidade_inicializada = FALSE";
+  }
+
+  return "etapas_concluidas < 5";
 }
 
 function filtroPendenciaSql(
@@ -229,8 +207,8 @@ function filtroPendenciaSql(
       "AND tem_negocio = TRUE AND descricao_preenchida = FALSE",
     servico:
       "AND tem_negocio = TRUE AND possui_servico_ativo = FALSE",
-    agenda:
-      "AND tem_negocio = TRUE AND agenda_configurada = FALSE",
+    disponibilidade:
+      "AND tem_negocio = TRUE AND disponibilidade_inicializada = FALSE",
     publicacao:
       "AND tem_negocio = TRUE AND publicado = FALSE",
     primeiro_agendamento:
@@ -304,7 +282,6 @@ async function listarPerfisIncompletos({
           numero,
           cep,
           localizacao_url,
-          publicacao_exige_agenda,
           publicado,
           possui_servico_ativo,
           configurado_em,
@@ -312,7 +289,7 @@ async function listarPerfisIncompletos({
           tem_negocio,
           descricao_preenchida,
           perfil_basico_completo,
-          agenda_configurada,
+          disponibilidade_inicializada,
           primeiro_agendamento_valido,
           etapas_concluidas,
           COUNT(*) OVER()::INT AS total_resultados
@@ -327,7 +304,7 @@ async function listarPerfisIncompletos({
           )
           ${filtroPendenciaSql(pendencia)}
         ORDER BY
-          (etapas_concluidas = 6) ASC,
+          (etapas_concluidas = 5) ASC,
           etapas_concluidas DESC,
           ultima_atividade_em ASC NULLS LAST,
           cadastro_em ASC,
