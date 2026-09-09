@@ -283,7 +283,7 @@ test("admin e consentimento permanecem navegáveis no celular", async ({ page })
   await expect(page.getByText("/para-profissionais")).toBeVisible();
 
   const navigation = page.getByRole("navigation", {
-    name: "Administração do Agenda Fashion"
+    name: "Navegação mobile da administração"
   });
   await expect(navigation.getByRole("link", { name: /Visão geral/ }))
     .toBeVisible();
@@ -294,7 +294,7 @@ test("admin e consentimento permanecem navegáveis no celular", async ({ page })
   await expect(navigation.getByRole("link", { name: /Retenção/ }))
     .toBeVisible();
   const moreAdmin = navigation.getByRole("button", {
-    name: /mais opções da área de trabalho/
+    name: /mais opções da administração/
   });
   await expect(moreAdmin).toBeVisible();
   await moreAdmin.click();
