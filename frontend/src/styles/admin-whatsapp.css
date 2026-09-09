@@ -23,7 +23,7 @@
   justify-content: space-between;
   gap: 1rem;
   border: 1px solid var(--admin-line, #ead7df);
-  border-radius: 15px;
+  border-radius: var(--admin-radius-md, 14px);
   padding: 1rem 1.1rem;
   background: #fff;
 }
@@ -184,17 +184,6 @@
 .whatsapp-metrics-help p {
   margin: 0;
   color: var(--admin-muted, #795f68);
-}
-
-/* O shell fornece tokens neutros; a feature preserva verde apenas para saúde. */
-.workspace-shell--admin .whatsapp-template-table code,
-.workspace-shell--admin .whatsapp-metrics-help summary {
-  color: #46515c;
-}
-
-.workspace-shell--admin .whatsapp-health-notice,
-.workspace-shell--admin .whatsapp-templates-panel {
-  border-radius: 10px;
 }
 
 @media (max-width: 1100px) {
