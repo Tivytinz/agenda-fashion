@@ -5,8 +5,8 @@ export const ADMIN_LINKS = [
   ["/admin/aquisicao", "Aquisição", "marketing"],
   ["/admin/jornada", "Jornada", "health"],
   ["/admin/retencao", "Retenção", "business"],
-  ["/admin/receita", "Receita", "billing"],
-  ["/admin/operacao", "Operação", "agenda"]
+  ["/admin/receita", "Receita", "plan"],
+  ["/admin/operacao", "Operação", "calendar"]
 ];
 
 export function AdminLayout({ children }) {
