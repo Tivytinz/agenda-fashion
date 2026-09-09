@@ -14,9 +14,7 @@ function lazyNamed(importer, name) {
   return lazy(() =>
     importer().then((module) => {
       markRuntimeReady();
-      return {
-        default: module[name]
-      };
+      return { default: module[name] };
     })
   );
 }
@@ -25,40 +23,26 @@ function lazyNamedWithStyles(stylesImporter, importer, name) {
   return lazy(() =>
     Promise.all([stylesImporter(), importer()]).then(([, module]) => {
       markRuntimeReady();
-      return {
-        default: module[name]
-      };
+      return { default: module[name] };
     })
   );
 }
 
-const loadAdminCommandStyles = () =>
-  import("./styles/admin-command.css");
-const loadAdminShellStyles = () =>
-  import("./styles/admin-shell.css");
-const loadAdminMarketingStyles = () =>
-  import("./styles/admin-marketing.css");
-const loadAdminSaasHealthStyles = () =>
-  import("./styles/admin-saas-health.css");
-const loadAdminWhatsAppStyles = () =>
-  import("./styles/admin-whatsapp.css");
-const loadDashboardStyles = () =>
-  import("./styles/dashboard-polish.css");
-const loadAgendaStyles = () =>
-  import("./styles/agenda-polish.css");
-const loadScheduleStyles = () =>
-  import("./styles/schedule-polish.css");
-const loadServicesStyles = () =>
-  Promise.all([
-    import("./styles/service-media-polish.css"),
-    import("./styles/service-catalog-polish.css")
-  ]);
-const loadBusinessStyles = () =>
-  import("./styles/business-polish.css");
-const loadSubscriptionStyles = () =>
-  import("./styles/subscription-polish.css");
-const loadPlansStyles = () =>
-  import("./styles/plans-polish.css");
+const loadAdminCommandStyles = () => import("./styles/admin-command.css");
+const loadAdminShellStyles = () => import("./styles/admin-shell.css");
+const loadAdminMarketingStyles = () => import("./styles/admin-marketing.css");
+const loadAdminSaasHealthStyles = () => import("./styles/admin-saas-health.css");
+const loadAdminWhatsAppStyles = () => import("./styles/admin-whatsapp.css");
+const loadDashboardStyles = () => import("./styles/dashboard-polish.css");
+const loadAgendaStyles = () => import("./styles/agenda-polish.css");
+const loadScheduleStyles = () => import("./styles/schedule-polish.css");
+const loadServicesStyles = () => Promise.all([
+  import("./styles/service-media-polish.css"),
+  import("./styles/service-catalog-polish.css")
+]);
+const loadBusinessStyles = () => import("./styles/business-polish.css");
+const loadSubscriptionStyles = () => import("./styles/subscription-polish.css");
+const loadPlansStyles = () => import("./styles/plans-polish.css");
 
 const AdminLayout = lazyNamedWithStyles(
   loadAdminShellStyles,
@@ -93,11 +77,6 @@ const AdminMarketingCostsPage = lazyNamedWithStyles(
   () => import("./pages/AdminMarketingCostsPage"),
   "AdminMarketingCostsPage"
 );
-const AdminProfessionalFunnelPage = lazyNamedWithStyles(
-  loadAdminMarketingStyles,
-  () => import("./pages/AdminProfessionalFunnelPage"),
-  "AdminProfessionalFunnelPage"
-);
 const AdminSaasHealthPage = lazyNamedWithStyles(
   loadAdminSaasHealthStyles,
   () => import("./pages/AdminSaasHealthPage"),
@@ -108,10 +87,7 @@ const AdminWhatsAppPage = lazyNamedWithStyles(
   () => import("./pages/AdminWhatsAppPage"),
   "AdminWhatsAppPage"
 );
-const AuthPage = lazyNamed(
-  () => import("./pages/AuthPage"),
-  "AuthPage"
-);
+const AuthPage = lazyNamed(() => import("./pages/AuthPage"), "AuthPage");
 const PasswordResetPage = lazyNamed(
   () => import("./pages/PasswordResetPage"),
   "PasswordResetPage"
@@ -145,14 +121,8 @@ const DashboardPage = lazyNamedWithStyles(
   () => import("./pages/DashboardPage"),
   "DashboardPage"
 );
-const FavoritesPage = lazyNamed(
-  () => import("./pages/FavoritesPage"),
-  "FavoritesPage"
-);
-const AccountPage = lazyNamed(
-  () => import("./pages/AccountPage"),
-  "AccountPage"
-);
+const FavoritesPage = lazyNamed(() => import("./pages/FavoritesPage"), "FavoritesPage");
+const AccountPage = lazyNamed(() => import("./pages/AccountPage"), "AccountPage");
 const ScheduleSettingsPage = lazyNamedWithStyles(
   loadScheduleStyles,
   () => import("./pages/ScheduleSettingsPage"),
@@ -172,14 +142,8 @@ const ProfessionalsPage = lazyNamed(
   () => import("./pages/ProfessionalsPage"),
   "ProfessionalsPage"
 );
-const ConfirmPage = lazyNamed(
-  () => import("./pages/ConfirmPage"),
-  "ConfirmPage"
-);
-const ExplorePage = lazyNamed(
-  () => import("./pages/ExplorePage"),
-  "ExplorePage"
-);
+const ConfirmPage = lazyNamed(() => import("./pages/ConfirmPage"), "ConfirmPage");
+const ExplorePage = lazyNamed(() => import("./pages/ExplorePage"), "ExplorePage");
 const LocalCatalogPage = lazyNamed(
   () => import("./pages/LocalCatalogPage"),
   "LocalCatalogPage"
@@ -188,30 +152,15 @@ const MyAppointmentsPage = lazyNamed(
   () => import("./pages/MyAppointmentsPage"),
   "MyAppointmentsPage"
 );
-const ProfilePage = lazyNamed(
-  () => import("./pages/ProfilePage"),
-  "ProfilePage"
-);
-const SuccessPage = lazyNamed(
-  () => import("./pages/SuccessPage"),
-  "SuccessPage"
-);
-const PrivacyPage = lazyNamed(
-  () => import("./pages/PrivacyPage"),
-  "PrivacyPage"
-);
-const TermsPage = lazyNamed(
-  () => import("./pages/TermsPage"),
-  "TermsPage"
-);
+const ProfilePage = lazyNamed(() => import("./pages/ProfilePage"), "ProfilePage");
+const SuccessPage = lazyNamed(() => import("./pages/SuccessPage"), "SuccessPage");
+const PrivacyPage = lazyNamed(() => import("./pages/PrivacyPage"), "PrivacyPage");
+const TermsPage = lazyNamed(() => import("./pages/TermsPage"), "TermsPage");
 const ProfessionalLandingPage = lazyNamed(
   () => import("./pages/ProfessionalLandingPage"),
   "ProfessionalLandingPage"
 );
-const NotFoundPage = lazyNamed(
-  () => import("./pages/NotFoundPage"),
-  "NotFoundPage"
-);
+const NotFoundPage = lazyNamed(() => import("./pages/NotFoundPage"), "NotFoundPage");
 
 function AccountRoute() {
   const session = useSession();
@@ -241,154 +190,123 @@ export default function App() {
       <AppHeader />
       <Suspense fallback={<main><div className="container route-loading">Carregando...</div></main>}>
         <Routes>
-        <Route path={reactRoutes.home} element={<ExplorePage />} />
-        <Route path={reactRoutes.professionalLanding} element={<ProfessionalLandingPage />} />
-        <Route path={reactRoutes.localCatalog} element={<LocalCatalogPage />} />
-        <Route path={reactRoutes.businessProfile} element={<ProfilePage />} />
-        <Route path={reactRoutes.confirm} element={<ConfirmPage />} />
-        <Route path={reactRoutes.success} element={<SuccessPage />} />
-        <Route path={reactRoutes.myAgenda} element={<MyAppointmentsPage />} />
-        <Route path={reactRoutes.login} element={<AuthPage />} />
-        <Route path={reactRoutes.register} element={<AuthPage mode="register" />} />
-        <Route path={reactRoutes.forgotPassword} element={<PasswordResetPage />} />
-        <Route path={reactRoutes.resetPassword} element={<PasswordResetPage mode="reset" />} />
-        <Route path={reactRoutes.privacy} element={<PrivacyPage />} />
-        <Route path={reactRoutes.terms} element={<TermsPage />} />
-        <Route
-          element={(
-            <ProtectedRoute adminOnly>
-              <AdminLayout />
-            </ProtectedRoute>
-          )}
-        >
+          <Route path={reactRoutes.home} element={<ExplorePage />} />
+          <Route path={reactRoutes.professionalLanding} element={<ProfessionalLandingPage />} />
+          <Route path={reactRoutes.localCatalog} element={<LocalCatalogPage />} />
+          <Route path={reactRoutes.businessProfile} element={<ProfilePage />} />
+          <Route path={reactRoutes.confirm} element={<ConfirmPage />} />
+          <Route path={reactRoutes.success} element={<SuccessPage />} />
+          <Route path={reactRoutes.myAgenda} element={<MyAppointmentsPage />} />
+          <Route path={reactRoutes.login} element={<AuthPage />} />
+          <Route path={reactRoutes.register} element={<AuthPage mode="register" />} />
+          <Route path={reactRoutes.forgotPassword} element={<PasswordResetPage />} />
+          <Route path={reactRoutes.resetPassword} element={<PasswordResetPage mode="reset" />} />
+          <Route path={reactRoutes.privacy} element={<PrivacyPage />} />
+          <Route path={reactRoutes.terms} element={<TermsPage />} />
+
           <Route
-            path={reactRoutes.adminOverview}
-            element={<AdminOverviewPage />}
-          />
-          <Route
-            path={reactRoutes.adminAcquisition}
-            element={<AdminAcquisitionPage />}
-          />
-          <Route
-            path={reactRoutes.adminJourney}
-            element={<AdminJourneyPage />}
-          />
-          <Route
-            path={reactRoutes.adminRetention}
-            element={<AdminRetentionPage />}
-          />
-          <Route
-            path={reactRoutes.adminRevenue}
-            element={<AdminRevenuePage />}
-          />
-          <Route
-            path={reactRoutes.adminOperation}
-            element={<AdminOperationPage />}
-          />
-          <Route
-            path={reactRoutes.adminMarketing}
             element={(
-              <>
-                <AdminMarketingPage />
-                <MarketingMetricGlossary terms={["UTM", "ATRIBUICAO", "CONVERSAO"]} />
-              </>
+              <ProtectedRoute adminOnly>
+                <AdminLayout />
+              </ProtectedRoute>
+            )}
+          >
+            <Route path={reactRoutes.adminOverview} element={<AdminOverviewPage />} />
+            <Route path={reactRoutes.adminAcquisition} element={<AdminAcquisitionPage />} />
+            <Route path={reactRoutes.adminJourney} element={<AdminJourneyPage />} />
+            <Route path={reactRoutes.adminRetention} element={<AdminRetentionPage />} />
+            <Route path={reactRoutes.adminRevenue} element={<AdminRevenuePage />} />
+            <Route path={reactRoutes.adminOperation} element={<AdminOperationPage />} />
+            <Route
+              path={reactRoutes.adminMarketing}
+              element={(
+                <>
+                  <AdminMarketingPage />
+                  <MarketingMetricGlossary terms={["UTM", "ATRIBUICAO", "CONVERSAO"]} />
+                </>
+              )}
+            />
+            <Route
+              path={reactRoutes.adminCosts}
+              element={(
+                <>
+                  <AdminMarketingCostsPage />
+                  <MarketingMetricGlossary terms={["CPS", "CPA", "COBERTURA"]} />
+                </>
+              )}
+            />
+            {/* Compatibilidade: links antigos de funil profissional abrem a Aquisição 2.0. */}
+            <Route
+              path={reactRoutes.adminProfessionals}
+              element={<AdminAcquisitionPage />}
+            />
+            <Route path={reactRoutes.adminHealth} element={<AdminSaasHealthPage />} />
+            <Route path={reactRoutes.adminWhatsapp} element={<AdminWhatsAppPage />} />
+          </Route>
+
+          <Route
+            path={reactRoutes.favorites}
+            element={<ProtectedRoute><FavoritesPage /></ProtectedRoute>}
+          />
+          <Route
+            path={reactRoutes.createBusiness}
+            element={<ProtectedRoute><BusinessPage create /></ProtectedRoute>}
+          />
+          <Route
+            path={reactRoutes.account}
+            element={<ProtectedRoute><AccountRoute /></ProtectedRoute>}
+          />
+          <Route path={reactRoutes.plans} element={<PlansPage />} />
+          <Route
+            path={reactRoutes.checkout}
+            element={(
+              <ProtectedRoute ownerOnly businessRequired publishedBusinessRequired>
+                <BillingCheckoutPage />
+              </ProtectedRoute>
             )}
           />
-          <Route
-            path={reactRoutes.adminCosts}
-            element={(
-              <>
-                <AdminMarketingCostsPage />
-                <MarketingMetricGlossary terms={["CPS", "CPA", "COBERTURA"]} />
-              </>
-            )}
-          />
-          <Route
-            path={reactRoutes.adminProfessionals}
-            element={(
-              <>
-                <AdminProfessionalFunnelPage />
-                <MarketingMetricGlossary terms={["CAC", "ROAS", "COORTE", "COBERTURA"]} />
-              </>
-            )}
-          />
-          <Route
-            path={reactRoutes.adminHealth}
-            element={<AdminSaasHealthPage />}
-          />
-          <Route
-            path={reactRoutes.adminWhatsapp}
-            element={<AdminWhatsAppPage />}
-          />
-        </Route>
-        <Route
-          path={reactRoutes.favorites}
-          element={<ProtectedRoute><FavoritesPage /></ProtectedRoute>}
-        />
-        <Route
-          path={reactRoutes.createBusiness}
-          element={<ProtectedRoute><BusinessPage create /></ProtectedRoute>}
-        />
-        <Route
-          path={reactRoutes.account}
-          element={<ProtectedRoute><AccountRoute /></ProtectedRoute>}
-        />
-        <Route
-          path={reactRoutes.plans}
-          element={<PlansPage />}
-        />
-        <Route
-          path={reactRoutes.checkout}
-          element={<ProtectedRoute ownerOnly businessRequired publishedBusinessRequired><BillingCheckoutPage /></ProtectedRoute>}
-        />
-        <Route
-          element={<ProtectedRoute businessRequired><WorkspaceLayout /></ProtectedRoute>}
-        >
-          <Route
-            path={reactRoutes.dashboard}
-            element={<ProtectedRoute ownerOnly businessRequired><DashboardPage /></ProtectedRoute>}
-          />
-          <Route
-            path={reactRoutes.ownerAgenda}
-            element={<ProtectedRoute ownerOnly businessRequired><AgendaWorkspacePage owner /></ProtectedRoute>}
-          />
-          <Route
-            path={reactRoutes.services}
-            element={<ProtectedRoute ownerOnly businessRequired><ServicesPage /></ProtectedRoute>}
-          />
-          <Route
-            path={reactRoutes.newService}
-            element={<ProtectedRoute ownerOnly businessRequired><ServiceEditorPage /></ProtectedRoute>}
-          />
-          <Route
-            path={reactRoutes.editService}
-            element={<ProtectedRoute ownerOnly businessRequired><ServiceEditorPage /></ProtectedRoute>}
-          />
-          <Route
-            path={reactRoutes.professionals}
-            element={<ProtectedRoute ownerOnly businessRequired><ProfessionalsPage /></ProtectedRoute>}
-          />
-          <Route
-            path={reactRoutes.schedule}
-            element={<ProtectedRoute ownerOnly businessRequired><ScheduleSettingsPage /></ProtectedRoute>}
-          />
-          <Route
-            path={reactRoutes.businessSettings}
-            element={<ProtectedRoute ownerOnly businessRequired><BusinessPage /></ProtectedRoute>}
-          />
-          <Route
-            path={reactRoutes.subscription}
-            element={<ProtectedRoute ownerOnly businessRequired><SubscriptionPage /></ProtectedRoute>}
-          />
-          <Route
-            path={reactRoutes.professionalAgenda}
-            element={<AgendaWorkspacePage />}
-          />
-          <Route
-            path={reactRoutes.professionalSchedule}
-            element={<ScheduleSettingsPage />}
-          />
-        </Route>
+
+          <Route element={<ProtectedRoute businessRequired><WorkspaceLayout /></ProtectedRoute>}>
+            <Route
+              path={reactRoutes.dashboard}
+              element={<ProtectedRoute ownerOnly businessRequired><DashboardPage /></ProtectedRoute>}
+            />
+            <Route
+              path={reactRoutes.ownerAgenda}
+              element={<ProtectedRoute ownerOnly businessRequired><AgendaWorkspacePage owner /></ProtectedRoute>}
+            />
+            <Route
+              path={reactRoutes.services}
+              element={<ProtectedRoute ownerOnly businessRequired><ServicesPage /></ProtectedRoute>}
+            />
+            <Route
+              path={reactRoutes.newService}
+              element={<ProtectedRoute ownerOnly businessRequired><ServiceEditorPage /></ProtectedRoute>}
+            />
+            <Route
+              path={reactRoutes.editService}
+              element={<ProtectedRoute ownerOnly businessRequired><ServiceEditorPage /></ProtectedRoute>}
+            />
+            <Route
+              path={reactRoutes.professionals}
+              element={<ProtectedRoute ownerOnly businessRequired><ProfessionalsPage /></ProtectedRoute>}
+            />
+            <Route
+              path={reactRoutes.schedule}
+              element={<ProtectedRoute ownerOnly businessRequired><ScheduleSettingsPage /></ProtectedRoute>}
+            />
+            <Route
+              path={reactRoutes.businessSettings}
+              element={<ProtectedRoute ownerOnly businessRequired><BusinessPage /></ProtectedRoute>}
+            />
+            <Route
+              path={reactRoutes.subscription}
+              element={<ProtectedRoute ownerOnly businessRequired><SubscriptionPage /></ProtectedRoute>}
+            />
+            <Route path={reactRoutes.professionalAgenda} element={<AgendaWorkspacePage />} />
+            <Route path={reactRoutes.professionalSchedule} element={<ScheduleSettingsPage />} />
+          </Route>
+
           <Route path="*" element={<NotFoundPage />} />
         </Routes>
       </Suspense>
