@@ -220,9 +220,11 @@ async function sincronizarPublicacaoAutomatica(
             WHEN
               $2::BOOLEAN = TRUE
               AND n.publicacao_exige_agenda IS NOT TRUE
-            THEN n.publicado
+              AND n.publicado = TRUE
+            THEN TRUE
             ELSE (
-              (
+              NULLIF(BTRIM(COALESCE(n.nome, '')), '') IS NOT NULL
+              AND (
                 COALESCE(cardinality(n.areas), 0) > 0
                 OR NULLIF(BTRIM(COALESCE(n.setor, '')), '') IS NOT NULL
               )
@@ -233,35 +235,16 @@ async function sincronizarPublicacaoAutomatica(
                 'MA', 'MT', 'MS', 'MG', 'PA', 'PB', 'PR', 'PE', 'PI',
                 'RJ', 'RN', 'RS', 'RO', 'RR', 'SC', 'SP', 'SE', 'TO'
               )
+              AND NULLIF(BTRIM(COALESCE(n.bairro, '')), '') IS NOT NULL
+              AND NULLIF(BTRIM(COALESCE(n.endereco, '')), '') IS NOT NULL
+              AND NULLIF(BTRIM(COALESCE(n.numero, '')), '') IS NOT NULL
+              AND NULLIF(BTRIM(COALESCE(n.cep, '')), '') IS NOT NULL
+              AND NULLIF(BTRIM(COALESCE(n.localizacao_url, '')), '') IS NOT NULL
               AND EXISTS (
                 SELECT 1
                 FROM servicos_negocio s
                 WHERE s.negocio_id = n.id
                   AND s.ativo = TRUE
-              )
-              AND (
-                n.publicacao_exige_agenda IS NOT TRUE
-                OR (
-                  NULLIF(BTRIM(COALESCE(n.nome, '')), '') IS NOT NULL
-                  AND NULLIF(BTRIM(COALESCE(n.bairro, '')), '') IS NOT NULL
-                  AND NULLIF(BTRIM(COALESCE(n.endereco, '')), '') IS NOT NULL
-                  AND NULLIF(BTRIM(COALESCE(n.numero, '')), '') IS NOT NULL
-                  AND NULLIF(BTRIM(COALESCE(n.cep, '')), '') IS NOT NULL
-                  AND NULLIF(BTRIM(COALESCE(n.localizacao_url, '')), '') IS NOT NULL
-                  AND EXISTS (
-                    SELECT 1
-                    FROM usuarios_negocios un
-                    INNER JOIN usuarios u
-                      ON u.id = un.usuario_id
-                    INNER JOIN agenda_configuracoes ac
-                      ON ac.profissional_id = un.usuario_id
-                    WHERE un.negocio_id = n.id
-                      AND un.ativo = TRUE
-                      AND u.ativo = TRUE
-                      AND un.papel IN ('dono', 'profissional')
-                      AND ac.configurado_em IS NOT NULL
-                  )
-                )
               )
             )
           END AS pode_publicar
@@ -271,6 +254,11 @@ async function sincronizarPublicacaoAutomatica(
       UPDATE negocios n
       SET
         publicado = e.pode_publicar,
+        primeira_publicacao_em = CASE
+          WHEN e.pode_publicar = TRUE
+            THEN COALESCE(n.primeira_publicacao_em, NOW())
+          ELSE n.primeira_publicacao_em
+        END,
         updated_at = CASE
           WHEN n.publicado IS DISTINCT FROM e.pode_publicar THEN NOW()
           ELSE n.updated_at
@@ -280,7 +268,8 @@ async function sincronizarPublicacaoAutomatica(
       RETURNING
         n.id,
         n.publicado,
-        n.publicado AS pode_publicar
+        n.publicado AS pode_publicar,
+        n.primeira_publicacao_em
     `,
     [
       negocioId,
