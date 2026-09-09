@@ -47,7 +47,7 @@ function filtroData(periodo, expressao) {
   return inicio ? `AND ${expressao} >= ${inicio}` : "";
 }
 
-async function buscarVisaoGeral(periodo = "30", executor = db) {
+async function buscarVisaoGeral(periodo = "30") {
   const seguro = periodoSeguro(periodo);
   const filtroSessao = filtroTimestamp(seguro, "s.iniciada_em");
   const filtroCadastro = filtroTimestamp(seguro, "mua.atribuicao_em");
@@ -57,7 +57,7 @@ async function buscarVisaoGeral(periodo = "30", executor = db) {
   const filtroPrimeiroAgendamento = filtroTimestamp(seguro, "p.primeiro_agendamento_em");
   const filtroPagamento = filtroData(seguro, "pg.data_pagamento");
 
-  const resultado = await executor.query(
+  const resultado = await db.query(
     `
     WITH
     sessoes AS (
@@ -79,7 +79,7 @@ async function buscarVisaoGeral(periodo = "30", executor = db) {
       WHERE mua.intencao = 'profissional'
         ${filtroCadastro}
     ),
-    negocios AS (
+    negocios_criados AS (
       SELECT COUNT(*)::INT AS negocios_criados
       FROM negocios n
       WHERE n.ativo = TRUE
@@ -141,7 +141,7 @@ async function buscarVisaoGeral(periodo = "30", executor = db) {
       pg.receita_confirmada
     FROM sessoes s
     CROSS JOIN profissionais p
-    CROSS JOIN negocios n
+    CROSS JOIN negocios_criados n
     CROSS JOIN publicados pub
     CROSS JOIN agendamentos ag
     CROSS JOIN primeiros_agendamentos pa
@@ -291,14 +291,14 @@ async function buscarJornada(periodo = "30") {
   };
 }
 
-async function buscarReceita(periodo = "30", executor = db) {
+async function buscarReceita(periodo = "30") {
   const seguro = periodoSeguro(periodo);
   const filtroCheckout = filtroTimestamp(seguro, "ct.created_at");
   const filtroPagamento = filtroData(seguro, "pg.data_pagamento");
   const filtroPrimeiroPagamento = filtroData(seguro, "fp.data_pagamento");
 
   const [resumo, planos] = await Promise.all([
-    executor.query(
+    db.query(
       `
       WITH checkouts AS (
         SELECT
@@ -331,7 +331,7 @@ async function buscarReceita(periodo = "30", executor = db) {
         WHERE 1 = 1
           ${filtroCheckout}
       ),
-      pagamentos AS (
+      pagamentos_resumo AS (
         SELECT
           COUNT(*)::INT AS pagamentos_confirmados,
           COUNT(DISTINCT a.negocio_id)::INT AS negocios_pagantes,
@@ -394,12 +394,12 @@ async function buscarReceita(periodo = "30", executor = db) {
         a.assinaturas_pagas_ativas
       FROM checkouts c
       CROSS JOIN checkout_coorte cc
-      CROSS JOIN pagamentos p
+      CROSS JOIN pagamentos_resumo p
       CROSS JOIN primeiros_pagamentos fp
       CROSS JOIN ativas a
       `
     ),
-    executor.query(
+    db.query(
       `
       SELECT
         pl.id,
