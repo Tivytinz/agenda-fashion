@@ -12,6 +12,12 @@ const {
   "../domain/especialidadesNegocio"
 );
 
+const ESTADOS_BRASILEIROS = new Set([
+  "AC", "AL", "AP", "AM", "BA", "CE", "DF", "ES", "GO",
+  "MA", "MT", "MS", "MG", "PA", "PB", "PR", "PE", "PI",
+  "RJ", "RN", "RS", "RO", "RR", "SC", "SP", "SE", "TO",
+]);
+
 function normalizarId(valor) {
   const id = Number(valor);
 
@@ -99,12 +105,12 @@ function normalizarEstado(valor) {
   }
 
   if (
-    !/^[A-Z]{2}$/.test(
+    !ESTADOS_BRASILEIROS.has(
       estado
     )
   ) {
     throw new AppError(
-      "Digite uma sigla de estado válida.",
+      "Selecione um estado válido.",
       400
     );
   }
