@@ -14,7 +14,7 @@ describe("consulta da saúde do SaaS", () => {
     mockQuery.mockResolvedValue({ rows: [] });
   });
 
-  test("usa 5 etapas e mantém descrição e disponibilidade fora da ativação", async () => {
+  test("usa 5 etapas e espelha os dados essenciais do runtime", async () => {
     await repository.buscarResumo();
 
     const [sql] = mockQuery.mock.calls[0];
@@ -25,10 +25,14 @@ describe("consulta da saúde do SaaS", () => {
     expect(sql).toMatch(/BTRIM\(bairro\)/i);
     expect(sql).toMatch(/BTRIM\(endereco\)/i);
     expect(sql).toMatch(/BTRIM\(numero\)/i);
-    expect(sql).toMatch(/REGEXP_REPLACE\(COALESCE\(cep/i);
-    expect(sql).toMatch(/localizacao_url[\s\S]*\^https\?/i);
+    expect(sql).toMatch(/COALESCE\(negocio_whatsapp, ''\) ~ '\^\[0-9\]\{10,11\}\$'/i);
+    expect(sql).toMatch(/COALESCE\(cep, ''\) ~ '\^\[0-9\]\{8\}\$'/i);
     expect(sql).toMatch(
-      /EXISTS[\s\S]*FROM agendamentos a[\s\S]*a.status <> 'cancelado'[\s\S]*AS primeiro_agendamento_valido/i
+      /NULLIF\(BTRIM\(COALESCE\(localizacao_url, ''\)\), ''\) IS NOT NULL/i
+    );
+    expect(sql).not.toMatch(/REGEXP_REPLACE\(COALESCE\(cep/i);
+    expect(sql).toMatch(
+      /EXISTS[\s\S]*FROM agendamentos a[\s\S]*COALESCE\(a.status, 'agendado'\) <> 'cancelado'[\s\S]*AS primeiro_agendamento_valido/i
     );
     expect(sql).toMatch(/AS disponibilidade_inicializada/i);
     expect(sql).toMatch(/AS sem_disponibilidade_inicial/i);
