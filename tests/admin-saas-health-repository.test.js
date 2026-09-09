@@ -14,25 +14,32 @@ describe("consulta da saúde do SaaS", () => {
     mockQuery.mockResolvedValue({ rows: [] });
   });
 
-  test("separa descrição opcional dos dados essenciais e respeita autorização de contato", async () => {
+  test("usa 5 etapas e mantém descrição e disponibilidade fora da ativação", async () => {
     await repository.buscarResumo();
 
     const [sql] = mockQuery.mock.calls[0];
 
     expect(sql).toMatch(/AS descricao_preenchida/i);
     expect(sql).toMatch(/AS perfil_basico_completo/i);
-    expect(sql).toMatch(
-      /publicacao_exige_agenda\s*=\s*FALSE[\s\S]*BTRIM\(bairro\)[\s\S]*BTRIM\(localizacao_url\)/i
-    );
+    expect(sql).toMatch(/BTRIM\(negocio_nome\)/i);
+    expect(sql).toMatch(/BTRIM\(bairro\)/i);
+    expect(sql).toMatch(/BTRIM\(endereco\)/i);
+    expect(sql).toMatch(/BTRIM\(numero\)/i);
+    expect(sql).toMatch(/REGEXP_REPLACE\(COALESCE\(cep/i);
+    expect(sql).toMatch(/localizacao_url[\s\S]*\^https\?/i);
     expect(sql).toMatch(
       /EXISTS[\s\S]*FROM agendamentos a[\s\S]*a.status <> 'cancelado'[\s\S]*AS primeiro_agendamento_valido/i
     );
+    expect(sql).toMatch(/AS disponibilidade_inicializada/i);
+    expect(sql).toMatch(/AS sem_disponibilidade_inicial/i);
     expect(sql).toMatch(/AS sem_primeiro_agendamento/i);
     expect(sql).toMatch(/AS sem_descricao/i);
-    expect(sql).toMatch(/WHERE etapas_concluidas\s*<\s*6/i);
-    expect(sql).not.toMatch(
-      /etapas_concluidas\s*<\s*6[\s\S]*OR descricao_preenchida\s*=\s*FALSE/i
-    );
+    expect(sql).toMatch(/WHERE etapas_concluidas\s*<\s*5/i);
+    expect(sql).toMatch(/WHERE etapas_concluidas\s*=\s*5/i);
+    expect(sql).not.toMatch(/etapas_concluidas\s*<\s*6/i);
+    expect(sql).not.toMatch(/etapas_concluidas\s*=\s*6/i);
+    expect(sql).not.toMatch(/publicacao_exige_agenda/i);
+    expect(sql).not.toMatch(/agenda_configurada/i);
     expect(sql).toMatch(
       /whatsapp_marketing_consentido_em IS NOT NULL[\s\S]*whatsapp_marketing_cancelado_em IS NULL/i
     );
@@ -52,7 +59,7 @@ describe("consulta da saúde do SaaS", () => {
       /AND tem_negocio\s*=\s*TRUE AND descricao_preenchida\s*=\s*FALSE/i
     );
     expect(sql).toMatch(
-      /ORDER BY[\s\S]*\(etapas_concluidas\s*=\s*6\) ASC[\s\S]*etapas_concluidas DESC[\s\S]*ultima_atividade_em ASC NULLS LAST/i
+      /ORDER BY[\s\S]*\(etapas_concluidas\s*=\s*5\) ASC[\s\S]*etapas_concluidas DESC[\s\S]*ultima_atividade_em ASC NULLS LAST/i
     );
   });
 
@@ -61,7 +68,7 @@ describe("consulta da saúde do SaaS", () => {
 
     const [sql] = mockQuery.mock.calls[0];
 
-    expect(sql).toMatch(/WHERE etapas_concluidas\s*<\s*6/i);
+    expect(sql).toMatch(/WHERE etapas_concluidas\s*<\s*5/i);
     expect(sql).not.toMatch(/WHERE descricao_preenchida\s*=\s*FALSE/i);
   });
 
@@ -77,7 +84,7 @@ describe("consulta da saúde do SaaS", () => {
     );
   });
 
-  test("conta a fila filtrada sem depender de existir linha na página", async () => {
+  test("trata disponibilidade como diagnóstico técnico fora da fila de ativação", async () => {
     mockQuery.mockResolvedValue({
       rows: [
         {
@@ -90,7 +97,7 @@ describe("consulta da saúde do SaaS", () => {
       await repository
         .contarPerfisIncompletos({
           busca: "Ana",
-          pendencia: "agenda",
+          pendencia: "disponibilidade",
         });
 
     const [sql, parametros] =
@@ -101,8 +108,12 @@ describe("consulta da saúde do SaaS", () => {
       /SELECT\s+COUNT\(\*\)::INT AS total/i
     );
     expect(sql).toMatch(
-      /AND tem_negocio\s*=\s*TRUE AND agenda_configurada\s*=\s*FALSE/i
+      /WHERE tem_negocio\s*=\s*TRUE AND disponibilidade_inicializada\s*=\s*FALSE/i
     );
+    expect(sql).toMatch(
+      /AND tem_negocio\s*=\s*TRUE AND disponibilidade_inicializada\s*=\s*FALSE/i
+    );
+    expect(sql).not.toMatch(/etapas_concluidas\s*<\s*5[\s\S]*disponibilidade_inicializada/i);
     expect(parametros).toEqual([
       "Ana",
     ]);
