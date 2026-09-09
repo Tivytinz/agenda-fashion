@@ -17,16 +17,26 @@ const ACTIVATION_FILTERS = [
   { value: "sem_negocio", label: "Sem negócio" },
   { value: "perfil", label: "Dados essenciais" },
   { value: "servico", label: "Sem serviço" },
-  { value: "agenda", label: "Sem agenda" },
   { value: "publicacao", label: "Não publicados" },
   { value: "primeiro_agendamento", label: "Sem 1º agendamento" }
+];
+
+const SYSTEM_FILTERS = [
+  {
+    value: "disponibilidade",
+    label: "Disponibilidade não inicializada"
+  }
 ];
 
 const IMPROVEMENT_FILTERS = [
   { value: "descricao", label: "Sem descrição (opcional)" }
 ];
 
-const FILTERS = [...ACTIVATION_FILTERS, ...IMPROVEMENT_FILTERS];
+const FILTERS = [
+  ...ACTIVATION_FILTERS,
+  ...SYSTEM_FILTERS,
+  ...IMPROVEMENT_FILTERS
+];
 const FILTER_VALUES = new Set(FILTERS.map(({ value }) => value));
 
 function filterLabel(value) {
@@ -196,7 +206,7 @@ function ProfileRow({ profile }) {
   const remaining = pending.filter(
     (item) => item.codigo !== next?.codigo
   );
-  const totalStages = Number(profile.progresso?.totalEtapas) || 6;
+  const totalStages = Number(profile.progresso?.totalEtapas) || 5;
   const remainingStages = profile.progresso?.etapasRestantes ??
     Math.max(0, totalStages - Number(profile.progresso?.etapasConcluidas || 0));
 
@@ -425,14 +435,13 @@ export function AdminSaasHealthPage() {
         <div className="saas-health-summary-total">
           <SummaryCard active={filter === "todos"} filter="todos" hint={`de ${summary.totalProfissionais ?? 0} profissionais`} label="Precisam de atenção" onSelect={selectFilter} value={summary.totalIncompletos} />
           <p className="muted saas-health-summary-context">
-            A ativação termina no primeiro agendamento não cancelado. Publicação é um marco intermediário; descrição continua opcional.
+            A ativação tem 5 etapas e termina no primeiro agendamento não cancelado. Horários não alteram o progresso; descrição continua opcional.
           </p>
         </div>
         <div className="saas-health-blocker-grid">
           <SummaryCard active={filter === "sem_negocio"} filter="sem_negocio" hint="ainda sem área profissional" label="Sem negócio" onSelect={selectFilter} value={summary.semNegocio} />
           <SummaryCard active={filter === "perfil"} filter="perfil" hint="dados obrigatórios pendentes" label="Dados essenciais" onSelect={selectFilter} value={summary.perfilIncompleto} />
           <SummaryCard active={filter === "servico"} filter="servico" hint="negócios sem serviço ativo" label="Sem serviço" onSelect={selectFilter} value={summary.semServico} />
-          <SummaryCard active={filter === "agenda"} filter="agenda" hint="horários ainda não configurados" label="Sem agenda" onSelect={selectFilter} value={summary.semAgenda} />
           <SummaryCard active={filter === "publicacao"} filter="publicacao" hint="perfil fora do catálogo público" label="Não publicados" onSelect={selectFilter} value={summary.naoPublicados} />
           <SummaryCard active={filter === "primeiro_agendamento"} filter="primeiro_agendamento" hint="publicados ainda sem reserva válida" label="Sem 1º agendamento" onSelect={selectFilter} value={summary.semPrimeiroAgendamento} />
         </div>
@@ -468,7 +477,7 @@ export function AdminSaasHealthPage() {
         <div className="saas-health-filter-groups">
           <div className="saas-health-filter-group">
             <span className="saas-health-filter-label">Etapas de ativação</span>
-            <div className="saas-health-filters" aria-label="Filtrar por pendência">
+            <div className="saas-health-filters" aria-label="Filtrar por pendência de ativação">
               {ACTIVATION_FILTERS.map(({ value, label }) => (
                 <button
                   aria-pressed={filter === value}
@@ -478,6 +487,25 @@ export function AdminSaasHealthPage() {
                   type="button"
                 >
                   {label}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="saas-health-filter-group">
+            <span className="saas-health-filter-label">Diagnóstico técnico</span>
+            <div className="saas-health-filters" aria-label="Filtrar diagnósticos técnicos">
+              {SYSTEM_FILTERS.map(({ value, label }) => (
+                <button
+                  aria-pressed={filter === value}
+                  className={filter === value ? "active" : ""}
+                  key={value}
+                  onClick={() => selectFilter(value)}
+                  type="button"
+                >
+                  {label}
+                  {value === "disponibilidade" && (
+                    <> ({summary.disponibilidadeNaoInicializada ?? 0})</>
+                  )}
                 </button>
               ))}
             </div>
@@ -504,7 +532,9 @@ export function AdminSaasHealthPage() {
           {pagination.total ?? 0} {pagination.total === 1 ? "perfil encontrado" : "perfis encontrados"}.
           {loadedFilter === "descricao"
             ? " Este filtro mostra uma melhoria opcional e não altera o progresso de ativação."
-            : " As ativações mais próximas de concluir aparecem primeiro; em empate, priorizamos quem está há mais tempo sem atividade. Descrição é uma melhoria opcional e não entra nesta contagem."}
+            : loadedFilter === "disponibilidade"
+              ? " Este filtro mostra uma correção técnica e não altera o progresso de ativação nem a elegibilidade de publicação."
+              : " As ativações mais próximas de concluir aparecem primeiro; em empate, priorizamos quem está há mais tempo sem atividade. Descrição e horários não entram nesta contagem."}
         </p>
 
         {profiles.length === 0 ? (
