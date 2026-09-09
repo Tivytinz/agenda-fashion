@@ -1,13 +1,17 @@
-import {
-  ADMIN_LINKS,
-  AdminShell
-} from "./AdminShell";
+import { AdminShell } from "./AdminShell";
 
-export { ADMIN_LINKS };
+export const ADMIN_LINKS = [
+  ["/admin", "Visão geral", "home"],
+  ["/admin/aquisicao", "Aquisição", "marketing"],
+  ["/admin/jornada", "Jornada", "health"],
+  ["/admin/retencao", "Retenção", "business"],
+  ["/admin/receita", "Receita", "plan"],
+  ["/admin/operacao", "Operação", "calendar"]
+];
 
 export function AdminLayout({ children }) {
   return (
-    <AdminShell>
+    <AdminShell links={ADMIN_LINKS}>
       {children}
     </AdminShell>
   );
