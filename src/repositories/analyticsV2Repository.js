@@ -232,7 +232,20 @@ async function salvarEvidenciasSessao({
       $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15::TIMESTAMPTZ
     )
     ON CONFLICT (sessao_id)
-    DO NOTHING
+    DO UPDATE SET
+      utm_source = COALESCE(marketing_sessao_evidencias.utm_source, EXCLUDED.utm_source),
+      utm_medium = COALESCE(marketing_sessao_evidencias.utm_medium, EXCLUDED.utm_medium),
+      utm_campaign = COALESCE(marketing_sessao_evidencias.utm_campaign, EXCLUDED.utm_campaign),
+      utm_content = COALESCE(marketing_sessao_evidencias.utm_content, EXCLUDED.utm_content),
+      utm_term = COALESCE(marketing_sessao_evidencias.utm_term, EXCLUDED.utm_term),
+      gclid = COALESCE(marketing_sessao_evidencias.gclid, EXCLUDED.gclid),
+      gbraid = COALESCE(marketing_sessao_evidencias.gbraid, EXCLUDED.gbraid),
+      wbraid = COALESCE(marketing_sessao_evidencias.wbraid, EXCLUDED.wbraid),
+      fbclid = COALESCE(marketing_sessao_evidencias.fbclid, EXCLUDED.fbclid),
+      msclkid = COALESCE(marketing_sessao_evidencias.msclkid, EXCLUDED.msclkid),
+      ttclid = COALESCE(marketing_sessao_evidencias.ttclid, EXCLUDED.ttclid),
+      landing_page = COALESCE(marketing_sessao_evidencias.landing_page, EXCLUDED.landing_page),
+      referrer_host = COALESCE(marketing_sessao_evidencias.referrer_host, EXCLUDED.referrer_host)
     RETURNING sessao_id
     `,
     [
@@ -287,6 +300,26 @@ async function salvarOrigemSessao({
     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10::TIMESTAMPTZ)
     ON CONFLICT (sessao_id)
     DO UPDATE SET
+      canal = CASE
+        WHEN analytics_sessao_origens.classificacao = 'sem_evidencia'
+          AND EXCLUDED.classificacao <> 'sem_evidencia'
+          THEN EXCLUDED.canal
+        ELSE analytics_sessao_origens.canal
+      END,
+      source = CASE
+        WHEN analytics_sessao_origens.classificacao = 'sem_evidencia'
+          AND EXCLUDED.classificacao <> 'sem_evidencia'
+          THEN COALESCE(EXCLUDED.source, analytics_sessao_origens.source)
+        ELSE analytics_sessao_origens.source
+      END,
+      medium = CASE
+        WHEN analytics_sessao_origens.classificacao = 'sem_evidencia'
+          AND EXCLUDED.classificacao <> 'sem_evidencia'
+          THEN COALESCE(EXCLUDED.medium, analytics_sessao_origens.medium)
+        ELSE analytics_sessao_origens.medium
+      END,
+      referrer_host = COALESCE(analytics_sessao_origens.referrer_host, EXCLUDED.referrer_host),
+      landing_page_key = COALESCE(analytics_sessao_origens.landing_page_key, EXCLUDED.landing_page_key),
       campanha_oficial_id = COALESCE(
         analytics_sessao_origens.campanha_oficial_id,
         EXCLUDED.campanha_oficial_id
@@ -297,10 +330,12 @@ async function salvarOrigemSessao({
           THEN EXCLUDED.classificacao
         ELSE analytics_sessao_origens.classificacao
       END,
-      metodo_resolucao = COALESCE(
-        analytics_sessao_origens.metodo_resolucao,
-        EXCLUDED.metodo_resolucao
-      )
+      metodo_resolucao = CASE
+        WHEN analytics_sessao_origens.classificacao = 'sem_evidencia'
+          AND EXCLUDED.classificacao <> 'sem_evidencia'
+          THEN COALESCE(EXCLUDED.metodo_resolucao, analytics_sessao_origens.metodo_resolucao)
+        ELSE analytics_sessao_origens.metodo_resolucao
+      END
     RETURNING sessao_id, canal, campanha_oficial_id, classificacao
     `,
     [
