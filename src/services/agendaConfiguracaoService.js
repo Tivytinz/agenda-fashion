@@ -1,9 +1,6 @@
 const agendaConfiguracaoRepository = require(
   "../repositories/agendaConfiguracaoRepository"
 );
-const servicosRepository = require(
-  "../repositories/servicosRepository"
-);
 
 function criarErro(mensagem, statusCode) {
   const err = new Error(mensagem);
@@ -390,13 +387,16 @@ async function buscarStatusConfiguracao({ usuarioId }) {
       );
 
   return {
-    configurada:
-      Boolean(
-        configuracao?.configurado_em
-      ),
+    configurada: Boolean(configuracao),
     configurado_em:
       configuracao?.configurado_em ||
       null,
+    origem_horarios:
+      configuracao?.origem_horarios ||
+      "padrao_af",
+    personalizada:
+      configuracao?.origem_horarios ===
+      "personalizado",
   };
 }
 
@@ -465,11 +465,10 @@ async function salvarMinhaConfiguracao({
   return agendaConfiguracaoRepository
     .executarTransacao(
       async (client) => {
-        const profissional =
-          await exigirProfissionalAtivo(
-            usuarioId,
-            client
-          );
+        await exigirProfissionalAtivo(
+          usuarioId,
+          client
+        );
 
         const configuracaoExistente =
           await agendaConfiguracaoRepository
@@ -478,22 +477,10 @@ async function salvarMinhaConfiguracao({
               client
             );
 
-        const primeiraConfiguracao =
-          !configuracaoExistente
-            ?.configurado_em;
-
-        if (
-          primeiraConfiguracao &&
-          !horariosValidados.some(
-            (horario) =>
-              horario.trabalha
-          )
-        ) {
-          throw criarErro(
-            "Escolha pelo menos um dia de atendimento antes de confirmar a agenda.",
-            400
-          );
-        }
+        const primeiraPersonalizacao =
+          configuracaoExistente
+            ?.origem_horarios !==
+          "personalizado";
 
         let configuracao;
 
@@ -559,37 +546,17 @@ async function salvarMinhaConfiguracao({
           configuracaoMarcada ||
           configuracao;
 
-        const publicacao =
-          await servicosRepository
-            .sincronizarPublicacaoAutomatica(
-              profissional.negocio_id,
-              client,
-              {
-                preservarPublicacaoLegada:
-                  true,
-              }
-            );
-
         return {
           mensagem:
-            primeiraConfiguracao
-              ? publicacao?.publicado
-                ? "Horários confirmados. Seu negócio está publicado."
-                : "Horários de atendimento confirmados com sucesso."
-              : "Horários de atendimento atualizados com sucesso.",
+            primeiraPersonalizacao
+              ? "Horários personalizados com sucesso."
+              : "Horários atualizados com sucesso.",
           configuracao,
           horarios:
             horariosSalvos.map(
               formatarHorarioBanco
             ),
-          publicacao: publicacao
-            ? {
-                publicado:
-                  publicacao.publicado === true,
-                pode_publicar:
-                  publicacao.pode_publicar === true,
-              }
-            : null,
+          publicacao: null,
         };
       }
     );
