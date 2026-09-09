@@ -169,6 +169,157 @@ async function resolverNegocioDoAtor(usuarioId, executor = db) {
   return result.rows[0]?.negocio_id || null;
 }
 
+async function buscarCampanhaOficial({
+  utmSource,
+  utmMedium,
+  utmCampaign,
+  occurredAt,
+}, executor = db) {
+  if (!utmSource || !utmMedium || !utmCampaign) return null;
+
+  const conexao = executorSeguro(executor);
+  const result = await conexao.query(
+    `
+    SELECT
+      id,
+      objetivo,
+      utm_source,
+      utm_medium,
+      utm_campaign
+    FROM marketing_campanhas
+    WHERE LOWER(utm_source) = LOWER($1)
+      AND LOWER(utm_medium) = LOWER($2)
+      AND LOWER(utm_campaign) = LOWER($3)
+      AND created_at <= $4::TIMESTAMPTZ
+    ORDER BY
+      CASE WHEN ativo = TRUE THEN 0 ELSE 1 END,
+      created_at DESC,
+      id DESC
+    LIMIT 1
+    `,
+    [utmSource, utmMedium, utmCampaign, occurredAt]
+  );
+
+  return result.rows[0] || null;
+}
+
+async function salvarEvidenciasSessao({
+  sessaoId,
+  evidencias,
+  occurredAt,
+}, executor = db) {
+  const conexao = executorSeguro(executor);
+  const result = await conexao.query(
+    `
+    INSERT INTO marketing_sessao_evidencias (
+      sessao_id,
+      utm_source,
+      utm_medium,
+      utm_campaign,
+      utm_content,
+      utm_term,
+      gclid,
+      gbraid,
+      wbraid,
+      fbclid,
+      msclkid,
+      ttclid,
+      landing_page,
+      referrer_host,
+      capturado_em
+    )
+    VALUES (
+      $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15::TIMESTAMPTZ
+    )
+    ON CONFLICT (sessao_id)
+    DO NOTHING
+    RETURNING sessao_id
+    `,
+    [
+      sessaoId,
+      evidencias.utmSource || null,
+      evidencias.utmMedium || null,
+      evidencias.utmCampaign || null,
+      evidencias.utmContent || null,
+      evidencias.utmTerm || null,
+      evidencias.gclid || null,
+      evidencias.gbraid || null,
+      evidencias.wbraid || null,
+      evidencias.fbclid || null,
+      evidencias.msclkid || null,
+      evidencias.ttclid || null,
+      evidencias.landingPage || null,
+      evidencias.referrerHost || null,
+      occurredAt,
+    ]
+  );
+
+  return result.rows[0] || null;
+}
+
+async function salvarOrigemSessao({
+  sessaoId,
+  canal,
+  source,
+  medium,
+  referrerHost,
+  landingPageKey,
+  campanhaOficialId,
+  classificacao,
+  metodoResolucao,
+  occurredAt,
+}, executor = db) {
+  const conexao = executorSeguro(executor);
+  const result = await conexao.query(
+    `
+    INSERT INTO analytics_sessao_origens (
+      sessao_id,
+      canal,
+      source,
+      medium,
+      referrer_host,
+      landing_page_key,
+      campanha_oficial_id,
+      classificacao,
+      metodo_resolucao,
+      capturado_em
+    )
+    VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10::TIMESTAMPTZ)
+    ON CONFLICT (sessao_id)
+    DO UPDATE SET
+      campanha_oficial_id = COALESCE(
+        analytics_sessao_origens.campanha_oficial_id,
+        EXCLUDED.campanha_oficial_id
+      ),
+      classificacao = CASE
+        WHEN analytics_sessao_origens.classificacao = 'sem_evidencia'
+          AND EXCLUDED.classificacao <> 'sem_evidencia'
+          THEN EXCLUDED.classificacao
+        ELSE analytics_sessao_origens.classificacao
+      END,
+      metodo_resolucao = COALESCE(
+        analytics_sessao_origens.metodo_resolucao,
+        EXCLUDED.metodo_resolucao
+      )
+    RETURNING sessao_id, canal, campanha_oficial_id, classificacao
+    `,
+    [
+      sessaoId,
+      canal,
+      source || null,
+      medium || null,
+      referrerHost || null,
+      landingPageKey || null,
+      campanhaOficialId || null,
+      classificacao,
+      metodoResolucao || null,
+      occurredAt,
+    ]
+  );
+
+  return result.rows[0] || null;
+}
+
 async function registrarVisualizacao({
   viewUuid,
   sessaoId,
@@ -404,6 +555,9 @@ module.exports = {
   upsertSessao,
   vincularIdentidade,
   resolverNegocioDoAtor,
+  buscarCampanhaOficial,
+  salvarEvidenciasSessao,
+  salvarOrigemSessao,
   registrarVisualizacao,
   registrarEngajamento,
   registrarEvento,
