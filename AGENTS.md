@@ -1,6 +1,6 @@
 # Memoria operacional do Agenda Fashion
 
-> Contexto permanente para agentes de desenvolvimento. Atualizado em 8 de
+> Contexto permanente para agentes de desenvolvimento. Atualizado em 9 de
 > setembro de 2026.
 
 Este arquivo deve ser lido antes de analisar, planejar ou alterar o projeto.
@@ -104,6 +104,9 @@ AF nao demonstra valor para os negocios.
 - Links antigos de perfis devem continuar funcionando quando o slug mudar.
 - O dashboard deve traduzir dados em crescimento compreensivel, nao apenas
   exibir numeros soltos.
+- A ativacao administrativa tem cinco etapas: negocio criado, dados essenciais,
+  servico ativo, publicacao e primeiro agendamento nao cancelado. Disponibilidade
+  e diagnostico tecnico separado, sem alterar o percentual de ativacao.
 - A experiencia deve ser simples no celular, inclusive em telas pequenas e no
   Safari/WebKit.
 - Estados de carregamento, vazio, erro, sucesso e sessao expirada fazem parte

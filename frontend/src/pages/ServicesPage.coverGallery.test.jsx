@@ -10,6 +10,10 @@ vi.mock("../api/client", () => ({
   apiRequest: vi.fn()
 }));
 
+vi.mock("../auth/SessionContext", () => ({
+  useSession: () => ({ refresh: vi.fn() })
+}));
+
 function renderEditor() {
   return render(
     <MemoryRouter initialEntries={["/painel/servicos/9/editar"]}>

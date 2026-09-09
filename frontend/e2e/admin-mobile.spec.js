@@ -287,18 +287,18 @@ test("admin e consentimento permanecem navegáveis no celular", async ({ page })
   });
   await expect(navigation.getByRole("link", { name: /Visão geral/ }))
     .toBeVisible();
-  await expect(navigation.getByRole("link", { name: /Ativação/ }))
+  await expect(navigation.getByRole("link", { name: /Aquisição/ }))
     .toBeVisible();
-  await expect(navigation.getByRole("link", { name: /Operação/ }))
+  await expect(navigation.getByRole("link", { name: /Jornada/ }))
     .toBeVisible();
-  await expect(navigation.getByRole("link", { name: /Marketing/ }))
+  await expect(navigation.getByRole("link", { name: /Retenção/ }))
     .toBeVisible();
   const moreAdmin = navigation.getByRole("button", {
     name: /mais opções da área de trabalho/
   });
   await expect(moreAdmin).toBeVisible();
   await moreAdmin.click();
-  await expect(navigation.getByRole("link", { name: /WhatsApp/ }))
+  await expect(navigation.getByRole("link", { name: /Operação/ }))
     .toBeVisible();
   await expect(navigation.getByRole("link", { name: /Minha conta/ }))
     .toHaveCount(0);
@@ -360,7 +360,7 @@ test("admin e consentimento permanecem navegáveis no celular", async ({ page })
   await expect(page.getByText("Investimento por campanha")).toBeVisible();
   await expect(page.getByText("Sessões atribuídas por campanha")).toBeVisible();
   await expect(
-    navigation.getByRole("link", { name: /Marketing/ })
+    page.getByRole("link", { name: "Custos e retorno", exact: true })
   ).toHaveClass(/active/);
   await expectNoHorizontalOverflow(page);
 });

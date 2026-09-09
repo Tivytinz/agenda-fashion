@@ -47,6 +47,14 @@ function negocioCompleto(
 describe(
   "elegibilidade de publicação v2",
   () => {
+    test.each(["valor-legado-nao-vazio", "javascript:alert(1)", "ftp://maps.example.com", "https://", "https:///sem-host", "https://maps.example.com/local com espaco"])(
+      "não publica com localização inválida: %s",
+      (localizacao_url) => {
+        const resultado = avaliarPublicacao(negocioCompleto({ localizacao_url }));
+        expect(resultado.pode_publicar).toBe(false);
+        expect(resultado.pendencias).toContain("link do Google Maps");
+      }
+    );
     test(
       "publica perfil completo com serviço ativo sem exigir personalização da agenda",
       () => {

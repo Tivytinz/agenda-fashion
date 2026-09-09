@@ -76,7 +76,7 @@ describe(
         expect(codigos)
           .toContain("cep");
         expect(codigos)
-          .not.toContain("localizacao");
+          .toContain("localizacao");
       }
     );
 

@@ -34,18 +34,7 @@ function json(route, body, status = 200) {
   return route.fulfill({ status, contentType: "application/json", body: JSON.stringify(body) });
 }
 
-function scheduleDays() {
-  return Array.from({ length: 7 }, (_, day) => ({
-    dia_semana: day,
-    trabalha: day === 1,
-    hora_inicio: day === 1 ? "09:00" : "08:00",
-    hora_fim: "18:00",
-    intervalo_inicio: "",
-    intervalo_fim: ""
-  }));
-}
-
-function activationNextAction({ serviceCreated, scheduleConfigured }) {
+function activationNextAction({ serviceCreated }) {
   if (!serviceCreated) {
     return {
       estado: "GARANTIR_SERVICO_ATIVO",
@@ -57,15 +46,6 @@ function activationNextAction({ serviceCreated, scheduleConfigured }) {
         rotulo: "Cadastrar primeiro serviço",
         destino: "/painel/servicos/novo?onboarding=servico"
       }
-    };
-  }
-  if (!scheduleConfigured) {
-    return {
-      estado: "CONFIRMAR_AGENDA",
-      concluido: false,
-      titulo: "Confirme seus horários",
-      mensagem: "Confirme quando você atende para liberar horários reais.",
-      acao: { tipo: "NAVEGAR", rotulo: "Confirmar horários", destino: "/painel/horarios" }
     };
   }
   return {
@@ -91,10 +71,9 @@ function serviceField(page, labelText, control) {
   return page.locator("label").filter({ hasText: labelText }).locator(control).first();
 }
 
-test("profissional vai da landing até agenda pronta para divulgação", async ({ page }) => {
+test("profissional vai da landing à publicação e divulgação sem confirmar horários", async ({ page }) => {
   let businessCreated = false;
   let serviceCreated = false;
-  let scheduleConfigured = false;
   let registrationPayload = null;
   let businessPayload = null;
   let servicePayload = null;
@@ -120,7 +99,7 @@ test("profissional vai da landing até agenda pronta para divulgação", async (
 
   await page.route("**/minha-sessao", (route) => json(route, {
     usuario: USER,
-    negocio: businessCreated ? { ...BUSINESS, publicado: serviceCreated && scheduleConfigured } : null,
+    negocio: businessCreated ? { ...BUSINESS, publicado: serviceCreated } : null,
     temNegocio: businessCreated,
     administrador: null,
     ehAdministrador: false
@@ -153,11 +132,11 @@ test("profissional vai da landing até agenda pronta para divulgação", async (
     ranking_servicos: [],
     ativacao: {
       possui_servico_ativo: serviceCreated,
-      negocio_publicado: serviceCreated && scheduleConfigured,
-      agenda_configurada: scheduleConfigured,
+      negocio_publicado: serviceCreated,
+      agenda_configurada: businessCreated,
       primeiro_agendamento_recebido: false
     },
-    proxima_acao_ativacao: activationNextAction({ serviceCreated, scheduleConfigured })
+    proxima_acao_ativacao: activationNextAction({ serviceCreated })
   }));
   await page.route("**/dashboard-dono/origem-clientes?periodo=7dias", (route) => json(route, { resumo: {}, origens: [] }));
   await page.route("**/conta", (route) => json(route, {
@@ -169,20 +148,19 @@ test("profissional vai da landing até agenda pronta para divulgação", async (
   }));
 
   await page.route("**/configuracoes", (route) => json(route, {
-    negocio: { ...BUSINESS, publicado: serviceCreated && scheduleConfigured },
+    negocio: { ...BUSINESS, publicado: serviceCreated },
     publicacao: {
-      publicado: serviceCreated && scheduleConfigured,
-      pode_publicar: serviceCreated && scheduleConfigured,
+      publicado: serviceCreated,
+      pode_publicar: serviceCreated,
       pendencias: [
-        ...(!serviceCreated ? ["pelo menos um serviço ativo"] : []),
-        ...(!scheduleConfigured ? ["confirmar os horários de atendimento"] : [])
+        ...(!serviceCreated ? ["pelo menos um serviço ativo"] : [])
       ]
     }
   }));
 
   await page.route("**/agenda-configuracao/status", (route) => json(route, {
-    configurada: scheduleConfigured,
-    configurado_em: scheduleConfigured ? "2026-08-30T12:00:00.000Z" : null
+    configurada: businessCreated,
+    configurado_em: businessCreated ? "2026-08-30T12:00:00.000Z" : null
   }));
   await page.route("**/minha-assinatura", (route) => json(route, {
     uso: { servicos_utilizados: serviceCreated ? 1 : 0, limite_servicos: 2 }
@@ -199,40 +177,16 @@ test("profissional vai da landing até agenda pronta para divulgação", async (
       mensagem: "Serviço criado.",
       servico: SERVICE,
       publicacao: {
-        publicado: false,
-        pode_publicar: false,
-        pendencias: ["confirmar os horários de atendimento"]
+        publicado: true,
+        pode_publicar: true,
+        pendencias: []
       }
     }, 201);
   });
 
   await page.route("**/agenda-configuracao", async (route) => {
-    if (route.request().method() === "PUT") {
-      schedulePayload = route.request().postDataJSON();
-      scheduleConfigured = true;
-      await json(route, {
-        mensagem: "Horários atualizados.",
-        configuracao: {
-          duracao_padrao: 60,
-          intervalo_minutos: 0,
-          antecedencia_agendamento: 0,
-          antecedencia_cancelamento: 24,
-          configurado_em: "2026-08-30T12:00:00.000Z"
-        },
-        publicacao: { publicado: true, pode_publicar: true }
-      });
-      return;
-    }
-    await json(route, {
-      configuracao: {
-        duracao_padrao: 60,
-        intervalo_minutos: 0,
-        antecedencia_agendamento: 0,
-        antecedencia_cancelamento: 24,
-        configurado_em: null
-      },
-      horarios: scheduleDays()
-    });
+    if (route.request().method() === "PUT") schedulePayload = route.request().postDataJSON();
+    await json(route, { configuracao: { origem_horarios: "padrao_af" }, horarios: [] });
   });
 
   await page.goto("/para-profissionais");
@@ -275,9 +229,9 @@ test("profissional vai da landing até agenda pronta para divulgação", async (
   await serviceField(page, "Categoria", "select").selectOption("unha");
   await serviceField(page, "Valor", "input").fill("40");
   await serviceField(page, "Duração em minutos", "input").fill("60");
-  await page.getByRole("button", { name: "Salvar serviço" }).click();
+  await page.getByRole("button", { name: "Salvar serviço e publicar" }).click();
 
-  await expect(page).toHaveURL(/\/painel\/horarios$/);
+  await expect(page).toHaveURL(/\/painel$/);
   expect(servicePayload).toEqual(expect.objectContaining({
     nome: "Design + Henna",
     categoria: "unha",
@@ -286,18 +240,8 @@ test("profissional vai da landing até agenda pronta para divulgação", async (
     ativo: true
   }));
 
-  await expect(page.getByRole("heading", { level: 2, name: "Confirme quando você atende" })).toBeVisible();
-  await expect(page.getByText("09:00–18:00")).toBeVisible();
-  await page.getByRole("button", { name: "Confirmar horários e publicar" }).click();
-
-  await expect(page.getByRole("heading", { name: "Agora divulgue seu perfil" })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Compartilhar perfil" })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Copiar link" })).toBeVisible();
-
-  expect(schedulePayload).not.toBeNull();
-  expect(schedulePayload.horarios).toEqual(expect.arrayContaining([
-    expect.objectContaining({ diaSemana: 1, trabalha: true, horaInicio: "09:00", horaFim: "18:00" })
-  ]));
+  expect(schedulePayload).toBeNull();
+  await expect(page.getByRole("button", { name: "Confirmar horários e publicar" })).toHaveCount(0);
 
   await page.goto("/painel");
   await expect(page.getByText("Próximo passo")).toBeVisible();

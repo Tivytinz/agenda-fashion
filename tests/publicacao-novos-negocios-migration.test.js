@@ -1,8 +1,8 @@
 const fs = require("fs");
 const path = require("path");
 
-describe("migration do gate de publicação dos novos negócios", () => {
-  test("preserva negócios existentes e permite marcar somente novos cadastros", () => {
+describe("migration do contrato de publicação dos novos negócios", () => {
+  test("preserva o campo legado e cria novos negócios sem gate de agenda", () => {
     const migration = fs.readFileSync(
       path.join(
         __dirname,
@@ -25,7 +25,7 @@ describe("migration do gate de publicação dos novos negócios", () => {
       /UPDATE\s+negocios[\s\S]*publicacao_exige_agenda\s*=\s*TRUE/i
     );
     expect(repository).toMatch(
-      /publicacao_exige_agenda[\s\S]*FALSE,\s*TRUE\s*\)/i
+      /INSERT INTO negocios[\s\S]*publicacao_exige_agenda[\s\S]*VALUES[\s\S]*TRUE,[\s\S]*FALSE,[\s\S]*FALSE/i
     );
   });
 });

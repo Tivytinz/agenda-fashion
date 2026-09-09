@@ -47,6 +47,8 @@ const ESTADOS_BRASILEIROS = new Set([
   "RJ", "RN", "RS", "RO", "RR", "SC", "SP", "SE", "TO",
 ]);
 
+const { urlPublicacaoValida } = require("../domain/urlPublicacao");
+
 const TAMANHO_MAXIMO_FOTO =
   5 * 1024 * 1024;
 
@@ -410,28 +412,6 @@ function normalizarUrl(
   }
 
   return urlValidada.toString();
-}
-
-function urlPublicacaoValida(
-  valor
-) {
-  const texto = String(
-    valor ?? ""
-  ).trim();
-
-  if (!texto) {
-    return false;
-  }
-
-  try {
-    const url = new URL(texto);
-    return [
-      "http:",
-      "https:",
-    ].includes(url.protocol);
-  } catch {
-    return false;
-  }
 }
 
 function normalizarNegocio(

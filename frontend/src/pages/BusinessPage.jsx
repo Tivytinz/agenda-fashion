@@ -412,9 +412,11 @@ export function BusinessPage({ create = false }) {
           );
 
           navigate(
-            servicePending
+            getPlanIntentPath(servicePending
               ? FIRST_SERVICE_ONBOARDING_PATH
-              : "/painel",
+              : result.publicacao?.publicado && selectedPlan
+                ? "/checkout"
+                : "/painel", selectedPlan),
             {
               replace: true,
               state: servicePending

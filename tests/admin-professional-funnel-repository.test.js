@@ -75,9 +75,7 @@ describe(
         expect(sql).toMatch(
           /ag\.negocio_id = dono\.negocio_id[\s\S]*ag\.status[\s\S]*<>\s*'cancelado'/i
         );
-        expect(sql).toMatch(
-          /ag_anterior\.status[\s\S]*<>\s*'cancelado'/i
-        );
+        expect(sql).not.toMatch(/ag_anterior/i);
       }
     );
 
@@ -94,13 +92,10 @@ describe(
           /COUNT\(\*\) FILTER \(\s*WHERE f\.servico_criado\s*\)::INT AS servicos_criados/i
         );
         expect(sql).toMatch(
-          /COUNT\(\*\) FILTER \(\s*WHERE f\.agenda_configurada\s*\)::INT AS agendas_configuradas/i
-        );
-        expect(sql).toMatch(
           /COUNT\(\*\) FILTER \(\s*WHERE f\.negocio_publicado\s*\)::INT AS negocios_publicados/i
         );
         expect(sql).toMatch(
-          /COUNT\(\*\) FILTER \(\s*WHERE f\.primeiro_agendamento\s*\)::INT AS primeiros_agendamentos/i
+          /COUNT\(\*\) FILTER \(\s*WHERE f\.primeiro_agendamento\s*\)::INT\s+AS primeiros_agendamentos/i
         );
         expect(sql).toMatch(
           /COUNT\(\*\) FILTER \(\s*WHERE f\.checkout_iniciado\s*\)::INT AS checkouts_iniciados/i

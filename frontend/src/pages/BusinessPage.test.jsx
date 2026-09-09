@@ -67,6 +67,21 @@ afterEach(() => {
 });
 
 describe("publicação do negócio", () => {
+  it("retoma o plano escolhido depois de corrigir o perfil e publicar", async () => {
+    const business = { ...BUSINESS, localizacao_url: "https://maps.google.com/?q=goiania" };
+    apiRequest.mockImplementation((path, options = {}) => {
+      if (path === "/configuracoes") return Promise.resolve({ negocio: business, publicacao: { publicado: options.method === "PUT", pendencias: [] } });
+      return Promise.resolve({});
+    });
+    render(<MemoryRouter initialEntries={[{ pathname: "/painel/negocio", search: "?plano=autonoma", state: { onboarding: true, onboardingStep: "perfil" } }]}>
+      <Routes><Route path="/painel/negocio" element={<BusinessPage />} /><Route path="*" element={<ActivationDestination />} /></Routes>
+    </MemoryRouter>);
+    await screen.findByDisplayValue("Studio Victor");
+    fireEvent.change(screen.getByLabelText("Número"), { target: { value: "11" } });
+    fireEvent.submit(screen.getByRole("button", { name: "Salvar alterações" }).closest("form"));
+    expect((await screen.findByTestId("activation-destination")).textContent).toBe("/checkout?plano=autonoma|");
+  });
+
   it("continua a ativação no primeiro serviço sem abrir checkout de um plano pago", async () => {
     apiRequest.mockImplementation((path, options = {}) => {
       if (path === "/cep/74000123") {

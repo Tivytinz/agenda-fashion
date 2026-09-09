@@ -8,6 +8,7 @@ import {
 } from "react-router-dom";
 import { apiRequest } from "../api/client";
 import { getPlanIntentPath, normalizePlanSlug } from "../auth/session";
+import { useSession } from "../auth/SessionContext";
 import { BackLink } from "../components/BackLink";
 import { ConfirmationIcon } from "../components/ConfirmationIcon";
 import { FlowSteps } from "../components/FlowSteps";
@@ -291,6 +292,7 @@ export function ServicesPage() {
 }
 
 export function ServiceEditorPage() {
+  const session = useSession();
   const { id } = useParams();
   const location = useLocation();
   const navigate = useNavigate();
@@ -451,8 +453,9 @@ export function ServiceEditorPage() {
 
       if (firstServiceOnboarding) {
         const published = saveResult.publicacao?.publicado === true;
+        if (published) await session.refresh();
         const destination = !published
-          ? "/painel/negocio"
+          ? getPlanIntentPath("/painel/negocio", selectedPlan)
           : selectedPlan
             ? getPlanIntentPath("/checkout", selectedPlan)
             : "/painel";

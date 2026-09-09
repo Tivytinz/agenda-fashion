@@ -123,7 +123,7 @@ describe("consistência da publicação do negócio", () => {
     expect(resultado.publicado).toBe(false);
   });
 
-  test("confirmação da agenda preserva a publicação dos negócios legados", async () => {
+  test("a compatibilidade legada preserva uma publicação já existente", async () => {
     mockQuery.mockResolvedValueOnce({
       rows: [{
         id: 11,
@@ -144,12 +144,12 @@ describe("consistência da publicação do negócio", () => {
       mockQuery.mock.calls[0];
 
     expect(sql).toMatch(
-      /\$2::BOOLEAN\s*=\s*TRUE[\s\S]*publicacao_exige_agenda\s+IS\s+NOT\s+TRUE[\s\S]*THEN n\.publicado/i
+      /\$2::BOOLEAN\s*=\s*TRUE[\s\S]*publicacao_exige_agenda\s+IS\s+NOT\s+TRUE[\s\S]*THEN TRUE/i
     );
     expect(params).toEqual([11, true]);
   });
 
-  test("novos negócios exigem agenda e todos os dados obrigatórios sem exigir descrição", async () => {
+  test("novos negócios usam os dados obrigatórios e não exigem descrição ou agenda", async () => {
     mockQuery.mockResolvedValueOnce({
       rows: [{
         id: 11,
@@ -171,7 +171,7 @@ describe("consistência da publicação do negócio", () => {
     expect(sql).toMatch(/n\.numero/i);
     expect(sql).toMatch(/n\.cep/i);
     expect(sql).toMatch(/n\.localizacao_url/i);
-    expect(sql).toMatch(/agenda_configuracoes[\s\S]*configurado_em\s+IS\s+NOT\s+NULL/i);
+    expect(sql).not.toMatch(/agenda_configuracoes/i);
     expect(params).toEqual([11, false]);
     expect(resultado).toEqual({
       id: 11,

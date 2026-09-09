@@ -84,16 +84,16 @@ describe("funil profissional administrativo", () => {
       linhaBase({
         origem: "google",
         campanha: "aquisicao_profissionais",
-        campanha_oficial_id: null,
-        classificacao_atribuicao: null,
+        campanha_oficial_id: 7,
+        classificacao_atribuicao: "oficial",
         cadastros: 8,
         investimento_centavos: 0,
       }),
       linhaBase({
         origem: "google",
         campanha: "search_aquisicao_profissionais",
-        campanha_oficial_id: null,
-        classificacao_atribuicao: null,
+        campanha_oficial_id: 7,
+        classificacao_atribuicao: "oficial",
         cadastros: 4,
         investimento_centavos: 0,
       }),
@@ -149,6 +149,19 @@ describe("funil profissional administrativo", () => {
     ]);
 
     expect(linhas).toHaveLength(2);
+  });
+
+  test("não mistura aliases sem evidência com o investimento oficial", async () => {
+    repository.listarPorCampanha.mockResolvedValue([
+      linhaBase({ origem: "google", campanha: "aquisicao_profissionais", campanha_oficial_id: null, classificacao_atribuicao: null, investimento_centavos: 0 }),
+      linhaBase({ origem: "google", campanha: "google_ads_profissionais" })
+    ]);
+    const resultado = await service.buscarFunil({ periodo: "30" });
+    expect(resultado.campanhas).toHaveLength(2);
+    const semEvidencia = resultado.campanhas.find((campanha) => !campanha.oficial);
+    expect(semEvidencia.cacAssinanteCentavos).toBeNull();
+    expect(semEvidencia.investimentoCentavos).toBe(0);
+    expect(resultado.qualidadeMensuracao.prontaParaDecisao).toBe(false);
   });
 
   test("não inventa CAC ou ROAS quando não há investimento", async () => {

@@ -378,31 +378,31 @@ describe("dashboard", () => {
       .toBeNull();
   });
 
-  it("leva a ação de agenda para a configuração de horários", async () => {
+  it("permite divulgar o perfil publicado sem confirmação manual de horários", async () => {
     mockDashboardRequests({
       dashboard: {
         ...DASHBOARD,
         ativacao: {
           possui_servico_ativo: true,
-          negocio_publicado: false,
+          negocio_publicado: true,
           agenda_configurada: false,
           primeiro_agendamento_recebido: false
         },
-        proxima_acao_ativacao: nextActionNavigate({
-          estado: "CONFIRMAR_AGENDA",
-          titulo: "Confirme seus horários",
-          rotulo: "Confirmar horários",
-          destino: "/painel/horarios"
-        })
+        proxima_acao_ativacao: {
+          estado: "CONQUISTAR_PRIMEIRO_AGENDAMENTO",
+          titulo: "Seu perfil está no ar",
+          concluido: false,
+          acao: { tipo: "COMPARTILHAR_PERFIL", rotulo: "Compartilhar perfil" }
+        }
       }
     });
 
     render(<MemoryRouter><DashboardPage /></MemoryRouter>);
 
-    expect(await screen.findByRole("heading", { name: "Confirme seus horários" }))
+    expect(await screen.findByRole("heading", { name: "Seu perfil está no ar" }))
       .not.toBeNull();
-    expect(screen.getByRole("link", { name: "Confirmar horários" }).getAttribute("href"))
-      .toBe("/painel/horarios");
+    expect(screen.getByRole("button", { name: "Compartilhar perfil" })).not.toBeNull();
+    expect(screen.queryByRole("link", { name: "Confirmar horários" })).toBeNull();
   });
 
   it("conduz o profissional para serviço ativo como primeira etapa incompleta", async () => {

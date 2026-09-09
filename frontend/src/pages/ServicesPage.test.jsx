@@ -6,17 +6,22 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { apiRequest } from "../api/client";
 import { ServicesPage, ServiceEditorPage } from "./ServicesPage";
 
+const refreshSession = vi.fn();
+vi.mock("../auth/SessionContext", () => ({
+  useSession: () => ({ refresh: refreshSession })
+}));
+
 vi.mock("../api/client", () => ({
   apiRequest: vi.fn()
 }));
 
-function ScheduleDestination() {
+function OnboardingDestination() {
   const location = useLocation();
 
   return (
     <>
-      <h1>Confirmar horários para publicar</h1>
-      <output data-testid="schedule-destination">
+      <h1>Próximo passo do negócio</h1>
+      <output data-testid="onboarding-destination">
         {location.pathname}{location.search}
       </output>
     </>
@@ -30,8 +35,7 @@ function renderEditor(entry = "/painel/servicos/novo") {
         <Route path="/painel/servicos/novo" element={<ServiceEditorPage />} />
         <Route path="/painel/servicos/:id/editar" element={<ServiceEditorPage />} />
         <Route path="/painel/servicos" element={<h1>Lista de serviços</h1>} />
-        <Route path="/painel/horarios" element={<ScheduleDestination />} />
-        <Route path="/painel" element={<h1>Visão geral publicada</h1>} />
+        <Route path="*" element={<OnboardingDestination />} />
       </Routes>
     </MemoryRouter>
   );
@@ -60,11 +64,13 @@ function fillService() {
 }
 
 function submit() {
-  fireEvent.submit(screen.getByRole("button", { name: "Salvar serviço" }).closest("form"));
+  fireEvent.submit(screen.getByRole("button", { name: /^Salvar serviço/ }).closest("form"));
 }
 
 beforeEach(() => {
   apiRequest.mockReset();
+  refreshSession.mockReset();
+  refreshSession.mockResolvedValue({});
   HTMLDialogElement.prototype.showModal = function showModal() {
     this.setAttribute("open", "");
   };
@@ -87,6 +93,19 @@ afterEach(() => {
 });
 
 describe("editor de serviços", () => {
+  it("atualiza a sessão publicada antes de abrir o checkout escolhido", async () => {
+    let finishRefresh;
+    refreshSession.mockImplementation(() => new Promise((resolve) => { finishRefresh = resolve; }));
+    apiRequest.mockResolvedValue({ servico: { id: 58 }, publicacao: { publicado: true, pode_publicar: true } });
+    renderEditor("/painel/servicos/novo?onboarding=servico&plano=autonoma");
+    fillService();
+    submit();
+    await waitFor(() => expect(refreshSession).toHaveBeenCalledTimes(1));
+    expect(screen.queryByTestId("onboarding-destination")).toBeNull();
+    finishRefresh();
+    expect((await screen.findByTestId("onboarding-destination")).textContent).toBe("/checkout?plano=autonoma");
+  });
+
   it("oferece e envia a categoria Bronzeamento", async () => {
     apiRequest.mockResolvedValueOnce({
       servico: { id: 32, categoria: "bronzeamento" }
@@ -238,13 +257,13 @@ describe("editor de serviços", () => {
     expect(screen.getByText("Adicionar fotos")).not.toBeNull();
   });
 
-  it("leva à confirmação de horários sem publicar ao cadastrar o primeiro serviço", async () => {
+  it("leva aos dados obrigatórios quando o primeiro serviço ainda não publica o negócio", async () => {
     apiRequest.mockResolvedValueOnce({
       servico: { id: 55 },
       publicacao: {
         publicado: false,
         pode_publicar: false,
-        pendencias: ["confirmar os horários de atendimento"]
+        pendencias: ["endereço"]
       }
     });
 
@@ -252,17 +271,17 @@ describe("editor de serviços", () => {
     fillService();
     submit();
 
-    expect(await screen.findByRole("heading", { name: "Confirmar horários para publicar" }))
-      .not.toBeNull();
+    expect((await screen.findByTestId("onboarding-destination")).textContent)
+      .toBe("/painel/negocio");
   });
 
-  it("preserva a intenção de plano até a confirmação dos horários", async () => {
+  it("preserva a intenção de plano até corrigir os dados obrigatórios", async () => {
     apiRequest.mockResolvedValueOnce({
       servico: { id: 57 },
       publicacao: {
         publicado: false,
         pode_publicar: false,
-        pendencias: ["confirmar os horários de atendimento"]
+        pendencias: ["endereço"]
       }
     });
 
@@ -273,11 +292,11 @@ describe("editor de serviços", () => {
     fillService();
     submit();
 
-    expect((await screen.findByTestId("schedule-destination")).textContent)
-      .toBe("/painel/horarios?plano=autonoma");
+    expect((await screen.findByTestId("onboarding-destination")).textContent)
+      .toBe("/painel/negocio?plano=autonoma");
   });
 
-  it("mantém negócios legados publicados no caminho de confirmação dos horários", async () => {
+  it("leva negócios publicados ao painel sem exigir confirmação de horários", async () => {
     apiRequest.mockResolvedValueOnce({
       servico: { id: 56 },
       publicacao: {
@@ -293,8 +312,8 @@ describe("editor de serviços", () => {
     fillService();
     submit();
 
-    expect(await screen.findByRole("heading", { name: "Confirmar horários para publicar" }))
-      .not.toBeNull();
+    expect((await screen.findByTestId("onboarding-destination")).textContent)
+      .toBe("/painel");
   });
 });
 

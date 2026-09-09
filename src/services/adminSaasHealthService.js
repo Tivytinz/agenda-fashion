@@ -4,6 +4,7 @@ const adminSaasHealthRepository =
   );
 
 const TOTAL_ETAPAS_ATIVACAO = 5;
+const { urlPublicacaoValida } = require("../domain/urlPublicacao");
 
 const PENDENCIAS_PERMITIDAS =
   new Set([
@@ -166,7 +167,7 @@ function mapearPendencias(
     });
   }
 
-  if (!textoPresente(linha.localizacao_url)) {
+  if (!urlPublicacaoValida(linha.localizacao_url)) {
     pendencias.push({
       codigo: "localizacao",
       rotulo: "Informar link do Google Maps",

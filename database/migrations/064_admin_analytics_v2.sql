@@ -101,6 +101,7 @@ WHERE n.ativo = TRUE
   AND NULLIF(BTRIM(n.numero), '') IS NOT NULL
   AND COALESCE(n.cep, '') ~ '^[0-9]{8}$'
   AND NULLIF(BTRIM(COALESCE(n.localizacao_url, '')), '') IS NOT NULL
+  AND BTRIM(n.localizacao_url) ~* '^https?://[^[:space:]/?#]+([/?#][^[:space:]]*)?$'
   AND (
     COALESCE(CARDINALITY(n.areas), 0) > 0
     OR NULLIF(BTRIM(COALESCE(n.setor, '')), '') IS NOT NULL

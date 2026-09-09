@@ -240,6 +240,7 @@ async function sincronizarPublicacaoAutomatica(
               AND NULLIF(BTRIM(COALESCE(n.numero, '')), '') IS NOT NULL
               AND COALESCE(n.cep, '') ~ '^[0-9]{8}$'
               AND NULLIF(BTRIM(COALESCE(n.localizacao_url, '')), '') IS NOT NULL
+              AND BTRIM(n.localizacao_url) ~* '^https?://[^[:space:]/?#]+([/?#][^[:space:]]*)?$'
               AND EXISTS (
                 SELECT 1
                 FROM servicos_negocio s

@@ -39,7 +39,7 @@ describe("contextos visuais do workspace", () => {
     expect(screen.queryByText("AF Admin")).toBeNull();
     expect(screen.queryByText("Operação interna")).toBeNull();
     expect(sidebarQueries.getByText("Visão geral")).not.toBeNull();
-    expect(sidebarQueries.getByText("Ativação")).not.toBeNull();
+    expect(sidebarQueries.getByText("Aquisição")).not.toBeNull();
     expect(sidebarQueries.getByText("Operação")).not.toBeNull();
     expect(screen.getByRole("heading", { name: "Visão administrativa" })).not.toBeNull();
   });

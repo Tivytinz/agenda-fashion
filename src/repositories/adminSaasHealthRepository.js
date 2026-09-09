@@ -27,6 +27,7 @@ const PERFIL_ESSENCIAL_SQL = `
   AND NULLIF(BTRIM(numero), '') IS NOT NULL
   AND COALESCE(cep, '') ~ '^[0-9]{8}$'
   AND NULLIF(BTRIM(COALESCE(localizacao_url, '')), '') IS NOT NULL
+  AND BTRIM(localizacao_url) ~* '^https?://[^[:space:]/?#]+([/?#][^[:space:]]*)?$'
 `;
 
 const PERFIS_CTE = `
