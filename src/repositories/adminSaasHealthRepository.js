@@ -14,10 +14,7 @@ const PERFIL_ESSENCIAL_SQL = `
     CARDINALITY(COALESCE(areas, ARRAY[]::TEXT[])) > 0
     OR NULLIF(BTRIM(setor), '') IS NOT NULL
   )
-  AND COALESCE(
-    negocio_whatsapp ~ '^[0-9]{10,11}$',
-    FALSE
-  )
+  AND COALESCE(negocio_whatsapp, '') ~ '^[0-9]{10,11}$'
   AND NULLIF(BTRIM(cidade), '') IS NOT NULL
   AND UPPER(BTRIM(COALESCE(estado, ''))) IN (
     'AC', 'AL', 'AP', 'AM', 'BA', 'CE', 'DF',
@@ -28,11 +25,8 @@ const PERFIL_ESSENCIAL_SQL = `
   AND NULLIF(BTRIM(bairro), '') IS NOT NULL
   AND NULLIF(BTRIM(endereco), '') IS NOT NULL
   AND NULLIF(BTRIM(numero), '') IS NOT NULL
-  AND REGEXP_REPLACE(COALESCE(cep, ''), '[^0-9]', '', 'g') ~ '^[0-9]{8}$'
-  AND COALESCE(
-    BTRIM(localizacao_url) ~* '^https?://[^[:space:]]+$',
-    FALSE
-  )
+  AND COALESCE(cep, '') ~ '^[0-9]{8}$'
+  AND NULLIF(BTRIM(COALESCE(localizacao_url, '')), '') IS NOT NULL
 `;
 
 const PERFIS_CTE = `
@@ -72,7 +66,7 @@ const PERFIS_CTE = `
         SELECT 1
         FROM agendamentos a
         WHERE a.negocio_id = n.id
-          AND a.status <> 'cancelado'
+          AND COALESCE(a.status, 'agendado') <> 'cancelado'
       ) AS primeiro_agendamento_valido,
       GREATEST(
         u.updated_at,
