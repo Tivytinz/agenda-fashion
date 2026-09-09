@@ -267,9 +267,10 @@ export function AdminOverviewV2Page() {
         const activationSteps = [
           ["Cadastros profissionais", acquisition.cadastrosProfissionais],
           ["Negócios criados", activation.negociosCriados],
+          ["Serviços criados", activation.servicosCriados],
           ["Negócios publicados", activation.negociosPublicados],
           ["1º agendamento válido", activation.primeirosAgendamentos],
-          ["Negócios com pagamento", revenue.negociosComPagamento]
+          ["Assinaturas pagas", revenue.assinaturasAtivadasCohorte]
         ];
 
         return (
@@ -281,18 +282,18 @@ export function AdminOverviewV2Page() {
                 value={formatNumber(audience.usuariosAtivos)}
               />
               <MetricCard
-                hint="cadastros com intenção profissional confirmada no backend"
+                hint="coorte de profissionais cadastrados no período"
                 label="Cadastros profissionais"
                 value={formatNumber(acquisition.cadastrosProfissionais)}
               />
               <MetricCard
-                hint={formatPercent(activation.taxaPrimeiroAgendamentoSobreCadastro) + " dos cadastros"}
+                hint={`${formatPercent(activation.taxaPrimeiroAgendamentoSobreCadastro)} dos cadastros da coorte`}
                 label="1º agendamento"
                 tone={number(activation.primeirosAgendamentos) > 0 ? "success" : "neutral"}
                 value={formatNumber(activation.primeirosAgendamentos)}
               />
               <MetricCard
-                hint="somente pagamentos confirmados/recebidos de planos pagos"
+                hint="somente pagamentos confirmados/recebidos de planos pagos no período"
                 label="Receita confirmada"
                 tone={number(revenue.receitaConfirmada) > 0 ? "success" : "neutral"}
                 value={formatCurrency(revenue.receitaConfirmada)}
@@ -303,9 +304,9 @@ export function AdminOverviewV2Page() {
               <div className="panel-heading">
                 <div>
                   <p className="eyebrow">Ativação e monetização</p>
-                  <h2>Do cadastro ao primeiro pagamento</h2>
+                  <h2>Coorte profissional: do cadastro à assinatura</h2>
                   <p className="muted">
-                    Cada marco usa sua própria fonte canônica. As contagens são eventos ocorridos no período, não uma coorte fechada entre etapas.
+                    Todos os marcos deste funil acompanham os profissionais cadastrados no período selecionado. Receita confirmada e pagamentos do período ficam separados porque são fatos financeiros, não etapas desta coorte.
                   </p>
                 </div>
               </div>
@@ -323,6 +324,10 @@ export function AdminOverviewV2Page() {
                   <dd>{formatPercent(activation.taxaNegocioSobreCadastro)}</dd>
                 </div>
                 <div>
+                  <dt>Cadastro → serviço</dt>
+                  <dd>{formatPercent(activation.taxaServicoSobreCadastro)}</dd>
+                </div>
+                <div>
                   <dt>Cadastro → publicação</dt>
                   <dd>{formatPercent(activation.taxaPublicacaoSobreCadastro)}</dd>
                 </div>
@@ -331,8 +336,8 @@ export function AdminOverviewV2Page() {
                   <dd>{formatPercent(activation.taxaPrimeiroAgendamentoSobreCadastro)}</dd>
                 </div>
                 <div>
-                  <dt>Cadastro → negócio pagante</dt>
-                  <dd>{formatPercent(revenue.taxaPagamentoSobreCadastro)}</dd>
+                  <dt>Cadastro → assinatura paga</dt>
+                  <dd>{formatPercent(revenue.taxaAssinaturaSobreCadastro)}</dd>
                 </div>
               </dl>
             </section>
@@ -356,13 +361,13 @@ export function AdminOverviewV2Page() {
                 <div className="panel-heading">
                   <div>
                     <p className="eyebrow">Demanda e receita</p>
-                    <h2>Valor entregue</h2>
+                    <h2>Fatos ocorridos no período</h2>
                   </div>
                 </div>
                 <dl className="admin-command-data-list">
                   <div><dt>Agendamentos válidos</dt><dd>{formatNumber(demand.agendamentosValidos)}</dd></div>
                   <div><dt>Pagamentos confirmados</dt><dd>{formatNumber(revenue.pagamentosConfirmados)}</dd></div>
-                  <div><dt>Negócios com pagamento</dt><dd>{formatNumber(revenue.negociosComPagamento)}</dd></div>
+                  <div><dt>Negócios com pagamento no período</dt><dd>{formatNumber(revenue.negociosComPagamento)}</dd></div>
                 </dl>
               </section>
             </div>
