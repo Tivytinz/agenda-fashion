@@ -8,7 +8,6 @@ const ACTIVATION_ROUTES = Object.freeze({
   agenda: { to: "/painel/agenda" },
   services: { to: "/painel/servicos" },
   firstService: { to: "/painel/servicos/novo?onboarding=servico" },
-  schedule: { to: "/painel/horarios" },
   business: { to: "/painel/negocio" },
 });
 
@@ -18,7 +17,6 @@ const ALLOWED_NAVIGATION_DESTINATIONS = new Set(
 
 const ACTIVATION_STEP_KEYS = Object.freeze([
   "possui_servico_ativo",
-  "agenda_configurada",
   "negocio_publicado",
   "primeiro_agendamento_recebido",
 ]);
@@ -192,7 +190,7 @@ export function DashboardNextAction({
           aria-label="Progresso da ativação"
           className="muted dashboard-action-progress"
         >
-          {completedSteps} de 4 etapas concluídas
+          {completedSteps} de 3 etapas concluídas
         </p>
       )}
 
