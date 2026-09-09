@@ -66,11 +66,18 @@ const AdminLayout = lazyNamedWithStyles(
   "AdminLayout"
 );
 
-const AdminOverviewPage = lazyNamedWithStyles(
+const loadAdminAnalyticsV2Page = (name) => lazyNamedWithStyles(
   loadAdminCommandStyles,
-  () => import("./pages/AdminOverviewPage"),
-  "AdminOverviewPage"
+  () => import("./pages/AdminAnalyticsV2Pages"),
+  name
 );
+
+const AdminOverviewPage = loadAdminAnalyticsV2Page("AdminOverviewV2Page");
+const AdminAcquisitionPage = loadAdminAnalyticsV2Page("AdminAcquisitionV2Page");
+const AdminJourneyPage = loadAdminAnalyticsV2Page("AdminJourneyV2Page");
+const AdminRetentionPage = loadAdminAnalyticsV2Page("AdminRetentionV2Page");
+const AdminRevenuePage = loadAdminAnalyticsV2Page("AdminRevenueV2Page");
+
 const AdminOperationPage = lazyNamedWithStyles(
   loadAdminCommandStyles,
   () => import("./pages/AdminOperationPage"),
@@ -257,6 +264,22 @@ export default function App() {
           <Route
             path={reactRoutes.adminOverview}
             element={<AdminOverviewPage />}
+          />
+          <Route
+            path={reactRoutes.adminAcquisition}
+            element={<AdminAcquisitionPage />}
+          />
+          <Route
+            path={reactRoutes.adminJourney}
+            element={<AdminJourneyPage />}
+          />
+          <Route
+            path={reactRoutes.adminRetention}
+            element={<AdminRetentionPage />}
+          />
+          <Route
+            path={reactRoutes.adminRevenue}
+            element={<AdminRevenuePage />}
           />
           <Route
             path={reactRoutes.adminOperation}
