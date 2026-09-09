@@ -21,7 +21,7 @@ jobs:
 
     services:
       postgres:
-        image: postgres:17-alpine
+        image: postgres:18-alpine
         env:
           POSTGRES_DB: agenda_fashion_test
           POSTGRES_USER: postgres
