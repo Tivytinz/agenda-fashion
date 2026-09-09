@@ -32,6 +32,37 @@ const PROPRIEDADES_PERMITIDAS = Object.freeze({
   checkout_viewed: new Set(["plan_slug"]),
 });
 
+const SEARCH_HOSTS = new Set([
+  "google.com",
+  "www.google.com",
+  "bing.com",
+  "www.bing.com",
+  "search.yahoo.com",
+  "duckduckgo.com",
+]);
+
+const AI_HOSTS = new Set([
+  "chatgpt.com",
+  "chat.openai.com",
+  "perplexity.ai",
+  "www.perplexity.ai",
+  "claude.ai",
+  "gemini.google.com",
+  "copilot.microsoft.com",
+]);
+
+const SOCIAL_HOSTS = new Set([
+  "instagram.com",
+  "www.instagram.com",
+  "facebook.com",
+  "www.facebook.com",
+  "m.facebook.com",
+  "tiktok.com",
+  "www.tiktok.com",
+  "pinterest.com",
+  "www.pinterest.com",
+]);
+
 function criarErro(mensagem, statusCode = 400, codigo = "ANALYTICS_INVALIDO") {
   const erro = new Error(mensagem);
   erro.status = statusCode;
@@ -135,6 +166,144 @@ function propriedadesSeguras(nome, propriedades) {
   return resultado;
 }
 
+function normalizarHost(valor) {
+  const host = textoSeguro(valor, 200, { lower: true });
+  if (!host || !/^[a-z0-9.-]+$/.test(host)) return null;
+  return host;
+}
+
+function normalizarLandingPage(valor) {
+  const path = String(valor || "").trim().slice(0, 500);
+  if (!path || !path.startsWith("/") || path.startsWith("//")) {
+    return null;
+  }
+
+  return path.split(/[?#]/, 1)[0].slice(0, 500);
+}
+
+function normalizarAquisicao(valor) {
+  if (!valor || typeof valor !== "object" || Array.isArray(valor)) {
+    return null;
+  }
+
+  const texto = (campo, limite, lower = false) => {
+    const resultado = textoSeguro(valor[campo], limite, { lower });
+    return resultado || null;
+  };
+
+  return {
+    utmSource: texto("utmSource", 80, true),
+    utmMedium: texto("utmMedium", 80, true),
+    utmCampaign: texto("utmCampaign", 140, true),
+    utmContent: texto("utmContent", 140),
+    utmTerm: texto("utmTerm", 140),
+    gclid: texto("gclid", 200),
+    gbraid: texto("gbraid", 200),
+    wbraid: texto("wbraid", 200),
+    fbclid: texto("fbclid", 200),
+    msclkid: texto("msclkid", 200),
+    ttclid: texto("ttclid", 200),
+    landingPage: normalizarLandingPage(valor.landingPage),
+    referrerHost: normalizarHost(valor.referrerHost),
+  };
+}
+
+function hostPertence(host, conjunto) {
+  if (!host) return false;
+  if (conjunto.has(host)) return true;
+
+  return Array.from(conjunto).some(
+    (base) => host.endsWith(`.${base}`)
+  );
+}
+
+function classificarCanal(evidencias, campanhaOficial) {
+  const source = evidencias?.utmSource || "";
+  const medium = evidencias?.utmMedium || "";
+  const host = evidencias?.referrerHost || "";
+  const temGoogleClick = Boolean(
+    evidencias?.gclid || evidencias?.gbraid || evidencias?.wbraid
+  );
+  const temMicrosoftClick = Boolean(evidencias?.msclkid);
+  const temSocialClick = Boolean(evidencias?.fbclid || evidencias?.ttclid);
+  const midiaBuscaPaga = [
+    "cpc",
+    "ppc",
+    "paid_search",
+    "paidsearch",
+    "sem",
+  ].includes(medium);
+  const midiaSocialPaga = [
+    "paid_social",
+    "paidsocial",
+    "social_paid",
+  ].includes(medium);
+
+  let canal = "unknown";
+  let classificacao = "sem_evidencia";
+  let metodoResolucao = "sem_evidencia";
+
+  if (temGoogleClick || temMicrosoftClick || midiaBuscaPaga) {
+    canal = "paid_search";
+    classificacao = campanhaOficial ? "oficial" : "evidencia_paga";
+    metodoResolucao = campanhaOficial ? "campanha_oficial" : "click_id_ou_utm";
+  } else if (temSocialClick || midiaSocialPaga) {
+    canal = "paid_social";
+    classificacao = campanhaOficial ? "oficial" : "evidencia_paga";
+    metodoResolucao = campanhaOficial ? "campanha_oficial" : "click_id_ou_utm";
+  } else if (medium === "email") {
+    canal = "email";
+    classificacao = campanhaOficial ? "oficial" : "utm_rastreada";
+    metodoResolucao = campanhaOficial ? "campanha_oficial" : "utm";
+  } else if (hostPertence(host, AI_HOSTS)) {
+    canal = "ai_assistant";
+    classificacao = "referencia_rastreada";
+    metodoResolucao = "referrer";
+  } else if (hostPertence(host, SEARCH_HOSTS)) {
+    canal = "organic_search";
+    classificacao = "referencia_rastreada";
+    metodoResolucao = "referrer";
+  } else if (
+    hostPertence(host, SOCIAL_HOSTS) ||
+    ["social", "organic_social"].includes(medium) ||
+    ["instagram", "facebook", "tiktok", "pinterest"].includes(source)
+  ) {
+    canal = "organic_social";
+    classificacao = campanhaOficial ? "oficial" : "referencia_rastreada";
+    metodoResolucao = campanhaOficial ? "campanha_oficial" : "utm_ou_referrer";
+  } else if (host) {
+    canal = "referral";
+    classificacao = "referencia_rastreada";
+    metodoResolucao = "referrer";
+  } else if (source || medium || evidencias?.utmCampaign) {
+    canal = "other";
+    classificacao = campanhaOficial ? "oficial" : "utm_rastreada";
+    metodoResolucao = campanhaOficial ? "campanha_oficial" : "utm";
+  } else {
+    canal = "direct";
+    classificacao = "sem_evidencia";
+    metodoResolucao = "sem_referrer_ou_utm";
+  }
+
+  return {
+    canal,
+    classificacao,
+    metodoResolucao,
+    source: source || host || (canal === "direct" ? "direct" : null),
+    medium: medium || (
+      canal === "direct"
+        ? "none"
+        : canal === "organic_search"
+          ? "organic"
+          : canal === "referral" || canal === "ai_assistant"
+            ? "referral"
+            : canal === "organic_social"
+              ? "social"
+              : null
+    ),
+  };
+}
+
 function normalizarItem(item) {
   if (!item || typeof item !== "object" || Array.isArray(item)) {
     throw criarErro("Item de analytics inválido.");
@@ -225,6 +394,59 @@ function normalizarItem(item) {
   };
 }
 
+async function registrarOrigem({
+  sessaoId,
+  aquisicao,
+  primeiroHorario,
+  normalizados,
+  client,
+}) {
+  const evidencias = aquisicao || {
+    utmSource: null,
+    utmMedium: null,
+    utmCampaign: null,
+    utmContent: null,
+    utmTerm: null,
+    gclid: null,
+    gbraid: null,
+    wbraid: null,
+    fbclid: null,
+    msclkid: null,
+    ttclid: null,
+    landingPage: null,
+    referrerHost: null,
+  };
+
+  const campanhaOficial = await analyticsRepository.buscarCampanhaOficial({
+    utmSource: evidencias.utmSource,
+    utmMedium: evidencias.utmMedium,
+    utmCampaign: evidencias.utmCampaign,
+    occurredAt: primeiroHorario,
+  }, client);
+
+  const origem = classificarCanal(evidencias, campanhaOficial);
+  const primeiraTela = normalizados.find((item) => item.type === "page_view");
+
+  await analyticsRepository.salvarEvidenciasSessao({
+    sessaoId,
+    evidencias,
+    occurredAt: primeiroHorario,
+  }, client);
+
+  await analyticsRepository.salvarOrigemSessao({
+    sessaoId,
+    canal: origem.canal,
+    source: origem.source,
+    medium: origem.medium,
+    referrerHost: evidencias.referrerHost,
+    landingPageKey: primeiraTela?.pageKey || null,
+    campanhaOficialId: campanhaOficial?.id || null,
+    classificacao: origem.classificacao,
+    metodoResolucao: origem.metodoResolucao,
+    occurredAt: primeiroHorario,
+  }, client);
+}
+
 async function coletar({ usuarioId, body }) {
   if (!body || typeof body !== "object" || Array.isArray(body)) {
     throw criarErro("Payload de analytics inválido.");
@@ -249,6 +471,7 @@ async function coletar({ usuarioId, body }) {
     normalizados[0].occurredAt
   );
   const device = deviceSeguro(body.device);
+  const aquisicao = normalizarAquisicao(body.acquisition);
 
   return analyticsRepository.executarTransacao(async (client) => {
     const visitante = await analyticsRepository.upsertVisitante({
@@ -280,6 +503,14 @@ async function coletar({ usuarioId, body }) {
         occurredAt: ultimoHorario,
       }, client);
     }
+
+    await registrarOrigem({
+      sessaoId: sessao.id,
+      aquisicao,
+      primeiroHorario,
+      normalizados,
+      client,
+    });
 
     const actorBusinessId = await analyticsRepository.resolverNegocioDoAtor(
       idSeguro(usuarioId),
@@ -348,5 +579,7 @@ async function coletar({ usuarioId, body }) {
 module.exports = {
   coletar,
   normalizarItem,
+  normalizarAquisicao,
+  classificarCanal,
   uuidValido,
 };
