@@ -18,7 +18,7 @@ vi.mock("../auth/SessionContext", () => ({
 afterEach(cleanup);
 
 describe("contextos visuais do workspace", () => {
-  it("marca o administrativo como console neutro sem duplicar a identidade do admin", () => {
+  it("renderiza o administrativo em shell próprio sem reutilizar o workspace profissional", () => {
     render(
       <MemoryRouter>
         <AdminLayout>
@@ -31,13 +31,15 @@ describe("contextos visuais do workspace", () => {
       name: "Administração do Agenda Fashion"
     });
     const sidebarQueries = within(sidebar);
-    const shell = sidebar.closest(".workspace-shell");
+    const adminShell = sidebar.closest(".admin-shell");
 
-    expect(shell?.classList.contains("workspace-shell--admin")).toBe(true);
-    expect(shell?.classList.contains("workspace-shell--professional")).toBe(false);
-    expect(sidebar.classList.contains("workspace-sidebar--nav-only")).toBe(true);
-    expect(screen.queryByText("AF Admin")).toBeNull();
-    expect(screen.queryByText("Operação interna")).toBeNull();
+    expect(adminShell).not.toBeNull();
+    expect(adminShell?.getAttribute("data-frontend-context")).toBe("admin");
+    expect(adminShell?.classList.contains("workspace-shell")).toBe(false);
+    expect(sidebar.classList.contains("admin-sidebar")).toBe(true);
+    expect(sidebar.classList.contains("workspace-sidebar")).toBe(false);
+    expect(document.querySelector(".workspace-shell--admin")).toBeNull();
+    expect(sidebarQueries.getByText("Command Center")).not.toBeNull();
     expect(sidebarQueries.getByText("Visão geral")).not.toBeNull();
     expect(sidebarQueries.getByText("Aquisição")).not.toBeNull();
     expect(sidebarQueries.getByText("Operação")).not.toBeNull();
