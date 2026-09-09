@@ -2,10 +2,6 @@ const crypto = require("crypto");
 const fs = require("fs");
 const path = require("path");
 const db = require("../src/db/db");
-const {
-  buscarReceita,
-  buscarVisaoGeral,
-} = require("../src/repositories/adminAnalyticsV2Repository");
 
 const migration = fs.readFileSync(
   path.join(
@@ -94,15 +90,36 @@ describe("Admin Analytics V2 repository - schema reconciliado", () => {
   test("Visão geral e Receita executam as queries reais após reparar o schema legado", async () => {
     const client = await db.connect();
     const schema = `af_admin_v2_repository_${crypto.randomBytes(8).toString("hex")}`;
-    let querySpy;
 
     try {
       await criarSchemaMinimoLegado(client, schema);
       await client.query(migration);
 
-      querySpy = jest
-        .spyOn(db, "query")
-        .mockImplementation((texto, parametros) => client.query(texto, parametros));
+      const colunasReconciliadas = await client.query(
+        `SELECT table_name, column_name
+         FROM information_schema.columns
+         WHERE table_schema = current_schema()
+           AND (
+             (table_name = 'negocios' AND column_name = 'primeira_publicacao_em')
+             OR (table_name = 'pagamentos' AND column_name = 'assinatura_id')
+           )
+         ORDER BY table_name, column_name`
+      );
+
+      expect(colunasReconciliadas.rows).toEqual([
+        { table_name: "negocios", column_name: "primeira_publicacao_em" },
+        { table_name: "pagamentos", column_name: "assinatura_id" },
+      ]);
+
+      jest.resetModules();
+      jest.doMock("../src/db/db", () => ({
+        query: (texto, parametros) => client.query(texto, parametros),
+      }));
+
+      const {
+        buscarReceita,
+        buscarVisaoGeral,
+      } = require("../src/repositories/adminAnalyticsV2Repository");
 
       await expect(buscarVisaoGeral("today")).resolves.toEqual(
         expect.objectContaining({
@@ -125,7 +142,8 @@ describe("Admin Analytics V2 repository - schema reconciliado", () => {
         })
       );
     } finally {
-      querySpy?.mockRestore();
+      jest.dontMock("../src/db/db");
+      jest.resetModules();
       await destruirSchema(client, schema);
       client.release();
     }
