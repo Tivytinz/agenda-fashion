@@ -298,7 +298,7 @@ async function adicionarEspecialidadeNegocio(
           )
         END,
         setor = COALESCE(
-          NULLIF(BTRIM(setor, ''),
+          NULLIF(BTRIM(setor), ''),
           $2
         ),
         updated_at = NOW()
