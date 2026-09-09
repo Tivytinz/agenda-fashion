@@ -89,7 +89,7 @@ SET
 WHERE n.ativo = TRUE
   AND n.publicado = FALSE
   AND NULLIF(BTRIM(n.nome), '') IS NOT NULL
-  AND REGEXP_REPLACE(COALESCE(n.whatsapp, ''), '[^0-9]', '', 'g') ~ '^[0-9]{10,11}$'
+  AND COALESCE(n.whatsapp, '') ~ '^[0-9]{10,11}$'
   AND NULLIF(BTRIM(n.cidade), '') IS NOT NULL
   AND UPPER(BTRIM(COALESCE(n.estado, ''))) IN (
     'AC', 'AL', 'AP', 'AM', 'BA', 'CE', 'DF', 'ES', 'GO',
@@ -99,8 +99,8 @@ WHERE n.ativo = TRUE
   AND NULLIF(BTRIM(n.bairro), '') IS NOT NULL
   AND NULLIF(BTRIM(n.endereco), '') IS NOT NULL
   AND NULLIF(BTRIM(n.numero), '') IS NOT NULL
-  AND REGEXP_REPLACE(COALESCE(n.cep, ''), '[^0-9]', '', 'g') ~ '^[0-9]{8}$'
-  AND BTRIM(COALESCE(n.localizacao_url, '')) ~* '^https?://'
+  AND COALESCE(n.cep, '') ~ '^[0-9]{8}$'
+  AND NULLIF(BTRIM(COALESCE(n.localizacao_url, '')), '') IS NOT NULL
   AND (
     COALESCE(CARDINALITY(n.areas), 0) > 0
     OR NULLIF(BTRIM(COALESCE(n.setor, '')), '') IS NOT NULL
