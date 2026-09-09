@@ -22,7 +22,7 @@ describe(
           .GARANTIR_SERVICO_ATIVO,
       ],
       [
-        "avança para confirmação da agenda depois do serviço",
+        "pede revisão da publicação depois do primeiro serviço quando o perfil ainda não está no ar",
         {
           possui_servico_ativo: true,
           agenda_configurada: false,
@@ -30,10 +30,10 @@ describe(
           primeiro_agendamento_recebido: false,
         },
         ESTADOS_PROXIMA_ACAO_ATIVACAO
-          .CONFIRMAR_AGENDA,
+          .REVISAR_PUBLICACAO,
       ],
       [
-        "preserva a agenda como prioridade para negócio legado já publicado",
+        "não usa agenda como gate para negócio publicado",
         {
           possui_servico_ativo: true,
           agenda_configurada: false,
@@ -41,18 +41,7 @@ describe(
           primeiro_agendamento_recebido: false,
         },
         ESTADOS_PROXIMA_ACAO_ATIVACAO
-          .CONFIRMAR_AGENDA,
-      ],
-      [
-        "pede revisão da publicação quando serviço e agenda estão prontos",
-        {
-          possui_servico_ativo: true,
-          agenda_configurada: true,
-          negocio_publicado: false,
-          primeiro_agendamento_recebido: false,
-        },
-        ESTADOS_PROXIMA_ACAO_ATIVACAO
-          .REVISAR_PUBLICACAO,
+          .CONQUISTAR_PRIMEIRO_AGENDAMENTO,
       ],
       [
         "prioriza divulgação antes do primeiro agendamento",
@@ -69,7 +58,7 @@ describe(
         "conclui a ativação depois do primeiro agendamento",
         {
           possui_servico_ativo: true,
-          agenda_configurada: true,
+          agenda_configurada: false,
           negocio_publicado: true,
           primeiro_agendamento_recebido: true,
         },
@@ -87,17 +76,6 @@ describe(
         },
         ESTADOS_PROXIMA_ACAO_ATIVACAO
           .GARANTIR_SERVICO_ATIVO,
-      ],
-      [
-        "volta para agenda quando uma operação já ativada perde a configuração confirmada",
-        {
-          possui_servico_ativo: true,
-          agenda_configurada: false,
-          negocio_publicado: true,
-          primeiro_agendamento_recebido: true,
-        },
-        ESTADOS_PROXIMA_ACAO_ATIVACAO
-          .CONFIRMAR_AGENDA,
       ],
     ])(
       "%s",
@@ -160,12 +138,37 @@ describe(
     );
 
     test(
-      "usa compartilhamento rastreável como ação para conquistar o primeiro agendamento",
+      "leva à revisão do negócio quando o serviço está pronto mas a publicação ainda não aconteceu",
+      () => {
+        const resultado =
+          resolverProximaAcaoAtivacao({
+            possui_servico: true,
+            possui_servico_ativo: true,
+            agenda_configurada: false,
+            negocio_publicado: false,
+          });
+
+        expect(resultado).toMatchObject({
+          estado:
+            ESTADOS_PROXIMA_ACAO_ATIVACAO
+              .REVISAR_PUBLICACAO,
+          concluido: false,
+          acao: {
+            tipo: "NAVEGAR",
+            rotulo: "Revisar meu negócio",
+            destino: "/painel/negocio",
+          },
+        });
+      }
+    );
+
+    test(
+      "usa compartilhamento rastreável como ação para conquistar o primeiro agendamento sem exigir agenda personalizada",
       () => {
         const resultado =
           resolverProximaAcaoAtivacao({
             possui_servico_ativo: true,
-            agenda_configurada: true,
+            agenda_configurada: false,
             negocio_publicado: true,
             primeiro_agendamento_recebido: false,
           });
@@ -187,12 +190,12 @@ describe(
     );
 
     test(
-      "marca somente o estado final como concluído",
+      "marca somente o primeiro agendamento como conclusão da ativação",
       () => {
         const resultado =
           resolverProximaAcaoAtivacao({
             possui_servico_ativo: true,
-            agenda_configurada: true,
+            agenda_configurada: false,
             negocio_publicado: true,
             primeiro_agendamento_recebido: true,
           });
