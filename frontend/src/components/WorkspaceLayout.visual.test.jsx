@@ -1,21 +1,29 @@
 // @vitest-environment jsdom
 
+import { Suspense } from "react";
 import { cleanup, render, screen, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { AdminLayout } from "./AdminLayout";
-import { WorkspaceLayout } from "./WorkspaceLayout";
+import {
+  NavigationShell,
+  WorkspaceLayout
+} from "./WorkspaceLayout";
 
 vi.mock("../auth/SessionContext", () => ({
   useSession: () => ({
     negocio: {
       nome: "Studio Aurora",
-      papel: "dono"
+      papel: "dono",
+      slug: "studio-aurora"
     }
   })
 }));
 
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  document.documentElement.classList.remove("owner-context-active");
+});
 
 describe("contextos visuais do workspace", () => {
   it("renderiza o administrativo em shell próprio sem reutilizar o workspace profissional", () => {
@@ -46,21 +54,57 @@ describe("contextos visuais do workspace", () => {
     expect(screen.getByRole("heading", { name: "Visão administrativa" })).not.toBeNull();
   });
 
-  it("mantém a área profissional no contexto visual do Agenda Fashion", () => {
+  it("renderiza a dona no OwnerShell próprio", async () => {
+    const { container } = render(
+      <MemoryRouter initialEntries={["/painel"]}>
+        <Suspense fallback={<p>Carregando contexto...</p>}>
+          <WorkspaceLayout>
+            <h1>Gestão da dona</h1>
+          </WorkspaceLayout>
+        </Suspense>
+      </MemoryRouter>
+    );
+
+    await screen.findByRole("heading", { name: "Gestão da dona" });
+
+    const ownerShell = container.querySelector('[data-frontend-context="owner"]');
+    expect(ownerShell).not.toBeNull();
+    expect(ownerShell?.classList.contains("owner-shell")).toBe(true);
+    expect(ownerShell?.classList.contains("workspace-shell--professional")).toBe(false);
+    expect(screen.getByRole("complementary", { name: "Gestão do negócio" })).not.toBeNull();
+    expect(screen.getAllByText("Studio Aurora").length).toBeGreaterThan(0);
+  });
+
+  it("mantém o contexto profissional na fundação de workspace existente", () => {
+    const links = [
+      ["/profissional/agenda", "Minha agenda", "calendar"],
+      ["/profissional/horarios", "Meus horários", "clock"],
+      ["/conta", "Minha conta", "account"]
+    ];
+
     render(
-      <MemoryRouter>
-        <WorkspaceLayout>
+      <MemoryRouter initialEntries={["/profissional/agenda"]}>
+        <NavigationShell
+          ariaLabel="Área profissional"
+          identity={{
+            initial: "S",
+            title: "Studio Aurora",
+            subtitle: "Área profissional"
+          }}
+          links={links}
+          variant="professional"
+        >
           <h1>Área profissional</h1>
-        </WorkspaceLayout>
+        </NavigationShell>
       </MemoryRouter>
     );
 
     const shell = screen
-      .getByRole("complementary", { name: "Área de trabalho" })
+      .getByRole("complementary", { name: "Área profissional" })
       .closest(".workspace-shell");
 
     expect(shell?.classList.contains("workspace-shell--professional")).toBe(true);
-    expect(shell?.classList.contains("workspace-shell--admin")).toBe(false);
+    expect(shell?.getAttribute("data-frontend-context")).toBe("professional");
     expect(screen.getByText("Studio Aurora")).not.toBeNull();
   });
 });
