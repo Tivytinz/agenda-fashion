@@ -13,6 +13,17 @@ const OwnerShell = lazy(() =>
   ]).then(([, module]) => ({ default: module.OwnerShell }))
 );
 
+export const OWNER_LINKS = [
+  ["/painel", "Visão geral", "home"],
+  ["/painel/agenda", "Agenda", "calendar"],
+  ["/painel/servicos", "Serviços", "services"],
+  ["/painel/horarios", "Horários", "clock"],
+  ["/painel/profissionais", "Equipe", "team"],
+  ["/painel/negocio", "Meu negócio", "business"],
+  ["/painel/assinatura", "Plano e assinatura", "plan"],
+  ["/conta", "Minha conta", "account"]
+];
+
 const PROFESSIONAL_LINKS = [
   ["/profissional/agenda", "Minha agenda", "calendar"],
   ["/profissional/horarios", "Meus horários", "clock"],
@@ -72,7 +83,11 @@ export function WorkspaceLayout({ children }) {
   const owner = negocio?.papel === "dono";
 
   if (owner) {
-    return <OwnerShell>{children}</OwnerShell>;
+    return (
+      <OwnerShell links={OWNER_LINKS}>
+        {children}
+      </OwnerShell>
+    );
   }
 
   const businessName = negocio?.nome || "Agenda Fashion";
