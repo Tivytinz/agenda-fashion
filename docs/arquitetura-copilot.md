@@ -4,7 +4,8 @@ Este documento registra a camada permanente do Copilot do Agenda Fashion.
 
 ## Princípios
 
-- O motor determinístico de ativação continua sendo a autoridade para serviço ativo, agenda confirmada, publicação e primeiro agendamento.
+- O motor determinístico de ativação continua sendo a autoridade para serviço ativo, publicação e primeiro agendamento válido.
+- A disponibilidade é infraestrutura operacional do agendamento e continua sob autoridade do backend, mas não é gate canônico de ativação nem de publicação.
 - A inteligência de crescimento continua responsável por transformar métricas agregadas em oportunidades priorizadas.
 - O LLM é uma camada opcional de linguagem e geração; nunca substitui regras canônicas, autorização, preços, limites de plano, disponibilidade ou regras financeiras.
 - O contexto enviado ao provedor deve ser mínimo e agregado, sem dados de clientes, telefones, e-mails, atendimentos individuais, tokens, segredos ou prompt livre vindo do frontend.
