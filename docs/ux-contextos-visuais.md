@@ -36,13 +36,13 @@ A implementação atual do frontend segue este mapa:
 Agenda Fashion
 ├── experiência pública / cliente → páginas e componentes do contexto público
 ├── /painel/*                    → WorkspaceLayout resolve OwnerShell para vínculo de dona
-├── /profissional/*              → WorkspaceLayout com navegação profissional
+├── /profissional/*              → WorkspaceLayout resolve ProfessionalShell para vínculo profissional
 └── /admin/*                     → AdminLayout + AdminShell
 ```
 
-`WorkspaceLayout` continua sendo a entrada compartilhada das rotas privadas de negócio, mas o contexto da dona é delegado para um `OwnerShell` próprio. O contexto profissional permanece na fundação histórica do workspace até uma migração específica justificar a separação. O Admin continua com shell próprio porque sua necessidade operacional é diferente.
+`WorkspaceLayout` continua sendo a entrada compartilhada das rotas privadas de negócio. O vínculo carregado na sessão define qual composição recebe o conteúdo: `OwnerShell` para dona e `ProfessionalShell` para profissional. Os dois shells possuem identidade visual, tokens e CSS contextuais próprios, mas podem reutilizar primitives neutras de navegação para evitar duplicação. O Admin continua com shell independente porque sua necessidade operacional é diferente.
 
-Esse mapa pode evoluir. Nomes de componentes descrevem a implementação atual, não papéis globais persistidos no usuário nem regras de autorização.
+Esse mapa descreve composição visual, não autorização. Nomes de componentes não substituem os papéis persistidos nem os controles do backend.
 
 ## Segurança e autorização
 
@@ -73,17 +73,19 @@ Não é necessário aplicar todos esses elementos em todas as telas. O contexto 
 
 ## Profissional
 
-O contexto profissional favorece execução rápida do trabalho diário.
+As rotas `/profissional/*` usam o `ProfessionalShell`, escolhido pelo vínculo profissional carregado na sessão. O contexto favorece execução rápida do trabalho diário e não replica o painel de gestão da dona.
 
-Em geral, vale priorizar:
+O shell concentra marca, identidade do negócio atual, navegação profissional, acesso à conta e navegação mobile. Ele possui tokens `--professional-*` próprios e carrega seu CSS somente quando o contexto profissional é resolvido.
 
-- agenda própria em primeiro plano;
-- configuração dos próprios horários quando fizer parte do fluxo atual;
-- conta pessoal acessível;
-- navegação curta e objetiva;
-- identidade do Agenda Fashion reconhecível sem competir com a tarefa principal.
+A navegação canônica desse contexto é curta:
 
-Controles exclusivos da dona do negócio podem ficar fora desse contexto quando não forem úteis para a profissional.
+- Minha agenda;
+- Meus horários;
+- Minha conta.
+
+Controles de equipe, serviços do negócio, publicação, assinatura e demais funções exclusivas da dona não entram na navegação profissional apenas porque a conta pertence ao mesmo negócio.
+
+O `ProfessionalShell` pode reutilizar primitives neutras de navegação com outros contextos para comportamento de rota ativa e menu mobile, mas sidebar, topbar, foco, responsividade e ownership visual permanecem próprios.
 
 ## Dona do negócio
 
@@ -170,7 +172,7 @@ Quando uma área for alterada, vale avaliar se migrar o trecho tocado para primi
 Como boas práticas:
 
 - manter compatibilidades visuais do Admin escopadas dentro de `.admin-shell` quando possível;
-- evitar criar dependências novas e desnecessárias entre o Admin e o workspace profissional;
+- evitar criar dependências novas e desnecessárias entre o Admin e os shells de dona/profissional;
 - manter estilos específicos de marketing, saúde do SaaS e WhatsApp próximos das funcionalidades que os utilizam;
 - consumir tokens administrativos quando isso reduzir duplicação e melhorar consistência;
 - não alterar métricas, contratos de API ou regras de negócio apenas para acomodar uma mudança visual.
