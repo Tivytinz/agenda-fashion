@@ -456,9 +456,7 @@ export function ServiceEditorPage() {
         if (published) await session.refresh();
         const destination = !published
           ? getPlanIntentPath("/painel/negocio", selectedPlan)
-          : selectedPlan
-            ? getPlanIntentPath("/checkout", selectedPlan)
-            : "/painel";
+          : getPlanIntentPath("/painel/horarios", selectedPlan);
 
         navigate(destination, {
           replace: true,
@@ -468,13 +466,11 @@ export function ServiceEditorPage() {
                 onboarding: true,
                 onboardingStep: "perfil"
               }
-            : selectedPlan
-              ? {
-                  message: "Serviço cadastrado e perfil publicado. Agora conclua o plano que você escolheu."
-                }
-              : {
-                  message: "Serviço cadastrado. Seu perfil está no ar e já pode receber agendamentos."
-                }
+            : {
+                message: "Serviço cadastrado e perfil publicado. Agora confirme ou ajuste os horários sugeridos.",
+                onboarding: true,
+                onboardingStep: "agenda"
+              }
         });
         return;
       }
