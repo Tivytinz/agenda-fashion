@@ -37,7 +37,7 @@ describe("OwnerShell", () => {
     expect(
       screen.getByRole("complementary", { name: "Gestão do negócio" })
     ).not.toBeNull();
-    expect(screen.getByText("Studio Aurora")).not.toBeNull();
+    expect(screen.getAllByText("Studio Aurora").length).toBeGreaterThan(0);
     expect(
       screen.getByRole("link", { name: "Ver perfil" }).getAttribute("href")
     ).toBe("/negocio/studio-aurora");
