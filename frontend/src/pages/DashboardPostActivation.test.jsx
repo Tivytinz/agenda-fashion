@@ -21,7 +21,7 @@ beforeEach(() => {
 afterEach(cleanup);
 
 describe("dashboard pós-ativação", () => {
-  it("prioriza growth, mostra recorrência e preserva conversão", async () => {
+  it("prioriza growth, mostra recorrência e não repete o marco de ativação", async () => {
     const dashboard = {
       negocio: {
         negocio_id: 11,
@@ -113,17 +113,19 @@ describe("dashboard pós-ativação", () => {
       </MemoryRouter>
     );
 
-    const growth = await screen.findByRole("heading", {
-      name: "Fortaleça o retorno das clientes",
-    });
-    const activated = screen.getByRole("heading", {
-      name: "Ativação concluída",
-    });
-    const text = document.body.textContent || "";
-
-    expect(text.indexOf(growth.textContent)).toBeLessThan(
-      text.indexOf(activated.textContent)
-    );
+    expect(
+      await screen.findByRole("heading", {
+        name: "Fortaleça o retorno das clientes",
+      })
+    ).not.toBeNull();
+    expect(
+      screen.queryByRole("heading", {
+        name: "Ativação concluída",
+      })
+    ).toBeNull();
+    expect(
+      screen.queryByLabelText("Negócio ativado")
+    ).toBeNull();
     expect(
       screen.getAllByText("Clientes que voltaram").length
     ).toBeGreaterThan(0);
