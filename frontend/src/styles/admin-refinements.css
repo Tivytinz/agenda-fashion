@@ -96,6 +96,10 @@
   grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
+.admin-command-funnel.is-milestones {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+
 .admin-command-funnel.is-milestones article {
   align-content: start;
   min-height: 92px;
@@ -251,6 +255,12 @@
   }
 }
 
+@media (max-width: 1180px) {
+  .admin-command-funnel.is-milestones {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
 @media (max-width: 900px) {
   .admin-shell .admin-topbar {
     min-height: 60px;
@@ -269,6 +279,10 @@
 
 @media (max-width: 800px) {
   .admin-command-summary-grid.is-period-summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .admin-command-funnel.is-milestones {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
@@ -377,7 +391,8 @@
 
 @media (max-width: 520px) {
   .admin-command-now-grid,
-  .admin-command-summary-grid.is-period-summary {
+  .admin-command-summary-grid.is-period-summary,
+  .admin-command-funnel.is-milestones {
     grid-template-columns: 1fr;
   }
 
