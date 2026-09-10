@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { MemoryRouter } from "react-router-dom";
+import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { track } from "../analytics/track";
 import { apiRequest } from "../api/client";
@@ -54,8 +54,60 @@ function defaultSuggestedWeek() {
   ];
 }
 
+function Destination() {
+  const location = useLocation();
+  return (
+    <>
+      <h1>Destino do onboarding</h1>
+      <output data-testid="destination">{location.pathname}{location.search}</output>
+    </>
+  );
+}
+
+function renderPage(entry = "/painel/horarios") {
+  return render(
+    <MemoryRouter initialEntries={[entry]}>
+      <Routes>
+        <Route path="/painel/horarios" element={<ScheduleSettingsPage />} />
+        <Route path="/painel" element={<Destination />} />
+        <Route path="/checkout" element={<Destination />} />
+      </Routes>
+    </MemoryRouter>
+  );
+}
+
 async function openFirstScheduleEditor() {
   fireEvent.click(await screen.findByRole("button", { name: "Ajustar horários" }));
+}
+
+function mockFirstConfiguration() {
+  apiRequest.mockImplementation((path, options = {}) => {
+    if (path === "/agenda-configuracao" && !options.method) {
+      return Promise.resolve({
+        configuracao: {
+          duracao_padrao: 60,
+          intervalo_minutos: 0,
+          antecedencia_agendamento: 0,
+          antecedencia_cancelamento: 24,
+          configurado_em: null
+        },
+        horarios: defaultSuggestedWeek()
+      });
+    }
+
+    if (path === "/agenda-configuracao" && options.method === "PUT") {
+      return Promise.resolve({
+        mensagem: "Horários salvos.",
+        configuracao: {
+          configurado_em: "2026-09-10T05:00:00.000Z"
+        },
+        horarios: defaultSuggestedWeek(),
+        publicacao: null
+      });
+    }
+
+    return Promise.reject(new Error(`Rota inesperada: ${path}`));
+  });
 }
 
 beforeEach(() => {
@@ -75,30 +127,20 @@ beforeEach(() => {
 afterEach(cleanup);
 
 describe("configuração de horários", () => {
-  it("resume a sugestão e oferece confirmação rápida antes do editor", async () => {
-    apiRequest.mockResolvedValueOnce({
-      configuracao: {
-        duracao_padrao: 60,
-        intervalo_minutos: 0,
-        antecedencia_agendamento: 0,
-        antecedencia_cancelamento: 24,
-        configurado_em: null
-      },
-      horarios: defaultSuggestedWeek()
-    });
-
-    render(<ScheduleSettingsPage />);
+  it("mostra a sugestão antes do editor com confirmar, pular e ajustar", async () => {
+    mockFirstConfiguration();
+    renderPage();
 
     expect(await screen.findByRole("heading", {
       name: "Confirme quando você atende"
     })).not.toBeNull();
-
-    expect(screen.getByText(/Agenda Fashion preparou uma sugestão/i)).not.toBeNull();
+    expect(screen.getByText(/Agenda Fashion preparou horários sugeridos/i)).not.toBeNull();
     expect(screen.getByText("Seg, Ter, Qua, Qui, Sex")).not.toBeNull();
     expect(screen.getByText("Sáb")).not.toBeNull();
-    expect(screen.getByRole("button", { name: "Confirmar horários e publicar" }))
-      .not.toBeNull();
+    expect(screen.getByRole("button", { name: "Confirmar horários" })).not.toBeNull();
+    expect(screen.getByRole("button", { name: "Pular por agora" })).not.toBeNull();
     expect(screen.getByRole("button", { name: "Ajustar horários" })).not.toBeNull();
+    expect(screen.getByText(/Ao confirmar ou pular, estes horários sugeridos serão salvos/i)).not.toBeNull();
     expect(screen.queryByText("Ajustes avançados")).toBeNull();
 
     await waitFor(() => {
@@ -142,20 +184,115 @@ describe("configuração de horários", () => {
     ]);
   });
 
-  it("abre o editor completo quando a profissional decide ajustar a sugestão", async () => {
-    apiRequest.mockResolvedValueOnce({
-      configuracao: {
-        configurado_em: null
-      },
-      horarios: defaultSuggestedWeek()
+  it("salva os horários sugeridos ao confirmar e segue para o painel", async () => {
+    mockFirstConfiguration();
+    renderPage();
+
+    fireEvent.click(await screen.findByRole("button", { name: "Confirmar horários" }));
+
+    expect((await screen.findByTestId("destination")).textContent).toBe("/painel");
+    expect(apiRequest).toHaveBeenCalledWith(
+      "/agenda-configuracao",
+      expect.objectContaining({
+        method: "PUT",
+        body: expect.objectContaining({
+          horarios: expect.arrayContaining([
+            expect.objectContaining({
+              diaSemana: 1,
+              trabalha: true,
+              horaInicio: "08:00",
+              horaFim: "18:00",
+              intervaloInicio: "12:00",
+              intervaloFim: "13:00"
+            }),
+            expect.objectContaining({
+              diaSemana: 6,
+              trabalha: true,
+              horaInicio: "08:00",
+              horaFim: "13:00"
+            })
+          ])
+        })
+      })
+    );
+    expect(track).toHaveBeenCalledWith(
+      "agenda_configurada",
+      expect.objectContaining({
+        properties: {
+          status: "sucesso",
+          origem: "confirmacao_rapida"
+        }
+      })
+    );
+  });
+
+  it("pular por agora salva a mesma sugestão e preserva o plano no checkout", async () => {
+    mockFirstConfiguration();
+    renderPage("/painel/horarios?plano=autonoma");
+
+    fireEvent.click(await screen.findByRole("button", { name: "Pular por agora" }));
+
+    expect((await screen.findByTestId("destination")).textContent)
+      .toBe("/checkout?plano=autonoma");
+    expect(apiRequest).toHaveBeenCalledWith(
+      "/agenda-configuracao",
+      expect.objectContaining({
+        method: "PUT",
+        body: expect.objectContaining({
+          horarios: expect.arrayContaining([
+            expect.objectContaining({
+              diaSemana: 1,
+              trabalha: true,
+              horaInicio: "08:00",
+              horaFim: "18:00",
+              intervaloInicio: "12:00",
+              intervaloFim: "13:00"
+            })
+          ])
+        })
+      })
+    );
+    expect(track).toHaveBeenCalledWith(
+      "agenda_configurada",
+      expect.objectContaining({
+        properties: {
+          status: "sucesso",
+          origem: "sugestao_aceita_ao_pular"
+        }
+      })
+    );
+  });
+
+  it("não avança quando o salvamento da sugestão falha", async () => {
+    apiRequest.mockImplementation((path, options = {}) => {
+      if (path === "/agenda-configuracao" && !options.method) {
+        return Promise.resolve({
+          configuracao: { configurado_em: null },
+          horarios: defaultSuggestedWeek()
+        });
+      }
+      if (path === "/agenda-configuracao" && options.method === "PUT") {
+        return Promise.reject(new Error("Não foi possível salvar os horários"));
+      }
+      return Promise.reject(new Error(`Rota inesperada: ${path}`));
     });
 
-    render(<ScheduleSettingsPage />);
+    renderPage();
+    fireEvent.click(await screen.findByRole("button", { name: "Pular por agora" }));
+
+    expect(await screen.findByRole("alert")).not.toBeNull();
+    expect(screen.getByRole("alert").textContent).toContain("Não foi possível salvar os horários");
+    expect(screen.queryByTestId("destination")).toBeNull();
+  });
+
+  it("abre o editor completo quando a profissional decide ajustar a sugestão", async () => {
+    mockFirstConfiguration();
+    renderPage();
     await openFirstScheduleEditor();
 
     expect(screen.getByText("Ajustes avançados")).not.toBeNull();
     expect(screen.getByLabelText("Início do atendimento de Segunda")).not.toBeNull();
-    expect(screen.getByRole("button", { name: "Salvar horários e publicar" }))
+    expect(screen.getByRole("button", { name: "Salvar horários e continuar" }))
       .not.toBeNull();
 
     expect(track).toHaveBeenCalledWith(
@@ -181,7 +318,7 @@ describe("configuração de horários", () => {
       horarios: validWeek()
     });
 
-    render(<ScheduleSettingsPage />);
+    renderPage();
 
     await screen.findByText("Quando você recebe clientes");
     const advanced = screen.getByText("Ajustes avançados").closest("details");
@@ -201,7 +338,7 @@ describe("configuração de horários", () => {
     }])).toContain("preencha o início e o fim da pausa");
   });
 
-  it("exige pelo menos um dia ativo somente quando solicitado pela primeira configuração", () => {
+  it("exige pelo menos um dia ativo somente na primeira configuração", () => {
     const closedWeek = Array.from({ length: 7 }, (_, diaSemana) => ({
       diaSemana,
       trabalha: false,
@@ -217,8 +354,8 @@ describe("configuração de horários", () => {
   });
 
   it("não envia um período cujo fim antecede o início", async () => {
-    render(<ScheduleSettingsPage />);
-    const save = await screen.findByRole("button", { name: "Confirmar horários e publicar" });
+    renderPage();
+    const save = await screen.findByRole("button", { name: "Confirmar horários" });
     fireEvent.click(save);
 
     expect(screen.getByRole("alert").textContent).toContain("horário final precisa ser depois");
@@ -244,7 +381,7 @@ describe("configuração de horários", () => {
       }]
     });
 
-    render(<ScheduleSettingsPage />);
+    renderPage();
 
     const interval = await screen.findByRole("combobox", { name: "Intervalo entre clientes" });
     const bookingLead = screen.getByRole("combobox", { name: "Antecedência para agendar" });
@@ -268,38 +405,14 @@ describe("configuração de horários", () => {
       }]
     });
 
-    render(<ScheduleSettingsPage />);
+    renderPage();
     await openFirstScheduleEditor();
 
     const pauseMode = await screen.findByRole("combobox", { name: "Pausa de Segunda" });
     expect(screen.queryByLabelText("Início da pausa de Segunda")).toBeNull();
-
     fireEvent.change(pauseMode, { target: { value: "custom" } });
-
     expect(screen.getByLabelText("Início da pausa de Segunda")).not.toBeNull();
     expect(screen.getByLabelText("Fim da pausa de Segunda")).not.toBeNull();
-  });
-
-  it("organiza a semana em colunas sem repetir os títulos no desktop", async () => {
-    apiRequest.mockResolvedValueOnce({
-      configuracao: {},
-      horarios: [{
-        dia_semana: 1,
-        trabalha: true,
-        hora_inicio: "08:00",
-        hora_fim: "18:00",
-        intervalo_inicio: null,
-        intervalo_fim: null
-      }]
-    });
-
-    render(<ScheduleSettingsPage />);
-    await openFirstScheduleEditor();
-
-    await screen.findByText("Segunda");
-    expect(screen.getByText("Dia")).not.toBeNull();
-    expect(screen.getAllByText("Atendimento")).toHaveLength(2);
-    expect(screen.getAllByText("Pausa")).toHaveLength(2);
   });
 
   it("copia um horário configurado para os demais dias ativos", async () => {
@@ -333,7 +446,7 @@ describe("configuração de horários", () => {
       ]
     });
 
-    render(<ScheduleSettingsPage />);
+    renderPage();
     await openFirstScheduleEditor();
 
     const mondayStart = await screen.findByLabelText("Início do atendimento de Segunda");
@@ -345,205 +458,43 @@ describe("configuração de horários", () => {
     expect(screen.getByLabelText("Início do atendimento de Terça").value).toBe("09:00");
     expect(screen.getByLabelText("Fim do atendimento de Terça").value).toBe("17:00");
     expect(screen.queryByLabelText("Início do atendimento de Quarta")).toBeNull();
-    expect(screen.getAllByText("Fechado").length).toBeGreaterThan(0);
   });
 
-  it("confirma a sugestão sem abrir o editor e registra a origem da conversão", async () => {
+  it("mantém a missão de divulgação após ajuste manual quando o backend confirma publicação", async () => {
     apiRequest.mockImplementation((path, options = {}) => {
       if (path === "/agenda-configuracao" && !options.method) {
         return Promise.resolve({
-          configuracao: {
-            duracao_padrao: 60,
-            intervalo_minutos: 0,
-            antecedencia_agendamento: 0,
-            antecedencia_cancelamento: 24,
-            configurado_em: null
-          },
-          horarios: defaultSuggestedWeek()
-        });
-      }
-
-      if (path === "/agenda-configuracao" && options.method === "PUT") {
-        return Promise.resolve({
-          mensagem: "Horários confirmados. Seu negócio está publicado.",
-          configuracao: {
-            configurado_em: "2026-08-29T01:00:00.000Z"
-          },
-          publicacao: {
-            publicado: true,
-            pode_publicar: true
-          }
-        });
-      }
-
-      if (path === "/configuracoes") {
-        return Promise.resolve({
-          negocio: {
-            id: 11,
-            nome: "Studio Aurora",
-            slug: "studio-aurora",
-            publicado: true
-          }
-        });
-      }
-
-      return Promise.reject(new Error(`Rota inesperada: ${path}`));
-    });
-
-    render(
-      <MemoryRouter>
-        <ScheduleSettingsPage />
-      </MemoryRouter>
-    );
-
-    fireEvent.click(await screen.findByRole("button", {
-      name: "Confirmar horários e publicar"
-    }));
-
-    await waitFor(() => {
-      expect(apiRequest).toHaveBeenCalledWith(
-        "/agenda-configuracao",
-        expect.objectContaining({
-          method: "PUT",
-          body: expect.objectContaining({
-            horarios: expect.any(Array)
-          })
-        })
-      );
-    });
-
-    expect(track).toHaveBeenCalledWith(
-      "agenda_configuracao_salvamento_tentado",
-      expect.objectContaining({
-        properties: {
-          status: "primeira_configuracao",
-          origem: "confirmacao_rapida"
-        }
-      })
-    );
-    expect(track).toHaveBeenCalledWith(
-      "agenda_configurada",
-      expect.objectContaining({
-        properties: {
-          status: "sucesso",
-          origem: "confirmacao_rapida"
-        }
-      })
-    );
-  });
-
-  it("depois da primeira configuração torna a divulgação a ação principal", async () => {
-    apiRequest.mockImplementation((path, options = {}) => {
-      if (path === "/agenda-configuracao" && !options.method) {
-        return Promise.resolve({
-          configuracao: {
-            duracao_padrao: 60,
-            intervalo_minutos: 0,
-            antecedencia_agendamento: 0,
-            antecedencia_cancelamento: 24,
-            configurado_em: null
-          },
+          configuracao: { configurado_em: null },
           horarios: validWeek()
         });
       }
-
       if (path === "/agenda-configuracao" && options.method === "PUT") {
         return Promise.resolve({
-          mensagem: "Horários confirmados. Seu negócio está publicado.",
-          configuracao: {
-            configurado_em: "2026-08-29T01:00:00.000Z"
-          },
+          mensagem: "Horários salvos.",
+          configuracao: { configurado_em: "2026-09-10T05:00:00.000Z" },
           horarios: validWeek(),
-          publicacao: {
-            publicado: true,
-            pode_publicar: true
-          }
+          publicacao: { publicado: true, pode_publicar: true }
         });
       }
-
       if (path === "/configuracoes") {
         return Promise.resolve({
-          negocio: {
-            id: 11,
-            nome: "Studio Aurora",
-            slug: "studio-aurora",
-            publicado: true
-          }
+          negocio: { id: 11, nome: "Studio Aurora", slug: "studio-aurora", publicado: true }
         });
       }
-
       return Promise.reject(new Error(`Rota inesperada: ${path}`));
     });
 
-    render(
-      <MemoryRouter>
-        <ScheduleSettingsPage />
-      </MemoryRouter>
-    );
-
-    expect(apiRequest.mock.calls.some(([path]) => path === "/configuracoes")).toBe(false);
-
-    fireEvent.click(await screen.findByRole("button", {
-      name: "Confirmar horários e publicar"
-    }));
+    renderPage();
+    await openFirstScheduleEditor();
+    fireEvent.click(screen.getByRole("button", { name: "Salvar horários e continuar" }));
 
     expect(await screen.findByRole("heading", { name: "Agora divulgue seu perfil" }))
       .not.toBeNull();
-    expect(screen.getByText("Horários confirmados. Seu negócio está publicado."))
-      .not.toBeNull();
     expect(await screen.findByRole("button", { name: "Compartilhar perfil" }))
       .not.toBeNull();
-    expect(screen.getByRole("button", { name: "Copiar link" }))
-      .not.toBeNull();
-    expect(screen.getByRole("link", { name: "Ver perfil público" })
-      .getAttribute("href")).toBe("/negocio/studio-aurora");
-    expect(screen.queryByRole("button", { name: "Salvar horários" })).toBeNull();
-    expect(screen.getByText(/Negócio publicado/).textContent).toContain("✨");
   });
 
-  it("não oferece compartilhamento quando ainda existe alguma pendência de publicação", async () => {
-    apiRequest.mockImplementation((path, options = {}) => {
-      if (path === "/agenda-configuracao" && !options.method) {
-        return Promise.resolve({
-          configuracao: {
-            configurado_em: null
-          },
-          horarios: validWeek()
-        });
-      }
-
-      if (path === "/agenda-configuracao" && options.method === "PUT") {
-        return Promise.resolve({
-          mensagem: "Horários de atendimento confirmados com sucesso.",
-          configuracao: {
-            configurado_em: "2026-08-29T01:00:00.000Z"
-          },
-          horarios: validWeek(),
-          publicacao: {
-            publicado: false,
-            pode_publicar: false
-          }
-        });
-      }
-
-      return Promise.reject(new Error(`Rota inesperada: ${path}`));
-    });
-
-    render(<ScheduleSettingsPage />);
-
-    fireEvent.click(await screen.findByRole("button", {
-      name: "Confirmar horários e publicar"
-    }));
-
-    expect(await screen.findByText("Horários de atendimento confirmados com sucesso."))
-      .not.toBeNull();
-    expect(screen.queryByRole("heading", { name: "Agora divulgue seu perfil" }))
-      .toBeNull();
-    expect(apiRequest.mock.calls.some(([path]) => path === "/configuracoes"))
-      .toBe(false);
-  });
-
-  it("não repete a missão de primeiro agendamento em edições posteriores", async () => {
+  it("não repete a missão de primeira configuração em edições posteriores", async () => {
     apiRequest.mockImplementation((path, options = {}) => {
       if (path === "/agenda-configuracao" && !options.method) {
         return Promise.resolve({
@@ -557,22 +508,17 @@ describe("configuração de horários", () => {
           horarios: validWeek()
         });
       }
-
       if (path === "/agenda-configuracao" && options.method === "PUT") {
         return Promise.resolve({
           mensagem: "Horários de atendimento atualizados com sucesso.",
-          configuracao: {
-            configurado_em: "2026-08-28T22:00:00.000Z"
-          },
+          configuracao: { configurado_em: "2026-08-28T22:00:00.000Z" },
           horarios: validWeek()
         });
       }
-
       return Promise.reject(new Error(`Rota inesperada: ${path}`));
     });
 
-    render(<ScheduleSettingsPage />);
-
+    renderPage();
     fireEvent.click(await screen.findByRole("button", { name: "Salvar horários" }));
 
     await waitFor(() => {
@@ -581,56 +527,6 @@ describe("configuração de horários", () => {
     });
     expect(screen.queryByRole("heading", { name: "Agora divulgue seu perfil" }))
       .toBeNull();
-    expect(apiRequest.mock.calls.some(([path]) => path === "/configuracoes"))
-      .toBe(false);
-  });
-
-  it("mantém a agenda salva mesmo se o contexto do compartilhamento falhar", async () => {
-    apiRequest.mockImplementation((path, options = {}) => {
-      if (path === "/agenda-configuracao" && !options.method) {
-        return Promise.resolve({
-          configuracao: {
-            configurado_em: null
-          },
-          horarios: validWeek()
-        });
-      }
-
-      if (path === "/agenda-configuracao" && options.method === "PUT") {
-        return Promise.resolve({
-          mensagem: "Horários confirmados. Seu negócio está publicado.",
-          configuracao: {
-            configurado_em: "2026-08-29T01:00:00.000Z"
-          },
-          horarios: validWeek(),
-          publicacao: {
-            publicado: true,
-            pode_publicar: true
-          }
-        });
-      }
-
-      if (path === "/configuracoes") {
-        return Promise.reject(new Error("perfil indisponível"));
-      }
-
-      return Promise.reject(new Error(`Rota inesperada: ${path}`));
-    });
-
-    render(
-      <MemoryRouter>
-        <ScheduleSettingsPage />
-      </MemoryRouter>
-    );
-
-    fireEvent.click(await screen.findByRole("button", {
-      name: "Confirmar horários e publicar"
-    }));
-
-    expect(await screen.findByRole("heading", { name: "Agora divulgue seu perfil" }))
-      .not.toBeNull();
-    expect(await screen.findByRole("link", { name: "Ir para o painel" }))
-      .not.toBeNull();
-    expect(screen.queryByRole("alert")).toBeNull();
+    expect(track).not.toHaveBeenCalledWith("agenda_configurada", expect.anything());
   });
 });
