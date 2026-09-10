@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 
-import { cleanup, render } from "@testing-library/react";
+import { Suspense } from "react";
+import { cleanup, render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { WorkspaceLayout } from "./WorkspaceLayout";
@@ -22,19 +23,22 @@ afterEach(() => {
 });
 
 describe("WorkspaceLayout no contexto da dona", () => {
-  it("resolve o contexto para o OwnerShell sem alterar o conteúdo da rota", () => {
+  it("resolve o contexto para o OwnerShell sem alterar o conteúdo da rota", async () => {
     const { container } = render(
       <MemoryRouter initialEntries={["/painel"]}>
-        <WorkspaceLayout>
-          <p>Conteúdo do painel</p>
-        </WorkspaceLayout>
+        <Suspense fallback={<p>Carregando contexto...</p>}>
+          <WorkspaceLayout>
+            <p>Conteúdo do painel</p>
+          </WorkspaceLayout>
+        </Suspense>
       </MemoryRouter>
     );
+
+    await screen.findByText("Conteúdo do painel");
 
     expect(
       container.querySelector('[data-frontend-context="owner"]')
     ).not.toBeNull();
-    expect(container.textContent).toContain("Conteúdo do painel");
     expect(
       container.querySelector('.workspace-shell--professional')
     ).toBeNull();
