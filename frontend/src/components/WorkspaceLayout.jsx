@@ -1,10 +1,17 @@
+import { lazy } from "react";
 import { Outlet } from "react-router-dom";
 import { useSession } from "../auth/SessionContext";
-import { OwnerShell } from "./OwnerShell";
 import {
   MobileWorkspaceNavigation,
   WorkspaceLinks
 } from "./WorkspaceNavigation";
+
+const OwnerShell = lazy(() =>
+  Promise.all([
+    import("../styles/owner-shell.css"),
+    import("./OwnerShell")
+  ]).then(([, module]) => ({ default: module.OwnerShell }))
+);
 
 const PROFESSIONAL_LINKS = [
   ["/profissional/agenda", "Minha agenda", "calendar"],
