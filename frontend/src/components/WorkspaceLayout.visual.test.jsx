@@ -5,24 +5,29 @@ import { cleanup, render, screen, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { AdminLayout } from "./AdminLayout";
-import {
-  NavigationShell,
-  WorkspaceLayout
-} from "./WorkspaceLayout";
+import { WorkspaceLayout } from "./WorkspaceLayout";
+
+const sessionState = vi.hoisted(() => ({
+  negocio: {
+    nome: "Studio Aurora",
+    papel: "dono",
+    slug: "studio-aurora"
+  }
+}));
 
 vi.mock("../auth/SessionContext", () => ({
-  useSession: () => ({
-    negocio: {
-      nome: "Studio Aurora",
-      papel: "dono",
-      slug: "studio-aurora"
-    }
-  })
+  useSession: () => ({ negocio: sessionState.negocio })
 }));
 
 afterEach(() => {
   cleanup();
+  sessionState.negocio = {
+    nome: "Studio Aurora",
+    papel: "dono",
+    slug: "studio-aurora"
+  };
   document.documentElement.classList.remove("owner-context-active");
+  document.documentElement.classList.remove("professional-context-active");
 });
 
 describe("contextos visuais do workspace", () => {
@@ -70,41 +75,45 @@ describe("contextos visuais do workspace", () => {
     const ownerShell = container.querySelector('[data-frontend-context="owner"]');
     expect(ownerShell).not.toBeNull();
     expect(ownerShell?.classList.contains("owner-shell")).toBe(true);
-    expect(ownerShell?.classList.contains("workspace-shell--professional")).toBe(false);
+    expect(ownerShell?.classList.contains("professional-shell")).toBe(false);
     expect(screen.getByRole("complementary", { name: "Gestão do negócio" })).not.toBeNull();
     expect(screen.getAllByText("Studio Aurora").length).toBeGreaterThan(0);
   });
 
-  it("mantém o contexto profissional na fundação de workspace existente", () => {
-    const links = [
-      ["/profissional/agenda", "Minha agenda", "calendar"],
-      ["/profissional/horarios", "Meus horários", "clock"],
-      ["/conta", "Minha conta", "account"]
-    ];
+  it("renderiza a profissional no ProfessionalShell próprio", async () => {
+    sessionState.negocio = {
+      nome: "Studio Aurora",
+      papel: "profissional",
+      slug: "studio-aurora"
+    };
 
-    render(
+    const { container } = render(
       <MemoryRouter initialEntries={["/profissional/agenda"]}>
-        <NavigationShell
-          ariaLabel="Área profissional"
-          identity={{
-            initial: "S",
-            title: "Studio Aurora",
-            subtitle: "Área profissional"
-          }}
-          links={links}
-          variant="professional"
-        >
-          <h1>Área profissional</h1>
-        </NavigationShell>
+        <Suspense fallback={<p>Carregando contexto...</p>}>
+          <WorkspaceLayout>
+            <h1>Agenda da profissional</h1>
+          </WorkspaceLayout>
+        </Suspense>
       </MemoryRouter>
     );
 
-    const shell = screen
-      .getByRole("complementary", { name: "Área profissional" })
-      .closest(".workspace-shell");
+    await screen.findByRole("heading", { name: "Agenda da profissional" });
 
-    expect(shell?.classList.contains("workspace-shell--professional")).toBe(true);
-    expect(shell?.getAttribute("data-frontend-context")).toBe("professional");
-    expect(screen.getByText("Studio Aurora")).not.toBeNull();
+    const professionalShell = container.querySelector(
+      '[data-frontend-context="professional"]'
+    );
+    const sidebar = screen.getByRole("complementary", { name: "Área profissional" });
+
+    expect(professionalShell).not.toBeNull();
+    expect(professionalShell?.classList.contains("professional-shell")).toBe(true);
+    expect(professionalShell?.classList.contains("workspace-shell")).toBe(false);
+    expect(sidebar).not.toBeNull();
+    expect(
+      within(sidebar).getByRole("navigation", { name: "Rotina profissional" })
+    ).not.toBeNull();
+    expect(screen.getAllByText("Studio Aurora").length).toBeGreaterThan(0);
+    expect(screen.getAllByRole("link", { name: /Minha agenda/ }).length).toBeGreaterThan(0);
+    expect(screen.queryByRole("link", { name: /Equipe/ })).toBeNull();
+    expect(screen.queryByRole("link", { name: /Plano e assinatura/ })).toBeNull();
   });
 });

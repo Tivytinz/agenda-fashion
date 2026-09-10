@@ -215,3 +215,63 @@ test("próxima ação de ativação cabe no celular e mostra somente a missão a
   const diagnostics = await horizontalOverflowDiagnostics(page);
   expect(diagnostics.scrollWidth).toBe(diagnostics.clientWidth);
 });
+
+test("ProfessionalShell mantém rotina curta, foco visível e sem overflow no celular", async ({ page }) => {
+  await page.addInitScript(() => {
+    localStorage.setItem("token", "professional-e2e");
+    localStorage.setItem("usuario", JSON.stringify({ id: 8, nome: "Bia" }));
+    localStorage.setItem("negocio", JSON.stringify({
+      id: 11,
+      nome: "Studio Aurora",
+      papel: "profissional"
+    }));
+    localStorage.setItem("af_marketing_consent_v2", JSON.stringify({
+      version: 2,
+      status: "denied",
+      updatedAt: "2026-08-11T00:00:00.000Z"
+    }));
+  });
+
+  await page.route("**/minha-sessao", (route) => json(route, {
+    usuario: { id: 8, nome: "Bia", email: "bia@example.com" },
+    negocio: { ...BUSINESS, papel: "profissional" },
+    temNegocio: true,
+    administrador: null,
+    ehAdministrador: false
+  }));
+  await page.route("**/marketing/meta/config", (route) => json(route, {
+    enabled: false,
+    pixelId: null
+  }));
+  await page.route("**/marketing/google/config", (route) => json(route, {
+    enabled: false,
+    measurementId: null
+  }));
+  await page.route("**/agenda-profissional", (route) => json(route, {
+    agenda: []
+  }));
+
+  await page.goto("/profissional/agenda");
+
+  await expect(page.locator('[data-frontend-context="professional"]')).toBeVisible();
+  await expect(page.getByRole("heading", {
+    name: "Minha agenda profissional"
+  })).toBeVisible();
+
+  const navigation = page.getByRole("navigation", { name: "Rotina profissional" });
+  await expect(navigation).toBeVisible();
+  await expect(navigation.getByRole("link", { name: /Minha agenda/ })).toBeVisible();
+  await expect(navigation.getByRole("link", { name: /Meus horários/ })).toBeVisible();
+  await expect(navigation.getByRole("link", { name: /Minha conta/ })).toBeVisible();
+  await expect(page.getByRole("link", { name: /Equipe/ })).toHaveCount(0);
+  await expect(page.getByRole("link", { name: /Plano e assinatura/ })).toHaveCount(0);
+
+  const scheduleLink = navigation.getByRole("link", { name: /Meus horários/ });
+  await scheduleLink.focus();
+  await expect.poll(() => scheduleLink.evaluate((element) => (
+    getComputedStyle(element).outlineStyle
+  ))).not.toBe("none");
+
+  const diagnostics = await horizontalOverflowDiagnostics(page);
+  expect(diagnostics.scrollWidth).toBe(diagnostics.clientWidth);
+});

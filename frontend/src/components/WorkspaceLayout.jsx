@@ -1,16 +1,18 @@
 import { lazy } from "react";
-import { Outlet } from "react-router-dom";
 import { useSession } from "../auth/SessionContext";
-import {
-  MobileWorkspaceNavigation,
-  WorkspaceLinks
-} from "./WorkspaceNavigation";
 
 const OwnerShell = lazy(() =>
   Promise.all([
     import("../styles/owner-shell.css"),
     import("./OwnerShell")
   ]).then(([, module]) => ({ default: module.OwnerShell }))
+);
+
+const ProfessionalShell = lazy(() =>
+  Promise.all([
+    import("../styles/professional-shell.css"),
+    import("./ProfessionalShell")
+  ]).then(([, module]) => ({ default: module.ProfessionalShell }))
 );
 
 export const OWNER_LINKS = [
@@ -24,59 +26,13 @@ export const OWNER_LINKS = [
   ["/conta", "Minha conta", "account"]
 ];
 
-const PROFESSIONAL_LINKS = [
+export const PROFESSIONAL_LINKS = [
   ["/profissional/agenda", "Minha agenda", "calendar"],
   ["/profissional/horarios", "Meus horários", "clock"],
   ["/conta", "Minha conta", "account"]
 ];
 
 export { MobileWorkspaceNavigation } from "./WorkspaceNavigation";
-
-export function NavigationShell({
-  ariaLabel,
-  children,
-  identity,
-  links,
-  variant = "professional"
-}) {
-  return (
-    <div
-      className={`workspace-shell workspace-shell--${variant}`}
-      data-frontend-context={variant}
-    >
-      <aside
-        className={identity
-          ? "workspace-sidebar"
-          : "workspace-sidebar workspace-sidebar--nav-only"}
-        aria-label={ariaLabel}
-      >
-        {identity && (
-          <div className="workspace-business">
-            <span>{identity.initial}</span>
-
-            <div>
-              <strong>{identity.title}</strong>
-              <small>{identity.subtitle}</small>
-            </div>
-          </div>
-        )}
-
-        <nav>
-          <WorkspaceLinks links={links} />
-        </nav>
-      </aside>
-
-      <section className="workspace-content">
-        {children || <Outlet />}
-      </section>
-
-      <MobileWorkspaceNavigation
-        ariaLabel={ariaLabel}
-        links={links}
-      />
-    </div>
-  );
-}
 
 export function WorkspaceLayout({ children }) {
   const { negocio } = useSession();
@@ -90,22 +46,9 @@ export function WorkspaceLayout({ children }) {
     );
   }
 
-  const businessName = negocio?.nome || "Agenda Fashion";
-
   return (
-    <NavigationShell
-      ariaLabel="Área de trabalho"
-      identity={{
-        initial: String(businessName)
-          .slice(0, 1)
-          .toUpperCase(),
-        title: businessName,
-        subtitle: "Área profissional"
-      }}
-      links={PROFESSIONAL_LINKS}
-      variant="professional"
-    >
+    <ProfessionalShell links={PROFESSIONAL_LINKS}>
       {children}
-    </NavigationShell>
+    </ProfessionalShell>
   );
 }

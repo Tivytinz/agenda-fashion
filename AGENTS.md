@@ -151,11 +151,13 @@ webhook financeiro.
 - CI/CD: GitHub Actions e Railway.
 - Deploy: migrations antes da aplicação e healthcheck em `/health/ready`.
 
-O frontend é uma única aplicação React. As rotas `/painel/*` continuam entrando
-pela resolução contextual de `WorkspaceLayout`, mas vínculos de dona são
-delegados para um `OwnerShell` próprio com design system `--owner-*` e CSS
-carregado por contexto. `/profissional/*` permanece no workspace profissional;
-`/admin/*` usa `AdminLayout` + `AdminShell` próprios.
+O frontend é uma única aplicação React. As rotas privadas de negócio continuam
+entrando pela resolução contextual de `WorkspaceLayout`: vínculos de dona são
+delegados para `OwnerShell` com design system `--owner-*`, enquanto vínculos de
+profissional são delegados para `ProfessionalShell` com design system
+`--professional-*`. Os dois shells carregam CSS por contexto e compartilham
+apenas primitives neutras quando isso reduz duplicação. `/admin/*` usa
+`AdminLayout` + `AdminShell` próprios.
 
 Detalhes técnicos: `docs/arquitetura.md`, `docs/frontend-estilos.md` e
 `docs/ux-contextos-visuais.md`.
@@ -169,8 +171,10 @@ universo de beleza. A marca deve permanecer reconhecível, mas cada contexto pod
 ter densidade e composição próprias.
 
 O Admin funciona como um Command Center operacional com design system próprio.
-A direção visual é referência, não justificativa para reescrever componentes
-que já funcionam sem benefício proporcional.
+O contexto da dona possui workspace de gestão próprio. O contexto profissional
+possui shell de rotina própria, com navegação curta focada em agenda, horários e
+conta. Essas diferenças visuais não alteram os contratos de autorização do
+backend.
 
 Ao alterar uma interface, considerar:
 

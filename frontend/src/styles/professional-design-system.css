@@ -1,0 +1,76 @@
+.professional-shell {
+  --professional-brand: #d92f7f;
+  --professional-brand-hover: #c62975;
+  --professional-brand-strong: #922054;
+  --professional-brand-soft: #fff1f6;
+  --professional-bg: #fff9fb;
+  --professional-surface: #ffffff;
+  --professional-line: #efdee6;
+  --professional-line-strong: #dfc9d4;
+  --professional-ink: #332a2f;
+  --professional-muted: #786a72;
+  --professional-success: #267454;
+  --professional-radius-sm: 10px;
+  --professional-radius-md: 14px;
+  --professional-radius-lg: 20px;
+  --professional-shadow-sm: 0 8px 24px rgb(88 39 62 / 6%);
+  --professional-shadow-md: 0 16px 38px rgb(88 39 62 / 10%);
+  --professional-focus: 0 0 0 3px rgb(217 47 127 / 18%);
+  --professional-focus-outline: #922054;
+
+  color: var(--professional-ink);
+  background: var(--professional-bg);
+
+  /* Ponte escopada para páginas profissionais existentes. */
+  --pink-50: #fff4f8;
+  --pink-100: #fbd8e8;
+  --pink-500: var(--professional-brand);
+  --pink-600: var(--professional-brand-hover);
+  --pink-700: var(--professional-brand-strong);
+  --wine: var(--professional-ink);
+  --ink: var(--professional-ink);
+  --muted: var(--professional-muted);
+  --line: var(--professional-line);
+  --surface: var(--professional-surface);
+  --shadow: var(--professional-shadow-sm);
+  --shadow-hover: var(--professional-shadow-md);
+}
+
+.professional-shell .workspace-page {
+  width: min(1180px, calc(100% - 44px));
+  margin-inline: auto;
+  padding-block: 24px 48px;
+}
+
+.professional-shell .workspace-heading {
+  border-color: var(--professional-line);
+  border-radius: var(--professional-radius-lg);
+  background: var(--professional-surface);
+  box-shadow: var(--professional-shadow-sm);
+}
+
+.professional-shell .panel,
+.professional-shell .metric-card,
+.professional-shell .screen-state,
+.professional-shell .card {
+  border-color: var(--professional-line);
+  background: var(--professional-surface);
+}
+
+.professional-shell .button:focus-visible,
+.professional-shell a:focus-visible,
+.professional-shell button:focus-visible,
+.professional-shell input:focus-visible,
+.professional-shell select:focus-visible,
+.professional-shell textarea:focus-visible {
+  outline: 3px solid var(--professional-focus-outline);
+  outline-offset: 3px;
+  box-shadow: var(--professional-focus);
+}
+
+@media (max-width: 900px) {
+  .professional-shell .workspace-page {
+    width: min(100% - 28px, 1180px);
+    padding-block: 18px 94px;
+  }
+}

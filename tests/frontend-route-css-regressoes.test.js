@@ -65,6 +65,17 @@ describe("ownership de CSS por rota", () => {
     expect(workspace).toContain('import("./OwnerShell")');
   });
 
+  test("carrega o design system profissional somente quando o ProfessionalShell e resolvido", () => {
+    const entrada = ler("frontend/src/main.jsx");
+    const workspace = ler("frontend/src/components/WorkspaceLayout.jsx");
+    const professionalShell = ler("frontend/src/components/ProfessionalShell.jsx");
+
+    expect(entrada).not.toContain('professional-shell.css');
+    expect(professionalShell).not.toContain('professional-shell.css');
+    expect(workspace).toContain('import("../styles/professional-shell.css")');
+    expect(workspace).toContain('import("./ProfessionalShell")');
+  });
+
   test("mantem globais os estilos ainda compartilhados entre contextos", () => {
     const entrada = ler("frontend/src/main.jsx");
 
