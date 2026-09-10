@@ -61,11 +61,16 @@ anúncio/origem
   → negócio criado
   → serviço ativo
   → negócio publicado
+  → horários sugeridos confirmados/salvos
   → primeiro agendamento válido
   → checkout iniciado
   → pagamento/assinatura
   → recorrência e retenção
 ```
+
+A passagem pelos horários é observável no onboarding, mas não é requisito para o
+negócio estar publicado. Ela mede que a profissional confirmou, aceitou ou
+personalizou uma disponibilidade antes de seguir a jornada.
 
 `checkout iniciado`, clique, cadastro, negócio criado e receita são fatos
 diferentes. Não usar uma etapa como proxy automático de outra.
@@ -83,25 +88,50 @@ contrato vigente assim definir.
 A publicação é automática quando o negócio atende aos requisitos estruturais e
 possui ao menos um serviço ativo.
 
-**Configurar ou confirmar manualmente horários não é gate de publicação nem
-etapa canônica de ativação.**
+**Configurar, confirmar ou personalizar horários não é gate de publicação.**
+A publicação deve ser decidida pelo backend antes da tela de horários aparecer
+na primeira jornada.
 
-Ao criar o negócio, o backend inicializa na mesma transação uma disponibilidade
-padrão para a dona inicial:
+Ao criar o negócio, o backend inicializa uma disponibilidade padrão para a dona
+inicial:
 
 - segunda a sexta: 08:00–18:00, com pausa 12:00–13:00;
 - sábado: 08:00–13:00;
 - domingo: fechado.
 
-`agenda_configuracoes.configurado_em` é marcador técnico de disponibilidade
-inicializada. Ele não representa confirmação manual nem deve ser usado para
-bloquear publicação ou medir conclusão do onboarding.
+Depois que o primeiro serviço é salvo e o backend confirma a publicação, a
+interface apresenta `Horários` como terceiro momento visível da primeira
+jornada. O objetivo é mostrar que o AF é uma agenda editável sem transformar a
+disponibilidade em requisito de publicação.
+
+Na confirmação rápida:
+
+- `Confirmar horários` salva a sugestão exibida e continua;
+- `Pular por agora` pula apenas a edição manual, salva a mesma sugestão e
+  continua;
+- `Ajustar horários` abre o editor antes do salvamento.
+
+Se o salvamento dos horários falhar, a interface não deve avançar. Quando houver
+uma intenção válida de plano pago, ela deve ser preservada durante
+`Negócio → Serviço → Horários` e seguir para o checkout somente depois do
+salvamento da agenda; sem intenção de plano, o fluxo segue para o painel.
+
+`agenda_configuracoes.configurado_em` registra a primeira configuração/salvamento
+explícito reconhecido pelo fluxo de agenda. A configuração e os horários padrão
+podem existir antes desse timestamp. Ele não deve ser usado para bloquear
+publicação.
+
+`agenda_configuracoes.origem_horarios` continua separando a origem da
+disponibilidade. O runtime atual cria a configuração com `padrao_af` e, no
+salvamento explícito da agenda, marca a origem como `personalizado` junto dos
+timestamps de personalização.
 
 `negocios.publicacao_exige_agenda` permanece apenas por compatibilidade com
 dados/migrations legados; o runtime atual não deve reintroduzir esse gate.
 
-Depois da publicação, a missão principal é divulgar o perfil e conquistar o
-primeiro agendamento. Compartilhamento deve reutilizar os links públicos
+Depois da passagem pela agenda, a missão principal é divulgar o perfil e
+conquistar o primeiro agendamento, exceto quando uma intenção de plano pago
+válida conduzir ao checkout. Compartilhamento deve reutilizar os links públicos
 rastreáveis existentes do AF.
 
 A disponibilidade continua crítica para gerar slots corretos e pode ser
