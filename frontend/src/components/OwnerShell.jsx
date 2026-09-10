@@ -8,23 +8,12 @@ import {
   WorkspaceLinks
 } from "./WorkspaceNavigation";
 
-export const OWNER_LINKS = [
-  ["/painel", "Visão geral", "home"],
-  ["/painel/agenda", "Agenda", "calendar"],
-  ["/painel/servicos", "Serviços", "services"],
-  ["/painel/horarios", "Horários", "clock"],
-  ["/painel/profissionais", "Equipe", "team"],
-  ["/painel/negocio", "Meu negócio", "business"],
-  ["/painel/assinatura", "Plano e assinatura", "plan"],
-  ["/conta", "Minha conta", "account"]
-];
-
 function publicProfilePath(slug) {
   const normalized = String(slug || "").trim();
   return normalized ? `/negocio/${encodeURIComponent(normalized)}` : "";
 }
 
-export function OwnerShell({ children }) {
+export function OwnerShell({ children, links = [] }) {
   const { negocio } = useSession();
   const businessName = negocio?.nome || "Meu negócio";
   const profilePath = publicProfilePath(negocio?.slug);
@@ -69,7 +58,7 @@ export function OwnerShell({ children }) {
         </section>
 
         <nav aria-label="Área de trabalho" className="owner-navigation">
-          <WorkspaceLinks links={OWNER_LINKS} />
+          <WorkspaceLinks links={links} />
         </nav>
 
         <div className="owner-sidebar-footer">
@@ -112,7 +101,7 @@ export function OwnerShell({ children }) {
 
       <MobileWorkspaceNavigation
         ariaLabel="Área de trabalho"
-        links={OWNER_LINKS}
+        links={links}
       />
     </div>
   );
