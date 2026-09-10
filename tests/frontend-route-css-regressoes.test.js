@@ -54,6 +54,14 @@ describe("ownership de CSS por rota", () => {
     });
   });
 
+  test("mantem o design system publico sob ownership do PublicShell", () => {
+    const entrada = ler("frontend/src/main.jsx");
+    const publicShell = ler("frontend/src/components/PublicShell.jsx");
+
+    expect(entrada).not.toContain('import "./styles/public-shell.css"');
+    expect(publicShell).toContain('import "../styles/public-shell.css"');
+  });
+
   test("carrega o design system da dona somente quando o OwnerShell e resolvido", () => {
     const entrada = ler("frontend/src/main.jsx");
     const workspace = ler("frontend/src/components/WorkspaceLayout.jsx");

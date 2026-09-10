@@ -4,6 +4,7 @@ import { BrowserRouter } from "react-router-dom";
 import App from "./App";
 import { SessionProvider } from "./auth/SessionContext";
 import { ErrorBoundary } from "./components/ErrorBoundary";
+import { PublicShell } from "./components/PublicShell";
 import { installRuntimeRecovery } from "./utils/runtimeRecovery";
 import "./styles/index.css";
 import "./styles/marketing-consent.css";
@@ -21,7 +22,9 @@ createRoot(document.getElementById("root")).render(
     <ErrorBoundary>
       <BrowserRouter>
         <SessionProvider>
-          <App />
+          <PublicShell>
+            <App />
+          </PublicShell>
         </SessionProvider>
       </BrowserRouter>
     </ErrorBoundary>
