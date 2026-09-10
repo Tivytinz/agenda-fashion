@@ -4,6 +4,7 @@ import { cleanup, render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { OwnerShell } from "./OwnerShell";
+import { OWNER_LINKS } from "./WorkspaceLayout";
 
 vi.mock("../auth/SessionContext", () => ({
   useSession: () => ({
@@ -25,7 +26,7 @@ describe("OwnerShell", () => {
   it("separa a gestão do negócio do workspace profissional", () => {
     const { container } = render(
       <MemoryRouter initialEntries={["/painel"]}>
-        <OwnerShell>
+        <OwnerShell links={OWNER_LINKS}>
           <h1>Visão da dona</h1>
         </OwnerShell>
       </MemoryRouter>
@@ -50,7 +51,7 @@ describe("OwnerShell", () => {
   it("mantém as rotas de gestão e conta na navegação da dona", () => {
     render(
       <MemoryRouter initialEntries={["/painel/agenda"]}>
-        <OwnerShell />
+        <OwnerShell links={OWNER_LINKS} />
       </MemoryRouter>
     );
 
