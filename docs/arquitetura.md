@@ -1,37 +1,27 @@
 # Arquitetura Oficial — Agenda Fashion
 
-> Atualizada em 24 de agosto de 2026.
+> Atualizada em setembro de 2026.
 >
-> O contexto permanente de produto e as instrucoes para agentes estao em
-> [`AGENTS.md`](../AGENTS.md). Os dois documentos devem permanecer alinhados.
+> O contexto permanente de produto e as instruções para agentes ficam em
+> [`AGENTS.md`](../AGENTS.md). Este documento descreve a arquitetura técnica
+> atual e aponta para documentos especializados quando o detalhe não precisa
+> ser repetido aqui.
 
 ## 1. Objetivo do produto
 
-O objetivo do Agenda Fashion e **se tornar referencia no Brasil para
-agendamento de beleza e estetica**.
+O Agenda Fashion (AF) é um SaaS brasileiro de descoberta e agendamento para
+profissionais, negócios e clientes de beleza e estética.
 
-O AF e uma plataforma de descoberta e agendamento que conecta clientes a
-profissionais, studios, saloes, clinicas e negocios de beleza e estetica.
+A arquitetura existe para sustentar principalmente:
 
-A cliente encontra profissionais, studios e salões de unhas, cabelo, cílios e
-outros serviços, consulta horários e agenda dentro da plataforma.
-
-O produto deve:
-
-- evoluir continuamente sem aceitar regressões conhecidas ou comprometer a
-  estabilidade dos fluxos existentes;
-- aumentar os agendamentos dos negócios;
-- reduzir a dependência do WhatsApp;
-- devolver tempo às profissionais;
-- mostrar, pelo dashboard, se o negócio está crescendo;
-- incentivar o upgrade somente depois que o plano demonstrar valor;
-- tornar o Agenda Fashion uma referencia nacional para descoberta e
-  agendamento de servicos de beleza e estetica.
-
-Para a profissional, a proposta de valor deve aparecer de forma direta: e
-possivel comecar gratis, conquistar clientes com um perfil publico, receber
-agendamentos sem precisar responder manualmente cada pedido, ser avisada pelo
-WhatsApp e acompanhar o crescimento do negocio pelo dashboard.
+- descoberta de negócios e serviços;
+- agendamento confiável;
+- operação de profissionais e donos;
+- aquisição e ativação de profissionais;
+- monetização por planos;
+- comunicação e automações;
+- mensuração de aquisição, recorrência e receita;
+- evolução segura do produto sem reescritas desnecessárias.
 
 ---
 
@@ -41,7 +31,7 @@ WhatsApp e acompanhar o crescimento do negocio pelo dashboard.
 | --- | --- |
 | Runtime | Node.js 22 |
 | Backend | Express 5 e JavaScript CommonJS |
-| Banco de dados | PostgreSQL e `pg` |
+| Banco de dados | PostgreSQL com `pg` |
 | Frontend | React 19, React Router 7, Vite 7 e CSS |
 | Autenticação | JWT em cookie `HttpOnly`, bcrypt e Google Identity |
 | Uploads | Busboy, validação de imagem e Cloudinary |
@@ -49,19 +39,19 @@ WhatsApp e acompanhar o crescimento do negocio pelo dashboard.
 | Testes frontend | Vitest, Testing Library e Playwright |
 | Pagamentos | Asaas |
 | Notificações | WhatsApp Cloud API e e-mail transacional via Resend |
-| Marketing | GA4, Google Ads, Meta CAPI e Meta Marketing API |
+| Marketing | GA4, Google Ads, Meta Ads/CAPI, TikTok Ads e Pinterest Ads |
 | CI/CD | GitHub Actions e Railway |
-| Domínio | `app.agendafashion.com.br` |
+| Domínio principal | `app.agendafashion.com.br` |
 
-Neste momento, não há necessidade de migrar o backend para Go. A evolução
-recomendada, quando trouxer benefício real, é adotar TypeScript de forma
-gradual no ecossistema Node.js.
+A stack atual continua adequada ao estágio do AF. Nova tecnologia deve entrar
+quando resolver um problema concreto melhor do que a base existente, e não
+apenas por ser mais recente.
 
 ---
 
-## 3. Visão geral
+## 3. Arquitetura do backend
 
-O backend utiliza uma arquitetura em camadas:
+O backend segue arquitetura em camadas:
 
 ```text
 Cliente
@@ -77,36 +67,50 @@ Repositories
 PostgreSQL
 ```
 
-Responsabilidades transversais, como autenticação, validação, tratamento de
-erros, configuração e integrações externas, apoiam essas camadas.
+Responsabilidades transversais, como autenticação, validação, configuração,
+tratamento de erros, providers e integrações externas, apoiam essas camadas.
 
-O servidor atual monta as rotas sem o prefixo `/api`. Portanto, o frontend usa
-endereços como:
+O servidor monta as rotas sem um prefixo global `/api`. Alterar esse contrato
+exige migração coordenada, e não a introdução parcial do prefixo em endpoints
+isolados.
 
-```text
-/perfil-negocio/:slug
-/agendar
-/agenda-geral
-/agenda-profissional
-/checkout
-```
+### Routes
 
-Não adicionar `/api` somente em algumas rotas. Uma mudança desse tipo deverá
-ser planejada e aplicada a todo o sistema.
+Registram endpoints, aplicam middlewares e encaminham a requisição ao
+controller. Não são o lugar para SQL ou regras centrais de negócio.
+
+### Controllers
+
+Traduzem HTTP para o caso de uso: extraem os dados necessários, chamam o
+service, devolvem a resposta e encaminham erros ao tratamento central.
+
+### Services
+
+Concentram regras de negócio e coordenação dos casos de uso. Podem combinar
+repositories, validators, utils e providers externos. SQL novo deve ficar em
+repositories.
+
+### Repositories
+
+Concentram acesso ao PostgreSQL, incluindo consultas, gravações, agregações e
+bloqueios transacionais necessários ao domínio.
+
+### Middlewares, validators e errors
+
+Middlewares tratam responsabilidades de requisição como autenticação e
+autorização. Validators verificam formato e estrutura de entrada. Erros
+conhecidos devem possuir status e, quando útil, código de domínio reutilizável.
 
 ---
 
-## 4. Estrutura oficial de pastas
+## 4. Estrutura principal do repositório
 
 ```text
 agenda-fashion/
 ├── AGENTS.md
-├── .github/
-│   └── workflows/
-├── database/
-│   └── migrations/
+├── .github/workflows/
+├── database/migrations/
 ├── docs/
-│   └── arquitetura.md
 ├── frontend/
 │   ├── e2e/
 │   └── src/
@@ -121,1010 +125,298 @@ agenda-fashion/
 ├── scripts/
 ├── src/
 │   ├── config/
-│   ├── constants/
 │   ├── controllers/
 │   ├── db/
+│   ├── domain/
 │   ├── errors/
 │   ├── middlewares/
+│   ├── providers/
 │   ├── repositories/
 │   ├── routes/
 │   ├── services/
 │   ├── utils/
 │   ├── validators/
 │   └── server.js
-├── tests/
-├── .env.example
-├── jest.config.js
-├── package.json
-├── railway.json
-└── package-lock.json
+└── tests/
 ```
 
-O build de producao do frontend e gerado em `agendamento-nails/react-app/` e
-servido pelo Express. Essa pasta e um artefato de build e nao faz parte do
-codigo-fonte versionado.
+O build do frontend é artefato de produção e não deve ser tratado como
+código-fonte canônico.
 
 ---
 
-## 5. Responsabilidade de cada camada
+## 5. Frontend e contextos de uso
 
-### 5.1 Routes
+O AF é uma única aplicação React. Cliente, profissional, dona do negócio e
+administração são contextos de uso, não aplicações independentes nem papéis
+globais mutuamente exclusivos.
 
-As rotas registram os endpoints, aplicam middlewares e encaminham a requisição
-ao controller.
+A rota ajuda a selecionar a experiência visual; sessão, vínculos e permissões
+continuam definindo o que a conta pode acessar.
 
-Exemplo:
-
-```js
-router.post(
-  "/agendar",
-  autenticacaoOpcional,
-  agendamentoPublicoController.criar
-);
-```
-
-Routes não devem conter:
-
-- SQL;
-- regras de negócio;
-- integração direta com Asaas;
-- geração de JWT;
-- respostas HTTP complexas.
-
-### 5.2 Controllers
-
-Controllers:
-
-- recebem `req` e `res`;
-- extraem dados da requisição;
-- chamam um service;
-- devolvem a resposta HTTP;
-- encaminham erros ao middleware central.
-
-Controllers não devem conter:
-
-- SQL;
-- `bcrypt`;
-- geração ou validação manual de JWT;
-- regras de limite de plano;
-- transações;
-- regras de negócio.
-
-### 5.3 Services
-
-Services concentram as regras de negócio e coordenam o caso de uso.
-
-Exemplos:
-
-- login e cadastro;
-- criação de negócio;
-- agendamento;
-- cálculo de disponibilidade;
-- limites de plano;
-- geração de checkout;
-- ativação de assinatura;
-- processamento de webhook.
-
-Services podem usar:
-
-- repositories;
-- outros services;
-- validators;
-- utils;
-- clientes de integrações externas.
-
-Services não devem possuir SQL novo. Quando um service antigo ainda executar
-`db.query()` diretamente, isso deve ser tratado como dívida técnica e movido
-para um repository durante a próxima refatoração segura.
-
-### 5.4 Repositories
-
-Repositories são responsáveis pelo acesso ao PostgreSQL.
-
-Podem conter:
-
-- `SELECT`;
-- `INSERT`;
-- `UPDATE`;
-- `DELETE`;
-- bloqueios transacionais;
-- consultas agregadas.
-
-Não podem conter:
-
-- respostas HTTP;
-- JWT;
-- `bcrypt`;
-- mensagens de interface;
-- regras de upgrade;
-- regras de negócio.
-
-### 5.5 Middlewares
-
-Middlewares tratam responsabilidades comuns às requisições:
-
-- autenticação obrigatória;
-- autenticação opcional;
-- autorização;
-- validação de payload;
-- tratamento central de erros;
-- logs e segurança.
-
-### 5.6 Validators
-
-Validators verificam formato e campos de entrada.
-
-Exemplos:
+A organização atual é:
 
 ```text
-usuarioValidator
-negocioValidator
-servicoValidator
-agendamentoValidator
-checkoutValidator
+público / cliente   → experiência pública e páginas de conta/agendamento
+/painel/*           → WorkspaceLayout para gestão da dona do negócio
+/profissional/*     → WorkspaceLayout para experiência profissional
+/admin/*            → AdminLayout + AdminShell
 ```
 
-Validação de formato pertence ao validator. Regra de negócio, como “o plano
-permite mais um profissional?”, pertence ao service.
+`WorkspaceLayout` hoje compartilha a fundação de dona e profissional e muda a
+navegação conforme o vínculo. `AdminShell` é independente dessa fundação e
+possui navegação e design system próprios.
 
-### 5.7 Utils
+Essa organização pode evoluir sem transformar nomes de componentes em regra de
+segurança. Redirecionamentos e itens ocultos no React são UX; autorização real
+continua no backend.
 
-Utils são funções pequenas, reutilizáveis e sem estado.
+Princípios visuais e de evolução do frontend ficam em:
 
-Exemplos:
-
-- gerar slug;
-- normalizar telefone;
-- formatar data;
-- criar máscaras;
-- converter valores monetários.
-
-### 5.8 Constants
-
-Valores fixos devem ficar centralizados.
-
-Exemplos:
-
-```text
-PAPEIS
-STATUS_AGENDAMENTO
-STATUS_ASSINATURA
-STATUS_PAGAMENTO
-FORMAS_PAGAMENTO
-```
-
-Evitar strings de domínio repetidas em vários arquivos.
-
-### 5.9 Errors
-
-Erros conhecidos devem possuir tipo, status HTTP e, quando útil, um código.
-
-Exemplos:
-
-```text
-ValidationError       → 400
-UnauthorizedError     → 401
-ForbiddenError        → 403
-NotFoundError         → 404
-ConflictError         → 409
-```
-
-Exemplo de código de negócio:
-
-```text
-LIMITE_AGENDAMENTOS
-LIMITE_PROFISSIONAIS
-LIMITE_SERVICOS
-```
-
-### 5.10 Config
-
-Configurações e variáveis de ambiente devem ser lidas em um ponto central.
-
-Variáveis obrigatórias devem falhar rapidamente na inicialização, sem revelar
-segredos nos logs.
-
-Exemplo:
-
-```text
-DATABASE_URL
-JWT_SECRET
-ASAAS_API_KEY
-ASAAS_WEBHOOK_TOKEN
-PORT
-NODE_ENV
-```
-
-No Railway, `DATABASE_URL` pertence ao serviço da aplicação e referencia os
-dados do serviço Postgres. Nunca colocar senhas ou URLs reais no Git.
+- [`ux-contextos-visuais.md`](./ux-contextos-visuais.md);
+- [`frontend-estilos.md`](./frontend-estilos.md).
 
 ---
 
 ## 6. Identidade, autenticação e autorização
 
-### Identidade
+A tabela `usuarios` representa a identidade da pessoa. Papéis de negócio ficam
+no vínculo `usuarios_negocios.papel`, atualmente com `dono` e `profissional`.
+Administração global usa `usuarios_administradores` e não deve ser confundida
+com o papel de dona de um negócio.
 
-A tabela `usuarios` representa a identidade e a autenticação da pessoa.
+O navegador usa JWT em cookie `HttpOnly`; o backend continua sendo a autoridade
+para validar sessão, vínculo e permissão. IDs, papel, preço, limite ou permissão
+enviados pelo frontend não são fonte confiável.
 
-O JWT atual possui o payload:
+Fluxos privados devem derivar o negócio a partir do usuário autenticado e do
+vínculo persistido sempre que o caso de uso permitir, reduzindo risco de acesso
+entre negócios.
 
-```json
-{
-  "id": 123
-}
-```
-
-No navegador, o JWT fica em cookie `HttpOnly`, `SameSite=Lax` e `Secure` em
-produção. O JavaScript armazena apenas um marcador sem valor de autenticação.
-Durante a migração, o backend continua aceitando `Authorization: Bearer` para
-sessões antigas e clientes de API, mas novos logins do frontend não persistem
-o token no `localStorage`.
-
-Novos cadastros, trocas e redefinições exigem senhas entre 8 e 72 bytes. O
-formulário de login não impõe o mínimo de 8 caracteres para preservar o acesso
-de contas legadas que já possuem uma senha curta válida; a autenticação continua
-dependendo da comparação segura com o hash armazenado.
-
-O endpoint `POST /logout` remove o cookie. Respostas de autenticação usam
-`Cache-Control: no-store`. O cookie de produção possui o prefixo `__Host-`, não
-define domínio e sempre usa o caminho `/`.
-
-A recuperação de senha usa `POST /auth/esqueci-senha` e
-`POST /auth/redefinir-senha`. O primeiro endpoint sempre responde de forma
-neutra para não revelar se um e-mail existe. O token aleatório possui validade
-de 30 minutos, é enviado por e-mail, armazenado no PostgreSQL somente como hash
-SHA-256 e invalidado após o primeiro uso. A troca atualiza
-`usuarios.senha_alterada_em`, encerrando a validade das sessões anteriores.
-
-O envio exige `PASSWORD_RESET_EMAIL_ENABLED=true`, `RESEND_API_KEY`,
-`PASSWORD_RESET_EMAIL_FROM` e `PUBLIC_APP_URL` configurados no serviço da
-aplicação. Chaves e tokens nunca devem ser registrados nos logs.
-
-Não confiar em papel, negócio ou permissão enviados pelo frontend.
-
-### Vínculo com negócios
-
-Os papéis pertencem ao vínculo entre usuário e negócio:
-
-```text
-usuarios_negocios.papel
-```
-
-Papéis atuais:
-
-```text
-dono
-profissional
-```
-
-Um usuário pode estar vinculado a um negócio sem que seu papel seja gravado
-diretamente em `usuarios`.
-
-### Administração global
-
-Administradores globais ficam em:
-
-```text
-usuarios_administradores
-```
-
-Admin global não deve ser confundido com o papel `dono` de um negócio.
-
-Todas as rotas `/admin` exigem `auth` e `authAdmin`, consultam a permissão
-administrativa ativa no banco e respondem com cache desabilitado. Relatórios
-por dia e período usam `America/Sao_Paulo`; vínculos e serviços inativos não
-podem ser apresentados como capacidade operacional atual.
-
-O marketing administrativo usa atribuição por primeiro contato em uma janela
-fixa de 30 dias e preserva o último contato nos eventos para auditoria. Um
-identificador de clique sem `utm_campaign` confirma tráfego pago. A resolução
-prefere sempre a identidade UTM exata; sem ela, o backend só faz atribuição
-assistida quando encontra a identidade externa correspondente ou exatamente um
-vínculo persistido e verificado para o mesmo provedor, canal, mídia e, quando
-aplicável, objetivo. A inferência por vínculo único só é aceita quando a última
-sincronização do provedor cobre a data do evento, terminou com sucesso e
-comprovou que todas as campanhas externas operacionais estão vinculadas,
-inclusive as que não tiveram gasto no período. Mais de uma candidata, uma
-sincronização parcial, uma reconciliação fora da janela ou uma campanha externa
-operacional sem vínculo mantêm a sessão como campanha não identificada. A lista
-atual de campanhas sem essa comprovação nunca pode ser usada para inventar
-atribuição nem reescrever o evento histórico. Campanhas arquivadas continuam
-reconhecidas nos períodos em que tiveram atividade, e desempenho, conversões e
-custos compartilham a mesma normalização de origem, mídia e campanha. Cada
-resultado informa se a resolução foi direta ou assistida. A taxa de conversão
-usa sessões com ao menos um agendamento concluído; a quantidade de agendamentos
-permanece uma métrica separada e pode ser maior do que a quantidade de sessões.
-Execuções anteriores à migration `057` não possuem essa evidência e permanecem
-inelegíveis até uma nova sincronização completa; a migration não promove o
-histórico antigo para sucesso por suposição.
-
-A classificação de campanha oficial é resolvida no backend e entregue junto das
-linhas de desempenho e conversão. As telas Campanhas, Custos e Aquisição e
-retorno consomem essa mesma decisão; o navegador não precisa reconstruí-la pela
-lista atual de campanhas. O funil profissional expõe separadamente a coorte geral, a coorte
-atribuída e o diagnóstico de cadastros orgânicos, pagos sem campanha, com
-identidade não verificada ou sem evidência suficiente para distinguir mídia
-paga, orgânica e acesso direto. A cobertura paga divide cadastros oficiais por
-todos os cadastros pagos detectados; a cobertura de origem exclui do numerador
-os registros sem evidência. CAC e ROAS brutos permanecem auditáveis, mas a
-interface e a régua de decisão os bloqueiam enquanto a cobertura paga estiver
-abaixo de `MARKETING_DECISION_MIN_ATTRIBUTION_COVERAGE` ou houver cadastro sem
-evidência.
-
-Os marcos da coorte incluem primeiro agendamento recebido, além de negócio,
-serviço, agenda, publicação, checkout e assinatura. A régua só avalia ativação
-depois de `MARKETING_DECISION_ACTIVATION_MATURITY_DAYS` e monetização depois de
-`MARKETING_DECISION_MONETIZATION_MATURITY_DAYS`. Para uma coorte madura, a
-publicação e o primeiro agendamento só contam na decisão de ativação quando
-ocorrem dentro da janela configurada a partir do cadastro; a assinatura segue a
-mesma regra na janela de monetização. Os totais históricos continuam separados
-e preservam o primeiro agendamento mesmo quando ele é cancelado. Como o plano
-gratuito entrega valor real, ausência de assinatura madura recomenda revisar
-monetização e nunca pausa mídia por si só. Escala, manutenção ou pausa por ROAS
-exigem cobertura completa, cadastros maduros e o mínimo configurado de
-assinaturas maduras; são sinais operacionais, não uma declaração de confiança
-estatística nem de lucro.
-
-A atribuição persistida da conta aceita os mesmos identificadores mantidos pelo
-frontend: `gclid`, `gbraid`, `wbraid`, `fbclid`, `msclkid`, `ttclid`, `epik` e os
-campos internos `af_*`, tanto no primeiro quanto no último contato. Esses sinais
-identificam o canal pago, mas não inventam campanha quando a UTM não foi recebida
-e não existe um vínculo externo único e verificado. O frontend só inclui esses
-campos quando existe consentimento opcional de marketing; o backend exige a
-evidência booleana no contexto de cadastro antes de persistir a atribuição.
-
-Nos relatórios de custos, a cobertura financeira é calculada no mesmo período
-selecionado: todas as sessões atribuídas a uma campanha entram no CPS e no CPA
-quando essa campanha possui investimento positivo no período. Dias isolados sem
-lançamento não removem sessões do denominador, porque o gasto e os resultados
-são comparados de forma agregada. Campanhas com sessões e nenhum investimento no
-período continuam explicitamente fora da base coberta. Assim, 100% significa
-cobertura real do universo atribuído, e não um valor fixado pela interface.
-
-Google Analytics e Google Ads operam em modo básico de consentimento: o estado
-inicial é `denied` e a tag não é carregada antes da autorização. Mesmo após o
-aceite, `ad_personalization` e os sinais de personalização permanecem
-desativados. Toda rota enviada ao Google passa por uma lista de caminhos
-genéricos: buscas, tokens e parâmetros são removidos; slugs e identificadores
-dinâmicos viram modelos como `/negocio/:slug`. O referenciador não é enviado.
-
-A escolha Google autenticada possui estado atual e histórico auditável na
-tabela `marketing_google_consentimentos`. A revogação limpa o client ID e a
-atribuição opcional vinculada à conta, mantém retentativa local se a rede falhar
-e bloqueia eventos pelo Measurement Protocol. Conversões usam IDs de transação
-estáveis para deduplicação; `purchase` representa somente o primeiro pagamento
-confirmado, nunca a renovação mensal.
-
-A área administrativa possui a página `Saúde do SaaS`, em `/admin/saude`.
-Ela consulta `GET /admin/saude/perfis-incompletos` para resumir e listar
-cadastros profissionais que ainda não concluíram negócio, dados obrigatórios,
-serviço, agenda ou publicação. A descrição opcional aparece separadamente como
-recomendação, não reduz o progresso de ativação e não mantém um cadastro
-completo na fila padrão; ela pode ser consultada pelo filtro específico. A
-listagem prioriza quem está mais perto de concluir e oferece filtros pelos
-indicadores e pelas pendências. Mesmo quando a página solicitada fica além do
-último resultado, a API preserva o total filtrado e a quantidade real de
-páginas.
-Nome, e-mail e WhatsApp permanecem protegidos por `auth` e `authAdmin`; as ações
-de contato ficam junto dos dados de contato, abrem uma mensagem personalizada
-para revisão do administrador e não enviam comunicação automaticamente. O atalho
-manual de WhatsApp só aparece quando existe consentimento de ativação vigente.
-Inconsistências de publicação automática são marcadas como correção interna e
-não geram uma orientação para o administrador cobrar o profissional.
-
-### Proteção do frontend
-
-O frontend usa `ProtectedRoute` e `SessionContext`.
-
-- `exigirVinculo()` permite dono e profissional;
-- verificações específicas devem ser usadas apenas quando a tela realmente
-  exige um único papel;
-- redirecionamentos do frontend melhoram a experiência, mas a autorização real
-  sempre deve existir no backend.
-
-Telas compartilhadas, como configuração de agenda, devem aceitar dono e
-profissional quando ambos possuem autorização.
+Rotas administrativas usam autenticação e autorização administrativa no
+backend. O `ProtectedRoute` melhora a navegação, mas não substitui esses
+controles.
 
 ---
 
-## 7. Contexto do negócio
+## 7. Agendamento público
 
-Toda operação privada deve descobrir o negócio pelo usuário autenticado e pelo
-vínculo existente no banco.
+O agendamento público aceita visitante e cliente autenticada conforme o fluxo
+atual. Em ambos os casos, disponibilidade, profissional elegível, limites do
+plano e concorrência de horário são validados no backend.
 
-O frontend não pode escolher livremente um `negocio_id` para acessar dados.
-
-Fluxo correto:
+Fluxo conceitual:
 
 ```text
-JWT com usuario.id
-  ↓
-middleware autentica
-  ↓
-backend consulta usuarios_negocios
-  ↓
-backend identifica negócio e papel
-  ↓
-service executa a regra autorizada
+perfil público
+  → serviço
+  → profissional quando necessário
+  → data e horário
+  → validação real de disponibilidade
+  → criação do agendamento
+  → agenda e notificações
 ```
 
-Esse padrão reduz o risco de um negócio acessar informações de outro.
+Quando houver apenas um profissional elegível, a interface pode seguir sem
+exigir uma escolha redundante.
+
+A confiabilidade do slot não pode depender apenas de estado calculado no
+frontend.
 
 ---
 
-## 8. Fluxos principais
+## 8. Onboarding, publicação e disponibilidade
 
-### 8.1 Agendamento público híbrido
-
-O agendamento aceita dois cenários:
-
-1. Visitante informa nome e WhatsApp.
-2. Cliente logada é identificada pelo token.
-
-Fluxo:
+A ativação principal da profissional acompanha:
 
 ```text
-Perfil do negócio por slug
-  ↓
-serviços ativos
-  ↓
-profissionais disponíveis
-  ↓
-data e horário
-  ↓
-validação de disponibilidade e limite
-  ↓
-criação do agendamento
-  ↓
-agenda da cliente e notificações
+cadastro
+  → negócio criado
+  → serviço ativo
+  → negócio publicado
+  → primeiro agendamento válido
 ```
 
-O endpoint público deve aceitar autenticação opcional, nunca exigir login de
-quem apenas deseja agendar.
+Todo novo negócio precisa dos dados estruturais exigidos pelo backend e de pelo
+menos um serviço ativo para publicação automática.
 
-A primeira página de `/negocios-publicos` também devolve as localidades que
-possuem negócio publicado e ao menos um serviço ativo. A home usa essa lista
-para o filtro manual de cidade, envia `cidade` e `estado` como parâmetros
-dedicados e mantém "Todo o Brasil" como padrão. A cidade de um resultado nunca
-deve ser tratada como localização detectada da cliente.
+Descrição, complemento, fotos e personalização de horários não são gates de
+publicação.
 
-### 8.2 Agenda do negócio
+A criação do negócio inicializa uma disponibilidade padrão na mesma transação.
+`agenda_configuracoes.configurado_em` representa inicialização técnica e não
+confirmação manual da profissional. A origem dos horários permite diferenciar o
+padrão do AF de configurações personalizadas e legadas quando necessário.
 
-O dono acompanha a agenda geral do negócio.
+A disponibilidade continua crítica para gerar slots corretos e pode aparecer
+como diagnóstico operacional, mas não entra no percentual canônico de ativação
+nem deve voltar a bloquear publicação.
 
-O profissional acompanha sua própria agenda e altera somente os agendamentos
-permitidos.
+Detalhes desse fluxo ficam em:
 
-### 8.3 Onboarding e publicação do negócio
-
-A publicação é automática quando o negócio possui todos os dados estruturais
-obrigatórios e pelo menos um serviço ativo. Horários, descrição, complemento e
-fotos não são requisitos de publicação. O campo `publicacao_exige_agenda`
-permanece somente por compatibilidade; as migrations 064/065 removem o gate e
-inicializam a disponibilidade ausente.
-
-O contato público canônico é `whatsapp`. O alias `whatsapp_negocio` permanece
-para leitura e nunca prevalece sobre o campo canônico em uma atualização.
-WhatsApp, CEP, UF e URL HTTP/HTTPS de localização são validados no backend;
-publicação automática e backfill também rejeitam texto sem URL ou sem host.
-
-Criar o negócio inicializa a disponibilidade na mesma transação: segunda a
-sexta, 08:00–18:00 com pausa 12:00–13:00; sábado, 08:00–13:00; domingo fechado.
-`configurado_em` indica inicialização técnica. `origem_horarios` diferencia
-`padrao_af`, `personalizado` e `legado_desconhecido`. A migração preserva horários
-com edição anterior comprovada e não os substitui pela sugestão automática.
-
-Salvar o perfil e alterar serviços recalcula a publicação na mesma transação.
-Um perfil sem dados obrigatórios ou sem serviço ativo perde a elegibilidade.
-Após publicar, a sessão é atualizada antes de navegar ao painel ou ao checkout
-do plano previamente escolhido. A intenção de plano permanece na URL quando
-é necessário corrigir os dados do negócio.
-
-A Saúde do SaaS usa cinco etapas: negócio, dados essenciais, serviço ativo,
-publicação e primeiro agendamento não cancelado. Disponibilidade é diagnóstico
-técnico; descrição é recomendação opcional. Reprocessar publicação automática
-tem prioridade sobre reparar disponibilidade quando ambos coexistem.
-
-O Admin 2.0 organiza Visão geral, Aquisição, Jornada, Retenção e Receita a partir
-de analytics first-party e fatos do backend. Receita continua dependendo de
-pagamentos confirmados. A rota antiga de funil profissional abre Aquisição 2.0;
-seus componentes de pós-agenda foram removidos.
-
-### 8.4 Assinaturas e pagamentos
-
-Fluxo esperado:
-
-```text
-Cliente escolhe plano
-  ↓
-backend valida negócio e plano
-  ↓
-Asaas cria cobrança ou assinatura
-  ↓
-assinatura fica pendente
-  ↓
-webhook autenticado confirma pagamento
-  ↓
-assinatura é ativada
-  ↓
-negócio recebe o novo plano
-```
-
-O retorno do navegador não confirma pagamento. A confirmação deve ocorrer por
-webhook autenticado e com processamento idempotente.
-
-### 8.5 Conversas iniciadas no WhatsApp
-
-O webhook autenticado da Meta recebe estados de entrega, pedidos de
-descadastro e os quatro quebra-gelos oficiais do AF. Somente intenções
-reconhecidas são persistidas em `whatsapp_interacoes_recebidas`; o conteúdo
-livre de outras mensagens não é armazenado por esse fluxo.
-
-As respostas aos quebra-gelos usam mensagem livre porque a própria pessoa
-acabou de iniciar a janela de atendimento. O processamento confere o
-`WHATSAPP_PHONE_NUMBER_ID`, deduplica cada evento pelo `wamid` e registra o
-`wamid` da resposta ou a falha. A flag
-`WHATSAPP_CONVERSATION_AUTOREPLIES_ENABLED` funciona como chave operacional e
-permanece desativada até as migrations 053, 054 e 055 e o webhook serem
-validados.
-`PARAR MARKETING` cancela apenas orientações de marketing; os pedidos genéricos
-`SAIR`, `PARAR` e `STOP` cancelam todas as preferências e mensagens pendentes
-para o número e revogam o consentimento dos agendamentos existentes. Assim,
-uma atualização ou um cancelamento posterior não recria mensagens para quem
-já saiu. Autorizações legadas sem evidência auditável são revogadas pela
-migration 054; a migration 055 corrige retroativamente os opt-outs globais já
-recebidos, preservando autorizações novas concedidas depois do pedido.
+- [`ativacao-profissional-ux.md`](./ativacao-profissional-ux.md);
+- [`ativacao-proxima-acao.md`](./ativacao-proxima-acao.md).
 
 ---
 
-## 9. Planos e limites
+## 9. Planos, pagamentos e webhooks
 
-| Plano | Valor | Agendamentos/mês | Profissionais | Serviços |
-| --- | ---: | ---: | ---: | ---: |
-| Grátis | R$ 0,00 | 10 | 1 | 2 |
-| Autônoma | R$ 49,90 | 20 | 1 | 4 |
-| Studio | R$ 99,90 | 30 | 1 | 10 |
-| Salão | R$ 199,90 | Ilimitados | 5 | Ilimitados |
+O AF possui plano gratuito ativo e planos pagos. Limites de plano são regras de
+backend e devem ser validados dentro do caso de uso que consome capacidade.
 
-O plano Grátis mantém o slug interno `inicial` para compatibilidade com
-negócios e automações existentes.
+Planos pagos usam checkout Asaas. Retorno do navegador não confirma pagamento;
+ativação financeira depende da confirmação canônica do backend e do webhook.
 
-O plano Grátis é uma oferta comercial ativa, sem cobrança e sem cartão, e deve
-entregar valor real antes do upgrade. Em aquisição, termos como `grátis` e
-`gratuito` não são tráfego irrelevante por definição; a qualidade deve ser
-avaliada pela criação e ativação do negócio, separadamente da conversão para um
-plano pago. A especificação comercial completa está em `docs/planos.md`.
+Checkout e processamento financeiro preservam idempotência. Webhooks são
+persistidos e processados com proteção contra duplicidade, concorrência e
+retries.
 
-### Regras de consumo
+Documentos especializados:
 
-- agendamentos contam no mês da data marcada;
-- contam os status `agendado`, `confirmado` e `realizado`;
-- cancelados não consomem capacidade;
-- um mês cheio não bloqueia o mês seguinte;
-- editar ou excluir cadastros existentes continua permitido;
-- criar serviço, profissional ou agendamento deve validar o limite dentro da
-  mesma transação;
-- bloqueio transacional deve impedir que duas requisições usem a última vaga;
-- `NULL` no banco representa limite ilimitado.
-
-### Comunicação de crescimento
-
-| Uso | Estado |
-| ---: | --- |
-| A partir de 50% | negócio crescendo |
-| A partir de 80% | alerta de capacidade |
-| A partir de 90% | upgrade recomendado |
-| 100% | limite atingido |
-
-Ao atingir 100%, a agenda pública não deve oferecer datas sem capacidade no
-mês e uma tentativa concorrente deve receber uma resposta amigável.
-
-### Migration obrigatória
-
-O código de planos depende da migration:
-
-```text
-database/migrations/015_planos_limites.sql
-```
-
-Ela adiciona:
-
-```text
-planos.limite_profissionais
-planos.limite_servicos
-```
-
-Publicar o arquivo no Git não altera o banco automaticamente. A migration deve
-ser executada em cada ambiente antes do backend que depende dessas colunas.
+- [`planos.md`](./planos.md);
+- [`checkout-idempotente.md`](./checkout-idempotente.md);
+- [`webhook-asaas.md`](./webhook-asaas.md);
+- [`webhook-processing.md`](./webhook-processing.md).
 
 ---
 
-## 10. Banco de dados e transações
+## 10. WhatsApp e comunicação
 
-Toda operação que altera mais de uma tabela deve ser atômica:
+O AF usa a WhatsApp Cloud API oficial da Meta para notificações e automações.
+Consentimentos operacionais, mensagens para clientes e orientações de marketing
+possuem regras próprias e não devem ser tratados como uma única autorização.
 
-```text
-BEGIN
-  ↓
-operações
-  ↓
-COMMIT
-```
+A fila é persistente, idempotente e revalida elegibilidade/consentimento antes
+do envio conforme o fluxo implementado.
 
-Se qualquer etapa falhar:
-
-```text
-ROLLBACK
-```
-
-Transações são obrigatórias, especialmente em:
-
-- criação de negócio e vínculo do dono;
-- criação de agendamento e consumo de limite;
-- criação de profissionais e serviços;
-- assinatura e pagamento;
-- ativação de plano;
-- processamento de webhook.
-
-O service coordena a transação. O repository executa as consultas usando o
-mesmo `client` transacional.
-
-Migrations devem:
-
-- possuir ordem numérica;
-- usar transação quando possível;
-- ser revisadas antes do deploy;
-- evitar perda de dados;
-- usar `IF NOT EXISTS` quando isso tornar a operação segura;
-- ser executadas primeiro em teste e depois em produção;
-- nunca ser alteradas depois de aplicadas em produção; uma correção deve gerar
-  uma nova migration.
+Detalhes operacionais, templates e variáveis ficam em
+[`whatsapp-automatico.md`](./whatsapp-automatico.md).
 
 ---
 
-## 11. Padrão de respostas HTTP
+## 11. Marketing, atribuição e growth
 
-### Sucesso
+O AF separa comportamento, atribuição e resultado de negócio:
 
-```json
-{
-  "mensagem": "Operação realizada com sucesso.",
-  "dados": {}
-}
-```
+- GA4 explica navegação e comportamento;
+- eventos e banco do AF medem cadastro, publicação, agendamento, recorrência,
+  checkout e pagamento;
+- integrações de mídia fornecem identidade externa e custos quando a evidência
+  é verificável.
 
-Quando o endpoint já possui contrato consumido pelo frontend, preservar o
-formato até que ambos sejam migrados juntos.
+Google Ads, Meta Ads, TikTok Ads e Pinterest Ads integram o motor de aquisição
+e custos. Essas integrações são tratadas como leitura/diagnóstico no escopo
+atual documentado; credenciais e decisões canônicas ficam no backend.
 
-### Erro
+Atribuição incompleta não deve ser convertida artificialmente em orgânico ou
+campanha oficial. CAC, ROAS e recomendações financeiras dependem dos guardrails
+de evidência, maturidade e amostra definidos pelos serviços correspondentes.
 
-```json
-{
-  "erro": "Mensagem segura para a pessoa.",
-  "codigo": "CODIGO_OPCIONAL"
-}
-```
+A ativação de profissionais usada para avaliar qualidade da aquisição não inclui
+agenda como gate. O marco de valor principal é o primeiro agendamento válido;
+monetização permanece separada.
 
-Erros internos completos pertencem aos logs. Respostas públicas nunca devem
-expor SQL, stack trace, senha, token ou detalhes do provedor.
+Documentos especializados incluem:
 
----
-
-## 12. Convenções de nomes
-
-### Repository
-
-Preferir verbos claros:
-
-```text
-buscarPorId()
-buscarPorEmail()
-buscarPorSlug()
-buscarPorUsuario()
-listar()
-criar()
-atualizar()
-remover()
-existe()
-```
-
-### Service
-
-Usar nomes do caso de uso:
-
-```text
-login()
-cadastrar()
-criarNegocio()
-criarAgendamento()
-verificarCapacidadePlano()
-gerarCheckout()
-ativarAssinatura()
-```
-
-### Controller
-
-Usar o nome da ação HTTP:
-
-```text
-buscar()
-listar()
-criar()
-editar()
-remover()
-login()
-checkout()
-```
-
-Consistência é mais importante que abreviações.
+- [`marketing-attribution.md`](./marketing-attribution.md);
+- [`marketing-sync-ga4.md`](./marketing-sync-ga4.md);
+- [`custo-qualidade-aquisicao-profissional.md`](./custo-qualidade-aquisicao-profissional.md);
+- [`prontidao-financeira-recorrencia.md`](./prontidao-financeira-recorrencia.md);
+- [`google-ads-real-campaign-link.md`](./google-ads-real-campaign-link.md);
+- [`meta-ads-real-campaign-link.md`](./meta-ads-real-campaign-link.md);
+- [`marketing-tiktok-ads.md`](./marketing-tiktok-ads.md);
+- [`marketing-pinterest-ads.md`](./marketing-pinterest-ads.md).
 
 ---
 
-## 13. Testes
+## 12. Administração
 
-O projeto possui ambiente isolado de testes com `.env.test`, Jest, Supertest e
-banco separado do banco de produção.
+O Admin 2.0 usa `AdminLayout` e `AdminShell` próprios.
 
-Após a integração dos planos, limites e nova interface, a referência registrada
-foi:
+A navegação principal atual é:
 
 ```text
-22 suítes aprovadas
-138 testes aprovados
-0 falhas
+/admin             → Visão geral
+/admin/aquisicao   → Aquisição
+/admin/jornada     → Jornada
+/admin/retencao    → Retenção
+/admin/receita     → Receita
+/admin/operacao    → Operação
 ```
 
-Esse número é uma fotografia daquele merge, não um teto. A suíte deve crescer
-junto com o produto.
+Rotas especializadas de Marketing, diagnóstico de ativação e WhatsApp continuam
+existindo e podem ser acessadas conforme a tarefa sem precisar ocupar o mesmo
+nível da navegação principal.
 
-### Pirâmide recomendada
+O backend é a fonte de verdade para métricas canônicas e autorização. O design
+system administrativo organiza apresentação e operação, não redefine regras de
+produto.
 
-1. Testes unitários para regras de negócio.
-2. Testes de integração para banco, repositories e services.
-3. Testes HTTP com Supertest.
-4. Testes ponta a ponta dos fluxos críticos do frontend.
+Semântica e UX administrativa ficam em:
 
-### Fluxos críticos
-
-- cadastro e login;
-- criação de negócio;
-- autorização entre dono e profissional;
-- perfil público por slug;
-- agendamento de visitante;
-- agendamento de cliente logada;
-- conflito de horário;
-- limites de agendamentos, profissionais e serviços;
-- cancelamento liberando capacidade;
-- checkout;
-- webhook e ativação de assinatura;
-- agenda geral e agenda profissional;
-- isolamento entre negócios.
-
-Nunca executar testes automatizados contra o banco de produção.
+- [`admin-centro-comando.md`](./admin-centro-comando.md);
+- [`admin-visao-geral.md`](./admin-visao-geral.md);
+- [`admin-console.md`](./admin-console.md);
+- [`admin-marketing-visao-geral.md`](./admin-marketing-visao-geral.md).
 
 ---
 
-## 14. Frontend
+## 13. Banco e migrations
 
-O frontend oficial do Agenda Fashion utiliza React com Vite.
+Toda mudança de schema usa uma migration nova. Migrations já aplicadas não são
+reescritas para corrigir o passado; uma nova migration deve reconciliar o estado
+quando necessário.
 
-Estrutura principal:
+O processo de deploy aplica migrations antes de iniciar a nova versão da
+aplicação. Falha de migration deve impedir a versão incompatível de subir.
+
+Operações críticas que alteram múltiplas tabelas devem usar transação quando a
+atomicidade fizer parte do contrato do domínio.
+
+---
+
+## 14. Testes e CI/CD
+
+A cobertura de validação combina:
+
+- ESLint;
+- build Vite;
+- Vitest/Testing Library;
+- migrations em PostgreSQL de teste;
+- Jest/Supertest/PostgreSQL;
+- auditorias de dependências;
+- Playwright em Chromium e WebKit, com cobertura mobile aplicável.
+
+O fluxo normal é:
 
 ```text
-frontend/
-|-- src/
-|   |-- api/
-|   |-- auth/
-|   |-- components/
-|   |-- layouts/
-|   |-- pages/
-|   `-- utils/
-`-- public/
+branch
+  → pull request
+  → Quality Gate
+  → revisão do diff
+  → merge autorizado em main
+  → deploy Railway
+  → migrations
+  → healthcheck
+  → smoke test e logs
 ```
 
-O build de producao e gerado em:
-
-```text
-agendamento-nails/react-app
-```
-
-O backend Express serve esse build diretamente na raiz do dominio:
-
-```text
-https://app.agendafashion.com.br/
-https://app.agendafashion.com.br/entrar
-https://app.agendafashion.com.br/painel
-```
-
-As antigas pastas `agendamento-nails/html`, `agendamento-nails/css`
-e `agendamento-nails/js` foram removidas depois da consolidacao do
-frontend em React.
-
-Regras:
-
-- manter a identidade rosa, feminina e delicada do Agenda Fashion;
-- preservar o emoji de unha pintada como elemento da marca;
-- usar componentes React reutilizaveis;
-- centralizar chamadas HTTP no cliente da API;
-- tratar carregamento, erro, estado vazio e sessao expirada;
-- nao duplicar regras de negocio que pertencem ao backend;
-- manter as paginas responsivas e acessiveis;
-- preservar testes de regressao das jornadas principais.
-## 15. Deploy no Railway
-
-O ambiente de produção é composto por:
-
-```text
-GitHub
-  ↓
-Railway — serviço agenda-fashion
-  ↓
-Railway — PostgreSQL
-  ↓
-app.agendafashion.com.br
-```
-
-Ordem segura de publicação:
-
-1. executar e confirmar backup quando a migration for relevante;
-2. aplicar migrations compatíveis;
-3. publicar o backend;
-4. confirmar conexão com o banco e inicialização na porta fornecida;
-5. realizar smoke tests;
-6. acompanhar logs e erros.
-
-Smoke tests mínimos:
-
-- abrir landing page;
-- login;
-- dashboard do negócio;
-- configurar agenda;
-- perfil público;
-- criar agendamento;
-- visualizar agenda;
-- consultar plano;
-- iniciar checkout.
-
-Avisos do npm ou do `dotenv` não devem ser confundidos com falha. O deploy só é
-considerado saudável quando o servidor, o banco e os fluxos principais
-respondem corretamente.
+Detalhes ficam em [`deploy-seguro.md`](./deploy-seguro.md) e
+[`dependency-security.md`](./dependency-security.md).
 
 ---
 
-## 16. Segurança
+## 15. Regra de evolução arquitetural
 
-- nunca versionar `.env`;
-- nunca enviar segredos ao frontend;
-- validar webhook do Asaas;
-- usar queries parametrizadas;
-- aplicar autorização no backend;
-- limitar tentativas em endpoints sensíveis;
-- validar e normalizar entradas;
-- evitar dados pessoais em logs;
-- usar HTTPS em produção;
-- manter dependências atualizadas;
-- garantir isolamento entre negócios;
-- proteger alterações de status de agendamento.
+A arquitetura não é um fim em si mesma. Antes de introduzir abstração,
+tecnologia ou reorganização ampla, avaliar:
 
----
+1. qual problema real está sendo resolvido;
+2. se o fluxo existente pode ser preservado;
+3. impacto em frontend, backend, banco, segurança e testes;
+4. se uma mudança menor e reversível resolve o mesmo problema;
+5. como a alteração será validada e operada depois do deploy.
 
-## 17. Observabilidade
-
-Logs devem informar:
-
-- ambiente;
-- início do servidor;
-- conexão com banco;
-- rota ou caso de uso;
-- identificador seguro da requisição;
-- tipo e código do erro.
-
-Logs não devem informar:
-
-- senhas;
-- `DATABASE_URL`;
-- JWT;
-- chave do Asaas;
-- dados completos de cartão;
-- informações pessoais desnecessárias.
-
-Métricas prioritárias do produto:
-
-- negócios ativos;
-- agendamentos por mês;
-- conversão de visita em agendamento;
-- ocupação por profissional;
-- cancelamentos;
-- planos próximos do limite;
-- conversão de plano grátis para pago;
-- falhas de checkout e webhook.
-
----
-
-## 18. Regras obrigatórias
-
-1. Nunca escrever SQL em routes ou controllers.
-2. Não adicionar SQL novo em services.
-3. Nunca confiar em `negocio_id`, papel ou preço enviado pelo frontend.
-4. Toda autorização deve ser validada no backend.
-5. Toda operação crítica em várias tabelas deve usar transação.
-6. Todo módulo novo deve possuir testes adequados ao risco.
-7. Toda alteração de banco deve possuir migration.
-8. Migration aplicada em produção não deve ser editada.
-9. Segredos nunca devem aparecer no Git ou nos logs.
-10. O banco de testes deve ser isolado do banco de produção.
-11. Rotas existentes não devem receber `/api` isoladamente.
-12. Mudanças no contrato devem atualizar backend, frontend e testes juntos.
-13. Não publicar mudanças com lint, build ou testes obrigatórios falhando.
-14. Toda correção de falha relevante deve incluir teste de regressão quando
-    tecnicamente aplicável.
-15. Após o deploy, executar smoke tests e acompanhar healthcheck, logs e
-    integrações afetadas.
-
----
-
-## 19. Estrutura de um módulo novo
-
-Um módulo completo deve possuir, conforme a necessidade:
-
-```text
-route
-controller
-service
-repository
-validator
-testes
-migration
-```
-
-Nem todo módulo precisa criar arquivos vazios em todas as camadas. A separação
-deve existir quando houver responsabilidade real.
-
-Fluxo de implementação:
-
-1. definir regra e contrato;
-2. criar migration, se necessária;
-3. implementar repository;
-4. implementar service;
-5. implementar validator e controller;
-6. registrar route e middlewares;
-7. integrar frontend;
-8. criar testes;
-9. validar localmente;
-10. publicar com migration e smoke tests.
-
----
-
-## 20. Próxima evolução arquitetural
-
-Prioridades:
-
-1. manter o CI verde e exigir os checks antes de integrar mudanças na `main`;
-2. proteger a branch `main` contra integrações sem validação;
-3. adotar Content Security Policy gradualmente, sem quebrar Google, Meta ou
-   Cloudinary;
-4. concluir a remoção da compatibilidade com JWT em `localStorage` depois que
-   as sessões antigas expirarem;
-5. tornar os workers resistentes a reinícios e múltiplas instâncias;
-6. ampliar observabilidade de erros, webhooks, notificações e integrações;
-7. mover SQL restante dos services para repositories quando esses módulos
-   forem alterados;
-8. avaliar TypeScript gradualmente, sem reescrever o sistema inteiro.
-
----
-
-## Objetivo final
-
-O Agenda Fashion deve se tornar referência no Brasil para agendamento de
-beleza e estética, permanecendo simples para desenvolver, seguro para os
-negócios e confiável para as clientes.
-
-A arquitetura existe para manter:
-
-- separação de responsabilidades;
-- isolamento entre negócios;
-- consistência de dados;
-- deploys previsíveis;
-- evolução dos planos e pagamentos;
-- testes que protegem os fluxos críticos;
-- velocidade para chegar à aquisição de clientes.
+Quando código e documentação divergirem, o código executável e as migrations
+representam o estado implementado. A divergência deve ser corrigida na memória
+do repositório para não orientar mudanças futuras a partir de uma regra antiga.
