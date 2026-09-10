@@ -47,6 +47,17 @@ describe("AdminShell", () => {
     ).toBe(false);
   });
 
+  it("mantém a topbar como contexto global sem repetir o módulo atual", () => {
+    renderAdmin("/admin/receita");
+
+    const topbar = document.querySelector(".admin-topbar");
+
+    expect(topbar).not.toBeNull();
+    expect(topbar.textContent).toContain("Agenda Fashion");
+    expect(topbar.textContent).toContain("Command Center");
+    expect(topbar.textContent).not.toContain("Receita");
+  });
+
   it("mantém os módulos principais no desktop e na navegação mobile", () => {
     renderAdmin("/admin/aquisicao?periodo=30d");
 
