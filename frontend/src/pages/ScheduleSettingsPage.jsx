@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Link, useSearchParams } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { track } from "../analytics/track";
 import { apiRequest } from "../api/client";
 import { getPlanIntentPath, normalizePlanSlug } from "../auth/session";
@@ -138,6 +138,9 @@ export function validateSchedule(days, { requireActiveDay = false } = {}) {
 }
 
 export function ScheduleSettingsPage() {
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const selectedPlan = normalizePlanSlug(searchParams.get("plano"));
   const [config, setConfig] = useState(null);
   const [days, setDays] = useState([]);
   const [expandedPauses, setExpandedPauses] = useState(() => new Set());
@@ -318,7 +321,9 @@ export function ScheduleSettingsPage() {
     const origem = primeiraConfiguracao
       ? submitSource === "confirmacao_rapida"
         ? "confirmacao_rapida"
-        : "ajuste_manual"
+        : submitSource === "pular_sugestao"
+          ? "sugestao_aceita_ao_pular"
+          : "ajuste_manual"
       : "editor";
 
     track("agenda_configuracao_salvamento_tentado", {
@@ -375,6 +380,25 @@ export function ScheduleSettingsPage() {
             origem
           }
         });
+
+        const quickAction = submitSource === "confirmacao_rapida"
+          || submitSource === "pular_sugestao";
+
+        if (quickAction) {
+          const destination = selectedPlan
+            ? getPlanIntentPath("/checkout", selectedPlan)
+            : "/painel";
+          navigate(destination, {
+            replace: true,
+            state: {
+              message: submitSource === "pular_sugestao"
+                ? "Horários sugeridos salvos. Você pode ajustá-los quando quiser."
+                : "Horários confirmados. Você pode ajustá-los quando quiser."
+            }
+          });
+          return;
+        }
+
         const publicadoAgora = result.publicacao?.publicado === true;
 
         setActivationNextStep(publicadoAgora);
@@ -415,7 +439,7 @@ export function ScheduleSettingsPage() {
 
       {firstConfiguration && !activationNextStep && (
         <FlowSteps
-          ariaLabel="Etapas para publicar o negócio"
+          ariaLabel="Etapas iniciais do negócio"
           current={3}
           steps={ACTIVATION_STEPS}
         />
@@ -497,13 +521,12 @@ export function ScheduleSettingsPage() {
               <div className="schedule-quick-copy">
                 <p className="eyebrow">
                   <span aria-hidden="true">📅</span>{" "}
-                  Último passo para publicar
+                  Sua agenda
                 </p>
                 <h2 id="schedule-activation-title">Confirme quando você atende</h2>
                 <p className="muted">
-                  O Agenda Fashion preparou uma sugestão de horários. Confira abaixo:
-                  se estiver certo, confirme uma vez e seu perfil poderá ser publicado
-                  automaticamente.
+                  O Agenda Fashion preparou horários sugeridos para você começar.
+                  Confirme, pule a edição por agora ou ajuste sua disponibilidade antes de continuar.
                 </p>
               </div>
 
@@ -525,24 +548,35 @@ export function ScheduleSettingsPage() {
 
               <p className="schedule-quick-assurance">
                 <span aria-hidden="true">✓</span>{" "}
-                Nada fica disponível para clientes antes da sua confirmação.
+                Ao confirmar ou pular, estes horários sugeridos serão salvos. Você poderá editá-los depois.
               </p>
 
               {error && <p className="form-error schedule-settings-error" role="alert">{error}</p>}
 
               <div className="schedule-quick-actions">
                 {quickSummary.length > 0 && (
-                  <button
-                    className="button"
-                    data-source="confirmacao_rapida"
-                    disabled={saving}
-                    type="submit"
-                  >
-                    {saving ? "Confirmando..." : "Confirmar horários e publicar"}
-                  </button>
+                  <>
+                    <button
+                      className="button"
+                      data-source="confirmacao_rapida"
+                      disabled={saving}
+                      type="submit"
+                    >
+                      {saving ? "Salvando..." : "Confirmar horários"}
+                    </button>
+                    <button
+                      className="button button-secondary"
+                      data-source="pular_sugestao"
+                      disabled={saving}
+                      type="submit"
+                    >
+                      {saving ? "Salvando..." : "Pular por agora"}
+                    </button>
+                  </>
                 )}
                 <button
-                  className="button button-secondary"
+                  className="text-button"
+                  disabled={saving}
                   onClick={openFirstScheduleEditor}
                   type="button"
                 >
@@ -561,8 +595,8 @@ export function ScheduleSettingsPage() {
                   <h2 id="schedule-editor-title">Quando você recebe clientes</h2>
                   <p className="muted">
                     Ative os dias em que atende e ajuste início, fim e pausas. Ao
-                    salvar pela primeira vez, o AF confirma sua agenda e recalcula a
-                    publicação automaticamente.
+                    salvar pela primeira vez, o AF confirma sua agenda. Você poderá
+                    voltar e editar estes horários quando quiser.
                   </p>
                 </section>
               )}
@@ -730,7 +764,7 @@ export function ScheduleSettingsPage() {
                   {saving
                     ? "Salvando..."
                     : firstConfiguration
-                      ? "Salvar horários e publicar"
+                      ? "Salvar horários e continuar"
                       : "Salvar horários"}
                 </button>
               </div>

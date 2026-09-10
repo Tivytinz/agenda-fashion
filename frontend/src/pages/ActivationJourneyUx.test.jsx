@@ -243,13 +243,13 @@ describe("jornada de ativação profissional", () => {
       "perfil publicado sem plano escolhido",
       "/painel/servicos/novo?onboarding=servico",
       true,
-      "/painel|"
+      "/painel/horarios|agenda"
     ],
     [
       "perfil publicado com plano escolhido",
       "/painel/servicos/novo?onboarding=servico&plano=autonoma",
       true,
-      "/checkout?plano=autonoma|"
+      "/painel/horarios?plano=autonoma|agenda"
     ],
     [
       "perfil ainda incompleto depois do serviço",
