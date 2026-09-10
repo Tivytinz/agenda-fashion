@@ -1,0 +1,79 @@
+/* Fechamento visual dos seis módulos principais do Admin Command Center. */
+
+.admin-shell .admin-command-page {
+  display: grid;
+  width: min(1380px, calc(100% - 48px));
+  margin-inline: auto;
+  align-content: start;
+  gap: 16px;
+  padding-block: 22px 52px;
+}
+
+.admin-shell .admin-command-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  overflow: hidden;
+  border: 1px solid rgb(217 47 127 / 15%);
+  border-radius: 18px;
+  padding: 18px 20px;
+  background:
+    radial-gradient(circle at 94% 4%, rgb(251 216 232 / 52%), transparent 26%),
+    linear-gradient(120deg, #fff 0%, #fffafc 62%, #fff5f9 100%);
+  box-shadow: 0 9px 26px rgb(92 42 68 / 5%);
+}
+
+.admin-shell .admin-command-heading > div:first-child {
+  max-width: 760px;
+}
+
+.admin-shell .admin-command-heading h1 {
+  margin: 2px 0 5px;
+  color: var(--admin-ink);
+  font-size: clamp(1.55rem, 2.35vw, 2.05rem);
+  line-height: 1.08;
+  letter-spacing: -.035em;
+}
+
+.admin-shell .admin-command-heading p:last-child {
+  max-width: 72ch;
+  margin-bottom: 0;
+  color: var(--admin-muted);
+  line-height: 1.45;
+}
+
+.admin-shell .admin-command-heading .segmented-control {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
+.admin-shell .admin-command-heading .segmented-control button {
+  white-space: nowrap;
+}
+
+/* O seletor já comunica o recorte ativo; o chip abaixo era informação duplicada. */
+.admin-shell .admin-period-context {
+  display: none;
+}
+
+@media (max-width: 900px) {
+  .admin-shell .admin-command-page {
+    width: min(100% - 28px, 1380px);
+    gap: 16px;
+    padding-block: 16px 104px;
+  }
+
+  .admin-shell .admin-command-heading {
+    align-items: stretch;
+    flex-direction: column;
+    padding: 18px;
+  }
+}
+
+@media (max-width: 800px) {
+  .admin-shell .admin-command-heading .segmented-control {
+    max-width: 100%;
+    overflow-x: auto;
+  }
+}
