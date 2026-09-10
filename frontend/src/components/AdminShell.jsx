@@ -14,31 +14,9 @@ import {
 import afLogoTransparent from "../assets/brand/af-logo-transparent.png";
 import { AppIcon } from "./AppIcon";
 
-const LEGACY_ADMIN_CONTEXTS = [
-  ["/admin/profissionais", "Aquisição"],
-  ["/admin/trafego-pago", "Aquisição"],
-  ["/admin/custos", "Aquisição"],
-  ["/admin/saude", "Operação"],
-  ["/admin/whatsapp", "Operação"]
-];
-
 function isAdminRouteActive(pathname, route) {
   if (route === "/admin") return pathname === route;
   return pathname === route || pathname.startsWith(`${route}/`);
-}
-
-function currentAdminLabel(pathname, links) {
-  const current = links.find(([route]) =>
-    isAdminRouteActive(pathname, route)
-  );
-
-  if (current) return current[1];
-
-  const legacy = LEGACY_ADMIN_CONTEXTS.find(([route]) =>
-    isAdminRouteActive(pathname, route)
-  );
-
-  return legacy?.[1] || "Administração";
 }
 
 function AdminNavLinks({ links, mobile = false, menu = false, onNavigate }) {
@@ -150,9 +128,6 @@ export function AdminMobileNavigation({ links = [] }) {
 }
 
 export function AdminShell({ children, links = [] }) {
-  const { pathname } = useLocation();
-  const currentLabel = currentAdminLabel(pathname, links);
-
   useLayoutEffect(() => {
     document.documentElement.classList.add("admin-context-active");
 
@@ -205,8 +180,8 @@ export function AdminShell({ children, links = [] }) {
       <div className="admin-surface">
         <header className="admin-topbar">
           <div className="admin-topbar-context">
-            <small>Administração</small>
-            <strong>{currentLabel}</strong>
+            <small>Agenda Fashion</small>
+            <strong>Command Center</strong>
           </div>
 
           <div className="admin-topbar-actions">
