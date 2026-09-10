@@ -54,6 +54,17 @@ describe("ownership de CSS por rota", () => {
     });
   });
 
+  test("carrega o design system da dona somente quando o OwnerShell e resolvido", () => {
+    const entrada = ler("frontend/src/main.jsx");
+    const workspace = ler("frontend/src/components/WorkspaceLayout.jsx");
+    const ownerShell = ler("frontend/src/components/OwnerShell.jsx");
+
+    expect(entrada).not.toContain('owner-shell.css');
+    expect(ownerShell).not.toContain('owner-shell.css');
+    expect(workspace).toContain('import("../styles/owner-shell.css")');
+    expect(workspace).toContain('import("./OwnerShell")');
+  });
+
   test("mantem globais os estilos ainda compartilhados entre contextos", () => {
     const entrada = ler("frontend/src/main.jsx");
 

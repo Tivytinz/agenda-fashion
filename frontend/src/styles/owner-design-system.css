@@ -1,0 +1,79 @@
+.owner-shell {
+  --owner-brand: #d92f7f;
+  --owner-brand-hover: #c62975;
+  --owner-brand-strong: #9f1f5c;
+  --owner-brand-soft: #fff0f6;
+  --owner-bg: #fff8fb;
+  --owner-surface: #ffffff;
+  --owner-surface-soft: #fffafd;
+  --owner-line: #efdee6;
+  --owner-line-strong: #dfc9d4;
+  --owner-ink: #332a2f;
+  --owner-muted: #796a72;
+  --owner-success: #267454;
+  --owner-warning: #956819;
+  --owner-danger: #b43d59;
+  --owner-radius-sm: 10px;
+  --owner-radius-md: 14px;
+  --owner-radius-lg: 20px;
+  --owner-shadow-sm: 0 8px 24px rgb(88 39 62 / 6%);
+  --owner-shadow-md: 0 18px 44px rgb(88 39 62 / 10%);
+  --owner-focus: 0 0 0 3px rgb(217 47 127 / 18%);
+  --owner-focus-outline: #9f1f5c;
+
+  color: var(--owner-ink);
+  background: var(--owner-bg);
+
+  /* Ponte para páginas existentes enquanto o conteúdo evolui por feature. */
+  --pink-50: #fff4f8;
+  --pink-100: #fbd8e8;
+  --pink-500: var(--owner-brand);
+  --pink-600: var(--owner-brand-hover);
+  --pink-700: var(--owner-brand-strong);
+  --wine: var(--owner-ink);
+  --ink: var(--owner-ink);
+  --muted: var(--owner-muted);
+  --line: var(--owner-line);
+  --surface: var(--owner-surface);
+  --shadow: var(--owner-shadow-sm);
+  --shadow-hover: var(--owner-shadow-md);
+}
+
+.owner-shell .workspace-page {
+  width: min(1240px, calc(100% - 44px));
+  margin-inline: auto;
+  padding-block: 26px 48px;
+}
+
+.owner-shell .workspace-heading {
+  border-color: var(--owner-line);
+  border-radius: var(--owner-radius-lg);
+  background: var(--owner-surface);
+  box-shadow: var(--owner-shadow-sm);
+}
+
+.owner-shell .panel,
+.owner-shell .metric-card,
+.owner-shell .screen-state,
+.owner-shell .card {
+  border-color: var(--owner-line);
+  background: var(--owner-surface);
+}
+
+.owner-shell .button:focus-visible,
+.owner-shell a:focus-visible,
+.owner-shell button:focus-visible,
+.owner-shell input:focus-visible,
+.owner-shell select:focus-visible,
+.owner-shell textarea:focus-visible {
+  outline: 3px solid var(--owner-focus-outline);
+  outline-offset: 3px;
+  box-shadow: var(--owner-focus);
+}
+
+@media (max-width: 900px) {
+  .owner-shell .workspace-page {
+    width: min(100% - 28px, 1240px);
+    padding-block: 18px 100px;
+  }
+}

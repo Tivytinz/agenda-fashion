@@ -158,14 +158,21 @@ A organização atual é:
 
 ```text
 público / cliente   → experiência pública e páginas de conta/agendamento
-/painel/*           → WorkspaceLayout para gestão da dona do negócio
+/painel/*           → WorkspaceLayout resolve OwnerShell para vínculo de dona
 /profissional/*     → WorkspaceLayout para experiência profissional
 /admin/*            → AdminLayout + AdminShell
 ```
 
-`WorkspaceLayout` hoje compartilha a fundação de dona e profissional e muda a
-navegação conforme o vínculo. `AdminShell` é independente dessa fundação e
-possui navegação e design system próprios.
+`WorkspaceLayout` continua sendo a resolução de entrada das rotas privadas de
+negócio. Quando o vínculo atual é `dono`, ele delega a composição para o
+`OwnerShell`, que possui identidade, navegação, tokens `--owner-*` e CSS
+contextual próprios. O workspace profissional permanece na fundação histórica
+até uma separação específica ser útil. `AdminShell` continua independente e
+possui navegação e design system `--admin-*` próprios.
+
+A navegação compartilhada entre os contextos privados é uma primitive neutra:
+ela concentra comportamento de rota ativa, menu mobile, clique fora e `Escape`,
+sem transformar isso em ownership visual compartilhado.
 
 Essa organização pode evoluir sem transformar nomes de componentes em regra de
 segurança. Redirecionamentos e itens ocultos no React são UX; autorização real
@@ -347,6 +354,11 @@ A navegação principal atual é:
 Rotas especializadas de Marketing, diagnóstico de ativação e WhatsApp continuam
 existindo e podem ser acessadas conforme a tarefa sem precisar ocupar o mesmo
 nível da navegação principal.
+
+Os seis módulos principais recebem sua composição e densidade diretamente das
+camadas administrativas. Compatibilidades históricas podem permanecer em
+features especializadas quando uma migração maior não trouxer benefício
+proporcional.
 
 O backend é a fonte de verdade para métricas canônicas e autorização. O design
 system administrativo organiza apresentação e operação, não redefine regras de
