@@ -151,8 +151,10 @@ webhook financeiro.
 - CI/CD: GitHub Actions e Railway.
 - Deploy: migrations antes da aplicação e healthcheck em `/health/ready`.
 
-O frontend é uma única aplicação React. Atualmente `/painel/*` e
-`/profissional/*` compartilham `WorkspaceLayout` com navegação contextual;
+O frontend é uma única aplicação React. As rotas `/painel/*` continuam entrando
+pela resolução contextual de `WorkspaceLayout`, mas vínculos de dona são
+delegados para um `OwnerShell` próprio com design system `--owner-*` e CSS
+carregado por contexto. `/profissional/*` permanece no workspace profissional;
 `/admin/*` usa `AdminLayout` + `AdminShell` próprios.
 
 Detalhes técnicos: `docs/arquitetura.md`, `docs/frontend-estilos.md` e
