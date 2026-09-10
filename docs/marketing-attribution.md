@@ -33,16 +33,18 @@ Cobertura incompleta nunca pode transformar um cadastro real em cadastro inexist
 
 Um cálculo como `investimento / todos os cadastros` pode aparecer apenas como diagnóstico bruto quando a atribuição estiver incompleta. Ele não deve ser chamado de CPA, CAC ou custo atribuído e não pode liberar decisões de orçamento.
 
-## Funil pós-agenda
+## Funil pós-publicação
 
-Depois que `agenda_configuracoes.configurado_em` registra a primeira configuração válida da agenda, o painel pode medir a missão operacional de levar o negócio ao primeiro agendamento por uma sequência conservadora de eventos já existentes.
+Depois que o negócio está publicado, o AF pode medir a missão operacional de levar esse negócio ao primeiro agendamento por uma sequência conservadora de eventos já existentes.
 
 A sequência rastreada é:
 
-1. o dono copia ou compartilha o link público do próprio negócio pelo dashboard ou pela configuração da agenda, depois de a agenda estar configurada;
+1. o dono copia ou compartilha o link público do próprio negócio depois da publicação;
 2. outra sessão visualiza o perfil público depois dessa divulgação, excluindo a sessão que divulgou e visualizações autenticadas do próprio dono;
 3. uma sessão visitante que visualizou o perfil avança para `agendamento_iniciado`;
 4. a mesma sessão registra `agendamento_concluido`, o `agendamento_id` do evento aponta para uma linha real de `agendamentos` do mesmo negócio, criada depois do início, e essa linha é o primeiro agendamento registrado para aquele negócio.
+
+A personalização de horários não é pré-condição dessa sequência. O AF inicializa a disponibilidade ao criar o negócio, e a disponibilidade real continua sendo validada pelo backend durante o fluxo de agendamento.
 
 A primeira visita não precisa ser a sessão que converte. Se uma pessoa visualizar e sair, uma visita posterior ainda pode representar o avanço do negócio até o início e a conclusão do agendamento.
 
@@ -52,7 +54,7 @@ Os eventos de produto medem intenção e progressão, mas não substituem a font
 
 Como a sequência depende da chegada dos eventos de produto, ela pode subestimar a jornada quando houver perda de telemetria. O total geral de primeiros agendamentos continua sendo calculado diretamente a partir da tabela `agendamentos` e permanece a referência operacional para saber se o negócio recebeu seu primeiro agendamento.
 
-Essa leitura pós-agenda serve para localizar perdas entre divulgação, visita, início e conclusão. Ela não altera sozinha CAC, ROAS nem as regras de decisão financeira por campanha.
+Essa leitura pós-publicação serve para localizar perdas entre divulgação, visita, início e conclusão. Ela não altera sozinha CAC, ROAS nem as regras de decisão financeira por campanha.
 
 ## Recorrência após o primeiro agendamento
 
