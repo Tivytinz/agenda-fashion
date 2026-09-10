@@ -30,19 +30,19 @@ Trocar de contexto visual não altera vínculos nem permissões persistidas no b
 
 ### Resolução visual por rota
 
-Hoje a organização conceitual do frontend segue aproximadamente este mapa:
+A implementação atual do frontend segue este mapa:
 
 ```text
 Agenda Fashion
-├── experiência pública / cliente → CustomerShell ou contexto público equivalente
-├── /profissional/*              → ProfessionalShell
-├── /painel/*                    → OwnerShell
-└── /admin/*                     → AdminShell
+├── experiência pública / cliente → páginas e componentes do contexto público
+├── /painel/*                    → WorkspaceLayout com navegação da dona
+├── /profissional/*              → WorkspaceLayout com navegação profissional
+└── /admin/*                     → AdminLayout + AdminShell
 ```
 
-Os nomes dos shells descrevem responsabilidades de apresentação e navegação. Eles não representam papéis globais persistidos na identidade do usuário.
+`WorkspaceLayout` compartilha hoje a mesma fundação estrutural entre dona e profissional e muda a navegação de acordo com o vínculo carregado na sessão. O Admin possui shell separado porque sua necessidade operacional é diferente.
 
-Esse mapa pode evoluir conforme a aplicação evoluir. O objetivo principal é manter cada contexto compreensível sem duplicar aplicação, sessão ou regra de negócio.
+Esse mapa pode evoluir. Nomes de componentes descrevem a implementação atual, não papéis globais persistidos no usuário nem regras de autorização.
 
 ## Segurança e autorização
 
@@ -87,7 +87,7 @@ Controles exclusivos da dona do negócio podem ficar fora desse contexto quando 
 
 ## Dona do negócio
 
-O contexto da dona funciona como um workspace de gestão do negócio. Ele pode compartilhar fundações visuais com o contexto profissional sem precisar ser idêntico.
+O contexto da dona funciona como um workspace de gestão do negócio. Ele compartilha atualmente a fundação `WorkspaceLayout` com o contexto profissional, mas usa navegação e prioridades adequadas ao papel de dona.
 
 Normalmente reúne:
 
