@@ -8,7 +8,7 @@ O Centro de comando pode apresentar os principais marcos atingidos pelos profiss
 
 1. cadastro profissional;
 2. negócio criado;
-3. serviço criado;
+3. serviço ativo;
 4. negócio publicado;
 5. primeiro agendamento válido.
 
