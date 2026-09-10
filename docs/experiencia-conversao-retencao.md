@@ -6,7 +6,9 @@ Este documento registra regras duráveis de UX do Agenda Fashion para a transiç
 
 O onboarding do dashboard existe somente enquanto houver uma etapa canônica de ativação pendente.
 
-Quando o negócio possui serviço ativo e está publicado, a missão principal passa a ser conquistar o primeiro agendamento válido. Depois desse marco, o `DashboardNextAction` pode priorizar oportunidades de crescimento e retenção, evitando componentes concorrentes orientando a profissional ao mesmo tempo.
+Enquanto a ativação estiver pendente, o dashboard mostra a missão útil do momento, sem transformar os estados internos do backend em checklist permanente ou em contagem `X de N etapas`.
+
+Quando o negócio possui serviço ativo e está publicado, a missão principal passa a ser conquistar o primeiro agendamento válido. Depois desse marco, o `DashboardNextAction` deixa de ser exibido de forma permanente e o dashboard passa a priorizar oportunidades de crescimento, recorrência e receita.
 
 A sequência de produto acompanha o valor real do AF: estruturar o negócio, publicar, divulgar, converter visitas em agendamentos e aumentar recorrência.
 
