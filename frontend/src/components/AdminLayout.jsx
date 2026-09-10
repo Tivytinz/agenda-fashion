@@ -1,4 +1,5 @@
 import { AdminShell } from "./AdminShell";
+import "../styles/admin-core-finish.css";
 
 export const ADMIN_LINKS = [
   ["/admin", "Visão geral", "home"],
