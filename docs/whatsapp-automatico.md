@@ -21,8 +21,10 @@ Separadamente, o AF pode criar orientações de ativação para o dono do negóc
    menos um serviço ativo.
 
 Esses dois modelos são mutuamente exclusivos. O banco permite no máximo uma
-mensagem por negócio e data, e a regra de elegibilidade impede que
-os dois sejam enviados para o mesmo negócio no mesmo dia.
+mensagem por negócio e data, e a regra de elegibilidade impede que os dois sejam
+enviados para o mesmo negócio no mesmo dia. A cadência real também respeita o
+intervalo mínimo configurado; portanto essas orientações não devem ser descritas
+como um envio diário obrigatório.
 
 Para visitantes, as mensagens para a cliente só são criadas quando ela marca o
 consentimento no formulário do agendamento. Para clientes com conta, vale a
@@ -55,110 +57,35 @@ O status da fila `SENT` significa que a Meta aceitou a mensagem e retornou um
 `wamid`. O webhook em `/webhook/whatsapp` atualiza `status_entrega` para
 `SENT`, `DELIVERED`, `READ` ou `FAILED`.
 
-## Migration
+## Migrations
 
-Antes de publicar o código que usa a fila, execute:
+A evolução do fluxo está distribuída pelas migrations de WhatsApp. Entre as
+principais estão:
 
-```bash
-node scripts/executar-migration.js database/migrations/021_mensagens_automaticas_whatsapp.sql
-```
+- `021_mensagens_automaticas_whatsapp.sql`: fila inicial e consentimento do agendamento;
+- `022_status_entrega_whatsapp.sql`: rastreamento de entrega;
+- `041_lembrete_whatsapp_profissional.sql`: lembrete da profissional;
+- `044_lembretes_diarios_whatsapp_negocio.sql`: estrutura histórica das orientações ligadas ao negócio;
+- `046_notificacoes_whatsapp_clientes.sql`: preferência de mensagens das clientes;
+- `048_metricas_admin_whatsapp.sql`: índice de apoio às métricas administrativas;
+- `052_consentimento_whatsapp_meta.sql`: separação de consentimento operacional e marketing;
+- `053_respostas_conversa_whatsapp.sql`: respostas idempotentes aos quebra-gelos;
+- `054_consentimento_comprovavel_optout_global.sql`: consentimento comprovável e opt-out global;
+- `055_optout_global_duravel_whatsapp.sql`: aplicação durável do opt-out global a agendamentos existentes.
 
-A migration:
+O nome histórico da migration `044` não define a cadência atual do produto. O
+runtime respeita `WHATSAPP_BUSINESS_REMINDER_MAX_SENDS`,
+`WHATSAPP_BUSINESS_REMINDER_INTERVAL_DAYS` e
+`WHATSAPP_BUSINESS_REMINDER_HOUR`.
 
-- adiciona `agendamentos.whatsapp_consentido_em`;
-- cria `whatsapp_mensagens`;
-- cria os índices, restrições e trigger de `updated_at`.
-
-Ela é idempotente para criação de tabela, coluna e índices.
-
-Depois, execute a migration de rastreamento de entrega:
-
-```bash
-node scripts/executar-migration.js database/migrations/022_status_entrega_whatsapp.sql
-```
-
-Para habilitar o lembrete da profissional, execute também:
-
-```bash
-node scripts/executar-migration.js database/migrations/041_lembrete_whatsapp_profissional.sql
-```
-
-Para habilitar os lembretes diários dos negócios, execute:
-
-```bash
-node scripts/executar-migration.js database/migrations/044_lembretes_diarios_whatsapp_negocio.sql
-```
-
-A migration adiciona o consentimento de Marketing à conta e amplia a fila para
-mensagens ligadas ao negócio, com idempotência por negócio, tipo e dia.
-
-Para habilitar a preferência de mensagens das clientes, execute:
-
-```bash
-node scripts/executar-migration.js database/migrations/046_notificacoes_whatsapp_clientes.sql
-```
-
-A migration adicionou a preferência à conta e, por compatibilidade histórica,
-autorizou cadastros existentes. Essa autorização presumida é posteriormente
-revogada pela migration 054 quando não existe evidência auditável de opt-in.
-Novos cadastros respeitam a escolha explícita feita no formulário.
-
-Para manter as métricas administrativas eficientes conforme a fila cresce,
-execute também:
-
-```bash
-node scripts/executar-migration.js database/migrations/048_metricas_admin_whatsapp.sql
-```
-
-A migration cria um índice por data e tipo de mensagem; ela não altera nem
-remove registros existentes.
-
-Depois, aplique a migration de consentimento operacional e auditoria:
-
-```bash
-node scripts/executar-migration.js database/migrations/052_consentimento_whatsapp_meta.sql
-```
-
-Ela separa os avisos operacionais do marketing e registra a origem, versão do
-texto, telefone, data e eventual cancelamento do consentimento.
-
-Para ativar respostas idempotentes aos quebra-gelos, aplique também:
-
-```bash
-node scripts/executar-migration.js database/migrations/053_respostas_conversa_whatsapp.sql
-```
-
-A migration registra somente o `wamid`, o telefone e a intenção reconhecida.
-Mensagens livres que não correspondem aos quebra-gelos ou ao descadastro não
-são armazenadas nessa tabela.
-
-Para exigir consentimento comprovável e diferenciar os pedidos de descadastro,
-aplique também:
-
-```bash
-node scripts/executar-migration.js database/migrations/054_consentimento_comprovavel_optout_global.sql
-```
-
-A migration desativa autorizações legadas sem evento explícito, cancela as
-mensagens pendentes afetadas e permite registrar separadamente opt-out global.
-
-Para tornar retroativo o opt-out global aos agendamentos que já existiam,
-aplique em seguida:
-
-```bash
-node scripts/executar-migration.js database/migrations/055_optout_global_duravel_whatsapp.sql
-```
-
-A migration revoga a autorização dos agendamentos consentidos antes do último
-pedido global de descadastro, registra a revogação e cancela a fila vinculada.
-Um consentimento novo, posterior ao pedido de descadastro, é preservado.
+Migrations já aplicadas não devem ser reescritas para renomear esse histórico.
 
 ## Templates da Meta
 
-Crie os seis templates transacionais na categoria `UTILITY`, idioma
-`Portuguese (BR)`. Os dois templates de ativação descritos depois pertencem à
-categoria `MARKETING`. Os nomes e a ordem das variáveis precisam ser exatamente
-os mesmos usados pelo backend.
+Os seis templates transacionais pertencem à categoria `UTILITY`, idioma
+`Portuguese (BR)`. Os dois templates de ativação pertencem à categoria
+`MARKETING`. Os nomes e a ordem das variáveis precisam permanecer compatíveis
+com o backend.
 
 ### `novo_agendamento`
 
@@ -178,9 +105,8 @@ Olá, {{1}}! Você tem um novo horário marcado pelo Agenda Fashion. 💅
 Confira os dados e prepare-se para o atendimento.
 ```
 
-Se o modelo já estiver ativo na Meta com a frase promocional anterior, atualize
-o conteúdo no WhatsApp Manager e aguarde a nova aprovação antes de trocar o
-modelo usado em produção.
+Se o modelo já estiver ativo na Meta com conteúdo diferente, confirme o estado
+no WhatsApp Manager antes de alterar o nome/configuração usado em produção.
 
 ### `confirmacao_agendamento_cliente`
 
@@ -273,13 +199,13 @@ Você pode acessar o Agenda Fashion para escolher um novo horário quando deseja
 
 Categoria: `MARKETING`.
 
-Destinatário: dono de negócio que autorizou o lembrete diário e permanece sem
-serviços ativos 24 horas depois do cadastro.
+Destinatário: dono de negócio que autorizou as orientações de ativação e
+permanece sem serviços ativos após o período mínimo de elegibilidade.
 
-O modelo não possui variáveis. Ele deve direcionar para:
+O modelo não possui variáveis. Ele direciona para:
 `https://app.agendafashion.com.br/painel/servicos/novo`.
 
-Inclua também um botão de resposta rápida **Parar marketing**, com payload
+Inclua um botão de resposta rápida **Parar marketing**, com payload
 `PARAR_MARKETING`, para que o webhook aplique o descadastro sem exigir login.
 
 ### `lembrete_divulgar_negocio`
@@ -287,7 +213,7 @@ Inclua também um botão de resposta rápida **Parar marketing**, com payload
 Categoria: `MARKETING`.
 
 Destinatário: dono de negócio publicado, com ao menos um serviço ativo e que
-autorizou o lembrete diário.
+autorizou as orientações de marketing.
 
 Ordem das variáveis:
 
@@ -299,15 +225,19 @@ Inclua um botão de resposta rápida **Parar marketing**, com payload
 `PARAR_MARKETING`.
 
 O conjunto de orientações pode ser enviado no máximo três vezes, com intervalo
-mínimo de três dias, a partir das 10h no fuso do negócio. Os limites são configurados por
-`WHATSAPP_BUSINESS_REMINDER_MAX_SENDS`,
-`WHATSAPP_BUSINESS_REMINDER_INTERVAL_DAYS` e
-`WHATSAPP_BUSINESS_REMINDER_HOUR`.
+mínimo de três dias, a partir das 10h no fuso do negócio. Os limites são
+configurados por:
+
+```text
+WHATSAPP_BUSINESS_REMINDER_MAX_SENDS
+WHATSAPP_BUSINESS_REMINDER_INTERVAL_DAYS
+WHATSAPP_BUSINESS_REMINDER_HOUR
+```
 
 ## Variáveis do Railway
 
-Use `docs/whatsapp.env.example` como referência. As obrigatórias para ativação
-são:
+Use `docs/whatsapp.env.example` como referência. As principais variáveis de
+configuração são:
 
 ```text
 WHATSAPP_NOTIFICATIONS_ENABLED=true
@@ -336,120 +266,59 @@ WHATSAPP_APP_SECRET=
 WHATSAPP_CONVERSATION_AUTOREPLIES_ENABLED=false
 ```
 
-Use um token de acesso permanente de usuário do sistema na ativação final.
-O processador recusa iniciar se as credenciais da API ou os segredos do webhook
-estiverem ausentes.
+Use um token de acesso permanente de usuário do sistema na ativação final. O
+processador recusa iniciar se as credenciais da API ou os segredos do webhook
+estiverem ausentes quando o recurso correspondente exigir essas credenciais.
 
-Não trate a aprovação como uma informação estática da documentação. Confirme
-os oito modelos em **Administração > WhatsApp**, que cruza os nomes e o idioma
-configurados com `/{WHATSAPP_BUSINESS_ACCOUNT_ID}/message_templates`. O token
-usado nessa consulta precisa ter a permissão `whatsapp_business_management`.
-O identificador da conta do WhatsApp (WABA) não é o ID do número de telefone e
-pode ser diferente do ID geral do Gerenciador de Negócios.
+A aprovação dos templates é estado externo e não deve ser tratada como verdade
+estática deste documento. Confirme os modelos em **Administração > WhatsApp**,
+que consulta a conta configurada. O WABA não é o ID do número de telefone e pode
+ser diferente do ID geral do Gerenciador de Negócios.
 
-Ative o lembrete da profissional somente depois que
-`lembrete_agendamento_profissional` aparecer como ativo. Mantenha
-`WHATSAPP_NOTIFICATIONS_ENABLED=true` em produção. Para um teste controlado:
+Ative cada automação somente depois que o respectivo modelo estiver disponível
+e o consentimento aplicável puder ser comprovado. Desativar a preferência
+cancela a elegibilidade conforme o fluxo implementado; mensagens pendentes são
+revalidadas antes do envio.
 
-Os lembretes diários também começam desativados. Ative cada flag somente após
-o respectivo modelo aparecer como ativo na Meta. Apenas contas com
-consentimento explícito entram na rotina. O consentimento pode ser dado no
-cadastro profissional ou pelo convite destacado no painel; **Minha conta**
-mantém o controle permanente para interromper os envios. Contas antigas sem
-consentimento não são ativadas silenciosamente: recebem o convite no painel
-para que a autorização fique comprovável. Desativar a opção cancela a
-elegibilidade imediatamente; mensagens ainda pendentes são invalidadas antes
-do envio. A resposta `PARAR MARKETING` cancela somente essa categoria. Pedidos
-genéricos `SAIR`, `PARAR` e `STOP` interrompem todas as preferências e cancelam
-as mensagens pendentes para o número. O webhook também reconhece pedidos claros
-em linguagem natural, como `não quero mais mensagens`, `pare de me enviar
-mensagens` e `me descadastre`, sem confundir frases que não tratam de
-comunicações; todos os pedidos são registrados.
+`PARAR MARKETING` interrompe a categoria de marketing. Pedidos globais como
+`SAIR`, `PARAR` e `STOP`, além das formas claras reconhecidas pelo webhook,
+aplicam o opt-out global implementado.
 
-Depois da aprovação do novo modelo, altere no Railway:
-
-```text
-WHATSAPP_PROFESSIONAL_REMINDER_ENABLED=true
-```
-
-1. configure `WHATSAPP_TEST_RECIPIENT` com o número autorizado na Meta;
-2. execute `node scripts/testar-template-novo-agendamento.js`;
-3. confira o recebimento antes de ligar o processador;
-4. configure o webhook da Meta usando `/webhook/whatsapp`;
-5. remova `WHATSAPP_TEST_RECIPIENT`;
-6. confirme `WHATSAPP_NOTIFICATIONS_ENABLED=true`.
-
-`WHATSAPP_TEST_RECIPIENT` nunca substitui o destinatário da fila automática.
-Isso impede que um teste redirecione mensagens reais de várias clientes.
+Para um teste controlado de template, `WHATSAPP_TEST_RECIPIENT` pode ser usado
+pelo script específico. Ele nunca substitui o destinatário da fila automática e
+deve ser removido depois do teste.
 
 ## Quebra-gelos e respostas automáticas
 
-Configure exatamente estes quatro quebra-gelos no número oficial:
+Configure estes quatro quebra-gelos no número oficial:
 
 1. `Como funciona o Agenda Fashion?`;
 2. `Quero criar minha agenda online`;
 3. `Quais são os planos disponíveis?`;
 4. `Preciso de ajuda`.
 
-Quando a flag `WHATSAPP_CONVERSATION_AUTOREPLIES_ENABLED=true` estiver ativa,
-o webhook normaliza acentos e pontuação, reconhece esses textos e envia uma
-resposta livre dentro da janela de atendimento iniciada pela própria pessoa.
-O envio não depende de consentimento de marketing porque responde a uma ação
-solicitada no chat. Outros textos não recebem resposta automática.
+Quando `WHATSAPP_CONVERSATION_AUTOREPLIES_ENABLED=true`, o webhook normaliza o
+texto, reconhece essas intenções e pode enviar uma resposta livre dentro da
+janela iniciada pela própria pessoa. O envio não depende de consentimento de
+marketing porque responde a uma ação solicitada no chat.
 
-Cada mensagem recebida é deduplicada pelo `wamid`, impedindo resposta repetida
-se a Meta reenviar o mesmo evento. O webhook também confere o
-`WHATSAPP_PHONE_NUMBER_ID` antes de responder, evitando que uma mensagem de
-outro número da mesma conta seja tratada pelo número do AF.
-
-Depois do deploy e das migrations:
-
-1. mantenha a flag desativada durante o primeiro healthcheck;
-2. teste o webhook e as quatro opções com um WhatsApp que nunca conversou com
-   o número do AF;
-3. altere `WHATSAPP_CONVERSATION_AUTOREPLIES_ENABLED=true`;
-4. repita os quatro testes e confira os registros de entrega.
+Cada mensagem recebida é deduplicada pelo `wamid`. O webhook também confere o
+`WHATSAPP_PHONE_NUMBER_ID` antes de responder, evitando processar mensagens de
+outro número da mesma conta como se fossem do número oficial do AF.
 
 ## Consulta operacional
 
-O painel **Administração > WhatsApp** é a consulta operacional preferencial.
-Ele mostra separadamente:
+O painel **Administração > WhatsApp** é a consulta operacional preferencial. Ele
+mostra separadamente:
 
 - aprovação, categoria, idioma e qualidade consultados na Meta;
-- automações realmente habilitadas nas variáveis do ambiente;
+- automações habilitadas no ambiente;
 - mensagens geradas, pendentes, aceitas, entregues, lidas, canceladas e com
   falha por template;
-- taxa de entrega sobre mensagens aceitas e taxa de leitura sobre mensagens
-  entregues.
+- taxas de entrega e leitura quando existe base para o cálculo.
 
 Se a Meta estiver indisponível ou a WABA não estiver configurada, o painel não
-inventa um status: exibe **Não verificado** e mantém as métricas locais do banco
-visíveis. A integração administrativa é somente leitura e não altera modelos.
-
-Para inspeção direta no banco:
-
-```sql
-SELECT
-  id,
-  agendamento_id,
-  tipo,
-  status,
-  tentativas,
-  agendado_para,
-  expira_em,
-  enviado_em,
-  meta_message_id,
-  status_entrega,
-  status_entrega_em,
-  entregue_em,
-  lida_em,
-  falhou_em,
-  meta_codigo_erro,
-  falha_retentavel,
-  ultimo_erro
-FROM whatsapp_mensagens
-ORDER BY id DESC
-LIMIT 50;
-```
+deve inventar um status; as métricas locais podem continuar visíveis com o
+estado externo marcado como não verificado.
 
 Nunca salve o token da Meta em commits, prints ou mensagens de suporte.
