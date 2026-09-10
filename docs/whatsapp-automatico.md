@@ -22,7 +22,9 @@ Separadamente, o AF pode criar orientações de ativação para o dono do negóc
 
 Esses dois modelos são mutuamente exclusivos. O banco permite no máximo uma
 mensagem por negócio e data, e a regra de elegibilidade impede que
-os dois sejam enviados para o mesmo negócio no mesmo dia.
+os dois sejam enviados para o mesmo negócio no mesmo dia. A cadência atual
+também respeita o intervalo mínimo configurado, então essas orientações não
+representam um envio diário obrigatório.
 
 Para visitantes, as mensagens para a cliente só são criadas quando ela marca o
 consentimento no formulário do agendamento. Para clientes com conta, vale a
@@ -83,14 +85,16 @@ Para habilitar o lembrete da profissional, execute também:
 node scripts/executar-migration.js database/migrations/041_lembrete_whatsapp_profissional.sql
 ```
 
-Para habilitar os lembretes diários dos negócios, execute:
+Para habilitar a estrutura histórica das orientações de ativação dos negócios,
+execute:
 
 ```bash
 node scripts/executar-migration.js database/migrations/044_lembretes_diarios_whatsapp_negocio.sql
 ```
 
-A migration adiciona o consentimento de Marketing à conta e amplia a fila para
-mensagens ligadas ao negócio, com idempotência por negócio, tipo e dia.
+O nome histórico da migration `044` não define a cadência atual. A migration
+adiciona o consentimento de Marketing à conta e amplia a fila para mensagens
+ligadas ao negócio, com idempotência por negócio, tipo e dia.
 
 Para habilitar a preferência de mensagens das clientes, execute:
 
@@ -227,7 +231,7 @@ Olá, {{1}}! Você tem um atendimento chegando. 💖
 
 👤 Cliente: {{2}}
 📱 WhatsApp: {{3}}
-💅 Serviço: {{4}}
+💖 Serviço: {{4}}
 📅 Data: {{5}}
 ⏰ Horário: {{6}}
 
@@ -273,7 +277,7 @@ Você pode acessar o Agenda Fashion para escolher um novo horário quando deseja
 
 Categoria: `MARKETING`.
 
-Destinatário: dono de negócio que autorizou o lembrete diário e permanece sem
+Destinatário: dono de negócio que autorizou as orientações de ativação e permanece sem
 serviços ativos 24 horas depois do cadastro.
 
 O modelo não possui variáveis. Ele deve direcionar para:
@@ -287,7 +291,7 @@ Inclua também um botão de resposta rápida **Parar marketing**, com payload
 Categoria: `MARKETING`.
 
 Destinatário: dono de negócio publicado, com ao menos um serviço ativo e que
-autorizou o lembrete diário.
+autorizou as orientações de ativação/divulgação.
 
 Ordem das variáveis:
 
@@ -351,9 +355,9 @@ Ative o lembrete da profissional somente depois que
 `lembrete_agendamento_profissional` aparecer como ativo. Mantenha
 `WHATSAPP_NOTIFICATIONS_ENABLED=true` em produção. Para um teste controlado:
 
-Os lembretes diários também começam desativados. Ative cada flag somente após
-o respectivo modelo aparecer como ativo na Meta. Apenas contas com
-consentimento explícito entram na rotina. O consentimento pode ser dado no
+As orientações de ativação/divulgação também começam desativadas. Ative cada
+flag somente após o respectivo modelo aparecer como ativo na Meta. Apenas contas
+com consentimento explícito entram na rotina. O consentimento pode ser dado no
 cadastro profissional ou pelo convite destacado no painel; **Minha conta**
 mantém o controle permanente para interromper os envios. Contas antigas sem
 consentimento não são ativadas silenciosamente: recebem o convite no painel

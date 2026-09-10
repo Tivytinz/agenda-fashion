@@ -134,6 +134,51 @@ describe(
     );
 
     it(
+      "não expõe a contagem interna de estados canônicos como checklist",
+      () => {
+        renderAction({
+          estado: "REVISAR_PUBLICACAO",
+          concluido: false,
+          titulo: "Revise a publicação",
+          mensagem: "Mensagem definida pelo backend.",
+          acao: {
+            tipo: "NAVEGAR",
+            rotulo: "Revisar meu negócio",
+            destino: "/painel/negocio",
+          },
+        });
+
+        expect(
+          screen.queryByText(/etapas concluídas/i)
+        ).toBeNull();
+        expect(
+          screen.queryByLabelText(/progresso da ativação/i)
+        ).toBeNull();
+      }
+    );
+
+    it(
+      "não mantém um painel de ativação depois do primeiro agendamento",
+      () => {
+        const { container } = renderAction({
+          estado: "ATIVADO",
+          concluido: true,
+          titulo: "Ativação concluída",
+          mensagem:
+            "Seu negócio já recebeu o primeiro agendamento pelo Agenda Fashion.",
+          acao: {
+            tipo: "NAVEGAR",
+            rotulo: "Abrir agenda",
+            destino: "/painel/agenda",
+          },
+        });
+
+        expect(container.innerHTML).toBe("");
+        expect(track).not.toHaveBeenCalled();
+      }
+    );
+
+    it(
       "registra a visualização da ação canônica sem transformar exposição em sucesso",
       () => {
         renderAction({

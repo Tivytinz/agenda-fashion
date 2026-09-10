@@ -44,44 +44,47 @@ Essas quatro contagens de sessão são sinais independentes. A Visão Geral não
 
 ## Hierarquia e densidade visual
 
-A Visão Geral deve ser rápida de ler. Explicações técnicas e ressalvas de cálculo devem ficar em controles de detalhe, como `Como interpretar`, em vez de ocupar permanentemente o espaço principal da tela.
+A Visão Geral deve ser rápida de ler. Explicações técnicas e ressalvas de cálculo podem ficar em controles de detalhe, como `Como interpretar`, quando isso reduzir ruído sem esconder informação importante.
 
-A página deve priorizar:
+A página tende a priorizar:
 
 - valores absolutos essenciais;
 - taxas semanticamente confiáveis;
 - rótulos que indiquem exatamente a entidade medida;
 - leitura mobile sem exigir interpretação analítica avançada.
 
-Comparações com período anterior só devem ser adicionadas quando existir contrato explícito de janela comparável no backend. A interface não deve derivar tendências aproximadas usando períodos incompatíveis.
+Comparações com período anterior só fazem sentido quando existir contrato explícito de janela comparável no backend. A interface não deve derivar tendências aproximadas usando períodos incompatíveis.
 
 ## O que não pertence à Visão Geral
 
-Não devem aparecer na `/admin`:
+A `/admin` não é o lugar principal para:
 
 - readiness da aplicação ou do banco;
-- fila de ativações pendentes;
+- filas operacionais de profissionais;
 - nomes de profissionais prioritários;
-- pendências individuais como sem serviço, sem agenda ou sem publicação;
+- pendências individuais como serviço ausente, publicação ou disponibilidade técnica;
 - busca de negócios ou agendamentos;
 - ações operacionais sobre registros individuais.
 
-Esses dados continuam disponíveis nos módulos especializados.
+Esses dados continuam disponíveis nos módulos especializados quando forem úteis para a operação.
 
 ## Arquitetura da navegação administrativa
 
-A navegação principal do Admin possui cinco módulos:
+A navegação principal atual do Admin possui seis módulos:
 
 1. **Visão geral** — métricas agregadas do AF;
-2. **Ativação** — profissionais, bloqueios e avanço até o primeiro agendamento válido;
-3. **Operação** — negócios, agendamentos e marketplace em nível operacional;
-4. **Marketing** — aquisição, atribuição, mídia paga, custos e eficiência;
-5. **WhatsApp** — comunicação, automações e operação da integração.
+2. **Aquisição** — origem e qualidade dos profissionais adquiridos;
+3. **Jornada** — avanço entre sinais de produto até o primeiro agendamento válido;
+4. **Retenção** — repetição de valor e recorrência observada;
+5. **Receita** — monetização e pagamentos reconhecidos pelo backend;
+6. **Operação** — negócios, agendamentos e marketplace em nível operacional.
 
-`Minha conta` não é um módulo do AF e, por isso, não ocupa o mesmo nível da navegação administrativa. Ela permanece acessível pelo menu de conta/avatar do cabeçalho.
+Marketing detalhado, custos/integrações, diagnóstico histórico de ativação e WhatsApp continuam em rotas especializadas. Eles podem ser acessados quando a tarefa exigir sem precisar ocupar o mesmo nível da navegação principal.
+
+`Minha conta` não é um módulo analítico do AF e permanece acessível como ação de conta dentro do contexto adequado.
 
 ## Período e consistência
 
 O seletor de período da Visão Geral deve controlar apenas métricas compatíveis com recorte temporal. Quando um indicador obrigatório do novo período falhar, a tela não pode rotular dados antigos como se pertencessem ao novo período.
 
-Indicadores opcionais também não podem reutilizar dados de outro período silenciosamente. Se não houver valor confiável para o recorte carregado, a interface deve mostrar indisponibilidade (`—`) ou mensagem de amostra insuficiente, conforme a métrica.
+Indicadores opcionais também não devem reutilizar dados de outro período silenciosamente. Se não houver valor confiável para o recorte carregado, a interface pode mostrar indisponibilidade (`—`) ou mensagem de amostra insuficiente, conforme a métrica.

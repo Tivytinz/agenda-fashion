@@ -1,308 +1,335 @@
-# Memoria operacional do Agenda Fashion
+# Memória operacional do Agenda Fashion
 
-> Contexto permanente para agentes de desenvolvimento. Atualizado em 9 de
-> setembro de 2026.
+> Contexto permanente para agentes de desenvolvimento.
+> Atualizada em setembro de 2026.
 
-Este arquivo deve ser lido antes de analisar, planejar ou alterar o projeto.
-Ele registra a direcao do produto e as regras que nao podem ser perdidas entre
-conversas, sprints ou agentes diferentes.
+Este arquivo deve ser lido antes de mudanças relevantes no projeto. Ele registra
+decisões duráveis de produto, arquitetura, segurança e operação. Detalhes de uma
+feature específica ficam nos documentos em `docs/` e no código executável.
 
-## Objetivo principal
+Em caso de divergência:
 
-O objetivo do Agenda Fashion (AF) e **se tornar referencia no Brasil para
-agendamento de beleza e estetica**.
+1. código executável e migrations representam o estado implementado;
+2. testes representam comportamentos esperados;
+3. este arquivo e `docs/` representam decisões e intenção do produto.
 
-O AF nao e apenas uma agenda digital. Ele deve conectar clientes a
-profissionais e negocios, facilitar a descoberta de servicos e transformar a
-busca por beleza e estetica em um agendamento simples, seguro e confiavel.
+Uma divergência conhecida deve ser corrigida, não usada como justificativa para
+presumir que a documentação antiga continua válida.
 
-## Proposta de valor
+## Objetivo do produto
 
-Para profissionais e negocios, o AF deve deixar claro que:
+O Agenda Fashion (AF) é um SaaS brasileiro de descoberta e agendamento para o
+mercado de beleza e estética.
 
-1. e possivel comecar gratis;
-2. o perfil publico ajuda a conquistar novos clientes;
-3. clientes podem escolher servico, profissional, data e horario sem depender
-   de atendimento manual para marcar;
-4. o AF avisa sobre agendamentos pelo WhatsApp;
-5. o dashboard mostra agenda, ocupacao e crescimento do negocio;
-6. o produto reduz trabalho operacional e devolve tempo a profissional.
+O objetivo é se tornar referência no Brasil ao conectar clientes a
+profissionais e negócios, facilitar descoberta e transformar interesse em
+agendamentos simples, seguros e confiáveis.
 
-Para clientes, o AF deve permitir:
+O AF deve gerar valor para os dois lados do marketplace:
 
-1. descobrir profissionais, studios, clinicas e saloes;
-2. comparar servicos e informacoes relevantes;
-3. consultar disponibilidade real;
-4. agendar com poucos passos;
-5. acompanhar seus agendamentos com confianca.
+- profissionais e negócios precisam publicar oferta, receber agendamentos,
+  reduzir trabalho manual e acompanhar crescimento;
+- clientes finais precisam encontrar oferta relevante, consultar disponibilidade
+  real e agendar com poucos passos.
 
-## Publico e mercado
+## Entidades e contextos
 
-- Mercado principal: Brasil.
-- Segmentos: beleza e estetica.
-- Oferta: profissionais autonomos, studios, saloes, clinicas e outros negocios
-  compativeis com agendamento.
-- Demanda: pessoas procurando servicos e horarios disponiveis.
+Não tratar como equivalentes:
 
-O crescimento deve equilibrar os dois lados do marketplace: sem negocios e
-horarios de qualidade nao existe boa descoberta; sem clientes e agendamentos o
-AF nao demonstra valor para os negocios.
+- **profissional**: pessoa que presta serviços e pode possuir vínculo com um ou
+  mais negócios;
+- **negócio**: unidade operacional que possui serviços, equipe, agenda, plano e
+  perfil público;
+- **cliente final**: pessoa que descobre e agenda serviços, com conta ou como
+  visitante conforme o fluxo permitido.
 
-## Principios de produto
+A identidade principal fica em `usuarios`. Papéis de negócio pertencem a
+`usuarios_negocios.papel`, atualmente `dono` e `profissional`. Administração
+global usa `usuarios_administradores`.
 
-- O AF deve evoluir continuamente em produto, tecnologia, seguranca, UX e
-  operacao, sempre em direcao ao objetivo de se tornar referencia no Brasil.
-- Evolucao nunca deve significar instabilidade: nenhuma melhoria pode quebrar
-  um fluxo que ja funciona ou introduzir uma regressao conhecida.
-- A cliente deve conseguir agendar sem precisar conversar com o negocio.
-- O WhatsApp complementa o fluxo com avisos; ele nao deve ser obrigatorio para
-  concluir manualmente cada agendamento.
-- Clientes com conta controlam os avisos de agendamento no cadastro e em Minha
-  Conta; cadastros anteriores sem evidencia auditavel de consentimento ficam
-  desativados ate a cliente autorizar explicitamente.
-- O plano gratuito deve entregar valor real antes de qualquer pressao por
-  upgrade.
-- O perfil publico de cada negocio e uma ferramenta de aquisicao e deve ter
-  link curto, estavel, compartilhavel e indexavel quando publicado.
-- Todo novo negocio deve ser criado com os dados estruturais essenciais: nome,
-  ao menos uma especialidade, WhatsApp, link do Google Maps, CEP, endereco,
-  numero, bairro, cidade e estado. Descricao, foto e complemento sao
-  opcionais; o complemento pode ser preenchido quando fizer sentido para o
-  endereco, sem bloquear a criacao quando nao existir. Esta regra vale para
-  criacao e nao altera retroativamente os criterios de publicacao de negocios
-  legados.
-- A descricao do negocio melhora a qualidade do perfil, mas e opcional e nao
-  pode bloquear a criacao ou a publicacao.
-- A publicacao e automatica quando o negocio possui os dados estruturais
-  obrigatorios e ao menos um servico ativo. Confirmar ou editar horarios nao e
-  requisito para publicar e nao deve ser reintroduzido como gate de ativacao.
-- O campo `negocios.publicacao_exige_agenda` permanece apenas por
-  compatibilidade com migrations e dados legados. O runtime atual nao deve
-  usa-lo para exigir confirmacao manual de agenda antes da publicacao.
-- Ao criar o negocio, o backend cria na mesma transacao uma disponibilidade
-  inicial padrao para o dono: segunda a sexta das 08:00 as 18:00, com intervalo
-  das 12:00 as 13:00; sabado das 08:00 as 13:00; domingo sem atendimento. A
-  origem `padrao_af` identifica esse estado automatico e o profissional pode
-  personaliza-lo depois.
-- `agenda_configuracoes.configurado_em` e um marcador tecnico de
-  disponibilidade inicializada. Ele nao representa confirmacao manual, nao e
-  etapa de ativacao e nao pode ser usado para bloquear publicacao ou medir
-  conclusao de onboarding.
-- O primeiro servico ativo pode publicar automaticamente o negocio quando o
-  restante do perfil ja estiver elegivel. O onboarding principal deve conduzir
-  `Negocio → Servico → Divulgacao/primeiro agendamento`; personalizar horarios
-  e uma configuracao posterior, acessivel e importante para qualidade, mas nao
-  uma escolha obrigatoria antes de entregar valor.
-- A elegibilidade de publicacao deve continuar sendo recalculada no backend.
-  Se o negocio perder o ultimo servico ativo ou deixar de atender os requisitos
-  estruturais obrigatorios, ele pode ser despublicado ate voltar a ficar
-  elegivel.
-- Depois da publicacao, a interface deve conduzir para divulgacao do perfil e
-  primeiro agendamento. O compartilhamento deve reutilizar os links publicos
-  rastreaveis do AF, sem criar uma segunda mecanica de share ou perder a origem
-  do acesso.
-- Links antigos de perfis devem continuar funcionando quando o slug mudar.
-- O dashboard deve traduzir dados em crescimento compreensivel, nao apenas
-  exibir numeros soltos.
-- A ativacao administrativa tem cinco etapas: negocio criado, dados essenciais,
-  servico ativo, publicacao e primeiro agendamento nao cancelado. Disponibilidade
-  e diagnostico tecnico separado, sem alterar o percentual de ativacao.
-- A experiencia deve ser simples no celular, inclusive em telas pequenas e no
-  Safari/WebKit.
-- Estados de carregamento, vazio, erro, sucesso e sessao expirada fazem parte
-  do fluxo e devem ser tratados.
-- Privacidade, isolamento entre negocios e confiabilidade de horarios sao
-  requisitos de produto, nao melhorias opcionais.
+Uma mesma conta pode atuar em mais de um contexto. O frontend muda navegação e
+apresentação conforme rota, sessão e vínculos, mas essas escolhas não substituem
+a autorização do backend.
 
-## Identidade do AF
+## Funil principal do AF
 
-- Nome: Agenda Fashion.
-- Sigla: AF.
-- Dominio principal: `https://app.agendafashion.com.br`.
-- Identidade visual: rosa, acolhedora, moderna e ligada ao universo de beleza.
-- Paleta de interface: rosa, branco e grafite suave. Vinho nao deve ser usado
-  como cor dominante ou como substituto do grafite nos textos e superficies.
-- A organizacao visual pode usar destaque amplo, hierarquia limpa e fileiras
-  horizontais inspiradas em catalogos de streaming, sem copiar outra marca e
-  sem descaracterizar o Agenda Fashion.
-- A home publica segue o prototipo aprovado: cabecalho com Inicio, Favoritos,
-  Meus agendamentos, busca e foto da conta; a busca substitui o atalho
-  redundante "Buscar servicos". O banner nao possui campo de busca interno e
-  funciona como carrossel navegavel.
-- A home nao pode inferir a localizacao da cliente pela cidade do primeiro
-  negocio retornado. A cliente escolhe manualmente entre "Todo o Brasil" e as
-  cidades com oferta publicada; a escolha fica salva no navegador. Sem uma
-  localizacao escolhida ou autorizada, usar contexto nacional e nao afirmar
-  que os resultados estao perto.
-- Cada categoria da home possui uma foto panoramica propria para o carrossel.
-  As fotos editoriais ficam somente no banner; os cards de navegacao, perfis e
-  servicos sem foto cadastrada mantem o fallback antigo com o icone da
-  categoria para preservar a identidade visual do AF.
-- Emojis fazem parte da comunicacao da marca quando ajudam a leitura, sem
-  substituir acessibilidade ou clareza.
-- Usar os arquivos oficiais de marca existentes em
-  `frontend/src/assets/brand/`; nao criar logotipos substitutos.
+Para aquisição e ativação profissional, acompanhar o funil real:
 
-## Planos oficiais
+```text
+anúncio/origem
+  → cadastro profissional
+  → negócio criado
+  → serviço ativo
+  → negócio publicado
+  → primeiro agendamento válido
+  → checkout iniciado
+  → pagamento/assinatura
+  → recorrência e retenção
+```
 
-| Plano | Valor mensal | Agendamentos/mes | Profissionais | Servicos |
+`checkout iniciado`, clique, cadastro, negócio criado e receita são fatos
+diferentes. Não usar uma etapa como proxy automático de outra.
+
+O primeiro agendamento válido é o primeiro agendamento não cancelado do
+negócio. Ele mede primeira reserva válida; não confirma comparecimento nem
+receita.
+
+## Onboarding, publicação e disponibilidade
+
+Todo novo negócio deve ser criado com os dados estruturais exigidos pelo backend
+para o fluxo atual. Descrição, fotos e complemento permanecem opcionais quando o
+contrato vigente assim definir.
+
+A publicação é automática quando o negócio atende aos requisitos estruturais e
+possui ao menos um serviço ativo.
+
+**Configurar ou confirmar manualmente horários não é gate de publicação nem
+etapa canônica de ativação.**
+
+Ao criar o negócio, o backend inicializa na mesma transação uma disponibilidade
+padrão para a dona inicial:
+
+- segunda a sexta: 08:00–18:00, com pausa 12:00–13:00;
+- sábado: 08:00–13:00;
+- domingo: fechado.
+
+`agenda_configuracoes.configurado_em` é marcador técnico de disponibilidade
+inicializada. Ele não representa confirmação manual nem deve ser usado para
+bloquear publicação ou medir conclusão do onboarding.
+
+`negocios.publicacao_exige_agenda` permanece apenas por compatibilidade com
+dados/migrations legados; o runtime atual não deve reintroduzir esse gate.
+
+Depois da publicação, a missão principal é divulgar o perfil e conquistar o
+primeiro agendamento. Compartilhamento deve reutilizar os links públicos
+rastreáveis existentes do AF.
+
+A disponibilidade continua crítica para gerar slots corretos e pode ser
+acompanhada como diagnóstico operacional separado.
+
+Detalhes: `docs/ativacao-profissional-ux.md` e
+`docs/ativacao-proxima-acao.md`.
+
+## Planos e monetização
+
+O plano gratuito é uma oferta ativa e deve entregar valor real antes de qualquer
+pressão por upgrade.
+
+| Plano | Valor mensal | Agendamentos/mês | Profissionais | Serviços |
 | --- | ---: | ---: | ---: | ---: |
-| Gratis | R$ 0,00 | 10 | 1 | 2 |
-| Autonoma | R$ 49,90 | 20 | 1 | 4 |
+| Grátis | R$ 0,00 | 10 | 1 | 2 |
+| Autônoma | R$ 49,90 | 20 | 1 | 4 |
 | Studio | R$ 99,90 | 30 | 1 | 10 |
-| Salao | R$ 199,90 | Ilimitados | 5 | Ilimitados |
+| Salão | R$ 199,90 | Ilimitados | 5 | Ilimitados |
 
-O plano Gratis e uma oferta ativa e entrega valor real, sem cobranca e sem
-cartao. Seu slug interno permanece `inicial` por compatibilidade. Planos pagos
-usam checkout por PIX e somente sao ativados depois da confirmacao autenticada
-e idempotente do Asaas.
+O slug interno do plano gratuito permanece `inicial` por compatibilidade.
+Limites de plano, preço e elegibilidade são regras do backend.
 
-Em marketing, buscas por `gratis`, `gratuito` e variacoes sao compativeis com a
-oferta do AF e nao devem ser negativadas automaticamente. A aquisicao gratuita,
-a ativacao do negocio e a conversao para plano pago devem ser medidas como
-etapas diferentes. Os detalhes ficam em `docs/planos.md`.
+Planos pagos usam checkout por PIX. Retorno do navegador não confirma pagamento.
+A ativação do plano depende da confirmação financeira autenticada e idempotente
+do Asaas.
+
+Mais detalhes: `docs/planos.md`, `docs/checkout-idempotente.md` e documentos de
+webhook financeiro.
 
 ## Arquitetura atual
 
-- Backend: Node.js 22, Express 5 e JavaScript CommonJS.
+- Runtime: Node.js 22.
+- Backend: Express 5, JavaScript CommonJS.
+- Banco: PostgreSQL via `pg`.
 - Frontend: React 19, React Router 7, Vite 7 e CSS.
-- Banco: PostgreSQL, acessado diretamente pelo pacote `pg`.
-- Camadas: routes, controllers, services, repositories e PostgreSQL.
-- Autenticacao: JWT em cookie `HttpOnly`, bcrypt e Google Identity. Tokens
-  Bearer antigos continuam aceitos apenas durante a migracao compativel.
-- Recuperacao de senha: link de uso unico enviado por e-mail, com token
-  armazenado somente como hash e validade de 30 minutos.
-- Imagens: Busboy, validacao de conteudo e Cloudinary.
-- Pagamentos: Asaas com confirmacao por webhook idempotente.
-- Notificacoes: WhatsApp Cloud API oficial da Meta.
-- Conversas no WhatsApp: os quatro quebra-gelos oficiais possuem respostas
-  livres somente dentro da janela iniciada pela pessoa, com deduplicacao pelo
-  `wamid`, validacao do numero destinatario e flag operacional de ativacao.
-- Ativacao de negocios: orientacoes de WhatsApp exigem consentimento explicito,
-  ficam limitadas a tres mensagens no total, respeitam intervalo minimo de tres
-  dias e param imediatamente quando a preferencia for desativada ou a pessoa
-  responder PARAR MARKETING. Pedidos genericos SAIR, PARAR ou STOP interrompem
-  todas as categorias, revogam os agendamentos ja consentidos para o numero e
-  cancelam as mensagens ainda pendentes.
-- Marketing: eventos de produto, atribuicao, GA4, Google Ads, Meta CAPI e
-  leitura de custos de Google Ads, Meta Ads, TikTok Ads e Pinterest Ads. TikTok
-  e Pinterest usam OAuth server-side com `state` de uso unico e tokens
-  criptografados no backend; o Pinterest solicita apenas `ads:read` e renova o
-  access token com refresh token continuo. As integracoes de custos sao somente
-  leitura e nunca criam, editam, pausam ou excluem campanhas. A classificacao oficial de
-  campanhas e resolvida no backend. A UTM exata tem prioridade; na ausencia
-  dela, uma sessao paga so recebe atribuicao assistida quando existe identidade
-  externa correspondente ou um unico vinculo persistido e verificado para o
-  provedor, canal e midia. A inferencia por vinculo unico exige que a ultima
-  sincronizacao do provedor cubra a data do evento, tenha terminado com sucesso
-  e nao possua campanha externa operacional sem vinculo, mesmo quando ela nao
-  teve gasto no periodo. Ambiguidade permanece como rastreamento incompleto e
-  nao entra em CAC, ROAS ou recomendacoes. Cadastro sem sinal de origem fica
-  em `sem_evidencia`, separado de trafego pago incompleto e de organico. CAC,
-  ROAS e decisoes de orcamento ficam bloqueados enquanto a cobertura paga
-  estiver abaixo da regua configurada ou existir cadastro sem evidencia. No
-  funil profissional, primeiro agendamento e janelas de maturacao de ativacao e
-  monetizacao antecedem recomendacoes fortes; cada marco maduro precisa ocorrer
-  dentro da respectiva janela contada desde o cadastro. Ausencia de assinatura,
-  sozinha, nunca pausa automaticamente aquisicao no modelo freemium. O metodo de
-  resolucao continua exposto para auditoria. Sincronizacoes anteriores a
-  migration `057` nao
-  comprovam essa reconciliacao e exigem uma nova execucao.
-  Atribuicao publicitaria, GA4 e Google Ads exigem consentimento opcional;
-  rotas enviadas ao Google sao genericas, sem query strings, tokens, slugs ou
-  referenciador. `ad_personalization` permanece negado e a revogacao apaga os
-  identificadores opcionais da conta, registra historico auditavel e bloqueia
-  eventos server-side.
-- Testes backend: Jest, Supertest e PostgreSQL de teste.
-- Testes frontend: Vitest e Testing Library.
-- Testes de jornada: Playwright em Chromium e WebKit, com foco mobile.
-- Qualidade: ESLint e `npm audit` no CI.
+- Backend em camadas: routes → controllers → services → repositories →
+  PostgreSQL.
+- Autenticação: JWT em cookie `HttpOnly`, bcrypt e Google Identity.
+- Imagens: Busboy, validação de conteúdo e Cloudinary.
+- Pagamentos: Asaas.
+- Notificações: WhatsApp Cloud API oficial da Meta.
+- E-mail transacional: Resend onde configurado.
+- Marketing: GA4, Google Ads, Meta Ads/CAPI, TikTok Ads e Pinterest Ads conforme
+  integrações documentadas.
+- Testes: Jest/Supertest/PostgreSQL, Vitest/Testing Library e Playwright.
 - CI/CD: GitHub Actions e Railway.
-- Deploy: migrations antes da aplicacao e healthcheck em `/health/ready`.
+- Deploy: migrations antes da aplicação e healthcheck em `/health/ready`.
 
-Detalhes e regras de cada camada ficam em `docs/arquitetura.md`.
+O frontend é uma única aplicação React. Atualmente `/painel/*` e
+`/profissional/*` compartilham `WorkspaceLayout` com navegação contextual;
+`/admin/*` usa `AdminLayout` + `AdminShell` próprios.
 
-## Regras tecnicas obrigatorias
+Detalhes técnicos: `docs/arquitetura.md`, `docs/frontend-estilos.md` e
+`docs/ux-contextos-visuais.md`.
 
-1. Analisar o impacto de toda mudanca no frontend, backend, banco, seguranca e
-   testes.
-2. Preservar fluxos que ja funcionam e evitar correcoes isoladas que quebrem a
-   jornada completa.
-3. Nao escrever SQL em routes ou controllers e nao adicionar SQL novo em
-   services.
-4. Nao confiar em `negocio_id`, papel, permissao, preco ou limite enviado pelo
-   frontend.
-5. Validar autenticacao, autorizacao e isolamento entre negocios no backend.
-6. Usar transacao em operacoes criticas que alteram mais de uma tabela.
-7. Toda alteracao de banco deve ter migration nova. Migration aplicada nunca
-   deve ser reescrita.
-8. Webhooks e operacoes financeiras devem ser autenticados e idempotentes.
-9. Segredos nunca podem aparecer no Git, no frontend ou nos logs.
-10. Manter contratos entre frontend e backend sincronizados.
-11. Nao introduzir `/api` apenas em algumas rotas sem uma migracao planejada de
-    todo o contrato.
-12. Mudancas relevantes devem incluir testes proporcionais ao risco.
-13. Antes de deploy, executar lint, build, Vitest, Jest e Playwright aplicavel.
-14. Nao fazer deploy, push ou merge sem solicitacao explicita do usuario.
+## Frontend e UX
 
-## Evolucao continua e segura
+Priorizar clareza da tarefa e experiência mobile, especialmente Safari/WebKit.
 
-O AF deve melhorar constantemente, mas nenhuma entrega deve tratar velocidade
-como justificativa para aceitar erros conhecidos. A meta operacional e evoluir
-com previsibilidade e reduzir continuamente a possibilidade de falhas.
+A identidade visual do AF é rosa, branca e grafite, acolhedora e ligada ao
+universo de beleza. A marca deve permanecer reconhecível, mas cada contexto pode
+ter densidade e composição próprias.
 
-Para cada evolucao:
+O Admin funciona como um Command Center operacional com design system próprio.
+A direção visual é referência, não justificativa para reescrever componentes
+que já funcionam sem benefício proporcional.
 
-1. entender a causa e o fluxo completo antes de alterar o codigo;
-2. preferir mudancas pequenas, modulares e reversiveis;
-3. validar frontend, backend, banco, integracoes e seguranca afetados;
-4. criar ou atualizar testes que reproduzam o comportamento esperado;
-5. nao publicar com lint, build ou testes obrigatorios falhando;
-6. nao fazer deploy cru: revisar o diff e executar os testes proporcionais ao
-   risco antes da publicacao;
-7. depois do deploy, realizar smoke tests e acompanhar healthcheck, logs,
-   webhooks e metricas relevantes;
-8. quando surgir uma falha, priorizar a causa raiz e proteger o comportamento
-   com teste de regressao;
-9. manter compatibilidade ou planejar uma migracao segura quando contratos,
-   rotas, banco ou links publicos mudarem;
-10. atualizar a documentacao para que a proxima evolucao parta do estado real
-    do produto.
+Ao alterar uma interface, considerar:
 
-Nao existe garantia tecnica honesta de erro zero. Por isso, o padrao do AF e:
-prevenir falhas, nao integrar erros conhecidos, detectar problemas cedo,
-recuperar com seguranca e aprender com testes de regressao.
+- carregamento;
+- estado vazio;
+- erro;
+- sucesso;
+- sessão expirada;
+- permissões;
+- responsividade;
+- contraste e foco;
+- conteúdo coberto por elementos `fixed`/`sticky`;
+- comportamento em WebKit.
 
-## Criterios de decisao
+Quando houver apenas um profissional elegível em um fluxo de agendamento, não
+exigir uma escolha sem utilidade.
 
-Ao comparar solucoes, priorizar nesta ordem:
+Os arquivos oficiais de marca ficam em `frontend/src/assets/brand/`; evitar
+substitutos improvisados.
 
-1. confiabilidade do agendamento;
-2. seguranca e privacidade;
-3. experiencia da cliente e da profissional;
-4. aquisicao e retencao de negocios e clientes;
-5. manutencao simples e codigo modular;
-6. observabilidade e operacao previsivel;
-7. custo de infraestrutura proporcional ao estagio do AF.
+## Analytics, aquisição e growth
 
-Nao reescrever o sistema ou adicionar uma tecnologia apenas por ser mais nova.
-React, Node.js, Express e PostgreSQL continuam sendo a base oficial enquanto
-atenderem bem ao produto. TypeScript pode ser adotado gradualmente quando
-trouxer ganho concreto, sem reescrita total.
+Avaliar crescimento pelo funil completo, não apenas por CTR, CPC, CPM, cliques
+ou cadastros brutos.
 
-## Como manter esta memoria atualizada
+Métricas prioritárias incluem:
 
-Ao concluir uma mudanca que altere objetivo, publico, proposta de valor,
-arquitetura, integracao, infraestrutura ou regra critica:
+- custo por profissional ativado;
+- taxa de ativação até primeiro agendamento;
+- custo por assinante quando houver base financeira confiável;
+- conversão para pago;
+- recorrência e retenção;
+- receita e LTV quando houver definição e dados suficientes.
 
-1. atualizar este `AGENTS.md` no mesmo conjunto de mudancas;
-2. atualizar `docs/arquitetura.md` quando houver impacto tecnico;
-3. registrar apenas o estado aprovado e atual, removendo orientacoes
-   conflitantes;
-4. conferir o codigo e as migrations antes de afirmar que uma tecnologia esta
-   ativa;
-5. manter a data no inicio deste arquivo atualizada.
+Diferenciar Google Ads, Meta Ads, TikTok Ads, Pinterest Ads, orgânico e outras
+origens conforme a evidência disponível.
 
-Em caso de divergencia, o codigo executavel e as migrations representam o
-estado implementado. Este arquivo representa a intencao e as regras do produto.
-A divergencia deve ser corrigida na documentacao, nao ignorada.
+Atribuição incompleta não deve ser corrigida por suposição. UTM, click IDs,
+vínculos externos e evidência bruta são preservados para auditoria. Tráfego sem
+evidência suficiente permanece classificado como incompleto/sem evidência em
+vez de ser promovido artificialmente para campanha oficial ou orgânico.
+
+CAC, ROAS e decisões de orçamento dependem de cobertura, custo, maturidade e
+amostra adequados. Ausência de assinatura, isoladamente, não prova que aquisição
+freemium falhou.
+
+As integrações administrativas de custos são somente leitura no escopo atual
+documentado e não devem criar, editar, pausar ou excluir campanhas sem uma nova
+decisão de produto e segurança.
+
+Detalhes ficam em `docs/marketing-attribution.md`, `docs/marketing-sync-ga4.md`
+e demais documentos de marketing.
+
+## WhatsApp e automações
+
+O WhatsApp complementa o produto; o agendamento não depende de atendimento
+manual pelo canal.
+
+Mensagens para clientes, avisos operacionais para profissionais e orientações de
+ativação/marketing possuem finalidades e consentimentos próprios.
+
+Regras duráveis:
+
+- consentimento deve ser respeitado e revalidado conforme o fluxo;
+- opt-out deve interromper a categoria correspondente, e pedidos globais devem
+  aplicar a regra global implementada;
+- mensagens e webhooks precisam ser idempotentes;
+- filas devem tolerar retry e concorrência sem duplicar efeitos;
+- tokens e payloads sensíveis não aparecem em logs;
+- aprovação de template é estado externo e deve ser consultada quando uma
+  decisão depender dela.
+
+Detalhes: `docs/whatsapp-automatico.md`.
+
+## Segurança e privacidade
+
+Estas regras são obrigatórias:
+
+1. autenticação e autorização são validadas no backend;
+2. isolamento entre negócios não depende de IDs enviados pelo navegador;
+3. preços, limites e regras financeiras não são confiados ao frontend;
+4. segredos nunca aparecem no Git, frontend ou logs;
+5. webhooks e operações financeiras são autenticados e idempotentes;
+6. dados pessoais só são expostos quando necessários para a finalidade da
+   operação;
+7. redirecionamento ou botão oculto no React não substitui controle de acesso.
+
+## Engenharia e banco
+
+Antes de alterar algo:
+
+1. investigar a causa raiz;
+2. entender o fluxo completo;
+3. avaliar impacto em frontend, backend, banco, segurança, integrações e testes;
+4. preferir mudanças pequenas, modulares e reversíveis;
+5. preservar comportamentos que já funcionam;
+6. criar ou atualizar testes proporcionais ao risco;
+7. revisar o diff antes de considerar a alteração pronta.
+
+SQL novo pertence a repositories, não a routes/controllers e, salvo legado em
+migração, não deve ser introduzido em services.
+
+Toda mudança de banco exige migration nova. Migration já aplicada não é
+reescrita para corrigir o passado.
+
+Operações críticas que alteram múltiplas tabelas devem usar transação quando a
+atomicidade fizer parte do contrato.
+
+Não introduzir tecnologia, camada ou reescrita ampla apenas por modernização.
+
+## Testes, merge e deploy
+
+Mudanças relevantes devem executar validações proporcionais ao risco. O Quality
+Gate atual cobre lint, build, testes frontend, migrations, Jest/PostgreSQL,
+audits e Playwright aplicável.
+
+Fluxo esperado:
+
+```text
+branch
+  → PR
+  → Quality Gate
+  → revisão do diff
+  → merge autorizado
+  → deploy Railway
+  → migrations
+  → /health/ready
+  → smoke test e logs
+```
+
+Não fazer push, merge, deploy ou alteração destrutiva sem solicitação explícita
+do usuário.
+
+Um deployment `SUCCESS` não substitui validação do comportamento modificado.
+
+Detalhes: `docs/deploy-seguro.md` e `docs/dependency-security.md`.
+
+## Prioridades de decisão
+
+Ao comparar soluções, priorizar nesta ordem:
+
+1. confiabilidade dos agendamentos;
+2. segurança e privacidade;
+3. aquisição e ativação de profissionais;
+4. conversão, retenção e receita;
+5. experiência mobile de clientes e profissionais;
+6. manutenção e escalabilidade;
+7. melhorias visuais e otimizações secundárias.
+
+Funcionalidade nova deve resolver um problema identificável do produto, indicar
+qual etapa do funil pretende melhorar e como o resultado será observado.
+
+## Como manter esta memória
+
+Atualizar `AGENTS.md` quando uma decisão durável mudar produto, arquitetura,
+integrações, infraestrutura, segurança, analytics, planos ou regras críticas.
+
+Não usar este arquivo para métricas temporárias, resultado momentâneo de
+campanha, estado de aprovação externo ou detalhes de layout que podem mudar sem
+alterar o contrato do produto.
+
+Documentação especializada deve concentrar detalhes de implementação e
+operação. Ao mudar uma regra permanente, atualizar os documentos afetados no
+mesmo conjunto de mudanças sempre que possível.

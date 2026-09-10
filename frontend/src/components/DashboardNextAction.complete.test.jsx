@@ -16,16 +16,10 @@ afterEach(() => {
 });
 
 describe("DashboardNextAction concluído", () => {
-  it("trata ATIVADO como marco secundário e não como próximo passo", () => {
-    render(
+  it("mantém ATIVADO como estado interno sem card persistente", () => {
+    const { container } = render(
       <MemoryRouter>
         <DashboardNextAction
-          activation={{
-            possui_servico_ativo: true,
-            agenda_configurada: true,
-            negocio_publicado: true,
-            primeiro_agendamento_recebido: true,
-          }}
           businessId={11}
           businessName="Studio Aurora"
           businessSlug="studio-aurora"
@@ -45,28 +39,21 @@ describe("DashboardNextAction concluído", () => {
       </MemoryRouter>
     );
 
+    expect(container.innerHTML).toBe("");
     expect(
-      screen.getByLabelText("Negócio ativado")
-    ).not.toBeNull();
+      screen.queryByLabelText("Negócio ativado")
+    ).toBeNull();
     expect(
-      screen.getByRole("heading", {
+      screen.queryByRole("heading", {
         name: "Ativação concluída",
       })
-    ).not.toBeNull();
+    ).toBeNull();
     expect(
       screen.queryByText("Próximo passo")
     ).toBeNull();
     expect(
       screen.queryByLabelText("Progresso da ativação")
     ).toBeNull();
-    expect(
-      screen.getByRole("link", {
-        name: "Abrir agenda",
-      }).getAttribute("href")
-    ).toBe("/painel/agenda");
-    expect(track).not.toHaveBeenCalledWith(
-      "proxima_acao_ativacao_visualizada",
-      expect.anything()
-    );
+    expect(track).not.toHaveBeenCalled();
   });
 });

@@ -2,7 +2,7 @@
 
 ## Objetivo
 
-A próxima ação de ativação orienta a dona do negócio para o passo obrigatório mais importante até o primeiro agendamento válido, isto é, um agendamento que não esteja cancelado.
+A próxima ação de ativação orienta a dona do negócio para a missão mais importante até o primeiro agendamento válido, isto é, um agendamento que não esteja cancelado.
 
 Ela existe para reduzir abandono entre criação do negócio, serviço ativo, publicação e primeiro agendamento. Essa camada é uma máquina de estados determinística: não é IA, não usa LLM e não deve ser apresentada ao usuário como inteligência artificial.
 
@@ -14,7 +14,7 @@ A decisão é feita no backend a partir do estado canônico do negócio:
 - `negocio_publicado`: `negocios.publicado = TRUE`;
 - `primeiro_agendamento_recebido`: existe ao menos um agendamento não cancelado para o negócio. O nome do campo é preservado por compatibilidade, mas um cancelamento deixa de encerrar a ativação se não existir outro agendamento válido.
 
-O frontend não deve recalcular a próxima etapa usando visitas ao perfil, métricas de conversão, pendências de publicação ou outras heurísticas.
+O frontend não recalcula a próxima etapa usando visitas ao perfil, métricas de conversão, pendências de publicação ou outras heurísticas.
 
 ## Ordem das transições
 
@@ -27,9 +27,11 @@ A prioridade oficial é:
 
 A ordem é deliberada e também protege estados legados ou regressões operacionais. Um negócio que já recebeu agendamento, mas perdeu todos os serviços ativos, volta para `GARANTIR_SERVICO_ATIVO`. Disponibilidade não altera essa ordem: o AF a inicializa automaticamente e a profissional pode personalizá-la depois.
 
+Esses estados são mecanismo interno do produto. No dashboard, a profissional recebe uma única missão útil de cada vez. A interface não precisa expor a quantidade total de estados nem apresentar `X de N etapas concluídas` quando essa informação não ajuda a decidir o que fazer agora.
+
 ## Contrato do dashboard
 
-`GET /dashboard-dono` continua expondo `ativacao` e acrescenta `proxima_acao_ativacao`.
+`GET /dashboard-dono` continua expondo `ativacao` e `proxima_acao_ativacao`.
 
 Exemplo:
 
@@ -55,6 +57,8 @@ Exemplo:
 ```
 
 Ações de navegação usam `tipo = NAVEGAR`, `rotulo` e `destino`. Divulgação usa `tipo = COMPARTILHAR_PERFIL` para reutilizar o mecanismo rastreável de compartilhamento já existente no AF.
+
+O contrato pode continuar entregando os sinais canônicos para analytics, diagnóstico e compatibilidade sem obrigar a interface a exibi-los como checklist.
 
 ## Medição da jornada
 
@@ -91,7 +95,9 @@ Na priorização operacional, profissionais mais próximos de concluir vêm prim
 
 ## Pós-ativação e retenção
 
-`ATIVADO` permanece como estado canônico da máquina, mas deixa de competir visualmente com a próxima oportunidade de crescimento. No dashboard, a ativação concluída deve ser apresentada como marco secundário; quando houver uma oportunidade determinística de Growth, ela pode aparecer primeiro.
+`ATIVADO` permanece como estado canônico da máquina para backend, analytics e diagnóstico. No dashboard da dona, porém, o `DashboardNextAction` deixa de ocupar espaço permanente depois do primeiro agendamento válido.
+
+A confirmação do marco pode ser celebrada no momento apropriado, mas a navegação recorrente do dashboard passa a priorizar oportunidades de crescimento, novos agendamentos, recorrência e receita. O produto não mantém um card permanente de “ativação concluída” apenas para repetir um fato já conhecido.
 
 A recorrência usa somente dados agregados do negócio e exclui agendamentos cancelados. O resumo canônico expõe `clientes_unicos`, `clientes_recorrentes` e `taxa_recorrencia`. A identidade usada para deduplicação segue o padrão já adotado pelo dashboard: conta do cliente quando conhecida ou WhatsApp normalizado do agendamento visitante. Esses identificadores não são enviados à inteligência de crescimento.
 
@@ -127,7 +133,7 @@ A máquina de ativação não usa:
 - nova rota;
 - nova migration.
 
-Retenção, recorrência, otimização de conversão e recomendações baseadas em métricas não alteram esta máquina de estados. Depois de `ATIVADO`, a interface reduz o marco de ativação a um status secundário e pode priorizar oportunidades de crescimento determinísticas, incluindo recorrência quando houver amostra agregada suficiente.
+Retenção, recorrência, otimização de conversão e recomendações baseadas em métricas não alteram esta máquina de estados. Depois de `ATIVADO`, o estado continua disponível internamente, enquanto a interface pode seguir diretamente para oportunidades de crescimento determinísticas, incluindo recorrência quando houver amostra agregada suficiente.
 
 ## Proteção por testes
 
@@ -135,7 +141,7 @@ As transições devem permanecer protegidas em três níveis:
 
 1. teste unitário da máquina de estados, incluindo estados normais, legados e regressões;
 2. teste de integração do repository para serviço ativo, publicação, disponibilidade técnica e primeiro agendamento;
-3. testes de frontend e jornada para confirmar que o dashboard apresenta o contrato do backend e mantém o compartilhamento rastreável.
+3. testes de frontend e jornada para confirmar que o dashboard apresenta a missão recebida do backend, não expõe checklist interno desnecessário e mantém o compartilhamento rastreável.
 
 A observabilidade também deve ser protegida por testes do contrato de eventos e por testes de interface que diferenciem visualização, seleção e conclusão do compartilhamento.
 

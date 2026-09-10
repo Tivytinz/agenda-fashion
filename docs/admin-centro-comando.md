@@ -4,16 +4,17 @@ Este documento registra a semântica durável dos indicadores usados na visão a
 
 ## Marcos profissionais de ativação
 
-O Centro de comando apresenta os principais marcos atingidos pelos profissionais da coorte:
+O Centro de comando pode apresentar os principais marcos atingidos pelos profissionais da coorte:
 
 1. cadastro profissional;
 2. negócio criado;
-3. serviço criado;
-4. agenda configurada;
-5. negócio publicado;
-6. primeiro agendamento válido.
+3. serviço ativo;
+4. negócio publicado;
+5. primeiro agendamento válido.
 
-Esses números são **marcos independentes dentro da mesma coorte**, não um funil sequencial garantido entre etapas. Por compatibilidade com negócios legados e com regras históricas de publicação, uma etapa posterior pode ter valor igual ou maior que uma etapa anterior.
+A disponibilidade é importante para a confiabilidade do agendamento, mas não é etapa canônica de ativação nem gate de publicação. O AF inicializa uma disponibilidade padrão ao criar o negócio, e a personalização posterior pode ser acompanhada como diagnóstico técnico separado quando isso ajudar a operação.
+
+Esses números são **marcos independentes dentro da mesma coorte**, não um funil sequencial garantido entre etapas. Por compatibilidade com negócios legados e regras históricas, uma etapa posterior pode ter valor igual ou maior que uma etapa anterior.
 
 Por isso, o Centro de comando não deve calcular nem apresentar automaticamente perdas ou taxas de conversão adjacentes entre esses marcos. A análise detalhada de aquisição pode usar coortes e regras específicas quando houver base suficiente para isso.
 
@@ -34,7 +35,7 @@ Esta regra mede a primeira reserva válida recebida pelo negócio. Ela **não** 
 
 Checkout e assinatura paga são indicadores separados dos marcos de ativação.
 
-O Centro de comando deve expor ambos para distinguir:
+O Centro de comando pode expor ambos para distinguir:
 
 - checkout iniciado: sinal de intenção de compra;
 - assinatura paga: primeiro pagamento válido de um plano pago.
@@ -45,11 +46,13 @@ A assinatura paga continua dependente das regras financeiras canônicas do backe
 
 ## Pendências de ativação
 
-Os cards `Sem negócio`, `Sem serviço`, `Sem agenda` e `Não publicados` são diagnósticos independentes. Um mesmo profissional pode aparecer em mais de uma pendência.
+Diagnósticos como `Sem negócio`, `Sem serviço` e `Não publicados` podem se sobrepor. Um mesmo profissional pode aparecer em mais de uma pendência.
 
-Por isso, a soma desses cards não deve ser apresentada como equivalente ao total de profissionais com ativação pendente.
+Questões de disponibilidade podem aparecer em um diagnóstico técnico separado, mas não reduzem o percentual de ativação nem impedem a publicação por si só.
 
-A lista operacional prioriza profissionais mais avançados no onboarding e, entre candidatos com o mesmo progresso carregado, aqueles há mais tempo sem atividade.
+Por isso, a soma dos cards de pendência não deve ser apresentada como equivalente ao total de profissionais com ativação pendente.
+
+A lista operacional pode priorizar profissionais mais avançados no onboarding e, entre candidatos com o mesmo progresso carregado, aqueles há mais tempo sem atividade.
 
 ## Cliente final
 

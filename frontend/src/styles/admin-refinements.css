@@ -1,3 +1,75 @@
+/* Refinos compartilhados pelos módulos principais do Admin Command Center. */
+
+.admin-shell .admin-sidebar {
+  gap: 22px;
+  padding: 18px 16px;
+}
+
+.admin-shell .admin-brand-copy strong {
+  color: #fff;
+  font-weight: 800;
+}
+
+.admin-shell .admin-brand-copy small {
+  color: #eadde4;
+}
+
+.admin-shell .admin-topbar {
+  min-height: 60px;
+  padding: 8px 20px;
+}
+
+.admin-shell .admin-workspace-page {
+  gap: 16px;
+  padding-top: 22px;
+}
+
+.admin-shell .admin-command-heading {
+  align-items: center;
+  border-radius: 18px;
+  padding: 18px 20px;
+  background:
+    radial-gradient(circle at 94% 4%, rgb(251 216 232 / 52%), transparent 26%),
+    linear-gradient(120deg, #fff 0%, #fffafc 62%, #fff5f9 100%);
+  box-shadow: 0 9px 26px rgb(92 42 68 / 5%);
+}
+
+.admin-shell .admin-command-heading h1 {
+  margin: 2px 0 5px;
+  font-size: clamp(1.55rem, 2.35vw, 2.05rem);
+  line-height: 1.08;
+}
+
+.admin-shell .admin-command-heading p:last-child {
+  max-width: 72ch;
+  margin-bottom: 0;
+  line-height: 1.45;
+}
+
+.admin-period-context {
+  display: inline-flex;
+  width: fit-content;
+  align-items: center;
+  gap: 7px;
+  border: 1px solid var(--admin-line);
+  border-radius: 999px;
+  padding: 6px 10px;
+  color: var(--admin-muted);
+  background: var(--admin-surface);
+  box-shadow: 0 3px 12px rgb(50 31 43 / 4%);
+  font-size: .75rem;
+}
+
+.admin-period-context span,
+.admin-period-context strong {
+  margin: 0;
+}
+
+.admin-period-context strong {
+  color: var(--admin-ink);
+  font-weight: 800;
+}
+
 .admin-section-heading {
   display: grid;
   gap: 4px;
@@ -22,6 +94,10 @@
 
 .admin-command-summary-grid.is-period-summary {
   grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.admin-command-funnel.is-milestones {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
 }
 
 .admin-command-funnel.is-milestones article {
@@ -167,8 +243,46 @@
   font-weight: 700;
 }
 
+@media (min-width: 1101px) {
+  .admin-shell {
+    grid-template-columns: 248px minmax(0, 1fr);
+  }
+}
+
+@media (min-width: 901px) and (max-width: 1100px) {
+  .admin-shell {
+    grid-template-columns: 224px minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 1180px) {
+  .admin-command-funnel.is-milestones {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 900px) {
+  .admin-shell .admin-topbar {
+    min-height: 60px;
+    padding-inline: 14px;
+  }
+
+  .admin-shell .admin-workspace-page {
+    padding-top: 16px;
+  }
+
+  .admin-shell .admin-command-heading {
+    align-items: stretch;
+    padding: 18px;
+  }
+}
+
 @media (max-width: 800px) {
   .admin-command-summary-grid.is-period-summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .admin-command-funnel.is-milestones {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
@@ -277,7 +391,8 @@
 
 @media (max-width: 520px) {
   .admin-command-now-grid,
-  .admin-command-summary-grid.is-period-summary {
+  .admin-command-summary-grid.is-period-summary,
+  .admin-command-funnel.is-milestones {
     grid-template-columns: 1fr;
   }
 
@@ -285,5 +400,9 @@
     align-items: flex-start;
     flex-direction: column;
     gap: 8px;
+  }
+
+  .admin-period-context {
+    max-width: 100%;
   }
 }

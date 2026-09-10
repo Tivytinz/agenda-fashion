@@ -82,10 +82,14 @@ exemplo:
 
 1. cadastro profissional concluído;
 2. negócio criado;
-3. primeiro serviço cadastrado;
-4. agenda configurada;
-5. primeiro agendamento recebido;
+3. primeiro serviço cadastrado e ativo;
+4. negócio publicado;
+5. primeiro agendamento válido recebido;
 6. início de checkout e pagamento, quando houver upgrade.
+
+A disponibilidade é inicializada automaticamente ao criar o negócio e pode ser
+acompanhada como qualidade operacional, mas não é etapa obrigatória de ativação
+nem requisito de publicação.
 
 O evento genérico `sign_up` não deve ser interpretado sozinho como assinatura
 paga. Relatórios de marketing devem separar aquisição gratuita, ativação do

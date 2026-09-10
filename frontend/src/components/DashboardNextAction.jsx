@@ -1,7 +1,6 @@
 import { useEffect } from "react";
 import { Link } from "react-router-dom";
 import { track } from "../analytics/track";
-import { ConfirmationIcon } from "./ConfirmationIcon";
 import { PublicShareButton } from "./PublicShareButton";
 
 const ACTIVATION_ROUTES = Object.freeze({
@@ -14,12 +13,6 @@ const ACTIVATION_ROUTES = Object.freeze({
 const ALLOWED_NAVIGATION_DESTINATIONS = new Set(
   Object.values(ACTIVATION_ROUTES).map((item) => item.to)
 );
-
-const ACTIVATION_STEP_KEYS = Object.freeze([
-  "possui_servico_ativo",
-  "negocio_publicado",
-  "primeiro_agendamento_recebido",
-]);
 
 const ACTIVATION_TRACKING_CONTEXT = Object.freeze({
   page: "dashboard_dono",
@@ -76,15 +69,6 @@ function normalizeAction(nextAction) {
   };
 }
 
-function activationProgress(activation) {
-  if (!activation || typeof activation !== "object") return null;
-
-  return ACTIVATION_STEP_KEYS.reduce(
-    (total, key) => total + (activation[key] === true ? 1 : 0),
-    0
-  );
-}
-
 function activationTrackingProperties(action) {
   return {
     estado_ativacao:
@@ -96,14 +80,12 @@ function activationTrackingProperties(action) {
 
 export function DashboardNextAction({
   nextAction,
-  activation,
   businessId,
   businessName,
   businessSlug,
 }) {
   const action = normalizeAction(nextAction);
   const profilePath = publicProfilePath(businessSlug);
-  const completedSteps = activationProgress(activation);
   const actionState = String(action.estado || "INDISPONIVEL");
   const actionType = String(action.acao?.tipo || "NAVEGAR");
   const activationCompleted =
@@ -143,36 +125,7 @@ export function DashboardNextAction({
     );
   }
 
-  if (activationCompleted) {
-    return (
-      <section
-        aria-label="Negócio ativado"
-        className="panel onboarding-panel is-complete dashboard-activation-complete"
-      >
-        <div className="onboarding-complete-copy">
-          <p className="eyebrow onboarding-complete-eyebrow">
-            <ConfirmationIcon className="onboarding-complete-icon" />
-            Negócio ativado
-          </p>
-          <h2>{action.title}</h2>
-          <p className="muted">
-            {action.description}
-          </p>
-        </div>
-
-        <div className="onboarding-complete-actions">
-          {action.primary?.to && (
-            <Link
-              className="button button-secondary button-small"
-              to={action.primary.to}
-            >
-              {action.primary.label}
-            </Link>
-          )}
-        </div>
-      </section>
-    );
-  }
+  if (activationCompleted) return null;
 
   return (
     <section className="panel dashboard-action-panel">
@@ -184,15 +137,6 @@ export function DashboardNextAction({
       </div>
 
       <p className="muted dashboard-action-copy">{action.description}</p>
-
-      {completedSteps !== null && (
-        <p
-          aria-label="Progresso da ativação"
-          className="muted dashboard-action-progress"
-        >
-          {completedSteps} de 3 etapas concluídas
-        </p>
-      )}
 
       <div className="quick-actions dashboard-quick-actions">
         {action.kind === "share" ? (
