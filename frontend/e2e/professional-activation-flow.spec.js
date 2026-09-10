@@ -29,6 +29,32 @@ const SERVICE = {
   duracao_minutos: 60,
   ativo: true
 };
+const SUGGESTED_WEEK = [
+  {
+    dia_semana: 0,
+    trabalha: false,
+    hora_inicio: null,
+    hora_fim: null,
+    intervalo_inicio: null,
+    intervalo_fim: null
+  },
+  ...Array.from({ length: 5 }, (_, index) => ({
+    dia_semana: index + 1,
+    trabalha: true,
+    hora_inicio: "08:00",
+    hora_fim: "18:00",
+    intervalo_inicio: "12:00",
+    intervalo_fim: "13:00"
+  })),
+  {
+    dia_semana: 6,
+    trabalha: true,
+    hora_inicio: "08:00",
+    hora_fim: "13:00",
+    intervalo_inicio: null,
+    intervalo_fim: null
+  }
+];
 
 function json(route, body, status = 200) {
   return route.fulfill({ status, contentType: "application/json", body: JSON.stringify(body) });
@@ -71,9 +97,10 @@ function serviceField(page, labelText, control) {
   return page.locator("label").filter({ hasText: labelText }).locator(control).first();
 }
 
-test("profissional vai da landing à publicação e divulgação sem confirmar horários", async ({ page }) => {
+test("profissional vai da landing à publicação, confirma a agenda sugerida e chega à divulgação", async ({ page }) => {
   let businessCreated = false;
   let serviceCreated = false;
+  let scheduleSaved = false;
   let registrationPayload = null;
   let businessPayload = null;
   let servicePayload = null;
@@ -133,7 +160,7 @@ test("profissional vai da landing à publicação e divulgação sem confirmar h
     ativacao: {
       possui_servico_ativo: serviceCreated,
       negocio_publicado: serviceCreated,
-      agenda_configurada: businessCreated,
+      agenda_configurada: scheduleSaved,
       primeiro_agendamento_recebido: false
     },
     proxima_acao_ativacao: activationNextAction({ serviceCreated })
@@ -159,8 +186,8 @@ test("profissional vai da landing à publicação e divulgação sem confirmar h
   }));
 
   await page.route("**/agenda-configuracao/status", (route) => json(route, {
-    configurada: businessCreated,
-    configurado_em: businessCreated ? "2026-08-30T12:00:00.000Z" : null
+    configurada: scheduleSaved,
+    configurado_em: scheduleSaved ? "2026-09-10T05:00:00.000Z" : null
   }));
   await page.route("**/minha-assinatura", (route) => json(route, {
     uso: { servicos_utilizados: serviceCreated ? 1 : 0, limite_servicos: 2 }
@@ -185,8 +212,32 @@ test("profissional vai da landing à publicação e divulgação sem confirmar h
   });
 
   await page.route("**/agenda-configuracao", async (route) => {
-    if (route.request().method() === "PUT") schedulePayload = route.request().postDataJSON();
-    await json(route, { configuracao: { origem_horarios: "padrao_af" }, horarios: [] });
+    if (route.request().method() === "PUT") {
+      schedulePayload = route.request().postDataJSON();
+      scheduleSaved = true;
+      await json(route, {
+        mensagem: "Horários salvos.",
+        configuracao: {
+          configurado_em: "2026-09-10T05:00:00.000Z",
+          origem_horarios: "personalizado"
+        },
+        horarios: SUGGESTED_WEEK,
+        publicacao: null
+      });
+      return;
+    }
+
+    await json(route, {
+      configuracao: {
+        duracao_padrao: 60,
+        intervalo_minutos: 0,
+        antecedencia_agendamento: 0,
+        antecedencia_cancelamento: 24,
+        configurado_em: null,
+        origem_horarios: "padrao_af"
+      },
+      horarios: SUGGESTED_WEEK
+    });
   });
 
   await page.goto("/para-profissionais");
@@ -231,7 +282,7 @@ test("profissional vai da landing à publicação e divulgação sem confirmar h
   await serviceField(page, "Duração em minutos", "input").fill("60");
   await page.getByRole("button", { name: "Salvar serviço e publicar" }).click();
 
-  await expect(page).toHaveURL(/\/painel$/);
+  await expect(page).toHaveURL(/\/painel\/horarios$/);
   expect(servicePayload).toEqual(expect.objectContaining({
     nome: "Design + Henna",
     categoria: "unha",
@@ -241,7 +292,31 @@ test("profissional vai da landing à publicação e divulgação sem confirmar h
   }));
 
   expect(schedulePayload).toBeNull();
-  await expect(page.getByRole("button", { name: "Confirmar horários e publicar" })).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: "Confirme quando você atende" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Confirmar horários" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Pular por agora" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Ajustar horários" })).toBeVisible();
+  await expectNoHorizontalOverflow(page);
+
+  await page.getByRole("button", { name: "Confirmar horários" }).click();
+  await expect(page).toHaveURL(/\/painel$/);
+
+  expect(schedulePayload?.horarios).toEqual(expect.arrayContaining([
+    expect.objectContaining({
+      diaSemana: 1,
+      trabalha: true,
+      horaInicio: "08:00",
+      horaFim: "18:00",
+      intervaloInicio: "12:00",
+      intervaloFim: "13:00"
+    }),
+    expect.objectContaining({
+      diaSemana: 6,
+      trabalha: true,
+      horaInicio: "08:00",
+      horaFim: "13:00"
+    })
+  ]));
 
   await expect(page.getByText("Próximo passo")).toBeVisible();
   await expect(page.getByText(/Copilot AF/i)).toHaveCount(0);
