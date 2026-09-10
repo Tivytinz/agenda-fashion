@@ -1,0 +1,16 @@
+html.public-context-active {
+  --public-brand: #c5246b;
+  --public-brand-strong: #a91d59;
+  --public-brand-soft: #fff1f6;
+  --public-background: #fff9fb;
+  --public-surface: #ffffff;
+  --public-ink: #332c30;
+  --public-muted: #75636c;
+  --public-line: #eadde2;
+  --public-focus: #d92f7f;
+  --public-radius-sm: 10px;
+  --public-radius-md: 14px;
+  --public-radius-lg: 20px;
+  --public-shadow: 0 10px 30px rgb(72 22 43 / 7%);
+  --public-shadow-hover: 0 16px 36px rgb(72 22 43 / 13%);
+}
