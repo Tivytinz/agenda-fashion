@@ -93,7 +93,7 @@ afterEach(() => {
 });
 
 describe("editor de serviços", () => {
-  it("atualiza a sessão publicada antes de abrir o checkout escolhido", async () => {
+  it("atualiza a sessão publicada antes de abrir os horários mantendo o plano escolhido", async () => {
     let finishRefresh;
     refreshSession.mockImplementation(() => new Promise((resolve) => { finishRefresh = resolve; }));
     apiRequest.mockResolvedValue({ servico: { id: 58 }, publicacao: { publicado: true, pode_publicar: true } });
@@ -103,7 +103,7 @@ describe("editor de serviços", () => {
     await waitFor(() => expect(refreshSession).toHaveBeenCalledTimes(1));
     expect(screen.queryByTestId("onboarding-destination")).toBeNull();
     finishRefresh();
-    expect((await screen.findByTestId("onboarding-destination")).textContent).toBe("/checkout?plano=autonoma");
+    expect((await screen.findByTestId("onboarding-destination")).textContent).toBe("/painel/horarios?plano=autonoma");
   });
 
   it("oferece e envia a categoria Bronzeamento", async () => {
@@ -296,7 +296,7 @@ describe("editor de serviços", () => {
       .toBe("/painel/negocio?plano=autonoma");
   });
 
-  it("leva negócios publicados ao painel sem exigir confirmação de horários", async () => {
+  it("leva negócios publicados aos horários sugeridos sem transformar a agenda em bloqueio de publicação", async () => {
     apiRequest.mockResolvedValueOnce({
       servico: { id: 56 },
       publicacao: {
@@ -313,7 +313,7 @@ describe("editor de serviços", () => {
     submit();
 
     expect((await screen.findByTestId("onboarding-destination")).textContent)
-      .toBe("/painel");
+      .toBe("/painel/horarios");
   });
 });
 
