@@ -209,7 +209,8 @@ test("próxima ação de ativação cabe no celular e mostra somente a missão a
   })).toBeVisible();
   await expect(page.getByRole("link", { name: "Cadastrar primeiro serviço" }))
     .toBeVisible();
-  await expect(page.getByText("0 de 3 etapas concluídas")).toBeVisible();
+  await expect(page.getByText(/etapas concluídas/i)).toHaveCount(0);
+  await expect(page.getByLabel(/progresso da ativação/i)).toHaveCount(0);
 
   const diagnostics = await horizontalOverflowDiagnostics(page);
   expect(diagnostics.scrollWidth).toBe(diagnostics.clientWidth);
