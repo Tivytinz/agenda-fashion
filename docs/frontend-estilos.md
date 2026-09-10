@@ -8,10 +8,11 @@ Ele funciona como referência de ownership, carregamento e manutenção. A solu�
 
 1. A experiência pública, profissional e de negócio preserva uma identidade reconhecível do Agenda Fashion sem exigir a mesma composição em todas as telas.
 2. O Admin possui linguagem operacional própria, com densidade adequada para dados e identidade AF controlada por seu design system.
-3. CSS global tende a concentrar fundações realmente compartilhadas; estilos exclusivos de uma feature preferem ficar próximos da feature quando isso simplifica ownership e carregamento.
-4. Componentes em workspaces com sidebar devem considerar a largura útil real do conteúdo. `container queries` são uma boa opção quando o comportamento depende do container; `media queries` continuam adequadas para viewport, mobile, safe areas e orientação.
-5. Evitamos criar sucessivas camadas de versão (`v4`, `v5`, etc.) apenas para sobrepor estilos anteriores. Quando possível, consolidamos a responsabilidade existente.
-6. Tokens do contexto são preferíveis quando reduzem duplicação e dão significado consistente, mas um componente pode manter valores específicos quando não existe benefício real em promover tudo a token global.
+3. O contexto da dona possui shell e tokens próprios para gestão do negócio, podendo reutilizar primitivas neutras de navegação sem compartilhar ownership visual com o contexto profissional.
+4. CSS global tende a concentrar fundações realmente compartilhadas; estilos exclusivos de uma feature ou contexto preferem ficar próximos do seu dono quando isso simplifica ownership e carregamento.
+5. Componentes em workspaces com sidebar devem considerar a largura útil real do conteúdo. `container queries` são uma boa opção quando o comportamento depende do container; `media queries` continuam adequadas para viewport, mobile, safe areas e orientação.
+6. Evitamos criar sucessivas camadas de versão (`v4`, `v5`, etc.) apenas para sobrepor estilos anteriores. Quando possível, consolidamos a responsabilidade existente.
+7. Tokens do contexto são preferíveis quando reduzem duplicação e dão significado consistente, mas um componente pode manter valores específicos quando não existe benefício real em promover tudo a token global.
 
 Mais detalhes sobre contextos visuais ficam em [`ux-contextos-visuais.md`](./ux-contextos-visuais.md).
 
@@ -21,9 +22,19 @@ O `AdminShell` fornece a estrutura global do contexto administrativo e os tokens
 
 O design system não obriga todas as páginas a terem a mesma composição. Ele oferece uma fundação comum para superfícies, bordas, foco, raios, estados e componentes recorrentes.
 
-Ao alterar uma tela administrativa, vale avaliar se o trecho tocado pode consumir tokens ou primitives `admin-*` sem aumentar desnecessariamente o tamanho e o risco do patch. Compatibilidade com classes históricas `workspace-*` pode permanecer durante a migração quando ainda for útil, preferencialmente escopada ao contexto administrativo.
+Os seis módulos principais recebem layout e densidade diretamente das camadas administrativas. Compatibilidade com classes históricas pode permanecer em features antigas quando uma migração ampla não trouxer benefício proporcional.
+
+Ao alterar uma tela administrativa, vale avaliar se o trecho tocado pode consumir tokens ou primitives `admin-*` sem aumentar desnecessariamente o tamanho e o risco do patch.
 
 O objetivo é reduzir acoplamento e inconsistência gradualmente, não atingir uma porcentagem arbitrária de classes novas.
+
+## Dona do negócio e OwnerShell
+
+O `OwnerShell` concentra o contexto de gestão das rotas `/painel/*`. Sua identidade visual é mais próxima do produto principal do que a do Admin, mas possui ownership próprio por meio de `owner-shell.css`, `owner-design-system.css` e tokens `--owner-*`.
+
+A navegação compartilhada foi isolada em uma primitive neutra para evitar duplicar lógica de rota ativa, menu mobile, clique fora e `Escape`. Reutilizar essa lógica não torna o shell visualmente dependente do workspace profissional.
+
+O CSS do OwnerShell é carregado de forma contextual junto com o shell da dona, em vez de entrar diretamente no `main.jsx`. As páginas internas podem continuar usando classes históricas enquanto o design system da dona fornece uma ponte escopada ao contexto; a migração das features pode acontecer quando houver ganho real de clareza ou manutenção.
 
 ## Marketing administrativo
 
@@ -56,7 +67,8 @@ O projeto já usa esse padrão em áreas como:
 - `SubscriptionPage`: `subscription-polish.css`;
 - `PlansPage`: `plans-polish.css`;
 - `AdminSaasHealthPage`: `admin-saas-health.css`;
-- `AdminWhatsAppPage`: `admin-whatsapp.css`.
+- `AdminWhatsAppPage`: `admin-whatsapp.css`;
+- `OwnerShell`: `owner-shell.css`, que importa seu design system contextual.
 
 `admin-refinements.css` pertence ao contexto administrativo e deve permanecer fora do bundle profissional enquanto seus seletores forem exclusivos do Admin.
 
@@ -66,7 +78,7 @@ O teste `tests/frontend-route-css-regressoes.test.js` protege o ownership já mi
 
 ## Responsividade
 
-O Admin e os workspaces possuem áreas úteis menores que a viewport quando existe navegação lateral. Para componentes sensíveis a esse espaço, medir o container costuma produzir um comportamento mais previsível que aumentar breakpoints globais apenas para esconder overflow.
+O Admin, o OwnerShell e os workspaces possuem áreas úteis menores que a viewport quando existe navegação lateral. Para componentes sensíveis a esse espaço, medir o container costuma produzir um comportamento mais previsível que aumentar breakpoints globais apenas para esconder overflow.
 
 Testes em larguras intermediárias continuam importantes, além de mobile e desktop amplo. WebKit merece atenção especial para `sticky`, `fixed`, safe-area, blur e combinações de overflow.
 
