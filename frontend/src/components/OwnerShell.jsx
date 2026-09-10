@@ -7,7 +7,6 @@ import {
   MobileWorkspaceNavigation,
   WorkspaceLinks
 } from "./WorkspaceNavigation";
-import "../styles/owner-shell.css";
 
 export const OWNER_LINKS = [
   ["/painel", "Visão geral", "home"],
