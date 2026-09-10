@@ -102,11 +102,15 @@ describe("contextos visuais do workspace", () => {
     const professionalShell = container.querySelector(
       '[data-frontend-context="professional"]'
     );
+    const sidebar = screen.getByRole("complementary", { name: "Área profissional" });
+
     expect(professionalShell).not.toBeNull();
     expect(professionalShell?.classList.contains("professional-shell")).toBe(true);
     expect(professionalShell?.classList.contains("workspace-shell")).toBe(false);
-    expect(screen.getByRole("complementary", { name: "Área profissional" })).not.toBeNull();
-    expect(screen.getByRole("navigation", { name: "Rotina profissional" })).not.toBeNull();
+    expect(sidebar).not.toBeNull();
+    expect(
+      within(sidebar).getByRole("navigation", { name: "Rotina profissional" })
+    ).not.toBeNull();
     expect(screen.getAllByText("Studio Aurora").length).toBeGreaterThan(0);
     expect(screen.getAllByRole("link", { name: /Minha agenda/ }).length).toBeGreaterThan(0);
     expect(screen.queryByRole("link", { name: /Equipe/ })).toBeNull();
