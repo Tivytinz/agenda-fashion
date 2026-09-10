@@ -19,6 +19,7 @@
   --owner-shadow-sm: 0 8px 24px rgb(88 39 62 / 6%);
   --owner-shadow-md: 0 18px 44px rgb(88 39 62 / 10%);
   --owner-focus: 0 0 0 3px rgb(217 47 127 / 18%);
+  --owner-focus-outline: #9f1f5c;
 
   color: var(--owner-ink);
   background: var(--owner-bg);
@@ -65,7 +66,8 @@
 .owner-shell input:focus-visible,
 .owner-shell select:focus-visible,
 .owner-shell textarea:focus-visible {
-  outline: 0;
+  outline: 3px solid var(--owner-focus-outline);
+  outline-offset: 3px;
   box-shadow: var(--owner-focus);
 }
 
