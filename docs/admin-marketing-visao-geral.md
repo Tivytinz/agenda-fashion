@@ -12,7 +12,8 @@ A página é uma visão de decisão. Operações de OAuth, teste de conexão, v�
 ## Fontes
 
 - GA4: navegação, sessões, usuários, canais, landing pages, dispositivos e localização agregada.
-- Banco do AF: cadastro profissional, negócio, serviço, agenda, publicação, primeiro agendamento válido, checkout, assinatura paga e receita.
+- Banco do AF: cadastro profissional, negócio, serviço, publicação, primeiro agendamento válido, checkout, assinatura paga e receita.
+- Disponibilidade: diagnóstico técnico separado quando necessário para entender capacidade de agendamento; não é marco canônico de ativação.
 - Atribuição do AF: classificação oficial, orgânica, rastreamento incompleto, identidade não oficial e ausência de evidência.
 
 Sessão do GA4 não é cadastro e não pode ser usada como denominador automático para taxa de cadastro. Um usuário pode produzir várias sessões, e o recorte de navegação não representa necessariamente a mesma coorte comercial.
@@ -25,20 +26,21 @@ A cobertura de sessões pagas é uma métrica separada, calculada a partir das s
 
 ## Coorte profissional
 
-Os marcos do painel são:
+Os marcos canônicos do painel são:
 
 - cadastro;
 - negócio criado;
-- serviço cadastrado;
-- agenda configurada;
+- serviço cadastrado/ativo;
 - negócio publicado;
 - primeiro agendamento válido;
 - checkout iniciado;
 - assinatura paga.
 
-Os percentuais desses marcos usam `cadastros` da coorte como denominador. Eles **não são conversões adjacentes**. Negócios legados podem permanecer publicados sem confirmação de agenda, então a contagem de publicados pode ser maior que a contagem de agendas configuradas.
+A personalização de horários não entra como etapa obrigatória dessa coorte. O AF inicializa disponibilidade automaticamente e pode diagnosticar problemas de agenda em uma leitura técnica separada.
 
-A interface não deve usar conectores ou numeração que façam esses marcos parecerem uma sequência monotônica obrigatória.
+Os percentuais desses marcos usam `cadastros` da coorte como denominador quando esse for o contrato do backend. Eles **não são conversões adjacentes** por padrão.
+
+A interface não deve usar conectores ou numeração que façam esses marcos parecerem uma sequência monotônica obrigatória quando a coorte e o legado não garantirem isso.
 
 ## Qualidade da aquisição
 
@@ -59,7 +61,7 @@ Classificações `rastreamento_incompleto`, `identidade_nao_oficial` e `sem_evid
 
 A saúde de Google Ads, Meta Ads, TikTok Ads e Pinterest Ads representa estado operacional atual e não o período selecionado na visão de Marketing.
 
-Por isso, OAuth, teste de conexão, vínculos, última sincronização e sincronização manual ficam no painel `integracoes-custos`, que já concentra a operação canônica das integrações de mídia.
+Por isso, OAuth, teste de conexão, vínculos, última sincronização e sincronização manual ficam no painel `integracoes-custos`, que concentra a operação canônica das integrações de mídia.
 
 ## Terminologia
 
