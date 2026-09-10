@@ -35,12 +35,12 @@ A implementação atual do frontend segue este mapa:
 ```text
 Agenda Fashion
 ├── experiência pública / cliente → páginas e componentes do contexto público
-├── /painel/*                    → WorkspaceLayout com navegação da dona
+├── /painel/*                    → WorkspaceLayout resolve OwnerShell para vínculo de dona
 ├── /profissional/*              → WorkspaceLayout com navegação profissional
 └── /admin/*                     → AdminLayout + AdminShell
 ```
 
-`WorkspaceLayout` compartilha hoje a mesma fundação estrutural entre dona e profissional e muda a navegação de acordo com o vínculo carregado na sessão. O Admin possui shell separado porque sua necessidade operacional é diferente.
+`WorkspaceLayout` continua sendo a entrada compartilhada das rotas privadas de negócio, mas o contexto da dona é delegado para um `OwnerShell` próprio. O contexto profissional permanece na fundação histórica do workspace até uma migração específica justificar a separação. O Admin continua com shell próprio porque sua necessidade operacional é diferente.
 
 Esse mapa pode evoluir. Nomes de componentes descrevem a implementação atual, não papéis globais persistidos no usuário nem regras de autorização.
 
@@ -87,7 +87,9 @@ Controles exclusivos da dona do negócio podem ficar fora desse contexto quando 
 
 ## Dona do negócio
 
-O contexto da dona funciona como um workspace de gestão do negócio. Ele compartilha atualmente a fundação `WorkspaceLayout` com o contexto profissional, mas usa navegação e prioridades adequadas ao papel de dona.
+O contexto da dona funciona como um workspace de gestão do negócio. As rotas canônicas `/painel/*` usam o `OwnerShell`, escolhido pelo vínculo de dona carregado na sessão.
+
+O `OwnerShell` concentra marca, identidade do negócio atual, navegação de gestão, ações globais e navegação mobile. Ele possui tokens `--owner-*` próprios e pode aplicar pontes de compatibilidade para páginas existentes sem exigir reescrita imediata de cada feature.
 
 Normalmente reúne:
 
@@ -102,11 +104,13 @@ Normalmente reúne:
 
 A interface deve ajudar a pessoa a perceber em qual negócio e contexto está trabalhando, especialmente quando ela também usa o AF como cliente ou profissional.
 
+O shell pode compartilhar primitivas neutras de navegação com outros contextos quando isso reduz duplicação, desde que a composição visual, os tokens e o ownership do contexto da dona permaneçam independentes.
+
 ## Administração AF
 
 As rotas `/admin/*` formam o contexto operacional interno do Agenda Fashion.
 
-A administração possui shell próprio e um conjunto visual próprio porque sua necessidade de densidade, leitura de dados e operação é diferente da experiência pública e profissional. Isso não significa que cada página precise obedecer a uma composição única ou que todos os componentes tenham de ser migrados de uma vez.
+A administração possui shell próprio e um conjunto visual próprio porque sua necessidade de densidade, leitura de dados e operação é diferente da experiência pública e profissional. Isso não significa que cada página precise obedecer a uma composição única ou que todos os componentes históricos tenham de ser migrados de uma vez.
 
 A direção visual atual do Admin é a de um **Command Center do AF**. Como referência:
 
@@ -128,7 +132,7 @@ Como padrão, preferimos evitar que a topbar e o conteúdo repitam o mesmo títu
 
 Cabeçalhos administrativos tendem a ser mais compactos que heroes de marketing porque o foco principal é operação e leitura de dados. Ainda assim, páginas introdutórias, estados especiais ou fluxos com forte necessidade de contexto podem usar composições mais amplas.
 
-Filtros, controles de período e ações específicas do módulo podem ficar próximos ao cabeçalho ou à área que controlam. O importante é deixar claro o alcance da ação e evitar repetição que não acrescente informação.
+Filtros, controles de período e ações específicas do módulo podem ficar próximos ao cabeçalho ou à área que controlam. O importante é deixar claro o alcance da ação e evitar repetição que não acrescente informação. Nos módulos principais, o próprio seletor de período comunica o recorte ativo; não é necessário repetir o mesmo valor em um chip separado.
 
 ### Design system administrativo
 
@@ -159,7 +163,7 @@ O rosa de marca pode coexistir com essas cores. A escolha deve priorizar entendi
 
 ### Evolução do legado visual
 
-O Admin ainda possui componentes que usam classes `workspace-*` e estilos anteriores. A migração pode acontecer gradualmente.
+Os seis módulos principais do Admin recebem layout e densidade diretamente da camada administrativa. Algumas features históricas ainda podem carregar classes antigas por compatibilidade enquanto não houver benefício proporcional em reescrevê-las.
 
 Quando uma área for alterada, vale avaliar se migrar o trecho tocado para primitives `admin-*` simplifica a arquitetura. Se a migração aumentar muito o risco ou o tamanho do patch sem benefício proporcional, manter temporariamente a compatibilidade é aceitável.
 
