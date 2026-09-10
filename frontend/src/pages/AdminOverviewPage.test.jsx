@@ -124,6 +124,7 @@ describe("visão geral do admin", () => {
     expect(screen.getByText("Clientes distintos que agendaram")).not.toBeNull();
     expect(screen.getByRole("heading", { name: "Interações na plataforma" })).not.toBeNull();
 
+    expect(screen.queryByText("Agendas configuradas")).toBeNull();
     expect(screen.queryByRole("heading", { name: "Situação atual" })).toBeNull();
     expect(screen.queryByRole("heading", { name: "Profissionais que precisam de atenção" })).toBeNull();
     expect(screen.queryByText("Ativações pendentes")).toBeNull();
@@ -149,7 +150,8 @@ describe("visão geral do admin", () => {
     const details = screen.getByText("Como interpretar estes marcos").closest("details");
     expect(details).not.toBeNull();
     expect(details?.textContent).toContain("não são conversões adjacentes");
-    expect(details?.textContent).toMatch(/negócios legados/i);
+    expect(details?.textContent).toMatch(/disponibilidade.*separada/i);
+    expect(details?.textContent).not.toMatch(/agenda confirmada/i);
   });
 
   it("não exibe zero dias quando ainda não existe segundo agendamento", async () => {
