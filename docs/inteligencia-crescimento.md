@@ -4,7 +4,7 @@
 
 A inteligência de crescimento transforma métricas já calculadas e autorizadas pelo backend em oportunidades priorizadas para negócios que concluíram a ativação.
 
-Ela é uma camada separada da máquina canônica de ativação. A ativação continua responsável por serviço ativo, agenda confirmada, publicação e primeiro agendamento. A inteligência de crescimento só entra depois de `ATIVADO` e nunca altera essas regras.
+Ela é uma camada separada da máquina canônica de ativação. A ativação continua responsável por serviço ativo, publicação e primeiro agendamento válido. A disponibilidade é infraestrutura de agendamento inicializada pelo AF e pode gerar diagnósticos próprios, mas não é gate de ativação. A inteligência de crescimento só entra depois de `ATIVADO` e nunca altera essas regras.
 
 ## Arquitetura
 
@@ -32,7 +32,7 @@ A camada é secundária ao dashboard. Se a análise lançar uma exceção inespe
 
 ## Contrato
 
-`GET /dashboard-dono` passa a incluir `inteligencia_crescimento`:
+`GET /dashboard-dono` inclui `inteligencia_crescimento`:
 
 ```json
 {
