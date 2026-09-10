@@ -159,16 +159,17 @@ A organização atual é:
 ```text
 público / cliente   → experiência pública e páginas de conta/agendamento
 /painel/*           → WorkspaceLayout resolve OwnerShell para vínculo de dona
-/profissional/*     → WorkspaceLayout para experiência profissional
+/profissional/*     → WorkspaceLayout resolve ProfessionalShell para vínculo profissional
 /admin/*            → AdminLayout + AdminShell
 ```
 
 `WorkspaceLayout` continua sendo a resolução de entrada das rotas privadas de
 negócio. Quando o vínculo atual é `dono`, ele delega a composição para o
 `OwnerShell`, que possui identidade, navegação, tokens `--owner-*` e CSS
-contextual próprios. O workspace profissional permanece na fundação histórica
-até uma separação específica ser útil. `AdminShell` continua independente e
-possui navegação e design system `--admin-*` próprios.
+contextual próprios. Para o vínculo `profissional`, ele delega para o
+`ProfessionalShell`, que possui identidade, navegação curta, tokens
+`--professional-*` e CSS contextual próprios. `AdminShell` continua independente
+e possui navegação e design system `--admin-*` próprios.
 
 A navegação compartilhada entre os contextos privados é uma primitive neutra:
 ela concentra comportamento de rota ativa, menu mobile, clique fora e `Escape`,
