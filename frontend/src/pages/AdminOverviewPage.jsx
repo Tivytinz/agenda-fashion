@@ -148,8 +148,7 @@ export function AdminOverviewPage() {
   const activationMilestones = useMemo(() => [
     { label: "Cadastros profissionais", value: toFiniteNumber(funnelSummary.cadastros) },
     { label: "Negócios criados", value: toFiniteNumber(funnelSummary.negociosCriados) },
-    { label: "Serviços cadastrados", value: toFiniteNumber(funnelSummary.servicosCriados) },
-    { label: "Agendas configuradas", value: toFiniteNumber(funnelSummary.agendasConfiguradas) },
+    { label: "Serviços criados", value: toFiniteNumber(funnelSummary.servicosCriados) },
     { label: "Negócios publicados", value: toFiniteNumber(funnelSummary.negociosPublicados) },
     { label: "1º agendamento válido", value: toFiniteNumber(funnelSummary.primeirosAgendamentos) }
   ], [funnelSummary]);
@@ -286,7 +285,7 @@ export function AdminOverviewPage() {
         <details className="admin-metric-definition">
           <summary>Como interpretar estes marcos</summary>
           <p>
-            Os marcos não são conversões adjacentes. Negócios legados podem estar publicados sem agenda confirmada, então uma etapa pode ter contagem maior que a anterior. O primeiro agendamento válido ignora reservas canceladas.
+            Os marcos não são conversões adjacentes. Disponibilidade é uma configuração operacional separada e não faz parte da ativação canônica. O primeiro agendamento válido ignora reservas canceladas.
           </p>
         </details>
       </section>
