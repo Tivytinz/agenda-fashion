@@ -4,47 +4,6 @@
   background: #fcfafb;
 }
 
-.dashboard-page .onboarding-panel.is-complete {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  align-items: center;
-  gap: 24px;
-  padding-block: 22px;
-}
-
-.dashboard-page .onboarding-complete-copy h2 {
-  margin: 0 0 6px;
-  font-size: clamp(1.35rem, 2.5vw, 1.75rem);
-}
-
-.dashboard-page .onboarding-complete-copy > p:last-child {
-  margin-bottom: 0;
-}
-
-.dashboard-page .onboarding-complete-eyebrow {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-}
-
-.dashboard-page .onboarding-complete-icon {
-  width: 19px;
-  height: 19px;
-  flex: 0 0 19px;
-}
-
-.dashboard-page .onboarding-complete-actions {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 14px;
-}
-
-.dashboard-page .onboarding-complete-actions .button {
-  gap: 8px;
-  white-space: nowrap;
-}
-
 .dashboard-page .metric-card {
   min-height: 136px;
   grid-template-rows: auto 1fr auto;
@@ -99,32 +58,7 @@
   align-items: center;
 }
 
-@media (max-width: 900px) {
-  .dashboard-page .onboarding-panel.is-complete {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  .dashboard-page .onboarding-complete-actions {
-    justify-content: space-between;
-  }
-}
-
 @media (max-width: 800px) {
-  .dashboard-page .onboarding-panel.is-complete {
-    gap: 16px;
-    padding-block: 18px;
-  }
-
-  .dashboard-page .onboarding-complete-actions {
-    align-items: stretch;
-    flex-direction: column;
-  }
-
-  .dashboard-page .onboarding-progress-label {
-    align-self: flex-start;
-  }
-
-  .dashboard-page .onboarding-complete-actions .button,
   .dashboard-page .dashboard-quick-actions .button {
     width: 100%;
     min-width: 0;
