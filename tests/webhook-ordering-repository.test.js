@@ -58,7 +58,7 @@ describe(
     );
 
     test(
-      "marca como obsoleto somente quando existe evento mais recente do mesmo recurso",
+      "marca como obsoleto somente após evento mais recente do mesmo recurso ser aplicado",
       async () => {
         db.query.mockResolvedValueOnce({
           rows: [
@@ -78,6 +78,10 @@ describe(
         expect(sql)
           .toContain(
             "recente.recurso_id = evento.recurso_id"
+          );
+        expect(sql)
+          .toContain(
+            "recente.status = 'PROCESSED'"
           );
         expect(sql)
           .toContain(
