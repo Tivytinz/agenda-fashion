@@ -323,6 +323,14 @@ async function processarRegistro(evento) {
     pagamento?.id ||
     evento.recurso_id ||
     null;
+  const metadadosWebhook = {
+    webhookEventoId:
+      evento.evento_id || null,
+    webhookEventoCriadoEm:
+      evento.evento_criado_em ||
+      evento.payload?.dateCreated ||
+      null
+  };
 
   try {
     if (
@@ -350,7 +358,8 @@ async function processarRegistro(evento) {
           evento.tipo_evento,
           {
             ...(assinatura || {}),
-            id: assinaturaId
+            id: assinaturaId,
+            ...metadadosWebhook
           }
         );
 
@@ -361,7 +370,7 @@ async function processarRegistro(evento) {
         );
 
         registrador.informacao(
-          "Webhook Asaas: assinatura sem vínculo local ignorada.",
+          "Webhook Asaas: assinatura sem vínculo local ou evento obsoleto ignorado.",
           contexto
         );
 
@@ -433,7 +442,10 @@ async function processarRegistro(evento) {
           pagamentoId,
           pagamento?.status ||
           "CONFIRMED",
-          pagamento || {}
+          {
+            ...(pagamento || {}),
+            ...metadadosWebhook
+          }
         );
 
       if (resultado) {
@@ -455,7 +467,8 @@ async function processarRegistro(evento) {
         await suspenderAssinaturaPorPagamento(
           {
             ...(pagamento || {}),
-            id: pagamentoId
+            id: pagamentoId,
+            ...metadadosWebhook
           }
         );
     } else {
@@ -463,7 +476,8 @@ async function processarRegistro(evento) {
         await sincronizarPagamentoPorWebhook(
           {
             ...(pagamento || {}),
-            id: pagamentoId
+            id: pagamentoId,
+            ...metadadosWebhook
           }
         );
     }
@@ -475,7 +489,7 @@ async function processarRegistro(evento) {
       );
 
       registrador.informacao(
-        "Webhook Asaas: pagamento sem vínculo local ignorado.",
+        "Webhook Asaas: pagamento sem vínculo local ou evento obsoleto ignorado.",
         contexto
       );
 
@@ -535,26 +549,6 @@ async function processarRegistro(evento) {
 }
 
 async function processarEventoWebhook(eventoId) {
-  const obsoleto =
-    await webhookEventoRepository
-      .marcarObsoletoSeNecessario(
-        eventoId
-      );
-
-  if (obsoleto) {
-    registrador.informacao(
-      "Webhook Asaas: evento obsoleto ignorado.",
-      dadosLog(obsoleto)
-    );
-
-    return {
-      processado: false,
-      ignorado: true,
-      obsoleto: true,
-      status: "IGNORED"
-    };
-  }
-
   const evento =
     await webhookEventoRepository
       .reservarPorId(eventoId);
@@ -581,9 +575,6 @@ async function processarFilaWebhook(limite = 20) {
 
   await webhookEventoRepository
     .marcarProcessamentosEsgotados();
-
-  await webhookEventoRepository
-    .marcarEventosObsoletos();
 
   while (processados < limite) {
     const evento =
