@@ -395,7 +395,8 @@ async function cancelarMeuAgendamento(
 
 async function avaliarAgendamento(
   req,
-  res
+  res,
+  next
 ) {
   try {
     const resultado =
@@ -415,17 +416,7 @@ async function avaliarAgendamento(
       resultado
     );
   } catch (erro) {
-    return res
-      .status(
-        statusErro(erro)
-      )
-      .json({
-        erro:
-          mensagemErro(
-            erro,
-            "Erro ao avaliar agendamento."
-          ),
-      });
+    return encaminharErro(erro, next);
   }
 }
 
