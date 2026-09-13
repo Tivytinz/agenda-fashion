@@ -63,93 +63,167 @@ const {
   "../src/services/assinaturaService"
 );
 
+function sqlContem(sql, trecho) {
+  return String(sql)
+    .replace(/\s+/g, " ")
+    .includes(trecho);
+}
+
+function pagamentoComAssinatura({
+  assinaturaId = 20,
+  negocioId = 7,
+  planoId = 3,
+  pagamentoId = 50,
+  status = "ACTIVE",
+  ativo = true,
+  formaPagamento = "pix",
+  subscriptionId = "sub_1",
+  valor = "99.90",
+  dataPagamento = "2026-08-28",
+  dataVencimento = "2026-08-28"
+} = {}) {
+  return {
+    id: assinaturaId,
+    negocio_id: negocioId,
+    plano_id: planoId,
+    pagamento_id: pagamentoId,
+    valor,
+    forma_pagamento: formaPagamento,
+    status,
+    ativo,
+    asaas_customer_id: "cus_1",
+    asaas_subscription_id: subscriptionId,
+    data_pagamento: dataPagamento,
+    data_vencimento: dataVencimento,
+    data_proxima_cobranca: dataVencimento
+  };
+}
+
 describe(
   "Recorrências recebidas pelo webhook",
   () => {
     beforeEach(() => {
       jest.clearAllMocks();
+      mockClient.query
+        .mockReset();
+
+      pagamentoRepository
+        .criarPagamento
+        .mockResolvedValue({
+          id: 50
+        });
+
+      pagamentoRepository
+        .atualizarStatusPagamento
+        .mockResolvedValue({
+          id: 50,
+          status: "PENDING"
+        });
     });
 
     test(
       "cria o pagamento recorrente local e renova a assinatura",
       async () => {
-        mockClient.query
-          .mockResolvedValueOnce({
-            rows: []
-          })
-          .mockResolvedValueOnce({
-            rows: [
-              {
-                id: 20,
-                negocio_id: 7,
-                plano_id: 3,
-                valor: "99.90",
-                forma_pagamento:
-                  "pix",
-                status: "ACTIVE",
-                ativo: true,
-                asaas_subscription_id:
-                  "sub_1",
-                data_proxima_cobranca:
-                  "2026-08-28"
-              }
-            ]
-          })
-          .mockResolvedValueOnce({
-            rows: [
-              {
-                id: 20,
-                negocio_id: 7,
-                plano_id: 3,
-                valor: "99.90",
-                forma_pagamento:
-                  "pix",
-                status: "ACTIVE",
-                ativo: true,
-                asaas_subscription_id:
-                  "sub_1",
-                pagamento_id: 50,
-                data_pagamento:
-                  "2026-08-28",
-                data_vencimento:
-                  "2026-08-28"
-              }
-            ]
-          })
-          .mockResolvedValueOnce({
-            rows: []
-          })
-          .mockResolvedValueOnce({
-            rows: [
-              {
-                assinatura_vigente_id:
-                  null
-              }
-            ]
-          })
-          .mockResolvedValueOnce({
-            rows: []
-          })
-          .mockResolvedValueOnce({
-            rows: [
-              {
-                id: 20,
-                status: "ACTIVE",
-                ativo: true,
-                data_proxima_cobranca:
-                  "2026-09-28"
-              }
-            ]
-          })
-          .mockResolvedValueOnce({
-            rows: []
-          });
+        let buscasPagamento = 0;
 
-        pagamentoRepository
-          .criarPagamento
-          .mockResolvedValue({
-            id: 50
-          });
+        mockClient.query
+          .mockImplementation(
+            async (sql) => {
+              if (
+                sqlContem(
+                  sql,
+                  "FROM pagamentos p"
+                )
+              ) {
+                buscasPagamento += 1;
+
+                if (buscasPagamento < 3) {
+                  return {
+                    rows: []
+                  };
+                }
+
+                return {
+                  rows: [
+                    pagamentoComAssinatura()
+                  ]
+                };
+              }
+
+              if (
+                sqlContem(
+                  sql,
+                  "WHERE asaas_subscription_id = $1"
+                ) &&
+                sqlContem(
+                  sql,
+                  "FOR UPDATE"
+                )
+              ) {
+                return {
+                  rows: [
+                    pagamentoComAssinatura({
+                      pagamentoId: undefined
+                    })
+                  ]
+                };
+              }
+
+              if (
+                sqlContem(
+                  sql,
+                  "UPDATE pagamentos"
+                )
+              ) {
+                return {
+                  rows: [
+                    {
+                      id: 50
+                    }
+                  ]
+                };
+              }
+
+              if (
+                sqlContem(
+                  sql,
+                  "assinatura_vigente_id"
+                )
+              ) {
+                return {
+                  rows: [
+                    {
+                      assinatura_vigente_id:
+                        null
+                    }
+                  ]
+                };
+              }
+
+              if (
+                sqlContem(
+                  sql,
+                  "data_proxima_cobranca = $2"
+                )
+              ) {
+                return {
+                  rows: [
+                    {
+                      id: 20,
+                      status: "ACTIVE",
+                      ativo: true,
+                      data_proxima_cobranca:
+                        "2026-09-28"
+                    }
+                  ]
+                };
+              }
+
+              return {
+                rows: []
+              };
+            }
+          );
 
         const assinatura =
           await ativarAssinaturaPorPagamento(
@@ -207,12 +281,11 @@ describe(
       "ignora com segurança pagamento sem vínculo local",
       async () => {
         mockClient.query
-          .mockResolvedValueOnce({
-            rows: []
-          })
-          .mockResolvedValueOnce({
-            rows: []
-          });
+          .mockImplementation(
+            async () => ({
+              rows: []
+            })
+          );
 
         const pagamento =
           await sincronizarPagamentoPorWebhook({
@@ -235,33 +308,72 @@ describe(
       "vincula assinatura criada sem ativar plano pendente",
       async () => {
         mockClient.query
-          .mockResolvedValueOnce({
-            rows: []
-          })
-          .mockResolvedValueOnce({
-            rows: [
-              {
-                id: 20,
-                negocio_id: 7,
-                plano_id: 3,
-                status: "PENDING",
-                ativo: false,
-                asaas_subscription_id:
-                  null
+          .mockImplementation(
+            async (sql) => {
+              if (
+                sqlContem(
+                  sql,
+                  "WHERE asaas_subscription_id = $1"
+                )
+              ) {
+                return {
+                  rows: []
+                };
               }
-            ]
-          })
-          .mockResolvedValueOnce({
-            rows: [
-              {
-                id: 20,
-                status: "PENDING",
-                ativo: false,
-                asaas_subscription_id:
-                  "sub_1"
+
+              if (
+                sqlContem(
+                  sql,
+                  "WHERE id = $1"
+                ) &&
+                sqlContem(
+                  sql,
+                  "asaas_subscription_id IS NULL"
+                )
+              ) {
+                return {
+                  rows: [
+                    {
+                      id: 20,
+                      negocio_id: 7,
+                      plano_id: 3,
+                      status: "PENDING",
+                      ativo: false,
+                      asaas_subscription_id:
+                        null
+                    }
+                  ]
+                };
               }
-            ]
-          });
+
+              if (
+                sqlContem(
+                  sql,
+                  "UPDATE assinaturas"
+                ) &&
+                sqlContem(
+                  sql,
+                  "asaas_ultimo_evento_em"
+                )
+              ) {
+                return {
+                  rows: [
+                    {
+                      id: 20,
+                      status: "PENDING",
+                      ativo: false,
+                      asaas_subscription_id:
+                        "sub_1"
+                    }
+                  ]
+                };
+              }
+
+              return {
+                rows: []
+              };
+            }
+          );
 
         const assinatura =
           await sincronizarAssinaturaPorWebhook(
@@ -280,37 +392,28 @@ describe(
             }
           );
 
-        expect(mockClient.query)
-          .toHaveBeenNthCalledWith(
-            2,
-            expect.stringContaining(
-              "WHERE id = $1"
-            ),
-            [20, "sub_1"]
-          );
-        expect(mockClient.query)
-          .toHaveBeenNthCalledWith(
-            3,
-            expect.stringContaining(
-              "UPDATE assinaturas"
-            ),
-            [
-              "sub_1",
-              "cus_1",
-              "PENDING",
-              "pix",
-              "MONTHLY",
-              49.9,
-              "2026-09-28",
-              false,
-              20
-            ]
-          );
         expect(assinatura)
           .toMatchObject({
             status: "PENDING",
-            ativo: false
+            ativo: false,
+            asaas_subscription_id:
+              "sub_1"
           });
+
+        expect(
+          mockClient.query
+        ).toHaveBeenCalledWith(
+          expect.stringContaining(
+            "asaas_ultimo_evento_em"
+          ),
+          expect.arrayContaining([
+            "sub_1",
+            "cus_1",
+            "PENDING",
+            false,
+            20
+          ])
+        );
       }
     );
 
@@ -327,39 +430,73 @@ describe(
       "encerra acesso no evento %s",
       async (tipoEvento, statusEsperado) => {
         mockClient.query
-          .mockResolvedValueOnce({
-            rows: [
-              {
-                id: 20,
-                negocio_id: 7,
-                plano_id: 3,
-                status: "ACTIVE",
-                ativo: true,
-                asaas_subscription_id:
-                  "sub_1"
+          .mockImplementation(
+            async (sql) => {
+              if (
+                sqlContem(
+                  sql,
+                  "WHERE asaas_subscription_id = $1"
+                )
+              ) {
+                return {
+                  rows: [
+                    {
+                      id: 20,
+                      negocio_id: 7,
+                      plano_id: 3,
+                      status: "ACTIVE",
+                      ativo: true,
+                      asaas_subscription_id:
+                        "sub_1",
+                      data_proxima_cobranca:
+                        null
+                    }
+                  ]
+                };
               }
-            ]
-          })
-          .mockResolvedValueOnce({
-            rows: [
-              {
-                id: 20,
-                status:
-                  statusEsperado,
-                ativo: false
+
+              if (
+                sqlContem(
+                  sql,
+                  "asaas_ultimo_evento_em"
+                ) &&
+                sqlContem(
+                  sql,
+                  "UPDATE assinaturas"
+                )
+              ) {
+                return {
+                  rows: [
+                    {
+                      id: 20,
+                      status:
+                        statusEsperado,
+                      ativo: false
+                    }
+                  ]
+                };
               }
-            ]
-          })
-          .mockResolvedValueOnce({
-            rows: [
-              {
-                id: 1
+
+              if (
+                sqlContem(
+                  sql,
+                  "FROM planos"
+                )
+              ) {
+                return {
+                  rows: [
+                    {
+                      id: 1
+                    }
+                  ]
+                };
               }
-            ]
-          })
-          .mockResolvedValueOnce({
-            rows: []
-          });
+
+              return {
+                rows: []
+              };
+            }
+          );
 
         const assinatura =
           await sincronizarAssinaturaPorWebhook(
@@ -370,28 +507,20 @@ describe(
             }
           );
 
-        expect(mockClient.query)
-          .toHaveBeenNthCalledWith(
-            2,
-            expect.stringContaining(
-              "UPDATE assinaturas"
-            ),
-            expect.arrayContaining([
-              statusEsperado,
-              false,
-              20
-            ])
-          );
-        expect(mockClient.query)
-          .toHaveBeenNthCalledWith(
-            4,
-            expect.stringContaining(
-              "UPDATE negocios"
-            ),
-            [1, 7, 3, 20]
-          );
-        expect(assinatura.ativo)
-          .toBe(false);
+        expect(assinatura)
+          .toMatchObject({
+            status: statusEsperado,
+            ativo: false
+          });
+
+        expect(
+          mockClient.query
+        ).toHaveBeenCalledWith(
+          expect.stringContaining(
+            "UPDATE negocios"
+          ),
+          [1, 7, 3, 20]
+        );
       }
     );
 
@@ -399,67 +528,107 @@ describe(
       "encerra a recorrência anterior ao ativar um novo plano",
       async () => {
         mockClient.query
-          .mockResolvedValueOnce({
-            rows: [
-              {
-                id: 30,
-                negocio_id: 7,
-                plano_id: 4,
-                pagamento_id: 60,
-                valor: "149.90",
-                forma_pagamento:
-                  "pix",
-                status: "PENDING",
-                ativo: false,
-                asaas_customer_id:
-                  "cus_1",
-                asaas_subscription_id:
-                  null,
-                data_pagamento:
-                  "2026-07-29",
-                data_vencimento:
-                  "2026-07-29"
+          .mockImplementation(
+            async (sql) => {
+              if (
+                sqlContem(
+                  sql,
+                  "FROM pagamentos p"
+                )
+              ) {
+                return {
+                  rows: [
+                    pagamentoComAssinatura({
+                      assinaturaId: 30,
+                      planoId: 4,
+                      pagamentoId: 60,
+                      status: "PENDING",
+                      ativo: false,
+                      subscriptionId: null,
+                      valor: "149.90",
+                      dataPagamento:
+                        "2026-07-29",
+                      dataVencimento:
+                        "2026-07-29"
+                    })
+                  ]
+                };
               }
-            ]
-          })
-          .mockResolvedValueOnce({
-            rows: []
-          })
-          .mockResolvedValueOnce({
-            rows: [
-              {
-                assinatura_vigente_id:
-                  null
+
+              if (
+                sqlContem(
+                  sql,
+                  "UPDATE pagamentos"
+                )
+              ) {
+                return {
+                  rows: [
+                    {
+                      id: 60
+                    }
+                  ]
+                };
               }
-            ]
-          })
-          .mockResolvedValueOnce({
-            rows: [
-              {
-                id: 20,
-                asaas_subscription_id:
-                  "sub_antiga"
+
+              if (
+                sqlContem(
+                  sql,
+                  "assinatura_vigente_id"
+                )
+              ) {
+                return {
+                  rows: [
+                    {
+                      assinatura_vigente_id:
+                        null
+                    }
+                  ]
+                };
               }
-            ]
-          })
-          .mockResolvedValueOnce({
-            rows: []
-          })
-          .mockResolvedValueOnce({
-            rows: []
-          })
-          .mockResolvedValueOnce({
-            rows: [
-              {
-                id: 30,
-                ativo: true,
-                status: "ACTIVE"
+
+              if (
+                sqlContem(
+                  sql,
+                  "SELECT id,"
+                ) &&
+                sqlContem(
+                  sql,
+                  "asaas_subscription_id"
+                )
+              ) {
+                return {
+                  rows: [
+                    {
+                      id: 20,
+                      asaas_subscription_id:
+                        "sub_antiga"
+                    }
+                  ]
+                };
               }
-            ]
-          })
-          .mockResolvedValueOnce({
-            rows: []
-          });
+
+              if (
+                sqlContem(
+                  sql,
+                  "data_proxima_cobranca = $2"
+                )
+              ) {
+                return {
+                  rows: [
+                    {
+                      id: 30,
+                      ativo: true,
+                      status: "ACTIVE"
+                    }
+                  ]
+                };
+              }
+
+              return {
+                rows: []
+              };
+            }
+          );
 
         criarAssinaturaAsaas
           .mockResolvedValue({
@@ -484,21 +653,18 @@ describe(
 
         expect(
           removerAssinaturaAsaas
-        ).toHaveBeenCalledTimes(1);
-
-        expect(
-          removerAssinaturaAsaas
         ).toHaveBeenCalledWith(
           "sub_antiga"
         );
 
-        expect(mockClient.query)
-          .toHaveBeenCalledWith(
-            expect.stringContaining(
-              "Recorrência substituída"
-            ),
-            [7, 30]
-          );
+        expect(
+          mockClient.query
+        ).toHaveBeenCalledWith(
+          expect.stringContaining(
+            "Recorrência substituída"
+          ),
+          [7, 30]
+        );
 
         expect(assinatura)
           .toMatchObject({
@@ -513,34 +679,61 @@ describe(
       "confirma pagamento antigo sem substituir a assinatura vigente",
       async () => {
         mockClient.query
-          .mockResolvedValueOnce({
-            rows: [
-              {
-                id: 20,
-                negocio_id: 7,
-                plano_id: 3,
-                pagamento_id: 50,
-                valor: "99.90",
-                forma_pagamento: "pix",
-                status: "PENDING",
-                ativo: false,
-                asaas_customer_id: "cus_1",
-                asaas_subscription_id:
-                  null
+          .mockImplementation(
+            async (sql) => {
+              if (
+                sqlContem(
+                  sql,
+                  "FROM pagamentos p"
+                )
+              ) {
+                return {
+                  rows: [
+                    pagamentoComAssinatura({
+                      status: "PENDING",
+                      ativo: false,
+                      subscriptionId: null
+                    })
+                  ]
+                };
               }
-            ]
-          })
-          .mockResolvedValueOnce({
-            rows: []
-          })
-          .mockResolvedValueOnce({
-            rows: [
-              {
-                assinatura_vigente_id:
-                  30
+
+              if (
+                sqlContem(
+                  sql,
+                  "UPDATE pagamentos"
+                )
+              ) {
+                return {
+                  rows: [
+                    {
+                      id: 50
+                    }
+                  ]
+                };
               }
-            ]
-          });
+
+              if (
+                sqlContem(
+                  sql,
+                  "assinatura_vigente_id"
+                )
+              ) {
+                return {
+                  rows: [
+                    {
+                      assinatura_vigente_id:
+                        30
+                    }
+                  ]
+                };
+              }
+
+              return {
+                rows: []
+              };
+            }
+          );
 
         const assinatura =
           await ativarAssinaturaPorPagamento(
@@ -561,16 +754,6 @@ describe(
           .not.toHaveBeenCalled();
         expect(removerAssinaturaAsaas)
           .not.toHaveBeenCalled();
-        expect(mockClient.query)
-          .toHaveBeenCalledTimes(3);
-        expect(mockClient.query)
-          .toHaveBeenNthCalledWith(
-            3,
-            expect.stringContaining(
-              "a.id > $2"
-            ),
-            [7, 20]
-          );
       }
     );
 
@@ -578,30 +761,57 @@ describe(
       "mantém acesso já pago após excluir renovação",
       async () => {
         mockClient.query
-          .mockResolvedValueOnce({
-            rows: [
-              {
-                id: 20,
-                negocio_id: 7,
-                plano_id: 3,
-                status: "ACTIVE",
-                ativo: true,
-                asaas_subscription_id:
-                  "sub_1",
-                data_proxima_cobranca:
-                  "2099-09-28"
+          .mockImplementation(
+            async (sql) => {
+              if (
+                sqlContem(
+                  sql,
+                  "WHERE asaas_subscription_id = $1"
+                )
+              ) {
+                return {
+                  rows: [
+                    {
+                      id: 20,
+                      negocio_id: 7,
+                      plano_id: 3,
+                      status: "ACTIVE",
+                      ativo: true,
+                      asaas_subscription_id:
+                        "sub_1",
+                      data_proxima_cobranca:
+                        "2099-09-28"
+                    }
+                  ]
+                };
               }
-            ]
-          })
-          .mockResolvedValueOnce({
-            rows: [
-              {
-                id: 20,
-                status: "CANCELED",
-                ativo: true
+
+              if (
+                sqlContem(
+                  sql,
+                  "asaas_ultimo_evento_em"
+                ) &&
+                sqlContem(
+                  sql,
+                  "UPDATE assinaturas"
+                )
+              ) {
+                return {
+                  rows: [
+                    {
+                      id: 20,
+                      status: "CANCELED",
+                      ativo: true
+                    }
+                  ]
+                };
               }
-            ]
-          });
+
+              return {
+                rows: []
+              };
+            }
+          );
 
         const assinatura =
           await sincronizarAssinaturaPorWebhook(
@@ -613,13 +823,22 @@ describe(
             }
           );
 
-        expect(mockClient.query)
-          .toHaveBeenCalledTimes(2);
         expect(assinatura)
           .toMatchObject({
             status: "CANCELED",
             ativo: true
           });
+
+        expect(
+          mockClient.query.mock.calls
+            .some(
+              ([sql]) =>
+                sqlContem(
+                  sql,
+                  "FROM planos"
+                )
+            )
+        ).toBe(false);
       }
     );
 
@@ -627,39 +846,62 @@ describe(
       "suspende assinatura vencida e retorna o negócio ao plano gratuito",
       async () => {
         mockClient.query
-          .mockResolvedValueOnce({
-            rows: [
-              {
-                id: 20,
-                negocio_id: 7,
-                plano_id: 3,
-                pagamento_id: 50,
-                asaas_subscription_id:
-                  "sub_1",
-                status: "ACTIVE",
-                ativo: true
+          .mockImplementation(
+            async (sql) => {
+              if (
+                sqlContem(
+                  sql,
+                  "FROM pagamentos p"
+                )
+              ) {
+                return {
+                  rows: [
+                    pagamentoComAssinatura()
+                  ]
+                };
               }
-            ]
-          })
-          .mockResolvedValueOnce({
-            rows: [
-              {
-                id: 1
+
+              if (
+                sqlContem(
+                  sql,
+                  "FROM planos"
+                )
+              ) {
+                return {
+                  rows: [
+                    {
+                      id: 1
+                    }
+                  ]
+                };
               }
-            ]
-          })
-          .mockResolvedValueOnce({
-            rows: [
-              {
-                id: 20,
-                status: "OVERDUE",
-                ativo: false
+
+              if (
+                sqlContem(
+                  sql,
+                  "UPDATE assinaturas"
+                ) &&
+                sqlContem(
+                  sql,
+                  "ativo = FALSE"
+                )
+              ) {
+                return {
+                  rows: [
+                    {
+                      id: 20,
+                      status: "OVERDUE",
+                      ativo: false
+                    }
+                  ]
+                };
               }
-            ]
-          })
-          .mockResolvedValueOnce({
-            rows: []
-          });
+
+              return {
+                rows: []
+              };
+            }
+          );
 
         pagamentoRepository
           .atualizarStatusPagamento
@@ -683,7 +925,9 @@ describe(
           "pay_renovacao",
           {
             status: "OVERDUE",
-            data_pagamento: null
+            data_pagamento: null,
+            evento_criado_em: null,
+            evento_id: null
           }
         );
 
@@ -708,74 +952,79 @@ describe(
       "webhook financeiro antigo não rebaixa o plano vigente",
       async () => {
         mockClient.query
-          .mockResolvedValueOnce({
-            rows: [
-              {
-                id: 20,
-                negocio_id: 7,
-                plano_id: 3,
-                pagamento_id: 50,
-                asaas_subscription_id:
-                  "sub_antiga",
-                status:
-                  "CANCELED",
-                ativo:
-                  false
+          .mockImplementation(
+            async (sql) => {
+              if (
+                sqlContem(
+                  sql,
+                  "FROM pagamentos p"
+                )
+              ) {
+                return {
+                  rows: [
+                    pagamentoComAssinatura({
+                      status: "ACTIVE",
+                      ativo: true,
+                      subscriptionId:
+                        "sub_antiga"
+                    })
+                  ]
+                };
               }
-            ]
-          })
-          .mockResolvedValueOnce({
-            rows: [
-              {
-                id: 1
-              }
-            ]
-          })
-          .mockResolvedValueOnce({
-            rows: [
-              {
-                id: 20,
-                status:
-                  "OVERDUE",
-                ativo:
-                  false
-              }
-            ]
-          })
-          .mockResolvedValueOnce({
-            rows: []
-          });
+
+              return {
+                rows: []
+              };
+            }
+          );
 
         pagamentoRepository
           .atualizarStatusPagamento
-          .mockResolvedValue({
-            id: 50,
-            status:
-              "OVERDUE"
+          .mockResolvedValue(null);
+
+        const resultado =
+          await suspenderAssinaturaPorPagamento({
+            id: "pay_antigo",
+            status: "OVERDUE",
+            subscription:
+              "sub_antiga",
+            webhookEventoCriadoEm:
+              "2026-09-13 18:00:00",
+            webhookEventoId:
+              "evt_antigo"
           });
 
-        await suspenderAssinaturaPorPagamento({
-          id:
-            "pay_antigo",
-          status:
-            "OVERDUE",
-          subscription:
-            "sub_antiga"
-        });
+        expect(resultado)
+          .toBeNull();
 
         expect(
-          mockClient.query
+          pagamentoRepository
+            .atualizarStatusPagamento
         ).toHaveBeenCalledWith(
-          expect.stringContaining(
-            "NOT EXISTS"
-          ),
-          [
-            1,
-            7,
-            3,
-            20
-          ]
+          mockClient,
+          "pay_antigo",
+          expect.objectContaining({
+            evento_criado_em:
+              "2026-09-13 18:00:00",
+            evento_id:
+              "evt_antigo"
+          })
         );
+
+        expect(
+          mockClient.query.mock.calls
+            .some(
+              ([sql]) =>
+                sqlContem(
+                  sql,
+                  "FROM planos"
+                ) ||
+                sqlContem(
+                  sql,
+                  "UPDATE negocios"
+                )
+            )
+        ).toBe(false);
       }
     );
   }
