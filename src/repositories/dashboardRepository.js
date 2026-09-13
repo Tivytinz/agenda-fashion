@@ -23,6 +23,14 @@ async function buscarNegocioDoUsuario(
       AND u.ativo = TRUE
       AND n.ativo = TRUE
 
+    ORDER BY
+      CASE
+        WHEN un.papel = 'dono' THEN 0
+        ELSE 1
+      END,
+      un.created_at ASC,
+      n.id ASC
+
     LIMIT 1
     `,
     [usuarioId]
