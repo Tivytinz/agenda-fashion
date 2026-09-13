@@ -75,13 +75,31 @@ async function atualizarStatusPagamento(client, paymentId, dados) {
     SET
       status = $1,
       data_pagamento = COALESCE($2, data_pagamento),
+      asaas_ultimo_evento_em = CASE
+        WHEN $3::timestamp IS NOT NULL
+          THEN $3::timestamp
+        ELSE asaas_ultimo_evento_em
+      END,
+      asaas_ultimo_evento_id = CASE
+        WHEN $3::timestamp IS NOT NULL
+          THEN $4
+        ELSE asaas_ultimo_evento_id
+      END,
       updated_at = NOW()
-    WHERE asaas_payment_id = $3
+    WHERE asaas_payment_id = $5
+      AND (
+        $3::timestamp IS NULL
+        OR asaas_ultimo_evento_em IS NULL
+        OR $3::timestamp >=
+          asaas_ultimo_evento_em
+      )
     RETURNING *
     `,
         [
             dados.status,
             dados.data_pagamento || null,
+            dados.evento_criado_em || null,
+            dados.evento_id || null,
             paymentId
         ]
     );

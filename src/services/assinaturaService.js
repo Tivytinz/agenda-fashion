@@ -304,6 +304,15 @@ async function sincronizarAssinaturaPorWebhook(
           ? false
           : assinatura.ativo;
 
+      const eventoCriadoEm =
+        dadosAssinatura
+          .webhookEventoCriadoEm ||
+        null;
+      const eventoId =
+        dadosAssinatura
+          .webhookEventoId ||
+        null;
+
       const atualizacao =
         await client.query(
           `
@@ -325,8 +334,24 @@ async function sincronizarAssinaturaPorWebhook(
                 data_proxima_cobranca
               ),
             ativo = $8,
+            asaas_ultimo_evento_em = CASE
+              WHEN $9::timestamp IS NOT NULL
+                THEN $9::timestamp
+              ELSE asaas_ultimo_evento_em
+            END,
+            asaas_ultimo_evento_id = CASE
+              WHEN $9::timestamp IS NOT NULL
+                THEN $10
+              ELSE asaas_ultimo_evento_id
+            END,
             updated_at = NOW()
-          WHERE id = $9
+          WHERE id = $11
+            AND (
+              $9::timestamp IS NULL
+              OR asaas_ultimo_evento_em IS NULL
+              OR $9::timestamp >=
+                asaas_ultimo_evento_em
+            )
           RETURNING *
           `,
           [
@@ -344,9 +369,18 @@ async function sincronizarAssinaturaPorWebhook(
             dadosAssinatura.nextDueDate ||
               null,
             ativo,
+            eventoCriadoEm,
+            eventoId,
             assinatura.id
           ]
         );
+
+      const assinaturaAtualizada =
+        atualizacao.rows[0] || null;
+
+      if (!assinaturaAtualizada) {
+        return null;
+      }
 
       if (
         eventoEncerramento &&
@@ -396,8 +430,7 @@ async function sincronizarAssinaturaPorWebhook(
         );
       }
 
-      return atualizacao.rows[0] ||
-        null;
+      return assinaturaAtualizada;
     }
   );
 }
@@ -470,6 +503,22 @@ async function garantirPagamentoRecorrente(
 
   if (!assinaturaRecorrente) {
     return null;
+  }
+
+  /*
+   * Outra transação pode ter criado o pagamento enquanto
+   * aguardávamos o lock da assinatura. Revalidamos depois
+   * do FOR UPDATE para não executar o ON CONFLICT com um
+   * estado de webhook potencialmente mais antigo.
+   */
+  assinatura =
+    await localizarAssinaturaPagamento(
+      client,
+      paymentId
+    );
+
+  if (assinatura) {
+    return assinatura;
   }
 
   await pagamentoRepository
@@ -552,6 +601,14 @@ async function sincronizarPagamentoPorWebhook(
               dadosPagamento.paymentDate ||
               dadosPagamento
                 .confirmedDate ||
+              null,
+            evento_criado_em:
+              dadosPagamento
+                .webhookEventoCriadoEm ||
+              null,
+            evento_id:
+              dadosPagamento
+                .webhookEventoId ||
               null
           }
         );
@@ -594,15 +651,28 @@ async function suspenderAssinaturaPorPagamento(
           .trim()
           .toUpperCase();
 
-      await pagamentoRepository
-        .atualizarStatusPagamento(
-          client,
-          paymentId,
-          {
-            status,
-            data_pagamento: null
-          }
-        );
+      const pagamentoAtualizado =
+        await pagamentoRepository
+          .atualizarStatusPagamento(
+            client,
+            paymentId,
+            {
+              status,
+              data_pagamento: null,
+              evento_criado_em:
+                dadosPagamento
+                  .webhookEventoCriadoEm ||
+                null,
+              evento_id:
+                dadosPagamento
+                  .webhookEventoId ||
+                null
+            }
+          );
+
+      if (!pagamentoAtualizado) {
+        return null;
+      }
 
       const planoGratis =
         await client.query(
@@ -702,20 +772,53 @@ async function ativarAssinaturaPorPagamento(
         return null;
       }
 
-      await client.query(
-        `
-        UPDATE pagamentos
-        SET
-          status = $1,
-          data_pagamento =
-            COALESCE(data_pagamento, NOW())
-        WHERE id = $2
-        `,
-        [
-          statusPagamento,
-          assinatura.pagamento_id
-        ]
-      );
+      const eventoCriadoEm =
+        dadosPagamento
+          .webhookEventoCriadoEm ||
+        null;
+      const eventoId =
+        dadosPagamento
+          .webhookEventoId ||
+        null;
+
+      const pagamentoAtualizado =
+        await client.query(
+          `
+          UPDATE pagamentos
+          SET
+            status = $1,
+            data_pagamento =
+              COALESCE(data_pagamento, NOW()),
+            asaas_ultimo_evento_em = CASE
+              WHEN $3::timestamp IS NOT NULL
+                THEN $3::timestamp
+              ELSE asaas_ultimo_evento_em
+            END,
+            asaas_ultimo_evento_id = CASE
+              WHEN $3::timestamp IS NOT NULL
+                THEN $4
+              ELSE asaas_ultimo_evento_id
+            END
+          WHERE id = $2
+            AND (
+              $3::timestamp IS NULL
+              OR asaas_ultimo_evento_em IS NULL
+              OR $3::timestamp >=
+                asaas_ultimo_evento_em
+            )
+          RETURNING id
+          `,
+          [
+            statusPagamento,
+            assinatura.pagamento_id,
+            eventoCriadoEm,
+            eventoId
+          ]
+        );
+
+      if (!pagamentoAtualizado.rows[0]) {
+        return null;
+      }
 
       /*
        * Serializa ativações do mesmo negócio. Depois que uma
@@ -1026,9 +1129,10 @@ async function buscarMinhaAssinatura({
     );
 
   const pagamentos =
-    await assinaturaRepository.listarPagamentos(
-      assinatura?.id || 0
-    );
+    await assinaturaRepository
+      .listarPagamentos(
+        assinatura?.id || 0
+      );
 
   const uso =
     await buscarUsoPlano(negocio.id);

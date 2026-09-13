@@ -7,6 +7,7 @@ async function registrarRecebimento({
   eventoId,
   tipoEvento,
   recursoId,
+  eventoCriadoEm,
   payload
 }) {
   const insercao = await db.query(
@@ -16,13 +17,15 @@ async function registrarRecebimento({
       evento_id,
       tipo_evento,
       recurso_id,
+      evento_criado_em,
       status,
       tentativas,
       payload
     )
     VALUES (
       $1, $2, $3, $4,
-      'PENDING', 0, $5::jsonb
+      $5::timestamp,
+      'PENDING', 0, $6::jsonb
     )
     ON CONFLICT (provedor, evento_id)
     DO NOTHING
@@ -33,6 +36,7 @@ async function registrarRecebimento({
       eventoId,
       tipoEvento,
       recursoId || null,
+      eventoCriadoEm || null,
       JSON.stringify(payload || {})
     ]
   );
