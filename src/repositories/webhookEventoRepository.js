@@ -7,6 +7,7 @@ async function registrarRecebimento({
   eventoId,
   tipoEvento,
   recursoId,
+  eventoCriadoEm,
   payload
 }) {
   const insercao = await db.query(
@@ -16,13 +17,14 @@ async function registrarRecebimento({
       evento_id,
       tipo_evento,
       recurso_id,
+      evento_criado_em,
       status,
       tentativas,
       payload
     )
     VALUES (
-      $1, $2, $3, $4,
-      'PENDING', 0, $5::jsonb
+      $1, $2, $3, $4, $5::timestamp,
+      'PENDING', 0, $6::jsonb
     )
     ON CONFLICT (provedor, evento_id)
     DO NOTHING
@@ -33,6 +35,7 @@ async function registrarRecebimento({
       eventoId,
       tipoEvento,
       recursoId || null,
+      eventoCriadoEm || null,
       JSON.stringify(payload || {})
     ]
   );
@@ -64,45 +67,140 @@ async function registrarRecebimento({
   };
 }
 
-function condicaoDisponivel() {
+function condicaoDisponivel(
+  alias = ""
+) {
+  const prefixo = alias
+    ? `${alias}.`
+    : "";
+
   return `
     (
       (
-        status = 'PENDING'
-        AND tentativas < ${MAX_TENTATIVAS}
+        ${prefixo}status = 'PENDING'
+        AND ${prefixo}tentativas < ${MAX_TENTATIVAS}
       )
       OR (
-        status = 'FAILED'
-        AND tentativas < ${MAX_TENTATIVAS}
+        ${prefixo}status = 'FAILED'
+        AND ${prefixo}tentativas < ${MAX_TENTATIVAS}
         AND (
-          proxima_tentativa_em IS NULL
-          OR proxima_tentativa_em <= NOW()
+          ${prefixo}proxima_tentativa_em IS NULL
+          OR ${prefixo}proxima_tentativa_em <= NOW()
         )
       )
       OR (
-        status = 'PROCESSING'
-        AND tentativas < ${MAX_TENTATIVAS}
-        AND ultima_tentativa_em
+        ${prefixo}status = 'PROCESSING'
+        AND ${prefixo}tentativas < ${MAX_TENTATIVAS}
+        AND ${prefixo}ultima_tentativa_em
           < NOW() - INTERVAL '5 minutes'
       )
     )
   `;
 }
 
+function condicaoSemProcessamentoDoMesmoRecurso(
+  alias
+) {
+  return `
+    (
+      ${alias}.recurso_id IS NULL
+      OR NOT EXISTS (
+        SELECT 1
+        FROM webhook_eventos outro
+        WHERE outro.provedor = ${alias}.provedor
+          AND outro.recurso_id = ${alias}.recurso_id
+          AND outro.id <> ${alias}.id
+          AND outro.status = 'PROCESSING'
+          AND outro.ultima_tentativa_em >=
+            NOW() - INTERVAL '5 minutes'
+      )
+    )
+  `;
+}
+
+function condicaoEventoMaisRecente(
+  alias
+) {
+  return `
+    ${alias}.recurso_id IS NOT NULL
+    AND ${alias}.evento_criado_em IS NOT NULL
+    AND EXISTS (
+      SELECT 1
+      FROM webhook_eventos recente
+      WHERE recente.provedor = ${alias}.provedor
+        AND recente.recurso_id = ${alias}.recurso_id
+        AND recente.id <> ${alias}.id
+        AND recente.evento_criado_em IS NOT NULL
+        AND (
+          recente.evento_criado_em >
+            ${alias}.evento_criado_em
+          OR (
+            recente.evento_criado_em =
+              ${alias}.evento_criado_em
+            AND recente.id > ${alias}.id
+          )
+        )
+    )
+  `;
+}
+
+async function marcarObsoletoSeNecessario(
+  id
+) {
+  const resultado = await db.query(
+    `
+    UPDATE webhook_eventos evento
+    SET
+      status = 'IGNORED',
+      erro = NULL,
+      proxima_tentativa_em = NULL,
+      processado_em = NOW()
+    WHERE evento.id = $1
+      AND ${condicaoDisponivel("evento")}
+      AND ${condicaoEventoMaisRecente("evento")}
+    RETURNING *
+    `,
+    [id]
+  );
+
+  return resultado.rows[0] || null;
+}
+
+async function marcarEventosObsoletos() {
+  const resultado = await db.query(
+    `
+    UPDATE webhook_eventos evento
+    SET
+      status = 'IGNORED',
+      erro = NULL,
+      proxima_tentativa_em = NULL,
+      processado_em = NOW()
+    WHERE ${condicaoDisponivel("evento")}
+      AND ${condicaoEventoMaisRecente("evento")}
+    RETURNING *
+    `
+  );
+
+  return resultado.rows;
+}
+
 async function reservarPorId(id) {
   const resultado = await db.query(
     `
-    UPDATE webhook_eventos
+    UPDATE webhook_eventos evento
     SET
       status = 'PROCESSING',
-      tentativas = tentativas + 1,
+      tentativas = evento.tentativas + 1,
       erro = NULL,
       proxima_tentativa_em = NULL,
       ultima_tentativa_em = NOW(),
       processado_em = NULL
-    WHERE id = $1
-      AND ${condicaoDisponivel()}
-    RETURNING *, tentativas AS lease_tentativa
+    WHERE evento.id = $1
+      AND ${condicaoDisponivel("evento")}
+      AND ${condicaoSemProcessamentoDoMesmoRecurso("evento")}
+    RETURNING
+      evento.*,
+      evento.tentativas AS lease_tentativa
     `,
     [id]
   );
@@ -114,10 +212,11 @@ async function reservarProximo() {
   const resultado = await db.query(
     `
     WITH candidato AS (
-      SELECT id
-      FROM webhook_eventos
-      WHERE ${condicaoDisponivel()}
-      ORDER BY recebido_em ASC
+      SELECT evento.id
+      FROM webhook_eventos evento
+      WHERE ${condicaoDisponivel("evento")}
+        AND ${condicaoSemProcessamentoDoMesmoRecurso("evento")}
+      ORDER BY evento.recebido_em ASC
       FOR UPDATE SKIP LOCKED
       LIMIT 1
     )
@@ -272,6 +371,8 @@ async function marcarProcessamentosEsgotados() {
 
 module.exports = {
   registrarRecebimento,
+  marcarObsoletoSeNecessario,
+  marcarEventosObsoletos,
   reservarPorId,
   reservarProximo,
   marcarConcluido,
