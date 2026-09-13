@@ -24,6 +24,7 @@ describe("Fluxo de profissionais com banco real", () => {
   let tokenDonoA;
   let tokenDonoB;
   let tokenProfissional;
+  let planoEquipeId;
 
   async function criarUsuario(nome, marcador, indice) {
     const finalWhatsapp =
@@ -89,19 +90,27 @@ describe("Fluxo de profissionais com banco real", () => {
   beforeAll(async () => {
     const plano = await db.query(
       `
-      SELECT id
-      FROM planos
-      WHERE ativo = TRUE
-        AND (
-          limite_profissionais IS NULL
-          OR limite_profissionais >= 3
-        )
-      ORDER BY limite_profissionais DESC NULLS FIRST
-      LIMIT 1
-      `
+      INSERT INTO planos (
+        nome,
+        slug,
+        valor,
+        capacidade_agendamentos,
+        limite_profissionais,
+        limite_servicos,
+        destaque,
+        ativo
+      )
+      VALUES ($1, $2, 0, 100, 5, 10, FALSE, TRUE)
+      RETURNING id
+      `,
+      [
+        "Plano Teste Equipe",
+        `teste-equipe-${sufixo}`
+      ]
     );
 
-    expect(plano.rows[0]).toBeTruthy();
+    planoEquipeId = plano.rows[0]?.id;
+    expect(planoEquipeId).toBeTruthy();
 
     donoA = await criarUsuario("Dona Integração A", "dona-a", 1);
     donoB = await criarUsuario("Dona Integração B", "dona-b", 2);
@@ -162,6 +171,16 @@ describe("Fluxo de profissionais com banco real", () => {
           WHERE id = ANY($1::BIGINT[])
           `,
           [negociosCriados]
+        );
+      }
+
+      if (planoEquipeId) {
+        await db.query(
+          `
+          DELETE FROM planos
+          WHERE id = $1
+          `,
+          [planoEquipeId]
         );
       }
 
