@@ -2,6 +2,8 @@ jest.mock(
   "../src/repositories/webhookEventoRepository",
   () => ({
     registrarRecebimento: jest.fn(),
+    marcarObsoletoSeNecessario: jest.fn(),
+    marcarEventosObsoletos: jest.fn(),
     reservarPorId: jest.fn(),
     reservarProximo: jest.fn(),
     marcarConcluido: jest.fn(),
@@ -47,6 +49,10 @@ const webhookService = require(
 
 beforeEach(() => {
   jest.clearAllMocks();
+
+  webhookEventoRepository
+    .marcarObsoletoSeNecessario
+    .mockResolvedValue(null);
 });
 
 test(
