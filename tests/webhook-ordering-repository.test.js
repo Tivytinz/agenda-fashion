@@ -8,13 +8,15 @@ jest.mock(
 const db = require(
   "../src/db/db"
 );
-
-const repository = require(
+const webhookRepository = require(
   "../src/repositories/webhookEventoRepository"
+);
+const pagamentoRepository = require(
+  "../src/repositories/pagamentoRepository"
 );
 
 describe(
-  "Ordenação da fila de webhooks por recurso",
+  "Versionamento dos webhooks Asaas",
   () => {
     beforeEach(() => {
       jest.clearAllMocks();
@@ -32,7 +34,7 @@ describe(
           ]
         });
 
-        await repository
+        await webhookRepository
           .registrarRecebimento({
             provedor: "asaas",
             eventoId: "evt_1",
@@ -58,97 +60,55 @@ describe(
     );
 
     test(
-      "marca como obsoleto somente após evento mais recente do mesmo recurso ser aplicado",
+      "pagamento só aceita evento sem versão ou não anterior ao último aplicado",
       async () => {
         db.query.mockResolvedValueOnce({
           rows: [
             {
-              id: 1,
-              status: "IGNORED"
+              id: 9,
+              status: "RECEIVED"
             }
           ]
         });
 
-        await repository
-          .marcarObsoletoSeNecessario(1);
+        await pagamentoRepository
+          .atualizarStatusPagamento(
+            null,
+            "pay_1",
+            {
+              status: "RECEIVED",
+              data_pagamento:
+                "2026-09-13",
+              evento_criado_em:
+                "2026-09-13 20:10:11",
+              evento_id:
+                "evt_received"
+            }
+          );
 
         const [sql, parametros] =
           db.query.mock.calls[0];
 
         expect(sql)
           .toContain(
-            "recente.recurso_id = evento.recurso_id"
+            "asaas_ultimo_evento_em"
           );
         expect(sql)
           .toContain(
-            "recente.status = 'PROCESSED'"
+            "asaas_ultimo_evento_id"
           );
         expect(sql)
           .toContain(
-            "recente.evento_criado_em >"
-          );
-        expect(sql)
-          .toContain(
-            "evento.status = 'PROCESSING'"
-          );
-        expect(sql)
-          .toContain(
-            "INTERVAL '5 minutes'"
+            "$3::timestamp >="
           );
         expect(parametros)
-          .toEqual([1]);
-      }
-    );
-
-    test(
-      "não reserva dois eventos ativos do mesmo recurso ao mesmo tempo",
-      async () => {
-        db.query.mockResolvedValueOnce({
-          rows: []
-        });
-
-        await repository
-          .reservarPorId(2);
-
-        const sql =
-          db.query.mock.calls[0][0];
-
-        expect(sql)
-          .toContain(
-            "outro.recurso_id = evento.recurso_id"
-          );
-        expect(sql)
-          .toContain(
-            "outro.status = 'PROCESSING'"
-          );
-        expect(sql)
-          .toContain(
-            "outro.ultima_tentativa_em >="
-          );
-      }
-    );
-
-    test(
-      "worker também respeita exclusão mútua por recurso",
-      async () => {
-        db.query.mockResolvedValueOnce({
-          rows: []
-        });
-
-        await repository
-          .reservarProximo();
-
-        const sql =
-          db.query.mock.calls[0][0];
-
-        expect(sql)
-          .toContain(
-            "FOR UPDATE SKIP LOCKED"
-          );
-        expect(sql)
-          .toContain(
-            "outro.status = 'PROCESSING'"
-          );
+          .toEqual([
+            "RECEIVED",
+            "2026-09-13",
+            "2026-09-13 20:10:11",
+            "evt_received",
+            "pay_1"
+          ]);
       }
     );
   }
