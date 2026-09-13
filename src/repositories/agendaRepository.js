@@ -153,14 +153,19 @@ async function bloquearAlteracaoHorario(
   hora,
   executor = db
 ) {
+  void hora;
+
   await executor.query(
     `
     SELECT pg_advisory_xact_lock(
-      hashtext('agenda_fashion_bloqueio_horario'),
-      hashtext($1)
+      $1::integer,
+      hashtext($2::text)
     )
     `,
-    [`${profissionalId}:${data}:${hora}`]
+    [
+      Number(profissionalId),
+      String(data),
+    ]
   );
 }
 
@@ -176,8 +181,12 @@ async function buscarAgendamentoAtivo(
     FROM agendamentos
     WHERE profissional_id = $1
       AND data = $2
-      AND TO_CHAR(horario, 'HH24:MI') = $3
       AND status IN ('agendado', 'confirmado')
+      AND $3::time >= horario::time
+      AND $3::time < (
+        horario::time +
+        make_interval(mins => duracao_minutos)
+      )
     LIMIT 1
     `,
     [profissionalId, data, hora]
@@ -431,10 +440,7 @@ async function buscarAgendamentosPorPeriodo(
         0
       )::numeric AS valor,
 
-      COALESCE(
-        s.duracao_minutos,
-        60
-      )::int AS duracao_minutos
+      a.duracao_minutos::int AS duracao_minutos
 
     FROM agendamentos a
 
@@ -523,10 +529,7 @@ async function buscarAgendamentosProfissionaisPorPeriodo(
         0
       )::numeric AS valor,
 
-      COALESCE(
-        s.duracao_minutos,
-        60
-      )::int AS duracao_minutos
+      a.duracao_minutos::int AS duracao_minutos
 
     FROM agendamentos a
 

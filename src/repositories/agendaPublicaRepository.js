@@ -134,15 +134,9 @@ async function listarAgendamentosOcupados(
           'HH24:MI'
         ) AS horario,
 
-        COALESCE(
-          s.duracao_minutos,
-          60
-        )::int AS duracao_minutos
+        a.duracao_minutos::int AS duracao_minutos
 
       FROM agendamentos a
-
-      LEFT JOIN servicos_negocio s
-        ON s.id = a.servico_id
 
       WHERE a.profissional_id = $1
         AND a.data BETWEEN $2 AND $3
@@ -386,6 +380,7 @@ async function criarAgendamento(
           whatsapp_consentido_em,
           servico_id,
           valor_servico,
+          duracao_minutos,
           negocio_id,
           status,
           avaliacao,
