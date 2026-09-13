@@ -56,10 +56,6 @@ describe(
       jest.clearAllMocks();
 
       webhookEventoRepository
-        .marcarObsoletoSeNecessario
-        .mockResolvedValue(null);
-
-      webhookEventoRepository
         .marcarConcluido
         .mockResolvedValue({
           id: 1,
@@ -116,39 +112,51 @@ describe(
     );
 
     test(
-      "ignora evento antigo quando já existe estado mais recente do recurso",
+      "propaga a versão do evento para a mutação financeira",
       async () => {
         webhookEventoRepository
-          .marcarObsoletoSeNecessario
+          .reservarPorId
           .mockResolvedValue({
             id: 10,
-            evento_id: "evt_overdue_antigo",
+            evento_id: "evt_overdue",
+            evento_criado_em:
+              "2026-09-13 20:00:00",
             tipo_evento: "PAYMENT_OVERDUE",
             recurso_id: "pay_1",
-            status: "IGNORED"
+            tentativas: 1,
+            lease_tentativa: 1,
+            payload: {
+              payment: {
+                id: "pay_1",
+                status: "OVERDUE"
+              }
+            }
+          });
+
+        suspenderAssinaturaPorPagamento
+          .mockResolvedValue({
+            id: 20,
+            negocio_id: 7,
+            status: "OVERDUE"
           });
 
         const resultado =
           await processarEventoWebhook(10);
 
-        expect(resultado)
-          .toEqual({
-            processado: false,
-            ignorado: true,
-            obsoleto: true,
-            status: "IGNORED"
-          });
-
-        expect(
-          webhookEventoRepository
-            .reservarPorId
-        ).not.toHaveBeenCalled();
-        expect(
-          ativarAssinaturaPorPagamento
-        ).not.toHaveBeenCalled();
         expect(
           suspenderAssinaturaPorPagamento
-        ).not.toHaveBeenCalled();
+        ).toHaveBeenCalledWith(
+          expect.objectContaining({
+            id: "pay_1",
+            status: "OVERDUE",
+            webhookEventoId:
+              "evt_overdue",
+            webhookEventoCriadoEm:
+              "2026-09-13 20:00:00"
+          })
+        );
+        expect(resultado.status)
+          .toBe("PROCESSED");
       }
     );
 
@@ -160,6 +168,8 @@ describe(
           .mockResolvedValue({
             id: 11,
             evento_id: "evt_updated_received",
+            evento_criado_em:
+              "2026-09-13 20:05:00",
             tipo_evento: "PAYMENT_UPDATED",
             recurso_id: "pay_1",
             tentativas: 1,
@@ -189,7 +199,11 @@ describe(
           "RECEIVED",
           expect.objectContaining({
             id: "pay_1",
-            status: "RECEIVED"
+            status: "RECEIVED",
+            webhookEventoId:
+              "evt_updated_received",
+            webhookEventoCriadoEm:
+              "2026-09-13 20:05:00"
           })
         );
 
@@ -216,6 +230,8 @@ describe(
             id: 12,
             evento_id:
               `evt_${tipoEvento}`,
+            evento_criado_em:
+              "2026-09-13 20:07:00",
             tipo_evento: tipoEvento,
             recurso_id: "pay_2",
             tentativas: 1,
@@ -243,7 +259,9 @@ describe(
           suspenderAssinaturaPorPagamento
         ).toHaveBeenCalledWith(
           expect.objectContaining({
-            id: "pay_2"
+            id: "pay_2",
+            webhookEventoCriadoEm:
+              "2026-09-13 20:07:00"
           })
         );
         expect(
