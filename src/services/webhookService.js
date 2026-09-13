@@ -19,6 +19,13 @@ const EVENTOS_PAGAMENTO_CONFIRMADO =
     "PAYMENT_RECEIVED"
   ]);
 
+const STATUS_PAGAMENTO_CONFIRMADO =
+  new Set([
+    "CONFIRMED",
+    "RECEIVED",
+    "RECEIVED_IN_CASH"
+  ]);
+
 const EVENTOS_SINCRONIZACAO =
   new Set([
     "PAYMENT_CREATED",
@@ -43,7 +50,9 @@ const EVENTOS_SUSPENSAO =
     "PAYMENT_REFUNDED",
     "PAYMENT_RECEIVED_IN_CASH_UNDONE",
     "PAYMENT_CREDIT_CARD_CAPTURE_REFUSED",
-    "PAYMENT_CHARGEBACK_REQUESTED"
+    "PAYMENT_CHARGEBACK_REQUESTED",
+    "PAYMENT_CHARGEBACK_DISPUTE",
+    "PAYMENT_AWAITING_CHARGEBACK_REVERSAL"
   ]);
 
 const EVENTOS_ASSINATURA =
@@ -56,6 +65,26 @@ const EVENTOS_ASSINATURA =
 
 let temporizadorWorker =
   null;
+
+function normalizarEventoCriadoEm(
+  valor
+) {
+  const texto = String(
+    valor || ""
+  ).trim();
+
+  if (
+    !/^\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}:\d{2}(?:\.\d+)?$/
+      .test(texto)
+  ) {
+    return null;
+  }
+
+  return texto.replace(
+    "T",
+    " "
+  );
+}
 
 function normalizarPagamentoPorEvento(
   tipoEvento,
@@ -71,6 +100,40 @@ function normalizarPagamentoPorEvento(
   }
 
   return pagamentoNormalizado;
+}
+
+function acaoPagamento(
+  tipoEvento,
+  pagamento
+) {
+  if (
+    EVENTOS_PAGAMENTO_CONFIRMADO
+      .has(tipoEvento)
+  ) {
+    return "ATIVAR";
+  }
+
+  if (
+    EVENTOS_SUSPENSAO
+      .has(tipoEvento)
+  ) {
+    return "SUSPENDER";
+  }
+
+  const status = String(
+    pagamento?.status || ""
+  )
+    .trim()
+    .toUpperCase();
+
+  if (
+    STATUS_PAGAMENTO_CONFIRMADO
+      .has(status)
+  ) {
+    return "ATIVAR";
+  }
+
+  return "SINCRONIZAR";
 }
 
 function dadosLog(evento) {
@@ -137,12 +200,19 @@ async function marcarConcluido(
 async function enfileirarWebhookAsaas({
   eventoId,
   tipoEvento,
+  eventoCriadoEm,
   pagamento,
   assinatura
 }) {
+  const dataEvento =
+    normalizarEventoCriadoEm(
+      eventoCriadoEm
+    );
+
   const payloadSeguro = {
     id: eventoId,
     event: tipoEvento,
+    dateCreated: dataEvento,
     payment: pagamento
       ? {
           id: pagamento.id || null,
@@ -197,6 +267,8 @@ async function enfileirarWebhookAsaas({
           pagamento?.id ||
           assinatura?.id ||
           null,
+        eventoCriadoEm:
+          dataEvento,
         payload: payloadSeguro
       });
 
@@ -349,11 +421,13 @@ async function processarRegistro(evento) {
     }
 
     let resultado = null;
+    const acao =
+      acaoPagamento(
+        evento.tipo_evento,
+        pagamento
+      );
 
-    if (
-      EVENTOS_PAGAMENTO_CONFIRMADO
-        .has(evento.tipo_evento)
-    ) {
+    if (acao === "ATIVAR") {
       resultado =
         await ativarAssinaturaPorPagamento(
           pagamentoId,
@@ -375,8 +449,7 @@ async function processarRegistro(evento) {
           });
       }
     } else if (
-      EVENTOS_SUSPENSAO
-        .has(evento.tipo_evento)
+      acao === "SUSPENDER"
     ) {
       resultado =
         await suspenderAssinaturaPorPagamento(
@@ -462,6 +535,26 @@ async function processarRegistro(evento) {
 }
 
 async function processarEventoWebhook(eventoId) {
+  const obsoleto =
+    await webhookEventoRepository
+      .marcarObsoletoSeNecessario(
+        eventoId
+      );
+
+  if (obsoleto) {
+    registrador.informacao(
+      "Webhook Asaas: evento obsoleto ignorado.",
+      dadosLog(obsoleto)
+    );
+
+    return {
+      processado: false,
+      ignorado: true,
+      obsoleto: true,
+      status: "IGNORED"
+    };
+  }
+
   const evento =
     await webhookEventoRepository
       .reservarPorId(eventoId);
@@ -488,6 +581,9 @@ async function processarFilaWebhook(limite = 20) {
 
   await webhookEventoRepository
     .marcarProcessamentosEsgotados();
+
+  await webhookEventoRepository
+    .marcarEventosObsoletos();
 
   while (processados < limite) {
     const evento =
