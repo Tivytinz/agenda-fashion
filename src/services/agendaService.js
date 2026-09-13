@@ -849,6 +849,7 @@ async function buscarAgendaGeral({ usuarioId }) {
 
   const agendamentos =
     await agendaRepository.buscarAgendamentosProfissionaisPorPeriodo(
+      negocio.id,
       profissionalIds,
       dataInicio,
       dataFim
