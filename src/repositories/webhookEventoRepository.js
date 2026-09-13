@@ -118,7 +118,7 @@ function condicaoSemProcessamentoDoMesmoRecurso(
   `;
 }
 
-function condicaoEventoMaisRecente(
+function condicaoEventoMaisRecenteAplicado(
   alias
 ) {
   return `
@@ -130,6 +130,7 @@ function condicaoEventoMaisRecente(
       WHERE recente.provedor = ${alias}.provedor
         AND recente.recurso_id = ${alias}.recurso_id
         AND recente.id <> ${alias}.id
+        AND recente.status = 'PROCESSED'
         AND recente.evento_criado_em IS NOT NULL
         AND (
           recente.evento_criado_em >
@@ -157,7 +158,7 @@ async function marcarObsoletoSeNecessario(
       processado_em = NOW()
     WHERE evento.id = $1
       AND ${condicaoDisponivel("evento")}
-      AND ${condicaoEventoMaisRecente("evento")}
+      AND ${condicaoEventoMaisRecenteAplicado("evento")}
     RETURNING *
     `,
     [id]
@@ -176,7 +177,7 @@ async function marcarEventosObsoletos() {
       proxima_tentativa_em = NULL,
       processado_em = NOW()
     WHERE ${condicaoDisponivel("evento")}
-      AND ${condicaoEventoMaisRecente("evento")}
+      AND ${condicaoEventoMaisRecenteAplicado("evento")}
     RETURNING *
     `
   );
