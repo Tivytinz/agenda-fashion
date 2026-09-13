@@ -33,6 +33,36 @@ describe("Segurança da agenda", () => {
     ).not.toHaveBeenCalled();
   });
 
+  test("preserva o negócio autorizado ao carregar compromissos da agenda geral", async () => {
+    agendaRepository.buscarNegocioDono.mockResolvedValue({
+      negocio_id: 33
+    });
+
+    agendaRepository.buscarProfissionaisDoNegocio.mockResolvedValue([
+      {
+        id: 10,
+        nome: "Ana",
+        foto_url: null
+      }
+    ]);
+
+    agendaRepository.buscarBloqueiosProfissionaisPorPeriodo.mockResolvedValue([]);
+    agendaRepository.buscarAgendamentosProfissionaisPorPeriodo.mockResolvedValue([]);
+
+    await agendaService.buscarAgendaGeral({
+      usuarioId: 7
+    });
+
+    expect(
+      agendaRepository.buscarAgendamentosProfissionaisPorPeriodo
+    ).toHaveBeenCalledWith(
+      33,
+      [10],
+      expect.any(String),
+      expect.any(String)
+    );
+  });
+
   test("bloqueia, consulta e grava o horário na mesma transação", async () => {
     agendaRepository.bloquearAlteracaoHorario.mockResolvedValue();
     agendaRepository.buscarAgendamentoAtivo.mockResolvedValue(null);

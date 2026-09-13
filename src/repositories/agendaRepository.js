@@ -259,6 +259,13 @@ async function buscarNegocioDoUsuario(usuarioId) {
       AND un.ativo = TRUE
       AND u.ativo = TRUE
       AND n.ativo = TRUE
+    ORDER BY
+      CASE
+        WHEN un.papel = 'dono' THEN 0
+        ELSE 1
+      END,
+      un.created_at ASC,
+      n.id ASC
     LIMIT 1
     `,
     [usuarioId]
@@ -341,6 +348,13 @@ async function buscarVinculoUsuarioNegocio(usuarioId) {
       AND un.ativo = TRUE
       AND u.ativo = TRUE
       AND n.ativo = TRUE
+    ORDER BY
+      CASE
+        WHEN un.papel = 'dono' THEN 0
+        ELSE 1
+      END,
+      un.created_at ASC,
+      un.negocio_id ASC
     LIMIT 1
     `,
     [usuarioId]
@@ -487,6 +501,7 @@ async function buscarBloqueiosProfissionaisPorPeriodo(profissionalIds, dataInici
 }
 
 async function buscarAgendamentosProfissionaisPorPeriodo(
+  negocioId,
   profissionalIds,
   dataInicio,
   dataFim
@@ -494,9 +509,7 @@ async function buscarAgendamentosProfissionaisPorPeriodo(
   const result = await db.query(
     `
     SELECT
-      a.id AS agendamento_id,
       a.profissional_id,
-      a.negocio_id,
 
       TO_CHAR(
         a.data,
@@ -508,41 +521,35 @@ async function buscarAgendamentosProfissionaisPorPeriodo(
         'HH24:MI'
       ) AS hora,
 
-      a.status,
+      CASE
+        WHEN a.negocio_id = $1
+          THEN COALESCE(
+            NULLIF(BTRIM(c.nome), ''),
+            NULLIF(BTRIM(a.cliente_nome), '')
+          )
+        ELSE NULL
+      END AS cliente,
 
-      c.id AS cliente_id,
-      COALESCE(
-        NULLIF(BTRIM(c.nome), ''),
-        NULLIF(BTRIM(a.cliente_nome), '')
-      ) AS cliente,
-      COALESCE(
-        NULLIF(BTRIM(c.whatsapp), ''),
-        NULLIF(BTRIM(a.cliente_whatsapp), '')
-      ) AS cliente_whatsapp,
-
-      s.id AS servico_id,
-      s.nome AS servico,
-
-      COALESCE(
-        a.valor_servico,
-        s.valor,
-        0
-      )::numeric AS valor,
-
-      a.duracao_minutos::int AS duracao_minutos
+      CASE
+        WHEN a.negocio_id = $1
+          THEN s.nome
+        ELSE NULL
+      END AS servico
 
     FROM agendamentos a
 
     LEFT JOIN usuarios c
       ON c.id = a.cliente_id
+      AND a.negocio_id = $1
 
     LEFT JOIN servicos_negocio s
       ON s.id = a.servico_id
+      AND s.negocio_id = $1
 
     WHERE a.profissional_id =
-      ANY($1::int[])
+      ANY($2::int[])
 
-      AND a.data BETWEEN $2 AND $3
+      AND a.data BETWEEN $3 AND $4
 
       AND a.status != 'cancelado'
 
@@ -551,6 +558,7 @@ async function buscarAgendamentosProfissionaisPorPeriodo(
       a.horario ASC
     `,
     [
+      negocioId,
       profissionalIds,
       dataInicio,
       dataFim,
