@@ -229,7 +229,7 @@ async function vincularProfissional({
       dono.negocio_id
     );
 
-    await buscarUsoPlano(
+    const usoPlano = await buscarUsoPlano(
       dono.negocio_id,
       client
     );
@@ -247,34 +247,37 @@ async function vincularProfissional({
       );
     }
 
-    const plano = await profissionaisRepository.buscarPlanoDoNegocio(
-      dono.negocio_id,
-      client
-    );
-
-    if (!plano) {
+    if (!usoPlano) {
       const erro = new Error("Plano do negócio não encontrado.");
       erro.status = 404;
       erro.statusCode = 404;
       throw erro;
     }
 
-    const utilizados =
-      await profissionaisRepository.contarProfissionaisAtivos(
-        dono.negocio_id,
-        client
-      );
-
-    const limite = plano.limite_profissionais;
+    const utilizados = Number(
+      usoPlano.profissionais_utilizados || 0
+    );
+    const limite = usoPlano.limite_profissionais;
+    const planoNome = usoPlano.plano_nome || "plano atual";
 
     if (limite !== null && utilizados >= Number(limite)) {
+      const limiteNumerico = Number(limite);
+      const acimaDoLimite = Math.max(
+        0,
+        utilizados - limiteNumerico
+      );
+      const mensagem = acimaDoLimite > 0
+        ? `Você possui ${utilizados} profissional(is) ativo(s), ${acimaDoLimite} acima do limite de ${limiteNumerico} do plano ${planoNome}. Faça upgrade para adicionar novos profissionais.`
+        : `Você atingiu o limite de ${limiteNumerico} profissional(is) do plano ${planoNome}. Faça upgrade para adicionar mais.`;
+
       throw criarErroLimite(
-        `Você atingiu o limite de ${limite} profissional(is) do plano ${plano.nome}. Faça upgrade para adicionar mais.`,
+        mensagem,
         "LIMITE_PROFISSIONAIS",
         {
-          plano_nome: plano.nome,
+          plano_nome: planoNome,
           utilizados,
-          limite: Number(limite),
+          limite: limiteNumerico,
+          acima_do_limite: acimaDoLimite,
         }
       );
     }

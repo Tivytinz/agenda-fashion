@@ -45,6 +45,7 @@ describe("entitlement dos planos", () => {
       plano_id: 1,
       plano_slug: "inicial",
       capacidade_agendamentos: 10,
+      limite_profissionais: 1,
       limite_servicos: 2,
       plano_selecionado_id: 2,
       plano_selecionado_slug: "autonoma",

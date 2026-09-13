@@ -60,7 +60,8 @@ describe("Limite de profissionais", () => {
      */
     planoService.buscarUsoPlano.mockResolvedValue({
       negocio_id: 7,
-      plano_nome: "Plano de teste",
+      plano_nome: "Grátis",
+      limite_profissionais: 1,
       profissionais_utilizados: 1,
     });
 
@@ -87,13 +88,18 @@ describe("Limite de profissionais", () => {
   });
 
   test(
-    "plano Grátis não permite adicionar um segundo profissional",
+    "usa o plano efetivo e não o plano selecionado no negócio",
     async () => {
+      /*
+       * Se o código voltar a consultar negocios.plano_id diretamente,
+       * este plano Salão permitiria a inclusão indevida. O entitlement
+       * efetivo retornado por planoService continua sendo Grátis.
+       */
       profissionaisRepository
         .buscarPlanoDoNegocio
         .mockResolvedValue({
-          nome: "Grátis",
-          limite_profissionais: 1,
+          nome: "Salão",
+          limite_profissionais: 5,
         });
 
       profissionaisRepository
@@ -109,6 +115,12 @@ describe("Limite de profissionais", () => {
       ).rejects.toMatchObject({
         statusCode: 409,
         codigo: "LIMITE_PROFISSIONAIS",
+        uso: {
+          plano_nome: "Grátis",
+          utilizados: 1,
+          limite: 1,
+          acima_do_limite: 0,
+        },
       });
 
       expect(
@@ -118,6 +130,47 @@ describe("Limite de profissionais", () => {
         client
       );
 
+      expect(
+        profissionaisRepository.buscarPlanoDoNegocio
+      ).not.toHaveBeenCalled();
+      expect(
+        profissionaisRepository.contarProfissionaisAtivos
+      ).not.toHaveBeenCalled();
+      expect(
+        profissionaisRepository.criarVinculo
+      ).not.toHaveBeenCalled();
+    }
+  );
+
+  test(
+    "após downgrade preserva a equipe existente e bloqueia novo vínculo acima do limite",
+    async () => {
+      planoService.buscarUsoPlano.mockResolvedValue({
+        negocio_id: 7,
+        plano_nome: "Grátis",
+        limite_profissionais: 1,
+        profissionais_utilizados: 3,
+      });
+
+      await expect(
+        profissionaisService.vincularProfissional({
+          usuarioDonoId: 1,
+          emailOuWhatsapp: "profissional@teste.com",
+        })
+      ).rejects.toMatchObject({
+        statusCode: 409,
+        codigo: "LIMITE_PROFISSIONAIS",
+        uso: {
+          plano_nome: "Grátis",
+          utilizados: 3,
+          limite: 1,
+          acima_do_limite: 2,
+        },
+      });
+
+      expect(
+        profissionaisRepository.removerVinculo
+      ).not.toHaveBeenCalled();
       expect(
         profissionaisRepository.criarVinculo
       ).not.toHaveBeenCalled();
@@ -160,16 +213,12 @@ describe("Limite de profissionais", () => {
   test(
     "plano Salão permite até cinco profissionais",
     async () => {
-      profissionaisRepository
-        .buscarPlanoDoNegocio
-        .mockResolvedValue({
-          nome: "Salão",
-          limite_profissionais: 5,
-        });
-
-      profissionaisRepository
-        .contarProfissionaisAtivos
-        .mockResolvedValue(4);
+      planoService.buscarUsoPlano.mockResolvedValue({
+        negocio_id: 7,
+        plano_nome: "Salão",
+        limite_profissionais: 5,
+        profissionais_utilizados: 4,
+      });
 
       profissionaisRepository
         .criarVinculo
@@ -190,6 +239,13 @@ describe("Limite de profissionais", () => {
         7,
         client
       );
+
+      expect(
+        profissionaisRepository.buscarPlanoDoNegocio
+      ).not.toHaveBeenCalled();
+      expect(
+        profissionaisRepository.contarProfissionaisAtivos
+      ).not.toHaveBeenCalled();
 
       expect(
         profissionaisRepository.criarVinculo
