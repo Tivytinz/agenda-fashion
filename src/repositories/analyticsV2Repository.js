@@ -358,7 +358,7 @@ async function salvarOrigemSessao({
 async function registrarVisualizacao({
   viewUuid,
   sessaoId,
-  sequencia,
+  sequence,
   pageKey,
   routeTemplate,
   targetBusinessId,
@@ -397,7 +397,7 @@ async function registrarVisualizacao({
     [
       viewUuid,
       sessaoId,
-      sequencia,
+      sequence,
       pageKey,
       routeTemplate,
       targetBusinessId || null,
