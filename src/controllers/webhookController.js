@@ -18,6 +18,8 @@ async function receberWebhookAsaas(req, res, next) {
       await enfileirarWebhookAsaas({
         eventoId,
         tipoEvento,
+        eventoCriadoEm:
+          req.body?.dateCreated || null,
         pagamento:
           req.body?.payment || null,
         assinatura:
