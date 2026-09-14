@@ -105,6 +105,7 @@ router.get(
 
 router.get(
   "/catalogo-local/:categoria/:localidade",
+  limitarLeituraPublica,
   catalogoLocalController.listarCatalogoLocal
 );
 
