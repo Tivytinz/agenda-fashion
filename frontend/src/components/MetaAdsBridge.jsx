@@ -40,13 +40,23 @@ import {
   GOOGLE_BUSINESS_DATA_URL
 } from "../config/legal";
 
-export function isAdminMeasurementRoute(pathname) {
-  const normalized = String(pathname || "")
+function normalizeMeasurementRoute(pathname) {
+  return String(pathname || "")
     .replace(/\/{2,}/g, "/")
     .replace(/\/$/, "");
+}
+
+export function isAdminMeasurementRoute(pathname) {
+  const normalized = normalizeMeasurementRoute(pathname);
 
   return normalized === "/admin" ||
     normalized.startsWith("/admin/");
+}
+
+export function isSensitiveMeasurementRoute(pathname) {
+  const normalized = normalizeMeasurementRoute(pathname);
+
+  return normalized === "/redefinir-senha";
 }
 
 export function MetaAdsBridge() {
@@ -62,6 +72,10 @@ export function MetaAdsBridge() {
     useState(false);
   const adminMeasurementRoute =
     isAdminMeasurementRoute(location.pathname);
+  const sensitiveMeasurementRoute =
+    isSensitiveMeasurementRoute(location.pathname);
+  const blockedGoogleMeasurementRoute =
+    adminMeasurementRoute || sensitiveMeasurementRoute;
 
   const retryGoogleSync = useCallback(
     async () => {
@@ -153,6 +167,10 @@ export function MetaAdsBridge() {
       return;
     }
 
+    if (sensitiveMeasurementRoute) {
+      return;
+    }
+
     if (!metaConfig?.enabled) {
       return;
     }
@@ -170,7 +188,8 @@ export function MetaAdsBridge() {
   }, [
     metaConfig?.enabled,
     consent,
-    session.authenticated
+    session.authenticated,
+    sensitiveMeasurementRoute
   ]);
 
   useEffect(() => {
@@ -178,7 +197,7 @@ export function MetaAdsBridge() {
       return;
     }
 
-    if (adminMeasurementRoute) {
+    if (blockedGoogleMeasurementRoute) {
       updateGoogleConsent(
         MARKETING_CONSENT.DENIED
       );
@@ -224,7 +243,7 @@ export function MetaAdsBridge() {
     session.authenticated,
     session.usuario?.id,
     retryGoogleSync,
-    adminMeasurementRoute
+    blockedGoogleMeasurementRoute
   ]);
 
   useEffect(() => {
@@ -232,6 +251,7 @@ export function MetaAdsBridge() {
       googleConfig === null ||
       !session.authenticated ||
       consent === MARKETING_CONSENT.UNKNOWN ||
+      blockedGoogleMeasurementRoute ||
       (
         consent === MARKETING_CONSENT.GRANTED &&
         !googleConfig.enabled
@@ -269,14 +289,16 @@ export function MetaAdsBridge() {
     googleConfig,
     session.authenticated,
     consent,
-    retryGoogleSync
+    retryGoogleSync,
+    blockedGoogleMeasurementRoute
   ]);
 
   useEffect(() => {
     if (
       metaConfig?.enabled &&
       consent ===
-        MARKETING_CONSENT.GRANTED
+        MARKETING_CONSENT.GRANTED &&
+      !sensitiveMeasurementRoute
     ) {
       void trackMetaPageView(
         location.pathname
@@ -287,7 +309,7 @@ export function MetaAdsBridge() {
       googleConfig?.enabled &&
       consent ===
         MARKETING_CONSENT.GRANTED &&
-      !adminMeasurementRoute
+      !blockedGoogleMeasurementRoute
     ) {
       void trackGooglePageView(
         location.pathname,
@@ -300,7 +322,8 @@ export function MetaAdsBridge() {
     consent,
     location.pathname,
     session.usuario?.id,
-    adminMeasurementRoute
+    sensitiveMeasurementRoute,
+    blockedGoogleMeasurementRoute
   ]);
 
   function choose(status) {

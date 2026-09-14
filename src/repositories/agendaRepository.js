@@ -418,10 +418,36 @@ async function buscarAgendamentosPorPeriodo(
 ) {
   const result = await db.query(
     `
+    WITH contexto AS (
+      SELECT un.negocio_id
+      FROM usuarios_negocios un
+      INNER JOIN usuarios u
+        ON u.id = un.usuario_id
+      INNER JOIN negocios n
+        ON n.id = un.negocio_id
+      WHERE un.usuario_id = $1
+        AND un.ativo = TRUE
+        AND u.ativo = TRUE
+        AND n.ativo = TRUE
+      ORDER BY
+        CASE
+          WHEN un.papel = 'dono' THEN 0
+          ELSE 1
+        END,
+        un.created_at ASC,
+        un.negocio_id ASC
+      LIMIT 1
+    )
     SELECT
-      a.id AS agendamento_id,
+      CASE
+        WHEN a.negocio_id = contexto.negocio_id THEN a.id
+        ELSE NULL
+      END AS agendamento_id,
       a.profissional_id,
-      a.negocio_id,
+      CASE
+        WHEN a.negocio_id = contexto.negocio_id THEN a.negocio_id
+        ELSE NULL
+      END AS negocio_id,
 
       TO_CHAR(
         a.data,
@@ -435,34 +461,58 @@ async function buscarAgendamentosPorPeriodo(
 
       a.status,
 
-      c.id AS cliente_id,
-      COALESCE(
-        NULLIF(BTRIM(c.nome), ''),
-        NULLIF(BTRIM(a.cliente_nome), '')
-      ) AS cliente,
-      COALESCE(
-        NULLIF(BTRIM(c.whatsapp), ''),
-        NULLIF(BTRIM(a.cliente_whatsapp), '')
-      ) AS cliente_whatsapp,
+      CASE
+        WHEN a.negocio_id = contexto.negocio_id THEN c.id
+        ELSE NULL
+      END AS cliente_id,
+      CASE
+        WHEN a.negocio_id = contexto.negocio_id THEN COALESCE(
+          NULLIF(BTRIM(c.nome), ''),
+          NULLIF(BTRIM(a.cliente_nome), '')
+        )
+        ELSE NULL
+      END AS cliente,
+      CASE
+        WHEN a.negocio_id = contexto.negocio_id THEN COALESCE(
+          NULLIF(BTRIM(c.whatsapp), ''),
+          NULLIF(BTRIM(a.cliente_whatsapp), '')
+        )
+        ELSE NULL
+      END AS cliente_whatsapp,
 
-      s.id AS servico_id,
-      s.nome AS servico,
+      CASE
+        WHEN a.negocio_id = contexto.negocio_id THEN s.id
+        ELSE NULL
+      END AS servico_id,
+      CASE
+        WHEN a.negocio_id = contexto.negocio_id THEN s.nome
+        ELSE NULL
+      END AS servico,
 
-      COALESCE(
-        a.valor_servico,
-        s.valor,
-        0
-      )::numeric AS valor,
+      CASE
+        WHEN a.negocio_id = contexto.negocio_id THEN COALESCE(
+          a.valor_servico,
+          s.valor,
+          0
+        )::numeric
+        ELSE NULL
+      END AS valor,
 
-      a.duracao_minutos::int AS duracao_minutos
+      CASE
+        WHEN a.negocio_id = contexto.negocio_id THEN a.duracao_minutos::int
+        ELSE NULL
+      END AS duracao_minutos
 
     FROM agendamentos a
+    CROSS JOIN contexto
 
     LEFT JOIN usuarios c
       ON c.id = a.cliente_id
+      AND a.negocio_id = contexto.negocio_id
 
     LEFT JOIN servicos_negocio s
       ON s.id = a.servico_id
+      AND a.negocio_id = contexto.negocio_id
 
     WHERE a.profissional_id = $1
       AND a.data BETWEEN $2 AND $3

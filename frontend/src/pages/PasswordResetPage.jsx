@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useLayoutEffect, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { apiRequest } from "../api/client";
 
@@ -11,6 +11,20 @@ export function PasswordResetPage({ mode = "request" }) {
   const [confirmation, setConfirmation] = useState("");
   const [status, setStatus] = useState("idle");
   const [message, setMessage] = useState("");
+
+  useLayoutEffect(() => {
+    if (!isReset || !location.search) {
+      return;
+    }
+
+    const safeUrl = `${window.location.pathname}${window.location.hash}`;
+
+    window.history.replaceState(
+      window.history.state,
+      "",
+      safeUrl
+    );
+  }, [isReset, location.search]);
 
   async function submit(event) {
     event.preventDefault();

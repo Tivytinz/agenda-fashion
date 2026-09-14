@@ -9,7 +9,10 @@ import { PasswordResetPage } from "./PasswordResetPage";
 
 vi.mock("../api/client", () => ({ apiRequest: vi.fn() }));
 
-beforeEach(() => apiRequest.mockReset());
+beforeEach(() => {
+  apiRequest.mockReset();
+  window.history.replaceState({}, "", "/");
+});
 afterEach(cleanup);
 
 describe("recuperação de senha", () => {
@@ -51,6 +54,38 @@ describe("recuperação de senha", () => {
 
     expect(screen.getByRole("alert").textContent).toMatch(/precisam ser iguais/i);
     expect(apiRequest).not.toHaveBeenCalled();
+  });
+
+  it("remove o token da URL sem perder o token usado na redefinição", async () => {
+    const user = userEvent.setup();
+    const token = "C".repeat(43);
+    apiRequest.mockResolvedValue({
+      mensagem: "Senha alterada com sucesso. Entre com sua nova senha.",
+    });
+
+    window.history.replaceState(
+      {},
+      "",
+      `/redefinir-senha?token=${token}`
+    );
+
+    render(
+      <MemoryRouter initialEntries={[`/redefinir-senha?token=${token}`]}>
+        <PasswordResetPage mode="reset" />
+      </MemoryRouter>
+    );
+
+    expect(window.location.pathname).toBe("/redefinir-senha");
+    expect(window.location.search).toBe("");
+
+    await user.type(screen.getByLabelText("Nova senha"), "senha-segura");
+    await user.type(screen.getByLabelText("Confirme a nova senha"), "senha-segura");
+    await user.click(screen.getByRole("button", { name: "Salvar nova senha" }));
+
+    expect(apiRequest).toHaveBeenCalledWith("/auth/redefinir-senha", {
+      method: "POST",
+      body: { token, senha: "senha-segura" },
+    });
   });
 
   it("conclui a redefinição e oferece retorno ao login", async () => {

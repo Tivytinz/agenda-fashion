@@ -34,10 +34,12 @@ import {
 import {
   getMetaConfig,
   initializeMetaAds,
-  revokeMetaConsent
+  revokeMetaConsent,
+  trackMetaPageView
 } from "../analytics/metaAds";
 import {
   isAdminMeasurementRoute,
+  isSensitiveMeasurementRoute,
   MetaAdsBridge
 } from "./MetaAdsBridge";
 
@@ -227,6 +229,15 @@ describe("consentimento de marketing", () => {
       .toBe(false);
   });
 
+  it("classifica a redefinição de senha como rota sensível", () => {
+    expect(isSensitiveMeasurementRoute("/redefinir-senha"))
+      .toBe(true);
+    expect(isSensitiveMeasurementRoute("/redefinir-senha/"))
+      .toBe(true);
+    expect(isSensitiveMeasurementRoute("/esqueci-senha"))
+      .toBe(false);
+  });
+
   it("não inicializa nem envia page_view do Google em rota administrativa", async () => {
     getMarketingConsent.mockReturnValue(
       MARKETING_CONSENT.GRANTED
@@ -255,6 +266,43 @@ describe("consentimento de marketing", () => {
     });
 
     expect(initializeGoogleMeasurement)
+      .not.toHaveBeenCalled();
+    expect(trackGooglePageView)
+      .not.toHaveBeenCalled();
+  });
+
+  it("não inicializa Meta/Google nem envia page_view na redefinição de senha", async () => {
+    getMarketingConsent.mockReturnValue(
+      MARKETING_CONSENT.GRANTED
+    );
+    getMetaConfig.mockResolvedValue({
+      enabled: true,
+      pixelId: "123456789"
+    });
+    getGoogleConfig.mockResolvedValue({
+      enabled: true,
+      measurementId: "G-123456789",
+      adsId: "AW-123456789"
+    });
+
+    render(
+      <MemoryRouter
+        initialEntries={["/redefinir-senha?token=segredo"]}
+      >
+        <MetaAdsBridge />
+      </MemoryRouter>
+    );
+
+    await waitFor(() => {
+      expect(updateGoogleConsent)
+        .toHaveBeenCalledWith(MARKETING_CONSENT.DENIED);
+    });
+
+    expect(initializeMetaAds)
+      .not.toHaveBeenCalled();
+    expect(initializeGoogleMeasurement)
+      .not.toHaveBeenCalled();
+    expect(trackMetaPageView)
       .not.toHaveBeenCalled();
     expect(trackGooglePageView)
       .not.toHaveBeenCalled();
