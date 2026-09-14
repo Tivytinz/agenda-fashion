@@ -58,6 +58,9 @@ async function buscarAgendaPublica(
 
           duracaoServico:
             servico.duracao_minutos,
+
+          fusoHorario:
+            negocio.fuso_horario,
         });
 
     const usosPorMes =
@@ -203,6 +206,9 @@ async function criarAgendamentoPublico(
 
         duracaoServico:
           servico.duracao_minutos,
+
+        fusoHorario:
+          negocio.fuso_horario,
       });
 
     /*
@@ -265,6 +271,9 @@ async function criarAgendamentoPublico(
 
           duracaoServico:
             servico.duracao_minutos,
+
+          fusoHorario:
+            negocio.fuso_horario,
 
           servicoNome:
             servico.nome,
