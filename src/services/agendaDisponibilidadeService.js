@@ -2,6 +2,10 @@ const agendaPublicaRepository = require(
   "../repositories/agendaPublicaRepository"
 );
 
+const agendaRepository = require(
+  "../repositories/agendaRepository"
+);
+
 const agendaConfiguracaoRepository = require(
   "../repositories/agendaConfiguracaoRepository"
 );
@@ -432,6 +436,7 @@ function possuiConflitoComBloqueio({
 
 async function buscarDisponibilidade({
   profissionalId,
+  negocioId = null,
   duracaoServico,
   quantidadeDias = 7,
 }) {
@@ -465,7 +470,7 @@ async function buscarDisponibilidade({
   const [
     horariosConfigurados,
     agendamentos,
-    bloqueios,
+    bloqueiosBrutos,
   ] = await Promise.all([
     agendaConfiguracaoRepository.listarHorarios(
       profissionalId
@@ -477,12 +482,18 @@ async function buscarDisponibilidade({
       dias[dias.length - 1]
     ),
 
-    agendaPublicaRepository.listarBloqueios(
+    agendaRepository.buscarBloqueiosPorPeriodo(
       profissionalId,
       dias[0],
-      dias[dias.length - 1]
+      dias[dias.length - 1],
+      negocioId
     ),
   ]);
+
+  const bloqueios = bloqueiosBrutos.map((bloqueio) => ({
+    ...bloqueio,
+    horario: bloqueio.hora,
+  }));
 
   const duracaoMinutos =
     obterNumeroPositivo(
@@ -602,6 +613,7 @@ async function buscarDisponibilidade({
 
 async function horarioEstaDisponivel({
   profissionalId,
+  negocioId = null,
   duracaoServico,
   data,
   horario,
@@ -618,6 +630,7 @@ async function horarioEstaDisponivel({
   const disponibilidade =
     await buscarDisponibilidade({
       profissionalId,
+      negocioId,
       duracaoServico,
       quantidadeDias,
     });
