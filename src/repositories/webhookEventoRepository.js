@@ -212,7 +212,6 @@ async function reservarProximo() {
       processado_em = NULL
     FROM candidato, trava
     WHERE evento.id = candidato.id
-      AND ${condicaoDisponivel("evento")}
       AND ${semOutroProcessamentoDoRecurso(
         "evento"
       )}
