@@ -20,8 +20,21 @@ Comportamentos:
 - a assinatura atual só é desativada quando o novo pagamento é
   confirmado.
 
+A confirmação financeira não mantém locks do PostgreSQL enquanto cria ou remove
+recorrências no Asaas. A transição para o plano pago usa preparação local,
+efeito externo idempotente, revalidação/finalização local e limpeza externa. Uma
+renovação que já possui `asaas_subscription_id` reutiliza a recorrência
+existente em vez de criar outra assinatura mensal.
+
+Detalhes: `docs/asaas-ativacao-recorrencia.md` e
+`docs/webhook-processing.md`.
+
 Antes do deploy, execute:
 
 ```text
 database/migrations/019_checkout_idempotente_webhook_assincrono.sql
 ```
+
+A correção posterior da faixa válida de tentativas de webhook pertence à
+migration `020_corrigir_tentativas_webhook.sql`; migrations já aplicadas não
+devem ser reescritas.

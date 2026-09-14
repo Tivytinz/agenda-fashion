@@ -68,26 +68,73 @@ async function registrarRecebimento({
   };
 }
 
-function condicaoDisponivel() {
+function prefixo(alias) {
+  return alias
+    ? `${alias}.`
+    : "";
+}
+
+function condicaoDisponivel(alias = "") {
+  const coluna = prefixo(alias);
+
   return `
     (
       (
-        status = 'PENDING'
-        AND tentativas < ${MAX_TENTATIVAS}
+        ${coluna}status = 'PENDING'
+        AND ${coluna}tentativas < ${MAX_TENTATIVAS}
       )
       OR (
-        status = 'FAILED'
-        AND tentativas < ${MAX_TENTATIVAS}
+        ${coluna}status = 'FAILED'
+        AND ${coluna}tentativas < ${MAX_TENTATIVAS}
         AND (
-          proxima_tentativa_em IS NULL
-          OR proxima_tentativa_em <= NOW()
+          ${coluna}proxima_tentativa_em IS NULL
+          OR ${coluna}proxima_tentativa_em <= NOW()
         )
       )
       OR (
-        status = 'PROCESSING'
-        AND tentativas < ${MAX_TENTATIVAS}
-        AND ultima_tentativa_em
+        ${coluna}status = 'PROCESSING'
+        AND ${coluna}tentativas < ${MAX_TENTATIVAS}
+        AND ${coluna}ultima_tentativa_em
           < NOW() - INTERVAL '5 minutes'
+      )
+    )
+  `;
+}
+
+function semOutroProcessamentoDoRecurso(
+  alias
+) {
+  return `
+    (
+      ${alias}.recurso_id IS NULL
+      OR NOT EXISTS (
+        SELECT 1
+        FROM webhook_eventos em_processamento
+        WHERE em_processamento.provedor =
+          ${alias}.provedor
+          AND em_processamento.recurso_id =
+            ${alias}.recurso_id
+          AND em_processamento.id <>
+            ${alias}.id
+          AND em_processamento.status =
+            'PROCESSING'
+      )
+    )
+  `;
+}
+
+function travaAdvisoryRecurso(alias) {
+  return `
+    pg_advisory_xact_lock(
+      hashtext(
+        'agenda-fashion:webhook:' ||
+        ${alias}.provedor
+      ),
+      hashtext(
+        COALESCE(
+          ${alias}.recurso_id,
+          'evento:' || ${alias}.id::text
+        )
       )
     )
   `;
@@ -96,17 +143,36 @@ function condicaoDisponivel() {
 async function reservarPorId(id) {
   const resultado = await db.query(
     `
-    UPDATE webhook_eventos
+    WITH alvo AS MATERIALIZED (
+      SELECT
+        id,
+        provedor,
+        recurso_id
+      FROM webhook_eventos
+      WHERE id = $1
+    ),
+    trava AS MATERIALIZED (
+      SELECT
+        ${travaAdvisoryRecurso("alvo")}
+      FROM alvo
+    )
+    UPDATE webhook_eventos evento
     SET
       status = 'PROCESSING',
-      tentativas = tentativas + 1,
+      tentativas = evento.tentativas + 1,
       erro = NULL,
       proxima_tentativa_em = NULL,
       ultima_tentativa_em = NOW(),
       processado_em = NULL
-    WHERE id = $1
-      AND ${condicaoDisponivel()}
-    RETURNING *, tentativas AS lease_tentativa
+    FROM alvo, trava
+    WHERE evento.id = alvo.id
+      AND ${condicaoDisponivel("evento")}
+      AND ${semOutroProcessamentoDoRecurso(
+        "evento"
+      )}
+    RETURNING
+      evento.*,
+      evento.tentativas AS lease_tentativa
     `,
     [id]
   );
@@ -117,13 +183,24 @@ async function reservarPorId(id) {
 async function reservarProximo() {
   const resultado = await db.query(
     `
-    WITH candidato AS (
-      SELECT id
-      FROM webhook_eventos
-      WHERE ${condicaoDisponivel()}
-      ORDER BY recebido_em ASC
+    WITH candidato AS MATERIALIZED (
+      SELECT
+        evento.id,
+        evento.provedor,
+        evento.recurso_id
+      FROM webhook_eventos evento
+      WHERE ${condicaoDisponivel("evento")}
+        AND ${semOutroProcessamentoDoRecurso(
+          "evento"
+        )}
+      ORDER BY evento.recebido_em ASC
       FOR UPDATE SKIP LOCKED
       LIMIT 1
+    ),
+    trava AS MATERIALIZED (
+      SELECT
+        ${travaAdvisoryRecurso("candidato")}
+      FROM candidato
     )
     UPDATE webhook_eventos evento
     SET
@@ -133,8 +210,11 @@ async function reservarProximo() {
       proxima_tentativa_em = NULL,
       ultima_tentativa_em = NOW(),
       processado_em = NULL
-    FROM candidato
+    FROM candidato, trava
     WHERE evento.id = candidato.id
+      AND ${semOutroProcessamentoDoRecurso(
+        "evento"
+      )}
     RETURNING
       evento.*,
       evento.tentativas AS lease_tentativa
