@@ -7,6 +7,7 @@ const assinaturaAtivacaoRepository = require(
 );
 const {
   criarAssinaturaAsaas,
+  buscarAssinaturaPorReferencia,
   removerAssinaturaAsaas
 } = require("./asaasService");
 const {
@@ -88,6 +89,14 @@ function assinaturaCancelada(assinatura) {
   );
 }
 
+function referenciaRecorrencia(assinatura) {
+  return (
+    `assinatura:${assinatura.id};` +
+    `negocio:${assinatura.negocio_id};` +
+    `plano:${assinatura.plano_id}`
+  );
+}
+
 function proximaCobrancaExistente(
   assinatura,
   dadosPagamento
@@ -132,15 +141,44 @@ async function prepararAtivacao(
   }
 
   return db.executarTransacao(
-    async (client) =>
-      assinaturaAtivacaoRepository
-        .buscarContextoPagamento(
-          client,
-          paymentId,
-          {
-            bloquear: true
-          }
-        )
+    async (client) => {
+      const assinatura =
+        await assinaturaAtivacaoRepository
+          .buscarContextoPagamento(
+            client,
+            paymentId
+          );
+
+      if (!assinatura) {
+        return null;
+      }
+
+      const maisNova =
+        await assinaturaAtivacaoRepository
+          .buscarAssinaturaAtivaMaisNova(
+            client,
+            assinatura.negocio_id,
+            assinatura.id
+          );
+
+      if (maisNova) {
+        return {
+          ...assinatura,
+          ativacao_ignorada: true,
+          assinatura_vigente_id:
+            maisNova.id
+        };
+      }
+
+      if (assinaturaCancelada(assinatura)) {
+        return {
+          ...assinatura,
+          ativacao_ignorada: true
+        };
+      }
+
+      return assinatura;
+    }
   );
 }
 
@@ -181,7 +219,7 @@ async function criarOuReutilizarRecorrencia(
         "Agenda Fashion - Assinatura mensal",
       formaPagamento: "pix",
       externalReference:
-        `assinatura:${assinatura.id};negocio:${assinatura.negocio_id};plano:${assinatura.plano_id}`,
+        referenciaRecorrencia(assinatura),
       proximaCobranca,
       reutilizarPorExternalReference: true
     });
@@ -221,14 +259,20 @@ async function finalizarAtivacao({
         return null;
       }
 
-      const negocio =
+      /*
+       * Esta consulta também bloqueia a linha do negócio.
+       * Ela é a fronteira comum entre ativações concorrentes
+       * e termina antes de qualquer nova chamada HTTP ao Asaas.
+       */
+      const maisNova =
         await assinaturaAtivacaoRepository
-          .bloquearNegocio(
+          .buscarAssinaturaAtivaMaisNova(
             client,
-            contextoInicial.negocio_id
+            contextoInicial.negocio_id,
+            contextoInicial.id
           );
 
-      if (!negocio) {
+      if (maisNova) {
         return null;
       }
 
@@ -261,45 +305,14 @@ async function finalizarAtivacao({
         return null;
       }
 
-      const maisNova =
-        await assinaturaAtivacaoRepository
-          .buscarAssinaturaAtivaMaisNova(
-            client,
-            assinatura.negocio_id,
-            assinatura.id
-          );
-
-      if (
-        maisNova ||
-        assinaturaCancelada(assinatura)
-      ) {
+      if (assinaturaCancelada(assinatura)) {
         return null;
       }
 
-      let asaasSubscriptionId =
+      const asaasSubscriptionId =
         assinatura.asaas_subscription_id ||
         recorrencia.asaasSubscriptionId ||
         null;
-
-      if (
-        recorrencia.asaasSubscriptionId &&
-        !assinatura.asaas_subscription_id
-      ) {
-        const vinculo =
-          await assinaturaAtivacaoRepository
-            .vincularRecorrenciaAsaas(
-              client,
-              assinatura.id,
-              recorrencia.asaasSubscriptionId
-            );
-
-        if (!vinculo) {
-          return null;
-        }
-
-        asaasSubscriptionId =
-          vinculo.asaas_subscription_id;
-      }
 
       await assinaturaAtivacaoRepository
         .desativarAssinaturasConcorrentes(
@@ -376,6 +389,46 @@ async function compensarRecorrenciaSeOrfa(
   }
 }
 
+async function reconciliarRecorrenciaOrfaIgnorada(
+  assinatura
+) {
+  if (
+    assinatura.forma_pagamento !== "pix" ||
+    assinatura.asaas_subscription_id ||
+    typeof buscarAssinaturaPorReferencia !==
+      "function"
+  ) {
+    return;
+  }
+
+  const existente =
+    await buscarAssinaturaPorReferencia({
+      externalReference:
+        referenciaRecorrencia(assinatura),
+      customerId:
+        assinatura.asaas_customer_id
+    });
+
+  const asaasSubscriptionId =
+    String(existente?.id || "").trim();
+
+  if (!asaasSubscriptionId) {
+    return;
+  }
+
+  const vinculada =
+    await assinaturaAtivacaoRepository
+      .existeVinculoRecorrenciaAsaas(
+        asaasSubscriptionId
+      );
+
+  if (!vinculada) {
+    await removerAssinaturaAsaas(
+      asaasSubscriptionId
+    );
+  }
+}
+
 async function cancelarRecorrenciasSubstituidas(
   recorrencias,
   recorrenciaAtual
@@ -422,6 +475,26 @@ async function ativarAssinaturaPorPagamento(
 
   if (!preparada) {
     return null;
+  }
+
+  if (preparada.ativacao_ignorada) {
+    /*
+     * O worker financeiro usa webhookEventoId. Para esse fluxo,
+     * uma confirmação obsoleta deve ser IGNORED (null) e não uma
+     * conversão. Antes de encerrar, reconciliamos apenas por GET
+     * uma eventual recorrência órfã deixada por tentativa anterior.
+     * Chamadas legadas sem metadado de webhook preservam o retorno
+     * histórico com ativacao_ignorada.
+     */
+    if (dadosPagamento.webhookEventoId) {
+      await reconciliarRecorrenciaOrfaIgnorada(
+        preparada
+      );
+
+      return null;
+    }
+
+    return preparada;
   }
 
   const recorrencia =
