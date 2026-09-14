@@ -584,7 +584,7 @@ async function buscarAgendamentoCliente(
 ) {
   const bloqueio =
     bloquear
-      ? "FOR UPDATE"
+      ? "FOR UPDATE OF a"
       : "";
 
   const result = await executor.query(
