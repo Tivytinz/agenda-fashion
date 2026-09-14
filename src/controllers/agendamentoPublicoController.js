@@ -56,6 +56,9 @@ async function buscarAgendaPublica(
           profissionalId:
             profissional.id,
 
+          negocioId:
+            negocio.id,
+
           duracaoServico:
             servico.duracao_minutos,
         });
@@ -197,6 +200,9 @@ async function criarAgendamentoPublico(
       .validarHorarioDisponivel({
         profissionalId:
           profissional.id,
+
+        negocioId:
+          negocio.id,
 
         data,
         horario,
