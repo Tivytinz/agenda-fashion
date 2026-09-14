@@ -20,6 +20,12 @@ const planoService = require(
   "./planoService"
 );
 
+const {
+  obterDataHoraNoFuso,
+} = require(
+  "../utils/fusoHorario"
+);
+
 const ANTECEDENCIA_CANCELAMENTO_PADRAO = 24;
 
 function criarErro(
@@ -240,55 +246,6 @@ function validarIdentificacaoVisitante({
   };
 }
 
-function obterDataHoraBrasil() {
-  const partes =
-    new Intl.DateTimeFormat(
-      "pt-BR",
-      {
-        timeZone:
-          "America/Sao_Paulo",
-
-        year:
-          "numeric",
-
-        month:
-          "2-digit",
-
-        day:
-          "2-digit",
-
-        hour:
-          "2-digit",
-
-        minute:
-          "2-digit",
-
-        hourCycle:
-          "h23",
-      }
-    ).formatToParts(
-      new Date()
-    );
-
-  const obterParte =
-    (tipo) =>
-      partes.find(
-        (parte) =>
-          parte.type === tipo
-      )?.value;
-
-  return {
-    data:
-      `${obterParte("year")}-` +
-      `${obterParte("month")}-` +
-      obterParte("day"),
-
-    hora:
-      `${obterParte("hour")}:` +
-      obterParte("minute"),
-  };
-}
-
 function converterDataHoraParaTimestamp({
   data,
   horario,
@@ -306,8 +263,8 @@ function converterDataHoraParaTimestamp({
   }
 
   /*
-   * Data e hora brasileiras são
-   * comparadas como valores nominais.
+   * Data e hora locais são comparadas
+   * como valores nominais do fuso do negócio.
    */
   const timestamp =
     Date.parse(
@@ -433,6 +390,7 @@ async function buscarDadosBaseAgenda({
 async function buscarDisponibilidade({
   profissionalId,
   duracaoServico,
+  fusoHorario,
 }) {
   const profissionalIdNormalizado =
     normalizarId(
@@ -458,6 +416,8 @@ async function buscarDisponibilidade({
 
         quantidadeDias:
           7,
+
+        fusoHorario,
       })
   );
 }
@@ -546,6 +506,7 @@ async function validarHorarioDisponivel({
   data,
   horario,
   duracaoServico,
+  fusoHorario,
 }) {
   const profissionalIdNormalizado =
     normalizarId(
@@ -580,6 +541,8 @@ async function validarHorarioDisponivel({
 
         horario:
           horarioNormalizado,
+
+        fusoHorario,
       });
 
   if (!estaDisponivel) {
@@ -605,6 +568,7 @@ async function criarAgendamento({
   servicoId,
   negocioId,
   duracaoServico,
+  fusoHorario,
 
   servicoNome,
   servicoValor,
@@ -761,6 +725,8 @@ async function criarAgendamento({
 
               horario:
                 horarioNormalizado,
+
+              fusoHorario,
             });
 
         if (!disponivel) {
@@ -960,16 +926,18 @@ function validarAgendamentoCancelavel({
     );
   }
 
-  const agoraBrasil =
-    obterDataHoraBrasil();
+  const agoraLocal =
+    obterDataHoraNoFuso(
+      agendamento.fuso_horario
+    );
 
   const timestampAtual =
     converterDataHoraParaTimestamp({
       data:
-        agoraBrasil.data,
+        agoraLocal.data,
 
       horario:
-        agoraBrasil.hora,
+        agoraLocal.hora,
     });
 
   const timestampAgendamento =
@@ -1199,16 +1167,18 @@ function validarAgendamentoAvaliavel(
     );
   }
 
-  const agoraBrasil =
-    obterDataHoraBrasil();
+  const agoraLocal =
+    obterDataHoraNoFuso(
+      agendamento.fuso_horario
+    );
 
   const timestampAtual =
     converterDataHoraParaTimestamp({
       data:
-        agoraBrasil.data,
+        agoraLocal.data,
 
       horario:
-        agoraBrasil.hora,
+        agoraLocal.hora,
     });
 
   const timestampAgendamento =
