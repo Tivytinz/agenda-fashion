@@ -199,15 +199,42 @@ async function buscarBloqueioHorarioNovo(
   profissionalId,
   data,
   hora,
+  negocioId = null,
   executor = db
 ) {
   const result = await executor.query(
     `
-    SELECT id
+    SELECT id, negocio_id
     FROM bloqueios_horarios
     WHERE profissional_id = $1
       AND data_bloqueio = $2
       AND TO_CHAR(hora_bloqueio, 'HH24:MI') = $3
+      AND (
+        ($4::BIGINT IS NULL AND negocio_id IS NULL)
+        OR negocio_id = $4
+      )
+    LIMIT 1
+    `,
+    [profissionalId, data, hora, negocioId]
+  );
+
+  return result.rows[0] || null;
+}
+
+async function buscarBloqueioGlobalHorario(
+  profissionalId,
+  data,
+  hora,
+  executor = db
+) {
+  const result = await executor.query(
+    `
+    SELECT id, negocio_id
+    FROM bloqueios_horarios
+    WHERE profissional_id = $1
+      AND data_bloqueio = $2
+      AND TO_CHAR(hora_bloqueio, 'HH24:MI') = $3
+      AND negocio_id IS NULL
     LIMIT 1
     `,
     [profissionalId, data, hora]
@@ -216,13 +243,21 @@ async function buscarBloqueioHorarioNovo(
   return result.rows[0] || null;
 }
 
-async function removerBloqueioHorario(bloqueioId, executor = db) {
+async function removerBloqueioHorario(
+  bloqueioId,
+  negocioId = null,
+  executor = db
+) {
   await executor.query(
     `
     DELETE FROM bloqueios_horarios
     WHERE id = $1
+      AND (
+        ($2::BIGINT IS NULL AND negocio_id IS NULL)
+        OR negocio_id = $2
+      )
     `,
-    [bloqueioId]
+    [bloqueioId, negocioId]
   );
 }
 
@@ -230,6 +265,7 @@ async function criarBloqueioHorario(
   profissionalId,
   data,
   hora,
+  negocioId = null,
   executor = db
 ) {
   await executor.query(
@@ -237,11 +273,12 @@ async function criarBloqueioHorario(
     INSERT INTO bloqueios_horarios (
       profissional_id,
       data_bloqueio,
-      hora_bloqueio
+      hora_bloqueio,
+      negocio_id
     )
-    VALUES ($1, $2, $3)
+    VALUES ($1, $2, $3, $4)
     `,
-    [profissionalId, data, hora]
+    [profissionalId, data, hora, negocioId]
   );
 }
 
@@ -303,6 +340,7 @@ async function buscarBloqueioHorarioGeral(profissionalId, data, hora) {
     WHERE profissional_id = $1
       AND data_bloqueio = $2
       AND TO_CHAR(hora_bloqueio, 'HH24:MI') = $3
+      AND negocio_id IS NULL
     LIMIT 1
     `,
     [profissionalId, data, hora]
@@ -393,19 +431,29 @@ async function contarNotificacoesAgendaProfissional(profissionalId) {
   return result.rows[0]?.total || 0;
 }
 
-async function buscarBloqueiosPorPeriodo(profissionalId, dataInicio, dataFim) {
+async function buscarBloqueiosPorPeriodo(
+  profissionalId,
+  dataInicio,
+  dataFim,
+  negocioId = null
+) {
   const result = await db.query(
     `
     SELECT
       id,
       profissional_id,
+      negocio_id,
       TO_CHAR(data_bloqueio, 'YYYY-MM-DD') AS data,
       TO_CHAR(hora_bloqueio, 'HH24:MI') AS hora
     FROM bloqueios_horarios
     WHERE profissional_id = $1
       AND data_bloqueio BETWEEN $2 AND $3
+      AND (
+        negocio_id IS NULL
+        OR ($4::BIGINT IS NOT NULL AND negocio_id = $4)
+      )
     `,
-    [profissionalId, dataInicio, dataFim]
+    [profissionalId, dataInicio, dataFim, negocioId]
   );
 
   return result.rows;
@@ -482,19 +530,29 @@ async function buscarAgendamentosPorPeriodo(
   return result.rows;
 }
 
-async function buscarBloqueiosProfissionaisPorPeriodo(profissionalIds, dataInicio, dataFim) {
+async function buscarBloqueiosProfissionaisPorPeriodo(
+  negocioId,
+  profissionalIds,
+  dataInicio,
+  dataFim
+) {
   const result = await db.query(
     `
     SELECT
       id,
       profissional_id,
+      negocio_id,
       TO_CHAR(data_bloqueio, 'YYYY-MM-DD') AS data,
       TO_CHAR(hora_bloqueio, 'HH24:MI') AS hora
     FROM bloqueios_horarios
-    WHERE profissional_id = ANY($1::int[])
-      AND data_bloqueio BETWEEN $2 AND $3
+    WHERE profissional_id = ANY($2::int[])
+      AND data_bloqueio BETWEEN $3 AND $4
+      AND (
+        negocio_id IS NULL
+        OR negocio_id = $1
+      )
     `,
-    [profissionalIds, dataInicio, dataFim]
+    [negocioId, profissionalIds, dataInicio, dataFim]
   );
 
   return result.rows;
@@ -579,6 +637,7 @@ module.exports = {
   bloquearAlteracaoHorario,
   buscarAgendamentoAtivo,
   buscarBloqueioHorarioNovo,
+  buscarBloqueioGlobalHorario,
   removerBloqueioHorario,
   criarBloqueioHorario,
   buscarNegocioDoUsuario,

@@ -68,7 +68,8 @@ async function buscarAgendaPublica({ slugNegocio, slugProfissional }) {
     await agendaRepository.buscarBloqueiosPorPeriodo(
       profissional.id,
       dataInicio,
-      dataFim
+      dataFim,
+      profissional.negocio_id
     );
 
   const agendamentos =
@@ -720,6 +721,7 @@ async function alternarBloqueioHorario({
   exigirCampo(hora, "Hora é obrigatória.");
 
   let profissionalId = usuarioId;
+  let negocioId = null;
 
   if (profissionalIdSolicitado) {
     const dono = await agendaRepository.buscarNegocioDono(usuarioId);
@@ -741,6 +743,7 @@ async function alternarBloqueioHorario({
     );
 
     profissionalId = profissionalIdSolicitado;
+    negocioId = dono.negocio_id;
   }
 
   return db.executarTransacao(async (client) => {
@@ -768,12 +771,14 @@ async function alternarBloqueioHorario({
         profissionalId,
         data,
         hora,
+        negocioId,
         client
       );
 
     if (bloqueio) {
       await agendaRepository.removerBloqueioHorario(
         bloqueio.id,
+        negocioId,
         client
       );
 
@@ -784,11 +789,28 @@ async function alternarBloqueioHorario({
       };
     }
 
+    if (negocioId) {
+      const bloqueioGlobal =
+        await agendaRepository.buscarBloqueioGlobalHorario(
+          profissionalId,
+          data,
+          hora,
+          client
+        );
+
+      if (bloqueioGlobal) {
+        throw new ValidationError(
+          "Horário bloqueado pelo profissional e não pode ser liberado pelo negócio."
+        );
+      }
+    }
+
     try {
       await agendaRepository.criarBloqueioHorario(
         profissionalId,
         data,
         hora,
+        negocioId,
         client
       );
     } catch (erro) {
@@ -842,6 +864,7 @@ async function buscarAgendaGeral({ usuarioId }) {
 
   const bloqueios =
     await agendaRepository.buscarBloqueiosProfissionaisPorPeriodo(
+      negocio.id,
       profissionalIds,
       dataInicio,
       dataFim
