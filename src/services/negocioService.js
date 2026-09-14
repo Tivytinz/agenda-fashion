@@ -12,6 +12,13 @@ const {
   "../domain/especialidadesNegocio"
 );
 
+const {
+  FUSO_HORARIO_PADRAO,
+  fusoHorarioValido,
+} = require(
+  "../utils/fusoHorario"
+);
+
 const ESTADOS_BRASILEIROS = new Set([
   "AC", "AL", "AP", "AM", "BA", "CE", "DF", "ES", "GO",
   "MA", "MT", "MS", "MG", "PA", "PB", "PR", "PE", "PI",
@@ -211,12 +218,9 @@ function normalizarCoordenada({
 function normalizarFusoHorario(valor) {
   const fuso =
     normalizarTexto(valor) ||
-    "America/Sao_Paulo";
+    FUSO_HORARIO_PADRAO;
 
-  if (
-    fuso.length < 3 ||
-    fuso.length > 64
-  ) {
+  if (!fusoHorarioValido(fuso)) {
     throw new AppError(
       "Fuso horário inválido.",
       400
