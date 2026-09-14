@@ -432,6 +432,7 @@ async function buscarDadosBaseAgenda({
 
 async function buscarDisponibilidade({
   profissionalId,
+  negocioId,
   duracaoServico,
 }) {
   const profissionalIdNormalizado =
@@ -439,11 +440,17 @@ async function buscarDisponibilidade({
       profissionalId
     );
 
+  const negocioIdNormalizado =
+    normalizarId(
+      negocioId
+    );
+
   if (
-    !profissionalIdNormalizado
+    !profissionalIdNormalizado ||
+    !negocioIdNormalizado
   ) {
     throw criarErro(
-      "Profissional é obrigatório.",
+      "Negócio e profissional são obrigatórios.",
       400
     );
   }
@@ -453,6 +460,9 @@ async function buscarDisponibilidade({
       .buscarDisponibilidade({
         profissionalId:
           profissionalIdNormalizado,
+
+        negocioId:
+          negocioIdNormalizado,
 
         duracaoServico,
 
@@ -543,6 +553,7 @@ async function resolverConsentimentoWhatsapp({
 
 async function validarHorarioDisponivel({
   profissionalId,
+  negocioId,
   data,
   horario,
   duracaoServico,
@@ -552,6 +563,11 @@ async function validarHorarioDisponivel({
       profissionalId
     );
 
+  const negocioIdNormalizado =
+    normalizarId(
+      negocioId
+    );
+
   const horarioNormalizado =
     normalizarHorario(
       horario
@@ -559,11 +575,12 @@ async function validarHorarioDisponivel({
 
   if (
     !profissionalIdNormalizado ||
+    !negocioIdNormalizado ||
     !dataValida(data) ||
     !horarioNormalizado
   ) {
     throw criarErro(
-      "Profissional, data e horário são obrigatórios.",
+      "Negócio, profissional, data e horário são obrigatórios.",
       400
     );
   }
@@ -573,6 +590,9 @@ async function validarHorarioDisponivel({
       .horarioEstaDisponivel({
         profissionalId:
           profissionalIdNormalizado,
+
+        negocioId:
+          negocioIdNormalizado,
 
         duracaoServico,
 
@@ -753,6 +773,9 @@ async function criarAgendamento({
             .horarioEstaDisponivel({
               profissionalId:
                 profissionalIdNormalizado,
+
+              negocioId:
+                negocioIdNormalizado,
 
               duracaoServico:
                 duracaoMinutos,
