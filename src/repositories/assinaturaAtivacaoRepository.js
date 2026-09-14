@@ -56,20 +56,39 @@ async function buscarAssinaturaAtivaMaisNova(
   negocioId,
   assinaturaId
 ) {
+  /*
+   * A linha do negócio é a fronteira comum de serialização
+   * entre ativações concorrentes. O lock dura somente durante
+   * a transação local; nenhuma chamada ao Asaas é feita aqui.
+   */
   const resultado = await client.query(
     `
-    SELECT id
-    FROM assinaturas
-    WHERE negocio_id = $1
-      AND id > $2
-      AND ativo = TRUE
-    ORDER BY id DESC
-    LIMIT 1
+    SELECT atual.id AS assinatura_vigente_id
+    FROM negocios n
+    LEFT JOIN LATERAL (
+      SELECT a.id
+      FROM assinaturas a
+      WHERE a.negocio_id = n.id
+        AND a.id > $2
+        AND a.ativo = TRUE
+      ORDER BY a.id DESC
+      LIMIT 1
+    ) atual ON TRUE
+    WHERE n.id = $1
+    FOR UPDATE OF n
     `,
     [negocioId, assinaturaId]
   );
 
-  return resultado.rows[0] || null;
+  const assinaturaVigenteId =
+    resultado.rows[0]
+      ?.assinatura_vigente_id;
+
+  return assinaturaVigenteId
+    ? {
+        id: assinaturaVigenteId
+      }
+    : null;
 }
 
 async function vincularRecorrenciaAsaas(
@@ -193,9 +212,16 @@ async function listarRecorrenciasSubstituidas(
   negocioId,
   assinaturaId
 ) {
+  /*
+   * A marca CANCELED + observação é durável. Se o DELETE no
+   * Asaas falhar depois do commit, o próximo retry encontra
+   * novamente essas recorrências e repete a limpeza.
+   */
   const resultado = await client.query(
     `
-    SELECT DISTINCT asaas_subscription_id
+    SELECT
+      id,
+      asaas_subscription_id
     FROM assinaturas
     WHERE negocio_id = $1
       AND id <> $2
@@ -203,6 +229,8 @@ async function listarRecorrenciasSubstituidas(
       AND status = 'CANCELED'
       AND COALESCE(observacoes, '') LIKE
         '%Recorrência substituída por uma nova assinatura.%'
+    ORDER BY id ASC
+    FOR UPDATE
     `,
     [negocioId, assinaturaId]
   );
