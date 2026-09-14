@@ -9,7 +9,11 @@ async function buscarNegocioPorSlug(
         id,
         nome,
         slug,
-        whatsapp AS whatsapp_negocio
+        whatsapp AS whatsapp_negocio,
+        COALESCE(
+          NULLIF(fuso_horario, ''),
+          'America/Sao_Paulo'
+        ) AS fuso_horario
 
       FROM negocios
 
@@ -519,7 +523,10 @@ async function listarMeusAgendamentos(
             a.horario::time
           ) < (
             NOW() AT TIME ZONE
-            'America/Sao_Paulo'
+            COALESCE(
+              NULLIF(n.fuso_horario, ''),
+              'America/Sao_Paulo'
+            )
           )
             THEN 'realizado'
 
@@ -583,27 +590,35 @@ async function buscarAgendamentoCliente(
   const result = await executor.query(
     `
       SELECT
-        id,
+        a.id,
+        a.negocio_id,
 
         TO_CHAR(
-          data,
+          a.data,
           'YYYY-MM-DD'
         ) AS data,
 
         TO_CHAR(
-          horario::time,
+          a.horario::time,
           'HH24:MI'
         ) AS horario,
 
-        profissional_id,
-        cliente_id,
-        status,
-        avaliacao
+        a.profissional_id,
+        a.cliente_id,
+        a.status,
+        a.avaliacao,
+        COALESCE(
+          NULLIF(n.fuso_horario, ''),
+          'America/Sao_Paulo'
+        ) AS fuso_horario
 
-      FROM agendamentos
+      FROM agendamentos a
 
-      WHERE id = $1
-        AND cliente_id = $2
+      LEFT JOIN negocios n
+        ON n.id = a.negocio_id
+
+      WHERE a.id = $1
+        AND a.cliente_id = $2
         AND EXISTS (
           SELECT 1
           FROM usuarios u
