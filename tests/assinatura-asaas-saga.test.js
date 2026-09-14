@@ -44,6 +44,8 @@ jest.mock(
   "../src/services/asaasService",
   () => ({
     criarAssinaturaAsaas: jest.fn(),
+    buscarAssinaturaPorReferencia:
+      jest.fn(),
     removerAssinaturaAsaas: jest.fn()
   })
 );
@@ -187,10 +189,11 @@ test(
       .toHaveBeenCalledWith("sub_old");
     expect(
       assinaturaAtivacaoRepository
-        .bloquearNegocio
+        .buscarAssinaturaAtivaMaisNova
     ).toHaveBeenCalledWith(
       expect.anything(),
-      7
+      7,
+      20
     );
     expect(resultado)
       .toEqual(
