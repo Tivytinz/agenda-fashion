@@ -505,6 +505,12 @@ async function garantirPagamentoRecorrente(
     return null;
   }
 
+  /*
+   * Outra transação pode ter criado o pagamento enquanto
+   * aguardávamos o lock da assinatura. Revalidamos depois
+   * do FOR UPDATE para não executar o ON CONFLICT com um
+   * estado de webhook potencialmente mais antigo.
+   */
   assinatura =
     await localizarAssinaturaPagamento(
       client,
@@ -814,6 +820,12 @@ async function ativarAssinaturaPorPagamento(
         return null;
       }
 
+      /*
+       * Serializa ativações do mesmo negócio. Depois que uma
+       * assinatura mais nova já está vigente, a confirmação
+       * atrasada de uma cobrança antiga deve atualizar somente
+       * o pagamento, sem trocar novamente o plano.
+       */
       const vigencia = await client.query(
         `
         SELECT atual.id AS assinatura_vigente_id
@@ -887,16 +899,22 @@ async function ativarAssinaturaPorPagamento(
           await criarAssinaturaAsaas({
             customerId:
               assinatura.asaas_customer_id,
+
             valor:
               assinatura.valor,
+
             descricao:
               "Agenda Fashion - Assinatura mensal",
+
             formaPagamento:
               "pix",
+
             externalReference:
               `assinatura:${assinatura.id};negocio:${assinatura.negocio_id};plano:${assinatura.plano_id}`,
+
             proximaCobranca:
               dataProximaCobranca,
+
             reutilizarPorExternalReference:
               true
           });
@@ -909,7 +927,9 @@ async function ativarAssinaturaPorPagamento(
 
         asaasSubscriptionId =
           assinaturaAsaas.id;
+
         novaRecorrencia = true;
+
         dataProximaCobranca =
           assinaturaAsaas.nextDueDate ||
           dataProximaCobranca;
@@ -929,6 +949,12 @@ async function ativarAssinaturaPorPagamento(
           );
       }
 
+      /*
+       * Na troca de plano, a nova recorrência é criada
+       * antes de encerrarmos as anteriores. Se o DELETE
+       * falhar, a ativação local é interrompida e o
+       * webhook pode tentar novamente com segurança.
+       */
       if (novaRecorrencia) {
         const anteriores =
           await client.query(
@@ -955,7 +981,8 @@ async function ativarAssinaturaPorPagamento(
               .map(
                 (item) =>
                   String(
-                    item.asaas_subscription_id ||
+                    item
+                      .asaas_subscription_id ||
                     ""
                   ).trim()
               )
@@ -967,7 +994,10 @@ async function ativarAssinaturaPorPagamento(
               )
           );
 
-        for (const recorrenciaId of recorrencias) {
+        for (
+          const recorrenciaId
+          of recorrencias
+        ) {
           await removerAssinaturaAsaas(
             recorrenciaId
           );
@@ -1030,9 +1060,11 @@ async function ativarAssinaturaPorPagamento(
           [
             asaasSubscriptionId || null,
             dataProximaCobranca || null,
+
             asaasSubscriptionId
               ? "Assinatura mensal ativa no Asaas."
               : assinatura.observacoes,
+
             assinatura.id
           ]
         );
@@ -1054,71 +1086,148 @@ async function ativarAssinaturaPorPagamento(
   );
 }
 
-async function buscarMinhaAssinatura({ usuarioId }) {
+async function buscarMinhaAssinatura({
+  usuarioId
+}) {
   if (!usuarioId) {
-    throw new Error("Usuário não autenticado.");
+    throw new Error(
+      "Usuário não autenticado."
+    );
   }
 
   const negocio =
-    await assinaturaRepository.buscarNegocioDono(usuarioId);
+    await assinaturaRepository.buscarNegocioDono(
+      usuarioId
+    );
 
   if (!negocio) {
-    throw new Error("Negócio não encontrado.");
+    throw new Error(
+      "Negócio não encontrado."
+    );
   }
 
-  await assinaturaRepository.expirarCancelamentoSeNecessario(negocio.id);
+  await assinaturaRepository
+    .expirarCancelamentoSeNecessario(
+      negocio.id
+    );
+
   const negocioAtualizado =
-    await assinaturaRepository.buscarNegocioDono(usuarioId);
+    await assinaturaRepository.buscarNegocioDono(
+      usuarioId
+    );
+
   const assinatura =
-    await assinaturaRepository.buscarUltimaAssinaturaPorNegocio(negocio.id);
+    await assinaturaRepository
+      .buscarUltimaAssinaturaPorNegocio(
+        negocio.id
+      );
+
   const plano =
     await assinaturaRepository.buscarPlano(
-      negocioAtualizado?.plano_id || negocio.plano_id
+      negocioAtualizado?.plano_id ||
+      negocio.plano_id
     );
+
   const pagamentos =
-    await assinaturaRepository.listarPagamentos(assinatura?.id || 0);
-  const uso = await buscarUsoPlano(negocio.id);
+    await assinaturaRepository
+      .listarPagamentos(
+        assinatura?.id || 0
+      );
+
+  const uso =
+    await buscarUsoPlano(negocio.id);
 
   return {
     plano,
     assinatura,
+
     uso: {
-      utilizados: uso?.utilizados || 0,
-      limite: uso?.capacidade_agendamentos ?? null,
-      restantes: uso?.restantes ?? null,
-      percentual: uso?.percentual ?? null,
-      profissionais_utilizados: uso?.profissionais_utilizados || 0,
-      limite_profissionais: uso?.limite_profissionais ?? null,
-      servicos_utilizados: uso?.servicos_utilizados || 0,
-      limite_servicos: uso?.limite_servicos ?? null
+      utilizados:
+        uso?.utilizados || 0,
+
+      limite:
+        uso?.capacidade_agendamentos ?? null,
+
+      restantes:
+        uso?.restantes ?? null,
+
+      percentual:
+        uso?.percentual ?? null,
+
+      profissionais_utilizados:
+        uso?.profissionais_utilizados || 0,
+
+      limite_profissionais:
+        uso?.limite_profissionais ?? null,
+
+      servicos_utilizados:
+        uso?.servicos_utilizados || 0,
+
+      limite_servicos:
+        uso?.limite_servicos ?? null
     },
+
     pagamentos
   };
 }
 
-function criarErro(mensagem, status = 400) {
-  const erro = new Error(mensagem);
+function criarErro(
+  mensagem,
+  status = 400
+) {
+  const erro =
+    new Error(mensagem);
+
   erro.status = status;
   erro.statusCode = status;
+
   return erro;
 }
 
-function dataValida(valor) {
-  const texto = String(valor || "").slice(0, 10);
-  return /^\d{4}-\d{2}-\d{2}$/.test(texto)
-    ? texto
-    : null;
+function dataValida(
+  valor
+) {
+  const texto =
+    String(valor || "")
+      .slice(0, 10);
+
+  return /^\d{4}-\d{2}-\d{2}$/
+    .test(texto)
+      ? texto
+      : null;
 }
 
-async function calcularFimDoPeriodoPago(assinatura) {
+async function calcularFimDoPeriodoPago(
+  assinatura
+) {
+  /*
+   * Não consultamos o Asaas antes de cancelar.
+   * Uma falha nessa consulta impediria que o DELETE
+   * da assinatura fosse executado.
+   *
+   * Como a assinatura está ACTIVE, o pagamento inicial
+   * já ativou o plano. Portanto, usamos os dados locais
+   * para calcular o fim do período pago.
+   */
   const pagamentosLocais =
-    await assinaturaRepository.listarPagamentos(assinatura.id);
-  const pagamentoRecebido = pagamentosLocais.find(
-    (pagamento) =>
-      ["CONFIRMED", "RECEIVED", "RECEIVED_IN_CASH"].includes(
-        String(pagamento?.status || "").trim().toUpperCase()
-      )
-  );
+    await assinaturaRepository.listarPagamentos(
+      assinatura.id
+    );
+
+  const pagamentoRecebido =
+    pagamentosLocais.find(
+      (pagamento) =>
+        [
+          "CONFIRMED",
+          "RECEIVED",
+          "RECEIVED_IN_CASH"
+        ].includes(
+          String(pagamento?.status || "")
+            .trim()
+            .toUpperCase()
+        )
+    );
+
   const pagamentoComData =
     pagamentoRecebido ||
     pagamentosLocais.find(
@@ -1129,11 +1238,15 @@ async function calcularFimDoPeriodoPago(assinatura) {
 
   if (pagamentoComData) {
     return calcularProximaCobranca(
-      pagamentoComData.data_pagamento || pagamentoComData.data_vencimento
+      pagamentoComData.data_pagamento ||
+      pagamentoComData.data_vencimento
     );
   }
 
-  const dataLocal = dataValida(assinatura.data_proxima_cobranca);
+  const dataLocal = dataValida(
+    assinatura.data_proxima_cobranca
+  );
+
   if (dataLocal) {
     return dataLocal;
   }
@@ -1144,69 +1257,128 @@ async function calcularFimDoPeriodoPago(assinatura) {
   );
 }
 
-async function cancelarMinhaAssinatura({ usuarioId }) {
+async function cancelarMinhaAssinatura({
+  usuarioId
+}) {
   if (!usuarioId) {
-    throw criarErro("Usuário não autenticado.", 401);
+    throw criarErro(
+      "Usuário não autenticado.",
+      401
+    );
   }
-  const negocio = await assinaturaRepository.buscarNegocioDono(usuarioId);
+
+  const negocio =
+    await assinaturaRepository.buscarNegocioDono(
+      usuarioId
+    );
+
   if (!negocio) {
-    throw criarErro("Negócio não encontrado.", 404);
+    throw criarErro(
+      "Negócio não encontrado.",
+      404
+    );
   }
+
   const assinatura =
-    await assinaturaRepository.buscarAssinaturaAtivaPorNegocio(negocio.id);
+    await assinaturaRepository
+      .buscarAssinaturaAtivaPorNegocio(
+        negocio.id
+      );
+
   if (!assinatura) {
-    throw criarErro("Nenhuma assinatura ativa foi encontrada.", 404);
+    throw criarErro(
+      "Nenhuma assinatura ativa foi encontrada.",
+      404
+    );
   }
-  const status = String(assinatura.status || "").trim().toUpperCase();
-  if (["CANCELED", "CANCELLED"].includes(status)) {
+
+  const status = String(
+    assinatura.status || ""
+  )
+    .trim()
+    .toUpperCase();
+
+  if (
+    ["CANCELED", "CANCELLED"].includes(status)
+  ) {
     return {
-      mensagem: "A renovação desta assinatura já está cancelada.",
+      mensagem:
+        "A renovação desta assinatura já está cancelada.",
       assinatura,
-      acesso_ate: assinatura.data_proxima_cobranca
+      acesso_ate:
+        assinatura.data_proxima_cobranca
     };
   }
+
   if (status !== "ACTIVE") {
     throw criarErro(
       "Somente uma assinatura ativa pode ter a renovação cancelada.",
       409
     );
   }
+
   if (!assinatura.asaas_subscription_id) {
     throw criarErro(
       "A assinatura não possui uma recorrência vinculada no Asaas.",
       409
     );
   }
-  const acessoAte = await calcularFimDoPeriodoPago(assinatura);
-  await removerAssinaturaAsaas(assinatura.asaas_subscription_id);
+
+  const acessoAte =
+    await calcularFimDoPeriodoPago(
+      assinatura
+    );
+
+  /*
+   * Agora a primeira chamada externa é diretamente
+   * o DELETE da assinatura.
+   */
+  await removerAssinaturaAsaas(
+    assinatura.asaas_subscription_id
+  );
+
   const observacoes =
     "Renovação cancelada pelo titular. " +
     `Acesso mantido até ${acessoAte}.`;
-  const assinaturaCancelada = await db.executarTransacao(
-    async (client) => {
-      return assinaturaRepository.registrarCancelamento(
-        client,
-        {
-          assinaturaId: assinatura.id,
-          negocioId: negocio.id,
-          acessoAte,
-          observacoes
-        }
-      );
-    }
-  );
+
+  const assinaturaCancelada =
+    await db.executarTransacao(
+      async (client) => {
+        return assinaturaRepository
+          .registrarCancelamento(
+            client,
+            {
+              assinaturaId:
+                assinatura.id,
+
+              negocioId:
+                negocio.id,
+
+              acessoAte,
+              observacoes
+            }
+          );
+      }
+    );
+
   if (!assinaturaCancelada) {
     throw criarErro(
       "A recorrência foi encerrada, mas não foi possível atualizar a assinatura local. Tente novamente para sincronizar.",
       409
     );
   }
+
   return {
     mensagem:
       "Renovação cancelada com sucesso. " +
       "O plano continuará disponível até o fim do período já pago.",
-    assinatura: assinaturaCancelada,
-    acesso_ate: assinaturaCancelada.data_proxima_cobranca
+
+    assinatura:
+      assinaturaCancelada,
+
+    acesso_ate:
+      assinaturaCancelada
+        .data_proxima_cobranca
   };
 }
 
