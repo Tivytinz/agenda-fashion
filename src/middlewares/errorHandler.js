@@ -40,6 +40,18 @@ function resolverErroIntegridade(err) {
     };
   }
 
+  if (
+    err?.code === "23503" &&
+    err?.constraint ===
+      "agendamentos_profissional_negocio_vinculo"
+  ) {
+    return {
+      statusCode: 409,
+      mensagem:
+        "Esta profissional não está mais vinculada a este negócio. Atualize a página e escolha uma profissional disponível.",
+    };
+  }
+
   return null;
 }
 
