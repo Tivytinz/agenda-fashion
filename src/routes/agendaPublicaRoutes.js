@@ -5,9 +5,12 @@ const {
   limitarLeituraPublica,
 } = require("../middlewares/rateLimits");
 
-const optionalAuth = require("../middlewares/optionalAuth");  
+const optionalAuth = require("../middlewares/optionalAuth");
 const auth = require("../middlewares/auth");
 const agendaPublicaController = require("../controllers/agendamentoPublicoController");
+const agendamentoLifecycleController = require(
+  "../controllers/agendamentoLifecycleController"
+);
 
 /**
  * @swagger
@@ -110,7 +113,7 @@ router.post(
  * @swagger
  * /meus-agendamentos:
  *   get:
- *     summary: Lista os agendamentos do usuário logado
+ *     summary: Lista os agendamentos do usuário logado usando o status persistido
  *     tags: [Agenda Pública]
  *     security:
  *       - bearerAuth: []
@@ -124,7 +127,7 @@ router.post(
 router.get(
   "/meus-agendamentos",
   auth,
-  agendaPublicaController.listarMeusAgendamentos
+  agendamentoLifecycleController.listarMeusAgendamentos
 );
 
 /**
@@ -158,7 +161,7 @@ router.patch(
  * @swagger
  * /agendamentos/{id}/avaliar:
  *   patch:
- *     summary: Avalia um atendimento realizado
+ *     summary: Avalia um atendimento marcado como realizado
  *     tags: [Agenda Pública]
  *     security:
  *       - bearerAuth: []
@@ -184,13 +187,13 @@ router.patch(
  *       200:
  *         description: Avaliação registrada
  *       400:
- *         description: Dados inválidos
+ *         description: Dados inválidos ou atendimento não realizado
  */
 
 router.patch(
   "/agendamentos/:id/avaliar",
   auth,
-  agendaPublicaController.avaliarAgendamento
+  agendamentoLifecycleController.avaliarAgendamento
 );
 
 module.exports = router;

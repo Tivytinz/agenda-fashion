@@ -25,7 +25,7 @@ function dataAmanha() {
   return formatarDataLocal(data);
 }
 
-describe("Isolamento multi-tenant da agenda geral", () => {
+describe("Agenda Geral multi-tenant", () => {
   const usuariosCriados = [];
   const negociosCriados = [];
 
@@ -40,7 +40,6 @@ describe("Isolamento multi-tenant da agenda geral", () => {
 
   beforeAll(async () => {
     const identificador = gerarIdentificador();
-
     const planoResultado = await db.query(
       `
         SELECT id
@@ -50,102 +49,65 @@ describe("Isolamento multi-tenant da agenda geral", () => {
         LIMIT 1
       `
     );
-
     const planoId = planoResultado.rows[0]?.id;
-
     expect(planoId).toBeTruthy();
 
-    const donoResultado = await db.query(
-      `
-        INSERT INTO usuarios (
+    async function criarUsuario(nome, prefixo, whatsapp) {
+      const resultado = await db.query(
+        `
+          INSERT INTO usuarios (nome, email, senha, whatsapp)
+          VALUES ($1, $2, $3, $4)
+          RETURNING id
+        `,
+        [
           nome,
-          email,
-          senha,
-          whatsapp
-        )
-        VALUES ($1, $2, $3, $4)
-        RETURNING id, nome, email
-      `,
-      [
-        "Dona Negócio A",
-        `dona-a-${identificador}@teste.local`,
-        "hash-de-teste",
-        `629${String(Date.now()).slice(-8)}`
-      ]
+          `${prefixo}-${identificador}@teste.local`,
+          "hash-de-teste",
+          whatsapp,
+        ]
+      );
+
+      usuariosCriados.push(resultado.rows[0].id);
+      return resultado.rows[0];
+    }
+
+    donoA = await criarUsuario(
+      "Dona Negócio A",
+      "dona-negocio-a",
+      `629${String(Date.now()).slice(-8)}`
+    );
+    profissionalCompartilhada = await criarUsuario(
+      "Profissional Compartilhada",
+      "profissional-compartilhada",
+      `649${String(Date.now()).slice(-8)}`
     );
 
-    donoA = donoResultado.rows[0];
-    usuariosCriados.push(donoA.id);
+    async function criarNegocio(nome, slug) {
+      const resultado = await db.query(
+        `
+          INSERT INTO negocios (nome, slug, plano_id)
+          VALUES ($1, $2, $3)
+          RETURNING id
+        `,
+        [nome, slug, planoId]
+      );
 
-    const profissionalResultado = await db.query(
-      `
-        INSERT INTO usuarios (
-          nome,
-          email,
-          senha,
-          whatsapp
-        )
-        VALUES ($1, $2, $3, $4)
-        RETURNING id, nome, email
-      `,
-      [
-        "Ana Contexto Duplo",
-        `ana-contexto-${identificador}@teste.local`,
-        "hash-de-teste",
-        `639${String(Date.now()).slice(-8)}`
-      ]
+      negociosCriados.push(resultado.rows[0].id);
+      return resultado.rows[0];
+    }
+
+    negocioA = await criarNegocio(
+      "Negócio A Multi Tenant",
+      `negocio-a-multi-${identificador}`
     );
-
-    profissionalCompartilhada = profissionalResultado.rows[0];
-    usuariosCriados.push(profissionalCompartilhada.id);
-
-    const negocioAResultado = await db.query(
-      `
-        INSERT INTO negocios (
-          nome,
-          slug,
-          plano_id
-        )
-        VALUES ($1, $2, $3)
-        RETURNING id, nome, slug
-      `,
-      [
-        "Negócio Multi-tenant A",
-        `multitenant-a-${identificador}`,
-        planoId
-      ]
+    negocioB = await criarNegocio(
+      "Negócio B Multi Tenant",
+      `negocio-b-multi-${identificador}`
     );
-
-    negocioA = negocioAResultado.rows[0];
-    negociosCriados.push(negocioA.id);
-
-    const negocioBResultado = await db.query(
-      `
-        INSERT INTO negocios (
-          nome,
-          slug,
-          plano_id
-        )
-        VALUES ($1, $2, $3)
-        RETURNING id, nome, slug
-      `,
-      [
-        "Negócio Multi-tenant B",
-        `multitenant-b-${identificador}`,
-        planoId
-      ]
-    );
-
-    negocioB = negocioBResultado.rows[0];
-    negociosCriados.push(negocioB.id);
 
     await db.query(
       `
-        INSERT INTO usuarios_negocios (
-          usuario_id,
-          negocio_id,
-          papel
-        )
+        INSERT INTO usuarios_negocios (usuario_id, negocio_id, papel)
         VALUES
           ($1, $2, 'dono'),
           ($3, $2, 'profissional'),
@@ -155,47 +117,36 @@ describe("Isolamento multi-tenant da agenda geral", () => {
         donoA.id,
         negocioA.id,
         profissionalCompartilhada.id,
-        negocioB.id
-      ]
-    );
-
-    const servicoAResultado = await db.query(
-      `
-        INSERT INTO servicos_negocio (
-          negocio_id,
-          nome,
-          valor,
-          duracao_minutos
-        )
-        VALUES ($1, $2, 80, 60)
-        RETURNING id, nome
-      `,
-      [
-        negocioA.id,
-        `Serviço Visível A ${identificador}`
-      ]
-    );
-
-    servicoA = servicoAResultado.rows[0];
-
-    const servicoBResultado = await db.query(
-      `
-        INSERT INTO servicos_negocio (
-          negocio_id,
-          nome,
-          valor,
-          duracao_minutos
-        )
-        VALUES ($1, $2, 120, 60)
-        RETURNING id, nome
-      `,
-      [
         negocioB.id,
-        `Serviço Privado B ${identificador}`
       ]
     );
 
-    servicoB = servicoBResultado.rows[0];
+    async function criarServico(negocioId, nome) {
+      const resultado = await db.query(
+        `
+          INSERT INTO servicos_negocio (
+            negocio_id,
+            nome,
+            valor,
+            duracao_minutos
+          )
+          VALUES ($1, $2, 80, 60)
+          RETURNING id
+        `,
+        [negocioId, nome]
+      );
+
+      return resultado.rows[0];
+    }
+
+    servicoA = await criarServico(
+      negocioA.id,
+      `Serviço Visível A ${identificador}`
+    );
+    servicoB = await criarServico(
+      negocioB.id,
+      `Serviço Privado B ${identificador}`
+    );
 
     dataTeste = dataAmanha();
 
@@ -225,7 +176,7 @@ describe("Isolamento multi-tenant da agenda geral", () => {
         negocioB.id,
         servicoB.id,
         `Cliente Privada B ${identificador}`,
-        "62933334444"
+        "62933334444",
       ]
     );
 
@@ -240,28 +191,26 @@ describe("Isolamento multi-tenant da agenda geral", () => {
     try {
       if (negociosCriados.length > 0) {
         await db.query(
-          `
-            DELETE FROM agendamentos
-            WHERE negocio_id = ANY($1::BIGINT[])
-          `,
+          `DELETE FROM agendamentos WHERE negocio_id = ANY($1::BIGINT[])`,
           [negociosCriados]
         );
-
         await db.query(
-          `
-            DELETE FROM negocios
-            WHERE id = ANY($1::BIGINT[])
-          `,
+          `DELETE FROM servicos_negocio WHERE negocio_id = ANY($1::BIGINT[])`,
+          [negociosCriados]
+        );
+        await db.query(
+          `DELETE FROM usuarios_negocios WHERE negocio_id = ANY($1::BIGINT[])`,
+          [negociosCriados]
+        );
+        await db.query(
+          `DELETE FROM negocios WHERE id = ANY($1::BIGINT[])`,
           [negociosCriados]
         );
       }
 
       if (usuariosCriados.length > 0) {
         await db.query(
-          `
-            DELETE FROM usuarios
-            WHERE id = ANY($1::BIGINT[])
-          `,
+          `DELETE FROM usuarios WHERE id = ANY($1::BIGINT[])`,
           [usuariosCriados]
         );
       }
@@ -270,7 +219,7 @@ describe("Isolamento multi-tenant da agenda geral", () => {
     }
   });
 
-  test("mantém ocupação global sem expor dados privados de outro negócio", async () => {
+  test("mantém ocupação física entre negócios sem expor PII de outro tenant", async () => {
     const resposta = await request(app)
       .get("/agenda-geral")
       .set("Authorization", `Bearer ${tokenDonoA}`);
@@ -303,11 +252,14 @@ describe("Isolamento multi-tenant da agenda geral", () => {
       (item) => item.hora === "10:00"
     );
 
-    expect(horarioOutroNegocio).toEqual({
+    expect(horarioOutroNegocio).toMatchObject({
       hora: "10:00",
       status: "agendado",
+      agendamento_id: null,
       cliente: null,
-      servico: null
+      servico: null,
+      pode_marcar_falta: false,
+      pode_marcar_realizado: false,
     });
 
     const corpoSerializado = JSON.stringify(resposta.body);

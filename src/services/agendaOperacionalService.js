@@ -1,5 +1,8 @@
 const agendaService = require("./agendaService");
 const agendaRepository = require("../repositories/agendaRepository");
+const agendamentoLifecycleRepository = require(
+  "../repositories/agendamentoLifecycleRepository"
+);
 
 function normalizarHorario(horario) {
   if (!horario) return null;
@@ -9,6 +12,36 @@ function normalizarHorario(horario) {
 function ordenarHorarios(horarios) {
   return [...horarios].sort((a, b) =>
     String(a?.hora || "").localeCompare(String(b?.hora || ""))
+  );
+}
+
+function slotBaseRepresentaCompromisso(slot) {
+  const status = String(slot?.status || "").trim().toLowerCase();
+  const statusDeCompromisso = new Set([
+    "agendado",
+    "confirmado",
+    "realizado",
+    "falta",
+  ]);
+
+  return Boolean(
+    statusDeCompromisso.has(status) ||
+    slot?.agendamento_id ||
+    slot?.cliente_id ||
+    slot?.cliente ||
+    slot?.servico_id ||
+    slot?.servico
+  );
+}
+
+function criarSlotsBaseConfiaveis(horarios) {
+  return new Map(
+    (horarios || [])
+      .filter((slot) => !slotBaseRepresentaCompromisso(slot))
+      .map((slot) => [
+        normalizarHorario(slot.hora),
+        { ...slot, hora: normalizarHorario(slot.hora) },
+      ])
   );
 }
 
@@ -25,6 +58,8 @@ function criarSlotDeAgendamento(agendamento) {
     servico: agendamento.servico || null,
     valor: agendamento.valor ?? null,
     duracao_minutos: agendamento.duracao_minutos || null,
+    pode_marcar_falta: Boolean(agendamento.pode_marcar_falta),
+    pode_marcar_realizado: Boolean(agendamento.pode_marcar_realizado),
   };
 }
 
@@ -42,12 +77,7 @@ function materializarAgendaProfissional(agenda, agendamentos) {
   }
 
   return (agenda || []).map((dia) => {
-    const slots = new Map(
-      (dia.horarios || []).map((slot) => [
-        normalizarHorario(slot.hora),
-        { ...slot, hora: normalizarHorario(slot.hora) },
-      ])
-    );
+    const slots = criarSlotsBaseConfiaveis(dia.horarios);
 
     for (const agendamento of agendamentosPorData.get(dia.data) || []) {
       const slotExistente = slots.get(agendamento.hora) || {};
@@ -104,12 +134,7 @@ function materializarAgendaGeral(agenda, agendamentos, bloqueios) {
     ...dia,
     profissionais: (dia.profissionais || []).map((profissional) => {
       const chave = criarChaveProfissionalData(profissional.id, dia.data);
-      const slots = new Map(
-        (profissional.horarios || []).map((slot) => [
-          normalizarHorario(slot.hora),
-          { ...slot, hora: normalizarHorario(slot.hora) },
-        ])
-      );
+      const slots = criarSlotsBaseConfiaveis(profissional.horarios);
 
       for (const bloqueio of bloqueiosPorProfissionalData.get(chave) || []) {
         if (!slots.has(bloqueio.hora)) {
@@ -127,9 +152,12 @@ function materializarAgendaGeral(agenda, agendamentos, bloqueios) {
         slots.set(agendamento.hora, {
           ...slotExistente,
           hora: agendamento.hora,
-          status: "agendado",
+          status: agendamento.status || "agendado",
+          agendamento_id: agendamento.agendamento_id || null,
           cliente: agendamento.cliente || null,
           servico: agendamento.servico || null,
+          pode_marcar_falta: Boolean(agendamento.pode_marcar_falta),
+          pode_marcar_realizado: Boolean(agendamento.pode_marcar_realizado),
         });
       }
 
@@ -163,11 +191,13 @@ async function listarAgendaProfissional({ profissionalId }) {
 
   if (!periodo) return resultado;
 
-  const agendamentos = await agendaRepository.buscarAgendamentosPorPeriodo(
-    profissionalId,
-    periodo.dataInicio,
-    periodo.dataFim
-  );
+  const agendamentos =
+    await agendamentoLifecycleRepository
+      .listarAgendamentosProfissionalPorPeriodo({
+        profissionalId,
+        dataInicio: periodo.dataInicio,
+        dataFim: periodo.dataFim,
+      });
 
   return {
     ...resultado,
@@ -193,12 +223,13 @@ async function buscarAgendaGeral({ usuarioId }) {
   }
 
   const [agendamentos, bloqueios] = await Promise.all([
-    agendaRepository.buscarAgendamentosProfissionaisPorPeriodo(
-      vinculoDono.negocio_id,
-      profissionalIds,
-      periodo.dataInicio,
-      periodo.dataFim
-    ),
+    agendamentoLifecycleRepository
+      .listarAgendamentosProfissionaisDoNegocioPorPeriodo({
+        negocioId: vinculoDono.negocio_id,
+        profissionalIds,
+        dataInicio: periodo.dataInicio,
+        dataFim: periodo.dataFim,
+      }),
     agendaRepository.buscarBloqueiosProfissionaisPorPeriodo(
       profissionalIds,
       periodo.dataInicio,

@@ -66,7 +66,8 @@ async function buscarUsoPlano(
           AND a.status IN (
             'agendado',
             'confirmado',
-            'realizado'
+            'realizado',
+            'falta'
           )
           AND a.data >= date_trunc(
             'month',

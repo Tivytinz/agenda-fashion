@@ -344,15 +344,14 @@ describe("Autorização da agenda profissional", () => {
     );
     const horario = dia?.horarios.find((item) => item.hora === "09:00");
 
-    expect(horario).toMatchObject({
-      status: "realizado",
-      agendamento_id: null,
-      cliente_id: null,
-      cliente: null,
-      cliente_whatsapp: null,
-      servico_id: null,
-      servico: null,
-      valor: null
-    });
+    expect(horario?.agendamento_id ?? null).toBeNull();
+    expect(horario?.cliente_id ?? null).toBeNull();
+    expect(horario?.cliente ?? null).toBeNull();
+    expect(horario?.cliente_whatsapp ?? null).toBeNull();
+    expect(horario?.servico_id ?? null).toBeNull();
+    expect(horario?.servico ?? null).toBeNull();
+    expect(horario?.valor ?? null).toBeNull();
+    expect(horario?.status).not.toBe("realizado");
+    expect(horario?.status).not.toBe("falta");
   });
 });

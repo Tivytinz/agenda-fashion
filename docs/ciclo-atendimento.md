@@ -1,0 +1,137 @@
+# Ciclo persistido de atendimento
+
+## Objetivo
+
+O horário ter passado não prova que um atendimento aconteceu.
+
+O Agenda Fashion deve separar:
+
+- compromisso criado;
+- compromisso confirmado;
+- cancelamento;
+- atendimento efetivamente realizado;
+- falta/no-show.
+
+Essa separação protege agenda, avaliação, métricas de comparecimento, retenção e receita contra inferências temporais incorretas.
+
+## Estados
+
+O campo `agendamentos.status` possui os seguintes estados operacionais:
+
+- `agendado`: reserva ativa criada;
+- `confirmado`: reserva ativa confirmada;
+- `cancelado`: reserva cancelada;
+- `realizado`: atendimento explicitamente concluído;
+- `falta`: cliente não compareceu / atendimento não ocorreu por falta.
+
+`realizado` e `falta` são estados terminais no fluxo operacional atual.
+
+## Transições permitidas
+
+A atualização operacional exposta pela agenda aceita somente:
+
+```text
+agendado   -> realizado
+agendado   -> falta
+confirmado -> realizado
+confirmado -> falta
+```
+
+Cancelamento continua em fluxo próprio.
+
+Uma tentativa de trocar um estado terminal por outro retorna conflito em vez de reescrever o histórico.
+
+Repetir a mesma transição terminal é idempotente.
+
+## Autorização
+
+A transição é backend-authoritative.
+
+Dentro do contexto de negócio resolvido pelo backend:
+
+- a dona pode atualizar atendimentos do negócio;
+- a profissional pode atualizar apenas atendimentos atribuídos a ela;
+- vínculos inativos ou outro negócio não autorizam a operação;
+- o agendamento é bloqueado durante a transação para evitar corrida com outra alteração de estado.
+
+A limitação atual de seleção explícita de contexto multi-negócio continua documentada separadamente. Este fluxo não deve ser usado para ampliar acesso entre negócios.
+
+## Regra temporal
+
+O backend usa `negocios.fuso_horario` como autoridade temporal.
+
+- `falta` só pode ser registrada depois do início marcado;
+- `realizado` só pode ser registrado depois do término previsto;
+- o término usa `agendamentos.duracao_minutos` como snapshot e recorre à duração atual do serviço apenas para dados legados sem snapshot.
+
+O frontend pode esconder/desabilitar ações antes desse momento, mas a validação real permanece no backend.
+
+## Auditoria
+
+A migration `069_ciclo_atendimento.sql` adiciona:
+
+- `agendamentos.status_atendimento_em`;
+- `agendamentos.status_atendimento_por`.
+
+Esses campos registram quando e por quem `realizado` ou `falta` foi persistido.
+
+## Avaliação
+
+Avaliação exige `status = 'realizado'`.
+
+A regra existe em duas camadas:
+
+1. service do ciclo de atendimento retorna erro amigável para cliente;
+2. trigger no PostgreSQL impede que qualquer caminho de escrita grave avaliação em status diferente de `realizado`.
+
+Portanto, horário passado sozinho não libera avaliação.
+
+## Histórico da cliente
+
+`GET /meus-agendamentos` retorna o status persistido.
+
+A interface separa:
+
+- Agendados: `agendado` e `confirmado`;
+- Realizados: `realizado`;
+- Não realizados: `falta`;
+- Cancelados: `cancelado`.
+
+A falta não é convertida em cancelamento nem em realizado.
+
+## Métricas operacionais
+
+Métricas de comparecimento seguem o lifecycle persistido, não o relógio:
+
+- `realizados_hoje` conta somente `status = 'realizado'`;
+- `pendentes_hoje` conta `agendado` e `confirmado` que ainda aguardam desfecho operacional;
+- `falta` não é promovida a realizado nem permanece como pendência.
+
+A primeira reserva válida usada na ativação continua sendo o primeiro agendamento não cancelado. Ela mede reserva criada e não deve ser reinterpretada como comparecimento ou receita.
+
+Métricas financeiras preexistentes com natureza estimada ou prevista não são convertidas automaticamente em receita realizada por este lifecycle.
+
+## Limites de plano
+
+Uma falta continua contando como agendamento utilizado no mês.
+
+Motivo: a reserva consumiu capacidade operacional do negócio. Marcar no-show não deve liberar artificialmente capacidade do plano depois que o compromisso ocorreu.
+
+Cancelamentos continuam fora do consumo conforme a regra vigente.
+
+## Privacidade multi-negócio
+
+Quando uma profissional também possui compromisso em outro negócio por um contexto atualmente permitido, a agenda pode preservar a ocupação necessária para evitar conflito físico, mas não expõe `agendamento_id`, cliente, serviço nem ações de lifecycle desse outro negócio.
+
+A intenção durável do produto permite que uma profissional possua vínculo com mais de um negócio, mas a modelagem atual ainda possui componentes globais por profissional, como disponibilidade semanal e bloqueios, além de não expor seleção explícita de contexto ativo. A migração que remover a restrição legada de um único vínculo profissional ativo deve ser feita junto do isolamento `negócio + profissional`, para não fazer uma alteração de agenda em um negócio afetar silenciosamente outro.
+
+## Fora deste escopo
+
+Ainda permanecem separados:
+
+- habilitação completa de múltiplos vínculos profissionais ativos, junto do contexto ativo explícito;
+- disponibilidade semanal e bloqueios por `negócio + profissional`;
+- política de correção/reabertura de estado terminal;
+- cadastro manual de agendamento;
+- derivação nacional automática do fuso horário;
+- métricas financeiras que dependam de uma definição formal de receita realizada.

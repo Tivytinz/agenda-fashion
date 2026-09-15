@@ -14,6 +14,7 @@ import { formatCurrency, formatDate } from "../utils/format";
 const TABS = [
   { id: "scheduled", label: "Agendados" },
   { id: "completed", label: "Realizados" },
+  { id: "missed", label: "Não realizados" },
   { id: "canceled", label: "Cancelados" }
 ];
 
@@ -86,11 +87,17 @@ function CancelDialog({ appointment, canceling, error, onClose, onConfirm }) {
 function AppointmentCard({ appointment, canCancel, canceling, onCancel }) {
   const statusLabel = {
     [APPOINTMENT_STATUS.scheduled]: "Agendado",
+    [APPOINTMENT_STATUS.confirmed]: "Confirmado",
     [APPOINTMENT_STATUS.completed]: "Realizado",
+    [APPOINTMENT_STATUS.missed]: "Não realizado",
     [APPOINTMENT_STATUS.canceled]: "Cancelado"
   }[appointment.status];
+  const canRepeat = [
+    APPOINTMENT_STATUS.completed,
+    APPOINTMENT_STATUS.missed
+  ].includes(appointment.status);
   const repeatBookingUrl =
-    appointment.status === APPOINTMENT_STATUS.completed &&
+    canRepeat &&
     appointment.slug &&
     appointment.servico_id
       ? `/negocio/${encodeURIComponent(appointment.slug)}?servico=${encodeURIComponent(appointment.servico_id)}`
@@ -335,7 +342,10 @@ export function MyAppointmentsPage() {
                       appointment={appointment}
                       canCancel={
                         isAuthenticated &&
-                        appointment.status === APPOINTMENT_STATUS.scheduled
+                        [
+                          APPOINTMENT_STATUS.scheduled,
+                          APPOINTMENT_STATUS.confirmed
+                        ].includes(appointment.status)
                       }
                       canceling={cancelingId === appointment.id}
                       key={appointment.id}
