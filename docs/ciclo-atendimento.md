@@ -121,18 +121,16 @@ Cancelamentos continuam fora do consumo conforme a regra vigente.
 
 ## Privacidade multi-negócio
 
-Quando uma profissional também possui compromisso em outro negócio, a agenda pode preservar a ocupação necessária para evitar conflito físico, mas não expõe `agendamento_id`, cliente, serviço nem ações de lifecycle desse outro negócio.
+Quando uma profissional também possui compromisso em outro negócio por um contexto atualmente permitido, a agenda pode preservar a ocupação necessária para evitar conflito físico, mas não expõe `agendamento_id`, cliente, serviço nem ações de lifecycle desse outro negócio.
 
-A migration `070_profissional_multiplos_negocios.sql` remove a restrição legada que permitia apenas um vínculo profissional ativo por conta. A unicidade continua garantida por `(usuario_id, negocio_id)`, portanto a mesma conta pode atuar em negócios distintos sem criar dois vínculos para o mesmo negócio.
-
-A seleção explícita do contexto ativo para contas com múltiplos vínculos continua fora deste escopo; enquanto ela não existir, cada rota deve operar somente sobre o contexto autorizado resolvido pelo backend.
+A intenção durável do produto permite que uma profissional possua vínculo com mais de um negócio, mas a modelagem atual ainda possui componentes globais por profissional, como disponibilidade semanal e bloqueios, além de não expor seleção explícita de contexto ativo. A migração que remover a restrição legada de um único vínculo profissional ativo deve ser feita junto do isolamento `negócio + profissional`, para não fazer uma alteração de agenda em um negócio afetar silenciosamente outro.
 
 ## Fora deste escopo
 
 Ainda permanecem separados:
 
-- contexto ativo explícito para contas ligadas a múltiplos negócios;
-- disponibilidade semanal por `negócio + profissional`;
+- habilitação completa de múltiplos vínculos profissionais ativos, junto do contexto ativo explícito;
+- disponibilidade semanal e bloqueios por `negócio + profissional`;
 - política de correção/reabertura de estado terminal;
 - cadastro manual de agendamento;
 - derivação nacional automática do fuso horário;
