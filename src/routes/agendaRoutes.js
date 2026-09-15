@@ -4,6 +4,9 @@ const router = express.Router();
 const auth = require("../middlewares/auth");
 const agendaProfissionalAtiva = require("../middlewares/agendaProfissionalAtiva");
 const agendaController = require("../controllers/agendaController");
+const agendamentoLifecycleController = require(
+  "../controllers/agendamentoLifecycleController"
+);
 
 router.get(
   "/agenda-geral",
@@ -23,6 +26,13 @@ router.get(
   auth,
   agendaProfissionalAtiva,
   agendaController.listarAgendamentosFuncionario
+);
+
+router.patch(
+  "/agendamentos/:id/atendimento",
+  auth,
+  agendaProfissionalAtiva,
+  agendamentoLifecycleController.atualizarStatusAtendimento
 );
 
 router.post(
