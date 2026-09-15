@@ -283,16 +283,23 @@ describe("ciclo persistido do atendimento", () => {
       historicoFinal.body.agendamentos.map((item) => [Number(item.id), item])
     );
 
-    expect(porId.get(agendamentoRealizadoId)?.status).toBe("realizado");
-    expect(porId.get(agendamentoFaltaId)?.status).toBe("falta");
-    expect(porId.get(agendamentoFuturoId)?.status).toBe("agendado");
+    expect(porId.get(Number(agendamentoRealizadoId))?.status).toBe("realizado");
+    expect(porId.get(Number(agendamentoFaltaId))?.status).toBe("falta");
+    expect(porId.get(Number(agendamentoFuturoId))?.status).toBe("agendado");
 
     const usoPlano = await planoService.buscarUsoPlano(
       negocioId,
       db,
       ontem
     );
+    const mesReferencia = ontem.slice(0, 7);
+    const agendamentosNoMes = [
+      { data: ontem, status: "realizado" },
+      { data: ontem, status: "falta" },
+      { data: amanha, status: "agendado" },
+    ].filter((item) => item.data.startsWith(mesReferencia));
 
-    expect(usoPlano.utilizados).toBe(3);
+    expect(agendamentosNoMes.some((item) => item.status === "falta")).toBe(true);
+    expect(usoPlano.utilizados).toBe(agendamentosNoMes.length);
   });
 });
