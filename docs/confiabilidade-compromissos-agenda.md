@@ -23,6 +23,19 @@ Regra atual:
 
 Enquanto existir compromisso futuro ativo, a interface deve orientar a dona a resolvê-lo antes de remover a profissional. O sistema não transfere nem cancela reservas implicitamente.
 
+### Concorrência entre remoção e novo agendamento
+
+A validação de pertencimento feita antes de iniciar um agendamento não é suficiente para proteger contra uma remoção concorrente da equipe. O banco deve garantir a relação no momento da gravação.
+
+A migration `068_validar_vinculo_profissional_agendamento.sql` estabelece essa invariável:
+
+- antes de inserir um agendamento ou alterar seu `profissional_id`/`negocio_id`, o PostgreSQL exige um vínculo ativo em `usuarios_negocios` com papel `dono` ou `profissional`;
+- a linha do vínculo é bloqueada na mesma transação do agendamento;
+- a remoção da profissional bloqueia a mesma linha, serializando as operações concorrentes;
+- se o agendamento obtiver o bloqueio primeiro, a remoção espera e depois enxerga o compromisso criado, podendo bloqueá-la com `409`;
+- se a remoção for concluída primeiro, o agendamento não pode criar um compromisso órfão e a constraint operacional `agendamentos_profissional_negocio_vinculo` é devolvida como conflito (`409`);
+- essa regra vale para qualquer caminho futuro de escrita em `agendamentos`, não apenas para o fluxo público atual.
+
 ## Serviços e histórico
 
 `agendamentos.servico_id` usa `ON DELETE RESTRICT`, e o agendamento já possui snapshots de preço (`valor_servico`) e duração (`duracao_minutos`). Portanto, serviço utilizado por agendamento é dado histórico e não deve depender de exclusão física para sair da oferta pública.
@@ -71,6 +84,8 @@ Mudanças relacionadas devem manter cobertura para:
 - bloqueio da remoção com compromisso futuro ativo;
 - preservação do vínculo quando a remoção é bloqueada;
 - liberação da remoção depois que o compromisso ativo é resolvido;
+- rejeição de novo agendamento quando o vínculo profissional-negócio não existe mais;
+- tradução da constraint `agendamentos_profissional_negocio_vinculo` para conflito operacional;
 - isolamento por negócio;
 - owner não removível;
 - exclusão física de serviço referenciado bloqueada pelo banco e traduzida para `409`;
