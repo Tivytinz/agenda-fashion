@@ -17,6 +17,7 @@ function getStatusLabel(status) {
     agendado: "Agendado",
     confirmado: "Confirmado",
     realizado: "Realizado",
+    falta: "Falta",
     passado: "Encerrado"
   }[status] || status;
 }
@@ -59,6 +60,24 @@ function LockIcon() {
       <rect x="5" y="10" width="14" height="10" rx="2" />
       <path d="M8 10V7a4 4 0 0 1 8 0v3" />
     </svg>
+  );
+}
+
+function SlotSummary({ slot, statusLabel }) {
+  const client = getAgendaEntityName(slot.cliente);
+  const service = getAgendaEntityName(slot.servico);
+
+  return (
+    <>
+      <strong>{String(slot.hora).slice(0, 5)}</strong>
+      <span className="slot-status">
+        {slot.status === "bloqueado" && <LockIcon />}
+        <span>{statusLabel}</span>
+      </span>
+      {(client || service) && (
+        <small>{client || "Cliente"} · {service || "Serviço"}</small>
+      )}
+    </>
   );
 }
 
@@ -155,7 +174,7 @@ export function AgendaWorkspacePage({ owner = false }) {
 
   async function toggleSlot(slot) {
     if (!["livre", "bloqueado"].includes(slot.status)) return;
-    const key = `${selectedDate}-${slot.hora}-${activeProfessional?.id || "self"}`;
+    const key = `bloqueio-${selectedDate}-${slot.hora}-${activeProfessional?.id || "self"}`;
     setUpdating(key);
     setError("");
     setMessage("");
@@ -177,6 +196,31 @@ export function AgendaWorkspacePage({ owner = false }) {
     }
   }
 
+  async function updateAttendance(slot, status) {
+    if (!slot.agendamento_id) return;
+
+    const key = `atendimento-${slot.agendamento_id}-${status}`;
+    setUpdating(key);
+    setError("");
+    setMessage("");
+
+    try {
+      const result = await apiRequest(
+        `/agendamentos/${slot.agendamento_id}/atendimento`,
+        {
+          method: "PATCH",
+          body: { status }
+        }
+      );
+      setMessage(result.mensagem);
+      await load();
+    } catch (requestError) {
+      setError(requestError.message);
+    } finally {
+      setUpdating("");
+    }
+  }
+
   if (!data && !error) return <div className="workspace-page"><LoadingState>Carregando agenda...</LoadingState></div>;
   if (!data && error) return <div className="workspace-page"><ErrorState message={error} onRetry={() => void load().catch(() => {})} /></div>;
 
@@ -186,7 +230,7 @@ export function AgendaWorkspacePage({ owner = false }) {
         <div>
           <p className="eyebrow">{owner ? "Seu negócio em movimento" : "Seu dia de trabalho"}</p>
           <h1>{owner ? "Agenda geral" : "Minha agenda profissional"}</h1>
-          <p>Toque em um horário livre para bloqueá-lo ou em um bloqueado para liberar.</p>
+          <p>Bloqueie horários livres e registre o resultado dos atendimentos já ocorridos.</p>
         </div>
       </header>
 
@@ -258,30 +302,63 @@ export function AgendaWorkspacePage({ owner = false }) {
           ) : (
             <section className="slot-grid" aria-label={`Horários de ${selectedDate}`}>
               {slots.map((slot) => {
-                const key = `${selectedDate}-${slot.hora}-${activeProfessional?.id || "self"}`;
-                const client = getAgendaEntityName(slot.cliente);
-                const service = getAgendaEntityName(slot.servico);
-                const isUpdating = updating === key;
-                const statusLabel = isUpdating
+                const blockKey = `bloqueio-${selectedDate}-${slot.hora}-${activeProfessional?.id || "self"}`;
+                const isBlockUpdating = updating === blockKey;
+                const isAppointment = Boolean(slot.agendamento_id);
+                const attendanceUpdating = updating.startsWith(
+                  `atendimento-${slot.agendamento_id || "nenhum"}-`
+                );
+                const statusLabel = isBlockUpdating
                   ? slot.status === "livre" ? "Bloqueando..." : "Liberando..."
                   : getStatusLabel(slot.status);
 
+                if (["livre", "bloqueado"].includes(slot.status)) {
+                  return (
+                    <button
+                      aria-busy={isBlockUpdating || undefined}
+                      className={`slot-card slot-${slot.status}${isBlockUpdating ? " is-updating" : ""}`}
+                      disabled={isBlockUpdating}
+                      key={`${slot.hora}-${slot.agendamento_id || ""}`}
+                      onClick={() => toggleSlot(slot)}
+                      type="button"
+                    >
+                      <SlotSummary slot={slot} statusLabel={statusLabel} />
+                    </button>
+                  );
+                }
+
                 return (
-                  <button
-                    aria-busy={isUpdating || undefined}
-                    className={`slot-card slot-${slot.status}${isUpdating ? " is-updating" : ""}`}
-                    disabled={isUpdating || !["livre", "bloqueado"].includes(slot.status)}
+                  <article
+                    className={`slot-card slot-card-static slot-${slot.status}${attendanceUpdating ? " is-updating" : ""}`}
                     key={`${slot.hora}-${slot.agendamento_id || ""}`}
-                    onClick={() => toggleSlot(slot)}
-                    type="button"
                   >
-                    <strong>{String(slot.hora).slice(0, 5)}</strong>
-                    <span className="slot-status">
-                      {slot.status === "bloqueado" && !isUpdating && <LockIcon />}
-                      <span>{statusLabel}</span>
-                    </span>
-                    {(client || service) && <small>{client || "Cliente"} · {service || "Serviço"}</small>}
-                  </button>
+                    <SlotSummary slot={slot} statusLabel={statusLabel} />
+
+                    {isAppointment && ["agendado", "confirmado"].includes(slot.status) && (
+                      <div className="slot-lifecycle-actions" aria-label="Atualizar resultado do atendimento">
+                        <button
+                          className="button button-small"
+                          disabled={attendanceUpdating || !slot.pode_marcar_realizado}
+                          onClick={() => updateAttendance(slot, "realizado")}
+                          type="button"
+                        >
+                          {updating === `atendimento-${slot.agendamento_id}-realizado`
+                            ? "Salvando..."
+                            : "Concluir"}
+                        </button>
+                        <button
+                          className="button button-secondary button-small"
+                          disabled={attendanceUpdating || !slot.pode_marcar_falta}
+                          onClick={() => updateAttendance(slot, "falta")}
+                          type="button"
+                        >
+                          {updating === `atendimento-${slot.agendamento_id}-falta`
+                            ? "Salvando..."
+                            : "Marcar falta"}
+                        </button>
+                      </div>
+                    )}
+                  </article>
                 );
               })}
             </section>
