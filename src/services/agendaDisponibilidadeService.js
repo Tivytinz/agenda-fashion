@@ -6,6 +6,13 @@ const agendaConfiguracaoRepository = require(
   "../repositories/agendaConfiguracaoRepository"
 );
 
+const {
+  obterDataHoraNoFuso,
+  resolverFusoHorario,
+} = require(
+  "../utils/fusoHorario"
+);
+
 const HORARIOS_PADRAO = {
   horaInicio: "08:00",
   horaFim: "20:00",
@@ -60,37 +67,17 @@ function minutosParaHorario(totalMinutos) {
   ).padStart(2, "0")}`;
 }
 
-function obterDataHoraBrasil() {
-  const partes = new Intl.DateTimeFormat("pt-BR", {
-    timeZone: "America/Sao_Paulo",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-    hourCycle: "h23",
-  }).formatToParts(new Date());
-
-  const obterParte = (tipo) =>
-    partes.find((parte) => parte.type === tipo)?.value;
-
-  return {
-    data: `${obterParte("year")}-${obterParte(
-      "month"
-    )}-${obterParte("day")}`,
-
-    hora: `${obterParte("hour")}:${obterParte(
-      "minute"
-    )}`,
-  };
-}
-
-function gerarDiasProximos(quantidade = 7) {
+function gerarDiasProximos(
+  quantidade = 7,
+  fusoHorario
+) {
   const dias = [];
-  const agoraBrasil = obterDataHoraBrasil();
+  const agoraLocal = obterDataHoraNoFuso(
+    fusoHorario
+  );
 
   const dataBase = new Date(
-    `${agoraBrasil.data}T12:00:00Z`
+    `${agoraLocal.data}T12:00:00Z`
   );
 
   for (
@@ -266,7 +253,7 @@ function horarioRespeitaAntecedencia({
   data,
   horario,
   antecedenciaHoras,
-  agoraBrasil,
+  agoraLocal,
 }) {
   const horarioNormalizado =
     normalizarHorario(horario);
@@ -280,7 +267,7 @@ function horarioRespeitaAntecedencia({
   );
 
   const dataHoraAtual = Date.parse(
-    `${agoraBrasil.data}T${agoraBrasil.hora}:00Z`
+    `${agoraLocal.data}T${agoraLocal.hora}:00Z`
   );
 
   if (
@@ -434,6 +421,7 @@ async function buscarDisponibilidade({
   profissionalId,
   duracaoServico,
   quantidadeDias = 7,
+  fusoHorario,
 }) {
   if (!profissionalId) {
     throw new Error(
@@ -441,8 +429,12 @@ async function buscarDisponibilidade({
     );
   }
 
+  const fusoResolvido =
+    resolverFusoHorario(fusoHorario);
+
   const dias = gerarDiasProximos(
-    quantidadeDias
+    quantidadeDias,
+    fusoResolvido
   );
 
   const configuracao =
@@ -503,8 +495,8 @@ async function buscarDisponibilidade({
       0
     );
 
-  const agoraBrasil =
-    obterDataHoraBrasil();
+  const agoraLocal =
+    obterDataHoraNoFuso(fusoResolvido);
 
   return dias.map((data) => {
     const diaSemana =
@@ -560,7 +552,7 @@ async function buscarDisponibilidade({
             data,
             horario,
             antecedenciaHoras,
-            agoraBrasil,
+            agoraLocal,
           });
 
         if (!respeitaAntecedencia) {
@@ -606,6 +598,7 @@ async function horarioEstaDisponivel({
   data,
   horario,
   quantidadeDias = 7,
+  fusoHorario,
 }) {
   if (
     !profissionalId ||
@@ -620,6 +613,7 @@ async function horarioEstaDisponivel({
       profissionalId,
       duracaoServico,
       quantidadeDias,
+      fusoHorario,
     });
 
   const diaEncontrado =
