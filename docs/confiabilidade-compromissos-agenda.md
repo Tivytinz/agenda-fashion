@@ -37,17 +37,32 @@ Regra atual:
 
 O sistema não deve transformar qualquer erro `23503` genérico em conflito conhecido: apenas constraints explicitamente reconhecidas podem receber mensagem operacional específica. Outras violações de integridade continuam sendo tratadas como erro inesperado até terem uma regra de domínio definida.
 
+## Materialização da agenda operacional
+
+A grade configurada representa disponibilidade para novas reservas; ela não é a fonte de verdade para decidir se um compromisso já assumido existe.
+
+Regra atual:
+
+- um agendamento persistido deve aparecer na agenda operacional pelo horário real de início, mesmo que esse horário não exista mais na grade configurada;
+- se o dia estiver atualmente marcado como fechado, compromissos já existentes continuam visíveis; o fechamento impede nova disponibilidade, mas não apaga reservas anteriores;
+- a Agenda Geral inclui horários reais de reservas e bloqueios mesmo quando eles não coincidem com a grade horária fixa usada como base visual;
+- a resposta da agenda profissional preserva o status persistido do agendamento. A simples passagem do horário não transforma `agendado` ou `confirmado` em `realizado`;
+- ocupação da mesma profissional em outro negócio pode bloquear/materializar o horário para evitar dupla reserva, mas dados de cliente, serviço e demais detalhes do outro negócio permanecem redigidos;
+- a camada `agendaOperacionalService` é responsável por materializar esses compromissos sobre a grade já produzida pela agenda existente, mantendo a correção isolada e reversível enquanto a arquitetura de disponibilidade multi-negócio não é concluída.
+
+`realizado` deve representar um fato de atendimento persistido, nunca uma inferência baseada apenas em data e hora.
+
 ## Pontos ainda pendentes da agenda operacional
 
 Estas proteções resolvem falhas concretas, mas não encerram a arquitetura operacional da agenda. Permanecem como trabalhos separados:
 
-1. fazer a Agenda Geral sempre materializar agendamentos existentes, mesmo quando a configuração atual de horários mudou;
-2. separar disponibilidade configurada por `negócio + profissional` da ocupação física global da profissional em múltiplos negócios;
-3. oferecer contexto ativo explícito para contas ligadas a mais de um negócio;
-4. persistir um ciclo de atendimento confiável (`agendado`, `confirmado`, `realizado`, `falta`, `cancelado`) sem inferir atendimento apenas pela passagem do tempo;
-5. derivar/corrigir o fuso horário de negócios fora de `America/Sao_Paulo` sem exigir conhecimento técnico de timezone IANA;
-6. evoluir o ciclo de serviço para um arquivamento explícito caso seja necessário distinguir serviço desativado de serviço arquivado;
-7. tornar notificações, retorno e recorrência dependentes de fatos de atendimento confiáveis.
+1. separar disponibilidade configurada por `negócio + profissional` da ocupação física global da profissional em múltiplos negócios;
+2. oferecer contexto ativo explícito para contas ligadas a mais de um negócio;
+3. concluir as transições operacionais do ciclo de atendimento (`agendado`, `confirmado`, `realizado`, `falta`, `cancelado`), incluindo quem alterou o estado e quando;
+4. derivar/corrigir o fuso horário de negócios fora de `America/Sao_Paulo` sem exigir conhecimento técnico de timezone IANA;
+5. evoluir o ciclo de serviço para um arquivamento explícito caso seja necessário distinguir serviço desativado de serviço arquivado;
+6. tornar notificações, retorno e recorrência dependentes de fatos de atendimento confiáveis;
+7. substituir gradualmente a grade visual fixa da Agenda Geral por uma representação derivada da disponibilidade configurada, sem voltar a acoplar a existência de compromissos à configuração atual.
 
 ## Testes mínimos de regressão
 
@@ -61,4 +76,8 @@ Mudanças relacionadas devem manter cobertura para:
 - exclusão física de serviço referenciado bloqueada pelo banco e traduzida para `409`;
 - serviço sem histórico mantendo o fluxo de exclusão existente;
 - histórico de preço e duração preservado pelos snapshots do agendamento;
-- datas próximas à virada do dia avaliadas no fuso do negócio.
+- agendamento existente visível mesmo em dia atualmente fechado;
+- agendamento com início fora da grade visual base materializado no horário real;
+- status persistido preservado sem conversão temporal automática para `realizado`;
+- ocupação de outro negócio materializada sem expor cliente ou serviço;
+- datas próximas à virada do dia avaliadas no fuso do negócio quando a regra depender de futuro/passado.
