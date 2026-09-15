@@ -4,6 +4,7 @@ const db = require("../db/db");
 // 🌍 BUSCAR AGENDA PÚBLICA
 // =============================
 const agendaService = require("../services/agendaService");
+const agendaOperacionalService = require("../services/agendaOperacionalService");
 
 async function buscarAgendaProfissional(req, res, next) {
   try {
@@ -23,7 +24,7 @@ async function buscarAgendaProfissional(req, res, next) {
 // =============================
 async function listarAgendamentosFuncionario(req, res, next) {
   try {
-    const resultado = await agendaService.listarAgendaProfissional({
+    const resultado = await agendaOperacionalService.listarAgendaProfissional({
       profissionalId: req.user?.id
     });
 
@@ -53,7 +54,7 @@ async function alternarBloqueioHorario(req, res, next) {
 
 async function buscarAgendaGeral(req, res, next) {
   try {
-    const resultado = await agendaService.buscarAgendaGeral({
+    const resultado = await agendaOperacionalService.buscarAgendaGeral({
       usuarioId: req.user?.id
     });
 

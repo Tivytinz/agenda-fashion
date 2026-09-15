@@ -153,6 +153,20 @@ async function editarProfissional({
   };
 }
 
+function criarErroAgendamentosFuturos(quantidade) {
+  const total = Number(quantidade || 0);
+  const erro = new Error(
+    total === 1
+      ? "Esta profissional possui 1 agendamento futuro ativo neste negócio. Resolva esse compromisso antes de removê-la da equipe."
+      : `Esta profissional possui ${total} agendamentos futuros ativos neste negócio. Resolva esses compromissos antes de removê-la da equipe.`
+  );
+
+  erro.status = 409;
+  erro.statusCode = 409;
+
+  return erro;
+}
+
 async function removerProfissional({
   usuarioId,
   profissionalId
@@ -174,13 +188,22 @@ async function removerProfissional({
     );
   }
 
-  const removido =
+  const resultado =
     await profissionaisRepository.removerVinculo(
       profissionalId,
       vinculo.negocio_id
     );
 
-  exigirRecurso(removido, "Profissional não encontrado.");
+  if (Number(resultado?.agendamentosFuturos || 0) > 0) {
+    throw criarErroAgendamentosFuturos(
+      resultado.agendamentosFuturos
+    );
+  }
+
+  exigirRecurso(
+    resultado?.removido,
+    "Profissional não encontrado."
+  );
 
   return {
     mensagem: "Profissional removido do negócio."

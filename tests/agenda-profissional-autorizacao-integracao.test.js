@@ -211,6 +211,41 @@ describe("Autorização da agenda profissional", () => {
     expect(corpoAntes).toContain("62988887777");
     expect(corpoAntes).toContain("Serviço Protegido");
 
+    const remocaoComCompromissoAtivo = await request(app)
+      .delete(`/profissionais/${profissional.id}`)
+      .set("Authorization", `Bearer ${tokenDonoA}`);
+
+    expect(remocaoComCompromissoAtivo.statusCode).toBe(409);
+    expect(remocaoComCompromissoAtivo.body.erro).toContain(
+      "agendamento futuro ativo"
+    );
+
+    const vinculoAindaAtivo = await db.query(
+      `
+        SELECT id
+        FROM usuarios_negocios
+        WHERE usuario_id = $1
+          AND negocio_id = $2
+          AND ativo = TRUE
+        LIMIT 1
+      `,
+      [profissional.id, negocioA.id]
+    );
+
+    expect(vinculoAindaAtivo.rows[0]?.id).toBeTruthy();
+
+    await db.query(
+      `
+        UPDATE agendamentos
+        SET status = 'realizado'
+        WHERE negocio_id = $1
+          AND profissional_id = $2
+          AND data = $3
+          AND horario = '09:00'
+      `,
+      [negocioA.id, profissional.id, dataTeste]
+    );
+
     const remocao = await request(app)
       .delete(`/profissionais/${profissional.id}`)
       .set("Authorization", `Bearer ${tokenDonoA}`);
@@ -310,7 +345,7 @@ describe("Autorização da agenda profissional", () => {
     const horario = dia?.horarios.find((item) => item.hora === "09:00");
 
     expect(horario).toMatchObject({
-      status: "agendado",
+      status: "realizado",
       agendamento_id: null,
       cliente_id: null,
       cliente: null,

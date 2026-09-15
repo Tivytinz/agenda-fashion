@@ -27,14 +27,46 @@ function deveExibirDetalhes() {
   );
 }
 
+function resolverErroIntegridade(err) {
+  if (
+    err?.code === "23503" &&
+    err?.constraint ===
+      "agendamentos_servico_fk"
+  ) {
+    return {
+      statusCode: 409,
+      mensagem:
+        "Este serviço possui agendamentos no histórico. Desative-o para impedir novas reservas sem perder os registros existentes.",
+    };
+  }
+
+  if (
+    err?.code === "23503" &&
+    err?.constraint ===
+      "agendamentos_profissional_negocio_vinculo"
+  ) {
+    return {
+      statusCode: 409,
+      mensagem:
+        "Esta profissional não está mais vinculada a este negócio. Atualize a página e escolha uma profissional disponível.",
+    };
+  }
+
+  return null;
+}
+
 function errorHandler(
   err,
   req,
   res,
   next
 ) {
+  const erroIntegridade =
+    resolverErroIntegridade(err);
+
   const statusInformado =
     Number(
+      erroIntegridade?.statusCode ||
       err?.statusCode ||
       err?.status
     );
@@ -47,6 +79,7 @@ function errorHandler(
     statusInformado < 500;
 
   const erroOperacional =
+    Boolean(erroIntegridade) ||
     err instanceof AppError ||
     statusOperacional;
 
@@ -92,12 +125,16 @@ function errorHandler(
   if (erroOperacional) {
     return res
       .status(
-        err instanceof AppError
-          ? err.statusCode
-          : statusInformado
+        erroIntegridade?.statusCode ||
+        (
+          err instanceof AppError
+            ? err.statusCode
+            : statusInformado
+        )
       )
       .json({
         erro:
+          erroIntegridade?.mensagem ||
           err.message,
         request_id:
           req?.id ||

@@ -74,8 +74,8 @@ async function listarProfissionaisDoNegocio(negocioId) {
     `
     SELECT
       u.id,
-COALESCE(un.nome_exibicao, u.nome) AS nome,
-COALESCE(un.whatsapp_exibicao, u.whatsapp) AS whatsapp,
+      COALESCE(un.nome_exibicao, u.nome) AS nome,
+      COALESCE(un.whatsapp_exibicao, u.whatsapp) AS whatsapp,
       u.foto_url,
       un.papel
     FROM usuarios_negocios un
@@ -87,7 +87,7 @@ COALESCE(un.whatsapp_exibicao, u.whatsapp) AS whatsapp,
       AND un.papel IN ('dono', 'profissional')
     ORDER BY
       CASE WHEN un.papel = 'dono' THEN 0 ELSE 1 END,
-COALESCE(un.nome_exibicao, u.nome) ASC
+      COALESCE(un.nome_exibicao, u.nome) ASC
     `,
     [negocioId]
   );
@@ -152,17 +152,73 @@ async function atualizarProfissional(
 }
 
 async function removerVinculo(usuarioId, negocioId) {
-  const result = await db.query(
-    `
-    DELETE FROM usuarios_negocios
-    WHERE usuario_id = $1
-      AND negocio_id = $2
-    RETURNING id
-    `,
-    [usuarioId, negocioId]
-  );
+  return db.executarTransacao(async (client) => {
+    const vinculo = await client.query(
+      `
+      SELECT id
+      FROM usuarios_negocios
+      WHERE usuario_id = $1
+        AND negocio_id = $2
+        AND ativo = TRUE
+      LIMIT 1
+      FOR UPDATE
+      `,
+      [usuarioId, negocioId]
+    );
 
-  return result.rows[0] || null;
+    const vinculoAtual = vinculo.rows[0] || null;
+
+    if (!vinculoAtual) {
+      return {
+        removido: null,
+        agendamentosFuturos: 0,
+      };
+    }
+
+    const compromissos = await client.query(
+      `
+      SELECT COUNT(*)::int AS total
+      FROM agendamentos a
+      INNER JOIN negocios n
+        ON n.id = a.negocio_id
+      WHERE a.profissional_id = $1
+        AND a.negocio_id = $2
+        AND a.status IN ('agendado', 'confirmado')
+        AND (a.data + a.horario) > (
+          CURRENT_TIMESTAMP AT TIME ZONE COALESCE(
+            NULLIF(n.fuso_horario, ''),
+            'America/Sao_Paulo'
+          )
+        )
+      `,
+      [usuarioId, negocioId]
+    );
+
+    const agendamentosFuturos = Number(
+      compromissos.rows[0]?.total || 0
+    );
+
+    if (agendamentosFuturos > 0) {
+      return {
+        removido: null,
+        agendamentosFuturos,
+      };
+    }
+
+    const result = await client.query(
+      `
+      DELETE FROM usuarios_negocios
+      WHERE id = $1
+      RETURNING id
+      `,
+      [vinculoAtual.id]
+    );
+
+    return {
+      removido: result.rows[0] || null,
+      agendamentosFuturos: 0,
+    };
+  });
 }
 
 async function buscarProfissionalPorEmailWhatsapp(email, whatsapp) {

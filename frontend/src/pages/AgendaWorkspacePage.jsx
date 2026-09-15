@@ -249,7 +249,7 @@ export function AgendaWorkspacePage({ owner = false }) {
             <EmptyState title="Nenhuma profissional disponível neste dia">
               Confira a equipe e os horários configurados para esta data.
             </EmptyState>
-          ) : !owner && activeDay?.trabalha === false ? (
+          ) : !owner && activeDay?.trabalha === false && slots.length === 0 ? (
             <EmptyState title="Dia de folga">Você marcou este dia como indisponível.</EmptyState>
           ) : slots.length === 0 ? (
             <EmptyState title="Nenhum horário configurado">

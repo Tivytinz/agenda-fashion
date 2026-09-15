@@ -104,6 +104,7 @@ export function ProfessionalsPage() {
         <div className="cancel-dialog-content">
           <div aria-hidden="true" className="cancel-dialog-icon">!</div><h2 id="remove-professional-title">Remover da equipe?</h2>
           <p>{pendingRemove?.nome} perderá o acesso a este negócio. A conta pessoal dela continuará existindo.</p>
+          <p className="muted">A remoção só é permitida quando não existem agendamentos futuros ativos dessa profissional neste negócio.</p>
           {removeError && <p className="form-error" role="alert">{removeError}</p>}
           <div className="cancel-dialog-actions">
             <button className="button button-secondary" disabled={saving} onClick={() => { setRemoveError(""); removeDialogRef.current?.close(); setPendingRemove(null); }} type="button">Manter profissional</button>
