@@ -32,6 +32,12 @@ function responderAutenticacao(
     resultado.token
   );
 
+  const resposta = {
+    ...resultado,
+  };
+
+  delete resposta.token;
+
   res.set(
     "Cache-Control",
     "no-store"
@@ -39,7 +45,7 @@ function responderAutenticacao(
 
   return res
     .status(status)
-    .json(resultado);
+    .json(resposta);
 }
 
 /*
