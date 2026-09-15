@@ -13,6 +13,7 @@ function gerarSufixoUnico() {
 describe("Fluxo de profissionais com banco real", () => {
   const usuariosCriados = [];
   const negociosCriados = [];
+  const agendamentosCriados = [];
   const sufixo = gerarSufixoUnico();
 
   let donoA;
@@ -164,6 +165,16 @@ describe("Fluxo de profissionais com banco real", () => {
 
   afterAll(async () => {
     try {
+      if (agendamentosCriados.length > 0) {
+        await db.query(
+          `
+          DELETE FROM agendamentos
+          WHERE id = ANY($1::BIGINT[])
+          `,
+          [agendamentosCriados]
+        );
+      }
+
       if (negociosCriados.length > 0) {
         await db.query(
           `
@@ -326,6 +337,109 @@ describe("Fluxo de profissionais com banco real", () => {
     expect(resposta.body.erro).toBe(
       "WhatsApp do profissional inválido."
     );
+  });
+
+  test("não remove profissional com agendamento futuro ativo", async () => {
+    const servico = await db.query(
+      `
+      INSERT INTO servicos_negocio (
+        negocio_id,
+        nome,
+        valor,
+        duracao_minutos,
+        categoria,
+        ativo
+      )
+      VALUES ($1, $2, 50, 60, 'unha', TRUE)
+      RETURNING id
+      `,
+      [negocioA.id, `Serviço compromisso ${sufixo}`]
+    );
+
+    const agendamento = await db.query(
+      `
+      INSERT INTO agendamentos (
+        negocio_id,
+        servico_id,
+        profissional_id,
+        cliente_id,
+        data,
+        horario,
+        status,
+        valor_servico,
+        duracao_minutos
+      )
+      VALUES (
+        $1,
+        $2,
+        $3,
+        $4,
+        (CURRENT_TIMESTAMP AT TIME ZONE 'America/Sao_Paulo')::date + 2,
+        '10:00',
+        'agendado',
+        50,
+        60
+      )
+      RETURNING id
+      `,
+      [
+        negocioA.id,
+        servico.rows[0].id,
+        profissionalDisponivel.id,
+        donoB.id
+      ]
+    );
+
+    agendamentosCriados.push(agendamento.rows[0].id);
+
+    const bloqueada = await request(app)
+      .delete(`/profissionais/${profissionalDisponivel.id}`)
+      .set("Authorization", `Bearer ${tokenDonoA}`);
+
+    expect(bloqueada.statusCode).toBe(409);
+    expect(bloqueada.body.erro).toContain(
+      "1 agendamento futuro ativo"
+    );
+
+    const vinculoPreservado = await db.query(
+      `
+      SELECT id
+      FROM usuarios_negocios
+      WHERE usuario_id = $1
+        AND negocio_id = $2
+      `,
+      [profissionalDisponivel.id, negocioA.id]
+    );
+
+    expect(vinculoPreservado.rowCount).toBe(1);
+
+    await db.query(
+      `
+      UPDATE agendamentos
+      SET status = 'cancelado',
+          cancelado_em = NOW()
+      WHERE id = $1
+      `,
+      [agendamento.rows[0].id]
+    );
+
+    const liberada = await request(app)
+      .delete(`/profissionais/${profissionalDisponivel.id}`)
+      .set("Authorization", `Bearer ${tokenDonoA}`);
+
+    expect(liberada.statusCode).toBe(200);
+
+    const vinculoRemovido = await db.query(
+      `
+      SELECT id
+      FROM usuarios_negocios
+      WHERE usuario_id = $1
+        AND negocio_id = $2
+      `,
+      [profissionalDisponivel.id, negocioA.id]
+    );
+
+    expect(vinculoRemovido.rowCount).toBe(0);
   });
 
   test("somente a dona do negócio remove o vínculo", async () => {

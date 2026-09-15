@@ -117,4 +117,27 @@ describe("agenda do negócio", () => {
     expect(await screen.findByRole("button", { name: /06 ago/ })).not.toBeNull();
     Object.defineProperty(window, "innerWidth", { configurable: true, value: originalWidth });
   });
+
+  it("exibe compromisso persistido mesmo quando o dia atual está marcado como folga", async () => {
+    apiRequest.mockResolvedValue({
+      agenda: [{
+        data: "2026-08-03",
+        trabalha: false,
+        horarios: [{
+          data: "2026-08-03",
+          hora: "09:30",
+          status: "confirmado",
+          agendamento_id: 91,
+          cliente: "Ana",
+          servico: "Corte"
+        }]
+      }]
+    });
+
+    render(<AgendaWorkspacePage />);
+
+    expect(await screen.findByRole("button", { name: /09:30 Confirmado/ })).not.toBeNull();
+    expect(screen.getByText("Ana · Corte")).not.toBeNull();
+    expect(screen.queryByText("Dia de folga")).toBeNull();
+  });
 });
