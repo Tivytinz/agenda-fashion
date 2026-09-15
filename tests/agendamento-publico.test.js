@@ -4,10 +4,6 @@ const request = require(
   "supertest"
 );
 
-const jwt = require(
-  "jsonwebtoken"
-);
-
 const app = require(
   "../src/server"
 );
@@ -451,7 +447,7 @@ describe(
     );
 
     test(
-      "conta autenticada agenda com JWT contendo somente id",
+      "conta autenticada agenda usando a sessão HttpOnly",
       async () => {
         const sufixo =
           gerarSufixoUnico();
@@ -492,37 +488,20 @@ describe(
         );
 
         expect(
-          typeof cadastro.body.token
-        ).toBe(
-          "string"
+          cadastro.body
+        ).not.toHaveProperty(
+          "token"
         );
 
-        expect(
-          cadastro.body.token.length
-        ).toBeGreaterThan(20);
-
-        const token =
-          cadastro.body.token;
-
-        const payload =
-          jwt.decode(token);
+        const cookieSessao =
+          cadastro.headers[
+            "set-cookie"
+          ]?.[0]?.split(";", 1)[0];
 
         expect(
-          payload
-        ).toBeTruthy();
-
-        expect(
-          Number(payload.id)
-        ).toBeGreaterThan(0);
-
-        /*
-         * Esta é a regra principal
-         * do novo modelo de autenticação.
-         */
-        expect(
-          payload
-        ).not.toHaveProperty(
-          "tipo"
+          cookieSessao
+        ).toMatch(
+          /^af_session=/i
         );
 
         const {
@@ -539,8 +518,8 @@ describe(
               "/agendamentos"
             )
             .set(
-              "Authorization",
-              `Bearer ${token}`
+              "Cookie",
+              cookieSessao
             )
             .send({
               slug:
@@ -605,8 +584,8 @@ describe(
               "/meus-agendamentos"
             )
             .set(
-              "Authorization",
-              `Bearer ${token}`
+              "Cookie",
+              cookieSessao
             );
 
         expect(

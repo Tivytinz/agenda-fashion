@@ -1,6 +1,5 @@
 const express = require("express");
 const request = require("supertest");
-const jwt = require("jsonwebtoken");
 
 process.env.JWT_SECRET =
   "segredo-seguro-exclusivo-dos-testes";
@@ -183,9 +182,9 @@ describe("Autenticação com conta única", () => {
         );
 
         expect(
-          resposta.body.token
-        ).toEqual(
-          expect.any(String)
+          resposta.body
+        ).not.toHaveProperty(
+          "token"
         );
 
         expect(
@@ -230,28 +229,6 @@ describe("Autenticação com conta única", () => {
 
         expect(
           resposta.body.usuario
-        ).not.toHaveProperty(
-          "papel"
-        );
-
-        const tokenDecodificado =
-          jwt.verify(
-            resposta.body.token,
-            process.env.JWT_SECRET
-          );
-
-        expect(
-          tokenDecodificado.id
-        ).toBe(1);
-
-        expect(
-          tokenDecodificado
-        ).not.toHaveProperty(
-          "tipo"
-        );
-
-        expect(
-          tokenDecodificado
         ).not.toHaveProperty(
           "papel"
         );
@@ -562,7 +539,7 @@ describe("Autenticação com conta única", () => {
 
   describe("POST /login", () => {
     test(
-      "autentica a conta e retorna um token contendo somente o ID",
+      "autentica a conta pelo cookie HttpOnly sem expor JWT no JSON",
       async () => {
         const usuario =
           criarUsuario();
@@ -643,20 +620,22 @@ describe("Autenticação com conta única", () => {
           "tipo"
         );
 
-        const tokenDecodificado =
-          jwt.verify(
-            resposta.body.token,
-            process.env.JWT_SECRET
-          );
-
         expect(
-          tokenDecodificado.id
-        ).toBe(1);
-
-        expect(
-          tokenDecodificado
+          resposta.body
         ).not.toHaveProperty(
-          "tipo"
+          "token"
+        );
+
+        expect(
+          resposta.headers[
+            "set-cookie"
+          ]
+        ).toEqual(
+          expect.arrayContaining([
+            expect.stringMatching(
+              /^af_session=.*HttpOnly.*SameSite=Lax/i
+            ),
+          ])
         );
       }
     );

@@ -9,18 +9,14 @@ const SESSION_KEYS = ["token", SESSION_ACTIVE_KEY, "usuario", "negocio"];
 export const SESSION_CLEARED_EVENT = "agenda-fashion:session-cleared";
 
 export function saveSession(result) {
-  if (!result?.token) {
+  removeBrowserStorage("local", "token");
+
+  if (!result?.usuario) {
     return;
   }
 
-  // O token continua na resposta durante a migração para manter clientes
-  // antigos compatíveis, mas o navegador não o persiste mais.
-  removeBrowserStorage("local", "token");
   writeBrowserStorage("local", SESSION_ACTIVE_KEY, "1");
-
-  if (result.usuario) {
-    writeBrowserStorage("local", "usuario", JSON.stringify(result.usuario));
-  }
+  writeBrowserStorage("local", "usuario", JSON.stringify(result.usuario));
 }
 
 export function clearSession({ notify = false } = {}) {

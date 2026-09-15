@@ -153,7 +153,7 @@ describe(
   "Fluxo cliente logado",
   () => {
     let clienteId;
-    let token;
+    let cookieSessao;
 
     let profissionalId;
     let servicoId;
@@ -340,20 +340,39 @@ describe(
         );
 
         expect(
-          cadastro.body.token
-        ).toBeTruthy();
+          cadastro.body
+        ).not.toHaveProperty(
+          "token"
+        );
 
         expect(
           cadastro.body
             .usuario?.id
         ).toBeTruthy();
 
+        const cookies =
+          cadastro.headers[
+            "set-cookie"
+          ];
+
+        expect(
+          cookies
+        ).toEqual(
+          expect.arrayContaining([
+            expect.stringMatching(
+              /^af_session=/i
+            ),
+          ])
+        );
+
         /*
-         * O cadastro já retorna uma sessão.
-         * Não é necessário chamar /login.
+         * O cadastro já cria a sessão HttpOnly.
+         * Reaproveitamos apenas o par nome=valor
+         * que o navegador enviaria nas próximas
+         * requisições autenticadas.
          */
-        token =
-          cadastro.body.token;
+        cookieSessao =
+          cookies[0].split(";", 1)[0];
 
         clienteId =
           Number(
@@ -591,8 +610,8 @@ describe(
               "/meus-agendamentos"
             )
             .set(
-              "Authorization",
-              `Bearer ${token}`
+              "Cookie",
+              cookieSessao
             );
 
         expect(
@@ -637,8 +656,8 @@ describe(
               `/agendamentos/${agendamentoId}/cancelar`
             )
             .set(
-              "Authorization",
-              `Bearer ${token}`
+              "Cookie",
+              cookieSessao
             );
 
         expect(
@@ -701,8 +720,8 @@ describe(
               `/agendamentos/${agendamentoId}/cancelar`
             )
             .set(
-              "Authorization",
-              `Bearer ${token}`
+              "Cookie",
+              cookieSessao
             );
 
         expect(

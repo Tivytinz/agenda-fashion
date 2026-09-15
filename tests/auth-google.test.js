@@ -4,9 +4,6 @@ const express = require(
 const request = require(
   "supertest"
 );
-const jwt = require(
-  "jsonwebtoken"
-);
 
 process.env.JWT_SECRET =
   "segredo-seguro-exclusivo-dos-testes";
@@ -235,12 +232,21 @@ describe(
           "google_sub"
         );
         expect(
-          jwt.verify(
-            resposta.body.token,
-            process.env
-              .JWT_SECRET
-          ).id
-        ).toBe(7);
+          resposta.body
+        ).not.toHaveProperty(
+          "token"
+        );
+        expect(
+          resposta.headers[
+            "set-cookie"
+          ]
+        ).toEqual(
+          expect.arrayContaining([
+            expect.stringMatching(
+              /^af_session=.*HttpOnly.*SameSite=Lax/i
+            ),
+          ])
+        );
       }
     );
 
@@ -268,6 +274,11 @@ describe(
           resposta.body
             .contaCriada
         ).toBe(false);
+        expect(
+          resposta.body
+        ).not.toHaveProperty(
+          "token"
+        );
         expect(
           authRepository
             .buscarUsuarioPorEmail
