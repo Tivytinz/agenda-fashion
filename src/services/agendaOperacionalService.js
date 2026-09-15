@@ -15,6 +15,36 @@ function ordenarHorarios(horarios) {
   );
 }
 
+function slotBaseRepresentaCompromisso(slot) {
+  const status = String(slot?.status || "").trim().toLowerCase();
+  const statusDeCompromisso = new Set([
+    "agendado",
+    "confirmado",
+    "realizado",
+    "falta",
+  ]);
+
+  return Boolean(
+    statusDeCompromisso.has(status) ||
+    slot?.agendamento_id ||
+    slot?.cliente_id ||
+    slot?.cliente ||
+    slot?.servico_id ||
+    slot?.servico
+  );
+}
+
+function criarSlotsBaseConfiaveis(horarios) {
+  return new Map(
+    (horarios || [])
+      .filter((slot) => !slotBaseRepresentaCompromisso(slot))
+      .map((slot) => [
+        normalizarHorario(slot.hora),
+        { ...slot, hora: normalizarHorario(slot.hora) },
+      ])
+  );
+}
+
 function criarSlotDeAgendamento(agendamento) {
   return {
     data: agendamento.data,
@@ -47,12 +77,7 @@ function materializarAgendaProfissional(agenda, agendamentos) {
   }
 
   return (agenda || []).map((dia) => {
-    const slots = new Map(
-      (dia.horarios || []).map((slot) => [
-        normalizarHorario(slot.hora),
-        { ...slot, hora: normalizarHorario(slot.hora) },
-      ])
-    );
+    const slots = criarSlotsBaseConfiaveis(dia.horarios);
 
     for (const agendamento of agendamentosPorData.get(dia.data) || []) {
       const slotExistente = slots.get(agendamento.hora) || {};
@@ -109,12 +134,7 @@ function materializarAgendaGeral(agenda, agendamentos, bloqueios) {
     ...dia,
     profissionais: (dia.profissionais || []).map((profissional) => {
       const chave = criarChaveProfissionalData(profissional.id, dia.data);
-      const slots = new Map(
-        (profissional.horarios || []).map((slot) => [
-          normalizarHorario(slot.hora),
-          { ...slot, hora: normalizarHorario(slot.hora) },
-        ])
-      );
+      const slots = criarSlotsBaseConfiaveis(profissional.horarios);
 
       for (const bloqueio of bloqueiosPorProfissionalData.get(chave) || []) {
         if (!slots.has(bloqueio.hora)) {
