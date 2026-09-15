@@ -32,6 +32,30 @@ describe("errorHandler - integridade do histórico", () => {
     });
   });
 
+  test("traduz vínculo profissional-negócio removido durante o agendamento para conflito", () => {
+    const erro = new Error(
+      "Profissional não possui vínculo ativo com o negócio."
+    );
+    erro.code = "23503";
+    erro.constraint = "agendamentos_profissional_negocio_vinculo";
+
+    const req = {
+      id: "request-vinculo-removido",
+      path: "/agendamentos",
+      method: "POST",
+    };
+    const res = criarResposta();
+
+    errorHandler(erro, req, res, jest.fn());
+
+    expect(res.status).toHaveBeenCalledWith(409);
+    expect(res.json).toHaveBeenCalledWith({
+      erro:
+        "Esta profissional não está mais vinculada a este negócio. Atualize a página e escolha uma profissional disponível.",
+      request_id: "request-vinculo-removido",
+    });
+  });
+
   test("não transforma qualquer violação de chave estrangeira em erro operacional", () => {
     const erro = new Error("foreign key violation");
     erro.code = "23503";
