@@ -99,6 +99,18 @@ A interface separa:
 
 A falta não é convertida em cancelamento nem em realizado.
 
+## Métricas operacionais
+
+Métricas de comparecimento seguem o lifecycle persistido, não o relógio:
+
+- `realizados_hoje` conta somente `status = 'realizado'`;
+- `pendentes_hoje` conta `agendado` e `confirmado` que ainda aguardam desfecho operacional;
+- `falta` não é promovida a realizado nem permanece como pendência.
+
+A primeira reserva válida usada na ativação continua sendo o primeiro agendamento não cancelado. Ela mede reserva criada e não deve ser reinterpretada como comparecimento ou receita.
+
+Métricas financeiras preexistentes com natureza estimada ou prevista não são convertidas automaticamente em receita realizada por este lifecycle.
+
 ## Limites de plano
 
 Uma falta continua contando como agendamento utilizado no mês.
@@ -110,6 +122,10 @@ Cancelamentos continuam fora do consumo conforme a regra vigente.
 ## Privacidade multi-negócio
 
 Quando uma profissional também possui compromisso em outro negócio, a agenda pode preservar a ocupação necessária para evitar conflito físico, mas não expõe `agendamento_id`, cliente, serviço nem ações de lifecycle desse outro negócio.
+
+A migration `070_profissional_multiplos_negocios.sql` remove a restrição legada que permitia apenas um vínculo profissional ativo por conta. A unicidade continua garantida por `(usuario_id, negocio_id)`, portanto a mesma conta pode atuar em negócios distintos sem criar dois vínculos para o mesmo negócio.
+
+A seleção explícita do contexto ativo para contas com múltiplos vínculos continua fora deste escopo; enquanto ela não existir, cada rota deve operar somente sobre o contexto autorizado resolvido pelo backend.
 
 ## Fora deste escopo
 
