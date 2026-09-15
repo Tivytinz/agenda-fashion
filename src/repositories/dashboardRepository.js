@@ -75,33 +75,22 @@ async function buscarResumoProfissional(
       )::int AS cancelamentos_hoje,
 
       COUNT(*) FILTER (
-        WHERE a.status != 'cancelado'
+        WHERE a.status = 'realizado'
           AND a.data = (
             NOW() AT TIME ZONE
             'America/Sao_Paulo'
           )::date
-          AND (
-            a.data::timestamp +
-            a.horario::time
-          ) < (
-            NOW() AT TIME ZONE
-            'America/Sao_Paulo'
-          )
       )::int AS realizados_hoje,
 
       COUNT(*) FILTER (
-        WHERE a.status != 'cancelado'
+        WHERE a.status IN (
+          'agendado',
+          'confirmado'
+        )
           AND a.data = (
             NOW() AT TIME ZONE
             'America/Sao_Paulo'
           )::date
-          AND (
-            a.data::timestamp +
-            a.horario::time
-          ) >= (
-            NOW() AT TIME ZONE
-            'America/Sao_Paulo'
-          )
       )::int AS pendentes_hoje,
 
       COUNT(
