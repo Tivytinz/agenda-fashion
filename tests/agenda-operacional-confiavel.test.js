@@ -4,14 +4,20 @@ jest.mock("../src/services/agendaService", () => ({
 }));
 
 jest.mock("../src/repositories/agendaRepository", () => ({
-  buscarAgendamentosPorPeriodo: jest.fn(),
   buscarNegocioDono: jest.fn(),
-  buscarAgendamentosProfissionaisPorPeriodo: jest.fn(),
   buscarBloqueiosProfissionaisPorPeriodo: jest.fn(),
+}));
+
+jest.mock("../src/repositories/agendamentoLifecycleRepository", () => ({
+  listarAgendamentosProfissionalPorPeriodo: jest.fn(),
+  listarAgendamentosProfissionaisDoNegocioPorPeriodo: jest.fn(),
 }));
 
 const agendaService = require("../src/services/agendaService");
 const agendaRepository = require("../src/repositories/agendaRepository");
+const agendamentoLifecycleRepository = require(
+  "../src/repositories/agendamentoLifecycleRepository"
+);
 const agendaOperacionalService = require("../src/services/agendaOperacionalService");
 
 describe("agenda operacional confiável", () => {
@@ -34,23 +40,26 @@ describe("agenda operacional confiável", () => {
       ],
     });
 
-    agendaRepository.buscarAgendamentosPorPeriodo.mockResolvedValue([
-      {
-        agendamento_id: 91,
-        profissional_id: 7,
-        negocio_id: 3,
-        data: "2026-09-16",
-        hora: "09:30",
-        status: "confirmado",
-        cliente_id: 12,
-        cliente: "Ana",
-        cliente_whatsapp: "62999999999",
-        servico_id: 20,
-        servico: "Corte",
-        valor: "80.00",
-        duracao_minutos: 60,
-      },
-    ]);
+    agendamentoLifecycleRepository
+      .listarAgendamentosProfissionalPorPeriodo.mockResolvedValue([
+        {
+          agendamento_id: 91,
+          profissional_id: 7,
+          negocio_id: 3,
+          data: "2026-09-16",
+          hora: "09:30",
+          status: "confirmado",
+          cliente_id: 12,
+          cliente: "Ana",
+          cliente_whatsapp: "62999999999",
+          servico_id: 20,
+          servico: "Corte",
+          valor: "80.00",
+          duracao_minutos: 60,
+          pode_marcar_falta: false,
+          pode_marcar_realizado: false,
+        },
+      ]);
 
     const resultado = await agendaOperacionalService.listarAgendaProfissional({
       profissionalId: 7,
@@ -91,22 +100,25 @@ describe("agenda operacional confiável", () => {
       ],
     });
 
-    agendaRepository.buscarAgendamentosPorPeriodo.mockResolvedValue([
-      {
-        agendamento_id: 101,
-        profissional_id: 7,
-        negocio_id: 3,
-        data: "2026-09-15",
-        hora: "08:00",
-        status: "agendado",
-        cliente_id: 13,
-        cliente: "Bia",
-        servico_id: 21,
-        servico: "Manicure",
-        valor: "45.00",
-        duracao_minutos: 45,
-      },
-    ]);
+    agendamentoLifecycleRepository
+      .listarAgendamentosProfissionalPorPeriodo.mockResolvedValue([
+        {
+          agendamento_id: 101,
+          profissional_id: 7,
+          negocio_id: 3,
+          data: "2026-09-15",
+          hora: "08:00",
+          status: "agendado",
+          cliente_id: 13,
+          cliente: "Bia",
+          servico_id: 21,
+          servico: "Manicure",
+          valor: "45.00",
+          duracao_minutos: 45,
+          pode_marcar_falta: true,
+          pode_marcar_realizado: true,
+        },
+      ]);
 
     const resultado = await agendaOperacionalService.listarAgendaProfissional({
       profissionalId: 7,
@@ -139,15 +151,20 @@ describe("agenda operacional confiável", () => {
     });
 
     agendaRepository.buscarNegocioDono.mockResolvedValue({ negocio_id: 3 });
-    agendaRepository.buscarAgendamentosProfissionaisPorPeriodo.mockResolvedValue([
-      {
-        profissional_id: 7,
-        data: "2026-09-16",
-        hora: "09:30",
-        cliente: "Dani",
-        servico: "Escova",
-      },
-    ]);
+    agendamentoLifecycleRepository
+      .listarAgendamentosProfissionaisDoNegocioPorPeriodo.mockResolvedValue([
+        {
+          agendamento_id: 92,
+          profissional_id: 7,
+          data: "2026-09-16",
+          hora: "09:30",
+          status: "agendado",
+          cliente: "Dani",
+          servico: "Escova",
+          pode_marcar_falta: false,
+          pode_marcar_realizado: false,
+        },
+      ]);
     agendaRepository.buscarBloqueiosProfissionaisPorPeriodo.mockResolvedValue([
       {
         id: 44,
@@ -192,15 +209,20 @@ describe("agenda operacional confiável", () => {
     });
 
     agendaRepository.buscarNegocioDono.mockResolvedValue({ negocio_id: 3 });
-    agendaRepository.buscarAgendamentosProfissionaisPorPeriodo.mockResolvedValue([
-      {
-        profissional_id: 7,
-        data: "2026-09-16",
-        hora: "14:30",
-        cliente: null,
-        servico: null,
-      },
-    ]);
+    agendamentoLifecycleRepository
+      .listarAgendamentosProfissionaisDoNegocioPorPeriodo.mockResolvedValue([
+        {
+          agendamento_id: null,
+          profissional_id: 7,
+          data: "2026-09-16",
+          hora: "14:30",
+          status: "agendado",
+          cliente: null,
+          servico: null,
+          pode_marcar_falta: false,
+          pode_marcar_realizado: false,
+        },
+      ]);
     agendaRepository.buscarBloqueiosProfissionaisPorPeriodo.mockResolvedValue([]);
 
     const resultado = await agendaOperacionalService.buscarAgendaGeral({
@@ -211,8 +233,11 @@ describe("agenda operacional confiável", () => {
       expect.objectContaining({
         hora: "14:30",
         status: "agendado",
+        agendamento_id: null,
         cliente: null,
         servico: null,
+        pode_marcar_falta: false,
+        pode_marcar_realizado: false,
       }),
     ]);
   });
