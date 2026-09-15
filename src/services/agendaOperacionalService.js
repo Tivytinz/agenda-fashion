@@ -1,5 +1,8 @@
 const agendaService = require("./agendaService");
 const agendaRepository = require("../repositories/agendaRepository");
+const agendamentoLifecycleRepository = require(
+  "../repositories/agendamentoLifecycleRepository"
+);
 
 function normalizarHorario(horario) {
   if (!horario) return null;
@@ -25,6 +28,8 @@ function criarSlotDeAgendamento(agendamento) {
     servico: agendamento.servico || null,
     valor: agendamento.valor ?? null,
     duracao_minutos: agendamento.duracao_minutos || null,
+    pode_marcar_falta: Boolean(agendamento.pode_marcar_falta),
+    pode_marcar_realizado: Boolean(agendamento.pode_marcar_realizado),
   };
 }
 
@@ -127,9 +132,12 @@ function materializarAgendaGeral(agenda, agendamentos, bloqueios) {
         slots.set(agendamento.hora, {
           ...slotExistente,
           hora: agendamento.hora,
-          status: "agendado",
+          status: agendamento.status || "agendado",
+          agendamento_id: agendamento.agendamento_id || null,
           cliente: agendamento.cliente || null,
           servico: agendamento.servico || null,
+          pode_marcar_falta: Boolean(agendamento.pode_marcar_falta),
+          pode_marcar_realizado: Boolean(agendamento.pode_marcar_realizado),
         });
       }
 
@@ -163,11 +171,13 @@ async function listarAgendaProfissional({ profissionalId }) {
 
   if (!periodo) return resultado;
 
-  const agendamentos = await agendaRepository.buscarAgendamentosPorPeriodo(
-    profissionalId,
-    periodo.dataInicio,
-    periodo.dataFim
-  );
+  const agendamentos =
+    await agendamentoLifecycleRepository
+      .listarAgendamentosProfissionalPorPeriodo({
+        profissionalId,
+        dataInicio: periodo.dataInicio,
+        dataFim: periodo.dataFim,
+      });
 
   return {
     ...resultado,
@@ -193,12 +203,13 @@ async function buscarAgendaGeral({ usuarioId }) {
   }
 
   const [agendamentos, bloqueios] = await Promise.all([
-    agendaRepository.buscarAgendamentosProfissionaisPorPeriodo(
-      vinculoDono.negocio_id,
-      profissionalIds,
-      periodo.dataInicio,
-      periodo.dataFim
-    ),
+    agendamentoLifecycleRepository
+      .listarAgendamentosProfissionaisDoNegocioPorPeriodo({
+        negocioId: vinculoDono.negocio_id,
+        profissionalIds,
+        dataInicio: periodo.dataInicio,
+        dataFim: periodo.dataFim,
+      }),
     agendaRepository.buscarBloqueiosProfissionaisPorPeriodo(
       profissionalIds,
       periodo.dataInicio,
