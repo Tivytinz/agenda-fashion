@@ -30,7 +30,6 @@ describe("Agenda Geral multi-tenant", () => {
   const negociosCriados = [];
 
   let donoA;
-  let donoB;
   let profissionalCompartilhada;
   let negocioA;
   let negocioB;
@@ -77,11 +76,6 @@ describe("Agenda Geral multi-tenant", () => {
       "dona-negocio-a",
       `629${String(Date.now()).slice(-8)}`
     );
-    donoB = await criarUsuario(
-      "Dona Negócio B",
-      "dona-negocio-b",
-      `639${String(Date.now()).slice(-8)}`
-    );
     profissionalCompartilhada = await criarUsuario(
       "Profissional Compartilhada",
       "profissional-compartilhada",
@@ -115,17 +109,15 @@ describe("Agenda Geral multi-tenant", () => {
       `
         INSERT INTO usuarios_negocios (usuario_id, negocio_id, papel)
         VALUES
-          ($1, $3, 'dono'),
-          ($2, $4, 'dono'),
-          ($5, $3, 'profissional'),
-          ($5, $4, 'profissional')
+          ($1, $2, 'dono'),
+          ($3, $2, 'profissional'),
+          ($3, $4, 'dono')
       `,
       [
         donoA.id,
-        donoB.id,
         negocioA.id,
-        negocioB.id,
         profissionalCompartilhada.id,
+        negocioB.id,
       ]
     );
 
