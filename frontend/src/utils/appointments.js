@@ -7,7 +7,9 @@ const RECENT_APPOINTMENT_KEY = "af_recent_appointment";
 
 export const APPOINTMENT_STATUS = {
   scheduled: "agendado",
+  confirmed: "confirmado",
   completed: "realizado",
+  missed: "falta",
   canceled: "cancelado"
 };
 
@@ -75,6 +77,7 @@ export function groupAppointments(items) {
   const groups = {
     scheduled: [],
     completed: [],
+    missed: [],
     canceled: []
   };
 
@@ -86,6 +89,8 @@ export function groupAppointments(items) {
         groups.canceled.push(item);
       } else if (item.status === APPOINTMENT_STATUS.completed) {
         groups.completed.push(item);
+      } else if (item.status === APPOINTMENT_STATUS.missed) {
+        groups.missed.push(item);
       } else {
         groups.scheduled.push(item);
       }
@@ -95,6 +100,9 @@ export function groupAppointments(items) {
     `${a.data} ${a.horario}`.localeCompare(`${b.data} ${b.horario}`)
   );
   groups.completed.sort((a, b) =>
+    `${b.data} ${b.horario}`.localeCompare(`${a.data} ${a.horario}`)
+  );
+  groups.missed.sort((a, b) =>
     `${b.data} ${b.horario}`.localeCompare(`${a.data} ${a.horario}`)
   );
   groups.canceled.sort((a, b) =>
