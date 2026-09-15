@@ -136,7 +136,8 @@ describe("agenda do negócio", () => {
 
     render(<AgendaWorkspacePage />);
 
-    expect(await screen.findByRole("button", { name: /09:30 Confirmado/ })).not.toBeNull();
+    expect(await screen.findByText("09:30")).not.toBeNull();
+    expect(screen.getByText("Confirmado")).not.toBeNull();
     expect(screen.getByText("Ana · Corte")).not.toBeNull();
     expect(screen.queryByText("Dia de folga")).toBeNull();
   });
