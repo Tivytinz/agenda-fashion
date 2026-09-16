@@ -108,7 +108,7 @@ Conversões e formatações compartilhadas permanecem em `frontend/src/utils/for
 
 Páginas podem concentrar carregamento, estado e composição. Tabelas extensas ou regras puramente de apresentação tendem a ficar mais fáceis de testar quando extraídas para componentes ou utilitários próprios, mas a extração deve ocorrer quando houver ganho de clareza e não apenas para aumentar o número de arquivos.
 
-Exemplos atuais incluem `ProfessionalCampaignDecisionTable`, `professionalCampaigns.js`, `MarketingCampaignCostTable`, `MarketingExpenseHistory` e `marketingCosts.js`.
+Exemplos atuais incluem `MarketingCampaignCostTable`, `MarketingExpenseHistory`, `marketingCosts.js` e `marketingMetrics.js`.
 
 ## Critério de manutenção
 
