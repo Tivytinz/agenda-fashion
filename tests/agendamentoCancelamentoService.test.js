@@ -6,8 +6,10 @@ jest.mock("../src/repositories/agendamentoCancelamentoRepository", () => ({
   buscarPoliticaPublica: jest.fn(),
   buscarAgendamentoClienteParaCancelar: jest.fn(),
   buscarAgendamentoVisitanteParaCancelar: jest.fn(),
+  buscarAgendamentoOperacionalParaCancelar: jest.fn(),
   cancelarAgendamentoCliente: jest.fn(),
   cancelarAgendamentoVisitante: jest.fn(),
+  cancelarAgendamentoOperacional: jest.fn(),
 }));
 
 jest.mock("../src/services/whatsappMensagemService", () => ({
@@ -63,6 +65,13 @@ describe("agendamentoCancelamentoService", () => {
     repository.cancelarAgendamentoVisitante.mockResolvedValue({
       id: 10,
       status: "cancelado",
+    });
+    repository.cancelarAgendamentoOperacional.mockResolvedValue({
+      id: 10,
+      status: "cancelado",
+      cancelado_por: 5,
+      cancelamento_origem: "negocio",
+      motivo_cancelamento: "Profissional indisponível",
     });
     whatsappMensagemService.enfileirarCancelamento.mockResolvedValue();
   });
@@ -198,5 +207,116 @@ describe("agendamentoCancelamentoService", () => {
       executor: client,
       agendamentoId: 10,
     });
+  });
+
+  test("dona pode cancelar booking futuro sem herdar a antecedência da cliente", async () => {
+    repository.buscarAgendamentoOperacionalParaCancelar.mockResolvedValue({
+      id: 10,
+      negocio_id: 4,
+      profissional_id: 8,
+      status: "confirmado",
+      antecedencia_cancelamento_horas: 168,
+      data: "2026-09-16",
+      horario: "16:00",
+      fuso_horario: "America/Sao_Paulo",
+      papel_executor: "dono",
+    });
+
+    await expect(service.cancelarAgendamentoOperacional({
+      agendamentoId: 10,
+      negocioId: 4,
+      usuarioId: 5,
+      motivo: "  Profissional indisponível  ",
+    })).resolves.toMatchObject({
+      ja_cancelado: false,
+      agendamento: {
+        id: 10,
+        status: "cancelado",
+        cancelado_por: 5,
+        cancelamento_origem: "negocio",
+      },
+    });
+
+    expect(repository.cancelarAgendamentoOperacional).toHaveBeenCalledWith({
+      agendamentoId: 10,
+      usuarioId: 5,
+      motivo: "Profissional indisponível",
+      executor: client,
+    });
+    expect(whatsappMensagemService.enfileirarCancelamento).toHaveBeenCalledWith({
+      executor: client,
+      agendamentoId: 10,
+    });
+  });
+
+  test("profissional não pode cancelar booking atribuído a outra profissional", async () => {
+    repository.buscarAgendamentoOperacionalParaCancelar.mockResolvedValue({
+      id: 10,
+      negocio_id: 4,
+      profissional_id: 8,
+      status: "agendado",
+      data: "2026-09-16",
+      horario: "16:00",
+      fuso_horario: "America/Sao_Paulo",
+      papel_executor: "profissional",
+    });
+
+    await expect(service.cancelarAgendamentoOperacional({
+      agendamentoId: 10,
+      negocioId: 4,
+      usuarioId: 9,
+    })).rejects.toMatchObject({
+      statusCode: 403,
+      message: expect.stringMatching(/próprios agendamentos/i),
+    });
+
+    expect(repository.cancelarAgendamentoOperacional).not.toHaveBeenCalled();
+    expect(whatsappMensagemService.enfileirarCancelamento).not.toHaveBeenCalled();
+  });
+
+  test("repetição após cancelamento operacional é idempotente", async () => {
+    repository.buscarAgendamentoOperacionalParaCancelar.mockResolvedValue({
+      id: 10,
+      negocio_id: 4,
+      profissional_id: 8,
+      status: "cancelado",
+      data: "2026-09-16",
+      horario: "16:00",
+      fuso_horario: "America/Sao_Paulo",
+      papel_executor: "dono",
+      cancelado_em: "2026-09-16T10:01:00.000Z",
+      cancelado_por: 5,
+      cancelamento_origem: "negocio",
+      motivo_cancelamento: "Imprevisto",
+    });
+
+    await expect(service.cancelarAgendamentoOperacional({
+      agendamentoId: 10,
+      negocioId: 4,
+      usuarioId: 5,
+    })).resolves.toMatchObject({
+      ja_cancelado: true,
+      agendamento: {
+        status: "cancelado",
+        cancelado_por: 5,
+      },
+    });
+
+    expect(repository.cancelarAgendamentoOperacional).not.toHaveBeenCalled();
+    expect(whatsappMensagemService.enfileirarCancelamento).not.toHaveBeenCalled();
+  });
+
+  test("motivo operacional acima do limite é rejeitado antes da transação", async () => {
+    await expect(service.cancelarAgendamentoOperacional({
+      agendamentoId: 10,
+      negocioId: 4,
+      usuarioId: 5,
+      motivo: "x".repeat(301),
+    })).rejects.toMatchObject({
+      statusCode: 400,
+      message: expect.stringMatching(/300 caracteres/i),
+    });
+
+    expect(db.executarTransacao).not.toHaveBeenCalled();
   });
 });
