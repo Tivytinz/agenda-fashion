@@ -17,6 +17,10 @@ const STATUS_CANCELAVEIS_OPERACIONAL = new Set([
   "agendado",
   "confirmado",
 ]);
+const PAPEIS_CANCELAMENTO_OPERACIONAL = new Set([
+  "dono",
+  "profissional",
+]);
 
 function criarErro(mensagem, statusCode) {
   const erro = new Error(mensagem);
@@ -132,7 +136,11 @@ function formatarQuantidadeHoras(quantidade) {
     : `${quantidade} horas`;
 }
 
-function validarDataHoraFutura(agendamento, mensagemPassado) {
+function validarDataHoraFutura({
+  agendamento,
+  mensagemPassado,
+  statusCodePassado = 409,
+}) {
   const agoraLocal = obterDataHoraNoFuso(
     agendamento.fuso_horario
   );
@@ -158,7 +166,7 @@ function validarDataHoraFutura(agendamento, mensagemPassado) {
   if (inicioAgendamento <= agora) {
     throw criarErro(
       mensagemPassado,
-      409
+      statusCodePassado
     );
   }
 
@@ -183,23 +191,12 @@ function validarAgendamentoCancelavel(agendamento) {
     );
   }
 
-  let tempos;
-
-  try {
-    tempos = validarDataHoraFutura(
-      agendamento,
-      "Não é possível cancelar um agendamento já realizado."
-    );
-  } catch (erro) {
-    if (
-      erro?.statusCode === 409 &&
-      erro?.message === "Não é possível cancelar um agendamento já realizado."
-    ) {
-      erro.status = 400;
-      erro.statusCode = 400;
-    }
-    throw erro;
-  }
+  const tempos = validarDataHoraFutura({
+    agendamento,
+    mensagemPassado:
+      "Não é possível cancelar um agendamento já realizado.",
+    statusCodePassado: 400,
+  });
 
   const antecedenciaHoras = normalizarAntecedenciaCancelamento(
     agendamento.antecedencia_cancelamento_horas
@@ -239,7 +236,7 @@ function validarAgendamentoCancelavelOperacional({
     agendamento.papel_executor || ""
   ).trim().toLowerCase();
 
-  if (!new Set(["dono", "profissional"]).has(papel)) {
+  if (!PAPEIS_CANCELAMENTO_OPERACIONAL.has(papel)) {
     throw criarErro(
       "Você não tem permissão para cancelar este agendamento.",
       403
@@ -269,10 +266,12 @@ function validarAgendamentoCancelavelOperacional({
     );
   }
 
-  validarDataHoraFutura(
+  validarDataHoraFutura({
     agendamento,
-    "Agendamentos que já começaram devem ser finalizados como realizado ou falta."
-  );
+    mensagemPassado:
+      "Agendamentos que já começaram devem ser finalizados como realizado ou falta.",
+    statusCodePassado: 409,
+  });
 
   return {
     jaCancelado: false,
