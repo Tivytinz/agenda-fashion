@@ -106,6 +106,52 @@ async function buscarAgendamentoVisitanteParaCancelar({
   return result.rows[0] || null;
 }
 
+async function buscarAgendamentoOperacionalParaCancelar({
+  agendamentoId,
+  negocioId,
+  usuarioId,
+  executor = db,
+}) {
+  const result = await executor.query(
+    `
+      SELECT
+        a.id,
+        a.negocio_id,
+        a.profissional_id,
+        a.status,
+        TO_CHAR(a.data, 'YYYY-MM-DD') AS data,
+        TO_CHAR(a.horario::time, 'HH24:MI') AS horario,
+        COALESCE(
+          NULLIF(n.fuso_horario, ''),
+          'America/Sao_Paulo'
+        ) AS fuso_horario,
+        un.papel AS papel_executor,
+        a.cancelado_em,
+        a.cancelado_por,
+        a.cancelamento_origem,
+        a.motivo_cancelamento
+      FROM agendamentos a
+      INNER JOIN negocios n
+        ON n.id = a.negocio_id
+        AND n.ativo = TRUE
+      INNER JOIN usuarios_negocios un
+        ON un.negocio_id = a.negocio_id
+        AND un.usuario_id = $3
+        AND un.ativo = TRUE
+      INNER JOIN usuarios executor_usuario
+        ON executor_usuario.id = un.usuario_id
+        AND executor_usuario.ativo = TRUE
+      WHERE a.id = $1
+        AND a.negocio_id = $2
+      LIMIT 1
+      FOR UPDATE OF a, un
+    `,
+    [agendamentoId, negocioId, usuarioId]
+  );
+
+  return result.rows[0] || null;
+}
+
 async function cancelarAgendamentoCliente({
   agendamentoId,
   clienteId,
@@ -116,14 +162,20 @@ async function cancelarAgendamentoCliente({
       UPDATE agendamentos
       SET
         status = 'cancelado',
-        cancelado_em = NOW()
+        cancelado_em = NOW(),
+        cancelado_por = $2,
+        cancelamento_origem = 'cliente',
+        motivo_cancelamento = NULL
       WHERE id = $1
         AND cliente_id = $2
         AND status <> 'cancelado'
       RETURNING
         id,
         status,
-        cancelado_em
+        cancelado_em,
+        cancelado_por,
+        cancelamento_origem,
+        motivo_cancelamento
     `,
     [agendamentoId, clienteId]
   );
@@ -140,16 +192,53 @@ async function cancelarAgendamentoVisitante({
       UPDATE agendamentos
       SET
         status = 'cancelado',
-        cancelado_em = NOW()
+        cancelado_em = NOW(),
+        cancelado_por = NULL,
+        cancelamento_origem = 'visitante',
+        motivo_cancelamento = NULL
       WHERE id = $1
         AND cliente_id IS NULL
         AND status <> 'cancelado'
       RETURNING
         id,
         status,
-        cancelado_em
+        cancelado_em,
+        cancelado_por,
+        cancelamento_origem,
+        motivo_cancelamento
     `,
     [agendamentoId]
+  );
+
+  return result.rows[0] || null;
+}
+
+async function cancelarAgendamentoOperacional({
+  agendamentoId,
+  usuarioId,
+  motivo,
+  executor = db,
+}) {
+  const result = await executor.query(
+    `
+      UPDATE agendamentos
+      SET
+        status = 'cancelado',
+        cancelado_em = NOW(),
+        cancelado_por = $2,
+        cancelamento_origem = 'negocio',
+        motivo_cancelamento = $3
+      WHERE id = $1
+        AND status IN ('agendado', 'confirmado')
+      RETURNING
+        id,
+        status,
+        cancelado_em,
+        cancelado_por,
+        cancelamento_origem,
+        motivo_cancelamento
+    `,
+    [agendamentoId, usuarioId, motivo]
   );
 
   return result.rows[0] || null;
@@ -159,6 +248,8 @@ module.exports = {
   buscarPoliticaPublica,
   buscarAgendamentoClienteParaCancelar,
   buscarAgendamentoVisitanteParaCancelar,
+  buscarAgendamentoOperacionalParaCancelar,
   cancelarAgendamentoCliente,
   cancelarAgendamentoVisitante,
+  cancelarAgendamentoOperacional,
 };
