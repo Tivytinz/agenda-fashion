@@ -19,6 +19,7 @@ const AGENDA = {
           agendamento_id: 42,
           cliente: "Maria",
           servico: "Manicure",
+          pode_cancelar: true,
           pode_marcar_falta: true,
           pode_marcar_realizado: true,
         },
@@ -40,6 +41,19 @@ beforeEach(() => {
     ) {
       return Promise.resolve({
         mensagem: "Atendimento marcado como realizado.",
+      });
+    }
+
+    if (
+      path === "/agendamentos/42/cancelar-operacional" &&
+      options.method === "PATCH"
+    ) {
+      return Promise.resolve({
+        mensagem: "Agendamento cancelado pelo negócio com sucesso.",
+        agendamento: {
+          id: 42,
+          status: "cancelado",
+        },
       });
     }
 
@@ -89,5 +103,47 @@ describe("ciclo operacional na agenda", () => {
       "/bloqueios-horario",
       expect.anything()
     );
+  });
+
+  it("confirma cancelamento futuro com motivo opcional e recarrega a agenda", async () => {
+    render(<AgendaWorkspacePage />);
+
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Cancelar agendamento" })
+    );
+
+    expect(
+      screen.getByRole("dialog", { name: "Cancelar este agendamento?" })
+    ).not.toBeNull();
+
+    fireEvent.change(
+      screen.getByLabelText("Motivo do cancelamento (opcional)"),
+      {
+        target: {
+          value: "Profissional indisponível",
+        },
+      }
+    );
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Confirmar cancelamento" })
+    );
+
+    await waitFor(() => {
+      expect(apiRequest).toHaveBeenCalledWith(
+        "/agendamentos/42/cancelar-operacional",
+        {
+          method: "PATCH",
+          body: {
+            motivo: "Profissional indisponível",
+          },
+        }
+      );
+    });
+
+    expect(
+      await screen.findByText("Agendamento cancelado pelo negócio com sucesso.")
+    ).not.toBeNull();
+    expect(screen.queryByRole("dialog")).toBeNull();
   });
 });
