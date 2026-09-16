@@ -13,6 +13,23 @@ import {
 } from "../utils/browserStorage";
 
 const EMPTY_LIST = [];
+const PROFILE_ORIGINS = new Set([
+  "inicio",
+  "busca",
+  "favoritos",
+  "meus_agendamentos",
+  "compartilhamento"
+]);
+
+export function normalizeProfileOrigin(value) {
+  const origin = String(value || "")
+    .trim()
+    .toLowerCase();
+
+  return PROFILE_ORIGINS.has(origin)
+    ? origin
+    : "nao_informada";
+}
 
 export function ProfilePage() {
   const { slug } = useParams();
@@ -40,6 +57,9 @@ export function ProfilePage() {
   const [favoriteError, setFavoriteError] = useState("");
   const [favoriteReload, setFavoriteReload] = useState(0);
   const searchQueryRef = useRef(searchParams.toString());
+  const profileOriginRef = useRef(
+    normalizeProfileOrigin(searchParams.get("origem"))
+  );
   searchQueryRef.current = searchParams.toString();
 
   const business = profile?.negocio;
@@ -99,7 +119,7 @@ export function ProfilePage() {
           page: "perfil_negocio",
           mission: "escolher_e_agendar",
           businessId: data.negocio?.id,
-          properties: { origem: "inicio" }
+          properties: { origem: profileOriginRef.current }
         });
       } catch (requestError) {
         if (requestError.name === "AbortError") return;

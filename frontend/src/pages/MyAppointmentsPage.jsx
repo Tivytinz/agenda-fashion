@@ -18,6 +18,8 @@ const TABS = [
   { id: "canceled", label: "Cancelados" }
 ];
 
+const RATING_OPTIONS = [1, 2, 3, 4, 5];
+
 function CancelDialog({ appointment, canceling, error, onClose, onConfirm }) {
   const dialogRef = useRef(null);
 
@@ -84,7 +86,16 @@ function CancelDialog({ appointment, canceling, error, onClose, onConfirm }) {
   );
 }
 
-function AppointmentCard({ appointment, canCancel, canceling, onCancel }) {
+function AppointmentCard({
+  appointment,
+  canCancel,
+  canEvaluate,
+  canceling,
+  evaluating,
+  evaluationError,
+  onCancel,
+  onEvaluate
+}) {
   const statusLabel = {
     [APPOINTMENT_STATUS.scheduled]: "Agendado",
     [APPOINTMENT_STATUS.confirmed]: "Confirmado",
@@ -102,6 +113,21 @@ function AppointmentCard({ appointment, canCancel, canceling, onCancel }) {
     appointment.servico_id
       ? `/negocio/${encodeURIComponent(appointment.slug)}?servico=${encodeURIComponent(appointment.servico_id)}`
       : "";
+  const savedRating = Number(appointment.avaliacao);
+  const hasRating = Number.isInteger(savedRating) && savedRating >= 1 && savedRating <= 5;
+
+  function trackRepeatBooking() {
+    track("reagendamento_iniciado", {
+      page: "meus_agendamentos",
+      mission: "retornar_ao_negocio",
+      businessId: appointment.negocio_id,
+      properties: {
+        agendamento_id: Number(appointment.id),
+        servico_id: Number(appointment.servico_id) || null,
+        status_origem: appointment.status
+      }
+    });
+  }
 
   return (
     <article className="appointment-card">
@@ -130,9 +156,38 @@ function AppointmentCard({ appointment, canCancel, canceling, onCancel }) {
           <div><dt>Valor</dt><dd>{formatCurrency(appointment.valor)}</dd></div>
         </dl>
 
+        {appointment.status === APPOINTMENT_STATUS.completed && hasRating && (
+          <p className="muted">Sua avaliação: {savedRating}/5</p>
+        )}
+
+        {canEvaluate && (
+          <div aria-label={`Avaliar ${appointment.servico}`} className="appointment-rating">
+            <span>Avalie este atendimento</span>
+            <div className="appointment-actions" role="group" aria-label="Escolha uma nota de 1 a 5 estrelas">
+              {RATING_OPTIONS.map((rating) => (
+                <button
+                  aria-label={`Avaliar com ${rating} ${rating === 1 ? "estrela" : "estrelas"}`}
+                  className="button button-secondary button-small"
+                  disabled={evaluating}
+                  key={rating}
+                  onClick={() => onEvaluate(appointment, rating)}
+                  type="button"
+                >
+                  {rating} ★
+                </button>
+              ))}
+            </div>
+            {evaluationError && <p className="form-error" role="alert">{evaluationError}</p>}
+          </div>
+        )}
+
         <div className="appointment-actions">
           {repeatBookingUrl && (
-            <Link className="button button-small" to={repeatBookingUrl}>
+            <Link
+              className="button button-small"
+              onClick={trackRepeatBooking}
+              to={repeatBookingUrl}
+            >
               Agendar novamente
             </Link>
           )}
@@ -170,6 +225,9 @@ export function MyAppointmentsPage() {
   const [cancelError, setCancelError] = useState("");
   const [cancelingId, setCancelingId] = useState(null);
   const [pendingCancellation, setPendingCancellation] = useState(null);
+  const [evaluatingId, setEvaluatingId] = useState(null);
+  const [evaluationError, setEvaluationError] = useState("");
+  const [evaluationErrorId, setEvaluationErrorId] = useState(null);
   const tabRefs = useRef([]);
 
   const loadAppointments = useCallback(async () => {
@@ -237,11 +295,50 @@ export function MyAppointmentsPage() {
     }
   }
 
+  async function evaluateAppointment(appointment, rating) {
+    setEvaluatingId(appointment.id);
+    setEvaluationError("");
+    setEvaluationErrorId(null);
+    setMessage("");
+
+    try {
+      const result = await apiRequest(`/agendamentos/${appointment.id}/avaliar`, {
+        method: "PATCH",
+        body: { avaliacao: rating }
+      });
+      const savedRating = Number(result?.avaliacao ?? rating);
+
+      setAppointments((current) => current.map((item) =>
+        Number(item.id) === Number(appointment.id)
+          ? { ...item, avaliacao: savedRating }
+          : item
+      ));
+      setMessage("Avaliação enviada. Obrigada por compartilhar sua experiência.");
+      track("avaliacao_enviada", {
+        page: "meus_agendamentos",
+        mission: "avaliar_atendimento",
+        businessId: appointment.negocio_id,
+        properties: {
+          agendamento_id: Number(appointment.id),
+          servico_id: Number(appointment.servico_id) || null,
+          avaliacao: savedRating
+        }
+      });
+    } catch (error) {
+      setEvaluationErrorId(appointment.id);
+      setEvaluationError(error.message);
+    } finally {
+      setEvaluatingId(null);
+    }
+  }
+
   function selectTab(tabId, focus = false) {
     const nextIndex = TABS.findIndex((tab) => tab.id === tabId);
 
     setActiveTab(tabId);
     setMessage("");
+    setEvaluationError("");
+    setEvaluationErrorId(null);
 
     if (focus && nextIndex >= 0) {
       tabRefs.current[nextIndex]?.focus();
@@ -347,12 +444,24 @@ export function MyAppointmentsPage() {
                           APPOINTMENT_STATUS.confirmed
                         ].includes(appointment.status)
                       }
+                      canEvaluate={
+                        isAuthenticated &&
+                        appointment.status === APPOINTMENT_STATUS.completed &&
+                        !appointment.avaliacao
+                      }
                       canceling={cancelingId === appointment.id}
+                      evaluating={evaluatingId === appointment.id}
+                      evaluationError={
+                        evaluationErrorId === appointment.id
+                          ? evaluationError
+                          : ""
+                      }
                       key={appointment.id}
                       onCancel={(item) => {
                         setCancelError("");
                         setPendingCancellation(item);
                       }}
+                      onEvaluate={evaluateAppointment}
                     />
                   ))}
                 </section>
