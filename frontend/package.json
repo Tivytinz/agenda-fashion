@@ -7,6 +7,7 @@
     "dev": "vite",
     "build": "vite build",
     "lint": "eslint src",
+    "check:dead-code": "npx --yes knip@6.35.1 --production --include files",
     "preview": "vite preview",
     "test": "vitest run",
     "test:e2e": "playwright test"
