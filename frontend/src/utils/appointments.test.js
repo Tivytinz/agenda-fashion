@@ -1,3 +1,5 @@
+// @vitest-environment jsdom
+
 import { beforeEach, describe, expect, test } from "vitest";
 import {
   APPOINTMENT_STATUS,
