@@ -86,6 +86,8 @@ A regra existe em duas camadas:
 
 Portanto, horário passado sozinho não libera avaliação.
 
+Na experiência autenticada de `Minha agenda`, um atendimento `realizado` sem avaliação oferece nota de 1 a 5 estrelas. Depois do primeiro envio, a nota persistida é exibida e a interface deixa de oferecer uma nova avaliação, acompanhando a regra backend-authoritative que impede avaliação duplicada.
+
 ## Histórico da cliente
 
 `GET /meus-agendamentos` retorna o status persistido.
@@ -98,6 +100,14 @@ A interface separa:
 - Cancelados: `cancelado`.
 
 A falta não é convertida em cancelamento nem em realizado.
+
+## Retorno e recorrência
+
+Atendimentos `realizado` e `falta` podem oferecer o CTA `Agendar novamente` quando o negócio e o serviço ainda podem ser identificados.
+
+O clique nesse CTA registra `reagendamento_iniciado`, com negócio, serviço, agendamento de origem e status de origem. Esse evento mede intenção de retorno e não deve ser contado como novo agendamento, receita ou retenção concluída. A recorrência efetiva continua dependendo de um novo `agendamento_concluido` e, quando aplicável, do lifecycle desse novo compromisso.
+
+A origem de visualização do perfil não deve assumir `inicio` sem evidência. O frontend aceita apenas categorias conhecidas e usa `nao_informada` quando a navegação não carrega uma origem explícita, evitando atribuição artificial no funil.
 
 ## Métricas operacionais
 
