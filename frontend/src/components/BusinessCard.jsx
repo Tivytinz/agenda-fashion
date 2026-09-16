@@ -1,4 +1,4 @@
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import {
   formatLocation,
   formatRating
@@ -8,14 +8,23 @@ import {
   normalizeBusinessSpecialties,
   serviceCategoryEmoji
 } from "../utils/specialties";
+import {
+  buildProfilePath,
+  resolveDiscoveryProfileOrigin
+} from "../utils/profileOrigin";
 
 export function BusinessCard({ business }) {
+  const location = useLocation();
   const serviceCount =
     business.servicos?.length || 0;
 
   const available = serviceCount > 0;
   const rating = formatRating(business);
   const specialties = normalizeBusinessSpecialties(business);
+  const profileOrigin = resolveDiscoveryProfileOrigin(
+    location.pathname,
+    location.search
+  );
 
   const coverSource = business.foto_url ||
     business.servicos?.find((service) => service.foto_url)?.foto_url;
@@ -137,7 +146,10 @@ export function BusinessCard({ business }) {
   return (
     <Link
       className="business-card-link"
-      to={`/negocio/${encodeURIComponent(business.slug)}`}
+      to={buildProfilePath({
+        slug: business.slug,
+        origin: profileOrigin
+      })}
       aria-label={`Ver perfil de ${business.nome}`}
     >
       {card}

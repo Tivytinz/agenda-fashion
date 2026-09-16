@@ -4,6 +4,10 @@ import { apiRequest } from "../api/client";
 import { EmptyState, ErrorState, LoadingState } from "../components/ScreenState";
 import { MediaThumb } from "../components/profile/MediaThumb";
 import { formatLocation } from "../utils/format";
+import {
+  PROFILE_ORIGIN,
+  buildProfilePath
+} from "../utils/profileOrigin";
 
 export function FavoritesPage() {
   const removeDialogRef = useRef(null);
@@ -67,7 +71,15 @@ export function FavoritesPage() {
                 <div className="management-card-body">
                   <h2>{item.nome}</h2><p className="muted">{formatLocation(item)}</p>
                   <div className="card-actions">
-                    <Link className="button button-small" to={`/negocio/${item.slug}`}>Ver perfil</Link>
+                    <Link
+                      className="button button-small"
+                      to={buildProfilePath({
+                        slug: item.slug,
+                        origin: PROFILE_ORIGIN.FAVORITES
+                      })}
+                    >
+                      Ver perfil
+                    </Link>
                     <button className="text-button danger-text" onClick={() => askRemove(item)} type="button">Remover</button>
                   </div>
                 </div>

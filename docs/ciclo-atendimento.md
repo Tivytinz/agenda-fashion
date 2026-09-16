@@ -107,7 +107,7 @@ Atendimentos `realizado` e `falta` podem oferecer o CTA `Agendar novamente` quan
 
 O clique nesse CTA registra `reagendamento_iniciado`, com negócio, serviço, agendamento de origem e status de origem. Esse evento mede intenção de retorno e não deve ser contado como novo agendamento, receita ou retenção concluída. A recorrência efetiva continua dependendo de um novo `agendamento_concluido` e, quando aplicável, do lifecycle desse novo compromisso.
 
-A origem de visualização do perfil não deve assumir `inicio` sem evidência. O frontend aceita apenas categorias conhecidas e usa `nao_informada` quando a navegação não carrega uma origem explícita, evitando atribuição artificial no funil.
+A origem de visualização do perfil não deve assumir `inicio` sem evidência. Entradas internas propagam categorias conhecidas (`inicio`, `busca`, `favoritos` e `meus_agendamentos`), enquanto links rastreáveis gerados pelo próprio AF com `af_source=agenda_fashion` e mídia de compartilhamento são classificados como `compartilhamento`. Parâmetros desconhecidos ou navegações sem evidência continuam em `nao_informada`, evitando atribuição artificial no funil.
 
 ## Métricas operacionais
 
