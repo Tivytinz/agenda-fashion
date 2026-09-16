@@ -38,6 +38,22 @@ function formatConfirmationDate(value) {
   }).format(date);
 }
 
+export function formatCancellationPolicy(hours) {
+  const value = Number(hours);
+
+  if (!Number.isInteger(value) || value < 0) return "";
+
+  if (value === 0) {
+    return "Você pode cancelar até antes do horário agendado.";
+  }
+
+  if (value === 1) {
+    return "Cancelamentos devem ser feitos com pelo menos 1 hora de antecedência.";
+  }
+
+  return `Cancelamentos devem ser feitos com pelo menos ${value} horas de antecedência.`;
+}
+
 export function ConfirmPage() {
   const session = useSession();
   const location = useLocation();
@@ -64,6 +80,10 @@ export function ConfirmPage() {
   const [status, setStatus] = useState("idle");
   const [scheduleConflict, setScheduleConflict] = useState(false);
   const [error, setError] = useState("");
+  const [cancellationPolicy, setCancellationPolicy] = useState(null);
+  const [policyStatus, setPolicyStatus] = useState("idle");
+  const [policyError, setPolicyError] = useState("");
+  const [policyReload, setPolicyReload] = useState(0);
   const [hasProfessionalChoice, setHasProfessionalChoice] = useState(
     typeof booking?.hasProfessionalChoice === "boolean"
       ? booking.hasProfessionalChoice
@@ -80,6 +100,46 @@ export function ConfirmPage() {
       });
     }
   }, [booking]);
+
+  useEffect(() => {
+    if (!booking?.slug || !booking?.professional?.id) return undefined;
+
+    const controller = new AbortController();
+    const params = new URLSearchParams({
+      slug: booking.slug,
+      profissionalId: String(booking.professional.id)
+    });
+
+    setPolicyStatus("loading");
+    setPolicyError("");
+
+    apiRequest(`/agenda-publica/politica-cancelamento?${params}`, {
+      signal: controller.signal
+    })
+      .then((result) => {
+        const hours = Number(
+          result?.politica_cancelamento?.antecedencia_horas
+        );
+
+        if (!Number.isInteger(hours) || hours < 0) {
+          throw new Error("A política de cancelamento retornada é inválida.");
+        }
+
+        setCancellationPolicy({ antecedencia_horas: hours });
+        setPolicyStatus("ready");
+      })
+      .catch((requestError) => {
+        if (requestError.name === "AbortError") return;
+        setCancellationPolicy(null);
+        setPolicyStatus("error");
+        setPolicyError(
+          requestError.message ||
+          "Não foi possível carregar a política de cancelamento."
+        );
+      });
+
+    return () => controller.abort();
+  }, [booking, policyReload]);
 
   useEffect(() => {
     if (!booking || hasProfessionalChoice !== null) return undefined;
@@ -131,6 +191,14 @@ export function ConfirmPage() {
 
     if (submissionInFlight.current) return;
 
+    if (
+      policyStatus !== "ready" ||
+      !Number.isInteger(cancellationPolicy?.antecedencia_horas)
+    ) {
+      setError("Confira a política de cancelamento antes de confirmar.");
+      return;
+    }
+
     const normalizedName = name.trim().replace(/\s+/g, " ");
     const normalizedPhone =
       normalizeWhatsApp(whatsapp);
@@ -161,6 +229,8 @@ export function ConfirmPage() {
           horario: booking.time,
           cliente_nome: normalizedName,
           cliente_whatsapp: normalizedPhone,
+          antecedencia_cancelamento_esperada:
+            cancellationPolicy.antecedencia_horas,
           aceita_mensagens_whatsapp:
             session.authenticated
               ? accountConsentMatchesPhone
@@ -196,13 +266,28 @@ export function ConfirmPage() {
         }
       });
     } catch (requestError) {
-      const isConflict = requestError.status === 409;
+      const policyChanged =
+        requestError.status === 409 &&
+        /política de cancelamento/i.test(requestError.message || "");
+      const isConflict = requestError.status === 409 && !policyChanged;
+
       setScheduleConflict(isConflict);
-      setError(
-        isConflict
-          ? "Esse horário acabou de ser reservado. Volte e escolha outro."
-          : requestError.message
-      );
+
+      if (policyChanged) {
+        setCancellationPolicy(null);
+        setPolicyStatus("loading");
+        setPolicyReload((value) => value + 1);
+        setError(
+          "A política de cancelamento mudou. Confira a regra atualizada antes de tentar novamente."
+        );
+      } else {
+        setError(
+          isConflict
+            ? "Esse horário acabou de ser reservado. Volte e escolha outro."
+            : requestError.message
+        );
+      }
+
       setStatus("error");
     } finally {
       submissionInFlight.current = false;
@@ -275,7 +360,7 @@ export function ConfirmPage() {
             )}
             <button
               className="button button-full confirm-button"
-              disabled={status === "loading"}
+              disabled={status === "loading" || policyStatus !== "ready"}
               type="submit"
             >
               {status === "loading" ? "Confirmando agendamento..." : "Confirmar agendamento"}
@@ -292,6 +377,27 @@ export function ConfirmPage() {
             <div><dt>Horário</dt><dd>{booking.time}</dd></div>
             <div><dt>Total</dt><dd>{formatCurrency(booking.service.valor)}</dd></div>
           </dl>
+
+          <div className="muted" aria-live="polite">
+            <strong>Política de cancelamento</strong>
+            {policyStatus === "loading" && <p>Carregando regra de cancelamento...</p>}
+            {policyStatus === "ready" && (
+              <p>{formatCancellationPolicy(cancellationPolicy?.antecedencia_horas)}</p>
+            )}
+            {policyStatus === "error" && (
+              <>
+                <p>{policyError}</p>
+                <button
+                  className="text-button"
+                  type="button"
+                  onClick={() => setPolicyReload((value) => value + 1)}
+                >
+                  Tentar novamente
+                </button>
+              </>
+            )}
+          </div>
+
           <button
             className="button button-secondary button-small confirmation-change-button"
             type="button"

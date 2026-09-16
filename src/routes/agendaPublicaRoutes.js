@@ -8,8 +8,8 @@ const {
 const optionalAuth = require("../middlewares/optionalAuth");
 const auth = require("../middlewares/auth");
 const agendaPublicaController = require("../controllers/agendamentoPublicoController");
-const agendamentoVisitanteController = require(
-  "../controllers/agendamentoVisitanteController"
+const agendamentoCancelamentoController = require(
+  "../controllers/agendamentoCancelamentoController"
 );
 const agendamentoLifecycleController = require(
   "../controllers/agendamentoLifecycleController"
@@ -100,6 +100,19 @@ router.get(
 
 /**
  * @swagger
+ * /agenda-publica/politica-cancelamento:
+ *   get:
+ *     summary: Retorna a política de cancelamento vigente antes da confirmação
+ *     tags: [Agenda Pública]
+ */
+router.get(
+  "/agenda-publica/politica-cancelamento",
+  limitarLeituraPublica,
+  agendamentoCancelamentoController.buscarPoliticaPublica
+);
+
+/**
+ * @swagger
  * /agendamentos:
  *   post:
  *     summary: Cria um novo agendamento
@@ -134,19 +147,24 @@ router.get(
  *               cliente_whatsapp:
  *                 type: string
  *                 example: 62999999999
+ *               antecedencia_cancelamento_esperada:
+ *                 type: integer
+ *                 minimum: 0
+ *                 description: Regra exibida na confirmação. O backend compara com a política vigente e nunca confia neste valor como regra financeira ou de autorização.
  *     responses:
  *       201:
  *         description: Agendamento criado. Visitantes recebem acesso_visitante dentro do agendamento.
  *       400:
  *         description: Dados inválidos
  *       409:
- *         description: Horário indisponível
+ *         description: Horário indisponível ou política de cancelamento atualizada
  */
 
 router.post(
   "/agendamentos",
   limitarAgendamento,
   optionalAuth,
+  agendamentoCancelamentoController.validarPoliticaExibida,
   anexarAcessoVisitante,
   agendaPublicaController.criarAgendamentoPublico
 );
@@ -176,7 +194,7 @@ router.get(
  * @swagger
  * /agendamentos/{id}/cancelar:
  *   patch:
- *     summary: Cancela um agendamento da conta autenticada
+ *     summary: Cancela um agendamento da conta autenticada usando a política congelada no booking
  *     tags: [Agenda Pública]
  *     security:
  *       - bearerAuth: []
@@ -196,14 +214,14 @@ router.get(
 router.patch(
   "/agendamentos/:id/cancelar",
   auth,
-  agendaPublicaController.cancelarMeuAgendamento
+  agendamentoCancelamentoController.cancelarCliente
 );
 
 /**
  * @swagger
  * /agendamentos/{id}/cancelar-visitante:
  *   patch:
- *     summary: Cancela um agendamento visitante com a credencial emitida na criação
+ *     summary: Cancela um agendamento visitante com a credencial emitida na criação e a política congelada no booking
  *     tags: [Agenda Pública]
  *     parameters:
  *       - in: path
@@ -233,7 +251,7 @@ router.patch(
 router.patch(
   "/agendamentos/:id/cancelar-visitante",
   limitarAgendamento,
-  agendamentoVisitanteController.cancelar
+  agendamentoCancelamentoController.cancelarVisitante
 );
 
 /**

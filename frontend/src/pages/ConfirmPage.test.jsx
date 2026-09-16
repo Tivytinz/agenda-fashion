@@ -24,7 +24,10 @@ import {
 import { apiRequest } from "../api/client";
 import { track } from "../analytics/track";
 import { useSession } from "../auth/SessionContext";
-import { ConfirmPage } from "./ConfirmPage";
+import {
+  ConfirmPage,
+  formatCancellationPolicy
+} from "./ConfirmPage";
 
 vi.mock("../api/client", () => ({
   apiRequest: vi.fn()
@@ -47,6 +50,26 @@ const BOOKING = {
   time: "09:00",
   hasProfessionalChoice: false
 };
+
+function isPolicyRequest(path) {
+  return String(path).startsWith(
+    "/agenda-publica/politica-cancelamento?"
+  );
+}
+
+function mockPolicy(hours = 24) {
+  apiRequest.mockImplementation((path) => {
+    if (isPolicyRequest(path)) {
+      return Promise.resolve({
+        politica_cancelamento: {
+          antecedencia_horas: hours
+        }
+      });
+    }
+
+    return Promise.resolve({});
+  });
+}
 
 function renderConfirmation(booking = BOOKING) {
   return render(
@@ -71,11 +94,18 @@ async function fillCustomer(user) {
   );
 }
 
+async function waitPolicy() {
+  await screen.findByText(
+    "Cancelamentos devem ser feitos com pelo menos 24 horas de antecedência."
+  );
+}
+
 beforeEach(() => {
   localStorage.clear();
   sessionStorage.clear();
   apiRequest.mockReset();
   track.mockReset();
+  mockPolicy();
   useSession.mockReturnValue({
     authenticated: false,
     usuario: null
@@ -83,6 +113,21 @@ beforeEach(() => {
 });
 
 afterEach(cleanup);
+
+describe("formatCancellationPolicy", () => {
+  it("explica zero, singular e plural sem inventar política inválida", () => {
+    expect(formatCancellationPolicy(0)).toBe(
+      "Você pode cancelar até antes do horário agendado."
+    );
+    expect(formatCancellationPolicy(1)).toBe(
+      "Cancelamentos devem ser feitos com pelo menos 1 hora de antecedência."
+    );
+    expect(formatCancellationPolicy(24)).toBe(
+      "Cancelamentos devem ser feitos com pelo menos 24 horas de antecedência."
+    );
+    expect(formatCancellationPolicy(-1)).toBe("");
+  });
+});
 
 describe("confirmação do agendamento", () => {
   it("mantém três etapas quando a profissional não precisou ser escolhida", () => {
@@ -113,6 +158,18 @@ describe("confirmação do agendamento", () => {
     });
     expect(progress.querySelectorAll("li")).toHaveLength(4);
     expect(progress.textContent).toContain("Profissional");
+  });
+
+  it("mostra a política vigente antes de liberar a confirmação", async () => {
+    renderConfirmation();
+
+    const button = screen.getByRole("button", {
+      name: "Confirmar agendamento"
+    });
+    expect(button.disabled).toBe(true);
+
+    await waitPolicy();
+    expect(button.disabled).toBe(false);
   });
 
   it("mostra o exemplo e aplica a máscara do WhatsApp durante a digitação", async () => {
@@ -165,19 +222,34 @@ describe("confirmação do agendamento", () => {
     )).not.toBeNull();
   });
 
-  it("envia os dados normalizados e abre a tela de sucesso", async () => {
+  it("envia a política exibida como expectativa e abre a tela de sucesso", async () => {
     const user = userEvent.setup();
-    apiRequest.mockResolvedValue({
-      agendamento: {
-        id: 90,
-        data: BOOKING.date,
-        horario: BOOKING.time,
-        status: "agendado"
+    apiRequest.mockImplementation((path) => {
+      if (isPolicyRequest(path)) {
+        return Promise.resolve({
+          politica_cancelamento: {
+            antecedencia_horas: 24
+          }
+        });
       }
+
+      if (path === "/agendamentos") {
+        return Promise.resolve({
+          agendamento: {
+            id: 90,
+            data: BOOKING.date,
+            horario: BOOKING.time,
+            status: "agendado"
+          }
+        });
+      }
+
+      return Promise.resolve({});
     });
     sessionStorage.setItem("af_booking_draft", JSON.stringify(BOOKING));
 
     renderConfirmation();
+    await waitPolicy();
     await fillCustomer(user);
     await user.click(screen.getByRole("checkbox"));
     await user.click(screen.getByRole("button", {
@@ -194,6 +266,7 @@ describe("confirmação do agendamento", () => {
         horario: "09:00",
         cliente_nome: "Victor Souza",
         cliente_whatsapp: "62999998888",
+        antecedencia_cancelamento_esperada: 24,
         aceita_mensagens_whatsapp: true
       }
     });
@@ -218,12 +291,23 @@ describe("confirmação do agendamento", () => {
 
   it("informa conflito e permite voltar para escolher outro horário", async () => {
     const user = userEvent.setup();
-    apiRequest.mockRejectedValue(Object.assign(
-      new Error("Conflito"),
-      { status: 409 }
-    ));
+    apiRequest.mockImplementation((path) => {
+      if (isPolicyRequest(path)) {
+        return Promise.resolve({
+          politica_cancelamento: {
+            antecedencia_horas: 24
+          }
+        });
+      }
+
+      return Promise.reject(Object.assign(
+        new Error("Conflito"),
+        { status: 409 }
+      ));
+    });
 
     renderConfirmation();
+    await waitPolicy();
     await fillCustomer(user);
     await user.click(screen.getByRole("button", {
       name: "Confirmar agendamento"
@@ -240,14 +324,66 @@ describe("confirmação do agendamento", () => {
     })).not.toBeNull();
   });
 
+  it("recarrega e reapresenta a regra quando a política mudou", async () => {
+    const user = userEvent.setup();
+    let policyCalls = 0;
+
+    apiRequest.mockImplementation((path) => {
+      if (isPolicyRequest(path)) {
+        policyCalls += 1;
+        return Promise.resolve({
+          politica_cancelamento: {
+            antecedencia_horas: policyCalls === 1 ? 24 : 2
+          }
+        });
+      }
+
+      return Promise.reject(Object.assign(
+        new Error(
+          "A política de cancelamento foi atualizada. Revise as condições antes de confirmar o agendamento."
+        ),
+        { status: 409 }
+      ));
+    });
+
+    renderConfirmation();
+    await waitPolicy();
+    await fillCustomer(user);
+    await user.click(screen.getByRole("button", {
+      name: "Confirmar agendamento"
+    }));
+
+    expect((await screen.findByRole("alert")).textContent).toContain(
+      "A política de cancelamento mudou"
+    );
+    expect(await screen.findByText(
+      "Cancelamentos devem ser feitos com pelo menos 2 horas de antecedência."
+    )).not.toBeNull();
+  });
+
   it("não envia duas vezes enquanto a primeira confirmação está em andamento", async () => {
     const user = userEvent.setup();
     let finishRequest;
-    apiRequest.mockImplementation(() => new Promise((resolve) => {
-      finishRequest = resolve;
-    }));
+    apiRequest.mockImplementation((path) => {
+      if (isPolicyRequest(path)) {
+        return Promise.resolve({
+          politica_cancelamento: {
+            antecedencia_horas: 24
+          }
+        });
+      }
+
+      if (path === "/agendamentos") {
+        return new Promise((resolve) => {
+          finishRequest = resolve;
+        });
+      }
+
+      return Promise.resolve({});
+    });
 
     renderConfirmation();
+    await waitPolicy();
     await fillCustomer(user);
 
     const form = screen.getByRole("button", {
@@ -257,7 +393,10 @@ describe("confirmação do agendamento", () => {
     fireEvent.submit(form);
     fireEvent.submit(form);
 
-    expect(apiRequest).toHaveBeenCalledTimes(1);
+    const postCalls = apiRequest.mock.calls.filter(
+      ([path]) => path === "/agendamentos"
+    );
+    expect(postCalls).toHaveLength(1);
 
     finishRequest({
       agendamento: {
