@@ -128,14 +128,14 @@ function validarAgendamentoCancelavel(agendamento) {
     agora === null
   ) {
     throw criarErro(
-      "Não foi possível validar o horário desse agendamento.",
+      "Não foi possível validar a data e o horário do agendamento.",
       500
     );
   }
 
   if (inicioAgendamento <= agora) {
     throw criarErro(
-      "Não é possível cancelar um agendamento que já ocorreu.",
+      "Não é possível cancelar um agendamento já realizado.",
       400
     );
   }
@@ -153,7 +153,9 @@ function validarAgendamentoCancelavel(agendamento) {
 
   if (agora > limiteCancelamento) {
     throw criarErro(
-      `O cancelamento precisa ser feito com pelo menos ${formatarQuantidadeHoras(antecedenciaHoras)} antes do horário agendado.`,
+      `O prazo para cancelamento encerrou. ` +
+      `Este agendamento só pode ser cancelado com pelo menos ` +
+      `${formatarQuantidadeHoras(antecedenciaHoras)} de antecedência.`,
       409
     );
   }
@@ -270,7 +272,7 @@ async function cancelarAgendamentoCliente({
 
     if (!cancelado) {
       throw criarErro(
-        "Não foi possível cancelar esse agendamento.",
+        "Não foi possível cancelar o agendamento.",
         409
       );
     }
@@ -319,7 +321,7 @@ async function cancelarAgendamentoVisitante({
 
     if (!cancelado) {
       throw criarErro(
-        "Não foi possível cancelar esse agendamento.",
+        "Não foi possível cancelar o agendamento.",
         409
       );
     }
