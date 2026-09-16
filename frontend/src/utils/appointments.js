@@ -13,6 +13,18 @@ export const APPOINTMENT_STATUS = {
   canceled: "cancelado"
 };
 
+function normalizeGuestAccess(value, source) {
+  if (
+    source !== "visitor" ||
+    typeof value !== "string" ||
+    !/^[A-Za-z0-9_-]{43}$/.test(value)
+  ) {
+    return null;
+  }
+
+  return value;
+}
+
 export function normalizeAppointment(item, source = "account") {
   if (!item?.id || !item?.data || !item?.horario) {
     return null;
@@ -36,6 +48,7 @@ export function normalizeAppointment(item, source = "account") {
     profissional: item.profissional || "Profissional",
     servico: item.servico || "Serviço",
     valor: Number(item.valor) || 0,
+    acesso_visitante: normalizeGuestAccess(item.acesso_visitante, source),
     source
   };
 }
@@ -71,6 +84,27 @@ export function readRecentAppointment() {
   } catch {
     return null;
   }
+}
+
+export function markRecentAppointmentCanceled(appointmentId) {
+  const recent = readRecentAppointment();
+
+  if (
+    !recent ||
+    Number(recent.id) !== Number(appointmentId)
+  ) {
+    return;
+  }
+
+  writeBrowserStorage(
+    "session",
+    RECENT_APPOINTMENT_KEY,
+    JSON.stringify({
+      ...recent,
+      status: APPOINTMENT_STATUS.canceled,
+      acesso_visitante: null
+    })
+  );
 }
 
 export function groupAppointments(items) {
