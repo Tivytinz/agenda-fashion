@@ -106,7 +106,9 @@ describe("histórico real da cliente", () => {
     expect(screen.getByText("Não realizado")).not.toBeNull();
     expect(screen.getByText("Pedicure")).not.toBeNull();
     expect(screen.getByRole("link", { name: "Agendar novamente" })
-      .getAttribute("href")).toBe("/negocio/studio-af?servico=20");
+      .getAttribute("href")).toBe(
+        "/negocio/studio-af?servico=20&origem=meus_agendamentos"
+      );
   });
 
   it("mede o início do reagendamento a partir do histórico", async () => {
