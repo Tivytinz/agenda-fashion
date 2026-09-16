@@ -9,27 +9,16 @@ import { ErrorState, LoadingState } from "../components/ScreenState";
 import { usePageMetadata } from "../hooks/usePageMetadata";
 import { formatRating, normalizeAvailability } from "../utils/format";
 import {
+  mergeProfileSearchParams,
+  resolveProfileOrigin
+} from "../utils/profileOrigin";
+import {
   writeBrowserStorage
 } from "../utils/browserStorage";
 
+export { normalizeProfileOrigin } from "../utils/profileOrigin";
+
 const EMPTY_LIST = [];
-const PROFILE_ORIGINS = new Set([
-  "inicio",
-  "busca",
-  "favoritos",
-  "meus_agendamentos",
-  "compartilhamento"
-]);
-
-export function normalizeProfileOrigin(value) {
-  const origin = String(value || "")
-    .trim()
-    .toLowerCase();
-
-  return PROFILE_ORIGINS.has(origin)
-    ? origin
-    : "nao_informada";
-}
 
 export function ProfilePage() {
   const { slug } = useParams();
@@ -58,7 +47,7 @@ export function ProfilePage() {
   const [favoriteReload, setFavoriteReload] = useState(0);
   const searchQueryRef = useRef(searchParams.toString());
   const profileOriginRef = useRef(
-    normalizeProfileOrigin(searchParams.get("origem"))
+    resolveProfileOrigin(searchParams)
   );
   searchQueryRef.current = searchParams.toString();
 
@@ -249,10 +238,10 @@ export function ProfilePage() {
       : "";
     setServiceId(String(id));
     setProfessionalId(nextProfessionalId);
-    setSearchParams({
+    setSearchParams((current) => mergeProfileSearchParams(current, {
       servico: String(id),
-      ...(nextProfessionalId ? { profissional: nextProfessionalId } : {})
-    }, { replace: true });
+      profissional: nextProfessionalId || null
+    }), { replace: true });
     setDay("");
     setTime("");
     track("servico_selecionado", {
@@ -265,10 +254,10 @@ export function ProfilePage() {
 
   function selectProfessional(id) {
     setProfessionalId(String(id));
-    setSearchParams({
+    setSearchParams((current) => mergeProfileSearchParams(current, {
       servico: serviceId,
       profissional: String(id)
-    }, { replace: true });
+    }), { replace: true });
     setDay("");
     setTime("");
     track("profissional_selecionado", {
@@ -304,7 +293,12 @@ export function ProfilePage() {
 
   async function toggleFavorite() {
     if (!hasSession()) {
-      navigate("/entrar", { state: { from: `/negocio/${slug}` } });
+      const query = searchQueryRef.current;
+      navigate("/entrar", {
+        state: {
+          from: `/negocio/${encodeURIComponent(slug)}${query ? `?${query}` : ""}`
+        }
+      });
       return;
     }
 
