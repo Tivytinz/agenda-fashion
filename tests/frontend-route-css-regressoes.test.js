@@ -105,7 +105,7 @@ describe("ownership de CSS por rota", () => {
 
   test("nao carrega refinamentos administrativos pelo workspace profissional", () => {
     const workspace = ler("frontend/src/components/WorkspaceLayout.jsx");
-    const overview = ler("frontend/src/pages/AdminOverviewPage.jsx");
+    const overview = ler("frontend/src/pages/AdminAnalyticsV2Pages.jsx");
 
     expect(workspace).not.toContain('import "../styles/admin-refinements.css"');
     expect(overview).toContain('import "../styles/admin-refinements.css"');
