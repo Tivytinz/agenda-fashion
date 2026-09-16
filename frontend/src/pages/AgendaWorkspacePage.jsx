@@ -88,6 +88,8 @@ export function AgendaWorkspacePage({ owner = false }) {
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const [updating, setUpdating] = useState("");
+  const [cancelTarget, setCancelTarget] = useState(null);
+  const [cancelReason, setCancelReason] = useState("");
   const [datePageSize, setDatePageSize] = useState(getDatePageSize);
   const [datePageStart, setDatePageStart] = useState(0);
 
@@ -126,6 +128,20 @@ export function AgendaWorkspacePage({ owner = false }) {
     return () => window.clearTimeout(timeout);
   }, [message]);
 
+  useEffect(() => {
+    if (!cancelTarget) return undefined;
+
+    function handleKeyDown(event) {
+      if (event.key === "Escape" && !updating.startsWith("cancelamento-")) {
+        setCancelTarget(null);
+        setCancelReason("");
+      }
+    }
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [cancelTarget, updating]);
+
   const dates = getValidAgendaDays(data?.agenda);
   const activeDay = dates.find((day) => day.data === selectedDate) || dates[0];
   const professionals = owner ? getValidProfessionals(activeDay?.profissionais) : [];
@@ -138,6 +154,10 @@ export function AgendaWorkspacePage({ owner = false }) {
   const visibleDates = dates.slice(safeDatePageStart, safeDatePageStart + datePageSize);
   const canShowPreviousDates = safeDatePageStart > 0;
   const canShowNextDates = safeDatePageStart + datePageSize < dates.length;
+  const cancellationUpdating = Boolean(
+    cancelTarget?.agendamento_id &&
+    updating === `cancelamento-${cancelTarget.agendamento_id}`
+  );
 
   useEffect(() => {
     const selectedIndex = dates.findIndex((day) => day.data === selectedDate);
@@ -158,6 +178,8 @@ export function AgendaWorkspacePage({ owner = false }) {
   function selectDate(day) {
     setSelectedDate(day.data);
     setMessage("");
+    setCancelTarget(null);
+    setCancelReason("");
     if (owner) {
       const firstProfessional = getValidProfessionals(day.profissionais)[0];
       setSelectedProfessional(String(firstProfessional?.id || ""));
@@ -221,6 +243,49 @@ export function AgendaWorkspacePage({ owner = false }) {
     }
   }
 
+  function openCancellation(slot) {
+    if (!slot.agendamento_id || !slot.pode_cancelar) return;
+    setCancelTarget(slot);
+    setCancelReason("");
+    setError("");
+    setMessage("");
+  }
+
+  function closeCancellation() {
+    if (cancellationUpdating) return;
+    setCancelTarget(null);
+    setCancelReason("");
+  }
+
+  async function cancelAppointment() {
+    if (!cancelTarget?.agendamento_id) return;
+
+    const key = `cancelamento-${cancelTarget.agendamento_id}`;
+    setUpdating(key);
+    setError("");
+    setMessage("");
+
+    try {
+      const result = await apiRequest(
+        `/agendamentos/${cancelTarget.agendamento_id}/cancelar-operacional`,
+        {
+          method: "PATCH",
+          body: {
+            motivo: cancelReason.trim() || null
+          }
+        }
+      );
+      setCancelTarget(null);
+      setCancelReason("");
+      setMessage(result.mensagem);
+      await load();
+    } catch (requestError) {
+      setError(requestError.message);
+    } finally {
+      setUpdating("");
+    }
+  }
+
   if (!data && !error) return <div className="workspace-page"><LoadingState>Carregando agenda...</LoadingState></div>;
   if (!data && error) return <div className="workspace-page"><ErrorState message={error} onRetry={() => void load().catch(() => {})} /></div>;
 
@@ -230,7 +295,7 @@ export function AgendaWorkspacePage({ owner = false }) {
         <div>
           <p className="eyebrow">{owner ? "Seu negócio em movimento" : "Seu dia de trabalho"}</p>
           <h1>{owner ? "Agenda geral" : "Minha agenda profissional"}</h1>
-          <p>Bloqueie horários livres e registre o resultado dos atendimentos já ocorridos.</p>
+          <p>Bloqueie horários livres, cancele compromissos futuros e registre o resultado dos atendimentos já ocorridos.</p>
         </div>
       </header>
 
@@ -308,6 +373,8 @@ export function AgendaWorkspacePage({ owner = false }) {
                 const attendanceUpdating = updating.startsWith(
                   `atendimento-${slot.agendamento_id || "nenhum"}-`
                 );
+                const slotCancellationUpdating = updating ===
+                  `cancelamento-${slot.agendamento_id || "nenhum"}`;
                 const statusLabel = isBlockUpdating
                   ? slot.status === "livre" ? "Bloqueando..." : "Liberando..."
                   : getStatusLabel(slot.status);
@@ -329,16 +396,26 @@ export function AgendaWorkspacePage({ owner = false }) {
 
                 return (
                   <article
-                    className={`slot-card slot-card-static slot-${slot.status}${attendanceUpdating ? " is-updating" : ""}`}
+                    className={`slot-card slot-card-static slot-${slot.status}${attendanceUpdating || slotCancellationUpdating ? " is-updating" : ""}`}
                     key={`${slot.hora}-${slot.agendamento_id || ""}`}
                   >
                     <SlotSummary slot={slot} statusLabel={statusLabel} />
 
                     {isAppointment && ["agendado", "confirmado"].includes(slot.status) && (
-                      <div className="slot-lifecycle-actions" aria-label="Atualizar resultado do atendimento">
+                      <div className="slot-lifecycle-actions" aria-label="Gerenciar agendamento">
+                        {slot.pode_cancelar && (
+                          <button
+                            className="button button-secondary button-small slot-cancel-button"
+                            disabled={attendanceUpdating || slotCancellationUpdating}
+                            onClick={() => openCancellation(slot)}
+                            type="button"
+                          >
+                            Cancelar agendamento
+                          </button>
+                        )}
                         <button
                           className="button button-small"
-                          disabled={attendanceUpdating || !slot.pode_marcar_realizado}
+                          disabled={attendanceUpdating || slotCancellationUpdating || !slot.pode_marcar_realizado}
                           onClick={() => updateAttendance(slot, "realizado")}
                           type="button"
                         >
@@ -348,7 +425,7 @@ export function AgendaWorkspacePage({ owner = false }) {
                         </button>
                         <button
                           className="button button-secondary button-small"
-                          disabled={attendanceUpdating || !slot.pode_marcar_falta}
+                          disabled={attendanceUpdating || slotCancellationUpdating || !slot.pode_marcar_falta}
                           onClick={() => updateAttendance(slot, "falta")}
                           type="button"
                         >
@@ -364,6 +441,67 @@ export function AgendaWorkspacePage({ owner = false }) {
             </section>
           )}
         </>
+      )}
+
+      {cancelTarget && (
+        <div
+          className="agenda-cancel-backdrop"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) closeCancellation();
+          }}
+        >
+          <section
+            aria-labelledby="agenda-cancel-title"
+            aria-modal="true"
+            className="agenda-cancel-dialog"
+            role="dialog"
+          >
+            <p className="eyebrow">Cancelar compromisso</p>
+            <h2 id="agenda-cancel-title">Cancelar este agendamento?</h2>
+            <p className="agenda-cancel-summary">
+              {getAgendaEntityName(cancelTarget.cliente) || "Cliente"}
+              {" · "}
+              {getAgendaEntityName(cancelTarget.servico) || "Serviço"}
+              {" · "}
+              {String(cancelTarget.hora || "").slice(0, 5)}
+            </p>
+            <p>
+              O horário será liberado na agenda. Lembretes pendentes serão cancelados e as notificações de cancelamento configuradas serão enfileiradas.
+            </p>
+            <div className="agenda-cancel-reason">
+              <label htmlFor="agenda-cancel-reason">
+                Motivo do cancelamento (opcional)
+              </label>
+              <textarea
+                id="agenda-cancel-reason"
+                maxLength={300}
+                onChange={(event) => setCancelReason(event.target.value)}
+                placeholder="Ex.: profissional indisponível"
+                rows={3}
+                value={cancelReason}
+              />
+              <small>{cancelReason.length}/300</small>
+            </div>
+            <div className="agenda-cancel-actions">
+              <button
+                className="button button-secondary"
+                disabled={cancellationUpdating}
+                onClick={closeCancellation}
+                type="button"
+              >
+                Manter agendamento
+              </button>
+              <button
+                className="button agenda-cancel-confirm"
+                disabled={cancellationUpdating}
+                onClick={() => void cancelAppointment()}
+                type="button"
+              >
+                {cancellationUpdating ? "Cancelando..." : "Confirmar cancelamento"}
+              </button>
+            </div>
+          </section>
+        </div>
       )}
     </main>
   );

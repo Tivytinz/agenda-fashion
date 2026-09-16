@@ -218,6 +218,86 @@
   white-space: nowrap;
 }
 
+.agenda-workspace-page .slot-cancel-button {
+  color: #8c2039;
+  border-color: #e8b8c3;
+  background: #fff7f9;
+}
+
+.agenda-workspace-page .slot-cancel-button:hover:not(:disabled) {
+  border-color: #d78599;
+  background: #fff0f3;
+}
+
+.agenda-cancel-backdrop {
+  position: fixed;
+  z-index: 90;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgb(38 23 29 / 52%);
+  backdrop-filter: blur(2px);
+}
+
+.agenda-cancel-dialog {
+  display: grid;
+  gap: 14px;
+  width: min(500px, 100%);
+  max-height: min(720px, calc(100dvh - 40px));
+  overflow-y: auto;
+  border: 1px solid #ead8df;
+  border-radius: 22px;
+  padding: 22px;
+  background: #fff;
+  box-shadow: 0 24px 70px rgb(55 21 35 / 24%);
+}
+
+.agenda-cancel-dialog h2,
+.agenda-cancel-dialog p {
+  margin: 0;
+}
+
+.agenda-cancel-summary {
+  color: #5f5358;
+  font-weight: 700;
+}
+
+.agenda-cancel-reason {
+  display: grid;
+  gap: 7px;
+  font-weight: 700;
+}
+
+.agenda-cancel-reason textarea {
+  width: 100%;
+  resize: vertical;
+  min-height: 92px;
+}
+
+.agenda-cancel-reason small {
+  justify-self: end;
+  color: #77686e;
+  font-weight: 600;
+}
+
+.agenda-cancel-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.agenda-cancel-confirm {
+  border-color: #a72f4b;
+  background: #a72f4b;
+}
+
+.agenda-cancel-confirm:hover:not(:disabled) {
+  border-color: #8c2039;
+  background: #8c2039;
+}
+
 @media (max-width: 1439px) {
   .agenda-workspace-page .date-switcher {
     --agenda-visible-dates: 5;
@@ -268,5 +348,26 @@
 
   .agenda-workspace-page .slot-card {
     min-height: 72px;
+  }
+
+  .agenda-cancel-backdrop {
+    align-items: end;
+    padding: 12px;
+  }
+
+  .agenda-cancel-dialog {
+    width: 100%;
+    max-height: calc(100dvh - 24px);
+    border-radius: 20px;
+    padding: 18px;
+  }
+
+  .agenda-cancel-actions {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .agenda-cancel-actions .button {
+    width: 100%;
   }
 }

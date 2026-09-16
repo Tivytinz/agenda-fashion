@@ -13,6 +13,14 @@ const {
 } = require("../utils/fusoHorario");
 
 const ANTECEDENCIA_CANCELAMENTO_PADRAO = 24;
+const STATUS_CANCELAVEIS_OPERACIONAL = new Set([
+  "agendado",
+  "confirmado",
+]);
+const PAPEIS_CANCELAMENTO_OPERACIONAL = new Set([
+  "dono",
+  "profissional",
+]);
 
 function criarErro(mensagem, statusCode) {
   const erro = new Error(mensagem);
@@ -90,27 +98,49 @@ function normalizarAntecedenciaCancelamento(valor) {
   return Math.floor(numero);
 }
 
+function normalizarMotivoCancelamento(valor) {
+  if (
+    valor === undefined ||
+    valor === null ||
+    valor === ""
+  ) {
+    return null;
+  }
+
+  if (typeof valor !== "string") {
+    throw criarErro(
+      "Motivo do cancelamento inválido.",
+      400
+    );
+  }
+
+  const motivo = valor.trim();
+
+  if (!motivo) {
+    return null;
+  }
+
+  if (motivo.length > 300) {
+    throw criarErro(
+      "O motivo do cancelamento deve ter no máximo 300 caracteres.",
+      400
+    );
+  }
+
+  return motivo;
+}
+
 function formatarQuantidadeHoras(quantidade) {
   return quantidade === 1
     ? "1 hora"
     : `${quantidade} horas`;
 }
 
-function validarAgendamentoCancelavel(agendamento) {
-  if (!agendamento) {
-    throw criarErro(
-      "Agendamento não encontrado.",
-      404
-    );
-  }
-
-  if (agendamento.status === "cancelado") {
-    throw criarErro(
-      "Esse agendamento já está cancelado.",
-      400
-    );
-  }
-
+function validarDataHoraFutura({
+  agendamento,
+  mensagemPassado,
+  statusCodePassado = 409,
+}) {
   const agoraLocal = obterDataHoraNoFuso(
     agendamento.fuso_horario
   );
@@ -135,10 +165,38 @@ function validarAgendamentoCancelavel(agendamento) {
 
   if (inicioAgendamento <= agora) {
     throw criarErro(
-      "Não é possível cancelar um agendamento já realizado.",
+      mensagemPassado,
+      statusCodePassado
+    );
+  }
+
+  return {
+    inicioAgendamento,
+    agora,
+  };
+}
+
+function validarAgendamentoCancelavel(agendamento) {
+  if (!agendamento) {
+    throw criarErro(
+      "Agendamento não encontrado.",
+      404
+    );
+  }
+
+  if (agendamento.status === "cancelado") {
+    throw criarErro(
+      "Esse agendamento já está cancelado.",
       400
     );
   }
+
+  const tempos = validarDataHoraFutura({
+    agendamento,
+    mensagemPassado:
+      "Não é possível cancelar um agendamento já realizado.",
+    statusCodePassado: 400,
+  });
 
   const antecedenciaHoras = normalizarAntecedenciaCancelamento(
     agendamento.antecedencia_cancelamento_horas
@@ -149,9 +207,9 @@ function validarAgendamentoCancelavel(agendamento) {
   }
 
   const limiteCancelamento =
-    inicioAgendamento - antecedenciaHoras * 60 * 60 * 1000;
+    tempos.inicioAgendamento - antecedenciaHoras * 60 * 60 * 1000;
 
-  if (agora > limiteCancelamento) {
+  if (tempos.agora > limiteCancelamento) {
     throw criarErro(
       `O prazo para cancelamento encerrou. ` +
       `Este agendamento só pode ser cancelado com pelo menos ` +
@@ -161,6 +219,63 @@ function validarAgendamentoCancelavel(agendamento) {
   }
 
   return true;
+}
+
+function validarAgendamentoCancelavelOperacional({
+  agendamento,
+  usuarioId,
+}) {
+  if (!agendamento) {
+    throw criarErro(
+      "Agendamento não encontrado.",
+      404
+    );
+  }
+
+  const papel = String(
+    agendamento.papel_executor || ""
+  ).trim().toLowerCase();
+
+  if (!PAPEIS_CANCELAMENTO_OPERACIONAL.has(papel)) {
+    throw criarErro(
+      "Você não tem permissão para cancelar este agendamento.",
+      403
+    );
+  }
+
+  if (
+    papel === "profissional" &&
+    Number(agendamento.profissional_id) !== Number(usuarioId)
+  ) {
+    throw criarErro(
+      "Você só pode cancelar seus próprios agendamentos.",
+      403
+    );
+  }
+
+  if (agendamento.status === "cancelado") {
+    return {
+      jaCancelado: true,
+    };
+  }
+
+  if (!STATUS_CANCELAVEIS_OPERACIONAL.has(agendamento.status)) {
+    throw criarErro(
+      "Este atendimento não pode mais ser cancelado.",
+      409
+    );
+  }
+
+  validarDataHoraFutura({
+    agendamento,
+    mensagemPassado:
+      "Agendamentos que já começaram devem ser finalizados como realizado ou falta.",
+    statusCodePassado: 409,
+  });
+
+  return {
+    jaCancelado: false,
+  };
 }
 
 async function buscarPoliticaPublica({
@@ -335,12 +450,90 @@ async function cancelarAgendamentoVisitante({
   });
 }
 
+async function cancelarAgendamentoOperacional({
+  agendamentoId,
+  negocioId,
+  usuarioId,
+  motivo,
+}) {
+  const id = normalizarId(agendamentoId);
+  const negocio = normalizarId(negocioId);
+  const usuario = normalizarId(usuarioId);
+  const motivoNormalizado = normalizarMotivoCancelamento(motivo);
+
+  if (!id || !negocio || !usuario) {
+    throw criarErro(
+      "Agendamento não encontrado.",
+      404
+    );
+  }
+
+  return db.executarTransacao(async (client) => {
+    const agendamento =
+      await agendamentoCancelamentoRepository
+        .buscarAgendamentoOperacionalParaCancelar({
+          agendamentoId: id,
+          negocioId: negocio,
+          usuarioId: usuario,
+          executor: client,
+        });
+
+    const validacao = validarAgendamentoCancelavelOperacional({
+      agendamento,
+      usuarioId: usuario,
+    });
+
+    if (validacao.jaCancelado) {
+      return {
+        ja_cancelado: true,
+        agendamento: {
+          id: agendamento.id,
+          status: agendamento.status,
+          cancelado_em: agendamento.cancelado_em,
+          cancelado_por: agendamento.cancelado_por,
+          cancelamento_origem: agendamento.cancelamento_origem,
+          motivo_cancelamento: agendamento.motivo_cancelamento,
+        },
+      };
+    }
+
+    const cancelado =
+      await agendamentoCancelamentoRepository
+        .cancelarAgendamentoOperacional({
+          agendamentoId: id,
+          usuarioId: usuario,
+          motivo: motivoNormalizado,
+          executor: client,
+        });
+
+    if (!cancelado) {
+      throw criarErro(
+        "O agendamento mudou enquanto o cancelamento era processado. Atualize a agenda e tente novamente.",
+        409
+      );
+    }
+
+    await whatsappMensagemService.enfileirarCancelamento({
+      executor: client,
+      agendamentoId: id,
+    });
+
+    return {
+      ja_cancelado: false,
+      agendamento: cancelado,
+    };
+  });
+}
+
 module.exports = {
   ANTECEDENCIA_CANCELAMENTO_PADRAO,
   normalizarAntecedenciaCancelamento,
+  normalizarMotivoCancelamento,
   validarAgendamentoCancelavel,
+  validarAgendamentoCancelavelOperacional,
   buscarPoliticaPublica,
   validarPoliticaEsperada,
   cancelarAgendamentoCliente,
   cancelarAgendamentoVisitante,
+  cancelarAgendamentoOperacional,
 };
