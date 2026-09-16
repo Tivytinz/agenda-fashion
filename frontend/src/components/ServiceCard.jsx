@@ -1,4 +1,4 @@
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import {
   formatCurrency,
   formatLocation
@@ -9,10 +9,15 @@ import {
   serviceCategoryLabel
 } from "../utils/specialties";
 import { buildLocalCatalogPath } from "../utils/localCatalog";
+import {
+  buildProfilePath,
+  resolveDiscoveryProfileOrigin
+} from "../utils/profileOrigin";
 
 export function ServiceCard({
   service
 }) {
+  const location = useLocation();
   const {
     handleError: handleImageError,
     hasImage,
@@ -22,14 +27,19 @@ export function ServiceCard({
     fit: "contain"
   });
 
-  const profileUrl =
-    `/negocio/${encodeURIComponent(
-      service.negocio_slug
-    )}`;
-  const bookingUrl =
-    `${profileUrl}?servico=${encodeURIComponent(
-      service.id
-    )}`;
+  const profileOrigin = resolveDiscoveryProfileOrigin(
+    location.pathname,
+    location.search
+  );
+  const profileUrl = buildProfilePath({
+    slug: service.negocio_slug,
+    origin: profileOrigin
+  });
+  const bookingUrl = buildProfilePath({
+    slug: service.negocio_slug,
+    serviceId: service.id,
+    origin: profileOrigin
+  });
   const bookingAvailable =
     service.agendamento_online_disponivel === true;
   const destinationUrl =
