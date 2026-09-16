@@ -40,7 +40,9 @@ describe("ServiceCard", () => {
     renderCard({ agendamento_online_disponivel: true });
 
     expect(screen.getByRole("link", { name: "Ver horários" })
-      .getAttribute("href")).toBe("/negocio/studio-aurora?servico=12");
+      .getAttribute("href")).toBe(
+        "/negocio/studio-aurora?servico=12&origem=inicio"
+      );
     expect(screen.queryByText("Agenda online em configuração")).toBeNull();
   });
 
@@ -48,7 +50,9 @@ describe("ServiceCard", () => {
     renderCard({ agendamento_online_disponivel: false });
 
     expect(screen.getByRole("link", { name: "Ver perfil" })
-      .getAttribute("href")).toBe("/negocio/studio-aurora");
+      .getAttribute("href")).toBe(
+        "/negocio/studio-aurora?origem=inicio"
+      );
     expect(screen.getByText("Agenda online em configuração")).not.toBeNull();
     expect(screen.queryByRole("link", { name: "Ver horários" })).toBeNull();
   });
@@ -57,7 +61,9 @@ describe("ServiceCard", () => {
     renderCard();
 
     expect(screen.getByRole("link", { name: "Ver perfil" })
-      .getAttribute("href")).toBe("/negocio/studio-aurora");
+      .getAttribute("href")).toBe(
+        "/negocio/studio-aurora?origem=inicio"
+      );
     expect(screen.queryByRole("link", { name: "Ver horários" })).toBeNull();
   });
 });
