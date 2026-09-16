@@ -4,6 +4,11 @@ const agendamentoLifecycleRepository = require(
   "../repositories/agendamentoLifecycleRepository"
 );
 
+const STATUS_ATIVOS = new Set([
+  "agendado",
+  "confirmado",
+]);
+
 function normalizarHorario(horario) {
   if (!horario) return null;
   return String(horario).trim().slice(0, 5);
@@ -45,6 +50,18 @@ function criarSlotsBaseConfiaveis(horarios) {
   );
 }
 
+function podeCancelarAgendamentoOperacional(agendamento) {
+  const status = String(
+    agendamento?.status || ""
+  ).trim().toLowerCase();
+
+  return Boolean(
+    agendamento?.agendamento_id &&
+    STATUS_ATIVOS.has(status) &&
+    !agendamento?.pode_marcar_falta
+  );
+}
+
 function criarSlotDeAgendamento(agendamento) {
   return {
     data: agendamento.data,
@@ -58,6 +75,7 @@ function criarSlotDeAgendamento(agendamento) {
     servico: agendamento.servico || null,
     valor: agendamento.valor ?? null,
     duracao_minutos: agendamento.duracao_minutos || null,
+    pode_cancelar: podeCancelarAgendamentoOperacional(agendamento),
     pode_marcar_falta: Boolean(agendamento.pode_marcar_falta),
     pode_marcar_realizado: Boolean(agendamento.pode_marcar_realizado),
   };
@@ -156,6 +174,7 @@ function materializarAgendaGeral(agenda, agendamentos, bloqueios) {
           agendamento_id: agendamento.agendamento_id || null,
           cliente: agendamento.cliente || null,
           servico: agendamento.servico || null,
+          pode_cancelar: podeCancelarAgendamentoOperacional(agendamento),
           pode_marcar_falta: Boolean(agendamento.pode_marcar_falta),
           pode_marcar_realizado: Boolean(agendamento.pode_marcar_realizado),
         });
