@@ -43,6 +43,39 @@ Uma tentativa de trocar um estado terminal por outro retorna conflito em vez de 
 
 Repetir a mesma transição terminal é idempotente.
 
+## Cancelamento
+
+Cancelamento permanece separado das transições de comparecimento e possui três contextos distintos.
+
+### Cliente autenticada
+
+`PATCH /agendamentos/:id/cancelar` permite que a cliente autenticada cancele apenas um compromisso pertencente à própria conta.
+
+A regra de antecedência usada é o snapshot persistido em `agendamentos.antecedencia_cancelamento_horas`. Alterar depois a configuração atual da profissional não retroage sobre um booking já criado.
+
+### Visitante
+
+`PATCH /agendamentos/:id/cancelar-visitante` exige a capability emitida na criação do agendamento visitante e aplica a mesma política congelada no booking.
+
+A capability não transforma o visitante em usuário autenticado e não amplia acesso a outros compromissos.
+
+### Operação do negócio
+
+`PATCH /agendamentos/:id/cancelar-operacional` é uma exceção operacional iniciada pelo negócio:
+
+- a dona pode cancelar compromissos futuros `agendado` ou `confirmado` do negócio ativo resolvido pelo backend;
+- a profissional pode cancelar somente compromissos atribuídos a ela;
+- usuário ou vínculo de outro negócio não recebe acesso ao compromisso;
+- um atendimento que já começou não pode voltar para `cancelado`; deve seguir para `realizado` ou `falta` conforme o lifecycle;
+- a antecedência contratual de cancelamento da cliente não bloqueia essa ação operacional do negócio;
+- repetir o cancelamento operacional de um compromisso já cancelado é idempotente e não sobrescreve sua auditoria original;
+- um motivo operacional pode ser informado com até 300 caracteres;
+- a notificação de cancelamento pelo WhatsApp é enfileirada na mesma transação da alteração persistida.
+
+O frontend pode ocultar a ação quando ela não se aplica, mas autorização, escopo do negócio e regra temporal continuam backend-authoritative.
+
+Cancelamento não cria um novo horário nem representa remarcação. Uma futura remarcação deve permanecer como fluxo explícito e auditável, sem reescrever silenciosamente o compromisso original.
+
 ## Autorização
 
 A transição é backend-authoritative.
@@ -74,6 +107,14 @@ A migration `069_ciclo_atendimento.sql` adiciona:
 - `agendamentos.status_atendimento_por`.
 
 Esses campos registram quando e por quem `realizado` ou `falta` foi persistido.
+
+A migration `071_cancelamento_operacional_auditoria.sql` complementa o histórico de cancelamento com:
+
+- `agendamentos.cancelado_por`;
+- `agendamentos.cancelamento_origem`, limitado a `cliente`, `visitante` ou `negocio`;
+- `agendamentos.motivo_cancelamento`, opcional e limitado a 300 caracteres.
+
+Cancelamentos históricos anteriores à migration podem permanecer com autoria/origem nulas; a migration não inventa retroativamente quem executou uma ação antiga.
 
 ## Avaliação
 
@@ -142,6 +183,7 @@ Ainda permanecem separados:
 - habilitação completa de múltiplos vínculos profissionais ativos, junto do contexto ativo explícito;
 - disponibilidade semanal e bloqueios por `negócio + profissional`;
 - política de correção/reabertura de estado terminal;
+- remarcação operacional explícita;
 - cadastro manual de agendamento;
 - derivação nacional automática do fuso horário;
 - métricas financeiras que dependam de uma definição formal de receita realizada.
