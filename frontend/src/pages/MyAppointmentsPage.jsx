@@ -7,6 +7,7 @@ import { ErrorState, LoadingState } from "../components/ScreenState";
 import {
   APPOINTMENT_STATUS,
   groupAppointments,
+  markRecentAppointmentCanceled,
   readRecentAppointment
 } from "../utils/appointments";
 import { formatCurrency, formatDate } from "../utils/format";
@@ -271,12 +272,27 @@ export function MyAppointmentsPage() {
     setMessage("");
 
     try {
-      await apiRequest(`/agendamentos/${appointment.id}/cancelar`, {
-        method: "PATCH"
-      });
+      if (isAuthenticated) {
+        await apiRequest(`/agendamentos/${appointment.id}/cancelar`, {
+          method: "PATCH"
+        });
+      } else {
+        await apiRequest(`/agendamentos/${appointment.id}/cancelar-visitante`, {
+          method: "PATCH",
+          body: {
+            acesso_visitante: appointment.acesso_visitante
+          }
+        });
+        markRecentAppointmentCanceled(appointment.id);
+      }
+
       setAppointments((current) => current.map((item) =>
         Number(item.id) === Number(appointment.id)
-          ? { ...item, status: APPOINTMENT_STATUS.canceled }
+          ? {
+              ...item,
+              status: APPOINTMENT_STATUS.canceled,
+              acesso_visitante: null
+            }
           : item
       ));
       setActiveTab("canceled");
@@ -286,7 +302,10 @@ export function MyAppointmentsPage() {
         page: "meus_agendamentos",
         mission: "acompanhar_agendamentos",
         businessId: appointment.negocio_id,
-        properties: { agendamento_id: Number(appointment.id) }
+        properties: {
+          agendamento_id: Number(appointment.id),
+          origem: isAuthenticated ? "conta" : "visitante"
+        }
       });
     } catch (error) {
       setCancelError(error.message);
@@ -383,8 +402,8 @@ export function MyAppointmentsPage() {
           <div>
             <strong>Agendamento como visitante</strong>
             <p>
-              Este navegador mostra apenas o horário que você acabou de criar.
-              Entre para reunir seus agendamentos e poder gerenciá-los.
+              Nesta sessão você pode acompanhar e cancelar o agendamento que acabou de criar.
+              Entre na sua conta para reunir e gerenciar agendamentos feitos com login.
             </p>
           </div>
           <Link className="button button-small" to="/entrar">Entrar</Link>
@@ -438,11 +457,17 @@ export function MyAppointmentsPage() {
                     <AppointmentCard
                       appointment={appointment}
                       canCancel={
-                        isAuthenticated &&
                         [
                           APPOINTMENT_STATUS.scheduled,
                           APPOINTMENT_STATUS.confirmed
-                        ].includes(appointment.status)
+                        ].includes(appointment.status) &&
+                        (
+                          isAuthenticated ||
+                          (
+                            appointment.source === "visitor" &&
+                            Boolean(appointment.acesso_visitante)
+                          )
+                        )
                       }
                       canEvaluate={
                         isAuthenticated &&
