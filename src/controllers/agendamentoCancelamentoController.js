@@ -69,9 +69,31 @@ async function cancelarVisitante(req, res, next) {
   }
 }
 
+async function cancelarOperacional(req, res, next) {
+  try {
+    const resultado =
+      await agendamentoCancelamentoService.cancelarAgendamentoOperacional({
+        agendamentoId: req.params.id,
+        negocioId: req.agendaContexto?.negocioId,
+        usuarioId: req.user?.id,
+        motivo: req.body?.motivo,
+      });
+
+    return res.json({
+      mensagem: resultado.ja_cancelado
+        ? "Agendamento já estava cancelado."
+        : "Agendamento cancelado pelo negócio com sucesso.",
+      agendamento: resultado.agendamento,
+    });
+  } catch (error) {
+    return next(error);
+  }
+}
+
 module.exports = {
   buscarPoliticaPublica,
   validarPoliticaExibida,
   cancelarCliente,
   cancelarVisitante,
+  cancelarOperacional,
 };
