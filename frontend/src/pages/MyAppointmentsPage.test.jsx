@@ -72,7 +72,7 @@ describe("agenda da cliente", () => {
 
     const repeatLink = screen.getByRole("link", { name: "Agendar novamente" });
     expect(repeatLink.getAttribute("href"))
-      .toBe("/negocio/studio-aurora?servico=9");
+      .toBe("/negocio/studio-aurora?servico=9&origem=meus_agendamentos");
     expect(repeatLink.getAttribute("href")).not.toContain("profissional");
   });
 
@@ -93,7 +93,9 @@ describe("agenda da cliente", () => {
 
     expect(screen.queryByRole("link", { name: "Agendar novamente" })).toBeNull();
     expect(screen.getByRole("link", { name: "Ver negócio" })
-      .getAttribute("href")).toBe("/negocio/studio-aurora");
+      .getAttribute("href")).toBe(
+        "/negocio/studio-aurora?origem=meus_agendamentos"
+      );
   });
 
   it("mantém o diálogo aberto e mostra o erro quando o cancelamento falha", async () => {
