@@ -1,3 +1,5 @@
+import { PUBLIC_LINK_MEDIA } from "./publicLinks";
+
 export const PROFILE_ORIGIN = Object.freeze({
   HOME: "inicio",
   SEARCH: "busca",
@@ -10,12 +12,9 @@ const PROFILE_ORIGINS = new Set(
   Object.values(PROFILE_ORIGIN)
 );
 
-const SHARE_MEDIA = new Set([
-  "share",
-  "copy",
-  "qr",
-  "whatsapp"
-]);
+const SHARE_MEDIA = new Set(
+  Object.values(PUBLIC_LINK_MEDIA)
+);
 
 export function normalizeProfileOrigin(value) {
   const origin = String(value || "")
