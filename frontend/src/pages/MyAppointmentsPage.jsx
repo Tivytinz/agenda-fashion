@@ -11,6 +11,10 @@ import {
   readRecentAppointment
 } from "../utils/appointments";
 import { formatCurrency, formatDate } from "../utils/format";
+import {
+  PROFILE_ORIGIN,
+  buildProfilePath
+} from "../utils/profileOrigin";
 
 const TABS = [
   { id: "scheduled", label: "Agendados" },
@@ -112,7 +116,11 @@ function AppointmentCard({
     canRepeat &&
     appointment.slug &&
     appointment.servico_id
-      ? `/negocio/${encodeURIComponent(appointment.slug)}?servico=${encodeURIComponent(appointment.servico_id)}`
+      ? buildProfilePath({
+          slug: appointment.slug,
+          serviceId: appointment.servico_id,
+          origin: PROFILE_ORIGIN.APPOINTMENTS
+        })
       : "";
   const savedRating = Number(appointment.avaliacao);
   const hasRating = Number.isInteger(savedRating) && savedRating >= 1 && savedRating <= 5;
@@ -193,7 +201,13 @@ function AppointmentCard({
             </Link>
           )}
           {appointment.slug && (
-            <Link className="button button-secondary button-small" to={`/negocio/${encodeURIComponent(appointment.slug)}`}>
+            <Link
+              className="button button-secondary button-small"
+              to={buildProfilePath({
+                slug: appointment.slug,
+                origin: PROFILE_ORIGIN.APPOINTMENTS
+              })}
+            >
               Ver negócio
             </Link>
           )}
