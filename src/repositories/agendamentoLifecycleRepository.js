@@ -16,7 +16,11 @@ async function listarAgendamentosCliente(clienteId) {
         n.nome AS negocio,
         n.slug,
         u.nome AS profissional,
-        s.nome AS servico,
+        COALESCE(
+          NULLIF(BTRIM(a.servico_nome), ''),
+          NULLIF(BTRIM(s.nome), ''),
+          'Serviço'
+        ) AS servico,
         COALESCE(a.valor_servico, s.valor, 0)::numeric AS valor
       FROM agendamentos a
       LEFT JOIN servicos_negocio s
@@ -225,7 +229,11 @@ async function listarAgendamentosProfissionalPorPeriodo({
           ELSE NULL
         END AS servico_id,
         CASE
-          WHEN a.negocio_id = contexto.negocio_id THEN s.nome
+          WHEN a.negocio_id = contexto.negocio_id THEN COALESCE(
+            NULLIF(BTRIM(a.servico_nome), ''),
+            NULLIF(BTRIM(s.nome), ''),
+            'Serviço'
+          )
           ELSE NULL
         END AS servico,
         CASE
@@ -338,7 +346,11 @@ async function listarAgendamentosProfissionaisDoNegocioPorPeriodo({
           ELSE NULL
         END AS cliente,
         CASE
-          WHEN a.negocio_id = $1 THEN s.nome
+          WHEN a.negocio_id = $1 THEN COALESCE(
+            NULLIF(BTRIM(a.servico_nome), ''),
+            NULLIF(BTRIM(s.nome), ''),
+            'Serviço'
+          )
           ELSE NULL
         END AS servico,
         CASE
