@@ -68,7 +68,11 @@ export function resolveDiscoveryProfileOrigin(pathname, search) {
     return PROFILE_ORIGIN.SEARCH;
   }
 
-  return PROFILE_ORIGIN.HOME;
+  if (path === "/") {
+    return PROFILE_ORIGIN.HOME;
+  }
+
+  return "nao_informada";
 }
 
 export function buildProfilePath({
