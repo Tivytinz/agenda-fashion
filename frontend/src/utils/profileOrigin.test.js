@@ -42,7 +42,7 @@ describe("origem do perfil público", () => {
     )).toBe("nao_informada");
   });
 
-  it("distingue descoberta inicial de busca", () => {
+  it("distingue descoberta inicial de busca sem atribuir outras rotas", () => {
     expect(resolveDiscoveryProfileOrigin("/", ""))
       .toBe(PROFILE_ORIGIN.HOME);
     expect(resolveDiscoveryProfileOrigin("/", "?busca=manicure"))
@@ -51,6 +51,8 @@ describe("origem do perfil público", () => {
       "/servicos/unha/em/goiania-go",
       ""
     )).toBe(PROFILE_ORIGIN.SEARCH);
+    expect(resolveDiscoveryProfileOrigin("/favoritos", ""))
+      .toBe("nao_informada");
   });
 
   it("monta rota de perfil com serviço e origem sem confiar em texto livre", () => {
