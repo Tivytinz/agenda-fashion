@@ -468,9 +468,10 @@ export function AgendaWorkspacePage({ owner = false }) {
             <p>
               O horário será liberado na agenda. Lembretes pendentes serão cancelados e as notificações de cancelamento configuradas serão enfileiradas.
             </p>
-            <label className="agenda-cancel-reason">
+            <label className="agenda-cancel-reason" htmlFor="agenda-cancel-reason">
               Motivo do cancelamento (opcional)
               <textarea
+                id="agenda-cancel-reason"
                 maxLength={300}
                 onChange={(event) => setCancelReason(event.target.value)}
                 placeholder="Ex.: profissional indisponível"
