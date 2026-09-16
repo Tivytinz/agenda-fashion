@@ -201,7 +201,15 @@ describe("cancelamento operacional do agendamento", () => {
     try {
       if (negocios.length > 0) {
         await db.query(
-          `DELETE FROM whatsapp_mensagens WHERE negocio_id = ANY($1::BIGINT[])`,
+          `
+            DELETE FROM whatsapp_mensagens
+            WHERE negocio_id = ANY($1::BIGINT[])
+              OR agendamento_id IN (
+                SELECT id
+                FROM agendamentos
+                WHERE negocio_id = ANY($1::BIGINT[])
+              )
+          `,
           [negocios]
         );
         await db.query(
