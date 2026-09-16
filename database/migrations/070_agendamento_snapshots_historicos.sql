@@ -22,7 +22,11 @@ WHERE a.servico_nome IS NULL
 UPDATE agendamentos a
 SET antecedencia_cancelamento_horas = COALESCE(
   (
-    SELECT ac.antecedencia_cancelamento
+    SELECT CASE
+      WHEN ac.antecedencia_cancelamento >= 0
+        THEN ac.antecedencia_cancelamento
+      ELSE 24
+    END
     FROM agenda_configuracoes ac
     WHERE ac.profissional_id = a.profissional_id
     LIMIT 1
@@ -69,7 +73,12 @@ BEGIN
     WHERE ac.profissional_id = NEW.profissional_id
     LIMIT 1;
 
-    NEW.antecedencia_cancelamento_horas := COALESCE(antecedencia_atual, 24);
+    NEW.antecedencia_cancelamento_horas := CASE
+      WHEN antecedencia_atual IS NOT NULL
+        AND antecedencia_atual >= 0
+        THEN antecedencia_atual
+      ELSE 24
+    END;
   END IF;
 
   RETURN NEW;
