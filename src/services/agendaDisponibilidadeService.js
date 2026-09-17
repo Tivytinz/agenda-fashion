@@ -419,6 +419,7 @@ function possuiConflitoComBloqueio({
 
 async function buscarDisponibilidade({
   profissionalId,
+  negocioId,
   duracaoServico,
   quantidadeDias = 7,
   fusoHorario,
@@ -426,6 +427,12 @@ async function buscarDisponibilidade({
   if (!profissionalId) {
     throw new Error(
       "Profissional é obrigatório para buscar disponibilidade."
+    );
+  }
+
+  if (!negocioId) {
+    throw new Error(
+      "Negócio é obrigatório para buscar disponibilidade."
     );
   }
 
@@ -440,12 +447,14 @@ async function buscarDisponibilidade({
   const configuracao =
     await agendaConfiguracaoRepository
       .buscarConfiguracao(
-        profissionalId
+        profissionalId,
+        negocioId
       );
 
   /*
-   * Publicacao e configuracao da agenda sao marcos diferentes.
-   * Sem confirmacao explicita, defaults nunca viram disponibilidade publica.
+   * `configurado_em` é apenas um marcador técnico de inicialização desde a
+   * migration 065. Se a configuração contextual não existir, não fabricamos
+   * disponibilidade pública; o vínculo precisa ter sido inicializado.
    */
   if (!configuracao?.configurado_em) {
     return dias.map((data) => ({
@@ -460,9 +469,14 @@ async function buscarDisponibilidade({
     bloqueios,
   ] = await Promise.all([
     agendaConfiguracaoRepository.listarHorarios(
-      profissionalId
+      profissionalId,
+      negocioId
     ),
 
+    /*
+     * Ocupação permanece global por pessoa: um compromisso em qualquer
+     * negócio bloqueia o mesmo profissional nos demais contextos.
+     */
     agendaPublicaRepository.listarAgendamentosOcupados(
       profissionalId,
       dias[0],
@@ -594,6 +608,7 @@ async function buscarDisponibilidade({
 
 async function horarioEstaDisponivel({
   profissionalId,
+  negocioId,
   duracaoServico,
   data,
   horario,
@@ -602,6 +617,7 @@ async function horarioEstaDisponivel({
 }) {
   if (
     !profissionalId ||
+    !negocioId ||
     !data ||
     !horario
   ) {
@@ -611,6 +627,7 @@ async function horarioEstaDisponivel({
   const disponibilidade =
     await buscarDisponibilidade({
       profissionalId,
+      negocioId,
       duracaoServico,
       quantidadeDias,
       fusoHorario,
