@@ -3,19 +3,24 @@ import { LoadingState } from "../components/ScreenState";
 import { useSession } from "./SessionContext";
 import {
   getBusinessCreationPath,
+  getOwnerContext,
   getPlanIntentPath,
+  getProfessionalContext,
   normalizePlanSlug
 } from "./session";
 
 export function ProtectedRoute({
   children,
   ownerOnly = false,
+  professionalOnly = false,
   businessRequired = false,
   publishedBusinessRequired = false,
   adminOnly = false
 }) {
   const session = useSession();
   const location = useLocation();
+  const ownerContext = getOwnerContext(session);
+  const professionalContext = getProfessionalContext(session);
 
   if (session.loading) {
     return (
@@ -62,11 +67,28 @@ export function ProtectedRoute({
     );
   }
 
-  if (ownerOnly && session.negocio?.papel !== "dono") {
-    return <Navigate replace to="/profissional/agenda" />;
+  if (ownerOnly && !ownerContext) {
+    return (
+      <Navigate
+        replace
+        to={professionalContext ? "/profissional/agenda" : "/criar-negocio"}
+      />
+    );
   }
 
-  if (publishedBusinessRequired && session.negocio?.publicado !== true) {
+  if (professionalOnly && !professionalContext) {
+    return (
+      <Navigate
+        replace
+        to={ownerContext ? "/painel" : "/convites"}
+      />
+    );
+  }
+
+  if (
+    publishedBusinessRequired &&
+    ownerContext?.publicado !== true
+  ) {
     const planSlug = normalizePlanSlug(
       new URLSearchParams(location.search).get("plano")
     );
