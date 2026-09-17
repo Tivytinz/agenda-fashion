@@ -62,6 +62,9 @@ jobs:
       - name: Lint React frontend
         run: npm --prefix frontend run lint
 
+      - name: Check frontend dead code
+        run: npm --prefix frontend run check:dead-code
+
       - name: Build React frontend
         run: npm run frontend:build
 

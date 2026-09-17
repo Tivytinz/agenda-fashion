@@ -27,7 +27,7 @@ export default [
       ...js.configs.recommended.rules,
       "no-unused-vars": ["error", {
         argsIgnorePattern: "^_",
-        varsIgnorePattern: "^[A-Z_]"
+        varsIgnorePattern: "^_"
       }],
       "react/jsx-uses-vars": "error"
     },
