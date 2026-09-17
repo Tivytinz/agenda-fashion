@@ -1,5 +1,40 @@
 const db = require("../db/db");
 
+async function buscarVinculoAtivoPorPapel(
+  profissionalId,
+  papel,
+  executor = db
+) {
+  const result = await executor.query(
+    `
+    SELECT
+      u.id,
+      un.negocio_id,
+      un.papel
+    FROM usuarios u
+    INNER JOIN usuarios_negocios un
+      ON un.usuario_id = u.id
+    INNER JOIN negocios n
+      ON n.id = un.negocio_id
+    WHERE u.id = $1
+      AND un.papel = $2
+      AND u.ativo = TRUE
+      AND un.ativo = TRUE
+      AND n.ativo = TRUE
+    ORDER BY
+      un.created_at ASC,
+      un.id ASC
+    LIMIT 1
+    `,
+    [
+      profissionalId,
+      papel,
+    ]
+  );
+
+  return result.rows[0] || null;
+}
+
 async function buscarProfissionalAtivo(
   profissionalId,
   negocioId,
@@ -336,6 +371,7 @@ async function garantirDisponibilidadePadrao({
 }
 
 module.exports = {
+  buscarVinculoAtivoPorPapel,
   buscarProfissionalAtivo,
   buscarConfiguracao,
   criarConfiguracao,
