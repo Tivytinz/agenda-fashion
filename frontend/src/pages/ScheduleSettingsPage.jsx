@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { track } from "../analytics/track";
 import { apiRequest } from "../api/client";
+import { useSession } from "../auth/SessionContext";
 import { getPlanIntentPath, normalizePlanSlug } from "../auth/session";
 import { ConfirmationIcon } from "../components/ConfirmationIcon";
 import { FlowSteps } from "../components/FlowSteps";
@@ -139,6 +140,8 @@ export function validateSchedule(days, { requireActiveDay = false } = {}) {
 
 export function ScheduleSettingsPage() {
   const navigate = useNavigate();
+  const session = useSession();
+  const negocioId = Number(session?.negocio?.id);
   const [searchParams] = useSearchParams();
   const selectedPlan = normalizePlanSlug(searchParams.get("plano"));
   const [config, setConfig] = useState(null);
@@ -155,7 +158,13 @@ export function ScheduleSettingsPage() {
 
   const load = useCallback(() => {
     setError("");
-    apiRequest("/agenda-configuracao")
+
+    if (!Number.isInteger(negocioId) || negocioId <= 0) {
+      setError("Não foi possível identificar o negócio atual.");
+      return;
+    }
+
+    apiRequest(`/agenda-configuracao?negocioId=${encodeURIComponent(negocioId)}`)
       .then((result) => {
         const current = result.configuracao || {};
         const normalizedDays = (result.horarios || [])
@@ -193,7 +202,7 @@ export function ScheduleSettingsPage() {
         });
       })
       .catch((requestError) => setError(requestError.message));
-  }, []);
+  }, [negocioId]);
 
   useEffect(load, [load]);
 
@@ -316,6 +325,11 @@ export function ScheduleSettingsPage() {
     setError("");
     setMessage("");
 
+    if (!Number.isInteger(negocioId) || negocioId <= 0) {
+      setError("Não foi possível identificar o negócio atual.");
+      return;
+    }
+
     const primeiraConfiguracao = !config?.configuradoEm;
     const submitSource = event.nativeEvent?.submitter?.dataset?.source;
     const origem = primeiraConfiguracao
@@ -357,7 +371,7 @@ export function ScheduleSettingsPage() {
     try {
       const result = await apiRequest("/agenda-configuracao", {
         method: "PUT",
-        body: { ...config, horarios: days }
+        body: { ...config, negocioId, horarios: days }
       });
       const savedConfig = result.configuracao || {};
       const configuradoEm = savedConfig.configurado_em
