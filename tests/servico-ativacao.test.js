@@ -42,8 +42,10 @@ describe("Escolha de serviços ativos", () => {
       nome: "Manicure",
       ativo: true,
     });
-    client.query.mockResolvedValue({
-      rows: [{ id: 9, nome: "Manicure", ativo: false }],
+    servicosRepository.alterarAtivoServico.mockResolvedValue({
+      id: 9,
+      nome: "Manicure",
+      ativo: false,
     });
 
     const resultado = await servicoAtivacaoService.alterarAtivoServico({
@@ -54,9 +56,15 @@ describe("Escolha de serviços ativos", () => {
 
     expect(resultado.servico.ativo).toBe(false);
     expect(planoService.buscarUsoPlano).not.toHaveBeenCalled();
-    expect(client.query).toHaveBeenCalledWith(
-      expect.stringContaining("UPDATE servicos_negocio"),
-      [false, 9, 7]
+    expect(
+      servicosRepository.alterarAtivoServico
+    ).toHaveBeenCalledWith(
+      {
+        id: 9,
+        negocioId: 7,
+        ativo: false,
+      },
+      client
     );
   });
 
@@ -89,7 +97,9 @@ describe("Escolha de serviços ativos", () => {
       },
     });
 
-    expect(client.query).not.toHaveBeenCalled();
+    expect(
+      servicosRepository.alterarAtivoServico
+    ).not.toHaveBeenCalled();
   });
 
   test("ativa outro serviço depois que existe uma vaga disponível", async () => {
@@ -104,8 +114,10 @@ describe("Escolha de serviços ativos", () => {
       limite_servicos: 2,
     });
     servicosRepository.contarServicosAtivos.mockResolvedValue(1);
-    client.query.mockResolvedValue({
-      rows: [{ id: 10, nome: "Pedicure", ativo: true }],
+    servicosRepository.alterarAtivoServico.mockResolvedValue({
+      id: 10,
+      nome: "Pedicure",
+      ativo: true,
     });
 
     const resultado = await servicoAtivacaoService.alterarAtivoServico({
@@ -115,9 +127,15 @@ describe("Escolha de serviços ativos", () => {
     });
 
     expect(resultado.servico.ativo).toBe(true);
-    expect(client.query).toHaveBeenCalledWith(
-      expect.stringContaining("UPDATE servicos_negocio"),
-      [true, 10, 7]
+    expect(
+      servicosRepository.alterarAtivoServico
+    ).toHaveBeenCalledWith(
+      {
+        id: 10,
+        negocioId: 7,
+        ativo: true,
+      },
+      client
     );
   });
 });
