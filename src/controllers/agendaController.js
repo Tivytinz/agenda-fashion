@@ -23,7 +23,8 @@ async function buscarAgendaProfissional(req, res, next) {
 async function listarAgendamentosFuncionario(req, res, next) {
   try {
     const resultado = await agendaOperacionalService.listarAgendaProfissional({
-      profissionalId: req.user?.id
+      profissionalId: req.user?.id,
+      negocioId: req.agendaContexto?.negocioId
     });
 
     return res.json(resultado);
