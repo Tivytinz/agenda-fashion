@@ -155,16 +155,28 @@ async function criarCenarioAgendamento(
       `
         INSERT INTO agenda_configuracoes (
           profissional_id,
+          negocio_id,
           duracao_padrao,
           intervalo_minutos,
           antecedencia_agendamento,
           antecedencia_cancelamento,
           configurado_em
         )
-        VALUES ($1, 60, 0, 0, 0, NOW())
+        VALUES ($1, $2, 60, 0, 0, 0, NOW())
+        ON CONFLICT (
+          profissional_id,
+          negocio_id
+        )
+        DO UPDATE SET
+          duracao_padrao = EXCLUDED.duracao_padrao,
+          intervalo_minutos = EXCLUDED.intervalo_minutos,
+          antecedencia_agendamento = EXCLUDED.antecedencia_agendamento,
+          antecedencia_cancelamento = EXCLUDED.antecedencia_cancelamento,
+          configurado_em = EXCLUDED.configurado_em
       `,
       [
         profissional.id,
+        negocio.id,
       ]
     );
 
@@ -172,6 +184,7 @@ async function criarCenarioAgendamento(
       `
         INSERT INTO agenda_horarios (
           profissional_id,
+          negocio_id,
           dia_semana,
           trabalha,
           hora_inicio,
@@ -179,6 +192,7 @@ async function criarCenarioAgendamento(
         )
         SELECT
           $1,
+          $2,
           dia_semana,
           TRUE,
           '08:00'::TIME,
@@ -187,9 +201,21 @@ async function criarCenarioAgendamento(
           0,
           6
         ) AS dia_semana
+        ON CONFLICT (
+          profissional_id,
+          negocio_id,
+          dia_semana
+        )
+        DO UPDATE SET
+          trabalha = EXCLUDED.trabalha,
+          hora_inicio = EXCLUDED.hora_inicio,
+          hora_fim = EXCLUDED.hora_fim,
+          intervalo_inicio = NULL,
+          intervalo_fim = NULL
       `,
       [
         profissional.id,
+        negocio.id,
       ]
     );
 
