@@ -1203,7 +1203,7 @@ function validarAgendamentoAvaliavel(
         agoraLocal.data,
 
       horario:
-        agoraLocal.horario,
+        agoraLocal.hora,
     });
 
   const timestampAgendamento =
