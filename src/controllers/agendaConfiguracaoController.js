@@ -2,12 +2,16 @@ const agendaConfiguracaoService = require(
   "../services/agendaConfiguracaoService"
 );
 
+function obterContextoAgenda(req) {
+  return req.get("X-AF-Contexto") || "dono";
+}
+
 async function buscarMinhaConfiguracao(req, res, next) {
   try {
     const resultado =
       await agendaConfiguracaoService.buscarMinhaConfiguracao({
         usuarioId: req.user?.id,
-        negocioId: req.query?.negocioId,
+        contexto: obterContextoAgenda(req),
       });
 
     return res.json(resultado);
@@ -21,7 +25,7 @@ async function buscarStatusConfiguracao(req, res, next) {
     const resultado =
       await agendaConfiguracaoService.buscarStatusConfiguracao({
         usuarioId: req.user?.id,
-        negocioId: req.query?.negocioId,
+        contexto: obterContextoAgenda(req),
       });
 
     return res.json(resultado);
@@ -35,7 +39,7 @@ async function salvarMinhaConfiguracao(req, res, next) {
     const resultado =
       await agendaConfiguracaoService.salvarMinhaConfiguracao({
         usuarioId: req.user?.id,
-        negocioId: req.body?.negocioId,
+        contexto: obterContextoAgenda(req),
         duracaoPadrao: req.body?.duracaoPadrao,
         intervaloMinutos: req.body?.intervaloMinutos,
         antecedenciaAgendamento:
