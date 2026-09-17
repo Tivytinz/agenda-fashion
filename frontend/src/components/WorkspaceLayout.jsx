@@ -1,5 +1,10 @@
 import { lazy } from "react";
+import { useLocation } from "react-router-dom";
 import { useSession } from "../auth/SessionContext";
+import {
+  getOwnerContext,
+  getProfessionalContext
+} from "../auth/session";
 
 const OwnerShell = lazy(() =>
   Promise.all([
@@ -36,10 +41,26 @@ export const PROFESSIONAL_LINKS = [
 export { MobileWorkspaceNavigation } from "./WorkspaceNavigation";
 
 export function WorkspaceLayout({ children }) {
-  const { negocio } = useSession();
-  const owner = negocio?.papel === "dono";
+  const session = useSession();
+  const location = useLocation();
+  const ownerContext = getOwnerContext(session);
+  const professionalContext = getProfessionalContext(session);
+  const professionalRoute =
+    location.pathname === "/profissional" ||
+    location.pathname.startsWith("/profissional/");
+  const ownerRoute =
+    location.pathname === "/painel" ||
+    location.pathname.startsWith("/painel/");
 
-  if (owner) {
+  if (professionalRoute && professionalContext) {
+    return (
+      <ProfessionalShell links={PROFESSIONAL_LINKS}>
+        {children}
+      </ProfessionalShell>
+    );
+  }
+
+  if (ownerRoute && ownerContext) {
     return (
       <OwnerShell links={OWNER_LINKS}>
         {children}
@@ -47,9 +68,17 @@ export function WorkspaceLayout({ children }) {
     );
   }
 
+  if (session.negocio?.papel === "profissional" && professionalContext) {
+    return (
+      <ProfessionalShell links={PROFESSIONAL_LINKS}>
+        {children}
+      </ProfessionalShell>
+    );
+  }
+
   return (
-    <ProfessionalShell links={PROFESSIONAL_LINKS}>
+    <OwnerShell links={OWNER_LINKS}>
       {children}
-    </ProfessionalShell>
+    </OwnerShell>
   );
 }
