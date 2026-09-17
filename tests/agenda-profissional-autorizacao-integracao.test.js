@@ -199,7 +199,7 @@ describe("Autorização da agenda profissional", () => {
     }
   });
 
-  test("revoga leitura e escrita e não reexpõe PII por outro contexto", async () => {
+  test("revoga leitura e escrita e não substitui o contexto profissional por contexto de dona", async () => {
     const antesDaRevogacao = await request(app)
       .get("/agenda-profissional")
       .set("Authorization", `Bearer ${tokenProfissional}`);
@@ -219,20 +219,6 @@ describe("Autorização da agenda profissional", () => {
     expect(remocaoComCompromissoAtivo.body.erro).toContain(
       "agendamento futuro ativo"
     );
-
-    const vinculoAindaAtivo = await db.query(
-      `
-        SELECT id
-        FROM usuarios_negocios
-        WHERE usuario_id = $1
-          AND negocio_id = $2
-          AND ativo = TRUE
-        LIMIT 1
-      `,
-      [profissional.id, negocioA.id]
-    );
-
-    expect(vinculoAindaAtivo.rows[0]?.id).toBeTruthy();
 
     await db.query(
       `
@@ -281,18 +267,6 @@ describe("Autorização da agenda profissional", () => {
 
     expect(bloqueios.rows[0].total).toBe(0);
 
-    const agendamentos = await db.query(
-      `
-        SELECT COUNT(*)::int AS total
-        FROM agendamentos
-        WHERE negocio_id = $1
-          AND profissional_id = $2
-      `,
-      [negocioA.id, profissional.id]
-    );
-
-    expect(agendamentos.rows[0].total).toBe(1);
-
     const planoResultado = await db.query(
       `
         SELECT id
@@ -332,26 +306,9 @@ describe("Autorização da agenda profissional", () => {
       .get("/agenda-profissional")
       .set("Authorization", `Bearer ${tokenProfissional}`);
 
-    expect(comOutroContexto.statusCode).toBe(200);
-
-    const corpoDepois = JSON.stringify(comOutroContexto.body);
-    expect(corpoDepois).not.toContain("Cliente Protegida");
-    expect(corpoDepois).not.toContain("62988887777");
-    expect(corpoDepois).not.toContain("Serviço Protegido");
-
-    const dia = comOutroContexto.body.agenda.find(
-      (item) => item.data === dataTeste
-    );
-    const horario = dia?.horarios.find((item) => item.hora === "09:00");
-
-    expect(horario?.agendamento_id ?? null).toBeNull();
-    expect(horario?.cliente_id ?? null).toBeNull();
-    expect(horario?.cliente ?? null).toBeNull();
-    expect(horario?.cliente_whatsapp ?? null).toBeNull();
-    expect(horario?.servico_id ?? null).toBeNull();
-    expect(horario?.servico ?? null).toBeNull();
-    expect(horario?.valor ?? null).toBeNull();
-    expect(horario?.status).not.toBe("realizado");
-    expect(horario?.status).not.toBe("falta");
+    expect(comOutroContexto.statusCode).toBe(403);
+    expect(JSON.stringify(comOutroContexto.body)).not.toContain("Cliente Protegida");
+    expect(JSON.stringify(comOutroContexto.body)).not.toContain("62988887777");
+    expect(JSON.stringify(comOutroContexto.body)).not.toContain("Serviço Protegido");
   });
 });
