@@ -176,6 +176,94 @@ CROSS JOIN (
 ON CONFLICT (profissional_id, negocio_id, dia_semana)
 DO NOTHING;
 
+-- O vínculo é a origem do contexto. Isso cobre criação de negócio, aceite de
+-- convite e reativação sem depender de cada fluxo lembrar de criar a agenda.
+CREATE OR REPLACE FUNCTION garantir_agenda_contextual_vinculo()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+AS $$
+BEGIN
+  IF NEW.ativo = TRUE
+    AND NEW.papel IN ('dono', 'profissional')
+  THEN
+    INSERT INTO agenda_configuracoes (
+      profissional_id,
+      negocio_id,
+      duracao_padrao,
+      intervalo_minutos,
+      antecedencia_agendamento,
+      antecedencia_cancelamento,
+      configurado_em,
+      origem_horarios
+    )
+    VALUES (
+      NEW.usuario_id,
+      NEW.negocio_id,
+      60,
+      0,
+      0,
+      24,
+      NOW(),
+      'padrao_af'
+    )
+    ON CONFLICT (profissional_id, negocio_id)
+    DO NOTHING;
+
+    INSERT INTO agenda_horarios (
+      profissional_id,
+      negocio_id,
+      dia_semana,
+      trabalha,
+      hora_inicio,
+      hora_fim,
+      intervalo_inicio,
+      intervalo_fim
+    )
+    SELECT
+      NEW.usuario_id,
+      NEW.negocio_id,
+      d.dia_semana,
+      d.trabalha,
+      d.hora_inicio,
+      d.hora_fim,
+      d.intervalo_inicio,
+      d.intervalo_fim
+    FROM (
+      VALUES
+        (0::SMALLINT, FALSE, NULL::TIME, NULL::TIME, NULL::TIME, NULL::TIME),
+        (1::SMALLINT, TRUE,  TIME '08:00', TIME '18:00', TIME '12:00', TIME '13:00'),
+        (2::SMALLINT, TRUE,  TIME '08:00', TIME '18:00', TIME '12:00', TIME '13:00'),
+        (3::SMALLINT, TRUE,  TIME '08:00', TIME '18:00', TIME '12:00', TIME '13:00'),
+        (4::SMALLINT, TRUE,  TIME '08:00', TIME '18:00', TIME '12:00', TIME '13:00'),
+        (5::SMALLINT, TRUE,  TIME '08:00', TIME '18:00', TIME '12:00', TIME '13:00'),
+        (6::SMALLINT, TRUE,  TIME '08:00', TIME '13:00', NULL::TIME, NULL::TIME)
+    ) AS d(
+      dia_semana,
+      trabalha,
+      hora_inicio,
+      hora_fim,
+      intervalo_inicio,
+      intervalo_fim
+    )
+    ON CONFLICT (profissional_id, negocio_id, dia_semana)
+    DO NOTHING;
+  END IF;
+
+  RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS
+  usuarios_negocios_agenda_contextual_trigger
+ON usuarios_negocios;
+
+CREATE TRIGGER
+  usuarios_negocios_agenda_contextual_trigger
+AFTER INSERT OR UPDATE OF usuario_id, negocio_id, papel, ativo
+ON usuarios_negocios
+FOR EACH ROW
+EXECUTE FUNCTION garantir_agenda_contextual_vinculo();
+
 COMMENT ON COLUMN agenda_configuracoes.negocio_id IS
   'Negócio ao qual pertence a configuração recorrente de disponibilidade.';
 
