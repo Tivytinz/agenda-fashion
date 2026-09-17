@@ -225,6 +225,10 @@ export function AppHeader() {
                   Minha conta
                 </NavLink>
 
+                <NavLink to="/convites">
+                  Convites de equipe
+                </NavLink>
+
                 {session.ehAdministrador && !adminArea && (
                   <NavLink to="/admin">
                     Administração
