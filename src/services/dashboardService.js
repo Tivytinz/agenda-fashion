@@ -4,6 +4,9 @@ const dashboardRepository = require(
 const dashboardRetentionRepository = require(
   "../repositories/dashboardRetentionRepository"
 );
+const sessaoRepository = require(
+  "../repositories/sessaoRepository"
+);
 
 const AppError = require(
   "../errors/AppError"
@@ -51,10 +54,12 @@ function normalizarNegocio(
       negocio.papel,
 
     nome:
-      negocio.nome,
+      negocio.nome ??
+      negocio.negocio_nome,
 
     slug:
-      negocio.slug,
+      negocio.slug ??
+      negocio.negocio_slug,
   };
 }
 
@@ -219,6 +224,28 @@ function filtroPeriodo(
   return filtroPeriodo("7dias", expressaoData);
 }
 
+async function buscarContextoPorPapel(
+  usuarioId,
+  papel,
+  mensagemAusente
+) {
+  const contexto =
+    await sessaoRepository
+      .buscarContextoAtivoPorPapel(
+        usuarioId,
+        papel
+      );
+
+  if (!contexto) {
+    throw criarErro(
+      mensagemAusente,
+      403
+    );
+  }
+
+  return contexto;
+}
+
 async function buscarDashboardProfissional({
   usuarioId,
 }) {
@@ -230,17 +257,11 @@ async function buscarDashboardProfissional({
   }
 
   const negocio =
-    await dashboardRepository
-      .buscarNegocioDoUsuario(
-        usuarioId
-      );
-
-  if (!negocio) {
-    throw criarErro(
-      "Usuário não está vinculado a nenhum negócio.",
-      404
+    await buscarContextoPorPapel(
+      usuarioId,
+      "profissional",
+      "Seu acesso ao dashboard profissional não está ativo."
     );
-  }
 
   const negocioId =
     converterNumero(
@@ -364,26 +385,11 @@ async function buscarDashboardDono({
   }
 
   const negocio =
-    await dashboardRepository
-      .buscarNegocioDoUsuario(
-        usuarioId
-      );
-
-  if (!negocio) {
-    throw criarErro(
-      "Usuário não está vinculado a nenhum negócio.",
-      404
+    await buscarContextoPorPapel(
+      usuarioId,
+      "dono",
+      "Apenas o dono pode acessar este dashboard."
     );
-  }
-
-  if (
-    negocio.papel !== "dono"
-  ) {
-    throw criarErro(
-      "Apenas o dono pode acessar este dashboard.",
-      403
-    );
-  }
 
   const negocioId =
     converterNumero(
