@@ -43,6 +43,7 @@ const loadServicesStyles = () => Promise.all([
 const loadBusinessStyles = () => import("./styles/business-polish.css");
 const loadSubscriptionStyles = () => import("./styles/subscription-polish.css");
 const loadPlansStyles = () => import("./styles/plans-polish.css");
+const loadTeamInvitesStyles = () => import("./styles/team-invites.css");
 
 const AdminLayout = lazyNamedWithStyles(
   loadAdminShellStyles,
@@ -138,9 +139,15 @@ const ServicesPage = lazyNamedWithStyles(
   () => import("./pages/ServicesPage"),
   "ServicesPage"
 );
-const ProfessionalsPage = lazyNamed(
+const ProfessionalsPage = lazyNamedWithStyles(
+  loadTeamInvitesStyles,
   () => import("./pages/ProfessionalsPage"),
   "ProfessionalsPage"
+);
+const ProfessionalInvitesPage = lazyNamedWithStyles(
+  loadTeamInvitesStyles,
+  () => import("./pages/ProfessionalInvitesPage"),
+  "ProfessionalInvitesPage"
 );
 const ConfirmPage = lazyNamed(() => import("./pages/ConfirmPage"), "ConfirmPage");
 const ExplorePage = lazyNamed(() => import("./pages/ExplorePage"), "ExplorePage");
@@ -213,7 +220,7 @@ export default function App() {
           >
             <Route path={reactRoutes.adminOverview} element={<AdminOverviewPage />} />
             <Route path={reactRoutes.adminAcquisition} element={<AdminAcquisitionPage />} />
-            <Route path={reactRoutes.adminJourney} element={<AdminJourneyPage />} />
+            <Route path={reactRoutes.adminJourney} element={<AdminJourneyV2Page />} />
             <Route path={reactRoutes.adminRetention} element={<AdminRetentionPage />} />
             <Route path={reactRoutes.adminRevenue} element={<AdminRevenuePage />} />
             <Route path={reactRoutes.adminOperation} element={<AdminOperationPage />} />
@@ -235,7 +242,6 @@ export default function App() {
                 </>
               )}
             />
-            {/* Compatibilidade: links antigos de funil profissional abrem a Aquisição 2.0. */}
             <Route
               path={reactRoutes.adminProfessionals}
               element={<AdminAcquisitionPage />}
@@ -255,6 +261,10 @@ export default function App() {
           <Route
             path={reactRoutes.account}
             element={<ProtectedRoute><AccountRoute /></ProtectedRoute>}
+          />
+          <Route
+            path={reactRoutes.professionalInvites}
+            element={<ProtectedRoute><ProfessionalInvitesPage /></ProtectedRoute>}
           />
           <Route path={reactRoutes.plans} element={<PlansPage />} />
           <Route
