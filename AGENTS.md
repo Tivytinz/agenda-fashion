@@ -183,7 +183,10 @@ webhook financeiro.
 - Backend em camadas: routes → controllers → services → repositories →
   PostgreSQL.
 - O teste de fronteiras arquiteturais impede acesso direto ao banco em routes e
-  controllers e congela a lista de SQL legado ainda permitido em services.
+  controllers e mantém apenas a exceção de infraestrutura do readiness para
+  SQL direto em services.
+- O domínio financeiro separa registro, conta, webhooks e processamento de
+  pagamentos; persistência de assinaturas fica em repositories.
 - Autenticação: JWT em cookie `HttpOnly`, bcrypt e Google Identity.
 - Imagens: Busboy, validação de conteúdo e Cloudinary.
 - Pagamentos: Asaas.
@@ -322,6 +325,9 @@ Antes de alterar algo:
 
 SQL novo pertence a repositories, não a routes/controllers e, salvo legado em
 migração, não deve ser introduzido em services.
+
+Configuração obrigatória do runtime é validada centralmente no startup. Uma
+integração habilitada não pode iniciar com credenciais parciais.
 
 Toda mudança de banco exige migration nova. Migration já aplicada não é
 reescrita para corrigir o passado.

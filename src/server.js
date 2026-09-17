@@ -1,6 +1,12 @@
 require("dotenv").config({
   quiet: true,
 });
+const {
+  validarConfiguracaoRuntime,
+} = require("./config/runtime");
+
+validarConfiguracaoRuntime();
+
 const path = require("path");
 const crypto = require("crypto");
 const express = require("express");

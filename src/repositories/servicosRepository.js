@@ -111,6 +111,24 @@ async function buscarServicoDoNegocio(id, negocioId, executor = db) {
   return result.rows[0] || null;
 }
 
+async function alterarAtivoServico(
+  { id, negocioId, ativo },
+  executor = db
+) {
+  const result = await executor.query(
+    `
+      UPDATE servicos_negocio
+      SET ativo = $1
+      WHERE id = $2
+        AND negocio_id = $3
+      RETURNING *
+    `,
+    [ativo, id, negocioId]
+  );
+
+  return result.rows[0] || null;
+}
+
 async function listarServicos(negocioId) {
   const result = await db.query(
     `
@@ -442,6 +460,7 @@ module.exports = {
   buscarNegocioUsuario,
   buscarNegocioDono,
   buscarServicoDoNegocio,
+  alterarAtivoServico,
   listarServicos,
   criarServico,
   editarServico,
