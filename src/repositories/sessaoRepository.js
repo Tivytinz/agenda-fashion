@@ -2,6 +2,11 @@ const db = require(
   "../db/db"
 );
 
+const PAPEIS_NEGOCIO = new Set([
+  "dono",
+  "profissional",
+]);
+
 function normalizarId(
   valor
 ) {
@@ -15,6 +20,22 @@ function normalizarId(
   }
 
   return id;
+}
+
+function normalizarPapel(
+  valor
+) {
+  const papel = String(
+    valor || ""
+  )
+    .trim()
+    .toLowerCase();
+
+  return PAPEIS_NEGOCIO.has(
+    papel
+  )
+    ? papel
+    : null;
 }
 
 /*
@@ -121,10 +142,11 @@ async function buscarAdministradorAtivoPorUsuarioId(
 }
 
 /*
- * Lista todos os vínculos ativos
- * da conta com negócios ativos.
+ * Lista todos os vínculos ativos da conta com negócios ativos.
  *
- * Dono aparece antes de profissional.
+ * A ordenação continua priorizando dono apenas para compatibilidade com o
+ * contexto principal legado. Fluxos contextuais devem selecionar o papel
+ * explicitamente com buscarContextoAtivoPorPapel().
  */
 async function buscarVinculosAtivosPorUsuarioId(
   usuarioId
@@ -213,11 +235,15 @@ async function buscarVinculosAtivosPorUsuarioId(
 
       FROM usuarios_negocios un
 
+      INNER JOIN usuarios u
+        ON u.id = un.usuario_id
+
       INNER JOIN negocios n
         ON n.id = un.negocio_id
 
       WHERE un.usuario_id = $1
         AND un.ativo = TRUE
+        AND u.ativo = TRUE
         AND n.ativo = TRUE
 
       ORDER BY
@@ -240,12 +266,37 @@ async function buscarVinculosAtivosPorUsuarioId(
   return resultado.rows;
 }
 
+async function buscarContextoAtivoPorPapel(
+  usuarioId,
+  papel
+) {
+  const papelNormalizado =
+    normalizarPapel(
+      papel
+    );
+
+  if (!papelNormalizado) {
+    return null;
+  }
+
+  const vinculos =
+    await buscarVinculosAtivosPorUsuarioId(
+      usuarioId
+    );
+
+  return (
+    vinculos.find(
+      (vinculo) =>
+        vinculo.papel ===
+        papelNormalizado
+    ) || null
+  );
+}
+
 /*
- * Retorna o vínculo principal usado
- * no redirecionamento após o login.
- *
- * Atualmente:
- * dono tem prioridade sobre profissional.
+ * Retorna o vínculo principal usado por compatibilidade no login.
+ * Dono continua com prioridade, mas rotas /painel/* e /profissional/* não
+ * devem depender desta seleção implícita para autorização ou isolamento.
  */
 async function buscarContextoAtivoPorUsuarioId(
   usuarioId
@@ -262,5 +313,6 @@ module.exports = {
   buscarUsuarioPorId,
   buscarAdministradorAtivoPorUsuarioId,
   buscarVinculosAtivosPorUsuarioId,
+  buscarContextoAtivoPorPapel,
   buscarContextoAtivoPorUsuarioId,
 };
