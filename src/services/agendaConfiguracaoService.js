@@ -15,14 +15,16 @@ function exigirUsuario(usuarioId) {
   }
 }
 
-function normalizarNegocioId(negocioId) {
-  const id = Number(negocioId);
+function normalizarContexto(contexto) {
+  const valor = String(contexto || "dono")
+    .trim()
+    .toLowerCase();
 
-  if (!Number.isInteger(id) || id <= 0) {
-    throw criarErro("Negócio inválido.", 400);
+  if (!["dono", "profissional"].includes(valor)) {
+    throw criarErro("Contexto da agenda inválido.", 400);
   }
 
-  return id;
+  return valor;
 }
 
 function normalizarHorario(horario) {
@@ -202,62 +204,58 @@ function formatarHorarioBanco(horario) {
   };
 }
 
-async function exigirProfissionalAtivo(
-  profissionalId,
-  negocioId,
+async function resolverVinculoAgenda(
+  usuarioId,
+  contexto,
   executor
 ) {
-  const profissional =
-    await agendaConfiguracaoRepository
-      .buscarProfissionalAtivo(
-        profissionalId,
-        negocioId,
-        executor
-      );
+  const papel = normalizarContexto(contexto);
+  const vinculo = await agendaConfiguracaoRepository
+    .buscarVinculoAtivoPorPapel(
+      usuarioId,
+      papel,
+      executor
+    );
 
-  if (!profissional) {
+  if (!vinculo) {
     throw criarErro(
-      "Conta sem vínculo ativo com este negócio.",
+      papel === "dono"
+        ? "Conta sem vínculo ativo de dona com um negócio."
+        : "Conta sem vínculo profissional ativo com um negócio.",
       403
     );
   }
 
-  return profissional;
+  return vinculo;
 }
 
 async function buscarMinhaConfiguracao({
   usuarioId,
-  negocioId,
+  contexto,
 }) {
   exigirUsuario(usuarioId);
-  const negocioIdNormalizado =
-    normalizarNegocioId(negocioId);
 
   return agendaConfiguracaoRepository
     .executarTransacao(
       async (client) => {
-        await exigirProfissionalAtivo(
+        const vinculo = await resolverVinculoAgenda(
           usuarioId,
-          negocioIdNormalizado,
+          contexto,
           client
         );
 
         const estado =
           await agendaConfiguracaoRepository
             .garantirDisponibilidadePadrao({
-              profissionalId:
-                usuarioId,
-              negocioId:
-                negocioIdNormalizado,
+              profissionalId: usuarioId,
+              negocioId: vinculo.negocio_id,
             }, client);
 
         return {
-          configuracao:
-            estado.configuracao,
-          horarios:
-            estado.horarios.map(
-              formatarHorarioBanco
-            ),
+          configuracao: estado.configuracao,
+          horarios: estado.horarios.map(
+            formatarHorarioBanco
+          ),
         };
       }
     );
@@ -265,22 +263,20 @@ async function buscarMinhaConfiguracao({
 
 async function buscarStatusConfiguracao({
   usuarioId,
-  negocioId,
+  contexto,
 }) {
   exigirUsuario(usuarioId);
-  const negocioIdNormalizado =
-    normalizarNegocioId(negocioId);
 
-  await exigirProfissionalAtivo(
+  const vinculo = await resolverVinculoAgenda(
     usuarioId,
-    negocioIdNormalizado
+    contexto
   );
 
   const configuracao =
     await agendaConfiguracaoRepository
       .buscarConfiguracao(
         usuarioId,
-        negocioIdNormalizado
+        vinculo.negocio_id
       );
 
   return {
@@ -299,7 +295,7 @@ async function buscarStatusConfiguracao({
 
 async function salvarMinhaConfiguracao({
   usuarioId,
-  negocioId,
+  contexto,
   duracaoPadrao,
   intervaloMinutos,
   antecedenciaAgendamento,
@@ -307,8 +303,6 @@ async function salvarMinhaConfiguracao({
   horarios,
 }) {
   exigirUsuario(usuarioId);
-  const negocioIdNormalizado =
-    normalizarNegocioId(negocioId);
 
   const duracao = validarNumeroInteiro({
     valor: duracaoPadrao,
@@ -365,17 +359,18 @@ async function salvarMinhaConfiguracao({
   return agendaConfiguracaoRepository
     .executarTransacao(
       async (client) => {
-        await exigirProfissionalAtivo(
+        const vinculo = await resolverVinculoAgenda(
           usuarioId,
-          negocioIdNormalizado,
+          contexto,
           client
         );
+        const negocioId = vinculo.negocio_id;
 
         const configuracaoExistente =
           await agendaConfiguracaoRepository
             .buscarConfiguracao(
               usuarioId,
-              negocioIdNormalizado,
+              negocioId,
               client
             );
 
@@ -387,14 +382,10 @@ async function salvarMinhaConfiguracao({
         let configuracao;
 
         const dadosConfiguracao = {
-          profissionalId:
-            usuarioId,
-          negocioId:
-            negocioIdNormalizado,
-          duracaoPadrao:
-            duracao,
-          intervaloMinutos:
-            intervalo,
+          profissionalId: usuarioId,
+          negocioId,
+          duracaoPadrao: duracao,
+          intervaloMinutos: intervalo,
           antecedenciaAgendamento:
             antecedenciaAgendamentoValidada,
           antecedenciaCancelamento:
@@ -423,10 +414,8 @@ async function salvarMinhaConfiguracao({
           const horarioSalvo =
             await agendaConfiguracaoRepository
               .salvarHorario({
-                profissionalId:
-                  usuarioId,
-                negocioId:
-                  negocioIdNormalizado,
+                profissionalId: usuarioId,
+                negocioId,
                 ...horario,
               }, client);
 
@@ -437,7 +426,7 @@ async function salvarMinhaConfiguracao({
           await agendaConfiguracaoRepository
             .marcarConfigurada(
               usuarioId,
-              negocioIdNormalizado,
+              negocioId,
               client
             );
 
