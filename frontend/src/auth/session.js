@@ -68,14 +68,55 @@ export function getPlanIntentPath(path, planSlug) {
   return `${safePath}${separator}plano=${encodeURIComponent(plan)}`;
 }
 
-export function getBusinessWorkspacePath(session) {
-  if (!session?.temNegocio) {
-    return "/criar-negocio";
+export function getBusinessContexts(session) {
+  const contexts = Array.isArray(session?.vinculos)
+    ? session.vinculos
+    : [];
+
+  if (contexts.length > 0) {
+    return contexts.filter((context) => context?.id && context?.papel);
   }
 
-  return session.negocio?.papel === "profissional"
+  return session?.negocio?.id && session?.negocio?.papel
+    ? [session.negocio]
+    : [];
+}
+
+export function getBusinessContextByRole(session, role) {
+  const normalizedRole = String(role || "").trim().toLowerCase();
+
+  return getBusinessContexts(session).find(
+    (context) => context.papel === normalizedRole
+  ) || null;
+}
+
+export function getOwnerContext(session) {
+  return getBusinessContextByRole(session, "dono");
+}
+
+export function getProfessionalContext(session) {
+  return getBusinessContextByRole(session, "profissional");
+}
+
+export function getBusinessWorkspacePath(session) {
+  const ownerContext = getOwnerContext(session);
+  const professionalContext = getProfessionalContext(session);
+
+  if (ownerContext) {
+    return "/painel";
+  }
+
+  if (professionalContext) {
+    return "/profissional/agenda";
+  }
+
+  return "/criar-negocio";
+}
+
+export function getProfessionalWorkspacePath(session) {
+  return getProfessionalContext(session)
     ? "/profissional/agenda"
-    : "/painel";
+    : getBusinessWorkspacePath(session);
 }
 
 export function getWorkspacePath(session) {
@@ -115,12 +156,14 @@ export function getAuthDestination(session, {
   }
 
   if (plan) {
+    const ownerContext = getOwnerContext(session);
+
     if (!session?.temNegocio) {
       return getBusinessCreationPath(plan);
     }
 
-    if (session.negocio?.papel === "dono") {
-      return session.negocio?.publicado === true
+    if (ownerContext) {
+      return ownerContext.publicado === true
         ? getPlanIntentPath("/checkout", plan)
         : getPlanIntentPath("/painel", plan);
     }
