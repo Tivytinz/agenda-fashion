@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { apiRequest } from "../api/client";
 import { SessionProvider, useSession } from "./SessionContext";
@@ -17,6 +18,16 @@ function SessionProbe() {
       <span>{session.authenticated ? session.usuario?.nome : "Desconectada"}</span>
       <button type="button" onClick={session.logout}>Sair</button>
     </>
+  );
+}
+
+function renderSession() {
+  return render(
+    <MemoryRouter initialEntries={["/conta"]}>
+      <SessionProvider>
+        <SessionProbe />
+      </SessionProvider>
+    </MemoryRouter>
   );
 }
 
@@ -38,7 +49,7 @@ afterEach(() => {
 
 describe("sincronização da sessão", () => {
   it("atualiza a interface imediatamente quando a API expira a sessão", async () => {
-    render(<SessionProvider><SessionProbe /></SessionProvider>);
+    renderSession();
     expect(await screen.findByText("Ana")).not.toBeNull();
 
     clearSession({ notify: true });
@@ -47,7 +58,7 @@ describe("sincronização da sessão", () => {
   });
 
   it("limpa a sessão local e encerra o cookie no servidor", async () => {
-    render(<SessionProvider><SessionProbe /></SessionProvider>);
+    renderSession();
     expect(await screen.findByText("Ana")).not.toBeNull();
 
     fireEvent.click(screen.getByRole("button", { name: "Sair" }));

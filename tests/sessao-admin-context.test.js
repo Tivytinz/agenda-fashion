@@ -3,7 +3,7 @@ jest.mock(
   () => ({
     buscarUsuarioPorId:
       jest.fn(),
-    buscarContextoAtivoPorUsuarioId:
+    buscarVinculosAtivosPorUsuarioId:
       jest.fn(),
     buscarAdministradorAtivoPorUsuarioId:
       jest.fn(),
@@ -40,8 +40,8 @@ describe(
         });
 
       sessaoRepository
-        .buscarContextoAtivoPorUsuarioId
-        .mockResolvedValue(null);
+        .buscarVinculosAtivosPorUsuarioId
+        .mockResolvedValue([]);
     });
 
     test(
@@ -62,6 +62,7 @@ describe(
           .toMatchObject({
             temNegocio: false,
             negocio: null,
+            vinculos: [],
             ehAdministrador: true,
             administrador: {
               papel: "admin",

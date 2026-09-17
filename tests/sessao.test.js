@@ -13,9 +13,6 @@ jest.mock(
 
     buscarVinculosAtivosPorUsuarioId:
       jest.fn(),
-
-    buscarContextoAtivoPorUsuarioId:
-      jest.fn(),
   })
 );
 
@@ -164,6 +161,9 @@ describe(
       app = criarApp();
 
       jest.clearAllMocks();
+      sessaoRepository
+        .buscarVinculosAtivosPorUsuarioId
+        .mockResolvedValue([]);
     });
 
     test(
@@ -226,12 +226,6 @@ describe(
             criarUsuario()
           );
 
-        sessaoRepository
-          .buscarContextoAtivoPorUsuarioId
-          .mockResolvedValue(
-            null
-          );
-
         const resposta =
           await request(app)
             .get(
@@ -255,7 +249,7 @@ describe(
 
         expect(
           sessaoRepository
-            .buscarContextoAtivoPorUsuarioId
+            .buscarVinculosAtivosPorUsuarioId
         ).toHaveBeenCalledWith(
           1
         );
@@ -283,6 +277,8 @@ describe(
 
           negocio:
             null,
+
+          vinculos: [],
         });
 
         expect(
@@ -309,10 +305,10 @@ describe(
           );
 
         sessaoRepository
-          .buscarContextoAtivoPorUsuarioId
-          .mockResolvedValue(
+          .buscarVinculosAtivosPorUsuarioId
+          .mockResolvedValue([
             criarContextoDono()
-          );
+          ]);
 
         const resposta =
           await request(app)
@@ -364,8 +360,8 @@ describe(
           );
 
         sessaoRepository
-          .buscarContextoAtivoPorUsuarioId
-          .mockResolvedValue(
+          .buscarVinculosAtivosPorUsuarioId
+          .mockResolvedValue([
             criarContextoDono({
               papel:
                 "profissional",
@@ -373,7 +369,7 @@ describe(
               vinculo_id:
                 20,
             })
-          );
+          ]);
 
         const resposta =
           await request(app)
@@ -432,7 +428,7 @@ describe(
 
         expect(
           sessaoRepository
-            .buscarContextoAtivoPorUsuarioId
+            .buscarVinculosAtivosPorUsuarioId
         ).not.toHaveBeenCalled();
       }
     );
@@ -471,7 +467,7 @@ describe(
 
         expect(
           sessaoRepository
-            .buscarContextoAtivoPorUsuarioId
+            .buscarVinculosAtivosPorUsuarioId
         ).not.toHaveBeenCalled();
       }
     );

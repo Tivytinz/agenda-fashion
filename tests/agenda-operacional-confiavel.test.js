@@ -8,13 +8,19 @@ jest.mock("../src/repositories/agendaRepository", () => ({
   buscarBloqueiosProfissionaisPorPeriodo: jest.fn(),
 }));
 
-jest.mock("../src/repositories/agendamentoLifecycleRepository", () => ({
+jest.mock("../src/repositories/agendaContextoRepository", () => ({
   listarAgendamentosProfissionalPorPeriodo: jest.fn(),
+}));
+
+jest.mock("../src/repositories/agendamentoLifecycleRepository", () => ({
   listarAgendamentosProfissionaisDoNegocioPorPeriodo: jest.fn(),
 }));
 
 const agendaService = require("../src/services/agendaService");
 const agendaRepository = require("../src/repositories/agendaRepository");
+const agendaContextoRepository = require(
+  "../src/repositories/agendaContextoRepository"
+);
 const agendamentoLifecycleRepository = require(
   "../src/repositories/agendamentoLifecycleRepository"
 );
@@ -40,7 +46,7 @@ describe("agenda operacional confiável", () => {
       ],
     });
 
-    agendamentoLifecycleRepository
+    agendaContextoRepository
       .listarAgendamentosProfissionalPorPeriodo.mockResolvedValue([
         {
           agendamento_id: 91,
@@ -63,6 +69,7 @@ describe("agenda operacional confiável", () => {
 
     const resultado = await agendaOperacionalService.listarAgendaProfissional({
       profissionalId: 7,
+      negocioId: 3,
     });
 
     expect(resultado.agenda[0]).toMatchObject({
@@ -100,7 +107,7 @@ describe("agenda operacional confiável", () => {
       ],
     });
 
-    agendamentoLifecycleRepository
+    agendaContextoRepository
       .listarAgendamentosProfissionalPorPeriodo.mockResolvedValue([
         {
           agendamento_id: 101,
@@ -122,6 +129,7 @@ describe("agenda operacional confiável", () => {
 
     const resultado = await agendaOperacionalService.listarAgendaProfissional({
       profissionalId: 7,
+      negocioId: 3,
     });
 
     expect(resultado.agenda[0].horarios[0]).toMatchObject({

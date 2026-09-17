@@ -3,6 +3,10 @@ const router = express.Router();
 
 const auth = require("../middlewares/auth");
 const agendaProfissionalAtiva = require("../middlewares/agendaProfissionalAtiva");
+const agendaVinculoAtivo = require("../middlewares/agendaVinculoAtivo");
+const agendamentoOperacionalAtivo = require(
+  "../middlewares/agendamentoOperacionalAtivo"
+);
 const agendaController = require("../controllers/agendaController");
 const agendamentoLifecycleController = require(
   "../controllers/agendamentoLifecycleController"
@@ -34,21 +38,21 @@ router.get(
 router.patch(
   "/agendamentos/:id/atendimento",
   auth,
-  agendaProfissionalAtiva,
+  agendamentoOperacionalAtivo,
   agendamentoLifecycleController.atualizarStatusAtendimento
 );
 
 router.patch(
   "/agendamentos/:id/cancelar-operacional",
   auth,
-  agendaProfissionalAtiva,
+  agendamentoOperacionalAtivo,
   agendamentoCancelamentoController.cancelarOperacional
 );
 
 router.post(
   "/bloqueios-horario",
   auth,
-  agendaProfissionalAtiva,
+  agendaVinculoAtivo,
   agendaController.alternarBloqueioHorario
 );
 

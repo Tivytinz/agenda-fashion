@@ -96,6 +96,10 @@ const agendaRoutes = require(
   "./agendaRoutes"
 );
 
+const agendaConfiguracaoRoutes = require(
+  "./agendaConfiguracaoRoutes"
+);
+
 const agendaPublicaRoutes = require(
   "./agendaPublicaRoutes"
 );
@@ -204,6 +208,10 @@ router.use(
 
 router.use(
   agendaRoutes
+);
+
+router.use(
+  agendaConfiguracaoRoutes
 );
 
 router.use(

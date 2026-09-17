@@ -66,7 +66,10 @@ export function ProfessionalInvitesPage() {
       if (action === "aceitar") {
         const refreshed = await session.refresh();
         setWorkspacePath(
-          getBusinessWorkspacePath(refreshed || session)
+          getBusinessWorkspacePath(
+            refreshed || session,
+            "profissional"
+          )
         );
       }
     } catch (requestError) {

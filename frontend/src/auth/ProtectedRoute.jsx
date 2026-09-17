@@ -3,6 +3,7 @@ import { LoadingState } from "../components/ScreenState";
 import { useSession } from "./SessionContext";
 import {
   getBusinessCreationPath,
+  getBusinessWorkspacePath,
   getPlanIntentPath,
   normalizePlanSlug
 } from "./session";
@@ -58,6 +59,22 @@ export function ProtectedRoute({
         replace
         state={{ from: `${location.pathname}${location.search}` }}
         to={getBusinessCreationPath(planSlug)}
+      />
+    );
+  }
+
+  const professionalRoute =
+    location.pathname === "/profissional" ||
+    location.pathname.startsWith("/profissional/");
+
+  if (
+    professionalRoute &&
+    session.negocio?.papel !== "profissional"
+  ) {
+    return (
+      <Navigate
+        replace
+        to={getBusinessWorkspacePath(session)}
       />
     );
   }

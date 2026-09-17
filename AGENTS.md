@@ -36,8 +36,9 @@ O AF deve gerar valor para os dois lados do marketplace:
 
 Não tratar como equivalentes:
 
-- **profissional**: pessoa que presta serviços e pode possuir vínculo com um ou
-  mais negócios;
+- **profissional**: pessoa que presta serviços; no modelo atual, uma conta pode
+  possuir no máximo um vínculo ativo com papel `profissional`, sem impedir que a
+  mesma conta também seja dona do próprio negócio;
 - **negócio**: unidade operacional que possui serviços, equipe, agenda, plano e
   perfil público;
 - **cliente final**: pessoa que descobre e agenda serviços, com conta ou como
@@ -50,6 +51,15 @@ global usa `usuarios_administradores`.
 Uma mesma conta pode atuar em mais de um contexto. O frontend muda navegação e
 apresentação conforme rota, sessão e vínculos, mas essas escolhas não substituem
 a autorização do backend.
+
+O contexto de negócio deve ser explícito quando a rota já expressa a intenção:
+`/painel/*` representa o vínculo de dona e `/profissional/*` representa o vínculo
+`profissional`. O backend precisa validar o vínculo persistido correspondente;
+não deve resolver uma rota profissional escolhendo silenciosamente um negócio de
+dona apenas porque esse vínculo possui prioridade no contexto principal da
+sessão. `GET /minha-sessao` mantém `negocio` como contexto principal para
+compatibilidade e também expõe `vinculos` para clientes capazes de selecionar o
+contexto correto.
 
 ## Funil principal do AF
 
@@ -116,10 +126,12 @@ uma intenção válida de plano pago, ela deve ser preservada durante
 `Negócio → Serviço → Horários` e seguir para o checkout somente depois do
 salvamento da agenda; sem intenção de plano, o fluxo segue para o painel.
 
-`agenda_configuracoes.configurado_em` registra a primeira configuração/salvamento
-explícito reconhecido pelo fluxo de agenda. A configuração e os horários padrão
-podem existir antes desse timestamp. Ele não deve ser usado para bloquear
-publicação.
+`agenda_configuracoes.configurado_em` é um marcador técnico legado de que a
+disponibilidade foi inicializada. Desde a migration 065 ele recebe valor já na
+inicialização automática e **não representa confirmação ou salvamento manual**.
+Para distinguir personalização explícita, usar `origem_horarios`,
+`primeira_personalizacao_em` e `ultima_personalizacao_em`. Nenhum desses campos
+deve ser usado para bloquear publicação.
 
 `agenda_configuracoes.origem_horarios` continua separando a origem da
 disponibilidade. O runtime atual cria a configuração com `padrao_af` e, no

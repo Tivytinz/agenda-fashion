@@ -68,12 +68,45 @@ export function getPlanIntentPath(path, planSlug) {
   return `${safePath}${separator}plano=${encodeURIComponent(plan)}`;
 }
 
-export function getBusinessWorkspacePath(session) {
-  if (!session?.temNegocio) {
+export function getBusinessContext(session, preferredRole = "") {
+  const role = String(preferredRole || "").trim();
+  const links = Array.isArray(session?.vinculos)
+    ? session.vinculos.filter(Boolean)
+    : [];
+
+  if (role) {
+    return links.find((business) => business?.papel === role) ||
+      (session?.negocio?.papel === role ? session.negocio : null);
+  }
+
+  return session?.negocioPrincipal || session?.negocio || links[0] || null;
+}
+
+export function getBusinessContextForPath(session, pathname) {
+  const path = safeInternalPath(pathname) || "/";
+
+  if (path === "/painel" || path.startsWith("/painel/")) {
+    return getBusinessContext(session, "dono");
+  }
+
+  if (path === "/profissional" || path.startsWith("/profissional/")) {
+    return getBusinessContext(session, "profissional");
+  }
+
+  return getBusinessContext(session);
+}
+
+export function getBusinessWorkspacePath(session, preferredRole = "") {
+  const preferred = preferredRole
+    ? getBusinessContext(session, preferredRole)
+    : null;
+  const business = preferred || getBusinessContext(session);
+
+  if (!business) {
     return "/criar-negocio";
   }
 
-  return session.negocio?.papel === "profissional"
+  return business.papel === "profissional"
     ? "/profissional/agenda"
     : "/painel";
 }
@@ -119,8 +152,10 @@ export function getAuthDestination(session, {
       return getBusinessCreationPath(plan);
     }
 
-    if (session.negocio?.papel === "dono") {
-      return session.negocio?.publicado === true
+    const ownerBusiness = getBusinessContext(session, "dono");
+
+    if (ownerBusiness) {
+      return ownerBusiness.publicado === true
         ? getPlanIntentPath("/checkout", plan)
         : getPlanIntentPath("/painel", plan);
     }
