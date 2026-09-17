@@ -55,6 +55,14 @@ function formatDate(value) {
   }).format(date);
 }
 
+function formatDelay(seconds) {
+  const value = Number(seconds);
+  if (!Number.isFinite(value)) return "Sem pendências";
+  if (value < 60) return `${Math.round(value)}s`;
+  if (value < 3600) return `${Math.round(value / 60)}min`;
+  return `${(value / 3600).toFixed(1)}h`;
+}
+
 function whatsappNumber(value) {
   const digits = String(value || "").replace(/\D/g, "");
   if (digits.length === 10 || digits.length === 11) return `55${digits}`;
@@ -296,6 +304,8 @@ export function AdminSaasHealthPage() {
   const [reloadKey, setReloadKey] = useState(0);
   const [page, setPage] = useState(1);
   const [searchInput, setSearchInput] = useState(search);
+  const [operational, setOperational] = useState(null);
+  const [operationalError, setOperationalError] = useState("");
 
   useEffect(() => {
     setSearchInput(search);
@@ -343,6 +353,29 @@ export function AdminSaasHealthPage() {
       controller.abort();
     };
   }, [filter, page, reloadKey, requestPath, search]);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    let active = true;
+
+    setOperationalError("");
+    apiRequest("/admin/saude/operacional", {
+      signal: controller.signal
+    })
+      .then((result) => {
+        if (active) setOperational(result);
+      })
+      .catch((requestError) => {
+        if (active && requestError.name !== "AbortError") {
+          setOperationalError(requestError.message);
+        }
+      });
+
+    return () => {
+      active = false;
+      controller.abort();
+    };
+  }, [reloadKey]);
 
   function updateParams({ nextFilter = filter, nextSearch = search }) {
     const next = new URLSearchParams(searchParams);
@@ -415,6 +448,44 @@ export function AdminSaasHealthPage() {
           </p>
         </div>
       </header>
+
+      {(operational || operationalError) && (
+        <section className="panel saas-health-panel" aria-label="Saúde operacional">
+          <div className="saas-health-toolbar">
+            <div>
+              <p className="eyebrow">Infraestrutura</p>
+              <h2>Filas e workers</h2>
+              <p className="muted">
+                Acompanhe pendências, falhas e o atraso do item mais antigo.
+              </p>
+            </div>
+          </div>
+          {operationalError ? (
+            <p className="form-error" role="alert">{operationalError}</p>
+          ) : (
+            <div className="saas-health-blocker-grid">
+              {(Array.isArray(operational?.filas) ? operational.filas : [])
+                .map((queue) => (
+                  <article className="metric-card saas-health-metric-card" key={queue.nome}>
+                    <span>{queue.nome.replaceAll("_", " ")}</span>
+                    <strong>{queue.pendentes ?? 0}</strong>
+                    <small>
+                      {queue.falhas ?? 0} falhas · atraso {formatDelay(queue.atrasoMaisAntigoSegundos)}
+                    </small>
+                  </article>
+                ))}
+              {(Array.isArray(operational?.workers) ? operational.workers : [])
+                .map((worker) => (
+                  <article className="metric-card saas-health-metric-card" key={`worker-${worker.nome}`}>
+                    <span>Worker {worker.nome}</span>
+                    <strong>{worker.ativo ? "Ativo" : "Parado"}</strong>
+                    <small>{worker.falhas ?? 0} falhas observadas neste processo</small>
+                  </article>
+                ))}
+            </div>
+          )}
+        </section>
+      )}
 
       {refreshing && data && (
         <p className="data-refresh-status" role="status">

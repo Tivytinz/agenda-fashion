@@ -11,6 +11,7 @@
   "scripts": {
     "build": "npm --prefix frontend ci && npm run frontend:build",
     "start": "npm run migrate:deploy && node src/server.js",
+    "worker": "node src/worker.js",
     "dev": "node src/server.js",
     "test": "jest --runInBand",
     "migrate": "node scripts/migrate.js up",

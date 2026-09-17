@@ -329,6 +329,18 @@ migração, não deve ser introduzido em services.
 Configuração obrigatória do runtime é validada centralmente no startup. Uma
 integração habilitada não pode iniciar com credenciais parciais.
 
+E-mail, Google Measurement, GA4 Data API, Meta, custos de mídia, TikTok,
+Pinterest, Copilot e WhatsApp seguem contratos condicionais no validador
+central: flag ativa exige o conjunto completo de credenciais.
+
+Os workers podem continuar no processo web ou rodar em processo dedicado com
+`npm run worker`. O web só deve receber `BACKGROUND_WORKERS_ENABLED=false`
+depois que o processo dedicado estiver implantado e saudável.
+
+O diagnóstico administrativo `/admin/saude/operacional` expõe apenas métricas
+seguras de processo, execução dos workers e atraso das filas; nunca credenciais
+ou payloads de clientes.
+
 Toda mudança de banco exige migration nova. Migration já aplicada não é
 reescrita para corrigir o passado.
 

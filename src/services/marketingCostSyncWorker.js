@@ -1,4 +1,7 @@
 const registrador = require("../utils/registrador");
+const operationalMetricsService = require(
+  "./operationalMetricsService"
+);
 const marketingCostSyncService = require("./marketingSyncOrchestratorService");
 const marketingCanonicalCleanupService = require(
   "./marketingCanonicalCleanupService"
@@ -219,6 +222,9 @@ async function executarSincronizacaoAgendada() {
   }
 
   executando = true;
+  operationalMetricsService.registrarExecucaoIniciada(
+    "marketing"
+  );
 
   try {
     const status =
@@ -272,10 +278,27 @@ async function executarSincronizacaoAgendada() {
       }
     }
 
-    return {
+    const resposta = {
       ignorado: false,
       resultados
     };
+    if (resultados.some((item) => item.status === "erro")) {
+      operationalMetricsService.registrarExecucaoFalha(
+        "marketing",
+        new Error("Uma ou mais integrações falharam na sincronização.")
+      );
+    } else {
+      operationalMetricsService.registrarExecucaoConcluida(
+        "marketing"
+      );
+    }
+    return resposta;
+  } catch (erro) {
+    operationalMetricsService.registrarExecucaoFalha(
+      "marketing",
+      erro
+    );
+    throw erro;
   } finally {
     executando = false;
   }
@@ -287,10 +310,19 @@ function iniciarWorkerCustosMarketing() {
   );
 
   if (!agendamentoAtivo()) {
+    operationalMetricsService.registrarWorkerParado(
+      "marketing"
+    );
     return false;
   }
 
-  void pararWorkerCustosMarketing();
+  if (timerInicial || timerIntervalo) {
+    return true;
+  }
+
+  operationalMetricsService.registrarWorkerIniciado(
+    "marketing"
+  );
 
   timerInicial = setTimeout(() => {
     void acompanharExecucao(
@@ -330,6 +362,9 @@ async function pararWorkerCustosMarketing() {
 
   await Promise.allSettled(
     Array.from(execucoesAgendadas)
+  );
+  operationalMetricsService.registrarWorkerParado(
+    "marketing"
   );
 }
 

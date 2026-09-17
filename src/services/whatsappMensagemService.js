@@ -9,6 +9,9 @@ const whatsappProvider = require(
   "../providers/whatsappProvider"
 );
 const registrador = require("../utils/registrador");
+const operationalMetricsService = require(
+  "./operationalMetricsService"
+);
 const {
   CONFIGURACOES_TEMPLATE,
   obterNomeTemplate,
@@ -655,6 +658,9 @@ function iniciarWorkerWhatsapp() {
   }
 
   validarConfiguracaoAtivacao();
+  operationalMetricsService.registrarWorkerIniciado(
+    "whatsapp"
+  );
 
   const intervalo =
     obterInteiroConfiguracao(
@@ -671,9 +677,23 @@ function iniciarWorkerWhatsapp() {
       return execucaoWorkerAtual;
     }
 
+    operationalMetricsService.registrarExecucaoIniciada(
+      "whatsapp"
+    );
+
     execucaoWorkerAtual = processarFilaWhatsapp()
+      .then((resultado) => {
+        operationalMetricsService.registrarExecucaoConcluida(
+          "whatsapp"
+        );
+        return resultado;
+      })
       .catch(
         (erro) => {
+          operationalMetricsService.registrarExecucaoFalha(
+            "whatsapp",
+            erro
+          );
           registrador.erro(
             "WhatsApp: erro inesperado no processador de mensagens.",
             {
@@ -730,6 +750,9 @@ async function pararWorkerWhatsapp() {
   }
 
   await execucaoWorkerAtual;
+  operationalMetricsService.registrarWorkerParado(
+    "whatsapp"
+  );
 }
 
 module.exports = {

@@ -2,6 +2,9 @@ const adminSaasHealthService =
   require(
     "../services/adminSaasHealthService"
   );
+const operationalHealthService = require(
+  "../services/operationalHealthService"
+);
 
 async function listarPerfisIncompletos(
   req,
@@ -30,6 +33,21 @@ async function listarPerfisIncompletos(
   }
 }
 
+async function obterSaudeOperacional(
+  _req,
+  res,
+  next
+) {
+  try {
+    const resultado = await operationalHealthService
+      .obterSaudeOperacional();
+    return res.status(200).json(resultado);
+  } catch (erro) {
+    return next(erro);
+  }
+}
+
 module.exports = {
   listarPerfisIncompletos,
+  obterSaudeOperacional,
 };

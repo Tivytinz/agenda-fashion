@@ -63,4 +63,60 @@ describe("configuração central do runtime", () => {
       DB_QUERY_TIMEOUT: "vinte",
     })).toThrow("DB_QUERY_TIMEOUT precisa ser um inteiro");
   });
+
+  test.each([
+    [
+      "PASSWORD_RESET_EMAIL_ENABLED",
+      "E-mail de recuperação",
+    ],
+    ["GOOGLE_MEASUREMENT_ENABLED", "Google Measurement"],
+    ["GA4_DATA_API_ENABLED", "GA4 Data API"],
+    ["META_ADS_ENABLED", "Meta Ads"],
+    ["GOOGLE_ADS_COSTS_ENABLED", "Custos Google Ads"],
+    ["META_ADS_COSTS_ENABLED", "Custos Meta Ads"],
+    ["TIKTOK_ADS_COSTS_ENABLED", "Custos TikTok Ads"],
+    ["PINTEREST_ADS_COSTS_ENABLED", "Custos Pinterest Ads"],
+    ["COPILOT_AI_ENABLED", "Copilot"],
+  ])(
+    "recusa integração %s habilitada parcialmente",
+    (flag, contexto) => {
+      expect(() => validarConfiguracaoRuntime({
+        ...ambienteBase(),
+        [flag]: "true",
+      })).toThrow(`${contexto}: variáveis ausentes`);
+    }
+  );
+
+  test("recusa flag ambígua e expõe o modo dos workers", () => {
+    expect(() => validarConfiguracaoRuntime({
+      ...ambienteBase(),
+      BACKGROUND_WORKERS_ENABLED: "talvez",
+    })).toThrow("BACKGROUND_WORKERS_ENABLED precisa ser uma flag booleana válida");
+
+    expect(validarConfiguracaoRuntime({
+      ...ambienteBase(),
+      BACKGROUND_WORKERS_ENABLED: "false",
+    })).toMatchObject({
+      workersAtivos: false,
+    });
+  });
+
+  test("recusa credencial presente com formato inválido", () => {
+    expect(() => validarConfiguracaoRuntime({
+      ...ambienteBase(),
+      GOOGLE_MEASUREMENT_ENABLED: "true",
+      GA4_MEASUREMENT_ID: "medicao-invalida",
+      GA4_API_SECRET: "segredo",
+    })).toThrow("GA4_MEASUREMENT_ID possui formato inválido");
+
+    expect(() => validarConfiguracaoRuntime({
+      ...ambienteBase(),
+      TIKTOK_ADS_COSTS_ENABLED: "true",
+      TIKTOK_ADVERTISER_ID: "123456",
+      TIKTOK_APP_ID: "app",
+      TIKTOK_APP_SECRET: "secret",
+      TIKTOK_OAUTH_ENCRYPTION_KEY: "curta",
+      TIKTOK_OAUTH_REDIRECT_URI: "https://app.example.com/callback",
+    })).toThrow("TIKTOK_OAUTH_ENCRYPTION_KEY precisa ter pelo menos 32 caracteres");
+  });
 });

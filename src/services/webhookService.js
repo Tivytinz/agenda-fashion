@@ -2,6 +2,9 @@ const webhookEventoRepository = require(
   "../repositories/webhookEventoRepository"
 );
 const registrador = require("../utils/registrador");
+const operationalMetricsService = require(
+  "./operationalMetricsService"
+);
 const marketingConversionDeliveryService = require(
   "./marketingConversionDeliveryService"
 );
@@ -608,15 +611,24 @@ function iniciarWorkerWebhook() {
     return temporizadorWorker;
   }
 
+  operationalMetricsService.registrarWorkerIniciado(
+    "webhook"
+  );
+
   const executar = () => {
     if (workerEmExecucao) {
       return execucaoWorkerAtual;
     }
 
     workerEmExecucao = true;
+    operationalMetricsService.registrarExecucaoIniciada(
+      "webhook"
+    );
+    let erroExecucao = null;
 
     const filaWebhook = processarFilaWebhook()
       .catch((erro) => {
+        erroExecucao ||= erro;
         registrador.erro(
           "Webhook Asaas: falha no processador da fila.",
           {
@@ -628,6 +640,7 @@ function iniciarWorkerWebhook() {
     const filaConversoes = marketingConversionDeliveryService
       .processarFilaConversoes()
       .catch((erro) => {
+        erroExecucao ||= erro;
         registrador.aviso(
           "Conversões de marketing: falha no processador da fila.",
           {
@@ -656,6 +669,7 @@ function iniciarWorkerWebhook() {
           }
         })
         .catch((erro) => {
+          erroExecucao ||= erro;
           registrador.aviso(
             "Webhook Asaas: falha na retenção de payloads antigos.",
             {
@@ -668,9 +682,25 @@ function iniciarWorkerWebhook() {
       filaWebhook,
       filaConversoes,
       retencaoWebhooks,
-    ]).finally(() => {
-      workerEmExecucao = false;
-    });
+    ])
+      .then((resultados) => {
+        const rejeitada = resultados.find(
+          (resultado) => resultado.status === "rejected"
+        );
+        if (erroExecucao || rejeitada) {
+          operationalMetricsService.registrarExecucaoFalha(
+            "webhook",
+            erroExecucao || rejeitada.reason
+          );
+        } else {
+          operationalMetricsService.registrarExecucaoConcluida(
+            "webhook"
+          );
+        }
+      })
+      .finally(() => {
+        workerEmExecucao = false;
+      });
 
     return execucaoWorkerAtual;
   };
@@ -700,6 +730,9 @@ async function pararWorkerWebhook() {
 
   if (!temporizadorWorker) {
     await execucaoWorkerAtual;
+    operationalMetricsService.registrarWorkerParado(
+      "webhook"
+    );
     return;
   }
 
@@ -711,6 +744,9 @@ async function pararWorkerWebhook() {
     null;
 
   await execucaoWorkerAtual;
+  operationalMetricsService.registrarWorkerParado(
+    "webhook"
+  );
 }
 
 async function processarWebhookAsaas(dados) {

@@ -31,20 +31,12 @@ const {
   disableDocumentCache
 } = require("./utils/httpCache");
 const {
-  iniciarWorkerWebhook,
-  pararWorkerWebhook,
-} = require("./services/webhookService");
-const {
   validarConfigAsaas
 } = require("./services/asaasService");
 const {
-  iniciarWorkerWhatsapp,
-  pararWorkerWhatsapp,
-} = require("./services/whatsappMensagemService");
-const {
-  iniciarWorkerCustosMarketing,
-  pararWorkerCustosMarketing,
-} = require("./services/marketingCostSyncWorker");
+  iniciarWorkers,
+  pararWorkers,
+} = require("./workers/backgroundWorkers");
 const socialPreviewService = require(
   "./services/socialPreviewService"
 );
@@ -594,6 +586,14 @@ let servidor =
 let encerrando =
   false;
 
+function workersHabilitadosNoServidor() {
+  const valor = String(
+    process.env.BACKGROUND_WORKERS_ENABLED ?? "true"
+  ).trim().toLowerCase();
+
+  return ["1", "true", "yes", "sim", "on"].includes(valor);
+}
+
 async function iniciarServidor() {
   if (
     process.env.NODE_ENV ===
@@ -620,9 +620,13 @@ async function iniciarServidor() {
         `Servidor rodando na porta ${PORT}`
       );
 
-      iniciarWorkerWebhook();
-      iniciarWorkerWhatsapp();
-      iniciarWorkerCustosMarketing();
+      if (workersHabilitadosNoServidor()) {
+        iniciarWorkers();
+      } else {
+        registrador.informacao(
+          "Workers desativados neste processo web; execução dedicada esperada."
+        );
+      }
     });
 
   return servidor;
@@ -645,11 +649,7 @@ async function encerrarServidor(
     }
   );
 
-  const encerramentoWorkers = Promise.allSettled([
-    pararWorkerWebhook(),
-    pararWorkerWhatsapp(),
-    pararWorkerCustosMarketing(),
-  ]);
+  const encerramentoWorkers = pararWorkers();
 
   if (servidor) {
     const limiteMs =
@@ -753,3 +753,5 @@ module.exports.iniciarServidor =
   iniciarServidor;
 module.exports.encerrarServidor =
   encerrarServidor;
+module.exports.workersHabilitadosNoServidor =
+  workersHabilitadosNoServidor;
