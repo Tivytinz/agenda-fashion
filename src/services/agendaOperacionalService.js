@@ -3,6 +3,9 @@ const agendaRepository = require("../repositories/agendaRepository");
 const agendamentoLifecycleRepository = require(
   "../repositories/agendamentoLifecycleRepository"
 );
+const agendaContextoRepository = require(
+  "../repositories/agendaContextoRepository"
+);
 
 const STATUS_ATIVOS = new Set([
   "agendado",
@@ -204,16 +207,20 @@ function obterPeriodoAgenda(agenda) {
   };
 }
 
-async function listarAgendaProfissional({ profissionalId }) {
+async function listarAgendaProfissional({
+  profissionalId,
+  negocioId,
+}) {
   const resultado = await agendaService.listarAgendaProfissional({ profissionalId });
   const periodo = obterPeriodoAgenda(resultado?.agenda);
 
   if (!periodo) return resultado;
 
   const agendamentos =
-    await agendamentoLifecycleRepository
+    await agendaContextoRepository
       .listarAgendamentosProfissionalPorPeriodo({
         profissionalId,
+        negocioId,
         dataInicio: periodo.dataInicio,
         dataFim: periodo.dataFim,
       });
