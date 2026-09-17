@@ -1,0 +1,135 @@
+.team-invites-page {
+  min-height: 60vh;
+  padding: 34px 0 56px;
+}
+
+.team-invites-container {
+  width: min(900px, calc(100% - 32px));
+}
+
+.team-invites-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+  margin-bottom: 24px;
+}
+
+.team-invites-heading h1 {
+  margin: 4px 0 8px;
+}
+
+.team-invites-heading p:last-child {
+  max-width: 650px;
+  margin-bottom: 0;
+  color: var(--muted);
+}
+
+.team-invite-list {
+  display: grid;
+  gap: 14px;
+}
+
+.team-invite-card,
+.invite-sent-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 24px;
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  padding: 22px;
+  background: #fff;
+  box-shadow: 0 12px 30px rgba(78, 24, 47, .06);
+}
+
+.invite-sent-card {
+  margin: 16px 0;
+}
+
+.team-invite-copy {
+  min-width: 0;
+}
+
+.team-invite-copy h2 {
+  margin: 10px 0 6px;
+  color: var(--wine);
+  font-size: 1.08rem;
+}
+
+.team-invite-copy p {
+  margin: 0 0 8px;
+  color: var(--muted);
+}
+
+.team-invite-copy small {
+  color: var(--muted);
+  font-weight: 700;
+}
+
+.invite-status-badge {
+  display: inline-flex;
+  width: fit-content;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #f0c8d7;
+  border-radius: 999px;
+  padding: 5px 10px;
+  color: var(--pink-700);
+  background: var(--pink-50);
+  font-size: .74rem;
+  font-weight: 800;
+}
+
+.team-invite-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.team-invite-success {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  border: 1px solid #b9dfc8;
+  border-radius: 16px;
+  margin-bottom: 18px;
+  padding: 14px 16px;
+  color: #17633c;
+  background: #f4fbf7;
+}
+
+.inline-form label > small {
+  display: block;
+  margin-top: 7px;
+  line-height: 1.35;
+}
+
+@media (max-width: 700px) {
+  .team-invites-page {
+    padding-top: 22px;
+  }
+
+  .team-invites-heading,
+  .team-invite-card,
+  .invite-sent-card,
+  .team-invite-success {
+    grid-template-columns: 1fr;
+  }
+
+  .team-invites-heading,
+  .team-invite-success {
+    display: grid;
+  }
+
+  .team-invite-actions {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .team-invite-actions .button,
+  .team-invite-success .button {
+    width: 100%;
+  }
+}
