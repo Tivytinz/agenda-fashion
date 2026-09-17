@@ -8,13 +8,19 @@ jest.mock("../src/repositories/agendaRepository", () => ({
   buscarBloqueiosProfissionaisPorPeriodo: jest.fn(),
 }));
 
-jest.mock("../src/repositories/agendamentoLifecycleRepository", () => ({
+jest.mock("../src/repositories/agendaContextoRepository", () => ({
   listarAgendamentosProfissionalPorPeriodo: jest.fn(),
+}));
+
+jest.mock("../src/repositories/agendamentoLifecycleRepository", () => ({
   listarAgendamentosProfissionaisDoNegocioPorPeriodo: jest.fn(),
 }));
 
 const agendaService = require("../src/services/agendaService");
 const agendaRepository = require("../src/repositories/agendaRepository");
+const agendaContextoRepository = require(
+  "../src/repositories/agendaContextoRepository"
+);
 const agendamentoLifecycleRepository = require(
   "../src/repositories/agendamentoLifecycleRepository"
 );
@@ -122,7 +128,7 @@ describe("agendaOperacionalService", () => {
     });
   });
 
-  test("listarAgendaProfissional usa o período materializado para carregar compromissos persistidos", async () => {
+  test("listarAgendaProfissional usa o período e o negócio explícito para carregar compromissos persistidos", async () => {
     agendaService.listarAgendaProfissional.mockResolvedValue({
       profissional: { id: 7 },
       agenda: [
@@ -130,7 +136,7 @@ describe("agendaOperacionalService", () => {
         { data: "2026-09-22", horarios: [] },
       ],
     });
-    agendamentoLifecycleRepository
+    agendaContextoRepository
       .listarAgendamentosProfissionalPorPeriodo
       .mockResolvedValue([
         {
@@ -145,13 +151,15 @@ describe("agendaOperacionalService", () => {
 
     const resultado = await service.listarAgendaProfissional({
       profissionalId: 7,
+      negocioId: 55,
     });
 
     expect(
-      agendamentoLifecycleRepository
+      agendaContextoRepository
         .listarAgendamentosProfissionalPorPeriodo
     ).toHaveBeenCalledWith({
       profissionalId: 7,
+      negocioId: 55,
       dataInicio: "2026-09-20",
       dataFim: "2026-09-22",
     });
