@@ -48,13 +48,25 @@ WHERE ah.profissional_id = ac.profissional_id
   AND ah.negocio_id IS NULL
   AND ac.negocio_id IS NOT NULL;
 
--- Configurações sem qualquer vínculo ativo não representam hoje um contexto
--- utilizável da aplicação. Removê-las evita manter linhas órfãs antes do NOT NULL.
-DELETE FROM agenda_horarios
-WHERE negocio_id IS NULL;
-
-DELETE FROM agenda_configuracoes
-WHERE negocio_id IS NULL;
+-- Não apagamos silenciosamente qualquer configuração legada que não possa ser
+-- contextualizada. Se existir anomalia histórica, a migration falha inteira e
+-- preserva os dados para investigação/recuperação.
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1
+    FROM agenda_configuracoes
+    WHERE negocio_id IS NULL
+  ) OR EXISTS (
+    SELECT 1
+    FROM agenda_horarios
+    WHERE negocio_id IS NULL
+  ) THEN
+    RAISE EXCEPTION
+      'Não foi possível contextualizar todas as configurações legadas da agenda.';
+  END IF;
+END;
+$$;
 
 ALTER TABLE agenda_configuracoes
   DROP CONSTRAINT IF EXISTS agenda_configuracoes_profissional_unique;
