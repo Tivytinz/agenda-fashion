@@ -43,6 +43,20 @@ async function removerProfissional(req, res, next) {
   }
 }
 
+async function criarConviteProfissional(req, res, next) {
+  try {
+    const resultado =
+      await profissionaisService.criarConviteProfissional({
+        usuarioDonoId: req.user?.id,
+        emailOuWhatsapp: req.body.emailOuWhatsapp
+      });
+
+    return res.status(201).json(resultado);
+  } catch (err) {
+    next(err);
+  }
+}
+
 async function vincularProfissional(req, res, next) {
   try {
     const resultado =
@@ -57,9 +71,54 @@ async function vincularProfissional(req, res, next) {
   }
 }
 
+async function listarConvitesRecebidos(req, res, next) {
+  try {
+    const resultado =
+      await profissionaisService.listarConvitesRecebidos({
+        usuarioId: req.user?.id
+      });
+
+    return res.json(resultado);
+  } catch (err) {
+    next(err);
+  }
+}
+
+async function aceitarConviteProfissional(req, res, next) {
+  try {
+    const resultado =
+      await profissionaisService.aceitarConviteProfissional({
+        usuarioId: req.user?.id,
+        conviteId: req.params.id
+      });
+
+    return res.json(resultado);
+  } catch (err) {
+    next(err);
+  }
+}
+
+async function recusarConviteProfissional(req, res, next) {
+  try {
+    const resultado =
+      await profissionaisService.recusarConviteProfissional({
+        usuarioId: req.user?.id,
+        conviteId: req.params.id
+      });
+
+    return res.json(resultado);
+  } catch (err) {
+    next(err);
+  }
+}
+
 module.exports = {
   listarProfissionais,
   vincularProfissional,
+  criarConviteProfissional,
+  listarConvitesRecebidos,
+  aceitarConviteProfissional,
+  recusarConviteProfissional,
   editarProfissional,
   removerProfissional
 };

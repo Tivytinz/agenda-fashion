@@ -15,6 +15,8 @@ const {
 const ForbiddenError = require("../errors/ForbiddenError");
 const ValidationError = require("../errors/ValidationError");
 
+const CONVITE_EXPIRACAO_DIAS = 7;
+
 function normalizarTexto(valor) {
   return String(valor ?? "").trim();
 }
@@ -74,6 +76,62 @@ function normalizarIdentificadorProfissional(valor) {
     email: "",
     whatsapp
   };
+}
+
+function criarErroStatus(mensagem, status, codigo) {
+  const erro = new Error(mensagem);
+  erro.status = status;
+  erro.statusCode = status;
+
+  if (codigo) {
+    erro.codigo = codigo;
+  }
+
+  return erro;
+}
+
+function calcularExpiracaoConvite() {
+  return new Date(
+    Date.now() +
+      CONVITE_EXPIRACAO_DIAS * 24 * 60 * 60 * 1000
+  );
+}
+
+function validarLimitePlano(usoPlano) {
+  if (!usoPlano) {
+    throw criarErroStatus(
+      "Plano do negócio não encontrado.",
+      404
+    );
+  }
+
+  const utilizados = Number(
+    usoPlano.profissionais_utilizados || 0
+  );
+  const limite = usoPlano.limite_profissionais;
+  const planoNome = usoPlano.plano_nome || "plano atual";
+
+  if (limite !== null && utilizados >= Number(limite)) {
+    const limiteNumerico = Number(limite);
+    const acimaDoLimite = Math.max(
+      0,
+      utilizados - limiteNumerico
+    );
+    const mensagem = acimaDoLimite > 0
+      ? `Você possui ${utilizados} profissional(is) ativo(s), ${acimaDoLimite} acima do limite de ${limiteNumerico} do plano ${planoNome}. Faça upgrade para adicionar novos profissionais.`
+      : `Você atingiu o limite de ${limiteNumerico} profissional(is) do plano ${planoNome}. Faça upgrade para adicionar mais.`;
+
+    throw criarErroLimite(
+      mensagem,
+      "LIMITE_PROFISSIONAIS",
+      {
+        plano_nome: planoNome,
+        utilizados,
+        limite: limiteNumerico,
+        acima_do_limite: acimaDoLimite,
+      }
+    );
+  }
 }
 
 async function listarProfissionais({ usuarioId }) {
@@ -160,7 +218,6 @@ function criarErroAgendamentosFuturos(quantidade) {
       ? "Esta profissional possui 1 agendamento futuro ativo neste negócio. Resolva esse compromisso antes de removê-la da equipe."
       : `Esta profissional possui ${total} agendamentos futuros ativos neste negócio. Resolva esses compromissos antes de removê-la da equipe.`
   );
-
   erro.status = 409;
   erro.statusCode = 409;
 
@@ -210,7 +267,7 @@ async function removerProfissional({
   };
 }
 
-async function vincularProfissional({
+async function criarConviteProfissional({
   usuarioDonoId,
   emailOuWhatsapp
 }) {
@@ -227,7 +284,7 @@ async function vincularProfissional({
 
   exigirPermissao(
     dono,
-    "Apenas o dono pode adicionar profissionais."
+    "Apenas o dono pode convidar profissionais."
   );
 
   const {
@@ -246,81 +303,410 @@ async function vincularProfissional({
     "Profissional não encontrado. Ele precisa criar uma conta primeiro."
   );
 
-  await db.executarTransacao(async (client) => {
-    await profissionaisRepository.bloquearCadastroProfissional(
-      client,
-      dono.negocio_id
+  if (Number(profissional.id) === Number(usuarioDonoId)) {
+    throw new ValidationError(
+      "O dono já faz parte deste negócio."
     );
+  }
 
-    const usoPlano = await buscarUsoPlano(
-      dono.negocio_id,
-      client
-    );
+  const convite = await db.executarTransacao(
+    async (client) => {
+      await profissionaisRepository.bloquearCadastroProfissional(
+        client,
+        dono.negocio_id
+      );
 
-    const jaVinculado =
-      await profissionaisRepository.verificarVinculo(
-        profissional.id,
+      const vinculo =
+        await profissionaisRepository.verificarVinculo(
+          profissional.id,
+          dono.negocio_id,
+          client
+        );
+
+      if (vinculo?.ativo) {
+        throw new ValidationError(
+          "Este profissional já está vinculado ao negócio."
+        );
+      }
+
+      await profissionaisRepository.expirarConvitesPendentes(
         dono.negocio_id,
+        profissional.id,
         client
       );
 
-    if (jaVinculado) {
-      throw new ValidationError(
-        "Este profissional já está vinculado ao negócio."
-      );
-    }
+      const existente =
+        await profissionaisRepository.buscarConvitePendente(
+          dono.negocio_id,
+          profissional.id,
+          client
+        );
 
-    if (!usoPlano) {
-      const erro = new Error("Plano do negócio não encontrado.");
-      erro.status = 404;
-      erro.statusCode = 404;
-      throw erro;
-    }
+      if (existente) {
+        throw new ValidationError(
+          "Já existe um convite pendente para este profissional."
+        );
+      }
 
-    const utilizados = Number(
-      usoPlano.profissionais_utilizados || 0
-    );
-    const limite = usoPlano.limite_profissionais;
-    const planoNome = usoPlano.plano_nome || "plano atual";
-
-    if (limite !== null && utilizados >= Number(limite)) {
-      const limiteNumerico = Number(limite);
-      const acimaDoLimite = Math.max(
-        0,
-        utilizados - limiteNumerico
-      );
-      const mensagem = acimaDoLimite > 0
-        ? `Você possui ${utilizados} profissional(is) ativo(s), ${acimaDoLimite} acima do limite de ${limiteNumerico} do plano ${planoNome}. Faça upgrade para adicionar novos profissionais.`
-        : `Você atingiu o limite de ${limiteNumerico} profissional(is) do plano ${planoNome}. Faça upgrade para adicionar mais.`;
-
-      throw criarErroLimite(
-        mensagem,
-        "LIMITE_PROFISSIONAIS",
+      const criado = await profissionaisRepository.criarConvite(
         {
-          plano_nome: planoNome,
-          utilizados,
-          limite: limiteNumerico,
-          acima_do_limite: acimaDoLimite,
-        }
+          negocioId: dono.negocio_id,
+          usuarioConvidadoId: profissional.id,
+          convidadoPorUsuarioId: usuarioDonoId,
+          expiraEm: calcularExpiracaoConvite(),
+        },
+        client
       );
-    }
 
-    await profissionaisRepository.criarVinculo(
-      profissional.id,
-      dono.negocio_id,
-      client
-    );
-  });
+      if (!criado) {
+        throw new ValidationError(
+          "Já existe um convite pendente para este profissional."
+        );
+      }
+
+      return criado;
+    }
+  );
 
   return {
-    mensagem: "Profissional vinculado com sucesso.",
-    profissional
+    mensagem:
+      "Convite enviado. O vínculo será criado somente após o aceite do profissional.",
+    convite: {
+      id: convite.id,
+      status: convite.status,
+      expira_em: convite.expira_em,
+      profissional: {
+        id: profissional.id,
+        nome: profissional.nome,
+        foto_url: profissional.foto_url || null,
+      },
+    },
+  };
+}
+
+async function vincularProfissional(args) {
+  return criarConviteProfissional(args);
+}
+
+async function listarConvitesRecebidos({ usuarioId }) {
+  exigirUsuario(usuarioId);
+
+  const convites =
+    await profissionaisRepository.listarConvitesRecebidos(
+      usuarioId
+    );
+
+  return { convites };
+}
+
+async function aceitarConviteProfissional({
+  usuarioId,
+  conviteId
+}) {
+  exigirUsuario(usuarioId);
+  exigirCampo(conviteId, "Convite não informado.");
+
+  const resultado = await db.executarTransacao(
+    async (client) => {
+      const convite =
+        await profissionaisRepository.buscarConviteParaAtualizacao(
+          conviteId,
+          client
+        );
+
+      if (!convite) {
+        return { erro: "NAO_ENCONTRADO" };
+      }
+
+      if (
+        Number(convite.usuario_convidado_id) !==
+        Number(usuarioId)
+      ) {
+        return { erro: "SEM_PERMISSAO" };
+      }
+
+      if (convite.status === "aceito") {
+        const vinculo =
+          await profissionaisRepository.verificarVinculo(
+            usuarioId,
+            convite.negocio_id,
+            client
+          );
+
+        if (vinculo?.ativo) {
+          return {
+            convite,
+            jaAceito: true,
+          };
+        }
+
+        return { erro: "CONVITE_FINALIZADO" };
+      }
+
+      if (convite.status !== "pendente") {
+        return { erro: "CONVITE_FINALIZADO" };
+      }
+
+      if (new Date(convite.expira_em).getTime() <= Date.now()) {
+        await profissionaisRepository.atualizarStatusConvite(
+          convite.id,
+          "expirado",
+          client
+        );
+
+        return { erro: "CONVITE_EXPIRADO" };
+      }
+
+      if (!convite.negocio_ativo || !convite.usuario_ativo) {
+        return { erro: "CONTEXTO_INATIVO" };
+      }
+
+      await profissionaisRepository.bloquearCadastroProfissional(
+        client,
+        convite.negocio_id
+      );
+
+      const usoPlano = await buscarUsoPlano(
+        convite.negocio_id,
+        client
+      );
+
+      validarLimitePlano(usoPlano);
+
+      const vinculoMesmoNegocio =
+        await profissionaisRepository.verificarVinculo(
+          usuarioId,
+          convite.negocio_id,
+          client
+        );
+
+      if (vinculoMesmoNegocio?.ativo) {
+        const conviteAceito =
+          await profissionaisRepository.atualizarStatusConvite(
+            convite.id,
+            "aceito",
+            client
+          );
+
+        return {
+          convite: conviteAceito,
+          jaAceito: true,
+        };
+      }
+
+      const vinculoOutroNegocio =
+        await profissionaisRepository.buscarVinculoProfissionalAtivo(
+          usuarioId,
+          client
+        );
+
+      if (vinculoOutroNegocio) {
+        return {
+          erro: "JA_VINCULADO_OUTRO_NEGOCIO",
+          negocio: vinculoOutroNegocio,
+        };
+      }
+
+      try {
+        if (vinculoMesmoNegocio && !vinculoMesmoNegocio.ativo) {
+          const reativado =
+            await profissionaisRepository.reativarVinculoProfissional(
+              usuarioId,
+              convite.negocio_id,
+              client
+            );
+
+          if (!reativado) {
+            throw criarErroStatus(
+              "Não foi possível reativar o vínculo profissional.",
+              409
+            );
+          }
+        } else {
+          await profissionaisRepository.criarVinculo(
+            usuarioId,
+            convite.negocio_id,
+            client
+          );
+        }
+      } catch (erro) {
+        if (
+          erro?.code === "23505" &&
+          erro?.constraint ===
+            "usuarios_negocios_profissional_ativo_unique"
+        ) {
+          return { erro: "JA_VINCULADO_OUTRO_NEGOCIO" };
+        }
+
+        throw erro;
+      }
+
+      const conviteAceito =
+        await profissionaisRepository.atualizarStatusConvite(
+          convite.id,
+          "aceito",
+          client
+        );
+
+      return {
+        convite: conviteAceito,
+        jaAceito: false,
+      };
+    }
+  );
+
+  if (resultado.erro === "NAO_ENCONTRADO") {
+    throw criarErroStatus(
+      "Convite não encontrado.",
+      404
+    );
+  }
+
+  if (resultado.erro === "SEM_PERMISSAO") {
+    throw new ForbiddenError(
+      "Este convite pertence a outro usuário."
+    );
+  }
+
+  if (resultado.erro === "CONVITE_EXPIRADO") {
+    throw criarErroStatus(
+      "Este convite expirou.",
+      410,
+      "CONVITE_EXPIRADO"
+    );
+  }
+
+  if (resultado.erro === "CONVITE_FINALIZADO") {
+    throw criarErroStatus(
+      "Este convite já foi finalizado.",
+      409,
+      "CONVITE_FINALIZADO"
+    );
+  }
+
+  if (resultado.erro === "CONTEXTO_INATIVO") {
+    throw criarErroStatus(
+      "Não é possível aceitar este convite porque a conta ou o negócio está inativo.",
+      409
+    );
+  }
+
+  if (resultado.erro === "JA_VINCULADO_OUTRO_NEGOCIO") {
+    throw criarErroStatus(
+      "Você já possui vínculo profissional ativo com outro negócio.",
+      409,
+      "PROFISSIONAL_JA_VINCULADO"
+    );
+  }
+
+  return {
+    mensagem: resultado.jaAceito
+      ? "Convite já estava aceito."
+      : "Convite aceito. Você agora faz parte da equipe.",
+    convite: {
+      id: resultado.convite.id,
+      negocio_id: resultado.convite.negocio_id,
+      status: "aceito",
+    },
+  };
+}
+
+async function recusarConviteProfissional({
+  usuarioId,
+  conviteId
+}) {
+  exigirUsuario(usuarioId);
+  exigirCampo(conviteId, "Convite não informado.");
+
+  const resultado = await db.executarTransacao(
+    async (client) => {
+      const convite =
+        await profissionaisRepository.buscarConviteParaAtualizacao(
+          conviteId,
+          client
+        );
+
+      if (!convite) {
+        return { erro: "NAO_ENCONTRADO" };
+      }
+
+      if (
+        Number(convite.usuario_convidado_id) !==
+        Number(usuarioId)
+      ) {
+        return { erro: "SEM_PERMISSAO" };
+      }
+
+      if (convite.status !== "pendente") {
+        return { erro: "CONVITE_FINALIZADO" };
+      }
+
+      if (new Date(convite.expira_em).getTime() <= Date.now()) {
+        await profissionaisRepository.atualizarStatusConvite(
+          convite.id,
+          "expirado",
+          client
+        );
+        return { erro: "CONVITE_EXPIRADO" };
+      }
+
+      const recusado =
+        await profissionaisRepository.atualizarStatusConvite(
+          convite.id,
+          "recusado",
+          client
+        );
+
+      return { convite: recusado };
+    }
+  );
+
+  if (resultado.erro === "NAO_ENCONTRADO") {
+    throw criarErroStatus(
+      "Convite não encontrado.",
+      404
+    );
+  }
+
+  if (resultado.erro === "SEM_PERMISSAO") {
+    throw new ForbiddenError(
+      "Este convite pertence a outro usuário."
+    );
+  }
+
+  if (resultado.erro === "CONVITE_EXPIRADO") {
+    throw criarErroStatus(
+      "Este convite expirou.",
+      410,
+      "CONVITE_EXPIRADO"
+    );
+  }
+
+  if (resultado.erro === "CONVITE_FINALIZADO") {
+    throw criarErroStatus(
+      "Este convite já foi finalizado.",
+      409,
+      "CONVITE_FINALIZADO"
+    );
+  }
+
+  return {
+    mensagem: "Convite recusado.",
+    convite: {
+      id: resultado.convite.id,
+      negocio_id: resultado.convite.negocio_id,
+      status: "recusado",
+    },
   };
 }
 
 module.exports = {
   listarProfissionais,
   vincularProfissional,
+  criarConviteProfissional,
+  listarConvitesRecebidos,
+  aceitarConviteProfissional,
+  recusarConviteProfissional,
   editarProfissional,
   removerProfissional
 };

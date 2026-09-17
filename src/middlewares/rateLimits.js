@@ -169,6 +169,17 @@ const limitarCopilot =
       chaveUsuarioOuIp,
   });
 
+const limitarConvitesProfissionais =
+  criarLimitador({
+    limite: 20,
+    janelaMs:
+      60 * 60 * 1000,
+    mensagem:
+      "Muitos convites enviados. Tente novamente mais tarde.",
+    chave:
+      chaveUsuarioOuIp,
+  });
+
 module.exports = {
   criarLimitador,
   limitarLogin,
@@ -180,4 +191,5 @@ module.exports = {
   limitarUpload,
   limitarLeituraPublica,
   limitarCopilot,
+  limitarConvitesProfissionais,
 };

@@ -43,6 +43,7 @@ const loadServicesStyles = () => Promise.all([
 const loadBusinessStyles = () => import("./styles/business-polish.css");
 const loadSubscriptionStyles = () => import("./styles/subscription-polish.css");
 const loadPlansStyles = () => import("./styles/plans-polish.css");
+const loadTeamInvitesStyles = () => import("./styles/team-invites.css");
 
 const AdminLayout = lazyNamedWithStyles(
   loadAdminShellStyles,
@@ -138,9 +139,15 @@ const ServicesPage = lazyNamedWithStyles(
   () => import("./pages/ServicesPage"),
   "ServicesPage"
 );
-const ProfessionalsPage = lazyNamed(
+const ProfessionalsPage = lazyNamedWithStyles(
+  loadTeamInvitesStyles,
   () => import("./pages/ProfessionalsPage"),
   "ProfessionalsPage"
+);
+const ProfessionalInvitesPage = lazyNamedWithStyles(
+  loadTeamInvitesStyles,
+  () => import("./pages/ProfessionalInvitesPage"),
+  "ProfessionalInvitesPage"
 );
 const ConfirmPage = lazyNamed(() => import("./pages/ConfirmPage"), "ConfirmPage");
 const ExplorePage = lazyNamed(() => import("./pages/ExplorePage"), "ExplorePage");
@@ -255,6 +262,10 @@ export default function App() {
           <Route
             path={reactRoutes.account}
             element={<ProtectedRoute><AccountRoute /></ProtectedRoute>}
+          />
+          <Route
+            path={reactRoutes.professionalInvites}
+            element={<ProtectedRoute><ProfessionalInvitesPage /></ProtectedRoute>}
           />
           <Route path={reactRoutes.plans} element={<PlansPage />} />
           <Route
