@@ -9,69 +9,20 @@ function criarErro(mensagem, statusCode) {
   return err;
 }
 
-const HORARIOS_PADRAO = [
-  {
-    diaSemana: 0,
-    trabalha: false,
-    horaInicio: null,
-    horaFim: null,
-    intervaloInicio: null,
-    intervaloFim: null,
-  },
-  {
-    diaSemana: 1,
-    trabalha: true,
-    horaInicio: "08:00",
-    horaFim: "18:00",
-    intervaloInicio: "12:00",
-    intervaloFim: "13:00",
-  },
-  {
-    diaSemana: 2,
-    trabalha: true,
-    horaInicio: "08:00",
-    horaFim: "18:00",
-    intervaloInicio: "12:00",
-    intervaloFim: "13:00",
-  },
-  {
-    diaSemana: 3,
-    trabalha: true,
-    horaInicio: "08:00",
-    horaFim: "18:00",
-    intervaloInicio: "12:00",
-    intervaloFim: "13:00",
-  },
-  {
-    diaSemana: 4,
-    trabalha: true,
-    horaInicio: "08:00",
-    horaFim: "18:00",
-    intervaloInicio: "12:00",
-    intervaloFim: "13:00",
-  },
-  {
-    diaSemana: 5,
-    trabalha: true,
-    horaInicio: "08:00",
-    horaFim: "18:00",
-    intervaloInicio: "12:00",
-    intervaloFim: "13:00",
-  },
-  {
-    diaSemana: 6,
-    trabalha: true,
-    horaInicio: "08:00",
-    horaFim: "13:00",
-    intervaloInicio: null,
-    intervaloFim: null,
-  },
-];
-
 function exigirUsuario(usuarioId) {
   if (!usuarioId) {
     throw criarErro("Usuário não autenticado.", 401);
   }
+}
+
+function normalizarNegocioId(negocioId) {
+  const id = Number(negocioId);
+
+  if (!Number.isInteger(id) || id <= 0) {
+    throw criarErro("Negócio inválido.", 400);
+  }
+
+  return id;
 }
 
 function normalizarHorario(horario) {
@@ -253,18 +204,20 @@ function formatarHorarioBanco(horario) {
 
 async function exigirProfissionalAtivo(
   profissionalId,
+  negocioId,
   executor
 ) {
   const profissional =
     await agendaConfiguracaoRepository
       .buscarProfissionalAtivo(
         profissionalId,
+        negocioId,
         executor
       );
 
   if (!profissional) {
     throw criarErro(
-      "Conta sem vínculo ativo com um negócio.",
+      "Conta sem vínculo ativo com este negócio.",
       403
     );
   }
@@ -272,100 +225,37 @@ async function exigirProfissionalAtivo(
   return profissional;
 }
 
-async function criarConfiguracaoPadrao(
-  profissionalId,
-  executor
-) {
-  const configuracao =
-    await agendaConfiguracaoRepository.criarConfiguracao({
-      profissionalId,
-      duracaoPadrao: 60,
-      intervaloMinutos: 0,
-      antecedenciaAgendamento: 0,
-      antecedenciaCancelamento: 24,
-    }, executor);
-
-  const horarios = [];
-
-  for (const horario of HORARIOS_PADRAO) {
-    const horarioSalvo =
-      await agendaConfiguracaoRepository.salvarHorario({
-        profissionalId,
-        ...horario,
-      }, executor);
-
-    horarios.push(horarioSalvo);
-  }
-
-  return {
-    configuracao,
-    horarios,
-  };
-}
-
-async function buscarMinhaConfiguracao({ usuarioId }) {
+async function buscarMinhaConfiguracao({
+  usuarioId,
+  negocioId,
+}) {
   exigirUsuario(usuarioId);
+  const negocioIdNormalizado =
+    normalizarNegocioId(negocioId);
 
   return agendaConfiguracaoRepository
     .executarTransacao(
       async (client) => {
         await exigirProfissionalAtivo(
           usuarioId,
+          negocioIdNormalizado,
           client
         );
 
-        let configuracao =
+        const estado =
           await agendaConfiguracaoRepository
-            .buscarConfiguracao(
-              usuarioId,
-              client
-            );
-
-        let horarios =
-          await agendaConfiguracaoRepository
-            .listarHorarios(
-              usuarioId,
-              client
-            );
-
-        if (!configuracao) {
-          const padrao =
-            await criarConfiguracaoPadrao(
-              usuarioId,
-              client
-            );
-
-          configuracao =
-            padrao.configuracao;
-          horarios =
-            padrao.horarios;
-        } else if (
-          horarios.length === 0
-        ) {
-          for (
-            const horario
-            of HORARIOS_PADRAO
-          ) {
-            await agendaConfiguracaoRepository
-              .salvarHorario({
-                profissionalId:
-                  usuarioId,
-                ...horario,
-              }, client);
-          }
-
-          horarios =
-            await agendaConfiguracaoRepository
-              .listarHorarios(
+            .garantirDisponibilidadePadrao({
+              profissionalId:
                 usuarioId,
-                client
-              );
-        }
+              negocioId:
+                negocioIdNormalizado,
+            }, client);
 
         return {
-          configuracao,
+          configuracao:
+            estado.configuracao,
           horarios:
-            horarios.map(
+            estado.horarios.map(
               formatarHorarioBanco
             ),
         };
@@ -373,17 +263,24 @@ async function buscarMinhaConfiguracao({ usuarioId }) {
     );
 }
 
-async function buscarStatusConfiguracao({ usuarioId }) {
+async function buscarStatusConfiguracao({
+  usuarioId,
+  negocioId,
+}) {
   exigirUsuario(usuarioId);
+  const negocioIdNormalizado =
+    normalizarNegocioId(negocioId);
 
   await exigirProfissionalAtivo(
-    usuarioId
+    usuarioId,
+    negocioIdNormalizado
   );
 
   const configuracao =
     await agendaConfiguracaoRepository
       .buscarConfiguracao(
-        usuarioId
+        usuarioId,
+        negocioIdNormalizado
       );
 
   return {
@@ -402,6 +299,7 @@ async function buscarStatusConfiguracao({ usuarioId }) {
 
 async function salvarMinhaConfiguracao({
   usuarioId,
+  negocioId,
   duracaoPadrao,
   intervaloMinutos,
   antecedenciaAgendamento,
@@ -409,6 +307,8 @@ async function salvarMinhaConfiguracao({
   horarios,
 }) {
   exigirUsuario(usuarioId);
+  const negocioIdNormalizado =
+    normalizarNegocioId(negocioId);
 
   const duracao = validarNumeroInteiro({
     valor: duracaoPadrao,
@@ -467,6 +367,7 @@ async function salvarMinhaConfiguracao({
       async (client) => {
         await exigirProfissionalAtivo(
           usuarioId,
+          negocioIdNormalizado,
           client
         );
 
@@ -474,6 +375,7 @@ async function salvarMinhaConfiguracao({
           await agendaConfiguracaoRepository
             .buscarConfiguracao(
               usuarioId,
+              negocioIdNormalizado,
               client
             );
 
@@ -487,6 +389,8 @@ async function salvarMinhaConfiguracao({
         const dadosConfiguracao = {
           profissionalId:
             usuarioId,
+          negocioId:
+            negocioIdNormalizado,
           duracaoPadrao:
             duracao,
           intervaloMinutos:
@@ -497,9 +401,7 @@ async function salvarMinhaConfiguracao({
             antecedenciaCancelamentoValidada,
         };
 
-        if (
-          configuracaoExistente
-        ) {
+        if (configuracaoExistente) {
           configuracao =
             await agendaConfiguracaoRepository
               .atualizarConfiguracao(
@@ -515,30 +417,27 @@ async function salvarMinhaConfiguracao({
               );
         }
 
-        const horariosSalvos =
-          [];
+        const horariosSalvos = [];
 
-        for (
-          const horario
-          of horariosValidados
-        ) {
+        for (const horario of horariosValidados) {
           const horarioSalvo =
             await agendaConfiguracaoRepository
               .salvarHorario({
                 profissionalId:
                   usuarioId,
+                negocioId:
+                  negocioIdNormalizado,
                 ...horario,
               }, client);
 
-          horariosSalvos.push(
-            horarioSalvo
-          );
+          horariosSalvos.push(horarioSalvo);
         }
 
         const configuracaoMarcada =
           await agendaConfiguracaoRepository
             .marcarConfigurada(
               usuarioId,
+              negocioIdNormalizado,
               client
             );
 
