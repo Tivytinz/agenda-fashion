@@ -1,4 +1,6 @@
-const agendaRepository = require("../repositories/agendaRepository");
+const sessaoRepository = require(
+  "../repositories/sessaoRepository"
+);
 const {
   exigirUsuario,
   exigirPermissao
@@ -11,7 +13,10 @@ async function agendaProfissionalAtiva(req, res, next) {
     exigirUsuario(usuarioId);
 
     const vinculo =
-      await agendaRepository.buscarVinculoUsuarioNegocio(usuarioId);
+      await sessaoRepository.buscarContextoAtivoPorPapel(
+        usuarioId,
+        "profissional"
+      );
 
     exigirPermissao(
       vinculo,
