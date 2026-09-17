@@ -5,6 +5,9 @@ const registrador = require("../utils/registrador");
 const marketingConversionDeliveryService = require(
   "./marketingConversionDeliveryService"
 );
+const webhookRetentionService = require(
+  "./webhookRetentionService"
+);
 
 const {
   ativarAssinaturaPorPagamento,
@@ -633,9 +636,38 @@ function iniciarWorkerWebhook() {
         );
       });
 
+    const retencaoWebhooks =
+      webhookRetentionService
+        .executarSeNecessario()
+        .then((resultado) => {
+          if (
+            resultado.executada &&
+            resultado.redigidos > 0
+          ) {
+            registrador.informacao(
+              "Webhook Asaas: payloads antigos redigidos.",
+              {
+                registros:
+                  resultado.redigidos,
+                dias_retencao:
+                  resultado.diasRetencao,
+              }
+            );
+          }
+        })
+        .catch((erro) => {
+          registrador.aviso(
+            "Webhook Asaas: falha na retenção de payloads antigos.",
+            {
+              erro: erro?.message
+            }
+          );
+        });
+
     execucaoWorkerAtual = Promise.allSettled([
       filaWebhook,
       filaConversoes,
+      retencaoWebhooks,
     ]).finally(() => {
       workerEmExecucao = false;
     });
