@@ -1,8 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { Link, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { track } from "../analytics/track";
 import { apiRequest } from "../api/client";
-import { useSession } from "../auth/SessionContext";
 import { getPlanIntentPath, normalizePlanSlug } from "../auth/session";
 import { ConfirmationIcon } from "../components/ConfirmationIcon";
 import { FlowSteps } from "../components/FlowSteps";
@@ -140,8 +139,10 @@ export function validateSchedule(days, { requireActiveDay = false } = {}) {
 
 export function ScheduleSettingsPage() {
   const navigate = useNavigate();
-  const session = useSession();
-  const negocioId = Number(session?.negocio?.id);
+  const location = useLocation();
+  const contextoAgenda = location.pathname.startsWith("/profissional/")
+    ? "profissional"
+    : "dono";
   const [searchParams] = useSearchParams();
   const selectedPlan = normalizePlanSlug(searchParams.get("plano"));
   const [config, setConfig] = useState(null);
@@ -159,12 +160,11 @@ export function ScheduleSettingsPage() {
   const load = useCallback(() => {
     setError("");
 
-    if (!Number.isInteger(negocioId) || negocioId <= 0) {
-      setError("Não foi possível identificar o negócio atual.");
-      return;
-    }
-
-    apiRequest(`/agenda-configuracao?negocioId=${encodeURIComponent(negocioId)}`)
+    apiRequest("/agenda-configuracao", {
+      headers: {
+        "X-AF-Contexto": contextoAgenda
+      }
+    })
       .then((result) => {
         const current = result.configuracao || {};
         const normalizedDays = (result.horarios || [])
@@ -202,7 +202,7 @@ export function ScheduleSettingsPage() {
         });
       })
       .catch((requestError) => setError(requestError.message));
-  }, [negocioId]);
+  }, [contextoAgenda]);
 
   useEffect(load, [load]);
 
@@ -325,11 +325,6 @@ export function ScheduleSettingsPage() {
     setError("");
     setMessage("");
 
-    if (!Number.isInteger(negocioId) || negocioId <= 0) {
-      setError("Não foi possível identificar o negócio atual.");
-      return;
-    }
-
     const primeiraConfiguracao = !config?.configuradoEm;
     const submitSource = event.nativeEvent?.submitter?.dataset?.source;
     const origem = primeiraConfiguracao
@@ -371,7 +366,10 @@ export function ScheduleSettingsPage() {
     try {
       const result = await apiRequest("/agenda-configuracao", {
         method: "PUT",
-        body: { ...config, negocioId, horarios: days }
+        headers: {
+          "X-AF-Contexto": contextoAgenda
+        },
+        body: { ...config, horarios: days }
       });
       const savedConfig = result.configuracao || {};
       const configuradoEm = savedConfig.configurado_em
