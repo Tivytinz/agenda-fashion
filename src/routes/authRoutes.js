@@ -5,6 +5,9 @@ const express = require(
 const authController = require(
   "../controllers/authController"
 );
+const revogarSessao = require(
+  "../middlewares/revogarSessao"
+);
 
 const router =
   express.Router();
@@ -55,6 +58,7 @@ router.post(
 
 router.post(
   "/logout",
+  revogarSessao,
   authController.logout
 );
 

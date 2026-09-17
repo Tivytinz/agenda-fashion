@@ -1,7 +1,3 @@
-const jwt = require(
-  "jsonwebtoken"
-);
-
 const authSessionRepository = require(
   "../repositories/authSessionRepository"
 );
@@ -12,26 +8,12 @@ const {
 } = require(
   "../config/sessionCookie"
 );
-
-/*
- * Obtém o segredo usado para
- * validar os tokens JWT.
- */
-function obterJwtSecret() {
-  const segredo =
-    String(
-      process.env.JWT_SECRET ||
-        ""
-    ).trim();
-
-  if (!segredo) {
-    throw new Error(
-      "JWT_SECRET não configurado nas variáveis de ambiente."
-    );
-  }
-
-  return segredo;
-}
+const {
+  hashToken,
+  verificarToken,
+} = require(
+  "../utils/sessionToken"
+);
 
 /*
  * Middleware obrigatório.
@@ -96,15 +78,7 @@ module.exports = async function auth(
 
   try {
     const decoded =
-      jwt.verify(
-        token,
-        obterJwtSecret(),
-        {
-          algorithms: [
-            "HS256",
-          ],
-        }
-      );
+      verificarToken(token);
 
     if (!decoded?.id) {
       if (origem === "cookie") {
@@ -122,12 +96,15 @@ module.exports = async function auth(
     const estadoDaSessao =
       await authSessionRepository
         .buscarEstadoDaSessao(
-          decoded.id
+          decoded.id,
+          hashToken(token)
         );
 
     if (
       !estadoDaSessao ||
       estadoDaSessao.ativo !== true ||
+      estadoDaSessao
+        .token_revogado === true ||
       tokenAnteriorATrocaDeSenha(
         decoded,
         estadoDaSessao
