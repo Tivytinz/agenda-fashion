@@ -69,18 +69,15 @@ async function alterarAtivoServico({ usuarioId, id, ativo }) {
       }
     }
 
-    const resultado = await client.query(
-      `
-      UPDATE servicos_negocio
-      SET ativo = $1
-      WHERE id = $2
-        AND negocio_id = $3
-      RETURNING *
-      `,
-      [ativo, id, vinculo.negocio_id]
-    );
-
-    const atualizado = resultado.rows[0] || null;
+    const atualizado = await servicosRepository
+      .alterarAtivoServico(
+        {
+          id,
+          negocioId: vinculo.negocio_id,
+          ativo,
+        },
+        client
+      );
 
     if (atualizado) {
       await servicosRepository.sincronizarPublicacaoAutomatica(

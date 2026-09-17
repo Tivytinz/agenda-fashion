@@ -45,10 +45,7 @@ describe("fronteiras da arquitetura backend", () => {
         /\b(?:db|client|executor)\.query\s*\(/
       )
     ).toEqual([
-      "src/services/assinaturaServiceCore.js",
-      "src/services/checkoutService.js",
       "src/services/readinessService.js",
-      "src/services/servicoAtivacaoService.js",
     ]);
   });
 });

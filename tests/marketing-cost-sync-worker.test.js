@@ -310,4 +310,36 @@ describe("marketingCostSyncWorker", () => {
     process.env.MARKETING_COST_SYNC_INTERVAL_HOURS = "6";
     expect(worker.intervaloHoras()).toBe(6);
   });
+
+  test("encerramento aguarda a limpeza iniciada pelo worker", async () => {
+    jest.resetModules();
+    const workerIsolado = require(
+      "../src/services/marketingCostSyncWorker"
+    );
+    let liberarRecuperacao;
+    const recuperacaoPendente = new Promise((resolve) => {
+      liberarRecuperacao = resolve;
+    });
+    mockRecoveryRepository
+      .recuperarGoogleProfissionaisPorEventos
+      .mockReturnValue(recuperacaoPendente);
+
+    workerIsolado.iniciarWorkerCustosMarketing();
+    await Promise.resolve();
+
+    let encerrado = false;
+    const encerramento = workerIsolado
+      .pararWorkerCustosMarketing()
+      .then(() => {
+        encerrado = true;
+      });
+
+    await Promise.resolve();
+    expect(encerrado).toBe(false);
+
+    liberarRecuperacao({ rowCount: 0 });
+    await encerramento;
+
+    expect(encerrado).toBe(true);
+  });
 });

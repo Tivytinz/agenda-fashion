@@ -109,6 +109,69 @@ async function buscarAssinaturaPendenteEquivalente(
   return result.rows[0] || null;
 }
 
+async function buscarDadosClienteAsaas(
+  client,
+  negocioId,
+  usuarioId
+) {
+  const result = await client.query(
+    `
+      SELECT
+        n.nome AS nome_negocio,
+        n.whatsapp AS telefone_negocio,
+        u.nome AS nome_dono,
+        u.email AS email_dono,
+        u.whatsapp AS telefone_dono
+      FROM negocios n
+      INNER JOIN usuarios_negocios un
+        ON un.negocio_id = n.id
+      INNER JOIN usuarios u
+        ON u.id = un.usuario_id
+      WHERE n.id = $1
+        AND un.usuario_id = $2
+        AND un.papel = 'dono'
+        AND un.ativo = TRUE
+      LIMIT 1
+    `,
+    [negocioId, usuarioId]
+  );
+
+  return result.rows[0] || null;
+}
+
+async function salvarClienteAsaasSeAusente(
+  client,
+  negocioId,
+  asaasCustomerId
+) {
+  const atualizacao = await client.query(
+    `
+      UPDATE negocios
+      SET asaas_customer_id = $1
+      WHERE id = $2
+        AND asaas_customer_id IS NULL
+      RETURNING asaas_customer_id
+    `,
+    [asaasCustomerId, negocioId]
+  );
+
+  if (atualizacao.rows[0]) {
+    return atualizacao.rows[0].asaas_customer_id;
+  }
+
+  const consulta = await client.query(
+    `
+      SELECT asaas_customer_id
+      FROM negocios
+      WHERE id = $1
+      LIMIT 1
+    `,
+    [negocioId]
+  );
+
+  return consulta.rows[0]?.asaas_customer_id || null;
+}
+
 async function buscarPagamentoCheckout(pagamentoId, usuarioId) {
   const result = await db.query(
     `
@@ -146,5 +209,7 @@ module.exports = {
   buscarPlano,
   bloquearCheckoutDoNegocio,
   buscarAssinaturaPendenteEquivalente,
+  buscarDadosClienteAsaas,
+  salvarClienteAsaasSeAusente,
   buscarPagamentoCheckout
 };

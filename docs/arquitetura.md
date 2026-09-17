@@ -99,6 +99,10 @@ O teste automatizado de fronteiras impede acesso direto ao banco em routes e
 controllers. Ele também mantém explícita a lista fechada de services legados
 que ainda contêm SQL, evitando que novas exceções entrem silenciosamente.
 
+No domínio de assinaturas, a fachada pública delega casos de uso separados para
+registro, conta, webhooks e pagamentos. As consultas financeiras ficam em
+repositories, reduzindo o impacto de mudanças sobre checkout e recorrência.
+
 ### Middlewares, validators e errors
 
 Middlewares tratam responsabilidades de requisição como autenticação e
@@ -304,6 +308,10 @@ do envio conforme o fluxo implementado.
 No encerramento por `SIGTERM` ou `SIGINT`, os schedulers param de iniciar novos
 ciclos e o servidor aguarda as execuções ativas dos workers antes de fechar o
 pool PostgreSQL. Isso evita abandonar entregas em andamento durante deploys.
+
+O startup valida a configuração central do runtime antes de aceitar tráfego,
+incluindo banco, autenticação, produção e credenciais completas do WhatsApp
+quando a integração estiver habilitada.
 
 Detalhes operacionais, templates e variáveis ficam em
 [`whatsapp-automatico.md`](./whatsapp-automatico.md).
