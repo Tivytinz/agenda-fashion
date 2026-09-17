@@ -114,12 +114,7 @@ async function verificarProfissionalNoNegocio(usuarioId, negocioId) {
   return result.rows[0] || null;
 }
 
-async function atualizarProfissional(
-  id,
-  negocioId,
-  nome,
-  whatsapp
-) {
+async function atualizarProfissional(id, negocioId, nome, whatsapp) {
   const result = await db.query(
     `
     UPDATE usuarios_negocios un
@@ -135,17 +130,11 @@ async function atualizarProfissional(
     RETURNING
       u.id,
       COALESCE(un.nome_exibicao, u.nome) AS nome,
-      u.email,
       COALESCE(un.whatsapp_exibicao, u.whatsapp) AS whatsapp,
       u.foto_url,
       un.ativo
     `,
-    [
-      nome,
-      whatsapp,
-      id,
-      negocioId
-    ]
+    [nome, whatsapp, id, negocioId]
   );
 
   return result.rows[0];
@@ -227,10 +216,7 @@ async function buscarProfissionalPorEmailWhatsapp(email, whatsapp) {
     SELECT
       u.id,
       u.nome,
-      u.email,
-      u.whatsapp,
-      u.foto_url,
-      u.ativo
+      u.foto_url
     FROM usuarios u
     WHERE u.ativo = TRUE
       AND (
@@ -253,10 +239,14 @@ async function buscarProfissionalPorEmailWhatsapp(email, whatsapp) {
   return result.rows[0] || null;
 }
 
-async function verificarVinculo(usuarioId, negocioId, executor = db) {
+async function verificarVinculo(
+  usuarioId,
+  negocioId,
+  executor = db
+) {
   const result = await executor.query(
     `
-    SELECT id
+    SELECT id, papel, ativo
     FROM usuarios_negocios
     WHERE usuario_id = $1
       AND negocio_id = $2
@@ -268,7 +258,36 @@ async function verificarVinculo(usuarioId, negocioId, executor = db) {
   return result.rows[0] || null;
 }
 
-async function criarVinculo(usuarioId, negocioId, executor = db) {
+async function buscarVinculoProfissionalAtivo(
+  usuarioId,
+  executor = db
+) {
+  const result = await executor.query(
+    `
+    SELECT
+      un.id,
+      un.negocio_id,
+      n.nome AS negocio_nome
+    FROM usuarios_negocios un
+    INNER JOIN negocios n
+      ON n.id = un.negocio_id
+    WHERE un.usuario_id = $1
+      AND un.papel = 'profissional'
+      AND un.ativo = TRUE
+      AND n.ativo = TRUE
+    LIMIT 1
+    `,
+    [usuarioId]
+  );
+
+  return result.rows[0] || null;
+}
+
+async function criarVinculo(
+  usuarioId,
+  negocioId,
+  executor = db
+) {
   await executor.query(
     `
     INSERT INTO usuarios_negocios(
@@ -282,6 +301,198 @@ async function criarVinculo(usuarioId, negocioId, executor = db) {
   );
 }
 
+async function reativarVinculoProfissional(
+  usuarioId,
+  negocioId,
+  executor = db
+) {
+  const result = await executor.query(
+    `
+    UPDATE usuarios_negocios
+    SET
+      papel = 'profissional',
+      ativo = TRUE,
+      updated_at = NOW()
+    WHERE usuario_id = $1
+      AND negocio_id = $2
+      AND ativo = FALSE
+    RETURNING id
+    `,
+    [usuarioId, negocioId]
+  );
+
+  return result.rows[0] || null;
+}
+
+async function expirarConvitesPendentes(
+  negocioId,
+  usuarioConvidadoId,
+  executor = db
+) {
+  await executor.query(
+    `
+    UPDATE convites_profissionais
+    SET
+      status = 'expirado',
+      respondido_em = COALESCE(respondido_em, NOW())
+    WHERE negocio_id = $1
+      AND usuario_convidado_id = $2
+      AND status = 'pendente'
+      AND expira_em <= NOW()
+    `,
+    [negocioId, usuarioConvidadoId]
+  );
+}
+
+async function buscarConvitePendente(
+  negocioId,
+  usuarioConvidadoId,
+  executor = db
+) {
+  const result = await executor.query(
+    `
+    SELECT
+      id,
+      negocio_id,
+      usuario_convidado_id,
+      status,
+      expira_em,
+      created_at
+    FROM convites_profissionais
+    WHERE negocio_id = $1
+      AND usuario_convidado_id = $2
+      AND status = 'pendente'
+      AND expira_em > NOW()
+    LIMIT 1
+    `,
+    [negocioId, usuarioConvidadoId]
+  );
+
+  return result.rows[0] || null;
+}
+
+async function criarConvite(
+  {
+    negocioId,
+    usuarioConvidadoId,
+    convidadoPorUsuarioId,
+    expiraEm,
+  },
+  executor = db
+) {
+  const result = await executor.query(
+    `
+    INSERT INTO convites_profissionais (
+      negocio_id,
+      usuario_convidado_id,
+      convidado_por_usuario_id,
+      status,
+      expira_em
+    )
+    VALUES ($1, $2, $3, 'pendente', $4)
+    ON CONFLICT (negocio_id, usuario_convidado_id)
+    WHERE status = 'pendente'
+    DO NOTHING
+    RETURNING
+      id,
+      negocio_id,
+      usuario_convidado_id,
+      status,
+      expira_em,
+      created_at
+    `,
+    [
+      negocioId,
+      usuarioConvidadoId,
+      convidadoPorUsuarioId,
+      expiraEm,
+    ]
+  );
+
+  return result.rows[0] || null;
+}
+
+async function listarConvitesRecebidos(usuarioId) {
+  const result = await db.query(
+    `
+    SELECT
+      cp.id,
+      cp.negocio_id,
+      n.nome AS negocio_nome,
+      n.foto_url AS negocio_foto_url,
+      cp.status,
+      cp.expira_em,
+      cp.created_at
+    FROM convites_profissionais cp
+    INNER JOIN negocios n
+      ON n.id = cp.negocio_id
+    WHERE cp.usuario_convidado_id = $1
+      AND cp.status = 'pendente'
+      AND cp.expira_em > NOW()
+      AND n.ativo = TRUE
+    ORDER BY cp.created_at DESC
+    `,
+    [usuarioId]
+  );
+
+  return result.rows;
+}
+
+async function buscarConviteParaAtualizacao(
+  conviteId,
+  executor = db
+) {
+  const result = await executor.query(
+    `
+    SELECT
+      cp.id,
+      cp.negocio_id,
+      cp.usuario_convidado_id,
+      cp.status,
+      cp.expira_em,
+      n.ativo AS negocio_ativo,
+      u.ativo AS usuario_ativo
+    FROM convites_profissionais cp
+    INNER JOIN negocios n
+      ON n.id = cp.negocio_id
+    INNER JOIN usuarios u
+      ON u.id = cp.usuario_convidado_id
+    WHERE cp.id = $1
+    LIMIT 1
+    FOR UPDATE OF cp
+    `,
+    [conviteId]
+  );
+
+  return result.rows[0] || null;
+}
+
+async function atualizarStatusConvite(
+  conviteId,
+  status,
+  executor = db
+) {
+  const result = await executor.query(
+    `
+    UPDATE convites_profissionais
+    SET
+      status = $2,
+      respondido_em = NOW()
+    WHERE id = $1
+    RETURNING
+      id,
+      negocio_id,
+      usuario_convidado_id,
+      status,
+      expira_em,
+      respondido_em
+    `,
+    [conviteId, status]
+  );
+
+  return result.rows[0] || null;
+}
+
 module.exports = {
   bloquearCadastroProfissional,
   buscarPlanoDoNegocio,
@@ -293,5 +504,13 @@ module.exports = {
   removerVinculo,
   buscarProfissionalPorEmailWhatsapp,
   verificarVinculo,
-  criarVinculo
+  buscarVinculoProfissionalAtivo,
+  criarVinculo,
+  reativarVinculoProfissional,
+  expirarConvitesPendentes,
+  buscarConvitePendente,
+  criarConvite,
+  listarConvitesRecebidos,
+  buscarConviteParaAtualizacao,
+  atualizarStatusConvite,
 };
