@@ -24,6 +24,20 @@ describe("contexto explícito da agenda profissional", () => {
     expect(parametros).toEqual([7]);
   });
 
+  test("resolve operações pelo negócio do próprio agendamento", async () => {
+    await agendaContextoRepository.buscarVinculoOperacionalDoAgendamento({
+      agendamentoId: 91,
+      usuarioId: 7,
+    });
+
+    const [sql, parametros] = db.query.mock.calls[0];
+
+    expect(sql).toContain("un.negocio_id = a.negocio_id");
+    expect(sql).toContain("un.usuario_id = $2");
+    expect(sql).toContain("WHERE a.id = $1");
+    expect(parametros).toEqual([91, 7]);
+  });
+
   test("usa negocio validado como parâmetro para decidir quais detalhes podem ser expostos", async () => {
     await agendaContextoRepository.listarAgendamentosProfissionalPorPeriodo({
       profissionalId: 7,
