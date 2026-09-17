@@ -166,8 +166,12 @@ function montarAdministrador(
  * Retorna os dados atuais da sessão.
  *
  * O JWT fornece apenas o ID da conta.
- * O papel, o negócio e o contexto Admin
+ * Papéis, vínculos de negócio e contexto Admin
  * são consultados diretamente no banco.
+ *
+ * `negocio` permanece como contexto principal por compatibilidade com clientes
+ * antigos. `vinculos` é a fonte para experiências que precisam selecionar um
+ * contexto explícito, como /painel/* e /profissional/*.
  */
 async function obterMinhaSessao(
   usuarioId
@@ -209,11 +213,11 @@ async function obterMinhaSessao(
       .buscarAdministradorAtivoPorUsuarioId;
 
   const [
-    contexto,
+    vinculosAtivos,
     administrador,
   ] = await Promise.all([
     sessaoRepository
-      .buscarContextoAtivoPorUsuarioId(
+      .buscarVinculosAtivosPorUsuarioId(
         id
       ),
 
@@ -223,10 +227,13 @@ async function obterMinhaSessao(
       : Promise.resolve(null),
   ]);
 
+  const vinculos =
+    vinculosAtivos
+      .map(montarNegocio)
+      .filter(Boolean);
+
   const negocio =
-    montarNegocio(
-      contexto
-    );
+    vinculos[0] || null;
 
   const admin =
     montarAdministrador(
@@ -240,9 +247,11 @@ async function obterMinhaSessao(
       ),
 
     temNegocio:
-      Boolean(negocio),
+      vinculos.length > 0,
 
     negocio,
+
+    vinculos,
 
     administrador:
       admin,
