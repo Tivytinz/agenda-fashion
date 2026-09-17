@@ -24,7 +24,6 @@ const {
   cacheVersionedAsset,
   disableDocumentCache
 } = require("./utils/httpCache");
-const agendaConfiguracaoRoutes = require("./routes/agendaConfiguracaoRoutes");
 const {
   iniciarWorkerWebhook,
   pararWorkerWebhook,
@@ -223,8 +222,6 @@ app.use(express.static(reactDir, {
     }
   }
 }));
-
-app.use(agendaConfiguracaoRoutes);
 
 /* =========================
    ROTAS PRINCIPAIS
