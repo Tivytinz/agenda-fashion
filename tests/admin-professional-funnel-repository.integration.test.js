@@ -257,12 +257,24 @@ describe("adminProfessionalFunnelRepository integrado", () => {
     }
   });
 
-  test("atravessa todos os marcos sem qualquer configuração de agenda", async () => {
+  test("atravessa todos os marcos com disponibilidade padrão não personalizada", async () => {
     const agenda = await db.query(
-      "SELECT COUNT(*)::INT AS total FROM agenda_configuracoes WHERE profissional_id = $1",
-      [usuarioId]
+      `
+      SELECT
+        negocio_id,
+        origem_horarios,
+        primeira_personalizacao_em
+      FROM agenda_configuracoes
+      WHERE profissional_id = $1
+        AND negocio_id = $2
+      `,
+      [usuarioId, negocioId]
     );
-    expect(agenda.rows[0].total).toBe(0);
+
+    expect(agenda.rows).toHaveLength(1);
+    expect(Number(agenda.rows[0].negocio_id)).toBe(negocioId);
+    expect(agenda.rows[0].origem_horarios).toBe("padrao_af");
+    expect(agenda.rows[0].primeira_personalizacao_em).toBeNull();
 
     const linhas = await repository.listarPorCampanha("today");
     const encontrada = linhas.find((item) => item.campanha === utmCampaign);
