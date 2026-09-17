@@ -7,6 +7,7 @@ async function buscarMinhaConfiguracao(req, res, next) {
     const resultado =
       await agendaConfiguracaoService.buscarMinhaConfiguracao({
         usuarioId: req.user?.id,
+        negocioId: req.query?.negocioId,
       });
 
     return res.json(resultado);
@@ -20,6 +21,7 @@ async function buscarStatusConfiguracao(req, res, next) {
     const resultado =
       await agendaConfiguracaoService.buscarStatusConfiguracao({
         usuarioId: req.user?.id,
+        negocioId: req.query?.negocioId,
       });
 
     return res.json(resultado);
@@ -33,13 +35,14 @@ async function salvarMinhaConfiguracao(req, res, next) {
     const resultado =
       await agendaConfiguracaoService.salvarMinhaConfiguracao({
         usuarioId: req.user?.id,
-        duracaoPadrao: req.body.duracaoPadrao,
-        intervaloMinutos: req.body.intervaloMinutos,
+        negocioId: req.body?.negocioId,
+        duracaoPadrao: req.body?.duracaoPadrao,
+        intervaloMinutos: req.body?.intervaloMinutos,
         antecedenciaAgendamento:
-          req.body.antecedenciaAgendamento,
+          req.body?.antecedenciaAgendamento,
         antecedenciaCancelamento:
-          req.body.antecedenciaCancelamento,
-        horarios: req.body.horarios,
+          req.body?.antecedenciaCancelamento,
+        horarios: req.body?.horarios,
       });
 
     return res.json(resultado);
