@@ -642,9 +642,11 @@ async function encerrarServidor(
     }
   );
 
-  pararWorkerWebhook();
-  pararWorkerWhatsapp();
-  pararWorkerCustosMarketing();
+  const encerramentoWorkers = Promise.allSettled([
+    pararWorkerWebhook(),
+    pararWorkerWhatsapp(),
+    pararWorkerCustosMarketing(),
+  ]);
 
   if (servidor) {
     const limiteMs =
@@ -692,6 +694,8 @@ async function encerrarServidor(
       }
     );
   }
+
+  await encerramentoWorkers;
 
   await db.end();
 }

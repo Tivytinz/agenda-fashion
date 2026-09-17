@@ -170,6 +170,8 @@ webhook financeiro.
 - Frontend: React 19, React Router 7, Vite 7 e CSS.
 - Backend em camadas: routes → controllers → services → repositories →
   PostgreSQL.
+- O teste de fronteiras arquiteturais impede acesso direto ao banco em routes e
+  controllers e congela a lista de SQL legado ainda permitido em services.
 - Autenticação: JWT em cookie `HttpOnly`, bcrypt e Google Identity.
 - Imagens: Busboy, validação de conteúdo e Cloudinary.
 - Pagamentos: Asaas.
@@ -273,6 +275,8 @@ Regras duráveis:
   aplicar a regra global implementada;
 - mensagens e webhooks precisam ser idempotentes;
 - filas devem tolerar retry e concorrência sem duplicar efeitos;
+- no encerramento do processo, schedulers devem parar de aceitar novos ciclos e
+  o servidor deve aguardar workers ativos antes de fechar o pool do banco;
 - tokens e payloads sensíveis não aparecem em logs;
 - aprovação de template é estado externo e deve ser consultada quando uma
   decisão depender dela.

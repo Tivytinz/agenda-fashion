@@ -95,6 +95,10 @@ repositories.
 Concentram acesso ao PostgreSQL, incluindo consultas, gravações, agregações e
 bloqueios transacionais necessários ao domínio.
 
+O teste automatizado de fronteiras impede acesso direto ao banco em routes e
+controllers. Ele também mantém explícita a lista fechada de services legados
+que ainda contêm SQL, evitando que novas exceções entrem silenciosamente.
+
 ### Middlewares, validators e errors
 
 Middlewares tratam responsabilidades de requisição como autenticação e
@@ -296,6 +300,10 @@ possuem regras próprias e não devem ser tratados como uma única autorização
 
 A fila é persistente, idempotente e revalida elegibilidade/consentimento antes
 do envio conforme o fluxo implementado.
+
+No encerramento por `SIGTERM` ou `SIGINT`, os schedulers param de iniciar novos
+ciclos e o servidor aguarda as execuções ativas dos workers antes de fechar o
+pool PostgreSQL. Isso evita abandonar entregas em andamento durante deploys.
 
 Detalhes operacionais, templates e variáveis ficam em
 [`whatsapp-automatico.md`](./whatsapp-automatico.md).

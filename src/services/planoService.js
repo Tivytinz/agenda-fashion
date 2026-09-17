@@ -1,6 +1,15 @@
 const db = require("../db/db");
 const assinaturaRepository =
     require("../repositories/assinaturaRepository");
+const planoRepository = require(
+    "../repositories/planoRepository"
+);
+const UnauthorizedError = require(
+    "../errors/UnauthorizedError"
+);
+const NotFoundError = require(
+    "../errors/NotFoundError"
+);
 
 function criarErroLimite(mensagem, codigo, uso = null) {
     const erro = new Error(mensagem);
@@ -16,14 +25,36 @@ async function bloquearUsoPlano(client, negocioId) {
         throw new Error("Conexão transacional inválida.");
     }
 
-    await client.query(
-        `
-        SELECT pg_advisory_xact_lock(
-          hashtext('agenda_fashion_limite_plano'),
-          $1::integer
-        )
-        `,
-        [Number(negocioId)]
+    await planoRepository.bloquearUsoPlano(
+        negocioId,
+        client
+    );
+}
+
+async function listarPlanos() {
+    return planoRepository.listarPlanosAtivos();
+}
+
+async function buscarMeuPlano(usuarioId) {
+    if (!usuarioId) {
+        throw new UnauthorizedError(
+            "Usuário não autenticado."
+        );
+    }
+
+    const vinculo = await planoRepository
+        .buscarNegocioDonoAtivoPorUsuario(
+            usuarioId
+        );
+
+    if (!vinculo) {
+        throw new NotFoundError(
+            "Negócio não encontrado."
+        );
+    }
+
+    return buscarUsoPlano(
+        vinculo.negocio_id
     );
 }
 
@@ -38,103 +69,15 @@ async function buscarUsoPlano(
             executor
         );
 
-    const result = await executor.query(
-        `
-    SELECT
-      n.id AS negocio_id,
-      n.nome AS negocio_nome,
-
-      p.id AS plano_id,
-      p.nome AS plano_nome,
-      p.slug AS plano_slug,
-      p.valor,
-      p.capacidade_agendamentos,
-      p.limite_profissionais,
-      p.limite_servicos,
-      p.destaque,
-
-      plano_selecionado.id AS plano_selecionado_id,
-      plano_selecionado.nome AS plano_selecionado_nome,
-      plano_selecionado.slug AS plano_selecionado_slug,
-      plano_selecionado.valor AS plano_selecionado_valor,
-      assinatura_ativa.id AS assinatura_ativa_id,
-
-      (
-        SELECT COUNT(*)::int
-        FROM agendamentos a
-        WHERE a.negocio_id = n.id
-          AND a.status IN (
-            'agendado',
-            'confirmado',
-            'realizado',
-            'falta'
-          )
-          AND a.data >= date_trunc(
-            'month',
-            COALESCE($2::date, CURRENT_DATE)
-          )
-          AND a.data < date_trunc(
-            'month',
-            COALESCE($2::date, CURRENT_DATE)
-          ) + INTERVAL '1 month'
-      ) AS utilizados,
-
-      (
-        SELECT COUNT(*)::int
-        FROM usuarios_negocios un
-        WHERE un.negocio_id = n.id
-          AND un.ativo = TRUE
-          AND un.papel IN ('dono', 'profissional')
-      ) AS profissionais_utilizados,
-
-      (
-        SELECT COUNT(*)::int
-        FROM servicos_negocio sn
-        WHERE sn.negocio_id = n.id
-          AND sn.ativo = TRUE
-      ) AS servicos_utilizados
-
-    FROM negocios n
-    INNER JOIN planos plano_selecionado
-      ON plano_selecionado.id = n.plano_id
-    LEFT JOIN LATERAL (
-      SELECT
-        a.id,
-        a.plano_id
-      FROM assinaturas a
-      WHERE a.negocio_id = n.id
-        AND a.ativo = TRUE
-      ORDER BY a.id DESC
-      LIMIT 1
-    ) assinatura_ativa ON TRUE
-    LEFT JOIN LATERAL (
-      SELECT gratis.id
-      FROM planos gratis
-      WHERE gratis.slug = 'inicial'
-        AND gratis.ativo = TRUE
-      ORDER BY gratis.id ASC
-      LIMIT 1
-    ) plano_gratis ON TRUE
-    INNER JOIN planos p
-      ON p.id = COALESCE(
-        assinatura_ativa.plano_id,
-        CASE
-          WHEN plano_selecionado.valor <= 0
-            THEN plano_selecionado.id
-          ELSE plano_gratis.id
-        END
-      )
-    WHERE n.id = $1
-    LIMIT 1
-    `,
-        [negocioId, dataReferencia]
+    const plano = await planoRepository.buscarUsoPlano(
+        negocioId,
+        dataReferencia,
+        executor
     );
 
-    if (result.rows.length === 0) {
+    if (!plano) {
         return null;
     }
-
-    const plano = result.rows[0];
 
     const capacidade = plano.capacidade_agendamentos;
     const utilizados = Number(plano.utilizados || 0);
@@ -257,6 +200,8 @@ async function verificarCapacidadePlano(
 }
 
 module.exports = {
+    listarPlanos,
+    buscarMeuPlano,
     buscarUsoPlano,
     bloquearUsoPlano,
     verificarCapacidadePlano,
