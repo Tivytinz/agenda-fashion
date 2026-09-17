@@ -6,9 +6,11 @@ import {
   useMemo,
   useState
 } from "react";
+import { useLocation } from "react-router-dom";
 import { apiRequest } from "../api/client";
 import {
   clearSession,
+  getBusinessContextForPath,
   getStoredUser,
   hasSession,
   saveSession,
@@ -24,18 +26,21 @@ const SIGNED_OUT_STATE = {
   loading: false,
   authenticated: false,
   usuario: null,
-  negocio: null,
+  negocioPrincipal: null,
+  vinculos: [],
   temNegocio: false,
   administrador: null,
   ehAdministrador: false
 };
 
 export function SessionProvider({ children }) {
+  const location = useLocation();
   const [state, setState] = useState({
     loading: hasSession(),
     authenticated: hasSession(),
     usuario: getStoredUser(),
-    negocio: null,
+    negocioPrincipal: null,
+    vinculos: [],
     temNegocio: false,
     administrador: null,
     ehAdministrador: false
@@ -59,17 +64,28 @@ export function SessionProvider({ children }) {
         removeBrowserStorage("local", "negocio");
       }
 
+      const vinculos = Array.isArray(result.vinculos)
+        ? result.vinculos
+        : result.negocio
+          ? [result.negocio]
+          : [];
+
       const next = {
         loading: false,
         authenticated: true,
         usuario: result.usuario,
-        negocio: result.negocio,
-        temNegocio: Boolean(result.temNegocio),
+        negocioPrincipal: result.negocio || vinculos[0] || null,
+        vinculos,
+        temNegocio: vinculos.length > 0 || Boolean(result.temNegocio),
         administrador: result.administrador || null,
         ehAdministrador: Boolean(result.ehAdministrador)
       };
       setState(next);
-      return next;
+
+      return {
+        ...next,
+        negocio: next.negocioPrincipal
+      };
     } catch (error) {
       if (error.status === 401 || error.status === 403) {
         clearSession();
@@ -166,14 +182,25 @@ export function SessionProvider({ children }) {
     }
   }, []);
 
-  const value = useMemo(() => ({
+  const routeSession = useMemo(() => ({
     ...state,
+    negocio: getBusinessContextForPath(
+      {
+        ...state,
+        negocio: state.negocioPrincipal
+      },
+      location.pathname
+    )
+  }), [state, location.pathname]);
+
+  const value = useMemo(() => ({
+    ...routeSession,
     refresh,
     login,
     register,
     loginWithGoogle,
     logout
-  }), [state, refresh, login, register, loginWithGoogle, logout]);
+  }), [routeSession, refresh, login, register, loginWithGoogle, logout]);
 
   return (
     <SessionContext.Provider value={value}>
