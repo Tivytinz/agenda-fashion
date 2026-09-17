@@ -91,6 +91,24 @@ const RESULT = {
   }
 };
 
+const OPERATIONAL_RESULT = {
+  filas: [
+    {
+      nome: "webhook_asaas",
+      pendentes: 2,
+      falhas: 1,
+      atrasoMaisAntigoSegundos: 120
+    }
+  ],
+  workers: [
+    {
+      nome: "webhook",
+      ativo: true,
+      falhas: 0
+    }
+  ]
+};
+
 function renderPage(entry = "/admin/saude") {
   return render(
     <MemoryRouter initialEntries={[entry]}>
@@ -103,7 +121,11 @@ afterEach(cleanup);
 
 beforeEach(() => {
   vi.clearAllMocks();
-  apiRequest.mockResolvedValue(RESULT);
+  apiRequest.mockImplementation((path) =>
+    path === "/admin/saude/operacional"
+      ? Promise.resolve(OPERATIONAL_RESULT)
+      : Promise.resolve(RESULT)
+  );
 });
 
 describe("ativação profissional no admin", () => {
@@ -134,6 +156,18 @@ describe("ativação profissional no admin", () => {
     expect(decodeURIComponent(whatsapp.getAttribute("href")))
       .not.toContain("Adicionar descrição");
     expect(email.getAttribute("href")).toContain("mailto:ana@example.com");
+  });
+
+  it("mostra filas e workers sem misturar payloads operacionais", async () => {
+    renderPage();
+
+    expect(await screen.findByRole("heading", { name: "Filas e workers" }))
+      .not.toBeNull();
+    const operational = screen.getByLabelText("Saúde operacional");
+    expect(within(operational).getByText("webhook asaas")).not.toBeNull();
+    expect(within(operational).getByText("2")).not.toBeNull();
+    expect(within(operational).getByText("Worker webhook")).not.toBeNull();
+    expect(within(operational).getByText("Ativo")).not.toBeNull();
   });
 
   it("inicializa filtro e busca a partir do deep link", async () => {

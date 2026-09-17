@@ -210,6 +210,14 @@ router.get(
     .listarPerfisIncompletos
 );
 
+router.get(
+  "/admin/saude/operacional",
+  auth,
+  authAdmin,
+  adminSaasHealthController
+    .obterSaudeOperacional
+);
+
 /*
  * Saúde dos templates e das entregas do WhatsApp.
  * A consulta à Meta é somente leitura e as credenciais

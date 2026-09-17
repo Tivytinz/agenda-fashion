@@ -103,6 +103,11 @@ No domínio de assinaturas, a fachada pública delega casos de uso separados par
 registro, conta, webhooks e pagamentos. As consultas financeiras ficam em
 repositories, reduzindo o impacto de mudanças sobre checkout e recorrência.
 
+Os fluxos de configuração separam normalização/elegibilidade dos casos de uso.
+O agendamento público separa criação de agenda das ações posteriores da cliente.
+O repository do WhatsApp é uma fachada sobre enfileiramento, reserva e estado
+de entrega, evitando um único módulo responsável por todo o ciclo.
+
 ### Middlewares, validators e errors
 
 Middlewares tratam responsabilidades de requisição como autenticação e
@@ -309,9 +314,19 @@ No encerramento por `SIGTERM` ou `SIGINT`, os schedulers param de iniciar novos
 ciclos e o servidor aguarda as execuções ativas dos workers antes de fechar o
 pool PostgreSQL. Isso evita abandonar entregas em andamento durante deploys.
 
+Por compatibilidade operacional, o processo web inicia os workers quando
+`BACKGROUND_WORKERS_ENABLED` não é informado. A arquitetura também oferece
+`npm run worker` para execução dedicada. Ao separar os processos, o web deve
+usar `BACKGROUND_WORKERS_ENABLED=false`; filas persistentes, leases,
+`SKIP LOCKED` e advisory locks preservam concorrência segura.
+
 O startup valida a configuração central do runtime antes de aceitar tráfego,
 incluindo banco, autenticação, produção e credenciais completas do WhatsApp
 quando a integração estiver habilitada.
+
+O mesmo contrato fail-fast cobre as demais integrações habilitáveis. Flags
+inválidas ou credenciais parciais interrompem o startup em vez de deixar uma
+feature aparentemente ativa e operacionalmente quebrada.
 
 Detalhes operacionais, templates e variáveis ficam em
 [`whatsapp-automatico.md`](./whatsapp-automatico.md).
@@ -415,6 +430,14 @@ A cobertura de validação combina:
 - Jest/Supertest/PostgreSQL;
 - auditorias de dependências;
 - Playwright em Chromium e WebKit, com cobertura mobile aplicável.
+
+O teste de fronteiras percorre `src` recursivamente, valida a direção entre
+camadas, mantém SQL fora das camadas HTTP/aplicação e rejeita ciclos no grafo
+de módulos locais.
+
+O endpoint administrativo autenticado `/admin/saude/operacional` agrega uptime
+e memória do processo, estado dos workers, volume pendente, falhas e idade do
+item mais antigo das filas de webhook, WhatsApp e conversões de marketing.
 
 O fluxo normal é:
 

@@ -42,6 +42,22 @@ jest.mock("../src/services/marketingCostSyncWorker", () => ({
 const app = require("../src/server");
 
 describe("encerramento coordenado do servidor", () => {
+  test("permite separar workers do processo web", () => {
+    const anterior = process.env.BACKGROUND_WORKERS_ENABLED;
+
+    delete process.env.BACKGROUND_WORKERS_ENABLED;
+    expect(app.workersHabilitadosNoServidor()).toBe(true);
+
+    process.env.BACKGROUND_WORKERS_ENABLED = "false";
+    expect(app.workersHabilitadosNoServidor()).toBe(false);
+
+    if (anterior === undefined) {
+      delete process.env.BACKGROUND_WORKERS_ENABLED;
+    } else {
+      process.env.BACKGROUND_WORKERS_ENABLED = anterior;
+    }
+  });
+
   test("aguarda todos os workers antes de fechar o banco", async () => {
     const encerramento = app.encerrarServidor("SIGTERM");
 
