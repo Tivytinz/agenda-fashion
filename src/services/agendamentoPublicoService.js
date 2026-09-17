@@ -389,6 +389,7 @@ async function buscarDadosBaseAgenda({
 
 async function buscarDisponibilidade({
   profissionalId,
+  negocioId,
   duracaoServico,
   fusoHorario,
 }) {
@@ -397,11 +398,17 @@ async function buscarDisponibilidade({
       profissionalId
     );
 
+  const negocioIdNormalizado =
+    normalizarId(
+      negocioId
+    );
+
   if (
-    !profissionalIdNormalizado
+    !profissionalIdNormalizado ||
+    !negocioIdNormalizado
   ) {
     throw criarErro(
-      "Profissional é obrigatório.",
+      "Profissional e negócio são obrigatórios.",
       400
     );
   }
@@ -411,6 +418,9 @@ async function buscarDisponibilidade({
       .buscarDisponibilidade({
         profissionalId:
           profissionalIdNormalizado,
+
+        negocioId:
+          negocioIdNormalizado,
 
         duracaoServico,
 
@@ -503,6 +513,7 @@ async function resolverConsentimentoWhatsapp({
 
 async function validarHorarioDisponivel({
   profissionalId,
+  negocioId,
   data,
   horario,
   duracaoServico,
@@ -513,6 +524,11 @@ async function validarHorarioDisponivel({
       profissionalId
     );
 
+  const negocioIdNormalizado =
+    normalizarId(
+      negocioId
+    );
+
   const horarioNormalizado =
     normalizarHorario(
       horario
@@ -520,11 +536,12 @@ async function validarHorarioDisponivel({
 
   if (
     !profissionalIdNormalizado ||
+    !negocioIdNormalizado ||
     !dataValida(data) ||
     !horarioNormalizado
   ) {
     throw criarErro(
-      "Profissional, data e horário são obrigatórios.",
+      "Profissional, negócio, data e horário são obrigatórios.",
       400
     );
   }
@@ -534,6 +551,9 @@ async function validarHorarioDisponivel({
       .horarioEstaDisponivel({
         profissionalId:
           profissionalIdNormalizado,
+
+        negocioId:
+          negocioIdNormalizado,
 
         duracaoServico,
 
@@ -699,7 +719,7 @@ async function criarAgendamento({
         /*
          * Bloqueio por profissional e data.
          * Evita duas reservas simultâneas
-         * para o mesmo horário.
+         * para o mesmo horário, inclusive entre negócios.
          */
         await agendaPublicaRepository
           .bloquearAgendaProfissional(
@@ -709,14 +729,17 @@ async function criarAgendamento({
           );
 
         /*
-         * Recalcula a disponibilidade
-         * depois de adquirir o bloqueio.
+         * Recalcula a disponibilidade do negócio
+         * depois de adquirir o bloqueio global da pessoa.
          */
         const disponivel =
           await agendaDisponibilidadeService
             .horarioEstaDisponivel({
               profissionalId:
                 profissionalIdNormalizado,
+
+              negocioId:
+                negocioIdNormalizado,
 
               duracaoServico:
                 duracaoMinutos,
@@ -1042,10 +1065,11 @@ async function cancelarMeuAgendamento({
   }
 
   if (
-    !agendamento.profissional_id
+    !agendamento.profissional_id ||
+    !agendamento.negocio_id
   ) {
     throw criarErro(
-      "Profissional do agendamento não encontrado.",
+      "Contexto do agendamento não encontrado.",
       500
     );
   }
@@ -1053,7 +1077,8 @@ async function cancelarMeuAgendamento({
   const configuracao =
     await agendaConfiguracaoRepository
       .buscarConfiguracao(
-        agendamento.profissional_id
+        agendamento.profissional_id,
+        agendamento.negocio_id
       );
 
   const antecedenciaCancelamento =

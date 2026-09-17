@@ -1,7 +1,7 @@
 jest.mock(
   "../src/repositories/agendaConfiguracaoRepository",
   () => ({
-    buscarProfissionalAtivo:
+    buscarVinculoAtivoPorPapel:
       jest.fn(),
     buscarConfiguracao:
       jest.fn(),
@@ -98,7 +98,7 @@ describe(
         );
 
       repository
-        .buscarProfissionalAtivo
+        .buscarVinculoAtivoPorPapel
         .mockResolvedValue({
           id: 7,
           negocio_id: 11,
@@ -205,9 +205,19 @@ describe(
 
         expect(
           repository
-            .buscarProfissionalAtivo
+            .buscarVinculoAtivoPorPapel
         ).toHaveBeenCalledWith(
           7,
+          "dono",
+          client
+        );
+
+        expect(
+          repository
+            .buscarConfiguracao
+        ).toHaveBeenCalledWith(
+          7,
+          11,
           client
         );
 
@@ -223,6 +233,10 @@ describe(
             .mock.calls
         ) {
           expect(
+            chamada[0].negocioId
+          ).toBe(11);
+
+          expect(
             chamada[1]
           ).toBe(client);
         }
@@ -232,6 +246,7 @@ describe(
             .marcarConfigurada
         ).toHaveBeenCalledWith(
           7,
+          11,
           client
         );
 
@@ -352,7 +367,7 @@ describe(
       "não permite conta sem vínculo ativo",
       async () => {
         repository
-          .buscarProfissionalAtivo
+          .buscarVinculoAtivoPorPapel
           .mockResolvedValue(null);
 
         await expect(

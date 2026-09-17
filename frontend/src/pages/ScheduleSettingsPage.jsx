@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { Link, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { track } from "../analytics/track";
 import { apiRequest } from "../api/client";
 import { getPlanIntentPath, normalizePlanSlug } from "../auth/session";
@@ -139,6 +139,10 @@ export function validateSchedule(days, { requireActiveDay = false } = {}) {
 
 export function ScheduleSettingsPage() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const contextoAgenda = location.pathname.startsWith("/profissional/")
+    ? "profissional"
+    : "dono";
   const [searchParams] = useSearchParams();
   const selectedPlan = normalizePlanSlug(searchParams.get("plano"));
   const [config, setConfig] = useState(null);
@@ -155,7 +159,12 @@ export function ScheduleSettingsPage() {
 
   const load = useCallback(() => {
     setError("");
-    apiRequest("/agenda-configuracao")
+
+    apiRequest("/agenda-configuracao", {
+      headers: {
+        "X-AF-Contexto": contextoAgenda
+      }
+    })
       .then((result) => {
         const current = result.configuracao || {};
         const normalizedDays = (result.horarios || [])
@@ -193,7 +202,7 @@ export function ScheduleSettingsPage() {
         });
       })
       .catch((requestError) => setError(requestError.message));
-  }, []);
+  }, [contextoAgenda]);
 
   useEffect(load, [load]);
 
@@ -357,6 +366,9 @@ export function ScheduleSettingsPage() {
     try {
       const result = await apiRequest("/agenda-configuracao", {
         method: "PUT",
+        headers: {
+          "X-AF-Contexto": contextoAgenda
+        },
         body: { ...config, horarios: days }
       });
       const savedConfig = result.configuracao || {};

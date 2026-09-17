@@ -64,6 +64,7 @@ describe("disponibilidade no fuso do negócio", () => {
       await agendaDisponibilidadeService
         .buscarDisponibilidade({
           profissionalId: 9,
+          negocioId: 11,
           duracaoServico: 60,
           quantidadeDias: 1,
           fusoHorario: "America/Sao_Paulo",
@@ -73,6 +74,7 @@ describe("disponibilidade no fuso do negócio", () => {
       await agendaDisponibilidadeService
         .buscarDisponibilidade({
           profissionalId: 9,
+          negocioId: 11,
           duracaoServico: 60,
           quantidadeDias: 1,
           fusoHorario: "America/Noronha",
@@ -90,6 +92,7 @@ describe("disponibilidade no fuso do negócio", () => {
       await agendaDisponibilidadeService
         .buscarDisponibilidade({
           profissionalId: 9,
+          negocioId: 11,
           duracaoServico: 60,
           quantidadeDias: 1,
           fusoHorario: "America/Manaus",

@@ -192,6 +192,7 @@ describe(
           INSERT INTO
             agenda_configuracoes (
               profissional_id,
+              negocio_id,
               duracao_padrao,
               intervalo_minutos,
               antecedencia_agendamento,
@@ -200,14 +201,16 @@ describe(
 
           VALUES (
             $1,
+            $2,
             60,
             0,
             0,
-            $2
+            $3
           )
 
           ON CONFLICT (
-            profissional_id
+            profissional_id,
+            negocio_id
           )
 
           DO UPDATE SET
@@ -219,6 +222,7 @@ describe(
         `,
         [
           profissionalId,
+          negocioId,
           horas,
         ]
       );
@@ -435,11 +439,13 @@ describe(
 
               WHERE
                 profissional_id = $1
+                AND negocio_id = $2
 
               LIMIT 1
             `,
             [
               profissionalId,
+              negocioId,
             ]
           );
 
@@ -502,6 +508,7 @@ describe(
 
           if (
             profissionalId &&
+            negocioId &&
             configuracaoCriadaNoTeste
           ) {
             await db.query(
@@ -511,13 +518,16 @@ describe(
 
                 WHERE
                   profissional_id = $1
+                  AND negocio_id = $2
               `,
               [
                 profissionalId,
+                negocioId,
               ]
             );
           } else if (
             profissionalId &&
+            negocioId &&
             configuracaoOriginal
           ) {
             await db.query(
@@ -527,16 +537,18 @@ describe(
 
                 SET
                   antecedencia_cancelamento =
-                    $2,
+                    $3,
 
                   updated_at =
                     NOW()
 
                 WHERE
                   profissional_id = $1
+                  AND negocio_id = $2
               `,
               [
                 profissionalId,
+                negocioId,
 
                 configuracaoOriginal
                   .antecedencia_cancelamento,

@@ -9,69 +9,22 @@ function criarErro(mensagem, statusCode) {
   return err;
 }
 
-const HORARIOS_PADRAO = [
-  {
-    diaSemana: 0,
-    trabalha: false,
-    horaInicio: null,
-    horaFim: null,
-    intervaloInicio: null,
-    intervaloFim: null,
-  },
-  {
-    diaSemana: 1,
-    trabalha: true,
-    horaInicio: "08:00",
-    horaFim: "18:00",
-    intervaloInicio: "12:00",
-    intervaloFim: "13:00",
-  },
-  {
-    diaSemana: 2,
-    trabalha: true,
-    horaInicio: "08:00",
-    horaFim: "18:00",
-    intervaloInicio: "12:00",
-    intervaloFim: "13:00",
-  },
-  {
-    diaSemana: 3,
-    trabalha: true,
-    horaInicio: "08:00",
-    horaFim: "18:00",
-    intervaloInicio: "12:00",
-    intervaloFim: "13:00",
-  },
-  {
-    diaSemana: 4,
-    trabalha: true,
-    horaInicio: "08:00",
-    horaFim: "18:00",
-    intervaloInicio: "12:00",
-    intervaloFim: "13:00",
-  },
-  {
-    diaSemana: 5,
-    trabalha: true,
-    horaInicio: "08:00",
-    horaFim: "18:00",
-    intervaloInicio: "12:00",
-    intervaloFim: "13:00",
-  },
-  {
-    diaSemana: 6,
-    trabalha: true,
-    horaInicio: "08:00",
-    horaFim: "13:00",
-    intervaloInicio: null,
-    intervaloFim: null,
-  },
-];
-
 function exigirUsuario(usuarioId) {
   if (!usuarioId) {
     throw criarErro("Usuário não autenticado.", 401);
   }
+}
+
+function normalizarContexto(contexto) {
+  const valor = String(contexto || "dono")
+    .trim()
+    .toLowerCase();
+
+  if (!["dono", "profissional"].includes(valor)) {
+    throw criarErro("Contexto da agenda inválido.", 400);
+  }
+
+  return valor;
 }
 
 function normalizarHorario(horario) {
@@ -251,139 +204,79 @@ function formatarHorarioBanco(horario) {
   };
 }
 
-async function exigirProfissionalAtivo(
-  profissionalId,
+async function resolverVinculoAgenda(
+  usuarioId,
+  contexto,
   executor
 ) {
-  const profissional =
-    await agendaConfiguracaoRepository
-      .buscarProfissionalAtivo(
-        profissionalId,
-        executor
-      );
+  const papel = normalizarContexto(contexto);
+  const vinculo = await agendaConfiguracaoRepository
+    .buscarVinculoAtivoPorPapel(
+      usuarioId,
+      papel,
+      executor
+    );
 
-  if (!profissional) {
+  if (!vinculo) {
     throw criarErro(
-      "Conta sem vínculo ativo com um negócio.",
+      papel === "dono"
+        ? "Conta sem vínculo ativo de dona com um negócio."
+        : "Conta sem vínculo profissional ativo com um negócio.",
       403
     );
   }
 
-  return profissional;
+  return vinculo;
 }
 
-async function criarConfiguracaoPadrao(
-  profissionalId,
-  executor
-) {
-  const configuracao =
-    await agendaConfiguracaoRepository.criarConfiguracao({
-      profissionalId,
-      duracaoPadrao: 60,
-      intervaloMinutos: 0,
-      antecedenciaAgendamento: 0,
-      antecedenciaCancelamento: 24,
-    }, executor);
-
-  const horarios = [];
-
-  for (const horario of HORARIOS_PADRAO) {
-    const horarioSalvo =
-      await agendaConfiguracaoRepository.salvarHorario({
-        profissionalId,
-        ...horario,
-      }, executor);
-
-    horarios.push(horarioSalvo);
-  }
-
-  return {
-    configuracao,
-    horarios,
-  };
-}
-
-async function buscarMinhaConfiguracao({ usuarioId }) {
+async function buscarMinhaConfiguracao({
+  usuarioId,
+  contexto,
+}) {
   exigirUsuario(usuarioId);
 
   return agendaConfiguracaoRepository
     .executarTransacao(
       async (client) => {
-        await exigirProfissionalAtivo(
+        const vinculo = await resolverVinculoAgenda(
           usuarioId,
+          contexto,
           client
         );
 
-        let configuracao =
+        const estado =
           await agendaConfiguracaoRepository
-            .buscarConfiguracao(
-              usuarioId,
-              client
-            );
-
-        let horarios =
-          await agendaConfiguracaoRepository
-            .listarHorarios(
-              usuarioId,
-              client
-            );
-
-        if (!configuracao) {
-          const padrao =
-            await criarConfiguracaoPadrao(
-              usuarioId,
-              client
-            );
-
-          configuracao =
-            padrao.configuracao;
-          horarios =
-            padrao.horarios;
-        } else if (
-          horarios.length === 0
-        ) {
-          for (
-            const horario
-            of HORARIOS_PADRAO
-          ) {
-            await agendaConfiguracaoRepository
-              .salvarHorario({
-                profissionalId:
-                  usuarioId,
-                ...horario,
-              }, client);
-          }
-
-          horarios =
-            await agendaConfiguracaoRepository
-              .listarHorarios(
-                usuarioId,
-                client
-              );
-        }
+            .garantirDisponibilidadePadrao({
+              profissionalId: usuarioId,
+              negocioId: vinculo.negocio_id,
+            }, client);
 
         return {
-          configuracao,
-          horarios:
-            horarios.map(
-              formatarHorarioBanco
-            ),
+          configuracao: estado.configuracao,
+          horarios: estado.horarios.map(
+            formatarHorarioBanco
+          ),
         };
       }
     );
 }
 
-async function buscarStatusConfiguracao({ usuarioId }) {
+async function buscarStatusConfiguracao({
+  usuarioId,
+  contexto,
+}) {
   exigirUsuario(usuarioId);
 
-  await exigirProfissionalAtivo(
-    usuarioId
+  const vinculo = await resolverVinculoAgenda(
+    usuarioId,
+    contexto
   );
 
   const configuracao =
     await agendaConfiguracaoRepository
       .buscarConfiguracao(
-        usuarioId
+        usuarioId,
+        vinculo.negocio_id
       );
 
   return {
@@ -402,6 +295,7 @@ async function buscarStatusConfiguracao({ usuarioId }) {
 
 async function salvarMinhaConfiguracao({
   usuarioId,
+  contexto,
   duracaoPadrao,
   intervaloMinutos,
   antecedenciaAgendamento,
@@ -465,15 +359,18 @@ async function salvarMinhaConfiguracao({
   return agendaConfiguracaoRepository
     .executarTransacao(
       async (client) => {
-        await exigirProfissionalAtivo(
+        const vinculo = await resolverVinculoAgenda(
           usuarioId,
+          contexto,
           client
         );
+        const negocioId = vinculo.negocio_id;
 
         const configuracaoExistente =
           await agendaConfiguracaoRepository
             .buscarConfiguracao(
               usuarioId,
+              negocioId,
               client
             );
 
@@ -485,21 +382,17 @@ async function salvarMinhaConfiguracao({
         let configuracao;
 
         const dadosConfiguracao = {
-          profissionalId:
-            usuarioId,
-          duracaoPadrao:
-            duracao,
-          intervaloMinutos:
-            intervalo,
+          profissionalId: usuarioId,
+          negocioId,
+          duracaoPadrao: duracao,
+          intervaloMinutos: intervalo,
           antecedenciaAgendamento:
             antecedenciaAgendamentoValidada,
           antecedenciaCancelamento:
             antecedenciaCancelamentoValidada,
         };
 
-        if (
-          configuracaoExistente
-        ) {
+        if (configuracaoExistente) {
           configuracao =
             await agendaConfiguracaoRepository
               .atualizarConfiguracao(
@@ -515,30 +408,25 @@ async function salvarMinhaConfiguracao({
               );
         }
 
-        const horariosSalvos =
-          [];
+        const horariosSalvos = [];
 
-        for (
-          const horario
-          of horariosValidados
-        ) {
+        for (const horario of horariosValidados) {
           const horarioSalvo =
             await agendaConfiguracaoRepository
               .salvarHorario({
-                profissionalId:
-                  usuarioId,
+                profissionalId: usuarioId,
+                negocioId,
                 ...horario,
               }, client);
 
-          horariosSalvos.push(
-            horarioSalvo
-          );
+          horariosSalvos.push(horarioSalvo);
         }
 
         const configuracaoMarcada =
           await agendaConfiguracaoRepository
             .marcarConfigurada(
               usuarioId,
+              negocioId,
               client
             );
 

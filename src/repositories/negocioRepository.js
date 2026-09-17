@@ -381,16 +381,24 @@ async function criarVinculoDono(
 
 async function criarDisponibilidadePadrao(
   usuarioId,
+  negocioId,
   executor = db
 ) {
   const idUsuario =
     normalizarId(
       usuarioId
     );
+  const idNegocio =
+    normalizarId(
+      negocioId
+    );
 
-  if (!idUsuario) {
+  if (
+    !idUsuario ||
+    !idNegocio
+  ) {
     throw new TypeError(
-      "Usuário inválido para criação da disponibilidade padrão."
+      "Usuário ou negócio inválido para criação da disponibilidade padrão."
     );
   }
 
@@ -403,23 +411,29 @@ async function criarDisponibilidadePadrao(
     `
     INSERT INTO agenda_configuracoes (
       profissional_id,
+      negocio_id,
       duracao_padrao,
       intervalo_minutos,
       antecedencia_agendamento,
       antecedencia_cancelamento,
+      configurado_em,
       origem_horarios
     )
-    VALUES ($1, 60, 0, 0, 24, 'padrao_af')
-    ON CONFLICT (profissional_id)
+    VALUES ($1, $2, 60, 0, 0, 24, NOW(), 'padrao_af')
+    ON CONFLICT (profissional_id, negocio_id)
     DO NOTHING
     `,
-    [idUsuario]
+    [
+      idUsuario,
+      idNegocio,
+    ]
   );
 
   await conexao.query(
     `
     INSERT INTO agenda_horarios (
       profissional_id,
+      negocio_id,
       dia_semana,
       trabalha,
       hora_inicio,
@@ -429,6 +443,7 @@ async function criarDisponibilidadePadrao(
     )
     SELECT
       $1,
+      $2,
       d.dia_semana,
       d.trabalha,
       d.hora_inicio,
@@ -445,10 +460,17 @@ async function criarDisponibilidadePadrao(
         (5::SMALLINT, TRUE,  TIME '08:00', TIME '18:00', TIME '12:00', TIME '13:00'),
         (6::SMALLINT, TRUE,  TIME '08:00', TIME '13:00', NULL::TIME, NULL::TIME)
     ) AS d(dia_semana, trabalha, hora_inicio, hora_fim, intervalo_inicio, intervalo_fim)
-    ON CONFLICT (profissional_id, dia_semana)
+    ON CONFLICT (
+      profissional_id,
+      negocio_id,
+      dia_semana
+    )
     DO NOTHING
     `,
-    [idUsuario]
+    [
+      idUsuario,
+      idNegocio,
+    ]
   );
 }
 
@@ -564,6 +586,7 @@ async function criarNegocioComDono({
 
       await criarDisponibilidadePadrao(
         idUsuario,
+        negocioCriado.id,
         client
       );
 

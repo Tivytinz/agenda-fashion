@@ -199,6 +199,7 @@ describe(
         const agendamento = {
           id: 50,
           profissional_id: 7,
+          negocio_id: 11,
           cliente_id: 8,
           data:
             obterDataAmanhaBrasil(),
@@ -245,6 +246,14 @@ describe(
               clienteId: 8,
               agendamentoId: 50,
             });
+
+        expect(
+          agendaConfiguracaoRepository
+            .buscarConfiguracao
+        ).toHaveBeenCalledWith(
+          7,
+          11
+        );
 
         expect(
           agendaPublicaRepository
