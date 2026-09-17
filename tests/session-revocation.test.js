@@ -240,5 +240,48 @@ describe(
         ).not.toHaveBeenCalled();
       }
     );
+
+    test(
+      "não mascara falha inesperada ao persistir a revogação",
+      async () => {
+        sessionRevocationRepository
+          .revogarToken
+          .mockRejectedValueOnce(
+            new Error(
+              "Banco indisponível"
+            )
+          );
+
+        const resposta =
+          await request(
+            criarAppLogout()
+          )
+            .post("/logout")
+            .set(
+              "Authorization",
+              `Bearer ${gerarToken()}`
+            );
+
+        expect(
+          resposta.status
+        ).toBe(500);
+        expect(
+          resposta.body.erro
+        ).toBe(
+          "Banco indisponível"
+        );
+        expect(
+          resposta.headers[
+            "set-cookie"
+          ]
+        ).toEqual(
+          expect.arrayContaining([
+            expect.stringContaining(
+              "af_session=;"
+            ),
+          ])
+        );
+      }
+    );
   }
 );

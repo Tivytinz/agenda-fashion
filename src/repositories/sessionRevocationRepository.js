@@ -22,10 +22,10 @@ async function revogarToken({
       SELECT
         u.id,
         $2,
-        $3
+        $3::timestamptz
       FROM usuarios u
       WHERE u.id = $1
-        AND $3 > NOW()
+        AND $3::timestamptz > NOW()
       ON CONFLICT (token_hash)
       DO NOTHING
       RETURNING
