@@ -314,8 +314,22 @@ export default function App() {
               path={reactRoutes.subscription}
               element={<ProtectedRoute ownerOnly businessRequired><SubscriptionPage /></ProtectedRoute>}
             />
-            <Route path={reactRoutes.professionalAgenda} element={<AgendaWorkspacePage />} />
-            <Route path={reactRoutes.professionalSchedule} element={<ScheduleSettingsPage />} />
+            <Route
+              path={reactRoutes.professionalAgenda}
+              element={(
+                <ProtectedRoute professionalOnly businessRequired>
+                  <AgendaWorkspacePage />
+                </ProtectedRoute>
+              )}
+            />
+            <Route
+              path={reactRoutes.professionalSchedule}
+              element={(
+                <ProtectedRoute professionalOnly businessRequired>
+                  <ScheduleSettingsPage />
+                </ProtectedRoute>
+              )}
+            />
           </Route>
 
           <Route path="*" element={<NotFoundPage />} />
