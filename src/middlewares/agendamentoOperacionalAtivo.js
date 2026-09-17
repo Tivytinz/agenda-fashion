@@ -1,6 +1,9 @@
 const agendaContextoRepository = require(
   "../repositories/agendaContextoRepository"
 );
+const NotFoundError = require(
+  "../errors/NotFoundError"
+);
 const {
   exigirUsuario,
   exigirPermissao
@@ -32,10 +35,11 @@ async function agendamentoOperacionalAtivo(req, res, next) {
           usuarioId,
         });
 
-    exigirPermissao(
-      vinculo,
-      "Seu acesso a este agendamento não está ativo."
-    );
+    if (!vinculo) {
+      throw new NotFoundError(
+        "Agendamento não encontrado."
+      );
+    }
 
     req.agendaContexto = {
       negocioId: Number(vinculo.negocio_id),
