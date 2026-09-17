@@ -11,7 +11,10 @@ import {
 } from "react-router-dom";
 
 import { useSession } from "../auth/SessionContext";
-import { getBusinessWorkspacePath } from "../auth/session";
+import {
+  getOwnerContext,
+  getProfessionalContext
+} from "../auth/session";
 import afLogoTransparent from "../assets/brand/af-logo-transparent.png";
 import { MediaThumb } from "./profile/MediaThumb";
 
@@ -20,6 +23,9 @@ export function AppHeader() {
   const location = useLocation();
   const navigate = useNavigate();
   const [search, setSearch] = useState("");
+
+  const ownerContext = getOwnerContext(session);
+  const professionalContext = getProfessionalContext(session);
 
   const accountInAdmin =
     location.pathname === "/conta" &&
@@ -36,9 +42,17 @@ export function AppHeader() {
     location.pathname.startsWith("/admin/") ||
     accountInAdmin;
 
+  const ownerArea =
+    location.pathname === "/painel" ||
+    location.pathname.startsWith("/painel/");
+
+  const professionalArea =
+    location.pathname === "/profissional" ||
+    location.pathname.startsWith("/profissional/");
+
   const businessArea =
-    location.pathname.startsWith("/painel") ||
-    location.pathname.startsWith("/profissional/") ||
+    ownerArea ||
+    professionalArea ||
     (
       location.pathname === "/conta" &&
       session.temNegocio &&
@@ -90,10 +104,6 @@ export function AppHeader() {
     .trim()
     .charAt(0)
     .toLocaleUpperCase("pt-BR");
-
-  const workspaceLabel = session.temNegocio
-    ? "Área de trabalho"
-    : "Criar negócio";
 
   const headerClassName = [
     "site-header",
@@ -235,10 +245,21 @@ export function AppHeader() {
                   </NavLink>
                 )}
 
-                {!businessArea &&
-                  (!session.ehAdministrador || session.temNegocio) && (
-                  <NavLink to={getBusinessWorkspacePath(session)}>
-                    {workspaceLabel}
+                {ownerContext && !ownerArea && (
+                  <NavLink to="/painel">
+                    Área do negócio
+                  </NavLink>
+                )}
+
+                {professionalContext && !professionalArea && (
+                  <NavLink to="/profissional/agenda">
+                    Área profissional
+                  </NavLink>
+                )}
+
+                {!ownerContext && !professionalContext && (
+                  <NavLink to="/criar-negocio">
+                    Criar negócio
                   </NavLink>
                 )}
 
