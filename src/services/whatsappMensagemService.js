@@ -21,6 +21,8 @@ let workerEmExecucao =
 
 let temporizadorWorker =
   null;
+let execucaoWorkerAtual =
+  Promise.resolve();
 
 let ultimaVarreduraLembretesNegocioEm =
   0;
@@ -665,7 +667,11 @@ function iniciarWorkerWhatsapp() {
     );
 
   const executar = () => {
-    processarFilaWhatsapp()
+    if (workerEmExecucao) {
+      return execucaoWorkerAtual;
+    }
+
+    execucaoWorkerAtual = processarFilaWhatsapp()
       .catch(
         (erro) => {
           registrador.erro(
@@ -679,6 +685,8 @@ function iniciarWorkerWhatsapp() {
           );
         }
       );
+
+    return execucaoWorkerAtual;
   };
 
   executar();
@@ -709,7 +717,7 @@ function iniciarWorkerWhatsapp() {
   return temporizadorWorker;
 }
 
-function pararWorkerWhatsapp() {
+async function pararWorkerWhatsapp() {
   if (
     temporizadorWorker
   ) {
@@ -720,6 +728,8 @@ function pararWorkerWhatsapp() {
     temporizadorWorker =
       null;
   }
+
+  await execucaoWorkerAtual;
 }
 
 module.exports = {

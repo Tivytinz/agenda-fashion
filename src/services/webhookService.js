@@ -65,6 +65,12 @@ const EVENTOS_ASSINATURA =
 
 let temporizadorWorker =
   null;
+let inicializacaoWorker =
+  null;
+let workerEmExecucao =
+  false;
+let execucaoWorkerAtual =
+  Promise.resolve();
 
 function normalizarEventoCriadoEm(
   valor
@@ -600,7 +606,13 @@ function iniciarWorkerWebhook() {
   }
 
   const executar = () => {
-    processarFilaWebhook()
+    if (workerEmExecucao) {
+      return execucaoWorkerAtual;
+    }
+
+    workerEmExecucao = true;
+
+    const filaWebhook = processarFilaWebhook()
       .catch((erro) => {
         registrador.erro(
           "Webhook Asaas: falha no processador da fila.",
@@ -610,7 +622,7 @@ function iniciarWorkerWebhook() {
         );
       });
 
-    marketingConversionDeliveryService
+    const filaConversoes = marketingConversionDeliveryService
       .processarFilaConversoes()
       .catch((erro) => {
         registrador.aviso(
@@ -620,9 +632,21 @@ function iniciarWorkerWebhook() {
           }
         );
       });
+
+    execucaoWorkerAtual = Promise.allSettled([
+      filaWebhook,
+      filaConversoes,
+    ]).finally(() => {
+      workerEmExecucao = false;
+    });
+
+    return execucaoWorkerAtual;
   };
 
-  setImmediate(executar);
+  inicializacaoWorker = setImmediate(() => {
+    inicializacaoWorker = null;
+    void executar();
+  });
 
   temporizadorWorker =
     setInterval(
@@ -636,8 +660,14 @@ function iniciarWorkerWebhook() {
   return temporizadorWorker;
 }
 
-function pararWorkerWebhook() {
+async function pararWorkerWebhook() {
+  if (inicializacaoWorker) {
+    clearImmediate(inicializacaoWorker);
+    inicializacaoWorker = null;
+  }
+
   if (!temporizadorWorker) {
+    await execucaoWorkerAtual;
     return;
   }
 
@@ -647,6 +677,8 @@ function pararWorkerWebhook() {
 
   temporizadorWorker =
     null;
+
+  await execucaoWorkerAtual;
 }
 
 async function processarWebhookAsaas(dados) {

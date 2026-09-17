@@ -35,6 +35,8 @@ async function listarServicos(usuarioId) {
     return [];
   }
 
+  await buscarUsoPlano(vinculo.negocio_id);
+
   return servicosRepository.listarServicos(vinculo.negocio_id);
 }
 

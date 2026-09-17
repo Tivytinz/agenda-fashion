@@ -19,6 +19,19 @@ let timerInicial = null;
 let timerIntervalo = null;
 let executando = false;
 let limpezaIniciada = false;
+const execucoesAgendadas = new Set();
+
+function acompanharExecucao(promise) {
+  const execucao = Promise.resolve(promise);
+
+  execucoesAgendadas.add(execucao);
+  void execucao.then(
+    () => execucoesAgendadas.delete(execucao),
+    () => execucoesAgendadas.delete(execucao)
+  );
+
+  return execucao;
+}
 
 function intervaloMs() {
   return intervaloHoras() * 60 * 60 * 1000;
@@ -269,20 +282,26 @@ async function executarSincronizacaoAgendada() {
 }
 
 function iniciarWorkerCustosMarketing() {
-  void executarLimpezaCanonica();
+  void acompanharExecucao(
+    executarLimpezaCanonica()
+  );
 
   if (!agendamentoAtivo()) {
     return false;
   }
 
-  pararWorkerCustosMarketing();
+  void pararWorkerCustosMarketing();
 
   timerInicial = setTimeout(() => {
-    void executarSincronizacaoAgendada();
+    void acompanharExecucao(
+      executarSincronizacaoAgendada()
+    );
   }, PRIMEIRA_EXECUCAO_MS);
 
   timerIntervalo = setInterval(() => {
-    void executarSincronizacaoAgendada();
+    void acompanharExecucao(
+      executarSincronizacaoAgendada()
+    );
   }, intervaloMs());
 
   timerInicial.unref?.();
@@ -298,7 +317,7 @@ function iniciarWorkerCustosMarketing() {
   return true;
 }
 
-function pararWorkerCustosMarketing() {
+async function pararWorkerCustosMarketing() {
   if (timerInicial) {
     clearTimeout(timerInicial);
     timerInicial = null;
@@ -308,6 +327,10 @@ function pararWorkerCustosMarketing() {
     clearInterval(timerIntervalo);
     timerIntervalo = null;
   }
+
+  await Promise.allSettled(
+    Array.from(execucoesAgendadas)
+  );
 }
 
 module.exports = {
