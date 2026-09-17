@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { apiRequest } from "../api/client";
 import { useSession } from "../auth/SessionContext";
-import { getBusinessWorkspacePath } from "../auth/session";
+import { getProfessionalWorkspacePath } from "../auth/session";
 import { EmptyState, ErrorState, LoadingState } from "../components/ScreenState";
 
 function formatExpiration(value) {
@@ -66,7 +66,7 @@ export function ProfessionalInvitesPage() {
       if (action === "aceitar") {
         const refreshed = await session.refresh();
         setWorkspacePath(
-          getBusinessWorkspacePath(refreshed || session)
+          getProfessionalWorkspacePath(refreshed || session)
         );
       }
     } catch (requestError) {
