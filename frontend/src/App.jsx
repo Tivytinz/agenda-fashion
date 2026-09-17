@@ -220,7 +220,7 @@ export default function App() {
           >
             <Route path={reactRoutes.adminOverview} element={<AdminOverviewPage />} />
             <Route path={reactRoutes.adminAcquisition} element={<AdminAcquisitionPage />} />
-            <Route path={reactRoutes.adminJourney} element={<AdminJourneyV2Page />} />
+            <Route path={reactRoutes.adminJourney} element={<AdminJourneyPage />} />
             <Route path={reactRoutes.adminRetention} element={<AdminRetentionPage />} />
             <Route path={reactRoutes.adminRevenue} element={<AdminRevenuePage />} />
             <Route path={reactRoutes.adminOperation} element={<AdminOperationPage />} />
@@ -242,6 +242,7 @@ export default function App() {
                 </>
               )}
             />
+            {/* Compatibilidade: links antigos de funil profissional abrem a Aquisição 2.0. */}
             <Route
               path={reactRoutes.adminProfessionals}
               element={<AdminAcquisitionPage />}
