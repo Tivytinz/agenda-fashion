@@ -17,6 +17,85 @@ beforeEach(() => {
 afterEach(cleanup);
 
 describe("equipe por convite", () => {
+  it("CA-EQP-06: proprietária configura serviços habilitados da profissional", async () => {
+    apiRequest.mockImplementation((path, options = {}) => {
+      if (path === "/profissionais" && !options.method) {
+        return Promise.resolve({
+          profissionais: [
+            { id: 1, nome: "Dona", papel: "dono", foto_url: null },
+            { id: 9, nome: "Ana", papel: "profissional", foto_url: null }
+          ]
+        });
+      }
+
+      if (path === "/profissionais/9/servicos" && !options.method) {
+        return Promise.resolve({
+          profissional: { id: 9, nome: "Ana" },
+          servicos: [
+            { id: 11, nome: "Manicure", ativo: true, habilitada: true },
+            { id: 12, nome: "Pedicure", ativo: true, habilitada: false }
+          ]
+        });
+      }
+
+      if (
+        path === "/profissionais/9/servicos" &&
+        options.method === "PUT"
+      ) {
+        return Promise.resolve({
+          mensagem: "Serviços da profissional atualizados.",
+          profissional: { id: 9, nome: "Ana" },
+          servicos: [
+            { id: 11, nome: "Manicure", ativo: true, habilitada: true },
+            { id: 12, nome: "Pedicure", ativo: true, habilitada: true }
+          ]
+        });
+      }
+
+      return Promise.reject(new Error(`Requisição inesperada: ${path}`));
+    });
+
+    render(<ProfessionalsPage />);
+
+    await screen.findByRole("heading", { name: "Profissionais" });
+
+    const configureButtons = screen.getAllByRole("button", {
+      name: "Configurar serviços"
+    });
+    fireEvent.click(configureButtons[1]);
+
+    expect(
+      await screen.findByRole("heading", {
+        name: "Serviços de Ana"
+      })
+    ).not.toBeNull();
+
+    const pedicure = screen.getByLabelText(/Pedicure/i);
+    expect(pedicure.checked).toBe(false);
+
+    fireEvent.click(pedicure);
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Salvar serviços" })
+    );
+
+    await waitFor(() => {
+      expect(apiRequest).toHaveBeenCalledWith(
+        "/profissionais/9/servicos",
+        {
+          method: "PUT",
+          body: {
+            servico_ids: [11, 12]
+          }
+        }
+      );
+    });
+
+    expect(
+      await screen.findByText("Serviços da profissional atualizados.")
+    ).not.toBeNull();
+  });
+
   it("envia convite sem comunicar vínculo imediato", async () => {
     apiRequest
       .mockResolvedValueOnce({
