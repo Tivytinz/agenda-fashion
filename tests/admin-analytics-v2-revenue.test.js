@@ -50,8 +50,9 @@ describe("Admin Analytics V2 - receita", () => {
         assinaturas_pagas_ativas: 8,
         receita_total: "1190.10",
         receita_bruta: "1290.00",
-        pagamentos_reembolsados: 1,
-        valor_reembolsado: "99.90",
+        pagamentos_revertidos: 1,
+        reversoes_valor_incompleto: 0,
+        valor_revertido: "99.90",
         receita_liquida: "1190.10",
         receita_primeiro_pagamento: "870.00",
       },
@@ -67,14 +68,35 @@ describe("Admin Analytics V2 - receita", () => {
       conversaoCheckoutParaAssinaturaPaga: 25,
       novasAssinaturasPagas: 9,
       receitaBruta: 1290,
-      pagamentosReembolsados: 1,
-      valorReembolsado: 99.9,
+      pagamentosRevertidos: 1,
+      reversoesValorIncompleto: 0,
+      valorRevertido: 99.9,
       receitaLiquida: 1190.1,
     });
 
     expect(
       resultado.resumo.conversaoCheckoutParaAssinaturaPaga
     ).not.toBe(90);
+  });
+
+  test("não inventa receita líquida quando existe reversão sem valor confiável", async () => {
+    repository.buscarReceita.mockResolvedValue({
+      periodo: "30",
+      resumo: {
+        receita_bruta: "500.00",
+        pagamentos_revertidos: 1,
+        reversoes_valor_incompleto: 1,
+        valor_revertido: "0.00",
+        receita_liquida: null,
+      },
+      planos: [],
+    });
+
+    const resultado = await service.buscarRevenue("30");
+
+    expect(resultado.resumo.receitaBruta).toBe(500);
+    expect(resultado.resumo.reversoesValorIncompleto).toBe(1);
+    expect(resultado.resumo.receitaLiquida).toBeNull();
   });
 
   test("não inventa conversão quando a coorte de checkout está vazia", async () => {
