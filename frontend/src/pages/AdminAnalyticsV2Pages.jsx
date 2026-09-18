@@ -55,7 +55,9 @@ const EVENT_LABELS = {
   business_creation_started: "Criação de negócio iniciada",
   first_service_creation_started: "Primeiro serviço iniciado",
   profile_shared: "Perfil compartilhado",
+  profile_viewed: "Perfil visualizado",
   booking_started: "Agendamento iniciado",
+  booking_completed: "Agendamento concluído no navegador",
   checkout_viewed: "Checkout visualizado"
 };
 
@@ -518,6 +520,7 @@ export function AdminJourneyV2Page() {
         const transitions = Array.isArray(data.transicoes) ? data.transicoes : [];
         const events = Array.isArray(data.eventos) ? data.eventos : [];
         const devices = Array.isArray(data.dispositivos) ? data.dispositivos : [];
+        const postPublication = data.posPublicacao || {};
 
         if (screens.length === 0 && events.length === 0) {
           return (
@@ -529,6 +532,32 @@ export function AdminJourneyV2Page() {
 
         return (
           <>
+            <section className="panel">
+              <div className="panel-heading">
+                <div>
+                  <p className="eyebrow">Pós-publicação</p>
+                  <h2>Da divulgação ao primeiro agendamento</h2>
+                  <p className="muted">
+                    Coorte de negócios publicados no período. Cada etapa exige a anterior; visitas autenticadas da própria equipe são excluídas e o último marco é validado na tabela de agendamentos.
+                  </p>
+                </div>
+              </div>
+              <div className="admin-command-funnel is-milestones">
+                {[
+                  ["Publicado", postPublication.negocios_publicados],
+                  ["Compartilhou", postPublication.perfis_compartilhados],
+                  ["Visita externa após compartilhar", postPublication.visitas_externas_pos_compartilhamento],
+                  ["Agendamento iniciado após visita", postPublication.agendamentos_iniciados_pos_visita],
+                  ["1º agendamento válido", postPublication.primeiros_agendamentos_validos]
+                ].map(([label, value]) => (
+                  <article key={label}>
+                    <small>{label}</small>
+                    <strong>{formatNumber(value)}</strong>
+                  </article>
+                ))}
+              </div>
+            </section>
+
             <section className="panel">
               <div className="panel-heading"><div><p className="eyebrow">Telas</p><h2>Onde as pessoas passam tempo</h2></div></div>
               <div className="table-wrapper">
