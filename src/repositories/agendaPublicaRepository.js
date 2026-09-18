@@ -487,6 +487,7 @@ async function criarAgendamento(
           servico_id,
           valor_servico,
           negocio_id,
+          confirmado_em,
           status
         )
         VALUES (
@@ -505,7 +506,8 @@ async function criarAgendamento(
           $9,
           $10,
           $11,
-          'agendado'
+          NOW(),
+          'confirmado'
         )
         RETURNING
           id,
@@ -530,6 +532,7 @@ async function criarAgendamento(
           valor_servico,
           duracao_minutos,
           negocio_id,
+          confirmado_em,
           status,
           avaliacao,
           created_at,
