@@ -144,7 +144,12 @@ async function obterAssinaturaCheckout({
       );
 
     if (assinaturaExistente) {
-      return assinaturaExistente;
+      return {
+        assinatura:
+          assinaturaExistente,
+        pagamentoPendente:
+          null
+      };
     }
   }
 
@@ -163,10 +168,65 @@ async function obterAssinaturaCheckout({
         );
 
       if (pendente) {
-        throw new AppError(
-          "Já existe um PIX pendente para este negócio. Conclua o pagamento ou aguarde o vencimento antes de gerar outra cobrança.",
-          409
-        );
+        if (
+          Number(pendente.plano_id) !==
+            Number(plano.id) ||
+          !pendente.asaas_payment_id
+        ) {
+          throw new AppError(
+            "Já existe um PIX pendente para este negócio. Conclua o pagamento ou aguarde o vencimento antes de gerar outra cobrança.",
+            409
+          );
+        }
+
+        const tentativaVinculada =
+          await checkoutTentativaRepository
+            .vincularAssinatura(
+              tentativa.id,
+              pendente.id,
+              tentativa.lease_tentativa,
+              transactionClient
+            );
+
+        if (!tentativaVinculada) {
+          throw new AppError(
+            "Esta tentativa de checkout foi assumida por outra execução. Consulte novamente o status do pagamento.",
+            409
+          );
+        }
+
+        const assinaturaPendente =
+          await assinaturaRepository
+            .buscarPorId(
+              pendente.id,
+              transactionClient
+            );
+
+        return {
+          assinatura:
+            assinaturaPendente ||
+            pendente,
+          pagamentoPendente: {
+            id:
+              pendente.asaas_payment_id,
+            status:
+              pendente.pagamento_status ||
+              "PENDING",
+            dueDate:
+              pendente.data_vencimento ||
+              null,
+            value:
+              plano.valor
+          },
+          pixPendente: {
+            payload:
+              pendente.pix_copia_cola ||
+              null,
+            encodedImage:
+              pendente.pix_qrcode ||
+              null
+          }
+        };
       }
 
       const novaAssinatura =
@@ -204,13 +264,21 @@ async function obterAssinaturaCheckout({
         );
       }
 
-      return novaAssinatura;
+      return {
+        assinatura:
+          novaAssinatura,
+        pagamentoPendente:
+          null,
+        pixPendente:
+          null
+      };
     }
   );
 
-  tentativa.assinatura_id = assinatura.id;
+  tentativa.assinatura_id =
+    resultado.assinatura.id;
 
-  return assinatura;
+  return resultado;
 }
 
 async function criarCheckoutPix(
@@ -219,18 +287,33 @@ async function criarCheckoutPix(
   plano,
   tentativa
 ) {
-  const assinaturaLocal =
-    await obterAssinaturaCheckout({
-      client,
-      negocio,
-      plano,
-      formaPagamento: "pix",
-      tentativa
-    });
+  const {
+    assinatura: assinaturaLocal,
+    pagamentoPendente,
+    pixPendente
+  } = await obterAssinaturaCheckout({
+    client,
+    negocio,
+    plano,
+    formaPagamento: "pix",
+    tentativa
+  });
 
   await validarLeaseCheckout(
     tentativa
   );
+
+  if (pagamentoPendente?.id) {
+    return {
+      assinatura:
+        assinaturaLocal,
+      pagamento:
+        pagamentoPendente,
+      pix:
+        pixPendente || {},
+      recuperado: true
+    };
+  }
 
   const externalReference =
     `checkout:${tentativa.id};assinatura:${assinaturaLocal.id}`;
