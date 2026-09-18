@@ -1,5 +1,6 @@
 const db = require("../src/db/db");
 const {
+  buscarJornada,
   buscarReceita,
   buscarVisaoGeral,
 } = require("../src/repositories/adminAnalyticsV2Repository");
@@ -15,6 +16,21 @@ describe("Admin Analytics V2 repository - regressão de CTE", () => {
         usuarios_ativos: expect.anything(),
         negocios_publicados: expect.anything(),
         pagamentos_confirmados: expect.anything(),
+      })
+    );
+  });
+
+  test("Jornada expõe o funil pós-publicação sem depender de backfill artificial", async () => {
+    await expect(buscarJornada("today")).resolves.toEqual(
+      expect.objectContaining({
+        periodo: "today",
+        posPublicacao: expect.objectContaining({
+          negocios_publicados: expect.anything(),
+          perfis_compartilhados: expect.anything(),
+          visitas_externas_pos_compartilhamento: expect.anything(),
+          agendamentos_iniciados_pos_visita: expect.anything(),
+          primeiros_agendamentos_validos: expect.anything(),
+        }),
       })
     );
   });
