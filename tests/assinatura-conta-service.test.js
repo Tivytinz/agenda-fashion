@@ -233,6 +233,15 @@ describe(
         assinaturaRepository
           .buscarAssinaturaAtivaPorNegocio
           .mockResolvedValue(cancelada);
+        assinaturaRepository
+          .reservarReativacao
+          .mockResolvedValue({
+            ...cancelada,
+            status: "REACTIVATING"
+          });
+        assinaturaRepository
+          .restaurarCancelamentoReativacao
+          .mockResolvedValue(cancelada);
         criarAssinaturaAsaas
           .mockResolvedValue({
             id: "sub_nova",
@@ -252,6 +261,16 @@ describe(
             usuarioId: 10
           });
 
+        expect(
+          assinaturaRepository
+            .reservarReativacao
+        ).toHaveBeenCalledWith(
+          mockClient,
+          {
+            assinaturaId: 20,
+            negocioId: 7
+          }
+        );
         expect(criarAssinaturaAsaas)
           .toHaveBeenCalledWith(
             expect.objectContaining({
