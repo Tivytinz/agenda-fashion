@@ -171,6 +171,12 @@ Planos pagos usam checkout por PIX. Retorno do navegador não confirma pagamento
 A ativação do plano depende da confirmação financeira autenticada e idempotente
 do Asaas.
 
+Um negócio pode possuir no máximo uma cobrança PIX pendente de contratação ou
+upgrade por vez, independentemente do plano escolhido. Trocar de plano antes do
+pagamento não deve criar cobranças concorrentes. A tela de assinatura deve
+separar explicitamente a assinatura/plano atualmente em uso de qualquer upgrade
+pendente.
+
 Mais detalhes: `docs/planos.md`, `docs/checkout-idempotente.md` e documentos de
 webhook financeiro.
 
@@ -273,8 +279,16 @@ agendamentos reais não cancelados como resultado. Eventos de navegador são
 telemetria diagnóstica e não substituem a tabela `agendamentos`.
 
 Na monetização, distinguir intenção de checkout, pagamento confirmado, assinatura
-efetivamente ativa, reembolso e receita. Receita bruta, reembolsos e receita
-líquida não devem ser colapsados em uma única métrica.
+efetivamente ativa, reembolso/reversão e receita. Enquanto o schema financeiro
+não persistir valor e data econômica exatos de estornos parciais e chargebacks,
+o Admin não deve chamar uma subtração aproximada de "receita líquida". Expor
+separadamente receita atualmente válida e o valor integral das cobranças
+afetadas por reversão/disputa.
+
+Conversões de assinatura para provedores de mídia devem ser idempotentes por
+assinatura e pagamento financeiro. Webhooks repetidos da mesma cobrança não
+duplicam entrega, mas um pagamento posterior que se torne o primeiro válido após
+invalidação do anterior precisa poder gerar uma nova entrega.
 
 As integrações administrativas de custos são somente leitura no escopo atual
 documentado e não devem criar, editar, pausar ou excluir campanhas sem uma nova
