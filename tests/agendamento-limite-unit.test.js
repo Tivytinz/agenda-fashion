@@ -4,6 +4,10 @@ jest.mock("../src/db/db", () => ({
 
 jest.mock("../src/repositories/agendaPublicaRepository");
 jest.mock("../src/repositories/agendaConfiguracaoRepository", () => ({}));
+jest.mock("../src/repositories/profissionalServicosRepository", () => ({
+  bloquearElegibilidadeNegocio: jest.fn(),
+  profissionalEstaElegivel: jest.fn(),
+}));
 jest.mock("../src/services/agendaDisponibilidadeService", () => ({
   horarioEstaDisponivel: jest.fn(),
 }));
@@ -21,6 +25,9 @@ jest.mock("../src/services/planoService", () => ({
 const db = require("../src/db/db");
 const agendaPublicaRepository = require(
   "../src/repositories/agendaPublicaRepository"
+);
+const profissionalServicosRepository = require(
+  "../src/repositories/profissionalServicosRepository"
 );
 const agendaDisponibilidadeService = require(
   "../src/services/agendaDisponibilidadeService"
@@ -47,6 +54,10 @@ describe("Limite durante a criação do agendamento", () => {
       utilizados: 9,
       capacidade_agendamentos: 10,
     });
+
+    profissionalServicosRepository
+      .profissionalEstaElegivel
+      .mockResolvedValue(true);
 
     agendaPublicaRepository.bloquearAgendaProfissional.mockResolvedValue();
     agendaDisponibilidadeService.horarioEstaDisponivel.mockResolvedValue(true);
@@ -107,6 +118,24 @@ describe("Limite durante a criação do agendamento", () => {
       }),
       client
     );
+
+    expect(
+      profissionalServicosRepository
+        .bloquearElegibilidadeNegocio
+    ).toHaveBeenCalledWith({
+      negocioId: 5,
+      executor: client,
+    });
+
+    expect(
+      profissionalServicosRepository
+        .profissionalEstaElegivel
+    ).toHaveBeenCalledWith({
+      negocioId: 5,
+      profissionalId: 2,
+      servicoId: 4,
+      executor: client,
+    });
 
     expect(planoService.verificarCapacidadePlano).toHaveBeenCalledWith(
       5,

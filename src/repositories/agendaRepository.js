@@ -280,13 +280,32 @@ async function buscarProfissionaisDoNegocio(negocioId) {
     SELECT
       u.id,
       COALESCE(un.nome_exibicao, u.nome) AS nome,
-      u.foto_url
+      u.foto_url,
+      COALESCE(
+        ARRAY_AGG(
+          ps.servico_id
+          ORDER BY ps.servico_id
+        ) FILTER (
+          WHERE s.id IS NOT NULL
+        ),
+        ARRAY[]::BIGINT[]
+      ) AS servico_ids
     FROM usuarios u
     INNER JOIN usuarios_negocios un
       ON un.usuario_id = u.id
+    LEFT JOIN profissional_servicos ps
+      ON ps.negocio_id = un.negocio_id
+      AND ps.profissional_id = un.usuario_id
+    LEFT JOIN servicos_negocio s
+      ON s.id = ps.servico_id
+      AND s.negocio_id = ps.negocio_id
+      AND s.ativo = TRUE
     WHERE un.negocio_id = $1
       AND un.ativo = TRUE
       AND u.ativo = TRUE
+    GROUP BY
+      u.id,
+      un.nome_exibicao
     ORDER BY COALESCE(un.nome_exibicao, u.nome) ASC
     `,
     [negocioId]

@@ -60,8 +60,8 @@ const PROFILE = {
     }
   ],
   profissionais: [
-    { id: 21, nome: "Ana" },
-    { id: 22, nome: "Beatriz" }
+    { id: 21, nome: "Ana", servico_ids: [11, 12] },
+    { id: 22, nome: "Beatriz", servico_ids: [11, 12] }
   ]
 };
 
@@ -302,7 +302,9 @@ describe("fluxo publico de agendamento", () => {
         ...PROFILE.negocio,
         areas: ["Sobrancelhas", "Estética"]
       },
-      profissionais: [{ id: 21, nome: "Ana" }]
+      profissionais: [
+        { id: 21, nome: "Ana", servico_ids: [11, 12] }
+      ]
     };
 
     apiRequest.mockImplementation((path) => {
@@ -334,6 +336,45 @@ describe("fluxo publico de agendamento", () => {
       name: "Escolha quem vai atender"
     })).toBeNull();
     expect(screen.getByText("Etapa 2 de 3")).not.toBeNull();
+  });
+
+  it("CA-EQP-06: oferece somente profissionais habilitadas para o serviço", async () => {
+    const user = userEvent.setup();
+    const filteredProfile = {
+      ...PROFILE,
+      profissionais: [
+        { id: 21, nome: "Ana", servico_ids: [11] },
+        { id: 22, nome: "Beatriz", servico_ids: [12] }
+      ]
+    };
+
+    apiRequest.mockImplementation((path) => {
+      if (path.startsWith("/perfil-negocio/")) {
+        return Promise.resolve(filteredProfile);
+      }
+      if (path.startsWith("/agenda-publica?")) {
+        return Promise.resolve(AVAILABILITY);
+      }
+      return Promise.reject(new Error(`Requisicao inesperada: ${path}`));
+    });
+
+    renderProfile();
+    await user.click(await screen.findByRole("button", {
+      name: "Selecionar Manicure completa"
+    }));
+
+    expect(screen.queryByRole("button", { name: /Beatriz/ }))
+      .toBeNull();
+
+    expect(
+      await screen.findByRole("button", { name: "09:00" })
+    ).not.toBeNull();
+
+    expect(
+      apiRequest.mock.calls.some(([path]) =>
+        path.includes("profissionalId=21")
+      )
+    ).toBe(true);
   });
 
   it("limpa profissional e horario ao trocar o servico", async () => {

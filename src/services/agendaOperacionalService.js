@@ -179,6 +179,7 @@ function materializarAgendaGeral(agenda, agendamentos, bloqueios) {
           agendamento_id: agendamento.agendamento_id || null,
           profissional_id: agendamento.profissional_id || null,
           cliente: agendamento.cliente || null,
+          servico_id: agendamento.servico_id || null,
           servico: agendamento.servico || null,
           pode_cancelar: podeCancelarAgendamentoOperacional(agendamento),
           pode_reagendar: Boolean(agendamento.pode_reagendar),

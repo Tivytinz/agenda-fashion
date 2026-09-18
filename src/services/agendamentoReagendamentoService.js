@@ -2,6 +2,9 @@ const db = require("../db/db");
 const agendamentoReagendamentoRepository = require(
   "../repositories/agendamentoReagendamentoRepository"
 );
+const profissionalServicosRepository = require(
+  "../repositories/profissionalServicosRepository"
+);
 const agendaPublicaRepository = require(
   "../repositories/agendaPublicaRepository"
 );
@@ -237,6 +240,14 @@ async function reagendarOperacional({
 
   return db.executarTransacao(
     async (client) => {
+      await profissionalServicosRepository
+        .bloquearElegibilidadeNegocio({
+          negocioId:
+            negocio,
+          executor:
+            client,
+        });
+
       const atual =
         await agendamentoReagendamentoRepository
           .buscarAgendamentoParaReagendar({
@@ -318,31 +329,38 @@ async function reagendarOperacional({
         );
       }
 
-      if (
-        papel === "dono" &&
+      const trocandoResponsavel =
         profissionalDestino !==
-          profissionalAtual
-      ) {
-        throw criarErro(
-          "A troca de responsável será habilitada quando a elegibilidade profissional-serviço estiver configurada.",
-          409
-        );
-      }
+          profissionalAtual;
 
       const destino =
-        await agendamentoReagendamentoRepository
-          .buscarProfissionalAtivoNoNegocio({
-            profissionalId:
-              profissionalDestino,
-            negocioId:
-              negocio,
-            executor:
-              client,
-          });
+        trocandoResponsavel
+          ? await agendamentoReagendamentoRepository
+              .buscarProfissionalElegivelNoNegocio({
+                profissionalId:
+                  profissionalDestino,
+                negocioId:
+                  negocio,
+                servicoId:
+                  Number(atual.servico_id),
+                executor:
+                  client,
+              })
+          : await agendamentoReagendamentoRepository
+              .buscarProfissionalAtivoNoNegocio({
+                profissionalId:
+                  profissionalDestino,
+                negocioId:
+                  negocio,
+                executor:
+                  client,
+              });
 
       if (!destino) {
         throw criarErro(
-          "A profissional de destino não está ativa neste negócio.",
+          trocandoResponsavel
+            ? "A profissional de destino não está ativa ou habilitada para este serviço."
+            : "A profissional responsável não está mais ativa neste negócio.",
           409
         );
       }

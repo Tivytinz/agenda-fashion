@@ -5,6 +5,13 @@ jest.mock("../src/db/db", () => ({
 jest.mock("../src/repositories/servicosRepository");
 
 jest.mock(
+  "../src/repositories/profissionalServicosRepository",
+  () => ({
+    habilitarServicoProfissional: jest.fn(),
+  })
+);
+
+jest.mock(
   "../src/utils/uploadCloudinary",
   () => jest.fn()
 );
@@ -34,6 +41,10 @@ const db = require("../src/db/db");
 
 const servicosRepository = require(
   "../src/repositories/servicosRepository"
+);
+
+const profissionalServicosRepository = require(
+  "../src/repositories/profissionalServicosRepository"
 );
 
 const planoService = require(
@@ -248,6 +259,17 @@ describe("Limite de serviços", () => {
       expect(resultado.publicacao).toEqual({
         id: 7,
         publicado: true,
+      });
+
+      expect(
+        profissionalServicosRepository
+          .habilitarServicoProfissional
+      ).toHaveBeenCalledWith({
+        negocioId: 7,
+        profissionalId: 1,
+        servicoId: 10,
+        habilitadoPorUsuarioId: 1,
+        executor: client,
       });
 
       expect(

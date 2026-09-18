@@ -17,9 +17,28 @@ const {
   removerProfissional
 } = require("../controllers/profissionaisController");
 
+const {
+  listarServicosProfissional,
+  atualizarServicosProfissional,
+} = require(
+  "../controllers/profissionalServicosController"
+);
+
 router.get("/profissionais", auth, listarProfissionais);
 router.put("/profissionais/:id", auth, editarProfissional);
 router.delete("/profissionais/:id", auth, removerProfissional);
+
+router.get(
+  "/profissionais/:id/servicos",
+  auth,
+  listarServicosProfissional
+);
+
+router.put(
+  "/profissionais/:id/servicos",
+  auth,
+  atualizarServicosProfissional
+);
 
 router.get(
   "/profissionais/convites/recebidos",

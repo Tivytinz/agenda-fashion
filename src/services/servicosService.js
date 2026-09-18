@@ -1,4 +1,7 @@
 const servicosRepository = require("../repositories/servicosRepository");
+const profissionalServicosRepository = require(
+  "../repositories/profissionalServicosRepository"
+);
 const uploadToCloudinary = require("../utils/uploadCloudinary");
 const db = require("../db/db");
 const registrador = require("../utils/registrador");
@@ -174,6 +177,20 @@ async function criarServico({
       },
       client
     );
+
+    await profissionalServicosRepository
+      .habilitarServicoProfissional({
+        negocioId:
+          vinculo.negocio_id,
+        profissionalId:
+          Number(usuarioId),
+        servicoId:
+          criado.id,
+        habilitadoPorUsuarioId:
+          Number(usuarioId),
+        executor:
+          client,
+      });
 
     await servicosRepository.adicionarEspecialidadeNegocio(
       vinculo.negocio_id,

@@ -12,6 +12,14 @@ vi.mock("../auth/SessionContext", () => ({ useSession: vi.fn() }));
 beforeEach(() => {
   apiRequest.mockReset();
   useSession.mockReturnValue({ usuario: { id: 1 } });
+
+  HTMLDialogElement.prototype.showModal = function showModal() {
+    this.setAttribute("open", "");
+  };
+
+  HTMLDialogElement.prototype.close = function close() {
+    this.removeAttribute("open");
+  };
 });
 
 afterEach(cleanup);
@@ -52,5 +60,82 @@ describe("equipe por convite", () => {
     expect(
       apiRequest.mock.calls.filter(([path]) => path === "/profissionais")
     ).toHaveLength(1);
+  });
+
+  it("CA-EQP-06: proprietária configura serviços atendidos pela profissional", async () => {
+    apiRequest.mockImplementation((path, options = {}) => {
+      if (path === "/profissionais") {
+        return Promise.resolve({
+          profissionais: [
+            { id: 1, nome: "Dona", papel: "dono", foto_url: null },
+            { id: 9, nome: "Ana", papel: "profissional", foto_url: null }
+          ]
+        });
+      }
+
+      if (
+        path === "/profissionais/9/servicos" &&
+        !options.method
+      ) {
+        return Promise.resolve({
+          profissional_id: 9,
+          servicos: [
+            { id: 11, nome: "Manicure", ativo: true, habilitado: true },
+            { id: 12, nome: "Pedicure", ativo: true, habilitado: false }
+          ]
+        });
+      }
+
+      if (
+        path === "/profissionais/9/servicos" &&
+        options.method === "PUT"
+      ) {
+        return Promise.resolve({
+          mensagem: "Serviços da profissional atualizados."
+        });
+      }
+
+      return Promise.reject(
+        new Error(`Requisição inesperada: ${path}`)
+      );
+    });
+
+    render(<ProfessionalsPage />);
+
+    const buttons = await screen.findAllByRole(
+      "button",
+      { name: "Configurar serviços" }
+    );
+
+    fireEvent.click(buttons[1]);
+
+    const pedicure = await screen.findByRole(
+      "checkbox",
+      { name: /Pedicure/i }
+    );
+
+    expect(pedicure.checked).toBe(false);
+    fireEvent.click(pedicure);
+    expect(pedicure.checked).toBe(true);
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Salvar serviços" })
+    );
+
+    await waitFor(() => {
+      expect(apiRequest).toHaveBeenCalledWith(
+        "/profissionais/9/servicos",
+        {
+          method: "PUT",
+          body: {
+            servico_ids: [11, 12]
+          }
+        }
+      );
+    });
+
+    expect(
+      await screen.findByText("Serviços da profissional atualizados.")
+    ).not.toBeNull();
   });
 });

@@ -875,6 +875,8 @@ async function buscarAgendaGeral({ usuarioId }) {
       id: profissional.id,
       nome: profissional.nome,
       foto_url: profissional.foto_url,
+      servico_ids:
+        profissional.servico_ids || [],
       horarios: horas.map((hora) => {
         const chave =
           `${profissional.id}_${criarChaveAgenda(data, hora)}`;

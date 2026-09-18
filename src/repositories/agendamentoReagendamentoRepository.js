@@ -81,6 +81,45 @@ async function buscarProfissionalAtivoNoNegocio({
   return result.rows[0] || null;
 }
 
+async function buscarProfissionalElegivelNoNegocio({
+  profissionalId,
+  negocioId,
+  servicoId,
+  executor = db,
+}) {
+  const result = await executor.query(
+    `
+      SELECT
+        un.usuario_id AS profissional_id,
+        un.papel,
+        COALESCE(
+          un.nome_exibicao,
+          u.nome
+        ) AS nome
+      FROM usuarios_negocios un
+      INNER JOIN usuarios u
+        ON u.id = un.usuario_id
+        AND u.ativo = TRUE
+      INNER JOIN profissional_servicos ps
+        ON ps.negocio_id = un.negocio_id
+        AND ps.profissional_id = un.usuario_id
+        AND ps.servico_id = $3
+      INNER JOIN servicos_negocio s
+        ON s.id = ps.servico_id
+        AND s.negocio_id = ps.negocio_id
+        AND s.ativo = TRUE
+      WHERE un.usuario_id = $1
+        AND un.negocio_id = $2
+        AND un.ativo = TRUE
+        AND un.papel IN ('dono', 'profissional')
+      LIMIT 1
+    `,
+    [profissionalId, negocioId, servicoId]
+  );
+
+  return result.rows[0] || null;
+}
+
 async function atualizarReagendamento({
   agendamentoId,
   profissionalId,
@@ -192,6 +231,7 @@ async function registrarHistoricoReagendamento({
 module.exports = {
   buscarAgendamentoParaReagendar,
   buscarProfissionalAtivoNoNegocio,
+  buscarProfissionalElegivelNoNegocio,
   atualizarReagendamento,
   registrarHistoricoReagendamento,
 };

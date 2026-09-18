@@ -94,6 +94,7 @@ export function AgendaWorkspacePage({ owner = false }) {
   const [rescheduleTarget, setRescheduleTarget] = useState(null);
   const [rescheduleDate, setRescheduleDate] = useState("");
   const [rescheduleTime, setRescheduleTime] = useState("");
+  const [rescheduleProfessionalId, setRescheduleProfessionalId] = useState("");
   const [datePageSize, setDatePageSize] = useState(getDatePageSize);
   const [datePageStart, setDatePageStart] = useState(0);
 
@@ -155,6 +156,7 @@ export function AgendaWorkspacePage({ owner = false }) {
         setRescheduleTarget(null);
         setRescheduleDate("");
         setRescheduleTime("");
+        setRescheduleProfessionalId("");
       }
     }
 
@@ -165,6 +167,20 @@ export function AgendaWorkspacePage({ owner = false }) {
   const dates = getValidAgendaDays(data?.agenda);
   const activeDay = dates.find((day) => day.data === selectedDate) || dates[0];
   const professionals = owner ? getValidProfessionals(activeDay?.profissionais) : [];
+  const eligibleRescheduleProfessionals =
+    owner && rescheduleTarget?.servico_id
+      ? professionals.filter(
+          (professional) =>
+            (professional.servico_ids || [])
+              .some(
+                (id) =>
+                  String(id) ===
+                  String(
+                    rescheduleTarget.servico_id
+                  )
+              )
+        )
+      : professionals;
   const activeProfessional = owner
     ? professionals.find((item) => String(item.id) === selectedProfessional) || professionals[0]
     : null;
@@ -208,6 +224,7 @@ export function AgendaWorkspacePage({ owner = false }) {
     setRescheduleTarget(null);
     setRescheduleDate("");
     setRescheduleTime("");
+        setRescheduleProfessionalId("");
     if (owner) {
       const firstProfessional = getValidProfessionals(day.profissionais)[0];
       setSelectedProfessional(String(firstProfessional?.id || ""));
@@ -327,6 +344,13 @@ export function AgendaWorkspacePage({ owner = false }) {
     setRescheduleTarget(slot);
     setRescheduleDate(selectedDate);
     setRescheduleTime(String(slot.hora || "").slice(0, 5));
+    setRescheduleProfessionalId(
+      String(
+        slot.profissional_id ||
+        activeProfessional?.id ||
+        ""
+      )
+    );
     setError("");
     setMessage("");
   }
@@ -337,6 +361,7 @@ export function AgendaWorkspacePage({ owner = false }) {
     setRescheduleTarget(null);
     setRescheduleDate("");
     setRescheduleTime("");
+        setRescheduleProfessionalId("");
   }
 
   async function rescheduleAppointment() {
@@ -360,7 +385,16 @@ export function AgendaWorkspacePage({ owner = false }) {
           method: "PATCH",
           body: {
             data: rescheduleDate,
-            horario: rescheduleTime
+            horario: rescheduleTime,
+            ...(owner &&
+              rescheduleProfessionalId
+              ? {
+                  profissional_id:
+                    Number(
+                      rescheduleProfessionalId
+                    )
+                }
+              : {})
           }
         }
       );
@@ -368,6 +402,7 @@ export function AgendaWorkspacePage({ owner = false }) {
       setRescheduleTarget(null);
       setRescheduleDate("");
       setRescheduleTime("");
+        setRescheduleProfessionalId("");
       setMessage(result.mensagem);
       await load();
     } catch (requestError) {
@@ -609,9 +644,36 @@ export function AgendaWorkspacePage({ owner = false }) {
               />
 
               {owner && (
-                <small>
-                  A troca de responsável será habilitada após a configuração explícita de elegibilidade por serviço.
-                </small>
+                <>
+                  <label htmlFor="agenda-reschedule-professional">
+                    Profissional responsável
+                  </label>
+                  <select
+                    id="agenda-reschedule-professional"
+                    onChange={(event) =>
+                      setRescheduleProfessionalId(
+                        event.target.value
+                      )
+                    }
+                    value={rescheduleProfessionalId}
+                  >
+                    {eligibleRescheduleProfessionals.map(
+                      (professional) => (
+                        <option
+                          key={professional.id}
+                          value={professional.id}
+                        >
+                          {professional.nome}
+                        </option>
+                      )
+                    )}
+                  </select>
+                  {eligibleRescheduleProfessionals.length === 0 && (
+                    <small>
+                      Nenhuma profissional ativa está habilitada para este serviço.
+                    </small>
+                  )}
+                </>
               )}
 
               <small>
@@ -633,7 +695,11 @@ export function AgendaWorkspacePage({ owner = false }) {
                 disabled={
                   rescheduleUpdating ||
                   !rescheduleDate ||
-                  !rescheduleTime
+                  !rescheduleTime ||
+                  (
+                    owner &&
+                    !rescheduleProfessionalId
+                  )
                 }
                 onClick={() => void rescheduleAppointment()}
                 type="button"
