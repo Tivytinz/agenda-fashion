@@ -5,6 +5,7 @@ jest.mock("../src/db/db", () => ({
 jest.mock("../src/repositories/agendamentoReagendamentoRepository", () => ({
   buscarAgendamentoParaReagendar: jest.fn(),
   buscarProfissionalAtivoNoNegocio: jest.fn(),
+  buscarProfissionalElegivelNoNegocio: jest.fn(),
   atualizarReagendamento: jest.fn(),
   registrarHistoricoReagendamento: jest.fn(),
 }));
@@ -92,6 +93,13 @@ describe("agendamentoReagendamentoService", () => {
         profissional_id: 8,
         papel: "profissional",
         nome: "Ana",
+      });
+
+    repository.buscarProfissionalElegivelNoNegocio
+      .mockResolvedValue({
+        profissional_id: 9,
+        papel: "profissional",
+        nome: "Bia",
       });
 
     agendaDisponibilidadeService.horarioEstaDisponivel
@@ -227,7 +235,7 @@ describe("agendamentoReagendamentoService", () => {
         papel_executor: "dono",
       });
 
-    repository.buscarProfissionalAtivoNoNegocio
+    repository.buscarProfissionalElegivelNoNegocio
       .mockResolvedValue({
         profissional_id: 9,
         papel: "profissional",
@@ -256,7 +264,7 @@ describe("agendamentoReagendamentoService", () => {
       .toBe(9);
 
     expect(
-      repository.buscarProfissionalAtivoNoNegocio
+      repository.buscarProfissionalElegivelNoNegocio
     ).toHaveBeenCalledWith({
       profissionalId: 9,
       negocioId: 7,
@@ -283,7 +291,7 @@ describe("agendamentoReagendamentoService", () => {
         papel_executor: "dono",
       });
 
-    repository.buscarProfissionalAtivoNoNegocio
+    repository.buscarProfissionalElegivelNoNegocio
       .mockResolvedValue(null);
 
     await expect(
@@ -302,6 +310,37 @@ describe("agendamentoReagendamentoService", () => {
 
     expect(
       repository.atualizarReagendamento
+    ).not.toHaveBeenCalled();
+  });
+
+  test("reserva existente continua reagendável pela responsável mesmo sem vínculo atual ao serviço", async () => {
+    repository.buscarProfissionalAtivoNoNegocio
+      .mockResolvedValue({
+        profissional_id: 8,
+        papel: "profissional",
+        nome: "Ana",
+      });
+
+    repository.buscarProfissionalElegivelNoNegocio
+      .mockResolvedValue(null);
+
+    await expect(
+      service.reagendarOperacional({
+        usuarioId: 8,
+        negocioId: 7,
+        agendamentoId: 50,
+        data: "2026-09-18",
+        horario: "14:00",
+      })
+    ).resolves.toMatchObject({
+      agendamento: {
+        id: 50,
+        profissional_id: 8,
+      },
+    });
+
+    expect(
+      repository.buscarProfissionalElegivelNoNegocio
     ).not.toHaveBeenCalled();
   });
 
