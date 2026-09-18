@@ -84,11 +84,16 @@ function dadosReversaoFinanceira(
       valorInformado >= 0
     );
 
+  const tipoReversao =
+    parcial
+      ? "PARTIALLY_REFUNDED"
+      : tipoEvento.startsWith("PAYMENT_")
+        ? tipoEvento.slice("PAYMENT_".length)
+        : status;
+
   return {
     reversao_tipo:
-      parcial
-        ? "PARTIALLY_REFUNDED"
-        : status || tipoEvento,
+      tipoReversao || null,
     reversao_em:
       dadosPagamento?.webhookEventoCriadoEm ||
       null,
