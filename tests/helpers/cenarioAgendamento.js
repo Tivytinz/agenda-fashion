@@ -153,6 +153,23 @@ async function criarCenarioAgendamento(
 
     await client.query(
       `
+        INSERT INTO servicos_profissionais (
+          negocio_id,
+          servico_id,
+          profissional_id,
+          created_by_user_id
+        )
+        VALUES ($1, $2, $3, $3)
+      `,
+      [
+        negocio.id,
+        servico.id,
+        profissional.id,
+      ]
+    );
+
+    await client.query(
+      `
         INSERT INTO agenda_configuracoes (
           profissional_id,
           negocio_id,
