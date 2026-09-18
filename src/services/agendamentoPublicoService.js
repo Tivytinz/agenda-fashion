@@ -90,12 +90,13 @@ async function buscarDadosBaseAgenda({
     await agendaPublicaRepository
       .buscarProfissionalDoNegocio(
         profissionalIdNormalizado,
-        negocio.id
+        negocio.id,
+        servico.id
       );
 
   if (!profissional) {
     throw criarErro(
-      "Profissional não pertence a esse negócio.",
+      "Profissional não está disponível para este serviço.",
       404
     );
   }
