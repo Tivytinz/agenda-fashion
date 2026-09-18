@@ -355,6 +355,19 @@ async function enfileirarNovoAgendamento({
     );
 }
 
+async function enfileirarReagendamento({
+  executor,
+  agendamentoId,
+}) {
+  return whatsappMensagemRepository
+    .enfileirarReagendamento(
+      executor,
+      agendamentoId,
+      obterAntecedenciaLembrete(),
+      lembreteProfissionalAtivo()
+    );
+}
+
 async function enfileirarCancelamento({
   executor,
   agendamentoId,
@@ -757,6 +770,7 @@ async function pararWorkerWhatsapp() {
 
 module.exports = {
   enfileirarNovoAgendamento,
+  enfileirarReagendamento,
   enfileirarCancelamento,
   enfileirarLembretesDiariosNegocios,
   processarFilaWhatsapp,

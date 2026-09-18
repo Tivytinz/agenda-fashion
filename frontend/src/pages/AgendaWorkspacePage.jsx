@@ -91,6 +91,9 @@ export function AgendaWorkspacePage({ owner = false }) {
   const [cancelTarget, setCancelTarget] = useState(null);
   const [cancelReasonType, setCancelReasonType] = useState("");
   const [cancelReason, setCancelReason] = useState("");
+  const [rescheduleTarget, setRescheduleTarget] = useState(null);
+  const [rescheduleDate, setRescheduleDate] = useState("");
+  const [rescheduleTime, setRescheduleTime] = useState("");
   const [datePageSize, setDatePageSize] = useState(getDatePageSize);
   const [datePageStart, setDatePageStart] = useState(0);
 
@@ -144,6 +147,21 @@ export function AgendaWorkspacePage({ owner = false }) {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [cancelTarget, updating]);
 
+  useEffect(() => {
+    if (!rescheduleTarget) return undefined;
+
+    function handleKeyDown(event) {
+      if (event.key === "Escape" && !updating.startsWith("reagendamento-")) {
+        setRescheduleTarget(null);
+        setRescheduleDate("");
+        setRescheduleTime("");
+      }
+    }
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [rescheduleTarget, updating]);
+
   const dates = getValidAgendaDays(data?.agenda);
   const activeDay = dates.find((day) => day.data === selectedDate) || dates[0];
   const professionals = owner ? getValidProfessionals(activeDay?.profissionais) : [];
@@ -159,6 +177,10 @@ export function AgendaWorkspacePage({ owner = false }) {
   const cancellationUpdating = Boolean(
     cancelTarget?.agendamento_id &&
     updating === `cancelamento-${cancelTarget.agendamento_id}`
+  );
+  const rescheduleUpdating = Boolean(
+    rescheduleTarget?.agendamento_id &&
+    updating === `reagendamento-${rescheduleTarget.agendamento_id}`
   );
 
   useEffect(() => {
@@ -183,6 +205,9 @@ export function AgendaWorkspacePage({ owner = false }) {
     setCancelTarget(null);
     setCancelReasonType("");
     setCancelReason("");
+    setRescheduleTarget(null);
+    setRescheduleDate("");
+    setRescheduleTime("");
     if (owner) {
       const firstProfessional = getValidProfessionals(day.profissionais)[0];
       setSelectedProfessional(String(firstProfessional?.id || ""));
@@ -293,6 +318,65 @@ export function AgendaWorkspacePage({ owner = false }) {
     }
   }
 
+  function openReschedule(slot) {
+    if (!slot.agendamento_id || !slot.pode_reagendar) return;
+
+    setCancelTarget(null);
+    setCancelReasonType("");
+    setCancelReason("");
+    setRescheduleTarget(slot);
+    setRescheduleDate(selectedDate);
+    setRescheduleTime(String(slot.hora || "").slice(0, 5));
+    setError("");
+    setMessage("");
+  }
+
+  function closeReschedule() {
+    if (rescheduleUpdating) return;
+
+    setRescheduleTarget(null);
+    setRescheduleDate("");
+    setRescheduleTime("");
+  }
+
+  async function rescheduleAppointment() {
+    if (
+      !rescheduleTarget?.agendamento_id ||
+      !rescheduleDate ||
+      !rescheduleTime
+    ) {
+      return;
+    }
+
+    const key = `reagendamento-${rescheduleTarget.agendamento_id}`;
+    setUpdating(key);
+    setError("");
+    setMessage("");
+
+    try {
+      const result = await apiRequest(
+        `/agendamentos/${rescheduleTarget.agendamento_id}/reagendar-operacional`,
+        {
+          method: "PATCH",
+          body: {
+            data: rescheduleDate,
+            horario: rescheduleTime
+          }
+        }
+      );
+
+      setRescheduleTarget(null);
+      setRescheduleDate("");
+      setRescheduleTime("");
+      setMessage(result.mensagem);
+      await load();
+    } catch (requestError) {
+      setError(requestError.message);
+    } finally {
+      setUpdating("");
+    }
+  }
+
   if (!data && !error) return <div className="workspace-page"><LoadingState>Carregando agenda...</LoadingState></div>;
   if (!data && error) return <div className="workspace-page"><ErrorState message={error} onRetry={() => void load().catch(() => {})} /></div>;
 
@@ -382,6 +466,12 @@ export function AgendaWorkspacePage({ owner = false }) {
                 );
                 const slotCancellationUpdating = updating ===
                   `cancelamento-${slot.agendamento_id || "nenhum"}`;
+                const slotRescheduleUpdating = updating ===
+                  `reagendamento-${slot.agendamento_id || "nenhum"}`;
+                const slotUpdating =
+                  attendanceUpdating ||
+                  slotCancellationUpdating ||
+                  slotRescheduleUpdating;
                 const statusLabel = isBlockUpdating
                   ? slot.status === "livre" ? "Bloqueando..." : "Liberando..."
                   : getStatusLabel(slot.status);
@@ -403,26 +493,48 @@ export function AgendaWorkspacePage({ owner = false }) {
 
                 return (
                   <article
-                    className={`slot-card slot-card-static slot-${slot.status}${attendanceUpdating || slotCancellationUpdating ? " is-updating" : ""}`}
+                    className={`slot-card slot-card-static slot-${slot.status}${slotUpdating ? " is-updating" : ""}`}
                     key={`${slot.hora}-${slot.agendamento_id || ""}`}
                   >
                     <SlotSummary slot={slot} statusLabel={statusLabel} />
 
                     {isAppointment && ["agendado", "confirmado"].includes(slot.status) && (
                       <div className="slot-lifecycle-actions" aria-label="Gerenciar agendamento">
+                        {slot.pode_reagendar && (
+                          <button
+                            className="button button-secondary button-small"
+                            disabled={slotUpdating}
+                            onClick={() => openReschedule(slot)}
+                            type="button"
+                          >
+                            {slotRescheduleUpdating ? "Reagendando..." : "Reagendar"}
+                          </button>
+                        )}
                         {slot.pode_cancelar && (
                           <button
                             className="button button-secondary button-small slot-cancel-button"
-                            disabled={attendanceUpdating || slotCancellationUpdating}
+                            disabled={slotUpdating}
                             onClick={() => openCancellation(slot)}
                             type="button"
                           >
                             Cancelar agendamento
                           </button>
                         )}
+                        {slot.pode_iniciar_atendimento && (
+                          <button
+                            className="button button-small"
+                            disabled={slotUpdating}
+                            onClick={() => updateAttendance(slot, "iniciado")}
+                            type="button"
+                          >
+                            {updating === `atendimento-${slot.agendamento_id}-iniciado`
+                              ? "Iniciando..."
+                              : "Iniciar atendimento"}
+                          </button>
+                        )}
                         <button
                           className="button button-small"
-                          disabled={attendanceUpdating || slotCancellationUpdating || !slot.pode_marcar_realizado}
+                          disabled={slotUpdating || !slot.pode_marcar_realizado}
                           onClick={() => updateAttendance(slot, "realizado")}
                           type="button"
                         >
@@ -432,7 +544,7 @@ export function AgendaWorkspacePage({ owner = false }) {
                         </button>
                         <button
                           className="button button-secondary button-small"
-                          disabled={attendanceUpdating || slotCancellationUpdating || !slot.pode_marcar_falta}
+                          disabled={slotUpdating || !slot.pode_marcar_falta}
                           onClick={() => updateAttendance(slot, "falta")}
                           type="button"
                         >
@@ -448,6 +560,89 @@ export function AgendaWorkspacePage({ owner = false }) {
             </section>
           )}
         </>
+      )}
+
+      {rescheduleTarget && (
+        <div
+          className="agenda-cancel-backdrop"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) closeReschedule();
+          }}
+        >
+          <section
+            aria-labelledby="agenda-reschedule-title"
+            aria-modal="true"
+            className="agenda-cancel-dialog"
+            role="dialog"
+          >
+            <p className="eyebrow">Reagendar compromisso</p>
+            <h2 id="agenda-reschedule-title">Escolha o novo horário</h2>
+            <p className="agenda-cancel-summary">
+              {getAgendaEntityName(rescheduleTarget.cliente) || "Cliente"}
+              {" · "}
+              {getAgendaEntityName(rescheduleTarget.servico) || "Serviço"}
+            </p>
+            <p>
+              O horário antigo só será liberado depois que o novo horário for validado com sucesso.
+            </p>
+
+            <div className="agenda-cancel-reason">
+              <label htmlFor="agenda-reschedule-date">
+                Nova data
+              </label>
+              <input
+                id="agenda-reschedule-date"
+                min={getLocalDateKey()}
+                onChange={(event) => setRescheduleDate(event.target.value)}
+                type="date"
+                value={rescheduleDate}
+              />
+
+              <label htmlFor="agenda-reschedule-time">
+                Novo horário
+              </label>
+              <input
+                id="agenda-reschedule-time"
+                onChange={(event) => setRescheduleTime(event.target.value)}
+                type="time"
+                value={rescheduleTime}
+              />
+
+              {owner && (
+                <small>
+                  A troca de responsável será habilitada após a configuração explícita de elegibilidade por serviço.
+                </small>
+              )}
+
+              <small>
+                O serviço, preço, duração e regra de cancelamento da reserva serão preservados.
+              </small>
+            </div>
+
+            <div className="agenda-cancel-actions">
+              <button
+                className="button button-secondary"
+                disabled={rescheduleUpdating}
+                onClick={closeReschedule}
+                type="button"
+              >
+                Manter horário atual
+              </button>
+              <button
+                className="button"
+                disabled={
+                  rescheduleUpdating ||
+                  !rescheduleDate ||
+                  !rescheduleTime
+                }
+                onClick={() => void rescheduleAppointment()}
+                type="button"
+              >
+                {rescheduleUpdating ? "Reagendando..." : "Confirmar reagendamento"}
+              </button>
+            </div>
+          </section>
+        </div>
       )}
 
       {cancelTarget && (

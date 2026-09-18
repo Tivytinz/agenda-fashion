@@ -141,7 +141,8 @@ describe("disponibilidade contextual por negócio", () => {
     ).toHaveBeenCalledWith(
       7,
       "2026-09-21",
-      "2026-09-21"
+      "2026-09-21",
+      null
     );
 
     expect(
