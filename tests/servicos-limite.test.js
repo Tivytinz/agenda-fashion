@@ -5,6 +5,13 @@ jest.mock("../src/db/db", () => ({
 jest.mock("../src/repositories/servicosRepository");
 
 jest.mock(
+  "../src/repositories/profissionalServicosRepository",
+  () => ({
+    habilitarServicoProfissional: jest.fn(),
+  })
+);
+
+jest.mock(
   "../src/utils/uploadCloudinary",
   () => jest.fn()
 );
@@ -34,6 +41,10 @@ const db = require("../src/db/db");
 
 const servicosRepository = require(
   "../src/repositories/servicosRepository"
+);
+
+const profissionalServicosRepository = require(
+  "../src/repositories/profissionalServicosRepository"
 );
 
 const planoService = require(
