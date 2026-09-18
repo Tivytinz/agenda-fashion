@@ -209,6 +209,47 @@ async function buscarPagamentoCheckout(pagamentoId, usuarioId) {
   return result.rows[0] || null;
 }
 
+async function buscarEstadoAtivacaoPagamento(pagamentoId) {
+  const result = await db.query(
+    `
+    SELECT
+      status,
+      tentativas,
+      proxima_tentativa_em,
+      erro,
+      (
+        status = 'FAILED'
+        AND tentativas >= 10
+        AND proxima_tentativa_em IS NULL
+      ) AS falha_terminal
+    FROM webhook_eventos
+    WHERE provedor = 'asaas'
+      AND recurso_id = $1
+      AND (
+        tipo_evento IN (
+          'PAYMENT_CONFIRMED',
+          'PAYMENT_RECEIVED'
+        )
+        OR UPPER(
+          COALESCE(
+            payload -> 'payment' ->> 'status',
+            ''
+          )
+        ) IN (
+          'CONFIRMED',
+          'RECEIVED',
+          'RECEIVED_IN_CASH'
+        )
+      )
+    ORDER BY recebido_em DESC, id DESC
+    LIMIT 1
+    `,
+    [pagamentoId]
+  );
+
+  return result.rows[0] || null;
+}
+
 module.exports = {
   buscarNegocioDono,
   buscarPlano,
@@ -216,5 +257,6 @@ module.exports = {
   buscarAssinaturaPendenteDoNegocio,
   buscarDadosClienteAsaas,
   salvarClienteAsaasSeAusente,
-  buscarPagamentoCheckout
+  buscarPagamentoCheckout,
+  buscarEstadoAtivacaoPagamento
 };
