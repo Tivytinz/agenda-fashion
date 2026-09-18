@@ -426,7 +426,23 @@ async function buscarProfissionais(
         u.id,
         COALESCE(un.nome_exibicao, u.nome) AS nome,
         u.foto_url,
-        un.papel  
+        un.papel,
+        COALESCE(
+          (
+            SELECT ARRAY_AGG(
+              sp.servico_id
+              ORDER BY sp.servico_id
+            )
+            FROM servicos_profissionais sp
+            INNER JOIN servicos_negocio s
+              ON s.id = sp.servico_id
+              AND s.negocio_id = sp.negocio_id
+              AND s.ativo = TRUE
+            WHERE sp.negocio_id = un.negocio_id
+              AND sp.profissional_id = un.usuario_id
+          ),
+          ARRAY[]::BIGINT[]
+        ) AS servico_ids
 
       FROM usuarios_negocios un
 
