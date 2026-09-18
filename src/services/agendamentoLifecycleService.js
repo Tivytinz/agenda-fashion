@@ -12,6 +12,7 @@ const STATUS_ATIVOS = new Set([
 ]);
 
 const STATUS_ATENDIMENTO = new Set([
+  "iniciado",
   "realizado",
   "falta",
 ]);
@@ -77,6 +78,38 @@ function converterDataHoraLocalParaTimestamp(data, horario) {
     0,
     0
   );
+}
+
+function validarMomentoInicioAtendimento(agendamento) {
+  const agoraLocal = obterDataHoraNoFuso(
+    agendamento.fuso_horario
+  );
+
+  const agoraTimestamp = converterDataHoraLocalParaTimestamp(
+    agoraLocal.data,
+    agoraLocal.hora
+  );
+  const inicioTimestamp = converterDataHoraLocalParaTimestamp(
+    agendamento.data,
+    agendamento.horario
+  );
+
+  if (
+    agoraTimestamp === null ||
+    inicioTimestamp === null
+  ) {
+    throw criarErro(
+      "Não foi possível validar o horário do atendimento.",
+      500
+    );
+  }
+
+  if (agoraTimestamp < inicioTimestamp) {
+    throw criarErro(
+      "O atendimento só pode ser iniciado a partir do horário marcado.",
+      409
+    );
+  }
 }
 
 function validarMomentoAtendimento(agendamento, statusDestino) {
@@ -302,6 +335,56 @@ async function atualizarStatusAtendimento({
       );
     }
 
+    if (statusDestino === "iniciado") {
+      if (agendamento.atendimento_iniciado_em) {
+        return {
+          mensagem: "Atendimento já estava iniciado.",
+          agendamento: {
+            id: agendamentoIdNormalizado,
+            status: agendamento.status,
+            atendimento_iniciado_em:
+              agendamento.atendimento_iniciado_em,
+            atendimento_iniciado_por:
+              agendamento.atendimento_iniciado_por || null,
+          },
+        };
+      }
+
+      if (!STATUS_ATIVOS.has(agendamento.status)) {
+        throw criarErro(
+          "Esse agendamento já possui um estado final e não pode ser iniciado.",
+          409
+        );
+      }
+
+      validarMomentoInicioAtendimento(
+        agendamento
+      );
+
+      const iniciado =
+        await agendamentoLifecycleRepository
+          .marcarAtendimentoIniciado({
+            agendamentoId:
+              agendamentoIdNormalizado,
+            usuarioId:
+              usuarioIdNormalizado,
+            executor:
+              client,
+          });
+
+      if (!iniciado) {
+        throw criarErro(
+          "O estado do agendamento mudou. Atualize a agenda e tente novamente.",
+          409
+        );
+      }
+
+      return {
+        mensagem: "Atendimento iniciado.",
+        agendamento: iniciado,
+      };
+    }
+
     if (agendamento.status === statusDestino) {
       return {
         mensagem:
@@ -322,6 +405,16 @@ async function atualizarStatusAtendimento({
     if (!STATUS_ATIVOS.has(agendamento.status)) {
       throw criarErro(
         "Esse agendamento já possui um estado final e não pode ser alterado por esta ação.",
+        409
+      );
+    }
+
+    if (
+      statusDestino === "falta" &&
+      agendamento.atendimento_iniciado_em
+    ) {
+      throw criarErro(
+        "Não é possível registrar falta porque o atendimento já foi iniciado.",
         409
       );
     }
@@ -362,4 +455,5 @@ module.exports = {
   avaliarAgendamento,
   atualizarStatusAtendimento,
   validarMomentoAtendimento,
+  validarMomentoInicioAtendimento,
 };
