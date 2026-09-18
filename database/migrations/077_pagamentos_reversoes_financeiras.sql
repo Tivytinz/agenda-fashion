@@ -90,4 +90,23 @@ COMMENT ON COLUMN pagamentos.valor_revertido IS
 COMMENT ON COLUMN pagamentos.reversao_valor_conhecido IS
   'TRUE quando valor_revertido representa a reversão conhecida; FALSE quando existe reversão sem valor confiável.';
 
+UPDATE marketing_conversoes_entregas
+SET chave_evento =
+  'assinatura:' ||
+  (payload ->> 'assinaturaId') ||
+  ';pagamento:' ||
+  (payload ->> 'pagamentoId')
+WHERE tipo_evento = 'SUBSCRIPTION_ACTIVATED'
+  AND chave_evento =
+    'assinatura:' ||
+    (payload ->> 'assinaturaId')
+  AND NULLIF(
+    BTRIM(payload ->> 'assinaturaId'),
+    ''
+  ) IS NOT NULL
+  AND NULLIF(
+    BTRIM(payload ->> 'pagamentoId'),
+    ''
+  ) IS NOT NULL;
+
 COMMIT;
