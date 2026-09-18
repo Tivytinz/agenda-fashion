@@ -329,22 +329,38 @@ async function reagendarOperacional({
             client,
         });
 
+      const trocandoResponsavel =
+        profissionalDestino !==
+          profissionalAtual;
+
       const destino =
-        await agendamentoReagendamentoRepository
-          .buscarProfissionalAtivoNoNegocio({
-            profissionalId:
-              profissionalDestino,
-            negocioId:
-              negocio,
-            servicoId:
-              Number(atual.servico_id),
-            executor:
-              client,
-          });
+        trocandoResponsavel
+          ? await agendamentoReagendamentoRepository
+              .buscarProfissionalElegivelNoNegocio({
+                profissionalId:
+                  profissionalDestino,
+                negocioId:
+                  negocio,
+                servicoId:
+                  Number(atual.servico_id),
+                executor:
+                  client,
+              })
+          : await agendamentoReagendamentoRepository
+              .buscarProfissionalAtivoNoNegocio({
+                profissionalId:
+                  profissionalDestino,
+                negocioId:
+                  negocio,
+                executor:
+                  client,
+              });
 
       if (!destino) {
         throw criarErro(
-          "A profissional de destino não está ativa ou habilitada para este serviço.",
+          trocandoResponsavel
+            ? "A profissional de destino não está ativa ou habilitada para este serviço."
+            : "A profissional responsável não está mais ativa neste negócio.",
           409
         );
       }
