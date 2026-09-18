@@ -423,7 +423,7 @@ describe("reagendamento operacional persistido", () => {
     expect(resposta.statusCode).toBe(403);
   });
 
-  test("CA-AG-17: dona pode trocar a responsável ao reagendar", async () => {
+  test("CA-AG-17: dona não transfere reserva sem elegibilidade profissional-serviço", async () => {
     const resposta = await request(app)
       .patch(
         `/agendamentos/${bookingDonaId}/reagendar-operacional`
@@ -439,37 +439,31 @@ describe("reagendamento operacional persistido", () => {
           outraProfissional.id,
       });
 
-    expect(resposta.statusCode).toBe(200);
-    expect(
-      resposta.body.agendamento
-        .profissional_id
-    ).toBe(outraProfissional.id);
+    expect(resposta.statusCode).toBe(409);
+    expect(resposta.body.erro).toMatch(
+      /elegibilidade profissional-serviço/i
+    );
 
     const persistido = await db.query(
       `
         SELECT
           profissional_id,
-          servico_id,
-          servico_nome,
-          valor_servico,
-          duracao_minutos,
-          antecedencia_cancelamento_horas
+          data,
+          horario
         FROM agendamentos
         WHERE id = $1
       `,
       [bookingDonaId]
     );
 
-    expect(persistido.rows[0]).toMatchObject({
-      profissional_id:
-        outraProfissional.id,
-      servico_id: servicoId,
-      servico_nome:
-        "Manicure Reagendamento",
-      valor_servico: "75.00",
-      duracao_minutos: 60,
-      antecedencia_cancelamento_horas: 4,
-    });
+    expect(
+      Number(
+        persistido.rows[0]
+          .profissional_id
+      )
+    ).toBe(
+      Number(profissional.id)
+    );
   });
 
   test("CA-AG-18: booking passado e ainda não iniciado pode ser movido para o futuro", async () => {
