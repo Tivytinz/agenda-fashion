@@ -223,6 +223,53 @@ describe(
     );
 
     test(
+      "aceita visualização de perfil e conclusão de booking como diagnóstico",
+      () => {
+        const profile = normalizarItem({
+          type: "event",
+          eventUuid: EVENT_UUID,
+          viewUuid: VIEW_UUID,
+          name: "profile_viewed",
+          schemaVersion: 1,
+          occurredAt: AGORA,
+          targetBusinessId: 11,
+          properties: {
+            entry_point: "compartilhamento",
+          },
+        });
+
+        expect(profile).toMatchObject({
+          name: "profile_viewed",
+          targetBusinessId: 11,
+          properties: {
+            entry_point: "compartilhamento",
+          },
+        });
+
+        const booking = normalizarItem({
+          type: "event",
+          eventUuid: "f1d5b6bf-bad7-4bd0-86ec-55a733d3f4af",
+          viewUuid: VIEW_UUID,
+          name: "booking_completed",
+          schemaVersion: 1,
+          occurredAt: AGORA,
+          targetBusinessId: 11,
+          properties: {
+            status: "sucesso",
+          },
+        });
+
+        expect(booking).toMatchObject({
+          name: "booking_completed",
+          targetBusinessId: 11,
+          properties: {
+            status: "sucesso",
+          },
+        });
+      }
+    );
+
+    test(
       "rejeita evento frontend desconhecido",
       () => {
         expect(() =>
