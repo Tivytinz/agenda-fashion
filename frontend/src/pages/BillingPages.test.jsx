@@ -122,7 +122,11 @@ describe("checkout PIX", () => {
         status: "PENDING"
       })
       .mockRejectedValueOnce(new Error("Falha de rede"))
-      .mockResolvedValueOnce({ status: "CONFIRMED" });
+      .mockResolvedValueOnce({
+        status: "CONFIRMED",
+        ativo: true,
+        status_assinatura: "ACTIVE"
+      });
 
     renderCheckout();
     await screen.findByRole("heading", { name: "Finalize seu plano" });
@@ -139,6 +143,37 @@ describe("checkout PIX", () => {
     });
 
     expect(screen.getByRole("heading", { name: "Plano e assinatura" })).not.toBeNull();
+  });
+
+  it("não anuncia plano ativo enquanto o pagamento confirmado ainda está em ativação", async () => {
+    mockInitialization();
+    apiRequest
+      .mockResolvedValueOnce({
+        pagamento: { id: "pay_ativando", pix: { payload: "000201PIX" } },
+        status: "PENDING"
+      })
+      .mockResolvedValue({
+        status: "CONFIRMED",
+        ativo: false,
+        status_assinatura: "PENDING"
+      });
+
+    renderCheckout();
+    await screen.findByRole("heading", { name: "Finalize seu plano" });
+    vi.useFakeTimers();
+    await generatePix();
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(30000);
+    });
+
+    expect(screen.queryByRole("heading", { name: "Plano e assinatura" })).toBeNull();
+    expect(
+      screen.getByText(/Pagamento confirmado.*ativação do plano ainda está sendo concluída/i)
+    ).not.toBeNull();
+    expect(
+      screen.getByRole("button", { name: "Verificar pagamento novamente" })
+    ).not.toBeNull();
   });
 
   it("informa quando a confirmação automática esgota as tentativas", async () => {
