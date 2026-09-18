@@ -279,6 +279,63 @@ describe(
     );
 
     test(
+      "reutiliza o PIX pendente quando a nova tentativa é do mesmo plano",
+      async () => {
+        checkoutTentativaRepository
+          .iniciar
+          .mockResolvedValue({
+            executar: true,
+            nova: true,
+            tentativa: {
+              id: 36,
+              status: "PROCESSING",
+              lease_tentativa: 1,
+              assinatura_id: null
+            }
+          });
+
+        checkoutRepository
+          .buscarAssinaturaPendenteDoNegocio
+          .mockResolvedValue({
+            id: 45,
+            negocio_id: 7,
+            plano_id: 3,
+            status: "PENDING",
+            asaas_payment_id:
+              "pay_existente",
+            pagamento_status:
+              "PENDING",
+            data_vencimento:
+              "2026-09-20",
+            pix_copia_cola:
+              "pix-existente",
+            pix_qrcode:
+              "imagem-existente"
+          });
+
+        const resultado =
+          await criarCheckout({
+            usuarioId: 1,
+            planoId: 3,
+            formaPagamento: "pix",
+            chaveIdempotencia:
+              "nova-chave-mesmo-plano-123"
+          });
+
+        expect(criarCobrancaPix)
+          .not.toHaveBeenCalled();
+        expect(registrarPagamento)
+          .not.toHaveBeenCalled();
+        expect(resultado.pagamento.id)
+          .toBe("pay_existente");
+        expect(resultado.pix.payload)
+          .toBe("pix-existente");
+        expect(resultado.recuperado)
+          .toBe(true);
+      }
+    );
+
+    test(
       "consulta o status somente no banco local",
       async () => {
         checkoutRepository
