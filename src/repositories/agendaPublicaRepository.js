@@ -307,12 +307,153 @@ async function buscarAgendamentoNoHorario(
   return result.rows[0] || null;
 }
 
+async function resolverClienteInterno(
+  {
+    usuarioId = null,
+    nome = null,
+    whatsapp = null,
+  },
+  executor = db
+) {
+  if (
+    !executor ||
+    typeof executor.query !== "function"
+  ) {
+    throw new Error(
+      "Executor de banco de dados inválido."
+    );
+  }
+
+  const usuarioIdNormalizado =
+    Number(usuarioId);
+
+  if (
+    Number.isInteger(usuarioIdNormalizado) &&
+    usuarioIdNormalizado > 0
+  ) {
+    const result =
+      await executor.query(
+        `
+          INSERT INTO clientes (
+            usuario_id,
+            nome,
+            whatsapp_normalizado,
+            origem
+          )
+          SELECT
+            u.id,
+            u.nome,
+            u.whatsapp,
+            'conta'
+          FROM usuarios u
+          WHERE u.id = $1
+            AND u.ativo = TRUE
+          ON CONFLICT (usuario_id)
+          DO UPDATE SET
+            nome = EXCLUDED.nome,
+            whatsapp_normalizado =
+              EXCLUDED.whatsapp_normalizado,
+            origem = 'conta'
+          RETURNING
+            id,
+            usuario_id,
+            nome,
+            whatsapp_normalizado AS whatsapp
+        `,
+        [usuarioIdNormalizado]
+      );
+
+    return result.rows[0] || null;
+  }
+
+  const nomeNormalizado =
+    String(nome || "").trim();
+
+  const whatsappNormalizado =
+    String(whatsapp || "")
+      .replace(/\D/g, "");
+
+  if (
+    nomeNormalizado.length < 2 ||
+    !/^[0-9]{10,13}$/.test(
+      whatsappNormalizado
+    )
+  ) {
+    return null;
+  }
+
+  await executor.query(
+    `
+      SELECT pg_advisory_xact_lock(
+        hashtext($1::text)::bigint
+      )
+    `,
+    [`client:${whatsappNormalizado}`]
+  );
+
+  const existente =
+    await executor.query(
+      `
+        SELECT
+          id,
+          usuario_id,
+          nome,
+          whatsapp_normalizado AS whatsapp
+        FROM clientes
+        WHERE usuario_id IS NULL
+          AND whatsapp_normalizado = $1
+          AND LOWER(BTRIM(nome)) =
+            LOWER(BTRIM($2))
+        ORDER BY created_at DESC
+        LIMIT 1
+      `,
+      [
+        whatsappNormalizado,
+        nomeNormalizado,
+      ]
+    );
+
+  if (existente.rows[0]) {
+    return existente.rows[0];
+  }
+
+  const criado =
+    await executor.query(
+      `
+        INSERT INTO clientes (
+          usuario_id,
+          nome,
+          whatsapp_normalizado,
+          origem
+        )
+        VALUES (
+          NULL,
+          $1,
+          $2,
+          'visitante'
+        )
+        RETURNING
+          id,
+          usuario_id,
+          nome,
+          whatsapp_normalizado AS whatsapp
+      `,
+      [
+        nomeNormalizado,
+        whatsappNormalizado,
+      ]
+    );
+
+  return criado.rows[0] || null;
+}
+
 async function criarAgendamento(
   {
     data,
     horario,
     profissionalId,
     clienteId = null,
+    clientId,
     clienteNome = null,
     clienteWhatsapp = null,
     whatsappConsentido = false,
@@ -339,12 +480,14 @@ async function criarAgendamento(
           horario,
           profissional_id,
           cliente_id,
+          client_id,
           cliente_nome,
           cliente_whatsapp,
           whatsapp_consentido_em,
           servico_id,
           valor_servico,
           negocio_id,
+          confirmado_em,
           status
         )
         VALUES (
@@ -354,15 +497,17 @@ async function criarAgendamento(
           $4,
           $5,
           $6,
+          $7,
           CASE
-            WHEN $7::BOOLEAN
+            WHEN $8::BOOLEAN
               THEN NOW()
             ELSE NULL
           END,
-          $8,
           $9,
           $10,
-          'agendado'
+          $11,
+          NOW(),
+          'confirmado'
         )
         RETURNING
           id,
@@ -386,6 +531,7 @@ async function criarAgendamento(
           valor_servico,
           duracao_minutos,
           negocio_id,
+          confirmado_em,
           status,
           avaliacao,
           created_at,
@@ -396,6 +542,7 @@ async function criarAgendamento(
         horario,
         profissionalId,
         clienteId,
+        clientId,
         clienteNome,
         clienteWhatsapp,
         whatsappConsentido,
@@ -720,6 +867,7 @@ module.exports = {
   bloquearAgendaProfissional,
   buscarBloqueioHorario,
   buscarAgendamentoNoHorario,
+  resolverClienteInterno,
   criarAgendamento,
   registrarConsentimentoWhatsappAgendamento,
   criarNotificacaoAgendamento,

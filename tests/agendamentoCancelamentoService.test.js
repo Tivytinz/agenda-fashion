@@ -226,7 +226,8 @@ describe("agendamentoCancelamentoService", () => {
       agendamentoId: 10,
       negocioId: 4,
       usuarioId: 5,
-      motivo: "  Profissional indisponível  ",
+      motivoTipo: "profissional_indisponivel",
+      motivo: null,
     })).resolves.toMatchObject({
       ja_cancelado: false,
       agendamento: {
@@ -247,6 +248,105 @@ describe("agendamentoCancelamentoService", () => {
       executor: client,
       agendamentoId: 10,
     });
+  });
+
+  test("CA-AG-11: permite cancelamento operacional após o início com motivo válido", async () => {
+    obterDataHoraNoFuso.mockReturnValue({
+      data: "2026-09-16",
+      hora: "10:30",
+    });
+
+    repository.buscarAgendamentoOperacionalParaCancelar.mockResolvedValue({
+      id: 10,
+      negocio_id: 4,
+      profissional_id: 8,
+      status: "confirmado",
+      data: "2026-09-16",
+      horario: "10:00",
+      fuso_horario: "America/Sao_Paulo",
+      papel_executor: "dono",
+    });
+
+    await expect(service.cancelarAgendamentoOperacional({
+      agendamentoId: 10,
+      negocioId: 4,
+      usuarioId: 5,
+      motivoTipo: "atendimento_interrompido",
+      motivo: "Falha elétrica durante o atendimento",
+    })).resolves.toMatchObject({
+      ja_cancelado: false,
+      agendamento: {
+        status: "cancelado",
+      },
+    });
+
+    expect(repository.cancelarAgendamentoOperacional).toHaveBeenCalledWith({
+      agendamentoId: 10,
+      usuarioId: 5,
+      motivo:
+        "Atendimento interrompido antes da conclusão: Falha elétrica durante o atendimento",
+      executor: client,
+    });
+  });
+
+  test("CA-AG-12: ausência dentro de 15 min não vira CANCELADO", async () => {
+    obterDataHoraNoFuso.mockReturnValue({
+      data: "2026-09-16",
+      hora: "10:14",
+    });
+
+    repository.buscarAgendamentoOperacionalParaCancelar.mockResolvedValue({
+      id: 10,
+      negocio_id: 4,
+      profissional_id: 8,
+      status: "confirmado",
+      data: "2026-09-16",
+      horario: "10:00",
+      fuso_horario: "America/Sao_Paulo",
+      papel_executor: "dono",
+    });
+
+    await expect(service.cancelarAgendamentoOperacional({
+      agendamentoId: 10,
+      negocioId: 4,
+      usuarioId: 5,
+      motivoTipo: "cliente_ausente",
+    })).rejects.toMatchObject({
+      statusCode: 409,
+      message: expect.stringMatching(/15 minutos/i),
+    });
+
+    expect(repository.cancelarAgendamentoOperacional).not.toHaveBeenCalled();
+  });
+
+  test("ausência após 15 min é direcionada para NAO_COMPARECEU", async () => {
+    obterDataHoraNoFuso.mockReturnValue({
+      data: "2026-09-16",
+      hora: "10:15",
+    });
+
+    repository.buscarAgendamentoOperacionalParaCancelar.mockResolvedValue({
+      id: 10,
+      negocio_id: 4,
+      profissional_id: 8,
+      status: "confirmado",
+      data: "2026-09-16",
+      horario: "10:00",
+      fuso_horario: "America/Sao_Paulo",
+      papel_executor: "dono",
+    });
+
+    await expect(service.cancelarAgendamentoOperacional({
+      agendamentoId: 10,
+      negocioId: 4,
+      usuarioId: 5,
+      motivoTipo: "cliente_ausente",
+    })).rejects.toMatchObject({
+      statusCode: 409,
+      message: expect.stringMatching(/NAO_COMPARECEU/i),
+    });
+
+    expect(repository.cancelarAgendamentoOperacional).not.toHaveBeenCalled();
   });
 
   test("profissional não pode cancelar booking atribuído a outra profissional", async () => {

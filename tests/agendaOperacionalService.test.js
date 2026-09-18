@@ -71,7 +71,7 @@ describe("agendaOperacionalService", () => {
     ]);
   });
 
-  test("não habilita cancelamento quando o atendimento já entrou na janela de falta", () => {
+  test("mantém cancelamento operacional disponível mesmo após liberar marcação de falta", () => {
     const resultado = service.materializarAgendaProfissional(
       [{ data: "2026-09-20", horarios: [] }],
       [
@@ -89,7 +89,7 @@ describe("agendaOperacionalService", () => {
     expect(resultado[0].horarios[0]).toMatchObject({
       agendamento_id: 102,
       status: "agendado",
-      pode_cancelar: false,
+      pode_cancelar: true,
       pode_marcar_falta: true,
     });
   });

@@ -12,7 +12,7 @@ const {
   obterDataHoraNoFuso,
 } = require("../utils/fusoHorario");
 
-const ANTECEDENCIA_CANCELAMENTO_PADRAO = 24;
+const ANTECEDENCIA_CANCELAMENTO_PADRAO = 2;
 const STATUS_CANCELAVEIS_OPERACIONAL = new Set([
   "agendado",
   "confirmado",
@@ -20,6 +20,14 @@ const STATUS_CANCELAVEIS_OPERACIONAL = new Set([
 const PAPEIS_CANCELAMENTO_OPERACIONAL = new Set([
   "dono",
   "profissional",
+]);
+
+const MOTIVOS_CANCELAMENTO_OPERACIONAL = new Map([
+  ["profissional_indisponivel", "Profissional indisponível"],
+  ["estabelecimento_indisponivel", "Estabelecimento indisponível"],
+  ["atendimento_interrompido", "Atendimento interrompido antes da conclusão"],
+  ["cliente_ausente", "Cliente ausente"],
+  ["outro", "Outro motivo"],
 ]);
 
 function criarErro(mensagem, statusCode) {
@@ -128,6 +136,103 @@ function normalizarMotivoCancelamento(valor) {
   }
 
   return motivo;
+}
+
+function normalizarTipoMotivoCancelamento(valor) {
+  const tipo = String(valor || "")
+    .trim()
+    .toLowerCase();
+
+  if (!MOTIVOS_CANCELAMENTO_OPERACIONAL.has(tipo)) {
+    throw criarErro(
+      "Selecione um motivo válido para o cancelamento.",
+      400
+    );
+  }
+
+  return tipo;
+}
+
+function montarMotivoCancelamentoOperacional({
+  motivoTipo,
+  motivo,
+}) {
+  const tipo = normalizarTipoMotivoCancelamento(
+    motivoTipo
+  );
+  const detalhe = normalizarMotivoCancelamento(
+    motivo
+  );
+
+  if (tipo === "outro" && !detalhe) {
+    throw criarErro(
+      "Descreva o motivo do cancelamento.",
+      400
+    );
+  }
+
+  if (tipo === "outro") {
+    return detalhe;
+  }
+
+  const rotulo =
+    MOTIVOS_CANCELAMENTO_OPERACIONAL.get(tipo);
+
+  const motivoFinal = detalhe
+    ? `${rotulo}: ${detalhe}`
+    : rotulo;
+
+  if (motivoFinal.length > 300) {
+    throw criarErro(
+      "O motivo do cancelamento deve ter no máximo 300 caracteres.",
+      400
+    );
+  }
+
+  return motivoFinal;
+}
+
+function validarMotivoCancelamentoOperacional({
+  agendamento,
+  motivoTipo,
+}) {
+  if (motivoTipo !== "cliente_ausente") {
+    return true;
+  }
+
+  const agoraLocal = obterDataHoraNoFuso(
+    agendamento.fuso_horario
+  );
+  const inicio = converterDataHoraParaTimestamp({
+    data: agendamento.data,
+    horario: agendamento.horario,
+  });
+  const agora = converterDataHoraParaTimestamp({
+    data: agoraLocal.data,
+    horario: agoraLocal.hora,
+  });
+
+  if (inicio === null || agora === null) {
+    throw criarErro(
+      "Não foi possível validar a tolerância de ausência do cliente.",
+      500
+    );
+  }
+
+  const limiteNoShow =
+    inicio + 15 * 60 * 1000;
+
+  if (agora < limiteNoShow) {
+    throw criarErro(
+      "A ausência do cliente não autoriza cancelamento durante a tolerância de 15 minutos.",
+      409
+    );
+  }
+
+  throw criarErro(
+    "Após 15 minutos de ausência, registre NAO_COMPARECEU usando a ação Marcar falta.",
+    409
+  );
 }
 
 function formatarQuantidadeHoras(quantidade) {
@@ -265,13 +370,6 @@ function validarAgendamentoCancelavelOperacional({
       409
     );
   }
-
-  validarDataHoraFutura({
-    agendamento,
-    mensagemPassado:
-      "Agendamentos que já começaram devem ser finalizados como realizado ou falta.",
-    statusCodePassado: 409,
-  });
 
   return {
     jaCancelado: false,
@@ -454,12 +552,12 @@ async function cancelarAgendamentoOperacional({
   agendamentoId,
   negocioId,
   usuarioId,
+  motivoTipo,
   motivo,
 }) {
   const id = normalizarId(agendamentoId);
   const negocio = normalizarId(negocioId);
   const usuario = normalizarId(usuarioId);
-  const motivoNormalizado = normalizarMotivoCancelamento(motivo);
 
   if (!id || !negocio || !usuario) {
     throw criarErro(
@@ -467,6 +565,11 @@ async function cancelarAgendamentoOperacional({
       404
     );
   }
+
+  const motivoEntrada =
+    normalizarMotivoCancelamento(
+      motivo
+    );
 
   return db.executarTransacao(async (client) => {
     const agendamento =
@@ -496,6 +599,22 @@ async function cancelarAgendamentoOperacional({
         },
       };
     }
+
+    const motivoTipoNormalizado =
+      normalizarTipoMotivoCancelamento(
+        motivoTipo
+      );
+
+    validarMotivoCancelamentoOperacional({
+      agendamento,
+      motivoTipo: motivoTipoNormalizado,
+    });
+
+    const motivoNormalizado =
+      montarMotivoCancelamentoOperacional({
+        motivoTipo: motivoTipoNormalizado,
+        motivo: motivoEntrada,
+      });
 
     const cancelado =
       await agendamentoCancelamentoRepository
@@ -529,6 +648,9 @@ module.exports = {
   ANTECEDENCIA_CANCELAMENTO_PADRAO,
   normalizarAntecedenciaCancelamento,
   normalizarMotivoCancelamento,
+  normalizarTipoMotivoCancelamento,
+  montarMotivoCancelamentoOperacional,
+  validarMotivoCancelamentoOperacional,
   validarAgendamentoCancelavel,
   validarAgendamentoCancelavelOperacional,
   buscarPoliticaPublica,

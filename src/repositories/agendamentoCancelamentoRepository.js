@@ -12,7 +12,7 @@ async function buscarPoliticaPublica({
         un.usuario_id AS profissional_id,
         COALESCE(
           ac.antecedencia_cancelamento,
-          24
+          2
         )::int AS antecedencia_cancelamento_horas
       FROM negocios n
       INNER JOIN usuarios_negocios un

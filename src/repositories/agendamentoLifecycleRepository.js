@@ -255,7 +255,11 @@ async function listarAgendamentosProfissionalPorPeriodo({
         CASE
           WHEN a.negocio_id = contexto.negocio_id
             AND a.status IN ('agendado', 'confirmado')
-            AND (a.data::timestamp + a.horario::time) <= (
+            AND (
+              a.data::timestamp +
+              a.horario::time +
+              INTERVAL '15 minutes'
+            ) <= (
               NOW() AT TIME ZONE COALESCE(
                 NULLIF(n_agendamento.fuso_horario, ''),
                 'America/Sao_Paulo'
@@ -356,7 +360,11 @@ async function listarAgendamentosProfissionaisDoNegocioPorPeriodo({
         CASE
           WHEN a.negocio_id = $1
             AND a.status IN ('agendado', 'confirmado')
-            AND (a.data::timestamp + a.horario::time) <= (
+            AND (
+              a.data::timestamp +
+              a.horario::time +
+              INTERVAL '15 minutes'
+            ) <= (
               NOW() AT TIME ZONE COALESCE(
                 NULLIF(n_agendamento.fuso_horario, ''),
                 'America/Sao_Paulo'

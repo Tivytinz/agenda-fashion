@@ -89,6 +89,7 @@ export function AgendaWorkspacePage({ owner = false }) {
   const [message, setMessage] = useState("");
   const [updating, setUpdating] = useState("");
   const [cancelTarget, setCancelTarget] = useState(null);
+  const [cancelReasonType, setCancelReasonType] = useState("");
   const [cancelReason, setCancelReason] = useState("");
   const [datePageSize, setDatePageSize] = useState(getDatePageSize);
   const [datePageStart, setDatePageStart] = useState(0);
@@ -134,6 +135,7 @@ export function AgendaWorkspacePage({ owner = false }) {
     function handleKeyDown(event) {
       if (event.key === "Escape" && !updating.startsWith("cancelamento-")) {
         setCancelTarget(null);
+        setCancelReasonType("");
         setCancelReason("");
       }
     }
@@ -179,6 +181,7 @@ export function AgendaWorkspacePage({ owner = false }) {
     setSelectedDate(day.data);
     setMessage("");
     setCancelTarget(null);
+    setCancelReasonType("");
     setCancelReason("");
     if (owner) {
       const firstProfessional = getValidProfessionals(day.profissionais)[0];
@@ -246,6 +249,7 @@ export function AgendaWorkspacePage({ owner = false }) {
   function openCancellation(slot) {
     if (!slot.agendamento_id || !slot.pode_cancelar) return;
     setCancelTarget(slot);
+    setCancelReasonType("");
     setCancelReason("");
     setError("");
     setMessage("");
@@ -254,6 +258,7 @@ export function AgendaWorkspacePage({ owner = false }) {
   function closeCancellation() {
     if (cancellationUpdating) return;
     setCancelTarget(null);
+    setCancelReasonType("");
     setCancelReason("");
   }
 
@@ -271,11 +276,13 @@ export function AgendaWorkspacePage({ owner = false }) {
         {
           method: "PATCH",
           body: {
+            motivo_tipo: cancelReasonType,
             motivo: cancelReason.trim() || null
           }
         }
       );
       setCancelTarget(null);
+      setCancelReasonType("");
       setCancelReason("");
       setMessage(result.mensagem);
       await load();
@@ -295,7 +302,7 @@ export function AgendaWorkspacePage({ owner = false }) {
         <div>
           <p className="eyebrow">{owner ? "Seu negócio em movimento" : "Seu dia de trabalho"}</p>
           <h1>{owner ? "Agenda geral" : "Minha agenda profissional"}</h1>
-          <p>Bloqueie horários livres, cancele compromissos futuros e registre o resultado dos atendimentos já ocorridos.</p>
+          <p>Bloqueie horários livres, registre cancelamentos operacionais e finalize atendimentos com o estado correto.</p>
         </div>
       </header>
 
@@ -469,18 +476,38 @@ export function AgendaWorkspacePage({ owner = false }) {
               O horário será liberado na agenda. Lembretes pendentes serão cancelados e as notificações de cancelamento configuradas serão enfileiradas.
             </p>
             <div className="agenda-cancel-reason">
+              <label htmlFor="agenda-cancel-reason-type">
+                Motivo do cancelamento
+              </label>
+              <select
+                id="agenda-cancel-reason-type"
+                onChange={(event) => setCancelReasonType(event.target.value)}
+                required
+                value={cancelReasonType}
+              >
+                <option value="">Selecione um motivo</option>
+                <option value="profissional_indisponivel">Profissional indisponível</option>
+                <option value="estabelecimento_indisponivel">Estabelecimento indisponível</option>
+                <option value="atendimento_interrompido">Atendimento interrompido</option>
+                <option value="outro">Outro motivo</option>
+              </select>
               <label htmlFor="agenda-cancel-reason">
-                Motivo do cancelamento (opcional)
+                {cancelReasonType === "outro"
+                  ? "Descreva o motivo"
+                  : "Detalhes adicionais (opcional)"}
               </label>
               <textarea
                 id="agenda-cancel-reason"
-                maxLength={300}
+                maxLength={240}
                 onChange={(event) => setCancelReason(event.target.value)}
-                placeholder="Ex.: profissional indisponível"
+                placeholder="Adicione um detalhe útil para o histórico"
                 rows={3}
                 value={cancelReason}
               />
-              <small>{cancelReason.length}/300</small>
+              <small>{cancelReason.length}/240</small>
+              <small>
+                Cliente ausente não deve ser cancelado: após 15 minutos, use “Marcar falta”.
+              </small>
             </div>
             <div className="agenda-cancel-actions">
               <button
@@ -493,7 +520,11 @@ export function AgendaWorkspacePage({ owner = false }) {
               </button>
               <button
                 className="button agenda-cancel-confirm"
-                disabled={cancellationUpdating}
+                disabled={
+                  cancellationUpdating ||
+                  !cancelReasonType ||
+                  (cancelReasonType === "outro" && !cancelReason.trim())
+                }
                 onClick={() => void cancelAppointment()}
                 type="button"
               >

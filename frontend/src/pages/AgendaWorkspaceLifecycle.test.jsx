@@ -105,7 +105,7 @@ describe("ciclo operacional na agenda", () => {
     );
   });
 
-  it("confirma cancelamento futuro com motivo opcional e recarrega a agenda", async () => {
+  it("confirma cancelamento operacional com motivo estruturado e recarrega a agenda", async () => {
     render(<AgendaWorkspacePage />);
 
     fireEvent.click(
@@ -117,10 +117,10 @@ describe("ciclo operacional na agenda", () => {
     ).not.toBeNull();
 
     fireEvent.change(
-      screen.getByLabelText("Motivo do cancelamento (opcional)"),
+      screen.getByLabelText("Motivo do cancelamento"),
       {
         target: {
-          value: "Profissional indisponível",
+          value: "profissional_indisponivel",
         },
       }
     );
@@ -135,7 +135,8 @@ describe("ciclo operacional na agenda", () => {
         {
           method: "PATCH",
           body: {
-            motivo: "Profissional indisponível",
+            motivo_tipo: "profissional_indisponivel",
+            motivo: null,
           },
         }
       );
