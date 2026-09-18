@@ -68,6 +68,14 @@ describe(
               }
         ));
       assinaturaRepository
+        .buscarUltimoPagamentoPendente
+        .mockResolvedValue({
+          id: 60,
+          status: "PENDING",
+          pix_copia_cola: "000201PIX",
+          pix_qrcode: "imagem"
+        });
+      assinaturaRepository
         .listarPagamentos
         .mockResolvedValue([
           {
@@ -134,8 +142,17 @@ describe(
             plano: {
               id: 3,
               slug: "studio"
+            },
+            pagamento: {
+              id: 60,
+              status: "PENDING",
+              pix_copia_cola: "000201PIX"
             }
           });
+        expect(
+          assinaturaRepository
+            .buscarUltimoPagamentoPendente
+        ).toHaveBeenCalledWith(21);
         expect(
           assinaturaRepository
             .listarPagamentos
