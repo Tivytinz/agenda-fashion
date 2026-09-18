@@ -1,7 +1,15 @@
+const mockClient = {
+  query: jest.fn()
+};
+
 jest.mock(
   "../src/db/db",
   () => ({
-    executarTransacao: jest.fn()
+    executarTransacao:
+      jest.fn(
+        async (callback) =>
+          callback(mockClient)
+      )
   })
 );
 
@@ -12,6 +20,7 @@ jest.mock(
 jest.mock(
   "../src/services/asaasService",
   () => ({
+    criarAssinaturaAsaas: jest.fn(),
     removerAssinaturaAsaas: jest.fn()
   })
 );
@@ -30,9 +39,15 @@ const { buscarUsoPlano } = require(
   "../src/services/planoService"
 );
 const {
-  buscarMinhaAssinatura
+  buscarMinhaAssinatura,
+  reativarMinhaAssinatura
 } = require(
   "../src/services/assinaturaContaService"
+);
+const {
+  criarAssinaturaAsaas
+} = require(
+  "../src/services/asaasService"
 );
 
 describe(
@@ -40,6 +55,7 @@ describe(
   () => {
     beforeEach(() => {
       jest.clearAllMocks();
+      mockClient.query.mockReset();
 
       assinaturaRepository
         .buscarNegocioDono
@@ -159,6 +175,113 @@ describe(
         ).toHaveBeenCalledWith(20);
         expect(resultado.uso.plano_nome)
           .toBe("Autônoma");
+      }
+    );
+
+    test(
+      "mantém pagamento confirmado visível como ativação que requer atenção",
+      async () => {
+        assinaturaRepository
+          .buscarAssinaturaAtivaPorNegocio
+          .mockResolvedValue(null);
+        assinaturaRepository
+          .buscarAssinaturaPendentePorNegocio
+          .mockResolvedValue({
+            id: 21,
+            negocio_id: 7,
+            plano_id: 3,
+            status: "PENDING",
+            ativo: false
+          });
+        assinaturaRepository
+          .buscarUltimoPagamentoPendente
+          .mockResolvedValue({
+            id: 61,
+            status: "CONFIRMED",
+            ativacao_requer_atencao: true
+          });
+
+        const resultado =
+          await buscarMinhaAssinatura({
+            usuarioId: 10
+          });
+
+        expect(
+          resultado.upgrade_pendente
+            .pagamento.estado_ativacao
+        ).toBe("ATIVACAO_REQUER_ATENCAO");
+      }
+    );
+
+    test(
+      "reativa renovação na data já paga sem cobrança imediata",
+      async () => {
+        const cancelada = {
+          id: 20,
+          negocio_id: 7,
+          plano_id: 2,
+          status: "CANCELED",
+          ativo: true,
+          forma_pagamento: "pix",
+          asaas_customer_id: "cus_1",
+          asaas_subscription_id: "sub_antiga",
+          valor: "49.90",
+          data_proxima_cobranca:
+            "2026-10-18"
+        };
+
+        assinaturaRepository
+          .buscarAssinaturaAtivaPorNegocio
+          .mockResolvedValue(cancelada);
+        criarAssinaturaAsaas
+          .mockResolvedValue({
+            id: "sub_nova",
+            nextDueDate: "2026-10-18"
+          });
+        assinaturaRepository
+          .registrarReativacao
+          .mockResolvedValue({
+            ...cancelada,
+            status: "ACTIVE",
+            asaas_subscription_id:
+              "sub_nova"
+          });
+
+        const resultado =
+          await reativarMinhaAssinatura({
+            usuarioId: 10
+          });
+
+        expect(criarAssinaturaAsaas)
+          .toHaveBeenCalledWith(
+            expect.objectContaining({
+              customerId: "cus_1",
+              valor: "49.90",
+              formaPagamento: "pix",
+              proximaCobranca:
+                "2026-10-18",
+              externalReference:
+                "assinatura-reativada:20;inicio:2026-10-18",
+              reutilizarPorExternalReference:
+                true
+            })
+          );
+        expect(
+          assinaturaRepository
+            .registrarReativacao
+        ).toHaveBeenCalledWith(
+          mockClient,
+          expect.objectContaining({
+            assinaturaId: 20,
+            negocioId: 7,
+            asaasSubscriptionId:
+              "sub_nova",
+            dataProximaCobranca:
+              "2026-10-18"
+          })
+        );
+        expect(resultado.assinatura.status)
+          .toBe("ACTIVE");
       }
     );
 
