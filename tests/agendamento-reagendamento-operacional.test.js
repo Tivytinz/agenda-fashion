@@ -116,6 +116,17 @@ describe("reagendamento operacional persistido", () => {
       "cliente-reagendamento"
     );
 
+    await db.query(
+      `
+        UPDATE usuarios
+        SET
+          whatsapp_operacional_consentido_em = NOW(),
+          whatsapp_operacional_cancelado_em = NULL
+        WHERE id = $1
+      `,
+      [profissional.id]
+    );
+
     const negocio = await db.query(
       `
         INSERT INTO negocios (
@@ -199,6 +210,7 @@ describe("reagendamento operacional persistido", () => {
             data,
             horario,
             status,
+            whatsapp_consentido_em,
             valor_servico,
             duracao_minutos,
             servico_nome,
@@ -212,6 +224,7 @@ describe("reagendamento operacional persistido", () => {
             $5,
             $6,
             'confirmado',
+            NOW(),
             75,
             60,
             'Manicure Reagendamento',
@@ -404,6 +417,47 @@ describe("reagendamento operacional persistido", () => {
       new_data: destino,
       antecedencia_cancelamento_horas_snapshot: 4,
     });
+
+    const mensagens = await db.query(
+      `
+        SELECT
+          tipo,
+          parametros_corpo
+        FROM whatsapp_mensagens
+        WHERE agendamento_id = $1
+        ORDER BY tipo
+      `,
+      [bookingProfissionalId]
+    );
+
+    const tipos =
+      new Set(
+        mensagens.rows.map(
+          (item) => item.tipo
+        )
+      );
+
+    expect(tipos.has(
+      "NOVO_AGENDAMENTO_PROFISSIONAL"
+    )).toBe(true);
+    expect(tipos.has(
+      "CONFIRMACAO_AGENDAMENTO_CLIENTE"
+    )).toBe(true);
+
+    for (const mensagem of mensagens.rows) {
+      expect(
+        JSON.stringify(
+          mensagem.parametros_corpo
+        )
+      ).toContain(
+        destino.split("-").reverse().join("/")
+      );
+      expect(
+        JSON.stringify(
+          mensagem.parametros_corpo
+        )
+      ).toContain("14:00");
+    }
   });
 
   test("CA-AG-16: profissional não reage reserva de outra responsável", async () => {
