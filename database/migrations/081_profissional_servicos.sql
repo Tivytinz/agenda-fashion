@@ -119,81 +119,15 @@ ON CONFLICT (
 )
 DO NOTHING;
 
-CREATE OR REPLACE FUNCTION validar_vinculo_profissional_agendamento()
-RETURNS TRIGGER
-LANGUAGE plpgsql
-AS $$
-DECLARE
-  vinculo_id BIGINT;
-  elegivel BOOLEAN;
-BEGIN
-  SELECT un.id
-  INTO vinculo_id
-  FROM usuarios_negocios un
-  INNER JOIN usuarios u
-    ON u.id = un.usuario_id
-  INNER JOIN negocios n
-    ON n.id = un.negocio_id
-  WHERE un.usuario_id = NEW.profissional_id
-    AND un.negocio_id = NEW.negocio_id
-    AND un.ativo = TRUE
-    AND un.papel IN ('dono', 'profissional')
-    AND u.ativo = TRUE
-    AND n.ativo = TRUE
-  LIMIT 1
-  FOR UPDATE OF un;
-
-  IF vinculo_id IS NULL THEN
-    RAISE EXCEPTION
-      'Profissional não possui vínculo ativo com o negócio.'
-      USING
-        ERRCODE = '23503',
-        CONSTRAINT = 'agendamentos_profissional_negocio_vinculo';
-  END IF;
-
-  SELECT EXISTS (
-    SELECT 1
-    FROM profissional_servicos ps
-    INNER JOIN servicos_negocio s
-      ON s.id = ps.servico_id
-      AND s.negocio_id = ps.negocio_id
-    WHERE ps.negocio_id = NEW.negocio_id
-      AND ps.profissional_id = NEW.profissional_id
-      AND ps.servico_id = NEW.servico_id
-      AND s.ativo = TRUE
-  )
-  INTO elegivel;
-
-  IF elegivel IS NOT TRUE THEN
-    RAISE EXCEPTION
-      'Profissional não está habilitada para este serviço.'
-      USING
-        ERRCODE = '23514',
-        CONSTRAINT = 'agendamentos_profissional_servico_elegibilidade';
-  END IF;
-
-  RETURN NEW;
-END;
-$$;
-
-DROP TRIGGER IF EXISTS
-  trg_validar_vinculo_profissional_agendamento
-ON agendamentos;
-
-CREATE TRIGGER
-  trg_validar_vinculo_profissional_agendamento
-BEFORE INSERT OR UPDATE OF
-  profissional_id,
-  negocio_id,
-  servico_id
-ON agendamentos
-FOR EACH ROW
-EXECUTE FUNCTION validar_vinculo_profissional_agendamento();
+/*
+ * A elegibilidade é validada nas escritas de aplicação de booking e
+ * reagendamento. O trigger global de vínculo da migration 068 permanece
+ * responsável apenas por garantir o vínculo profissional-negócio ativo.
+ * Isso preserva compatibilidade de fixtures/migrações administrativas que
+ * materializam histórico diretamente por SQL.
+ */
 
 COMMENT ON TABLE profissional_servicos IS
 'Relação explícita de serviços que cada profissional ativa está habilitada a executar em um negócio.';
-
-COMMENT ON FUNCTION validar_vinculo_profissional_agendamento() IS
-'Garante vínculo ativo e elegibilidade profissional-serviço antes de criar ou mover um agendamento.';
 
 COMMIT;
