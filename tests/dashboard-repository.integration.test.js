@@ -136,10 +136,14 @@ describe("dashboardRepository integrado", () => {
     expect(Number(ranking[0].faturamento)).toBe(100);
   });
 
-  test("filtra visitas e conversões pela mesma janela de tempo", async () => {
+  test("exclui visitas internas e usa agendamentos reais na conversão", async () => {
     const sessaoAtual = uniqueValue("dash-current").replaceAll("-", "").slice(0, 32);
     const sessaoAntiga = uniqueValue("dash-old").replaceAll("-", "").slice(0, 32);
-    sessoes.push(sessaoAtual, sessaoAntiga);
+    const sessaoInterna = uniqueValue("dash-owner").replaceAll("-", "").slice(0, 32);
+    sessoes.push(sessaoAtual, sessaoAntiga, sessaoInterna);
+
+    const cliente = await criarCliente("Cliente conversão");
+    await criarAgendamento(cliente, 0, "12:00");
 
     await db.query(
       `
@@ -148,29 +152,43 @@ describe("dashboardRepository integrado", () => {
           pagina,
           sessao_id,
           negocio_id,
+          usuario_id,
           created_at
         )
         VALUES
-          ('perfil_visualizado', 'perfil_negocio', $1, $3, NOW()),
-          ('perfil_visualizado', 'perfil_negocio', $1, $3, NOW()),
-          ('agendamento_concluido', 'finalizar_agendamento', $1, $3, NOW()),
-          ('perfil_visualizado', 'perfil_negocio', $2, $3, NOW() - INTERVAL '20 days')
+          ('perfil_visualizado', 'perfil_negocio', $1, $4, NULL, NOW()),
+          ('perfil_visualizado', 'perfil_negocio', $1, $4, NULL, NOW()),
+          ('agendamento_concluido', 'finalizar_agendamento', $1, $4, NULL, NOW()),
+          ('perfil_visualizado', 'perfil_negocio', $2, $4, NULL, NOW() - INTERVAL '20 days'),
+          ('perfil_visualizado', 'perfil_negocio', $3, $4, $5, NOW())
       `,
-      [sessaoAtual, sessaoAntiga, cenario.negocioId]
+      [
+        sessaoAtual,
+        sessaoAntiga,
+        sessaoInterna,
+        cenario.negocioId,
+        cenario.profissional.id,
+      ]
     );
 
-    const filtro =
+    const filtroEventos =
       "AND (e.created_at AT TIME ZONE 'America/Sao_Paulo')::date BETWEEN " +
       "(NOW() AT TIME ZONE 'America/Sao_Paulo')::date - INTERVAL '6 days' " +
       "AND (NOW() AT TIME ZONE 'America/Sao_Paulo')::date";
+    const filtroAgendamentos =
+      "AND (a.created_at AT TIME ZONE 'America/Sao_Paulo')::date BETWEEN " +
+      "(NOW() AT TIME ZONE 'America/Sao_Paulo')::date - INTERVAL '6 days' " +
+      "AND (NOW() AT TIME ZONE 'America/Sao_Paulo')::date";
+
     const performance = await dashboardRepository.buscarPerformanceNegocio(
       cenario.negocioId,
-      filtro
+      filtroEventos,
+      filtroAgendamentos
     );
 
     expect(performance).toMatchObject({
       visitas_perfil: 1,
       agendamentos_concluidos: 1,
     });
-  });
+  });;
 });
