@@ -15,6 +15,9 @@ Comportamentos:
 - uma tentativa concluída devolve a resposta já armazenada;
 - uma tentativa simultânea devolve HTTP 409;
 - uma tentativa com falha pode ser retomada;
+- cada retomada incrementa `checkout_tentativas.execucao_versao`; somente a
+  execução que ainda possui essa versão pode finalizar a tentativa, evitando que
+  uma execução antiga sobrescreva uma mais nova;
 - uma chave usada com outro plano ou forma de pagamento é rejeitada;
 - cobranças PIX são conciliadas no Asaas pela `externalReference`;
 - a assinatura atual só é desativada quando o novo pagamento é
