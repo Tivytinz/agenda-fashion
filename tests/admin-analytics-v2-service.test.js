@@ -32,6 +32,7 @@ const professionalFunnelService = require(
 const {
   buscar,
   buscarOverview,
+  buscarRevenue,
   mapearVisaoGeral,
 } = require(
   "../src/services/adminAnalyticsV2Service"
@@ -100,6 +101,44 @@ describe("adminAnalyticsV2Service", () => {
     expect(professionalFunnelService.buscarFunil).toHaveBeenCalledWith({
       periodo: "30",
     });
+  });
+
+  test("expõe reembolsos e ajustes sem misturá-los com receita confirmada", async () => {
+    repository.buscarReceita.mockResolvedValue({
+      periodo: "30",
+      resumo: {
+        checkouts_iniciados: 4,
+        checkouts_concluidos: 3,
+        checkouts_falhos: 1,
+        negocios_com_checkout: 3,
+        negocios_checkout_convertidos: 2,
+        pagamentos_confirmados: 2,
+        negocios_pagantes: 2,
+        novas_assinaturas_pagas: 1,
+        assinaturas_pagas_ativas: 1,
+        receita_total: "149.80",
+        receita_primeiro_pagamento: "49.90",
+        pagamentos_reembolsados: 1,
+        valor_reembolsado: "49.90",
+        pagamentos_com_ajuste: 2,
+      },
+      planos: [],
+    });
+
+    const resultado = await buscarRevenue("30");
+
+    expect(resultado.resumo).toMatchObject({
+      receitaTotal: 149.8,
+      receitaPrimeiroPagamento: 49.9,
+      pagamentosReembolsados: 1,
+      valorReembolsado: 49.9,
+      pagamentosComAjuste: 2,
+      negociosComCheckoutCohorte: 3,
+      negociosCheckoutConvertidos: 2,
+      conversaoCheckoutParaAssinaturaPaga: 66.67,
+    });
+    expect(resultado.metodologia.receita)
+      .toMatch(/Reembolsos integrais e outros ajustes/i);
   });
 
   test("não calcula conversão quando a coorte não tem cadastro", () => {
