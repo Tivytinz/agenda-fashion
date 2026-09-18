@@ -24,13 +24,41 @@ async function cancelarMinhaAssinatura(req, res, next) {
 
     return res.json(resultado);
   } catch (err) {
-    registrador.erro("Não foi possível cancelar a assinatura.", {
-      mensagem: err.message,
-      status_asaas: err.response?.status,
-      resposta_asaas: err.response?.data,
-      metodo: err.config?.method,
-      url: err.config?.url
-    });
+    registrador.erro(
+      "Não foi possível cancelar a assinatura.",
+      {
+        mensagem: err.message,
+        status_asaas:
+          err.response?.status || null,
+        codigo:
+          err.code || null
+      }
+    );
+
+    next(err);
+  }
+}
+
+async function reativarMinhaAssinatura(req, res, next) {
+  try {
+    const resultado =
+      await assinaturaService
+        .reativarMinhaAssinatura({
+          usuarioId: req.user?.id
+        });
+
+    return res.json(resultado);
+  } catch (err) {
+    registrador.erro(
+      "Não foi possível reativar a renovação da assinatura.",
+      {
+        mensagem: err.message,
+        status_asaas:
+          err.response?.status || null,
+        codigo:
+          err.code || null
+      }
+    );
 
     next(err);
   }
@@ -38,5 +66,6 @@ async function cancelarMinhaAssinatura(req, res, next) {
 
 module.exports = {
   buscarMinhaAssinatura,
-  cancelarMinhaAssinatura
+  cancelarMinhaAssinatura,
+  reativarMinhaAssinatura
 };
