@@ -243,7 +243,13 @@ async function enfileirarWebhookAsaas({
           paymentDate:
             pagamento.paymentDate || null,
           confirmedDate:
-            pagamento.confirmedDate || null
+            pagamento.confirmedDate || null,
+          refundedValue:
+            Number.isFinite(
+              Number(pagamento.refundedValue)
+            )
+              ? Number(pagamento.refundedValue)
+              : null
         }
       : null,
     subscription: assinatura
@@ -341,7 +347,9 @@ async function processarRegistro(evento) {
     webhookEventoCriadoEm:
       evento.evento_criado_em ||
       evento.payload?.dateCreated ||
-      null
+      null,
+    webhookTipoEvento:
+      evento.tipo_evento || null
   };
 
   try {
