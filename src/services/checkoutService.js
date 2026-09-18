@@ -137,15 +137,16 @@ async function obterAssinaturaCheckout({
         );
 
       const pendente = await checkoutRepository
-        .buscarAssinaturaPendenteEquivalente(
+        .buscarAssinaturaPendenteDoNegocio(
           transactionClient,
-          negocio.id,
-          plano.id
+          negocio.id
         );
 
       if (pendente) {
         throw new AppError(
-          "Já existe um PIX pendente para este plano. Aguarde a confirmação ou o vencimento da cobrança.",
+          pendente.plano_nome
+            ? `Já existe um PIX pendente para o plano ${pendente.plano_nome}. Conclua ou aguarde o vencimento antes de gerar outra cobrança.`
+            : "Já existe um PIX pendente para este negócio. Conclua ou aguarde o vencimento antes de gerar outra cobrança.",
           409
         );
       }
@@ -169,12 +170,21 @@ async function obterAssinaturaCheckout({
           }
         );
 
-      await checkoutTentativaRepository
-        .vincularAssinatura(
-          tentativa.id,
-          novaAssinatura.id,
-          transactionClient
+      const vinculada =
+        await checkoutTentativaRepository
+          .vincularAssinatura(
+            tentativa.id,
+            novaAssinatura.id,
+            tentativa.lease_tentativa,
+            transactionClient
+          );
+
+      if (!vinculada) {
+        throw new AppError(
+          "Esta tentativa de checkout foi assumida por outra execução. Gere ou consulte o PIX novamente.",
+          409
         );
+      }
 
       return novaAssinatura;
     }
