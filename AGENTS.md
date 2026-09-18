@@ -168,8 +168,10 @@ O slug interno do plano gratuito permanece `inicial` por compatibilidade.
 Limites de plano, preço e elegibilidade são regras do backend.
 
 Planos pagos usam checkout por PIX. Retorno do navegador não confirma pagamento.
-A ativação do plano depende da confirmação financeira autenticada e idempotente
-do Asaas.
+Pagamento confirmado e plano ativo também são estados diferentes: a interface só
+deve anunciar os novos limites como ativos depois que a assinatura local estiver
+`ACTIVE` e o vínculo do negócio tiver sido atualizado. A ativação do plano depende
+da confirmação financeira autenticada e idempotente do Asaas.
 
 Mais detalhes: `docs/planos.md`, `docs/checkout-idempotente.md` e documentos de
 webhook financeiro.
@@ -260,13 +262,18 @@ Diferenciar Google Ads, Meta Ads, TikTok Ads, Pinterest Ads, orgânico e outras
 origens conforme a evidência disponível.
 
 Atribuição incompleta não deve ser corrigida por suposição. UTM, click IDs,
-vínculos externos e evidência bruta são preservados para auditoria. Tráfego sem
-evidência suficiente permanece classificado como incompleto/sem evidência em
-vez de ser promovido artificialmente para campanha oficial ou orgânico.
+vínculos externos e evidência bruta são preservados para auditoria. Os parâmetros
+first-party `af_source`, `af_medium` e `af_content` identificam links gerados
+pelo próprio AF e permanecem separados de identificadores publicitários.
+Tráfego sem evidência suficiente permanece classificado como incompleto/sem
+evidência; a mera existência de um evento não autoriza classificá-lo como acesso
+autônomo.
 
 CAC, ROAS e decisões de orçamento dependem de cobertura, custo, maturidade e
 amostra adequados. Ausência de assinatura, isoladamente, não prova que aquisição
-freemium falhou.
+freemium falhou. Conversões financeiras enviadas a plataformas de mídia devem
+revalidar o estado atual do pagamento antes da entrega; pagamentos reembolsados
+ou invalidados não podem ser enviados posteriormente como nova assinatura paga.
 
 As integrações administrativas de custos são somente leitura no escopo atual
 documentado e não devem criar, editar, pausar ou excluir campanhas sem uma nova
@@ -345,7 +352,9 @@ Toda mudança de banco exige migration nova. Migration já aplicada não é
 reescrita para corrigir o passado.
 
 Operações críticas que alteram múltiplas tabelas devem usar transação quando a
-atomicidade fizer parte do contrato.
+atomicidade fizer parte do contrato. Retomadas concorrentes de checkout usam uma
+versão monotônica de execução como fencing; uma execução antiga não pode marcar
+como concluída ou falha uma tentativa já assumida por uma execução mais nova.
 
 Não introduzir tecnologia, camada ou reescrita ampla apenas por modernização.
 
