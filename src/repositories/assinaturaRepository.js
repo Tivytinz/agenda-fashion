@@ -282,6 +282,53 @@ async function registrarCancelamento(
   return result.rows[0] || null;
 }
 
+async function registrarReativacao(
+  client,
+  {
+    assinaturaId,
+    negocioId,
+    asaasSubscriptionId,
+    dataProximaCobranca,
+    observacoes
+  }
+) {
+  const executor = client || db;
+
+  const result = await executor.query(
+    `
+    UPDATE assinaturas
+    SET
+      asaas_subscription_id = $3,
+      status = 'ACTIVE',
+      ativo = TRUE,
+      data_proxima_cobranca = $4,
+      observacoes = CONCAT_WS(
+        E'\n',
+        NULLIF(observacoes, ''),
+        $5::text
+      ),
+      updated_at = NOW()
+    WHERE id = $1
+      AND negocio_id = $2
+      AND ativo = TRUE
+      AND UPPER(status) IN (
+        'CANCELED',
+        'CANCELLED'
+      )
+    RETURNING *
+    `,
+    [
+      assinaturaId,
+      negocioId,
+      asaasSubscriptionId,
+      dataProximaCobranca,
+      observacoes
+    ]
+  );
+
+  return result.rows[0] || null;
+}
+
 async function expirarCancelamentoSeNecessario(
   negocioId,
   executor = db
@@ -474,6 +521,7 @@ module.exports = {
   buscarUltimaAssinaturaPorNegocio,
   buscarAssinaturaPendentePorNegocio,
   registrarCancelamento,
+  registrarReativacao,
   expirarCancelamentoSeNecessario,
   buscarPlano,
   buscarUltimoPagamentoPendente,
