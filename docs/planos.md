@@ -64,8 +64,14 @@ apagar dados existentes nem impedir a edição do que já foi cadastrado.
   mesmo tempo, mesmo quando as cobranças apontam para planos diferentes.
 - Um upgrade pendente não substitui visualmente nem operacionalmente o plano
   vigente antes da confirmação financeira.
+- Pagamento confirmado com assinatura ainda `PENDING` continua sendo um processo
+  financeiro aberto: deve bloquear outra cobrança e aparecer como ativação em
+  andamento ou como caso que requer atenção.
 - Ao cancelar a renovação, o acesso pago continua até o fim do período já
   quitado.
+- Enquanto esse período pago ainda estiver válido, a dona pode reativar a
+  renovação sem nova cobrança imediata. A recorrência volta a vencer na data em
+  que o acesso já pago terminaria e usa referência idempotente no Asaas.
 - Após o encerramento do ciclo pago, o negócio retorna ao plano gratuito.
 - Antes de gerar o PIX, o checkout informa ciclo mensal, renovação,
   cancelamento, ausência de taxa de adesão e disponibiliza Termos de uso,
