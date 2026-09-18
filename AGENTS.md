@@ -152,6 +152,38 @@ acompanhada como diagnóstico operacional separado.
 Detalhes: `docs/ativacao-profissional-ux.md` e
 `docs/ativacao-proxima-acao.md`.
 
+## Ciclo operacional do agendamento
+
+Agendamentos ativos usam `agendado`/ `confirmado` por compatibilidade de
+runtime; o fluxo de produto trata a reserva confirmada como o estado operacional
+normal antes de um terminal.
+
+Regras duráveis:
+
+- ausência do cliente só pode virar falta/não comparecimento após 15 minutos do
+  início previsto;
+- cancelamento operacional do negócio continua possível em booking ativo quando
+  o atendimento não puder ocorrer ou precisar ser interrompido, com motivo
+  auditável;
+- reagendamento é uma operação transacional: o novo slot é validado antes da
+  atualização da reserva e o booking atual é ignorado apenas na checagem do
+  próprio conflito;
+- serviço, preço, duração e antecedência de cancelamento permanecem snapshots do
+  booking durante o reagendamento;
+- após o horário previsto, o booking ainda pode ser reagendado se o atendimento
+  não tiver começado e o novo início for futuro;
+- `atendimento_iniciado_em`/`atendimento_iniciado_por` registram o início real
+  do serviço; depois desse marco o booking não pode mais ser reagendado;
+- o histórico de reagendamento preserva ator, profissional anterior/novo e
+  horários anterior/novo;
+- a troca de responsável permanece bloqueada enquanto o AF não possuir relação
+  explícita profissional↔serviço para validar elegibilidade conforme RN42.
+
+O `client_id` interno de `agendamentos` aponta para `clientes`; o
+`cliente_id` legado continua sendo apenas o vínculo opcional com uma conta
+autenticada em `usuarios`. Visitantes também possuem Client interno sem ganhar
+credencial de login.
+
 ## Planos e monetização
 
 O plano gratuito é uma oferta ativa e deve entregar valor real antes de qualquer
