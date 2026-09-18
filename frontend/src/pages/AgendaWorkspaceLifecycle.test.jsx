@@ -168,6 +168,157 @@ describe("ciclo operacional na agenda", () => {
     ).not.toBeNull();
   });
 
+  it("CA-AG-17: proprietária escolhe apenas profissional elegível no reagendamento", async () => {
+    const ownerAgenda = {
+      agenda: [
+        {
+          data: "2026-09-20",
+          profissionais: [
+            {
+              id: 7,
+              nome: "Ana",
+              horarios: [
+                {
+                  hora: "10:00",
+                  status: "confirmado",
+                  agendamento_id: 42,
+                  profissional_id: 7,
+                  cliente: "Maria",
+                  servico_id: 11,
+                  servico: "Manicure",
+                  pode_cancelar: true,
+                  pode_reagendar: true,
+                  pode_iniciar_atendimento: false,
+                  pode_marcar_falta: false,
+                  pode_marcar_realizado: false
+                }
+              ]
+            },
+            {
+              id: 9,
+              nome: "Bia",
+              horarios: [
+                {
+                  hora: "14:30",
+                  status: "livre"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    };
+
+    apiRequest.mockImplementation((path, options = {}) => {
+      if (path === "/agenda-geral") {
+        return Promise.resolve(ownerAgenda);
+      }
+
+      if (
+        path === "/servicos/11/profissionais-elegiveis" &&
+        !options.method
+      ) {
+        return Promise.resolve({
+          servico: { id: 11, nome: "Manicure" },
+          profissionais: [
+            { id: 7, nome: "Ana" },
+            { id: 9, nome: "Bia" }
+          ]
+        });
+      }
+
+      if (
+        path === "/agendamentos/42/reagendar-operacional" &&
+        options.method === "PATCH"
+      ) {
+        return Promise.resolve({
+          mensagem: "Agendamento reagendado com sucesso.",
+          agendamento: {
+            id: 42,
+            profissional_id: 9,
+            status: "confirmado"
+          }
+        });
+      }
+
+      return Promise.reject(
+        new Error(`Requisição inesperada: ${path}`)
+      );
+    });
+
+    render(<AgendaWorkspacePage owner />);
+
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Reagendar" })
+    );
+
+    await waitFor(() => {
+      expect(apiRequest).toHaveBeenCalledWith(
+        "/servicos/11/profissionais-elegiveis"
+      );
+    });
+
+    const professionalSelect =
+      await screen.findByLabelText("Profissional responsável");
+
+    expect(
+      Array.from(professionalSelect.options).map(
+        (option) => option.textContent
+      )
+    ).toEqual([
+      "Selecione uma profissional",
+      "Ana",
+      "Bia"
+    ]);
+
+    fireEvent.change(
+      professionalSelect,
+      {
+        target: {
+          value: "9"
+        }
+      }
+    );
+
+    fireEvent.change(
+      screen.getByLabelText("Nova data"),
+      {
+        target: {
+          value: "2026-09-21"
+        }
+      }
+    );
+
+    fireEvent.change(
+      screen.getByLabelText("Novo horário"),
+      {
+        target: {
+          value: "14:30"
+        }
+      }
+    );
+
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: "Confirmar reagendamento"
+      })
+    );
+
+    await waitFor(() => {
+      expect(apiRequest).toHaveBeenCalledWith(
+        "/agendamentos/42/reagendar-operacional",
+        {
+          method: "PATCH",
+          body: {
+            data: "2026-09-21",
+            horario: "14:30",
+            profissional_id: 9
+          }
+        }
+      );
+    });
+  });
+
   it("expõe falta separadamente do bloqueio de agenda", async () => {
     render(<AgendaWorkspacePage />);
 
