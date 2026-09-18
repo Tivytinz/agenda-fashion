@@ -1,5 +1,8 @@
 BEGIN;
 
+ALTER TABLE marketing_conversoes_entregas
+  ALTER COLUMN chave_evento TYPE VARCHAR(260);
+
 ALTER TABLE pagamentos
   ADD COLUMN IF NOT EXISTS reversao_tipo VARCHAR(40),
   ADD COLUMN IF NOT EXISTS reversao_em DATE,
