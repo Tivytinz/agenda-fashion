@@ -282,6 +282,29 @@ async function registrarCancelamento(
   return result.rows[0] || null;
 }
 
+async function recuperarReativacaoAbandonada(
+  negocioId,
+  executor = db
+) {
+  const result = await executor.query(
+    `
+    UPDATE assinaturas
+    SET
+      status = 'CANCELED',
+      updated_at = NOW()
+    WHERE negocio_id = $1
+      AND ativo = TRUE
+      AND UPPER(status) = 'REACTIVATING'
+      AND updated_at
+        < NOW() - INTERVAL '2 minutes'
+    RETURNING *
+    `,
+    [negocioId]
+  );
+
+  return result.rows[0] || null;
+}
+
 async function reservarReativacao(
   client,
   {
@@ -588,6 +611,7 @@ module.exports = {
   buscarUltimaAssinaturaPorNegocio,
   buscarAssinaturaPendentePorNegocio,
   registrarCancelamento,
+  recuperarReativacaoAbandonada,
   reservarReativacao,
   restaurarCancelamentoReativacao,
   registrarReativacao,
