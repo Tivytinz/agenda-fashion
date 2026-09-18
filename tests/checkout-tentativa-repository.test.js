@@ -26,7 +26,8 @@ describe(
           rows: [
             {
               id: 1,
-              status: "PROCESSING"
+              status: "PROCESSING",
+              lease_tentativa: 1
             }
           ]
         });
@@ -138,7 +139,8 @@ describe(
               {
                 id: 1,
                 request_hash: "hash",
-                status: "PROCESSING"
+                status: "PROCESSING",
+                lease_tentativa: 2
               }
             ]
           });
@@ -155,6 +157,30 @@ describe(
           .toBe(true);
         expect(resultado.nova)
           .toBe(false);
+        expect(resultado.tentativa.lease_tentativa)
+          .toBe(2);
+        expect(db.query.mock.calls[2][0])
+          .toContain("lease_tentativa = lease_tentativa + 1");
+      }
+    );
+
+    test(
+      "finalização exige o lease corrente",
+      async () => {
+        db.query.mockResolvedValueOnce({
+          rows: []
+        });
+
+        const resultado = await repository.concluir(
+          1,
+          { pagamento: { id: "pay_1" } },
+          2
+        );
+
+        expect(resultado).toBeNull();
+        expect(db.query.mock.calls[0][0])
+          .toContain("lease_tentativa = $3");
+        expect(db.query.mock.calls[0][1][2]).toBe(2);
       }
     );
   }
