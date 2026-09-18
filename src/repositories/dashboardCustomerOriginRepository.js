@@ -303,7 +303,7 @@ async function buscarOrigemClientes(
             OR af_medium IS NOT NULL
             OR af_content IS NOT NULL
             THEN 'outra_origem_rastreada'
-          WHEN evento_encontrado THEN 'autonomo'
+          WHEN evento_encontrado THEN 'nao_identificado'
           ELSE 'nao_identificado'
         END AS origem_codigo
       FROM clientes_com_origem
