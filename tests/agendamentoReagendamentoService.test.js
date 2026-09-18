@@ -13,6 +13,10 @@ jest.mock("../src/repositories/agendaPublicaRepository", () => ({
   bloquearAgendaProfissional: jest.fn(),
 }));
 
+jest.mock("../src/repositories/servicoProfissionalRepository", () => ({
+  profissionalElegivelParaServico: jest.fn(),
+}));
+
 jest.mock("../src/services/agendaDisponibilidadeService", () => ({
   horarioEstaDisponivel: jest.fn(),
 }));
@@ -31,6 +35,9 @@ const repository = require(
 );
 const agendaPublicaRepository = require(
   "../src/repositories/agendaPublicaRepository"
+);
+const servicoProfissionalRepository = require(
+  "../src/repositories/servicoProfissionalRepository"
 );
 const agendaDisponibilidadeService = require(
   "../src/services/agendaDisponibilidadeService"
@@ -91,6 +98,9 @@ describe("agendamentoReagendamentoService", () => {
       });
 
     agendaDisponibilidadeService.horarioEstaDisponivel
+      .mockResolvedValue(true);
+
+    servicoProfissionalRepository.profissionalElegivelParaServico
       .mockResolvedValue(true);
 
     repository.atualizarReagendamento
@@ -216,12 +226,79 @@ describe("agendamentoReagendamentoService", () => {
     ).not.toHaveBeenCalled();
   });
 
-  test("CA-AG-17: troca de responsável fica bloqueada sem elegibilidade profissional-serviço", async () => {
+  test("CA-AG-17: proprietária troca responsável somente para profissional elegível", async () => {
     repository.buscarAgendamentoParaReagendar
       .mockResolvedValue({
         ...base,
         papel_executor: "dono",
       });
+
+    repository.buscarProfissionalAtivoNoNegocio
+      .mockResolvedValue({
+        profissional_id: 9,
+        papel: "profissional",
+        nome: "Bia",
+      });
+
+    repository.atualizarReagendamento
+      .mockResolvedValue({
+        ...base,
+        profissional_id: 9,
+        data: "2026-09-18",
+        horario: "15:00",
+      });
+
+    const resultado =
+      await service.reagendarOperacional({
+        usuarioId: 5,
+        negocioId: 7,
+        agendamentoId: 50,
+        data: "2026-09-18",
+        horario: "15:00",
+        profissionalId: 9,
+      });
+
+    expect(
+      servicoProfissionalRepository.profissionalElegivelParaServico
+    ).toHaveBeenCalledWith({
+      negocioId: 7,
+      profissionalId: 9,
+      servicoId: 3,
+      executor: client,
+    });
+
+    expect(
+      resultado.agendamento.profissional_id
+    ).toBe(9);
+
+    expect(
+      repository.registrarHistoricoReagendamento
+    ).toHaveBeenCalledWith(
+      expect.objectContaining({
+        actorUserId: 5,
+        actorType: "OWNER",
+        previousProfissionalId: 8,
+        newProfissionalId: 9,
+      })
+    );
+  });
+
+  test("CA-AG-17: rejeita transferência para profissional não habilitada no serviço", async () => {
+    repository.buscarAgendamentoParaReagendar
+      .mockResolvedValue({
+        ...base,
+        papel_executor: "dono",
+      });
+
+    repository.buscarProfissionalAtivoNoNegocio
+      .mockResolvedValue({
+        profissional_id: 9,
+        papel: "profissional",
+        nome: "Bia",
+      });
+
+    servicoProfissionalRepository.profissionalElegivelParaServico
+      .mockResolvedValue(false);
 
     await expect(
       service.reagendarOperacional({
@@ -234,7 +311,7 @@ describe("agendamentoReagendamentoService", () => {
       })
     ).rejects.toMatchObject({
       statusCode: 409,
-      message: expect.stringMatching(/elegibilidade profissional-serviço/i),
+      message: expect.stringMatching(/não está habilitada/i),
     });
 
     expect(
