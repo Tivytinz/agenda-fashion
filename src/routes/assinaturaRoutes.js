@@ -2,6 +2,9 @@ const express = require("express");
 const router = express.Router();
 
 const auth = require("../middlewares/auth");
+const {
+  limitarCheckout
+} = require("../middlewares/rateLimits");
 const assinaturaController = require("../controllers/assinaturaController");
 
 router.get(
@@ -19,6 +22,7 @@ router.delete(
 router.post(
   "/minha-assinatura/reativar",
   auth,
+  limitarCheckout,
   assinaturaController.reativarMinhaAssinatura
 );
 
