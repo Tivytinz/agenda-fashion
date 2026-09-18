@@ -459,6 +459,17 @@ export function trackFirstPartyEvent(name, {
         entry_point: currentView.pageKey
       };
       flowUuidValue = flowUuid(BOOKING_FLOW_KEY, { renew: true });
+    } else if (name === "perfil_visualizado") {
+      canonicalName = "profile_viewed";
+      canonicalProperties = {
+        entry_point: String(properties.origem || currentView.pageKey).slice(0, 120)
+      };
+    } else if (name === "agendamento_concluido") {
+      canonicalName = "booking_completed";
+      canonicalProperties = {
+        status: String(properties.status || "sucesso").slice(0, 120)
+      };
+      flowUuidValue = flowUuid(BOOKING_FLOW_KEY);
     } else if (
       /^link_(negocio|servico)_(copiado|compartilhado)$/.test(name)
     ) {
@@ -467,7 +478,7 @@ export function trackFirstPartyEvent(name, {
         method: String(properties.metodo || "share").slice(0, 120)
       };
       flowUuidValue = flowUuid(ONBOARDING_FLOW_KEY);
-    } else if (!["business_creation_started", "first_service_creation_started", "profile_shared", "booking_started", "checkout_viewed"].includes(name)) {
+    } else if (!["business_creation_started", "first_service_creation_started", "profile_viewed", "profile_shared", "booking_started", "booking_completed", "checkout_viewed"].includes(name)) {
       return;
     }
 
