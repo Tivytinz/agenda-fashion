@@ -39,14 +39,12 @@ function mockRequests() {
           cadastros: 13,
           negociosCriados: 11,
           servicosCriados: 7,
-          agendasConfiguradas: 2,
           negociosPublicados: 7,
           primeirosAgendamentos: 3,
           checkoutsIniciados: 1,
           assinaturasAtivadas: 1,
           taxaNegocio: 84.6,
           taxaServico: 53.8,
-          taxaAgenda: 15.4,
           taxaPublicacao: 53.8,
           taxaPrimeiroAgendamento: 23.1,
           taxaCheckout: 7.7,
@@ -189,7 +187,7 @@ describe("AdminMarketingPage", () => {
     expect(
       screen.getByRole("heading", { name: "Marcos da coorte profissional" })
     ).not.toBeNull();
-    expect(screen.getByText("Agenda configurada")).not.toBeNull();
+    expect(screen.queryByText("Agenda configurada")).toBeNull();
     expect(screen.getAllByText("Assinatura paga").length).toBeGreaterThan(0);
 
     expect(
