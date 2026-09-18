@@ -335,7 +335,7 @@ describe("adminProfessionalFunnelRepository integrado", () => {
     expect(encontrada.primeiros_agendamentos).toBe(1);
   });
 
-  test("reembolso do primeiro pagamento histórico zera a conversão da aquisição", async () => {
+  test("reembolso do primeiro pagamento não apaga uma cobrança válida posterior", async () => {
     await db.query(
       `
       INSERT INTO pagamentos (
@@ -369,8 +369,8 @@ describe("adminProfessionalFunnelRepository integrado", () => {
     const encontrada = linhas.find((item) => item.campanha === utmCampaign);
 
     expect(encontrada).toMatchObject({
-      assinaturas_ativadas: 0,
-      receita_primeiro_pagamento_centavos: "0",
+      assinaturas_ativadas: 1,
+      receita_primeiro_pagamento_centavos: "9990",
     });
   });
 
