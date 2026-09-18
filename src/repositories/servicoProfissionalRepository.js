@@ -189,6 +189,50 @@ async function substituirElegibilidade({
   );
 }
 
+async function listarProfissionaisElegiveis({
+  negocioId,
+  servicoId,
+  executor = db,
+}) {
+  const result = await executor.query(
+    `
+      SELECT
+        u.id,
+        COALESCE(
+          un.nome_exibicao,
+          u.nome
+        ) AS nome,
+        u.foto_url,
+        un.papel
+      FROM servicos_profissionais sp
+      INNER JOIN servicos_negocio s
+        ON s.id = sp.servico_id
+        AND s.negocio_id = sp.negocio_id
+        AND s.ativo = TRUE
+      INNER JOIN usuarios_negocios un
+        ON un.negocio_id = sp.negocio_id
+        AND un.usuario_id = sp.profissional_id
+        AND un.ativo = TRUE
+        AND un.papel IN ('dono', 'profissional')
+      INNER JOIN usuarios u
+        ON u.id = sp.profissional_id
+        AND u.ativo = TRUE
+      WHERE sp.negocio_id = $1
+        AND sp.servico_id = $2
+      ORDER BY
+        CASE WHEN un.papel = 'dono'
+          THEN 0 ELSE 1 END,
+        COALESCE(
+          un.nome_exibicao,
+          u.nome
+        ) ASC
+    `,
+    [negocioId, servicoId]
+  );
+
+  return result.rows;
+}
+
 async function profissionalElegivelParaServico(
   {
     negocioId,
@@ -235,5 +279,6 @@ module.exports = {
   buscarServicoDoNegocio,
   listarServicosComElegibilidade,
   substituirElegibilidade,
+  listarProfissionaisElegiveis,
   profissionalElegivelParaServico,
 };
