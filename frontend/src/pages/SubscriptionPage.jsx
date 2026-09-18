@@ -28,6 +28,14 @@ function subscriptionStatus(plan, subscription) {
     return { label: "Assinatura ativa", tone: "success", active: true };
   }
 
+  if (status === "REACTIVATING") {
+    return {
+      label: "Reativando renovação",
+      tone: "warning",
+      active: true
+    };
+  }
+
   if (PENDING_STATUSES.has(status)) {
     return { label: "Pagamento pendente", tone: "warning", active: false };
   }
