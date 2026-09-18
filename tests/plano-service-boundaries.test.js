@@ -1,11 +1,23 @@
 jest.mock("../src/repositories/planoRepository");
 jest.mock("../src/repositories/assinaturaRepository");
+jest.mock(
+  "../src/services/assinaturaReativacaoService",
+  () => ({
+    reconciliarReativacaoAbandonada:
+      jest.fn()
+  })
+);
 
 const planoRepository = require(
   "../src/repositories/planoRepository"
 );
 const assinaturaRepository = require(
   "../src/repositories/assinaturaRepository"
+);
+const {
+  reconciliarReativacaoAbandonada
+} = require(
+  "../src/services/assinaturaReativacaoService"
 );
 const planoService = require(
   "../src/services/planoService"
@@ -35,6 +47,8 @@ describe("fronteiras do módulo de planos", () => {
     assinaturaRepository
       .expirarCancelamentoSeNecessario
       .mockResolvedValue();
+    reconciliarReativacaoAbandonada
+      .mockResolvedValue(null);
   });
 
   test("lista planos por meio do repository", async () => {
@@ -62,6 +76,9 @@ describe("fronteiras do módulo de planos", () => {
     expect(
       planoRepository.buscarNegocioDonoAtivoPorUsuario
     ).toHaveBeenCalledWith(21);
+    expect(
+      reconciliarReativacaoAbandonada
+    ).toHaveBeenCalledWith(7);
     expect(planoRepository.buscarUsoPlano)
       .toHaveBeenCalledWith(7, null, expect.anything());
     expect(resultado).toMatchObject({
@@ -69,6 +86,41 @@ describe("fronteiras do módulo de planos", () => {
       plano_slug: "inicial",
     });
   });
+
+  test(
+    "não consulta o Asaas quando o entitlement já está dentro de uma transação",
+    async () => {
+      const executor = {
+        query: jest.fn()
+      };
+
+      assinaturaRepository
+        .expirarCancelamentoSeNecessario
+        .mockResolvedValue();
+      planoRepository
+        .buscarUsoPlano
+        .mockResolvedValue(
+          planoBasico()
+        );
+
+      await planoService
+        .buscarUsoPlano(
+          7,
+          executor
+        );
+
+      expect(
+        reconciliarReativacaoAbandonada
+      ).not.toHaveBeenCalled();
+      expect(
+        assinaturaRepository
+          .expirarCancelamentoSeNecessario
+      ).toHaveBeenCalledWith(
+        7,
+        executor
+      );
+    }
+  );
 
   test("não aceita usuário sem vínculo de dono ativo", async () => {
     planoRepository
