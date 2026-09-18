@@ -12,7 +12,9 @@ const EVENTOS_FRONTEND = new Set([
   "business_creation_started",
   "first_service_creation_started",
   "profile_shared",
+  "profile_viewed",
   "booking_started",
+  "booking_completed",
   "checkout_viewed",
 ]);
 
@@ -28,7 +30,9 @@ const PROPRIEDADES_PERMITIDAS = Object.freeze({
   business_creation_started: new Set(["entry_point"]),
   first_service_creation_started: new Set(["entry_point"]),
   profile_shared: new Set(["method"]),
+  profile_viewed: new Set(["entry_point"]),
   booking_started: new Set(["entry_point"]),
+  booking_completed: new Set(["appointment_id", "status"]),
   checkout_viewed: new Set(["plan_slug"]),
 });
 
@@ -197,6 +201,9 @@ function normalizarAquisicao(valor) {
     utmCampaign: texto("utmCampaign", 140, true),
     utmContent: texto("utmContent", 140),
     utmTerm: texto("utmTerm", 140),
+    afSource: texto("afSource", 80, true),
+    afMedium: texto("afMedium", 80, true),
+    afContent: texto("afContent", 140),
     gclid: texto("gclid", 200),
     gbraid: texto("gbraid", 200),
     wbraid: texto("wbraid", 200),
@@ -218,8 +225,12 @@ function hostPertence(host, conjunto) {
 }
 
 function classificarCanal(evidencias, campanhaOficial) {
-  const source = evidencias?.utmSource || "";
-  const medium = evidencias?.utmMedium || "";
+  const utmSource = evidencias?.utmSource || "";
+  const utmMedium = evidencias?.utmMedium || "";
+  const afSource = evidencias?.afSource || "";
+  const afMedium = evidencias?.afMedium || "";
+  const source = utmSource || afSource;
+  const medium = utmMedium || afMedium;
   const host = evidencias?.referrerHost || "";
   const temGoogleClick = Boolean(
     evidencias?.gclid || evidencias?.gbraid || evidencias?.wbraid
@@ -251,6 +262,10 @@ function classificarCanal(evidencias, campanhaOficial) {
     canal = "paid_social";
     classificacao = campanhaOficial ? "oficial" : "evidencia_paga";
     metodoResolucao = campanhaOficial ? "campanha_oficial" : "click_id_ou_utm";
+  } else if (afSource === "agenda_fashion") {
+    canal = "other";
+    classificacao = "referencia_rastreada";
+    metodoResolucao = "af_link";
   } else if (medium === "email") {
     canal = "email";
     classificacao = campanhaOficial ? "oficial" : "utm_rastreada";
@@ -407,6 +422,9 @@ async function registrarOrigem({
     utmCampaign: null,
     utmContent: null,
     utmTerm: null,
+    afSource: null,
+    afMedium: null,
+    afContent: null,
     gclid: null,
     gbraid: null,
     wbraid: null,
