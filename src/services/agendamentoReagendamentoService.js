@@ -240,6 +240,14 @@ async function reagendarOperacional({
 
   return db.executarTransacao(
     async (client) => {
+      await profissionalServicosRepository
+        .bloquearElegibilidadeNegocio({
+          negocioId:
+            negocio,
+          executor:
+            client,
+        });
+
       const atual =
         await agendamentoReagendamentoRepository
           .buscarAgendamentoParaReagendar({
@@ -320,14 +328,6 @@ async function reagendarOperacional({
           403
         );
       }
-
-      await profissionalServicosRepository
-        .bloquearElegibilidadeNegocio({
-          negocioId:
-            negocio,
-          executor:
-            client,
-        });
 
       const trocandoResponsavel =
         profissionalDestino !==
