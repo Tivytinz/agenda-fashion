@@ -224,8 +224,10 @@ export function SubscriptionPage() {
     !pendingPaidPlan;
   const usesFreeFallback =
     !activeSubscription &&
-    currentPlanIsFree &&
-    pendingPaidPlan;
+    (
+      pendingPaidPlan ||
+      Number(currentPlan.valor || 0) > 0
+    );
   const needsSubscription =
     !activeSubscription &&
     !pendingUpgrade &&
@@ -242,8 +244,10 @@ export function SubscriptionPage() {
     ? `/checkout?plano=${encodeURIComponent(planSlug)}`
     : "/planos";
   const effectivePlanName =
-    currentPlan.nome ||
-    (currentPlanIsFree ? "Grátis" : "Plano atual");
+    usesFreeFallback
+      ? "Grátis"
+      : currentPlan.nome ||
+        (currentPlanIsFree ? "Grátis" : "Plano atual");
   const serviceOverLimit = overLimitAmount(
     usage.servicos_utilizados,
     usage.limite_servicos
