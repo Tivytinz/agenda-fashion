@@ -171,6 +171,33 @@ describe("checkout PIX", () => {
     expect(screen.queryByRole("heading", { name: "Plano e assinatura" })).toBeNull();
   });
 
+  it("informa quando pagamento confirmado requer atenção operacional", async () => {
+    mockInitialization();
+    apiRequest
+      .mockResolvedValueOnce({
+        pagamento: { id: "pay_atencao", pix: { payload: "000201PIX" } },
+        status: "PENDING"
+      })
+      .mockResolvedValueOnce({
+        status: "CONFIRMED",
+        ativo: false,
+        status_assinatura: "PENDING",
+        estado_ativacao: "ATIVACAO_REQUER_ATENCAO"
+      });
+
+    renderCheckout();
+    await screen.findByRole("heading", { name: "Finalize seu plano" });
+    vi.useFakeTimers();
+    await generatePix();
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(2500);
+    });
+
+    expect(screen.getByText(/ativação precisa de atenção/)).not.toBeNull();
+    expect(screen.getByRole("button", { name: "Verificar pagamento novamente" })).not.toBeNull();
+  });
+
   it("informa quando a confirmação automática esgota as tentativas", async () => {
     mockInitialization();
     apiRequest
