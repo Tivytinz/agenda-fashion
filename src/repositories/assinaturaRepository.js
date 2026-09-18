@@ -282,22 +282,21 @@ async function registrarCancelamento(
   return result.rows[0] || null;
 }
 
-async function recuperarReativacaoAbandonada(
+async function buscarReativacaoAbandonada(
   negocioId,
   executor = db
 ) {
   const result = await executor.query(
     `
-    UPDATE assinaturas
-    SET
-      status = 'CANCELED',
-      updated_at = NOW()
+    SELECT *
+    FROM assinaturas
     WHERE negocio_id = $1
       AND ativo = TRUE
       AND UPPER(status) = 'REACTIVATING'
       AND updated_at
         < NOW() - INTERVAL '2 minutes'
-    RETURNING *
+    ORDER BY id DESC
+    LIMIT 1
     `,
     [negocioId]
   );
@@ -323,16 +322,9 @@ async function reservarReativacao(
     WHERE id = $1
       AND negocio_id = $2
       AND ativo = TRUE
-      AND (
-        UPPER(status) IN (
-          'CANCELED',
-          'CANCELLED'
-        )
-        OR (
-          UPPER(status) = 'REACTIVATING'
-          AND updated_at
-            < NOW() - INTERVAL '2 minutes'
-        )
+      AND UPPER(status) IN (
+        'CANCELED',
+        'CANCELLED'
       )
     RETURNING *
     `,
@@ -443,16 +435,9 @@ async function expirarCancelamentoSeNecessario(
             FROM assinaturas a
             WHERE a.negocio_id = n.id
               AND a.ativo = TRUE
-              AND (
-                a.status IN (
-                  'CANCELED',
-                  'CANCELLED'
-                )
-                OR (
-                  UPPER(a.status) = 'REACTIVATING'
-                  AND a.updated_at
-                    < NOW() - INTERVAL '2 minutes'
-                )
+              AND a.status IN (
+                'CANCELED',
+                'CANCELLED'
               )
               AND a.data_proxima_cobranca
                 IS NOT NULL
@@ -464,25 +449,13 @@ async function expirarCancelamentoSeNecessario(
       UPDATE assinaturas a
       SET
         ativo = FALSE,
-        status = CASE
-          WHEN UPPER(a.status) = 'REACTIVATING'
-            THEN 'CANCELED'
-          ELSE a.status
-        END,
         updated_at = NOW()
       FROM negocio_atualizado na
       WHERE a.negocio_id = na.id
         AND a.ativo = TRUE
-        AND (
-          a.status IN (
-            'CANCELED',
-            'CANCELLED'
-          )
-          OR (
-            UPPER(a.status) = 'REACTIVATING'
-            AND a.updated_at
-              < NOW() - INTERVAL '2 minutes'
-          )
+        AND a.status IN (
+          'CANCELED',
+          'CANCELLED'
         )
         AND a.data_proxima_cobranca
           IS NOT NULL
@@ -630,7 +603,7 @@ module.exports = {
   buscarUltimaAssinaturaPorNegocio,
   buscarAssinaturaPendentePorNegocio,
   registrarCancelamento,
-  recuperarReativacaoAbandonada,
+  buscarReativacaoAbandonada,
   reservarReativacao,
   restaurarCancelamentoReativacao,
   registrarReativacao,
