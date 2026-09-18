@@ -27,19 +27,41 @@ async function buscarMinhaAssinatura({ usuarioId }) {
 
   const negocioAtualizado = await assinaturaRepository
     .buscarNegocioDono(usuarioId);
-  const assinatura = await assinaturaRepository
-    .buscarUltimaAssinaturaPorNegocio(negocio.id);
+  const [assinatura, assinaturaPendente, uso] =
+    await Promise.all([
+      assinaturaRepository
+        .buscarAssinaturaAtivaPorNegocio(negocio.id),
+      assinaturaRepository
+        .buscarAssinaturaPendentePorNegocio(negocio.id),
+      buscarUsoPlano(negocio.id),
+    ]);
   const plano = await assinaturaRepository.buscarPlano(
     negocioAtualizado?.plano_id || negocio.plano_id
   );
+  const planoPendente = assinaturaPendente
+    ? await assinaturaRepository.buscarPlano(
+        assinaturaPendente.plano_id
+      )
+    : null;
+  const assinaturaPagamentos =
+    assinatura || assinaturaPendente;
   const pagamentos = await assinaturaRepository
-    .listarPagamentos(assinatura?.id || 0);
-  const uso = await buscarUsoPlano(negocio.id);
+    .listarPagamentos(assinaturaPagamentos?.id || 0);
 
   return {
     plano,
     assinatura,
+    upgrade_pendente:
+      assinaturaPendente && planoPendente
+        ? {
+            assinatura: assinaturaPendente,
+            plano: planoPendente,
+          }
+        : null,
     uso: {
+      plano_id: uso?.plano_id ?? plano?.id ?? null,
+      plano_nome: uso?.plano_nome || plano?.nome || null,
+      plano_slug: uso?.plano_slug || plano?.slug || null,
       utilizados: uso?.utilizados || 0,
       limite: uso?.capacidade_agendamentos ?? null,
       restantes: uso?.restantes ?? null,
