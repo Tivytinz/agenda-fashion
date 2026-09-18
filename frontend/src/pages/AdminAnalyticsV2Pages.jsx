@@ -538,7 +538,7 @@ export function AdminJourneyV2Page() {
                   <p className="eyebrow">Pós-publicação</p>
                   <h2>Da divulgação ao primeiro agendamento</h2>
                   <p className="muted">
-                    Coorte de negócios publicados no período. Cada etapa exige a anterior; visitas autenticadas da própria equipe são excluídas e o último marco é validado na tabela de agendamentos.
+                    Coorte de negócios publicados no período. A visita precisa vir de link rastreável do AF; visita, início e conclusão permanecem na mesma sessão, a própria equipe é excluída e o último marco é validado na tabela de agendamentos.
                   </p>
                 </div>
               </div>
