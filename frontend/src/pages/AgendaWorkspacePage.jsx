@@ -302,7 +302,7 @@ export function AgendaWorkspacePage({ owner = false }) {
         <div>
           <p className="eyebrow">{owner ? "Seu negócio em movimento" : "Seu dia de trabalho"}</p>
           <h1>{owner ? "Agenda geral" : "Minha agenda profissional"}</h1>
-          <p>Bloqueie horários livres, cancele compromissos futuros e registre o resultado dos atendimentos já ocorridos.</p>
+          <p>Bloqueie horários livres, registre cancelamentos operacionais e finalize atendimentos com o estado correto.</p>
         </div>
       </header>
 
@@ -489,7 +489,6 @@ export function AgendaWorkspacePage({ owner = false }) {
                 <option value="profissional_indisponivel">Profissional indisponível</option>
                 <option value="estabelecimento_indisponivel">Estabelecimento indisponível</option>
                 <option value="atendimento_interrompido">Atendimento interrompido</option>
-                <option value="cliente_ausente">Cliente ausente</option>
                 <option value="outro">Outro motivo</option>
               </select>
               <label htmlFor="agenda-cancel-reason">
@@ -506,6 +505,9 @@ export function AgendaWorkspacePage({ owner = false }) {
                 value={cancelReason}
               />
               <small>{cancelReason.length}/240</small>
+              <small>
+                Cliente ausente não deve ser cancelado: após 15 minutos, use “Marcar falta”.
+              </small>
             </div>
             <div className="agenda-cancel-actions">
               <button
