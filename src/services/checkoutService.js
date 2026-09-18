@@ -475,7 +475,53 @@ async function consultarStatusCheckout({
     throw new AppError("Pagamento não encontrado.", 404);
   }
 
-  return pagamento;
+  const statusPagamento = String(
+    pagamento.status || ""
+  )
+    .trim()
+    .toUpperCase();
+  const statusAssinatura = String(
+    pagamento.status_assinatura || ""
+  )
+    .trim()
+    .toUpperCase();
+  const pagamentoConfirmado = [
+    "CONFIRMED",
+    "RECEIVED",
+    "RECEIVED_IN_CASH"
+  ].includes(statusPagamento);
+  const assinaturaAtiva =
+    pagamento.ativo === true &&
+    statusAssinatura === "ACTIVE";
+
+  if (assinaturaAtiva) {
+    return {
+      ...pagamento,
+      estado_ativacao: "ATIVO"
+    };
+  }
+
+  if (!pagamentoConfirmado) {
+    return {
+      ...pagamento,
+      estado_ativacao:
+        "AGUARDANDO_PAGAMENTO"
+    };
+  }
+
+  const processamento =
+    await checkoutRepository
+      .buscarEstadoAtivacaoPagamento(
+        pagamentoId
+      );
+
+  return {
+    ...pagamento,
+    estado_ativacao:
+      processamento?.falha_terminal === true
+        ? "ATIVACAO_REQUER_ATENCAO"
+        : "PAGAMENTO_CONFIRMADO_ATIVANDO"
+  };
 }
 
 module.exports = {
