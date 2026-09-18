@@ -210,77 +210,173 @@ async function buscarJornada(periodo = "30") {
   const filtroVisualizacao = filtroTimestamp(seguro, "v.entrou_em");
   const filtroEvento = filtroTimestamp(seguro, "e.occurred_at");
   const filtroSessao = filtroTimestamp(seguro, "s.iniciada_em");
+  const filtroPublicacao = filtroTimestamp(seguro, "n.primeira_publicacao_em");
 
-  const [telas, transicoes, eventos, dispositivos] = await Promise.all([
-    db.query(
-      `
-      SELECT
-        v.page_key,
-        MIN(v.route_template) AS route_template,
-        COUNT(*)::INT AS visualizacoes,
-        COUNT(DISTINCT v.sessao_id)::INT AS sessoes,
-        COALESCE(ROUND(AVG(v.tempo_engajado_ms) / 1000.0, 2), 0)::NUMERIC AS tempo_medio_segundos
-      FROM analytics_visualizacoes_tela v
-      WHERE 1 = 1
-        ${filtroVisualizacao}
-      GROUP BY v.page_key
-      ORDER BY COUNT(*) DESC, v.page_key ASC
-      LIMIT 50
-      `
-    ),
-    db.query(
-      `
-      WITH ordenadas AS (
+  const [telas, transicoes, eventos, dispositivos, posPublicacao] =
+    await Promise.all([
+      db.query(
+        `
         SELECT
-          v.sessao_id,
-          v.page_key AS origem,
-          LEAD(v.page_key) OVER (
-            PARTITION BY v.sessao_id
-            ORDER BY v.sequencia ASC
-          ) AS destino
+          v.page_key,
+          MIN(v.route_template) AS route_template,
+          COUNT(*)::INT AS visualizacoes,
+          COUNT(DISTINCT v.sessao_id)::INT AS sessoes,
+          COALESCE(ROUND(AVG(v.tempo_engajado_ms) / 1000.0, 2), 0)::NUMERIC AS tempo_medio_segundos
         FROM analytics_visualizacoes_tela v
         WHERE 1 = 1
           ${filtroVisualizacao}
-      )
-      SELECT
-        origem,
-        destino,
-        COUNT(*)::INT AS transicoes
-      FROM ordenadas
-      WHERE destino IS NOT NULL
-      GROUP BY origem, destino
-      ORDER BY COUNT(*) DESC, origem ASC, destino ASC
-      LIMIT 50
-      `
-    ),
-    db.query(
-      `
-      SELECT
-        e.nome,
-        COUNT(*)::INT AS eventos,
-        COUNT(DISTINCT e.sessao_id)::INT AS sessoes
-      FROM analytics_eventos e
-      WHERE e.origem = 'frontend'
-        ${filtroEvento}
-      GROUP BY e.nome
-      ORDER BY COUNT(*) DESC, e.nome ASC
-      `
-    ),
-    db.query(
-      `
-      SELECT
-        COALESCE(s.device_type, 'unknown') AS device_type,
-        COALESCE(s.browser_family, 'Unknown') AS browser_family,
-        COUNT(*)::INT AS sessoes
-      FROM analytics_sessoes s
-      WHERE 1 = 1
-        ${filtroSessao}
-      GROUP BY s.device_type, s.browser_family
-      ORDER BY COUNT(*) DESC
-      LIMIT 50
-      `
-    ),
-  ]);
+        GROUP BY v.page_key
+        ORDER BY COUNT(*) DESC, v.page_key ASC
+        LIMIT 50
+        `
+      ),
+      db.query(
+        `
+        WITH ordenadas AS (
+          SELECT
+            v.sessao_id,
+            v.page_key AS origem,
+            LEAD(v.page_key) OVER (
+              PARTITION BY v.sessao_id
+              ORDER BY v.sequencia ASC
+            ) AS destino
+          FROM analytics_visualizacoes_tela v
+          WHERE 1 = 1
+            ${filtroVisualizacao}
+        )
+        SELECT
+          origem,
+          destino,
+          COUNT(*)::INT AS transicoes
+        FROM ordenadas
+        WHERE destino IS NOT NULL
+        GROUP BY origem, destino
+        ORDER BY COUNT(*) DESC, origem ASC, destino ASC
+        LIMIT 50
+        `
+      ),
+      db.query(
+        `
+        SELECT
+          e.nome,
+          COUNT(*)::INT AS eventos,
+          COUNT(DISTINCT e.sessao_id)::INT AS sessoes
+        FROM analytics_eventos e
+        WHERE e.origem = 'frontend'
+          ${filtroEvento}
+        GROUP BY e.nome
+        ORDER BY COUNT(*) DESC, e.nome ASC
+        `
+      ),
+      db.query(
+        `
+        SELECT
+          COALESCE(s.device_type, 'unknown') AS device_type,
+          COALESCE(s.browser_family, 'Unknown') AS browser_family,
+          COUNT(*)::INT AS sessoes
+        FROM analytics_sessoes s
+        WHERE 1 = 1
+          ${filtroSessao}
+        GROUP BY s.device_type, s.browser_family
+        ORDER BY COUNT(*) DESC
+        LIMIT 50
+        `
+      ),
+      db.query(
+        `
+        WITH publicados AS (
+          SELECT
+            n.id AS negocio_id,
+            n.primeira_publicacao_em
+          FROM negocios n
+          WHERE n.ativo = TRUE
+            AND n.primeira_publicacao_em IS NOT NULL
+            ${filtroPublicacao}
+        ),
+        compartilhamentos AS (
+          SELECT
+            p.negocio_id,
+            MIN(e.occurred_at) AS compartilhado_em
+          FROM publicados p
+          LEFT JOIN analytics_eventos e
+            ON e.target_business_id = p.negocio_id
+           AND e.origem = 'frontend'
+           AND e.nome = 'profile_shared'
+           AND e.occurred_at >= p.primeira_publicacao_em
+          GROUP BY p.negocio_id
+        ),
+        visitas AS (
+          SELECT
+            c.negocio_id,
+            MIN(e.occurred_at) AS visitado_em
+          FROM compartilhamentos c
+          LEFT JOIN analytics_eventos e
+            ON e.target_business_id = c.negocio_id
+           AND e.origem = 'frontend'
+           AND e.nome = 'profile_viewed'
+           AND c.compartilhado_em IS NOT NULL
+           AND e.occurred_at >= c.compartilhado_em
+           AND NOT EXISTS (
+             SELECT 1
+             FROM usuarios_negocios un
+             WHERE un.negocio_id = c.negocio_id
+               AND un.usuario_id = e.actor_user_id
+               AND un.ativo = TRUE
+               AND un.papel IN ('dono', 'profissional')
+           )
+          GROUP BY c.negocio_id
+        ),
+        inicios AS (
+          SELECT
+            v.negocio_id,
+            MIN(e.occurred_at) AS iniciado_em
+          FROM visitas v
+          LEFT JOIN analytics_eventos e
+            ON e.target_business_id = v.negocio_id
+           AND e.origem = 'frontend'
+           AND e.nome = 'booking_started'
+           AND v.visitado_em IS NOT NULL
+           AND e.occurred_at >= v.visitado_em
+          GROUP BY v.negocio_id
+        ),
+        conclusoes AS (
+          SELECT
+            i.negocio_id,
+            MIN(a.created_at) AS primeiro_agendamento_em
+          FROM inicios i
+          LEFT JOIN agendamentos a
+            ON a.negocio_id = i.negocio_id
+           AND i.iniciado_em IS NOT NULL
+           AND a.created_at >= i.iniciado_em
+           AND COALESCE(a.status, 'agendado') <> 'cancelado'
+          GROUP BY i.negocio_id
+        )
+        SELECT
+          COUNT(*)::INT AS negocios_publicados,
+          COUNT(*) FILTER (
+            WHERE c.compartilhado_em IS NOT NULL
+          )::INT AS perfis_compartilhados,
+          COUNT(*) FILTER (
+            WHERE v.visitado_em IS NOT NULL
+          )::INT AS visitas_externas_pos_compartilhamento,
+          COUNT(*) FILTER (
+            WHERE i.iniciado_em IS NOT NULL
+          )::INT AS agendamentos_iniciados_pos_visita,
+          COUNT(*) FILTER (
+            WHERE co.primeiro_agendamento_em IS NOT NULL
+          )::INT AS primeiros_agendamentos_validos
+        FROM publicados p
+        LEFT JOIN compartilhamentos c
+          ON c.negocio_id = p.negocio_id
+        LEFT JOIN visitas v
+          ON v.negocio_id = p.negocio_id
+        LEFT JOIN inicios i
+          ON i.negocio_id = p.negocio_id
+        LEFT JOIN conclusoes co
+          ON co.negocio_id = p.negocio_id
+        `
+      ),
+    ]);
 
   return {
     periodo: seguro,
@@ -288,6 +384,13 @@ async function buscarJornada(periodo = "30") {
     transicoes: transicoes.rows,
     eventos: eventos.rows,
     dispositivos: dispositivos.rows,
+    posPublicacao: posPublicacao.rows[0] || {
+      negocios_publicados: 0,
+      perfis_compartilhados: 0,
+      visitas_externas_pos_compartilhamento: 0,
+      agendamentos_iniciados_pos_visita: 0,
+      primeiros_agendamentos_validos: 0,
+    },
   };
 }
 
