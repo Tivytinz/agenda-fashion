@@ -17,6 +17,10 @@ jest.mock("../src/services/agendaDisponibilidadeService", () => ({
   horarioEstaDisponivel: jest.fn(),
 }));
 
+jest.mock("../src/services/whatsappMensagemService", () => ({
+  enfileirarReagendamento: jest.fn(),
+}));
+
 jest.mock("../src/utils/fusoHorario", () => ({
   obterDataHoraNoFuso: jest.fn(),
 }));
@@ -30,6 +34,9 @@ const agendaPublicaRepository = require(
 );
 const agendaDisponibilidadeService = require(
   "../src/services/agendaDisponibilidadeService"
+);
+const whatsappMensagemService = require(
+  "../src/services/whatsappMensagemService"
 );
 const {
   obterDataHoraNoFuso,
@@ -107,6 +114,9 @@ describe("agendamentoReagendamentoService", () => {
       .mockResolvedValue({
         id: 90,
       });
+
+    whatsappMensagemService.enfileirarReagendamento
+      .mockResolvedValue([]);
   });
 
   test("CA-AG-16: profissional reage apenas a própria reserva sem trocar responsável", async () => {
@@ -172,6 +182,13 @@ describe("agendamentoReagendamentoService", () => {
         antecedenciaCancelamentoHoras: 2,
       })
     );
+
+    expect(
+      whatsappMensagemService.enfileirarReagendamento
+    ).toHaveBeenCalledWith({
+      executor: client,
+      agendamentoId: 50,
+    });
   });
 
   test("CA-AG-16: profissional comum não reage reserva atribuída a outra profissional", async () => {
