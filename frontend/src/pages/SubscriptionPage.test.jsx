@@ -51,11 +51,23 @@ describe("plano e assinatura", () => {
     ).not.toBeNull();
   });
 
-  it("mostra plano para ativar e leva o excesso de limite direto ao checkout", async () => {
+  it("mantém o plano atual e sinaliza upgrade pendente sem gerar outra cobrança", async () => {
     apiRequest.mockResolvedValueOnce({
-      plano: { id: 2, slug: "autonoma", nome: "Autônoma", valor: 49.9 },
+      plano: { id: 1, slug: "inicial", nome: "Grátis", valor: 0 },
       assinatura: null,
+      upgrade_pendente: {
+        plano: { id: 2, slug: "autonoma", nome: "Autônoma", valor: 49.9 },
+        assinatura: {
+          id: 22,
+          status: "PENDING",
+          ativo: false,
+          forma_pagamento: "pix"
+        }
+      },
       uso: {
+        plano_id: 1,
+        plano_nome: "Grátis",
+        plano_slug: "inicial",
         utilizados: 2,
         limite: 10,
         percentual: 20,
@@ -70,39 +82,21 @@ describe("plano e assinatura", () => {
     renderPage();
 
     expect(await screen.findByRole("heading", { name: "Plano e assinatura" })).not.toBeNull();
-    expect(screen.getByText("Plano para ativar")).not.toBeNull();
-    expect(screen.getByText("Aguardando assinatura")).not.toBeNull();
-    expect(screen.queryByText("Plano escolhido")).toBeNull();
-    expect(screen.queryByText("Escolhido")).toBeNull();
-    expect(screen.queryByText("Forma de pagamento")).toBeNull();
-    expect(screen.queryByText("Próxima cobrança")).toBeNull();
-    expect(screen.getByText("A assinatura ainda não foi ativada. Ative o Autônoma para liberar os novos limites.")).not.toBeNull();
+    expect(screen.getByText("Plano atual")).not.toBeNull();
+    expect(screen.getByText("Plano gratuito")).not.toBeNull();
+    expect(screen.getByText("PIX do plano Autônoma aguardando pagamento.")).not.toBeNull();
+    expect(screen.getByText(/Seu plano atual continua valendo/)).not.toBeNull();
 
-    const subscribeLinks = screen.getAllByRole("link", { name: "Assinar Autônoma" });
-    expect(subscribeLinks).toHaveLength(2);
-    subscribeLinks.forEach((subscribe) => {
-      expect(subscribe.getAttribute("href")).toBe("/checkout?plano=autonoma");
-    });
-    expect(screen.getByRole("link", { name: "Escolher plano" }).getAttribute("href"))
-      .toBe("/planos");
-
-    expect(screen.getByText("Seus limites atuais")).not.toBeNull();
     const effectivePlan = screen.getByText(/Plano em uso:/).closest("p");
-    expect(effectivePlan).not.toBeNull();
     expect(within(effectivePlan).getByText("Grátis")).not.toBeNull();
-    expect(screen.queryByText("Enquanto a assinatura não estiver ativa, valem os limites gratuitos.")).toBeNull();
     expect(screen.getByText("2 de 10 agendamentos · 8 disponíveis")).not.toBeNull();
-    expect(screen.getByText("1 / 1")).not.toBeNull();
-    expect(screen.getByText("Limite atingido").classList.contains("is-reached")).toBe(true);
     expect(screen.getByText("3 / 2")).not.toBeNull();
-    expect(screen.getByText("1 acima do limite").classList.contains("is-over")).toBe(true);
 
-    const overLimit = screen.getByRole("status");
-    expect(overLimit.textContent).toContain("Você possui 3 serviços. O plano em uso permite 2.");
-    expect(overLimit.textContent).toContain("Ative o Autônoma para liberar novos limites.");
-    expect(within(overLimit).getByRole("link", { name: "Assinar Autônoma" }).getAttribute("href"))
-      .toBe("/checkout?plano=autonoma");
-    expect(screen.getByText("Nenhum pagamento registrado ainda.")).not.toBeNull();
+    const alerts = screen.getAllByRole("status");
+    expect(alerts.some((alert) =>
+      alert.textContent.includes("O plano Autônoma será aplicado somente após a confirmação do pagamento.")
+    )).toBe(true);
+    expect(screen.queryByRole("link", { name: "Assinar Autônoma" })).toBeNull();
   });
 
   it("mostra cobrança e cancelamento apenas para assinatura ativa", async () => {
@@ -131,27 +125,40 @@ describe("plano e assinatura", () => {
     expect(screen.getByRole("link", { name: "Ver planos" })).not.toBeNull();
   });
 
-  it("diferencia pagamento pendente sem tratar o plano como atual", async () => {
+  it("preserva assinatura ativa quando existe upgrade pendente", async () => {
     apiRequest.mockResolvedValueOnce({
       plano: { id: 2, slug: "autonoma", nome: "Autônoma", valor: 49.9 },
       assinatura: {
-        status: "PENDING",
-        ativo: false,
-        forma_pagamento: "pix"
+        id: 10,
+        status: "ACTIVE",
+        ativo: true,
+        forma_pagamento: "pix",
+        data_proxima_cobranca: "2026-10-17"
       },
-      uso: {},
+      upgrade_pendente: {
+        plano: { id: 3, slug: "studio", nome: "Studio", valor: 99.9 },
+        assinatura: {
+          id: 11,
+          status: "PENDING",
+          ativo: false,
+          forma_pagamento: "pix"
+        }
+      },
+      uso: {
+        plano_id: 2,
+        plano_nome: "Autônoma",
+        plano_slug: "autonoma"
+      },
       pagamentos: []
     });
 
     renderPage();
 
-    expect(await screen.findByText("Pagamento pendente")).not.toBeNull();
-    expect(screen.getByText("Plano para ativar")).not.toBeNull();
-    expect(screen.queryByText("Plano escolhido")).toBeNull();
-    expect(screen.queryByText("Enquanto a assinatura não estiver ativa, valem os limites gratuitos.")).toBeNull();
+    expect(await screen.findByText("Assinatura ativa")).not.toBeNull();
+    expect(screen.getByText("PIX do plano Studio aguardando pagamento.")).not.toBeNull();
     const effectivePlan = screen.getByText(/Plano em uso:/).closest("p");
-    expect(within(effectivePlan).getByText("Grátis")).not.toBeNull();
-    expect(screen.queryByRole("button", { name: "Cancelar renovação" })).toBeNull();
+    expect(within(effectivePlan).getByText("Autônoma")).not.toBeNull();
+    expect(screen.getByRole("button", { name: "Cancelar renovação" })).not.toBeNull();
   });
 
   it("traduz status dos pagamentos para linguagem clara", async () => {
