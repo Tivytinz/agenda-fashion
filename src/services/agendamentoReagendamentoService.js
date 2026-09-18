@@ -318,17 +318,6 @@ async function reagendarOperacional({
         );
       }
 
-      if (
-        papel === "dono" &&
-        profissionalDestino !==
-          profissionalAtual
-      ) {
-        throw criarErro(
-          "A troca de responsável será habilitada quando a elegibilidade profissional-serviço estiver configurada.",
-          409
-        );
-      }
-
       const destino =
         await agendamentoReagendamentoRepository
           .buscarProfissionalAtivoNoNegocio({
@@ -336,13 +325,15 @@ async function reagendarOperacional({
               profissionalDestino,
             negocioId:
               negocio,
+            servicoId:
+              Number(atual.servico_id),
             executor:
               client,
           });
 
       if (!destino) {
         throw criarErro(
-          "A profissional de destino não está ativa neste negócio.",
+          "A profissional de destino não está ativa ou habilitada para este serviço.",
           409
         );
       }
