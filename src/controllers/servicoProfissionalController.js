@@ -19,6 +19,27 @@ async function listarServicos(req, res, next) {
   }
 }
 
+async function listarProfissionaisElegiveis(
+  req,
+  res,
+  next
+) {
+  try {
+    const resultado =
+      await servicoProfissionalService
+        .listarProfissionaisElegiveisServico({
+          usuarioId:
+            req.user?.id,
+          servicoId:
+            req.params.id,
+        });
+
+    return res.json(resultado);
+  } catch (erro) {
+    return next(erro);
+  }
+}
+
 async function configurarServicos(
   req,
   res,
@@ -44,5 +65,6 @@ async function configurarServicos(
 
 module.exports = {
   listarServicos,
+  listarProfissionaisElegiveis,
   configurarServicos,
 };
