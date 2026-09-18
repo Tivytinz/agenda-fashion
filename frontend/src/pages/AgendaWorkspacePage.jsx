@@ -148,6 +148,22 @@ export function AgendaWorkspacePage({ owner = false }) {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [cancelTarget, updating]);
 
+  useEffect(() => {
+    if (!rescheduleTarget) return undefined;
+
+    function handleKeyDown(event) {
+      if (event.key === "Escape" && !updating.startsWith("reagendamento-")) {
+        setRescheduleTarget(null);
+        setRescheduleDate("");
+        setRescheduleTime("");
+        setRescheduleProfessionalId("");
+      }
+    }
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [rescheduleTarget, updating]);
+
   const dates = getValidAgendaDays(data?.agenda);
   const activeDay = dates.find((day) => day.data === selectedDate) || dates[0];
   const professionals = owner ? getValidProfessionals(activeDay?.profissionais) : [];
@@ -296,6 +312,80 @@ export function AgendaWorkspacePage({ owner = false }) {
       setCancelTarget(null);
       setCancelReasonType("");
       setCancelReason("");
+      setMessage(result.mensagem);
+      await load();
+    } catch (requestError) {
+      setError(requestError.message);
+    } finally {
+      setUpdating("");
+    }
+  }
+
+  function openReschedule(slot) {
+    if (!slot.agendamento_id || !slot.pode_reagendar) return;
+
+    setCancelTarget(null);
+    setCancelReasonType("");
+    setCancelReason("");
+    setRescheduleTarget(slot);
+    setRescheduleDate(selectedDate);
+    setRescheduleTime(String(slot.hora || "").slice(0, 5));
+    setRescheduleProfessionalId(
+      String(
+        slot.profissional_id ||
+        activeProfessional?.id ||
+        ""
+      )
+    );
+    setError("");
+    setMessage("");
+  }
+
+  function closeReschedule() {
+    if (rescheduleUpdating) return;
+
+    setRescheduleTarget(null);
+    setRescheduleDate("");
+    setRescheduleTime("");
+    setRescheduleProfessionalId("");
+  }
+
+  async function rescheduleAppointment() {
+    if (
+      !rescheduleTarget?.agendamento_id ||
+      !rescheduleDate ||
+      !rescheduleTime
+    ) {
+      return;
+    }
+
+    const key = `reagendamento-${rescheduleTarget.agendamento_id}`;
+    setUpdating(key);
+    setError("");
+    setMessage("");
+
+    try {
+      const result = await apiRequest(
+        `/agendamentos/${rescheduleTarget.agendamento_id}/reagendar-operacional`,
+        {
+          method: "PATCH",
+          body: {
+            data: rescheduleDate,
+            horario: rescheduleTime,
+            ...(owner && rescheduleProfessionalId
+              ? {
+                  profissional_id:
+                    Number(rescheduleProfessionalId)
+                }
+              : {})
+          }
+        }
+      );
+
+      setRescheduleTarget(null);
+      setRescheduleDate("");
+      setRescheduleTime("");
+      setRescheduleProfessionalId("");
       setMessage(result.mensagem);
       await load();
     } catch (requestError) {
