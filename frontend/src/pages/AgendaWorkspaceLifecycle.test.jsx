@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { apiRequest } from "../api/client";
 import { AgendaWorkspacePage } from "./AgendaWorkspacePage";
@@ -246,13 +246,22 @@ describe("ciclo operacional na agenda", () => {
       screen.getByLabelText("Profissional responsável");
 
     expect(
-      screen.getByRole("option", { name: "Ana" })
+      within(professionalSelect).getByRole(
+        "option",
+        { name: "Ana" }
+      )
     ).not.toBeNull();
     expect(
-      screen.getByRole("option", { name: "Bia" })
+      within(professionalSelect).getByRole(
+        "option",
+        { name: "Bia" }
+      )
     ).not.toBeNull();
     expect(
-      screen.queryByRole("option", { name: "Carla" })
+      within(professionalSelect).queryByRole(
+        "option",
+        { name: "Carla" }
+      )
     ).toBeNull();
 
     fireEvent.change(professionalSelect, {
