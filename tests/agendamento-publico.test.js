@@ -475,22 +475,15 @@ describe(
               .id
           );
 
-        const clientId =
-          Number(
-            resposta.body
-              .agendamento
-              .client_id
-          );
-
-        expect(clientId)
-          .toBeGreaterThan(0);
+        expect(
+          resposta.body
+            .agendamento
+        ).not.toHaveProperty(
+          "client_id"
+        );
 
         agendamentosCriados.add(
           agendamentoId
-        );
-
-        clientsCriados.add(
-          clientId
         );
 
         const identidade =
@@ -511,12 +504,16 @@ describe(
             ]
           );
 
-        expect(
+        const clientId =
           Number(
             identidade.rows[0]
               ?.id
-          )
-        ).toBe(
+          );
+
+        expect(clientId)
+          .toBeGreaterThan(0);
+
+        clientsCriados.add(
           clientId
         );
 
@@ -666,18 +663,11 @@ describe(
           )
         );
 
-        const clientId =
-          Number(
-            resposta.body
-              .agendamento
-              .client_id
-          );
-
-        expect(clientId)
-          .toBeGreaterThan(0);
-
-        clientsCriados.add(
-          clientId
+        expect(
+          resposta.body
+            .agendamento
+        ).not.toHaveProperty(
+          "client_id"
         );
 
         const identidade =
@@ -697,6 +687,19 @@ describe(
               agendamentoId,
             ]
           );
+
+        const clientId =
+          Number(
+            identidade.rows[0]
+              ?.id
+          );
+
+        expect(clientId)
+          .toBeGreaterThan(0);
+
+        clientsCriados.add(
+          clientId
+        );
 
         expect(
           Number(
