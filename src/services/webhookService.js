@@ -245,6 +245,9 @@ async function enfileirarWebhookAsaas({
           confirmedDate:
             pagamento.confirmedDate || null,
           refundedValue:
+            pagamento.refundedValue !== null &&
+            pagamento.refundedValue !== undefined &&
+            pagamento.refundedValue !== "" &&
             Number.isFinite(
               Number(pagamento.refundedValue)
             )
