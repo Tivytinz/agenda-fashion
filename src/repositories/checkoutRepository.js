@@ -64,10 +64,9 @@ async function bloquearCheckoutDoNegocio(
   );
 }
 
-async function buscarAssinaturaPendenteEquivalente(
+async function buscarAssinaturaPendenteDoNegocio(
   client,
-  negocioId,
-  planoId
+  negocioId
 ) {
   const result = await client.query(
     `
@@ -76,12 +75,18 @@ async function buscarAssinaturaPendenteEquivalente(
       a.negocio_id,
       a.plano_id,
       a.status,
-      a.created_at
+      a.created_at,
+      p.nome AS plano_nome,
+      p.slug AS plano_slug
     FROM assinaturas a
+    INNER JOIN planos p
+      ON p.id = a.plano_id
     WHERE a.negocio_id = $1
-      AND a.plano_id = $2
       AND a.ativo = FALSE
-      AND UPPER(a.status) = 'PENDING'
+      AND UPPER(a.status) IN (
+        'PENDING',
+        'PENDING_PAYMENT'
+      )
       AND (
         a.created_at >= NOW() - INTERVAL '15 minutes'
         OR EXISTS (
@@ -103,7 +108,7 @@ async function buscarAssinaturaPendenteEquivalente(
     LIMIT 1
     FOR UPDATE OF a
     `,
-    [negocioId, planoId]
+    [negocioId]
   );
 
   return result.rows[0] || null;
@@ -208,7 +213,7 @@ module.exports = {
   buscarNegocioDono,
   buscarPlano,
   bloquearCheckoutDoNegocio,
-  buscarAssinaturaPendenteEquivalente,
+  buscarAssinaturaPendenteDoNegocio,
   buscarDadosClienteAsaas,
   salvarClienteAsaasSeAusente,
   buscarPagamentoCheckout
