@@ -378,6 +378,12 @@ async function criarCheckout({
     throw erro;
   }
 
+  const execucaoVersao =
+    Number(
+      tentativa.tentativa
+        .execucao_versao
+    ) || 1;
+
   if (!tentativa.executar) {
     if (
       tentativa.tentativa.status ===
@@ -417,7 +423,8 @@ async function criarCheckout({
     await checkoutTentativaRepository
       .concluir(
         tentativa.tentativa.id,
-        resposta
+        resposta,
+        execucaoVersao
       );
 
     return resposta;
@@ -425,7 +432,8 @@ async function criarCheckout({
     await checkoutTentativaRepository
       .marcarFalha(
         tentativa.tentativa.id,
-        erro?.message
+        erro?.message,
+        execucaoVersao
       )
       .catch(() => {});
 
