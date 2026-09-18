@@ -1,5 +1,42 @@
 const db = require("../db/db");
 
+async function buscarVinculoAtivoProfissional({
+  negocioId,
+  profissionalId,
+  executor = db,
+  bloquear = false,
+}) {
+  const lock = bloquear
+    ? "FOR UPDATE OF un"
+    : "";
+
+  const result = await executor.query(
+    `
+      SELECT
+        un.id,
+        un.usuario_id,
+        un.negocio_id,
+        un.papel
+      FROM usuarios_negocios un
+      INNER JOIN usuarios u
+        ON u.id = un.usuario_id
+        AND u.ativo = TRUE
+      INNER JOIN negocios n
+        ON n.id = un.negocio_id
+        AND n.ativo = TRUE
+      WHERE un.negocio_id = $1
+        AND un.usuario_id = $2
+        AND un.ativo = TRUE
+        AND un.papel IN ('dono', 'profissional')
+      LIMIT 1
+      ${lock}
+    `,
+    [negocioId, profissionalId]
+  );
+
+  return result.rows[0] || null;
+}
+
 async function listarServicosProfissional({
   negocioId,
   profissionalId,
@@ -211,6 +248,7 @@ async function profissionalEstaElegivel({
 }
 
 module.exports = {
+  buscarVinculoAtivoProfissional,
   listarServicosProfissional,
   substituirServicosProfissional,
   habilitarServicoProfissional,
