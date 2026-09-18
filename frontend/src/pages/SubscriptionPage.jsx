@@ -119,10 +119,19 @@ function progressPercent(usedValue, limitValue, backendPercent) {
 
 function paymentStatus(value) {
   const status = normalizeStatus(value);
-  if (["CONFIRMED", "RECEIVED", "PAID"].includes(status)) return { label: "Pago", tone: "success" };
+  if (["CONFIRMED", "RECEIVED", "RECEIVED_IN_CASH", "PAID"].includes(status)) return { label: "Pago", tone: "success" };
   if (["PENDING", "AWAITING_PAYMENT"].includes(status)) return { label: "Pendente", tone: "warning" };
   if (["OVERDUE", "PAST_DUE"].includes(status)) return { label: "Atrasado", tone: "danger" };
-  if (["REFUNDED", "REFUND_REQUESTED"].includes(status)) return { label: "Reembolsado", tone: "neutral" };
+  if (status === "REFUNDED") return { label: "Reembolsado", tone: "neutral" };
+  if ([
+    "PARTIALLY_REFUNDED",
+    "REFUND_IN_PROGRESS",
+    "REFUND_REQUESTED",
+    "RECEIVED_IN_CASH_UNDONE",
+    "CHARGEBACK_REQUESTED",
+    "CHARGEBACK_DISPUTE",
+    "AWAITING_CHARGEBACK_REVERSAL"
+  ].includes(status)) return { label: "Em estorno ou disputa", tone: "warning" };
   if (["CANCELED", "CANCELLED", "DELETED"].includes(status)) return { label: "Cancelado", tone: "neutral" };
   return { label: status ? status.replaceAll("_", " ") : "Não informado", tone: "neutral" };
 }
@@ -234,7 +243,7 @@ export function SubscriptionPage() {
       {error && <p className="form-error" role="alert">{error}</p>}
       {message && <p className="form-success" role="status">{message}</p>}
       {hasPendingUpgrade && (
-        <section className="panel admin-command-alert is-warning" role="status">
+        <section className="panel subscription-pending-upgrade" role="status">
           <strong>PIX do plano {pendingPlan.nome} aguardando pagamento.</strong>
           <p className="muted">
             Seu plano atual continua valendo até a confirmação e ativação do novo plano. Para evitar cobrança duplicada, conclua ou aguarde o vencimento deste PIX antes de gerar outro.
