@@ -58,7 +58,6 @@ describe("Limite durante a criação do agendamento", () => {
     });
     agendaPublicaRepository.criarAgendamento.mockResolvedValue({
       id: 99,
-      client_id: 77,
     });
     agendaPublicaRepository
       .registrarConsentimentoWhatsappAgendamento
