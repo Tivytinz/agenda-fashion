@@ -443,9 +443,16 @@ async function expirarCancelamentoSeNecessario(
             FROM assinaturas a
             WHERE a.negocio_id = n.id
               AND a.ativo = TRUE
-              AND a.status IN (
-                'CANCELED',
-                'CANCELLED'
+              AND (
+                a.status IN (
+                  'CANCELED',
+                  'CANCELLED'
+                )
+                OR (
+                  UPPER(a.status) = 'REACTIVATING'
+                  AND a.updated_at
+                    < NOW() - INTERVAL '2 minutes'
+                )
               )
               AND a.data_proxima_cobranca
                 IS NOT NULL
@@ -457,13 +464,25 @@ async function expirarCancelamentoSeNecessario(
       UPDATE assinaturas a
       SET
         ativo = FALSE,
+        status = CASE
+          WHEN UPPER(a.status) = 'REACTIVATING'
+            THEN 'CANCELED'
+          ELSE a.status
+        END,
         updated_at = NOW()
       FROM negocio_atualizado na
       WHERE a.negocio_id = na.id
         AND a.ativo = TRUE
-        AND a.status IN (
-          'CANCELED',
-          'CANCELLED'
+        AND (
+          a.status IN (
+            'CANCELED',
+            'CANCELLED'
+          )
+          OR (
+            UPPER(a.status) = 'REACTIVATING'
+            AND a.updated_at
+              < NOW() - INTERVAL '2 minutes'
+          )
         )
         AND a.data_proxima_cobranca
           IS NOT NULL
