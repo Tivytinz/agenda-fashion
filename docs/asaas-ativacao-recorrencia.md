@@ -69,6 +69,11 @@ No retry:
 
 A conversão de marketing só é enfileirada depois que a ativação retorna com sucesso, portanto uma falha de limpeza não é registrada antecipadamente como assinatura concluída no pipeline de marketing.
 
+No frontend, pagamento `CONFIRMED` ou `RECEIVED` não é suficiente para
+anunciar que o plano já foi atualizado. Enquanto a assinatura local ainda não
+estiver `ACTIVE` e `ativo = true`, a interface deve informar que o pagamento
+foi confirmado e que a ativação ainda está sendo concluída.
+
 ## Organização do código
 
 `src/services/assinaturaService.js` é a fachada pública do domínio de assinaturas.
