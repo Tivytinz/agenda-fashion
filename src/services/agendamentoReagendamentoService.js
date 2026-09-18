@@ -8,6 +8,9 @@ const agendaPublicaRepository = require(
 const agendaDisponibilidadeService = require(
   "./agendaDisponibilidadeService"
 );
+const whatsappMensagemService = require(
+  "./whatsappMensagemService"
+);
 const {
   obterDataHoraNoFuso,
 } = require("../utils/fusoHorario");
@@ -524,6 +527,14 @@ async function reagendarOperacional({
           500
         );
       }
+
+      await whatsappMensagemService
+        .enfileirarReagendamento({
+          executor:
+            client,
+          agendamentoId:
+            agendamento,
+        });
 
       const politica =
         calcularPoliticaCancelamento({
