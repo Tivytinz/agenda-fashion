@@ -2756,6 +2756,7 @@ async function enfileirarLembretesDiariosNegocios(
 
 module.exports = {
   enfileirarNovoAgendamento,
+  enfileirarReagendamento,
   enfileirarCancelamento,
   enfileirarLembretesDiariosNegocios,
 };
