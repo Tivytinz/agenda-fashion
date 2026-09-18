@@ -48,7 +48,11 @@ describe("Admin Analytics V2 - receita", () => {
         negocios_pagantes: 6,
         novas_assinaturas_pagas: 9,
         assinaturas_pagas_ativas: 8,
-        receita_total: "1290.00",
+        receita_total: "1190.10",
+        receita_bruta: "1290.00",
+        pagamentos_reembolsados: 1,
+        valor_reembolsado: "99.90",
+        receita_liquida: "1190.10",
         receita_primeiro_pagamento: "870.00",
       },
       planos: [],
@@ -62,6 +66,10 @@ describe("Admin Analytics V2 - receita", () => {
       negociosCheckoutConvertidos: 1,
       conversaoCheckoutParaAssinaturaPaga: 25,
       novasAssinaturasPagas: 9,
+      receitaBruta: 1290,
+      pagamentosReembolsados: 1,
+      valorReembolsado: 99.9,
+      receitaLiquida: 1190.1,
     });
 
     expect(
