@@ -19,8 +19,30 @@ function paymentId(result) {
 }
 
 function paymentConfirmed(result) {
-  const status = String(result?.status || result?.pagamento?.status || result?.assinatura?.status || "").toUpperCase();
-  return ["CONFIRMED", "RECEIVED", "ACTIVE"].includes(status);
+  const status = String(
+    result?.status ||
+    result?.pagamento?.status ||
+    ""
+  ).toUpperCase();
+
+  return ["CONFIRMED", "RECEIVED", "RECEIVED_IN_CASH"].includes(status);
+}
+
+function subscriptionActive(result) {
+  const status = String(
+    result?.status_assinatura ||
+    result?.assinatura?.status ||
+    ""
+  ).toUpperCase();
+  const active =
+    result?.ativo === true ||
+    result?.assinatura?.ativo === true;
+
+  return active && status === "ACTIVE";
+}
+
+function paymentActivated(result) {
+  return paymentConfirmed(result) && subscriptionActive(result);
 }
 
 export function BillingCheckoutPage() {
@@ -76,6 +98,8 @@ export function BillingCheckoutPage() {
     setPaymentStatus("checking");
     setPaymentMessage("Aguardando a confirmação automática do pagamento...");
 
+    let confirmedButActivating = false;
+
     for (let attempt = 0; attempt < 12; attempt += 1) {
       if (!checkImmediately || attempt > 0) {
         await new Promise((resolve) => window.setTimeout(resolve, 2500));
@@ -85,9 +109,15 @@ export function BillingCheckoutPage() {
       try {
         const status = await apiRequest(`/checkout/status/${encodeURIComponent(id)}`);
         if (pollRunRef.current !== run) return;
-        if (paymentConfirmed(status)) {
+        if (paymentActivated(status)) {
           navigate("/painel/assinatura", { replace: true, state: { payment: "confirmed" } });
           return;
+        }
+
+        if (paymentConfirmed(status)) {
+          confirmedButActivating = true;
+          setPaymentStatus("activating");
+          setPaymentMessage("Pagamento confirmado. Estamos ativando seu plano...");
         }
       } catch {
         if (pollRunRef.current !== run) return;
@@ -99,7 +129,11 @@ export function BillingCheckoutPage() {
 
     if (pollRunRef.current === run) {
       setPaymentStatus("timeout");
-      setPaymentMessage("Ainda não recebemos a confirmação. Se você já pagou, verifique novamente.");
+      setPaymentMessage(
+        confirmedButActivating
+          ? "Pagamento confirmado. A ativação ainda está sendo concluída. Verifique novamente."
+          : "Ainda não recebemos a confirmação. Se você já pagou, verifique novamente."
+      );
     }
   }
 
@@ -173,7 +207,7 @@ export function BillingCheckoutPage() {
           checkoutTransactionId
       });
 
-      if (paymentConfirmed(result)) {
+      if (paymentActivated(result)) {
         navigate("/painel/assinatura", { replace: true, state: { payment: "confirmed" } });
         return;
       }
