@@ -155,6 +155,41 @@ describe(
           .toBe(true);
         expect(resultado.nova)
           .toBe(false);
+
+        const sqlRetomada =
+          db.query.mock.calls[2][0];
+        expect(sqlRetomada).toContain(
+          "execucao_versao = execucao_versao + 1"
+        );
+      }
+    );
+
+    test(
+      "finaliza somente a versão de execução que ainda possui o lease",
+      async () => {
+        db.query.mockResolvedValueOnce({
+          rows: []
+        });
+
+        const resultado =
+          await repository.concluir(
+            9,
+            { pagamento: { id: "pay_9" } },
+            3
+          );
+
+        expect(resultado).toBeNull();
+
+        const [sql, parametros] =
+          db.query.mock.calls[0];
+
+        expect(sql).toContain(
+          "AND status = 'PROCESSING'"
+        );
+        expect(sql).toContain(
+          "AND execucao_versao = $3"
+        );
+        expect(parametros[2]).toBe(3);
       }
     );
   }
