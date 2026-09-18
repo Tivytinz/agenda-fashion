@@ -76,11 +76,6 @@ function professionalStages(summary) {
       summary?.taxaServico ?? metricPercentage(summary?.servicosCriados, signups) ?? 0
     ],
     [
-      "Agenda configurada",
-      toFiniteNumber(summary?.agendasConfiguradas),
-      summary?.taxaAgenda ?? metricPercentage(summary?.agendasConfiguradas, signups) ?? 0
-    ],
-    [
       "Negócio publicado",
       toFiniteNumber(summary?.negociosPublicados),
       summary?.taxaPublicacao ?? metricPercentage(summary?.negociosPublicados, signups) ?? 0
@@ -414,7 +409,7 @@ export function AdminMarketingPage() {
             <p className="eyebrow">Coorte profissional</p>
             <h2>Marcos da coorte profissional</h2>
             <p className="muted">
-              Todos os percentuais usam os cadastros da coorte como base. Os marcos não são conversões adjacentes; negócios legados podem estar publicados sem agenda confirmada.
+              Todos os percentuais usam os cadastros da coorte como base. Os marcos são fatos de domínio da jornada profissional; horários continuam como diagnóstico operacional e não entram como etapa canônica de ativação.
             </p>
           </div>
           <Link
