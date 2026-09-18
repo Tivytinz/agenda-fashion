@@ -9,6 +9,10 @@ jest.mock("../src/repositories/agendamentoReagendamentoRepository", () => ({
   registrarHistoricoReagendamento: jest.fn(),
 }));
 
+jest.mock("../src/repositories/profissionalServicosRepository", () => ({
+  bloquearElegibilidadeNegocio: jest.fn(),
+}));
+
 jest.mock("../src/repositories/agendaPublicaRepository", () => ({
   bloquearAgendaProfissional: jest.fn(),
 }));
@@ -216,12 +220,71 @@ describe("agendamentoReagendamentoService", () => {
     ).not.toHaveBeenCalled();
   });
 
-  test("CA-AG-17: troca de responsável fica bloqueada sem elegibilidade profissional-serviço", async () => {
+  test("CA-AG-17: proprietária transfere para profissional elegível", async () => {
     repository.buscarAgendamentoParaReagendar
       .mockResolvedValue({
         ...base,
         papel_executor: "dono",
       });
+
+    repository.buscarProfissionalAtivoNoNegocio
+      .mockResolvedValue({
+        profissional_id: 9,
+        papel: "profissional",
+        nome: "Bia",
+      });
+
+    repository.atualizarReagendamento
+      .mockResolvedValue({
+        ...base,
+        profissional_id: 9,
+        data: "2026-09-18",
+        horario: "15:00",
+      });
+
+    const resultado =
+      await service.reagendarOperacional({
+        usuarioId: 5,
+        negocioId: 7,
+        agendamentoId: 50,
+        data: "2026-09-18",
+        horario: "15:00",
+        profissionalId: 9,
+      });
+
+    expect(resultado.agendamento.profissional_id)
+      .toBe(9);
+
+    expect(
+      repository.buscarProfissionalAtivoNoNegocio
+    ).toHaveBeenCalledWith({
+      profissionalId: 9,
+      negocioId: 7,
+      servicoId: 3,
+      executor: client,
+    });
+
+    expect(
+      repository.registrarHistoricoReagendamento
+    ).toHaveBeenCalledWith(
+      expect.objectContaining({
+        actorUserId: 5,
+        actorType: "OWNER",
+        previousProfissionalId: 8,
+        newProfissionalId: 9,
+      })
+    );
+  });
+
+  test("CA-AG-17: profissional não elegível continua bloqueada", async () => {
+    repository.buscarAgendamentoParaReagendar
+      .mockResolvedValue({
+        ...base,
+        papel_executor: "dono",
+      });
+
+    repository.buscarProfissionalAtivoNoNegocio
+      .mockResolvedValue(null);
 
     await expect(
       service.reagendarOperacional({
@@ -234,7 +297,7 @@ describe("agendamentoReagendamentoService", () => {
       })
     ).rejects.toMatchObject({
       statusCode: 409,
-      message: expect.stringMatching(/elegibilidade profissional-serviço/i),
+      message: expect.stringMatching(/habilitada para este serviço/i),
     });
 
     expect(
