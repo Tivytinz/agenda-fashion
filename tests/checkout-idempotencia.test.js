@@ -589,7 +589,8 @@ describe(
             .marcarFalha
         ).toHaveBeenCalledWith(
           34,
-          "QR Code ainda indisponível"
+          "QR Code ainda indisponível",
+          1
         );
       }
     );
@@ -632,7 +633,8 @@ describe(
             nova: true,
             tentativa: {
               id: 33,
-              status: "PROCESSING"
+              status: "PROCESSING",
+              lease_tentativa: 1
             }
           });
 
@@ -660,7 +662,8 @@ describe(
             .marcarFalha
         ).toHaveBeenCalledWith(
           33,
-          "falha temporária"
+          "falha temporária",
+          1
         );
       }
     );
