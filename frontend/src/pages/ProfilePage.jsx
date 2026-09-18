@@ -54,6 +54,18 @@ export function ProfilePage() {
   const business = profile?.negocio;
   const services = profile?.servicos ?? EMPTY_LIST;
   const professionals = profile?.profissionais ?? EMPTY_LIST;
+  const eligibleProfessionals = useMemo(() => {
+    if (!serviceId) return EMPTY_LIST;
+
+    const selectedServiceId = Number(serviceId);
+
+    return professionals.filter((person) =>
+      Array.isArray(person.servico_ids) &&
+      person.servico_ids.some(
+        (id) => Number(id) === selectedServiceId
+      )
+    );
+  }, [professionals, serviceId]);
   const profileImageSource = business?.foto_url ||
     business?.imagem_url ||
     business?.logo_url ||
@@ -209,18 +221,48 @@ export function ProfilePage() {
   }, [professionalId, scheduleReload, serviceId, slug]);
 
   useEffect(() => {
-    if (profile && serviceId && !professionalId && professionals.length === 1) {
-      setProfessionalId(String(professionals[0].id));
+    if (!profile || !serviceId) return;
+
+    const profissionalValida =
+      eligibleProfessionals.some(
+        (person) =>
+          String(person.id) ===
+          String(professionalId)
+      );
+
+    if (professionalId && !profissionalValida) {
+      setProfessionalId("");
+      setDay("");
+      setTime("");
+      return;
     }
-  }, [professionalId, professionals, profile, serviceId]);
+
+    if (
+      !professionalId &&
+      eligibleProfessionals.length === 1
+    ) {
+      setProfessionalId(
+        String(eligibleProfessionals[0].id)
+      );
+    }
+  }, [
+    eligibleProfessionals,
+    professionalId,
+    profile,
+    serviceId,
+  ]);
 
   const selectedService = useMemo(
     () => services.find((service) => String(service.id) === String(serviceId)),
     [serviceId, services]
   );
   const selectedProfessional = useMemo(
-    () => professionals.find((person) => String(person.id) === String(professionalId)),
-    [professionalId, professionals]
+    () => eligibleProfessionals.find(
+      (person) =>
+        String(person.id) ===
+        String(professionalId)
+    ),
+    [eligibleProfessionals, professionalId]
   );
 
   function trackContactSelection(action) {
@@ -233,9 +275,22 @@ export function ProfilePage() {
   }
 
   function selectService(id) {
-    const nextProfessionalId = professionals.length === 1
-      ? String(professionals[0].id)
-      : "";
+    const selectedServiceId = Number(id);
+    const nextEligibleProfessionals =
+      professionals.filter((person) =>
+        Array.isArray(person.servico_ids) &&
+        person.servico_ids.some(
+          (serviceIdValue) =>
+            Number(serviceIdValue) ===
+            selectedServiceId
+        )
+      );
+
+    const nextProfessionalId =
+      nextEligibleProfessionals.length === 1
+        ? String(nextEligibleProfessionals[0].id)
+        : "";
+
     setServiceId(String(id));
     setProfessionalId(nextProfessionalId);
     setSearchParams((current) => mergeProfileSearchParams(current, {
@@ -371,7 +426,7 @@ export function ProfilePage() {
         onSelectService={selectService}
         onSelectTime={setTime}
         professionalId={professionalId}
-        professionals={professionals}
+        professionals={eligibleProfessionals}
         scheduleMessage={scheduleMessage}
         scheduleStatus={scheduleStatus}
         selectedProfessional={selectedProfessional}
