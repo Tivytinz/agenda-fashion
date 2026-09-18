@@ -361,10 +361,20 @@ async function buscarJornada(periodo = "30") {
            AND e.origem = 'frontend'
            AND e.nome = 'booking_completed'
            AND e.occurred_at >= i.iniciado_em
-           AND NULLIF(
-             BTRIM(e.propriedades ->> 'appointment_id'),
-             ''
-           ) ~ '^[0-9]+
+           AND jsonb_typeof(
+             e.propriedades -> 'appointment_id'
+           ) = 'number'
+          INNER JOIN agendamentos a
+            ON a.id = (
+              e.propriedades ->> 'appointment_id'
+            )::BIGINT
+           AND a.negocio_id = i.negocio_id
+           AND COALESCE(a.status, 'agendado') <> 'cancelado'
+          ORDER BY
+            i.negocio_id,
+            e.occurred_at ASC,
+            e.id ASC
+        )
         SELECT
           COUNT(*)::INT AS negocios_publicados,
           COUNT(*) FILTER (
