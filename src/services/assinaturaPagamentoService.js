@@ -42,15 +42,6 @@ function dadosReversaoFinanceira(
     ""
   ).trim().toUpperCase();
 
-  if (
-    STATUS_PAGAMENTO_VALIDO.has(status) ||
-    tipoEvento === "PAYMENT_RESTORED"
-  ) {
-    return {
-      limpar_reversao: true,
-    };
-  }
-
   const parcial =
     status === "PARTIALLY_REFUNDED" ||
     tipoEvento === "PAYMENT_PARTIALLY_REFUNDED";
@@ -66,6 +57,15 @@ function dadosReversaoFinanceira(
     ].includes(tipoEvento);
 
   if (!parcial && !total) {
+    if (
+      STATUS_PAGAMENTO_VALIDO.has(status) ||
+      tipoEvento === "PAYMENT_RESTORED"
+    ) {
+      return {
+        limpar_reversao: true,
+      };
+    }
+
     return {};
   }
 
