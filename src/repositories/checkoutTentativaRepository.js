@@ -112,6 +112,7 @@ async function iniciar({
 async function vincularAssinatura(
   id,
   assinaturaId,
+  leaseTentativa,
   executor = db
 ) {
   const resultado = await executor.query(
@@ -121,15 +122,41 @@ async function vincularAssinatura(
       assinatura_id = COALESCE(assinatura_id, $2),
       updated_at = NOW()
     WHERE id = $1
+      AND status = 'PROCESSING'
+      AND lease_tentativa = $3
     RETURNING *
     `,
     [
       id,
-      assinaturaId
+      assinaturaId,
+      leaseTentativa
     ]
   );
 
   return resultado.rows[0] || null;
+}
+
+async function validarLease(
+  id,
+  leaseTentativa,
+  executor = db
+) {
+  const resultado = await executor.query(
+    `
+    SELECT id
+    FROM checkout_tentativas
+    WHERE id = $1
+      AND status = 'PROCESSING'
+      AND lease_tentativa = $2
+    LIMIT 1
+    `,
+    [
+      id,
+      leaseTentativa
+    ]
+  );
+
+  return Boolean(resultado.rows[0]);
 }
 
 async function concluir(id, resposta, leaseTentativa) {
@@ -182,6 +209,7 @@ async function marcarFalha(id, erro, leaseTentativa) {
 module.exports = {
   iniciar,
   vincularAssinatura,
+  validarLease,
   concluir,
   marcarFalha
 };
