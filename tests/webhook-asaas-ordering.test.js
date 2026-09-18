@@ -219,6 +219,54 @@ describe(
     );
 
     test(
+      "estorno negado preserva o estado recebido do pagamento",
+      async () => {
+        webhookEventoRepository
+          .reservarPorId
+          .mockResolvedValue({
+            id: 14,
+            evento_id: "evt_refund_denied",
+            evento_criado_em:
+              "2026-09-13 20:05:30",
+            tipo_evento:
+              "PAYMENT_REFUND_DENIED",
+            recurso_id: "pay_received",
+            tentativas: 1,
+            lease_tentativa: 1,
+            payload: {
+              payment: {
+                id: "pay_received",
+                status: "RECEIVED"
+              }
+            }
+          });
+
+        ativarAssinaturaPorPagamento
+          .mockResolvedValue({
+            id: 23,
+            negocio_id: 10,
+            valor: 99.9
+          });
+
+        const resultado =
+          await processarEventoWebhook(14);
+
+        expect(
+          ativarAssinaturaPorPagamento
+        ).toHaveBeenCalledWith(
+          "pay_received",
+          "RECEIVED",
+          expect.objectContaining({
+            webhookTipoEvento:
+              "PAYMENT_REFUND_DENIED"
+          })
+        );
+        expect(resultado.status)
+          .toBe("PROCESSED");
+      }
+    );
+
+    test(
       "evento de reembolso prevalece sobre status atrasado do payload",
       async () => {
         webhookEventoRepository
