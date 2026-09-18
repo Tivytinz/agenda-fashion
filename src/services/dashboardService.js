@@ -438,7 +438,8 @@ async function buscarDashboardDono({
     dashboardRepository
       .buscarPerformanceNegocio(
         negocioId,
-        filtroEventos
+        filtroEventos,
+        filtro
       ),
 
     dashboardRepository
