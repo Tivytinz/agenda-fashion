@@ -60,8 +60,7 @@ function podeCancelarAgendamentoOperacional(agendamento) {
 
   return Boolean(
     agendamento?.agendamento_id &&
-    STATUS_ATIVOS.has(status) &&
-    !agendamento?.pode_marcar_falta
+    STATUS_ATIVOS.has(status)
   );
 }
 
