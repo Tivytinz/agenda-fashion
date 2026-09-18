@@ -76,6 +76,7 @@ async function cancelarOperacional(req, res, next) {
         agendamentoId: req.params.id,
         negocioId: req.agendaContexto?.negocioId,
         usuarioId: req.user?.id,
+        motivoTipo: req.body?.motivo_tipo,
         motivo: req.body?.motivo,
       });
 
