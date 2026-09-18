@@ -288,6 +288,27 @@ async function listarAgendamentosProfissionalPorPeriodo({
         CASE
           WHEN a.negocio_id = contexto.negocio_id
             AND a.status IN ('agendado', 'confirmado')
+            AND a.atendimento_iniciado_em IS NULL
+          THEN TRUE
+          ELSE FALSE
+        END AS pode_reagendar,
+        CASE
+          WHEN a.negocio_id = contexto.negocio_id
+            AND a.status IN ('agendado', 'confirmado')
+            AND a.atendimento_iniciado_em IS NULL
+            AND (a.data::timestamp + a.horario::time) <= (
+              NOW() AT TIME ZONE COALESCE(
+                NULLIF(n_agendamento.fuso_horario, ''),
+                'America/Sao_Paulo'
+              )
+            )
+          THEN TRUE
+          ELSE FALSE
+        END AS pode_iniciar_atendimento,
+        CASE
+          WHEN a.negocio_id = contexto.negocio_id
+            AND a.status IN ('agendado', 'confirmado')
+            AND a.atendimento_iniciado_em IS NULL
             AND (
               a.data::timestamp +
               a.horario::time +
@@ -393,6 +414,27 @@ async function listarAgendamentosProfissionaisDoNegocioPorPeriodo({
         CASE
           WHEN a.negocio_id = $1
             AND a.status IN ('agendado', 'confirmado')
+            AND a.atendimento_iniciado_em IS NULL
+          THEN TRUE
+          ELSE FALSE
+        END AS pode_reagendar,
+        CASE
+          WHEN a.negocio_id = $1
+            AND a.status IN ('agendado', 'confirmado')
+            AND a.atendimento_iniciado_em IS NULL
+            AND (a.data::timestamp + a.horario::time) <= (
+              NOW() AT TIME ZONE COALESCE(
+                NULLIF(n_agendamento.fuso_horario, ''),
+                'America/Sao_Paulo'
+              )
+            )
+          THEN TRUE
+          ELSE FALSE
+        END AS pode_iniciar_atendimento,
+        CASE
+          WHEN a.negocio_id = $1
+            AND a.status IN ('agendado', 'confirmado')
+            AND a.atendimento_iniciado_em IS NULL
             AND (
               a.data::timestamp +
               a.horario::time +
