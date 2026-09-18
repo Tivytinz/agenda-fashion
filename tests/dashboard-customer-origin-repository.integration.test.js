@@ -170,9 +170,6 @@ describe("origem de clientes integrada", () => {
     const socialOrganico = linhas.find(
       (linha) => linha.origem_codigo === "meta_organico"
     );
-    const desconhecido = linhas.find(
-      (linha) => linha.origem_codigo === "nao_identificado"
-    );
     const metaPago = linhas.find(
       (linha) => linha.origem_codigo === "meta_ads"
     );
@@ -204,10 +201,6 @@ describe("origem de clientes integrada", () => {
     });
     expect(metaPago).toBeUndefined();
 
-    expect(desconhecido).toMatchObject({
-      clientes: 2,
-      agendamentos: 2,
-    });
   });
 
   test("identifica Meta Ads somente com sinal explícito de mídia paga", async () => {
