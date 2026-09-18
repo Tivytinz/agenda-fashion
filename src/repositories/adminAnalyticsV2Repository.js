@@ -398,6 +398,7 @@ async function buscarReceita(periodo = "30") {
   const seguro = periodoSeguro(periodo);
   const filtroCheckout = filtroTimestamp(seguro, "ct.created_at");
   const filtroPagamento = filtroData(seguro, "pg.data_pagamento");
+  const filtroAjuste = filtroTimestamp(seguro, "pg.updated_at");
   const filtroPrimeiroPagamento = filtroData(seguro, "fp.data_pagamento");
 
   const [resumo, planos] = await Promise.all([
@@ -477,7 +478,7 @@ async function buscarReceita(periodo = "30") {
           ON pl.id = a.plano_id
         WHERE pg.data_pagamento IS NOT NULL
           AND pl.valor > 0
-          ${filtroPagamento}
+          ${filtroAjuste}
       ),
       primeiros AS (
         SELECT DISTINCT ON (pg.assinatura_id)
