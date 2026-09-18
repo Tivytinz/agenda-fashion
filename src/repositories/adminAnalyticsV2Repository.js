@@ -121,7 +121,7 @@ async function buscarVisaoGeral(periodo = "30") {
         ON a.id = pg.assinatura_id
       INNER JOIN planos pl
         ON pl.id = a.plano_id
-      WHERE UPPER(pg.status) IN ('CONFIRMED', 'RECEIVED')
+      WHERE UPPER(pg.status) IN ('CONFIRMED', 'RECEIVED', 'RECEIVED_IN_CASH')
         AND pg.data_pagamento IS NOT NULL
         AND pl.valor > 0
         ${filtroPagamento}
@@ -322,7 +322,7 @@ async function buscarReceita(periodo = "30") {
                 INNER JOIN planos cpl
                   ON cpl.id = ca.plano_id
                 WHERE cpg.assinatura_id = ct.assinatura_id
-                  AND UPPER(cpg.status) IN ('CONFIRMED', 'RECEIVED')
+                  AND UPPER(cpg.status) IN ('CONFIRMED', 'RECEIVED', 'RECEIVED_IN_CASH')
                   AND cpg.data_pagamento IS NOT NULL
                   AND cpl.valor > 0
               )
@@ -333,16 +333,46 @@ async function buscarReceita(periodo = "30") {
       ),
       pagamentos_resumo AS (
         SELECT
-          COUNT(*)::INT AS pagamentos_confirmados,
-          COUNT(DISTINCT a.negocio_id)::INT AS negocios_pagantes,
-          COALESCE(SUM(pg.valor), 0)::NUMERIC(14,2) AS receita_total
+          COUNT(*) FILTER (
+            WHERE UPPER(pg.status) IN (
+              'CONFIRMED',
+              'RECEIVED',
+              'RECEIVED_IN_CASH'
+            )
+          )::INT AS pagamentos_confirmados,
+          COUNT(DISTINCT a.negocio_id) FILTER (
+            WHERE UPPER(pg.status) IN (
+              'CONFIRMED',
+              'RECEIVED',
+              'RECEIVED_IN_CASH'
+            )
+          )::INT AS negocios_pagantes,
+          COALESCE(SUM(pg.valor) FILTER (
+            WHERE UPPER(pg.status) IN (
+              'CONFIRMED',
+              'RECEIVED',
+              'RECEIVED_IN_CASH'
+            )
+          ), 0)::NUMERIC(14,2) AS receita_total,
+          COALESCE(SUM(pg.valor), 0)::NUMERIC(14,2) AS receita_bruta,
+          COUNT(*) FILTER (
+            WHERE UPPER(pg.status) = 'REFUNDED'
+          )::INT AS pagamentos_reembolsados,
+          COALESCE(SUM(pg.valor) FILTER (
+            WHERE UPPER(pg.status) = 'REFUNDED'
+          ), 0)::NUMERIC(14,2) AS valor_reembolsado,
+          (
+            COALESCE(SUM(pg.valor), 0) -
+            COALESCE(SUM(pg.valor) FILTER (
+              WHERE UPPER(pg.status) = 'REFUNDED'
+            ), 0)
+          )::NUMERIC(14,2) AS receita_liquida
         FROM pagamentos pg
         INNER JOIN assinaturas a
           ON a.id = pg.assinatura_id
         INNER JOIN planos pl
           ON pl.id = a.plano_id
-        WHERE UPPER(pg.status) IN ('CONFIRMED', 'RECEIVED')
-          AND pg.data_pagamento IS NOT NULL
+        WHERE pg.data_pagamento IS NOT NULL
           AND pl.valor > 0
           ${filtroPagamento}
       ),
@@ -351,7 +381,7 @@ async function buscarReceita(periodo = "30") {
           pg.assinatura_id,
           pg.id AS pagamento_id
         FROM pagamentos pg
-        WHERE UPPER(pg.status) IN ('CONFIRMED', 'RECEIVED')
+        WHERE UPPER(pg.status) IN ('CONFIRMED', 'RECEIVED', 'RECEIVED_IN_CASH')
           AND pg.data_pagamento IS NOT NULL
         ORDER BY
           pg.assinatura_id,
@@ -389,6 +419,10 @@ async function buscarReceita(periodo = "30") {
         p.pagamentos_confirmados,
         p.negocios_pagantes,
         p.receita_total,
+        p.receita_bruta,
+        p.pagamentos_reembolsados,
+        p.valor_reembolsado,
+        p.receita_liquida,
         fp.novas_assinaturas_pagas,
         fp.receita_primeiro_pagamento,
         a.assinaturas_pagas_ativas
