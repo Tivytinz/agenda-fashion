@@ -106,13 +106,19 @@ describe(
           id: 1,
           status: "COMPLETED"
         });
+      checkoutTentativaRepository
+        .vincularAssinatura
+        .mockResolvedValue({
+          id: 1,
+          status: "PROCESSING"
+        });
 
       checkoutRepository
         .bloquearCheckoutDoNegocio
         .mockResolvedValue();
 
       checkoutRepository
-        .buscarAssinaturaPendenteEquivalente
+        .buscarAssinaturaPendenteDoNegocio
         .mockResolvedValue(null);
     });
 
@@ -215,7 +221,7 @@ describe(
     );
 
     test(
-      "impede outro PIX pendente para o mesmo negócio e plano",
+      "impede outro PIX pendente no mesmo negócio mesmo para outro plano",
       async () => {
         checkoutTentativaRepository
           .iniciar
@@ -231,11 +237,12 @@ describe(
           });
 
         checkoutRepository
-          .buscarAssinaturaPendenteEquivalente
+          .buscarAssinaturaPendenteDoNegocio
           .mockResolvedValue({
             id: 44,
             negocio_id: 7,
-            plano_id: 3,
+            plano_id: 4,
+            plano_nome: "Salão",
             status: "PENDING"
           });
 
@@ -250,7 +257,7 @@ describe(
         ).rejects.toMatchObject({
           statusCode: 409,
           message:
-            "Já existe um PIX pendente para este plano. Aguarde a confirmação ou o vencimento da cobrança."
+            "Já existe um PIX pendente para o plano Salão. Conclua ou aguarde o vencimento antes de gerar outra cobrança."
         });
 
         expect(
@@ -480,6 +487,15 @@ describe(
                 true
             })
           );
+        expect(
+          checkoutTentativaRepository
+            .vincularAssinatura
+        ).toHaveBeenCalledWith(
+          31,
+          44,
+          1,
+          mockClient
+        );
         expect(registrarPagamento)
           .toHaveBeenCalledTimes(2);
         expect(registrarPagamento)
