@@ -69,8 +69,14 @@ function dadosReversaoFinanceira(
     return {};
   }
 
+  const valorBruto =
+    dadosPagamento?.refundedValue;
   const valorInformado =
-    Number(dadosPagamento?.refundedValue);
+    valorBruto === null ||
+    valorBruto === undefined ||
+    valorBruto === ""
+      ? NaN
+      : Number(valorBruto);
   const valorConhecido =
     total ||
     (
