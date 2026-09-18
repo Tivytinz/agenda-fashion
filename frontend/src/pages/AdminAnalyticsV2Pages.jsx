@@ -691,7 +691,9 @@ export function AdminRevenueV2Page() {
         return (
           <>
             <section className="admin-command-summary-grid is-period-summary">
-              <MetricCard label="Receita confirmada" hint="primeiros pagamentos + renovações no período" tone={number(summary.receitaTotal) > 0 ? "success" : "neutral"} value={formatCurrency(summary.receitaTotal)} />
+              <MetricCard label="Receita bruta" hint="cobranças que tiveram pagamento no período" value={formatCurrency(summary.receitaBruta)} />
+              <MetricCard label="Reembolsos" hint={`${formatNumber(summary.pagamentosReembolsados)} pagamento(s) reembolsado(s)`} tone={number(summary.valorReembolsado) > 0 ? "warning" : "neutral"} value={formatCurrency(summary.valorReembolsado)} />
+              <MetricCard label="Receita líquida" hint="receita bruta menos reembolsos identificados" tone={number(summary.receitaLiquida) > 0 ? "success" : "neutral"} value={formatCurrency(summary.receitaLiquida)} />
               <MetricCard label="Receita de 1º pagamento" hint="monetização inicial, sem renovações" value={formatCurrency(summary.receitaPrimeiroPagamento)} />
               <MetricCard label="Novas assinaturas pagas" hint="primeiro pagamento válido no período" value={formatNumber(summary.novasAssinaturasPagas)} />
               <MetricCard label="Assinaturas pagas ativas" hint="estoque atual, não criação no período" value={formatNumber(summary.assinaturasPagasAtivas)} />
