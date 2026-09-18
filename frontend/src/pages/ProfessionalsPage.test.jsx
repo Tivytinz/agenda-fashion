@@ -12,6 +12,14 @@ vi.mock("../auth/SessionContext", () => ({ useSession: vi.fn() }));
 beforeEach(() => {
   apiRequest.mockReset();
   useSession.mockReturnValue({ usuario: { id: 1 } });
+
+  HTMLDialogElement.prototype.showModal = function showModal() {
+    this.setAttribute("open", "");
+  };
+
+  HTMLDialogElement.prototype.close = function close() {
+    this.removeAttribute("open");
+  };
 });
 
 afterEach(cleanup);
