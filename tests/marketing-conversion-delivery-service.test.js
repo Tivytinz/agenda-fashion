@@ -130,6 +130,76 @@ beforeEach(() => {
 });
 
 test(
+  "outbox distingue pagamentos sem alterar a chave externa da assinatura",
+  async () => {
+    deliveryRepository
+      .enfileirar
+      .mockResolvedValue({
+        novo: true,
+        entrega: { id: 1 }
+      });
+
+    await service.enfileirarAssinaturaAtivada(
+      payload
+    );
+
+    expect(
+      deliveryRepository.enfileirar
+    ).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({
+        provedor: "meta",
+        chaveEvento:
+          "assinatura:11;pagamento:pay_123"
+      })
+    );
+    expect(
+      deliveryRepository.enfileirar
+    ).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({
+        provedor: "google",
+        chaveEvento:
+          "assinatura:11;pagamento:pay_123"
+      })
+    );
+  }
+);
+
+test(
+  "pagamento invalidado é ignorado sem consumir retries",
+  async () => {
+    deliveryRepository
+      .reservarProximo
+      .mockResolvedValueOnce({
+        id: 10,
+        provedor: "meta",
+        payload,
+        lease_tentativa: 1
+      });
+    marketingConversaoRepository
+      .buscarPagamentoConfirmado
+      .mockResolvedValueOnce(null);
+
+    await service.processarFilaConversoes(1);
+
+    expect(
+      deliveryRepository.marcarIgnorado
+    ).toHaveBeenCalledWith(
+      10,
+      1,
+      "pagamento_invalido"
+    );
+    expect(
+      metaAdsRepository.ehPrimeiroPagamentoAssinatura
+    ).not.toHaveBeenCalled();
+    expect(
+      deliveryRepository.marcarFalha
+    ).not.toHaveBeenCalled();
+  }
+);
+
+test(
   "Meta usa event_id estável e o valor real do pagamento confirmado",
   async () => {
     deliveryRepository
