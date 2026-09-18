@@ -40,6 +40,21 @@ describe("firstPartyAnalytics", () => {
     expect(acquisition).not.toHaveProperty("gclid");
   });
 
+  it("preserva origem dos links próprios do AF sem depender de click id publicitário", () => {
+    window.history.replaceState(
+      {},
+      "",
+      "/negocio/studio-aurora?af_source=agenda_fashion&af_medium=share&af_content=negocio"
+    );
+
+    expect(captureAcquisition()).toMatchObject({
+      afSource: "agenda_fashion",
+      afMedium: "share",
+      afContent: "negocio",
+      landingPage: "/negocio/studio-aurora"
+    });
+  });
+
   it("inclui click ids somente depois do consentimento de marketing", () => {
     setMarketingConsent(MARKETING_CONSENT.GRANTED);
     window.history.replaceState(
