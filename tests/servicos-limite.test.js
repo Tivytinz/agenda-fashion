@@ -262,6 +262,17 @@ describe("Limite de serviços", () => {
       });
 
       expect(
+        profissionalServicosRepository
+          .habilitarServicoProfissional
+      ).toHaveBeenCalledWith({
+        negocioId: 7,
+        profissionalId: 1,
+        servicoId: 10,
+        habilitadoPorUsuarioId: 1,
+        executor: client,
+      });
+
+      expect(
         servicosRepository
           .adicionarEspecialidadeNegocio
       ).toHaveBeenCalledWith(
