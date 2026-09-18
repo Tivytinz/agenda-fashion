@@ -218,6 +218,56 @@ describe(
       }
     );
 
+    test(
+      "evento de reembolso prevalece sobre status atrasado do payload",
+      async () => {
+        webhookEventoRepository
+          .reservarPorId
+          .mockResolvedValue({
+            id: 13,
+            evento_id: "evt_refunded",
+            evento_criado_em:
+              "2026-09-13 20:06:00",
+            tipo_evento: "PAYMENT_REFUNDED",
+            recurso_id: "pay_refunded",
+            tentativas: 1,
+            lease_tentativa: 1,
+            payload: {
+              payment: {
+                id: "pay_refunded",
+                status: "RECEIVED"
+              }
+            }
+          });
+
+        suspenderAssinaturaPorPagamento
+          .mockResolvedValue({
+            id: 22,
+            negocio_id: 9,
+            status: "REFUNDED"
+          });
+
+        const resultado =
+          await processarEventoWebhook(13);
+
+        expect(
+          suspenderAssinaturaPorPagamento
+        ).toHaveBeenCalledWith(
+          expect.objectContaining({
+            id: "pay_refunded",
+            status: "REFUNDED",
+            webhookTipoEvento:
+              "PAYMENT_REFUNDED"
+          })
+        );
+        expect(
+          ativarAssinaturaPorPagamento
+        ).not.toHaveBeenCalled();
+        expect(resultado.status)
+          .toBe("PROCESSED");
+      }
+    );
+
     test.each([
       "PAYMENT_CHARGEBACK_DISPUTE",
       "PAYMENT_AWAITING_CHARGEBACK_REVERSAL"
