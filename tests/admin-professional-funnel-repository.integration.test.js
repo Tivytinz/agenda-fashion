@@ -335,7 +335,7 @@ describe("adminProfessionalFunnelRepository integrado", () => {
     expect(encontrada.primeiros_agendamentos).toBe(1);
   });
 
-  test("reembolso do primeiro pagamento histórico zera a conversão da aquisição", async () => {
+  test("usa o primeiro pagamento ainda válido quando um pagamento anterior foi reembolsado", async () => {
     await db.query(
       `
       INSERT INTO pagamentos (
@@ -361,6 +361,25 @@ describe("adminProfessionalFunnelRepository integrado", () => {
           FROM pagamentos
           WHERE assinatura_id = $1
         )
+      `,
+      [assinaturaId]
+    );
+
+    const linhas = await repository.listarPorCampanha("today");
+    const encontrada = linhas.find((item) => item.campanha === utmCampaign);
+
+    expect(encontrada).toMatchObject({
+      assinaturas_ativadas: 1,
+      receita_primeiro_pagamento_centavos: "9990",
+    });
+  });
+
+  test("reembolso sem outro pagamento válido remove a conversão líquida da aquisição", async () => {
+    await db.query(
+      `
+      UPDATE pagamentos
+      SET status = 'REFUNDED'
+      WHERE assinatura_id = $1
       `,
       [assinaturaId]
     );
