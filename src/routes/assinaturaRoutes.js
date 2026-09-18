@@ -16,4 +16,10 @@ router.delete(
   assinaturaController.cancelarMinhaAssinatura
 );
 
+router.post(
+  "/minha-assinatura/reativar",
+  auth,
+  assinaturaController.reativarMinhaAssinatura
+);
+
 module.exports = router;
