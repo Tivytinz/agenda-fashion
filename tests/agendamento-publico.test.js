@@ -460,6 +460,14 @@ describe(
             .id
         ).toBeTruthy();
 
+        expect(
+          resposta.body
+            .agendamento
+            .status
+        ).toBe(
+          "confirmado"
+        );
+
         const agendamentoId =
           Number(
             resposta.body
@@ -631,6 +639,14 @@ describe(
             .agendamento
             .id
         ).toBeTruthy();
+
+        expect(
+          resposta.body
+            .agendamento
+            .status
+        ).toBe(
+          "confirmado"
+        );
 
         const agendamentoId =
           resposta.body
