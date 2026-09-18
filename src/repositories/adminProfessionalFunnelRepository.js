@@ -178,11 +178,11 @@ async function listarPorCampanha(periodo = "30", maturidade = {}) {
       LEFT JOIN LATERAL (
         SELECT
           CASE
-            WHEN UPPER(pg.status) IN ('CONFIRMED', 'RECEIVED')
+            WHEN UPPER(pg.status) IN ('CONFIRMED', 'RECEIVED', 'RECEIVED_IN_CASH')
               THEN ROUND(pg.valor * 100)::BIGINT
             ELSE 0::BIGINT
           END AS valor_centavos,
-          UPPER(pg.status) IN ('CONFIRMED', 'RECEIVED') AS pagamento_valido,
+          UPPER(pg.status) IN ('CONFIRMED', 'RECEIVED', 'RECEIVED_IN_CASH') AS pagamento_valido,
           pg.data_pagamento AS primeiro_pagamento_em
         FROM assinaturas ass
         INNER JOIN planos p
