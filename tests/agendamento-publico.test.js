@@ -184,6 +184,9 @@ describe(
     const usuariosCriados =
       new Set();
 
+    const clientsCriados =
+      new Set();
+
     beforeAll(
       async () => {
         cenarioTeste =
@@ -218,6 +221,27 @@ describe(
               `,
               [
                 agendamentoIds,
+              ]
+            );
+          }
+
+          const clientIds =
+            Array.from(
+              clientsCriados
+            );
+
+          if (
+            clientIds.length > 0
+          ) {
+            await db.query(
+              `
+                DELETE FROM clientes
+
+                WHERE id =
+                  ANY($1::BIGINT[])
+              `,
+              [
+                clientIds,
               ]
             );
           }
@@ -436,13 +460,59 @@ describe(
             .id
         ).toBeTruthy();
 
-        agendamentosCriados.add(
+        const agendamentoId =
           Number(
             resposta.body
               .agendamento
               .id
-          )
+          );
+
+        const clientId =
+          Number(
+            resposta.body
+              .agendamento
+              .client_id
+          );
+
+        expect(clientId)
+          .toBeGreaterThan(0);
+
+        agendamentosCriados.add(
+          agendamentoId
         );
+
+        clientsCriados.add(
+          clientId
+        );
+
+        const identidade =
+          await db.query(
+            `
+              SELECT
+                c.id,
+                c.usuario_id,
+                c.nome,
+                c.whatsapp_normalizado
+              FROM agendamentos a
+              INNER JOIN clientes c
+                ON c.id = a.client_id
+              WHERE a.id = $1
+            `,
+            [
+              agendamentoId,
+            ]
+          );
+
+        expect(
+          identidade.rows[0]
+        ).toMatchObject({
+          id:
+            clientId,
+          usuario_id:
+            null,
+          nome:
+            "Visitante Teste",
+        });
       }
     );
 
@@ -570,6 +640,50 @@ describe(
         agendamentosCriados.add(
           Number(
             agendamentoId
+          )
+        );
+
+        const clientId =
+          Number(
+            resposta.body
+              .agendamento
+              .client_id
+          );
+
+        expect(clientId)
+          .toBeGreaterThan(0);
+
+        clientsCriados.add(
+          clientId
+        );
+
+        const identidade =
+          await db.query(
+            `
+              SELECT
+                c.id,
+                c.usuario_id,
+                c.nome,
+                c.whatsapp_normalizado
+              FROM agendamentos a
+              INNER JOIN clientes c
+                ON c.id = a.client_id
+              WHERE a.id = $1
+            `,
+            [
+              agendamentoId,
+            ]
+          );
+
+        expect(
+          Number(
+            identidade.rows[0]
+              ?.usuario_id
+          )
+        ).toBe(
+          Number(
+            cadastro.body
+              .usuario.id
           )
         );
 
