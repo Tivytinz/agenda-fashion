@@ -282,6 +282,76 @@ async function registrarCancelamento(
   return result.rows[0] || null;
 }
 
+async function reservarReativacao(
+  client,
+  {
+    assinaturaId,
+    negocioId
+  }
+) {
+  const executor = client || db;
+
+  const result = await executor.query(
+    `
+    UPDATE assinaturas
+    SET
+      status = 'REACTIVATING',
+      updated_at = NOW()
+    WHERE id = $1
+      AND negocio_id = $2
+      AND ativo = TRUE
+      AND (
+        UPPER(status) IN (
+          'CANCELED',
+          'CANCELLED'
+        )
+        OR (
+          UPPER(status) = 'REACTIVATING'
+          AND updated_at
+            < NOW() - INTERVAL '2 minutes'
+        )
+      )
+    RETURNING *
+    `,
+    [
+      assinaturaId,
+      negocioId
+    ]
+  );
+
+  return result.rows[0] || null;
+}
+
+async function restaurarCancelamentoReativacao(
+  client,
+  {
+    assinaturaId,
+    negocioId
+  }
+) {
+  const executor = client || db;
+
+  const result = await executor.query(
+    `
+    UPDATE assinaturas
+    SET
+      status = 'CANCELED',
+      updated_at = NOW()
+    WHERE id = $1
+      AND negocio_id = $2
+      AND ativo = TRUE
+      AND UPPER(status) = 'REACTIVATING'
+    RETURNING *
+    `,
+    [
+      assinaturaId,
+      negocioId
+    ]
+  );
+
+  return result.rows[0] || null;
+}
+
 async function registrarReativacao(
   client,
   {
@@ -311,10 +381,7 @@ async function registrarReativacao(
     WHERE id = $1
       AND negocio_id = $2
       AND ativo = TRUE
-      AND UPPER(status) IN (
-        'CANCELED',
-        'CANCELLED'
-      )
+      AND UPPER(status) = 'REACTIVATING'
     RETURNING *
     `,
     [
@@ -521,6 +588,8 @@ module.exports = {
   buscarUltimaAssinaturaPorNegocio,
   buscarAssinaturaPendentePorNegocio,
   registrarCancelamento,
+  reservarReativacao,
+  restaurarCancelamentoReativacao,
   registrarReativacao,
   expirarCancelamentoSeNecessario,
   buscarPlano,
