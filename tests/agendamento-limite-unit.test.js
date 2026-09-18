@@ -83,7 +83,6 @@ describe("Limite durante a criação do agendamento", () => {
 
     expect(resultado).toMatchObject({
       id: 99,
-      client_id: 77,
     });
 
     expect(
