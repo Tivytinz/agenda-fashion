@@ -54,8 +54,10 @@ const PAGE_LABELS = {
 const EVENT_LABELS = {
   business_creation_started: "Criação de negócio iniciada",
   first_service_creation_started: "Primeiro serviço iniciado",
+  profile_viewed: "Perfil visualizado",
   profile_shared: "Perfil compartilhado",
   booking_started: "Agendamento iniciado",
+  booking_completed: "Agendamento concluído",
   checkout_viewed: "Checkout visualizado"
 };
 
