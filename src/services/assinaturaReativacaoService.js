@@ -18,8 +18,23 @@ function referenciaReativacao(
   assinatura,
   proximaCobranca
 ) {
+  const tentativa =
+    Number(
+      assinatura?.reativacao_tentativa
+    );
+
+  if (
+    !Number.isInteger(tentativa) ||
+    tentativa < 1
+  ) {
+    throw new Error(
+      "Tentativa de reativação inválida."
+    );
+  }
+
   return (
     `assinatura-reativada:${assinatura.id};` +
+    `tentativa:${tentativa};` +
     `inicio:${proximaCobranca}`
   );
 }
