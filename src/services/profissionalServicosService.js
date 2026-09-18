@@ -136,6 +136,14 @@ async function atualizarServicosProfissional({
   const resultado =
     await db.executarTransacao(
       async (client) => {
+        await profissionalServicosRepository
+          .bloquearElegibilidadeNegocio({
+            negocioId:
+              dono.negocio_id,
+            executor:
+              client,
+          });
+
         const vinculo =
           await profissionalServicosRepository
             .buscarVinculoAtivoProfissional({
