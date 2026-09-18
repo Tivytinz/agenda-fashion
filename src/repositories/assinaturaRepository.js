@@ -190,19 +190,31 @@ async function buscarAssinaturaPendentePorNegocio(negocioId) {
         0
       )
       AND (
-        a.created_at >= NOW() - INTERVAL '15 minutes'
+        GREATEST(
+          a.created_at,
+          a.updated_at
+        ) >= NOW() - INTERVAL '15 minutes'
         OR EXISTS (
           SELECT 1
           FROM pagamentos pg
           WHERE pg.assinatura_id = a.id
-            AND UPPER(pg.status) IN (
-              'PENDING',
-              'CREATED',
-              'AWAITING_PAYMENT'
-            )
             AND (
-              pg.data_vencimento IS NULL
-              OR pg.data_vencimento >= CURRENT_DATE
+              (
+                UPPER(pg.status) IN (
+                  'PENDING',
+                  'CREATED',
+                  'AWAITING_PAYMENT'
+                )
+                AND (
+                  pg.data_vencimento IS NULL
+                  OR pg.data_vencimento >= CURRENT_DATE
+                )
+              )
+              OR UPPER(pg.status) IN (
+                'CONFIRMED',
+                'RECEIVED',
+                'RECEIVED_IN_CASH'
+              )
             )
         )
       )
@@ -353,27 +365,72 @@ async function buscarUltimoPagamentoPendente(
   const result = await db.query(
     `
     SELECT
-      id,
-      asaas_payment_id,
-      valor,
-      forma_pagamento,
-      status,
-      data_vencimento,
-      pix_copia_cola,
-      pix_qrcode,
-      created_at
-    FROM pagamentos
-    WHERE assinatura_id = $1
-      AND UPPER(status) IN (
-        'PENDING',
-        'CREATED',
-        'AWAITING_PAYMENT'
-      )
+      pg.id,
+      pg.asaas_payment_id,
+      pg.valor,
+      pg.forma_pagamento,
+      pg.status,
+      pg.data_vencimento,
+      pg.data_pagamento,
+      pg.pix_copia_cola,
+      pg.pix_qrcode,
+      pg.created_at,
+      we.status AS webhook_status,
+      we.tentativas AS webhook_tentativas,
+      we.proxima_tentativa_em,
+      (
+        we.status = 'FAILED'
+        AND we.tentativas >= 10
+        AND we.proxima_tentativa_em IS NULL
+      ) AS ativacao_requer_atencao
+    FROM pagamentos pg
+    LEFT JOIN LATERAL (
+      SELECT
+        w.status,
+        w.tentativas,
+        w.proxima_tentativa_em
+      FROM webhook_eventos w
+      WHERE w.provedor = 'asaas'
+        AND w.recurso_id = pg.asaas_payment_id
+        AND (
+          w.tipo_evento IN (
+            'PAYMENT_CONFIRMED',
+            'PAYMENT_RECEIVED'
+          )
+          OR UPPER(
+            COALESCE(
+              w.payload -> 'payment' ->> 'status',
+              ''
+            )
+          ) IN (
+            'CONFIRMED',
+            'RECEIVED',
+            'RECEIVED_IN_CASH'
+          )
+        )
+      ORDER BY w.recebido_em DESC, w.id DESC
+      LIMIT 1
+    ) we ON TRUE
+    WHERE pg.assinatura_id = $1
       AND (
-        data_vencimento IS NULL
-        OR data_vencimento >= CURRENT_DATE
+        (
+          UPPER(pg.status) IN (
+            'PENDING',
+            'CREATED',
+            'AWAITING_PAYMENT'
+          )
+          AND (
+            pg.data_vencimento IS NULL
+            OR pg.data_vencimento >= CURRENT_DATE
+          )
+        )
+        OR UPPER(pg.status) IN (
+          'CONFIRMED',
+          'RECEIVED',
+          'RECEIVED_IN_CASH'
+        )
       )
-    ORDER BY id DESC
+    ORDER BY pg.id DESC
     LIMIT 1
     `,
     [assinaturaId]
