@@ -7,6 +7,7 @@ import { MediaThumb } from "../components/profile/MediaThumb";
 export function ProfessionalsPage() {
   const session = useSession();
   const removeDialogRef = useRef(null);
+  const servicesDialogRef = useRef(null);
   const [items, setItems] = useState(null);
   const [invite, setInvite] = useState("");
   const [lastInvite, setLastInvite] = useState(null);
@@ -15,6 +16,10 @@ export function ProfessionalsPage() {
   const [message, setMessage] = useState("");
   const [saving, setSaving] = useState(false);
   const [removeError, setRemoveError] = useState("");
+  const [servicesTarget, setServicesTarget] = useState(null);
+  const [serviceOptions, setServiceOptions] = useState([]);
+  const [servicesError, setServicesError] = useState("");
+  const [servicesLoading, setServicesLoading] = useState(false);
 
   const load = useCallback(() => {
     setError("");
@@ -46,6 +51,75 @@ export function ProfessionalsPage() {
       setInvite("");
     } catch (requestError) {
       setError(requestError.message);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function openServices(professional) {
+    setServicesTarget(professional);
+    setServiceOptions([]);
+    setServicesError("");
+    setServicesLoading(true);
+    servicesDialogRef.current?.showModal();
+
+    try {
+      const result = await apiRequest(
+        `/profissionais/${professional.id}/servicos`
+      );
+
+      setServiceOptions(
+        (result.servicos || []).map((service) => ({
+          ...service,
+          habilitada: Boolean(service.habilitada)
+        }))
+      );
+    } catch (requestError) {
+      setServicesError(requestError.message);
+    } finally {
+      setServicesLoading(false);
+    }
+  }
+
+  function toggleService(serviceId) {
+    setServiceOptions((current) =>
+      current.map((service) =>
+        Number(service.id) === Number(serviceId)
+          ? {
+              ...service,
+              habilitada: !service.habilitada
+            }
+          : service
+      )
+    );
+  }
+
+  async function saveServices() {
+    if (!servicesTarget) return;
+
+    setSaving(true);
+    setServicesError("");
+
+    try {
+      const result = await apiRequest(
+        `/profissionais/${servicesTarget.id}/servicos`,
+        {
+          method: "PUT",
+          body: {
+            servico_ids: serviceOptions
+              .filter((service) => service.habilitada)
+              .map((service) => service.id)
+          }
+        }
+      );
+
+      setMessage(result.mensagem || "Serviços atualizados.");
+      servicesDialogRef.current?.close();
+      setServicesTarget(null);
+      setServiceOptions([]);
+      load();
+    } catch (requestError) {
+      setServicesError(requestError.message);
     } finally {
       setSaving(false);
     }
@@ -170,6 +244,14 @@ export function ProfessionalsPage() {
                   </p>
                 </div>
 
+                <button
+                  className="text-button"
+                  onClick={() => void openServices(professional)}
+                  type="button"
+                >
+                  Configurar serviços
+                </button>
+
                 {!owner && (
                   <button
                     className="text-button danger-text"
@@ -188,6 +270,86 @@ export function ProfessionalsPage() {
           })}
         </section>
       )}
+
+      <dialog
+        aria-labelledby="professional-services-title"
+        className="cancel-dialog"
+        onCancel={(event) => {
+          if (saving || servicesLoading) {
+            event.preventDefault();
+          } else {
+            setServicesTarget(null);
+            setServiceOptions([]);
+          }
+        }}
+        ref={servicesDialogRef}
+      >
+        <div className="cancel-dialog-content">
+          <h2 id="professional-services-title">
+            Serviços de {servicesTarget?.nome || "profissional"}
+          </h2>
+
+          <p className="muted">
+            Marque somente os serviços que esta profissional pode executar.
+            Essa configuração controla a seleção pública e novos agendamentos.
+          </p>
+
+          {servicesLoading && (
+            <LoadingState>Carregando serviços...</LoadingState>
+          )}
+
+          {!servicesLoading && serviceOptions.length === 0 && !servicesError && (
+            <EmptyState title="Nenhum serviço cadastrado">
+              Cadastre um serviço antes de configurar a equipe.
+            </EmptyState>
+          )}
+
+          {!servicesLoading && serviceOptions.length > 0 && (
+            <div className="choice-list compact">
+              {serviceOptions.map((service) => (
+                <label className="choice-card" key={service.id}>
+                  <input
+                    checked={service.habilitada}
+                    onChange={() => toggleService(service.id)}
+                    type="checkbox"
+                  />
+                  <span>
+                    <strong>{service.nome}</strong>
+                    <small>{service.ativo ? "Ativo" : "Inativo"}</small>
+                  </span>
+                </label>
+              ))}
+            </div>
+          )}
+
+          {servicesError && (
+            <p className="form-error" role="alert">{servicesError}</p>
+          )}
+
+          <div className="cancel-dialog-actions">
+            <button
+              className="button button-secondary"
+              disabled={saving || servicesLoading}
+              onClick={() => {
+                servicesDialogRef.current?.close();
+                setServicesTarget(null);
+                setServiceOptions([]);
+              }}
+              type="button"
+            >
+              Cancelar
+            </button>
+            <button
+              className="button"
+              disabled={saving || servicesLoading || Boolean(servicesError)}
+              onClick={() => void saveServices()}
+              type="button"
+            >
+              {saving ? "Salvando..." : "Salvar serviços"}
+            </button>
+          </div>
+        </div>
+      </dialog>
 
       <dialog
         aria-labelledby="remove-professional-title"
