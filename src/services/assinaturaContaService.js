@@ -263,6 +263,11 @@ async function reativarMinhaAssinatura({ usuarioId }) {
   }
 
   await assinaturaRepository
+    .recuperarReativacaoAbandonada(
+      negocio.id
+    );
+
+  await assinaturaRepository
     .expirarCancelamentoSeNecessario(negocio.id);
 
   const assinatura = await assinaturaRepository
