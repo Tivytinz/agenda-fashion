@@ -176,7 +176,7 @@ describe("dashboardRepository integrado", () => {
       "(NOW() AT TIME ZONE 'America/Sao_Paulo')::date - INTERVAL '6 days' " +
       "AND (NOW() AT TIME ZONE 'America/Sao_Paulo')::date";
     const filtroAgendamentos =
-      "AND a.data BETWEEN " +
+      "AND (a.created_at AT TIME ZONE 'America/Sao_Paulo')::date BETWEEN " +
       "(NOW() AT TIME ZONE 'America/Sao_Paulo')::date - INTERVAL '6 days' " +
       "AND (NOW() AT TIME ZONE 'America/Sao_Paulo')::date";
 
