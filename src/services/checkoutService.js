@@ -153,7 +153,7 @@ async function obterAssinaturaCheckout({
     }
   }
 
-  const assinatura = await db.executarTransacao(
+  const resultado = await db.executarTransacao(
     async (transactionClient) => {
       await checkoutRepository
         .bloquearCheckoutDoNegocio(
