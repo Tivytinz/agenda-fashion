@@ -295,22 +295,34 @@ async function reagendarOperacional({
         );
       }
 
-      const profissionalDestino =
-        profissionalSolicitado ||
+      const profissionalAtual =
         Number(
           atual.profissional_id
         );
 
+      const profissionalDestino =
+        profissionalSolicitado ||
+        profissionalAtual;
+
       if (
         papel === "profissional" &&
         profissionalDestino !==
-          Number(
-            atual.profissional_id
-          )
+          profissionalAtual
       ) {
         throw criarErro(
           "A profissional responsável não pode transferir o agendamento para outra profissional.",
           403
+        );
+      }
+
+      if (
+        papel === "dono" &&
+        profissionalDestino !==
+          profissionalAtual
+      ) {
+        throw criarErro(
+          "A troca de responsável será habilitada quando a elegibilidade profissional-serviço estiver configurada.",
+          409
         );
       }
 
