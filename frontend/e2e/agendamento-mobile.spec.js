@@ -33,7 +33,7 @@ const PROFILE = {
       valor: 120
     }
   ],
-  profissionais: [{ id: 21, nome: "Ana" }]
+  profissionais: [{ id: 21, nome: "Ana", servico_ids: [11, 12, 13] }]
 };
 
 const AVAILABILITY = Array.from({ length: 7 }, (_, dayIndex) => ({
