@@ -484,6 +484,12 @@ export function AgendaWorkspacePage({ owner = false }) {
                 );
                 const slotCancellationUpdating = updating ===
                   `cancelamento-${slot.agendamento_id || "nenhum"}`;
+                const slotRescheduleUpdating = updating ===
+                  `reagendamento-${slot.agendamento_id || "nenhum"}`;
+                const slotUpdating =
+                  attendanceUpdating ||
+                  slotCancellationUpdating ||
+                  slotRescheduleUpdating;
                 const statusLabel = isBlockUpdating
                   ? slot.status === "livre" ? "Bloqueando..." : "Liberando..."
                   : getStatusLabel(slot.status);
@@ -505,26 +511,48 @@ export function AgendaWorkspacePage({ owner = false }) {
 
                 return (
                   <article
-                    className={`slot-card slot-card-static slot-${slot.status}${attendanceUpdating || slotCancellationUpdating ? " is-updating" : ""}`}
+                    className={`slot-card slot-card-static slot-${slot.status}${slotUpdating ? " is-updating" : ""}`}
                     key={`${slot.hora}-${slot.agendamento_id || ""}`}
                   >
                     <SlotSummary slot={slot} statusLabel={statusLabel} />
 
                     {isAppointment && ["agendado", "confirmado"].includes(slot.status) && (
                       <div className="slot-lifecycle-actions" aria-label="Gerenciar agendamento">
+                        {slot.pode_reagendar && (
+                          <button
+                            className="button button-secondary button-small"
+                            disabled={slotUpdating}
+                            onClick={() => openReschedule(slot)}
+                            type="button"
+                          >
+                            {slotRescheduleUpdating ? "Reagendando..." : "Reagendar"}
+                          </button>
+                        )}
                         {slot.pode_cancelar && (
                           <button
                             className="button button-secondary button-small slot-cancel-button"
-                            disabled={attendanceUpdating || slotCancellationUpdating}
+                            disabled={slotUpdating}
                             onClick={() => openCancellation(slot)}
                             type="button"
                           >
                             Cancelar agendamento
                           </button>
                         )}
+                        {slot.pode_iniciar_atendimento && (
+                          <button
+                            className="button button-small"
+                            disabled={slotUpdating}
+                            onClick={() => updateAttendance(slot, "iniciado")}
+                            type="button"
+                          >
+                            {updating === `atendimento-${slot.agendamento_id}-iniciado`
+                              ? "Iniciando..."
+                              : "Iniciar atendimento"}
+                          </button>
+                        )}
                         <button
                           className="button button-small"
-                          disabled={attendanceUpdating || slotCancellationUpdating || !slot.pode_marcar_realizado}
+                          disabled={slotUpdating || !slot.pode_marcar_realizado}
                           onClick={() => updateAttendance(slot, "realizado")}
                           type="button"
                         >
@@ -534,7 +562,7 @@ export function AgendaWorkspacePage({ owner = false }) {
                         </button>
                         <button
                           className="button button-secondary button-small"
-                          disabled={attendanceUpdating || slotCancellationUpdating || !slot.pode_marcar_falta}
+                          disabled={slotUpdating || !slot.pode_marcar_falta}
                           onClick={() => updateAttendance(slot, "falta")}
                           type="button"
                         >
