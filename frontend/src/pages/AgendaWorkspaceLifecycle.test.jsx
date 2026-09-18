@@ -168,6 +168,132 @@ describe("ciclo operacional na agenda", () => {
     ).not.toBeNull();
   });
 
+  it("CA-AG-17: proprietária só escolhe responsável habilitada para o serviço", async () => {
+    const ownerAgenda = {
+      agenda: [
+        {
+          data: "2026-09-15",
+          profissionais: [
+            {
+              id: 7,
+              nome: "Ana",
+              servico_ids: [11],
+              horarios: [
+                {
+                  hora: "10:00",
+                  status: "confirmado",
+                  agendamento_id: 42,
+                  profissional_id: 7,
+                  cliente: "Maria",
+                  servico_id: 11,
+                  servico: "Manicure",
+                  pode_cancelar: true,
+                  pode_reagendar: true,
+                  pode_iniciar_atendimento: false,
+                  pode_marcar_falta: false,
+                  pode_marcar_realizado: false,
+                },
+              ],
+            },
+            {
+              id: 8,
+              nome: "Bia",
+              servico_ids: [11],
+              horarios: [],
+            },
+            {
+              id: 9,
+              nome: "Carla",
+              servico_ids: [12],
+              horarios: [],
+            },
+          ],
+        },
+      ],
+    };
+
+    apiRequest.mockImplementation((path, options = {}) => {
+      if (path === "/agenda-geral") {
+        return Promise.resolve(ownerAgenda);
+      }
+
+      if (
+        path === "/agendamentos/42/reagendar-operacional" &&
+        options.method === "PATCH"
+      ) {
+        return Promise.resolve({
+          mensagem: "Agendamento reagendado com sucesso.",
+          agendamento: {
+            id: 42,
+            status: "confirmado",
+            profissional_id: 8,
+          },
+        });
+      }
+
+      return Promise.reject(
+        new Error(`Requisição inesperada: ${path}`)
+      );
+    });
+
+    render(<AgendaWorkspacePage owner />);
+
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Reagendar" })
+    );
+
+    const professionalSelect =
+      screen.getByLabelText("Profissional responsável");
+
+    expect(
+      screen.getByRole("option", { name: "Ana" })
+    ).not.toBeNull();
+    expect(
+      screen.getByRole("option", { name: "Bia" })
+    ).not.toBeNull();
+    expect(
+      screen.queryByRole("option", { name: "Carla" })
+    ).toBeNull();
+
+    fireEvent.change(professionalSelect, {
+      target: { value: "8" },
+    });
+
+    fireEvent.change(
+      screen.getByLabelText("Nova data"),
+      {
+        target: { value: "2026-09-20" },
+      }
+    );
+
+    fireEvent.change(
+      screen.getByLabelText("Novo horário"),
+      {
+        target: { value: "14:30" },
+      }
+    );
+
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: "Confirmar reagendamento",
+      })
+    );
+
+    await waitFor(() => {
+      expect(apiRequest).toHaveBeenCalledWith(
+        "/agendamentos/42/reagendar-operacional",
+        {
+          method: "PATCH",
+          body: {
+            data: "2026-09-20",
+            horario: "14:30",
+            profissional_id: 8,
+          },
+        }
+      );
+    });
+  });
+
   it("expõe falta separadamente do bloqueio de agenda", async () => {
     render(<AgendaWorkspacePage />);
 
