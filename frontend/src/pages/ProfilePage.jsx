@@ -66,6 +66,12 @@ export function ProfilePage() {
       )
     );
   }, [professionals, serviceId]);
+
+  const bookingProfessionals =
+    serviceId
+      ? eligibleProfessionals
+      : professionals;
+
   const profileImageSource = business?.foto_url ||
     business?.imagem_url ||
     business?.logo_url ||
@@ -426,7 +432,7 @@ export function ProfilePage() {
         onSelectService={selectService}
         onSelectTime={setTime}
         professionalId={professionalId}
-        professionals={eligibleProfessionals}
+        professionals={bookingProfessionals}
         scheduleMessage={scheduleMessage}
         scheduleStatus={scheduleStatus}
         selectedProfessional={selectedProfessional}
