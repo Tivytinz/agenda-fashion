@@ -1,5 +1,20 @@
 const db = require("../db/db");
 
+async function bloquearElegibilidadeNegocio({
+  negocioId,
+  executor = db,
+}) {
+  await executor.query(
+    `
+      SELECT pg_advisory_xact_lock(
+        hashtext('profissional_servicos'),
+        $1::integer
+      )
+    `,
+    [Number(negocioId)]
+  );
+}
+
 async function buscarVinculoAtivoProfissional({
   negocioId,
   profissionalId,
@@ -248,6 +263,7 @@ async function profissionalEstaElegivel({
 }
 
 module.exports = {
+  bloquearElegibilidadeNegocio,
   buscarVinculoAtivoProfissional,
   listarServicosProfissional,
   substituirServicosProfissional,
