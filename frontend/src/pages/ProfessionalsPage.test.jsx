@@ -52,6 +52,7 @@ describe("equipe por convite", () => {
     expect(
       apiRequest.mock.calls.filter(([path]) => path === "/profissionais")
     ).toHaveLength(1);
+  });
 
   it("CA-EQP-06: proprietária configura serviços atendidos pela profissional", async () => {
     apiRequest.mockImplementation((path, options = {}) => {
@@ -128,6 +129,5 @@ describe("equipe por convite", () => {
     expect(
       await screen.findByText("Serviços da profissional atualizados.")
     ).not.toBeNull();
-  });
   });
 });
