@@ -195,6 +195,24 @@ describe("reagendamento operacional persistido", () => {
 
     servicoId = servico.rows[0].id;
 
+    await db.query(
+      `
+        INSERT INTO profissional_servicos (
+          negocio_id,
+          profissional_id,
+          servico_id,
+          habilitado_por_usuario_id
+        )
+        VALUES ($1, $2, $3, $4)
+      `,
+      [
+        negocioId,
+        profissional.id,
+        servicoId,
+        dono.id,
+      ]
+    );
+
     async function criarAgendamento({
       data,
       horario,
@@ -477,8 +495,8 @@ describe("reagendamento operacional persistido", () => {
     expect(resposta.statusCode).toBe(403);
   });
 
-  test("CA-AG-17: dona não transfere reserva sem elegibilidade profissional-serviço", async () => {
-    const resposta = await request(app)
+  test("CA-AG-17: dona só transfere para profissional habilitada", async () => {
+    const bloqueado = await request(app)
       .patch(
         `/agendamentos/${bookingDonaId}/reagendar-operacional`
       )
@@ -493,31 +511,83 @@ describe("reagendamento operacional persistido", () => {
           outraProfissional.id,
       });
 
-    expect(resposta.statusCode).toBe(409);
-    expect(resposta.body.erro).toMatch(
-      /elegibilidade profissional-serviço/i
+    expect(bloqueado.statusCode).toBe(409);
+    expect(bloqueado.body.erro).toMatch(
+      /habilitada para este serviço/i
+    );
+
+    await db.query(
+      `
+        INSERT INTO profissional_servicos (
+          negocio_id,
+          profissional_id,
+          servico_id,
+          habilitado_por_usuario_id
+        )
+        VALUES ($1, $2, $3, $4)
+      `,
+      [
+        negocioId,
+        outraProfissional.id,
+        servicoId,
+        dono.id,
+      ]
+    );
+
+    const permitido = await request(app)
+      .patch(
+        `/agendamentos/${bookingDonaId}/reagendar-operacional`
+      )
+      .set(
+        "Authorization",
+        `Bearer ${token(dono.id)}`
+      )
+      .send({
+        data: destino,
+        horario: "16:00",
+        profissional_id:
+          outraProfissional.id,
+      });
+
+    expect(permitido.statusCode).toBe(200);
+    expect(
+      Number(
+        permitido.body.agendamento
+          .profissional_id
+      )
+    ).toBe(
+      Number(outraProfissional.id)
     );
 
     const persistido = await db.query(
       `
         SELECT
           profissional_id,
-          data,
-          horario
+          servico_id,
+          servico_nome,
+          valor_servico,
+          duracao_minutos,
+          antecedencia_cancelamento_horas
         FROM agendamentos
         WHERE id = $1
       `,
       [bookingDonaId]
     );
 
-    expect(
-      Number(
-        persistido.rows[0]
-          .profissional_id
-      )
-    ).toBe(
-      Number(profissional.id)
-    );
+    expect(persistido.rows[0]).toMatchObject({
+      profissional_id:
+        outraProfissional.id,
+      servico_id:
+        servicoId,
+      servico_nome:
+        "Manicure Reagendamento",
+      valor_servico:
+        "75.00",
+      duracao_minutos:
+        60,
+      antecedencia_cancelamento_horas:
+        4,
+    });
   });
 
   test("CA-AG-18: booking passado e ainda não iniciado pode ser movido para o futuro", async () => {
