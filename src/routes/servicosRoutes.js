@@ -1,3 +1,6 @@
+const servicoProfissionalController = require(
+  "../controllers/servicoProfissionalController"
+);
 const express = require("express");
 const router = express.Router();
 
@@ -111,6 +114,11 @@ const {
  */
 
 router.get("/", auth, listarServicos);
+router.get(
+  "/:id/profissionais-elegiveis",
+  auth,
+  servicoProfissionalController.listarProfissionaisElegiveis
+);
 router.post("/", auth, criarServico);
 router.put("/:id", auth, editarServico);
 router.patch("/:id/ativo", auth, alterarAtivoServico);
