@@ -169,7 +169,7 @@ test(
     ).toHaveBeenCalledWith(
       expect.objectContaining({
         consentimento: true,
-        event_id: "subscribe:11",
+        event_id: "subscribe:11:pay_1",
         source_url:
           "/painel/assinatura"
       })
@@ -178,7 +178,7 @@ test(
       .toHaveBeenCalledWith(
         expect.objectContaining({
           eventName: "Subscribe",
-          eventId: "subscribe:11",
+          eventId: "subscribe:11:pay_1",
           ocorridoEm: undefined,
           customData:
             expect.objectContaining({
@@ -235,7 +235,7 @@ test(
         ocorridoEm: undefined,
         params: expect.objectContaining({
           transaction_id:
-            "af-subscription-11",
+            "af-subscription-11-pay_1",
           value: 59.9
         })
       })
