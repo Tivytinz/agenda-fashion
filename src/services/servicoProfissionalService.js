@@ -137,6 +137,70 @@ async function listarServicosProfissional({
   };
 }
 
+async function listarProfissionaisElegiveisServico({
+  usuarioId,
+  servicoId,
+}) {
+  const usuario = normalizarId(usuarioId);
+  const servico = normalizarId(servicoId);
+
+  if (!usuario) {
+    throw criarErro(
+      "Usuário não autenticado.",
+      401
+    );
+  }
+
+  if (!servico) {
+    throw criarErro(
+      "Serviço inválido.",
+      400
+    );
+  }
+
+  const dono =
+    await servicoProfissionalRepository
+      .buscarNegocioDono(usuario);
+
+  if (!dono?.negocio_id) {
+    throw criarErro(
+      "Apenas a proprietária pode consultar a elegibilidade da equipe.",
+      403
+    );
+  }
+
+  const servicoDoNegocio =
+    await servicoProfissionalRepository
+      .buscarServicoDoNegocio({
+        negocioId:
+          dono.negocio_id,
+        servicoId:
+          servico,
+      });
+
+  if (!servicoDoNegocio) {
+    throw criarErro(
+      "Serviço não encontrado neste negócio.",
+      404
+    );
+  }
+
+  const profissionais =
+    await servicoProfissionalRepository
+      .listarProfissionaisElegiveis({
+        negocioId:
+          dono.negocio_id,
+        servicoId:
+          servico,
+      });
+
+  return {
+    servico:
+      servicoDoNegocio,
+    profissionais,
+  };
+}
+
 async function configurarServicosProfissional({
   usuarioId,
   profissionalId,
@@ -235,6 +299,7 @@ async function configurarServicosProfissional({
 
 module.exports = {
   listarServicosProfissional,
+  listarProfissionaisElegiveisServico,
   configurarServicosProfissional,
   normalizarServicoIds,
 };
