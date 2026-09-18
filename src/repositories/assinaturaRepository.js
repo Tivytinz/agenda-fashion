@@ -123,6 +123,28 @@ async function buscarPorId(
   return result.rows[0] || null;
 }
 
+async function tocarAssinaturaPendenteCheckout(
+  assinaturaId,
+  executor = db
+) {
+  const result = await executor.query(
+    `
+    UPDATE assinaturas
+    SET updated_at = NOW()
+    WHERE id = $1
+      AND ativo = FALSE
+      AND UPPER(status) IN (
+        'PENDING',
+        'PENDING_PAYMENT'
+      )
+    RETURNING *
+    `,
+    [assinaturaId]
+  );
+
+  return result.rows[0] || null;
+}
+
 async function buscarNegocioDono(usuarioId) {
   const result = await db.query(
     `
@@ -390,6 +412,7 @@ module.exports = {
   ativarAssinatura,
   desativarAssinaturasDoNegocio,
   buscarPorId,
+  tocarAssinaturaPendenteCheckout,
   buscarNegocioDono,
   buscarUltimaAssinaturaPorNegocio,
   buscarAssinaturaPendentePorNegocio,
