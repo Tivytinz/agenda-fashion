@@ -123,11 +123,14 @@ async function buscarPreferenciaNotificacoesWhatsapp(
 async function listarAgendamentosOcupados(
   profissionalId,
   dataInicio,
-  dataFim
+  dataFim,
+  agendamentoIgnorarId = null
 ) {
   const result = await db.query(
     `
       SELECT
+        a.id,
+
         TO_CHAR(
           a.data,
           'YYYY-MM-DD'
@@ -148,6 +151,10 @@ async function listarAgendamentosOcupados(
           'agendado',
           'confirmado'
         )
+        AND (
+          $4::BIGINT IS NULL
+          OR a.id <> $4
+        )
 
       ORDER BY
         a.data,
@@ -157,6 +164,7 @@ async function listarAgendamentosOcupados(
       profissionalId,
       dataInicio,
       dataFim,
+      agendamentoIgnorarId,
     ]
   );
 
