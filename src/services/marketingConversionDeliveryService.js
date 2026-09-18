@@ -122,8 +122,22 @@ async function buscarPagamentoConfirmado(
 
   if (!pagamento) {
     throw new Error(
-      "Pagamento confirmado não encontrado para entregar a conversão."
+      "Pagamento não encontrado para entregar a conversão."
     );
+  }
+
+  const status = String(
+    pagamento.status || ""
+  ).trim().toUpperCase();
+  const confirmado = [
+    "CONFIRMED",
+    "RECEIVED",
+    "RECEIVED_IN_CASH"
+  ].includes(status) &&
+    Boolean(pagamento.data_pagamento);
+
+  if (!confirmado) {
+    return null;
   }
 
   const valor =
@@ -139,6 +153,18 @@ async function buscarPagamentoConfirmado(
 }
 
 async function entregarMeta(payload) {
+  const pagamento =
+    await buscarPagamentoConfirmado(
+      payload
+    );
+
+  if (!pagamento) {
+    return {
+      enviado: false,
+      motivo: "pagamento_nao_confirmado"
+    };
+  }
+
   const primeiroPagamento =
     await metaAdsRepository
       .ehPrimeiroPagamentoAssinatura({
@@ -154,11 +180,6 @@ async function entregarMeta(payload) {
       motivo: "renovacao"
     };
   }
-
-  const pagamento =
-    await buscarPagamentoConfirmado(
-      payload
-    );
 
   const perfil =
     await metaAdsRepository
@@ -215,6 +236,18 @@ async function entregarMeta(payload) {
 }
 
 async function entregarGoogle(payload) {
+  const pagamento =
+    await buscarPagamentoConfirmado(
+      payload
+    );
+
+  if (!pagamento) {
+    return {
+      enviado: false,
+      motivo: "pagamento_nao_confirmado"
+    };
+  }
+
   const primeiroPagamento =
     await googleMeasurementRepository
       .ehPrimeiroPagamentoAssinatura({
@@ -230,11 +263,6 @@ async function entregarGoogle(payload) {
       motivo: "renovacao"
     };
   }
-
-  const pagamento =
-    await buscarPagamentoConfirmado(
-      payload
-    );
 
   const perfil =
     await googleMeasurementRepository
@@ -298,6 +326,7 @@ function executorProvedor(provedor) {
 
 const MOTIVOS_IGNORADOS = new Set([
   "renovacao",
+  "pagamento_nao_confirmado",
   "sem_consentimento",
   "desabilitado"
 ]);
