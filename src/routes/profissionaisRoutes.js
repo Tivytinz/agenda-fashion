@@ -16,9 +16,22 @@ const {
   editarProfissional,
   removerProfissional
 } = require("../controllers/profissionaisController");
+const servicoProfissionalController = require(
+  "../controllers/servicoProfissionalController"
+);
 
 router.get("/profissionais", auth, listarProfissionais);
 router.put("/profissionais/:id", auth, editarProfissional);
+router.get(
+  "/profissionais/:id/servicos",
+  auth,
+  servicoProfissionalController.listarServicos
+);
+router.put(
+  "/profissionais/:id/servicos",
+  auth,
+  servicoProfissionalController.configurarServicos
+);
 router.delete("/profissionais/:id", auth, removerProfissional);
 
 router.get(
