@@ -192,6 +192,11 @@ async function listarPorCampanha(periodo = "30", maturidade = {}) {
         WHERE ass.negocio_id = dono.negocio_id
           AND p.valor > 0
           AND pg.data_pagamento IS NOT NULL
+          AND UPPER(pg.status) IN (
+            'CONFIRMED',
+            'RECEIVED',
+            'RECEIVED_IN_CASH'
+          )
         ORDER BY pg.data_pagamento ASC, pg.id ASC
         LIMIT 1
       ) primeiro_pagamento ON TRUE
