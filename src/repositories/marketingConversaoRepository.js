@@ -18,6 +18,11 @@ async function ehPrimeiroPagamentoAssinatura({
         WHERE atual.assinatura_id = $1
           AND atual.asaas_payment_id = $2
           AND atual.data_pagamento IS NOT NULL
+          AND UPPER(atual.status) IN (
+            'CONFIRMED',
+            'RECEIVED',
+            'RECEIVED_IN_CASH'
+          )
           AND NOT EXISTS (
             SELECT 1
             FROM pagamentos anterior
@@ -25,6 +30,11 @@ async function ehPrimeiroPagamentoAssinatura({
               atual.assinatura_id
               AND anterior.data_pagamento
                 IS NOT NULL
+              AND UPPER(anterior.status) IN (
+                'CONFIRMED',
+                'RECEIVED',
+                'RECEIVED_IN_CASH'
+              )
               AND (
                 anterior.data_pagamento <
                   atual.data_pagamento
@@ -64,6 +74,11 @@ async function buscarPagamentoConfirmado({
       WHERE p.assinatura_id = $1
         AND p.asaas_payment_id = $2
         AND p.data_pagamento IS NOT NULL
+        AND UPPER(p.status) IN (
+          'CONFIRMED',
+          'RECEIVED',
+          'RECEIVED_IN_CASH'
+        )
       LIMIT 1
       `,
       [
