@@ -306,6 +306,66 @@ describe(
       }
     );
 
+    test(
+      "expõe quando pagamento confirmado exige atenção operacional",
+      async () => {
+        checkoutRepository
+          .buscarPagamentoCheckout
+          .mockResolvedValue({
+            id: 10,
+            asaas_payment_id: "pay_1",
+            status: "CONFIRMED",
+            ativo: false,
+            status_assinatura: "PENDING"
+          });
+        checkoutRepository
+          .buscarEstadoAtivacaoPagamento
+          .mockResolvedValue({
+            status: "FAILED",
+            tentativas: 10,
+            proxima_tentativa_em: null,
+            falha_terminal: true
+          });
+
+        const resultado =
+          await consultarStatusCheckout({
+            usuarioId: 1,
+            pagamentoId: "pay_1"
+          });
+
+        expect(resultado.estado_ativacao)
+          .toBe("ATIVACAO_REQUER_ATENCAO");
+      }
+    );
+
+    test(
+      "não consulta fila quando assinatura já está ativa",
+      async () => {
+        checkoutRepository
+          .buscarPagamentoCheckout
+          .mockResolvedValue({
+            id: 10,
+            asaas_payment_id: "pay_1",
+            status: "RECEIVED",
+            ativo: true,
+            status_assinatura: "ACTIVE"
+          });
+
+        const resultado =
+          await consultarStatusCheckout({
+            usuarioId: 1,
+            pagamentoId: "pay_1"
+          });
+
+        expect(resultado.estado_ativacao)
+          .toBe("ATIVO");
+        expect(
+          checkoutRepository
+            .buscarEstadoAtivacaoPagamento
+        ).not.toHaveBeenCalled();
+      }
+    );
+
     test.each([
       {
         titulo: "usuário ausente",
