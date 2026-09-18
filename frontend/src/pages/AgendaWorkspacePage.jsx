@@ -91,6 +91,10 @@ export function AgendaWorkspacePage({ owner = false }) {
   const [cancelTarget, setCancelTarget] = useState(null);
   const [cancelReasonType, setCancelReasonType] = useState("");
   const [cancelReason, setCancelReason] = useState("");
+  const [rescheduleTarget, setRescheduleTarget] = useState(null);
+  const [rescheduleDate, setRescheduleDate] = useState("");
+  const [rescheduleTime, setRescheduleTime] = useState("");
+  const [rescheduleProfessionalId, setRescheduleProfessionalId] = useState("");
   const [datePageSize, setDatePageSize] = useState(getDatePageSize);
   const [datePageStart, setDatePageStart] = useState(0);
 
@@ -160,6 +164,10 @@ export function AgendaWorkspacePage({ owner = false }) {
     cancelTarget?.agendamento_id &&
     updating === `cancelamento-${cancelTarget.agendamento_id}`
   );
+  const rescheduleUpdating = Boolean(
+    rescheduleTarget?.agendamento_id &&
+    updating === `reagendamento-${rescheduleTarget.agendamento_id}`
+  );
 
   useEffect(() => {
     const selectedIndex = dates.findIndex((day) => day.data === selectedDate);
@@ -183,6 +191,10 @@ export function AgendaWorkspacePage({ owner = false }) {
     setCancelTarget(null);
     setCancelReasonType("");
     setCancelReason("");
+    setRescheduleTarget(null);
+    setRescheduleDate("");
+    setRescheduleTime("");
+    setRescheduleProfessionalId("");
     if (owner) {
       const firstProfessional = getValidProfessionals(day.profissionais)[0];
       setSelectedProfessional(String(firstProfessional?.id || ""));
