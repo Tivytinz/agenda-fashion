@@ -77,10 +77,36 @@ async function buscarAssinaturaPendenteDoNegocio(
       a.status,
       a.created_at,
       p.nome AS plano_nome,
-      p.slug AS plano_slug
+      p.slug AS plano_slug,
+      pagamento.asaas_payment_id,
+      pagamento.status AS pagamento_status,
+      pagamento.data_vencimento,
+      pagamento.pix_copia_cola,
+      pagamento.pix_qrcode
     FROM assinaturas a
     INNER JOIN planos p
       ON p.id = a.plano_id
+    LEFT JOIN LATERAL (
+      SELECT
+        pg.asaas_payment_id,
+        pg.status,
+        pg.data_vencimento,
+        pg.pix_copia_cola,
+        pg.pix_qrcode
+      FROM pagamentos pg
+      WHERE pg.assinatura_id = a.id
+        AND UPPER(pg.status) IN (
+          'PENDING',
+          'CREATED',
+          'AWAITING_PAYMENT'
+        )
+        AND (
+          pg.data_vencimento IS NULL
+          OR pg.data_vencimento >= CURRENT_DATE
+        )
+      ORDER BY pg.id DESC
+      LIMIT 1
+    ) pagamento ON TRUE
     WHERE a.negocio_id = $1
       AND a.ativo = FALSE
       AND UPPER(a.status) = 'PENDING'
