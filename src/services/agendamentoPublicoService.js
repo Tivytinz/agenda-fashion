@@ -5,6 +5,9 @@ const agendaPublicaRepository = require(
 const agendaConfiguracaoRepository = require(
   "../repositories/agendaConfiguracaoRepository"
 );
+const profissionalServicosRepository = require(
+  "../repositories/profissionalServicosRepository"
+);
 const agendaDisponibilidadeService = require(
   "./agendaDisponibilidadeService"
 );
@@ -422,6 +425,34 @@ async function criarAgendamento({
   const agendamento =
     await db.executarTransacao(
       async (client) => {
+        await profissionalServicosRepository
+          .bloquearElegibilidadeNegocio({
+            negocioId:
+              negocioIdNormalizado,
+            executor:
+              client,
+          });
+
+        const profissionalElegivel =
+          await profissionalServicosRepository
+            .profissionalEstaElegivel({
+              negocioId:
+                negocioIdNormalizado,
+              profissionalId:
+                profissionalIdNormalizado,
+              servicoId:
+                servicoIdNormalizado,
+              executor:
+                client,
+            });
+
+        if (!profissionalElegivel) {
+          throw criarErro(
+            "A profissional não está mais habilitada para este serviço.",
+            409
+          );
+        }
+
         /*
          * Serializa o consumo mensal do negócio e valida
          * o limite na mesma transação do INSERT.
