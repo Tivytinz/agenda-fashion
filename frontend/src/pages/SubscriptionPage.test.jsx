@@ -62,6 +62,12 @@ describe("plano e assinatura", () => {
           status: "PENDING",
           ativo: false,
           forma_pagamento: "pix"
+        },
+        pagamento: {
+          id: 30,
+          status: "PENDING",
+          pix_copia_cola: "000201PIX-PENDENTE",
+          pix_qrcode: "imagem-base64"
         }
       },
       uso: {
@@ -86,6 +92,9 @@ describe("plano e assinatura", () => {
     expect(screen.getByText("Plano gratuito")).not.toBeNull();
     expect(screen.getByText("PIX do plano Autônoma aguardando pagamento.")).not.toBeNull();
     expect(screen.getByText(/Seu plano atual continua valendo/)).not.toBeNull();
+    expect(screen.getByRole("img", { name: "QR Code do PIX pendente" })).not.toBeNull();
+    expect(screen.getByRole("textbox", { name: "Código PIX pendente" }).value)
+      .toBe("000201PIX-PENDENTE");
 
     const effectivePlan = screen.getByText(/Plano em uso:/).closest("p");
     expect(within(effectivePlan).getByText("Grátis")).not.toBeNull();
