@@ -52,6 +52,11 @@ async function buscarMinhaAssinatura({ usuarioId }) {
   }
 
   await assinaturaRepository
+    .recuperarReativacaoAbandonada(
+      negocio.id
+    );
+
+  await assinaturaRepository
     .expirarCancelamentoSeNecessario(negocio.id);
 
   const negocioAtualizado = await assinaturaRepository
