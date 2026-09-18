@@ -691,9 +691,18 @@ export function AdminRevenueV2Page() {
         return (
           <>
             <section className="admin-command-summary-grid is-period-summary">
-              <MetricCard label="Receita bruta" hint="cobranças que tiveram pagamento no período" value={formatCurrency(summary.receitaBruta)} />
-              <MetricCard label="Reembolsos" hint={`${formatNumber(summary.pagamentosReembolsados)} pagamento(s) reembolsado(s)`} tone={number(summary.valorReembolsado) > 0 ? "warning" : "neutral"} value={formatCurrency(summary.valorReembolsado)} />
-              <MetricCard label="Receita líquida" hint="receita bruta menos reembolsos identificados" tone={number(summary.receitaLiquida) > 0 ? "success" : "neutral"} value={formatCurrency(summary.receitaLiquida)} />
+              <MetricCard label="Receita bruta" hint="entradas com data de pagamento no período" value={formatCurrency(summary.receitaBruta)} />
+              <MetricCard label="Reversões" hint={`${formatNumber(summary.pagamentosRevertidos)} pagamento(s) com reembolso, chargeback ou desfazimento`} tone={number(summary.valorRevertido) > 0 ? "warning" : "neutral"} value={formatCurrency(summary.valorRevertido)} />
+              <MetricCard
+                label="Receita líquida"
+                hint={
+                  number(summary.reversoesValorIncompleto) > 0
+                    ? `${formatNumber(summary.reversoesValorIncompleto)} reversão(ões) sem valor confiável; líquido não calculado`
+                    : "receita bruta menos reversões observadas no período"
+                }
+                tone={summary.receitaLiquida !== null && number(summary.receitaLiquida) > 0 ? "success" : "neutral"}
+                value={summary.receitaLiquida === null ? "—" : formatCurrency(summary.receitaLiquida)}
+              />
               <MetricCard label="Receita de 1º pagamento" hint="monetização inicial, sem renovações" value={formatCurrency(summary.receitaPrimeiroPagamento)} />
               <MetricCard label="Novas assinaturas pagas" hint="primeiro pagamento válido no período" value={formatNumber(summary.novasAssinaturasPagas)} />
               <MetricCard label="Assinaturas pagas ativas" hint="estoque atual, não criação no período" value={formatNumber(summary.assinaturasPagasAtivas)} />
