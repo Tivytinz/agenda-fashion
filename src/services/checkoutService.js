@@ -109,6 +109,26 @@ async function garantirClienteAsaas({
   return negocio;
 }
 
+async function validarLeaseCheckout(
+  tentativa,
+  executor = db
+) {
+  const valido =
+    await checkoutTentativaRepository
+      .validarLease(
+        tentativa.id,
+        tentativa.lease_tentativa,
+        executor
+      );
+
+  if (!valido) {
+    throw new AppError(
+      "Esta tentativa de checkout foi assumida por outra execução. Consulte novamente o status do pagamento.",
+      409
+    );
+  }
+}
+
 async function obterAssinaturaCheckout({
   client,
   negocio,
@@ -137,15 +157,14 @@ async function obterAssinaturaCheckout({
         );
 
       const pendente = await checkoutRepository
-        .buscarAssinaturaPendenteEquivalente(
+        .buscarAssinaturaPendenteDoNegocio(
           transactionClient,
-          negocio.id,
-          plano.id
+          negocio.id
         );
 
       if (pendente) {
         throw new AppError(
-          "Já existe um PIX pendente para este plano. Aguarde a confirmação ou o vencimento da cobrança.",
+          "Já existe um PIX pendente para este negócio. Conclua o pagamento ou aguarde o vencimento antes de gerar outra cobrança.",
           409
         );
       }
@@ -169,12 +188,21 @@ async function obterAssinaturaCheckout({
           }
         );
 
-      await checkoutTentativaRepository
-        .vincularAssinatura(
-          tentativa.id,
-          novaAssinatura.id,
-          transactionClient
+      const tentativaVinculada =
+        await checkoutTentativaRepository
+          .vincularAssinatura(
+            tentativa.id,
+            novaAssinatura.id,
+            tentativa.lease_tentativa,
+            transactionClient
+          );
+
+      if (!tentativaVinculada) {
+        throw new AppError(
+          "Esta tentativa de checkout foi assumida por outra execução. Consulte novamente o status do pagamento.",
+          409
         );
+      }
 
       return novaAssinatura;
     }
@@ -199,6 +227,10 @@ async function criarCheckoutPix(
       formaPagamento: "pix",
       tentativa
     });
+
+  await validarLeaseCheckout(
+    tentativa
+  );
 
   const externalReference =
     `checkout:${tentativa.id};assinatura:${assinaturaLocal.id}`;
@@ -393,6 +425,10 @@ async function criarCheckout({
   }
 
   try {
+    await validarLeaseCheckout(
+      tentativa.tentativa
+    );
+
     await garantirClienteAsaas({
       client,
       negocio,
