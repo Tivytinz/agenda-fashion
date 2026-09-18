@@ -404,6 +404,10 @@ async function listarAgendamentosProfissionaisDoNegocioPorPeriodo({
           ELSE NULL
         END AS cliente,
         CASE
+          WHEN a.negocio_id = $1 THEN a.servico_id
+          ELSE NULL
+        END AS servico_id,
+        CASE
           WHEN a.negocio_id = $1 THEN COALESCE(
             NULLIF(BTRIM(a.servico_nome), ''),
             NULLIF(BTRIM(s.nome), ''),
