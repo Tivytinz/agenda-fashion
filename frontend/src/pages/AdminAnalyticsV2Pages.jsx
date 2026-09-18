@@ -766,6 +766,9 @@ export function AdminRevenueV2Page() {
                 <div><dt>Novas assinaturas pagas</dt><dd>{formatNumber(summary.novasAssinaturasPagas)}</dd></div>
                 <div><dt>Pagamentos confirmados</dt><dd>{formatNumber(summary.pagamentosConfirmados)}</dd></div>
                 <div><dt>Negócios com pagamento</dt><dd>{formatNumber(summary.negociosPagantes)}</dd></div>
+                <div><dt>Reembolsos integrais</dt><dd>{formatNumber(summary.pagamentosReembolsados)}</dd></div>
+                <div><dt>Valor reembolsado</dt><dd>{formatCurrency(summary.valorReembolsado)}</dd></div>
+                <div><dt>Outros ajustes financeiros</dt><dd>{formatNumber(summary.pagamentosComAjuste)}</dd></div>
               </dl>
             </section>
 
