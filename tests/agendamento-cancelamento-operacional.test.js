@@ -317,7 +317,7 @@ describe("cancelamento operacional do agendamento", () => {
       status: "cancelado",
       cancelado_por: profissional.id,
       cancelamento_origem: "negocio",
-      motivo_cancelamento: null,
+      motivo_cancelamento: "Profissional indisponível",
     });
   });
 
