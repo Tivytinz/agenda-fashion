@@ -114,6 +114,17 @@ export function BillingCheckoutPage() {
           return;
         }
 
+        if (
+          paymentConfirmed(status) &&
+          status?.ativacao_requer_atencao === true
+        ) {
+          setPaymentStatus("attention");
+          setPaymentMessage(
+            "Pagamento confirmado, mas a ativação precisa de atenção. Não gere outro PIX; o pagamento já foi recebido."
+          );
+          return;
+        }
+
         if (paymentConfirmed(status)) {
           confirmedButActivating = true;
           setPaymentStatus("activating");
@@ -275,7 +286,7 @@ export function BillingCheckoutPage() {
               <textarea readOnly rows="4" value={pix.code} />
               <button className="button button-secondary" disabled={!pix.code} onClick={copyPixCode} type="button">Copiar código PIX</button>
               {copyMessage && <p className={copyMessage.startsWith("Código") ? "form-success" : "form-error"} role="status">{copyMessage}</p>}
-              {paymentMessage && <p className={paymentStatus === "error" ? "form-error" : "muted"} role="status">{paymentMessage}</p>}
+              {paymentMessage && <p className={["error", "attention"].includes(paymentStatus) ? "form-error" : "muted"} role="status">{paymentMessage}</p>}
               {checkoutPaymentId && ["error", "timeout"].includes(paymentStatus) && (
                 <button className="button button-secondary" onClick={() => void poll(checkoutPaymentId, true)} type="button">
                   Verificar pagamento novamente

@@ -69,6 +69,43 @@ const EVENTOS_ASSINATURA =
     "SUBSCRIPTION_DELETED"
   ]);
 
+const STATUS_PAGAMENTO_POR_EVENTO =
+  new Map([
+    ["PAYMENT_CONFIRMED", "CONFIRMED"],
+    ["PAYMENT_RECEIVED", "RECEIVED"],
+    ["PAYMENT_OVERDUE", "OVERDUE"],
+    ["PAYMENT_DELETED", "DELETED"],
+    ["PAYMENT_REFUNDED", "REFUNDED"],
+    [
+      "PAYMENT_PARTIALLY_REFUNDED",
+      "PARTIALLY_REFUNDED"
+    ],
+    [
+      "PAYMENT_REFUND_IN_PROGRESS",
+      "REFUND_IN_PROGRESS"
+    ],
+    [
+      "PAYMENT_RECEIVED_IN_CASH_UNDONE",
+      "RECEIVED_IN_CASH_UNDONE"
+    ],
+    [
+      "PAYMENT_CREDIT_CARD_CAPTURE_REFUSED",
+      "CREDIT_CARD_CAPTURE_REFUSED"
+    ],
+    [
+      "PAYMENT_CHARGEBACK_REQUESTED",
+      "CHARGEBACK_REQUESTED"
+    ],
+    [
+      "PAYMENT_CHARGEBACK_DISPUTE",
+      "CHARGEBACK_DISPUTE"
+    ],
+    [
+      "PAYMENT_AWAITING_CHARGEBACK_REVERSAL",
+      "AWAITING_CHARGEBACK_REVERSAL"
+    ]
+  ]);
+
 let temporizadorWorker =
   null;
 let inicializacaoWorker =
@@ -106,9 +143,13 @@ function normalizarPagamentoPorEvento(
     ...(pagamento || {})
   };
 
-  if (tipoEvento === "PAYMENT_DELETED") {
+  const statusDoEvento =
+    STATUS_PAGAMENTO_POR_EVENTO
+      .get(tipoEvento);
+
+  if (statusDoEvento) {
     pagamentoNormalizado.status =
-      "DELETED";
+      statusDoEvento;
   }
 
   return pagamentoNormalizado;
@@ -243,7 +284,16 @@ async function enfileirarWebhookAsaas({
           paymentDate:
             pagamento.paymentDate || null,
           confirmedDate:
-            pagamento.confirmedDate || null
+            pagamento.confirmedDate || null,
+          refundedValue:
+            pagamento.refundedValue !== null &&
+            pagamento.refundedValue !== undefined &&
+            pagamento.refundedValue !== "" &&
+            Number.isFinite(
+              Number(pagamento.refundedValue)
+            )
+              ? Number(pagamento.refundedValue)
+              : null
         }
       : null,
     subscription: assinatura
@@ -341,7 +391,9 @@ async function processarRegistro(evento) {
     webhookEventoCriadoEm:
       evento.evento_criado_em ||
       evento.payload?.dateCreated ||
-      null
+      null,
+    webhookTipoEvento:
+      evento.tipo_evento || null
   };
 
   try {

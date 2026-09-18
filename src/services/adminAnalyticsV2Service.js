@@ -28,6 +28,17 @@ function numero(valor) {
   return Number.isFinite(convertido) ? convertido : 0;
 }
 
+function numeroOuNull(valor) {
+  if (valor === null || valor === undefined || valor === "") {
+    return null;
+  }
+
+  const convertido = Number(valor);
+  return Number.isFinite(convertido)
+    ? convertido
+    : null;
+}
+
 function percentual(parte, total) {
   const denominator = numero(total);
   if (denominator <= 0) return null;
@@ -199,9 +210,12 @@ async function buscarRevenue(periodo) {
       assinaturasPagasAtivas: numero(resumo.assinaturas_pagas_ativas),
       receitaTotal: numero(resumo.receita_total),
       receitaBruta: numero(resumo.receita_bruta),
-      pagamentosReembolsados: numero(resumo.pagamentos_reembolsados),
-      valorReembolsado: numero(resumo.valor_reembolsado),
-      receitaLiquida: numero(resumo.receita_liquida),
+      pagamentosRevertidos: numero(resumo.pagamentos_revertidos),
+      valorRevertido: numero(resumo.valor_revertido),
+      reversoesValorIncompleto: numero(
+        resumo.reversoes_valor_incompleto
+      ),
+      receitaLiquida: numeroOuNull(resumo.receita_liquida),
       receitaPrimeiroPagamento: numero(resumo.receita_primeiro_pagamento),
     },
     planos: resultado.planos,
@@ -213,7 +227,7 @@ async function buscarRevenue(periodo) {
       novaAssinatura:
         "Nova assinatura paga é a assinatura cujo primeiro pagamento CONFIRMED/RECEIVED caiu no período. Esse total é um fato financeiro do período e não é usado como numerador da coorte de checkout.",
       receita:
-        "Receita bruta usa cobranças que tiveram data de pagamento no período; reembolsos mostram pagamentos atualmente REFUNDED; receita líquida subtrai esses reembolsos. Receita confirmada mostra pagamentos atualmente válidos e a receita de primeiro pagamento isola monetização inicial.",
+        "Receita bruta usa cobranças com data de pagamento no período. Reversões usam a data em que reembolso, chargeback ou desfazimento foi observado pelo AF. A receita líquida só é exibida quando todas as reversões do período têm valor conhecido; reembolso parcial sem valor confiável mantém o líquido como indeterminado. Receita confirmada mostra pagamentos atualmente válidos e a receita de primeiro pagamento isola monetização inicial.",
       ativas:
         "Assinaturas pagas ativas é um estoque atual e não uma contagem criada no período.",
     },

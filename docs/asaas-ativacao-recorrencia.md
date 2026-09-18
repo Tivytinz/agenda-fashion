@@ -69,10 +69,20 @@ No retry:
 
 A conversão de marketing só é enfileirada depois que a ativação retorna com sucesso, portanto uma falha de limpeza não é registrada antecipadamente como assinatura concluída no pipeline de marketing.
 
-No frontend, pagamento `CONFIRMED` ou `RECEIVED` não é suficiente para
-anunciar que o plano já foi atualizado. Enquanto a assinatura local ainda não
-estiver `ACTIVE` e `ativo = true`, a interface deve informar que o pagamento
-foi confirmado e que a ativação ainda está sendo concluída.
+No frontend, pagamento `CONFIRMED`, `RECEIVED` ou
+`RECEIVED_IN_CASH` não é suficiente para anunciar que o plano já foi
+atualizado. Enquanto a assinatura local ainda não estiver `ACTIVE` e
+`ativo = true`, a interface deve informar que o pagamento foi confirmado e que
+a ativação ainda está sendo concluída.
+
+Quando o último webhook do pagamento esgotou as tentativas e a assinatura ainda
+não ficou ativa, o status de checkout expõe `ativacao_requer_atencao`. A
+interface deve avisar que o pagamento já foi recebido e que não deve ser gerado
+outro PIX.
+
+A conta separa a assinatura efetivamente ativa de um eventual upgrade
+`PENDING`. Um upgrade pendente não pode substituir visualmente o plano que
+continua em uso nem ocultar a ação de cancelar a renovação da assinatura ativa.
 
 ## Organização do código
 

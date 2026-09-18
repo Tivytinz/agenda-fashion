@@ -109,6 +109,26 @@ async function garantirClienteAsaas({
   return negocio;
 }
 
+async function validarLeaseCheckout(
+  tentativa,
+  executor = db
+) {
+  const valido =
+    await checkoutTentativaRepository
+      .validarLease(
+        tentativa.id,
+        tentativa.lease_tentativa,
+        executor
+      );
+
+  if (!valido) {
+    throw new AppError(
+      "Esta tentativa de checkout foi assumida por outra execução. Consulte novamente o status do pagamento.",
+      409
+    );
+  }
+}
+
 async function obterAssinaturaCheckout({
   client,
   negocio,
@@ -124,11 +144,16 @@ async function obterAssinaturaCheckout({
       );
 
     if (assinaturaExistente) {
-      return assinaturaExistente;
+      return {
+        assinatura:
+          assinaturaExistente,
+        pagamentoPendente:
+          null
+      };
     }
   }
 
-  const assinatura = await db.executarTransacao(
+  const resultado = await db.executarTransacao(
     async (transactionClient) => {
       await checkoutRepository
         .bloquearCheckoutDoNegocio(
@@ -137,17 +162,71 @@ async function obterAssinaturaCheckout({
         );
 
       const pendente = await checkoutRepository
-        .buscarAssinaturaPendenteEquivalente(
+        .buscarAssinaturaPendenteDoNegocio(
           transactionClient,
-          negocio.id,
-          plano.id
+          negocio.id
         );
 
       if (pendente) {
-        throw new AppError(
-          "Já existe um PIX pendente para este plano. Aguarde a confirmação ou o vencimento da cobrança.",
-          409
-        );
+        if (
+          Number(pendente.plano_id) !==
+            Number(plano.id) ||
+          !pendente.asaas_payment_id
+        ) {
+          throw new AppError(
+            "Já existe um PIX pendente para este negócio. Conclua o pagamento ou aguarde o vencimento antes de gerar outra cobrança.",
+            409
+          );
+        }
+
+        const tentativaVinculada =
+          await checkoutTentativaRepository
+            .vincularAssinatura(
+              tentativa.id,
+              pendente.id,
+              tentativa.lease_tentativa,
+              transactionClient
+            );
+
+        if (!tentativaVinculada) {
+          throw new AppError(
+            "Esta tentativa de checkout foi assumida por outra execução. Consulte novamente o status do pagamento.",
+            409
+          );
+        }
+
+        const assinaturaPendente =
+          await assinaturaRepository
+            .buscarPorId(
+              pendente.id,
+              transactionClient
+            );
+
+        return {
+          assinatura:
+            assinaturaPendente ||
+            pendente,
+          pagamentoPendente: {
+            id:
+              pendente.asaas_payment_id,
+            status:
+              pendente.pagamento_status ||
+              "PENDING",
+            dueDate:
+              pendente.data_vencimento ||
+              null,
+            value:
+              plano.valor
+          },
+          pixPendente: {
+            payload:
+              pendente.pix_copia_cola ||
+              null,
+            encodedImage:
+              pendente.pix_qrcode ||
+              null
+          }
+        };
       }
 
       const novaAssinatura =
@@ -169,20 +248,37 @@ async function obterAssinaturaCheckout({
           }
         );
 
-      await checkoutTentativaRepository
-        .vincularAssinatura(
-          tentativa.id,
-          novaAssinatura.id,
-          transactionClient
-        );
+      const tentativaVinculada =
+        await checkoutTentativaRepository
+          .vincularAssinatura(
+            tentativa.id,
+            novaAssinatura.id,
+            tentativa.lease_tentativa,
+            transactionClient
+          );
 
-      return novaAssinatura;
+      if (!tentativaVinculada) {
+        throw new AppError(
+          "Esta tentativa de checkout foi assumida por outra execução. Consulte novamente o status do pagamento.",
+          409
+        );
+      }
+
+      return {
+        assinatura:
+          novaAssinatura,
+        pagamentoPendente:
+          null,
+        pixPendente:
+          null
+      };
     }
   );
 
-  tentativa.assinatura_id = assinatura.id;
+  tentativa.assinatura_id =
+    resultado.assinatura.id;
 
-  return assinatura;
+  return resultado;
 }
 
 async function criarCheckoutPix(
@@ -191,14 +287,67 @@ async function criarCheckoutPix(
   plano,
   tentativa
 ) {
-  const assinaturaLocal =
-    await obterAssinaturaCheckout({
-      client,
-      negocio,
-      plano,
-      formaPagamento: "pix",
-      tentativa
-    });
+  const {
+    assinatura: assinaturaLocal,
+    pagamentoPendente,
+    pixPendente
+  } = await obterAssinaturaCheckout({
+    client,
+    negocio,
+    plano,
+    formaPagamento: "pix",
+    tentativa
+  });
+
+  await validarLeaseCheckout(
+    tentativa
+  );
+
+  if (pagamentoPendente?.id) {
+    let pixRecuperado =
+      pixPendente || {};
+
+    if (!pixRecuperado.payload) {
+      const pixAtual =
+        await buscarQrCodePix(
+          pagamentoPendente.id
+        );
+
+      await registrarPagamento(client, {
+        assinatura_id:
+          assinaturaLocal.id,
+        asaas_payment_id:
+          pagamentoPendente.id,
+        valor:
+          pagamentoPendente.value ||
+          plano.valor,
+        forma_pagamento: "pix",
+        status:
+          pagamentoPendente.status ||
+          "PENDING",
+        data_vencimento:
+          pagamentoPendente.dueDate ||
+          null,
+        pix_copia_cola:
+          pixAtual?.payload || null,
+        pix_qrcode:
+          pixAtual?.encodedImage || null
+      });
+
+      pixRecuperado =
+        pixAtual || {};
+    }
+
+    return {
+      assinatura:
+        assinaturaLocal,
+      pagamento:
+        pagamentoPendente,
+      pix:
+        pixRecuperado,
+      recuperado: true
+    };
+  }
 
   const externalReference =
     `checkout:${tentativa.id};assinatura:${assinaturaLocal.id}`;
@@ -393,6 +542,10 @@ async function criarCheckout({
   }
 
   try {
+    await validarLeaseCheckout(
+      tentativa.tentativa
+    );
+
     await garantirClienteAsaas({
       client,
       negocio,

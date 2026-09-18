@@ -58,6 +58,40 @@ async function buscarAssinaturaAtivaPorNegocio(negocioId) {
   return result.rows[0] || null;
 }
 
+async function buscarAssinaturaPendentePorNegocio(negocioId) {
+  const result = await db.query(
+    `
+    SELECT *
+    FROM assinaturas
+    WHERE negocio_id = $1
+      AND ativo = FALSE
+      AND UPPER(status) = 'PENDING'
+      AND (
+        created_at >= NOW() - INTERVAL '15 minutes'
+        OR EXISTS (
+          SELECT 1
+          FROM pagamentos pg
+          WHERE pg.assinatura_id = assinaturas.id
+            AND UPPER(pg.status) IN (
+              'PENDING',
+              'CREATED',
+              'AWAITING_PAYMENT'
+            )
+            AND (
+              pg.data_vencimento IS NULL
+              OR pg.data_vencimento >= CURRENT_DATE
+            )
+        )
+      )
+    ORDER BY id DESC
+    LIMIT 1
+    `,
+    [negocioId]
+  );
+
+  return result.rows[0] || null;
+}
+
 async function buscarPorSubscriptionId(subscriptionId) {
   const result = await db.query(
     `
@@ -305,6 +339,7 @@ async function listarPagamentos(assinaturaId) {
 module.exports = {
   criarAssinatura,
   buscarAssinaturaAtivaPorNegocio,
+  buscarAssinaturaPendentePorNegocio,
   buscarPorSubscriptionId,
   ativarAssinatura,
   desativarAssinaturasDoNegocio,

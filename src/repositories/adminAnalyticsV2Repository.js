@@ -296,6 +296,7 @@ async function buscarReceita(periodo = "30") {
   const filtroCheckout = filtroTimestamp(seguro, "ct.created_at");
   const filtroPagamento = filtroData(seguro, "pg.data_pagamento");
   const filtroPrimeiroPagamento = filtroData(seguro, "fp.data_pagamento");
+  const filtroReversao = filtroData(seguro, "pg.reversao_em");
 
   const [resumo, planos] = await Promise.all([
     db.query(
@@ -354,19 +355,7 @@ async function buscarReceita(periodo = "30") {
               'RECEIVED_IN_CASH'
             )
           ), 0)::NUMERIC(14,2) AS receita_total,
-          COALESCE(SUM(pg.valor), 0)::NUMERIC(14,2) AS receita_bruta,
-          COUNT(*) FILTER (
-            WHERE UPPER(pg.status) = 'REFUNDED'
-          )::INT AS pagamentos_reembolsados,
-          COALESCE(SUM(pg.valor) FILTER (
-            WHERE UPPER(pg.status) = 'REFUNDED'
-          ), 0)::NUMERIC(14,2) AS valor_reembolsado,
-          (
-            COALESCE(SUM(pg.valor), 0) -
-            COALESCE(SUM(pg.valor) FILTER (
-              WHERE UPPER(pg.status) = 'REFUNDED'
-            ), 0)
-          )::NUMERIC(14,2) AS receita_liquida
+          COALESCE(SUM(pg.valor), 0)::NUMERIC(14,2) AS receita_bruta
         FROM pagamentos pg
         INNER JOIN assinaturas a
           ON a.id = pg.assinatura_id
@@ -375,6 +364,28 @@ async function buscarReceita(periodo = "30") {
         WHERE pg.data_pagamento IS NOT NULL
           AND pl.valor > 0
           ${filtroPagamento}
+      ),
+      reversoes_resumo AS (
+        SELECT
+          COUNT(*)::INT AS pagamentos_revertidos,
+          COUNT(*) FILTER (
+            WHERE pg.reversao_valor_conhecido = FALSE
+          )::INT AS reversoes_valor_incompleto,
+          COALESCE(SUM(
+            CASE
+              WHEN pg.reversao_valor_conhecido = TRUE
+                THEN COALESCE(pg.valor_revertido, 0)
+              ELSE 0
+            END
+          ), 0)::NUMERIC(14,2) AS valor_revertido
+        FROM pagamentos pg
+        INNER JOIN assinaturas a
+          ON a.id = pg.assinatura_id
+        INNER JOIN planos pl
+          ON pl.id = a.plano_id
+        WHERE pg.reversao_em IS NOT NULL
+          AND pl.valor > 0
+          ${filtroReversao}
       ),
       primeiros AS (
         SELECT DISTINCT ON (pg.assinatura_id)
@@ -420,15 +431,21 @@ async function buscarReceita(periodo = "30") {
         p.negocios_pagantes,
         p.receita_total,
         p.receita_bruta,
-        p.pagamentos_reembolsados,
-        p.valor_reembolsado,
-        p.receita_liquida,
+        r.pagamentos_revertidos,
+        r.reversoes_valor_incompleto,
+        r.valor_revertido,
+        CASE
+          WHEN r.reversoes_valor_incompleto = 0
+            THEN (p.receita_bruta - r.valor_revertido)::NUMERIC(14,2)
+          ELSE NULL
+        END AS receita_liquida,
         fp.novas_assinaturas_pagas,
         fp.receita_primeiro_pagamento,
         a.assinaturas_pagas_ativas
       FROM checkouts c
       CROSS JOIN checkout_coorte cc
       CROSS JOIN pagamentos_resumo p
+      CROSS JOIN reversoes_resumo r
       CROSS JOIN primeiros_pagamentos fp
       CROSS JOIN ativas a
       `

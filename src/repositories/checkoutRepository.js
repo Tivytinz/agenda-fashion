@@ -64,10 +64,9 @@ async function bloquearCheckoutDoNegocio(
   );
 }
 
-async function buscarAssinaturaPendenteEquivalente(
+async function buscarAssinaturaPendenteDoNegocio(
   client,
-  negocioId,
-  planoId
+  negocioId
 ) {
   const result = await client.query(
     `
@@ -76,12 +75,42 @@ async function buscarAssinaturaPendenteEquivalente(
       a.negocio_id,
       a.plano_id,
       a.status,
-      a.created_at
+      a.created_at,
+      p.nome AS plano_nome,
+      p.slug AS plano_slug,
+      pagamento.asaas_payment_id,
+      pagamento.status AS pagamento_status,
+      pagamento.data_vencimento,
+      pagamento.pix_copia_cola,
+      pagamento.pix_qrcode
     FROM assinaturas a
+    INNER JOIN planos p
+      ON p.id = a.plano_id
+    LEFT JOIN LATERAL (
+      SELECT
+        pg.asaas_payment_id,
+        pg.status,
+        pg.data_vencimento,
+        pg.pix_copia_cola,
+        pg.pix_qrcode
+      FROM pagamentos pg
+      WHERE pg.assinatura_id = a.id
+        AND UPPER(pg.status) IN (
+          'PENDING',
+          'CREATED',
+          'AWAITING_PAYMENT'
+        )
+        AND (
+          pg.data_vencimento IS NULL
+          OR pg.data_vencimento >= CURRENT_DATE
+        )
+      ORDER BY pg.id DESC
+      LIMIT 1
+    ) pagamento ON TRUE
     WHERE a.negocio_id = $1
-      AND a.plano_id = $2
       AND a.ativo = FALSE
       AND UPPER(a.status) = 'PENDING'
+      AND p.valor > 0
       AND (
         a.created_at >= NOW() - INTERVAL '15 minutes'
         OR EXISTS (
@@ -103,7 +132,7 @@ async function buscarAssinaturaPendenteEquivalente(
     LIMIT 1
     FOR UPDATE OF a
     `,
-    [negocioId, planoId]
+    [negocioId]
   );
 
   return result.rows[0] || null;
@@ -181,7 +210,13 @@ async function buscarPagamentoCheckout(pagamentoId, usuarioId) {
       pg.status,
       a.ativo,
       a.status AS status_assinatura,
-      p.nome AS plano_nome
+      p.nome AS plano_nome,
+      COALESCE(
+        ultimo_webhook.status = 'FAILED'
+        AND ultimo_webhook.tentativas >= 10
+        AND ultimo_webhook.proxima_tentativa_em IS NULL,
+        FALSE
+      ) AS ativacao_requer_atencao
     FROM pagamentos pg
     INNER JOIN assinaturas a
       ON a.id = pg.assinatura_id
@@ -191,6 +226,22 @@ async function buscarPagamentoCheckout(pagamentoId, usuarioId) {
       ON un.negocio_id = a.negocio_id
     INNER JOIN usuarios u
       ON u.id = un.usuario_id
+    LEFT JOIN LATERAL (
+      SELECT
+        we.status,
+        we.tentativas,
+        we.proxima_tentativa_em
+      FROM webhook_eventos we
+      WHERE we.provedor = 'asaas'
+        AND we.recurso_id = pg.asaas_payment_id
+      ORDER BY
+        COALESCE(
+          we.evento_criado_em,
+          we.recebido_em::timestamp
+        ) DESC,
+        we.id DESC
+      LIMIT 1
+    ) ultimo_webhook ON TRUE
     WHERE pg.asaas_payment_id = $1
       AND un.usuario_id = $2
       AND un.papel = 'dono'
@@ -208,7 +259,7 @@ module.exports = {
   buscarNegocioDono,
   buscarPlano,
   bloquearCheckoutDoNegocio,
-  buscarAssinaturaPendenteEquivalente,
+  buscarAssinaturaPendenteDoNegocio,
   buscarDadosClienteAsaas,
   salvarClienteAsaasSeAusente,
   buscarPagamentoCheckout

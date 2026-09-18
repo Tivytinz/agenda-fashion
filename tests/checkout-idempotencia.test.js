@@ -106,13 +106,23 @@ describe(
           id: 1,
           status: "COMPLETED"
         });
+      checkoutTentativaRepository
+        .validarLease
+        .mockResolvedValue(true);
+      checkoutTentativaRepository
+        .vincularAssinatura
+        .mockResolvedValue({
+          id: 1,
+          status: "PROCESSING",
+          lease_tentativa: 1
+        });
 
       checkoutRepository
         .bloquearCheckoutDoNegocio
         .mockResolvedValue();
 
       checkoutRepository
-        .buscarAssinaturaPendenteEquivalente
+        .buscarAssinaturaPendenteDoNegocio
         .mockResolvedValue(null);
     });
 
@@ -215,7 +225,7 @@ describe(
     );
 
     test(
-      "impede outro PIX pendente para o mesmo negócio e plano",
+      "impede outro PIX pendente para o mesmo negócio mesmo em plano diferente",
       async () => {
         checkoutTentativaRepository
           .iniciar
@@ -231,11 +241,11 @@ describe(
           });
 
         checkoutRepository
-          .buscarAssinaturaPendenteEquivalente
+          .buscarAssinaturaPendenteDoNegocio
           .mockResolvedValue({
             id: 44,
             negocio_id: 7,
-            plano_id: 3,
+            plano_id: 4,
             status: "PENDING"
           });
 
@@ -250,7 +260,7 @@ describe(
         ).rejects.toMatchObject({
           statusCode: 409,
           message:
-            "Já existe um PIX pendente para este plano. Aguarde a confirmação ou o vencimento da cobrança."
+            "Já existe um PIX pendente para este negócio. Conclua o pagamento ou aguarde o vencimento antes de gerar outra cobrança."
         });
 
         expect(
@@ -265,6 +275,63 @@ describe(
         ).not.toHaveBeenCalled();
         expect(criarCobrancaPix)
           .not.toHaveBeenCalled();
+      }
+    );
+
+    test(
+      "reutiliza o PIX pendente quando a nova tentativa é do mesmo plano",
+      async () => {
+        checkoutTentativaRepository
+          .iniciar
+          .mockResolvedValue({
+            executar: true,
+            nova: true,
+            tentativa: {
+              id: 36,
+              status: "PROCESSING",
+              lease_tentativa: 1,
+              assinatura_id: null
+            }
+          });
+
+        checkoutRepository
+          .buscarAssinaturaPendenteDoNegocio
+          .mockResolvedValue({
+            id: 45,
+            negocio_id: 7,
+            plano_id: 3,
+            status: "PENDING",
+            asaas_payment_id:
+              "pay_existente",
+            pagamento_status:
+              "PENDING",
+            data_vencimento:
+              "2026-09-20",
+            pix_copia_cola:
+              "pix-existente",
+            pix_qrcode:
+              "imagem-existente"
+          });
+
+        const resultado =
+          await criarCheckout({
+            usuarioId: 1,
+            planoId: 3,
+            formaPagamento: "pix",
+            chaveIdempotencia:
+              "nova-chave-mesmo-plano-123"
+          });
+
+        expect(criarCobrancaPix)
+          .not.toHaveBeenCalled();
+        expect(registrarPagamento)
+          .not.toHaveBeenCalled();
+        expect(resultado.pagamento.id)
+          .toBe("pay_existente");
+        expect(resultado.pix.payload)
+          .toBe("pix-existente");
+        expect(resultado.recuperado)
+          .toBe(true);
       }
     );
 

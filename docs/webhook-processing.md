@@ -28,7 +28,13 @@ As regras financeiras processadas pelo webhook continuam devendo ser idempotente
 
 Conversões de assinatura originadas por webhooks financeiros são persistidas em `marketing_conversoes_entregas` antes do envio aos provedores. O estado financeiro é confirmado pela transação própria do domínio; depois disso, o webhook só é concluído quando a persistência das entregas termina. Se a gravação da outbox falhar ou o processo morrer antes dela, o registro durável em `webhook_eventos` permanece elegível a retry e consegue reconstruir a conversão a partir do pagamento confirmado. A chave `(provedor, tipo_evento, chave_evento)` é única, de modo que eventos Asaas diferentes referentes à mesma ativação não criem múltiplas entregas para Meta ou Google.
 
-A identificação do primeiro pagamento é histórica: ela usa os pagamentos confirmados da assinatura e não depende de a assinatura continuar atualmente `ACTIVE`. Isso permite reconstruir com segurança a entrega durante um retry mesmo quando, depois da confirmação original, o negócio já trocou ou cancelou a assinatura. O valor enviado aos provedores é relido da cobrança confirmada em `pagamentos`, em vez de confiar no preço armazenado no payload da outbox.
+A identificação do primeiro pagamento usa somente cobranças que continuam financeiramente válidas (`CONFIRMED`, `RECEIVED` ou `RECEIVED_IN_CASH`). A chave local da outbox inclui assinatura e pagamento, permitindo que uma cobrança invalidada antes do envio não impeça uma cobrança válida posterior. Os identificadores externos de Meta e Google continuam estáveis por assinatura, preservando a deduplicação no provedor. O valor enviado é relido da cobrança válida em `pagamentos`, em vez de confiar no preço armazenado no payload da outbox.
+
+Pagamentos também persistem o estado atual de reversão em `reversao_tipo`,
+`reversao_em`, `valor_revertido` e `reversao_valor_conhecido`. Reembolso
+total, chargeback e desfazimento conhecido podem usar o valor integral da
+cobrança; reembolso parcial só participa de um líquido exato quando o provedor
+fornece valor confiável.
 
 A fila de conversões usa os estados `PENDING`, `PROCESSING`, `SENT`, `IGNORED` e `FAILED`, reserva com `FOR UPDATE SKIP LOCKED`, possui no máximo cinco tentativas e recupera processamento abandonado após cinco minutos. Uma falha temporária recebe `proxima_tentativa_em` e só volta à fila quando esse horário vence; `FAILED` com `proxima_tentativa_em = NULL` é terminal e não volta a ser reservado. Se a quinta tentativa ficar presa e for encerrada pelo limpador, o mesmo lease ainda pode reconciliar posteriormente um resultado `SENT` ou `IGNORED`, sem permitir que uma tentativa mais antiga sobrescreva uma mais nova. Dentro de uma mesma instância da aplicação, ticks concorrentes compartilham a execução já em andamento; entre instâncias, `FOR UPDATE SKIP LOCKED` e o lease continuam sendo a proteção de concorrência.
 

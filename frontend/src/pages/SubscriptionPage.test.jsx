@@ -133,11 +133,24 @@ describe("plano e assinatura", () => {
 
   it("diferencia pagamento pendente sem tratar o plano como atual", async () => {
     apiRequest.mockResolvedValueOnce({
-      plano: { id: 2, slug: "autonoma", nome: "Autônoma", valor: 49.9 },
+      plano: { id: 1, slug: "inicial", nome: "Grátis", valor: 0 },
       assinatura: {
         status: "PENDING",
         ativo: false,
         forma_pagamento: "pix"
+      },
+      assinatura_ativa: null,
+      upgrade_pendente: {
+        status: "PENDING",
+        ativo: false,
+        forma_pagamento: "pix",
+        plano_id: 2
+      },
+      plano_pendente: {
+        id: 2,
+        slug: "autonoma",
+        nome: "Autônoma",
+        valor: 49.9
       },
       uso: {},
       pagamentos: []
@@ -148,10 +161,51 @@ describe("plano e assinatura", () => {
     expect(await screen.findByText("Pagamento pendente")).not.toBeNull();
     expect(screen.getByText("Plano para ativar")).not.toBeNull();
     expect(screen.queryByText("Plano escolhido")).toBeNull();
-    expect(screen.queryByText("Enquanto a assinatura não estiver ativa, valem os limites gratuitos.")).toBeNull();
     const effectivePlan = screen.getByText(/Plano em uso:/).closest("p");
     expect(within(effectivePlan).getByText("Grátis")).not.toBeNull();
     expect(screen.queryByRole("button", { name: "Cancelar renovação" })).toBeNull();
+  });
+
+  it("mantém o plano ativo visível enquanto existe upgrade pendente", async () => {
+    apiRequest.mockResolvedValueOnce({
+      plano: { id: 2, slug: "autonoma", nome: "Autônoma", valor: 49.9 },
+      assinatura: {
+        id: 10,
+        status: "ACTIVE",
+        ativo: true,
+        forma_pagamento: "pix"
+      },
+      assinatura_ativa: {
+        id: 10,
+        status: "ACTIVE",
+        ativo: true,
+        forma_pagamento: "pix"
+      },
+      upgrade_pendente: {
+        id: 11,
+        plano_id: 3,
+        status: "PENDING",
+        ativo: false,
+        forma_pagamento: "pix"
+      },
+      plano_pendente: {
+        id: 3,
+        slug: "studio",
+        nome: "Studio",
+        valor: 99.9
+      },
+      uso: {},
+      pagamentos: []
+    });
+
+    renderPage();
+
+    expect(await screen.findByText("Assinatura ativa")).not.toBeNull();
+    const effectivePlan = screen.getByText(/Plano em uso:/).closest("p");
+    expect(within(effectivePlan).getByText("Autônoma")).not.toBeNull();
+    expect(screen.getByText(/Há um PIX pendente para o plano/)).not.toBeNull();
+    expect(screen.getByText("Studio", { selector: "strong" })).not.toBeNull();
+    expect(screen.getByRole("button", { name: "Cancelar renovação" })).not.toBeNull();
   });
 
   it("traduz status dos pagamentos para linguagem clara", async () => {

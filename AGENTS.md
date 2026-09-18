@@ -171,6 +171,18 @@ Planos pagos usam checkout por PIX. Retorno do navegador não confirma pagamento
 A ativação do plano depende da confirmação financeira autenticada e idempotente
 do Asaas.
 
+Um negócio pode possuir no máximo uma cobrança PIX inicial pendente por vez.
+Uma nova tentativa para o mesmo plano deve recuperar a cobrança pendente
+reutilizável; a escolha de outro plano fica bloqueada até a cobrança atual ser
+paga ou vencer. Assinatura efetivamente ativa e upgrade pendente são estados
+distintos e devem ser apresentados separadamente, sem rebaixar visualmente um
+plano pago ainda vigente.
+
+Reembolso, chargeback, desfazimento de recebimento em dinheiro e reembolso
+parcial são fatos financeiros de reversão. O AF persiste tipo, data e valor
+conhecido da reversão; quando o provedor não fornece valor confiável para uma
+reversão parcial, relatórios não podem inventar receita líquida exata.
+
 Mais detalhes: `docs/planos.md`, `docs/checkout-idempotente.md` e documentos de
 webhook financeiro.
 

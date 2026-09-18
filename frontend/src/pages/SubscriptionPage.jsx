@@ -119,10 +119,12 @@ function progressPercent(usedValue, limitValue, backendPercent) {
 
 function paymentStatus(value) {
   const status = normalizeStatus(value);
-  if (["CONFIRMED", "RECEIVED", "PAID"].includes(status)) return { label: "Pago", tone: "success" };
+  if (["CONFIRMED", "RECEIVED", "RECEIVED_IN_CASH", "PAID"].includes(status)) return { label: "Pago", tone: "success" };
   if (["PENDING", "AWAITING_PAYMENT"].includes(status)) return { label: "Pendente", tone: "warning" };
   if (["OVERDUE", "PAST_DUE"].includes(status)) return { label: "Atrasado", tone: "danger" };
+  if (status === "PARTIALLY_REFUNDED") return { label: "Parcialmente reembolsado", tone: "warning" };
   if (["REFUNDED", "REFUND_REQUESTED"].includes(status)) return { label: "Reembolsado", tone: "neutral" };
+  if (["CHARGEBACK_REQUESTED", "CHARGEBACK_DISPUTE", "AWAITING_CHARGEBACK_REVERSAL"].includes(status)) return { label: "Em contestação", tone: "danger" };
   if (["CANCELED", "CANCELLED", "DELETED"].includes(status)) return { label: "Cancelado", tone: "neutral" };
   return { label: status ? status.replaceAll("_", " ") : "Não informado", tone: "neutral" };
 }
@@ -178,21 +180,76 @@ export function SubscriptionPage() {
     return <div className="workspace-page"><ErrorState message={error} onRetry={load} /></div>;
   }
 
-  const plan = data.plano || {};
-  const subscription = data.assinatura || null;
+  const currentPlan = data.plano || {};
+  const activeSubscription =
+    data.assinatura_ativa ||
+    (
+      data.assinatura?.ativo === true
+        ? data.assinatura
+        : null
+    );
+  const pendingUpgrade =
+    data.upgrade_pendente ||
+    (
+      !activeSubscription &&
+      PENDING_STATUSES.has(
+        normalizeStatus(data.assinatura?.status)
+      )
+        ? data.assinatura
+        : null
+    );
+  const pendingPlan =
+    data.plano_pendente || null;
+  const subscription =
+    activeSubscription ||
+    pendingUpgrade ||
+    data.assinatura ||
+    null;
+  const plan =
+    activeSubscription
+      ? currentPlan
+      : pendingUpgrade && pendingPlan
+        ? pendingPlan
+        : currentPlan;
   const usage = data.uso || {};
   const payments = Array.isArray(data.pagamentos) ? data.pagamentos : [];
   const state = subscriptionStatus(plan, subscription);
-  const isFree = Number(plan.valor) === 0;
-  const usesFreeFallback = !isFree && !state.active;
-  const needsSubscription = !isFree && !subscription;
-  const rawStatus = normalizeStatus(subscription?.status);
-  const canCancel = ACTIVE_STATUSES.has(rawStatus) && subscription?.ativo !== false;
+  const currentPlanIsFree =
+    Number(currentPlan.valor) === 0;
+  const pendingPaidPlan =
+    Boolean(
+      pendingUpgrade &&
+      Number(pendingPlan?.valor || 0) > 0
+    );
+  const isFree =
+    currentPlanIsFree &&
+    !pendingPaidPlan;
+  const usesFreeFallback =
+    !activeSubscription &&
+    (
+      pendingPaidPlan ||
+      Number(currentPlan.valor || 0) > 0
+    );
+  const needsSubscription =
+    !activeSubscription &&
+    !pendingUpgrade &&
+    Number(currentPlan.valor || 0) > 0;
+  const rawStatus = normalizeStatus(
+    activeSubscription?.status
+  );
+  const canCancel =
+    Boolean(activeSubscription) &&
+    ACTIVE_STATUSES.has(rawStatus) &&
+    activeSubscription?.ativo !== false;
   const planSlug = String(plan.slug || "").trim();
   const checkoutTarget = planSlug
     ? `/checkout?plano=${encodeURIComponent(planSlug)}`
     : "/planos";
-  const effectivePlanName = usesFreeFallback ? "Grátis" : plan.nome || "Grátis";
+  const effectivePlanName =
+    usesFreeFallback
+      ? "Grátis"
+      : currentPlan.nome ||
+        (currentPlanIsFree ? "Grátis" : "Plano atual");
   const serviceOverLimit = overLimitAmount(
     usage.servicos_utilizados,
     usage.limite_servicos
@@ -226,6 +283,13 @@ export function SubscriptionPage() {
 
       {error && <p className="form-error" role="alert">{error}</p>}
       {message && <p className="form-success" role="status">{message}</p>}
+      {activeSubscription && pendingUpgrade && pendingPlan && (
+        <div className="usage-over-limit-alert" role="status">
+          <span>
+            Há um PIX pendente para o plano <strong>{pendingPlan.nome}</strong>. Seu plano atual continua sendo <strong>{currentPlan.nome || "Grátis"}</strong> até a confirmação e ativação do novo pagamento.
+          </span>
+        </div>
+      )}
 
       <section className="billing-grid subscription-overview-grid">
         <article className="panel subscription-card subscription-plan-card">

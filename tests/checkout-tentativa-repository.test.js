@@ -165,6 +165,49 @@ describe(
     );
 
     test(
+      "vínculo da assinatura exige o lease corrente",
+      async () => {
+        db.query.mockResolvedValueOnce({
+          rows: []
+        });
+
+        const resultado =
+          await repository.vincularAssinatura(
+            1,
+            44,
+            3
+          );
+
+        expect(resultado).toBeNull();
+        expect(db.query.mock.calls[0][0])
+          .toContain("lease_tentativa = $3");
+        expect(db.query.mock.calls[0][1])
+          .toEqual([1, 44, 3]);
+      }
+    );
+
+    test(
+      "valida o lease antes de efeitos externos",
+      async () => {
+        db.query.mockResolvedValueOnce({
+          rows: [{ id: 1 }]
+        });
+
+        await expect(
+          repository.validarLease(
+            1,
+            4
+          )
+        ).resolves.toBe(true);
+
+        expect(db.query.mock.calls[0][0])
+          .toContain("status = 'PROCESSING'");
+        expect(db.query.mock.calls[0][0])
+          .toContain("lease_tentativa = $2");
+      }
+    );
+
+    test(
       "finalização exige o lease corrente",
       async () => {
         db.query.mockResolvedValueOnce({

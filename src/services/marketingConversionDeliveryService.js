@@ -61,7 +61,7 @@ async function enfileirarAssinaturaAtivada(
   }
 
   const chaveEvento =
-    `assinatura:${payload.assinaturaId}`;
+    `assinatura:${payload.assinaturaId};pagamento:${payload.pagamentoId}`;
 
   return Promise.all([
     marketingConversionDeliveryRepository
@@ -121,9 +121,7 @@ async function buscarPagamentoConfirmado(
       });
 
   if (!pagamento) {
-    throw new Error(
-      "Pagamento confirmado não encontrado para entregar a conversão."
-    );
+    return null;
   }
 
   const valor =
@@ -139,6 +137,18 @@ async function buscarPagamentoConfirmado(
 }
 
 async function entregarMeta(payload) {
+  const pagamento =
+    await buscarPagamentoConfirmado(
+      payload
+    );
+
+  if (!pagamento) {
+    return {
+      enviado: false,
+      motivo: "pagamento_invalido"
+    };
+  }
+
   const primeiroPagamento =
     await metaAdsRepository
       .ehPrimeiroPagamentoAssinatura({
@@ -154,11 +164,6 @@ async function entregarMeta(payload) {
       motivo: "renovacao"
     };
   }
-
-  const pagamento =
-    await buscarPagamentoConfirmado(
-      payload
-    );
 
   const perfil =
     await metaAdsRepository
@@ -215,6 +220,18 @@ async function entregarMeta(payload) {
 }
 
 async function entregarGoogle(payload) {
+  const pagamento =
+    await buscarPagamentoConfirmado(
+      payload
+    );
+
+  if (!pagamento) {
+    return {
+      enviado: false,
+      motivo: "pagamento_invalido"
+    };
+  }
+
   const primeiroPagamento =
     await googleMeasurementRepository
       .ehPrimeiroPagamentoAssinatura({
@@ -230,11 +247,6 @@ async function entregarGoogle(payload) {
       motivo: "renovacao"
     };
   }
-
-  const pagamento =
-    await buscarPagamentoConfirmado(
-      payload
-    );
 
   const perfil =
     await googleMeasurementRepository
@@ -298,6 +310,7 @@ function executorProvedor(provedor) {
 
 const MOTIVOS_IGNORADOS = new Set([
   "renovacao",
+  "pagamento_invalido",
   "sem_consentimento",
   "desabilitado"
 ]);
