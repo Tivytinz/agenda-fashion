@@ -780,6 +780,9 @@ describe(
           11,
           expect.stringContaining(
             "e.created_at"
+          ),
+          expect.stringContaining(
+            "a.created_at"
           )
         );
 
