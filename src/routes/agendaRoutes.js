@@ -14,6 +14,9 @@ const agendamentoLifecycleController = require(
 const agendamentoCancelamentoController = require(
   "../controllers/agendamentoCancelamentoController"
 );
+const agendamentoReagendamentoController = require(
+  "../controllers/agendamentoReagendamentoController"
+);
 
 router.get(
   "/agenda-geral",
@@ -47,6 +50,13 @@ router.patch(
   auth,
   agendamentoOperacionalAtivo,
   agendamentoCancelamentoController.cancelarOperacional
+);
+
+router.patch(
+  "/agendamentos/:id/reagendar-operacional",
+  auth,
+  agendamentoOperacionalAtivo,
+  agendamentoReagendamentoController.reagendarOperacional
 );
 
 router.post(
