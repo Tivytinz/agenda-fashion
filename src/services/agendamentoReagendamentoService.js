@@ -2,6 +2,9 @@ const db = require("../db/db");
 const agendamentoReagendamentoRepository = require(
   "../repositories/agendamentoReagendamentoRepository"
 );
+const profissionalServicosRepository = require(
+  "../repositories/profissionalServicosRepository"
+);
 const agendaPublicaRepository = require(
   "../repositories/agendaPublicaRepository"
 );
@@ -317,6 +320,14 @@ async function reagendarOperacional({
           403
         );
       }
+
+      await profissionalServicosRepository
+        .bloquearElegibilidadeNegocio({
+          negocioId:
+            negocio,
+          executor:
+            client,
+        });
 
       const destino =
         await agendamentoReagendamentoRepository
