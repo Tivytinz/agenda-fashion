@@ -158,6 +158,34 @@ test(
 );
 
 test(
+  "tipo do webhook de reversão prevalece sobre status ainda recebido no payload",
+  async () => {
+    await suspenderAssinaturaPorPagamento({
+      id: "pay_evento_refund",
+      status: "RECEIVED",
+      webhookTipoEvento:
+        "PAYMENT_REFUNDED",
+      webhookEventoCriadoEm:
+        "2026-09-17 19:30:00",
+      webhookEventoId:
+        "evt_refund_status_stale"
+    });
+
+    expect(
+      pagamentoRepository
+        .atualizarStatusPagamento
+    ).toHaveBeenCalledWith(
+      mockClient,
+      "pay_evento_refund",
+      expect.objectContaining({
+        reversao_tipo: "REFUNDED",
+        reversao_valor_conhecido: true
+      })
+    );
+  }
+);
+
+test(
   "reembolso total usa o valor local como fallback confiável",
   async () => {
     await suspenderAssinaturaPorPagamento({
