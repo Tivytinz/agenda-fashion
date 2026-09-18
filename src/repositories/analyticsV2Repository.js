@@ -218,6 +218,9 @@ async function salvarEvidenciasSessao({
       utm_campaign,
       utm_content,
       utm_term,
+      af_source,
+      af_medium,
+      af_content,
       gclid,
       gbraid,
       wbraid,
@@ -229,7 +232,7 @@ async function salvarEvidenciasSessao({
       capturado_em
     )
     VALUES (
-      $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15::TIMESTAMPTZ
+      $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18::TIMESTAMPTZ
     )
     ON CONFLICT (sessao_id)
     DO UPDATE SET
@@ -238,6 +241,9 @@ async function salvarEvidenciasSessao({
       utm_campaign = COALESCE(marketing_sessao_evidencias.utm_campaign, EXCLUDED.utm_campaign),
       utm_content = COALESCE(marketing_sessao_evidencias.utm_content, EXCLUDED.utm_content),
       utm_term = COALESCE(marketing_sessao_evidencias.utm_term, EXCLUDED.utm_term),
+      af_source = COALESCE(marketing_sessao_evidencias.af_source, EXCLUDED.af_source),
+      af_medium = COALESCE(marketing_sessao_evidencias.af_medium, EXCLUDED.af_medium),
+      af_content = COALESCE(marketing_sessao_evidencias.af_content, EXCLUDED.af_content),
       gclid = COALESCE(marketing_sessao_evidencias.gclid, EXCLUDED.gclid),
       gbraid = COALESCE(marketing_sessao_evidencias.gbraid, EXCLUDED.gbraid),
       wbraid = COALESCE(marketing_sessao_evidencias.wbraid, EXCLUDED.wbraid),
@@ -255,6 +261,9 @@ async function salvarEvidenciasSessao({
       evidencias.utmCampaign || null,
       evidencias.utmContent || null,
       evidencias.utmTerm || null,
+      evidencias.afSource || null,
+      evidencias.afMedium || null,
+      evidencias.afContent || null,
       evidencias.gclid || null,
       evidencias.gbraid || null,
       evidencias.wbraid || null,
