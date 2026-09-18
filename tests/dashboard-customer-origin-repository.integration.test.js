@@ -124,9 +124,9 @@ describe("origem de clientes integrada", () => {
     );
   }
 
-  test("separa Google pago, Google orgânico, Meta orgânico, autônomo e histórico incompleto", async () => {
+  test("separa origens rastreadas e mantém ausência de evidência como não identificada", async () => {
     const clienteGoogle = await criarCliente("Cliente Google");
-    const clienteAutonomo = await criarCliente("Cliente Autônomo");
+    const clienteSemEvidencia = await criarCliente("Cliente sem evidência");
     const clienteOrganico = await criarCliente("Cliente Orgânico");
     const clienteSocial = await criarCliente("Cliente Social");
     const clienteSemHistorico = await criarCliente("Cliente Sem Histórico");
@@ -137,8 +137,8 @@ describe("origem de clientes integrada", () => {
       gbraid: "gbraid-cliente-google",
     });
 
-    const autonomo = await criarAgendamento(clienteAutonomo, 0, "11:00");
-    await criarEvento(autonomo);
+    const semEvidencia = await criarAgendamento(clienteSemEvidencia, 0, "11:00");
+    await criarEvento(semEvidencia);
 
     const organicoPrimeiro = await criarAgendamento(clienteOrganico, -10, "12:00");
     await criarAgendamento(clienteOrganico, 0, "13:00");
@@ -161,9 +161,6 @@ describe("origem de clientes integrada", () => {
     const google = linhas.find(
       (linha) => linha.origem_codigo === "google_ads"
     );
-    const autonomoLinha = linhas.find(
-      (linha) => linha.origem_codigo === "autonomo"
-    );
     const organico = linhas.find(
       (linha) => linha.origem_codigo === "google_organico"
     );
@@ -185,12 +182,6 @@ describe("origem de clientes integrada", () => {
     });
     expect(Number(google.faturamento)).toBe(100);
 
-    expect(autonomoLinha).toMatchObject({
-      clientes: 1,
-      clientes_novos: 1,
-      agendamentos: 1,
-    });
-
     expect(organico).toMatchObject({
       clientes: 1,
       clientes_novos: 0,
@@ -206,9 +197,12 @@ describe("origem de clientes integrada", () => {
     expect(metaPago).toBeUndefined();
 
     expect(desconhecido).toMatchObject({
-      clientes: 1,
-      agendamentos: 1,
+      clientes: 2,
+      agendamentos: 2,
     });
+    expect(linhas.find(
+      (linha) => linha.origem_codigo === "autonomo"
+    )).toBeUndefined();
   });
 
   test("identifica Meta Ads somente com sinal explícito de mídia paga", async () => {

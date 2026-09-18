@@ -48,6 +48,12 @@ describe(
               " Campanha Profissionais ",
             utmContent:
               "criativo\nrosa",
+            afSource:
+              " Agenda_Fashion ",
+            afMedium:
+              " SHARE ",
+            afContent:
+              "negocio",
             gclid:
               "gclid-123",
             landingPage:
@@ -67,6 +73,12 @@ describe(
             "criativorosa",
           utmTerm:
             null,
+          afSource:
+            "agenda_fashion",
+          afMedium:
+            "share",
+          afContent:
+            "negocio",
           gclid:
             "gclid-123",
           gbraid:
@@ -150,6 +162,25 @@ describe(
       }
     );
 
+    test("classifica link próprio do AF como referência rastreada", () => {
+      expect(
+        classificarCanal(
+          {
+            afSource: "agenda_fashion",
+            afMedium: "share",
+            afContent: "negocio",
+          },
+          null
+        )
+      ).toMatchObject({
+        canal: "other",
+        source: "agenda_fashion",
+        medium: "share",
+        classificacao: "referencia_rastreada",
+        metodoResolucao: "af_link",
+      });
+    });
+
     test(
       "promove para oficial somente quando o backend resolveu uma campanha",
       () => {
@@ -182,6 +213,45 @@ describe(
         });
       }
     );
+
+    test("aceita os marcos de visualização e conclusão do booking", () => {
+      const profile = normalizarItem({
+        type: "event",
+        eventUuid: EVENT_UUID,
+        viewUuid: VIEW_UUID,
+        name: "profile_viewed",
+        schemaVersion: 1,
+        occurredAt: AGORA,
+        targetBusinessId: 11,
+        properties: {
+          entry_point: "compartilhamento",
+          arbitrary: "descartar",
+        },
+      });
+
+      const booking = normalizarItem({
+        type: "event",
+        eventUuid: "33333333-3333-4333-8333-333333333333",
+        viewUuid: VIEW_UUID,
+        name: "booking_completed",
+        schemaVersion: 1,
+        occurredAt: AGORA,
+        targetBusinessId: 11,
+        properties: {
+          appointment_id: 99,
+          status: "sucesso",
+          arbitrary: "descartar",
+        },
+      });
+
+      expect(profile.properties).toEqual({
+        entry_point: "compartilhamento",
+      });
+      expect(booking.properties).toEqual({
+        appointment_id: 99,
+        status: "sucesso",
+      });
+    });
 
     test(
       "aceita somente eventos frontend da allowlist e propriedades previstas no contrato",

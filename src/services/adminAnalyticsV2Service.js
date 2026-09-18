@@ -198,6 +198,9 @@ async function buscarRevenue(periodo) {
       novasAssinaturasPagas: numero(resumo.novas_assinaturas_pagas),
       assinaturasPagasAtivas: numero(resumo.assinaturas_pagas_ativas),
       receitaTotal: numero(resumo.receita_total),
+      pagamentosReembolsados: numero(resumo.pagamentos_reembolsados),
+      valorReembolsado: numero(resumo.valor_reembolsado),
+      pagamentosComAjuste: numero(resumo.pagamentos_com_ajuste),
       receitaPrimeiroPagamento: numero(resumo.receita_primeiro_pagamento),
     },
     planos: resultado.planos,
@@ -209,7 +212,7 @@ async function buscarRevenue(periodo) {
       novaAssinatura:
         "Nova assinatura paga é a assinatura cujo primeiro pagamento CONFIRMED/RECEIVED caiu no período. Esse total é um fato financeiro do período e não é usado como numerador da coorte de checkout.",
       receita:
-        "Receita total soma pagamentos CONFIRMED/RECEIVED no período e pode incluir renovações; receita de primeiro pagamento isola monetização inicial.",
+        "Receita confirmada soma pagamentos CONFIRMED/RECEIVED/RECEIVED_IN_CASH pela data do pagamento e pode incluir renovações. Reembolsos integrais e outros ajustes são recortados pela atualização local do estado financeiro e exibidos separadamente; o AF não inventa valor líquido para reembolso parcial sem valor de estorno persistido.",
       ativas:
         "Assinaturas pagas ativas é um estoque atual e não uma contagem criada no período.",
     },

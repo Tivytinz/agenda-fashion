@@ -125,7 +125,9 @@ beforeEach(() => {
       id: 30,
       assinatura_id: 11,
       asaas_payment_id: "pay_123",
-      valor: "59.90"
+      valor: "59.90",
+      status: "CONFIRMED",
+      data_pagamento: "2026-09-17"
     });
 });
 
@@ -179,7 +181,7 @@ test(
         expect.objectContaining({
           eventName: "Subscribe",
           eventId: "subscribe:11",
-          ocorridoEm: undefined,
+          ocorridoEm: "2026-09-17",
           customData:
             expect.objectContaining({
               value: 59.9
@@ -232,7 +234,7 @@ test(
     ).toHaveBeenCalledWith(
       expect.objectContaining({
         eventName: "purchase",
-        ocorridoEm: undefined,
+        ocorridoEm: "2026-09-17",
         params: expect.objectContaining({
           transaction_id:
             "af-subscription-11",
@@ -243,6 +245,43 @@ test(
     expect(
       deliveryRepository.marcarEnviado
     ).toHaveBeenCalledWith(2, 2);
+  }
+);
+
+test(
+  "pagamento reembolsado antes da entrega não é enviado como conversão",
+  async () => {
+    deliveryRepository
+      .reservarProximo
+      .mockResolvedValueOnce({
+        id: 10,
+        provedor: "meta",
+        payload,
+        lease_tentativa: 1
+      });
+
+    marketingConversaoRepository
+      .buscarPagamentoConfirmado
+      .mockResolvedValueOnce({
+        id: 30,
+        assinatura_id: 11,
+        asaas_payment_id: "pay_123",
+        valor: "59.90",
+        status: "REFUNDED",
+        data_pagamento: "2026-09-17"
+      });
+
+    await service.processarFilaConversoes(1);
+
+    expect(metaAdsService.enviarEvento)
+      .not.toHaveBeenCalled();
+    expect(
+      deliveryRepository.marcarIgnorado
+    ).toHaveBeenCalledWith(
+      10,
+      1,
+      "pagamento_nao_confirmado"
+    );
   }
 );
 

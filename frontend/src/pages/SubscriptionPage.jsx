@@ -119,7 +119,7 @@ function progressPercent(usedValue, limitValue, backendPercent) {
 
 function paymentStatus(value) {
   const status = normalizeStatus(value);
-  if (["CONFIRMED", "RECEIVED", "PAID"].includes(status)) return { label: "Pago", tone: "success" };
+  if (["CONFIRMED", "RECEIVED", "RECEIVED_IN_CASH", "PAID"].includes(status)) return { label: "Pago", tone: "success" };
   if (["PENDING", "AWAITING_PAYMENT"].includes(status)) return { label: "Pendente", tone: "warning" };
   if (["OVERDUE", "PAST_DUE"].includes(status)) return { label: "Atrasado", tone: "danger" };
   if (["REFUNDED", "REFUND_REQUESTED"].includes(status)) return { label: "Reembolsado", tone: "neutral" };

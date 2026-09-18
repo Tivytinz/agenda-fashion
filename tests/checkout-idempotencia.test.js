@@ -505,7 +505,8 @@ describe(
           31,
           expect.objectContaining({
             forma_pagamento: "pix"
-          })
+          }),
+          1
         );
         expect(
           resultado.pagamento.id
@@ -579,7 +580,8 @@ describe(
             .marcarFalha
         ).toHaveBeenCalledWith(
           34,
-          "QR Code ainda indisponível"
+          "QR Code ainda indisponível",
+          1
         );
       }
     );
@@ -650,7 +652,8 @@ describe(
             .marcarFalha
         ).toHaveBeenCalledWith(
           33,
-          "falha temporária"
+          "falha temporária",
+          1
         );
       }
     );

@@ -51,6 +51,9 @@ describe(
         expect(sql).toContain(
           "anterior.id < atual.id"
         );
+        expect(sql).toContain(
+          "RECEIVED_IN_CASH"
+        );
         expect(sql).not.toContain(
           "a.ativo"
         );
@@ -65,7 +68,7 @@ describe(
     );
 
     test(
-      "carrega valor do pagamento confirmado sem inventar precisão temporal",
+      "carrega estado atual do pagamento para validar a conversão no service",
       async () => {
         db.query.mockResolvedValueOnce({
           rows: [
@@ -73,7 +76,9 @@ describe(
               id: 30,
               assinatura_id: 11,
               asaas_payment_id: "pay_1",
-              valor: "49.90"
+              valor: "49.90",
+              status: "REFUNDED",
+              data_pagamento: "2026-09-17"
             }
           ]
         });
@@ -86,21 +91,19 @@ describe(
             });
 
         expect(pagamento)
-          .toEqual({
-            id: 30,
-            assinatura_id: 11,
-            asaas_payment_id: "pay_1",
-            valor: "49.90"
+          .toMatchObject({
+            status: "REFUNDED",
+            data_pagamento: "2026-09-17"
           });
 
         const sql =
           db.query.mock.calls[0][0];
 
         expect(sql).toContain(
-          "p.data_pagamento IS NOT NULL"
+          "p.status"
         );
-        expect(sql).not.toContain(
-          "p.valor,\n        p.data_pagamento"
+        expect(sql).toContain(
+          "p.data_pagamento"
         );
       }
     );

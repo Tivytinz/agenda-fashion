@@ -189,7 +189,8 @@ describe("AdminMarketingPage", () => {
     expect(
       screen.getByRole("heading", { name: "Marcos da coorte profissional" })
     ).not.toBeNull();
-    expect(screen.getByText("Agenda configurada")).not.toBeNull();
+    expect(screen.queryByText("Agenda configurada")).toBeNull();
+    expect(screen.getByText("1º serviço criado")).not.toBeNull();
     expect(screen.getAllByText("Assinatura paga").length).toBeGreaterThan(0);
 
     expect(

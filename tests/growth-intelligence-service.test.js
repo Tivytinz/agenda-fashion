@@ -78,6 +78,35 @@ describe("growthIntelligenceService", () => {
     });
   });
 
+  test("considera ativação concluída sem exigir agenda configurada", () => {
+    const result = analyze(
+      {
+        periodo: "7dias",
+        resumo: {
+          servicos_vendidos: 8,
+          clientes_unicos: 5,
+          clientes_recorrentes: 2,
+        },
+        performance: {
+          visitas_perfil: 20,
+          agendamentos_concluidos: 2,
+          taxa_conversao: 10,
+        },
+        ranking_servicos: [],
+      },
+      {
+        ativacao: {
+          ...ATIVACAO_CONCLUIDA,
+          agenda_configurada: false,
+        },
+      }
+    );
+
+    expect(result.status).not.toBe(
+      GROWTH_INTELLIGENCE_STATUS.AGUARDANDO_ATIVACAO
+    );
+  });
+
   test("não força recomendação com amostra pequena", () => {
     const result = analyze({
       resumo: {
