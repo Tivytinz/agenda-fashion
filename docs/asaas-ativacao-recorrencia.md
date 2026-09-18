@@ -105,8 +105,10 @@ Os testes da saga e da fila devem proteger pelo menos estes comportamentos:
 
 Enquanto o período já pago ainda estiver válido, a dona pode reativar a
 renovação sem gerar uma cobrança imediata. O AF cria ou reutiliza a recorrência
-por uma `externalReference` determinística derivada da assinatura e da data em
-que o período pago termina.
+por uma `externalReference` determinística derivada da assinatura, da versão
+monotônica `reativacao_tentativa` e da data em que o período pago termina.
+Retries do mesmo ciclo reutilizam a referência; um novo ciclo após outro
+cancelamento recebe uma referência diferente.
 
 A operação usa `REACTIVATING` como estado transitório. Chamadas HTTP ao Asaas
 continuam fora de transações PostgreSQL. Se o processo cair depois de o provedor
