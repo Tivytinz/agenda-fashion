@@ -121,7 +121,7 @@ async function buscarVisaoGeral(periodo = "30") {
         ON a.id = pg.assinatura_id
       INNER JOIN planos pl
         ON pl.id = a.plano_id
-      WHERE UPPER(pg.status) IN ('CONFIRMED', 'RECEIVED')
+      WHERE UPPER(pg.status) IN ('CONFIRMED', 'RECEIVED', 'RECEIVED_IN_CASH')
         AND pg.data_pagamento IS NOT NULL
         AND pl.valor > 0
         ${filtroPagamento}
@@ -425,7 +425,7 @@ async function buscarReceita(periodo = "30") {
                 INNER JOIN planos cpl
                   ON cpl.id = ca.plano_id
                 WHERE cpg.assinatura_id = ct.assinatura_id
-                  AND UPPER(cpg.status) IN ('CONFIRMED', 'RECEIVED')
+                  AND UPPER(cpg.status) IN ('CONFIRMED', 'RECEIVED', 'RECEIVED_IN_CASH')
                   AND cpg.data_pagamento IS NOT NULL
                   AND cpl.valor > 0
               )
@@ -444,8 +444,38 @@ async function buscarReceita(periodo = "30") {
           ON a.id = pg.assinatura_id
         INNER JOIN planos pl
           ON pl.id = a.plano_id
-        WHERE UPPER(pg.status) IN ('CONFIRMED', 'RECEIVED')
+        WHERE UPPER(pg.status) IN ('CONFIRMED', 'RECEIVED', 'RECEIVED_IN_CASH')
           AND pg.data_pagamento IS NOT NULL
+          AND pl.valor > 0
+          ${filtroPagamento}
+      ),
+      ajustes_financeiros AS (
+        SELECT
+          COUNT(*) FILTER (
+            WHERE UPPER(pg.status) = 'REFUNDED'
+          )::INT AS pagamentos_reembolsados,
+          COALESCE(
+            SUM(pg.valor) FILTER (
+              WHERE UPPER(pg.status) = 'REFUNDED'
+            ),
+            0
+          )::NUMERIC(14,2) AS valor_reembolsado,
+          COUNT(*) FILTER (
+            WHERE UPPER(pg.status) IN (
+              'PARTIALLY_REFUNDED',
+              'REFUND_IN_PROGRESS',
+              'CHARGEBACK_REQUESTED',
+              'CHARGEBACK_DISPUTE',
+              'AWAITING_CHARGEBACK_REVERSAL',
+              'RECEIVED_IN_CASH_UNDONE'
+            )
+          )::INT AS pagamentos_com_ajuste
+        FROM pagamentos pg
+        INNER JOIN assinaturas a
+          ON a.id = pg.assinatura_id
+        INNER JOIN planos pl
+          ON pl.id = a.plano_id
+        WHERE pg.data_pagamento IS NOT NULL
           AND pl.valor > 0
           ${filtroPagamento}
       ),
@@ -454,7 +484,7 @@ async function buscarReceita(periodo = "30") {
           pg.assinatura_id,
           pg.id AS pagamento_id
         FROM pagamentos pg
-        WHERE UPPER(pg.status) IN ('CONFIRMED', 'RECEIVED')
+        WHERE UPPER(pg.status) IN ('CONFIRMED', 'RECEIVED', 'RECEIVED_IN_CASH')
           AND pg.data_pagamento IS NOT NULL
         ORDER BY
           pg.assinatura_id,
@@ -492,12 +522,16 @@ async function buscarReceita(periodo = "30") {
         p.pagamentos_confirmados,
         p.negocios_pagantes,
         p.receita_total,
+        aj.pagamentos_reembolsados,
+        aj.valor_reembolsado,
+        aj.pagamentos_com_ajuste,
         fp.novas_assinaturas_pagas,
         fp.receita_primeiro_pagamento,
         a.assinaturas_pagas_ativas
       FROM checkouts c
       CROSS JOIN checkout_coorte cc
       CROSS JOIN pagamentos_resumo p
+      CROSS JOIN ajustes_financeiros aj
       CROSS JOIN primeiros_pagamentos fp
       CROSS JOIN ativas a
       `
