@@ -193,6 +193,15 @@ export function SubscriptionPage() {
   const pendingUpgrade = data.upgrade_pendente || null;
   const pendingPlan = pendingUpgrade?.plano || null;
   const pendingPayment = pendingUpgrade?.pagamento || null;
+  const pendingActivationState =
+    pendingPayment?.estado_ativacao || null;
+  const pendingPaymentConfirmed = [
+    "PAGAMENTO_CONFIRMADO_ATIVANDO",
+    "ATIVACAO_REQUER_ATENCAO"
+  ].includes(pendingActivationState);
+  const pendingActivationAttention =
+    pendingActivationState ===
+    "ATIVACAO_REQUER_ATENCAO";
   const payments = Array.isArray(data.pagamentos) ? data.pagamentos : [];
   const state = subscriptionStatus(plan, subscription);
   const isFree = Number(plan.valor) === 0;
@@ -245,17 +254,27 @@ export function SubscriptionPage() {
       {message && <p className="form-success" role="status">{message}</p>}
       {hasPendingUpgrade && (
         <section className="panel subscription-pending-upgrade" role="status">
-          <strong>PIX do plano {pendingPlan.nome} aguardando pagamento.</strong>
+          <strong>
+            {pendingActivationAttention
+              ? `Pagamento do plano ${pendingPlan.nome} confirmado; a ativação precisa de atenção.`
+              : pendingPaymentConfirmed
+                ? `Pagamento do plano ${pendingPlan.nome} confirmado. Estamos ativando seu plano.`
+                : `PIX do plano ${pendingPlan.nome} aguardando pagamento.`}
+          </strong>
           <p className="muted">
-            Seu plano atual continua valendo até a confirmação e ativação do novo plano. Para evitar cobrança duplicada, conclua ou aguarde o vencimento deste PIX antes de gerar outro.
+            {pendingActivationAttention
+              ? "Seu pagamento está registrado e uma nova cobrança está bloqueada. Verifique novamente mais tarde ou fale com o suporte se o status não mudar."
+              : pendingPaymentConfirmed
+                ? "Seu pagamento está registrado. O plano atual continua valendo até a ativação terminar, e o AF não permitirá outra cobrança durante esse processo."
+                : "Seu plano atual continua valendo até a confirmação e ativação do novo plano. Para evitar cobrança duplicada, conclua ou aguarde o vencimento deste PIX antes de gerar outro."}
           </p>
-          {pendingPayment?.pix_qrcode && (
+          {!pendingPaymentConfirmed && pendingPayment?.pix_qrcode && (
             <img
               alt="QR Code do PIX pendente"
               src={`data:image/png;base64,${pendingPayment.pix_qrcode}`}
             />
           )}
-          {pendingPayment?.pix_copia_cola && (
+          {!pendingPaymentConfirmed && pendingPayment?.pix_copia_cola && (
             <label>
               Código PIX pendente
               <textarea
