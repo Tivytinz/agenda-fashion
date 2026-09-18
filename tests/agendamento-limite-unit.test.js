@@ -50,8 +50,15 @@ describe("Limite durante a criação do agendamento", () => {
 
     agendaPublicaRepository.bloquearAgendaProfissional.mockResolvedValue();
     agendaDisponibilidadeService.horarioEstaDisponivel.mockResolvedValue(true);
+    agendaPublicaRepository.resolverClienteInterno.mockResolvedValue({
+      id: 77,
+      usuario_id: 3,
+      nome: "Cliente",
+      whatsapp: "62999999999",
+    });
     agendaPublicaRepository.criarAgendamento.mockResolvedValue({
       id: 99,
+      client_id: 77,
     });
     agendaPublicaRepository
       .registrarConsentimentoWhatsappAgendamento
@@ -75,7 +82,34 @@ describe("Limite durante a criação do agendamento", () => {
       profissionalNome: "Profissional",
     });
 
-    expect(resultado.id).toBe(99);
+    expect(resultado).toMatchObject({
+      id: 99,
+      client_id: 77,
+    });
+
+    expect(
+      agendaPublicaRepository.resolverClienteInterno
+    ).toHaveBeenCalledWith(
+      {
+        usuarioId: 3,
+        nome: "Cliente",
+        whatsapp: "62999999999",
+      },
+      client
+    );
+
+    expect(
+      agendaPublicaRepository.criarAgendamento
+    ).toHaveBeenCalledWith(
+      expect.objectContaining({
+        clienteId: 3,
+        clientId: 77,
+        clienteNome: "Cliente",
+        clienteWhatsapp: "62999999999",
+      }),
+      client
+    );
+
     expect(planoService.verificarCapacidadePlano).toHaveBeenCalledWith(
       5,
       client,
