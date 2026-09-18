@@ -60,8 +60,8 @@ const PROFILE = {
     }
   ],
   profissionais: [
-    { id: 21, nome: "Ana" },
-    { id: 22, nome: "Beatriz" }
+    { id: 21, nome: "Ana", servico_ids: [11, 12] },
+    { id: 22, nome: "Beatriz", servico_ids: [11, 12] }
   ]
 };
 
@@ -294,6 +294,62 @@ describe("fluxo publico de agendamento", () => {
     ))).toHaveLength(1);
   });
 
+  it("CA-EQP-06: oferece somente profissionais habilitadas para o serviço escolhido", async () => {
+    const user = userEvent.setup();
+    const profileByService = {
+      ...PROFILE,
+      profissionais: [
+        { id: 21, nome: "Ana", servico_ids: [11] },
+        { id: 22, nome: "Beatriz", servico_ids: [12] }
+      ]
+    };
+
+    apiRequest.mockImplementation((path) => {
+      if (path.startsWith("/perfil-negocio/")) {
+        return Promise.resolve(profileByService);
+      }
+      if (path.startsWith("/agenda-publica?")) {
+        return Promise.resolve(AVAILABILITY);
+      }
+      return Promise.reject(new Error(`Requisicao inesperada: ${path}`));
+    });
+
+    renderProfile();
+    await screen.findByRole("heading", { name: "Studio Aurora" });
+
+    await user.click(
+      screen.getByRole("button", {
+        name: "Selecionar Manicure completa"
+      })
+    );
+
+    await waitFor(() => {
+      expect(
+        screen.getByText("Ana", { selector: "dd" })
+      ).not.toBeNull();
+    });
+
+    expect(
+      screen.queryByText("Beatriz", { selector: "dd" })
+    ).toBeNull();
+
+    await user.click(
+      screen.getAllByRole("button", { name: "Alterar" })[0]
+    );
+
+    await user.click(
+      screen.getByRole("button", {
+        name: "Selecionar Pedicure"
+      })
+    );
+
+    await waitFor(() => {
+      expect(
+        screen.getByText("Beatriz", { selector: "dd" })
+      ).not.toBeNull();
+    });
+  });
+
   it("remove a escolha de profissional quando existe apenas uma opção", async () => {
     const user = userEvent.setup();
     const singleProfessionalProfile = {
@@ -302,7 +358,7 @@ describe("fluxo publico de agendamento", () => {
         ...PROFILE.negocio,
         areas: ["Sobrancelhas", "Estética"]
       },
-      profissionais: [{ id: 21, nome: "Ana" }]
+      profissionais: [{ id: 21, nome: "Ana", servico_ids: [11, 12] }]
     };
 
     apiRequest.mockImplementation((path) => {
