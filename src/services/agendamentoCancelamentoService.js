@@ -12,7 +12,7 @@ const {
   obterDataHoraNoFuso,
 } = require("../utils/fusoHorario");
 
-const ANTECEDENCIA_CANCELAMENTO_PADRAO = 24;
+const ANTECEDENCIA_CANCELAMENTO_PADRAO = 2;
 const STATUS_CANCELAVEIS_OPERACIONAL = new Set([
   "agendado",
   "confirmado",
