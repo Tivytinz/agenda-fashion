@@ -8,6 +8,9 @@ const agendaPublicaRepository = require(
 const agendaDisponibilidadeService = require(
   "./agendaDisponibilidadeService"
 );
+const servicoProfissionalRepository = require(
+  "../repositories/servicoProfissionalRepository"
+);
 const whatsappMensagemService = require(
   "./whatsappMensagemService"
 );
@@ -318,17 +321,6 @@ async function reagendarOperacional({
         );
       }
 
-      if (
-        papel === "dono" &&
-        profissionalDestino !==
-          profissionalAtual
-      ) {
-        throw criarErro(
-          "A troca de responsável será habilitada quando a elegibilidade profissional-serviço estiver configurada.",
-          409
-        );
-      }
-
       const destino =
         await agendamentoReagendamentoRepository
           .buscarProfissionalAtivoNoNegocio({
@@ -345,6 +337,31 @@ async function reagendarOperacional({
           "A profissional de destino não está ativa neste negócio.",
           409
         );
+      }
+
+      if (
+        profissionalDestino !==
+          profissionalAtual
+      ) {
+        const elegivel =
+          await servicoProfissionalRepository
+            .profissionalElegivelParaServico({
+              negocioId:
+                negocio,
+              profissionalId:
+                profissionalDestino,
+              servicoId:
+                Number(atual.servico_id),
+              executor:
+                client,
+            });
+
+        if (!elegivel) {
+          throw criarErro(
+            "A profissional de destino não está habilitada para este serviço.",
+            409
+          );
+        }
       }
 
       const agora =
