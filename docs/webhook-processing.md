@@ -36,6 +36,16 @@ A fila de conversões usa os estados `PENDING`, `PROCESSING`, `SENT`, `IGNORED` 
 
 `pagamentos.data_pagamento` é uma coluna `DATE`: ela confirma e ordena pagamentos por dia, mas não registra o instante exato da confirmação. A outbox não inventa essa precisão. Sem um timestamp explícito confiável, Meta usa o horário efetivo do envio e Google Measurement Protocol omite `timestamp_micros`. Os serviços aceitam um timestamp explícito quando existir uma fonte confiável, mas persistir o instante financeiro exato exigirá uma decisão de schema própria, com `TIMESTAMPTZ` ou outro evento durável equivalente.
 
+Antes de entregar uma conversão de assinatura que permaneceu na outbox, o worker
+relê o pagamento local e exige que ele continue em estado confirmado
+(`CONFIRMED`, `RECEIVED` ou `RECEIVED_IN_CASH`) com data de pagamento.
+Se, antes da entrega, o pagamento tiver sido reembolsado, sofrer chargeback ou
+deixar de representar receita confirmada, a entrega termina como `IGNORED` e
+não é enviada posteriormente como nova conversão. Uma conversão que já tenha
+sido aceita por um provedor antes de um reembolso posterior não é revertida
+automaticamente pelo fluxo atual; qualquer política de reversão exige suporte
+explícito do provedor e uma decisão própria de produto/integração.
+
 Renovação, falta de consentimento ou integração intencionalmente desabilitada são resultados terminais e ficam como `IGNORED`. Identificadores inválidos e provedor desconhecido são falhas técnicas terminais e ficam como `FAILED`, sem novo retry. Erros HTTP, timeout e outras falhas temporárias permanecem elegíveis a retry até o limite configurado. Ao esgotar o limite, o worker registra um aviso operacional com identificador da entrega, provedor, tentativa e erro, sem incluir o payload ou dados pessoais.
 
 Ao buscar o perfil para Meta CAPI ou Google Measurement, somente o vínculo de dono ativo e uma conta de usuário ativa podem fornecer consentimento e identificadores de marketing.
