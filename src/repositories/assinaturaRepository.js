@@ -66,6 +66,23 @@ async function buscarAssinaturaPendentePorNegocio(negocioId) {
     WHERE negocio_id = $1
       AND ativo = FALSE
       AND UPPER(status) = 'PENDING'
+      AND (
+        created_at >= NOW() - INTERVAL '15 minutes'
+        OR EXISTS (
+          SELECT 1
+          FROM pagamentos pg
+          WHERE pg.assinatura_id = assinaturas.id
+            AND UPPER(pg.status) IN (
+              'PENDING',
+              'CREATED',
+              'AWAITING_PAYMENT'
+            )
+            AND (
+              pg.data_vencimento IS NULL
+              OR pg.data_vencimento >= CURRENT_DATE
+            )
+        )
+      )
     ORDER BY id DESC
     LIMIT 1
     `,
