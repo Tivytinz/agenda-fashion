@@ -190,5 +190,5 @@ describe("dashboardRepository integrado", () => {
       visitas_perfil: 1,
       agendamentos_concluidos: 1,
     });
-  });;
+  });
 });
