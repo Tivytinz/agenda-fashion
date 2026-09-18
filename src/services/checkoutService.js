@@ -304,13 +304,47 @@ async function criarCheckoutPix(
   );
 
   if (pagamentoPendente?.id) {
+    let pixRecuperado =
+      pixPendente || {};
+
+    if (!pixRecuperado.payload) {
+      const pixAtual =
+        await buscarQrCodePix(
+          pagamentoPendente.id
+        );
+
+      await registrarPagamento(client, {
+        assinatura_id:
+          assinaturaLocal.id,
+        asaas_payment_id:
+          pagamentoPendente.id,
+        valor:
+          pagamentoPendente.value ||
+          plano.valor,
+        forma_pagamento: "pix",
+        status:
+          pagamentoPendente.status ||
+          "PENDING",
+        data_vencimento:
+          pagamentoPendente.dueDate ||
+          null,
+        pix_copia_cola:
+          pixAtual?.payload || null,
+        pix_qrcode:
+          pixAtual?.encodedImage || null
+      });
+
+      pixRecuperado =
+        pixAtual || {};
+    }
+
     return {
       assinatura:
         assinaturaLocal,
       pagamento:
         pagamentoPendente,
       pix:
-        pixPendente || {},
+        pixRecuperado,
       recuperado: true
     };
   }
