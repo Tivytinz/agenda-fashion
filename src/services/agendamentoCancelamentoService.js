@@ -566,6 +566,11 @@ async function cancelarAgendamentoOperacional({
     );
   }
 
+  const motivoEntrada =
+    normalizarMotivoCancelamento(
+      motivo
+    );
+
   return db.executarTransacao(async (client) => {
     const agendamento =
       await agendamentoCancelamentoRepository
@@ -608,7 +613,7 @@ async function cancelarAgendamentoOperacional({
     const motivoNormalizado =
       montarMotivoCancelamentoOperacional({
         motivoTipo: motivoTipoNormalizado,
-        motivo,
+        motivo: motivoEntrada,
       });
 
     const cancelado =
