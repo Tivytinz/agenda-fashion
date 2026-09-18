@@ -77,7 +77,9 @@ apagar dados existentes nem impedir a edição do que já foi cadastrado.
   consulta a mesma `externalReference` antes de decidir o estado local: se a
   recorrência existir, finaliza a reativação; se a ausência for confirmada,
   restaura `CANCELED`; se a consulta externa falhar, mantém `REACTIVATING`
-  para nova reconciliação.
+  para nova reconciliação. Cada novo ciclo de cancelar → reativar incrementa
+  `assinaturas.reativacao_tentativa`, evitando reutilizar a referência de uma
+  recorrência antiga já removida.
 - Após o encerramento do ciclo pago, o negócio retorna ao plano gratuito.
 - Antes de gerar o PIX, o checkout informa ciclo mensal, renovação,
   cancelamento, ausência de taxa de adesão e disponibiliza Termos de uso,
