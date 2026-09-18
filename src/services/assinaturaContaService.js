@@ -43,6 +43,12 @@ async function buscarMinhaAssinatura({ usuarioId }) {
         assinaturaPendente.plano_id
       )
     : null;
+  const pagamentoPendente = assinaturaPendente
+    ? await assinaturaRepository
+        .buscarUltimoPagamentoPendente(
+          assinaturaPendente.id
+        )
+    : null;
   const assinaturaPagamentos =
     assinatura || assinaturaPendente;
   const pagamentos = await assinaturaRepository
@@ -56,6 +62,7 @@ async function buscarMinhaAssinatura({ usuarioId }) {
         ? {
             assinatura: assinaturaPendente,
             plano: planoPendente,
+            pagamento: pagamentoPendente,
           }
         : null,
     uso: {
