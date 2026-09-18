@@ -176,8 +176,17 @@ Regras duráveis:
   do serviço; depois desse marco o booking não pode mais ser reagendado;
 - o histórico de reagendamento preserva ator, profissional anterior/novo e
   horários anterior/novo;
-- a troca de responsável permanece bloqueada enquanto o AF não possuir relação
-  explícita profissional↔serviço para validar elegibilidade conforme RN42.
+- a relação profissional↔serviço é explícita por negócio e gerida pela
+  proprietária; somente profissionais ATIVAS e habilitadas para o serviço podem
+  receber novos agendamentos daquele serviço;
+- serviço ativo sem profissional elegível pode permanecer público, mas não deve
+  oferecer profissionais, datas ou horários até existir ao menos uma habilitação
+  ativa;
+- a proprietária só pode trocar a responsável durante o reagendamento para uma
+  profissional ATIVA, habilitada para o mesmo serviço e disponível no novo slot;
+- a migration 081 faz backfill das combinações existentes apenas para preservar
+  o comportamento dos negócios já operacionais; novas relações devem ser
+  configuradas explicitamente.
 
 O `client_id` interno de `agendamentos` aponta para `clientes`; o
 `cliente_id` legado continua sendo apenas o vínculo opcional com uma conta
