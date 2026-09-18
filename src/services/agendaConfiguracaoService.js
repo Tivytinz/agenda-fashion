@@ -328,10 +328,10 @@ async function salvarMinhaConfiguracao({
 
   const antecedenciaCancelamentoValidada =
     validarNumeroInteiro({
-      valor: antecedenciaCancelamento ?? 24,
+      valor: antecedenciaCancelamento ?? 2,
       campo: "A antecedência para cancelamento",
       minimo: 0,
-      maximo: 720,
+      maximo: 168,
     });
 
   if (!Array.isArray(horarios) || horarios.length !== 7) {
