@@ -20,7 +20,6 @@ function activationComplete({ ativacao, proximaAcaoAtivacao }) {
   return (
     proximaAcaoAtivacao?.concluido === true &&
     ativacao?.possui_servico_ativo === true &&
-    ativacao?.agenda_configurada === true &&
     ativacao?.negocio_publicado === true &&
     ativacao?.primeiro_agendamento_recebido === true
   );
