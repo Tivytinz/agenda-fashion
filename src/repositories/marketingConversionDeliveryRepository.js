@@ -5,7 +5,6 @@ const MAX_TENTATIVAS = 5;
 async function enfileirar({
   provedor,
   tipoEvento,
-  chaveEvento,
   payload
 }) {
   const assinaturaId =
