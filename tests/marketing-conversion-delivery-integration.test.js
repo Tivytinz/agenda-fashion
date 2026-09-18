@@ -1,5 +1,5 @@
 const {
-  randomUUID
+  randomInt
 } = require("node:crypto");
 
 const db = require(
@@ -33,8 +33,13 @@ describe(
     test(
       "a mesma conversão por provedor é enfileirada uma única vez",
       async () => {
+        const assinaturaId =
+          randomInt(
+            100000,
+            999999
+          );
         chaveEvento =
-          `assinatura:test:${randomUUID()}`;
+          `assinatura:${assinaturaId}`;
 
         const dados = {
           provedor: "meta",
@@ -43,7 +48,7 @@ describe(
           chaveEvento,
           payload: {
             negocioId: 1,
-            assinaturaId: 2,
+            assinaturaId,
             pagamentoId: "pay_test",
             valor: 49.9
           }
@@ -62,6 +67,8 @@ describe(
           .toBe(false);
         expect(segunda.entrega.id)
           .toBe(primeira.entrega.id);
+        expect(segunda.rearmado)
+          .toBe(true);
         expect(primeira.entrega)
           .toMatchObject({
             provedor: "meta",
