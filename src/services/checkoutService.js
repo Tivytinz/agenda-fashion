@@ -414,18 +414,28 @@ async function criarCheckout({
       ...resultado
     };
 
-    await checkoutTentativaRepository
-      .concluir(
-        tentativa.tentativa.id,
-        resposta
+    const concluida =
+      await checkoutTentativaRepository
+        .concluir(
+          tentativa.tentativa.id,
+          resposta,
+          tentativa.tentativa.lease_tentativa
+        );
+
+    if (!concluida) {
+      throw new AppError(
+        "Esta tentativa de checkout foi assumida por outra execução. Consulte novamente o status do pagamento.",
+        409
       );
+    }
 
     return resposta;
   } catch (erro) {
     await checkoutTentativaRepository
       .marcarFalha(
         tentativa.tentativa.id,
-        erro?.message
+        erro?.message,
+        tentativa.tentativa.lease_tentativa
       )
       .catch(() => {});
 

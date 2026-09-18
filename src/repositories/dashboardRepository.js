@@ -559,59 +559,66 @@ async function buscarClientesRecorrentes(
 
 async function buscarPerformanceNegocio(
   negocioId,
-  filtro = ""
+  filtroEventos = "",
+  filtroAgendamentos = ""
 ) {
   try {
-    const result =
-      await db.query(
-        `
-        SELECT
-          COUNT(DISTINCT sessao_id) FILTER (
-            WHERE nome =
-              'perfil_visualizado'
-          )::INT
-            AS visitas_perfil,
+    const [eventos, agendamentos] =
+      await Promise.all([
+        db.query(
+          `
+          SELECT
+            COUNT(DISTINCT e.sessao_id) FILTER (
+              WHERE e.nome = 'perfil_visualizado'
+                AND NOT EXISTS (
+                  SELECT 1
+                  FROM usuarios_negocios un
+                  WHERE un.negocio_id = $1
+                    AND un.usuario_id = e.usuario_id
+                    AND un.ativo = TRUE
+                    AND un.papel IN ('dono', 'profissional')
+                )
+            )::INT AS visitas_perfil,
 
-          COUNT(*) FILTER (
-            WHERE nome =
-              'contato_selecionado'
-              AND propriedades
-                ->> 'acao' =
-                  'whatsapp'
-          )::INT
-            AS cliques_whatsapp,
+            COUNT(*) FILTER (
+              WHERE e.nome = 'contato_selecionado'
+                AND e.propriedades ->> 'acao' = 'whatsapp'
+            )::INT AS cliques_whatsapp,
 
-          COUNT(*) FILTER (
-            WHERE nome =
-              'contato_selecionado'
-              AND propriedades
-                ->> 'acao' =
-                  'maps'
-          )::INT
-            AS cliques_maps,
+            COUNT(*) FILTER (
+              WHERE e.nome = 'contato_selecionado'
+                AND e.propriedades ->> 'acao' = 'maps'
+            )::INT AS cliques_maps
 
-          COUNT(*) FILTER (
-            WHERE nome =
-              'agendamento_concluido'
-          )::INT
-            AS agendamentos_concluidos
+          FROM eventos_produto e
 
-        FROM eventos_produto e
+          WHERE e.negocio_id = $1
+            ${filtroEventos}
+          `,
+          [negocioId]
+        ),
+        db.query(
+          `
+          SELECT COUNT(*)::INT AS agendamentos_concluidos
+          FROM agendamentos a
+          WHERE a.negocio_id = $1
+            AND COALESCE(a.status, 'agendado') <> 'cancelado'
+            ${filtroAgendamentos}
+          `,
+          [negocioId]
+        ),
+      ]);
 
-        WHERE negocio_id = $1
-          ${filtro}
-        `,
-        [negocioId]
-      );
-
-    return (
-      result.rows[0] || {
-        visitas_perfil: 0,
-        cliques_whatsapp: 0,
-        cliques_maps: 0,
-        agendamentos_concluidos: 0,
-      }
-    );
+    return {
+      visitas_perfil:
+        Number(eventos.rows[0]?.visitas_perfil) || 0,
+      cliques_whatsapp:
+        Number(eventos.rows[0]?.cliques_whatsapp) || 0,
+      cliques_maps:
+        Number(eventos.rows[0]?.cliques_maps) || 0,
+      agendamentos_concluidos:
+        Number(agendamentos.rows[0]?.agendamentos_concluidos) || 0,
+    };
   } catch {
     return {
       visitas_perfil: 0,

@@ -15,6 +15,8 @@ Comportamentos:
 - uma tentativa concluída devolve a resposta já armazenada;
 - uma tentativa simultânea devolve HTTP 409;
 - uma tentativa com falha pode ser retomada;
+- cada retomada incrementa `lease_tentativa`; somente a execução que possui o
+  lease corrente pode marcar a tentativa como `COMPLETED` ou `FAILED`;
 - uma chave usada com outro plano ou forma de pagamento é rejeitada;
 - cobranças PIX são conciliadas no Asaas pela `externalReference`;
 - a assinatura atual só é desativada quando o novo pagamento é
@@ -36,5 +38,6 @@ database/migrations/019_checkout_idempotente_webhook_assincrono.sql
 ```
 
 A correção posterior da faixa válida de tentativas de webhook pertence à
-migration `020_corrigir_tentativas_webhook.sql`; migrations já aplicadas não
-devem ser reescritas.
+migration `020_corrigir_tentativas_webhook.sql`. O fencing das retomadas do
+checkout pertence à migration `076_checkout_tentativa_fencing.sql`; migrations
+já aplicadas não devem ser reescritas.

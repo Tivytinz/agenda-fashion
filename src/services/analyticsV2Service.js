@@ -11,8 +11,10 @@ const TIPOS_ITEM = new Set([
 const EVENTOS_FRONTEND = new Set([
   "business_creation_started",
   "first_service_creation_started",
+  "profile_viewed",
   "profile_shared",
   "booking_started",
+  "booking_completed",
   "checkout_viewed",
 ]);
 
@@ -27,8 +29,10 @@ const MOTIVOS_SAIDA = new Set([
 const PROPRIEDADES_PERMITIDAS = Object.freeze({
   business_creation_started: new Set(["entry_point"]),
   first_service_creation_started: new Set(["entry_point"]),
+  profile_viewed: new Set(["entry_point"]),
   profile_shared: new Set(["method"]),
   booking_started: new Set(["entry_point"]),
+  booking_completed: new Set(["status"]),
   checkout_viewed: new Set(["plan_slug"]),
 });
 

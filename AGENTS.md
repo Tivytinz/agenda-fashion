@@ -71,16 +71,16 @@ anúncio/origem
   → negócio criado
   → serviço ativo
   → negócio publicado
-  → horários sugeridos confirmados/salvos
   → primeiro agendamento válido
   → checkout iniciado
   → pagamento/assinatura
   → recorrência e retenção
 ```
 
-A passagem pelos horários é observável no onboarding, mas não é requisito para o
-negócio estar publicado. Ela mede que a profissional confirmou, aceitou ou
-personalizou uma disponibilidade antes de seguir a jornada.
+A passagem pelos horários é observável no onboarding como diagnóstico operacional,
+mas não é etapa canônica de ativação e não é requisito para o negócio estar
+publicado. Ela mede que a profissional confirmou, aceitou ou personalizou uma
+disponibilidade antes de seguir a jornada.
 
 `checkout iniciado`, clique, cadastro, negócio criado e receita são fatos
 diferentes. Não usar uma etapa como proxy automático de outra.
@@ -267,6 +267,14 @@ vez de ser promovido artificialmente para campanha oficial ou orgânico.
 CAC, ROAS e decisões de orçamento dependem de cobertura, custo, maturidade e
 amostra adequados. Ausência de assinatura, isoladamente, não prova que aquisição
 freemium falhou.
+
+Conversão do perfil deve usar visitas externas ao negócio como denominador e
+agendamentos reais não cancelados como resultado. Eventos de navegador são
+telemetria diagnóstica e não substituem a tabela `agendamentos`.
+
+Na monetização, distinguir intenção de checkout, pagamento confirmado, assinatura
+efetivamente ativa, reembolso e receita. Receita bruta, reembolsos e receita
+líquida não devem ser colapsados em uma única métrica.
 
 As integrações administrativas de custos são somente leitura no escopo atual
 documentado e não devem criar, editar, pausar ou excluir campanhas sem uma nova

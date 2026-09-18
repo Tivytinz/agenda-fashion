@@ -13,7 +13,6 @@ const {
 
 const ATIVACAO_CONCLUIDA = Object.freeze({
   possui_servico_ativo: true,
-  agenda_configurada: true,
   negocio_publicado: true,
   primeiro_agendamento_recebido: true,
 });
@@ -44,6 +43,28 @@ describe("growthIntelligenceService", () => {
     expect(buildGrowthSignals({
       performance: { visitas_perfil: 20 },
     }).amostra_conversao_suficiente).toBe(true);
+  });
+
+  test("não exige agenda configurada depois que a ativação canônica foi concluída", () => {
+    const result = analyze({
+      resumo: {
+        servicos_vendidos: 20,
+      },
+      performance: {
+        visitas_perfil: 20,
+        agendamentos_concluidos: 4,
+        taxa_conversao: 20,
+      },
+    }, {
+      ativacao: {
+        ...ATIVACAO_CONCLUIDA,
+        agenda_configurada: false,
+      },
+    });
+
+    expect(result.status).not.toBe(
+      GROWTH_INTELLIGENCE_STATUS.AGUARDANDO_ATIVACAO
+    );
   });
 
   test("não compete com a máquina de ativação antes do primeiro agendamento", () => {

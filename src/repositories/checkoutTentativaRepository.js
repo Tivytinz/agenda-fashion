@@ -78,6 +78,7 @@ async function iniciar({
     SET
       status = 'PROCESSING',
       erro = NULL,
+      lease_tentativa = lease_tentativa + 1,
       updated_at = NOW()
     WHERE id = $1
       AND (
@@ -131,7 +132,7 @@ async function vincularAssinatura(
   return resultado.rows[0] || null;
 }
 
-async function concluir(id, resposta) {
+async function concluir(id, resposta, leaseTentativa) {
   const resultado = await db.query(
     `
     UPDATE checkout_tentativas
@@ -141,18 +142,21 @@ async function concluir(id, resposta) {
       erro = NULL,
       updated_at = NOW()
     WHERE id = $1
+      AND status = 'PROCESSING'
+      AND lease_tentativa = $3
     RETURNING *
     `,
     [
       id,
-      JSON.stringify(resposta)
+      JSON.stringify(resposta),
+      leaseTentativa
     ]
   );
 
   return resultado.rows[0] || null;
 }
 
-async function marcarFalha(id, erro) {
+async function marcarFalha(id, erro, leaseTentativa) {
   const resultado = await db.query(
     `
     UPDATE checkout_tentativas
@@ -161,11 +165,14 @@ async function marcarFalha(id, erro) {
       erro = $2,
       updated_at = NOW()
     WHERE id = $1
+      AND status = 'PROCESSING'
+      AND lease_tentativa = $3
     RETURNING *
     `,
     [
       id,
-      String(erro || "").slice(0, 2000)
+      String(erro || "").slice(0, 2000),
+      leaseTentativa
     ]
   );
 
