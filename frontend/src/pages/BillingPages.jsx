@@ -114,6 +114,14 @@ export function BillingCheckoutPage() {
           return;
         }
 
+        if (status?.estado_ativacao === "ATIVACAO_REQUER_ATENCAO") {
+          setPaymentStatus("error");
+          setPaymentMessage(
+            "Pagamento confirmado, mas a ativação precisa de atenção. Seu pagamento está registrado; tente verificar novamente e, se persistir, fale com o suporte."
+          );
+          return;
+        }
+
         if (paymentConfirmed(status)) {
           confirmedButActivating = true;
           setPaymentStatus("activating");

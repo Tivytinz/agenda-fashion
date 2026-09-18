@@ -112,6 +112,7 @@ async function iniciar({
 async function vincularAssinatura(
   id,
   assinaturaId,
+  leaseTentativa,
   executor = db
 ) {
   const resultado = await executor.query(
@@ -121,11 +122,14 @@ async function vincularAssinatura(
       assinatura_id = COALESCE(assinatura_id, $2),
       updated_at = NOW()
     WHERE id = $1
+      AND status = 'PROCESSING'
+      AND lease_tentativa = $3
     RETURNING *
     `,
     [
       id,
-      assinaturaId
+      assinaturaId,
+      leaseTentativa
     ]
   );
 

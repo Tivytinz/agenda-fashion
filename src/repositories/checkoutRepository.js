@@ -64,10 +64,9 @@ async function bloquearCheckoutDoNegocio(
   );
 }
 
-async function buscarAssinaturaPendenteEquivalente(
+async function buscarAssinaturaPendenteDoNegocio(
   client,
-  negocioId,
-  planoId
+  negocioId
 ) {
   const result = await client.query(
     `
@@ -76,12 +75,18 @@ async function buscarAssinaturaPendenteEquivalente(
       a.negocio_id,
       a.plano_id,
       a.status,
-      a.created_at
+      a.created_at,
+      p.nome AS plano_nome,
+      p.slug AS plano_slug
     FROM assinaturas a
+    INNER JOIN planos p
+      ON p.id = a.plano_id
     WHERE a.negocio_id = $1
-      AND a.plano_id = $2
       AND a.ativo = FALSE
-      AND UPPER(a.status) = 'PENDING'
+      AND UPPER(a.status) IN (
+        'PENDING',
+        'PENDING_PAYMENT'
+      )
       AND (
         a.created_at >= NOW() - INTERVAL '15 minutes'
         OR EXISTS (
@@ -103,7 +108,7 @@ async function buscarAssinaturaPendenteEquivalente(
     LIMIT 1
     FOR UPDATE OF a
     `,
-    [negocioId, planoId]
+    [negocioId]
   );
 
   return result.rows[0] || null;
@@ -204,12 +209,54 @@ async function buscarPagamentoCheckout(pagamentoId, usuarioId) {
   return result.rows[0] || null;
 }
 
+async function buscarEstadoAtivacaoPagamento(pagamentoId) {
+  const result = await db.query(
+    `
+    SELECT
+      status,
+      tentativas,
+      proxima_tentativa_em,
+      erro,
+      (
+        status = 'FAILED'
+        AND tentativas >= 10
+        AND proxima_tentativa_em IS NULL
+      ) AS falha_terminal
+    FROM webhook_eventos
+    WHERE provedor = 'asaas'
+      AND recurso_id = $1
+      AND (
+        tipo_evento IN (
+          'PAYMENT_CONFIRMED',
+          'PAYMENT_RECEIVED'
+        )
+        OR UPPER(
+          COALESCE(
+            payload -> 'payment' ->> 'status',
+            ''
+          )
+        ) IN (
+          'CONFIRMED',
+          'RECEIVED',
+          'RECEIVED_IN_CASH'
+        )
+      )
+    ORDER BY recebido_em DESC, id DESC
+    LIMIT 1
+    `,
+    [pagamentoId]
+  );
+
+  return result.rows[0] || null;
+}
+
 module.exports = {
   buscarNegocioDono,
   buscarPlano,
   bloquearCheckoutDoNegocio,
-  buscarAssinaturaPendenteEquivalente,
+  buscarAssinaturaPendenteDoNegocio,
   buscarDadosClienteAsaas,
   salvarClienteAsaasSeAusente,
-  buscarPagamentoCheckout
+  buscarPagamentoCheckout,
+  buscarEstadoAtivacaoPagamento
 };

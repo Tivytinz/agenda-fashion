@@ -119,10 +119,19 @@ function progressPercent(usedValue, limitValue, backendPercent) {
 
 function paymentStatus(value) {
   const status = normalizeStatus(value);
-  if (["CONFIRMED", "RECEIVED", "PAID"].includes(status)) return { label: "Pago", tone: "success" };
+  if (["CONFIRMED", "RECEIVED", "RECEIVED_IN_CASH", "PAID"].includes(status)) return { label: "Pago", tone: "success" };
   if (["PENDING", "AWAITING_PAYMENT"].includes(status)) return { label: "Pendente", tone: "warning" };
   if (["OVERDUE", "PAST_DUE"].includes(status)) return { label: "Atrasado", tone: "danger" };
-  if (["REFUNDED", "REFUND_REQUESTED"].includes(status)) return { label: "Reembolsado", tone: "neutral" };
+  if (status === "REFUNDED") return { label: "Reembolsado", tone: "neutral" };
+  if ([
+    "PARTIALLY_REFUNDED",
+    "REFUND_IN_PROGRESS",
+    "REFUND_REQUESTED",
+    "RECEIVED_IN_CASH_UNDONE",
+    "CHARGEBACK_REQUESTED",
+    "CHARGEBACK_DISPUTE",
+    "AWAITING_CHARGEBACK_REVERSAL"
+  ].includes(status)) return { label: "Em estorno ou disputa", tone: "warning" };
   if (["CANCELED", "CANCELLED", "DELETED"].includes(status)) return { label: "Cancelado", tone: "neutral" };
   return { label: status ? status.replaceAll("_", " ") : "Não informado", tone: "neutral" };
 }
@@ -181,30 +190,38 @@ export function SubscriptionPage() {
   const plan = data.plano || {};
   const subscription = data.assinatura || null;
   const usage = data.uso || {};
+  const pendingUpgrade = data.upgrade_pendente || null;
+  const pendingPlan = pendingUpgrade?.plano || null;
+  const pendingPayment = pendingUpgrade?.pagamento || null;
   const payments = Array.isArray(data.pagamentos) ? data.pagamentos : [];
   const state = subscriptionStatus(plan, subscription);
   const isFree = Number(plan.valor) === 0;
-  const usesFreeFallback = !isFree && !state.active;
-  const needsSubscription = !isFree && !subscription;
+  const hasPendingUpgrade = Boolean(
+    pendingUpgrade?.assinatura && pendingPlan
+  );
+  const needsSubscription =
+    !isFree && !subscription && !hasPendingUpgrade;
   const rawStatus = normalizeStatus(subscription?.status);
   const canCancel = ACTIVE_STATUSES.has(rawStatus) && subscription?.ativo !== false;
   const planSlug = String(plan.slug || "").trim();
   const checkoutTarget = planSlug
     ? `/checkout?plano=${encodeURIComponent(planSlug)}`
     : "/planos";
-  const effectivePlanName = usesFreeFallback ? "Grátis" : plan.nome || "Grátis";
+  const effectivePlanName =
+    usage.plano_nome || plan.nome || "Grátis";
   const serviceOverLimit = overLimitAmount(
     usage.servicos_utilizados,
     usage.limite_servicos
   );
-  const overLimitAction = needsSubscription
-    ? {
-        label: plan.nome ? `Assinar ${plan.nome}` : "Assinar plano",
-        target: checkoutTarget
-      }
-    : usesFreeFallback
+  const overLimitAction =
+    hasPendingUpgrade
       ? null
-      : { label: "Ver planos", target: "/planos" };
+      : needsSubscription
+        ? {
+            label: plan.nome ? `Assinar ${plan.nome}` : "Assinar plano",
+            target: checkoutTarget
+          }
+        : { label: "Ver planos", target: "/planos" };
   const appointmentsPercent = progressPercent(
     usage.utilizados,
     usage.limite,
@@ -220,18 +237,42 @@ export function SubscriptionPage() {
           <p>Acompanhe uso, pagamentos e a próxima renovação.</p>
         </div>
         <Link className="button button-secondary" to="/planos">
-          {usesFreeFallback ? "Escolher plano" : "Ver planos"}
+          Ver planos
         </Link>
       </header>
 
       {error && <p className="form-error" role="alert">{error}</p>}
       {message && <p className="form-success" role="status">{message}</p>}
+      {hasPendingUpgrade && (
+        <section className="panel subscription-pending-upgrade" role="status">
+          <strong>PIX do plano {pendingPlan.nome} aguardando pagamento.</strong>
+          <p className="muted">
+            Seu plano atual continua valendo até a confirmação e ativação do novo plano. Para evitar cobrança duplicada, conclua ou aguarde o vencimento deste PIX antes de gerar outro.
+          </p>
+          {pendingPayment?.pix_qrcode && (
+            <img
+              alt="QR Code do PIX pendente"
+              src={`data:image/png;base64,${pendingPayment.pix_qrcode}`}
+            />
+          )}
+          {pendingPayment?.pix_copia_cola && (
+            <label>
+              Código PIX pendente
+              <textarea
+                readOnly
+                rows="4"
+                value={pendingPayment.pix_copia_cola}
+              />
+            </label>
+          )}
+        </section>
+      )}
 
       <section className="billing-grid subscription-overview-grid">
         <article className="panel subscription-card subscription-plan-card">
           <div className="panel-heading subscription-plan-heading">
             <div>
-              <p className="eyebrow">{usesFreeFallback ? "Plano para ativar" : "Plano atual"}</p>
+              <p className="eyebrow">Plano atual</p>
               <h2>{plan.nome || "Plano grátis"}</h2>
             </div>
             <span className={`subscription-state-badge is-${state.tone}`}>{state.label}</span>
@@ -291,11 +332,9 @@ export function SubscriptionPage() {
           <p className="eyebrow">Uso neste mês</p>
           <h2>Seus limites atuais</h2>
           <p className="billing-effective-plan">Plano em uso: <strong>{effectivePlanName}</strong></p>
-          {!usesFreeFallback && (
-            <p className="muted billing-usage-intro">
-              Acompanhe o que já foi usado e o que ainda está disponível.
-            </p>
-          )}
+          <p className="muted billing-usage-intro">
+            Acompanhe o que já foi usado e o que ainda está disponível.
+          </p>
 
           <div className="usage-item subscription-usage-primary">
             <span>{appointmentSummary(usage.utilizados, usage.limite)}</span>
@@ -327,10 +366,10 @@ export function SubscriptionPage() {
             <div className="usage-over-limit-alert" role="status">
               <span>
                 Você possui {usedAmount(usage.servicos_utilizados)} serviços. O plano em uso permite {finiteLimit(usage.limite_servicos)}.{" "}
-                {needsSubscription && plan.nome
-                  ? `Ative o ${plan.nome} para liberar novos limites.`
-                  : usesFreeFallback
-                    ? "Os novos limites serão liberados após a confirmação do pagamento."
+                {hasPendingUpgrade
+                  ? `O plano ${pendingPlan.nome} será aplicado somente após a confirmação do pagamento.`
+                  : needsSubscription && plan.nome
+                    ? `Ative o ${plan.nome} para liberar novos limites.`
                     : "Escolha um plano maior para adicionar novos serviços."}
               </span>
               {overLimitAction && (

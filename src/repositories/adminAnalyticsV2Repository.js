@@ -356,17 +356,27 @@ async function buscarReceita(periodo = "30") {
           ), 0)::NUMERIC(14,2) AS receita_total,
           COALESCE(SUM(pg.valor), 0)::NUMERIC(14,2) AS receita_bruta,
           COUNT(*) FILTER (
-            WHERE UPPER(pg.status) = 'REFUNDED'
-          )::INT AS pagamentos_reembolsados,
+            WHERE UPPER(pg.status) IN (
+              'REFUNDED',
+              'PARTIALLY_REFUNDED',
+              'REFUND_IN_PROGRESS',
+              'RECEIVED_IN_CASH_UNDONE',
+              'CHARGEBACK_REQUESTED',
+              'CHARGEBACK_DISPUTE',
+              'AWAITING_CHARGEBACK_REVERSAL'
+            )
+          )::INT AS pagamentos_em_reversao,
           COALESCE(SUM(pg.valor) FILTER (
-            WHERE UPPER(pg.status) = 'REFUNDED'
-          ), 0)::NUMERIC(14,2) AS valor_reembolsado,
-          (
-            COALESCE(SUM(pg.valor), 0) -
-            COALESCE(SUM(pg.valor) FILTER (
-              WHERE UPPER(pg.status) = 'REFUNDED'
-            ), 0)
-          )::NUMERIC(14,2) AS receita_liquida
+            WHERE UPPER(pg.status) IN (
+              'REFUNDED',
+              'PARTIALLY_REFUNDED',
+              'REFUND_IN_PROGRESS',
+              'RECEIVED_IN_CASH_UNDONE',
+              'CHARGEBACK_REQUESTED',
+              'CHARGEBACK_DISPUTE',
+              'AWAITING_CHARGEBACK_REVERSAL'
+            )
+          ), 0)::NUMERIC(14,2) AS valor_exposto_reversoes
         FROM pagamentos pg
         INNER JOIN assinaturas a
           ON a.id = pg.assinatura_id
@@ -420,9 +430,8 @@ async function buscarReceita(periodo = "30") {
         p.negocios_pagantes,
         p.receita_total,
         p.receita_bruta,
-        p.pagamentos_reembolsados,
-        p.valor_reembolsado,
-        p.receita_liquida,
+        p.pagamentos_em_reversao,
+        p.valor_exposto_reversoes,
         fp.novas_assinaturas_pagas,
         fp.receita_primeiro_pagamento,
         a.assinaturas_pagas_ativas

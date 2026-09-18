@@ -164,6 +164,34 @@ describe(
       }
     );
 
+
+    test(
+      "vínculo da assinatura exige lease corrente",
+      async () => {
+        const executor = {
+          query: jest.fn().mockResolvedValue({
+            rows: []
+          })
+        };
+
+        const resultado =
+          await repository.vincularAssinatura(
+            10,
+            44,
+            3,
+            executor
+          );
+
+        expect(resultado).toBeNull();
+        expect(executor.query.mock.calls[0][0])
+          .toContain("lease_tentativa = $3");
+        expect(executor.query.mock.calls[0][0])
+          .toContain("status = 'PROCESSING'");
+        expect(executor.query.mock.calls[0][1])
+          .toEqual([10, 44, 3]);
+      }
+    );
+
     test(
       "finalização exige o lease corrente",
       async () => {

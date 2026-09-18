@@ -147,6 +147,52 @@ async function buscarNegocioDono(usuarioId) {
   return result.rows[0] || null;
 }
 
+async function buscarAssinaturaPendentePorNegocio(negocioId) {
+  const result = await db.query(
+    `
+    SELECT a.*
+    FROM assinaturas a
+    WHERE a.negocio_id = $1
+      AND a.ativo = FALSE
+      AND UPPER(a.status) IN (
+        'PENDING',
+        'PENDING_PAYMENT'
+      )
+      AND a.id > COALESCE(
+        (
+          SELECT MAX(ativa.id)
+          FROM assinaturas ativa
+          WHERE ativa.negocio_id = a.negocio_id
+            AND ativa.ativo = TRUE
+        ),
+        0
+      )
+      AND (
+        a.created_at >= NOW() - INTERVAL '15 minutes'
+        OR EXISTS (
+          SELECT 1
+          FROM pagamentos pg
+          WHERE pg.assinatura_id = a.id
+            AND UPPER(pg.status) IN (
+              'PENDING',
+              'CREATED',
+              'AWAITING_PAYMENT'
+            )
+            AND (
+              pg.data_vencimento IS NULL
+              OR pg.data_vencimento >= CURRENT_DATE
+            )
+        )
+      )
+    ORDER BY a.id DESC
+    LIMIT 1
+    `,
+    [negocioId]
+  );
+
+  return result.rows[0] || null;
+}
+
 async function buscarUltimaAssinaturaPorNegocio(negocioId) {
   const result = await db.query(
     `
@@ -279,6 +325,41 @@ async function buscarPlano(planoId) {
   return result.rows[0] || null;
 }
 
+async function buscarUltimoPagamentoPendente(
+  assinaturaId
+) {
+  const result = await db.query(
+    `
+    SELECT
+      id,
+      asaas_payment_id,
+      valor,
+      forma_pagamento,
+      status,
+      data_vencimento,
+      pix_copia_cola,
+      pix_qrcode,
+      created_at
+    FROM pagamentos
+    WHERE assinatura_id = $1
+      AND UPPER(status) IN (
+        'PENDING',
+        'CREATED',
+        'AWAITING_PAYMENT'
+      )
+      AND (
+        data_vencimento IS NULL
+        OR data_vencimento >= CURRENT_DATE
+      )
+    ORDER BY id DESC
+    LIMIT 1
+    `,
+    [assinaturaId]
+  );
+
+  return result.rows[0] || null;
+}
+
 async function listarPagamentos(assinaturaId) {
   const result = await db.query(
     `
@@ -311,8 +392,10 @@ module.exports = {
   buscarPorId,
   buscarNegocioDono,
   buscarUltimaAssinaturaPorNegocio,
+  buscarAssinaturaPendentePorNegocio,
   registrarCancelamento,
   expirarCancelamentoSeNecessario,
   buscarPlano,
+  buscarUltimoPagamentoPendente,
   listarPagamentos
 };

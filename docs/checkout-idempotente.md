@@ -18,6 +18,14 @@ Comportamentos:
 - cada retomada incrementa `lease_tentativa`; somente a execução que possui o
   lease corrente pode marcar a tentativa como `COMPLETED` ou `FAILED`;
 - uma chave usada com outro plano ou forma de pagamento é rejeitada;
+- um negócio não pode abrir outra cobrança PIX enquanto existir uma cobrança
+  pendente vigente, mesmo que o novo checkout escolha outro plano;
+- o painel de assinatura expõe novamente QR Code/copia-e-cola do upgrade
+  pendente quando disponíveis, para que recarregar a página não force uma nova
+  cobrança;
+- o lease também protege o vínculo intermediário entre tentativa e assinatura;
+  uma execução que perdeu o lease não pode mais anexar uma assinatura à
+  tentativa;
 - cobranças PIX são conciliadas no Asaas pela `externalReference`;
 - a assinatura atual só é desativada quando o novo pagamento é
   confirmado.

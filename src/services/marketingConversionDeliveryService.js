@@ -61,7 +61,7 @@ async function enfileirarAssinaturaAtivada(
   }
 
   const chaveEvento =
-    `assinatura:${payload.assinaturaId}`;
+    `assinatura:${payload.assinaturaId};pagamento:${payload.pagamentoId}`;
 
   return Promise.all([
     marketingConversionDeliveryRepository
@@ -178,7 +178,7 @@ async function entregarMeta(payload) {
       .sanitizarContextoCliente({
         consentimento: true,
         event_id:
-          `subscribe:${payload.assinaturaId}`,
+          `subscribe:${payload.assinaturaId}:${payload.pagamentoId}`,
         fbp:
           perfil.meta_fbp || null,
         fbc:
@@ -265,7 +265,7 @@ async function entregarGoogle(payload) {
         pagamento.data_pagamento,
       params: {
         transaction_id:
-          `af-subscription-${payload.assinaturaId}`,
+          `af-subscription-${payload.assinaturaId}-${payload.pagamentoId}`,
         currency: "BRL",
         value:
           pagamento.valor,

@@ -198,10 +198,10 @@ async function buscarRevenue(periodo) {
       novasAssinaturasPagas: numero(resumo.novas_assinaturas_pagas),
       assinaturasPagasAtivas: numero(resumo.assinaturas_pagas_ativas),
       receitaTotal: numero(resumo.receita_total),
+      receitaValidaAtual: numero(resumo.receita_total),
       receitaBruta: numero(resumo.receita_bruta),
-      pagamentosReembolsados: numero(resumo.pagamentos_reembolsados),
-      valorReembolsado: numero(resumo.valor_reembolsado),
-      receitaLiquida: numero(resumo.receita_liquida),
+      pagamentosEmReversao: numero(resumo.pagamentos_em_reversao),
+      valorExpostoReversoes: numero(resumo.valor_exposto_reversoes),
       receitaPrimeiroPagamento: numero(resumo.receita_primeiro_pagamento),
     },
     planos: resultado.planos,
@@ -213,7 +213,7 @@ async function buscarRevenue(periodo) {
       novaAssinatura:
         "Nova assinatura paga é a assinatura cujo primeiro pagamento CONFIRMED/RECEIVED caiu no período. Esse total é um fato financeiro do período e não é usado como numerador da coorte de checkout.",
       receita:
-        "Receita bruta usa cobranças que tiveram data de pagamento no período; reembolsos mostram pagamentos atualmente REFUNDED; receita líquida subtrai esses reembolsos. Receita confirmada mostra pagamentos atualmente válidos e a receita de primeiro pagamento isola monetização inicial.",
+        "Receita bruta usa cobranças que tiveram data de pagamento no período. Receita atualmente válida soma apenas pagamentos hoje em CONFIRMED/RECEIVED/RECEIVED_IN_CASH. Pagamentos em reversão ou disputa são mostrados separadamente pelo valor integral exposto da cobrança; o AF não chama esse valor de receita líquida porque o schema atual não persiste o valor exato de estornos parciais nem a data econômica de cada reversão. Receita de primeiro pagamento isola monetização inicial.",
       ativas:
         "Assinaturas pagas ativas é um estoque atual e não uma contagem criada no período.",
     },
