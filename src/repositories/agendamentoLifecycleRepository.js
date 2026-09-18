@@ -113,6 +113,8 @@ async function buscarAgendamentoOperacionalParaAtualizar({
         COALESCE(a.duracao_minutos, s.duracao_minutos, 0)::int AS duracao_minutos,
         COALESCE(NULLIF(n.fuso_horario, ''), 'America/Sao_Paulo') AS fuso_horario,
         un.papel AS papel_executor,
+        a.atendimento_iniciado_em,
+        a.atendimento_iniciado_por,
         a.status_atendimento_em,
         a.status_atendimento_por
       FROM agendamentos a
@@ -134,6 +136,37 @@ async function buscarAgendamentoOperacionalParaAtualizar({
       FOR UPDATE OF a, un
     `,
     [agendamentoId, negocioId, usuarioId]
+  );
+
+  return result.rows[0] || null;
+}
+
+async function marcarAtendimentoIniciado({
+  agendamentoId,
+  usuarioId,
+  executor = db,
+}) {
+  const result = await executor.query(
+    `
+      UPDATE agendamentos
+      SET
+        atendimento_iniciado_em = COALESCE(
+          atendimento_iniciado_em,
+          NOW()
+        ),
+        atendimento_iniciado_por = COALESCE(
+          atendimento_iniciado_por,
+          $2
+        )
+      WHERE id = $1
+        AND status IN ('agendado', 'confirmado')
+      RETURNING
+        id,
+        status,
+        atendimento_iniciado_em,
+        atendimento_iniciado_por
+    `,
+    [agendamentoId, usuarioId]
   );
 
   return result.rows[0] || null;
@@ -431,6 +464,7 @@ module.exports = {
   buscarAgendamentoClienteParaAvaliacao,
   avaliarAgendamentoRealizado,
   buscarAgendamentoOperacionalParaAtualizar,
+  marcarAtendimentoIniciado,
   atualizarStatusAtendimento,
   listarAgendamentosProfissionalPorPeriodo,
   listarAgendamentosProfissionaisDoNegocioPorPeriodo,
