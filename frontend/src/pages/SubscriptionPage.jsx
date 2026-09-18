@@ -119,10 +119,12 @@ function progressPercent(usedValue, limitValue, backendPercent) {
 
 function paymentStatus(value) {
   const status = normalizeStatus(value);
-  if (["CONFIRMED", "RECEIVED", "PAID"].includes(status)) return { label: "Pago", tone: "success" };
+  if (["CONFIRMED", "RECEIVED", "RECEIVED_IN_CASH", "PAID"].includes(status)) return { label: "Pago", tone: "success" };
   if (["PENDING", "AWAITING_PAYMENT"].includes(status)) return { label: "Pendente", tone: "warning" };
   if (["OVERDUE", "PAST_DUE"].includes(status)) return { label: "Atrasado", tone: "danger" };
+  if (status === "PARTIALLY_REFUNDED") return { label: "Parcialmente reembolsado", tone: "warning" };
   if (["REFUNDED", "REFUND_REQUESTED"].includes(status)) return { label: "Reembolsado", tone: "neutral" };
+  if (["CHARGEBACK_REQUESTED", "CHARGEBACK_DISPUTE", "AWAITING_CHARGEBACK_REVERSAL"].includes(status)) return { label: "Em contestação", tone: "danger" };
   if (["CANCELED", "CANCELLED", "DELETED"].includes(status)) return { label: "Cancelado", tone: "neutral" };
   return { label: status ? status.replaceAll("_", " ") : "Não informado", tone: "neutral" };
 }
