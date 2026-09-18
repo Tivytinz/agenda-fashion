@@ -580,6 +580,103 @@ export function AgendaWorkspacePage({ owner = false }) {
         </>
       )}
 
+      {rescheduleTarget && (
+        <div
+          className="agenda-cancel-backdrop"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) closeReschedule();
+          }}
+        >
+          <section
+            aria-labelledby="agenda-reschedule-title"
+            aria-modal="true"
+            className="agenda-cancel-dialog"
+            role="dialog"
+          >
+            <p className="eyebrow">Reagendar compromisso</p>
+            <h2 id="agenda-reschedule-title">Escolha o novo horário</h2>
+            <p className="agenda-cancel-summary">
+              {getAgendaEntityName(rescheduleTarget.cliente) || "Cliente"}
+              {" · "}
+              {getAgendaEntityName(rescheduleTarget.servico) || "Serviço"}
+            </p>
+            <p>
+              O horário antigo só será liberado depois que o novo horário for validado com sucesso.
+            </p>
+
+            <div className="agenda-cancel-reason">
+              <label htmlFor="agenda-reschedule-date">
+                Nova data
+              </label>
+              <input
+                id="agenda-reschedule-date"
+                min={getLocalDateKey()}
+                onChange={(event) => setRescheduleDate(event.target.value)}
+                type="date"
+                value={rescheduleDate}
+              />
+
+              <label htmlFor="agenda-reschedule-time">
+                Novo horário
+              </label>
+              <input
+                id="agenda-reschedule-time"
+                onChange={(event) => setRescheduleTime(event.target.value)}
+                type="time"
+                value={rescheduleTime}
+              />
+
+              {owner && professionals.length > 0 && (
+                <>
+                  <label htmlFor="agenda-reschedule-professional">
+                    Profissional responsável
+                  </label>
+                  <select
+                    id="agenda-reschedule-professional"
+                    onChange={(event) => setRescheduleProfessionalId(event.target.value)}
+                    value={rescheduleProfessionalId}
+                  >
+                    {professionals.map((professional) => (
+                      <option key={professional.id} value={professional.id}>
+                        {professional.nome}
+                      </option>
+                    ))}
+                  </select>
+                </>
+              )}
+
+              <small>
+                O serviço, preço, duração e regra de cancelamento da reserva serão preservados.
+              </small>
+            </div>
+
+            <div className="agenda-cancel-actions">
+              <button
+                className="button button-secondary"
+                disabled={rescheduleUpdating}
+                onClick={closeReschedule}
+                type="button"
+              >
+                Manter horário atual
+              </button>
+              <button
+                className="button"
+                disabled={
+                  rescheduleUpdating ||
+                  !rescheduleDate ||
+                  !rescheduleTime ||
+                  (owner && !rescheduleProfessionalId)
+                }
+                onClick={() => void rescheduleAppointment()}
+                type="button"
+              >
+                {rescheduleUpdating ? "Reagendando..." : "Confirmar reagendamento"}
+              </button>
+            </div>
+          </section>
+        </div>
+      )}
+
       {cancelTarget && (
         <div
           className="agenda-cancel-backdrop"
