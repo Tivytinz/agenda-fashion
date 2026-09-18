@@ -407,6 +407,13 @@ async function buscarDashboardDono({
       `'America/Sao_Paulo')::date`
     );
 
+  const filtroAgendamentosConversao =
+    filtroPeriodo(
+      periodoNormalizado,
+      `(a.created_at AT TIME ZONE ` +
+      `'America/Sao_Paulo')::date`
+    );
+
   const filtroFavoritos =
     filtroPeriodo(
       periodoNormalizado,
@@ -439,7 +446,7 @@ async function buscarDashboardDono({
       .buscarPerformanceNegocio(
         negocioId,
         filtroEventos,
-        filtro
+        filtroAgendamentosConversao
       ),
 
     dashboardRepository
