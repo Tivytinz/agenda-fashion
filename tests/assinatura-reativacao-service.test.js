@@ -68,6 +68,7 @@ function cancelada(
     valor: "49.90",
     data_proxima_cobranca:
       "2026-10-18",
+    reativacao_tentativa: 0,
     ...overrides
   };
 }
@@ -115,7 +116,8 @@ describe(
           .reservarReativacao
           .mockResolvedValue({
             ...assinatura,
-            status: "REACTIVATING"
+            status: "REACTIVATING",
+            reativacao_tentativa: 1
           });
         criarAssinaturaAsaas
           .mockResolvedValue({
@@ -158,7 +160,7 @@ describe(
             proximaCobranca:
               "2026-10-18",
             externalReference:
-              "assinatura-reativada:20;inicio:2026-10-18",
+              "assinatura-reativada:20;tentativa:1;inicio:2026-10-18",
             reutilizarPorExternalReference:
               true
           })
@@ -185,7 +187,8 @@ describe(
       "recupera crash quando a recorrência já existe no Asaas",
       async () => {
         const pendente = cancelada({
-          status: "REACTIVATING"
+          status: "REACTIVATING",
+          reativacao_tentativa: 1
         });
 
         assinaturaRepository
@@ -218,7 +221,7 @@ describe(
           buscarAssinaturaPorReferencia
         ).toHaveBeenCalledWith({
           externalReference:
-            "assinatura-reativada:20;inicio:2026-10-18",
+            "assinatura-reativada:20;tentativa:1;inicio:2026-10-18",
           customerId:
             "cus_1"
         });
@@ -243,7 +246,8 @@ describe(
       "restaura cancelamento quando a consulta confirma ausência de recorrência",
       async () => {
         const pendente = cancelada({
-          status: "REACTIVATING"
+          status: "REACTIVATING",
+          reativacao_tentativa: 1
         });
 
         assinaturaRepository
@@ -284,7 +288,8 @@ describe(
       "falha ao consultar o Asaas preserva REACTIVATING para nova reconciliação",
       async () => {
         const pendente = cancelada({
-          status: "REACTIVATING"
+          status: "REACTIVATING",
+          reativacao_tentativa: 1
         });
 
         assinaturaRepository
@@ -370,7 +375,8 @@ describe(
           .reservarReativacao
           .mockResolvedValue({
             ...assinatura,
-            status: "REACTIVATING"
+            status: "REACTIVATING",
+            reativacao_tentativa: 1
           });
         criarAssinaturaAsaas
           .mockRejectedValue(
