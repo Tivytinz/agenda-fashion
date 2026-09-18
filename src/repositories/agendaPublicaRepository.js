@@ -60,7 +60,8 @@ async function buscarServicoDoNegocio(
 
 async function buscarProfissionalDoNegocio(
   profissionalId,
-  negocioId
+  negocioId,
+  servicoId
 ) {
   const result = await db.query(
     `
@@ -83,12 +84,24 @@ async function buscarProfissionalDoNegocio(
           'dono',
           'profissional'
         )
+        AND EXISTS (
+          SELECT 1
+          FROM servicos_profissionais sp
+          INNER JOIN servicos_negocio s
+            ON s.id = sp.servico_id
+            AND s.negocio_id = sp.negocio_id
+            AND s.ativo = TRUE
+          WHERE sp.negocio_id = un.negocio_id
+            AND sp.profissional_id = un.usuario_id
+            AND sp.servico_id = $3
+        )
 
       LIMIT 1
     `,
     [
       profissionalId,
       negocioId,
+      servicoId,
     ]
   );
 
