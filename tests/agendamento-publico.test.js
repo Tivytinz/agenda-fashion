@@ -512,10 +512,17 @@ describe(
           );
 
         expect(
+          Number(
+            identidade.rows[0]
+              ?.id
+          )
+        ).toBe(
+          clientId
+        );
+
+        expect(
           identidade.rows[0]
         ).toMatchObject({
-          id:
-            clientId,
           usuario_id:
             null,
           nome:
