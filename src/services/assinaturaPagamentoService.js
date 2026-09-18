@@ -14,6 +14,87 @@ const {
   normalizarFormaPagamento,
 } = require("./assinaturaCalculos");
 
+const STATUS_PAGAMENTO_VALIDO = new Set([
+  "CONFIRMED",
+  "RECEIVED",
+  "RECEIVED_IN_CASH",
+]);
+
+const STATUS_REVERSAO_TOTAL = new Set([
+  "REFUNDED",
+  "CHARGEBACK_REQUESTED",
+  "CHARGEBACK_DISPUTE",
+  "AWAITING_CHARGEBACK_REVERSAL",
+  "RECEIVED_IN_CASH_UNDONE",
+]);
+
+function dadosReversaoFinanceira(
+  dadosPagamento,
+  statusPagamento
+) {
+  const status = String(
+    statusPagamento ||
+    dadosPagamento?.status ||
+    ""
+  ).trim().toUpperCase();
+  const tipoEvento = String(
+    dadosPagamento?.webhookTipoEvento ||
+    ""
+  ).trim().toUpperCase();
+
+  if (
+    STATUS_PAGAMENTO_VALIDO.has(status) ||
+    tipoEvento === "PAYMENT_RESTORED"
+  ) {
+    return {
+      limpar_reversao: true,
+    };
+  }
+
+  const parcial =
+    status === "PARTIALLY_REFUNDED" ||
+    tipoEvento === "PAYMENT_PARTIALLY_REFUNDED";
+
+  const total =
+    STATUS_REVERSAO_TOTAL.has(status) ||
+    [
+      "PAYMENT_REFUNDED",
+      "PAYMENT_RECEIVED_IN_CASH_UNDONE",
+      "PAYMENT_CHARGEBACK_REQUESTED",
+      "PAYMENT_CHARGEBACK_DISPUTE",
+      "PAYMENT_AWAITING_CHARGEBACK_REVERSAL",
+    ].includes(tipoEvento);
+
+  if (!parcial && !total) {
+    return {};
+  }
+
+  const valorInformado =
+    Number(dadosPagamento?.refundedValue);
+  const valorConhecido =
+    total ||
+    (
+      Number.isFinite(valorInformado) &&
+      valorInformado >= 0
+    );
+
+  return {
+    reversao_tipo:
+      parcial
+        ? "PARTIALLY_REFUNDED"
+        : status || tipoEvento,
+    reversao_em:
+      dadosPagamento?.webhookEventoCriadoEm ||
+      null,
+    valor_revertido:
+      parcial && valorConhecido
+        ? valorInformado
+        : null,
+    reversao_valor_conhecido:
+      valorConhecido,
+  };
+}
+
 async function garantirPagamentoRecorrente(
   client,
   paymentId,
@@ -93,11 +174,14 @@ async function sincronizarPagamentoPorWebhook(
       return null;
     }
 
+    const status =
+      dadosPagamento.status || "PENDING";
+
     return pagamentoRepository.atualizarStatusPagamento(
       client,
       paymentId,
       {
-        status: dadosPagamento.status || "PENDING",
+        status,
         data_pagamento:
           dadosPagamento.paymentDate ||
           dadosPagamento.confirmedDate ||
@@ -105,6 +189,10 @@ async function sincronizarPagamentoPorWebhook(
         evento_criado_em:
           dadosPagamento.webhookEventoCriadoEm || null,
         evento_id: dadosPagamento.webhookEventoId || null,
+        ...dadosReversaoFinanceira(
+          dadosPagamento,
+          status
+        ),
       }
     );
   });
@@ -143,6 +231,10 @@ async function suspenderAssinaturaPorPagamento(
           evento_criado_em:
             dadosPagamento.webhookEventoCriadoEm || null,
           evento_id: dadosPagamento.webhookEventoId || null,
+          ...dadosReversaoFinanceira(
+            dadosPagamento,
+            status
+          ),
         }
       );
 
