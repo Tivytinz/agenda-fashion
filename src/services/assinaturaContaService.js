@@ -10,6 +10,32 @@ const {
   dataValida,
 } = require("./assinaturaCalculos");
 
+function estadoAtivacaoPendente(pagamento) {
+  if (!pagamento) {
+    return null;
+  }
+
+  const status = String(
+    pagamento.status || ""
+  )
+    .trim()
+    .toUpperCase();
+
+  if (
+    [
+      "CONFIRMED",
+      "RECEIVED",
+      "RECEIVED_IN_CASH"
+    ].includes(status)
+  ) {
+    return pagamento.ativacao_requer_atencao === true
+      ? "ATIVACAO_REQUER_ATENCAO"
+      : "PAGAMENTO_CONFIRMADO_ATIVANDO";
+  }
+
+  return "AGUARDANDO_PAGAMENTO";
+}
+
 async function buscarMinhaAssinatura({ usuarioId }) {
   if (!usuarioId) {
     throw new Error("Usuário não autenticado.");
@@ -62,7 +88,15 @@ async function buscarMinhaAssinatura({ usuarioId }) {
         ? {
             assinatura: assinaturaPendente,
             plano: planoPendente,
-            pagamento: pagamentoPendente,
+            pagamento: pagamentoPendente
+              ? {
+                  ...pagamentoPendente,
+                  estado_ativacao:
+                    estadoAtivacaoPendente(
+                      pagamentoPendente
+                    )
+                }
+              : null,
           }
         : null,
     uso: {
