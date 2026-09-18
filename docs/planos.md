@@ -60,6 +60,10 @@ apagar dados existentes nem impedir a edição do que já foi cadastrado.
 - O novo plano só é ativado depois da confirmação autenticada e idempotente do
   Asaas.
 - O mesmo plano não deve gerar uma nova contratação duplicada.
+- O mesmo negócio não pode manter dois PIX de contratação/upgrade pendentes ao
+  mesmo tempo, mesmo quando as cobranças apontam para planos diferentes.
+- Um upgrade pendente não substitui visualmente nem operacionalmente o plano
+  vigente antes da confirmação financeira.
 - Ao cancelar a renovação, o acesso pago continua até o fim do período já
   quitado.
 - Após o encerramento do ciclo pago, o negócio retorna ao plano gratuito.
