@@ -23,6 +23,14 @@ jest.mock(
   })
 );
 
+jest.mock(
+  "../src/services/assinaturaReativacaoService",
+  () => ({
+    reconciliarReativacaoAbandonada:
+      jest.fn().mockResolvedValue(null)
+  })
+);
+
 const assinaturaRepository = require(
   "../src/repositories/assinaturaRepository"
 );
@@ -159,6 +167,41 @@ describe(
         ).toHaveBeenCalledWith(20);
         expect(resultado.uso.plano_nome)
           .toBe("Autônoma");
+      }
+    );
+
+    test(
+      "mantém pagamento confirmado visível como ativação que requer atenção",
+      async () => {
+        assinaturaRepository
+          .buscarAssinaturaAtivaPorNegocio
+          .mockResolvedValue(null);
+        assinaturaRepository
+          .buscarAssinaturaPendentePorNegocio
+          .mockResolvedValue({
+            id: 21,
+            negocio_id: 7,
+            plano_id: 3,
+            status: "PENDING",
+            ativo: false
+          });
+        assinaturaRepository
+          .buscarUltimoPagamentoPendente
+          .mockResolvedValue({
+            id: 61,
+            status: "CONFIRMED",
+            ativacao_requer_atencao: true
+          });
+
+        const resultado =
+          await buscarMinhaAssinatura({
+            usuarioId: 10
+          });
+
+        expect(
+          resultado.upgrade_pendente
+            .pagamento.estado_ativacao
+        ).toBe("ATIVACAO_REQUER_ATENCAO");
       }
     );
 

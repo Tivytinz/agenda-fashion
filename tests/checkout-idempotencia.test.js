@@ -257,7 +257,7 @@ describe(
         ).rejects.toMatchObject({
           statusCode: 409,
           message:
-            "Já existe um PIX pendente para o plano Salão. Conclua ou aguarde o vencimento antes de gerar outra cobrança."
+            "Já existe uma cobrança ou ativação pendente para o plano Salão. Conclua esse processo antes de gerar outra cobrança."
         });
 
         expect(
@@ -272,6 +272,185 @@ describe(
         ).not.toHaveBeenCalled();
         expect(criarCobrancaPix)
           .not.toHaveBeenCalled();
+      }
+    );
+
+    test(
+      "retomada antiga também respeita outra pendência do negócio",
+      async () => {
+        checkoutTentativaRepository
+          .iniciar
+          .mockResolvedValue({
+            executar: true,
+            nova: false,
+            tentativa: {
+              id: 36,
+              status: "PROCESSING",
+              lease_tentativa: 2,
+              assinatura_id: 44
+            }
+          });
+
+        assinaturaRepository
+          .buscarPorId
+          .mockResolvedValue({
+            id: 44,
+            negocio_id: 7,
+            plano_id: 3,
+            valor: "99.90",
+            status: "PENDING",
+            ativo: false
+          });
+
+        checkoutRepository
+          .buscarAssinaturaPendenteDoNegocio
+          .mockResolvedValue({
+            id: 55,
+            negocio_id: 7,
+            plano_id: 4,
+            plano_nome: "Salão",
+            status: "PENDING"
+          });
+
+        await expect(
+          criarCheckout({
+            usuarioId: 1,
+            planoId: 3,
+            formaPagamento: "pix",
+            chaveIdempotencia:
+              "checkout-retomada-antiga-123"
+          })
+        ).rejects.toMatchObject({
+          statusCode: 409,
+          message:
+            "Já existe uma cobrança ou ativação pendente para o plano Salão. Conclua esse processo antes de gerar outra cobrança."
+        });
+
+        expect(
+          checkoutRepository
+            .buscarAssinaturaPendenteDoNegocio
+        ).toHaveBeenCalledWith(
+          mockClient,
+          7,
+          44
+        );
+        expect(criarCobrancaPix)
+          .not.toHaveBeenCalled();
+      }
+    );
+
+    test(
+      "retomada antiga é rejeitada quando o preço do plano mudou",
+      async () => {
+        checkoutTentativaRepository
+          .iniciar
+          .mockResolvedValue({
+            executar: true,
+            nova: false,
+            tentativa: {
+              id: 37,
+              status: "PROCESSING",
+              lease_tentativa: 2,
+              assinatura_id: 44
+            }
+          });
+
+        assinaturaRepository
+          .buscarPorId
+          .mockResolvedValue({
+            id: 44,
+            negocio_id: 7,
+            plano_id: 3,
+            valor: "89.90",
+            status: "PENDING",
+            ativo: false
+          });
+
+        await expect(
+          criarCheckout({
+            usuarioId: 1,
+            planoId: 3,
+            formaPagamento: "pix",
+            chaveIdempotencia:
+              "checkout-preco-antigo-1234"
+          })
+        ).rejects.toMatchObject({
+          statusCode: 409,
+          message:
+            "Este checkout antigo não pode mais ser retomado com segurança. Inicie uma nova tentativa com os dados atuais do plano."
+        });
+
+        expect(criarCobrancaPix)
+          .not.toHaveBeenCalled();
+      }
+    );
+
+    test(
+      "retomada válida renova a janela da própria assinatura sob lock",
+      async () => {
+        checkoutTentativaRepository
+          .iniciar
+          .mockResolvedValue({
+            executar: true,
+            nova: false,
+            tentativa: {
+              id: 38,
+              status: "PROCESSING",
+              lease_tentativa: 2,
+              assinatura_id: 44
+            }
+          });
+
+        const assinatura = {
+          id: 44,
+          negocio_id: 7,
+          plano_id: 3,
+          valor: "99.90",
+          status: "PENDING",
+          ativo: false
+        };
+
+        assinaturaRepository
+          .buscarPorId
+          .mockResolvedValue(assinatura);
+        assinaturaRepository
+          .tocarAssinaturaPendenteCheckout
+          .mockResolvedValue(assinatura);
+        criarCobrancaPix
+          .mockResolvedValue({
+            id: "pay_retomado",
+            value: 99.9,
+            status: "PENDING"
+          });
+        buscarQrCodePix
+          .mockResolvedValue({
+            payload: "pix-retomado",
+            encodedImage: "imagem"
+          });
+
+        await criarCheckout({
+          usuarioId: 1,
+          planoId: 3,
+          formaPagamento: "pix",
+          chaveIdempotencia:
+            "checkout-retomada-valida-123"
+        });
+
+        expect(
+          assinaturaRepository
+            .tocarAssinaturaPendenteCheckout
+        ).toHaveBeenCalledWith(
+          44,
+          mockClient
+        );
+        expect(criarCobrancaPix)
+          .toHaveBeenCalledWith(
+            expect.objectContaining({
+              externalReference:
+                "checkout:38;assinatura:44",
+              valor: "99.90"
+            })
+          );
       }
     );
 

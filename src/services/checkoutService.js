@@ -109,6 +109,15 @@ async function garantirClienteAsaas({
   return negocio;
 }
 
+function mesmoValorMonetario(valorA, valorB) {
+  const centavosA = Math.round(Number(valorA) * 100);
+  const centavosB = Math.round(Number(valorB) * 100);
+
+  return Number.isFinite(centavosA) &&
+    Number.isFinite(centavosB) &&
+    centavosA === centavosB;
+}
+
 async function obterAssinaturaCheckout({
   client,
   negocio,
@@ -116,18 +125,6 @@ async function obterAssinaturaCheckout({
   formaPagamento,
   tentativa
 }) {
-  if (tentativa.assinatura_id) {
-    const assinaturaExistente =
-      await assinaturaRepository.buscarPorId(
-        tentativa.assinatura_id,
-        client
-      );
-
-    if (assinaturaExistente) {
-      return assinaturaExistente;
-    }
-  }
-
   const assinatura = await db.executarTransacao(
     async (transactionClient) => {
       await checkoutRepository
@@ -136,19 +133,71 @@ async function obterAssinaturaCheckout({
           negocio.id
         );
 
+      const assinaturaExistente =
+        tentativa.assinatura_id
+          ? await assinaturaRepository.buscarPorId(
+              tentativa.assinatura_id,
+              transactionClient
+            )
+          : null;
+
       const pendente = await checkoutRepository
         .buscarAssinaturaPendenteDoNegocio(
           transactionClient,
-          negocio.id
+          negocio.id,
+          assinaturaExistente?.id || null
         );
 
       if (pendente) {
         throw new AppError(
           pendente.plano_nome
-            ? `Já existe um PIX pendente para o plano ${pendente.plano_nome}. Conclua ou aguarde o vencimento antes de gerar outra cobrança.`
-            : "Já existe um PIX pendente para este negócio. Conclua ou aguarde o vencimento antes de gerar outra cobrança.",
+            ? `Já existe uma cobrança ou ativação pendente para o plano ${pendente.plano_nome}. Conclua esse processo antes de gerar outra cobrança.`
+            : "Já existe uma cobrança ou ativação pendente para este negócio. Conclua esse processo antes de gerar outra cobrança.",
           409
         );
+      }
+
+      if (assinaturaExistente) {
+        const status = String(
+          assinaturaExistente.status || ""
+        )
+          .trim()
+          .toUpperCase();
+
+        const retomadaValida =
+          Number(assinaturaExistente.negocio_id) ===
+            Number(negocio.id) &&
+          Number(assinaturaExistente.plano_id) ===
+            Number(plano.id) &&
+          assinaturaExistente.ativo === false &&
+          ["PENDING", "PENDING_PAYMENT"].includes(status) &&
+          mesmoValorMonetario(
+            assinaturaExistente.valor,
+            plano.valor
+          );
+
+        if (!retomadaValida) {
+          throw new AppError(
+            "Este checkout antigo não pode mais ser retomado com segurança. Inicie uma nova tentativa com os dados atuais do plano.",
+            409
+          );
+        }
+
+        const atualizada =
+          await assinaturaRepository
+            .tocarAssinaturaPendenteCheckout(
+              assinaturaExistente.id,
+              transactionClient
+            );
+
+        if (!atualizada) {
+          throw new AppError(
+            "Este checkout antigo não pode mais ser retomado. Inicie uma nova tentativa.",
+            409
+          );
+        }
+
+        return atualizada;
       }
 
       const novaAssinatura =

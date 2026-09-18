@@ -28,6 +28,14 @@ function subscriptionStatus(plan, subscription) {
     return { label: "Assinatura ativa", tone: "success", active: true };
   }
 
+  if (status === "REACTIVATING") {
+    return {
+      label: "Reativando renovação",
+      tone: "warning",
+      active: true
+    };
+  }
+
   if (PENDING_STATUSES.has(status)) {
     return { label: "Pagamento pendente", tone: "warning", active: false };
   }
@@ -149,6 +157,8 @@ export function SubscriptionPage() {
   );
   const [canceling, setCanceling] = useState(false);
   const [cancelError, setCancelError] = useState("");
+  const [reactivating, setReactivating] = useState(false);
+  const [reactivationError, setReactivationError] = useState("");
 
   const load = useCallback(() => {
     setError("");
@@ -180,6 +190,25 @@ export function SubscriptionPage() {
     }
   }
 
+  async function reactivate() {
+    setReactivating(true);
+    setReactivationError("");
+
+    try {
+      const result = await apiRequest(
+        "/minha-assinatura/reativar",
+        { method: "POST" }
+      );
+
+      setMessage(result.mensagem);
+      load();
+    } catch (requestError) {
+      setReactivationError(requestError.message);
+    } finally {
+      setReactivating(false);
+    }
+  }
+
   if (!data && !error) {
     return <div className="workspace-page"><LoadingState>Carregando assinatura...</LoadingState></div>;
   }
@@ -193,6 +222,15 @@ export function SubscriptionPage() {
   const pendingUpgrade = data.upgrade_pendente || null;
   const pendingPlan = pendingUpgrade?.plano || null;
   const pendingPayment = pendingUpgrade?.pagamento || null;
+  const pendingActivationState =
+    pendingPayment?.estado_ativacao || null;
+  const pendingPaymentConfirmed = [
+    "PAGAMENTO_CONFIRMADO_ATIVANDO",
+    "ATIVACAO_REQUER_ATENCAO"
+  ].includes(pendingActivationState);
+  const pendingActivationAttention =
+    pendingActivationState ===
+    "ATIVACAO_REQUER_ATENCAO";
   const payments = Array.isArray(data.pagamentos) ? data.pagamentos : [];
   const state = subscriptionStatus(plan, subscription);
   const isFree = Number(plan.valor) === 0;
@@ -202,7 +240,12 @@ export function SubscriptionPage() {
   const needsSubscription =
     !isFree && !subscription && !hasPendingUpgrade;
   const rawStatus = normalizeStatus(subscription?.status);
-  const canCancel = ACTIVE_STATUSES.has(rawStatus) && subscription?.ativo !== false;
+  const canCancel =
+    ACTIVE_STATUSES.has(rawStatus) &&
+    subscription?.ativo !== false;
+  const canReactivate =
+    CANCELED_STATUSES.has(rawStatus) &&
+    subscription?.ativo === true;
   const planSlug = String(plan.slug || "").trim();
   const checkoutTarget = planSlug
     ? `/checkout?plano=${encodeURIComponent(planSlug)}`
@@ -242,20 +285,35 @@ export function SubscriptionPage() {
       </header>
 
       {error && <p className="form-error" role="alert">{error}</p>}
+      {reactivationError && (
+        <p className="form-error" role="alert">
+          {reactivationError}
+        </p>
+      )}
       {message && <p className="form-success" role="status">{message}</p>}
       {hasPendingUpgrade && (
         <section className="panel subscription-pending-upgrade" role="status">
-          <strong>PIX do plano {pendingPlan.nome} aguardando pagamento.</strong>
+          <strong>
+            {pendingActivationAttention
+              ? `Pagamento do plano ${pendingPlan.nome} confirmado; a ativação precisa de atenção.`
+              : pendingPaymentConfirmed
+                ? `Pagamento do plano ${pendingPlan.nome} confirmado. Estamos ativando seu plano.`
+                : `PIX do plano ${pendingPlan.nome} aguardando pagamento.`}
+          </strong>
           <p className="muted">
-            Seu plano atual continua valendo até a confirmação e ativação do novo plano. Para evitar cobrança duplicada, conclua ou aguarde o vencimento deste PIX antes de gerar outro.
+            {pendingActivationAttention
+              ? "Seu pagamento está registrado e uma nova cobrança está bloqueada. Verifique novamente mais tarde ou fale com o suporte se o status não mudar."
+              : pendingPaymentConfirmed
+                ? "Seu pagamento está registrado. O plano atual continua valendo até a ativação terminar, e o AF não permitirá outra cobrança durante esse processo."
+                : "Seu plano atual continua valendo até a confirmação e ativação do novo plano. Para evitar cobrança duplicada, conclua ou aguarde o vencimento deste PIX antes de gerar outro."}
           </p>
-          {pendingPayment?.pix_qrcode && (
+          {!pendingPaymentConfirmed && pendingPayment?.pix_qrcode && (
             <img
               alt="QR Code do PIX pendente"
               src={`data:image/png;base64,${pendingPayment.pix_qrcode}`}
             />
           )}
-          {pendingPayment?.pix_copia_cola && (
+          {!pendingPaymentConfirmed && pendingPayment?.pix_copia_cola && (
             <label>
               Código PIX pendente
               <textarea
@@ -324,6 +382,18 @@ export function SubscriptionPage() {
               type="button"
             >
               Cancelar renovação
+            </button>
+          )}
+          {canReactivate && (
+            <button
+              className="button button-secondary subscription-primary-action"
+              disabled={reactivating}
+              onClick={() => void reactivate()}
+              type="button"
+            >
+              {reactivating
+                ? "Reativando..."
+                : "Reativar renovação"}
             </button>
           )}
         </article>

@@ -123,6 +123,28 @@ async function buscarPorId(
   return result.rows[0] || null;
 }
 
+async function tocarAssinaturaPendenteCheckout(
+  assinaturaId,
+  executor = db
+) {
+  const result = await executor.query(
+    `
+    UPDATE assinaturas
+    SET updated_at = NOW()
+    WHERE id = $1
+      AND ativo = FALSE
+      AND UPPER(status) IN (
+        'PENDING',
+        'PENDING_PAYMENT'
+      )
+    RETURNING *
+    `,
+    [assinaturaId]
+  );
+
+  return result.rows[0] || null;
+}
+
 async function buscarNegocioDono(usuarioId) {
   const result = await db.query(
     `
@@ -168,19 +190,31 @@ async function buscarAssinaturaPendentePorNegocio(negocioId) {
         0
       )
       AND (
-        a.created_at >= NOW() - INTERVAL '15 minutes'
+        GREATEST(
+          a.created_at,
+          a.updated_at
+        ) >= NOW() - INTERVAL '15 minutes'
         OR EXISTS (
           SELECT 1
           FROM pagamentos pg
           WHERE pg.assinatura_id = a.id
-            AND UPPER(pg.status) IN (
-              'PENDING',
-              'CREATED',
-              'AWAITING_PAYMENT'
-            )
             AND (
-              pg.data_vencimento IS NULL
-              OR pg.data_vencimento >= CURRENT_DATE
+              (
+                UPPER(pg.status) IN (
+                  'PENDING',
+                  'CREATED',
+                  'AWAITING_PAYMENT'
+                )
+                AND (
+                  pg.data_vencimento IS NULL
+                  OR pg.data_vencimento >= CURRENT_DATE
+                )
+              )
+              OR UPPER(pg.status) IN (
+                'CONFIRMED',
+                'RECEIVED',
+                'RECEIVED_IN_CASH'
+              )
             )
         )
       )
@@ -241,6 +275,137 @@ async function registrarCancelamento(
       assinaturaId,
       negocioId,
       acessoAte,
+      observacoes
+    ]
+  );
+
+  return result.rows[0] || null;
+}
+
+async function buscarReativacaoAbandonada(
+  negocioId,
+  executor = db
+) {
+  const result = await executor.query(
+    `
+    SELECT *
+    FROM assinaturas
+    WHERE negocio_id = $1
+      AND ativo = TRUE
+      AND UPPER(status) = 'REACTIVATING'
+      AND updated_at
+        < NOW() - INTERVAL '2 minutes'
+    ORDER BY id DESC
+    LIMIT 1
+    `,
+    [negocioId]
+  );
+
+  return result.rows[0] || null;
+}
+
+async function reservarReativacao(
+  client,
+  {
+    assinaturaId,
+    negocioId
+  }
+) {
+  const executor = client || db;
+
+  const result = await executor.query(
+    `
+    UPDATE assinaturas
+    SET
+      status = 'REACTIVATING',
+      reativacao_tentativa =
+        reativacao_tentativa + 1,
+      updated_at = NOW()
+    WHERE id = $1
+      AND negocio_id = $2
+      AND ativo = TRUE
+      AND UPPER(status) IN (
+        'CANCELED',
+        'CANCELLED'
+      )
+    RETURNING *
+    `,
+    [
+      assinaturaId,
+      negocioId
+    ]
+  );
+
+  return result.rows[0] || null;
+}
+
+async function restaurarCancelamentoReativacao(
+  client,
+  {
+    assinaturaId,
+    negocioId
+  }
+) {
+  const executor = client || db;
+
+  const result = await executor.query(
+    `
+    UPDATE assinaturas
+    SET
+      status = 'CANCELED',
+      updated_at = NOW()
+    WHERE id = $1
+      AND negocio_id = $2
+      AND ativo = TRUE
+      AND UPPER(status) = 'REACTIVATING'
+    RETURNING *
+    `,
+    [
+      assinaturaId,
+      negocioId
+    ]
+  );
+
+  return result.rows[0] || null;
+}
+
+async function registrarReativacao(
+  client,
+  {
+    assinaturaId,
+    negocioId,
+    asaasSubscriptionId,
+    dataProximaCobranca,
+    observacoes
+  }
+) {
+  const executor = client || db;
+
+  const result = await executor.query(
+    `
+    UPDATE assinaturas
+    SET
+      asaas_subscription_id = $3,
+      status = 'ACTIVE',
+      ativo = TRUE,
+      data_proxima_cobranca = $4,
+      observacoes = CONCAT_WS(
+        E'\n',
+        NULLIF(observacoes, ''),
+        $5::text
+      ),
+      updated_at = NOW()
+    WHERE id = $1
+      AND negocio_id = $2
+      AND ativo = TRUE
+      AND UPPER(status) = 'REACTIVATING'
+    RETURNING *
+    `,
+    [
+      assinaturaId,
+      negocioId,
+      asaasSubscriptionId,
+      dataProximaCobranca,
       observacoes
     ]
   );
@@ -331,27 +496,72 @@ async function buscarUltimoPagamentoPendente(
   const result = await db.query(
     `
     SELECT
-      id,
-      asaas_payment_id,
-      valor,
-      forma_pagamento,
-      status,
-      data_vencimento,
-      pix_copia_cola,
-      pix_qrcode,
-      created_at
-    FROM pagamentos
-    WHERE assinatura_id = $1
-      AND UPPER(status) IN (
-        'PENDING',
-        'CREATED',
-        'AWAITING_PAYMENT'
-      )
+      pg.id,
+      pg.asaas_payment_id,
+      pg.valor,
+      pg.forma_pagamento,
+      pg.status,
+      pg.data_vencimento,
+      pg.data_pagamento,
+      pg.pix_copia_cola,
+      pg.pix_qrcode,
+      pg.created_at,
+      we.status AS webhook_status,
+      we.tentativas AS webhook_tentativas,
+      we.proxima_tentativa_em,
+      (
+        we.status = 'FAILED'
+        AND we.tentativas >= 10
+        AND we.proxima_tentativa_em IS NULL
+      ) AS ativacao_requer_atencao
+    FROM pagamentos pg
+    LEFT JOIN LATERAL (
+      SELECT
+        w.status,
+        w.tentativas,
+        w.proxima_tentativa_em
+      FROM webhook_eventos w
+      WHERE w.provedor = 'asaas'
+        AND w.recurso_id = pg.asaas_payment_id
+        AND (
+          w.tipo_evento IN (
+            'PAYMENT_CONFIRMED',
+            'PAYMENT_RECEIVED'
+          )
+          OR UPPER(
+            COALESCE(
+              w.payload -> 'payment' ->> 'status',
+              ''
+            )
+          ) IN (
+            'CONFIRMED',
+            'RECEIVED',
+            'RECEIVED_IN_CASH'
+          )
+        )
+      ORDER BY w.recebido_em DESC, w.id DESC
+      LIMIT 1
+    ) we ON TRUE
+    WHERE pg.assinatura_id = $1
       AND (
-        data_vencimento IS NULL
-        OR data_vencimento >= CURRENT_DATE
+        (
+          UPPER(pg.status) IN (
+            'PENDING',
+            'CREATED',
+            'AWAITING_PAYMENT'
+          )
+          AND (
+            pg.data_vencimento IS NULL
+            OR pg.data_vencimento >= CURRENT_DATE
+          )
+        )
+        OR UPPER(pg.status) IN (
+          'CONFIRMED',
+          'RECEIVED',
+          'RECEIVED_IN_CASH'
+        )
       )
-    ORDER BY id DESC
+    ORDER BY pg.id DESC
     LIMIT 1
     `,
     [assinaturaId]
@@ -390,10 +600,15 @@ module.exports = {
   ativarAssinatura,
   desativarAssinaturasDoNegocio,
   buscarPorId,
+  tocarAssinaturaPendenteCheckout,
   buscarNegocioDono,
   buscarUltimaAssinaturaPorNegocio,
   buscarAssinaturaPendentePorNegocio,
   registrarCancelamento,
+  buscarReativacaoAbandonada,
+  reservarReativacao,
+  restaurarCancelamentoReativacao,
+  registrarReativacao,
   expirarCancelamentoSeNecessario,
   buscarPlano,
   buscarUltimoPagamentoPendente,
