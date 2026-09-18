@@ -73,21 +73,9 @@ CREATE TABLE IF NOT EXISTS agendamento_reagendamentos (
     REFERENCES negocios(id)
     ON DELETE RESTRICT,
 
-  CONSTRAINT agendamento_reagendamentos_actor_fk
-    FOREIGN KEY (actor_user_id)
-    REFERENCES usuarios(id)
-    ON DELETE RESTRICT,
-
-  CONSTRAINT agendamento_reagendamentos_previous_profissional_fk
-    FOREIGN KEY (previous_profissional_id)
-    REFERENCES usuarios(id)
-    ON DELETE RESTRICT,
-
-  CONSTRAINT agendamento_reagendamentos_new_profissional_fk
-    FOREIGN KEY (new_profissional_id)
-    REFERENCES usuarios(id)
-    ON DELETE RESTRICT,
-
+  -- IDs de atores/profissionais são snapshots de auditoria.
+  -- Não possuem FK para usuarios para que exclusão/anonymização futura
+  -- da conta não torne o histórico de agendamento impossível de preservar.
   CONSTRAINT agendamento_reagendamentos_actor_type_check
     CHECK (
       actor_type IN ('OWNER', 'PROFESSIONAL')
