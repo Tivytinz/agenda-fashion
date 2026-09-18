@@ -94,12 +94,37 @@ keepers AS (
       WHEN m.chave_evento =
         'assinatura:' || g.assinatura_id
         THEN 0
-      WHEN m.status = 'PROCESSING' THEN 1
-      WHEN m.status = 'PENDING' THEN 2
-      WHEN m.status = 'FAILED' THEN 3
-      ELSE 4
+      ELSE 1
     END,
     m.id ASC
+),
+fontes_payload AS (
+  SELECT DISTINCT ON (
+    m.provedor,
+    m.tipo_evento,
+    g.assinatura_id
+  )
+    m.provedor,
+    m.tipo_evento,
+    g.assinatura_id,
+    m.payload
+  FROM marketing_conversoes_entregas m
+  INNER JOIN grupos_sem_enviado g
+    ON g.provedor = m.provedor
+    AND g.tipo_evento = m.tipo_evento
+    AND g.assinatura_id =
+      m.payload ->> 'assinaturaId'
+  ORDER BY
+    m.provedor,
+    m.tipo_evento,
+    g.assinatura_id,
+    CASE
+      WHEN m.chave_evento LIKE
+        'assinatura:%;pagamento:%'
+        THEN 0
+      ELSE 1
+    END,
+    m.id DESC
 ),
 duplicadas AS (
   UPDATE marketing_conversoes_entregas m
@@ -124,6 +149,7 @@ UPDATE marketing_conversoes_entregas m
 SET
   chave_evento =
     'assinatura:' || k.assinatura_id,
+  payload = fp.payload,
   status = 'PENDING',
   tentativas = 0,
   proxima_tentativa_em = NOW(),
@@ -132,6 +158,11 @@ SET
   ultimo_erro = NULL,
   updated_at = NOW()
 FROM keepers k
+INNER JOIN fontes_payload fp
+  ON fp.provedor = k.provedor
+  AND fp.tipo_evento = k.tipo_evento
+  AND fp.assinatura_id =
+    k.assinatura_id
 WHERE m.id = k.id
   AND m.status <> 'SENT';
 
