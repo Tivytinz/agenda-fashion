@@ -104,9 +104,12 @@ function validarMomentoAtendimento(agendamento, statusDestino) {
   }
 
   if (statusDestino === "falta") {
-    if (agoraTimestamp < inicioTimestamp) {
+    const toleranciaNoShowMs = 15 * 60 * 1000;
+    const limiteNoShow = inicioTimestamp + toleranciaNoShowMs;
+
+    if (agoraTimestamp < limiteNoShow) {
       throw criarErro(
-        "A falta só pode ser registrada depois do horário marcado.",
+        "A falta só pode ser registrada após 15 minutos de tolerância.",
         409
       );
     }
