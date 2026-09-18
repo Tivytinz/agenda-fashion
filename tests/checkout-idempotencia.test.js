@@ -100,6 +100,12 @@ describe(
       checkoutTentativaRepository
         .marcarFalha
         .mockResolvedValue({});
+      checkoutTentativaRepository
+        .concluir
+        .mockResolvedValue({
+          id: 1,
+          status: "COMPLETED"
+        });
 
       checkoutRepository
         .bloquearCheckoutDoNegocio
@@ -219,6 +225,7 @@ describe(
             tentativa: {
               id: 35,
               status: "PROCESSING",
+              lease_tentativa: 1,
               assinatura_id: null
             }
           });
@@ -431,6 +438,7 @@ describe(
             tentativa: {
               id: 31,
               status: "PROCESSING",
+              lease_tentativa: 1,
               assinatura_id: null
             }
           });
@@ -505,7 +513,8 @@ describe(
           31,
           expect.objectContaining({
             forma_pagamento: "pix"
-          })
+          }),
+          1
         );
         expect(
           resultado.pagamento.id
@@ -524,6 +533,7 @@ describe(
             tentativa: {
               id: 34,
               status: "PROCESSING",
+              lease_tentativa: 1,
               assinatura_id: null
             }
           });
