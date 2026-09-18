@@ -479,6 +479,29 @@ async function criarAgendamento({
           );
         }
 
+        const clienteInterno =
+          await agendaPublicaRepository
+            .resolverClienteInterno(
+              {
+                usuarioId:
+                  clienteIdNormalizado,
+
+                nome:
+                  nomeNormalizado,
+
+                whatsapp:
+                  whatsappNormalizado,
+              },
+              client
+            );
+
+        if (!clienteInterno?.id) {
+          throw criarErro(
+            "Não foi possível associar o cliente ao agendamento.",
+            500
+          );
+        }
+
         const criado =
           await agendaPublicaRepository
             .criarAgendamento(
@@ -494,11 +517,14 @@ async function criarAgendamento({
                 clienteId:
                   clienteIdNormalizado,
 
+                clientId:
+                  clienteInterno.id,
+
                 clienteNome:
-                  nomeNormalizado,
+                  clienteInterno.nome,
 
                 clienteWhatsapp:
-                  whatsappNormalizado,
+                  clienteInterno.whatsapp,
 
                 whatsappConsentido:
                   whatsappConsentido ===
