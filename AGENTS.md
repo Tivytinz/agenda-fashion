@@ -187,6 +187,14 @@ A tela de assinatura deve separar explicitamente a assinatura/plano atualmente e
 uso de qualquer upgrade pendente. Pagamento confirmado não pode ser apresentado
 como PIX ainda aguardando pagamento.
 
+Cancelamento de renovação preserva o período já pago. Enquanto esse período
+continuar válido, a dona pode reativar a renovação sem cobrança imediata. Cada
+ciclo de reativação recebe uma versão monotônica persistida e uma
+`externalReference` própria no Asaas. O estado transitório `REACTIVATING` não
+pode ser rebaixado apenas por timeout: uma execução abandonada precisa consultar
+o Asaas pela referência do ciclo antes de ativar localmente ou restaurar
+`CANCELED`. Falha nessa consulta mantém o estado para reconciliação posterior.
+
 Mais detalhes: `docs/planos.md`, `docs/checkout-idempotente.md` e documentos de
 webhook financeiro.
 
