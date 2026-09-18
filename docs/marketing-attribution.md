@@ -1,5 +1,23 @@
 # Atribuição de marketing
 
+
+## Links first-party do Agenda Fashion
+
+Links públicos gerados pelo próprio AF podem carregar `af_source`,
+`af_medium` e `af_content`. Esses campos identificam a distribuição feita
+dentro do produto e são persistidos separadamente de UTM e click IDs
+publicitários.
+
+A ausência desses sinais, de UTM, click ID ou referrer não autoriza inferir uma
+origem. Quando não houver evidência suficiente, o resultado permanece como
+não identificado/sem evidência. Em especial, a mera existência de
+`agendamento_concluido` não prova acesso autônomo.
+
+Na análise de perfil, visitas autenticadas de dona ou profissional vinculados ao
+próprio negócio são tráfego interno e não entram no denominador de conversão.
+O resultado de agendamento continua sendo validado contra a tabela
+`agendamentos`, com cancelados excluídos.
+
 ## Regra de integridade da evidência
 
 A evidência bruta de aquisição capturada pelo Agenda Fashion deve ser preservada para auditoria. Rotinas de canonicalização, sincronização de custos e vínculo de campanhas podem resolver identidades e criar metadados auxiliares, mas não podem apagar ou reescrever UTMs, click IDs, landing pages ou eventos já capturados somente para fazer o dado caber na identidade oficial de uma campanha.
