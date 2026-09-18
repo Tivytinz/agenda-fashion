@@ -274,92 +274,140 @@ async function reativarMinhaAssinatura({ usuarioId }) {
     .trim()
     .toUpperCase();
 
-  if (!["CANCELED", "CANCELLED"].includes(status)) {
-    if (status === "ACTIVE") {
-      return {
-        mensagem: "A renovação desta assinatura já está ativa.",
-        assinatura
-      };
-    }
+  if (status === "ACTIVE") {
+    return {
+      mensagem: "A renovação desta assinatura já está ativa.",
+      assinatura
+    };
+  }
 
+  if (
+    ![
+      "CANCELED",
+      "CANCELLED",
+      "REACTIVATING"
+    ].includes(status)
+  ) {
     throw criarErro(
       "Esta assinatura não pode ter a renovação reativada.",
       409
     );
   }
 
-  if (
-    assinatura.forma_pagamento !== "pix" ||
-    !assinatura.asaas_customer_id
-  ) {
-    throw criarErro(
-      "Não foi possível reativar a renovação desta assinatura automaticamente.",
-      409
-    );
-  }
-
-  const proximaCobranca =
-    dataValida(assinatura.data_proxima_cobranca);
-
-  if (!proximaCobranca) {
-    throw criarErro(
-      "Não foi possível identificar a próxima data de renovação.",
-      409
-    );
-  }
-
-  const plano = await assinaturaRepository
-    .buscarPlano(assinatura.plano_id);
-
-  const referencia =
-    `assinatura-reativada:${assinatura.id};inicio:${proximaCobranca}`;
-
-  const recorrencia = await criarAssinaturaAsaas({
-    customerId: assinatura.asaas_customer_id,
-    valor: assinatura.valor,
-    descricao:
-      `Agenda Fashion - Renovação ${plano?.nome || "mensal"}`,
-    formaPagamento: "pix",
-    externalReference: referencia,
-    proximaCobranca,
-    reutilizarPorExternalReference: true
-  });
-
-  if (!recorrencia?.id) {
-    throw new Error(
-      "O Asaas não retornou o identificador da renovação."
-    );
-  }
-
-  const reativada = await db.executarTransacao(
+  const reservada = await db.executarTransacao(
     (client) =>
-      assinaturaRepository.registrarReativacao(
+      assinaturaRepository.reservarReativacao(
         client,
         {
           assinaturaId: assinatura.id,
-          negocioId: negocio.id,
-          asaasSubscriptionId: recorrencia.id,
-          dataProximaCobranca:
-            recorrencia.nextDueDate ||
-            proximaCobranca,
-          observacoes:
-            "Renovação reativada pelo titular."
+          negocioId: negocio.id
         }
       )
   );
 
-  if (!reativada) {
+  if (!reservada) {
     throw criarErro(
-      "A renovação foi preparada, mas não foi possível sincronizar a assinatura local. Tente novamente.",
+      "A reativação da renovação já está sendo processada. Tente novamente em alguns instantes.",
       409
     );
   }
 
-  return {
-    mensagem:
-      "Renovação reativada com sucesso. Nenhuma nova cobrança foi feita agora.",
-    assinatura: reativada
-  };
+  try {
+    if (
+      String(reservada.forma_pagamento || "")
+        .trim()
+        .toLowerCase() !== "pix" ||
+      !reservada.asaas_customer_id
+    ) {
+      throw criarErro(
+        "Não foi possível reativar a renovação desta assinatura automaticamente.",
+        409
+      );
+    }
+
+    const proximaCobranca =
+      dataValida(
+        reservada.data_proxima_cobranca
+      );
+
+    if (!proximaCobranca) {
+      throw criarErro(
+        "Não foi possível identificar a próxima data de renovação.",
+        409
+      );
+    }
+
+    const plano = await assinaturaRepository
+      .buscarPlano(reservada.plano_id);
+
+    const referencia =
+      `assinatura-reativada:${reservada.id};inicio:${proximaCobranca}`;
+
+    const recorrencia = await criarAssinaturaAsaas({
+      customerId:
+        reservada.asaas_customer_id,
+      valor: reservada.valor,
+      descricao:
+        `Agenda Fashion - Renovação ${plano?.nome || "mensal"}`,
+      formaPagamento: "pix",
+      externalReference: referencia,
+      proximaCobranca,
+      reutilizarPorExternalReference: true
+    });
+
+    if (!recorrencia?.id) {
+      throw new Error(
+        "O Asaas não retornou o identificador da renovação."
+      );
+    }
+
+    const reativada = await db.executarTransacao(
+      (client) =>
+        assinaturaRepository.registrarReativacao(
+          client,
+          {
+            assinaturaId: reservada.id,
+            negocioId: negocio.id,
+            asaasSubscriptionId:
+              recorrencia.id,
+            dataProximaCobranca:
+              recorrencia.nextDueDate ||
+              proximaCobranca,
+            observacoes:
+              "Renovação reativada pelo titular."
+          }
+        )
+    );
+
+    if (!reativada) {
+      throw criarErro(
+        "A renovação foi preparada, mas não foi possível sincronizar a assinatura local. Tente novamente.",
+        409
+      );
+    }
+
+    return {
+      mensagem:
+        "Renovação reativada com sucesso. Nenhuma nova cobrança foi feita agora.",
+      assinatura: reativada
+    };
+  } catch (erro) {
+    await db.executarTransacao(
+      (client) =>
+        assinaturaRepository
+          .restaurarCancelamentoReativacao(
+            client,
+            {
+              assinaturaId:
+                reservada.id,
+              negocioId:
+                negocio.id
+            }
+          )
+    ).catch(() => {});
+
+    throw erro;
+  }
 }
 
 module.exports = {
