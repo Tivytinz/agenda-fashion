@@ -85,6 +85,31 @@ async function atualizarStatusPagamento(client, paymentId, dados) {
           THEN $4
         ELSE asaas_ultimo_evento_id
       END,
+      reversao_tipo = CASE
+        WHEN $6::boolean = TRUE THEN NULL
+        WHEN $7::text IS NOT NULL THEN $7::text
+        ELSE reversao_tipo
+      END,
+      reversao_em = CASE
+        WHEN $6::boolean = TRUE THEN NULL
+        WHEN $7::text IS NOT NULL
+          THEN COALESCE($8::timestamp::date, CURRENT_DATE)
+        ELSE reversao_em
+      END,
+      valor_revertido = CASE
+        WHEN $6::boolean = TRUE THEN NULL
+        WHEN $7::text IS NOT NULL
+          AND $10::boolean = TRUE
+          THEN COALESCE($9::numeric, valor)
+        WHEN $7::text IS NOT NULL
+          THEN $9::numeric
+        ELSE valor_revertido
+      END,
+      reversao_valor_conhecido = CASE
+        WHEN $6::boolean = TRUE THEN NULL
+        WHEN $7::text IS NOT NULL THEN $10::boolean
+        ELSE reversao_valor_conhecido
+      END,
       updated_at = NOW()
     WHERE asaas_payment_id = $5
       AND (
@@ -100,7 +125,12 @@ async function atualizarStatusPagamento(client, paymentId, dados) {
             dados.data_pagamento || null,
             dados.evento_criado_em || null,
             dados.evento_id || null,
-            paymentId
+            paymentId,
+            dados.limpar_reversao === true,
+            dados.reversao_tipo || null,
+            dados.reversao_em || null,
+            dados.valor_revertido ?? null,
+            dados.reversao_valor_conhecido ?? null
         ]
     );
 
