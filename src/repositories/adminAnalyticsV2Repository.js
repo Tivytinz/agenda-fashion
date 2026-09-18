@@ -306,50 +306,295 @@ async function buscarJornada(periodo = "30") {
           GROUP BY p.negocio_id
         ),
         visitas AS (
-          SELECT
+          SELECT DISTINCT ON (c.negocio_id)
             c.negocio_id,
-            MIN(e.occurred_at) AS visitado_em
+            e.sessao_id,
+            e.occurred_at AS visitado_em
           FROM compartilhamentos c
-          LEFT JOIN analytics_eventos e
+          INNER JOIN analytics_eventos e
             ON e.target_business_id = c.negocio_id
            AND e.origem = 'frontend'
            AND e.nome = 'profile_viewed'
            AND c.compartilhado_em IS NOT NULL
            AND e.occurred_at >= c.compartilhado_em
-           AND NOT EXISTS (
-             SELECT 1
-             FROM usuarios_negocios un
-             WHERE un.negocio_id = c.negocio_id
-               AND un.usuario_id = e.actor_user_id
-               AND un.ativo = TRUE
-               AND un.papel IN ('dono', 'profissional')
-           )
-          GROUP BY c.negocio_id
+          INNER JOIN analytics_sessao_origens aso
+            ON aso.sessao_id = e.sessao_id
+           AND aso.metodo_resolucao = 'af_link'
+          WHERE NOT EXISTS (
+            SELECT 1
+            FROM usuarios_negocios un
+            WHERE un.negocio_id = c.negocio_id
+              AND un.usuario_id = e.actor_user_id
+              AND un.ativo = TRUE
+              AND un.papel IN ('dono', 'profissional')
+          )
+          ORDER BY
+            c.negocio_id,
+            e.occurred_at ASC,
+            e.id ASC
         ),
         inicios AS (
-          SELECT
+          SELECT DISTINCT ON (v.negocio_id)
             v.negocio_id,
-            MIN(e.occurred_at) AS iniciado_em
+            v.sessao_id,
+            e.occurred_at AS iniciado_em
           FROM visitas v
-          LEFT JOIN analytics_eventos e
-            ON e.target_business_id = v.negocio_id
+          INNER JOIN analytics_eventos e
+            ON e.sessao_id = v.sessao_id
+           AND e.target_business_id = v.negocio_id
            AND e.origem = 'frontend'
            AND e.nome = 'booking_started'
-           AND v.visitado_em IS NOT NULL
            AND e.occurred_at >= v.visitado_em
-          GROUP BY v.negocio_id
+          ORDER BY
+            v.negocio_id,
+            e.occurred_at ASC,
+            e.id ASC
         ),
         conclusoes AS (
-          SELECT
+          SELECT DISTINCT ON (i.negocio_id)
             i.negocio_id,
-            MIN(a.created_at) AS primeiro_agendamento_em
+            a.created_at AS primeiro_agendamento_em
           FROM inicios i
-          LEFT JOIN agendamentos a
-            ON a.negocio_id = i.negocio_id
-           AND i.iniciado_em IS NOT NULL
-           AND a.created_at >= i.iniciado_em
+          INNER JOIN analytics_eventos e
+            ON e.sessao_id = i.sessao_id
+           AND e.target_business_id = i.negocio_id
+           AND e.origem = 'frontend'
+           AND e.nome = 'booking_completed'
+           AND e.occurred_at >= i.iniciado_em
+           AND NULLIF(
+             BTRIM(e.propriedades ->> 'appointment_id'),
+             ''
+           ) ~ '^[0-9]+
+        SELECT
+          COUNT(*)::INT AS negocios_publicados,
+          COUNT(*) FILTER (
+            WHERE c.compartilhado_em IS NOT NULL
+          )::INT AS perfis_compartilhados,
+          COUNT(*) FILTER (
+            WHERE v.visitado_em IS NOT NULL
+          )::INT AS visitas_externas_pos_compartilhamento,
+          COUNT(*) FILTER (
+            WHERE i.iniciado_em IS NOT NULL
+          )::INT AS agendamentos_iniciados_pos_visita,
+          COUNT(*) FILTER (
+            WHERE co.primeiro_agendamento_em IS NOT NULL
+          )::INT AS primeiros_agendamentos_validos
+        FROM publicados p
+        LEFT JOIN compartilhamentos c
+          ON c.negocio_id = p.negocio_id
+        LEFT JOIN visitas v
+          ON v.negocio_id = p.negocio_id
+        LEFT JOIN inicios i
+          ON i.negocio_id = p.negocio_id
+        LEFT JOIN conclusoes co
+          ON co.negocio_id = p.negocio_id
+        `
+      ),
+    ]);
+
+  return {
+    periodo: seguro,
+    telas: telas.rows,
+    transicoes: transicoes.rows,
+    eventos: eventos.rows,
+    dispositivos: dispositivos.rows,
+    posPublicacao: posPublicacao.rows[0] || {
+      negocios_publicados: 0,
+      perfis_compartilhados: 0,
+      visitas_externas_pos_compartilhamento: 0,
+      agendamentos_iniciados_pos_visita: 0,
+      primeiros_agendamentos_validos: 0,
+    },
+  };
+}
+
+async function buscarReceita(periodo = "30") {
+  const seguro = periodoSeguro(periodo);
+  const filtroCheckout = filtroTimestamp(seguro, "ct.created_at");
+  const filtroPagamento = filtroData(seguro, "pg.data_pagamento");
+  const filtroAjuste = filtroTimestamp(seguro, "pg.updated_at");
+  const filtroPrimeiroPagamento = filtroData(seguro, "fp.data_pagamento");
+
+  const [resumo, planos] = await Promise.all([
+    db.query(
+      `
+      WITH checkouts AS (
+        SELECT
+          COUNT(*)::INT AS iniciados,
+          COUNT(*) FILTER (WHERE ct.status = 'COMPLETED')::INT AS concluidos,
+          COUNT(*) FILTER (WHERE ct.status = 'FAILED')::INT AS falhos
+        FROM checkout_tentativas ct
+        WHERE 1 = 1
+          ${filtroCheckout}
+      ),
+      checkout_coorte AS (
+        SELECT
+          COUNT(DISTINCT ct.negocio_id)::INT AS negocios_com_checkout,
+          COUNT(DISTINCT ct.negocio_id) FILTER (
+            WHERE ct.assinatura_id IS NOT NULL
+              AND EXISTS (
+                SELECT 1
+                FROM pagamentos cpg
+                INNER JOIN assinaturas ca
+                  ON ca.id = cpg.assinatura_id
+                INNER JOIN planos cpl
+                  ON cpl.id = ca.plano_id
+                WHERE cpg.assinatura_id = ct.assinatura_id
+                  AND UPPER(cpg.status) IN ('CONFIRMED', 'RECEIVED', 'RECEIVED_IN_CASH')
+                  AND cpg.data_pagamento IS NOT NULL
+                  AND cpl.valor > 0
+              )
+          )::INT AS negocios_checkout_convertidos
+        FROM checkout_tentativas ct
+        WHERE 1 = 1
+          ${filtroCheckout}
+      ),
+      pagamentos_resumo AS (
+        SELECT
+          COUNT(*)::INT AS pagamentos_confirmados,
+          COUNT(DISTINCT a.negocio_id)::INT AS negocios_pagantes,
+          COALESCE(SUM(pg.valor), 0)::NUMERIC(14,2) AS receita_total
+        FROM pagamentos pg
+        INNER JOIN assinaturas a
+          ON a.id = pg.assinatura_id
+        INNER JOIN planos pl
+          ON pl.id = a.plano_id
+        WHERE UPPER(pg.status) IN ('CONFIRMED', 'RECEIVED', 'RECEIVED_IN_CASH')
+          AND pg.data_pagamento IS NOT NULL
+          AND pl.valor > 0
+          ${filtroPagamento}
+      ),
+      ajustes_financeiros AS (
+        SELECT
+          COUNT(*) FILTER (
+            WHERE UPPER(pg.status) = 'REFUNDED'
+          )::INT AS pagamentos_reembolsados,
+          COALESCE(
+            SUM(pg.valor) FILTER (
+              WHERE UPPER(pg.status) = 'REFUNDED'
+            ),
+            0
+          )::NUMERIC(14,2) AS valor_reembolsado,
+          COUNT(*) FILTER (
+            WHERE UPPER(pg.status) IN (
+              'PARTIALLY_REFUNDED',
+              'REFUND_IN_PROGRESS',
+              'CHARGEBACK_REQUESTED',
+              'CHARGEBACK_DISPUTE',
+              'AWAITING_CHARGEBACK_REVERSAL',
+              'RECEIVED_IN_CASH_UNDONE'
+            )
+          )::INT AS pagamentos_com_ajuste
+        FROM pagamentos pg
+        INNER JOIN assinaturas a
+          ON a.id = pg.assinatura_id
+        INNER JOIN planos pl
+          ON pl.id = a.plano_id
+        WHERE pg.data_pagamento IS NOT NULL
+          AND pl.valor > 0
+          ${filtroAjuste}
+      ),
+      primeiros AS (
+        SELECT DISTINCT ON (pg.assinatura_id)
+          pg.assinatura_id,
+          pg.id AS pagamento_id
+        FROM pagamentos pg
+        WHERE UPPER(pg.status) IN ('CONFIRMED', 'RECEIVED', 'RECEIVED_IN_CASH')
+          AND pg.data_pagamento IS NOT NULL
+        ORDER BY
+          pg.assinatura_id,
+          pg.data_pagamento ASC,
+          pg.id ASC
+      ),
+      primeiros_pagamentos AS (
+        SELECT
+          COUNT(*)::INT AS novas_assinaturas_pagas,
+          COALESCE(SUM(fp.valor), 0)::NUMERIC(14,2) AS receita_primeiro_pagamento
+        FROM primeiros p
+        INNER JOIN pagamentos fp
+          ON fp.id = p.pagamento_id
+        INNER JOIN assinaturas a
+          ON a.id = fp.assinatura_id
+        INNER JOIN planos pl
+          ON pl.id = a.plano_id
+        WHERE pl.valor > 0
+          ${filtroPrimeiroPagamento}
+      ),
+      ativas AS (
+        SELECT COUNT(*)::INT AS assinaturas_pagas_ativas
+        FROM assinaturas a
+        INNER JOIN planos pl
+          ON pl.id = a.plano_id
+        WHERE a.ativo = TRUE
+          AND pl.valor > 0
+      )
+      SELECT
+        c.iniciados AS checkouts_iniciados,
+        c.concluidos AS checkouts_concluidos,
+        c.falhos AS checkouts_falhos,
+        cc.negocios_com_checkout,
+        cc.negocios_checkout_convertidos,
+        p.pagamentos_confirmados,
+        p.negocios_pagantes,
+        p.receita_total,
+        aj.pagamentos_reembolsados,
+        aj.valor_reembolsado,
+        aj.pagamentos_com_ajuste,
+        fp.novas_assinaturas_pagas,
+        fp.receita_primeiro_pagamento,
+        a.assinaturas_pagas_ativas
+      FROM checkouts c
+      CROSS JOIN checkout_coorte cc
+      CROSS JOIN pagamentos_resumo p
+      CROSS JOIN ajustes_financeiros aj
+      CROSS JOIN primeiros_pagamentos fp
+      CROSS JOIN ativas a
+      `
+    ),
+    db.query(
+      `
+      SELECT
+        pl.id,
+        pl.nome,
+        pl.slug,
+        COUNT(*)::INT AS assinaturas_ativas,
+        COALESCE(SUM(a.valor), 0)::NUMERIC(14,2) AS valor_mensal_contratado
+      FROM assinaturas a
+      INNER JOIN planos pl
+        ON pl.id = a.plano_id
+      WHERE a.ativo = TRUE
+        AND pl.valor > 0
+      GROUP BY pl.id, pl.nome, pl.slug
+      ORDER BY COUNT(*) DESC, pl.nome ASC
+      `
+    ),
+  ]);
+
+  return {
+    periodo: seguro,
+    resumo: resumo.rows[0] || {},
+    planos: planos.rows,
+  };
+}
+
+module.exports = {
+  periodoSeguro,
+  buscarVisaoGeral,
+  listarAquisicao,
+  buscarJornada,
+  buscarReceita,
+};
+
+          INNER JOIN agendamentos a
+            ON a.id = (
+              e.propriedades ->> 'appointment_id'
+            )::BIGINT
+           AND a.negocio_id = i.negocio_id
            AND COALESCE(a.status, 'agendado') <> 'cancelado'
-          GROUP BY i.negocio_id
+          ORDER BY
+            i.negocio_id,
+            e.occurred_at ASC,
+            e.id ASC
         )
         SELECT
           COUNT(*)::INT AS negocios_publicados,
