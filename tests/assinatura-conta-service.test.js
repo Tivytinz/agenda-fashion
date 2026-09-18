@@ -1,15 +1,7 @@
-const mockClient = {
-  query: jest.fn()
-};
-
 jest.mock(
   "../src/db/db",
   () => ({
-    executarTransacao:
-      jest.fn(
-        async (callback) =>
-          callback(mockClient)
-      )
+    executarTransacao: jest.fn()
   })
 );
 
@@ -20,7 +12,6 @@ jest.mock(
 jest.mock(
   "../src/services/asaasService",
   () => ({
-    criarAssinaturaAsaas: jest.fn(),
     removerAssinaturaAsaas: jest.fn()
   })
 );
@@ -32,6 +23,14 @@ jest.mock(
   })
 );
 
+jest.mock(
+  "../src/services/assinaturaReativacaoService",
+  () => ({
+    reconciliarReativacaoAbandonada:
+      jest.fn().mockResolvedValue(null)
+  })
+);
+
 const assinaturaRepository = require(
   "../src/repositories/assinaturaRepository"
 );
@@ -39,15 +38,9 @@ const { buscarUsoPlano } = require(
   "../src/services/planoService"
 );
 const {
-  buscarMinhaAssinatura,
-  reativarMinhaAssinatura
+  buscarMinhaAssinatura
 } = require(
   "../src/services/assinaturaContaService"
-);
-const {
-  criarAssinaturaAsaas
-} = require(
-  "../src/services/asaasService"
 );
 
 describe(
@@ -55,7 +48,6 @@ describe(
   () => {
     beforeEach(() => {
       jest.clearAllMocks();
-      mockClient.query.mockReset();
 
       assinaturaRepository
         .buscarNegocioDono
@@ -210,97 +202,6 @@ describe(
           resultado.upgrade_pendente
             .pagamento.estado_ativacao
         ).toBe("ATIVACAO_REQUER_ATENCAO");
-      }
-    );
-
-    test(
-      "reativa renovação na data já paga sem cobrança imediata",
-      async () => {
-        const cancelada = {
-          id: 20,
-          negocio_id: 7,
-          plano_id: 2,
-          status: "CANCELED",
-          ativo: true,
-          forma_pagamento: "pix",
-          asaas_customer_id: "cus_1",
-          asaas_subscription_id: "sub_antiga",
-          valor: "49.90",
-          data_proxima_cobranca:
-            "2026-10-18"
-        };
-
-        assinaturaRepository
-          .buscarAssinaturaAtivaPorNegocio
-          .mockResolvedValue(cancelada);
-        assinaturaRepository
-          .reservarReativacao
-          .mockResolvedValue({
-            ...cancelada,
-            status: "REACTIVATING"
-          });
-        assinaturaRepository
-          .restaurarCancelamentoReativacao
-          .mockResolvedValue(cancelada);
-        criarAssinaturaAsaas
-          .mockResolvedValue({
-            id: "sub_nova",
-            nextDueDate: "2026-10-18"
-          });
-        assinaturaRepository
-          .registrarReativacao
-          .mockResolvedValue({
-            ...cancelada,
-            status: "ACTIVE",
-            asaas_subscription_id:
-              "sub_nova"
-          });
-
-        const resultado =
-          await reativarMinhaAssinatura({
-            usuarioId: 10
-          });
-
-        expect(
-          assinaturaRepository
-            .reservarReativacao
-        ).toHaveBeenCalledWith(
-          mockClient,
-          {
-            assinaturaId: 20,
-            negocioId: 7
-          }
-        );
-        expect(criarAssinaturaAsaas)
-          .toHaveBeenCalledWith(
-            expect.objectContaining({
-              customerId: "cus_1",
-              valor: "49.90",
-              formaPagamento: "pix",
-              proximaCobranca:
-                "2026-10-18",
-              externalReference:
-                "assinatura-reativada:20;inicio:2026-10-18",
-              reutilizarPorExternalReference:
-                true
-            })
-          );
-        expect(
-          assinaturaRepository
-            .registrarReativacao
-        ).toHaveBeenCalledWith(
-          mockClient,
-          expect.objectContaining({
-            assinaturaId: 20,
-            negocioId: 7,
-            asaasSubscriptionId:
-              "sub_nova",
-            dataProximaCobranca:
-              "2026-10-18"
-          })
-        );
-        expect(resultado.assinatura.status)
-          .toBe("ACTIVE");
       }
     );
 
