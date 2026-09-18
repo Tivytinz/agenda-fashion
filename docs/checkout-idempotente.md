@@ -16,8 +16,15 @@ Comportamentos:
 - uma tentativa simultânea devolve HTTP 409;
 - uma tentativa com falha pode ser retomada;
 - cada retomada incrementa `lease_tentativa`; somente a execução que possui o
-  lease corrente pode marcar a tentativa como `COMPLETED` ou `FAILED`;
+  lease corrente pode vincular a assinatura e marcar a tentativa como
+  `COMPLETED` ou `FAILED`;
+- antes de efeitos externos relevantes, a execução revalida o lease; a
+  `externalReference` continua sendo a proteção idempotente caso a posse mude
+  depois dessa revalidação;
 - uma chave usada com outro plano ou forma de pagamento é rejeitada;
+- existe no máximo uma cobrança PIX inicial pendente por negócio;
+- uma nova tentativa para o mesmo plano recupera o PIX pendente e não cria nova
+  cobrança; um plano diferente é bloqueado até pagamento ou vencimento;
 - cobranças PIX são conciliadas no Asaas pela `externalReference`;
 - a assinatura atual só é desativada quando o novo pagamento é
   confirmado.
@@ -39,5 +46,7 @@ database/migrations/019_checkout_idempotente_webhook_assincrono.sql
 
 A correção posterior da faixa válida de tentativas de webhook pertence à
 migration `020_corrigir_tentativas_webhook.sql`. O fencing das retomadas do
-checkout pertence à migration `076_checkout_tentativa_fencing.sql`; migrations
-já aplicadas não devem ser reescritas.
+checkout pertence à migration `076_checkout_tentativa_fencing.sql`. A
+persistência de reversões financeiras e a migração da chave de outbox por
+pagamento pertencem à migration `077_pagamentos_reversoes_financeiras.sql`;
+migrations já aplicadas não devem ser reescritas.
