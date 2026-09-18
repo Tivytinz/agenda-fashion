@@ -47,11 +47,14 @@ describe("cancelamento operacional do agendamento", () => {
   let agendamentoProfissionalId;
   let agendamentoOutraProfissionalId;
   let agendamentoRealizadoId;
+  let agendamentoIniciadoId;
   let futuro;
+  let passado;
 
   beforeAll(async () => {
     const chave = identificador();
     futuro = dataComDeslocamento(2);
+    passado = dataComDeslocamento(-1);
 
     const plano = await db.query(
       `SELECT id FROM planos WHERE slug = 'inicial' AND ativo = TRUE LIMIT 1`
@@ -142,6 +145,7 @@ describe("cancelamento operacional do agendamento", () => {
       profissionalId,
       horario,
       status = "agendado",
+      data = futuro,
     }) {
       const resultado = await db.query(
         `
@@ -169,7 +173,7 @@ describe("cancelamento operacional do agendamento", () => {
           servicoId,
           profissionalId,
           cliente.id,
-          futuro,
+          data,
           horario,
           status,
         ]
@@ -194,6 +198,12 @@ describe("cancelamento operacional do agendamento", () => {
       profissionalId: profissional.id,
       horario: "13:00",
       status: "realizado",
+    });
+    agendamentoIniciadoId = await criarAgendamento({
+      profissionalId: profissional.id,
+      horario: "09:00",
+      status: "confirmado",
+      data: passado,
     });
   });
 
@@ -245,7 +255,10 @@ describe("cancelamento operacional do agendamento", () => {
     const resposta = await request(app)
       .patch(`/agendamentos/${agendamentoDonaId}/cancelar-operacional`)
       .set("Authorization", `Bearer ${token(dono.id)}`)
-      .send({ motivo: "  Profissional indisponível  " });
+      .send({
+        motivo_tipo: "profissional_indisponivel",
+        motivo: null,
+      });
 
     expect(resposta.statusCode).toBe(200);
     expect(resposta.body.agendamento).toMatchObject({
@@ -293,7 +306,10 @@ describe("cancelamento operacional do agendamento", () => {
     const resposta = await request(app)
       .patch(`/agendamentos/${agendamentoProfissionalId}/cancelar-operacional`)
       .set("Authorization", `Bearer ${token(profissional.id)}`)
-      .send({ motivo: null });
+      .send({
+        motivo_tipo: "profissional_indisponivel",
+        motivo: null,
+      });
 
     expect(resposta.statusCode).toBe(200);
     expect(resposta.body.agendamento).toMatchObject({
@@ -302,6 +318,25 @@ describe("cancelamento operacional do agendamento", () => {
       cancelado_por: profissional.id,
       cancelamento_origem: "negocio",
       motivo_cancelamento: null,
+    });
+  });
+
+  test("CA-AG-11: dona cancela booking ainda confirmado mesmo após o início", async () => {
+    const resposta = await request(app)
+      .patch(`/agendamentos/${agendamentoIniciadoId}/cancelar-operacional`)
+      .set("Authorization", `Bearer ${token(dono.id)}`)
+      .send({
+        motivo_tipo: "atendimento_interrompido",
+        motivo: "Falha elétrica",
+      });
+
+    expect(resposta.statusCode).toBe(200);
+    expect(resposta.body.agendamento).toMatchObject({
+      id: agendamentoIniciadoId,
+      status: "cancelado",
+      cancelado_por: dono.id,
+      motivo_cancelamento:
+        "Atendimento interrompido antes da conclusão: Falha elétrica",
     });
   });
 
