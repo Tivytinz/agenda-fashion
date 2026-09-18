@@ -66,7 +66,8 @@ async function bloquearCheckoutDoNegocio(
 
 async function buscarAssinaturaPendenteDoNegocio(
   client,
-  negocioId
+  negocioId,
+  ignorarAssinaturaId = null
 ) {
   const result = await client.query(
     `
@@ -76,31 +77,48 @@ async function buscarAssinaturaPendenteDoNegocio(
       a.plano_id,
       a.status,
       a.created_at,
+      a.updated_at,
       p.nome AS plano_nome,
       p.slug AS plano_slug
     FROM assinaturas a
     INNER JOIN planos p
       ON p.id = a.plano_id
     WHERE a.negocio_id = $1
+      AND (
+        $2::integer IS NULL
+        OR a.id <> $2
+      )
       AND a.ativo = FALSE
       AND UPPER(a.status) IN (
         'PENDING',
         'PENDING_PAYMENT'
       )
       AND (
-        a.created_at >= NOW() - INTERVAL '15 minutes'
+        GREATEST(
+          a.created_at,
+          a.updated_at
+        ) >= NOW() - INTERVAL '15 minutes'
         OR EXISTS (
           SELECT 1
           FROM pagamentos pg
           WHERE pg.assinatura_id = a.id
-            AND UPPER(pg.status) IN (
-              'PENDING',
-              'CREATED',
-              'AWAITING_PAYMENT'
-            )
             AND (
-              pg.data_vencimento IS NULL
-              OR pg.data_vencimento >= CURRENT_DATE
+              (
+                UPPER(pg.status) IN (
+                  'PENDING',
+                  'CREATED',
+                  'AWAITING_PAYMENT'
+                )
+                AND (
+                  pg.data_vencimento IS NULL
+                  OR pg.data_vencimento >= CURRENT_DATE
+                )
+              )
+              OR UPPER(pg.status) IN (
+                'CONFIRMED',
+                'RECEIVED',
+                'RECEIVED_IN_CASH'
+              )
             )
         )
       )
@@ -108,7 +126,10 @@ async function buscarAssinaturaPendenteDoNegocio(
     LIMIT 1
     FOR UPDATE OF a
     `,
-    [negocioId]
+    [
+      negocioId,
+      ignorarAssinaturaId
+    ]
   );
 
   return result.rows[0] || null;
