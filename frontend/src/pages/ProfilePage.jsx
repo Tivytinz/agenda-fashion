@@ -20,6 +20,17 @@ export { normalizeProfileOrigin } from "../utils/profileOrigin";
 
 const EMPTY_LIST = [];
 
+function professionalCanDoService(professional, serviceId) {
+  if (!serviceId) return true;
+
+  return (professional?.servico_ids || [])
+    .some(
+      (id) =>
+        String(id) ===
+        String(serviceId)
+    );
+}
+
 export function ProfilePage() {
   const { slug } = useParams();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -54,6 +65,16 @@ export function ProfilePage() {
   const business = profile?.negocio;
   const services = profile?.servicos ?? EMPTY_LIST;
   const professionals = profile?.profissionais ?? EMPTY_LIST;
+  const eligibleProfessionals = useMemo(
+    () => professionals.filter(
+      (professional) =>
+        professionalCanDoService(
+          professional,
+          serviceId
+        )
+    ),
+    [professionals, serviceId]
+  );
   const profileImageSource = business?.foto_url ||
     business?.imagem_url ||
     business?.logo_url ||
@@ -160,7 +181,18 @@ export function ProfilePage() {
   }, [business?.id, favoriteReload]);
 
   useEffect(() => {
-    if (!serviceId || !professionalId) {
+    if (
+      !serviceId ||
+      !professionalId ||
+      (
+        profile &&
+        !eligibleProfessionals.some(
+          (professional) =>
+            String(professional.id) ===
+            String(professionalId)
+        )
+      )
+    ) {
       setAvailability([]);
       setDay("");
       setTime("");
@@ -206,21 +238,91 @@ export function ProfilePage() {
 
     void loadAvailability();
     return () => controller.abort();
-  }, [professionalId, scheduleReload, serviceId, slug]);
+  }, [
+    eligibleProfessionals,
+    professionalId,
+    profile,
+    scheduleReload,
+    serviceId,
+    slug
+  ]);
 
   useEffect(() => {
-    if (profile && serviceId && !professionalId && professionals.length === 1) {
-      setProfessionalId(String(professionals[0].id));
+    if (!profile || !serviceId) return;
+
+    const selectedStillEligible =
+      eligibleProfessionals.some(
+        (professional) =>
+          String(professional.id) ===
+          String(professionalId)
+      );
+
+    if (
+      professionalId &&
+      !selectedStillEligible
+    ) {
+      setProfessionalId("");
+      setSearchParams(
+        (current) =>
+          mergeProfileSearchParams(
+            current,
+            {
+              servico:
+                String(serviceId),
+              profissional:
+                null
+            }
+          ),
+        { replace: true }
+      );
+      return;
     }
-  }, [professionalId, professionals, profile, serviceId]);
+
+    if (
+      !professionalId &&
+      eligibleProfessionals.length === 1
+    ) {
+      const id =
+        String(
+          eligibleProfessionals[0].id
+        );
+      setProfessionalId(id);
+      setSearchParams(
+        (current) =>
+          mergeProfileSearchParams(
+            current,
+            {
+              servico:
+                String(serviceId),
+              profissional:
+                id
+            }
+          ),
+        { replace: true }
+      );
+    }
+  }, [
+    eligibleProfessionals,
+    professionalId,
+    profile,
+    serviceId,
+    setSearchParams
+  ]);
 
   const selectedService = useMemo(
     () => services.find((service) => String(service.id) === String(serviceId)),
     [serviceId, services]
   );
   const selectedProfessional = useMemo(
-    () => professionals.find((person) => String(person.id) === String(professionalId)),
-    [professionalId, professionals]
+    () => eligibleProfessionals.find(
+      (person) =>
+        String(person.id) ===
+        String(professionalId)
+    ),
+    [
+      eligibleProfessionals,
+      professionalId
+    ]
   );
 
   function trackContactSelection(action) {
@@ -233,9 +335,20 @@ export function ProfilePage() {
   }
 
   function selectService(id) {
-    const nextProfessionalId = professionals.length === 1
-      ? String(professionals[0].id)
-      : "";
+    const professionalsForService =
+      professionals.filter(
+        (professional) =>
+          professionalCanDoService(
+            professional,
+            id
+          )
+      );
+    const nextProfessionalId =
+      professionalsForService.length === 1
+        ? String(
+            professionalsForService[0].id
+          )
+        : "";
     setServiceId(String(id));
     setProfessionalId(nextProfessionalId);
     setSearchParams((current) => mergeProfileSearchParams(current, {
@@ -371,7 +484,7 @@ export function ProfilePage() {
         onSelectService={selectService}
         onSelectTime={setTime}
         professionalId={professionalId}
-        professionals={professionals}
+        professionals={eligibleProfessionals}
         scheduleMessage={scheduleMessage}
         scheduleStatus={scheduleStatus}
         selectedProfessional={selectedProfessional}
