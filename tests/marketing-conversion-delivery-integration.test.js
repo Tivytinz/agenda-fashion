@@ -68,7 +68,7 @@ describe(
         expect(segunda.entrega.id)
           .toBe(primeira.entrega.id);
         expect(segunda.rearmado)
-          .toBe(true);
+          .toBe(false);
         expect(primeira.entrega)
           .toMatchObject({
             provedor: "meta",
