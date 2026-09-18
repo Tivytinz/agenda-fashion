@@ -524,7 +524,6 @@ async function criarAgendamento(
 
           profissional_id,
           cliente_id,
-          client_id,
           cliente_nome,
           cliente_whatsapp,
           whatsapp_consentido_em,
