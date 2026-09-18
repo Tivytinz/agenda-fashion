@@ -14,12 +14,17 @@ Comportamentos:
 
 - uma tentativa concluída devolve a resposta já armazenada;
 - uma tentativa simultânea devolve HTTP 409;
-- uma tentativa com falha pode ser retomada;
+- uma tentativa com falha pode ser retomada, mas a retomada volta a adquirir a
+  trava do negócio e revalida a assinatura vinculada;
+- a assinatura antiga só pode ser reutilizada se continuar pendente/inativa,
+  pertencer ao mesmo negócio e plano e possuir o mesmo preço atualmente carregado
+  do backend; divergência exige uma nova tentativa;
 - cada retomada incrementa `lease_tentativa`; somente a execução que possui o
   lease corrente pode marcar a tentativa como `COMPLETED` ou `FAILED`;
 - uma chave usada com outro plano ou forma de pagamento é rejeitada;
 - um negócio não pode abrir outra cobrança PIX enquanto existir uma cobrança
-  pendente vigente, mesmo que o novo checkout escolha outro plano;
+  pendente vigente ou um pagamento confirmado ainda em ativação, mesmo que o novo
+  checkout escolha outro plano;
 - o painel de assinatura expõe novamente QR Code/copia-e-cola do upgrade
   pendente quando disponíveis, para que recarregar a página não force uma nova
   cobrança;
