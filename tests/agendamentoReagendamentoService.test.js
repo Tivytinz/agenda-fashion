@@ -199,49 +199,30 @@ describe("agendamentoReagendamentoService", () => {
     ).not.toHaveBeenCalled();
   });
 
-  test("CA-AG-17: proprietária pode trocar a profissional responsável ativa", async () => {
+  test("CA-AG-17: troca de responsável fica bloqueada sem elegibilidade profissional-serviço", async () => {
     repository.buscarAgendamentoParaReagendar
       .mockResolvedValue({
         ...base,
         papel_executor: "dono",
       });
 
-    repository.buscarProfissionalAtivoNoNegocio
-      .mockResolvedValue({
-        profissional_id: 9,
-        papel: "profissional",
-        nome: "Bia",
-      });
-
-    repository.atualizarReagendamento
-      .mockResolvedValue({
-        ...base,
-        profissional_id: 9,
+    await expect(
+      service.reagendarOperacional({
+        usuarioId: 5,
+        negocioId: 7,
+        agendamentoId: 50,
         data: "2026-09-18",
         horario: "15:00",
-      });
-
-    const resultado = await service.reagendarOperacional({
-      usuarioId: 5,
-      negocioId: 7,
-      agendamentoId: 50,
-      data: "2026-09-18",
-      horario: "15:00",
-      profissionalId: 9,
+        profissionalId: 9,
+      })
+    ).rejects.toMatchObject({
+      statusCode: 409,
+      message: expect.stringMatching(/elegibilidade profissional-serviço/i),
     });
 
-    expect(resultado.agendamento.profissional_id).toBe(9);
-
     expect(
-      repository.registrarHistoricoReagendamento
-    ).toHaveBeenCalledWith(
-      expect.objectContaining({
-        actorUserId: 5,
-        actorType: "OWNER",
-        previousProfissionalId: 8,
-        newProfissionalId: 9,
-      })
-    );
+      repository.atualizarReagendamento
+    ).not.toHaveBeenCalled();
   });
 
   test("CA-AG-18: permite reagendar após o início previsto se o atendimento ainda não começou", async () => {
