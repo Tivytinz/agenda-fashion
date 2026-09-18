@@ -142,6 +142,51 @@ async function enfileirar({
           );
         }
 
+        const mesmoPagamento =
+          String(
+            existente.payload?.pagamentoId || ""
+          ) ===
+          String(
+            payload?.pagamentoId || ""
+          );
+
+        if (mesmoPagamento) {
+          if (
+            existente.chave_evento !==
+              chaveCanonica
+          ) {
+            const canonica =
+              await client.query(
+                `
+                UPDATE marketing_conversoes_entregas
+                SET
+                  chave_evento = $2,
+                  updated_at = NOW()
+                WHERE id = $1
+                RETURNING *
+                `,
+                [
+                  existente.id,
+                  chaveCanonica
+                ]
+              );
+
+            return {
+              novo: false,
+              rearmado: false,
+              entrega:
+                canonica.rows[0] ||
+                existente
+            };
+          }
+
+          return {
+            novo: false,
+            rearmado: false,
+            entrega: existente
+          };
+        }
+
         const atualizada =
           await client.query(
             `
