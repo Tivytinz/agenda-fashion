@@ -80,7 +80,7 @@ beforeEach(() => {
 afterEach(cleanup);
 
 describe("ciclo operacional na agenda", () => {
-  it("envia a transição de realizado pelo endpoint autorizado", async () => {
+  it("CA-AG-15: envia a conclusão pelo endpoint autorizado", async () => {
     render(<AgendaWorkspacePage />);
 
     const concluir = await screen.findByRole("button", { name: "Concluir" });

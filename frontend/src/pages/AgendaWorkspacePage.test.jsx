@@ -95,6 +95,34 @@ describe("agenda do negócio", () => {
     expect(screen.queryByRole("status")).toBeNull();
   });
 
+  it("CA-AG-22: não oferece ação de bloqueio sobre reserva confirmada", async () => {
+    apiRequest.mockResolvedValue({
+      agenda: [{
+        data: "2026-08-03",
+        profissionais: [{
+          id: 1,
+          nome: "Ana",
+          horarios: [{
+            hora: "14:00",
+            status: "confirmado",
+            agendamento_id: 91,
+            cliente: "Cliente",
+            servico: "Manicure"
+          }]
+        }]
+      }]
+    });
+
+    render(<AgendaWorkspacePage owner />);
+
+    expect(await screen.findByText("14:00")).not.toBeNull();
+    expect(screen.getByText("Confirmado")).not.toBeNull();
+    expect(
+      screen.queryByRole("button", { name: /14:00 Confirmado/ })
+    ).toBeNull();
+    expect(apiRequest).toHaveBeenCalledTimes(1);
+  });
+
   it("pagina as datas sem deixar botões cortados", async () => {
     const originalWidth = window.innerWidth;
     Object.defineProperty(window, "innerWidth", { configurable: true, value: 700 });

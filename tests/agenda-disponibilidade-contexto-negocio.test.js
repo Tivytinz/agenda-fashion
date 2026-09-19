@@ -69,7 +69,7 @@ describe("disponibilidade contextual por negócio", () => {
       .mockResolvedValue([]);
   });
 
-  test("resolve o negócio pelo papel persistido e não por id enviado pelo frontend", async () => {
+  test("CA-NFR-01: nega troca de negócio por id manipulado no frontend", async () => {
     agendaConfiguracaoRepository.buscarVinculoAtivoPorPapel
       .mockResolvedValue({
         id: 7,
@@ -80,6 +80,7 @@ describe("disponibilidade contextual por negócio", () => {
     await agendaConfiguracaoService.buscarMinhaConfiguracao({
       usuarioId: 7,
       contexto: "profissional",
+      negocioId: 999,
     });
 
     expect(

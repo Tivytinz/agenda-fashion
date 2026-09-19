@@ -85,9 +85,14 @@ describe("Agenda Geral multi-tenant", () => {
     async function criarNegocio(nome, slug) {
       const resultado = await db.query(
         `
-          INSERT INTO negocios (nome, slug, plano_id)
-          VALUES ($1, $2, $3)
-          RETURNING id
+          INSERT INTO negocios (
+            nome,
+            slug,
+            plano_id,
+            publicado
+          )
+          VALUES ($1, $2, $3, TRUE)
+          RETURNING id, slug
         `,
         [nome, slug, planoId]
       );
@@ -152,6 +157,90 @@ describe("Agenda Geral multi-tenant", () => {
 
     await db.query(
       `
+        INSERT INTO profissional_servicos (
+          negocio_id,
+          profissional_id,
+          servico_id,
+          habilitado_por_usuario_id
+        )
+        VALUES ($1, $2, $3, $4)
+      `,
+      [
+        negocioA.id,
+        profissionalCompartilhada.id,
+        servicoA.id,
+        donoA.id,
+      ]
+    );
+
+    await db.query(
+      `
+        INSERT INTO agenda_configuracoes (
+          profissional_id,
+          negocio_id,
+          duracao_padrao,
+          intervalo_minutos,
+          antecedencia_agendamento,
+          antecedencia_cancelamento,
+          configurado_em
+        )
+        VALUES ($1, $2, 60, 0, 0, 0, NOW())
+        ON CONFLICT (
+          profissional_id,
+          negocio_id
+        )
+        DO UPDATE SET
+          duracao_padrao = EXCLUDED.duracao_padrao,
+          intervalo_minutos = EXCLUDED.intervalo_minutos,
+          antecedencia_agendamento = EXCLUDED.antecedencia_agendamento,
+          antecedencia_cancelamento = EXCLUDED.antecedencia_cancelamento,
+          configurado_em = EXCLUDED.configurado_em
+      `,
+      [
+        profissionalCompartilhada.id,
+        negocioA.id,
+      ]
+    );
+
+    await db.query(
+      `
+        INSERT INTO agenda_horarios (
+          profissional_id,
+          negocio_id,
+          dia_semana,
+          trabalha,
+          hora_inicio,
+          hora_fim
+        )
+        VALUES (
+          $1,
+          $2,
+          EXTRACT(DOW FROM $3::DATE)::INT,
+          TRUE,
+          '08:00',
+          '20:00'
+        )
+        ON CONFLICT (
+          profissional_id,
+          negocio_id,
+          dia_semana
+        )
+        DO UPDATE SET
+          trabalha = EXCLUDED.trabalha,
+          hora_inicio = EXCLUDED.hora_inicio,
+          hora_fim = EXCLUDED.hora_fim,
+          intervalo_inicio = NULL,
+          intervalo_fim = NULL
+      `,
+      [
+        profissionalCompartilhada.id,
+        negocioA.id,
+        dataTeste,
+      ]
+    );
+
+    await db.query(
+      `
         INSERT INTO agendamentos (
           negocio_id,
           servico_id,
@@ -195,6 +284,10 @@ describe("Agenda Geral multi-tenant", () => {
           [negociosCriados]
         );
         await db.query(
+          `DELETE FROM profissional_servicos WHERE negocio_id = ANY($1::BIGINT[])`,
+          [negociosCriados]
+        );
+        await db.query(
           `DELETE FROM servicos_negocio WHERE negocio_id = ANY($1::BIGINT[])`,
           [negociosCriados]
         );
@@ -219,7 +312,7 @@ describe("Agenda Geral multi-tenant", () => {
     }
   });
 
-  test("mantém ocupação física entre negócios sem expor PII de outro tenant", async () => {
+  test("CA-AG-02: impede conflito global entre negócios sem expor PII", async () => {
     const resposta = await request(app)
       .get("/agenda-geral")
       .set("Authorization", `Bearer ${tokenDonoA}`);
@@ -267,5 +360,58 @@ describe("Agenda Geral multi-tenant", () => {
     expect(corpoSerializado).not.toContain("Cliente Privada B");
     expect(corpoSerializado).not.toContain("Serviço Privado B");
     expect(corpoSerializado).not.toContain("62933334444");
+
+    const disponibilidade = await request(app)
+      .get("/agenda-publica")
+      .query({
+        slug: negocioA.slug,
+        servicoId: servicoA.id,
+        profissionalId: profissionalCompartilhada.id,
+      });
+
+    expect(disponibilidade.statusCode).toBe(200);
+
+    const diaPublico = disponibilidade.body.disponibilidade.find(
+      (item) => item.data === dataTeste
+    );
+
+    expect(diaPublico).toBeTruthy();
+    expect(diaPublico.horarios).not.toContain("10:00");
+
+    const tentativaConflitante = await request(app)
+      .post("/agendamentos")
+      .send({
+        slug: negocioA.slug,
+        servico_id: servicoA.id,
+        profissional_id: profissionalCompartilhada.id,
+        data: dataTeste,
+        horario: "10:00",
+        cliente_nome: "Cliente Conflito Global",
+        cliente_whatsapp: "62955556666",
+      });
+
+    expect(tentativaConflitante.statusCode).toBe(409);
+    expect(tentativaConflitante.body.erro).toMatch(
+      /horário não está mais disponível/i
+    );
+
+    const conflitosNoNegocioA = await db.query(
+      `
+        SELECT COUNT(*)::INT AS total
+        FROM agendamentos
+        WHERE negocio_id = $1
+          AND profissional_id = $2
+          AND data = $3
+          AND horario = '10:00'
+          AND status IN ('agendado', 'confirmado')
+      `,
+      [
+        negocioA.id,
+        profissionalCompartilhada.id,
+        dataTeste,
+      ]
+    );
+
+    expect(conflitosNoNegocioA.rows[0].total).toBe(0);
   });
 });

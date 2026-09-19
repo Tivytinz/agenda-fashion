@@ -539,7 +539,7 @@ describe("Autenticação com conta única", () => {
 
   describe("POST /login", () => {
     test(
-      "autentica a conta pelo cookie HttpOnly sem expor JWT no JSON",
+      "CA-AUT-03: autentica a conta pelo cookie HttpOnly sem expor JWT no JSON",
       async () => {
         const usuario =
           criarUsuario();
@@ -861,7 +861,7 @@ describe("Autenticação com conta única", () => {
 
   describe("POST /logout", () => {
     test(
-      "remove o cookie da sessão sem depender do token no navegador",
+      "CA-AUT-03: remove o cookie da sessão sem depender do token no navegador",
       async () => {
         const resposta =
           await request(app)

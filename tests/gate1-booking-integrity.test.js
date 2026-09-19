@@ -1,5 +1,9 @@
 jest.setTimeout(60000);
 
+const jwt = require("jsonwebtoken");
+const request = require("supertest");
+
+const app = require("../src/server");
 const db = require("../src/db/db");
 const agendaRepository = require(
   "../src/repositories/agendaRepository"
@@ -33,7 +37,9 @@ async function criarAgendamentoTeste({
         data,
         horario,
         status,
-        valor_servico
+        valor_servico,
+        duracao_minutos,
+        servico_nome
       )
       VALUES (
         $1,
@@ -43,12 +49,16 @@ async function criarAgendamentoTeste({
         '62999999999',
         $4,
         $5,
-        'agendado',
-        50
+        'confirmado',
+        50,
+        60,
+        'Serviço Teste CI'
       )
       RETURNING
         id,
-        duracao_minutos
+        duracao_minutos,
+        valor_servico,
+        servico_nome
     `,
     [
       cenario.negocioId,
@@ -90,7 +100,11 @@ async function limparAgendaTeste() {
   await db.query(
     `
       UPDATE servicos_negocio
-      SET duracao_minutos = 60
+      SET
+        nome = 'Serviço Teste CI',
+        valor = 50,
+        duracao_minutos = 60,
+        ativo = TRUE
       WHERE id = $1
     `,
     [cenario.servico.id]
@@ -124,7 +138,7 @@ describe("Gate 1 - integridade crítica de agendamentos", () => {
   });
 
   test(
-    "congela a duração histórica e não reabre parte do horário após editar o serviço",
+    "CA-AG-05: preserva o snapshot comercial após editar e desativar o serviço",
     async () => {
       const agendamento =
         await criarAgendamentoTeste();
@@ -133,10 +147,21 @@ describe("Gate 1 - integridade crítica de agendamentos", () => {
         Number(agendamento.duracao_minutos)
       ).toBe(60);
 
+      expect(
+        Number(agendamento.valor_servico)
+      ).toBe(50);
+
+      expect(agendamento.servico_nome)
+        .toBe("Serviço Teste CI");
+
       await db.query(
         `
           UPDATE servicos_negocio
-          SET duracao_minutos = 30
+          SET
+            nome = 'Serviço Editado',
+            valor = 90,
+            duracao_minutos = 30,
+            ativo = FALSE
           WHERE id = $1
         `,
         [cenario.servico.id]
@@ -144,7 +169,10 @@ describe("Gate 1 - integridade crítica de agendamentos", () => {
 
       const registro = await db.query(
         `
-          SELECT duracao_minutos
+          SELECT
+            servico_nome,
+            valor_servico,
+            duracao_minutos
           FROM agendamentos
           WHERE id = $1
         `,
@@ -157,6 +185,16 @@ describe("Gate 1 - integridade crítica de agendamentos", () => {
         )
       ).toBe(60);
 
+      expect(
+        Number(
+          registro.rows[0]?.valor_servico
+        )
+      ).toBe(50);
+
+      expect(
+        registro.rows[0]?.servico_nome
+      ).toBe("Serviço Teste CI");
+
       const disponivel =
         await agendaDisponibilidadeService
           .horarioEstaDisponivel({
@@ -168,6 +206,51 @@ describe("Gate 1 - integridade crítica de agendamentos", () => {
           });
 
       expect(disponivel).toBe(false);
+    }
+  );
+
+  test(
+    "CA-AG-22: rejeita bloqueio manual sobre reserva futura confirmada",
+    async () => {
+      const agendamento =
+        await criarAgendamentoTeste();
+
+      expect(agendamento.id).toBeTruthy();
+
+      const token = jwt.sign(
+        { id: cenario.profissional.id },
+        process.env.JWT_SECRET,
+        { expiresIn: "10m" }
+      );
+
+      const resposta = await request(app)
+        .post("/bloqueios-horario")
+        .set("Authorization", `Bearer ${token}`)
+        .send({
+          data: dataTeste,
+          hora: "14:30",
+        });
+
+      expect(resposta.statusCode).toBe(400);
+      expect(resposta.body.erro).toMatch(
+        /horário já está agendado/i
+      );
+
+      const bloqueios = await db.query(
+        `
+          SELECT COUNT(*)::INT AS total
+          FROM bloqueios_horarios
+          WHERE profissional_id = $1
+            AND data_bloqueio = $2
+            AND hora_bloqueio = '14:30'
+        `,
+        [
+          cenario.profissional.id,
+          dataTeste,
+        ]
+      );
+
+      expect(bloqueios.rows[0].total).toBe(0);
     }
   );
 

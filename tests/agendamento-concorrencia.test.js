@@ -514,7 +514,7 @@ describe(
     );
 
     test(
-      "permite apenas um agendamento quando duas clientes tentam reservar simultaneamente",
+      "CA-NFR-03: permite apenas um agendamento em duas reservas simultâneas",
       async () => {
         const cenario =
           await buscarCenarioDisponivel();

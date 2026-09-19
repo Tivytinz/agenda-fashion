@@ -56,7 +56,7 @@ describe(
       }
     );
     test(
-      "publica perfil completo com serviço ativo sem exigir personalização da agenda",
+      "CA-NEG-03: publica perfil completo com serviço ativo sem exigir personalização da agenda",
       () => {
         expect(
           avaliarPublicacao(
