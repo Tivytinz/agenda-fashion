@@ -149,6 +149,73 @@ describe(
     );
 
     test(
+      "CA-AUT-03: logout revoga a sessão e o mesmo token deixa de autorizar recursos privados",
+      async () => {
+        const token =
+          gerarToken();
+
+        const antesDoLogout =
+          await request(
+            criarAppProtegido()
+          )
+            .get("/protegida")
+            .set(
+              "Authorization",
+              `Bearer ${token}`
+            );
+
+        expect(
+          antesDoLogout.status
+        ).toBe(200);
+
+        const logout =
+          await request(
+            criarAppLogout()
+          )
+            .post("/logout")
+            .set(
+              "Authorization",
+              `Bearer ${token}`
+            );
+
+        expect(logout.status)
+          .toBe(204);
+        expect(
+          sessionRevocationRepository
+            .revogarToken
+        ).toHaveBeenCalledTimes(1);
+
+        authSessionRepository
+          .buscarEstadoDaSessao
+          .mockResolvedValue({
+            id: 1,
+            ativo: true,
+            senha_alterada_em: null,
+            token_revogado: true,
+          });
+
+        const depoisDoLogout =
+          await request(
+            criarAppProtegido()
+          )
+            .get("/protegida")
+            .set(
+              "Authorization",
+              `Bearer ${token}`
+            );
+
+        expect(
+          depoisDoLogout.status
+        ).toBe(401);
+        expect(
+          depoisDoLogout.body.erro
+        ).toBe(
+          "Sessão inválida ou encerrada."
+        );
+      }
+    );
+
+    test(
       "registra somente o hash do token no logout",
       async () => {
         const token =

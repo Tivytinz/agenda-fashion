@@ -175,7 +175,7 @@ describe("ciclo persistido do atendimento", () => {
     }
   });
 
-  test("não infere comparecimento e exige transição operacional explícita", async () => {
+  test("CA-AG-15/23: conclui atendimento ocorrido e bloqueia nova transição terminal", async () => {
     const tokenCliente = token(cliente.id);
     const tokenProfissional = token(profissional.id);
     const tokenOutraProfissional = token(outraProfissional.id);

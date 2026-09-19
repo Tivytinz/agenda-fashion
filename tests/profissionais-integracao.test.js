@@ -200,7 +200,7 @@ describe("Fluxo de profissionais com banco real", () => {
     });
   });
 
-  test("dona de outro negócio não edita o profissional", async () => {
+  test("CA-NFR-01: dona de outro negócio não edita o profissional", async () => {
     const resposta = await request(app)
       .put(`/profissionais/${profissionalVinculado.id}`)
       .set("Authorization", `Bearer ${tokenDonoB}`)
