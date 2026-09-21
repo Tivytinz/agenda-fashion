@@ -780,8 +780,8 @@ async function buscarRankingClientes(
   const result = await db.query(
     `
     SELECT
-      u.id,
-      u.nome,
+      cliente.id,
+      cliente.nome,
 
       COUNT(
         a.id
