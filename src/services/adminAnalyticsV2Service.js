@@ -164,8 +164,97 @@ async function buscarAcquisition(periodo) {
   };
 }
 
+
+function mapearReconciliacaoPipelines(bruto = {}) {
+  const linhas = Array.isArray(bruto.eventos)
+    ? bruto.eventos
+    : [];
+
+  const eventos = linhas.map((linha) => {
+    const legado = numero(linha.legado_eventos_comparaveis);
+    const v2 = numero(linha.v2_eventos_comparaveis);
+    const legadoSessoes = numero(linha.legado_sessoes_comparaveis);
+    const v2Sessoes = numero(linha.v2_sessoes_comparaveis);
+
+    return {
+      evento: linha.evento,
+      legadoPeriodo: numero(linha.legado_eventos_periodo),
+      v2Periodo: numero(linha.v2_eventos_periodo),
+      legadoComparavel: legado,
+      v2Comparavel: v2,
+      diferencaEventos: v2 - legado,
+      divergenciaAbsoluta: Math.abs(v2 - legado),
+      coberturaV2SobreLegado:
+        legado > 0
+          ? percentual(v2, legado)
+          : null,
+      legadoSessoesComparaveis: legadoSessoes,
+      v2SessoesComparaveis: v2Sessoes,
+      diferencaSessoes: v2Sessoes - legadoSessoes,
+      bookingCompletedVinculados:
+        numero(linha.booking_completed_vinculados),
+      paridadeExata:
+        legado === v2 &&
+        legadoSessoes === v2Sessoes,
+    };
+  });
+
+  const legadoPeriodo = eventos.reduce(
+    (total, item) => total + item.legadoPeriodo,
+    0
+  );
+  const v2Periodo = eventos.reduce(
+    (total, item) => total + item.v2Periodo,
+    0
+  );
+  const temInicioComparavel = Boolean(
+    bruto.inicioComparavel
+  );
+  const divergentes = eventos.filter(
+    (item) => !item.paridadeExata
+  ).length;
+
+  let estado = "divergencia_observada";
+  if (!temInicioComparavel) {
+    estado = legadoPeriodo > 0
+      ? "sem_base_v2"
+      : "sem_eventos";
+  } else if (divergentes === 0) {
+    estado = "paridade_exata";
+  }
+
+  return {
+    periodo: bruto.periodo || "30",
+    inicioComparavel:
+      bruto.inicioComparavel || null,
+    estado,
+    eventosComDivergencia: divergentes,
+    legadoEventosPeriodo: legadoPeriodo,
+    v2EventosPeriodo: v2Periodo,
+    eventos,
+    metodologia: {
+      comparacao:
+        "A reconciliação compara somente eventos emitidos pelos dois pipelines a partir do primeiro evento V2 comparável do recorte. Ela não soma os pipelines e não substitui fatos transacionais.",
+      eventos:
+        "perfil_visualizado ↔ profile_viewed; links copiados/compartilhados ↔ profile_shared; agendamento_iniciado ↔ booking_started; agendamento_concluido ↔ booking_completed.",
+      decisao:
+        "Paridade exata é diagnóstico técnico, não autorização automática para remover o pipeline legado. A retirada exige estabilidade observada em produção e revisão das dependências restantes.",
+    },
+  };
+}
+
 async function buscarJourney(periodo) {
-  return repository.buscarJornada(periodo);
+  const periodoSeguro = repository.periodoSeguro(periodo);
+  const [jornada, reconciliacao] = await Promise.all([
+    repository.buscarJornada(periodoSeguro),
+    repository.buscarReconciliacaoPipelines(periodoSeguro),
+  ]);
+
+  return {
+    ...jornada,
+    reconciliacaoPipelines:
+      mapearReconciliacaoPipelines(reconciliacao),
+  };
 }
 
 async function buscarRetention(periodo) {
@@ -242,5 +331,6 @@ module.exports = {
   buscarRevenue,
   mapearVisaoGeral,
   mapearCampanhasFunil,
+  mapearReconciliacaoPipelines,
   percentual,
 };
