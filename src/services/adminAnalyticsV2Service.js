@@ -194,7 +194,8 @@ function mapearReconciliacaoPipelines(bruto = {}) {
       bookingCompletedVinculados:
         numero(linha.booking_completed_vinculados),
       paridadeExata:
-        legado === v2 &&
+        legado === v2,
+      paridadeSessoes:
         legadoSessoes === v2Sessoes,
     };
   });
@@ -234,7 +235,7 @@ function mapearReconciliacaoPipelines(bruto = {}) {
     eventos,
     metodologia: {
       comparacao:
-        "A reconciliação compara somente eventos emitidos pelos dois pipelines a partir do primeiro evento V2 comparável do recorte. Ela não soma os pipelines e não substitui fatos transacionais.",
+        "A reconciliação compara somente eventos emitidos pelos dois pipelines a partir do primeiro evento V2 comparável do recorte. Ela não soma os pipelines e não substitui fatos transacionais. Sessões aparecem como diagnóstico auxiliar, mas não definem paridade porque os pipelines usam contratos de sessionização diferentes.",
       eventos:
         "perfil_visualizado ↔ profile_viewed; links copiados/compartilhados ↔ profile_shared; agendamento_iniciado ↔ booking_started; agendamento_concluido ↔ booking_completed.",
       decisao:
