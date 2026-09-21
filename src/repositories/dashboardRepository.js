@@ -94,7 +94,7 @@ async function buscarResumoProfissional(
       )::int AS pendentes_hoje,
 
       COUNT(
-        DISTINCT a.cliente_id
+        DISTINCT a.client_id
       ) FILTER (
         WHERE a.status != 'cancelado'
       )::int AS clientes_unicos,
@@ -406,18 +406,7 @@ async function buscarResumoDono(
     WITH agendamentos_base AS (
       SELECT
         a.*,
-        COALESCE(
-          'usuario:' || a.cliente_id::text,
-          'whatsapp:' || NULLIF(
-            regexp_replace(
-              COALESCE(a.cliente_whatsapp, ''),
-              '[^0-9]',
-              '',
-              'g'
-            ),
-            ''
-          )
-        ) AS cliente_chave
+        a.client_id AS cliente_chave
 
       FROM agendamentos a
 
@@ -512,35 +501,13 @@ async function buscarClientesRecorrentes(
 
     FROM (
       SELECT
-        COALESCE(
-          'usuario:' || cliente_id::text,
-          'whatsapp:' || NULLIF(
-            regexp_replace(
-              COALESCE(cliente_whatsapp, ''),
-              '[^0-9]',
-              '',
-              'g'
-            ),
-            ''
-          )
-        ) AS cliente_chave
+        client_id AS cliente_chave
 
       FROM agendamentos
 
       WHERE negocio_id = $1
         AND status != 'cancelado'
-        AND COALESCE(
-          cliente_id::text,
-          NULLIF(
-            regexp_replace(
-              COALESCE(cliente_whatsapp, ''),
-              '[^0-9]',
-              '',
-              'g'
-            ),
-            ''
-          )
-        ) IS NOT NULL
+        AND client_id IS NOT NULL
 
       GROUP BY
         cliente_chave
@@ -712,8 +679,8 @@ async function buscarRankingProfissionais(
   const result = await db.query(
     `
     SELECT
-      u.id,
-      u.nome,
+      cliente.id,
+      cliente.nome,
 
       COUNT(
         a.id
@@ -833,8 +800,8 @@ async function buscarRankingClientes(
 
     FROM agendamentos a
 
-    LEFT JOIN usuarios u
-      ON u.id = a.cliente_id
+    LEFT JOIN clientes cliente
+      ON cliente.id = a.client_id
 
     LEFT JOIN servicos_negocio s
       ON s.id = a.servico_id
@@ -844,8 +811,8 @@ async function buscarRankingClientes(
       ${filtro}
 
     GROUP BY
-      u.id,
-      u.nome
+      cliente.id,
+      cliente.nome
 
     ORDER BY
       total DESC
