@@ -57,8 +57,19 @@ jest.mock(
   })
 );
 
+jest.mock(
+  "../src/services/mlNoShowDataService",
+  () => ({
+    obterDiagnosticoMaturidade:
+      jest.fn(),
+  })
+);
+
 const repository = require(
   "../src/repositories/adminSaasHealthRepository"
+);
+const mlNoShowDataService = require(
+  "../src/services/mlNoShowDataService"
 );
 const adminRoutes = require(
   "../src/routes/adminRoutes"
@@ -148,6 +159,24 @@ describe(
       repository
         .contarPerfisIncompletos
         .mockResolvedValue(0);
+      mlNoShowDataService
+        .obterDiagnosticoMaturidade
+        .mockResolvedValue({
+          feature_version: "v1",
+          prontidao: {
+            pronta_para_treinamento: false,
+          },
+          diagnosticos: {
+            negocios: {
+              negocios_com_amostras: 1,
+              negocios_com_rotulos: 0,
+              maior_participacao_rotulada: 0,
+              mais_representados: [],
+            },
+            segmentos_cliente: [],
+            mensal: [],
+          },
+        });
     });
 
     test(
@@ -488,5 +517,103 @@ describe(
         ).toEqual([]);
       }
     );
+
+    test(
+      "protege o diagnóstico de ML com permissão administrativa",
+      async () => {
+        const resposta =
+          await request(criarApp())
+            .get(
+              "/admin/saude/ml-no-show"
+            )
+            .set(
+              "x-test-admin",
+              "no"
+            );
+
+        expect(resposta.status)
+          .toBe(403);
+        expect(
+          mlNoShowDataService
+            .obterDiagnosticoMaturidade
+        ).not.toHaveBeenCalled();
+      }
+    );
+
+    test(
+      "expõe apenas diagnóstico agregado de maturidade do no-show",
+      async () => {
+        mlNoShowDataService
+          .obterDiagnosticoMaturidade
+          .mockResolvedValue({
+            feature_version: "v1",
+            prontidao: {
+              pronta_para_treinamento: false,
+              motivos: [
+                "amostras_rotuladas_insuficientes",
+              ],
+            },
+            diagnosticos: {
+              negocios: {
+                negocios_com_amostras: 2,
+                negocios_com_rotulos: 1,
+                maior_participacao_rotulada: 1,
+                mais_representados: [
+                  {
+                    negocio_id: 8,
+                    total_amostras: 20,
+                    amostras_rotuladas: 4,
+                  },
+                ],
+              },
+              segmentos_cliente: [
+                {
+                  segmento: "visitante",
+                  total_amostras: 12,
+                },
+              ],
+              mensal: [
+                {
+                  mes: "2026-09",
+                  total_amostras: 20,
+                },
+              ],
+            },
+          });
+
+        const resposta =
+          await request(criarApp())
+            .get(
+              "/admin/saude/ml-no-show"
+            );
+
+        expect(resposta.status)
+          .toBe(200);
+        expect(
+          mlNoShowDataService
+            .obterDiagnosticoMaturidade
+        ).toHaveBeenCalledTimes(1);
+        expect(resposta.body)
+          .toMatchObject({
+            feature_version: "v1",
+            diagnosticos: {
+              negocios: {
+                negocios_com_amostras: 2,
+              },
+              segmentos_cliente: [
+                {
+                  segmento: "visitante",
+                },
+              ],
+            },
+          });
+        expect(
+          JSON.stringify(resposta.body)
+        ).not.toMatch(
+          /telefone|whatsapp|email|cliente_nome/i
+        );
+      }
+    );
+
   }
 );
