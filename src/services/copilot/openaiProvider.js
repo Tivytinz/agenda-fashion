@@ -1,7 +1,7 @@
 const axios = require("axios");
 const {
   flagAtiva,
-} = require("../../config/marketingCostSync");
+} = require("../../utils/featureFlags");
 const registrador = require("../../utils/registrador");
 
 const DEFAULT_API_URL = "https://api.openai.com/v1/responses";
