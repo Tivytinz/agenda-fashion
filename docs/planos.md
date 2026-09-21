@@ -111,7 +111,7 @@ negócio e conversão para plano pago.
 
 - Catálogo e limites: `database/migrations/015_planos_limites.sql`.
 - Estado de equipe aguardando capacidade:
-  `database/migrations/083_profissionais_aguardando_vaga.sql`.
+  `database/migrations/084_profissionais_aguardando_vaga.sql`.
 - Normalização dos nomes: `database/migrations/025_corrigir_nomes_planos.sql`.
 - Consulta pública: `GET /planos`.
 - Oferta pública em HTML: `/planos` com `Accept: text/html`.
