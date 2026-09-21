@@ -44,18 +44,7 @@ async function buscarOrigemClientes(
         a.horario,
         a.valor_servico,
         a.servico_id,
-        COALESCE(
-          'usuario:' || a.cliente_id::text,
-          'whatsapp:' || NULLIF(
-            regexp_replace(
-              COALESCE(a.cliente_whatsapp, ''),
-              '[^0-9]',
-              '',
-              'g'
-            ),
-            ''
-          )
-        ) AS cliente_chave
+        a.client_id AS cliente_chave
       FROM agendamentos a
       WHERE a.negocio_id = $1
         AND a.status != 'cancelado'
