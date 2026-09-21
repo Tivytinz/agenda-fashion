@@ -92,6 +92,9 @@ jobs:
       - name: Test mobile frontend
         run: npm --prefix frontend run test:e2e
 
+      - name: Test full-stack acceptance
+        run: npm --prefix frontend run test:e2e:fullstack
+
       - name: Upload Playwright failure artifacts
         if: failure()
         uses: actions/upload-artifact@v4
