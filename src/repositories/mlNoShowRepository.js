@@ -416,9 +416,15 @@ async function listarMaturidadeMensal({ meses = 12 } = {}) {
         ON agendamento.id = amostra.agendamento_id
       INNER JOIN negocios negocio
         ON negocio.id = amostra.negocio_id
-      WHERE agendamento.created_at >=
-        date_trunc('month', NOW())
-        - (($1::INT - 1) * INTERVAL '1 month')
+      WHERE agendamento.created_at >= (
+        (
+          date_trunc(
+            'month',
+            NOW() AT TIME ZONE 'America/Sao_Paulo'
+          )
+          - (($1::INT - 1) * INTERVAL '1 month')
+        ) AT TIME ZONE 'America/Sao_Paulo'
+      )
       GROUP BY
         date_trunc(
           'month',
