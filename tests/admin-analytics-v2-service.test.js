@@ -5,6 +5,7 @@ jest.mock(
     buscarVisaoGeral: jest.fn(),
     listarAquisicao: jest.fn(),
     buscarJornada: jest.fn(),
+    buscarReconciliacaoPipelines: jest.fn(),
     buscarReceita: jest.fn(),
   })
 );
@@ -17,9 +18,9 @@ jest.mock(
 );
 
 jest.mock(
-  "../src/services/adminProfessionalRecurrenceService",
+  "../src/services/adminProfessionalRecurrenceAnalysisService",
   () => ({
-    buscarRecorrencia: jest.fn(),
+    buscar: jest.fn(),
   })
 );
 
@@ -29,9 +30,15 @@ const repository = require(
 const professionalFunnelService = require(
   "../src/services/adminProfessionalFunnelService"
 );
+const professionalRecurrenceAnalysisService = require(
+  "../src/services/adminProfessionalRecurrenceAnalysisService"
+);
 const {
   buscar,
   buscarOverview,
+  buscarJourney,
+  buscarRetention,
+  mapearReconciliacaoPipelines,
   mapearVisaoGeral,
 } = require(
   "../src/services/adminAnalyticsV2Service"
@@ -116,6 +123,111 @@ describe("adminAnalyticsV2Service", () => {
 
     expect(resultado.ativacao.taxaNegocioSobreCadastro).toBeNull();
     expect(resultado.receita.taxaAssinaturaSobreCadastro).toBeNull();
+  });
+
+  test("reconcilia eventos equivalentes sem somar os pipelines", async () => {
+    repository.buscarJornada.mockResolvedValue({
+      periodo: "30",
+      telas: [],
+      transicoes: [],
+      eventos: [],
+      dispositivos: [],
+    });
+    repository.buscarReconciliacaoPipelines.mockResolvedValue({
+      periodo: "30",
+      inicioComparavel: "2026-09-20T12:00:00.000Z",
+      eventos: [
+        {
+          evento: "profile_viewed",
+          legado_eventos_periodo: 12,
+          v2_eventos_periodo: 10,
+          legado_eventos_comparaveis: 10,
+          v2_eventos_comparaveis: 9,
+          legado_sessoes_comparaveis: 8,
+          v2_sessoes_comparaveis: 8,
+          booking_completed_vinculados: 0,
+        },
+        {
+          evento: "booking_completed",
+          legado_eventos_periodo: 4,
+          v2_eventos_periodo: 4,
+          legado_eventos_comparaveis: 4,
+          v2_eventos_comparaveis: 4,
+          legado_sessoes_comparaveis: 4,
+          v2_sessoes_comparaveis: 4,
+          booking_completed_vinculados: 4,
+        },
+      ],
+    });
+
+    const resultado = await buscarJourney("30");
+
+    expect(resultado.reconciliacaoPipelines).toMatchObject({
+      estado: "divergencia_observada",
+      eventosComDivergencia: 1,
+      legadoEventosPeriodo: 16,
+      v2EventosPeriodo: 14,
+    });
+    expect(
+      resultado.reconciliacaoPipelines.eventos[0]
+    ).toMatchObject({
+      evento: "profile_viewed",
+      diferencaEventos: -1,
+      coberturaV2SobreLegado: 90,
+      paridadeExata: false,
+    });
+    expect(
+      resultado.reconciliacaoPipelines.eventos[1]
+    ).toMatchObject({
+      evento: "booking_completed",
+      bookingCompletedVinculados: 4,
+      paridadeExata: true,
+    });
+  });
+
+  test("marca sem base quando ainda não existe evento V2 comparável", () => {
+    expect(
+      mapearReconciliacaoPipelines({
+        periodo: "7",
+        inicioComparavel: null,
+        eventos: [
+          {
+            evento: "profile_viewed",
+            legado_eventos_periodo: 5,
+            v2_eventos_periodo: 0,
+          },
+        ],
+      })
+    ).toMatchObject({
+      estado: "sem_base_v2",
+      legadoEventosPeriodo: 5,
+      v2EventosPeriodo: 0,
+    });
+  });
+
+  test("usa a mesma análise avançada na Retenção V2", async () => {
+    const avancada = {
+      periodo: "7",
+      resumo: {
+        comPrimeiroAgendamento: 3,
+      },
+      qualidadeCampanhasOficiais: [
+        {
+          chave: "campanha:10",
+        },
+      ],
+    };
+    professionalRecurrenceAnalysisService.buscar
+      .mockResolvedValue(avancada);
+
+    await expect(
+      buscarRetention("7")
+    ).resolves.toBe(avancada);
+    expect(
+      professionalRecurrenceAnalysisService.buscar
+    ).toHaveBeenCalledWith({
+      periodo: "7",
+    });
   });
 
   test("rejeita seção administrativa desconhecida", async () => {
