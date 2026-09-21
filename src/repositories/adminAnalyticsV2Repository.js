@@ -468,10 +468,181 @@ async function buscarReceita(periodo = "30") {
   };
 }
 
+
+async function buscarReconciliacaoPipelines(periodo = "30") {
+  const seguro = periodoSeguro(periodo);
+  const filtroLegacy = filtroTimestamp(seguro, "ep.created_at");
+  const filtroV2 = filtroTimestamp(seguro, "ae.occurred_at");
+
+  const resultado = await db.query(
+    `
+    WITH primeiro_v2 AS (
+      SELECT MIN(ae.occurred_at) AS inicio_comparavel
+      FROM analytics_eventos ae
+      WHERE ae.origem = 'frontend'
+        AND ae.nome IN (
+          'profile_viewed',
+          'profile_shared',
+          'booking_started',
+          'booking_completed'
+        )
+        ${filtroV2}
+    ),
+    eventos_base(evento, ordem) AS (
+      VALUES
+        ('profile_viewed', 1),
+        ('profile_shared', 2),
+        ('booking_started', 3),
+        ('booking_completed', 4)
+    ),
+    legado_periodo AS (
+      SELECT
+        CASE
+          WHEN ep.nome = 'perfil_visualizado'
+            THEN 'profile_viewed'
+          WHEN ep.nome IN (
+            'link_negocio_copiado',
+            'link_negocio_compartilhado',
+            'link_servico_copiado',
+            'link_servico_compartilhado'
+          )
+            THEN 'profile_shared'
+          WHEN ep.nome = 'agendamento_iniciado'
+            THEN 'booking_started'
+          WHEN ep.nome = 'agendamento_concluido'
+            THEN 'booking_completed'
+        END AS evento,
+        COUNT(*)::INT AS eventos,
+        COUNT(DISTINCT ep.sessao_id)::INT AS sessoes
+      FROM eventos_produto ep
+      WHERE ep.nome IN (
+        'perfil_visualizado',
+        'link_negocio_copiado',
+        'link_negocio_compartilhado',
+        'link_servico_copiado',
+        'link_servico_compartilhado',
+        'agendamento_iniciado',
+        'agendamento_concluido'
+      )
+        ${filtroLegacy}
+      GROUP BY 1
+    ),
+    v2_periodo AS (
+      SELECT
+        ae.nome AS evento,
+        COUNT(*)::INT AS eventos,
+        COUNT(DISTINCT ae.sessao_id)::INT AS sessoes,
+        COUNT(*) FILTER (
+          WHERE ae.nome = 'booking_completed'
+            AND ae.agendamento_id IS NOT NULL
+        )::INT AS booking_completed_vinculados
+      FROM analytics_eventos ae
+      WHERE ae.origem = 'frontend'
+        AND ae.nome IN (
+          'profile_viewed',
+          'profile_shared',
+          'booking_started',
+          'booking_completed'
+        )
+        ${filtroV2}
+      GROUP BY ae.nome
+    ),
+    legado_comparavel AS (
+      SELECT
+        CASE
+          WHEN ep.nome = 'perfil_visualizado'
+            THEN 'profile_viewed'
+          WHEN ep.nome IN (
+            'link_negocio_copiado',
+            'link_negocio_compartilhado',
+            'link_servico_copiado',
+            'link_servico_compartilhado'
+          )
+            THEN 'profile_shared'
+          WHEN ep.nome = 'agendamento_iniciado'
+            THEN 'booking_started'
+          WHEN ep.nome = 'agendamento_concluido'
+            THEN 'booking_completed'
+        END AS evento,
+        COUNT(*)::INT AS eventos,
+        COUNT(DISTINCT ep.sessao_id)::INT AS sessoes
+      FROM eventos_produto ep
+      CROSS JOIN primeiro_v2 p
+      WHERE p.inicio_comparavel IS NOT NULL
+        AND ep.created_at >= p.inicio_comparavel
+        AND ep.nome IN (
+          'perfil_visualizado',
+          'link_negocio_copiado',
+          'link_negocio_compartilhado',
+          'link_servico_copiado',
+          'link_servico_compartilhado',
+          'agendamento_iniciado',
+          'agendamento_concluido'
+        )
+      GROUP BY 1
+    ),
+    v2_comparavel AS (
+      SELECT
+        ae.nome AS evento,
+        COUNT(*)::INT AS eventos,
+        COUNT(DISTINCT ae.sessao_id)::INT AS sessoes,
+        COUNT(*) FILTER (
+          WHERE ae.nome = 'booking_completed'
+            AND ae.agendamento_id IS NOT NULL
+        )::INT AS booking_completed_vinculados
+      FROM analytics_eventos ae
+      CROSS JOIN primeiro_v2 p
+      WHERE p.inicio_comparavel IS NOT NULL
+        AND ae.occurred_at >= p.inicio_comparavel
+        AND ae.origem = 'frontend'
+        AND ae.nome IN (
+          'profile_viewed',
+          'profile_shared',
+          'booking_started',
+          'booking_completed'
+        )
+      GROUP BY ae.nome
+    )
+    SELECT
+      eb.evento,
+      p.inicio_comparavel,
+      COALESCE(lp.eventos, 0)::INT AS legado_eventos_periodo,
+      COALESCE(vp.eventos, 0)::INT AS v2_eventos_periodo,
+      COALESCE(lp.sessoes, 0)::INT AS legado_sessoes_periodo,
+      COALESCE(vp.sessoes, 0)::INT AS v2_sessoes_periodo,
+      COALESCE(lc.eventos, 0)::INT AS legado_eventos_comparaveis,
+      COALESCE(vc.eventos, 0)::INT AS v2_eventos_comparaveis,
+      COALESCE(lc.sessoes, 0)::INT AS legado_sessoes_comparaveis,
+      COALESCE(vc.sessoes, 0)::INT AS v2_sessoes_comparaveis,
+      COALESCE(vc.booking_completed_vinculados, 0)::INT
+        AS booking_completed_vinculados
+    FROM eventos_base eb
+    CROSS JOIN primeiro_v2 p
+    LEFT JOIN legado_periodo lp
+      ON lp.evento = eb.evento
+    LEFT JOIN v2_periodo vp
+      ON vp.evento = eb.evento
+    LEFT JOIN legado_comparavel lc
+      ON lc.evento = eb.evento
+    LEFT JOIN v2_comparavel vc
+      ON vc.evento = eb.evento
+    ORDER BY eb.ordem
+    `
+  );
+
+  return {
+    periodo: seguro,
+    inicioComparavel:
+      resultado.rows[0]?.inicio_comparavel || null,
+    eventos: resultado.rows,
+  };
+}
+
 module.exports = {
   periodoSeguro,
   buscarVisaoGeral,
   listarAquisicao,
   buscarJornada,
+  buscarReconciliacaoPipelines,
   buscarReceita,
 };
