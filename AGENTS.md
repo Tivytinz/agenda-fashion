@@ -365,6 +365,9 @@ Regras duráveis:
 - visitantes não são unidos silenciosamente por telefone para formar histórico;
 - ML roda fora do caminho crítico do agendamento e uma falha sua não pode
   bloquear criação, reagendamento ou lifecycle;
+- antes do primeiro baseline, a maturidade precisa ser auditada globalmente e
+  por negócio, tipo de cliente e janela temporal para detectar concentração,
+  baixa cobertura e mudança de distribuição;
 - todo modelo começa em modo shadow e precisa de versão, período de treino,
   métricas e features auditáveis;
 - score não pode cancelar, recusar, cobrar, bloquear, reordenar ou expor um
