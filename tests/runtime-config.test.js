@@ -20,6 +20,7 @@ describe("configuração central do runtime", () => {
       ambiente: "test",
       producao: false,
       whatsappAtivo: false,
+      coletaMlNoShowAtiva: false,
     });
   });
 
@@ -98,6 +99,31 @@ describe("configuração central do runtime", () => {
       BACKGROUND_WORKERS_ENABLED: "false",
     })).toMatchObject({
       workersAtivos: false,
+    });
+  });
+
+  test("valida a coleta de dados de ML e seus limites operacionais", () => {
+    expect(() => validarConfiguracaoRuntime({
+      ...ambienteBase(),
+      ML_NO_SHOW_DATA_ENABLED: "talvez",
+    })).toThrow(
+      "ML_NO_SHOW_DATA_ENABLED precisa ser uma flag booleana válida"
+    );
+
+    expect(() => validarConfiguracaoRuntime({
+      ...ambienteBase(),
+      ML_NO_SHOW_DATA_INTERVAL_MS: "1000",
+    })).toThrow(
+      "ML_NO_SHOW_DATA_INTERVAL_MS precisa ser um inteiro entre 60000 e 86400000"
+    );
+
+    expect(validarConfiguracaoRuntime({
+      ...ambienteBase(),
+      ML_NO_SHOW_DATA_ENABLED: "true",
+      ML_NO_SHOW_DATA_INTERVAL_MS: "300000",
+      ML_NO_SHOW_DATA_BATCH_SIZE: "100",
+    })).toMatchObject({
+      coletaMlNoShowAtiva: true,
     });
   });
 
