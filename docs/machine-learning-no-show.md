@@ -68,6 +68,22 @@ treinamento futuro ainda precisa separar dados por tempo, comparar contra um
 baseline simples, medir precisão/recall, calibração e desempenho por negócio,
 e rejeitar o modelo se houver instabilidade ou amostra insuficiente.
 
+Antes do baseline, o backend expõe somente para administradores
+`GET /admin/saude/ml-no-show`. O diagnóstico é agregado e não retorna nome,
+telefone, WhatsApp, e-mail, texto livre ou identificadores de cliente. Ele mostra:
+
+- prontidão global pelos gates acima;
+- quantidade de negócios com amostras e com rótulos;
+- participação da base rotulada concentrada nos negócios mais representados;
+- cobertura de desfecho e prevalência de falta por negócio;
+- comparação entre bookings com conta autenticada e visitantes;
+- evolução mensal baseada na data de criação do booking.
+
+Essas dimensões servem para detectar viés de cobertura, concentração e mudança
+temporal antes do treino. Elas não liberam automaticamente um modelo para
+produção nem substituem validação temporal, métricas de classificação e
+calibração.
+
 ## Restrições duráveis
 
 - o primeiro modelo começa em modo shadow;
