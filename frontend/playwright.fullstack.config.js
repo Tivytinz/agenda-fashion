@@ -35,6 +35,7 @@ export default defineConfig({
       ...inheritedEnv,
       NODE_ENV: "development",
       PORT: "3000",
+      CORS_ORIGINS: "http://127.0.0.1:3000",
       BACKGROUND_WORKERS_ENABLED: "false",
       WHATSAPP_NOTIFICATIONS_ENABLED: "false",
       ASAAS_API_URL: "https://api-sandbox.asaas.com/v3",
