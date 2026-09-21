@@ -309,7 +309,14 @@ async function postPayload(payload, { keepalive = false } = {}) {
 
   if (!response?.ok) {
     const error = new Error("Falha ao entregar analytics first-party.");
-    error.retryable = ![400, 422].includes(Number(response?.status));
+    error.retryable = ![
+      400,
+      401,
+      403,
+      409,
+      413,
+      422
+    ].includes(Number(response?.status));
     throw error;
   }
 }
