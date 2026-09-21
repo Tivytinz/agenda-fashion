@@ -74,7 +74,7 @@ OPENAI_API_URL=https://api.openai.com/v1/responses
 OPENAI_TIMEOUT_MS=8000
 ```
 
-A flag fica desligada por padrão. O provider usa o mesmo parser booleano do runtime (`1`, `true`, `yes` e `on` ativam), evitando divergência entre a validação de startup e a execução. A chave é segredo exclusivo do backend e nunca pode ser exposta em `VITE_*`, frontend, logs ou analytics.
+A flag fica desligada por padrão. O provider usa o mesmo parser booleano do runtime (`1`, `true`, `yes`, `sim` e `on` ativam), evitando divergência entre a validação de startup e a execução. A chave é segredo exclusivo do backend e nunca pode ser exposta em `VITE_*`, frontend, logs ou analytics.
 
 As requisições usam:
 
