@@ -48,6 +48,8 @@ Novas integrações devem usar:
 - `GET /profissionais/convites/recebidos`
 - `POST /profissionais/convites/:id/aceitar`
 - `POST /profissionais/convites/:id/recusar`
+- `POST /profissionais/:id/ativar` para a dona liberar um vínculo que já
+  aceitou o convite e está aguardando capacidade
 
 ## Frontend e UX
 
