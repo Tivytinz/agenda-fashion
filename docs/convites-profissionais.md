@@ -35,7 +35,10 @@ Conhecer o e-mail não autoriza revelar o WhatsApp, e conhecer o WhatsApp não
 autoriza revelar o e-mail.
 
 A resposta de criação do convite pode conter apenas os dados mínimos necessários
-para confirmação visual: `id`, `nome` e `foto_url`.
+para confirmação visual: `id`, `nome` e `foto_url`. Enquanto o vínculo
+aceito estiver aguardando vaga, a listagem da equipe também não deve revelar o
+contato alternativo da conta; o WhatsApp só volta a ser exposto no contexto
+operacional depois da ativação do vínculo.
 
 ## Compatibilidade
 
