@@ -4,8 +4,8 @@ const repository = require(
 const professionalFunnelService = require(
   "./adminProfessionalFunnelService"
 );
-const professionalRecurrenceService = require(
-  "./adminProfessionalRecurrenceService"
+const professionalRecurrenceAnalysisService = require(
+  "./adminProfessionalRecurrenceAnalysisService"
 );
 
 const SECOES = new Set([
@@ -258,7 +258,9 @@ async function buscarJourney(periodo) {
 }
 
 async function buscarRetention(periodo) {
-  return professionalRecurrenceService.buscarRecorrencia({ periodo });
+  return professionalRecurrenceAnalysisService.buscar({
+    periodo: repository.periodoSeguro(periodo),
+  });
 }
 
 async function buscarRevenue(periodo) {
