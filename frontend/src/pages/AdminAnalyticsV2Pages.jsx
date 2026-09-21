@@ -707,10 +707,10 @@ export function AdminRetentionV2Page() {
         return (
           <>
             <section className="admin-command-summary-grid is-period-summary">
-              <MetricCard label="Com 1º agendamento" hint="negócios que chegaram ao primeiro valor" value={formatNumber(summary.comPrimeiroAgendamento)} />
+              <MetricCard label="Com 1º agendamento" hint="profissionais que chegaram ao primeiro valor" value={formatNumber(summary.comPrimeiroAgendamento)} />
               <MetricCard label="Com 2º agendamento" hint={formatPercent(summary.taxaSegundoSobrePrimeiro) + " sobre o primeiro"} value={formatNumber(summary.comSegundoAgendamento)} />
               <MetricCard label="Com 3º agendamento" hint={formatPercent(summary.taxaTerceiroSobrePrimeiro) + " sobre o primeiro"} value={formatNumber(summary.comTerceiroAgendamento)} />
-              <MetricCard label="Mediana até o 2º" hint={`${formatNumber(timing.amostra)} negócios na amostra`} value={timing.medianaDias === null || timing.medianaDias === undefined ? "—" : `${timing.medianaDias} dias`} />
+              <MetricCard label="Mediana até o 2º" hint={`${formatNumber(timing.amostra)} profissionais na amostra`} value={timing.medianaDias === null || timing.medianaDias === undefined ? "—" : `${timing.medianaDias} dias`} />
             </section>
 
             <section className="panel">
@@ -721,7 +721,11 @@ export function AdminRetentionV2Page() {
                     <article key={window.janelaDias}>
                       <small>D{window.janelaDias}</small>
                       <strong>{formatPercent(window.taxaSegundoNaJanela)}</strong>
-                      <span>{formatNumber(window.comSegundoNaJanela)} de {formatNumber(window.elegiveis)} maduros chegaram ao 2º</span>
+                      <span>
+                        {number(window.elegiveis) > 0
+                          ? `${formatNumber(window.comSegundoNaJanela)} de ${formatNumber(window.elegiveis)} maduros chegaram ao 2º`
+                          : "Sem base madura nesta janela"}
+                      </span>
                     </article>
                   ))}
                 </div>
