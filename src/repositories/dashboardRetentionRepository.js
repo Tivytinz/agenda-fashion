@@ -7,18 +7,7 @@ async function buscarResumoRetencao(
     `
       WITH clientes AS (
         SELECT
-          COALESCE(
-            'usuario:' || cliente_id::text,
-            'whatsapp:' || NULLIF(
-              regexp_replace(
-                COALESCE(cliente_whatsapp, ''),
-                '[^0-9]',
-                '',
-                'g'
-              ),
-              ''
-            )
-          ) AS cliente_chave,
+          client_id AS cliente_chave,
 
           COUNT(*)::int
             AS total_agendamentos
