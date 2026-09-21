@@ -386,7 +386,7 @@ async function ativarVinculoProfissionalAguardandoVaga(
       ativo = TRUE,
       motivo_inatividade = NULL,
       updated_at = NOW()
-    FROM usuarios u
+    FROM usuarios u, negocios n
     WHERE un.usuario_id = $1
       AND un.negocio_id = $2
       AND un.papel = 'profissional'
@@ -394,6 +394,8 @@ async function ativarVinculoProfissionalAguardandoVaga(
       AND un.motivo_inatividade = 'aguardando_vaga_plano'
       AND u.id = un.usuario_id
       AND u.ativo = TRUE
+      AND n.id = un.negocio_id
+      AND n.ativo = TRUE
     RETURNING un.id, un.papel, un.ativo, un.motivo_inatividade
     `,
     [usuarioId, negocioId]
