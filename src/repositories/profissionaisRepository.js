@@ -77,16 +77,29 @@ async function listarProfissionaisDoNegocio(negocioId) {
       COALESCE(un.nome_exibicao, u.nome) AS nome,
       COALESCE(un.whatsapp_exibicao, u.whatsapp) AS whatsapp,
       u.foto_url,
-      un.papel
+      un.papel,
+      un.ativo,
+      un.motivo_inatividade
     FROM usuarios_negocios un
     INNER JOIN usuarios u
       ON u.id = un.usuario_id
     WHERE un.negocio_id = $1
-      AND un.ativo = TRUE
       AND u.ativo = TRUE
       AND un.papel IN ('dono', 'profissional')
+      AND (
+        un.ativo = TRUE
+        OR (
+          un.papel = 'profissional'
+          AND un.ativo = FALSE
+          AND un.motivo_inatividade = 'aguardando_vaga_plano'
+        )
+      )
     ORDER BY
-      CASE WHEN un.papel = 'dono' THEN 0 ELSE 1 END,
+      CASE
+        WHEN un.papel = 'dono' THEN 0
+        WHEN un.ativo = TRUE THEN 1
+        ELSE 2
+      END,
       COALESCE(un.nome_exibicao, u.nome) ASC
     `,
     [negocioId]
@@ -144,11 +157,11 @@ async function removerVinculo(usuarioId, negocioId) {
   return db.executarTransacao(async (client) => {
     const vinculo = await client.query(
       `
-      SELECT id
+      SELECT id, ativo
       FROM usuarios_negocios
       WHERE usuario_id = $1
         AND negocio_id = $2
-        AND ativo = TRUE
+        AND papel = 'profissional'
       LIMIT 1
       FOR UPDATE
       `,
@@ -246,7 +259,7 @@ async function verificarVinculo(
 ) {
   const result = await executor.query(
     `
-    SELECT id, papel, ativo
+    SELECT id, papel, ativo, motivo_inatividade
     FROM usuarios_negocios
     WHERE usuario_id = $1
       AND negocio_id = $2
@@ -301,6 +314,42 @@ async function criarVinculo(
   );
 }
 
+async function criarOuMarcarVinculoAguardandoVaga(
+  usuarioId,
+  negocioId,
+  executor = db
+) {
+  const result = await executor.query(
+    `
+    INSERT INTO usuarios_negocios (
+      usuario_id,
+      negocio_id,
+      papel,
+      ativo,
+      motivo_inatividade
+    )
+    VALUES (
+      $1,
+      $2,
+      'profissional',
+      FALSE,
+      'aguardando_vaga_plano'
+    )
+    ON CONFLICT (usuario_id, negocio_id)
+    DO UPDATE SET
+      papel = 'profissional',
+      ativo = FALSE,
+      motivo_inatividade = 'aguardando_vaga_plano',
+      updated_at = NOW()
+    WHERE usuarios_negocios.ativo = FALSE
+    RETURNING id, papel, ativo, motivo_inatividade
+    `,
+    [usuarioId, negocioId]
+  );
+
+  return result.rows[0] || null;
+}
+
 async function reativarVinculoProfissional(
   usuarioId,
   negocioId,
@@ -312,11 +361,40 @@ async function reativarVinculoProfissional(
     SET
       papel = 'profissional',
       ativo = TRUE,
+      motivo_inatividade = NULL,
       updated_at = NOW()
     WHERE usuario_id = $1
       AND negocio_id = $2
       AND ativo = FALSE
-    RETURNING id
+    RETURNING id, papel, ativo, motivo_inatividade
+    `,
+    [usuarioId, negocioId]
+  );
+
+  return result.rows[0] || null;
+}
+
+async function ativarVinculoProfissionalAguardandoVaga(
+  usuarioId,
+  negocioId,
+  executor = db
+) {
+  const result = await executor.query(
+    `
+    UPDATE usuarios_negocios un
+    SET
+      ativo = TRUE,
+      motivo_inatividade = NULL,
+      updated_at = NOW()
+    FROM usuarios u
+    WHERE un.usuario_id = $1
+      AND un.negocio_id = $2
+      AND un.papel = 'profissional'
+      AND un.ativo = FALSE
+      AND un.motivo_inatividade = 'aguardando_vaga_plano'
+      AND u.id = un.usuario_id
+      AND u.ativo = TRUE
+    RETURNING un.id, un.papel, un.ativo, un.motivo_inatividade
     `,
     [usuarioId, negocioId]
   );
@@ -506,7 +584,9 @@ module.exports = {
   verificarVinculo,
   buscarVinculoProfissionalAtivo,
   criarVinculo,
+  criarOuMarcarVinculoAguardandoVaga,
   reativarVinculoProfissional,
+  ativarVinculoProfissionalAguardandoVaga,
   expirarConvitesPendentes,
   buscarConvitePendente,
   criarConvite,
