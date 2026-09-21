@@ -88,6 +88,20 @@ describe("configuração central do runtime", () => {
     }
   );
 
+  test("trata aliases afirmativos aceitos como flags realmente ativas", () => {
+    expect(() => validarConfiguracaoRuntime({
+      ...ambienteBase(),
+      COPILOT_AI_ENABLED: "sim",
+    })).toThrow("Copilot: variáveis ausentes");
+
+    expect(validarConfiguracaoRuntime({
+      ...ambienteBase(),
+      ML_NO_SHOW_DATA_ENABLED: "sim",
+    })).toMatchObject({
+      coletaMlNoShowAtiva: true,
+    });
+  });
+
   test("recusa flag ambígua e expõe o modo dos workers", () => {
     expect(() => validarConfiguracaoRuntime({
       ...ambienteBase(),

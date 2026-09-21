@@ -1,3 +1,5 @@
+const { flagAtiva } = require("../utils/featureFlags");
+
 const PRIMEIRA_EXECUCAO_MS = 60000;
 const INTERVALO_PADRAO_MS = 15 * 60 * 1000;
 const INTERVALO_MINIMO_MS = 60 * 1000;
@@ -8,12 +10,6 @@ const LOTE_MAXIMO = 500;
 const MINIMO_AMOSTRAS_ROTULADAS = 200;
 const MINIMO_POR_CLASSE = 20;
 const COBERTURA_MINIMA_DESFECHO = 0.8;
-
-function flagAtiva(valor) {
-  return ["1", "true", "yes", "on"].includes(
-    String(valor || "").trim().toLowerCase()
-  );
-}
 
 function inteiroLimitado(valor, padrao, minimo, maximo) {
   const numero = Number(valor);
