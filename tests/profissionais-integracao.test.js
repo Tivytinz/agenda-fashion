@@ -431,7 +431,7 @@ describe("Fluxo de profissionais com banco real", () => {
 
       expect(ativada.statusCode).toBe(200);
       expect(ativada.body).toMatchObject({
-        profissional_id: convidada.id,
+        profissional_id: Number(convidada.id),
         ativo: true,
       });
 
