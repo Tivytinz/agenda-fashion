@@ -1,4 +1,7 @@
-const { flagAtiva } = require("./marketingCostSync");
+const {
+  flagAtiva,
+  valorFlagValido,
+} = require("../utils/featureFlags");
 
 function texto(env, nome) {
   return String(env[nome] || "").trim();
@@ -14,14 +17,8 @@ function exigir(env, nomes, contexto) {
   }
 }
 
-const VALORES_BOOLEANOS = new Set([
-  "1", "0", "true", "false", "yes", "no", "sim", "nao", "não", "on", "off",
-]);
-
 function validarFlagOpcional(env, nome) {
-  const valor = texto(env, nome).toLowerCase();
-
-  if (valor && !VALORES_BOOLEANOS.has(valor)) {
+  if (!valorFlagValido(env[nome])) {
     throw new Error(
       `${nome} precisa ser uma flag booleana válida.`
     );

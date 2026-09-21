@@ -1,14 +1,10 @@
+const { flagAtiva } = require("../utils/featureFlags");
+
 const PRIMEIRA_EXECUCAO_MS = 60000;
 const HORAS_PADRAO = 6;
 const HORAS_MINIMAS = 1;
 const HORAS_MAXIMAS = 24;
 const LIMITE_MANUAL_DESATUALIZADO_HORAS = 24;
-
-function flagAtiva(valor) {
-  return ["1", "true", "yes", "on"].includes(
-    String(valor || "").trim().toLowerCase()
-  );
-}
 
 function intervaloHoras() {
   const valor = Number(

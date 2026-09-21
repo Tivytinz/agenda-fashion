@@ -1,5 +1,13 @@
+const mockInformacao = jest.fn();
+const mockAviso = jest.fn();
+
 jest.mock("axios", () => ({
   post: jest.fn(),
+}));
+
+jest.mock("../src/utils/registrador", () => ({
+  informacao: mockInformacao,
+  aviso: mockAviso,
 }));
 
 const axios = require("axios");
@@ -24,6 +32,10 @@ describe("openaiProvider", () => {
   it("usa Responses API sem armazenamento e exige Structured Outputs", async () => {
     axios.post.mockResolvedValue({
       data: {
+        usage: {
+          input_tokens: 120,
+          output_tokens: 28,
+        },
         output: [
           {
             content: [
@@ -61,14 +73,94 @@ describe("openaiProvider", () => {
     expect(body.input).toBe(JSON.stringify(contexto));
     expect(config.headers.Authorization).toBe("Bearer test-secret-key");
     expect(JSON.stringify(body)).not.toContain("test-secret-key");
+
+    expect(mockInformacao).toHaveBeenCalledWith(
+      "Copilot OpenAI: geração concluída.",
+      expect.objectContaining({
+        provider: "openai",
+        modelo: "gpt-5.6-luna",
+        input_tokens: 120,
+        output_tokens: 28,
+      })
+    );
+
+    const logs = JSON.stringify(mockInformacao.mock.calls);
+    expect(logs).not.toContain("Studio Rosa");
+    expect(logs).not.toContain("test-secret-key");
   });
 
-  it("permanece desligado sem flag e chave", () => {
+  it.each(["1", "true", "yes", "sim", "on"])(
+    "usa o mesmo parser de flags do runtime para %s",
+    (valor) => {
+      process.env.COPILOT_AI_ENABLED = valor;
+      expect(openaiProvider.isEnabled()).toBe(true);
+    }
+  );
+
+  it("permanece desligado sem flag ativa ou sem chave", () => {
     process.env.COPILOT_AI_ENABLED = "false";
     expect(openaiProvider.isEnabled()).toBe(false);
 
     process.env.COPILOT_AI_ENABLED = "true";
     delete process.env.OPENAI_API_KEY;
     expect(openaiProvider.isEnabled()).toBe(false);
+  });
+
+  it("registra timeout sem prompt, resposta ou segredo e propaga a falha", async () => {
+    const erro = new Error("timeout contendo detalhe interno");
+    erro.code = "ECONNABORTED";
+    axios.post.mockRejectedValue(erro);
+
+    const contexto = {
+      finalidade: "divulgacao_perfil",
+      negocio: { nome: "Studio Rosa" },
+    };
+
+    await expect(
+      openaiProvider.generateShareCopy(contexto)
+    ).rejects.toBe(erro);
+
+    expect(mockAviso).toHaveBeenCalledWith(
+      "Copilot OpenAI: falha na geração.",
+      expect.objectContaining({
+        provider: "openai",
+        modelo: "gpt-5.6-luna",
+        tipo_erro: "timeout",
+        codigo: "ECONNABORTED",
+        status_http: null,
+      })
+    );
+
+    const logs = JSON.stringify(mockAviso.mock.calls);
+    expect(logs).not.toContain("Studio Rosa");
+    expect(logs).not.toContain("timeout contendo detalhe interno");
+    expect(logs).not.toContain("test-secret-key");
+  });
+
+  it("classifica resposta inválida sem persistir conteúdo retornado", async () => {
+    axios.post.mockResolvedValue({
+      data: {
+        output_text: "{json quebrado",
+      },
+    });
+
+    await expect(
+      openaiProvider.generateShareCopy({
+        finalidade: "divulgacao_perfil",
+      })
+    ).rejects.toMatchObject({
+      code: "COPILOT_INVALID_JSON",
+    });
+
+    expect(mockAviso).toHaveBeenCalledWith(
+      "Copilot OpenAI: falha na geração.",
+      expect.objectContaining({
+        tipo_erro: "invalid_response",
+        codigo: "COPILOT_INVALID_JSON",
+      })
+    );
+    expect(JSON.stringify(mockAviso.mock.calls)).not.toContain(
+      "{json quebrado"
+    );
   });
 });
