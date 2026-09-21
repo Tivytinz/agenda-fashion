@@ -185,6 +185,34 @@ describe("adminAnalyticsV2Service", () => {
     });
   });
 
+  test("não usa diferença de sessionização como divergência de eventos", () => {
+    const resultado = mapearReconciliacaoPipelines({
+      periodo: "30",
+      inicioComparavel: "2026-09-20T12:00:00.000Z",
+      eventos: [
+        {
+          evento: "profile_viewed",
+          legado_eventos_periodo: 10,
+          v2_eventos_periodo: 10,
+          legado_eventos_comparaveis: 10,
+          v2_eventos_comparaveis: 10,
+          legado_sessoes_comparaveis: 6,
+          v2_sessoes_comparaveis: 8,
+        },
+      ],
+    });
+
+    expect(resultado).toMatchObject({
+      estado: "paridade_exata",
+      eventosComDivergencia: 0,
+    });
+    expect(resultado.eventos[0]).toMatchObject({
+      paridadeExata: true,
+      paridadeSessoes: false,
+      diferencaSessoes: 2,
+    });
+  });
+
   test("marca sem base quando ainda não existe evento V2 comparável", () => {
     expect(
       mapearReconciliacaoPipelines({
