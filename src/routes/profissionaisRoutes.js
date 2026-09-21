@@ -12,6 +12,7 @@ const {
   criarConviteProfissional,
   listarConvitesRecebidos,
   aceitarConviteProfissional,
+  ativarProfissional,
   recusarConviteProfissional,
   editarProfissional,
   removerProfissional
@@ -27,6 +28,7 @@ const {
 router.get("/profissionais", auth, listarProfissionais);
 router.put("/profissionais/:id", auth, editarProfissional);
 router.delete("/profissionais/:id", auth, removerProfissional);
+router.post("/profissionais/:id/ativar", auth, ativarProfissional);
 
 router.get(
   "/profissionais/:id/servicos",
