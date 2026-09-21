@@ -296,13 +296,13 @@ function removeOutboxEntry(id) {
 
 async function postPayload(payload, { keepalive = false } = {}) {
   const token = readBrowserStorage("local", "token");
-  const response = await fetch(\`\${API_URL}/analytics/collect\`, {
+  const response = await fetch(`${API_URL}/analytics/collect`, {
     method: "POST",
     credentials: "include",
     keepalive,
     headers: {
       "Content-Type": "application/json",
-      ...(token ? { Authorization: \`Bearer \${token}\` } : {})
+      ...(token ? { Authorization: `Bearer ${token}` } : {})
     },
     body: JSON.stringify(payload)
   });
