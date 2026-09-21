@@ -75,7 +75,11 @@ async function listarProfissionaisDoNegocio(negocioId) {
     SELECT
       u.id,
       COALESCE(un.nome_exibicao, u.nome) AS nome,
-      COALESCE(un.whatsapp_exibicao, u.whatsapp) AS whatsapp,
+      CASE
+        WHEN un.ativo = TRUE
+          THEN COALESCE(un.whatsapp_exibicao, u.whatsapp)
+        ELSE NULL
+      END AS whatsapp,
       u.foto_url,
       un.papel,
       un.ativo,
