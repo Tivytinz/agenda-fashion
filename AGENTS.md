@@ -337,6 +337,33 @@ decisão de produto e segurança.
 Detalhes ficam em `docs/marketing-attribution.md`, `docs/marketing-sync-ga4.md`
 e demais documentos de marketing.
 
+## Machine Learning
+
+O primeiro caso de Machine Learning do AF é a previsão de risco de falta em
+agendamentos. A implantação é incremental: fundação de dados, validação de
+maturidade, baseline reproduzível, previsão em modo shadow e somente depois um
+experimento de intervenção não punitiva.
+
+Regras duráveis:
+
+- `falta` e `realizado` são os únicos rótulos do primeiro modelo; cancelamento,
+  booking criado e passagem do horário não inventam comparecimento;
+- features precisam representar somente informações disponíveis no instante da
+  previsão e não podem usar desfechos futuros;
+- a base de ML não copia nome, telefone, WhatsApp, e-mail, observações ou texto
+  livre;
+- visitantes não são unidos silenciosamente por telefone para formar histórico;
+- ML roda fora do caminho crítico do agendamento e uma falha sua não pode
+  bloquear criação, reagendamento ou lifecycle;
+- todo modelo começa em modo shadow e precisa de versão, período de treino,
+  métricas e features auditáveis;
+- score não pode cancelar, recusar, cobrar, bloquear, reordenar ou expor um
+  rótulo negativo sobre o cliente;
+- qualquer intervenção futura precisa demonstrar redução de faltas sem piorar
+  cancelamentos, reclamações, privacidade ou entregabilidade.
+
+Detalhes: `docs/machine-learning-no-show.md`.
+
 ## WhatsApp e automações
 
 O WhatsApp complementa o produto; o agendamento não depende de atendimento

@@ -151,6 +151,14 @@ function validarConfiguracaoRuntime(env = process.env) {
     minimo: 1,
     maximo: 100,
   });
+  validarInteiroOpcional(env, "ML_NO_SHOW_DATA_INTERVAL_MS", {
+    minimo: 60000,
+    maximo: 86400000,
+  });
+  validarInteiroOpcional(env, "ML_NO_SHOW_DATA_BATCH_SIZE", {
+    minimo: 1,
+    maximo: 500,
+  });
 
   validarInteiroOpcional(env, "BCRYPT_ROUNDS", {
     minimo: 10,
@@ -176,6 +184,7 @@ function validarConfiguracaoRuntime(env = process.env) {
   const flagsConhecidas = [
     "BACKGROUND_WORKERS_ENABLED",
     "MARKETING_COST_SYNC_SCHEDULE_ENABLED",
+    "ML_NO_SHOW_DATA_ENABLED",
     "WHATSAPP_NOTIFICATIONS_ENABLED",
     "WHATSAPP_PROFESSIONAL_REMINDER_ENABLED",
     "WHATSAPP_FIRST_SERVICE_REMINDER_ENABLED",
@@ -385,6 +394,9 @@ function validarConfiguracaoRuntime(env = process.env) {
     ),
     sincronizacaoMarketingAtiva: flagAtiva(
       env.MARKETING_COST_SYNC_SCHEDULE_ENABLED
+    ),
+    coletaMlNoShowAtiva: flagAtiva(
+      env.ML_NO_SHOW_DATA_ENABLED
     ),
     workersAtivos:
       texto(env, "BACKGROUND_WORKERS_ENABLED") === ""

@@ -10,11 +10,16 @@ const {
   iniciarWorkerCustosMarketing,
   pararWorkerCustosMarketing,
 } = require("../services/marketingCostSyncWorker");
+const {
+  iniciarWorkerMlNoShow,
+  pararWorkerMlNoShow,
+} = require("../services/mlNoShowDataWorker");
 
 function iniciarWorkers() {
   iniciarWorkerWebhook();
   iniciarWorkerWhatsapp();
   iniciarWorkerCustosMarketing();
+  iniciarWorkerMlNoShow();
 }
 
 async function pararWorkers() {
@@ -22,6 +27,7 @@ async function pararWorkers() {
     pararWorkerWebhook(),
     pararWorkerWhatsapp(),
     pararWorkerCustosMarketing(),
+    pararWorkerMlNoShow(),
   ]);
 }
 
