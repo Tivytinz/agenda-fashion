@@ -89,7 +89,7 @@ describe("openaiProvider", () => {
     expect(logs).not.toContain("test-secret-key");
   });
 
-  it.each(["1", "true", "yes", "on"])(
+  it.each(["1", "true", "yes", "sim", "on"])(
     "usa o mesmo parser de flags do runtime para %s",
     (valor) => {
       process.env.COPILOT_AI_ENABLED = valor;
