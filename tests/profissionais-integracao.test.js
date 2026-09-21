@@ -324,6 +324,116 @@ describe("Fluxo de profissionais com banco real", () => {
     expect(resposta.statusCode).toBe(200);
   });
 
+  test("CA-EQP-02: aceite sem vaga aguarda capacidade e dona ativa depois", async () => {
+    const convidada = await criarUsuario(
+      "Convidada Sem Vaga",
+      "sem-vaga",
+      6
+    );
+    const tokenConvidada = gerarToken(convidada.id);
+
+    await db.query(
+      "UPDATE planos SET limite_profissionais = 1 WHERE id = $1",
+      [planoEquipeId]
+    );
+
+    try {
+      const convite = await request(app)
+        .post("/profissionais/convites")
+        .set("Authorization", `Bearer ${tokenDonoB}`)
+        .send({ emailOuWhatsapp: convidada.email });
+
+      expect(convite.statusCode).toBe(201);
+
+      const aceite = await request(app)
+        .post(`/profissionais/convites/${convite.body.convite.id}/aceitar`)
+        .set("Authorization", `Bearer ${tokenConvidada}`);
+
+      expect(aceite.statusCode).toBe(200);
+      expect(aceite.body).toMatchObject({
+        convite: { status: "aceito" },
+        vinculo: {
+          ativo: false,
+          estado: "aguardando_vaga",
+        },
+      });
+
+      const aguardando = await db.query(
+        `
+        SELECT papel, ativo, motivo_inatividade
+        FROM usuarios_negocios
+        WHERE usuario_id = $1
+          AND negocio_id = $2
+        `,
+        [convidada.id, negocioB.id]
+      );
+
+      expect(aguardando.rows).toEqual([{
+        papel: "profissional",
+        ativo: false,
+        motivo_inatividade: "aguardando_vaga_plano",
+      }]);
+
+      const equipe = await request(app)
+        .get("/profissionais")
+        .set("Authorization", `Bearer ${tokenDonoB}`);
+
+      expect(equipe.statusCode).toBe(200);
+      expect(equipe.body.profissionais).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            id: convidada.id,
+            ativo: false,
+            motivo_inatividade: "aguardando_vaga_plano",
+          }),
+        ])
+      );
+
+      const semCapacidade = await request(app)
+        .post(`/profissionais/${convidada.id}/ativar`)
+        .set("Authorization", `Bearer ${tokenDonoB}`);
+
+      expect(semCapacidade.statusCode).toBe(409);
+      expect(semCapacidade.body.codigo).toBe("LIMITE_PROFISSIONAIS");
+
+      await db.query(
+        "UPDATE planos SET limite_profissionais = 5 WHERE id = $1",
+        [planoEquipeId]
+      );
+
+      const ativada = await request(app)
+        .post(`/profissionais/${convidada.id}/ativar`)
+        .set("Authorization", `Bearer ${tokenDonoB}`);
+
+      expect(ativada.statusCode).toBe(200);
+      expect(ativada.body).toMatchObject({
+        profissional_id: convidada.id,
+        ativo: true,
+      });
+
+      const vinculoAtivo = await db.query(
+        `
+        SELECT papel, ativo, motivo_inatividade
+        FROM usuarios_negocios
+        WHERE usuario_id = $1
+          AND negocio_id = $2
+        `,
+        [convidada.id, negocioB.id]
+      );
+
+      expect(vinculoAtivo.rows).toEqual([{
+        papel: "profissional",
+        ativo: true,
+        motivo_inatividade: null,
+      }]);
+    } finally {
+      await db.query(
+        "UPDATE planos SET limite_profissionais = 5 WHERE id = $1",
+        [planoEquipeId]
+      );
+    }
+  });
+
   test("CA-EQP-03: convite pendente não é aceito após arquivar o negócio", async () => {
     const convidada = await criarUsuario("Convidada Arquivada", "arquivada", 5);
     const convite = await request(app)
