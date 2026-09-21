@@ -61,6 +61,13 @@ const EVENT_LABELS = {
   checkout_viewed: "Checkout visualizado"
 };
 
+const PIPELINE_RECONCILIATION_LABELS = {
+  paridade_exata: "Paridade exata",
+  divergencia_observada: "Divergência observada",
+  sem_base_v2: "V2 sem base comparável",
+  sem_eventos: "Sem eventos comparáveis"
+};
+
 function number(value) {
   const converted = Number(value);
   return Number.isFinite(converted) ? converted : 0;
@@ -96,6 +103,18 @@ function formatSeconds(value) {
   const minutes = Math.floor(seconds / 60);
   const remaining = Math.round(seconds % 60);
   return remaining > 0 ? `${minutes}min ${remaining}s` : `${minutes}min`;
+}
+
+function formatDateTime(value) {
+  if (!value) return "—";
+  const date = new Date(value);
+  if (!Number.isFinite(date.getTime())) return "—";
+
+  return new Intl.DateTimeFormat("pt-BR", {
+    dateStyle: "short",
+    timeStyle: "short",
+    timeZone: "America/Sao_Paulo"
+  }).format(date);
 }
 
 function MetricCard({ hint, label, tone = "neutral", value }) {
@@ -520,8 +539,21 @@ export function AdminJourneyV2Page() {
         const transitions = Array.isArray(data.transicoes) ? data.transicoes : [];
         const events = Array.isArray(data.eventos) ? data.eventos : [];
         const devices = Array.isArray(data.dispositivos) ? data.dispositivos : [];
+        const reconciliation = data.reconciliacaoPipelines || {};
+        const pipelineEvents = Array.isArray(reconciliation.eventos)
+          ? reconciliation.eventos
+          : [];
+        const hasPipelineEvidence =
+          pipelineEvents.some((item) => (
+            number(item.legadoPeriodo) > 0 ||
+            number(item.v2Periodo) > 0
+          ));
 
-        if (screens.length === 0 && events.length === 0) {
+        if (
+          screens.length === 0 &&
+          events.length === 0 &&
+          !hasPipelineEvidence
+        ) {
           return (
             <EmptyState title="A jornada first-party começa a ser construída nesta versão">
               Não há backfill artificial de páginas ou tempo de permanência. Assim que houver novas sessões, esta área passa a mostrar caminhos reais.
@@ -579,6 +611,64 @@ export function AdminJourneyV2Page() {
                 )}
               </section>
             </div>
+
+            <section className="panel">
+              <div className="panel-heading">
+                <div>
+                  <p className="eyebrow">Migração de analytics</p>
+                  <h2>Reconciliação legado × V2</h2>
+                  <p className="muted">
+                    {PIPELINE_RECONCILIATION_LABELS[reconciliation.estado] || reconciliation.estado || "Sem diagnóstico"}
+                    {reconciliation.inicioComparavel
+                      ? ` · comparação desde ${formatDateTime(reconciliation.inicioComparavel)}`
+                      : ""}
+                  </p>
+                </div>
+              </div>
+
+              {pipelineEvents.length === 0 ? (
+                <p className="muted">Nenhum evento comparável foi retornado.</p>
+              ) : (
+                <div className="table-wrapper">
+                  <table className="data-table">
+                    <thead>
+                      <tr>
+                        <th>Evento</th>
+                        <th>Legado</th>
+                        <th>Analytics V2</th>
+                        <th>Diferença</th>
+                        <th>Cobertura V2</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {pipelineEvents.map((item) => (
+                        <tr key={item.evento}>
+                          <td>
+                            <strong>{EVENT_LABELS[item.evento] || item.evento}</strong>
+                            {item.evento === "booking_completed" && (
+                              <small>
+                                {formatNumber(item.bookingCompletedVinculados)} conclusão(ões) V2 vinculada(s) ao booking real
+                              </small>
+                            )}
+                          </td>
+                          <td>{formatNumber(item.legadoComparavel)}</td>
+                          <td>{formatNumber(item.v2Comparavel)}</td>
+                          <td>{number(item.diferencaEventos) > 0 ? "+" : ""}{formatNumber(item.diferencaEventos)}</td>
+                          <td>{formatPercent(item.coberturaV2SobreLegado)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+
+              <details className="admin-metric-definition">
+                <summary>Como interpretar a reconciliação</summary>
+                <p>{reconciliation.metodologia?.comparacao}</p>
+                <p>{reconciliation.metodologia?.eventos}</p>
+                <p>{reconciliation.metodologia?.decisao}</p>
+              </details>
+            </section>
 
             <section className="panel">
               <div className="panel-heading"><div><p className="eyebrow">Compatibilidade</p><h2>Dispositivo e navegador</h2></div></div>
