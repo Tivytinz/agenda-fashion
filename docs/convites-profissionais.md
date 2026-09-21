@@ -61,8 +61,10 @@ WhatsApp e enviar um convite. A interface não comunica vínculo imediato e não
 recarrega a equipe como se a pessoa já tivesse entrado.
 
 A conta convidada acessa `/convites`, inclusive quando ainda não possui negócio.
-A tela apresenta apenas convites pendentes próprios, com ações `Aceitar convite`
-e `Recusar`.
+A tela apresenta convites pendentes próprios, com ações `Aceitar convite` e
+`Recusar`. Quando um aceite fica aguardando capacidade, esse estado permanece
+visível na mesma tela, sem botões de resposta e sem atalho para o workspace,
+até que a dona ative ou remova o vínculo.
 
 Após aceite com vaga, o frontend atualiza `/minha-sessao` antes de liberar o
 atalho para a área profissional. Quando o aceite fica aguardando vaga, a tela
