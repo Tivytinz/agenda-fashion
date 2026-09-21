@@ -218,6 +218,14 @@ router.get(
     .obterSaudeOperacional
 );
 
+router.get(
+  "/admin/saude/ml-no-show",
+  auth,
+  authAdmin,
+  adminSaasHealthController
+    .obterMaturidadeMlNoShow
+);
+
 /*
  * Saúde dos templates e das entregas do WhatsApp.
  * A consulta à Meta é somente leitura e as credenciais
