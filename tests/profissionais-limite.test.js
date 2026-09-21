@@ -44,6 +44,19 @@ describe("Limite de profissionais", () => {
       status: "pendente",
       expira_em: new Date(Date.now() + 60_000).toISOString(),
     });
+    profissionaisRepository.buscarVinculoProfissionalAtivo.mockResolvedValue(null);
+    profissionaisRepository.criarOuMarcarVinculoAguardandoVaga.mockResolvedValue({
+      id: 501,
+      papel: "profissional",
+      ativo: false,
+      motivo_inatividade: "aguardando_vaga_plano",
+    });
+    profissionaisRepository.atualizarStatusConvite.mockResolvedValue({
+      id: 90,
+      negocio_id: 7,
+      usuario_convidado_id: 20,
+      status: "aceito",
+    });
   });
 
   test("convite pendente não consome nem valida vaga do plano", async () => {
@@ -64,7 +77,7 @@ describe("Limite de profissionais", () => {
     expect(profissionaisRepository.criarVinculo).not.toHaveBeenCalled();
   });
 
-  test("aceite usa o plano efetivo e bloqueia quando a vaga acabou", async () => {
+  test("CA-EQP-02: aceite usa o plano efetivo e aguarda vaga quando a capacidade acabou", async () => {
     profissionaisRepository.buscarConviteParaAtualizacao.mockResolvedValue({
       id: 90,
       negocio_id: 7,
@@ -81,29 +94,33 @@ describe("Limite de profissionais", () => {
       profissionais_utilizados: 1,
     });
 
-    await expect(
-      profissionaisService.aceitarConviteProfissional({
-        usuarioId: 20,
-        conviteId: 90,
-      })
-    ).rejects.toMatchObject({
-      statusCode: 409,
-      codigo: "LIMITE_PROFISSIONAIS",
-      uso: {
-        plano_nome: "Grátis",
-        utilizados: 1,
-        limite: 1,
-        acima_do_limite: 0,
-      },
+    const resultado = await profissionaisService.aceitarConviteProfissional({
+      usuarioId: 20,
+      conviteId: 90,
     });
 
+    expect(resultado).toMatchObject({
+      convite: { status: "aceito" },
+      vinculo: {
+        ativo: false,
+        estado: "aguardando_vaga",
+      },
+    });
     expect(planoService.buscarUsoPlano).toHaveBeenCalledWith(7, client);
+    expect(
+      profissionaisRepository.criarOuMarcarVinculoAguardandoVaga
+    ).toHaveBeenCalledWith(20, 7, client);
+    expect(profissionaisRepository.atualizarStatusConvite).toHaveBeenCalledWith(
+      90,
+      "aceito",
+      client
+    );
     expect(profissionaisRepository.buscarPlanoDoNegocio).not.toHaveBeenCalled();
     expect(profissionaisRepository.contarProfissionaisAtivos).not.toHaveBeenCalled();
     expect(profissionaisRepository.criarVinculo).not.toHaveBeenCalled();
   });
 
-  test("após downgrade preserva a equipe e bloqueia aceite acima do limite", async () => {
+  test("após downgrade preserva a equipe ativa e coloca novo aceite na espera", async () => {
     profissionaisRepository.buscarConviteParaAtualizacao.mockResolvedValue({
       id: 90,
       negocio_id: 7,
@@ -120,19 +137,21 @@ describe("Limite de profissionais", () => {
       profissionais_utilizados: 3,
     });
 
-    await expect(
-      profissionaisService.aceitarConviteProfissional({ usuarioId: 20, conviteId: 90 })
-    ).rejects.toMatchObject({
-      statusCode: 409,
-      codigo: "LIMITE_PROFISSIONAIS",
-      uso: {
-        plano_nome: "Grátis",
-        utilizados: 3,
-        limite: 1,
-        acima_do_limite: 2,
-      },
+    const resultado = await profissionaisService.aceitarConviteProfissional({
+      usuarioId: 20,
+      conviteId: 90,
     });
 
+    expect(resultado).toMatchObject({
+      convite: { status: "aceito" },
+      vinculo: {
+        ativo: false,
+        estado: "aguardando_vaga",
+      },
+    });
+    expect(
+      profissionaisRepository.criarOuMarcarVinculoAguardandoVaga
+    ).toHaveBeenCalledWith(20, 7, client);
     expect(profissionaisRepository.removerVinculo).not.toHaveBeenCalled();
     expect(profissionaisRepository.criarVinculo).not.toHaveBeenCalled();
   });

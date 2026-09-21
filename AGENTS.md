@@ -207,6 +207,14 @@ pressão por upgrade.
 O slug interno do plano gratuito permanece `inicial` por compatibilidade.
 Limites de plano, preço e elegibilidade são regras do backend.
 
+Convites de equipe preservam a intenção da profissional mesmo quando o negócio
+não possui capacidade no plano: o convite pode ser aceito com vínculo
+`profissional` inativo e `motivo_inatividade = 'aguardando_vaga_plano'`.
+Esse estado não consome limite, não concede workspace, não recebe agendamentos
+e não participa da matriz profissional-serviço. Quando houver capacidade, a
+dona escolhe explicitamente quem ativar; a ativação revalida plano, contexto
+ativo e eventual vínculo profissional ativo em outro negócio dentro do backend.
+
 Planos pagos usam checkout por PIX. Retorno do navegador não confirma pagamento.
 A ativação do plano depende da confirmação financeira autenticada e idempotente
 do Asaas.

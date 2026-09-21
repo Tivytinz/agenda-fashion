@@ -44,6 +44,19 @@ describe("Convites de profissionais", () => {
       status: "pendente",
       expira_em: new Date(Date.now() + 60_000).toISOString(),
     });
+    profissionaisRepository.buscarVinculoProfissionalAtivo.mockResolvedValue(null);
+    profissionaisRepository.criarOuMarcarVinculoAguardandoVaga.mockResolvedValue({
+      id: 501,
+      papel: "profissional",
+      ativo: false,
+      motivo_inatividade: "aguardando_vaga_plano",
+    });
+    profissionaisRepository.ativarVinculoProfissionalAguardandoVaga.mockResolvedValue({
+      id: 501,
+      papel: "profissional",
+      ativo: true,
+      motivo_inatividade: null,
+    });
     planoService.buscarUsoPlano.mockResolvedValue({
       negocio_id: 7,
       plano_nome: "Salão",
@@ -85,6 +98,27 @@ describe("Convites de profissionais", () => {
     expect(profissionaisRepository.criarVinculo).not.toHaveBeenCalled();
   });
 
+  test("não recria convite para profissional que já aguarda vaga", async () => {
+    profissionaisRepository.verificarVinculo.mockResolvedValue({
+      id: 501,
+      papel: "profissional",
+      ativo: false,
+      motivo_inatividade: "aguardando_vaga_plano",
+    });
+
+    await expect(
+      profissionaisService.criarConviteProfissional({
+        usuarioDonoId: 1,
+        emailOuWhatsapp: "profissional@teste.com",
+      })
+    ).rejects.toMatchObject({
+      statusCode: 400,
+      message: "Esta profissional já aceitou o convite e está aguardando uma vaga no plano.",
+    });
+
+    expect(profissionaisRepository.criarConvite).not.toHaveBeenCalled();
+  });
+
   test("CA-EQP-03: convite pendente de negócio arquivado não cria vínculo", async () => {
     profissionaisRepository.buscarConviteParaAtualizacao.mockResolvedValue({
       id: 99,
@@ -114,7 +148,7 @@ describe("Convites de profissionais", () => {
     expect(profissionaisRepository.criarVinculo).not.toHaveBeenCalled();
   });
 
-  test("aceite revalida o limite do plano", async () => {
+  test("CA-EQP-02: aceite sem vaga cria vínculo inativo aguardando capacidade", async () => {
     profissionaisRepository.buscarConviteParaAtualizacao.mockResolvedValue({
       id: 99,
       negocio_id: 7,
@@ -124,6 +158,19 @@ describe("Convites de profissionais", () => {
       negocio_ativo: true,
       usuario_ativo: true,
     });
+    profissionaisRepository.buscarVinculoProfissionalAtivo.mockResolvedValue(null);
+    profissionaisRepository.criarOuMarcarVinculoAguardandoVaga.mockResolvedValue({
+      id: 501,
+      papel: "profissional",
+      ativo: false,
+      motivo_inatividade: "aguardando_vaga_plano",
+    });
+    profissionaisRepository.atualizarStatusConvite.mockResolvedValue({
+      id: 99,
+      negocio_id: 7,
+      usuario_convidado_id: 20,
+      status: "aceito",
+    });
     planoService.buscarUsoPlano.mockResolvedValue({
       negocio_id: 7,
       plano_nome: "Grátis",
@@ -131,11 +178,23 @@ describe("Convites de profissionais", () => {
       profissionais_utilizados: 1,
     });
 
-    await expect(
-      profissionaisService.aceitarConviteProfissional({ usuarioId: 20, conviteId: 99 })
-    ).rejects.toMatchObject({ statusCode: 409, codigo: "LIMITE_PROFISSIONAIS" });
+    const resultado = await profissionaisService.aceitarConviteProfissional({
+      usuarioId: 20,
+      conviteId: 99,
+    });
 
+    expect(
+      profissionaisRepository.criarOuMarcarVinculoAguardandoVaga
+    ).toHaveBeenCalledWith(20, 7, client);
     expect(profissionaisRepository.criarVinculo).not.toHaveBeenCalled();
+    expect(resultado).toMatchObject({
+      convite: { status: "aceito" },
+      vinculo: {
+        ativo: false,
+        estado: "aguardando_vaga",
+      },
+    });
+    expect(resultado.mensagem).toContain("não possui uma vaga disponível");
   });
 
   test("usuário diferente não aceita convite de outra pessoa", async () => {
@@ -225,6 +284,66 @@ describe("Convites de profissionais", () => {
     );
     expect(profissionaisRepository.criarVinculo).not.toHaveBeenCalled();
     expect(resultado.convite.status).toBe("aceito");
+  });
+
+  test("dona ativa vínculo aguardando vaga quando o plano possui capacidade", async () => {
+    profissionaisRepository.verificarVinculo.mockResolvedValue({
+      id: 501,
+      papel: "profissional",
+      ativo: false,
+      motivo_inatividade: "aguardando_vaga_plano",
+    });
+    profissionaisRepository.buscarVinculoProfissionalAtivo.mockResolvedValue(null);
+    profissionaisRepository.ativarVinculoProfissionalAguardandoVaga.mockResolvedValue({
+      id: 501,
+      papel: "profissional",
+      ativo: true,
+      motivo_inatividade: null,
+    });
+
+    const resultado = await profissionaisService.ativarProfissional({
+      usuarioId: 1,
+      profissionalId: 20,
+    });
+
+    expect(planoService.buscarUsoPlano).toHaveBeenCalledWith(7, client);
+    expect(
+      profissionaisRepository.ativarVinculoProfissionalAguardandoVaga
+    ).toHaveBeenCalledWith(20, 7, client);
+    expect(resultado).toMatchObject({
+      profissional_id: 20,
+      ativo: true,
+    });
+  });
+
+  test("ativação mantém vínculo aguardando quando o plano continua sem vaga", async () => {
+    profissionaisRepository.verificarVinculo.mockResolvedValue({
+      id: 501,
+      papel: "profissional",
+      ativo: false,
+      motivo_inatividade: "aguardando_vaga_plano",
+    });
+    profissionaisRepository.buscarVinculoProfissionalAtivo.mockResolvedValue(null);
+    planoService.buscarUsoPlano.mockResolvedValue({
+      negocio_id: 7,
+      plano_nome: "Grátis",
+      limite_profissionais: 1,
+      profissionais_utilizados: 1,
+    });
+
+    await expect(
+      profissionaisService.ativarProfissional({
+        usuarioId: 1,
+        profissionalId: 20,
+      })
+    ).rejects.toMatchObject({
+      statusCode: 409,
+      codigo: "LIMITE_PROFISSIONAIS",
+    });
+
+    expect(
+      profissionaisRepository.ativarVinculoProfissionalAguardandoVaga
+    ).not.toHaveBeenCalled();
   });
 
   test("recusa não cria vínculo", async () => {

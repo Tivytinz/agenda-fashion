@@ -65,6 +65,47 @@ describe("convites recebidos", () => {
     expect(screen.queryByText("Studio Rosa")).toBeNull();
   });
 
+  it("CA-EQP-02: aceita convite sem vaga sem liberar área profissional", async () => {
+    apiRequest
+      .mockResolvedValueOnce({
+        convites: [{
+          id: 14,
+          negocio_id: 7,
+          negocio_nome: "Studio Lotado",
+          status: "pendente",
+          expira_em: "2026-09-30T18:00:00.000Z"
+        }]
+      })
+      .mockResolvedValueOnce({
+        mensagem: "Convite aceito. Este negócio ainda não possui uma vaga disponível no plano atual. Você entrará na equipe quando a dona liberar uma vaga.",
+        convite: { id: 14, negocio_id: 7, status: "aceito" },
+        vinculo: { ativo: false, estado: "aguardando_vaga" }
+      });
+
+    render(<MemoryRouter><ProfessionalInvitesPage /></MemoryRouter>);
+    await screen.findByText("Studio Lotado");
+    fireEvent.click(screen.getByRole("button", { name: "Aceitar convite" }));
+
+    expect(
+      await screen.findByText(/não possui uma vaga disponível/i)
+    ).not.toBeNull();
+    expect(screen.getByText("Studio Lotado")).not.toBeNull();
+    expect(screen.getByText("Aguardando vaga")).not.toBeNull();
+    expect(
+      screen.getByText(/precisa liberar uma vaga no plano/i)
+    ).not.toBeNull();
+    expect(
+      screen.queryByRole("button", { name: "Aceitar convite" })
+    ).toBeNull();
+    expect(
+      screen.queryByRole("button", { name: "Recusar" })
+    ).toBeNull();
+    expect(refresh).not.toHaveBeenCalled();
+    expect(
+      screen.queryByRole("link", { name: "Abrir minha área profissional" })
+    ).toBeNull();
+  });
+
   it("recusa convite sem criar acesso ao negócio", async () => {
     apiRequest
       .mockResolvedValueOnce({

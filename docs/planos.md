@@ -50,6 +50,14 @@ apagar dados existentes nem impedir a edição do que já foi cadastrado.
 - A lotação de um mês não bloqueia os meses seguintes.
 - Limites de serviço, profissional e agendamento devem ser validados pelo
   backend, dentro da mesma transação da criação.
+- Apenas vínculos de equipe com `ativo = TRUE` consomem
+  `limite_profissionais`.
+- Um convite aceito sem vaga pode permanecer como vínculo
+  `aguardando_vaga_plano`; esse estado não concede acesso operacional, não
+  recebe agendamentos e não consome capacidade.
+- Liberar capacidade ou concluir um upgrade não ativa automaticamente pessoas
+  aguardando vaga. A dona escolhe quem ativar, e o backend revalida o limite no
+  momento da ativação.
 - `NULL` no banco representa capacidade ilimitada.
 
 ## Upgrade, pagamento e cancelamento
@@ -102,6 +110,8 @@ negócio e conversão para plano pago.
 ## Referências técnicas
 
 - Catálogo e limites: `database/migrations/015_planos_limites.sql`.
+- Estado de equipe aguardando capacidade:
+  `database/migrations/084_profissionais_aguardando_vaga.sql`.
 - Normalização dos nomes: `database/migrations/025_corrigir_nomes_planos.sql`.
 - Consulta pública: `GET /planos`.
 - Oferta pública em HTML: `/planos` com `Accept: text/html`.

@@ -55,15 +55,32 @@ export function ProfessionalInvitesPage() {
         { method: "POST" }
       );
 
+      const waitingForCapacity =
+        action === "aceitar" &&
+        result.vinculo?.ativo === false;
+
       setItems((current) =>
-        (current || []).filter(
-          (invite) => Number(invite.id) !== Number(inviteId)
-        )
+        waitingForCapacity
+          ? (current || []).map((invite) =>
+            Number(invite.id) === Number(inviteId)
+              ? {
+                  ...invite,
+                  status: "aceito",
+                  estado: "aguardando_vaga"
+                }
+              : invite
+          )
+          : (current || []).filter(
+            (invite) => Number(invite.id) !== Number(inviteId)
+          )
       );
 
       setMessage(result.mensagem);
 
-      if (action === "aceitar") {
+      if (
+        action === "aceitar" &&
+        !waitingForCapacity
+      ) {
         const refreshed = await session.refresh();
         setWorkspacePath(
           getBusinessWorkspacePath(
@@ -71,6 +88,8 @@ export function ProfessionalInvitesPage() {
             "profissional"
           )
         );
+      } else {
+        setWorkspacePath("");
       }
     } catch (requestError) {
       setActionError(requestError.message);
@@ -87,8 +106,9 @@ export function ProfessionalInvitesPage() {
             <p className="eyebrow">Equipe</p>
             <h1>Convites recebidos</h1>
             <p>
-              Você só passa a fazer parte de um negócio depois de aceitar.
-              Nenhum vínculo é criado automaticamente.
+              Seu aceite é necessário antes de qualquer vínculo com o negócio.
+              Quando não houver vaga no plano, o aceite fica aguardando ativação
+              pela dona.
             </p>
           </div>
 
@@ -121,62 +141,70 @@ export function ProfessionalInvitesPage() {
         )}
 
         {items?.length === 0 && (
-          <EmptyState title="Nenhum convite pendente">
+          <EmptyState title="Nenhum convite ou vínculo aguardando vaga">
             Quando um negócio convidar você para a equipe, o convite aparecerá
-            aqui para aceite ou recusa.
+            aqui. Aceites que dependem de capacidade também continuam visíveis
+            até a dona liberar uma vaga.
           </EmptyState>
         )}
 
         {items?.length > 0 && (
           <section
-            aria-label="Convites pendentes"
+            aria-label="Convites e vínculos de equipe"
             className="team-invite-list"
           >
             {items.map((invite) => {
               const isResponding =
                 Number(responding?.id) === Number(invite.id);
               const expiration = formatExpiration(invite.expira_em);
+              const waitingForCapacity =
+                invite.estado === "aguardando_vaga";
 
               return (
                 <article className="team-invite-card" key={invite.id}>
                   <div className="team-invite-copy">
-                    <span className="invite-status-badge">Pendente</span>
+                    <span className="invite-status-badge">
+                      {waitingForCapacity ? "Aguardando vaga" : "Pendente"}
+                    </span>
                     <h2>{invite.negocio_nome}</h2>
                     <p>
-                      Este negócio quer adicionar você à equipe como
-                      profissional.
+                      {waitingForCapacity
+                        ? "Você aceitou este convite. O negócio precisa liberar uma vaga no plano antes de ativar seu acesso profissional."
+                        : "Este negócio quer adicionar você à equipe como profissional."}
                     </p>
 
-                    {expiration && (
+                    {!waitingForCapacity && expiration && (
                       <small>
                         Convite válido até {expiration}.
                       </small>
                     )}
                   </div>
 
-                  <div className="team-invite-actions">
-                    <button
-                      className="button button-secondary"
-                      disabled={isResponding}
-                      onClick={() => respond(invite.id, "recusar")}
-                      type="button"
-                    >
-                      {isResponding && responding.action === "recusar"
-                        ? "Recusando..."
-                        : "Recusar"}
-                    </button>
+                  {!waitingForCapacity && (
+                    <div className="team-invite-actions">
+                      <button
+                        className="button button-secondary"
+                        disabled={isResponding}
+                        onClick={() => respond(invite.id, "recusar")}
+                        type="button"
+                      >
+                        {isResponding && responding.action === "recusar"
+                          ? "Recusando..."
+                          : "Recusar"}
+                      </button>
 
-                    <button
-                      className="button"
-                      disabled={isResponding}
-                      onClick={() => respond(invite.id, "aceitar")}
-                      type="button"
-                    >
-                      {isResponding && responding.action === "aceitar"
-                        ? "Aceitando..."
-                        : "Aceitar convite"}
-                    </button>
-                  </div>
+                      <button
+                        className="button"
+                        disabled={isResponding}
+                        onClick={() => respond(invite.id, "aceitar")}
+                        type="button"
+                      >
+                        {isResponding && responding.action === "aceitar"
+                          ? "Aceitando..."
+                          : "Aceitar convite"}
+                      </button>
+                    </div>
+                  )}
                 </article>
               );
             })}

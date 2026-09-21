@@ -21,6 +21,7 @@ export function ProfessionalsPage() {
   const [servicesLoading, setServicesLoading] = useState(false);
   const [servicesSaving, setServicesSaving] = useState(false);
   const [servicesError, setServicesError] = useState("");
+  const [activatingId, setActivatingId] = useState(null);
 
   const load = useCallback(() => {
     setError("");
@@ -54,6 +55,28 @@ export function ProfessionalsPage() {
       setError(requestError.message);
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function activateProfessional(professionalId) {
+    setActivatingId(Number(professionalId));
+    setError("");
+    setMessage("");
+
+    try {
+      const result = await apiRequest(
+        `/profissionais/${professionalId}/ativar`,
+        { method: "POST" }
+      );
+      setMessage(
+        result.mensagem ||
+        "Profissional ativada na equipe."
+      );
+      load();
+    } catch (requestError) {
+      setError(requestError.message);
+    } finally {
+      setActivatingId(null);
     }
   }
 
@@ -223,6 +246,10 @@ export function ProfessionalsPage() {
           {items.map((professional) => {
             const owner =
               Number(professional.id) === Number(session.usuario.id);
+            const waitingForCapacity =
+              professional.ativo === false &&
+              professional.motivo_inatividade ===
+                "aguardando_vaga_plano";
 
             return (
               <article
@@ -239,18 +266,47 @@ export function ProfessionalsPage() {
                 <div>
                   <h2>{professional.nome}</h2>
                   <p className="muted">
-                    {owner ? "Dona do negócio" : "Profissional"}
+                    {owner
+                      ? "Dona do negócio"
+                      : waitingForCapacity
+                        ? "Aceitou o convite · aguardando vaga no plano"
+                        : "Profissional"}
                   </p>
                 </div>
 
                 <div className="professional-card-actions">
-                  <button
-                    className="text-button"
-                    onClick={() => void openServices(professional)}
-                    type="button"
-                  >
-                    Configurar serviços
-                  </button>
+                  {waitingForCapacity ? (
+                    <>
+                      <button
+                        className="button button-small"
+                        disabled={
+                          Number(activatingId) === Number(professional.id)
+                        }
+                        onClick={() =>
+                          void activateProfessional(professional.id)
+                        }
+                        type="button"
+                      >
+                        {Number(activatingId) === Number(professional.id)
+                          ? "Ativando..."
+                          : "Ativar profissional"}
+                      </button>
+                      <a
+                        className="text-link"
+                        href="/painel/assinatura"
+                      >
+                        Ver planos
+                      </a>
+                    </>
+                  ) : (
+                    <button
+                      className="text-button"
+                      onClick={() => void openServices(professional)}
+                      type="button"
+                    >
+                      Configurar serviços
+                    </button>
+                  )}
 
                   {!owner && (
                     <button
@@ -386,13 +442,19 @@ export function ProfessionalsPage() {
           <h2 id="remove-professional-title">Remover da equipe?</h2>
 
           <p>
-            {pendingRemove?.nome} perderá o acesso a este negócio. A conta
-            pessoal dela continuará existindo.
+            {pendingRemove?.ativo === false
+              ? (
+                `O vínculo de ${pendingRemove?.nome || "esta profissional"} aguardando vaga será removido. A conta pessoal continuará existindo.`
+              )
+              : (
+                `${pendingRemove?.nome || "Esta profissional"} perderá o acesso a este negócio. A conta pessoal continuará existindo.`
+              )}
           </p>
 
           <p className="muted">
-            A remoção só é permitida quando não existem agendamentos futuros
-            ativos dessa profissional neste negócio.
+            {pendingRemove?.ativo === false
+              ? "Ela precisará receber e aceitar um novo convite para voltar à fila."
+              : "A remoção só é permitida quando não existem agendamentos futuros ativos dessa profissional neste negócio."}
           </p>
 
           {removeError && (
