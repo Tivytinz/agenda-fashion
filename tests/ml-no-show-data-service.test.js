@@ -2,6 +2,10 @@ const mockRepository = {
   capturarAmostrasPendentes: jest.fn(),
   rotularAmostrasPendentes: jest.fn(),
   obterProntidao: jest.fn(),
+  obterResumoMaturidadeNegocios: jest.fn(),
+  listarMaturidadeNegocios: jest.fn(),
+  listarMaturidadeSegmentosCliente: jest.fn(),
+  listarMaturidadeMensal: jest.fn(),
 };
 
 jest.mock(
@@ -16,6 +20,19 @@ const service = require(
 describe("fundação de dados de ML para no-show", () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockRepository.obterResumoMaturidadeNegocios
+      .mockResolvedValue({
+        negocios_com_amostras: 0,
+        negocios_com_rotulos: 0,
+        amostras_rotuladas: 0,
+        maior_volume_rotulado: 0,
+      });
+    mockRepository.listarMaturidadeNegocios
+      .mockResolvedValue([]);
+    mockRepository.listarMaturidadeSegmentosCliente
+      .mockResolvedValue([]);
+    mockRepository.listarMaturidadeMensal
+      .mockResolvedValue([]);
   });
 
   test("bloqueia treinamento enquanto a base ou uma classe é insuficiente", () => {
@@ -103,4 +120,114 @@ describe("fundação de dados de ML para no-show", () => {
       /nome|telefone|whatsapp/i
     );
   });
+
+  test("diagnostica concentração, segmento e tendência sem PII", async () => {
+    mockRepository.obterProntidao.mockResolvedValue({
+      total_amostras: 300,
+      amostras_rotuladas: 240,
+      faltas: 40,
+      realizados: 200,
+      pendentes_vencidos: 20,
+    });
+    mockRepository.obterResumoMaturidadeNegocios
+      .mockResolvedValue({
+        negocios_com_amostras: 4,
+        negocios_com_rotulos: 3,
+        amostras_rotuladas: 240,
+        maior_volume_rotulado: 120,
+      });
+    mockRepository.listarMaturidadeNegocios
+      .mockResolvedValue([
+        {
+          negocio_id: "9",
+          total_amostras: 145,
+          amostras_rotuladas: 120,
+          faltas: 30,
+          realizados: 90,
+          pendentes_vencidos: 5,
+        },
+      ]);
+    mockRepository.listarMaturidadeSegmentosCliente
+      .mockResolvedValue([
+        {
+          cliente_tem_conta: true,
+          total_amostras: 180,
+          amostras_rotuladas: 150,
+          faltas: 20,
+          realizados: 130,
+          pendentes_vencidos: 10,
+        },
+        {
+          cliente_tem_conta: false,
+          total_amostras: 120,
+          amostras_rotuladas: 90,
+          faltas: 20,
+          realizados: 70,
+          pendentes_vencidos: 10,
+        },
+      ]);
+    mockRepository.listarMaturidadeMensal
+      .mockResolvedValue([
+        {
+          mes: "2026-09",
+          total_amostras: 100,
+          amostras_rotuladas: 80,
+          faltas: 16,
+          realizados: 64,
+          pendentes_vencidos: 10,
+        },
+      ]);
+
+    const resultado =
+      await service.obterDiagnosticoMaturidade();
+
+    expect(resultado).toMatchObject({
+      feature_version: "v1",
+      prontidao: {
+        pronta_para_treinamento: true,
+      },
+      diagnosticos: {
+        negocios: {
+          negocios_com_amostras: 4,
+          negocios_com_rotulos: 3,
+          maior_participacao_rotulada: 0.5,
+          mais_representados: [
+            {
+              negocio_id: 9,
+              amostras_rotuladas: 120,
+              faltas: 30,
+              realizados: 90,
+              cobertura_desfecho: 0.96,
+              taxa_falta: 0.25,
+              participacao_rotulada: 0.5,
+            },
+          ],
+        },
+        segmentos_cliente: [
+          {
+            segmento: "com_conta",
+            cobertura_desfecho: 0.9375,
+            taxa_falta: 0.1333,
+          },
+          {
+            segmento: "visitante",
+            cobertura_desfecho: 0.9,
+            taxa_falta: 0.2222,
+          },
+        ],
+        mensal: [
+          {
+            mes: "2026-09",
+            cobertura_desfecho: 0.8889,
+            taxa_falta: 0.2,
+          },
+        ],
+      },
+    });
+
+    expect(JSON.stringify(resultado)).not.toMatch(
+      /nome|telefone|whatsapp|email/i
+    );
+  });
+
 });

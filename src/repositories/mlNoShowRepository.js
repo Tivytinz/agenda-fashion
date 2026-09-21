@@ -236,8 +236,220 @@ async function obterProntidao() {
   };
 }
 
+
+const MATURIDADE_POR_NEGOCIO_CTE = `
+  WITH por_negocio AS (
+    SELECT
+      amostra.negocio_id,
+      COUNT(*)::INT AS total_amostras,
+      COUNT(amostra.rotulo_falta)::INT AS amostras_rotuladas,
+      COUNT(*) FILTER (
+        WHERE amostra.rotulo_falta = TRUE
+      )::INT AS faltas,
+      COUNT(*) FILTER (
+        WHERE amostra.rotulo_falta = FALSE
+      )::INT AS realizados,
+      COUNT(*) FILTER (
+        WHERE amostra.rotulo_falta IS NULL
+          AND agendamento.status IN ('agendado', 'confirmado')
+          AND (
+            (
+              agendamento.data
+              + agendamento.horario
+              + agendamento.duracao_minutos * INTERVAL '1 minute'
+            ) AT TIME ZONE COALESCE(
+              NULLIF(negocio.fuso_horario, ''),
+              'America/Sao_Paulo'
+            )
+          ) < NOW()
+      )::INT AS pendentes_vencidos,
+      MIN(amostra.rotulado_em) FILTER (
+        WHERE amostra.rotulo_falta IS NOT NULL
+      ) AS primeiro_rotulo_em,
+      MAX(amostra.rotulado_em) FILTER (
+        WHERE amostra.rotulo_falta IS NOT NULL
+      ) AS ultimo_rotulo_em
+    FROM ml_agendamento_no_show_amostras amostra
+    INNER JOIN agendamentos agendamento
+      ON agendamento.id = amostra.agendamento_id
+    INNER JOIN negocios negocio
+      ON negocio.id = amostra.negocio_id
+    GROUP BY amostra.negocio_id
+  )
+`;
+
+async function obterResumoMaturidadeNegocios() {
+  const resultado = await db.query(`
+    ${MATURIDADE_POR_NEGOCIO_CTE}
+    SELECT
+      COUNT(*)::INT AS negocios_com_amostras,
+      COUNT(*) FILTER (
+        WHERE amostras_rotuladas > 0
+      )::INT AS negocios_com_rotulos,
+      COALESCE(SUM(amostras_rotuladas), 0)::INT
+        AS amostras_rotuladas,
+      COALESCE(MAX(amostras_rotuladas), 0)::INT
+        AS maior_volume_rotulado
+    FROM por_negocio
+  `);
+
+  return resultado.rows[0] || {
+    negocios_com_amostras: 0,
+    negocios_com_rotulos: 0,
+    amostras_rotuladas: 0,
+    maior_volume_rotulado: 0,
+  };
+}
+
+async function listarMaturidadeNegocios({ limite = 20 } = {}) {
+  const resultado = await db.query(
+    `
+      ${MATURIDADE_POR_NEGOCIO_CTE}
+      SELECT
+        negocio_id,
+        total_amostras,
+        amostras_rotuladas,
+        faltas,
+        realizados,
+        pendentes_vencidos,
+        primeiro_rotulo_em,
+        ultimo_rotulo_em
+      FROM por_negocio
+      ORDER BY
+        amostras_rotuladas DESC,
+        total_amostras DESC,
+        negocio_id ASC
+      LIMIT $1
+    `,
+    [limite]
+  );
+
+  return resultado.rows;
+}
+
+async function listarMaturidadeSegmentosCliente() {
+  const resultado = await db.query(`
+    SELECT
+      amostra.cliente_tem_conta,
+      COUNT(*)::INT AS total_amostras,
+      COUNT(amostra.rotulo_falta)::INT AS amostras_rotuladas,
+      COUNT(*) FILTER (
+        WHERE amostra.rotulo_falta = TRUE
+      )::INT AS faltas,
+      COUNT(*) FILTER (
+        WHERE amostra.rotulo_falta = FALSE
+      )::INT AS realizados,
+      COUNT(*) FILTER (
+        WHERE amostra.rotulo_falta IS NULL
+          AND agendamento.status IN ('agendado', 'confirmado')
+          AND (
+            (
+              agendamento.data
+              + agendamento.horario
+              + agendamento.duracao_minutos * INTERVAL '1 minute'
+            ) AT TIME ZONE COALESCE(
+              NULLIF(negocio.fuso_horario, ''),
+              'America/Sao_Paulo'
+            )
+          ) < NOW()
+      )::INT AS pendentes_vencidos,
+      MIN(amostra.rotulado_em) FILTER (
+        WHERE amostra.rotulo_falta IS NOT NULL
+      ) AS primeiro_rotulo_em,
+      MAX(amostra.rotulado_em) FILTER (
+        WHERE amostra.rotulo_falta IS NOT NULL
+      ) AS ultimo_rotulo_em
+    FROM ml_agendamento_no_show_amostras amostra
+    INNER JOIN agendamentos agendamento
+      ON agendamento.id = amostra.agendamento_id
+    INNER JOIN negocios negocio
+      ON negocio.id = amostra.negocio_id
+    GROUP BY amostra.cliente_tem_conta
+    ORDER BY amostra.cliente_tem_conta DESC
+  `);
+
+  return resultado.rows;
+}
+
+async function listarMaturidadeMensal({ meses = 12 } = {}) {
+  const resultado = await db.query(
+    `
+      SELECT
+        TO_CHAR(
+          date_trunc(
+            'month',
+            agendamento.created_at
+              AT TIME ZONE 'America/Sao_Paulo'
+          ),
+          'YYYY-MM'
+        ) AS mes,
+        COUNT(*)::INT AS total_amostras,
+        COUNT(amostra.rotulo_falta)::INT AS amostras_rotuladas,
+        COUNT(*) FILTER (
+          WHERE amostra.rotulo_falta = TRUE
+        )::INT AS faltas,
+        COUNT(*) FILTER (
+          WHERE amostra.rotulo_falta = FALSE
+        )::INT AS realizados,
+        COUNT(*) FILTER (
+          WHERE amostra.rotulo_falta IS NULL
+            AND agendamento.status IN ('agendado', 'confirmado')
+            AND (
+              (
+                agendamento.data
+                + agendamento.horario
+                + agendamento.duracao_minutos * INTERVAL '1 minute'
+              ) AT TIME ZONE COALESCE(
+                NULLIF(negocio.fuso_horario, ''),
+                'America/Sao_Paulo'
+              )
+            ) < NOW()
+        )::INT AS pendentes_vencidos,
+        MIN(amostra.rotulado_em) FILTER (
+          WHERE amostra.rotulo_falta IS NOT NULL
+        ) AS primeiro_rotulo_em,
+        MAX(amostra.rotulado_em) FILTER (
+          WHERE amostra.rotulo_falta IS NOT NULL
+        ) AS ultimo_rotulo_em
+      FROM ml_agendamento_no_show_amostras amostra
+      INNER JOIN agendamentos agendamento
+        ON agendamento.id = amostra.agendamento_id
+      INNER JOIN negocios negocio
+        ON negocio.id = amostra.negocio_id
+      WHERE agendamento.created_at >= (
+        (
+          date_trunc(
+            'month',
+            NOW() AT TIME ZONE 'America/Sao_Paulo'
+          )
+          - (($1::INT - 1) * INTERVAL '1 month')
+        ) AT TIME ZONE 'America/Sao_Paulo'
+      )
+      GROUP BY
+        date_trunc(
+          'month',
+          agendamento.created_at
+            AT TIME ZONE 'America/Sao_Paulo'
+        )
+      ORDER BY
+        date_trunc(
+          'month',
+          agendamento.created_at
+            AT TIME ZONE 'America/Sao_Paulo'
+        ) ASC
+    `,
+    [meses]
+  );
+
+  return resultado.rows;
+}
+
 module.exports = {
   capturarAmostrasPendentes,
   rotularAmostrasPendentes,
   obterProntidao,
+  obterResumoMaturidadeNegocios,
+  listarMaturidadeNegocios,
+  listarMaturidadeSegmentosCliente,
+  listarMaturidadeMensal,
 };
