@@ -68,6 +68,14 @@ const PIPELINE_RECONCILIATION_LABELS = {
   sem_eventos: "Sem eventos comparáveis"
 };
 
+const ACQUISITION_CLASSIFICATION_LABELS = {
+  oficial: "Oficial",
+  organico: "Orgânico",
+  rastreamento_incompleto: "Rastreamento incompleto",
+  identidade_nao_oficial: "Identidade não oficial",
+  sem_evidencia: "Sem evidência"
+};
+
 function number(value) {
   const converted = Number(value);
   return Number.isFinite(converted) ? converted : 0;
@@ -703,6 +711,13 @@ export function AdminRetentionV2Page() {
         const timing = data.tempos?.primeiroParaSegundo || {};
         const windows = Array.isArray(data.janelasCandidatas) ? data.janelasCandidatas : [];
         const cohorts = Array.isArray(data.coortesSemanais) ? data.coortesSemanais : [];
+        const acquisitionQuality = Array.isArray(data.qualidadeAquisicao)
+          ? data.qualidadeAquisicao
+          : [];
+        const campaignQuality = Array.isArray(data.qualidadeCampanhasOficiais)
+          ? data.qualidadeCampanhasOficiais
+          : [];
+        const costDiagnosis = data.diagnosticoCustoAquisicao || {};
 
         return (
           <>
@@ -754,6 +769,124 @@ export function AdminRetentionV2Page() {
                 </div>
               )}
             </section>
+
+            {acquisitionQuality.length > 0 && (
+              <section className="panel">
+                <div className="panel-heading">
+                  <div>
+                    <p className="eyebrow">Qualidade da aquisição</p>
+                    <h2>Recorrência por origem</h2>
+                    <p className="muted">
+                      A origem preserva a classificação de atribuição; recorrência não promove tráfego incompleto para campanha oficial.
+                    </p>
+                  </div>
+                </div>
+                <div className="table-wrapper">
+                  <table className="data-table">
+                    <thead>
+                      <tr>
+                        <th>Origem</th>
+                        <th>Profissionais</th>
+                        <th>1º agendamento</th>
+                        <th>2º agendamento</th>
+                        <th>3º agendamento</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {acquisitionQuality.map((item) => (
+                        <tr key={item.chave}>
+                          <td>
+                            <strong>{item.origem}</strong>
+                            <small>
+                              {ACQUISITION_CLASSIFICATION_LABELS[item.classificacaoAtribuicao] || item.classificacaoAtribuicao}
+                            </small>
+                          </td>
+                          <td>{formatNumber(item.profissionais)}</td>
+                          <td>{formatNumber(item.comPrimeiroAgendamento)}</td>
+                          <td>{formatNumber(item.comSegundoAgendamento)}</td>
+                          <td>{formatNumber(item.comTerceiroAgendamento)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </section>
+            )}
+
+            {campaignQuality.length > 0 && (
+              <section className="panel">
+                <div className="panel-heading">
+                  <div>
+                    <p className="eyebrow">Campanhas oficiais</p>
+                    <h2>Custo, repetição e prontidão financeira</h2>
+                    <p className="muted">
+                      Custos são observados sobre a coorte; a prontidão libera leitura descritiva e não uma decisão automática de orçamento.
+                    </p>
+                  </div>
+                </div>
+                <div className="admin-command-summary-grid is-period-summary">
+                  <MetricCard
+                    label="Profissionais oficiais"
+                    hint="atribuição oficial na seleção"
+                    value={formatNumber(costDiagnosis.profissionaisOficiais)}
+                  />
+                  <MetricCard
+                    label="Cobertura paga"
+                    hint={costDiagnosis.medicaoIncompleta ? "mensuração ainda incompleta" : "base paga classificável"}
+                    value={formatPercent(costDiagnosis.coberturaAtribuicaoPaga)}
+                  />
+                  <MetricCard
+                    label="Pagos pendentes"
+                    hint="sem atribuição oficial"
+                    value={formatNumber(costDiagnosis.pagosSemAtribuicaoOficial)}
+                  />
+                  <MetricCard
+                    label="Sem evidência"
+                    hint="origem não comprovada"
+                    value={formatNumber(costDiagnosis.profissionaisSemEvidencia)}
+                  />
+                </div>
+                <div className="table-wrapper">
+                  <table className="data-table">
+                    <thead>
+                      <tr>
+                        <th>Campanha</th>
+                        <th>Profissionais</th>
+                        <th>1º agendamento</th>
+                        <th>2º agendamento</th>
+                        <th>Investimento</th>
+                        <th>Custo / 1º</th>
+                        <th>D7 financeiro</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {campaignQuality.map((campaign) => {
+                        const d7 = (
+                          Array.isArray(campaign.prontidaoFinanceiraRecorrencia)
+                            ? campaign.prontidaoFinanceiraRecorrencia
+                            : []
+                        ).find((window) => number(window.janelaDias) === 7);
+
+                        return (
+                          <tr key={campaign.chave}>
+                            <td>
+                              <strong>{campaign.campanha || "Campanha sem nome"}</strong>
+                              <small>{campaign.origem} / {campaign.midia}</small>
+                            </td>
+                            <td>{formatNumber(campaign.profissionais)}</td>
+                            <td>{formatNumber(campaign.comPrimeiroAgendamento)}</td>
+                            <td>{formatNumber(campaign.comSegundoAgendamento)}</td>
+                            <td>{formatCentavos(campaign.investimentoCentavos)}</td>
+                            <td>{formatCentavos(campaign.custoObservadoPrimeiroAgendamentoCentavos)}</td>
+                            <td>{d7?.leitura?.rotulo || "Sem base D7"}</td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </section>
+            )}
 
             <details className="admin-metric-definition">
               <summary>Metodologia</summary>
