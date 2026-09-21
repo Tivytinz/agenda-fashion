@@ -74,6 +74,159 @@ function avaliarProntidao(dados) {
   };
 }
 
+
+function taxa(parte, total) {
+  if (total <= 0) {
+    return 0;
+  }
+
+  return Number((parte / total).toFixed(4));
+}
+
+function mapearMaturidadeGrupo(dados) {
+  const amostrasRotuladas = inteiro(
+    dados?.amostras_rotuladas
+  );
+  const faltas = inteiro(dados?.faltas);
+  const realizados = inteiro(dados?.realizados);
+  const pendentesVencidos = inteiro(
+    dados?.pendentes_vencidos
+  );
+  const universoDesfecho =
+    amostrasRotuladas + pendentesVencidos;
+
+  return {
+    total_amostras:
+      inteiro(dados?.total_amostras),
+    amostras_rotuladas:
+      amostrasRotuladas,
+    faltas,
+    realizados,
+    pendentes_vencidos:
+      pendentesVencidos,
+    cobertura_desfecho:
+      taxa(
+        amostrasRotuladas,
+        universoDesfecho
+      ),
+    taxa_falta:
+      taxa(faltas, amostrasRotuladas),
+    primeiro_rotulo_em:
+      dados?.primeiro_rotulo_em || null,
+    ultimo_rotulo_em:
+      dados?.ultimo_rotulo_em || null,
+  };
+}
+
+async function obterDiagnosticoMaturidade() {
+  const [
+    global,
+    resumoNegocios,
+    negocios,
+    segmentosCliente,
+    mensal,
+  ] = await Promise.all([
+    repository.obterProntidao(),
+    repository.obterResumoMaturidadeNegocios(),
+    repository.listarMaturidadeNegocios({
+      limite: 20,
+    }),
+    repository.listarMaturidadeSegmentosCliente(),
+    repository.listarMaturidadeMensal({
+      meses: 12,
+    }),
+  ]);
+
+  const prontidao =
+    avaliarProntidao(global);
+  const totalRotuladasNegocios =
+    inteiro(
+      resumoNegocios?.amostras_rotuladas
+    );
+  const maiorVolumeRotulado =
+    inteiro(
+      resumoNegocios?.maior_volume_rotulado
+    );
+
+  return {
+    coletado_em:
+      new Date().toISOString(),
+    feature_version: "v1",
+    prontidao,
+    diagnosticos: {
+      negocios: {
+        negocios_com_amostras:
+          inteiro(
+            resumoNegocios
+              ?.negocios_com_amostras
+          ),
+        negocios_com_rotulos:
+          inteiro(
+            resumoNegocios
+              ?.negocios_com_rotulos
+          ),
+        maior_participacao_rotulada:
+          taxa(
+            maiorVolumeRotulado,
+            totalRotuladasNegocios
+          ),
+        mais_representados:
+          (Array.isArray(negocios)
+            ? negocios
+            : []
+          ).map((linha) => {
+            const resumo =
+              mapearMaturidadeGrupo(
+                linha
+              );
+
+            return {
+              negocio_id:
+                inteiro(
+                  linha?.negocio_id
+                ),
+              ...resumo,
+              participacao_rotulada:
+                taxa(
+                  resumo
+                    .amostras_rotuladas,
+                  totalRotuladasNegocios
+                ),
+            };
+          }),
+      },
+      segmentos_cliente:
+        (Array.isArray(
+          segmentosCliente
+        )
+          ? segmentosCliente
+          : []
+        ).map((linha) => ({
+          segmento:
+            linha?.cliente_tem_conta === true
+              ? "com_conta"
+              : "visitante",
+          ...mapearMaturidadeGrupo(
+            linha
+          ),
+        })),
+      mensal:
+        (Array.isArray(mensal)
+          ? mensal
+          : []
+        ).map((linha) => ({
+          mes:
+            String(
+              linha?.mes || ""
+            ).slice(0, 7),
+          ...mapearMaturidadeGrupo(
+            linha
+          ),
+        })),
+    },
+  };
+}
+
 async function coletar({ limite }) {
   const [amostrasCapturadas, amostrasRotuladas] =
     await Promise.all([
@@ -94,4 +247,6 @@ async function coletar({ limite }) {
 module.exports = {
   coletar,
   avaliarProntidao,
+  obterDiagnosticoMaturidade,
+  mapearMaturidadeGrupo,
 };
