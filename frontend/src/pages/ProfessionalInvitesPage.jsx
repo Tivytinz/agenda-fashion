@@ -63,7 +63,10 @@ export function ProfessionalInvitesPage() {
 
       setMessage(result.mensagem);
 
-      if (action === "aceitar") {
+      if (
+        action === "aceitar" &&
+        result.vinculo?.ativo !== false
+      ) {
         const refreshed = await session.refresh();
         setWorkspacePath(
           getBusinessWorkspacePath(
@@ -71,6 +74,8 @@ export function ProfessionalInvitesPage() {
             "profissional"
           )
         );
+      } else {
+        setWorkspacePath("");
       }
     } catch (requestError) {
       setActionError(requestError.message);
