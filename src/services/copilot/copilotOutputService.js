@@ -9,7 +9,7 @@ const CLAIM_PATTERNS = Object.freeze([
   /\bBRL\b/i,
   /\b\d+(?:[.,]\d+)?\s*%/i,
   /\b(?:desconto|promo[cç][aã]o|promocional|cupom|oferta|gr[aá]tis|gratuito)\b/i,
-  /\b(?:[uú]ltimas?\s+vagas?|poucas?\s+vagas?|vagas?\s+dispon[ií]veis?|hor[aá]rios?\s+dispon[ií]veis?|agenda\s+aberta|disponibilidade\s+imediata)\b/i,
+  /(?:[uú]ltimas?\s+vagas?|poucas?\s+vagas?|vagas?\s+dispon[ií]veis?|hor[aá]rios?\s+dispon[ií]veis?|agenda\s+aberta|disponibilidade\s+imediata)\b/i,
   /\b(?:resultado\s+garantido|garantia\s+de\s+resultado)\b/i,
 ]);
 
