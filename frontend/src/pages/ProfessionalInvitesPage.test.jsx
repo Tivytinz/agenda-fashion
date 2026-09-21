@@ -89,7 +89,17 @@ describe("convites recebidos", () => {
     expect(
       await screen.findByText(/não possui uma vaga disponível/i)
     ).not.toBeNull();
-    expect(screen.queryByText("Studio Lotado")).toBeNull();
+    expect(screen.getByText("Studio Lotado")).not.toBeNull();
+    expect(screen.getByText("Aguardando vaga")).not.toBeNull();
+    expect(
+      screen.getByText(/precisa liberar uma vaga no plano/i)
+    ).not.toBeNull();
+    expect(
+      screen.queryByRole("button", { name: "Aceitar convite" })
+    ).toBeNull();
+    expect(
+      screen.queryByRole("button", { name: "Recusar" })
+    ).toBeNull();
     expect(refresh).not.toHaveBeenCalled();
     expect(
       screen.queryByRole("link", { name: "Abrir minha área profissional" })
