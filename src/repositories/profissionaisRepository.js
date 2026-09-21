@@ -505,15 +505,37 @@ async function listarConvitesRecebidos(usuarioId) {
       n.nome AS negocio_nome,
       n.foto_url AS negocio_foto_url,
       cp.status,
+      CASE
+        WHEN
+          cp.status = 'aceito'
+          AND un.ativo = FALSE
+          AND un.papel = 'profissional'
+          AND un.motivo_inatividade = 'aguardando_vaga_plano'
+          THEN 'aguardando_vaga'
+        ELSE cp.status
+      END AS estado,
       cp.expira_em,
       cp.created_at
     FROM convites_profissionais cp
     INNER JOIN negocios n
       ON n.id = cp.negocio_id
+    LEFT JOIN usuarios_negocios un
+      ON un.usuario_id = cp.usuario_convidado_id
+      AND un.negocio_id = cp.negocio_id
     WHERE cp.usuario_convidado_id = $1
-      AND cp.status = 'pendente'
-      AND cp.expira_em > NOW()
       AND n.ativo = TRUE
+      AND (
+        (
+          cp.status = 'pendente'
+          AND cp.expira_em > NOW()
+        )
+        OR (
+          cp.status = 'aceito'
+          AND un.ativo = FALSE
+          AND un.papel = 'profissional'
+          AND un.motivo_inatividade = 'aguardando_vaga_plano'
+        )
+      )
     ORDER BY cp.created_at DESC
     `,
     [usuarioId]
