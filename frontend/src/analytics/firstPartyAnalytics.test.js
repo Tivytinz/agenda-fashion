@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   firstPartyAnalyticsInternals
 } from "./firstPartyAnalytics";
@@ -11,7 +11,10 @@ import {
 
 const {
   captureAcquisition,
+  flushOutbox,
+  readOutbox,
   route,
+  send,
   uuidValido
 } = firstPartyAnalyticsInternals;
 
@@ -19,6 +22,7 @@ afterEach(() => {
   window.localStorage.clear();
   window.sessionStorage.clear();
   window.history.replaceState({}, "", "/");
+  vi.unstubAllGlobals();
 });
 
 describe("firstPartyAnalytics", () => {
@@ -66,6 +70,70 @@ describe("firstPartyAnalytics", () => {
     expected
   ) => {
     expect(route(pathname)).toEqual(expected);
+  });
+
+  it("mantém lote no outbox após falha transitória e reenvia depois", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn()
+        .mockResolvedValueOnce({
+          ok: false,
+          status: 500
+        })
+        .mockResolvedValue({
+          ok: true,
+          status: 200
+        })
+    );
+
+    await send([
+      {
+        type: "event",
+        eventUuid:
+          "29e5c4ef-857e-43cf-a584-bcbd2cb0df0a",
+        schemaVersion: 1,
+        name: "profile_viewed",
+        occurredAt:
+          "2026-09-21T15:00:00.000Z",
+        properties: {
+          entry_point: "business_profile"
+        }
+      }
+    ]);
+
+    expect(readOutbox()).toHaveLength(1);
+    expect(fetch).toHaveBeenCalledTimes(1);
+
+    await flushOutbox();
+
+    expect(fetch).toHaveBeenCalledTimes(2);
+    expect(readOutbox()).toHaveLength(0);
+  });
+
+  it("descarta lote inválido permanente para não bloquear o outbox", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: false,
+        status: 400
+      })
+    );
+
+    await send([
+      {
+        type: "event",
+        eventUuid:
+          "f1d5b6bf-bad7-4bd0-86ec-55a733d3f4af",
+        schemaVersion: 1,
+        name: "profile_viewed",
+        occurredAt:
+          "2026-09-21T15:00:00.000Z",
+        properties: {}
+      }
+    ]);
+
+    expect(fetch).toHaveBeenCalledTimes(1);
+    expect(readOutbox()).toHaveLength(0);
   });
 
   it("mantém validação de UUID compatível com o backend", () => {
