@@ -345,6 +345,15 @@ async function criarConviteProfissional({
         );
       }
 
+      if (
+        vinculo?.papel === "profissional" &&
+        vinculo?.motivo_inatividade === "aguardando_vaga_plano"
+      ) {
+        throw new ValidationError(
+          "Esta profissional já aceitou o convite e está aguardando uma vaga no plano."
+        );
+      }
+
       await profissionaisRepository.expirarConvitesPendentes(
         dono.negocio_id,
         profissional.id,
