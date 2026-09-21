@@ -138,6 +138,8 @@ Propriedades permitidas:
 
 Prompt, texto gerado e dados de clientes não entram nos eventos de produto.
 
+O provider também registra telemetria operacional estruturada no backend: sucesso/falha, modelo, latência, contagem de tokens quando fornecida pela API, categoria de erro e status HTTP. Esses logs nunca incluem prompt, contexto do negócio, saída gerada, chave de API ou mensagem bruta do erro.
+
 Esses eventos medem uso, não sucesso. O resultado de produto continua sendo medido por compartilhamento rastreável, visitas ao perfil, agendamentos, recorrência e receita.
 
 ## Fora de escopo
