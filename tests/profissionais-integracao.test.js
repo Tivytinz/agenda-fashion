@@ -402,7 +402,7 @@ describe("Fluxo de profissionais com banco real", () => {
         .set("Authorization", `Bearer ${tokenDonoB}`);
 
       expect(semCapacidade.statusCode).toBe(409);
-      expect(semCapacidade.body.codigo).toBe("LIMITE_PROFISSIONAIS");
+      expect(semCapacidade.body.erro).toMatch(/limite de 1 profissional/i);
 
       await db.query(
         "UPDATE planos SET limite_profissionais = 5 WHERE id = $1",
