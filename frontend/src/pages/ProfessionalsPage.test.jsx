@@ -90,6 +90,76 @@ describe("equipe por convite", () => {
     expect(apiRequest).toHaveBeenCalledTimes(2);
   });
 
+  it("CA-EQP-02: mostra profissional aguardando vaga e permite ativar após capacidade", async () => {
+    apiRequest
+      .mockResolvedValueOnce({
+        profissionais: [
+          { id: 1, nome: "Dona", papel: "dono", foto_url: null, ativo: true },
+          {
+            id: 9,
+            nome: "Ana",
+            papel: "profissional",
+            foto_url: null,
+            ativo: false,
+            motivo_inatividade: "aguardando_vaga_plano"
+          }
+        ]
+      })
+      .mockResolvedValueOnce({
+        mensagem: "Profissional ativada na equipe.",
+        profissional_id: 9,
+        ativo: true
+      })
+      .mockResolvedValueOnce({
+        profissionais: [
+          { id: 1, nome: "Dona", papel: "dono", foto_url: null, ativo: true },
+          {
+            id: 9,
+            nome: "Ana",
+            papel: "profissional",
+            foto_url: null,
+            ativo: true,
+            motivo_inatividade: null
+          }
+        ]
+      });
+
+    render(<ProfessionalsPage />);
+
+    expect(
+      await screen.findByText(/aguardando vaga no plano/i)
+    ).not.toBeNull();
+    expect(
+      screen.queryByRole("button", { name: "Configurar serviços" })
+    ).not.toBeNull();
+    expect(
+      screen.getByRole("button", { name: "Ativar profissional" })
+    ).not.toBeNull();
+    expect(
+      screen.getByRole("link", { name: "Ver planos" }).getAttribute("href")
+    ).toBe("/painel/assinatura");
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Ativar profissional" })
+    );
+
+    await waitFor(() => {
+      expect(apiRequest).toHaveBeenCalledWith(
+        "/profissionais/9/ativar",
+        { method: "POST" }
+      );
+    });
+
+    expect(
+      await screen.findByText("Profissional ativada na equipe.")
+    ).not.toBeNull();
+    await waitFor(() => {
+      expect(
+        screen.queryByText(/aguardando vaga no plano/i)
+      ).toBeNull();
+    });
+  });
+
   it("CA-EQP-04/05: protege a dona e preserva a profissional se há reserva confirmada", async () => {
     apiRequest
       .mockResolvedValueOnce({ profissionais: [
