@@ -394,6 +394,7 @@ function normalizarItem(item) {
     schemaVersion,
     targetBusinessId: idSeguro(item.targetBusinessId),
     targetServiceId: idSeguro(item.targetServiceId),
+    agendamentoId: idSeguro(item.bookingId),
     properties: propriedadesSeguras(nome, item.properties),
   };
 }
@@ -552,6 +553,17 @@ async function coletar({ usuarioId, body }) {
           )
         : null;
 
+      const agendamento = (
+        item.name === "booking_completed" &&
+        item.agendamentoId
+      )
+        ? await analyticsRepository.resolverAgendamentoEvento({
+            agendamentoId: item.agendamentoId,
+            targetBusinessId: item.targetBusinessId,
+            targetServiceId: item.targetServiceId,
+          }, client)
+        : null;
+
       const salvo = await analyticsRepository.registrarEvento({
         ...item,
         sessaoId: sessao.id,
@@ -560,6 +572,7 @@ async function coletar({ usuarioId, body }) {
         origem: "frontend",
         actorUserId: idSeguro(usuarioId),
         actorBusinessId,
+        agendamentoId: agendamento?.id || null,
         propriedades: item.properties,
       }, client);
       if (salvo) gravados += 1;

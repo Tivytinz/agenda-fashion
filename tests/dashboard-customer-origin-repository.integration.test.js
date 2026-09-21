@@ -11,6 +11,7 @@ const {
 describe("origem de clientes integrada", () => {
   let cenario;
   let clientes = [];
+  let clientesVisitantes = [];
   let sessoes = [];
 
   beforeEach(async () => {
@@ -36,7 +37,15 @@ describe("origem de clientes integrada", () => {
       );
     }
 
+    if (clientesVisitantes.length > 0) {
+      await db.query(
+        "DELETE FROM clientes WHERE id = ANY($1::BIGINT[])",
+        [clientesVisitantes]
+      );
+    }
+
     clientes = [];
+    clientesVisitantes = [];
     sessoes = [];
   });
 
@@ -87,6 +96,54 @@ describe("origem de clientes integrada", () => {
         deslocamentoDias,
         horario,
       ]
+    );
+
+    return Number(result.rows[0].id);
+  }
+
+  async function criarAgendamentoVisitante(
+    deslocamentoDias,
+    horario,
+    whatsapp = "63977776666"
+  ) {
+    const result = await db.query(
+      `
+        INSERT INTO agendamentos (
+          negocio_id,
+          servico_id,
+          profissional_id,
+          cliente_id,
+          cliente_nome,
+          cliente_whatsapp,
+          data,
+          horario,
+          status
+        )
+        VALUES (
+          $1,
+          $2,
+          $3,
+          NULL,
+          'Visitante origem',
+          $4,
+          (NOW() AT TIME ZONE 'America/Sao_Paulo')::date + $5::int,
+          $6,
+          'agendado'
+        )
+        RETURNING id, client_id
+      `,
+      [
+        cenario.negocioId,
+        cenario.servico.id,
+        cenario.profissional.id,
+        whatsapp,
+        deslocamentoDias,
+        horario,
+      ]
+    );
+
+    clientesVisitantes.push(
+      Number(result.rows[0].client_id)
     );
 
     return Number(result.rows[0].id);
@@ -309,6 +366,35 @@ describe("origem de clientes integrada", () => {
     expect(linhas.find(
       (linha) => linha.origem_codigo === "af_compartilhamento"
     )).toBeUndefined();
+  });
+
+  test("não infere recorrência de visitantes apenas pelo mesmo WhatsApp", async () => {
+    await criarAgendamentoVisitante(
+      0,
+      "20:00"
+    );
+    await criarAgendamentoVisitante(
+      0,
+      "21:00"
+    );
+
+    const linhas =
+      await repository.buscarOrigemClientes(
+        cenario.negocioId,
+        "7dias"
+      );
+    const semEvidencia = linhas.find(
+      (linha) =>
+        linha.origem_codigo ===
+        "nao_identificado"
+    );
+
+    expect(semEvidencia).toMatchObject({
+      clientes: 2,
+      clientes_novos: 2,
+      clientes_recorrentes: 0,
+      agendamentos: 2,
+    });
   });
 
   test("normaliza período inválido para sete dias", () => {

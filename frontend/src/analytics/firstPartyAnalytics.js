@@ -13,10 +13,15 @@ const VISITOR_KEY = "af_analytics_visitor_v2";
 const SESSION_KEY = "af_analytics_session_v2";
 const ONBOARDING_FLOW_KEY = "af_analytics_onboarding_flow_v2";
 const BOOKING_FLOW_KEY = "af_analytics_booking_flow_v2";
+const OUTBOX_KEY = "af_analytics_outbox_v2";
 const SESSION_TIMEOUT_MS = 30 * 60 * 1000;
+const OUTBOX_TTL_MS = 24 * 60 * 60 * 1000;
+const OUTBOX_MAX_ITEMS = 40;
+const OUTBOX_FLUSH_LIMIT = 10;
 
 let currentView = null;
 let lifecycleBound = false;
+let outboxFlushPromise = null;
 
 function uuid() {
   try {
@@ -234,11 +239,128 @@ function flowUuid(key, { renew = false } = {}) {
   return created;
 }
 
+function readOutbox() {
+  try {
+    const parsed = JSON.parse(
+      readBrowserStorage("local", OUTBOX_KEY) || "[]"
+    );
+    if (!Array.isArray(parsed)) return [];
+
+    const limite = Date.now() - OUTBOX_TTL_MS;
+    return parsed
+      .filter((entry) => (
+        entry &&
+        typeof entry === "object" &&
+        uuidValido(entry.id) &&
+        Number(entry.createdAt) >= limite &&
+        entry.payload &&
+        typeof entry.payload === "object"
+      ))
+      .slice(-OUTBOX_MAX_ITEMS);
+  } catch {
+    return [];
+  }
+}
+
+function writeOutbox(entries) {
+  writeBrowserStorage(
+    "local",
+    OUTBOX_KEY,
+    JSON.stringify(
+      (Array.isArray(entries) ? entries : [])
+        .slice(-OUTBOX_MAX_ITEMS)
+    )
+  );
+}
+
+function enqueuePayload(payload) {
+  const entry = {
+    id: uuid(),
+    createdAt: Date.now(),
+    payload
+  };
+
+  writeOutbox([
+    ...readOutbox(),
+    entry
+  ]);
+
+  return entry.id;
+}
+
+function removeOutboxEntry(id) {
+  writeOutbox(
+    readOutbox().filter((entry) => entry.id !== id)
+  );
+}
+
+async function postPayload(payload, { keepalive = false } = {}) {
+  const token = readBrowserStorage("local", "token");
+  const response = await fetch(`${API_URL}/analytics/collect`, {
+    method: "POST",
+    credentials: "include",
+    keepalive,
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {})
+    },
+    body: JSON.stringify(payload)
+  });
+
+  if (!response?.ok) {
+    const error = new Error("Falha ao entregar analytics first-party.");
+    error.retryable = ![
+      400,
+      401,
+      403,
+      409,
+      413,
+      422
+    ].includes(Number(response?.status));
+    throw error;
+  }
+}
+
+async function flushOutbox({ keepalive = false } = {}) {
+  if (outboxFlushPromise) {
+    return outboxFlushPromise;
+  }
+
+  outboxFlushPromise = (async () => {
+    let processed = 0;
+
+    while (processed < OUTBOX_FLUSH_LIMIT) {
+      const entry = readOutbox()[0];
+      if (!entry) break;
+
+      try {
+        await postPayload(entry.payload, { keepalive });
+        removeOutboxEntry(entry.id);
+      } catch (error) {
+        if (error?.retryable === false) {
+          removeOutboxEntry(entry.id);
+          processed += 1;
+          continue;
+        }
+
+        break;
+      }
+
+      processed += 1;
+    }
+  })();
+
+  try {
+    await outboxFlushPromise;
+  } finally {
+    outboxFlushPromise = null;
+  }
+}
+
 async function send(items, { keepalive = false } = {}) {
   try {
     if (!Array.isArray(items) || items.length === 0) return;
     const session = touchSession(ensureSession());
-    const token = readBrowserStorage("local", "token");
     const acquisition = mergeDefined(
       session.acquisition || {},
       captureAcquisition()
@@ -252,22 +374,15 @@ async function send(items, { keepalive = false } = {}) {
       });
     }
 
-    await fetch(`${API_URL}/analytics/collect`, {
-      method: "POST",
-      credentials: "include",
-      keepalive,
-      headers: {
-        "Content-Type": "application/json",
-        ...(token ? { Authorization: `Bearer ${token}` } : {})
-      },
-      body: JSON.stringify({
-        visitorUuid: visitorUuid(),
-        sessionUuid: session.id,
-        device: deviceInfo(),
-        acquisition,
-        items
-      })
+    enqueuePayload({
+      visitorUuid: visitorUuid(),
+      sessionUuid: session.id,
+      device: deviceInfo(),
+      acquisition,
+      items
     });
+
+    await flushOutbox({ keepalive });
   } catch {
     // Analytics nunca bloqueia navegação, cadastro, compra ou agendamento.
   }
@@ -333,6 +448,10 @@ function bindLifecycle() {
 
   window.addEventListener("pagehide", () => {
     flushCurrentView("pagehide", true);
+  });
+
+  window.addEventListener("online", () => {
+    void flushOutbox();
   });
 }
 
@@ -496,6 +615,9 @@ export function trackFirstPartyEvent(name, {
         occurredAt: nowIso(),
         targetBusinessId: businessId || undefined,
         targetServiceId: serviceId || properties.servico_id || undefined,
+        bookingId: canonicalName === "booking_completed"
+          ? properties.agendamento_id || undefined
+          : undefined,
         flowUuid: flowUuidValue || undefined,
         properties: canonicalProperties
       }
@@ -510,5 +632,8 @@ export const firstPartyAnalyticsInternals = {
   captureAcquisition,
   deviceInfo,
   mergeDefined,
-  uuidValido
+  uuidValido,
+  readOutbox,
+  flushOutbox,
+  send
 };

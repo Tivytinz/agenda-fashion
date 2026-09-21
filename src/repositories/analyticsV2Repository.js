@@ -454,6 +454,7 @@ async function registrarEvento({
   actorBusinessId,
   targetBusinessId,
   targetServiceId,
+  agendamentoId,
   flowUuid,
   propriedades,
 }, executor = db) {
@@ -472,6 +473,7 @@ async function registrarEvento({
       actor_business_id,
       target_business_id,
       target_service_id,
+      agendamento_id,
       flow_uuid,
       propriedades
     )
@@ -487,8 +489,9 @@ async function registrarEvento({
       $9,
       $10,
       $11,
-      $12::UUID,
-      $13::JSONB
+      $12,
+      $13::UUID,
+      $14::JSONB
     )
     ON CONFLICT (event_uuid)
     DO NOTHING
@@ -506,8 +509,36 @@ async function registrarEvento({
       actorBusinessId || null,
       targetBusinessId || null,
       targetServiceId || null,
+      agendamentoId || null,
       flowUuid || null,
       JSON.stringify(propriedades || {}),
+    ]
+  );
+
+  return result.rows[0] || null;
+}
+
+async function resolverAgendamentoEvento({
+  agendamentoId,
+  targetBusinessId,
+  targetServiceId,
+}, executor = db) {
+  if (!agendamentoId || !targetBusinessId) return null;
+
+  const conexao = executorSeguro(executor);
+  const result = await conexao.query(
+    `
+    SELECT id
+    FROM agendamentos
+    WHERE id = $1
+      AND negocio_id = $2
+      AND ($3::BIGINT IS NULL OR servico_id = $3)
+    LIMIT 1
+    `,
+    [
+      agendamentoId,
+      targetBusinessId,
+      targetServiceId || null,
     ]
   );
 
@@ -596,6 +627,7 @@ module.exports = {
   registrarVisualizacao,
   registrarEngajamento,
   registrarEvento,
+  resolverAgendamentoEvento,
   buscarVisualizacaoPorUuid,
   recalcularSessao,
   executarTransacao: db.executarTransacao,

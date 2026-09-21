@@ -31,7 +31,7 @@ function percentual(
   parte,
   total
 ) {
-  if (!total) return 0;
+  if (!total) return null;
 
   return Number(
     ((parte / total) * 100)
