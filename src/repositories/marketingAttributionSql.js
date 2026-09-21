@@ -135,6 +135,10 @@ function criarVinculoCampanhaOficialSql({
     ? `AND campanha_externa.objetivo = '${objetivo}'`
     : "";
 
+  const filtroObjetivoContagem = objetivo
+    ? `AND campanha_contagem.objetivo = '${objetivo}'`
+    : "";
+
   const canal =
     canalCanonicoSql(origem);
   const provedor =
@@ -168,72 +172,36 @@ function criarVinculoCampanhaOficialSql({
     )`
     : "FALSE";
 
+  /*
+   * marketing_campanhas já valida identidades UTM em minúsculas.
+   * Normalizamos somente a evidência recebida, preservando o índice
+   * UNIQUE (utm_source, utm_medium, utm_campaign) para a resolução exata.
+   */
   const identidadeExata = `(
-    LOWER(candidata.utm_campaign) = LOWER(${campanha})
-    AND LOWER(candidata.utm_medium) = LOWER(${midia})
+    candidata.utm_campaign = LOWER(${campanha})
+    AND candidata.utm_medium = LOWER(${midia})
     AND (
-      LOWER(candidata.utm_source) = LOWER(${origem})
-      OR LOWER(candidata.canal) = ${canalResolvido}
+      candidata.utm_source = LOWER(${origem})
+      OR candidata.canal = ${canalResolvido}
     )
   )`;
 
-  const identidadeVinculoExterno = (alias) => `(
-    LOWER(${alias}.campanha_externa_id) =
+  const identidadeVinculoExterno = (aliasVinculo) => `(
+    LOWER(${aliasVinculo}.campanha_externa_id) =
       LOWER(${campanha})
-    OR LOWER(${alias}.campanha_externa_nome) =
+    OR LOWER(${aliasVinculo}.campanha_externa_nome) =
       LOWER(${campanha})
     OR ${identidadeComparavelSql(
-      `${alias}.campanha_externa_nome`
+      `${aliasVinculo}.campanha_externa_nome`
     )} = ${identidadeComparavelSql(campanha)}
   )`;
 
-  const vinculoExterno = `(
-    EXISTS (
-      SELECT 1
-      FROM marketing_campanha_vinculos vinculo_externo
-      WHERE vinculo_externo.campanha_id = candidata.id
-        AND vinculo_externo.provedor = ${provedorResolvido}
-        AND ${identidadeVinculoExterno(
-          "vinculo_externo"
-        )}
-    )
-    AND 1 = (
-      SELECT COUNT(DISTINCT vinculo_identidade.campanha_id)
-      FROM marketing_campanha_vinculos vinculo_identidade
-      INNER JOIN marketing_campanhas campanha_externa
-        ON campanha_externa.id = vinculo_identidade.campanha_id
-      WHERE vinculo_identidade.provedor = ${provedorResolvido}
-        AND ${identidadeVinculoExterno(
-          "vinculo_identidade"
-        )}
-        ${filtroObjetivoVinculoExterno}
-    )
-  )`;
-
-  const vinculoUnico = `(
-    ${provedorResolvido} IS NOT NULL
-    AND ${campanhaAusenteSql(campanha)}
-    AND ${sincronizacaoCompleta}
-    AND LOWER(candidata.canal) = ${canalResolvido}
-    AND LOWER(candidata.utm_medium) = LOWER(${midia})
-    AND EXISTS (
-      SELECT 1
-      FROM marketing_campanha_vinculos vinculo_candidato
-      WHERE vinculo_candidato.campanha_id = candidata.id
-        AND vinculo_candidato.provedor = ${provedorResolvido}
-    )
-    AND 1 = (
-      SELECT COUNT(DISTINCT vinculo_unico.campanha_id)
-      FROM marketing_campanha_vinculos vinculo_unico
-      INNER JOIN marketing_campanhas campanha_vinculada
-        ON campanha_vinculada.id = vinculo_unico.campanha_id
-      WHERE vinculo_unico.provedor = ${provedorResolvido}
-        AND LOWER(campanha_vinculada.canal) = ${canalResolvido}
-        AND LOWER(campanha_vinculada.utm_medium) = LOWER(${midia})
-        ${filtroObjetivoVinculado}
-    )
-  )`;
-
+  /*
+   * A resolução é dividida por estratégia em vez de avaliar todos os
+   * métodos para cada linha de marketing_campanhas. Isso mantém a ordem
+   * de precedência (UTM exata → vínculo externo → vínculo único) e reduz
+   * trabalho repetido nas consultas administrativas.
+   */
   return `
     LEFT JOIN LATERAL (
       SELECT
@@ -244,7 +212,12 @@ function criarVinculoCampanhaOficialSql({
         resolvida.utm_medium,
         resolvida.utm_campaign,
         resolvida.metodo_resolucao
-      FROM (
+      FROM LATERAL (
+        SELECT
+          ${canal} AS canal_resolvido,
+          ${provedor} AS provedor_resolvido
+      ) contexto_atribuicao
+      CROSS JOIN LATERAL (
         SELECT
           candidata.id,
           candidata.objetivo,
@@ -252,35 +225,110 @@ function criarVinculoCampanhaOficialSql({
           candidata.utm_source,
           candidata.utm_medium,
           candidata.utm_campaign,
-          CASE
-            WHEN ${identidadeExata}
-              THEN 'utm_exata'
-            WHEN ${vinculoExterno}
-              THEN 'vinculo_plataforma'
-            WHEN ${vinculoUnico}
-              THEN 'vinculo_unico'
-            ELSE NULL
-          END AS metodo_resolucao
+          'utm_exata'::TEXT AS metodo_resolucao,
+          0 AS prioridade
         FROM marketing_campanhas candidata
-        CROSS JOIN LATERAL (
-          SELECT
-            ${canal} AS canal_resolvido,
-            ${provedor} AS provedor_resolvido
-        ) contexto_atribuicao
-        WHERE 1 = 1
+        WHERE ${identidadeExata}
           ${filtroObjetivo}
+
+        UNION ALL
+
+        SELECT
+          campanha_externa.id,
+          campanha_externa.objetivo,
+          campanha_externa.ativo,
+          campanha_externa.utm_source,
+          campanha_externa.utm_medium,
+          campanha_externa.utm_campaign,
+          'vinculo_plataforma'::TEXT
+            AS metodo_resolucao,
+          1 AS prioridade
+        FROM marketing_campanha_vinculos
+          vinculo_externo
+        INNER JOIN marketing_campanhas
+          campanha_externa
+          ON campanha_externa.id =
+            vinculo_externo.campanha_id
+        WHERE ${provedorResolvido} IS NOT NULL
+          AND vinculo_externo.provedor =
+            ${provedorResolvido}
+          AND ${identidadeVinculoExterno(
+            "vinculo_externo"
+          )}
+          ${filtroObjetivoVinculoExterno}
+          AND 1 = (
+            SELECT
+              COUNT(
+                DISTINCT
+                vinculo_identidade.campanha_id
+              )
+            FROM marketing_campanha_vinculos
+              vinculo_identidade
+            INNER JOIN marketing_campanhas
+              campanha_identidade
+              ON campanha_identidade.id =
+                vinculo_identidade.campanha_id
+            WHERE vinculo_identidade.provedor =
+              ${provedorResolvido}
+              AND ${identidadeVinculoExterno(
+                "vinculo_identidade"
+              )}
+              ${objetivo
+                ? `AND campanha_identidade.objetivo = '${objetivo}'`
+                : ""}
+          )
+
+        UNION ALL
+
+        SELECT
+          campanha_vinculada.id,
+          campanha_vinculada.objetivo,
+          campanha_vinculada.ativo,
+          campanha_vinculada.utm_source,
+          campanha_vinculada.utm_medium,
+          campanha_vinculada.utm_campaign,
+          'vinculo_unico'::TEXT
+            AS metodo_resolucao,
+          2 AS prioridade
+        FROM marketing_campanha_vinculos
+          vinculo_unico
+        INNER JOIN marketing_campanhas
+          campanha_vinculada
+          ON campanha_vinculada.id =
+            vinculo_unico.campanha_id
+        WHERE ${provedorResolvido} IS NOT NULL
+          AND ${campanhaAusenteSql(campanha)}
+          AND ${sincronizacaoCompleta}
+          AND vinculo_unico.provedor =
+            ${provedorResolvido}
+          AND campanha_vinculada.canal =
+            ${canalResolvido}
+          AND campanha_vinculada.utm_medium =
+            LOWER(${midia})
+          ${filtroObjetivoVinculado}
+          AND 1 = (
+            SELECT
+              COUNT(
+                DISTINCT
+                vinculo_contagem.campanha_id
+              )
+            FROM marketing_campanha_vinculos
+              vinculo_contagem
+            INNER JOIN marketing_campanhas
+              campanha_contagem
+              ON campanha_contagem.id =
+                vinculo_contagem.campanha_id
+            WHERE vinculo_contagem.provedor =
+              ${provedorResolvido}
+              AND campanha_contagem.canal =
+                ${canalResolvido}
+              AND campanha_contagem.utm_medium =
+                LOWER(${midia})
+              ${filtroObjetivoContagem}
+          )
       ) resolvida
-      WHERE resolvida.metodo_resolucao IS NOT NULL
       ORDER BY
-        CASE
-          WHEN resolvida.metodo_resolucao =
-            'utm_exata'
-            THEN 0
-          WHEN resolvida.metodo_resolucao =
-            'vinculo_plataforma'
-            THEN 1
-          ELSE 2
-        END,
+        resolvida.prioridade ASC,
         resolvida.id ASC
       LIMIT 1
     ) ${alias} ON TRUE
