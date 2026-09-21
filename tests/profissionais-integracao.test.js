@@ -393,6 +393,7 @@ describe("Fluxo de profissionais com banco real", () => {
             id: convidada.id,
             ativo: false,
             motivo_inatividade: "aguardando_vaga_plano",
+            whatsapp: null,
           }),
         ])
       );
