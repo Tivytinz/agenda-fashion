@@ -318,6 +318,16 @@ Conversão do perfil deve usar visitas externas ao negócio como denominador e
 agendamentos reais não cancelados como resultado. Eventos de navegador são
 telemetria diagnóstica e não substituem a tabela `agendamentos`.
 
+Durante a migração de Analytics, `eventos_produto` e o Analytics V2 first-party
+podem coexistir. Eventos equivalentes devem ser reconciliados em uma janela
+comparável, nunca somados como se fossem fontes independentes de verdade. A
+retirada do pipeline legado exige estabilidade observada, investigação de
+divergências e revisão de todas as dependências restantes.
+
+Métricas de clientes únicos, recorrência e origem do cliente usam
+`agendamentos.client_id` como identidade. `cliente_id` legado e telefone não
+devem ser usados para fundir visitantes sem evidência de identidade persistida.
+
 Na monetização, distinguir intenção de checkout, pagamento confirmado, assinatura
 efetivamente ativa, reembolso/reversão e receita. Enquanto o schema financeiro
 não persistir valor e data econômica exatos de estornos parciais e chargebacks,
@@ -334,8 +344,8 @@ As integrações administrativas de custos são somente leitura no escopo atual
 documentado e não devem criar, editar, pausar ou excluir campanhas sem uma nova
 decisão de produto e segurança.
 
-Detalhes ficam em `docs/marketing-attribution.md`, `docs/marketing-sync-ga4.md`
-e demais documentos de marketing.
+Detalhes ficam em `docs/marketing-attribution.md`, `docs/marketing-sync-ga4.md`,
+`docs/analytics-pipeline-reconciliation.md` e demais documentos de marketing.
 
 ## Machine Learning
 
