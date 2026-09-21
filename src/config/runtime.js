@@ -215,6 +215,12 @@ function validarConfiguracaoRuntime(env = process.env) {
       ],
       "Produção"
     );
+    exigirTamanhoMinimo(
+      env,
+      "ASAAS_WEBHOOK_TOKEN",
+      32,
+      "Produção"
+    );
     validarUrl(texto(env, "PUBLIC_APP_URL"), "PUBLIC_APP_URL", {
       exigirHttps: true,
     });
