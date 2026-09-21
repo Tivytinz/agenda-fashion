@@ -347,6 +347,30 @@ decisão de produto e segurança.
 Detalhes ficam em `docs/marketing-attribution.md`, `docs/marketing-sync-ga4.md`,
 `docs/analytics-pipeline-reconciliation.md` e demais documentos de marketing.
 
+## Conteúdo e comunicação
+
+A estratégia editorial do AF deve acompanhar o estado real do produto e o funil
+de profissionais, negócios e clientes. Conteúdo não deve anunciar roadmap,
+mockup, interface gerada por IA ou comportamento antigo como se já estivesse
+implementado.
+
+Cada peça relevante deve ter público, etapa do funil, hipótese de comunicação,
+CTA e forma de medição definidos. Curtidas, visualizações, CTR, CPC ou cadastro
+isolado não substituem primeiro agendamento válido, assinatura, recorrência ou
+retenção quando esses forem os resultados que a peça pretende influenciar.
+
+Aprendizados de conteúdo só se tornam regras permanentes após evidência
+suficiente e repetida. Resultado de um único post, campanha temporária ou
+tendência passageira não pertence à memória operacional.
+
+Para criativos com IA generativa, créditos devem ser tratados como orçamento de
+produção. Roteiro, referências, prompt e plano de edição devem ser revisados
+antes da geração paga. Texto, números, métricas e interface crítica não devem
+depender de vídeo generativo quando puderem ser compostos com precisão na
+pós-produção ou capturados do produto real.
+
+Detalhes: `docs/estrategia-conteudo.md` e `docs/runway-criativos.md`.
+
 ## Machine Learning
 
 O primeiro caso de Machine Learning do AF é a previsão de risco de falta em
