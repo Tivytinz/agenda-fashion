@@ -106,8 +106,9 @@ export function ProfessionalInvitesPage() {
             <p className="eyebrow">Equipe</p>
             <h1>Convites recebidos</h1>
             <p>
-              Você só passa a fazer parte de um negócio depois de aceitar.
-              Nenhum vínculo é criado automaticamente.
+              Seu aceite é necessário antes de qualquer vínculo com o negócio.
+              Quando não houver vaga no plano, o aceite fica aguardando ativação
+              pela dona.
             </p>
           </div>
 
