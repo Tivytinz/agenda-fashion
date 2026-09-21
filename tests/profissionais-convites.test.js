@@ -44,6 +44,19 @@ describe("Convites de profissionais", () => {
       status: "pendente",
       expira_em: new Date(Date.now() + 60_000).toISOString(),
     });
+    profissionaisRepository.buscarVinculoProfissionalAtivo.mockResolvedValue(null);
+    profissionaisRepository.criarOuMarcarVinculoAguardandoVaga.mockResolvedValue({
+      id: 501,
+      papel: "profissional",
+      ativo: false,
+      motivo_inatividade: "aguardando_vaga_plano",
+    });
+    profissionaisRepository.ativarVinculoProfissionalAguardandoVaga.mockResolvedValue({
+      id: 501,
+      papel: "profissional",
+      ativo: true,
+      motivo_inatividade: null,
+    });
     planoService.buscarUsoPlano.mockResolvedValue({
       negocio_id: 7,
       plano_nome: "Salão",
