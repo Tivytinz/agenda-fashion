@@ -11,6 +11,7 @@ const {
 describe("dashboardRetentionRepository integrado", () => {
   let cenario;
   let clientes = [];
+  let clientesVisitantes = [];
 
   beforeEach(async () => {
     cenario = await criarCenarioAgendamento(db, {
@@ -28,7 +29,15 @@ describe("dashboardRetentionRepository integrado", () => {
       );
     }
 
+    if (clientesVisitantes.length > 0) {
+      await db.query(
+        "DELETE FROM clientes WHERE id = ANY($1::BIGINT[])",
+        [clientesVisitantes]
+      );
+    }
+
     clientes = [];
+    clientesVisitantes = [];
   });
 
   async function criarCliente(nome) {
@@ -87,6 +96,51 @@ describe("dashboardRetentionRepository integrado", () => {
     );
   }
 
+  async function criarAgendamentoVisitante(
+    horario,
+    whatsapp = "62988887777"
+  ) {
+    const resultado = await db.query(
+      `
+        INSERT INTO agendamentos (
+          negocio_id,
+          servico_id,
+          profissional_id,
+          cliente_id,
+          cliente_nome,
+          cliente_whatsapp,
+          data,
+          horario,
+          status
+        )
+        VALUES (
+          $1,
+          $2,
+          $3,
+          NULL,
+          'Visitante recorrência',
+          $4,
+          CURRENT_DATE + 1,
+          $5,
+          'agendado'
+        )
+        RETURNING client_id
+      `,
+      [
+        cenario.negocioId,
+        cenario.servico.id,
+        cenario.profissional.id,
+        whatsapp,
+        horario,
+      ]
+    );
+
+    const clientId =
+      Number(resultado.rows[0].client_id);
+    clientesVisitantes.push(clientId);
+    return clientId;
+  }
+
   test("conta clientes únicos e recorrentes sem incluir cancelados", async () => {
     const clienteRecorrente = await criarCliente("Cliente recorrente");
     const clienteUnico = await criarCliente("Cliente único");
@@ -107,5 +161,29 @@ describe("dashboardRetentionRepository integrado", () => {
       clientes_unicos: 2,
       clientes_recorrentes: 1,
     });
+
+  test("não funde visitantes diferentes somente pelo mesmo WhatsApp", async () => {
+    const primeiro =
+      await criarAgendamentoVisitante(
+        "14:00"
+      );
+    const segundo =
+      await criarAgendamentoVisitante(
+        "15:00"
+      );
+
+    expect(primeiro).not.toBe(segundo);
+
+    const resumo =
+      await dashboardRetentionRepository
+        .buscarResumoRetencao(
+          cenario.negocioId
+        );
+
+    expect(resumo).toMatchObject({
+      clientes_unicos: 2,
+      clientes_recorrentes: 0,
+    });
+  });
   });
 });
