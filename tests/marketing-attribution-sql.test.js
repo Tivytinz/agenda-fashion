@@ -60,7 +60,13 @@ describe(
           /candidata\.ativo\s*=\s*TRUE/i
         );
         expect(vinculo).toContain(
+          "candidata.utm_campaign = LOWER(e.campanha)"
+        );
+        expect(vinculo).not.toContain(
           "LOWER(candidata.utm_campaign)"
+        );
+        expect(vinculo).toContain(
+          "UNION ALL"
         );
         expect(vinculo).toContain(
           "marketing_campanha_vinculos"
@@ -81,7 +87,7 @@ describe(
           "e.created_at"
         );
         expect(vinculo).toContain(
-          "COUNT(DISTINCT vinculo_unico.campanha_id)"
+          "vinculo_contagem.campanha_id"
         );
         expect(vinculo).toContain(
           "COUNT(DISTINCT vinculo_identidade.campanha_id)"
