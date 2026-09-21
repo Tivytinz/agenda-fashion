@@ -374,6 +374,21 @@ describe("Fluxo de profissionais com banco real", () => {
         motivo_inatividade: "aguardando_vaga_plano",
       }]);
 
+      const convitesDepoisDoAceite = await request(app)
+        .get("/profissionais/convites/recebidos")
+        .set("Authorization", `Bearer ${tokenConvidada}`);
+
+      expect(convitesDepoisDoAceite.statusCode).toBe(200);
+      expect(convitesDepoisDoAceite.body.convites).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            id: convite.body.convite.id,
+            status: "aceito",
+            estado: "aguardando_vaga",
+          }),
+        ])
+      );
+
       const sessaoAguardando = await request(app)
         .get("/minha-sessao")
         .set("Authorization", `Bearer ${tokenConvidada}`);
