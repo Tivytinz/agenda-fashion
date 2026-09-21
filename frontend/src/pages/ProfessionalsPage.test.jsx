@@ -62,6 +62,62 @@ describe("equipe por convite", () => {
     ).toHaveLength(1);
   });
 
+  it("CA-EQP-01: orienta cadastro quando a conta convidada não existe", async () => {
+    apiRequest
+      .mockResolvedValueOnce({ profissionais: [
+        { id: 1, nome: "Dona", papel: "dono", foto_url: null }
+      ] })
+      .mockRejectedValueOnce(new Error(
+        "Profissional não encontrado. Ele precisa criar uma conta primeiro."
+      ));
+
+    render(<ProfessionalsPage />);
+    await screen.findByRole("heading", { name: "Profissionais" });
+    fireEvent.change(
+      screen.getByLabelText(/E-mail ou WhatsApp da profissional/i),
+      { target: { value: "sem-conta@example.com" } }
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Enviar convite" }));
+
+    expect(await screen.findByRole("alert")).toHaveProperty(
+      "textContent",
+      "Profissional não encontrado. Ele precisa criar uma conta primeiro."
+    );
+    expect(screen.queryByLabelText("Convite enviado")).toBeNull();
+    expect(screen.queryByRole("status")).toBeNull();
+    expect(screen.getByLabelText(/E-mail ou WhatsApp da profissional/i).value)
+      .toBe("sem-conta@example.com");
+    expect(apiRequest).toHaveBeenCalledTimes(2);
+  });
+
+  it("CA-EQP-04/05: protege a dona e preserva a profissional se há reserva confirmada", async () => {
+    apiRequest
+      .mockResolvedValueOnce({ profissionais: [
+        { id: 1, nome: "Dona", papel: "dono", foto_url: null },
+        { id: 9, nome: "Ana", papel: "profissional", foto_url: null }
+      ] })
+      .mockRejectedValueOnce(new Error(
+        "Existe 1 agendamento futuro ativo para esta profissional."
+      ));
+
+    render(<ProfessionalsPage />);
+    await screen.findByRole("heading", { name: "Ana" });
+    expect(screen.getAllByRole("button", { name: "Remover" })).toHaveLength(1);
+
+    fireEvent.click(screen.getByRole("button", { name: "Remover" }));
+    fireEvent.click(screen.getByRole("button", { name: "Sim, remover" }));
+
+    expect(await screen.findByRole("alert")).toHaveProperty(
+      "textContent",
+      "Existe 1 agendamento futuro ativo para esta profissional."
+    );
+    expect(screen.getByRole("heading", { name: "Ana" })).not.toBeNull();
+    expect(apiRequest).toHaveBeenLastCalledWith("/profissionais/9", {
+      method: "DELETE"
+    });
+    expect(apiRequest).toHaveBeenCalledTimes(2);
+  });
+
   it("CA-EQP-06: proprietária configura serviços atendidos pela profissional", async () => {
     apiRequest.mockImplementation((path, options = {}) => {
       if (path === "/profissionais") {

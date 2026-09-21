@@ -177,6 +177,27 @@ describe("Fluxo de profissionais com banco real", () => {
     expect(vinculo.rows).toEqual([{ papel: "profissional", ativo: true }]);
   });
 
+  test("CA-EQP-01: conta inexistente não gera convite nem vínculo", async () => {
+    const antes = await db.query(
+      "SELECT COUNT(*)::int AS total FROM convites_profissionais WHERE negocio_id = $1",
+      [negocioA.id]
+    );
+
+    const resposta = await request(app)
+      .post("/profissionais/convites")
+      .set("Authorization", `Bearer ${tokenDonoA}`)
+      .send({ emailOuWhatsapp: `inexistente.${sufixo}@teste.local` });
+
+    expect(resposta.statusCode).toBe(404);
+    expect(resposta.body.erro).toContain("criar uma conta primeiro");
+
+    const depois = await db.query(
+      "SELECT COUNT(*)::int AS total FROM convites_profissionais WHERE negocio_id = $1",
+      [negocioA.id]
+    );
+    expect(depois.rows[0].total).toBe(antes.rows[0].total);
+  });
+
   test("dona edita apenas o perfil do vínculo com o negócio", async () => {
     const resposta = await request(app)
       .put(`/profissionais/${profissionalVinculado.id}`)
@@ -225,7 +246,7 @@ describe("Fluxo de profissionais com banco real", () => {
     expect(resposta.body.erro).toBe("WhatsApp do profissional inválido.");
   });
 
-  test("não remove profissional com agendamento futuro ativo", async () => {
+  test("CA-EQP-05: não remove profissional com reserva futura confirmada", async () => {
     const servico = await db.query(
       `
       INSERT INTO servicos_negocio (negocio_id, nome, valor, duracao_minutos, categoria, ativo)
@@ -244,7 +265,7 @@ describe("Fluxo de profissionais com banco real", () => {
       VALUES (
         $1, $2, $3, $4,
         (CURRENT_TIMESTAMP AT TIME ZONE 'America/Sao_Paulo')::date + 2,
-        '10:00', 'agendado', 50, 60
+        '10:00', 'confirmado', 50, 60
       )
       RETURNING id
       `,
@@ -259,6 +280,12 @@ describe("Fluxo de profissionais com banco real", () => {
     expect(bloqueada.statusCode).toBe(409);
     expect(bloqueada.body.erro).toContain("1 agendamento futuro ativo");
 
+    const vinculoPreservado = await db.query(
+      `SELECT ativo FROM usuarios_negocios WHERE usuario_id = $1 AND negocio_id = $2`,
+      [profissionalDisponivel.id, negocioA.id]
+    );
+    expect(vinculoPreservado.rows).toEqual([{ ativo: true }]);
+
     await db.query(
       "UPDATE agendamentos SET status = 'cancelado', cancelado_em = NOW() WHERE id = $1",
       [agendamento.rows[0].id]
@@ -268,6 +295,21 @@ describe("Fluxo de profissionais com banco real", () => {
       .delete(`/profissionais/${profissionalDisponivel.id}`)
       .set("Authorization", `Bearer ${tokenDonoA}`);
     expect(liberada.statusCode).toBe(200);
+  });
+
+  test("CA-EQP-04: proprietária não pode remover o próprio vínculo ativo", async () => {
+    const resposta = await request(app)
+      .delete(`/profissionais/${donoA.id}`)
+      .set("Authorization", `Bearer ${tokenDonoA}`);
+
+    expect(resposta.statusCode).toBe(403);
+    expect(resposta.body.erro).toMatch(/dono não pode remover a si mesmo/i);
+
+    const vinculo = await db.query(
+      `SELECT papel, ativo FROM usuarios_negocios WHERE usuario_id = $1 AND negocio_id = $2`,
+      [donoA.id, negocioA.id]
+    );
+    expect(vinculo.rows).toEqual([{ papel: "dono", ativo: true }]);
   });
 
   test("somente a dona do negócio remove o vínculo", async () => {
@@ -280,5 +322,36 @@ describe("Fluxo de profissionais com banco real", () => {
       .delete(`/profissionais/${profissionalVinculado.id}`)
       .set("Authorization", `Bearer ${tokenDonoA}`);
     expect(resposta.statusCode).toBe(200);
+  });
+
+  test("CA-EQP-03: convite pendente não é aceito após arquivar o negócio", async () => {
+    const convidada = await criarUsuario("Convidada Arquivada", "arquivada", 5);
+    const convite = await request(app)
+      .post("/profissionais/convites")
+      .set("Authorization", `Bearer ${tokenDonoB}`)
+      .send({ emailOuWhatsapp: convidada.email });
+
+    expect(convite.statusCode).toBe(201);
+    expect(convite.body.convite.status).toBe("pendente");
+
+    await db.query("UPDATE negocios SET ativo = FALSE WHERE id = $1", [negocioB.id]);
+
+    const aceite = await request(app)
+      .post(`/profissionais/convites/${convite.body.convite.id}/aceitar`)
+      .set("Authorization", `Bearer ${gerarToken(convidada.id)}`);
+
+    expect(aceite.statusCode).toBe(409);
+
+    const convitePersistido = await db.query(
+      "SELECT status FROM convites_profissionais WHERE id = $1",
+      [convite.body.convite.id]
+    );
+    expect(convitePersistido.rows).toEqual([{ status: "pendente" }]);
+
+    const vinculo = await db.query(
+      "SELECT id FROM usuarios_negocios WHERE usuario_id = $1 AND negocio_id = $2",
+      [convidada.id, negocioB.id]
+    );
+    expect(vinculo.rowCount).toBe(0);
   });
 });
