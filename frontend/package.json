@@ -10,7 +10,8 @@
     "check:dead-code": "npx --yes knip@6.35.1 --production --include files",
     "preview": "vite preview",
     "test": "vitest run",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "test:e2e:fullstack": "playwright test --config=playwright.fullstack.config.js"
   },
   "dependencies": {
     "react": "^19.1.1",
