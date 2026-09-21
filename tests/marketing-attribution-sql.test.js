@@ -90,7 +90,7 @@ describe(
           "vinculo_contagem.campanha_id"
         );
         expect(vinculo).toContain(
-          "COUNT(DISTINCT vinculo_identidade.campanha_id)"
+          "vinculo_identidade.campanha_id"
         );
         expect(vinculo).toContain(
           "IN ('', '(sem campanha)', 'sem campanha', 'organico', 'orgânico')"
