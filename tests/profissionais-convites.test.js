@@ -68,6 +68,42 @@ describe("Convites de profissionais", () => {
     expect(resultado.convite.profissional).not.toHaveProperty("whatsapp");
   });
 
+  test("CA-EQP-01: conta inexistente não recebe convite", async () => {
+    profissionaisRepository.buscarProfissionalPorEmailWhatsapp.mockResolvedValue(null);
+
+    await expect(
+      profissionaisService.criarConviteProfissional({
+        usuarioDonoId: 1,
+        emailOuWhatsapp: "sem-conta@teste.com",
+      })
+    ).rejects.toMatchObject({
+      statusCode: 404,
+      message: "Profissional não encontrado. Ele precisa criar uma conta primeiro.",
+    });
+
+    expect(profissionaisRepository.criarConvite).not.toHaveBeenCalled();
+    expect(profissionaisRepository.criarVinculo).not.toHaveBeenCalled();
+  });
+
+  test("CA-EQP-03: convite pendente de negócio arquivado não cria vínculo", async () => {
+    profissionaisRepository.buscarConviteParaAtualizacao.mockResolvedValue({
+      id: 99,
+      negocio_id: 7,
+      usuario_convidado_id: 20,
+      status: "pendente",
+      expira_em: new Date(Date.now() + 60_000).toISOString(),
+      negocio_ativo: false,
+      usuario_ativo: true,
+    });
+
+    await expect(
+      profissionaisService.aceitarConviteProfissional({ usuarioId: 20, conviteId: 99 })
+    ).rejects.toMatchObject({ statusCode: 409 });
+
+    expect(profissionaisRepository.criarVinculo).not.toHaveBeenCalled();
+    expect(profissionaisRepository.atualizarStatusConvite).not.toHaveBeenCalled();
+  });
+
   test("endpoint legado também cria apenas convite", async () => {
     await profissionaisService.vincularProfissional({
       usuarioDonoId: 1,

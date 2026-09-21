@@ -89,4 +89,34 @@ describe("convites recebidos", () => {
     expect(refresh).not.toHaveBeenCalled();
     expect(screen.queryByText("Salão Flor")).toBeNull();
   });
+
+  it("CA-EQP-03: mantém convite e não abre área profissional quando negócio foi arquivado", async () => {
+    apiRequest
+      .mockResolvedValueOnce({ convites: [{
+        id: 13,
+        negocio_id: 6,
+        negocio_nome: "Studio Arquivado",
+        status: "pendente",
+        expira_em: "2026-09-30T18:00:00.000Z"
+      }] })
+      .mockRejectedValueOnce(new Error(
+        "Não é possível aceitar este convite porque a conta ou o negócio está inativo."
+      ));
+
+    render(<MemoryRouter><ProfessionalInvitesPage /></MemoryRouter>);
+    await screen.findByText("Studio Arquivado");
+    fireEvent.click(screen.getByRole("button", { name: "Aceitar convite" }));
+
+    expect(await screen.findByRole("alert")).toHaveProperty(
+      "textContent",
+      "Não é possível aceitar este convite porque a conta ou o negócio está inativo."
+    );
+    expect(screen.getByText("Studio Arquivado")).not.toBeNull();
+    expect(screen.queryByRole("link", { name: "Abrir minha área profissional" })).toBeNull();
+    expect(refresh).not.toHaveBeenCalled();
+    expect(apiRequest).toHaveBeenLastCalledWith(
+      "/profissionais/convites/13/aceitar",
+      { method: "POST" }
+    );
+  });
 });
