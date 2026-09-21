@@ -254,6 +254,8 @@ describe(
           schemaVersion: 1,
           occurredAt: AGORA,
           targetBusinessId: 11,
+          targetServiceId: 22,
+          bookingId: 321,
           properties: {
             status: "sucesso",
           },
@@ -262,6 +264,8 @@ describe(
         expect(booking).toMatchObject({
           name: "booking_completed",
           targetBusinessId: 11,
+          targetServiceId: 22,
+          agendamentoId: 321,
           properties: {
             status: "sucesso",
           },
