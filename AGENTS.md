@@ -455,7 +455,8 @@ Não introduzir tecnologia, camada ou reescrita ampla apenas por modernização.
 
 Mudanças relevantes devem executar validações proporcionais ao risco. O Quality
 Gate atual cobre lint, build, testes frontend, migrations, Jest/PostgreSQL,
-audits e Playwright aplicável.
+audits, Playwright de UX e uma suíte separada de acceptance full-stack com
+frontend buildado, Express e PostgreSQL reais para contratos P0 cobertos.
 
 Fluxo esperado:
 
