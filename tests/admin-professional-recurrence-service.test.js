@@ -143,9 +143,9 @@ describe(
               janelaDias: 30,
               elegiveis: 0,
               comSegundoNaJanela: 0,
-              taxaSegundoNaJanela: 0,
+              taxaSegundoNaJanela: null,
               comTerceiroNaJanela: 0,
-              taxaTerceiroNaJanela: 0,
+              taxaTerceiroNaJanela: null,
             },
           ],
           metodologia: {
@@ -168,7 +168,7 @@ describe(
     );
 
     test(
-      "mantem taxas em zero quando ainda nao existe base",
+      "retorna taxa nula quando ainda nao existe base",
       () => {
         expect(
           service.criarResumo([])
@@ -178,10 +178,10 @@ describe(
           comPrimeiroAgendamento: 0,
           comSegundoAgendamento: 0,
           comTerceiroAgendamento: 0,
-          taxaPrimeiroSobreNegocio: 0,
-          taxaSegundoSobrePrimeiro: 0,
-          taxaTerceiroSobreSegundo: 0,
-          taxaTerceiroSobrePrimeiro: 0,
+          taxaPrimeiroSobreNegocio: null,
+          taxaSegundoSobrePrimeiro: null,
+          taxaTerceiroSobreSegundo: null,
+          taxaTerceiroSobrePrimeiro: null,
         });
       }
     );
@@ -314,25 +314,25 @@ describe(
               janelaDias: 7,
               elegiveis: 0,
               comSegundoNaJanela: 0,
-              taxaSegundoNaJanela: 0,
+              taxaSegundoNaJanela: null,
               comTerceiroNaJanela: 0,
-              taxaTerceiroNaJanela: 0,
+              taxaTerceiroNaJanela: null,
             },
             {
               janelaDias: 14,
               elegiveis: 0,
               comSegundoNaJanela: 0,
-              taxaSegundoNaJanela: 0,
+              taxaSegundoNaJanela: null,
               comTerceiroNaJanela: 0,
-              taxaTerceiroNaJanela: 0,
+              taxaTerceiroNaJanela: null,
             },
             {
               janelaDias: 30,
               elegiveis: 0,
               comSegundoNaJanela: 0,
-              taxaSegundoNaJanela: 0,
+              taxaSegundoNaJanela: null,
               comTerceiroNaJanela: 0,
-              taxaTerceiroNaJanela: 0,
+              taxaTerceiroNaJanela: null,
             },
           ],
         });
