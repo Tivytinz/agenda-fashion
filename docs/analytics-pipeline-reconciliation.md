@@ -29,9 +29,14 @@ O histórico do pipeline legado é anterior ao Analytics V2. Comparar todo o his
 Por isso, para cada recorte administrativo, a janela comparável começa no primeiro `analytics_eventos.occurred_at` de um evento frontend mapeado no Analytics V2. A partir desse instante são contados, separadamente:
 
 - eventos;
-- sessões distintas;
+- sessões distintas como diagnóstico auxiliar;
 - diferença absoluta entre as duas telemetrias;
 - cobertura observada do V2 sobre o legado.
+
+A paridade técnica é avaliada pelos eventos equivalentes. Contagens de sessões não
+entram no critério de paridade porque o legado e o Analytics V2 possuem contratos
+de sessionização diferentes; uma diferença de sessões, isoladamente, não prova
+perda de eventos.
 
 O painel também preserva os totais do período de cada pipeline para contexto.
 
