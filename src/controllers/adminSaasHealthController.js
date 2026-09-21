@@ -5,6 +5,9 @@ const adminSaasHealthService =
 const operationalHealthService = require(
   "../services/operationalHealthService"
 );
+const mlNoShowDataService = require(
+  "../services/mlNoShowDataService"
+);
 
 async function listarPerfisIncompletos(
   req,
@@ -47,7 +50,22 @@ async function obterSaudeOperacional(
   }
 }
 
+async function obterMaturidadeMlNoShow(
+  _req,
+  res,
+  next
+) {
+  try {
+    const resultado = await mlNoShowDataService
+      .obterDiagnosticoMaturidade();
+    return res.status(200).json(resultado);
+  } catch (erro) {
+    return next(erro);
+  }
+}
+
 module.exports = {
   listarPerfisIncompletos,
   obterSaudeOperacional,
+  obterMaturidadeMlNoShow,
 };
