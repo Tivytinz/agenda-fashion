@@ -97,28 +97,36 @@ function classificarErroSeguro(erro) {
 }
 
 function logSucesso({ modelo, inicioMs, data }) {
-  registrador.informacao(
-    "Copilot OpenAI: geração concluída.",
-    {
-      provider: "openai",
-      modelo,
-      duracao_ms: Math.max(0, Date.now() - inicioMs),
-      input_tokens: inteiroSeguro(data?.usage?.input_tokens),
-      output_tokens: inteiroSeguro(data?.usage?.output_tokens),
-    }
-  );
+  try {
+    registrador.informacao(
+      "Copilot OpenAI: geração concluída.",
+      {
+        provider: "openai",
+        modelo,
+        duracao_ms: Math.max(0, Date.now() - inicioMs),
+        input_tokens: inteiroSeguro(data?.usage?.input_tokens),
+        output_tokens: inteiroSeguro(data?.usage?.output_tokens),
+      }
+    );
+  } catch {
+    // Observabilidade nunca pode quebrar a geração assistiva.
+  }
 }
 
 function logFalha({ modelo, inicioMs, erro }) {
-  registrador.aviso(
-    "Copilot OpenAI: falha na geração.",
-    {
-      provider: "openai",
-      modelo,
-      duracao_ms: Math.max(0, Date.now() - inicioMs),
-      ...classificarErroSeguro(erro),
-    }
-  );
+  try {
+    registrador.aviso(
+      "Copilot OpenAI: falha na geração.",
+      {
+        provider: "openai",
+        modelo,
+        duracao_ms: Math.max(0, Date.now() - inicioMs),
+        ...classificarErroSeguro(erro),
+      }
+    );
+  } catch {
+    // Preserva o erro original do provider mesmo se o logger falhar.
+  }
 }
 
 async function generateShareCopy(contexto) {
