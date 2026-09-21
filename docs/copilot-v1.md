@@ -74,7 +74,7 @@ OPENAI_API_URL=https://api.openai.com/v1/responses
 OPENAI_TIMEOUT_MS=8000
 ```
 
-A flag fica desligada por padrão. A chave é segredo exclusivo do backend e nunca pode ser exposta em `VITE_*`, frontend, logs ou analytics.
+A flag fica desligada por padrão. O provider usa o mesmo parser booleano do runtime (`1`, `true`, `yes` e `on` ativam), evitando divergência entre a validação de startup e a execução. A chave é segredo exclusivo do backend e nunca pode ser exposta em `VITE_*`, frontend, logs ou analytics.
 
 As requisições usam:
 
@@ -96,7 +96,7 @@ A integração é fail-soft. Se ocorrer qualquer uma destas situações:
 - resposta vazia;
 - JSON inválido;
 - saída fora do contrato;
-- texto contendo URL;
+- texto contendo URL, e-mail ou telefone;\n- preço, percentual, desconto, promoção ou oferta gerados pelo modelo;\n- alegação de disponibilidade/urgência ou promessa de resultado;
 
 `copilotShareService` devolve uma sugestão determinística baseada somente no contexto autorizado.
 
