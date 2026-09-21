@@ -98,6 +98,27 @@ describe("Convites de profissionais", () => {
     expect(profissionaisRepository.criarVinculo).not.toHaveBeenCalled();
   });
 
+  test("não recria convite para profissional que já aguarda vaga", async () => {
+    profissionaisRepository.verificarVinculo.mockResolvedValue({
+      id: 501,
+      papel: "profissional",
+      ativo: false,
+      motivo_inatividade: "aguardando_vaga_plano",
+    });
+
+    await expect(
+      profissionaisService.criarConviteProfissional({
+        usuarioDonoId: 1,
+        emailOuWhatsapp: "profissional@teste.com",
+      })
+    ).rejects.toMatchObject({
+      statusCode: 400,
+      message: "Esta profissional já aceitou o convite e está aguardando uma vaga no plano.",
+    });
+
+    expect(profissionaisRepository.criarConvite).not.toHaveBeenCalled();
+  });
+
   test("CA-EQP-03: convite pendente de negócio arquivado não cria vínculo", async () => {
     profissionaisRepository.buscarConviteParaAtualizacao.mockResolvedValue({
       id: 99,
