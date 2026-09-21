@@ -1,9 +1,30 @@
 jest.mock(
   "../src/repositories/analyticsV2Repository",
-  () => ({})
+  () => ({
+    executarTransacao: jest.fn(
+      async (callback) => callback({})
+    ),
+    upsertVisitante: jest.fn(),
+    upsertSessao: jest.fn(),
+    vincularIdentidade: jest.fn(),
+    resolverNegocioDoAtor: jest.fn(),
+    buscarCampanhaOficial: jest.fn(),
+    salvarEvidenciasSessao: jest.fn(),
+    salvarOrigemSessao: jest.fn(),
+    registrarVisualizacao: jest.fn(),
+    registrarEngajamento: jest.fn(),
+    registrarEvento: jest.fn(),
+    buscarVisualizacaoPorUuid: jest.fn(),
+    resolverAgendamentoEvento: jest.fn(),
+    recalcularSessao: jest.fn(),
+  })
 );
 
+const analyticsRepository = require(
+  "../src/repositories/analyticsV2Repository"
+);
 const {
+  coletar,
   normalizarAquisicao,
   normalizarItem,
   classificarCanal,
@@ -25,10 +46,32 @@ describe(
   "analyticsV2Service",
   () => {
     beforeEach(() => {
+      jest.clearAllMocks();
       jest.useFakeTimers();
       jest.setSystemTime(
         new Date(AGORA)
       );
+
+      analyticsRepository.upsertVisitante
+        .mockResolvedValue({ id: 1 });
+      analyticsRepository.upsertSessao
+        .mockResolvedValue({
+          id: 2,
+          session_uuid:
+            "5bb9d6c2-9d35-4aa8-80b3-929563811a55",
+        });
+      analyticsRepository.buscarCampanhaOficial
+        .mockResolvedValue(null);
+      analyticsRepository.resolverNegocioDoAtor
+        .mockResolvedValue(null);
+      analyticsRepository.buscarVisualizacaoPorUuid
+        .mockResolvedValue(null);
+      analyticsRepository.registrarEvento
+        .mockResolvedValue({ id: 3 });
+      analyticsRepository.recalcularSessao
+        .mockResolvedValue({
+          eventos: 1,
+        });
     });
 
     afterEach(() => {
@@ -270,6 +313,63 @@ describe(
             status: "sucesso",
           },
         });
+      }
+    );
+
+    test(
+      "valida o booking no backend antes de persistir o vínculo do evento",
+      async () => {
+        analyticsRepository
+          .resolverAgendamentoEvento
+          .mockResolvedValue({
+            id: 321,
+          });
+
+        await coletar({
+          usuarioId: null,
+          body: {
+            visitorUuid:
+              "7bd13f95-2df5-4c1d-86b2-d30204ba91d1",
+            sessionUuid:
+              "dd22eaf4-c58c-4a63-b68b-cd74dc194d3d",
+            items: [
+              {
+                type: "event",
+                eventUuid:
+                  "f1d5b6bf-bad7-4bd0-86ec-55a733d3f4af",
+                name: "booking_completed",
+                schemaVersion: 1,
+                occurredAt: AGORA,
+                targetBusinessId: 11,
+                targetServiceId: 22,
+                bookingId: 321,
+                properties: {
+                  status: "sucesso",
+                },
+              },
+            ],
+          },
+        });
+
+        expect(
+          analyticsRepository
+            .resolverAgendamentoEvento
+        ).toHaveBeenCalledWith({
+          agendamentoId: 321,
+          targetBusinessId: 11,
+          targetServiceId: 22,
+        }, {});
+        expect(
+          analyticsRepository.registrarEvento
+        ).toHaveBeenCalledWith(
+          expect.objectContaining({
+            nome: "booking_completed",
+            agendamentoId: 321,
+            targetBusinessId: 11,
+            targetServiceId: 22,
+          }),
+          {}
+        );
       }
     );
 
