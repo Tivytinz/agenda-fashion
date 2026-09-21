@@ -161,6 +161,7 @@ describe("dashboardRetentionRepository integrado", () => {
       clientes_unicos: 2,
       clientes_recorrentes: 1,
     });
+  });
 
   test("não funde visitantes diferentes somente pelo mesmo WhatsApp", async () => {
     const primeiro =
@@ -184,6 +185,5 @@ describe("dashboardRetentionRepository integrado", () => {
       clientes_unicos: 2,
       clientes_recorrentes: 0,
     });
-  });
   });
 });
