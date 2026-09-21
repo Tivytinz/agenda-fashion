@@ -1,4 +1,4 @@
-const { flagAtiva } = require("./marketingCostSync");
+const { flagAtiva } = require("../utils/featureFlags");
 
 function texto(env, nome) {
   return String(env[nome] || "").trim();
