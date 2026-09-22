@@ -80,7 +80,7 @@ describe("consistência da publicação do negócio", () => {
       /despublicado_manual_em\s+IS\s+NOT\s+NULL[\s\S]*THEN FALSE/i
     );
     expect(sqlPublicacao).toMatch(
-      /ELSE\s+e\.pode_publicar/i
+      /ELSE\s+e\.pode_permanecer_publicado/i
     );
   });
 
@@ -129,7 +129,7 @@ describe("consistência da publicação do negócio", () => {
     );
     expect(paramsDesbloqueio).toEqual([11]);
     expect(sqlPublicacao).toMatch(
-      /WITH elegibilidade[\s\S]*UPDATE negocios/i
+      /elegibilidade\s+AS\s*\([\s\S]*UPDATE negocios/i
     );
     expect(sqlPublicacao).toMatch(
       /despublicado_manual_em\s+IS\s+NOT\s+NULL[\s\S]*THEN FALSE/i
@@ -214,7 +214,7 @@ describe("consistência da publicação do negócio", () => {
     const [sql, params] = mockQuery.mock.calls[0];
 
     expect(sql).toMatch(
-      /UPDATE negocios[\s\S]*despublicado_manual_em\s+IS\s+NOT\s+NULL[\s\S]*THEN FALSE[\s\S]*ELSE\s+e\.pode_publicar/i
+      /UPDATE negocios[\s\S]*despublicado_manual_em\s+IS\s+NOT\s+NULL[\s\S]*THEN FALSE[\s\S]*ELSE\s+e\.pode_permanecer_publicado/i
     );
     expect(sql).toMatch(/EXISTS[\s\S]*servicos_negocio[\s\S]*s\.ativo\s*=\s*TRUE/i);
     expect(sql).not.toMatch(/n\.descricao/i);
