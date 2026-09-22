@@ -110,6 +110,8 @@ async function buscarAgendamentoOperacionalParaAtualizar({
         a.status,
         TO_CHAR(a.data, 'YYYY-MM-DD') AS data,
         TO_CHAR(a.horario::time, 'HH24:MI') AS horario,
+        a.inicio_previsto_em,
+        a.fuso_horario_snapshot,
         COALESCE(a.duracao_minutos, s.duracao_minutos, 0)::int AS duracao_minutos,
         COALESCE(NULLIF(n.fuso_horario, ''), 'America/Sao_Paulo') AS fuso_horario,
         un.papel AS papel_executor,
@@ -296,12 +298,7 @@ async function listarAgendamentosProfissionalPorPeriodo({
           WHEN a.negocio_id = contexto.negocio_id
             AND a.status IN ('agendado', 'confirmado')
             AND a.atendimento_iniciado_em IS NULL
-            AND (a.data::timestamp + a.horario::time) <= (
-              NOW() AT TIME ZONE COALESCE(
-                NULLIF(n_agendamento.fuso_horario, ''),
-                'America/Sao_Paulo'
-              )
-            )
+            AND a.inicio_previsto_em <= NOW()
           THEN TRUE
           ELSE FALSE
         END AS pode_iniciar_atendimento,
@@ -310,15 +307,9 @@ async function listarAgendamentosProfissionalPorPeriodo({
             AND a.status IN ('agendado', 'confirmado')
             AND a.atendimento_iniciado_em IS NULL
             AND (
-              a.data::timestamp +
-              a.horario::time +
+              a.inicio_previsto_em +
               INTERVAL '15 minutes'
-            ) <= (
-              NOW() AT TIME ZONE COALESCE(
-                NULLIF(n_agendamento.fuso_horario, ''),
-                'America/Sao_Paulo'
-              )
-            )
+            ) <= NOW()
           THEN TRUE
           ELSE FALSE
         END AS pode_marcar_falta,
@@ -326,8 +317,7 @@ async function listarAgendamentosProfissionalPorPeriodo({
           WHEN a.negocio_id = contexto.negocio_id
             AND a.status IN ('agendado', 'confirmado')
             AND (
-              a.data::timestamp +
-              a.horario::time +
+              a.inicio_previsto_em +
               make_interval(
                 mins => COALESCE(
                   a.duracao_minutos,
@@ -335,12 +325,7 @@ async function listarAgendamentosProfissionalPorPeriodo({
                   0
                 )
               )
-            ) <= (
-              NOW() AT TIME ZONE COALESCE(
-                NULLIF(n_agendamento.fuso_horario, ''),
-                'America/Sao_Paulo'
-              )
-            )
+            ) <= NOW()
           THEN TRUE
           ELSE FALSE
         END AS pode_marcar_realizado
@@ -426,12 +411,7 @@ async function listarAgendamentosProfissionaisDoNegocioPorPeriodo({
           WHEN a.negocio_id = $1
             AND a.status IN ('agendado', 'confirmado')
             AND a.atendimento_iniciado_em IS NULL
-            AND (a.data::timestamp + a.horario::time) <= (
-              NOW() AT TIME ZONE COALESCE(
-                NULLIF(n_agendamento.fuso_horario, ''),
-                'America/Sao_Paulo'
-              )
-            )
+            AND a.inicio_previsto_em <= NOW()
           THEN TRUE
           ELSE FALSE
         END AS pode_iniciar_atendimento,
@@ -440,15 +420,9 @@ async function listarAgendamentosProfissionaisDoNegocioPorPeriodo({
             AND a.status IN ('agendado', 'confirmado')
             AND a.atendimento_iniciado_em IS NULL
             AND (
-              a.data::timestamp +
-              a.horario::time +
+              a.inicio_previsto_em +
               INTERVAL '15 minutes'
-            ) <= (
-              NOW() AT TIME ZONE COALESCE(
-                NULLIF(n_agendamento.fuso_horario, ''),
-                'America/Sao_Paulo'
-              )
-            )
+            ) <= NOW()
           THEN TRUE
           ELSE FALSE
         END AS pode_marcar_falta,
@@ -456,8 +430,7 @@ async function listarAgendamentosProfissionaisDoNegocioPorPeriodo({
           WHEN a.negocio_id = $1
             AND a.status IN ('agendado', 'confirmado')
             AND (
-              a.data::timestamp +
-              a.horario::time +
+              a.inicio_previsto_em +
               make_interval(
                 mins => COALESCE(
                   a.duracao_minutos,
@@ -465,12 +438,7 @@ async function listarAgendamentosProfissionaisDoNegocioPorPeriodo({
                   0
                 )
               )
-            ) <= (
-              NOW() AT TIME ZONE COALESCE(
-                NULLIF(n_agendamento.fuso_horario, ''),
-                'America/Sao_Paulo'
-              )
-            )
+            ) <= NOW()
           THEN TRUE
           ELSE FALSE
         END AS pode_marcar_realizado

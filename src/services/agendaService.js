@@ -774,6 +774,7 @@ async function alternarBloqueioHorario({
         profissionalId,
         data,
         hora,
+        negocioId,
         client
       );
 

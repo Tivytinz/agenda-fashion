@@ -18,6 +18,8 @@ async function buscarAgendamentoParaReagendar({
         a.status,
         TO_CHAR(a.data, 'YYYY-MM-DD') AS data,
         TO_CHAR(a.horario::time, 'HH24:MI') AS horario,
+        a.inicio_previsto_em,
+        a.fuso_horario_snapshot,
         a.servico_nome,
         a.valor_servico,
         a.duracao_minutos,
@@ -147,6 +149,8 @@ async function atualizarReagendamento({
         status,
         TO_CHAR(data, 'YYYY-MM-DD') AS data,
         TO_CHAR(horario::time, 'HH24:MI') AS horario,
+        inicio_previsto_em,
+        fuso_horario_snapshot,
         servico_nome,
         valor_servico,
         duracao_minutos,
@@ -161,6 +165,34 @@ async function atualizarReagendamento({
   );
 
   return result.rows[0] || null;
+}
+
+async function resolverInstanteNoFuso({
+  data,
+  horario,
+  fusoHorario,
+  executor = db,
+}) {
+  const result = await executor.query(
+    `
+      SELECT (
+        $1::date +
+        $2::time
+      ) AT TIME ZONE $3
+        AS inicio_previsto_em
+    `,
+    [
+      data,
+      horario,
+      fusoHorario,
+    ]
+  );
+
+  return (
+    result.rows[0]
+      ?.inicio_previsto_em ||
+    null
+  );
 }
 
 async function registrarHistoricoReagendamento({
@@ -233,5 +265,6 @@ module.exports = {
   buscarProfissionalAtivoNoNegocio,
   buscarProfissionalElegivelNoNegocio,
   atualizarReagendamento,
+  resolverInstanteNoFuso,
   registrarHistoricoReagendamento,
 };

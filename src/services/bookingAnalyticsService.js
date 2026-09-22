@@ -62,6 +62,26 @@ function scheduledStartAt(data, horario) {
   return `${dataNormalizada}T${horarioNormalizado}:00`;
 }
 
+function normalizarInstante(valor) {
+  if (
+    valor === null ||
+    valor === undefined ||
+    String(valor).trim() === ""
+  ) {
+    return null;
+  }
+
+  const data = new Date(
+    valor
+  );
+
+  return Number.isNaN(
+    data.getTime()
+  )
+    ? null
+    : data.toISOString();
+}
+
 function propriedadesBase(contexto) {
   return {
     business_id:
@@ -206,6 +226,17 @@ async function registrarBookingCreated({
         Number(contexto.price_snapshot),
       duration_snapshot:
         Number(contexto.duration_snapshot),
+      scheduled_start_at:
+        normalizarInstante(
+          contexto.inicio_previsto_em
+        ),
+      business_timezone:
+        String(
+          contexto.fuso_horario_snapshot ||
+          contexto.business_timezone ||
+          ""
+        ).trim() ||
+        null,
     },
   });
 }
@@ -219,14 +250,22 @@ async function registrarBookingRescheduled({
   previousHorario,
   newData,
   newHorario,
+  previousScheduledStartAt = null,
+  newScheduledStartAt = null,
   executor,
 }) {
   const previousStart =
+    normalizarInstante(
+      previousScheduledStartAt
+    ) ||
     scheduledStartAt(
       previousData,
       previousHorario
     );
   const newStart =
+    normalizarInstante(
+      newScheduledStartAt
+    ) ||
     scheduledStartAt(
       newData,
       newHorario

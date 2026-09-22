@@ -43,6 +43,54 @@ const AVAILABILITY = Array.from({ length: 7 }, (_, dayIndex) => ({
   ))
 }));
 
+async function expectKeyboardFocusVisible(
+  page,
+  locator
+) {
+  for (
+    let tentativa = 0;
+    tentativa < 30;
+    tentativa += 1
+  ) {
+    await page.keyboard.press("Tab");
+
+    if (
+      await locator.evaluate(
+        (elemento) =>
+          elemento ===
+          document.activeElement
+      )
+    ) {
+      const indicador =
+        await locator.evaluate(
+          (elemento) => {
+            const estilo =
+              getComputedStyle(
+                elemento
+              );
+
+            return (
+              estilo.outlineStyle !==
+                "none" &&
+              parseFloat(
+                estilo.outlineWidth
+              ) > 0
+            ) ||
+              estilo.boxShadow !==
+                "none";
+          }
+        );
+
+      expect(indicador).toBe(true);
+      return;
+    }
+  }
+
+  throw new Error(
+    "Controle não recebeu foco por teclado."
+  );
+}
+
 async function expectNoHorizontalOverflow(page) {
   await expect.poll(() => page.evaluate(() => ({
     clientWidth: document.documentElement.clientWidth,
@@ -98,10 +146,21 @@ test("perfil e agendamento permanecem contidos no celular", async ({ page }) => 
     name: "Foto do serviço Manicure completa"
   })).toBeVisible();
 
-  await page.getByRole("button", {
-    name: "Selecionar Manicure completa",
-    exact: true
-  }).click();
+  const serviceButton =
+    page.getByRole("button", {
+      name: "Selecionar Manicure completa",
+      exact: true
+    });
+  await expect(
+    serviceButton
+  ).toBeVisible();
+  await expectKeyboardFocusVisible(
+    page,
+    serviceButton
+  );
+  await serviceButton.press(
+    "Enter"
+  );
   await expect(page.getByText("Manicure completa", {
     exact: true
   }).first()).toBeVisible();

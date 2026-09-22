@@ -83,6 +83,54 @@ function activationNextAction({ serviceCreated }) {
   };
 }
 
+async function expectKeyboardFocusVisible(
+  page,
+  locator
+) {
+  for (
+    let tentativa = 0;
+    tentativa < 30;
+    tentativa += 1
+  ) {
+    await page.keyboard.press("Tab");
+
+    if (
+      await locator.evaluate(
+        (elemento) =>
+          elemento ===
+          document.activeElement
+      )
+    ) {
+      const indicador =
+        await locator.evaluate(
+          (elemento) => {
+            const estilo =
+              getComputedStyle(
+                elemento
+              );
+
+            return (
+              estilo.outlineStyle !==
+                "none" &&
+              parseFloat(
+                estilo.outlineWidth
+              ) > 0
+            ) ||
+              estilo.boxShadow !==
+                "none";
+          }
+        );
+
+      expect(indicador).toBe(true);
+      return;
+    }
+  }
+
+  throw new Error(
+    "Controle não recebeu foco por teclado."
+  );
+}
+
 async function expectNoHorizontalOverflow(page) {
   await expect.poll(() => page.evaluate(() => ({
     clientWidth: document.documentElement.clientWidth,
@@ -258,7 +306,17 @@ test("CA-NEG-01/04: profissional cria o primeiro negócio, publica com o primeir
     aceitaNotificacoesWhatsapp: false
   }));
 
-  await page.getByLabel("Nome do negócio").fill("Studio Aurora");
+  const businessName =
+    page.getByLabel(
+      "Nome do negócio"
+    );
+  await expectKeyboardFocusVisible(
+    page,
+    businessName
+  );
+  await businessName.fill(
+    "Studio Aurora"
+  );
   await page.getByLabel("Unhas").check();
   await page.getByLabel("Link do Google Maps").fill("https://maps.google.com/?q=goiania");
   await page.getByLabel("CEP").fill("74000-123");

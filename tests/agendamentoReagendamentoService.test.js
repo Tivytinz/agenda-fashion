@@ -7,6 +7,7 @@ jest.mock("../src/repositories/agendamentoReagendamentoRepository", () => ({
   buscarProfissionalAtivoNoNegocio: jest.fn(),
   buscarProfissionalElegivelNoNegocio: jest.fn(),
   atualizarReagendamento: jest.fn(),
+  resolverInstanteNoFuso: jest.fn(),
   registrarHistoricoReagendamento: jest.fn(),
 }));
 
@@ -115,6 +116,17 @@ describe("agendamentoReagendamentoService", () => {
 
     agendaDisponibilidadeService.horarioEstaDisponivel
       .mockResolvedValue(true);
+
+    repository.resolverInstanteNoFuso
+      .mockImplementation(
+        async ({
+          data,
+          horario,
+        }) =>
+          new Date(
+            `${data}T${horario}:00.000Z`
+          )
+      );
 
     repository.atualizarReagendamento
       .mockResolvedValue({

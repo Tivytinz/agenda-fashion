@@ -150,12 +150,17 @@ function calcularPoliticaCancelamento({
   horario,
   antecedenciaHoras,
   agoraTimestamp,
+  inicioTimestamp = null,
 }) {
   const inicio =
-    converterDataHoraLocalParaTimestamp(
-      data,
-      horario
-    );
+    Number.isFinite(
+      inicioTimestamp
+    )
+      ? inicioTimestamp
+      : converterDataHoraLocalParaTimestamp(
+          data,
+          horario
+        );
 
   if (
     inicio === null ||
@@ -373,15 +378,52 @@ async function reagendarOperacional({
           atual.fuso_horario
         );
 
+      const novoInicioPersistivel =
+        await agendamentoReagendamentoRepository
+          .resolverInstanteNoFuso({
+            data:
+              novaData,
+            horario:
+              novoHorario,
+            fusoHorario:
+              atual.fuso_horario,
+            executor:
+              client,
+          });
+
+      const agoraPersistivel =
+        await agendamentoReagendamentoRepository
+          .resolverInstanteNoFuso({
+            data:
+              agora.data,
+            horario:
+              agora.hora,
+            fusoHorario:
+              atual.fuso_horario,
+            executor:
+              client,
+          });
+
       const novoInicio =
-        converterDataHoraLocalParaTimestamp(
-          novaData,
-          novoHorario
+        Date.parse(
+          String(
+            novoInicioPersistivel ||
+            ""
+          )
+        );
+      const agoraTimestamp =
+        Date.parse(
+          String(
+            agoraPersistivel ||
+            ""
+          )
         );
 
       if (
-        agora.timestamp === null ||
-        novoInicio === null
+        Number.isNaN(novoInicio) ||
+        Number.isNaN(
+          agoraTimestamp
+        )
       ) {
         throw criarErro(
           "Não foi possível validar o novo horário.",
@@ -391,7 +433,7 @@ async function reagendarOperacional({
 
       if (
         novoInicio <=
-        agora.timestamp
+        agoraTimestamp
       ) {
         throw criarErro(
           "O novo início do agendamento deve estar no futuro.",
@@ -399,16 +441,7 @@ async function reagendarOperacional({
         );
       }
 
-      const inicioAnterior =
-        converterDataHoraLocalParaTimestamp(
-          atual.data,
-          atual.horario
-        );
-
       if (
-        inicioAnterior !== null &&
-        inicioAnterior <=
-          agora.timestamp &&
         atual.atendimento_iniciado_em
       ) {
         throw criarErro(
@@ -571,6 +604,10 @@ async function reagendarOperacional({
             novaData,
           newHorario:
             novoHorario,
+          previousScheduledStartAt:
+            atual.inicio_previsto_em,
+          newScheduledStartAt:
+            atualizado.inicio_previsto_em,
           executor:
             client,
         });
@@ -591,8 +628,9 @@ async function reagendarOperacional({
             novoHorario,
           antecedenciaHoras:
             antecedencia,
-          agoraTimestamp:
-            agora.timestamp,
+          agoraTimestamp,
+          inicioTimestamp:
+            novoInicio,
         });
 
       return {
