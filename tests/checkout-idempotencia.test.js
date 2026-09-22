@@ -454,7 +454,7 @@ describe(
     );
 
     test(
-      "devolve a resposta salva sem criar nova cobrança",
+      "CA-NFR-02: retry da mesma chave devolve resposta salva sem criar nova cobrança",
       async () => {
         const respostaSalva = {
           mensagem:
