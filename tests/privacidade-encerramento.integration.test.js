@@ -492,7 +492,7 @@ describe("Wave 8 - privacidade e encerramento P0", () => {
       desativada.body.reservas_acesso[0].caminho
     ).toMatch(
       new RegExp(
-        `^/agendamento-acesso/${booking.id}\\?token=`
+        `^/agendamento-acesso/${booking.id}#token=`
       )
     );
 
@@ -527,7 +527,7 @@ describe("Wave 8 - privacidade e encerramento P0", () => {
       .get(
         `/agendamentos/${booking.id}/acesso-cliente-desativado`
       )
-      .query({ token: acesso });
+      .set("X-Agenda-Access", acesso);
 
     expect(consulta.statusCode).toBe(200);
     expect(consulta.body.agendamento).toMatchObject({
