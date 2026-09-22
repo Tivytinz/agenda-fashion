@@ -623,6 +623,49 @@ async function registrarConsentimentoWhatsappAgendamento(
   return result.rows[0] || null;
 }
 
+async function buscarContextoNotificacaoAgendamento(
+  agendamentoId
+) {
+  const result = await db.query(
+    `
+      SELECT
+        a.id AS agendamento_id,
+        a.negocio_id,
+        a.profissional_id,
+        dono.usuario_id AS dono_id,
+        COALESCE(
+          NULLIF(BTRIM(a.servico_nome), ''),
+          NULLIF(BTRIM(s.nome), ''),
+          'Serviço'
+        ) AS servico_nome,
+        TO_CHAR(a.data, 'YYYY-MM-DD') AS data,
+        TO_CHAR(a.horario::time, 'HH24:MI') AS horario
+      FROM agendamentos a
+      INNER JOIN negocios n
+        ON n.id = a.negocio_id
+      LEFT JOIN servicos_negocio s
+        ON s.id = a.servico_id
+      LEFT JOIN LATERAL (
+        SELECT un.usuario_id
+        FROM usuarios_negocios un
+        INNER JOIN usuarios u
+          ON u.id = un.usuario_id
+        WHERE un.negocio_id = a.negocio_id
+          AND un.papel = 'dono'
+          AND un.ativo = TRUE
+          AND u.ativo = TRUE
+        ORDER BY un.created_at ASC, un.id ASC
+        LIMIT 1
+      ) dono ON TRUE
+      WHERE a.id = $1
+      LIMIT 1
+    `,
+    [agendamentoId]
+  );
+
+  return result.rows[0] || null;
+}
+
 async function criarNotificacaoAgendamento({
   usuarioId,
   negocioId,
@@ -898,6 +941,7 @@ module.exports = {
   resolverClienteInterno,
   criarAgendamento,
   registrarConsentimentoWhatsappAgendamento,
+  buscarContextoNotificacaoAgendamento,
   criarNotificacaoAgendamento,
   listarMeusAgendamentos,
   buscarAgendamentoCliente,
