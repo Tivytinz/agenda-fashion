@@ -464,7 +464,7 @@ async function enfileirarReagendamento(
             negocio_nome,
             servico_nome,
             data_formatada,
-            horario_formatado
+            horario_cliente_formatado
           ),
           NOW(),
           NOW() + INTERVAL '2 hours'
