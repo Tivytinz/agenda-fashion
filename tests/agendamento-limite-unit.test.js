@@ -73,6 +73,14 @@ describe("Limite durante a criação do agendamento", () => {
       nome: "Cliente",
       whatsapp: "62999999999",
     });
+    agendaPublicaRepository
+      .buscarPreferenciaNotificacoesWhatsapp
+      .mockResolvedValue({
+        nome: "Cliente",
+        whatsapp: "62999999999",
+        aceita_notificacoes_whatsapp:
+          true,
+      });
     agendaPublicaRepository.criarAgendamento.mockResolvedValue({
       id: 99,
     });

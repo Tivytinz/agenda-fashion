@@ -54,6 +54,8 @@ describe("reagendamento operacional persistido", () => {
   let bookingDonaId;
   let bookingIniciadoId;
   let bookingPassadoId;
+  let bookingCutoffId;
+  let cutoffDestino;
   let futuro;
   let destino;
   let passado;
@@ -63,6 +65,30 @@ describe("reagendamento operacional persistido", () => {
     futuro = dataComDeslocamento(2);
     destino = dataComDeslocamento(3);
     passado = dataComDeslocamento(-1);
+
+    const cutoffResultado =
+      await db.query(
+        `
+          SELECT
+            TO_CHAR(
+              (
+                NOW() AT TIME ZONE
+                  'America/Sao_Paulo'
+              ) + INTERVAL '1 hour',
+              'YYYY-MM-DD'
+            ) AS data,
+            TO_CHAR(
+              (
+                NOW() AT TIME ZONE
+                  'America/Sao_Paulo'
+              ) + INTERVAL '1 hour',
+              'HH24:MI'
+            ) AS horario
+        `
+      );
+
+    cutoffDestino =
+      cutoffResultado.rows[0];
 
     const plano = await db.query(
       `SELECT id FROM planos WHERE slug = 'inicial' AND ativo = TRUE LIMIT 1`
@@ -288,6 +314,13 @@ describe("reagendamento operacional persistido", () => {
       await criarAgendamento({
         data: passado,
         horario: "10:00",
+        profissionalId: profissional.id,
+      });
+
+    bookingCutoffId =
+      await criarAgendamento({
+        data: futuro,
+        horario: "12:00",
         profissionalId: profissional.id,
       });
   });
@@ -656,6 +689,100 @@ describe("reagendamento operacional persistido", () => {
       professional_id:
         Number(outraProfissional.id),
     });
+  });
+
+  test("CA-AG-21: comunica quando o reagendamento já nasce sem cancelamento direto", async () => {
+    const flagAnterior =
+      process.env
+        .WHATSAPP_REAGENDAMENTO_CUTOFF_TEMPLATE_ENABLED;
+
+    delete process.env
+      .WHATSAPP_REAGENDAMENTO_CUTOFF_TEMPLATE_ENABLED;
+
+    try {
+      const resposta =
+        await request(app)
+          .patch(
+            `/agendamentos/${bookingCutoffId}/reagendar-operacional`
+          )
+          .set(
+            "Authorization",
+            `Bearer ${token(profissional.id)}`
+          )
+          .send({
+            data:
+              cutoffDestino.data,
+            horario:
+              cutoffDestino.horario,
+          });
+
+      expect(
+        resposta.statusCode
+      ).toBe(200);
+      expect(
+        resposta.body
+          .reagendamento
+          .cancelamento_direto_disponivel
+      ).toBe(false);
+      expect(
+        resposta.body.mensagem
+      ).toMatch(
+        /cancelamento direto.*não está disponível/i
+      );
+
+      const fila =
+        await db.query(
+          `
+            SELECT
+              tipo,
+              parametros_corpo,
+              status
+            FROM whatsapp_mensagens
+            WHERE agendamento_id = $1
+              AND tipo =
+                'CONFIRMACAO_AGENDAMENTO_CLIENTE'
+            ORDER BY id DESC
+            LIMIT 1
+          `,
+          [
+            bookingCutoffId,
+          ]
+        );
+
+      expect(
+        fila.rows[0]
+      ).toMatchObject({
+        tipo:
+          "CONFIRMACAO_AGENDAMENTO_CLIENTE",
+        status:
+          "PENDING",
+      });
+      expect(
+        fila.rows[0]
+          .parametros_corpo
+      ).toEqual(
+        expect.arrayContaining([
+          "Cliente Reagendamento",
+          "Studio Reagendamento",
+          "Manicure Reagendamento",
+          expect.stringMatching(
+            /cancelamento direto.*indisponível/i
+          ),
+        ])
+      );
+    } finally {
+      if (
+        flagAnterior ===
+        undefined
+      ) {
+        delete process.env
+          .WHATSAPP_REAGENDAMENTO_CUTOFF_TEMPLATE_ENABLED;
+      } else {
+        process.env
+          .WHATSAPP_REAGENDAMENTO_CUTOFF_TEMPLATE_ENABLED =
+          flagAnterior;
+      }
+    }
   });
 
   test("CA-AG-18: booking passado e ainda não iniciado pode ser movido para o futuro", async () => {

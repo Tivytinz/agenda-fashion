@@ -3,6 +3,8 @@ jest.mock(
   () => ({
     enfileirarNovoAgendamento:
       jest.fn(),
+    enfileirarReagendamento:
+      jest.fn(),
     enfileirarCancelamento:
       jest.fn(),
     enfileirarLembretesDiariosNegocios:
@@ -85,7 +87,11 @@ describe(
         "pt_BR";
 
       delete process.env
+        .WHATSAPP_REMINDER_HOURS;
+      delete process.env
         .WHATSAPP_PROFESSIONAL_REMINDER_ENABLED;
+      delete process.env
+        .WHATSAPP_REAGENDAMENTO_CUTOFF_TEMPLATE_ENABLED;
       delete process.env
         .WHATSAPP_FIRST_SERVICE_REMINDER_ENABLED;
       delete process.env
@@ -138,6 +144,57 @@ describe(
           executor,
           99,
           12,
+          true
+        );
+      }
+    );
+
+    test(
+      "ativa o aviso especial de cutoff somente pela feature flag",
+      async () => {
+        const executor = {
+          query: jest.fn(),
+        };
+
+        whatsappMensagemRepository
+          .enfileirarReagendamento
+          .mockResolvedValue([]);
+
+        await whatsappMensagemService
+          .enfileirarReagendamento({
+            executor,
+            agendamentoId: 91,
+          });
+
+        expect(
+          whatsappMensagemRepository
+            .enfileirarReagendamento
+        ).toHaveBeenLastCalledWith(
+          executor,
+          91,
+          24,
+          false,
+          false
+        );
+
+        process.env
+          .WHATSAPP_REAGENDAMENTO_CUTOFF_TEMPLATE_ENABLED =
+          "true";
+
+        await whatsappMensagemService
+          .enfileirarReagendamento({
+            executor,
+            agendamentoId: 92,
+          });
+
+        expect(
+          whatsappMensagemRepository
+            .enfileirarReagendamento
+        ).toHaveBeenLastCalledWith(
+          executor,
+          92,
+          24,
+          false,
           true
         );
       }
@@ -443,6 +500,8 @@ describe(
             "novo_agendamento",
           CONFIRMACAO_AGENDAMENTO_CLIENTE:
             "confirmacao_agendamento_cliente",
+          REAGENDAMENTO_SEM_CANCELAMENTO_CLIENTE:
+            "reagendamento_sem_cancelamento_cliente",
           LEMBRETE_AGENDAMENTO_CLIENTE:
             "lembrete_agendamento",
           LEMBRETE_AGENDAMENTO_PROFISSIONAL:
@@ -460,6 +519,7 @@ describe(
         for (const nomeVariavel of [
           "WHATSAPP_TEMPLATE_NOVO_AGENDAMENTO",
           "WHATSAPP_TEMPLATE_CONFIRMACAO_CLIENTE",
+          "WHATSAPP_TEMPLATE_REAGENDAMENTO_SEM_CANCELAMENTO_CLIENTE",
           "WHATSAPP_TEMPLATE_LEMBRETE_CLIENTE",
           "WHATSAPP_TEMPLATE_LEMBRETE_PROFISSIONAL",
           "WHATSAPP_TEMPLATE_CANCELAMENTO_PROFISSIONAL",

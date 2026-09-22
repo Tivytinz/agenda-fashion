@@ -185,11 +185,13 @@ describe("confirmação do agendamento", () => {
     expect(input.value).toBe("(62) 99999-8888");
   });
 
-  it("não herda a autorização da conta ao trocar o número do agendamento", async () => {
+  it("CA-AG-04: reutiliza a identidade autenticada sem pedir nome e WhatsApp novamente", async () => {
     const user = userEvent.setup();
     useSession.mockReturnValue({
       authenticated: true,
       usuario: {
+        nome:
+          "Cliente Autenticada",
         whatsapp:
           "62999998888",
         aceita_notificacoes_whatsapp:
@@ -197,29 +199,89 @@ describe("confirmação do agendamento", () => {
       }
     });
 
-    renderConfirmation();
-
-    expect(screen.getByText(
-      /Você receberá confirmação/
-    )).not.toBeNull();
-
-    const input = screen.getByRole(
-      "textbox",
-      {
-        name:
-          "WhatsApp para confirmação"
+    apiRequest.mockImplementation((path) => {
+      if (isPolicyRequest(path)) {
+        return Promise.resolve({
+          politica_cancelamento: {
+            antecedencia_horas: 24
+          }
+        });
       }
-    );
 
-    await user.clear(input);
-    await user.type(
-      input,
-      "62911112222"
-    );
+      if (path === "/agendamentos") {
+        return Promise.resolve({
+          agendamento: {
+            id: 92,
+            data: BOOKING.date,
+            horario: BOOKING.time,
+            status: "confirmado"
+          }
+        });
+      }
 
+      return Promise.resolve({});
+    });
+
+    renderConfirmation();
+    await waitPolicy();
+
+    expect(screen.queryByRole("textbox", {
+      name: "Seu nome"
+    })).toBeNull();
+    expect(screen.queryByRole("textbox", {
+      name: "WhatsApp para confirmação"
+    })).toBeNull();
     expect(screen.getByText(
-      /diferente do WhatsApp autorizado/
+      "Cliente Autenticada"
     )).not.toBeNull();
+    expect(screen.getByText(
+      "(62) 99999-8888"
+    )).not.toBeNull();
+    expect(screen.getByText(
+      /Usaremos os dados e a preferência de WhatsApp salvos na sua conta/
+    )).not.toBeNull();
+
+    await user.click(screen.getByRole("button", {
+      name: "Confirmar agendamento"
+    }));
+
+    const chamada = apiRequest.mock.calls.find(
+      ([path]) => path === "/agendamentos"
+    );
+
+    expect(chamada?.[1]).toEqual({
+      method: "POST",
+      body: {
+        slug: "studio-aurora",
+        servico_id: 11,
+        profissional_id: 21,
+        data: "2026-08-05",
+        horario: "09:00",
+        antecedencia_cancelamento_esperada: 24
+      }
+    });
+  });
+
+  it("bloqueia a confirmação autenticada quando a conta não possui WhatsApp válido", async () => {
+    useSession.mockReturnValue({
+      authenticated: true,
+      usuario: {
+        nome:
+          "Cliente sem telefone",
+        whatsapp: "",
+        aceita_notificacoes_whatsapp:
+          false
+      }
+    });
+
+    renderConfirmation();
+    await waitPolicy();
+
+    expect(screen.getByRole("alert").textContent)
+      .toContain("complete seu nome e WhatsApp na conta");
+    expect(screen.getByRole("button", {
+      name: "Confirmar agendamento"
+    }).disabled).toBe(true);
   });
 
   it("envia a política exibida como expectativa e abre a tela de sucesso", async () => {

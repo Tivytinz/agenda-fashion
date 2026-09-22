@@ -627,4 +627,131 @@ describe("fluxo publico de agendamento", () => {
     expect(getCurrentPosition).toHaveBeenCalledTimes(1);
     expect(await screen.findByText(/m de você|km de você/)).not.toBeNull();
   });
+
+
+  it("CA-NEG-06: mantém o perfil acessível com estado vazio quando não há serviço ativo", async () => {
+    apiRequest.mockImplementation((path) => {
+      if (path.startsWith("/perfil-negocio/")) {
+        return Promise.resolve({
+          ...PROFILE,
+          servicos: [],
+          profissionais: []
+        });
+      }
+
+      return Promise.reject(
+        new Error(
+          `Requisicao inesperada: ${path}`
+        )
+      );
+    });
+
+    renderProfile();
+
+    expect(
+      await screen.findByRole(
+        "heading",
+        {
+          name:
+            "Studio Aurora"
+        }
+      )
+    ).not.toBeNull();
+
+    expect(
+      screen.getByText(
+        "Este negócio ainda está configurando os serviços"
+      )
+    ).not.toBeNull();
+
+    expect(
+      screen.queryByRole(
+        "button",
+        {
+          name:
+            "Revisar e confirmar"
+        }
+      )
+    ).toBeNull();
+  });
+
+  it("CA-NEG-07: informa ausência de horários e mantém a confirmação bloqueada", async () => {
+    const user =
+      userEvent.setup();
+
+    apiRequest.mockImplementation((path) => {
+      if (
+        path.startsWith(
+          "/perfil-negocio/"
+        )
+      ) {
+        return Promise.resolve({
+          ...PROFILE,
+          profissionais: [
+            {
+              id: 21,
+              nome: "Ana",
+              servico_ids: [
+                11,
+                12
+              ]
+            }
+          ]
+        });
+      }
+
+      if (
+        path.startsWith(
+          "/agenda-publica?"
+        )
+      ) {
+        return Promise.resolve({
+          disponibilidade: [],
+          agenda_indisponivel:
+            false
+        });
+      }
+
+      return Promise.reject(
+        new Error(
+          `Requisicao inesperada: ${path}`
+        )
+      );
+    });
+
+    renderProfile();
+
+    await user.click(
+      await screen.findByRole(
+        "button",
+        {
+          name:
+            "Selecionar Manicure completa"
+        }
+      )
+    );
+
+    expect(
+      await screen.findByText(
+        "Nenhum horário disponível agora"
+      )
+    ).not.toBeNull();
+
+    expect(
+      screen.getByText(
+        "A profissional pode abrir novos horários em breve."
+      )
+    ).not.toBeNull();
+
+    expect(
+      screen.getByRole(
+        "button",
+        {
+          name:
+            "Selecione um horário"
+        }
+      ).disabled
+    ).toBe(true);
+  });
+
 });

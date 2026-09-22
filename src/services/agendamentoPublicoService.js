@@ -191,6 +191,82 @@ async function obterOuCriarCliente({
   return null;
 }
 
+async function resolverIdentificacaoCliente({
+  clienteId,
+  clienteNome,
+  clienteWhatsapp,
+  consentimentoVisitante = false,
+}) {
+  const id = normalizarId(
+    clienteId
+  );
+
+  if (!id) {
+    const visitante =
+      validarIdentificacaoVisitante({
+        clienteNome,
+        clienteWhatsapp,
+      });
+
+    return {
+      clienteId: null,
+      clienteNome:
+        visitante.clienteNome,
+      clienteWhatsapp:
+        visitante.clienteWhatsapp,
+      whatsappConsentido:
+        consentimentoVisitante ===
+        true,
+    };
+  }
+
+  const conta =
+    await agendaPublicaRepository
+      .buscarPreferenciaNotificacoesWhatsapp(
+        id
+      );
+
+  if (!conta) {
+    throw criarErro(
+      "Usuário não autenticado.",
+      401
+    );
+  }
+
+  const nome =
+    normalizarTexto(
+      conta.nome,
+      120
+    );
+  const whatsapp =
+    normalizarWhatsapp(
+      conta.whatsapp
+    );
+
+  if (
+    nome.length < 2 ||
+    ![10, 11].includes(
+      whatsapp.length
+    )
+  ) {
+    throw criarErro(
+      "Atualize seu nome e WhatsApp na conta antes de agendar.",
+      422
+    );
+  }
+
+  return {
+    clienteId: id,
+    clienteNome: nome,
+    clienteWhatsapp:
+      whatsapp,
+    whatsappConsentido:
+      conta
+        .aceita_notificacoes_whatsapp ===
+      true,
+  };
+}
+
 async function resolverConsentimentoWhatsapp({
   clienteId,
   clienteWhatsapp,
@@ -472,9 +548,10 @@ async function criarAgendamento({
           );
 
         /*
-         * Bloqueio por profissional e data.
-         * Evita duas reservas simultâneas
-         * para o mesmo horário, inclusive entre negócios.
+         * Bloqueio global por profissional.
+         * Evita duas reservas simultâneas para
+         * intervalos incompatíveis, inclusive entre negócios
+         * com datas locais ou fusos diferentes.
          */
         await agendaPublicaRepository
           .bloquearAgendaProfissional(
@@ -537,6 +614,45 @@ async function criarAgendamento({
           );
         }
 
+        let whatsappConsentidoEfetivo =
+          whatsappConsentido ===
+          true;
+
+        if (clienteIdNormalizado) {
+          const preferenciaAtual =
+            await agendaPublicaRepository
+              .buscarPreferenciaNotificacoesWhatsapp(
+                clienteIdNormalizado,
+                client
+              );
+
+          if (!preferenciaAtual) {
+            throw criarErro(
+              "Usuário não autenticado.",
+              401
+            );
+          }
+
+          const whatsappContaAtual =
+            normalizarWhatsapp(
+              preferenciaAtual.whatsapp
+            );
+          const whatsappClienteAtual =
+            normalizarWhatsapp(
+              clienteInterno.whatsapp
+            );
+
+          whatsappConsentidoEfetivo =
+            preferenciaAtual
+              .aceita_notificacoes_whatsapp ===
+              true &&
+            [10, 11].includes(
+              whatsappContaAtual.length
+            ) &&
+            whatsappContaAtual ===
+              whatsappClienteAtual;
+        }
+
         const criado =
           await agendaPublicaRepository
             .criarAgendamento(
@@ -562,8 +678,7 @@ async function criarAgendamento({
                   clienteInterno.whatsapp,
 
                 whatsappConsentido:
-                  whatsappConsentido ===
-                  true,
+                  whatsappConsentidoEfetivo,
 
                 servicoId:
                   servicoIdNormalizado,
@@ -586,7 +701,7 @@ async function criarAgendamento({
         }
 
         if (
-          whatsappConsentido === true
+          whatsappConsentidoEfetivo
         ) {
           await agendaPublicaRepository
             .registrarConsentimentoWhatsappAgendamento(
@@ -596,7 +711,7 @@ async function criarAgendamento({
                 clienteId:
                   clienteIdNormalizado,
                 telefone:
-                  whatsappNormalizado,
+                  clienteInterno.whatsapp,
               },
               client
             );
@@ -704,6 +819,7 @@ module.exports = {
   buscarDadosBaseAgenda,
   buscarDisponibilidade,
   obterOuCriarCliente,
+  resolverIdentificacaoCliente,
   resolverConsentimentoWhatsapp,
   validarHorarioDisponivel,
   criarAgendamento,

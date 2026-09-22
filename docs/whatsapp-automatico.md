@@ -5,14 +5,23 @@
 O Agenda Fashion usa a WhatsApp Cloud API oficial da Meta e uma fila
 persistente no PostgreSQL.
 
-O fluxo cria até seis mensagens para cada agendamento:
+O fluxo cria mensagens transacionais conforme o estado do agendamento:
 
 1. novo agendamento para o profissional;
 2. confirmação para a cliente;
-3. lembrete para a cliente, por padrão 24 horas antes;
-4. lembrete para a profissional, por padrão 24 horas antes;
-5. cancelamento para o profissional;
-6. cancelamento para a cliente.
+3. aviso específico à cliente quando um reagendamento válido já fica sem cancelamento direto pelo AF;
+4. lembrete para a cliente, por padrão 24 horas antes;
+5. lembrete para a profissional, por padrão 24 horas antes;
+6. cancelamento para o profissional;
+7. cancelamento para a cliente.
+
+O template específico de reagendamento é protegido por
+`WHATSAPP_REAGENDAMENTO_CUTOFF_TEMPLATE_ENABLED`. A flag deve permanecer
+`false` até o template correspondente estar aprovado na Meta. Enquanto a flag
+estiver desligada, o AF continua usando o template de confirmação já existente,
+mas acrescenta ao parâmetro de horário a informação de que o cancelamento direto
+pelo AF está indisponível. Assim, a cliente recebe o aviso do cutoff sem depender
+da aprovação de um novo modelo externo.
 
 Separadamente, o AF pode criar orientações de ativação para o dono do negócio:
 
@@ -157,9 +166,20 @@ A migration revoga a autorização dos agendamentos consentidos antes do último
 pedido global de descadastro, registra a revogação e cancela a fila vinculada.
 Um consentimento novo, posterior ao pedido de descadastro, é preservado.
 
+Para permitir o tipo transacional usado quando o reagendamento já nasce fora do
+cutoff de cancelamento direto, aplique também:
+
+```bash
+node scripts/executar-migration.js database/migrations/092_whatsapp_reagendamento_sem_cancelamento.sql
+```
+
+A migration apenas amplia o `CHECK` dos tipos permitidos em
+`whatsapp_mensagens`; ela não ativa o envio. A ativação continua condicionada
+à aprovação do template na Meta e à feature flag.
+
 ## Templates da Meta
 
-Crie os seis templates transacionais na categoria `UTILITY`, idioma
+Crie os sete templates transacionais na categoria `UTILITY`, idioma
 `Portuguese (BR)`. Os dois templates de ativação descritos depois pertencem à
 categoria `MARKETING`. Os nomes e a ordem das variáveis precisam ser exatamente
 os mesmos usados pelo backend.
@@ -202,6 +222,41 @@ Olá, {{1}}! Seu horário foi reservado com sucesso pelo Agenda Fashion. ✨
 
 Está tudo certo para o seu atendimento. Esperamos que você tenha uma experiência incrível! ✨
 ```
+
+### `reagendamento_sem_cancelamento_cliente`
+
+Categoria: `UTILITY`.
+
+Destinatário: cliente que autorizou mensagens.
+
+Esse modelo é usado somente quando, depois de um reagendamento válido, o novo
+horário já está além do deadline congelado no booking para cancelamento direto
+pelo AF.
+
+Ordem das variáveis:
+
+1. nome da cliente;
+2. nome do negócio;
+3. nome do serviço;
+4. nova data;
+5. novo horário.
+
+Conteúdo recomendado:
+
+```text
+📅 Agendamento reagendado
+
+Olá, {{1}}! Seu horário no {{2}} foi alterado com sucesso.
+
+💖 Serviço: {{3}}
+📅 Nova data: {{4}}
+⏰ Novo horário: {{5}}
+
+Atenção: para este novo horário, o cancelamento direto pelo Agenda Fashion já não está disponível.
+```
+
+Não ative `WHATSAPP_REAGENDAMENTO_CUTOFF_TEMPLATE_ENABLED` até o modelo
+aparecer como aprovado/ativo na consulta administrativa da Meta.
 
 ### `lembrete_agendamento`
 
@@ -322,6 +377,8 @@ WHATSAPP_API_VERSION=
 WHATSAPP_TEMPLATE_LANGUAGE=pt_BR
 WHATSAPP_TEMPLATE_NOVO_AGENDAMENTO=novo_agendamento
 WHATSAPP_TEMPLATE_CONFIRMACAO_CLIENTE=confirmacao_agendamento_cliente
+WHATSAPP_TEMPLATE_REAGENDAMENTO_SEM_CANCELAMENTO_CLIENTE=reagendamento_sem_cancelamento_cliente
+WHATSAPP_REAGENDAMENTO_CUTOFF_TEMPLATE_ENABLED=false
 WHATSAPP_TEMPLATE_LEMBRETE_CLIENTE=lembrete_agendamento
 WHATSAPP_TEMPLATE_LEMBRETE_PROFISSIONAL=lembrete_agendamento_profissional
 WHATSAPP_TEMPLATE_CANCELAMENTO_PROFISSIONAL=cancelamento_agendamento_profissional
@@ -345,7 +402,7 @@ O processador recusa iniciar se as credenciais da API ou os segredos do webhook
 estiverem ausentes.
 
 Não trate a aprovação como uma informação estática da documentação. Confirme
-os oito modelos em **Administração > WhatsApp**, que cruza os nomes e o idioma
+os modelos em **Administração > WhatsApp**, que cruza os nomes e o idioma
 configurados com `/{WHATSAPP_BUSINESS_ACCOUNT_ID}/message_templates`. O token
 usado nessa consulta precisa ter a permissão `whatsapp_business_management`.
 O identificador da conta do WhatsApp (WABA) não é o ID do número de telefone e

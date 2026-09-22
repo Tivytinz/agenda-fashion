@@ -80,22 +80,29 @@ describe("consistência da publicação do negócio", () => {
       /despublicado_manual_em\s+IS\s+NOT\s+NULL[\s\S]*THEN FALSE/i
     );
     expect(sqlPublicacao).toMatch(
-      /ELSE\s+e\.pode_publicar/i
+      /ELSE\s+e\.pode_permanecer_publicado/i
     );
   });
 
-  test("sem serviço ativo despublica o negócio", async () => {
-    await servicosRepository.despublicarSemServicoAtivo(11);
+  test("compatibilidade sem serviço reutiliza a elegibilidade central", async () => {
+    await servicosRepository
+      .despublicarSemServicoAtivo(
+        11
+      );
 
-    const [sql, params] = mockQuery.mock.calls[0];
+    const [sql, params] =
+      mockQuery.mock.calls[0];
 
     expect(sql).toMatch(
-      /UPDATE negocios[\s\S]*publicado\s*=\s*FALSE/i
+      /pode_permanecer_publicado/i
     );
     expect(sql).toMatch(
-      /NOT EXISTS[\s\S]*servicos_negocio[\s\S]*s\.ativo\s*=\s*TRUE/i
+      /primeira_publicacao_em\s+IS\s+NOT\s+NULL/i
     );
-    expect(params).toEqual([11]);
+    expect(params).toEqual([
+      11,
+      false,
+    ]);
   });
 
   test("pedido manual de publicação limpa a ocultação e passa pela elegibilidade central", async () => {
@@ -129,7 +136,7 @@ describe("consistência da publicação do negócio", () => {
     );
     expect(paramsDesbloqueio).toEqual([11]);
     expect(sqlPublicacao).toMatch(
-      /WITH elegibilidade[\s\S]*UPDATE negocios/i
+      /elegibilidade\s+AS\s*\([\s\S]*UPDATE negocios/i
     );
     expect(sqlPublicacao).toMatch(
       /despublicado_manual_em\s+IS\s+NOT\s+NULL[\s\S]*THEN FALSE/i
@@ -214,11 +221,10 @@ describe("consistência da publicação do negócio", () => {
     const [sql, params] = mockQuery.mock.calls[0];
 
     expect(sql).toMatch(
-      /UPDATE negocios[\s\S]*despublicado_manual_em\s+IS\s+NOT\s+NULL[\s\S]*THEN FALSE[\s\S]*ELSE\s+e\.pode_publicar/i
+      /UPDATE negocios[\s\S]*despublicado_manual_em\s+IS\s+NOT\s+NULL[\s\S]*THEN FALSE[\s\S]*ELSE\s+e\.pode_permanecer_publicado/i
     );
     expect(sql).toMatch(/EXISTS[\s\S]*servicos_negocio[\s\S]*s\.ativo\s*=\s*TRUE/i);
     expect(sql).not.toMatch(/n\.descricao/i);
-    expect(sql).toMatch(/n\.publicacao_exige_agenda\s+IS\s+NOT\s+TRUE/i);
     expect(sql).toMatch(/n\.bairro/i);
     expect(sql).toMatch(/n\.endereco/i);
     expect(sql).toMatch(/n\.numero/i);

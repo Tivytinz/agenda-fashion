@@ -66,11 +66,15 @@ export function ConfirmPage() {
       return null;
     }
   }, []);
+  const accountName =
+    session.usuario?.nome ||
+    user?.nome ||
+    "";
   const accountWhatsApp =
     session.usuario?.whatsapp ||
     user?.whatsapp ||
     "";
-  const [name, setName] = useState(user?.nome || "");
+  const [name, setName] = useState("");
   const [whatsapp, setWhatsapp] = useState(
     formatWhatsApp(accountWhatsApp)
   );
@@ -166,21 +170,28 @@ export function ConfirmPage() {
     return <Navigate to="/" replace />;
   }
 
+  const normalizedAccountName =
+    String(accountName || "")
+      .trim()
+      .replace(/\s+/g, " ");
   const normalizedAccountWhatsApp =
     normalizeWhatsApp(accountWhatsApp);
-  const normalizedBookingWhatsApp =
-    normalizeWhatsApp(whatsapp);
-  const accountAllowsNotifications =
-    session.usuario
-      ?.aceita_notificacoes_whatsapp ===
-    true;
-  const accountConsentMatchesPhone =
-    accountAllowsNotifications &&
+  const canReuseAccountIdentity =
+    session.authenticated === true &&
+    normalizedAccountName.length >= 2 &&
     [10, 11].includes(
       normalizedAccountWhatsApp.length
-    ) &&
-    normalizedAccountWhatsApp ===
-      normalizedBookingWhatsApp;
+    );
+  const accountIdentityNeedsUpdate =
+    session.authenticated === true &&
+    !canReuseAccountIdentity;
+  const accountAllowsNotifications =
+    (
+      session.usuario
+        ?.aceita_notificacoes_whatsapp ??
+      user
+        ?.aceita_notificacoes_whatsapp
+    ) === true;
 
   const confirmationSteps = hasProfessionalChoice === false
     ? ["Serviço", "Horário", "Confirmar"]
@@ -199,16 +210,42 @@ export function ConfirmPage() {
       return;
     }
 
-    const normalizedName = name.trim().replace(/\s+/g, " ");
-    const normalizedPhone =
-      normalizeWhatsApp(whatsapp);
+    if (
+      accountIdentityNeedsUpdate
+    ) {
+      setError(
+        "Atualize seu nome e WhatsApp na conta antes de agendar."
+      );
+      return;
+    }
 
-    if (normalizedName.length < 2) {
+    const normalizedName =
+      canReuseAccountIdentity
+        ? normalizedAccountName
+        : name
+            .trim()
+            .replace(/\s+/g, " ");
+    const normalizedPhone =
+      canReuseAccountIdentity
+        ? normalizedAccountWhatsApp
+        : normalizeWhatsApp(
+            whatsapp
+          );
+
+    if (
+      !session.authenticated &&
+      normalizedName.length < 2
+    ) {
       setError("Informe seu nome.");
       return;
     }
 
-    if (![10, 11].includes(normalizedPhone.length)) {
+    if (
+      !session.authenticated &&
+      ![10, 11].includes(
+        normalizedPhone.length
+      )
+    ) {
       setError("Informe um WhatsApp válido com DDD.");
       return;
     }
@@ -227,14 +264,20 @@ export function ConfirmPage() {
           profissional_id: booking.professional.id,
           data: booking.date,
           horario: booking.time,
-          cliente_nome: normalizedName,
-          cliente_whatsapp: normalizedPhone,
           antecedencia_cancelamento_esperada:
             cancellationPolicy.antecedencia_horas,
-          aceita_mensagens_whatsapp:
+          ...(
             session.authenticated
-              ? accountConsentMatchesPhone
-              : consent
+              ? {}
+              : {
+                  cliente_nome:
+                    normalizedName,
+                  cliente_whatsapp:
+                    normalizedPhone,
+                  aceita_mensagens_whatsapp:
+                    consent
+                }
+          )
         }
       });
 
@@ -259,8 +302,14 @@ export function ConfirmPage() {
         state: {
           booking,
           customer: {
-            name: normalizedName,
-            whatsapp: normalizedPhone
+            name:
+              result.agendamento
+                ?.cliente_nome ||
+              normalizedName,
+            whatsapp:
+              result.agendamento
+                ?.cliente_whatsapp ||
+              normalizedPhone
           },
           result
         }
@@ -314,32 +363,43 @@ export function ConfirmPage() {
           </p>
 
           <form onSubmit={submit}>
-            <label>
-              Seu nome
-              <input autoComplete="name" value={name} onChange={(event) => setName(event.target.value)} />
-            </label>
-            <label>
-              WhatsApp para confirmação
-              <input
-                autoComplete="tel"
-                inputMode="tel"
-                maxLength={15}
-                placeholder="(00) 12345-6789"
-                value={whatsapp}
-                onChange={(event) => setWhatsapp(formatWhatsApp(event.target.value))}
-              />
-            </label>
             {session.authenticated ? (
-              <p className="muted">
-                {accountConsentMatchesPhone
-                  ? "Você receberá confirmação, lembrete e atualizações deste agendamento pelo WhatsApp."
-                  : accountAllowsNotifications
-                    ? "Este número é diferente do WhatsApp autorizado na sua conta. O agendamento será concluído sem mensagens automáticas."
-                    : "As mensagens de agendamento pelo WhatsApp estão desativadas na sua conta."}{" "}
-                <Link to="/conta#notificacoes-whatsapp">Atualizar na conta</Link>
-              </p>
+              canReuseAccountIdentity ? (
+                <>
+                  <p>
+                    <strong>{normalizedAccountName}</strong><br />
+                    <span>{formatWhatsApp(normalizedAccountWhatsApp)}</span>
+                  </p>
+                  <p className="muted">
+                    {accountAllowsNotifications
+                      ? "Usaremos os dados e a preferência de WhatsApp salvos na sua conta."
+                      : "Usaremos os dados salvos na sua conta. As mensagens automáticas pelo WhatsApp estão desativadas."}{" "}
+                    <Link to="/conta#notificacoes-whatsapp">Atualizar na conta</Link>
+                  </p>
+                </>
+              ) : (
+                <p className="form-error" role="alert">
+                  Para agendar, complete seu nome e WhatsApp na conta.{" "}
+                  <Link to="/conta">Atualizar conta</Link>
+                </p>
+              )
             ) : (
               <>
+                <label>
+                  Seu nome
+                  <input autoComplete="name" value={name} onChange={(event) => setName(event.target.value)} />
+                </label>
+                <label>
+                  WhatsApp para confirmação
+                  <input
+                    autoComplete="tel"
+                    inputMode="tel"
+                    maxLength={15}
+                    placeholder="(00) 12345-6789"
+                    value={whatsapp}
+                    onChange={(event) => setWhatsapp(formatWhatsApp(event.target.value))}
+                  />
+                </label>
                 <label className="checkbox-label">
                   <input type="checkbox" checked={consent} onChange={(event) => setConsent(event.target.checked)} />
                   <span>Quero receber pelo WhatsApp confirmações, lembretes, alterações e cancelamentos deste agendamento enviados pelo Agenda Fashion.</span>
@@ -360,7 +420,11 @@ export function ConfirmPage() {
             )}
             <button
               className="button button-full confirm-button"
-              disabled={status === "loading" || policyStatus !== "ready"}
+              disabled={
+                status === "loading" ||
+                policyStatus !== "ready" ||
+                accountIdentityNeedsUpdate
+              }
               type="submit"
             >
               {status === "loading" ? "Confirmando agendamento..." : "Confirmar agendamento"}

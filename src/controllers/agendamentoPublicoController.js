@@ -218,29 +218,18 @@ async function criarAgendamentoPublico(
       });
 
     /*
-     * Conta autenticada:
-     * retorna o próprio usuario.id.
+     * Conta autenticada usa nome, WhatsApp e
+     * preferência persistidos no backend.
      *
-     * Visitante:
-     * valida nome e WhatsApp e retorna null.
+     * Visitante continua fornecendo os próprios
+     * dados no fluxo público.
      */
-    const clienteIdValidado =
+    const identidadeCliente =
       await agendaPublicaService
-        .obterOuCriarCliente({
+        .resolverIdentificacaoCliente({
           clienteId,
-
           clienteNome:
             cliente_nome,
-
-          clienteWhatsapp:
-            cliente_whatsapp,
-        });
-
-    const whatsappConsentido =
-      await agendaPublicaService
-        .resolverConsentimentoWhatsapp({
-          clienteId:
-            clienteIdValidado,
           clienteWhatsapp:
             cliente_whatsapp,
           consentimentoVisitante:
@@ -258,16 +247,20 @@ async function criarAgendamentoPublico(
             profissional.id,
 
           clienteId:
-            clienteIdValidado,
+            identidadeCliente
+              .clienteId,
 
           clienteNome:
-            cliente_nome,
+            identidadeCliente
+              .clienteNome,
 
           clienteWhatsapp:
-            cliente_whatsapp,
+            identidadeCliente
+              .clienteWhatsapp,
 
           whatsappConsentido:
-            whatsappConsentido,
+            identidadeCliente
+              .whatsappConsentido,
 
           servicoId:
             servico.id,

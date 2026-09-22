@@ -114,6 +114,13 @@ function lembreteProfissionalAtivo() {
   );
 }
 
+function avisoReagendamentoSemCancelamentoAtivo() {
+  return configuracaoBooleana(
+    "WHATSAPP_REAGENDAMENTO_CUTOFF_TEMPLATE_ENABLED",
+    false
+  );
+}
+
 function lembretePrimeiroServicoAtivo() {
   return configuracaoBooleana(
     "WHATSAPP_FIRST_SERVICE_REMINDER_ENABLED",
@@ -364,7 +371,8 @@ async function enfileirarReagendamento({
       executor,
       agendamentoId,
       obterAntecedenciaLembrete(),
-      lembreteProfissionalAtivo()
+      lembreteProfissionalAtivo(),
+      avisoReagendamentoSemCancelamentoAtivo()
     );
 }
 
