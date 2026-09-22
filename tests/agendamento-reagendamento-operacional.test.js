@@ -696,9 +696,8 @@ describe("reagendamento operacional persistido", () => {
       process.env
         .WHATSAPP_REAGENDAMENTO_CUTOFF_TEMPLATE_ENABLED;
 
-    process.env
-      .WHATSAPP_REAGENDAMENTO_CUTOFF_TEMPLATE_ENABLED =
-      "true";
+    delete process.env
+      .WHATSAPP_REAGENDAMENTO_CUTOFF_TEMPLATE_ENABLED;
 
     try {
       const resposta =
@@ -741,7 +740,7 @@ describe("reagendamento operacional persistido", () => {
             FROM whatsapp_mensagens
             WHERE agendamento_id = $1
               AND tipo =
-                'REAGENDAMENTO_SEM_CANCELAMENTO_CLIENTE'
+                'CONFIRMACAO_AGENDAMENTO_CLIENTE'
             ORDER BY id DESC
             LIMIT 1
           `,
@@ -754,7 +753,7 @@ describe("reagendamento operacional persistido", () => {
         fila.rows[0]
       ).toMatchObject({
         tipo:
-          "REAGENDAMENTO_SEM_CANCELAMENTO_CLIENTE",
+          "CONFIRMACAO_AGENDAMENTO_CLIENTE",
         status:
           "PENDING",
       });
@@ -766,6 +765,9 @@ describe("reagendamento operacional persistido", () => {
           "Cliente Reagendamento",
           "Studio Reagendamento",
           "Manicure Reagendamento",
+          expect.stringMatching(
+            /cancelamento direto.*indisponível/i
+          ),
         ])
       );
     } finally {
