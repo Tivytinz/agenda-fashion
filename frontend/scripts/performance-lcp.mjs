@@ -153,25 +153,29 @@ async function medirPagina(
         window.__AF_LCP =
           0;
 
-        new PerformanceObserver(
-          (list) => {
-            for (
-              const entry
-              of list.getEntries()
-            ) {
-              window.__AF_LCP =
-                Math.max(
-                  window.__AF_LCP,
-                  entry.startTime
-                );
+        window.__AF_LCP_OBSERVER =
+          new PerformanceObserver(
+            (list) => {
+              for (
+                const entry
+                of list.getEntries()
+              ) {
+                window.__AF_LCP =
+                  Math.max(
+                    window.__AF_LCP,
+                    entry.startTime
+                  );
+              }
             }
-          }
-        ).observe({
-          type:
-            "largest-contentful-paint",
-          buffered:
-            true,
-        });
+          );
+
+        window.__AF_LCP_OBSERVER
+          .observe({
+            type:
+              "largest-contentful-paint",
+            buffered:
+              true,
+          });
       }
     );
 
@@ -239,18 +243,42 @@ async function medirPagina(
     );
   }
 
-  await page.waitForTimeout(
-    5000
+  await page.waitForLoadState(
+    "load",
+    {
+      timeout:
+        30000,
+    }
   );
 
-  const lcp =
+  await page.waitForTimeout(
+    3000
+  );
+
+  const diagnostico =
     await page.evaluate(
-      () =>
-        Number(
-          window.__AF_LCP ||
-            0
-        )
+      () => ({
+        lcp:
+          Number(
+            window.__AF_LCP ||
+              0
+          ),
+        supported:
+          Array.isArray(
+            PerformanceObserver
+              .supportedEntryTypes
+          )
+            ? PerformanceObserver
+                .supportedEntryTypes
+                .includes(
+                  "largest-contentful-paint"
+                )
+            : null,
+      })
     );
+
+  const lcp =
+    diagnostico.lcp;
 
   await context.close();
 
@@ -259,7 +287,7 @@ async function medirPagina(
     lcp <= 0
   ) {
     throw new Error(
-      `LCP não foi observado em ${relativeUrl}.`
+      `LCP não foi observado em ${relativeUrl}. PerformanceObserver suporta LCP: ${diagnostico.supported}`
     );
   }
 
