@@ -102,6 +102,8 @@ function criarUsuario(
     whatsapp: null,
     google_sub:
       "google-sub-123",
+    perfil_profissional_ativado_em:
+      null,
     ativo: true,
     email_verificado_em:
       "2026-07-29T08:00:00.000Z",
@@ -213,6 +215,8 @@ describe(
             true,
           aceitaNotificacoesWhatsapp:
             false,
+          ativarPerfilProfissional:
+            false,
         });
         expect(
           resposta.body
@@ -247,6 +251,57 @@ describe(
             ),
           ])
         );
+      }
+    );
+
+    test(
+      "CA-AUT-01: cadastro profissional com Google ativa o perfil na mesma conta",
+      async () => {
+        authRepository
+          .buscarUsuarioPorGoogleSub
+          .mockResolvedValue(null);
+        authRepository
+          .buscarUsuarioPorEmail
+          .mockResolvedValue(null);
+        authRepository
+          .criarUsuarioGoogle
+          .mockResolvedValue(
+            criarUsuario({
+              perfil_profissional_ativado_em:
+                "2026-09-22T19:00:00.000Z",
+            })
+          );
+
+        const resposta =
+          await request(app)
+            .post("/auth/google")
+            .send({
+              credential:
+                "id-token-google",
+              perfil_profissional:
+                true,
+            });
+
+        expect(
+          resposta.status
+        ).toBe(200);
+
+        expect(
+          authRepository
+            .criarUsuarioGoogle
+        ).toHaveBeenCalledWith(
+          expect.objectContaining({
+            googleSub:
+              "google-sub-123",
+            ativarPerfilProfissional:
+              true,
+          })
+        );
+
+        expect(
+          resposta.body.usuario
+            .perfil_profissional_ativo
+        ).toBe(true);
       }
     );
 
