@@ -26,7 +26,7 @@ const BOOKING = {
   time: "09:00"
 };
 
-function renderSuccess() {
+function renderSuccess(result = null) {
   return render(
     <MemoryRouter initialEntries={[{
       pathname: "/sucesso",
@@ -35,7 +35,8 @@ function renderSuccess() {
         customer: {
           name: "Victor Souza",
           whatsapp: "62999998888"
-        }
+        },
+        result
       }
     }]}>
       <Routes>
@@ -48,6 +49,28 @@ function renderSuccess() {
 afterEach(cleanup);
 
 describe("confirmação concluída", () => {
+  it("CA-AG-09: entrega o link seguro depois do agendamento visitante", () => {
+    renderSuccess({
+      agendamento: {
+        id: 91,
+        link_cancelamento_visitante:
+          "/agendamento-visitante/91#token=capability"
+      }
+    });
+
+    expect(
+      screen.getByText(/Você agendou como visitante/i)
+    ).not.toBeNull();
+
+    expect(
+      screen.getByRole("link", {
+        name: "Abrir link seguro do agendamento"
+      }).getAttribute("href")
+    ).toBe(
+      "/agendamento-visitante/91#token=capability"
+    );
+  });
+
   it("exibe contato formatado, endereço e ações úteis", () => {
     renderSuccess();
 

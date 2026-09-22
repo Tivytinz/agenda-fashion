@@ -499,6 +499,66 @@ async function cancelarAgendamentoCliente({
   });
 }
 
+async function consultarAgendamentoVisitante({
+  agendamentoId,
+  acessoVisitante,
+}) {
+  const id = normalizarId(agendamentoId);
+
+  if (
+    !id ||
+    !validarAcessoVisitante(id, acessoVisitante)
+  ) {
+    throw criarErro(
+      "Acesso do agendamento inválido.",
+      403
+    );
+  }
+
+  const agendamento =
+    await agendamentoCancelamentoRepository
+      .buscarAgendamentoVisitanteParaConsultar({
+        agendamentoId: id,
+      });
+
+  if (!agendamento) {
+    throw criarErro(
+      "Agendamento visitante não encontrado.",
+      404
+    );
+  }
+
+  let podeCancelar = false;
+  let cancelamentoIndisponivel = null;
+
+  try {
+    validarAgendamentoCancelavel(agendamento);
+    podeCancelar = true;
+  } catch (erro) {
+    cancelamentoIndisponivel =
+      erro?.message ||
+      "Este agendamento não pode mais ser cancelado.";
+  }
+
+  return {
+    agendamento: {
+      id: Number(agendamento.id),
+      status: agendamento.status,
+      data: agendamento.data,
+      horario: agendamento.horario,
+      servico_nome: agendamento.servico_nome,
+      profissional_nome: agendamento.profissional_nome,
+      negocio_nome: agendamento.negocio_nome,
+      valor: agendamento.valor,
+      antecedencia_cancelamento_horas:
+        agendamento.antecedencia_cancelamento_horas,
+    },
+    pode_cancelar: podeCancelar,
+    cancelamento_indisponivel:
+      cancelamentoIndisponivel,
+  };
+}
+
 async function cancelarAgendamentoVisitante({
   agendamentoId,
   acessoVisitante,
@@ -656,6 +716,7 @@ module.exports = {
   buscarPoliticaPublica,
   validarPoliticaEsperada,
   cancelarAgendamentoCliente,
+  consultarAgendamentoVisitante,
   cancelarAgendamentoVisitante,
   cancelarAgendamentoOperacional,
 };

@@ -64,8 +64,11 @@ export function SuccessPage() {
     return <Navigate to="/" replace />;
   }
 
-  const { booking, customer } = state;
+  const { booking, customer, result } = state;
   const address = businessAddress(booking.business);
+  const guestCancellationLink =
+    result?.agendamento?.link_cancelamento_visitante ||
+    "";
   const customerWhatsApp = formatWhatsApp(customer?.whatsapp);
   const whatsappUrl = businessWhatsAppUrl(booking.business);
 
@@ -79,6 +82,11 @@ export function SuccessPage() {
           {booking.service.nome} com {booking.professional.nome},{" "}
           {formatDate(booking.date, true)} às {booking.time}.
         </p>
+        {guestCancellationLink && (
+          <p className="muted" role="note">
+            Você agendou como visitante. Guarde o link seguro abaixo para consultar ou cancelar esta reserva em outro dispositivo, respeitando o prazo de cancelamento.
+          </p>
+        )}
         {(address || customerWhatsApp) && (
           <dl className="success-details">
             {address && <div><dt>Local</dt><dd>{address}</dd></div>}
@@ -104,6 +112,14 @@ export function SuccessPage() {
               target="_blank"
             >
               Falar com o negócio
+            </a>
+          )}
+          {guestCancellationLink && (
+            <a
+              className="button button-secondary"
+              href={guestCancellationLink}
+            >
+              Abrir link seguro do agendamento
             </a>
           )}
           <Link className="button" to="/minha-agenda">Ver minha agenda</Link>

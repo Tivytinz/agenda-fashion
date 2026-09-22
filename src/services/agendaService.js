@@ -67,6 +67,7 @@ async function buscarAgendaPublica({ slugNegocio, slugProfissional }) {
   const bloqueios =
     await agendaRepository.buscarBloqueiosPorPeriodo(
       profissional.id,
+      profissional.negocio_id,
       dataInicio,
       dataFim
     );
@@ -389,6 +390,17 @@ async function listarAgendaProfissional({
     profissionalId
   );
 
+  const vinculo =
+    await agendaRepository
+      .buscarVinculoUsuarioNegocio(
+        profissionalId
+      );
+
+  exigirRecurso(
+    vinculo,
+    "Vínculo profissional não encontrado."
+  );
+
   const datas =
     gerarDatasAgenda(7);
 
@@ -419,6 +431,7 @@ async function listarAgendaProfissional({
     agendaRepository
       .buscarBloqueiosPorPeriodo(
         profissionalId,
+        vinculo.negocio_id,
         dataInicio,
         dataFim
       ),
@@ -713,26 +726,31 @@ async function alternarBloqueioHorario({
   usuarioId,
   data,
   hora,
-  profissionalIdSolicitado
+  profissionalIdSolicitado,
+  negocioIdContexto,
+  papelContexto
 }) {
   exigirUsuario(usuarioId);
   exigirCampo(data, "Data é obrigatória.");
   exigirCampo(hora, "Hora é obrigatória.");
+  exigirCampo(
+    negocioIdContexto,
+    "Contexto do negócio é obrigatório."
+  );
 
-  let profissionalId = usuarioId;
+  const negocioId = Number(negocioIdContexto);
+  let profissionalId = Number(usuarioId);
 
   if (profissionalIdSolicitado) {
-    const dono = await agendaRepository.buscarNegocioDono(usuarioId);
-
     exigirPermissao(
-      dono,
+      papelContexto === "dono",
       "Apenas o dono pode bloquear horários de outros profissionais."
     );
 
     const profissionalPertence =
       await agendaRepository.verificarProfissionalNoNegocio(
         profissionalIdSolicitado,
-        dono.negocio_id
+        negocioId
       );
 
     exigirPermissao(
@@ -740,7 +758,7 @@ async function alternarBloqueioHorario({
       "Este profissional não pertence ao seu negócio."
     );
 
-    profissionalId = profissionalIdSolicitado;
+    profissionalId = Number(profissionalIdSolicitado);
   }
 
   return db.executarTransacao(async (client) => {
@@ -766,6 +784,7 @@ async function alternarBloqueioHorario({
     const bloqueio =
       await agendaRepository.buscarBloqueioHorarioNovo(
         profissionalId,
+        negocioId,
         data,
         hora,
         client
@@ -774,6 +793,7 @@ async function alternarBloqueioHorario({
     if (bloqueio) {
       await agendaRepository.removerBloqueioHorario(
         bloqueio.id,
+        negocioId,
         client
       );
 
@@ -784,9 +804,24 @@ async function alternarBloqueioHorario({
       };
     }
 
+    const bloqueioGlobalLegado =
+      await agendaRepository.buscarBloqueioGlobalLegado(
+        profissionalId,
+        data,
+        hora,
+        client
+      );
+
+    if (bloqueioGlobalLegado) {
+      throw new ValidationError(
+        "Este horário possui um bloqueio legado global e não pode ser alterado por este negócio."
+      );
+    }
+
     try {
       await agendaRepository.criarBloqueioHorario(
         profissionalId,
+        negocioId,
         data,
         hora,
         client
@@ -842,6 +877,7 @@ async function buscarAgendaGeral({ usuarioId }) {
 
   const bloqueios =
     await agendaRepository.buscarBloqueiosProfissionaisPorPeriodo(
+      negocio.id,
       profissionalIds,
       dataInicio,
       dataFim

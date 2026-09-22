@@ -163,6 +163,10 @@ const InactiveBookingAccessPage = lazyNamed(
   () => import("./pages/InactiveBookingAccessPage"),
   "InactiveBookingAccessPage"
 );
+const GuestBookingAccessPage = lazyNamed(
+  () => import("./pages/GuestBookingAccessPage"),
+  "GuestBookingAccessPage"
+);
 const ProfilePage = lazyNamed(() => import("./pages/ProfilePage"), "ProfilePage");
 const SuccessPage = lazyNamed(() => import("./pages/SuccessPage"), "SuccessPage");
 const PrivacyPage = lazyNamed(() => import("./pages/PrivacyPage"), "PrivacyPage");
@@ -211,6 +215,10 @@ export default function App() {
           <Route
             path={reactRoutes.inactiveBookingAccess}
             element={<InactiveBookingAccessPage />}
+          />
+          <Route
+            path={reactRoutes.guestBookingAccess}
+            element={<GuestBookingAccessPage />}
           />
           <Route path={reactRoutes.login} element={<AuthPage />} />
           <Route path={reactRoutes.register} element={<AuthPage mode="register" />} />

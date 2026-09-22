@@ -5,8 +5,8 @@ const agendaPublicaService = require(
 const planoService = require(
   "../services/planoService"
 );
-const registrador = require(
-  "../utils/registrador"
+const agendamentoNotificacaoService = require(
+  "../services/agendamentoNotificacaoService"
 );
 
 function encaminharErro(erro, next) {
@@ -299,56 +299,22 @@ async function criarAgendamentoPublico(
         });
 
     /*
-     * O agendamento já foi confirmado.
-     * Uma falha ao registrar a notificação
-     * interna não deve transformar a
-     * resposta em erro 500.
+     * O booking já foi confirmado e a fila transacional
+     * de mensagens já foi persistida. Notificações internas
+     * para profissional e dona do negócio são fail-open:
+     * falha aqui nunca reverte o agendamento principal.
      */
-    try {
-      await agendaPublicaService
-        .criarNotificacaoAgendamento({
-          usuarioId:
-            profissional.id,
-
-          negocioId:
-            negocio.id,
-
-          agendamentoId:
-            agendamento.id,
-
-          titulo:
-            "Novo agendamento",
-
-          mensagem:
-            `Novo agendamento: ` +
-            `${servico.nome} em ` +
-            `${data} às ${horario}.`,
-        });
-    } catch (
-      erroNotificacao
-    ) {
-      registrador.erro(
-        "Erro ao registrar notificação interna do agendamento:",
-        {
-          mensagem:
-            erroNotificacao
-              ?.message ||
-            "Erro desconhecido.",
-
-          status:
-            erroNotificacao
-              ?.statusCode ||
-            erroNotificacao
-              ?.status ||
-            null,
-
-          codigo:
-            erroNotificacao
-              ?.code ||
-            null,
-        }
-      );
-    }
+    await agendamentoNotificacaoService
+      .notificarEquipeInternamente({
+        agendamentoId:
+          agendamento.id,
+        titulo:
+          "Novo agendamento",
+        mensagem:
+          `Novo agendamento: ` +
+          `${servico.nome} em ` +
+          `${data} às ${horario}.`,
+      });
 
     return res
       .status(201)

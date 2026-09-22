@@ -197,15 +197,39 @@ async function buscarAgendamentoAtivo(
 
 async function buscarBloqueioHorarioNovo(
   profissionalId,
+  negocioId,
   data,
   hora,
   executor = db
 ) {
   const result = await executor.query(
     `
-    SELECT id
+    SELECT id, negocio_id
     FROM bloqueios_horarios
     WHERE profissional_id = $1
+      AND negocio_id = $2
+      AND data_bloqueio = $3
+      AND TO_CHAR(hora_bloqueio, 'HH24:MI') = $4
+    LIMIT 1
+    `,
+    [profissionalId, negocioId, data, hora]
+  );
+
+  return result.rows[0] || null;
+}
+
+async function buscarBloqueioGlobalLegado(
+  profissionalId,
+  data,
+  hora,
+  executor = db
+) {
+  const result = await executor.query(
+    `
+    SELECT id, negocio_id
+    FROM bloqueios_horarios
+    WHERE profissional_id = $1
+      AND negocio_id IS NULL
       AND data_bloqueio = $2
       AND TO_CHAR(hora_bloqueio, 'HH24:MI') = $3
     LIMIT 1
@@ -216,18 +240,24 @@ async function buscarBloqueioHorarioNovo(
   return result.rows[0] || null;
 }
 
-async function removerBloqueioHorario(bloqueioId, executor = db) {
+async function removerBloqueioHorario(
+  bloqueioId,
+  negocioId,
+  executor = db
+) {
   await executor.query(
     `
     DELETE FROM bloqueios_horarios
     WHERE id = $1
+      AND negocio_id = $2
     `,
-    [bloqueioId]
+    [bloqueioId, negocioId]
   );
 }
 
 async function criarBloqueioHorario(
   profissionalId,
+  negocioId,
   data,
   hora,
   executor = db
@@ -236,12 +266,13 @@ async function criarBloqueioHorario(
     `
     INSERT INTO bloqueios_horarios (
       profissional_id,
+      negocio_id,
       data_bloqueio,
       hora_bloqueio
     )
-    VALUES ($1, $2, $3)
+    VALUES ($1, $2, $3, $4)
     `,
-    [profissionalId, data, hora]
+    [profissionalId, negocioId, data, hora]
   );
 }
 
@@ -412,19 +443,29 @@ async function contarNotificacoesAgendaProfissional(profissionalId) {
   return result.rows[0]?.total || 0;
 }
 
-async function buscarBloqueiosPorPeriodo(profissionalId, dataInicio, dataFim) {
+async function buscarBloqueiosPorPeriodo(
+  profissionalId,
+  negocioId,
+  dataInicio,
+  dataFim
+) {
   const result = await db.query(
     `
     SELECT
       id,
       profissional_id,
+      negocio_id,
       TO_CHAR(data_bloqueio, 'YYYY-MM-DD') AS data,
       TO_CHAR(hora_bloqueio, 'HH24:MI') AS hora
     FROM bloqueios_horarios
     WHERE profissional_id = $1
-      AND data_bloqueio BETWEEN $2 AND $3
+      AND data_bloqueio BETWEEN $3 AND $4
+      AND (
+        negocio_id = $2
+        OR negocio_id IS NULL
+      )
     `,
-    [profissionalId, dataInicio, dataFim]
+    [profissionalId, negocioId, dataInicio, dataFim]
   );
 
   return result.rows;
@@ -551,19 +592,29 @@ async function buscarAgendamentosPorPeriodo(
   return result.rows;
 }
 
-async function buscarBloqueiosProfissionaisPorPeriodo(profissionalIds, dataInicio, dataFim) {
+async function buscarBloqueiosProfissionaisPorPeriodo(
+  negocioId,
+  profissionalIds,
+  dataInicio,
+  dataFim
+) {
   const result = await db.query(
     `
     SELECT
       id,
       profissional_id,
+      negocio_id,
       TO_CHAR(data_bloqueio, 'YYYY-MM-DD') AS data,
       TO_CHAR(hora_bloqueio, 'HH24:MI') AS hora
     FROM bloqueios_horarios
-    WHERE profissional_id = ANY($1::int[])
-      AND data_bloqueio BETWEEN $2 AND $3
+    WHERE profissional_id = ANY($2::int[])
+      AND data_bloqueio BETWEEN $3 AND $4
+      AND (
+        negocio_id = $1
+        OR negocio_id IS NULL
+      )
     `,
-    [profissionalIds, dataInicio, dataFim]
+    [negocioId, profissionalIds, dataInicio, dataFim]
   );
 
   return result.rows;
@@ -648,6 +699,7 @@ module.exports = {
   bloquearAlteracaoHorario,
   buscarAgendamentoAtivo,
   buscarBloqueioHorarioNovo,
+  buscarBloqueioGlobalLegado,
   removerBloqueioHorario,
   criarBloqueioHorario,
   buscarNegocioDoUsuario,

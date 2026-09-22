@@ -67,12 +67,15 @@ describe("Segurança da agenda", () => {
     agendaRepository.bloquearAlteracaoHorario.mockResolvedValue();
     agendaRepository.buscarAgendamentoAtivo.mockResolvedValue(null);
     agendaRepository.buscarBloqueioHorarioNovo.mockResolvedValue(null);
+    agendaRepository.buscarBloqueioGlobalLegado.mockResolvedValue(null);
     agendaRepository.criarBloqueioHorario.mockResolvedValue();
 
     const resultado = await agendaService.alternarBloqueioHorario({
       usuarioId: 10,
       data: "2026-08-10",
-      hora: "09:00"
+      hora: "09:00",
+      negocioIdContexto: 33,
+      papelContexto: "profissional"
     });
 
     expect(db.executarTransacao).toHaveBeenCalledTimes(1);
@@ -84,10 +87,13 @@ describe("Segurança da agenda", () => {
     ).toHaveBeenCalledWith(10, "2026-08-10", "09:00", mockClient);
     expect(
       agendaRepository.buscarBloqueioHorarioNovo
+    ).toHaveBeenCalledWith(10, 33, "2026-08-10", "09:00", mockClient);
+    expect(
+      agendaRepository.buscarBloqueioGlobalLegado
     ).toHaveBeenCalledWith(10, "2026-08-10", "09:00", mockClient);
     expect(
       agendaRepository.criarBloqueioHorario
-    ).toHaveBeenCalledWith(10, "2026-08-10", "09:00", mockClient);
+    ).toHaveBeenCalledWith(10, 33, "2026-08-10", "09:00", mockClient);
     expect(resultado.status).toBe("bloqueado");
   });
 
@@ -95,6 +101,7 @@ describe("Segurança da agenda", () => {
     agendaRepository.bloquearAlteracaoHorario.mockResolvedValue();
     agendaRepository.buscarAgendamentoAtivo.mockResolvedValue(null);
     agendaRepository.buscarBloqueioHorarioNovo.mockResolvedValue(null);
+    agendaRepository.buscarBloqueioGlobalLegado.mockResolvedValue(null);
     agendaRepository.criarBloqueioHorario.mockRejectedValue({
       code: "23505"
     });
@@ -103,7 +110,9 @@ describe("Segurança da agenda", () => {
       agendaService.alternarBloqueioHorario({
         usuarioId: 10,
         data: "2026-08-10",
-        hora: "09:00"
+        hora: "09:00",
+        negocioIdContexto: 33,
+        papelContexto: "profissional"
       })
     ).rejects.toMatchObject({
       statusCode: 400,

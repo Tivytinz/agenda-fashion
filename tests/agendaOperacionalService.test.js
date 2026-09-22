@@ -200,6 +200,7 @@ describe("agendaOperacionalService", () => {
     expect(
       agendaRepository.buscarBloqueiosProfissionaisPorPeriodo
     ).toHaveBeenCalledWith(
+      55,
       [7, 8],
       "2026-09-20",
       "2026-09-20"

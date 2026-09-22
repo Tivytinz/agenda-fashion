@@ -1,6 +1,9 @@
 const agendamentoCancelamentoService = require(
   "../services/agendamentoCancelamentoService"
 );
+const agendamentoNotificacaoService = require(
+  "../services/agendamentoNotificacaoService"
+);
 
 async function buscarPoliticaPublica(req, res, next) {
   try {
@@ -43,10 +46,35 @@ async function cancelarCliente(req, res, next) {
         clienteId: req.user?.id,
       });
 
+    await agendamentoNotificacaoService
+      .notificarEquipeInternamente({
+        agendamentoId:
+          agendamento.id,
+        titulo:
+          "Agendamento cancelado",
+        mensagem:
+          "A cliente cancelou diretamente o agendamento. O horário voltou a ficar disponível.",
+      });
+
     return res.json({
       mensagem: "Agendamento cancelado com sucesso.",
       agendamento,
     });
+  } catch (error) {
+    return next(error);
+  }
+}
+
+async function consultarVisitante(req, res, next) {
+  try {
+    const resultado =
+      await agendamentoCancelamentoService.consultarAgendamentoVisitante({
+        agendamentoId: req.params.id,
+        acessoVisitante:
+          req.get("X-Agenda-Access"),
+      });
+
+    return res.json(resultado);
   } catch (error) {
     return next(error);
   }
@@ -58,6 +86,16 @@ async function cancelarVisitante(req, res, next) {
       await agendamentoCancelamentoService.cancelarAgendamentoVisitante({
         agendamentoId: req.params.id,
         acessoVisitante: req.body?.acesso_visitante,
+      });
+
+    await agendamentoNotificacaoService
+      .notificarEquipeInternamente({
+        agendamentoId:
+          agendamento.id,
+        titulo:
+          "Agendamento cancelado",
+        mensagem:
+          "A cliente visitante cancelou diretamente o agendamento. O horário voltou a ficar disponível.",
       });
 
     return res.json({
@@ -95,6 +133,7 @@ module.exports = {
   buscarPoliticaPublica,
   validarPoliticaExibida,
   cancelarCliente,
+  consultarVisitante,
   cancelarVisitante,
   cancelarOperacional,
 };
