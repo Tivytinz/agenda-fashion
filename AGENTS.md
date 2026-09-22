@@ -204,6 +204,11 @@ Regras duráveis:
   matriz para impedir corrida entre desabilitação e confirmação da reserva.
 - dias, faixas e novos bloqueios manuais pertencem ao vínculo
   profissional–negócio; conflitos de bookings continuam globais por profissional;
+- o início previsto de cada booking possui instante canônico em
+  `agendamentos.inicio_previsto_em` (`TIMESTAMPTZ`) e snapshot do IANA usado
+  em `fuso_horario_snapshot`; comparações temporais e conflitos globais entre
+  negócios usam o instante absoluto, enquanto a apresentação converte para o
+  fuso IANA do contexto sem reinterpretar bookings históricos;
 - bloqueios legados sem `negocio_id` são tratados como indisponibilidade global
   somente para compatibilidade e não podem ser removidos silenciosamente por um
   negócio específico;
@@ -570,6 +575,12 @@ ou payloads de clientes.
 
 Toda mudança de banco exige migration nova. Migration já aplicada não é
 reescrita para corrigir o passado.
+
+Recuperação do PostgreSQL crítico tem meta de RPO ≤ 1 hora e RTO ≤ 4 horas.
+Enquanto não houver evidência de PITR/backup recorrente e de restore controlado
+medido, o AF não declara essas metas como comprovadas. Alterar backup, PITR,
+retenção ou infraestrutura de produção exige autorização explícita. O runbook e
+a condição de saída ficam em `docs/backup-recovery.md`.
 
 Operações críticas que alteram múltiplas tabelas devem usar transação quando a
 atomicidade fizer parte do contrato.
