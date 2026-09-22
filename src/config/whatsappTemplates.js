@@ -15,6 +15,16 @@ const CONFIGURACOES_TEMPLATE = Object.freeze({
     padrao: "confirmacao_agendamento_cliente",
   }),
 
+  REAGENDAMENTO_SEM_CANCELAMENTO_CLIENTE: Object.freeze({
+    rotulo: "Reagendamento sem cancelamento direto para a cliente",
+    destinatario: "Cliente",
+    categoria: "UTILITY",
+    variavel:
+      "WHATSAPP_TEMPLATE_REAGENDAMENTO_SEM_CANCELAMENTO_CLIENTE",
+    padrao:
+      "reagendamento_sem_cancelamento_cliente",
+  }),
+
   LEMBRETE_AGENDAMENTO_CLIENTE: Object.freeze({
     rotulo: "Lembrete para a cliente",
     destinatario: "Cliente",
