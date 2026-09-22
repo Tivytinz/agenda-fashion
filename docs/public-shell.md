@@ -54,6 +54,25 @@ A experiência pública é a face mais acolhedora e visual do AF. Deve priorizar
 - mobile first e Safari/WebKit;
 - ausência de overflow horizontal e conteúdo encoberto.
 
+## Estados públicos e confirmação de booking
+
+O perfil de um negócio que já foi publicado pode continuar acessível mesmo
+quando perde o último serviço ativo. Nesse estado, a página mostra a identidade
+do negócio e um estado vazio de oferta, mas não permite iniciar ou concluir um
+novo booking para serviço inativo.
+
+Quando existe serviço ativo, mas nenhum slot elegível, serviço e perfil
+continuam visíveis. A interface informa que não há horários disponíveis e mantém
+a confirmação bloqueada. O backend recalcula a disponibilidade antes da criação,
+portanto uma requisição direta também não pode reservar um horário inexistente.
+
+Na confirmação, cliente autenticada com nome e WhatsApp válidos usa os dados da
+própria conta sem preencher os mesmos campos novamente. Esses dados são
+resolvidos novamente no backend a partir da identidade autenticada; valores de
+nome/WhatsApp enviados pelo navegador não substituem a identidade persistida.
+
+Visitantes continuam informando nome e WhatsApp no fluxo público.
+
 ## Segurança
 
 O `PublicShell` é exclusivamente uma decisão de apresentação. Rotas protegidas continuam usando `ProtectedRoute` e as regras server-side existentes. IDs, papéis, preços, limites, publicação e permissões não passam a ser confiados ao frontend.
