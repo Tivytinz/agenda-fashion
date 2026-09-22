@@ -178,7 +178,7 @@ beforeEach(() => {
 });
 
 test(
-  "cria e remove recorrências Asaas fora das transações do banco",
+  "CA-PLN-03: pagamento aprovado ativa assinatura e troca o plano sem segurar lock externo",
   async () => {
     const resultado =
       await ativarAssinaturaPorPagamento(
