@@ -542,7 +542,7 @@ async function consultarAgendamentoVisitante({
 
   return {
     agendamento: {
-      id: agendamento.id,
+      id: Number(agendamento.id),
       status: agendamento.status,
       data: agendamento.data,
       horario: agendamento.horario,
