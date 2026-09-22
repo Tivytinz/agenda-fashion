@@ -425,4 +425,248 @@ describe("Wave 7 - negócio, onboarding e publicação P0", () => {
       },
     ]);
   });
+
+
+  test("CA-NEG-06: negócio já publicado permanece acessível ao perder o último serviço ativo", async () => {
+    const usuario =
+      await criarUsuario(
+        "SemServicoAtivo"
+      );
+
+    const negocio =
+      await criarNegocio(
+        usuario,
+        "Sem serviço"
+      );
+
+    expect(
+      negocio.statusCode
+    ).toBe(201);
+
+    const primeiroServico =
+      await criarPrimeiroServico(
+        usuario
+      );
+
+    expect(
+      primeiroServico.statusCode
+    ).toBe(201);
+    expect(
+      primeiroServico.body
+        .publicacao
+        ?.publicado
+    ).toBe(true);
+
+    const servicoId =
+      primeiroServico.body
+        .servico.id;
+
+    const desativar =
+      await request(app)
+        .patch(
+          `/servicos/${servicoId}/ativo`
+        )
+        .set(
+          "Authorization",
+          `Bearer ${token(usuario.id)}`
+        )
+        .send({
+          ativo: false,
+        });
+
+    expect(
+      desativar.statusCode
+    ).toBe(200);
+    expect(
+      desativar.body.servico.ativo
+    ).toBe(false);
+
+    const persistido =
+      await db.query(
+        `
+          SELECT
+            publicado,
+            primeira_publicacao_em
+          FROM negocios
+          WHERE id = $1
+        `,
+        [
+          negocio.body
+            .negocio.id,
+        ]
+      );
+
+    expect(
+      persistido.rows[0]
+        .publicado
+    ).toBe(true);
+    expect(
+      persistido.rows[0]
+        .primeira_publicacao_em
+    ).toBeTruthy();
+
+    const perfil =
+      await request(app)
+        .get(
+          `/perfil-negocio/${negocio.body.negocio.slug}`
+        );
+
+    expect(
+      perfil.statusCode
+    ).toBe(200);
+    expect(
+      perfil.body.servicos
+    ).toEqual([]);
+
+    const agenda =
+      await request(app)
+        .get(
+          "/agenda-publica"
+        )
+        .query({
+          slug:
+            negocio.body
+              .negocio.slug,
+          servicoId,
+          profissionalId:
+            usuario.id,
+        });
+
+    expect(
+      agenda.statusCode
+    ).toBe(404);
+  });
+
+  test("CA-NEG-07: negócio sem disponibilidade continua visível e não aceita reserva sem slot", async () => {
+    const usuario =
+      await criarUsuario(
+        "SemDisponibilidade"
+      );
+
+    const negocio =
+      await criarNegocio(
+        usuario,
+        "Sem horários"
+      );
+
+    const primeiroServico =
+      await criarPrimeiroServico(
+        usuario
+      );
+
+    expect(
+      primeiroServico.statusCode
+    ).toBe(201);
+
+    const servicoId =
+      primeiroServico.body
+        .servico.id;
+
+    await db.query(
+      `
+        UPDATE agenda_horarios
+        SET
+          trabalha = FALSE,
+          hora_inicio = NULL,
+          hora_fim = NULL,
+          intervalo_inicio = NULL,
+          intervalo_fim = NULL
+        WHERE profissional_id = $1
+          AND negocio_id = $2
+      `,
+      [
+        usuario.id,
+        negocio.body
+          .negocio.id,
+      ]
+    );
+
+    const perfil =
+      await request(app)
+        .get(
+          `/perfil-negocio/${negocio.body.negocio.slug}`
+        );
+
+    expect(
+      perfil.statusCode
+    ).toBe(200);
+    expect(
+      perfil.body.servicos
+    ).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id:
+            servicoId,
+        }),
+      ])
+    );
+
+    const agenda =
+      await request(app)
+        .get(
+          "/agenda-publica"
+        )
+        .query({
+          slug:
+            negocio.body
+              .negocio.slug,
+          servicoId,
+          profissionalId:
+            usuario.id,
+        });
+
+    expect(
+      agenda.statusCode
+    ).toBe(200);
+    expect(
+      agenda.body.disponibilidade
+    ).toEqual([]);
+
+    const dataFutura =
+      (
+        await db.query(
+          `
+            SELECT TO_CHAR(
+              CURRENT_DATE + 3,
+              'YYYY-MM-DD'
+            ) AS data
+          `
+        )
+      ).rows[0].data;
+
+    const tentativa =
+      await request(app)
+        .post(
+          "/agendamentos"
+        )
+        .send({
+          slug:
+            negocio.body
+              .negocio.slug,
+          servico_id:
+            servicoId,
+          profissional_id:
+            usuario.id,
+          data:
+            dataFutura,
+          horario:
+            "10:00",
+          cliente_nome:
+            "Cliente sem slot",
+          cliente_whatsapp:
+            "62999997777",
+          antecedencia_cancelamento_esperada:
+            2,
+        });
+
+    expect(
+      tentativa.statusCode
+    ).toBe(409);
+    expect(
+      tentativa.body.erro
+    ).toMatch(
+      /horário.*não.*disponível/i
+    );
+  });
+
 });
