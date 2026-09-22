@@ -19,6 +19,8 @@ import {
 import { safeReturnPath, WHATSAPP_PATTERN } from "./AuthPage";
 
 const login = vi.fn();
+const register = vi.fn();
+const loginWithGoogle = vi.fn();
 
 vi.mock("../auth/SessionContext", () => ({
   useSession: () => ({
@@ -27,8 +29,8 @@ vi.mock("../auth/SessionContext", () => ({
     temNegocio: false,
     ehAdministrador: false,
     login,
-    register: vi.fn(),
-    loginWithGoogle: vi.fn()
+    register,
+    loginWithGoogle
   })
 }));
 
@@ -40,10 +42,34 @@ const { AuthPage } = await import("./AuthPage");
 
 beforeEach(() => {
   login.mockReset();
+  register.mockReset();
+  loginWithGoogle.mockReset();
+
   login.mockResolvedValue({
     authenticated: true,
     temNegocio: false,
     ehAdministrador: true
+  });
+
+  register.mockResolvedValue({
+    authenticated: true,
+    temNegocio: false,
+    ehAdministrador: false,
+    usuario: {
+      id: 2,
+      nome: "Ana"
+    }
+  });
+
+  loginWithGoogle.mockResolvedValue({
+    authenticated: true,
+    temNegocio: false,
+    ehAdministrador: false,
+    contaCriada: true,
+    usuario: {
+      id: 3,
+      nome: "Ana"
+    }
   });
 });
 
@@ -86,6 +112,52 @@ describe("cadastro profissional enxuto", () => {
     expect(screen.queryByText(/avisos operacionais do Agenda Fashion/i)).toBeNull();
     expect(screen.queryByText(/orientações de marketing do Agenda Fashion/i)).toBeNull();
     expect(screen.queryByText(/confirmações, lembretes e atualizações dos meus agendamentos/i)).toBeNull();
+  });
+
+  it("CA-AUT-01: envia intenção profissional ao backend sem criar outro tipo de conta", async () => {
+    const user = userEvent.setup();
+
+    render(
+      <MemoryRouter initialEntries={["/cadastro?tipo=profissional"]}>
+        <AuthPage mode="register" />
+      </MemoryRouter>
+    );
+
+    await user.type(
+      screen.getByLabelText("Nome completo"),
+      "Ana Profissional"
+    );
+    await user.type(
+      screen.getByLabelText("E-mail"),
+      "ana.profissional@teste.com"
+    );
+    await user.type(
+      screen.getByLabelText("WhatsApp com DDD"),
+      "62999998888"
+    );
+    await user.type(
+      screen.getByLabelText("Senha"),
+      "senha123"
+    );
+    await user.type(
+      screen.getByLabelText("Confirme a senha"),
+      "senha123"
+    );
+    await user.click(
+      screen.getByRole("button", {
+        name: "Criar conta"
+      })
+    );
+
+    await waitFor(() => {
+      expect(register).toHaveBeenCalledWith(
+        expect.objectContaining({
+          email:
+            "ana.profissional@teste.com",
+          perfil_profissional: true
+        })
+      );
+    });
   });
 
   it("mantém a preferência de mensagens no cadastro de cliente", () => {
