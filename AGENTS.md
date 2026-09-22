@@ -215,9 +215,21 @@ e não participa da matriz profissional-serviço. Quando houver capacidade, a
 dona escolhe explicitamente quem ativar; a ativação revalida plano, contexto
 ativo e eventual vínculo profissional ativo em outro negócio dentro do backend.
 
+Downgrade de plano nunca remove a proprietária, vínculos ou reservas existentes.
+Quando o novo limite de profissionais fica abaixo da equipe ativa, o backend
+inativa automaticamente apenas profissionais não proprietárias excedentes,
+começando pelas ativações mais recentes. Esses vínculos usam
+`motivo_inatividade = 'excedente_limite_plano'`; `ativado_em` registra a
+ativação mais recente para manter a ordem de downgrade determinística.
+
 Planos pagos usam checkout por PIX. Retorno do navegador não confirma pagamento.
 A ativação do plano depende da confirmação financeira autenticada e idempotente
-do Asaas.
+do Asaas. Estados externos do provedor são preservados para auditoria, enquanto
+a experiência do produto normaliza situações relevantes como
+`FALHA_DE_PAGAMENTO` e `CHECKOUT_EXPIRADO`. Checkout inicial expirado não
+libera benefício pago e falha de renovação pode retornar temporariamente o
+negócio ao plano gratuito sem apagar dados.
+
 
 Um negócio pode possuir no máximo uma cobrança PIX pendente de contratação ou
 upgrade por vez, independentemente do plano escolhido. Trocar de plano antes do
