@@ -47,7 +47,7 @@ describe("plano e assinatura", () => {
     });
 
     expect(
-      await screen.findByText("Pagamento confirmado. Seu plano foi atualizado.")
+      await screen.findByText("Pagamento confirmado. Estamos concluindo a ativação do seu plano.")
     ).not.toBeNull();
   });
 
@@ -191,6 +191,59 @@ describe("plano e assinatura", () => {
     const table = await screen.findByRole("table");
     expect(within(table).getByText("Pago")).not.toBeNull();
     expect(within(table).getByText("PIX")).not.toBeNull();
+  });
+
+  it("CA-PLN-04: mostra falha de pagamento e explica recuperação sem perda de dados", async () => {
+    apiRequest.mockResolvedValueOnce({
+      plano: { id: 1, slug: "inicial", nome: "Grátis", valor: 0 },
+      assinatura: null,
+      estado_assinatura: {
+        codigo: "FALHA_DE_PAGAMENTO",
+        status_provedor: "OVERDUE",
+        assinatura_id: 20,
+        plano_id: 4
+      },
+      uso: {
+        plano_nome: "Grátis",
+        plano_slug: "inicial"
+      },
+      pagamentos: []
+    });
+
+    renderPage();
+
+    const alert = await screen.findByRole("alert");
+    expect(within(alert).getByText("Falha de pagamento")).not.toBeNull();
+    expect(alert.textContent).toContain("plano Grátis");
+    expect(alert.textContent).toContain("sem apagar os dados do negócio");
+  });
+
+  it("CA-PLN-05: mostra checkout expirado sem anunciar benefício pago", async () => {
+    apiRequest.mockResolvedValueOnce({
+      plano: { id: 1, slug: "inicial", nome: "Grátis", valor: 0 },
+      assinatura: null,
+      estado_assinatura: {
+        codigo: "CHECKOUT_EXPIRADO",
+        status_provedor: "EXPIRED",
+        assinatura_id: 21,
+        plano_id: 3
+      },
+      uso: {
+        plano_nome: "Grátis",
+        plano_slug: "inicial"
+      },
+      pagamentos: []
+    });
+
+    renderPage();
+
+    expect(await screen.findByText("Checkout expirado")).not.toBeNull();
+    expect(
+      screen.getByText(/nenhum benefício pago foi liberado/i)
+    ).not.toBeNull();
+    expect(
+      screen.getByRole("link", { name: "Escolher um plano" })
+    ).not.toBeNull();
   });
 
   it("mantém erro de cancelamento dentro do diálogo", async () => {

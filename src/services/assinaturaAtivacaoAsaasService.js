@@ -13,6 +13,9 @@ const {
 const {
   sincronizarPagamentoPorWebhook
 } = require("./assinaturaServiceCore");
+const {
+  reconciliarLimiteProfissionais
+} = require("./equipePlanoService");
 
 function calcularProximaCobranca(
   dataBase = new Date()
@@ -349,6 +352,11 @@ async function finalizarAtivacao({
           assinatura.negocio_id,
           assinatura.plano_id
         );
+
+      await reconciliarLimiteProfissionais(
+        assinatura.negocio_id,
+        client
+      );
 
       const recorrenciasParaCancelar =
         await assinaturaAtivacaoRepository

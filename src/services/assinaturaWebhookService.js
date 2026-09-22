@@ -7,6 +7,9 @@ const {
   extrairReferenciaAssinatura,
   normalizarFormaPagamento,
 } = require("./assinaturaCalculos");
+const {
+  reconciliarLimiteProfissionais,
+} = require("./equipePlanoService");
 
 async function localizarAssinaturaPorWebhook(
   client,
@@ -167,6 +170,11 @@ async function sincronizarAssinaturaPorWebhook(
             novoPlanoId: planoGratis.id,
           }
         );
+
+      await reconciliarLimiteProfissionais(
+        assinatura.negocio_id,
+        client
+      );
     }
 
     return assinaturaAtualizada;

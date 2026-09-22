@@ -733,11 +733,17 @@ async function ativarProfissional({
         return { jaAtivo: true };
       }
 
+      const motivoPermitido = new Set([
+        "aguardando_vaga_plano",
+        "excedente_limite_plano",
+      ]);
+
       if (
-        vinculo.motivo_inatividade !==
-        "aguardando_vaga_plano"
+        !motivoPermitido.has(
+          vinculo.motivo_inatividade
+        )
       ) {
-        return { erro: "NAO_AGUARDA_VAGA" };
+        return { erro: "NAO_ATIVAVEL" };
       }
 
       const vinculoOutroNegocio =
@@ -758,7 +764,7 @@ async function ativarProfissional({
       validarLimitePlano(usoPlano);
 
       const ativado =
-        await profissionaisRepository.ativarVinculoProfissionalAguardandoVaga(
+        await profissionaisRepository.ativarVinculoProfissionalInativo(
           profissionalId,
           dono.negocio_id,
           client
@@ -779,11 +785,11 @@ async function ativarProfissional({
     );
   }
 
-  if (resultado.erro === "NAO_AGUARDA_VAGA") {
+  if (resultado.erro === "NAO_ATIVAVEL") {
     throw criarErroStatus(
-      "Este vínculo não está aguardando vaga no plano.",
+      "Este vínculo não está disponível para reativação.",
       409,
-      "VINCULO_NAO_AGUARDA_VAGA"
+      "VINCULO_NAO_ATIVAVEL"
     );
   }
 

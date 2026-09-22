@@ -83,7 +83,8 @@ async function listarProfissionaisDoNegocio(negocioId) {
       u.foto_url,
       un.papel,
       un.ativo,
-      un.motivo_inatividade
+      un.motivo_inatividade,
+      un.ativado_em
     FROM usuarios_negocios un
     INNER JOIN usuarios u
       ON u.id = un.usuario_id
@@ -95,7 +96,10 @@ async function listarProfissionaisDoNegocio(negocioId) {
         OR (
           un.papel = 'profissional'
           AND un.ativo = FALSE
-          AND un.motivo_inatividade = 'aguardando_vaga_plano'
+          AND un.motivo_inatividade IN (
+            'aguardando_vaga_plano',
+            'excedente_limite_plano'
+          )
         )
       )
     ORDER BY
@@ -263,7 +267,7 @@ async function verificarVinculo(
 ) {
   const result = await executor.query(
     `
-    SELECT id, papel, ativo, motivo_inatividade
+    SELECT id, papel, ativo, motivo_inatividade, ativado_em
     FROM usuarios_negocios
     WHERE usuario_id = $1
       AND negocio_id = $2
@@ -310,9 +314,10 @@ async function criarVinculo(
     INSERT INTO usuarios_negocios(
       usuario_id,
       negocio_id,
-      papel
+      papel,
+      ativado_em
     )
-    VALUES($1,$2,'profissional')
+    VALUES($1,$2,'profissional',NOW())
     `,
     [usuarioId, negocioId]
   );
@@ -330,20 +335,23 @@ async function criarOuMarcarVinculoAguardandoVaga(
       negocio_id,
       papel,
       ativo,
-      motivo_inatividade
+      motivo_inatividade,
+      ativado_em
     )
     VALUES (
       $1,
       $2,
       'profissional',
       FALSE,
-      'aguardando_vaga_plano'
+      'aguardando_vaga_plano',
+      NULL
     )
     ON CONFLICT (usuario_id, negocio_id)
     DO UPDATE SET
       papel = 'profissional',
       ativo = FALSE,
       motivo_inatividade = 'aguardando_vaga_plano',
+      ativado_em = NULL,
       updated_at = NOW()
     WHERE usuarios_negocios.ativo = FALSE
     RETURNING id, papel, ativo, motivo_inatividade
@@ -366,6 +374,7 @@ async function reativarVinculoProfissional(
       papel = 'profissional',
       ativo = TRUE,
       motivo_inatividade = NULL,
+      ativado_em = NOW(),
       updated_at = NOW()
     WHERE usuario_id = $1
       AND negocio_id = $2
@@ -378,7 +387,7 @@ async function reativarVinculoProfissional(
   return result.rows[0] || null;
 }
 
-async function ativarVinculoProfissionalAguardandoVaga(
+async function ativarVinculoProfissionalInativo(
   usuarioId,
   negocioId,
   executor = db
@@ -389,18 +398,27 @@ async function ativarVinculoProfissionalAguardandoVaga(
     SET
       ativo = TRUE,
       motivo_inatividade = NULL,
+      ativado_em = NOW(),
       updated_at = NOW()
     FROM usuarios u, negocios n
     WHERE un.usuario_id = $1
       AND un.negocio_id = $2
       AND un.papel = 'profissional'
       AND un.ativo = FALSE
-      AND un.motivo_inatividade = 'aguardando_vaga_plano'
+      AND un.motivo_inatividade IN (
+        'aguardando_vaga_plano',
+        'excedente_limite_plano'
+      )
       AND u.id = un.usuario_id
       AND u.ativo = TRUE
       AND n.id = un.negocio_id
       AND n.ativo = TRUE
-    RETURNING un.id, un.papel, un.ativo, un.motivo_inatividade
+    RETURNING
+      un.id,
+      un.papel,
+      un.ativo,
+      un.motivo_inatividade,
+      un.ativado_em
     `,
     [usuarioId, negocioId]
   );
@@ -408,6 +426,68 @@ async function ativarVinculoProfissionalAguardandoVaga(
   return result.rows[0] || null;
 }
 
+async function inativarProfissionaisExcedentesPlano(
+  negocioId,
+  executor = db
+) {
+  const result = await executor.query(
+    `
+    WITH contexto AS (
+      SELECT
+        p.limite_profissionais AS limite,
+        (
+          SELECT COUNT(*)::int
+          FROM usuarios_negocios total
+          WHERE total.negocio_id = n.id
+            AND total.ativo = TRUE
+            AND total.papel IN ('dono', 'profissional')
+        ) AS ativos
+      FROM negocios n
+      INNER JOIN planos p
+        ON p.id = n.plano_id
+      WHERE n.id = $1
+        AND n.ativo = TRUE
+    ),
+    candidatos AS (
+      SELECT un.id
+      FROM usuarios_negocios un
+      CROSS JOIN contexto c
+      WHERE un.negocio_id = $1
+        AND un.papel = 'profissional'
+        AND un.ativo = TRUE
+        AND c.limite IS NOT NULL
+      ORDER BY
+        COALESCE(un.ativado_em, un.created_at) DESC,
+        un.id DESC
+      LIMIT (
+        SELECT GREATEST(
+          ativos - limite,
+          0
+        )
+        FROM contexto
+      )
+    )
+    UPDATE usuarios_negocios un
+    SET
+      ativo = FALSE,
+      motivo_inatividade = 'excedente_limite_plano',
+      updated_at = NOW()
+    FROM candidatos c
+    WHERE un.id = c.id
+    RETURNING
+      un.id,
+      un.usuario_id,
+      un.negocio_id,
+      un.papel,
+      un.ativo,
+      un.motivo_inatividade,
+      un.ativado_em
+    `,
+    [negocioId]
+  );
+
+  return result.rows;
+}
 async function expirarConvitesPendentes(
   negocioId,
   usuarioConvidadoId,
@@ -614,7 +694,8 @@ module.exports = {
   criarVinculo,
   criarOuMarcarVinculoAguardandoVaga,
   reativarVinculoProfissional,
-  ativarVinculoProfissionalAguardandoVaga,
+  ativarVinculoProfissionalInativo,
+  inativarProfissionaisExcedentesPlano,
   expirarConvitesPendentes,
   buscarConvitePendente,
   criarConvite,

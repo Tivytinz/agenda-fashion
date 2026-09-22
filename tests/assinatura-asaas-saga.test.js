@@ -57,6 +57,14 @@ jest.mock(
   })
 );
 
+jest.mock(
+  "../src/services/equipePlanoService",
+  () => ({
+    reconciliarLimiteProfissionais:
+      jest.fn().mockResolvedValue([])
+  })
+);
+
 const pagamentoRepository = require(
   "../src/repositories/pagamentoRepository"
 );
@@ -170,7 +178,7 @@ beforeEach(() => {
 });
 
 test(
-  "cria e remove recorrências Asaas fora das transações do banco",
+  "CA-PLN-03: pagamento aprovado ativa assinatura e troca o plano sem segurar lock externo",
   async () => {
     const resultado =
       await ativarAssinaturaPorPagamento(
@@ -204,6 +212,65 @@ test(
             "sub_new"
         })
       );
+  }
+);
+
+test(
+  "CA-PLN-04: pagamento recuperado reativa assinatura suspensa",
+  async () => {
+    assinaturaAtivacaoRepository
+      .buscarContextoPagamento
+      .mockResolvedValue(
+        contexto({
+          status: "OVERDUE",
+          ativo: false,
+          asaas_subscription_id:
+            "sub_existing",
+          data_proxima_cobranca:
+            "2026-10-13"
+        })
+      );
+    assinaturaAtivacaoRepository
+      .ativarAssinatura
+      .mockResolvedValue({
+        ...contexto(),
+        status: "ACTIVE",
+        ativo: true,
+        asaas_subscription_id:
+          "sub_existing"
+      });
+    assinaturaAtivacaoRepository
+      .listarRecorrenciasSubstituidas
+      .mockResolvedValue([]);
+
+    const resultado =
+      await ativarAssinaturaPorPagamento(
+        "pay_recovery",
+        "RECEIVED",
+        {
+          paymentDate: "2026-09-14",
+          webhookEventoId: "evt_recovery",
+          webhookEventoCriadoEm:
+            "2026-09-14 09:00:00"
+        }
+      );
+
+    expect(resultado).toMatchObject({
+      status: "ACTIVE",
+      ativo: true,
+      asaas_subscription_id:
+        "sub_existing"
+    });
+    expect(
+      assinaturaAtivacaoRepository
+        .atualizarPlanoNegocio
+    ).toHaveBeenCalledWith(
+      expect.anything(),
+      7,
+      3
+    );
+    expect(criarAssinaturaAsaas)
+      .not.toHaveBeenCalled();
   }
 );
 

@@ -51,7 +51,7 @@ describe("Convites de profissionais", () => {
       ativo: false,
       motivo_inatividade: "aguardando_vaga_plano",
     });
-    profissionaisRepository.ativarVinculoProfissionalAguardandoVaga.mockResolvedValue({
+    profissionaisRepository.ativarVinculoProfissionalInativo.mockResolvedValue({
       id: 501,
       papel: "profissional",
       ativo: true,
@@ -294,7 +294,7 @@ describe("Convites de profissionais", () => {
       motivo_inatividade: "aguardando_vaga_plano",
     });
     profissionaisRepository.buscarVinculoProfissionalAtivo.mockResolvedValue(null);
-    profissionaisRepository.ativarVinculoProfissionalAguardandoVaga.mockResolvedValue({
+    profissionaisRepository.ativarVinculoProfissionalInativo.mockResolvedValue({
       id: 501,
       papel: "profissional",
       ativo: true,
@@ -308,7 +308,36 @@ describe("Convites de profissionais", () => {
 
     expect(planoService.buscarUsoPlano).toHaveBeenCalledWith(7, client);
     expect(
-      profissionaisRepository.ativarVinculoProfissionalAguardandoVaga
+      profissionaisRepository.ativarVinculoProfissionalInativo
+    ).toHaveBeenCalledWith(20, 7, client);
+    expect(resultado).toMatchObject({
+      profissional_id: 20,
+      ativo: true,
+    });
+  });
+
+  test("CA-PLN-06: dona pode reativar profissional inativada por downgrade quando há vaga", async () => {
+    profissionaisRepository.verificarVinculo.mockResolvedValue({
+      id: 502,
+      papel: "profissional",
+      ativo: false,
+      motivo_inatividade: "excedente_limite_plano",
+    });
+    profissionaisRepository.buscarVinculoProfissionalAtivo.mockResolvedValue(null);
+    profissionaisRepository.ativarVinculoProfissionalInativo.mockResolvedValue({
+      id: 502,
+      papel: "profissional",
+      ativo: true,
+      motivo_inatividade: null,
+    });
+
+    const resultado = await profissionaisService.ativarProfissional({
+      usuarioId: 1,
+      profissionalId: 20,
+    });
+
+    expect(
+      profissionaisRepository.ativarVinculoProfissionalInativo
     ).toHaveBeenCalledWith(20, 7, client);
     expect(resultado).toMatchObject({
       profissional_id: 20,
@@ -342,7 +371,7 @@ describe("Convites de profissionais", () => {
     });
 
     expect(
-      profissionaisRepository.ativarVinculoProfissionalAguardandoVaga
+      profissionaisRepository.ativarVinculoProfissionalInativo
     ).not.toHaveBeenCalled();
   });
 

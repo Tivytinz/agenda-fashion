@@ -58,6 +58,13 @@ apagar dados existentes nem impedir a edição do que já foi cadastrado.
 - Liberar capacidade ou concluir um upgrade não ativa automaticamente pessoas
   aguardando vaga. A dona escolhe quem ativar, e o backend revalida o limite no
   momento da ativação.
+- Quando um downgrade reduz `limite_profissionais` abaixo da quantidade de
+  vínculos ativos, a proprietária permanece ativa e o backend inativa apenas o
+  excedente de profissionais não proprietárias, começando pelas ativações mais
+  recentes. O vínculo e as reservas existentes são preservados.
+- Vínculos inativados por downgrade usam
+  `motivo_inatividade = 'excedente_limite_plano'` e podem ser reativados pela
+  proprietária quando houver capacidade.
 - `NULL` no banco representa capacidade ilimitada.
 
 ## Upgrade, pagamento e cancelamento
@@ -75,6 +82,11 @@ apagar dados existentes nem impedir a edição do que já foi cadastrado.
 - Ao cancelar a renovação, o acesso pago continua até o fim do período já
   quitado.
 - Após o encerramento do ciclo pago, o negócio retorna ao plano gratuito.
+- A API de assinatura normaliza o ciclo para estados de domínio como
+  `PENDENTE`, `ATIVA`, `FALHA_DE_PAGAMENTO` e `CHECKOUT_EXPIRADO`,
+  preservando também o status bruto do provedor para auditoria.
+- Um checkout inicial vencido ou encerrado sem confirmação não libera benefício
+  pago; a assinatura pendente é encerrada e o plano gratuito continua vigente.
 - Antes de gerar o PIX, o checkout informa ciclo mensal, renovação,
   cancelamento, ausência de taxa de adesão e disponibiliza Termos de uso,
   Política de Privacidade e contato de suporte.
@@ -112,6 +124,8 @@ negócio e conversão para plano pago.
 - Catálogo e limites: `database/migrations/015_planos_limites.sql`.
 - Estado de equipe aguardando capacidade:
   `database/migrations/084_profissionais_aguardando_vaga.sql`.
+- Ordem de ativação e inativação por downgrade:
+  `database/migrations/086_profissionais_downgrade_plano.sql`.
 - Normalização dos nomes: `database/migrations/025_corrigir_nomes_planos.sql`.
 - Consulta pública: `GET /planos`.
 - Oferta pública em HTML: `/planos` com `Accept: text/html`.

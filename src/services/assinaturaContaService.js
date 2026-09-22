@@ -10,6 +10,107 @@ const {
   dataValida,
 } = require("./assinaturaCalculos");
 
+function statusNormalizado(valor) {
+  return String(valor || "")
+    .trim()
+    .toUpperCase();
+}
+
+function estadoAssinatura({
+  assinatura,
+  assinaturaPendente,
+  ultimaAssinatura,
+}) {
+  if (assinatura) {
+    const status = statusNormalizado(
+      assinatura.status
+    );
+
+    return {
+      codigo: ["CANCELED", "CANCELLED"].includes(status)
+        ? "CANCELAMENTO_AGENDADO"
+        : "ATIVA",
+      status_provedor: status || null,
+      assinatura_id: assinatura.id,
+      plano_id: assinatura.plano_id,
+    };
+  }
+
+  if (assinaturaPendente) {
+    return {
+      codigo: "PENDENTE",
+      status_provedor:
+        statusNormalizado(
+          assinaturaPendente.status
+        ) || null,
+      assinatura_id: assinaturaPendente.id,
+      plano_id: assinaturaPendente.plano_id,
+    };
+  }
+
+  if (!ultimaAssinatura) {
+    return {
+      codigo: "GRATUITA",
+      status_provedor: null,
+      assinatura_id: null,
+      plano_id: null,
+    };
+  }
+
+  const status = statusNormalizado(
+    ultimaAssinatura.status
+  );
+  const checkoutInicial =
+    !ultimaAssinatura.asaas_subscription_id;
+
+  if (
+    checkoutInicial &&
+    [
+      "EXPIRED",
+      "DELETED",
+      "CANCELED",
+      "CANCELLED",
+      "OVERDUE",
+      "PAST_DUE",
+    ].includes(status)
+  ) {
+    return {
+      codigo: "CHECKOUT_EXPIRADO",
+      status_provedor: status,
+      assinatura_id: ultimaAssinatura.id,
+      plano_id: ultimaAssinatura.plano_id,
+    };
+  }
+
+  if (
+    [
+      "OVERDUE",
+      "PAST_DUE",
+      "PAYMENT_FAILED",
+      "REFUNDED",
+      "RECEIVED_IN_CASH_UNDONE",
+      "CHARGEBACK_REQUESTED",
+      "CHARGEBACK_DISPUTE",
+      "AWAITING_CHARGEBACK_REVERSAL",
+      "CREDIT_CARD_CAPTURE_REFUSED",
+    ].includes(status)
+  ) {
+    return {
+      codigo: "FALHA_DE_PAGAMENTO",
+      status_provedor: status,
+      assinatura_id: ultimaAssinatura.id,
+      plano_id: ultimaAssinatura.plano_id,
+    };
+  }
+
+  return {
+    codigo: "INATIVA",
+    status_provedor: status || null,
+    assinatura_id: ultimaAssinatura.id,
+    plano_id: ultimaAssinatura.plano_id,
+  };
+}
+
 async function buscarMinhaAssinatura({ usuarioId }) {
   if (!usuarioId) {
     throw new Error("Usuário não autenticado.");
@@ -23,18 +124,23 @@ async function buscarMinhaAssinatura({ usuarioId }) {
   }
 
   await assinaturaRepository
-    .expirarCancelamentoSeNecessario(negocio.id);
+    .expirarCheckoutsPendentes(negocio.id);
 
+  const uso = await buscarUsoPlano(negocio.id);
   const negocioAtualizado = await assinaturaRepository
     .buscarNegocioDono(usuarioId);
-  const [assinatura, assinaturaPendente, uso] =
-    await Promise.all([
-      assinaturaRepository
-        .buscarAssinaturaAtivaPorNegocio(negocio.id),
-      assinaturaRepository
-        .buscarAssinaturaPendentePorNegocio(negocio.id),
-      buscarUsoPlano(negocio.id),
-    ]);
+  const [
+    assinatura,
+    assinaturaPendente,
+    ultimaAssinatura,
+  ] = await Promise.all([
+    assinaturaRepository
+      .buscarAssinaturaAtivaPorNegocio(negocio.id),
+    assinaturaRepository
+      .buscarAssinaturaPendentePorNegocio(negocio.id),
+    assinaturaRepository
+      .buscarUltimaAssinaturaPorNegocio(negocio.id),
+  ]);
   const plano = await assinaturaRepository.buscarPlano(
     negocioAtualizado?.plano_id || negocio.plano_id
   );
@@ -57,6 +163,11 @@ async function buscarMinhaAssinatura({ usuarioId }) {
   return {
     plano,
     assinatura,
+    estado_assinatura: estadoAssinatura({
+      assinatura,
+      assinaturaPendente,
+      ultimaAssinatura,
+    }),
     upgrade_pendente:
       assinaturaPendente && planoPendente
         ? {

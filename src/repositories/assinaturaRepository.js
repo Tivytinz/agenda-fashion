@@ -193,6 +193,49 @@ async function buscarAssinaturaPendentePorNegocio(negocioId) {
   return result.rows[0] || null;
 }
 
+async function expirarCheckoutsPendentes(
+  negocioId,
+  executor = db
+) {
+  const result = await executor.query(
+    `
+    UPDATE assinaturas a
+    SET
+      status = 'EXPIRED',
+      ativo = FALSE,
+      observacoes = CONCAT_WS(
+        E'\\n',
+        NULLIF(a.observacoes, ''),
+        'Checkout inicial expirado sem confirmação de pagamento.'
+      ),
+      updated_at = NOW()
+    WHERE a.negocio_id = $1
+      AND a.ativo = FALSE
+      AND UPPER(a.status) IN (
+        'PENDING',
+        'PENDING_PAYMENT'
+      )
+      AND a.asaas_subscription_id IS NULL
+      AND EXISTS (
+        SELECT 1
+        FROM pagamentos pg
+        WHERE pg.assinatura_id = a.id
+          AND UPPER(pg.status) IN (
+            'PENDING',
+            'CREATED',
+            'AWAITING_PAYMENT'
+          )
+          AND pg.data_vencimento IS NOT NULL
+          AND pg.data_vencimento < CURRENT_DATE
+      )
+    RETURNING a.*
+    `,
+    [negocioId]
+  );
+
+  return result.rows;
+}
+
 async function buscarUltimaAssinaturaPorNegocio(negocioId) {
   const result = await db.query(
     `
@@ -393,6 +436,7 @@ module.exports = {
   buscarNegocioDono,
   buscarUltimaAssinaturaPorNegocio,
   buscarAssinaturaPendentePorNegocio,
+  expirarCheckoutsPendentes,
   registrarCancelamento,
   expirarCancelamentoSeNecessario,
   buscarPlano,

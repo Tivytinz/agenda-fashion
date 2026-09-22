@@ -1,3 +1,11 @@
+jest.mock(
+  "../src/services/equipePlanoService",
+  () => ({
+    reconciliarLimiteProfissionais:
+      jest.fn().mockResolvedValue([])
+  })
+);
+
 const mockClient = {
   query: jest.fn()
 };
@@ -843,7 +851,7 @@ describe(
     );
 
     test(
-      "suspende assinatura vencida e retorna o negócio ao plano gratuito",
+      "CA-PLN-04: falha de cobrança suspende assinatura e permite recuperação posterior",
       async () => {
         mockClient.query
           .mockImplementation(

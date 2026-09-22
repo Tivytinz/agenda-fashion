@@ -250,6 +250,12 @@ export function ProfessionalsPage() {
               professional.ativo === false &&
               professional.motivo_inatividade ===
                 "aguardando_vaga_plano";
+            const inactiveByDowngrade =
+              professional.ativo === false &&
+              professional.motivo_inatividade ===
+                "excedente_limite_plano";
+            const inactiveByPlan =
+              waitingForCapacity || inactiveByDowngrade;
 
             return (
               <article
@@ -270,12 +276,14 @@ export function ProfessionalsPage() {
                       ? "Dona do negócio"
                       : waitingForCapacity
                         ? "Aceitou o convite · aguardando vaga no plano"
-                        : "Profissional"}
+                        : inactiveByDowngrade
+                          ? "Inativa · excedente do limite do plano"
+                          : "Profissional"}
                   </p>
                 </div>
 
                 <div className="professional-card-actions">
-                  {waitingForCapacity ? (
+                  {inactiveByPlan ? (
                     <>
                       <button
                         className="button button-small"
