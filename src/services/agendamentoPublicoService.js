@@ -15,6 +15,9 @@ const whatsappMensagemService = require(
   "./whatsappMensagemService"
 );
 const planoService = require("./planoService");
+const bookingAnalyticsService = require(
+  "./bookingAnalyticsService"
+);
 const {
   criarErro,
   normalizarId,
@@ -611,6 +614,14 @@ async function criarAgendamento({
 
             agendamentoId:
               criado.id,
+          });
+
+        await bookingAnalyticsService
+          .registrarBookingCreated({
+            agendamentoId:
+              criado.id,
+            executor:
+              client,
           });
 
         return criado;
