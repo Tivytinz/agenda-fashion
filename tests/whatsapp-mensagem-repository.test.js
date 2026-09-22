@@ -120,6 +120,12 @@ describe(
           "a.antecedencia_cancelamento_horas"
         );
         expect(sql).toContain(
+          "horario_cliente_formatado"
+        );
+        expect(sql).toContain(
+          "cancelamento direto pelo AF indisponível"
+        );
+        expect(sql).toContain(
           "'REAGENDAMENTO_SEM_CANCELAMENTO_CLIENTE'"
         );
         expect(sql).toContain(
