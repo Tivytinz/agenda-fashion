@@ -7,11 +7,25 @@ BEGIN;
 ALTER TABLE agendamentos
   DROP CONSTRAINT IF EXISTS agendamentos_status_check;
 
+-- O trigger de avaliação criado na migration 069 referencia explicitamente
+-- a coluna status. PostgreSQL não permite alterar o tipo da coluna enquanto
+-- esse trigger existir, então ele é removido e recriado na mesma transação.
+DROP TRIGGER IF EXISTS
+  agendamentos_avaliacao_status_trigger
+ON agendamentos;
+
 -- O estado legado possui 23 caracteres. Algumas instalações atuais já
 -- restringem a coluna a VARCHAR(20), portanto ampliamos o domínio antes de
 -- normalizar qualquer registro histórico.
 ALTER TABLE agendamentos
   ALTER COLUMN status TYPE VARCHAR(32);
+
+CREATE TRIGGER
+  agendamentos_avaliacao_status_trigger
+BEFORE INSERT OR UPDATE OF avaliacao, status
+ON agendamentos
+FOR EACH ROW
+EXECUTE FUNCTION validar_avaliacao_agendamento_realizado();
 
 UPDATE agendamentos
 SET status = 'cancelamento_solicitado'
