@@ -125,7 +125,7 @@ negócio e conversão para plano pago.
 - Estado de equipe aguardando capacidade:
   `database/migrations/084_profissionais_aguardando_vaga.sql`.
 - Ordem de ativação e inativação por downgrade:
-  `database/migrations/085_profissionais_downgrade_plano.sql`.
+  `database/migrations/086_profissionais_downgrade_plano.sql`.
 - Normalização dos nomes: `database/migrations/025_corrigir_nomes_planos.sql`.
 - Consulta pública: `GET /planos`.
 - Oferta pública em HTML: `/planos` com `Accept: text/html`.
