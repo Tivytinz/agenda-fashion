@@ -45,6 +45,11 @@ describe("Limite de profissionais", () => {
       expira_em: new Date(Date.now() + 60_000).toISOString(),
     });
     profissionaisRepository.buscarVinculoProfissionalAtivo.mockResolvedValue(null);
+    profissionaisRepository.ativarPerfilProfissionalConta.mockResolvedValue({
+      id: 20,
+      perfil_profissional_ativado_em:
+        new Date().toISOString(),
+    });
     profissionaisRepository.criarOuMarcarVinculoAguardandoVaga.mockResolvedValue({
       id: 501,
       papel: "profissional",
