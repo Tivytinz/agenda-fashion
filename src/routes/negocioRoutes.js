@@ -5,6 +5,9 @@ const express = require(
 const negocioController = require(
   "../controllers/negocioController"
 );
+const encerramentoController = require(
+  "../controllers/encerramentoController"
+);
 
 const auth = require(
   "../middlewares/auth"
@@ -38,6 +41,12 @@ router.get(
   "/meu-negocio",
   auth,
   negocioController.buscarMeuNegocio
+);
+
+router.post(
+  "/negocio/encerrar",
+  auth,
+  encerramentoController.encerrarNegocio
 );
 
 /*

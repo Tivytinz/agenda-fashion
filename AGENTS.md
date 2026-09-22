@@ -451,6 +451,27 @@ Regras duráveis:
 
 Detalhes: `docs/whatsapp-automatico.md`.
 
+## Encerramento e privacidade operacional
+
+Negócio encerrado entra em estado terminal normal de arquivamento:
+`ativo = FALSE`, `publicado = FALSE` e `arquivado_em` preenchido. O
+arquivamento exige ausência de bookings operacionais e de acesso pago, renovação,
+checkout ou operação financeira pendente; convites ainda pendentes tornam-se
+não aceitáveis, sem apagar histórico.
+
+Encerramento definitivo de conta é lógico quando referências históricas precisam
+ser preservadas. Profissional com booking operacional atribuído não pode encerrar
+definitivamente a conta. Proprietária só encerra a identidade depois que o
+negócio puder ser arquivado com segurança.
+
+Conta de cliente pode ser desativada sem cancelar automaticamente reservas.
+Enquanto houver booking operacional, o `Client` e os dados mínimos permanecem,
+e o AF entrega um acesso por capacidade criptográfica específica da reserva para
+consulta/cancelamento conforme o cutoff. Essa credencial não deve aparecer em
+query de API ou logs.
+
+Detalhes: `docs/encerramento-privacidade.md`.
+
 ## Segurança e privacidade
 
 Estas regras são obrigatórias:
@@ -463,6 +484,26 @@ Estas regras são obrigatórias:
 6. dados pessoais só são expostos quando necessários para a finalidade da
    operação;
 7. redirecionamento ou botão oculto no React não substitui controle de acesso.
+
+Encerramento e privacidade seguem um fluxo de desativação/arquivamento, não de
+deleção física indiscriminada:
+
+- negócio só pode ser arquivado pela proprietária quando não houver booking
+  ativo nem pendência de acesso pago, checkout ou operação financeira;
+- arquivar remove o negócio da descoberta, desativa seus vínculos operacionais,
+  cancela convites pendentes e preserva históricos necessários;
+- conta profissional não pode ser encerrada definitivamente enquanto possuir
+  booking ativo atribuído;
+- desativar conta de cliente não cancela reservas existentes: o `Client`
+  interno e os dados mínimos operacionais permanecem, com acesso HMAC específico
+  por booking para consulta e cancelamento enquanto a política permitir;
+- conta proprietária só pode ser encerrada definitivamente depois que o negócio
+  puder ser arquivado com segurança na mesma transação lógica;
+- `desativado_em`, `encerrado_definitivo_em` e `arquivado_em` distinguem
+  perda de acesso, encerramento da identidade operacional e encerramento do
+  negócio sem apagar evidências sujeitas a retenção.
+
+Detalhes: `docs/encerramento-privacidade.md`.
 
 ## Engenharia e banco
 

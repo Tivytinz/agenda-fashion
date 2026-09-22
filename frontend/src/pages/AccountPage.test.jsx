@@ -275,6 +275,62 @@ describe("minha conta", () => {
     });
   });
 
+  it("CA-PRV-05: desativa a conta e mantém acessos seguros às reservas", async () => {
+    const confirmSpy = vi
+      .spyOn(window, "confirm")
+      .mockReturnValue(true);
+
+    apiRequest
+      .mockResolvedValueOnce({
+        usuario: baseUser()
+      })
+      .mockResolvedValueOnce({
+        mensagem:
+          "Conta desativada. Seus agendamentos continuam válidos; guarde os acessos abaixo para consultar ou cancelar quando permitido.",
+        conta: {
+          id: 7,
+          ativo: false,
+          desativado_em: "2026-09-22T15:00:00.000Z"
+        },
+        reservas_acesso: [{
+          id: 91,
+          servico_nome: "Manicure",
+          data: "2026-09-30",
+          horario: "14:00",
+          caminho:
+            "/agendamento-acesso/91#token=token-seguro"
+        }]
+      });
+
+    render(<MemoryRouter><AccountPage /></MemoryRouter>);
+
+    await screen.findByRole("heading", { name: "Minha conta" });
+    fireEvent.click(
+      screen.getByRole("button", { name: "Desativar conta" })
+    );
+
+    await waitFor(() => {
+      expect(apiRequest).toHaveBeenLastCalledWith(
+        "/conta/desativar",
+        { method: "POST" }
+      );
+    });
+
+    expect(
+      await screen.findByText(/Guarde estes acessos/i)
+    ).not.toBeNull();
+    expect(
+      screen.getByRole("link", {
+        name: /Manicure · 2026-09-30 às 14:00/
+      }).getAttribute("href")
+    ).toBe(
+      "/agendamento-acesso/91#token=token-seguro"
+    );
+    expect(logoutSession).not.toHaveBeenCalled();
+
+    confirmSpy.mockRestore();
+  });
+
   it("mantém visível o controle para interromper os próximos envios", async () => {
     useSession.mockReturnValue({
       temNegocio: true,

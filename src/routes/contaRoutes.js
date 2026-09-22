@@ -19,6 +19,9 @@ const {
 const contaController = require(
   "../controllers/contaController"
 );
+const encerramentoController = require(
+  "../controllers/encerramentoController"
+);
 
 function tratarErroUpload(
   erro,
@@ -94,6 +97,18 @@ router.post(
   upload.single("foto"),
   tratarErroUpload,
   contaController.enviarFotoUsuario
+);
+
+router.post(
+  "/conta/desativar",
+  auth,
+  encerramentoController.desativarConta
+);
+
+router.delete(
+  "/conta",
+  auth,
+  encerramentoController.excluirConta
 );
 
 /*

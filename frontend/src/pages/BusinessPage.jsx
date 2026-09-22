@@ -145,6 +145,8 @@ export function BusinessPage({ create = false }) {
   const [message, setMessage] = useState(() => location.state?.message || "");
   const [publication, setPublication] = useState(null);
   const [publishing, setPublishing] = useState(false);
+  const [closingBusiness, setClosingBusiness] = useState(false);
+  const [closurePendings, setClosurePendings] = useState([]);
   const [cepLookup, setCepLookup] = useState({ status: "idle", message: "" });
   const cepRequestRef = useRef(0);
 
@@ -473,6 +475,43 @@ export function BusinessPage({ create = false }) {
     } finally {
       setPhotoUploading(false);
       event.target.value = "";
+    }
+  }
+
+  async function closeBusiness() {
+    if (
+      !window.confirm(
+        "Encerrar este negócio? Ele sairá da descoberta, não receberá novos agendamentos e não poderá ser reativado pelo fluxo normal."
+      )
+    ) {
+      return;
+    }
+
+    setClosingBusiness(true);
+    setClosurePendings([]);
+    setError("");
+    setMessage("");
+
+    try {
+      const result = await apiRequest("/negocio/encerrar", {
+        method: "POST"
+      });
+      await session.refresh();
+      navigate("/", {
+        replace: true,
+        state: {
+          message: result.mensagem
+        }
+      });
+    } catch (requestError) {
+      setError(requestError.message);
+      setClosurePendings(
+        Array.isArray(requestError.data?.pendencias)
+          ? requestError.data.pendencias
+          : []
+      );
+    } finally {
+      setClosingBusiness(false);
     }
   }
 
@@ -824,6 +863,41 @@ export function BusinessPage({ create = false }) {
           </div>
         )}
       </form>
+
+      {!create && (
+        <section className="panel stack-form business-danger-zone">
+          <div>
+            <p className="eyebrow">Encerramento</p>
+            <h2>Encerrar este negócio</h2>
+            <p className="muted">
+              O encerramento é permanente no fluxo normal. Antes de arquivar, o AF
+              exige que agendamentos confirmados e pendências de cobrança estejam resolvidos.
+            </p>
+          </div>
+
+          {closurePendings.length > 0 && (
+            <div role="alert">
+              <strong>Resolva antes de encerrar:</strong>
+              <ul>
+                {closurePendings.map((pending) => (
+                  <li key={pending.codigo}>
+                    {pending.mensagem}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          <button
+            className="button button-secondary danger-text"
+            disabled={closingBusiness}
+            onClick={closeBusiness}
+            type="button"
+          >
+            {closingBusiness ? "Verificando pendências..." : "Encerrar negócio"}
+          </button>
+        </section>
+      )}
     </main>
   );
 }
