@@ -189,6 +189,53 @@ async function medirPagina(
     "Network.enable"
   );
 
+  let lcpCdpEpochSeconds =
+    0;
+
+  cdp.on(
+    "PerformanceTimeline.timelineEventAdded",
+    ({ event }) => {
+      if (
+        event?.type !==
+          "largest-contentful-paint"
+      ) {
+        return;
+      }
+
+      const details =
+        event.lcpDetails ||
+        {};
+
+      const candidate =
+        Number(
+          details.renderTime ||
+          details.loadTime ||
+          event.time ||
+          0
+        );
+
+      if (
+        Number.isFinite(
+          candidate
+        ) &&
+        candidate >
+          lcpCdpEpochSeconds
+      ) {
+        lcpCdpEpochSeconds =
+          candidate;
+      }
+    }
+  );
+
+  await cdp.send(
+    "PerformanceTimeline.enable",
+    {
+      eventTypes: [
+        "largest-contentful-paint",
+      ],
+    }
+  );
+
   await cdp.send(
     "Network.emulateNetworkConditions",
     {
@@ -263,6 +310,10 @@ async function medirPagina(
             window.__AF_LCP ||
               0
           ),
+        timeOrigin:
+          Number(
+            performance.timeOrigin
+          ),
         supported:
           Array.isArray(
             PerformanceObserver
@@ -277,8 +328,20 @@ async function medirPagina(
       })
     );
 
+  const lcpCdp =
+    lcpCdpEpochSeconds > 0
+      ? (
+          lcpCdpEpochSeconds *
+            1000 -
+          diagnostico.timeOrigin
+        )
+      : 0;
+
   const lcp =
-    diagnostico.lcp;
+    Math.max(
+      diagnostico.lcp,
+      lcpCdp
+    );
 
   await context.close();
 
@@ -287,7 +350,7 @@ async function medirPagina(
     lcp <= 0
   ) {
     throw new Error(
-      `LCP não foi observado em ${relativeUrl}. PerformanceObserver suporta LCP: ${diagnostico.supported}`
+      `LCP não foi observado em ${relativeUrl}. PerformanceObserver suporta LCP: ${diagnostico.supported}; CDP capturou: ${lcpCdpEpochSeconds > 0}`
     );
   }
 
