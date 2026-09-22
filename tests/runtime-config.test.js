@@ -46,8 +46,21 @@ describe("configuração central do runtime", () => {
       PUBLIC_APP_URL: "http://app.agendafashion.com.br",
       ASAAS_API_URL: "https://api.asaas.com/v3",
       ASAAS_API_KEY: "$aact_prod_teste",
-      ASAAS_WEBHOOK_TOKEN: "token-webhook",
+      ASAAS_WEBHOOK_TOKEN: "token-webhook-asaas-com-mais-de-32-caracteres",
     })).toThrow("PUBLIC_APP_URL precisa usar HTTPS");
+  });
+
+  test("recusa token fraco do webhook Asaas em produção", () => {
+    expect(() => validarConfiguracaoRuntime({
+      ...ambienteBase(),
+      NODE_ENV: "production",
+      PUBLIC_APP_URL: "https://app.agendafashion.com.br",
+      ASAAS_API_URL: "https://api.asaas.com/v3",
+      ASAAS_API_KEY: "$aact_prod_teste",
+      ASAAS_WEBHOOK_TOKEN: "token-curto",
+    })).toThrow(
+      "Produção: ASAAS_WEBHOOK_TOKEN precisa ter pelo menos 32 caracteres."
+    );
   });
 
   test("exige credenciais completas quando o WhatsApp está ativo", () => {
