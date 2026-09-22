@@ -14,6 +14,9 @@ const agendamentoCancelamentoController = require(
 const agendamentoLifecycleController = require(
   "../controllers/agendamentoLifecycleController"
 );
+const encerramentoController = require(
+  "../controllers/encerramentoController"
+);
 const {
   gerarAcessoVisitante,
 } = require("../utils/agendamentoVisitante");
@@ -252,6 +255,18 @@ router.patch(
   "/agendamentos/:id/cancelar-visitante",
   limitarAgendamento,
   agendamentoCancelamentoController.cancelarVisitante
+);
+
+router.get(
+  "/agendamentos/:id/acesso-cliente-desativado",
+  limitarLeituraPublica,
+  encerramentoController.consultarReservaDesativada
+);
+
+router.patch(
+  "/agendamentos/:id/cancelar-acesso-cliente-desativado",
+  limitarAgendamento,
+  encerramentoController.cancelarReservaDesativada
 );
 
 /**
