@@ -62,14 +62,19 @@ describe("recuperação de senha", () => {
 
     const registro = passwordResetRepository.substituirToken.mock.calls[0][0];
     const envio = emailProvider.enviarRedefinicaoSenha.mock.calls[0][0];
-    const token = new URL(envio.link).searchParams.get("token");
+    const link = new URL(envio.link);
+    const token = new URLSearchParams(
+      link.hash.replace(/^#/, "")
+    ).get("token");
 
     expect(registro.usuarioId).toBe(7);
     expect(registro.tokenHash).toMatch(/^[a-f0-9]{64}$/);
     expect(registro.tokenHash).toBe(
       crypto.createHash("sha256").update(token).digest("hex")
     );
-    expect(envio.link).toContain("/redefinir-senha?token=");
+    expect(link.pathname).toBe("/redefinir-senha");
+    expect(link.search).toBe("");
+    expect(link.hash).toMatch(/^#token=/);
     expect(envio.link).not.toContain(registro.tokenHash);
   });
 
