@@ -44,7 +44,9 @@ async function alternarBloqueioHorario(req, res, next) {
       hora: req.body.hora,
       profissionalIdSolicitado: req.body.profissional_id,
       negocioIdContexto:
-        req.agendaContexto?.negocioId
+        req.agendaContexto?.negocioId,
+      papelContexto:
+        req.agendaContexto?.papel
     });
 
     return res.json(resultado);
