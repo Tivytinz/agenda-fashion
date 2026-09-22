@@ -1,4 +1,9 @@
-import { lazy, Suspense } from "react";
+import {
+  lazy,
+  Suspense,
+  useEffect,
+  useState
+} from "react";
 import { Route, Routes } from "react-router-dom";
 import reactRoutes from "../../src/config/reactRoutes.json";
 import { ProtectedRoute } from "./auth/ProtectedRoute";
@@ -183,6 +188,26 @@ const ProfessionalLandingPage = lazyNamed(
 );
 const NotFoundPage = lazyNamed(() => import("./pages/NotFoundPage"), "NotFoundPage");
 
+function DeferredMetaAdsBridge() {
+  const [ready, setReady] = useState(false);
+
+  useEffect(() => {
+    const timeout = window.setTimeout(() => {
+      setReady(true);
+    }, 500);
+
+    return () => window.clearTimeout(timeout);
+  }, []);
+
+  if (!ready) return null;
+
+  return (
+    <Suspense fallback={null}>
+      <MetaAdsBridge />
+    </Suspense>
+  );
+}
+
 function AccountRoute() {
   const session = useSession();
 
@@ -343,9 +368,7 @@ export default function App() {
           <Route path="*" element={<NotFoundPage />} />
         </Routes>
       </Suspense>
-      <Suspense fallback={null}>
-        <MetaAdsBridge />
-      </Suspense>
+      <DeferredMetaAdsBridge />
       <LegalFooter />
     </div>
   );

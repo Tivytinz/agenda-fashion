@@ -96,7 +96,7 @@ describe("Sprint de catálogo, planos e navegação", () => {
     expect(html).toContain('rel="icon"');
     expect(html).toContain('rel="apple-touch-icon"');
     expect(html).toContain(
-      '/src/assets/brand/af-logo-transparent.png'
+      '/src/assets/brand/performance/af-logo-96.webp'
     );
   });
 });
