@@ -67,7 +67,7 @@ describe("acesso de reserva após desativação", () => {
     render(
       <MemoryRouter
         initialEntries={[
-          "/agendamento-acesso/91?token=token-seguro"
+          "/agendamento-acesso/91#token=token-seguro"
         ]}
       >
         <Routes>
@@ -87,7 +87,12 @@ describe("acesso de reserva após desativação", () => {
     expect(screen.getByText("Manicure")).not.toBeNull();
 
     expect(apiRequest).toHaveBeenCalledWith(
-      "/agendamentos/91/acesso-cliente-desativado?token=token-seguro"
+      "/agendamentos/91/acesso-cliente-desativado",
+      {
+        headers: {
+          "X-Agenda-Access": "token-seguro"
+        }
+      }
     );
 
     fireEvent.click(
