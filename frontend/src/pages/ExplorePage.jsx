@@ -16,7 +16,6 @@ import sobrancelhasEmoji from "../assets/icons/sobrancelhas-emoji.png";
 import ciliosHero from "../assets/home/cilios-hero.webp";
 import manicureHero from "../assets/home/manicure-hero.webp";
 import maquiagemHero from "../assets/home/maquiagem-hero.webp";
-import salonHero from "../assets/home/salon-hero.webp";
 import skincareHero from "../assets/home/skincare-hero.webp";
 import sobrancelhasHero from "../assets/home/sobrancelhas-hero.webp";
 import { BusinessCard } from "../components/BusinessCard";
@@ -56,7 +55,8 @@ const LOCATION_STORAGE_KEY = "af_catalog_location";
 
 const HERO_SLIDES = [
   {
-    image: salonHero,
+    image: "/assets/home/salon-hero-wide.webp",
+    mobileImage: "/assets/home/salon-hero-mobile.webp",
     title: "Beleza para você",
     subtitle: "Cabelos do seu jeito",
     description: "Encontre cortes, tratamentos e profissionais para cuidar dos seus cabelos.",
@@ -816,14 +816,22 @@ export function ExplorePage() {
                 className="home-hero-slide"
                 key={slide.title}
               >
-                <img
-                  alt=""
-                  className="home-hero-image"
-                  decoding="async"
-                  fetchPriority={index === 0 ? "high" : "low"}
-                  loading={index === 0 ? "eager" : "lazy"}
-                  src={slide.image}
-                />
+                <picture>
+                  {slide.mobileImage && (
+                    <source
+                      media="(max-width: 767px)"
+                      srcSet={slide.mobileImage}
+                    />
+                  )}
+                  <img
+                    alt=""
+                    className="home-hero-image"
+                    decoding="async"
+                    fetchPriority={index === 0 ? "high" : "low"}
+                    loading={index === 0 ? "eager" : "lazy"}
+                    src={slide.image}
+                  />
+                </picture>
 
                 <div className="home-hero-overlay" />
 

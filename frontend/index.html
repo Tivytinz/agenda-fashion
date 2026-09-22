@@ -8,20 +8,41 @@
       content="Encontre profissionais e negócios de beleza e agende online."
     />
     <meta name="theme-color" content="#c5246b" />
-    <link
-      rel="preload"
-      as="image"
-      href="/src/assets/home/salon-hero.webp"
-      fetchpriority="high"
-    />
+    <script>
+      (() => {
+        const path = window.location.pathname;
+        const preload = document.createElement("link");
+
+        if (path === "/") {
+          preload.rel = "preload";
+          preload.as = "image";
+          preload.fetchPriority = "high";
+          preload.href = window.matchMedia("(max-width: 767px)").matches
+            ? "/assets/home/salon-hero-mobile.webp"
+            : "/assets/home/salon-hero-wide.webp";
+          document.head.append(preload);
+          return;
+        }
+
+        const profileMatch = path.match(/^\/negocio\/([^/]+)\/?$/);
+
+        if (profileMatch) {
+          preload.rel = "preload";
+          preload.as = "fetch";
+          preload.crossOrigin = "use-credentials";
+          preload.href = `/perfil-negocio/${profileMatch[1]}`;
+          document.head.append(preload);
+        }
+      })();
+    </script>
     <link
       rel="icon"
-      type="image/png"
-      href="/src/assets/brand/af-logo-transparent.png"
+      type="image/webp"
+      href="/src/assets/brand/performance/af-logo-96.webp"
     />
     <link
       rel="apple-touch-icon"
-      href="/src/assets/brand/af-logo-transparent.png"
+      href="/src/assets/brand/performance/af-logo-96.webp"
     />
     <!-- SOCIAL_META -->
     <title>Agenda Fashion</title>

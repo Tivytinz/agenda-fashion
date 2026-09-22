@@ -1,7 +1,7 @@
 import { useLayoutEffect } from "react";
 import { Link, Outlet } from "react-router-dom";
 import { useSession } from "../auth/SessionContext";
-import afLogoTransparent from "../assets/brand/af-logo-transparent.png";
+import afLogoTransparent from "../assets/brand/performance/af-logo-96.webp";
 import { AppIcon } from "./AppIcon";
 import {
   MobileWorkspaceNavigation,
