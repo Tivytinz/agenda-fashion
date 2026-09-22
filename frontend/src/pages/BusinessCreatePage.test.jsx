@@ -176,8 +176,10 @@ describe("criação do negócio", () => {
     );
 
     expect(
-      await screen.findByRole("alert")
-    ).toHaveTextContent(
+      (
+        await screen.findByRole("alert")
+      ).textContent
+    ).toContain(
       "Esta conta já possui um negócio."
     );
 
