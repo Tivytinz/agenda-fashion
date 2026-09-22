@@ -136,7 +136,8 @@ async function listarAgendamentosOcupados(
   profissionalId,
   dataInicio,
   dataFim,
-  agendamentoIgnorarId = null
+  agendamentoIgnorarId = null,
+  fusoHorario = "America/Sao_Paulo"
 ) {
   const result = await db.query(
     `
@@ -144,24 +145,45 @@ async function listarAgendamentosOcupados(
         a.id,
 
         TO_CHAR(
-          a.data,
+          a.inicio_previsto_em
+            AT TIME ZONE $5,
           'YYYY-MM-DD'
         ) AS data,
 
         TO_CHAR(
-          a.horario::time,
+          a.inicio_previsto_em
+            AT TIME ZONE $5,
           'HH24:MI'
         ) AS horario,
 
-        a.duracao_minutos::int AS duracao_minutos
+        a.inicio_previsto_em,
+        a.fuso_horario_snapshot,
+        a.duracao_minutos::int
+          AS duracao_minutos
 
       FROM agendamentos a
 
       WHERE a.profissional_id = $1
-        AND a.data BETWEEN $2 AND $3
         AND a.status IN (
           'agendado',
           'confirmado'
+        )
+        AND a.inicio_previsto_em < (
+          (
+            $3::date +
+            INTERVAL '1 day'
+          )::timestamp
+          AT TIME ZONE $5
+        )
+        AND (
+          a.inicio_previsto_em +
+          make_interval(
+            mins =>
+              a.duracao_minutos::int
+          )
+        ) > (
+          $2::date::timestamp
+          AT TIME ZONE $5
         )
         AND (
           $4::BIGINT IS NULL
@@ -169,14 +191,14 @@ async function listarAgendamentosOcupados(
         )
 
       ORDER BY
-        a.data,
-        a.horario
+        a.inicio_previsto_em
     `,
     [
       profissionalId,
       dataInicio,
       dataFim,
       agendamentoIgnorarId,
+      fusoHorario,
     ]
   );
 
@@ -255,18 +277,18 @@ async function bloquearAgendaProfissional(
   /*
    * Impede duas transações de validarem
    * e gravarem simultaneamente na agenda
-   * do mesmo profissional e data.
+   * da mesma profissional, inclusive quando
+   * negócios distintos usam fusos diferentes.
    */
   await client.query(
     `
       SELECT pg_advisory_xact_lock(
-        $1::integer,
-        hashtext($2::text)
+        hashtext('agenda-profissional'),
+        $1::integer
       )
     `,
     [
       Number(profissionalId),
-      String(data),
     ]
   );
 }
