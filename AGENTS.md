@@ -194,6 +194,20 @@ Regras duráveis:
   comportamento já existente antes da introdução da elegibilidade explícita;
 - criação e reagendamento serializam a validação de elegibilidade com a edição da
   matriz para impedir corrida entre desabilitação e confirmação da reserva.
+- dias, faixas e novos bloqueios manuais pertencem ao vínculo
+  profissional–negócio; conflitos de bookings continuam globais por profissional;
+- bloqueios legados sem `negocio_id` são tratados como indisponibilidade global
+  somente para compatibilidade e não podem ser removidos silenciosamente por um
+  negócio específico;
+- booking visitante recebe capability HMAC e um link seguro com a capability no
+  fragmento `#token=`; o link autoriza somente consulta/cancelamento daquele
+  booking e nunca substitui o cutoff;
+- confirmação e cancelamento direto registram comunicação transacional e
+  notificação interna para a equipe; falha de entrega pós-commit não pode reverter
+  o estado principal do booking;
+- `CANCELAMENTO_SOLICITADO` é estado legado proibido para novos fluxos. Migração
+  automática só decide quando a evidência persistida é suficiente; casos passados
+  ambíguos ficam em revisão auditável até resolução terminal.
 
 O `client_id` interno de `agendamentos` aponta para `clientes`; o
 `cliente_id` legado continua sendo apenas o vínculo opcional com uma conta
