@@ -372,7 +372,9 @@ describe(
           expect.arrayContaining([
             expect.objectContaining({
               id:
-                agendamentoId,
+                String(
+                  agendamentoId
+                ),
               data,
               horario:
                 "11:00",
