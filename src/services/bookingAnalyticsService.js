@@ -63,6 +63,14 @@ function scheduledStartAt(data, horario) {
 }
 
 function normalizarInstante(valor) {
+  if (
+    valor === null ||
+    valor === undefined ||
+    String(valor).trim() === ""
+  ) {
+    return null;
+  }
+
   const data = new Date(
     valor
   );
