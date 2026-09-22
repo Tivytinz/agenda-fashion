@@ -488,6 +488,7 @@ async function buscarDisponibilidade({
 
     agendaPublicaRepository.listarBloqueios(
       profissionalId,
+      negocioId,
       dias[0],
       dias[dias.length - 1]
     ),
