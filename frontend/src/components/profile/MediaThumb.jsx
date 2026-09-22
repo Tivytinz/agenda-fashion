@@ -4,7 +4,9 @@ export function MediaThumb({
   src,
   alt,
   className = "",
-  emoji = "💅"
+  emoji = "💅",
+  loading = "lazy",
+  fetchPriority = "auto"
 }) {
   const {
     handleError,
@@ -18,7 +20,9 @@ export function MediaThumb({
         <img
           src={imageUrl}
           alt={alt}
-          loading="lazy"
+          decoding="async"
+          fetchPriority={fetchPriority}
+          loading={loading}
           onError={handleError}
         />
       ) : (
