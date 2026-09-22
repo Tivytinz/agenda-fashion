@@ -599,6 +599,10 @@ async function reagendarOperacional({
             novaData,
           newHorario:
             novoHorario,
+          previousScheduledStartAt:
+            atual.inicio_previsto_em,
+          newScheduledStartAt:
+            atualizado.inicio_previsto_em,
           executor:
             client,
         });
