@@ -298,7 +298,7 @@ describe("minha conta", () => {
           data: "2026-09-30",
           horario: "14:00",
           caminho:
-            "/agendamento-acesso/91?token=token-seguro"
+            "/agendamento-acesso/91#token=token-seguro"
         }]
       });
 
@@ -324,7 +324,7 @@ describe("minha conta", () => {
         name: /Manicure · 2026-09-30 às 14:00/
       }).getAttribute("href")
     ).toBe(
-      "/agendamento-acesso/91?token=token-seguro"
+      "/agendamento-acesso/91#token=token-seguro"
     );
     expect(logoutSession).not.toHaveBeenCalled();
 
