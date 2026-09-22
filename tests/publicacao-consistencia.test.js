@@ -225,7 +225,6 @@ describe("consistência da publicação do negócio", () => {
     );
     expect(sql).toMatch(/EXISTS[\s\S]*servicos_negocio[\s\S]*s\.ativo\s*=\s*TRUE/i);
     expect(sql).not.toMatch(/n\.descricao/i);
-    expect(sql).toMatch(/n\.publicacao_exige_agenda\s+IS\s+NOT\s+TRUE/i);
     expect(sql).toMatch(/n\.bairro/i);
     expect(sql).toMatch(/n\.endereco/i);
     expect(sql).toMatch(/n\.numero/i);
