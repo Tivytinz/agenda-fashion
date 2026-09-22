@@ -459,6 +459,12 @@ async function aceitarConviteProfissional({
           );
 
         if (vinculo?.ativo) {
+          await profissionaisRepository
+            .ativarPerfilProfissionalConta(
+              usuarioId,
+              client
+            );
+
           return {
             convite,
             jaAceito: true,
@@ -470,6 +476,12 @@ async function aceitarConviteProfissional({
           vinculo?.papel === "profissional" &&
           vinculo?.motivo_inatividade === "aguardando_vaga_plano"
         ) {
+          await profissionaisRepository
+            .ativarPerfilProfissionalConta(
+              usuarioId,
+              client
+            );
+
           return {
             convite,
             jaAceito: true,
@@ -511,6 +523,12 @@ async function aceitarConviteProfissional({
         );
 
       if (vinculoMesmoNegocio?.ativo) {
+        await profissionaisRepository
+          .ativarPerfilProfissionalConta(
+            usuarioId,
+            client
+          );
+
         const conviteAceito =
           await profissionaisRepository.atualizarStatusConvite(
             convite.id,
@@ -535,6 +553,19 @@ async function aceitarConviteProfissional({
         return {
           erro: "JA_VINCULADO_OUTRO_NEGOCIO",
           negocio: vinculoOutroNegocio,
+        };
+      }
+
+      const perfilProfissional =
+        await profissionaisRepository
+          .ativarPerfilProfissionalConta(
+            usuarioId,
+            client
+          );
+
+      if (!perfilProfissional) {
+        return {
+          erro: "CONTEXTO_INATIVO",
         };
       }
 
