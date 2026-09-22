@@ -23,6 +23,8 @@ const CONFIGURACOES_TEMPLATE = Object.freeze({
       "WHATSAPP_TEMPLATE_REAGENDAMENTO_SEM_CANCELAMENTO_CLIENTE",
     padrao:
       "reagendamento_sem_cancelamento_cliente",
+    variavelAtivacao:
+      "WHATSAPP_REAGENDAMENTO_CUTOFF_TEMPLATE_ENABLED",
   }),
 
   LEMBRETE_AGENDAMENTO_CLIENTE: Object.freeze({
