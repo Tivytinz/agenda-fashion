@@ -244,6 +244,21 @@ exigir uma escolha redundante.
 A confiabilidade do slot não pode depender apenas de estado calculado no
 frontend.
 
+O tempo do booking possui representação canônica no backend. O instante
+persistido em `agendamentos.inicio_previsto_em` usa `TIMESTAMPTZ`; o
+`fuso_horario_snapshot` preserva o identificador IANA aplicado ao booking.
+Conflitos entre negócios são comparados pelo instante absoluto, enquanto
+exibição e geração de slots convertem para o fuso IANA do negócio consultado.
+Alterar posteriormente o fuso cadastrado do negócio não deve reinterpretar um
+booking histórico.
+
+As mutações concorrentes da agenda compartilham advisory lock por profissional,
+e não por data local, para que dois contextos em fusos diferentes não confirmem
+ocupações incompatíveis do mesmo intervalo absoluto.
+
+Detalhes dessas invariantes ficam em
+[`agendamento-integridade.md`](./agendamento-integridade.md).
+
 ---
 
 ## 8. Onboarding, publicação e disponibilidade
@@ -453,8 +468,9 @@ branch
   → smoke test e logs
 ```
 
-Detalhes ficam em [`deploy-seguro.md`](./deploy-seguro.md) e
-[`dependency-security.md`](./dependency-security.md).
+Detalhes ficam em [`deploy-seguro.md`](./deploy-seguro.md),
+[`dependency-security.md`](./dependency-security.md) e
+[`cobertura-criterios-aceitacao.md`](./cobertura-criterios-aceitacao.md).
 
 ---
 
