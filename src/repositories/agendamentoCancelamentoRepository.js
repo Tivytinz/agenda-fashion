@@ -52,6 +52,8 @@ async function buscarAgendamentoClienteParaCancelar({
         a.antecedencia_cancelamento_horas,
         TO_CHAR(a.data, 'YYYY-MM-DD') AS data,
         TO_CHAR(a.horario::time, 'HH24:MI') AS horario,
+        a.inicio_previsto_em,
+        a.fuso_horario_snapshot,
         COALESCE(
           NULLIF(n.fuso_horario, ''),
           'America/Sao_Paulo'
@@ -94,6 +96,8 @@ async function buscarAgendamentoVisitanteParaConsultar({
         )::numeric AS valor,
         TO_CHAR(a.data, 'YYYY-MM-DD') AS data,
         TO_CHAR(a.horario::time, 'HH24:MI') AS horario,
+        a.inicio_previsto_em,
+        a.fuso_horario_snapshot,
         COALESCE(
           NULLIF(n.fuso_horario, ''),
           'America/Sao_Paulo'
@@ -138,6 +142,8 @@ async function buscarAgendamentoVisitanteParaCancelar({
         a.antecedencia_cancelamento_horas,
         TO_CHAR(a.data, 'YYYY-MM-DD') AS data,
         TO_CHAR(a.horario::time, 'HH24:MI') AS horario,
+        a.inicio_previsto_em,
+        a.fuso_horario_snapshot,
         COALESCE(
           NULLIF(n.fuso_horario, ''),
           'America/Sao_Paulo'
@@ -171,6 +177,8 @@ async function buscarAgendamentoOperacionalParaCancelar({
         a.status,
         TO_CHAR(a.data, 'YYYY-MM-DD') AS data,
         TO_CHAR(a.horario::time, 'HH24:MI') AS horario,
+        a.inicio_previsto_em,
+        a.fuso_horario_snapshot,
         COALESCE(
           NULLIF(n.fuso_horario, ''),
           'America/Sao_Paulo'
