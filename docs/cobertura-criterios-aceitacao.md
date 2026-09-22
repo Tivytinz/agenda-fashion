@@ -101,9 +101,20 @@ A advisory lock de agenda é global por profissional, evitando que duas
 transações em datas locais/fusos diferentes confirmem intervalos absolutos
 incompatíveis.
 
+### Wave 14 — autenticação e privacidade
+
+Fechou os dois cenários funcionais P1 restantes:
+
+- `CA-AUT-04`: recuperação de senha validada ponta a ponta com token aleatório
+  de uso único, hash persistido, rejeição de token inválido/reutilizado, troca
+  efetiva da senha e novos links com o segredo no fragmento `#token=`;
+- `CA-PRV-03`: negócio arquivado deixa explicitamente de contar como negócio
+  próprio operacional e a mesma conta pode criar um novo negócio após o
+  arquivamento seguro.
+
 ## Cobertura P1 atual
 
-A baseline possui **7 cenários P1**. Quatro estão concluídos:
+A baseline possui **7 cenários P1**. Seis estão concluídos:
 
 | Critério | Tema | Estado |
 | --- | --- | --- |
@@ -111,32 +122,29 @@ A baseline possui **7 cenários P1**. Quatro estão concluídos:
 | `CA-NEG-06` | Negócio publicado sem serviço ativo | Concluído na Wave 13 |
 | `CA-NEG-07` | Negócio publicado sem disponibilidade | Concluído na Wave 13 |
 | `CA-AG-21` | Reagendamento já sem cancelamento direto | Concluído na Wave 13 |
-| `CA-AUT-04` | Recuperação de senha | Pendente de rastreabilidade ponta a ponta |
-| `CA-PRV-03` | Negócio arquivado não conta no limite | Pendente de cenário explícito de criação após arquivamento |
+| `CA-AUT-04` | Recuperação de senha | Concluído na Wave 14 |
+| `CA-PRV-03` | Negócio arquivado não conta no limite | Concluído na Wave 14 |
 | `CA-NFR-05` | Metas de desempenho | Pendente de medição em ambiente representativo |
 
 ```text
-Cobertura P1:       4/7  (57,1%)
-Cobertura P0 + P1: 64/67 (95,5%)
+Cobertura P1:       6/7  (85,7%)
+Cobertura P0 + P1: 66/67 (98,5%)
 ```
 
 ## Próxima Wave proposta
 
-A **Wave 14** deve fechar os dois critérios funcionais P1 restantes antes da
-medição de performance:
+A **Wave 15** deve tratar exclusivamente `CA-NFR-05`, porque o critério exige
+evidência de performance em ambiente representativo:
 
-1. `CA-AUT-04` — validar recuperação de senha ponta a ponta, incluindo token
-   verificável, uso único, troca efetiva da senha e ausência de exposição do
-   segredo no fluxo normal;
-2. `CA-PRV-03` — provar por API que um negócio arquivado deixa de contar no
-   limite de propriedade e que a mesma conta consegue criar outro negócio
-   operacional.
+- medir operações críticas de API e calcular p95;
+- medir páginas públicas críticas no perfil móvel/rede de referência e observar
+  LCP;
+- comparar com as metas da baseline: API p95 ≤ 2 s e LCP mobile ≤ 2,5 s;
+- corrigir gargalos somente quando a medição apontar uma causa real;
+- repetir a medição depois de qualquer otimização relevante.
 
-Depois disso, deve restar somente `CA-NFR-05`, que exige medição de API p95 e
-LCP mobile em ambiente representativo.
-
-Um critério só muda para concluído depois de implementação/evidência proporcional
-ao risco, testes e Quality Gate verde.
+Performance não deve ser marcada como concluída apenas por inspeção de código ou
+por um teste sintético sem condições representativas.
 
 ## Regra de atualização
 
