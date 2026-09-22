@@ -147,6 +147,11 @@ async function arquivarNegocioNaTransacao({
     );
   }
 
+  await encerramentoRepository.desativarVinculosDoNegocio(
+    negocio.id,
+    executor
+  );
+
   await encerramentoRepository.cancelarConvitesPendentes(
     negocio.id,
     executor
@@ -264,6 +269,11 @@ async function desativarConta({ usuarioId }) {
           usuario,
           client
         );
+
+      await encerramentoRepository.desativarVinculosDoUsuario(
+        usuario,
+        client
+      );
 
       const contaDesativada =
         await encerramentoRepository.desativarUsuario(
@@ -400,6 +410,11 @@ async function excluirContaDefinitivamente({
         "CLIENTE_COM_AGENDAMENTOS"
       );
     }
+
+    await encerramentoRepository.desativarVinculosDoUsuario(
+      usuario,
+      client
+    );
 
     const encerrada =
       await encerramentoRepository.encerrarUsuarioDefinitivamente(
