@@ -212,6 +212,15 @@ describe("cancelamento operacional do agendamento", () => {
       if (negocios.length > 0) {
         await db.query(
           `
+            DELETE FROM analytics_eventos
+            WHERE target_business_id =
+              ANY($1::BIGINT[])
+          `,
+          [negocios]
+        );
+
+        await db.query(
+          `
             DELETE FROM whatsapp_mensagens
             WHERE negocio_id = ANY($1::BIGINT[])
               OR agendamento_id IN (
@@ -291,6 +300,44 @@ describe("cancelamento operacional do agendamento", () => {
     });
     expect(persistido.rows[0].cancelado_em).toBeTruthy();
 
+    const evento = await db.query(
+      `
+        SELECT
+          event_uuid::TEXT AS event_id,
+          occurred_at,
+          origem,
+          actor_user_id,
+          actor_business_id,
+          propriedades
+        FROM analytics_eventos
+        WHERE agendamento_id = $1
+          AND nome = 'booking_cancelled'
+        ORDER BY id DESC
+        LIMIT 1
+      `,
+      [agendamentoDonaId]
+    );
+
+    expect(evento.rows[0]).toMatchObject({
+      origem: "backend",
+      actor_user_id: dono.id,
+      actor_business_id: negocioId,
+      propriedades: expect.objectContaining({
+        business_id: Number(negocioId),
+        professional_id: Number(profissional.id),
+        booking_id: Number(agendamentoDonaId),
+        service_id: Number(servicoId),
+        actor_type: "OWNER",
+        actor_id: Number(dono.id),
+        cancellation_reason:
+          "Profissional indisponível",
+      }),
+    });
+    expect(evento.rows[0].event_id).toMatch(
+      /^[0-9a-f-]{36}$/i
+    );
+    expect(evento.rows[0].occurred_at).toBeTruthy();
+
     const repeticao = await request(app)
       .patch(`/agendamentos/${agendamentoDonaId}/cancelar-operacional`)
       .set("Authorization", `Bearer ${token(dono.id)}`)
@@ -318,6 +365,27 @@ describe("cancelamento operacional do agendamento", () => {
       cancelado_por: profissional.id,
       cancelamento_origem: "negocio",
       motivo_cancelamento: "Profissional indisponível",
+    });
+
+    const evento = await db.query(
+      `
+        SELECT propriedades
+        FROM analytics_eventos
+        WHERE agendamento_id = $1
+          AND nome = 'booking_cancelled'
+        ORDER BY id DESC
+        LIMIT 1
+      `,
+      [agendamentoProfissionalId]
+    );
+
+    expect(
+      evento.rows[0]?.propriedades
+    ).toMatchObject({
+      actor_type: "PROFESSIONAL",
+      actor_id: Number(profissional.id),
+      cancellation_reason:
+        "Profissional indisponível",
     });
   });
 
