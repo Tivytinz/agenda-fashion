@@ -86,11 +86,7 @@ async function enfileirarNovoAgendamento(
               IS NOT NULL
             ) AS whatsapp_consentido,
 
-            (
-              a.data +
-              a.horario::TIME
-            ) AT TIME ZONE
-              'America/Sao_Paulo'
+            a.inicio_previsto_em
               AS inicio_agendamento
 
           FROM agendamentos a
@@ -280,7 +276,8 @@ async function enfileirarReagendamento(
   executor,
   agendamentoId,
   antecedenciaLembreteHoras = 24,
-  lembreteProfissionalAtivo = false
+  lembreteProfissionalAtivo = false,
+  avisoReagendamentoSemCancelamentoAtivo = false
 ) {
   validarExecutor(executor);
 
@@ -367,14 +364,9 @@ async function enfileirarReagendamento(
             a.whatsapp_consentido_em IS NOT NULL
           ) AS whatsapp_consentido,
 
-          (
-            a.data +
-            a.horario::TIME
-          ) AT TIME ZONE
-            COALESCE(
-              NULLIF(n.fuso_horario, ''),
-              'America/Sao_Paulo'
-            ) AS inicio_agendamento
+          a.antecedencia_cancelamento_horas,
+          a.inicio_previsto_em
+            AS inicio_agendamento
 
         FROM agendamentos a
 
@@ -424,7 +416,24 @@ async function enfileirarReagendamento(
 
         SELECT
           agendamento_id,
-          'CONFIRMACAO_AGENDAMENTO_CLIENTE',
+          CASE
+            WHEN
+              $4::BOOLEAN
+              AND (
+                inicio_agendamento -
+                MAKE_INTERVAL(
+                  hours =>
+                    COALESCE(
+                      antecedencia_cancelamento_horas,
+                      2
+                    )
+                )
+              ) < NOW()
+            THEN
+              'REAGENDAMENTO_SEM_CANCELAMENTO_CLIENTE'
+            ELSE
+              'CONFIRMACAO_AGENDAMENTO_CLIENTE'
+          END,
           cliente_whatsapp,
           JSONB_BUILD_ARRAY(
             cliente_nome,
@@ -572,6 +581,7 @@ async function enfileirarReagendamento(
       agendamentoId,
       antecedenciaLembreteHoras,
       lembreteProfissionalAtivo,
+      avisoReagendamentoSemCancelamentoAtivo,
     ]
   );
 
