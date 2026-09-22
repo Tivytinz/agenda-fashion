@@ -269,6 +269,30 @@ describe("catálogo público paginado", () => {
     })).toHaveLength(7);
   });
 
+  it("prioriza somente a imagem inicial do hero para proteger o LCP", async () => {
+    apiRequest.mockResolvedValue({
+      negocios: [],
+      paginacao: { total: 0, tem_mais: false }
+    });
+
+    const { container } = renderExplore();
+
+    await screen.findByText("Nenhum serviço encontrado");
+
+    const heroImages = [
+      ...container.querySelectorAll(".home-hero-image")
+    ];
+
+    expect(heroImages).toHaveLength(7);
+    expect(heroImages[0].getAttribute("loading")).toBe("eager");
+    expect(heroImages[0].getAttribute("fetchpriority")).toBe("high");
+
+    heroImages.slice(1).forEach((image) => {
+      expect(image.getAttribute("loading")).toBe("lazy");
+      expect(image.getAttribute("fetchpriority")).toBe("low");
+    });
+  });
+
   it("usa ícones nas sete categorias e o emoji próprio de sobrancelhas", async () => {
     apiRequest.mockResolvedValue({
       negocios: [],
