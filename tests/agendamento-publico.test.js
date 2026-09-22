@@ -409,7 +409,7 @@ describe(
     );
 
     test(
-      "visitante consegue abrir o perfil e agendar",
+      "CA-AG-07/09/25: confirma visitante, entrega link seguro e libera o slot ao cancelar",
       async () => {
         const {
           servico,
@@ -419,46 +419,42 @@ describe(
         } =
           await buscarHorarioDisponivel();
 
+        const whatsappVisitante =
+          gerarWhatsappValido();
+
+        const payload = {
+          slug:
+            cenarioTeste.slug,
+
+          servico_id:
+            servico.id,
+
+          profissional_id:
+            profissional.id,
+
+          data,
+          horario,
+
+          cliente_nome:
+            "Visitante Teste",
+
+          cliente_whatsapp:
+            whatsappVisitante,
+
+          aceita_mensagens_whatsapp:
+            true,
+        };
+
         const resposta =
           await request(app)
             .post(
               "/agendamentos"
             )
-            .send({
-              slug:
-                cenarioTeste.slug,
-
-              servico_id:
-                servico.id,
-
-              profissional_id:
-                profissional.id,
-
-              data,
-              horario,
-
-              cliente_nome:
-                "Visitante Teste",
-
-              cliente_whatsapp:
-                gerarWhatsappValido(),
-            });
+            .send(payload);
 
         expect(
           resposta.statusCode
         ).toBe(201);
-
-        expect(
-          resposta.body
-        ).toHaveProperty(
-          "agendamento"
-        );
-
-        expect(
-          resposta.body
-            .agendamento
-            .id
-        ).toBeTruthy();
 
         expect(
           resposta.body
@@ -474,6 +470,23 @@ describe(
               .agendamento
               .id
           );
+
+        const acessoVisitante =
+          resposta.body
+            .agendamento
+            .acesso_visitante;
+
+        expect(acessoVisitante).toMatch(
+          /^[A-Za-z0-9_-]{43}$/
+        );
+
+        expect(
+          resposta.body
+            .agendamento
+            .link_cancelamento_visitante
+        ).toBe(
+          `/agendamento-visitante/${agendamentoId}#token=${encodeURIComponent(acessoVisitante)}`
+        );
 
         expect(
           resposta.body
@@ -525,6 +538,194 @@ describe(
           nome:
             "Visitante Teste",
         });
+
+        const mensagens =
+          await db.query(
+            `
+              SELECT tipo
+              FROM whatsapp_mensagens
+              WHERE agendamento_id = $1
+            `,
+            [agendamentoId]
+          );
+
+        expect(
+          mensagens.rows.map(
+            (item) => item.tipo
+          )
+        ).toContain(
+          "CONFIRMACAO_AGENDAMENTO_CLIENTE"
+        );
+
+        const notificacoes =
+          await db.query(
+            `
+              SELECT usuario_id
+              FROM notificacoes
+              WHERE agendamento_id = $1
+            `,
+            [agendamentoId]
+          );
+
+        expect(
+          notificacoes.rows.some(
+            (item) =>
+              Number(item.usuario_id) ===
+              Number(profissional.id)
+          )
+        ).toBe(true);
+
+        const consulta =
+          await request(app)
+            .get(
+              `/agendamentos/${agendamentoId}/acesso-visitante`
+            )
+            .set(
+              "X-Agenda-Access",
+              acessoVisitante
+            );
+
+        expect(
+          consulta.statusCode
+        ).toBe(200);
+
+        expect(
+          consulta.body
+        ).toMatchObject({
+          agendamento: {
+            id:
+              agendamentoId,
+            status:
+              "confirmado",
+            negocio_nome:
+              "Studio Teste CI",
+          },
+          pode_cancelar:
+            true,
+        });
+
+        const acessoInvalido =
+          await request(app)
+            .get(
+              `/agendamentos/${agendamentoId}/acesso-visitante`
+            )
+            .set(
+              "X-Agenda-Access",
+              "x".repeat(43)
+            );
+
+        expect(
+          acessoInvalido.statusCode
+        ).toBe(403);
+
+        const cancelamento =
+          await request(app)
+            .patch(
+              `/agendamentos/${agendamentoId}/cancelar-visitante`
+            )
+            .send({
+              acesso_visitante:
+                acessoVisitante,
+            });
+
+        expect(
+          cancelamento.statusCode
+        ).toBe(200);
+
+        expect(
+          cancelamento.body
+            .agendamento
+            .status
+        ).toBe("cancelado");
+
+        const ativoDepois =
+          await db.query(
+            `
+              SELECT COUNT(*)::INT AS total
+              FROM agendamentos
+              WHERE profissional_id = $1
+                AND data = $2
+                AND TO_CHAR(
+                  horario::TIME,
+                  'HH24:MI'
+                ) = $3
+                AND status IN (
+                  'agendado',
+                  'confirmado'
+                )
+            `,
+            [
+              profissional.id,
+              data,
+              horario,
+            ]
+          );
+
+        expect(
+          Number(
+            ativoDepois.rows[0]
+              ?.total
+          )
+        ).toBe(0);
+
+        const reagendamento =
+          await request(app)
+            .post(
+              "/agendamentos"
+            )
+            .send({
+              ...payload,
+              cliente_nome:
+                "Visitante Teste 2",
+            });
+
+        expect(
+          reagendamento.statusCode
+        ).toBe(201);
+
+        expect(
+          reagendamento.body
+            .agendamento
+            .status
+        ).toBe("confirmado");
+
+        agendamentosCriados.add(
+          Number(
+            reagendamento.body
+              .agendamento
+              .id
+          )
+        );
+
+        const ativosFinais =
+          await db.query(
+            `
+              SELECT COUNT(*)::INT AS total
+              FROM agendamentos
+              WHERE profissional_id = $1
+                AND data = $2
+                AND TO_CHAR(
+                  horario::TIME,
+                  'HH24:MI'
+                ) = $3
+                AND status IN (
+                  'agendado',
+                  'confirmado'
+                )
+            `,
+            [
+              profissional.id,
+              data,
+              horario,
+            ]
+          );
+
+        expect(
+          Number(
+            ativosFinais.rows[0]
+              ?.total
+          )
+        ).toBe(1);
       }
     );
 
