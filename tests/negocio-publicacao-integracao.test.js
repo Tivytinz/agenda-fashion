@@ -620,7 +620,18 @@ describe("Wave 7 - negócio, onboarding e publicação P0", () => {
     ).toBe(200);
     expect(
       agenda.body.disponibilidade
-    ).toEqual([]);
+    ).not.toHaveLength(0);
+    expect(
+      agenda.body.disponibilidade
+        .every(
+          (dia) =>
+            Array.isArray(
+              dia.horarios
+            ) &&
+            dia.horarios.length ===
+              0
+        )
+    ).toBe(true);
 
     const dataFutura =
       (
