@@ -386,6 +386,149 @@ describe("Wave 8 - privacidade e encerramento P0", () => {
     expect(historico.rows[0].status).toBe("cancelado");
   });
 
+  test("CA-PRV-03: negócio arquivado não conta no limite de propriedade", async () => {
+    const dona =
+      await criarUsuario(
+        "Dona Recomeço"
+      );
+    const antigo =
+      await criarNegocio(
+        dona,
+        "recomeco-antigo"
+      );
+
+    const arquivamento =
+      await request(app)
+        .post(
+          "/negocio/encerrar"
+        )
+        .set(
+          "Authorization",
+          `Bearer ${token(dona.id)}`
+        );
+
+    expect(
+      arquivamento.statusCode
+    ).toBe(200);
+    expect(
+      arquivamento.body
+        .negocio
+    ).toMatchObject({
+      id: String(antigo.id),
+      ativo: false,
+      publicado: false,
+    });
+
+    const novo =
+      await request(app)
+        .post(
+          "/criar-negocio"
+        )
+        .set(
+          "Authorization",
+          `Bearer ${token(dona.id)}`
+        )
+        .send({
+          nome:
+            "Studio Recomeço",
+          especialidades: [
+            "Unhas",
+          ],
+          whatsapp:
+            dona.whatsapp,
+          cidade:
+            "Goiânia",
+          estado:
+            "GO",
+          bairro:
+            "Centro",
+          endereco:
+            "Rua das Flores",
+          numero:
+            "100",
+          complemento:
+            "",
+          cep:
+            "74000000",
+          localizacao_url:
+            "https://maps.google.com/?q=goiania",
+          fuso_horario:
+            "America/Sao_Paulo",
+        });
+
+    expect(
+      novo.statusCode
+    ).toBe(201);
+    expect(
+      novo.body.temNegocio
+    ).toBe(true);
+    expect(
+      novo.body.negocio?.id
+    ).toBeTruthy();
+    expect(
+      String(
+        novo.body.negocio.id
+      )
+    ).not.toBe(
+      String(antigo.id)
+    );
+
+    negocios.push(
+      novo.body.negocio.id
+    );
+
+    const estados =
+      await db.query(
+        `
+          SELECT
+            id,
+            ativo,
+            arquivado_em
+          FROM negocios
+          WHERE id = ANY(
+            $1::BIGINT[]
+          )
+          ORDER BY id
+        `,
+        [[
+          antigo.id,
+          novo.body.negocio.id,
+        ]]
+      );
+
+    const antigoPersistido =
+      estados.rows.find(
+        (item) =>
+          String(item.id) ===
+          String(antigo.id)
+      );
+    const novoPersistido =
+      estados.rows.find(
+        (item) =>
+          String(item.id) ===
+          String(
+            novo.body.negocio.id
+          )
+      );
+
+    expect(
+      antigoPersistido
+    ).toMatchObject({
+      ativo: false,
+    });
+    expect(
+      antigoPersistido
+        .arquivado_em
+    ).toBeTruthy();
+
+    expect(
+      novoPersistido
+    ).toMatchObject({
+      ativo: true,
+      arquivado_em: null,
+    });
+  });
+
   test("CA-PRV-04: bloqueia encerramento definitivo de profissional com reserva confirmada", async () => {
     const dona = await criarUsuario("Dona Prof");
     const profissional = await criarUsuario("Profissional Reserva");
