@@ -26,6 +26,10 @@ const CONTEXTO = Object.freeze({
     "Manicure Premium",
   price_snapshot: "79.90",
   duration_snapshot: 60,
+  inicio_previsto_em:
+    "2026-09-25T13:00:00.000Z",
+  fuso_horario_snapshot:
+    "America/Sao_Paulo",
   data: "2026-09-25",
   horario: "10:00",
   business_timezone:
@@ -80,6 +84,10 @@ describe("bookingAnalyticsService - P0", () => {
         "Manicure Premium",
       price_snapshot: 79.9,
       duration_snapshot: 60,
+      scheduled_start_at:
+        "2026-09-25T13:00:00.000Z",
+      business_timezone:
+        "America/Sao_Paulo",
     });
 
     expect(evento.event_id).toMatch(
@@ -139,6 +147,10 @@ describe("bookingAnalyticsService - P0", () => {
             "2026-09-26",
           newHorario:
             "14:30",
+          previousScheduledStartAt:
+            "2026-09-25T13:00:00.000Z",
+          newScheduledStartAt:
+            "2026-09-26T17:30:00.000Z",
           executor,
         });
 
@@ -153,9 +165,9 @@ describe("bookingAnalyticsService - P0", () => {
       previous_professional_id:
         22,
       previous_scheduled_start_at:
-        "2026-09-25T10:00:00",
+        "2026-09-25T13:00:00.000Z",
       scheduled_start_at:
-        "2026-09-26T14:30:00",
+        "2026-09-26T17:30:00.000Z",
       actor_type:
         "OWNER",
       actor_id:
