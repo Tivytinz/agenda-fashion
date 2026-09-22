@@ -7,6 +7,12 @@ BEGIN;
 ALTER TABLE agendamentos
   DROP CONSTRAINT IF EXISTS agendamentos_status_check;
 
+-- O estado legado possui 23 caracteres. Algumas instalações atuais já
+-- restringem a coluna a VARCHAR(20), portanto ampliamos o domínio antes de
+-- normalizar qualquer registro histórico.
+ALTER TABLE agendamentos
+  ALTER COLUMN status TYPE VARCHAR(32);
+
 UPDATE agendamentos
 SET status = 'cancelamento_solicitado'
 WHERE UPPER(status) = 'CANCELAMENTO_SOLICITADO';
