@@ -391,6 +391,19 @@ async function reagendarOperacional({
               client,
           });
 
+      const agoraPersistivel =
+        await agendamentoReagendamentoRepository
+          .resolverInstanteNoFuso({
+            data:
+              agora.data,
+            horario:
+              agora.hora,
+            fusoHorario:
+              atual.fuso_horario,
+            executor:
+              client,
+          });
+
       const novoInicio =
         Date.parse(
           String(
@@ -399,11 +412,16 @@ async function reagendarOperacional({
           )
         );
       const agoraTimestamp =
-        Date.now();
+        Date.parse(
+          String(
+            agoraPersistivel ||
+            ""
+          )
+        );
 
       if (
         Number.isNaN(novoInicio) ||
-        !Number.isFinite(
+        Number.isNaN(
           agoraTimestamp
         )
       ) {
