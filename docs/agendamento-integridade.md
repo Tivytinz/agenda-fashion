@@ -34,7 +34,7 @@ A disponibilidade física de um profissional e os dados privados de um agendamen
 - nome e contato do cliente, serviço, valor e demais detalhes privados de um compromisso só podem ser expostos ao negócio autorizado ao qual o agendamento pertence;
 - uma correção de privacidade não deve filtrar a ocupação externa de forma que um horário realmente comprometido volte a aparecer como livre.
 
-O escopo administrativo dos bloqueios manuais permanece uma decisão separada: enquanto o modelo persistir bloqueios apenas por profissional/data/hora, eles continuam representando indisponibilidade global da pessoa. Qualquer mudança para bloqueio específico por negócio exige decisão explícita de produto, migration nova e testes de concorrência correspondentes.
+Bloqueios manuais novos pertencem ao vínculo profissional–negócio por meio de `bloqueios_horarios.negocio_id`. A disponibilidade pública e a agenda privada consideram apenas o bloqueio do negócio atual, além de registros legados com `negocio_id IS NULL`. Esses registros legados permanecem globais por compatibilidade e não podem ser removidos por uma ação contextual de um negócio. A ocupação causada por agendamentos continua global por profissional.
 
 ## Testes obrigatórios
 
@@ -44,6 +44,7 @@ Mudanças futuras no fluxo de agenda não devem remover as garantias cobertas po
 - bloqueio dentro do intervalo de um agendamento ativo é rejeitado;
 - reserva pública e bloqueio manual disputam a mesma advisory lock;
 - duas reservas simultâneas para o mesmo horário não podem ser confirmadas juntas;
-- compromisso de outro negócio mantém o profissional ocupado sem expor os dados privados desse agendamento na agenda de um tenant diferente.
+- compromisso de outro negócio mantém o profissional ocupado sem expor os dados privados desse agendamento na agenda de um tenant diferente;
+- bloqueio criado no negócio A não reduz a disponibilidade do mesmo profissional no negócio B, enquanto bloqueio legado global continua sendo respeitado.
 
 Essas regras fazem parte do Gate 1 de confiabilidade dos agendamentos e devem permanecer protegidas por migrations, repositories e testes automatizados.
