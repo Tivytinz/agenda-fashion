@@ -156,6 +156,34 @@ function intervalosSeSobrepoem({
   return inicioA < fimB && fimA > inicioB;
 }
 
+function dataHorarioParaMinutosAbsolutos(
+  data,
+  horario
+) {
+  const inicioDia = Date.parse(
+    `${data}T00:00:00Z`
+  );
+  const minutos =
+    horarioParaMinutos(
+      horario
+    );
+
+  if (
+    Number.isNaN(inicioDia) ||
+    minutos === null
+  ) {
+    return null;
+  }
+
+  return (
+    Math.floor(
+      inicioDia /
+      (60 * 1000)
+    ) +
+    minutos
+  );
+}
+
 function montarPeriodosDeTrabalho({
   horaInicio,
   horaFim,
@@ -317,7 +345,10 @@ function possuiConflitoComAgendamento({
   agendamentos,
 }) {
   const inicioNovo =
-    horarioParaMinutos(horario);
+    dataHorarioParaMinutosAbsolutos(
+      data,
+      horario
+    );
 
   if (inicioNovo === null) {
     return true;
@@ -330,15 +361,9 @@ function possuiConflitoComAgendamento({
 
   return agendamentos.some(
     (agendamento) => {
-      if (
-        String(agendamento.data) !==
-        String(data)
-      ) {
-        return false;
-      }
-
       const inicioExistente =
-        horarioParaMinutos(
+        dataHorarioParaMinutosAbsolutos(
+          agendamento.data,
           agendamento.horario
         );
 
@@ -483,7 +508,8 @@ async function buscarDisponibilidade({
       profissionalId,
       dias[0],
       dias[dias.length - 1],
-      agendamentoIgnorarId
+      agendamentoIgnorarId,
+      fusoResolvido
     ),
 
     agendaPublicaRepository.listarBloqueios(
