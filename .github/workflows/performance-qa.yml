@@ -72,11 +72,12 @@ jobs:
         run: npm --prefix frontend run build
 
       - name: Start branch preview
+        working-directory: frontend
         shell: bash
         env:
           PERF_API_PROXY_TARGET: https://app.agendafashion.com.br
         run: |
-          npm --prefix frontend exec -- vite preview --host 127.0.0.1 --port 4173 > /tmp/af-perf-preview.log 2>&1 &
+          npx vite preview --host 127.0.0.1 --port 4173 > /tmp/af-perf-preview.log 2>&1 &
           echo $! > /tmp/af-perf-preview.pid
           for attempt in {1..20}; do
             if curl --fail --silent --show-error http://127.0.0.1:4173/ >/dev/null; then
