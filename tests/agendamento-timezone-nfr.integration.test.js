@@ -120,6 +120,27 @@ describe(
             negocio.rows[0].id
           );
 
+        await db.query(
+          `
+            INSERT INTO usuarios_negocios (
+              usuario_id,
+              negocio_id,
+              papel,
+              ativo
+            )
+            VALUES (
+              $1,
+              $2,
+              'profissional',
+              TRUE
+            )
+          `,
+          [
+            cenario.profissional.id,
+            negocioSecundarioId,
+          ]
+        );
+
         const servico =
           await db.query(
             `
@@ -148,6 +169,28 @@ describe(
           Number(
             servico.rows[0].id
           );
+
+        await db.query(
+          `
+            INSERT INTO profissional_servicos (
+              negocio_id,
+              profissional_id,
+              servico_id,
+              habilitado_por_usuario_id
+            )
+            VALUES (
+              $1,
+              $2,
+              $3,
+              $2
+            )
+          `,
+          [
+            negocioSecundarioId,
+            cenario.profissional.id,
+            servicoSecundarioId,
+          ]
+        );
       },
       30000
     );
