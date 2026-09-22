@@ -153,18 +153,18 @@ async function bloquearAlteracaoHorario(
   hora,
   executor = db
 ) {
+  void data;
   void hora;
 
   await executor.query(
     `
     SELECT pg_advisory_xact_lock(
-      $1::integer,
-      hashtext($2::text)
+      hashtext('agenda-profissional'),
+      hashtext($1::text)
     )
     `,
     [
       Number(profissionalId),
-      String(data),
     ]
   );
 }
@@ -173,24 +173,112 @@ async function buscarAgendamentoAtivo(
   profissionalId,
   data,
   hora,
+  negocioIdOuExecutor = null,
   executor = db
 ) {
-  const result = await executor.query(
-    `
-    SELECT id
-    FROM agendamentos
-    WHERE profissional_id = $1
-      AND data = $2
-      AND status IN ('agendado', 'confirmado')
-      AND $3::time >= horario::time
-      AND $3::time < (
-        horario::time +
-        make_interval(mins => duracao_minutos)
-      )
-    LIMIT 1
-    `,
-    [profissionalId, data, hora]
-  );
+  let negocioId =
+    Number(negocioIdOuExecutor);
+
+  if (
+    negocioIdOuExecutor &&
+    typeof negocioIdOuExecutor.query ===
+      "function"
+  ) {
+    executor =
+      negocioIdOuExecutor;
+    negocioId =
+      null;
+  }
+
+  if (
+    !Number.isSafeInteger(
+      negocioId
+    ) ||
+    negocioId <= 0
+  ) {
+    const result =
+      await executor.query(
+        `
+          SELECT id
+          FROM agendamentos
+          WHERE profissional_id = $1
+            AND data = $2
+            AND status IN (
+              'agendado',
+              'confirmado'
+            )
+            AND $3::time >=
+              horario::time
+            AND $3::time < (
+              horario::time +
+              make_interval(
+                mins =>
+                  duracao_minutos
+              )
+            )
+          LIMIT 1
+        `,
+        [
+          profissionalId,
+          data,
+          hora,
+        ]
+      );
+
+    return (
+      result.rows[0] ||
+      null
+    );
+  }
+
+  const result =
+    await executor.query(
+      `
+        WITH instante_alvo AS (
+          SELECT (
+            $2::date +
+            $3::time
+          ) AT TIME ZONE COALESCE(
+            NULLIF(
+              BTRIM(
+                n.fuso_horario
+              ),
+              ''
+            ),
+            'America/Sao_Paulo'
+          ) AS inicio
+          FROM negocios n
+          WHERE n.id = $4
+            AND n.ativo = TRUE
+          LIMIT 1
+        )
+        SELECT a.id
+        FROM agendamentos a
+        CROSS JOIN instante_alvo alvo
+        WHERE a.profissional_id =
+          $1
+          AND a.status IN (
+            'agendado',
+            'confirmado'
+          )
+          AND alvo.inicio >=
+            a.inicio_previsto_em
+          AND alvo.inicio < (
+            a.inicio_previsto_em +
+            make_interval(
+              mins =>
+                a.duracao_minutos
+            )
+          )
+        LIMIT 1
+      `,
+      [
+        profissionalId,
+        data,
+        hora,
+        negocioId,
+      ]
+    );
 
   return result.rows[0] || null;
 }
