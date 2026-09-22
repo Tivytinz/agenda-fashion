@@ -5,6 +5,9 @@ const agendamentoCancelamentoRepository = require(
 const whatsappMensagemService = require(
   "./whatsappMensagemService"
 );
+const bookingAnalyticsService = require(
+  "./bookingAnalyticsService"
+);
 const {
   validarAcessoVisitante,
 } = require("../utils/agendamentoVisitante");
@@ -490,6 +493,14 @@ async function cancelarAgendamentoCliente({
       );
     }
 
+    await bookingAnalyticsService
+      .registrarBookingCancelled({
+        agendamentoId: id,
+        actorType: "CLIENT",
+        actorId: usuarioId,
+        executor: client,
+      });
+
     await whatsappMensagemService.enfileirarCancelamento({
       executor: client,
       agendamentoId: id,
@@ -599,6 +610,14 @@ async function cancelarAgendamentoVisitante({
       );
     }
 
+    await bookingAnalyticsService
+      .registrarBookingCancelled({
+        agendamentoId: id,
+        actorType: "CLIENT",
+        actorId: null,
+        executor: client,
+      });
+
     await whatsappMensagemService.enfileirarCancelamento({
       executor: client,
       agendamentoId: id,
@@ -691,6 +710,23 @@ async function cancelarAgendamentoOperacional({
         409
       );
     }
+
+    await bookingAnalyticsService
+      .registrarBookingCancelled({
+        agendamentoId: id,
+        actorType:
+          String(
+            agendamento.papel_executor ||
+            ""
+          ).toLowerCase() === "dono"
+            ? "OWNER"
+            : "PROFESSIONAL",
+        actorId: usuario,
+        actorBusinessId: negocio,
+        cancellationReason:
+          motivoNormalizado,
+        executor: client,
+      });
 
     await whatsappMensagemService.enfileirarCancelamento({
       executor: client,

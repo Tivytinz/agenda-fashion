@@ -5,6 +5,9 @@ const agendamentoLifecycleRepository = require(
 const {
   obterDataHoraNoFuso,
 } = require("../utils/fusoHorario");
+const bookingAnalyticsService = require(
+  "./bookingAnalyticsService"
+);
 
 const STATUS_ATIVOS = new Set([
   "agendado",
@@ -335,6 +338,18 @@ async function atualizarStatusAtendimento({
       );
     }
 
+    if (
+      statusDestino === "realizado" &&
+      Number(
+        agendamento.profissional_id
+      ) !== usuarioIdNormalizado
+    ) {
+      throw criarErro(
+        "Somente a profissional responsável pode concluir este atendimento.",
+        403
+      );
+    }
+
     if (statusDestino === "iniciado") {
       if (agendamento.atendimento_iniciado_em) {
         return {
@@ -438,6 +453,33 @@ async function atualizarStatusAtendimento({
         "O estado do agendamento mudou. Atualize a agenda e tente novamente.",
         409
       );
+    }
+
+    if (statusDestino === "realizado") {
+      await bookingAnalyticsService
+        .registrarBookingCompleted({
+          agendamentoId:
+            agendamentoIdNormalizado,
+          actorId:
+            usuarioIdNormalizado,
+          executor:
+            client,
+        });
+    } else {
+      await bookingAnalyticsService
+        .registrarBookingNoShow({
+          agendamentoId:
+            agendamentoIdNormalizado,
+          actorType:
+            agendamento.papel_executor ===
+            "dono"
+              ? "OWNER"
+              : "PROFESSIONAL",
+          actorId:
+            usuarioIdNormalizado,
+          executor:
+            client,
+        });
     }
 
     return {

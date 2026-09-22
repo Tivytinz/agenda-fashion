@@ -14,6 +14,7 @@ describe("Admin Analytics V2 repository - regressão de CTE", () => {
         sessoes: expect.anything(),
         usuarios_ativos: expect.anything(),
         negocios_publicados: expect.anything(),
+        clientes_com_agendamento: expect.anything(),
         pagamentos_confirmados: expect.anything(),
       })
     );

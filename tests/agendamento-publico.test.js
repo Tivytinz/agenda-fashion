@@ -214,6 +214,17 @@ describe(
           ) {
             await db.query(
               `
+                DELETE FROM analytics_eventos
+                WHERE agendamento_id =
+                  ANY($1::BIGINT[])
+              `,
+              [
+                agendamentoIds,
+              ]
+            );
+
+            await db.query(
+              `
                 DELETE FROM agendamentos
 
                 WHERE id =
@@ -539,6 +550,65 @@ describe(
             "Visitante Teste",
         });
 
+        const eventoCriacao =
+          await db.query(
+            `
+              SELECT
+                event_uuid::TEXT AS event_id,
+                occurred_at,
+                origem,
+                propriedades
+              FROM analytics_eventos
+              WHERE agendamento_id = $1
+                AND nome = 'booking_created'
+              ORDER BY id DESC
+              LIMIT 1
+            `,
+            [agendamentoId]
+          );
+
+        expect(
+          eventoCriacao.rows[0]
+        ).toMatchObject({
+          origem:
+            "backend",
+          propriedades:
+            expect.objectContaining({
+              business_id:
+                Number(
+                  cenarioTeste.negocioId
+                ),
+              professional_id:
+                Number(
+                  profissional.id
+                ),
+              client_id:
+                clientId,
+              booking_id:
+                agendamentoId,
+              service_id:
+                Number(
+                  servico.id
+                ),
+              service_name_snapshot:
+                expect.any(String),
+              price_snapshot:
+                expect.any(Number),
+              duration_snapshot:
+                expect.any(Number),
+            }),
+        });
+        expect(
+          eventoCriacao.rows[0]
+            .event_id
+        ).toMatch(
+          /^[0-9a-f-]{36}$/i
+        );
+        expect(
+          eventoCriacao.rows[0]
+            .occurred_at
+        ).toBeTruthy();
+
         const mensagens =
           await db.query(
             `
@@ -637,6 +707,51 @@ describe(
             .agendamento
             .status
         ).toBe("cancelado");
+
+        const eventoCancelamento =
+          await db.query(
+            `
+              SELECT
+                origem,
+                propriedades
+              FROM analytics_eventos
+              WHERE agendamento_id = $1
+                AND nome = 'booking_cancelled'
+              ORDER BY id DESC
+              LIMIT 1
+            `,
+            [agendamentoId]
+          );
+
+        expect(
+          eventoCancelamento.rows[0]
+        ).toMatchObject({
+          origem:
+            "backend",
+          propriedades:
+            expect.objectContaining({
+              business_id:
+                Number(
+                  cenarioTeste.negocioId
+                ),
+              professional_id:
+                Number(
+                  profissional.id
+                ),
+              client_id:
+                clientId,
+              booking_id:
+                agendamentoId,
+              actor_type:
+                "CLIENT",
+            }),
+        });
+        expect(
+          eventoCancelamento.rows[0]
+            .propriedades
+        ).not.toHaveProperty(
+          "actor_id"
+        );
 
         const ativoDepois =
           await db.query(

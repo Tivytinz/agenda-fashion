@@ -18,6 +18,9 @@ jest.mock("../src/services/whatsappMensagemService", () => ({
   enfileirarNovoAgendamento: jest.fn(),
   enfileirarCancelamento: jest.fn(),
 }));
+jest.mock("../src/services/bookingAnalyticsService", () => ({
+  registrarBookingCreated: jest.fn(),
+}));
 jest.mock("../src/services/planoService", () => ({
   verificarCapacidadePlano: jest.fn(),
 }));
@@ -35,6 +38,9 @@ const agendaDisponibilidadeService = require(
 const planoService = require("../src/services/planoService");
 const whatsappMensagemService = require(
   "../src/services/whatsappMensagemService"
+);
+const bookingAnalyticsService = require(
+  "../src/services/bookingAnalyticsService"
 );
 const agendamentoPublicoService = require(
   "../src/services/agendamentoPublicoService"
@@ -74,6 +80,11 @@ describe("Limite durante a criação do agendamento", () => {
       .registrarConsentimentoWhatsappAgendamento
       .mockResolvedValue({
         id: 70,
+      });
+    bookingAnalyticsService
+      .registrarBookingCreated
+      .mockResolvedValue({
+        event_id: "evento-teste",
       });
 
     const resultado = await agendamentoPublicoService.criarAgendamento({
@@ -166,6 +177,17 @@ describe("Limite durante a criação do agendamento", () => {
         client,
       agendamentoId:
         99,
+    });
+
+
+    expect(
+      bookingAnalyticsService
+        .registrarBookingCreated
+    ).toHaveBeenCalledWith({
+      agendamentoId:
+        99,
+      executor:
+        client,
     });
   });
 });

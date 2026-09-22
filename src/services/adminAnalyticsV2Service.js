@@ -42,6 +42,9 @@ function mapearVisaoGeral(bruto, resumoFunil = {}) {
   const publicados = numero(resumoFunil.negociosPublicados);
   const primeirosAgendamentos = numero(resumoFunil.primeirosAgendamentos);
   const assinaturasAtivadas = numero(resumoFunil.assinaturasAtivadas);
+  const clientesComAgendamento = numero(
+    bruto.clientes_com_agendamento
+  );
 
   return {
     periodo: bruto.periodo,
@@ -56,6 +59,11 @@ function mapearVisaoGeral(bruto, resumoFunil = {}) {
     },
     aquisicao: {
       cadastrosProfissionais: cadastros,
+    },
+    entidades: {
+      profissionaisNoFunil: cadastros,
+      negociosCriados: negocios,
+      clientesComAgendamento,
     },
     ativacao: {
       negociosCriados: negocios,
@@ -97,6 +105,8 @@ function mapearVisaoGeral(bruto, resumoFunil = {}) {
         "Sessões e tempo vêm do analytics first-party do AF e excluem a navegação em /admin.",
       ativacao:
         "As taxas de cadastro, negócio, serviço, publicação e primeiro agendamento acompanham a mesma coorte de profissionais cadastrados no período, usando o funil profissional canônico do backend.",
+      entidades:
+        "Profissionais, negócios e clientes são contabilizados separadamente. Cliente usa agendamentos.client_id canônico; cadastro, clique, negócio e primeiro agendamento não são equivalentes.",
       receita:
         "Conversão para assinatura usa a mesma coorte profissional. Receita e pagamentos confirmados são fatos financeiros ocorridos no período e não são divididos pelos cadastros como se fossem a mesma coorte.",
     },

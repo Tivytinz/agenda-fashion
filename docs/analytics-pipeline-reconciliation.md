@@ -44,7 +44,21 @@ Paridade exata é apenas um diagnóstico técnico. Ela não autoriza, sozinha, a
 
 ## Conclusão de agendamento
 
-`booking_completed` é telemetria de navegador. Ele não substitui a tabela `agendamentos`.
+O nome `booking_completed` pode existir em duas origens e elas não são
+intercambiáveis:
+
+- `origem='frontend'`: telemetria de navegador usada na reconciliação da jornada;
+- `origem='backend'`: fato transacional emitido somente quando o backend persiste
+  a conclusão do atendimento.
+
+A reconciliação entre pipelines continua filtrando apenas `origem='frontend'`.
+O evento backend não deve ser somado ao evento de navegador e não substitui a
+tabela `agendamentos`; ele é uma projeção auditável do fato persistido.
+
+O mesmo princípio vale para os demais eventos críticos do ciclo:
+`booking_created`, `booking_rescheduled`, `booking_cancelled` e
+`booking_no_show`. Eles são emitidos pelo backend na mesma transação lógica da
+mudança do booking, com identificadores e ator derivados do estado persistido.
 
 Quando o frontend informa o ID retornado após a criação do agendamento, o backend:
 

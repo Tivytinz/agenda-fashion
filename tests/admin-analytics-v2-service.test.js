@@ -60,6 +60,7 @@ describe("adminAnalyticsV2Service", () => {
       negocios_criados: 70,
       negocios_publicados: 60,
       agendamentos_validos: 18,
+      clientes_com_agendamento: 14,
       primeiros_agendamentos: 10,
       pagamentos_confirmados: 4,
       negocios_com_pagamento: 3,
@@ -85,6 +86,11 @@ describe("adminAnalyticsV2Service", () => {
     const resultado = await buscarOverview("30");
 
     expect(resultado.aquisicao.cadastrosProfissionais).toBe(10);
+    expect(resultado.entidades).toEqual({
+      profissionaisNoFunil: 10,
+      negociosCriados: 8,
+      clientesComAgendamento: 14,
+    });
     expect(resultado.ativacao).toMatchObject({
       negociosCriados: 8,
       servicosCriados: 7,
@@ -107,6 +113,51 @@ describe("adminAnalyticsV2Service", () => {
     expect(professionalFunnelService.buscarFunil).toHaveBeenCalledWith({
       periodo: "30",
     });
+  });
+
+  test("CA-ANA-05: profissionais, negócios e clientes permanecem métricas distintas", () => {
+    const resultado = mapearVisaoGeral(
+      {
+        periodo: "30",
+        sessoes: 100,
+        clientes_com_agendamento: 17,
+        agendamentos_validos: 24,
+      },
+      {
+        cadastros: 40,
+        negociosCriados: 12,
+        servicosCriados: 10,
+        negociosPublicados: 9,
+        primeirosAgendamentos: 6,
+        assinaturasAtivadas: 2,
+      }
+    );
+
+    expect(resultado.entidades).toEqual({
+      profissionaisNoFunil: 40,
+      negociosCriados: 12,
+      clientesComAgendamento: 17,
+    });
+    expect(
+      resultado.audiencia.sessoes
+    ).toBe(100);
+    expect(
+      resultado.ativacao.primeirosAgendamentos
+    ).toBe(6);
+    expect(
+      resultado.demanda.agendamentosValidos
+    ).toBe(24);
+
+    expect(
+      resultado.entidades.profissionaisNoFunil
+    ).not.toBe(
+      resultado.entidades.negociosCriados
+    );
+    expect(
+      resultado.entidades.clientesComAgendamento
+    ).not.toBe(
+      resultado.ativacao.primeirosAgendamentos
+    );
   });
 
   test("não calcula conversão quando a coorte não tem cadastro", () => {

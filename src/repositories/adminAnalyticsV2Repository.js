@@ -92,7 +92,10 @@ async function buscarVisaoGeral(periodo = "30") {
         ${filtroPublicado}
     ),
     agendamentos_resumo AS (
-      SELECT COUNT(*)::INT AS agendamentos_validos
+      SELECT
+        COUNT(*)::INT AS agendamentos_validos,
+        COUNT(DISTINCT ag.client_id)::INT
+          AS clientes_com_agendamento
       FROM agendamentos ag
       WHERE COALESCE(ag.status, 'agendado') <> 'cancelado'
         ${filtroAgendamento}
@@ -135,6 +138,7 @@ async function buscarVisaoGeral(periodo = "30") {
       n.negocios_criados,
       pub.negocios_publicados,
       ag.agendamentos_validos,
+      ag.clientes_com_agendamento,
       pa.primeiros_agendamentos,
       pg.pagamentos_confirmados,
       pg.negocios_com_pagamento,
