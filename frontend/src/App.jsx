@@ -9,6 +9,7 @@ import { MetaAdsBridge } from "./components/MetaAdsBridge";
 import { LegalFooter } from "./components/LegalFooter";
 import { WorkspaceLayout } from "./components/WorkspaceLayout";
 import { markRuntimeReady } from "./utils/runtimeRecovery";
+import { ExplorePage } from "./pages/ExplorePage";
 
 function lazyNamed(importer, name) {
   return lazy(() =>
@@ -150,7 +151,6 @@ const ProfessionalInvitesPage = lazyNamedWithStyles(
   "ProfessionalInvitesPage"
 );
 const ConfirmPage = lazyNamed(() => import("./pages/ConfirmPage"), "ConfirmPage");
-const ExplorePage = lazyNamed(() => import("./pages/ExplorePage"), "ExplorePage");
 const LocalCatalogPage = lazyNamed(
   () => import("./pages/LocalCatalogPage"),
   "LocalCatalogPage"
