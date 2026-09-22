@@ -73,6 +73,56 @@ async function buscarAgendamentoClienteParaCancelar({
   return result.rows[0] || null;
 }
 
+async function buscarAgendamentoVisitanteParaConsultar({
+  agendamentoId,
+  executor = db,
+}) {
+  const result = await executor.query(
+    `
+      SELECT
+        a.id,
+        a.negocio_id,
+        a.profissional_id,
+        a.cliente_id,
+        a.status,
+        a.antecedencia_cancelamento_horas,
+        a.servico_nome,
+        COALESCE(
+          a.valor_servico,
+          s.valor,
+          0
+        )::numeric AS valor,
+        TO_CHAR(a.data, 'YYYY-MM-DD') AS data,
+        TO_CHAR(a.horario::time, 'HH24:MI') AS horario,
+        COALESCE(
+          NULLIF(n.fuso_horario, ''),
+          'America/Sao_Paulo'
+        ) AS fuso_horario,
+        n.nome AS negocio_nome,
+        COALESCE(
+          NULLIF(BTRIM(un.nome_exibicao), ''),
+          profissional.nome
+        ) AS profissional_nome
+      FROM agendamentos a
+      INNER JOIN negocios n
+        ON n.id = a.negocio_id
+      INNER JOIN usuarios profissional
+        ON profissional.id = a.profissional_id
+      LEFT JOIN usuarios_negocios un
+        ON un.negocio_id = a.negocio_id
+        AND un.usuario_id = a.profissional_id
+      LEFT JOIN servicos_negocio s
+        ON s.id = a.servico_id
+      WHERE a.id = $1
+        AND a.cliente_id IS NULL
+      LIMIT 1
+    `,
+    [agendamentoId]
+  );
+
+  return result.rows[0] || null;
+}
+
 async function buscarAgendamentoVisitanteParaCancelar({
   agendamentoId,
   executor = db,
@@ -247,6 +297,7 @@ async function cancelarAgendamentoOperacional({
 module.exports = {
   buscarPoliticaPublica,
   buscarAgendamentoClienteParaCancelar,
+  buscarAgendamentoVisitanteParaConsultar,
   buscarAgendamentoVisitanteParaCancelar,
   buscarAgendamentoOperacionalParaCancelar,
   cancelarAgendamentoCliente,
