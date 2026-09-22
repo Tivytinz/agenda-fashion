@@ -160,6 +160,34 @@ describe("equipe por convite", () => {
     });
   });
 
+  it("CA-PLN-06: identifica profissional inativada por downgrade e permite reativação futura", async () => {
+    apiRequest.mockResolvedValueOnce({
+      profissionais: [
+        { id: 1, nome: "Dona", papel: "dono", foto_url: null, ativo: true },
+        {
+          id: 9,
+          nome: "Ana",
+          papel: "profissional",
+          foto_url: null,
+          ativo: false,
+          motivo_inatividade: "excedente_limite_plano"
+        }
+      ]
+    });
+
+    render(<ProfessionalsPage />);
+
+    expect(
+      await screen.findByText(/excedente do limite do plano/i)
+    ).not.toBeNull();
+    expect(
+      screen.getByRole("button", { name: "Ativar profissional" })
+    ).not.toBeNull();
+    expect(
+      screen.queryByRole("button", { name: "Configurar serviços" })
+    ).not.toBeNull();
+  });
+
   it("CA-EQP-04/05: protege a dona e preserva a profissional se há reserva confirmada", async () => {
     apiRequest
       .mockResolvedValueOnce({ profissionais: [
