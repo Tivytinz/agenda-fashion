@@ -72,10 +72,32 @@ describe("criação do negócio", () => {
   });
 
   it("CA-NEG-02: exibe a rejeição do backend ao tentar criar segundo negócio operacional", async () => {
-    apiRequest.mockRejectedValueOnce(
-      new Error(
-        "Esta conta já possui um negócio."
-      )
+    apiRequest.mockImplementation(
+      (path) => {
+        if (path === "/cep/74000123") {
+          return Promise.resolve({
+            cep: "74000123",
+            endereco: "Rua das Flores",
+            bairro: "Centro",
+            cidade: "Goiânia",
+            estado: "GO"
+          });
+        }
+
+        if (path === "/criar-negocio") {
+          return Promise.reject(
+            new Error(
+              "Esta conta já possui um negócio."
+            )
+          );
+        }
+
+        return Promise.reject(
+          new Error(
+            `Rota inesperada: ${path}`
+          )
+        );
+      }
     );
 
     render(
