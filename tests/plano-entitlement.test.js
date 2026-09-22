@@ -2,6 +2,7 @@ jest.mock("../src/db/db", () => ({
   query: jest.fn(),
 }));
 
+const db = require("../src/db/db");
 const planoService = require(
   "../src/services/planoService"
 );
@@ -31,7 +32,56 @@ function resolvedRow(overrides = {}) {
 }
 
 describe("entitlement dos planos", () => {
-  test("usa o plano grátis quando um plano pago foi selecionado sem assinatura ativa", async () => {
+  test("CA-PLN-01: catálogo mantém plano gratuito e ao menos uma vaga ativa por plano", async () => {
+    db.query.mockResolvedValueOnce({
+      rows: [
+        {
+          id: 1,
+          nome: "Grátis",
+          slug: "inicial",
+          valor: "0.00",
+          limite_profissionais: 1,
+          ativo: true,
+        },
+        {
+          id: 2,
+          nome: "Autônoma",
+          slug: "autonoma",
+          valor: "49.90",
+          limite_profissionais: 1,
+          ativo: true,
+        },
+        {
+          id: 4,
+          nome: "Salão",
+          slug: "salao",
+          valor: "199.90",
+          limite_profissionais: 5,
+          ativo: true,
+        },
+      ],
+    });
+
+    const planos = await planoService.listarPlanos();
+
+    expect(planos).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          slug: "inicial",
+          valor: "0.00",
+        }),
+      ])
+    );
+    expect(
+      planos.every(
+        (plano) =>
+          plano.limite_profissionais === null ||
+          Number(plano.limite_profissionais) >= 1
+      )
+    ).toBe(true);
+  });
+
+  test("CA-PLN-02: checkout pendente não libera benefício pago", async () => {
     const executor = {
       query: jest
         .fn()
