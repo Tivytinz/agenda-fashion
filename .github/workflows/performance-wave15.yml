@@ -1,0 +1,51 @@
+name: Performance Wave 15
+
+on:
+  push:
+    branches:
+      - feat/p1-performance-wave-15
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  lcp-mobile:
+    name: LCP mobile representative
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    env:
+      PERFORMANCE_BASE_URL: https://app.agendafashion.com.br
+      PERFORMANCE_ROUTES: /|/negocio/ac-ana-carolina-esteticista
+      PERFORMANCE_SAMPLES: "5"
+      PERFORMANCE_LCP_THRESHOLD_MS: "2500"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install frontend dependencies
+        run: npm --prefix frontend ci
+
+      - name: Install Chromium
+        run: npm --prefix frontend exec -- playwright install --with-deps chromium
+
+      - name: Measure mobile LCP
+        run: node frontend/scripts/performance-lcp.mjs
+
+      - name: Upload performance evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: performance-wave15
+          path: frontend/test-results/performance-wave15.json
+          if-no-files-found: error
+          retention-days: 30
