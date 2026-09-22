@@ -260,6 +260,30 @@ async function buscarProfissionalPorEmailWhatsapp(email, whatsapp) {
   return result.rows[0] || null;
 }
 
+async function ativarPerfilProfissionalConta(
+  usuarioId,
+  executor = db
+) {
+  const result = await executor.query(
+    `
+    UPDATE usuarios
+    SET perfil_profissional_ativado_em =
+      COALESCE(
+        perfil_profissional_ativado_em,
+        NOW()
+      )
+    WHERE id = $1
+      AND ativo = TRUE
+    RETURNING
+      id,
+      perfil_profissional_ativado_em
+    `,
+    [usuarioId]
+  );
+
+  return result.rows[0] || null;
+}
+
 async function verificarVinculo(
   usuarioId,
   negocioId,
@@ -689,6 +713,7 @@ module.exports = {
   atualizarProfissional,
   removerVinculo,
   buscarProfissionalPorEmailWhatsapp,
+  ativarPerfilProfissionalConta,
   verificarVinculo,
   buscarVinculoProfissionalAtivo,
   criarVinculo,
