@@ -565,6 +565,67 @@ describe("publicação do negócio", () => {
     confirmSpy.mockRestore();
   });
 
+  it("CA-PRV-01: mostra pendências acionáveis ao tentar encerrar o negócio", async () => {
+    const confirmSpy = vi
+      .spyOn(window, "confirm")
+      .mockReturnValue(true);
+    const closureError = new Error(
+      "Antes de encerrar o negócio, resolva as pendências indicadas."
+    );
+    closureError.data = {
+      codigo: "ENCERRAMENTO_COM_PENDENCIAS",
+      pendencias: [
+        {
+          codigo: "AGENDAMENTOS_CONFIRMADOS",
+          mensagem:
+            "Resolva o agendamento confirmado antes de encerrar o negócio."
+        },
+        {
+          codigo: "ACESSO_PAGO_ATIVO",
+          mensagem:
+            "Cancele a renovação e aguarde o fim do período pago antes de encerrar o negócio."
+        }
+      ]
+    };
+
+    apiRequest
+      .mockResolvedValueOnce({
+        negocio: BUSINESS,
+        publicacao: {
+          publicado: false,
+          pode_publicar: true,
+          pendencias: []
+        }
+      })
+      .mockRejectedValueOnce(closureError);
+
+    renderPage();
+
+    fireEvent.click(
+      await screen.findByRole("button", {
+        name: "Encerrar negócio"
+      })
+    );
+
+    await waitFor(() => {
+      expect(apiRequest).toHaveBeenLastCalledWith(
+        "/negocio/encerrar",
+        { method: "POST" }
+      );
+    });
+
+    expect(
+      await screen.findByText(
+        /Resolva o agendamento confirmado/i
+      )
+    ).not.toBeNull();
+    expect(
+      screen.getByText(/Cancele a renovação/i)
+    ).not.toBeNull();
+
+    confirmSpy.mockRestore();
+  });
+
   it("mostra o que falta e bloqueia a publicação incompleta", async () => {
     apiRequest.mockResolvedValueOnce({
       negocio: { ...BUSINESS, descricao: "", cidade: "" },
