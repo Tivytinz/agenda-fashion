@@ -150,12 +150,17 @@ function calcularPoliticaCancelamento({
   horario,
   antecedenciaHoras,
   agoraTimestamp,
+  inicioTimestamp = null,
 }) {
   const inicio =
-    converterDataHoraLocalParaTimestamp(
-      data,
-      horario
-    );
+    Number.isFinite(
+      inicioTimestamp
+    )
+      ? inicioTimestamp
+      : converterDataHoraLocalParaTimestamp(
+          data,
+          horario
+        );
 
   if (
     inicio === null ||
@@ -373,15 +378,34 @@ async function reagendarOperacional({
           atual.fuso_horario
         );
 
+      const novoInicioPersistivel =
+        await agendamentoReagendamentoRepository
+          .resolverInstanteNoFuso({
+            data:
+              novaData,
+            horario:
+              novoHorario,
+            fusoHorario:
+              atual.fuso_horario,
+            executor:
+              client,
+          });
+
       const novoInicio =
-        converterDataHoraLocalParaTimestamp(
-          novaData,
-          novoHorario
+        Date.parse(
+          String(
+            novoInicioPersistivel ||
+            ""
+          )
         );
+      const agoraTimestamp =
+        Date.now();
 
       if (
-        agora.timestamp === null ||
-        novoInicio === null
+        Number.isNaN(novoInicio) ||
+        !Number.isFinite(
+          agoraTimestamp
+        )
       ) {
         throw criarErro(
           "Não foi possível validar o novo horário.",
@@ -391,7 +415,7 @@ async function reagendarOperacional({
 
       if (
         novoInicio <=
-        agora.timestamp
+        agoraTimestamp
       ) {
         throw criarErro(
           "O novo início do agendamento deve estar no futuro.",
@@ -400,15 +424,19 @@ async function reagendarOperacional({
       }
 
       const inicioAnterior =
-        converterDataHoraLocalParaTimestamp(
-          atual.data,
-          atual.horario
+        Date.parse(
+          String(
+            atual.inicio_previsto_em ||
+            ""
+          )
         );
 
       if (
-        inicioAnterior !== null &&
+        !Number.isNaN(
+          inicioAnterior
+        ) &&
         inicioAnterior <=
-          agora.timestamp &&
+          agoraTimestamp &&
         atual.atendimento_iniciado_em
       ) {
         throw criarErro(
@@ -591,8 +619,9 @@ async function reagendarOperacional({
             novoHorario,
           antecedenciaHoras:
             antecedencia,
-          agoraTimestamp:
-            agora.timestamp,
+          agoraTimestamp,
+          inicioTimestamp:
+            novoInicio,
         });
 
       return {
