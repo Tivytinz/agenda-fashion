@@ -32,6 +32,10 @@ Quando as condições são satisfeitas:
   apagados;
 - o negócio deixa de aparecer na descoberta e de conceder contexto operacional;
 - o negócio arquivado não conta como negócio próprio operacional da conta;
+- consultas usadas para limitar propriedade exigem vínculo de dona ativo, negócio
+  ativo e `arquivado_em IS NULL`;
+- depois do arquivamento seguro, a mesma conta pode criar um novo negócio próprio
+  operacional sem que o histórico antigo seja apagado;
 - não existe rota normal de reativação de negócio arquivado.
 
 ## Conta profissional e proprietária
@@ -98,6 +102,8 @@ explícito e auditável. Nenhuma migration aplicada é reescrita.
 
 - CA-PRV-01: pendências bloqueiam encerramento;
 - CA-PRV-02: arquivamento encerra operação sem apagar histórico;
+- CA-PRV-03: negócio arquivado não conta no limite de propriedade e a mesma
+  conta pode criar outro negócio operacional;
 - CA-PRV-04: profissional com reserva confirmada não encerra definitivamente a
   conta;
 - CA-PRV-05: cliente pode desativar conta sem perder a reserva;
