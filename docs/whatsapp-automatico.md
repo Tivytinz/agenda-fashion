@@ -15,11 +15,13 @@ O fluxo cria mensagens transacionais conforme o estado do agendamento:
 6. cancelamento para o profissional;
 7. cancelamento para a cliente.
 
-O aviso específico de reagendamento é protegido por
+O template específico de reagendamento é protegido por
 `WHATSAPP_REAGENDAMENTO_CUTOFF_TEMPLATE_ENABLED`. A flag deve permanecer
 `false` até o template correspondente estar aprovado na Meta. Enquanto a flag
-estiver desligada, o reagendamento preserva o comportamento transacional
-anterior e não tenta usar um modelo externo ainda não validado.
+estiver desligada, o AF continua usando o template de confirmação já existente,
+mas acrescenta ao parâmetro de horário a informação de que o cancelamento direto
+pelo AF está indisponível. Assim, a cliente recebe o aviso do cutoff sem depender
+da aprovação de um novo modelo externo.
 
 Separadamente, o AF pode criar orientações de ativação para o dono do negócio:
 
