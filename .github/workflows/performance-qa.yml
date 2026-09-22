@@ -1,0 +1,79 @@
+name: Performance QA
+
+on:
+  workflow_dispatch:
+    inputs:
+      target_url:
+        description: URL base do ambiente representativo
+        required: false
+        default: https://agendafashion.com.br
+  push:
+    branches:
+      - perf/p1-wave-15
+
+permissions:
+  contents: read
+
+concurrency:
+  group: performance-qa-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  performance:
+    name: Performance gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    env:
+      PERF_TARGET_URL: ${{ github.event.inputs.target_url || 'https://agendafashion.com.br' }}
+      PERF_API_SAMPLES: "30"
+      PERF_API_CONCURRENCY: "3"
+      PERF_API_P95_MS: "2000"
+      PERF_LCP_RUNS: "5"
+      PERF_LCP_MS: "2500"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install frontend dependencies
+        run: npm --prefix frontend ci
+
+      - name: Wait for target readiness
+        shell: bash
+        run: |
+          for attempt in {1..18}; do
+            if curl --fail --silent --show-error \
+              --max-time 10 \
+              "${PERF_TARGET_URL%/}/health/ready" >/dev/null; then
+              exit 0
+            fi
+            sleep 10
+          done
+          echo "Ambiente alvo não ficou pronto dentro da janela de QA." >&2
+          exit 1
+
+      - name: Measure API p95
+        run: node scripts/performance-api-p95.mjs
+
+      - name: Install Chromium
+        run: npm --prefix frontend exec -- playwright install --with-deps chromium
+
+      - name: Measure mobile LCP
+        working-directory: frontend
+        run: node scripts/performance-lcp.mjs
+
+      - name: Upload performance evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: performance-wave-15-${{ github.run_id }}
+          path: performance-results
+          if-no-files-found: warn
+          retention-days: 30
