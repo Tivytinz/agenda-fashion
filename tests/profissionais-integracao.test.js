@@ -462,6 +462,30 @@ describe("Fluxo de profissionais com banco real", () => {
   });
 
   test("CA-PLN-06: downgrade preserva dona e reservas e inativa as ativações mais recentes", async () => {
+    const donaDowngrade = await criarUsuario(
+      "Dona Downgrade",
+      "dona-downgrade",
+      9
+    );
+    const negocioDowngrade = await criarNegocio(
+      "Negócio Downgrade",
+      "downgrade",
+      planoEquipeId
+    );
+
+    await db.query(
+      `
+      INSERT INTO usuarios_negocios (
+        usuario_id,
+        negocio_id,
+        papel,
+        ativo
+      )
+      VALUES ($1, $2, 'dono', TRUE)
+      `,
+      [donaDowngrade.id, negocioDowngrade.id]
+    );
+
     const profissionalAntiga = await criarUsuario(
       "Profissional Antiga Downgrade",
       "downgrade-antiga",
@@ -489,7 +513,7 @@ describe("Fluxo de profissionais com banco real", () => {
       [
         profissionalAntiga.id,
         profissionalRecente.id,
-        negocioB.id,
+        negocioDowngrade.id,
       ]
     );
 
@@ -507,7 +531,7 @@ describe("Fluxo de profissionais com banco real", () => {
       RETURNING id
       `,
       [
-        negocioB.id,
+        negocioDowngrade.id,
         `Serviço downgrade ${sufixo}`,
       ]
     );
@@ -539,7 +563,7 @@ describe("Fluxo de profissionais com banco real", () => {
       RETURNING id
       `,
       [
-        negocioB.id,
+        negocioDowngrade.id,
         servico.rows[0].id,
         profissionalRecente.id,
         donoA.id,
@@ -559,7 +583,7 @@ describe("Fluxo de profissionais com banco real", () => {
         await db.executarTransacao(
           (client) =>
             reconciliarLimiteProfissionais(
-              negocioB.id,
+              negocioDowngrade.id,
               client
             )
         );
@@ -584,13 +608,13 @@ describe("Fluxo de profissionais com banco real", () => {
         WHERE negocio_id = $1
         ORDER BY usuario_id
         `,
-        [negocioB.id]
+        [negocioDowngrade.id]
       );
 
       const dona = vinculos.rows.find(
         (item) =>
           Number(item.usuario_id) ===
-          Number(donoB.id)
+          Number(donaDowngrade.id)
       );
       const antiga = vinculos.rows.find(
         (item) =>
