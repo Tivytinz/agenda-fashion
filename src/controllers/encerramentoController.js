@@ -50,7 +50,9 @@ async function consultarReservaDesativada(
     const resultado =
       await encerramentoService.consultarReservaClienteDesativado({
         agendamentoId: req.params.id,
-        acesso: req.query?.token,
+        acesso:
+          req.get("X-Agenda-Access") ||
+          req.query?.token,
       });
 
     return res.json(resultado);
