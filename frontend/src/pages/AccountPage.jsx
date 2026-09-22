@@ -55,6 +55,7 @@ export function AccountPage() {
   const [message, setMessage] = useState("");
   const [photoMessage, setPhotoMessage] = useState("");
   const [saving, setSaving] = useState("");
+  const [closureResult, setClosureResult] = useState(null);
   const insideNavigation = Boolean(
     session.temNegocio ||
     session.ehAdministrador
@@ -214,6 +215,63 @@ export function AccountPage() {
       setSavedBookingNotifications(nextValue);
       setMessage(result.mensagem);
       await session.refresh();
+    } catch (requestError) {
+      setError(requestError.message);
+    } finally {
+      setSaving("");
+    }
+  }
+
+  async function deactivateAccount() {
+    if (
+      !window.confirm(
+        "Desativar sua conta? Você perderá o acesso ao AF. Agendamentos de cliente confirmados serão preservados e, se existirem, você receberá acessos seguros para consultá-los."
+      )
+    ) {
+      return;
+    }
+
+    setSaving("deactivate-account");
+    setError("");
+    setMessage("");
+
+    try {
+      const result = await apiRequest("/conta/desativar", {
+        method: "POST"
+      });
+      setClosureResult(result);
+      setMessage(result.mensagem);
+    } catch (requestError) {
+      setError(requestError.message);
+    } finally {
+      setSaving("");
+    }
+  }
+
+  async function closeAccountPermanently() {
+    if (
+      !window.confirm(
+        "Encerrar sua conta definitivamente? O acesso não poderá ser retomado pelo fluxo normal. Históricos necessários para reservas, segurança, auditoria e retenção serão preservados."
+      )
+    ) {
+      return;
+    }
+
+    setSaving("close-account");
+    setError("");
+    setMessage("");
+
+    try {
+      await apiRequest("/conta", {
+        method: "DELETE"
+      });
+      await session.logout();
+      navigate("/", {
+        replace: true,
+        state: {
+          message: "Conta encerrada com sucesso."
+        }
+      });
     } catch (requestError) {
       setError(requestError.message);
     } finally {
@@ -438,6 +496,71 @@ export function AccountPage() {
               </button>
             )}
           </form>
+        )}
+      </section>
+
+      <section className="panel stack-form account-danger-zone">
+        <div>
+          <p className="eyebrow">Privacidade e encerramento</p>
+          <h2>Desativar ou encerrar a conta</h2>
+          <p className="muted">
+            Desativar interrompe seu acesso sem cancelar automaticamente reservas de cliente.
+            O encerramento definitivo exige que pendências operacionais e financeiras estejam resolvidas.
+          </p>
+        </div>
+
+        {closureResult?.reservas_acesso?.length > 0 && (
+          <div className="stack-form" role="status">
+            <strong>Guarde estes acessos aos seus agendamentos</strong>
+            <p className="muted">
+              Eles continuam funcionando mesmo depois que você sair da conta.
+            </p>
+            {closureResult.reservas_acesso.map((reserva) => (
+              <a
+                className="text-link"
+                href={reserva.caminho}
+                key={reserva.id}
+              >
+                {reserva.servico_nome || "Agendamento"} · {reserva.data} às {reserva.horario}
+              </a>
+            ))}
+          </div>
+        )}
+
+        <div className="form-actions">
+          <button
+            className="button button-secondary"
+            disabled={Boolean(saving)}
+            onClick={deactivateAccount}
+            type="button"
+          >
+            {saving === "deactivate-account"
+              ? "Desativando..."
+              : "Desativar conta"}
+          </button>
+          <button
+            className="button button-secondary danger-text"
+            disabled={Boolean(saving)}
+            onClick={closeAccountPermanently}
+            type="button"
+          >
+            {saving === "close-account"
+              ? "Encerrando..."
+              : "Encerrar conta definitivamente"}
+          </button>
+        </div>
+
+        {closureResult && (
+          <button
+            className="text-button"
+            onClick={async () => {
+              await session.logout();
+              navigate("/");
+            }}
+            type="button"
+          >
+            Sair agora
+          </button>
         )}
       </section>
 
