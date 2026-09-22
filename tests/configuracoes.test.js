@@ -463,7 +463,7 @@ describe("Rotas de configurações", () => {
     ).toHaveBeenCalledWith(11, true);
     expect(resposta.body).toMatchObject({
       mensagem:
-        "Seu negócio está publicado e já pode aparecer na página inicial.",
+        "Seu negócio está publicado e já pode aparecer para clientes.",
       negocio: { publicado: true },
       publicacao: {
         publicado: true,

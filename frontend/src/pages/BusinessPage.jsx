@@ -482,7 +482,7 @@ export function BusinessPage({ create = false }) {
     if (
       publication?.publicado
       && !window.confirm(
-        "Retirar o negócio da página inicial? Seu perfil público continuará disponível pelo link direto."
+        "Ocultar este negócio da busca e do perfil público? Ele só voltará a aparecer quando você escolher Mostrar na busca."
       )
     ) {
       return;
@@ -618,7 +618,9 @@ export function BusinessPage({ create = false }) {
             <p>
               {publication.publicado
                 ? "Clientes podem encontrar seus serviços e acessar seu perfil público."
-                : "A publicação acontece automaticamente com os dados essenciais e pelo menos um serviço ativo. O AF já prepara uma sugestão de horários, que pode ser alterada depois."}
+                : publication.oculto_manual
+                  ? "Você ocultou este negócio. Ele continuará fora da busca e do perfil público até você escolher Mostrar na busca."
+                  : "A publicação acontece automaticamente com os dados essenciais e pelo menos um serviço ativo. O AF já prepara uma sugestão de horários, que pode ser alterada depois."}
             </p>
             {!publication.pode_publicar && publication.pendencias.length > 0 && (
               <p className="publication-pending">

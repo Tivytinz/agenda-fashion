@@ -65,6 +65,27 @@ describe(
         ).toEqual({
           publicado: false,
           pode_publicar: true,
+          oculto_manual: false,
+          pendencias: [],
+        });
+      }
+    );
+
+    test(
+      "ocultação manual não altera a elegibilidade estrutural",
+      () => {
+        const resultado =
+          avaliarPublicacao(
+            negocioCompleto({
+              despublicado_manual_em:
+                "2026-09-22T12:00:00.000Z",
+            })
+          );
+
+        expect(resultado).toMatchObject({
+          publicado: false,
+          pode_publicar: true,
+          oculto_manual: true,
           pendencias: [],
         });
       }

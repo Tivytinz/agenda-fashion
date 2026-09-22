@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { apiRequest } from "../api/client";
@@ -69,6 +69,128 @@ describe("criação do negócio", () => {
     expect(screen.getByText(/Trouxemos o número da sua conta/i)).not.toBeNull();
     expect(screen.queryByText(/Sem complemento/i)).toBeNull();
     expect(screen.queryByLabelText(/Adicionar foto/i)).toBeNull();
+  });
+
+  it("CA-NEG-02: exibe a rejeição do backend ao tentar criar segundo negócio operacional", async () => {
+    apiRequest.mockImplementation(
+      (path) => {
+        if (path === "/cep/74000123") {
+          return Promise.resolve({
+            cep: "74000123",
+            endereco: "Rua das Flores",
+            bairro: "Centro",
+            cidade: "Goiânia",
+            estado: "GO"
+          });
+        }
+
+        if (path === "/criar-negocio") {
+          return Promise.reject(
+            new Error(
+              "Esta conta já possui um negócio."
+            )
+          );
+        }
+
+        return Promise.reject(
+          new Error(
+            `Rota inesperada: ${path}`
+          )
+        );
+      }
+    );
+
+    render(
+      <MemoryRouter initialEntries={["/criar-negocio"]}>
+        <BusinessPage create />
+      </MemoryRouter>
+    );
+
+    fireEvent.change(
+      screen.getByLabelText(/Nome do negócio/),
+      {
+        target: { value: "Studio Aurora" }
+      }
+    );
+    fireEvent.click(
+      screen.getByLabelText("Unhas")
+    );
+    fireEvent.change(
+      screen.getByLabelText(
+        /Link do Google Maps/
+      ),
+      {
+        target: {
+          value:
+            "https://maps.google.com/?q=goiania"
+        }
+      }
+    );
+    fireEvent.change(
+      screen.getByLabelText(/CEP/),
+      {
+        target: { value: "74000-123" }
+      }
+    );
+    fireEvent.change(
+      screen.getByLabelText("Endereço"),
+      {
+        target: { value: "Rua das Flores" }
+      }
+    );
+    fireEvent.change(
+      screen.getByLabelText("Número"),
+      {
+        target: { value: "10" }
+      }
+    );
+    fireEvent.change(
+      screen.getByLabelText("Bairro"),
+      {
+        target: { value: "Centro" }
+      }
+    );
+    fireEvent.change(
+      screen.getByLabelText("Cidade"),
+      {
+        target: { value: "Goiânia" }
+      }
+    );
+    fireEvent.change(
+      screen.getByRole(
+        "combobox",
+        { name: "Estado" }
+      ),
+      {
+        target: { value: "GO" }
+      }
+    );
+
+    fireEvent.submit(
+      screen
+        .getByRole(
+          "button",
+          { name: "Criar negócio" }
+        )
+        .closest("form")
+    );
+
+    expect(
+      (
+        await screen.findByRole("alert")
+      ).textContent
+    ).toContain(
+      "Esta conta já possui um negócio."
+    );
+
+    await waitFor(() => {
+      expect(apiRequest).toHaveBeenCalledWith(
+        "/criar-negocio",
+        expect.objectContaining({
+          method: "POST"
+        })
+      );
+    });
   });
 
   it("não envia a criação quando faltar uma informação obrigatória", () => {

@@ -106,7 +106,9 @@ Descrição, complemento e fotos não bloqueiam a publicação. Horários també
 
 Se algum dado estrutural obrigatório estiver ausente ou inválido, o serviço continua salvo, mas o fluxo retorna para a edição do negócio com a pendência explícita em vez de apresentar o perfil como publicado. A tela de horários só entra na primeira jornada depois que o backend já confirmou a publicação.
 
-A mesma regra deve ser usada pela publicação manual, pela publicação automática após alterações de serviço e por qualquer backfill de migration. Não pode existir um caminho mais permissivo que outro.
+A mesma regra de elegibilidade deve ser usada pela publicação manual, pela publicação automática após alterações de serviço e por qualquer backfill de migration. Não pode existir um caminho mais permissivo que outro.
+
+A proprietária pode despublicar um perfil elegível manualmente. Essa escolha tem precedência sobre a automação: o backend registra `negocios.despublicado_manual_em` e mantém `publicado = FALSE` mesmo quando perfil e serviços continuam elegíveis. Alterar dados do negócio, criar/editar/reativar serviços ou recalcular elegibilidade não remove essa decisão. Somente a ação explícita `Mostrar na busca`/publicar novamente limpa o marcador e tenta publicar de novo, sempre revalidando a elegibilidade no backend.
 
 ## Disponibilidade padrão e confirmação rápida
 

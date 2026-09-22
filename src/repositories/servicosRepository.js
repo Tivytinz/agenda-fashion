@@ -279,14 +279,27 @@ async function sincronizarPublicacaoAutomatica(
       )
       UPDATE negocios n
       SET
-        publicado = e.pode_publicar,
+        publicado = CASE
+          WHEN n.despublicado_manual_em IS NOT NULL
+            THEN FALSE
+          ELSE e.pode_publicar
+        END,
         primeira_publicacao_em = CASE
-          WHEN e.pode_publicar = TRUE
+          WHEN
+            e.pode_publicar = TRUE
+            AND n.despublicado_manual_em IS NULL
             THEN COALESCE(n.primeira_publicacao_em, NOW())
           ELSE n.primeira_publicacao_em
         END,
         updated_at = CASE
-          WHEN n.publicado IS DISTINCT FROM e.pode_publicar THEN NOW()
+          WHEN n.publicado IS DISTINCT FROM (
+            CASE
+              WHEN n.despublicado_manual_em IS NOT NULL
+                THEN FALSE
+              ELSE e.pode_publicar
+            END
+          )
+            THEN NOW()
           ELSE n.updated_at
         END
       FROM elegibilidade e
@@ -294,8 +307,9 @@ async function sincronizarPublicacaoAutomatica(
       RETURNING
         n.id,
         n.publicado,
-        n.publicado AS pode_publicar,
-        n.primeira_publicacao_em
+        e.pode_publicar,
+        n.primeira_publicacao_em,
+        n.despublicado_manual_em
     `,
     [
       negocioId,
