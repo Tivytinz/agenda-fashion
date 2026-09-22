@@ -40,5 +40,6 @@
   "professionalAgenda": "/profissional/agenda",
   "professionalSchedule": "/profissional/horarios",
   "businessProfile": "/negocio/:slug",
-  "inactiveBookingAccess": "/agendamento-acesso/:id"
+  "inactiveBookingAccess": "/agendamento-acesso/:id",
+  "guestBookingAccess": "/agendamento-visitante/:id"
 }
