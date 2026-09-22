@@ -441,30 +441,7 @@ async function reagendarOperacional({
         );
       }
 
-      const inicioAnteriorCanonico =
-        Date.parse(
-          String(
-            atual.inicio_previsto_em ||
-            ""
-          )
-        );
-      const inicioAnterior =
-        Number.isNaN(
-          inicioAnteriorCanonico
-        )
-          ? converterDataHoraLocalParaTimestamp(
-              atual.data,
-              atual.horario
-            )
-          : inicioAnteriorCanonico;
-
       if (
-        inicioAnterior !== null &&
-        !Number.isNaN(
-          inicioAnterior
-        ) &&
-        inicioAnterior <=
-          agoraTimestamp &&
         atual.atendimento_iniciado_em
       ) {
         throw criarErro(
