@@ -87,6 +87,8 @@ describe(
         "pt_BR";
 
       delete process.env
+        .WHATSAPP_REMINDER_HOURS;
+      delete process.env
         .WHATSAPP_PROFESSIONAL_REMINDER_ENABLED;
       delete process.env
         .WHATSAPP_REAGENDAMENTO_CUTOFF_TEMPLATE_ENABLED;
