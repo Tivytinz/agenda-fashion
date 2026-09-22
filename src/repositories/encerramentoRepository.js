@@ -221,7 +221,10 @@ async function listarReservasAtivasCliente(
         TO_CHAR(a.data, 'YYYY-MM-DD') AS data,
         TO_CHAR(a.horario::time, 'HH24:MI') AS horario,
         a.servico_nome,
-        a.profissional_nome,
+        COALESCE(
+          NULLIF(BTRIM(un.nome_exibicao), ''),
+          profissional.nome
+        ) AS profissional_nome,
         n.nome AS negocio_nome,
         COALESCE(
           NULLIF(n.fuso_horario, ''),
@@ -230,6 +233,11 @@ async function listarReservasAtivasCliente(
       FROM agendamentos a
       INNER JOIN negocios n
         ON n.id = a.negocio_id
+      INNER JOIN usuarios profissional
+        ON profissional.id = a.profissional_id
+      LEFT JOIN usuarios_negocios un
+        ON un.usuario_id = a.profissional_id
+        AND un.negocio_id = a.negocio_id
       WHERE a.cliente_id = $1
         AND a.status = ANY($2::text[])
       ORDER BY a.data, a.horario, a.id
@@ -257,7 +265,10 @@ async function buscarReservaClienteDesativado(
         TO_CHAR(a.data, 'YYYY-MM-DD') AS data,
         TO_CHAR(a.horario::time, 'HH24:MI') AS horario,
         a.servico_nome,
-        a.profissional_nome,
+        COALESCE(
+          NULLIF(BTRIM(un.nome_exibicao), ''),
+          profissional.nome
+        ) AS profissional_nome,
         n.nome AS negocio_nome,
         COALESCE(
           NULLIF(n.fuso_horario, ''),
@@ -268,6 +279,11 @@ async function buscarReservaClienteDesativado(
       FROM agendamentos a
       INNER JOIN negocios n
         ON n.id = a.negocio_id
+      INNER JOIN usuarios profissional
+        ON profissional.id = a.profissional_id
+      LEFT JOIN usuarios_negocios un
+        ON un.usuario_id = a.profissional_id
+        AND un.negocio_id = a.negocio_id
       INNER JOIN usuarios u
         ON u.id = a.cliente_id
         AND u.ativo = FALSE
