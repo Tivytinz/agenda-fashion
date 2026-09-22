@@ -45,6 +45,11 @@ describe("Convites de profissionais", () => {
       expira_em: new Date(Date.now() + 60_000).toISOString(),
     });
     profissionaisRepository.buscarVinculoProfissionalAtivo.mockResolvedValue(null);
+    profissionaisRepository.ativarPerfilProfissionalConta.mockResolvedValue({
+      id: 20,
+      perfil_profissional_ativado_em:
+        new Date().toISOString(),
+    });
     profissionaisRepository.criarOuMarcarVinculoAguardandoVaga.mockResolvedValue({
       id: 501,
       papel: "profissional",
@@ -184,6 +189,9 @@ describe("Convites de profissionais", () => {
     });
 
     expect(
+      profissionaisRepository.ativarPerfilProfissionalConta
+    ).toHaveBeenCalledWith(20, client);
+    expect(
       profissionaisRepository.criarOuMarcarVinculoAguardandoVaga
     ).toHaveBeenCalledWith(20, 7, client);
     expect(profissionaisRepository.criarVinculo).not.toHaveBeenCalled();
@@ -239,6 +247,9 @@ describe("Convites de profissionais", () => {
       conviteId: 99,
     });
 
+    expect(
+      profissionaisRepository.ativarPerfilProfissionalConta
+    ).toHaveBeenCalledWith(20, client);
     expect(profissionaisRepository.criarVinculo).toHaveBeenCalledWith(20, 7, client);
     expect(profissionaisRepository.atualizarStatusConvite).toHaveBeenCalledWith(
       99,
