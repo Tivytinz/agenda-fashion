@@ -87,16 +87,22 @@ Esse uso transitório não transforma produção em ambiente de QA permanente. S
 um serviço de aplicação for criado no ambiente `test`, o alvo deve ser migrado
 para ele depois de validar dados, domínio e configuração.
 
+O domínio canônico usado para a medição é `app.agendafashion.com.br`. Durante
+a investigação da Wave 15, o domínio raiz `agendafashion.com.br` respondeu o
+documento HTML, mas devolveu `403` para assets JS/CSS no perfil de navegador
+móvel sintético, impedindo FCP/LCP. Esse comportamento é tratado como achado
+separado de roteamento/CORS e não deve contaminar a evidência do app canônico.
+
 ## Execução
 
 Scripts:
 
 ```bash
-PERF_TARGET_URL=https://agendafashion.com.br \
+PERF_TARGET_URL=https://app.agendafashion.com.br \
   node scripts/performance-api-p95.mjs
 
 cd frontend
-PERF_TARGET_URL=https://agendafashion.com.br \
+PERF_TARGET_URL=https://app.agendafashion.com.br \
   node scripts/performance-lcp.mjs
 ```
 
