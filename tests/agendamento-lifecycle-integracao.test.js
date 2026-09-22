@@ -147,6 +147,13 @@ describe("ciclo persistido do atendimento", () => {
     try {
       if (negocioId) {
         await db.query(
+          `
+            DELETE FROM analytics_eventos
+            WHERE target_business_id = $1
+          `,
+          [negocioId]
+        );
+        await db.query(
           `DELETE FROM agendamentos WHERE negocio_id = $1`,
           [negocioId]
         );
@@ -226,6 +233,33 @@ describe("ciclo persistido do atendimento", () => {
     });
     expect(realizado.body.agendamento.status_atendimento_em).toBeTruthy();
 
+    const eventoRealizado = await db.query(
+      `
+        SELECT
+          origem,
+          actor_user_id,
+          propriedades
+        FROM analytics_eventos
+        WHERE agendamento_id = $1
+          AND nome = 'booking_completed'
+        ORDER BY id DESC
+        LIMIT 1
+      `,
+      [agendamentoRealizadoId]
+    );
+
+    expect(eventoRealizado.rows[0]).toMatchObject({
+      origem: "backend",
+      actor_user_id: profissional.id,
+      propriedades: expect.objectContaining({
+        business_id: Number(negocioId),
+        professional_id: Number(profissional.id),
+        booking_id: Number(agendamentoRealizadoId),
+        actor_type: "PROFESSIONAL",
+        actor_id: Number(profissional.id),
+      }),
+    });
+
     const realizadoIdempotente = await request(app)
       .patch(`/agendamentos/${agendamentoRealizadoId}/atendimento`)
       .set("Authorization", `Bearer ${tokenProfissional}`)
@@ -258,6 +292,33 @@ describe("ciclo persistido do atendimento", () => {
       id: agendamentoFaltaId,
       status: "falta",
       status_atendimento_por: dono.id,
+    });
+
+    const eventoFalta = await db.query(
+      `
+        SELECT
+          origem,
+          actor_user_id,
+          propriedades
+        FROM analytics_eventos
+        WHERE agendamento_id = $1
+          AND nome = 'booking_no_show'
+        ORDER BY id DESC
+        LIMIT 1
+      `,
+      [agendamentoFaltaId]
+    );
+
+    expect(eventoFalta.rows[0]).toMatchObject({
+      origem: "backend",
+      actor_user_id: dono.id,
+      propriedades: expect.objectContaining({
+        business_id: Number(negocioId),
+        professional_id: Number(profissional.id),
+        booking_id: Number(agendamentoFaltaId),
+        actor_type: "OWNER",
+        actor_id: Number(dono.id),
+      }),
     });
 
     const avaliarFalta = await request(app)
