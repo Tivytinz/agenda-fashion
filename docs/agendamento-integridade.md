@@ -13,17 +13,28 @@ A duração de um agendamento é um snapshot do serviço no momento da criação
 
 ## Concorrência entre reserva e bloqueio manual
 
-Toda mutação que possa consumir ou bloquear disponibilidade de um profissional no mesmo dia deve ser serializada pela mesma chave transacional.
+Toda mutação que possa consumir ou bloquear disponibilidade de uma profissional deve ser serializada pela mesma chave transacional antes de validar conflito e persistir a alteração.
 
-A chave vigente usa `pg_advisory_xact_lock` por:
+A chave vigente usa `pg_advisory_xact_lock` por profissional, sem incluir a data local:
 
 ```text
-(profissional_id, data)
+agenda-profissional + profissional_id
 ```
 
-Reserva pública e bloqueio manual devem adquirir essa trava dentro da transação antes de validar disponibilidade e persistir a alteração.
+A trava global por profissional evita que dois negócios, inclusive em fusos IANA diferentes, validem simultaneamente intervalos que representam o mesmo instante absoluto. Reserva pública, reagendamento e bloqueio manual devem respeitar o mesmo contrato de serialização quando disputarem a agenda da profissional.
 
 A validação de conflito considera o intervalo completo do agendamento, não apenas a igualdade do horário inicial. O intervalo é tratado como semiaberto `[início, fim)`: um agendamento de `14:00` a `15:00` conflita com `14:30`, mas não impede uma nova ocupação que comece exatamente às `15:00`.
+
+## Instante canônico e fuso horário
+
+Cada agendamento possui duas informações temporais com responsabilidades diferentes:
+
+- `agendamentos.inicio_previsto_em` é o instante absoluto canônico, persistido como `TIMESTAMPTZ`;
+- `agendamentos.fuso_horario_snapshot` preserva o identificador IANA usado quando o booking foi materializado, por exemplo `America/Sao_Paulo` ou `America/Manaus`.
+
+Comparações de conflito entre negócios usam o instante absoluto. Exibição e geração de slots convertem esse instante para o fuso IANA do negócio consultado, sem reinterpretar o horário histórico quando o cadastro do negócio mudar depois.
+
+Os campos locais `data` e `horario` continuam existindo por compatibilidade de domínio e apresentação, mas não devem substituir `inicio_previsto_em` em comparações globais entre fusos.
 
 ## Isolamento multi-tenant e ocupação global
 
@@ -42,8 +53,10 @@ Mudanças futuras no fluxo de agenda não devem remover as garantias cobertas po
 
 - duração congelada continua válida após edição do serviço;
 - bloqueio dentro do intervalo de um agendamento ativo é rejeitado;
-- reserva pública e bloqueio manual disputam a mesma advisory lock;
+- reserva pública e bloqueio manual disputam a mesma advisory lock global por profissional;
 - duas reservas simultâneas para o mesmo horário não podem ser confirmadas juntas;
+- reservas equivalentes em negócios com fusos IANA diferentes continuam conflitando pelo instante absoluto;
+- mudança posterior do fuso do negócio não altera o instante histórico nem o snapshot IANA do booking;
 - compromisso de outro negócio mantém o profissional ocupado sem expor os dados privados desse agendamento na agenda de um tenant diferente;
 - bloqueio criado no negócio A não reduz a disponibilidade do mesmo profissional no negócio B, enquanto bloqueio legado global continua sendo respeitado.
 
