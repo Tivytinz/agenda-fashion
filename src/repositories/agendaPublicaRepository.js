@@ -108,9 +108,10 @@ async function buscarProfissionalDoNegocio(
 }
 
 async function buscarPreferenciaNotificacoesWhatsapp(
-  usuarioId
+  usuarioId,
+  executor = db
 ) {
-  const result = await db.query(
+  const result = await executor.query(
     `
       SELECT
         nome,
