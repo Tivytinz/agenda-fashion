@@ -83,19 +83,48 @@ function converterDataHoraLocalParaTimestamp(data, horario) {
   );
 }
 
-function validarMomentoInicioAtendimento(agendamento) {
-  const agoraLocal = obterDataHoraNoFuso(
-    agendamento.fuso_horario
+function obterInicioPrevistoTimestamp(
+  agendamento
+) {
+  const canonico = Date.parse(
+    String(
+      agendamento?.inicio_previsto_em ||
+      ""
+    )
   );
 
-  const agoraTimestamp = converterDataHoraLocalParaTimestamp(
-    agoraLocal.data,
-    agoraLocal.hora
-  );
-  const inicioTimestamp = converterDataHoraLocalParaTimestamp(
-    agendamento.data,
-    agendamento.horario
-  );
+  if (!Number.isNaN(canonico)) {
+    return canonico;
+  }
+
+  return null;
+}
+
+function validarMomentoInicioAtendimento(agendamento) {
+  const inicioCanonico =
+    obterInicioPrevistoTimestamp(
+      agendamento
+    );
+  const agoraLocal =
+    inicioCanonico === null
+      ? obterDataHoraNoFuso(
+          agendamento.fuso_horario
+        )
+      : null;
+
+  const agoraTimestamp =
+    inicioCanonico === null
+      ? converterDataHoraLocalParaTimestamp(
+          agoraLocal.data,
+          agoraLocal.hora
+        )
+      : Date.now();
+  const inicioTimestamp =
+    inicioCanonico ??
+    converterDataHoraLocalParaTimestamp(
+      agendamento.data,
+      agendamento.horario
+    );
 
   if (
     agoraTimestamp === null ||
@@ -116,18 +145,30 @@ function validarMomentoInicioAtendimento(agendamento) {
 }
 
 function validarMomentoAtendimento(agendamento, statusDestino) {
-  const agoraLocal = obterDataHoraNoFuso(
-    agendamento.fuso_horario
-  );
+  const inicioCanonico =
+    obterInicioPrevistoTimestamp(
+      agendamento
+    );
+  const agoraLocal =
+    inicioCanonico === null
+      ? obterDataHoraNoFuso(
+          agendamento.fuso_horario
+        )
+      : null;
 
-  const agoraTimestamp = converterDataHoraLocalParaTimestamp(
-    agoraLocal.data,
-    agoraLocal.hora
-  );
-  const inicioTimestamp = converterDataHoraLocalParaTimestamp(
-    agendamento.data,
-    agendamento.horario
-  );
+  const agoraTimestamp =
+    inicioCanonico === null
+      ? converterDataHoraLocalParaTimestamp(
+          agoraLocal.data,
+          agoraLocal.hora
+        )
+      : Date.now();
+  const inicioTimestamp =
+    inicioCanonico ??
+    converterDataHoraLocalParaTimestamp(
+      agendamento.data,
+      agendamento.horario
+    );
 
   if (
     agoraTimestamp === null ||
