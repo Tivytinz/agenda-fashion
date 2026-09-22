@@ -517,7 +517,9 @@ describe(
                 c.id,
                 c.usuario_id,
                 c.nome,
-                c.whatsapp_normalizado
+                c.whatsapp_normalizado,
+                a.cliente_nome,
+                a.cliente_whatsapp
               FROM agendamentos a
               INNER JOIN clientes c
                 ON c.id = a.client_id
@@ -845,7 +847,7 @@ describe(
     );
 
     test(
-      "conta autenticada agenda usando a sessão HttpOnly",
+      "CA-AG-04: conta autenticada agenda com identidade persistida no backend",
       async () => {
         const sufixo =
           gerarSufixoUnico();
@@ -933,10 +935,10 @@ describe(
               horario,
 
               cliente_nome:
-                usuario.nome,
+                "Nome Forjado",
 
               cliente_whatsapp:
-                usuario.whatsapp,
+                "11911112222",
             });
 
         expect(
@@ -1027,6 +1029,30 @@ describe(
             cadastro.body
               .usuario.id
           )
+        );
+        expect(
+          identidade.rows[0]
+            ?.nome
+        ).toBe(
+          usuario.nome
+        );
+        expect(
+          identidade.rows[0]
+            ?.whatsapp_normalizado
+        ).toBe(
+          usuario.whatsapp
+        );
+        expect(
+          identidade.rows[0]
+            ?.cliente_nome
+        ).toBe(
+          usuario.nome
+        );
+        expect(
+          identidade.rows[0]
+            ?.cliente_whatsapp
+        ).toBe(
+          usuario.whatsapp
         );
 
         /*
