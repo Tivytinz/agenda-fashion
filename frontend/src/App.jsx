@@ -10,6 +10,7 @@ import { LegalFooter } from "./components/LegalFooter";
 import { WorkspaceLayout } from "./components/WorkspaceLayout";
 import { markRuntimeReady } from "./utils/runtimeRecovery";
 import { ExplorePage } from "./pages/ExplorePage";
+import { ProfilePage } from "./pages/ProfilePage";
 
 function lazyNamed(importer, name) {
   return lazy(() =>
@@ -167,7 +168,6 @@ const GuestBookingAccessPage = lazyNamed(
   () => import("./pages/GuestBookingAccessPage"),
   "GuestBookingAccessPage"
 );
-const ProfilePage = lazyNamed(() => import("./pages/ProfilePage"), "ProfilePage");
 const SuccessPage = lazyNamed(() => import("./pages/SuccessPage"), "SuccessPage");
 const PrivacyPage = lazyNamed(() => import("./pages/PrivacyPage"), "PrivacyPage");
 const TermsPage = lazyNamed(() => import("./pages/TermsPage"), "TermsPage");

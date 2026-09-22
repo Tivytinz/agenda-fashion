@@ -70,8 +70,10 @@ Perfil:
 - armazenamento/cache reiniciado pelo comportamento padrão do Lighthouse;
 - limite de aceite: mediana de LCP ≤ 2.500 ms em cada página crítica.
 
-Os relatórios JSON brutos do Lighthouse são preservados junto com o resumo para
-permitir investigação do elemento LCP e de gargalos quando necessário.
+Os relatórios JSON brutos da categoria `performance` do Lighthouse são
+preservados junto com o resumo. Assim, uma falha mantém evidência do elemento
+LCP, das fases de carregamento e dos gargalos relacionados, sem exigir uma nova
+execução apenas para diagnóstico.
 
 ## Ambiente representativo
 
