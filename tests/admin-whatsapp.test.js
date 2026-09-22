@@ -196,7 +196,7 @@ describe(
     );
 
     test(
-      "combina os oito status da Meta com entrega e leitura locais",
+      "combina os nove status da Meta com entrega e leitura locais",
       async () => {
         const resposta =
           await request(criarApp())
@@ -208,8 +208,8 @@ describe(
           .toBe(200);
         expect(resposta.body.resumo)
           .toMatchObject({
-            templatesEsperados: 8,
-            templatesAprovadosMeta: 8,
+            templatesEsperados: 9,
+            templatesAprovadosMeta: 9,
             templatesComAtencao: 0,
             automacoesHabilitadas: 8,
             total: 10,
