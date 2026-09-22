@@ -995,7 +995,9 @@ describe(
                 c.id,
                 c.usuario_id,
                 c.nome,
-                c.whatsapp_normalizado
+                c.whatsapp_normalizado,
+                a.cliente_nome,
+                a.cliente_whatsapp
               FROM agendamentos a
               INNER JOIN clientes c
                 ON c.id = a.client_id
