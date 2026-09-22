@@ -22,6 +22,14 @@ jest.mock("../src/services/agendaDisponibilidadeService", () => ({
   horarioEstaDisponivel: jest.fn(),
 }));
 
+jest.mock("../src/services/bookingAnalyticsService", () => ({
+  registrarBookingCreated: jest.fn(),
+  registrarBookingRescheduled: jest.fn(),
+  registrarBookingCancelled: jest.fn(),
+  registrarBookingCompleted: jest.fn(),
+  registrarBookingNoShow: jest.fn(),
+}));
+
 jest.mock("../src/services/whatsappMensagemService", () => ({
   enfileirarReagendamento: jest.fn(),
 }));
@@ -42,6 +50,9 @@ const agendaDisponibilidadeService = require(
 );
 const whatsappMensagemService = require(
   "../src/services/whatsappMensagemService"
+);
+const bookingAnalyticsService = require(
+  "../src/services/bookingAnalyticsService"
 );
 const {
   obterDataHoraNoFuso,
@@ -129,6 +140,11 @@ describe("agendamentoReagendamentoService", () => {
 
     whatsappMensagemService.enfileirarReagendamento
       .mockResolvedValue([]);
+
+    bookingAnalyticsService.registrarBookingRescheduled
+      .mockResolvedValue({
+        event_id: "evento-teste",
+      });
   });
 
   test("CA-AG-16: profissional reage apenas a própria reserva sem trocar responsável", async () => {
@@ -192,6 +208,22 @@ describe("agendamentoReagendamentoService", () => {
         previousProfissionalId: 8,
         newProfissionalId: 8,
         antecedenciaCancelamentoHoras: 2,
+      })
+    );
+
+    expect(
+      bookingAnalyticsService.registrarBookingRescheduled
+    ).toHaveBeenCalledWith(
+      expect.objectContaining({
+        agendamentoId: 50,
+        actorType: "PROFESSIONAL",
+        actorId: 8,
+        previousProfessionalId: 8,
+        previousData: "2026-09-18",
+        previousHorario: "10:00",
+        newData: "2026-09-18",
+        newHorario: "14:00",
+        executor: client,
       })
     );
 
