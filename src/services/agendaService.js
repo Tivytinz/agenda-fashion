@@ -390,6 +390,17 @@ async function listarAgendaProfissional({
     profissionalId
   );
 
+  const vinculo =
+    await agendaRepository
+      .buscarVinculoUsuarioNegocio(
+        profissionalId
+      );
+
+  exigirRecurso(
+    vinculo,
+    "Vínculo profissional não encontrado."
+  );
+
   const datas =
     gerarDatasAgenda(7);
 
@@ -420,6 +431,7 @@ async function listarAgendaProfissional({
     agendaRepository
       .buscarBloqueiosPorPeriodo(
         profissionalId,
+        vinculo.negocio_id,
         dataInicio,
         dataFim
       ),
