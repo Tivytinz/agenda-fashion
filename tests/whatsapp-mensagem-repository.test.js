@@ -62,6 +62,84 @@ describe(
     );
 
     test(
+      "CA-AG-21: reagendamento dentro do cutoff usa aviso específico quando habilitado",
+      async () => {
+        const executor = {
+          query: jest
+            .fn()
+            .mockResolvedValueOnce({
+              rows: [],
+            })
+            .mockResolvedValueOnce({
+              rows: [],
+            }),
+        };
+
+        await whatsappMensagemRepository
+          .enfileirarReagendamento(
+            executor,
+            99,
+            24,
+            false,
+            true
+          );
+
+        const [
+          consultaCancelamento,
+          parametrosCancelamento,
+        ] =
+          executor.query.mock.calls[0];
+        const [
+          consultaInsercao,
+          parametrosInsercao,
+        ] =
+          executor.query.mock.calls[1];
+
+        const sql =
+          consultaInsercao.replace(
+            /\s+/g,
+            " "
+          );
+
+        expect(
+          consultaCancelamento
+        ).toContain(
+          "tipo = ANY"
+        );
+        expect(
+          parametrosCancelamento[1]
+        ).toEqual(
+          expect.arrayContaining([
+            "REAGENDAMENTO_SEM_CANCELAMENTO_CLIENTE",
+          ])
+        );
+        expect(sql).toContain(
+          "a.inicio_previsto_em AS inicio_agendamento"
+        );
+        expect(sql).toContain(
+          "a.antecedencia_cancelamento_horas"
+        );
+        expect(sql).toContain(
+          "'REAGENDAMENTO_SEM_CANCELAMENTO_CLIENTE'"
+        );
+        expect(sql).toContain(
+          "$4::BOOLEAN"
+        );
+        expect(sql).toContain(
+          ") < NOW()"
+        );
+        expect(
+          parametrosInsercao
+        ).toEqual([
+          99,
+          24,
+          false,
+          true,
+        ]);
+      }
+    );
+
+    test(
       "enfileira cancelamento do profissional com as seis variáveis do template",
       async () => {
         const executor = {
@@ -269,6 +347,7 @@ describe(
         expect(parametros[5]).toEqual(
           expect.arrayContaining([
             "CONFIRMACAO_AGENDAMENTO_CLIENTE",
+            "REAGENDAMENTO_SEM_CANCELAMENTO_CLIENTE",
             "LEMBRETE_AGENDAMENTO_CLIENTE",
             "CANCELAMENTO_AGENDAMENTO_CLIENTE",
           ])
