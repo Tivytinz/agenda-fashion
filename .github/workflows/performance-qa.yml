@@ -6,7 +6,7 @@ on:
       target_url:
         description: URL base do ambiente representativo
         required: false
-        default: https://agendafashion.com.br
+        default: https://app.agendafashion.com.br
   push:
     branches:
       - perf/p1-wave-15
@@ -25,7 +25,7 @@ jobs:
     timeout-minutes: 20
 
     env:
-      PERF_TARGET_URL: ${{ github.event.inputs.target_url || 'https://agendafashion.com.br' }}
+      PERF_TARGET_URL: ${{ github.event.inputs.target_url || 'https://app.agendafashion.com.br' }}
       PERF_API_SAMPLES: "30"
       PERF_API_CONCURRENCY: "3"
       PERF_API_P95_MS: "2000"
