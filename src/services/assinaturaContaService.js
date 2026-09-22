@@ -22,18 +22,15 @@ async function buscarMinhaAssinatura({ usuarioId }) {
     throw new Error("Negócio não encontrado.");
   }
 
-  await assinaturaRepository
-    .expirarCancelamentoSeNecessario(negocio.id);
-
+  const uso = await buscarUsoPlano(negocio.id);
   const negocioAtualizado = await assinaturaRepository
     .buscarNegocioDono(usuarioId);
-  const [assinatura, assinaturaPendente, uso] =
+  const [assinatura, assinaturaPendente] =
     await Promise.all([
       assinaturaRepository
         .buscarAssinaturaAtivaPorNegocio(negocio.id),
       assinaturaRepository
         .buscarAssinaturaPendentePorNegocio(negocio.id),
-      buscarUsoPlano(negocio.id),
     ]);
   const plano = await assinaturaRepository.buscarPlano(
     negocioAtualizado?.plano_id || negocio.plano_id
