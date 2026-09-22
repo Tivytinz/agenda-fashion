@@ -12,6 +12,14 @@ jest.mock("../src/repositories/agendamentoCancelamentoRepository", () => ({
   cancelarAgendamentoOperacional: jest.fn(),
 }));
 
+jest.mock("../src/services/bookingAnalyticsService", () => ({
+  registrarBookingCreated: jest.fn(),
+  registrarBookingRescheduled: jest.fn(),
+  registrarBookingCancelled: jest.fn(),
+  registrarBookingCompleted: jest.fn(),
+  registrarBookingNoShow: jest.fn(),
+}));
+
 jest.mock("../src/services/whatsappMensagemService", () => ({
   enfileirarCancelamento: jest.fn(),
 }));
@@ -30,6 +38,9 @@ const repository = require(
 );
 const whatsappMensagemService = require(
   "../src/services/whatsappMensagemService"
+);
+const bookingAnalyticsService = require(
+  "../src/services/bookingAnalyticsService"
 );
 const {
   validarAcessoVisitante,
@@ -74,6 +85,10 @@ describe("agendamentoCancelamentoService", () => {
       motivo_cancelamento: "Profissional indisponível",
     });
     whatsappMensagemService.enfileirarCancelamento.mockResolvedValue();
+    bookingAnalyticsService.registrarBookingCancelled
+      .mockResolvedValue({
+        event_id: "evento-teste",
+      });
   });
 
   test("retorna a política pública vigente do profissional", async () => {
@@ -132,6 +147,14 @@ describe("agendamentoCancelamentoService", () => {
     expect(repository.cancelarAgendamentoCliente).toHaveBeenCalledWith({
       agendamentoId: 10,
       clienteId: 12,
+      executor: client,
+    });
+    expect(
+      bookingAnalyticsService.registrarBookingCancelled
+    ).toHaveBeenCalledWith({
+      agendamentoId: 10,
+      actorType: "CLIENT",
+      actorId: 12,
       executor: client,
     });
     expect(whatsappMensagemService.enfileirarCancelamento).toHaveBeenCalledWith({
