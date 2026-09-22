@@ -147,7 +147,8 @@ export function SessionProvider({ children }) {
     credential,
     marketing,
     meta,
-    aceitaNotificacoesWhatsapp
+    aceitaNotificacoesWhatsapp,
+    perfilProfissional
   ) => {
     const result = await apiRequest("/auth/google", {
       method: "POST",
@@ -157,7 +158,10 @@ export function SessionProvider({ children }) {
           ? { aceitaNotificacoesWhatsapp }
           : {}),
         ...(marketing ? { marketing } : {}),
-        ...(meta ? { meta } : {})
+        ...(meta ? { meta } : {}),
+        ...(typeof perfilProfissional === "boolean"
+          ? { perfil_profissional: perfilProfissional }
+          : {})
       }
     });
     saveSession(result);
