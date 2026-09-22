@@ -20,13 +20,6 @@ ON agendamentos;
 ALTER TABLE agendamentos
   ALTER COLUMN status TYPE VARCHAR(32);
 
-CREATE TRIGGER
-  agendamentos_avaliacao_status_trigger
-BEFORE INSERT OR UPDATE OF avaliacao, status
-ON agendamentos
-FOR EACH ROW
-EXECUTE FUNCTION validar_avaliacao_agendamento_realizado();
-
 UPDATE agendamentos
 SET status = 'cancelamento_solicitado'
 WHERE UPPER(status) = 'CANCELAMENTO_SOLICITADO';
@@ -341,5 +334,15 @@ ON agendamento_cancelamento_legado_revisoes (
   migrado_em
 )
 WHERE resolvido_em IS NULL;
+
+-- Reinstala a validação de avaliação somente depois de reconciliar os
+-- registros legados. Recriá-la antes faria a própria migração rejeitar um
+-- CANCELAMENTO_SOLICITADO com avaliação que precisa virar REALIZADO.
+CREATE TRIGGER
+  agendamentos_avaliacao_status_trigger
+BEFORE INSERT OR UPDATE OF avaliacao, status
+ON agendamentos
+FOR EACH ROW
+EXECUTE FUNCTION validar_avaliacao_agendamento_realizado();
 
 COMMIT;
