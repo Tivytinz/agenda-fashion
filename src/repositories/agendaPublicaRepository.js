@@ -581,6 +581,8 @@ async function criarAgendamento(
           valor_servico,
           duracao_minutos,
           negocio_id,
+          inicio_previsto_em,
+          fuso_horario_snapshot,
           confirmado_em,
           status,
           avaliacao,
