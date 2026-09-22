@@ -45,6 +45,8 @@ jest.mock(
       jest.fn(),
     vincularUsuarioAoGoogle:
       jest.fn(),
+    ativarPerfilProfissional:
+      jest.fn(),
     atualizarUltimoLogin:
       jest.fn(),
     atualizarSenha: jest.fn(),
@@ -139,6 +141,17 @@ describe(
           emailAutoritativo:
             true,
         });
+
+      authRepository
+        .ativarPerfilProfissional
+        .mockImplementation(
+          async (usuarioId) =>
+            criarUsuario({
+              id: usuarioId,
+              perfil_profissional_ativado_em:
+                "2026-09-22T19:00:00.000Z",
+            })
+        );
 
       authRepository
         .atualizarUltimoLogin
@@ -342,6 +355,49 @@ describe(
           authRepository
             .criarUsuarioGoogle
         ).not.toHaveBeenCalled();
+      }
+    );
+
+    test(
+      "CA-AUT-02: conta Google existente ativa perfil profissional sem duplicar usuário",
+      async () => {
+        authRepository
+          .buscarUsuarioPorGoogleSub
+          .mockResolvedValue(
+            criarUsuario({
+              perfil_profissional_ativado_em:
+                null,
+            })
+          );
+
+        const resposta =
+          await request(app)
+            .post("/auth/google")
+            .send({
+              credential:
+                "id-token-google",
+              perfil_profissional:
+                true,
+            });
+
+        expect(
+          resposta.status
+        ).toBe(200);
+
+        expect(
+          authRepository
+            .ativarPerfilProfissional
+        ).toHaveBeenCalledWith(7);
+
+        expect(
+          authRepository
+            .criarUsuarioGoogle
+        ).not.toHaveBeenCalled();
+
+        expect(
+          resposta.body.usuario
+            .perfil_profissional_ativo
+        ).toBe(true);
       }
     );
 
