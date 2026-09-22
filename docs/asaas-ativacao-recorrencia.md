@@ -99,3 +99,23 @@ Os testes da saga e da fila devem proteger pelo menos estes comportamentos:
 - pagamento sem vínculo/aplicabilidade não chama o Asaas;
 - a finalização bloqueia o negócio antes de efetivar a troca de plano;
 - dois eventos concorrentes do mesmo recurso não ficam simultaneamente em `PROCESSING`.
+
+
+## Reativação de renovação cancelada
+
+Enquanto o período já pago ainda estiver válido, a dona pode reativar a
+renovação sem gerar uma cobrança imediata. O AF cria ou reutiliza a recorrência
+por uma `externalReference` determinística derivada da assinatura, da versão
+monotônica `reativacao_tentativa` e da data em que o período pago termina.
+Retries do mesmo ciclo reutilizam a referência; um novo ciclo após outro
+cancelamento recebe uma referência diferente.
+
+A operação usa `REACTIVATING` como estado transitório. Chamadas HTTP ao Asaas
+continuam fora de transações PostgreSQL. Se o processo cair depois de o provedor
+ter aceitado a recorrência e antes da finalização local, uma execução posterior
+não restaura o cancelamento às cegas: primeiro consulta a mesma
+`externalReference`. Recorrência encontrada é vinculada localmente; ausência
+confirmada restaura `CANCELED`; falha de consulta mantém `REACTIVATING` para
+nova tentativa. Consultas de entitlement executadas fora de transações também
+podem disparar essa reconciliação antes de expirar o período pago.
+

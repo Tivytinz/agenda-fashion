@@ -2,13 +2,44 @@ const db = require("../db/db");
 const assinaturaRepository = require(
   "../repositories/assinaturaRepository"
 );
-const { removerAssinaturaAsaas } = require("./asaasService");
+const {
+  removerAssinaturaAsaas
+} = require("./asaasService");
 const { buscarUsoPlano } = require("./planoService");
+const {
+  reconciliarReativacaoAbandonada
+} = require("./assinaturaReativacaoService");
 const {
   calcularProximaCobranca,
   criarErro,
   dataValida,
 } = require("./assinaturaCalculos");
+
+function estadoAtivacaoPendente(pagamento) {
+  if (!pagamento) {
+    return null;
+  }
+
+  const status = String(
+    pagamento.status || ""
+  )
+    .trim()
+    .toUpperCase();
+
+  if (
+    [
+      "CONFIRMED",
+      "RECEIVED",
+      "RECEIVED_IN_CASH"
+    ].includes(status)
+  ) {
+    return pagamento.ativacao_requer_atencao === true
+      ? "ATIVACAO_REQUER_ATENCAO"
+      : "PAGAMENTO_CONFIRMADO_ATIVANDO";
+  }
+
+  return "AGUARDANDO_PAGAMENTO";
+}
 
 async function buscarMinhaAssinatura({ usuarioId }) {
   if (!usuarioId) {
@@ -21,6 +52,10 @@ async function buscarMinhaAssinatura({ usuarioId }) {
   if (!negocio) {
     throw new Error("Negócio não encontrado.");
   }
+
+  await reconciliarReativacaoAbandonada(
+    negocio.id
+  );
 
   await assinaturaRepository
     .expirarCancelamentoSeNecessario(negocio.id);
@@ -62,7 +97,15 @@ async function buscarMinhaAssinatura({ usuarioId }) {
         ? {
             assinatura: assinaturaPendente,
             plano: planoPendente,
-            pagamento: pagamentoPendente,
+            pagamento: pagamentoPendente
+              ? {
+                  ...pagamentoPendente,
+                  estado_ativacao:
+                    estadoAtivacaoPendente(
+                      pagamentoPendente
+                    )
+                }
+              : null,
           }
         : null,
     uso: {
@@ -207,6 +250,7 @@ async function cancelarMinhaAssinatura({ usuarioId }) {
     acesso_ate: assinaturaCancelada.data_proxima_cobranca,
   };
 }
+
 
 module.exports = {
   buscarMinhaAssinatura,

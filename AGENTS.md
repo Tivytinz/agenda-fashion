@@ -219,11 +219,29 @@ Planos pagos usam checkout por PIX. Retorno do navegador não confirma pagamento
 A ativação do plano depende da confirmação financeira autenticada e idempotente
 do Asaas.
 
-Um negócio pode possuir no máximo uma cobrança PIX pendente de contratação ou
-upgrade por vez, independentemente do plano escolhido. Trocar de plano antes do
-pagamento não deve criar cobranças concorrentes. A tela de assinatura deve
-separar explicitamente a assinatura/plano atualmente em uso de qualquer upgrade
-pendente.
+Um negócio pode possuir no máximo um processo financeiro pendente de contratação
+ou upgrade por vez, independentemente do plano escolhido. Isso inclui PIX ainda
+não pago e pagamento já confirmado cuja assinatura ainda esteja em ativação ou
+requeira atenção. Trocar de plano antes da conclusão desse processo não deve criar
+cobranças concorrentes.
+
+Retomadas de checkout precisam passar novamente pela trava do negócio. Uma
+assinatura vinculada a uma tentativa antiga só pode ser reutilizada quando ainda
+pertencer ao mesmo negócio e plano, estiver pendente/inativa e mantiver exatamente
+o preço atual do plano. Uma retomada válida renova sua janela operacional; preço
+ou estado divergente exige nova tentativa.
+
+A tela de assinatura deve separar explicitamente a assinatura/plano atualmente em
+uso de qualquer upgrade pendente. Pagamento confirmado não pode ser apresentado
+como PIX ainda aguardando pagamento.
+
+Cancelamento de renovação preserva o período já pago. Enquanto esse período
+continuar válido, a dona pode reativar a renovação sem cobrança imediata. Cada
+ciclo de reativação recebe uma versão monotônica persistida e uma
+`externalReference` própria no Asaas. O estado transitório `REACTIVATING` não
+pode ser rebaixado apenas por timeout: uma execução abandonada precisa consultar
+o Asaas pela referência do ciclo antes de ativar localmente ou restaurar
+`CANCELED`. Falha nessa consulta mantém o estado para reconciliação posterior.
 
 Mais detalhes: `docs/planos.md`, `docs/checkout-idempotente.md` e documentos de
 webhook financeiro.
@@ -343,10 +361,14 @@ o Admin não deve chamar uma subtração aproximada de "receita líquida". Expor
 separadamente receita atualmente válida e o valor integral das cobranças
 afetadas por reversão/disputa.
 
-Conversões de assinatura para provedores de mídia devem ser idempotentes por
-assinatura e pagamento financeiro. Webhooks repetidos da mesma cobrança não
-duplicam entrega, mas um pagamento posterior que se torne o primeiro válido após
-invalidação do anterior precisa poder gerar uma nova entrega.
+Conversões de aquisição de assinatura para provedores de mídia possuem identidade
+estável por assinatura. O pagamento é a evidência financeira usada pelo payload,
+mas não muda o `event_id`/identificador externo da aquisição. Se uma entrega ainda
+não enviada apontar para um pagamento que deixou de ser válido, ela pode ser
+rearmada com o pagamento válido mais recente; depois de `SENT`, a mesma assinatura
+não gera uma segunda aquisição. Métricas financeiras internas continuam sendo a
+fonte de verdade para reembolsos/reversões; não usar a conversão de mídia como
+livro-caixa.
 
 As integrações administrativas de custos são somente leitura no escopo atual
 documentado e não devem criar, editar, pausar ou excluir campanhas sem uma nova

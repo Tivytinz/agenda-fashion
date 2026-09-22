@@ -130,7 +130,7 @@ beforeEach(() => {
 });
 
 test(
-  "enfileira por assinatura e pagamento para permitir substituição após invalidação financeira",
+  "enfileira pela identidade estável da assinatura",
   async () => {
     deliveryRepository
       .enfileirar
@@ -147,7 +147,7 @@ test(
         expect.objectContaining({
           provedor: "meta",
           chaveEvento:
-            "assinatura:11;pagamento:pay_123"
+            "assinatura:11"
         })
       );
     expect(deliveryRepository.enfileirar)
@@ -156,7 +156,7 @@ test(
         expect.objectContaining({
           provedor: "google",
           chaveEvento:
-            "assinatura:11;pagamento:pay_123"
+            "assinatura:11"
         })
       );
   }
@@ -202,7 +202,7 @@ test(
     ).toHaveBeenCalledWith(
       expect.objectContaining({
         consentimento: true,
-        event_id: "subscribe:11:pay_123",
+        event_id: "subscribe:11",
         source_url:
           "/painel/assinatura"
       })
@@ -211,7 +211,7 @@ test(
       .toHaveBeenCalledWith(
         expect.objectContaining({
           eventName: "Subscribe",
-          eventId: "subscribe:11:pay_123",
+          eventId: "subscribe:11",
           ocorridoEm: undefined,
           customData:
             expect.objectContaining({
@@ -268,7 +268,7 @@ test(
         ocorridoEm: undefined,
         params: expect.objectContaining({
           transaction_id:
-            "af-subscription-11-pay_123",
+            "af-subscription-11",
           value: 59.9
         })
       })

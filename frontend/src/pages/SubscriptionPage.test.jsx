@@ -108,6 +108,94 @@ describe("plano e assinatura", () => {
     expect(screen.queryByRole("link", { name: "Assinar Autônoma" })).toBeNull();
   });
 
+  it("diferencia pagamento confirmado em ativação de PIX ainda pendente", async () => {
+    apiRequest.mockResolvedValueOnce({
+      plano: { id: 1, slug: "inicial", nome: "Grátis", valor: 0 },
+      assinatura: null,
+      upgrade_pendente: {
+        plano: { id: 2, slug: "autonoma", nome: "Autônoma", valor: 49.9 },
+        assinatura: {
+          id: 22,
+          status: "PENDING",
+          ativo: false,
+          forma_pagamento: "pix"
+        },
+        pagamento: {
+          id: 31,
+          status: "CONFIRMED",
+          estado_ativacao:
+            "PAGAMENTO_CONFIRMADO_ATIVANDO",
+          pix_copia_cola: "NAO-DEVE-APARECER",
+          pix_qrcode: "imagem"
+        }
+      },
+      uso: {
+        plano_id: 1,
+        plano_nome: "Grátis",
+        plano_slug: "inicial"
+      },
+      pagamentos: []
+    });
+
+    renderPage();
+
+    expect(
+      await screen.findByText(
+        "Pagamento do plano Autônoma confirmado. Estamos ativando seu plano."
+      )
+    ).not.toBeNull();
+    expect(
+      screen.queryByRole("img", {
+        name: "QR Code do PIX pendente"
+      })
+    ).toBeNull();
+    expect(
+      screen.queryByRole("textbox", {
+        name: "Código PIX pendente"
+      })
+    ).toBeNull();
+  });
+
+  it("mostra quando a ativação paga requer atenção sem permitir nova cobrança", async () => {
+    apiRequest.mockResolvedValueOnce({
+      plano: { id: 1, slug: "inicial", nome: "Grátis", valor: 0 },
+      assinatura: null,
+      upgrade_pendente: {
+        plano: { id: 2, slug: "autonoma", nome: "Autônoma", valor: 49.9 },
+        assinatura: {
+          id: 22,
+          status: "PENDING",
+          ativo: false
+        },
+        pagamento: {
+          id: 31,
+          status: "CONFIRMED",
+          estado_ativacao:
+            "ATIVACAO_REQUER_ATENCAO"
+        }
+      },
+      uso: {
+        plano_id: 1,
+        plano_nome: "Grátis",
+        plano_slug: "inicial"
+      },
+      pagamentos: []
+    });
+
+    renderPage();
+
+    expect(
+      await screen.findByText(
+        "Pagamento do plano Autônoma confirmado; a ativação precisa de atenção."
+      )
+    ).not.toBeNull();
+    expect(
+      screen.queryByRole("link", {
+        name: "Assinar Autônoma"
+      })
+    ).toBeNull();
+  });
+
   it("mostra cobrança e cancelamento apenas para assinatura ativa", async () => {
     apiRequest.mockResolvedValueOnce({
       plano: { id: 2, slug: "autonoma", nome: "Autônoma", valor: 49.9 },
@@ -191,6 +279,62 @@ describe("plano e assinatura", () => {
     const table = await screen.findByRole("table");
     expect(within(table).getByText("Pago")).not.toBeNull();
     expect(within(table).getByText("PIX")).not.toBeNull();
+  });
+
+  it("permite reativar a renovação cancelada sem novo checkout", async () => {
+    const cancelada = {
+      plano: { id: 2, slug: "autonoma", nome: "Autônoma", valor: 49.9 },
+      assinatura: {
+        id: 10,
+        status: "CANCELED",
+        ativo: true,
+        forma_pagamento: "pix",
+        data_proxima_cobranca: "2026-10-18"
+      },
+      uso: {
+        plano_id: 2,
+        plano_nome: "Autônoma",
+        plano_slug: "autonoma"
+      },
+      pagamentos: []
+    };
+
+    const ativa = {
+      ...cancelada,
+      assinatura: {
+        ...cancelada.assinatura,
+        status: "ACTIVE"
+      }
+    };
+
+    apiRequest
+      .mockResolvedValueOnce(cancelada)
+      .mockResolvedValueOnce({
+        mensagem:
+          "Renovação reativada com sucesso. Nenhuma nova cobrança foi feita agora."
+      })
+      .mockResolvedValueOnce(ativa);
+
+    renderPage();
+
+    fireEvent.click(
+      await screen.findByRole(
+        "button",
+        { name: "Reativar renovação" }
+      )
+    );
+
+    expect(apiRequest)
+      .toHaveBeenCalledWith(
+        "/minha-assinatura/reativar",
+        { method: "POST" }
+      );
+
+    expect(
+      await screen.findByText(
+        "Renovação reativada com sucesso. Nenhuma nova cobrança foi feita agora."
+      )
+    ).not.toBeNull();
   });
 
   it("mantém erro de cancelamento dentro do diálogo", async () => {
