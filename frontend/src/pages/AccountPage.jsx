@@ -55,6 +55,8 @@ export function AccountPage() {
   const [message, setMessage] = useState("");
   const [photoMessage, setPhotoMessage] = useState("");
   const [saving, setSaving] = useState("");
+  const [accountAction, setAccountAction] = useState("");
+  const [deactivationResult, setDeactivationResult] = useState(null);
   const [closureResult, setClosureResult] = useState(null);
   const insideNavigation = Boolean(
     session.temNegocio ||
@@ -279,6 +281,67 @@ export function AccountPage() {
     }
   }
 
+  async function deactivateAccount() {
+    if (
+      !window.confirm(
+        "Desativar sua conta? Você perderá o acesso ao AF. Agendamentos já confirmados como cliente serão preservados."
+      )
+    ) {
+      return;
+    }
+
+    setAccountAction("deactivate");
+    setError("");
+    setMessage("");
+
+    try {
+      const result = await apiRequest("/conta/desativar", {
+        method: "POST"
+      });
+      const accesses = Array.isArray(result.reservas_acesso)
+        ? result.reservas_acesso
+        : [];
+
+      if (accesses.length > 0) {
+        setDeactivationResult(result);
+        return;
+      }
+
+      await session.logout();
+      navigate("/", { replace: true });
+    } catch (requestError) {
+      setError(requestError.message);
+    } finally {
+      setAccountAction("");
+    }
+  }
+
+  async function deleteAccount() {
+    if (
+      !window.confirm(
+        "Encerrar definitivamente sua conta? O AF bloqueará a ação se existirem reservas ou pendências que precisam ser resolvidas."
+      )
+    ) {
+      return;
+    }
+
+    setAccountAction("delete");
+    setError("");
+    setMessage("");
+
+    try {
+      await apiRequest("/conta", {
+        method: "DELETE"
+      });
+      await session.logout();
+      navigate("/", { replace: true });
+    } catch (requestError) {
+      setError(requestError.message);
+    } finally {
+      setAccountAction("");
+    }
+  }
+
   async function uploadPhoto(event) {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -302,6 +365,52 @@ export function AccountPage() {
 
   if (!user && !error) return <main className={pageClassName}><LoadingState>Carregando sua conta...</LoadingState></main>;
   if (!user && error) return <main className={pageClassName}><ErrorState message={error} onRetry={load} /></main>;
+
+  if (deactivationResult) {
+    const accesses = Array.isArray(deactivationResult.reservas_acesso)
+      ? deactivationResult.reservas_acesso
+      : [];
+
+    return (
+      <main className="container page-content narrow-page account-page">
+        <header className="workspace-heading">
+          <div>
+            <p className="eyebrow">Conta desativada</p>
+            <h1>Seus agendamentos continuam preservados</h1>
+            <p>
+              Guarde estes acessos enquanto houver reservas ativas. Eles funcionam sem login e respeitam a política de cancelamento de cada booking.
+            </p>
+          </div>
+        </header>
+
+        <section className="panel stack-form">
+          {accesses.map((item) => (
+            <div className="account-preference-row" key={item.id}>
+              <div className="account-preference-copy">
+                <strong>{item.servico_nome || "Agendamento"}</strong>
+                <span>
+                  {item.negocio_nome || "Negócio"} · {item.data} às {item.horario}
+                </span>
+              </div>
+              <a className="button button-secondary button-small" href={item.caminho}>
+                Abrir acesso seguro
+              </a>
+            </div>
+          ))}
+          <button
+            className="button"
+            onClick={() => {
+              session.logout();
+              navigate("/", { replace: true });
+            }}
+            type="button"
+          >
+            Sair e voltar ao início
+          </button>
+        </section>
+      </main>
+    );
+  }
 
   const backPath = session.ehAdministrador
     ? "/admin/trafego-pago"
@@ -568,6 +677,33 @@ export function AccountPage() {
         <LogoutIcon />
         Sair da conta
       </button>
+      <section className="panel account-danger-zone" aria-labelledby="account-danger-title">
+        <div>
+          <p className="eyebrow">Privacidade e encerramento</p>
+          <h2 id="account-danger-title">Desativar ou encerrar conta</h2>
+          <p className="muted">
+            Desativar preserva reservas de cliente e fornece acessos seguros. O encerramento definitivo só prossegue quando não houver reservas profissionais, reservas de cliente ou pendências do negócio.
+          </p>
+        </div>
+        <div className="form-actions">
+          <button
+            className="button button-secondary"
+            disabled={Boolean(accountAction)}
+            onClick={deactivateAccount}
+            type="button"
+          >
+            {accountAction === "deactivate" ? "Desativando..." : "Desativar conta"}
+          </button>
+          <button
+            className="button button-secondary danger-text"
+            disabled={Boolean(accountAction)}
+            onClick={deleteAccount}
+            type="button"
+          >
+            {accountAction === "delete" ? "Encerrando..." : "Encerrar conta definitivamente"}
+          </button>
+        </div>
+      </section>
     </main>
   );
 }
