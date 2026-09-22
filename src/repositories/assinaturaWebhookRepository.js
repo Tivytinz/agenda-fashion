@@ -199,6 +199,40 @@ async function suspenderAssinatura(
   return resultado.rows[0] || null;
 }
 
+async function encerrarAssinaturaPendente(
+  client,
+  {
+    assinaturaId,
+    status,
+    observacao,
+  }
+) {
+  const resultado = await client.query(
+    `
+      UPDATE assinaturas
+      SET
+        status = $1,
+        ativo = FALSE,
+        observacoes = CONCAT_WS(
+          E'\\n',
+          NULLIF(observacoes, ''),
+          $2::text
+        ),
+        updated_at = NOW()
+      WHERE id = $3
+        AND ativo = FALSE
+        AND UPPER(status) IN (
+          'PENDING',
+          'PENDING_PAYMENT'
+        )
+      RETURNING *
+    `,
+    [status, observacao, assinaturaId]
+  );
+
+  return resultado.rows[0] || null;
+}
+
 async function confirmarPagamento(
   client,
   {
@@ -383,6 +417,7 @@ module.exports = {
   atualizarPlanoNegocioSeSemOutraAssinatura,
   buscarPorPagamentoParaAtualizar,
   suspenderAssinatura,
+  encerrarAssinaturaPendente,
   confirmarPagamento,
   buscarAssinaturaVigenteMaisNova,
   listarAtivasAnteriores,
