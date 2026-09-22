@@ -27,7 +27,7 @@ vi.mock("../api/client", () => ({
   apiRequest: vi.fn()
 }));
 
-vi.mock("../analytics/track", () => ({
+vi.mock("../analytics/trackEvent", () => ({
   track: vi.fn()
 }));
 

@@ -10,7 +10,7 @@ import {
 import { useSearchParams } from "react-router-dom";
 
 import { apiRequest } from "../api/client";
-import { track } from "../analytics/track";
+import { track } from "../analytics/trackEvent";
 import bronzeamentoHero from "../assets/home/bronzeamento-hero.webp";
 import sobrancelhasEmoji from "../assets/icons/sobrancelhas-emoji.png";
 import ciliosHero from "../assets/home/cilios-hero.webp";
@@ -347,7 +347,7 @@ function HorizontalRail({
   );
 }
 
-export function ExplorePage() {
+export function ExplorePage({ renderHero = true }) {
   const [searchParams, setSearchParams] = useSearchParams();
 
   const requestedQuery =
@@ -794,7 +794,8 @@ export function ExplorePage() {
   }
 
   return (
-    <main className="home-page">
+    <div className={renderHero ? "home-page" : "home-discovery-content"}>
+      {renderHero && (
       <section
         aria-label="Destaques do Agenda Fashion"
         aria-roledescription="carrossel"
@@ -910,11 +911,12 @@ export function ExplorePage() {
           </div>
         </div>
       </section>
+      )}
 
       <section
         aria-labelledby="categories-title"
         className="container home-category-section"
-        id="buscar-servicos"
+        id={renderHero ? "buscar-servicos" : undefined}
       >
         <div className="home-section-heading">
           <div>
@@ -1144,6 +1146,6 @@ export function ExplorePage() {
           </li>
         </ol>
       </section>
-    </main>
+    </div>
   );
 }

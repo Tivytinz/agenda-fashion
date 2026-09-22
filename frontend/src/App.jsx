@@ -5,11 +5,10 @@ import { ProtectedRoute } from "./auth/ProtectedRoute";
 import { useSession } from "./auth/SessionContext";
 import { AppHeader } from "./components/AppHeader";
 import { MarketingMetricGlossary } from "./components/MarketingMetricGlossary";
-import { MetaAdsBridge } from "./components/MetaAdsBridge";
 import { LegalFooter } from "./components/LegalFooter";
 import { WorkspaceLayout } from "./components/WorkspaceLayout";
 import { markRuntimeReady } from "./utils/runtimeRecovery";
-import { ExplorePage } from "./pages/ExplorePage";
+import { HomePage } from "./pages/HomePage";
 
 function lazyNamed(importer, name) {
   return lazy(() =>
@@ -88,6 +87,10 @@ const AdminWhatsAppPage = lazyNamedWithStyles(
   loadAdminWhatsAppStyles,
   () => import("./pages/AdminWhatsAppPage"),
   "AdminWhatsAppPage"
+);
+const MetaAdsBridge = lazyNamed(
+  () => import("./components/MetaAdsBridge"),
+  "MetaAdsBridge"
 );
 const AuthPage = lazyNamed(() => import("./pages/AuthPage"), "AuthPage");
 const PasswordResetPage = lazyNamed(
@@ -208,7 +211,7 @@ export default function App() {
       <AppHeader />
       <Suspense fallback={<main><div className="container route-loading">Carregando...</div></main>}>
         <Routes>
-          <Route path={reactRoutes.home} element={<ExplorePage />} />
+          <Route path={reactRoutes.home} element={<HomePage />} />
           <Route path={reactRoutes.professionalLanding} element={<ProfessionalLandingPage />} />
           <Route path={reactRoutes.localCatalog} element={<LocalCatalogPage />} />
           <Route path={reactRoutes.businessProfile} element={<ProfilePage />} />
@@ -340,7 +343,9 @@ export default function App() {
           <Route path="*" element={<NotFoundPage />} />
         </Routes>
       </Suspense>
-      <MetaAdsBridge />
+      <Suspense fallback={null}>
+        <MetaAdsBridge />
+      </Suspense>
       <LegalFooter />
     </div>
   );
