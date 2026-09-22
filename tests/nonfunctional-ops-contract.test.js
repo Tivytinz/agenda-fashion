@@ -45,6 +45,11 @@ describe(
         expect(
           runbook
         ).toContain(
+          "não fecha sozinha o"
+        );
+        expect(
+          runbook
+        ).toContain(
           "não equivale"
         );
         expect(
