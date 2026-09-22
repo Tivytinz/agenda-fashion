@@ -238,51 +238,77 @@ async function sincronizarPublicacaoAutomatica(
 ) {
   const result = await executor.query(
     `
-      WITH elegibilidade AS (
+      WITH contexto AS (
         SELECT
           n.id,
+          n.publicado,
+          n.publicacao_exige_agenda,
+          n.primeira_publicacao_em,
+          (
+            NULLIF(BTRIM(COALESCE(n.nome, '')), '') IS NOT NULL
+            AND (
+              COALESCE(cardinality(n.areas), 0) > 0
+              OR NULLIF(BTRIM(COALESCE(n.setor, '')), '') IS NOT NULL
+            )
+            AND COALESCE(n.whatsapp, '') ~ '^[0-9]{10,11}$'
+            AND NULLIF(BTRIM(COALESCE(n.cidade, '')), '') IS NOT NULL
+            AND UPPER(BTRIM(COALESCE(n.estado, ''))) IN (
+              'AC', 'AL', 'AP', 'AM', 'BA', 'CE', 'DF', 'ES', 'GO',
+              'MA', 'MT', 'MS', 'MG', 'PA', 'PB', 'PR', 'PE', 'PI',
+              'RJ', 'RN', 'RS', 'RO', 'RR', 'SC', 'SP', 'SE', 'TO'
+            )
+            AND NULLIF(BTRIM(COALESCE(n.bairro, '')), '') IS NOT NULL
+            AND NULLIF(BTRIM(COALESCE(n.endereco, '')), '') IS NOT NULL
+            AND NULLIF(BTRIM(COALESCE(n.numero, '')), '') IS NOT NULL
+            AND COALESCE(n.cep, '') ~ '^[0-9]{8}$'
+            AND NULLIF(BTRIM(COALESCE(n.localizacao_url, '')), '') IS NOT NULL
+            AND BTRIM(n.localizacao_url) ~* '^https?://[^[:space:]/?#]+([/?#][^[:space:]]*)?$'
+          ) AS estrutura_valida,
+          EXISTS (
+            SELECT 1
+            FROM servicos_negocio s
+            WHERE s.negocio_id = n.id
+              AND s.ativo = TRUE
+          ) AS tem_servico_ativo
+        FROM negocios n
+        WHERE n.id = $1
+      ),
+      elegibilidade AS (
+        SELECT
+          c.id,
           CASE
             WHEN
               $2::BOOLEAN = TRUE
-              AND n.publicacao_exige_agenda IS NOT TRUE
-              AND n.publicado = TRUE
+              AND c.publicacao_exige_agenda IS NOT TRUE
+              AND c.publicado = TRUE
             THEN TRUE
             ELSE (
-              NULLIF(BTRIM(COALESCE(n.nome, '')), '') IS NOT NULL
+              c.estrutura_valida
+              AND c.tem_servico_ativo
+            )
+          END AS pode_publicar,
+          CASE
+            WHEN
+              $2::BOOLEAN = TRUE
+              AND c.publicacao_exige_agenda IS NOT TRUE
+              AND c.publicado = TRUE
+            THEN TRUE
+            ELSE (
+              c.estrutura_valida
               AND (
-                COALESCE(cardinality(n.areas), 0) > 0
-                OR NULLIF(BTRIM(COALESCE(n.setor, '')), '') IS NOT NULL
-              )
-              AND COALESCE(n.whatsapp, '') ~ '^[0-9]{10,11}$'
-              AND NULLIF(BTRIM(COALESCE(n.cidade, '')), '') IS NOT NULL
-              AND UPPER(BTRIM(COALESCE(n.estado, ''))) IN (
-                'AC', 'AL', 'AP', 'AM', 'BA', 'CE', 'DF', 'ES', 'GO',
-                'MA', 'MT', 'MS', 'MG', 'PA', 'PB', 'PR', 'PE', 'PI',
-                'RJ', 'RN', 'RS', 'RO', 'RR', 'SC', 'SP', 'SE', 'TO'
-              )
-              AND NULLIF(BTRIM(COALESCE(n.bairro, '')), '') IS NOT NULL
-              AND NULLIF(BTRIM(COALESCE(n.endereco, '')), '') IS NOT NULL
-              AND NULLIF(BTRIM(COALESCE(n.numero, '')), '') IS NOT NULL
-              AND COALESCE(n.cep, '') ~ '^[0-9]{8}$'
-              AND NULLIF(BTRIM(COALESCE(n.localizacao_url, '')), '') IS NOT NULL
-              AND BTRIM(n.localizacao_url) ~* '^https?://[^[:space:]/?#]+([/?#][^[:space:]]*)?$'
-              AND EXISTS (
-                SELECT 1
-                FROM servicos_negocio s
-                WHERE s.negocio_id = n.id
-                  AND s.ativo = TRUE
+                c.tem_servico_ativo
+                OR c.primeira_publicacao_em IS NOT NULL
               )
             )
-          END AS pode_publicar
-        FROM negocios n
-        WHERE n.id = $1
+          END AS pode_permanecer_publicado
+        FROM contexto c
       )
       UPDATE negocios n
       SET
         publicado = CASE
           WHEN n.despublicado_manual_em IS NOT NULL
             THEN FALSE
-          ELSE e.pode_publicar
+          ELSE e.pode_permanecer_publicado
         END,
         primeira_publicacao_em = CASE
           WHEN
@@ -296,7 +322,7 @@ async function sincronizarPublicacaoAutomatica(
             CASE
               WHEN n.despublicado_manual_em IS NOT NULL
                 THEN FALSE
-              ELSE e.pode_publicar
+              ELSE e.pode_permanecer_publicado
             END
           )
             THEN NOW()
@@ -308,6 +334,7 @@ async function sincronizarPublicacaoAutomatica(
         n.id,
         n.publicado,
         e.pode_publicar,
+        e.pode_permanecer_publicado,
         n.primeira_publicacao_em,
         n.despublicado_manual_em
     `,
