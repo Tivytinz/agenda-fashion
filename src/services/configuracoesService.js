@@ -584,6 +584,9 @@ async function alterarPublicacao({
     ...negocioAtual,
     publicado:
       resultado.publicado,
+    despublicado_manual_em:
+      resultado.despublicado_manual_em ??
+      null,
   };
 
   return montarRespostaNegocio({
