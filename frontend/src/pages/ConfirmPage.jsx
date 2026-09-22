@@ -302,8 +302,14 @@ export function ConfirmPage() {
         state: {
           booking,
           customer: {
-            name: normalizedName,
-            whatsapp: normalizedPhone
+            name:
+              result.agendamento
+                ?.cliente_nome ||
+              normalizedName,
+            whatsapp:
+              result.agendamento
+                ?.cliente_whatsapp ||
+              normalizedPhone
           },
           result
         }
