@@ -191,6 +191,82 @@ async function obterOuCriarCliente({
   return null;
 }
 
+async function resolverIdentificacaoCliente({
+  clienteId,
+  clienteNome,
+  clienteWhatsapp,
+  consentimentoVisitante = false,
+}) {
+  const id = normalizarId(
+    clienteId
+  );
+
+  if (!id) {
+    const visitante =
+      validarIdentificacaoVisitante({
+        clienteNome,
+        clienteWhatsapp,
+      });
+
+    return {
+      clienteId: null,
+      clienteNome:
+        visitante.clienteNome,
+      clienteWhatsapp:
+        visitante.clienteWhatsapp,
+      whatsappConsentido:
+        consentimentoVisitante ===
+        true,
+    };
+  }
+
+  const conta =
+    await agendaPublicaRepository
+      .buscarPreferenciaNotificacoesWhatsapp(
+        id
+      );
+
+  if (!conta) {
+    throw criarErro(
+      "Usuário não autenticado.",
+      401
+    );
+  }
+
+  const nome =
+    normalizarTexto(
+      conta.nome,
+      120
+    );
+  const whatsapp =
+    normalizarWhatsapp(
+      conta.whatsapp
+    );
+
+  if (
+    nome.length < 2 ||
+    ![10, 11].includes(
+      whatsapp.length
+    )
+  ) {
+    throw criarErro(
+      "Atualize seu nome e WhatsApp na conta antes de agendar.",
+      422
+    );
+  }
+
+  return {
+    clienteId: id,
+    clienteNome: nome,
+    clienteWhatsapp:
+      whatsapp,
+    whatsappConsentido:
+      conta
+        .aceita_notificacoes_whatsapp ===
+      true,
+  };
+}
+
 async function resolverConsentimentoWhatsapp({
   clienteId,
   clienteWhatsapp,
@@ -704,6 +780,7 @@ module.exports = {
   buscarDadosBaseAgenda,
   buscarDisponibilidade,
   obterOuCriarCliente,
+  resolverIdentificacaoCliente,
   resolverConsentimentoWhatsapp,
   validarHorarioDisponivel,
   criarAgendamento,
