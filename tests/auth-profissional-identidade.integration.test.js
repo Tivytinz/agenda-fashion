@@ -245,7 +245,7 @@ describe("Wave 10 - identidade profissional P0", () => {
         `Bearer ${token(dona.id)}`
       )
       .send({
-        email:
+        emailOuWhatsapp:
           convidada.email,
       });
 
