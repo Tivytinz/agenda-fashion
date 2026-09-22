@@ -367,6 +367,17 @@ Conversão do perfil deve usar visitas externas ao negócio como denominador e
 agendamentos reais não cancelados como resultado. Eventos de navegador são
 telemetria diagnóstica e não substituem a tabela `agendamentos`.
 
+Eventos críticos do ciclo de booking (`booking_created`,
+`booking_rescheduled`, `booking_cancelled`, `booking_completed` e
+`booking_no_show`) são fatos de domínio emitidos pelo backend a partir do
+estado persistido e gravados em `analytics_eventos` com
+`origem='backend'`. Eles usam `event_uuid` como `event_id` externo,
+`occurred_at`, IDs de profissional/negócio/Client/agendamento/serviço
+aplicáveis e atores humanos padronizados. Essas gravações participam da mesma
+transação lógica da mutação do booking para evitar evento sem estado ou estado
+crítico sem evento. Telemetria homônima do frontend permanece diagnóstica e não
+deve ser somada a esses fatos transacionais.
+
 Durante a migração de Analytics, `eventos_produto` e o Analytics V2 first-party
 podem coexistir. Eventos equivalentes devem ser reconciliados em uma janela
 comparável, nunca somados como se fossem fontes independentes de verdade. A
