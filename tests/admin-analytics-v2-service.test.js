@@ -60,6 +60,7 @@ describe("adminAnalyticsV2Service", () => {
       negocios_criados: 70,
       negocios_publicados: 60,
       agendamentos_validos: 18,
+      clientes_com_agendamento: 14,
       primeiros_agendamentos: 10,
       pagamentos_confirmados: 4,
       negocios_com_pagamento: 3,
@@ -85,6 +86,11 @@ describe("adminAnalyticsV2Service", () => {
     const resultado = await buscarOverview("30");
 
     expect(resultado.aquisicao.cadastrosProfissionais).toBe(10);
+    expect(resultado.entidades).toEqual({
+      profissionaisNoFunil: 10,
+      negociosCriados: 8,
+      clientesComAgendamento: 14,
+    });
     expect(resultado.ativacao).toMatchObject({
       negociosCriados: 8,
       servicosCriados: 7,
