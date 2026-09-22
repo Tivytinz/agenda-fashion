@@ -52,6 +52,7 @@ async function buscarUsuarioPorId(
         END AS aceita_notificacoes_whatsapp,
 
         ativo,
+        perfil_profissional_ativado_em,
         email_verificado_em,
         ultimo_login_em,
         senha_alterada_em,
