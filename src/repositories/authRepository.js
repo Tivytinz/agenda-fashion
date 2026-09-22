@@ -99,6 +99,7 @@ async function buscarUsuarioPorId(
           AND whatsapp_marketing_cancelado_em IS NULL
         ) AS aceita_lembretes_whatsapp,
         google_sub,
+        perfil_profissional_ativado_em,
         ativo,
         email_verificado_em,
         ultimo_login_em,
