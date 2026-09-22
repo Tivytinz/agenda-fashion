@@ -35,6 +35,8 @@ describe("regressão do cancelamento autenticado da cliente", () => {
   let servicoId;
   let agendamentoId;
   let clienteId;
+  let donoId;
+  let profissionalId;
 
   beforeAll(async () => {
     const chave = identificador();
@@ -60,8 +62,8 @@ describe("regressão do cancelamento autenticado da cliente", () => {
       return resultado.rows[0].id;
     }
 
-    const donoId = await criarUsuario("Dona Regressão", "dona-regressao");
-    const profissionalId = await criarUsuario(
+    donoId = await criarUsuario("Dona Regressão", "dona-regressao");
+    profissionalId = await criarUsuario(
       "Profissional Regressão",
       "prof-regressao"
     );
@@ -153,6 +155,10 @@ describe("regressão do cancelamento autenticado da cliente", () => {
           [negocioId]
         );
         await db.query(
+          `DELETE FROM notificacoes WHERE negocio_id = $1`,
+          [negocioId]
+        );
+        await db.query(
           `DELETE FROM agendamentos WHERE negocio_id = $1`,
           [negocioId]
         );
@@ -181,7 +187,7 @@ describe("regressão do cancelamento autenticado da cliente", () => {
     }
   });
 
-  test("cliente continua cancelando pelo endpoint original e registra sua própria origem", async () => {
+  test("CA-AG-08: cliente cancela diretamente, libera o booking e notifica profissional e negócio", async () => {
     const resposta = await request(app)
       .patch(`/agendamentos/${agendamentoId}/cancelar`)
       .set("Authorization", `Bearer ${token(clienteId)}`)
@@ -217,5 +223,42 @@ describe("regressão do cancelamento autenticado da cliente", () => {
       motivo_cancelamento: null,
     });
     expect(persistido.rows[0].cancelado_em).toBeTruthy();
+
+    const notificacoes = await db.query(
+      `
+        SELECT usuario_id
+        FROM notificacoes
+        WHERE agendamento_id = $1
+          AND titulo = 'Agendamento cancelado'
+      `,
+      [agendamentoId]
+    );
+
+    expect(
+      new Set(
+        notificacoes.rows.map(
+          (item) => Number(item.usuario_id)
+        )
+      )
+    ).toEqual(
+      new Set([
+        Number(donoId),
+        Number(profissionalId),
+      ])
+    );
+
+    const ativo = await db.query(
+      `
+        SELECT COUNT(*)::INT AS total
+        FROM agendamentos
+        WHERE id = $1
+          AND status IN ('agendado', 'confirmado')
+      `,
+      [agendamentoId]
+    );
+
+    expect(
+      Number(ativo.rows[0]?.total)
+    ).toBe(0);
   });
 });
