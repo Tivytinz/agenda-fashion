@@ -65,9 +65,38 @@ jobs:
           command -v xvfb-run
           npx --yes lighthouse@13.5.0 --version
 
-      - name: Measure mobile LCP
+      - name: Build branch frontend
+        run: npm --prefix frontend run build
+
+      - name: Start branch preview
+        shell: bash
+        env:
+          PERF_API_PROXY_TARGET: https://app.agendafashion.com.br
+        run: |
+          npm --prefix frontend exec -- vite preview --host 127.0.0.1 --port 4173 > /tmp/af-perf-preview.log 2>&1 &
+          echo $! > /tmp/af-perf-preview.pid
+          for attempt in {1..20}; do
+            if curl --fail --silent --show-error http://127.0.0.1:4173/ >/dev/null; then
+              exit 0
+            fi
+            sleep 1
+          done
+          cat /tmp/af-perf-preview.log >&2
+          exit 1
+
+      - name: Measure branch mobile LCP
         working-directory: frontend
+        env:
+          PERF_TARGET_URL: http://127.0.0.1:4173
         run: xvfb-run -a node scripts/performance-lcp.mjs
+
+      - name: Stop branch preview
+        if: always()
+        shell: bash
+        run: |
+          if [ -f /tmp/af-perf-preview.pid ]; then
+            kill "$(cat /tmp/af-perf-preview.pid)" || true
+          fi
 
       - name: Upload performance evidence
         if: always()
