@@ -65,6 +65,8 @@ function criarUsuario(
     email: "victor@email.com",
     senha: "$2b$10$hashDaSenha",
     whatsapp: "62999999999",
+    perfil_profissional_ativado_em:
+      null,
     ativo: true,
     email_verificado_em: null,
     ultimo_login_em: null,
@@ -173,6 +175,9 @@ describe("Autenticação com conta única", () => {
 
           aceitaLembretesWhatsapp:
             false,
+
+          ativarPerfilProfissional:
+            false,
         });
 
         expect(
@@ -232,6 +237,55 @@ describe("Autenticação com conta única", () => {
         ).not.toHaveProperty(
           "papel"
         );
+      }
+    );
+
+    test(
+      "CA-AUT-01: cadastro profissional ativa o perfil na mesma identidade",
+      async () => {
+        authRepository
+          .buscarUsuarioPorEmail
+          .mockResolvedValue(null);
+
+        authRepository
+          .criarUsuario
+          .mockResolvedValue(
+            criarUsuario({
+              perfil_profissional_ativado_em:
+                "2026-09-22T19:00:00.000Z",
+            })
+          );
+
+        const resposta =
+          await request(app)
+            .post("/cadastro")
+            .send({
+              nome: "Ana Profissional",
+              email: "ana.profissional@email.com",
+              whatsapp: "62999998888",
+              senha: "senha123",
+              perfil_profissional: true,
+            });
+
+        expect(
+          resposta.status
+        ).toBe(201);
+
+        expect(
+          authRepository.criarUsuario
+        ).toHaveBeenCalledWith(
+          expect.objectContaining({
+            email:
+              "ana.profissional@email.com",
+            ativarPerfilProfissional:
+              true,
+          })
+        );
+
+        expect(
+          resposta.body.usuario
+            .perfil_profissional_ativo
+        ).toBe(true);
       }
     );
 
