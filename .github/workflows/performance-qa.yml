@@ -65,6 +65,9 @@ jobs:
           command -v xvfb-run
           npx --yes lighthouse@13.5.0 --version
 
+      - name: Install frontend dependencies
+        run: npm --prefix frontend ci
+
       - name: Build branch frontend
         run: npm --prefix frontend run build
 
