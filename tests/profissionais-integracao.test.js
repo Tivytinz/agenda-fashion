@@ -5,6 +5,9 @@ const jwt = require("jsonwebtoken");
 
 const app = require("../src/server");
 const db = require("../src/db/db");
+const {
+  reconciliarLimiteProfissionais,
+} = require("../src/services/equipePlanoService");
 
 function gerarSufixoUnico() {
   return `${Date.now()}${Math.floor(Math.random() * 10000)}`;
@@ -450,6 +453,199 @@ describe("Fluxo de profissionais com banco real", () => {
         ativo: true,
         motivo_inatividade: null,
       }]);
+    } finally {
+      await db.query(
+        "UPDATE planos SET limite_profissionais = 5 WHERE id = $1",
+        [planoEquipeId]
+      );
+    }
+  });
+
+  test("CA-PLN-06: downgrade preserva dona e reservas e inativa as ativações mais recentes", async () => {
+    const profissionalAntiga = await criarUsuario(
+      "Profissional Antiga Downgrade",
+      "downgrade-antiga",
+      7
+    );
+    const profissionalRecente = await criarUsuario(
+      "Profissional Recente Downgrade",
+      "downgrade-recente",
+      8
+    );
+
+    await db.query(
+      `
+      INSERT INTO usuarios_negocios (
+        usuario_id,
+        negocio_id,
+        papel,
+        ativo,
+        ativado_em
+      )
+      VALUES
+        ($1, $3, 'profissional', TRUE, NOW() - INTERVAL '2 days'),
+        ($2, $3, 'profissional', TRUE, NOW() - INTERVAL '1 day')
+      `,
+      [
+        profissionalAntiga.id,
+        profissionalRecente.id,
+        negocioB.id,
+      ]
+    );
+
+    const servico = await db.query(
+      `
+      INSERT INTO servicos_negocio (
+        negocio_id,
+        nome,
+        valor,
+        duracao_minutos,
+        categoria,
+        ativo
+      )
+      VALUES ($1, $2, 50, 60, 'unha', TRUE)
+      RETURNING id
+      `,
+      [
+        negocioB.id,
+        `Serviço downgrade ${sufixo}`,
+      ]
+    );
+
+    const agendamento = await db.query(
+      `
+      INSERT INTO agendamentos (
+        negocio_id,
+        servico_id,
+        profissional_id,
+        cliente_id,
+        data,
+        horario,
+        status,
+        valor_servico,
+        duracao_minutos
+      )
+      VALUES (
+        $1,
+        $2,
+        $3,
+        $4,
+        (CURRENT_TIMESTAMP AT TIME ZONE 'America/Sao_Paulo')::date + 3,
+        '11:00',
+        'confirmado',
+        50,
+        60
+      )
+      RETURNING id
+      `,
+      [
+        negocioB.id,
+        servico.rows[0].id,
+        profissionalRecente.id,
+        donoA.id,
+      ]
+    );
+    agendamentosCriados.push(
+      agendamento.rows[0].id
+    );
+
+    await db.query(
+      "UPDATE planos SET limite_profissionais = 2 WHERE id = $1",
+      [planoEquipeId]
+    );
+
+    try {
+      const inativadas =
+        await db.executarTransacao(
+          (client) =>
+            reconciliarLimiteProfissionais(
+              negocioB.id,
+              client
+            )
+        );
+
+      expect(inativadas).toEqual([
+        expect.objectContaining({
+          usuario_id: profissionalRecente.id,
+          ativo: false,
+          motivo_inatividade:
+            "excedente_limite_plano",
+        }),
+      ]);
+
+      const vinculos = await db.query(
+        `
+        SELECT
+          usuario_id,
+          papel,
+          ativo,
+          motivo_inatividade
+        FROM usuarios_negocios
+        WHERE negocio_id = $1
+        ORDER BY usuario_id
+        `,
+        [negocioB.id]
+      );
+
+      const dona = vinculos.rows.find(
+        (item) =>
+          Number(item.usuario_id) ===
+          Number(donoB.id)
+      );
+      const antiga = vinculos.rows.find(
+        (item) =>
+          Number(item.usuario_id) ===
+          Number(profissionalAntiga.id)
+      );
+      const recente = vinculos.rows.find(
+        (item) =>
+          Number(item.usuario_id) ===
+          Number(profissionalRecente.id)
+      );
+
+      expect(dona).toMatchObject({
+        papel: "dono",
+        ativo: true,
+      });
+      expect(antiga).toMatchObject({
+        papel: "profissional",
+        ativo: true,
+      });
+      expect(recente).toMatchObject({
+        papel: "profissional",
+        ativo: false,
+        motivo_inatividade:
+          "excedente_limite_plano",
+      });
+
+      const reservaPreservada = await db.query(
+        `
+        SELECT id, status, profissional_id
+        FROM agendamentos
+        WHERE id = $1
+        `,
+        [agendamento.rows[0].id]
+      );
+
+      expect(reservaPreservada.rows).toEqual([
+        expect.objectContaining({
+          id: agendamento.rows[0].id,
+          status: "confirmado",
+          profissional_id:
+            profissionalRecente.id,
+        }),
+      ]);
+
+      await db.query(
+        `
+        UPDATE agendamentos
+        SET
+          status = 'cancelado',
+          cancelado_em = NOW()
+        WHERE id = $1
+        `,
+        [agendamento.rows[0].id]
+      );
     } finally {
       await db.query(
         "UPDATE planos SET limite_profissionais = 5 WHERE id = $1",
