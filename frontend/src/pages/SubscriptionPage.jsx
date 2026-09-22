@@ -144,7 +144,7 @@ export function SubscriptionPage() {
   const [error, setError] = useState("");
   const [message, setMessage] = useState(() =>
     location.state?.payment === "confirmed"
-      ? "Pagamento confirmado. Seu plano foi atualizado."
+      ? "Pagamento confirmado. Estamos concluindo a ativação do seu plano."
       : ""
   );
   const [canceling, setCanceling] = useState(false);
@@ -190,6 +190,8 @@ export function SubscriptionPage() {
   const plan = data.plano || {};
   const subscription = data.assinatura || null;
   const usage = data.uso || {};
+  const billingState =
+    data.estado_assinatura?.codigo || null;
   const pendingUpgrade = data.upgrade_pendente || null;
   const pendingPlan = pendingUpgrade?.plano || null;
   const pendingPayment = pendingUpgrade?.pagamento || null;
@@ -243,6 +245,37 @@ export function SubscriptionPage() {
 
       {error && <p className="form-error" role="alert">{error}</p>}
       {message && <p className="form-success" role="status">{message}</p>}
+
+      {billingState === "FALHA_DE_PAGAMENTO" && (
+        <section
+          className="panel subscription-pending-upgrade"
+          role="alert"
+        >
+          <strong>Falha de pagamento</strong>
+          <p className="muted">
+            O acesso pago foi suspenso e o plano Grátis está valendo agora.
+            Se o pagamento for recuperado e confirmado, o AF reativa a
+            assinatura sem apagar os dados do negócio.
+          </p>
+        </section>
+      )}
+
+      {billingState === "CHECKOUT_EXPIRADO" && (
+        <section
+          className="panel subscription-pending-upgrade"
+          role="status"
+        >
+          <strong>Checkout expirado</strong>
+          <p className="muted">
+            O pagamento inicial não foi confirmado. O plano Grátis continua
+            valendo e nenhum benefício pago foi liberado.
+          </p>
+          <Link className="text-link" to="/planos">
+            Escolher um plano
+          </Link>
+        </section>
+      )}
+
       {hasPendingUpgrade && (
         <section className="panel subscription-pending-upgrade" role="status">
           <strong>PIX do plano {pendingPlan.nome} aguardando pagamento.</strong>
