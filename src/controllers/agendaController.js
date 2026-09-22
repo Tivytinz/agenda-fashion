@@ -42,7 +42,9 @@ async function alternarBloqueioHorario(req, res, next) {
       usuarioId: req.user?.id,
       data: req.body.data,
       hora: req.body.hora,
-      profissionalIdSolicitado: req.body.profissional_id
+      profissionalIdSolicitado: req.body.profissional_id,
+      negocioIdContexto:
+        req.agendaContexto?.negocioId
     });
 
     return res.json(resultado);
