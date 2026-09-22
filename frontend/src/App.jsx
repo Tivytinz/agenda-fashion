@@ -159,6 +159,10 @@ const MyAppointmentsPage = lazyNamed(
   () => import("./pages/MyAppointmentsPage"),
   "MyAppointmentsPage"
 );
+const InactiveBookingAccessPage = lazyNamed(
+  () => import("./pages/InactiveBookingAccessPage"),
+  "InactiveBookingAccessPage"
+);
 const ProfilePage = lazyNamed(() => import("./pages/ProfilePage"), "ProfilePage");
 const SuccessPage = lazyNamed(() => import("./pages/SuccessPage"), "SuccessPage");
 const PrivacyPage = lazyNamed(() => import("./pages/PrivacyPage"), "PrivacyPage");
@@ -204,6 +208,10 @@ export default function App() {
           <Route path={reactRoutes.confirm} element={<ConfirmPage />} />
           <Route path={reactRoutes.success} element={<SuccessPage />} />
           <Route path={reactRoutes.myAgenda} element={<MyAppointmentsPage />} />
+          <Route
+            path={reactRoutes.inactiveBookingAccess}
+            element={<InactiveBookingAccessPage />}
+          />
           <Route path={reactRoutes.login} element={<AuthPage />} />
           <Route path={reactRoutes.register} element={<AuthPage mode="register" />} />
           <Route path={reactRoutes.forgotPassword} element={<PasswordResetPage />} />
