@@ -177,7 +177,7 @@ A migration apenas amplia o `CHECK` dos tipos permitidos em
 
 ## Templates da Meta
 
-Crie os seis templates transacionais na categoria `UTILITY`, idioma
+Crie os sete templates transacionais na categoria `UTILITY`, idioma
 `Portuguese (BR)`. Os dois templates de ativação descritos depois pertencem à
 categoria `MARKETING`. Os nomes e a ordem das variáveis precisam ser exatamente
 os mesmos usados pelo backend.
