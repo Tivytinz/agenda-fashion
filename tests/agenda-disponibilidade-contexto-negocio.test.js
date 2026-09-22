@@ -120,7 +120,7 @@ describe("disponibilidade contextual por negócio", () => {
     ).toHaveBeenCalledTimes(1);
   });
 
-  test("lê configuração recorrente no negócio e mantém ocupação global da pessoa", async () => {
+  test("CA-AG-01: lê disponibilidade e bloqueios do vínculo, mantendo ocupação global da pessoa", async () => {
     await agendaDisponibilidadeService.buscarDisponibilidade({
       profissionalId: 7,
       negocioId: 20,
@@ -150,6 +150,7 @@ describe("disponibilidade contextual por negócio", () => {
       agendaPublicaRepository.listarBloqueios
     ).toHaveBeenCalledWith(
       7,
+      20,
       "2026-09-21",
       "2026-09-21"
     );
