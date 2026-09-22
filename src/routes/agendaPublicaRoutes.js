@@ -38,14 +38,19 @@ function anexarAcessoVisitante(
       res.statusCode === 201 &&
       body?.agendamento?.id
     ) {
+      const acessoVisitante =
+        gerarAcessoVisitante(
+          body.agendamento.id
+        );
+
       return responderJson({
         ...body,
         agendamento: {
           ...body.agendamento,
           acesso_visitante:
-            gerarAcessoVisitante(
-              body.agendamento.id
-            ),
+            acessoVisitante,
+          link_cancelamento_visitante:
+            `/agendamento-visitante/${body.agendamento.id}#token=${encodeURIComponent(acessoVisitante)}`,
         },
       });
     }
