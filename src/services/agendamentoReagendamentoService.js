@@ -441,15 +441,25 @@ async function reagendarOperacional({
         );
       }
 
-      const inicioAnterior =
+      const inicioAnteriorCanonico =
         Date.parse(
           String(
             atual.inicio_previsto_em ||
             ""
           )
         );
+      const inicioAnterior =
+        Number.isNaN(
+          inicioAnteriorCanonico
+        )
+          ? converterDataHoraLocalParaTimestamp(
+              atual.data,
+              atual.horario
+            )
+          : inicioAnteriorCanonico;
 
       if (
+        inicioAnterior !== null &&
         !Number.isNaN(
           inicioAnterior
         ) &&
