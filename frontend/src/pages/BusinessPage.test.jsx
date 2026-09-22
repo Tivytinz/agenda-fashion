@@ -464,6 +464,107 @@ describe("publicação do negócio", () => {
     expect(refreshSession).toHaveBeenCalledTimes(1);
   });
 
+  it("CA-NEG-05: mantém a escolha manual de ocultar visível e exige republicação explícita", async () => {
+    const confirmSpy = vi
+      .spyOn(window, "confirm")
+      .mockReturnValue(true);
+
+    apiRequest
+      .mockResolvedValueOnce({
+        negocio: {
+          ...BUSINESS,
+          publicado: true
+        },
+        publicacao: {
+          publicado: true,
+          pode_publicar: true,
+          oculto_manual: false,
+          pendencias: []
+        }
+      })
+      .mockResolvedValueOnce({
+        mensagem:
+          "Seu negócio foi despublicado e permanecerá oculto até você publicar novamente.",
+        publicacao: {
+          publicado: false,
+          pode_publicar: true,
+          oculto_manual: true,
+          pendencias: []
+        }
+      })
+      .mockResolvedValueOnce({
+        mensagem:
+          "Seu negócio está publicado e já pode aparecer para clientes.",
+        publicacao: {
+          publicado: true,
+          pode_publicar: true,
+          oculto_manual: false,
+          pendencias: []
+        }
+      });
+
+    renderPage();
+
+    const hideButton =
+      await screen.findByRole(
+        "button",
+        { name: "Ocultar da busca" }
+      );
+
+    fireEvent.click(hideButton);
+
+    await waitFor(() => {
+      expect(apiRequest).toHaveBeenCalledWith(
+        "/configuracoes/publicacao",
+        {
+          method: "PATCH",
+          body: { publicado: false }
+        }
+      );
+    });
+
+    expect(confirmSpy).toHaveBeenCalledWith(
+      expect.stringMatching(
+        /só voltará a aparecer quando você escolher Mostrar na busca/i
+      )
+    );
+    expect(
+      await screen.findByText(
+        /continuará fora da busca e do perfil público/i
+      )
+    ).not.toBeNull();
+
+    const showButton = screen.getByRole(
+      "button",
+      { name: "Mostrar na busca" }
+    );
+    expect(showButton.disabled).toBe(false);
+
+    fireEvent.click(showButton);
+
+    await waitFor(() => {
+      expect(apiRequest).toHaveBeenLastCalledWith(
+        "/configuracoes/publicacao",
+        {
+          method: "PATCH",
+          body: { publicado: true }
+        }
+      );
+    });
+
+    expect(
+      await screen.findByRole(
+        "heading",
+        {
+          name:
+            "Seu negócio está visível para clientes"
+        }
+      )
+    ).not.toBeNull();
+
+    confirmSpy.mockRestore();
+  });
+
   it("mostra o que falta e bloqueia a publicação incompleta", async () => {
     apiRequest.mockResolvedValueOnce({
       negocio: { ...BUSINESS, descricao: "", cidade: "" },

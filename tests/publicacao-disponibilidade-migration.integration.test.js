@@ -23,6 +23,7 @@ describe("migração da publicação e disponibilidade automática", () => {
         CREATE TABLE negocios (
           id INT PRIMARY KEY, ativo BOOLEAN DEFAULT TRUE, publicado BOOLEAN DEFAULT FALSE,
           publicacao_exige_agenda BOOLEAN DEFAULT TRUE, primeira_publicacao_em TIMESTAMPTZ,
+          despublicado_manual_em TIMESTAMPTZ,
           updated_at TIMESTAMPTZ DEFAULT NOW(), nome TEXT DEFAULT 'Studio Teste',
           areas TEXT[] DEFAULT ARRAY['Unhas'], setor TEXT DEFAULT 'Unhas',
           whatsapp TEXT DEFAULT '62999999999', cidade TEXT DEFAULT 'Goiânia', estado TEXT DEFAULT 'GO',

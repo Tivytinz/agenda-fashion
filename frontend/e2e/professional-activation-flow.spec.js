@@ -97,7 +97,7 @@ function serviceField(page, labelText, control) {
   return page.locator("label").filter({ hasText: labelText }).locator(control).first();
 }
 
-test("profissional vai da landing à publicação, confirma a agenda sugerida e chega à divulgação", async ({ page }) => {
+test("CA-NEG-01/04: profissional cria o primeiro negócio, publica com o primeiro serviço e chega à divulgação", async ({ page }) => {
   let businessCreated = false;
   let serviceCreated = false;
   let scheduleSaved = false;

@@ -81,6 +81,7 @@ async function buscarNegocioPorId(
 
           n.publicado,
           n.publicacao_exige_agenda,
+          n.despublicado_manual_em,
 
           n.cidade,
           n.estado,
@@ -276,6 +277,7 @@ async function atualizarNegocio(
 
           publicado,
           publicacao_exige_agenda,
+          despublicado_manual_em,
 
           cidade,
           estado,
@@ -372,10 +374,32 @@ async function atualizarPublicacao(
   publicado
 ) {
   if (publicado === true) {
-    return servicosRepository
-      .sincronizarPublicacaoAutomatica(
-        negocioId
-      );
+    return db.executarTransacao(
+      async (client) => {
+        const desbloqueio =
+          await client.query(
+            `
+              UPDATE negocios
+              SET
+                despublicado_manual_em = NULL,
+                updated_at = NOW()
+              WHERE id = $1
+              RETURNING id
+            `,
+            [negocioId]
+          );
+
+        if (!desbloqueio.rows[0]) {
+          return null;
+        }
+
+        return servicosRepository
+          .sincronizarPublicacaoAutomatica(
+            negocioId,
+            client
+          );
+      }
+    );
   }
 
   const resultado =
@@ -384,15 +408,18 @@ async function atualizarPublicacao(
         UPDATE negocios
 
         SET
-          publicado = $1,
+          publicado = FALSE,
+          despublicado_manual_em = NOW(),
           updated_at = NOW()
 
-        WHERE id = $2
+        WHERE id = $1
 
-        RETURNING id, publicado
+        RETURNING
+          id,
+          publicado,
+          despublicado_manual_em
       `,
       [
-        publicado,
         negocioId,
       ]
     );

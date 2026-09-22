@@ -562,6 +562,11 @@ function avaliarPublicacao(
     pode_publicar:
       pendencias.length === 0,
 
+    oculto_manual:
+      Boolean(
+        negocio?.despublicado_manual_em
+      ),
+
     pendencias,
   };
 }

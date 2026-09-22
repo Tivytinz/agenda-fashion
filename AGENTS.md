@@ -96,7 +96,15 @@ para o fluxo atual. Descrição, fotos e complemento permanecem opcionais quando
 contrato vigente assim definir.
 
 A publicação é automática quando o negócio atende aos requisitos estruturais e
-possui ao menos um serviço ativo.
+possui ao menos um serviço ativo, desde que a proprietária não tenha
+despublicado o perfil manualmente.
+
+A despublicação manual é uma intenção persistida em
+`negocios.despublicado_manual_em`. Enquanto esse marcador estiver preenchido,
+salvar o perfil, criar/editar/reativar serviços ou qualquer outra sincronização
+automática de elegibilidade não pode republicar o negócio. Somente uma ação
+explícita da proprietária para publicar novamente limpa o marcador; essa ação
+continua sujeita à elegibilidade validada no backend.
 
 **Configurar, confirmar ou personalizar horários não é gate de publicação.**
 A publicação deve ser decidida pelo backend antes da tela de horários aparecer
@@ -229,7 +237,6 @@ a experiência do produto normaliza situações relevantes como
 `FALHA_DE_PAGAMENTO` e `CHECKOUT_EXPIRADO`. Checkout inicial expirado não
 libera benefício pago e falha de renovação pode retornar temporariamente o
 negócio ao plano gratuito sem apagar dados.
-
 
 Um negócio pode possuir no máximo uma cobrança PIX pendente de contratação ou
 upgrade por vez, independentemente do plano escolhido. Trocar de plano antes do

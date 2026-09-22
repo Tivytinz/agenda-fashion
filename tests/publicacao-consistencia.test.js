@@ -77,7 +77,10 @@ describe("consistência da publicação do negócio", () => {
       "AREAS=COALESCE($15::TEXT[],ARRAY[]::TEXT[])"
     );
     expect(sqlPublicacao).toMatch(
-      /UPDATE negocios[\s\S]*publicado\s*=\s*e\.pode_publicar/i
+      /despublicado_manual_em\s+IS\s+NOT\s+NULL[\s\S]*THEN FALSE/i
+    );
+    expect(sqlPublicacao).toMatch(
+      /ELSE\s+e\.pode_publicar/i
     );
   });
 
@@ -95,14 +98,19 @@ describe("consistência da publicação do negócio", () => {
     expect(params).toEqual([11]);
   });
 
-  test("pedido manual de publicação também passa pela elegibilidade central", async () => {
-    mockQuery.mockResolvedValueOnce({
-      rows: [{
-        id: 11,
-        publicado: false,
-        pode_publicar: false
-      }]
-    });
+  test("pedido manual de publicação limpa a ocultação e passa pela elegibilidade central", async () => {
+    mockQuery
+      .mockResolvedValueOnce({
+        rows: [{ id: 11 }]
+      })
+      .mockResolvedValueOnce({
+        rows: [{
+          id: 11,
+          publicado: true,
+          pode_publicar: true,
+          despublicado_manual_em: null
+        }]
+      });
 
     const resultado =
       await configuracoesRepository
@@ -110,17 +118,60 @@ describe("consistência da publicação do negócio", () => {
           11,
           true
         );
+
+    const [sqlDesbloqueio, paramsDesbloqueio] =
+      mockQuery.mock.calls[0];
+    const [sqlPublicacao, paramsPublicacao] =
+      mockQuery.mock.calls[1];
+
+    expect(sqlDesbloqueio).toMatch(
+      /despublicado_manual_em\s*=\s*NULL/i
+    );
+    expect(paramsDesbloqueio).toEqual([11]);
+    expect(sqlPublicacao).toMatch(
+      /WITH elegibilidade[\s\S]*UPDATE negocios/i
+    );
+    expect(sqlPublicacao).toMatch(
+      /despublicado_manual_em\s+IS\s+NOT\s+NULL[\s\S]*THEN FALSE/i
+    );
+    expect(paramsPublicacao).toEqual([11, false]);
+    expect(resultado).toMatchObject({
+      publicado: true,
+      pode_publicar: true,
+      despublicado_manual_em: null
+    });
+  });
+
+  test("CA-NEG-05: despublicação manual registra intenção durável", async () => {
+    mockQuery.mockResolvedValueOnce({
+      rows: [{
+        id: 11,
+        publicado: false,
+        despublicado_manual_em: "2026-09-22T12:00:00.000Z"
+      }]
+    });
+
+    const resultado =
+      await configuracoesRepository
+        .atualizarPublicacao(
+          11,
+          false
+        );
+
     const [sql, params] =
       mockQuery.mock.calls[0];
 
     expect(sql).toMatch(
-      /WITH elegibilidade[\s\S]*UPDATE negocios[\s\S]*publicado\s*=\s*e\.pode_publicar/i
+      /publicado\s*=\s*FALSE/i
     );
-    expect(sql).not.toMatch(
-      /SET\s+publicado\s*=\s*\$1/i
+    expect(sql).toMatch(
+      /despublicado_manual_em\s*=\s*NOW\(\)/i
     );
-    expect(params).toEqual([11, false]);
-    expect(resultado.publicado).toBe(false);
+    expect(params).toEqual([11]);
+    expect(resultado).toMatchObject({
+      publicado: false,
+      despublicado_manual_em: expect.any(String)
+    });
   });
 
   test("a compatibilidade legada preserva uma publicação já existente", async () => {
@@ -149,7 +200,7 @@ describe("consistência da publicação do negócio", () => {
     expect(params).toEqual([11, true]);
   });
 
-  test("novos negócios usam os dados obrigatórios e não exigem descrição ou agenda", async () => {
+  test("CA-NEG-04: novos negócios elegíveis publicam automaticamente sem descrição ou agenda", async () => {
     mockQuery.mockResolvedValueOnce({
       rows: [{
         id: 11,
@@ -162,7 +213,9 @@ describe("consistência da publicação do negócio", () => {
       .sincronizarPublicacaoAutomatica(11);
     const [sql, params] = mockQuery.mock.calls[0];
 
-    expect(sql).toMatch(/UPDATE negocios[\s\S]*publicado\s*=\s*e\.pode_publicar/i);
+    expect(sql).toMatch(
+      /UPDATE negocios[\s\S]*despublicado_manual_em\s+IS\s+NOT\s+NULL[\s\S]*THEN FALSE[\s\S]*ELSE\s+e\.pode_publicar/i
+    );
     expect(sql).toMatch(/EXISTS[\s\S]*servicos_negocio[\s\S]*s\.ativo\s*=\s*TRUE/i);
     expect(sql).not.toMatch(/n\.descricao/i);
     expect(sql).toMatch(/n\.publicacao_exige_agenda\s+IS\s+NOT\s+TRUE/i);
