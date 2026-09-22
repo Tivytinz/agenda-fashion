@@ -76,7 +76,10 @@ async function solicitarRedefinicao({ email }) {
     });
 
     const url = new URL("/redefinir-senha", obterUrlPublica());
-    url.searchParams.set("token", token);
+    url.hash =
+      new URLSearchParams({
+        token,
+      }).toString();
 
     await emailProvider.enviarRedefinicaoSenha({
       destinatario: usuario.email,

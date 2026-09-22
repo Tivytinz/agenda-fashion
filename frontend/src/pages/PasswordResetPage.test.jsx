@@ -43,7 +43,7 @@ describe("recuperação de senha", () => {
     const token = "A".repeat(43);
 
     render(
-      <MemoryRouter initialEntries={[`/redefinir-senha?token=${token}`]}>
+      <MemoryRouter initialEntries={[`/redefinir-senha#token=${token}`]}>
         <PasswordResetPage mode="reset" />
       </MemoryRouter>
     );
@@ -66,6 +66,38 @@ describe("recuperação de senha", () => {
     window.history.replaceState(
       {},
       "",
+      `/redefinir-senha#token=${token}`
+    );
+
+    render(
+      <MemoryRouter initialEntries={[`/redefinir-senha#token=${token}`]}>
+        <PasswordResetPage mode="reset" />
+      </MemoryRouter>
+    );
+
+    expect(window.location.pathname).toBe("/redefinir-senha");
+    expect(window.location.search).toBe("");
+
+    await user.type(screen.getByLabelText("Nova senha"), "senha-segura");
+    await user.type(screen.getByLabelText("Confirme a nova senha"), "senha-segura");
+    await user.click(screen.getByRole("button", { name: "Salvar nova senha" }));
+
+    expect(apiRequest).toHaveBeenCalledWith("/auth/redefinir-senha", {
+      method: "POST",
+      body: { token, senha: "senha-segura" },
+    });
+  });
+
+  it("mantém compatibilidade com link legado em query e remove o token da URL", async () => {
+    const user = userEvent.setup();
+    const token = "D".repeat(43);
+    apiRequest.mockResolvedValue({
+      mensagem: "Senha alterada com sucesso. Entre com sua nova senha.",
+    });
+
+    window.history.replaceState(
+      {},
+      "",
       `/redefinir-senha?token=${token}`
     );
 
@@ -75,7 +107,6 @@ describe("recuperação de senha", () => {
       </MemoryRouter>
     );
 
-    expect(window.location.pathname).toBe("/redefinir-senha");
     expect(window.location.search).toBe("");
 
     await user.type(screen.getByLabelText("Nova senha"), "senha-segura");
@@ -96,7 +127,7 @@ describe("recuperação de senha", () => {
     });
 
     render(
-      <MemoryRouter initialEntries={[`/redefinir-senha?token=${token}`]}>
+      <MemoryRouter initialEntries={[`/redefinir-senha#token=${token}`]}>
         <PasswordResetPage mode="reset" />
       </MemoryRouter>
     );

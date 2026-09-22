@@ -170,6 +170,7 @@ async function buscarNegocioDoDono(
         AND un.papel = 'dono'
         AND un.ativo = TRUE
         AND n.ativo = TRUE
+        AND n.arquivado_em IS NULL
 
       ORDER BY
         un.created_at ASC,

@@ -1,6 +1,6 @@
 # Cobertura dos critérios de aceitação
 
-> Estado consolidado após a Wave 12 — 22/09/2026.
+> Estado consolidado após a Wave 13 — 22/09/2026.
 >
 > Este documento registra rastreabilidade de implementação e não substitui a
 > baseline funcional nem a matriz oficial de testes. Código executável,
@@ -71,6 +71,18 @@ Consolidou:
 - contrato do Quality Gate;
 - runbook e decisão formal de backup/recuperação.
 
+### Wave 13 — jornada pública e cliente
+
+Fechou quatro cenários P1 ligados à conversão de agendamento:
+
+- `CA-AG-04`: cliente autenticada reutiliza nome e WhatsApp persistidos, e o backend ignora identidade divergente enviada pelo navegador;
+- `CA-NEG-06`: negócio previamente publicado continua acessível sem serviço ativo, sem permitir booking de serviço inativo;
+- `CA-NEG-07`: perfil e serviço continuam visíveis sem slots, com estado vazio na UI e bloqueio de criação fora da disponibilidade;
+- `CA-AG-21`: reagendamento que já fica fora do cutoff comunica à cliente que o cancelamento direto pelo AF está indisponível.
+
+Com a Wave 13, a cobertura P1 passou para **4/7 (57,1%)** e a cobertura combinada
+P0 + P1 passou para **64/67 (95,5%)**.
+
 ## Tempo e fuso horário
 
 Para agendamentos:
@@ -89,36 +101,50 @@ A advisory lock de agenda é global por profissional, evitando que duas
 transações em datas locais/fusos diferentes confirmem intervalos absolutos
 incompatíveis.
 
-## Fila P1 atual
+### Wave 14 — autenticação e privacidade
 
-A baseline mantém **7 cenários P1** para cobertura explícita:
+Fechou os dois cenários funcionais P1 restantes:
 
-| Critério | Tema | Estado para próxima cobertura |
+- `CA-AUT-04`: recuperação de senha validada ponta a ponta com token aleatório
+  de uso único, hash persistido, rejeição de token inválido/reutilizado, troca
+  efetiva da senha e novos links com o segredo no fragmento `#token=`;
+- `CA-PRV-03`: negócio arquivado deixa explicitamente de contar como negócio
+  próprio operacional e a mesma conta pode criar um novo negócio após o
+  arquivamento seguro.
+
+## Cobertura P1 atual
+
+A baseline possui **7 cenários P1**. Seis estão concluídos:
+
+| Critério | Tema | Estado |
 | --- | --- | --- |
-| `CA-AUT-04` | Recuperação de senha | Fluxo existe; falta fechar a rastreabilidade P1 ponta a ponta |
-| `CA-NEG-06` | Negócio publicado sem serviço ativo | Consolidar contrato público + bloqueio de novo booking |
-| `CA-NEG-07` | Negócio publicado sem disponibilidade | Consolidar estado vazio e impedimento de criação |
-| `CA-AG-04` | Reutilizar dados do cliente autenticado | Backend deve ser fonte da identidade; evitar pedir novamente os mesmos dados |
-| `CA-AG-21` | Reagendamento já sem cancelamento direto | Levar o aviso também à comunicação enviada ao cliente |
-| `CA-PRV-03` | Negócio arquivado não conta no limite | Fechar cenário explícito de criação após arquivamento |
-| `CA-NFR-05` | Metas de desempenho | Medir API p95 e LCP em ambiente representativo |
+| `CA-AG-04` | Reutilizar dados do cliente autenticado | Concluído na Wave 13 |
+| `CA-NEG-06` | Negócio publicado sem serviço ativo | Concluído na Wave 13 |
+| `CA-NEG-07` | Negócio publicado sem disponibilidade | Concluído na Wave 13 |
+| `CA-AG-21` | Reagendamento já sem cancelamento direto | Concluído na Wave 13 |
+| `CA-AUT-04` | Recuperação de senha | Concluído na Wave 14 |
+| `CA-PRV-03` | Negócio arquivado não conta no limite | Concluído na Wave 14 |
+| `CA-NFR-05` | Metas de desempenho | Pendente de medição em ambiente representativo |
+
+```text
+Cobertura P1:       6/7  (85,7%)
+Cobertura P0 + P1: 66/67 (98,5%)
+```
 
 ## Próxima Wave proposta
 
-A **Wave 13** deve priorizar jornada do cliente e estados públicos:
+A **Wave 15** deve tratar exclusivamente `CA-NFR-05`, porque o critério exige
+evidência de performance em ambiente representativo:
 
-1. `CA-AG-04`;
-2. `CA-NEG-06`;
-3. `CA-NEG-07`;
-4. `CA-AG-21`.
+- medir operações críticas de API e calcular p95;
+- medir páginas públicas críticas no perfil móvel/rede de referência e observar
+  LCP;
+- comparar com as metas da baseline: API p95 ≤ 2 s e LCP mobile ≤ 2,5 s;
+- corrigir gargalos somente quando a medição apontar uma causa real;
+- repetir a medição depois de qualquer otimização relevante.
 
-Esse agrupamento reduz fricção no agendamento e fecha estados em que o cliente
-poderia receber formulário redundante, perfil sem oferta ou disponibilidade sem
-uma resposta operacional clara.
-
-A proposta acima é planejamento. Um critério só muda para concluído depois de
-investigação no estado atual do repositório, implementação proporcional ao
-risco, testes e Quality Gate verde.
+Performance não deve ser marcada como concluída apenas por inspeção de código ou
+por um teste sintético sem condições representativas.
 
 ## Regra de atualização
 

@@ -21,6 +21,34 @@ O middleware de autenticação calcula o mesmo hash e recusa tokens revogados ai
 
 `POST /logout` preserva o comportamento idempotente: sem token ou com token já inválido/expirado, a saída local continua podendo concluir. Falhas inesperadas de banco/configuração não devem ser mascaradas; o cookie é limpo e o erro segue para o tratamento central.
 
+## Recuperação de senha
+
+O fluxo de recuperação usa token aleatório de uso único com validade de 30
+minutos. O banco persiste apenas o SHA-256 do token em
+`redefinicoes_senha.token_hash`; o valor bruto existe somente no link entregue
+pelo canal de verificação.
+
+O link novo usa fragmento de URL:
+
+```text
+/redefinir-senha#token=<segredo>
+```
+
+Fragmentos não são enviados ao servidor na requisição HTTP, reduzindo exposição
+acidental em logs, proxies e cabeçalhos de referência. O frontend captura o
+token e remove o fragmento da barra de endereço antes da interação. Links legados
+com `?token=` continuam sendo aceitos temporariamente para não quebrar e-mails
+já emitidos, mas também são limpos da URL no carregamento.
+
+A redefinição válida é transacional: exige token existente, não usado, não
+expirado e conta ativa; atualiza a senha, grava `senha_alterada_em` e invalida
+os demais tokens de redefinição pendentes da conta. Como a autenticação rejeita
+JWTs emitidos antes de `senha_alterada_em`, sessões anteriores deixam de
+autorizar recursos privados após a troca.
+
+A solicitação responde de forma neutra para e-mails existentes e inexistentes,
+evitando enumeração de contas.
+
 ## Troca de senha
 
 A regra anterior permanece: tokens emitidos antes de `usuarios.senha_alterada_em` são inválidos. A lista de revogação complementa essa regra para logout normal, sem reutilizar o timestamp de troca de senha para outra finalidade.

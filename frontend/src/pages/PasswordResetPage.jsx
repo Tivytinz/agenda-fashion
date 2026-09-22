@@ -5,7 +5,15 @@ import { apiRequest } from "../api/client";
 export function PasswordResetPage({ mode = "request" }) {
   const isReset = mode === "reset";
   const location = useLocation();
-  const token = new URLSearchParams(location.search).get("token") || "";
+  const token = (
+    new URLSearchParams(
+      String(location.hash || "")
+        .replace(/^#/, "")
+    ).get("token") ||
+    new URLSearchParams(location.search)
+      .get("token") ||
+    ""
+  );
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmation, setConfirmation] = useState("");
@@ -13,18 +21,26 @@ export function PasswordResetPage({ mode = "request" }) {
   const [message, setMessage] = useState("");
 
   useLayoutEffect(() => {
-    if (!isReset || !location.search) {
+    if (
+      !isReset ||
+      (
+        !location.search &&
+        !location.hash
+      )
+    ) {
       return;
     }
-
-    const safeUrl = `${window.location.pathname}${window.location.hash}`;
 
     window.history.replaceState(
       window.history.state,
       "",
-      safeUrl
+      window.location.pathname
     );
-  }, [isReset, location.search]);
+  }, [
+    isReset,
+    location.search,
+    location.hash,
+  ]);
 
   async function submit(event) {
     event.preventDefault();
