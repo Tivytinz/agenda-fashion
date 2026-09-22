@@ -39,5 +39,6 @@
   "subscription": "/painel/assinatura",
   "professionalAgenda": "/profissional/agenda",
   "professionalSchedule": "/profissional/horarios",
-  "businessProfile": "/negocio/:slug"
+  "businessProfile": "/negocio/:slug",
+  "inactiveBookingAccess": "/agendamento-acesso/:id"
 }
