@@ -143,7 +143,8 @@ describe("disponibilidade contextual por negócio", () => {
       7,
       "2026-09-21",
       "2026-09-21",
-      null
+      null,
+      "America/Sao_Paulo"
     );
 
     expect(
