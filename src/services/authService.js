@@ -598,6 +598,26 @@ async function loginGoogle({
     );
   }
 
+  if (
+    ativarPerfilProfissional === true &&
+    !usuario.perfil_profissional_ativado_em
+  ) {
+    const ativado =
+      await authRepository
+        .ativarPerfilProfissional(
+          usuario.id
+        );
+
+    if (!ativado) {
+      throw new AppError(
+        "Não foi possível ativar o perfil profissional.",
+        409
+      );
+    }
+
+    usuario = ativado;
+  }
+
   const loginAtualizado =
     await authRepository
       .atualizarUltimoLogin(
