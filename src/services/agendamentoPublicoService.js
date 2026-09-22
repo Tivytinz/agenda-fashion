@@ -548,9 +548,10 @@ async function criarAgendamento({
           );
 
         /*
-         * Bloqueio por profissional e data.
-         * Evita duas reservas simultâneas
-         * para o mesmo horário, inclusive entre negócios.
+         * Bloqueio global por profissional.
+         * Evita duas reservas simultâneas para
+         * intervalos incompatíveis, inclusive entre negócios
+         * com datas locais ou fusos diferentes.
          */
         await agendaPublicaRepository
           .bloquearAgendaProfissional(
@@ -613,6 +614,45 @@ async function criarAgendamento({
           );
         }
 
+        let whatsappConsentidoEfetivo =
+          whatsappConsentido ===
+          true;
+
+        if (clienteIdNormalizado) {
+          const preferenciaAtual =
+            await agendaPublicaRepository
+              .buscarPreferenciaNotificacoesWhatsapp(
+                clienteIdNormalizado,
+                client
+              );
+
+          if (!preferenciaAtual) {
+            throw criarErro(
+              "Usuário não autenticado.",
+              401
+            );
+          }
+
+          const whatsappContaAtual =
+            normalizarWhatsapp(
+              preferenciaAtual.whatsapp
+            );
+          const whatsappClienteAtual =
+            normalizarWhatsapp(
+              clienteInterno.whatsapp
+            );
+
+          whatsappConsentidoEfetivo =
+            preferenciaAtual
+              .aceita_notificacoes_whatsapp ===
+              true &&
+            [10, 11].includes(
+              whatsappContaAtual.length
+            ) &&
+            whatsappContaAtual ===
+              whatsappClienteAtual;
+        }
+
         const criado =
           await agendaPublicaRepository
             .criarAgendamento(
@@ -638,8 +678,7 @@ async function criarAgendamento({
                   clienteInterno.whatsapp,
 
                 whatsappConsentido:
-                  whatsappConsentido ===
-                  true,
+                  whatsappConsentidoEfetivo,
 
                 servicoId:
                   servicoIdNormalizado,
@@ -662,7 +701,7 @@ async function criarAgendamento({
         }
 
         if (
-          whatsappConsentido === true
+          whatsappConsentidoEfetivo
         ) {
           await agendaPublicaRepository
             .registrarConsentimentoWhatsappAgendamento(
@@ -672,7 +711,7 @@ async function criarAgendamento({
                 clienteId:
                   clienteIdNormalizado,
                 telefone:
-                  whatsappNormalizado,
+                  clienteInterno.whatsapp,
               },
               client
             );
