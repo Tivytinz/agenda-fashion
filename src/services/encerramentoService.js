@@ -308,7 +308,7 @@ async function desativarConta({ usuarioId }) {
         ...reserva,
         acesso,
         caminho:
-          `/agendamento-acesso/${reserva.id}?token=${encodeURIComponent(acesso)}`,
+          `/agendamento-acesso/${reserva.id}#token=${encodeURIComponent(acesso)}`,
       };
     }
   );
