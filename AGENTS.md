@@ -52,6 +52,14 @@ Uma mesma conta pode atuar em mais de um contexto. O frontend muda navegação e
 apresentação conforme rota, sessão e vínculos, mas essas escolhas não substituem
 a autorização do backend.
 
+O perfil profissional pertence à identidade única da conta e é marcado por
+`usuarios.perfil_profissional_ativado_em`. Cadastro com intenção profissional,
+criação do próprio negócio e aceite válido de convite ativam esse perfil sem criar
+uma segunda conta. A ativação por criação de negócio ou convite participa da
+mesma transação lógica do vínculo correspondente. Um `Client` já existente e
+seu histórico permanecem ligados ao mesmo `usuarios.id`; inativar ou remover um
+vínculo profissional não desfaz o fato de que a conta possui perfil profissional.
+
 O contexto de negócio deve ser explícito quando a rota já expressa a intenção:
 `/painel/*` representa o vínculo de dona e `/profissional/*` representa o vínculo
 `profissional`. O backend precisa validar o vínculo persistido correspondente;

@@ -46,6 +46,11 @@ function sanitizarUsuario(
     ativo:
       usuario.ativo,
 
+    perfil_profissional_ativo:
+      Boolean(
+        usuario.perfil_profissional_ativado_em
+      ),
+
     email_verificado_em:
       usuario.email_verificado_em,
 

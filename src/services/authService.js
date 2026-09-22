@@ -132,6 +132,10 @@ function sanitizarUsuario(
       usuario.ativo,
     googleConectado:
       Boolean(usuario.google_sub),
+    perfil_profissional_ativo:
+      Boolean(
+        usuario.perfil_profissional_ativado_em
+      ),
     email_verificado_em:
       usuario.email_verificado_em,
     ultimo_login_em:
@@ -307,6 +311,7 @@ async function cadastro({
   aceitaAlertasWhatsapp = false,
   aceitaLembretesWhatsapp = false,
   aceitaNotificacoesWhatsapp = false,
+  ativarPerfilProfissional = false,
   marketing,
 }) {
   const dados =
@@ -356,6 +361,8 @@ async function cadastro({
             aceitaLembretesWhatsapp === true,
           aceitaNotificacoesWhatsapp:
             aceitaNotificacoesWhatsapp === true,
+          ativarPerfilProfissional:
+            ativarPerfilProfissional === true,
         });
   } catch (erro) {
     if (
@@ -537,6 +544,7 @@ async function loginGoogle({
   credencial,
   marketing,
   aceitaNotificacoesWhatsapp = false,
+  ativarPerfilProfissional = false,
 }) {
   const identidade =
     await googleIdentityService
@@ -559,6 +567,8 @@ async function loginGoogle({
               ...identidade,
               aceitaNotificacoesWhatsapp:
                 aceitaNotificacoesWhatsapp === true,
+              ativarPerfilProfissional:
+                ativarPerfilProfissional === true,
             }
           );
       contaCriada = true;
@@ -586,6 +596,26 @@ async function loginGoogle({
       "Esta conta está desativada.",
       403
     );
+  }
+
+  if (
+    ativarPerfilProfissional === true &&
+    !usuario.perfil_profissional_ativado_em
+  ) {
+    const ativado =
+      await authRepository
+        .ativarPerfilProfissional(
+          usuario.id
+        );
+
+    if (!ativado) {
+      throw new AppError(
+        "Não foi possível ativar o perfil profissional.",
+        409
+      );
+    }
+
+    usuario = ativado;
   }
 
   const loginAtualizado =

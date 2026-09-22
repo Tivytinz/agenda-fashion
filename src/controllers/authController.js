@@ -79,6 +79,9 @@ function obterDadosCadastro(req) {
 
     marketing:
       req.body?.marketing,
+
+    ativarPerfilProfissional:
+      req.body?.perfil_profissional === true,
   };
 }
 
@@ -87,13 +90,9 @@ function obterDadosCadastro(req) {
  *
  * Cria uma conta única.
  *
- * A conta ainda não é classificada como:
- * - cliente
- * - dono
- * - profissional
- *
- * Essas funções serão determinadas
- * pelo uso e pelos vínculos futuros.
+ * O perfil profissional é uma capacidade da mesma
+ * identidade e pode ser ativado explicitamente no
+ * cadastro sem criar uma segunda conta.
  */
 async function cadastro(
   req,
@@ -192,6 +191,9 @@ async function loginGoogle(
 
           aceitaNotificacoesWhatsapp:
             req.body?.aceitaNotificacoesWhatsapp,
+
+          ativarPerfilProfissional:
+            req.body?.perfil_profissional === true,
         });
 
     if (resultado.contaCriada) {

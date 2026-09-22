@@ -83,6 +83,9 @@ export function AuthPage({ mode = "login" }) {
         meta,
         isRegister && !professionalIntent
           ? form.aceitaNotificacoesWhatsapp
+          : undefined,
+        isRegister
+          ? professionalIntent
           : undefined
       );
 
@@ -153,6 +156,8 @@ export function AuthPage({ mode = "login" }) {
               ? "profissional"
               : "indefinida"
           ),
+          perfil_profissional:
+            professionalIntent,
           ...(meta ? { meta } : {})
         } : {}),
         email: form.email.trim().toLowerCase(),

@@ -25,6 +25,7 @@ const CAMPOS_USUARIO = `
     AND whatsapp_marketing_cancelado_em IS NULL
   ) AS aceita_lembretes_whatsapp,
   google_sub,
+  perfil_profissional_ativado_em,
   ativo,
   email_verificado_em,
   ultimo_login_em,
@@ -98,6 +99,7 @@ async function buscarUsuarioPorId(
           AND whatsapp_marketing_cancelado_em IS NULL
         ) AS aceita_lembretes_whatsapp,
         google_sub,
+        perfil_profissional_ativado_em,
         ativo,
         email_verificado_em,
         ultimo_login_em,
@@ -122,6 +124,7 @@ async function criarUsuario({
   aceitaAlertasWhatsapp = false,
   aceitaLembretesWhatsapp = false,
   aceitaNotificacoesWhatsapp = false,
+  ativarPerfilProfissional = false,
 }) {
   const resultado =
     await db.query(
@@ -135,7 +138,8 @@ async function criarUsuario({
           whatsapp_notificacoes_consentido_em,
           whatsapp_notificacoes_cancelado_em,
           whatsapp_operacional_consentido_em,
-          whatsapp_marketing_consentido_em
+          whatsapp_marketing_consentido_em,
+          perfil_profissional_ativado_em
         )
         VALUES (
           $1,
@@ -156,6 +160,10 @@ async function criarUsuario({
           END,
           CASE
             WHEN $7::BOOLEAN THEN NOW()
+            ELSE NULL
+          END,
+          CASE
+            WHEN $8::BOOLEAN THEN NOW()
             ELSE NULL
           END
         )
@@ -213,6 +221,7 @@ async function criarUsuario({
         aceitaNotificacoesWhatsapp,
         aceitaAlertasWhatsapp,
         aceitaLembretesWhatsapp,
+        ativarPerfilProfissional,
       ]
     );
 
@@ -224,6 +233,7 @@ async function criarUsuarioGoogle({
   email,
   googleSub,
   aceitaNotificacoesWhatsapp = false,
+  ativarPerfilProfissional = false,
 }) {
   const resultado =
     await db.query(
@@ -236,7 +246,8 @@ async function criarUsuarioGoogle({
         google_sub,
         email_verificado_em,
         whatsapp_notificacoes_consentido_em,
-        whatsapp_notificacoes_cancelado_em
+        whatsapp_notificacoes_cancelado_em,
+        perfil_profissional_ativado_em
       )
       VALUES (
         $1,
@@ -252,6 +263,10 @@ async function criarUsuarioGoogle({
         CASE
           WHEN $4::BOOLEAN THEN NULL
           ELSE NOW()
+        END,
+        CASE
+          WHEN $5::BOOLEAN THEN NOW()
+          ELSE NULL
         END
       )
       RETURNING ${CAMPOS_USUARIO}
@@ -261,6 +276,7 @@ async function criarUsuarioGoogle({
         email,
         googleSub,
         aceitaNotificacoesWhatsapp,
+        ativarPerfilProfissional,
       ]
     );
 
@@ -290,6 +306,28 @@ async function vincularUsuarioAoGoogle({
       RETURNING ${CAMPOS_USUARIO}
       `,
       [usuarioId, googleSub]
+    );
+
+  return resultado.rows[0] || null;
+}
+
+async function ativarPerfilProfissional(
+  usuarioId
+) {
+  const resultado =
+    await db.query(
+      `
+      UPDATE usuarios
+      SET perfil_profissional_ativado_em =
+        COALESCE(
+          perfil_profissional_ativado_em,
+          NOW()
+        )
+      WHERE id = $1
+        AND ativo = TRUE
+      RETURNING ${CAMPOS_USUARIO}
+      `,
+      [usuarioId]
     );
 
   return resultado.rows[0] || null;
@@ -358,6 +396,7 @@ module.exports = {
   criarUsuario,
   criarUsuarioGoogle,
   vincularUsuarioAoGoogle,
+  ativarPerfilProfissional,
   atualizarUltimoLogin,
   atualizarSenha,
   desativarUsuario,
