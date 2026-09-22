@@ -77,14 +77,15 @@ const HERO_SLIDES = [
 
 function HomeHero({ onExploreCategory }) {
   const [activeHero, setActiveHero] = useState(0);
+  const [heroRotationPaused, setHeroRotationPaused] = useState(() =>
+    Boolean(window.matchMedia?.(
+      "(prefers-reduced-motion: reduce)"
+    )?.matches)
+  );
   const heroTouchStart = useRef(null);
 
   useEffect(() => {
-    const mediaQuery = window.matchMedia?.(
-      "(prefers-reduced-motion: reduce)"
-    );
-
-    if (mediaQuery?.matches) {
+    if (heroRotationPaused) {
       return undefined;
     }
 
@@ -94,9 +95,10 @@ function HomeHero({ onExploreCategory }) {
     }, 7000);
 
     return () => window.clearInterval(interval);
-  }, []);
+  }, [heroRotationPaused]);
 
   function showHero(index) {
+    setHeroRotationPaused(true);
     setActiveHero(
       (index + HERO_SLIDES.length) % HERO_SLIDES.length
     );
@@ -223,6 +225,21 @@ function HomeHero({ onExploreCategory }) {
             />
           ))}
         </div>
+
+        <button
+          aria-label={heroRotationPaused
+            ? "Retomar rotação automática dos destaques"
+            : "Pausar rotação automática dos destaques"}
+          aria-pressed={heroRotationPaused}
+          className="home-hero-rotation-toggle"
+          onClick={() =>
+            setHeroRotationPaused((current) => !current)}
+          type="button"
+        >
+          <span aria-hidden="true">
+            {heroRotationPaused ? "▶" : "⏸"}
+          </span>
+        </button>
       </div>
     </section>
   );
