@@ -7,6 +7,9 @@ const planoRepository = require(
 const UnauthorizedError = require(
     "../errors/UnauthorizedError"
 );
+const equipePlanoService = require(
+    "./equipePlanoService"
+);
 const NotFoundError = require(
     "../errors/NotFoundError"
 );
@@ -58,16 +61,44 @@ async function buscarMeuPlano(usuarioId) {
     );
 }
 
+async function expirarCancelamentoComReconciliacao(
+    negocioId,
+    executor = db
+) {
+    const executar = async (client) => {
+        const expirada = await assinaturaRepository
+            .expirarCancelamentoSeNecessario(
+                negocioId,
+                client
+            );
+
+        if (expirada) {
+            await equipePlanoService
+                .reconciliarLimiteProfissionais(
+                    negocioId,
+                    client
+                );
+        }
+
+        return expirada;
+    };
+
+    if (executor === db) {
+        return db.executarTransacao(executar);
+    }
+
+    return executar(executor);
+}
+
 async function buscarUsoPlano(
     negocioId,
     executor = db,
     dataReferencia = null
 ) {
-    await assinaturaRepository
-        .expirarCancelamentoSeNecessario(
-            negocioId,
-            executor
-        );
+    await expirarCancelamentoComReconciliacao(
+        negocioId,
+        executor
+    );
 
     const plano = await planoRepository.buscarUsoPlano(
         negocioId,
@@ -203,6 +234,7 @@ module.exports = {
     listarPlanos,
     buscarMeuPlano,
     buscarUsoPlano,
+    expirarCancelamentoComReconciliacao,
     bloquearUsoPlano,
     verificarCapacidadePlano,
     criarErroLimite
