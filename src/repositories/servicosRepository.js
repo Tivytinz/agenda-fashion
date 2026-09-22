@@ -207,26 +207,16 @@ async function despublicarSemServicoAtivo(
   negocioId,
   executor = db
 ) {
-  const result = await executor.query(
-    `
-      UPDATE negocios n
-      SET
-        publicado = FALSE,
-        updated_at = NOW()
-      WHERE n.id = $1
-        AND n.publicado = TRUE
-        AND NOT EXISTS (
-          SELECT 1
-          FROM servicos_negocio s
-          WHERE s.negocio_id = n.id
-            AND s.ativo = TRUE
-        )
-      RETURNING n.id, n.publicado
-    `,
-    [negocioId]
+  /*
+   * Compatibilidade para chamadas legadas.
+   * A perda do último serviço não despublica
+   * automaticamente um perfil já publicado;
+   * a decisão passa pela elegibilidade central.
+   */
+  return sincronizarPublicacaoAutomatica(
+    negocioId,
+    executor
   );
-
-  return result.rows[0] || null;
 }
 
 async function sincronizarPublicacaoAutomatica(
