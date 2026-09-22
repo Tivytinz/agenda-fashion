@@ -1,6 +1,6 @@
 # Cobertura dos critérios de aceitação
 
-> Estado consolidado após a Wave 12 — 22/09/2026.
+> Estado consolidado após a Wave 13 — 22/09/2026.
 >
 > Este documento registra rastreabilidade de implementação e não substitui a
 > baseline funcional nem a matriz oficial de testes. Código executável,
@@ -71,6 +71,18 @@ Consolidou:
 - contrato do Quality Gate;
 - runbook e decisão formal de backup/recuperação.
 
+### Wave 13 — jornada pública e cliente
+
+Fechou quatro cenários P1 ligados à conversão de agendamento:
+
+- `CA-AG-04`: cliente autenticada reutiliza nome e WhatsApp persistidos, e o backend ignora identidade divergente enviada pelo navegador;
+- `CA-NEG-06`: negócio previamente publicado continua acessível sem serviço ativo, sem permitir booking de serviço inativo;
+- `CA-NEG-07`: perfil e serviço continuam visíveis sem slots, com estado vazio na UI e bloqueio de criação fora da disponibilidade;
+- `CA-AG-21`: reagendamento que já fica fora do cutoff comunica à cliente que o cancelamento direto pelo AF está indisponível.
+
+Com a Wave 13, a cobertura P1 passou para **4/7 (57,1%)** e a cobertura combinada
+P0 + P1 passou para **64/67 (95,5%)**.
+
 ## Tempo e fuso horário
 
 Para agendamentos:
@@ -89,36 +101,42 @@ A advisory lock de agenda é global por profissional, evitando que duas
 transações em datas locais/fusos diferentes confirmem intervalos absolutos
 incompatíveis.
 
-## Fila P1 atual
+## Cobertura P1 atual
 
-A baseline mantém **7 cenários P1** para cobertura explícita:
+A baseline possui **7 cenários P1**. Quatro estão concluídos:
 
-| Critério | Tema | Estado para próxima cobertura |
+| Critério | Tema | Estado |
 | --- | --- | --- |
-| `CA-AUT-04` | Recuperação de senha | Fluxo existe; falta fechar a rastreabilidade P1 ponta a ponta |
-| `CA-NEG-06` | Negócio publicado sem serviço ativo | Consolidar contrato público + bloqueio de novo booking |
-| `CA-NEG-07` | Negócio publicado sem disponibilidade | Consolidar estado vazio e impedimento de criação |
-| `CA-AG-04` | Reutilizar dados do cliente autenticado | Backend deve ser fonte da identidade; evitar pedir novamente os mesmos dados |
-| `CA-AG-21` | Reagendamento já sem cancelamento direto | Levar o aviso também à comunicação enviada ao cliente |
-| `CA-PRV-03` | Negócio arquivado não conta no limite | Fechar cenário explícito de criação após arquivamento |
-| `CA-NFR-05` | Metas de desempenho | Medir API p95 e LCP em ambiente representativo |
+| `CA-AG-04` | Reutilizar dados do cliente autenticado | Concluído na Wave 13 |
+| `CA-NEG-06` | Negócio publicado sem serviço ativo | Concluído na Wave 13 |
+| `CA-NEG-07` | Negócio publicado sem disponibilidade | Concluído na Wave 13 |
+| `CA-AG-21` | Reagendamento já sem cancelamento direto | Concluído na Wave 13 |
+| `CA-AUT-04` | Recuperação de senha | Pendente de rastreabilidade ponta a ponta |
+| `CA-PRV-03` | Negócio arquivado não conta no limite | Pendente de cenário explícito de criação após arquivamento |
+| `CA-NFR-05` | Metas de desempenho | Pendente de medição em ambiente representativo |
+
+```text
+Cobertura P1:       4/7  (57,1%)
+Cobertura P0 + P1: 64/67 (95,5%)
+```
 
 ## Próxima Wave proposta
 
-A **Wave 13** deve priorizar jornada do cliente e estados públicos:
+A **Wave 14** deve fechar os dois critérios funcionais P1 restantes antes da
+medição de performance:
 
-1. `CA-AG-04`;
-2. `CA-NEG-06`;
-3. `CA-NEG-07`;
-4. `CA-AG-21`.
+1. `CA-AUT-04` — validar recuperação de senha ponta a ponta, incluindo token
+   verificável, uso único, troca efetiva da senha e ausência de exposição do
+   segredo no fluxo normal;
+2. `CA-PRV-03` — provar por API que um negócio arquivado deixa de contar no
+   limite de propriedade e que a mesma conta consegue criar outro negócio
+   operacional.
 
-Esse agrupamento reduz fricção no agendamento e fecha estados em que o cliente
-poderia receber formulário redundante, perfil sem oferta ou disponibilidade sem
-uma resposta operacional clara.
+Depois disso, deve restar somente `CA-NFR-05`, que exige medição de API p95 e
+LCP mobile em ambiente representativo.
 
-A proposta acima é planejamento. Um critério só muda para concluído depois de
-investigação no estado atual do repositório, implementação proporcional ao
-risco, testes e Quality Gate verde.
+Um critério só muda para concluído depois de implementação/evidência proporcional
+ao risco, testes e Quality Gate verde.
 
 ## Regra de atualização
 
