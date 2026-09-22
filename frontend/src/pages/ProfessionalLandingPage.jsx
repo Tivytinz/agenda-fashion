@@ -2,7 +2,7 @@ import { useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 
 import { track } from "../analytics/track";
-import afLogoTransparent from "../assets/brand/af-logo-transparent.png";
+import afLogoTransparent from "../assets/brand/performance/af-logo-96.webp";
 import "../styles/professional-landing.css";
 
 export const PROFESSIONAL_TRACKING_PARAMS = [

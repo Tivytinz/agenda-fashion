@@ -27,7 +27,7 @@ vi.mock("../api/client", () => ({
   apiRequest: vi.fn()
 }));
 
-vi.mock("../analytics/track", () => ({
+vi.mock("../analytics/trackEvent", () => ({
   track: vi.fn()
 }));
 
@@ -267,6 +267,30 @@ describe("catálogo público paginado", () => {
     expect(screen.getAllByRole("button", {
       name: /Mostrar destaque/
     })).toHaveLength(7);
+  });
+
+  it("prioriza somente a imagem inicial do hero para proteger o LCP", async () => {
+    apiRequest.mockResolvedValue({
+      negocios: [],
+      paginacao: { total: 0, tem_mais: false }
+    });
+
+    const { container } = renderExplore();
+
+    await screen.findByText("Nenhum serviço encontrado");
+
+    const heroImages = [
+      ...container.querySelectorAll(".home-hero-image")
+    ];
+
+    expect(heroImages).toHaveLength(7);
+    expect(heroImages[0].getAttribute("loading")).toBe("eager");
+    expect(heroImages[0].getAttribute("fetchpriority")).toBe("high");
+
+    heroImages.slice(1).forEach((image) => {
+      expect(image.getAttribute("loading")).toBe("lazy");
+      expect(image.getAttribute("fetchpriority")).toBe("low");
+    });
   });
 
   it("usa ícones nas sete categorias e o emoji próprio de sobrancelhas", async () => {

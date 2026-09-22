@@ -1,14 +1,19 @@
-import { lazy, Suspense } from "react";
+import {
+  lazy,
+  Suspense,
+  useEffect,
+  useState
+} from "react";
 import { Route, Routes } from "react-router-dom";
 import reactRoutes from "../../src/config/reactRoutes.json";
 import { ProtectedRoute } from "./auth/ProtectedRoute";
 import { useSession } from "./auth/SessionContext";
 import { AppHeader } from "./components/AppHeader";
 import { MarketingMetricGlossary } from "./components/MarketingMetricGlossary";
-import { MetaAdsBridge } from "./components/MetaAdsBridge";
 import { LegalFooter } from "./components/LegalFooter";
 import { WorkspaceLayout } from "./components/WorkspaceLayout";
 import { markRuntimeReady } from "./utils/runtimeRecovery";
+import { HomePage } from "./pages/HomePage";
 
 function lazyNamed(importer, name) {
   return lazy(() =>
@@ -88,6 +93,10 @@ const AdminWhatsAppPage = lazyNamedWithStyles(
   () => import("./pages/AdminWhatsAppPage"),
   "AdminWhatsAppPage"
 );
+const MetaAdsBridge = lazyNamed(
+  () => import("./components/MetaAdsBridge"),
+  "MetaAdsBridge"
+);
 const AuthPage = lazyNamed(() => import("./pages/AuthPage"), "AuthPage");
 const PasswordResetPage = lazyNamed(
   () => import("./pages/PasswordResetPage"),
@@ -150,10 +159,13 @@ const ProfessionalInvitesPage = lazyNamedWithStyles(
   "ProfessionalInvitesPage"
 );
 const ConfirmPage = lazyNamed(() => import("./pages/ConfirmPage"), "ConfirmPage");
-const ExplorePage = lazyNamed(() => import("./pages/ExplorePage"), "ExplorePage");
 const LocalCatalogPage = lazyNamed(
   () => import("./pages/LocalCatalogPage"),
   "LocalCatalogPage"
+);
+const ProfilePage = lazyNamed(
+  () => import("./pages/ProfilePage"),
+  "ProfilePage"
 );
 const MyAppointmentsPage = lazyNamed(
   () => import("./pages/MyAppointmentsPage"),
@@ -167,7 +179,6 @@ const GuestBookingAccessPage = lazyNamed(
   () => import("./pages/GuestBookingAccessPage"),
   "GuestBookingAccessPage"
 );
-const ProfilePage = lazyNamed(() => import("./pages/ProfilePage"), "ProfilePage");
 const SuccessPage = lazyNamed(() => import("./pages/SuccessPage"), "SuccessPage");
 const PrivacyPage = lazyNamed(() => import("./pages/PrivacyPage"), "PrivacyPage");
 const TermsPage = lazyNamed(() => import("./pages/TermsPage"), "TermsPage");
@@ -176,6 +187,26 @@ const ProfessionalLandingPage = lazyNamed(
   "ProfessionalLandingPage"
 );
 const NotFoundPage = lazyNamed(() => import("./pages/NotFoundPage"), "NotFoundPage");
+
+function DeferredMetaAdsBridge() {
+  const [ready, setReady] = useState(false);
+
+  useEffect(() => {
+    const timeout = window.setTimeout(() => {
+      setReady(true);
+    }, 500);
+
+    return () => window.clearTimeout(timeout);
+  }, []);
+
+  if (!ready) return null;
+
+  return (
+    <Suspense fallback={null}>
+      <MetaAdsBridge />
+    </Suspense>
+  );
+}
 
 function AccountRoute() {
   const session = useSession();
@@ -205,7 +236,7 @@ export default function App() {
       <AppHeader />
       <Suspense fallback={<main><div className="container route-loading">Carregando...</div></main>}>
         <Routes>
-          <Route path={reactRoutes.home} element={<ExplorePage />} />
+          <Route path={reactRoutes.home} element={<HomePage />} />
           <Route path={reactRoutes.professionalLanding} element={<ProfessionalLandingPage />} />
           <Route path={reactRoutes.localCatalog} element={<LocalCatalogPage />} />
           <Route path={reactRoutes.businessProfile} element={<ProfilePage />} />
@@ -337,7 +368,7 @@ export default function App() {
           <Route path="*" element={<NotFoundPage />} />
         </Routes>
       </Suspense>
-      <MetaAdsBridge />
+      <DeferredMetaAdsBridge />
       <LegalFooter />
     </div>
   );

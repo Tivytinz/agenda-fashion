@@ -208,6 +208,8 @@ describe("fluxo publico de agendamento", () => {
       name: "Foto de Studio Aurora"
     });
     expect(image.getAttribute("src")).toContain("/uploads/manicure.jpg");
+    expect(image.getAttribute("loading")).toBe("eager");
+    expect(image.getAttribute("fetchpriority")).toBe("high");
   });
 
   it("mostra a falha ao favoritar perto da ação", async () => {

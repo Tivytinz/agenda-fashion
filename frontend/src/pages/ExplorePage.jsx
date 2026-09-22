@@ -10,13 +10,12 @@ import {
 import { useSearchParams } from "react-router-dom";
 
 import { apiRequest } from "../api/client";
-import { track } from "../analytics/track";
+import { track } from "../analytics/trackEvent";
 import bronzeamentoHero from "../assets/home/bronzeamento-hero.webp";
 import sobrancelhasEmoji from "../assets/icons/sobrancelhas-emoji.png";
 import ciliosHero from "../assets/home/cilios-hero.webp";
 import manicureHero from "../assets/home/manicure-hero.webp";
 import maquiagemHero from "../assets/home/maquiagem-hero.webp";
-import salonHero from "../assets/home/salon-hero.webp";
 import skincareHero from "../assets/home/skincare-hero.webp";
 import sobrancelhasHero from "../assets/home/sobrancelhas-hero.webp";
 import { BusinessCard } from "../components/BusinessCard";
@@ -56,7 +55,8 @@ const LOCATION_STORAGE_KEY = "af_catalog_location";
 
 const HERO_SLIDES = [
   {
-    image: salonHero,
+    image: "/assets/home/salon-hero-wide.webp",
+    mobileImage: "/assets/home/salon-hero-mobile.webp",
     title: "Beleza para você",
     subtitle: "Cabelos do seu jeito",
     description: "Encontre cortes, tratamentos e profissionais para cuidar dos seus cabelos.",
@@ -347,7 +347,7 @@ function HorizontalRail({
   );
 }
 
-export function ExplorePage() {
+export function ExplorePage({ renderHero = true }) {
   const [searchParams, setSearchParams] = useSearchParams();
 
   const requestedQuery =
@@ -794,7 +794,8 @@ export function ExplorePage() {
   }
 
   return (
-    <main className="home-page">
+    <div className={renderHero ? "home-page" : "home-discovery-content"}>
+      {renderHero && (
       <section
         aria-label="Destaques do Agenda Fashion"
         aria-roledescription="carrossel"
@@ -816,12 +817,22 @@ export function ExplorePage() {
                 className="home-hero-slide"
                 key={slide.title}
               >
-                <img
-                  alt=""
-                  className="home-hero-image"
-                  fetchPriority={index === 0 ? "high" : "auto"}
-                  src={slide.image}
-                />
+                <picture>
+                  {slide.mobileImage && (
+                    <source
+                      media="(max-width: 767px)"
+                      srcSet={slide.mobileImage}
+                    />
+                  )}
+                  <img
+                    alt=""
+                    className="home-hero-image"
+                    decoding="async"
+                    fetchPriority={index === 0 ? "high" : "low"}
+                    loading={index === 0 ? "eager" : "lazy"}
+                    src={slide.image}
+                  />
+                </picture>
 
                 <div className="home-hero-overlay" />
 
@@ -900,11 +911,12 @@ export function ExplorePage() {
           </div>
         </div>
       </section>
+      )}
 
       <section
         aria-labelledby="categories-title"
         className="container home-category-section"
-        id="buscar-servicos"
+        id={renderHero ? "buscar-servicos" : undefined}
       >
         <div className="home-section-heading">
           <div>
@@ -1134,6 +1146,6 @@ export function ExplorePage() {
           </li>
         </ol>
       </section>
-    </main>
+    </div>
   );
 }

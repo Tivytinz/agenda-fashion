@@ -11,7 +11,7 @@ import {
   Outlet,
   useLocation
 } from "react-router-dom";
-import afLogoTransparent from "../assets/brand/af-logo-transparent.png";
+import afLogoTransparent from "../assets/brand/performance/af-logo-96.webp";
 import { AppIcon } from "./AppIcon";
 
 function isAdminRouteActive(pathname, route) {

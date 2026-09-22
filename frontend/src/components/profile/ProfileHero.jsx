@@ -176,6 +176,8 @@ export function ProfileHero({
         src={imageSource}
         alt={`Foto de ${business.nome}`}
         className="profile-image"
+        fetchPriority="high"
+        loading="eager"
       />
       <div className="profile-copy">
         <p className="eyebrow">{specialties[0] || "Beleza"}</p>

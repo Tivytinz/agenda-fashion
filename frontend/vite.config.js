@@ -22,6 +22,20 @@ export default defineConfig({
       "/eventos-produto": "http://localhost:3000"
     }
   },
+  preview: {
+    port: 4173,
+    proxy: {
+      "/negocios-publicos":
+        process.env.PERF_API_PROXY_TARGET ||
+        "http://localhost:3000",
+      "/perfil-negocio":
+        process.env.PERF_API_PROXY_TARGET ||
+        "http://localhost:3000",
+      "/agenda-publica":
+        process.env.PERF_API_PROXY_TARGET ||
+        "http://localhost:3000"
+    }
+  },
   build: {
     outDir: "../agendamento-nails/react-app",
     emptyOutDir: true,

@@ -12,7 +12,7 @@ import {
 
 import { useSession } from "../auth/SessionContext";
 import { getBusinessWorkspacePath } from "../auth/session";
-import afLogoTransparent from "../assets/brand/af-logo-transparent.png";
+import afLogoTransparent from "../assets/brand/performance/af-logo-96.webp";
 import { MediaThumb } from "./profile/MediaThumb";
 
 export function AppHeader() {
