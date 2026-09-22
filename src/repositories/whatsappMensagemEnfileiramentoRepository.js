@@ -360,6 +360,30 @@ async function enfileirarReagendamento(
           TO_CHAR(a.horario::TIME, 'HH24:MI')
             AS horario_formatado,
 
+          CASE
+            WHEN (
+              a.inicio_previsto_em -
+              MAKE_INTERVAL(
+                hours =>
+                  COALESCE(
+                    a.antecedencia_cancelamento_horas,
+                    2
+                  )
+              )
+            ) < NOW()
+            THEN
+              TO_CHAR(
+                a.horario::TIME,
+                'HH24:MI'
+              ) ||
+              ' — cancelamento direto pelo AF indisponível'
+            ELSE
+              TO_CHAR(
+                a.horario::TIME,
+                'HH24:MI'
+              )
+          END AS horario_cliente_formatado,
+
           (
             a.whatsapp_consentido_em IS NOT NULL
           ) AS whatsapp_consentido,
@@ -463,7 +487,7 @@ async function enfileirarReagendamento(
             cliente_whatsapp,
             servico_nome,
             data_formatada,
-            horario_formatado
+            horario_cliente_formatado
           ),
           inicio_agendamento -
             MAKE_INTERVAL(
