@@ -311,6 +311,28 @@ async function vincularUsuarioAoGoogle({
   return resultado.rows[0] || null;
 }
 
+async function ativarPerfilProfissional(
+  usuarioId
+) {
+  const resultado =
+    await db.query(
+      `
+      UPDATE usuarios
+      SET perfil_profissional_ativado_em =
+        COALESCE(
+          perfil_profissional_ativado_em,
+          NOW()
+        )
+      WHERE id = $1
+        AND ativo = TRUE
+      RETURNING ${CAMPOS_USUARIO}
+      `,
+      [usuarioId]
+    );
+
+  return resultado.rows[0] || null;
+}
+
 async function atualizarUltimoLogin(
   usuarioId
 ) {
@@ -374,6 +396,7 @@ module.exports = {
   criarUsuario,
   criarUsuarioGoogle,
   vincularUsuarioAoGoogle,
+  ativarPerfilProfissional,
   atualizarUltimoLogin,
   atualizarSenha,
   desativarUsuario,
