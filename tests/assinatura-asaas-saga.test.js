@@ -57,6 +57,14 @@ jest.mock(
   })
 );
 
+jest.mock(
+  "../src/services/equipePlanoService",
+  () => ({
+    reconciliarLimiteProfissionais:
+      jest.fn().mockResolvedValue([])
+  })
+);
+
 const pagamentoRepository = require(
   "../src/repositories/pagamentoRepository"
 );
