@@ -284,7 +284,7 @@ async function bloquearAgendaProfissional(
     `
       SELECT pg_advisory_xact_lock(
         hashtext('agenda-profissional'),
-        $1::integer
+        hashtext($1::text)
       )
     `,
     [
