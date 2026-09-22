@@ -113,6 +113,7 @@ async function buscarPreferenciaNotificacoesWhatsapp(
   const result = await db.query(
     `
       SELECT
+        nome,
         whatsapp,
         (
           whatsapp_notificacoes_consentido_em IS NOT NULL
