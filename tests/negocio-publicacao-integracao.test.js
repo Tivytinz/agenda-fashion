@@ -283,7 +283,7 @@ describe("Wave 7 - negócio, onboarding e publicação P0", () => {
 
     const perfil = await request(app)
       .get(
-        `/negocios/${negocio.body.negocio.slug}`
+        `/perfil-negocio/${negocio.body.negocio.slug}`
       );
 
     expect(perfil.statusCode).toBe(200);
