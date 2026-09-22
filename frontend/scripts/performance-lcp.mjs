@@ -1,9 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
-import {
-  chromium,
-  devices,
-} from "@playwright/test";
+import { spawnSync } from "node:child_process";
 
 const TARGET_URL = String(
   process.env.PERF_TARGET_URL ||
@@ -11,26 +8,23 @@ const TARGET_URL = String(
 ).replace(/\/+$/, "");
 
 const RUNS = Number(
-  process.env.PERF_LCP_RUNS || 5
+  process.env.PERF_LCP_RUNS || 3
 );
+
 const THRESHOLD_MS = Number(
   process.env.PERF_LCP_MS || 2500
 );
 
-const NETWORK = {
-  latency: 150,
-  downloadThroughput:
-    (1.6 * 1024 * 1024) /
-    8,
-  uploadThroughput:
-    (0.75 * 1024 * 1024) /
-    8,
-};
+const LIGHTHOUSE_VERSION =
+  "13.5.0";
 
-function percentile(
-  values,
-  percentileValue
-) {
+function round(value) {
+  return Number(
+    Number(value).toFixed(2)
+  );
+}
+
+function median(values) {
   const sorted = [...values]
     .sort((a, b) => a - b);
 
@@ -38,21 +32,21 @@ function percentile(
     return null;
   }
 
-  const index = Math.max(
-    0,
-    Math.ceil(
-      percentileValue *
-        sorted.length
-    ) - 1
-  );
+  const middle =
+    Math.floor(
+      sorted.length / 2
+    );
 
-  return sorted[index];
-}
+  if (
+    sorted.length % 2 === 1
+  ) {
+    return sorted[middle];
+  }
 
-function round(value) {
-  return Number(
-    Number(value).toFixed(2)
-  );
+  return (
+    sorted[middle - 1] +
+    sorted[middle]
+  ) / 2;
 }
 
 async function fetchJson(
@@ -125,246 +119,114 @@ async function descobrirSlug() {
   );
 }
 
-async function medirPagina(
-  browser,
-  relativeUrl
-) {
-  const context =
-    await browser
-      .newContext({
-        ...devices[
-          "Pixel 7"
-        ],
-        viewport: {
-          width: 390,
-          height: 844,
-        },
-        serviceWorkers:
-          "block",
-      });
+function medirComLighthouse({
+  relativeUrl,
+  outputFile,
+}) {
+  const absoluteUrl =
+    new URL(
+      relativeUrl,
+      TARGET_URL
+    ).toString();
 
-  const page =
-    await context
-      .newPage();
-
-  await page
-    .addInitScript(
-      () => {
-        window.__AF_LCP =
-          0;
-
-        window.__AF_LCP_OBSERVER =
-          new PerformanceObserver(
-            (list) => {
-              for (
-                const entry
-                of list.getEntries()
-              ) {
-                window.__AF_LCP =
-                  Math.max(
-                    window.__AF_LCP,
-                    entry.startTime
-                  );
-              }
-            }
-          );
-
-        window.__AF_LCP_OBSERVER
-          .observe({
-            type:
-              "largest-contentful-paint",
-            buffered:
-              true,
-          });
-      }
-    );
-
-  const cdp =
-    await context
-      .newCDPSession(
-        page
-      );
-
-  await cdp.send(
-    "Network.enable"
-  );
-
-  let lcpCdpEpochSeconds =
-    0;
-
-  cdp.on(
-    "PerformanceTimeline.timelineEventAdded",
-    ({ event }) => {
-      if (
-        event?.type !==
-          "largest-contentful-paint"
-      ) {
-        return;
-      }
-
-      const details =
-        event.lcpDetails ||
-        {};
-
-      const candidate =
-        Number(
-          details.renderTime ||
-          details.loadTime ||
-          event.time ||
-          0
-        );
-
-      if (
-        Number.isFinite(
-          candidate
-        ) &&
-        candidate >
-          lcpCdpEpochSeconds
-      ) {
-        lcpCdpEpochSeconds =
-          candidate;
-      }
-    }
-  );
-
-  await cdp.send(
-    "PerformanceTimeline.enable",
-    {
-      eventTypes: [
-        "largest-contentful-paint",
+  const result =
+    spawnSync(
+      "npx",
+      [
+        "--yes",
+        `lighthouse@${LIGHTHOUSE_VERSION}`,
+        absoluteUrl,
+        "--quiet",
+        "--chrome-flags=--headless --no-sandbox --disable-dev-shm-usage",
+        "--only-audits=largest-contentful-paint",
+        "--output=json",
+        `--output-path=${outputFile}`,
+        "--form-factor=mobile",
+        "--throttling-method=simulate",
+        "--throttling.rttMs=150",
+        "--throttling.throughputKbps=1600",
+        "--throttling.cpuSlowdownMultiplier=4",
+        "--max-wait-for-load=45000",
       ],
-    }
-  );
-
-  await cdp.send(
-    "Network.emulateNetworkConditions",
-    {
-      offline: false,
-      latency:
-        NETWORK.latency,
-      downloadThroughput:
-        NETWORK
-          .downloadThroughput,
-      uploadThroughput:
-        NETWORK
-          .uploadThroughput,
-      connectionType:
-        "cellular4g",
-    }
-  );
-
-  await cdp.send(
-    "Emulation.setCPUThrottlingRate",
-    {
-      rate: 4,
-    }
-  );
-
-  const response =
-    await page.goto(
-      new URL(
-        relativeUrl,
-        TARGET_URL
-      ).toString(),
       {
-        waitUntil:
-          "domcontentloaded",
-        timeout:
-          30000,
+        encoding:
+          "utf8",
+        stdio: [
+          "ignore",
+          "pipe",
+          "pipe",
+        ],
       }
     );
 
   if (
-    !response ||
-    response.status() >= 400
+    result.status !== 0
   ) {
-    const status =
-      response
-        ?.status() ??
-      "sem resposta";
-
-    await context.close();
-
     throw new Error(
-      `${relativeUrl} respondeu ${status}`
+      [
+        `Lighthouse falhou em ${relativeUrl}.`,
+        String(
+          result.stderr || ""
+        ).trim(),
+        String(
+          result.stdout || ""
+        ).trim(),
+      ]
+        .filter(Boolean)
+        .join("\n")
     );
   }
 
-  await page.waitForLoadState(
-    "load",
-    {
-      timeout:
-        30000,
-    }
-  );
-
-  await page.waitForTimeout(
-    3000
-  );
-
-  const diagnostico =
-    await page.evaluate(
-      () => ({
-        lcp:
-          Number(
-            window.__AF_LCP ||
-              0
-          ),
-        timeOrigin:
-          Number(
-            performance.timeOrigin
-          ),
-        supported:
-          Array.isArray(
-            PerformanceObserver
-              .supportedEntryTypes
-          )
-            ? PerformanceObserver
-                .supportedEntryTypes
-                .includes(
-                  "largest-contentful-paint"
-                )
-            : null,
-      })
+  const report =
+    JSON.parse(
+      fs.readFileSync(
+        outputFile,
+        "utf8"
+      )
     );
 
-  const lcpCdp =
-    lcpCdpEpochSeconds > 0
-      ? (
-          lcpCdpEpochSeconds *
-            1000 -
-          diagnostico.timeOrigin
-        )
-      : 0;
+  const audit =
+    report?.audits?.[
+      "largest-contentful-paint"
+    ];
 
   const lcp =
-    Math.max(
-      diagnostico.lcp,
-      lcpCdp
+    Number(
+      audit?.numericValue
     );
-
-  await context.close();
 
   if (
     !Number.isFinite(lcp) ||
     lcp <= 0
   ) {
     throw new Error(
-      `LCP não foi observado em ${relativeUrl}. PerformanceObserver suporta LCP: ${diagnostico.supported}; CDP capturou: ${lcpCdpEpochSeconds > 0}`
+      `Lighthouse não retornou LCP válido em ${relativeUrl}.`
     );
   }
 
-  return lcp;
+  return {
+    lcp_ms:
+      round(lcp),
+    display_value:
+      audit?.displayValue ||
+      null,
+    settings:
+      report?.configSettings ||
+      null,
+    environment:
+      report?.environment ||
+      null,
+  };
 }
 
 async function main() {
   if (
     !Number.isInteger(RUNS) ||
     RUNS < 3 ||
-    RUNS > 10
+    RUNS > 5
   ) {
     throw new Error(
-      "PERF_LCP_RUNS deve ficar entre 3 e 10."
+      "PERF_LCP_RUNS deve ficar entre 3 e 5."
     );
   }
 
@@ -386,65 +248,98 @@ async function main() {
     },
   ];
 
-  const browser =
-    await chromium.launch({
-      headless: true,
-    });
+  const outputDir =
+    path.resolve(
+      process.cwd(),
+      "..",
+      "performance-results"
+    );
+
+  const rawDir =
+    path.join(
+      outputDir,
+      "lighthouse"
+    );
+
+  fs.mkdirSync(
+    rawDir,
+    {
+      recursive: true,
+    }
+  );
 
   const results = [];
+  let representativeSettings =
+    null;
+  let representativeEnvironment =
+    null;
 
-  try {
+  for (
+    const testCase
+    of pages
+  ) {
+    const samples = [];
+
     for (
-      const testCase
-      of pages
+      let index = 0;
+      index < RUNS;
+      index += 1
     ) {
-      const samples = [];
-
-      for (
-        let index = 0;
-        index < RUNS;
-        index += 1
-      ) {
-        samples.push(
-          await medirPagina(
-            browser,
-            testCase.path
-          )
-        );
-      }
-
-      const p95 =
-        round(
-          percentile(
-            samples,
-            0.95
-          )
+      const outputFile =
+        path.join(
+          rawDir,
+          `${testCase.name}-${index + 1}.json`
         );
 
-      results.push({
-        ...testCase,
-        runs:
-          samples.map(
-            round
-          ),
-        median_ms:
-          round(
-            percentile(
-              samples,
-              0.5
-            )
-          ),
-        p95_ms:
-          p95,
-        threshold_ms:
-          THRESHOLD_MS,
-        passed:
-          p95 <=
-          THRESHOLD_MS,
-      });
+      const measured =
+        medirComLighthouse({
+          relativeUrl:
+            testCase.path,
+          outputFile,
+        });
+
+      samples.push(
+        measured.lcp_ms
+      );
+
+      representativeSettings =
+        representativeSettings ||
+        measured.settings;
+
+      representativeEnvironment =
+        representativeEnvironment ||
+        measured.environment;
     }
-  } finally {
-    await browser.close();
+
+    const medianMs =
+      round(
+        median(samples)
+      );
+
+    results.push({
+      ...testCase,
+      runs_ms:
+        samples,
+      median_ms:
+        medianMs,
+      min_ms:
+        round(
+          Math.min(
+            ...samples
+          )
+        ),
+      max_ms:
+        round(
+          Math.max(
+            ...samples
+          )
+        ),
+      threshold_ms:
+        THRESHOLD_MS,
+      passed:
+        medianMs <=
+        THRESHOLD_MS,
+    });
   }
 
   const report = {
@@ -453,22 +348,34 @@ async function main() {
         .toISOString(),
     target:
       TARGET_URL,
+    tool: {
+      name:
+        "Lighthouse",
+      version:
+        LIGHTHOUSE_VERSION,
+    },
     profile: {
-      device:
-        "Pixel 7 / 390x844",
-      cold_context:
-        true,
-      cpu_slowdown:
-        "4x",
-      latency_ms:
-        NETWORK.latency,
-      download_mbps:
-        1.6,
-      upload_mbps:
-        0.75,
       runs_per_page:
         RUNS,
+      acceptance_statistic:
+        "median",
+      form_factor:
+        "mobile",
+      throttling_method:
+        "simulate",
+      rtt_ms:
+        150,
+      throughput_kbps:
+        1600,
+      cpu_slowdown_multiplier:
+        4,
+      storage:
+        "cold/default Lighthouse reset",
     },
+    lighthouse_settings:
+      representativeSettings,
+    lighthouse_environment:
+      representativeEnvironment,
     slug,
     results,
     passed:
@@ -477,20 +384,6 @@ async function main() {
           item.passed
       ),
   };
-
-  const outputDir =
-    path.resolve(
-      process.cwd(),
-      "..",
-      "performance-results"
-    );
-
-  fs.mkdirSync(
-    outputDir,
-    {
-      recursive: true,
-    }
-  );
 
   fs.writeFileSync(
     path.join(

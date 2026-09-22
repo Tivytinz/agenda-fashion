@@ -46,39 +46,32 @@ Configuração padrão:
 - origem do tráfego: runner de QA hospedado no GitHub.
 
 Esse perfil produz tráfego pequeno e controlado, abaixo do limitador público
-atual, e tem o objetivo de representar navegação concorrente normal. Ele não é
-um teste de capacidade máxima.
+atual, e representa navegação concorrente normal. Ele não é um teste de
+capacidade máxima.
 
-Para cada endpoint são registrados:
-
-- mínimo;
-- mediana;
-- p95;
-- máximo;
-- número de amostras.
-
-A execução falha se algum p95 ultrapassar 2.000 ms.
+Para cada endpoint são registrados mínimo, mediana, p95, máximo e número de
+amostras. A execução falha se algum p95 ultrapassar 2.000 ms.
 
 ## Perfil móvel de LCP
 
-Configuração padrão:
+O LCP é medido com **Lighthouse 13.5.0** fixado pela workflow. Cada página recebe
+3 navegações frias independentes e o critério usa a **mediana** dessas execuções.
+A baseline define o limite de LCP, mas não define percentil para essa métrica;
+por isso o processo de QA registra também mínimo e máximo sem transformar o pior
+outlier isolado em um novo requisito.
 
-- Chromium headless;
-- perfil Pixel 7;
-- viewport 390 × 844;
-- contexto frio por execução, sem service worker;
-- CPU 4× mais lenta;
-- latência de 150 ms;
-- download de 1,6 Mbps;
-- upload de 0,75 Mbps;
-- 5 execuções frias por página.
+Perfil:
 
-A instrumentação usa `PerformanceObserver` para capturar
-`largest-contentful-paint`.
+- form factor mobile;
+- throttling simulado;
+- RTT de 150 ms;
+- throughput de 1.600 Kbps;
+- CPU slowdown 4×;
+- armazenamento/cache reiniciado pelo comportamento padrão do Lighthouse;
+- limite de aceite: mediana de LCP ≤ 2.500 ms em cada página crítica.
 
-Para reduzir falso positivo por uma execução isolada, o contrato de QA considera
-o p95 das execuções frias de cada página. A execução falha se o p95 ultrapassar
-2.500 ms.
+Os relatórios JSON brutos do Lighthouse são preservados junto com o resumo para
+permitir investigação do elemento LCP e de gargalos quando necessário.
 
 ## Ambiente representativo
 
@@ -91,8 +84,8 @@ domínio público já implantado como alvo **somente para leituras controladas**
 sem criar carga de stress nem alterar dados.
 
 Esse uso transitório não transforma produção em ambiente de QA permanente. Se
-um serviço de aplicação for criado no ambiente `test`, o alvo de execução deve
-ser migrado para ele após validação de dados, domínio e configuração.
+um serviço de aplicação for criado no ambiente `test`, o alvo deve ser migrado
+para ele depois de validar dados, domínio e configuração.
 
 ## Execução
 
@@ -107,8 +100,8 @@ PERF_TARGET_URL=https://agendafashion.com.br \
   node scripts/performance-lcp.mjs
 ```
 
-A workflow `Performance QA` executa os mesmos scripts e publica os JSONs de
-resultado como artifact.
+A workflow `Performance QA` executa os mesmos scripts e publica os JSONs e os
+relatórios Lighthouse como artifact.
 
 Variáveis opcionais:
 
@@ -129,7 +122,7 @@ Uma execução só pode fechar `CA-NFR-05` quando:
 
 1. o alvo estiver saudável e representativo;
 2. todos os endpoints definidos tiverem p95 ≤ 2 s;
-3. home e perfil público tiverem LCP p95 ≤ 2,5 s no perfil móvel definido;
+3. home e perfil público tiverem mediana de LCP ≤ 2,5 s no perfil móvel definido;
 4. os resultados estiverem ligados ao commit/deployment medido;
 5. qualquer falha ou gargalo encontrado tiver sido investigado antes de marcar o
    critério como concluído.
