@@ -185,12 +185,15 @@ async function listarAgendamentosOcupados(
 
 async function listarBloqueios(
   profissionalId,
+  negocioId,
   dataInicio,
   dataFim
 ) {
   const result = await db.query(
     `
       SELECT
+        negocio_id,
+
         TO_CHAR(
           data_bloqueio,
           'YYYY-MM-DD'
@@ -205,7 +208,11 @@ async function listarBloqueios(
 
       WHERE profissional_id = $1
         AND data_bloqueio
-          BETWEEN $2 AND $3
+          BETWEEN $3 AND $4
+        AND (
+          negocio_id = $2
+          OR negocio_id IS NULL
+        )
 
       ORDER BY
         data_bloqueio,
@@ -213,6 +220,7 @@ async function listarBloqueios(
     `,
     [
       profissionalId,
+      negocioId,
       dataInicio,
       dataFim,
     ]
