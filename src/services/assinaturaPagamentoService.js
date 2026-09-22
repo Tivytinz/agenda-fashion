@@ -13,6 +13,9 @@ const {
   calcularProximaCobranca,
   normalizarFormaPagamento,
 } = require("./assinaturaCalculos");
+const {
+  reconciliarLimiteProfissionais,
+} = require("./equipePlanoService");
 
 async function garantirPagamentoRecorrente(
   client,
@@ -93,20 +96,58 @@ async function sincronizarPagamentoPorWebhook(
       return null;
     }
 
-    return pagamentoRepository.atualizarStatusPagamento(
-      client,
-      paymentId,
-      {
-        status: dadosPagamento.status || "PENDING",
-        data_pagamento:
-          dadosPagamento.paymentDate ||
-          dadosPagamento.confirmedDate ||
-          null,
-        evento_criado_em:
-          dadosPagamento.webhookEventoCriadoEm || null,
-        evento_id: dadosPagamento.webhookEventoId || null,
-      }
-    );
+    const statusPagamento = String(
+      dadosPagamento.status || "PENDING"
+    ).trim().toUpperCase();
+
+    const pagamentoAtualizado =
+      await pagamentoRepository.atualizarStatusPagamento(
+        client,
+        paymentId,
+        {
+          status: statusPagamento,
+          data_pagamento:
+            dadosPagamento.paymentDate ||
+            dadosPagamento.confirmedDate ||
+            null,
+          evento_criado_em:
+            dadosPagamento.webhookEventoCriadoEm || null,
+          evento_id: dadosPagamento.webhookEventoId || null,
+        }
+      );
+
+    if (!pagamentoAtualizado) {
+      return null;
+    }
+
+    const checkoutInicialPendente =
+      assinatura.ativo !== true &&
+      !assinatura.asaas_subscription_id &&
+      ["PENDING", "PENDING_PAYMENT"].includes(
+        String(assinatura.status || "")
+          .trim()
+          .toUpperCase()
+      );
+
+    if (
+      checkoutInicialPendente &&
+      ["DELETED", "CANCELED", "CANCELLED", "EXPIRED"].includes(
+        statusPagamento
+      )
+    ) {
+      await assinaturaWebhookRepository
+        .encerrarAssinaturaPendente(
+          client,
+          {
+            assinaturaId: assinatura.id,
+            status: statusPagamento,
+            observacao:
+              "Checkout inicial encerrado após falha definitiva ou expiração da cobrança.",
+          }
+        );
+    }
+
+    return pagamentoAtualizado;
   });
 }
 
@@ -180,6 +221,11 @@ async function suspenderAssinaturaPorPagamento(
           novoPlanoId: planoGratis.id,
         }
       );
+
+    await reconciliarLimiteProfissionais(
+      assinatura.negocio_id,
+      client
+    );
 
     return suspensao;
   });
