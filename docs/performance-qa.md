@@ -137,3 +137,34 @@ Uma execução só pode fechar `CA-NFR-05` quando:
 
 Resultado de CI local, build rápido ou inspeção de código não substituem essa
 evidência.
+
+## Evidência final da Wave 15
+
+A execução que fechou o critério foi ligada ao commit
+`21aaa5b046f879b2230e716699647c054ad6b887` e ao alvo canônico
+`app.agendafashion.com.br`.
+
+Resultados de API:
+
+| Cenário | p95 | Limite |
+| --- | ---: | ---: |
+| Catálogo público | 236,95 ms | ≤ 2.000 ms |
+| Perfil público | 167,91 ms | ≤ 2.000 ms |
+| Agenda pública | 102,87 ms | ≤ 2.000 ms |
+
+Resultados de LCP móvel, mediana de três execuções:
+
+| Página | Mediana | Limite |
+| --- | ---: | ---: |
+| Home pública | 2.412,60 ms | ≤ 2.500 ms |
+| Perfil público | 2.210,41 ms | ≤ 2.500 ms |
+
+A workflow **Performance QA #22** concluiu com sucesso e preservou o artifact
+`performance-wave-15-35798081075`. O **Backend CI #1250** também concluiu com
+sucesso no mesmo head.
+
+Portanto, em 22/09/2026, o `CA-NFR-05` / `RNF02` está tecnicamente
+demonstrado pelo perfil de QA definido neste documento. Mudanças posteriores na
+cadeia crítica de renderização ou nos endpoints medidos devem preservar esses
+limites e podem exigir nova medição comparável antes de afirmar que o resultado
+continua válido.
