@@ -305,6 +305,14 @@ describe("reagendamento operacional persistido", () => {
 
         await db.query(
           `
+            DELETE FROM analytics_eventos
+            WHERE target_business_id = $1
+          `,
+          [negocioId]
+        );
+
+        await db.query(
+          `
             DELETE FROM whatsapp_mensagens
             WHERE negocio_id = $1
               OR agendamento_id IN (
@@ -435,6 +443,43 @@ describe("reagendamento operacional persistido", () => {
       new_data: destino,
       antecedencia_cancelamento_horas_snapshot: 4,
     });
+
+    const eventoAnalytics = await db.query(
+      `
+        SELECT
+          event_uuid::TEXT AS event_id,
+          occurred_at,
+          origem,
+          actor_user_id,
+          propriedades
+        FROM analytics_eventos
+        WHERE agendamento_id = $1
+          AND nome = 'booking_rescheduled'
+        ORDER BY id DESC
+        LIMIT 1
+      `,
+      [bookingProfissionalId]
+    );
+
+    expect(eventoAnalytics.rows[0]).toMatchObject({
+      origem: "backend",
+      actor_user_id: profissional.id,
+      propriedades: expect.objectContaining({
+        business_id: Number(negocioId),
+        professional_id: Number(profissional.id),
+        booking_id: Number(bookingProfissionalId),
+        service_id: Number(servicoId),
+        previous_professional_id: Number(profissional.id),
+        previous_scheduled_start_at: `${futuro}T10:00:00`,
+        scheduled_start_at: `${destino}T14:00:00`,
+        actor_type: "PROFESSIONAL",
+        actor_id: Number(profissional.id),
+      }),
+    });
+    expect(eventoAnalytics.rows[0].event_id).toMatch(
+      /^[0-9a-f-]{36}$/i
+    );
+    expect(eventoAnalytics.rows[0].occurred_at).toBeTruthy();
 
     const mensagens = await db.query(
       `
@@ -587,6 +632,29 @@ describe("reagendamento operacional persistido", () => {
         60,
       antecedencia_cancelamento_horas:
         4,
+    });
+
+    const eventoDona = await db.query(
+      `
+        SELECT propriedades
+        FROM analytics_eventos
+        WHERE agendamento_id = $1
+          AND nome = 'booking_rescheduled'
+        ORDER BY id DESC
+        LIMIT 1
+      `,
+      [bookingDonaId]
+    );
+
+    expect(
+      eventoDona.rows[0]?.propriedades
+    ).toMatchObject({
+      actor_type: "OWNER",
+      actor_id: Number(dono.id),
+      previous_professional_id:
+        Number(profissional.id),
+      professional_id:
+        Number(outraProfissional.id),
     });
   });
 
