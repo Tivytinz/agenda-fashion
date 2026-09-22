@@ -169,6 +169,46 @@ async function arquivarNegocio({
   return result.rows[0] || null;
 }
 
+async function desativarVinculosDoNegocio(
+  negocioId,
+  executor = db
+) {
+  const result = await executor.query(
+    `
+      UPDATE usuarios_negocios
+      SET
+        ativo = FALSE,
+        updated_at = NOW()
+      WHERE negocio_id = $1
+        AND ativo = TRUE
+      RETURNING id, usuario_id, papel
+    `,
+    [negocioId]
+  );
+
+  return result.rows;
+}
+
+async function desativarVinculosDoUsuario(
+  usuarioId,
+  executor = db
+) {
+  const result = await executor.query(
+    `
+      UPDATE usuarios_negocios
+      SET
+        ativo = FALSE,
+        updated_at = NOW()
+      WHERE usuario_id = $1
+        AND ativo = TRUE
+      RETURNING id, negocio_id, papel
+    `,
+    [usuarioId]
+  );
+
+  return result.rows;
+}
+
 async function cancelarConvitesPendentes(
   negocioId,
   executor = db
@@ -354,6 +394,8 @@ module.exports = {
   buscarNegocioOperacionalDoDono,
   buscarPendenciasNegocio,
   arquivarNegocio,
+  desativarVinculosDoNegocio,
+  desativarVinculosDoUsuario,
   cancelarConvitesPendentes,
   contarReservasAtivasProfissional,
   listarReservasAtivasCliente,
