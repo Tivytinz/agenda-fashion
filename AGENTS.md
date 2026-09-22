@@ -485,6 +485,26 @@ Estas regras são obrigatórias:
    operação;
 7. redirecionamento ou botão oculto no React não substitui controle de acesso.
 
+Encerramento e privacidade seguem um fluxo de desativação/arquivamento, não de
+deleção física indiscriminada:
+
+- negócio só pode ser arquivado pela proprietária quando não houver booking
+  ativo nem pendência de acesso pago, checkout ou operação financeira;
+- arquivar remove o negócio da descoberta, desativa seus vínculos operacionais,
+  cancela convites pendentes e preserva históricos necessários;
+- conta profissional não pode ser encerrada definitivamente enquanto possuir
+  booking ativo atribuído;
+- desativar conta de cliente não cancela reservas existentes: o `Client`
+  interno e os dados mínimos operacionais permanecem, com acesso HMAC específico
+  por booking para consulta e cancelamento enquanto a política permitir;
+- conta proprietária só pode ser encerrada definitivamente depois que o negócio
+  puder ser arquivado com segurança na mesma transação lógica;
+- `desativado_em`, `encerrado_definitivo_em` e `arquivado_em` distinguem
+  perda de acesso, encerramento da identidade operacional e encerramento do
+  negócio sem apagar evidências sujeitas a retenção.
+
+Detalhes: `docs/encerramento-privacidade.md`.
+
 ## Engenharia e banco
 
 Antes de alterar algo:
