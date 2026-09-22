@@ -251,6 +251,12 @@ router.patch(
  *         description: Agendamento visitante não encontrado
  */
 
+router.get(
+  "/agendamentos/:id/acesso-visitante",
+  limitarLeituraPublica,
+  agendamentoCancelamentoController.consultarVisitante
+);
+
 router.patch(
   "/agendamentos/:id/cancelar-visitante",
   limitarAgendamento,
