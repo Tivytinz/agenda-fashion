@@ -451,6 +451,27 @@ Regras duráveis:
 
 Detalhes: `docs/whatsapp-automatico.md`.
 
+## Encerramento e privacidade operacional
+
+Negócio encerrado entra em estado terminal normal de arquivamento:
+`ativo = FALSE`, `publicado = FALSE` e `arquivado_em` preenchido. O
+arquivamento exige ausência de bookings operacionais e de acesso pago, renovação,
+checkout ou operação financeira pendente; convites ainda pendentes tornam-se
+não aceitáveis, sem apagar histórico.
+
+Encerramento definitivo de conta é lógico quando referências históricas precisam
+ser preservadas. Profissional com booking operacional atribuído não pode encerrar
+definitivamente a conta. Proprietária só encerra a identidade depois que o
+negócio puder ser arquivado com segurança.
+
+Conta de cliente pode ser desativada sem cancelar automaticamente reservas.
+Enquanto houver booking operacional, o `Client` e os dados mínimos permanecem,
+e o AF entrega um acesso por capacidade criptográfica específica da reserva para
+consulta/cancelamento conforme o cutoff. Essa credencial não deve aparecer em
+query de API ou logs.
+
+Detalhes: `docs/encerramento-privacidade.md`.
+
 ## Segurança e privacidade
 
 Estas regras são obrigatórias:
