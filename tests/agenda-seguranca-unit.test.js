@@ -81,7 +81,7 @@ describe("Segurança da agenda", () => {
     expect(db.executarTransacao).toHaveBeenCalledTimes(1);
     expect(
       agendaRepository.bloquearAlteracaoHorario
-    ).toHaveBeenCalledWith(10, "2026-08-10", "09:00", mockClient);
+).toHaveBeenCalledWith(10, "2026-08-10", "09:00", 33, mockClient);
     expect(
       agendaRepository.buscarAgendamentoAtivo
     ).toHaveBeenCalledWith(10, "2026-08-10", "09:00", mockClient);
