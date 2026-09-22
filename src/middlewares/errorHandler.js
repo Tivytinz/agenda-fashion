@@ -136,6 +136,13 @@ function errorHandler(
         erro:
           erroIntegridade?.mensagem ||
           err.message,
+        codigo:
+          err?.codigo ||
+          undefined,
+        pendencias:
+          Array.isArray(err?.pendencias)
+            ? err.pendencias
+            : undefined,
         request_id:
           req?.id ||
           undefined,
