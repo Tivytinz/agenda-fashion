@@ -666,8 +666,6 @@ describe("Wave 7 - negócio, onboarding e publicação P0", () => {
             "Cliente sem slot",
           cliente_whatsapp:
             "62999997777",
-          antecedencia_cancelamento_esperada:
-            2,
         });
 
     expect(
