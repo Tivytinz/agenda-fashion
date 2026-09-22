@@ -84,18 +84,25 @@ describe("consistência da publicação do negócio", () => {
     );
   });
 
-  test("sem serviço ativo despublica o negócio", async () => {
-    await servicosRepository.despublicarSemServicoAtivo(11);
+  test("compatibilidade sem serviço reutiliza a elegibilidade central", async () => {
+    await servicosRepository
+      .despublicarSemServicoAtivo(
+        11
+      );
 
-    const [sql, params] = mockQuery.mock.calls[0];
+    const [sql, params] =
+      mockQuery.mock.calls[0];
 
     expect(sql).toMatch(
-      /UPDATE negocios[\s\S]*publicado\s*=\s*FALSE/i
+      /pode_permanecer_publicado/i
     );
     expect(sql).toMatch(
-      /NOT EXISTS[\s\S]*servicos_negocio[\s\S]*s\.ativo\s*=\s*TRUE/i
+      /primeira_publicacao_em\s+IS\s+NOT\s+NULL/i
     );
-    expect(params).toEqual([11]);
+    expect(params).toEqual([
+      11,
+      false,
+    ]);
   });
 
   test("pedido manual de publicação limpa a ocultação e passa pela elegibilidade central", async () => {
