@@ -25,8 +25,10 @@ Quando as condições são satisfeitas:
 - `negocios.ativo = FALSE`;
 - `negocios.publicado = FALSE`;
 - `arquivado_em`, `arquivado_por` e `motivo_arquivamento` são persistidos;
+- vínculos ativos da equipe em `usuarios_negocios` são desativados para não
+  manter acesso nem bloquear a profissional em outro negócio;
 - convites ainda `pendente` passam para `cancelado`;
-- serviços, equipe, agendamentos, pagamentos e referências históricas não são
+- serviços, vínculos, agendamentos, pagamentos e referências históricas não são
   apagados;
 - o negócio deixa de aparecer na descoberta e de conceder contexto operacional;
 - o negócio arquivado não conta como negócio próprio operacional da conta;
