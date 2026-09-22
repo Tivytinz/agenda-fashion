@@ -819,7 +819,9 @@ export function ExplorePage() {
                 <img
                   alt=""
                   className="home-hero-image"
-                  fetchPriority={index === 0 ? "high" : "auto"}
+                  decoding="async"
+                  fetchPriority={index === 0 ? "high" : "low"}
+                  loading={index === 0 ? "eager" : "lazy"}
                   src={slide.image}
                 />
 
