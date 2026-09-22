@@ -50,9 +50,10 @@ Até essa evidência existir:
    autorização explícita antes da execução;
 4. o procedimento abaixo é a condição de saída para conformidade operacional.
 
-Essa decisão atende ao ramo do critério de aceitação que exige uma decisão
-formal quando o ambiente atual não demonstra as metas. Ela **não equivale** a
-um restore test aprovado.
+Essa decisão formaliza a pendência e impede uma declaração de conformidade sem
+evidência. Como a plataforma possui mecanismos de backup/PITR que ainda precisam
+ser confirmados e exercitados neste ambiente, ela **não fecha sozinha o
+CA-NFR-07** e **não equivale** a um restore test aprovado.
 
 ## Condição de saída
 
