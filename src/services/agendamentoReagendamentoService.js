@@ -14,6 +14,9 @@ const agendaDisponibilidadeService = require(
 const whatsappMensagemService = require(
   "./whatsappMensagemService"
 );
+const bookingAnalyticsService = require(
+  "./bookingAnalyticsService"
+);
 const {
   obterDataHoraNoFuso,
 } = require("../utils/fusoHorario");
@@ -545,6 +548,32 @@ async function reagendarOperacional({
           500
         );
       }
+
+      await bookingAnalyticsService
+        .registrarBookingRescheduled({
+          agendamentoId:
+            agendamento,
+          actorType:
+            papel === "dono"
+              ? "OWNER"
+              : "PROFESSIONAL",
+          actorId:
+            usuario,
+          previousProfessionalId:
+            Number(
+              atual.profissional_id
+            ),
+          previousData:
+            atual.data,
+          previousHorario:
+            atual.horario,
+          newData:
+            novaData,
+          newHorario:
+            novoHorario,
+          executor:
+            client,
+        });
 
       await whatsappMensagemService
         .enfileirarReagendamento({
