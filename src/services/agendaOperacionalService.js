@@ -263,6 +263,7 @@ async function buscarAgendaGeral({ usuarioId }) {
         dataFim: periodo.dataFim,
       }),
     agendaRepository.buscarBloqueiosProfissionaisPorPeriodo(
+      vinculoDono.negocio_id,
       profissionalIds,
       periodo.dataInicio,
       periodo.dataFim
