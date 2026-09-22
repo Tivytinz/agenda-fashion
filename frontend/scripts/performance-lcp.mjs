@@ -137,7 +137,7 @@ function medirComLighthouse({
         `lighthouse@${LIGHTHOUSE_VERSION}`,
         absoluteUrl,
         "--quiet",
-        "--chrome-flags=--headless=new --no-sandbox --disable-dev-shm-usage --disable-background-timer-throttling --disable-backgrounding-occluded-windows --disable-renderer-backgrounding --window-size=390,844",
+        "--chrome-flags=--no-sandbox --disable-dev-shm-usage --disable-background-timer-throttling --disable-backgrounding-occluded-windows --disable-renderer-backgrounding --window-size=390,844",
         "--only-audits=largest-contentful-paint",
         "--output=json",
         `--output-path=${outputFile}`,

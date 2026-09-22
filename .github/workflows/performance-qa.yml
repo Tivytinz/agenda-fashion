@@ -62,11 +62,12 @@ jobs:
         shell: bash
         run: |
           google-chrome --version
+          command -v xvfb-run
           npx --yes lighthouse@13.5.0 --version
 
       - name: Measure mobile LCP
         working-directory: frontend
-        run: node scripts/performance-lcp.mjs
+        run: xvfb-run -a node scripts/performance-lcp.mjs
 
       - name: Upload performance evidence
         if: always()
