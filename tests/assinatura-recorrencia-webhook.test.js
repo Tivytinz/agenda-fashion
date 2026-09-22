@@ -1,3 +1,11 @@
+jest.mock(
+  "../src/services/equipePlanoService",
+  () => ({
+    reconciliarLimiteProfissionais:
+      jest.fn().mockResolvedValue([])
+  })
+);
+
 const mockClient = {
   query: jest.fn()
 };
