@@ -207,8 +207,9 @@ Regras duráveis:
 - o início previsto de cada booking possui instante canônico em
   `agendamentos.inicio_previsto_em` (`TIMESTAMPTZ`) e snapshot do IANA usado
   em `fuso_horario_snapshot`; comparações temporais e conflitos globais entre
-  negócios usam o instante absoluto, enquanto a apresentação converte para o
-  fuso IANA do contexto sem reinterpretar bookings históricos;
+  negócios usam o instante absoluto, e a derivação de slots converte reservas
+  ocupadas para o IANA do negócio consultado sem reinterpretar o instante
+  histórico;
 - bloqueios legados sem `negocio_id` são tratados como indisponibilidade global
   somente para compatibilidade e não podem ser removidos silenciosamente por um
   negócio específico;
