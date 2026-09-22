@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link, useParams, useSearchParams } from "react-router-dom";
+import { Link, useLocation, useParams } from "react-router-dom";
 import { apiRequest } from "../api/client";
 import { ErrorState, LoadingState } from "../components/ScreenState";
 
@@ -7,8 +7,11 @@ const ACTIVE_STATUSES = new Set(["agendado", "confirmado"]);
 
 export function InactiveBookingAccessPage() {
   const { id } = useParams();
-  const [searchParams] = useSearchParams();
-  const token = searchParams.get("token") || "";
+  const location = useLocation();
+  const hashParams = new URLSearchParams(
+    String(location.hash || "").replace(/^#/, "")
+  );
+  const token = hashParams.get("token") || "";
   const [booking, setBooking] = useState(null);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
@@ -21,7 +24,12 @@ export function InactiveBookingAccessPage() {
     setError("");
 
     apiRequest(
-      `/agendamentos/${id}/acesso-cliente-desativado?token=${encodeURIComponent(token)}`
+      `/agendamentos/${id}/acesso-cliente-desativado`,
+      {
+        headers: {
+          "X-Agenda-Access": token
+        }
+      }
     )
       .then((result) => {
         if (active) setBooking(result.agendamento || null);
