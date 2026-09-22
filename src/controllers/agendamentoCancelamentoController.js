@@ -52,6 +52,21 @@ async function cancelarCliente(req, res, next) {
   }
 }
 
+async function consultarVisitante(req, res, next) {
+  try {
+    const resultado =
+      await agendamentoCancelamentoService.consultarAgendamentoVisitante({
+        agendamentoId: req.params.id,
+        acessoVisitante:
+          req.get("X-Agenda-Access"),
+      });
+
+    return res.json(resultado);
+  } catch (error) {
+    return next(error);
+  }
+}
+
 async function cancelarVisitante(req, res, next) {
   try {
     const agendamento =
@@ -95,6 +110,7 @@ module.exports = {
   buscarPoliticaPublica,
   validarPoliticaExibida,
   cancelarCliente,
+  consultarVisitante,
   cancelarVisitante,
   cancelarOperacional,
 };
