@@ -598,8 +598,8 @@ async function alterarPublicacao({
 
     mensagem:
       resultado.publicado
-        ? "Seu negócio está publicado e já pode aparecer na página inicial."
-        : "Seu negócio foi retirado da página inicial.",
+        ? "Seu negócio está publicado e já pode aparecer para clientes."
+        : "Seu negócio foi despublicado e permanecerá oculto até você publicar novamente.",
   });
 }
 
