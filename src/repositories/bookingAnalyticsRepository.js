@@ -24,6 +24,8 @@ async function buscarContextoAgendamento(
         a.servico_nome AS service_name_snapshot,
         a.valor_servico AS price_snapshot,
         a.duracao_minutos AS duration_snapshot,
+        a.inicio_previsto_em,
+        a.fuso_horario_snapshot,
         TO_CHAR(a.data, 'YYYY-MM-DD') AS data,
         TO_CHAR(a.horario::time, 'HH24:MI') AS horario,
         COALESCE(
