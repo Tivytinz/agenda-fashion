@@ -566,6 +566,25 @@ async function criarNegocioComDono({
         throw erro;
       }
 
+      /*
+       * Criar o próprio negócio também ativa o perfil
+       * profissional na identidade já existente.
+       * A atualização participa da mesma transação do
+       * negócio e do vínculo de proprietária.
+       */
+      await client.query(
+        `
+          UPDATE usuarios
+          SET perfil_profissional_ativado_em =
+            COALESCE(
+              perfil_profissional_ativado_em,
+              NOW()
+            )
+          WHERE id = $1
+        `,
+        [idUsuario]
+      );
+
       const negocioCriado =
         await criarNegocio(
           negocio,
