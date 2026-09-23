@@ -1,9 +1,6 @@
 const AppError = require(
   "../errors/AppError"
 );
-const db = require(
-  "../db/db"
-);
 const contributionEconomicsService =
   require(
     "./contributionEconomicsService"
@@ -393,7 +390,7 @@ async function criarFonte({
   };
 
   try {
-    return await db
+    return await repository
       .executarTransacao(
         async (
           client
@@ -519,7 +516,7 @@ async function registrarCusto({
     );
   }
 
-  return db
+  return repository
     .executarTransacao(
       async (
         client
@@ -728,7 +725,7 @@ async function registrarCobertura({
       payload?.fonte_codigo
     );
 
-  return db
+  return repository
     .executarTransacao(
       async (
         client
