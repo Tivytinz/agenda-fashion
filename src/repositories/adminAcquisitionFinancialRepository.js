@@ -55,13 +55,19 @@ async function buscarRetornoAquisicao({
             'aquisicao_financeira_v1_inicio'
           LIMIT 1
         ),
-        custo_fontes AS (
+        custos_canonicos AS (
           SELECT
             g.campanha_id,
             g.data_gasto,
-            g.fonte,
+            (
+              (
+                NOW()
+                AT TIME ZONE '${TIME_ZONE}'
+              )::date -
+              g.data_gasto
+            )::INT AS idade_dias,
             SUM(g.valor_centavos)::BIGINT
-              AS valor_centavos
+              AS investimento_centavos
           FROM marketing_campanha_gastos g
           INNER JOIN marketing_campanhas mc
             ON mc.id = g.campanha_id
@@ -71,51 +77,7 @@ async function buscarRetornoAquisicao({
             AND g.data_gasto > m.data_corte
           GROUP BY
             g.campanha_id,
-            g.data_gasto,
-            g.fonte
-        ),
-        custo_dias AS (
-          SELECT
-            cf.campanha_id,
-            cf.data_gasto,
-            COUNT(*)::INT AS fontes_total,
-            COUNT(*) FILTER (
-              WHERE cf.fonte <> 'manual'
-            )::INT AS fontes_automaticas,
-            MAX(cf.valor_centavos) FILTER (
-              WHERE cf.fonte = 'manual'
-            )::BIGINT AS valor_manual_centavos,
-            MAX(cf.valor_centavos) FILTER (
-              WHERE cf.fonte <> 'manual'
-            )::BIGINT AS valor_automatico_centavos
-          FROM custo_fontes cf
-          GROUP BY
-            cf.campanha_id,
-            cf.data_gasto
-        ),
-        custos_canonicos AS (
-          SELECT
-            cd.campanha_id,
-            cd.data_gasto,
-            (
-              (
-                NOW()
-                AT TIME ZONE '${TIME_ZONE}'
-              )::date -
-              cd.data_gasto
-            )::INT AS idade_dias,
-            CASE
-              WHEN cd.fontes_automaticas = 1
-                THEN cd.valor_automatico_centavos
-              WHEN cd.fontes_automaticas = 0
-                THEN cd.valor_manual_centavos
-              ELSE NULL
-            END::BIGINT AS investimento_centavos,
-            cd.fontes_total > 1
-              AS fontes_sobrepostas,
-            cd.fontes_automaticas > 1
-              AS custo_ambiguo
-          FROM custo_dias cd
+            g.data_gasto
         ),
         snapshots AS (
           SELECT
@@ -234,7 +196,6 @@ async function buscarRetornoAquisicao({
                 FILTER (
                   WHERE cc.idade_dias >=
                     $1::INT + 30
-                    AND NOT cc.custo_ambiguo
                 ),
               0
             )::BIGINT
@@ -244,7 +205,6 @@ async function buscarRetornoAquisicao({
                 FILTER (
                   WHERE cc.idade_dias >=
                     $1::INT + 60
-                    AND NOT cc.custo_ambiguo
                 ),
               0
             )::BIGINT
@@ -254,7 +214,6 @@ async function buscarRetornoAquisicao({
                 FILTER (
                   WHERE cc.idade_dias >=
                     $1::INT + 90
-                    AND NOT cc.custo_ambiguo
                 ),
               0
             )::BIGINT
@@ -270,37 +229,7 @@ async function buscarRetornoAquisicao({
             COUNT(*) FILTER (
               WHERE cc.idade_dias >=
                 $1::INT + 90
-            )::INT AS dias_maduros_d90,
-            COUNT(*) FILTER (
-              WHERE cc.idade_dias >=
-                $1::INT + 30
-                AND cc.fontes_sobrepostas
-            )::INT AS dias_sobrepostos_d30,
-            COUNT(*) FILTER (
-              WHERE cc.idade_dias >=
-                $1::INT + 60
-                AND cc.fontes_sobrepostas
-            )::INT AS dias_sobrepostos_d60,
-            COUNT(*) FILTER (
-              WHERE cc.idade_dias >=
-                $1::INT + 90
-                AND cc.fontes_sobrepostas
-            )::INT AS dias_sobrepostos_d90,
-            COUNT(*) FILTER (
-              WHERE cc.idade_dias >=
-                $1::INT + 30
-                AND cc.custo_ambiguo
-            )::INT AS dias_ambiguos_d30,
-            COUNT(*) FILTER (
-              WHERE cc.idade_dias >=
-                $1::INT + 60
-                AND cc.custo_ambiguo
-            )::INT AS dias_ambiguos_d60,
-            COUNT(*) FILTER (
-              WHERE cc.idade_dias >=
-                $1::INT + 90
-                AND cc.custo_ambiguo
-            )::INT AS dias_ambiguos_d90
+            )::INT AS dias_maduros_d90
           FROM custos_canonicos cc
           GROUP BY cc.campanha_id
         ),
@@ -321,7 +250,6 @@ async function buscarRetornoAquisicao({
                   ) >= $1::INT + 30
                   AND cc.investimento_centavos
                     IS NOT NULL
-                  AND NOT cc.custo_ambiguo
               )::INT AS negocios_pagos_d30,
             COUNT(DISTINCT rn.negocio_id)
               FILTER (
@@ -336,7 +264,6 @@ async function buscarRetornoAquisicao({
                   ) >= $1::INT + 60
                   AND cc.investimento_centavos
                     IS NOT NULL
-                  AND NOT cc.custo_ambiguo
               )::INT AS negocios_pagos_d60,
             COUNT(DISTINCT rn.negocio_id)
               FILTER (
@@ -351,7 +278,6 @@ async function buscarRetornoAquisicao({
                   ) >= $1::INT + 90
                   AND cc.investimento_centavos
                     IS NOT NULL
-                  AND NOT cc.custo_ambiguo
               )::INT AS negocios_pagos_d90,
             COALESCE(
               SUM(rn.receita_d30_centavos)
@@ -367,7 +293,6 @@ async function buscarRetornoAquisicao({
                     ) >= $1::INT + 30
                     AND cc.investimento_centavos
                       IS NOT NULL
-                    AND NOT cc.custo_ambiguo
                 ),
               0
             )::BIGINT AS receita_d30_centavos,
@@ -385,7 +310,6 @@ async function buscarRetornoAquisicao({
                     ) >= $1::INT + 60
                     AND cc.investimento_centavos
                       IS NOT NULL
-                    AND NOT cc.custo_ambiguo
                 ),
               0
             )::BIGINT AS receita_d60_centavos,
@@ -403,7 +327,6 @@ async function buscarRetornoAquisicao({
                     ) >= $1::INT + 90
                     AND cc.investimento_centavos
                       IS NOT NULL
-                    AND NOT cc.custo_ambiguo
                 ),
               0
             )::BIGINT AS receita_d90_centavos,
@@ -413,7 +336,6 @@ async function buscarRetornoAquisicao({
               ) FILTER (
                 WHERE cc.investimento_centavos
                   IS NOT NULL
-                  AND NOT cc.custo_ambiguo
               ),
               0
             )::BIGINT
@@ -430,20 +352,7 @@ async function buscarRetornoAquisicao({
                     rn.data_aquisicao
                   ) >= $1::INT + 30
               )::INT
-                AS pagantes_sem_custo_d30,
-            COUNT(DISTINCT rn.negocio_id)
-              FILTER (
-                WHERE cc.custo_ambiguo
-                  AND (
-                    (
-                      NOW()
-                      AT TIME ZONE
-                        '${TIME_ZONE}'
-                    )::date -
-                    rn.data_aquisicao
-                  ) >= $1::INT + 30
-              )::INT
-                AS pagantes_custo_ambiguo_d30
+                AS pagantes_sem_custo_d30
           FROM receita_negocio rn
           LEFT JOIN custos_canonicos cc
             ON cc.campanha_id =
@@ -496,30 +405,6 @@ async function buscarRetornoAquisicao({
             0
           )::INT AS dias_maduros_d90,
           COALESCE(
-            ca.dias_sobrepostos_d30,
-            0
-          )::INT AS dias_sobrepostos_d30,
-          COALESCE(
-            ca.dias_sobrepostos_d60,
-            0
-          )::INT AS dias_sobrepostos_d60,
-          COALESCE(
-            ca.dias_sobrepostos_d90,
-            0
-          )::INT AS dias_sobrepostos_d90,
-          COALESCE(
-            ca.dias_ambiguos_d30,
-            0
-          )::INT AS dias_ambiguos_d30,
-          COALESCE(
-            ca.dias_ambiguos_d60,
-            0
-          )::INT AS dias_ambiguos_d60,
-          COALESCE(
-            ca.dias_ambiguos_d90,
-            0
-          )::INT AS dias_ambiguos_d90,
-          COALESCE(
             r.negocios_pagos_d30,
             0
           )::INT AS negocios_pagos_d30,
@@ -551,12 +436,7 @@ async function buscarRetornoAquisicao({
           COALESCE(
             r.pagantes_sem_custo_d30,
             0
-          )::INT AS pagantes_sem_custo_d30,
-          COALESCE(
-            r.pagantes_custo_ambiguo_d30,
-            0
-          )::INT
-            AS pagantes_custo_ambiguo_d30
+          )::INT AS pagantes_sem_custo_d30
         FROM campanhas_base cb
         INNER JOIN marketing_campanhas mc
           ON mc.id = cb.campanha_id
