@@ -26,8 +26,7 @@ const RESULT = {
       snapshotsAtribuicaoIncompleta: 0,
       snapshotsAquisicaoPreCutover: 0,
       snapshotsPendentes: 0,
-      diasFontesSobrepostasD30: 1,
-      diasCustoAmbiguoD30: 0
+      pagantesSemCustoD30: 0
     },
     campanhas: [
       {
@@ -39,7 +38,8 @@ const RESULT = {
         primeiraRecuperacaoReceitaBrutaDias: 60,
         valorExpostoReversoesCentavos: 0,
         pagantesSemCustoD30: 0,
-        pagantesCustoAmbiguoD30: 0,
+        pagantesSemCustoD60: 0,
+        pagantesSemCustoD90: 0,
         janelas: [
           {
             dias: 30,
