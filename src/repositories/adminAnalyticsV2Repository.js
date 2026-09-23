@@ -634,6 +634,10 @@ async function buscarReceita(periodo = "30") {
             'CANCELLED'
           )
           AND pl.valor > 0
+          AND NOT (
+            a.data_proxima_cobranca IS NOT NULL
+            AND a.data_proxima_cobranca <= CURRENT_DATE
+          )
       ),
       cancelamentos_encerrados AS (
         SELECT COUNT(*)::INT
