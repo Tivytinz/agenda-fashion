@@ -353,6 +353,21 @@ maturidade usa
 econômico, margem ou payback econômico e não altera automaticamente a régua de
 escala/pausa de mídia.
 
+Desde a Wave 28, o AF mantém uma camada separada de **economia líquida de
+gateway** por pagamento. Billing continua autoridade de entitlement; uma falha
+na reconciliação econômica nunca reverte assinatura ou plano. O worker consulta
+o estado atual do Asaas fora da transação crítica, preserva o `netValue`
+observado, `creditDate` e refunds idempotentes, e revalida
+`asaas_ultimo_evento_em`/`asaas_ultimo_evento_id` antes de persistir para não
+gravar uma resposta externa obsoleta. Ausência de `netValue` não significa
+taxa zero. Somente refund `DONE` reduz a receita líquida observada; refund
+pendente, chargeback em disputa e outras reversões não reconciliadas permanecem
+indisponíveis/expostas até resolução. **Receita líquida de gateway** é
+`netValue - refunds DONE`; ela pode ficar negativa e não é lucro nem margem de
+contribuição. LTV líquido de gateway D30/D60/D90 reutiliza as coortes da Wave 26
+e retorno líquido de gateway reutiliza aquisição/custo da Wave 27. Margem,
+CAC total e payback econômico continuam fora da definição oficial.
+
 Um negócio pode possuir no máximo uma cobrança PIX pendente de contratação ou
 upgrade por vez, independentemente do plano escolhido. Trocar de plano antes do
 pagamento não deve criar cobranças concorrentes. A tela de assinatura deve
