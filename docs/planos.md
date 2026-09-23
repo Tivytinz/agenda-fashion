@@ -138,8 +138,9 @@ apagar dados existentes nem impedir a edição do que já foi cadastrado.
 - A **aquisição financeira v1** da Wave 27 congela por negócio a primeira dona,
   a atribuição first-touch e a campanha resolvida quando a primeira conversão
   paga canônica é reconciliada. CAC de mídia observado usa investimento diário
-  maduro da campanha; uma fonte automática substitui o manual no mesmo dia e
-  múltiplas fontes automáticas bloqueiam a leitura. Retorno D30/D60/D90 é
+  maduro da campanha e reutiliza a fonte única já persistida por campanha/dia;
+  uma nova fonte substitui a anterior conforme a migration 037. Negócio pago
+  maduro sem custo correspondente bloqueia a comparação. Retorno D30/D60/D90 é
   receita bruta observada sobre mídia da mesma coorte e não deve ser chamado de
   payback econômico.
 - `webhook_eventos` preserva a entrega do provedor; `assinatura_eventos`
