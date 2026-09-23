@@ -255,8 +255,8 @@ export function DashboardPage() {
   const uniqueClients = Number(summary.clientes_unicos) || 0;
   const recurringHint =
     uniqueClients === 1
-      ? "de 1 cliente com agendamento"
-      : `de ${uniqueClients} clientes com agendamento`;
+      ? "histórico do negócio · de 1 cliente com agendamento"
+      : `histórico do negócio · de ${uniqueClients} clientes com agendamento`;
   const cards = [
     ["Agendamentos", summary.agendamentos_periodo ?? 0, "no período"],
     ["Faturamento", formatCurrency(summary.faturamento_periodo), "previsto"],
