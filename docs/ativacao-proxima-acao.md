@@ -145,4 +145,12 @@ As transições devem permanecer protegidas em três níveis:
 
 A observabilidade também deve ser protegida por testes do contrato de eventos e por testes de interface que diferenciem visualização, seleção e conclusão do compartilhamento.
 
+A regressão de navegador da primeira jornada deve preservar duas distinções até o
+primeiro agendamento:
+
+- o link gerado pelo compartilhamento do dashboard continua rastreável pela
+  origem própria do AF, sem transformar o compartilhamento em ativação;
+- o painel só deixa de mostrar a missão de ativação quando o backend retornar o
+  estado canônico `ATIVADO` após existir primeiro agendamento válido.
+
 Mudanças futuras nessa ordem ou na definição de qualquer sinal canônico devem atualizar esta documentação e os testes correspondentes.
