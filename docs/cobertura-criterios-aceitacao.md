@@ -395,10 +395,10 @@ A Wave 27 inicia um cutover próprio para congelar a aquisição financeira no
 nível do negócio e conectar campanha, custo de mídia, primeira conversão paga e
 receita futura na mesma coorte.
 
-O custo diário deixa de somar silenciosamente gasto manual e automático no mesmo
-dia. Uma única fonte automática prevalece; múltiplas fontes automáticas bloqueiam
-a leitura. CAC é explicitamente **CAC de mídia observado** e retorno D30/D60/D90
-é receita bruta, não margem ou payback econômico.
+O custo diário reutiliza a fonte única já garantida pela migration 037, em vez
+de criar uma nova regra concorrente. Negócio pago maduro sem custo no dia da
+aquisição bloqueia a comparação. CAC é explicitamente **CAC de mídia observado**
+e retorno D30/D60/D90 é receita bruta, não margem ou payback econômico.
 
 A Wave 27 não altera a baseline funcional, que continua em **67/67 (100%)**.
 
