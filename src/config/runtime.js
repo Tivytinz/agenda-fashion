@@ -168,6 +168,22 @@ function validarConfiguracaoRuntime(env = process.env) {
     minimo: 1,
     maximo: 90,
   });
+  validarInteiroOpcional(
+    env,
+    "ACQUISITION_FINANCIAL_RECONCILIATION_INTERVAL_MS",
+    {
+      minimo: 60000,
+      maximo: 3600000,
+    }
+  );
+  validarInteiroOpcional(
+    env,
+    "ACQUISITION_FINANCIAL_RECONCILIATION_BATCH_SIZE",
+    {
+      minimo: 1,
+      maximo: 500,
+    }
+  );
 
   validarInteiroOpcional(env, "BCRYPT_ROUNDS", {
     minimo: 10,

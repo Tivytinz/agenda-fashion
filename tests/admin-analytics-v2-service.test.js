@@ -24,6 +24,13 @@ jest.mock(
   })
 );
 
+jest.mock(
+  "../src/services/adminAcquisitionFinancialService",
+  () => ({
+    buscar: jest.fn(),
+  })
+);
+
 const repository = require(
   "../src/repositories/adminAnalyticsV2Repository"
 );
@@ -33,9 +40,13 @@ const professionalFunnelService = require(
 const professionalRecurrenceAnalysisService = require(
   "../src/services/adminProfessionalRecurrenceAnalysisService"
 );
+const adminAcquisitionFinancialService = require(
+  "../src/services/adminAcquisitionFinancialService"
+);
 const {
   buscar,
   buscarOverview,
+  buscarAcquisition,
   buscarJourney,
   buscarRetention,
   mapearReconciliacaoPipelines,
@@ -174,6 +185,80 @@ describe("adminAnalyticsV2Service", () => {
 
     expect(resultado.ativacao.taxaNegocioSobreCadastro).toBeNull();
     expect(resultado.receita.taxaAssinaturaSobreCadastro).toBeNull();
+  });
+
+  test("integra retorno financeiro sem substituir o funil do período", async () => {
+    repository.listarAquisicao.mockResolvedValue({
+      periodo: "30",
+      origens: [],
+    });
+    professionalFunnelService.buscarFunil
+      .mockResolvedValue({
+        campanhas: [
+          {
+            origem: "google",
+            midia: "cpc",
+            campanha: "google_ads_profissionais",
+            campanhaOficialId: 10,
+            classificacaoAtribuicao: "oficial",
+            cadastros: 20,
+            negociosCriados: 10,
+            servicosCriados: 8,
+            negociosPublicados: 7,
+            primeirosAgendamentos: 5,
+            checkoutsIniciados: 3,
+            assinaturasAtivadas: 2,
+            investimentoCentavos: 10000,
+            receitaPrimeiroPagamentoCentavos: 9980,
+            cacAssinanteCentavos: 5000,
+            roas: 1,
+          },
+        ],
+        qualidadeMensuracao: {
+          prontaParaDecisao: true,
+        },
+        diagnosticoAtribuicao: {
+          cadastrosOficiais: 20,
+        },
+      });
+    adminAcquisitionFinancialService.buscar
+      .mockResolvedValue({
+        inicioCobertura:
+          "2026-09-23T18:00:00.000Z",
+        campanhas: [
+          {
+            campanhaOficialId: 10,
+            janelas: [
+              {
+                dias: 30,
+                retornoBruto: 1.2,
+              },
+            ],
+          },
+        ],
+      });
+
+    const resultado =
+      await buscarAcquisition("30");
+
+    expect(resultado.funilPorCampanha[0])
+      .toMatchObject({
+        campanha: "google_ads_profissionais",
+        cadastros: 20,
+        assinaturasAtivadas: 2,
+        cacAssinanteCentavos: 5000,
+      });
+    expect(resultado.retornoAquisicao)
+      .toMatchObject({
+        inicioCobertura:
+          "2026-09-23T18:00:00.000Z",
+      });
+    expect(
+      adminAcquisitionFinancialService.buscar
+    ).toHaveBeenCalledTimes(1);
+    expect(
+      resultado.metodologia.retornoFinanceiro
+    ).toMatch(/Wave 27/i);
   });
 
   test("reconcilia eventos equivalentes sem somar os pipelines", async () => {

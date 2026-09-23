@@ -330,8 +330,28 @@ D90; apenas negócios maduros entram no denominador de cada janela. Churn não
 remove o negócio da coorte e reativação não cria nova aquisição. MRR não é usado
 como proxy de receita observada. Estorno, refund e disputa são exibidos como
 exposição separada; o AF não declara LTV líquido enquanto o valor econômico
-exato de reversões parciais não estiver persistido. LTV projetado, LTV de margem
-e CAC payback continuam fora da definição oficial.
+exato de reversões parciais não estiver persistido. LTV projetado e LTV de margem
+continuam fora da definição oficial.
+
+Desde a Wave 27, o AF mantém um snapshot imutável de **aquisição financeira por
+negócio** após a primeira conversão paga canônica. O snapshot congela a primeira
+conta dona, first-touch persistido, campanha oficial resolvida, método de
+resolução, primeiro pagamento e plano de entrada. Transferência futura de
+propriedade, mudança de plano, nova assinatura ou reativação não criam uma nova
+aquisição nem reescrevem a campanha histórica.
+
+A leitura de **CAC de mídia observado v1** reutiliza o custo diário canônico por
+campanha já protegido pela migration 037: existe uma única fonte efetiva por
+campanha/dia e a fonte gravada por último substitui a anterior. A Wave 27 não
+cria outra precedência entre fontes. O custo também preserva
+`objetivo_snapshot`, de modo que uma mudança posterior do objetivo da campanha
+não reclassifica silenciosamente o histórico. Negócio pago maduro sem custo no
+próprio dia de aquisição bloqueia a comparação daquela janela. Retorno bruto D30/D60/D90
+compara receita bruta observada com investimento da mesma coorte madura. A
+maturidade usa
+`diasMaturacaoMonetizacao + janelaLtv`. Essa leitura não representa CAC
+econômico, margem ou payback econômico e não altera automaticamente a régua de
+escala/pausa de mídia.
 
 Um negócio pode possuir no máximo uma cobrança PIX pendente de contratação ou
 upgrade por vez, independentemente do plano escolhido. Trocar de plano antes do
