@@ -432,6 +432,8 @@ export function AdminAcquisitionV2Page() {
           ? acquisitionReturn.campanhas
           : [];
         const financialDiagnosis = acquisitionReturn.diagnostico || {};
+        const contributionReadiness =
+          acquisitionReturn.contribuicaoProntidao || {};
         const totals = campaigns.reduce((acc, campaign) => ({
           cadastros: acc.cadastros + number(campaign.cadastros),
           primeiros: acc.primeiros + number(campaign.primeirosAgendamentos),
@@ -572,6 +574,15 @@ export function AdminAcquisitionV2Page() {
                 </div>
               )}
 
+              {!contributionReadiness.retornoContribuicaoDisponivel && (
+                <div className="admin-command-alert is-warning" role="status">
+                  <strong>Retorno de contribuição ainda indisponível.</strong>
+                  <p className="muted">
+                    A leitura só aparece quando existem fontes obrigatórias de custo variável, investimento de mídia maduro e cobertura integral de gateway + contribuição na mesma coorte pós-cutover da Wave 30.
+                  </p>
+                </div>
+              )}
+
               {financialCampaigns.length === 0 ? (
                 <EmptyState title="Aguardando base financeira pós-cutover">
                   Ainda não existem campanhas com custo ou negócios pagos elegíveis para a leitura financeira da Wave 27.
@@ -589,6 +600,7 @@ export function AdminAcquisitionV2Page() {
                         <th>Retorno D90</th>
                         <th>Recuperação bruta</th>
                         <th>Recuperação líquida</th>
+                        <th>Recuperação contribuição</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -614,11 +626,19 @@ export function AdminAcquisitionV2Page() {
                                 : `${number(window.retornoLiquidoGateway).toFixed(2)}x`
                             )
                             : "Aguardando economia";
+                          const contribuicao = window.contribuicao?.comparavel
+                            ? (
+                              window.contribuicao.retornoContribuicao == null
+                                ? "—"
+                                : `${number(window.contribuicao.retornoContribuicao).toFixed(2)}x`
+                            )
+                            : window.contribuicao?.rotulo || "Aguardando contribuição";
 
                           return (
                             <>
                               {bruto}
                               <small>Líquido gateway {liquido}</small>
+                              <small>Contribuição {contribuicao}</small>
                             </>
                           );
                         };
@@ -651,6 +671,11 @@ export function AdminAcquisitionV2Page() {
                                 ? `até D${campaign.primeiraRecuperacaoLiquidaGatewayDias}`
                                 : "Não observada"}
                             </td>
+                            <td>
+                              {campaign.primeiraRecuperacaoContribuicaoDias
+                                ? `até D${campaign.primeiraRecuperacaoContribuicaoDias}`
+                                : "Não observada"}
+                            </td>
                           </tr>
                         );
                       })}
@@ -660,7 +685,7 @@ export function AdminAcquisitionV2Page() {
               )}
 
               <p className="muted">
-                CAC de mídia não é CAC econômico. Retorno bruto permanece disponível como referência histórica. A leitura líquida da Wave 28 desconta taxa observada no netValue e refunds DONE, mas ainda não desconta impostos, suporte, infraestrutura, pessoal ou demais custos de contribuição.
+                CAC de mídia não é CAC total. A Wave 30 compara contribuição observada com o investimento de mídia da mesma coorte pós-cutover, sem interpolar dias e sem chamar recuperação de mídia de payback econômico definitivo. Lucro e custos fixos continuam fora desta leitura.
               </p>
             </section>
 
@@ -669,6 +694,7 @@ export function AdminAcquisitionV2Page() {
               <p>{data.metodologia?.sessoes}</p>
               <p>{data.metodologia?.conversao}</p>
               <p>{data.metodologia?.retornoFinanceiro}</p>
+              <p>{acquisitionReturn.metodologia?.retornoContribuicao}</p>
             </details>
           </>
         );
