@@ -183,10 +183,10 @@ describe(
               $3,
               'pix',
               $4,
-              CURRENT_DATE + $5,
+              CURRENT_DATE + $5::int,
               CASE
                 WHEN $6::int IS NULL THEN NULL
-                ELSE CURRENT_DATE + $6
+                ELSE CURRENT_DATE + $6::int
               END
             )
             `,
