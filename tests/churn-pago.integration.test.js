@@ -122,14 +122,17 @@ describe("Wave 24 - episódios pagos e churn", () => {
         'WAVE24_CUTOVER',
         $2,
         'sistema',
-        $3,
-        $4
+        (
+          SELECT ocorrido_em
+          FROM financeiro_marcos
+          WHERE chave = 'churn_v1_inicio'
+        ),
+        $3
       )
       `,
       [
         negocioId,
         plano.rows[0].id,
-        marco.rows[0].ocorrido_em,
         `test:wave24:${negocioId}:baseline`,
       ]
     );
