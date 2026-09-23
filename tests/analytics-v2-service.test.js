@@ -350,6 +350,24 @@ describe(
         expect(repeat.properties).not.toHaveProperty(
           "whatsapp"
         );
+
+        const invalid = normalizarItem({
+          type: "event",
+          eventUuid:
+            "5e34f68a-cff4-42a1-a8ee-93b8cab1fb2a",
+          name: "booking_started",
+          schemaVersion: 1,
+          occurredAt: AGORA,
+          properties: {
+            entry_point: "customer_agenda",
+            intent: "inventado",
+            source_booking_status: "qualquer_texto",
+          },
+        });
+
+        expect(invalid.properties).toEqual({
+          entry_point: "customer_agenda",
+        });
       }
     );
 
