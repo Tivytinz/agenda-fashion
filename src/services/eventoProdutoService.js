@@ -104,6 +104,7 @@ const MISSOES_PERMITIDAS =
     "publicar_negocio",
     "adquirir_profissional",
     "retomar_escolhas",
+    "retornar_ao_negocio",
   ]);
 
 const CHAVES_PROPRIEDADES =
