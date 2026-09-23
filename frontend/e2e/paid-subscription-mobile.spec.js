@@ -241,9 +241,9 @@ test("dona cria um único checkout PIX e só vê o plano ativo após ativação 
   await expect(page.getByRole("heading", {
     name: "PIX gerado"
   })).toBeVisible();
-  await expect(page.getByRole("textbox").filter({
-    hasValue: "000201PIX-WAVE19"
-  })).toBeVisible();
+  await expect(
+    page.locator(".pix-box textarea")
+  ).toHaveValue("000201PIX-WAVE19");
 
   expect(checkoutRequests).toBe(1);
   expect(checkoutBody).toEqual(expect.objectContaining({
@@ -270,9 +270,9 @@ test("dona cria um único checkout PIX e só vê o plano ativo após ativação 
     name: "Plano e assinatura"
   })).toBeVisible();
   await expect(page.getByText("Assinatura ativa")).toBeVisible();
-  await expect(page.getByText("Plano em uso:").locator("..")).toContainText(
-    "Autônoma"
-  );
+  await expect(
+    page.locator(".billing-effective-plan")
+  ).toContainText("Autônoma");
   await expect(page.getByRole("table")).toContainText("Pago");
 
   expect(checkoutRequests).toBe(1);
@@ -344,9 +344,9 @@ test("upgrade PIX pendente reaparece após recarga sem abrir novo checkout", asy
   await expect(page.getByRole("textbox", {
     name: "Código PIX pendente"
   })).toHaveValue("000201PIX-PENDENTE-WAVE19");
-  await expect(page.getByText("Plano em uso:").locator("..")).toContainText(
-    "Grátis"
-  );
+  await expect(
+    page.locator(".billing-effective-plan")
+  ).toContainText("Grátis");
 
   await page.reload();
 
