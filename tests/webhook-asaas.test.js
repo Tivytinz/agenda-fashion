@@ -112,7 +112,10 @@ describe(
             tipoEvento:
               "PAYMENT_CONFIRMED",
             pagamento: {
-              id: "pay_1"
+              id: "pay_1",
+              invoiceUrl:
+                "https://www.asaas.com/i/fatura-wave20",
+              customer: "cus_nao_persistir"
             }
           });
 
@@ -128,10 +131,22 @@ describe(
           expect.objectContaining({
             payload:
               expect.objectContaining({
-                id: "evt_1"
+                id: "evt_1",
+                payment:
+                  expect.objectContaining({
+                    id: "pay_1",
+                    invoiceUrl:
+                      "https://www.asaas.com/i/fatura-wave20"
+                  })
               })
           })
         );
+        const chamada =
+          webhookEventoRepository
+            .registrarRecebimento
+            .mock.calls[0][0];
+        expect(chamada.payload.payment)
+          .not.toHaveProperty("customer");
       }
     );
 
