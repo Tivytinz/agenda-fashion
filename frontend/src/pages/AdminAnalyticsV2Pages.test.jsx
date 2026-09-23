@@ -159,10 +159,39 @@ describe("receita administrativa v2", () => {
         bridgeReconciliado: true,
         confiavel: true
       },
+      ltv: {
+        inicioCobertura: "2026-09-23T07:00:00.000Z",
+        historicoAnteriorInferido: false,
+        unidade: "negocio",
+        ltvLiquidoDisponivel: false,
+        independenteDoFiltroPeriodo: true,
+        negociosCoorte: 3,
+        madurosD30: 3,
+        madurosD60: 2,
+        madurosD90: 0,
+        ltvBrutoD30: 83.23,
+        ltvBrutoD60: 124.85,
+        ltvBrutoD90: null,
+        valorExpostoReversoes: 49.9,
+        pagamentosEmReversao: 1,
+        coortes: [
+          {
+            coorteMes: "2026-06",
+            negocios: 3,
+            madurosD30: 3,
+            madurosD60: 2,
+            madurosD90: 0,
+            ltvBrutoD30: 83.23,
+            ltvBrutoD60: 124.85,
+            ltvBrutoD90: null
+          }
+        ]
+      },
       metodologia: {
         churn: "Gross logo churn v1 usa a base paga inicial.",
         mrr: "MRR v1 usa snapshots monetários.",
-        nrr: "NRR v1 usa a coorte inicial."
+        nrr: "NRR v1 usa a coorte inicial.",
+        ltv: "LTV bruto observado v1 usa negócios maduros."
       }
     });
 
@@ -186,6 +215,14 @@ describe("receita administrativa v2", () => {
     expect(screen.getByText("GRR")).not.toBeNull();
     expect(screen.getByText("NRR")).not.toBeNull();
     expect(screen.getByText("95%")).not.toBeNull();
+    expect(screen.getByRole("heading", { name: "LTV bruto observado" })).not.toBeNull();
+    expect(screen.getByText("LTV bruto D30")).not.toBeNull();
+    expect(screen.getByText("LTV bruto D60")).not.toBeNull();
+    expect(screen.getByText("LTV bruto D90")).not.toBeNull();
+    expect(screen.getByText("Aguardando maturidade")).not.toBeNull();
+    expect(screen.getByText("LTV líquido")).not.toBeNull();
+    expect(screen.getByText("Indisponível")).not.toBeNull();
+    expect(screen.getByText("2026-06")).not.toBeNull();
     expect(screen.getByText("85%")).not.toBeNull();
     expect(screen.getByRole("heading", { name: "Churn bruto de negócios" })).not.toBeNull();
     expect(screen.getByText("Gross logo churn")).not.toBeNull();

@@ -153,6 +153,13 @@ A Wave 25 não cria:
 18. Backend CI e Playwright ficarem verdes;
 19. diff final ser revisado antes de qualquer merge.
 
-## Estado atual
+## Estado de encerramento
 
-A Wave 25 está **em andamento**.
+A Wave 25 foi encerrada no head
+`627ead4149ef827c21c09ed46e2f366856341655`, com o **Backend CI #1310**
+concluído com sucesso, incluindo Playwright mobile.
+
+O PR #284 foi mergeado na `main` pelo commit
+`0b17d84b979d26f63a813c1c06b8730bb533b761`.
+
+A baseline P0 + P1 permaneceu congelada em **67/67 (100%)**.

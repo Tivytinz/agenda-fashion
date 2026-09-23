@@ -320,8 +320,18 @@ distintos. Atraso ou reversão sem saída terminal preserva o MRR e o expõe com
 valor em risco. **NRR v1** usa apenas negócios presentes na base inicial; New
 MRR fica fora da coorte. **GRR v1** ignora expansion e uma saída terminal zera a
 retenção bruta daquele negócio no recorte, mesmo se houver reativação posterior.
-MRR é valor recorrente contratado e não caixa recebido. LTV e payback continuam
-fora da definição oficial.
+MRR é valor recorrente contratado e não caixa recebido.
+
+Desde a Wave 26, o AF também possui **LTV bruto observado v1** com cutover
+explícito. A unidade é o negócio e a coorte nasce somente na primeira
+`CONVERSAO_INICIAL` canônica cujo pagamento ocorreu no ou depois do cutover.
+O lifetime soma `pagamentos.valor` com `data_pagamento` dentro de D30, D60 e
+D90; apenas negócios maduros entram no denominador de cada janela. Churn não
+remove o negócio da coorte e reativação não cria nova aquisição. MRR não é usado
+como proxy de receita observada. Estorno, refund e disputa são exibidos como
+exposição separada; o AF não declara LTV líquido enquanto o valor econômico
+exato de reversões parciais não estiver persistido. LTV projetado, LTV de margem
+e CAC payback continuam fora da definição oficial.
 
 Um negócio pode possuir no máximo uma cobrança PIX pendente de contratação ou
 upgrade por vez, independentemente do plano escolhido. Trocar de plano antes do

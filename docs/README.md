@@ -244,7 +244,9 @@ virar uma segunda fonte de regra quando o domínio já possui documento canônic
 - [wave-24-episodios-pagos-churn.md](./wave-24-episodios-pagos-churn.md):
   evidência de episódios pagos, inadimplência terminal e churn observável v1.
 - [wave-25-mrr-nrr.md](./wave-25-mrr-nrr.md):
-  workstream do ledger monetário canônico, MRR, GRR e NRR v1.
+  evidência do ledger monetário canônico, MRR, GRR e NRR v1.
+- [wave-26-ltv-observado.md](./wave-26-ltv-observado.md):
+  workstream de coortes maduras e LTV bruto observado D30/D60/D90.
 
 Enquanto uma wave estiver aberta, seu documento descreve o workstream e a
 evidência em construção, não uma nova fonte canônica. Quando terminar, a decisão

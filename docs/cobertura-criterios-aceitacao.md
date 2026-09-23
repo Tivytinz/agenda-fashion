@@ -367,16 +367,30 @@ A Wave 24 não alterou a baseline funcional, que continua em **67/67 (100%)**.
 
 ## Wave 25 — MRR canônico, GRR e NRR v1
 
-A Wave 25 inicia um ledger monetário append-only a partir de novo cutover
-explícito. A migration 096 preserva snapshots mensais no lifecycle e registra a
-base contratada do cutover como `MRR_BASELINE`, usando `assinaturas.valor` em
-vez do preço atual do catálogo.
+A Wave 25 fechou o ledger monetário append-only a partir de cutover explícito.
+A migration 096 preserva snapshots mensais no lifecycle e registra a base
+contratada do cutover como `MRR_BASELINE`, usando `assinaturas.valor` em vez
+do preço atual do catálogo.
 
-A leitura separa New MRR, Reactivation MRR, Expansion MRR, Contraction MRR,
-Churned MRR e MRR em risco. NRR usa somente a base inicial do recorte e GRR
-ignora expansion. Histórico monetário anterior não é inventado.
+O head final `627ead4149ef827c21c09ed46e2f366856341655` passou no
+**Backend CI #1310**. O PR #284 foi mergeado na `main` pelo commit
+`0b17d84b979d26f63a813c1c06b8730bb533b761`.
 
-A Wave 25 mantém a baseline funcional em **67/67 (100%)**.
+A Wave 25 manteve a baseline funcional em **67/67 (100%)**.
+
+## Wave 26 — coortes de receita e LTV bruto observado v1
+
+A Wave 26 inicia um cutover próprio de LTV e mede receita acumulada por negócio
+em D30, D60 e D90. Somente negócios cuja primeira conversão paga canônica ocorre
+no ou depois do cutover entram na coorte oficial; histórico anterior não é
+inventado.
+
+Maturidade é explícita: negócio imaturo não é tratado como zero. Churn não o
+remove do denominador histórico e reativação não cria uma nova aquisição.
+Reversões permanecem exposição separada, portanto a Wave não declara LTV líquido,
+LTV projetado nem CAC payback.
+
+A Wave 26 não altera a baseline funcional, que continua em **67/67 (100%)**.
 
 ## Regra de atualização
 

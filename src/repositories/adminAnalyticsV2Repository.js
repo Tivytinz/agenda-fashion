@@ -1470,6 +1470,244 @@ async function buscarMrr(periodo = "30") {
   };
 }
 
+async function buscarLtvObservado() {
+  const [marcoResultado, coortesResultado] = await Promise.all([
+    db.query(
+      `
+      SELECT
+        ocorrido_em AS inicio_cobertura
+      FROM financeiro_marcos
+      WHERE chave = 'ltv_v1_inicio'
+      LIMIT 1
+      `
+    ),
+    db.query(
+      `
+      WITH marco AS (
+        SELECT
+          ocorrido_em AS inicio_cobertura,
+          (
+            ocorrido_em
+            AT TIME ZONE '${TIME_ZONE}'
+          )::date AS data_corte
+        FROM financeiro_marcos
+        WHERE chave = 'ltv_v1_inicio'
+        LIMIT 1
+      ),
+      conversoes AS (
+        SELECT DISTINCT ON (ae.negocio_id)
+          ae.negocio_id,
+          ae.assinatura_id,
+          ae.pagamento_id,
+          ae.plano_novo_id AS plano_entrada_id,
+          ae.ocorrido_em AS conversao_evento_em,
+          pg.data_pagamento AS primeira_conversao_data
+        FROM assinatura_eventos ae
+        INNER JOIN pagamentos pg
+          ON pg.id = ae.pagamento_id
+        CROSS JOIN marco m
+        WHERE ae.tipo = 'CONVERSAO_INICIAL'
+          AND ae.ocorrido_em >= m.inicio_cobertura
+          AND pg.data_pagamento IS NOT NULL
+          AND pg.data_pagamento >= m.data_corte
+        ORDER BY
+          ae.negocio_id,
+          ae.ocorrido_em ASC,
+          ae.id ASC
+      ),
+      pagamentos_coorte AS (
+        SELECT
+          c.negocio_id,
+          c.primeira_conversao_data,
+          pg.id AS pagamento_id,
+          pg.valor,
+          UPPER(COALESCE(pg.status, '')) AS status,
+          pg.data_pagamento,
+          (
+            pg.data_pagamento -
+            c.primeira_conversao_data
+          )::INT AS idade_dias
+        FROM conversoes c
+        INNER JOIN assinaturas a
+          ON a.negocio_id = c.negocio_id
+        INNER JOIN pagamentos pg
+          ON pg.assinatura_id = a.id
+        WHERE pg.data_pagamento IS NOT NULL
+          AND pg.data_pagamento >=
+            c.primeira_conversao_data
+          AND pg.data_pagamento <=
+            (NOW() AT TIME ZONE '${TIME_ZONE}')::date
+      ),
+      por_negocio AS (
+        SELECT
+          c.negocio_id,
+          c.primeira_conversao_data,
+          (
+            (NOW() AT TIME ZONE '${TIME_ZONE}')::date
+            >= c.primeira_conversao_data + 30
+          ) AS maduro_d30,
+          (
+            (NOW() AT TIME ZONE '${TIME_ZONE}')::date
+            >= c.primeira_conversao_data + 60
+          ) AS maduro_d60,
+          (
+            (NOW() AT TIME ZONE '${TIME_ZONE}')::date
+            >= c.primeira_conversao_data + 90
+          ) AS maduro_d90,
+          COALESCE(
+            SUM(pc.valor) FILTER (
+              WHERE pc.idade_dias BETWEEN 0 AND 30
+            ),
+            0
+          )::NUMERIC(14,2) AS receita_d30,
+          COALESCE(
+            SUM(pc.valor) FILTER (
+              WHERE pc.idade_dias BETWEEN 0 AND 60
+            ),
+            0
+          )::NUMERIC(14,2) AS receita_d60,
+          COALESCE(
+            SUM(pc.valor) FILTER (
+              WHERE pc.idade_dias BETWEEN 0 AND 90
+            ),
+            0
+          )::NUMERIC(14,2) AS receita_d90,
+          COALESCE(
+            SUM(pc.valor) FILTER (
+              WHERE pc.status IN (
+                'REFUNDED',
+                'PARTIALLY_REFUNDED',
+                'REFUND_IN_PROGRESS',
+                'RECEIVED_IN_CASH_UNDONE',
+                'CHARGEBACK_REQUESTED',
+                'CHARGEBACK_DISPUTE',
+                'AWAITING_CHARGEBACK_REVERSAL'
+              )
+            ),
+            0
+          )::NUMERIC(14,2)
+            AS valor_exposto_reversoes,
+          COUNT(*) FILTER (
+            WHERE pc.status IN (
+              'REFUNDED',
+              'PARTIALLY_REFUNDED',
+              'REFUND_IN_PROGRESS',
+              'RECEIVED_IN_CASH_UNDONE',
+              'CHARGEBACK_REQUESTED',
+              'CHARGEBACK_DISPUTE',
+              'AWAITING_CHARGEBACK_REVERSAL'
+            )
+          )::INT AS pagamentos_em_reversao
+        FROM conversoes c
+        LEFT JOIN pagamentos_coorte pc
+          ON pc.negocio_id = c.negocio_id
+        GROUP BY
+          c.negocio_id,
+          c.primeira_conversao_data
+      )
+      SELECT
+        TO_CHAR(
+          DATE_TRUNC(
+            'month',
+            pn.primeira_conversao_data
+          ),
+          'YYYY-MM'
+        ) AS coorte_mes,
+        COUNT(*)::INT AS negocios,
+        COUNT(*) FILTER (
+          WHERE pn.maduro_d30
+        )::INT AS maduros_d30,
+        COUNT(*) FILTER (
+          WHERE pn.maduro_d60
+        )::INT AS maduros_d60,
+        COUNT(*) FILTER (
+          WHERE pn.maduro_d90
+        )::INT AS maduros_d90,
+        COALESCE(
+          SUM(pn.receita_d30) FILTER (
+            WHERE pn.maduro_d30
+          ),
+          0
+        )::NUMERIC(14,2) AS receita_bruta_d30,
+        COALESCE(
+          SUM(pn.receita_d60) FILTER (
+            WHERE pn.maduro_d60
+          ),
+          0
+        )::NUMERIC(14,2) AS receita_bruta_d60,
+        COALESCE(
+          SUM(pn.receita_d90) FILTER (
+            WHERE pn.maduro_d90
+          ),
+          0
+        )::NUMERIC(14,2) AS receita_bruta_d90,
+        CASE
+          WHEN COUNT(*) FILTER (
+            WHERE pn.maduro_d30
+          ) > 0
+            THEN ROUND(
+              AVG(pn.receita_d30) FILTER (
+                WHERE pn.maduro_d30
+              ),
+              2
+            )
+          ELSE NULL
+        END AS ltv_bruto_d30,
+        CASE
+          WHEN COUNT(*) FILTER (
+            WHERE pn.maduro_d60
+          ) > 0
+            THEN ROUND(
+              AVG(pn.receita_d60) FILTER (
+                WHERE pn.maduro_d60
+              ),
+              2
+            )
+          ELSE NULL
+        END AS ltv_bruto_d60,
+        CASE
+          WHEN COUNT(*) FILTER (
+            WHERE pn.maduro_d90
+          ) > 0
+            THEN ROUND(
+              AVG(pn.receita_d90) FILTER (
+                WHERE pn.maduro_d90
+              ),
+              2
+            )
+          ELSE NULL
+        END AS ltv_bruto_d90,
+        COALESCE(
+          SUM(pn.valor_exposto_reversoes),
+          0
+        )::NUMERIC(14,2)
+          AS valor_exposto_reversoes,
+        COALESCE(
+          SUM(pn.pagamentos_em_reversao),
+          0
+        )::INT AS pagamentos_em_reversao
+      FROM por_negocio pn
+      GROUP BY
+        DATE_TRUNC(
+          'month',
+          pn.primeira_conversao_data
+        )
+      ORDER BY
+        DATE_TRUNC(
+          'month',
+          pn.primeira_conversao_data
+        ) DESC
+      `
+    ),
+  ]);
+
+  return {
+    inicio_cobertura:
+      marcoResultado.rows[0]?.inicio_cobertura || null,
+    coortes: coortesResultado.rows,
+  };
+}
+
 module.exports = {
   periodoSeguro,
   buscarVisaoGeral,
@@ -1479,4 +1717,5 @@ module.exports = {
   buscarReceita,
   buscarChurnPago,
   buscarMrr,
+  buscarLtvObservado,
 };

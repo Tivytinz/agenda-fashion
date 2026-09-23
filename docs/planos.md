@@ -129,6 +129,12 @@ apagar dados existentes nem impedir a edição do que já foi cadastrado.
   delta monetário efetivo. Atraso recuperável mantém MRR em risco até uma saída
   terminal; `ACESSO_PAGO_ENCERRADO` leva o valor mensal a zero. New MRR não
   entra na NRR da base inicial.
+- O **LTV bruto observado v1** da Wave 26 usa pagamentos efetivamente observados
+  do mesmo negócio em D30, D60 e D90 a partir da primeira conversão paga
+  canônica pós-cutover. Troca de plano, nova assinatura técnica, churn e
+  reativação não criam um novo customer lifetime. Coorte imatura não vira zero;
+  permanece indisponível até completar a janela. Reversões são exposição
+  separada e não autorizam calcular LTV líquido sem o valor exato persistido.
 - `webhook_eventos` preserva a entrega do provedor; `assinatura_eventos`
   preserva o fato de domínio do AF. O histórico anterior à migration 093 não é
   preenchido por suposição.
@@ -178,6 +184,8 @@ negócio e conversão para plano pago.
 - Uso do negócio: `GET /meu-plano`.
 - Checkout pago: `POST /checkout`.
 - Lifecycle financeiro: `database/migrations/093_assinatura_eventos_lifecycle.sql`.
+- Cutover e índices de LTV observado:
+  `database/migrations/097_ltv_observado_v1.sql`.
 - Baseline de episódios pagos e churn v1:
   `database/migrations/095_churn_v1_episodios_pagos.sql`.
 - Ledger monetário, baseline de MRR e NRR v1:
