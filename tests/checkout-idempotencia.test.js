@@ -84,6 +84,7 @@ describe(
         .mockResolvedValue({
           id: 7,
           nome: "Studio",
+          publicado: true,
           asaas_customer_id:
             "cus_1"
         });
@@ -123,6 +124,46 @@ describe(
     });
 
     test(
+      "recusa checkout pago quando o negócio ainda não está publicado",
+      async () => {
+        checkoutRepository
+          .buscarNegocioDono
+          .mockResolvedValue({
+            id: 7,
+            nome: "Studio",
+            plano_id: 1,
+            publicado: false,
+            asaas_customer_id: "cus_1"
+          });
+
+        await expect(
+          criarCheckout({
+            usuarioId: 1,
+            planoId: 3,
+            formaPagamento: "pix",
+            chaveIdempotencia:
+              "checkout-chave-123456"
+          })
+        ).rejects.toMatchObject({
+          message:
+            "Publique seu negócio antes de iniciar um checkout pago.",
+          statusCode: 409
+        });
+
+        expect(
+          checkoutRepository
+            .buscarPlano
+        ).not.toHaveBeenCalled();
+        expect(
+          checkoutTentativaRepository
+            .iniciar
+        ).not.toHaveBeenCalled();
+        expect(criarCobrancaPix)
+          .not.toHaveBeenCalled();
+      }
+    );
+
+    test(
       "recusa cliente novo sem CPF/CNPJ antes de iniciar a tentativa",
       async () => {
         const apiUrlAnterior =
@@ -136,6 +177,7 @@ describe(
           .mockResolvedValue({
             id: 7,
             nome: "Studio",
+            publicado: true,
             asaas_customer_id: null
           });
 
@@ -194,6 +236,7 @@ describe(
             id: 7,
             nome: "Studio",
             plano_id: 3,
+            publicado: true,
             asaas_customer_id: "cus_1"
           });
 
