@@ -321,43 +321,71 @@ async function iniciarSincronizacao(
     cursorEntrada,
   }
 ) {
-  const resultado =
-    await db.query(
-      `
-      INSERT INTO contribuicao_sincronizacoes (
-        integracao_id,
-        status,
-        cursor_entrada
-      )
-      VALUES (
-        $1,
-        'EXECUTANDO',
-        $2::jsonb
-      )
-      RETURNING *
-      `,
-      [
-        integracaoId,
-        JSON.stringify(
-          cursorEntrada || {}
-        ),
-      ]
-    );
+  return db.executarTransacao(
+    async (
+      client
+    ) => {
+      /*
+       * O advisory lock da integração já está ativo.
+       * Portanto qualquer linha EXECUTANDO anterior é resto
+       * de processo interrompido e pode ser encerrada antes
+       * de iniciar a nova tentativa.
+       */
+      await client.query(
+        `
+        UPDATE contribuicao_sincronizacoes
+        SET
+          status = 'ERRO',
+          erro_codigo =
+            'execucao_abandonada',
+          erro_detalhe =
+            'Execução anterior foi interrompida antes da finalização.',
+          finalizado_em = NOW()
+        WHERE integracao_id = $1
+          AND status = 'EXECUTANDO'
+        `,
+        [integracaoId]
+      );
 
-  await db.query(
-    `
-    UPDATE contribuicao_integracoes_sync
-    SET
-      ultima_sincronizacao_em =
-        NOW(),
-      updated_at =
-        NOW()
-    WHERE id = $1
-    `,
-    [integracaoId]
+      const resultado =
+        await client.query(
+          `
+          INSERT INTO contribuicao_sincronizacoes (
+            integracao_id,
+            status,
+            cursor_entrada
+          )
+          VALUES (
+            $1,
+            'EXECUTANDO',
+            $2::jsonb
+          )
+          RETURNING *
+          `,
+          [
+            integracaoId,
+            JSON.stringify(
+              cursorEntrada || {}
+            ),
+          ]
+        );
+
+      await client.query(
+        `
+        UPDATE contribuicao_integracoes_sync
+        SET
+          ultima_sincronizacao_em =
+            NOW(),
+          updated_at =
+            NOW()
+        WHERE id = $1
+        `,
+        [integracaoId]
+      );
+
+      return resultado.rows[0];
+    }
   );
-
-  return resultado.rows[0];
 }
 
 async function finalizarSincronizacaoSucesso(
