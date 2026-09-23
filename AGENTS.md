@@ -343,8 +343,10 @@ aquisição nem reescrevem a campanha histórica.
 A leitura de **CAC de mídia observado v1** reutiliza o custo diário canônico por
 campanha já protegido pela migration 037: existe uma única fonte efetiva por
 campanha/dia e a fonte gravada por último substitui a anterior. A Wave 27 não
-cria outra precedência entre fontes. Negócio pago maduro sem custo no próprio dia
-de aquisição bloqueia a comparação daquela janela. Retorno bruto D30/D60/D90
+cria outra precedência entre fontes. O custo também preserva
+`objetivo_snapshot`, de modo que uma mudança posterior do objetivo da campanha
+não reclassifica silenciosamente o histórico. Negócio pago maduro sem custo no
+próprio dia de aquisição bloqueia a comparação daquela janela. Retorno bruto D30/D60/D90
 compara receita bruta observada com investimento da mesma coorte madura. A
 maturidade usa
 `diasMaturacaoMonetizacao + janelaLtv`. Essa leitura não representa CAC
