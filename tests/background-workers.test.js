@@ -8,6 +8,8 @@ const mockIniciarWorkerMlNoShow = jest.fn();
 const mockPararWorkerMlNoShow = jest.fn(async () => {});
 const mockIniciarWorkerBillingReconciliation = jest.fn();
 const mockPararWorkerBillingReconciliation = jest.fn(async () => {});
+const mockIniciarWorkerAquisicaoFinanceira = jest.fn();
+const mockPararWorkerAquisicaoFinanceira = jest.fn(async () => {});
 
 jest.mock("../src/services/webhookService", () => ({
   iniciarWorkerWebhook: mockIniciarWorkerWebhook,
@@ -31,6 +33,12 @@ jest.mock("../src/services/billingReconciliationWorker", () => ({
   pararWorkerBillingReconciliation:
     mockPararWorkerBillingReconciliation,
 }));
+jest.mock("../src/services/aquisicaoFinanceiraReconciliationWorker", () => ({
+  iniciarWorkerAquisicaoFinanceira:
+    mockIniciarWorkerAquisicaoFinanceira,
+  pararWorkerAquisicaoFinanceira:
+    mockPararWorkerAquisicaoFinanceira,
+}));
 
 const workers = require("../src/workers/backgroundWorkers");
 
@@ -44,15 +52,21 @@ describe("orquestração dos workers", () => {
     expect(
       mockIniciarWorkerBillingReconciliation
     ).toHaveBeenCalledTimes(1);
+    expect(
+      mockIniciarWorkerAquisicaoFinanceira
+    ).toHaveBeenCalledTimes(1);
 
     const resultados = await workers.pararWorkers();
-    expect(resultados).toHaveLength(5);
+    expect(resultados).toHaveLength(6);
     expect(mockPararWorkerWebhook).toHaveBeenCalledTimes(1);
     expect(mockPararWorkerWhatsapp).toHaveBeenCalledTimes(1);
     expect(mockPararWorkerCustosMarketing).toHaveBeenCalledTimes(1);
     expect(mockPararWorkerMlNoShow).toHaveBeenCalledTimes(1);
     expect(
       mockPararWorkerBillingReconciliation
+    ).toHaveBeenCalledTimes(1);
+    expect(
+      mockPararWorkerAquisicaoFinanceira
     ).toHaveBeenCalledTimes(1);
   });
 });
