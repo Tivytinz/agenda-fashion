@@ -307,8 +307,21 @@ só é materializada como saída por
 não concede acesso pago adicional, porque o entitlement já é suspenso no atraso.
 **Gross logo churn v1** usa negócios da base paga inicial que tiveram saída
 terminal no recorte. Reativação permanece separada e não reduz retroativamente
-o churn bruto. LTV, payback e NRR continuam exigindo definições e maturidade
-próprias.
+o churn bruto.
+
+Desde a Wave 25, MRR também possui cutover explícito e ledger monetário
+append-only. O valor histórico nasce de `assinaturas.valor`, nunca do preço
+atual de `planos.valor`. Eventos elegíveis persistem
+`valor_mensal_anterior`, `valor_mensal_novo` e
+`periodicidade_snapshot`. O MRR v1 suporta apenas recorrência mensal; ciclos
+futuros diferentes não podem ser normalizados silenciosamente. New MRR,
+Reactivation MRR, Expansion MRR, Contraction MRR e Churned MRR são movimentos
+distintos. Atraso ou reversão sem saída terminal preserva o MRR e o expõe como
+valor em risco. **NRR v1** usa apenas negócios presentes na base inicial; New
+MRR fica fora da coorte. **GRR v1** ignora expansion e uma saída terminal zera a
+retenção bruta daquele negócio no recorte, mesmo se houver reativação posterior.
+MRR é valor recorrente contratado e não caixa recebido. LTV e payback continuam
+fora da definição oficial.
 
 Um negócio pode possuir no máximo uma cobrança PIX pendente de contratação ou
 upgrade por vez, independentemente do plano escolhido. Trocar de plano antes do
