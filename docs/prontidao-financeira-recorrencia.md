@@ -8,7 +8,9 @@ Esta camada responde se uma campanha profissional possui evidência suficienteme
 
 Ela não cria uma nova recomendação de mídia. A decisão de escalar, manter, revisar ou pausar continua pertencendo ao funil profissional e às regras já implementadas em `adminProfessionalFunnelService`.
 
-Também não define retenção oficial, LTV, payback ou um segundo ROAS.
+Esta camada não define LTV, payback, NRR nem um segundo ROAS. O gross logo churn
+v1 da Wave 24 pertence ao lifecycle pago do negócio e continua apenas
+descritivo aqui; ele não altera automaticamente a decisão de mídia por campanha.
 
 A leitura de retenção financeira introduzida pela Wave 21 é complementar: ela
 classifica receita inicial, renovação, mudança de plano, atraso e recuperação no
@@ -17,10 +19,12 @@ primeiro pagamento e seus guardrails de coorte madura; não deve substituir sua
 base por receita recorrente nem transformar taxa observada de renovação em
 decisão automática de mídia.
 
-A Wave 22 adiciona uma fonte canônica append-only para transições novas do ciclo
-pago. Ela melhora auditoria de reativação, mudança de plano, recuperação e saída
-da base paga, mas não retroage para inventar eventos antigos e ainda não define
-churn, LTV ou payback oficiais.
+A Wave 22 adicionou uma fonte canônica append-only para transições novas do ciclo
+pago. A Wave 24 acrescenta um cutover explícito e episódios pagos para observar
+gross logo churn por negócio sem inventar histórico anterior. Essa métrica não
+substitui a base financeira por campanha deste documento e não autoriza escalar,
+manter ou pausar orçamento automaticamente. LTV e payback permanecem fora desta
+camada.
 
 ## Fontes reutilizadas
 
