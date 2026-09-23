@@ -1,7 +1,8 @@
 jest.mock(
   "../src/db/db",
   () => ({
-    query: jest.fn()
+    query: jest.fn(),
+    executarTransacao: jest.fn()
   })
 );
 
@@ -18,6 +19,13 @@ describe(
   () => {
     beforeEach(() => {
       jest.clearAllMocks();
+      db.executarTransacao
+        .mockImplementation(
+          async (callback) =>
+            callback({
+              query: db.query
+            })
+        );
     });
 
     test(
@@ -92,15 +100,28 @@ describe(
     test(
       "reserva um evento sem permitir processamento concorrente",
       async () => {
-        db.query.mockResolvedValueOnce({
-          rows: [
-            {
-              id: 1,
-              status: "PROCESSING",
-              tentativas: 1
-            }
-          ]
-        });
+        db.query
+          .mockResolvedValueOnce({
+            rows: [
+              {
+                id: 1,
+                provedor: "asaas",
+                recurso_id: "pay_1"
+              }
+            ]
+          })
+          .mockResolvedValueOnce({
+            rows: []
+          })
+          .mockResolvedValueOnce({
+            rows: [
+              {
+                id: 1,
+                status: "PROCESSING",
+                tentativas: 1
+              }
+            ]
+          });
 
         const evento =
           await webhookEventoRepository
@@ -109,9 +130,22 @@ describe(
         expect(evento.status)
           .toBe("PROCESSING");
         expect(
+          db.executarTransacao
+        ).toHaveBeenCalledTimes(1);
+        expect(
           db.query.mock.calls[0][0]
         ).toContain(
           "FOR UPDATE SKIP LOCKED"
+        );
+        expect(
+          db.query.mock.calls[1][0]
+        ).toContain(
+          "pg_advisory_xact_lock"
+        );
+        expect(
+          db.query.mock.calls[2][0]
+        ).toContain(
+          "status = 'PROCESSING'"
         );
       }
     );
