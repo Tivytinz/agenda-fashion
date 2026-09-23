@@ -1,6 +1,6 @@
 # Cobertura dos critérios de aceitação
 
-> Estado consolidado após a Wave 15 — 22/09/2026.
+> Estado consolidado após a Wave 17 — 22/09/2026.
 >
 > Este documento registra rastreabilidade de implementação e não substitui a
 > baseline funcional nem a matriz oficial de testes. Código executável,
@@ -196,6 +196,49 @@ A evidência de encerramento foi validada no estado executável do commit
 As alterações documentais posteriores não mudam o estado executável medido. A
 análise completa, impactos e evidências estão em
 [`wave-16-produto-ux.md`](./wave-16-produto-ux.md).
+
+## Wave 17 — ativação profissional até o primeiro agendamento
+
+A Wave 17 fechou a regressão integrada da primeira jornada profissional sem
+alterar a baseline congelada de 67 cenários.
+
+O navegador passou a proteger, na mesma jornada:
+
+- criação da conta profissional;
+- negócio criado;
+- primeiro serviço ativo e publicação;
+- confirmação rápida de horários;
+- compartilhamento rastreável do perfil;
+- manutenção da missão de ativação depois do compartilhamento;
+- encerramento da ativação somente após o backend informar primeiro agendamento
+  válido;
+- transição do dashboard para o contexto pós-ativação.
+
+O **Backend CI #1266** passou no head final
+`93f61481cd94fcf71611f01480cf8715ab049ba5`. O PR #275 foi mergeado na
+`main` pelo commit
+`7930c92288985af10c328ee49d64f13f9510b4f0`.
+
+A Wave 17 não cria novos critérios P0/P1 e não altera **67/67 (100%)**.
+
+## Wave 18 — recorrência e segundo agendamento
+
+A Wave 18 inicia o hardening da passagem de primeiro valor para repetição de
+valor. O objetivo é distinguir três fatos:
+
+```text
+cliente selecionou “Agendar novamente”
+  != novo booking persistido
+  != recorrência observada do negócio
+```
+
+O primeiro recorte protege a intenção de repetição nos pipelines de analytics,
+a jornada mobile da cliente até um novo booking, a resolução novamente da
+profissional elegível e a apresentação explícita da recorrência histórica no
+dashboard.
+
+A Wave 18 permanece **em andamento** até o Quality Gate validar o head final e
+o PR correspondente ser mergeado. A baseline formal permanece 67/67.
 
 ## Regra de atualização
 
