@@ -770,6 +770,106 @@ async function criarIntegracao({
   }
 }
 
+async function atualizarIntegracao({
+  integracaoId,
+  payload,
+  superadmin,
+}) {
+  exigirSuperadmin(
+    superadmin
+  );
+
+  const id =
+    inteiroPositivo(
+      integracaoId,
+      "Integração"
+    );
+  const atual =
+    await repository
+      .buscarIntegracaoPorId(
+        id
+      );
+
+  if (!atual) {
+    throw new AppError(
+      "Integração de contribuição não encontrada.",
+      404
+    );
+  }
+
+  const ativa =
+    booleano(
+      payload?.ativa,
+      atual.ativa === true
+    );
+  const intervalo =
+    intervaloMinutos(
+      payload
+        ?.intervaloMinutos ??
+      payload
+        ?.intervalo_minutos ??
+      atual
+        .intervalo_minutos
+    );
+
+  if (ativa) {
+    if (
+      atual.fonte_ativa !==
+      true
+    ) {
+      throw new AppError(
+        "Não é possível ativar integração de uma fonte inativa.",
+        409
+      );
+    }
+
+    if (
+      !providers
+        .obterAdaptador(
+          atual.adaptador
+        )
+    ) {
+      throw new AppError(
+        "Não é possível ativar integração sem adaptador disponível.",
+        409
+      );
+    }
+  }
+
+  const atualizado =
+    await repository
+      .atualizarIntegracao({
+        integracaoId:
+          id,
+        ativa,
+        intervaloMinutos:
+          intervalo,
+      });
+
+  return {
+    integracao: {
+      id:
+        Number(
+          atualizado.id
+        ),
+      fonteId:
+        Number(
+          atualizado.fonte_id
+        ),
+      adaptador:
+        atualizado.adaptador,
+      ativa:
+        atualizado.ativa ===
+        true,
+      intervaloMinutos:
+        Number(
+          atualizado
+            .intervalo_minutos
+        ),
+    },
+  };
+}
+
 function erroSeguro(
   erro
 ) {
@@ -1254,6 +1354,7 @@ async function sincronizarPendentes() {
 module.exports = {
   status,
   criarIntegracao,
+  atualizarIntegracao,
   sincronizarIntegracao,
   sincronizarManual,
   sincronizarPendentes,
