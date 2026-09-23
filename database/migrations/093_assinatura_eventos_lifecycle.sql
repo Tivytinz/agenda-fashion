@@ -95,4 +95,12 @@ ON assinatura_eventos(
   ocorrido_em DESC
 );
 
+CREATE INDEX IF NOT EXISTS
+  assinatura_eventos_pagamento_tipo_idx
+ON assinatura_eventos(
+  pagamento_id,
+  tipo
+)
+WHERE pagamento_id IS NOT NULL;
+
 COMMIT;
