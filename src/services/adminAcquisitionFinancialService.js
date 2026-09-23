@@ -7,6 +7,9 @@ const aquisicaoFinanceiraRepository = require(
 const paymentEconomicsRepository = require(
   "../repositories/adminPaymentEconomicsRepository"
 );
+const contributionReturnRepository = require(
+  "../repositories/adminContributionReturnRepository"
+);
 const {
   configuracaoDecisao,
 } = require(
@@ -163,6 +166,77 @@ function leituraJanela(
   };
 }
 
+function leituraContribuicao({
+  leitura,
+  economiaComparavel,
+  prontidao,
+}) {
+  if (leitura?.comparavel !== true) {
+    return {
+      codigo:
+        "base_aquisicao_nao_comparavel",
+      rotulo:
+        "Base de aquisição indisponível",
+      comparavel: false,
+    };
+  }
+
+  if (!economiaComparavel) {
+    return {
+      codigo:
+        "economia_gateway_incompleta",
+      rotulo:
+        "Aguardando economia líquida",
+      comparavel: false,
+    };
+  }
+
+  const fontesObrigatorias =
+    numero(
+      prontidao
+        .fontes_obrigatorias
+    );
+  const fontesCobertas =
+    numero(
+      prontidao
+        .fontes_cobertas_ate_hoje
+    );
+
+  if (fontesObrigatorias <= 0) {
+    return {
+      codigo:
+        "sem_fonte_contribuicao",
+      rotulo:
+        "Sem fonte de contribuição",
+      comparavel: false,
+    };
+  }
+
+  if (
+    prontidao
+      .cobertura_contribuicao_completa_hoje !==
+      true ||
+    fontesCobertas !==
+      fontesObrigatorias
+  ) {
+    return {
+      codigo:
+        "cobertura_contribuicao_incompleta",
+      rotulo:
+        "Cobertura de contribuição incompleta",
+      comparavel: false,
+    };
+  }
+
+  return {
+    codigo:
+      "aguardando_ltv_contribuicao",
+    rotulo:
+      "Aguardando LTV de contribuição",
+    comparavel: false,
+  };
+}
+
 function primeiraRecuperacao(
   janelas
 ) {
@@ -183,22 +257,28 @@ async function buscar() {
   const configuracao =
     configuracaoDecisao();
 
-  const [bruto, pendentes, liquido] =
-    await Promise.all([
-      repository.buscarRetornoAquisicao({
+  const [
+    bruto,
+    pendentes,
+    liquido,
+    prontidaoContribuicao,
+  ] = await Promise.all([
+    repository.buscarRetornoAquisicao({
+      diasMaturacaoMonetizacao:
+        configuracao
+          .diasMaturacaoMonetizacao,
+    }),
+    aquisicaoFinanceiraRepository
+      .contarPendentes(),
+    paymentEconomicsRepository
+      .buscarRetornoLiquidoAquisicao({
         diasMaturacaoMonetizacao:
           configuracao
             .diasMaturacaoMonetizacao,
       }),
-      aquisicaoFinanceiraRepository
-        .contarPendentes(),
-      paymentEconomicsRepository
-        .buscarRetornoLiquidoAquisicao({
-          diasMaturacaoMonetizacao:
-            configuracao
-              .diasMaturacaoMonetizacao,
-        }),
-    ]);
+    contributionReturnRepository
+      .buscarProntidao(),
+  ]);
 
   const liquidoPorCampanha =
     new Map(
@@ -261,6 +341,13 @@ async function buscar() {
           leitura.comparavel &&
           mesmaBase &&
           incompletosEconomia === 0;
+        const contribuicao =
+          leituraContribuicao({
+            leitura,
+            economiaComparavel,
+            prontidao:
+              prontidaoContribuicao,
+          });
 
         return {
           ...janela,
@@ -313,6 +400,13 @@ async function buscar() {
                   janela.cacMidiaCentavos
                 )
               : null,
+          contribuicao: {
+            ...contribuicao,
+            retornoContribuicao:
+              null,
+            ltvContribuicaoSobreCacMidia:
+              null,
+          },
         };
       });
 
@@ -345,6 +439,8 @@ async function buscar() {
               janela.retornoLiquidoGateway >= 1
           )?.dias || null
         ),
+      primeiraRecuperacaoContribuicaoDias:
+        null,
       valorExpostoReversoesCentavos:
         numero(
           linha
@@ -385,6 +481,42 @@ async function buscar() {
       bruto.primeiro_dia_completo || null,
     inicioCoberturaEconomiaLiquida:
       liquido.inicio_cobertura || null,
+    inicioCoberturaRetornoContribuicao:
+      prontidaoContribuicao
+        .inicio_cobertura_wave30 ||
+      null,
+    contribuicaoProntidao: {
+      inicioCoberturaContribuicao:
+        prontidaoContribuicao
+          .inicio_cobertura_contribuicao ||
+        null,
+      fontesObrigatorias:
+        numero(
+          prontidaoContribuicao
+            .fontes_obrigatorias
+        ),
+      fontesCobertasAteHoje:
+        numero(
+          prontidaoContribuicao
+            .fontes_cobertas_ate_hoje
+        ),
+      inicioCoberturaFontes:
+        prontidaoContribuicao
+          .inicio_cobertura_fontes ||
+        null,
+      menorCobertoAte:
+        prontidaoContribuicao
+          .menor_coberto_ate ||
+        null,
+      coberturaCompletaHoje:
+        prontidaoContribuicao
+          .cobertura_contribuicao_completa_hoje ===
+        true,
+      ltvContribuicaoDisponivel:
+        false,
+      retornoContribuicaoDisponivel:
+        false,
+    },
     independenteDoFiltroPeriodo: true,
     unidade: "negocio",
     diasMaturacaoMonetizacao:
@@ -431,6 +563,8 @@ async function buscar() {
         "D30, D60 e D90 usam somente dias de aquisição maduros por pelo menos a janela de monetização configurada mais a janela de receita observada.",
       retorno:
         "Retorno bruto compara receita bruta observada com investimento de mídia da mesma coorte. A Wave 28 acrescenta retorno líquido de gateway somente quando a mesma base possui economia reconciliada, usando netValue menos refunds DONE. Nenhuma das leituras representa margem, lucro ou payback econômico.",
+      retornoContribuicao:
+        "A Wave 30 prepara retorno de contribuição sobre CAC de mídia usando a mesma unidade negócio e as janelas D30/D60/D90. A métrica permanece indisponível enquanto a Wave 29 não fornecer LTV de contribuição factual e cobertura completa. CAC total, lucro e payback econômico definitivo continuam fora do contrato.",
     },
   };
 }
@@ -440,4 +574,5 @@ module.exports = {
   mapearJanela,
   primeiraRecuperacao,
   leituraJanela,
+  leituraContribuicao,
 };
