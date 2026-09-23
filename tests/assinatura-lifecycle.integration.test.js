@@ -127,6 +127,9 @@ describe("assinatura_eventos - integração", () => {
       tipo: "CONVERSAO_INICIAL",
       planoNovoId: plano.rows[0].id,
       origem: "webhook",
+      valorMensalAnterior: 0,
+      valorMensalNovo: Number(plano.rows[0].valor),
+      periodicidadeSnapshot: "MONTHLY",
       chaveIdempotencia:
         `wave22:${suffix}:conversao`,
     };
@@ -144,6 +147,10 @@ describe("assinatura_eventos - integração", () => {
       negocio_id: negocioId,
       tipo: "CONVERSAO_INICIAL",
       origem: "webhook",
+      valor_mensal_anterior: "0.00",
+      valor_mensal_novo:
+        Number(plano.rows[0].valor).toFixed(2),
+      periodicidade_snapshot: "MONTHLY",
     });
     expect(duplicado).toBeNull();
 
