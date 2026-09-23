@@ -416,7 +416,27 @@ describe(
               evento.rows[0].id
             );
 
-        expect(snapshot).toMatchObject({
+        expect({
+          ...snapshot,
+          negocio_id:
+            Number(snapshot.negocio_id),
+          usuario_aquisicao_id:
+            Number(
+              snapshot.usuario_aquisicao_id
+            ),
+          campanha_oficial_id:
+            Number(
+              snapshot.campanha_oficial_id
+            ),
+          primeiro_pagamento_id:
+            Number(
+              snapshot.primeiro_pagamento_id
+            ),
+          plano_entrada_id:
+            Number(
+              snapshot.plano_entrada_id
+            ),
+        }).toMatchObject({
           negocio_id: negocioId,
           usuario_aquisicao_id:
             primeiroDono,
