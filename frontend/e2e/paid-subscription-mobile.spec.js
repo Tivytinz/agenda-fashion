@@ -104,9 +104,15 @@ test("dona cria um único checkout PIX e só vê o plano ativo após ativação 
   let checkoutBody = null;
   let idempotencyKey = "";
 
-  await page.route("**/planos", (route) => json(route, {
-    planos: [FREE_PLAN, PAID_PLAN]
-  }));
+  await page.route("**/planos", (route) => {
+    if (route.request().resourceType() === "document") {
+      return route.continue();
+    }
+
+    return json(route, {
+      planos: [FREE_PLAN, PAID_PLAN]
+    });
+  });
 
   await page.route("**/meu-plano", (route) => json(route, {
     negocio_id: BUSINESS.id,
