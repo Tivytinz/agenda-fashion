@@ -11,6 +11,8 @@ const mockRepository = {
     jest.fn(),
   criarIntegracao:
     jest.fn(),
+  atualizarIntegracao:
+    jest.fn(),
   buscarIntegracaoPorId:
     jest.fn(),
   listarIntegracoesVencidas:
@@ -121,6 +123,16 @@ describe(
           adaptador:
             "provider_test",
           ativa: true,
+          intervalo_minutos: 60,
+        });
+      mockRepository
+        .atualizarIntegracao
+        .mockResolvedValue({
+          id: 3,
+          fonte_id: 9,
+          adaptador:
+            "provider_test",
+          ativa: false,
           intervalo_minutos: 60,
         });
       mockRepository
@@ -299,6 +311,70 @@ describe(
               ativa: true,
             },
           });
+      }
+    );
+
+    test(
+      "permite pausar integração mesmo se o adaptador deixar de existir",
+      async () => {
+        mockProviders
+          .obterAdaptador
+          .mockReturnValue(null);
+
+        const resultado =
+          await service
+            .atualizarIntegracao({
+              integracaoId: 3,
+              payload: {
+                ativa: false,
+                intervaloMinutos: 60,
+              },
+              superadmin: true,
+            });
+
+        expect(
+          mockRepository
+            .atualizarIntegracao
+        ).toHaveBeenCalledWith({
+          integracaoId: 3,
+          ativa: false,
+          intervaloMinutos: 60,
+        });
+
+        expect(resultado)
+          .toMatchObject({
+            integracao: {
+              id: 3,
+              ativa: false,
+            },
+          });
+      }
+    );
+
+    test(
+      "não reativa integração sem adaptador disponível",
+      async () => {
+        mockProviders
+          .obterAdaptador
+          .mockReturnValue(null);
+
+        await expect(
+          service
+            .atualizarIntegracao({
+              integracaoId: 3,
+              payload: {
+                ativa: true,
+              },
+              superadmin: true,
+            })
+        ).rejects.toMatchObject({
+          statusCode: 409,
+        });
+
+        expect(
+          mockRepository
+            .atualizarIntegracao
+        ).not.toHaveBeenCalled();
       }
     );
 
