@@ -31,7 +31,11 @@ const PROPRIEDADES_PERMITIDAS = Object.freeze({
   first_service_creation_started: new Set(["entry_point"]),
   profile_viewed: new Set(["entry_point"]),
   profile_shared: new Set(["method"]),
-  booking_started: new Set(["entry_point"]),
+  booking_started: new Set([
+    "entry_point",
+    "intent",
+    "source_booking_status",
+  ]),
   booking_completed: new Set(["status"]),
   checkout_viewed: new Set(["plan_slug"]),
 });
