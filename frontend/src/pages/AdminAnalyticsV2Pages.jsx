@@ -549,24 +549,25 @@ export function AdminAcquisitionV2Page() {
                   value={formatNumber(financialDiagnosis.snapshotsPendentes)}
                 />
                 <MetricCard
-                  label="Custo sobreposto"
-                  hint="dias D30 com manual + automático; automático prevalece"
-                  value={formatNumber(financialDiagnosis.diasFontesSobrepostasD30)}
+                  label="Atribuição incompleta"
+                  hint="negócios pagos sem campanha financeira oficial"
+                  tone={number(financialDiagnosis.snapshotsAtribuicaoIncompleta) > 0 ? "warning" : "neutral"}
+                  value={formatNumber(financialDiagnosis.snapshotsAtribuicaoIncompleta)}
                 />
                 <MetricCard
-                  label="Custo ambíguo"
-                  hint="dias com múltiplas fontes automáticas; leitura bloqueada"
-                  tone={number(financialDiagnosis.diasCustoAmbiguoD30) > 0 ? "warning" : "neutral"}
-                  value={formatNumber(financialDiagnosis.diasCustoAmbiguoD30)}
+                  label="Pagantes sem custo D30"
+                  hint="negócios maduros cuja data de aquisição não possui custo diário da campanha"
+                  tone={number(financialDiagnosis.pagantesSemCustoD30) > 0 ? "warning" : "neutral"}
+                  value={formatNumber(financialDiagnosis.pagantesSemCustoD30)}
                 />
               </section>
 
               {(number(financialDiagnosis.snapshotsPendentes) > 0 ||
-                number(financialDiagnosis.diasCustoAmbiguoD30) > 0) && (
+                number(financialDiagnosis.pagantesSemCustoD30) > 0) && (
                 <div className="admin-command-alert is-warning" role="status">
                   <strong>Leitura financeira ainda possui pendências.</strong>
                   <p className="muted">
-                    O AF não transforma reconciliação pendente ou custo ambíguo em CAC/payback aparentemente preciso.
+                    O AF não transforma reconciliação pendente ou cobertura de custo incompleta em CAC/retorno aparentemente preciso.
                   </p>
                 </div>
               )}
@@ -638,7 +639,7 @@ export function AdminAcquisitionV2Page() {
               )}
 
               <p className="muted">
-                CAC de mídia não é CAC econômico. Retorno bruto não desconta gateway, impostos, suporte, infraestrutura, margem ou o valor exato de reversões parciais. Exposição a reversões permanece diagnóstico separado.
+                CAC de mídia não é CAC econômico. O custo diário já preserva a regra existente de fonte única: ao gravar uma nova fonte para a mesma campanha/dia, ela substitui a anterior. Retorno bruto não desconta gateway, impostos, suporte, infraestrutura, margem ou o valor exato de reversões parciais. Exposição a reversões permanece diagnóstico separado.
               </p>
             </section>
 
