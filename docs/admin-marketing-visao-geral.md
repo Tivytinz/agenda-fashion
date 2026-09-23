@@ -1,5 +1,7 @@
 # Visão geral de Marketing do Admin
 
+> **Papel documental:** documento especializado da visão administrativa de Marketing. Atribuição permanece canônica em [`marketing-attribution.md`](./marketing-attribution.md), e a arquitetura geral do Admin em [`admin-console.md`](./admin-console.md).
+
 ## Objetivo
 
 A rota `/admin/trafego-pago` deve responder duas perguntas sem misturar fontes ou fabricar conversões:
