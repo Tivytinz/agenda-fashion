@@ -39,9 +39,8 @@ CREATE TABLE marketing_negocio_aquisicoes (
     ON DELETE SET NULL,
 
   primeiro_pagamento_id BIGINT
-    NOT NULL
     REFERENCES pagamentos(id)
-    ON DELETE RESTRICT,
+    ON DELETE SET NULL,
 
   plano_entrada_id BIGINT
     REFERENCES planos(id)
@@ -151,6 +150,6 @@ COMMENT ON COLUMN marketing_negocio_aquisicoes.campanha_oficial_id IS
   'Campanha oficial resolvida no instante da materialização. O snapshot preserva a interpretação financeira mesmo se vínculos de marketing forem corrigidos depois.';
 
 COMMENT ON COLUMN marketing_negocio_aquisicoes.primeiro_pagamento_id IS
-  'Pagamento ligado à CONVERSAO_INICIAL canônica que consolidou o customer pago.';
+  'Pagamento ligado à CONVERSAO_INICIAL canônica que consolidou o customer pago. Pode ficar nulo somente se o pagamento for removido posteriormente; o snapshot histórico do negócio permanece.';
 
 COMMIT;
