@@ -920,9 +920,10 @@ export function AdminRevenueV2Page() {
             <section className="admin-command-summary-grid is-period-summary">
               <MetricCard label="Receita bruta" hint="cobranças que tiveram pagamento no período" value={formatCurrency(summary.receitaBruta)} />
               <MetricCard label="Receita atualmente válida" hint="pagamentos hoje confirmados/recebidos" tone={number(summary.receitaValidaAtual) > 0 ? "success" : "neutral"} value={formatCurrency(summary.receitaValidaAtual)} />
+              <MetricCard label="Receita inicial" hint="primeiro pagamento válido de cada negócio" value={formatCurrency(summary.receitaPrimeiraConversao)} />
+              <MetricCard label="Receita de renovação" hint="pagamentos posteriores da mesma assinatura" tone={number(summary.receitaRenovacao) > 0 ? "success" : "neutral"} value={formatCurrency(summary.receitaRenovacao)} />
+              <MetricCard label="Mudança de plano" hint="primeiro pagamento de outra assinatura do mesmo negócio" value={formatCurrency(summary.receitaMudancaPlano)} />
               <MetricCard label="Valor exposto a reversões" hint={`${formatNumber(summary.pagamentosEmReversao)} pagamento(s) em estorno, reversão ou disputa`} tone={number(summary.valorExpostoReversoes) > 0 ? "warning" : "neutral"} value={formatCurrency(summary.valorExpostoReversoes)} />
-              <MetricCard label="Receita de 1º pagamento" hint="monetização inicial, sem renovações" value={formatCurrency(summary.receitaPrimeiroPagamento)} />
-              <MetricCard label="Novas assinaturas pagas" hint="primeiro pagamento válido no período" value={formatNumber(summary.novasAssinaturasPagas)} />
               <MetricCard label="Assinaturas pagas ativas" hint="estoque atual, não criação no período" value={formatNumber(summary.assinaturasPagasAtivas)} />
             </section>
 
@@ -965,9 +966,34 @@ export function AdminRevenueV2Page() {
                 </div>
               </div>
               <dl className="admin-command-data-list">
-                <div><dt>Novas assinaturas pagas</dt><dd>{formatNumber(summary.novasAssinaturasPagas)}</dd></div>
+                <div><dt>Novos negócios pagantes</dt><dd>{formatNumber(summary.novosNegociosPagantes)}</dd></div>
+                <div><dt>Pagamentos de renovação</dt><dd>{formatNumber(summary.pagamentosRenovacao)}</dd></div>
+                <div><dt>Negócios com renovação</dt><dd>{formatNumber(summary.negociosComRenovacao)}</dd></div>
+                <div><dt>Pagamentos de mudança de plano</dt><dd>{formatNumber(summary.pagamentosMudancaPlano)}</dd></div>
                 <div><dt>Pagamentos confirmados</dt><dd>{formatNumber(summary.pagamentosConfirmados)}</dd></div>
                 <div><dt>Negócios com pagamento</dt><dd>{formatNumber(summary.negociosPagantes)}</dd></div>
+              </dl>
+            </section>
+
+            <section className="panel">
+              <div className="panel-heading">
+                <div>
+                  <p className="eyebrow">Retenção financeira</p>
+                  <h2>Renovações vencidas no período</h2>
+                  <p className="muted">
+                    Cancelar a próxima renovação, atrasar uma cobrança e perder o acesso pago são fatos diferentes.
+                  </p>
+                </div>
+              </div>
+              <dl className="admin-command-data-list">
+                <div><dt>Renovações previstas</dt><dd>{formatNumber(summary.renovacoesPrevistas)}</dd></div>
+                <div><dt>Renovações confirmadas</dt><dd>{formatNumber(summary.renovacoesConfirmadas)}</dd></div>
+                <div><dt>Taxa observada de renovação</dt><dd>{formatPercent(summary.taxaRenovacao)}</dd></div>
+                <div><dt>Renovações com atraso observado</dt><dd>{formatNumber(summary.renovacoesComAtraso)}</dd></div>
+                <div><dt>Renovações recuperadas</dt><dd>{formatNumber(summary.renovacoesRecuperadas)}</dd></div>
+                <div><dt>Taxa observada de recuperação</dt><dd>{formatPercent(summary.taxaRecuperacaoRenovacao)}</dd></div>
+                <div><dt>Cancelamentos de renovação agendados</dt><dd>{formatNumber(summary.cancelamentosRenovacaoAgendados)}</dd></div>
+                <div><dt>Encerradas após cancelamento</dt><dd>{formatNumber(summary.assinaturasEncerradasAposCancelamento)}</dd></div>
               </dl>
             </section>
 
@@ -999,6 +1025,9 @@ export function AdminRevenueV2Page() {
               <p>{data.metodologia?.conversaoCheckout}</p>
               <p>{data.metodologia?.novaAssinatura}</p>
               <p>{data.metodologia?.receita}</p>
+              <p>{data.metodologia?.classificacaoReceita}</p>
+              <p>{data.metodologia?.retencaoFinanceira}</p>
+              <p>{data.metodologia?.cancelamento}</p>
               <p>{data.metodologia?.ativas}</p>
             </details>
           </>

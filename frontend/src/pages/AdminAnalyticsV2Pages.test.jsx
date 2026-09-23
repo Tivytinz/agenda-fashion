@@ -4,7 +4,7 @@ import { cleanup, fireEvent, render, screen, within } from "@testing-library/rea
 import { MemoryRouter, useLocation } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { apiRequest } from "../api/client";
-import { AdminAcquisitionV2Page } from "./AdminAnalyticsV2Pages";
+import { AdminAcquisitionV2Page, AdminRevenueV2Page } from "./AdminAnalyticsV2Pages";
 
 vi.mock("../api/client", () => ({ apiRequest: vi.fn() }));
 
@@ -21,6 +21,10 @@ function LocationProbe() {
 
 function renderPage() {
   render(<MemoryRouter initialEntries={["/admin/aquisicao?periodo=7"]}><AdminAcquisitionV2Page /><LocationProbe /></MemoryRouter>);
+}
+
+function renderRevenuePage() {
+  render(<MemoryRouter initialEntries={["/admin/receita?periodo=30"]}><AdminRevenueV2Page /></MemoryRouter>);
 }
 
 beforeEach(() => { apiRequest.mockReset(); apiRequest.mockResolvedValue(RESULT); });
@@ -74,5 +78,49 @@ describe("aquisição administrativa v2", () => {
     expect((await screen.findByRole("alert")).textContent).toContain("últimos dados válidos");
     expect(screen.getByText("Beleza GO")).not.toBeNull();
     expect(screen.getByLabelText("Recorte temporal").textContent).toContain("7 dias");
+  });
+});
+
+describe("receita administrativa v2", () => {
+  it("separa receita inicial, renovação e mudança de plano", async () => {
+    apiRequest.mockResolvedValue({
+      periodo: "30",
+      resumo: {
+        receitaBruta: 249.6,
+        receitaValidaAtual: 249.6,
+        receitaPrimeiraConversao: 49.9,
+        receitaRenovacao: 99.8,
+        receitaMudancaPlano: 99.9,
+        pagamentosEmReversao: 0,
+        valorExpostoReversoes: 0,
+        assinaturasPagasAtivas: 1,
+        novosNegociosPagantes: 1,
+        pagamentosRenovacao: 2,
+        negociosComRenovacao: 1,
+        pagamentosMudancaPlano: 1,
+        pagamentosConfirmados: 4,
+        negociosPagantes: 1,
+        renovacoesPrevistas: 3,
+        renovacoesConfirmadas: 2,
+        taxaRenovacao: 66.67,
+        renovacoesComAtraso: 2,
+        renovacoesRecuperadas: 1,
+        taxaRecuperacaoRenovacao: 50,
+        cancelamentosRenovacaoAgendados: 0,
+        assinaturasEncerradasAposCancelamento: 0
+      },
+      planos: []
+    });
+
+    renderRevenuePage();
+
+    expect(await screen.findByText("Receita inicial")).not.toBeNull();
+    expect(screen.getByText("Receita de renovação")).not.toBeNull();
+    expect(screen.getByText("Mudança de plano")).not.toBeNull();
+    expect(screen.getByText("Renovações vencidas no período")).not.toBeNull();
+    expect(screen.getByText("66,67%")).not.toBeNull();
+    expect(screen.getByText("50%")).not.toBeNull();
+    expect(screen.getByText("Cancelar a próxima renovação, atrasar uma cobrança e perder o acesso pago são fatos diferentes.")).not.toBeNull();
+    expect(screen.queryByText(/^Churn$/i)).toBeNull();
   });
 });
