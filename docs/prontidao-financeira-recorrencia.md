@@ -17,6 +17,11 @@ primeiro pagamento e seus guardrails de coorte madura; não deve substituir sua
 base por receita recorrente nem transformar taxa observada de renovação em
 decisão automática de mídia.
 
+A Wave 22 adiciona uma fonte canônica append-only para transições novas do ciclo
+pago. Ela melhora auditoria de reativação, mudança de plano, recuperação e saída
+da base paga, mas não retroage para inventar eventos antigos e ainda não define
+churn, LTV ou payback oficiais.
+
 ## Fontes reutilizadas
 
 A prontidão não cria uma nova origem de dados. Ela reutiliza:

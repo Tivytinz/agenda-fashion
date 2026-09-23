@@ -65,6 +65,14 @@ jest.mock(
   })
 );
 
+jest.mock(
+  "../src/services/assinaturaLifecycleService",
+  () => ({
+    registrarConfirmacaoPagamento:
+      jest.fn().mockResolvedValue([])
+  })
+);
+
 const pagamentoRepository = require(
   "../src/repositories/pagamentoRepository"
 );
@@ -79,6 +87,9 @@ const {
   sincronizarPagamentoPorWebhook
 } = require(
   "../src/services/assinaturaServiceCore"
+);
+const assinaturaLifecycleService = require(
+  "../src/services/assinaturaLifecycleService"
 );
 const {
   ativarAssinaturaPorPagamento
@@ -191,6 +202,19 @@ test(
         }
       );
 
+    expect(
+      assinaturaLifecycleService
+        .registrarConfirmacaoPagamento
+    ).toHaveBeenCalledWith({
+      client: expect.anything(),
+      assinatura: expect.objectContaining({
+        id: 20,
+        negocio_id: 7,
+        plano_id: 3
+      }),
+      pagamentoId: 31,
+      asaasPaymentId: "pay_1"
+    });
     expect(criarAssinaturaAsaas)
       .toHaveBeenCalledTimes(1);
     expect(removerAssinaturaAsaas)

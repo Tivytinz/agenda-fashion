@@ -16,6 +16,9 @@ const {
 const {
   reconciliarLimiteProfissionais
 } = require("./equipePlanoService");
+const assinaturaLifecycleService = require(
+  "./assinaturaLifecycleService"
+);
 
 function calcularProximaCobranca(
   dataBase = new Date()
@@ -311,6 +314,14 @@ async function finalizarAtivacao({
       if (assinaturaCancelada(assinatura)) {
         return null;
       }
+
+      await assinaturaLifecycleService
+        .registrarConfirmacaoPagamento({
+          client,
+          assinatura,
+          pagamentoId: assinatura.pagamento_id,
+          asaasPaymentId: paymentId
+        });
 
       const asaasSubscriptionId =
         assinatura.asaas_subscription_id ||

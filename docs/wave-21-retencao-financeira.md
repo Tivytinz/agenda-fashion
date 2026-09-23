@@ -191,6 +191,13 @@ A Wave 21 pode ser encerrada quando:
 8. documentação canônica e evidência da Wave 20 estiverem reconciliadas;
 9. o PR for mergeado somente com autorização explícita.
 
-## Estado atual
+## Estado de encerramento
 
-A Wave está **em preparação** na branch `feat/product-ux-wave-21`.
+A Wave 21 foi encerrada no head
+`8754b2960634f89e3f092dbb34c694d3a62459ee`, com o **Backend CI #1285**
+concluído com sucesso.
+
+O PR #280 foi mergeado na `main` pelo commit
+`3d95d04a898dd242b0eaa5babd896d5628e2ac6e`.
+
+A baseline P0 + P1 permaneceu congelada em **67/67 (100%)**.
