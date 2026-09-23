@@ -78,14 +78,9 @@ function mapearJanela(
       `dias_maduros_${sufixo}`
     ]
   );
-  const diasSobrepostos = numero(
+  const pagantesSemCusto = numero(
     linha[
-      `dias_sobrepostos_${sufixo}`
-    ]
-  );
-  const diasAmbiguos = numero(
-    linha[
-      `dias_ambiguos_${sufixo}`
+      `pagantes_sem_custo_${sufixo}`
     ]
   );
 
@@ -125,21 +120,14 @@ function mapearJanela(
             )
           )
         : null,
-    diasFontesSobrepostas:
-      diasSobrepostos,
-    diasCustoAmbiguo:
-      diasAmbiguos,
+    pagantesSemCusto,
     custoConfiavel:
-      diasAmbiguos === 0,
+      pagantesSemCusto === 0,
   };
 }
 
 function leituraJanela(
-  janela,
-  {
-    pagantesSemCustoD30 = 0,
-    pagantesCustoAmbiguoD30 = 0,
-  } = {}
+  janela
 ) {
   if (janela.diasMaduros <= 0) {
     return {
@@ -149,18 +137,7 @@ function leituraJanela(
     };
   }
 
-  if (
-    janela.diasCustoAmbiguo > 0 ||
-    pagantesCustoAmbiguoD30 > 0
-  ) {
-    return {
-      codigo: "custo_ambiguo",
-      rotulo: "Custo ambíguo",
-      comparavel: false,
-    };
-  }
-
-  if (pagantesSemCustoD30 > 0) {
+  if (janela.pagantesSemCusto > 0) {
     return {
       codigo: "cobertura_custo_incompleta",
       rotulo: "Cobertura de custo incompleta",
@@ -219,14 +196,6 @@ async function buscar() {
       ? bruto.campanhas
       : []
   ).map((linha) => {
-    const pagantesSemCustoD30 =
-      numero(
-        linha.pagantes_sem_custo_d30
-      );
-    const pagantesCustoAmbiguoD30 =
-      numero(
-        linha.pagantes_custo_ambiguo_d30
-      );
     const janelas = [30, 60, 90]
       .map((dias) => {
         const janela =
@@ -236,11 +205,7 @@ async function buscar() {
           );
         const leitura =
           leituraJanela(
-            janela,
-            {
-              pagantesSemCustoD30,
-              pagantesCustoAmbiguoD30,
-            }
+            janela
           );
 
         return {
@@ -274,31 +239,30 @@ async function buscar() {
           linha
             .valor_exposto_reversoes_centavos
         ),
-      pagantesSemCustoD30,
-      pagantesCustoAmbiguoD30,
+      pagantesSemCustoD30:
+        numero(
+          linha.pagantes_sem_custo_d30
+        ),
+      pagantesSemCustoD60:
+        numero(
+          linha.pagantes_sem_custo_d60
+        ),
+      pagantesSemCustoD90:
+        numero(
+          linha.pagantes_sem_custo_d90
+        ),
     };
   });
 
   const diagnosticoBruto =
     bruto.diagnostico || {};
 
-  const diasSobrepostos =
+  const pagantesSemCustoD30 =
     campanhas.reduce(
       (total, campanha) =>
         total +
         numero(
-          campanha.janelas[0]
-            ?.diasFontesSobrepostas
-        ),
-      0
-    );
-  const diasAmbiguos =
-    campanhas.reduce(
-      (total, campanha) =>
-        total +
-        numero(
-          campanha.janelas[0]
-            ?.diasCustoAmbiguo
+          campanha.pagantesSemCustoD30
         ),
       0
     );
@@ -343,14 +307,11 @@ async function buscar() {
         ),
       snapshotsPendentes:
         numero(pendentes),
-      diasFontesSobrepostasD30:
-        diasSobrepostos,
-      diasCustoAmbiguoD30:
-        diasAmbiguos,
+      pagantesSemCustoD30,
     },
     metodologia: {
       custo:
-        "CAC de mídia observado usa custo diário canônico. Uma fonte automática substitui o manual no mesmo dia sem somá-los; duas fontes automáticas tornam o dia ambíguo e bloqueiam a leitura financeira correspondente.",
+        "CAC de mídia observado reutiliza o custo diário já canônico em marketing_campanha_gastos. A migration 037 garante uma única fonte efetiva por campanha/dia: a fonte gravada por último substitui a anterior, impedindo dupla contagem. Negócio pago adquirido em dia sem custo correspondente bloqueia a comparação da janela madura.",
       coorte:
         "A aquisição financeira é congelada por negócio a partir da primeira conversão paga canônica posterior ao cutover. Transferência de proprietária, troca de plano, nova assinatura e reativação não criam uma nova aquisição.",
       maturidade:
