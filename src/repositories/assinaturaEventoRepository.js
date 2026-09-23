@@ -82,6 +82,21 @@ async function buscarContextoPagamento(
       a.negocio_id,
       a.plano_id,
       n.plano_id AS plano_negocio_atual_id,
+      (
+        SELECT fronteira.tipo
+        FROM assinatura_eventos fronteira
+        WHERE fronteira.negocio_id = a.negocio_id
+          AND fronteira.tipo IN (
+            'EPISODIO_PAGO_BASELINE',
+            'CONVERSAO_INICIAL',
+            'REATIVACAO_PAGA',
+            'ACESSO_PAGO_ENCERRADO'
+          )
+        ORDER BY
+          fronteira.ocorrido_em DESC,
+          fronteira.id DESC
+        LIMIT 1
+      ) AS ultimo_evento_episodio_tipo,
       EXISTS (
         SELECT 1
         FROM pagamentos anterior
