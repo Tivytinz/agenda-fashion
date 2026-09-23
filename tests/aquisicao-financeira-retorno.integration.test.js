@@ -297,7 +297,8 @@ describe(
             midia,
             campanha,
             atribuicao_em,
-            primeira_conversao_em
+            primeira_conversao_em,
+            primeira_conversao_data
           )
           VALUES (
             $1,
@@ -310,7 +311,8 @@ describe(
             'cpc',
             'wave27_return',
             NOW() - INTERVAL '100 days',
-            NOW() - INTERVAL '95 days'
+            NOW() - INTERVAL '95 days',
+            CURRENT_DATE - 95
           )
           `,
           [
