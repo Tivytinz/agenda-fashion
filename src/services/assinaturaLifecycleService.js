@@ -19,7 +19,14 @@ function periodicidadeSnapshot(assinatura = {}) {
 function snapshotMonetario(assinatura = {}) {
   const periodicidade =
     periodicidadeSnapshot(assinatura);
-  const valor = Number(assinatura.valor);
+  const valorBruto = assinatura.valor;
+  const valorAusente =
+    valorBruto === null ||
+    valorBruto === undefined ||
+    String(valorBruto).trim() === "";
+  const valor = valorAusente
+    ? Number.NaN
+    : Number(valorBruto);
 
   if (
     periodicidade !== "MONTHLY" ||
