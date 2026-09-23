@@ -9,6 +9,7 @@ import reactRoutes from "../../src/config/reactRoutes.json";
 import { ProtectedRoute } from "./auth/ProtectedRoute";
 import { useSession } from "./auth/SessionContext";
 import { AppHeader } from "./components/AppHeader";
+import { FirstPartyAnalyticsBridge } from "./components/FirstPartyAnalyticsBridge";
 import { MarketingMetricGlossary } from "./components/MarketingMetricGlossary";
 import { LegalFooter } from "./components/LegalFooter";
 import { WorkspaceLayout } from "./components/WorkspaceLayout";
@@ -233,6 +234,7 @@ function AccountRoute() {
 export default function App() {
   return (
     <div className="app-shell">
+      <FirstPartyAnalyticsBridge />
       <AppHeader />
       <Suspense fallback={<main><div className="container route-loading">Carregando...</div></main>}>
         <Routes>

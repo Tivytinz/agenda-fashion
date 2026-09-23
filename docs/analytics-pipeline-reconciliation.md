@@ -102,6 +102,21 @@ Para reduzir perda silenciosa:
 
 A reconexão do navegador e novos envios tentam drenar a fila.
 
+### Ciclo de vida independente de Ads
+
+A inicialização do Analytics V2 first-party acontece de forma síncrona com o
+roteamento da aplicação por um bridge próprio. Ela não pode depender do bridge
+de Meta/Google, que permanece carregado de forma diferida para preservar a
+performance da experiência pública.
+
+Essa separação evita uma janela cega no início da navegação: uma ação rápida
+da cliente, como selecionar `Agendar novamente` logo após abrir
+`/minha-agenda`, precisa encontrar uma visualização first-party já ativa e
+não pode perder o evento apenas porque o código de Ads ainda não montou.
+
+Bridges de mídia paga podem ser adiados, falhar ou permanecer desativados sem
+interromper o ciclo de vida da telemetria first-party de produto.
+
 ## Identidade de cliente
 
 Métricas de cliente e recorrência usam `agendamentos.client_id` como identidade canônica.
