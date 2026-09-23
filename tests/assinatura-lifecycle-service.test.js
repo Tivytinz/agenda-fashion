@@ -25,6 +25,8 @@ function assinatura() {
     id: 20,
     negocio_id: 7,
     plano_id: 3,
+    valor: "99.90",
+    periodicidade: "MONTHLY",
   };
 }
 
@@ -66,6 +68,9 @@ describe("assinaturaLifecycleService", () => {
           assinaturaId: 20,
           pagamentoId: 50,
           planoNovoId: 3,
+          valorMensalAnterior: 0,
+          valorMensalNovo: 99.9,
+          periodicidadeSnapshot: "MONTHLY",
           chaveIdempotencia:
             "pagamento:50:CONVERSAO_INICIAL",
         })
@@ -116,6 +121,8 @@ describe("assinaturaLifecycleService", () => {
         outra_assinatura_ativa_id: 19,
         plano_ativo_anterior_id: 2,
         ultimo_plano_pago_anterior_id: 2,
+        valor_recorrente_ativo_anterior: "49.90",
+        periodicidade_ativa_anterior: "MONTHLY",
       });
 
     await service.registrarConfirmacaoPagamento({
@@ -133,6 +140,9 @@ describe("assinaturaLifecycleService", () => {
           motivo: "ASSINATURA_PAGA_VIGENTE",
           planoAnteriorId: 2,
           planoNovoId: 3,
+          valorMensalAnterior: 49.9,
+          valorMensalNovo: 99.9,
+          periodicidadeSnapshot: "MONTHLY",
         })
       );
   });
@@ -218,11 +228,66 @@ describe("assinaturaLifecycleService", () => {
           motivo: "CHARGEBACK_DISPUTE",
           planoAnteriorId: 3,
           planoNovoId: 1,
+          valorMensalAnterior: 99.9,
+          valorMensalNovo: 99.9,
+          periodicidadeSnapshot: "MONTHLY",
         })
       );
     expect(
       repository.registrar.mock.calls[0][1].tipo
     ).not.toBe("PAGAMENTO_ATRASADO");
+  });
+
+  test("alteração do valor mensal gera fato monetário próprio", async () => {
+    await service.registrarAlteracaoValorRecorrente({
+      client,
+      assinaturaAnterior: {
+        ...assinatura(),
+        valor: "99.90",
+      },
+      assinaturaAtualizada: {
+        ...assinatura(),
+        valor: "109.90",
+        asaas_ultimo_evento_id: "evt_valor_1",
+      },
+      referenciaIdempotencia: "evt_valor_1",
+    });
+
+    expect(repository.registrar)
+      .toHaveBeenCalledWith(
+        client,
+        expect.objectContaining({
+          tipo: "VALOR_RECORRENTE_ALTERADO",
+          motivo: "ATUALIZACAO_PROVEDOR",
+          valorMensalAnterior: 99.9,
+          valorMensalNovo: 109.9,
+          periodicidadeSnapshot: "MONTHLY",
+          chaveIdempotencia:
+            "assinatura:20:VALOR_RECORRENTE_ALTERADO:evt_valor_1",
+        })
+      );
+  });
+
+  test("periodicidade não mensal não inventa MRR", async () => {
+    const resultado =
+      await service.registrarAlteracaoValorRecorrente({
+        client,
+        assinaturaAnterior: {
+          ...assinatura(),
+          valor: "99.90",
+          periodicidade: "YEARLY",
+        },
+        assinaturaAtualizada: {
+          ...assinatura(),
+          valor: "109.90",
+          periodicidade: "YEARLY",
+        },
+        referenciaIdempotencia: "evt_yearly",
+      });
+
+    expect(resultado).toBeNull();
+    expect(repository.registrar)
+      .not.toHaveBeenCalled();
   });
 
   test("encerramento herda o motivo do cancelamento canônico", async () => {
@@ -245,6 +310,9 @@ describe("assinaturaLifecycleService", () => {
         expect.objectContaining({
           tipo: "ACESSO_PAGO_ENCERRADO",
           motivo: "CANCELAMENTO_VOLUNTARIO",
+          valorMensalAnterior: 99.9,
+          valorMensalNovo: 0,
+          periodicidadeSnapshot: "MONTHLY",
           chaveIdempotencia:
             "assinatura:20:ACESSO_PAGO_ENCERRADO:2026-10-23",
         })
