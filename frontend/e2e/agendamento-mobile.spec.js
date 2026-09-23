@@ -125,6 +125,15 @@ test("perfil e agendamento permanecem contidos no celular", async ({ page }) => 
       disponibilidade: AVAILABILITY
     })
   }));
+  await page.route("**/agenda-publica/politica-cancelamento?**", (route) => route.fulfill({
+    status: 200,
+    contentType: "application/json",
+    body: JSON.stringify({
+      politica_cancelamento: {
+        antecedencia_horas: 24
+      }
+    })
+  }));
   await page.route("**/agendamentos", (route) => route.fulfill({
     status: 201,
     contentType: "application/json",
@@ -181,5 +190,37 @@ test("perfil e agendamento permanecem contidos no celular", async ({ page }) => 
     const box = await confirmationButton.boundingBox();
     return box ? Math.round(box.y + box.height) : Number.POSITIVE_INFINITY;
   }).toBeLessThanOrEqual(page.viewportSize().height - 8);
+  await expectNoHorizontalOverflow(page);
+
+  await confirmationButton.click();
+
+  await expect(page).toHaveURL(/\/confirmar$/);
+  await expect(page.getByRole("heading", {
+    name: "Confirme seus dados"
+  })).toBeVisible();
+  await expect(page.getByText(
+    "Cancelamentos devem ser feitos com pelo menos 24 horas de antecedência."
+  )).toBeVisible();
+
+  await page.getByRole("textbox", {
+    name: "Seu nome"
+  }).fill("Cliente Mobile");
+  await page.getByRole("textbox", {
+    name: "WhatsApp para confirmação"
+  }).fill("62999998888");
+
+  const confirmBookingButton = page.getByRole("button", {
+    name: "Confirmar agendamento"
+  });
+  await expect(confirmBookingButton).toBeEnabled();
+  await confirmBookingButton.click();
+
+  await expect(page).toHaveURL(/\/sucesso$/);
+  await expect(page.getByRole("heading", {
+    name: "Agendamento confirmado"
+  })).toBeVisible();
+  await expect(page.getByText(
+    /Manicure completa com Ana/
+  )).toBeVisible();
   await expectNoHorizontalOverflow(page);
 });
