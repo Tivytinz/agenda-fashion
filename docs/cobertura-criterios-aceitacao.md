@@ -1,5 +1,7 @@
 # Cobertura dos critérios de aceitação
 
+> **Papel documental:** documento de evidência e rastreabilidade de cobertura. Não substitui regras canônicas de produto, arquitetura, segurança ou operação.
+
 > Estado consolidado após a Wave 17 — 22/09/2026.
 >
 > Este documento registra rastreabilidade de implementação e não substitui a

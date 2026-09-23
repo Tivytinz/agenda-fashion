@@ -1,5 +1,7 @@
 # Inteligência de crescimento do Agenda Fashion
 
+> **Papel documental:** documento especializado da camada determinística de oportunidades de crescimento após ativação. Não redefine a máquina de ativação, atribuição ou decisão financeira.
+
 ## Objetivo
 
 A inteligência de crescimento transforma métricas já calculadas e autorizadas pelo backend em oportunidades priorizadas para negócios que concluíram a ativação.

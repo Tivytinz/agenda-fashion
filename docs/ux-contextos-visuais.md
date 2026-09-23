@@ -1,5 +1,7 @@
 # Contextos visuais do Agenda Fashion
 
+> **Papel documental:** fonte canônica para a semântica dos contextos visuais público/cliente, dona, profissional e Admin. Ownership de CSS fica em [`frontend-estilos.md`](./frontend-estilos.md), e shells específicos podem aprofundar cada contexto sem redefinir autorização.
+
 Este documento registra princípios de frontend e UX que ajudam a manter o Agenda Fashion coerente entre seus diferentes contextos de uso. Ele funciona como referência para decisões, não como uma especificação visual imutável.
 
 A prioridade é preservar clareza, segurança, consistência e facilidade de uso. Quando uma solução diferente atender melhor ao produto, à acessibilidade, à compatibilidade entre navegadores ou à manutenção do código, ela pode ser adotada desde que a decisão seja compreensível e não quebre contratos importantes.

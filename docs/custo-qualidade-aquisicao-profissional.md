@@ -1,5 +1,7 @@
 # Custo observado da qualidade de aquisição profissional
 
+> **Papel documental:** documento especializado para relacionar investimento observado e qualidade operacional de coortes profissionais. Não redefine CAC, ROAS, atribuição ou receita.
+
 ## Objetivo
 
 Esta leitura conecta investimento de campanhas de aquisição de profissionais à qualidade operacional já medida pelo funil e pela recorrência do Agenda Fashion.

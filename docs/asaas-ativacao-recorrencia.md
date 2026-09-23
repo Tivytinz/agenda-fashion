@@ -1,5 +1,7 @@
 # Ativação financeira e recorrência no Asaas
 
+> **Papel documental:** documento técnico especializado da saga de ativação paga e recorrência no Asaas. A oferta comercial e o entitlement pertencem a [`planos.md`](./planos.md); a fila durável e a ordenação dos eventos pertencem a [`webhook-processing.md`](./webhook-processing.md).
+
 ## Objetivo
 
 A ativação de um plano pago não deve manter transações ou locks do PostgreSQL abertos enquanto o Agenda Fashion aguarda chamadas HTTP mutáveis do Asaas.

@@ -1,5 +1,7 @@
 # Cancelamento seguro de agendamento visitante
 
+> **Papel documental:** documento especializado de autorização por capability para booking visitante. A regra de cancelamento pertence ao lifecycle em [`ciclo-atendimento.md`](./ciclo-atendimento.md), e a antecedência aplicável pertence ao snapshot descrito em [`snapshots-historicos-agendamento.md`](./snapshots-historicos-agendamento.md).
+
 ## Objetivo
 
 Permitir que uma cliente que concluiu um agendamento sem conta consulte e cancele aquele compromisso por um link seguro específico da reserva, sem transformar ID, nome ou WhatsApp em credencial de autorização.
@@ -18,9 +20,9 @@ Permitir que uma cliente que concluiu um agendamento sem conta consulte e cancel
 
 ## Regras de negócio preservadas
 
-O cancelamento visitante respeita a mesma política já aplicada ao cancelamento autenticado: status do compromisso, horário do negócio e antecedência configurada do profissional. A atualização ocorre em transação, com bloqueio da linha do agendamento antes da validação final e do `UPDATE`.
+O cancelamento visitante respeita a mesma política de domínio do cancelamento autenticado: status do compromisso, instante previsto e antecedência congelada em `agendamentos.antecedencia_cancelamento_horas`. Alterar depois a configuração atual da profissional não retroage sobre o booking já criado. A atualização ocorre em transação, com bloqueio da linha do agendamento antes da validação final e do `UPDATE`.
 
-O cancelamento continua enfileirando a comunicação operacional existente. Nenhuma nova migration é necessária.
+O cancelamento continua enfileirando a comunicação operacional existente. A capability não exige persistência própria no PostgreSQL.
 
 ## Contrato
 

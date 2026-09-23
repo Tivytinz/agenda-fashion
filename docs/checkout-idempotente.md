@@ -1,5 +1,7 @@
 # Checkout idempotente
 
+> **Papel documental:** contrato técnico especializado do `POST /checkout`. Oferta, limites e entitlement permanecem canônicos em [`planos.md`](./planos.md); ativação após pagamento pertence a [`asaas-ativacao-recorrencia.md`](./asaas-ativacao-recorrencia.md).
+
 O endpoint `POST /checkout` exige o header:
 
 ```text
@@ -39,13 +41,11 @@ existente em vez de criar outra assinatura mensal.
 Detalhes: `docs/asaas-ativacao-recorrencia.md` e
 `docs/webhook-processing.md`.
 
-Antes do deploy, execute:
+Histórico de schema: a idempotência assíncrona foi introduzida pela migration
+`019_checkout_idempotente_webhook_assincrono.sql`, a faixa de tentativas de
+webhook foi corrigida em `020_corrigir_tentativas_webhook.sql` e o fencing de
+retomadas do checkout foi adicionado em
+`076_checkout_tentativa_fencing.sql`.
 
-```text
-database/migrations/019_checkout_idempotente_webhook_assincrono.sql
-```
-
-A correção posterior da faixa válida de tentativas de webhook pertence à
-migration `020_corrigir_tentativas_webhook.sql`. O fencing das retomadas do
-checkout pertence à migration `076_checkout_tentativa_fencing.sql`; migrations
-já aplicadas não devem ser reescritas.
+Essas migrations fazem parte da sequência normal de deploy e não devem ser
+executadas manualmente fora de ordem nem reescritas depois de aplicadas.

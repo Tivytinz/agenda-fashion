@@ -1,5 +1,7 @@
 # Ativação profissional: UX da primeira jornada
 
+> **Papel documental:** fonte canônica para a UX da primeira jornada profissional até publicação, horários e encaminhamento para primeiro agendamento/checkout.
+
 Este documento registra decisões duráveis da primeira jornada da profissional no Agenda Fashion.
 
 ## Objetivo

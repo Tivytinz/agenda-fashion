@@ -1,5 +1,7 @@
 # Wave 17 — Ativação profissional até o primeiro agendamento
 
+> **Papel documental:** documento histórico/evidência da Wave 17. As regras duráveis de ativação permanecem nos documentos canônicos; este arquivo registra o recorte implementado e validado.
+
 > Hardening da jornada de aquisição e ativação profissional após a proteção da
 > experiência pública móvel concluída na Wave 16.
 >
@@ -131,11 +133,14 @@ A Wave pode ser encerrada quando:
 
 ## Estado de encerramento
 
-O patch de regressão e a documentação estão preparados na branch
-`feat/product-ux-wave-17`.
+O recorte foi desenvolvido na branch `feat/product-ux-wave-17` e integrado à
+`main` pelo PR #275.
 
-A Wave é considerada encerrada somente quando o **head final** passar pelo
-Quality Gate, o E2E profissional estiver verde na matriz mobile suportada, o
-diff final não introduzir mudança fora do escopo e o PR for mergeado com
-autorização explícita. Uma falha de teste deve ser corrigida pela causa raiz,
-sem remover a proteção comportamental descrita neste documento.
+O head final `93f61481cd94fcf71611f01480cf8715ab049ba5` passou pelo
+Backend CI #1266 com sucesso antes do merge. O PR foi integrado em
+`7930c92288985af10c328ee49d64f13f9510b4f0`.
+
+Este documento permanece como evidência do recorte validado. Novas decisões
+duráveis de ativação devem ser refletidas em
+`ativacao-profissional-ux.md` e/ou `ativacao-proxima-acao.md`, conforme a
+responsabilidade da regra.

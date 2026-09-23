@@ -1,5 +1,7 @@
 # Arquitetura do Copilot AF
 
+> **Papel documental:** documento especializado da arquitetura do Copilot. O contrato funcional do caso de uso V1 permanece em [`copilot-v1.md`](./copilot-v1.md).
+
 Este documento registra a camada permanente do Copilot do Agenda Fashion.
 
 ## Princípios

@@ -1,5 +1,7 @@
 # Performance QA — API p95 e LCP mobile
 
+> **Papel documental:** runbook de medição de performance. Define perfil, limites e interpretação da evidência sem substituir resultados reais de execução.
+
 > Processo de medição para o `CA-NFR-05` / `RNF02`.
 >
 > Este documento define o perfil de QA, os alvos, os limites e a forma de

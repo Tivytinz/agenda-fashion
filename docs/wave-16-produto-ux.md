@@ -1,5 +1,7 @@
 # Wave 16 — Produto e UX pós-baseline
 
+> **Papel documental:** documento histórico/evidência do recorte de Produto e UX da Wave 16. Decisões duráveis resultantes devem permanecer nos documentos canônicos correspondentes.
+
 > Análise técnica e de produto do primeiro recorte da Wave 16.
 >
 > A baseline funcional P0 + P1 permanece congelada em **67/67 (100%)**. A Wave
@@ -43,7 +45,7 @@ A implementação atual:
 - não altera APIs, persistência, segurança, pagamentos, WhatsApp ou regras de
   agendamento.
 
-A mudança está isolada na branch `feat/product-ux-wave-16` e no PR #274.
+O recorte foi desenvolvido na branch `feat/product-ux-wave-16` e integrado à `main` pelo PR #274.
 
 ## Evidência disponível
 
@@ -176,5 +178,4 @@ Os gates definidos para esta Wave foram atendidos no estado executável medido:
 5. controle explícito de movimento e preferência reduzida preservados;
 6. nenhum contrato crítico de backend foi alterado para acomodar UX.
 
-A Wave 16 pode seguir para revisão final do diff e decisão de merge. Merge e
-deploy continuam dependentes de autorização explícita.
+O primeiro recorte da Wave 16 foi integrado à `main`. Este arquivo permanece como evidência do estado medido; novas decisões duráveis devem ser refletidas nos documentos canônicos correspondentes.

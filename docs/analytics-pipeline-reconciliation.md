@@ -1,5 +1,7 @@
 # Reconciliação dos pipelines de Analytics
 
+> **Papel documental:** documento especializado da coexistência e reconciliação entre telemetrias. Eventos de navegador não substituem fatos persistidos de domínio nem redefinem a atribuição canônica.
+
 ## Objetivo
 
 Durante a migração de telemetria, o Agenda Fashion mantém dois pipelines de eventos do navegador:
@@ -104,13 +106,12 @@ A reconexão do navegador e novos envios tentam drenar a fila.
 
 ### Ciclo de vida independente de Ads
 
-A inicialização do Analytics V2 first-party acontece de forma síncrona com o
-roteamento da aplicação por um bridge próprio. Ela não pode depender do bridge
-de Meta/Google, que permanece carregado de forma diferida para preservar a
-performance da experiência pública.
+O Analytics V2 first-party monta no ciclo principal da aplicação, sem atraso
+artificial de mídia paga. Ele não pode depender do bridge de Meta/Google, que
+permanece carregado de forma diferida para preservar a performance pública.
 
-Essa separação evita uma janela cega no início da navegação: uma ação rápida
-da cliente, como selecionar `Agendar novamente` logo após abrir
+Essa separação evita uma janela cega no início da navegação: uma ação rápida da
+cliente, como selecionar `Agendar novamente` logo após abrir
 `/minha-agenda`, precisa encontrar uma visualização first-party já ativa e
 não pode perder o evento apenas porque o código de Ads ainda não montou.
 

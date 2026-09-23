@@ -1,5 +1,7 @@
 # Console administrativo do Agenda Fashion
 
+> **Papel documental:** fonte canônica para arquitetura de informação, navegação e separação semântica do contexto administrativo. Documentos de visão geral, centro de comando e Marketing aprofundam páginas e métricas específicas.
+
 ## Objetivo
 
 A administração do AF é um centro de comando operacional e analítico. O objetivo é ajudar a responder, sem confundir sinais de natureza diferente:

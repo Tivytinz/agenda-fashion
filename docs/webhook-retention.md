@@ -1,5 +1,7 @@
 # Retenção de webhooks
 
+> **Papel documental:** política especializada de retenção e minimização de dados da fila definida em [`webhook-processing.md`](./webhook-processing.md). Este arquivo não redefine retry, ordenação ou regras financeiras.
+
 ## Objetivo
 
 Os registros de `webhook_eventos` cumprem duas funções diferentes:
