@@ -10,9 +10,10 @@ Ela não cria uma nova recomendação de mídia. A decisão de escalar, manter, 
 
 Esta camada não define payback econômico nem um segundo ROAS. O gross logo churn
 da Wave 24, MRR/GRR/NRR v1 da Wave 25, LTV bruto observado D30/D60/D90 da Wave
-26 e CAC de mídia/retorno bruto da Wave 27 pertencem à leitura financeira do
-negócio e continuam apenas descritivos aqui; nenhuma dessas métricas altera
-automaticamente a decisão de mídia por campanha.
+26, CAC de mídia/retorno bruto da Wave 27 e economia líquida de gateway da Wave
+28 pertencem à leitura financeira do negócio e continuam apenas descritivos
+aqui; nenhuma dessas métricas altera automaticamente a decisão de mídia por
+campanha.
 
 A leitura de retenção financeira introduzida pela Wave 21 é complementar: ela
 classifica receita inicial, renovação, mudança de plano, atraso e recuperação no
@@ -24,12 +25,14 @@ decisão automática de mídia.
 A Wave 22 adicionou uma fonte canônica append-only para transições novas do ciclo
 pago. A Wave 24 acrescentou episódios pagos e cutover de churn; a Wave 25
 acrescentou um cutover monetário e snapshots mensais para MRR, GRR e NRR. A Wave
-26 acrescentou coortes maduras de receita e LTV bruto observado por negócio,
-sem projeção futura e sem LTV líquido. A Wave 27 acrescenta um snapshot
-financeiro imutável por negócio, custo diário canônico e retorno bruto
-D30/D60/D90 da mesma coorte. Essas métricas não substituem a régua operacional
-existente e não autorizam escalar, manter ou pausar orçamento automaticamente.
-CAC econômico, margem e payback econômico permanecem fora desta camada.
+26 acrescentou coortes maduras de receita e LTV bruto observado por negócio.
+A Wave 27 acrescentou um snapshot financeiro imutável por negócio, custo diário
+canônico e retorno bruto D30/D60/D90 da mesma coorte. A Wave 28 acrescenta
+`netValue`, refunds concluídos, LTV líquido de gateway e retorno líquido de
+gateway sem chamar essa leitura de lucro ou margem. Essas métricas não substituem
+a régua operacional existente e não autorizam escalar, manter ou pausar
+orçamento automaticamente. CAC econômico, margem de contribuição e payback
+econômico permanecem fora desta camada.
 
 ## Fontes reutilizadas
 
