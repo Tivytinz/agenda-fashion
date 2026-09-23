@@ -1022,6 +1022,35 @@ export function AdminRevenueV2Page() {
             </section>
 
             <section className="panel">
+              <div className="panel-heading">
+                <div>
+                  <p className="eyebrow">Retenção da base paga</p>
+                  <h2>Churn bruto de negócios</h2>
+                  <p className="muted">
+                    A leitura usa episódios pagos canônicos desde a Wave 24. Reativação é exibida separadamente e não reduz o churn bruto.
+                  </p>
+                </div>
+              </div>
+              <dl className="admin-command-data-list">
+                <div><dt>Base paga no início</dt><dd>{formatNumber(summary.basePagaInicioChurn)}</dd></div>
+                <div><dt>Saídas terminais da base inicial</dt><dd>{formatNumber(summary.saidasTerminaisBaseInicial)}</dd></div>
+                <div><dt>Gross logo churn</dt><dd>{formatPercent(summary.churnBrutoNegocios)}</dd></div>
+                <div><dt>Negócios reativados</dt><dd>{formatNumber(summary.negociosReativadosChurn)}</dd></div>
+                <div><dt>Base paga no fim</dt><dd>{formatNumber(summary.basePagaFimChurn)}</dd></div>
+                <div><dt>Cancelamento voluntário</dt><dd>{formatNumber(summary.saidasCancelamentoVoluntario)}</dd></div>
+                <div><dt>Inadimplência não recuperada</dt><dd>{formatNumber(summary.saidasInadimplenciaNaoRecuperada)}</dd></div>
+                <div><dt>Encerramento pelo provedor</dt><dd>{formatNumber(summary.saidasEncerramentoProvedor)}</dd></div>
+                <div><dt>Outros motivos</dt><dd>{formatNumber(summary.saidasOutrosMotivos)}</dd></div>
+              </dl>
+              <p className="muted">
+                Cobertura canônica desde {formatDateTime(data.churn?.inicioCobertura)}.
+                {data.churn?.periodoAjustadoAoCutover
+                  ? " O início deste recorte foi ajustado ao cutover; o histórico anterior não foi inferido."
+                  : " O histórico anterior ao cutover não foi inferido."}
+              </p>
+            </section>
+
+            <section className="panel">
               <div className="panel-heading"><div><p className="eyebrow">Base atual</p><h2>Assinaturas ativas por plano</h2></div></div>
               {plans.length === 0 ? (
                 <EmptyState title="Nenhuma assinatura paga ativa">A base paga ativa ainda está vazia.</EmptyState>
@@ -1053,6 +1082,7 @@ export function AdminRevenueV2Page() {
               <p>{data.metodologia?.retencaoFinanceira}</p>
               <p>{data.metodologia?.cancelamento}</p>
               <p>{data.metodologia?.lifecycleCanonico}</p>
+              <p>{data.metodologia?.churn}</p>
               <p>{data.metodologia?.ativas}</p>
             </details>
           </>
