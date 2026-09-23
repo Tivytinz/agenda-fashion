@@ -111,6 +111,15 @@ PERF_TARGET_URL=https://app.agendafashion.com.br \
 A workflow `Performance QA` executa os mesmos scripts e publica os JSONs e os
 relatórios Lighthouse como artifact.
 
+Desde a Wave 16, ela também é disparada automaticamente em pull requests para
+`main` quando caminhos públicos críticos de performance são alterados. O filtro
+inclui home, catálogo, perfil público, componentes/estilos relacionados, assets
+do hero, scripts de medição e a própria workflow. O `workflow_dispatch`
+permanece disponível para revalidação manual com alvo explícito.
+
+Artifacts novos usam o prefixo `performance-qa-`; a evidência histórica da
+Wave 15 preserva o nome original `performance-wave-15-...`.
+
 Variáveis opcionais:
 
 ```text
