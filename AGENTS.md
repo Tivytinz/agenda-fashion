@@ -381,6 +381,18 @@ tratados na Wave 28 não podem ser descontados novamente, e mídia paga permanec
 no domínio de CAC/aquisição. Lucro, CAC total e payback econômico continuam fora
 da definição oficial.
 
+Desde a Wave 30, o AF possui um cutover e uma camada de **prontidão para retorno
+de contribuição sobre CAC de mídia**. A unidade continua sendo negócio e as
+janelas continuam D30/D60/D90. A camada reutiliza aquisição oficial, custo de
+mídia canônico, economia líquida do gateway e cobertura de contribuição; não
+cria um novo ledger nem duplica custos. Enquanto não houver ao menos uma fonte
+obrigatória de contribuição coberta e LTV de contribuição factual da mesma base,
+o retorno permanece indisponível. Recuperação observada em uma janela significa
+somente contribuição acumulada >= investimento de mídia até aquela janela; não
+autoriza interpolar dias nem chamar a métrica de CAC total, lucro ou payback
+econômico definitivo. A Wave 30 continua descritiva e não altera
+automaticamente a régua de escala/pausa de mídia.
+
 Um negócio pode possuir no máximo uma cobrança PIX pendente de contratação ou
 upgrade por vez, independentemente do plano escolhido. Trocar de plano antes do
 pagamento não deve criar cobranças concorrentes. A tela de assinatura deve
