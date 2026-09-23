@@ -51,6 +51,20 @@ jest.mock(
   })
 );
 
+jest.mock(
+  "../src/services/assinaturaLifecycleService",
+  () => ({
+    registrarAtraso:
+      jest.fn().mockResolvedValue(null),
+    registrarConfirmacaoPagamento:
+      jest.fn().mockResolvedValue([]),
+    registrarCancelamentoRenovacao:
+      jest.fn().mockResolvedValue(null),
+    registrarEncerramentoAcesso:
+      jest.fn().mockResolvedValue(null),
+  })
+);
+
 const pagamentoRepository = require(
   "../src/repositories/pagamentoRepository"
 );

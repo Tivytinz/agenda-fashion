@@ -345,6 +345,30 @@ async function buscarRevenue(periodo) {
       assinaturasEncerradasAposCancelamento: numero(
         resumo.assinaturas_encerradas_apos_cancelamento
       ),
+      conversoesIniciaisCanonicas: numero(
+        resumo.conversoes_iniciais_canonicas
+      ),
+      renovacoesConfirmadasCanonicas: numero(
+        resumo.renovacoes_confirmadas_canonicas
+      ),
+      reativacoesPagas: numero(
+        resumo.reativacoes_pagas
+      ),
+      mudancasPlanoCanonicas: numero(
+        resumo.mudancas_plano_canonicas
+      ),
+      pagamentosAtrasadosCanonicos: numero(
+        resumo.pagamentos_atrasados_canonicos
+      ),
+      pagamentosRecuperadosCanonicos: numero(
+        resumo.pagamentos_recuperados_canonicos
+      ),
+      cancelamentosRenovacaoCanonicos: numero(
+        resumo.cancelamentos_renovacao_canonicos
+      ),
+      saidasBasePagaCanonicas: numero(
+        resumo.saidas_base_paga_canonicas
+      ),
     },
     planos: resultado.planos,
     metodologia: {
@@ -362,6 +386,8 @@ async function buscarRevenue(periodo) {
         "A coorte de renovação usa cobranças posteriores à primeira cobrança da mesma assinatura, com vencimento já ocorrido no período. Renovação confirmada exige status financeiro atualmente válido. Atraso observado usa o estado atual de atraso ou um webhook PAYMENT_OVERDUE processado; recuperação exige cobrança hoje confirmada/recebida com histórico processado de atraso. As taxas podem amadurecer depois do fim do período e ainda não constituem uma definição oficial de churn, LTV ou payback.",
       cancelamento:
         "Cancelamento de renovação agendado é estoque atual com acesso pago ainda ativo. Encerramento após cancelamento conta somente assinaturas inativas marcadas pela operação voluntária do titular no período; falha de pagamento recuperável não é classificada como churn.",
+      lifecycleCanonico:
+        "Desde a Wave 22, transições financeiras novas também são gravadas de forma append-only em assinatura_eventos. Esses contadores são fatos canônicos do domínio e não fazem backfill especulativo do histórico anterior. Reativação, mudança de plano, atraso, recuperação, cancelamento da renovação e saída da base paga permanecem eventos distintos.",
       ativas:
         "Assinaturas pagas ativas é um estoque atual e não uma contagem criada no período.",
     },

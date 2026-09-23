@@ -95,6 +95,14 @@ describe("Admin Analytics V2 - receita", () => {
         renovacoes_recuperadas: 1,
         cancelamentos_renovacao_agendados: 1,
         assinaturas_encerradas_apos_cancelamento: 1,
+        conversoes_iniciais_canonicas: 1,
+        renovacoes_confirmadas_canonicas: 2,
+        reativacoes_pagas: 1,
+        mudancas_plano_canonicas: 1,
+        pagamentos_atrasados_canonicos: 2,
+        pagamentos_recuperados_canonicos: 1,
+        cancelamentos_renovacao_canonicos: 1,
+        saidas_base_paga_canonicas: 1,
       },
       planos: [],
     });
@@ -118,6 +126,14 @@ describe("Admin Analytics V2 - receita", () => {
       taxaRecuperacaoRenovacao: 50,
       cancelamentosRenovacaoAgendados: 1,
       assinaturasEncerradasAposCancelamento: 1,
+      conversoesIniciaisCanonicas: 1,
+      renovacoesConfirmadasCanonicas: 2,
+      reativacoesPagas: 1,
+      mudancasPlanoCanonicas: 1,
+      pagamentosAtrasadosCanonicos: 2,
+      pagamentosRecuperadosCanonicos: 1,
+      cancelamentosRenovacaoCanonicos: 1,
+      saidasBasePagaCanonicas: 1,
     });
     expect(resultado.metodologia.retencaoFinanceira)
       .toMatch(/não constituem uma definição oficial de churn/i);
