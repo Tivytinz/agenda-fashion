@@ -178,9 +178,9 @@ describe(
               {
                 campanha_id: 20,
                 campanha_nome: "Meta",
-                dias_maduros_d30: 1,
+                dias_maduros_d30: 0,
                 investimento_d30_centavos:
-                  10000,
+                  0,
                 negocios_pagos_d30: 1,
                 receita_d30_centavos:
                   12000,
