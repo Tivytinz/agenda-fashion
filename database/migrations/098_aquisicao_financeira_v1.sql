@@ -119,12 +119,6 @@ CREATE TABLE marketing_negocio_aquisicoes (
     CHECK (
       atribuicao_em IS NULL
       OR primeira_conversao_em >= atribuicao_em
-    ),
-
-  CONSTRAINT marketing_negocio_aquisicoes_data_conversao_valida
-    CHECK (
-      primeira_conversao_data <=
-        (primeira_conversao_em AT TIME ZONE 'America/Sao_Paulo')::date
     )
 );
 
