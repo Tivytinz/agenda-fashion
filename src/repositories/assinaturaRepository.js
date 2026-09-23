@@ -427,6 +427,43 @@ async function listarPagamentos(assinaturaId) {
   return result.rows;
 }
 
+async function listarNegociosComCancelamentoExpirado(
+  limite = 100,
+  executor = db
+) {
+  const limiteSolicitado = Number(limite);
+  const limiteSeguro = Number.isInteger(limiteSolicitado)
+    ? Math.min(500, Math.max(1, limiteSolicitado))
+    : 100;
+
+  const result = await executor.query(
+    `
+    SELECT
+      a.negocio_id,
+      MIN(a.data_proxima_cobranca) AS acesso_ate
+    FROM assinaturas a
+    INNER JOIN planos pl
+      ON pl.id = a.plano_id
+    WHERE a.ativo = TRUE
+      AND a.status IN (
+        'CANCELED',
+        'CANCELLED'
+      )
+      AND a.data_proxima_cobranca IS NOT NULL
+      AND a.data_proxima_cobranca <= CURRENT_DATE
+      AND pl.valor > 0
+    GROUP BY a.negocio_id
+    ORDER BY
+      MIN(a.data_proxima_cobranca) ASC,
+      a.negocio_id ASC
+    LIMIT $1
+    `,
+    [limiteSeguro]
+  );
+
+  return result.rows;
+}
+
 module.exports = {
   criarAssinatura,
   buscarAssinaturaAtivaPorNegocio,
@@ -442,5 +479,6 @@ module.exports = {
   expirarCancelamentoSeNecessario,
   buscarPlano,
   buscarUltimoPagamentoPendente,
-  listarPagamentos
+  listarPagamentos,
+  listarNegociosComCancelamentoExpirado
 };

@@ -1017,6 +1017,7 @@ export function AdminRevenueV2Page() {
                 <div><dt>Reversões financeiras</dt><dd>{formatNumber(summary.reversoesFinanceirasCanonicas)}</dd></div>
                 <div><dt>Renovações canceladas</dt><dd>{formatNumber(summary.cancelamentosRenovacaoCanonicos)}</dd></div>
                 <div><dt>Saídas da base paga</dt><dd>{formatNumber(summary.saidasBasePagaCanonicas)}</dd></div>
+                <div><dt>Pendentes de reconciliação temporal</dt><dd>{formatNumber(summary.cancelamentosVencidosPendentesReconciliacao)}</dd></div>
               </dl>
             </section>
 

@@ -156,6 +156,14 @@ function validarConfiguracaoRuntime(env = process.env) {
     minimo: 1,
     maximo: 500,
   });
+  validarInteiroOpcional(env, "BILLING_RECONCILIATION_INTERVAL_MS", {
+    minimo: 60000,
+    maximo: 3600000,
+  });
+  validarInteiroOpcional(env, "BILLING_RECONCILIATION_BATCH_SIZE", {
+    minimo: 1,
+    maximo: 500,
+  });
 
   validarInteiroOpcional(env, "BCRYPT_ROUNDS", {
     minimo: 10,

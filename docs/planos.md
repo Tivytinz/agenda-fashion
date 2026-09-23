@@ -90,6 +90,11 @@ apagar dados existentes nem impedir a edição do que já foi cadastrado.
 - Ao cancelar a renovação, o acesso pago continua até o fim do período já
   quitado.
 - Após o encerramento do ciclo pago, o negócio retorna ao plano gratuito.
+- O fim de um período já pago com renovação cancelada não depende de nova
+  navegação da proprietária: os background workers fazem reconciliação em
+  background e reutilizam a mesma operação transacional usada pela leitura do
+  plano. Retry ou concorrência não podem duplicar
+  `ACESSO_PAGO_ENCERRADO`.
 - A API de assinatura normaliza o ciclo para estados de domínio como
   `PENDENTE`, `ATIVA`, `FALHA_DE_PAGAMENTO` e `CHECKOUT_EXPIRADO`,
   preservando também o status bruto do provedor para auditoria.
@@ -160,4 +165,6 @@ negócio e conversão para plano pago.
 - Uso do negócio: `GET /meu-plano`.
 - Checkout pago: `POST /checkout`.
 - Lifecycle financeiro: `database/migrations/093_assinatura_eventos_lifecycle.sql`.
+- Índice da reconciliação temporal:
+  `database/migrations/094_assinaturas_canceladas_expiracao_idx.sql`.
 - Visão técnica completa: `docs/arquitetura.md`.

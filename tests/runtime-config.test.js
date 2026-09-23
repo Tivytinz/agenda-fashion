@@ -141,6 +141,30 @@ describe("configuração central do runtime", () => {
     });
   });
 
+  test("valida limites operacionais da reconciliação financeira", () => {
+    expect(() => validarConfiguracaoRuntime({
+      ...ambienteBase(),
+      BILLING_RECONCILIATION_INTERVAL_MS: "1000",
+    })).toThrow(
+      "BILLING_RECONCILIATION_INTERVAL_MS precisa ser um inteiro entre 60000 e 3600000"
+    );
+
+    expect(() => validarConfiguracaoRuntime({
+      ...ambienteBase(),
+      BILLING_RECONCILIATION_BATCH_SIZE: "0",
+    })).toThrow(
+      "BILLING_RECONCILIATION_BATCH_SIZE precisa ser um inteiro entre 1 e 500"
+    );
+
+    expect(validarConfiguracaoRuntime({
+      ...ambienteBase(),
+      BILLING_RECONCILIATION_INTERVAL_MS: "300000",
+      BILLING_RECONCILIATION_BATCH_SIZE: "100",
+    })).toMatchObject({
+      ambiente: "test",
+    });
+  });
+
   test("recusa credencial presente com formato inválido", () => {
     expect(() => validarConfiguracaoRuntime({
       ...ambienteBase(),
