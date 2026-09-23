@@ -275,15 +275,37 @@ async function buscarRetention(periodo) {
 }
 
 async function buscarRevenue(periodo) {
-  const [resultado, churn] = await Promise.all([
+  const [resultado, churn, mrr] = await Promise.all([
     repository.buscarReceita(periodo),
     repository.buscarChurnPago(periodo),
+    repository.buscarMrr(periodo),
   ]);
   const resumo = resultado.resumo || {};
   const basePagaInicio = numero(churn.base_paga_inicio);
   const saidasTerminais = numero(
     churn.saidas_terminais_base_inicial
   );
+  const mrrInicial = numero(mrr.mrr_inicial);
+  const newMrr = numero(mrr.new_mrr);
+  const reactivationMrr = numero(mrr.reactivation_mrr);
+  const expansionMrr = numero(mrr.expansion_mrr);
+  const contractionMrr = numero(mrr.contraction_mrr);
+  const churnedMrr = numero(mrr.churned_mrr);
+  const mrrFinalTotal = numero(mrr.mrr_final_total);
+  const mrrCalculado =
+    mrrInicial +
+    newMrr +
+    reactivationMrr +
+    expansionMrr -
+    contractionMrr -
+    churnedMrr;
+  const divergenciaBridgeMrr =
+    Number((mrrCalculado - mrrFinalTotal).toFixed(2));
+  const periodicidadesNaoSuportadas = numero(
+    mrr.assinaturas_periodicidade_nao_suportada
+  );
+  const bridgeMrrReconciliado =
+    Math.abs(divergenciaBridgeMrr) < 0.01;
   const negociosComCheckout = numero(resumo.negocios_com_checkout);
   const negociosCheckoutConvertidos = numero(
     resumo.negocios_checkout_convertidos
@@ -406,6 +428,32 @@ async function buscarRevenue(periodo) {
       saidasOutrosMotivos: numero(
         churn.saidas_outros_motivos
       ),
+      mrrInicial: mrrInicial,
+      newMrr,
+      reactivationMrr,
+      expansionMrr,
+      contractionMrr,
+      churnedMrr,
+      mrrFinalCoorteInicial: numero(
+        mrr.mrr_final_coorte_inicial
+      ),
+      mrrFinalTotal,
+      mrrEmRisco: numero(mrr.mrr_em_risco),
+      negociosMrrEmRisco: numero(
+        mrr.negocios_mrr_em_risco
+      ),
+      grr: percentual(
+        mrr.mrr_retido_bruto,
+        mrrInicial
+      ),
+      nrr: percentual(
+        mrr.mrr_final_coorte_inicial,
+        mrrInicial
+      ),
+      divergenciaBridgeMrr,
+      bridgeMrrReconciliado,
+      assinaturasPeriodicidadeNaoSuportada:
+        periodicidadesNaoSuportadas,
     },
     churn: {
       inicioCobertura: churn.inicio_cobertura || null,
@@ -413,6 +461,19 @@ async function buscarRevenue(periodo) {
       periodoAjustadoAoCutover:
         churn.periodo_ajustado_cutover === true,
       historicoAnteriorInferido: false,
+    },
+    mrr: {
+      inicioCobertura: mrr.inicio_cobertura || null,
+      inicioEfetivo: mrr.inicio_efetivo || null,
+      periodoAjustadoAoCutover:
+        mrr.periodo_ajustado_cutover === true,
+      historicoAnteriorInferido: false,
+      periodicidadeSuportada: "MONTHLY",
+      bridgeReconciliado: bridgeMrrReconciliado,
+      confiavel:
+        Boolean(mrr.inicio_cobertura) &&
+        bridgeMrrReconciliado &&
+        periodicidadesNaoSuportadas === 0,
     },
     planos: resultado.planos,
     metodologia: {
@@ -434,6 +495,10 @@ async function buscarRevenue(periodo) {
         "Desde a Wave 22, transições financeiras novas também são gravadas de forma append-only em assinatura_eventos. Na Wave 23, cancelamentos com período já vencido são reconciliados em background. Na Wave 24, a baseline paga e as fronteiras de episódio permitem observar churn sem reconstruir historicamente fatos anteriores ao cutover.",
       churn:
         "Gross logo churn v1 usa negócios que estavam pagos no início efetivo do recorte e tiveram saída terminal depois desse instante. Reativação permanece separada e não reduz retroativamente o churn bruto. Quando o recorte começa antes do cutover, o início efetivo é ajustado para a baseline da Wave 24.",
+      mrr:
+        "MRR v1 usa snapshots monetários append-only desde a Wave 25 e nunca reconstrói valores históricos a partir do preço atual do catálogo. New MRR fica fora da NRR. Expansion e contraction usam o delta monetário efetivo; atraso ou disputa permanecem como MRR em risco até uma saída terminal. MRR é receita recorrente contratada, não caixa recebido.",
+      nrr:
+        "NRR v1 compara o MRR final dos negócios que pertenciam à base inicial com o MRR desses mesmos negócios no início. GRR ignora expansion e considera zero para um negócio da base inicial que teve saída terminal no recorte, mesmo que depois tenha reativado. Recortes anteriores ao cutover são ajustados à cobertura da Wave 25.",
       ativas:
         "Assinaturas pagas ativas é um estoque atual e não uma contagem criada no período. Cancelamentos cujo acesso já venceu são excluídos do estoque mesmo antes do próximo ciclo do worker financeiro.",
     },
