@@ -20,6 +20,8 @@ jest.mock(
       jest.fn(),
     buscarNegocioPorId:
       jest.fn(),
+    buscarCustoPorFonteChave:
+      jest.fn(),
     validarCreditoDisponivel:
       jest.fn(),
     criarFonte:
@@ -72,6 +74,10 @@ describe(
           id: 8,
           nome: "Studio Teste",
         });
+
+      repository
+        .buscarCustoPorFonteChave
+        .mockResolvedValue(null);
 
       repository
         .registrarOperacao
@@ -356,6 +362,64 @@ describe(
           contributionEconomicsService
             .registrarCustoObservado
         ).not.toHaveBeenCalled();
+      }
+    );
+
+    test(
+      "replay de crédito não é bloqueado pelo saldo já consumido",
+      async () => {
+        repository
+          .buscarCustoPorFonteChave
+          .mockResolvedValue({
+            id: 12,
+          });
+
+        contributionEconomicsService
+          .registrarCustoObservado
+          .mockResolvedValue({
+            id: 12,
+            fonte_id: 9,
+            negocio_id: 8,
+            chave_origem:
+              "credito_replay",
+            tipo: "CREDITO",
+            valor: "4.00",
+            ocorrido_em:
+              "2026-09-23T21:00:00.000Z",
+            custo_referenciado_id:
+              11,
+            replay: true,
+          });
+
+        const resultado =
+          await service.registrarCusto({
+            payload: {
+              fonteCodigo:
+                "mensageria_variavel",
+              negocioId: 8,
+              chaveOrigem:
+                "credito_replay",
+              tipo: "CREDITO",
+              valor: 4,
+              ocorridoEm:
+                "2026-09-23T21:00:00Z",
+              custoReferenciadoId:
+                11,
+              motivo:
+                "Replay confirmado",
+            },
+            usuarioId: 7,
+            superadmin: true,
+          });
+
+        expect(
+          repository
+            .validarCreditoDisponivel
+        ).not.toHaveBeenCalled();
+
+        expect(
+          resultado.custo.replay
+        ).toBe(true);
       }
     );
 
