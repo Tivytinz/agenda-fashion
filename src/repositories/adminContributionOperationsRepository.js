@@ -128,6 +128,109 @@ async function listarPainel() {
   };
 }
 
+async function buscarNegocioPorId(
+  negocioId,
+  executor = db
+) {
+  const resultado =
+    await executor.query(
+      `
+      SELECT
+        id,
+        nome
+      FROM negocios
+      WHERE id = $1
+      LIMIT 1
+      `,
+      [negocioId]
+    );
+
+  return resultado.rows[0] || null;
+}
+
+async function validarCreditoDisponivel(
+  {
+    fonteCodigo,
+    negocioId,
+    custoReferenciadoId,
+    valor,
+  },
+  executor
+) {
+  const referencia =
+    await executor.query(
+      `
+      SELECT
+        c.id,
+        c.valor,
+        c.fonte_id
+      FROM contribuicao_custos c
+      INNER JOIN contribuicao_fontes f
+        ON f.id = c.fonte_id
+      WHERE c.id = $1
+        AND c.negocio_id = $2
+        AND c.tipo = 'DEBITO'
+        AND f.codigo = $3
+        AND f.ativa = TRUE
+      FOR UPDATE
+      `,
+      [
+        custoReferenciadoId,
+        negocioId,
+        fonteCodigo,
+      ]
+    );
+
+  const debito =
+    referencia.rows[0];
+
+  if (!debito) {
+    return {
+      referenciaValida: false,
+      saldoDisponivel: null,
+    };
+  }
+
+  const creditos =
+    await executor.query(
+      `
+      SELECT
+        COALESCE(
+          SUM(valor),
+          0
+        )::NUMERIC(14,2)
+          AS total_creditos
+      FROM contribuicao_custos
+      WHERE custo_referenciado_id = $1
+        AND tipo = 'CREDITO'
+      `,
+      [custoReferenciadoId]
+    );
+
+  const saldoDisponivel =
+    Number(debito.valor) -
+    Number(
+      creditos.rows[0]
+        ?.total_creditos ||
+      0
+    );
+
+  return {
+    referenciaValida: true,
+    saldoDisponivel:
+      Number(
+        saldoDisponivel
+          .toFixed(2)
+      ),
+    excede:
+      Number(valor) >
+      Number(
+        saldoDisponivel
+          .toFixed(2)
+      ),
+  };
+}
+
 async function criarFonte(
   {
     codigo,
@@ -237,6 +340,8 @@ async function registrarOperacao(
 
 module.exports = {
   listarPainel,
+  buscarNegocioPorId,
+  validarCreditoDisponivel,
   criarFonte,
   registrarOperacao,
 };
