@@ -7,6 +7,25 @@ on:
         description: URL base do ambiente representativo
         required: false
         default: https://app.agendafashion.com.br
+  pull_request:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/performance-qa.yml"
+      - "scripts/performance-api-p95.mjs"
+      - "frontend/index.html"
+      - "frontend/vite.config.js"
+      - "frontend/scripts/performance-lcp.mjs"
+      - "frontend/public/assets/home/**"
+      - "frontend/src/App.jsx"
+      - "frontend/src/pages/HomePage.jsx"
+      - "frontend/src/pages/ExplorePage.jsx"
+      - "frontend/src/pages/ProfilePage.jsx"
+      - "frontend/src/components/profile/**"
+      - "frontend/src/styles/home-discovery.css"
+      - "frontend/src/styles/profile-polish.css"
+      - "frontend/src/styles/public-shell.css"
+      - "frontend/src/styles/public-design-system.css"
   push:
     branches:
       - perf/p1-wave-15
@@ -106,7 +125,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: performance-wave-15-${{ github.run_id }}
+          name: performance-qa-${{ github.run_id }}
           path: performance-results
           if-no-files-found: warn
           retention-days: 30
