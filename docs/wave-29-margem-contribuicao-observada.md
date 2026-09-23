@@ -246,7 +246,11 @@ contribuição estiver tecnicamente confiável.
 
 ## Estado atual
 
-A fundação técnica da Wave 29 está **implementada na branch de trabalho**:
+A fundação técnica da Wave 29 está na `main` pelo PR #289, mergeado no commit
+`0723d70cdaaadafdcbe4937c1f5b9afcfc852bcc`. O head do PR
+`51df4e5a135b53563101163526062ef9d48428d4` passou no **Backend CI #1362**.
+
+Estão implementados:
 
 - migration 100 com cutover próprio;
 - registro de fontes sem seed especulativo;
@@ -258,6 +262,7 @@ A fundação técnica da Wave 29 está **implementada na branch de trabalho**:
 - testes unitários e de integração proporcionais ao risco.
 
 A Wave ainda não deve ser considerada encerrada: nenhuma fonte real de custo
-variável foi cadastrada, LTV de contribuição D30/D60/D90 ainda não foi
-materializado e a validação final depende do CI verde. Até lá, nenhuma margem de
-contribuição é declarada disponível em produção.
+variável foi cadastrada e LTV de contribuição D30/D60/D90 ainda não foi
+materializado. Até esses requisitos existirem, margem/LTV de contribuição não
+devem ser declarados disponíveis apenas porque a infraestrutura está em
+produção.
