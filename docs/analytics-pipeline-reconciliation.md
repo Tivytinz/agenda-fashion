@@ -1,5 +1,7 @@
 # Reconciliação dos pipelines de Analytics
 
+> **Papel documental:** documento especializado da coexistência e reconciliação entre telemetrias. Eventos de navegador não substituem fatos persistidos de domínio nem redefinem a atribuição canônica.
+
 ## Objetivo
 
 Durante a migração de telemetria, o Agenda Fashion mantém dois pipelines de eventos do navegador:

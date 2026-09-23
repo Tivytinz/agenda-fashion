@@ -1,5 +1,7 @@
 # Copilot AF V1 — divulgação assistida
 
+> **Papel documental:** fonte funcional canônica do Copilot V1. A arquitetura técnica fica em [`arquitetura-copilot.md`](./arquitetura-copilot.md), e regras determinísticas de ativação/growth continuam fora do LLM.
+
 ## Objetivo
 
 A primeira integração generativa do Agenda Fashion é deliberadamente estreita: ajudar o dono de um negócio ativado a transformar uma oportunidade de divulgação já detectada pelo backend em um texto curto para WhatsApp.

@@ -1,5 +1,7 @@
 # Ciclo persistido de atendimento
 
+> **Papel documental:** fonte canônica para estados, transições, cancelamento e regras temporais do lifecycle de agendamentos. Invariantes de concorrência, snapshots e segurança do acesso visitante permanecem nos documentos especializados ligados em `docs/README.md`.
+
 ## Objetivo
 
 O horário ter passado não prova que um atendimento aconteceu.
@@ -28,7 +30,12 @@ O campo `agendamentos.status` possui os seguintes estados operacionais:
 
 ## Transições permitidas
 
-A atualização operacional exposta pela agenda aceita somente:
+O início real do atendimento é registrado por `atendimento_iniciado_em` e
+`atendimento_iniciado_por`. A ação `iniciado` não cria um novo valor em
+`agendamentos.status`: o booking permanece `agendado` ou `confirmado`
+até alcançar um estado terminal.
+
+As transições terminais de comparecimento aceitas pela agenda são:
 
 ```text
 agendado   -> realizado
@@ -37,11 +44,12 @@ confirmado -> realizado
 confirmado -> falta
 ```
 
-Cancelamento continua em fluxo próprio.
+Cancelamento e reagendamento permanecem em fluxos próprios. Reagendamento
+operacional usa `PATCH /agendamentos/:id/reagendar-operacional` e não é
+representado como uma troca de status terminal.
 
-Uma tentativa de trocar um estado terminal por outro retorna conflito em vez de reescrever o histórico.
-
-Repetir a mesma transição terminal é idempotente.
+Uma tentativa de trocar um estado terminal por outro retorna conflito em vez de
+reescrever o histórico. Repetir a mesma transição terminal é idempotente.
 
 ## Cancelamento
 
@@ -63,18 +71,21 @@ A capability não transforma o visitante em usuário autenticado e não amplia a
 
 `PATCH /agendamentos/:id/cancelar-operacional` é uma exceção operacional iniciada pelo negócio:
 
-- a dona pode cancelar compromissos futuros `agendado` ou `confirmado` do negócio ativo resolvido pelo backend;
+- a dona pode cancelar bookings ativos `agendado` ou `confirmado` do negócio ativo resolvido pelo backend;
 - a profissional pode cancelar somente compromissos atribuídos a ela;
 - usuário ou vínculo de outro negócio não recebe acesso ao compromisso;
-- um atendimento que já começou não pode voltar para `cancelado`; deve seguir para `realizado` ou `falta` conforme o lifecycle;
 - a antecedência contratual de cancelamento da cliente não bloqueia essa ação operacional do negócio;
+- o cancelamento exige um motivo operacional categorizado; o detalhe livre é opcional, exceto em `outro`, e o texto persistido fica limitado a 300 caracteres;
+- `cliente_ausente` não substitui no-show: durante a tolerância de 15 minutos a ação é rejeitada e, depois dela, o fluxo orienta registrar `falta`;
+- `atendimento_interrompido` permite registrar a exceção operacional quando um booking ativo não puder ser concluído;
 - repetir o cancelamento operacional de um compromisso já cancelado é idempotente e não sobrescreve sua auditoria original;
-- um motivo operacional pode ser informado com até 300 caracteres;
 - a notificação de cancelamento pelo WhatsApp é enfileirada na mesma transação da alteração persistida.
 
 O frontend pode ocultar a ação quando ela não se aplica, mas autorização, escopo do negócio e regra temporal continuam backend-authoritative.
 
-Cancelamento não cria um novo horário nem representa remarcação. Uma futura remarcação deve permanecer como fluxo explícito e auditável, sem reescrever silenciosamente o compromisso original.
+Cancelamento não cria um novo horário nem representa reagendamento. O
+reagendamento operacional possui endpoint e transação próprios para preservar o
+mesmo booking sem misturar os dois fatos de domínio.
 
 ## Autorização
 
@@ -82,7 +93,8 @@ A transição é backend-authoritative.
 
 Dentro do contexto de negócio resolvido pelo backend:
 
-- a dona pode atualizar atendimentos do negócio;
+- a dona pode iniciar ou registrar falta nos atendimentos do negócio quando a regra temporal permitir;
+- `realizado` só pode ser persistido pela profissional responsável pelo booking, inclusive quando a própria dona é a profissional atribuída;
 - a profissional pode atualizar apenas atendimentos atribuídos a ela;
 - vínculos inativos ou outro negócio não autorizam a operação;
 - o agendamento é bloqueado durante a transação para evitar corrida com outra alteração de estado.
@@ -91,11 +103,16 @@ A limitação atual de seleção explícita de contexto multi-negócio continua 
 
 ## Regra temporal
 
-O backend usa `negocios.fuso_horario` como autoridade temporal.
+Para bookings materializados, `agendamentos.inicio_previsto_em` é o instante
+canônico usado para comparar o relógio atual com o compromisso. O fuso atual do
+negócio é usado apenas no fallback de registros legados sem esse instante
+persistido.
 
-- `falta` só pode ser registrada depois do início marcado;
+- `iniciado` só pode ser registrado a partir do início previsto;
+- `falta` só pode ser registrada após 15 minutos de tolerância contados do início previsto;
+- depois que `atendimento_iniciado_em` existe, `falta` não pode mais ser registrada;
 - `realizado` só pode ser registrado depois do término previsto;
-- o término usa `agendamentos.duracao_minutos` como snapshot e recorre à duração atual do serviço apenas para dados legados sem snapshot.
+- o término usa `agendamentos.duracao_minutos` como snapshot e mantém fallback para a duração atual do serviço apenas para registros legados sem snapshot.
 
 O frontend pode esconder/desabilitar ações antes desse momento, mas a validação real permanece no backend.
 
@@ -183,7 +200,6 @@ Ainda permanecem separados:
 - habilitação completa de múltiplos vínculos profissionais ativos, junto do contexto ativo explícito;
 - disponibilidade semanal e bloqueios por `negócio + profissional`;
 - política de correção/reabertura de estado terminal;
-- remarcação operacional explícita;
 - cadastro manual de agendamento;
 - derivação nacional automática do fuso horário;
 - métricas financeiras que dependam de uma definição formal de receita realizada.

@@ -1,5 +1,7 @@
 # Snapshots históricos do agendamento
 
+> **Papel documental:** documento especializado sobre dados congelados no booking. O lifecycle usa esses snapshots, mas estados e transições permanecem canônicos em [`ciclo-atendimento.md`](./ciclo-atendimento.md).
+
 ## Objetivo
 
 Um agendamento representa o acordo vigente no momento em que a cliente confirma a reserva. Dados que mudam depois não devem reescrever retroativamente esse compromisso.

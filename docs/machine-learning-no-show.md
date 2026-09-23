@@ -1,5 +1,7 @@
 # Machine Learning: risco de falta
 
+> **Papel documental:** fonte canônica para o primeiro caso de Machine Learning do AF: previsão de risco de falta em modo incremental e fora do caminho crítico do booking.
+
 ## Objetivo
 
 O primeiro caso de Machine Learning do Agenda Fashion prepara uma previsão de

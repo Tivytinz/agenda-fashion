@@ -1,5 +1,7 @@
 # Marketing: sincronização de campanhas e GA4
 
+> **Papel documental:** documento especializado de sincronização de campanhas e leitura administrativa do GA4. Identidade e classificação de origem continuam canônicas em [`marketing-attribution.md`](./marketing-attribution.md).
+
 ## Objetivo
 
 A área administrativa de Marketing do Agenda Fashion segue o princípio **sincronização + análise**. O fluxo normal não exige recriar no AF uma campanha que já existe no Google Ads ou Meta Ads.

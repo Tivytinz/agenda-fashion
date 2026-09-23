@@ -1,5 +1,7 @@
 # PublicShell e contexto público
 
+> **Papel documental:** documento especializado do shell público/cliente. A relação entre os quatro contextos visuais permanece canônica em [`ux-contextos-visuais.md`](./ux-contextos-visuais.md).
+
 O `PublicShell` formaliza a experiência pública e de cliente do Agenda Fashion dentro da mesma aplicação React usada pelos demais contextos.
 
 ## Papel arquitetural

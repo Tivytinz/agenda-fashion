@@ -1,5 +1,7 @@
 # Confiabilidade dos compromissos da agenda
 
+> **Papel documental:** documento especializado de preservação operacional de compromissos existentes. O lifecycle e suas transições são definidos em [`ciclo-atendimento.md`](./ciclo-atendimento.md); este arquivo cobre efeitos de mudanças administrativas, materialização da agenda e integridade do compromisso.
+
 Este documento registra invariantes operacionais do Agenda Fashion para preservar compromissos já assumidos com clientes.
 
 ## Princípio
@@ -69,13 +71,12 @@ Regra atual:
 
 Estas proteções resolvem falhas concretas, mas não encerram a arquitetura operacional da agenda. Permanecem como trabalhos separados:
 
-1. separar disponibilidade configurada por `negócio + profissional` da ocupação física global da profissional em múltiplos negócios;
-2. oferecer contexto ativo explícito para contas ligadas a mais de um negócio;
-3. concluir as transições operacionais do ciclo de atendimento (`agendado`, `confirmado`, `realizado`, `falta`, `cancelado`), incluindo quem alterou o estado e quando;
-4. derivar/corrigir o fuso horário de negócios fora de `America/Sao_Paulo` sem exigir conhecimento técnico de timezone IANA;
-5. evoluir o ciclo de serviço para um arquivamento explícito caso seja necessário distinguir serviço desativado de serviço arquivado;
-6. tornar notificações, retorno e recorrência dependentes de fatos de atendimento confiáveis;
-7. substituir gradualmente a grade visual fixa da Agenda Geral por uma representação derivada da disponibilidade configurada, sem voltar a acoplar a existência de compromissos à configuração atual.
+1. separar completamente a disponibilidade configurada por `negócio + profissional` da ocupação física global da profissional em múltiplos negócios;
+2. oferecer contexto ativo explícito para contas ligadas a mais de um negócio quando o modelo permitir múltiplos vínculos profissionais ativos;
+3. derivar/corrigir o fuso horário de negócios fora de `America/Sao_Paulo` sem exigir conhecimento técnico de timezone IANA;
+4. evoluir o ciclo de serviço para um arquivamento explícito caso seja necessário distinguir serviço desativado de serviço arquivado;
+5. continuar migrando notificações, retorno, recorrência e métricas para fatos persistidos do lifecycle, sem inferência pela passagem do relógio;
+6. substituir gradualmente a grade visual fixa da Agenda Geral por uma representação derivada da disponibilidade configurada, sem voltar a acoplar a existência de compromissos à configuração atual.
 
 ## Testes mínimos de regressão
 

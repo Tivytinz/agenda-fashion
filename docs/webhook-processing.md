@@ -1,5 +1,7 @@
 # Processamento de webhooks financeiros
 
+> **Papel documental:** fonte técnica canônica para fila, retry, fencing, ordenação e efeitos derivados de webhooks financeiros. O contrato HTTP específico do Asaas fica em [`webhook-asaas.md`](./webhook-asaas.md) e a saga de ativação paga em [`asaas-ativacao-recorrencia.md`](./asaas-ativacao-recorrencia.md).
+
 ## Asaas
 
 A fila `webhook_eventos` recebe eventos do Asaas de forma idempotente. Um evento novo entra como `PENDING` com `tentativas = 0`; a primeira reserva de processamento incrementa o contador para 1.

@@ -1,5 +1,7 @@
 # Visão geral administrativa do Agenda Fashion
 
+> **Papel documental:** documento especializado da rota `/admin` e seus KPIs agregados. A navegação e os limites de responsabilidade do contexto administrativo pertencem a [`admin-console.md`](./admin-console.md).
+
 ## Objetivo
 
 A rota `/admin` é a visão executiva de métricas do Agenda Fashion. Ela existe para responder como o AF está performando como produto e negócio no período selecionado, sem misturar filas operacionais, registros individuais ou saúde técnica da infraestrutura.

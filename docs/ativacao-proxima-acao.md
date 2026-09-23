@@ -1,5 +1,7 @@
 # Próxima ação de ativação do Agenda Fashion
 
+> **Papel documental:** documento especializado da máquina determinística de próxima ação até o primeiro agendamento válido. Não redefine os requisitos da primeira jornada nem os marcos do funil.
+
 ## Objetivo
 
 A próxima ação de ativação orienta a dona do negócio para a missão mais importante até o primeiro agendamento válido, isto é, um agendamento que não esteja cancelado.
