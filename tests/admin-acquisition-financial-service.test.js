@@ -76,12 +76,6 @@ describe(
               dias_maduros_d30: 2,
               dias_maduros_d60: 2,
               dias_maduros_d90: 0,
-              dias_sobrepostos_d30: 1,
-              dias_sobrepostos_d60: 1,
-              dias_sobrepostos_d90: 0,
-              dias_ambiguos_d30: 0,
-              dias_ambiguos_d60: 0,
-              dias_ambiguos_d90: 0,
               negocios_pagos_d30: 2,
               negocios_pagos_d60: 2,
               negocios_pagos_d90: 0,
@@ -93,8 +87,8 @@ describe(
               valor_exposto_reversoes_centavos:
                 4990,
               pagantes_sem_custo_d30: 0,
-              pagantes_custo_ambiguo_d30:
-                0,
+              pagantes_sem_custo_d60: 0,
+              pagantes_sem_custo_d90: 0,
             },
           ],
         });
@@ -120,8 +114,7 @@ describe(
             snapshotsOficiais: 3,
             snapshotsOrganicos: 1,
             snapshotsPendentes: 0,
-            diasFontesSobrepostasD30: 1,
-            diasCustoAmbiguoD30: 0,
+            pagantesSemCustoD30: 0,
           },
         });
 
@@ -170,7 +163,7 @@ describe(
     );
 
     test(
-      "bloqueia leitura com custo ambíguo ou cobertura incompleta",
+      "bloqueia leitura quando pagante maduro não tem custo do dia de aquisição",
       async () => {
         mockBuscarRetornoAquisicao
           .mockResolvedValue({
@@ -191,11 +184,12 @@ describe(
                 negocios_pagos_d30: 1,
                 receita_d30_centavos:
                   12000,
-                dias_ambiguos_d30: 1,
                 pagantes_sem_custo_d30:
                   1,
-                pagantes_custo_ambiguo_d30:
-                  1,
+                pagantes_sem_custo_d60:
+                  0,
+                pagantes_sem_custo_d90:
+                  0,
               },
             ],
           });
@@ -208,7 +202,8 @@ describe(
 
         expect(d30.leitura)
           .toMatchObject({
-            codigo: "custo_ambiguo",
+            codigo:
+              "cobertura_custo_incompleta",
             comparavel: false,
           });
         expect(d30.custoConfiavel)
@@ -231,8 +226,7 @@ describe(
               negocios_pagos_d30: 0,
               receita_d30_centavos: 0,
               dias_maduros_d30: 1,
-              dias_sobrepostos_d30: 0,
-              dias_ambiguos_d30: 0,
+              pagantes_sem_custo_d30: 0,
             },
             30
           )
