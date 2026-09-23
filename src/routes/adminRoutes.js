@@ -360,6 +360,14 @@ router.post(
     .criarIntegracao
 );
 
+router.patch(
+  "/admin/financeiro/contribuicao/sync/integracoes/:id",
+  auth,
+  authAdmin,
+  adminContributionCostSyncController
+    .atualizarIntegracao
+);
+
 router.post(
   "/admin/financeiro/contribuicao/sync/integracoes/:id/executar",
   auth,
