@@ -7,15 +7,13 @@
 ## Premissa
 
 A Wave 27 já possui CAC de mídia observado por negócio/campanha e retorno bruto
-D30/D60/D90. A Wave 28 acrescentou retorno líquido de gateway. A Wave 29 criou
-a infraestrutura de custos variáveis e margem de contribuição, mas ainda não
-possui fonte real obrigatória cadastrada nem LTV de contribuição D30/D60/D90
-materializado.
+D30/D60/D90. A Wave 28 acrescentou retorno líquido de gateway. A Wave 29
+implementou margem e LTV de contribuição D30/D60/D90, sempre bloqueados quando
+não existe fonte obrigatória real ou quando a cobertura econômica é incompleta.
 
-A Wave 30 não deve contornar essa dependência. Ela prepara a próxima camada para
-comparar contribuição factual com o mesmo investimento de mídia da aquisição,
-mantendo a métrica indisponível enquanto a Wave 29 não estiver economicamente
-coberta.
+A Wave 30 conecta essas camadas sem inferir histórico anterior ao próprio
+cutover. Ela reutiliza aquisição oficial, custo de mídia canônico, economia do
+gateway e custos variáveis observados.
 
 ## Objetivo
 
@@ -108,7 +106,7 @@ A migration não cria nova fonte de custo nem faz backfill econômico.
 
 ## Prontidão técnica
 
-A preparação da Wave 30 adiciona uma leitura separada de prontidão que observa:
+A Wave 30 adiciona uma leitura de prontidão e uma leitura econômica por campanha que observam:
 
 - cutover da própria Wave;
 - cutover da contribuição;
@@ -236,32 +234,36 @@ mensuração, amostra, ativação, monetização e atribuição.
 5. ausência de fonte obrigatória bloquear retorno;
 6. cobertura incompleta bloquear retorno;
 7. economia de gateway incompleta bloquear retorno;
-8. LTV de contribuição ausente bloquear retorno;
-9. negócio incompleto não ser retirado do denominador;
-10. CAC de mídia não ser chamado de CAC total;
-11. retorno de contribuição não ser chamado de lucro;
-12. recuperação por contribuição não ser chamada de payback econômico
+8. negócio incompleto não ser retirado do denominador;
+9. contribuição negativa ser suportada;
+10. retorno e LTV/CAC de mídia usarem a mesma população;
+11. CAC de mídia não ser chamado de CAC total;
+12. retorno de contribuição não ser chamado de lucro;
+13. recuperação por contribuição não ser chamada de payback econômico
     definitivo;
-13. Admin comunicar indisponibilidade sem mostrar zero artificial;
-14. billing/entitlement permanecerem independentes;
-15. backend e frontend possuírem testes proporcionais ao risco;
-16. integração PostgreSQL validar o cutover e prontidão;
-17. CI completo ficar verde;
-18. diff final ser revisado antes de qualquer merge.
+14. Admin comunicar indisponibilidade sem mostrar zero artificial;
+15. billing/entitlement permanecerem independentes;
+16. backend e frontend possuírem testes proporcionais ao risco;
+17. integração PostgreSQL validar cutover, cobertura e retorno D30;
+18. CI completo ficar verde;
+19. diff final ser revisado antes de qualquer merge.
 
 ## Estado atual
 
-A Wave 30 está **tecnicamente preparada na branch de trabalho**, com:
+A Wave 30 está **implementada na branch de trabalho**, com:
 
 - migration 101 e cutover próprio;
-- repository read-only de prontidão da contribuição;
-- integração da prontidão ao retorno de aquisição;
-- estados de bloqueio por janela;
-- contratos reservados para retorno/LTV de contribuição;
-- estado explícito de indisponibilidade no Admin;
-- testes unitários, frontend e integração PostgreSQL;
-- documentação e memória operacional alinhadas.
+- branch reconciliada com a conclusão técnica da Wave 29;
+- cálculo por campanha/coorte de contribuição × CAC de mídia;
+- herança dos cutovers de gateway e contribuição;
+- maturidade D30/D60/D90;
+- bloqueio por mídia ausente, fonte ausente, gateway incompleto e cobertura
+  incompleta;
+- cálculo de retorno de contribuição e LTV contribuição/CAC mídia;
+- primeira recuperação observada por D30/D60/D90;
+- Admin com retorno e recuperação por contribuição;
+- testes unitários, frontend e integração PostgreSQL.
 
-A Wave **não está encerrada** e nenhuma métrica de retorno de contribuição foi
-declarada disponível. O bloqueio é intencional enquanto a Wave 29 não possuir
-fonte factual obrigatória e LTV de contribuição D30/D60/D90.
+A disponibilidade real continua dependendo de **fonte obrigatória factual de
+custo variável**. O repositório não contém hoje um valor desse tipo que possa ser
+inventado; sem essa fonte, a leitura permanece corretamente indisponível.
