@@ -59,6 +59,21 @@ function custoUnitario(
   );
 }
 
+function valorUnitario(
+  centavos,
+  quantidade
+) {
+  const total = numero(quantidade);
+
+  if (total <= 0) {
+    return null;
+  }
+
+  return Math.round(
+    numero(centavos) / total
+  );
+}
+
 function mapearJanela(
   linha,
   dias
@@ -167,42 +182,15 @@ function leituraJanela(
 }
 
 function leituraContribuicao({
-  leitura,
-  economiaComparavel,
-  prontidao,
+  diasMaduros,
+  investimentoCentavos,
+  negocios,
+  negociosCobertos,
+  incompletos,
+  pagantesSemCusto,
+  fontesObrigatorias,
 }) {
-  if (leitura?.comparavel !== true) {
-    return {
-      codigo:
-        "base_aquisicao_nao_comparavel",
-      rotulo:
-        "Base de aquisição indisponível",
-      comparavel: false,
-    };
-  }
-
-  if (!economiaComparavel) {
-    return {
-      codigo:
-        "economia_gateway_incompleta",
-      rotulo:
-        "Aguardando economia líquida",
-      comparavel: false,
-    };
-  }
-
-  const fontesObrigatorias =
-    numero(
-      prontidao
-        .fontes_obrigatorias
-    );
-  const fontesCobertas =
-    numero(
-      prontidao
-        .fontes_cobertas_ate_hoje
-    );
-
-  if (fontesObrigatorias <= 0) {
+  if (numero(fontesObrigatorias) <= 0) {
     return {
       codigo:
         "sem_fonte_contribuicao",
@@ -212,12 +200,40 @@ function leituraContribuicao({
     };
   }
 
+  if (numero(pagantesSemCusto) > 0) {
+    return {
+      codigo:
+        "cobertura_custo_incompleta",
+      rotulo:
+        "Cobertura de mídia incompleta",
+      comparavel: false,
+    };
+  }
+
+  if (numero(diasMaduros) <= 0) {
+    return {
+      codigo:
+        "aguardando_maturidade",
+      rotulo:
+        "Aguardando maturidade",
+      comparavel: false,
+    };
+  }
+
+  if (numero(investimentoCentavos) <= 0) {
+    return {
+      codigo:
+        "sem_investimento",
+      rotulo:
+        "Sem investimento maduro",
+      comparavel: false,
+    };
+  }
+
   if (
-    prontidao
-      .cobertura_contribuicao_completa_hoje !==
-      true ||
-    fontesCobertas !==
-      fontesObrigatorias
+    numero(incompletos) > 0 ||
+    numero(negociosCobertos) !==
+      numero(negocios)
   ) {
     return {
       codigo:
@@ -229,11 +245,9 @@ function leituraContribuicao({
   }
 
   return {
-    codigo:
-      "aguardando_ltv_contribuicao",
-    rotulo:
-      "Aguardando LTV de contribuição",
-    comparavel: false,
+    codigo: "base_comparavel",
+    rotulo: "Base comparável",
+    comparavel: true,
   };
 }
 
@@ -262,6 +276,7 @@ async function buscar() {
     pendentes,
     liquido,
     prontidaoContribuicao,
+    retornoContribuicao,
   ] = await Promise.all([
     repository.buscarRetornoAquisicao({
       diasMaturacaoMonetizacao:
@@ -278,6 +293,12 @@ async function buscar() {
       }),
     contributionReturnRepository
       .buscarProntidao(),
+    contributionReturnRepository
+      .buscarRetornoContribuicaoAquisicao({
+        diasMaturacaoMonetizacao:
+          configuracao
+            .diasMaturacaoMonetizacao,
+      }),
   ]);
 
   const liquidoPorCampanha =
@@ -285,6 +306,20 @@ async function buscar() {
       (
         Array.isArray(liquido.campanhas)
           ? liquido.campanhas
+          : []
+      ).map((item) => [
+        numero(item.campanha_id),
+        item,
+      ])
+    );
+
+  const contribuicaoPorCampanha =
+    new Map(
+      (
+        Array.isArray(
+          retornoContribuicao.campanhas
+        )
+          ? retornoContribuicao.campanhas
           : []
       ).map((item) => [
         numero(item.campanha_id),
@@ -341,13 +376,100 @@ async function buscar() {
           leitura.comparavel &&
           mesmaBase &&
           incompletosEconomia === 0;
-        const contribuicao =
+        const retornoContribuicaoCampanha =
+          contribuicaoPorCampanha.get(
+            numero(linha.campanha_id)
+          ) || {};
+        const investimentoContribuicaoCentavos =
+          numero(
+            retornoContribuicaoCampanha[
+              `investimento_${sufixo}_centavos`
+            ]
+          );
+        const diasMadurosContribuicao =
+          numero(
+            retornoContribuicaoCampanha[
+              `dias_maduros_${sufixo}`
+            ]
+          );
+        const negociosContribuicao =
+          numero(
+            retornoContribuicaoCampanha[
+              `negocios_${sufixo}`
+            ]
+          );
+        const negociosCobertosContribuicao =
+          numero(
+            retornoContribuicaoCampanha[
+              `negocios_cobertos_${sufixo}`
+            ]
+          );
+        const incompletosContribuicao =
+          numero(
+            retornoContribuicaoCampanha[
+              `incompletos_${sufixo}`
+            ]
+          );
+        const pagantesSemCustoContribuicao =
+          numero(
+            retornoContribuicaoCampanha[
+              `pagantes_sem_custo_${sufixo}`
+            ]
+          );
+        const fontesObrigatoriasContribuicao =
+          numero(
+            retornoContribuicaoCampanha
+              .fontes_obrigatorias ??
+            prontidaoContribuicao
+              .fontes_obrigatorias
+          );
+        const contribuicaoCentavos =
+          Math.round(
+            numero(
+              retornoContribuicaoCampanha[
+                `contribuicao_${sufixo}`
+              ]
+            ) * 100
+          );
+        const leituraContrib =
           leituraContribuicao({
-            leitura,
-            economiaComparavel,
-            prontidao:
-              prontidaoContribuicao,
+            diasMaduros:
+              diasMadurosContribuicao,
+            investimentoCentavos:
+              investimentoContribuicaoCentavos,
+            negocios:
+              negociosContribuicao,
+            negociosCobertos:
+              negociosCobertosContribuicao,
+            incompletos:
+              incompletosContribuicao,
+            pagantesSemCusto:
+              pagantesSemCustoContribuicao,
+            fontesObrigatorias:
+              fontesObrigatoriasContribuicao,
           });
+        const cacMidiaContribuicaoCentavos =
+          negociosContribuicao > 0
+            ? custoUnitario(
+                investimentoContribuicaoCentavos,
+                negociosContribuicao
+              )
+            : null;
+        const ltvContribuicaoCentavos =
+          leituraContrib.comparavel &&
+          negociosContribuicao > 0
+            ? valorUnitario(
+                contribuicaoCentavos,
+                negociosContribuicao
+              )
+            : null;
+        const retornoContribuicaoValor =
+          leituraContrib.comparavel
+            ? razao(
+                contribuicaoCentavos,
+                investimentoContribuicaoCentavos
+              )
+            : null;
 
         return {
           ...janela,
@@ -401,11 +523,42 @@ async function buscar() {
                 )
               : null,
           contribuicao: {
-            ...contribuicao,
+            ...leituraContrib,
+            inicioCobertura:
+              retornoContribuicao
+                .inicio_cobertura ||
+              null,
+            fontesObrigatorias:
+              fontesObrigatoriasContribuicao,
+            diasMaduros:
+              diasMadurosContribuicao,
+            negocios:
+              negociosContribuicao,
+            negociosCobertos:
+              negociosCobertosContribuicao,
+            incompletos:
+              incompletosContribuicao,
+            pagantesSemCusto:
+              pagantesSemCustoContribuicao,
+            investimentoCentavos:
+              investimentoContribuicaoCentavos,
+            cacMidiaCentavos:
+              cacMidiaContribuicaoCentavos,
+            contribuicaoCentavos:
+              leituraContrib.comparavel
+                ? contribuicaoCentavos
+                : null,
+            ltvContribuicaoCentavos,
             retornoContribuicao:
-              null,
+              retornoContribuicaoValor,
             ltvContribuicaoSobreCacMidia:
-              null,
+              leituraContrib.comparavel &&
+              ltvContribuicaoCentavos !== null
+                ? razao(
+                    ltvContribuicaoCentavos,
+                    cacMidiaContribuicaoCentavos
+                  )
+                : null,
           },
         };
       });
@@ -440,7 +593,18 @@ async function buscar() {
           )?.dias || null
         ),
       primeiraRecuperacaoContribuicaoDias:
-        null,
+        (
+          janelas.find(
+            (janela) =>
+              janela.contribuicao
+                ?.comparavel === true &&
+              janela.contribuicao
+                .retornoContribuicao !==
+                null &&
+              janela.contribuicao
+                .retornoContribuicao >= 1
+          )?.dias || null
+        ),
       valorExpostoReversoesCentavos:
         numero(
           linha
@@ -482,6 +646,8 @@ async function buscar() {
     inicioCoberturaEconomiaLiquida:
       liquido.inicio_cobertura || null,
     inicioCoberturaRetornoContribuicao:
+      retornoContribuicao
+        .inicio_cobertura ||
       prontidaoContribuicao
         .inicio_cobertura_wave30 ||
       null,
@@ -513,9 +679,31 @@ async function buscar() {
           .cobertura_contribuicao_completa_hoje ===
         true,
       ltvContribuicaoDisponivel:
-        false,
+        campanhas.some(
+          (campanha) =>
+            campanha.janelas.some(
+              (janela) =>
+                janela.contribuicao
+                  ?.comparavel === true &&
+                janela.contribuicao
+                  .negocios > 0 &&
+                janela.contribuicao
+                  .ltvContribuicaoCentavos !==
+                  null
+            )
+        ),
       retornoContribuicaoDisponivel:
-        false,
+        campanhas.some(
+          (campanha) =>
+            campanha.janelas.some(
+              (janela) =>
+                janela.contribuicao
+                  ?.comparavel === true &&
+                janela.contribuicao
+                  .retornoContribuicao !==
+                  null
+            )
+        ),
     },
     independenteDoFiltroPeriodo: true,
     unidade: "negocio",
@@ -564,7 +752,7 @@ async function buscar() {
       retorno:
         "Retorno bruto compara receita bruta observada com investimento de mídia da mesma coorte. A Wave 28 acrescenta retorno líquido de gateway somente quando a mesma base possui economia reconciliada, usando netValue menos refunds DONE. Nenhuma das leituras representa margem, lucro ou payback econômico.",
       retornoContribuicao:
-        "A Wave 30 prepara retorno de contribuição sobre CAC de mídia usando a mesma unidade negócio e as janelas D30/D60/D90. A métrica permanece indisponível enquanto a Wave 29 não fornecer LTV de contribuição factual e cobertura completa. CAC total, lucro e payback econômico definitivo continuam fora do contrato.",
+        "A Wave 30 calcula retorno de contribuição sobre CAC de mídia apenas para aquisições oficiais posteriores ao cutover próprio. A mesma janela D30/D60/D90 exige custo de mídia canônico, economia de gateway reconciliada e cobertura integral das fontes obrigatórias de contribuição. Casos incompletos bloqueiam a janela e não são removidos da base. CAC total, lucro e payback econômico definitivo continuam fora do contrato.",
     },
   };
 }
@@ -575,4 +763,5 @@ module.exports = {
   primeiraRecuperacao,
   leituraJanela,
   leituraContribuicao,
+  valorUnitario,
 };
