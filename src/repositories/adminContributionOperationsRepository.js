@@ -156,6 +156,42 @@ async function buscarNegocioPorId(
   return resultado.rows[0] || null;
 }
 
+async function buscarCustoPorFonteChave(
+  {
+    fonteCodigo,
+    chaveOrigem,
+  },
+  executor = db
+) {
+  const resultado =
+    await executor.query(
+      `
+      SELECT
+        c.id,
+        c.fonte_id,
+        c.negocio_id,
+        c.chave_origem,
+        c.tipo,
+        c.valor,
+        c.ocorrido_em,
+        c.custo_referenciado_id,
+        c.detalhes
+      FROM contribuicao_custos c
+      INNER JOIN contribuicao_fontes f
+        ON f.id = c.fonte_id
+      WHERE f.codigo = $1
+        AND c.chave_origem = $2
+      LIMIT 1
+      `,
+      [
+        fonteCodigo,
+        chaveOrigem,
+      ]
+    );
+
+  return resultado.rows[0] || null;
+}
+
 async function validarCreditoDisponivel(
   {
     fonteCodigo,
@@ -350,6 +386,7 @@ module.exports = {
   executarTransacao,
   listarPainel,
   buscarNegocioPorId,
+  buscarCustoPorFonteChave,
   validarCreditoDisponivel,
   criarFonte,
   registrarOperacao,
