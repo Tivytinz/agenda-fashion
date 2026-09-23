@@ -1,7 +1,8 @@
 jest.mock(
   "../src/db/db",
   () => ({
-    query: jest.fn()
+    query: jest.fn(),
+    executarTransacao: jest.fn()
   })
 );
 
@@ -18,6 +19,13 @@ describe(
   () => {
     beforeEach(() => {
       jest.clearAllMocks();
+      db.executarTransacao
+        .mockImplementation(
+          async (callback) =>
+            callback({
+              query: db.query
+            })
+        );
     });
 
     test(
@@ -51,16 +59,29 @@ describe(
     test(
       "retorna o número da tentativa como lease ao reservar",
       async () => {
-        db.query.mockResolvedValueOnce({
-          rows: [
-            {
-              id: 1,
-              status: "PROCESSING",
-              tentativas: 2,
-              lease_tentativa: 2
-            }
-          ]
-        });
+        db.query
+          .mockResolvedValueOnce({
+            rows: [
+              {
+                id: 1,
+                provedor: "asaas",
+                recurso_id: "pay_1"
+              }
+            ]
+          })
+          .mockResolvedValueOnce({
+            rows: []
+          })
+          .mockResolvedValueOnce({
+            rows: [
+              {
+                id: 1,
+                status: "PROCESSING",
+                tentativas: 2,
+                lease_tentativa: 2
+              }
+            ]
+          });
 
         const evento =
           await webhookEventoRepository
@@ -69,9 +90,22 @@ describe(
         expect(evento.lease_tentativa)
           .toBe(2);
         expect(
-          db.query.mock.calls[0][0]
+          db.executarTransacao
+        ).toHaveBeenCalledTimes(1);
+        expect(
+          db.query.mock.calls[1][0]
         ).toContain(
-          "tentativas AS lease_tentativa"
+          "pg_advisory_xact_lock"
+        );
+        expect(
+          db.query.mock.calls[2][0]
+        ).toContain(
+          "tentativas"
+        );
+        expect(
+          db.query.mock.calls[2][0]
+        ).toContain(
+          "AS lease_tentativa"
         );
       }
     );
