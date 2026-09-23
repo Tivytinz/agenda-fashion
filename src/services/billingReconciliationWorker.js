@@ -6,10 +6,14 @@ const assinaturaRepository = require(
   "../repositories/assinaturaRepository"
 );
 const planoService = require("./planoService");
+const assinaturaInadimplenciaService = require(
+  "./assinaturaInadimplenciaService"
+);
 const {
   PRIMEIRA_EXECUCAO_MS,
   intervaloMs,
   tamanhoLote,
+  inadimplenciaTerminalDias,
 } = require("../config/billingReconciliation");
 
 const NOME_WORKER = "billing_reconciliation";
@@ -43,16 +47,27 @@ async function executarReconciliacao() {
   );
 
   try {
-    const candidatos =
-      await assinaturaRepository
+    const [
+      candidatosCancelamento,
+      candidatosInadimplencia,
+    ] = await Promise.all([
+      assinaturaRepository
         .listarNegociosComCancelamentoExpirado(
           tamanhoLote()
-        );
+        ),
+      assinaturaRepository
+        .listarPagamentosInadimplentesMaduros(
+          tamanhoLote(),
+          inadimplenciaTerminalDias()
+        ),
+    ]);
 
     let reconciliados = 0;
+    let cancelamentosReconciliados = 0;
+    let inadimplenciasTerminalizadas = 0;
     let falhas = 0;
 
-    for (const candidato of candidatos) {
+    for (const candidato of candidatosCancelamento) {
       try {
         const expirada =
           await planoService
@@ -62,6 +77,7 @@ async function executarReconciliacao() {
 
         if (expirada) {
           reconciliados += 1;
+          cancelamentosReconciliados += 1;
         }
       } catch (erro) {
         falhas += 1;
@@ -79,9 +95,44 @@ async function executarReconciliacao() {
       }
     }
 
+    for (const candidato of candidatosInadimplencia) {
+      try {
+        const encerramento =
+          await assinaturaInadimplenciaService
+            .reconciliarInadimplenciaTerminal({
+              pagamentoId: candidato.pagamento_id,
+              janelaDias: inadimplenciaTerminalDias(),
+            });
+
+        if (encerramento) {
+          reconciliados += 1;
+          inadimplenciasTerminalizadas += 1;
+        }
+      } catch (erro) {
+        falhas += 1;
+        registrador.aviso(
+          "Billing: falha ao materializar inadimplência terminal.",
+          {
+            negocio_id:
+              candidato.negocio_id || null,
+            pagamento_id:
+              candidato.pagamento_id || null,
+            codigo: erro?.code || null,
+            erro: String(
+              erro?.message || "Erro desconhecido"
+            ).slice(0, 240),
+          }
+        );
+      }
+    }
+
     const resultado = {
       ignorado: false,
-      candidatos: candidatos.length,
+      candidatos:
+        candidatosCancelamento.length +
+        candidatosInadimplencia.length,
+      cancelamentosReconciliados,
+      inadimplenciasTerminalizadas,
       reconciliados,
       falhas,
     };
@@ -99,7 +150,10 @@ async function executarReconciliacao() {
       );
     }
 
-    if (candidatos.length > 0) {
+    if (
+      candidatosCancelamento.length > 0 ||
+      candidatosInadimplencia.length > 0
+    ) {
       registrador.informacao(
         "Billing: reconciliação temporal concluída.",
         resultado
@@ -147,6 +201,8 @@ function iniciarWorkerBillingReconciliation() {
     {
       intervalo_ms: intervaloMs(),
       tamanho_lote: tamanhoLote(),
+      inadimplencia_terminal_dias:
+        inadimplenciaTerminalDias(),
     }
   );
 
