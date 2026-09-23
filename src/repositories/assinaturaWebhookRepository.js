@@ -55,7 +55,6 @@ async function atualizarPorWebhook(
     ativo,
     eventoCriadoEm,
     eventoId,
-    invoiceUrl,
   }
 ) {
   const resultado = await client.query(
@@ -241,6 +240,7 @@ async function confirmarPagamento(
     status,
     eventoCriadoEm,
     eventoId,
+    invoiceUrl,
   }
 ) {
   const resultado = await client.query(
