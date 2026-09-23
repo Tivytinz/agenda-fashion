@@ -411,6 +411,44 @@ describe(
 
         await db.query(
           `
+          UPDATE marketing_campanhas
+          SET objetivo = 'cliente'
+          WHERE id = $1
+          `,
+          [campanhaId]
+        );
+
+        const aposTrocaObjetivo =
+          await repository
+            .buscarRetornoAquisicao({
+              diasMaturacaoMonetizacao:
+                21,
+            });
+        const linhaObjetivoCongelado =
+          aposTrocaObjetivo.campanhas.find(
+            (item) =>
+              Number(item.campanha_id) ===
+              campanhaId
+          );
+
+        expect(linhaObjetivoCongelado)
+          .toMatchObject({
+            investimento_d30_centavos:
+              "12000",
+            negocios_pagos_d30: 1,
+          });
+
+        await db.query(
+          `
+          UPDATE marketing_campanhas
+          SET objetivo = 'profissional'
+          WHERE id = $1
+          `,
+          [campanhaId]
+        );
+
+        await db.query(
+          `
           INSERT INTO marketing_campanha_gastos (
             campanha_id,
             data_gasto,
