@@ -1,5 +1,7 @@
 # Playbook de criativos com Runway
 
+> **Papel documental:** playbook especializado de produção de criativos com Runway. Não define o estado atual do produto, roadmap ou obrigação de uso desse fornecedor.
+
 ## Objetivo
 
 Este documento registra regras duráveis para usar o Runway na produção de criativos do Agenda Fashion (AF) com o mínimo de desperdício de créditos.

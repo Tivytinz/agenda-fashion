@@ -1,5 +1,7 @@
 # Estratégia de conteúdo do Agenda Fashion
 
+> **Papel documental:** fonte canônica para estratégia editorial e comunicação do AF. Ferramentas de produção específicas apenas complementam esta estratégia.
+
 ## Objetivo
 
 Esta documentação orienta a criação de conteúdo orgânico e promocional do Agenda Fashion (AF) a partir do estado real do produto, do funil e das evidências disponíveis.
