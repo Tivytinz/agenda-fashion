@@ -164,6 +164,10 @@ function validarConfiguracaoRuntime(env = process.env) {
     minimo: 1,
     maximo: 500,
   });
+  validarInteiroOpcional(env, "BILLING_DELINQUENCY_TERMINAL_DAYS", {
+    minimo: 1,
+    maximo: 90,
+  });
 
   validarInteiroOpcional(env, "BCRYPT_ROUNDS", {
     minimo: 10,
