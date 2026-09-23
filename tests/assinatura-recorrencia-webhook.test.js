@@ -62,6 +62,8 @@ jest.mock(
       jest.fn().mockResolvedValue(null),
     registrarEncerramentoAcesso:
       jest.fn().mockResolvedValue(null),
+    registrarAlteracaoValorRecorrente:
+      jest.fn().mockResolvedValue(null),
   })
 );
 
@@ -455,6 +457,88 @@ describe(
             20
           ])
         );
+      }
+    );
+
+    test(
+      "registra alteração de valor recorrente na assinatura ativa",
+      async () => {
+        mockClient.query
+          .mockImplementation(
+            async (sql) => {
+              if (
+                sqlContem(
+                  sql,
+                  "WHERE asaas_subscription_id = $1"
+                )
+              ) {
+                return {
+                  rows: [{
+                    id: 20,
+                    negocio_id: 7,
+                    plano_id: 3,
+                    status: "ACTIVE",
+                    ativo: true,
+                    valor: "99.90",
+                    periodicidade: "MONTHLY",
+                    asaas_subscription_id: "sub_1",
+                  }]
+                };
+              }
+
+              if (
+                sqlContem(sql, "UPDATE assinaturas") &&
+                sqlContem(sql, "asaas_ultimo_evento_em")
+              ) {
+                return {
+                  rows: [{
+                    id: 20,
+                    negocio_id: 7,
+                    plano_id: 3,
+                    status: "ACTIVE",
+                    ativo: true,
+                    valor: "109.90",
+                    periodicidade: "MONTHLY",
+                    asaas_subscription_id: "sub_1",
+                    asaas_ultimo_evento_id: "evt_valor_1",
+                  }]
+                };
+              }
+
+              return { rows: [] };
+            }
+          );
+
+        await sincronizarAssinaturaPorWebhook(
+          "SUBSCRIPTION_UPDATED",
+          {
+            id: "sub_1",
+            status: "ACTIVE",
+            value: 109.9,
+            cycle: "MONTHLY",
+            webhookEventoId: "evt_valor_1",
+          }
+        );
+
+        expect(
+          assinaturaLifecycleService
+            .registrarAlteracaoValorRecorrente
+        ).toHaveBeenCalledWith({
+          client: mockClient,
+          assinaturaAnterior:
+            expect.objectContaining({
+              id: 20,
+              valor: "99.90",
+            }),
+          assinaturaAtualizada:
+            expect.objectContaining({
+              id: 20,
+              valor: "109.90",
+            }),
+          origem: "webhook",
+          referenciaIdempotencia: "evt_valor_1",
+          ocorridoEm: null,
+        });
       }
     );
 
