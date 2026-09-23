@@ -1,5 +1,13 @@
 const db = require("../db/db");
 
+async function executarTransacao(
+  callback
+) {
+  return db.executarTransacao(
+    callback
+  );
+}
+
 async function listarPainel() {
   const [
     fontes,
@@ -339,6 +347,7 @@ async function registrarOperacao(
 }
 
 module.exports = {
+  executarTransacao,
   listarPainel,
   buscarNegocioPorId,
   validarCreditoDisponivel,
