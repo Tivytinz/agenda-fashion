@@ -12,7 +12,87 @@ const RESULT = {
   periodo: "7",
   sessoesPorOrigem: [{ canal: "paid_search", source: "google", medium: "cpc", campanha_nome: "Profissionais GO", sessoes: 100, usuarios: 70, tempo_engajado_ms: 60000 }],
   funilPorCampanha: [{ campanha: "Beleza GO", origem: "google", midia: "cpc", cadastros: 10, negociosPublicados: 6, primeirosAgendamentos: 3, assinaturasAtivadas: 1, investimentoCentavos: 5000, cacAssinanteCentavos: null, roas: null }],
-  qualidadeMensuracao: { prontaParaDecisao: false, bloqueios: [{ codigo: "sem_evidencia", mensagem: "Existem cadastros sem evidência de origem." }] }
+  qualidadeMensuracao: { prontaParaDecisao: false, bloqueios: [{ codigo: "sem_evidencia", mensagem: "Existem cadastros sem evidência de origem." }] },
+  retornoAquisicao: {
+    inicioCobertura: "2026-09-23T18:00:00.000Z",
+    primeiroDiaCompleto: "2026-09-24",
+    independenteDoFiltroPeriodo: true,
+    unidade: "negocio",
+    diasMaturacaoMonetizacao: 21,
+    diagnostico: {
+      snapshotsTotal: 2,
+      snapshotsOficiais: 2,
+      snapshotsOrganicos: 0,
+      snapshotsAtribuicaoIncompleta: 0,
+      snapshotsAquisicaoPreCutover: 0,
+      snapshotsPendentes: 0,
+      diasFontesSobrepostasD30: 1,
+      diasCustoAmbiguoD30: 0
+    },
+    campanhas: [
+      {
+        campanhaOficialId: 10,
+        campanha: "Google profissionais",
+        canal: "google",
+        origem: "google",
+        midia: "cpc",
+        primeiraRecuperacaoReceitaBrutaDias: 60,
+        valorExpostoReversoesCentavos: 0,
+        pagantesSemCustoD30: 0,
+        pagantesCustoAmbiguoD30: 0,
+        janelas: [
+          {
+            dias: 30,
+            diasMaduros: 2,
+            investimentoCentavos: 20000,
+            negociosPagos: 2,
+            cacMidiaCentavos: 10000,
+            receitaBrutaCentavos: 15000,
+            ltvBrutoCentavos: 7500,
+            retornoBruto: 0.75,
+            ltvBrutoSobreCacMidia: 0.75,
+            leitura: {
+              codigo: "base_comparavel",
+              rotulo: "Base comparável",
+              comparavel: true
+            }
+          },
+          {
+            dias: 60,
+            diasMaduros: 2,
+            investimentoCentavos: 20000,
+            negociosPagos: 2,
+            cacMidiaCentavos: 10000,
+            receitaBrutaCentavos: 24000,
+            ltvBrutoCentavos: 12000,
+            retornoBruto: 1.2,
+            ltvBrutoSobreCacMidia: 1.2,
+            leitura: {
+              codigo: "base_comparavel",
+              rotulo: "Base comparável",
+              comparavel: true
+            }
+          },
+          {
+            dias: 90,
+            diasMaduros: 0,
+            investimentoCentavos: 0,
+            negociosPagos: 0,
+            cacMidiaCentavos: null,
+            receitaBrutaCentavos: 0,
+            ltvBrutoCentavos: null,
+            retornoBruto: null,
+            ltvBrutoSobreCacMidia: null,
+            leitura: {
+              codigo: "aguardando_maturidade",
+              rotulo: "Aguardando maturidade",
+              comparavel: false
+            }
+          }
+        ]
+      }
+    ]
+  }
 };
 
 function LocationProbe() {
@@ -42,6 +122,14 @@ describe("aquisição administrativa v2", () => {
     expect(screen.queryByRole("columnheader", { name: /Agenda configurada|Pós-agenda/ })).toBeNull();
     expect(screen.getByText("Existem cadastros sem evidência de origem.")).not.toBeNull();
     expect(screen.getByRole("heading", { name: "Não use este recorte para escalar orçamento ainda" })).not.toBeNull();
+    expect(screen.getByRole("heading", { name: "Retorno da aquisição paga" })).not.toBeNull();
+    expect(screen.getByText("CAC mídia D30")).not.toBeNull();
+    expect(screen.getByText("Google profissionais")).not.toBeNull();
+    expect(screen.getByText("0.75x")).not.toBeNull();
+    expect(screen.getByText("1.20x")).not.toBeNull();
+    expect(screen.getByText("Aguardando maturidade")).not.toBeNull();
+    expect(screen.getByText("até D60")).not.toBeNull();
+    expect(screen.getByText(/CAC de mídia não é CAC econômico/i)).not.toBeNull();
   });
 
   it("mantém CAC e ROAS calculados pelo backend", async () => {
