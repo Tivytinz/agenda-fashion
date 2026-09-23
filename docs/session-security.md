@@ -1,5 +1,7 @@
 # Segurança de sessão
 
+> **Papel documental:** documento especializado de autenticação, sessão, logout e recuperação de senha. Regras transversais de segurança permanecem em `AGENTS.md`.
+
 ## Autenticação
 
 O Agenda Fashion usa JWT assinado com HS256 e entrega a sessão principal em cookie `HttpOnly`. O backend continua validando a conta no banco em toda rota autenticada, inclusive estado ativo e invalidação por troca de senha.

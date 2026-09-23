@@ -1,5 +1,7 @@
 # Segurança de dependências
 
+> **Papel documental:** runbook de segurança de dependências e gate de CI. Remediações datadas registradas aqui são evidência histórica e não substituem o estado atual dos lockfiles e audits.
+
 O Agenda Fashion trata dependências de runtime e ferramentas de build/teste como superfícies diferentes, mas ambas devem ser verificadas antes de integração e deploy.
 
 ## Gate obrigatório de CI

@@ -1,5 +1,7 @@
 # Deploy seguro do Agenda Fashion
 
+> **Papel documental:** runbook canônico do fluxo branch → PR → Quality Gate → merge → Railway → migrations → readiness → smoke test.
+
 ## Objetivo
 
 O deploy do Agenda Fashion deve impedir que uma alteração conhecida como inválida chegue à produção e deve tornar explícita a ordem entre revisão, CI, merge, deploy, migrations e healthcheck.

@@ -1,5 +1,7 @@
 # Backup e recuperação do banco crítico
 
+> **Papel documental:** runbook de continuidade do PostgreSQL crítico. Metas de RPO/RTO só são consideradas comprovadas com evidência operacional de backup/PITR e restore medido.
+
 > Decisão operacional P0 — setembro de 2026.
 
 Este runbook cobre o PostgreSQL crítico do Agenda Fashion e materializa o

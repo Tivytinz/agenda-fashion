@@ -1,5 +1,7 @@
 # Encerramento e privacidade
 
+> **Papel documental:** fonte canônica para encerramento lógico de conta, arquivamento de negócio e preservação operacional dos dados necessários.
+
 Este documento registra o comportamento operacional dos critérios P0 de
 privacidade e encerramento da baseline v1.16.
 
