@@ -238,7 +238,9 @@ virar uma segunda fonte de regra quando o domínio já possui documento canônic
 - [wave-21-retencao-financeira.md](./wave-21-retencao-financeira.md):
   evidência de classificação da receita recorrente e retenção financeira.
 - [wave-22-lifecycle-pago.md](./wave-22-lifecycle-pago.md):
-  workstream do lifecycle pago canônico, reativação e encerramento estruturado.
+  evidência do lifecycle pago canônico, reativação e encerramento estruturado.
+- [wave-23-reconciliacao-base-paga.md](./wave-23-reconciliacao-base-paga.md):
+  workstream da reconciliação temporal automática do fim do período pago.
 
 Enquanto uma wave estiver aberta, seu documento descreve o workstream e a
 evidência em construção, não uma nova fonte canônica. Quando terminar, a decisão
