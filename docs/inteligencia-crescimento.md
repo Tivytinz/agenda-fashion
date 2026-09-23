@@ -81,9 +81,17 @@ A primeira versão usa sinais do mesmo contrato de dashboard e evita misturar m�
 - cliques em Maps;
 - favoritos recebidos;
 - total de serviços vendidos/agendamentos não cancelados no período;
-- ranking de serviços do período.
+- ranking de serviços do período;
+- clientes únicos históricos do negócio;
+- clientes recorrentes históricos do negócio;
+- taxa histórica de recorrência.
 
-`clientes_recorrentes` não é usado nesta versão porque o valor atual é histórico, enquanto os demais sinais de performance respeitam o período selecionado. Misturar essas janelas produziria recomendações difíceis de interpretar corretamente.
+Os sinais de recorrência são deliberadamente históricos e não mudam quando o
+seletor de período do dashboard muda. Eles são avaliados somente pela
+oportunidade de retenção e não são misturados no cálculo das oportunidades de
+conversão do período. A interface e a mensagem da recomendação devem explicitar
+essa janela para evitar interpretar recorrência histórica como métrica de 7, 30
+dias ou mês corrente.
 
 Para participação de serviço, o denominador é `resumo.servicos_vendidos`, que cobre todos os agendamentos não cancelados do período. O `ranking_servicos` limitado aos primeiros itens serve somente para identificar o serviço líder; ele não é usado como denominador, evitando inflar artificialmente a participação quando existem mais serviços fora do top 5.
 
@@ -100,6 +108,15 @@ Só é considerada com pelo menos 40 visitas e conversão de até 5%. O limite �
 ### Interesse sem conclusão proporcional
 
 Compara ações de interesse registradas com agendamentos concluídos. O texto usa linguagem de hipótese e não afirma que WhatsApp, Maps ou favoritos causaram perda de reservas.
+
+### Recorrência baixa com amostra
+
+Só é avaliada depois de existir a amostra mínima de clientes únicos definida no
+serviço de sinais. A leitura usa o histórico do negócio, exclui agendamentos
+cancelados e considera recorrente o mesmo `client_id` com mais de um
+agendamento válido. O limite percentual é heurística de priorização e não
+benchmark de mercado. A mensagem deve declarar que os dados não identificam a
+causa.
 
 ### Serviço com tração concentrada
 
