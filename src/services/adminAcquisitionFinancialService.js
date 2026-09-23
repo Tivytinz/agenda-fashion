@@ -134,13 +134,62 @@ function mapearJanela(
   };
 }
 
+function leituraJanela(
+  janela,
+  {
+    pagantesSemCustoD30 = 0,
+    pagantesCustoAmbiguoD30 = 0,
+  } = {}
+) {
+  if (janela.diasMaduros <= 0) {
+    return {
+      codigo: "aguardando_maturidade",
+      rotulo: "Aguardando maturidade",
+      comparavel: false,
+    };
+  }
+
+  if (
+    janela.diasCustoAmbiguo > 0 ||
+    pagantesCustoAmbiguoD30 > 0
+  ) {
+    return {
+      codigo: "custo_ambiguo",
+      rotulo: "Custo ambíguo",
+      comparavel: false,
+    };
+  }
+
+  if (pagantesSemCustoD30 > 0) {
+    return {
+      codigo: "cobertura_custo_incompleta",
+      rotulo: "Cobertura de custo incompleta",
+      comparavel: false,
+    };
+  }
+
+  if (janela.investimentoCentavos <= 0) {
+    return {
+      codigo: "sem_investimento",
+      rotulo: "Sem investimento maduro",
+      comparavel: false,
+    };
+  }
+
+  return {
+    codigo: "base_comparavel",
+    rotulo: "Base comparável",
+    comparavel: true,
+  };
+}
+
 function primeiraRecuperacao(
   janelas
 ) {
   const encontrada =
     janelas.find(
       (janela) =>
-        janela.custoConfiavel &&
+        janela.leitura?.comparavel === true &&
         janela.retornoBruto !== null &&
         janela.retornoBruto >= 1
     );
@@ -170,13 +219,37 @@ async function buscar() {
       ? bruto.campanhas
       : []
   ).map((linha) => {
-    const janelas = [30, 60, 90]
-      .map((dias) =>
-        mapearJanela(
-          linha,
-          dias
-        )
+    const pagantesSemCustoD30 =
+      numero(
+        linha.pagantes_sem_custo_d30
       );
+    const pagantesCustoAmbiguoD30 =
+      numero(
+        linha.pagantes_custo_ambiguo_d30
+      );
+    const janelas = [30, 60, 90]
+      .map((dias) => {
+        const janela =
+          mapearJanela(
+            linha,
+            dias
+          );
+        const leitura =
+          leituraJanela(
+            janela,
+            {
+              pagantesSemCustoD30,
+              pagantesCustoAmbiguoD30,
+            }
+          );
+
+        return {
+          ...janela,
+          custoConfiavel:
+            leitura.comparavel,
+          leitura,
+        };
+      });
 
     return {
       campanhaOficialId:
@@ -201,15 +274,8 @@ async function buscar() {
           linha
             .valor_exposto_reversoes_centavos
         ),
-      pagantesSemCustoD30:
-        numero(
-          linha.pagantes_sem_custo_d30
-        ),
-      pagantesCustoAmbiguoD30:
-        numero(
-          linha
-            .pagantes_custo_ambiguo_d30
-        ),
+      pagantesSemCustoD30,
+      pagantesCustoAmbiguoD30,
     };
   });
 
@@ -299,4 +365,5 @@ module.exports = {
   buscar,
   mapearJanela,
   primeiraRecuperacao,
+  leituraJanela,
 };
