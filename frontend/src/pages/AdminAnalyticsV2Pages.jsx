@@ -1061,6 +1061,7 @@ export function AdminRevenueV2Page() {
         const plans = Array.isArray(data.planos) ? data.planos : [];
         const ltv = data.ltv || {};
         const economics = data.economiaLiquida || {};
+        const contribution = data.contribuicao || {};
         const ltvCohorts = Array.isArray(ltv.coortes)
           ? ltv.coortes
           : [];
@@ -1095,6 +1096,14 @@ export function AdminRevenueV2Page() {
                   </p>
                 </div>
               )}
+              {!contribution.margemContribuicaoDisponivel && (
+                <div className="admin-command-alert is-warning" role="status">
+                  <strong>Margem de contribuição ainda indisponível.</strong>
+                  <p className="muted">
+                    A Wave 29 só calcula margem quando existe ao menos uma fonte obrigatória de custo variável e todas as fontes cobrem integralmente a janela. Ausência de custo não é tratada como zero.
+                  </p>
+                </div>
+              )}
               <dl className="admin-command-data-list">
                 <div><dt>Valor bruto reconciliado</dt><dd>{formatCurrency(economics.valorBrutoReconciliado)}</dd></div>
                 <div><dt>Taxas gateway observadas</dt><dd>{formatCurrency(economics.taxasGatewayObservadas)}</dd></div>
@@ -1102,7 +1111,38 @@ export function AdminRevenueV2Page() {
                 <div><dt>Receita líquida de gateway</dt><dd>{formatCurrency(economics.receitaLiquidaGateway)}</dd></div>
                 <div><dt>Pagamentos completos</dt><dd>{formatNumber(economics.pagamentosCompletos)}</dd></div>
                 <div><dt>Pagamentos incompletos</dt><dd>{formatNumber(economics.pagamentosIncompletos)}</dd></div>
-                <div><dt>Margem de contribuição</dt><dd>Indisponível</dd></div>
+                <div>
+                  <dt>Custos variáveis observados</dt>
+                  <dd>
+                    {contribution.margemContribuicaoDisponivel
+                      ? formatCurrency(contribution.custosVariaveisObservados)
+                      : "Indisponível"}
+                  </dd>
+                </div>
+                <div>
+                  <dt>Margem de contribuição</dt>
+                  <dd>
+                    {contribution.margemContribuicaoDisponivel
+                      ? formatCurrency(contribution.margemContribuicao)
+                      : "Indisponível"}
+                  </dd>
+                </div>
+                <div>
+                  <dt>Margem de contribuição %</dt>
+                  <dd>
+                    {contribution.margemContribuicaoDisponivel
+                      ? formatPercent(contribution.margemContribuicaoPercentual)
+                      : "Indisponível"}
+                  </dd>
+                </div>
+                <div>
+                  <dt>Fontes de custo cobertas</dt>
+                  <dd>
+                    {formatNumber(contribution.fontesCobertas)}
+                    {" / "}
+                    {formatNumber(contribution.fontesObrigatorias)}
+                  </dd>
+                </div>
               </dl>
               <p className="muted">
                 Cobertura canônica desde {formatDateTime(economics.inicioCobertura)}. Ausência de netValue não é interpretada como taxa zero.
@@ -1425,6 +1465,8 @@ export function AdminRevenueV2Page() {
               <p>{data.metodologia?.mrr}</p>
               <p>{data.metodologia?.nrr}</p>
               <p>{data.metodologia?.ltv}</p>
+              <p>{data.metodologia?.economiaLiquida}</p>
+              <p>{data.metodologia?.contribuicao}</p>
               <p>{data.metodologia?.ativas}</p>
             </details>
           </>
