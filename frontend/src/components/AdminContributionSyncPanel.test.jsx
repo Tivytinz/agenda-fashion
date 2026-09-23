@@ -45,7 +45,7 @@ describe(
                 return {
                   agendamento: {
                     habilitado: false,
-                    intervaloHoras: 6
+                    intervaloMinutos: 15
                   },
                   adaptadores: [],
                   integracoes: [],
@@ -106,7 +106,7 @@ describe(
                 return {
                   agendamento: {
                     habilitado: true,
-                    intervaloHoras: 6
+                    intervaloMinutos: 15
                   },
                   adaptadores: [
                     {
