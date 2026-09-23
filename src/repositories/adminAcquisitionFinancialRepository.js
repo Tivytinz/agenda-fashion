@@ -87,19 +87,16 @@ async function buscarRetornoAquisicao({
               mna.atribuicao_em
               AT TIME ZONE '${TIME_ZONE}'
             )::date AS data_aquisicao,
-            pg0.data_pagamento
+            mna.primeira_conversao_data
               AS data_conversao,
             (
-              pg0.data_pagamento -
+              mna.primeira_conversao_data -
               (
                 mna.atribuicao_em
                 AT TIME ZONE '${TIME_ZONE}'
               )::date
             )::INT AS dias_ate_conversao
           FROM marketing_negocio_aquisicoes mna
-          INNER JOIN pagamentos pg0
-            ON pg0.id =
-              mna.primeiro_pagamento_id
           CROSS JOIN marco m
           WHERE
             mna.classificacao_atribuicao =
@@ -110,9 +107,8 @@ async function buscarRetornoAquisicao({
               mna.atribuicao_em
               AT TIME ZONE '${TIME_ZONE}'
             )::date > m.data_corte
-            AND pg0.data_pagamento IS NOT NULL
             AND (
-              pg0.data_pagamento -
+              mna.primeira_conversao_data -
               (
                 mna.atribuicao_em
                 AT TIME ZONE '${TIME_ZONE}'
