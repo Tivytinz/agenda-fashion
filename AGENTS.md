@@ -410,6 +410,18 @@ início imutável e watermark não regressivo. Admin comum pode consultar o pain
 mas não escrever. Ausência de fonte ou cobertura continua significando dado
 econômico indisponível, não custo zero.
 
+
+Desde a Wave 32, o AF possui infraestrutura **provider-agnostic de sincronização
+automática de custos factuais**. A migration 103 cria o cutover
+`sync_contribuicao_v1_inicio`, integrações por fonte e histórico operacional
+de execuções. O registry de produção nasce vazio: nenhum provedor é presumido.
+Integração só pode ser criada para fonte ativa e adaptador implementado no
+backend; não existe URL arbitrária nem credencial em banco. O worker fica
+desligado sem flag explícita, usa advisory lock por integração e só avança
+cursor/cobertura na mesma transação que persiste todo o lote reconciliado.
+Créditos automáticos referenciam o débito pela chave externa e não podem exceder
+o saldo. Falha não avança cursor nem cobertura e não altera billing/entitlement.
+
 Um negócio pode possuir no máximo uma cobrança PIX pendente de contratação ou
 upgrade por vez, independentemente do plano escolhido. Trocar de plano antes do
 pagamento não deve criar cobranças concorrentes. A tela de assinatura deve
