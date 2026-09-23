@@ -1024,6 +1024,50 @@ export function AdminRevenueV2Page() {
             <section className="panel">
               <div className="panel-heading">
                 <div>
+                  <p className="eyebrow">Receita recorrente</p>
+                  <h2>Receita recorrente canônica</h2>
+                  <p className="muted">
+                    MRR representa valor recorrente mensal contratado no ledger do AF. Não é o mesmo que caixa recebido no período.
+                  </p>
+                </div>
+              </div>
+
+              {data.mrr?.confiavel === false && (
+                <div className="admin-command-alert is-warning" role="status">
+                  <strong>Leitura de MRR com diagnóstico pendente.</strong>
+                  <p className="muted">
+                    Verifique a reconciliação do bridge e recorrências com periodicidade ainda não suportada antes de usar NRR ou GRR como referência.
+                  </p>
+                </div>
+              )}
+
+              <dl className="admin-command-data-list">
+                <div><dt>MRR da base inicial</dt><dd>{formatCurrency(summary.mrrInicial)}</dd></div>
+                <div><dt>New MRR</dt><dd>{formatCurrency(summary.newMrr)}</dd></div>
+                <div><dt>Expansion MRR</dt><dd>{formatCurrency(summary.expansionMrr)}</dd></div>
+                <div><dt>Contraction MRR</dt><dd>{formatCurrency(summary.contractionMrr)}</dd></div>
+                <div><dt>Churned MRR</dt><dd>{formatCurrency(summary.churnedMrr)}</dd></div>
+                <div><dt>Reactivation MRR</dt><dd>{formatCurrency(summary.reactivationMrr)}</dd></div>
+                <div><dt>MRR final</dt><dd>{formatCurrency(summary.mrrFinalTotal)}</dd></div>
+                <div><dt>MRR em risco</dt><dd>{formatCurrency(summary.mrrEmRisco)}</dd></div>
+                <div><dt>Negócios com MRR em risco</dt><dd>{formatNumber(summary.negociosMrrEmRisco)}</dd></div>
+                <div><dt>GRR</dt><dd>{formatPercent(summary.grr)}</dd></div>
+                <div><dt>NRR</dt><dd>{formatPercent(summary.nrr)}</dd></div>
+                <div><dt>Bridge reconciliado</dt><dd>{summary.bridgeMrrReconciliado ? "Sim" : "Não"}</dd></div>
+                <div><dt>Periodicidade fora do MRR v1</dt><dd>{formatNumber(summary.assinaturasPeriodicidadeNaoSuportada)}</dd></div>
+              </dl>
+
+              <p className="muted">
+                Cobertura monetária canônica desde {formatDateTime(data.mrr?.inicioCobertura)}.
+                {data.mrr?.periodoAjustadoAoCutover
+                  ? " O início deste recorte foi ajustado ao cutover da Wave 25."
+                  : " O histórico anterior ao cutover não foi inferido."}
+              </p>
+            </section>
+
+            <section className="panel">
+              <div className="panel-heading">
+                <div>
                   <p className="eyebrow">Retenção da base paga</p>
                   <h2>Churn bruto de negócios</h2>
                   <p className="muted">
@@ -1083,6 +1127,8 @@ export function AdminRevenueV2Page() {
               <p>{data.metodologia?.cancelamento}</p>
               <p>{data.metodologia?.lifecycleCanonico}</p>
               <p>{data.metodologia?.churn}</p>
+              <p>{data.metodologia?.mrr}</p>
+              <p>{data.metodologia?.nrr}</p>
               <p>{data.metodologia?.ativas}</p>
             </details>
           </>
