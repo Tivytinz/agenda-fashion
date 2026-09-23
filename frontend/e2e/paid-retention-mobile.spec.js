@@ -247,13 +247,16 @@ test("cobrança atrasada oferece fatura segura e a recuperação restaura o plan
 
   await expect(page.getByText("Pagamento em atraso")).toBeVisible();
   const recoveryLink = page.getByRole("link", {
-    name: "Regularizar no Asaas"
+    name: "Regularizar pagamento"
   });
   await expect(recoveryLink).toHaveAttribute(
     "href",
     "https://www.asaas.com/i/regularizar-wave20"
   );
   await expect(recoveryLink).toHaveAttribute("target", "_blank");
+  await expect(page.getByText(
+    "Você será direcionada para o ambiente seguro de pagamento."
+  )).toBeVisible();
   await expect(
     page.locator(".billing-effective-plan")
   ).toContainText("Grátis");
@@ -266,7 +269,7 @@ test("cobrança atrasada oferece fatura segura e a recuperação restaura o plan
   await expect(page.getByText("Assinatura ativa")).toBeVisible();
   await expect(page.getByText("Pagamento em atraso")).toHaveCount(0);
   await expect(page.getByRole("link", {
-    name: "Regularizar no Asaas"
+    name: "Regularizar pagamento"
   })).toHaveCount(0);
   await expect(
     page.locator(".billing-effective-plan")

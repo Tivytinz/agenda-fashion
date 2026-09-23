@@ -233,12 +233,17 @@ describe("plano e assinatura", () => {
     expect(alert.textContent).toContain("sem apagar os dados do negócio");
 
     const recoveryLink = within(alert).getByRole("link", {
-      name: "Regularizar no Asaas"
+      name: "Regularizar pagamento"
     });
     expect(recoveryLink.getAttribute("href"))
       .toBe("https://www.asaas.com/i/fatura-wave20");
     expect(recoveryLink.getAttribute("target"))
       .toBe("_blank");
+    expect(
+      within(alert).getByText(
+        "Você será direcionada para o ambiente seguro de pagamento."
+      )
+    ).not.toBeNull();
 
     const table = await screen.findByRole("table");
     expect(within(table).getByText("Atrasado")).not.toBeNull();
@@ -271,7 +276,7 @@ describe("plano e assinatura", () => {
     ).not.toBeNull();
     expect(
       within(alert).queryByRole("link", {
-        name: "Regularizar no Asaas"
+        name: "Regularizar pagamento"
       })
     ).toBeNull();
   });

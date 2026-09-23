@@ -79,7 +79,7 @@ O código público `FALHA_DE_PAGAMENTO` é preservado por compatibilidade e ganh
 - `COBRANCA_ATRASADA`: atraso/falha recuperável;
 - `REVERSAO_OU_DISPUTA`: refund, desfazimento de recebimento ou chargeback.
 
-Somente a primeira categoria pode exibir o CTA `Regularizar no Asaas`.
+Somente a primeira categoria pode exibir o CTA `Regularizar pagamento`. A interface não precisa expor a marca do provedor no rótulo da ação; abaixo do CTA, informa apenas que a proprietária será direcionada para um ambiente seguro de pagamento.
 
 ### Cancelamento
 

@@ -280,8 +280,14 @@ export function SubscriptionPage() {
                 rel="noreferrer"
                 target="_blank"
               >
-                Regularizar no Asaas
+                Regularizar pagamento
               </a>
+            )}
+          {billingFailureType === "COBRANCA_ATRASADA" &&
+            recoverablePayment?.invoice_url && (
+              <p className="muted">
+                Você será direcionada para o ambiente seguro de pagamento.
+              </p>
             )}
         </section>
       )}

@@ -283,6 +283,12 @@ de estorno ou disputa. Quando uma cobrança recorrente do Asaas fornece
 após validar HTTPS e domínio oficial `asaas.com`; abrir a fatura não confirma
 pagamento. A reativação continua dependendo de webhook financeiro válido.
 
+Na UX da conta, a ação de recuperação deve ser apresentada como
+**Regularizar pagamento**, sem transformar o nome do provedor em protagonista da
+interface. Quando a regularização abrir uma página hospedada externamente, a UI
+deve informar de forma neutra que a proprietária será direcionada para um
+ambiente seguro de pagamento.
+
 Cancelar a renovação não encerra imediatamente o período já quitado. Enquanto a
 assinatura cancelada ainda estiver `ativo = TRUE`, a data deve ser apresentada
 como **acesso até**, nunca como próxima cobrança. No fim do período, o plano
