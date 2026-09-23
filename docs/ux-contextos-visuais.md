@@ -189,6 +189,8 @@ Ao criar ou alterar uma interface, é útil verificar:
 - ausência de conteúdo essencial encoberto por barras fixas;
 - foco visível e navegação por teclado quando aplicável;
 - contraste suficiente;
+- conteúdo em movimento iniciado automaticamente deve oferecer pausa/retomada e
+  respeitar `prefers-reduced-motion`;
 - estados de carregamento, vazio, erro e sucesso;
 - componentes que possam quebrar com textos maiores ou dados reais;
 - comportamento em WebKit quando a implementação usa recursos sensíveis de layout, `sticky`, `fixed`, blur ou safe-area.

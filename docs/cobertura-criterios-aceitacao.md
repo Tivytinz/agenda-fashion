@@ -1,6 +1,6 @@
 # Cobertura dos critérios de aceitação
 
-> Estado consolidado após a Wave 13 — 22/09/2026.
+> Estado consolidado após a Wave 15 — 22/09/2026.
 >
 > Este documento registra rastreabilidade de implementação e não substitui a
 > baseline funcional nem a matriz oficial de testes. Código executável,
@@ -112,9 +112,28 @@ Fechou os dois cenários funcionais P1 restantes:
   próprio operacional e a mesma conta pode criar um novo negócio após o
   arquivamento seguro.
 
+### Wave 15 — desempenho representativo
+
+Fechou o último cenário P1 da baseline, `CA-NFR-05` / `RNF02`, com medição
+automatizada read-only ligada ao commit medido:
+
+- catálogo público: p95 **236,95 ms**;
+- perfil público: p95 **167,91 ms**;
+- agenda pública: p95 **102,87 ms**;
+- home pública: LCP móvel mediano **2.412,60 ms**;
+- perfil público: LCP móvel mediano **2.210,41 ms**.
+
+A evidência final foi produzida pelo **Performance QA #22** e pelo **Backend CI
+#1250**, ambos concluídos com sucesso para o head
+`21aaa5b046f879b2230e716699647c054ad6b887`. Os limites permanecem API p95
+≤ 2 s e LCP mobile ≤ 2,5 s.
+
+Com isso, a baseline consolidada alcançou **67/67 (100%)** entre P0 e P1. Essa
+cobertura não remove a ressalva operacional de backup/recuperação descrita acima.
+
 ## Cobertura P1 atual
 
-A baseline possui **7 cenários P1**. Seis estão concluídos:
+A baseline possui **7 cenários P1**. Os sete estão concluídos:
 
 | Critério | Tema | Estado |
 | --- | --- | --- |
@@ -124,27 +143,59 @@ A baseline possui **7 cenários P1**. Seis estão concluídos:
 | `CA-AG-21` | Reagendamento já sem cancelamento direto | Concluído na Wave 13 |
 | `CA-AUT-04` | Recuperação de senha | Concluído na Wave 14 |
 | `CA-PRV-03` | Negócio arquivado não conta no limite | Concluído na Wave 14 |
-| `CA-NFR-05` | Metas de desempenho | Pendente de medição em ambiente representativo |
+| `CA-NFR-05` | Metas de desempenho | Concluído na Wave 15 |
 
 ```text
-Cobertura P1:       6/7  (85,7%)
-Cobertura P0 + P1: 66/67 (98,5%)
+Cobertura P1:       7/7  (100%)
+Cobertura P0 + P1: 67/67 (100%)
 ```
 
-## Próxima Wave proposta
+## Wave 16 — hardening de Produto e UX pós-baseline
 
-A **Wave 15** deve tratar exclusivamente `CA-NFR-05`, porque o critério exige
-evidência de performance em ambiente representativo:
+Com a baseline P0 + P1 em 100%, a Wave 16 deixa de perseguir porcentagem de
+cobertura e passa a tratar regressões e fricções observáveis na experiência
+crítica.
 
-- medir operações críticas de API e calcular p95;
-- medir páginas públicas críticas no perfil móvel/rede de referência e observar
-  LCP;
-- comparar com as metas da baseline: API p95 ≤ 2 s e LCP mobile ≤ 2,5 s;
-- corrigir gargalos somente quando a medição apontar uma causa real;
-- repetir a medição depois de qualquer otimização relevante.
+O primeiro recorte é a experiência pública móvel, especialmente WebKit, porque
+ela concentra descoberta → perfil → escolha do serviço → horário → revisão e
+agendamento. O escopo deve permanecer pequeno e reversível:
 
-Performance não deve ser marcada como concluída apenas por inspeção de código ou
-por um teste sintético sem condições representativas.
+- revisar a home e o perfil público após as otimizações de performance da Wave
+  15, preservando os ganhos medidos;
+- reforçar acessibilidade do conteúdo em movimento, incluindo controle explícito
+  da rotação automática do hero e respeito a `prefers-reduced-motion`;
+- validar loading, vazio, erro e sucesso sem tela vazia ou ação inacessível;
+- executar regressão em 360, 390 e 430 px no WebKit e no cenário mobile Chromium
+  já coberto pelo Playwright;
+- não alterar contrato de booking, preço, plano, autorização ou backend quando o
+  problema for estritamente de apresentação.
+
+A Wave 16 é uma evolução de qualidade de Produto e UX; ela não cria novos
+critérios retroativamente na baseline congelada de 67 cenários. Novos requisitos
+formais devem ser versionados separadamente.
+
+### Estado da Wave 16
+
+A Wave 16 fechou o primeiro hardening pós-baseline sem alterar a baseline
+congelada de 67 cenários.
+
+O patch implementa controle explícito de pausa/retomada do hero, pausa após
+navegação manual, respeito inicial a `prefers-reduced-motion`, alvos de toque
+maiores para os indicadores e uma jornada E2E móvel que chega até o sucesso do
+agendamento com APIs mockadas.
+
+A evidência de encerramento foi validada no estado executável do commit
+`dcd486f14b18cc17688783c9869df9cb2e99cff4`:
+
+- **Backend CI #1259**: sucesso, incluindo Playwright mobile;
+- **Performance QA #25**: sucesso;
+- home pública: LCP móvel mediano **2.391,71 ms**;
+- perfil público: LCP móvel mediano **2.181,50 ms**;
+- catálogo/perfil/agenda públicos: p95 **140,19 / 92,53 / 95,03 ms**.
+
+As alterações documentais posteriores não mudam o estado executável medido. A
+análise completa, impactos e evidências estão em
+[`wave-16-produto-ux.md`](./wave-16-produto-ux.md).
 
 ## Regra de atualização
 

@@ -77,4 +77,63 @@ describe("home crítica", () => {
       expect(screen.getByText("/?categoria=cabelo")).not.toBeNull();
     });
   });
+
+
+  it("pausa a rotação automática quando a pessoa navega manualmente", async () => {
+    const user = userEvent.setup();
+
+    renderHome();
+
+    const pauseButton = screen.getByRole("button", {
+      name: "Pausar rotação automática dos destaques"
+    });
+    expect(pauseButton.getAttribute("aria-pressed")).toBe("false");
+
+    await user.click(screen.getByRole("button", {
+      name: "Próximo destaque"
+    }));
+
+    expect(screen.getByRole("heading", {
+      name: "Unhas do seu jeito"
+    })).not.toBeNull();
+
+    const resumeButton = screen.getByRole("button", {
+      name: "Retomar rotação automática dos destaques"
+    });
+    expect(resumeButton.getAttribute("aria-pressed")).toBe("true");
+
+    await user.click(resumeButton);
+
+    expect(screen.getByRole("button", {
+      name: "Pausar rotação automática dos destaques"
+    }).getAttribute("aria-pressed")).toBe("false");
+  });
+
+
+  it("inicia com a rotação pausada quando a pessoa prefere movimento reduzido", () => {
+    const originalMatchMedia = window.matchMedia;
+
+    Object.defineProperty(window, "matchMedia", {
+      configurable: true,
+      value: vi.fn().mockReturnValue({
+        matches: true,
+        media: "(prefers-reduced-motion: reduce)",
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn()
+      })
+    });
+
+    try {
+      renderHome();
+
+      expect(screen.getByRole("button", {
+        name: "Retomar rotação automática dos destaques"
+      }).getAttribute("aria-pressed")).toBe("true");
+    } finally {
+      Object.defineProperty(window, "matchMedia", {
+        configurable: true,
+        value: originalMatchMedia
+      });
+    }
+  });
 });

@@ -594,6 +594,13 @@ Mudanças relevantes devem executar validações proporcionais ao risco. O Quali
 Gate atual cobre lint, build, testes frontend, migrations, Jest/PostgreSQL,
 audits e Playwright aplicável.
 
+Mudanças em caminhos públicos críticos de performance (home, catálogo, perfil,
+componentes/estilos relacionados e scripts de medição) também disparam o
+`Performance QA` no pull request para `main`. Essa workflow permanece
+read-only, mede API p95 contra o alvo representativo configurado e mede o LCP da
+build da própria branch. O disparo manual continua disponível para revalidação
+operacional.
+
 Fluxo esperado:
 
 ```text

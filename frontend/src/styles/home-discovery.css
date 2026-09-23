@@ -411,28 +411,65 @@
 .home-hero-dots {
   position: absolute;
   z-index: 5;
-  bottom: 18px;
+  bottom: 8px;
   left: 50%;
   display: flex;
-  gap: 10px;
+  gap: 2px;
   transform: translateX(-50%);
 }
 
 .home-hero-dots button {
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 999px;
+  padding: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+.home-hero-dots button::before {
   width: 12px;
   height: 12px;
-  border: 0;
   border-radius: 50%;
-  padding: 0;
   background: rgb(255 255 255 / 66%);
   box-shadow: 0 2px 8px rgb(0 0 0 / 13%);
-  cursor: pointer;
+  content: "";
   transition: background-color 150ms ease, transform 150ms ease;
 }
 
-.home-hero-dots button[aria-pressed="true"] {
+.home-hero-dots button[aria-pressed="true"]::before {
   background: #ff80b2;
   transform: scale(1.12);
+}
+
+.home-hero-rotation-toggle {
+  position: absolute;
+  z-index: 5;
+  right: 18px;
+  bottom: 12px;
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgb(255 255 255 / 35%);
+  border-radius: 999px;
+  padding: 0;
+  color: #fff;
+  background: rgb(26 20 23 / 42%);
+  box-shadow: 0 4px 16px rgb(0 0 0 / 16%);
+  font-size: 0.9rem;
+  line-height: 1;
+  cursor: pointer;
+  transition: background-color 150ms ease, opacity 150ms ease;
+  backdrop-filter: blur(7px);
+}
+
+.home-hero-rotation-toggle:hover,
+.home-hero-rotation-toggle:focus-visible {
+  background: rgb(217 47 127 / 82%);
 }
 
 .home-category-section,
@@ -1155,6 +1192,13 @@
 
   .home-hero-arrow {
     display: none;
+  }
+
+  .home-hero-rotation-toggle {
+    right: 10px;
+    bottom: 10px;
+    width: 38px;
+    height: 38px;
   }
 
   .home-category-card {

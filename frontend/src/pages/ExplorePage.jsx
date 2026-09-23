@@ -370,6 +370,13 @@ export function ExplorePage({ renderHero = true }) {
   const [activeHero, setActiveHero] =
     useState(0);
 
+  const [heroRotationPaused, setHeroRotationPaused] =
+    useState(() =>
+      Boolean(window.matchMedia?.(
+        "(prefers-reduced-motion: reduce)"
+      )?.matches)
+    );
+
   const [category, setCategory] =
     useState(
       CATEGORY_CODES.has(requestedCategory)
@@ -541,11 +548,7 @@ export function ExplorePage({ renderHero = true }) {
   }, []);
 
   useEffect(() => {
-    const mediaQuery = window.matchMedia?.(
-      "(prefers-reduced-motion: reduce)"
-    );
-
-    if (mediaQuery?.matches) {
+    if (heroRotationPaused) {
       return undefined;
     }
 
@@ -555,7 +558,7 @@ export function ExplorePage({ renderHero = true }) {
     }, 7000);
 
     return () => window.clearInterval(interval);
-  }, []);
+  }, [heroRotationPaused]);
 
   const services =
     useMemo(() => {
@@ -757,6 +760,7 @@ export function ExplorePage({ renderHero = true }) {
       (index + HERO_SLIDES.length) %
       HERO_SLIDES.length;
 
+    setHeroRotationPaused(true);
     setActiveHero(nextIndex);
   }
 
@@ -909,6 +913,21 @@ export function ExplorePage({ renderHero = true }) {
               />
             ))}
           </div>
+
+          <button
+            aria-label={heroRotationPaused
+              ? "Retomar rotação automática dos destaques"
+              : "Pausar rotação automática dos destaques"}
+            aria-pressed={heroRotationPaused}
+            className="home-hero-rotation-toggle"
+            onClick={() =>
+              setHeroRotationPaused((current) => !current)}
+            type="button"
+          >
+            <span aria-hidden="true">
+              {heroRotationPaused ? "▶" : "⏸"}
+            </span>
+          </button>
         </div>
       </section>
       )}

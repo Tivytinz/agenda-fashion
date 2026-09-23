@@ -111,6 +111,15 @@ PERF_TARGET_URL=https://app.agendafashion.com.br \
 A workflow `Performance QA` executa os mesmos scripts e publica os JSONs e os
 relatórios Lighthouse como artifact.
 
+Desde a Wave 16, ela também é disparada automaticamente em pull requests para
+`main` quando caminhos públicos críticos de performance são alterados. O filtro
+inclui home, catálogo, perfil público, componentes/estilos relacionados, assets
+do hero, scripts de medição e a própria workflow. O `workflow_dispatch`
+permanece disponível para revalidação manual com alvo explícito.
+
+Artifacts novos usam o prefixo `performance-qa-`; a evidência histórica da
+Wave 15 preserva o nome original `performance-wave-15-...`.
+
 Variáveis opcionais:
 
 ```text
@@ -137,3 +146,64 @@ Uma execução só pode fechar `CA-NFR-05` quando:
 
 Resultado de CI local, build rápido ou inspeção de código não substituem essa
 evidência.
+
+## Evidência final da Wave 15
+
+A execução que fechou o critério foi ligada ao commit
+`21aaa5b046f879b2230e716699647c054ad6b887` e ao alvo canônico
+`app.agendafashion.com.br`.
+
+Resultados de API:
+
+| Cenário | p95 | Limite |
+| --- | ---: | ---: |
+| Catálogo público | 236,95 ms | ≤ 2.000 ms |
+| Perfil público | 167,91 ms | ≤ 2.000 ms |
+| Agenda pública | 102,87 ms | ≤ 2.000 ms |
+
+Resultados de LCP móvel, mediana de três execuções:
+
+| Página | Mediana | Limite |
+| --- | ---: | ---: |
+| Home pública | 2.412,60 ms | ≤ 2.500 ms |
+| Perfil público | 2.210,41 ms | ≤ 2.500 ms |
+
+A workflow **Performance QA #22** concluiu com sucesso e preservou o artifact
+`performance-wave-15-35798081075`. O **Backend CI #1250** também concluiu com
+sucesso no mesmo head.
+
+Portanto, em 22/09/2026, o `CA-NFR-05` / `RNF02` está tecnicamente
+demonstrado pelo perfil de QA definido neste documento. Mudanças posteriores na
+cadeia crítica de renderização ou nos endpoints medidos devem preservar esses
+limites e podem exigir nova medição comparável antes de afirmar que o resultado
+continua válido.
+
+
+## Revalidação da Wave 16
+
+Após o hardening de Produto e UX, o `Performance QA #25` revalidou o estado
+executável do commit `dcd486f14b18cc17688783c9869df9cb2e99cff4`. O artifact
+é `performance-qa-35801698769`.
+
+Resultados de API:
+
+| Cenário | p95 | Limite |
+| --- | ---: | ---: |
+| Catálogo público | 140,19 ms | ≤ 2.000 ms |
+| Perfil público | 92,53 ms | ≤ 2.000 ms |
+| Agenda pública | 95,03 ms | ≤ 2.000 ms |
+
+Resultados de LCP móvel:
+
+| Página | Mediana | Limite |
+| --- | ---: | ---: |
+| Home pública | 2.391,71 ms | ≤ 2.500 ms |
+| Perfil público | 2.181,50 ms | ≤ 2.500 ms |
+
+As três execuções da home foram 2.391,71 / 2.335,48 / 2.409,19 ms. As três do
+perfil foram 2.181,50 / 2.197,92 / 2.177,57 ms. Todos os limites permaneceram
+atendidos.
+
+Essa revalidação confirma que o primeiro patch da Wave 16 preservou a meta de
+performance medida na Wave 15. Commits posteriores exclusivamente documentais
+não alteram o bundle executável dessa evidência.

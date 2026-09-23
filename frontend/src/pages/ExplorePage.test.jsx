@@ -347,7 +347,7 @@ describe("catálogo público paginado", () => {
       .querySelector(".home-category-emoji")?.textContent).toBe("💅");
   });
 
-  it("permite passar o banner principal para o lado", async () => {
+  it("permite passar o banner principal para o lado e pausa a rotação automática", async () => {
     const user = userEvent.setup();
 
     apiRequest.mockResolvedValue({
@@ -356,6 +356,10 @@ describe("catálogo público paginado", () => {
     });
 
     renderExplore();
+
+    expect(screen.getByRole("button", {
+      name: "Pausar rotação automática dos destaques"
+    }).getAttribute("aria-pressed")).toBe("false");
 
     await user.click(screen.getByRole("button", {
       name: "Próximo destaque"
@@ -366,6 +370,9 @@ describe("catálogo público paginado", () => {
     })).not.toBeNull();
     expect(screen.getByRole("button", {
       name: "Mostrar destaque 2: Unhas do seu jeito"
+    }).getAttribute("aria-pressed")).toBe("true");
+    expect(screen.getByRole("button", {
+      name: "Retomar rotação automática dos destaques"
     }).getAttribute("aria-pressed")).toBe("true");
   });
 
