@@ -14,12 +14,17 @@ const {
   iniciarWorkerMlNoShow,
   pararWorkerMlNoShow,
 } = require("../services/mlNoShowDataWorker");
+const {
+  iniciarWorkerBillingReconciliation,
+  pararWorkerBillingReconciliation,
+} = require("../services/billingReconciliationWorker");
 
 function iniciarWorkers() {
   iniciarWorkerWebhook();
   iniciarWorkerWhatsapp();
   iniciarWorkerCustosMarketing();
   iniciarWorkerMlNoShow();
+  iniciarWorkerBillingReconciliation();
 }
 
 async function pararWorkers() {
@@ -28,6 +33,7 @@ async function pararWorkers() {
     pararWorkerWhatsapp(),
     pararWorkerCustosMarketing(),
     pararWorkerMlNoShow(),
+    pararWorkerBillingReconciliation(),
   ]);
 }
 
