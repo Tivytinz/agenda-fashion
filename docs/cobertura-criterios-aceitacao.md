@@ -269,7 +269,7 @@ A Wave 19 não cria novos critérios P0/P1 e mantém **67/67 (100%)**.
 
 ## Wave 20 — retenção paga e recuperação da assinatura
 
-A Wave 20 inicia o hardening do ciclo pós-conversão:
+A Wave 20 fechou o hardening do ciclo pós-conversão:
 
 ```text
 assinatura ativa
@@ -278,10 +278,40 @@ assinatura ativa
   → recuperação ou fim do período pago
 ```
 
-O primeiro recorte preserva a fatura recorrente do Asaas, diferencia atraso
-recuperável de estorno/disputa, corrige a semântica de `Acesso até` após
-cancelamento e adiciona regressão mobile de recuperação. A baseline formal
-permanece 67/67.
+O runtime passou a preservar a fatura recorrente do Asaas, diferenciar atraso
+recuperável de estorno/disputa, recuperar o histórico financeiro da assinatura
+suspensa e apresentar `Acesso até` após cancelamento com período pago. A
+regressão mobile protege cancelamento e atraso → regularização → reativação.
+
+O head final `4d5b87a7822479fc0300724c26cfd544ba8ba1f4` passou no
+**Backend CI #1281**. O PR #279 foi mergeado na `main` pelo commit
+`8d246de46afc9b49e099564856714856f58cc85e`.
+
+A Wave 20 não cria novos critérios P0/P1 e mantém **67/67 (100%)**.
+
+## Wave 21 — retenção financeira e receita recorrente
+
+A Wave 21 inicia a classificação financeira pós-conversão sem alterar a baseline
+formal:
+
+```text
+primeira conversão paga
+  → renovação da mesma assinatura
+  → atraso e recuperação
+  → mudança de plano
+  → cancelamento agendado
+  → encerramento efetivo do acesso pago
+```
+
+O primeiro recorte separa receita inicial, receita de renovação e primeiro
+pagamento de uma assinatura paga posterior do mesmo negócio. Também mede
+renovações vencidas, confirmadas, com atraso observado e recuperadas, mantendo
+cancelamento agendado separado de encerramento após cancelamento.
+
+A Wave não declara churn, LTV ou payback oficiais. Essas métricas continuam
+dependentes de definição terminal, maturidade e evidência suficientes.
+
+A baseline formal permanece **67/67 (100%)**.
 
 ## Regra de atualização
 

@@ -234,7 +234,9 @@ virar uma segunda fonte de regra quando o domínio já possui documento canônic
 - [wave-19-monetizacao-assinatura.md](./wave-19-monetizacao-assinatura.md):
   evidência do hardening do checkout PIX até a assinatura efetivamente ativa.
 - [wave-20-retencao-paga.md](./wave-20-retencao-paga.md):
-  workstream de renovação, recuperação de cobrança e cancelamento seguro.
+  evidência de renovação, recuperação de cobrança e cancelamento seguro.
+- [wave-21-retencao-financeira.md](./wave-21-retencao-financeira.md):
+  workstream de classificação da receita recorrente e retenção financeira.
 
 Enquanto uma wave estiver aberta, seu documento descreve o workstream e a
 evidência em construção, não uma nova fonte canônica. Quando terminar, a decisão
