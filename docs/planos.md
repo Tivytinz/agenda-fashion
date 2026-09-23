@@ -107,6 +107,13 @@ apagar dados existentes nem impedir a edição do que já foi cadastrado.
 - Assinatura com renovação cancelada e período ainda pago permanece ativa até a
   data persistida. A interface apresenta essa data como `Acesso até`, não
   `Próxima cobrança`.
+- Transições financeiras novas também são registradas em
+  `assinatura_eventos` com chave idempotente. Conversão inicial, renovação,
+  reativação, mudança de plano, atraso, recuperação, reversão, cancelamento da
+  renovação e encerramento do acesso pago não são tratados como equivalentes.
+- `webhook_eventos` preserva a entrega do provedor; `assinatura_eventos`
+  preserva o fato de domínio do AF. O histórico anterior à migration 093 não é
+  preenchido por suposição.
 - Antes de gerar o PIX, o checkout informa ciclo mensal, renovação,
   cancelamento, ausência de taxa de adesão e disponibiliza Termos de uso,
   Política de Privacidade e contato de suporte.
@@ -152,4 +159,5 @@ negócio e conversão para plano pago.
 - Transparência: `/termos` e `/privacidade`.
 - Uso do negócio: `GET /meu-plano`.
 - Checkout pago: `POST /checkout`.
+- Lifecycle financeiro: `database/migrations/093_assinatura_eventos_lifecycle.sql`.
 - Visão técnica completa: `docs/arquitetura.md`.

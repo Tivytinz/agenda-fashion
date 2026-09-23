@@ -312,6 +312,10 @@ async function buscarReceita(periodo = "30") {
     seguro,
     "a.updated_at"
   );
+  const filtroLifecycle = filtroTimestamp(
+    seguro,
+    "ae.ocorrido_em"
+  );
 
   const [resumo, planos] = await Promise.all([
     db.query(
@@ -647,6 +651,39 @@ async function buscarReceita(periodo = "30") {
             '%Renovação cancelada pelo titular.%'
           ${filtroEncerramentoCancelado}
       ),
+      lifecycle_eventos AS (
+        SELECT
+          COUNT(*) FILTER (
+            WHERE ae.tipo = 'CONVERSAO_INICIAL'
+          )::INT AS conversoes_iniciais_canonicas,
+          COUNT(*) FILTER (
+            WHERE ae.tipo = 'RENOVACAO_CONFIRMADA'
+          )::INT AS renovacoes_confirmadas_canonicas,
+          COUNT(*) FILTER (
+            WHERE ae.tipo = 'REATIVACAO_PAGA'
+          )::INT AS reativacoes_pagas,
+          COUNT(*) FILTER (
+            WHERE ae.tipo = 'PLANO_ALTERADO'
+          )::INT AS mudancas_plano_canonicas,
+          COUNT(*) FILTER (
+            WHERE ae.tipo = 'PAGAMENTO_ATRASADO'
+          )::INT AS pagamentos_atrasados_canonicos,
+          COUNT(*) FILTER (
+            WHERE ae.tipo = 'PAGAMENTO_RECUPERADO'
+          )::INT AS pagamentos_recuperados_canonicos,
+          COUNT(*) FILTER (
+            WHERE ae.tipo = 'REVERSAO_FINANCEIRA'
+          )::INT AS reversoes_financeiras_canonicas,
+          COUNT(*) FILTER (
+            WHERE ae.tipo = 'RENOVACAO_CANCELADA'
+          )::INT AS cancelamentos_renovacao_canonicos,
+          COUNT(*) FILTER (
+            WHERE ae.tipo = 'ACESSO_PAGO_ENCERRADO'
+          )::INT AS saidas_base_paga_canonicas
+        FROM assinatura_eventos ae
+        WHERE 1 = 1
+          ${filtroLifecycle}
+      ),
       ativas AS (
         SELECT COUNT(*)::INT AS assinaturas_pagas_ativas
         FROM assinaturas a
@@ -683,6 +720,15 @@ async function buscarReceita(periodo = "30") {
         rf.renovacoes_recuperadas,
         ca.cancelamentos_renovacao_agendados,
         ce.assinaturas_encerradas_apos_cancelamento,
+        le.conversoes_iniciais_canonicas,
+        le.renovacoes_confirmadas_canonicas,
+        le.reativacoes_pagas,
+        le.mudancas_plano_canonicas,
+        le.pagamentos_atrasados_canonicos,
+        le.pagamentos_recuperados_canonicos,
+        le.reversoes_financeiras_canonicas,
+        le.cancelamentos_renovacao_canonicos,
+        le.saidas_base_paga_canonicas,
         a.assinaturas_pagas_ativas
       FROM checkouts c
       CROSS JOIN checkout_coorte cc
@@ -692,6 +738,7 @@ async function buscarReceita(periodo = "30") {
       CROSS JOIN retencao_financeira rf
       CROSS JOIN cancelamentos_agendados ca
       CROSS JOIN cancelamentos_encerrados ce
+      CROSS JOIN lifecycle_eventos le
       CROSS JOIN ativas a
       `
     ),

@@ -9,6 +9,9 @@ const {
   criarErro,
   dataValida,
 } = require("./assinaturaCalculos");
+const assinaturaLifecycleService = require(
+  "./assinaturaLifecycleService"
+);
 
 const FALHAS_RECUPERAVEIS = new Set([
   "OVERDUE",
@@ -370,15 +373,31 @@ async function cancelarMinhaAssinatura({ usuarioId }) {
     "Renovação cancelada pelo titular. " +
     `Acesso mantido até ${acessoAte}.`;
   const assinaturaCancelada = await db.executarTransacao(
-    (client) => assinaturaRepository.registrarCancelamento(
-      client,
-      {
-        assinaturaId: assinatura.id,
-        negocioId: negocio.id,
-        acessoAte,
-        observacoes,
+    async (client) => {
+      const cancelada =
+        await assinaturaRepository.registrarCancelamento(
+          client,
+          {
+            assinaturaId: assinatura.id,
+            negocioId: negocio.id,
+            acessoAte,
+            observacoes,
+          }
+        );
+
+      if (cancelada) {
+        await assinaturaLifecycleService
+          .registrarCancelamentoRenovacao({
+            client,
+            assinatura: cancelada,
+            acessoAte,
+            origem: "conta",
+            motivo: "CANCELAMENTO_VOLUNTARIO",
+          });
       }
-    )
+
+      return cancelada;
+    }
   );
 
   if (!assinaturaCancelada) {

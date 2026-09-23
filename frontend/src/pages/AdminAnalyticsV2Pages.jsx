@@ -998,6 +998,29 @@ export function AdminRevenueV2Page() {
             </section>
 
             <section className="panel">
+              <div className="panel-heading">
+                <div>
+                  <p className="eyebrow">Lifecycle canônico</p>
+                  <h2>Transições pagas registradas desde a Wave 22</h2>
+                  <p className="muted">
+                    Histórico append-only: sem backfill especulativo e sem chamar atraso ou cancelamento agendado de churn.
+                  </p>
+                </div>
+              </div>
+              <dl className="admin-command-data-list">
+                <div><dt>Conversões iniciais</dt><dd>{formatNumber(summary.conversoesIniciaisCanonicas)}</dd></div>
+                <div><dt>Renovações confirmadas</dt><dd>{formatNumber(summary.renovacoesConfirmadasCanonicas)}</dd></div>
+                <div><dt>Reativações pagas</dt><dd>{formatNumber(summary.reativacoesPagas)}</dd></div>
+                <div><dt>Mudanças de plano</dt><dd>{formatNumber(summary.mudancasPlanoCanonicas)}</dd></div>
+                <div><dt>Pagamentos atrasados</dt><dd>{formatNumber(summary.pagamentosAtrasadosCanonicos)}</dd></div>
+                <div><dt>Pagamentos recuperados</dt><dd>{formatNumber(summary.pagamentosRecuperadosCanonicos)}</dd></div>
+                <div><dt>Reversões financeiras</dt><dd>{formatNumber(summary.reversoesFinanceirasCanonicas)}</dd></div>
+                <div><dt>Renovações canceladas</dt><dd>{formatNumber(summary.cancelamentosRenovacaoCanonicos)}</dd></div>
+                <div><dt>Saídas da base paga</dt><dd>{formatNumber(summary.saidasBasePagaCanonicas)}</dd></div>
+              </dl>
+            </section>
+
+            <section className="panel">
               <div className="panel-heading"><div><p className="eyebrow">Base atual</p><h2>Assinaturas ativas por plano</h2></div></div>
               {plans.length === 0 ? (
                 <EmptyState title="Nenhuma assinatura paga ativa">A base paga ativa ainda está vazia.</EmptyState>
@@ -1028,6 +1051,7 @@ export function AdminRevenueV2Page() {
               <p>{data.metodologia?.classificacaoReceita}</p>
               <p>{data.metodologia?.retencaoFinanceira}</p>
               <p>{data.metodologia?.cancelamento}</p>
+              <p>{data.metodologia?.lifecycleCanonico}</p>
               <p>{data.metodologia?.ativas}</p>
             </details>
           </>
