@@ -76,6 +76,53 @@ describe("Admin Analytics V2 - receita", () => {
     ).not.toBe(90);
   });
 
+  test("separa conversão inicial, renovação e mudança de plano sem chamar atraso de churn", async () => {
+    repository.buscarReceita.mockResolvedValue({
+      periodo: "30",
+      resumo: {
+        receita_total: "249.60",
+        novos_negocios_pagantes: 1,
+        receita_primeira_conversao: "49.90",
+        pagamentos_renovacao: 2,
+        negocios_com_renovacao: 1,
+        receita_renovacao: "99.80",
+        pagamentos_mudanca_plano: 1,
+        negocios_com_mudanca_plano: 1,
+        receita_mudanca_plano: "99.90",
+        renovacoes_previstas: 3,
+        renovacoes_confirmadas: 2,
+        renovacoes_com_atraso: 2,
+        renovacoes_recuperadas: 1,
+        cancelamentos_renovacao_agendados: 1,
+        assinaturas_encerradas_apos_cancelamento: 1,
+      },
+      planos: [],
+    });
+
+    const resultado = await service.buscarRevenue("30");
+
+    expect(resultado.resumo).toMatchObject({
+      novosNegociosPagantes: 1,
+      receitaPrimeiraConversao: 49.9,
+      pagamentosRenovacao: 2,
+      negociosComRenovacao: 1,
+      receitaRenovacao: 99.8,
+      pagamentosMudancaPlano: 1,
+      negociosComMudancaPlano: 1,
+      receitaMudancaPlano: 99.9,
+      renovacoesPrevistas: 3,
+      renovacoesConfirmadas: 2,
+      taxaRenovacao: 66.67,
+      renovacoesComAtraso: 2,
+      renovacoesRecuperadas: 1,
+      taxaRecuperacaoRenovacao: 50,
+      cancelamentosRenovacaoAgendados: 1,
+      assinaturasEncerradasAposCancelamento: 1,
+    });
+    expect(resultado.metodologia.retencaoFinanceira)
+      .toMatch(/não constituem uma definição oficial de churn/i);
+  });
+
   test("não inventa conversão quando a coorte de checkout está vazia", async () => {
     repository.buscarReceita.mockResolvedValue({
       periodo: "7",

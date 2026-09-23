@@ -305,6 +305,46 @@ async function buscarRevenue(periodo) {
       pagamentosEmReversao: numero(resumo.pagamentos_em_reversao),
       valorExpostoReversoes: numero(resumo.valor_exposto_reversoes),
       receitaPrimeiroPagamento: numero(resumo.receita_primeiro_pagamento),
+      novosNegociosPagantes: numero(resumo.novos_negocios_pagantes),
+      receitaPrimeiraConversao: numero(
+        resumo.receita_primeira_conversao
+      ),
+      pagamentosRenovacao: numero(resumo.pagamentos_renovacao),
+      negociosComRenovacao: numero(resumo.negocios_com_renovacao),
+      receitaRenovacao: numero(resumo.receita_renovacao),
+      pagamentosMudancaPlano: numero(
+        resumo.pagamentos_mudanca_plano
+      ),
+      negociosComMudancaPlano: numero(
+        resumo.negocios_com_mudanca_plano
+      ),
+      receitaMudancaPlano: numero(
+        resumo.receita_mudanca_plano
+      ),
+      renovacoesPrevistas: numero(resumo.renovacoes_previstas),
+      renovacoesConfirmadas: numero(
+        resumo.renovacoes_confirmadas
+      ),
+      taxaRenovacao: percentual(
+        resumo.renovacoes_confirmadas,
+        resumo.renovacoes_previstas
+      ),
+      renovacoesComAtraso: numero(
+        resumo.renovacoes_com_atraso
+      ),
+      renovacoesRecuperadas: numero(
+        resumo.renovacoes_recuperadas
+      ),
+      taxaRecuperacaoRenovacao: percentual(
+        resumo.renovacoes_recuperadas,
+        resumo.renovacoes_com_atraso
+      ),
+      cancelamentosRenovacaoAgendados: numero(
+        resumo.cancelamentos_renovacao_agendados
+      ),
+      assinaturasEncerradasAposCancelamento: numero(
+        resumo.assinaturas_encerradas_apos_cancelamento
+      ),
     },
     planos: resultado.planos,
     metodologia: {
@@ -315,7 +355,13 @@ async function buscarRevenue(periodo) {
       novaAssinatura:
         "Nova assinatura paga é a assinatura cujo primeiro pagamento CONFIRMED/RECEIVED caiu no período. Esse total é um fato financeiro do período e não é usado como numerador da coorte de checkout.",
       receita:
-        "Receita bruta usa cobranças que tiveram data de pagamento no período. Receita atualmente válida soma apenas pagamentos hoje em CONFIRMED/RECEIVED/RECEIVED_IN_CASH. Pagamentos em reversão ou disputa são mostrados separadamente pelo valor integral exposto da cobrança; o AF não chama esse valor de receita líquida porque o schema atual não persiste o valor exato de estornos parciais nem a data econômica de cada reversão. Receita de primeiro pagamento isola monetização inicial.",
+        "Receita bruta usa cobranças que tiveram data de pagamento no período. Receita atualmente válida soma apenas pagamentos hoje em CONFIRMED/RECEIVED/RECEIVED_IN_CASH. Pagamentos em reversão ou disputa são mostrados separadamente pelo valor integral exposto da cobrança; o AF não chama esse valor de receita líquida porque o schema atual não persiste o valor exato de estornos parciais nem a data econômica de cada reversão. Receita de primeiro pagamento por assinatura é preservada por compatibilidade.",
+      classificacaoReceita:
+        "A Wave 21 classifica pagamentos válidos por negócio e assinatura sem alterar o schema: o primeiro pagamento cronológico do negócio é conversão inicial; pagamentos posteriores da mesma assinatura são renovação; o primeiro pagamento de uma assinatura paga posterior do mesmo negócio é mudança de plano. Mudança de plano não é chamada automaticamente de expansão porque pode representar upgrade, downgrade ou troca lateral.",
+      retencaoFinanceira:
+        "A coorte de renovação usa cobranças posteriores à primeira cobrança da mesma assinatura, com vencimento já ocorrido no período. Renovação confirmada exige status financeiro atualmente válido. Atraso observado usa o estado atual de atraso ou um webhook PAYMENT_OVERDUE processado; recuperação exige cobrança hoje confirmada/recebida com histórico processado de atraso. As taxas podem amadurecer depois do fim do período e ainda não constituem uma definição oficial de churn, LTV ou payback.",
+      cancelamento:
+        "Cancelamento de renovação agendado é estoque atual com acesso pago ainda ativo. Encerramento após cancelamento conta somente assinaturas inativas marcadas pela operação voluntária do titular no período; falha de pagamento recuperável não é classificada como churn.",
       ativas:
         "Assinaturas pagas ativas é um estoque atual e não uma contagem criada no período.",
     },

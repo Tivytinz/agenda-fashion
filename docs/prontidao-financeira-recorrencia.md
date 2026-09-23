@@ -10,6 +10,13 @@ Ela não cria uma nova recomendação de mídia. A decisão de escalar, manter, 
 
 Também não define retenção oficial, LTV, payback ou um segundo ROAS.
 
+A leitura de retenção financeira introduzida pela Wave 21 é complementar: ela
+classifica receita inicial, renovação, mudança de plano, atraso e recuperação no
+Admin de Receita. Esta camada de prontidão por campanha continua usando o
+primeiro pagamento e seus guardrails de coorte madura; não deve substituir sua
+base por receita recorrente nem transformar taxa observada de renovação em
+decisão automática de mídia.
+
 ## Fontes reutilizadas
 
 A prontidão não cria uma nova origem de dados. Ela reutiliza:

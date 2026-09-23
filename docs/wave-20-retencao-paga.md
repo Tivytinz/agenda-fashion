@@ -159,6 +159,13 @@ A Wave 20 pode ser encerrada quando:
 8. não houver migration ou mudança financeira fora do escopo;
 9. o PR for mergeado com autorização explícita.
 
-## Estado atual
+## Estado de encerramento
 
-A Wave está **em andamento** na branch `feat/product-ux-wave-20`.
+A Wave 20 foi encerrada no head
+`4d5b87a7822479fc0300724c26cfd544ba8ba1f4`, com o **Backend CI #1281**
+concluído com sucesso, incluindo Playwright mobile.
+
+O PR #279 foi mergeado na `main` pelo commit
+`8d246de46afc9b49e099564856714856f58cc85e`.
+
+A baseline P0 + P1 permaneceu congelada em **67/67 (100%)**.

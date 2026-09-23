@@ -429,6 +429,18 @@ o Admin não deve chamar uma subtração aproximada de "receita líquida". Expor
 separadamente receita atualmente válida e o valor integral das cobranças
 afetadas por reversão/disputa.
 
+Na leitura financeira do Admin, o primeiro pagamento cronológico de um negócio
+pago representa conversão inicial; pagamentos válidos posteriores da mesma
+assinatura representam renovação; o primeiro pagamento de uma assinatura paga
+posterior do mesmo negócio representa mudança de plano. Mudança de plano não
+deve ser chamada automaticamente de expansão porque pode ser upgrade, downgrade
+ou troca lateral. A coorte de renovação usa cobranças posteriores à primeira da
+mesma assinatura cujo vencimento já ocorreu. Atraso recuperável, cancelamento da
+próxima renovação e encerramento do acesso pago são fatos distintos. Cobrança
+recuperada exige pagamento atualmente válido e evidência processada de atraso
+anterior. Essas leituras são descritivas e não definem churn, LTV ou payback
+oficiais sem contrato e maturidade adicionais.
+
 Conversões de assinatura para provedores de mídia devem ser idempotentes por
 assinatura e pagamento financeiro. Webhooks repetidos da mesma cobrança não
 duplicam entrega, mas um pagamento posterior que se torne o primeiro válido após
