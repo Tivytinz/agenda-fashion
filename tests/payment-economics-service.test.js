@@ -212,14 +212,18 @@ describe("paymentEconomicsService", () => {
       .toBe(mesmo.chaveProvedor);
   });
 
-  test("consulta endpoint de refunds quando cobrança estornada não traz lista embutida", async () => {
+  test("consulta sempre o endpoint canônico de refunds em cobrança estornada", async () => {
     mockBuscarPagamentoAsaas
       .mockResolvedValue({
         id: "pay_1",
         status: "PARTIALLY_REFUNDED",
         value: 100,
         netValue: 98,
-        refunds: [],
+        refunds: [{
+          id: "embedded_stale",
+          value: 5,
+          status: "DONE",
+        }],
       });
     mockListarEstornos.mockResolvedValue([
       {
