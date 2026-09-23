@@ -164,8 +164,6 @@ async function sincronizarAssinaturaPorWebhook(
             null,
           origem: "webhook",
           motivo: "CANCELAMENTO_PROVEDOR",
-          ocorridoEm:
-            dadosAssinatura.webhookEventoCriadoEm || null,
         });
     }
 
@@ -201,8 +199,6 @@ async function sincronizarAssinaturaPorWebhook(
           assinatura: assinaturaAtualizada,
           motivo: "ENCERRAMENTO_PROVEDOR",
           origem: "webhook",
-          ocorridoEm:
-            dadosAssinatura.webhookEventoCriadoEm || null,
         });
     }
 
