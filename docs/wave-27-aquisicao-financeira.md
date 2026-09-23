@@ -58,18 +58,17 @@ reconcilia snapshots pendentes a partir de `assinatura_eventos`.
 
 ## Custo canônico
 
-O custo observado é diário por campanha.
+O custo observado é diário por campanha e reutiliza a regra já implementada
+desde a migration 037.
 
-Regra v1:
+`marketing_campanha_gastos_manter_fonte_unica` garante que exista apenas uma
+fonte efetiva para a mesma campanha/dia: ao gravar uma fonte nova, as fontes
+anteriores daquele dia são removidas. Portanto a Wave 27 não cria uma segunda
+precedência entre manual, Google Ads, Meta Ads, TikTok Ads ou Pinterest Ads.
 
-1. se existe exatamente uma fonte automática no dia, ela é canônica;
-2. se não existe fonte automática, usa-se o valor manual;
-3. manual + automático não são somados; o automático vence e a sobreposição é
-   diagnosticada;
-4. duas ou mais fontes automáticas no mesmo dia tornam o custo ambíguo e
-   bloqueiam a leitura financeira daquela campanha/janela.
-
-Isso impede CAC inflado por dupla contagem de gasto manual e sincronizado.
+A leitura financeira soma o fato diário persistido. Se um negócio pago oficial
+foi adquirido em uma data sem custo da própria campanha, a janela correspondente
+fica com `cobertura_custo_incompleta` em vez de fabricar CAC.
 
 ## CAC de mídia observado
 
@@ -148,20 +147,21 @@ vira receita líquida estimada.
 4. campanha oficial permanecer congelada após correção posterior;
 5. falha na materialização não afetar pagamento;
 6. retry do worker não duplicar snapshot;
-7. custo manual + automático não ser somado duas vezes;
-8. múltiplas fontes automáticas bloquearem a leitura;
-9. CAC usar toda a despesa madura da campanha, inclusive dias sem conversão;
-10. pagante contar apenas quando a conversão ocorrer dentro da janela de
+7. a Wave reutilizar a fonte única diária já garantida pela migration 037;
+8. substituição da fonte do dia não duplicar investimento;
+9. negócio pago maduro sem custo no dia de aquisição bloquear a comparação;
+10. CAC usar toda a despesa madura da campanha, inclusive dias sem conversão;
+11. pagante contar apenas quando a conversão ocorrer dentro da janela de
     monetização da aquisição;
-11. D30/D60/D90 usarem a mesma base financeira madura;
-12. churn não apagar receita histórica;
-13. reativação não criar nova aquisição;
-14. reversões permanecerem exposição separada;
-15. Admin diferenciar CAC de mídia de CAC econômico;
-16. régua atual de decisão de mídia não ser alterada automaticamente;
-17. Wave 26 ser encerrada documentalmente;
-18. Backend CI e Playwright ficarem verdes;
-19. diff final ser revisado antes de qualquer merge.
+12. D30/D60/D90 usarem a mesma base financeira madura;
+13. churn não apagar receita histórica;
+14. reativação não criar nova aquisição;
+15. reversões permanecerem exposição separada;
+16. Admin diferenciar CAC de mídia de CAC econômico;
+17. régua atual de decisão de mídia não ser alterada automaticamente;
+18. Wave 26 ser encerrada documentalmente;
+19. Backend CI e Playwright ficarem verdes;
+20. diff final ser revisado antes de qualquer merge.
 
 ## Estado atual
 
