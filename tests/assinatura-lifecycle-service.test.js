@@ -147,6 +147,40 @@ describe("assinaturaLifecycleService", () => {
       );
   });
 
+  test("nova assinatura durante episódio pago suspenso vira mudança de plano", async () => {
+    repository.buscarContextoPagamento
+      .mockResolvedValue({
+        ultimo_evento_episodio_tipo:
+          "CONVERSAO_INICIAL",
+        possui_pagamento_valido_mesma_assinatura: false,
+        possui_historico_pago_anterior: true,
+        outra_assinatura_ativa_id: null,
+        ultimo_plano_pago_anterior_id: 2,
+        ultimo_valor_recorrente_pago_anterior: "49.90",
+        ultima_periodicidade_paga_anterior: "MONTHLY",
+      });
+
+    await service.registrarConfirmacaoPagamento({
+      client,
+      assinatura: assinatura(),
+      pagamentoId: 56,
+      asaasPaymentId: "pay_56",
+    });
+
+    expect(repository.registrar)
+      .toHaveBeenCalledWith(
+        client,
+        expect.objectContaining({
+          tipo: "PLANO_ALTERADO",
+          motivo: "EPISODIO_PAGO_ABERTO",
+          planoAnteriorId: 2,
+          planoNovoId: 3,
+          valorMensalAnterior: 49.9,
+          valorMensalNovo: 99.9,
+        })
+      );
+  });
+
   test("nova assinatura depois de histórico pago sem plano vigente vira reativação", async () => {
     repository.buscarContextoPagamento
       .mockResolvedValue({
