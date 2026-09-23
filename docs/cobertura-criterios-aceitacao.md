@@ -406,16 +406,22 @@ A Wave 27 manteve a baseline funcional em **67/67 (100%)**.
 
 ## Wave 28 — economia líquida de gateway observada v1
 
-A Wave 28 inicia um cutover próprio para reconciliar `netValue`, data de
-crédito e refunds do Asaas sem alterar o contrato de billing. Somente refunds
-concluídos reduzem a receita líquida; estados pendentes ou em disputa bloqueiam
-a leitura correspondente.
+A Wave 28 fechou o cutover próprio de economia líquida por pagamento, reconciliando
+`netValue`, data de crédito e refunds do Asaas sem alterar o contrato de billing.
+Somente refunds concluídos reduzem a receita líquida; estados pendentes ou em
+disputa bloqueiam a leitura correspondente.
 
 LTV líquido de gateway reutiliza as coortes/maturidade da Wave 26 e retorno
 líquido de gateway reutiliza aquisição/custo da Wave 27. A Wave não declara
 lucro, margem de contribuição, CAC total ou payback econômico.
 
-A Wave 28 não altera a baseline funcional, que continua em **67/67 (100%)**.
+O head final `7dfac372742886d5b09a2e5105c3bbe6b08ca18b` passou no
+**Backend CI #1346**, incluindo migrations de teste, Jest + PostgreSQL com
+coverage, frontend lint/build/tests, audits e Playwright mobile. O PR #287 foi
+mergeado por squash na `main` pelo commit
+`d5142b210f8b68253a19ee8255402c0a4e53dd88`.
+
+A Wave 28 não alterou a baseline funcional, que continua em **67/67 (100%)**.
 
 ## Regra de atualização
 
