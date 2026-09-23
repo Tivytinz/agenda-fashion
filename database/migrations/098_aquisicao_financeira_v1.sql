@@ -168,7 +168,7 @@ CREATE OR REPLACE FUNCTION
   marketing_campanha_gastos_snapshot_objetivo()
 RETURNS TRIGGER
 LANGUAGE plpgsql
-AS $
+AS $$
 BEGIN
   IF TG_OP = 'INSERT'
     OR NEW.campanha_id IS DISTINCT FROM OLD.campanha_id
@@ -186,7 +186,7 @@ BEGIN
 
   RETURN NEW;
 END;
-$;
+$$;
 
 DROP TRIGGER IF EXISTS
   marketing_campanha_gastos_objetivo_snapshot_trigger
