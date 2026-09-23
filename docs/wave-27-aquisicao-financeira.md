@@ -168,6 +168,13 @@ vira receita líquida estimada.
 20. Backend CI e Playwright ficarem verdes;
 21. diff final ser revisado antes de qualquer merge.
 
-## Estado atual
+## Estado de encerramento
 
-A Wave 27 está **em andamento**.
+A Wave 27 foi encerrada no head
+`24640fec15e0fc889d3f66e14eb456f1ce65e2c6`, com o **Backend CI #1338**
+concluído com sucesso, incluindo Playwright mobile.
+
+O PR #286 foi mergeado na `main` pelo commit
+`1c39a6cf3435a3809183a8c4d008b7f612729116`.
+
+A baseline P0 + P1 permaneceu congelada em **67/67 (100%)**.
