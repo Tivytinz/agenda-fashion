@@ -573,9 +573,21 @@ export function trackFirstPartyEvent(name, {
     let flowUuidValue = null;
 
     if (name === "agendamento_iniciado") {
+      const repeatIntent =
+        properties.origem === "agendar_novamente";
+
       canonicalName = "booking_started";
       canonicalProperties = {
-        entry_point: currentView.pageKey
+        entry_point: currentView.pageKey,
+        intent: repeatIntent
+          ? "repeat_booking"
+          : "new_booking",
+        ...(repeatIntent && properties.status
+          ? {
+              source_booking_status:
+                String(properties.status).slice(0, 40)
+            }
+          : {})
       };
       flowUuidValue = flowUuid(BOOKING_FLOW_KEY, { renew: true });
     } else if (name === "perfil_visualizado") {

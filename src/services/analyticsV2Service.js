@@ -26,12 +26,26 @@ const MOTIVOS_SAIDA = new Set([
   "session_end",
 ]);
 
+const BOOKING_INTENTS = new Set([
+  "new_booking",
+  "repeat_booking",
+]);
+
+const BOOKING_SOURCE_STATUSES = new Set([
+  "realizado",
+  "falta",
+]);
+
 const PROPRIEDADES_PERMITIDAS = Object.freeze({
   business_creation_started: new Set(["entry_point"]),
   first_service_creation_started: new Set(["entry_point"]),
   profile_viewed: new Set(["entry_point"]),
   profile_shared: new Set(["method"]),
-  booking_started: new Set(["entry_point"]),
+  booking_started: new Set([
+    "entry_point",
+    "intent",
+    "source_booking_status",
+  ]),
   booking_completed: new Set(["status"]),
   checkout_viewed: new Set(["plan_slug"]),
 });
@@ -164,6 +178,21 @@ function propriedadesSeguras(nome, propriedades) {
       resultado[chave] = typeof valor === "string"
         ? textoSeguro(valor, 120)
         : valor;
+    }
+  }
+
+  if (nome === "booking_started") {
+    if (!BOOKING_INTENTS.has(resultado.intent)) {
+      delete resultado.intent;
+    }
+
+    if (
+      resultado.source_booking_status &&
+      !BOOKING_SOURCE_STATUSES.has(
+        resultado.source_booking_status
+      )
+    ) {
+      delete resultado.source_booking_status;
     }
   }
 

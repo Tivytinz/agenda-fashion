@@ -130,7 +130,9 @@ describe("dashboard pós-ativação", () => {
       screen.getAllByText("Clientes que voltaram").length
     ).toBeGreaterThan(0);
     expect(
-      screen.getByText("de 8 clientes com agendamento")
+      screen.getByText(
+        "histórico do negócio · de 8 clientes com agendamento"
+      )
     ).not.toBeNull();
     expect(
       screen.getByText("Conversão do perfil")

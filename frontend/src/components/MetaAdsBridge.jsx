@@ -9,9 +9,6 @@ import {
 } from "react-router-dom";
 import { useSession } from "../auth/SessionContext";
 import {
-  startFirstPartyPageView
-} from "../analytics/firstPartyAnalytics";
-import {
   applyGoogleConsentDefault,
   getGoogleConfig,
   hasPendingGoogleConsentSync,
@@ -90,19 +87,6 @@ export function MetaAdsBridge() {
     },
     []
   );
-
-  useEffect(() => {
-    startFirstPartyPageView({
-      pathname: location.pathname,
-      search: location.search,
-      state: location.state
-    });
-  }, [
-    location.key,
-    location.pathname,
-    location.search,
-    location.state
-  ]);
 
   useEffect(() => {
     let active = true;

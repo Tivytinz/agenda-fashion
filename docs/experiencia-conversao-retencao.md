@@ -26,15 +26,17 @@ Negócios legados não são despublicados apenas porque não existe evidência d
 
 ## Cliente: agendar novamente
 
-Atendimentos realizados podem oferecer `Agendar novamente` quando o histórico possui `slug` do negócio e `servico_id`.
+Atendimentos `realizado` e `falta` podem oferecer `Agendar novamente` quando o histórico possui `slug` do negócio e `servico_id`.
 
-O reagendamento preserva somente o serviço:
+Essa ação inicia **um novo agendamento**; ela não é o reagendamento de uma reserva existente. O fluxo preserva somente o serviço:
 
-`/negocio/<slug>?servico=<servico_id>`
+`/negocio/<slug>?servico=<servico_id>&origem=meus_agendamentos`
 
 A profissional anterior não deve ser fixada na URL. O fluxo público resolve novamente os profissionais ativos e compatíveis, preservando a regra de não exigir uma escolha quando houver apenas uma opção.
 
-Históricos antigos sem `servico_id` continuam utilizáveis e mantêm o acesso `Ver negócio`, sem inventar um serviço para reagendamento.
+A intenção de repetição deve ser observada como `agendamento_iniciado` com origem `agendar_novamente` no pipeline legado e como `booking_started` com `intent = repeat_booking` no Analytics V2. Esses eventos medem intenção; recorrência só existe quando um novo booking não cancelado do mesmo `client_id` é persistido.
+
+Históricos antigos sem `servico_id` continuam utilizáveis e mantêm o acesso `Ver negócio`, sem inventar um serviço para o novo agendamento.
 
 ## Medição esperada
 

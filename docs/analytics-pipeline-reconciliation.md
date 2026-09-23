@@ -24,6 +24,23 @@ A reconciliação administrativa compara somente eventos que possuem semântica 
 
 Eventos exclusivos de um dos pipelines permanecem fora da comparação.
 
+### Intenção de agendar novamente
+
+`Agendar novamente` cria uma nova reserva e não deve ser confundido com
+`booking_rescheduled`, que representa alteração transacional de uma reserva
+existente.
+
+Durante a coexistência dos pipelines, a intenção de repetição usa os nomes já
+comparáveis:
+
+- legado: `agendamento_iniciado` com `origem = agendar_novamente`;
+- Analytics V2: `booking_started` com `intent = repeat_booking`.
+
+O status do booking de origem pode ser enviado como contexto seguro
+(`source_booking_status` no V2), mas esses eventos continuam sendo telemetria
+de intenção. A recorrência real é calculada a partir de novos agendamentos não
+cancelados persistidos para o mesmo `client_id`.
+
 ## Janela comparável
 
 O histórico do pipeline legado é anterior ao Analytics V2. Comparar todo o histórico produziria uma divergência artificial.
@@ -86,6 +103,20 @@ Para reduzir perda silenciosa:
 - o backend permanece idempotente pelos UUIDs únicos de visualizações e eventos.
 
 A reconexão do navegador e novos envios tentam drenar a fila.
+
+### Ciclo de vida independente de Ads
+
+O Analytics V2 first-party monta no ciclo principal da aplicação, sem atraso
+artificial de mídia paga. Ele não pode depender do bridge de Meta/Google, que
+permanece carregado de forma diferida para preservar a performance pública.
+
+Essa separação evita uma janela cega no início da navegação: uma ação rápida da
+cliente, como selecionar `Agendar novamente` logo após abrir
+`/minha-agenda`, precisa encontrar uma visualização first-party já ativa e
+não pode perder o evento apenas porque o código de Ads ainda não montou.
+
+Bridges de mídia paga podem ser adiados, falhar ou permanecer desativados sem
+interromper o ciclo de vida da telemetria first-party de produto.
 
 ## Identidade de cliente
 

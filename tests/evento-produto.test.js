@@ -237,6 +237,79 @@ describe(
     );
 
     test(
+      "registra intenção de agendar novamente sem tratar como reagendamento",
+      async () => {
+        const resposta =
+          await request(
+            criarApp()
+          )
+            .post(
+              "/eventos-produto"
+            )
+            .set(
+              "x-test-user",
+              "7"
+            )
+            .send({
+              nome:
+                "agendamento_iniciado",
+              pagina:
+                "meus_agendamentos",
+              missao:
+                "retornar_ao_negocio",
+              sessao_id:
+                "sessao_repeticao_123",
+              negocio_id:
+                14,
+              propriedades: {
+                origem:
+                  "agendar_novamente",
+                agendamento_id:
+                  32,
+                servico_id:
+                  9,
+                status:
+                  "realizado",
+                telefone:
+                  "62999999999",
+              },
+            });
+
+        expect(
+          resposta.status
+        ).toBe(202);
+
+        expect(
+          eventoProdutoRepository
+            .registrar
+        ).toHaveBeenCalledWith({
+          nome:
+            "agendamento_iniciado",
+          pagina:
+            "meus_agendamentos",
+          missao:
+            "retornar_ao_negocio",
+          sessaoId:
+            "sessao_repeticao_123",
+          usuarioId:
+            7,
+          negocioId:
+            14,
+          propriedades: {
+            origem:
+              "agendar_novamente",
+            agendamento_id:
+              32,
+            servico_id:
+              9,
+            status:
+              "realizado",
+          },
+        });
+      }
+    );
+
+    test(
       "aceita a conclusão observacional da configuração da agenda",
       async () => {
         const resposta =
