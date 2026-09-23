@@ -129,10 +129,13 @@ A Wave pode ser encerrada quando:
    pós-ativação;
 6. não houver alteração desnecessária em backend, banco ou integrações.
 
-## Estado atual
+## Estado de encerramento
 
 O patch de regressão e a documentação estão preparados na branch
 `feat/product-ux-wave-17`.
 
-A Wave permanece **em andamento** até o Quality Gate do PR confirmar o head
-final.
+A Wave é considerada encerrada somente quando o **head final** passar pelo
+Quality Gate, o E2E profissional estiver verde na matriz mobile suportada, o
+diff final não introduzir mudança fora do escopo e o PR for mergeado com
+autorização explícita. Uma falha de teste deve ser corrigida pela causa raiz,
+sem remover a proteção comportamental descrita neste documento.
