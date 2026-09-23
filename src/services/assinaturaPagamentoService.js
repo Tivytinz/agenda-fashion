@@ -68,6 +68,8 @@ async function garantirPagamentoRecorrente(
       dadosPagamento.paymentDate ||
       dadosPagamento.confirmedDate ||
       null,
+    invoice_url:
+      dadosPagamento.invoiceUrl || null,
     pix_copia_cola: null,
     pix_qrcode: null,
   });
@@ -100,20 +102,27 @@ async function sincronizarPagamentoPorWebhook(
       dadosPagamento.status || "PENDING"
     ).trim().toUpperCase();
 
+    const atualizacaoPagamento = {
+      status: statusPagamento,
+      data_pagamento:
+        dadosPagamento.paymentDate ||
+        dadosPagamento.confirmedDate ||
+        null,
+      evento_criado_em:
+        dadosPagamento.webhookEventoCriadoEm || null,
+      evento_id: dadosPagamento.webhookEventoId || null,
+    };
+
+    if (dadosPagamento.invoiceUrl) {
+      atualizacaoPagamento.invoice_url =
+        dadosPagamento.invoiceUrl;
+    }
+
     const pagamentoAtualizado =
       await pagamentoRepository.atualizarStatusPagamento(
         client,
         paymentId,
-        {
-          status: statusPagamento,
-          data_pagamento:
-            dadosPagamento.paymentDate ||
-            dadosPagamento.confirmedDate ||
-            null,
-          evento_criado_em:
-            dadosPagamento.webhookEventoCriadoEm || null,
-          evento_id: dadosPagamento.webhookEventoId || null,
-        }
+        atualizacaoPagamento
       );
 
     if (!pagamentoAtualizado) {
@@ -174,17 +183,24 @@ async function suspenderAssinaturaPorPagamento(
     const status = String(
       dadosPagamento.status || "OVERDUE"
     ).trim().toUpperCase();
+    const atualizacaoPagamento = {
+      status,
+      data_pagamento: null,
+      evento_criado_em:
+        dadosPagamento.webhookEventoCriadoEm || null,
+      evento_id: dadosPagamento.webhookEventoId || null,
+    };
+
+    if (dadosPagamento.invoiceUrl) {
+      atualizacaoPagamento.invoice_url =
+        dadosPagamento.invoiceUrl;
+    }
+
     const pagamentoAtualizado = await pagamentoRepository
       .atualizarStatusPagamento(
         client,
         paymentId,
-        {
-          status,
-          data_pagamento: null,
-          evento_criado_em:
-            dadosPagamento.webhookEventoCriadoEm || null,
-          evento_id: dadosPagamento.webhookEventoId || null,
-        }
+        atualizacaoPagamento
       );
 
     if (!pagamentoAtualizado) {

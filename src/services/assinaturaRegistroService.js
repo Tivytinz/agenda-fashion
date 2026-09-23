@@ -32,6 +32,7 @@ async function registrarPagamento(client, dados) {
     status: dados.status || "PENDING",
     data_vencimento: dados.data_vencimento || null,
     data_pagamento: dados.data_pagamento || null,
+    invoice_url: dados.invoice_url || null,
     pix_copia_cola: dados.pix_copia_cola || null,
     pix_qrcode: dados.pix_qrcode || null,
   });
