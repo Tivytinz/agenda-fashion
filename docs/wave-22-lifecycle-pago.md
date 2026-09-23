@@ -33,7 +33,7 @@ A tabela é append-only e contém:
 - plano anterior e plano novo quando aplicável;
 - origem local da decisão;
 - detalhes estruturados mínimos;
-- `ocorrido_em`;
+- `ocorrido_em`, registrando quando a transição foi materializada localmente pelo AF;
 - `chave_idempotencia` única.
 
 `webhook_eventos` continua sendo a fila/auditoria do Asaas.
