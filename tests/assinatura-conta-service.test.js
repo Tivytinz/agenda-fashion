@@ -200,7 +200,87 @@ describe(
           });
         assinaturaRepository
           .listarPagamentos
-          .mockResolvedValue([]);
+          .mockResolvedValue([
+            {
+              id: 51,
+              assinatura_id: 20,
+              status: "OVERDUE",
+              data_vencimento: "2026-09-23",
+              invoice_url:
+                "https://www.asaas.com/i/fatura-wave20"
+            }
+          ]);
+
+        const resultado =
+          await buscarMinhaAssinatura({
+            usuarioId: 10
+          });
+
+        expect(
+          assinaturaRepository.listarPagamentos
+        ).toHaveBeenCalledWith(20);
+        expect(resultado.estado_assinatura)
+          .toEqual({
+            codigo: "FALHA_DE_PAGAMENTO",
+            tipo_falha: "COBRANCA_ATRASADA",
+            status_provedor: "OVERDUE",
+            assinatura_id: 20,
+            plano_id: 3
+          });
+        expect(resultado.pagamento_recuperavel)
+          .toEqual({
+            id: 51,
+            status: "OVERDUE",
+            data_vencimento: "2026-09-23",
+            invoice_url:
+              "https://www.asaas.com/i/fatura-wave20"
+          });
+      }
+    );
+
+    test(
+      "não oferece recuperação por URL externa em estorno ou domínio não confiável",
+      async () => {
+        assinaturaRepository
+          .buscarNegocioDono
+          .mockResolvedValue({
+            id: 7,
+            plano_id: 1
+          });
+        assinaturaRepository
+          .buscarAssinaturaAtivaPorNegocio
+          .mockResolvedValue(null);
+        assinaturaRepository
+          .buscarAssinaturaPendentePorNegocio
+          .mockResolvedValue(null);
+        assinaturaRepository
+          .buscarUltimaAssinaturaPorNegocio
+          .mockResolvedValue({
+            id: 20,
+            negocio_id: 7,
+            plano_id: 3,
+            status: "REFUNDED",
+            ativo: false,
+            asaas_subscription_id: "sub_1"
+          });
+        assinaturaRepository
+          .buscarPlano
+          .mockResolvedValue({
+            id: 1,
+            nome: "Grátis",
+            slug: "inicial",
+            valor: 0
+          });
+        assinaturaRepository
+          .listarPagamentos
+          .mockResolvedValue([
+            {
+              id: 52,
+              status: "REFUNDED",
+              invoice_url:
+                "https://exemplo-malicioso.com/pagar"
+            }
+          ]);
 
         const resultado =
           await buscarMinhaAssinatura({
@@ -208,12 +288,13 @@ describe(
           });
 
         expect(resultado.estado_assinatura)
-          .toEqual({
+          .toMatchObject({
             codigo: "FALHA_DE_PAGAMENTO",
-            status_provedor: "OVERDUE",
-            assinatura_id: 20,
-            plano_id: 3
+            tipo_falha: "REVERSAO_OU_DISPUTA",
+            status_provedor: "REFUNDED"
           });
+        expect(resultado.pagamento_recuperavel)
+          .toBeNull();
       }
     );
 

@@ -10,10 +10,94 @@ const {
   dataValida,
 } = require("./assinaturaCalculos");
 
+const FALHAS_RECUPERAVEIS = new Set([
+  "OVERDUE",
+  "PAST_DUE",
+  "PAYMENT_FAILED",
+  "CREDIT_CARD_CAPTURE_REFUSED",
+]);
+
+const REVERSOES_OU_DISPUTAS = new Set([
+  "REFUNDED",
+  "RECEIVED_IN_CASH_UNDONE",
+  "CHARGEBACK_REQUESTED",
+  "CHARGEBACK_DISPUTE",
+  "AWAITING_CHARGEBACK_REVERSAL",
+]);
+
 function statusNormalizado(valor) {
   return String(valor || "")
     .trim()
     .toUpperCase();
+}
+
+function tipoFalhaPagamento(status) {
+  if (FALHAS_RECUPERAVEIS.has(status)) {
+    return "COBRANCA_ATRASADA";
+  }
+
+  if (REVERSOES_OU_DISPUTAS.has(status)) {
+    return "REVERSAO_OU_DISPUTA";
+  }
+
+  return null;
+}
+
+function normalizarInvoiceUrlAsaas(valor) {
+  const texto = String(valor || "").trim();
+
+  if (!texto) {
+    return null;
+  }
+
+  try {
+    const url = new URL(texto);
+    const hostname = url.hostname.toLowerCase();
+
+    if (
+      url.protocol !== "https:" ||
+      !(
+        hostname === "asaas.com" ||
+        hostname.endsWith(".asaas.com")
+      )
+    ) {
+      return null;
+    }
+
+    return url.toString();
+  } catch {
+    return null;
+  }
+}
+
+function pagamentoRecuperavel(pagamentos, estado) {
+  if (
+    estado?.codigo !== "FALHA_DE_PAGAMENTO" ||
+    estado?.tipo_falha !== "COBRANCA_ATRASADA"
+  ) {
+    return null;
+  }
+
+  const pagamento = (pagamentos || []).find((item) => {
+    const status = statusNormalizado(item?.status);
+    return (
+      FALHAS_RECUPERAVEIS.has(status) &&
+      normalizarInvoiceUrlAsaas(item?.invoice_url)
+    );
+  });
+
+  if (!pagamento) {
+    return null;
+  }
+
+  return {
+    id: pagamento.id,
+    status: statusNormalizado(pagamento.status),
+    data_vencimento: pagamento.data_vencimento || null,
+    invoice_url: normalizarInvoiceUrlAsaas(
+      pagamento.invoice_url
+    ),
+  };
 }
 
 function estadoAssinatura({
@@ -82,21 +166,12 @@ function estadoAssinatura({
     };
   }
 
-  if (
-    [
-      "OVERDUE",
-      "PAST_DUE",
-      "PAYMENT_FAILED",
-      "REFUNDED",
-      "RECEIVED_IN_CASH_UNDONE",
-      "CHARGEBACK_REQUESTED",
-      "CHARGEBACK_DISPUTE",
-      "AWAITING_CHARGEBACK_REVERSAL",
-      "CREDIT_CARD_CAPTURE_REFUSED",
-    ].includes(status)
-  ) {
+  const tipoFalha = tipoFalhaPagamento(status);
+
+  if (tipoFalha) {
     return {
       codigo: "FALHA_DE_PAGAMENTO",
+      tipo_falha: tipoFalha,
       status_provedor: status,
       assinatura_id: ultimaAssinatura.id,
       plano_id: ultimaAssinatura.plano_id,
@@ -156,18 +231,21 @@ async function buscarMinhaAssinatura({ usuarioId }) {
         )
     : null;
   const assinaturaPagamentos =
-    assinatura || assinaturaPendente;
+    assinatura || assinaturaPendente || ultimaAssinatura;
   const pagamentos = await assinaturaRepository
     .listarPagamentos(assinaturaPagamentos?.id || 0);
+  const estado = estadoAssinatura({
+    assinatura,
+    assinaturaPendente,
+    ultimaAssinatura,
+  });
 
   return {
     plano,
     assinatura,
-    estado_assinatura: estadoAssinatura({
-      assinatura,
-      assinaturaPendente,
-      ultimaAssinatura,
-    }),
+    estado_assinatura: estado,
+    pagamento_recuperavel:
+      pagamentoRecuperavel(pagamentos, estado),
     upgrade_pendente:
       assinaturaPendente && planoPendente
         ? {
