@@ -30,7 +30,7 @@ Atendimentos `realizado` e `falta` podem oferecer `Agendar novamente` quando o h
 
 Essa ação inicia **um novo agendamento**; ela não é o reagendamento de uma reserva existente. O fluxo preserva somente o serviço:
 
-`/negocio/<slug>?servico=<servico_id>`
+`/negocio/<slug>?servico=<servico_id>&origem=meus_agendamentos`
 
 A profissional anterior não deve ser fixada na URL. O fluxo público resolve novamente os profissionais ativos e compatíveis, preservando a regra de não exigir uma escolha quando houver apenas uma opção.
 
