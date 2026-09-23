@@ -3,6 +3,9 @@ const db = require("../src/db/db");
 const repository = require(
   "../src/repositories/paymentEconomicsRepository"
 );
+const adminPaymentEconomicsRepository = require(
+  "../src/repositories/adminPaymentEconomicsRepository"
+);
 
 function suffix() {
   return crypto.randomUUID()
@@ -278,6 +281,55 @@ describe(
           total: 2,
           valor: "25.00",
         });
+    });
+
+    test("consultas administrativas de economia executam sobre o schema canônico", async () => {
+      const pagamentoId =
+        await criarPagamento();
+
+      await repository
+        .persistirReconciliacao({
+          pagamentoId,
+          eventoEsperadoEm:
+            "2026-09-23 15:00:00",
+          eventoEsperadoId:
+            "evt_wave28_1",
+          economia: {
+            valorBruto: 100,
+            valorLiquidoGateway: 98,
+            dataCredito:
+              "2026-09-23",
+            statusPagamento:
+              "RECEIVED",
+            statusReconciliacao:
+              "COMPLETO",
+            proximaReconciliacaoEm:
+              null,
+          },
+          estornos: [],
+        });
+
+      const resumo =
+        await adminPaymentEconomicsRepository
+          .buscarResumoEconomia("all");
+      const ltv =
+        await adminPaymentEconomicsRepository
+          .buscarLtvLiquidoObservado();
+      const aquisicao =
+        await adminPaymentEconomicsRepository
+          .buscarRetornoLiquidoAquisicao({
+            diasMaturacaoMonetizacao: 21,
+          });
+
+      expect(resumo)
+        .toHaveProperty(
+          "receita_liquida_gateway"
+        );
+      expect(Array.isArray(ltv.coortes))
+        .toBe(true);
+      expect(
+        Array.isArray(aquisicao.campanhas)
+      ).toBe(true);
     });
 
     test("descarta resposta externa quando webhook mais novo alterou o fence", async () => {
