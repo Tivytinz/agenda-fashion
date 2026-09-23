@@ -109,7 +109,7 @@ describe(
     });
 
     test(
-      "prefere custo automático ao manual sem duplicar e bloqueia múltiplas fontes automáticas",
+      "reutiliza fonte única diária e não duplica custo ao substituir a origem",
       async () => {
         const planos = await db.query(
           `
@@ -376,8 +376,6 @@ describe(
             "12000",
           investimento_d90_centavos:
             "0",
-          dias_sobrepostos_d30: 1,
-          dias_ambiguos_d30: 0,
           negocios_pagos_d30: 1,
           negocios_pagos_d60: 1,
           negocios_pagos_d90: 0,
@@ -386,6 +384,28 @@ describe(
           receita_d60_centavos:
             "14970",
         });
+
+        const fonteDepoisGoogle =
+          await db.query(
+            `
+            SELECT fonte, valor_centavos
+            FROM marketing_campanha_gastos
+            WHERE campanha_id = $1
+              AND data_gasto = $2
+            `,
+            [
+              campanhaId,
+              dataAquisicao.rows[0].data,
+            ]
+          );
+
+        expect(fonteDepoisGoogle.rows)
+          .toEqual([
+            expect.objectContaining({
+              fonte: "google_ads",
+              valor_centavos: "9000",
+            }),
+          ]);
 
         await db.query(
           `
@@ -410,27 +430,47 @@ describe(
           ]
         );
 
-        const ambiguo =
+        const fonteSubstituida =
+          await db.query(
+            `
+            SELECT fonte, valor_centavos
+            FROM marketing_campanha_gastos
+            WHERE campanha_id = $1
+              AND data_gasto = $2
+            `,
+            [
+              campanhaId,
+              dataAquisicao.rows[0].data,
+            ]
+          );
+
+        expect(fonteSubstituida.rows)
+          .toEqual([
+            expect.objectContaining({
+              fonte: "meta_ads",
+              valor_centavos: "5000",
+            }),
+          ]);
+
+        const atualizado =
           await repository
             .buscarRetornoAquisicao({
               diasMaturacaoMonetizacao:
                 21,
             });
-        const linhaAmbigua =
-          ambiguo.campanhas.find(
+        const linhaAtualizada =
+          atualizado.campanhas.find(
             (item) =>
               Number(item.campanha_id) ===
               campanhaId
           );
 
-        expect(linhaAmbigua)
+        expect(linhaAtualizada)
           .toMatchObject({
             investimento_d30_centavos:
-              "3000",
-            dias_ambiguos_d30: 1,
-            negocios_pagos_d30: 0,
-            pagantes_custo_ambiguo_d30:
-              1,
+              "8000",
+            negocios_pagos_d30: 1,
+            pagantes_sem_custo_d30: 0,
           });
       }
     );
