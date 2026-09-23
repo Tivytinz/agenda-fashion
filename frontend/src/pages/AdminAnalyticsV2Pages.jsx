@@ -6,6 +6,7 @@ import {
   ErrorState,
   LoadingState
 } from "../components/ScreenState";
+import { AdminContributionOperationsPanel } from "../components/AdminContributionOperationsPanel";
 import {
   ADMIN_PERIODS,
   adminPeriodLabel,
@@ -1174,6 +1175,8 @@ export function AdminRevenueV2Page() {
                 Cobertura canônica desde {formatDateTime(economics.inicioCobertura)}. Ausência de netValue não é interpretada como taxa zero.
               </p>
             </section>
+
+            <AdminContributionOperationsPanel />
 
             <div className="admin-command-two-column">
               <section className="panel">
