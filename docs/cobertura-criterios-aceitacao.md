@@ -316,7 +316,7 @@ A Wave não declara churn, LTV ou payback oficiais e mantém **67/67 (100%)**.
 
 ## Wave 22 — lifecycle pago canônico e reativação
 
-A Wave 22 inicia o registro estruturado das transições financeiras de domínio:
+A Wave 22 fechou o registro estruturado das transições financeiras de domínio:
 
 ```text
 conversão inicial
@@ -328,12 +328,31 @@ conversão inicial
   → eventual reativação
 ```
 
-A migration 093 cria `assinatura_eventos` com escrita append-only e chave
-idempotente. O Admin passa a expor os eventos canônicos registrados desde a
+A migration 093 criou `assinatura_eventos` com escrita append-only e chave
+idempotente. O Admin passou a expor os eventos canônicos registrados desde a
 Wave 22, sem backfill especulativo do período anterior e sem rotular atraso ou
 cancelamento agendado como churn.
 
+O head final `8dee4f0163fed2c46d843a9650b6e1baf0f05b0a` passou no
+**Backend CI #1293**. O PR #281 foi mergeado na `main` pelo commit
+`858e83a27d52db174addd8d83979a22b2b7ed481`.
+
 A baseline formal permanece **67/67 (100%)**.
+
+## Wave 23 — reconciliação temporal da base paga
+
+A Wave 23 inicia o hardening do instante de saída efetiva da base paga. Um
+cancelamento cujo período já venceu passa a ser reconciliado por background
+worker, sem depender de uma leitura posterior do plano.
+
+O recorte reutiliza a operação transacional existente para voltar o negócio ao
+plano gratuito, inativar a assinatura, reconciliar a equipe e registrar
+`ACESSO_PAGO_ENCERRADO` uma única vez. O Admin também deixa de contar
+cancelamento vencido como assinatura paga ativa e expõe a pendência de
+reconciliação como diagnóstico operacional.
+
+A Wave 23 não cria churn, LTV ou payback oficiais e mantém a baseline formal em
+**67/67 (100%)**.
 
 ## Regra de atualização
 
