@@ -4,6 +4,7 @@ jest.mock(
     periodoSeguro: jest.fn((periodo) => periodo || "30"),
     buscarReceita: jest.fn(),
     buscarChurnPago: jest.fn(),
+    buscarMrr: jest.fn(),
     buscarVisaoGeral: jest.fn(),
     listarAquisicao: jest.fn(),
     buscarJornada: jest.fn(),
@@ -46,6 +47,23 @@ describe("Admin Analytics V2 - receita", () => {
       saidas_inadimplencia_nao_recuperada: 1,
       saidas_encerramento_provedor: 0,
       saidas_outros_motivos: 0,
+    });
+    repository.buscarMrr.mockResolvedValue({
+      inicio_cobertura: "2026-09-23T06:00:00.000Z",
+      inicio_efetivo: "2026-09-23T06:00:00.000Z",
+      periodo_ajustado_cutover: true,
+      mrr_inicial: "1000.00",
+      mrr_final_coorte_inicial: "950.00",
+      mrr_final_total: "1200.00",
+      mrr_retido_bruto: "850.00",
+      new_mrr: "200.00",
+      reactivation_mrr: "100.00",
+      expansion_mrr: "100.00",
+      contraction_mrr: "50.00",
+      churned_mrr: "150.00",
+      negocios_mrr_em_risco: 2,
+      mrr_em_risco: "149.80",
+      assinaturas_periodicidade_nao_suportada: 0,
     });
   });
 
@@ -159,6 +177,21 @@ describe("Admin Analytics V2 - receita", () => {
       basePagaFimChurn: 9,
       saidasCancelamentoVoluntario: 1,
       saidasInadimplenciaNaoRecuperada: 1,
+      mrrInicial: 1000,
+      newMrr: 200,
+      reactivationMrr: 100,
+      expansionMrr: 100,
+      contractionMrr: 50,
+      churnedMrr: 150,
+      mrrFinalCoorteInicial: 950,
+      mrrFinalTotal: 1200,
+      mrrEmRisco: 149.8,
+      negociosMrrEmRisco: 2,
+      grr: 85,
+      nrr: 95,
+      divergenciaBridgeMrr: 0,
+      bridgeMrrReconciliado: true,
+      assinaturasPeriodicidadeNaoSuportada: 0,
     });
     expect(resultado.metodologia.churn)
       .toMatch(/Gross logo churn v1/i);
@@ -166,6 +199,17 @@ describe("Admin Analytics V2 - receita", () => {
       periodoAjustadoAoCutover: true,
       historicoAnteriorInferido: false,
     });
+    expect(resultado.mrr).toMatchObject({
+      periodoAjustadoAoCutover: true,
+      historicoAnteriorInferido: false,
+      periodicidadeSuportada: "MONTHLY",
+      bridgeReconciliado: true,
+      confiavel: true,
+    });
+    expect(resultado.metodologia.mrr)
+      .toMatch(/MRR v1/i);
+    expect(resultado.metodologia.nrr)
+      .toMatch(/NRR v1/i);
   });
 
   test("não inventa conversão quando a coorte de checkout está vazia", async () => {
