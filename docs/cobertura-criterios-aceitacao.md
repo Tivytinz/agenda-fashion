@@ -456,6 +456,25 @@ obrigatória de custo variável; ausência de fonte não vira custo zero.
 
 A Wave 30 não altera a baseline funcional, que permanece em **67/67 (100%)**.
 
+## Wave 31 — fontes factuais de custos de contribuição v1
+
+A Wave 31 cria a operação administrativa necessária para alimentar
+`contribuicao_fontes`, `contribuicao_custos` e
+`contribuicao_cobertura` sem estimativa ou seed.
+
+A migration 102 adiciona cutover próprio e auditoria append-only. Escritas são
+restritas a superadmin, exigem motivo e usam ator da sessão administrativa.
+Débitos continuam idempotentes; correções usam crédito referenciado e limitado
+ao saldo do débito. Cobertura não pode regredir.
+
+A interface de Receita passa a mostrar fontes, cobertura, lançamentos e estado
+read-only para administradores sem permissão financeira.
+
+A Wave não declara fonte real existente por si só. Sem evidência factual e
+cobertura, as métricas das Waves 29 e 30 continuam indisponíveis.
+
+A Wave 31 não altera a baseline funcional, que permanece em **67/67 (100%)**.
+
 ## Regra de atualização
 
 Atualizar este documento quando uma Wave alterar a cobertura da baseline ou

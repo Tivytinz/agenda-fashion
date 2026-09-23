@@ -56,6 +56,11 @@ const adminMarketingCostController =
     "../controllers/adminMarketingCostController"
   );
 
+const adminContributionOperationsController =
+  require(
+    "../controllers/adminContributionOperationsController"
+  );
+
 const marketingCostSyncController =
   require(
     "../controllers/marketingCostSyncController"
@@ -292,6 +297,45 @@ router.post(
   auth,
   authAdmin,
   adminMarketingCostController.registrarGasto
+);
+
+
+/*
+ * Fontes factuais e custos variáveis de contribuição.
+ *
+ * A leitura é administrativa. Escritas financeiras
+ * são validadas no backend e restritas ao superadmin.
+ */
+router.get(
+  "/admin/financeiro/contribuicao",
+  auth,
+  authAdmin,
+  adminContributionOperationsController
+    .buscarPainel
+);
+
+router.post(
+  "/admin/financeiro/contribuicao/fontes",
+  auth,
+  authAdmin,
+  adminContributionOperationsController
+    .criarFonte
+);
+
+router.post(
+  "/admin/financeiro/contribuicao/custos",
+  auth,
+  authAdmin,
+  adminContributionOperationsController
+    .registrarCusto
+);
+
+router.post(
+  "/admin/financeiro/contribuicao/cobertura",
+  auth,
+  authAdmin,
+  adminContributionOperationsController
+    .registrarCobertura
 );
 
 /*
