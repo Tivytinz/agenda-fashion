@@ -368,6 +368,19 @@ contribuição. LTV líquido de gateway D30/D60/D90 reutiliza as coortes da Wave
 e retorno líquido de gateway reutiliza aquisição/custo da Wave 27. Margem,
 CAC total e payback econômico continuam fora da definição oficial.
 
+Desde a Wave 29, o AF possui a infraestrutura de **custos variáveis de
+contribuição observados** separada de billing e de aquisição de mídia. A
+migration 100 cria um cutover próprio, um registro de fontes, um ledger
+append-only/idempotente por fonte+chave externa e um watermark contínuo de
+cobertura por fonte. Nenhuma fonte é cadastrada por suposição na migration:
+enquanto não existir ao menos uma fonte obrigatória ativa com cobertura completa
+da janela, margem de contribuição permanece indisponível e ausência de
+lançamento não significa custo zero. Débitos aumentam custo e créditos corrigem
+ou devolvem custo sem apagar o fato anterior. A taxa do gateway e refunds já
+tratados na Wave 28 não podem ser descontados novamente, e mídia paga permanece
+no domínio de CAC/aquisição. Lucro, CAC total e payback econômico continuam fora
+da definição oficial.
+
 Um negócio pode possuir no máximo uma cobrança PIX pendente de contratação ou
 upgrade por vez, independentemente do plano escolhido. Trocar de plano antes do
 pagamento não deve criar cobranças concorrentes. A tela de assinatura deve
