@@ -10,6 +10,9 @@ const {
 const {
   reconciliarLimiteProfissionais,
 } = require("./equipePlanoService");
+const assinaturaLifecycleService = require(
+  "./assinaturaLifecycleService"
+);
 
 async function localizarAssinaturaPorWebhook(
   client,
@@ -150,6 +153,22 @@ async function sincronizarAssinaturaPorWebhook(
       return null;
     }
 
+    if (manterPeriodoPago) {
+      await assinaturaLifecycleService
+        .registrarCancelamentoRenovacao({
+          client,
+          assinatura: assinaturaAtualizada,
+          acessoAte:
+            assinaturaAtualizada.data_proxima_cobranca ||
+            assinatura.data_proxima_cobranca ||
+            null,
+          origem: "webhook",
+          motivo: "CANCELAMENTO_PROVEDOR",
+          ocorridoEm:
+            dadosAssinatura.webhookEventoCriadoEm || null,
+        });
+    }
+
     if (eventoEncerramento && !manterPeriodoPago) {
       const planoGratis = await assinaturaWebhookRepository
         .buscarPlanoGratis(client);
@@ -175,6 +194,16 @@ async function sincronizarAssinaturaPorWebhook(
         assinatura.negocio_id,
         client
       );
+
+      await assinaturaLifecycleService
+        .registrarEncerramentoAcesso({
+          client,
+          assinatura: assinaturaAtualizada,
+          motivo: "ENCERRAMENTO_PROVEDOR",
+          origem: "webhook",
+          ocorridoEm:
+            dadosAssinatura.webhookEventoCriadoEm || null,
+        });
     }
 
     return assinaturaAtualizada;

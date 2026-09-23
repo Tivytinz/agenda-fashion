@@ -207,6 +207,27 @@ async function teveAtrasoProcessado(
   return resultado.rows[0]?.possui_atraso === true;
 }
 
+async function buscarUltimoPorAssinaturaETipo(
+  client,
+  assinaturaId,
+  tipo
+) {
+  const executor = client || db;
+  const resultado = await executor.query(
+    `
+    SELECT *
+    FROM assinatura_eventos
+    WHERE assinatura_id = $1
+      AND tipo = $2
+    ORDER BY ocorrido_em DESC, id DESC
+    LIMIT 1
+    `,
+    [assinaturaId, tipo]
+  );
+
+  return resultado.rows[0] || null;
+}
+
 async function listarPorNegocio(
   negocioId,
   {
@@ -244,5 +265,6 @@ module.exports = {
   registrar,
   buscarContextoPagamento,
   teveAtrasoProcessado,
+  buscarUltimoPorAssinaturaETipo,
   listarPorNegocio,
 };

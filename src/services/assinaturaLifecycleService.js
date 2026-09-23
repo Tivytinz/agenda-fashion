@@ -204,12 +204,28 @@ async function registrarCancelamentoRenovacao({
 async function registrarEncerramentoAcesso({
   client,
   assinatura,
-  motivo,
+  motivo = null,
   origem = "sistema",
   ocorridoEm = null,
 }) {
   if (!assinatura?.negocio_id || !assinatura?.id) {
     return null;
+  }
+
+  let motivoFinal = motivo;
+
+  if (!motivoFinal) {
+    const cancelamento =
+      await assinaturaEventoRepository
+        .buscarUltimoPorAssinaturaETipo(
+          client,
+          assinatura.id,
+          "RENOVACAO_CANCELADA"
+        );
+
+    motivoFinal =
+      cancelamento?.motivo ||
+      "ENCERRAMENTO_RECORRENCIA";
   }
 
   return assinaturaEventoRepository.registrar(
@@ -218,7 +234,7 @@ async function registrarEncerramentoAcesso({
       negocioId: assinatura.negocio_id,
       assinaturaId: assinatura.id,
       tipo: "ACESSO_PAGO_ENCERRADO",
-      motivo,
+      motivo: motivoFinal,
       planoAnteriorId: assinatura.plano_id || null,
       planoNovoId: null,
       origem,

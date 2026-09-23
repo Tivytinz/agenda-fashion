@@ -13,6 +13,9 @@ const equipePlanoService = require(
 const NotFoundError = require(
     "../errors/NotFoundError"
 );
+const assinaturaLifecycleService = require(
+    "./assinaturaLifecycleService"
+);
 
 function criarErroLimite(mensagem, codigo, uso = null) {
     const erro = new Error(mensagem);
@@ -73,6 +76,13 @@ async function expirarCancelamentoComReconciliacao(
             );
 
         if (expirada) {
+            await assinaturaLifecycleService
+                .registrarEncerramentoAcesso({
+                    client,
+                    assinatura: expirada,
+                    origem: "sistema"
+                });
+
             await equipePlanoService
                 .reconciliarLimiteProfissionais(
                     negocioId,

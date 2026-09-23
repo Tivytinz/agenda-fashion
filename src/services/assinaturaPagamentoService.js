@@ -16,6 +16,9 @@ const {
 const {
   reconciliarLimiteProfissionais,
 } = require("./equipePlanoService");
+const assinaturaLifecycleService = require(
+  "./assinaturaLifecycleService"
+);
 
 async function garantirPagamentoRecorrente(
   client,
@@ -243,6 +246,15 @@ async function suspenderAssinaturaPorPagamento(
       client
     );
 
+    await assinaturaLifecycleService.registrarAtraso({
+      client,
+      assinatura,
+      pagamentoId: assinatura.pagamento_id,
+      status,
+      ocorridoEm:
+        dadosPagamento.webhookEventoCriadoEm || null,
+    });
+
     return suspensao;
   });
 }
@@ -307,6 +319,16 @@ async function ativarAssinaturaPorPagamento(
     )) {
       return assinatura;
     }
+
+    await assinaturaLifecycleService
+      .registrarConfirmacaoPagamento({
+        client,
+        assinatura,
+        pagamentoId: assinatura.pagamento_id,
+        asaasPaymentId: paymentId,
+        ocorridoEm:
+          dadosPagamento.webhookEventoCriadoEm || null,
+      });
 
     let asaasSubscriptionId = assinatura.asaas_subscription_id;
     let dataProximaCobranca = assinatura.data_proxima_cobranca;
