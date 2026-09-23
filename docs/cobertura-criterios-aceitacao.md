@@ -174,6 +174,23 @@ A Wave 16 é uma evolução de qualidade de Produto e UX; ela não cria novos
 critérios retroativamente na baseline congelada de 67 cenários. Novos requisitos
 formais devem ser versionados separadamente.
 
+### Estado atual da Wave 16
+
+O primeiro patch já implementa controle explícito de pausa/retomada do hero,
+pausa após navegação manual, respeito inicial a `prefers-reduced-motion` e
+alvos de toque maiores para os indicadores. A regressão foi adicionada em testes
+unitários e Playwright mobile.
+
+A Wave permanece **em andamento**. Antes do encerramento, faltam duas evidências
+principais:
+
+- uma jornada E2E móvel única chegando até o sucesso do agendamento;
+- nova execução do Performance QA no head final, porque a home medida na Wave 15
+  ficou em 2.412,60 ms de LCP para um limite de 2.500 ms.
+
+A análise completa, impactos e critérios de saída estão em
+[`wave-16-produto-ux.md`](./wave-16-produto-ux.md).
+
 ## Regra de atualização
 
 Atualizar este documento quando uma Wave alterar a cobertura da baseline ou
