@@ -291,7 +291,7 @@ A Wave 20 não cria novos critérios P0/P1 e mantém **67/67 (100%)**.
 
 ## Wave 21 — retenção financeira e receita recorrente
 
-A Wave 21 inicia a classificação financeira pós-conversão sem alterar a baseline
+A Wave 21 fechou a classificação financeira pós-conversão sem alterar a baseline
 formal:
 
 ```text
@@ -303,13 +303,35 @@ primeira conversão paga
   → encerramento efetivo do acesso pago
 ```
 
-O primeiro recorte separa receita inicial, receita de renovação e primeiro
-pagamento de uma assinatura paga posterior do mesmo negócio. Também mede
-renovações vencidas, confirmadas, com atraso observado e recuperadas, mantendo
-cancelamento agendado separado de encerramento após cancelamento.
+O recorte separa receita inicial, receita de renovação e primeiro pagamento de
+uma assinatura paga posterior do mesmo negócio. Também mede renovações vencidas,
+confirmadas, com atraso observado e recuperadas, mantendo cancelamento agendado
+separado de encerramento após cancelamento.
 
-A Wave não declara churn, LTV ou payback oficiais. Essas métricas continuam
-dependentes de definição terminal, maturidade e evidência suficientes.
+O head final `8754b2960634f89e3f092dbb34c694d3a62459ee` passou no
+**Backend CI #1285**. O PR #280 foi mergeado na `main` pelo commit
+`3d95d04a898dd242b0eaa5babd896d5628e2ac6e`.
+
+A Wave não declara churn, LTV ou payback oficiais e mantém **67/67 (100%)**.
+
+## Wave 22 — lifecycle pago canônico e reativação
+
+A Wave 22 inicia o registro estruturado das transições financeiras de domínio:
+
+```text
+conversão inicial
+  → renovação
+  → atraso / recuperação / reversão
+  → mudança de plano
+  → cancelamento de renovação
+  → saída efetiva da base paga
+  → eventual reativação
+```
+
+A migration 093 cria `assinatura_eventos` com escrita append-only e chave
+idempotente. O Admin passa a expor os eventos canônicos registrados desde a
+Wave 22, sem backfill especulativo do período anterior e sem rotular atraso ou
+cancelamento agendado como churn.
 
 A baseline formal permanece **67/67 (100%)**.
 

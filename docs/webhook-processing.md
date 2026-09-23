@@ -33,6 +33,14 @@ A reconciliação considera também o estado atual informado no objeto `payment`
 
 As regras financeiras processadas pelo webhook continuam devendo ser idempotentes no domínio, pois o controle da fila reduz duplicidade operacional, mas não substitui idempotência de pagamentos, assinaturas e efeitos externos.
 
+Desde a migration 093, efeitos financeiros aplicados pelo domínio também podem
+gerar `assinatura_eventos`. Essa tabela não replica o envelope do Asaas: ela
+registra o significado local da transição, com chave idempotente por pagamento
+ou assinatura. Um atraso recuperável gera `PAGAMENTO_ATRASADO`; estorno e
+chargeback geram `REVERSAO_FINANCEIRA`; uma confirmação posterior pode gerar
+`PAGAMENTO_RECUPERADO` quando existe evidência anterior de atraso. Eventos
+duplicados do provedor não podem duplicar esses fatos de domínio.
+
 ## Conversões Meta e Google
 
 Conversões de assinatura originadas por webhooks financeiros são persistidas em `marketing_conversoes_entregas` antes do envio aos provedores. O estado financeiro é confirmado pela transação própria do domínio; depois disso, o webhook só é concluído quando a persistência das entregas termina. Se a gravação da outbox falhar ou o processo morrer antes dela, o registro durável em `webhook_eventos` permanece elegível a retry e consegue reconstruir a conversão a partir do pagamento confirmado. A chave `(provedor, tipo_evento, chave_evento)` é única. Para assinatura ativada, `chave_evento` inclui assinatura e pagamento, de modo que webhooks repetidos da mesma cobrança sejam deduplicados sem impedir que um pagamento posterior se torne o primeiro pagamento financeiramente válido após invalidação do anterior.

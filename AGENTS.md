@@ -441,6 +441,16 @@ recuperada exige pagamento atualmente válido e evidência processada de atraso
 anterior. Essas leituras são descritivas e não definem churn, LTV ou payback
 oficiais sem contrato e maturidade adicionais.
 
+Transições pagas novas devem ser registradas também em `assinatura_eventos`,
+como fatos append-only do domínio. A tabela distingue conversão inicial,
+renovação confirmada, reativação paga, mudança de plano, atraso recuperável,
+recuperação, reversão financeira, cancelamento da renovação e encerramento do
+acesso pago. Cada efeito usa chave idempotente estável e participa da mesma
+transação local da mudança que representa. `webhook_eventos` continua sendo a
+fila/auditoria do provedor; `assinatura_eventos` representa o significado de
+produto do AF. Não fazer backfill especulativo quando o histórico antigo não
+provar a transição.
+
 Conversões de assinatura para provedores de mídia devem ser idempotentes por
 assinatura e pagamento financeiro. Webhooks repetidos da mesma cobrança não
 duplicam entrega, mas um pagamento posterior que se torne o primeiro válido após
