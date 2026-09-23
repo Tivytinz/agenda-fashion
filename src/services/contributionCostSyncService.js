@@ -1186,6 +1186,19 @@ async function sincronizarIntegracao(
   return lock.resultado;
 }
 
+async function sincronizarManual({
+  integracaoId,
+  superadmin,
+}) {
+  exigirSuperadmin(
+    superadmin
+  );
+
+  return sincronizarIntegracao({
+    integracaoId,
+  });
+}
+
 async function sincronizarPendentes() {
   const integracoes =
     await repository
@@ -1242,6 +1255,7 @@ module.exports = {
   status,
   criarIntegracao,
   sincronizarIntegracao,
+  sincronizarManual,
   sincronizarPendentes,
   normalizarColeta,
   normalizarItem,
