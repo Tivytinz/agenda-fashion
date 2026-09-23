@@ -222,6 +222,51 @@ export function AdminContributionSyncPanel() {
     }
   }
 
+  async function toggleIntegration(
+    integration
+  ) {
+    if (saving) return;
+
+    setSaving(
+      `toggle-${integration.id}`
+    );
+    setError("");
+    setMessage("");
+
+    try {
+      await apiRequest(
+        `/admin/financeiro/contribuicao/sync/integracoes/${integration.id}`,
+        {
+          method: "PATCH",
+          body: {
+            ativa:
+              !integration.ativa,
+            intervaloMinutos:
+              integration
+                .intervaloMinutos
+          }
+        }
+      );
+
+      setMessage(
+        integration.ativa
+          ? "Integração pausada."
+          : "Integração ativada."
+      );
+      setReloadKey(
+        (value) =>
+          value + 1
+      );
+    } catch (requestError) {
+      setError(
+        requestError.message ||
+        "Não foi possível atualizar a integração."
+      );
+    } finally {
+      setSaving("");
+    }
+  }
+
   async function runIntegration(
     integrationId
   ) {
@@ -459,6 +504,29 @@ export function AdminContributionSyncPanel() {
                           `run-${item.id}`
                             ? "Sincronizando..."
                             : "Sincronizar"}
+                        </button>
+                        <button
+                          className="button secondary"
+                          disabled={
+                            Boolean(saving) ||
+                            (
+                              !item.ativa &&
+                              !item.adaptadorDisponivel
+                            )
+                          }
+                          onClick={() =>
+                            toggleIntegration(
+                              item
+                            )
+                          }
+                          type="button"
+                        >
+                          {saving ===
+                          `toggle-${item.id}`
+                            ? "Salvando..."
+                            : item.ativa
+                              ? "Pausar"
+                              : "Ativar"}
                         </button>
                       </td>
                     )}
