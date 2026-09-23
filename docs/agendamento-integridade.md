@@ -1,5 +1,7 @@
 # Integridade dos agendamentos
 
+> **Papel documental:** documento especializado de integridade técnica. Estados e transições do lifecycle pertencem a [`ciclo-atendimento.md`](./ciclo-atendimento.md); este arquivo concentra concorrência, intervalos, tempo canônico e isolamento de dados.
+
 Este documento registra invariantes técnicas duráveis do Agenda Fashion para preservar a confiabilidade da agenda.
 
 ## Duração histórica
