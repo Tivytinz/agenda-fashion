@@ -227,8 +227,8 @@ virar uma segunda fonte de regra quando o domínio já possui documento canônic
 - [wave-16-produto-ux.md](./wave-16-produto-ux.md): evidência do primeiro
   hardening pós-baseline de Produto e UX.
 - [wave-17-ativacao-profissional.md](./wave-17-ativacao-profissional.md):
-  workstream/evidência da proteção da ativação profissional até o primeiro
-  agendamento válido.
+  evidência da proteção da ativação profissional até o primeiro agendamento
+  válido.
 
 Enquanto uma wave estiver aberta, seu documento descreve o workstream e a
 evidência em construção, não uma nova fonte canônica. Quando terminar, a decisão
