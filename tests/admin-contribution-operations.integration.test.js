@@ -162,6 +162,121 @@ describe(
     }
 
     test(
+      "serializa replay concorrente do mesmo crédito",
+      async () => {
+        const {
+          usuarioId,
+          negocioId,
+          fonteId,
+          codigo,
+        } = await prepararBase();
+
+        const debito =
+          await service
+            .registrarCusto({
+              payload: {
+                fonteCodigo:
+                  codigo,
+                negocioId,
+                chaveOrigem:
+                  "debito_concorrente",
+                tipo:
+                  "DEBITO",
+                valor: 5,
+                ocorridoEm:
+                  new Date()
+                    .toISOString(),
+                motivo:
+                  "Débito para teste concorrente",
+              },
+              usuarioId,
+              superadmin: true,
+            });
+
+        const payloadCredito = {
+          fonteCodigo:
+            codigo,
+          negocioId,
+          chaveOrigem:
+            "credito_concorrente",
+          tipo:
+            "CREDITO",
+          valor: 5,
+          ocorridoEm:
+            new Date()
+              .toISOString(),
+          custoReferenciadoId:
+            debito.custo.id,
+          motivo:
+            "Crédito concorrente idempotente",
+        };
+
+        const resultados =
+          await Promise.all([
+            service.registrarCusto({
+              payload:
+                payloadCredito,
+              usuarioId,
+              superadmin: true,
+            }),
+            service.registrarCusto({
+              payload:
+                payloadCredito,
+              usuarioId,
+              superadmin: true,
+            }),
+          ]);
+
+        expect(
+          resultados
+            .map(
+              (item) =>
+                item.custo.replay
+            )
+            .sort()
+        ).toEqual([
+          false,
+          true,
+        ]);
+
+        const creditos =
+          await db.query(
+            `
+            SELECT COUNT(*)::INT AS total
+            FROM contribuicao_custos
+            WHERE fonte_id = $1
+              AND chave_origem =
+                'credito_concorrente'
+            `,
+            [fonteId]
+          );
+
+        expect(
+          creditos.rows[0].total
+        ).toBe(1);
+
+        const auditoria =
+          await db.query(
+            `
+            SELECT COUNT(*)::INT AS total
+            FROM contribuicao_operacoes_admin
+            WHERE fonte_id = $1
+              AND acao =
+                'REGISTRAR_CREDITO'
+              AND detalhes
+                ->> 'chaveOrigem' =
+                'credito_concorrente'
+            `,
+            [fonteId]
+          );
+
+        expect(
+          auditoria.rows[0].total
+        ).toBe(1);
+      }
+    );
+
+    test(
       "mantém custo idempotente, crédito limitado e cobertura auditável",
       async () => {
         const {
