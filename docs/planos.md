@@ -161,6 +161,13 @@ apagar dados existentes nem impedir a edição do que já foi cadastrado.
   nunca zero. A taxa do gateway e refunds da Wave 28 não são descontados de novo,
   e investimento de mídia continua separado como CAC de mídia. Lucro, CAC total,
   payback econômico e LTV:CAC definitivo permanecem fora do contrato.
+- A **Wave 30** prepara retorno de contribuição sobre o mesmo **CAC de mídia
+  observado** da Wave 27. A migration 101 cria apenas um cutover explícito e não
+  duplica custos nem cria backfill. A leitura permanece indisponível enquanto
+  não houver fonte obrigatória de contribuição, cobertura suficiente e LTV de
+  contribuição factual da mesma coorte. Recuperação em D30/D60/D90 significa
+  somente que contribuição observada alcançou o investimento de mídia até aquela
+  janela; não é CAC total, lucro ou payback econômico definitivo.
 - `webhook_eventos` preserva a entrega do provedor; `assinatura_eventos`
   preserva o fato de domínio do AF. O histórico anterior à migration 093 não é
   preenchido por suposição.
@@ -218,6 +225,8 @@ negócio e conversão para plano pago.
   `database/migrations/099_economia_liquida_gateway_v1.sql`.
 - Custos variáveis observados e cobertura da margem de contribuição:
   `database/migrations/100_margem_contribuicao_observada_v1.sql`.
+- Cutover do retorno de contribuição sobre CAC de mídia:
+  `database/migrations/101_retorno_contribuicao_cac_midia_v1.sql`.
 - Baseline de episódios pagos e churn v1:
   `database/migrations/095_churn_v1_episodios_pagos.sql`.
 - Ledger monetário, baseline de MRR e NRR v1:
