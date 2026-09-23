@@ -215,7 +215,55 @@ async function buscarContextoPagamento(
           anterior.data_pagamento DESC,
           anterior.id DESC
         LIMIT 1
-      ) AS ultimo_plano_pago_anterior_id
+      ) AS ultimo_plano_pago_anterior_id,
+      (
+        SELECT assinatura_anterior.valor
+        FROM pagamentos anterior
+        INNER JOIN assinaturas assinatura_anterior
+          ON assinatura_anterior.id = anterior.assinatura_id
+        INNER JOIN planos plano_anterior
+          ON plano_anterior.id = assinatura_anterior.plano_id
+        WHERE assinatura_anterior.negocio_id = a.negocio_id
+          AND assinatura_anterior.id <> a.id
+          AND plano_anterior.valor > 0
+          AND UPPER(anterior.status) = ANY($3::text[])
+          AND anterior.data_pagamento IS NOT NULL
+          AND (
+            anterior.data_pagamento < atual.data_pagamento
+            OR (
+              anterior.data_pagamento = atual.data_pagamento
+              AND anterior.id < atual.id
+            )
+          )
+        ORDER BY
+          anterior.data_pagamento DESC,
+          anterior.id DESC
+        LIMIT 1
+      ) AS ultimo_valor_recorrente_pago_anterior,
+      (
+        SELECT assinatura_anterior.periodicidade
+        FROM pagamentos anterior
+        INNER JOIN assinaturas assinatura_anterior
+          ON assinatura_anterior.id = anterior.assinatura_id
+        INNER JOIN planos plano_anterior
+          ON plano_anterior.id = assinatura_anterior.plano_id
+        WHERE assinatura_anterior.negocio_id = a.negocio_id
+          AND assinatura_anterior.id <> a.id
+          AND plano_anterior.valor > 0
+          AND UPPER(anterior.status) = ANY($3::text[])
+          AND anterior.data_pagamento IS NOT NULL
+          AND (
+            anterior.data_pagamento < atual.data_pagamento
+            OR (
+              anterior.data_pagamento = atual.data_pagamento
+              AND anterior.id < atual.id
+            )
+          )
+        ORDER BY
+          anterior.data_pagamento DESC,
+          anterior.id DESC
+        LIMIT 1
+      ) AS ultima_periodicidade_paga_anterior
     FROM assinaturas a
     INNER JOIN pagamentos atual
       ON atual.id = $2
