@@ -612,27 +612,27 @@ export function AdminAcquisitionV2Page() {
                         const d60 = windows.find((item) => number(item.dias) === 60);
                         const d90 = windows.find((item) => number(item.dias) === 90);
                         const renderReturn = (window) => {
-                          if (!window?.leitura?.comparavel) {
-                            return window?.leitura?.rotulo || "Aguardando";
-                          }
-
-                          const bruto = window.retornoBruto == null
-                            ? "—"
-                            : `${number(window.retornoBruto).toFixed(2)}x`;
-                          const liquido = window.economiaLiquida?.comparavel
+                          const bruto = window?.leitura?.comparavel
+                            ? (
+                              window.retornoBruto == null
+                                ? "—"
+                                : `${number(window.retornoBruto).toFixed(2)}x`
+                            )
+                            : window?.leitura?.rotulo || "Aguardando";
+                          const liquido = window?.economiaLiquida?.comparavel
                             ? (
                               window.retornoLiquidoGateway == null
                                 ? "—"
                                 : `${number(window.retornoLiquidoGateway).toFixed(2)}x`
                             )
                             : "Aguardando economia";
-                          const contribuicao = window.contribuicao?.comparavel
+                          const contribuicao = window?.contribuicao?.comparavel
                             ? (
                               window.contribuicao.retornoContribuicao == null
                                 ? "—"
                                 : `${number(window.contribuicao.retornoContribuicao).toFixed(2)}x`
                             )
-                            : window.contribuicao?.rotulo || "Aguardando contribuição";
+                            : window?.contribuicao?.rotulo || "Aguardando contribuição";
 
                           return (
                             <>
