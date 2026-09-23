@@ -154,6 +154,36 @@ async function criarIntegracao(
   return resultado.rows[0];
 }
 
+async function atualizarIntegracao(
+  {
+    integracaoId,
+    ativa,
+    intervaloMinutos,
+  },
+  executor = db
+) {
+  const resultado =
+    await executor.query(
+      `
+      UPDATE contribuicao_integracoes_sync
+      SET
+        ativa = $2,
+        intervalo_minutos = $3,
+        updated_at = NOW()
+      WHERE id = $1
+      RETURNING *
+      `,
+      [
+        integracaoId,
+        ativa,
+        intervaloMinutos,
+      ]
+    );
+
+  return resultado.rows[0] ||
+    null;
+}
+
 async function buscarIntegracaoPorId(
   integracaoId,
   executor = db
@@ -555,6 +585,7 @@ module.exports = {
   listarExecucoesRecentes,
   buscarFonteAtivaPorId,
   criarIntegracao,
+  atualizarIntegracao,
   buscarIntegracaoPorId,
   listarIntegracoesVencidas,
   executarComLockIntegracao,
