@@ -165,6 +165,42 @@ describe("assinaturaLifecycleService", () => {
       );
   });
 
+  test("mesma assinatura depois de episódio encerrado vira reativação", async () => {
+    repository.buscarContextoPagamento
+      .mockResolvedValue({
+        ultimo_evento_episodio_tipo:
+          "ACESSO_PAGO_ENCERRADO",
+        possui_pagamento_valido_mesma_assinatura: true,
+        possui_historico_pago_anterior: true,
+        outra_assinatura_ativa_id: null,
+        ultimo_plano_pago_anterior_id: null,
+        plano_negocio_atual_id: 1,
+      });
+    repository.teveEventoPagamento
+      .mockResolvedValue(true);
+
+    await service.registrarConfirmacaoPagamento({
+      client,
+      assinatura: assinatura(),
+      pagamentoId: 55,
+      asaasPaymentId: "pay_55",
+    });
+
+    expect(
+      repository.registrar.mock.calls
+        .map(([, dados]) => dados.tipo)
+    ).toEqual([
+      "REATIVACAO_PAGA",
+      "PAGAMENTO_RECUPERADO",
+    ]);
+    expect(
+      repository.registrar.mock.calls[0][1]
+    ).toMatchObject({
+      motivo: "RETORNO_APOS_SAIDA_PAGA",
+      planoAnteriorId: 3,
+    });
+  });
+
   test("estorno e chargeback viram reversão financeira, não atraso", async () => {
     await service.registrarSuspensaoFinanceira({
       client,
@@ -210,7 +246,7 @@ describe("assinaturaLifecycleService", () => {
           tipo: "ACESSO_PAGO_ENCERRADO",
           motivo: "CANCELAMENTO_VOLUNTARIO",
           chaveIdempotencia:
-            "assinatura:20:ACESSO_PAGO_ENCERRADO",
+            "assinatura:20:ACESSO_PAGO_ENCERRADO:2026-10-23",
         })
       );
   });
