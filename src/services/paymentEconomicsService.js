@@ -69,6 +69,14 @@ function statusEstorno(valor) {
 }
 
 function baseChaveEstorno(estorno) {
+  const id = String(
+    estorno?.id || ""
+  ).trim();
+
+  if (id) {
+    return `id:${id}`;
+  }
+
   return [
     String(estorno?.dateCreated || ""),
     Number(estorno?.value || 0)
@@ -166,6 +174,16 @@ function classificarEconomia({
         item.status === "PENDING" ||
         item.status === "UNKNOWN"
     );
+  const temEstornoConcluido =
+    estornos.some(
+      (item) =>
+        item.status === "DONE"
+    );
+  const exigeEvidenciaEstorno =
+    [
+      "REFUNDED",
+      "PARTIALLY_REFUNDED",
+    ].includes(statusPagamento);
 
   let statusReconciliacao =
     "DADOS_GATEWAY_INCOMPLETOS";
@@ -186,6 +204,12 @@ function classificarEconomia({
   } else if (
     statusPagamento ===
       "RECEIVED_IN_CASH_UNDONE"
+  ) {
+    statusReconciliacao =
+      "REVERSAO_NAO_RECONCILIADA";
+  } else if (
+    exigeEvidenciaEstorno &&
+    !temEstornoConcluido
   ) {
     statusReconciliacao =
       "REVERSAO_NAO_RECONCILIADA";
