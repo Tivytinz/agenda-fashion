@@ -380,7 +380,7 @@ export function AdminContributionSyncPanel() {
         Agendamento global:{" "}
         {data?.agendamento
           ?.habilitado
-          ? `ativo a cada ${data.agendamento.intervaloHoras}h`
+          ? `ativo a cada ${data.agendamento.intervaloMinutos} min`
           : "desativado"}
         .
       </p>
