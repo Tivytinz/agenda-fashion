@@ -108,4 +108,32 @@ describe("home crítica", () => {
       name: "Pausar rotação automática dos destaques"
     }).getAttribute("aria-pressed")).toBe("false");
   });
+
+
+  it("inicia com a rotação pausada quando a pessoa prefere movimento reduzido", () => {
+    const originalMatchMedia = window.matchMedia;
+
+    Object.defineProperty(window, "matchMedia", {
+      configurable: true,
+      value: vi.fn().mockReturnValue({
+        matches: true,
+        media: "(prefers-reduced-motion: reduce)",
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn()
+      })
+    });
+
+    try {
+      renderHome();
+
+      expect(screen.getByRole("button", {
+        name: "Retomar rotação automática dos destaques"
+      }).getAttribute("aria-pressed")).toBe("true");
+    } finally {
+      Object.defineProperty(window, "matchMedia", {
+        configurable: true,
+        value: originalMatchMedia
+      });
+    }
+  });
 });
