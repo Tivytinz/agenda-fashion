@@ -432,6 +432,8 @@ export function AdminAcquisitionV2Page() {
           ? acquisitionReturn.campanhas
           : [];
         const financialDiagnosis = acquisitionReturn.diagnostico || {};
+        const contributionReadiness =
+          acquisitionReturn.contribuicaoProntidao || {};
         const totals = campaigns.reduce((acc, campaign) => ({
           cadastros: acc.cadastros + number(campaign.cadastros),
           primeiros: acc.primeiros + number(campaign.primeirosAgendamentos),
@@ -572,6 +574,15 @@ export function AdminAcquisitionV2Page() {
                 </div>
               )}
 
+              {!contributionReadiness.retornoContribuicaoDisponivel && (
+                <div className="admin-command-alert is-warning" role="status">
+                  <strong>Retorno de contribuição ainda indisponível.</strong>
+                  <p className="muted">
+                    A Wave 30 está preparada, mas só libera contribuição/CAC de mídia quando a Wave 29 fornecer LTV de contribuição factual e todas as fontes obrigatórias tiverem cobertura suficiente.
+                  </p>
+                </div>
+              )}
+
               {financialCampaigns.length === 0 ? (
                 <EmptyState title="Aguardando base financeira pós-cutover">
                   Ainda não existem campanhas com custo ou negócios pagos elegíveis para a leitura financeira da Wave 27.
@@ -589,6 +600,7 @@ export function AdminAcquisitionV2Page() {
                         <th>Retorno D90</th>
                         <th>Recuperação bruta</th>
                         <th>Recuperação líquida</th>
+                        <th>Recuperação contribuição</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -614,11 +626,19 @@ export function AdminAcquisitionV2Page() {
                                 : `${number(window.retornoLiquidoGateway).toFixed(2)}x`
                             )
                             : "Aguardando economia";
+                          const contribuicao = window.contribuicao?.comparavel
+                            ? (
+                              window.contribuicao.retornoContribuicao == null
+                                ? "—"
+                                : `${number(window.contribuicao.retornoContribuicao).toFixed(2)}x`
+                            )
+                            : window.contribuicao?.rotulo || "Aguardando contribuição";
 
                           return (
                             <>
                               {bruto}
                               <small>Líquido gateway {liquido}</small>
+                              <small>Contribuição {contribuicao}</small>
                             </>
                           );
                         };
@@ -651,6 +671,11 @@ export function AdminAcquisitionV2Page() {
                                 ? `até D${campaign.primeiraRecuperacaoLiquidaGatewayDias}`
                                 : "Não observada"}
                             </td>
+                            <td>
+                              {campaign.primeiraRecuperacaoContribuicaoDias
+                                ? `até D${campaign.primeiraRecuperacaoContribuicaoDias}`
+                                : "Indisponível"}
+                            </td>
                           </tr>
                         );
                       })}
@@ -660,7 +685,7 @@ export function AdminAcquisitionV2Page() {
               )}
 
               <p className="muted">
-                CAC de mídia não é CAC econômico. Retorno bruto permanece disponível como referência histórica. A leitura líquida da Wave 28 desconta taxa observada no netValue e refunds DONE, mas ainda não desconta impostos, suporte, infraestrutura, pessoal ou demais custos de contribuição.
+                CAC de mídia não é CAC total. Retorno bruto e retorno líquido de gateway permanecem referências históricas. A Wave 30 prepara retorno de contribuição sobre CAC de mídia, mas não declara lucro, CAC total ou payback econômico definitivo enquanto a cobertura de contribuição não estiver factual e completa.
               </p>
             </section>
 
