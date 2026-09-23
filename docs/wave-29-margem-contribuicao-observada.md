@@ -246,18 +246,30 @@ contribuição estiver tecnicamente confiável.
 
 ## Estado atual
 
-A fundação técnica da Wave 29 está **implementada na branch de trabalho**:
+A fundação técnica da Wave 29 foi mergeada no PR #289 pelo commit
+`0723d70cdaaadafdcbe4937c1f5b9afcfc852bcc`, com **Backend CI #1362** verde.
+
+O PR #292 completa a lacuna técnica restante da Wave ao implementar **LTV de
+contribuição D30/D60/D90** sobre as mesmas coortes por negócio da Wave 26. A
+leitura herda a reconciliação econômica da Wave 28 e exige cobertura integral
+das fontes obrigatórias de contribuição; negócio maduro incompleto não é
+retirado do denominador para melhorar a média.
+
+Com isso, o código da Wave cobre:
 
 - migration 100 com cutover próprio;
 - registro de fontes sem seed especulativo;
 - ledger idempotente de débito/crédito por negócio;
 - watermark de cobertura por fonte;
 - service interno que bloqueia replay conflitante e cobertura regressiva;
-- leitura administrativa que só libera margem com cobertura factual completa;
-- estado explícito no Admin quando a margem continua indisponível;
-- testes unitários e de integração proporcionais ao risco.
+- margem de contribuição com cobertura factual completa;
+- LTV de contribuição D30/D60/D90 com bloqueio de janela incompleta;
+- estado explícito no Admin quando margem/LTV continuam indisponíveis;
+- testes unitários, frontend e integração PostgreSQL proporcionais ao risco.
 
-A Wave ainda não deve ser considerada encerrada: nenhuma fonte real de custo
-variável foi cadastrada, LTV de contribuição D30/D60/D90 ainda não foi
-materializado e a validação final depende do CI verde. Até lá, nenhuma margem de
-contribuição é declarada disponível em produção.
+A dependência restante é **factual**, não deve ser preenchida por suposição:
+o repositório ainda não possui uma fonte real obrigatória de custo variável
+(imposto, suporte, infraestrutura variável ou outra categoria comprovada) com
+valor e cobertura observáveis. Enquanto nenhuma fonte real for conectada ou
+cadastrada, margem e LTV de contribuição permanecem corretamente
+**indisponíveis** em produção; ausência de fonte nunca vira custo zero.
