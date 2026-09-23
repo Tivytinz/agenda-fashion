@@ -78,6 +78,7 @@ describe("assinaturaLifecycleService", () => {
         possui_pagamento_valido_mesma_assinatura: true,
         possui_historico_pago_anterior: true,
         outra_assinatura_ativa_id: null,
+        plano_negocio_atual_id: 1,
       });
     repository.teveEventoPagamento
       .mockResolvedValue(true);
@@ -98,6 +99,13 @@ describe("assinaturaLifecycleService", () => {
       "PAGAMENTO_RECUPERADO",
     ]);
     expect(eventos).toHaveLength(2);
+    expect(
+      repository.registrar.mock.calls[1][1]
+    ).toMatchObject({
+      tipo: "PAGAMENTO_RECUPERADO",
+      planoAnteriorId: 1,
+      planoNovoId: 3,
+    });
   });
 
   test("primeiro pagamento de nova assinatura com plano pago vigente vira mudança de plano", async () => {
@@ -163,6 +171,7 @@ describe("assinaturaLifecycleService", () => {
       assinatura: assinatura(),
       pagamentoId: 54,
       status: "CHARGEBACK_DISPUTE",
+      planoNovoId: 1,
     });
 
     expect(repository.registrar)
@@ -171,6 +180,8 @@ describe("assinaturaLifecycleService", () => {
         expect.objectContaining({
           tipo: "REVERSAO_FINANCEIRA",
           motivo: "CHARGEBACK_DISPUTE",
+          planoAnteriorId: 3,
+          planoNovoId: 1,
         })
       );
     expect(

@@ -251,6 +251,10 @@ async function suspenderAssinaturaPorPagamento(
       assinatura,
       pagamentoId: assinatura.pagamento_id,
       status,
+      planoNovoId: planoGratis.id,
+      ocorridoEm:
+        dadosPagamento.webhookEventoCriadoEm ||
+        null,
     });
 
     return suspensao;
@@ -324,6 +328,9 @@ async function ativarAssinaturaPorPagamento(
         assinatura,
         pagamentoId: assinatura.pagamento_id,
         asaasPaymentId: paymentId,
+        ocorridoEm:
+          dadosPagamento.webhookEventoCriadoEm ||
+          null,
       });
 
     let asaasSubscriptionId = assinatura.asaas_subscription_id;

@@ -30,6 +30,7 @@ async function registrarSuspensaoFinanceira({
   assinatura,
   pagamentoId,
   status,
+  planoNovoId = null,
   ocorridoEm = null,
 }) {
   if (
@@ -66,10 +67,7 @@ async function registrarSuspensaoFinanceira({
       tipo,
       motivo,
       planoAnteriorId: assinatura.plano_id || null,
-      planoNovoId:
-        tipo === "PAGAMENTO_ATRASADO"
-          ? assinatura.plano_id || null
-          : null,
+      planoNovoId: planoNovoId || null,
       origem: "webhook",
       detalhes: {
         status_provedor: statusNormalizado || null,
@@ -187,7 +185,8 @@ async function registrarConfirmacaoPagamento({
           pagamentoId,
           tipo: "PAGAMENTO_RECUPERADO",
           motivo: "INADIMPLENCIA",
-          planoAnteriorId: assinatura.plano_id || null,
+          planoAnteriorId:
+            contexto.plano_negocio_atual_id || null,
           planoNovoId: assinatura.plano_id || null,
           origem: "webhook",
           ocorridoEm,

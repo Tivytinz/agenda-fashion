@@ -81,6 +81,7 @@ async function buscarContextoPagamento(
     SELECT
       a.negocio_id,
       a.plano_id,
+      n.plano_id AS plano_negocio_atual_id,
       EXISTS (
         SELECT 1
         FROM pagamentos anterior
@@ -168,6 +169,8 @@ async function buscarContextoPagamento(
     INNER JOIN pagamentos atual
       ON atual.id = $2
       AND atual.assinatura_id = a.id
+    INNER JOIN negocios n
+      ON n.id = a.negocio_id
     WHERE a.id = $1
     LIMIT 1
     `,
