@@ -1,5 +1,7 @@
 # Prontidão financeira da recorrência profissional
 
+> **Papel documental:** documento especializado de analytics/growth para alinhar investimento, recorrência e monetização por coorte. Não define cobrança, entitlement, ativação financeira nem recorrência do Asaas.
+
 ## Objetivo
 
 Esta camada responde se uma campanha profissional possui evidência suficientemente alinhada para ler, na mesma base madura, investimento, recorrência e primeiro pagamento de plano pago.
