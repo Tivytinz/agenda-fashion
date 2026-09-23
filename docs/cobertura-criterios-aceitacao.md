@@ -437,6 +437,25 @@ de dados, não autorização para inventar custo.
 
 A Wave 29 não altera a baseline funcional, que continua em **67/67 (100%)**.
 
+## Wave 30 — retorno de contribuição × CAC de mídia observado v1
+
+A Wave 30 conecta contribuição observada ao mesmo CAC de mídia da aquisição
+oficial, usando negócio como unidade e janelas D30/D60/D90.
+
+A implementação possui cutover próprio na migration 101, herda os cutovers de
+gateway/contribuição e bloqueia a janela quando faltar custo de mídia, fonte
+obrigatória, reconciliação econômica ou cobertura integral de contribuição.
+Negócio maduro incompleto não é removido do denominador.
+
+A recuperação observada é somente a primeira janela D30/D60/D90 em que retorno
+de contribuição >= 1. Isso não é CAC total, lucro ou payback econômico
+definitivo e não autoriza interpolação de dias.
+
+A disponibilidade real continua condicionada à existência de uma fonte factual
+obrigatória de custo variável; ausência de fonte não vira custo zero.
+
+A Wave 30 não altera a baseline funcional, que permanece em **67/67 (100%)**.
+
 ## Regra de atualização
 
 Atualizar este documento quando uma Wave alterar a cobertura da baseline ou

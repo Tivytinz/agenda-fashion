@@ -386,6 +386,18 @@ removido do denominador. Sem fonte obrigatória real, margem e LTV de contribui�
 permanecem indisponíveis; ausência de fonte nunca é custo zero. Lucro, CAC total
 e payback econômico continuam fora da definição oficial.
 
+Desde a Wave 30, o AF possui **retorno de contribuição sobre CAC de mídia
+observado** por campanha, restrito a aquisições oficiais posteriores ao cutover
+`retorno_contribuicao_v1_inicio`. A leitura herda os cutovers de economia
+líquida e contribuição, preserva maturidade D30/D60/D90 e exige custo de mídia
+canônico, gateway reconciliado e cobertura integral das fontes obrigatórias na
+mesma janela. Negócio maduro incompleto bloqueia a janela em vez de ser removido
+da base. A primeira recuperação é somente a primeira janela D30/D60/D90 com
+retorno de contribuição >= 1; não há interpolação de dias. A métrica continua
+sendo CAC de mídia, não CAC total, e não representa lucro ou payback econômico
+definitivo. Sem fonte real obrigatória de custo variável, a leitura permanece
+indisponível.
+
 Um negócio pode possuir no máximo uma cobrança PIX pendente de contratação ou
 upgrade por vez, independentemente do plano escolhido. Trocar de plano antes do
 pagamento não deve criar cobranças concorrentes. A tela de assinatura deve

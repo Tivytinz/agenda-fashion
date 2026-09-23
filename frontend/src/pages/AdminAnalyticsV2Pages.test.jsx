@@ -19,6 +19,14 @@ const RESULT = {
     independenteDoFiltroPeriodo: true,
     unidade: "negocio",
     diasMaturacaoMonetizacao: 21,
+    contribuicaoProntidao: {
+      inicioCoberturaContribuicao: "2026-09-23T20:00:00.000Z",
+      fontesObrigatorias: 1,
+      fontesCobertasAteHoje: 1,
+      coberturaCompletaHoje: true,
+      ltvContribuicaoDisponivel: true,
+      retornoContribuicaoDisponivel: true
+    },
     diagnostico: {
       snapshotsTotal: 2,
       snapshotsOficiais: 2,
@@ -37,6 +45,7 @@ const RESULT = {
         midia: "cpc",
         primeiraRecuperacaoReceitaBrutaDias: 60,
         primeiraRecuperacaoLiquidaGatewayDias: 60,
+        primeiraRecuperacaoContribuicaoDias: 60,
         valorExpostoReversoesCentavos: 0,
         pagantesSemCustoD30: 0,
         pagantesSemCustoD60: 0,
@@ -57,6 +66,13 @@ const RESULT = {
             economiaLiquida: {
               comparavel: true,
               codigo: "base_comparavel"
+            },
+            contribuicao: {
+              comparavel: true,
+              codigo: "base_comparavel",
+              rotulo: "Base comparável",
+              retornoContribuicao: 0.6,
+              ltvContribuicaoSobreCacMidia: 0.6
             },
             leitura: {
               codigo: "base_comparavel",
@@ -80,6 +96,13 @@ const RESULT = {
               comparavel: true,
               codigo: "base_comparavel"
             },
+            contribuicao: {
+              comparavel: true,
+              codigo: "base_comparavel",
+              rotulo: "Base comparável",
+              retornoContribuicao: 1.05,
+              ltvContribuicaoSobreCacMidia: 1.05
+            },
             leitura: {
               codigo: "base_comparavel",
               rotulo: "Base comparável",
@@ -101,6 +124,13 @@ const RESULT = {
             economiaLiquida: {
               comparavel: false,
               codigo: "base_bruta_nao_comparavel"
+            },
+            contribuicao: {
+              comparavel: false,
+              codigo: "aguardando_maturidade",
+              rotulo: "Aguardando maturidade",
+              retornoContribuicao: null,
+              ltvContribuicaoSobreCacMidia: null
             },
             leitura: {
               codigo: "aguardando_maturidade",
@@ -148,9 +178,12 @@ describe("aquisição administrativa v2", () => {
     expect(screen.getByText("1.20x")).not.toBeNull();
     expect(screen.getByText("Líquido gateway 0.70x")).not.toBeNull();
     expect(screen.getByText("Líquido gateway 1.10x")).not.toBeNull();
+    expect(screen.getByText("Contribuição 0.60x")).not.toBeNull();
+    expect(screen.getByText("Contribuição 1.05x")).not.toBeNull();
+    expect(screen.getByRole("columnheader", { name: "Recuperação contribuição" })).not.toBeNull();
     expect(screen.getByText("Aguardando maturidade")).not.toBeNull();
-    expect(screen.getAllByText("até D60").length).toBeGreaterThanOrEqual(1);
-    expect(screen.getByText(/CAC de mídia não é CAC econômico/i)).not.toBeNull();
+    expect(screen.getAllByText("até D60").length).toBeGreaterThanOrEqual(2);
+    expect(screen.getByText(/CAC de mídia não é CAC total/i)).not.toBeNull();
   });
 
   it("mantém CAC e ROAS calculados pelo backend", async () => {

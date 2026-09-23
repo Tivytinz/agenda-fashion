@@ -253,6 +253,8 @@ virar uma segunda fonte de regra quando o domínio já possui documento canônic
   workstream de netValue, estornos exatos, LTV líquido de gateway e retorno líquido observado.
 - [wave-29-margem-contribuicao-observada.md](./wave-29-margem-contribuicao-observada.md):
   workstream de custos variáveis observados, margem de contribuição e LTV de contribuição.
+- [wave-30-retorno-contribuicao-cac-midia.md](./wave-30-retorno-contribuicao-cac-midia.md):
+  workstream de retorno de contribuição sobre CAC de mídia e recuperação observada.
 
 Enquanto uma wave estiver aberta, seu documento descreve o workstream e a
 evidência em construção, não uma nova fonte canônica. Quando terminar, a decisão

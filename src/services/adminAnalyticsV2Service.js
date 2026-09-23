@@ -201,7 +201,7 @@ async function buscarAcquisition(periodo) {
       conversao:
         "Cadastros e marcos comerciais continuam vindo da coorte profissional canônica do backend; sessões first-party não são tratadas como cadastro, ativação ou receita.",
       retornoFinanceiro:
-        "A Wave 27 mantém CAC de mídia e retorno bruto em uma coorte financeira separada e imutável por negócio. Essa leitura é acumulada desde o cutover próprio e não altera automaticamente a régua operacional de mídia.",
+        "A Wave 27 mantém CAC de mídia e retorno bruto em uma coorte financeira separada e imutável por negócio; a Wave 28 acrescenta retorno líquido de gateway. A Wave 30 acrescenta retorno de contribuição somente para coortes pós-cutover com mídia, gateway e custos variáveis integralmente cobertos. Nenhuma dessas leituras altera automaticamente a régua operacional de mídia.",
     },
   };
 }

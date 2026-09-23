@@ -4,6 +4,10 @@ const mockContarPendentes =
   jest.fn();
 const mockBuscarRetornoLiquidoAquisicao =
   jest.fn();
+const mockBuscarProntidaoContribuicao =
+  jest.fn();
+const mockBuscarRetornoContribuicaoAquisicao =
+  jest.fn();
 
 jest.mock(
   "../src/repositories/adminAcquisitionFinancialRepository",
@@ -29,6 +33,16 @@ jest.mock(
 );
 
 jest.mock(
+  "../src/repositories/adminContributionReturnRepository",
+  () => ({
+    buscarProntidao:
+      mockBuscarProntidaoContribuicao,
+    buscarRetornoContribuicaoAquisicao:
+      mockBuscarRetornoContribuicaoAquisicao,
+  })
+);
+
+jest.mock(
   "../src/services/adminProfessionalFunnelService",
   () => ({
     configuracaoDecisao:
@@ -49,6 +63,27 @@ describe(
       jest.clearAllMocks();
       mockContarPendentes
         .mockResolvedValue(0);
+      mockBuscarProntidaoContribuicao
+        .mockResolvedValue({
+          inicio_cobertura_wave30:
+            "2026-09-23T21:30:00.000Z",
+          inicio_cobertura_contribuicao:
+            "2026-09-23T20:00:00.000Z",
+          fontes_obrigatorias: 0,
+          fontes_cobertas_ate_hoje: 0,
+          inicio_cobertura_fontes: null,
+          menor_coberto_ate: null,
+          cobertura_contribuicao_completa_hoje:
+            false,
+        });
+      mockBuscarRetornoContribuicaoAquisicao
+        .mockResolvedValue({
+          inicio_cobertura:
+            "2026-09-23T21:30:00.000Z",
+          dias_maturacao_monetizacao:
+            21,
+          campanhas: [],
+        });
       mockBuscarRetornoLiquidoAquisicao
         .mockResolvedValue({
           inicio_cobertura:
@@ -187,6 +222,14 @@ describe(
           ltvLiquidoGatewayCentavos: 14000,
           retornoLiquidoGateway: 1.4,
           ltvLiquidoGatewaySobreCacMidia: 1.4,
+          contribuicao: {
+            codigo:
+              "sem_fonte_contribuicao",
+            comparavel: false,
+            retornoContribuicao: null,
+            ltvContribuicaoSobreCacMidia:
+              null,
+          },
         });
         expect(d60.retornoBruto)
           .toBe(2.5);
@@ -209,6 +252,29 @@ describe(
         ).toHaveBeenCalledWith({
           diasMaturacaoMonetizacao: 21,
         });
+        expect(
+          mockBuscarProntidaoContribuicao
+        ).toHaveBeenCalledTimes(1);
+        expect(
+          mockBuscarRetornoContribuicaoAquisicao
+        ).toHaveBeenCalledWith({
+          diasMaturacaoMonetizacao: 21,
+        });
+        expect(
+          resultado.contribuicaoProntidao
+        ).toMatchObject({
+          fontesObrigatorias: 0,
+          fontesCobertasAteHoje: 0,
+          coberturaCompletaHoje: false,
+          ltvContribuicaoDisponivel:
+            false,
+          retornoContribuicaoDisponivel:
+            false,
+        });
+        expect(
+          campanha
+            .primeiraRecuperacaoContribuicaoDias
+        ).toBeNull();
       }
     );
 
@@ -262,6 +328,260 @@ describe(
           resultado.campanhas[0]
             .primeiraRecuperacaoReceitaBrutaDias
         ).toBeNull();
+      }
+    );
+
+    test(
+      "não libera retorno sem janela madura posterior ao cutover da Wave 30",
+      async () => {
+        mockBuscarProntidaoContribuicao
+          .mockResolvedValue({
+            inicio_cobertura_wave30:
+              "2026-09-23T21:30:00.000Z",
+            inicio_cobertura_contribuicao:
+              "2026-09-23T20:00:00.000Z",
+            fontes_obrigatorias: 2,
+            fontes_cobertas_ate_hoje: 2,
+            inicio_cobertura_fontes:
+              "2026-09-23",
+            menor_coberto_ate:
+              "2026-09-23",
+            cobertura_contribuicao_completa_hoje:
+              true,
+          });
+        mockBuscarRetornoContribuicaoAquisicao
+          .mockResolvedValue({
+            inicio_cobertura:
+              "2026-09-23T21:30:00.000Z",
+            dias_maturacao_monetizacao:
+              21,
+            campanhas: [
+              {
+                campanha_id: 10,
+                fontes_obrigatorias: 2,
+                investimento_d30_centavos: 0,
+                dias_maduros_d30: 0,
+                negocios_d30: 0,
+                negocios_cobertos_d30: 0,
+                incompletos_d30: 0,
+                pagantes_sem_custo_d30: 0,
+                contribuicao_d30: "0.00",
+              },
+            ],
+          });
+
+        const resultado =
+          await service.buscar();
+        const d30 =
+          resultado.campanhas[0]
+            .janelas[0];
+
+        expect(d30.contribuicao)
+          .toMatchObject({
+            codigo:
+              "aguardando_maturidade",
+            comparavel: false,
+            retornoContribuicao: null,
+          });
+
+        expect(
+          resultado
+            .contribuicaoProntidao
+            .retornoContribuicaoDisponivel
+        ).toBe(false);
+      }
+    );
+
+    test(
+      "calcula retorno e recuperação de contribuição somente com a base totalmente coberta",
+      async () => {
+        mockBuscarProntidaoContribuicao
+          .mockResolvedValue({
+            inicio_cobertura_wave30:
+              "2026-06-01T00:00:00.000Z",
+            inicio_cobertura_contribuicao:
+              "2026-05-01T00:00:00.000Z",
+            fontes_obrigatorias: 1,
+            fontes_cobertas_ate_hoje: 1,
+            inicio_cobertura_fontes:
+              "2026-05-01",
+            menor_coberto_ate:
+              "2026-09-23",
+            cobertura_contribuicao_completa_hoje:
+              true,
+          });
+        mockBuscarRetornoContribuicaoAquisicao
+          .mockResolvedValue({
+            inicio_cobertura:
+              "2026-06-01T00:00:00.000Z",
+            dias_maturacao_monetizacao:
+              21,
+            campanhas: [
+              {
+                campanha_id: 10,
+                fontes_obrigatorias: 1,
+                investimento_d30_centavos:
+                  20000,
+                investimento_d60_centavos:
+                  20000,
+                investimento_d90_centavos:
+                  0,
+                dias_maduros_d30: 2,
+                dias_maduros_d60: 2,
+                dias_maduros_d90: 0,
+                negocios_d30: 2,
+                negocios_d60: 2,
+                negocios_d90: 0,
+                negocios_cobertos_d30: 2,
+                negocios_cobertos_d60: 2,
+                negocios_cobertos_d90: 0,
+                incompletos_d30: 0,
+                incompletos_d60: 0,
+                incompletos_d90: 0,
+                pagantes_sem_custo_d30: 0,
+                pagantes_sem_custo_d60: 0,
+                pagantes_sem_custo_d90: 0,
+                contribuicao_d30: "240.00",
+                contribuicao_d60: "360.00",
+                contribuicao_d90: "0.00",
+              },
+            ],
+          });
+
+        const resultado =
+          await service.buscar();
+        const campanha =
+          resultado.campanhas[0];
+        const d30 =
+          campanha.janelas[0];
+
+        expect(d30.contribuicao)
+          .toMatchObject({
+            codigo: "base_comparavel",
+            comparavel: true,
+            fontesObrigatorias: 1,
+            negocios: 2,
+            negociosCobertos: 2,
+            incompletos: 0,
+            investimentoCentavos: 20000,
+            cacMidiaCentavos: 10000,
+            contribuicaoCentavos: 24000,
+            ltvContribuicaoCentavos:
+              12000,
+            retornoContribuicao: 1.2,
+            ltvContribuicaoSobreCacMidia:
+              1.2,
+          });
+        expect(
+          campanha
+            .primeiraRecuperacaoContribuicaoDias
+        ).toBe(30);
+        expect(
+          resultado
+            .contribuicaoProntidao
+            .ltvContribuicaoDisponivel
+        ).toBe(true);
+        expect(
+          resultado
+            .contribuicaoProntidao
+            .retornoContribuicaoDisponivel
+        ).toBe(true);
+      }
+    );
+
+    test(
+      "bloqueia retorno quando algum negócio maduro está incompleto",
+      async () => {
+        mockBuscarProntidaoContribuicao
+          .mockResolvedValue({
+            fontes_obrigatorias: 1,
+            fontes_cobertas_ate_hoje: 1,
+            cobertura_contribuicao_completa_hoje:
+              true,
+          });
+        mockBuscarRetornoContribuicaoAquisicao
+          .mockResolvedValue({
+            inicio_cobertura:
+              "2026-06-01T00:00:00.000Z",
+            campanhas: [
+              {
+                campanha_id: 10,
+                fontes_obrigatorias: 1,
+                investimento_d30_centavos:
+                  20000,
+                dias_maduros_d30: 2,
+                negocios_d30: 2,
+                negocios_cobertos_d30: 1,
+                incompletos_d30: 1,
+                pagantes_sem_custo_d30: 0,
+                contribuicao_d30: "120.00",
+              },
+            ],
+          });
+
+        const resultado =
+          await service.buscar();
+        const d30 =
+          resultado.campanhas[0]
+            .janelas[0];
+
+        expect(d30.contribuicao)
+          .toMatchObject({
+            codigo:
+              "cobertura_contribuicao_incompleta",
+            comparavel: false,
+            retornoContribuicao: null,
+            contribuicaoCentavos: null,
+          });
+      }
+    );
+
+    test(
+      "preserva contribuição negativa como perda observada",
+      async () => {
+        mockBuscarProntidaoContribuicao
+          .mockResolvedValue({
+            fontes_obrigatorias: 1,
+            fontes_cobertas_ate_hoje: 1,
+            cobertura_contribuicao_completa_hoje:
+              true,
+          });
+        mockBuscarRetornoContribuicaoAquisicao
+          .mockResolvedValue({
+            inicio_cobertura:
+              "2026-06-01T00:00:00.000Z",
+            campanhas: [
+              {
+                campanha_id: 10,
+                fontes_obrigatorias: 1,
+                investimento_d30_centavos:
+                  10000,
+                dias_maduros_d30: 1,
+                negocios_d30: 1,
+                negocios_cobertos_d30: 1,
+                incompletos_d30: 0,
+                pagantes_sem_custo_d30: 0,
+                contribuicao_d30: "-20.00",
+              },
+            ],
+          });
+
+        const resultado =
+          await service.buscar();
+        const d30 =
+          resultado.campanhas[0]
+            .janelas[0];
+
+        expect(d30.contribuicao)
+          .toMatchObject({
+            comparavel: true,
+            contribuicaoCentavos: -2000,
+            ltvContribuicaoCentavos:
+              -2000,
+            retornoContribuicao: -0.2,
+            ltvContribuicaoSobreCacMidia:
+              -0.2,
+          });
       }
     );
 
