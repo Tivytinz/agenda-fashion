@@ -4,6 +4,9 @@ const repository = require(
 const aquisicaoFinanceiraRepository = require(
   "../repositories/aquisicaoFinanceiraRepository"
 );
+const paymentEconomicsRepository = require(
+  "../repositories/adminPaymentEconomicsRepository"
+);
 const {
   configuracaoDecisao,
 } = require(
@@ -180,7 +183,7 @@ async function buscar() {
   const configuracao =
     configuracaoDecisao();
 
-  const [bruto, pendentes] =
+  const [bruto, pendentes, liquido] =
     await Promise.all([
       repository.buscarRetornoAquisicao({
         diasMaturacaoMonetizacao:
@@ -189,7 +192,25 @@ async function buscar() {
       }),
       aquisicaoFinanceiraRepository
         .contarPendentes(),
+      paymentEconomicsRepository
+        .buscarRetornoLiquidoAquisicao({
+          diasMaturacaoMonetizacao:
+            configuracao
+              .diasMaturacaoMonetizacao,
+        }),
     ]);
+
+  const liquidoPorCampanha =
+    new Map(
+      (
+        Array.isArray(liquido.campanhas)
+          ? liquido.campanhas
+          : []
+      ).map((item) => [
+        numero(item.campanha_id),
+        item,
+      ])
+    );
 
   const campanhas = (
     Array.isArray(bruto.campanhas)
@@ -207,12 +228,91 @@ async function buscar() {
           leituraJanela(
             janela
           );
+        const economia =
+          liquidoPorCampanha.get(
+            numero(linha.campanha_id)
+          ) || {};
+        const sufixo =
+          `d${dias}`;
+        const negociosLiquidos =
+          numero(
+            economia[
+              `negocios_${sufixo}`
+            ]
+          );
+        const incompletosEconomia =
+          numero(
+            economia[
+              `incompletos_${sufixo}`
+            ]
+          );
+        const receitaLiquidaCentavos =
+          Math.round(
+            numero(
+              economia[
+                `receita_liquida_${sufixo}`
+              ]
+            ) * 100
+          );
+        const mesmaBase =
+          negociosLiquidos ===
+          janela.negociosPagos;
+        const economiaComparavel =
+          leitura.comparavel &&
+          mesmaBase &&
+          incompletosEconomia === 0;
 
         return {
           ...janela,
           custoConfiavel:
             leitura.comparavel,
           leitura,
+          economiaLiquida: {
+            comparavel:
+              economiaComparavel,
+            codigo:
+              !leitura.comparavel
+                ? "base_bruta_nao_comparavel"
+                : !mesmaBase
+                  ? "fora_cobertura_economica"
+                  : incompletosEconomia > 0
+                    ? "economia_incompleta"
+                    : "base_comparavel",
+            negociosCobertos:
+              negociosLiquidos,
+            pagamentosOuNegociosIncompletos:
+              incompletosEconomia,
+          },
+          receitaLiquidaGatewayCentavos:
+            economiaComparavel
+              ? receitaLiquidaCentavos
+              : null,
+          ltvLiquidoGatewayCentavos:
+            economiaComparavel &&
+            janela.negociosPagos > 0
+              ? custoUnitario(
+                  receitaLiquidaCentavos,
+                  janela.negociosPagos
+                )
+              : null,
+          retornoLiquidoGateway:
+            economiaComparavel
+              ? razao(
+                  receitaLiquidaCentavos,
+                  janela.investimentoCentavos
+                )
+              : null,
+          ltvLiquidoGatewaySobreCacMidia:
+            economiaComparavel &&
+            janela.negociosPagos > 0
+              ? razao(
+                  custoUnitario(
+                    receitaLiquidaCentavos,
+                    janela.negociosPagos
+                  ),
+                  janela.cacMidiaCentavos
+                )
+              : null,
         };
       });
 
@@ -233,6 +333,17 @@ async function buscar() {
       primeiraRecuperacaoReceitaBrutaDias:
         primeiraRecuperacao(
           janelas
+        ),
+      primeiraRecuperacaoLiquidaGatewayDias:
+        (
+          janelas.find(
+            (janela) =>
+              janela.economiaLiquida
+                ?.comparavel === true &&
+              janela.retornoLiquidoGateway
+                !== null &&
+              janela.retornoLiquidoGateway >= 1
+          )?.dias || null
         ),
       valorExpostoReversoesCentavos:
         numero(
@@ -272,6 +383,8 @@ async function buscar() {
       bruto.inicio_cobertura || null,
     primeiroDiaCompleto:
       bruto.primeiro_dia_completo || null,
+    inicioCoberturaEconomiaLiquida:
+      liquido.inicio_cobertura || null,
     independenteDoFiltroPeriodo: true,
     unidade: "negocio",
     diasMaturacaoMonetizacao:
@@ -317,7 +430,7 @@ async function buscar() {
       maturidade:
         "D30, D60 e D90 usam somente dias de aquisição maduros por pelo menos a janela de monetização configurada mais a janela de receita observada.",
       retorno:
-        "Retorno bruto compara receita bruta observada com investimento de mídia da mesma coorte. Não representa margem, lucro ou payback econômico. Reversões permanecem exposição separada.",
+        "Retorno bruto compara receita bruta observada com investimento de mídia da mesma coorte. A Wave 28 acrescenta retorno líquido de gateway somente quando a mesma base possui economia reconciliada, usando netValue menos refunds DONE. Nenhuma das leituras representa margem, lucro ou payback econômico.",
     },
   };
 }
