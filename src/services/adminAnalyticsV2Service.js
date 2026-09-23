@@ -28,6 +28,21 @@ function numero(valor) {
   return Number.isFinite(convertido) ? convertido : 0;
 }
 
+function numeroOuNull(valor) {
+  if (
+    valor === null ||
+    valor === undefined ||
+    valor === ""
+  ) {
+    return null;
+  }
+
+  const convertido = Number(valor);
+  return Number.isFinite(convertido)
+    ? convertido
+    : null;
+}
+
 function percentual(parte, total) {
   const denominator = numero(total);
   if (denominator <= 0) return null;
@@ -275,10 +290,11 @@ async function buscarRetention(periodo) {
 }
 
 async function buscarRevenue(periodo) {
-  const [resultado, churn, mrr] = await Promise.all([
+  const [resultado, churn, mrr, ltv] = await Promise.all([
     repository.buscarReceita(periodo),
     repository.buscarChurnPago(periodo),
     repository.buscarMrr(periodo),
+    repository.buscarLtvObservado(),
   ]);
   const resumo = resultado.resumo || {};
   const basePagaInicio = numero(churn.base_paga_inicio);
@@ -310,6 +326,55 @@ async function buscarRevenue(periodo) {
   const negociosCheckoutConvertidos = numero(
     resumo.negocios_checkout_convertidos
   );
+  const coortesLtv = Array.isArray(ltv.coortes)
+    ? ltv.coortes.map((coorte) => ({
+        coorteMes: coorte.coorte_mes,
+        negocios: numero(coorte.negocios),
+        madurosD30: numero(coorte.maduros_d30),
+        madurosD60: numero(coorte.maduros_d60),
+        madurosD90: numero(coorte.maduros_d90),
+        receitaBrutaD30: numero(
+          coorte.receita_bruta_d30
+        ),
+        receitaBrutaD60: numero(
+          coorte.receita_bruta_d60
+        ),
+        receitaBrutaD90: numero(
+          coorte.receita_bruta_d90
+        ),
+        ltvBrutoD30: numeroOuNull(
+          coorte.ltv_bruto_d30
+        ),
+        ltvBrutoD60: numeroOuNull(
+          coorte.ltv_bruto_d60
+        ),
+        ltvBrutoD90: numeroOuNull(
+          coorte.ltv_bruto_d90
+        ),
+        valorExpostoReversoes: numero(
+          coorte.valor_exposto_reversoes
+        ),
+        pagamentosEmReversao: numero(
+          coorte.pagamentos_em_reversao
+        ),
+      }))
+    : [];
+  const somarCoortes = (campo) =>
+    coortesLtv.reduce(
+      (total, coorte) =>
+        total + numero(coorte[campo]),
+      0
+    );
+  const negociosLtv = somarCoortes("negocios");
+  const madurosD30 = somarCoortes("madurosD30");
+  const madurosD60 = somarCoortes("madurosD60");
+  const madurosD90 = somarCoortes("madurosD90");
+  const receitaBrutaD30 =
+    somarCoortes("receitaBrutaD30");
+  const receitaBrutaD60 =
+    somarCoortes("receitaBrutaD60");
+  const receitaBrutaD90 =
+    somarCoortes("receitaBrutaD90");
 
   return {
     periodo: resultado.periodo,
@@ -475,6 +540,52 @@ async function buscarRevenue(periodo) {
         bridgeMrrReconciliado &&
         periodicidadesNaoSuportadas === 0,
     },
+    ltv: {
+      inicioCobertura: ltv.inicio_cobertura || null,
+      historicoAnteriorInferido: false,
+      unidade: "negocio",
+      ltvLiquidoDisponivel: false,
+      independenteDoFiltroPeriodo: true,
+      negociosCoorte: negociosLtv,
+      madurosD30,
+      madurosD60,
+      madurosD90,
+      ltvBrutoD30:
+        madurosD30 > 0
+          ? Number(
+              (
+                receitaBrutaD30 /
+                madurosD30
+              ).toFixed(2)
+            )
+          : null,
+      ltvBrutoD60:
+        madurosD60 > 0
+          ? Number(
+              (
+                receitaBrutaD60 /
+                madurosD60
+              ).toFixed(2)
+            )
+          : null,
+      ltvBrutoD90:
+        madurosD90 > 0
+          ? Number(
+              (
+                receitaBrutaD90 /
+                madurosD90
+              ).toFixed(2)
+            )
+          : null,
+      receitaBrutaD30,
+      receitaBrutaD60,
+      receitaBrutaD90,
+      valorExpostoReversoes:
+        somarCoortes("valorExpostoReversoes"),
+      pagamentosEmReversao:
+        somarCoortes("pagamentosEmReversao"),
+      coortes: coortesLtv,
+    },
     planos: resultado.planos,
     metodologia: {
       checkout:
@@ -499,6 +610,8 @@ async function buscarRevenue(periodo) {
         "MRR v1 usa snapshots monetários append-only desde a Wave 25 e nunca reconstrói valores históricos a partir do preço atual do catálogo. New MRR fica fora da NRR. Expansion e contraction usam o delta monetário efetivo; atraso ou disputa permanecem como MRR em risco até uma saída terminal. MRR é receita recorrente contratada, não caixa recebido.",
       nrr:
         "NRR v1 compara o MRR final dos negócios que pertenciam à base inicial com o MRR desses mesmos negócios no início. GRR ignora expansion e considera zero para um negócio da base inicial que teve saída terminal no recorte, mesmo que depois tenha reativado. Recortes anteriores ao cutover são ajustados à cobertura da Wave 25.",
+      ltv:
+        "LTV bruto observado v1 usa o negócio como unidade e soma pagamentos com data de pagamento dentro de D30, D60 e D90 desde a primeira conversão paga canônica posterior ao cutover da Wave 26. Somente negócios maduros entram em cada denominador. Churn não remove o negócio da coorte e reativação não cria nova aquisição. Reversões ficam expostas separadamente; o AF não calcula LTV líquido enquanto o valor econômico exato de reversões parciais não estiver persistido.",
       ativas:
         "Assinaturas pagas ativas é um estoque atual e não uma contagem criada no período. Cancelamentos cujo acesso já venceu são excluídos do estoque mesmo antes do próximo ciclo do worker financeiro.",
     },
