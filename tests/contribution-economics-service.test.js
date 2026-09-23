@@ -130,6 +130,61 @@ describe(
     );
 
     test(
+      "recusa credito referenciando custo de outra fonte ou negocio",
+      async () => {
+        mockPersistirCusto
+          .mockResolvedValue({
+            fonteAusente: false,
+            referenciaInvalida: true,
+            criado: false,
+            registro: null,
+          });
+
+        await expect(
+          service
+            .registrarCustoObservado({
+              fonteCodigo:
+                "provedor_variavel",
+              negocioId: 7,
+              chaveOrigem:
+                "evt_credito_invalido",
+              tipo: "CREDITO",
+              valor: 2.5,
+              ocorridoEm:
+                "2026-09-23T12:00:00Z",
+              custoReferenciadoId: 99,
+            })
+        ).rejects.toThrow(
+          "referencia de custo invalida"
+        );
+      }
+    );
+
+    test(
+      "recusa data de cobertura inexistente no calendario",
+      async () => {
+        await expect(
+          service
+            .registrarCoberturaFonte({
+              fonteCodigo:
+                "provedor_variavel",
+              inicioCobertura:
+                "2026-02-31",
+              cobertoAte:
+                "2026-03-01",
+              status: "COMPLETA",
+            })
+        ).rejects.toThrow(
+          "inicioCobertura invalido"
+        );
+
+        expect(
+          mockPersistirCobertura
+        ).not.toHaveBeenCalled();
+      }
+    );
+
+    test(
       "recusa cobertura regressiva",
       async () => {
         mockPersistirCobertura
