@@ -35,7 +35,10 @@ essa economia ao CAC de mídia em coortes pós-cutover e mantém a leitura
 indisponível quando mídia, gateway ou contribuição não cobrem integralmente a
 mesma base. A Wave 31 adiciona o fluxo administrativo auditável para cadastrar
 fonte factual, lançar débito/crédito e avançar cobertura sem transformar
-ausência de dado em zero. Essas métricas não substituem a régua operacional existente e não autorizam
+ausência de dado em zero. A Wave 32 adiciona sincronização automática
+provider-agnostic, mas mantém o registry de produção vazio até existir fonte
+externa realmente atribuível por negócio; cursor e cobertura só avançam após
+reconciliação integral do lote. Essas métricas não substituem a régua operacional existente e não autorizam
 escalar, manter ou pausar orçamento automaticamente. CAC total, lucro e payback
 econômico definitivo permanecem fora desta camada.
 
