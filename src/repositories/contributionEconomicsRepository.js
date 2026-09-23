@@ -41,9 +41,38 @@ async function persistirCusto({
   if (!fonte) {
     return {
       fonteAusente: true,
+      referenciaInvalida: false,
       registro: null,
       criado: false,
     };
+  }
+
+  if (custoReferenciadoId != null) {
+    const referencia = await db.query(
+      `
+      SELECT id
+      FROM contribuicao_custos
+      WHERE id = $1
+        AND fonte_id = $2
+        AND negocio_id = $3
+        AND tipo = 'DEBITO'
+      LIMIT 1
+      `,
+      [
+        custoReferenciadoId,
+        fonte.id,
+        negocioId,
+      ]
+    );
+
+    if (!referencia.rows[0]) {
+      return {
+        fonteAusente: false,
+        referenciaInvalida: true,
+        registro: null,
+        criado: false,
+      };
+    }
   }
 
   const inserido = await db.query(
@@ -99,6 +128,7 @@ async function persistirCusto({
   if (inserido.rows[0]) {
     return {
       fonteAusente: false,
+      referenciaInvalida: false,
       registro: inserido.rows[0],
       criado: true,
     };
@@ -129,6 +159,7 @@ async function persistirCusto({
 
   return {
     fonteAusente: false,
+    referenciaInvalida: false,
     registro:
       existente.rows[0] || null,
     criado: false,
