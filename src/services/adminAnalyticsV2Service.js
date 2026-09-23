@@ -345,6 +345,9 @@ async function buscarRevenue(periodo) {
       assinaturasEncerradasAposCancelamento: numero(
         resumo.assinaturas_encerradas_apos_cancelamento
       ),
+      cancelamentosVencidosPendentesReconciliacao: numero(
+        resumo.cancelamentos_vencidos_pendentes_reconciliacao
+      ),
       conversoesIniciaisCanonicas: numero(
         resumo.conversoes_iniciais_canonicas
       ),
@@ -390,9 +393,9 @@ async function buscarRevenue(periodo) {
       cancelamento:
         "Cancelamento de renovação agendado é estoque atual com acesso pago ainda ativo. Encerramento após cancelamento conta somente assinaturas inativas marcadas pela operação voluntária do titular no período; falha de pagamento recuperável não é classificada como churn.",
       lifecycleCanonico:
-        "Desde a Wave 22, transições financeiras novas também são gravadas de forma append-only em assinatura_eventos. Esses contadores são fatos canônicos do domínio e não fazem backfill especulativo do histórico anterior. Reativação, mudança de plano, atraso, recuperação, cancelamento da renovação e saída da base paga permanecem eventos distintos.",
+        "Desde a Wave 22, transições financeiras novas também são gravadas de forma append-only em assinatura_eventos. Na Wave 23, cancelamentos com período já vencido são reconciliados em background; a pendência de reconciliação é diagnóstico operacional e não churn. Reativação, mudança de plano, atraso, recuperação, cancelamento da renovação e saída da base paga permanecem eventos distintos.",
       ativas:
-        "Assinaturas pagas ativas é um estoque atual e não uma contagem criada no período.",
+        "Assinaturas pagas ativas é um estoque atual e não uma contagem criada no período. Cancelamentos cujo acesso já venceu são excluídos do estoque mesmo antes do próximo ciclo do worker financeiro.",
     },
   };
 }
