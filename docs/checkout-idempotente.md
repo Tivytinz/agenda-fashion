@@ -9,7 +9,12 @@ Idempotency-Key: <identificador único da tentativa>
 ```
 
 O frontend gera uma chave por tentativa e reutiliza a mesma chave
-quando a resposta falha ou demora. O backend registra a tentativa em
+quando a resposta falha ou demora. Antes de criar `checkout_tentativas` ou
+chamar o Asaas, o backend valida o vínculo ativo de proprietária, o negócio
+ativo e `negocios.publicado = TRUE`. Negócio ainda não publicado recebe
+HTTP 409 e não cria tentativa nem cobrança externa.
+
+Depois dessa elegibilidade, o backend registra a tentativa em
 `checkout_tentativas`, com unicidade por negócio.
 
 Comportamentos:

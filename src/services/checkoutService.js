@@ -333,6 +333,13 @@ async function criarCheckout({
     throw new AppError("Negócio não encontrado.", 404);
   }
 
+  if (negocio.publicado !== true) {
+    throw new AppError(
+      "Publique seu negócio antes de iniciar um checkout pago.",
+      409
+    );
+  }
+
   const plano =
     await checkoutRepository.buscarPlano(
       client,

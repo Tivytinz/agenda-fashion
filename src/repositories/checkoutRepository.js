@@ -9,6 +9,7 @@ async function buscarNegocioDono(client, usuarioId) {
       n.id,
       n.nome,
       n.plano_id,
+      n.publicado,
       n.asaas_customer_id
     FROM usuarios_negocios un
     INNER JOIN negocios n

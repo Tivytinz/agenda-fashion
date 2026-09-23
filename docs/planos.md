@@ -73,6 +73,12 @@ apagar dados existentes nem impedir a edição do que já foi cadastrado.
 
 - O plano gratuito não exige checkout.
 - Os planos pagos usam checkout por **PIX**.
+- O backend só inicia checkout pago para a proprietária ativa de um negócio
+  ativo e com `negocios.publicado = TRUE`; navegação, botão ou URL do frontend
+  não substituem essa validação.
+- A confirmação/personalização manual dos horários não é gate financeiro. A
+  primeira jornada pode ordenar a tela de Horários antes do checkout sem fazer
+  de `agenda_configuracoes` uma autoridade de billing.
 - O retorno do navegador não confirma pagamento.
 - O novo plano só é ativado depois da confirmação autenticada e idempotente do
   Asaas.

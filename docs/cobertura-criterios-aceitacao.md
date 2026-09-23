@@ -2,7 +2,7 @@
 
 > **Papel documental:** documento de evidência e rastreabilidade de cobertura. Não substitui regras canônicas de produto, arquitetura, segurança ou operação.
 
-> Estado consolidado após a Wave 17 — 22/09/2026.
+> Estado consolidado após a Wave 18 — 22/09/2026.
 >
 > Este documento registra rastreabilidade de implementação e não substitui a
 > baseline funcional nem a matriz oficial de testes. Código executável,
@@ -225,8 +225,8 @@ A Wave 17 não cria novos critérios P0/P1 e não altera **67/67 (100%)**.
 
 ## Wave 18 — recorrência e segundo agendamento
 
-A Wave 18 inicia o hardening da passagem de primeiro valor para repetição de
-valor. O objetivo é distinguir três fatos:
+A Wave 18 fechou o hardening da passagem de primeiro valor para repetição de
+valor, mantendo separados três fatos:
 
 ```text
 cliente selecionou “Agendar novamente”
@@ -234,13 +234,32 @@ cliente selecionou “Agendar novamente”
   != recorrência observada do negócio
 ```
 
-O primeiro recorte protege a intenção de repetição nos pipelines de analytics,
-a jornada mobile da cliente até um novo booking, a resolução novamente da
-profissional elegível e a apresentação explícita da recorrência histórica no
-dashboard.
+O navegador protege a jornada mobile até o segundo booking, a profissional
+elegível é resolvida novamente, os pipelines distinguem intenção de repetição e
+o dashboard identifica a recorrência como histórica do negócio.
 
-A Wave 18 permanece **em andamento** até o Quality Gate validar o head final e
-o PR correspondente ser mergeado. A baseline formal permanece 67/67.
+O head final `b4920b27b5edf2c094b83e604778e2bee0f4d1ee` passou no
+**Backend CI #1275** e no **Performance QA #30**. O PR #277 foi mergeado na
+`main` pelo commit
+`ecf5738ab4a8fd9ba3c0bb75a58bf3912b129284`.
+
+A Wave 18 não cria novos critérios P0/P1 e mantém **67/67 (100%)**.
+
+## Wave 19 — monetização e ativação de assinatura paga
+
+A Wave 19 inicia a proteção integrada da passagem:
+
+```text
+intenção de plano pago
+  → checkout elegível
+  → PIX pendente
+  → pagamento confirmado
+  → assinatura efetivamente ativa
+```
+
+O primeiro recorte reforça a elegibilidade no backend e adiciona regressão
+mobile para impedir que clique, checkout, pagamento confirmado e plano ativo
+sejam tratados como equivalentes. A baseline formal permanece 67/67.
 
 ## Regra de atualização
 
