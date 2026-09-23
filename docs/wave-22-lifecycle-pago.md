@@ -167,6 +167,13 @@ A Wave 22 pode ser encerrada quando:
 8. documentação canônica refletir a nova regra;
 9. o PR for mergeado com autorização explícita.
 
-## Estado atual
+## Estado de encerramento
 
-A Wave está **em andamento**.
+A Wave 22 foi encerrada no head
+`8dee4f0163fed2c46d843a9650b6e1baf0f05b0a`, com o **Backend CI #1293**
+concluído com sucesso.
+
+O PR #281 foi mergeado na `main` pelo commit
+`858e83a27d52db174addd8d83979a22b2b7ed481`.
+
+A baseline P0 + P1 permaneceu congelada em **67/67 (100%)**.
