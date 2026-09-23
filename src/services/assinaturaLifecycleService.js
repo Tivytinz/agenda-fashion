@@ -179,6 +179,16 @@ async function registrarConfirmacaoPagamento({
     planoAnteriorId =
       contexto.plano_ativo_anterior_id || null;
   } else if (
+    contexto.possui_historico_pago_anterior &&
+    contexto.ultimo_evento_episodio_tipo &&
+    contexto.ultimo_evento_episodio_tipo !==
+      "ACESSO_PAGO_ENCERRADO"
+  ) {
+    tipo = "PLANO_ALTERADO";
+    motivo = "EPISODIO_PAGO_ABERTO";
+    planoAnteriorId =
+      contexto.ultimo_plano_pago_anterior_id || null;
+  } else if (
     contexto.possui_historico_pago_anterior
   ) {
     tipo = "REATIVACAO_PAGA";
@@ -193,13 +203,15 @@ async function registrarConfirmacaoPagamento({
     snapshotMonetario(assinatura);
   const periodicidadeAnterior =
     contexto.periodicidade_ativa_anterior ||
+    contexto.ultima_periodicidade_paga_anterior ||
     contexto.periodicidade_atual ||
     assinatura.periodicidade ||
     "MONTHLY";
   const monetarioAnterior =
     snapshotMonetario({
       valor:
-        contexto.valor_recorrente_ativo_anterior,
+        contexto.valor_recorrente_ativo_anterior ??
+        contexto.ultimo_valor_recorrente_pago_anterior,
       periodicidade: periodicidadeAnterior,
     });
 
