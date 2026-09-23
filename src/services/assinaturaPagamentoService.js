@@ -246,7 +246,7 @@ async function suspenderAssinaturaPorPagamento(
       client
     );
 
-    await assinaturaLifecycleService.registrarAtraso({
+    await assinaturaLifecycleService.registrarSuspensaoFinanceira({
       client,
       assinatura,
       pagamentoId: assinatura.pagamento_id,

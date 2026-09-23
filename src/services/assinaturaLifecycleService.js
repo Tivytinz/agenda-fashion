@@ -10,7 +10,22 @@ function chaveAssinatura(assinaturaId, tipo) {
   return `assinatura:${assinaturaId}:${tipo}`;
 }
 
-async function registrarAtraso({
+const STATUS_ATRASO = new Set([
+  "OVERDUE",
+  "PAST_DUE",
+  "PAYMENT_FAILED",
+  "CREDIT_CARD_CAPTURE_REFUSED",
+]);
+
+const STATUS_REVERSAO = new Set([
+  "REFUNDED",
+  "RECEIVED_IN_CASH_UNDONE",
+  "CHARGEBACK_REQUESTED",
+  "CHARGEBACK_DISPUTE",
+  "AWAITING_CHARGEBACK_REVERSAL",
+]);
+
+async function registrarSuspensaoFinanceira({
   client,
   assinatura,
   pagamentoId,
@@ -25,26 +40,43 @@ async function registrarAtraso({
     return null;
   }
 
+  const statusNormalizado = String(
+    status || ""
+  ).trim().toUpperCase();
+
+  let tipo;
+  let motivo;
+
+  if (STATUS_ATRASO.has(statusNormalizado)) {
+    tipo = "PAGAMENTO_ATRASADO";
+    motivo = "INADIMPLENCIA";
+  } else if (STATUS_REVERSAO.has(statusNormalizado)) {
+    tipo = "REVERSAO_FINANCEIRA";
+    motivo = statusNormalizado;
+  } else {
+    return null;
+  }
+
   return assinaturaEventoRepository.registrar(
     client,
     {
       negocioId: assinatura.negocio_id,
       assinaturaId: assinatura.id,
       pagamentoId,
-      tipo: "PAGAMENTO_ATRASADO",
-      motivo: "INADIMPLENCIA",
+      tipo,
+      motivo,
       planoAnteriorId: assinatura.plano_id || null,
-      planoNovoId: assinatura.plano_id || null,
+      planoNovoId:
+        tipo === "PAGAMENTO_ATRASADO"
+          ? assinatura.plano_id || null
+          : null,
       origem: "webhook",
       detalhes: {
-        status_provedor: status || null,
+        status_provedor: statusNormalizado || null,
       },
       ocorridoEm,
       chaveIdempotencia:
-        chavePagamento(
-          pagamentoId,
-          "PAGAMENTO_ATRASADO"
-        ),
+        chavePagamento(pagamentoId, tipo),
     }
   );
 }
@@ -129,14 +161,23 @@ async function registrarConfirmacaoPagamento({
     eventos.push(principal);
   }
 
-  const teveAtraso =
+  const teveAtrasoCanonico =
     await assinaturaEventoRepository
-      .teveAtrasoProcessado(
+      .teveEventoPagamento(
         client,
-        asaasPaymentId
+        pagamentoId,
+        "PAGAMENTO_ATRASADO"
       );
+  const teveAtrasoLegado =
+    teveAtrasoCanonico
+      ? false
+      : await assinaturaEventoRepository
+          .teveAtrasoProcessado(
+            client,
+            asaasPaymentId
+          );
 
-  if (teveAtraso) {
+  if (teveAtrasoCanonico || teveAtrasoLegado) {
     const recuperacao =
       await assinaturaEventoRepository.registrar(
         client,
@@ -253,7 +294,7 @@ async function registrarEncerramentoAcesso({
 }
 
 module.exports = {
-  registrarAtraso,
+  registrarSuspensaoFinanceira,
   registrarConfirmacaoPagamento,
   registrarCancelamentoRenovacao,
   registrarEncerramentoAcesso,

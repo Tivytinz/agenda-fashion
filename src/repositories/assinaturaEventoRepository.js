@@ -207,6 +207,27 @@ async function teveAtrasoProcessado(
   return resultado.rows[0]?.possui_atraso === true;
 }
 
+async function teveEventoPagamento(
+  client,
+  pagamentoId,
+  tipo
+) {
+  const executor = client || db;
+  const resultado = await executor.query(
+    `
+    SELECT EXISTS (
+      SELECT 1
+      FROM assinatura_eventos
+      WHERE pagamento_id = $1
+        AND tipo = $2
+    ) AS possui_evento
+    `,
+    [pagamentoId, tipo]
+  );
+
+  return resultado.rows[0]?.possui_evento === true;
+}
+
 async function buscarUltimoPorAssinaturaETipo(
   client,
   assinaturaId,
@@ -265,6 +286,7 @@ module.exports = {
   registrar,
   buscarContextoPagamento,
   teveAtrasoProcessado,
+  teveEventoPagamento,
   buscarUltimoPorAssinaturaETipo,
   listarPorNegocio,
 };
