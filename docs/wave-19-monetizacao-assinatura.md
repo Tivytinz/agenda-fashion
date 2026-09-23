@@ -143,6 +143,11 @@ A Wave 19 pode ser encerrada quando:
 7. documentação canônica estiver reconciliada;
 8. o PR for mergeado com autorização explícita.
 
-## Estado atual
+## Estado de encerramento
 
-A Wave está **em preparação** na branch `feat/product-ux-wave-19`.
+A Wave 19 foi encerrada no head
+`9ee9a90be3f294728b7c20f349cb2167351b4742`, com o **Backend CI #1277**
+concluído com sucesso. O PR #278 foi mergeado na `main` pelo commit
+`979cc742f1bdb1643efebe6ff0724315eb83c514`.
+
+A baseline P0 + P1 permaneceu congelada em **67/67 (100%)**.

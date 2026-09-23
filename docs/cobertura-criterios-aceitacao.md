@@ -2,7 +2,7 @@
 
 > **Papel documental:** documento de evidência e rastreabilidade de cobertura. Não substitui regras canônicas de produto, arquitetura, segurança ou operação.
 
-> Estado consolidado após a Wave 18 — 22/09/2026.
+> Estado consolidado após a Wave 19 — 23/09/2026.
 >
 > Este documento registra rastreabilidade de implementação e não substitui a
 > baseline funcional nem a matriz oficial de testes. Código executável,
@@ -247,7 +247,7 @@ A Wave 18 não cria novos critérios P0/P1 e mantém **67/67 (100%)**.
 
 ## Wave 19 — monetização e ativação de assinatura paga
 
-A Wave 19 inicia a proteção integrada da passagem:
+A Wave 19 fechou a proteção integrada da passagem:
 
 ```text
 intenção de plano pago
@@ -257,9 +257,31 @@ intenção de plano pago
   → assinatura efetivamente ativa
 ```
 
-O primeiro recorte reforça a elegibilidade no backend e adiciona regressão
-mobile para impedir que clique, checkout, pagamento confirmado e plano ativo
-sejam tratados como equivalentes. A baseline formal permanece 67/67.
+O backend passou a exigir negócio publicado antes de iniciar checkout pago e o
+Playwright mobile passou a proteger PIX único, estado intermediário de ativação,
+assinatura `ACTIVE` e recuperação visual de upgrade pendente após recarga.
+
+O head final `9ee9a90be3f294728b7c20f349cb2167351b4742` passou no
+**Backend CI #1277**. O PR #278 foi mergeado na `main` pelo commit
+`979cc742f1bdb1643efebe6ff0724315eb83c514`.
+
+A Wave 19 não cria novos critérios P0/P1 e mantém **67/67 (100%)**.
+
+## Wave 20 — retenção paga e recuperação da assinatura
+
+A Wave 20 inicia o hardening do ciclo pós-conversão:
+
+```text
+assinatura ativa
+  → renovação
+  → atraso, reversão ou cancelamento
+  → recuperação ou fim do período pago
+```
+
+O primeiro recorte preserva a fatura recorrente do Asaas, diferencia atraso
+recuperável de estorno/disputa, corrige a semântica de `Acesso até` após
+cancelamento e adiciona regressão mobile de recuperação. A baseline formal
+permanece 67/67.
 
 ## Regra de atualização
 

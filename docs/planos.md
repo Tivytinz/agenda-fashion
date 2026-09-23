@@ -93,8 +93,20 @@ apagar dados existentes nem impedir a edição do que já foi cadastrado.
 - A API de assinatura normaliza o ciclo para estados de domínio como
   `PENDENTE`, `ATIVA`, `FALHA_DE_PAGAMENTO` e `CHECKOUT_EXPIRADO`,
   preservando também o status bruto do provedor para auditoria.
+- `FALHA_DE_PAGAMENTO` mantém compatibilidade como código agregado, mas expõe
+  `tipo_falha` para distinguir `COBRANCA_ATRASADA` de
+  `REVERSAO_OU_DISPUTA`.
+- Em cobrança atrasada, a conta pode oferecer a `invoiceUrl` persistida da
+  cobrança do Asaas para regularização. A URL só é exposta quando usa HTTPS e
+  domínio oficial do Asaas; o retorno da fatura nunca substitui a confirmação
+  por webhook.
+- Estorno, desfazimento de recebimento e chargeback não devem mostrar CTA de
+  "pagar novamente" como se fossem simples atraso.
 - Um checkout inicial vencido ou encerrado sem confirmação não libera benefício
   pago; a assinatura pendente é encerrada e o plano gratuito continua vigente.
+- Assinatura com renovação cancelada e período ainda pago permanece ativa até a
+  data persistida. A interface apresenta essa data como `Acesso até`, não
+  `Próxima cobrança`.
 - Antes de gerar o PIX, o checkout informa ciclo mensal, renovação,
   cancelamento, ausência de taxa de adesão e disponibiliza Termos de uso,
   Política de Privacidade e contato de suporte.
