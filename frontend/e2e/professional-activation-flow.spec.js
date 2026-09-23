@@ -60,7 +60,10 @@ function json(route, body, status = 200) {
   return route.fulfill({ status, contentType: "application/json", body: JSON.stringify(body) });
 }
 
-function activationNextAction({ serviceCreated }) {
+function activationNextAction({
+  serviceCreated,
+  firstBookingReceived
+}) {
   if (!serviceCreated) {
     return {
       estado: "GARANTIR_SERVICO_ATIVO",
@@ -74,6 +77,20 @@ function activationNextAction({ serviceCreated }) {
       }
     };
   }
+  if (firstBookingReceived) {
+    return {
+      estado: "ATIVADO",
+      concluido: true,
+      titulo: "Ativação concluída",
+      mensagem: "Seu negócio já recebeu o primeiro agendamento válido.",
+      acao: {
+        tipo: "NAVEGAR",
+        rotulo: "Abrir agenda",
+        destino: "/painel/agenda"
+      }
+    };
+  }
+
   return {
     estado: "CONQUISTAR_PRIMEIRO_AGENDAMENTO",
     concluido: false,
@@ -145,10 +162,11 @@ function serviceField(page, labelText, control) {
   return page.locator("label").filter({ hasText: labelText }).locator(control).first();
 }
 
-test("CA-NEG-01/04: profissional cria o primeiro negócio, publica com o primeiro serviço e chega à divulgação", async ({ page }) => {
+test("CA-NEG-01/04: profissional cria o negócio, compartilha o perfil e encerra a ativação no primeiro agendamento", async ({ page }) => {
   let businessCreated = false;
   let serviceCreated = false;
   let scheduleSaved = false;
+  let firstBookingReceived = false;
   let registrationPayload = null;
   let businessPayload = null;
   let servicePayload = null;
@@ -160,6 +178,19 @@ test("CA-NEG-01/04: profissional cria o primeiro negócio, publica com o primeir
       status: "denied",
       updatedAt: "2026-08-30T00:00:00.000Z"
     }));
+
+    Object.defineProperty(navigator, "share", {
+      configurable: true,
+      value: undefined
+    });
+    Object.defineProperty(navigator, "clipboard", {
+      configurable: true,
+      value: {
+        writeText: async (value) => {
+          window.__afCopiedPublicLink = value;
+        }
+      }
+    });
   });
 
   await page.route("**/marketing/meta/config", (route) => json(route, { enabled: false, pixelId: null }));
@@ -202,16 +233,29 @@ test("CA-NEG-01/04: profissional cria o primeiro negócio, publica com o primeir
       nome: BUSINESS.nome,
       slug: BUSINESS.slug
     },
-    resumo: { agendamentos_periodo: 0, faturamento_periodo: 0, clientes_novos: 0 },
-    performance: { visitas_perfil: 0, agendamentos_concluidos: 0, taxa_conversao: 0 },
+    resumo: {
+      agendamentos_periodo: firstBookingReceived ? 1 : 0,
+      faturamento_periodo: firstBookingReceived ? 40 : 0,
+      clientes_novos: firstBookingReceived ? 1 : 0,
+      clientes_unicos: firstBookingReceived ? 1 : 0,
+      clientes_recorrentes: 0
+    },
+    performance: {
+      visitas_perfil: firstBookingReceived ? 1 : 0,
+      agendamentos_concluidos: firstBookingReceived ? 1 : 0,
+      taxa_conversao: firstBookingReceived ? 100 : 0
+    },
     ranking_servicos: [],
     ativacao: {
       possui_servico_ativo: serviceCreated,
       negocio_publicado: serviceCreated,
       agenda_configurada: scheduleSaved,
-      primeiro_agendamento_recebido: false
+      primeiro_agendamento_recebido: firstBookingReceived
     },
-    proxima_acao_ativacao: activationNextAction({ serviceCreated })
+    proxima_acao_ativacao: activationNextAction({
+      serviceCreated,
+      firstBookingReceived
+    })
   }));
   await page.route("**/dashboard-dono/origem-clientes?periodo=7dias", (route) => json(route, { resumo: {}, origens: [] }));
   await page.route("**/conta", (route) => json(route, {
@@ -379,6 +423,35 @@ test("CA-NEG-01/04: profissional cria o primeiro negócio, publica com o primeir
   await expect(page.getByText("Próximo passo")).toBeVisible();
   await expect(page.getByText(/Copilot AF/i)).toHaveCount(0);
   await expect(page.getByRole("heading", { name: "Divulgue seu perfil" })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Compartilhar perfil" })).toBeVisible();
+
+  const shareProfileButton = page.getByRole("button", {
+    name: "Compartilhar perfil"
+  });
+  await expect(shareProfileButton).toBeVisible();
+  await shareProfileButton.click();
+
+  await expect(page.getByText("Link copiado")).toBeVisible();
+  const copiedPublicLink = await page.evaluate(
+    () => window.__afCopiedPublicLink
+  );
+  const trackedPublicLink = new URL(copiedPublicLink);
+
+  expect(trackedPublicLink.pathname).toBe("/negocio/studio-aurora");
+  expect(trackedPublicLink.searchParams.get("af_source")).toBe("agenda_fashion");
+  expect(trackedPublicLink.searchParams.get("af_medium")).toBe("share");
+  expect(trackedPublicLink.searchParams.get("af_content")).toBe("negocio");
+  expect(trackedPublicLink.searchParams.has("utm_campaign")).toBe(false);
+
+  // Compartilhar é intenção/comportamento; a ativação só encerra quando o
+  // backend passa a informar o primeiro agendamento válido.
+  await expect(page.getByText("Próximo passo")).toBeVisible();
+
+  firstBookingReceived = true;
+  await page.reload();
+
+  await expect(page.getByRole("heading", { name: "Visão geral" })).toBeVisible();
+  await expect(page.getByText("Próximo passo")).toHaveCount(0);
+  await expect(page.getByText("Clientes que voltaram")).toBeVisible();
+  await expect(page.getByText("Conversão")).toHaveCount(0);
   await expectNoHorizontalOverflow(page);
 });
