@@ -222,7 +222,7 @@ O worker `contribution_cost_sync`:
 
 - é desligado por padrão;
 - exige `CONTRIBUTION_COST_SYNC_SCHEDULE_ENABLED=true`;
-- usa intervalo global configurável entre 1h e 24h;
+- usa polling global configurável entre 5 e 60 minutos, enquanto cada integração mantém seu próprio intervalo mínimo de 15 minutos;
 - executa apenas integrações ativas e vencidas;
 - registra saúde em `operationalMetricsService`;
 - aguarda execuções em andamento durante shutdown.
@@ -230,7 +230,7 @@ O worker `contribution_cost_sync`:
 Configuração:
 
 - `CONTRIBUTION_COST_SYNC_SCHEDULE_ENABLED`;
-- `CONTRIBUTION_COST_SYNC_INTERVAL_HOURS`.
+- `CONTRIBUTION_COST_SYNC_POLL_INTERVAL_MINUTES`.
 
 Nenhuma flag habilita um adaptador inexistente.
 
