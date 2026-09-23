@@ -143,6 +143,74 @@ ON marketing_negocio_aquisicoes (
   atribuicao_em
 );
 
+ALTER TABLE marketing_campanha_gastos
+  ADD COLUMN objetivo_snapshot VARCHAR(24);
+
+UPDATE marketing_campanha_gastos g
+SET objetivo_snapshot = mc.objetivo
+FROM marketing_campanhas mc
+WHERE mc.id = g.campanha_id
+  AND g.objetivo_snapshot IS NULL;
+
+ALTER TABLE marketing_campanha_gastos
+  ALTER COLUMN objetivo_snapshot
+    SET NOT NULL,
+  ADD CONSTRAINT marketing_campanha_gastos_objetivo_snapshot_valido
+    CHECK (
+      objetivo_snapshot IN (
+        'indefinido',
+        'profissional',
+        'cliente'
+      )
+    );
+
+CREATE OR REPLACE FUNCTION
+  marketing_campanha_gastos_snapshot_objetivo()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+AS $
+BEGIN
+  IF TG_OP = 'INSERT'
+    OR NEW.campanha_id IS DISTINCT FROM OLD.campanha_id
+  THEN
+    SELECT objetivo
+    INTO NEW.objetivo_snapshot
+    FROM marketing_campanhas
+    WHERE id = NEW.campanha_id;
+
+    IF NEW.objetivo_snapshot IS NULL THEN
+      RAISE EXCEPTION
+        'Campanha inválida para snapshot de objetivo.';
+    END IF;
+  END IF;
+
+  RETURN NEW;
+END;
+$;
+
+DROP TRIGGER IF EXISTS
+  marketing_campanha_gastos_objetivo_snapshot_trigger
+ON marketing_campanha_gastos;
+
+CREATE TRIGGER
+  marketing_campanha_gastos_objetivo_snapshot_trigger
+BEFORE INSERT OR UPDATE OF campanha_id
+ON marketing_campanha_gastos
+FOR EACH ROW
+EXECUTE FUNCTION
+  marketing_campanha_gastos_snapshot_objetivo();
+
+CREATE INDEX
+  marketing_campanha_gastos_objetivo_data_idx
+ON marketing_campanha_gastos (
+  objetivo_snapshot,
+  data_gasto,
+  campanha_id
+);
+
+COMMENT ON COLUMN marketing_campanha_gastos.objetivo_snapshot IS
+  'Objetivo da campanha no instante em que o custo diário foi persistido. Mudanças futuras em marketing_campanhas.objetivo não reclassificam silenciosamente o custo histórico.';
+
 COMMENT ON TABLE marketing_negocio_aquisicoes IS
   'Snapshot imutável de aquisição financeira do negócio, materializado a partir da primeira conversão paga canônica posterior ao cutover da Wave 27.';
 
