@@ -116,7 +116,8 @@ describe("receita administrativa v2", () => {
         pagamentosRecuperadosCanonicos: 1,
         reversoesFinanceirasCanonicas: 1,
         cancelamentosRenovacaoCanonicos: 1,
-        saidasBasePagaCanonicas: 1
+        saidasBasePagaCanonicas: 1,
+        cancelamentosVencidosPendentesReconciliacao: 0
       },
       planos: []
     });
@@ -131,6 +132,7 @@ describe("receita administrativa v2", () => {
     expect(screen.getByText("Reativações pagas")).not.toBeNull();
     expect(screen.getByText("Reversões financeiras")).not.toBeNull();
     expect(screen.getByText("Saídas da base paga")).not.toBeNull();
+    expect(screen.getByText("Pendentes de reconciliação temporal")).not.toBeNull();
     expect(screen.getByText("66,7%")).not.toBeNull();
     expect(screen.getByText("50%")).not.toBeNull();
     expect(screen.getByText("Cancelar a próxima renovação, atrasar uma cobrança e perder o acesso pago são fatos diferentes.")).not.toBeNull();
