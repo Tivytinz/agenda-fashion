@@ -286,6 +286,89 @@ describe("Wave 25 - MRR e NRR canônicos", () => {
     ).toBe(300);
   });
 
+  test("mudança monetária válida encerra o risco sem criar churn", async () => {
+    const plano = await db.query(
+      `
+      SELECT id
+      FROM planos
+      WHERE slug = 'studio'
+      LIMIT 1
+      `
+    );
+    const planoId = Number(plano.rows[0].id);
+    const negocioId = await criarNegocio(
+      planoId,
+      "MRR Risco Plano"
+    );
+    const antes = await buscarMrr("all");
+
+    await db.query(
+      `
+      INSERT INTO assinatura_eventos (
+        negocio_id,
+        tipo,
+        motivo,
+        plano_anterior_id,
+        plano_novo_id,
+        origem,
+        detalhes,
+        valor_mensal_anterior,
+        valor_mensal_novo,
+        periodicidade_snapshot,
+        ocorrido_em,
+        chave_idempotencia
+      )
+      VALUES (
+        $1,
+        'MRR_BASELINE',
+        'WAVE25_CUTOVER',
+        $2,
+        $2,
+        'sistema',
+        '{"mrr_em_risco_snapshot":true}'::jsonb,
+        49.90,
+        49.90,
+        'MONTHLY',
+        (
+          SELECT ocorrido_em
+          FROM financeiro_marcos
+          WHERE chave = 'mrr_v1_inicio'
+        ),
+        $3
+      )
+      `,
+      [
+        negocioId,
+        planoId,
+        `test:wave25:${negocioId}:risk-plan-baseline`,
+      ]
+    );
+
+    await registrarEvento({
+      negocioId,
+      tipo: "PLANO_ALTERADO",
+      anterior: 49.9,
+      novo: 99.9,
+      chave: `test:wave25:${negocioId}:risk-plan-change`,
+      planoId,
+    });
+
+    const depois = await buscarMrr("all");
+
+    expect(
+      Number(depois.mrr_em_risco) -
+      Number(antes.mrr_em_risco)
+    ).toBe(0);
+    expect(
+      Number(depois.expansion_mrr) -
+      Number(antes.expansion_mrr)
+    ).toBe(50);
+    expect(
+      Number(depois.churned_mrr) -
+      Number(antes.churned_mrr)
+    ).toBe(0);
+  });
+
   test("atraso recuperável mantém o MRR e o expõe como risco", async () => {
     const plano = await db.query(
       `
