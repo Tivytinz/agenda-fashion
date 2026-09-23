@@ -145,12 +145,8 @@ async function materializarAquisicaoPorEvento(
           AS primeira_conversao_data,
         d.usuario_id
           AS usuario_aquisicao_id,
-        COALESCE(
-          mua.atribuicao_em,
-          u.created_at,
-          n.created_at,
-          e.ocorrido_em
-        ) AS atribuicao_em,
+        mua.atribuicao_em
+          AS atribuicao_em,
         mua.usuario_id IS NOT NULL
           AS tem_atribuicao,
         ${atribuicao.atribuicaoPaga}
@@ -179,21 +175,38 @@ async function materializarAquisicaoPorEvento(
       SELECT
         b.*,
         CASE
-          WHEN b.atribuicao_em >
-            b.primeira_conversao_em
-            THEN b.primeira_conversao_em
+          WHEN b.atribuicao_em IS NULL
+            OR b.atribuicao_em >
+              b.primeira_conversao_em
+            THEN NULL
           ELSE b.atribuicao_em
-        END AS atribuicao_em_segura
+        END AS atribuicao_em_segura,
+        (
+          b.atribuicao_em IS NOT NULL
+          AND b.atribuicao_em >
+            b.primeira_conversao_em
+        ) AS atribuicao_posterior_conversao
       FROM base b
     ),
     classificado AS (
       SELECT
         contexto.*,
-        campanha_oficial.id
-          AS campanha_oficial_id,
-        campanha_oficial.metodo_resolucao,
+        CASE
+          WHEN contexto.atribuicao_em_segura
+            IS NULL
+            THEN NULL
+          ELSE campanha_oficial.id
+        END AS campanha_oficial_id,
+        CASE
+          WHEN contexto.atribuicao_em_segura
+            IS NULL
+            THEN NULL
+          ELSE campanha_oficial.metodo_resolucao
+        END AS metodo_resolucao,
         CASE
           WHEN NOT contexto.tem_atribuicao
+            OR contexto.atribuicao_em_segura
+              IS NULL
             THEN 'sem_evidencia'
           WHEN campanha_oficial.id IS NOT NULL
             THEN 'oficial'
@@ -236,24 +249,48 @@ async function materializarAquisicaoPorEvento(
       c.classificacao_atribuicao,
       c.metodo_resolucao,
       LEFT(
-        COALESCE(
-          NULLIF(BTRIM(c.origem_resolvida), ''),
-          'desconhecida'
-        ),
+        CASE
+          WHEN c.classificacao_atribuicao =
+            'sem_evidencia'
+            THEN 'desconhecida'
+          ELSE COALESCE(
+            NULLIF(
+              BTRIM(c.origem_resolvida),
+              ''
+            ),
+            'desconhecida'
+          )
+        END,
         80
       ),
       LEFT(
-        COALESCE(
-          NULLIF(BTRIM(c.midia_resolvida), ''),
-          'desconhecida'
-        ),
+        CASE
+          WHEN c.classificacao_atribuicao =
+            'sem_evidencia'
+            THEN 'desconhecida'
+          ELSE COALESCE(
+            NULLIF(
+              BTRIM(c.midia_resolvida),
+              ''
+            ),
+            'desconhecida'
+          )
+        END,
         80
       ),
       LEFT(
-        COALESCE(
-          NULLIF(BTRIM(c.campanha_resolvida), ''),
-          '(sem campanha)'
-        ),
+        CASE
+          WHEN c.classificacao_atribuicao =
+            'sem_evidencia'
+            THEN '(sem campanha)'
+          ELSE COALESCE(
+            NULLIF(
+              BTRIM(c.campanha_resolvida),
+              ''
+            ),
+            '(sem campanha)'
+          )
+        END,
         140
       ),
       c.atribuicao_em_segura,
@@ -265,7 +302,9 @@ async function materializarAquisicaoPorEvento(
         'evento_conversao_id',
         c.evento_id,
         'historico_anterior',
-        'nao_inferido'
+        'nao_inferido',
+        'atribuicao_posterior_conversao',
+        c.atribuicao_posterior_conversao
       )
     FROM classificado c
     ON CONFLICT (negocio_id)
