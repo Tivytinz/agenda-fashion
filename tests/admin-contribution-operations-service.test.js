@@ -426,6 +426,51 @@ describe(
     );
 
     test(
+      "recusa cobertura completa sem data final ou no futuro",
+      async () => {
+        await expect(
+          service.registrarCobertura({
+            payload: {
+              fonteCodigo:
+                "mensageria_variavel",
+              inicioCobertura:
+                "2026-09-01",
+              status:
+                "COMPLETA",
+              motivo:
+                "Cobertura sem fechamento",
+            },
+            usuarioId: 7,
+            superadmin: true,
+          })
+        ).rejects.toMatchObject({
+          statusCode: 400,
+        });
+
+        await expect(
+          service.registrarCobertura({
+            payload: {
+              fonteCodigo:
+                "mensageria_variavel",
+              inicioCobertura:
+                "2026-09-01",
+              cobertoAte:
+                "2099-01-01",
+              status:
+                "COMPLETA",
+              motivo:
+                "Cobertura futura inválida",
+            },
+            usuarioId: 7,
+            superadmin: true,
+          })
+        ).rejects.toMatchObject({
+          statusCode: 400,
+        });
+      }
+    );
+
+    test(
       "registra cobertura e sua justificativa de forma transacional",
       async () => {
         contributionEconomicsService
