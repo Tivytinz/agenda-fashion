@@ -340,11 +340,13 @@ resolução, primeiro pagamento e plano de entrada. Transferência futura de
 propriedade, mudança de plano, nova assinatura ou reativação não criam uma nova
 aquisição nem reescrevem a campanha histórica.
 
-A leitura de **CAC de mídia observado v1** usa custo diário por campanha e nunca
-soma manual + automático no mesmo dia: uma única fonte automática prevalece;
-múltiplas fontes automáticas tornam o dia ambíguo e bloqueiam a leitura.
-Retorno bruto D30/D60/D90 compara receita bruta observada com investimento da
-mesma coorte madura. A maturidade usa
+A leitura de **CAC de mídia observado v1** reutiliza o custo diário canônico por
+campanha já protegido pela migration 037: existe uma única fonte efetiva por
+campanha/dia e a fonte gravada por último substitui a anterior. A Wave 27 não
+cria outra precedência entre fontes. Negócio pago maduro sem custo no próprio dia
+de aquisição bloqueia a comparação daquela janela. Retorno bruto D30/D60/D90
+compara receita bruta observada com investimento da mesma coorte madura. A
+maturidade usa
 `diasMaturacaoMonetizacao + janelaLtv`. Essa leitura não representa CAC
 econômico, margem ou payback econômico e não altera automaticamente a régua de
 escala/pausa de mídia.
