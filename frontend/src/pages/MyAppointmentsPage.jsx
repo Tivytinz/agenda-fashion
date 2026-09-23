@@ -126,14 +126,15 @@ function AppointmentCard({
   const hasRating = Number.isInteger(savedRating) && savedRating >= 1 && savedRating <= 5;
 
   function trackRepeatBooking() {
-    track("reagendamento_iniciado", {
+    track("agendamento_iniciado", {
       page: "meus_agendamentos",
       mission: "retornar_ao_negocio",
       businessId: appointment.negocio_id,
       properties: {
+        origem: "agendar_novamente",
         agendamento_id: Number(appointment.id),
         servico_id: Number(appointment.servico_id) || null,
-        status_origem: appointment.status
+        status: appointment.status
       }
     });
   }
