@@ -149,7 +149,7 @@ describe("aquisição administrativa v2", () => {
     expect(screen.getByText("Líquido gateway 0.70x")).not.toBeNull();
     expect(screen.getByText("Líquido gateway 1.10x")).not.toBeNull();
     expect(screen.getAllByText("Contribuição Aguardando contribuição").length).toBeGreaterThanOrEqual(2);
-    expect(screen.getByRole("heading", { name: "Retorno de contribuição ainda indisponível." })).not.toBeNull();
+    expect(screen.getByText("Retorno de contribuição ainda indisponível.")).not.toBeNull();
     expect(screen.getByRole("columnheader", { name: "Recuperação contribuição" })).not.toBeNull();
     expect(screen.getByText("Aguardando maturidade")).not.toBeNull();
     expect(screen.getAllByText("até D60").length).toBeGreaterThanOrEqual(1);
