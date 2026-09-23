@@ -371,38 +371,6 @@ export function AdminOverviewV2Page() {
               </dl>
             </section>
 
-            <section className="panel">
-              <div className="panel-heading">
-                <div>
-                  <p className="eyebrow">Economia do gateway</p>
-                  <h2>Economia do recebimento</h2>
-                  <p className="muted">
-                    netValue e refunds concluídos vêm da reconciliação do Asaas. Esta leitura não é lucro nem margem de contribuição.
-                  </p>
-                </div>
-              </div>
-              {number(economics.pagamentosIncompletos) > 0 && (
-                <div className="admin-command-alert is-warning" role="status">
-                  <strong>Reconciliação econômica incompleta.</strong>
-                  <p className="muted">
-                    Pagamentos sem netValue confiável, em liquidação, refund ou disputa não entram como receita líquida aparentemente precisa.
-                  </p>
-                </div>
-              )}
-              <dl className="admin-command-data-list">
-                <div><dt>Valor bruto reconciliado</dt><dd>{formatCurrency(economics.valorBrutoReconciliado)}</dd></div>
-                <div><dt>Taxas gateway observadas</dt><dd>{formatCurrency(economics.taxasGatewayObservadas)}</dd></div>
-                <div><dt>Estornos concluídos</dt><dd>{formatCurrency(economics.estornosConcluidos)}</dd></div>
-                <div><dt>Receita líquida de gateway</dt><dd>{formatCurrency(economics.receitaLiquidaGateway)}</dd></div>
-                <div><dt>Pagamentos completos</dt><dd>{formatNumber(economics.pagamentosCompletos)}</dd></div>
-                <div><dt>Pagamentos incompletos</dt><dd>{formatNumber(economics.pagamentosIncompletos)}</dd></div>
-                <div><dt>Margem de contribuição</dt><dd>Indisponível</dd></div>
-              </dl>
-              <p className="muted">
-                Cobertura canônica desde {formatDateTime(economics.inicioCobertura)}. Ausência de netValue não é interpretada como taxa zero.
-              </p>
-            </section>
-
             <div className="admin-command-two-column">
               <section className="panel">
                 <div className="panel-heading">
@@ -1107,6 +1075,38 @@ export function AdminRevenueV2Page() {
               <MetricCard label="Mudança de plano" hint="primeiro pagamento de outra assinatura do mesmo negócio" value={formatCurrency(summary.receitaMudancaPlano)} />
               <MetricCard label="Valor exposto a reversões" hint={`${formatNumber(summary.pagamentosEmReversao)} pagamento(s) em estorno, reversão ou disputa`} tone={number(summary.valorExpostoReversoes) > 0 ? "warning" : "neutral"} value={formatCurrency(summary.valorExpostoReversoes)} />
               <MetricCard label="Assinaturas pagas ativas" hint="estoque atual, não criação no período" value={formatNumber(summary.assinaturasPagasAtivas)} />
+            </section>
+
+            <section className="panel">
+              <div className="panel-heading">
+                <div>
+                  <p className="eyebrow">Economia do gateway</p>
+                  <h2>Economia do recebimento</h2>
+                  <p className="muted">
+                    netValue e refunds concluídos vêm da reconciliação do Asaas. Esta leitura não é lucro nem margem de contribuição.
+                  </p>
+                </div>
+              </div>
+              {number(economics.pagamentosIncompletos) > 0 && (
+                <div className="admin-command-alert is-warning" role="status">
+                  <strong>Reconciliação econômica incompleta.</strong>
+                  <p className="muted">
+                    Pagamentos sem netValue confiável, em liquidação, refund ou disputa não entram como receita líquida aparentemente precisa.
+                  </p>
+                </div>
+              )}
+              <dl className="admin-command-data-list">
+                <div><dt>Valor bruto reconciliado</dt><dd>{formatCurrency(economics.valorBrutoReconciliado)}</dd></div>
+                <div><dt>Taxas gateway observadas</dt><dd>{formatCurrency(economics.taxasGatewayObservadas)}</dd></div>
+                <div><dt>Estornos concluídos</dt><dd>{formatCurrency(economics.estornosConcluidos)}</dd></div>
+                <div><dt>Receita líquida de gateway</dt><dd>{formatCurrency(economics.receitaLiquidaGateway)}</dd></div>
+                <div><dt>Pagamentos completos</dt><dd>{formatNumber(economics.pagamentosCompletos)}</dd></div>
+                <div><dt>Pagamentos incompletos</dt><dd>{formatNumber(economics.pagamentosIncompletos)}</dd></div>
+                <div><dt>Margem de contribuição</dt><dd>Indisponível</dd></div>
+              </dl>
+              <p className="muted">
+                Cobertura canônica desde {formatDateTime(economics.inicioCobertura)}. Ausência de netValue não é interpretada como taxa zero.
+              </p>
             </section>
 
             <div className="admin-command-two-column">
