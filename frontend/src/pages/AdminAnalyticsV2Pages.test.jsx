@@ -36,6 +36,7 @@ const RESULT = {
         origem: "google",
         midia: "cpc",
         primeiraRecuperacaoReceitaBrutaDias: 60,
+        primeiraRecuperacaoLiquidaGatewayDias: 60,
         valorExpostoReversoesCentavos: 0,
         pagantesSemCustoD30: 0,
         pagantesSemCustoD60: 0,
@@ -51,6 +52,12 @@ const RESULT = {
             ltvBrutoCentavos: 7500,
             retornoBruto: 0.75,
             ltvBrutoSobreCacMidia: 0.75,
+            retornoLiquidoGateway: 0.7,
+            ltvLiquidoGatewaySobreCacMidia: 0.7,
+            economiaLiquida: {
+              comparavel: true,
+              codigo: "base_comparavel"
+            },
             leitura: {
               codigo: "base_comparavel",
               rotulo: "Base comparável",
@@ -67,6 +74,12 @@ const RESULT = {
             ltvBrutoCentavos: 12000,
             retornoBruto: 1.2,
             ltvBrutoSobreCacMidia: 1.2,
+            retornoLiquidoGateway: 1.1,
+            ltvLiquidoGatewaySobreCacMidia: 1.1,
+            economiaLiquida: {
+              comparavel: true,
+              codigo: "base_comparavel"
+            },
             leitura: {
               codigo: "base_comparavel",
               rotulo: "Base comparável",
@@ -83,6 +96,12 @@ const RESULT = {
             ltvBrutoCentavos: null,
             retornoBruto: null,
             ltvBrutoSobreCacMidia: null,
+            retornoLiquidoGateway: null,
+            ltvLiquidoGatewaySobreCacMidia: null,
+            economiaLiquida: {
+              comparavel: false,
+              codigo: "base_bruta_nao_comparavel"
+            },
             leitura: {
               codigo: "aguardando_maturidade",
               rotulo: "Aguardando maturidade",
@@ -127,6 +146,8 @@ describe("aquisição administrativa v2", () => {
     expect(screen.getByText("Google profissionais")).not.toBeNull();
     expect(screen.getByText("0.75x")).not.toBeNull();
     expect(screen.getByText("1.20x")).not.toBeNull();
+    expect(screen.getByText("Líquido gateway 0.70x")).not.toBeNull();
+    expect(screen.getByText("Líquido gateway 1.10x")).not.toBeNull();
     expect(screen.getByText("Aguardando maturidade")).not.toBeNull();
     expect(screen.getByText("até D60")).not.toBeNull();
     expect(screen.getByText(/CAC de mídia não é CAC econômico/i)).not.toBeNull();
@@ -252,6 +273,17 @@ describe("receita administrativa v2", () => {
         historicoAnteriorInferido: false,
         unidade: "negocio",
         ltvLiquidoDisponivel: false,
+        ltvLiquidoGatewayDisponivel: true,
+        inicioCoberturaEconomiaLiquida: "2026-09-23T19:00:00.000Z",
+        ltvLiquidoGatewayD30: 78.33,
+        ltvLiquidoGatewayD60: 115,
+        ltvLiquidoGatewayD90: null,
+        madurosLiquidosD30: 3,
+        madurosLiquidosD60: 2,
+        madurosLiquidosD90: 0,
+        incompletosLiquidosD30: 0,
+        incompletosLiquidosD60: 0,
+        incompletosLiquidosD90: 0,
         independenteDoFiltroPeriodo: true,
         negociosCoorte: 3,
         madurosD30: 3,
@@ -271,7 +303,16 @@ describe("receita administrativa v2", () => {
             madurosD90: 0,
             ltvBrutoD30: 83.23,
             ltvBrutoD60: 124.85,
-            ltvBrutoD90: null
+            ltvBrutoD90: null,
+            madurosCobertosLiquidoD30: 3,
+            madurosCobertosLiquidoD60: 2,
+            madurosCobertosLiquidoD90: 0,
+            negociosIncompletosLiquidoD30: 0,
+            negociosIncompletosLiquidoD60: 0,
+            negociosIncompletosLiquidoD90: 0,
+            receitaLiquidaGatewayD30: 235,
+            receitaLiquidaGatewayD60: 230,
+            receitaLiquidaGatewayD90: 0
           }
         ]
       },
@@ -279,7 +320,8 @@ describe("receita administrativa v2", () => {
         churn: "Gross logo churn v1 usa a base paga inicial.",
         mrr: "MRR v1 usa snapshots monetários.",
         nrr: "NRR v1 usa a coorte inicial.",
-        ltv: "LTV bruto observado v1 usa negócios maduros."
+        ltv: "LTV bruto observado v1 usa negócios maduros.",
+        economiaLiquida: "A Wave 28 reconcilia netValue e refunds."
       }
     });
 
@@ -308,8 +350,12 @@ describe("receita administrativa v2", () => {
     expect(screen.getByText("LTV bruto D60")).not.toBeNull();
     expect(screen.getByText("LTV bruto D90")).not.toBeNull();
     expect(screen.getByText("Aguardando maturidade")).not.toBeNull();
-    expect(screen.getByText("LTV líquido")).not.toBeNull();
-    expect(screen.getByText("Indisponível")).not.toBeNull();
+    expect(screen.getByRole("heading", { name: "Economia do recebimento" })).not.toBeNull();
+    expect(screen.getByText("Receita líquida de gateway")).not.toBeNull();
+    expect(screen.getByText("Taxas gateway observadas")).not.toBeNull();
+    expect(screen.getByText("LTV líquido gateway D30")).not.toBeNull();
+    expect(screen.getByText("LTV econômico / margem")).not.toBeNull();
+    expect(screen.getAllByText("Indisponível").length).toBeGreaterThan(0);
     expect(screen.getByText("2026-06")).not.toBeNull();
     expect(screen.getByText("85%")).not.toBeNull();
     expect(screen.getByRole("heading", { name: "Churn bruto de negócios" })).not.toBeNull();
