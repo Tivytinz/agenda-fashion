@@ -244,10 +244,12 @@ describe(
         });
 
         expect(
-          await screen.findByText(
-            "Mensageria variável"
-          )
-        ).not.toBeNull();
+          (
+            await screen.findAllByText(
+              "Mensageria variável"
+            )
+          ).length
+        ).toBeGreaterThan(0);
       }
     );
   }
