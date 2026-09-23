@@ -427,6 +427,11 @@ export function AdminAcquisitionV2Page() {
       {(data) => {
         const origins = Array.isArray(data.sessoesPorOrigem) ? data.sessoesPorOrigem : [];
         const campaigns = Array.isArray(data.funilPorCampanha) ? data.funilPorCampanha : [];
+        const acquisitionReturn = data.retornoAquisicao || {};
+        const financialCampaigns = Array.isArray(acquisitionReturn.campanhas)
+          ? acquisitionReturn.campanhas
+          : [];
+        const financialDiagnosis = acquisitionReturn.diagnostico || {};
         const totals = campaigns.reduce((acc, campaign) => ({
           cadastros: acc.cadastros + number(campaign.cadastros),
           primeiros: acc.primeiros + number(campaign.primeirosAgendamentos),
@@ -520,10 +525,128 @@ export function AdminAcquisitionV2Page() {
               )}
             </section>
 
+            <section className="panel">
+              <div className="panel-heading">
+                <div>
+                  <p className="eyebrow">Unit economics observada</p>
+                  <h2>Retorno da aquisição paga</h2>
+                  <p className="muted">
+                    CAC de mídia e receita bruta usam a mesma coorte financeira por negócio. A leitura é acumulada desde o primeiro dia local completo após o cutover da Wave 27 e não muda com o filtro temporal do topo.
+                  </p>
+                </div>
+              </div>
+
+              <section className="admin-command-summary-grid is-period-summary">
+                <MetricCard
+                  label="Snapshots oficiais"
+                  hint="negócios pagos com campanha financeira congelada"
+                  value={formatNumber(financialDiagnosis.snapshotsOficiais)}
+                />
+                <MetricCard
+                  label="Reconciliação pendente"
+                  hint="conversões ainda sem snapshot financeiro"
+                  tone={number(financialDiagnosis.snapshotsPendentes) > 0 ? "warning" : "neutral"}
+                  value={formatNumber(financialDiagnosis.snapshotsPendentes)}
+                />
+                <MetricCard
+                  label="Custo sobreposto"
+                  hint="dias D30 com manual + automático; automático prevalece"
+                  value={formatNumber(financialDiagnosis.diasFontesSobrepostasD30)}
+                />
+                <MetricCard
+                  label="Custo ambíguo"
+                  hint="dias com múltiplas fontes automáticas; leitura bloqueada"
+                  tone={number(financialDiagnosis.diasCustoAmbiguoD30) > 0 ? "warning" : "neutral"}
+                  value={formatNumber(financialDiagnosis.diasCustoAmbiguoD30)}
+                />
+              </section>
+
+              {(number(financialDiagnosis.snapshotsPendentes) > 0 ||
+                number(financialDiagnosis.diasCustoAmbiguoD30) > 0) && (
+                <div className="admin-command-alert is-warning" role="status">
+                  <strong>Leitura financeira ainda possui pendências.</strong>
+                  <p className="muted">
+                    O AF não transforma reconciliação pendente ou custo ambíguo em CAC/payback aparentemente preciso.
+                  </p>
+                </div>
+              )}
+
+              {financialCampaigns.length === 0 ? (
+                <EmptyState title="Aguardando base financeira pós-cutover">
+                  Ainda não existem campanhas com custo ou negócios pagos elegíveis para a leitura financeira da Wave 27.
+                </EmptyState>
+              ) : (
+                <div className="table-wrapper">
+                  <table className="data-table">
+                    <thead>
+                      <tr>
+                        <th>Campanha</th>
+                        <th>Investimento D30</th>
+                        <th>CAC mídia D30</th>
+                        <th>Retorno D30</th>
+                        <th>Retorno D60</th>
+                        <th>Retorno D90</th>
+                        <th>Recuperação bruta</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {financialCampaigns.map((campaign) => {
+                        const windows = Array.isArray(campaign.janelas)
+                          ? campaign.janelas
+                          : [];
+                        const d30 = windows.find((item) => number(item.dias) === 30);
+                        const d60 = windows.find((item) => number(item.dias) === 60);
+                        const d90 = windows.find((item) => number(item.dias) === 90);
+                        const renderReturn = (window) => {
+                          if (!window?.leitura?.comparavel) {
+                            return window?.leitura?.rotulo || "Aguardando";
+                          }
+                          return window.retornoBruto == null
+                            ? "—"
+                            : `${number(window.retornoBruto).toFixed(2)}x`;
+                        };
+
+                        return (
+                          <tr key={campaign.campanhaOficialId}>
+                            <td>
+                              <strong>{campaign.campanha || "Campanha sem nome"}</strong>
+                              <small>{campaign.origem || campaign.canal || "—"} / {campaign.midia || "—"}</small>
+                            </td>
+                            <td>{formatCentavos(d30?.investimentoCentavos)}</td>
+                            <td>
+                              {d30?.leitura?.comparavel
+                                ? formatCentavos(d30.cacMidiaCentavos)
+                                : d30?.leitura?.rotulo || "Aguardando"}
+                              {d30?.ltvBrutoSobreCacMidia != null && (
+                                <small>LTV bruto/CAC mídia {number(d30.ltvBrutoSobreCacMidia).toFixed(2)}x</small>
+                              )}
+                            </td>
+                            <td>{renderReturn(d30)}</td>
+                            <td>{renderReturn(d60)}</td>
+                            <td>{renderReturn(d90)}</td>
+                            <td>
+                              {campaign.primeiraRecuperacaoReceitaBrutaDias
+                                ? `até D${campaign.primeiraRecuperacaoReceitaBrutaDias}`
+                                : "Não observada"}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+
+              <p className="muted">
+                CAC de mídia não é CAC econômico. Retorno bruto não desconta gateway, impostos, suporte, infraestrutura, margem ou o valor exato de reversões parciais. Exposição a reversões permanece diagnóstico separado.
+              </p>
+            </section>
+
             <details className="admin-metric-definition">
               <summary>Como interpretar aquisição</summary>
               <p>{data.metodologia?.sessoes}</p>
               <p>{data.metodologia?.conversao}</p>
+              <p>{data.metodologia?.retornoFinanceiro}</p>
             </details>
           </>
         );
