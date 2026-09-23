@@ -537,6 +537,55 @@ describe(
     );
 
     test(
+      "preserva contribuição negativa como perda observada",
+      async () => {
+        mockBuscarProntidaoContribuicao
+          .mockResolvedValue({
+            fontes_obrigatorias: 1,
+            fontes_cobertas_ate_hoje: 1,
+            cobertura_contribuicao_completa_hoje:
+              true,
+          });
+        mockBuscarRetornoContribuicaoAquisicao
+          .mockResolvedValue({
+            inicio_cobertura:
+              "2026-06-01T00:00:00.000Z",
+            campanhas: [
+              {
+                campanha_id: 10,
+                fontes_obrigatorias: 1,
+                investimento_d30_centavos:
+                  10000,
+                dias_maduros_d30: 1,
+                negocios_d30: 1,
+                negocios_cobertos_d30: 1,
+                incompletos_d30: 0,
+                pagantes_sem_custo_d30: 0,
+                contribuicao_d30: "-20.00",
+              },
+            ],
+          });
+
+        const resultado =
+          await service.buscar();
+        const d30 =
+          resultado.campanhas[0]
+            .janelas[0];
+
+        expect(d30.contribuicao)
+          .toMatchObject({
+            comparavel: true,
+            contribuicaoCentavos: -2000,
+            ltvContribuicaoCentavos:
+              -2000,
+            retornoContribuicao: -0.2,
+            ltvContribuicaoSobreCacMidia:
+              -0.2,
+          });
+      }
+    );
+
+    test(
       "não chama ausência de pagante de CAC zero",
       () => {
         expect(
