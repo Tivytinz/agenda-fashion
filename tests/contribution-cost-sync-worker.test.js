@@ -175,28 +175,28 @@ describe(
       "limita intervalo entre uma e vinte e quatro horas",
       () => {
         process.env
-          .CONTRIBUTION_COST_SYNC_INTERVAL_HOURS =
-          "0.1";
+          .CONTRIBUTION_COST_SYNC_POLL_INTERVAL_MINUTES =
+          "1";
         let worker = require(
           "../src/services/contributionCostSyncWorker"
         );
 
         expect(
-          worker.intervaloHoras()
-        ).toBe(1);
+          worker.intervaloMinutos()
+        ).toBe(5);
 
         jest.resetModules();
 
         process.env
-          .CONTRIBUTION_COST_SYNC_INTERVAL_HOURS =
-          "40";
+          .CONTRIBUTION_COST_SYNC_POLL_INTERVAL_MINUTES =
+          "120";
         worker = require(
           "../src/services/contributionCostSyncWorker"
         );
 
         expect(
-          worker.intervaloHoras()
-        ).toBe(24);
+          worker.intervaloMinutos()
+        ).toBe(60);
       }
     );
   }
