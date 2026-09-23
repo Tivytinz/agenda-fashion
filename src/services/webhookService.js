@@ -236,6 +236,10 @@ async function enfileirarWebhookAsaas({
             pagamento.externalReference || null,
           value:
             pagamento.value ?? null,
+          netValue:
+            pagamento.netValue ?? null,
+          creditDate:
+            pagamento.creditDate || null,
           billingType:
             pagamento.billingType || null,
           dueDate:
