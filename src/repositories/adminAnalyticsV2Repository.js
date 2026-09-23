@@ -974,6 +974,164 @@ async function buscarReconciliacaoPipelines(periodo = "30") {
   };
 }
 
+async function buscarChurnPago(periodo = "30") {
+  const seguro = periodoSeguro(periodo);
+  const inicioSolicitado = inicioTimestampSql(seguro);
+  const inicioEfetivoSql = inicioSolicitado
+    ? `GREATEST(m.inicio_cobertura, ${inicioSolicitado})`
+    : "m.inicio_cobertura";
+  const ajustadoSql = inicioSolicitado
+    ? `(${inicioSolicitado} < m.inicio_cobertura)`
+    : "TRUE";
+
+  const resultado = await db.query(
+    `
+    WITH marco AS (
+      SELECT ocorrido_em AS inicio_cobertura
+      FROM financeiro_marcos
+      WHERE chave = 'churn_v1_inicio'
+      LIMIT 1
+    ),
+    limites AS (
+      SELECT
+        m.inicio_cobertura,
+        ${inicioEfetivoSql} AS inicio_efetivo,
+        NOW() AS fim_efetivo,
+        ${ajustadoSql} AS periodo_ajustado_cutover
+      FROM marco m
+    ),
+    fronteiras AS (
+      SELECT
+        ae.id,
+        ae.negocio_id,
+        ae.tipo,
+        ae.motivo,
+        ae.ocorrido_em,
+        CASE
+          WHEN ae.tipo = 'ACESSO_PAGO_ENCERRADO'
+            THEN 'fim'
+          ELSE 'inicio'
+        END AS movimento
+      FROM assinatura_eventos ae
+      CROSS JOIN limites l
+      WHERE ae.ocorrido_em >= l.inicio_cobertura
+        AND ae.tipo IN (
+          'EPISODIO_PAGO_BASELINE',
+          'CONVERSAO_INICIAL',
+          'REATIVACAO_PAGA',
+          'ACESSO_PAGO_ENCERRADO'
+        )
+    ),
+    estado_inicio_ranqueado AS (
+      SELECT
+        f.*,
+        ROW_NUMBER() OVER (
+          PARTITION BY f.negocio_id
+          ORDER BY
+            f.ocorrido_em DESC,
+            f.id DESC
+        ) AS rn
+      FROM fronteiras f
+      CROSS JOIN limites l
+      WHERE f.ocorrido_em <= l.inicio_efetivo
+    ),
+    base_inicio AS (
+      SELECT negocio_id
+      FROM estado_inicio_ranqueado
+      WHERE rn = 1
+        AND movimento = 'inicio'
+    ),
+    saidas_base AS (
+      SELECT DISTINCT ON (f.negocio_id)
+        f.negocio_id,
+        f.motivo,
+        f.ocorrido_em
+      FROM fronteiras f
+      INNER JOIN base_inicio bi
+        ON bi.negocio_id = f.negocio_id
+      CROSS JOIN limites l
+      WHERE f.movimento = 'fim'
+        AND f.ocorrido_em > l.inicio_efetivo
+        AND f.ocorrido_em <= l.fim_efetivo
+      ORDER BY
+        f.negocio_id,
+        f.ocorrido_em ASC,
+        f.id ASC
+    ),
+    estado_fim_ranqueado AS (
+      SELECT
+        f.*,
+        ROW_NUMBER() OVER (
+          PARTITION BY f.negocio_id
+          ORDER BY
+            f.ocorrido_em DESC,
+            f.id DESC
+        ) AS rn
+      FROM fronteiras f
+      CROSS JOIN limites l
+      WHERE f.ocorrido_em <= l.fim_efetivo
+    ),
+    base_fim AS (
+      SELECT negocio_id
+      FROM estado_fim_ranqueado
+      WHERE rn = 1
+        AND movimento = 'inicio'
+    ),
+    reativacoes AS (
+      SELECT COUNT(DISTINCT ae.negocio_id)::INT
+        AS negocios_reativados
+      FROM assinatura_eventos ae
+      CROSS JOIN limites l
+      WHERE ae.tipo = 'REATIVACAO_PAGA'
+        AND ae.ocorrido_em > l.inicio_efetivo
+        AND ae.ocorrido_em <= l.fim_efetivo
+    )
+    SELECT
+      l.inicio_cobertura,
+      l.inicio_efetivo,
+      l.periodo_ajustado_cutover,
+      (SELECT COUNT(*)::INT FROM base_inicio)
+        AS base_paga_inicio,
+      (SELECT COUNT(*)::INT FROM saidas_base)
+        AS saidas_terminais_base_inicial,
+      (SELECT COUNT(*)::INT FROM base_fim)
+        AS base_paga_fim,
+      r.negocios_reativados,
+      COUNT(*) FILTER (
+        WHERE sb.motivo = 'CANCELAMENTO_VOLUNTARIO'
+      )::INT AS saidas_cancelamento_voluntario,
+      COUNT(*) FILTER (
+        WHERE sb.motivo = 'INADIMPLENCIA_NAO_RECUPERADA'
+      )::INT AS saidas_inadimplencia_nao_recuperada,
+      COUNT(*) FILTER (
+        WHERE sb.motivo = 'ENCERRAMENTO_PROVEDOR'
+      )::INT AS saidas_encerramento_provedor,
+      COUNT(*) FILTER (
+        WHERE sb.motivo NOT IN (
+          'CANCELAMENTO_VOLUNTARIO',
+          'INADIMPLENCIA_NAO_RECUPERADA',
+          'ENCERRAMENTO_PROVEDOR'
+        )
+        OR sb.motivo IS NULL
+      )::INT AS saidas_outros_motivos
+    FROM limites l
+    CROSS JOIN reativacoes r
+    LEFT JOIN saidas_base sb
+      ON TRUE
+    GROUP BY
+      l.inicio_cobertura,
+      l.inicio_efetivo,
+      l.periodo_ajustado_cutover,
+      r.negocios_reativados
+    `
+  );
+
+  return {
+    periodo: seguro,
+    ...(resultado.rows[0] || {}),
+  };
+}
+
 module.exports = {
   periodoSeguro,
   buscarVisaoGeral,
@@ -981,4 +1139,5 @@ module.exports = {
   buscarJornada,
   buscarReconciliacaoPipelines,
   buscarReceita,
+  buscarChurnPago,
 };
