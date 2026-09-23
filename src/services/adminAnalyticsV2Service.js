@@ -315,6 +315,7 @@ async function buscarRevenue(periodo) {
     economia,
     ltvLiquido,
     contribuicao,
+    ltvContribuicao,
   ] = await Promise.all([
     repository.buscarReceita(periodo),
     repository.buscarChurnPago(periodo),
@@ -326,6 +327,8 @@ async function buscarRevenue(periodo) {
       .buscarLtvLiquidoObservado(),
     contributionEconomicsRepository
       .buscarResumoContribuicao(periodo),
+    contributionEconomicsRepository
+      .buscarLtvContribuicaoObservado(),
   ]);
   const resumo = resultado.resumo || {};
   const custosVariaveis =
@@ -419,10 +422,27 @@ async function buscarRevenue(periodo) {
         coorte,
       ])
     );
+  const ltvContribuicaoPorCoorte =
+    new Map(
+      (
+        Array.isArray(
+          ltvContribuicao.coortes
+        )
+          ? ltvContribuicao.coortes
+          : []
+      ).map((coorte) => [
+        coorte.coorte_mes,
+        coorte,
+      ])
+    );
   const coortesLtv = Array.isArray(ltv.coortes)
     ? ltv.coortes.map((coorte) => {
         const liquidoCoorte =
           ltvLiquidoPorCoorte.get(
+            coorte.coorte_mes
+          ) || {};
+        const contribuicaoCoorte =
+          ltvContribuicaoPorCoorte.get(
             coorte.coorte_mes
           ) || {};
         return ({
@@ -500,6 +520,66 @@ async function buscarRevenue(periodo) {
             liquidoCoorte
               .receita_liquida_d90
           ),
+        madurosElegiveisContribuicaoD30:
+          numero(
+            contribuicaoCoorte
+              .maduros_elegiveis_d30
+          ),
+        madurosElegiveisContribuicaoD60:
+          numero(
+            contribuicaoCoorte
+              .maduros_elegiveis_d60
+          ),
+        madurosElegiveisContribuicaoD90:
+          numero(
+            contribuicaoCoorte
+              .maduros_elegiveis_d90
+          ),
+        madurosCobertosContribuicaoD30:
+          numero(
+            contribuicaoCoorte
+              .maduros_cobertos_d30
+          ),
+        madurosCobertosContribuicaoD60:
+          numero(
+            contribuicaoCoorte
+              .maduros_cobertos_d60
+          ),
+        madurosCobertosContribuicaoD90:
+          numero(
+            contribuicaoCoorte
+              .maduros_cobertos_d90
+          ),
+        negociosIncompletosContribuicaoD30:
+          numero(
+            contribuicaoCoorte
+              .negocios_incompletos_d30
+          ),
+        negociosIncompletosContribuicaoD60:
+          numero(
+            contribuicaoCoorte
+              .negocios_incompletos_d60
+          ),
+        negociosIncompletosContribuicaoD90:
+          numero(
+            contribuicaoCoorte
+              .negocios_incompletos_d90
+          ),
+        contribuicaoD30:
+          numero(
+            contribuicaoCoorte
+              .contribuicao_d30
+          ),
+        contribuicaoD60:
+          numero(
+            contribuicaoCoorte
+              .contribuicao_d60
+          ),
+        contribuicaoD90:
+          numero(
+            contribuicaoCoorte
+              .contribuicao_d90
+          ),
       });
       })
     : [];
@@ -554,6 +634,74 @@ async function buscarRevenue(periodo) {
   const receitaLiquidaGatewayD90 =
     somarCoortes(
       "receitaLiquidaGatewayD90"
+    );
+  const madurosElegiveisContribuicaoD30 =
+    somarCoortes(
+      "madurosElegiveisContribuicaoD30"
+    );
+  const madurosElegiveisContribuicaoD60 =
+    somarCoortes(
+      "madurosElegiveisContribuicaoD60"
+    );
+  const madurosElegiveisContribuicaoD90 =
+    somarCoortes(
+      "madurosElegiveisContribuicaoD90"
+    );
+  const madurosCobertosContribuicaoD30 =
+    somarCoortes(
+      "madurosCobertosContribuicaoD30"
+    );
+  const madurosCobertosContribuicaoD60 =
+    somarCoortes(
+      "madurosCobertosContribuicaoD60"
+    );
+  const madurosCobertosContribuicaoD90 =
+    somarCoortes(
+      "madurosCobertosContribuicaoD90"
+    );
+  const incompletosContribuicaoD30 =
+    somarCoortes(
+      "negociosIncompletosContribuicaoD30"
+    );
+  const incompletosContribuicaoD60 =
+    somarCoortes(
+      "negociosIncompletosContribuicaoD60"
+    );
+  const incompletosContribuicaoD90 =
+    somarCoortes(
+      "negociosIncompletosContribuicaoD90"
+    );
+  const contribuicaoD30 =
+    somarCoortes("contribuicaoD30");
+  const contribuicaoD60 =
+    somarCoortes("contribuicaoD60");
+  const contribuicaoD90 =
+    somarCoortes("contribuicaoD90");
+  const janelaContribuicaoDisponivel = (
+    elegiveis,
+    cobertos,
+    incompletos
+  ) =>
+    elegiveis > 0 &&
+    cobertos === elegiveis &&
+    incompletos === 0;
+  const contribuicaoDisponivelD30 =
+    janelaContribuicaoDisponivel(
+      madurosElegiveisContribuicaoD30,
+      madurosCobertosContribuicaoD30,
+      incompletosContribuicaoD30
+    );
+  const contribuicaoDisponivelD60 =
+    janelaContribuicaoDisponivel(
+      madurosElegiveisContribuicaoD60,
+      madurosCobertosContribuicaoD60,
+      incompletosContribuicaoD60
+    );
+  const contribuicaoDisponivelD90 =
+    janelaContribuicaoDisponivel(
+      madurosElegiveisContribuicaoD90,
+      madurosCobertosContribuicaoD90,
+      incompletosContribuicaoD90
     );
 
   return {
@@ -803,6 +951,19 @@ async function buscarRevenue(periodo) {
       historicoAnteriorInferido: false,
       unidade: "negocio",
       ltvLiquidoDisponivel: false,
+      ltvContribuicaoDisponivel:
+        contribuicaoDisponivelD30 ||
+        contribuicaoDisponivelD60 ||
+        contribuicaoDisponivelD90,
+      inicioCoberturaContribuicao:
+        ltvContribuicao
+          .inicio_cobertura ||
+        null,
+      fontesObrigatoriasContribuicao:
+        numero(
+          ltvContribuicao
+            .fontes_obrigatorias
+        ),
       ltvLiquidoGatewayDisponivel:
         madurosLiquidosD30 > 0 ||
         madurosLiquidosD60 > 0 ||
@@ -883,6 +1044,45 @@ async function buscarRevenue(periodo) {
       receitaLiquidaGatewayD30,
       receitaLiquidaGatewayD60,
       receitaLiquidaGatewayD90,
+      madurosElegiveisContribuicaoD30,
+      madurosElegiveisContribuicaoD60,
+      madurosElegiveisContribuicaoD90,
+      madurosCobertosContribuicaoD30,
+      madurosCobertosContribuicaoD60,
+      madurosCobertosContribuicaoD90,
+      incompletosContribuicaoD30,
+      incompletosContribuicaoD60,
+      incompletosContribuicaoD90,
+      contribuicaoD30,
+      contribuicaoD60,
+      contribuicaoD90,
+      ltvContribuicaoD30:
+        contribuicaoDisponivelD30
+          ? Number(
+              (
+                contribuicaoD30 /
+                madurosCobertosContribuicaoD30
+              ).toFixed(2)
+            )
+          : null,
+      ltvContribuicaoD60:
+        contribuicaoDisponivelD60
+          ? Number(
+              (
+                contribuicaoD60 /
+                madurosCobertosContribuicaoD60
+              ).toFixed(2)
+            )
+          : null,
+      ltvContribuicaoD90:
+        contribuicaoDisponivelD90
+          ? Number(
+              (
+                contribuicaoD90 /
+                madurosCobertosContribuicaoD90
+              ).toFixed(2)
+            )
+          : null,
       valorExpostoReversoes:
         somarCoortes("valorExpostoReversoes"),
       pagamentosEmReversao:
@@ -918,7 +1118,7 @@ async function buscarRevenue(periodo) {
       economiaLiquida:
         "A Wave 28 reconcilia netValue e refunds concluídos do Asaas fora da transação crítica de billing. Receita líquida de gateway é netValue menos refunds DONE. Ausência de netValue, refund pendente ou disputa mantém a janela indisponível.",
       contribuicao:
-        "A Wave 29 só disponibiliza margem de contribuição quando existe ao menos uma fonte obrigatória de custo variável e todas as fontes declaram cobertura completa para a janela. Ausência de lançamento fora de cobertura nunca é tratada como custo zero. Mídia de aquisição permanece fora desta camada e lucro continua indisponível.",
+        "A Wave 29 disponibiliza margem e LTV de contribuição somente quando existe ao menos uma fonte obrigatória de custo variável, a economia líquida do gateway está reconciliada e todas as fontes cobrem integralmente a mesma janela D30/D60/D90. Negócios maduros incompletos bloqueiam a janela inteira em vez de serem removidos do denominador. Ausência de lançamento fora de cobertura nunca é tratada como custo zero. Mídia de aquisição permanece fora desta camada e lucro continua indisponível.",
       ativas:
         "Assinaturas pagas ativas é um estoque atual e não uma contagem criada no período. Cancelamentos cujo acesso já venceu são excluídos do estoque mesmo antes do próximo ciclo do worker financeiro.",
     },
