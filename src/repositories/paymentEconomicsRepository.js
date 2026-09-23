@@ -102,13 +102,25 @@ async function persistirReconciliacao({
           id,
           asaas_payment_id,
           asaas_ultimo_evento_em,
-          asaas_ultimo_evento_id
+          asaas_ultimo_evento_id,
+          (
+            asaas_ultimo_evento_em
+              IS NOT DISTINCT FROM
+              $2::timestamp
+            AND asaas_ultimo_evento_id
+              IS NOT DISTINCT FROM
+              $3::varchar
+          ) AS fence_valido
         FROM pagamentos
         WHERE id = $1
         LIMIT 1
         FOR UPDATE
         `,
-        [pagamentoId]
+        [
+          pagamentoId,
+          eventoEsperadoEm,
+          eventoEsperadoId,
+        ]
       );
 
       const pagamento =
@@ -118,28 +130,7 @@ async function persistirReconciliacao({
         return null;
       }
 
-      const eventoMudou =
-        (
-          pagamento.asaas_ultimo_evento_em
-            ? new Date(
-                pagamento.asaas_ultimo_evento_em
-              ).getTime()
-            : null
-        ) !== (
-          eventoEsperadoEm
-            ? new Date(
-                eventoEsperadoEm
-              ).getTime()
-            : null
-        ) ||
-        (
-          pagamento.asaas_ultimo_evento_id ||
-          null
-        ) !== (
-          eventoEsperadoId || null
-        );
-
-      if (eventoMudou) {
+      if (pagamento.fence_valido !== true) {
         return {
           obsoleto: true,
           pagamento_id: pagamento.id,
