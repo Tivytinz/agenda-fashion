@@ -108,7 +108,8 @@ async function materializarAquisicaoPorEvento(
         ae.negocio_id,
         ae.pagamento_id,
         ae.plano_novo_id,
-        ae.ocorrido_em
+        ae.ocorrido_em,
+        pg.data_pagamento
       FROM assinatura_eventos ae
       INNER JOIN pagamentos pg
         ON pg.id = ae.pagamento_id
@@ -140,6 +141,8 @@ async function materializarAquisicaoPorEvento(
         e.plano_novo_id,
         e.ocorrido_em
           AS primeira_conversao_em,
+        e.data_pagamento
+          AS primeira_conversao_data,
         d.usuario_id
           AS usuario_aquisicao_id,
         COALESCE(
@@ -221,6 +224,7 @@ async function materializarAquisicaoPorEvento(
       campanha,
       atribuicao_em,
       primeira_conversao_em,
+      primeira_conversao_data,
       detalhes
     )
     SELECT
@@ -254,6 +258,7 @@ async function materializarAquisicaoPorEvento(
       ),
       c.atribuicao_em_segura,
       c.primeira_conversao_em,
+      c.primeira_conversao_data,
       jsonb_build_object(
         'regra',
         'aquisicao_financeira_v1',
@@ -286,9 +291,12 @@ async function contarPendentes() {
     conversoes AS (
       SELECT DISTINCT ae.negocio_id
       FROM assinatura_eventos ae
+      INNER JOIN pagamentos pg
+        ON pg.id = ae.pagamento_id
       CROSS JOIN marco m
       WHERE ae.tipo = 'CONVERSAO_INICIAL'
         AND ae.ocorrido_em >= m.ocorrido_em
+        AND pg.data_pagamento IS NOT NULL
     )
     SELECT COUNT(*)::INT AS total
     FROM conversoes c
