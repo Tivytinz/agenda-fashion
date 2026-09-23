@@ -24,18 +24,22 @@ async function buscarFonteAtiva(
   return resultado.rows[0] || null;
 }
 
-async function persistirCusto({
-  fonteCodigo,
-  negocioId,
-  chaveOrigem,
-  tipo,
-  valor,
-  ocorridoEm,
-  custoReferenciadoId = null,
-  detalhes = {},
-}) {
+async function persistirCusto(
+  {
+    fonteCodigo,
+    negocioId,
+    chaveOrigem,
+    tipo,
+    valor,
+    ocorridoEm,
+    custoReferenciadoId = null,
+    detalhes = {},
+  },
+  executor = db
+) {
   const fonte = await buscarFonteAtiva(
-    fonteCodigo
+    fonteCodigo,
+    executor
   );
 
   if (!fonte) {
@@ -48,7 +52,7 @@ async function persistirCusto({
   }
 
   if (custoReferenciadoId != null) {
-    const referencia = await db.query(
+    const referencia = await executor.query(
       `
       SELECT id
       FROM contribuicao_custos
@@ -75,7 +79,7 @@ async function persistirCusto({
     }
   }
 
-  const inserido = await db.query(
+  const inserido = await executor.query(
     `
     INSERT INTO contribuicao_custos (
       fonte_id,
@@ -134,7 +138,7 @@ async function persistirCusto({
     };
   }
 
-  const existente = await db.query(
+  const existente = await executor.query(
     `
     SELECT
       id,
@@ -166,14 +170,18 @@ async function persistirCusto({
   };
 }
 
-async function persistirCobertura({
-  fonteCodigo,
-  inicioCobertura,
-  cobertoAte,
-  status,
-}) {
+async function persistirCobertura(
+  {
+    fonteCodigo,
+    inicioCobertura,
+    cobertoAte,
+    status,
+  },
+  executor = db
+) {
   const fonte = await buscarFonteAtiva(
-    fonteCodigo
+    fonteCodigo,
+    executor
   );
 
   if (!fonte) {
@@ -183,7 +191,7 @@ async function persistirCobertura({
     };
   }
 
-  const resultado = await db.query(
+  const resultado = await executor.query(
     `
     INSERT INTO contribuicao_cobertura (
       fonte_id,
