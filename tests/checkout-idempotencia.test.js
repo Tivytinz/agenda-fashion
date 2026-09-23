@@ -563,7 +563,9 @@ describe(
           .mockResolvedValue({
             id: "pay_1",
             value: 99.9,
-            status: "PENDING"
+            status: "PENDING",
+            invoiceUrl:
+              "https://www.asaas.com/i/checkout-wave20"
           });
 
         buscarQrCodePix
@@ -608,6 +610,8 @@ describe(
             expect.objectContaining({
               asaas_payment_id:
                 "pay_1",
+              invoice_url:
+                "https://www.asaas.com/i/checkout-wave20",
               pix_copia_cola: null,
               pix_qrcode: null
             })
@@ -619,6 +623,8 @@ describe(
             expect.objectContaining({
               asaas_payment_id:
                 "pay_1",
+              invoice_url:
+                "https://www.asaas.com/i/checkout-wave20",
               pix_copia_cola:
                 "pix-copia-cola",
               pix_qrcode:
