@@ -135,6 +135,13 @@ apagar dados existentes nem impedir a edição do que já foi cadastrado.
   reativação não criam um novo customer lifetime. Coorte imatura não vira zero;
   permanece indisponível até completar a janela. Reversões são exposição
   separada e não autorizam calcular LTV líquido sem o valor exato persistido.
+- A **aquisição financeira v1** da Wave 27 congela por negócio a primeira dona,
+  a atribuição first-touch e a campanha resolvida quando a primeira conversão
+  paga canônica é reconciliada. CAC de mídia observado usa investimento diário
+  maduro da campanha; uma fonte automática substitui o manual no mesmo dia e
+  múltiplas fontes automáticas bloqueiam a leitura. Retorno D30/D60/D90 é
+  receita bruta observada sobre mídia da mesma coorte e não deve ser chamado de
+  payback econômico.
 - `webhook_eventos` preserva a entrega do provedor; `assinatura_eventos`
   preserva o fato de domínio do AF. O histórico anterior à migration 093 não é
   preenchido por suposição.
@@ -186,6 +193,8 @@ negócio e conversão para plano pago.
 - Lifecycle financeiro: `database/migrations/093_assinatura_eventos_lifecycle.sql`.
 - Cutover e índices de LTV observado:
   `database/migrations/097_ltv_observado_v1.sql`.
+- Snapshot de aquisição financeira e cutover de retorno:
+  `database/migrations/098_aquisicao_financeira_v1.sql`.
 - Baseline de episódios pagos e churn v1:
   `database/migrations/095_churn_v1_episodios_pagos.sql`.
 - Ledger monetário, baseline de MRR e NRR v1:
