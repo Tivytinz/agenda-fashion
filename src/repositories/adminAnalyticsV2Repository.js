@@ -1503,9 +1503,9 @@ async function buscarLtvObservado() {
           ae.ocorrido_em AS conversao_evento_em,
           pg.data_pagamento AS primeira_conversao_data
         FROM assinatura_eventos ae
-        CROSS JOIN marco m
         INNER JOIN pagamentos pg
           ON pg.id = ae.pagamento_id
+        CROSS JOIN marco m
         WHERE ae.tipo = 'CONVERSAO_INICIAL'
           AND ae.ocorrido_em >= m.inicio_cobertura
           AND pg.data_pagamento IS NOT NULL
