@@ -417,6 +417,22 @@ lucro, margem de contribuição, CAC total ou payback econômico.
 
 A Wave 28 não altera a baseline funcional, que continua em **67/67 (100%)**.
 
+## Wave 29 — margem de contribuição observada v1
+
+A Wave 29 foi preparada para transformar receita líquida de gateway em margem de
+contribuição observada somente quando existirem custos variáveis factuais,
+atribuíveis e com cobertura verificável.
+
+A Wave preserva CAC de mídia fora da margem, não trata ausência de custo como
+zero e não declara lucro, CAC total, payback econômico ou LTV:CAC definitivo.
+LTV de contribuição deverá reutilizar a unidade negócio e as maturidades
+D30/D60/D90 já estabelecidas, sem retirar casos incompletos para melhorar médias.
+
+Neste estágio a Wave está **preparada para implementação**; nenhuma nova métrica
+econômica é considerada disponível apenas por esta preparação documental.
+
+A Wave 29 não altera a baseline funcional, que continua em **67/67 (100%)**.
+
 ## Regra de atualização
 
 Atualizar este documento quando uma Wave alterar a cobertura da baseline ou
