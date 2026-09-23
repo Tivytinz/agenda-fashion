@@ -341,18 +341,30 @@ A baseline formal permanece **67/67 (100%)**.
 
 ## Wave 23 — reconciliação temporal da base paga
 
-A Wave 23 inicia o hardening do instante de saída efetiva da base paga. Um
-cancelamento cujo período já venceu passa a ser reconciliado por background
+A Wave 23 fechou o hardening do instante de saída efetiva da base paga. Um
+cancelamento cujo período já venceu passou a ser reconciliado por background
 worker, sem depender de uma leitura posterior do plano.
 
-O recorte reutiliza a operação transacional existente para voltar o negócio ao
-plano gratuito, inativar a assinatura, reconciliar a equipe e registrar
-`ACESSO_PAGO_ENCERRADO` uma única vez. O Admin também deixa de contar
-cancelamento vencido como assinatura paga ativa e expõe a pendência de
-reconciliação como diagnóstico operacional.
+O head final `71f27e28f2ad55644abc0665c80d85cdf8d71da9` passou no
+**Backend CI #1295**. O PR #282 foi mergeado na `main` pelo commit
+`faeeacb7e1cb6044396a714615cdd1b95964283a`.
 
-A Wave 23 não cria churn, LTV ou payback oficiais e mantém a baseline formal em
+A Wave 23 não criou churn, LTV ou payback oficiais e manteve a baseline formal em
 **67/67 (100%)**.
+
+## Wave 24 — episódios pagos e churn observável v1
+
+A Wave 24 inicia a baseline explícita de churn por negócio, sem backfill
+especulativo. A migration 095 registra o cutover em `financeiro_marcos` e
+captura a base paga presente naquele instante como
+`EPISODIO_PAGO_BASELINE`.
+
+Atraso continua recuperável. Depois de 14 dias sem recuperação, o lifecycle pode
+materializar `ACESSO_PAGO_ENCERRADO` por
+`INADIMPLENCIA_NAO_RECUPERADA`. Reativação permanece um fato separado e não
+reduz retroativamente o gross logo churn.
+
+A Wave 24 não altera a baseline funcional, que continua em **67/67 (100%)**.
 
 ## Regra de atualização
 
