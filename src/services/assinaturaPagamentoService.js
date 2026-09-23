@@ -279,6 +279,7 @@ async function ativarAssinaturaPorPagamento(
           eventoCriadoEm:
             dadosPagamento.webhookEventoCriadoEm || null,
           eventoId: dadosPagamento.webhookEventoId || null,
+          invoiceUrl: dadosPagamento.invoiceUrl || null,
         }
       );
 

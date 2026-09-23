@@ -55,6 +55,7 @@ async function atualizarPorWebhook(
     ativo,
     eventoCriadoEm,
     eventoId,
+    invoiceUrl,
   }
 ) {
   const resultado = await client.query(
@@ -248,6 +249,7 @@ async function confirmarPagamento(
       SET
         status = $1,
         data_pagamento = COALESCE(data_pagamento, NOW()),
+        invoice_url = COALESCE($5, invoice_url),
         asaas_ultimo_evento_em = CASE
           WHEN $3::timestamp IS NOT NULL THEN $3::timestamp
           ELSE asaas_ultimo_evento_em
@@ -264,7 +266,13 @@ async function confirmarPagamento(
         )
       RETURNING id
     `,
-    [status, pagamentoId, eventoCriadoEm, eventoId]
+    [
+      status,
+      pagamentoId,
+      eventoCriadoEm,
+      eventoId,
+      invoiceUrl || null,
+    ]
   );
 
   return resultado.rows[0] || null;
