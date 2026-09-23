@@ -214,6 +214,10 @@ Isso protege:
 - status operacional;
 - chamadas duplicadas do worker.
 
+Ao adquirir o lock para uma nova execução, qualquer tentativa antiga ainda
+marcada como `EXECUTANDO` é encerrada como `execucao_abandonada`. Isso evita
+estado operacional preso depois de restart ou crash do processo.
+
 A idempotência do ledger continua sendo a segunda linha de defesa.
 
 ## Worker
@@ -346,8 +350,9 @@ Se nenhuma fonte real/adaptador existir, Waves 29 e 30 permanecem
 22. testes unitários, Supertest, PostgreSQL e frontend cobrirem invariantes;
 23. integração poder ser pausada sem depender do adaptador continuar disponível;
 24. reativação exigir fonte ativa e adaptador disponível;
-25. CI completo ficar verde;
-26. diff final ser revisado antes do merge.
+25. execução abandonada após crash ser encerrada antes da próxima tentativa;
+26. CI completo ficar verde;
+27. diff final ser revisado antes do merge.
 
 ## Estado atual
 
