@@ -317,6 +317,43 @@ describe(
     );
 
     test(
+      "aceita intenção de repetição sem persistir propriedades fora do contrato",
+      () => {
+        const repeat = normalizarItem({
+          type: "event",
+          eventUuid:
+            "3e6f7270-606f-44a8-b8d2-273a79f0a501",
+          viewUuid: VIEW_UUID,
+          name: "booking_started",
+          schemaVersion: 1,
+          occurredAt: AGORA,
+          targetBusinessId: 11,
+          targetServiceId: 22,
+          properties: {
+            entry_point: "customer_agenda",
+            intent: "repeat_booking",
+            source_booking_status: "realizado",
+            whatsapp: "62999999999",
+          },
+        });
+
+        expect(repeat).toMatchObject({
+          name: "booking_started",
+          targetBusinessId: 11,
+          targetServiceId: 22,
+          properties: {
+            entry_point: "customer_agenda",
+            intent: "repeat_booking",
+            source_booking_status: "realizado",
+          },
+        });
+        expect(repeat.properties).not.toHaveProperty(
+          "whatsapp"
+        );
+      }
+    );
+
+    test(
       "valida o booking no backend antes de persistir o vínculo do evento",
       async () => {
         analyticsRepository
