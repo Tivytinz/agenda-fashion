@@ -68,41 +68,64 @@ function statusEstorno(valor) {
     : "UNKNOWN";
 }
 
-function chaveEstorno(estorno, indice) {
-  const base = [
+function baseChaveEstorno(estorno) {
+  return [
     String(estorno?.dateCreated || ""),
     Number(estorno?.value || 0)
       .toFixed(2),
     String(estorno?.description || ""),
-    String(indice),
   ].join("|");
+}
 
+function chaveEstorno(
+  base,
+  ocorrencia
+) {
   return crypto
     .createHash("sha256")
-    .update(base)
+    .update(
+      `${base}|${ocorrencia}`
+    )
     .digest("hex");
 }
 
 function normalizarEstornos(lista = []) {
+  const ocorrencias = new Map();
+
   return (
     Array.isArray(lista)
       ? lista
       : []
-  ).map((estorno, indice) => ({
-    chaveProvedor:
-      chaveEstorno(estorno, indice),
-    valor:
-      Math.max(
-        0,
-        numeroOuNull(estorno?.value) || 0
-      ),
-    status:
-      statusEstorno(estorno?.status),
-    ocorridoEm:
-      dataHoraAsaas(
-        estorno?.dateCreated
-      ),
-  }));
+  ).map((estorno) => {
+    const base =
+      baseChaveEstorno(estorno);
+    const ocorrencia =
+      ocorrencias.get(base) || 0;
+
+    ocorrencias.set(
+      base,
+      ocorrencia + 1
+    );
+
+    return {
+      chaveProvedor:
+        chaveEstorno(
+          base,
+          ocorrencia
+        ),
+      valor:
+        Math.max(
+          0,
+          numeroOuNull(estorno?.value) || 0
+        ),
+      status:
+        statusEstorno(estorno?.status),
+      ocorridoEm:
+        dataHoraAsaas(
+          estorno?.dateCreated
+        ),
+    };
+  });
 }
 
 function proximaReconciliacao(
@@ -218,7 +241,8 @@ async function buscarEstornos(
   pagamento
 ) {
   if (
-    Array.isArray(pagamento?.refunds)
+    Array.isArray(pagamento?.refunds) &&
+    pagamento.refunds.length > 0
   ) {
     return pagamento.refunds;
   }
