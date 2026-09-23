@@ -60,8 +60,7 @@ CREATE TABLE marketing_negocio_aquisicoes (
   campanha VARCHAR(140)
     NOT NULL,
 
-  atribuicao_em TIMESTAMPTZ
-    NOT NULL,
+  atribuicao_em TIMESTAMPTZ,
 
   primeira_conversao_em TIMESTAMPTZ
     NOT NULL,
@@ -118,7 +117,8 @@ CREATE TABLE marketing_negocio_aquisicoes (
 
   CONSTRAINT marketing_negocio_aquisicoes_cronologia_valida
     CHECK (
-      primeira_conversao_em >= atribuicao_em
+      atribuicao_em IS NULL
+      OR primeira_conversao_em >= atribuicao_em
     ),
 
   CONSTRAINT marketing_negocio_aquisicoes_data_conversao_valida
@@ -154,6 +154,9 @@ COMMENT ON TABLE marketing_negocio_aquisicoes IS
 
 COMMENT ON COLUMN marketing_negocio_aquisicoes.usuario_aquisicao_id IS
   'Primeira conta que apareceu como dona do negócio; troca futura de proprietária não reescreve a aquisição histórica.';
+
+COMMENT ON COLUMN marketing_negocio_aquisicoes.atribuicao_em IS
+  'Timestamp first-touch persistido quando existe evidência válida anterior à conversão. Fica nulo quando a aquisição não possui evidência temporal confiável.';
 
 COMMENT ON COLUMN marketing_negocio_aquisicoes.campanha_oficial_id IS
   'Campanha oficial resolvida no instante da materialização. O snapshot preserva a interpretação financeira mesmo se vínculos de marketing forem corrigidos depois.';
