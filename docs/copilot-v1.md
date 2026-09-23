@@ -1,6 +1,6 @@
 # Copilot AF V1 — divulgação assistida
 
-> **Papel documental:** fonte funcional canônica do Copilot V1. A arquitetura técnica fica em [`arquitetura-copilot.md`](./arquitetura-copilot.md), e regras determinísticas de ativação/growth continuam fora do LLM).
+> **Papel documental:** fonte funcional canônica do Copilot V1. A arquitetura técnica fica em [`arquitetura-copilot.md`](./arquitetura-copilot.md), e regras determinísticas de ativação/growth continuam fora do LLM.
 
 ## Objetivo
 

@@ -1,5 +1,7 @@
 # Wave 17 — Ativação profissional até o primeiro agendamento
 
+> **Papel documental:** documento de evidência/workstream da Wave 17. Enquanto a wave estiver aberta, seu estado não substitui as regras canônicas de ativação; decisões duráveis devem ser refletidas nos documentos principais.
+
 > Hardening da jornada de aquisição e ativação profissional após a proteção da
 > experiência pública móvel concluída na Wave 16.
 >

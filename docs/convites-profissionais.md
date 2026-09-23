@@ -1,5 +1,7 @@
 # Convite de profissionais
 
+> **Papel documental:** documento especializado de convite, aceite, capacidade de plano e ativação de profissionais na equipe.
+
 ## Regra permanente
 
 O Agenda Fashion não cria vínculo `profissional` a partir do simples conhecimento
