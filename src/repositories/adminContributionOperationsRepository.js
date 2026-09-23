@@ -156,6 +156,30 @@ async function buscarNegocioPorId(
   return resultado.rows[0] || null;
 }
 
+async function travarChaveCusto(
+  {
+    fonteCodigo,
+    chaveOrigem,
+  },
+  executor
+) {
+  await executor.query(
+    `
+    SELECT pg_advisory_xact_lock(
+      hashtext(
+        'agenda-fashion:contribuicao:' ||
+        $1
+      ),
+      hashtext($2)
+    )
+    `,
+    [
+      fonteCodigo,
+      chaveOrigem,
+    ]
+  );
+}
+
 async function buscarCustoPorFonteChave(
   {
     fonteCodigo,
@@ -386,6 +410,7 @@ module.exports = {
   executarTransacao,
   listarPainel,
   buscarNegocioPorId,
+  travarChaveCusto,
   buscarCustoPorFonteChave,
   validarCreditoDisponivel,
   criarFonte,
