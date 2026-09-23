@@ -268,14 +268,15 @@ describe(
         );
 
         expect(
-          mockClient.query
+          pagamentoRepository
+            .atualizarStatusPagamento
         ).toHaveBeenCalledWith(
-          expect.stringContaining(
-            "invoice_url = COALESCE"
-          ),
-          expect.arrayContaining([
-            "https://www.asaas.com/i/renovacao-wave20"
-          ])
+          mockClient,
+          "pay_renovacao",
+          expect.objectContaining({
+            invoice_url:
+              "https://www.asaas.com/i/renovacao-wave20"
+          })
         );
 
         expect(
