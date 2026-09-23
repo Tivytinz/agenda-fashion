@@ -244,7 +244,9 @@ describe(
               value: 99.9,
               billingType: "PIX",
               dueDate: "2026-08-28",
-              paymentDate: "2026-08-28"
+              paymentDate: "2026-08-28",
+              invoiceUrl:
+                "https://www.asaas.com/i/renovacao-wave20"
             }
           );
 
@@ -259,7 +261,9 @@ describe(
               "pay_renovacao",
             valor: 99.9,
             forma_pagamento: "pix",
-            status: "RECEIVED"
+            status: "RECEIVED",
+            invoice_url:
+              "https://www.asaas.com/i/renovacao-wave20"
           })
         );
 
@@ -922,7 +926,9 @@ describe(
           await suspenderAssinaturaPorPagamento({
             id: "pay_renovacao",
             status: "OVERDUE",
-            subscription: "sub_1"
+            subscription: "sub_1",
+            invoiceUrl:
+              "https://www.asaas.com/i/atraso-wave20"
           });
 
         expect(
@@ -935,7 +941,9 @@ describe(
             status: "OVERDUE",
             data_pagamento: null,
             evento_criado_em: null,
-            evento_id: null
+            evento_id: null,
+            invoice_url:
+              "https://www.asaas.com/i/atraso-wave20"
           }
         );
 
