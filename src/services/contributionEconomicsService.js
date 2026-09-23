@@ -107,6 +107,20 @@ function dataIso(
     );
   }
 
+  const data = new Date(
+    `${texto}T00:00:00.000Z`
+  );
+
+  if (
+    Number.isNaN(data.getTime()) ||
+    data.toISOString().slice(0, 10) !==
+      texto
+  ) {
+    throw new Error(
+      `${nome} invalido`
+    );
+  }
+
   return texto;
 }
 
@@ -219,6 +233,12 @@ async function registrarCustoObservado({
   if (resultado.fonteAusente) {
     throw new Error(
       "fonte de contribuicao inexistente ou inativa"
+    );
+  }
+
+  if (resultado.referenciaInvalida) {
+    throw new Error(
+      "referencia de custo invalida para fonte ou negocio"
     );
   }
 
