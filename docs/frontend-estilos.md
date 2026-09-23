@@ -1,5 +1,7 @@
 # Arquitetura de estilos do frontend
 
+> **Papel documental:** documento especializado de ownership, carregamento e manutenção de CSS/design systems. A semântica dos contextos pertence a [`ux-contextos-visuais.md`](./ux-contextos-visuais.md).
+
 Este documento registra a direção atual para evoluir o CSS do Agenda Fashion sem exigir uma nova biblioteca visual ou uma reescrita do frontend.
 
 Ele funciona como referência de ownership, carregamento e manutenção. A solução concreta pode variar quando acessibilidade, compatibilidade, simplicidade ou a tarefa da página justificarem uma composição diferente.
