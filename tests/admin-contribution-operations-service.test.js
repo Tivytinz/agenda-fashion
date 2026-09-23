@@ -12,16 +12,10 @@ const mockExecutarTransacao =
   );
 
 jest.mock(
-  "../src/db/db",
+  "../src/repositories/adminContributionOperationsRepository",
   () => ({
     executarTransacao:
       mockExecutarTransacao,
-  })
-);
-
-jest.mock(
-  "../src/repositories/adminContributionOperationsRepository",
-  () => ({
     listarPainel:
       jest.fn(),
     buscarNegocioPorId:
