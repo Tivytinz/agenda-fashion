@@ -11,7 +11,7 @@ const syncService = require(
 const {
   PRIMEIRA_EXECUCAO_MS,
   agendamentoAtivo,
-  intervaloHoras,
+  intervaloMinutos,
 } = require(
   "../config/contributionCostSync"
 );
@@ -24,8 +24,7 @@ const execucoes =
 
 function intervaloMs() {
   return (
-    intervaloHoras() *
-    60 *
+    intervaloMinutos() *
     60 *
     1000
   );
@@ -196,8 +195,8 @@ function iniciarWorkerCustosContribuicao() {
   registrador.informacao(
     "Worker de custos de contribuição iniciado.",
     {
-      intervaloHoras:
-        intervaloHoras(),
+      intervaloMinutos:
+        intervaloMinutos(),
     }
   );
 
@@ -237,5 +236,5 @@ module.exports = {
   executarSincronizacaoAgendada,
   iniciarWorkerCustosContribuicao,
   pararWorkerCustosContribuicao,
-  intervaloHoras,
+  intervaloMinutos,
 };
