@@ -6,25 +6,25 @@ const {
 
 const PRIMEIRA_EXECUCAO_MS =
   90000;
-const HORAS_PADRAO = 6;
-const HORAS_MINIMAS = 1;
-const HORAS_MAXIMAS = 24;
+const MINUTOS_PADRAO = 15;
+const MINUTOS_MINIMOS = 5;
+const MINUTOS_MAXIMOS = 60;
 
-function intervaloHoras() {
+function intervaloMinutos() {
   const valor = Number(
     process.env
-      .CONTRIBUTION_COST_SYNC_INTERVAL_HOURS ||
-    HORAS_PADRAO
+      .CONTRIBUTION_COST_SYNC_POLL_INTERVAL_MINUTES ||
+    MINUTOS_PADRAO
   );
 
   if (!Number.isFinite(valor)) {
-    return HORAS_PADRAO;
+    return MINUTOS_PADRAO;
   }
 
   return Math.min(
-    HORAS_MAXIMAS,
+    MINUTOS_MAXIMOS,
     Math.max(
-      HORAS_MINIMAS,
+      MINUTOS_MINIMOS,
       valor
     )
   );
@@ -41,8 +41,8 @@ function statusAgendamento() {
   return {
     habilitado:
       agendamentoAtivo(),
-    intervaloHoras:
-      intervaloHoras(),
+    intervaloMinutos:
+      intervaloMinutos(),
     primeiraExecucaoSegundos:
       Math.round(
         PRIMEIRA_EXECUCAO_MS /
@@ -53,7 +53,7 @@ function statusAgendamento() {
 
 module.exports = {
   PRIMEIRA_EXECUCAO_MS,
-  intervaloHoras,
+  intervaloMinutos,
   agendamentoAtivo,
   statusAgendamento,
 };
