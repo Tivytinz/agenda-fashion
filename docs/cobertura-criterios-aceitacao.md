@@ -380,17 +380,27 @@ A Wave 25 manteve a baseline funcional em **67/67 (100%)**.
 
 ## Wave 26 — coortes de receita e LTV bruto observado v1
 
-A Wave 26 inicia um cutover próprio de LTV e mede receita acumulada por negócio
-em D30, D60 e D90. Somente negócios cuja primeira conversão paga canônica ocorre
-no ou depois do cutover entram na coorte oficial; histórico anterior não é
-inventado.
+A Wave 26 fechou o cutover próprio de LTV e a leitura de receita acumulada por
+negócio em D30, D60 e D90, sem backfill especulativo.
 
-Maturidade é explícita: negócio imaturo não é tratado como zero. Churn não o
-remove do denominador histórico e reativação não cria uma nova aquisição.
-Reversões permanecem exposição separada, portanto a Wave não declara LTV líquido,
-LTV projetado nem CAC payback.
+O head final `f86a33ab3dcb22b54ea9e72894bf696704931002` passou no
+**Backend CI #1312**. O PR #285 foi mergeado na `main` pelo commit
+`ec50de88d69fe90de9d345555d6e21a21b8d3f08`.
 
-A Wave 26 não altera a baseline funcional, que continua em **67/67 (100%)**.
+A Wave 26 manteve a baseline funcional em **67/67 (100%)**.
+
+## Wave 27 — aquisição financeira e retorno bruto observado v1
+
+A Wave 27 inicia um cutover próprio para congelar a aquisição financeira no
+nível do negócio e conectar campanha, custo de mídia, primeira conversão paga e
+receita futura na mesma coorte.
+
+O custo diário deixa de somar silenciosamente gasto manual e automático no mesmo
+dia. Uma única fonte automática prevalece; múltiplas fontes automáticas bloqueiam
+a leitura. CAC é explicitamente **CAC de mídia observado** e retorno D30/D60/D90
+é receita bruta, não margem ou payback econômico.
+
+A Wave 27 não altera a baseline funcional, que continua em **67/67 (100%)**.
 
 ## Regra de atualização
 
