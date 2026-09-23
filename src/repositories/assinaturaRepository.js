@@ -431,10 +431,10 @@ async function listarNegociosComCancelamentoExpirado(
   limite = 100,
   executor = db
 ) {
-  const limiteSeguro = Math.min(
-    500,
-    Math.max(1, Number(limite) || 100)
-  );
+  const limiteSolicitado = Number(limite);
+  const limiteSeguro = Number.isInteger(limiteSolicitado)
+    ? Math.min(500, Math.max(1, limiteSolicitado))
+    : 100;
 
   const result = await executor.query(
     `
