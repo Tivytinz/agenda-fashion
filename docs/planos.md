@@ -105,6 +105,12 @@ apagar dados existentes nem impedir a edição do que já foi cadastrado.
   cobrança do Asaas para regularização. A URL só é exposta quando usa HTTPS e
   domínio oficial do Asaas; o retorno da fatura nunca substitui a confirmação
   por webhook.
+- O atraso suspende o entitlement pago imediatamente conforme a regra financeira
+  existente. Para lifecycle e churn, a inadimplência permanece recuperável por
+  uma janela padrão de 14 dias. Sem recuperação depois dessa janela, o AF
+  materializa `ACESSO_PAGO_ENCERRADO` com motivo
+  `INADIMPLENCIA_NAO_RECUPERADA`. Pagamento posterior inicia reativação; ele
+  não apaga a saída terminal anterior.
 - Estorno, desfazimento de recebimento e chargeback não devem mostrar CTA de
   "pagar novamente" como se fossem simples atraso.
 - Um checkout inicial vencido ou encerrado sem confirmação não libera benefício
@@ -165,6 +171,8 @@ negócio e conversão para plano pago.
 - Uso do negócio: `GET /meu-plano`.
 - Checkout pago: `POST /checkout`.
 - Lifecycle financeiro: `database/migrations/093_assinatura_eventos_lifecycle.sql`.
+- Baseline de episódios pagos e churn v1:
+  `database/migrations/095_churn_v1_episodios_pagos.sql`.
 - Índice da reconciliação temporal:
   `database/migrations/094_assinaturas_canceladas_expiracao_idx.sql`.
 - Visão técnica completa: `docs/arquitetura.md`.

@@ -3,6 +3,7 @@ jest.mock(
   () => ({
     periodoSeguro: jest.fn((periodo) => periodo || "30"),
     buscarReceita: jest.fn(),
+    buscarChurnPago: jest.fn(),
     buscarVisaoGeral: jest.fn(),
     listarAquisicao: jest.fn(),
     buscarJornada: jest.fn(),
@@ -33,6 +34,19 @@ const service = require(
 describe("Admin Analytics V2 - receita", () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    repository.buscarChurnPago.mockResolvedValue({
+      inicio_cobertura: "2026-09-23T05:00:00.000Z",
+      inicio_efetivo: "2026-09-23T05:00:00.000Z",
+      periodo_ajustado_cutover: true,
+      base_paga_inicio: 10,
+      saidas_terminais_base_inicial: 2,
+      negocios_reativados: 1,
+      base_paga_fim: 9,
+      saidas_cancelamento_voluntario: 1,
+      saidas_inadimplencia_nao_recuperada: 1,
+      saidas_encerramento_provedor: 0,
+      saidas_outros_motivos: 0,
+    });
   });
 
   test("calcula checkout para assinatura com a mesma coorte de negócios", async () => {
@@ -138,9 +152,20 @@ describe("Admin Analytics V2 - receita", () => {
       reversoesFinanceirasCanonicas: 1,
       cancelamentosRenovacaoCanonicos: 1,
       saidasBasePagaCanonicas: 1,
+      basePagaInicioChurn: 10,
+      saidasTerminaisBaseInicial: 2,
+      churnBrutoNegocios: 20,
+      negociosReativadosChurn: 1,
+      basePagaFimChurn: 9,
+      saidasCancelamentoVoluntario: 1,
+      saidasInadimplenciaNaoRecuperada: 1,
     });
-    expect(resultado.metodologia.retencaoFinanceira)
-      .toMatch(/não constituem uma definição oficial de churn/i);
+    expect(resultado.metodologia.churn)
+      .toMatch(/Gross logo churn v1/i);
+    expect(resultado.churn).toMatchObject({
+      periodoAjustadoAoCutover: true,
+      historicoAnteriorInferido: false,
+    });
   });
 
   test("não inventa conversão quando a coorte de checkout está vazia", async () => {

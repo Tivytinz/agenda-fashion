@@ -68,6 +68,9 @@ jest.mock(
 const pagamentoRepository = require(
   "../src/repositories/pagamentoRepository"
 );
+const assinaturaLifecycleService = require(
+  "../src/services/assinaturaLifecycleService"
+);
 
 const {
   criarAssinaturaAsaas,
@@ -530,6 +533,17 @@ describe(
                 };
               }
 
+              if (
+                sqlContem(
+                  sql,
+                  "UPDATE negocios"
+                )
+              ) {
+                return {
+                  rows: [{ id: 7 }]
+                };
+              }
+
               return {
                 rows: []
               };
@@ -559,6 +573,75 @@ describe(
           ),
           [1, 7, 3, 20]
         );
+      }
+    );
+
+    test(
+      "evento de assinatura antiga não encerra o episódio do negócio",
+      async () => {
+        mockClient.query
+          .mockImplementation(
+            async (sql) => {
+              if (
+                sqlContem(
+                  sql,
+                  "WHERE asaas_subscription_id = $1"
+                )
+              ) {
+                return {
+                  rows: [{
+                    id: 20,
+                    negocio_id: 7,
+                    plano_id: 3,
+                    status: "ACTIVE",
+                    ativo: true,
+                    asaas_subscription_id: "sub_antiga",
+                    data_proxima_cobranca: null,
+                  }]
+                };
+              }
+
+              if (
+                sqlContem(sql, "UPDATE assinaturas") &&
+                sqlContem(sql, "asaas_ultimo_evento_em")
+              ) {
+                return {
+                  rows: [{
+                    id: 20,
+                    negocio_id: 7,
+                    plano_id: 3,
+                    status: "DELETED",
+                    ativo: false,
+                    asaas_subscription_id: "sub_antiga",
+                  }]
+                };
+              }
+
+              if (sqlContem(sql, "FROM planos")) {
+                return { rows: [{ id: 1 }] };
+              }
+
+              if (sqlContem(sql, "UPDATE negocios")) {
+                return { rows: [] };
+              }
+
+              return { rows: [] };
+            }
+          );
+
+        await sincronizarAssinaturaPorWebhook(
+          "SUBSCRIPTION_DELETED",
+          {
+            id: "sub_antiga",
+            status: "INACTIVE",
+            webhookEventoId: "evt_sub_antiga",
+          }
+        );
+
+        expect(
+          assinaturaLifecycleService
+            .registrarEncerramentoAcesso
+        ).not.toHaveBeenCalled();
       }
     );
 

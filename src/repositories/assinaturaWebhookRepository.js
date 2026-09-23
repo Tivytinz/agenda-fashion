@@ -127,7 +127,7 @@ async function atualizarPlanoNegocioSeSemOutraAssinatura(
     novoPlanoId,
   }
 ) {
-  await client.query(
+  const resultado = await client.query(
     `
       UPDATE negocios n
       SET plano_id = $1
@@ -136,10 +136,14 @@ async function atualizarPlanoNegocioSeSemOutraAssinatura(
         AND NOT EXISTS (
           SELECT 1
           FROM assinaturas atual
+          INNER JOIN planos apl
+            ON apl.id = atual.plano_id
           WHERE atual.negocio_id = n.id
             AND atual.id <> $4
             AND atual.ativo = TRUE
+            AND apl.valor > 0
         )
+      RETURNING n.id
     `,
     [
       novoPlanoId,
@@ -148,6 +152,8 @@ async function atualizarPlanoNegocioSeSemOutraAssinatura(
       assinaturaIgnoradaId,
     ]
   );
+
+  return resultado.rows[0] || null;
 }
 
 async function buscarPorPagamentoParaAtualizar(

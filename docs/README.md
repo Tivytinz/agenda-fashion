@@ -240,7 +240,9 @@ virar uma segunda fonte de regra quando o domínio já possui documento canônic
 - [wave-22-lifecycle-pago.md](./wave-22-lifecycle-pago.md):
   evidência do lifecycle pago canônico, reativação e encerramento estruturado.
 - [wave-23-reconciliacao-base-paga.md](./wave-23-reconciliacao-base-paga.md):
-  workstream da reconciliação temporal automática do fim do período pago.
+  evidência da reconciliação temporal automática do fim do período pago.
+- [wave-24-episodios-pagos-churn.md](./wave-24-episodios-pagos-churn.md):
+  workstream de episódios pagos, inadimplência terminal e churn observável v1.
 
 Enquanto uma wave estiver aberta, seu documento descreve o workstream e a
 evidência em construção, não uma nova fonte canônica. Quando terminar, a decisão

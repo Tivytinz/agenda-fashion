@@ -117,9 +117,27 @@ describe("receita administrativa v2", () => {
         reversoesFinanceirasCanonicas: 1,
         cancelamentosRenovacaoCanonicos: 1,
         saidasBasePagaCanonicas: 1,
-        cancelamentosVencidosPendentesReconciliacao: 0
+        cancelamentosVencidosPendentesReconciliacao: 0,
+        basePagaInicioChurn: 10,
+        saidasTerminaisBaseInicial: 2,
+        churnBrutoNegocios: 20,
+        negociosReativadosChurn: 1,
+        basePagaFimChurn: 9,
+        saidasCancelamentoVoluntario: 1,
+        saidasInadimplenciaNaoRecuperada: 1,
+        saidasEncerramentoProvedor: 0,
+        saidasOutrosMotivos: 0
       },
-      planos: []
+      planos: [],
+      churn: {
+        inicioCobertura: "2026-09-23T05:00:00.000Z",
+        inicioEfetivo: "2026-09-23T05:00:00.000Z",
+        periodoAjustadoAoCutover: true,
+        historicoAnteriorInferido: false
+      },
+      metodologia: {
+        churn: "Gross logo churn v1 usa a base paga inicial."
+      }
     });
 
     renderRevenuePage();
@@ -133,6 +151,10 @@ describe("receita administrativa v2", () => {
     expect(screen.getByText("Reversões financeiras")).not.toBeNull();
     expect(screen.getByText("Saídas da base paga")).not.toBeNull();
     expect(screen.getByText("Pendentes de reconciliação temporal")).not.toBeNull();
+    expect(screen.getByRole("heading", { name: "Churn bruto de negócios" })).not.toBeNull();
+    expect(screen.getByText("Gross logo churn")).not.toBeNull();
+    expect(screen.getByText("Inadimplência não recuperada")).not.toBeNull();
+    expect(screen.getByText("20%")).not.toBeNull();
     expect(screen.getByText("66,7%")).not.toBeNull();
     expect(screen.getByText("50%")).not.toBeNull();
     expect(screen.getByText("Cancelar a próxima renovação, atrasar uma cobrança e perder o acesso pago são fatos diferentes.")).not.toBeNull();

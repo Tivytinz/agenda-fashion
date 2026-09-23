@@ -115,6 +115,16 @@ async function registrarConfirmacaoPagamento({
   let planoAnteriorId = null;
 
   if (
+    contexto.ultimo_evento_episodio_tipo ===
+      "ACESSO_PAGO_ENCERRADO"
+  ) {
+    tipo = "REATIVACAO_PAGA";
+    motivo = "RETORNO_APOS_SAIDA_PAGA";
+    planoAnteriorId =
+      contexto.ultimo_plano_pago_anterior_id ||
+      assinatura.plano_id ||
+      null;
+  } else if (
     contexto
       .possui_pagamento_valido_mesma_assinatura
   ) {
@@ -233,10 +243,10 @@ async function registrarCancelamentoRenovacao({
       },
       ocorridoEm,
       chaveIdempotencia:
-        chaveAssinatura(
+        `${chaveAssinatura(
           assinatura.id,
           "RENOVACAO_CANCELADA"
-        ),
+        )}:${acessoAte || "sem-data"}`,
     }
   );
 }
@@ -244,9 +254,12 @@ async function registrarCancelamentoRenovacao({
 async function registrarEncerramentoAcesso({
   client,
   assinatura,
+  pagamentoId = null,
   motivo = null,
   origem = "sistema",
+  detalhes = {},
   ocorridoEm = null,
+  referenciaIdempotencia = null,
 }) {
   if (!assinatura?.negocio_id || !assinatura?.id) {
     return null;
@@ -273,21 +286,32 @@ async function registrarEncerramentoAcesso({
     {
       negocioId: assinatura.negocio_id,
       assinaturaId: assinatura.id,
+      pagamentoId,
       tipo: "ACESSO_PAGO_ENCERRADO",
       motivo: motivoFinal,
       planoAnteriorId: assinatura.plano_id || null,
       planoNovoId: null,
       origem,
       detalhes: {
+        ...detalhes,
         acesso_ate:
           assinatura.data_proxima_cobranca || null,
       },
       ocorridoEm,
-      chaveIdempotencia:
-        chaveAssinatura(
-          assinatura.id,
-          "ACESSO_PAGO_ENCERRADO"
-        ),
+      chaveIdempotencia: pagamentoId
+        ? chavePagamento(
+            pagamentoId,
+            "ACESSO_PAGO_ENCERRADO"
+          )
+        : `${chaveAssinatura(
+            assinatura.id,
+            "ACESSO_PAGO_ENCERRADO"
+          )}:${
+            referenciaIdempotencia ||
+            assinatura.data_proxima_cobranca ||
+            motivoFinal ||
+            "sem-referencia"
+          }`,
     }
   );
 }

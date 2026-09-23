@@ -75,12 +75,18 @@ async function expirarCancelamentoComReconciliacao(
                 client
             );
 
-        if (expirada) {
+        if (
+            expirada &&
+            expirada.negocio_saiu_base_paga === true
+        ) {
             await assinaturaLifecycleService
                 .registrarEncerramentoAcesso({
                     client,
                     assinatura: expirada,
-                    origem: "sistema"
+                    origem: "sistema",
+                    referenciaIdempotencia:
+                        expirada.data_proxima_cobranca ||
+                        "fim-periodo-pago"
                 });
 
             await equipePlanoService

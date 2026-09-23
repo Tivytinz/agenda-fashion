@@ -275,8 +275,15 @@ async function buscarRetention(periodo) {
 }
 
 async function buscarRevenue(periodo) {
-  const resultado = await repository.buscarReceita(periodo);
+  const [resultado, churn] = await Promise.all([
+    repository.buscarReceita(periodo),
+    repository.buscarChurnPago(periodo),
+  ]);
   const resumo = resultado.resumo || {};
+  const basePagaInicio = numero(churn.base_paga_inicio);
+  const saidasTerminais = numero(
+    churn.saidas_terminais_base_inicial
+  );
   const negociosComCheckout = numero(resumo.negocios_com_checkout);
   const negociosCheckoutConvertidos = numero(
     resumo.negocios_checkout_convertidos
@@ -375,6 +382,37 @@ async function buscarRevenue(periodo) {
       saidasBasePagaCanonicas: numero(
         resumo.saidas_base_paga_canonicas
       ),
+      basePagaInicioChurn: basePagaInicio,
+      saidasTerminaisBaseInicial: saidasTerminais,
+      churnBrutoNegocios: percentual(
+        saidasTerminais,
+        basePagaInicio
+      ),
+      negociosReativadosChurn: numero(
+        churn.negocios_reativados
+      ),
+      basePagaFimChurn: numero(
+        churn.base_paga_fim
+      ),
+      saidasCancelamentoVoluntario: numero(
+        churn.saidas_cancelamento_voluntario
+      ),
+      saidasInadimplenciaNaoRecuperada: numero(
+        churn.saidas_inadimplencia_nao_recuperada
+      ),
+      saidasEncerramentoProvedor: numero(
+        churn.saidas_encerramento_provedor
+      ),
+      saidasOutrosMotivos: numero(
+        churn.saidas_outros_motivos
+      ),
+    },
+    churn: {
+      inicioCobertura: churn.inicio_cobertura || null,
+      inicioEfetivo: churn.inicio_efetivo || null,
+      periodoAjustadoAoCutover:
+        churn.periodo_ajustado_cutover === true,
+      historicoAnteriorInferido: false,
     },
     planos: resultado.planos,
     metodologia: {
@@ -393,7 +431,9 @@ async function buscarRevenue(periodo) {
       cancelamento:
         "Cancelamento de renovação agendado é estoque atual com acesso pago ainda ativo. Encerramento após cancelamento conta somente assinaturas inativas marcadas pela operação voluntária do titular no período; falha de pagamento recuperável não é classificada como churn.",
       lifecycleCanonico:
-        "Desde a Wave 22, transições financeiras novas também são gravadas de forma append-only em assinatura_eventos. Na Wave 23, cancelamentos com período já vencido são reconciliados em background; a pendência de reconciliação é diagnóstico operacional e não churn. Reativação, mudança de plano, atraso, recuperação, cancelamento da renovação e saída da base paga permanecem eventos distintos.",
+        "Desde a Wave 22, transições financeiras novas também são gravadas de forma append-only em assinatura_eventos. Na Wave 23, cancelamentos com período já vencido são reconciliados em background. Na Wave 24, a baseline paga e as fronteiras de episódio permitem observar churn sem reconstruir historicamente fatos anteriores ao cutover.",
+      churn:
+        "Gross logo churn v1 usa negócios que estavam pagos no início efetivo do recorte e tiveram saída terminal depois desse instante. Reativação permanece separada e não reduz retroativamente o churn bruto. Quando o recorte começa antes do cutover, o início efetivo é ajustado para a baseline da Wave 24.",
       ativas:
         "Assinaturas pagas ativas é um estoque atual e não uma contagem criada no período. Cancelamentos cujo acesso já venceu são excluídos do estoque mesmo antes do próximo ciclo do worker financeiro.",
     },

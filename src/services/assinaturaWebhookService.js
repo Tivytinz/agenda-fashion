@@ -177,29 +177,36 @@ async function sincronizarAssinaturaPorWebhook(
         );
       }
 
-      await assinaturaWebhookRepository
-        .atualizarPlanoNegocioSeSemOutraAssinatura(
-          client,
-          {
-            negocioId: assinatura.negocio_id,
-            planoAtualId: assinatura.plano_id,
-            assinaturaIgnoradaId: assinatura.id,
-            novoPlanoId: planoGratis.id,
-          }
+      const negocioRetornouGratis =
+        await assinaturaWebhookRepository
+          .atualizarPlanoNegocioSeSemOutraAssinatura(
+            client,
+            {
+              negocioId: assinatura.negocio_id,
+              planoAtualId: assinatura.plano_id,
+              assinaturaIgnoradaId: assinatura.id,
+              novoPlanoId: planoGratis.id,
+            }
+          );
+
+      if (negocioRetornouGratis) {
+        await reconciliarLimiteProfissionais(
+          assinatura.negocio_id,
+          client
         );
 
-      await reconciliarLimiteProfissionais(
-        assinatura.negocio_id,
-        client
-      );
-
-      await assinaturaLifecycleService
-        .registrarEncerramentoAcesso({
-          client,
-          assinatura: assinaturaAtualizada,
-          motivo: "ENCERRAMENTO_PROVEDOR",
-          origem: "webhook",
-        });
+        await assinaturaLifecycleService
+          .registrarEncerramentoAcesso({
+            client,
+            assinatura: assinaturaAtualizada,
+            motivo: "ENCERRAMENTO_PROVEDOR",
+            origem: "webhook",
+            referenciaIdempotencia:
+              dadosAssinatura.webhookEventoId ||
+              assinaturaAtualizada.asaas_ultimo_evento_id ||
+              tipoEvento,
+          });
+      }
     }
 
     return assinaturaAtualizada;
