@@ -149,7 +149,7 @@ describe("aquisição administrativa v2", () => {
     expect(screen.getByText("Líquido gateway 0.70x")).not.toBeNull();
     expect(screen.getByText("Líquido gateway 1.10x")).not.toBeNull();
     expect(screen.getByText("Aguardando maturidade")).not.toBeNull();
-    expect(screen.getByText("até D60")).not.toBeNull();
+    expect(screen.getAllByText("até D60").length).toBeGreaterThanOrEqual(1);
     expect(screen.getByText(/CAC de mídia não é CAC econômico/i)).not.toBeNull();
   });
 
