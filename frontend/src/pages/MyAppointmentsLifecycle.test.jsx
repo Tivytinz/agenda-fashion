@@ -118,14 +118,15 @@ describe("histórico real da cliente", () => {
     fireEvent.click(missedTab);
     fireEvent.click(screen.getByRole("link", { name: "Agendar novamente" }));
 
-    expect(track).toHaveBeenCalledWith("reagendamento_iniciado", {
+    expect(track).toHaveBeenCalledWith("agendamento_iniciado", {
       page: "meus_agendamentos",
       mission: "retornar_ao_negocio",
       businessId: 10,
       properties: {
+        origem: "agendar_novamente",
         agendamento_id: 2,
         servico_id: 20,
-        status_origem: "falta",
+        status: "falta",
       },
     });
   });
