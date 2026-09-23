@@ -300,6 +300,18 @@ async function buscarReceita(periodo = "30") {
   const filtroCheckout = filtroTimestamp(seguro, "ct.created_at");
   const filtroPagamento = filtroData(seguro, "pg.data_pagamento");
   const filtroPrimeiroPagamento = filtroData(seguro, "fp.data_pagamento");
+  const filtroReceitaClassificada = filtroData(
+    seguro,
+    "pc.data_pagamento"
+  );
+  const filtroRenovacaoVencimento = filtroData(
+    seguro,
+    "cr.data_vencimento"
+  );
+  const filtroEncerramentoCancelado = filtroTimestamp(
+    seguro,
+    "a.updated_at"
+  );
 
   const [resumo, planos] = await Promise.all([
     db.query(
@@ -326,7 +338,11 @@ async function buscarReceita(periodo = "30") {
                 INNER JOIN planos cpl
                   ON cpl.id = ca.plano_id
                 WHERE cpg.assinatura_id = ct.assinatura_id
-                  AND UPPER(cpg.status) IN ('CONFIRMED', 'RECEIVED', 'RECEIVED_IN_CASH')
+                  AND UPPER(cpg.status) IN (
+                    'CONFIRMED',
+                    'RECEIVED',
+                    'RECEIVED_IN_CASH'
+                  )
                   AND cpg.data_pagamento IS NOT NULL
                   AND cpl.valor > 0
               )
@@ -395,7 +411,11 @@ async function buscarReceita(periodo = "30") {
           pg.assinatura_id,
           pg.id AS pagamento_id
         FROM pagamentos pg
-        WHERE UPPER(pg.status) IN ('CONFIRMED', 'RECEIVED', 'RECEIVED_IN_CASH')
+        WHERE UPPER(pg.status) IN (
+            'CONFIRMED',
+            'RECEIVED',
+            'RECEIVED_IN_CASH'
+          )
           AND pg.data_pagamento IS NOT NULL
         ORDER BY
           pg.assinatura_id,
@@ -405,7 +425,8 @@ async function buscarReceita(periodo = "30") {
       primeiros_pagamentos AS (
         SELECT
           COUNT(*)::INT AS novas_assinaturas_pagas,
-          COALESCE(SUM(fp.valor), 0)::NUMERIC(14,2) AS receita_primeiro_pagamento
+          COALESCE(SUM(fp.valor), 0)::NUMERIC(14,2)
+            AS receita_primeiro_pagamento
         FROM primeiros p
         INNER JOIN pagamentos fp
           ON fp.id = p.pagamento_id
@@ -415,6 +436,216 @@ async function buscarReceita(periodo = "30") {
           ON pl.id = a.plano_id
         WHERE pl.valor > 0
           ${filtroPrimeiroPagamento}
+      ),
+      pagamentos_classificados AS (
+        SELECT
+          pg.id,
+          pg.assinatura_id,
+          a.negocio_id,
+          pg.valor,
+          pg.status,
+          pg.data_pagamento,
+          ROW_NUMBER() OVER (
+            PARTITION BY a.negocio_id
+            ORDER BY
+              pg.data_pagamento ASC,
+              pg.id ASC
+          ) AS ordem_negocio,
+          ROW_NUMBER() OVER (
+            PARTITION BY pg.assinatura_id
+            ORDER BY
+              pg.data_pagamento ASC,
+              pg.id ASC
+          ) AS ordem_assinatura
+        FROM pagamentos pg
+        INNER JOIN assinaturas a
+          ON a.id = pg.assinatura_id
+        INNER JOIN planos pl
+          ON pl.id = a.plano_id
+        WHERE pg.data_pagamento IS NOT NULL
+          AND pl.valor > 0
+      ),
+      receita_classificada AS (
+        SELECT
+          COUNT(*) FILTER (
+            WHERE UPPER(pc.status) IN (
+              'CONFIRMED',
+              'RECEIVED',
+              'RECEIVED_IN_CASH'
+            )
+              AND pc.ordem_negocio = 1
+          )::INT AS novos_negocios_pagantes,
+          COALESCE(SUM(pc.valor) FILTER (
+            WHERE UPPER(pc.status) IN (
+              'CONFIRMED',
+              'RECEIVED',
+              'RECEIVED_IN_CASH'
+            )
+              AND pc.ordem_negocio = 1
+          ), 0)::NUMERIC(14,2)
+            AS receita_primeira_conversao,
+          COUNT(*) FILTER (
+            WHERE UPPER(pc.status) IN (
+              'CONFIRMED',
+              'RECEIVED',
+              'RECEIVED_IN_CASH'
+            )
+              AND pc.ordem_negocio > 1
+              AND pc.ordem_assinatura > 1
+          )::INT AS pagamentos_renovacao,
+          COUNT(DISTINCT pc.negocio_id) FILTER (
+            WHERE UPPER(pc.status) IN (
+              'CONFIRMED',
+              'RECEIVED',
+              'RECEIVED_IN_CASH'
+            )
+              AND pc.ordem_negocio > 1
+              AND pc.ordem_assinatura > 1
+          )::INT AS negocios_com_renovacao,
+          COALESCE(SUM(pc.valor) FILTER (
+            WHERE UPPER(pc.status) IN (
+              'CONFIRMED',
+              'RECEIVED',
+              'RECEIVED_IN_CASH'
+            )
+              AND pc.ordem_negocio > 1
+              AND pc.ordem_assinatura > 1
+          ), 0)::NUMERIC(14,2)
+            AS receita_renovacao,
+          COUNT(*) FILTER (
+            WHERE UPPER(pc.status) IN (
+              'CONFIRMED',
+              'RECEIVED',
+              'RECEIVED_IN_CASH'
+            )
+              AND pc.ordem_negocio > 1
+              AND pc.ordem_assinatura = 1
+          )::INT AS pagamentos_mudanca_plano,
+          COUNT(DISTINCT pc.negocio_id) FILTER (
+            WHERE UPPER(pc.status) IN (
+              'CONFIRMED',
+              'RECEIVED',
+              'RECEIVED_IN_CASH'
+            )
+              AND pc.ordem_negocio > 1
+              AND pc.ordem_assinatura = 1
+          )::INT AS negocios_com_mudanca_plano,
+          COALESCE(SUM(pc.valor) FILTER (
+            WHERE UPPER(pc.status) IN (
+              'CONFIRMED',
+              'RECEIVED',
+              'RECEIVED_IN_CASH'
+            )
+              AND pc.ordem_negocio > 1
+              AND pc.ordem_assinatura = 1
+          ), 0)::NUMERIC(14,2)
+            AS receita_mudanca_plano
+        FROM pagamentos_classificados pc
+        WHERE 1 = 1
+          ${filtroReceitaClassificada}
+      ),
+      cobrancas_ordenadas AS (
+        SELECT
+          pg.id,
+          pg.assinatura_id,
+          pg.asaas_payment_id,
+          a.negocio_id,
+          pg.status,
+          pg.data_vencimento,
+          pg.data_pagamento,
+          ROW_NUMBER() OVER (
+            PARTITION BY pg.assinatura_id
+            ORDER BY
+              COALESCE(
+                pg.data_vencimento,
+                pg.data_pagamento,
+                pg.created_at::date
+              ) ASC,
+              pg.id ASC
+          ) AS ordem_assinatura
+        FROM pagamentos pg
+        INNER JOIN assinaturas a
+          ON a.id = pg.assinatura_id
+        INNER JOIN planos pl
+          ON pl.id = a.plano_id
+        WHERE pl.valor > 0
+      ),
+      cobrancas_recorrentes AS (
+        SELECT
+          co.*,
+          EXISTS (
+            SELECT 1
+            FROM webhook_eventos we
+            WHERE we.provedor = 'asaas'
+              AND we.recurso_id =
+                co.asaas_payment_id
+              AND we.tipo_evento =
+                'PAYMENT_OVERDUE'
+              AND we.status = 'PROCESSED'
+          ) AS atraso_observado
+        FROM cobrancas_ordenadas co
+        WHERE co.ordem_assinatura > 1
+          AND co.data_vencimento IS NOT NULL
+      ),
+      retencao_financeira AS (
+        SELECT
+          COUNT(*)::INT AS renovacoes_previstas,
+          COUNT(*) FILTER (
+            WHERE UPPER(cr.status) IN (
+              'CONFIRMED',
+              'RECEIVED',
+              'RECEIVED_IN_CASH'
+            )
+          )::INT AS renovacoes_confirmadas,
+          COUNT(*) FILTER (
+            WHERE cr.atraso_observado
+              OR UPPER(cr.status) IN (
+                'OVERDUE',
+                'PAST_DUE',
+                'PAYMENT_FAILED',
+                'CREDIT_CARD_CAPTURE_REFUSED'
+              )
+          )::INT AS renovacoes_com_atraso,
+          COUNT(*) FILTER (
+            WHERE cr.atraso_observado
+              AND UPPER(cr.status) IN (
+                'CONFIRMED',
+                'RECEIVED',
+                'RECEIVED_IN_CASH'
+              )
+          )::INT AS renovacoes_recuperadas
+        FROM cobrancas_recorrentes cr
+        WHERE cr.data_vencimento <= CURRENT_DATE
+          ${filtroRenovacaoVencimento}
+      ),
+      cancelamentos_agendados AS (
+        SELECT COUNT(*)::INT
+          AS cancelamentos_renovacao_agendados
+        FROM assinaturas a
+        INNER JOIN planos pl
+          ON pl.id = a.plano_id
+        WHERE a.ativo = TRUE
+          AND UPPER(a.status) IN (
+            'CANCELED',
+            'CANCELLED'
+          )
+          AND pl.valor > 0
+      ),
+      cancelamentos_encerrados AS (
+        SELECT COUNT(*)::INT
+          AS assinaturas_encerradas_apos_cancelamento
+        FROM assinaturas a
+        INNER JOIN planos pl
+          ON pl.id = a.plano_id
+        WHERE a.ativo = FALSE
+          AND UPPER(a.status) IN (
+            'CANCELED',
+            'CANCELLED'
+          )
+          AND pl.valor > 0
+          AND COALESCE(a.observacoes, '') LIKE
+            '%Renovação cancelada pelo titular.%'
+          ${filtroEncerramentoCancelado}
       ),
       ativas AS (
         SELECT COUNT(*)::INT AS assinaturas_pagas_ativas
@@ -438,11 +669,29 @@ async function buscarReceita(periodo = "30") {
         p.valor_exposto_reversoes,
         fp.novas_assinaturas_pagas,
         fp.receita_primeiro_pagamento,
+        rc.novos_negocios_pagantes,
+        rc.receita_primeira_conversao,
+        rc.pagamentos_renovacao,
+        rc.negocios_com_renovacao,
+        rc.receita_renovacao,
+        rc.pagamentos_mudanca_plano,
+        rc.negocios_com_mudanca_plano,
+        rc.receita_mudanca_plano,
+        rf.renovacoes_previstas,
+        rf.renovacoes_confirmadas,
+        rf.renovacoes_com_atraso,
+        rf.renovacoes_recuperadas,
+        ca.cancelamentos_renovacao_agendados,
+        ce.assinaturas_encerradas_apos_cancelamento,
         a.assinaturas_pagas_ativas
       FROM checkouts c
       CROSS JOIN checkout_coorte cc
       CROSS JOIN pagamentos_resumo p
       CROSS JOIN primeiros_pagamentos fp
+      CROSS JOIN receita_classificada rc
+      CROSS JOIN retencao_financeira rf
+      CROSS JOIN cancelamentos_agendados ca
+      CROSS JOIN cancelamentos_encerrados ce
       CROSS JOIN ativas a
       `
     ),
@@ -471,7 +720,6 @@ async function buscarReceita(periodo = "30") {
     planos: planos.rows,
   };
 }
-
 
 async function buscarReconciliacaoPipelines(periodo = "30") {
   const seguro = periodoSeguro(periodo);
