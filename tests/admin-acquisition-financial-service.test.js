@@ -2,6 +2,8 @@ const mockBuscarRetornoAquisicao =
   jest.fn();
 const mockContarPendentes =
   jest.fn();
+const mockBuscarRetornoLiquidoAquisicao =
+  jest.fn();
 
 jest.mock(
   "../src/repositories/adminAcquisitionFinancialRepository",
@@ -16,6 +18,13 @@ jest.mock(
   () => ({
     contarPendentes:
       mockContarPendentes,
+  })
+);
+jest.mock(
+  "../src/repositories/adminPaymentEconomicsRepository",
+  () => ({
+    buscarRetornoLiquidoAquisicao:
+      mockBuscarRetornoLiquidoAquisicao,
   })
 );
 
@@ -40,6 +49,28 @@ describe(
       jest.clearAllMocks();
       mockContarPendentes
         .mockResolvedValue(0);
+      mockBuscarRetornoLiquidoAquisicao
+        .mockResolvedValue({
+          inicio_cobertura:
+            "2026-09-23T19:00:00.000Z",
+          campanhas: [
+            {
+              campanha_id: 10,
+              negocios_d30: 2,
+              negocios_d60: 2,
+              negocios_d90: 0,
+              incompletos_d30: 0,
+              incompletos_d60: 0,
+              incompletos_d90: 0,
+              receita_liquida_d30:
+                "280.00",
+              receita_liquida_d60:
+                "470.00",
+              receita_liquida_d90:
+                "0.00",
+            },
+          ],
+        });
       mockBuscarRetornoAquisicao
         .mockResolvedValue({
           inicio_cobertura:
@@ -146,6 +177,16 @@ describe(
             codigo: "base_comparavel",
             comparavel: true,
           },
+          economiaLiquida: {
+            comparavel: true,
+            codigo: "base_comparavel",
+            negociosCobertos: 2,
+            pagamentosOuNegociosIncompletos: 0,
+          },
+          receitaLiquidaGatewayCentavos: 28000,
+          ltvLiquidoGatewayCentavos: 14000,
+          retornoLiquidoGateway: 1.4,
+          ltvLiquidoGatewaySobreCacMidia: 1.4,
         });
         expect(d60.retornoBruto)
           .toBe(2.5);
@@ -159,6 +200,15 @@ describe(
           campanha
             .primeiraRecuperacaoReceitaBrutaDias
         ).toBe(30);
+        expect(
+          campanha
+            .primeiraRecuperacaoLiquidaGatewayDias
+        ).toBe(30);
+        expect(
+          mockBuscarRetornoLiquidoAquisicao
+        ).toHaveBeenCalledWith({
+          diasMaturacaoMonetizacao: 21,
+        });
       }
     );
 
