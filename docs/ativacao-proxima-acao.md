@@ -99,9 +99,9 @@ Na priorização operacional, profissionais mais próximos de concluir vêm prim
 
 A confirmação do marco pode ser celebrada no momento apropriado, mas a navegação recorrente do dashboard passa a priorizar oportunidades de crescimento, novos agendamentos, recorrência e receita. O produto não mantém um card permanente de “ativação concluída” apenas para repetir um fato já conhecido.
 
-A recorrência usa somente dados agregados do negócio e exclui agendamentos cancelados. O resumo canônico expõe `clientes_unicos`, `clientes_recorrentes` e `taxa_recorrencia`. A identidade usada para deduplicação segue o padrão já adotado pelo dashboard: conta do cliente quando conhecida ou WhatsApp normalizado do agendamento visitante. Esses identificadores não são enviados à inteligência de crescimento.
+A recorrência usa somente dados agregados do negócio e exclui agendamentos cancelados. O resumo canônico expõe `clientes_unicos`, `clientes_recorrentes` e `taxa_recorrencia`. A identidade de recorrência é `agendamentos.client_id`; conta autenticada, telefone ou WhatsApp não devem ser usados como atalho para fundir clientes ou visitantes. Esses identificadores internos não são enviados à inteligência de crescimento.
 
-A oportunidade `RECORRENCIA_BAIXA_COM_AMOSTRA` só pode ser avaliada após a amostra mínima definida no serviço de sinais. Ela é uma heurística de priorização, não uma inferência causal: a mensagem deve declarar que os dados não identificam a causa da recorrência observada.
+No dashboard da dona, essa recorrência é histórica do negócio e deve ser apresentada como tal mesmo quando outros indicadores obedecem ao seletor de período. A oportunidade `RECORRENCIA_BAIXA_COM_AMOSTRA` só pode ser avaliada após a amostra mínima definida no serviço de sinais. Ela é uma heurística de priorização, não uma inferência causal: a mensagem deve declarar que os dados não identificam a causa da recorrência observada.
 
 ## Limite entre regra e IA
 
