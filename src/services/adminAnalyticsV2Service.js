@@ -328,9 +328,6 @@ async function buscarRevenue(periodo) {
       .buscarResumoContribuicao(periodo),
   ]);
   const resumo = resultado.resumo || {};
-  const receitaLiquidaGateway = numero(
-    economia.receita_liquida_gateway
-  );
   const custosVariaveis =
     contribuicao.custos_variaveis_observados == null
       ? null
@@ -338,33 +335,44 @@ async function buscarRevenue(periodo) {
           contribuicao
             .custos_variaveis_observados
         );
+  const receitaBaseContribuicao =
+    contribuicao.receita_liquida_gateway == null
+      ? null
+      : numero(
+          contribuicao
+            .receita_liquida_gateway
+        );
   const coberturaGatewayCompleta =
     numero(
       economia.pagamentos_incompletos
     ) === 0;
+  const coberturaGatewayContribuicao =
+    contribuicao
+      .cobertura_gateway_completa === true;
   const coberturaContribuicaoCompleta =
     contribuicao.cobertura_completa === true;
   const margemContribuicaoDisponivel =
-    coberturaGatewayCompleta &&
+    coberturaGatewayContribuicao &&
     coberturaContribuicaoCompleta &&
-    custosVariaveis !== null;
+    custosVariaveis !== null &&
+    receitaBaseContribuicao !== null;
   const margemContribuicao =
     margemContribuicaoDisponivel
       ? Number(
           (
-            receitaLiquidaGateway -
+            receitaBaseContribuicao -
             custosVariaveis
           ).toFixed(2)
         )
       : null;
   const margemContribuicaoPercentual =
     margemContribuicaoDisponivel &&
-    receitaLiquidaGateway > 0
+    receitaBaseContribuicao > 0
       ? Number(
           (
             (
               margemContribuicao /
-              receitaLiquidaGateway
+              receitaBaseContribuicao
             ) * 100
           ).toFixed(2)
         )
@@ -749,6 +757,20 @@ async function buscarRevenue(periodo) {
         ),
       coberturaCompleta:
         coberturaContribuicaoCompleta,
+      pagamentosGatewayElegiveis:
+        numero(
+          contribuicao
+            .pagamentos_gateway_elegiveis
+        ),
+      pagamentosGatewayIncompletos:
+        numero(
+          contribuicao
+            .pagamentos_gateway_incompletos
+        ),
+      coberturaGatewayCompleta:
+        coberturaGatewayContribuicao,
+      receitaBaseGateway:
+        receitaBaseContribuicao,
       custosVariaveisObservados:
         custosVariaveis,
       margemContribuicaoDisponivel,
