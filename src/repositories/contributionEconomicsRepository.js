@@ -185,10 +185,13 @@ async function persistirCobertura({
       AND (
         contribuicao_cobertura
           .coberto_ate IS NULL
-        OR EXCLUDED.coberto_ate IS NULL
-        OR EXCLUDED.coberto_ate >=
-          contribuicao_cobertura
-            .coberto_ate
+        OR (
+          EXCLUDED.coberto_ate
+            IS NOT NULL
+          AND EXCLUDED.coberto_ate >=
+            contribuicao_cobertura
+              .coberto_ate
+        )
       )
     RETURNING
       fonte_id,
