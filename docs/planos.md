@@ -158,9 +158,12 @@ apagar dados existentes nem impedir a edição do que já foi cadastrado.
   100 não cadastra nenhuma fonte por suposição. A margem só pode ser exibida
   quando houver ao menos uma fonte obrigatória ativa e todas as fontes cobrirem a
   janela consultada; fora dessa condição, custo ausente permanece desconhecido,
-  nunca zero. A taxa do gateway e refunds da Wave 28 não são descontados de novo,
-  e investimento de mídia continua separado como CAC de mídia. Lucro, CAC total,
-  payback econômico e LTV:CAC definitivo permanecem fora do contrato.
+  nunca zero. O **LTV de contribuição D30/D60/D90** reutiliza a primeira conversão
+  paga e maturidade da Wave 26, exige economia de gateway reconciliada e bloqueia
+  a janela quando qualquer negócio maduro estiver economicamente incompleto. A
+  taxa do gateway e refunds da Wave 28 não são descontados de novo, e investimento
+  de mídia continua separado como CAC de mídia. Lucro, CAC total, payback
+  econômico e LTV:CAC definitivo permanecem fora do contrato.
 - `webhook_eventos` preserva a entrega do provedor; `assinatura_eventos`
   preserva o fato de domínio do AF. O histórico anterior à migration 093 não é
   preenchido por suposição.
