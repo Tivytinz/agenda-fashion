@@ -103,12 +103,16 @@ A limitação atual de seleção explícita de contexto multi-negócio continua 
 
 ## Regra temporal
 
-O backend usa `negocios.fuso_horario` como autoridade temporal.
+Para bookings materializados, `agendamentos.inicio_previsto_em` é o instante
+canônico usado para comparar o relógio atual com o compromisso. O fuso atual do
+negócio é usado apenas no fallback de registros legados sem esse instante
+persistido.
 
 - `iniciado` só pode ser registrado a partir do início previsto;
 - `falta` só pode ser registrada após 15 minutos de tolerância contados do início previsto;
+- depois que `atendimento_iniciado_em` existe, `falta` não pode mais ser registrada;
 - `realizado` só pode ser registrado depois do término previsto;
-- o término usa `agendamentos.duracao_minutos` como snapshot.
+- o término usa `agendamentos.duracao_minutos` como snapshot e mantém fallback para a duração atual do serviço apenas para registros legados sem snapshot.
 
 O frontend pode esconder/desabilitar ações antes desse momento, mas a validação real permanece no backend.
 
