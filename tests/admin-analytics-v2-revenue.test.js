@@ -5,6 +5,7 @@ jest.mock(
     buscarReceita: jest.fn(),
     buscarChurnPago: jest.fn(),
     buscarMrr: jest.fn(),
+    buscarLtvObservado: jest.fn(),
     buscarVisaoGeral: jest.fn(),
     listarAquisicao: jest.fn(),
     buscarJornada: jest.fn(),
@@ -64,6 +65,41 @@ describe("Admin Analytics V2 - receita", () => {
       negocios_mrr_em_risco: 2,
       mrr_em_risco: "149.80",
       assinaturas_periodicidade_nao_suportada: 0,
+    });
+    repository.buscarLtvObservado.mockResolvedValue({
+      inicio_cobertura: "2026-09-23T07:00:00.000Z",
+      coortes: [
+        {
+          coorte_mes: "2026-06",
+          negocios: 2,
+          maduros_d30: 2,
+          maduros_d60: 2,
+          maduros_d90: 1,
+          receita_bruta_d30: "149.80",
+          receita_bruta_d60: "249.70",
+          receita_bruta_d90: "149.80",
+          ltv_bruto_d30: "74.90",
+          ltv_bruto_d60: "124.85",
+          ltv_bruto_d90: "149.80",
+          valor_exposto_reversoes: "49.90",
+          pagamentos_em_reversao: 1,
+        },
+        {
+          coorte_mes: "2026-07",
+          negocios: 1,
+          maduros_d30: 1,
+          maduros_d60: 0,
+          maduros_d90: 0,
+          receita_bruta_d30: "99.90",
+          receita_bruta_d60: "0.00",
+          receita_bruta_d90: "0.00",
+          ltv_bruto_d30: "99.90",
+          ltv_bruto_d60: null,
+          ltv_bruto_d90: null,
+          valor_exposto_reversoes: "0.00",
+          pagamentos_em_reversao: 0,
+        },
+      ],
     });
   });
 
@@ -193,6 +229,20 @@ describe("Admin Analytics V2 - receita", () => {
       bridgeMrrReconciliado: true,
       assinaturasPeriodicidadeNaoSuportada: 0,
     });
+    expect(resultado.ltv).toMatchObject({
+      negociosCoorte: 3,
+      madurosD30: 3,
+      madurosD60: 2,
+      madurosD90: 1,
+      ltvBrutoD30: 83.23,
+      ltvBrutoD60: 124.85,
+      ltvBrutoD90: 149.8,
+      valorExpostoReversoes: 49.9,
+      pagamentosEmReversao: 1,
+      ltvLiquidoDisponivel: false,
+      independenteDoFiltroPeriodo: true,
+      historicoAnteriorInferido: false,
+    });
     expect(resultado.metodologia.churn)
       .toMatch(/Gross logo churn v1/i);
     expect(resultado.churn).toMatchObject({
@@ -210,6 +260,8 @@ describe("Admin Analytics V2 - receita", () => {
       .toMatch(/MRR v1/i);
     expect(resultado.metodologia.nrr)
       .toMatch(/NRR v1/i);
+    expect(resultado.metodologia.ltv)
+      .toMatch(/LTV bruto observado v1/i);
   });
 
   test("não inventa conversão quando a coorte de checkout está vazia", async () => {
