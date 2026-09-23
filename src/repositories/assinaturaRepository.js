@@ -350,6 +350,11 @@ async function expirarCancelamentoSeNecessario(
             WHERE outra.negocio_id = n.id
               AND outra.ativo = TRUE
               AND opl.valor > 0
+              AND NOT EXISTS (
+                SELECT 1
+                FROM candidatas c
+                WHERE c.id = outra.id
+              )
           )
         RETURNING n.id
       )
