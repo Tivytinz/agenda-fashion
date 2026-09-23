@@ -311,6 +311,7 @@ describe("Wave 25 - MRR e NRR canônicos", () => {
         plano_anterior_id,
         plano_novo_id,
         origem,
+        detalhes,
         valor_mensal_anterior,
         valor_mensal_novo,
         periodicidade_snapshot,
@@ -324,6 +325,7 @@ describe("Wave 25 - MRR e NRR canônicos", () => {
         $2,
         $2,
         'sistema',
+        '{"mrr_em_risco_snapshot":true}'::jsonb,
         49.90,
         49.90,
         'MONTHLY',
@@ -342,27 +344,18 @@ describe("Wave 25 - MRR e NRR canônicos", () => {
       ]
     );
 
-    await registrarEvento({
-      negocioId,
-      tipo: "PAGAMENTO_ATRASADO",
-      anterior: 49.9,
-      novo: 49.9,
-      chave: `test:wave25:${negocioId}:overdue`,
-      planoId,
-    });
-
-    const atrasado = await buscarMrr("all");
+    const riscoNoCutover = await buscarMrr("all");
 
     expect(
-      Number(atrasado.mrr_final_total) -
+      Number(riscoNoCutover.mrr_final_total) -
       Number(antes.mrr_final_total)
     ).toBe(49.9);
     expect(
-      Number(atrasado.mrr_em_risco) -
+      Number(riscoNoCutover.mrr_em_risco) -
       Number(antes.mrr_em_risco)
     ).toBe(49.9);
     expect(
-      Number(atrasado.negocios_mrr_em_risco) -
+      Number(riscoNoCutover.negocios_mrr_em_risco) -
       Number(antes.negocios_mrr_em_risco)
     ).toBe(1);
 
@@ -385,5 +378,21 @@ describe("Wave 25 - MRR e NRR canônicos", () => {
       Number(recuperado.mrr_em_risco) -
       Number(antes.mrr_em_risco)
     ).toBe(0);
+
+    await registrarEvento({
+      negocioId,
+      tipo: "PAGAMENTO_ATRASADO",
+      anterior: 49.9,
+      novo: 49.9,
+      chave: `test:wave25:${negocioId}:overdue`,
+      planoId,
+    });
+
+    const atrasadoNovamente = await buscarMrr("all");
+
+    expect(
+      Number(atrasadoNovamente.mrr_em_risco) -
+      Number(antes.mrr_em_risco)
+    ).toBe(49.9);
   });
 });
