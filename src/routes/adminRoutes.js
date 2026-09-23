@@ -61,6 +61,11 @@ const adminContributionOperationsController =
     "../controllers/adminContributionOperationsController"
   );
 
+const adminContributionCostSyncController =
+  require(
+    "../controllers/adminContributionCostSyncController"
+  );
+
 const marketingCostSyncController =
   require(
     "../controllers/marketingCostSyncController"
@@ -336,6 +341,39 @@ router.post(
   authAdmin,
   adminContributionOperationsController
     .registrarCobertura
+);
+
+
+router.get(
+  "/admin/financeiro/contribuicao/sync",
+  auth,
+  authAdmin,
+  adminContributionCostSyncController
+    .buscarStatus
+);
+
+router.post(
+  "/admin/financeiro/contribuicao/sync/integracoes",
+  auth,
+  authAdmin,
+  adminContributionCostSyncController
+    .criarIntegracao
+);
+
+router.patch(
+  "/admin/financeiro/contribuicao/sync/integracoes/:id",
+  auth,
+  authAdmin,
+  adminContributionCostSyncController
+    .atualizarIntegracao
+);
+
+router.post(
+  "/admin/financeiro/contribuicao/sync/integracoes/:id/executar",
+  auth,
+  authAdmin,
+  adminContributionCostSyncController
+    .sincronizar
 );
 
 /*

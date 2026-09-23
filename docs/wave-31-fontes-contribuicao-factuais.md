@@ -334,7 +334,14 @@ Se nenhuma fonte real for cadastrada, o comportamento correto continua sendo
 
 ## Estado atual
 
-A Wave 31 está **implementada na branch de trabalho** com:
+A Wave 31 foi mergeada no PR #293 pelo commit
+`d4638d497b83db809cff5c25760a9b6202e68daf`.
+
+O **Backend CI #1392** pós-merge concluiu com sucesso e o deployment Railway
+`8764c6e7-c0cb-4f28-b830-069755f8f734` do mesmo commit também concluiu com
+status **SUCCESS**.
+
+A produção possui:
 
 - migration 102 e cutover próprio;
 - auditoria append-only;
@@ -350,5 +357,5 @@ A Wave 31 está **implementada na branch de trabalho** com:
 - testes unitários, de rota, PostgreSQL e frontend.
 
 Nenhuma fonte factual foi inventada ou cadastrada automaticamente. A
-disponibilidade econômica em produção continua dependendo de uma fonte real e
-de cobertura comprovável.
+disponibilidade econômica continua dependendo de uma fonte real e de cobertura
+comprovável.

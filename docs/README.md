@@ -257,6 +257,8 @@ virar uma segunda fonte de regra quando o domínio já possui documento canônic
   workstream de retorno de contribuição sobre CAC de mídia e recuperação observada.
 - [wave-31-fontes-contribuicao-factuais.md](./wave-31-fontes-contribuicao-factuais.md):
   workstream operacional de fontes factuais, custos variáveis, cobertura e auditoria de contribuição.
+- [wave-32-sync-custos-contribuicao.md](./wave-32-sync-custos-contribuicao.md):
+  ingestão automática provider-agnostic de custos factuais, cursor, cobertura e saúde operacional.
 
 Enquanto uma wave estiver aberta, seu documento descreve o workstream e a
 evidência em construção, não uma nova fonte canônica. Quando terminar, a decisão

@@ -177,6 +177,11 @@ apagar dados existentes nem impedir a edição do que já foi cadastrado.
   correções administrativas usam crédito referenciado limitado ao saldo do
   débito, e cobertura não pode regredir. Enquanto fonte/cobertura factual não
   existir, margem, LTV de contribuição e retorno continuam indisponíveis.
+- A **Wave 32** prepara sincronização automática provider-agnostic dessas
+  fontes. O registry de produção permanece vazio até existir provedor factual
+  comprovável. Integrações não armazenam segredos, worker é opt-in, execução é
+  serializada por integração e cursor/cobertura só avançam junto com o lote
+  reconciliado. Ausência de adaptador continua indisponível, nunca custo zero.
 - `webhook_eventos` preserva a entrega do provedor; `assinatura_eventos`
   preserva o fato de domínio do AF. O histórico anterior à migration 093 não é
   preenchido por suposição.
@@ -238,6 +243,8 @@ negócio e conversão para plano pago.
   `database/migrations/101_retorno_contribuicao_cac_midia_v1.sql`.
 - Operação e auditoria de fontes factuais de contribuição:
   `database/migrations/102_fontes_contribuicao_operacionais_v1.sql`.
+- Sincronização automática de custos factuais:
+  `database/migrations/103_sync_custos_contribuicao_v1.sql`.
 - Baseline de episódios pagos e churn v1:
   `database/migrations/095_churn_v1_episodios_pagos.sql`.
 - Ledger monetário, baseline de MRR e NRR v1:
