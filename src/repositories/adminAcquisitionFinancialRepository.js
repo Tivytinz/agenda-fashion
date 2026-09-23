@@ -69,10 +69,9 @@ async function buscarRetornoAquisicao({
             SUM(g.valor_centavos)::BIGINT
               AS investimento_centavos
           FROM marketing_campanha_gastos g
-          INNER JOIN marketing_campanhas mc
-            ON mc.id = g.campanha_id
           CROSS JOIN marco m
-          WHERE mc.objetivo = 'profissional'
+          WHERE g.objetivo_snapshot =
+              'profissional'
             AND g.moeda = 'BRL'
             AND g.data_gasto > m.data_corte
           GROUP BY
@@ -474,7 +473,6 @@ async function buscarRetornoAquisicao({
           ON ca.campanha_id = mc.id
         LEFT JOIN retornos r
           ON r.campanha_id = mc.id
-        WHERE mc.objetivo = 'profissional'
         ORDER BY
           COALESCE(
             ca.investimento_d30_centavos,
