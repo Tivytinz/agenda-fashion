@@ -49,6 +49,10 @@ describe(
     test(
       "classifica receita recorrente e recuperação sem confundir mudança de plano",
       async () => {
+        const antes =
+          await buscarReceita("all");
+        const resumoAntes =
+          antes.resumo;
         const suffix = idCurto();
         const negocio = await db.query(
           `
@@ -294,28 +298,54 @@ describe(
           await buscarReceita("all");
         const resumo = resultado.resumo;
 
-        expect(resumo).toMatchObject({
-          novos_negocios_pagantes: 1,
-          receita_primeira_conversao: "49.90",
-          pagamentos_renovacao: 2,
-          negocios_com_renovacao: 1,
-          receita_renovacao: "99.80",
-          pagamentos_mudanca_plano: 1,
-          negocios_com_mudanca_plano: 1,
-          receita_mudanca_plano: "99.90",
-          renovacoes_previstas: 3,
-          renovacoes_confirmadas: 2,
-          renovacoes_com_atraso: 2,
-          renovacoes_recuperadas: 1,
-        });
+        const deltaNumero = (campo) =>
+          Number(resumo[campo] || 0) -
+          Number(resumoAntes[campo] || 0);
 
-        expect(Number(resumo.receita_total))
+        expect(deltaNumero(
+          "novos_negocios_pagantes"
+        )).toBe(1);
+        expect(deltaNumero(
+          "receita_primeira_conversao"
+        )).toBeCloseTo(49.9, 2);
+        expect(deltaNumero(
+          "pagamentos_renovacao"
+        )).toBe(2);
+        expect(deltaNumero(
+          "negocios_com_renovacao"
+        )).toBe(1);
+        expect(deltaNumero(
+          "receita_renovacao"
+        )).toBeCloseTo(99.8, 2);
+        expect(deltaNumero(
+          "pagamentos_mudanca_plano"
+        )).toBe(1);
+        expect(deltaNumero(
+          "negocios_com_mudanca_plano"
+        )).toBe(1);
+        expect(deltaNumero(
+          "receita_mudanca_plano"
+        )).toBeCloseTo(99.9, 2);
+        expect(deltaNumero(
+          "renovacoes_previstas"
+        )).toBe(3);
+        expect(deltaNumero(
+          "renovacoes_confirmadas"
+        )).toBe(2);
+        expect(deltaNumero(
+          "renovacoes_com_atraso"
+        )).toBe(2);
+        expect(deltaNumero(
+          "renovacoes_recuperadas"
+        )).toBe(1);
+
+        expect(deltaNumero("receita_total"))
           .toBeCloseTo(
-            Number(
-              resumo.receita_primeira_conversao
+            deltaNumero(
+              "receita_primeira_conversao"
             ) +
-            Number(resumo.receita_renovacao) +
-            Number(resumo.receita_mudanca_plano),
+            deltaNumero("receita_renovacao") +
+            deltaNumero("receita_mudanca_plano"),
             2
           );
       }
