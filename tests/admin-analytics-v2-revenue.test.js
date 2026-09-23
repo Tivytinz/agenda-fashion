@@ -23,6 +23,14 @@ jest.mock(
 );
 
 jest.mock(
+  "../src/repositories/adminContributionEconomicsRepository",
+  () => ({
+    buscarResumoContribuicao:
+      jest.fn(),
+  })
+);
+
+jest.mock(
   "../src/services/adminProfessionalFunnelService",
   () => ({
     buscarFunil: jest.fn(),
@@ -41,6 +49,9 @@ const repository = require(
 );
 const paymentEconomicsRepository = require(
   "../src/repositories/adminPaymentEconomicsRepository"
+);
+const contributionEconomicsRepository = require(
+  "../src/repositories/adminContributionEconomicsRepository"
 );
 const service = require(
   "../src/services/adminAnalyticsV2Service"
@@ -89,6 +100,19 @@ describe("Admin Analytics V2 - receita", () => {
       estornos_concluidos: "20.00",
       receita_liquida_gateway: "220.00",
     });
+    contributionEconomicsRepository
+      .buscarResumoContribuicao
+      .mockResolvedValue({
+        inicio_cobertura:
+          "2026-09-23T20:00:00.000Z",
+        inicio_data: "2026-09-23",
+        fim_data: "2026-09-23",
+        fontes_obrigatorias: 0,
+        fontes_cobertas: 0,
+        cobertura_completa: false,
+        custos_variaveis_observados:
+          null,
+      });
     paymentEconomicsRepository.buscarLtvLiquidoObservado.mockResolvedValue({
       inicio_cobertura: "2026-09-23T19:00:00.000Z",
       coortes: [
@@ -314,6 +338,17 @@ describe("Admin Analytics V2 - receita", () => {
         coberturaCompleta: true,
         margemContribuicaoDisponivel: false,
       });
+    expect(resultado.contribuicao)
+      .toMatchObject({
+        fontesObrigatorias: 0,
+        fontesCobertas: 0,
+        coberturaCompleta: false,
+        custosVariaveisObservados: null,
+        margemContribuicaoDisponivel: false,
+        margemContribuicao: null,
+        margemContribuicaoPercentual: null,
+        lucroDisponivel: false,
+      });
     expect(resultado.metodologia.churn)
       .toMatch(/Gross logo churn v1/i);
     expect(resultado.churn).toMatchObject({
@@ -331,10 +366,53 @@ describe("Admin Analytics V2 - receita", () => {
       .toMatch(/MRR v1/i);
     expect(resultado.metodologia.economiaLiquida)
       .toMatch(/Wave 28/i);
+    expect(resultado.metodologia.contribuicao)
+      .toMatch(/Wave 29/i);
     expect(resultado.metodologia.nrr)
       .toMatch(/NRR v1/i);
     expect(resultado.metodologia.ltv)
       .toMatch(/LTV bruto observado v1/i);
+  });
+
+  test("só calcula margem com cobertura factual completa", async () => {
+    contributionEconomicsRepository
+      .buscarResumoContribuicao
+      .mockResolvedValue({
+        inicio_cobertura:
+          "2026-09-23T20:00:00.000Z",
+        inicio_data: "2026-09-23",
+        fim_data: "2026-09-23",
+        fontes_obrigatorias: 2,
+        fontes_cobertas: 2,
+        cobertura_completa: true,
+        custos_variaveis_observados:
+          "30.00",
+      });
+
+    repository.buscarReceita.mockResolvedValue({
+      periodo: "30",
+      resumo: {},
+      planos: [],
+    });
+
+    const resultado =
+      await service.buscarRevenue("30");
+
+    expect(resultado.contribuicao)
+      .toMatchObject({
+        coberturaCompleta: true,
+        custosVariaveisObservados: 30,
+        margemContribuicaoDisponivel:
+          true,
+        margemContribuicao: 190,
+        margemContribuicaoPercentual:
+          86.36,
+        lucroDisponivel: false,
+      });
+    expect(
+      resultado.economiaLiquida
+        .margemContribuicaoDisponivel
+    ).toBe(true);
   });
 
   test("não inventa conversão quando a coorte de checkout está vazia", async () => {
