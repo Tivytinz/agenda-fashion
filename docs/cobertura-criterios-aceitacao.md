@@ -433,6 +433,21 @@ econômica é considerada disponível apenas por esta preparação documental.
 
 A Wave 29 não altera a baseline funcional, que continua em **67/67 (100%)**.
 
+## Wave 30 — retorno de contribuição × CAC de mídia observado v1
+
+A Wave 30 foi preparada para conectar a contribuição econômica factual ao mesmo
+CAC de mídia observado da Wave 27, preservando a unidade negócio e as janelas
+D30/D60/D90.
+
+A preparação cria o cutover da migration 101, leitura de prontidão das fontes de
+contribuição e estados explícitos de bloqueio no Admin. Nenhum retorno de
+contribuição é liberado enquanto a Wave 29 não fornecer LTV de contribuição
+factual e cobertura completa da mesma base.
+
+CAC total, lucro, payback econômico definitivo e decisão automática de mídia
+continuam fora do escopo. A Wave 30 não altera a baseline funcional, que
+permanece em **67/67 (100%)**.
+
 ## Regra de atualização
 
 Atualizar este documento quando uma Wave alterar a cobertura da baseline ou
