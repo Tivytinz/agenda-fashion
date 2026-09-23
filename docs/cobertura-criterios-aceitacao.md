@@ -475,6 +475,21 @@ cobertura, as métricas das Waves 29 e 30 continuam indisponíveis.
 
 A Wave 31 não altera a baseline funcional, que permanece em **67/67 (100%)**.
 
+## Wave 32 — ingestão e reconciliação automática de custos factuais v1
+
+A Wave 32 adiciona infraestrutura provider-agnostic para fontes já criadas na
+Wave 31. A migration 103 registra cutover, integração por fonte e histórico de
+sincronização, sem seed de adaptador e sem credenciais no banco.
+
+O worker é opt-in, serializa execução por integração e só avança cursor e
+cobertura depois que o lote inteiro foi validado/persistido. Replays usam o
+ledger idempotente existente e falhas mantêm cursor/cobertura anteriores.
+
+O Admin explicita quando nenhum adaptador factual está disponível, evitando
+qualquer interpretação de ausência como custo zero.
+
+A Wave 32 não altera a baseline funcional, que permanece em **67/67 (100%)**.
+
 ## Regra de atualização
 
 Atualizar este documento quando uma Wave alterar a cobertura da baseline ou
