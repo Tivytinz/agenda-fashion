@@ -160,16 +160,21 @@ function mesmoCusto(
   );
 }
 
-async function registrarCustoObservado({
-  fonteCodigo,
-  negocioId,
-  chaveOrigem,
-  tipo,
-  valor,
-  ocorridoEm,
-  custoReferenciadoId = null,
-  detalhes = {},
-}) {
+async function registrarCustoObservado(
+  {
+    fonteCodigo,
+    negocioId,
+    chaveOrigem,
+    tipo,
+    valor,
+    ocorridoEm,
+    custoReferenciadoId = null,
+    detalhes = {},
+  },
+  {
+    executor = null,
+  } = {}
+) {
   const normalizado = {
     fonteCodigo:
       textoObrigatorio(
@@ -226,9 +231,14 @@ async function registrarCustoObservado({
   }
 
   const resultado =
-    await repository.persistirCusto(
-      normalizado
-    );
+    executor
+      ? await repository.persistirCusto(
+          normalizado,
+          executor
+        )
+      : await repository.persistirCusto(
+          normalizado
+        );
 
   if (resultado.fonteAusente) {
     throw new Error(
@@ -266,12 +276,17 @@ async function registrarCustoObservado({
   };
 }
 
-async function registrarCoberturaFonte({
-  fonteCodigo,
-  inicioCobertura,
-  cobertoAte,
-  status,
-}) {
+async function registrarCoberturaFonte(
+  {
+    fonteCodigo,
+    inicioCobertura,
+    cobertoAte,
+    status,
+  },
+  {
+    executor = null,
+  } = {}
+) {
   const normalizado = {
     fonteCodigo:
       textoObrigatorio(
@@ -320,10 +335,16 @@ async function registrarCoberturaFonte({
   }
 
   const resultado =
-    await repository
-      .persistirCobertura(
-        normalizado
-      );
+    executor
+      ? await repository
+          .persistirCobertura(
+            normalizado,
+            executor
+          )
+      : await repository
+          .persistirCobertura(
+            normalizado
+          );
 
   if (resultado.fonteAusente) {
     throw new Error(
