@@ -292,7 +292,10 @@ ambiente seguro de pagamento.
 Cancelar a renovação não encerra imediatamente o período já quitado. Enquanto a
 assinatura cancelada ainda estiver `ativo = TRUE`, a data deve ser apresentada
 como **acesso até**, nunca como próxima cobrança. No fim do período, o plano
-retorna ao gratuito e os dados do negócio permanecem preservados.
+retorna ao gratuito e os dados do negócio permanecem preservados. O fim do
+período pago não depende de nova navegação da proprietária: os background
+workers reconciliam cancelamentos vencidos usando a mesma operação transacional
+do entitlement e registram `ACESSO_PAGO_ENCERRADO` de forma idempotente.
 
 Um negócio pode possuir no máximo uma cobrança PIX pendente de contratação ou
 upgrade por vez, independentemente do plano escolhido. Trocar de plano antes do
