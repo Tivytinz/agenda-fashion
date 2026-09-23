@@ -90,6 +90,9 @@ test("cliente repete um serviço e cria um novo booking sem fixar a profissional
     enabled: false,
     measurementId: null
   }));
+  await page.route("**/marketing/google/consentimento", (route) => json(route, {
+    consentimento: false
+  }));
   await page.route("**/analytics/collect", async (route) => {
     analyticsPayloads.push(route.request().postDataJSON());
     await route.fulfill({ status: 204, body: "" });
