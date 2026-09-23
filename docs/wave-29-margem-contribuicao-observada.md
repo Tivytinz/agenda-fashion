@@ -246,5 +246,18 @@ contribuição estiver tecnicamente confiável.
 
 ## Estado atual
 
-A Wave 29 está **preparada para implementação**. Nenhuma margem de contribuição
-foi declarada disponível apenas pela criação deste documento.
+A fundação técnica da Wave 29 está **implementada na branch de trabalho**:
+
+- migration 100 com cutover próprio;
+- registro de fontes sem seed especulativo;
+- ledger idempotente de débito/crédito por negócio;
+- watermark de cobertura por fonte;
+- service interno que bloqueia replay conflitante e cobertura regressiva;
+- leitura administrativa que só libera margem com cobertura factual completa;
+- estado explícito no Admin quando a margem continua indisponível;
+- testes unitários e de integração proporcionais ao risco.
+
+A Wave ainda não deve ser considerada encerrada: nenhuma fonte real de custo
+variável foi cadastrada, LTV de contribuição D30/D60/D90 ainda não foi
+materializado e a validação final depende do CI verde. Até lá, nenhuma margem de
+contribuição é declarada disponível em produção.
