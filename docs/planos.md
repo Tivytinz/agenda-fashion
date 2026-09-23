@@ -1,5 +1,7 @@
 # Planos do Agenda Fashion
 
+> **Papel documental:** fonte canônica para catálogo, entitlement, limites e comportamento de upgrade/downgrade. Checkout, ativação Asaas e webhooks ficam nos documentos técnicos especializados ligados em `docs/README.md`.
+
 Este documento registra a oferta comercial e as regras de capacidade dos
 planos do Agenda Fashion. A migration e o código executável continuam sendo a
 fonte de verdade quando houver divergência.
@@ -45,7 +47,7 @@ apagar dados existentes nem impedir a edição do que já foi cadastrado.
 ## Consumo de capacidade
 
 - O agendamento conta no mês da data marcada.
-- Os status `agendado`, `confirmado` e `realizado` consomem capacidade.
+- Os status `agendado`, `confirmado`, `realizado` e `falta` consomem capacidade.
 - Agendamentos cancelados não consomem capacidade.
 - A lotação de um mês não bloqueia os meses seguintes.
 - Limites de serviço, profissional e agendamento devem ser validados pelo
