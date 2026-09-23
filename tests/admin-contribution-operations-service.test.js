@@ -20,6 +20,8 @@ jest.mock(
       jest.fn(),
     buscarNegocioPorId:
       jest.fn(),
+    travarChaveCusto:
+      jest.fn(),
     buscarCustoPorFonteChave:
       jest.fn(),
     validarCreditoDisponivel:
