@@ -1344,13 +1344,21 @@ export function AdminRevenueV2Page() {
                   <dd>{ltv.ltvLiquidoGatewayD90 == null ? "Aguardando cobertura econômica" : formatCurrency(ltv.ltvLiquidoGatewayD90)}</dd>
                 </div>
                 <div>
-                  <dt>LTV econômico / margem</dt>
-                  <dd>Indisponível</dd>
+                  <dt>LTV contribuição D30</dt>
+                  <dd>{ltv.ltvContribuicaoD30 == null ? "Aguardando cobertura de contribuição" : formatCurrency(ltv.ltvContribuicaoD30)}</dd>
+                </div>
+                <div>
+                  <dt>LTV contribuição D60</dt>
+                  <dd>{ltv.ltvContribuicaoD60 == null ? "Aguardando cobertura de contribuição" : formatCurrency(ltv.ltvContribuicaoD60)}</dd>
+                </div>
+                <div>
+                  <dt>LTV contribuição D90</dt>
+                  <dd>{ltv.ltvContribuicaoD90 == null ? "Aguardando cobertura de contribuição" : formatCurrency(ltv.ltvContribuicaoD90)}</dd>
                 </div>
               </dl>
 
               <p className="muted">
-                Cobertura canônica desde {formatDateTime(ltv.inicioCobertura)}. Esta leitura é acumulada desde o cutover da Wave 26 e não muda com o filtro temporal do topo. O histórico anterior não foi inferido.
+                Cobertura canônica desde {formatDateTime(ltv.inicioCobertura)}. LTV de contribuição possui cutover próprio em {formatDateTime(ltv.inicioCoberturaContribuicao)} e só aparece quando gateway e todas as fontes obrigatórias cobrem a janela inteira. Casos maduros incompletos não são removidos do denominador.
               </p>
 
               {ltvCohorts.length === 0 ? (

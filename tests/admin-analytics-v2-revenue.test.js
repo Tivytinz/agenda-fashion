@@ -27,6 +27,8 @@ jest.mock(
   () => ({
     buscarResumoContribuicao:
       jest.fn(),
+    buscarLtvContribuicaoObservado:
+      jest.fn(),
   })
 );
 
@@ -120,6 +122,14 @@ describe("Admin Analytics V2 - receita", () => {
           true,
         receita_liquida_gateway:
           "0.00",
+      });
+    contributionEconomicsRepository
+      .buscarLtvContribuicaoObservado
+      .mockResolvedValue({
+        inicio_cobertura:
+          "2026-09-23T20:00:00.000Z",
+        fontes_obrigatorias: 0,
+        coortes: [],
       });
     paymentEconomicsRepository.buscarLtvLiquidoObservado.mockResolvedValue({
       inicio_cobertura: "2026-09-23T19:00:00.000Z",
@@ -328,6 +338,11 @@ describe("Admin Analytics V2 - receita", () => {
       ltvLiquidoGatewayD30: 78.33,
       ltvLiquidoGatewayD60: 115,
       ltvLiquidoGatewayD90: 140,
+      ltvContribuicaoDisponivel: false,
+      fontesObrigatoriasContribuicao: 0,
+      ltvContribuicaoD30: null,
+      ltvContribuicaoD60: null,
+      ltvContribuicaoD90: null,
       incompletosLiquidosD30: 0,
       incompletosLiquidosD60: 0,
       incompletosLiquidosD90: 0,
@@ -433,6 +448,90 @@ describe("Admin Analytics V2 - receita", () => {
       resultado.economiaLiquida
         .margemContribuicaoDisponivel
     ).toBe(true);
+  });
+
+  test("calcula LTV de contribuição somente quando toda a janela madura está coberta", async () => {
+    contributionEconomicsRepository
+      .buscarLtvContribuicaoObservado
+      .mockResolvedValue({
+        inicio_cobertura:
+          "2026-06-01T00:00:00.000Z",
+        fontes_obrigatorias: 1,
+        coortes: [
+          {
+            coorte_mes: "2026-06",
+            maduros_elegiveis_d30: 2,
+            maduros_elegiveis_d60: 1,
+            maduros_elegiveis_d90: 0,
+            maduros_cobertos_d30: 2,
+            maduros_cobertos_d60: 1,
+            maduros_cobertos_d90: 0,
+            negocios_incompletos_d30: 0,
+            negocios_incompletos_d60: 0,
+            negocios_incompletos_d90: 0,
+            contribuicao_d30: "180.00",
+            contribuicao_d60: "120.00",
+            contribuicao_d90: "0.00",
+          },
+        ],
+      });
+
+    repository.buscarReceita.mockResolvedValue({
+      periodo: "30",
+      resumo: {},
+      planos: [],
+    });
+
+    const resultado =
+      await service.buscarRevenue("30");
+
+    expect(resultado.ltv)
+      .toMatchObject({
+        ltvContribuicaoDisponivel: true,
+        fontesObrigatoriasContribuicao: 1,
+        madurosElegiveisContribuicaoD30: 2,
+        madurosCobertosContribuicaoD30: 2,
+        incompletosContribuicaoD30: 0,
+        ltvContribuicaoD30: 90,
+        ltvContribuicaoD60: 120,
+        ltvContribuicaoD90: null,
+      });
+  });
+
+  test("bloqueia LTV de contribuição se existir negócio maduro incompleto", async () => {
+    contributionEconomicsRepository
+      .buscarLtvContribuicaoObservado
+      .mockResolvedValue({
+        inicio_cobertura:
+          "2026-06-01T00:00:00.000Z",
+        fontes_obrigatorias: 1,
+        coortes: [
+          {
+            coorte_mes: "2026-06",
+            maduros_elegiveis_d30: 2,
+            maduros_cobertos_d30: 1,
+            negocios_incompletos_d30: 1,
+            contribuicao_d30: "90.00",
+          },
+        ],
+      });
+
+    repository.buscarReceita.mockResolvedValue({
+      periodo: "30",
+      resumo: {},
+      planos: [],
+    });
+
+    const resultado =
+      await service.buscarRevenue("30");
+
+    expect(resultado.ltv)
+      .toMatchObject({
+        madurosElegiveisContribuicaoD30: 2,
+        madurosCobertosContribuicaoD30: 1,
+        incompletosContribuicaoD30: 1,
+        ltvContribuicaoD30: null,
+      });
   });
 
   test("não inventa conversão quando a coorte de checkout está vazia", async () => {

@@ -419,17 +419,21 @@ A Wave 28 não altera a baseline funcional, que continua em **67/67 (100%)**.
 
 ## Wave 29 — margem de contribuição observada v1
 
-A Wave 29 foi preparada para transformar receita líquida de gateway em margem de
-contribuição observada somente quando existirem custos variáveis factuais,
-atribuíveis e com cobertura verificável.
+A fundação técnica da Wave 29 foi mergeada no PR #289 e passou no **Backend CI
+#1362**. Ela transforma receita líquida de gateway em margem de contribuição
+somente quando existirem custos variáveis factuais, atribuíveis e com cobertura
+verificável.
+
+O PR #292 completa a implementação técnica do **LTV de contribuição
+D30/D60/D90**, reutilizando a unidade negócio e as maturidades da Wave 26,
+herdando a cobertura econômica da Wave 28 e bloqueando a janela inteira quando
+existir negócio maduro incompleto.
 
 A Wave preserva CAC de mídia fora da margem, não trata ausência de custo como
 zero e não declara lucro, CAC total, payback econômico ou LTV:CAC definitivo.
-LTV de contribuição deverá reutilizar a unidade negócio e as maturidades
-D30/D60/D90 já estabelecidas, sem retirar casos incompletos para melhorar médias.
-
-Neste estágio a Wave está **preparada para implementação**; nenhuma nova métrica
-econômica é considerada disponível apenas por esta preparação documental.
+A métrica permanece indisponível em produção enquanto não existir uma fonte real
+obrigatória de custo variável com cobertura factual; essa ausência é um limite
+de dados, não autorização para inventar custo.
 
 A Wave 29 não altera a baseline funcional, que continua em **67/67 (100%)**.
 

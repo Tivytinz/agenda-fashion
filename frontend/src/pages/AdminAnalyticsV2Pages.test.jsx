@@ -278,6 +278,12 @@ describe("receita administrativa v2", () => {
         ltvLiquidoGatewayD30: 78.33,
         ltvLiquidoGatewayD60: 115,
         ltvLiquidoGatewayD90: null,
+        ltvContribuicaoDisponivel: false,
+        inicioCoberturaContribuicao: "2026-09-23T20:00:00.000Z",
+        fontesObrigatoriasContribuicao: 0,
+        ltvContribuicaoD30: null,
+        ltvContribuicaoD60: null,
+        ltvContribuicaoD90: null,
         madurosLiquidosD30: 3,
         madurosLiquidosD60: 2,
         madurosLiquidosD90: 0,
@@ -360,7 +366,10 @@ describe("receita administrativa v2", () => {
     expect(screen.getByText("Fontes de custo cobertas")).not.toBeNull();
     expect(screen.getByText("Margem de contribuição ainda indisponível.")).not.toBeNull();
     expect(screen.getByText("LTV líquido gateway D30")).not.toBeNull();
-    expect(screen.getByText("LTV econômico / margem")).not.toBeNull();
+    expect(screen.getByText("LTV contribuição D30")).not.toBeNull();
+    expect(screen.getByText("LTV contribuição D60")).not.toBeNull();
+    expect(screen.getByText("LTV contribuição D90")).not.toBeNull();
+    expect(screen.getAllByText("Aguardando cobertura de contribuição").length).toBe(3);
     expect(screen.getAllByText("Indisponível").length).toBeGreaterThan(0);
     expect(screen.getByText("2026-06")).not.toBeNull();
     expect(screen.getByText("85%")).not.toBeNull();

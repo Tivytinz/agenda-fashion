@@ -378,8 +378,13 @@ da janela, margem de contribuição permanece indisponível e ausência de
 lançamento não significa custo zero. Débitos aumentam custo e créditos corrigem
 ou devolvem custo sem apagar o fato anterior. A taxa do gateway e refunds já
 tratados na Wave 28 não podem ser descontados novamente, e mídia paga permanece
-no domínio de CAC/aquisição. Lucro, CAC total e payback econômico continuam fora
-da definição oficial.
+no domínio de CAC/aquisição. LTV de contribuição reutiliza a primeira conversão
+paga canônica e as janelas D30/D60/D90 da Wave 26, exige economia do gateway
+reconciliada e cobertura integral de todas as fontes obrigatórias na mesma
+janela. Negócio maduro incompleto bloqueia a leitura da janela em vez de ser
+removido do denominador. Sem fonte obrigatória real, margem e LTV de contribuição
+permanecem indisponíveis; ausência de fonte nunca é custo zero. Lucro, CAC total
+e payback econômico continuam fora da definição oficial.
 
 Um negócio pode possuir no máximo uma cobrança PIX pendente de contratação ou
 upgrade por vez, independentemente do plano escolhido. Trocar de plano antes do
