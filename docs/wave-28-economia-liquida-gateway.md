@@ -153,6 +153,21 @@ pessoal e demais custos de contribuição não estão modelados.
 16. Backend CI e Playwright ficarem verdes;
 17. diff final ser revisado antes de qualquer merge.
 
-## Estado atual
+## Encerramento
 
-A Wave 28 está **em andamento**.
+A Wave 28 foi concluída no head
+`7dfac372742886d5b09a2e5105c3bbe6b08ca18b`, validado pelo
+**Backend CI #1346** com Quality Gate verde. O pipeline aplicou as migrations de
+teste, executou Jest + PostgreSQL com coverage, lint/build/test do React, audits
+de dependências e Playwright mobile com sucesso.
+
+O PR #287 foi mergeado por squash na `main` pelo commit
+`d5142b210f8b68253a19ee8255402c0a4e53dd88` em 23/09/2026.
+
+As evidências do estado executável validado antes do merge satisfazem os
+critérios de encerramento desta Wave. A baseline funcional permanece em
+**67/67 (100%)**.
+
+Este documento passa a permanecer como evidência histórica da Wave 28. As
+decisões duráveis continuam em `AGENTS.md`, `docs/planos.md` e nos documentos
+canônicos relacionados.
