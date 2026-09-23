@@ -33,7 +33,9 @@ gateway sem chamar essa leitura de lucro ou margem. A Wave 29 adiciona
 custos variáveis, margem e LTV de contribuição D30/D60/D90. A Wave 30 conecta
 essa economia ao CAC de mídia em coortes pós-cutover e mantém a leitura
 indisponível quando mídia, gateway ou contribuição não cobrem integralmente a
-mesma base. Essas métricas não substituem a régua operacional existente e não autorizam
+mesma base. A Wave 31 adiciona o fluxo administrativo auditável para cadastrar
+fonte factual, lançar débito/crédito e avançar cobertura sem transformar
+ausência de dado em zero. Essas métricas não substituem a régua operacional existente e não autorizam
 escalar, manter ou pausar orçamento automaticamente. CAC total, lucro e payback
 econômico definitivo permanecem fora desta camada.
 
