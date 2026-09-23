@@ -34,11 +34,11 @@ ser mantida como duas interpretações válidas.
 | Arquitetura | [arquitetura.md](./arquitetura.md) | [contexto-negocio.md](./contexto-negocio.md), [qualidade-codigo.md](./qualidade-codigo.md) |
 | Ativação profissional | [ativacao-profissional-ux.md](./ativacao-profissional-ux.md) | [ativacao-proxima-acao.md](./ativacao-proxima-acao.md), [convites-profissionais.md](./convites-profissionais.md) |
 | Agendamentos | [ciclo-atendimento.md](./ciclo-atendimento.md) | [agendamento-integridade.md](./agendamento-integridade.md), [confiabilidade-compromissos-agenda.md](./confiabilidade-compromissos-agenda.md), [snapshots-historicos-agendamento.md](./snapshots-historicos-agendamento.md), [cancelamento-agendamento-visitante.md](./cancelamento-agendamento-visitante.md) |
-| Planos e monetização | [planos.md](./planos.md) | [checkout-idempotente.md](./checkout-idempotente.md), [asaas-ativacao-recorrencia.md](./asaas-ativacao-recorrencia.md), [prontidao-financeira-recorrencia.md](./prontidao-financeira-recorrencia.md) |
+| Planos e monetização | [planos.md](./planos.md) | [checkout-idempotente.md](./checkout-idempotente.md), [asaas-ativacao-recorrencia.md](./asaas-ativacao-recorrencia.md) |
 | Webhooks financeiros | [webhook-processing.md](./webhook-processing.md) | [webhook-asaas.md](./webhook-asaas.md), [webhook-retention.md](./webhook-retention.md) |
 | Frontend e UX | [ux-contextos-visuais.md](./ux-contextos-visuais.md) | [frontend-estilos.md](./frontend-estilos.md), [public-shell.md](./public-shell.md), [experiencia-conversao-retencao.md](./experiencia-conversao-retencao.md) |
 | Admin | [admin-centro-comando.md](./admin-centro-comando.md) | [admin-console.md](./admin-console.md), [admin-visao-geral.md](./admin-visao-geral.md), [admin-marketing-visao-geral.md](./admin-marketing-visao-geral.md) |
-| Analytics e growth | [marketing-attribution.md](./marketing-attribution.md) | [analytics-pipeline-reconciliation.md](./analytics-pipeline-reconciliation.md), [inteligencia-crescimento.md](./inteligencia-crescimento.md), [custo-qualidade-aquisicao-profissional.md](./custo-qualidade-aquisicao-profissional.md), [marketing-sync-ga4.md](./marketing-sync-ga4.md) |
+| Analytics e growth | [marketing-attribution.md](./marketing-attribution.md) | [analytics-pipeline-reconciliation.md](./analytics-pipeline-reconciliation.md), [inteligencia-crescimento.md](./inteligencia-crescimento.md), [custo-qualidade-aquisicao-profissional.md](./custo-qualidade-aquisicao-profissional.md), [prontidao-financeira-recorrencia.md](./prontidao-financeira-recorrencia.md), [marketing-sync-ga4.md](./marketing-sync-ga4.md) |
 | Mídia paga | [google-ads-real-campaign-link.md](./google-ads-real-campaign-link.md) | [meta-ads-real-campaign-link.md](./meta-ads-real-campaign-link.md), [marketing-tiktok-ads.md](./marketing-tiktok-ads.md), [marketing-pinterest-ads.md](./marketing-pinterest-ads.md) |
 | WhatsApp | [whatsapp-automatico.md](./whatsapp-automatico.md) | [whatsapp.env.example](./whatsapp.env.example) |
 | IA e ML | [copilot-v1.md](./copilot-v1.md) | [arquitetura-copilot.md](./arquitetura-copilot.md), [machine-learning-no-show.md](./machine-learning-no-show.md) |
@@ -123,11 +123,10 @@ redefinir o lifecycle inteiro.
   financeiros.
 - [webhook-asaas.md](./webhook-asaas.md): integração específica com o Asaas.
 - [webhook-retention.md](./webhook-retention.md): retenção dos eventos.
-- [prontidao-financeira-recorrencia.md](./prontidao-financeira-recorrencia.md):
-  critérios de prontidão financeira.
-
 Regra de manutenção: checkout iniciado, cobrança criada, pagamento confirmado e
-assinatura ativa permanecem fatos distintos.
+assinatura ativa permanecem fatos distintos. Leituras de campanha que relacionam
+investimento e monetização pertencem ao domínio de Analytics/Growth, não ao
+contrato de billing.
 
 ## Frontend e UX
 
@@ -164,6 +163,9 @@ assinatura ativa permanecem fatos distintos.
   crescimento.
 - [custo-qualidade-aquisicao-profissional.md](./custo-qualidade-aquisicao-profissional.md):
   custo versus qualidade da aquisição.
+- [prontidao-financeira-recorrencia.md](./prontidao-financeira-recorrencia.md):
+  alinhamento descritivo entre investimento, recorrência e monetização em uma
+  mesma base madura de campanha.
 - [google-ads-real-campaign-link.md](./google-ads-real-campaign-link.md):
   vínculo operacional do Google Ads.
 - [meta-ads-real-campaign-link.md](./meta-ads-real-campaign-link.md): vínculo
