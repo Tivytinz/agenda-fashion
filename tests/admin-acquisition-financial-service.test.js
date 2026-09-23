@@ -4,6 +4,8 @@ const mockContarPendentes =
   jest.fn();
 const mockBuscarRetornoLiquidoAquisicao =
   jest.fn();
+const mockBuscarProntidaoContribuicao =
+  jest.fn();
 
 jest.mock(
   "../src/repositories/adminAcquisitionFinancialRepository",
@@ -29,6 +31,14 @@ jest.mock(
 );
 
 jest.mock(
+  "../src/repositories/adminContributionReturnRepository",
+  () => ({
+    buscarProntidao:
+      mockBuscarProntidaoContribuicao,
+  })
+);
+
+jest.mock(
   "../src/services/adminProfessionalFunnelService",
   () => ({
     configuracaoDecisao:
@@ -49,6 +59,19 @@ describe(
       jest.clearAllMocks();
       mockContarPendentes
         .mockResolvedValue(0);
+      mockBuscarProntidaoContribuicao
+        .mockResolvedValue({
+          inicio_cobertura_wave30:
+            "2026-09-23T21:30:00.000Z",
+          inicio_cobertura_contribuicao:
+            "2026-09-23T20:00:00.000Z",
+          fontes_obrigatorias: 0,
+          fontes_cobertas_ate_hoje: 0,
+          inicio_cobertura_fontes: null,
+          menor_coberto_ate: null,
+          cobertura_contribuicao_completa_hoje:
+            false,
+        });
       mockBuscarRetornoLiquidoAquisicao
         .mockResolvedValue({
           inicio_cobertura:
@@ -187,6 +210,14 @@ describe(
           ltvLiquidoGatewayCentavos: 14000,
           retornoLiquidoGateway: 1.4,
           ltvLiquidoGatewaySobreCacMidia: 1.4,
+          contribuicao: {
+            codigo:
+              "sem_fonte_contribuicao",
+            comparavel: false,
+            retornoContribuicao: null,
+            ltvContribuicaoSobreCacMidia:
+              null,
+          },
         });
         expect(d60.retornoBruto)
           .toBe(2.5);
@@ -209,6 +240,24 @@ describe(
         ).toHaveBeenCalledWith({
           diasMaturacaoMonetizacao: 21,
         });
+        expect(
+          mockBuscarProntidaoContribuicao
+        ).toHaveBeenCalledTimes(1);
+        expect(
+          resultado.contribuicaoProntidao
+        ).toMatchObject({
+          fontesObrigatorias: 0,
+          fontesCobertasAteHoje: 0,
+          coberturaCompletaHoje: false,
+          ltvContribuicaoDisponivel:
+            false,
+          retornoContribuicaoDisponivel:
+            false,
+        });
+        expect(
+          campanha
+            .primeiraRecuperacaoContribuicaoDias
+        ).toBeNull();
       }
     );
 
@@ -262,6 +311,49 @@ describe(
           resultado.campanhas[0]
             .primeiraRecuperacaoReceitaBrutaDias
         ).toBeNull();
+      }
+    );
+
+    test(
+      "não libera retorno mesmo com fontes cobertas antes do LTV de contribuição",
+      async () => {
+        mockBuscarProntidaoContribuicao
+          .mockResolvedValue({
+            inicio_cobertura_wave30:
+              "2026-09-23T21:30:00.000Z",
+            inicio_cobertura_contribuicao:
+              "2026-09-23T20:00:00.000Z",
+            fontes_obrigatorias: 2,
+            fontes_cobertas_ate_hoje: 2,
+            inicio_cobertura_fontes:
+              "2026-09-23",
+            menor_coberto_ate:
+              "2026-09-23",
+            cobertura_contribuicao_completa_hoje:
+              true,
+          });
+
+        const resultado =
+          await service.buscar();
+        const d30 =
+          resultado.campanhas[0]
+            .janelas[0];
+
+        expect(d30.contribuicao)
+          .toMatchObject({
+            codigo:
+              "aguardando_ltv_contribuicao",
+            rotulo:
+              "Aguardando LTV de contribuição",
+            comparavel: false,
+            retornoContribuicao: null,
+          });
+
+        expect(
+          resultado
+            .contribuicaoProntidao
+            .retornoContribuicaoDisponivel
+        ).toBe(false);
       }
     );
 
