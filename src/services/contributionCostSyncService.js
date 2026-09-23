@@ -873,6 +873,9 @@ async function atualizarIntegracao({
 function erroSeguro(
   erro
 ) {
+  const controlado =
+    erro instanceof AppError;
+
   return {
     codigo:
       String(
@@ -884,9 +887,13 @@ function erroSeguro(
         )
       ).slice(0, 80),
     detalhe:
-      String(
-        erro?.message ||
-        "Falha desconhecida na sincronização."
+      (
+        controlado
+          ? String(
+              erro.message ||
+              "Falha controlada na sincronização."
+            )
+          : "Falha interna na sincronização da fonte factual."
       ).slice(0, 240),
   };
 }
