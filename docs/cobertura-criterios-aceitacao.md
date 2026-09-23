@@ -354,17 +354,29 @@ A Wave 23 não criou churn, LTV ou payback oficiais e manteve a baseline formal 
 
 ## Wave 24 — episódios pagos e churn observável v1
 
-A Wave 24 inicia a baseline explícita de churn por negócio, sem backfill
+A Wave 24 fechou a baseline explícita de churn por negócio, sem backfill
 especulativo. A migration 095 registra o cutover em `financeiro_marcos` e
 captura a base paga presente naquele instante como
 `EPISODIO_PAGO_BASELINE`.
 
-Atraso continua recuperável. Depois de 14 dias sem recuperação, o lifecycle pode
-materializar `ACESSO_PAGO_ENCERRADO` por
-`INADIMPLENCIA_NAO_RECUPERADA`. Reativação permanece um fato separado e não
-reduz retroativamente o gross logo churn.
+O head final `abf2831cb38721970570e64128b5380d39c2289a` passou no
+**Backend CI #1298**. O PR #283 foi mergeado na `main` pelo commit
+`4f5ee55f6cd989837af82e95d36e28a33e06825a`.
 
-A Wave 24 não altera a baseline funcional, que continua em **67/67 (100%)**.
+A Wave 24 não alterou a baseline funcional, que continua em **67/67 (100%)**.
+
+## Wave 25 — MRR canônico, GRR e NRR v1
+
+A Wave 25 inicia um ledger monetário append-only a partir de novo cutover
+explícito. A migration 096 preserva snapshots mensais no lifecycle e registra a
+base contratada do cutover como `MRR_BASELINE`, usando `assinaturas.valor` em
+vez do preço atual do catálogo.
+
+A leitura separa New MRR, Reactivation MRR, Expansion MRR, Contraction MRR,
+Churned MRR e MRR em risco. NRR usa somente a base inicial do recorte e GRR
+ignora expansion. Histórico monetário anterior não é inventado.
+
+A Wave 25 mantém a baseline funcional em **67/67 (100%)**.
 
 ## Regra de atualização
 

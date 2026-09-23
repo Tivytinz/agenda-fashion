@@ -122,6 +122,13 @@ apagar dados existentes nem impedir a edição do que já foi cadastrado.
   `assinatura_eventos` com chave idempotente. Conversão inicial, renovação,
   reativação, mudança de plano, atraso, recuperação, reversão, cancelamento da
   renovação e encerramento do acesso pago não são tratados como equivalentes.
+- Desde a Wave 25, fatos monetários mensais preservam o valor contratado no
+  próprio lifecycle. O MRR v1 usa `assinaturas.valor` como snapshot do contrato
+  e não relê `planos.valor` para reinterpretar o passado. Mudança de plano ou
+  de valor recorrente gera expansion, contraction ou movimento lateral pelo
+  delta monetário efetivo. Atraso recuperável mantém MRR em risco até uma saída
+  terminal; `ACESSO_PAGO_ENCERRADO` leva o valor mensal a zero. New MRR não
+  entra na NRR da base inicial.
 - `webhook_eventos` preserva a entrega do provedor; `assinatura_eventos`
   preserva o fato de domínio do AF. O histórico anterior à migration 093 não é
   preenchido por suposição.
@@ -173,6 +180,8 @@ negócio e conversão para plano pago.
 - Lifecycle financeiro: `database/migrations/093_assinatura_eventos_lifecycle.sql`.
 - Baseline de episódios pagos e churn v1:
   `database/migrations/095_churn_v1_episodios_pagos.sql`.
+- Ledger monetário, baseline de MRR e NRR v1:
+  `database/migrations/096_mrr_v1_ledger.sql`.
 - Índice da reconciliação temporal:
   `database/migrations/094_assinaturas_canceladas_expiracao_idx.sql`.
 - Visão técnica completa: `docs/arquitetura.md`.

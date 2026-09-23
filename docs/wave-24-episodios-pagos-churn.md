@@ -138,6 +138,13 @@ A Wave 24 não cria:
 12. Backend CI e Playwright ficarem verdes;
 13. diff final ser revisado antes de qualquer merge.
 
-## Estado atual
+## Estado de encerramento
 
-A Wave 24 está **em andamento**.
+A Wave 24 foi encerrada no head
+`abf2831cb38721970570e64128b5380d39c2289a`, com o **Backend CI #1298**
+concluído com sucesso, incluindo Playwright mobile.
+
+O PR #283 foi mergeado na `main` pelo commit
+`4f5ee55f6cd989837af82e95d36e28a33e06825a`.
+
+A baseline P0 + P1 permaneceu congelada em **67/67 (100%)**.

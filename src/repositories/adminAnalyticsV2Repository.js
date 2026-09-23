@@ -1132,6 +1132,344 @@ async function buscarChurnPago(periodo = "30") {
   };
 }
 
+async function buscarMrr(periodo = "30") {
+  const seguro = periodoSeguro(periodo);
+  const inicioSolicitado = inicioTimestampSql(seguro);
+  const inicioEfetivoSql = inicioSolicitado
+    ? `GREATEST(m.inicio_cobertura, ${inicioSolicitado})`
+    : "m.inicio_cobertura";
+  const ajustadoSql = inicioSolicitado
+    ? `(${inicioSolicitado} < m.inicio_cobertura)`
+    : "TRUE";
+
+  const resultado = await db.query(
+    `
+    WITH marco AS (
+      SELECT ocorrido_em AS inicio_cobertura
+      FROM financeiro_marcos
+      WHERE chave = 'mrr_v1_inicio'
+      LIMIT 1
+    ),
+    limites AS (
+      SELECT
+        m.inicio_cobertura,
+        ${inicioEfetivoSql} AS inicio_efetivo,
+        NOW() AS fim_efetivo,
+        ${ajustadoSql} AS periodo_ajustado_cutover
+      FROM marco m
+    ),
+    eventos_mrr AS (
+      SELECT
+        ae.id,
+        ae.negocio_id,
+        ae.tipo,
+        ae.motivo,
+        ae.valor_mensal_anterior,
+        ae.valor_mensal_novo,
+        ae.periodicidade_snapshot,
+        ae.ocorrido_em
+      FROM assinatura_eventos ae
+      CROSS JOIN limites l
+      WHERE ae.ocorrido_em >= l.inicio_cobertura
+        AND ae.periodicidade_snapshot = 'MONTHLY'
+        AND (
+          ae.valor_mensal_anterior IS NOT NULL
+          OR ae.valor_mensal_novo IS NOT NULL
+        )
+    ),
+    estado_inicio_ranqueado AS (
+      SELECT
+        em.*,
+        ROW_NUMBER() OVER (
+          PARTITION BY em.negocio_id
+          ORDER BY
+            em.ocorrido_em DESC,
+            em.id DESC
+        ) AS rn
+      FROM eventos_mrr em
+      CROSS JOIN limites l
+      WHERE em.ocorrido_em <= l.inicio_efetivo
+    ),
+    base_inicio AS (
+      SELECT
+        negocio_id,
+        valor_mensal_novo AS mrr_inicio
+      FROM estado_inicio_ranqueado
+      WHERE rn = 1
+        AND valor_mensal_novo > 0
+    ),
+    movimentos AS (
+      SELECT
+        em.*,
+        (bi.negocio_id IS NOT NULL) AS pertence_base_inicial
+      FROM eventos_mrr em
+      CROSS JOIN limites l
+      LEFT JOIN base_inicio bi
+        ON bi.negocio_id = em.negocio_id
+      WHERE em.ocorrido_em > l.inicio_efetivo
+        AND em.ocorrido_em <= l.fim_efetivo
+    ),
+    estado_fim_ranqueado AS (
+      SELECT
+        em.*,
+        ROW_NUMBER() OVER (
+          PARTITION BY em.negocio_id
+          ORDER BY
+            em.ocorrido_em DESC,
+            em.id DESC
+        ) AS rn
+      FROM eventos_mrr em
+      CROSS JOIN limites l
+      WHERE em.ocorrido_em <= l.fim_efetivo
+    ),
+    estado_fim AS (
+      SELECT
+        negocio_id,
+        valor_mensal_novo AS mrr_fim
+      FROM estado_fim_ranqueado
+      WHERE rn = 1
+    ),
+    saidas_coorte AS (
+      SELECT DISTINCT m.negocio_id
+      FROM movimentos m
+      WHERE m.pertence_base_inicial = TRUE
+        AND m.tipo = 'ACESSO_PAGO_ENCERRADO'
+    ),
+    retencao_bruta AS (
+      SELECT
+        bi.negocio_id,
+        bi.mrr_inicio,
+        CASE
+          WHEN sc.negocio_id IS NOT NULL THEN 0::NUMERIC
+          ELSE LEAST(
+            bi.mrr_inicio,
+            GREATEST(
+              COALESCE(ef.mrr_fim, 0),
+              0
+            )
+          )
+        END AS mrr_retido_bruto
+      FROM base_inicio bi
+      LEFT JOIN estado_fim ef
+        ON ef.negocio_id = bi.negocio_id
+      LEFT JOIN saidas_coorte sc
+        ON sc.negocio_id = bi.negocio_id
+    ),
+    ultimo_estado_risco AS (
+      SELECT *
+      FROM (
+        SELECT
+          ae.negocio_id,
+          ae.tipo,
+          ae.detalhes,
+          ROW_NUMBER() OVER (
+            PARTITION BY ae.negocio_id
+            ORDER BY
+              ae.ocorrido_em DESC,
+              ae.id DESC
+          ) AS rn
+        FROM assinatura_eventos ae
+        CROSS JOIN limites l
+        WHERE ae.ocorrido_em >= l.inicio_cobertura
+          AND ae.tipo IN (
+            'MRR_BASELINE',
+            'CONVERSAO_INICIAL',
+            'RENOVACAO_CONFIRMADA',
+            'PAGAMENTO_ATRASADO',
+            'PAGAMENTO_RECUPERADO',
+            'REVERSAO_FINANCEIRA',
+            'PLANO_ALTERADO',
+            'VALOR_RECORRENTE_ALTERADO',
+            'ACESSO_PAGO_ENCERRADO',
+            'REATIVACAO_PAGA'
+          )
+      ) ordenado
+      WHERE rn = 1
+    ),
+    risco_atual AS (
+      SELECT
+        COUNT(*)::INT AS negocios_mrr_em_risco,
+        COALESCE(
+          SUM(ef.mrr_fim),
+          0
+        )::NUMERIC(14,2) AS mrr_em_risco
+      FROM estado_fim ef
+      INNER JOIN ultimo_estado_risco ur
+        ON ur.negocio_id = ef.negocio_id
+      WHERE ef.mrr_fim > 0
+        AND (
+          ur.tipo IN (
+            'PAGAMENTO_ATRASADO',
+            'REVERSAO_FINANCEIRA'
+          )
+          OR (
+            ur.tipo = 'MRR_BASELINE'
+            AND COALESCE(
+              (
+                ur.detalhes
+                  ->> 'mrr_em_risco_snapshot'
+              )::boolean,
+              FALSE
+            )
+          )
+        )
+    ),
+    periodicidade_nao_suportada AS (
+      SELECT COUNT(*)::INT AS total
+      FROM assinaturas a
+      INNER JOIN planos pl
+        ON pl.id = a.plano_id
+      WHERE a.ativo = TRUE
+        AND pl.valor > 0
+        AND COALESCE(
+          NULLIF(
+            UPPER(TRIM(a.periodicidade)),
+            ''
+          ),
+          'MONTHLY'
+        ) <> 'MONTHLY'
+    ),
+    bridge AS (
+      SELECT
+        COALESCE(
+          SUM(
+            CASE
+              WHEN m.tipo = 'CONVERSAO_INICIAL'
+                AND m.pertence_base_inicial = FALSE
+                THEN m.valor_mensal_novo
+              ELSE 0
+            END
+          ),
+          0
+        )::NUMERIC(14,2) AS new_mrr,
+        COALESCE(
+          SUM(
+            CASE
+              WHEN m.tipo = 'REATIVACAO_PAGA'
+                THEN m.valor_mensal_novo
+              ELSE 0
+            END
+          ),
+          0
+        )::NUMERIC(14,2) AS reactivation_mrr,
+        COALESCE(
+          SUM(
+            CASE
+              WHEN m.tipo IN (
+                'PLANO_ALTERADO',
+                'VALOR_RECORRENTE_ALTERADO'
+              )
+                AND m.valor_mensal_anterior IS NOT NULL
+                AND m.valor_mensal_novo IS NOT NULL
+                AND m.valor_mensal_novo >
+                  m.valor_mensal_anterior
+                THEN
+                  m.valor_mensal_novo -
+                  m.valor_mensal_anterior
+              ELSE 0
+            END
+          ),
+          0
+        )::NUMERIC(14,2) AS expansion_mrr,
+        COALESCE(
+          SUM(
+            CASE
+              WHEN m.tipo IN (
+                'PLANO_ALTERADO',
+                'VALOR_RECORRENTE_ALTERADO'
+              )
+                AND m.valor_mensal_anterior IS NOT NULL
+                AND m.valor_mensal_novo IS NOT NULL
+                AND m.valor_mensal_novo <
+                  m.valor_mensal_anterior
+                THEN
+                  m.valor_mensal_anterior -
+                  m.valor_mensal_novo
+              ELSE 0
+            END
+          ),
+          0
+        )::NUMERIC(14,2) AS contraction_mrr,
+        COALESCE(
+          SUM(
+            CASE
+              WHEN m.tipo = 'ACESSO_PAGO_ENCERRADO'
+                THEN m.valor_mensal_anterior
+              ELSE 0
+            END
+          ),
+          0
+        )::NUMERIC(14,2) AS churned_mrr
+      FROM movimentos m
+    )
+    SELECT
+      l.inicio_cobertura,
+      l.inicio_efetivo,
+      l.periodo_ajustado_cutover,
+      COALESCE(
+        (
+          SELECT SUM(mrr_inicio)
+          FROM base_inicio
+        ),
+        0
+      )::NUMERIC(14,2) AS mrr_inicial,
+      COALESCE(
+        (
+          SELECT SUM(
+            CASE
+              WHEN ef.mrr_fim > 0
+                THEN ef.mrr_fim
+              ELSE 0
+            END
+          )
+          FROM estado_fim ef
+          INNER JOIN base_inicio bi
+            ON bi.negocio_id = ef.negocio_id
+        ),
+        0
+      )::NUMERIC(14,2) AS mrr_final_coorte_inicial,
+      COALESCE(
+        (
+          SELECT SUM(
+            CASE
+              WHEN mrr_fim > 0
+                THEN mrr_fim
+              ELSE 0
+            END
+          )
+          FROM estado_fim
+        ),
+        0
+      )::NUMERIC(14,2) AS mrr_final_total,
+      COALESCE(
+        (
+          SELECT SUM(mrr_retido_bruto)
+          FROM retencao_bruta
+        ),
+        0
+      )::NUMERIC(14,2) AS mrr_retido_bruto,
+      b.new_mrr,
+      b.reactivation_mrr,
+      b.expansion_mrr,
+      b.contraction_mrr,
+      b.churned_mrr,
+      ra.negocios_mrr_em_risco,
+      ra.mrr_em_risco,
+      pns.total
+        AS assinaturas_periodicidade_nao_suportada
+    FROM limites l
+    CROSS JOIN bridge b
+    CROSS JOIN risco_atual ra
+    CROSS JOIN periodicidade_nao_suportada pns
+    `
+  );
+
+  return {
+    periodo: seguro,
+    ...(resultado.rows[0] || {}),
+  };
+}
+
 module.exports = {
   periodoSeguro,
   buscarVisaoGeral,
@@ -1140,4 +1478,5 @@ module.exports = {
   buscarReconciliacaoPipelines,
   buscarReceita,
   buscarChurnPago,
+  buscarMrr,
 };

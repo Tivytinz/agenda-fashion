@@ -126,7 +126,22 @@ describe("receita administrativa v2", () => {
         saidasCancelamentoVoluntario: 1,
         saidasInadimplenciaNaoRecuperada: 1,
         saidasEncerramentoProvedor: 0,
-        saidasOutrosMotivos: 0
+        saidasOutrosMotivos: 0,
+        mrrInicial: 1000,
+        newMrr: 200,
+        reactivationMrr: 100,
+        expansionMrr: 100,
+        contractionMrr: 50,
+        churnedMrr: 150,
+        mrrFinalCoorteInicial: 950,
+        mrrFinalTotal: 1200,
+        mrrEmRisco: 149.8,
+        negociosMrrEmRisco: 2,
+        grr: 85,
+        nrr: 95,
+        divergenciaBridgeMrr: 0,
+        bridgeMrrReconciliado: true,
+        assinaturasPeriodicidadeNaoSuportada: 0
       },
       planos: [],
       churn: {
@@ -135,8 +150,19 @@ describe("receita administrativa v2", () => {
         periodoAjustadoAoCutover: true,
         historicoAnteriorInferido: false
       },
+      mrr: {
+        inicioCobertura: "2026-09-23T06:00:00.000Z",
+        inicioEfetivo: "2026-09-23T06:00:00.000Z",
+        periodoAjustadoAoCutover: true,
+        historicoAnteriorInferido: false,
+        periodicidadeSuportada: "MONTHLY",
+        bridgeReconciliado: true,
+        confiavel: true
+      },
       metodologia: {
-        churn: "Gross logo churn v1 usa a base paga inicial."
+        churn: "Gross logo churn v1 usa a base paga inicial.",
+        mrr: "MRR v1 usa snapshots monetários.",
+        nrr: "NRR v1 usa a coorte inicial."
       }
     });
 
@@ -151,6 +177,16 @@ describe("receita administrativa v2", () => {
     expect(screen.getByText("Reversões financeiras")).not.toBeNull();
     expect(screen.getByText("Saídas da base paga")).not.toBeNull();
     expect(screen.getByText("Pendentes de reconciliação temporal")).not.toBeNull();
+    expect(screen.getByRole("heading", { name: "Receita recorrente canônica" })).not.toBeNull();
+    expect(screen.getByText("MRR da base inicial")).not.toBeNull();
+    expect(screen.getByText("Expansion MRR")).not.toBeNull();
+    expect(screen.getByText("Contraction MRR")).not.toBeNull();
+    expect(screen.getByText("Churned MRR")).not.toBeNull();
+    expect(screen.getByText("MRR em risco")).not.toBeNull();
+    expect(screen.getByText("GRR")).not.toBeNull();
+    expect(screen.getByText("NRR")).not.toBeNull();
+    expect(screen.getByText("95%")).not.toBeNull();
+    expect(screen.getByText("85%")).not.toBeNull();
     expect(screen.getByRole("heading", { name: "Churn bruto de negócios" })).not.toBeNull();
     expect(screen.getByText("Gross logo churn")).not.toBeNull();
     expect(screen.getByText("Inadimplência não recuperada")).not.toBeNull();

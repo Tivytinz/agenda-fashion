@@ -153,6 +153,25 @@ async function sincronizarAssinaturaPorWebhook(
       return null;
     }
 
+    if (
+      tipoEvento === "SUBSCRIPTION_UPDATED" &&
+      assinatura.ativo === true &&
+      assinaturaAtualizada.ativo === true
+    ) {
+      await assinaturaLifecycleService
+        .registrarAlteracaoValorRecorrente({
+          client,
+          assinaturaAnterior: assinatura,
+          assinaturaAtualizada,
+          origem: "webhook",
+          referenciaIdempotencia:
+            dadosAssinatura.webhookEventoId ||
+            assinaturaAtualizada.asaas_ultimo_evento_id ||
+            null,
+          ocorridoEm: null,
+        });
+    }
+
     if (manterPeriodoPago) {
       await assinaturaLifecycleService
         .registrarCancelamentoRenovacao({
