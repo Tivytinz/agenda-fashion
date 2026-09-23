@@ -320,10 +320,7 @@ async function finalizarAtivacao({
           client,
           assinatura,
           pagamentoId: assinatura.pagamento_id,
-          asaasPaymentId: paymentId,
-          ocorridoEm:
-            dadosPagamento.webhookEventoCriadoEm ||
-            null
+          asaasPaymentId: paymentId
         });
 
       const asaasSubscriptionId =
