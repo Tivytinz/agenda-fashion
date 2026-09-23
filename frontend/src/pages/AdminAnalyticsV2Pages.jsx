@@ -914,6 +914,10 @@ export function AdminRevenueV2Page() {
       {(data) => {
         const summary = data.resumo || {};
         const plans = Array.isArray(data.planos) ? data.planos : [];
+        const ltv = data.ltv || {};
+        const ltvCohorts = Array.isArray(ltv.coortes)
+          ? ltv.coortes
+          : [];
 
         return (
           <>
@@ -1068,6 +1072,107 @@ export function AdminRevenueV2Page() {
             <section className="panel">
               <div className="panel-heading">
                 <div>
+                  <p className="eyebrow">Coortes de receita</p>
+                  <h2>LTV bruto observado</h2>
+                  <p className="muted">
+                    Receita acumulada por negócio desde a primeira conversão paga canônica. A leitura usa D30, D60 e D90 maduros e não projeta lifetime futuro.
+                  </p>
+                </div>
+              </div>
+
+              <dl className="admin-command-data-list">
+                <div>
+                  <dt>Negócios na coorte canônica</dt>
+                  <dd>{formatNumber(ltv.negociosCoorte)}</dd>
+                </div>
+                <div>
+                  <dt>LTV bruto D30</dt>
+                  <dd>{ltv.ltvBrutoD30 == null ? "Aguardando maturidade" : formatCurrency(ltv.ltvBrutoD30)}</dd>
+                </div>
+                <div>
+                  <dt>Amostra madura D30</dt>
+                  <dd>{formatNumber(ltv.madurosD30)}</dd>
+                </div>
+                <div>
+                  <dt>LTV bruto D60</dt>
+                  <dd>{ltv.ltvBrutoD60 == null ? "Aguardando maturidade" : formatCurrency(ltv.ltvBrutoD60)}</dd>
+                </div>
+                <div>
+                  <dt>Amostra madura D60</dt>
+                  <dd>{formatNumber(ltv.madurosD60)}</dd>
+                </div>
+                <div>
+                  <dt>LTV bruto D90</dt>
+                  <dd>{ltv.ltvBrutoD90 == null ? "Aguardando maturidade" : formatCurrency(ltv.ltvBrutoD90)}</dd>
+                </div>
+                <div>
+                  <dt>Amostra madura D90</dt>
+                  <dd>{formatNumber(ltv.madurosD90)}</dd>
+                </div>
+                <div>
+                  <dt>Valor exposto a reversões</dt>
+                  <dd>{formatCurrency(ltv.valorExpostoReversoes)}</dd>
+                </div>
+                <div>
+                  <dt>LTV líquido</dt>
+                  <dd>Indisponível</dd>
+                </div>
+              </dl>
+
+              <p className="muted">
+                Cobertura canônica desde {formatDateTime(ltv.inicioCobertura)}. Esta leitura é acumulada desde o cutover da Wave 26 e não muda com o filtro temporal do topo. O histórico anterior não foi inferido.
+              </p>
+
+              {ltvCohorts.length === 0 ? (
+                <EmptyState title="Aguardando primeira coorte paga pós-cutover">
+                  Ainda não existe negócio elegível para LTV canônico da Wave 26.
+                </EmptyState>
+              ) : (
+                <div className="table-wrapper">
+                  <table className="data-table">
+                    <thead>
+                      <tr>
+                        <th>Coorte paga</th>
+                        <th>Negócios</th>
+                        <th>D30</th>
+                        <th>D60</th>
+                        <th>D90</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {ltvCohorts.map((cohort) => (
+                        <tr key={cohort.coorteMes}>
+                          <td><strong>{cohort.coorteMes}</strong></td>
+                          <td>{formatNumber(cohort.negocios)}</td>
+                          <td>
+                            {cohort.ltvBrutoD30 == null
+                              ? "Aguardando"
+                              : formatCurrency(cohort.ltvBrutoD30)}
+                            <small>{formatNumber(cohort.madurosD30)} maduros</small>
+                          </td>
+                          <td>
+                            {cohort.ltvBrutoD60 == null
+                              ? "Aguardando"
+                              : formatCurrency(cohort.ltvBrutoD60)}
+                            <small>{formatNumber(cohort.madurosD60)} maduros</small>
+                          </td>
+                          <td>
+                            {cohort.ltvBrutoD90 == null
+                              ? "Aguardando"
+                              : formatCurrency(cohort.ltvBrutoD90)}
+                            <small>{formatNumber(cohort.madurosD90)} maduros</small>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </section>
+
+            <section className="panel">
+              <div className="panel-heading">
+                <div>
                   <p className="eyebrow">Retenção da base paga</p>
                   <h2>Churn bruto de negócios</h2>
                   <p className="muted">
@@ -1129,6 +1234,7 @@ export function AdminRevenueV2Page() {
               <p>{data.metodologia?.churn}</p>
               <p>{data.metodologia?.mrr}</p>
               <p>{data.metodologia?.nrr}</p>
+              <p>{data.metodologia?.ltv}</p>
               <p>{data.metodologia?.ativas}</p>
             </details>
           </>
