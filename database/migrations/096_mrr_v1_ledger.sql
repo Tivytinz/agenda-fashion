@@ -85,65 +85,54 @@ WITH marco AS (
   FROM financeiro_marcos
   WHERE chave = 'mrr_v1_inicio'
 ),
-fronteiras_episodio AS (
-  SELECT DISTINCT ON (ae.negocio_id)
-    ae.negocio_id,
-    ae.assinatura_id,
-    ae.tipo
-  FROM assinatura_eventos ae
-  WHERE ae.tipo IN (
-    'EPISODIO_PAGO_BASELINE',
-    'CONVERSAO_INICIAL',
-    'REATIVACAO_PAGA',
-    'ACESSO_PAGO_ENCERRADO'
-  )
-  ORDER BY
-    ae.negocio_id,
-    ae.ocorrido_em DESC,
-    ae.id DESC
-),
-episodios_abertos AS (
-  SELECT
-    negocio_id,
-    assinatura_id
-  FROM fronteiras_episodio
-  WHERE tipo <> 'ACESSO_PAGO_ENCERRADO'
-),
 base_mrr AS (
-  SELECT
-    ea.negocio_id,
-    atual.id AS assinatura_id,
-    atual.plano_id,
-    atual.valor,
-    atual.periodicidade,
-    atual.status,
-    atual.ativo
-  FROM episodios_abertos ea
-  INNER JOIN LATERAL (
-    SELECT
-      a.id,
-      a.plano_id,
-      a.valor,
-      COALESCE(
-        NULLIF(UPPER(TRIM(a.periodicidade)), ''),
-        'MONTHLY'
-      ) AS periodicidade,
-      UPPER(COALESCE(a.status, '')) AS status,
-      a.ativo
-    FROM assinaturas a
-    INNER JOIN planos pl
-      ON pl.id = a.plano_id
-    WHERE a.negocio_id = ea.negocio_id
-      AND pl.valor > 0
-      AND a.valor IS NOT NULL
-      AND a.valor >= 0
-      AND COALESCE(
-        NULLIF(UPPER(TRIM(a.periodicidade)), ''),
-        'MONTHLY'
-      ) = 'MONTHLY'
-      AND (
-        a.id = ea.assinatura_id
-        OR EXISTS (
+  SELECT DISTINCT ON (a.negocio_id)
+    a.negocio_id,
+    a.id AS assinatura_id,
+    a.plano_id,
+    a.valor,
+    COALESCE(
+      NULLIF(UPPER(TRIM(a.periodicidade)), ''),
+      'MONTHLY'
+    ) AS periodicidade,
+    UPPER(COALESCE(a.status, '')) AS status,
+    a.ativo
+  FROM assinaturas a
+  INNER JOIN planos pl
+    ON pl.id = a.plano_id
+  WHERE pl.valor > 0
+    AND a.valor IS NOT NULL
+    AND a.valor >= 0
+    AND COALESCE(
+      NULLIF(UPPER(TRIM(a.periodicidade)), ''),
+      'MONTHLY'
+    ) = 'MONTHLY'
+    AND (
+      (
+        a.ativo = TRUE
+        AND NOT (
+          UPPER(COALESCE(a.status, '')) IN (
+            'CANCELED',
+            'CANCELLED'
+          )
+          AND a.data_proxima_cobranca IS NOT NULL
+          AND a.data_proxima_cobranca <= CURRENT_DATE
+        )
+      )
+      OR (
+        a.ativo = FALSE
+        AND UPPER(COALESCE(a.status, '')) IN (
+          'OVERDUE',
+          'PAST_DUE',
+          'PAYMENT_FAILED',
+          'CREDIT_CARD_CAPTURE_REFUSED',
+          'REFUNDED',
+          'RECEIVED_IN_CASH_UNDONE',
+          'CHARGEBACK_REQUESTED',
+          'CHARGEBACK_DISPUTE',
+          'AWAITING_CHARGEBACK_REVERSAL'
+        )
+        AND EXISTS (
           SELECT 1
           FROM pagamentos pg
           WHERE pg.assinatura_id = a.id
@@ -154,23 +143,41 @@ base_mrr AS (
             )
             AND pg.data_pagamento IS NOT NULL
         )
+        AND COALESCE(
+          (
+            SELECT fronteira.tipo
+            FROM assinatura_eventos fronteira
+            WHERE fronteira.negocio_id = a.negocio_id
+              AND fronteira.tipo IN (
+                'EPISODIO_PAGO_BASELINE',
+                'CONVERSAO_INICIAL',
+                'REATIVACAO_PAGA',
+                'ACESSO_PAGO_ENCERRADO'
+              )
+            ORDER BY
+              fronteira.ocorrido_em DESC,
+              fronteira.id DESC
+            LIMIT 1
+          ),
+          ''
+        ) <> 'ACESSO_PAGO_ENCERRADO'
       )
-    ORDER BY
-      (a.ativo = TRUE) DESC,
-      EXISTS (
-        SELECT 1
-        FROM pagamentos pg
-        WHERE pg.assinatura_id = a.id
-          AND UPPER(pg.status) IN (
-            'CONFIRMED',
-            'RECEIVED',
-            'RECEIVED_IN_CASH'
-          )
-          AND pg.data_pagamento IS NOT NULL
-      ) DESC,
-      a.id DESC
-    LIMIT 1
-  ) atual ON TRUE
+    )
+  ORDER BY
+    a.negocio_id,
+    (a.ativo = TRUE) DESC,
+    EXISTS (
+      SELECT 1
+      FROM pagamentos pg
+      WHERE pg.assinatura_id = a.id
+        AND UPPER(pg.status) IN (
+          'CONFIRMED',
+          'RECEIVED',
+          'RECEIVED_IN_CASH'
+        )
+        AND pg.data_pagamento IS NOT NULL
+    ) DESC,
+    a.id DESC
 )
 INSERT INTO assinatura_eventos (
   negocio_id,
