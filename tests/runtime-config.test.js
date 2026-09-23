@@ -156,10 +156,18 @@ describe("configuração central do runtime", () => {
       "BILLING_RECONCILIATION_BATCH_SIZE precisa ser um inteiro entre 1 e 500"
     );
 
+    expect(() => validarConfiguracaoRuntime({
+      ...ambienteBase(),
+      BILLING_DELINQUENCY_TERMINAL_DAYS: "0",
+    })).toThrow(
+      "BILLING_DELINQUENCY_TERMINAL_DAYS precisa ser um inteiro entre 1 e 90"
+    );
+
     expect(validarConfiguracaoRuntime({
       ...ambienteBase(),
       BILLING_RECONCILIATION_INTERVAL_MS: "300000",
       BILLING_RECONCILIATION_BATCH_SIZE: "100",
+      BILLING_DELINQUENCY_TERMINAL_DAYS: "14",
     })).toMatchObject({
       ambiente: "test",
     });
