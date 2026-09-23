@@ -651,6 +651,21 @@ async function buscarReceita(periodo = "30") {
             '%Renovação cancelada pelo titular.%'
           ${filtroEncerramentoCancelado}
       ),
+      cancelamentos_vencidos_pendentes AS (
+        SELECT COUNT(*)::INT
+          AS cancelamentos_vencidos_pendentes_reconciliacao
+        FROM assinaturas a
+        INNER JOIN planos pl
+          ON pl.id = a.plano_id
+        WHERE a.ativo = TRUE
+          AND UPPER(a.status) IN (
+            'CANCELED',
+            'CANCELLED'
+          )
+          AND a.data_proxima_cobranca IS NOT NULL
+          AND a.data_proxima_cobranca <= CURRENT_DATE
+          AND pl.valor > 0
+      ),
       lifecycle_eventos AS (
         SELECT
           COUNT(*) FILTER (
@@ -691,6 +706,14 @@ async function buscarReceita(periodo = "30") {
           ON pl.id = a.plano_id
         WHERE a.ativo = TRUE
           AND pl.valor > 0
+          AND NOT (
+            UPPER(a.status) IN (
+              'CANCELED',
+              'CANCELLED'
+            )
+            AND a.data_proxima_cobranca IS NOT NULL
+            AND a.data_proxima_cobranca <= CURRENT_DATE
+          )
       )
       SELECT
         c.iniciados AS checkouts_iniciados,
@@ -720,6 +743,7 @@ async function buscarReceita(periodo = "30") {
         rf.renovacoes_recuperadas,
         ca.cancelamentos_renovacao_agendados,
         ce.assinaturas_encerradas_apos_cancelamento,
+        cvp.cancelamentos_vencidos_pendentes_reconciliacao,
         le.conversoes_iniciais_canonicas,
         le.renovacoes_confirmadas_canonicas,
         le.reativacoes_pagas,
@@ -738,6 +762,7 @@ async function buscarReceita(periodo = "30") {
       CROSS JOIN retencao_financeira rf
       CROSS JOIN cancelamentos_agendados ca
       CROSS JOIN cancelamentos_encerrados ce
+      CROSS JOIN cancelamentos_vencidos_pendentes cvp
       CROSS JOIN lifecycle_eventos le
       CROSS JOIN ativas a
       `
@@ -755,6 +780,14 @@ async function buscarReceita(periodo = "30") {
         ON pl.id = a.plano_id
       WHERE a.ativo = TRUE
         AND pl.valor > 0
+        AND NOT (
+          UPPER(a.status) IN (
+            'CANCELED',
+            'CANCELLED'
+          )
+          AND a.data_proxima_cobranca IS NOT NULL
+          AND a.data_proxima_cobranca <= CURRENT_DATE
+        )
       GROUP BY pl.id, pl.nome, pl.slug
       ORDER BY COUNT(*) DESC, pl.nome ASC
       `
