@@ -44,12 +44,17 @@ describe(
     const original =
       process.env
         .CONTRIBUTION_COST_SYNC_SCHEDULE_ENABLED;
+    const originalPoll =
+      process.env
+        .CONTRIBUTION_COST_SYNC_POLL_INTERVAL_MINUTES;
 
     beforeEach(() => {
       jest.resetModules();
       jest.clearAllMocks();
       delete process.env
         .CONTRIBUTION_COST_SYNC_SCHEDULE_ENABLED;
+      delete process.env
+        .CONTRIBUTION_COST_SYNC_POLL_INTERVAL_MINUTES;
 
       mockSyncService
         .sincronizarPendentes
@@ -69,6 +74,17 @@ describe(
         process.env
           .CONTRIBUTION_COST_SYNC_SCHEDULE_ENABLED =
           original;
+      }
+
+      if (
+        originalPoll === undefined
+      ) {
+        delete process.env
+          .CONTRIBUTION_COST_SYNC_POLL_INTERVAL_MINUTES;
+      } else {
+        process.env
+          .CONTRIBUTION_COST_SYNC_POLL_INTERVAL_MINUTES =
+          originalPoll;
       }
     });
 
@@ -172,7 +188,7 @@ describe(
     );
 
     test(
-      "limita intervalo entre uma e vinte e quatro horas",
+      "limita polling entre cinco e sessenta minutos",
       () => {
         process.env
           .CONTRIBUTION_COST_SYNC_POLL_INTERVAL_MINUTES =
