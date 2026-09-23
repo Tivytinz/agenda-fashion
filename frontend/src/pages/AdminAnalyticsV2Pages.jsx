@@ -7,6 +7,7 @@ import {
   LoadingState
 } from "../components/ScreenState";
 import { AdminContributionOperationsPanel } from "../components/AdminContributionOperationsPanel";
+import { AdminContributionSyncPanel } from "../components/AdminContributionSyncPanel";
 import {
   ADMIN_PERIODS,
   adminPeriodLabel,
@@ -1177,6 +1178,7 @@ export function AdminRevenueV2Page() {
             </section>
 
             <AdminContributionOperationsPanel />
+            <AdminContributionSyncPanel />
 
             <div className="admin-command-two-column">
               <section className="panel">
