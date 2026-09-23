@@ -243,7 +243,12 @@ Leitura:
 Superadmin:
 
 - `POST /admin/financeiro/contribuicao/sync/integracoes`;
+- `PATCH /admin/financeiro/contribuicao/sync/integracoes/:id`;
 - `POST /admin/financeiro/contribuicao/sync/integracoes/:id/executar`.
+
+O PATCH permite pausar/reativar a integração e ajustar o intervalo por fonte. A
+reativação exige fonte ativa e adaptador ainda disponível; pausar continua
+permitido mesmo se o adaptador tiver sido removido do código.
 
 A criação de integração só aceita adaptador registrado no backend e fonte ativa
 já existente.
@@ -264,7 +269,8 @@ Estados explícitos:
 - último sucesso;
 - último erro;
 - histórico recente;
-- sincronização manual para superadmin quando aplicável.
+- sincronização manual para superadmin quando aplicável;
+- pausa/retomada operacional da integração.
 
 Quando nenhum adaptador existe, a interface informa que nada é inferido de
 WhatsApp, e-mail, infraestrutura ou imposto.
@@ -338,8 +344,10 @@ Se nenhuma fonte real/adaptador existir, Waves 29 e 30 permanecem
 20. shutdown aguardar execução em andamento;
 21. Admin mostrar estado vazio sem criar custo artificial;
 22. testes unitários, Supertest, PostgreSQL e frontend cobrirem invariantes;
-23. CI completo ficar verde;
-24. diff final ser revisado antes do merge.
+23. integração poder ser pausada sem depender do adaptador continuar disponível;
+24. reativação exigir fonte ativa e adaptador disponível;
+25. CI completo ficar verde;
+26. diff final ser revisado antes do merge.
 
 ## Estado atual
 
