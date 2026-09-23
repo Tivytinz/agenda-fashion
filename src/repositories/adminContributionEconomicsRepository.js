@@ -1,7 +1,5 @@
 const db = require("../db/db");
 
-const TIME_ZONE = "America/Sao_Paulo";
-
 function diasPeriodo(periodo) {
   if (String(periodo) === "all") {
     return null;
@@ -104,6 +102,62 @@ async function buscarResumoContribuicao(
       )::date BETWEEN
         j.inicio_data
         AND j.fim_data
+    ),
+    estornos AS (
+      SELECT
+        pagamento_id,
+        COALESCE(
+          SUM(valor) FILTER (
+            WHERE status_provedor = 'DONE'
+          ),
+          0
+        )::NUMERIC(14,2)
+          AS valor_estornado
+      FROM pagamento_estornos
+      GROUP BY pagamento_id
+    ),
+    pagamentos_janela AS (
+      SELECT
+        pg.id,
+        pe.status_reconciliacao,
+        pe.valor_liquido_gateway,
+        COALESCE(
+          e.valor_estornado,
+          0
+        )::NUMERIC(14,2)
+          AS valor_estornado
+      FROM pagamentos pg
+      CROSS JOIN janela j
+      LEFT JOIN pagamento_economia pe
+        ON pe.pagamento_id = pg.id
+      LEFT JOIN estornos e
+        ON e.pagamento_id = pg.id
+      WHERE pg.data_pagamento IS NOT NULL
+        AND pg.data_pagamento BETWEEN
+          j.inicio_data
+          AND j.fim_data
+    ),
+    gateway AS (
+      SELECT
+        COUNT(*)::INT
+          AS pagamentos_elegiveis,
+        COUNT(*) FILTER (
+          WHERE status_reconciliacao
+            IS DISTINCT FROM 'COMPLETO'
+        )::INT
+          AS pagamentos_incompletos,
+        COALESCE(
+          SUM(
+            valor_liquido_gateway -
+            valor_estornado
+          ) FILTER (
+            WHERE status_reconciliacao =
+              'COMPLETO'
+          ),
+          0
+        )::NUMERIC(14,2)
+          AS receita_liquida
+      FROM pagamentos_janela
     )
     SELECT
       j.ocorrido_em AS inicio_cobertura,
@@ -152,8 +206,21 @@ async function buscarResumoContribuicao(
             FROM custos
           )
         ELSE NULL
-      END AS custos_variaveis_observados
+      END AS custos_variaveis_observados,
+      g.pagamentos_elegiveis
+        AS pagamentos_gateway_elegiveis,
+      g.pagamentos_incompletos
+        AS pagamentos_gateway_incompletos,
+      (
+        g.pagamentos_incompletos = 0
+      ) AS cobertura_gateway_completa,
+      CASE
+        WHEN g.pagamentos_incompletos = 0
+          THEN g.receita_liquida
+        ELSE NULL
+      END AS receita_liquida_gateway
     FROM janela j
+    CROSS JOIN gateway g
     `,
     [dias]
   );
@@ -166,6 +233,10 @@ async function buscarResumoContribuicao(
     fontes_cobertas: 0,
     cobertura_completa: false,
     custos_variaveis_observados: null,
+    pagamentos_gateway_elegiveis: 0,
+    pagamentos_gateway_incompletos: 0,
+    cobertura_gateway_completa: false,
+    receita_liquida_gateway: null,
   };
 }
 
