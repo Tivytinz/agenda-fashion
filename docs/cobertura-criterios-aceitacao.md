@@ -428,8 +428,12 @@ zero e não declara lucro, CAC total, payback econômico ou LTV:CAC definitivo.
 LTV de contribuição deverá reutilizar a unidade negócio e as maturidades
 D30/D60/D90 já estabelecidas, sem retirar casos incompletos para melhorar médias.
 
-Neste estágio a Wave está **preparada para implementação**; nenhuma nova métrica
-econômica é considerada disponível apenas por esta preparação documental.
+A fundação técnica da Wave 29 foi mergeada pelo PR #289 no commit
+`0723d70cdaaadafdcbe4937c1f5b9afcfc852bcc`, após o **Backend CI #1362**
+verde. Ainda assim, a Wave permanece aberta porque nenhuma fonte real obrigatória
+de custo variável foi cadastrada e o LTV de contribuição D30/D60/D90 não foi
+materializado. Nenhuma métrica indisponível deve ser convertida em zero por essa
+lacuna.
 
 A Wave 29 não altera a baseline funcional, que continua em **67/67 (100%)**.
 
