@@ -36,6 +36,17 @@ Assim, um retry pode reconciliar a mesma recorrência no Asaas em vez de criar u
 
 Quando a assinatura local já possui `asaas_subscription_id`, a confirmação de uma renovação reutiliza esse vínculo e não cria uma nova recorrência.
 
+As cobranças recorrentes podem trazer a fatura hospedada pelo Asaas em
+`payment.invoiceUrl`. O AF persiste esse valor em `pagamentos.invoice_url`
+tanto na criação inicial quanto na sincronização por webhook. Para recuperação
+de cobrança atrasada, a API da conta só expõe a URL quando ela usa HTTPS e o
+hostname pertence ao domínio oficial `asaas.com`.
+
+A fatura é um mecanismo de navegação para regularização, não uma fonte de
+verdade de pagamento. Mesmo depois que a proprietária a utiliza, o plano pago
+só volta a ficar vigente após um evento financeiro válido atualizar o pagamento
+e reativar a assinatura.
+
 As recorrências substituídas são marcadas localmente como `CANCELED` com a observação de substituição. Essa marca torna a limpeza recuperável: se o DELETE no Asaas falhar depois do commit, o webhook pode tentar novamente sem depender de estado apenas em memória.
 
 Uma confirmação que já é obsoleta no preflight não cria recorrência. Quando o evento veio do worker do webhook e a assinatura alvo ainda não possui vínculo local, o AF faz somente uma consulta por `externalReference`; se encontrar uma recorrência externa sem qualquer vínculo local, remove-a. Isso permite limpar uma recorrência órfã deixada por uma tentativa anterior sem criar uma nova apenas para compensá-la.

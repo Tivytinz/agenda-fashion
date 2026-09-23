@@ -193,16 +193,74 @@ describe("plano e assinatura", () => {
     expect(within(table).getByText("PIX")).not.toBeNull();
   });
 
-  it("CA-PLN-04: mostra falha de pagamento e explica recuperação sem perda de dados", async () => {
+  it("CA-PLN-04: oferece recuperação segura para cobrança atrasada", async () => {
     apiRequest.mockResolvedValueOnce({
       plano: { id: 1, slug: "inicial", nome: "Grátis", valor: 0 },
       assinatura: null,
       estado_assinatura: {
         codigo: "FALHA_DE_PAGAMENTO",
+        tipo_falha: "COBRANCA_ATRASADA",
         status_provedor: "OVERDUE",
         assinatura_id: 20,
         plano_id: 4
       },
+      pagamento_recuperavel: {
+        id: 51,
+        status: "OVERDUE",
+        data_vencimento: "2026-09-23",
+        invoice_url: "https://www.asaas.com/i/fatura-wave20"
+      },
+      uso: {
+        plano_nome: "Grátis",
+        plano_slug: "inicial"
+      },
+      pagamentos: [
+        {
+          id: 51,
+          status: "OVERDUE",
+          valor: 49.9,
+          forma_pagamento: "pix",
+          data_vencimento: "2026-09-23"
+        }
+      ]
+    });
+
+    renderPage();
+
+    const alert = await screen.findByRole("alert");
+    expect(within(alert).getByText("Pagamento em atraso")).not.toBeNull();
+    expect(alert.textContent).toContain("plano Grátis");
+    expect(alert.textContent).toContain("sem apagar os dados do negócio");
+
+    const recoveryLink = within(alert).getByRole("link", {
+      name: "Regularizar pagamento"
+    });
+    expect(recoveryLink.getAttribute("href"))
+      .toBe("https://www.asaas.com/i/fatura-wave20");
+    expect(recoveryLink.getAttribute("target"))
+      .toBe("_blank");
+    expect(
+      within(alert).getByText(
+        "Você será direcionada para o ambiente seguro de pagamento."
+      )
+    ).not.toBeNull();
+
+    const table = await screen.findByRole("table");
+    expect(within(table).getByText("Atrasado")).not.toBeNull();
+  });
+
+  it("distingue estorno ou disputa de uma cobrança recuperável", async () => {
+    apiRequest.mockResolvedValueOnce({
+      plano: { id: 1, slug: "inicial", nome: "Grátis", valor: 0 },
+      assinatura: null,
+      estado_assinatura: {
+        codigo: "FALHA_DE_PAGAMENTO",
+        tipo_falha: "REVERSAO_OU_DISPUTA",
+        status_provedor: "REFUNDED",
+        assinatura_id: 20,
+        plano_id: 4
+      },
+      pagamento_recuperavel: null,
       uso: {
         plano_nome: "Grátis",
         plano_slug: "inicial"
@@ -213,9 +271,48 @@ describe("plano e assinatura", () => {
     renderPage();
 
     const alert = await screen.findByRole("alert");
-    expect(within(alert).getByText("Falha de pagamento")).not.toBeNull();
-    expect(alert.textContent).toContain("plano Grátis");
-    expect(alert.textContent).toContain("sem apagar os dados do negócio");
+    expect(
+      within(alert).getByText("Pagamento revertido ou em disputa")
+    ).not.toBeNull();
+    expect(
+      within(alert).queryByRole("link", {
+        name: "Regularizar pagamento"
+      })
+    ).toBeNull();
+  });
+
+  it("mostra acesso até em vez de próxima cobrança após cancelar a renovação", async () => {
+    apiRequest.mockResolvedValueOnce({
+      plano: { id: 2, slug: "autonoma", nome: "Autônoma", valor: 49.9 },
+      assinatura: {
+        id: 20,
+        status: "CANCELED",
+        ativo: true,
+        forma_pagamento: "pix",
+        data_proxima_cobranca: "2026-10-23"
+      },
+      estado_assinatura: {
+        codigo: "CANCELAMENTO_AGENDADO",
+        status_provedor: "CANCELED",
+        assinatura_id: 20,
+        plano_id: 2
+      },
+      uso: {
+        plano_id: 2,
+        plano_nome: "Autônoma",
+        plano_slug: "autonoma"
+      },
+      pagamentos: []
+    });
+
+    renderPage();
+
+    expect(await screen.findByText("Renovação cancelada")).not.toBeNull();
+    expect(screen.getByText("Acesso até")).not.toBeNull();
+    expect(screen.queryByText("Próxima cobrança")).toBeNull();
+    expect(screen.queryByRole("button", {
+      name: "Cancelar renovação"
+    })).toBeNull();
   });
 
   it("CA-PLN-05: mostra checkout expirado sem anunciar benefício pago", async () => {

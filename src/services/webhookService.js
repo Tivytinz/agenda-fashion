@@ -240,6 +240,8 @@ async function enfileirarWebhookAsaas({
             pagamento.billingType || null,
           dueDate:
             pagamento.dueDate || null,
+          invoiceUrl:
+            pagamento.invoiceUrl || null,
           paymentDate:
             pagamento.paymentDate || null,
           confirmedDate:

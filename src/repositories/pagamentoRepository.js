@@ -13,18 +13,23 @@ async function criarPagamento(client, dados) {
       status,
       data_vencimento,
       data_pagamento,
+      invoice_url,
       pix_copia_cola,
       pix_qrcode
     )
     VALUES (
       $1, $2, $3, $4, $5,
-      $6, $7, $8, $9
+      $6, $7, $8, $9, $10
     )
     ON CONFLICT (asaas_payment_id)
       WHERE asaas_payment_id IS NOT NULL
     DO UPDATE SET
       status = EXCLUDED.status,
       data_vencimento = EXCLUDED.data_vencimento,
+      invoice_url = COALESCE(
+        EXCLUDED.invoice_url,
+        pagamentos.invoice_url
+      ),
       pix_copia_cola = COALESCE(
         EXCLUDED.pix_copia_cola,
         pagamentos.pix_copia_cola
@@ -44,6 +49,7 @@ async function criarPagamento(client, dados) {
             dados.status || "PENDING",
             dados.data_vencimento || null,
             dados.data_pagamento || null,
+            dados.invoice_url || null,
             dados.pix_copia_cola || null,
             dados.pix_qrcode || null
         ]
@@ -75,22 +81,23 @@ async function atualizarStatusPagamento(client, paymentId, dados) {
     SET
       status = $1,
       data_pagamento = COALESCE($2, data_pagamento),
+      invoice_url = COALESCE($3, invoice_url),
       asaas_ultimo_evento_em = CASE
-        WHEN $3::timestamp IS NOT NULL
-          THEN $3::timestamp
+        WHEN $4::timestamp IS NOT NULL
+          THEN $4::timestamp
         ELSE asaas_ultimo_evento_em
       END,
       asaas_ultimo_evento_id = CASE
-        WHEN $3::timestamp IS NOT NULL
-          THEN $4
+        WHEN $4::timestamp IS NOT NULL
+          THEN $5
         ELSE asaas_ultimo_evento_id
       END,
       updated_at = NOW()
-    WHERE asaas_payment_id = $5
+    WHERE asaas_payment_id = $6
       AND (
-        $3::timestamp IS NULL
+        $4::timestamp IS NULL
         OR asaas_ultimo_evento_em IS NULL
-        OR $3::timestamp >=
+        OR $4::timestamp >=
           asaas_ultimo_evento_em
       )
     RETURNING *
@@ -98,6 +105,7 @@ async function atualizarStatusPagamento(client, paymentId, dados) {
         [
             dados.status,
             dados.data_pagamento || null,
+            dados.invoice_url || null,
             dados.evento_criado_em || null,
             dados.evento_id || null,
             paymentId
@@ -118,6 +126,7 @@ async function listarPorAssinatura(assinaturaId, limite = 12) {
             status,
             data_vencimento,
             data_pagamento,
+            invoice_url,
             created_at
         FROM pagamentos
         WHERE assinatura_id = $1

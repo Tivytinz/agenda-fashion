@@ -240,6 +240,7 @@ async function criarCheckoutPix(
     forma_pagamento: "pix",
     status: cobranca.status || "PENDING",
     data_vencimento: cobranca.dueDate || null,
+    invoice_url: cobranca.invoiceUrl || null,
     pix_copia_cola: null,
     pix_qrcode: null
   });
@@ -253,6 +254,7 @@ async function criarCheckoutPix(
     forma_pagamento: "pix",
     status: cobranca.status || "PENDING",
     data_vencimento: cobranca.dueDate || null,
+    invoice_url: cobranca.invoiceUrl || null,
     pix_copia_cola: pix?.payload || null,
     pix_qrcode: pix?.encodedImage || null
   });

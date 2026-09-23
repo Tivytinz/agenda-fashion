@@ -18,6 +18,13 @@ Essa serialização por recurso impede que, por exemplo, `PAYMENT_CONFIRMED` e `
 
 Além da idempotência por `evento_id`, a coluna `webhook_eventos.evento_criado_em` preserva o `dateCreated` do envelope do Asaas como `TIMESTAMP WITHOUT TIME ZONE`. Esse valor não representa um instante financeiro gerado pelo AF; ele é o sinal temporal fornecido pelo provedor para comparar eventos do mesmo recurso.
 
+O payload seguro de cobrança preserva apenas os campos necessários ao domínio.
+Entre eles, `invoiceUrl` pode ser retida para permitir que a proprietária
+regularize uma cobrança recorrente diretamente na fatura hospedada pelo Asaas.
+Campos adicionais do objeto de cobrança não entram automaticamente na fila. A
+URL persistida não confirma pagamento e, antes de ser exposta na API da conta,
+é validada como HTTPS em domínio oficial `asaas.com`.
+
 A proteção contra regressão de estado continua no domínio financeiro. `pagamentos` e `assinaturas` persistem o `dateCreated` e o ID do último evento Asaas efetivamente aplicado. As atualizações financeiras são executadas dentro das transações e locks já usados pelo domínio e só aceitam um webhook quando ele não é anterior ao último `dateCreated` aplicado ao mesmo pagamento ou assinatura. Quando a atualização condicional afeta zero linhas, o service não suspende, não ativa e não troca o plano; o evento é concluído como `IGNORED`. Assim, por exemplo, um `PAYMENT_OVERDUE` antigo não pode rebaixar uma cobrança que já recebeu um `PAYMENT_RECEIVED` mais novo, e uma confirmação antiga não pode reativar um pagamento depois de um `REFUNDED` mais novo.
 
 O `dateCreated` atualmente é a única informação temporal de ordem fornecida no envelope utilizado pelo AF. Eventos diferentes que tenham exatamente o mesmo `dateCreated` não recebem uma ordem cronológica inventada a partir do ID do evento; nesses empates, o domínio mantém a idempotência por evento, a serialização por recurso da fila e os locks das linhas financeiras. Qualquer garantia mais forte para empates exigiria uma informação de sequência confiável do provedor ou uma regra explícita de precedência por estado.

@@ -414,6 +414,7 @@ async function listarPagamentos(assinaturaId) {
       status,
       data_vencimento,
       data_pagamento,
+      invoice_url,
       created_at
     FROM pagamentos
     WHERE assinatura_id = $1

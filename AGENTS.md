@@ -270,11 +270,29 @@ do checkout, mas o backend de billing usa a publicação persistida como condiç
 de elegibilidade.
 
 Retorno do navegador não confirma pagamento. A ativação do plano depende da
-confirmação financeira autenticada e idempotente do Asaas. Estados externos do provedor são preservados para auditoria, enquanto
-a experiência do produto normaliza situações relevantes como
-`FALHA_DE_PAGAMENTO` e `CHECKOUT_EXPIRADO`. Checkout inicial expirado não
-libera benefício pago e falha de renovação pode retornar temporariamente o
-negócio ao plano gratuito sem apagar dados.
+confirmação financeira autenticada e idempotente do Asaas. Estados externos do
+provedor são preservados para auditoria, enquanto a experiência do produto
+normaliza situações relevantes como `FALHA_DE_PAGAMENTO` e
+`CHECKOUT_EXPIRADO`. Checkout inicial expirado não libera benefício pago e
+falha de renovação pode retornar temporariamente o negócio ao plano gratuito sem
+apagar dados.
+
+Dentro de `FALHA_DE_PAGAMENTO`, a conta distingue cobrança atrasada/recuperável
+de estorno ou disputa. Quando uma cobrança recorrente do Asaas fornece
+`invoiceUrl`, o AF pode persistir e oferecer essa fatura à proprietária somente
+após validar HTTPS e domínio oficial `asaas.com`; abrir a fatura não confirma
+pagamento. A reativação continua dependendo de webhook financeiro válido.
+
+Na UX da conta, a ação de recuperação deve ser apresentada como
+**Regularizar pagamento**, sem transformar o nome do provedor em protagonista da
+interface. Quando a regularização abrir uma página hospedada externamente, a UI
+deve informar de forma neutra que a proprietária será direcionada para um
+ambiente seguro de pagamento.
+
+Cancelar a renovação não encerra imediatamente o período já quitado. Enquanto a
+assinatura cancelada ainda estiver `ativo = TRUE`, a data deve ser apresentada
+como **acesso até**, nunca como próxima cobrança. No fim do período, o plano
+retorna ao gratuito e os dados do negócio permanecem preservados.
 
 Um negócio pode possuir no máximo uma cobrança PIX pendente de contratação ou
 upgrade por vez, independentemente do plano escolhido. Trocar de plano antes do
