@@ -170,18 +170,24 @@ RETURNS TRIGGER
 LANGUAGE plpgsql
 AS $$
 BEGIN
-  IF TG_OP = 'INSERT'
-    OR NEW.campanha_id IS DISTINCT FROM OLD.campanha_id
-  THEN
+  IF TG_OP = 'INSERT' THEN
     SELECT objetivo
     INTO NEW.objetivo_snapshot
     FROM marketing_campanhas
     WHERE id = NEW.campanha_id;
-
-    IF NEW.objetivo_snapshot IS NULL THEN
-      RAISE EXCEPTION
-        'Campanha inválida para snapshot de objetivo.';
+  ELSE
+    IF NEW.campanha_id IS DISTINCT FROM OLD.campanha_id
+    THEN
+      SELECT objetivo
+      INTO NEW.objetivo_snapshot
+      FROM marketing_campanhas
+      WHERE id = NEW.campanha_id;
     END IF;
+  END IF;
+
+  IF NEW.objetivo_snapshot IS NULL THEN
+    RAISE EXCEPTION
+      'Campanha inválida para snapshot de objetivo.';
   END IF;
 
   RETURN NEW;
