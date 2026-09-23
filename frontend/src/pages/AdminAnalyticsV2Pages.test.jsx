@@ -321,7 +321,8 @@ describe("receita administrativa v2", () => {
         mrr: "MRR v1 usa snapshots monetários.",
         nrr: "NRR v1 usa a coorte inicial.",
         ltv: "LTV bruto observado v1 usa negócios maduros.",
-        economiaLiquida: "A Wave 28 reconcilia netValue e refunds."
+        economiaLiquida: "A Wave 28 reconcilia netValue e refunds.",
+        contribuicao: "A Wave 29 exige cobertura factual de custos variáveis."
       }
     });
 
@@ -353,6 +354,11 @@ describe("receita administrativa v2", () => {
     expect(screen.getByRole("heading", { name: "Economia do recebimento" })).not.toBeNull();
     expect(screen.getByText("Receita líquida de gateway")).not.toBeNull();
     expect(screen.getByText("Taxas gateway observadas")).not.toBeNull();
+    expect(screen.getByText("Custos variáveis observados")).not.toBeNull();
+    expect(screen.getByText("Margem de contribuição")).not.toBeNull();
+    expect(screen.getByText("Margem de contribuição %")).not.toBeNull();
+    expect(screen.getByText("Fontes de custo cobertas")).not.toBeNull();
+    expect(screen.getByText("Margem de contribuição ainda indisponível.")).not.toBeNull();
     expect(screen.getByText("LTV líquido gateway D30")).not.toBeNull();
     expect(screen.getByText("LTV econômico / margem")).not.toBeNull();
     expect(screen.getAllByText("Indisponível").length).toBeGreaterThan(0);
