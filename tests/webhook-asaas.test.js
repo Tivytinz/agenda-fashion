@@ -115,6 +115,8 @@ describe(
               id: "pay_1",
               invoiceUrl:
                 "https://www.asaas.com/i/fatura-wave20",
+              netValue: 48.5,
+              creditDate: "2026-09-24",
               customer: "cus_nao_persistir"
             }
           });
@@ -136,7 +138,9 @@ describe(
                   expect.objectContaining({
                     id: "pay_1",
                     invoiceUrl:
-                      "https://www.asaas.com/i/fatura-wave20"
+                      "https://www.asaas.com/i/fatura-wave20",
+                    netValue: 48.5,
+                    creditDate: "2026-09-24"
                   })
               })
           })

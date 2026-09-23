@@ -248,7 +248,9 @@ virar uma segunda fonte de regra quando o domínio já possui documento canônic
 - [wave-26-ltv-observado.md](./wave-26-ltv-observado.md):
   evidência de coortes maduras e LTV bruto observado D30/D60/D90.
 - [wave-27-aquisicao-financeira.md](./wave-27-aquisicao-financeira.md):
-  workstream do snapshot de aquisição, CAC de mídia e retorno bruto observado.
+  evidência do snapshot de aquisição, CAC de mídia e retorno bruto observado.
+- [wave-28-economia-liquida-gateway.md](./wave-28-economia-liquida-gateway.md):
+  workstream de netValue, estornos exatos, LTV líquido de gateway e retorno líquido observado.
 
 Enquanto uma wave estiver aberta, seu documento descreve o workstream e a
 evidência em construção, não uma nova fonte canônica. Quando terminar, a decisão

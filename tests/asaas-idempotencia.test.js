@@ -29,6 +29,7 @@ const {
   criarCobrancaPix,
   criarClienteAsaas,
   buscarQrCodePix,
+  listarEstornosPagamentoAsaas,
 } = require(
   "../src/services/asaasService"
 );
@@ -283,6 +284,38 @@ describe(
             encodedImage:
               "imagem",
           });
+      }
+    );
+
+    test(
+      "lista refunds da cobrança pelo endpoint econômico",
+      async () => {
+        mockGet.mockResolvedValue({
+          data: {
+            data: [
+              {
+                value: 20,
+                status: "DONE",
+              },
+            ],
+          },
+        });
+
+        await expect(
+          listarEstornosPagamentoAsaas(
+            "pay_1"
+          )
+        ).resolves.toEqual([
+          {
+            value: 20,
+            status: "DONE",
+          },
+        ]);
+
+        expect(mockGet)
+          .toHaveBeenCalledWith(
+            "/payments/pay_1/refunds"
+          );
       }
     );
 

@@ -13,6 +13,16 @@ jest.mock(
 );
 
 jest.mock(
+  "../src/repositories/adminPaymentEconomicsRepository",
+  () => ({
+    buscarResumoEconomia:
+      jest.fn(),
+    buscarLtvLiquidoObservado:
+      jest.fn(),
+  })
+);
+
+jest.mock(
   "../src/services/adminProfessionalFunnelService",
   () => ({
     buscarFunil: jest.fn(),
@@ -28,6 +38,9 @@ jest.mock(
 
 const repository = require(
   "../src/repositories/adminAnalyticsV2Repository"
+);
+const paymentEconomicsRepository = require(
+  "../src/repositories/adminPaymentEconomicsRepository"
 );
 const service = require(
   "../src/services/adminAnalyticsV2Service"
@@ -65,6 +78,45 @@ describe("Admin Analytics V2 - receita", () => {
       negocios_mrr_em_risco: 2,
       mrr_em_risco: "149.80",
       assinaturas_periodicidade_nao_suportada: 0,
+    });
+    paymentEconomicsRepository.buscarResumoEconomia.mockResolvedValue({
+      inicio_cobertura: "2026-09-23T19:00:00.000Z",
+      pagamentos_elegiveis: 3,
+      pagamentos_completos: 3,
+      pagamentos_incompletos: 0,
+      valor_bruto_reconciliado: "249.60",
+      taxas_gateway_observadas: "9.60",
+      estornos_concluidos: "20.00",
+      receita_liquida_gateway: "220.00",
+    });
+    paymentEconomicsRepository.buscarLtvLiquidoObservado.mockResolvedValue({
+      inicio_cobertura: "2026-09-23T19:00:00.000Z",
+      coortes: [
+        {
+          coorte_mes: "2026-06",
+          maduros_cobertos_d30: 2,
+          maduros_cobertos_d60: 2,
+          maduros_cobertos_d90: 1,
+          negocios_incompletos_d30: 0,
+          negocios_incompletos_d60: 0,
+          negocios_incompletos_d90: 0,
+          receita_liquida_d30: "140.00",
+          receita_liquida_d60: "230.00",
+          receita_liquida_d90: "140.00",
+        },
+        {
+          coorte_mes: "2026-07",
+          maduros_cobertos_d30: 1,
+          maduros_cobertos_d60: 0,
+          maduros_cobertos_d90: 0,
+          negocios_incompletos_d30: 0,
+          negocios_incompletos_d60: 0,
+          negocios_incompletos_d90: 0,
+          receita_liquida_d30: "95.00",
+          receita_liquida_d60: "0.00",
+          receita_liquida_d90: "0.00",
+        },
+      ],
     });
     repository.buscarLtvObservado.mockResolvedValue({
       inicio_cobertura: "2026-09-23T07:00:00.000Z",
@@ -240,9 +292,28 @@ describe("Admin Analytics V2 - receita", () => {
       valorExpostoReversoes: 49.9,
       pagamentosEmReversao: 1,
       ltvLiquidoDisponivel: false,
+      ltvLiquidoGatewayDisponivel: true,
+      ltvLiquidoGatewayD30: 78.33,
+      ltvLiquidoGatewayD60: 115,
+      ltvLiquidoGatewayD90: 140,
+      incompletosLiquidosD30: 0,
+      incompletosLiquidosD60: 0,
+      incompletosLiquidosD90: 0,
       independenteDoFiltroPeriodo: true,
       historicoAnteriorInferido: false,
     });
+    expect(resultado.economiaLiquida)
+      .toMatchObject({
+        pagamentosElegiveis: 3,
+        pagamentosCompletos: 3,
+        pagamentosIncompletos: 0,
+        valorBrutoReconciliado: 249.6,
+        taxasGatewayObservadas: 9.6,
+        estornosConcluidos: 20,
+        receitaLiquidaGateway: 220,
+        coberturaCompleta: true,
+        margemContribuicaoDisponivel: false,
+      });
     expect(resultado.metodologia.churn)
       .toMatch(/Gross logo churn v1/i);
     expect(resultado.churn).toMatchObject({
@@ -258,6 +329,8 @@ describe("Admin Analytics V2 - receita", () => {
     });
     expect(resultado.metodologia.mrr)
       .toMatch(/MRR v1/i);
+    expect(resultado.metodologia.economiaLiquida)
+      .toMatch(/Wave 28/i);
     expect(resultado.metodologia.nrr)
       .toMatch(/NRR v1/i);
     expect(resultado.metodologia.ltv)

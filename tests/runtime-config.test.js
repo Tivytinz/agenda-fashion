@@ -197,6 +197,30 @@ describe("configuração central do runtime", () => {
     });
   });
 
+  test("valida limites do worker de economia líquida", () => {
+    expect(() => validarConfiguracaoRuntime({
+      ...ambienteBase(),
+      PAYMENT_ECONOMICS_RECONCILIATION_INTERVAL_MS: "1000",
+    })).toThrow(
+      "PAYMENT_ECONOMICS_RECONCILIATION_INTERVAL_MS precisa ser um inteiro entre 60000 e 3600000"
+    );
+
+    expect(() => validarConfiguracaoRuntime({
+      ...ambienteBase(),
+      PAYMENT_ECONOMICS_RECONCILIATION_BATCH_SIZE: "0",
+    })).toThrow(
+      "PAYMENT_ECONOMICS_RECONCILIATION_BATCH_SIZE precisa ser um inteiro entre 1 e 200"
+    );
+
+    expect(validarConfiguracaoRuntime({
+      ...ambienteBase(),
+      PAYMENT_ECONOMICS_RECONCILIATION_INTERVAL_MS: "300000",
+      PAYMENT_ECONOMICS_RECONCILIATION_BATCH_SIZE: "50",
+    })).toMatchObject({
+      ambiente: "test",
+    });
+  });
+
   test("recusa credencial presente com formato inválido", () => {
     expect(() => validarConfiguracaoRuntime({
       ...ambienteBase(),

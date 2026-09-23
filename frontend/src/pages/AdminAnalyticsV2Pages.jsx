@@ -588,6 +588,7 @@ export function AdminAcquisitionV2Page() {
                         <th>Retorno D60</th>
                         <th>Retorno D90</th>
                         <th>Recuperação bruta</th>
+                        <th>Recuperação líquida</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -602,9 +603,24 @@ export function AdminAcquisitionV2Page() {
                           if (!window?.leitura?.comparavel) {
                             return window?.leitura?.rotulo || "Aguardando";
                           }
-                          return window.retornoBruto == null
+
+                          const bruto = window.retornoBruto == null
                             ? "—"
                             : `${number(window.retornoBruto).toFixed(2)}x`;
+                          const liquido = window.economiaLiquida?.comparavel
+                            ? (
+                              window.retornoLiquidoGateway == null
+                                ? "—"
+                                : `${number(window.retornoLiquidoGateway).toFixed(2)}x`
+                            )
+                            : "Aguardando economia";
+
+                          return (
+                            <>
+                              {bruto}
+                              <small>Líquido gateway {liquido}</small>
+                            </>
+                          );
                         };
 
                         return (
@@ -630,6 +646,11 @@ export function AdminAcquisitionV2Page() {
                                 ? `até D${campaign.primeiraRecuperacaoReceitaBrutaDias}`
                                 : "Não observada"}
                             </td>
+                            <td>
+                              {campaign.primeiraRecuperacaoLiquidaGatewayDias
+                                ? `até D${campaign.primeiraRecuperacaoLiquidaGatewayDias}`
+                                : "Não observada"}
+                            </td>
                           </tr>
                         );
                       })}
@@ -639,7 +660,7 @@ export function AdminAcquisitionV2Page() {
               )}
 
               <p className="muted">
-                CAC de mídia não é CAC econômico. O custo diário já preserva a regra existente de fonte única: ao gravar uma nova fonte para a mesma campanha/dia, ela substitui a anterior. Retorno bruto não desconta gateway, impostos, suporte, infraestrutura, margem ou o valor exato de reversões parciais. Exposição a reversões permanece diagnóstico separado.
+                CAC de mídia não é CAC econômico. Retorno bruto permanece disponível como referência histórica. A leitura líquida da Wave 28 desconta taxa observada no netValue e refunds DONE, mas ainda não desconta impostos, suporte, infraestrutura, pessoal ou demais custos de contribuição.
               </p>
             </section>
 
@@ -1039,6 +1060,7 @@ export function AdminRevenueV2Page() {
         const summary = data.resumo || {};
         const plans = Array.isArray(data.planos) ? data.planos : [];
         const ltv = data.ltv || {};
+        const economics = data.economiaLiquida || {};
         const ltvCohorts = Array.isArray(ltv.coortes)
           ? ltv.coortes
           : [];
@@ -1053,6 +1075,38 @@ export function AdminRevenueV2Page() {
               <MetricCard label="Mudança de plano" hint="primeiro pagamento de outra assinatura do mesmo negócio" value={formatCurrency(summary.receitaMudancaPlano)} />
               <MetricCard label="Valor exposto a reversões" hint={`${formatNumber(summary.pagamentosEmReversao)} pagamento(s) em estorno, reversão ou disputa`} tone={number(summary.valorExpostoReversoes) > 0 ? "warning" : "neutral"} value={formatCurrency(summary.valorExpostoReversoes)} />
               <MetricCard label="Assinaturas pagas ativas" hint="estoque atual, não criação no período" value={formatNumber(summary.assinaturasPagasAtivas)} />
+            </section>
+
+            <section className="panel">
+              <div className="panel-heading">
+                <div>
+                  <p className="eyebrow">Economia do gateway</p>
+                  <h2>Economia do recebimento</h2>
+                  <p className="muted">
+                    netValue e refunds concluídos vêm da reconciliação do Asaas. Esta leitura não é lucro nem margem de contribuição.
+                  </p>
+                </div>
+              </div>
+              {number(economics.pagamentosIncompletos) > 0 && (
+                <div className="admin-command-alert is-warning" role="status">
+                  <strong>Reconciliação econômica incompleta.</strong>
+                  <p className="muted">
+                    Pagamentos sem netValue confiável, em liquidação, refund ou disputa não entram como receita líquida aparentemente precisa.
+                  </p>
+                </div>
+              )}
+              <dl className="admin-command-data-list">
+                <div><dt>Valor bruto reconciliado</dt><dd>{formatCurrency(economics.valorBrutoReconciliado)}</dd></div>
+                <div><dt>Taxas gateway observadas</dt><dd>{formatCurrency(economics.taxasGatewayObservadas)}</dd></div>
+                <div><dt>Estornos concluídos</dt><dd>{formatCurrency(economics.estornosConcluidos)}</dd></div>
+                <div><dt>Receita líquida de gateway</dt><dd>{formatCurrency(economics.receitaLiquidaGateway)}</dd></div>
+                <div><dt>Pagamentos completos</dt><dd>{formatNumber(economics.pagamentosCompletos)}</dd></div>
+                <div><dt>Pagamentos incompletos</dt><dd>{formatNumber(economics.pagamentosIncompletos)}</dd></div>
+                <div><dt>Margem de contribuição</dt><dd>Indisponível</dd></div>
+              </dl>
+              <p className="muted">
+                Cobertura canônica desde {formatDateTime(economics.inicioCobertura)}. Ausência de netValue não é interpretada como taxa zero.
+              </p>
             </section>
 
             <div className="admin-command-two-column">
@@ -1238,7 +1292,19 @@ export function AdminRevenueV2Page() {
                   <dd>{formatCurrency(ltv.valorExpostoReversoes)}</dd>
                 </div>
                 <div>
-                  <dt>LTV líquido</dt>
+                  <dt>LTV líquido gateway D30</dt>
+                  <dd>{ltv.ltvLiquidoGatewayD30 == null ? "Aguardando cobertura econômica" : formatCurrency(ltv.ltvLiquidoGatewayD30)}</dd>
+                </div>
+                <div>
+                  <dt>LTV líquido gateway D60</dt>
+                  <dd>{ltv.ltvLiquidoGatewayD60 == null ? "Aguardando cobertura econômica" : formatCurrency(ltv.ltvLiquidoGatewayD60)}</dd>
+                </div>
+                <div>
+                  <dt>LTV líquido gateway D90</dt>
+                  <dd>{ltv.ltvLiquidoGatewayD90 == null ? "Aguardando cobertura econômica" : formatCurrency(ltv.ltvLiquidoGatewayD90)}</dd>
+                </div>
+                <div>
+                  <dt>LTV econômico / margem</dt>
                   <dd>Indisponível</dd>
                 </div>
               </dl>

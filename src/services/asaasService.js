@@ -671,6 +671,47 @@ async function buscarPagamentoAsaas(
   return response.data;
 }
 
+async function listarEstornosPagamentoAsaas(
+  paymentId
+) {
+  validarConfigAsaas();
+
+  const id = String(
+    paymentId || ""
+  ).trim();
+
+  if (!id) {
+    throw new Error(
+      "Pagamento Asaas não informado."
+    );
+  }
+
+  const response =
+    await asaasApi.get(
+      `/payments/${encodeURIComponent(id)}/refunds`
+    );
+
+  if (
+    Array.isArray(response.data?.data)
+  ) {
+    return response.data.data;
+  }
+
+  if (Array.isArray(response.data)) {
+    return response.data;
+  }
+
+  if (
+    Array.isArray(
+      response.data?.refunds
+    )
+  ) {
+    return response.data.refunds;
+  }
+
+  return [];
+}
+
 async function removerAssinaturaAsaas(
   subscriptionId
 ) {
@@ -728,5 +769,6 @@ module.exports = {
   listarPagamentosAssinatura,
   atualizarClienteAsaas,
   buscarPagamentoAsaas,
+  listarEstornosPagamentoAsaas,
   removerAssinaturaAsaas
 };

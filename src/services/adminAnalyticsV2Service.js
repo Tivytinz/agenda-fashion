@@ -10,6 +10,9 @@ const professionalRecurrenceAnalysisService = require(
 const adminAcquisitionFinancialService = require(
   "./adminAcquisitionFinancialService"
 );
+const paymentEconomicsRepository = require(
+  "../repositories/adminPaymentEconomicsRepository"
+);
 
 const SECOES = new Set([
   "overview",
@@ -301,11 +304,22 @@ async function buscarRetention(periodo) {
 }
 
 async function buscarRevenue(periodo) {
-  const [resultado, churn, mrr, ltv] = await Promise.all([
+  const [
+    resultado,
+    churn,
+    mrr,
+    ltv,
+    economia,
+    ltvLiquido,
+  ] = await Promise.all([
     repository.buscarReceita(periodo),
     repository.buscarChurnPago(periodo),
     repository.buscarMrr(periodo),
     repository.buscarLtvObservado(),
+    paymentEconomicsRepository
+      .buscarResumoEconomia(periodo),
+    paymentEconomicsRepository
+      .buscarLtvLiquidoObservado(),
   ]);
   const resumo = resultado.resumo || {};
   const basePagaInicio = numero(churn.base_paga_inicio);
@@ -337,8 +351,26 @@ async function buscarRevenue(periodo) {
   const negociosCheckoutConvertidos = numero(
     resumo.negocios_checkout_convertidos
   );
+  const ltvLiquidoPorCoorte =
+    new Map(
+      (
+        Array.isArray(
+          ltvLiquido.coortes
+        )
+          ? ltvLiquido.coortes
+          : []
+      ).map((coorte) => [
+        coorte.coorte_mes,
+        coorte,
+      ])
+    );
   const coortesLtv = Array.isArray(ltv.coortes)
-    ? ltv.coortes.map((coorte) => ({
+    ? ltv.coortes.map((coorte) => {
+        const liquidoCoorte =
+          ltvLiquidoPorCoorte.get(
+            coorte.coorte_mes
+          ) || {};
+        return ({
         coorteMes: coorte.coorte_mes,
         negocios: numero(coorte.negocios),
         madurosD30: numero(coorte.maduros_d30),
@@ -368,7 +400,53 @@ async function buscarRevenue(periodo) {
         pagamentosEmReversao: numero(
           coorte.pagamentos_em_reversao
         ),
-      }))
+        madurosCobertosLiquidoD30:
+          numero(
+            liquidoCoorte
+              .maduros_cobertos_d30
+          ),
+        madurosCobertosLiquidoD60:
+          numero(
+            liquidoCoorte
+              .maduros_cobertos_d60
+          ),
+        madurosCobertosLiquidoD90:
+          numero(
+            liquidoCoorte
+              .maduros_cobertos_d90
+          ),
+        negociosIncompletosLiquidoD30:
+          numero(
+            liquidoCoorte
+              .negocios_incompletos_d30
+          ),
+        negociosIncompletosLiquidoD60:
+          numero(
+            liquidoCoorte
+              .negocios_incompletos_d60
+          ),
+        negociosIncompletosLiquidoD90:
+          numero(
+            liquidoCoorte
+              .negocios_incompletos_d90
+          ),
+        receitaLiquidaGatewayD30:
+          numero(
+            liquidoCoorte
+              .receita_liquida_d30
+          ),
+        receitaLiquidaGatewayD60:
+          numero(
+            liquidoCoorte
+              .receita_liquida_d60
+          ),
+        receitaLiquidaGatewayD90:
+          numero(
+            liquidoCoorte
+              .receita_liquida_d90
+          ),
+      });
+      })
     : [];
   const somarCoortes = (campo) =>
     coortesLtv.reduce(
@@ -386,6 +464,42 @@ async function buscarRevenue(periodo) {
     somarCoortes("receitaBrutaD60");
   const receitaBrutaD90 =
     somarCoortes("receitaBrutaD90");
+  const madurosLiquidosD30 =
+    somarCoortes(
+      "madurosCobertosLiquidoD30"
+    );
+  const madurosLiquidosD60 =
+    somarCoortes(
+      "madurosCobertosLiquidoD60"
+    );
+  const madurosLiquidosD90 =
+    somarCoortes(
+      "madurosCobertosLiquidoD90"
+    );
+  const incompletosLiquidosD30 =
+    somarCoortes(
+      "negociosIncompletosLiquidoD30"
+    );
+  const incompletosLiquidosD60 =
+    somarCoortes(
+      "negociosIncompletosLiquidoD60"
+    );
+  const incompletosLiquidosD90 =
+    somarCoortes(
+      "negociosIncompletosLiquidoD90"
+    );
+  const receitaLiquidaGatewayD30 =
+    somarCoortes(
+      "receitaLiquidaGatewayD30"
+    );
+  const receitaLiquidaGatewayD60 =
+    somarCoortes(
+      "receitaLiquidaGatewayD60"
+    );
+  const receitaLiquidaGatewayD90 =
+    somarCoortes(
+      "receitaLiquidaGatewayD90"
+    );
 
   return {
     periodo: resultado.periodo,
@@ -531,6 +645,45 @@ async function buscarRevenue(periodo) {
       assinaturasPeriodicidadeNaoSuportada:
         periodicidadesNaoSuportadas,
     },
+    economiaLiquida: {
+      inicioCobertura:
+        economia.inicio_cobertura || null,
+      pagamentosElegiveis:
+        numero(
+          economia.pagamentos_elegiveis
+        ),
+      pagamentosCompletos:
+        numero(
+          economia.pagamentos_completos
+        ),
+      pagamentosIncompletos:
+        numero(
+          economia.pagamentos_incompletos
+        ),
+      valorBrutoReconciliado:
+        numero(
+          economia.valor_bruto_reconciliado
+        ),
+      taxasGatewayObservadas:
+        numero(
+          economia.taxas_gateway_observadas
+        ),
+      estornosConcluidos:
+        numero(
+          economia.estornos_concluidos
+        ),
+      receitaLiquidaGateway:
+        numero(
+          economia.receita_liquida_gateway
+        ),
+      coberturaCompleta:
+        numero(
+          economia.pagamentos_incompletos
+        ) === 0,
+      margemContribuicaoDisponivel:
+        false,
+      lucroDisponivel: false,
+    },
     churn: {
       inicioCobertura: churn.inicio_cobertura || null,
       inicioEfetivo: churn.inicio_efetivo || null,
@@ -556,6 +709,12 @@ async function buscarRevenue(periodo) {
       historicoAnteriorInferido: false,
       unidade: "negocio",
       ltvLiquidoDisponivel: false,
+      ltvLiquidoGatewayDisponivel:
+        madurosLiquidosD30 > 0 ||
+        madurosLiquidosD60 > 0 ||
+        madurosLiquidosD90 > 0,
+      inicioCoberturaEconomiaLiquida:
+        ltvLiquido.inicio_cobertura || null,
       independenteDoFiltroPeriodo: true,
       negociosCoorte: negociosLtv,
       madurosD30,
@@ -591,6 +750,45 @@ async function buscarRevenue(periodo) {
       receitaBrutaD30,
       receitaBrutaD60,
       receitaBrutaD90,
+      madurosLiquidosD30,
+      madurosLiquidosD60,
+      madurosLiquidosD90,
+      incompletosLiquidosD30,
+      incompletosLiquidosD60,
+      incompletosLiquidosD90,
+      ltvLiquidoGatewayD30:
+        madurosLiquidosD30 > 0 &&
+        incompletosLiquidosD30 === 0
+          ? Number(
+              (
+                receitaLiquidaGatewayD30 /
+                madurosLiquidosD30
+              ).toFixed(2)
+            )
+          : null,
+      ltvLiquidoGatewayD60:
+        madurosLiquidosD60 > 0 &&
+        incompletosLiquidosD60 === 0
+          ? Number(
+              (
+                receitaLiquidaGatewayD60 /
+                madurosLiquidosD60
+              ).toFixed(2)
+            )
+          : null,
+      ltvLiquidoGatewayD90:
+        madurosLiquidosD90 > 0 &&
+        incompletosLiquidosD90 === 0
+          ? Number(
+              (
+                receitaLiquidaGatewayD90 /
+                madurosLiquidosD90
+              ).toFixed(2)
+            )
+          : null,
+      receitaLiquidaGatewayD30,
+      receitaLiquidaGatewayD60,
+      receitaLiquidaGatewayD90,
       valorExpostoReversoes:
         somarCoortes("valorExpostoReversoes"),
       pagamentosEmReversao:
@@ -622,7 +820,9 @@ async function buscarRevenue(periodo) {
       nrr:
         "NRR v1 compara o MRR final dos negócios que pertenciam à base inicial com o MRR desses mesmos negócios no início. GRR ignora expansion e considera zero para um negócio da base inicial que teve saída terminal no recorte, mesmo que depois tenha reativado. Recortes anteriores ao cutover são ajustados à cobertura da Wave 25.",
       ltv:
-        "LTV bruto observado v1 usa o negócio como unidade e soma pagamentos com data de pagamento dentro de D30, D60 e D90 desde a primeira conversão paga canônica posterior ao cutover da Wave 26. Somente negócios maduros entram em cada denominador. Churn não remove o negócio da coorte e reativação não cria nova aquisição. Reversões ficam expostas separadamente; o AF não calcula LTV líquido enquanto o valor econômico exato de reversões parciais não estiver persistido.",
+        "LTV bruto observado v1 usa o negócio como unidade e soma pagamentos com data de pagamento dentro de D30, D60 e D90 desde a primeira conversão paga canônica posterior ao cutover da Wave 26. Somente negócios maduros entram em cada denominador. Churn não remove o negócio da coorte e reativação não cria nova aquisição.",
+      economiaLiquida:
+        "A Wave 28 reconcilia netValue e refunds concluídos do Asaas fora da transação crítica de billing. Receita líquida de gateway é netValue menos refunds DONE. Ausência de netValue, refund pendente ou disputa mantém a janela indisponível; o AF não chama essa leitura de lucro ou margem de contribuição.",
       ativas:
         "Assinaturas pagas ativas é um estoque atual e não uma contagem criada no período. Cancelamentos cujo acesso já venceu são excluídos do estoque mesmo antes do próximo ciclo do worker financeiro.",
     },

@@ -391,16 +391,31 @@ A Wave 26 manteve a baseline funcional em **67/67 (100%)**.
 
 ## Wave 27 — aquisição financeira e retorno bruto observado v1
 
-A Wave 27 inicia um cutover próprio para congelar a aquisição financeira no
-nível do negócio e conectar campanha, custo de mídia, primeira conversão paga e
-receita futura na mesma coorte.
+A Wave 27 fechou o cutover próprio de aquisição financeira por negócio e a
+ligação entre campanha, custo de mídia, primeira conversão paga e receita futura
+na mesma coorte.
 
-O custo diário reutiliza a fonte única já garantida pela migration 037, em vez
-de criar uma nova regra concorrente. Negócio pago maduro sem custo no dia da
-aquisição bloqueia a comparação. CAC é explicitamente **CAC de mídia observado**
-e retorno D30/D60/D90 é receita bruta, não margem ou payback econômico.
+O head final `24640fec15e0fc889d3f66e14eb456f1ce65e2c6` passou no
+**Backend CI #1338**. O PR #286 foi mergeado na `main` pelo commit
+`1c39a6cf3435a3809183a8c4d008b7f612729116`.
 
-A Wave 27 não altera a baseline funcional, que continua em **67/67 (100%)**.
+CAC permanece explicitamente **CAC de mídia observado** e o retorno
+D30/D60/D90 permanece receita bruta, não margem ou payback econômico.
+
+A Wave 27 manteve a baseline funcional em **67/67 (100%)**.
+
+## Wave 28 — economia líquida de gateway observada v1
+
+A Wave 28 inicia um cutover próprio para reconciliar `netValue`, data de
+crédito e refunds do Asaas sem alterar o contrato de billing. Somente refunds
+concluídos reduzem a receita líquida; estados pendentes ou em disputa bloqueiam
+a leitura correspondente.
+
+LTV líquido de gateway reutiliza as coortes/maturidade da Wave 26 e retorno
+líquido de gateway reutiliza aquisição/custo da Wave 27. A Wave não declara
+lucro, margem de contribuição, CAC total ou payback econômico.
+
+A Wave 28 não altera a baseline funcional, que continua em **67/67 (100%)**.
 
 ## Regra de atualização
 

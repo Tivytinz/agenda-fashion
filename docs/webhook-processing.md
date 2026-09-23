@@ -19,8 +19,8 @@ Essa serialização por recurso impede que, por exemplo, `PAYMENT_CONFIRMED` e `
 Além da idempotência por `evento_id`, a coluna `webhook_eventos.evento_criado_em` preserva o `dateCreated` do envelope do Asaas como `TIMESTAMP WITHOUT TIME ZONE`. Esse valor não representa um instante financeiro gerado pelo AF; ele é o sinal temporal fornecido pelo provedor para comparar eventos do mesmo recurso.
 
 O payload seguro de cobrança preserva apenas os campos necessários ao domínio.
-Entre eles, `invoiceUrl` pode ser retida para permitir que a proprietária
-regularize uma cobrança recorrente diretamente na fatura hospedada pelo Asaas.
+Entre eles, `invoiceUrl` pode ser retida para regularização; desde a Wave 28,
+`netValue` e `creditDate` também entram na whitelist como sinais econômicos.
 Campos adicionais do objeto de cobrança não entram automaticamente na fila. A
 URL persistida não confirma pagamento e, antes de ser exposta na API da conta,
 é validada como HTTPS em domínio oficial `asaas.com`.
@@ -32,6 +32,21 @@ O `dateCreated` atualmente é a única informação temporal de ordem fornecida 
 A reconciliação considera também o estado atual informado no objeto `payment`: um evento de sincronização cujo pagamento já esteja `CONFIRMED`, `RECEIVED` ou `RECEIVED_IN_CASH` pode ativar a assinatura mesmo quando o nome do evento não for o evento original de confirmação. Da mesma forma, `PAYMENT_CHARGEBACK_REQUESTED`, `PAYMENT_CHARGEBACK_DISPUTE` e `PAYMENT_AWAITING_CHARGEBACK_REVERSAL` mantêm o acesso suspenso até que um evento posterior de confirmação/recebimento represente a reversão efetiva.
 
 As regras financeiras processadas pelo webhook continuam devendo ser idempotentes no domínio, pois o controle da fila reduz duplicidade operacional, mas não substitui idempotência de pagamentos, assinaturas e efeitos externos.
+
+### Reconciliação econômica da Wave 28
+
+Billing e economia são camadas diferentes. Depois que o estado financeiro
+essencial é confirmado pelo fluxo existente, o worker
+`payment_economics_reconciliation` pode consultar o estado atual da cobrança no
+Asaas e materializar `pagamento_economia`/`pagamento_estornos`. Essa chamada
+externa não participa da transação crítica de entitlement.
+
+Antes de persistir a resposta, o worker bloqueia a cobrança local e revalida
+`asaas_ultimo_evento_em` e `asaas_ultimo_evento_id`. Se um webhook mais novo
+chegou durante a consulta externa, o snapshot é descartado como obsoleto e fica
+elegível a nova reconciliação. Ausência de `netValue`, refund pendente ou
+chargeback em disputa não vira valor líquido estimado. Somente refund
+`DONE` reduz a receita líquida de gateway.
 
 Desde a migration 093, efeitos financeiros aplicados pelo domínio também podem
 gerar `assinatura_eventos`. Essa tabela não replica o envelope do Asaas: ela

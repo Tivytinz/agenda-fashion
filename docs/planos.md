@@ -146,6 +146,13 @@ apagar dados existentes nem impedir a edição do que já foi cadastrado.
   comparação. Retorno D30/D60/D90 é
   receita bruta observada sobre mídia da mesma coorte e não deve ser chamado de
   payback econômico.
+- A **economia líquida de gateway v1** da Wave 28 é reconciliada separadamente do
+  billing. O AF preserva o `netValue` observado no Asaas e mantém um ledger
+  idempotente de refunds. Ausência de `netValue` não vira taxa zero; somente
+  refund `DONE` reduz receita. A fórmula canônica é `netValue - refunds DONE`.
+  Refund pendente, chargeback em disputa e reversão não conciliada bloqueiam a
+  leitura líquida correspondente. A métrica não é lucro nem margem de
+  contribuição.
 - `webhook_eventos` preserva a entrega do provedor; `assinatura_eventos`
   preserva o fato de domínio do AF. O histórico anterior à migration 093 não é
   preenchido por suposição.
@@ -199,6 +206,8 @@ negócio e conversão para plano pago.
   `database/migrations/097_ltv_observado_v1.sql`.
 - Snapshot de aquisição financeira e cutover de retorno:
   `database/migrations/098_aquisicao_financeira_v1.sql`.
+- Economia líquida de gateway e ledger de refunds:
+  `database/migrations/099_economia_liquida_gateway_v1.sql`.
 - Baseline de episódios pagos e churn v1:
   `database/migrations/095_churn_v1_episodios_pagos.sql`.
 - Ledger monetário, baseline de MRR e NRR v1:

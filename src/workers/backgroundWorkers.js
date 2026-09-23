@@ -24,6 +24,12 @@ const {
 } = require(
   "../services/aquisicaoFinanceiraReconciliationWorker"
 );
+const {
+  iniciarWorkerPaymentEconomics,
+  pararWorkerPaymentEconomics,
+} = require(
+  "../services/paymentEconomicsReconciliationWorker"
+);
 
 function iniciarWorkers() {
   iniciarWorkerWebhook();
@@ -32,6 +38,7 @@ function iniciarWorkers() {
   iniciarWorkerMlNoShow();
   iniciarWorkerBillingReconciliation();
   iniciarWorkerAquisicaoFinanceira();
+  iniciarWorkerPaymentEconomics();
 }
 
 async function pararWorkers() {
@@ -42,6 +49,7 @@ async function pararWorkers() {
     pararWorkerMlNoShow(),
     pararWorkerBillingReconciliation(),
     pararWorkerAquisicaoFinanceira(),
+    pararWorkerPaymentEconomics(),
   ]);
 }
 
