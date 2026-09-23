@@ -486,9 +486,19 @@ describe(
           [negocioId]
         );
 
-        expect(
-          persistido.rows[0]
-        ).toMatchObject({
+        expect({
+          ...persistido.rows[0],
+          usuario_aquisicao_id:
+            Number(
+              persistido.rows[0]
+                .usuario_aquisicao_id
+            ),
+          campanha_oficial_id:
+            Number(
+              persistido.rows[0]
+                .campanha_oficial_id
+            ),
+        }).toMatchObject({
           usuario_aquisicao_id:
             primeiroDono,
           campanha_oficial_id:
