@@ -129,18 +129,18 @@ function mapearJanela(
 function leituraJanela(
   janela
 ) {
-  if (janela.diasMaduros <= 0) {
-    return {
-      codigo: "aguardando_maturidade",
-      rotulo: "Aguardando maturidade",
-      comparavel: false,
-    };
-  }
-
   if (janela.pagantesSemCusto > 0) {
     return {
       codigo: "cobertura_custo_incompleta",
       rotulo: "Cobertura de custo incompleta",
+      comparavel: false,
+    };
+  }
+
+  if (janela.diasMaduros <= 0) {
+    return {
+      codigo: "aguardando_maturidade",
+      rotulo: "Aguardando maturidade",
       comparavel: false,
     };
   }
