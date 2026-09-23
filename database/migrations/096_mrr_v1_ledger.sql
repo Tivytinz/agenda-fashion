@@ -96,10 +96,26 @@ base_mrr AS (
       'MONTHLY'
     ) AS periodicidade,
     UPPER(COALESCE(a.status, '')) AS status,
-    a.ativo
+    a.ativo,
+    fronteira.tipo AS ultimo_evento_episodio_tipo
   FROM assinaturas a
   INNER JOIN planos pl
     ON pl.id = a.plano_id
+  LEFT JOIN LATERAL (
+    SELECT ae.tipo
+    FROM assinatura_eventos ae
+    WHERE ae.negocio_id = a.negocio_id
+      AND ae.tipo IN (
+        'EPISODIO_PAGO_BASELINE',
+        'CONVERSAO_INICIAL',
+        'REATIVACAO_PAGA',
+        'ACESSO_PAGO_ENCERRADO'
+      )
+    ORDER BY
+      ae.ocorrido_em DESC,
+      ae.id DESC
+    LIMIT 1
+  ) fronteira ON TRUE
   WHERE pl.valor > 0
     AND a.valor IS NOT NULL
     AND a.valor >= 0
@@ -144,21 +160,7 @@ base_mrr AS (
             AND pg.data_pagamento IS NOT NULL
         )
         AND COALESCE(
-          (
-            SELECT fronteira.tipo
-            FROM assinatura_eventos fronteira
-            WHERE fronteira.negocio_id = a.negocio_id
-              AND fronteira.tipo IN (
-                'EPISODIO_PAGO_BASELINE',
-                'CONVERSAO_INICIAL',
-                'REATIVACAO_PAGA',
-                'ACESSO_PAGO_ENCERRADO'
-              )
-            ORDER BY
-              fronteira.ocorrido_em DESC,
-              fronteira.id DESC
-            LIMIT 1
-          ),
+          fronteira.tipo,
           ''
         ) <> 'ACESSO_PAGO_ENCERRADO'
       )
@@ -178,6 +180,43 @@ base_mrr AS (
         AND pg.data_pagamento IS NOT NULL
     ) DESC,
     a.id DESC
+),
+episodios_reconciliados AS (
+  INSERT INTO assinatura_eventos (
+    negocio_id,
+    assinatura_id,
+    tipo,
+    motivo,
+    plano_anterior_id,
+    plano_novo_id,
+    origem,
+    detalhes,
+    ocorrido_em,
+    chave_idempotencia
+  )
+  SELECT
+    bm.negocio_id,
+    bm.assinatura_id,
+    'EPISODIO_PAGO_BASELINE',
+    'WAVE25_CUTOVER_RECONCILIACAO',
+    NULL,
+    bm.plano_id,
+    'sistema',
+    jsonb_build_object(
+      'regra', 'wave25_cutover',
+      'historico_anterior', 'nao_inferido'
+    ),
+    m.ocorrido_em,
+    'negocio:' || bm.negocio_id ||
+      ':EPISODIO_PAGO_BASELINE:wave25'
+  FROM base_mrr bm
+  CROSS JOIN marco m
+  WHERE bm.ultimo_evento_episodio_tipo IS NULL
+    OR bm.ultimo_evento_episodio_tipo =
+      'ACESSO_PAGO_ENCERRADO'
+  ON CONFLICT (chave_idempotencia)
+  DO NOTHING
+  RETURNING negocio_id
 )
 INSERT INTO assinatura_eventos (
   negocio_id,
