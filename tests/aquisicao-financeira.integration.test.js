@@ -515,5 +515,253 @@ describe(
         ).toBe(false);
       }
     );
+    test(
+      "não promove atribuição posterior à conversão para campanha financeira",
+      async () => {
+        const planos = await db.query(
+          `
+          SELECT id, slug, valor
+          FROM planos
+          WHERE slug IN (
+            'inicial',
+            'autonoma'
+          )
+          `
+        );
+        const gratis = planos.rows.find(
+          (item) =>
+            item.slug === "inicial"
+        );
+        const pago = planos.rows.find(
+          (item) =>
+            item.slug === "autonoma"
+        );
+        const campanhaUtm =
+          `wave27_late_${suffix()}`;
+
+        const campanha = await db.query(
+          `
+          INSERT INTO marketing_campanhas (
+            nome,
+            canal,
+            utm_source,
+            utm_medium,
+            utm_campaign,
+            destino_path,
+            objetivo
+          )
+          VALUES (
+            'Wave 27 late',
+            'google',
+            'google',
+            'cpc',
+            $1,
+            '/profissionais',
+            'profissional'
+          )
+          RETURNING id
+          `,
+          [campanhaUtm]
+        );
+        campanhas.push(
+          Number(campanha.rows[0].id)
+        );
+
+        const usuario =
+          await criarUsuario(
+            "Dono late"
+          );
+
+        await db.query(
+          `
+          INSERT INTO marketing_usuario_atribuicoes (
+            usuario_id,
+            intencao,
+            utm_source,
+            utm_medium,
+            utm_campaign,
+            atribuicao_em
+          )
+          VALUES (
+            $1,
+            'profissional',
+            'google',
+            'cpc',
+            $2,
+            NOW() + INTERVAL '1 day'
+          )
+          ON CONFLICT (usuario_id)
+          DO UPDATE SET
+            intencao = 'profissional',
+            utm_source = EXCLUDED.utm_source,
+            utm_medium = EXCLUDED.utm_medium,
+            utm_campaign = EXCLUDED.utm_campaign,
+            atribuicao_em = EXCLUDED.atribuicao_em
+          `,
+          [usuario, campanhaUtm]
+        );
+
+        const token = suffix();
+        const negocio = await db.query(
+          `
+          INSERT INTO negocios (
+            nome,
+            slug,
+            setor,
+            whatsapp,
+            cidade,
+            estado,
+            publicado,
+            plano_id
+          )
+          VALUES (
+            $1,
+            $2,
+            'unhas',
+            '62999999999',
+            'Goiânia',
+            'GO',
+            TRUE,
+            $3
+          )
+          RETURNING id
+          `,
+          [
+            `Wave 27 late ${token}`,
+            `wave-27-late-${token}`,
+            gratis.id,
+          ]
+        );
+        const negocioId = Number(
+          negocio.rows[0].id
+        );
+        negocios.push(negocioId);
+
+        await db.query(
+          `
+          INSERT INTO usuarios_negocios (
+            usuario_id,
+            negocio_id,
+            papel,
+            ativo
+          )
+          VALUES ($1, $2, 'dono', TRUE)
+          `,
+          [usuario, negocioId]
+        );
+
+        const assinatura = await db.query(
+          `
+          INSERT INTO assinaturas (
+            negocio_id,
+            plano_id,
+            status,
+            forma_pagamento,
+            periodicidade,
+            valor,
+            ativo
+          )
+          VALUES (
+            $1,
+            $2,
+            'ACTIVE',
+            'pix',
+            'MONTHLY',
+            $3,
+            TRUE
+          )
+          RETURNING id
+          `,
+          [
+            negocioId,
+            pago.id,
+            pago.valor,
+          ]
+        );
+
+        const pagamento = await db.query(
+          `
+          INSERT INTO pagamentos (
+            assinatura_id,
+            asaas_payment_id,
+            valor,
+            forma_pagamento,
+            status,
+            data_vencimento,
+            data_pagamento
+          )
+          VALUES (
+            $1,
+            $2,
+            $3,
+            'pix',
+            'RECEIVED',
+            CURRENT_DATE,
+            CURRENT_DATE
+          )
+          RETURNING id
+          `,
+          [
+            assinatura.rows[0].id,
+            `pay_wave27_late_${suffix()}`,
+            pago.valor,
+          ]
+        );
+
+        const evento = await db.query(
+          `
+          INSERT INTO assinatura_eventos (
+            negocio_id,
+            assinatura_id,
+            pagamento_id,
+            tipo,
+            plano_novo_id,
+            origem,
+            chave_idempotencia
+          )
+          VALUES (
+            $1,
+            $2,
+            $3,
+            'CONVERSAO_INICIAL',
+            $4,
+            'webhook',
+            $5
+          )
+          RETURNING id
+          `,
+          [
+            negocioId,
+            assinatura.rows[0].id,
+            pagamento.rows[0].id,
+            pago.id,
+            `test:wave27:${negocioId}:late`,
+          ]
+        );
+
+        const snapshot =
+          await repository
+            .materializarAquisicaoPorEvento(
+              evento.rows[0].id
+            );
+
+        expect(snapshot)
+          .toMatchObject({
+            classificacao_atribuicao:
+              "sem_evidencia",
+            campanha_oficial_id: null,
+            metodo_resolucao: null,
+            origem: "desconhecida",
+            midia: "desconhecida",
+            campanha: "(sem campanha)",
+            atribuicao_em: null,
+          });
+        expect(
+          snapshot.detalhes
+            .atribuicao_posterior_conversao
+        ).toBe(true);
+      }
+    );
+
   }
 );
