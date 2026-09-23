@@ -192,6 +192,10 @@ export function SubscriptionPage() {
   const usage = data.uso || {};
   const billingState =
     data.estado_assinatura?.codigo || null;
+  const billingFailureType =
+    data.estado_assinatura?.tipo_falha || null;
+  const recoverablePayment =
+    data.pagamento_recuperavel || null;
   const pendingUpgrade = data.upgrade_pendente || null;
   const pendingPlan = pendingUpgrade?.plano || null;
   const pendingPayment = pendingUpgrade?.pagamento || null;
@@ -204,7 +208,12 @@ export function SubscriptionPage() {
   const needsSubscription =
     !isFree && !subscription && !hasPendingUpgrade;
   const rawStatus = normalizeStatus(subscription?.status);
-  const canCancel = ACTIVE_STATUSES.has(rawStatus) && subscription?.ativo !== false;
+  const renewalCanceled =
+    billingState === "CANCELAMENTO_AGENDADO" ||
+    CANCELED_STATUSES.has(rawStatus);
+  const canCancel =
+    ACTIVE_STATUSES.has(rawStatus) &&
+    subscription?.ativo !== false;
   const planSlug = String(plan.slug || "").trim();
   const checkoutTarget = planSlug
     ? `/checkout?plano=${encodeURIComponent(planSlug)}`
@@ -236,7 +245,7 @@ export function SubscriptionPage() {
         <div>
           <p className="eyebrow">Seu crescimento continua</p>
           <h1>Plano e assinatura</h1>
-          <p>Acompanhe uso, pagamentos e a próxima renovação.</p>
+          <p>Acompanhe uso, pagamentos e a situação da assinatura.</p>
         </div>
         <Link className="button button-secondary" to="/planos">
           Ver planos
@@ -251,12 +260,29 @@ export function SubscriptionPage() {
           className="panel subscription-pending-upgrade"
           role="alert"
         >
-          <strong>Falha de pagamento</strong>
+          <strong>
+            {billingFailureType === "REVERSAO_OU_DISPUTA"
+              ? "Pagamento revertido ou em disputa"
+              : billingFailureType === "COBRANCA_ATRASADA"
+                ? "Pagamento em atraso"
+                : "Falha de pagamento"}
+          </strong>
           <p className="muted">
-            O acesso pago foi suspenso e o plano Grátis está valendo agora.
-            Se o pagamento for recuperado e confirmado, o AF reativa a
-            assinatura sem apagar os dados do negócio.
+            {billingFailureType === "REVERSAO_OU_DISPUTA"
+              ? "O acesso pago foi suspenso e o plano Grátis está valendo agora. O AF preserva os dados do negócio enquanto a situação financeira é conciliada."
+              : "O acesso pago foi suspenso e o plano Grátis está valendo agora. Se o pagamento for regularizado e confirmado, o AF reativa a assinatura sem apagar os dados do negócio."}
           </p>
+          {billingFailureType === "COBRANCA_ATRASADA" &&
+            recoverablePayment?.invoice_url && (
+              <a
+                className="button subscription-primary-action"
+                href={recoverablePayment.invoice_url}
+                rel="noreferrer"
+                target="_blank"
+              >
+                Regularizar no Asaas
+              </a>
+            )}
         </section>
       )}
 
@@ -322,13 +348,15 @@ export function SubscriptionPage() {
                 <dd>{formatPaymentMethod(subscription.forma_pagamento)}</dd>
               </div>
               <div>
-                <dt>Próxima cobrança</dt>
+                <dt>{renewalCanceled ? "Acesso até" : "Próxima cobrança"}</dt>
                 <dd>
                   {subscription.data_proxima_cobranca
                     ? formatDate(subscription.data_proxima_cobranca)
-                    : state.active
-                      ? "Aguardando definição"
-                      : "Nenhuma cobrança agendada"}
+                    : renewalCanceled
+                      ? "Fim do período não informado"
+                      : state.active
+                        ? "Aguardando definição"
+                        : "Nenhuma cobrança agendada"}
                 </dd>
               </div>
             </dl>
