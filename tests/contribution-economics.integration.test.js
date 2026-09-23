@@ -127,10 +127,13 @@ describe(
 
       const marco = await db.query(
         `
-        SELECT (
-          ocorrido_em
-          AT TIME ZONE 'America/Sao_Paulo'
-        )::date AS data
+        SELECT TO_CHAR(
+          (
+            ocorrido_em
+            AT TIME ZONE 'America/Sao_Paulo'
+          )::date,
+          'YYYY-MM-DD'
+        ) AS data
         FROM financeiro_marcos
         WHERE chave =
           'margem_contribuicao_v1_inicio'
@@ -142,9 +145,7 @@ describe(
         negocioId,
         codigo,
         dataInicio:
-          marco.rows[0].data
-            .toISOString()
-            .slice(0, 10),
+          marco.rows[0].data,
       };
     }
 
@@ -186,7 +187,7 @@ describe(
           tipo: "DEBITO",
           valor: 12.5,
           ocorridoEm:
-            new Date().toISOString(),
+            `${dataInicio}T12:00:00-03:00`,
         };
 
         const primeiro =
@@ -227,9 +228,19 @@ describe(
               new Date().toISOString(),
           });
 
-        const hoje = new Date()
-          .toISOString()
-          .slice(0, 10);
+        const atual = await db.query(
+          `
+          SELECT TO_CHAR(
+            (
+              NOW()
+              AT TIME ZONE 'America/Sao_Paulo'
+            )::date,
+            'YYYY-MM-DD'
+          ) AS data
+          `
+        );
+        const hoje =
+          atual.rows[0].data;
 
         await service
           .registrarCoberturaFonte({
