@@ -13,6 +13,9 @@ const adminAcquisitionFinancialService = require(
 const paymentEconomicsRepository = require(
   "../repositories/adminPaymentEconomicsRepository"
 );
+const contributionEconomicsRepository = require(
+  "../repositories/adminContributionEconomicsRepository"
+);
 
 const SECOES = new Set([
   "overview",
@@ -311,6 +314,7 @@ async function buscarRevenue(periodo) {
     ltv,
     economia,
     ltvLiquido,
+    contribuicao,
   ] = await Promise.all([
     repository.buscarReceita(periodo),
     repository.buscarChurnPago(periodo),
@@ -320,8 +324,59 @@ async function buscarRevenue(periodo) {
       .buscarResumoEconomia(periodo),
     paymentEconomicsRepository
       .buscarLtvLiquidoObservado(),
+    contributionEconomicsRepository
+      .buscarResumoContribuicao(periodo),
   ]);
   const resumo = resultado.resumo || {};
+  const custosVariaveis =
+    contribuicao.custos_variaveis_observados == null
+      ? null
+      : numero(
+          contribuicao
+            .custos_variaveis_observados
+        );
+  const receitaBaseContribuicao =
+    contribuicao.receita_liquida_gateway == null
+      ? null
+      : numero(
+          contribuicao
+            .receita_liquida_gateway
+        );
+  const coberturaGatewayCompleta =
+    numero(
+      economia.pagamentos_incompletos
+    ) === 0;
+  const coberturaGatewayContribuicao =
+    contribuicao
+      .cobertura_gateway_completa === true;
+  const coberturaContribuicaoCompleta =
+    contribuicao.cobertura_completa === true;
+  const margemContribuicaoDisponivel =
+    coberturaGatewayContribuicao &&
+    coberturaContribuicaoCompleta &&
+    custosVariaveis !== null &&
+    receitaBaseContribuicao !== null;
+  const margemContribuicao =
+    margemContribuicaoDisponivel
+      ? Number(
+          (
+            receitaBaseContribuicao -
+            custosVariaveis
+          ).toFixed(2)
+        )
+      : null;
+  const margemContribuicaoPercentual =
+    margemContribuicaoDisponivel &&
+    receitaBaseContribuicao > 0
+      ? Number(
+          (
+            (
+              margemContribuicao /
+              receitaBaseContribuicao
+            ) * 100
+          ).toFixed(2)
+        )
+      : null;
   const basePagaInicio = numero(churn.base_paga_inicio);
   const saidasTerminais = numero(
     churn.saidas_terminais_base_inicial
@@ -677,11 +732,50 @@ async function buscarRevenue(periodo) {
           economia.receita_liquida_gateway
         ),
       coberturaCompleta:
-        numero(
-          economia.pagamentos_incompletos
-        ) === 0,
+        coberturaGatewayCompleta,
       margemContribuicaoDisponivel:
-        false,
+        margemContribuicaoDisponivel,
+      lucroDisponivel: false,
+    },
+    contribuicao: {
+      inicioCobertura:
+        contribuicao.inicio_cobertura ||
+        null,
+      inicioJanela:
+        contribuicao.inicio_data ||
+        null,
+      fimJanela:
+        contribuicao.fim_data ||
+        null,
+      fontesObrigatorias:
+        numero(
+          contribuicao.fontes_obrigatorias
+        ),
+      fontesCobertas:
+        numero(
+          contribuicao.fontes_cobertas
+        ),
+      coberturaCompleta:
+        coberturaContribuicaoCompleta,
+      pagamentosGatewayElegiveis:
+        numero(
+          contribuicao
+            .pagamentos_gateway_elegiveis
+        ),
+      pagamentosGatewayIncompletos:
+        numero(
+          contribuicao
+            .pagamentos_gateway_incompletos
+        ),
+      coberturaGatewayCompleta:
+        coberturaGatewayContribuicao,
+      receitaBaseGateway:
+        receitaBaseContribuicao,
+      custosVariaveisObservados:
+        custosVariaveis,
+      margemContribuicaoDisponivel,
+      margemContribuicao,
+      margemContribuicaoPercentual,
       lucroDisponivel: false,
     },
     churn: {
@@ -822,7 +916,9 @@ async function buscarRevenue(periodo) {
       ltv:
         "LTV bruto observado v1 usa o negócio como unidade e soma pagamentos com data de pagamento dentro de D30, D60 e D90 desde a primeira conversão paga canônica posterior ao cutover da Wave 26. Somente negócios maduros entram em cada denominador. Churn não remove o negócio da coorte e reativação não cria nova aquisição.",
       economiaLiquida:
-        "A Wave 28 reconcilia netValue e refunds concluídos do Asaas fora da transação crítica de billing. Receita líquida de gateway é netValue menos refunds DONE. Ausência de netValue, refund pendente ou disputa mantém a janela indisponível; o AF não chama essa leitura de lucro ou margem de contribuição.",
+        "A Wave 28 reconcilia netValue e refunds concluídos do Asaas fora da transação crítica de billing. Receita líquida de gateway é netValue menos refunds DONE. Ausência de netValue, refund pendente ou disputa mantém a janela indisponível.",
+      contribuicao:
+        "A Wave 29 só disponibiliza margem de contribuição quando existe ao menos uma fonte obrigatória de custo variável e todas as fontes declaram cobertura completa para a janela. Ausência de lançamento fora de cobertura nunca é tratada como custo zero. Mídia de aquisição permanece fora desta camada e lucro continua indisponível.",
       ativas:
         "Assinaturas pagas ativas é um estoque atual e não uma contagem criada no período. Cancelamentos cujo acesso já venceu são excluídos do estoque mesmo antes do próximo ciclo do worker financeiro.",
     },

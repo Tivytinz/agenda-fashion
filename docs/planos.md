@@ -153,6 +153,14 @@ apagar dados existentes nem impedir a edição do que já foi cadastrado.
   Refund pendente, chargeback em disputa e reversão não conciliada bloqueiam a
   leitura líquida correspondente. A métrica não é lucro nem margem de
   contribuição.
+- A **margem de contribuição observada v1** da Wave 29 possui infraestrutura
+  própria de fontes, ledger de custos variáveis e cobertura contínua. A migration
+  100 não cadastra nenhuma fonte por suposição. A margem só pode ser exibida
+  quando houver ao menos uma fonte obrigatória ativa e todas as fontes cobrirem a
+  janela consultada; fora dessa condição, custo ausente permanece desconhecido,
+  nunca zero. A taxa do gateway e refunds da Wave 28 não são descontados de novo,
+  e investimento de mídia continua separado como CAC de mídia. Lucro, CAC total,
+  payback econômico e LTV:CAC definitivo permanecem fora do contrato.
 - `webhook_eventos` preserva a entrega do provedor; `assinatura_eventos`
   preserva o fato de domínio do AF. O histórico anterior à migration 093 não é
   preenchido por suposição.
@@ -208,6 +216,8 @@ negócio e conversão para plano pago.
   `database/migrations/098_aquisicao_financeira_v1.sql`.
 - Economia líquida de gateway e ledger de refunds:
   `database/migrations/099_economia_liquida_gateway_v1.sql`.
+- Custos variáveis observados e cobertura da margem de contribuição:
+  `database/migrations/100_margem_contribuicao_observada_v1.sql`.
 - Baseline de episódios pagos e churn v1:
   `database/migrations/095_churn_v1_episodios_pagos.sql`.
 - Ledger monetário, baseline de MRR e NRR v1:
