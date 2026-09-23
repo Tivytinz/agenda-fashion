@@ -1,5 +1,7 @@
 # Atribuição de marketing
 
+> **Papel documental:** fonte canônica para classificação de origem, integridade da evidência e ligação entre aquisição e fatos do funil. Custos, GA4 e prontidão financeira aprofundam leituras específicas sem reclassificar evidência.
+
 ## Regra de integridade da evidência
 
 A evidência bruta de aquisição capturada pelo Agenda Fashion deve ser preservada para auditoria. Rotinas de canonicalização, sincronização de custos e vínculo de campanhas podem resolver identidades e criar metadados auxiliares, mas não podem apagar ou reescrever UTMs, click IDs, landing pages ou eventos já capturados somente para fazer o dado caber na identidade oficial de uma campanha.
