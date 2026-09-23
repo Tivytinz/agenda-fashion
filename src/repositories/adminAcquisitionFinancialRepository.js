@@ -352,7 +352,33 @@ async function buscarRetornoAquisicao({
                     rn.data_aquisicao
                   ) >= $1::INT + 30
               )::INT
-                AS pagantes_sem_custo_d30
+                AS pagantes_sem_custo_d30,
+            COUNT(DISTINCT rn.negocio_id)
+              FILTER (
+                WHERE cc.campanha_id IS NULL
+                  AND (
+                    (
+                      NOW()
+                      AT TIME ZONE
+                        '${TIME_ZONE}'
+                    )::date -
+                    rn.data_aquisicao
+                  ) >= $1::INT + 60
+              )::INT
+                AS pagantes_sem_custo_d60,
+            COUNT(DISTINCT rn.negocio_id)
+              FILTER (
+                WHERE cc.campanha_id IS NULL
+                  AND (
+                    (
+                      NOW()
+                      AT TIME ZONE
+                        '${TIME_ZONE}'
+                    )::date -
+                    rn.data_aquisicao
+                  ) >= $1::INT + 90
+              )::INT
+                AS pagantes_sem_custo_d90
           FROM receita_negocio rn
           LEFT JOIN custos_canonicos cc
             ON cc.campanha_id =
@@ -436,7 +462,15 @@ async function buscarRetornoAquisicao({
           COALESCE(
             r.pagantes_sem_custo_d30,
             0
-          )::INT AS pagantes_sem_custo_d30
+          )::INT AS pagantes_sem_custo_d30,
+          COALESCE(
+            r.pagantes_sem_custo_d60,
+            0
+          )::INT AS pagantes_sem_custo_d60,
+          COALESCE(
+            r.pagantes_sem_custo_d90,
+            0
+          )::INT AS pagantes_sem_custo_d90
         FROM campanhas_base cb
         INNER JOIN marketing_campanhas mc
           ON mc.id = cb.campanha_id
