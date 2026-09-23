@@ -363,6 +363,9 @@ async function buscarRevenue(periodo) {
       pagamentosRecuperadosCanonicos: numero(
         resumo.pagamentos_recuperados_canonicos
       ),
+      reversoesFinanceirasCanonicas: numero(
+        resumo.reversoes_financeiras_canonicas
+      ),
       cancelamentosRenovacaoCanonicos: numero(
         resumo.cancelamentos_renovacao_canonicos
       ),

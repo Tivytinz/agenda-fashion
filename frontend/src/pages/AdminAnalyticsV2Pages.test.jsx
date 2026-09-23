@@ -114,6 +114,7 @@ describe("receita administrativa v2", () => {
         mudancasPlanoCanonicas: 1,
         pagamentosAtrasadosCanonicos: 2,
         pagamentosRecuperadosCanonicos: 1,
+        reversoesFinanceirasCanonicas: 1,
         cancelamentosRenovacaoCanonicos: 1,
         saidasBasePagaCanonicas: 1
       },
@@ -128,6 +129,7 @@ describe("receita administrativa v2", () => {
     expect(screen.getByText("Renovações vencidas no período")).not.toBeNull();
     expect(screen.getByText("Transições pagas registradas desde a Wave 22")).not.toBeNull();
     expect(screen.getByText("Reativações pagas")).not.toBeNull();
+    expect(screen.getByText("Reversões financeiras")).not.toBeNull();
     expect(screen.getByText("Saídas da base paga")).not.toBeNull();
     expect(screen.getByText("66,7%")).not.toBeNull();
     expect(screen.getByText("50%")).not.toBeNull();

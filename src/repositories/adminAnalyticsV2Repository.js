@@ -672,6 +672,9 @@ async function buscarReceita(periodo = "30") {
             WHERE ae.tipo = 'PAGAMENTO_RECUPERADO'
           )::INT AS pagamentos_recuperados_canonicos,
           COUNT(*) FILTER (
+            WHERE ae.tipo = 'REVERSAO_FINANCEIRA'
+          )::INT AS reversoes_financeiras_canonicas,
+          COUNT(*) FILTER (
             WHERE ae.tipo = 'RENOVACAO_CANCELADA'
           )::INT AS cancelamentos_renovacao_canonicos,
           COUNT(*) FILTER (
@@ -723,6 +726,7 @@ async function buscarReceita(periodo = "30") {
         le.mudancas_plano_canonicas,
         le.pagamentos_atrasados_canonicos,
         le.pagamentos_recuperados_canonicos,
+        le.reversoes_financeiras_canonicas,
         le.cancelamentos_renovacao_canonicos,
         le.saidas_base_paga_canonicas,
         a.assinaturas_pagas_ativas

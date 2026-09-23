@@ -101,6 +101,7 @@ describe("Admin Analytics V2 - receita", () => {
         mudancas_plano_canonicas: 1,
         pagamentos_atrasados_canonicos: 2,
         pagamentos_recuperados_canonicos: 1,
+        reversoes_financeiras_canonicas: 1,
         cancelamentos_renovacao_canonicos: 1,
         saidas_base_paga_canonicas: 1,
       },
@@ -132,6 +133,7 @@ describe("Admin Analytics V2 - receita", () => {
       mudancasPlanoCanonicas: 1,
       pagamentosAtrasadosCanonicos: 2,
       pagamentosRecuperadosCanonicos: 1,
+      reversoesFinanceirasCanonicas: 1,
       cancelamentosRenovacaoCanonicos: 1,
       saidasBasePagaCanonicas: 1,
     });

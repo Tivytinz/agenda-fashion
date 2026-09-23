@@ -54,7 +54,7 @@ jest.mock(
 jest.mock(
   "../src/services/assinaturaLifecycleService",
   () => ({
-    registrarAtraso:
+    registrarSuspensaoFinanceira:
       jest.fn().mockResolvedValue(null),
     registrarConfirmacaoPagamento:
       jest.fn().mockResolvedValue([]),

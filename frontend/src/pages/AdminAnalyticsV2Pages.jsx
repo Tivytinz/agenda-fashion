@@ -1014,6 +1014,7 @@ export function AdminRevenueV2Page() {
                 <div><dt>Mudanças de plano</dt><dd>{formatNumber(summary.mudancasPlanoCanonicas)}</dd></div>
                 <div><dt>Pagamentos atrasados</dt><dd>{formatNumber(summary.pagamentosAtrasadosCanonicos)}</dd></div>
                 <div><dt>Pagamentos recuperados</dt><dd>{formatNumber(summary.pagamentosRecuperadosCanonicos)}</dd></div>
+                <div><dt>Reversões financeiras</dt><dd>{formatNumber(summary.reversoesFinanceirasCanonicas)}</dd></div>
                 <div><dt>Renovações canceladas</dt><dd>{formatNumber(summary.cancelamentosRenovacaoCanonicos)}</dd></div>
                 <div><dt>Saídas da base paga</dt><dd>{formatNumber(summary.saidasBasePagaCanonicas)}</dd></div>
               </dl>

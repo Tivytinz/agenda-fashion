@@ -4,6 +4,7 @@ jest.mock(
     registrar: jest.fn(),
     buscarContextoPagamento: jest.fn(),
     teveAtrasoProcessado: jest.fn(),
+    teveEventoPagamento: jest.fn(),
     buscarUltimoPorAssinaturaETipo: jest.fn(),
   })
 );
@@ -34,6 +35,8 @@ describe("assinaturaLifecycleService", () => {
       async (_client, dados) => dados
     );
     repository.teveAtrasoProcessado
+      .mockResolvedValue(false);
+    repository.teveEventoPagamento
       .mockResolvedValue(false);
     repository.buscarUltimoPorAssinaturaETipo
       .mockResolvedValue(null);
@@ -76,7 +79,7 @@ describe("assinaturaLifecycleService", () => {
         possui_historico_pago_anterior: true,
         outra_assinatura_ativa_id: null,
       });
-    repository.teveAtrasoProcessado
+    repository.teveEventoPagamento
       .mockResolvedValue(true);
 
     const eventos =
@@ -152,6 +155,27 @@ describe("assinaturaLifecycleService", () => {
           planoNovoId: 3,
         })
       );
+  });
+
+  test("estorno e chargeback viram reversão financeira, não atraso", async () => {
+    await service.registrarSuspensaoFinanceira({
+      client,
+      assinatura: assinatura(),
+      pagamentoId: 54,
+      status: "CHARGEBACK_DISPUTE",
+    });
+
+    expect(repository.registrar)
+      .toHaveBeenCalledWith(
+        client,
+        expect.objectContaining({
+          tipo: "REVERSAO_FINANCEIRA",
+          motivo: "CHARGEBACK_DISPUTE",
+        })
+      );
+    expect(
+      repository.registrar.mock.calls[0][1].tipo
+    ).not.toBe("PAGAMENTO_ATRASADO");
   });
 
   test("encerramento herda o motivo do cancelamento canônico", async () => {
