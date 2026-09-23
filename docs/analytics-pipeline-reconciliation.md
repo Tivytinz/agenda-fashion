@@ -22,6 +22,23 @@ A reconciliação administrativa compara somente eventos que possuem semântica 
 
 Eventos exclusivos de um dos pipelines permanecem fora da comparação.
 
+### Intenção de agendar novamente
+
+`Agendar novamente` cria uma nova reserva e não deve ser confundido com
+`booking_rescheduled`, que representa alteração transacional de uma reserva
+existente.
+
+Durante a coexistência dos pipelines, a intenção de repetição usa os nomes já
+comparáveis:
+
+- legado: `agendamento_iniciado` com `origem = agendar_novamente`;
+- Analytics V2: `booking_started` com `intent = repeat_booking`.
+
+O status do booking de origem pode ser enviado como contexto seguro
+(`source_booking_status` no V2), mas esses eventos continuam sendo telemetria
+de intenção. A recorrência real é calculada a partir de novos agendamentos não
+cancelados persistidos para o mesmo `client_id`.
+
 ## Janela comparável
 
 O histórico do pipeline legado é anterior ao Analytics V2. Comparar todo o histórico produziria uma divergência artificial.
