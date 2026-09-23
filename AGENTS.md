@@ -297,6 +297,19 @@ período pago não depende de nova navegação da proprietária: os background
 workers reconciliam cancelamentos vencidos usando a mesma operação transacional
 do entitlement e registram `ACESSO_PAGO_ENCERRADO` de forma idempotente.
 
+A retenção financeira usa **negócio** como unidade paga. Desde a Wave 24, o AF
+mantém um marco explícito de cutover para churn e não infere histórico anterior.
+Um episódio pago começa na baseline do cutover, na conversão inicial ou em uma
+reativação; renovação e mudança de plano mantêm o episódio aberto. A saída
+terminal é `ACESSO_PAGO_ENCERRADO`. Cobrança atrasada continua recuperável e
+só é materializada como saída por
+`INADIMPLENCIA_NAO_RECUPERADA` depois da janela padrão de 14 dias; essa janela
+não concede acesso pago adicional, porque o entitlement já é suspenso no atraso.
+**Gross logo churn v1** usa negócios da base paga inicial que tiveram saída
+terminal no recorte. Reativação permanece separada e não reduz retroativamente
+o churn bruto. LTV, payback e NRR continuam exigindo definições e maturidade
+próprias.
+
 Um negócio pode possuir no máximo uma cobrança PIX pendente de contratação ou
 upgrade por vez, independentemente do plano escolhido. Trocar de plano antes do
 pagamento não deve criar cobranças concorrentes. A tela de assinatura deve
