@@ -398,6 +398,18 @@ sendo CAC de mídia, não CAC total, e não representa lucro ou payback econômi
 definitivo. Sem fonte real obrigatória de custo variável, a leitura permanece
 indisponível.
 
+Desde a Wave 31, fontes factuais de custo de contribuição podem ser operadas por
+um fluxo administrativo próprio. A migration 102 cria o cutover
+`fontes_contribuicao_v1_inicio` e uma trilha
+`contribuicao_operacoes_admin` append-only. Nenhuma fonte é criada por seed:
+cadastro, débito, crédito e cobertura dependem de ação explícita. Escritas são
+restritas a superadmin no backend e registram ator + motivo. Correções
+administrativas de custo usam crédito referenciado, nunca UPDATE/DELETE do
+ledger; o crédito não pode superar o saldo do débito original. Cobertura mantém
+início imutável e watermark não regressivo. Admin comum pode consultar o painel,
+mas não escrever. Ausência de fonte ou cobertura continua significando dado
+econômico indisponível, não custo zero.
+
 Um negócio pode possuir no máximo uma cobrança PIX pendente de contratação ou
 upgrade por vez, independentemente do plano escolhido. Trocar de plano antes do
 pagamento não deve criar cobranças concorrentes. A tela de assinatura deve
