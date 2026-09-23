@@ -101,60 +101,80 @@ Nenhuma mudança em Asaas, Meta/WhatsApp, Resend ou plataformas de marketing.
 
 ### Testes
 
-A cobertura do comportamento novo é proporcional ao risco. O Quality Gate final
-deve ser executado no **head final** da branch, incluindo lint, dead code, build,
-testes frontend, cobertura backend, audits e Playwright mobile.
+A cobertura do comportamento novo é proporcional ao risco e foi ampliada até o
+fim da jornada pública móvel.
 
-## Riscos e pendências antes de encerrar a Wave
+O Playwright agora atravessa:
 
-### 1. Revalidar performance da home
+```text
+perfil público
+  → serviço
+  → horário
+  → revisão
+  → confirmação
+  → sucesso
+```
 
-Este é o principal gate técnico da Wave.
+com APIs mockadas e sem escrita em produção. O mesmo cenário continua validando
+ausência de overflow horizontal e visibilidade das ações críticas no viewport.
 
-A evidência da Wave 15 registrou LCP móvel mediano da home em **2.412,60 ms**
-para um limite de **2.500 ms**. A folga é de apenas **87,40 ms**.
+O **Backend CI #1259** concluiu com sucesso no commit
+`dcd486f14b18cc17688783c9869df9cb2e99cff4`, cobrindo lint, dead code, build,
+testes frontend, migrations, Jest/PostgreSQL, audits e Playwright mobile.
 
-Mesmo que o patch atual seja pequeno e não altere a imagem LCP, ele modifica a
-árvore e o CSS acima da dobra. Por isso a Wave 16 não deve ser considerada
-encerrada sem repetir o Performance QA no head final e confirmar que o LCP da
-home continua dentro da meta.
+## Evidências de encerramento da Wave
 
-### 2. Fechar a jornada móvel ponta a ponta
+### Performance
 
-O Playwright atual valida o perfil e chega até a ação de revisão do agendamento,
-enquanto confirmação e sucesso possuem forte cobertura em testes de componente.
+O **Performance QA #25** concluiu com sucesso no mesmo commit medido. O artifact
+é `performance-qa-35801698769`.
 
-Para fechar a intenção da Wave 16 de proteger a cadeia
-`descoberta → perfil → horário → revisão → agendamento`, falta uma evidência
-E2E móvel única que atravesse a confirmação e chegue ao estado de sucesso com
-APIs mockadas e sem depender de produção.
+API p95:
 
-### 3. Validar estados críticos no navegador
+| Cenário | p95 | Limite |
+| --- | ---: | ---: |
+| Catálogo público | 140,19 ms | ≤ 2.000 ms |
+| Perfil público | 92,53 ms | ≤ 2.000 ms |
+| Agenda pública | 95,03 ms | ≤ 2.000 ms |
 
-Loading, vazio e erro possuem cobertura de componente, mas a Wave deve manter ao
-menos uma verificação no navegador para evitar tela vazia, overflow ou CTA
-inacessível nos estados públicos mais importantes.
+LCP móvel, mediana de três execuções:
 
-Não é necessário duplicar toda a matriz unitária em E2E. O objetivo é cobrir os
-pontos em que layout, viewport e WebKit podem introduzir regressões que o jsdom
-não detecta.
+| Página | Mediana | Limite |
+| --- | ---: | ---: |
+| Home pública | 2.391,71 ms | ≤ 2.500 ms |
+| Perfil público | 2.181,50 ms | ≤ 2.500 ms |
 
-## Critério de encerramento da Wave 16
+A home permaneceu dentro da meta e melhorou frente à mediana registrada na Wave
+15, sem transformar essa comparação pontual em promessa de tendência.
 
-A primeira Wave pós-baseline pode ser encerrada quando:
+### Jornada móvel
 
-1. o Quality Gate estiver verde no head final;
-2. o Performance QA confirmar novamente API e LCP, especialmente a home;
-3. a jornada móvel pública possuir evidência E2E até sucesso;
-4. não houver overflow horizontal nos viewports móveis suportados;
-5. movimento reduzido e pausa explícita permanecerem funcionais;
-6. nenhuma correção da Wave alterar contratos críticos do backend apenas para
-   acomodar UX.
+A jornada pública até o estado de sucesso foi incorporada ao
+`agendamento-mobile.spec.js` e passou na matriz mobile do Quality Gate,
+incluindo WebKit e Chromium conforme a configuração do Playwright.
 
-## Próximo passo técnico
+### Acessibilidade e controle do movimento
 
-A sequência recomendada é manter o patch atual pequeno, completar a regressão E2E
-da jornada pública até sucesso e então repetir o Performance QA no head final.
+O hero possui pausa/retomada explícita, pausa após interação manual,
+`aria-pressed`, alvos de toque ampliados e inicialização pausada quando
+`prefers-reduced-motion: reduce` estiver ativo.
 
-Somente depois dessas duas evidências a Wave 16 deve ser marcada como concluída
-e preparada para merge.
+### Estados públicos
+
+Os testes existentes continuam cobrindo perfil sem serviço, ausência de horário,
+erro/retry da agenda, conflito de confirmação e sucesso. O E2E móvel protege o
+layout real da jornada crítica contra overflow.
+
+## Encerramento da Wave 16
+
+Os gates definidos para esta Wave foram atendidos no estado executável medido:
+
+1. Quality Gate verde;
+2. Performance QA verde;
+3. jornada móvel E2E até sucesso;
+4. ausência de overflow na regressão mobile;
+5. controle explícito de movimento e preferência reduzida preservados;
+6. nenhum contrato crítico de backend foi alterado para acomodar UX.
+
+A Wave 16 pode seguir para revisão final do diff e decisão de merge. Merge e
+deploy continuam dependentes de autorização explícita.
