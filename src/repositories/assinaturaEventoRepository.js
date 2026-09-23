@@ -18,6 +18,9 @@ async function registrar(
     planoNovoId = null,
     origem,
     detalhes = {},
+    valorMensalAnterior = null,
+    valorMensalNovo = null,
+    periodicidadeSnapshot = null,
     ocorridoEm = null,
     chaveIdempotencia,
   }
@@ -36,14 +39,18 @@ async function registrar(
       plano_novo_id,
       origem,
       detalhes,
+      valor_mensal_anterior,
+      valor_mensal_novo,
+      periodicidade_snapshot,
       ocorrido_em,
       chave_idempotencia
     )
     VALUES (
       $1, $2, $3, $4, $5,
       $6, $7, $8, $9::jsonb,
-      COALESCE($10::timestamptz, NOW()),
-      $11
+      $10::numeric, $11::numeric, $12,
+      COALESCE($13::timestamptz, NOW()),
+      $14
     )
     ON CONFLICT (chave_idempotencia)
     DO NOTHING
@@ -59,6 +66,9 @@ async function registrar(
       planoNovoId,
       origem,
       JSON.stringify(detalhes || {}),
+      valorMensalAnterior,
+      valorMensalNovo,
+      periodicidadeSnapshot,
       ocorridoEm,
       chaveIdempotencia,
     ]
@@ -81,6 +91,8 @@ async function buscarContextoPagamento(
     SELECT
       a.negocio_id,
       a.plano_id,
+      a.valor AS valor_recorrente_atual,
+      a.periodicidade AS periodicidade_atual,
       n.plano_id AS plano_negocio_atual_id,
       (
         SELECT fronteira.tipo
@@ -156,6 +168,30 @@ async function buscarContextoPagamento(
         ORDER BY ativa.id DESC
         LIMIT 1
       ) AS plano_ativo_anterior_id,
+      (
+        SELECT ativa.valor
+        FROM assinaturas ativa
+        INNER JOIN planos plano_ativo
+          ON plano_ativo.id = ativa.plano_id
+        WHERE ativa.negocio_id = a.negocio_id
+          AND ativa.id <> a.id
+          AND ativa.ativo = TRUE
+          AND plano_ativo.valor > 0
+        ORDER BY ativa.id DESC
+        LIMIT 1
+      ) AS valor_recorrente_ativo_anterior,
+      (
+        SELECT ativa.periodicidade
+        FROM assinaturas ativa
+        INNER JOIN planos plano_ativo
+          ON plano_ativo.id = ativa.plano_id
+        WHERE ativa.negocio_id = a.negocio_id
+          AND ativa.id <> a.id
+          AND ativa.ativo = TRUE
+          AND plano_ativo.valor > 0
+        ORDER BY ativa.id DESC
+        LIMIT 1
+      ) AS periodicidade_ativa_anterior,
       (
         SELECT assinatura_anterior.plano_id
         FROM pagamentos anterior
@@ -287,6 +323,9 @@ async function listarPorNegocio(
       plano_novo_id,
       origem,
       detalhes,
+      valor_mensal_anterior,
+      valor_mensal_novo,
+      periodicidade_snapshot,
       ocorrido_em,
       created_at
     FROM assinatura_eventos
