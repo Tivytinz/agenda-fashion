@@ -50,6 +50,8 @@ jest.mock(
       jest.fn(),
     criarIntegracao:
       jest.fn(),
+    atualizarIntegracao:
+      jest.fn(),
     sincronizarManual:
       jest.fn(),
   })
@@ -168,6 +170,51 @@ describe(
           service
             .criarIntegracao
         ).toHaveBeenCalledWith({
+          payload,
+          superadmin: true,
+        });
+      }
+    );
+
+    test(
+      "pausa integração usando permissão atual do backend",
+      async () => {
+        service
+          .atualizarIntegracao
+          .mockResolvedValue({
+            integracao: {
+              id: 3,
+              ativa: false,
+            },
+          });
+
+        const payload = {
+          ativa: false,
+          intervaloMinutos: 60,
+        };
+
+        const resposta =
+          await request(
+            criarApp()
+          )
+            .patch(
+              "/admin/financeiro/contribuicao/sync/integracoes/3"
+            )
+            .set(
+              "x-test-superadmin",
+              "yes"
+            )
+            .send(payload);
+
+        expect(
+          resposta.status
+        ).toBe(200);
+
+        expect(
+          service
+            .atualizarIntegracao
+        ).toHaveBeenCalledWith({
+          integracaoId: "3",
           payload,
           superadmin: true,
         });
