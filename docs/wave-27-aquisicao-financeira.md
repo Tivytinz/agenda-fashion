@@ -66,6 +66,10 @@ fonte efetiva para a mesma campanha/dia: ao gravar uma fonte nova, as fontes
 anteriores daquele dia são removidas. Portanto a Wave 27 não cria uma segunda
 precedência entre manual, Google Ads, Meta Ads, TikTok Ads ou Pinterest Ads.
 
+A migration 098 também fotografa `objetivo_snapshot` no próprio custo diário.
+Assim, mudar uma campanha de `profissional` para `cliente` no futuro não
+reclassifica silenciosamente o custo histórico já persistido.
+
 A leitura financeira soma o fato diário persistido. Se um negócio pago oficial
 foi adquirido em uma data sem custo da própria campanha, a janela correspondente
 fica com `cobertura_custo_incompleta` em vez de fabricar CAC.
@@ -149,19 +153,20 @@ vira receita líquida estimada.
 6. retry do worker não duplicar snapshot;
 7. a Wave reutilizar a fonte única diária já garantida pela migration 037;
 8. substituição da fonte do dia não duplicar investimento;
-9. negócio pago maduro sem custo no dia de aquisição bloquear a comparação;
-10. CAC usar toda a despesa madura da campanha, inclusive dias sem conversão;
-11. pagante contar apenas quando a conversão ocorrer dentro da janela de
+9. mudança posterior do objetivo da campanha não reclassificar custo histórico;
+10. negócio pago maduro sem custo no dia de aquisição bloquear a comparação;
+11. CAC usar toda a despesa madura da campanha, inclusive dias sem conversão;
+12. pagante contar apenas quando a conversão ocorrer dentro da janela de
     monetização da aquisição;
-12. D30/D60/D90 usarem a mesma base financeira madura;
-13. churn não apagar receita histórica;
-14. reativação não criar nova aquisição;
-15. reversões permanecerem exposição separada;
-16. Admin diferenciar CAC de mídia de CAC econômico;
-17. régua atual de decisão de mídia não ser alterada automaticamente;
-18. Wave 26 ser encerrada documentalmente;
-19. Backend CI e Playwright ficarem verdes;
-20. diff final ser revisado antes de qualquer merge.
+13. D30/D60/D90 usarem a mesma base financeira madura;
+14. churn não apagar receita histórica;
+15. reativação não criar nova aquisição;
+16. reversões permanecerem exposição separada;
+17. Admin diferenciar CAC de mídia de CAC econômico;
+18. régua atual de decisão de mídia não ser alterada automaticamente;
+19. Wave 26 ser encerrada documentalmente;
+20. Backend CI e Playwright ficarem verdes;
+21. diff final ser revisado antes de qualquer merge.
 
 ## Estado atual
 
