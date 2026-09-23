@@ -1,5 +1,7 @@
 # Centro de comando administrativo
 
+> **Papel documental:** documento especializado sobre semântica de indicadores e marcos usados no centro de comando. A arquitetura de informação do Admin pertence a [`admin-console.md`](./admin-console.md).
+
 Este documento registra a semântica durável dos indicadores usados na visão administrativa principal do Agenda Fashion.
 
 ## Marcos profissionais de ativação
