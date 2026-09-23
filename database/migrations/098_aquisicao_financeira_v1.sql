@@ -66,6 +66,9 @@ CREATE TABLE marketing_negocio_aquisicoes (
   primeira_conversao_em TIMESTAMPTZ
     NOT NULL,
 
+  primeira_conversao_data DATE
+    NOT NULL,
+
   detalhes JSONB
     NOT NULL
     DEFAULT '{}'::jsonb,
@@ -116,6 +119,12 @@ CREATE TABLE marketing_negocio_aquisicoes (
   CONSTRAINT marketing_negocio_aquisicoes_cronologia_valida
     CHECK (
       primeira_conversao_em >= atribuicao_em
+    ),
+
+  CONSTRAINT marketing_negocio_aquisicoes_data_conversao_valida
+    CHECK (
+      primeira_conversao_data <=
+        (primeira_conversao_em AT TIME ZONE 'America/Sao_Paulo')::date
     )
 );
 
@@ -150,6 +159,9 @@ COMMENT ON COLUMN marketing_negocio_aquisicoes.campanha_oficial_id IS
   'Campanha oficial resolvida no instante da materialização. O snapshot preserva a interpretação financeira mesmo se vínculos de marketing forem corrigidos depois.';
 
 COMMENT ON COLUMN marketing_negocio_aquisicoes.primeiro_pagamento_id IS
-  'Pagamento ligado à CONVERSAO_INICIAL canônica que consolidou o customer pago. Pode ficar nulo somente se o pagamento for removido posteriormente; o snapshot histórico do negócio permanece.';
+  'Pagamento ligado à CONVERSAO_INICIAL canônica que consolidou o customer pago. Pode ficar nulo somente se o pagamento for removido posteriormente; a data canônica da conversão permanece no snapshot.';
+
+COMMENT ON COLUMN marketing_negocio_aquisicoes.primeira_conversao_data IS
+  'Data de pagamento persistida no snapshot para que a coorte financeira não dependa de reler a cobrança original.';
 
 COMMIT;
