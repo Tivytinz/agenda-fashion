@@ -26,21 +26,13 @@ CREATE TABLE contribuicao_operacoes_admin (
     GENERATED ALWAYS AS IDENTITY
     PRIMARY KEY,
 
-  usuario_id BIGINT
-    REFERENCES usuarios(id)
-    ON DELETE SET NULL,
+  usuario_id BIGINT,
 
-  fonte_id BIGINT
-    REFERENCES contribuicao_fontes(id)
-    ON DELETE SET NULL,
+  fonte_id BIGINT,
 
-  negocio_id BIGINT
-    REFERENCES negocios(id)
-    ON DELETE SET NULL,
+  negocio_id BIGINT,
 
-  custo_id BIGINT
-    REFERENCES contribuicao_custos(id)
-    ON DELETE SET NULL,
+  custo_id BIGINT,
 
   acao VARCHAR(40)
     NOT NULL,
@@ -112,5 +104,8 @@ COMMENT ON TABLE contribuicao_operacoes_admin IS
 
 COMMENT ON COLUMN contribuicao_operacoes_admin.motivo IS
   'Justificativa humana obrigatoria para operacoes financeiras administrativas.';
+
+COMMENT ON COLUMN contribuicao_operacoes_admin.usuario_id IS
+  'Identificador historico do ator. Sem FK para preservar a trilha append-only mesmo se a entidade operacional for removida futuramente.';
 
 COMMIT;
