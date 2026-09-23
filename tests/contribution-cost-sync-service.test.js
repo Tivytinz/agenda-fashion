@@ -615,7 +615,7 @@ describe(
             execucaoId: 44,
             integracaoId: 3,
             erroDetalhe:
-              "provedor indisponível",
+              "Falha interna na sincronização da fonte factual.",
           })
         );
       }
