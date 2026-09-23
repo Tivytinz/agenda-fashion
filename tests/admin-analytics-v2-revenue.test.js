@@ -112,6 +112,14 @@ describe("Admin Analytics V2 - receita", () => {
         cobertura_completa: false,
         custos_variaveis_observados:
           null,
+        pagamentos_gateway_elegiveis:
+          0,
+        pagamentos_gateway_incompletos:
+          0,
+        cobertura_gateway_completa:
+          true,
+        receita_liquida_gateway:
+          "0.00",
       });
     paymentEconomicsRepository.buscarLtvLiquidoObservado.mockResolvedValue({
       inicio_cobertura: "2026-09-23T19:00:00.000Z",
@@ -343,6 +351,8 @@ describe("Admin Analytics V2 - receita", () => {
         fontesObrigatorias: 0,
         fontesCobertas: 0,
         coberturaCompleta: false,
+        coberturaGatewayCompleta: true,
+        receitaBaseGateway: 0,
         custosVariaveisObservados: null,
         margemContribuicaoDisponivel: false,
         margemContribuicao: null,
@@ -387,6 +397,14 @@ describe("Admin Analytics V2 - receita", () => {
         cobertura_completa: true,
         custos_variaveis_observados:
           "30.00",
+        pagamentos_gateway_elegiveis:
+          3,
+        pagamentos_gateway_incompletos:
+          0,
+        cobertura_gateway_completa:
+          true,
+        receita_liquida_gateway:
+          "220.00",
       });
 
     repository.buscarReceita.mockResolvedValue({
@@ -401,6 +419,8 @@ describe("Admin Analytics V2 - receita", () => {
     expect(resultado.contribuicao)
       .toMatchObject({
         coberturaCompleta: true,
+        coberturaGatewayCompleta: true,
+        receitaBaseGateway: 220,
         custosVariaveisObservados: 30,
         margemContribuicaoDisponivel:
           true,
