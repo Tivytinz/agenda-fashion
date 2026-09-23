@@ -174,21 +174,27 @@ A Wave 16 é uma evolução de qualidade de Produto e UX; ela não cria novos
 critérios retroativamente na baseline congelada de 67 cenários. Novos requisitos
 formais devem ser versionados separadamente.
 
-### Estado atual da Wave 16
+### Estado da Wave 16
 
-O primeiro patch já implementa controle explícito de pausa/retomada do hero,
-pausa após navegação manual, respeito inicial a `prefers-reduced-motion` e
-alvos de toque maiores para os indicadores. A regressão foi adicionada em testes
-unitários e Playwright mobile.
+A Wave 16 fechou o primeiro hardening pós-baseline sem alterar a baseline
+congelada de 67 cenários.
 
-A Wave permanece **em andamento**. Antes do encerramento, faltam duas evidências
-principais:
+O patch implementa controle explícito de pausa/retomada do hero, pausa após
+navegação manual, respeito inicial a `prefers-reduced-motion`, alvos de toque
+maiores para os indicadores e uma jornada E2E móvel que chega até o sucesso do
+agendamento com APIs mockadas.
 
-- uma jornada E2E móvel única chegando até o sucesso do agendamento;
-- nova execução do Performance QA no head final, porque a home medida na Wave 15
-  ficou em 2.412,60 ms de LCP para um limite de 2.500 ms.
+A evidência de encerramento foi validada no estado executável do commit
+`dcd486f14b18cc17688783c9869df9cb2e99cff4`:
 
-A análise completa, impactos e critérios de saída estão em
+- **Backend CI #1259**: sucesso, incluindo Playwright mobile;
+- **Performance QA #25**: sucesso;
+- home pública: LCP móvel mediano **2.391,71 ms**;
+- perfil público: LCP móvel mediano **2.181,50 ms**;
+- catálogo/perfil/agenda públicos: p95 **140,19 / 92,53 / 95,03 ms**.
+
+As alterações documentais posteriores não mudam o estado executável medido. A
+análise completa, impactos e evidências estão em
 [`wave-16-produto-ux.md`](./wave-16-produto-ux.md).
 
 ## Regra de atualização
