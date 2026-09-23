@@ -546,6 +546,16 @@ async function registrarCusto({
           );
         }
 
+        await repository
+          .travarChaveCusto(
+            {
+              fonteCodigo:
+                fonte,
+              chaveOrigem,
+            },
+            client
+          );
+
         if (tipo === "CREDITO") {
           const existente =
             await repository
