@@ -497,6 +497,17 @@ async function registrarCusto({
     motivoObrigatorio(
       payload?.motivo
     );
+  const chaveOrigem =
+    texto(
+      payload?.chaveOrigem ??
+      payload?.chave_origem,
+      {
+        nome:
+          "Chave de origem",
+        minimo: 1,
+        maximo: 160,
+      }
+    );
   const ator =
     idPositivo(
       usuarioId,
@@ -536,40 +547,53 @@ async function registrarCusto({
         }
 
         if (tipo === "CREDITO") {
-          const validacao =
+          const existente =
             await repository
-              .validarCreditoDisponivel(
+              .buscarCustoPorFonteChave(
                 {
                   fonteCodigo:
                     fonte,
-                  negocioId,
-                  custoReferenciadoId:
-                    idPositivo(
-                      custoReferenciadoId,
-                      "Custo referenciado"
-                    ),
-                  valor,
+                  chaveOrigem,
                 },
                 client
               );
 
-          if (
-            !validacao
-              .referenciaValida
-          ) {
-            throw new AppError(
-              "Débito referenciado não pertence à mesma fonte e negócio.",
-              409
-            );
-          }
+          if (!existente) {
+            const validacao =
+              await repository
+                .validarCreditoDisponivel(
+                  {
+                    fonteCodigo:
+                      fonte,
+                    negocioId,
+                    custoReferenciadoId:
+                      idPositivo(
+                        custoReferenciadoId,
+                        "Custo referenciado"
+                      ),
+                    valor,
+                  },
+                  client
+                );
 
-          if (
-            validacao.excede
-          ) {
-            throw new AppError(
-              "O crédito não pode superar o saldo do débito referenciado.",
-              409
-            );
+            if (
+              !validacao
+                .referenciaValida
+            ) {
+              throw new AppError(
+                "Débito referenciado não pertence à mesma fonte e negócio.",
+                409
+              );
+            }
+
+            if (
+              validacao.excede
+            ) {
+              throw new AppError(
+                "O crédito não pode superar o saldo do débito referenciado.",
+                409
+              );
+            }
           }
         }
 
@@ -583,17 +607,7 @@ async function registrarCusto({
                   fonteCodigo:
                     fonte,
                   negocioId,
-                  chaveOrigem:
-                    texto(
-                      payload?.chaveOrigem ??
-                      payload?.chave_origem,
-                      {
-                        nome:
-                          "Chave de origem",
-                        minimo: 1,
-                        maximo: 160,
-                      }
-                    ),
+                  chaveOrigem,
                   tipo,
                   valor,
                   ocorridoEm:
