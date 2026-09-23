@@ -10,6 +10,35 @@ function chaveAssinatura(assinaturaId, tipo) {
   return `assinatura:${assinaturaId}:${tipo}`;
 }
 
+function periodicidadeSnapshot(assinatura = {}) {
+  return String(
+    assinatura.periodicidade || "MONTHLY"
+  ).trim().toUpperCase() || "MONTHLY";
+}
+
+function snapshotMonetario(assinatura = {}) {
+  const periodicidade =
+    periodicidadeSnapshot(assinatura);
+  const valor = Number(assinatura.valor);
+
+  if (
+    periodicidade !== "MONTHLY" ||
+    !Number.isFinite(valor) ||
+    valor < 0
+  ) {
+    return {
+      valorMensal: null,
+      periodicidade,
+    };
+  }
+
+  return {
+    valorMensal:
+      Number(valor.toFixed(2)),
+    periodicidade,
+  };
+}
+
 const STATUS_ATRASO = new Set([
   "OVERDUE",
   "PAST_DUE",
@@ -72,6 +101,12 @@ async function registrarSuspensaoFinanceira({
       detalhes: {
         status_provedor: statusNormalizado || null,
       },
+      valorMensalAnterior:
+        snapshotMonetario(assinatura).valorMensal,
+      valorMensalNovo:
+        snapshotMonetario(assinatura).valorMensal,
+      periodicidadeSnapshot:
+        snapshotMonetario(assinatura).periodicidade,
       ocorridoEm,
       chaveIdempotencia:
         chavePagamento(pagamentoId, tipo),
@@ -147,6 +182,38 @@ async function registrarConfirmacaoPagamento({
     tipo = "CONVERSAO_INICIAL";
   }
 
+  const monetarioAtual =
+    snapshotMonetario(assinatura);
+  const periodicidadeAnterior =
+    contexto.periodicidade_ativa_anterior ||
+    contexto.periodicidade_atual ||
+    assinatura.periodicidade ||
+    "MONTHLY";
+  const monetarioAnterior =
+    snapshotMonetario({
+      valor:
+        contexto.valor_recorrente_ativo_anterior,
+      periodicidade: periodicidadeAnterior,
+    });
+
+  let valorMensalAnterior =
+    monetarioAtual.valorMensal;
+  let valorMensalNovo =
+    monetarioAtual.valorMensal;
+
+  if (
+    tipo === "CONVERSAO_INICIAL" ||
+    tipo === "REATIVACAO_PAGA"
+  ) {
+    valorMensalAnterior =
+      monetarioAtual.valorMensal === null
+        ? null
+        : 0;
+  } else if (tipo === "PLANO_ALTERADO") {
+    valorMensalAnterior =
+      monetarioAnterior.valorMensal;
+  }
+
   const principal =
     await assinaturaEventoRepository.registrar(
       client,
@@ -159,6 +226,10 @@ async function registrarConfirmacaoPagamento({
         planoAnteriorId,
         planoNovoId: assinatura.plano_id || null,
         origem: "webhook",
+        valorMensalAnterior,
+        valorMensalNovo,
+        periodicidadeSnapshot:
+          monetarioAtual.periodicidade,
         ocorridoEm,
         chaveIdempotencia:
           chavePagamento(pagamentoId, tipo),
@@ -199,6 +270,12 @@ async function registrarConfirmacaoPagamento({
             contexto.plano_negocio_atual_id || null,
           planoNovoId: assinatura.plano_id || null,
           origem: "webhook",
+          valorMensalAnterior:
+            monetarioAtual.valorMensal,
+          valorMensalNovo:
+            monetarioAtual.valorMensal,
+          periodicidadeSnapshot:
+            monetarioAtual.periodicidade,
           ocorridoEm,
           chaveIdempotencia:
             chavePagamento(
@@ -241,6 +318,12 @@ async function registrarCancelamentoRenovacao({
       detalhes: {
         acesso_ate: acessoAte || null,
       },
+      valorMensalAnterior:
+        snapshotMonetario(assinatura).valorMensal,
+      valorMensalNovo:
+        snapshotMonetario(assinatura).valorMensal,
+      periodicidadeSnapshot:
+        snapshotMonetario(assinatura).periodicidade,
       ocorridoEm,
       chaveIdempotencia:
         `${chaveAssinatura(
@@ -297,6 +380,14 @@ async function registrarEncerramentoAcesso({
         acesso_ate:
           assinatura.data_proxima_cobranca || null,
       },
+      valorMensalAnterior:
+        snapshotMonetario(assinatura).valorMensal,
+      valorMensalNovo:
+        snapshotMonetario(assinatura).valorMensal === null
+          ? null
+          : 0,
+      periodicidadeSnapshot:
+        snapshotMonetario(assinatura).periodicidade,
       ocorridoEm,
       chaveIdempotencia: pagamentoId
         ? chavePagamento(
@@ -316,9 +407,80 @@ async function registrarEncerramentoAcesso({
   );
 }
 
+async function registrarAlteracaoValorRecorrente({
+  client,
+  assinaturaAnterior,
+  assinaturaAtualizada,
+  origem = "webhook",
+  referenciaIdempotencia = null,
+  ocorridoEm = null,
+}) {
+  if (
+    !assinaturaAnterior?.negocio_id ||
+    !assinaturaAnterior?.id ||
+    !assinaturaAtualizada?.id ||
+    Number(assinaturaAnterior.id) !==
+      Number(assinaturaAtualizada.id)
+  ) {
+    return null;
+  }
+
+  const anterior =
+    snapshotMonetario(assinaturaAnterior);
+  const novo =
+    snapshotMonetario(assinaturaAtualizada);
+
+  if (
+    anterior.valorMensal === null ||
+    novo.valorMensal === null ||
+    anterior.valorMensal === novo.valorMensal
+  ) {
+    return null;
+  }
+
+  const referencia =
+    referenciaIdempotencia ||
+    assinaturaAtualizada.asaas_ultimo_evento_id ||
+    assinaturaAtualizada.asaas_ultimo_evento_em ||
+    `${anterior.valorMensal}->${novo.valorMensal}`;
+
+  return assinaturaEventoRepository.registrar(
+    client,
+    {
+      negocioId:
+        assinaturaAtualizada.negocio_id,
+      assinaturaId:
+        assinaturaAtualizada.id,
+      tipo: "VALOR_RECORRENTE_ALTERADO",
+      motivo: "ATUALIZACAO_PROVEDOR",
+      planoAnteriorId:
+        assinaturaAnterior.plano_id || null,
+      planoNovoId:
+        assinaturaAtualizada.plano_id || null,
+      origem,
+      detalhes: {
+        regra: "mrr_v1",
+      },
+      valorMensalAnterior:
+        anterior.valorMensal,
+      valorMensalNovo:
+        novo.valorMensal,
+      periodicidadeSnapshot:
+        novo.periodicidade,
+      ocorridoEm,
+      chaveIdempotencia:
+        `${chaveAssinatura(
+          assinaturaAtualizada.id,
+          "VALOR_RECORRENTE_ALTERADO"
+        )}:${referencia}`,
+    }
+  );
+}
+
 module.exports = {
   registrarSuspensaoFinanceira,
   registrarConfirmacaoPagamento,
   registrarCancelamentoRenovacao,
   registrarEncerramentoAcesso,
+  registrarAlteracaoValorRecorrente,
 };
