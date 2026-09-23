@@ -122,6 +122,105 @@ function booleano(
   return valor;
 }
 
+function dataIso(
+  valor,
+  nome
+) {
+  const textoData =
+    String(valor || "")
+      .trim();
+
+  if (
+    !/^\d{4}-\d{2}-\d{2}$/
+      .test(textoData)
+  ) {
+    throw new AppError(
+      `${nome} inválida.`,
+      400
+    );
+  }
+
+  const data = new Date(
+    `${textoData}T00:00:00.000Z`
+  );
+
+  if (
+    Number.isNaN(
+      data.getTime()
+    ) ||
+    data
+      .toISOString()
+      .slice(0, 10) !==
+      textoData
+  ) {
+    throw new AppError(
+      `${nome} inválida.`,
+      400
+    );
+  }
+
+  return textoData;
+}
+
+function hojeSaoPaulo() {
+  const partes =
+    new Intl.DateTimeFormat(
+      "en-US",
+      {
+        timeZone:
+          "America/Sao_Paulo",
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+      }
+    ).formatToParts(
+      new Date()
+    );
+
+  const mapa =
+    Object.fromEntries(
+      partes.map(
+        (parte) => [
+          parte.type,
+          parte.value,
+        ]
+      )
+    );
+
+  return `${mapa.year}-${mapa.month}-${mapa.day}`;
+}
+
+function instanteNaoFuturo(
+  valor
+) {
+  const data =
+    new Date(valor);
+
+  if (
+    !valor ||
+    Number.isNaN(
+      data.getTime()
+    )
+  ) {
+    throw new AppError(
+      "Instante do custo inválido.",
+      400
+    );
+  }
+
+  if (
+    data.getTime() >
+    Date.now() + 5 * 60 * 1000
+  ) {
+    throw new AppError(
+      "O custo não pode ocorrer no futuro.",
+      400
+    );
+  }
+
+  return data.toISOString();
+}
+
 function valorPositivo(
   valor
 ) {
@@ -488,6 +587,11 @@ async function registrarCusto({
     valorPositivo(
       payload?.valor
     );
+  const ocorridoEm =
+    instanteNaoFuturo(
+      payload?.ocorridoEm ??
+      payload?.ocorrido_em
+    );
   const fonte =
     codigoFonte(
       payload?.fonteCodigo ??
@@ -620,9 +724,7 @@ async function registrarCusto({
                   chaveOrigem,
                   tipo,
                   valor,
-                  ocorridoEm:
-                    payload?.ocorridoEm ??
-                    payload?.ocorrido_em,
+                  ocorridoEm,
                   custoReferenciadoId:
                     tipo === "CREDITO"
                       ? idPositivo(
@@ -748,6 +850,63 @@ async function registrarCobertura({
       payload?.fonteCodigo ??
       payload?.fonte_codigo
     );
+  const inicioCobertura =
+    dataIso(
+      payload?.inicioCobertura ??
+      payload?.inicio_cobertura,
+      "Data inicial da cobertura"
+    );
+  const cobertoAteBruto =
+    payload?.cobertoAte ??
+    payload?.coberto_ate ??
+    null;
+  const cobertoAte =
+    cobertoAteBruto == null ||
+    cobertoAteBruto === ""
+      ? null
+      : dataIso(
+          cobertoAteBruto,
+          "Data final da cobertura"
+        );
+  const status =
+    String(
+      payload?.status || ""
+    )
+      .trim()
+      .toUpperCase();
+
+  if (
+    ![
+      "COMPLETA",
+      "INCOMPLETA",
+    ].includes(status)
+  ) {
+    throw new AppError(
+      "Status de cobertura inválido.",
+      400
+    );
+  }
+
+  if (
+    status === "COMPLETA" &&
+    !cobertoAte
+  ) {
+    throw new AppError(
+      "Cobertura completa exige a data coberta até.",
+      400
+    );
+  }
+
+  if (
+    cobertoAte &&
+    cobertoAte >
+      hojeSaoPaulo()
+  ) {
+    throw new AppError(
+      "Cobertura não pode avançar para uma data futura.",
+      400
+    );
+  }
 
   return repository
     .executarTransacao(
@@ -763,19 +922,9 @@ async function registrarCobertura({
                 {
                   fonteCodigo:
                     fonte,
-                  inicioCobertura:
-                    payload
-                      ?.inicioCobertura ??
-                    payload
-                      ?.inicio_cobertura,
-                  cobertoAte:
-                    payload
-                      ?.cobertoAte ??
-                    payload
-                      ?.coberto_ate ??
-                    null,
-                  status:
-                    payload?.status,
+                  inicioCobertura,
+                  cobertoAte,
+                  status,
                 },
                 {
                   executor:
@@ -847,4 +996,7 @@ module.exports = {
   codigoFonte,
   motivoObrigatorio,
   valorPositivo,
+  dataIso,
+  instanteNaoFuturo,
+  hojeSaoPaulo,
 };
