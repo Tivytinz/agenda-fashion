@@ -134,6 +134,13 @@ A Wave pode ser encerrada quando:
 10. Wave 22 for encerrada documentalmente;
 11. o diff final for revisado antes de qualquer merge.
 
-## Estado atual
+## Estado de encerramento
 
-A Wave 23 está **em andamento**.
+A Wave 23 foi encerrada no head
+`71f27e28f2ad55644abc0665c80d85cdf8d71da9`, com o **Backend CI #1295**
+concluído com sucesso.
+
+O PR #282 foi mergeado na `main` pelo commit
+`faeeacb7e1cb6044396a714615cdd1b95964283a`.
+
+A baseline P0 + P1 permaneceu congelada em **67/67 (100%)**.
