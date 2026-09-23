@@ -115,6 +115,33 @@ describe("paymentEconomicsService", () => {
     ).toBe("CHARGEBACK_EM_DISPUTA");
   });
 
+  test("não marca refund como completo sem ledger factual", () => {
+    expect(
+      service.classificarEconomia({
+        pagamento: {
+          status: "REFUNDED",
+          value: 100,
+          netValue: 98,
+        },
+        estornos: [],
+      }).statusReconciliacao
+    ).toBe("REVERSAO_NAO_RECONCILIADA");
+
+    expect(
+      service.classificarEconomia({
+        pagamento: {
+          status: "PARTIALLY_REFUNDED",
+          value: 100,
+          netValue: 98,
+        },
+        estornos: [{
+          status: "DONE",
+          valor: 20,
+        }],
+      }).statusReconciliacao
+    ).toBe("COMPLETO");
+  });
+
   test("normaliza múltiplos refunds com chaves estáveis mesmo se a ordem mudar", () => {
     const refundA = {
       dateCreated: "2026-09-23 10:00:00",
@@ -160,6 +187,29 @@ describe("paymentEconomicsService", () => {
         0
       )
     ).toBe(25);
+  });
+
+  test("usa o identificador do provedor quando disponível", () => {
+    const [normalizado] =
+      service.normalizarEstornos([{
+        id: "ref_123",
+        dateCreated: "2026-09-23 10:00:00",
+        value: 10,
+        description: "parcial",
+        status: "DONE",
+      }]);
+
+    const [mesmo] =
+      service.normalizarEstornos([{
+        id: "ref_123",
+        dateCreated: "2026-09-24 10:00:00",
+        value: 15,
+        description: "texto alterado",
+        status: "DONE",
+      }]);
+
+    expect(normalizado.chaveProvedor)
+      .toBe(mesmo.chaveProvedor);
   });
 
   test("consulta endpoint de refunds quando cobrança estornada não traz lista embutida", async () => {
