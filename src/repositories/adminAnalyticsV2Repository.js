@@ -1278,6 +1278,8 @@ async function buscarMrr(periodo = "30") {
             'PAGAMENTO_ATRASADO',
             'PAGAMENTO_RECUPERADO',
             'REVERSAO_FINANCEIRA',
+            'PLANO_ALTERADO',
+            'VALOR_RECORRENTE_ALTERADO',
             'ACESSO_PAGO_ENCERRADO',
             'REATIVACAO_PAGA'
           )
