@@ -123,105 +123,176 @@ function semOutroProcessamentoDoRecurso(
   `;
 }
 
-function travaAdvisoryRecurso(alias) {
-  return `
-    pg_advisory_xact_lock(
+async function travarRecurso(
+  client,
+  {
+    id,
+    provedor,
+    recurso_id: recursoId
+  }
+) {
+  await client.query(
+    `
+    SELECT pg_advisory_xact_lock(
       hashtext(
         'agenda-fashion:webhook:' ||
-        ${alias}.provedor
+        $1
       ),
       hashtext(
         COALESCE(
-          ${alias}.recurso_id,
-          'evento:' || ${alias}.id::text
+          $2,
+          'evento:' || $3::text
         )
       )
     )
-  `;
+    `,
+    [
+      provedor,
+      recursoId || null,
+      id
+    ]
+  );
 }
 
 async function reservarPorId(id) {
-  const resultado = await db.query(
-    `
-    WITH alvo AS MATERIALIZED (
-      SELECT
-        id,
-        provedor,
-        recurso_id
-      FROM webhook_eventos
-      WHERE id = $1
-    ),
-    trava AS MATERIALIZED (
-      SELECT
-        ${travaAdvisoryRecurso("alvo")}
-      FROM alvo
-    )
-    UPDATE webhook_eventos evento
-    SET
-      status = 'PROCESSING',
-      tentativas = evento.tentativas + 1,
-      erro = NULL,
-      proxima_tentativa_em = NULL,
-      ultima_tentativa_em = NOW(),
-      processado_em = NULL
-    FROM alvo, trava
-    WHERE evento.id = alvo.id
-      AND ${condicaoDisponivel("evento")}
-      AND ${semOutroProcessamentoDoRecurso(
-        "evento"
-      )}
-    RETURNING
-      evento.*,
-      evento.tentativas AS lease_tentativa
-    `,
-    [id]
-  );
+  return db.executarTransacao(
+    async (client) => {
+      const alvoResultado =
+        await client.query(
+          `
+          SELECT
+            id,
+            provedor,
+            recurso_id
+          FROM webhook_eventos
+          WHERE id = $1
+          LIMIT 1
+          `,
+          [id]
+        );
 
-  return resultado.rows[0] || null;
+      const alvo =
+        alvoResultado.rows[0];
+
+      if (!alvo) {
+        return null;
+      }
+
+      /*
+       * A trava precisa ser adquirida em uma instrução anterior ao UPDATE.
+       * Em READ COMMITTED, isso força o UPDATE seguinte a obter um snapshot
+       * novo depois que outra reserva concorrente do mesmo recurso terminar.
+       * Manter a trava dentro do mesmo statement não é suficiente: uma
+       * instrução que aguardou a advisory lock pode continuar enxergando o
+       * snapshot antigo e reservar dois eventos do mesmo recurso.
+       */
+      await travarRecurso(
+        client,
+        alvo
+      );
+
+      const resultado =
+        await client.query(
+          `
+          UPDATE webhook_eventos evento
+          SET
+            status = 'PROCESSING',
+            tentativas =
+              evento.tentativas + 1,
+            erro = NULL,
+            proxima_tentativa_em = NULL,
+            ultima_tentativa_em = NOW(),
+            processado_em = NULL
+          WHERE evento.id = $1
+            AND ${condicaoDisponivel(
+              "evento"
+            )}
+            AND ${semOutroProcessamentoDoRecurso(
+              "evento"
+            )}
+          RETURNING
+            evento.*,
+            evento.tentativas
+              AS lease_tentativa
+          `,
+          [id]
+        );
+
+      return (
+        resultado.rows[0] || null
+      );
+    }
+  );
 }
 
 async function reservarProximo() {
-  const resultado = await db.query(
-    `
-    WITH candidato AS MATERIALIZED (
-      SELECT
-        evento.id,
-        evento.provedor,
-        evento.recurso_id
-      FROM webhook_eventos evento
-      WHERE ${condicaoDisponivel("evento")}
-        AND ${semOutroProcessamentoDoRecurso(
-          "evento"
-        )}
-      ORDER BY evento.recebido_em ASC
-      FOR UPDATE SKIP LOCKED
-      LIMIT 1
-    ),
-    trava AS MATERIALIZED (
-      SELECT
-        ${travaAdvisoryRecurso("candidato")}
-      FROM candidato
-    )
-    UPDATE webhook_eventos evento
-    SET
-      status = 'PROCESSING',
-      tentativas = evento.tentativas + 1,
-      erro = NULL,
-      proxima_tentativa_em = NULL,
-      ultima_tentativa_em = NOW(),
-      processado_em = NULL
-    FROM candidato, trava
-    WHERE evento.id = candidato.id
-      AND ${semOutroProcessamentoDoRecurso(
-        "evento"
-      )}
-    RETURNING
-      evento.*,
-      evento.tentativas AS lease_tentativa
-    `
-  );
+  return db.executarTransacao(
+    async (client) => {
+      const candidatoResultado =
+        await client.query(
+          `
+          SELECT
+            evento.id,
+            evento.provedor,
+            evento.recurso_id
+          FROM webhook_eventos evento
+          WHERE ${condicaoDisponivel(
+            "evento"
+          )}
+            AND ${semOutroProcessamentoDoRecurso(
+              "evento"
+            )}
+          ORDER BY
+            evento.recebido_em ASC
+          FOR UPDATE SKIP LOCKED
+          LIMIT 1
+          `
+        );
 
-  return resultado.rows[0] || null;
+      const candidato =
+        candidatoResultado.rows[0];
+
+      if (!candidato) {
+        return null;
+      }
+
+      await travarRecurso(
+        client,
+        candidato
+      );
+
+      const resultado =
+        await client.query(
+          `
+          UPDATE webhook_eventos evento
+          SET
+            status = 'PROCESSING',
+            tentativas =
+              evento.tentativas + 1,
+            erro = NULL,
+            proxima_tentativa_em = NULL,
+            ultima_tentativa_em = NOW(),
+            processado_em = NULL
+          WHERE evento.id = $1
+            AND ${condicaoDisponivel(
+              "evento"
+            )}
+            AND ${semOutroProcessamentoDoRecurso(
+              "evento"
+            )}
+          RETURNING
+            evento.*,
+            evento.tentativas
+              AS lease_tentativa
+          `,
+          [candidato.id]
+        );
+
+      return (
+        resultado.rows[0] || null
+      );
+    }
+  );
 }
 
 function condicaoFinalizacaoComLease() {
