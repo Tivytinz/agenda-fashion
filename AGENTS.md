@@ -262,9 +262,15 @@ começando pelas ativações mais recentes. Esses vínculos usam
 `motivo_inatividade = 'excedente_limite_plano'`; `ativado_em` registra a
 ativação mais recente para manter a ordem de downgrade determinística.
 
-Planos pagos usam checkout por PIX. Retorno do navegador não confirma pagamento.
-A ativação do plano depende da confirmação financeira autenticada e idempotente
-do Asaas. Estados externos do provedor são preservados para auditoria, enquanto
+Planos pagos usam checkout por PIX. O backend só permite iniciar checkout pago
+para a proprietária ativa de um negócio ativo e já publicado; esconder ou
+redirecionar o botão no frontend não substitui essa validação. A disponibilidade
+manual não é um gate financeiro: a primeira jornada pode ordenar Horários antes
+do checkout, mas o backend de billing usa a publicação persistida como condição
+de elegibilidade.
+
+Retorno do navegador não confirma pagamento. A ativação do plano depende da
+confirmação financeira autenticada e idempotente do Asaas. Estados externos do provedor são preservados para auditoria, enquanto
 a experiência do produto normaliza situações relevantes como
 `FALHA_DE_PAGAMENTO` e `CHECKOUT_EXPIRADO`. Checkout inicial expirado não
 libera benefício pago e falha de renovação pode retornar temporariamente o

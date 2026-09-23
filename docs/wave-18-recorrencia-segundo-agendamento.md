@@ -168,8 +168,12 @@ A Wave 18 pode ser encerrada quando:
    escopo;
 7. o PR for mergeado com autorização explícita.
 
-## Estado atual
+## Estado de encerramento
 
-A Wave está **em andamento** na branch
-`feat/product-ux-wave-18`. O encerramento depende das validações do PR no head
-final.
+A Wave 18 foi encerrada no head
+`b4920b27b5edf2c094b83e604778e2bee0f4d1ee`, com **Backend CI #1275** e
+**Performance QA #30** concluídos com sucesso. O PR #277 foi mergeado na
+`main` pelo commit
+`ecf5738ab4a8fd9ba3c0bb75a58bf3912b129284`.
+
+A baseline P0 + P1 permaneceu congelada em **67/67 (100%)**.
