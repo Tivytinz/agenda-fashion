@@ -29,10 +29,13 @@ acrescentou um cutover monetário e snapshots mensais para MRR, GRR e NRR. A Wav
 A Wave 27 acrescentou um snapshot financeiro imutável por negócio, custo diário
 canônico e retorno bruto D30/D60/D90 da mesma coorte. A Wave 28 acrescenta
 `netValue`, refunds concluídos, LTV líquido de gateway e retorno líquido de
-gateway sem chamar essa leitura de lucro ou margem. Essas métricas não substituem
-a régua operacional existente e não autorizam escalar, manter ou pausar
-orçamento automaticamente. CAC econômico, margem de contribuição e payback
-econômico permanecem fora desta camada.
+gateway sem chamar essa leitura de lucro ou margem. A Wave 29 adiciona a
+infraestrutura de custos variáveis e cobertura de contribuição. A Wave 30
+prepara a comparação entre contribuição factual e CAC de mídia, mas mantém essa
+leitura indisponível enquanto não houver LTV de contribuição da mesma base.
+Essas métricas não substituem a régua operacional existente e não autorizam
+escalar, manter ou pausar orçamento automaticamente. CAC total, lucro e payback
+econômico definitivo permanecem fora desta camada.
 
 ## Fontes reutilizadas
 
