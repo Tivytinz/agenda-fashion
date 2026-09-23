@@ -132,13 +132,13 @@ test("cliente repete um serviço e cria um novo booking sem fixar a profissional
   await page.route("**/favoritos/7/status", (route) => json(route, {
     favoritado: false
   }));
+  await page.route("**/agenda-publica?**", (route) => json(route, {
+    disponibilidade: AVAILABILITY
+  }));
   await page.route("**/agenda-publica/politica-cancelamento?**", (route) => json(route, {
     politica_cancelamento: {
       antecedencia_horas: 24
     }
-  }));
-  await page.route("**/agenda-publica?**", (route) => json(route, {
-    disponibilidade: AVAILABILITY
   }));
   await page.route("**/agendamentos", async (route) => {
     if (route.request().method() !== "POST") {
