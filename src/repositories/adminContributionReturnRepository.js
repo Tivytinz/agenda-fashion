@@ -119,6 +119,14 @@ async function buscarRetornoContribuicaoAquisicao({
           WHERE chave =
             'retorno_contribuicao_v1_inicio'
         ) AS wave30_inicio,
+        MAX(ocorrido_em) FILTER (
+          WHERE chave =
+            'margem_contribuicao_v1_inicio'
+        ) AS contribuicao_inicio,
+        MAX(ocorrido_em) FILTER (
+          WHERE chave =
+            'economia_liquida_v1_inicio'
+        ) AS economia_inicio,
         (
           MAX(ocorrido_em) FILTER (
             WHERE chave =
@@ -185,6 +193,10 @@ async function buscarRetornoContribuicaoAquisicao({
           IS NOT NULL
         AND mna.primeira_conversao_em >=
           m.wave30_inicio
+        AND mna.primeira_conversao_em >=
+          m.contribuicao_inicio
+        AND mna.primeira_conversao_em >=
+          m.economia_inicio
         AND (
           mna.atribuicao_em
           AT TIME ZONE 'America/Sao_Paulo'
