@@ -44,6 +44,33 @@ async function criarIntegracao(
   }
 }
 
+async function atualizarIntegracao(
+  req,
+  res,
+  next
+) {
+  try {
+    const resultado =
+      await service
+        .atualizarIntegracao({
+          integracaoId:
+            req.params?.id,
+          payload:
+            req.body || {},
+          superadmin:
+            req.admin
+              ?.superadmin ===
+            true,
+        });
+
+    return res
+      .status(200)
+      .json(resultado);
+  } catch (erro) {
+    return next(erro);
+  }
+}
+
 async function sincronizar(
   req,
   res,
@@ -72,5 +99,6 @@ async function sincronizar(
 module.exports = {
   buscarStatus,
   criarIntegracao,
+  atualizarIntegracao,
   sincronizar,
 };
