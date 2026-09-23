@@ -264,23 +264,19 @@ function classificarEconomia({
 async function buscarEstornos(
   pagamento
 ) {
-  if (
-    Array.isArray(pagamento?.refunds) &&
-    pagamento.refunds.length > 0
-  ) {
-    return pagamento.refunds;
-  }
-
   const status = String(
     pagamento?.status || ""
   )
     .trim()
     .toUpperCase();
 
-  if (
-    !status.includes("REFUND") &&
-    status !== "PARTIALLY_REFUNDED"
-  ) {
+  const exigeConciliacao = [
+    "REFUNDED",
+    "PARTIALLY_REFUNDED",
+    "REFUND_IN_PROGRESS",
+  ].includes(status);
+
+  if (!exigeConciliacao) {
     return [];
   }
 
