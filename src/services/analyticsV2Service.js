@@ -26,6 +26,16 @@ const MOTIVOS_SAIDA = new Set([
   "session_end",
 ]);
 
+const BOOKING_INTENTS = new Set([
+  "new_booking",
+  "repeat_booking",
+]);
+
+const BOOKING_SOURCE_STATUSES = new Set([
+  "realizado",
+  "falta",
+]);
+
 const PROPRIEDADES_PERMITIDAS = Object.freeze({
   business_creation_started: new Set(["entry_point"]),
   first_service_creation_started: new Set(["entry_point"]),
@@ -168,6 +178,21 @@ function propriedadesSeguras(nome, propriedades) {
       resultado[chave] = typeof valor === "string"
         ? textoSeguro(valor, 120)
         : valor;
+    }
+  }
+
+  if (nome === "booking_started") {
+    if (!BOOKING_INTENTS.has(resultado.intent)) {
+      delete resultado.intent;
+    }
+
+    if (
+      resultado.source_booking_status &&
+      !BOOKING_SOURCE_STATUSES.has(
+        resultado.source_booking_status
+      )
+    ) {
+      delete resultado.source_booking_status;
     }
   }
 
