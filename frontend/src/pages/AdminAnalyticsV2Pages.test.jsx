@@ -148,13 +148,9 @@ describe("aquisição administrativa v2", () => {
     expect(screen.getByText("1.20x")).not.toBeNull();
     expect(screen.getByText("Líquido gateway 0.70x")).not.toBeNull();
     expect(screen.getByText("Líquido gateway 1.10x")).not.toBeNull();
-    expect(screen.getAllByText("Contribuição Aguardando contribuição").length).toBeGreaterThanOrEqual(2);
-    expect(screen.getByText("Retorno de contribuição ainda indisponível.")).not.toBeNull();
-    expect(screen.getByRole("columnheader", { name: "Recuperação contribuição" })).not.toBeNull();
     expect(screen.getByText("Aguardando maturidade")).not.toBeNull();
     expect(screen.getAllByText("até D60").length).toBeGreaterThanOrEqual(1);
-    expect(screen.getByText(/CAC de mídia não é CAC total/i)).not.toBeNull();
-    expect(screen.getByText(/não declara lucro, CAC total ou payback econômico definitivo/i)).not.toBeNull();
+    expect(screen.getByText(/CAC de mídia não é CAC econômico/i)).not.toBeNull();
   });
 
   it("mantém CAC e ROAS calculados pelo backend", async () => {
@@ -282,6 +278,12 @@ describe("receita administrativa v2", () => {
         ltvLiquidoGatewayD30: 78.33,
         ltvLiquidoGatewayD60: 115,
         ltvLiquidoGatewayD90: null,
+        ltvContribuicaoDisponivel: false,
+        inicioCoberturaContribuicao: "2026-09-23T20:00:00.000Z",
+        fontesObrigatoriasContribuicao: 0,
+        ltvContribuicaoD30: null,
+        ltvContribuicaoD60: null,
+        ltvContribuicaoD90: null,
         madurosLiquidosD30: 3,
         madurosLiquidosD60: 2,
         madurosLiquidosD90: 0,
@@ -364,7 +366,10 @@ describe("receita administrativa v2", () => {
     expect(screen.getByText("Fontes de custo cobertas")).not.toBeNull();
     expect(screen.getByText("Margem de contribuição ainda indisponível.")).not.toBeNull();
     expect(screen.getByText("LTV líquido gateway D30")).not.toBeNull();
-    expect(screen.getByText("LTV econômico / margem")).not.toBeNull();
+    expect(screen.getByText("LTV contribuição D30")).not.toBeNull();
+    expect(screen.getByText("LTV contribuição D60")).not.toBeNull();
+    expect(screen.getByText("LTV contribuição D90")).not.toBeNull();
+    expect(screen.getAllByText("Aguardando cobertura de contribuição").length).toBe(3);
     expect(screen.getAllByText("Indisponível").length).toBeGreaterThan(0);
     expect(screen.getByText("2026-06")).not.toBeNull();
     expect(screen.getByText("85%")).not.toBeNull();

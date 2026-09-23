@@ -378,20 +378,13 @@ da janela, margem de contribuição permanece indisponível e ausência de
 lançamento não significa custo zero. Débitos aumentam custo e créditos corrigem
 ou devolvem custo sem apagar o fato anterior. A taxa do gateway e refunds já
 tratados na Wave 28 não podem ser descontados novamente, e mídia paga permanece
-no domínio de CAC/aquisição. Lucro, CAC total e payback econômico continuam fora
-da definição oficial.
-
-Desde a Wave 30, o AF possui um cutover e uma camada de **prontidão para retorno
-de contribuição sobre CAC de mídia**. A unidade continua sendo negócio e as
-janelas continuam D30/D60/D90. A camada reutiliza aquisição oficial, custo de
-mídia canônico, economia líquida do gateway e cobertura de contribuição; não
-cria um novo ledger nem duplica custos. Enquanto não houver ao menos uma fonte
-obrigatória de contribuição coberta e LTV de contribuição factual da mesma base,
-o retorno permanece indisponível. Recuperação observada em uma janela significa
-somente contribuição acumulada >= investimento de mídia até aquela janela; não
-autoriza interpolar dias nem chamar a métrica de CAC total, lucro ou payback
-econômico definitivo. A Wave 30 continua descritiva e não altera
-automaticamente a régua de escala/pausa de mídia.
+no domínio de CAC/aquisição. LTV de contribuição reutiliza a primeira conversão
+paga canônica e as janelas D30/D60/D90 da Wave 26, exige economia do gateway
+reconciliada e cobertura integral de todas as fontes obrigatórias na mesma
+janela. Negócio maduro incompleto bloqueia a leitura da janela em vez de ser
+removido do denominador. Sem fonte obrigatória real, margem e LTV de contribuição
+permanecem indisponíveis; ausência de fonte nunca é custo zero. Lucro, CAC total
+e payback econômico continuam fora da definição oficial.
 
 Um negócio pode possuir no máximo uma cobrança PIX pendente de contratação ou
 upgrade por vez, independentemente do plano escolhido. Trocar de plano antes do

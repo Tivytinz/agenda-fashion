@@ -419,38 +419,23 @@ A Wave 28 não altera a baseline funcional, que continua em **67/67 (100%)**.
 
 ## Wave 29 — margem de contribuição observada v1
 
-A Wave 29 foi preparada para transformar receita líquida de gateway em margem de
-contribuição observada somente quando existirem custos variáveis factuais,
-atribuíveis e com cobertura verificável.
+A fundação técnica da Wave 29 foi mergeada no PR #289 e passou no **Backend CI
+#1362**. Ela transforma receita líquida de gateway em margem de contribuição
+somente quando existirem custos variáveis factuais, atribuíveis e com cobertura
+verificável.
+
+O PR #292 completa a implementação técnica do **LTV de contribuição
+D30/D60/D90**, reutilizando a unidade negócio e as maturidades da Wave 26,
+herdando a cobertura econômica da Wave 28 e bloqueando a janela inteira quando
+existir negócio maduro incompleto.
 
 A Wave preserva CAC de mídia fora da margem, não trata ausência de custo como
 zero e não declara lucro, CAC total, payback econômico ou LTV:CAC definitivo.
-LTV de contribuição deverá reutilizar a unidade negócio e as maturidades
-D30/D60/D90 já estabelecidas, sem retirar casos incompletos para melhorar médias.
-
-A fundação técnica da Wave 29 foi mergeada pelo PR #289 no commit
-`0723d70cdaaadafdcbe4937c1f5b9afcfc852bcc`, após o **Backend CI #1362**
-verde. Ainda assim, a Wave permanece aberta porque nenhuma fonte real obrigatória
-de custo variável foi cadastrada e o LTV de contribuição D30/D60/D90 não foi
-materializado. Nenhuma métrica indisponível deve ser convertida em zero por essa
-lacuna.
+A métrica permanece indisponível em produção enquanto não existir uma fonte real
+obrigatória de custo variável com cobertura factual; essa ausência é um limite
+de dados, não autorização para inventar custo.
 
 A Wave 29 não altera a baseline funcional, que continua em **67/67 (100%)**.
-
-## Wave 30 — retorno de contribuição × CAC de mídia observado v1
-
-A Wave 30 foi preparada para conectar a contribuição econômica factual ao mesmo
-CAC de mídia observado da Wave 27, preservando a unidade negócio e as janelas
-D30/D60/D90.
-
-A preparação cria o cutover da migration 101, leitura de prontidão das fontes de
-contribuição e estados explícitos de bloqueio no Admin. Nenhum retorno de
-contribuição é liberado enquanto a Wave 29 não fornecer LTV de contribuição
-factual e cobertura completa da mesma base.
-
-CAC total, lucro, payback econômico definitivo e decisão automática de mídia
-continuam fora do escopo. A Wave 30 não altera a baseline funcional, que
-permanece em **67/67 (100%)**.
 
 ## Regra de atualização
 
