@@ -1261,6 +1261,7 @@ async function buscarMrr(periodo = "30") {
         SELECT
           ae.negocio_id,
           ae.tipo,
+          ae.detalhes,
           ROW_NUMBER() OVER (
             PARTITION BY ae.negocio_id
             ORDER BY
@@ -1271,6 +1272,7 @@ async function buscarMrr(periodo = "30") {
         CROSS JOIN limites l
         WHERE ae.ocorrido_em >= l.inicio_cobertura
           AND ae.tipo IN (
+            'MRR_BASELINE',
             'CONVERSAO_INICIAL',
             'RENOVACAO_CONFIRMADA',
             'PAGAMENTO_ATRASADO',
@@ -1293,9 +1295,21 @@ async function buscarMrr(periodo = "30") {
       INNER JOIN ultimo_estado_risco ur
         ON ur.negocio_id = ef.negocio_id
       WHERE ef.mrr_fim > 0
-        AND ur.tipo IN (
-          'PAGAMENTO_ATRASADO',
-          'REVERSAO_FINANCEIRA'
+        AND (
+          ur.tipo IN (
+            'PAGAMENTO_ATRASADO',
+            'REVERSAO_FINANCEIRA'
+          )
+          OR (
+            ur.tipo = 'MRR_BASELINE'
+            AND COALESCE(
+              (
+                ur.detalhes
+                  ->> 'mrr_em_risco_snapshot'
+              )::boolean,
+              FALSE
+            )
+          )
         )
     ),
     periodicidade_nao_suportada AS (
