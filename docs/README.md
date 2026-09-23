@@ -37,7 +37,7 @@ ser mantida como duas interpretações válidas.
 | Planos e monetização | [planos.md](./planos.md) | [checkout-idempotente.md](./checkout-idempotente.md), [asaas-ativacao-recorrencia.md](./asaas-ativacao-recorrencia.md) |
 | Webhooks financeiros | [webhook-processing.md](./webhook-processing.md) | [webhook-asaas.md](./webhook-asaas.md), [webhook-retention.md](./webhook-retention.md) |
 | Frontend e UX | [ux-contextos-visuais.md](./ux-contextos-visuais.md) | [frontend-estilos.md](./frontend-estilos.md), [public-shell.md](./public-shell.md), [experiencia-conversao-retencao.md](./experiencia-conversao-retencao.md) |
-| Admin | [admin-centro-comando.md](./admin-centro-comando.md) | [admin-console.md](./admin-console.md), [admin-visao-geral.md](./admin-visao-geral.md), [admin-marketing-visao-geral.md](./admin-marketing-visao-geral.md) |
+| Admin | [admin-console.md](./admin-console.md) | [admin-centro-comando.md](./admin-centro-comando.md), [admin-visao-geral.md](./admin-visao-geral.md), [admin-marketing-visao-geral.md](./admin-marketing-visao-geral.md) |
 | Analytics e growth | [marketing-attribution.md](./marketing-attribution.md) | [analytics-pipeline-reconciliation.md](./analytics-pipeline-reconciliation.md), [inteligencia-crescimento.md](./inteligencia-crescimento.md), [custo-qualidade-aquisicao-profissional.md](./custo-qualidade-aquisicao-profissional.md), [prontidao-financeira-recorrencia.md](./prontidao-financeira-recorrencia.md), [marketing-sync-ga4.md](./marketing-sync-ga4.md) |
 | Mídia paga | [google-ads-real-campaign-link.md](./google-ads-real-campaign-link.md) | [meta-ads-real-campaign-link.md](./meta-ads-real-campaign-link.md), [marketing-tiktok-ads.md](./marketing-tiktok-ads.md), [marketing-pinterest-ads.md](./marketing-pinterest-ads.md) |
 | WhatsApp | [whatsapp-automatico.md](./whatsapp-automatico.md) | [whatsapp.env.example](./whatsapp.env.example) |
@@ -123,6 +123,7 @@ redefinir o lifecycle inteiro.
   financeiros.
 - [webhook-asaas.md](./webhook-asaas.md): integração específica com o Asaas.
 - [webhook-retention.md](./webhook-retention.md): retenção dos eventos.
+
 Regra de manutenção: checkout iniciado, cobrança criada, pagamento confirmado e
 assinatura ativa permanecem fatos distintos. Leituras de campanha que relacionam
 investimento e monetização pertencem ao domínio de Analytics/Growth, não ao
@@ -140,12 +141,22 @@ contrato de billing.
 - [frontend-estilos.md](./frontend-estilos.md): ownership de estilos, design
   systems e manutenção de CSS.
 - [public-shell.md](./public-shell.md): shell da experiência pública.
-- [admin-centro-comando.md](./admin-centro-comando.md): papel do Admin como
-  centro operacional.
-- [admin-console.md](./admin-console.md): console administrativo.
-- [admin-visao-geral.md](./admin-visao-geral.md): visão geral administrativa.
+
+## Administração
+
+### Canônico
+
+- [admin-console.md](./admin-console.md): arquitetura de informação, navegação e
+  separação entre aquisição, jornada, retenção, receita e operação.
+
+### Especializados
+
+- [admin-centro-comando.md](./admin-centro-comando.md): semântica dos
+  indicadores do centro de comando.
+- [admin-visao-geral.md](./admin-visao-geral.md): KPIs agregados da rota
+  `/admin`.
 - [admin-marketing-visao-geral.md](./admin-marketing-visao-geral.md): leitura
-  administrativa de marketing.
+  administrativa de aquisição e Marketing.
 
 ## Analytics, aquisição e growth
 
