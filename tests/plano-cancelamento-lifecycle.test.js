@@ -54,6 +54,7 @@ describe("expiração do período pago - lifecycle", () => {
       status: "CANCELED",
       ativo: false,
       data_proxima_cobranca: "2026-10-23",
+      negocio_saiu_base_paga: true,
     };
 
     assinaturaRepository
@@ -72,7 +73,37 @@ describe("expiração do período pago - lifecycle", () => {
       client: executor,
       assinatura: expirada,
       origem: "sistema",
-    });
+      referenciaIdempotencia: "2026-10-23",
+      test("não registra saída quando outro plano pago mantém o negócio na base", async () => {
+    const executor = {
+      query: jest.fn(),
+    };
+    assinaturaRepository
+      .expirarCancelamentoSeNecessario
+      .mockResolvedValue({
+        id: 20,
+        negocio_id: 7,
+        plano_id: 2,
+        status: "CANCELED",
+        ativo: false,
+        data_proxima_cobranca: "2026-10-23",
+        negocio_saiu_base_paga: false,
+      });
+
+    await expirarCancelamentoComReconciliacao(
+      7,
+      executor
+    );
+
+    expect(
+      lifecycle.registrarEncerramentoAcesso
+    ).not.toHaveBeenCalled();
+    expect(
+      equipePlanoService
+        .reconciliarLimiteProfissionais
+    ).not.toHaveBeenCalled();
+  });
+});
     expect(
       equipePlanoService
         .reconciliarLimiteProfissionais
