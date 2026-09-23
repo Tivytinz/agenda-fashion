@@ -451,7 +451,20 @@ test("CA-NEG-01/04: profissional cria o negócio, compartilha o perfil e encerra
 
   await expect(page.getByRole("heading", { name: "Visão geral" })).toBeVisible();
   await expect(page.getByText("Próximo passo")).toHaveCount(0);
-  await expect(page.getByText("Clientes que voltaram")).toBeVisible();
-  await expect(page.getByText("Conversão")).toHaveCount(0);
+
+  const indicators = page.getByRole("region", {
+    name: "Indicadores"
+  });
+  await expect(
+    indicators.getByText("Clientes que voltaram", {
+      exact: true
+    })
+  ).toBeVisible();
+  await expect(
+    indicators.getByText("Conversão", {
+      exact: true
+    })
+  ).toHaveCount(0);
+
   await expectNoHorizontalOverflow(page);
 });
