@@ -298,7 +298,34 @@ async function expirarCancelamentoSeNecessario(
   const result =
     await executor.query(
       `
-      WITH plano_gratis AS (
+      WITH candidatas AS (
+        SELECT a.id
+        FROM assinaturas a
+        INNER JOIN planos pl
+          ON pl.id = a.plano_id
+        WHERE a.negocio_id = $1
+          AND a.ativo = TRUE
+          AND UPPER(a.status) IN (
+            'CANCELED',
+            'CANCELLED'
+          )
+          AND a.data_proxima_cobranca
+            IS NOT NULL
+          AND a.data_proxima_cobranca
+            <= CURRENT_DATE
+          AND pl.valor > 0
+        FOR UPDATE OF a
+      ),
+      expiradas AS (
+        UPDATE assinaturas a
+        SET
+          ativo = FALSE,
+          updated_at = NOW()
+        FROM candidatas c
+        WHERE a.id = c.id
+        RETURNING a.*
+      ),
+      plano_gratis AS (
         SELECT id
         FROM planos
         WHERE slug = 'inicial'
@@ -312,36 +339,29 @@ async function expirarCancelamentoSeNecessario(
         WHERE n.id = $1
           AND EXISTS (
             SELECT 1
-            FROM assinaturas a
-            WHERE a.negocio_id = n.id
-              AND a.ativo = TRUE
-              AND a.status IN (
-                'CANCELED',
-                'CANCELLED'
-              )
-              AND a.data_proxima_cobranca
-                IS NOT NULL
-              AND a.data_proxima_cobranca
-                <= CURRENT_DATE
+            FROM expiradas e
+            WHERE e.plano_id = n.plano_id
+          )
+          AND NOT EXISTS (
+            SELECT 1
+            FROM assinaturas outra
+            INNER JOIN planos opl
+              ON opl.id = outra.plano_id
+            WHERE outra.negocio_id = n.id
+              AND outra.ativo = TRUE
+              AND opl.valor > 0
           )
         RETURNING n.id
       )
-      UPDATE assinaturas a
-      SET
-        ativo = FALSE,
-        updated_at = NOW()
-      FROM negocio_atualizado na
-      WHERE a.negocio_id = na.id
-        AND a.ativo = TRUE
-        AND a.status IN (
-          'CANCELED',
-          'CANCELLED'
-        )
-        AND a.data_proxima_cobranca
-          IS NOT NULL
-        AND a.data_proxima_cobranca
-          <= CURRENT_DATE
-      RETURNING a.*
+      SELECT
+        e.*,
+        EXISTS (
+          SELECT 1
+          FROM negocio_atualizado
+        ) AS negocio_saiu_base_paga
+      FROM expiradas e
+      ORDER BY e.id DESC
+      LIMIT 1
       `,
       [negocioId]
     );
@@ -427,6 +447,160 @@ async function listarPagamentos(assinaturaId) {
   return result.rows;
 }
 
+async function listarPagamentosInadimplentesMaduros(
+  limite = 100,
+  janelaDias = 14,
+  executor = db
+) {
+  const limiteSolicitado = Number(limite);
+  const limiteSeguro = Number.isInteger(limiteSolicitado)
+    ? Math.min(500, Math.max(1, limiteSolicitado))
+    : 100;
+  const janelaSolicitada = Number(janelaDias);
+  const janelaSegura = Number.isInteger(janelaSolicitada)
+    ? Math.min(90, Math.max(1, janelaSolicitada))
+    : 14;
+
+  const result = await executor.query(
+    `
+    SELECT
+      pg.id AS pagamento_id,
+      a.negocio_id
+    FROM pagamentos pg
+    INNER JOIN assinaturas a
+      ON a.id = pg.assinatura_id
+    INNER JOIN planos pl
+      ON pl.id = a.plano_id
+    WHERE UPPER(pg.status) IN (
+        'OVERDUE',
+        'PAST_DUE',
+        'PAYMENT_FAILED',
+        'CREDIT_CARD_CAPTURE_REFUSED'
+      )
+      AND pg.data_vencimento IS NOT NULL
+      AND pg.data_vencimento
+        <= CURRENT_DATE - $2::int
+      AND pl.valor > 0
+      AND EXISTS (
+        SELECT 1
+        FROM assinatura_eventos atraso
+        WHERE atraso.pagamento_id = pg.id
+          AND atraso.tipo = 'PAGAMENTO_ATRASADO'
+      )
+      AND NOT EXISTS (
+        SELECT 1
+        FROM assinaturas ativa
+        INNER JOIN planos apl
+          ON apl.id = ativa.plano_id
+        WHERE ativa.negocio_id = a.negocio_id
+          AND ativa.ativo = TRUE
+          AND apl.valor > 0
+      )
+      AND COALESCE(
+        (
+          SELECT fronteira.tipo
+          FROM assinatura_eventos fronteira
+          WHERE fronteira.negocio_id = a.negocio_id
+            AND fronteira.tipo IN (
+              'EPISODIO_PAGO_BASELINE',
+              'CONVERSAO_INICIAL',
+              'REATIVACAO_PAGA',
+              'ACESSO_PAGO_ENCERRADO'
+            )
+          ORDER BY
+            fronteira.ocorrido_em DESC,
+            fronteira.id DESC
+          LIMIT 1
+        ),
+        ''
+      ) <> 'ACESSO_PAGO_ENCERRADO'
+    ORDER BY
+      pg.data_vencimento ASC,
+      pg.id ASC
+    LIMIT $1
+    `,
+    [limiteSeguro, janelaSegura]
+  );
+
+  return result.rows;
+}
+
+async function buscarPagamentoInadimplenteMaduroParaAtualizar(
+  pagamentoId,
+  janelaDias = 14,
+  executor = db
+) {
+  const janelaSolicitada = Number(janelaDias);
+  const janelaSegura = Number.isInteger(janelaSolicitada)
+    ? Math.min(90, Math.max(1, janelaSolicitada))
+    : 14;
+
+  const result = await executor.query(
+    `
+    SELECT
+      pg.id AS pagamento_id,
+      pg.asaas_payment_id,
+      pg.status AS pagamento_status,
+      pg.data_vencimento,
+      a.*
+    FROM pagamentos pg
+    INNER JOIN assinaturas a
+      ON a.id = pg.assinatura_id
+    INNER JOIN planos pl
+      ON pl.id = a.plano_id
+    WHERE pg.id = $1
+      AND UPPER(pg.status) IN (
+        'OVERDUE',
+        'PAST_DUE',
+        'PAYMENT_FAILED',
+        'CREDIT_CARD_CAPTURE_REFUSED'
+      )
+      AND pg.data_vencimento IS NOT NULL
+      AND pg.data_vencimento
+        <= CURRENT_DATE - $2::int
+      AND pl.valor > 0
+      AND EXISTS (
+        SELECT 1
+        FROM assinatura_eventos atraso
+        WHERE atraso.pagamento_id = pg.id
+          AND atraso.tipo = 'PAGAMENTO_ATRASADO'
+      )
+      AND NOT EXISTS (
+        SELECT 1
+        FROM assinaturas ativa
+        INNER JOIN planos apl
+          ON apl.id = ativa.plano_id
+        WHERE ativa.negocio_id = a.negocio_id
+          AND ativa.ativo = TRUE
+          AND apl.valor > 0
+      )
+      AND COALESCE(
+        (
+          SELECT fronteira.tipo
+          FROM assinatura_eventos fronteira
+          WHERE fronteira.negocio_id = a.negocio_id
+            AND fronteira.tipo IN (
+              'EPISODIO_PAGO_BASELINE',
+              'CONVERSAO_INICIAL',
+              'REATIVACAO_PAGA',
+              'ACESSO_PAGO_ENCERRADO'
+            )
+          ORDER BY
+            fronteira.ocorrido_em DESC,
+            fronteira.id DESC
+          LIMIT 1
+        ),
+        ''
+      ) <> 'ACESSO_PAGO_ENCERRADO'
+    LIMIT 1
+    FOR UPDATE OF pg, a
+    `,
+    [pagamentoId, janelaSegura]
+  );
+
+  return result.rows[0] || null;
+}
+
 async function listarNegociosComCancelamentoExpirado(
   limite = 100,
   executor = db
@@ -480,5 +654,7 @@ module.exports = {
   buscarPlano,
   buscarUltimoPagamentoPendente,
   listarPagamentos,
+  listarPagamentosInadimplentesMaduros,
+  buscarPagamentoInadimplenteMaduroParaAtualizar,
   listarNegociosComCancelamentoExpirado
 };
