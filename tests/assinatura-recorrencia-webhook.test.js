@@ -271,6 +271,17 @@ describe(
           mockClient.query
         ).toHaveBeenCalledWith(
           expect.stringContaining(
+            "invoice_url = COALESCE"
+          ),
+          expect.arrayContaining([
+            "https://www.asaas.com/i/renovacao-wave20"
+          ])
+        );
+
+        expect(
+          mockClient.query
+        ).toHaveBeenCalledWith(
+          expect.stringContaining(
             "data_proxima_cobranca = $2"
           ),
           [
