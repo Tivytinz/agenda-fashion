@@ -32,15 +32,15 @@ CREATE TABLE contribuicao_operacoes_admin (
 
   fonte_id BIGINT
     REFERENCES contribuicao_fontes(id)
-    ON DELETE RESTRICT,
+    ON DELETE SET NULL,
 
   negocio_id BIGINT
     REFERENCES negocios(id)
-    ON DELETE RESTRICT,
+    ON DELETE SET NULL,
 
   custo_id BIGINT
     REFERENCES contribuicao_custos(id)
-    ON DELETE RESTRICT,
+    ON DELETE SET NULL,
 
   acao VARCHAR(40)
     NOT NULL,
