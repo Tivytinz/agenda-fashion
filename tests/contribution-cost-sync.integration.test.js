@@ -443,6 +443,79 @@ describe(
     );
 
     test(
+      "encerra tentativa abandonada antes de uma nova sincronização",
+      async () => {
+        const base =
+          await preparar();
+
+        const abandonada =
+          await db.query(
+            `
+            INSERT INTO contribuicao_sincronizacoes (
+              integracao_id,
+              status,
+              cursor_entrada
+            )
+            VALUES (
+              $1,
+              'EXECUTANDO',
+              '{}'::jsonb
+            )
+            RETURNING id
+            `,
+            [
+              base
+                .integracaoId,
+            ]
+          );
+
+        mockAdapter
+          .coletar
+          .mockResolvedValue({
+            itens: [],
+            cobertura: null,
+            proximoCursor: {
+              pagina: 1,
+            },
+          });
+
+        await service
+          .sincronizarIntegracao({
+            integracaoId:
+              base.integracaoId,
+          });
+
+        const antiga =
+          await db.query(
+            `
+            SELECT
+              status,
+              erro_codigo,
+              finalizado_em
+            FROM contribuicao_sincronizacoes
+            WHERE id = $1
+            `,
+            [
+              abandonada
+                .rows[0].id,
+            ]
+          );
+
+        expect(
+          antiga.rows[0]
+        ).toMatchObject({
+          status: "ERRO",
+          erro_codigo:
+            "execucao_abandonada",
+        });
+        expect(
+          antiga.rows[0]
+            .finalizado_em
+        ).not.toBeNull();
+      }
+    );
+
+    test(
       "falha de validação não avança cursor nem cobertura",
       async () => {
         const base =
