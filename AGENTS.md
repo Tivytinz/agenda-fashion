@@ -7,6 +7,10 @@ Este arquivo deve ser lido antes de mudanças relevantes no projeto. Ele registr
 decisões duráveis de produto, arquitetura, segurança e operação. Detalhes de uma
 feature específica ficam nos documentos em `docs/` e no código executável.
 
+O mapa de navegação e a classificação da documentação especializada ficam em
+`docs/README.md`. Use esse índice para localizar a fonte canônica de cada domínio
+e evitar criar documentos concorrentes para a mesma regra.
+
 Em caso de divergência:
 
 1. código executável e migrations representam o estado implementado;
