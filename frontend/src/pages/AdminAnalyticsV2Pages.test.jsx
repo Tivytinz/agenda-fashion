@@ -118,7 +118,7 @@ describe("receita administrativa v2", () => {
     expect(screen.getByText("Receita de renovação")).not.toBeNull();
     expect(screen.getByText("Mudança de plano")).not.toBeNull();
     expect(screen.getByText("Renovações vencidas no período")).not.toBeNull();
-    expect(screen.getByText("66,67%")).not.toBeNull();
+    expect(screen.getByText("66,7%")).not.toBeNull();
     expect(screen.getByText("50%")).not.toBeNull();
     expect(screen.getByText("Cancelar a próxima renovação, atrasar uma cobrança e perder o acesso pago são fatos diferentes.")).not.toBeNull();
     expect(screen.queryByText(/^Churn$/i)).toBeNull();
