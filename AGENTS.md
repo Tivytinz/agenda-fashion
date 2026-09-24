@@ -475,6 +475,11 @@ universo de beleza. A marca deve permanecer reconhecível, mas cada contexto pod
 ter densidade e composição próprias.
 
 O Admin funciona como um Command Center operacional com design system próprio.
+Sua cobertura possui baseline independente em
+`docs/admin-requisitos-matriz.md`; o percentual do Admin não deve ser inferido
+a partir da baseline funcional geral `67/67`. Requisitos administrativos de
+segurança, dinheiro, permissão ou integridade só contam como cobertos com
+evidência verificável no backend e testes proporcionais ao risco.
 O contexto da dona possui workspace de gestão próprio. O contexto profissional
 possui shell de rotina própria, com navegação curta focada em agenda, horários e
 conta. Essas diferenças visuais não alteram os contratos de autorização do
