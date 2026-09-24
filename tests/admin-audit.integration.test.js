@@ -61,7 +61,7 @@ describe("admin audit ledger in PostgreSQL", () => {
       "DELETE FROM admin_auditoria_eventos WHERE tentativa_id = $1", [tentativaId]
     )).rejects.toThrow(/append-only/);
     await client.query("ROLLBACK TO SAVEPOINT audit_immutable");
-    await expect(client.query("TRUNCATE admin_auditoria_eventos"))
+    await expect(client.query("TRUNCATE admin_auditoria_eventos, admin_auditoria_revisoes"))
       .rejects.toThrow(/append-only/);
     await client.query("ROLLBACK TO SAVEPOINT audit_immutable");
   });
