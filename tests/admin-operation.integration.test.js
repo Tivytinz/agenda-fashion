@@ -148,10 +148,14 @@ describe("Admin Wave 1 - operação integrada RF40", () => {
     });
 
     expect(negociosResultado.total).toBe(1);
+    expect(
+      Number(negociosResultado.rows[0].id)
+    ).toBe(negocioId);
+    expect(
+      Number(negociosResultado.rows[0].dono_id)
+    ).toBe(usuarioId);
     expect(negociosResultado.rows[0]).toMatchObject({
-      id: negocioId,
       publicado: false,
-      dono_id: usuarioId,
       dono_nome: "Operação Wave 1"
     });
     expect(negociosResultado.rows[0].plano_slug).toBeTruthy();
