@@ -2,7 +2,8 @@ import {
   useEffect,
   useState
 } from "react";
-import { useSearchParams } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
+import { useOptionalSession } from "../auth/SessionContext";
 import { apiRequest } from "../api/client";
 import {
   EmptyState,
@@ -269,6 +270,7 @@ function emptyTitle(tab) {
 }
 
 export function AdminOperationPage() {
+  const session = useOptionalSession();
   const [searchParams, setSearchParams] = useSearchParams();
   const requestedTab = searchParams.get("aba");
   const tab = TAB_VALUES.has(requestedTab) ? requestedTab : "negocios";
@@ -447,6 +449,10 @@ export function AdminOperationPage() {
           {refreshing ? "Atualizando..." : "Atualizar"}
         </button>
       </header>
+
+      {session?.administrador?.papel === "superadmin" && (
+        <p><Link to="/admin/auditoria">Consultar auditoria administrativa</Link></p>
+      )}
 
       {refreshing && data && (
         <p className="data-refresh-status" role="status">

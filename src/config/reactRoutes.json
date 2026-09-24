@@ -23,6 +23,7 @@
   "adminRetention": "/admin/retencao",
   "adminRevenue": "/admin/receita",
   "adminOperation": "/admin/operacao",
+  "adminAudit": "/admin/auditoria",
   "adminMarketing": "/admin/trafego-pago",
   "adminCosts": "/admin/trafego-pago/custos",
   "adminProfessionals": "/admin/trafego-pago/profissionais",

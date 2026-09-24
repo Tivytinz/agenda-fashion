@@ -157,6 +157,9 @@ contrato de billing.
 - [admin-wave-1-rf40-operacao.md](./admin-wave-1-rf40-operacao.md):
   primeira Wave exclusiva do Admin; fecha a consulta/diagnóstico operacional
   v1 de RF40 para usuários, negócios, agendamentos e estados canônicos.
+- [admin-wave-2-rf41-auditoria.md](./admin-wave-2-rf41-auditoria.md):
+  contrato transversal de auditoria, limites de cobertura e critérios de
+  validação da segunda Wave do Admin.
 - [admin-centro-comando.md](./admin-centro-comando.md): semântica dos
   indicadores do centro de comando.
 - [admin-visao-geral.md](./admin-visao-geral.md): KPIs agregados da rota

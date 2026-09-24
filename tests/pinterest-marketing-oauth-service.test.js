@@ -10,6 +10,9 @@ jest.mock(
   "../src/repositories/pinterestMarketingOAuthRepository",
   () => mockRepository
 );
+jest.mock("../src/services/adminAuditOAuthService", () => ({
+  run: jest.fn(({ execute }) => execute())
+}));
 
 const service = require(
   "../src/services/pinterestMarketingOAuthService"

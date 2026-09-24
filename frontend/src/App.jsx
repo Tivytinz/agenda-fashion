@@ -74,6 +74,11 @@ const AdminOperationPage = lazyNamedWithStyles(
   () => import("./pages/AdminOperationPage"),
   "AdminOperationPage"
 );
+const AdminAuditPage = lazyNamedWithStyles(
+  loadAdminCommandStyles,
+  () => import("./pages/AdminAuditPage"),
+  "AdminAuditPage"
+);
 const AdminMarketingPage = lazyNamedWithStyles(
   loadAdminMarketingStyles,
   () => import("./pages/AdminMarketingPage"),
@@ -273,6 +278,7 @@ export default function App() {
             <Route path={reactRoutes.adminRetention} element={<AdminRetentionPage />} />
             <Route path={reactRoutes.adminRevenue} element={<AdminRevenuePage />} />
             <Route path={reactRoutes.adminOperation} element={<AdminOperationPage />} />
+            <Route path={reactRoutes.adminAudit} element={<AdminAuditPage />} />
             <Route
               path={reactRoutes.adminMarketing}
               element={(
