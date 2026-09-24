@@ -130,6 +130,21 @@ test("WhatsApp transforma tabela em cartões sem perder semântica", async ({ pa
 
 test("operação pesquisa no servidor e preserva privacidade do cliente", async ({ page }) => {
   await setupAdmin(page);
+  await page.route("**/admin/usuarios?**", (route) => json(route, {
+    usuarios: [{
+      id: 4,
+      nome: "Ana Souza",
+      email: "ana@example.com",
+      estado_operacional: "ativo",
+      papel_admin: null,
+      papeis_negocio: ["profissional"],
+      total_negocios_ativos: 1,
+      perfil_profissional_ativado_em: "2026-09-01T12:00:00.000Z",
+      email_verificado_em: "2026-09-01T12:00:00.000Z",
+      ultimo_login_em: "2026-09-05T12:00:00.000Z"
+    }],
+    paginacao: { pagina: 1, limite: 25, total: 1, totalPaginas: 1 }
+  }));
   await page.route("**/admin/negocios?**", (route) => json(route, {
     negocios: [{
       id: 1,
@@ -138,6 +153,10 @@ test("operação pesquisa no servidor e preserva privacidade do cliente", async 
       cidade: "Goiânia",
       bairro: "Centro",
       ativo: true,
+      publicado: true,
+      estado_operacional: "publicado",
+      plano_nome: "Autônoma",
+      dono_nome: "Ana Souza",
       total_profissionais: 2,
       total_servicos: 4,
       total_agendamentos: 12
@@ -160,6 +179,10 @@ test("operação pesquisa no servidor e preserva privacidade do cliente", async 
 
   await page.goto("/admin/operacao");
   await expect(page.getByText("Studio Aurora")).toBeVisible();
+  await page.getByRole("button", { name: "Usuários" }).click();
+  await expect(page.getByText("Ana Souza")).toBeVisible();
+  await expect(page.getByText("ana@example.com")).toBeVisible();
+  await expectNoHorizontalOverflow(page);
   await page.getByRole("button", { name: "Agendamentos" }).click();
   await expect(page.getByText("Maria")).toBeVisible();
   await expect(page.getByRole("region", { name: "Agendamentos da plataforma" })
