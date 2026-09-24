@@ -2,7 +2,7 @@
 
 > **Escopo:** contexto administrativo do Agenda Fashion, separado da baseline funcional geral P0 + P1.
 >
-> **Baseline avaliada:** estado do repositório após a Admin Wave 1 (RF40 — operação administrativa).
+> **Baseline avaliada:** estado após a Admin Wave 3; a Wave 4 prepara qualificação operacional de RF41 sem antecipar a evidência.
 >
 > **Cobertura própria do Admin:** **41/43 requisitos = 95,3%**.
 
@@ -123,7 +123,7 @@ enumerados na primeira versão da matriz.
 | ADM-040 | Qualidade | O contexto administrativo deve possuir testes automatizados proporcionais ao risco em frontend, backend, integração PostgreSQL e fluxos mobile/desktop. | **Coberto** | suíte `tests/admin-*`, testes React Admin, `frontend/e2e/admin-desktop.spec.js`, `admin-mobile.spec.js` |
 | ADM-041 | Operação | Usuários devem ser pesquisáveis e paginados no backend, com filtro por estado operacional, papéis relevantes e dados mínimos para diagnóstico, sem expor senha ou contato desnecessário. | **Coberto** | `GET /admin/usuarios`, `adminOperationRepository`, `adminOperationService`, testes unitários/integration e `AdminOperationPage` |
 | ADM-042 | Operação | Negócios e agendamentos devem expor estados operacionais canônicos e filtráveis, incluindo publicação/arquivamento do negócio e estados reais do ciclo de atendimento. | **Coberto** | `GET /admin/negocios`, `GET /admin/agendamentos`, `AdminOperationPage`, testes da Admin Wave 1 |
-| ADM-043 | Auditoria | Ações administrativas críticas e alterações sensíveis devem possuir trilha transversal que registre ator, ação, alvo, momento e contexto suficiente para rastreabilidade, sem depender apenas de logs ou de auditorias isoladas por módulo. | **Não coberto** | Existem auditorias específicas (ex.: contribuição, custos de mídia e lifecycle), mas ainda não há contrato transversal para toda ação administrativa crítica |
+| ADM-043 | Auditoria | Ações administrativas críticas e alterações sensíveis devem possuir trilha transversal que registre ator, ação, alvo, momento e contexto suficiente para rastreabilidade, sem depender apenas de logs ou de auditorias isoladas por módulo. | **Não coberto** | Ledger e revisão implementados nas Waves 2–3 e testados em PostgreSQL/CI; falta medição operacional representativa de RNF02, prevista na Wave 4 |
 
 ## Rastreabilidade formal RF40/RF41
 
@@ -147,23 +147,23 @@ específico, autorização proporcional e auditoria.
 
 ### RF41 — Auditoria de ações críticas
 
-RF41 permanece **não fechado** na baseline administrativa v1.1. Há trilhas
-específicas em módulos financeiros, mensageria e lifecycle, mas ainda não existe
-um contrato transversal que cubra toda ação administrativa crítica. Essa lacuna
-é registrada como `ADM-043` e deve ser tratada em Wave própria.
+RF41 permanece **não fechado** na baseline administrativa v1.1. As Waves 2–3
+implementaram a trilha transversal e a revisão imutável de pendências. A lacuna
+`ADM-043` aguarda qualificação operacional de desempenho sob volume
+representativo, conforme a Wave 4.
 
-A implementação proposta na Admin Wave 2 adiciona o ledger transversal da
+A Admin Wave 2 adicionou o ledger transversal da
 migration `104`, a consulta restrita e o registro das escritas administrativas
-existentes. `ADM-043` continua **Não coberto** até validação PostgreSQL/CI e
-reconciliação verificável das tentativas pendentes; veja
+existentes. A reconciliação verificável chegou na Wave 3; veja
 `admin-wave-2-rf41-auditoria.md`. Não antecipar 42/43 apenas pela existência da
 interface ou de eventos `INICIADA`.
 
-A Admin Wave 3 prepara a revisão estruturada e imutável das tentativas pendentes
-sem presumir resposta HTTP, além de um medidor do p95 de leitura do Admin.
-`ADM-043` mantém o estado **Não coberto** até validação da migration 105,
-concorrência, autorização e p95 administrativo em ambiente representativo; ver
-`admin-wave-3-rf41-reconciliacao.md`.
+A Admin Wave 3 implementou a revisão estruturada e imutável das tentativas
+pendentes sem presumir resposta HTTP; migration 105, concorrência e autorização
+passaram no CI. O medidor de leitura ainda não foi executado com volume
+representativo. A Wave 4 prepara a medição adicional de escritas e a
+qualificação operacional; ver `admin-wave-3-rf41-reconciliacao.md` e
+`admin-wave-4-rf41-qualificacao.md`.
 
 ## Lacunas atuais
 
@@ -171,8 +171,8 @@ A baseline Admin v1.1 possui duas lacunas:
 
 1. **ADM-030** — nenhum adaptador factual real de custo variável foi certificado
    em produção;
-2. **ADM-043** — ainda não há auditoria administrativa transversal para todas as
-   ações críticas.
+2. **ADM-043** — a trilha transversal e a reconciliação existem, mas seu
+   desempenho administrativo ainda não foi comprovado sob carga representativa.
 
 A Wave 32 já entrega a infraestrutura genérica de sincronização, mas seu registry
 de produção foi propositalmente criado vazio. Portanto o AF ainda não possui um
@@ -198,7 +198,8 @@ A baseline Admin v1.1 chegará a **43/43 (100%)** somente quando:
   `negocio_id`, idempotência, reversões reconciliáveis, cobertura verificável,
   teste PostgreSQL e evidência operacional;
 - `ADM-043` possuir contrato transversal de auditoria com ator, ação, alvo,
-  momento, contexto e testes proporcionais ao risco.
+  momento, contexto, testes proporcionais ao risco e evidência operacional de
+  p95 administrativo conforme RNF02.
 
 ## Governança da matriz
 

@@ -6,11 +6,13 @@ const actorId = process.env.PERF_ADMIN_ACTOR_ID;
 const samples = Number(process.env.PERF_ADMIN_SAMPLES || 30);
 const concurrency = Number(process.env.PERF_ADMIN_CONCURRENCY || 3);
 const limitMs = Number(process.env.PERF_ADMIN_P95_MS || 2000);
+const buildSha = process.env.PERF_ADMIN_BUILD_SHA;
 
 if (!baseUrl || !token || !/^[1-9]\d*$/.test(actorId || "") ||
     !Number.isInteger(samples) || samples < 10 || samples > 100 ||
     !Number.isInteger(concurrency) || concurrency < 1 || concurrency > 10 ||
-    !Number.isFinite(limitMs) || limitMs <= 0) {
+    !Number.isFinite(limitMs) || limitMs <= 0 ||
+    (buildSha && !/^[a-f0-9]{40}$/i.test(buildSha))) {
   throw new Error("Configure URL, token e ator de QA; use 10–100 amostras e concorrência de 1–10.");
 }
 
@@ -30,6 +32,7 @@ async function measure(path) {
         Accept: "application/json",
         "Cache-Control": "no-cache"
       },
+      redirect: "error",
       signal: controller.signal
     });
     if (!response.ok) throw new Error(`Auditoria retornou HTTP ${response.status}.`);
@@ -42,6 +45,7 @@ async function measure(path) {
 }
 
 async function sample(path) {
+  for (let i = 0; i < 3; i += 1) await measure(path);
   const durations = [];
   let next = 0;
   await Promise.all(Array.from({ length: concurrency }, async () => {
@@ -64,7 +68,7 @@ let failed = false;
 for (const [name, path] of Object.entries(scenarios)) {
   const p95Ms = await sample(path);
   const passed = p95Ms <= limitMs;
-  process.stdout.write(`${JSON.stringify({cenario:name,amostras:samples,concorrencia:concurrency,p95Ms,limiteMs:limitMs,aprovado:passed})}\n`);
+  process.stdout.write(`${JSON.stringify({cenario:name,buildSha:buildSha || null,amostras:samples,aquecimentos:3,concorrencia:concurrency,p95Ms,limiteMs:limitMs,aprovado:passed})}\n`);
   if (!passed) failed = true;
 }
 if (failed) process.exitCode = 1;
