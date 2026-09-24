@@ -21,6 +21,28 @@ Cobertura P0 da baseline: 60/60 (100%)
 Essa porcentagem não significa que toda condição operacional externa já foi
 comprovada em produção.
 
+## Baseline exclusiva do Admin
+
+O contexto administrativo possui uma matriz própria e **não herda o percentual
+67/67 da baseline geral**.
+
+Na baseline Admin v1.0:
+
+```text
+Cobertura Admin: 39/40 (97,5%)
+```
+
+O requisito pendente é `ADM-030`: existência de pelo menos um adaptador
+factual real em produção capaz de importar custo variável atribuível a negócio
+e comprovar cobertura econômica de ponta a ponta.
+
+A infraestrutura provider-agnostic da Wave 32 está implementada, mas o registry
+de produção permanece intencionalmente vazio. Portanto essa lacuna não deve ser
+tratada como coberta por estimativa ou por simples existência da interface.
+
+A fonte de rastreabilidade é
+[`docs/admin-requisitos-matriz.md`](./admin-requisitos-matriz.md).
+
 ### Ressalva operacional de backup e recuperação
 
 O `CA-NFR-07` permite como saída uma decisão formal de engenharia quando a

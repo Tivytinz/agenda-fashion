@@ -15,6 +15,20 @@ A administração do AF é um centro de comando operacional e analítico. O obje
 
 Cadastros, cliques, sessões, checkout, agendamento e receita permanecem conceitos diferentes.
 
+## Baseline exclusiva de requisitos
+
+A cobertura funcional geral do AF e a cobertura do Admin são métricas
+independentes.
+
+A baseline administrativa canônica para rastreabilidade fica em
+[`admin-requisitos-matriz.md`](./admin-requisitos-matriz.md). Ela possui
+denominador próprio e não deve reutilizar automaticamente o percentual
+`67/67` da baseline funcional geral.
+
+Um requisito administrativo só é considerado coberto quando existe evidência
+verificável proporcional ao risco. Interface sem contrato de backend suficiente
+não fecha requisito de segurança, dinheiro, permissão ou integridade.
+
 ## Arquitetura de informação atual
 
 A navegação principal do Admin 2.0 é definida pelo frontend e hoje possui seis módulos:
