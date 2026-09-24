@@ -84,8 +84,9 @@ A administração reutiliza APIs protegidas e mantém separação entre operaç�
 - `GET /health/ready` — prontidão da aplicação e do banco;
 - endpoints de Analytics V2 usados por Visão geral, Aquisição, Jornada, Retenção, Receita e Operação;
 - `GET /admin/saude/perfis-incompletos` — diagnóstico operacional de ativação;
-- `GET /admin/negocios` — negócios com busca e paginação server-side;
-- `GET /admin/agendamentos` — agendamentos com busca, filtro e paginação server-side;
+- `GET /admin/usuarios` — usuários com busca, estado e paginação server-side;
+- `GET /admin/negocios` — negócios com busca, estado operacional e paginação server-side;
+- `GET /admin/agendamentos` — agendamentos com busca, estado canônico e paginação server-side;
 - endpoints de Marketing para atribuição, custos, funil e integrações;
 - endpoints de WhatsApp para templates, automações e métricas de envio.
 
@@ -93,11 +94,17 @@ Os endpoints administrativos permanecem protegidos por autenticação e autoriza
 
 ## Operação paginada
 
+A Admin Wave 1 reconcilia o módulo com o RF40 da Especificação v1.17. A operação
+passa a tratar usuários, negócios e agendamentos como superfícies explícitas de
+diagnóstico, mantendo Marketplace separado.
+
 `/admin/operacao` usa busca e paginação no backend para continuar correta conforme a base cresce. A interface não deve limitar pesquisa a uma amostra já carregada no navegador.
 
 Contratos existentes incluem:
 
 - `GET /admin/negocios?busca=&pagina=1&limite=25`
+- `GET /admin/usuarios?busca=&status=&pagina=1&limite=25`
+- `GET /admin/negocios?busca=&status=&pagina=1&limite=25`
 - `GET /admin/agendamentos?busca=&status=&pagina=1&limite=25`
 
 O limite padrão é 25 e o backend limita a página a no máximo 100 registros. A resposta inclui `paginacao` com `pagina`, `limite`, `total` e `totalPaginas`.
