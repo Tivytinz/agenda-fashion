@@ -2,7 +2,7 @@
 
 > **Escopo:** contexto administrativo do Agenda Fashion, separado da baseline funcional geral P0 + P1.
 >
-> **Baseline avaliada:** estado após a Admin Wave 3; a Wave 4 prepara qualificação operacional de RF41 sem antecipar a evidência.
+> **Baseline avaliada:** estado após a Admin Wave 4 e preparação da Wave 5; os medidores ainda não foram executados com volume representativo.
 >
 > **Cobertura própria do Admin:** **41/43 requisitos = 95,3%**.
 
@@ -123,7 +123,7 @@ enumerados na primeira versão da matriz.
 | ADM-040 | Qualidade | O contexto administrativo deve possuir testes automatizados proporcionais ao risco em frontend, backend, integração PostgreSQL e fluxos mobile/desktop. | **Coberto** | suíte `tests/admin-*`, testes React Admin, `frontend/e2e/admin-desktop.spec.js`, `admin-mobile.spec.js` |
 | ADM-041 | Operação | Usuários devem ser pesquisáveis e paginados no backend, com filtro por estado operacional, papéis relevantes e dados mínimos para diagnóstico, sem expor senha ou contato desnecessário. | **Coberto** | `GET /admin/usuarios`, `adminOperationRepository`, `adminOperationService`, testes unitários/integration e `AdminOperationPage` |
 | ADM-042 | Operação | Negócios e agendamentos devem expor estados operacionais canônicos e filtráveis, incluindo publicação/arquivamento do negócio e estados reais do ciclo de atendimento. | **Coberto** | `GET /admin/negocios`, `GET /admin/agendamentos`, `AdminOperationPage`, testes da Admin Wave 1 |
-| ADM-043 | Auditoria | Ações administrativas críticas e alterações sensíveis devem possuir trilha transversal que registre ator, ação, alvo, momento e contexto suficiente para rastreabilidade, sem depender apenas de logs ou de auditorias isoladas por módulo. | **Não coberto** | Ledger e revisão implementados nas Waves 2–3 e testados em PostgreSQL/CI; falta medição operacional representativa de RNF02, prevista na Wave 4 |
+| ADM-043 | Auditoria | Ações administrativas críticas e alterações sensíveis devem possuir trilha transversal que registre ator, ação, alvo, momento e contexto suficiente para rastreabilidade, sem depender apenas de logs ou de auditorias isoladas por módulo. | **Não coberto** | Ledger e revisão implementados nas Waves 2–3; medidores das Waves 4–5 preparados, sem medição operacional representativa de RNF02 |
 
 ## Rastreabilidade formal RF40/RF41
 
@@ -160,10 +160,10 @@ interface ou de eventos `INICIADA`.
 
 A Admin Wave 3 implementou a revisão estruturada e imutável das tentativas
 pendentes sem presumir resposta HTTP; migration 105, concorrência e autorização
-passaram no CI. O medidor de leitura ainda não foi executado com volume
-representativo. A Wave 4 prepara a medição adicional de escritas e a
-qualificação operacional; ver `admin-wave-3-rf41-reconciliacao.md` e
-`admin-wave-4-rf41-qualificacao.md`.
+passaram no CI. A Wave 4 preparou medidores de leituras e escritas, e a Wave 5
+prepara verificação da identidade do serviço QA e consulta de revisadas. Ainda
+falta execução representativa; ver `admin-wave-3-rf41-reconciliacao.md`,
+`admin-wave-4-rf41-qualificacao.md` e `admin-wave-5-rf41-evidencia.md`.
 
 ## Lacunas atuais
 

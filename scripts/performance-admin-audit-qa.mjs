@@ -4,6 +4,7 @@
 import crypto from "node:crypto";
 import { performance } from "node:perf_hooks";
 import pg from "pg";
+import { verifyQaBuild } from "./admin-performance-qa-identity.mjs";
 
 class QaError extends Error {}
 
@@ -134,6 +135,9 @@ async function seedAttempts(client, ids, actor) {
 
 async function main() {
   const cfg = config();
+  // A mismatched application must be rejected before connecting to, or
+  // inserting fixtures in, the disposable QA database.
+  await verifyQaBuild(cfg.target, cfg.buildSha);
   const client = new pg.Client({ connectionString: cfg.databaseUrl, connectionTimeoutMillis: 5000 });
   await client.connect();
   try {

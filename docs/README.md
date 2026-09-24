@@ -165,6 +165,9 @@ contrato de billing.
 - [admin-wave-4-rf41-qualificacao.md](./admin-wave-4-rf41-qualificacao.md):
   procedimento de QA para p95 de leituras e escritas auditadas, integridade
   do ledger e critério de fechamento de ADM-043.
+- [admin-wave-5-rf41-evidencia.md](./admin-wave-5-rf41-evidencia.md):
+  preparação da execução representativa de RF41/RNF02, identidade do build,
+  integridade do ledger e condições para atualizar ADM-043.
 - [admin-centro-comando.md](./admin-centro-comando.md): semântica dos
   indicadores do centro de comando.
 - [admin-visao-geral.md](./admin-visao-geral.md): KPIs agregados da rota

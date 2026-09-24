@@ -490,17 +490,20 @@ arquivado; agendamentos usam os estados canônicos `agendado`, `confirmado`,
 e diagnóstico. Mutações genéricas ou de alto impacto não são autorizadas por
 RF40; exigem contrato específico, autorização proporcional e auditoria. RF41
 permanece uma frente própria de auditoria administrativa transversal.
-A proposta da Admin Wave 2 fica em `docs/admin-wave-2-rf41-auditoria.md`:
+A implementação da Admin Wave 2 fica em `docs/admin-wave-2-rf41-auditoria.md`:
 operações administrativas sensíveis registram uma tentativa antes da escrita,
 um resultado HTTP quando disponível e expõem pendências para investigação.
 Não inferir histórico anterior nem tratar um HTTP 2xx como sucesso de um job
-externo. A matriz Admin mantém `ADM-043` pendente até validação do contrato e
-reconciliação das tentativas sem resultado; RNF02 exige medição de p95 com
-carga representativa antes de declarar desempenho conforme.
-A Admin Wave 3 documentada em `docs/admin-wave-3-rf41-reconciliacao.md` prepara
+externo. A reconciliação das tentativas sem resultado foi implementada na Wave 3.
+A matriz Admin mantém `ADM-043` pendente: RNF02 exige medição de p95 com carga
+representativa antes de declarar desempenho conforme.
+A Admin Wave 3 documentada em `docs/admin-wave-3-rf41-reconciliacao.md` implementa
 revisão humana append-only de tentativas sem resultado HTTP. A revisão usa
 avaliação estruturada e evidência referenciada por hash, sem fabricar HTTP ou
 promover `ADM-043` antes de validação e medição administrativa representativa.
+A Admin Wave 5 prepara o vínculo do benchmark ao build da aplicação QA e mede
+também o filtro de revisões. A evidência operacional continua obrigatória para
+fechar ADM-043; ver `docs/admin-wave-5-rf41-evidencia.md`.
 O contexto da dona possui workspace de gestão próprio. O contexto profissional
 possui shell de rotina própria, com navegação curta focada em agenda, horários e
 conta. Essas diferenças visuais não alteram os contratos de autorização do
