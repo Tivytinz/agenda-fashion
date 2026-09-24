@@ -4,6 +4,7 @@ const AppError = require("../errors/AppError");
 const repository = require(
   "../repositories/pinterestMarketingOAuthRepository"
 );
+const adminAuditOAuth = require("./adminAuditOAuthService");
 
 const AUTHORIZATION_URL = "https://www.pinterest.com/oauth/";
 const TOKEN_URL = "https://api.pinterest.com/v5/oauth/token";
@@ -416,50 +417,56 @@ async function concluirAutorizacao({ state, code }) {
     );
   }
 
-  const payload = await requisicaoToken({
-    grant_type: "authorization_code",
-    code: codeValue,
-    redirect_uri: atual.redirectUri
-  }, atual);
+  return adminAuditOAuth.run({
+    userId: Number(estado.usuario_id),
+    action: "pinterest_oauth_concluir",
+    execute: async () => {
+      const payload = await requisicaoToken({
+        grant_type: "authorization_code",
+        code: codeValue,
+        redirect_uri: atual.redirectUri
+      }, atual);
 
-  const accessToken = String(payload.access_token || "").trim();
-  const refreshToken = String(payload.refresh_token || "").trim();
-  const scopes = escoposToken(payload);
-  if (!accessToken || !refreshToken) {
-    throw new AppError(
-      "O Pinterest Ads respondeu sem access token ou refresh token.",
-      502
-    );
-  }
-  if (!scopes.includes(REQUIRED_SCOPE)) {
-    throw new AppError(
-      "A autorização do Pinterest não concedeu o escopo ads:read.",
-      403
-    );
-  }
+      const accessToken = String(payload.access_token || "").trim();
+      const refreshToken = String(payload.refresh_token || "").trim();
+      const scopes = escoposToken(payload);
+      if (!accessToken || !refreshToken) {
+        throw new AppError(
+          "O Pinterest Ads respondeu sem access token ou refresh token.",
+          502
+        );
+      }
+      if (!scopes.includes(REQUIRED_SCOPE)) {
+        throw new AppError(
+          "A autorização do Pinterest não concedeu o escopo ads:read.",
+          403
+        );
+      }
 
-  await validarContaComToken({
-    accessToken,
-    adAccountId: atual.adAccountId
+      await validarContaComToken({
+        accessToken,
+        adAccountId: atual.adAccountId
+      });
+
+      const expiracao = datasExpiracao(payload);
+      const credencial = await repository.salvarCredencial({
+        adAccountId: atual.adAccountId,
+        accessTokenCiphertext: criptografar(accessToken),
+        refreshTokenCiphertext: criptografar(refreshToken),
+        scope: scopes,
+        accessTokenExpiresAt: expiracao.accessTokenExpiresAt,
+        refreshTokenExpiresAt: expiracao.refreshTokenExpiresAt,
+        usuarioId: Number(estado.usuario_id)
+      });
+
+      return {
+        autorizado: true,
+        adAccountId: credencial.ad_account_id,
+        autorizadoEm:
+          credencial.updated_at || credencial.created_at || null
+      };
+    }
   });
-
-  const expiracao = datasExpiracao(payload);
-  const credencial = await repository.salvarCredencial({
-    adAccountId: atual.adAccountId,
-    accessTokenCiphertext: criptografar(accessToken),
-    refreshTokenCiphertext: criptografar(refreshToken),
-    scope: scopes,
-    accessTokenExpiresAt: expiracao.accessTokenExpiresAt,
-    refreshTokenExpiresAt: expiracao.refreshTokenExpiresAt,
-    usuarioId: Number(estado.usuario_id)
-  });
-
-  return {
-    autorizado: true,
-    adAccountId: credencial.ad_account_id,
-    autorizadoEm:
-      credencial.updated_at || credencial.created_at || null
-  };
 }
 
 function precisaRenovar(credencial) {

@@ -152,6 +152,13 @@ específicas em módulos financeiros, mensageria e lifecycle, mas ainda não exi
 um contrato transversal que cubra toda ação administrativa crítica. Essa lacuna
 é registrada como `ADM-043` e deve ser tratada em Wave própria.
 
+A implementação proposta na Admin Wave 2 adiciona o ledger transversal da
+migration `104`, a consulta restrita e o registro das escritas administrativas
+existentes. `ADM-043` continua **Não coberto** até validação PostgreSQL/CI e
+reconciliação verificável das tentativas pendentes; veja
+`admin-wave-2-rf41-auditoria.md`. Não antecipar 42/43 apenas pela existência da
+interface ou de eventos `INICIADA`.
+
 ## Lacunas atuais
 
 A baseline Admin v1.1 possui duas lacunas:

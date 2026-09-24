@@ -9,6 +9,9 @@ jest.mock(
   "../src/repositories/tiktokMarketingOAuthRepository",
   () => mockRepository
 );
+jest.mock("../src/services/adminAuditOAuthService", () => ({
+  run: jest.fn(({ execute }) => execute())
+}));
 
 const service = require(
   "../src/services/tiktokMarketingOAuthService"

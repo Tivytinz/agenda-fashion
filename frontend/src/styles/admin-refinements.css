@@ -227,6 +227,11 @@
   min-width: 150px;
 }
 
+.admin-audit-card dd {
+  overflow: visible;
+  overflow-wrap: anywhere;
+}
+
 .admin-operation-pagination {
   display: flex;
   align-items: center;

@@ -222,3 +222,7 @@ export function useSession() {
 
   return context;
 }
+
+export function useOptionalSession() {
+  return useContext(SessionContext);
+}

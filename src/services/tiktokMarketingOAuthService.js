@@ -4,6 +4,7 @@ const AppError = require("../errors/AppError");
 const repository = require(
   "../repositories/tiktokMarketingOAuthRepository"
 );
+const adminAuditOAuth = require("./adminAuditOAuthService");
 
 const AUTHORIZATION_URL =
   "https://ads.tiktok.com/marketing_api/auth";
@@ -341,24 +342,30 @@ async function concluirAutorizacao({ state, authCode }) {
     );
   }
 
-  const token = await trocarCodigoPorToken({
-    authCode: codeValue,
-    atual
-  });
+  return adminAuditOAuth.run({
+    userId: Number(estado.usuario_id),
+    action: "tiktok_oauth_concluir",
+    execute: async () => {
+      const token = await trocarCodigoPorToken({
+        authCode: codeValue,
+        atual
+      });
 
-  const credencial = await repository.salvarCredencial({
-    advertiserId: atual.advertiserId,
-    accessTokenCiphertext: criptografar(token.accessToken),
-    scope: token.scope,
-    authorizedAdvertiserIds: token.advertiserIds,
-    usuarioId: Number(estado.usuario_id)
-  });
+      const credencial = await repository.salvarCredencial({
+        advertiserId: atual.advertiserId,
+        accessTokenCiphertext: criptografar(token.accessToken),
+        scope: token.scope,
+        authorizedAdvertiserIds: token.advertiserIds,
+        usuarioId: Number(estado.usuario_id)
+      });
 
-  return {
-    autorizado: true,
-    advertiserId: credencial.advertiser_id,
-    autorizadoEm: credencial.updated_at || credencial.created_at || null
-  };
+      return {
+        autorizado: true,
+        advertiserId: credencial.advertiser_id,
+        autorizadoEm: credencial.updated_at || credencial.created_at || null
+      };
+    }
+  });
 }
 
 async function obterAccessToken() {

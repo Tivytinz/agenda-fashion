@@ -36,6 +36,8 @@ const auth = require(
 const authAdmin = require(
   "../middlewares/authAdmin"
 );
+const adminAudit = require("../middlewares/adminAudit");
+const adminAuditController = require("../controllers/adminAuditController");
 
 const adminController = require(
   "../controllers/adminController"
@@ -125,6 +127,13 @@ router.get(
   auth,
   authAdmin,
   adminController.listarUsuariosAdmin
+);
+
+router.get(
+  "/admin/auditoria",
+  auth,
+  authAdmin,
+  adminAuditController.list
 );
 
 /*
@@ -277,6 +286,7 @@ router.post(
   "/admin/marketing/gestao-campanhas",
   auth,
   authAdmin,
+  adminAudit("campanha_criar"),
   adminCampaignController.criar
 );
 
@@ -284,6 +294,7 @@ router.patch(
   "/admin/marketing/gestao-campanhas/:id",
   auth,
   authAdmin,
+  adminAudit("campanha_atualizar"),
   adminCampaignController.atualizar
 );
 
@@ -312,6 +323,7 @@ router.post(
   "/admin/marketing/gastos",
   auth,
   authAdmin,
+  adminAudit("gasto_registrar"),
   adminMarketingCostController.registrarGasto
 );
 
@@ -334,6 +346,7 @@ router.post(
   "/admin/financeiro/contribuicao/fontes",
   auth,
   authAdmin,
+  adminAudit("contribuicao_fonte_criar"),
   adminContributionOperationsController
     .criarFonte
 );
@@ -342,6 +355,7 @@ router.post(
   "/admin/financeiro/contribuicao/custos",
   auth,
   authAdmin,
+  adminAudit("contribuicao_custo_registrar"),
   adminContributionOperationsController
     .registrarCusto
 );
@@ -350,6 +364,7 @@ router.post(
   "/admin/financeiro/contribuicao/cobertura",
   auth,
   authAdmin,
+  adminAudit("contribuicao_cobertura_registrar"),
   adminContributionOperationsController
     .registrarCobertura
 );
@@ -367,6 +382,7 @@ router.post(
   "/admin/financeiro/contribuicao/sync/integracoes",
   auth,
   authAdmin,
+  adminAudit("contribuicao_integracao_criar"),
   adminContributionCostSyncController
     .criarIntegracao
 );
@@ -375,6 +391,7 @@ router.patch(
   "/admin/financeiro/contribuicao/sync/integracoes/:id",
   auth,
   authAdmin,
+  adminAudit("contribuicao_integracao_atualizar"),
   adminContributionCostSyncController
     .atualizarIntegracao
 );
@@ -383,6 +400,7 @@ router.post(
   "/admin/financeiro/contribuicao/sync/integracoes/:id/executar",
   auth,
   authAdmin,
+  adminAudit("contribuicao_sincronizar"),
   adminContributionCostSyncController
     .sincronizar
 );
@@ -397,6 +415,7 @@ router.post(
   "/admin/marketing/custos-integracoes/tiktok_ads/autorizacao",
   auth,
   authAdmin,
+  adminAudit("tiktok_oauth_iniciar"),
   tiktokMarketingOAuthController.iniciar
 );
 
@@ -414,6 +433,7 @@ router.post(
   "/admin/marketing/custos-integracoes/pinterest_ads/autorizacao",
   auth,
   authAdmin,
+  adminAudit("pinterest_oauth_iniciar"),
   pinterestMarketingOAuthController.iniciar
 );
 
@@ -447,6 +467,7 @@ router.post(
   "/admin/marketing/custos-integracoes/vinculos",
   auth,
   authAdmin,
+  adminAudit("midia_vincular"),
   marketingCostSyncController.vincular
 );
 
@@ -454,6 +475,7 @@ router.post(
   "/admin/marketing/custos-integracoes/:provedor/sincronizar",
   auth,
   authAdmin,
+  adminAudit("midia_sincronizar"),
   marketingCostSyncController.sincronizar
 );
 

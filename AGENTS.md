@@ -490,6 +490,13 @@ arquivado; agendamentos usam os estados canônicos `agendado`, `confirmado`,
 e diagnóstico. Mutações genéricas ou de alto impacto não são autorizadas por
 RF40; exigem contrato específico, autorização proporcional e auditoria. RF41
 permanece uma frente própria de auditoria administrativa transversal.
+A proposta da Admin Wave 2 fica em `docs/admin-wave-2-rf41-auditoria.md`:
+operações administrativas sensíveis registram uma tentativa antes da escrita,
+um resultado HTTP quando disponível e expõem pendências para investigação.
+Não inferir histórico anterior nem tratar um HTTP 2xx como sucesso de um job
+externo. A matriz Admin mantém `ADM-043` pendente até validação do contrato e
+reconciliação das tentativas sem resultado; RNF02 exige medição de p95 com
+carga representativa antes de declarar desempenho conforme.
 O contexto da dona possui workspace de gestão próprio. O contexto profissional
 possui shell de rotina própria, com navegação curta focada em agenda, horários e
 conta. Essas diferenças visuais não alteram os contratos de autorização do

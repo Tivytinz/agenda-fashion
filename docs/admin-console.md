@@ -40,6 +40,10 @@ A navegação principal do Admin 2.0 é definida pelo frontend e hoje possui sei
 - `/admin/receita` — **Receita**;
 - `/admin/operacao` — **Operação**.
 
+`/admin/auditoria` é uma consulta especializada do superadmin para rastrear
+tentativas e resultados das ações críticas. O contrato e os limites desta
+leitura ficam em `admin-wave-2-rf41-auditoria.md`.
+
 Existem também rotas especializadas e de compatibilidade que continuam úteis sem precisar ocupar o primeiro nível da navegação principal:
 
 - `/admin/trafego-pago` — análise e infraestrutura de Marketing;
