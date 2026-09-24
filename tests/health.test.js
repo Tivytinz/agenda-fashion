@@ -8,6 +8,23 @@ const registrador = require(
 const app = require("../src/server");
 
 describe("Health check", () => {
+  it("identifica o build QA configurado quando o banco está pronto", async () => {
+    const oldSha = process.env.PERF_ADMIN_QA_BUILD_SHA;
+    process.env.PERF_ADMIN_QA_BUILD_SHA = "A".repeat(40);
+    const verificar = jest.spyOn(readinessService, "verificarBanco")
+      .mockResolvedValue({ pronto: true });
+    try {
+      const res = await request(app).get("/health/ready");
+      expect(res.statusCode).toBe(200);
+      expect(res.body).toEqual({
+        status: "ready", database: "ok", buildSha: "a".repeat(40)
+      });
+    } finally {
+      verificar.mockRestore();
+      if (oldSha === undefined) delete process.env.PERF_ADMIN_QA_BUILD_SHA;
+      else process.env.PERF_ADMIN_QA_BUILD_SHA = oldSha;
+    }
+  });
   it("deve carregar a página inicial", async () => {
     const res = await request(app).get("/");
 

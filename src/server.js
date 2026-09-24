@@ -149,6 +149,7 @@ app.get(
 app.get(
   "/health/ready",
   async (req, res) => {
+    const qaBuildSha = process.env.PERF_ADMIN_QA_BUILD_SHA || "";
     try {
       const estado =
         await readinessService
@@ -172,6 +173,9 @@ app.get(
             "ready",
           database:
             "ok",
+          ...(/^[a-f0-9]{40}$/i.test(qaBuildSha)
+            ? { buildSha: qaBuildSha.toLowerCase() }
+            : {}),
         });
     } catch (erro) {
       registrador.aviso(
