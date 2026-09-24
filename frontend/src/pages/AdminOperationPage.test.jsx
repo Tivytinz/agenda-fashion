@@ -157,8 +157,8 @@ describe("Admin Wave 1 - operação administrativa", () => {
     ).not.toBeNull();
 
     expect(
-      screen.getByText("Despublicado")
-    ).not.toBeNull();
+      screen.getAllByText("Despublicado").length
+    ).toBeGreaterThan(0);
 
     expect(
       screen.getByText("Autônoma")
@@ -208,8 +208,8 @@ describe("Admin Wave 1 - operação administrativa", () => {
     ).not.toBeNull();
 
     expect(
-      screen.getByText("Desativado")
-    ).not.toBeNull();
+      screen.getAllByText("Desativado").length
+    ).toBeGreaterThan(0);
 
     expect(
       screen.queryByText("62999999999")
@@ -254,8 +254,8 @@ describe("Admin Wave 1 - operação administrativa", () => {
     ).not.toBeNull();
 
     expect(
-      screen.getByText("Não compareceu")
-    ).not.toBeNull();
+      screen.getAllByText("Não compareceu").length
+    ).toBeGreaterThan(0);
 
     expect(
       screen.getByText("60 min")
