@@ -154,6 +154,9 @@ contrato de billing.
 - [admin-requisitos-matriz.md](./admin-requisitos-matriz.md): baseline exclusiva
   de requisitos administrativos, evidências, lacunas e percentual próprio de
   cobertura do Admin.
+- [admin-wave-1-rf40-operacao.md](./admin-wave-1-rf40-operacao.md):
+  primeira Wave exclusiva do Admin; fecha a consulta/diagnóstico operacional
+  v1 de RF40 para usuários, negócios, agendamentos e estados canônicos.
 - [admin-centro-comando.md](./admin-centro-comando.md): semântica dos
   indicadores do centro de comando.
 - [admin-visao-geral.md](./admin-visao-geral.md): KPIs agregados da rota
