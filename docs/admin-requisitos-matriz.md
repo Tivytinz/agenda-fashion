@@ -1,10 +1,10 @@
-# Matriz exclusiva de requisitos da Administração — Admin v1.0
+# Matriz exclusiva de requisitos da Administração — Admin v1.1
 
 > **Escopo:** contexto administrativo do Agenda Fashion, separado da baseline funcional geral P0 + P1.
 >
-> **Baseline avaliada:** `main` no commit `deabc97abed79186aff720ba9dbe3933656dc8f9`.
+> **Baseline avaliada:** estado do repositório após a Admin Wave 1 (RF40 — operação administrativa).
 >
-> **Cobertura própria do Admin:** **39/40 requisitos = 97,5%**.
+> **Cobertura própria do Admin:** **41/43 requisitos = 95,3%**.
 
 ## Objetivo
 
@@ -51,11 +51,16 @@ requisitos totais da baseline Admin
 × 100
 ```
 
-Na versão 1.0:
+Na versão 1.1:
 
 ```text
-39 ÷ 40 × 100 = 97,5%
+41 ÷ 43 × 100 = 95,3%
 ```
+
+A queda percentual em relação à v1.0 não representa regressão de produto. A
+Admin Wave 1 reconciliou a matriz com os requisitos formais RF40/RF41 da
+Especificação v1.17 e adicionou requisitos administrativos que não estavam
+enumerados na primeira versão da matriz.
 
 ## Resumo por domínio
 
@@ -66,10 +71,11 @@ Na versão 1.0:
 | Visão geral executiva | 4 | 4 | 100% |
 | Aquisição, jornada e retenção | 4 | 4 | 100% |
 | Receita e economia SaaS | 9 | 10 | 90% |
-| Operação | 4 | 4 | 100% |
+| Operação | 6 | 6 | 100% |
 | Marketing, WhatsApp e saúde | 5 | 5 | 100% |
 | Qualidade automatizada | 1 | 1 | 100% |
-| **Total Admin** | **39** | **40** | **97,5%** |
+| Auditoria administrativa | 0 | 1 | 0% |
+| **Total Admin** | **41** | **43** | **95,3%** |
 
 ## Matriz de requisitos
 
@@ -115,10 +121,45 @@ Na versão 1.0:
 | ADM-038 | Marketing/Saúde | O Admin deve expor saúde de templates/entregas do WhatsApp sem devolver credenciais Meta ao navegador. | **Coberto** | `adminWhatsAppService`, `AdminWhatsAppPage`, `tests/admin-whatsapp-*` |
 | ADM-039 | Marketing/Saúde | O Admin deve disponibilizar diagnóstico de ativação/saúde operacional, incluindo perfis incompletos e maturidade de ML de no-show como sinal separado. | **Coberto** | rotas `/admin/saude/*`, `AdminSaasHealthPage`, testes de SaaS Health |
 | ADM-040 | Qualidade | O contexto administrativo deve possuir testes automatizados proporcionais ao risco em frontend, backend, integração PostgreSQL e fluxos mobile/desktop. | **Coberto** | suíte `tests/admin-*`, testes React Admin, `frontend/e2e/admin-desktop.spec.js`, `admin-mobile.spec.js` |
+| ADM-041 | Operação | Usuários devem ser pesquisáveis e paginados no backend, com filtro por estado operacional, papéis relevantes e dados mínimos para diagnóstico, sem expor senha ou contato desnecessário. | **Coberto** | `GET /admin/usuarios`, `adminOperationRepository`, `adminOperationService`, testes unitários/integration e `AdminOperationPage` |
+| ADM-042 | Operação | Negócios e agendamentos devem expor estados operacionais canônicos e filtráveis, incluindo publicação/arquivamento do negócio e estados reais do ciclo de atendimento. | **Coberto** | `GET /admin/negocios`, `GET /admin/agendamentos`, `AdminOperationPage`, testes da Admin Wave 1 |
+| ADM-043 | Auditoria | Ações administrativas críticas e alterações sensíveis devem possuir trilha transversal que registre ator, ação, alvo, momento e contexto suficiente para rastreabilidade, sem depender apenas de logs ou de auditorias isoladas por módulo. | **Não coberto** | Existem auditorias específicas (ex.: contribuição, custos de mídia e lifecycle), mas ainda não há contrato transversal para toda ação administrativa crítica |
 
-## Lacuna atual
+## Rastreabilidade formal RF40/RF41
 
-A única lacuna da baseline Admin v1.0 é **ADM-030**.
+A Especificação de Requisitos v1.17 associa diretamente o módulo Administração a
+`RF40`, `RF41` e à regra `RN25`.
+
+### RF40 — Administração operacional
+
+A Admin Wave 1 fecha a cobertura operacional v1 por meio de:
+
+- `ADM-031` — consulta paginada de negócios;
+- `ADM-032` — consulta paginada de agendamentos;
+- `ADM-033` — minimização de dados do cliente;
+- `ADM-034` — contexto operacional preservado;
+- `ADM-041` — consulta operacional de usuários;
+- `ADM-042` — estados canônicos de negócio e agendamento.
+
+O escopo de RF40 não autoriza mutação genérica ou destrutiva. O Admin prioriza
+leitura, diagnóstico e triagem; ações de alto impacto precisam de contrato
+específico, autorização proporcional e auditoria.
+
+### RF41 — Auditoria de ações críticas
+
+RF41 permanece **não fechado** na baseline administrativa v1.1. Há trilhas
+específicas em módulos financeiros, mensageria e lifecycle, mas ainda não existe
+um contrato transversal que cubra toda ação administrativa crítica. Essa lacuna
+é registrada como `ADM-043` e deve ser tratada em Wave própria.
+
+## Lacunas atuais
+
+A baseline Admin v1.1 possui duas lacunas:
+
+1. **ADM-030** — nenhum adaptador factual real de custo variável foi certificado
+   em produção;
+2. **ADM-043** — ainda não há auditoria administrativa transversal para todas as
+   ações críticas.
 
 A Wave 32 já entrega a infraestrutura genérica de sincronização, mas seu registry
 de produção foi propositalmente criado vazio. Portanto o AF ainda não possui um
@@ -133,25 +174,18 @@ evento externo real
 → margem/LTV/retorno disponíveis
 ```
 
-A cobertura do Admin não deve subir para 100% apenas por cadastrar um valor
-manual ou criar um adaptador baseado em estimativa.
-
-Para fechar ADM-030, o provedor precisa possuir evidência verificável de custo e
-regra objetiva de atribuição ao negócio.
+A cobertura do Admin não deve subir para 100% por estimativa, por existência de
+interface ou por logs que não constituam auditoria verificável.
 
 ## Critério para 100%
 
-A baseline Admin v1.0 chegará a **40/40 (100%)** quando ADM-030 estiver concluído
-com:
+A baseline Admin v1.1 chegará a **43/43 (100%)** somente quando:
 
-1. adaptador real registrado no backend;
-2. fonte factual real;
-3. associação objetiva ao `negocio_id`;
-4. identificador externo idempotente;
-5. débito e correção/reversão reconciliáveis;
-6. cobertura completa verificável;
-7. teste PostgreSQL de ingestão e replay;
-8. evidência operacional de pelo menos uma sincronização factual bem-sucedida.
+- `ADM-030` possuir adaptador real, fonte factual, associação objetiva ao
+  `negocio_id`, idempotência, reversões reconciliáveis, cobertura verificável,
+  teste PostgreSQL e evidência operacional;
+- `ADM-043` possuir contrato transversal de auditoria com ator, ação, alvo,
+  momento, contexto e testes proporcionais ao risco.
 
 ## Governança da matriz
 
