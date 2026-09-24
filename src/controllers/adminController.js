@@ -30,6 +30,29 @@ async function buscarDashboardAdmin(
 }
 
 /*
+ * GET /admin/usuarios
+ */
+async function listarUsuariosAdmin(
+  req,
+  res,
+  next
+) {
+  try {
+    const resultado =
+      await adminOperationService
+        .listarUsuariosAdmin(
+          req.query || {}
+        );
+
+    return res
+      .status(200)
+      .json(resultado);
+  } catch (erro) {
+    return next(erro);
+  }
+}
+
+/*
  * GET /admin/negocios
  */
 async function listarNegociosAdmin(
@@ -98,6 +121,7 @@ async function buscarMarketingAdmin(
 
 module.exports = {
   buscarDashboardAdmin,
+  listarUsuariosAdmin,
   listarNegociosAdmin,
   listarAgendamentosAdmin,
   buscarMarketingAdmin,

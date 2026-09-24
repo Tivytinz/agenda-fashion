@@ -26,19 +26,20 @@ comprovada em produção.
 O contexto administrativo possui uma matriz própria e **não herda o percentual
 67/67 da baseline geral**.
 
-Na baseline Admin v1.0:
+Na baseline Admin v1.1, reconciliada pela Admin Wave 1 com RF40/RF41:
 
 ```text
-Cobertura Admin: 39/40 (97,5%)
+Cobertura Admin: 41/43 (95,3%)
 ```
 
-O requisito pendente é `ADM-030`: existência de pelo menos um adaptador
-factual real em produção capaz de importar custo variável atribuível a negócio
-e comprovar cobertura econômica de ponta a ponta.
+A redução percentual em relação à v1.0 decorre da inclusão de requisitos
+administrativos que estavam ausentes da primeira matriz, não de regressão.
 
-A infraestrutura provider-agnostic da Wave 32 está implementada, mas o registry
-de produção permanece intencionalmente vazio. Portanto essa lacuna não deve ser
-tratada como coberta por estimativa ou por simples existência da interface.
+RF40 passa a ter cobertura operacional v1 com consulta paginada de usuários,
+negócios e agendamentos e estados canônicos. Permanecem duas lacunas:
+
+- `ADM-030`: adaptador factual real em produção;
+- `ADM-043`: auditoria administrativa transversal de ações críticas (RF41).
 
 A fonte de rastreabilidade é
 [`docs/admin-requisitos-matriz.md`](./admin-requisitos-matriz.md).

@@ -117,6 +117,17 @@ router.get(
 );
 
 /*
+ * Usuários da plataforma.
+ * Consulta operacional paginada e protegida.
+ */
+router.get(
+  "/admin/usuarios",
+  auth,
+  authAdmin,
+  adminController.listarUsuariosAdmin
+);
+
+/*
  * Negócios cadastrados.
  */
 router.get(

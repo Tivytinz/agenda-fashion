@@ -480,6 +480,16 @@ Sua cobertura possui baseline independente em
 a partir da baseline funcional geral `67/67`. Requisitos administrativos de
 segurança, dinheiro, permissão ou integridade só contam como cobertos com
 evidência verificável no backend e testes proporcionais ao risco.
+
+Desde a Admin Wave 1, RF40 possui cobertura operacional v1 para consulta e
+diagnóstico de **usuários, negócios e agendamentos**. `/admin/usuarios`,
+`/admin/negocios` e `/admin/agendamentos` usam busca/filtros/paginação
+server-side; negócios distinguem publicado, despublicado, rascunho, inativo e
+arquivado; agendamentos usam os estados canônicos `agendado`, `confirmado`,
+`realizado`, `falta` e `cancelado`. A operação continua priorizando leitura
+e diagnóstico. Mutações genéricas ou de alto impacto não são autorizadas por
+RF40; exigem contrato específico, autorização proporcional e auditoria. RF41
+permanece uma frente própria de auditoria administrativa transversal.
 O contexto da dona possui workspace de gestão próprio. O contexto profissional
 possui shell de rotina própria, com navegação curta focada em agenda, horários e
 conta. Essas diferenças visuais não alteram os contratos de autorização do
