@@ -3,7 +3,7 @@ const request = require("supertest");
 
 jest.mock("../src/services/adminAuditService", () => ({
   ACTIONS: new Map([["campanha_criar", "campanha"]]),
-  start: jest.fn(), finish: jest.fn(), list: jest.fn()
+  start: jest.fn(), finish: jest.fn(), list: jest.fn(), review: jest.fn()
 }));
 
 const audit = require("../src/services/adminAuditService");
@@ -22,6 +22,7 @@ function app() {
     res.status(201).json({ campanha: { id: 42 }, senha: "never audit this" })
   );
   instance.get("/admin/auditoria", controller.list);
+  instance.post("/admin/auditoria/:id/revisao", controller.review);
   instance.use((error, req, res, next) => res.status(error.statusCode || 500).json({ error: error.message }));
   return instance;
 }
@@ -49,11 +50,29 @@ test("registra alvo confirmado e HTTP sem gravar payload", async () => {
   expect(audit.start).toHaveBeenCalledWith({
     admin: { usuarioId: 7, papel: "superadmin" },
     action: "campanha_criar", targetId: undefined,
-    targetCode: undefined, requestId: "request-12345"
+    targetCode: undefined, targetAttemptId: undefined, requestId: "request-12345"
   });
   expect(audit.finish).toHaveBeenCalledWith(expect.anything(), { targetId: 42, status: 201 });
   expect(JSON.stringify(audit.start.mock.calls)).not.toContain("sensitive");
   expect(JSON.stringify(audit.finish.mock.calls)).not.toContain("senha");
+});
+
+test("rota de revisão passa identidade e dados estruturados para o service", async () => {
+  audit.review.mockResolvedValueOnce({ tentativaId: "abc", avaliacao: "INDETERMINADO" });
+  const result = await request(app())
+    .post("/admin/auditoria/00000000-0000-4000-8000-000000000001/revisao")
+    .send({
+      avaliacao: "INDETERMINADO", evidenciaTipo: "LOG_APLICACAO",
+      evidenciaReferencia: "request-12345", token: "never audit this"
+    });
+  expect(result.status).toBe(201);
+  expect(audit.review).toHaveBeenCalledWith({
+    admin: { usuarioId: 7, papel: "superadmin" },
+    tentativaId: "00000000-0000-4000-8000-000000000001",
+    avaliacao: "INDETERMINADO", evidenciaTipo: "LOG_APLICACAO",
+    evidenciaReferencia: "request-12345"
+  });
+  expect(JSON.stringify(audit.review.mock.calls)).not.toContain("never audit this");
 });
 
 test("consulta a auditoria pelo service, que valida superadmin", async () => {

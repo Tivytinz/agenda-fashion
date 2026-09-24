@@ -136,6 +136,14 @@ router.get(
   adminAuditController.list
 );
 
+router.post(
+  "/admin/auditoria/:id/revisao",
+  auth,
+  authAdmin,
+  adminAudit("auditoria_revisar"),
+  adminAuditController.review
+);
+
 /*
  * Negócios cadastrados.
  */

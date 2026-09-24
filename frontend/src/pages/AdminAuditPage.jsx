@@ -13,6 +13,74 @@ function formattedDate(value) {
   }).format(date);
 }
 
+const ASSESSMENTS = {
+  EFEITO_OBSERVADO: "Efeito observado na fonte consultada",
+  SEM_EFEITO_OBSERVADO: "Sem efeito observado na fonte consultada",
+  INDETERMINADO: "Efeito indeterminado"
+};
+
+function ReviewForm({ tentativaId, onSaved }) {
+  const [assessment, setAssessment] = useState("INDETERMINADO");
+  const [evidenceType, setEvidenceType] = useState("LOG_APLICACAO");
+  const [reference, setReference] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+
+  async function submit(event) {
+    event.preventDefault();
+    setSaving(true);
+    setError("");
+    try {
+      await apiRequest(`/admin/auditoria/${tentativaId}/revisao`, {
+        method: "POST",
+        body: {
+          avaliacao: assessment, evidenciaTipo: evidenceType,
+          evidenciaReferencia: reference.trim()
+        }
+      });
+      setReference("");
+      onSaved();
+    } catch (requestError) {
+      setError(requestError.status === 409
+        ? "A tentativa mudou ou ainda não pode ser revisada. Atualize a consulta."
+        : requestError.message || "Não foi possível registrar a revisão.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <form className="admin-audit-review" onSubmit={submit}>
+      <strong>Revisar pendência vencida</strong>
+      <p>Registre o que foi observado. A avaliação humana não recupera o status HTTP.</p>
+      <label htmlFor={`assessment-${tentativaId}`}>Avaliação humana</label>
+      <select id={`assessment-${tentativaId}`} value={assessment}
+        onChange={(event) => setAssessment(event.target.value)} disabled={saving}>
+        {Object.entries(ASSESSMENTS).map(([value, label]) => (
+          <option value={value} key={value}>{label}</option>
+        ))}
+      </select>
+      <label htmlFor={`evidence-${tentativaId}`}>Fonte da evidência</label>
+      <select id={`evidence-${tentativaId}`} value={evidenceType}
+        onChange={(event) => setEvidenceType(event.target.value)} disabled={saving}>
+        <option value="LOG_APLICACAO">Log da aplicação</option>
+        <option value="TRILHA_DOMINIO">Trilha do domínio</option>
+        <option value="PROVEDOR">Provedor externo</option>
+      </select>
+      <label htmlFor={`reference-${tentativaId}`}>ID da evidência</label>
+      <input id={`reference-${tentativaId}`} type="text" autoComplete="off"
+        minLength={8} maxLength={100} pattern="[A-Za-z0-9._:-]{8,100}"
+        placeholder="ID do log ou da operação, sem URL ou token"
+        value={reference} onChange={(event) => setReference(event.target.value)}
+        disabled={saving} required />
+      <button className="button button-secondary button-small" type="submit" disabled={saving}>
+        {saving ? "Registrando..." : "Registrar revisão"}
+      </button>
+      {error && <p role="alert">{error}</p>}
+    </form>
+  );
+}
+
 export function AdminAuditPage() {
   const [params, setParams] = useSearchParams();
   const page = Math.max(1, Number.parseInt(params.get("pagina") || "1", 10) || 1);
@@ -25,6 +93,7 @@ export function AdminAuditPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
   const [reload, setReload] = useState(0);
+  const [reviewMessage, setReviewMessage] = useState("");
 
   useEffect(() => { setActorInput(actorId); }, [actorId]);
   useEffect(() => {
@@ -56,6 +125,7 @@ export function AdminAuditPage() {
   }, [page, action, result, actorId, reload]);
 
   function change(next) {
+    setReviewMessage("");
     const query = new URLSearchParams(params);
     for (const [key, value] of Object.entries(next)) {
       if (value) query.set(key, String(value));
@@ -76,7 +146,7 @@ export function AdminAuditPage() {
           <Link to="/admin/operacao">Voltar à operação</Link>
         </div>
         <button className="button button-secondary button-small" type="button" disabled={loading}
-          onClick={() => setReload((value) => value + 1)}>Atualizar</button>
+          onClick={() => { setReviewMessage(""); setReload((value) => value + 1); }}>Atualizar</button>
       </header>
 
       <form className="admin-operation-search" onSubmit={(event) => {
@@ -94,6 +164,7 @@ export function AdminAuditPage() {
         <select id="audit-result" value={result} onChange={(event) => change({ resultado: event.target.value, pagina: "" })}>
           <option value="">Todos os resultados</option>
           <option value="PENDENTE">Pendente</option>
+          <option value="REVISADA">Revisada</option>
           <option value="HTTP_OK">Resposta sem erro</option>
           <option value="HTTP_ERRO">Resposta com erro</option>
         </select>
@@ -106,6 +177,7 @@ export function AdminAuditPage() {
       </form>
 
       {loading && !data && <LoadingState>Carregando auditoria...</LoadingState>}
+      {reviewMessage && <p role="status">{reviewMessage}</p>}
       {error && <ErrorState message={error} onRetry={() => setReload((value) => value + 1)} />}
       {!loading && !error && events.length === 0 && (
         <EmptyState title="Nenhuma ação encontrada">Ajuste os filtros ou consulte outro período.</EmptyState>
@@ -117,15 +189,30 @@ export function AdminAuditPage() {
             {events.map((event) => (
               <article className="admin-operation-card admin-audit-card" key={event.tentativaId}>
                 <strong>{event.acao.replaceAll("_", " ")}</strong>
-                <p>{event.resultado === "PENDENTE" ? "Pendente de investigação" : event.resultado === "HTTP_OK" ? "Resposta sem erro" : "Resposta com erro"}</p>
+                <p>{event.resultado === "PENDENTE"
+                  ? event.vencida ? "Pendente vencida: investigar" : "Pendente recente: aguardar"
+                  : event.resultado === "REVISADA" ? "Revisada: status HTTP desconhecido"
+                    : event.resultado === "HTTP_OK" ? "Resposta sem erro" : "Resposta com erro"}</p>
                 <dl>
                   <div><dt>Administrador</dt><dd>#{event.atorUsuarioId} · {event.papelAdmin}</dd></div>
-                  <div><dt>Alvo</dt><dd>{event.alvoTipo}{event.alvoId ? ` #${event.alvoId}` : ""}{event.alvoCodigo ? ` · ${event.alvoCodigo}` : ""}</dd></div>
+                  <div><dt>Alvo</dt><dd>{event.alvoTipo}{event.alvoId ? ` #${event.alvoId}` : ""}{event.alvoCodigo ? ` · ${event.alvoCodigo}` : ""}{event.alvoTentativaId ? ` · ${event.alvoTentativaId}` : ""}</dd></div>
                   <div><dt>Início</dt><dd>{formattedDate(event.iniciadoEm)}</dd></div>
                   <div><dt>Resultado</dt><dd>{formattedDate(event.finalizadoEm)}{event.httpStatus ? ` · HTTP ${event.httpStatus}` : ""}</dd></div>
                   <div><dt>Hash da requisição</dt><dd>{event.requestId || "Sem identificador"}</dd></div>
                   <div><dt>ID da tentativa</dt><dd>{event.tentativaId}</dd></div>
                 </dl>
+                {event.revisao && (
+                  <p>Revisão humana por #{event.revisao.revisorUsuarioId} em {formattedDate(event.revisao.revisadoEm)}:
+                    {` ${ASSESSMENTS[event.revisao.avaliacao] || "Avaliação indisponível"}`}.
+                    {` Fonte: ${event.revisao.evidenciaTipo}. Hash: ${event.revisao.evidenciaReferenciaHash}`}
+                  </p>
+                )}
+                {event.resultado === "PENDENTE" && event.vencida && (
+                  <ReviewForm tentativaId={event.tentativaId} onSaved={() => {
+                    setReviewMessage("Revisão registrada. O status HTTP permanece desconhecido.");
+                    setReload((value) => value + 1);
+                  }} />
+                )}
               </article>
             ))}
           </div>

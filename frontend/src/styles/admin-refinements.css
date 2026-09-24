@@ -232,6 +232,19 @@
   overflow-wrap: anywhere;
 }
 
+.admin-audit-review {
+  display: grid;
+  gap: 7px;
+  border-top: 1px solid var(--admin-line);
+  padding-top: 12px;
+}
+
+.admin-audit-review input,
+.admin-audit-review select {
+  min-width: 0;
+  width: 100%;
+}
+
 .admin-operation-pagination {
   display: flex;
   align-items: center;
