@@ -9,4 +9,19 @@ async function list(req, res, next) {
   }
 }
 
-module.exports = { list };
+async function review(req, res, next) {
+  try {
+    const result = await audit.review({
+      admin: req.admin,
+      tentativaId: req.params.id,
+      avaliacao: req.body?.avaliacao,
+      evidenciaTipo: req.body?.evidenciaTipo,
+      evidenciaReferencia: req.body?.evidenciaReferencia
+    });
+    return res.status(201).json({ revisao: result });
+  } catch (error) {
+    return next(error);
+  }
+}
+
+module.exports = { list, review };

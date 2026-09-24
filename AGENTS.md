@@ -497,6 +497,10 @@ Não inferir histórico anterior nem tratar um HTTP 2xx como sucesso de um job
 externo. A matriz Admin mantém `ADM-043` pendente até validação do contrato e
 reconciliação das tentativas sem resultado; RNF02 exige medição de p95 com
 carga representativa antes de declarar desempenho conforme.
+A Admin Wave 3 documentada em `docs/admin-wave-3-rf41-reconciliacao.md` prepara
+revisão humana append-only de tentativas sem resultado HTTP. A revisão usa
+avaliação estruturada e evidência referenciada por hash, sem fabricar HTTP ou
+promover `ADM-043` antes de validação e medição administrativa representativa.
 O contexto da dona possui workspace de gestão próprio. O contexto profissional
 possui shell de rotina própria, com navegação curta focada em agenda, horários e
 conta. Essas diferenças visuais não alteram os contratos de autorização do

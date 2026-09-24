@@ -159,6 +159,12 @@ reconciliação verificável das tentativas pendentes; veja
 `admin-wave-2-rf41-auditoria.md`. Não antecipar 42/43 apenas pela existência da
 interface ou de eventos `INICIADA`.
 
+A Admin Wave 3 prepara a revisão estruturada e imutável das tentativas pendentes
+sem presumir resposta HTTP, além de um medidor do p95 de leitura do Admin.
+`ADM-043` mantém o estado **Não coberto** até validação da migration 105,
+concorrência, autorização e p95 administrativo em ambiente representativo; ver
+`admin-wave-3-rf41-reconciliacao.md`.
+
 ## Lacunas atuais
 
 A baseline Admin v1.1 possui duas lacunas:

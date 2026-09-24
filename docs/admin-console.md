@@ -43,6 +43,8 @@ A navegação principal do Admin 2.0 é definida pelo frontend e hoje possui sei
 `/admin/auditoria` é uma consulta especializada do superadmin para rastrear
 tentativas e resultados das ações críticas. O contrato e os limites desta
 leitura ficam em `admin-wave-2-rf41-auditoria.md`.
+Revisões humanas das pendências vencidas preservam o resultado HTTP desconhecido;
+o contrato está em `admin-wave-3-rf41-reconciliacao.md`.
 
 Existem também rotas especializadas e de compatibilidade que continuam úteis sem precisar ocupar o primeiro nível da navegação principal:
 

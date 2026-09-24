@@ -160,6 +160,8 @@ contrato de billing.
 - [admin-wave-2-rf41-auditoria.md](./admin-wave-2-rf41-auditoria.md):
   contrato transversal de auditoria, limites de cobertura e critérios de
   validação da segunda Wave do Admin.
+- [admin-wave-3-rf41-reconciliacao.md](./admin-wave-3-rf41-reconciliacao.md):
+  revisão imutável das tentativas pendentes e medição de desempenho do Admin.
 - [admin-centro-comando.md](./admin-centro-comando.md): semântica dos
   indicadores do centro de comando.
 - [admin-visao-geral.md](./admin-visao-geral.md): KPIs agregados da rota

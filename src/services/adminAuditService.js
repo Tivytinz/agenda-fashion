@@ -17,9 +17,13 @@ const ACTIONS = new Map([
   ["tiktok_oauth_concluir", "integracao"],
   ["pinterest_oauth_concluir", "integracao"],
   ["midia_vincular", "campanha"],
-  ["midia_sincronizar", "integracao"]
+  ["midia_sincronizar", "integracao"],
+  ["auditoria_revisar", "tentativa"]
 ]);
 const PROVIDERS = new Set(["google_ads", "meta_ads", "pinterest_ads", "tiktok_ads"]);
+const ATTEMPT_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const REVIEWS = new Set(["EFEITO_OBSERVADO", "SEM_EFEITO_OBSERVADO", "INDETERMINADO"]);
+const EVIDENCE = new Set(["LOG_APLICACAO", "TRILHA_DOMINIO", "PROVEDOR"]);
 
 function positiveId(value) {
   const id = Number(value);
@@ -41,9 +45,12 @@ function definition(action) {
   return target;
 }
 
-async function start({ admin, action, targetId, targetCode, requestId }) {
+async function start({ admin, action, targetId, targetCode, targetAttemptId, requestId }) {
   const { id, role } = actor(admin);
   const target = definition(action);
+  if (action === "auditoria_revisar" && !ATTEMPT_ID.test(String(targetAttemptId || ""))) {
+    throw new AppError("Tentativa de auditoria inválida.", 400);
+  }
   const attemptId = crypto.randomUUID();
   const event = {
     tentativaId: attemptId,
@@ -53,6 +60,7 @@ async function start({ admin, action, targetId, targetCode, requestId }) {
     acao: action,
     alvoTipo: target,
     alvoId: positiveId(targetId),
+    alvoTentativaId: action === "auditoria_revisar" ? targetAttemptId : null,
     alvoCodigo: PROVIDERS.has(targetCode) ? targetCode : (
       action.startsWith("tiktok_oauth_") ? "tiktok_ads" :
         action.startsWith("pinterest_oauth_") ? "pinterest_ads" : null
@@ -94,7 +102,7 @@ async function list({ admin, query = {} }) {
     throw new AppError("Tipo de alvo inválido.", 400);
   }
   const result = String(query.resultado || "").trim();
-  if (result && !["PENDENTE", "HTTP_OK", "HTTP_ERRO"].includes(result)) {
+  if (result && !["PENDENTE", "REVISADA", "HTTP_OK", "HTTP_ERRO"].includes(result)) {
     throw new AppError("Resultado de auditoria inválido.", 400);
   }
   for (const name of ["atorId", "alvoId"]) {
@@ -120,12 +128,21 @@ async function list({ admin, query = {} }) {
       acao: row.acao,
       alvoTipo: row.alvo_tipo,
       alvoId: row.alvo_id ? Number(row.alvo_id) : null,
+      alvoTentativaId: row.alvo_tentativa_id || null,
       alvoCodigo: row.alvo_codigo || null,
       requestId: row.request_id,
       iniciadoEm: row.iniciado_em,
       finalizadoEm: row.finalizado_em,
-      resultado: row.resultado || "PENDENTE",
-      httpStatus: row.http_status || null
+      resultado: row.resultado || (row.revisao_id ? "REVISADA" : "PENDENTE"),
+      httpStatus: row.http_status || null,
+      vencida: row.vencida === true && !row.resultado && !row.revisao_id,
+      revisao: row.revisao_id ? {
+        revisorUsuarioId: Number(row.revisor_usuario_id),
+        avaliacao: row.avaliacao,
+        evidenciaTipo: row.evidencia_tipo,
+        evidenciaReferenciaHash: row.evidencia_referencia_sha256.trim(),
+        revisadoEm: row.revisado_em
+      } : null
     })),
     paginacao: {
       pagina: page, limite: limit, total,
@@ -134,4 +151,50 @@ async function list({ admin, query = {} }) {
   };
 }
 
-module.exports = { ACTIONS, start, finish, list };
+async function review({ admin, tentativaId, avaliacao, evidenciaTipo, evidenciaReferencia }) {
+  const reviewer = actor(admin);
+  if (reviewer.role !== "superadmin") {
+    throw new AppError("Revisão restrita ao superadministrador.", 403);
+  }
+  if (!ATTEMPT_ID.test(String(tentativaId || ""))) {
+    throw new AppError("Tentativa de auditoria inválida.", 400);
+  }
+  if (!REVIEWS.has(avaliacao) || !EVIDENCE.has(evidenciaTipo)) {
+    throw new AppError("Avaliação ou evidência inválida.", 400);
+  }
+  const reference = String(evidenciaReferencia || "").trim();
+  if (!/^[a-zA-Z0-9._:-]{8,100}$/.test(reference)) {
+    throw new AppError("Informe um identificador de evidência válido, sem URL ou dados pessoais.", 400);
+  }
+  const hash = crypto.createHash("sha256").update(reference).digest("hex");
+  try {
+    return await repository.transacao(async (client) => {
+      const attempt = await repository.buscarTentativaParaRevisao(tentativaId, client);
+      if (!attempt) throw new AppError("Tentativa não encontrada.", 404);
+      if (attempt.resultado_id || attempt.revisao_id) {
+        throw new AppError("Tentativa já possui resultado ou revisão.", 409);
+      }
+      if (!attempt.vencida) {
+        throw new AppError("Aguarde o prazo de investigação da tentativa.", 409);
+      }
+      const row = await repository.registrarRevisao({
+        tentativaId,
+        revisorUsuarioId: reviewer.id,
+        avaliacao,
+        evidenciaTipo,
+        evidenciaReferenciaHash: hash
+      }, client);
+      return {
+        tentativaId, revisorUsuarioId: reviewer.id, avaliacao, evidenciaTipo,
+        evidenciaReferenciaHash: hash, revisadoEm: row.revisado_em
+      };
+    });
+  } catch (error) {
+    if (error?.code === "23505") {
+      throw new AppError("Tentativa já possui revisão.", 409);
+    }
+    throw error;
+  }
+}
+
+module.exports = { ACTIONS, start, finish, list, review };

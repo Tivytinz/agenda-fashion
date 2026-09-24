@@ -31,6 +31,7 @@ function adminAudit(action) {
         action,
         targetId: req.params?.id,
         targetCode: req.params?.provedor,
+        targetAttemptId: action === "auditoria_revisar" ? req.params?.id : undefined,
         requestId: req.id
       });
     } catch (error) {
