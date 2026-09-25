@@ -2127,6 +2127,7 @@ Essa ordem não autoriza alteração automática nesta branch documental.
   requests/forms;
 - [`frontend-analytics-observabilidade.md`](./frontend-analytics-observabilidade.md):
   consentimento/telemetria;
+- [`frontend-entrega-runtime.md`](./frontend-entrega-runtime.md): cache, entry HTML, recovery, SEO/noindex e entrega;
 - [`frontend-qa-prontidao.md`](./frontend-qa-prontidao.md): QA;
 - [`checkout-idempotente.md`](./checkout-idempotente.md): billing;
 - [`agendamento-integridade.md`](./agendamento-integridade.md): booking;
