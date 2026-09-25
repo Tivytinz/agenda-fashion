@@ -508,6 +508,9 @@ A Wave 6 prepara a leitura agregada de volume, a carga sintética em banco
 descartável e o executor dos seis cenários para o QA operacional; não promove
 ADM-043 sem p95 representativo e integridade comprovada. O procedimento está em
 `docs/admin-wave-6-rf41-qa-operacional.md`.
+O workflow `Admin audit QA diagnostic` usa banco e app temporários no
+runner para regressão técnica. O perfil sintético do próprio QA não permite
+promover ADM-043; ver `docs/admin-audit-qa-diagnostic.md`.
 O contexto da dona possui workspace de gestão próprio. O contexto profissional
 possui shell de rotina própria, com navegação curta focada em agenda, horários e
 conta. Essas diferenças visuais não alteram os contratos de autorização do

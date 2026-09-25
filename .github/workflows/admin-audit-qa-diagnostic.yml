@@ -1,0 +1,113 @@
+name: Admin audit QA diagnostic
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - .github/workflows/admin-audit-qa-diagnostic.yml
+      - scripts/create-admin-audit-qa-actor.js
+      - scripts/seed-admin-audit-qa.js
+      - scripts/profile-admin-audit-volume.js
+      - scripts/qualify-admin-audit-qa.js
+      - scripts/performance-admin-audit*.mjs
+
+permissions:
+  contents: read
+
+jobs:
+  diagnostic:
+    name: Isolated audit smoke
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    services:
+      postgres:
+        image: postgres:18-alpine
+        env:
+          POSTGRES_DB: agenda_fashion_qa
+          POSTGRES_USER: qa
+          POSTGRES_PASSWORD: qa-disposable-only
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U qa -d agenda_fashion_qa"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      NODE_ENV: test
+      PORT: "3000"
+      DATABASE_URL: postgresql://qa:qa-disposable-only@127.0.0.1:5432/agenda_fashion_qa
+      PERF_ADMIN_QA_DATABASE_URL: postgresql://qa:qa-disposable-only@127.0.0.1:5432/agenda_fashion_qa
+      PERF_ADMIN_QA_DATABASE_NAME: agenda_fashion_qa
+      PERF_ADMIN_QA_ACTOR_CONFIRM: agenda_fashion_qa
+      PERF_ADMIN_SEED_CONFIRM: agenda_fashion_qa
+      PERF_ADMIN_TARGET_URL: http://127.0.0.1:3000
+      PERF_ADMIN_BUILD_SHA: ${{ github.sha }}
+      PERF_ADMIN_QA_BUILD_SHA: ${{ github.sha }}
+      PERF_ADMIN_ACTOR_ID: "900000000001"
+      PERF_ADMIN_SEED_ATTEMPTS: "1000"
+      PERF_ADMIN_SEED_RESULTS: "800"
+      PERF_ADMIN_SEED_REVIEWS: "100"
+      PERF_ADMIN_SEED_PENDING: "100"
+      PERF_ADMIN_MIN_ATTEMPTS: "1000"
+      PERF_ADMIN_MIN_REVIEWS: "100"
+      PERF_ADMIN_SAMPLES: "30"
+      PERF_ADMIN_CONCURRENCY: "3"
+      PERF_ADMIN_REFERENCE_FILE: performance-results/qa-synthetic-reference.json
+      PERF_ADMIN_PROFILE_DATABASE_URL: postgresql://qa:qa-disposable-only@127.0.0.1:5432/agenda_fashion_qa
+      PERF_ADMIN_PROFILE_CONFIRM_DATABASE: agenda_fashion_qa
+      PERF_ADMIN_PROFILE_READ_ONLY: auditoria
+      BACKGROUND_WORKERS_ENABLED: "false"
+      WHATSAPP_NOTIFICATIONS_ENABLED: "false"
+      JWT_SECRET: only-a-disposable-qa-runner-secret-long-enough
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Apply migrations to disposable database
+        run: npm run migrate:test
+      - name: Seed synthetic ledger and QA superadmin
+        run: |
+          node scripts/seed-admin-audit-qa.js
+          node scripts/create-admin-audit-qa-actor.js
+      - name: Save synthetic comparison profile
+        run: |
+          mkdir -p performance-results
+          node scripts/profile-admin-audit-volume.js > "$PERF_ADMIN_REFERENCE_FILE"
+      - name: Run local application
+        shell: bash
+        run: |
+          node -e "require('./src/server').iniciarServidor()" > /tmp/admin-audit-qa-app.log 2>&1 &
+          echo $! > /tmp/admin-audit-qa-app.pid
+          for attempt in {1..30}; do
+            if curl --fail --silent --max-time 2 http://127.0.0.1:3000/health/ready > /dev/null; then
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "Aplicação QA não ficou pronta." >&2
+          exit 1
+      - name: Measure six scenarios and verify ledger
+        run: node scripts/qualify-admin-audit-qa.js > performance-results/admin-audit-diagnostic.json
+      - name: Stop QA application
+        if: always()
+        run: |
+          if [ -f /tmp/admin-audit-qa-app.pid ]; then
+            kill "$(cat /tmp/admin-audit-qa-app.pid)" || true
+          fi
+      - name: Upload diagnostic evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: admin-audit-qa-diagnostic-${{ github.run_id }}
+          path: performance-results/*.json
+          if-no-files-found: warn
+          retention-days: 7
