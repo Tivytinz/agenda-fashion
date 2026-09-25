@@ -37,7 +37,7 @@ function config() {
       !loopback(target.hostname) || target.username || target.password ||
       target.pathname !== "/" || target.search || target.hash ||
       !["postgres:", "postgresql:"].includes(database.protocol) ||
-      !loopback(database.hostname)) {
+      !loopback(database.hostname) || database.search || database.hash) {
     throw new QaError("QA exige NODE_ENV=test, commit, limites de volume, token e URLs loopback; confirme o nome de banco *_test ou *_qa.");
   }
   return { target, databaseUrl: env.PERF_ADMIN_QA_DATABASE_URL, name,

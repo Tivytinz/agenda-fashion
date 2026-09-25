@@ -35,6 +35,7 @@ describe("medidor de escritas administrativas", () => {
     for (const env of [
       { PERF_ADMIN_QA_DATABASE_NAME: "outro_qa" },
       { NODE_ENV: "production" },
+      { PERF_ADMIN_QA_DATABASE_URL: "postgresql://qa:private-pass@127.0.0.1/agenda_fashion_qa?host=db.railway.app" },
       { PERF_ADMIN_QA_DATABASE_URL: "postgresql://qa:private-pass@127.0.0.1:5432/agenda_fashion" }
     ]) {
       const result = run(env);

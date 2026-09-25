@@ -504,6 +504,10 @@ promover `ADM-043` antes de validação e medição administrativa representativ
 A Admin Wave 5 prepara o vínculo do benchmark ao build da aplicação QA e mede
 também o filtro de revisões. A evidência operacional continua obrigatória para
 fechar ADM-043; ver `docs/admin-wave-5-rf41-evidencia.md`.
+A Wave 6 prepara a leitura agregada de volume, a carga sintética em banco
+descartável e o executor dos seis cenários para o QA operacional; não promove
+ADM-043 sem p95 representativo e integridade comprovada. O procedimento está em
+`docs/admin-wave-6-rf41-qa-operacional.md`.
 O contexto da dona possui workspace de gestão próprio. O contexto profissional
 possui shell de rotina própria, com navegação curta focada em agenda, horários e
 conta. Essas diferenças visuais não alteram os contratos de autorização do
