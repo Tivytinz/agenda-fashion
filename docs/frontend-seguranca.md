@@ -160,25 +160,21 @@ página.
 
 ## 8. Dados de sessão armazenados localmente
 
-O frontend atual pode armazenar:
+Desde a Wave D, o bootstrap canônico persiste somente:
 
 ```text
 session_active
-usuario
-negocio
 ```
 
-Esses registros servem para bootstrap/cache de UX.
+A resposta de `/minha-sessao` fica em memória no React.
 
-Eles **não são autoridade de autorização**.
+`usuario` e `negocio` legados são removidos durante bootstrap e ao salvar uma
+sessão nova. Assim nome, e-mail, WhatsApp, foto e contexto de negócio deixam de
+ficar expostos em `localStorage` por conveniência.
 
-`usuario` pode conter dados de conta como nome, e-mail e WhatsApp retornados
-pelo backend. Portanto:
-
-- não adicionar segredos a esse objeto;
-- não persistir dados desnecessários;
-- considerar impacto de XSS ao ampliar o payload;
-- não usar o cache para conceder ação sensível.
+Esse marcador **não é autoridade de autorização**. A sessão real continua sendo
+o cookie HttpOnly validado pelo backend e `/minha-sessao` continua sendo a
+fonte de verdade do contexto.
 
 ## 9. Refresh canônico de sessão
 
@@ -545,31 +541,18 @@ A allowlist atual inclui:
 
 `X-Request-ID` também é exposto na resposta.
 
-## 31. Achado: X-Agenda-Access e CORS
+## 31. X-Agenda-Access e CORS
 
-As páginas de capability auditadas enviam:
+A Wave D inclui `X-Agenda-Access` em `corsOptions.allowedHeaders`.
 
-```text
-X-Agenda-Access
-```
+O deploy canônico continua same-origin, mas agora uma origem explicitamente
+permitida também consegue concluir o preflight da capability sem mudar seu
+escopo.
 
-Porém `corsOptions.allowedHeaders` **não inclui hoje esse header**.
+`tests/cors-capability.test.js` protege o contrato de OPTIONS/preflight.
 
-No desenho canônico atual, o React é servido pelo mesmo Express/origin, então
-essa diferença não quebra o acesso same-origin.
-
-Mas existe uma incompatibilidade caso frontend e API sejam separados por origem:
-
-```text
-cross-origin + X-Agenda-Access
-→ preflight
-→ header não está na allowlist atual
-```
-
-Se a arquitetura de deploy passar a usar origens separadas, corrigir e testar o
-CORS antes do corte.
-
-Esta branch não mudou configuração.
+CORS continua sem autorizar booking: a capability ainda é validada no backend e
+continua restrita ao booking correspondente.
 
 ## 32. CORS não substitui autorização
 
@@ -2050,24 +2033,18 @@ A correção alinha a checagem ao middleware obrigatório sem transformar a rota
 
 ### 142.2 X-Agenda-Access ausente da allowlist CORS
 
-As capability pages usam o header, mas ele não aparece em
-`allowedHeaders`.
+Status: **implementado na Wave D e em validação**.
 
-Status atual: mesma origem canônica evita impacto no deploy observado.
-
-Risco: separação futura frontend/API exigirá correção de preflight.
+`X-Agenda-Access` foi incluído na allowlist e o preflight de origem permitida
+possui regressão automatizada.
 
 ### 142.3 Cache local contém metadados pessoais
 
-JWT novo foi removido do localStorage, o que é positivo.
+Status: **implementado na Wave D e em validação**.
 
-Porém `usuario`/contexto ainda podem conter nome, e-mail, WhatsApp e negócio.
-
-Status: não são autoridade nem segredo de sessão, mas continuam acessíveis a
-JavaScript da origem.
-
-Diretriz: minimizar o que for persistido e nunca ampliar esse cache com
-credenciais.
+O frontend deixou de persistir `usuario` e `negocio`; o bootstrap conserva
+apenas `session_active`, limpa chaves legadas e reidrata o contexto por
+`/minha-sessao`.
 
 ### 142.4 Compatibilidade Bearer ainda existe
 
@@ -2095,9 +2072,9 @@ antes de deploy.
 Para um patch executável futuro, a ordem técnica recomendada é:
 
 ```text
-1. concluir validação/merge da política CSRF da Wave B
-2. alinhar X-Agenda-Access ao CORS se houver suporte cross-origin
-3. reduzir compatibilidade/storage legado quando seguro
+1. concluir validação/merge dos hardenings de storage e CORS da Wave D
+2. manter Bearer legado sem novos emissores até existir evidência segura para retirada
+3. revisar novamente o threat model se a topologia de origem mudar
 ```
 
 Essa ordem não autoriza alteração automática nesta branch documental.
