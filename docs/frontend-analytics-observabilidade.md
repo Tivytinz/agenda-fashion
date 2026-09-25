@@ -1998,6 +1998,9 @@ Preservar esse desenho.
 - [`checkout-idempotente.md`](./checkout-idempotente.md): checkout;
 - [`ciclo-atendimento.md`](./ciclo-atendimento.md): booking.
 
+
+> Findings abertos e prioridade de execução estão consolidados em [`frontend-pendencias-priorizadas.md`](./frontend-pendencias-priorizadas.md).
+
 ## 105. Manutenção
 
 Atualizar este documento quando mudar de forma durável:
