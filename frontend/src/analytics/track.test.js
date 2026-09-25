@@ -90,6 +90,43 @@ describe("track attribution", () => {
     });
   });
 
+  test("não apaga atribuição V2 válida apenas porque o legado está vazio", () => {
+    window.sessionStorage.setItem(
+      "af_analytics_session_v2",
+      JSON.stringify({
+        id: "6a9fa7d3-9c56-4b11-8e18-5f328f2b2af1",
+        startedAt: Date.now(),
+        lastActivityAt: Date.now(),
+        sequence: 0,
+        acquisition: {
+          utmSource: "google",
+          utmMedium: "cpc",
+          landingPage: "/para-profissionais"
+        }
+      })
+    );
+
+    window.history.replaceState(
+      {},
+      "",
+      "/confirmar"
+    );
+
+    getMarketingContext("profissional");
+
+    const session = JSON.parse(
+      window.sessionStorage.getItem(
+        "af_analytics_session_v2"
+      )
+    );
+
+    expect(session.acquisition).toMatchObject({
+      utmSource: "google",
+      utmMedium: "cpc",
+      landingPage: "/para-profissionais"
+    });
+  });
+
   test("captura sinais Google modernos mesmo sem GCLID", () => {
     window.history.replaceState(
       {},
