@@ -122,7 +122,7 @@ autorização própria.
 
 ## 5. FE-P1-01 — optionalAuth não verifica revogação do JWT
 
-### Evidência atual
+### Evidência que originou o finding
 
 `src/middlewares/auth.js` consulta:
 
@@ -327,7 +327,7 @@ Código, testes e política descrevem exatamente o mesmo comportamento.
 
 ## 7. FE-P1-03 — Meta mede Admin enquanto Google e V2 bloqueiam
 
-### Evidência atual
+### Evidência que originou o finding
 
 `MetaAdsBridge.jsx` calcula:
 
@@ -418,7 +418,7 @@ política de medição interna.
 
 ## 8. FE-P1-04 — rotas sensíveis sem noindex server-side
 
-### Evidência atual
+### Evidência que originou o finding
 
 `rotasReactNoindex` inclui rotas como:
 
