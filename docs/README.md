@@ -36,7 +36,7 @@ ser mantida como duas interpretações válidas.
 | Agendamentos | [ciclo-atendimento.md](./ciclo-atendimento.md) | [agendamento-integridade.md](./agendamento-integridade.md), [confiabilidade-compromissos-agenda.md](./confiabilidade-compromissos-agenda.md), [snapshots-historicos-agendamento.md](./snapshots-historicos-agendamento.md), [cancelamento-agendamento-visitante.md](./cancelamento-agendamento-visitante.md) |
 | Planos e monetização | [planos.md](./planos.md) | [checkout-idempotente.md](./checkout-idempotente.md), [asaas-ativacao-recorrencia.md](./asaas-ativacao-recorrencia.md) |
 | Webhooks financeiros | [webhook-processing.md](./webhook-processing.md) | [webhook-asaas.md](./webhook-asaas.md), [webhook-retention.md](./webhook-retention.md) |
-| Frontend técnico | [frontend-arquitetura.md](./frontend-arquitetura.md) | [frontend-mapa-telas-jornadas.md](./frontend-mapa-telas-jornadas.md), [qualidade-codigo.md](./qualidade-codigo.md), [performance-qa.md](./performance-qa.md) |
+| Frontend técnico | [frontend-arquitetura.md](./frontend-arquitetura.md) | [frontend-mapa-telas-jornadas.md](./frontend-mapa-telas-jornadas.md), [frontend-componentes-primitives.md](./frontend-componentes-primitives.md), [qualidade-codigo.md](./qualidade-codigo.md), [performance-qa.md](./performance-qa.md) |
 | Frontend e UX | [ux-contextos-visuais.md](./ux-contextos-visuais.md) | [frontend-estilos.md](./frontend-estilos.md), [public-shell.md](./public-shell.md), [experiencia-conversao-retencao.md](./experiencia-conversao-retencao.md) |
 | Admin | [admin-console.md](./admin-console.md) | [admin-requisitos-matriz.md](./admin-requisitos-matriz.md), [admin-centro-comando.md](./admin-centro-comando.md), [admin-visao-geral.md](./admin-visao-geral.md), [admin-marketing-visao-geral.md](./admin-marketing-visao-geral.md) |
 | Analytics e growth | [marketing-attribution.md](./marketing-attribution.md) | [analytics-pipeline-reconciliation.md](./analytics-pipeline-reconciliation.md), [inteligencia-crescimento.md](./inteligencia-crescimento.md), [custo-qualidade-aquisicao-profissional.md](./custo-qualidade-aquisicao-profissional.md), [prontidao-financeira-recorrencia.md](./prontidao-financeira-recorrencia.md), [marketing-sync-ga4.md](./marketing-sync-ga4.md) |
@@ -136,6 +136,7 @@ contrato de billing.
 
 - [frontend-arquitetura.md](./frontend-arquitetura.md): bootstrap React, roteamento, shells, sessão, API, estados assíncronos, responsividade, testes e critérios de evolução do frontend.
 - [frontend-mapa-telas-jornadas.md](./frontend-mapa-telas-jornadas.md): inventário de rotas/telas e mapa das jornadas públicas, profissionais, operacionais e de monetização.
+- [frontend-componentes-primitives.md](./frontend-componentes-primitives.md): catálogo de primitives/componentes compartilhados, ownership, critérios de reutilização e criação.
 
 ### Canônico de contexto visual
 
