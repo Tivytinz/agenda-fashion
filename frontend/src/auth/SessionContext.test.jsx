@@ -33,6 +33,15 @@ function renderSession() {
 
 beforeEach(() => {
   localStorage.setItem("session_active", "1");
+  localStorage.setItem("usuario", JSON.stringify({
+    id: 1,
+    nome: "Ana",
+    email: "ana@example.com"
+  }));
+  localStorage.setItem("negocio", JSON.stringify({
+    id: 9,
+    nome: "Studio Ana"
+  }));
   apiRequest.mockResolvedValue({
     usuario: { id: 1, nome: "Ana" },
     negocio: null,
@@ -49,6 +58,9 @@ afterEach(() => {
 describe("sincronização da sessão", () => {
   it("atualiza a interface imediatamente quando a API expira a sessão", async () => {
     renderSession();
+
+    expect(localStorage.getItem("usuario")).toBeNull();
+    expect(localStorage.getItem("negocio")).toBeNull();
     expect(await screen.findByText("Ana")).not.toBeNull();
 
     clearSession({ notify: true });
