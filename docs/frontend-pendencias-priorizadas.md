@@ -78,7 +78,7 @@ Usar quando:
 | FE-P2-01 | P2 | cache/performance | heroes públicos usam URL estável com cache `immutable` de 1 ano | resolvido (Wave C) |
 | FE-P2-02 | P2 | aquisição/SEO | landing `/para-profissionais` depende de metadata client-side | resolvido (Wave C) |
 | FE-P2-03 | P2 | privacidade | cache local de sessão mantém metadados pessoais desnecessários | validando (Wave D) |
-| FE-P2-04 | P2 | sessão | compatibilidade Bearer/localStorage permanece ativa | adiado: falta evidência de uso legado |
+| FE-P2-04 | P2 | sessão | compatibilidade Bearer/localStorage permanece ativa | observabilidade em validação (Wave E) |
 | FE-P2-05 | P2 | segurança | política CSRF depende implicitamente da topologia atual | resolvido (Wave B) |
 | FE-P3-01 | P3 | CORS | `X-Agenda-Access` não está em `allowedHeaders` | validando (Wave D) |
 | FE-P3-02 | P3 | UX/arquitetura | `/convites` aparece no shell profissional mas monta fora dele | validando (Wave D) |
@@ -713,22 +713,23 @@ e o backend ainda aceita Bearer.
 
 `saveSession()` novo remove esse token.
 
-### Estado na Wave D
+### Estado após a Wave E
 
-Compatibilidade de migração mantida deliberadamente.
+A compatibilidade de migração permanece ativa, mas agora existe observabilidade
+segura para produzir evidência futura.
 
-Não há feature nova emitindo JWT para localStorage, mas também não existe
-telemetria segura suficiente para provar que nenhum cliente legado ainda envia
-Bearer.
+A Wave E registra apenas:
 
-Na inspeção operacional de 25/09/2026, a superfície de logs do deployment
-Railway não expõe o header `Authorization` nas entradas HTTP e não há diagnóstico
-de transporte Bearer nos logs da aplicação. Isso é desejável do ponto de vista
-de segredo, mas significa que ausência de evidência não prova ausência de
-consumidor legado. Não será adicionado logging de token/header apenas para medir
-essa migração.
+- número de requisições autenticadas por cookie no processo atual;
+- número de requisições autenticadas por Bearer no processo atual;
+- primeira e última observação agregada de cada transporte.
 
-Por isso a Wave D **não remove Bearer ainda**.
+O diagnóstico fica em `/admin/saude/operacional` e não registra token,
+`Authorization`, usuário, rota, IP ou payload.
+
+A métrica reinicia em deploy/restart e conta requisições, não pessoas. Portanto
+zero Bearer em um processo continua **não sendo autorização para remover a
+compatibilidade**.
 
 ### Risco
 
@@ -1172,11 +1173,24 @@ Itens deliberadamente adiados:
 A wave reduz dívida onde existe benefício concreto sem transformar limpeza de
 código em quebra de compatibilidade.
 
+## 28. Wave E — evidência para retirada segura
+
+Escopo executável:
+
+- observar cookie × Bearer sem registrar credenciais;
+- expor o diagnóstico somente no Admin de saúde operacional;
+- manter Bearer compatível enquanto a evidência ainda não cobre janela
+  representativa.
+
+O Analytics V2 já possui reconciliação legado × V2 no Admin. A Wave E não cria
+uma regra automática de retirada para `eventos_produto`: estabilidade temporal,
+divergências e consumidores remanescentes continuam exigindo revisão humana.
+
 ---
 
 # Matriz de testes para fechamento
 
-## 28. Cobertura mínima
+## 29. Cobertura mínima
 
 | Finding | Teste principal | Teste complementar |
 | --- | --- | --- |
