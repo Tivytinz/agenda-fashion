@@ -45,6 +45,7 @@ Documentos importantes:
 - [`frontend-mapa-telas-jornadas.md`](./frontend-mapa-telas-jornadas.md);
 - [`frontend-componentes-primitives.md`](./frontend-componentes-primitives.md);
 - [`frontend-formularios-estado-api.md`](./frontend-formularios-estado-api.md);
+- [`frontend-analytics-observabilidade.md`](./frontend-analytics-observabilidade.md);
 - [`ux-contextos-visuais.md`](./ux-contextos-visuais.md);
 - [`public-shell.md`](./public-shell.md).
 
