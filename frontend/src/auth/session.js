@@ -8,6 +8,11 @@ const SESSION_ACTIVE_KEY = "session_active";
 const SESSION_KEYS = ["token", SESSION_ACTIVE_KEY, "usuario", "negocio"];
 export const SESSION_CLEARED_EVENT = "agenda-fashion:session-cleared";
 
+export function clearStoredSessionMetadata() {
+  removeBrowserStorage("local", "usuario");
+  removeBrowserStorage("local", "negocio");
+}
+
 export function saveSession(result) {
   removeBrowserStorage("local", "token");
 
@@ -16,8 +21,7 @@ export function saveSession(result) {
   }
 
   writeBrowserStorage("local", SESSION_ACTIVE_KEY, "1");
-  removeBrowserStorage("local", "usuario");
-  removeBrowserStorage("local", "negocio");
+  clearStoredSessionMetadata();
 }
 
 export function clearSession({ notify = false } = {}) {
