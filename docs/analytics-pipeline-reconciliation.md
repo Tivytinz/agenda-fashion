@@ -1,6 +1,6 @@
 # Reconciliação dos pipelines de Analytics
 
-> **Papel documental:** documento especializado da coexistência e reconciliação entre telemetrias. Eventos de navegador não substituem fatos persistidos de domínio nem redefinem a atribuição canônica.
+> **Papel documental:** documento especializado da coexistência e reconciliação entre telemetrias. Eventos de navegador não substituem fatos persistidos de domínio nem redefinem a atribuição canônica. A instrumentação do navegador está detalhada em [`frontend-analytics-observabilidade.md`](./frontend-analytics-observabilidade.md).
 
 ## Objetivo
 
@@ -98,7 +98,7 @@ Para reduzir perda silenciosa:
 - todo lote é colocado primeiro em um outbox local limitado;
 - resposta HTTP não-2xx é tratada como falha;
 - falhas de rede e erros transitórios mantêm o lote para retry;
-- erros permanentes de contrato, atualmente HTTP 400/422, descartam o lote inválido para não bloquear a fila;
+- erros não-retryable do collector, atualmente HTTP 400/401/403/409/413/422, descartam o lote inválido para não bloquear a fila;
 - o outbox tem TTL de 24 horas e limite de 40 lotes;
 - o backend permanece idempotente pelos UUIDs únicos de visualizações e eventos.
 

@@ -1,6 +1,6 @@
 # Deploy seguro do Agenda Fashion
 
-> **Papel documental:** runbook canônico do fluxo branch → PR → Quality Gate → merge → Railway → migrations → readiness → smoke test.
+> **Papel documental:** runbook canônico do fluxo branch → PR → Quality Gate → merge → Railway → migrations → readiness → smoke test. Detalhes de build, cache, chunks e recuperação do frontend ficam em [`frontend-entrega-runtime.md`](./frontend-entrega-runtime.md).
 
 ## Objetivo
 

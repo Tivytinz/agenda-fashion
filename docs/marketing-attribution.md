@@ -1,6 +1,6 @@
 # Atribuição de marketing
 
-> **Papel documental:** fonte canônica para classificação de origem, integridade da evidência e ligação entre aquisição e fatos do funil. Custos, GA4 e prontidão financeira aprofundam leituras específicas sem reclassificar evidência.
+> **Papel documental:** fonte canônica para classificação de origem, integridade da evidência e ligação entre aquisição e fatos do funil. Custos, GA4 e prontidão financeira aprofundam leituras específicas sem reclassificar evidência. A captura e os bridges do navegador estão detalhados em [`frontend-analytics-observabilidade.md`](./frontend-analytics-observabilidade.md).
 
 ## Regra de integridade da evidência
 

@@ -1,6 +1,6 @@
 # Performance QA — API p95 e LCP mobile
 
-> **Papel documental:** runbook de medição de performance. Define perfil, limites e interpretação da evidência sem substituir resultados reais de execução.
+> **Papel documental:** runbook de medição de performance. Define perfil, limites e interpretação da evidência sem substituir resultados reais de execução. O build, cache, preloads e runtime de assets estão detalhados em [`frontend-entrega-runtime.md`](./frontend-entrega-runtime.md).
 
 > Processo de medição para o `CA-NFR-05` / `RNF02`.
 >
