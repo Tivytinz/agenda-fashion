@@ -1620,6 +1620,7 @@ Antes disso:
 - [`planos.md`](./planos.md): regras financeiras;
 - [`agendamento-integridade.md`](./agendamento-integridade.md): integridade do
   booking;
+- [`frontend-analytics-observabilidade.md`](./frontend-analytics-observabilidade.md): eventos, consentimento, atribuição e conversões;
 - [`frontend-qa-prontidao.md`](./frontend-qa-prontidao.md): testes, acessibilidade, mobile/WebKit e prontidão;
 - [`qualidade-codigo.md`](./qualidade-codigo.md): validações de qualidade.
 
