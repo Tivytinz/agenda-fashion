@@ -92,21 +92,24 @@ describe("SEO e 404 das rotas React", () => {
     [
       "/planos?utm_source=google",
       "Planos para profissionais | Agenda Fashion",
+      "Compare o plano Grátis e os planos pagos do Agenda Fashion para escolher a capacidade de agendamentos, profissionais e serviços do seu negócio.",
       "https://app.agendafashion.com.br/planos"
     ],
     [
       "/privacidade?utm_source=meta",
       "Privacidade e cookies | Agenda Fashion",
+      "Entenda quais dados o Agenda Fashion trata, para quais finalidades e como controlar preferências de cookies e medição opcional.",
       "https://app.agendafashion.com.br/privacidade"
     ],
     [
       "/termos?utm_campaign=legal",
       "Termos de uso | Agenda Fashion",
+      "Consulte as regras de uso do Agenda Fashion para contas, agendamentos, planos, pagamentos, comunicações e responsabilidades.",
       "https://app.agendafashion.com.br/termos"
     ]
   ])(
     "entrega metadata server-side deliberada para %s",
-    async (rota, titulo, canonical) => {
+    async (rota, titulo, descricao, canonical) => {
       const resposta = await request(app)
         .get(rota)
         .set("Accept", "text/html");
@@ -116,10 +119,16 @@ describe("SEO e 404 das rotas React", () => {
         `<title>${titulo}</title>`
       );
       expect(resposta.text).toContain(
+        `name="description" content="${descricao}"`
+      );
+      expect(resposta.text).toContain(
         `rel="canonical" href="${canonical}"`
       );
       expect(resposta.text).toContain(
         `property="og:title" content="${titulo}"`
+      );
+      expect(resposta.text).toContain(
+        'name="twitter:card" content="summary_large_image"'
       );
       expect(resposta.text).not.toContain(
         "utm_"
