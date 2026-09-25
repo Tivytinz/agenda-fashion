@@ -15,13 +15,13 @@ export function clearStoredSessionMetadata() {
 
 export function saveSession(result) {
   removeBrowserStorage("local", "token");
+  clearStoredSessionMetadata();
 
   if (!result?.usuario) {
     return;
   }
 
   writeBrowserStorage("local", SESSION_ACTIVE_KEY, "1");
-  clearStoredSessionMetadata();
 }
 
 export function clearSession({ notify = false } = {}) {
