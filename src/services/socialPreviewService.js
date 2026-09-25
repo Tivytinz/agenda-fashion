@@ -113,12 +113,18 @@ function montarDescricao(negocio, servico) {
 }
 
 function montarMetadadosPaginaEstatica(caminho) {
+  const caminhoNormalizado =
+    String(
+      caminho ||
+      "/"
+    )
+      .replace(/\/{2,}/g, "/")
+      .replace(/\/$/, "") ||
+    "/";
+
   const configuracao =
     PAGINAS_ESTATICAS[
-      String(
-        caminho ||
-        ""
-      )
+      caminhoNormalizado
     ];
 
   if (!configuracao) {
@@ -129,7 +135,7 @@ function montarMetadadosPaginaEstatica(caminho) {
     origemPublica();
   const url =
     new URL(
-      caminho,
+      caminhoNormalizado,
       origem
     );
 
