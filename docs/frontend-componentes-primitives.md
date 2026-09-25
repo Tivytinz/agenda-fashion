@@ -970,6 +970,7 @@ Se a resposta depender de "talvez no futuro", não antecipar a abstração.
 - [`ux-contextos-visuais.md`](./ux-contextos-visuais.md): semântica de
   contextos;
 - [`public-shell.md`](./public-shell.md): shell público;
+- [`frontend-qa-prontidao.md`](./frontend-qa-prontidao.md): estratégia de testes e critérios de prontidão;
 - [`qualidade-codigo.md`](./qualidade-codigo.md): guardrails de qualidade;
 - [`marketing-attribution.md`](./marketing-attribution.md): atribuição;
 - [`session-security.md`](./session-security.md): sessão e segurança.
