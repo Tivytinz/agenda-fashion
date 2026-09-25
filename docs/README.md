@@ -134,7 +134,8 @@ contrato de billing.
 
 ### Arquitetura técnica
 
-- [frontend-arquitetura.md](./frontend-arquitetura.md): bootstrap React, roteamento, shells, sessão, API, estados assíncronos, responsividade, testes e critérios de evolução do frontend.\n- [frontend-mapa-telas-jornadas.md](./frontend-mapa-telas-jornadas.md): inventário de rotas/telas e mapa das jornadas públicas, profissionais, operacionais e de monetização.
+- [frontend-arquitetura.md](./frontend-arquitetura.md): bootstrap React, roteamento, shells, sessão, API, estados assíncronos, responsividade, testes e critérios de evolução do frontend.
+- [frontend-mapa-telas-jornadas.md](./frontend-mapa-telas-jornadas.md): inventário de rotas/telas e mapa das jornadas públicas, profissionais, operacionais e de monetização.
 
 ### Canônico de contexto visual
 
