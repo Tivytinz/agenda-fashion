@@ -69,3 +69,29 @@ O middleware obrigatório `auth` já consultava o estado da sessão com o hash d
 A rota continua pública quando não há identidade válida: JWT revogado, expirado ou inválido não transforma autenticação opcional em erro obrigatório. Quando o token revogado veio pelo cookie, o cookie é limpo.
 
 A Wave A foi validada e mergeada na `main`, incluindo o teste de regressão. A análise detalhada está em [`frontend-seguranca.md`](./frontend-seguranca.md).
+
+
+## Observabilidade de transporte da sessão
+
+A Wave E adiciona evidência segura para a futura retirada do Bearer legado.
+
+`obterTokenDaRequisicao()` registra apenas qual classe de transporte foi usada:
+
+- cookie HttpOnly;
+- Bearer legado.
+
+O diagnóstico é mantido somente em memória no processo atual e exposto em
+`GET /admin/saude/operacional` para administradores. Ele contém contagens e
+timestamps agregados; não inclui token, header `Authorization`, usuário, rota,
+IP ou payload.
+
+Esse dado é deliberadamente diagnóstico:
+
+- reinicia em deploy/restart;
+- conta requisições, não pessoas;
+- zero Bearer em um processo não prova ausência histórica;
+- a compatibilidade só pode ser retirada depois de uma janela operacional
+  representativa e revisão dos clientes suportados.
+
+A instrumentação existe para produzir evidência sem reduzir a proteção de
+segredos.
