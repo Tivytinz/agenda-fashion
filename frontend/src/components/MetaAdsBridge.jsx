@@ -71,6 +71,8 @@ export function MetaAdsBridge() {
     isAdminMeasurementRoute(location.pathname);
   const sensitiveMeasurementRoute =
     isSensitiveMeasurementRoute(location.pathname);
+  const blockedMetaMeasurementRoute =
+    adminMeasurementRoute || sensitiveMeasurementRoute;
   const blockedGoogleMeasurementRoute =
     adminMeasurementRoute || sensitiveMeasurementRoute;
 
@@ -151,7 +153,7 @@ export function MetaAdsBridge() {
       return;
     }
 
-    if (sensitiveMeasurementRoute) {
+    if (blockedMetaMeasurementRoute) {
       return;
     }
 
@@ -173,7 +175,7 @@ export function MetaAdsBridge() {
     metaConfig?.enabled,
     consent,
     session.authenticated,
-    sensitiveMeasurementRoute
+    blockedMetaMeasurementRoute
   ]);
 
   useEffect(() => {
@@ -282,7 +284,7 @@ export function MetaAdsBridge() {
       metaConfig?.enabled &&
       consent ===
         MARKETING_CONSENT.GRANTED &&
-      !sensitiveMeasurementRoute
+      !blockedMetaMeasurementRoute
     ) {
       void trackMetaPageView(
         location.pathname
@@ -306,7 +308,7 @@ export function MetaAdsBridge() {
     consent,
     location.pathname,
     session.usuario?.id,
-    sensitiveMeasurementRoute,
+    blockedMetaMeasurementRoute,
     blockedGoogleMeasurementRoute
   ]);
 
