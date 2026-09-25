@@ -703,8 +703,6 @@ Regras duráveis:
 
 Detalhes: `docs/whatsapp-automatico.md`.
 
-Na topologia web atual, mutações autenticadas por cookie usam defesa CSRF em camadas: cookie `SameSite=Lax`, CORS restrito e validação de metadados de origem do navegador (`Sec-Fetch-Site`, `Origin` e `Referer`) quando presentes. Requests unsafe com cookie de sessão e evidência cross-site devem ser rejeitados. Não há token CSRF dedicado enquanto a arquitetura permanecer same-origin/JSON com esse contrato; qualquer mudança para `SameSite=None`, frontend/API em origens distintas, mutação via formulário tradicional ou embedding cross-site exige reabrir o threat model antes do deploy.
-
 ## Encerramento e privacidade operacional
 
 Negócio encerrado entra em estado terminal normal de arquivamento:
@@ -738,6 +736,8 @@ Estas regras são obrigatórias:
 6. dados pessoais só são expostos quando necessários para a finalidade da
    operação;
 7. redirecionamento ou botão oculto no React não substitui controle de acesso.
+
+Na topologia web atual, mutações autenticadas por cookie usam defesa CSRF em camadas: cookie `SameSite=Lax`, CORS restrito e validação de metadados de origem do navegador (`Sec-Fetch-Site`, `Origin` e `Referer`) quando presentes. Requests unsafe com cookie de sessão e evidência cross-site devem ser rejeitados. Não há token CSRF dedicado enquanto a arquitetura permanecer same-origin/JSON com esse contrato; qualquer mudança para `SameSite=None`, frontend/API em origens distintas, mutação via formulário tradicional ou embedding cross-site exige reabrir o threat model antes do deploy.
 
 Encerramento e privacidade seguem um fluxo de desativação/arquivamento, não de
 deleção física indiscriminada:
