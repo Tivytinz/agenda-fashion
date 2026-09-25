@@ -118,7 +118,7 @@ O fluxo atual de login/cadastro:
 backend cria JWT
 → backend grava cookie HttpOnly
 → corpo da resposta não expõe token
-→ frontend grava apenas marcador/session metadata
+→ frontend grava apenas o marcador técnico session_active
 ```
 
 `saveSession()` remove qualquer chave legada `token` do localStorage.
