@@ -10,6 +10,7 @@ import { useLocation } from "react-router-dom";
 import { apiRequest } from "../api/client";
 import {
   clearSession,
+  clearStoredSessionMetadata,
   getBusinessContextForPath,
   hasSession,
   saveSession,
@@ -30,15 +31,22 @@ const SIGNED_OUT_STATE = {
 
 export function SessionProvider({ children }) {
   const location = useLocation();
-  const [state, setState] = useState({
-    loading: hasSession(),
-    authenticated: hasSession(),
-    usuario: null,
-    negocioPrincipal: null,
-    vinculos: [],
-    temNegocio: false,
-    administrador: null,
-    ehAdministrador: false
+  const [state, setState] = useState(() => {
+    const sessionPresent =
+      hasSession();
+
+    clearStoredSessionMetadata();
+
+    return {
+      loading: sessionPresent,
+      authenticated: sessionPresent,
+      usuario: null,
+      negocioPrincipal: null,
+      vinculos: [],
+      temNegocio: false,
+      administrador: null,
+      ehAdministrador: false
+    };
   });
 
   const refresh = useCallback(async () => {
