@@ -214,6 +214,20 @@ function DeferredMetaAdsBridge() {
   );
 }
 
+function ProfessionalInvitesRoute() {
+  const session = useSession();
+
+  if (session.negocio?.papel === "profissional") {
+    return (
+      <WorkspaceLayout>
+        <ProfessionalInvitesPage />
+      </WorkspaceLayout>
+    );
+  }
+
+  return <ProfessionalInvitesPage />;
+}
+
 function AccountRoute() {
   const session = useSession();
 
@@ -320,7 +334,7 @@ export default function App() {
           />
           <Route
             path={reactRoutes.professionalInvites}
-            element={<ProtectedRoute><ProfessionalInvitesPage /></ProtectedRoute>}
+            element={<ProtectedRoute><ProfessionalInvitesRoute /></ProtectedRoute>}
           />
           <Route path={reactRoutes.plans} element={<PlansPage />} />
           <Route
