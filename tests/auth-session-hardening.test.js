@@ -22,6 +22,9 @@ const authSessionRepository =
 const auth = require(
   "../src/middlewares/auth"
 );
+const optionalAuth = require(
+  "../src/middlewares/optionalAuth"
+);
 
 function criarApp() {
   const app =
@@ -34,6 +37,37 @@ function criarApp() {
       res.json({
         usuarioId:
           req.user.id,
+      })
+  );
+
+  app.use(
+    (
+      erro,
+      _req,
+      res,
+      _next
+    ) =>
+      res.status(500).json({
+        erro:
+          erro.message,
+      })
+  );
+
+  return app;
+}
+
+function criarAppOpcional() {
+  const app =
+    express();
+
+  app.get(
+    "/publica",
+    optionalAuth,
+    (req, res) =>
+      res.json({
+        usuarioId:
+          req.user?.id ||
+          null,
       })
   );
 
@@ -259,6 +293,172 @@ describe(
         expect(
           resposta.status
         ).toBe(500);
+      }
+    );
+  }
+);
+
+
+describe(
+  "Autenticação opcional e revogação",
+  () => {
+    beforeEach(() => {
+      jest.clearAllMocks();
+
+      authSessionRepository
+        .buscarEstadoDaSessao
+        .mockResolvedValue({
+          id: 1,
+          ativo: true,
+          senha_alterada_em:
+            null,
+          token_revogado:
+            false,
+        });
+    });
+
+    test(
+      "mantém visitante sem token",
+      async () => {
+        const resposta =
+          await request(
+            criarAppOpcional()
+          )
+            .get("/publica");
+
+        expect(
+          resposta.status
+        ).toBe(200);
+
+        expect(
+          resposta.body
+        ).toEqual({
+          usuarioId: null,
+        });
+
+        expect(
+          authSessionRepository
+            .buscarEstadoDaSessao
+        ).not.toHaveBeenCalled();
+      }
+    );
+
+    test(
+      "vincula identidade opcional quando a sessão está ativa",
+      async () => {
+        const resposta =
+          await request(
+            criarAppOpcional()
+          )
+            .get("/publica")
+            .set(
+              "Authorization",
+              `Bearer ${gerarToken()}`
+            );
+
+        expect(
+          resposta.status
+        ).toBe(200);
+
+        expect(
+          resposta.body
+        ).toEqual({
+          usuarioId: 1,
+        });
+
+        expect(
+          authSessionRepository
+            .buscarEstadoDaSessao
+        ).toHaveBeenCalledWith(
+          1,
+          expect.stringMatching(
+            /^[a-f0-9]{64}$/
+          )
+        );
+      }
+    );
+
+    test(
+      "trata token revogado como visitante",
+      async () => {
+        authSessionRepository
+          .buscarEstadoDaSessao
+          .mockResolvedValue({
+            id: 1,
+            ativo: true,
+            senha_alterada_em:
+              null,
+            token_revogado:
+              true,
+          });
+
+        const resposta =
+          await request(
+            criarAppOpcional()
+          )
+            .get("/publica")
+            .set(
+              "Authorization",
+              `Bearer ${gerarToken()}`
+            );
+
+        expect(
+          resposta.status
+        ).toBe(200);
+
+        expect(
+          resposta.body
+        ).toEqual({
+          usuarioId: null,
+        });
+      }
+    );
+
+    test(
+      "limpa cookie de sessão revogada sem bloquear a rota pública",
+      async () => {
+        authSessionRepository
+          .buscarEstadoDaSessao
+          .mockResolvedValue({
+            id: 1,
+            ativo: true,
+            senha_alterada_em:
+              null,
+            token_revogado:
+              true,
+          });
+
+        const resposta =
+          await request(
+            criarAppOpcional()
+          )
+            .get("/publica")
+            .set(
+              "Cookie",
+              `af_session=${gerarToken()}`
+            );
+
+        expect(
+          resposta.status
+        ).toBe(200);
+
+        expect(
+          resposta.body
+        ).toEqual({
+          usuarioId: null,
+        });
+
+        expect(
+          resposta.headers[
+            "set-cookie"
+          ]
+        ).toEqual(
+          expect.arrayContaining([
+            expect.stringContaining(
+              "af_session=;"
+            ),
+          ])
+        );
       }
     );
   }
