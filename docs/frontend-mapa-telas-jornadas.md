@@ -534,6 +534,7 @@ ou reabertura do link precisa preservar o passo.
 | equipe | `ProfessionalsPage`, `ProfessionalInvitesPage`, `convites-profissionais.md` |
 | plano/checkout | `PlansPage`, `BillingPages`, `SubscriptionPage`, `planos.md` |
 | componentes/primitives | `frontend-componentes-primitives.md` + implementação atual |
+| formulários/estado/API | `frontend-formularios-estado-api.md` + endpoint/backend correspondente |
 | CSS | `frontend-estilos.md` + dono do estilo |
 | Admin | docs `admin-*` + páginas administrativas |
 | analytics | `analytics/` + documentação de atribuição/growth |
