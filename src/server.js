@@ -529,9 +529,24 @@ async function responderDocumentoReact(
 ) {
   try {
     const html = await socialPreviewService.lerHtmlReact();
+    const metadados =
+      socialPreviewService
+        .montarMetadadosPaginaEstatica(
+          req.path
+        );
+    const htmlComMetadados =
+      metadados
+        ? socialPreviewService
+            .injetarMetadados(
+              html,
+              metadados
+            )
+        : html;
     const documento = noindex
-      ? injetarRobotsNoindex(html)
-      : html;
+      ? injetarRobotsNoindex(
+          htmlComMetadados
+        )
+      : htmlComMetadados;
 
     disableDocumentCache(res);
 
