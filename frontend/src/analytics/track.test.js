@@ -5,7 +5,11 @@ import {
   MARKETING_CONSENT,
   setMarketingConsent
 } from "./marketingConsent";
-import { getMarketingContext, track } from "./track";
+import {
+  clearMarketingAttribution,
+  getMarketingContext,
+  track
+} from "./track";
 
 function storage() {
   const values = new Map();
@@ -87,6 +91,35 @@ describe("track attribution", () => {
       last_utm_source: "facebook",
       last_utm_campaign: "goiania_cilios",
       status: "sucesso",
+    });
+  });
+
+  test("revogação explícita limpa a atribuição V2 persistida", () => {
+    window.sessionStorage.setItem(
+      "af_analytics_session_v2",
+      JSON.stringify({
+        id: "6a9fa7d3-9c56-4b11-8e18-5f328f2b2af1",
+        startedAt: Date.now(),
+        lastActivityAt: Date.now(),
+        sequence: 0,
+        acquisition: {
+          utmSource: "google",
+          gclid: "click-123",
+          landingPage: "/para-profissionais"
+        }
+      })
+    );
+
+    clearMarketingAttribution();
+
+    const session = JSON.parse(
+      window.sessionStorage.getItem(
+        "af_analytics_session_v2"
+      )
+    );
+
+    expect(session.acquisition).toEqual({
+      landingPage: "/para-profissionais"
     });
   });
 
