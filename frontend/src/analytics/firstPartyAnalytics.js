@@ -700,6 +700,7 @@ export function trackFirstPartyEvent(name, {
 export const firstPartyAnalyticsInternals = {
   route,
   captureAcquisition,
+  clearFirstPartyMarketingAttribution,
   stripMarketingAcquisition,
   deviceInfo,
   mergeDefined,
