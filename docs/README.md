@@ -171,6 +171,9 @@ contrato de billing.
 - [admin-wave-6-rf41-qa-operacional.md](./admin-wave-6-rf41-qa-operacional.md):
   perfil agregado somente leitura, carga sintética descartável, executor dos
   seis cenários e roteiro da medição sem antecipar a cobertura de ADM-043.
+- [admin-audit-qa-diagnostic.md](./admin-audit-qa-diagnostic.md): execução
+  manual isolada em CI para diagnosticar os seis cenários, sem confundi-la com
+  evidência operacional representativa de ADM-043.
 - [admin-centro-comando.md](./admin-centro-comando.md): semântica dos
   indicadores do centro de comando.
 - [admin-visao-geral.md](./admin-visao-geral.md): KPIs agregados da rota
