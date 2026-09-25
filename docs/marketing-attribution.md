@@ -2,6 +2,20 @@
 
 > **Papel documental:** fonte canônica para classificação de origem, integridade da evidência e ligação entre aquisição e fatos do funil. Custos, GA4 e prontidão financeira aprofundam leituras específicas sem reclassificar evidência. A captura e os bridges do navegador estão detalhados em [`frontend-analytics-observabilidade.md`](./frontend-analytics-observabilidade.md).
 
+## Consentimento para sinais de campanha
+
+No runtime web, UTMs e click IDs são sinais opcionais de aquisição e só entram na atribuição persistida quando a preferência de medição de marketing está em `GRANTED`.
+
+Sem essa autorização:
+
+- o funil operacional continua existindo;
+- cadastro, negócio, serviço, publicação, booking e pagamento continuam sendo fatos reais;
+- o Analytics V2 pode preservar telemetria técnica first-party como landing path e host externo de referência;
+- parâmetros `utm_*` e click IDs não devem ser persistidos nem anexados a novos eventos;
+- relatórios de campanha devem classificar a ausência de evidência conforme as regras existentes, sem inferir a origem.
+
+Ao negar ou revogar, a atribuição opcional controlada pelo AF no navegador é limpa tanto do pipeline legado quanto do Analytics V2, inclusive de lotes ainda pendentes de envio. Dados transacionais já persistidos não são reescritos para fabricar atribuição.
+
 ## Regra de integridade da evidência
 
 A evidência bruta de aquisição capturada pelo Agenda Fashion deve ser preservada para auditoria. Rotinas de canonicalização, sincronização de custos e vínculo de campanhas podem resolver identidades e criar metadados auxiliares, mas não podem apagar ou reescrever UTMs, click IDs, landing pages ou eventos já capturados somente para fazer o dado caber na identidade oficial de uma campanha.

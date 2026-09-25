@@ -534,44 +534,44 @@ Click IDs suportados incluem:
 - `msclkid`;
 - `ttclid`.
 
-No código atual, click IDs só entram quando o consentimento de marketing está
-concedido.
+No runtime da Wave B, UTMs e click IDs só entram quando o consentimento de
+marketing está concedido.
 
 ## 23. UTM first-party versus consentimento de Ads
 
-O comportamento executável atual do Analytics V2 é:
+O contrato executável passa a ser:
 
 ```text
 sem consentimento de marketing
-  → UTM first-party pode ser capturada
-  → landing page pode ser capturada
-  → referrer host pode ser capturado
-  → click IDs de Ads não são capturados
+  → UTM não é capturada
+  → click IDs não são capturados
+  → landing page técnica pode ser capturada
+  → referrer host externo pode ser capturado
+
+com consentimento de marketing
+  → UTM pode ser capturada
+  → click IDs podem ser capturados
 ```
 
-Há teste automatizado específico garantindo UTM sem click ID antes do
-consentimento.
+A landing path e o host externo de referência permanecem telemetria first-party
+técnica; não carregam, por si só, uma campanha oficial.
 
-Isso é diferente do pipeline legado de atribuição, descrito adiante.
+## 24. Wave B: reconciliação de privacidade
 
-## 24. Achado de reconciliação de privacidade
+A Wave B adotou o contrato já descrito na Política de Privacidade: origem de
+campanha e identificadores de clique são opcionais e dependem da preferência de
+medição de marketing.
 
-A página de Privacidade atualmente afirma que a "origem da campanha" opcional é
-tratada somente quando existe autorização para medição de marketing.
+A implementação agora:
 
-Ao mesmo tempo, o Analytics V2 implementado e seus testes permitem UTM
-first-party antes dessa autorização, excluindo click IDs.
+- não captura `utm_*` antes de `GRANTED`;
+- não captura click IDs antes de `GRANTED`;
+- ao negar/revogar, remove campanha da sessão V2;
+- sanitiza também lotes V2 ainda pendentes no outbox;
+- mantém o cleanup já existente do pipeline legado.
 
-Portanto existe uma **divergência documental/semântica que precisa de decisão
-explícita de produto, privacidade e engenharia**.
-
-Nesta branch de documentação:
-
-- o comportamento executável não foi alterado;
-- o texto legal não foi reescrito silenciosamente;
-- a divergência fica registrada para reconciliação posterior.
-
-Não afirmar conformidade integral desse ponto até a decisão ser fechada.
+Assim o texto exibido, o Analytics V2 e o legado passam a usar a mesma fronteira
+de consentimento.
 
 ## 25. Classificação de canal no backend V2
 
@@ -702,8 +702,8 @@ A landing page também é preservada.
 
 ## 31. Consentimento no legado
 
-Diferente do Analytics V2 first-party, a atribuição de `track.js` só é
-capturada quando:
+Na Wave B, o legado e o Analytics V2 passam a usar a mesma fronteira para sinais
+de campanha:
 
 ```text
 MARKETING_CONSENT.GRANTED
@@ -711,12 +711,14 @@ MARKETING_CONSENT.GRANTED
 
 Se a preferência não está concedida:
 
-- atribuição local é limpa;
+- atribuição local do legado é limpa;
 - contexto de marketing retorna sem UTMs/click IDs;
-- eventos de produto continuam podendo existir sem essa atribuição opcional.
+- Analytics V2 também não captura UTMs/click IDs;
+- eventos first-party e eventos de produto continuam podendo existir sem essa
+  atribuição opcional.
 
-Essa diferença entre pipelines é intencional no código atual e deve ser
-considerada ao reconciliar cobertura.
+As diferenças remanescentes entre pipelines são de schema, sessão, retry e
+consumidores — não de consentimento para campanha.
 
 ## 32. first touch e last touch
 
@@ -1933,12 +1935,10 @@ CTR/CPC/PageView não fecham o funil.
 
 ### 102.1 UTM first-party antes de consentimento
 
-Implementado e testado no Analytics V2.
+Status: **corrigido na Wave B e em validação**.
 
-Texto de Privacidade atual descreve origem de campanha como opcional sob
-autorização.
-
-Pendente de reconciliação explícita.
+UTMs e click IDs agora dependem de `MARKETING_CONSENT.GRANTED`; revogação limpa
+a atribuição opcional do legado, da sessão V2 e do outbox V2 pendente.
 
 ### 102.2 Meta Admin
 
@@ -1947,7 +1947,7 @@ Google e first-party já excluíam Admin.
 A Wave A adicionou o mesmo bloqueio ao Meta Pixel para inicialização e
 `PageView` em `/admin` e `/admin/*`.
 
-Status: **implementado e em validação**.
+Status: **resolvido na Wave A e mergeado na main**.
 
 ### 102.3 Dois pipelines de navegador
 

@@ -549,6 +549,8 @@ Métricas prioritárias incluem:
 Diferenciar Google Ads, Meta Ads, TikTok Ads, Pinterest Ads, orgânico e outras
 origens conforme a evidência disponível.
 
+UTMs e click IDs de campanha só podem ser capturados/persistidos quando a pessoa tiver concedido a preferência de medição de marketing. Sem essa autorização, o Analytics V2 pode manter telemetria first-party estritamente técnica da navegação, como landing path e host externo de referência, mas não deve carregar parâmetros de campanha. Ao negar ou revogar a preferência, a atribuição opcional persistida no navegador — legado e V2 — deve ser removida e deixar de acompanhar novos eventos.
+
 Atribuição incompleta não deve ser corrigida por suposição. UTM, click IDs,
 vínculos externos e evidência bruta são preservados para auditoria. Tráfego sem
 evidência suficiente permanece classificado como incompleto/sem evidência em
@@ -734,6 +736,8 @@ Estas regras são obrigatórias:
 6. dados pessoais só são expostos quando necessários para a finalidade da
    operação;
 7. redirecionamento ou botão oculto no React não substitui controle de acesso.
+
+Na topologia web atual, mutações autenticadas por cookie usam defesa CSRF em camadas: cookie `SameSite=Lax`, CORS restrito e validação de metadados de origem do navegador (`Sec-Fetch-Site`, `Origin` e `Referer`) quando presentes. Requests unsafe com cookie de sessão e evidência cross-site devem ser rejeitados. Não há token CSRF dedicado enquanto a arquitetura permanecer same-origin/JSON com esse contrato; qualquer mudança para `SameSite=None`, frontend/API em origens distintas, mutação via formulário tradicional ou embedding cross-site exige reabrir o threat model antes do deploy.
 
 Encerramento e privacidade seguem um fluxo de desativação/arquivamento, não de
 deleção física indiscriminada:

@@ -18,6 +18,19 @@ const SESSION_TIMEOUT_MS = 30 * 60 * 1000;
 const OUTBOX_TTL_MS = 24 * 60 * 60 * 1000;
 const OUTBOX_MAX_ITEMS = 40;
 const OUTBOX_FLUSH_LIMIT = 10;
+const MARKETING_ACQUISITION_KEYS = [
+  "utmSource",
+  "utmMedium",
+  "utmCampaign",
+  "utmContent",
+  "utmTerm",
+  "gclid",
+  "gbraid",
+  "wbraid",
+  "fbclid",
+  "msclkid",
+  "ttclid"
+];
 
 let currentView = null;
 let lifecycleBound = false;
@@ -95,19 +108,31 @@ function externalReferrerHost() {
   }
 }
 
+function stripMarketingAcquisition(acquisition = {}) {
+  const next = {
+    ...(acquisition || {})
+  };
+
+  for (const key of MARKETING_ACQUISITION_KEYS) {
+    delete next[key];
+  }
+
+  return next;
+}
+
 function captureAcquisition() {
   const params = new URLSearchParams(window.location.search);
   const marketingGranted = getMarketingConsent() === MARKETING_CONSENT.GRANTED;
   const value = (key, limit) => String(params.get(key) || "").trim().slice(0, limit) || undefined;
 
   return {
-    utmSource: value("utm_source", 80),
-    utmMedium: value("utm_medium", 80),
-    utmCampaign: value("utm_campaign", 140),
-    utmContent: value("utm_content", 140),
-    utmTerm: value("utm_term", 140),
     ...(marketingGranted
       ? {
+          utmSource: value("utm_source", 80),
+          utmMedium: value("utm_medium", 80),
+          utmCampaign: value("utm_campaign", 140),
+          utmContent: value("utm_content", 140),
+          utmTerm: value("utm_term", 140),
           gclid: value("gclid", 200),
           gbraid: value("gbraid", 200),
           wbraid: value("wbraid", 200),
@@ -146,7 +171,9 @@ function ensureSession() {
         ? Number(stored.sequence)
         : 0,
       acquisition: mergeDefined(
-        stored.acquisition || {},
+        getMarketingConsent() === MARKETING_CONSENT.GRANTED
+          ? stored.acquisition || {}
+          : stripMarketingAcquisition(stored.acquisition || {}),
         captureAcquisition()
       )
     });
@@ -292,6 +319,37 @@ function removeOutboxEntry(id) {
   writeOutbox(
     readOutbox().filter((entry) => entry.id !== id)
   );
+}
+
+export function clearFirstPartyMarketingAttribution() {
+  try {
+    const session = readSession();
+
+    if (session) {
+      writeSession({
+        ...session,
+        acquisition:
+          stripMarketingAcquisition(
+            session.acquisition || {}
+          )
+      });
+    }
+
+    writeOutbox(
+      readOutbox().map((entry) => ({
+        ...entry,
+        payload: {
+          ...entry.payload,
+          acquisition:
+            stripMarketingAcquisition(
+              entry.payload?.acquisition || {}
+            )
+        }
+      }))
+    );
+  } catch {
+    // Privacidade deve falhar de forma conservadora sem bloquear a aplicação.
+  }
 }
 
 async function postPayload(payload, { keepalive = false } = {}) {
@@ -642,6 +700,8 @@ export function trackFirstPartyEvent(name, {
 export const firstPartyAnalyticsInternals = {
   route,
   captureAcquisition,
+  clearFirstPartyMarketingAttribution,
+  stripMarketingAcquisition,
   deviceInfo,
   mergeDefined,
   uuidValido,

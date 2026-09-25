@@ -376,7 +376,7 @@ Isso não altera a autorização das rotas obrigatoriamente protegidas, mas impe
 afirmar que a revogação está uniformemente aplicada em todos os usos de
 autenticação opcional.
 
-Na branch `fix/frontend-wave-a-hardening`, o middleware passa o hash do JWT ao repository, recusa identidade opcional revogada e preserva a rota como pública. Antes de considerar esse hardening fechado em `main`, a branch ainda precisa concluir Quality Gate e merge.
+A Wave A foi mergeada na `main`: o middleware passa o hash do JWT ao repository, recusa identidade opcional revogada e preserva a rota como pública.
 
 A validação cobre:
 
@@ -583,32 +583,43 @@ CORS não valida ownership.
 
 Não usar origem como identidade de usuário.
 
-## 33. CSRF: postura atual
+## 33. CSRF: política da Wave B
 
-Na camada auditada não existe um token CSRF dedicado.
+O AF continua sem token CSRF dedicado na topologia web atual, mas a proteção
+deixa de depender apenas de premissas implícitas.
 
-Os controles atuais incluem:
+As camadas são:
 
 - cookie `SameSite=Lax`;
 - `Secure` em produção;
-- APIs JSON para a maior parte das mutações;
 - mesma origem como arquitetura canônica;
-- CORS restrito quando há cross-origin.
+- CORS restrito;
+- middleware `csrfProtection` para métodos unsafe autenticados por cookie.
 
-Isso reduz superfície, mas não deve ser descrito como uma garantia universal de
-CSRF.
+Quando o navegador fornece metadados, o middleware:
 
-Antes de mudar:
+- rejeita `Sec-Fetch-Site: cross-site`;
+- valida `Origin`;
+- usa `Referer` como fallback;
+- aceita a própria origem da requisição ou origem explicitamente permitida.
+
+Requests sem cookie de sessão não entram nessa barreira porque não carregam
+autoridade ambiente da sessão. Clientes não-browser sem Origin/Referer/Fetch
+Metadata continuam compatíveis; nesses casos, `SameSite=Lax` permanece a
+primeira barreira do navegador.
+
+Essa escolha é deliberada para o desenho atual. Reabrir o threat model antes de
+qualquer mudança em:
 
 - `SameSite`;
 - domínio do cookie;
-- topologia de subdomínios;
-- aceitação de form-urlencoded;
+- frontend/API em origens distintas;
+- aceitação de form-urlencoded para mutações autenticadas;
 - endpoints mutáveis via GET;
-- frontend/API para origens distintas;
+- embedding cross-site.
 
-refazer threat model de CSRF e decidir se cabe token/origin verification
-adicional.
+Se essas premissas mudarem, token CSRF dedicado ou validação mais estrita pode
+se tornar necessária.
 
 ## 34. Content Security Policy
 
@@ -2033,7 +2044,7 @@ Para mudança com superfície de segurança:
 
 O middleware opcional não passa `hashToken(token)` ao repository.
 
-Status: **implementado na Wave A e em validação**.
+Status: **resolvido na Wave A e mergeado na main**.
 
 A correção alinha a checagem ao middleware obrigatório sem transformar a rota pública em rota obrigatoriamente autenticada.
 
@@ -2069,22 +2080,24 @@ quando não houver consumidores legados.
 
 ### 142.5 CSRF depende do desenho atual de cookie/topologia
 
-Não há token CSRF dedicado na camada auditada.
+Status: **tratado na Wave B e em validação**.
 
-Status: arquitetura atual usa SameSite=Lax, JSON e mesma origem/CORS.
+O runtime combina `SameSite=Lax`/CORS com `csrfProtection` para métodos
+unsafe autenticados por cookie. O middleware valida Fetch Metadata, Origin e
+Referer quando disponíveis, sem exigir token dedicado na topologia same-origin
+atual.
 
-Diretriz: qualquer mudança de cookie/origem deve reabrir esse threat model antes
-de deploy.
+Diretriz: qualquer mudança de cookie/origem continua reabrindo esse threat model
+antes de deploy.
 
 ## 143. Prioridade dos achados
 
 Para um patch executável futuro, a ordem técnica recomendada é:
 
 ```text
-1. concluir validação/merge do optionalAuth + revogação
-2. decidir/registrar política CSRF explícita
-4. alinhar X-Agenda-Access ao CORS se houver suporte cross-origin
-5. reduzir compatibilidade/storage legado quando seguro
+1. concluir validação/merge da política CSRF da Wave B
+2. alinhar X-Agenda-Access ao CORS se houver suporte cross-origin
+3. reduzir compatibilidade/storage legado quando seguro
 ```
 
 Essa ordem não autoriza alteração automática nesta branch documental.

@@ -1894,7 +1894,7 @@ mesmo filename.
 
 ### 123.2 Rotas sensíveis faltando no noindex server-side
 
-Status: **implementado na Wave A e em validação**.
+Status: **resolvido na Wave A e mergeado na main**.
 
 Recuperação/reset, convites e acessos por capability agora recebem noindex e
 também foram adicionados ao robots.txt.
@@ -1917,11 +1917,10 @@ metadata server-side dedicada quando houver objetivo real.
 Para patch executável futuro:
 
 ```text
-1. concluir validação/merge do noindex das rotas sensíveis
-2. corrigir estratégia de cache dos heroes
-3. revalidar LCP
-4. decidir metadata server-side da landing profissional
-5. ampliar SEO estático apenas onde houver objetivo de aquisição
+1. corrigir estratégia de cache dos heroes
+2. revalidar LCP
+3. decidir metadata server-side da landing profissional
+4. ampliar SEO estático apenas onde houver objetivo de aquisição
 ```
 
 Essa ordem é recomendação técnica de risco/impacto, não autorização para mudar

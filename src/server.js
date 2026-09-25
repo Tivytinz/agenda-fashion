@@ -25,6 +25,9 @@ const apiRoutes = require("./routes/index");
 const errorHandler = require("./middlewares/errorHandler");
 const notFound = require("./middlewares/notFound");
 const requestLogger = require("./middlewares/requestLogger");
+const {
+  csrfProtection,
+} = require("./middlewares/csrfProtection");
 const registrador = require("./utils/registrador");
 const {
   cacheVersionedAsset,
@@ -134,6 +137,10 @@ app.use(
   cors(
     corsOptions
   )
+);
+
+app.use(
+  csrfProtection
 );
 
 app.get(

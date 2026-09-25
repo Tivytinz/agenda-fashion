@@ -71,15 +71,15 @@ Usar quando:
 
 | ID | Prioridade | Domínio | Finding | Estado observado |
 | --- | --- | --- | --- | --- |
-| FE-P1-01 | P1 | sessão | `optionalAuth` não verifica revogação por hash | validando (Wave A) |
-| FE-P1-02 | P1 | privacidade/analytics | UTM V2 antes do consentimento diverge do texto de Privacidade | decisão + patch/documentação |
-| FE-P1-03 | P1 | analytics/privacidade | Meta mede `/admin/*` enquanto Google/V2 excluem Admin | validando (Wave A) |
-| FE-P1-04 | P1 | SEO/privacidade | rotas sensíveis não recebem `noindex` server-side | validando (Wave A) |
+| FE-P1-01 | P1 | sessão | `optionalAuth` não verifica revogação por hash | resolvido (Wave A) |
+| FE-P1-02 | P1 | privacidade/analytics | UTM V2 antes do consentimento diverge do texto de Privacidade | validando (Wave B) |
+| FE-P1-03 | P1 | analytics/privacidade | Meta mede `/admin/*` enquanto Google/V2 excluem Admin | resolvido (Wave A) |
+| FE-P1-04 | P1 | SEO/privacidade | rotas sensíveis não recebem `noindex` server-side | resolvido (Wave A) |
 | FE-P2-01 | P2 | cache/performance | heroes públicos usam URL estável com cache `immutable` de 1 ano | aberto |
 | FE-P2-02 | P2 | aquisição/SEO | landing `/para-profissionais` depende de metadata client-side | aberto |
 | FE-P2-03 | P2 | privacidade | cache local de sessão mantém metadados pessoais desnecessários | hardening |
 | FE-P2-04 | P2 | sessão | compatibilidade Bearer/localStorage permanece ativa | dívida de migração |
-| FE-P2-05 | P2 | segurança | política CSRF depende implicitamente da topologia atual | decisão arquitetural |
+| FE-P2-05 | P2 | segurança | política CSRF depende implicitamente da topologia atual | validando (Wave B) |
 | FE-P3-01 | P3 | CORS | `X-Agenda-Access` não está em `allowedHeaders` | latente em same-origin |
 | FE-P3-02 | P3 | UX/arquitetura | `/convites` aparece no shell profissional mas monta fora dele | alinhamento |
 | FE-P3-03 | P3 | SEO | páginas públicas estáticas compartilham metadata base | oportunidade |
@@ -188,7 +188,7 @@ A branch `fix/frontend-wave-a-hardening` agora:
 - limpa o cookie quando a sessão revogada veio por cookie;
 - adiciona regressões no hardening de sessão.
 
-A implementação ainda depende do Quality Gate e de merge para `main`.
+A implementação da Wave A foi validada e mergeada na `main`.
 
 ### Patch aplicado
 
@@ -237,7 +237,7 @@ O item fecha quando:
 
 ## 6. FE-P1-02 — UTM first-party e texto de Privacidade divergem
 
-### Evidência executável
+### Evidência que originou o finding
 
 `firstPartyAnalytics.test.js` garante explicitamente:
 
@@ -283,28 +283,19 @@ O problema é:
 - alterar apenas o texto ou apenas o código sem decisão de finalidade/base pode
   criar nova divergência.
 
-### Decisão necessária antes do patch
+### Decisão da Wave B
 
-Escolher explicitamente um dos contratos:
+A Wave B adotou a opção B para alinhar o runtime ao texto de Privacidade já
+exibido: origem de campanha e click IDs só são capturados/persistidos quando a
+preferência de medição de marketing está em `GRANTED`.
 
-#### Opção A — UTM first-party pode existir sem consentimento de Ads
+Implementação:
 
-Nesse caso:
-
-- manter código;
-- revisar texto de Privacidade;
-- separar claramente telemetria first-party de Google/Meta;
-- documentar finalidade e base jurídica com revisão adequada.
-
-#### Opção B — toda origem de campanha depende da escolha de marketing
-
-Nesse caso:
-
-- alterar `captureAcquisition()`;
-- não persistir UTM antes de `GRANTED`;
-- revisar métricas/atribuição;
-- testar perda/ganho de cobertura;
-- alinhar pipeline legado e V2.
+- `captureAcquisition()` não inclui `utm_*` nem click IDs antes de consentimento;
+- landing path e host externo de referência permanecem telemetria first-party técnica;
+- revogação limpa a atribuição opcional do pipeline legado;
+- revogação também remove campanha da sessão V2 e dos lotes pendentes do outbox;
+- relatórios devem tratar ausência de evidência sem inferir origem.
 
 ### Testes obrigatórios
 
@@ -374,7 +365,7 @@ O bridge agora usa a mesma classificação de rota administrativa também para M
 
 Foi adicionada regressão específica em `MetaAdsBridge.test.jsx`.
 
-A implementação ainda depende do Quality Gate e de merge para `main`.
+A implementação da Wave A foi validada e mergeada na `main`.
 
 ### Patch aplicado
 
@@ -464,7 +455,7 @@ O servidor agora aplica `noindex,follow` a reset/recuperação, convites e deep 
 
 `spa-seo-http.test.js` foi ampliado para cobrir as rotas e o arquivo de robots.
 
-A implementação ainda depende do Quality Gate e de merge para `main`.
+A implementação da Wave A foi validada e mergeada na `main`.
 
 ### Patch aplicado
 
@@ -756,7 +747,7 @@ canônico.
 
 ## 13. FE-P2-05 — política CSRF precisa ficar explícita
 
-### Estado atual
+### Estado que originou o finding
 
 Não foi observado token CSRF dedicado.
 
@@ -777,15 +768,22 @@ O problema é arquitetural:
 > a segurança depende de premissas que podem mudar sem que exista um contrato
 > explícito dizendo quando o threat model precisa ser reaberto.
 
-### Decisão esperada
+### Decisão da Wave B
 
-Documentar em segurança canônica:
+A topologia atual permanece sem token CSRF dedicado, mas passa a ter defesa
+explícita para autoridade ambiente de cookie:
 
-- quais métodos mutam estado;
-- se `Origin/Referer` é validado para mutações sensíveis;
-- se SameSite atual é requisito;
-- em quais mudanças um token CSRF passaria a ser necessário;
-- política para API/frontend cross-origin.
+- `SameSite=Lax` continua requisito da sessão web;
+- CORS continua restrito;
+- métodos unsafe com cookie de sessão passam por `csrfProtection`;
+- `Sec-Fetch-Site: cross-site` é recusado;
+- `Origin` e, na ausência dele, `Referer` são validados quando presentes;
+- requests sem cookie não entram nessa barreira;
+- clientes não-browser sem metadados de origem permanecem compatíveis.
+
+Essa política deve ser reavaliada antes de qualquer mudança de SameSite,
+topologia de origem, embedding cross-site ou mutação autenticada por formulário
+tradicional.
 
 ### Gatilhos obrigatórios para reavaliação
 

@@ -11,6 +11,7 @@ import {
 
 const {
   captureAcquisition,
+  clearFirstPartyMarketingAttribution,
   flushOutbox,
   readOutbox,
   route,
@@ -26,7 +27,7 @@ afterEach(() => {
 });
 
 describe("firstPartyAnalytics", () => {
-  it("mantém UTM first-party sem capturar click id antes do consentimento", () => {
+  it("não captura origem de campanha antes do consentimento", () => {
     window.history.replaceState(
       {},
       "",
@@ -36,15 +37,33 @@ describe("firstPartyAnalytics", () => {
     const acquisition = captureAcquisition();
 
     expect(acquisition).toMatchObject({
-      utmSource: "google",
-      utmMedium: "cpc",
-      utmCampaign: "profissionais-goiania",
       landingPage: "/para-profissionais"
     });
+    expect(acquisition).not.toHaveProperty("utmSource");
+    expect(acquisition).not.toHaveProperty("utmMedium");
+    expect(acquisition).not.toHaveProperty("utmCampaign");
     expect(acquisition).not.toHaveProperty("gclid");
   });
 
-  it("inclui click ids somente depois do consentimento de marketing", () => {
+  it("mantém campanha fora do Analytics V2 quando a preferência está negada", () => {
+    setMarketingConsent(MARKETING_CONSENT.DENIED);
+    window.history.replaceState(
+      {},
+      "",
+      "/para-profissionais?utm_source=meta&utm_medium=paid_social&utm_campaign=goiania&fbclid=meta-456"
+    );
+
+    const acquisition = captureAcquisition();
+
+    expect(acquisition).toMatchObject({
+      landingPage: "/para-profissionais"
+    });
+    expect(acquisition).not.toHaveProperty("utmSource");
+    expect(acquisition).not.toHaveProperty("utmCampaign");
+    expect(acquisition).not.toHaveProperty("fbclid");
+  });
+
+  it("inclui UTM e click ids somente depois do consentimento de marketing", () => {
     setMarketingConsent(MARKETING_CONSENT.GRANTED);
     window.history.replaceState(
       {},
@@ -58,6 +77,67 @@ describe("firstPartyAnalytics", () => {
       gclid: "click-123",
       fbclid: "meta-456"
     });
+  });
+
+  it("remove atribuição first-party persistida e pendente ao revogar consentimento", async () => {
+    setMarketingConsent(MARKETING_CONSENT.GRANTED);
+    window.history.replaceState(
+      {},
+      "",
+      "/para-profissionais?utm_source=google&utm_medium=cpc&utm_campaign=profissionais-goiania&gclid=click-123"
+    );
+
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: false,
+        status: 500
+      })
+    );
+
+    await send([
+      {
+        type: "event",
+        eventUuid:
+          "c6b83d90-09f0-4ad2-83e3-8a1f44e92641",
+        schemaVersion: 1,
+        name: "profile_viewed",
+        occurredAt:
+          "2026-09-21T15:00:00.000Z",
+        properties: {}
+      }
+    ]);
+
+    expect(readOutbox()[0].payload.acquisition)
+      .toMatchObject({
+        utmSource: "google",
+        utmMedium: "cpc",
+        utmCampaign: "profissionais-goiania",
+        gclid: "click-123"
+      });
+
+    setMarketingConsent(MARKETING_CONSENT.DENIED);
+    clearFirstPartyMarketingAttribution();
+
+    expect(readOutbox()[0].payload.acquisition)
+      .toMatchObject({
+        landingPage: "/para-profissionais"
+      });
+    expect(readOutbox()[0].payload.acquisition)
+      .not.toHaveProperty("utmSource");
+    expect(readOutbox()[0].payload.acquisition)
+      .not.toHaveProperty("gclid");
+
+    const session = JSON.parse(
+      window.sessionStorage.getItem(
+        "af_analytics_session_v2"
+      )
+    );
+
+    expect(session.acquisition)
+      .not.toHaveProperty("utmSource");
+    expect(session.acquisition)
+      .not.toHaveProperty("gclid");
   });
 
   it.each([
