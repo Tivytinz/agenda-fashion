@@ -16,6 +16,9 @@ const {
 const {
   tokenAnteriorATrocaDeSenha,
 } = require("./auth");
+const {
+  hashToken,
+} = require("../utils/sessionToken");
 
 /*
  * Retorna o segredo utilizado
@@ -93,12 +96,15 @@ module.exports =
         const estadoDaSessao =
           await authSessionRepository
             .buscarEstadoDaSessao(
-              decoded.id
+              decoded.id,
+              hashToken(token)
             );
 
         if (
           estadoDaSessao?.ativo ===
             true &&
+          estadoDaSessao
+            .token_revogado !== true &&
           !tokenAnteriorATrocaDeSenha(
             decoded,
             estadoDaSessao
