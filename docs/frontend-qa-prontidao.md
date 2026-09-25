@@ -1504,6 +1504,9 @@ manualmente a cada novo teste.
 O que deve permanecer atualizado são os contratos, comandos e responsabilidades
 deste documento.
 
+
+> Findings abertos e prioridade de execução estão consolidados em [`frontend-pendencias-priorizadas.md`](./frontend-pendencias-priorizadas.md).
+
 ## 85. Critério de manutenção
 
 Atualizar este documento quando mudar de forma durável:
