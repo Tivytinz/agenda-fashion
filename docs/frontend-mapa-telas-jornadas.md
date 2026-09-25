@@ -558,6 +558,9 @@ Antes de considerar uma alteração de UX concluída:
 9. adicionar ou atualizar teste de regressão proporcional ao risco;
 10. atualizar a documentação canônica se a regra de produto tiver mudado.
 
+
+> Findings abertos e prioridade de execução estão consolidados em [`frontend-pendencias-priorizadas.md`](./frontend-pendencias-priorizadas.md).
+
 ## 20. Manutenção
 
 Atualizar este mapa quando:
