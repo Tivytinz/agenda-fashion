@@ -168,6 +168,9 @@ contrato de billing.
 - [admin-wave-5-rf41-evidencia.md](./admin-wave-5-rf41-evidencia.md):
   preparação da execução representativa de RF41/RNF02, identidade do build,
   integridade do ledger e condições para atualizar ADM-043.
+- [admin-wave-6-rf41-qa-operacional.md](./admin-wave-6-rf41-qa-operacional.md):
+  perfil agregado somente leitura, carga sintética descartável, executor dos
+  seis cenários e roteiro da medição sem antecipar a cobertura de ADM-043.
 - [admin-centro-comando.md](./admin-centro-comando.md): semântica dos
   indicadores do centro de comando.
 - [admin-visao-geral.md](./admin-visao-geral.md): KPIs agregados da rota
