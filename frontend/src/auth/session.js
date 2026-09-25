@@ -16,7 +16,8 @@ export function saveSession(result) {
   }
 
   writeBrowserStorage("local", SESSION_ACTIVE_KEY, "1");
-  writeBrowserStorage("local", "usuario", JSON.stringify(result.usuario));
+  removeBrowserStorage("local", "usuario");
+  removeBrowserStorage("local", "negocio");
 }
 
 export function clearSession({ notify = false } = {}) {
@@ -34,13 +35,6 @@ export function hasSession() {
   );
 }
 
-export function getStoredUser() {
-  try {
-    return JSON.parse(readBrowserStorage("local", "usuario") || "null");
-  } catch {
-    return null;
-  }
-}
 
 export function safeInternalPath(value) {
   return typeof value === "string" && value.startsWith("/") && !value.startsWith("//")
