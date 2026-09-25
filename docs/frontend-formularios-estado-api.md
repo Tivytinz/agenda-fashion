@@ -1621,6 +1621,7 @@ Antes disso:
 - [`agendamento-integridade.md`](./agendamento-integridade.md): integridade do
   booking;
 - [`frontend-analytics-observabilidade.md`](./frontend-analytics-observabilidade.md): eventos, consentimento, atribuição e conversões;
+- [`frontend-seguranca.md`](./frontend-seguranca.md): fronteiras de confiança, sessão, URLs, uploads e secrets;
 - [`frontend-qa-prontidao.md`](./frontend-qa-prontidao.md): testes, acessibilidade, mobile/WebKit e prontidão;
 - [`qualidade-codigo.md`](./qualidade-codigo.md): validações de qualidade.
 
