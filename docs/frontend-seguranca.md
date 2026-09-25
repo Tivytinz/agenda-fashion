@@ -347,7 +347,7 @@ Não reutilizar um timestamp de senha para implementar logout normal.
 
 ## 19. Achado: optionalAuth e revogação
 
-Existe um ponto de hardening relevante no runtime atual.
+A Wave A corrige um ponto de hardening identificado no runtime anterior.
 
 `auth` chama:
 
@@ -373,16 +373,16 @@ token_revogado = FALSE
 
 Consequência técnica:
 
-> uma rota que usa `optionalAuth` não aplica hoje a mesma checagem explícita de
+> antes da Wave A, uma rota que usava `optionalAuth` não aplicava a mesma checagem explícita de
 > revogação da rota protegida.
 
 Isso não altera a autorização das rotas obrigatoriamente protegidas, mas impede
 afirmar que a revogação está uniformemente aplicada em todos os usos de
 autenticação opcional.
 
-Esta branch documental **não corrigiu código**.
+Na branch `fix/frontend-wave-a-hardening`, o middleware passa o hash do JWT ao repository, recusa identidade opcional revogada e preserva a rota como pública. Antes de considerar esse hardening fechado em `main`, a branch ainda precisa concluir Quality Gate e merge.
 
-Antes de considerar esse hardening fechado, o patch executável deve:
+A validação cobre:
 
 - passar o hash do token também no `optionalAuth`;
 - manter visitante sem token funcionando;
@@ -2037,10 +2037,9 @@ Para mudança com superfície de segurança:
 
 O middleware opcional não passa `hashToken(token)` ao repository.
 
-Status: **documentado, não corrigido nesta branch**.
+Status: **implementado na Wave A e em validação**.
 
-Próximo patch deve alinhar a checagem ao middleware obrigatório sem transformar
-rota pública em rota obrigatoriamente autenticada.
+A correção alinha a checagem ao middleware obrigatório sem transformar a rota pública em rota obrigatoriamente autenticada.
 
 ### 142.2 X-Agenda-Access ausente da allowlist CORS
 
@@ -2086,9 +2085,8 @@ de deploy.
 Para um patch executável futuro, a ordem técnica recomendada é:
 
 ```text
-1. alinhar optionalAuth com revogação
-2. testar a correção
-3. decidir/registrar política CSRF explícita
+1. concluir validação/merge do optionalAuth + revogação
+2. decidir/registrar política CSRF explícita
 4. alinhar X-Agenda-Access ao CORS se houver suporte cross-origin
 5. reduzir compatibilidade/storage legado quando seguro
 ```
