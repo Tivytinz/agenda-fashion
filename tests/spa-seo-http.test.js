@@ -88,6 +88,45 @@ describe("SEO e 404 das rotas React", () => {
     );
   });
 
+  test.each([
+    [
+      "/planos?utm_source=google",
+      "Planos para profissionais | Agenda Fashion",
+      "https://app.agendafashion.com.br/planos"
+    ],
+    [
+      "/privacidade?utm_source=meta",
+      "Privacidade e cookies | Agenda Fashion",
+      "https://app.agendafashion.com.br/privacidade"
+    ],
+    [
+      "/termos?utm_campaign=legal",
+      "Termos de uso | Agenda Fashion",
+      "https://app.agendafashion.com.br/termos"
+    ]
+  ])(
+    "entrega metadata server-side deliberada para %s",
+    async (rota, titulo, canonical) => {
+      const resposta = await request(app)
+        .get(rota)
+        .set("Accept", "text/html");
+
+      expect(resposta.status).toBe(200);
+      expect(resposta.text).toContain(
+        `<title>${titulo}</title>`
+      );
+      expect(resposta.text).toContain(
+        `rel="canonical" href="${canonical}"`
+      );
+      expect(resposta.text).toContain(
+        `property="og:title" content="${titulo}"`
+      );
+      expect(resposta.text).not.toContain(
+        "utm_"
+      );
+    }
+  );
+
   test("mantém página pública indexável", async () => {
     const resposta = await request(app)
       .get("/planos")
