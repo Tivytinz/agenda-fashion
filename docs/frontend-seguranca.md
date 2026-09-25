@@ -2135,6 +2135,9 @@ Essa ordem não autoriza alteração automática nesta branch documental.
   capability;
 - [`contexto-negocio.md`](./contexto-negocio.md): isolamento/autorização.
 
+
+> Findings abertos e prioridade de execução estão consolidados em [`frontend-pendencias-priorizadas.md`](./frontend-pendencias-priorizadas.md).
+
 ## 146. Manutenção
 
 Atualizar este documento quando mudar de forma durável:
