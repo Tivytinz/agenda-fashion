@@ -533,6 +533,7 @@ ou reabertura do link precisa preservar o passo.
 | onboarding | `BusinessPage`, `ServicesPage`, `ScheduleSettingsPage`, `DashboardPage` |
 | equipe | `ProfessionalsPage`, `ProfessionalInvitesPage`, `convites-profissionais.md` |
 | plano/checkout | `PlansPage`, `BillingPages`, `SubscriptionPage`, `planos.md` |
+| componentes/primitives | `frontend-componentes-primitives.md` + implementação atual |
 | CSS | `frontend-estilos.md` + dono do estilo |
 | Admin | docs `admin-*` + páginas administrativas |
 | analytics | `analytics/` + documentação de atribuição/growth |
