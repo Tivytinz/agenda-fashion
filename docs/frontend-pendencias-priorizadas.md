@@ -719,9 +719,14 @@ Compatibilidade de migração mantida deliberadamente.
 
 Não há feature nova emitindo JWT para localStorage, mas também não existe
 telemetria segura suficiente para provar que nenhum cliente legado ainda envia
-Bearer. Os logs HTTP disponíveis não expõem Authorization — corretamente — e
-remover suporte com base apenas na ausência de código novo criaria risco de
-sessão para clientes antigos.
+Bearer.
+
+Na inspeção operacional de 25/09/2026, a superfície de logs do deployment
+Railway não expõe o header `Authorization` nas entradas HTTP e não há diagnóstico
+de transporte Bearer nos logs da aplicação. Isso é desejável do ponto de vista
+de segredo, mas significa que ausência de evidência não prova ausência de
+consumidor legado. Não será adicionado logging de token/header apenas para medir
+essa migração.
 
 Por isso a Wave D **não remove Bearer ainda**.
 
