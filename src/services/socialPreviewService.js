@@ -15,6 +15,24 @@ const PAGINAS_ESTATICAS = Object.freeze({
     descricao:
       "Agenda online grátis para nail designers, lash designers, designers de sobrancelhas, manicures, esteticistas e salões. Receba agendamentos e, se autorizar, avisos pelo WhatsApp.",
   },
+  "/planos": {
+    titulo:
+      "Planos para profissionais | Agenda Fashion",
+    descricao:
+      "Compare o plano Grátis e os planos pagos do Agenda Fashion para escolher a capacidade de agendamentos, profissionais e serviços do seu negócio.",
+  },
+  "/privacidade": {
+    titulo:
+      "Privacidade e cookies | Agenda Fashion",
+    descricao:
+      "Entenda quais dados o Agenda Fashion trata, para quais finalidades e como controlar preferências de cookies e medição opcional.",
+  },
+  "/termos": {
+    titulo:
+      "Termos de uso | Agenda Fashion",
+    descricao:
+      "Consulte as regras de uso do Agenda Fashion para contas, agendamentos, planos, pagamentos, comunicações e responsabilidades.",
+  },
 });
 
 let htmlReactEmCache = null;

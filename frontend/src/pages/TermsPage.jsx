@@ -1,20 +1,15 @@
-import { useEffect } from "react";
 import { Link } from "react-router-dom";
+import { usePageMetadata } from "../hooks/usePageMetadata";
 import {
   LEGAL_CONTACT_EMAIL,
   TERMS_VERSION
 } from "../config/legal";
 
 export function TermsPage() {
-  useEffect(() => {
-    const previousTitle = document.title;
-    document.title =
-      "Termos de uso | Agenda Fashion";
-
-    return () => {
-      document.title = previousTitle;
-    };
-  }, []);
+  usePageMetadata(
+    "Termos de uso | Agenda Fashion",
+    "Consulte as regras de uso do Agenda Fashion para contas, agendamentos, planos, pagamentos, comunicações e responsabilidades."
+  );
 
   return (
     <main className="container page-content narrow-page legal-page">

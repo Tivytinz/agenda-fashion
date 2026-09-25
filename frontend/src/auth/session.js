@@ -8,15 +8,20 @@ const SESSION_ACTIVE_KEY = "session_active";
 const SESSION_KEYS = ["token", SESSION_ACTIVE_KEY, "usuario", "negocio"];
 export const SESSION_CLEARED_EVENT = "agenda-fashion:session-cleared";
 
+export function clearStoredSessionMetadata() {
+  removeBrowserStorage("local", "usuario");
+  removeBrowserStorage("local", "negocio");
+}
+
 export function saveSession(result) {
   removeBrowserStorage("local", "token");
+  clearStoredSessionMetadata();
 
   if (!result?.usuario) {
     return;
   }
 
   writeBrowserStorage("local", SESSION_ACTIVE_KEY, "1");
-  writeBrowserStorage("local", "usuario", JSON.stringify(result.usuario));
 }
 
 export function clearSession({ notify = false } = {}) {
@@ -34,13 +39,6 @@ export function hasSession() {
   );
 }
 
-export function getStoredUser() {
-  try {
-    return JSON.parse(readBrowserStorage("local", "usuario") || "null");
-  } catch {
-    return null;
-  }
-}
 
 export function safeInternalPath(value) {
   return typeof value === "string" && value.startsWith("/") && !value.startsWith("//")

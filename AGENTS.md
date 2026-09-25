@@ -739,6 +739,10 @@ Estas regras são obrigatórias:
 
 Na topologia web atual, mutações autenticadas por cookie usam defesa CSRF em camadas: cookie `SameSite=Lax`, CORS restrito e validação de metadados de origem do navegador (`Sec-Fetch-Site`, `Origin` e `Referer`) quando presentes. Requests unsafe com cookie de sessão e evidência cross-site devem ser rejeitados. Não há token CSRF dedicado enquanto a arquitetura permanecer same-origin/JSON com esse contrato; qualquer mudança para `SameSite=None`, frontend/API em origens distintas, mutação via formulário tradicional ou embedding cross-site exige reabrir o threat model antes do deploy.
 
+O browser não deve persistir perfil de usuário ou negócio em `localStorage` para acelerar bootstrap. A persistência local da sessão web fica restrita ao marcador técnico `session_active` e à compatibilidade legada ainda existente; nome, e-mail, WhatsApp, foto e contexto de negócio permanecem em memória e são reidratados por `GET /minha-sessao`. Chaves antigas `usuario` e `negocio` devem ser removidas no bootstrap.
+
+O header `X-Agenda-Access` faz parte do contrato de capability de booking e deve permanecer permitido pelo CORS para que a mesma capability continue funcionando caso frontend e API usem origens permitidas distintas. Isso não amplia o escopo da capability nem substitui validação backend.
+
 Encerramento e privacidade seguem um fluxo de desativação/arquivamento, não de
 deleção física indiscriminada:
 

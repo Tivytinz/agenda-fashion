@@ -797,10 +797,13 @@ HTML base entregue pelo Express
 metadata server-side em rotas públicas selecionadas
 ```
 
-As duas rotas com metadata dinâmica server-side observadas são:
+A metadata server-side usa duas classes:
 
-- perfil de negócio;
-- catálogo local.
+- dinâmica: perfil de negócio e catálogo local;
+- estática deliberada: landing profissional, Planos, Privacidade e Termos.
+
+O AF continua sem SSR geral de React; apenas injeta tags no documento inicial das
+rotas que possuem contrato explícito de descoberta, aquisição ou referência.
 
 ## 46. Metadata base
 
@@ -1130,8 +1133,8 @@ bloqueadas no `robots.txt`.
 O segredo de reset/capability continua no fragmento e não é enviado ao crawler.
 `noindex` e robots continuam sendo mecanismos de crawl, não autorização.
 
-`tests/spa-seo-http.test.js` cobre deep links e o arquivo de robots. A branch
-permanece em validação até Quality Gate/merge.
+`tests/spa-seo-http.test.js` cobre deep links e o arquivo de robots. A Wave A
+foi validada e mergeada na `main`.
 
 ## 67. noindex não é autorização
 
@@ -1884,7 +1887,7 @@ Não copiar algoritmos completos de canonicalização no React.
 
 ### 123.1 Hero público com cache immutable e nome estável
 
-Status: **implementado na Wave C e em validação**.
+Status: **resolvido na Wave C e mergeado na main**.
 
 Os dois heroes de filename estável agora usam revalidação obrigatória; assets
 versionados continuam `immutable`.
@@ -1898,7 +1901,7 @@ também foram adicionados ao robots.txt.
 
 ### 123.3 Landing profissional depende de metadata client-side
 
-Status: **implementado na Wave C e em validação**.
+Status: **resolvido na Wave C e mergeado na main**.
 
 `/para-profissionais` agora recebe no HTML inicial title/description dedicados,
 canonical sem UTM, Open Graph e Twitter metadata, reutilizando a infraestrutura
@@ -1906,24 +1909,21 @@ mínima de metadata já existente no backend.
 
 ### 123.4 Páginas públicas estáticas compartilham metadata base
 
-Status: comportamento atual.
+Status: **implementado na Wave D e em validação**.
 
-Antes de tratar Planos/Termos/Privacidade como alvos SEO específicos, definir
-metadata server-side dedicada quando houver objetivo real.
+`/planos`, `/privacidade` e `/termos` agora possuem title, description,
+canonical e metadata social no HTML inicial. As páginas React usam os mesmos
+titles/descriptions para preservar consistência em navegação SPA.
 
 ## 124. Prioridade técnica dos findings
 
-Wave C executa os dois findings prioritários e dispara Performance QA para
-revalidar o commit da branch.
+A Wave C foi validada pelo Quality Gate e Performance QA antes do merge.
 
-Depois dela, permanece:
+A Wave D amplia a metadata estática somente para as páginas públicas indexáveis
+já mapeadas, sem criar SSR geral.
 
-```text
-1. observar LCP do commit validado
-2. ampliar metadata estática somente onde houver objetivo real de aquisição
-```
-
-Não usar resultado histórico de outro commit como evidência da Wave C.
+Resultados históricos de performance continuam pertencendo ao commit medido e
+não são evidência automática de uma mudança futura.
 
 ## 125. Ownership
 

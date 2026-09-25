@@ -72,18 +72,18 @@ Usar quando:
 | ID | Prioridade | Domínio | Finding | Estado observado |
 | --- | --- | --- | --- | --- |
 | FE-P1-01 | P1 | sessão | `optionalAuth` não verifica revogação por hash | resolvido (Wave A) |
-| FE-P1-02 | P1 | privacidade/analytics | UTM V2 antes do consentimento diverge do texto de Privacidade | validando (Wave B) |
+| FE-P1-02 | P1 | privacidade/analytics | UTM V2 antes do consentimento diverge do texto de Privacidade | resolvido (Wave B) |
 | FE-P1-03 | P1 | analytics/privacidade | Meta mede `/admin/*` enquanto Google/V2 excluem Admin | resolvido (Wave A) |
 | FE-P1-04 | P1 | SEO/privacidade | rotas sensíveis não recebem `noindex` server-side | resolvido (Wave A) |
-| FE-P2-01 | P2 | cache/performance | heroes públicos usam URL estável com cache `immutable` de 1 ano | validando (Wave C) |
-| FE-P2-02 | P2 | aquisição/SEO | landing `/para-profissionais` depende de metadata client-side | validando (Wave C) |
-| FE-P2-03 | P2 | privacidade | cache local de sessão mantém metadados pessoais desnecessários | hardening |
-| FE-P2-04 | P2 | sessão | compatibilidade Bearer/localStorage permanece ativa | dívida de migração |
-| FE-P2-05 | P2 | segurança | política CSRF depende implicitamente da topologia atual | validando (Wave B) |
-| FE-P3-01 | P3 | CORS | `X-Agenda-Access` não está em `allowedHeaders` | latente em same-origin |
-| FE-P3-02 | P3 | UX/arquitetura | `/convites` aparece no shell profissional mas monta fora dele | alinhamento |
-| FE-P3-03 | P3 | SEO | páginas públicas estáticas compartilham metadata base | oportunidade |
-| FE-P3-04 | P3 | analytics | V2 e `eventos_produto` coexistem | migração controlada |
+| FE-P2-01 | P2 | cache/performance | heroes públicos usam URL estável com cache `immutable` de 1 ano | resolvido (Wave C) |
+| FE-P2-02 | P2 | aquisição/SEO | landing `/para-profissionais` depende de metadata client-side | resolvido (Wave C) |
+| FE-P2-03 | P2 | privacidade | cache local de sessão mantém metadados pessoais desnecessários | validando (Wave D) |
+| FE-P2-04 | P2 | sessão | compatibilidade Bearer/localStorage permanece ativa | adiado: falta evidência de uso legado |
+| FE-P2-05 | P2 | segurança | política CSRF depende implicitamente da topologia atual | resolvido (Wave B) |
+| FE-P3-01 | P3 | CORS | `X-Agenda-Access` não está em `allowedHeaders` | validando (Wave D) |
+| FE-P3-02 | P3 | UX/arquitetura | `/convites` aparece no shell profissional mas monta fora dele | validando (Wave D) |
+| FE-P3-03 | P3 | SEO | páginas públicas estáticas compartilham metadata base | validando (Wave D) |
+| FE-P3-04 | P3 | analytics | V2 e `eventos_produto` coexistem | adiado: reconciliação de produção necessária |
 
 ## 4. Ordem recomendada de execução
 
@@ -104,13 +104,15 @@ Wave C — entrega e aquisição
   FE-P2-02 metadata server-side da landing
   revalidar LCP/SEO
 
-Wave D — redução de dívida
+Wave D — redução de dívida com evidência suficiente
   FE-P2-03 storage
-  FE-P2-04 Bearer legado
   FE-P3-01 CORS capability
   FE-P3-02 shell de convites
   FE-P3-03 metadata estática
-  FE-P3-04 retirada futura do pipeline legado
+
+  adiado por falta de evidência operacional:
+  FE-P2-04 Bearer legado
+  FE-P3-04 retirada do pipeline legado
 ```
 
 A sequência é recomendação técnica. Cada wave executável ainda precisa de
@@ -653,16 +655,20 @@ Isso não é credencial de autorização.
 O finding é de **minimização de exposição**: qualquer script executando na
 origem consegue ler localStorage.
 
-### Próximo passo
+### Implementação da Wave D
 
-Antes de remover campos, medir quais valores o bootstrap realmente precisa.
+O bootstrap não precisa de perfil persistido para autorizar ou resolver contexto.
 
-Possibilidades:
+A Wave D passa a:
 
-- persistir somente marcador de sessão;
-- persistir perfil mínimo;
-- mover contexto não necessário para memória;
-- rehidratar sempre pelo backend.
+- persistir somente `session_active`;
+- manter usuário, vínculos e negócio em memória;
+- reidratar tudo por `/minha-sessao`;
+- apagar `usuario` e `negocio` legados no bootstrap;
+- continuar removendo `token` legado ao salvar uma sessão nova.
+
+Assim o reload pode exibir estado de carregamento por um curto período, mas não
+mantém PII de conta/negócio em storage por conveniência.
 
 ### Risco de patch
 
@@ -707,12 +713,22 @@ e o backend ainda aceita Bearer.
 
 `saveSession()` novo remove esse token.
 
-### Estado
+### Estado na Wave D
 
-Compatibilidade de migração.
+Compatibilidade de migração mantida deliberadamente.
 
-Não há evidência, nesta auditoria, de feature nova emitindo JWT para
-localStorage.
+Não há feature nova emitindo JWT para localStorage, mas também não existe
+telemetria segura suficiente para provar que nenhum cliente legado ainda envia
+Bearer.
+
+Na inspeção operacional de 25/09/2026, a superfície de logs do deployment
+Railway não expõe o header `Authorization` nas entradas HTTP e não há diagnóstico
+de transporte Bearer nos logs da aplicação. Isso é desejável do ponto de vista
+de segredo, mas significa que ausência de evidência não prova ausência de
+consumidor legado. Não será adicionado logging de token/header apenas para medir
+essa migração.
+
+Por isso a Wave D **não remove Bearer ainda**.
 
 ### Risco
 
@@ -823,9 +839,13 @@ Request same-origin não depende de preflight CORS.
 Se frontend/API forem separados por origem, este item precisa subir de
 prioridade antes do corte.
 
-### Patch futuro
+### Implementação da Wave D
 
-Adicionar `X-Agenda-Access` à allowlist e teste de OPTIONS/preflight.
+`X-Agenda-Access` foi incluído em `allowedHeaders` e o preflight OPTIONS de
+uma origem permitida ganhou regressão automatizada.
+
+A mudança não amplia a capability: o backend continua validando o token por
+booking.
 
 ### Critério de fechamento
 
@@ -878,25 +898,20 @@ Isso pode ser intencional por ser uma tela de transição.
 
 Não há evidência de falha funcional.
 
-### Decisão futura
+### Decisão da Wave D
 
-Escolher uma semântica:
+A rota precisa atender dois estados incompatíveis com uma regra única de shell:
 
-#### manter transição fora do shell
+- pessoa convidada ainda sem negócio;
+- profissional já ativa usando a navegação do próprio workspace.
 
-Nesse caso:
+A composição passa a ser adaptativa:
 
-- documentar como intenção;
-- revisar affordance/retorno.
+- contexto profissional ativo → `ProfessionalShell`;
+- sem negócio ou outro contexto → tela autenticada de transição.
 
-#### transformar em parte do workspace profissional
-
-Nesse caso:
-
-- mover a rota;
-- validar vínculo/contexto;
-- revisar mobile;
-- atualizar E2E/shell docs.
+Assim `/convites` continua acessível antes do vínculo e deixa de quebrar a
+continuidade visual quando aberta pela navegação profissional.
 
 ### Critério de fechamento
 
@@ -930,15 +945,18 @@ Adicionar metadata dedicada só faz sentido onde existir:
 - landing;
 - benefício mensurável.
 
-### Próximo passo
+### Implementação da Wave D
 
-Priorizar páginas de aquisição primeiro.
+A infraestrutura server-side já existe e o custo marginal é baixo, então as três
+páginas indexáveis recebem metadata deliberada:
 
-Depois medir necessidade de:
+- `/planos`: conversão/monetização;
+- `/privacidade`: referência legal e de confiança;
+- `/termos`: referência contratual.
 
-- Planos;
-- Termos;
-- Privacidade.
+Cada uma recebe title, description, canonical sem parâmetros, Open Graph e
+Twitter metadata. O React usa os mesmos title/descriptions durante navegação
+SPA.
 
 ### Critério de fechamento
 
@@ -975,6 +993,12 @@ Se a coexistência ficar indefinida:
 - manutenção aumenta;
 - analistas podem somar contagens;
 - features novas podem ampliar o legado.
+
+### Decisão da Wave D sobre o legado
+
+A Wave D não remove `eventos_produto`. A própria documentação de reconciliação
+exige paridade observada, divergências investigadas e consumidores migrados; essa
+evidência não é produzida por um diff de frontend.
 
 ### Condições antes de retirar o legado
 
@@ -1132,16 +1156,21 @@ Validação adicional:
 
 ## 27. Wave D — redução de dívida
 
-Escopo seletivo:
+Escopo executado nesta wave:
 
-- storage;
-- Bearer legado;
-- CORS capability;
-- shell de convites;
-- metadata estática;
-- analytics legado.
+- storage mínimo de sessão;
+- CORS da capability;
+- shell adaptativo de convites;
+- metadata estática pública.
 
-Só puxar um item dessa wave quando existir evidência/benefício concreto.
+Itens deliberadamente adiados:
+
+- Bearer legado: retirada depende de evidência de ausência de consumidores;
+- analytics legado: retirada depende de reconciliação observada em produção e
+  migração dos consumidores.
+
+A wave reduz dívida onde existe benefício concreto sem transformar limpeza de
+código em quebra de compatibilidade.
 
 ---
 

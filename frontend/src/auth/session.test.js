@@ -94,3 +94,4 @@ describe("continuidade do plano escolhido", () => {
     })).toBe("/criar-negocio?plano=autonoma");
   });
 });
+

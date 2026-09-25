@@ -40,6 +40,10 @@ export function AppHeader() {
     location.pathname.startsWith("/painel") ||
     location.pathname.startsWith("/profissional/") ||
     (
+      location.pathname === "/convites" &&
+      session.negocio?.papel === "profissional"
+    ) ||
+    (
       location.pathname === "/conta" &&
       session.temNegocio &&
       !session.ehAdministrador

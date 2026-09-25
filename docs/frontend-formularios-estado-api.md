@@ -469,11 +469,12 @@ Exemplos atuais:
 
 `auth/session.js` e `browserStorage.js` mantêm um cache local mínimo.
 
-O fluxo novo de sessão:
+O fluxo atual de sessão:
 
 - remove token legado ao salvar uma sessão nova;
-- grava marcador `session_active`;
-- guarda representação de usuário para bootstrap;
+- grava apenas o marcador `session_active`;
+- remove chaves legadas `usuario` e `negocio` durante bootstrap;
+- mantém perfil e contexto somente em memória;
 - usa `/minha-sessao` para reconstruir o contexto real.
 
 `apiRequest` ainda possui compatibilidade com token Bearer armazenado quando

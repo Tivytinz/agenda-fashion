@@ -144,6 +144,30 @@ describe("cabeçalho por contexto", () => {
     ).toBeNull();
   });
 
+  it("trata convites como contexto operacional para profissional ativa", () => {
+    useSession.mockReturnValue({
+      authenticated: true,
+      ehAdministrador: false,
+      temNegocio: true,
+      negocio: { papel: "profissional" },
+      usuario: { nome: "Ana" },
+      logout
+    });
+
+    renderHeader("/convites");
+
+    expect(
+      screen.queryByRole("link", { name: "Favoritos" })
+    ).toBeNull();
+    expect(
+      screen.queryByRole("link", { name: "Meus agendamentos" })
+    ).toBeNull();
+    expect(
+      screen.getByRole("link", { name: "Início" })
+        .getAttribute("href")
+    ).toBe("/");
+  });
+
   it("resume os três atalhos antigos em uma entrada Administração", () => {
     useSession.mockReturnValue({
       authenticated: true,
