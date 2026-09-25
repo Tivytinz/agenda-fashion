@@ -45,6 +45,24 @@ describe("firstPartyAnalytics", () => {
     expect(acquisition).not.toHaveProperty("gclid");
   });
 
+  it("mantém campanha fora do Analytics V2 quando a preferência está negada", () => {
+    setMarketingConsent(MARKETING_CONSENT.DENIED);
+    window.history.replaceState(
+      {},
+      "",
+      "/para-profissionais?utm_source=meta&utm_medium=paid_social&utm_campaign=goiania&fbclid=meta-456"
+    );
+
+    const acquisition = captureAcquisition();
+
+    expect(acquisition).toMatchObject({
+      landingPage: "/para-profissionais"
+    });
+    expect(acquisition).not.toHaveProperty("utmSource");
+    expect(acquisition).not.toHaveProperty("utmCampaign");
+    expect(acquisition).not.toHaveProperty("fbclid");
+  });
+
   it("inclui UTM e click ids somente depois do consentimento de marketing", () => {
     setMarketingConsent(MARKETING_CONSENT.GRANTED);
     window.history.replaceState(
