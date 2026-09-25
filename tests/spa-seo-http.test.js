@@ -8,6 +8,11 @@ describe("SEO e 404 das rotas React", () => {
     "/confirmar",
     "/sucesso",
     "/checkout",
+    "/esqueci-senha",
+    "/redefinir-senha",
+    "/convites",
+    "/agendamento-acesso/123",
+    "/agendamento-visitante/123",
     "/painel",
     "/painel/agenda",
     "/profissional/agenda",
@@ -22,6 +27,19 @@ describe("SEO e 404 das rotas React", () => {
     expect(resposta.text).toContain(
       'name="robots" content="noindex,follow"'
     );
+  });
+
+  test("robots bloqueia rotas privadas e sensíveis", async () => {
+    const resposta = await request(app)
+      .get("/robots.txt")
+      .set("Accept", "text/plain");
+
+    expect(resposta.status).toBe(200);
+    expect(resposta.text).toContain("Disallow: /esqueci-senha");
+    expect(resposta.text).toContain("Disallow: /redefinir-senha");
+    expect(resposta.text).toContain("Disallow: /convites");
+    expect(resposta.text).toContain("Disallow: /agendamento-acesso/");
+    expect(resposta.text).toContain("Disallow: /agendamento-visitante/");
   });
 
   test("mantém página pública indexável", async () => {
