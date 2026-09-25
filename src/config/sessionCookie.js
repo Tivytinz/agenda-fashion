@@ -2,6 +2,10 @@ const jwt = require(
   "jsonwebtoken"
 );
 
+const authTransportMetrics = require(
+  "../utils/authTransportMetrics"
+);
+
 const COOKIE_PRODUCAO =
   "__Host-af_session";
 const COOKIE_DESENVOLVIMENTO =
@@ -176,6 +180,11 @@ function obterTokenDaRequisicao(
     );
 
   if (bearer) {
+    authTransportMetrics
+      .registrarTransporte(
+        "bearer"
+      );
+
     return {
       token: bearer,
       origem: "bearer",
@@ -195,6 +204,11 @@ function obterTokenDaRequisicao(
       cookies.get(nome);
 
     if (token) {
+      authTransportMetrics
+        .registrarTransporte(
+          "cookie"
+        );
+
       return {
         token,
         origem: "cookie",
