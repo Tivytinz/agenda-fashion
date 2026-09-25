@@ -967,6 +967,7 @@ Se a resposta depender de "talvez no futuro", não antecipar a abstração.
   rotas e jornadas;
 - [`frontend-formularios-estado-api.md`](./frontend-formularios-estado-api.md): formulários, estado, API, erros e mutações;
 - [`frontend-analytics-observabilidade.md`](./frontend-analytics-observabilidade.md): bridges, eventos, consentimento e integrações de analytics;
+- [`frontend-seguranca.md`](./frontend-seguranca.md): requisitos de segurança para primitives, links, storage e componentes sensíveis;
 - [`frontend-estilos.md`](./frontend-estilos.md): CSS e ownership;
 - [`ux-contextos-visuais.md`](./ux-contextos-visuais.md): semântica de
   contextos;
