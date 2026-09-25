@@ -75,8 +75,8 @@ Usar quando:
 | FE-P1-02 | P1 | privacidade/analytics | UTM V2 antes do consentimento diverge do texto de Privacidade | validando (Wave B) |
 | FE-P1-03 | P1 | analytics/privacidade | Meta mede `/admin/*` enquanto Google/V2 excluem Admin | resolvido (Wave A) |
 | FE-P1-04 | P1 | SEO/privacidade | rotas sensíveis não recebem `noindex` server-side | resolvido (Wave A) |
-| FE-P2-01 | P2 | cache/performance | heroes públicos usam URL estável com cache `immutable` de 1 ano | aberto |
-| FE-P2-02 | P2 | aquisição/SEO | landing `/para-profissionais` depende de metadata client-side | aberto |
+| FE-P2-01 | P2 | cache/performance | heroes públicos usam URL estável com cache `immutable` de 1 ano | validando (Wave C) |
+| FE-P2-02 | P2 | aquisição/SEO | landing `/para-profissionais` depende de metadata client-side | validando (Wave C) |
 | FE-P2-03 | P2 | privacidade | cache local de sessão mantém metadados pessoais desnecessários | hardening |
 | FE-P2-04 | P2 | sessão | compatibilidade Bearer/localStorage permanece ativa | dívida de migração |
 | FE-P2-05 | P2 | segurança | política CSRF depende implicitamente da topologia atual | validando (Wave B) |
@@ -541,19 +541,14 @@ Esses heroes podem ser substituídos mantendo o mesmo path.
 - debugging de conteúdo fica confuso;
 - tentativa de "corrigir" limpando cache global poderia prejudicar performance.
 
-### Soluções aceitáveis
+### Decisão da Wave C
 
-Preferência técnica:
+Foi adotada a opção 3 para manter o preload e o markup atuais sem copiar binários
+nem criar uma renomeação manual a cada troca:
 
-1. trazer o hero para o grafo do Vite e usar URL versionada pelo build;
-
-ou:
-
-2. versionar filename/URL manualmente;
-
-ou:
-
-3. separar cache de public asset estável e remover `immutable` dessa classe.
+- heroes estáveis usam `public, max-age=0, must-revalidate`;
+- assets versionados continuam `public, max-age=31536000, immutable`;
+- `tests/http-cache.test.js` protege o contrato.
 
 ### Validação
 
@@ -594,18 +589,19 @@ Robô/crawler que:
 
 pode observar metadata genérica em uma página destinada à aquisição profissional.
 
-### Patch esperado
+### Implementação da Wave C
 
-Se SEO orgânico dessa landing for objetivo real:
+A landing já está no sitemap e é uma página de aquisição, então a Wave C aplica a
+solução mínima usando a infraestrutura de metadata existente:
 
-- criar metadata server-side dedicada;
-- title/description coerentes com promessa da landing;
-- canonical;
-- OG/Twitter;
-- imagem apropriada;
-- manter UTM fora do canonical.
+- title e description dedicados no HTML inicial;
+- canonical em `/para-profissionais`;
+- UTMs fora do canonical;
+- Open Graph e Twitter;
+- imagem social padrão do AF;
+- client-side continua atualizando metadata durante navegação SPA.
 
-Não criar renderer amplo só para "ter SSR"; usar solução mínima.
+Não foi introduzido SSR genérico.
 
 ### Testes
 
