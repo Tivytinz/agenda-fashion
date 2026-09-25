@@ -676,6 +676,7 @@ Ao tocar código legado:
 - [`frontend-analytics-observabilidade.md`](./frontend-analytics-observabilidade.md): analytics first-party/legado, consentimento, Ads e fronteira de conversões;
 - [`frontend-seguranca.md`](./frontend-seguranca.md): sessão, autorização, storage, CORS/CSP, uploads, secrets e hardening;
 - [`frontend-entrega-runtime.md`](./frontend-entrega-runtime.md): build, chunks, cache, recovery, SEO e metadata;
+- [`frontend-pendencias-priorizadas.md`](./frontend-pendencias-priorizadas.md): findings abertos, prioridade e critérios de fechamento;
 - [`frontend-qa-prontidao.md`](./frontend-qa-prontidao.md): QA, acessibilidade, mobile/WebKit, performance e prontidão;
 - [`arquitetura.md`](./arquitetura.md): arquitetura geral do AF;
 - [`ux-contextos-visuais.md`](./ux-contextos-visuais.md): semântica dos
