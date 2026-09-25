@@ -73,6 +73,7 @@ const corsOptions = {
     "Content-Type",
     "Authorization",
     "Idempotency-Key",
+    "X-Agenda-Access",
     "X-Request-ID",
   ],
   exposedHeaders: [
