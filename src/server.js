@@ -30,7 +30,7 @@ const {
 } = require("./middlewares/csrfProtection");
 const registrador = require("./utils/registrador");
 const {
-  cacheVersionedAsset,
+  cacheStaticAsset,
   disableDocumentCache
 } = require("./utils/httpCache");
 const {
@@ -222,9 +222,10 @@ app.use(express.static(reactDir, {
       return;
     }
 
-    if (relativePath.startsWith("assets/")) {
-      cacheVersionedAsset(response);
-    }
+    cacheStaticAsset(
+      response,
+      relativePath
+    );
   }
 }));
 
