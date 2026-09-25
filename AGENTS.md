@@ -803,6 +803,10 @@ atomicidade fizer parte do contrato.
 
 Não introduzir tecnologia, camada ou reescrita ampla apenas por modernização.
 
+Cache `immutable` só pode ser aplicado quando a URL do asset muda junto com o conteúdo ou quando o arquivo é realmente imutável. Assets públicos de filename estável que podem ser substituídos entre deploys precisam revalidar no HTTP em vez de depender de limpeza manual de cache.
+
+Páginas públicas de aquisição incluídas no sitemap e tratadas como alvo de SEO devem entregar title, description, canonical e metadata social relevante no HTML inicial; metadata client-side continua sendo complemento para navegação SPA, não substituto para crawlers que não executam JavaScript.
+
 ## Testes, merge e deploy
 
 Mudanças relevantes devem executar validações proporcionais ao risco. O Quality

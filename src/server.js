@@ -30,7 +30,7 @@ const {
 } = require("./middlewares/csrfProtection");
 const registrador = require("./utils/registrador");
 const {
-  cacheVersionedAsset,
+  cacheStaticAsset,
   disableDocumentCache
 } = require("./utils/httpCache");
 const {
@@ -222,9 +222,10 @@ app.use(express.static(reactDir, {
       return;
     }
 
-    if (relativePath.startsWith("assets/")) {
-      cacheVersionedAsset(response);
-    }
+    cacheStaticAsset(
+      response,
+      relativePath
+    );
   }
 }));
 
@@ -528,9 +529,24 @@ async function responderDocumentoReact(
 ) {
   try {
     const html = await socialPreviewService.lerHtmlReact();
+    const metadados =
+      socialPreviewService
+        .montarMetadadosPaginaEstatica(
+          req.path
+        );
+    const htmlComMetadados =
+      metadados
+        ? socialPreviewService
+            .injetarMetadados(
+              html,
+              metadados
+            )
+        : html;
     const documento = noindex
-      ? injetarRobotsNoindex(html)
-      : html;
+      ? injetarRobotsNoindex(
+          htmlComMetadados
+        )
+      : htmlComMetadados;
 
     disableDocumentCache(res);
 

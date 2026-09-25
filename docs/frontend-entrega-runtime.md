@@ -499,22 +499,32 @@ assets versionados com cache longo
 
 ## 27. Cache de assets
 
-Arquivos cujo caminho relativo começa com:
+A política agora distingue duas classes.
 
-```text
-assets/
-```
-
-recebem:
+Assets versionados do build continuam recebendo:
 
 ```text
 Cache-Control: public, max-age=31536000, immutable
 ```
 
-Esse é um ano de cache.
+Assets públicos de filename estável que podem mudar entre deploys não podem usar
+`immutable`.
 
-A política só é segura quando o conteúdo do URL é efetivamente versionado ou
-nunca é substituído sob o mesmo nome.
+Os heroes públicos:
+
+```text
+assets/home/salon-hero-mobile.webp
+assets/home/salon-hero-wide.webp
+```
+
+recebem:
+
+```text
+Cache-Control: public, max-age=0, must-revalidate
+```
+
+Assim o navegador pode reaproveitar validação condicional/ETag, mas não assume
+que o conteúdo daquele URL ficará imutável por um ano.
 
 ## 28. Assets de bundle Vite
 
@@ -525,39 +535,26 @@ O contrato do AF depende desse versionamento para JS/CSS/assets compilados.
 
 Não remover hash/versionamento do bundle mantendo `immutable` por um ano.
 
-## 29. Finding: heroes públicos possuem URL estável + cache immutable
+## 29. Wave C: heroes públicos com revalidação
 
-Os dois arquivos:
+A Wave C mantém as URLs estáveis usadas pelo preload e pela Home, mas separa sua
+política de cache dos assets versionados.
 
-```text
-frontend/public/assets/home/salon-hero-mobile.webp
-frontend/public/assets/home/salon-hero-wide.webp
-```
-
-são referenciados por URLs estáveis:
+Contrato:
 
 ```text
-/assets/home/salon-hero-mobile.webp
-/assets/home/salon-hero-wide.webp
+URL estável de hero
+→ public, max-age=0, must-revalidate
+
+asset versionado/hash
+→ public, max-age=31536000, immutable
 ```
 
-Ao mesmo tempo, o Express aplica cache de um ano + `immutable` a **todo**
-caminho sob `assets/`.
+Isso evita imagem antiga presa por um ano sem exigir renomear o arquivo ou
+limpar cache global. O preload continua apontando para o mesmo recurso usado pela
+primeira imagem do hero.
 
-Isso cria uma inconsistência de cache:
-
-```text
-URL estável
-+
-conteúdo potencialmente substituível entre deploys
-+
-immutable por 1 ano
-```
-
-Risco:
-
-> trocar a imagem mantendo o mesmo nome pode deixar clientes/CDNs usando a
-> versão anterior por longo período.
+`tests/http-cache.test.js` cobre as duas classes.
 
 Esta branch documental não alterou o cache.
 
@@ -1887,10 +1884,10 @@ Não copiar algoritmos completos de canonicalização no React.
 
 ### 123.1 Hero público com cache immutable e nome estável
 
-Status: **documentado, não corrigido**.
+Status: **implementado na Wave C e em validação**.
 
-Impacto potencial: imagem anterior permanecer em cache depois de troca com o
-mesmo filename.
+Os dois heroes de filename estável agora usam revalidação obrigatória; assets
+versionados continuam `immutable`.
 
 ### 123.2 Rotas sensíveis faltando no noindex server-side
 
@@ -1901,9 +1898,11 @@ também foram adicionados ao robots.txt.
 
 ### 123.3 Landing profissional depende de metadata client-side
 
-Status: **documentado, não corrigido**.
+Status: **implementado na Wave C e em validação**.
 
-A rota está no sitemap, mas deep link server-side usa title/description base.
+`/para-profissionais` agora recebe no HTML inicial title/description dedicados,
+canonical sem UTM, Open Graph e Twitter metadata, reutilizando a infraestrutura
+mínima de metadata já existente no backend.
 
 ### 123.4 Páginas públicas estáticas compartilham metadata base
 
@@ -1914,17 +1913,17 @@ metadata server-side dedicada quando houver objetivo real.
 
 ## 124. Prioridade técnica dos findings
 
-Para patch executável futuro:
+Wave C executa os dois findings prioritários e dispara Performance QA para
+revalidar o commit da branch.
+
+Depois dela, permanece:
 
 ```text
-1. corrigir estratégia de cache dos heroes
-2. revalidar LCP
-3. decidir metadata server-side da landing profissional
-4. ampliar SEO estático apenas onde houver objetivo de aquisição
+1. observar LCP do commit validado
+2. ampliar metadata estática somente onde houver objetivo real de aquisição
 ```
 
-Essa ordem é recomendação técnica de risco/impacto, não autorização para mudar
-código nesta branch documental.
+Não usar resultado histórico de outro commit como evidência da Wave C.
 
 ## 125. Ownership
 
