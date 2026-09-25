@@ -32,8 +32,7 @@ function renderSession() {
 }
 
 beforeEach(() => {
-  localStorage.setItem("token", "token-valido");
-  localStorage.setItem("usuario", JSON.stringify({ id: 1, nome: "Ana" }));
+  localStorage.setItem("session_active", "1");
   apiRequest.mockResolvedValue({
     usuario: { id: 1, nome: "Ana" },
     negocio: null,
@@ -64,7 +63,9 @@ describe("sincronização da sessão", () => {
     fireEvent.click(screen.getByRole("button", { name: "Sair" }));
 
     expect(screen.getByText("Desconectada")).not.toBeNull();
-    expect(localStorage.getItem("token")).toBeNull();
+    expect(localStorage.getItem("session_active")).toBeNull();
+    expect(localStorage.getItem("usuario")).toBeNull();
+    expect(localStorage.getItem("negocio")).toBeNull();
     await waitFor(() => expect(apiRequest).toHaveBeenCalledWith("/logout", {
       method: "POST"
     }));
