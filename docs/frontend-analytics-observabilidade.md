@@ -897,21 +897,22 @@ Nela o bridge atual bloqueia:
 
 Além disso, sanitização de URL impede query/token de aparecer em page context.
 
-## 43. Meta na área Admin: comportamento atual
+## 43. Meta na área Admin: Wave A
 
-Há uma diferença importante entre providers.
+A Wave A alinhou a política dos providers no bridge do navegador.
 
-No código atual:
+Na branch atual:
 
 - Analytics V2 first-party exclui Admin;
 - Google exclui Admin;
-- Meta é bloqueado explicitamente apenas na rota sensível de redefinição de
-  senha, **não por prefixo `/admin`**.
+- Meta também bloqueia inicialização e `PageView` em `/admin` e `/admin/*`;
+- redefinição de senha continua bloqueada para Google e Meta.
 
-Não assumir que Meta possui a mesma política de exclusão do Google.
+A preferência de marketing não é apagada apenas por entrar no Admin. Ao voltar
+para uma rota elegível, a medição pode retomar conforme o consentimento salvo.
 
-Se a intenção de produto for excluir todo tráfego Admin também do Meta, isso
-exige patch executável + testes. Esta branch não fez essa alteração.
+A regressão está coberta em `MetaAdsBridge.test.jsx` e permanece em validação
+até Quality Gate/merge.
 
 ## 44. Meta Pixel
 
@@ -1941,11 +1942,12 @@ Pendente de reconciliação explícita.
 
 ### 102.2 Meta Admin
 
-Google e first-party excluem Admin.
+Google e first-party já excluíam Admin.
 
-Meta Pixel não possui hoje bloqueio equivalente por prefixo `/admin`.
+A Wave A adicionou o mesmo bloqueio ao Meta Pixel para inicialização e
+`PageView` em `/admin` e `/admin/*`.
 
-Pendente confirmar se esse comportamento é intencional.
+Status: **implementado e em validação**.
 
 ### 102.3 Dois pipelines de navegador
 
