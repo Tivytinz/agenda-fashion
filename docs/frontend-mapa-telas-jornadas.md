@@ -536,6 +536,7 @@ ou reabertura do link precisa preservar o passo.
 | componentes/primitives | `frontend-componentes-primitives.md` + implementação atual |
 | formulários/estado/API | `frontend-formularios-estado-api.md` + endpoint/backend correspondente |
 | analytics/observabilidade | `frontend-analytics-observabilidade.md` + contrato backend de eventos |
+| segurança frontend | `frontend-seguranca.md` + `session-security.md` + autorização backend |
 | QA/prontidão | `frontend-qa-prontidao.md` + testes da jornada |
 | CSS | `frontend-estilos.md` + dono do estilo |
 | Admin | docs `admin-*` + páginas administrativas |
