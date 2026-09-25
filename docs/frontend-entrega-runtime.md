@@ -1884,7 +1884,7 @@ Não copiar algoritmos completos de canonicalização no React.
 
 ### 123.1 Hero público com cache immutable e nome estável
 
-Status: **implementado na Wave C e em validação**.
+Status: **resolvido na Wave C e mergeado na main**.
 
 Os dois heroes de filename estável agora usam revalidação obrigatória; assets
 versionados continuam `immutable`.
@@ -1898,7 +1898,7 @@ também foram adicionados ao robots.txt.
 
 ### 123.3 Landing profissional depende de metadata client-side
 
-Status: **implementado na Wave C e em validação**.
+Status: **resolvido na Wave C e mergeado na main**.
 
 `/para-profissionais` agora recebe no HTML inicial title/description dedicados,
 canonical sem UTM, Open Graph e Twitter metadata, reutilizando a infraestrutura
@@ -1906,10 +1906,11 @@ mínima de metadata já existente no backend.
 
 ### 123.4 Páginas públicas estáticas compartilham metadata base
 
-Status: comportamento atual.
+Status: **implementado na Wave D e em validação**.
 
-Antes de tratar Planos/Termos/Privacidade como alvos SEO específicos, definir
-metadata server-side dedicada quando houver objetivo real.
+`/planos`, `/privacidade` e `/termos` agora possuem title, description,
+canonical e metadata social no HTML inicial. As páginas React usam os mesmos
+titles/descriptions para preservar consistência em navegação SPA.
 
 ## 124. Prioridade técnica dos findings
 
