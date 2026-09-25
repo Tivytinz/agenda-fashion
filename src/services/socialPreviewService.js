@@ -8,6 +8,15 @@ const perfilNegocioRepository = require(
 const ORIGEM_PUBLICA_PADRAO =
   "https://app.agendafashion.com.br";
 
+const PAGINAS_ESTATICAS = Object.freeze({
+  "/para-profissionais": {
+    titulo:
+      "Agenda online grátis para profissionais | Agenda Fashion",
+    descricao:
+      "Agenda online grátis para nail designers, lash designers, designers de sobrancelhas, manicures, esteticistas e salões. Receba agendamentos e, se autorizar, avisos pelo WhatsApp.",
+  },
+});
+
 let htmlReactEmCache = null;
 
 function origemPublica() {
@@ -101,6 +110,39 @@ function montarDescricao(negocio, servico) {
       `Conheça os serviços da ${negocio.nome} e agende seu horário online.`,
     180
   );
+}
+
+function montarMetadadosPaginaEstatica(caminho) {
+  const configuracao =
+    PAGINAS_ESTATICAS[
+      String(
+        caminho ||
+        ""
+      )
+    ];
+
+  if (!configuracao) {
+    return null;
+  }
+
+  const origem =
+    origemPublica();
+  const url =
+    new URL(
+      caminho,
+      origem
+    );
+
+  return {
+    titulo:
+      configuracao.titulo,
+    descricao:
+      configuracao.descricao,
+    imagem:
+      `${origem}/social-preview.png`,
+    url:
+      url.href,
+  };
 }
 
 function montarMetadados({ negocio, servico }) {
@@ -220,5 +262,6 @@ module.exports = {
   injetarMetadados,
   lerHtmlReact,
   montarMetadados,
+  montarMetadadosPaginaEstatica,
   origemPublica
 };
