@@ -478,7 +478,10 @@ const rotasReactNoindex = new Set([
   reactRoutes.favorites,
   reactRoutes.createBusiness,
   reactRoutes.account,
-  reactRoutes.checkout
+  reactRoutes.professionalInvites,
+  reactRoutes.checkout,
+  reactRoutes.forgotPassword,
+  reactRoutes.resetPassword
 ]);
 
 function rotaDeveSerNoindex(caminho) {
@@ -488,7 +491,9 @@ function rotaDeveSerNoindex(caminho) {
     caminho.startsWith("/painel/") ||
     caminho === "/admin" ||
     caminho.startsWith("/admin/") ||
-    caminho.startsWith("/profissional/")
+    caminho.startsWith("/profissional/") ||
+    caminho.startsWith("/agendamento-acesso/") ||
+    caminho.startsWith("/agendamento-visitante/")
   );
 }
 

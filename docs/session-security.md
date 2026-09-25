@@ -62,17 +62,10 @@ A tabela `sessoes_revogadas` possui unicidade por hash, tornando o registro idem
 
 ## Autenticação opcional e revogação
 
-Existe um hardening pendente no estado executável atual.
+A Wave A corrige o hardening que estava pendente no estado executável anterior.
 
-O middleware obrigatório `auth` consulta o estado da sessão com o hash do JWT e
-consegue detectar `sessoes_revogadas`. Já `optionalAuth` consulta
-`buscarEstadoDaSessao(decoded.id)` sem fornecer o hash. No repository, a ausência
-do hash faz `token_revogado` resultar em `FALSE`.
+O middleware obrigatório `auth` já consultava o estado da sessão com o hash do JWT. Na Wave A, `optionalAuth` passou a enviar o mesmo hash ao repository e só vincula `req.user` quando a sessão não está revogada.
 
-Assim, rotas com autenticação opcional não aplicam hoje a mesma checagem explícita
-de revogação do middleware obrigatório. Essas rotas continuam públicas quando não
-há identidade válida; o ajuste futuro deve preservar essa semântica e apenas
-impedir que um JWT revogado seja aceito como identidade opcional.
+A rota continua pública quando não há identidade válida: JWT revogado, expirado ou inválido não transforma autenticação opcional em erro obrigatório. Quando o token revogado veio pelo cookie, o cookie é limpo.
 
-O patch executável correspondente deve incluir teste de regressão. A análise
-detalhada está em [`frontend-seguranca.md`](./frontend-seguranca.md).
+A branch inclui teste de regressão e permanece em validação até Quality Gate/merge. A análise detalhada está em [`frontend-seguranca.md`](./frontend-seguranca.md).

@@ -31,6 +31,7 @@ describe("fuso horário do negócio", () => {
     ).toMatchObject({
       data: "2026-09-14",
       hora: "23:30",
+      segundo: "00",
     });
 
     expect(

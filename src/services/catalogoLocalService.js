@@ -280,6 +280,11 @@ function gerarRobotsTxt() {
     "Disallow: /conta",
     "Disallow: /favoritos",
     "Disallow: /minha-agenda",
+    "Disallow: /esqueci-senha",
+    "Disallow: /redefinir-senha",
+    "Disallow: /convites",
+    "Disallow: /agendamento-acesso/",
+    "Disallow: /agendamento-visitante/",
     `Sitemap: ${origem}/sitemap.xml`,
     ""
   ].join("\n");

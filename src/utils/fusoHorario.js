@@ -44,6 +44,7 @@ function obterDataHoraNoFuso(
     day: "2-digit",
     hour: "2-digit",
     minute: "2-digit",
+    second: "2-digit",
     hourCycle: "h23",
   }).formatToParts(dataReferencia);
 
@@ -53,6 +54,7 @@ function obterDataHoraNoFuso(
   return {
     data: `${obterParte("year")}-${obterParte("month")}-${obterParte("day")}`,
     hora: `${obterParte("hour")}:${obterParte("minute")}`,
+    segundo: obterParte("second") || "00",
     fusoHorario: fusoResolvido,
   };
 }

@@ -1079,7 +1079,10 @@ prefixos/rotas como:
 - checkout;
 - conta;
 - favoritos;
-- minha agenda.
+- minha agenda;
+- recuperação/redefinição de senha;
+- convites;
+- acessos de booking por capability.
 
 Também aponta para `/sitemap.xml`.
 
@@ -1104,13 +1107,17 @@ O conjunto atual contém:
 - criar negócio;
 - conta;
 - checkout;
+- recuperação/redefinição de senha;
+- convites;
 - `/painel*`;
 - `/admin*`;
-- `/profissional/*`.
+- `/profissional/*`;
+- `/agendamento-acesso/*`;
+- `/agendamento-visitante/*`.
 
-## 66. Finding: rotas sensíveis fora do conjunto noindex
+## 66. Wave A: rotas sensíveis cobertas por noindex
 
-O contrato de rotas contém também:
+A Wave A incorporou ao contrato HTTP:
 
 ```text
 /esqueci-senha
@@ -1120,23 +1127,14 @@ O contrato de rotas contém também:
 /agendamento-visitante/:id
 ```
 
-Essas rotas **não aparecem hoje no `rotasReactNoindex`**.
+Essas rotas agora recebem `noindex,follow` no documento React e também são
+bloqueadas no `robots.txt`.
 
-Também não aparecem todas como `Disallow` no robots gerado.
+O segredo de reset/capability continua no fragmento e não é enviado ao crawler.
+`noindex` e robots continuam sendo mecanismos de crawl, não autorização.
 
-Isso produz um gap entre intenção de privacidade/UX e SEO HTTP.
-
-Especialmente:
-
-- reset de senha é rota sensível;
-- acessos por capability representam reservas específicas;
-- convites são área autenticada.
-
-O segredo de reset/capability fica no fragmento e não é enviado ao crawler, o
-que reduz exposição direta do token, mas **não transforma a página em
-indexável por intenção**.
-
-Patch futuro deve revisar `noindex` e robots para essas rotas.
+`tests/spa-seo-http.test.js` cobre deep links e o arquivo de robots. A branch
+permanece em validação até Quality Gate/merge.
 
 ## 67. noindex não é autorização
 
@@ -1896,13 +1894,10 @@ mesmo filename.
 
 ### 123.2 Rotas sensíveis faltando no noindex server-side
 
-Status: **documentado, não corrigido**.
+Status: **implementado na Wave A e em validação**.
 
-Rotas observadas:
-
-- forgot/reset password;
-- convites;
-- acessos de booking por capability.
+Recuperação/reset, convites e acessos por capability agora recebem noindex e
+também foram adicionados ao robots.txt.
 
 ### 123.3 Landing profissional depende de metadata client-side
 
@@ -1922,12 +1917,11 @@ metadata server-side dedicada quando houver objetivo real.
 Para patch executável futuro:
 
 ```text
-1. corrigir noindex das rotas sensíveis
-2. adicionar testes HTTP dessas rotas
-3. corrigir estratégia de cache dos heroes
-4. revalidar LCP
-5. decidir metadata server-side da landing profissional
-6. ampliar SEO estático apenas onde houver objetivo de aquisição
+1. concluir validação/merge do noindex das rotas sensíveis
+2. corrigir estratégia de cache dos heroes
+3. revalidar LCP
+4. decidir metadata server-side da landing profissional
+5. ampliar SEO estático apenas onde houver objetivo de aquisição
 ```
 
 Essa ordem é recomendação técnica de risco/impacto, não autorização para mudar

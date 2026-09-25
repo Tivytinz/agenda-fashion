@@ -87,6 +87,30 @@ describe("disponibilidade no fuso do negócio", () => {
       .toBe("2026-09-15");
   });
 
+  test("não oferece o slot do minuto atual quando ele já começou", async () => {
+    jest.setSystemTime(
+      new Date("2026-09-15T22:00:07.000Z")
+    );
+
+    const saoPaulo =
+      await agendaDisponibilidadeService
+        .buscarDisponibilidade({
+          profissionalId: 9,
+          negocioId: 11,
+          duracaoServico: 60,
+          quantidadeDias: 1,
+          fusoHorario: "America/Sao_Paulo",
+        });
+
+    expect(saoPaulo[0])
+      .toMatchObject({
+        data: "2026-09-15",
+      });
+
+    expect(saoPaulo[0].horarios)
+      .not.toContain("19:00");
+  });
+
   test("filtra horários passados conforme o relógio local do negócio", async () => {
     const manaus =
       await agendaDisponibilidadeService

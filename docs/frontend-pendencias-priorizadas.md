@@ -71,10 +71,10 @@ Usar quando:
 
 | ID | Prioridade | Domínio | Finding | Estado observado |
 | --- | --- | --- | --- | --- |
-| FE-P1-01 | P1 | sessão | `optionalAuth` não verifica revogação por hash | aberto |
+| FE-P1-01 | P1 | sessão | `optionalAuth` não verifica revogação por hash | validando (Wave A) |
 | FE-P1-02 | P1 | privacidade/analytics | UTM V2 antes do consentimento diverge do texto de Privacidade | decisão + patch/documentação |
-| FE-P1-03 | P1 | analytics/privacidade | Meta mede `/admin/*` enquanto Google/V2 excluem Admin | aberto |
-| FE-P1-04 | P1 | SEO/privacidade | rotas sensíveis não recebem `noindex` server-side | aberto |
+| FE-P1-03 | P1 | analytics/privacidade | Meta mede `/admin/*` enquanto Google/V2 excluem Admin | validando (Wave A) |
+| FE-P1-04 | P1 | SEO/privacidade | rotas sensíveis não recebem `noindex` server-side | validando (Wave A) |
 | FE-P2-01 | P2 | cache/performance | heroes públicos usam URL estável com cache `immutable` de 1 ano | aberto |
 | FE-P2-02 | P2 | aquisição/SEO | landing `/para-profissionais` depende de metadata client-side | aberto |
 | FE-P2-03 | P2 | privacidade | cache local de sessão mantém metadados pessoais desnecessários | hardening |
@@ -122,7 +122,7 @@ autorização própria.
 
 ## 5. FE-P1-01 — optionalAuth não verifica revogação do JWT
 
-### Evidência atual
+### Evidência que originou o finding
 
 `src/middlewares/auth.js` consulta:
 
@@ -178,7 +178,19 @@ O impacto atual é mais restrito:
 O middleware opcional reutiliza a leitura do estado da conta, mas não reutiliza
 o hash do token.
 
-### Patch esperado
+### Implementação na Wave A
+
+A branch `fix/frontend-wave-a-hardening` agora:
+
+- envia `hashToken(token)` ao repository;
+- rejeita identidade opcional quando `token_revogado=true`;
+- mantém a rota pública como visitante;
+- limpa o cookie quando a sessão revogada veio por cookie;
+- adiciona regressões no hardening de sessão.
+
+A implementação ainda depende do Quality Gate e de merge para `main`.
+
+### Patch aplicado
 
 Pequeno e localizado:
 
@@ -315,7 +327,7 @@ Código, testes e política descrevem exatamente o mesmo comportamento.
 
 ## 7. FE-P1-03 — Meta mede Admin enquanto Google e V2 bloqueiam
 
-### Evidência atual
+### Evidência que originou o finding
 
 `MetaAdsBridge.jsx` calcula:
 
@@ -356,7 +368,15 @@ Pode:
 
 Não há evidência de que isso altere autorização ou fatos financeiros.
 
-### Patch esperado
+### Implementação na Wave A
+
+O bridge agora usa a mesma classificação de rota administrativa também para Meta, bloqueando inicialização e `PageView` em `/admin` e `/admin/*` sem apagar a preferência persistida.
+
+Foi adicionada regressão específica em `MetaAdsBridge.test.jsx`.
+
+A implementação ainda depende do Quality Gate e de merge para `main`.
+
+### Patch aplicado
 
 Alinhar Meta à política administrativa:
 
@@ -398,7 +418,7 @@ política de medição interna.
 
 ## 8. FE-P1-04 — rotas sensíveis sem noindex server-side
 
-### Evidência atual
+### Evidência que originou o finding
 
 `rotasReactNoindex` inclui rotas como:
 
@@ -438,7 +458,15 @@ O risco é de higiene de indexação/privacidade:
 - capabilities representam bookings específicos;
 - crawler não deve tratar essas URLs como páginas indexáveis.
 
-### Patch esperado
+### Implementação na Wave A
+
+O servidor agora aplica `noindex,follow` a reset/recuperação, convites e deep links de capability, e `robots.txt` também bloqueia esses caminhos.
+
+`spa-seo-http.test.js` foi ampliado para cobrir as rotas e o arquivo de robots.
+
+A implementação ainda depende do Quality Gate e de merge para `main`.
+
+### Patch aplicado
 
 Preferir regra declarativa que lide corretamente com paths dinâmicos.
 
