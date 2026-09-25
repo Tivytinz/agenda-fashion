@@ -349,29 +349,25 @@ Não reutilizar um timestamp de senha para implementar logout normal.
 
 A Wave A corrige um ponto de hardening identificado no runtime anterior.
 
-`auth` chama:
+Antes da correção, `auth` chamava:
 
 ```js
 buscarEstadoDaSessao(decoded.id, hashToken(token))
 ```
 
-e consegue verificar `token_revogado`.
-
-Já `optionalAuth` chama atualmente:
+enquanto `optionalAuth` chamava apenas:
 
 ```js
 buscarEstadoDaSessao(decoded.id)
 ```
 
-sem enviar o hash do token.
+No repository, quando `tokenHash = null`, `token_revogado` resulta em
+`FALSE`.
 
-No repository, quando `tokenHash = null`:
+Na branch atual, `optionalAuth` também envia `hashToken(token)` e verifica
+`token_revogado` antes de preencher `req.user`.
 
-```text
-token_revogado = FALSE
-```
-
-Consequência técnica:
+Consequência corrigida:
 
 > antes da Wave A, uma rota que usava `optionalAuth` não aplicava a mesma checagem explícita de
 > revogação da rota protegida.
