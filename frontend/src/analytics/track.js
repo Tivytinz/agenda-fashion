@@ -4,6 +4,7 @@ import {
   writeBrowserStorage
 } from "../utils/browserStorage";
 import {
+  clearFirstPartyMarketingAttribution,
   trackFirstPartyEvent
 } from "./firstPartyAnalytics";
 import {
@@ -221,6 +222,7 @@ export function clearMarketingAttribution() {
   removeBrowserStorage("local", ATTRIBUTION_KEY);
   removeBrowserStorage("session", ATTRIBUTION_KEY);
   removeBrowserStorage("local", REFERRER_KEY);
+  clearFirstPartyMarketingAttribution();
 }
 
 function readStoredAttribution() {
