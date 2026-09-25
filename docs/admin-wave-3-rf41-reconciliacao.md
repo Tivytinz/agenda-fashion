@@ -43,23 +43,11 @@ afirmar que verificou automaticamente a evidência externa.
 
 ## Desempenho e cobertura
 
-RNF02 exige p95 ≤ 2 s para APIs críticas sob carga operacional normal. O script
-`scripts/performance-admin-audit.mjs` mede, somente por GET, listagem recente,
-pendências e filtro por ator com token de superadmin de QA. Exemplo em ambiente
-**isolado** com volume representativo (inclusive tentativas e revisões):
-
-```sh
-PERF_ADMIN_TARGET_URL=https://staging.example.invalid \
-PERF_ADMIN_TOKEN=<token-de-qa> \
-PERF_ADMIN_ACTOR_ID=<id-de-qa> \
-node scripts/performance-admin-audit.mjs
-```
-
-O script usa 30 amostras e concorrência 3 por cenário, não imprime token e
-falha se algum p95 exceder 2000 ms. Medir adicionalmente, em ambiente isolado
-com fixtures descartáveis, o p95 de uma escrita administrativa auditada e da
-revisão (incluindo preflight). O Performance QA público não substitui essas
-medições. Nenhum benchmark de Admin foi executado apenas por adicionar o script.
+RNF02 exige p95 ≤ 2 s para APIs críticas sob carga operacional normal. A
+medição operacional passou a utilizar requisições reais e volume da produção,
+seguindo `admin-wave-6-rf41-qa-operacional.md`. O benchmark original de GET
+com carga gerada em QA foi retirado: resultados desse ensaio não comprovam
+o p95 em uso real. O Performance QA público mede outras rotas.
 
 `ADM-043` continua **Não coberto**, com baseline **41/43**, até validação da
 migration, autorização e concorrência em PostgreSQL/CI e medição operacional de

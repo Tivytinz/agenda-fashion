@@ -163,17 +163,11 @@ contrato de billing.
 - [admin-wave-3-rf41-reconciliacao.md](./admin-wave-3-rf41-reconciliacao.md):
   revisão imutável das tentativas pendentes e medição de desempenho do Admin.
 - [admin-wave-4-rf41-qualificacao.md](./admin-wave-4-rf41-qualificacao.md):
-  procedimento de QA para p95 de leituras e escritas auditadas, integridade
-  do ledger e critério de fechamento de ADM-043.
+  critério de qualificação do p95 das rotas auditadas com tráfego real.
 - [admin-wave-5-rf41-evidencia.md](./admin-wave-5-rf41-evidencia.md):
-  preparação da execução representativa de RF41/RNF02, identidade do build,
-  integridade do ledger e condições para atualizar ADM-043.
+  procedimento para coletar evidência operacional real de RF41/RNF02.
 - [admin-wave-6-rf41-qa-operacional.md](./admin-wave-6-rf41-qa-operacional.md):
-  perfil agregado somente leitura, carga sintética descartável, executor dos
-  seis cenários e roteiro da medição sem antecipar a cobertura de ADM-043.
-- [admin-audit-qa-diagnostic.md](./admin-audit-qa-diagnostic.md): execução
-  manual isolada em CI para diagnosticar os seis cenários, sem confundi-la com
-  evidência operacional representativa de ADM-043.
+  observação de produção, perfil agregado somente leitura e lacunas de ADM-043.
 - [admin-centro-comando.md](./admin-centro-comando.md): semântica dos
   indicadores do centro de comando.
 - [admin-visao-geral.md](./admin-visao-geral.md): KPIs agregados da rota

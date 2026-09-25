@@ -123,7 +123,7 @@ enumerados na primeira versão da matriz.
 | ADM-040 | Qualidade | O contexto administrativo deve possuir testes automatizados proporcionais ao risco em frontend, backend, integração PostgreSQL e fluxos mobile/desktop. | **Coberto** | suíte `tests/admin-*`, testes React Admin, `frontend/e2e/admin-desktop.spec.js`, `admin-mobile.spec.js` |
 | ADM-041 | Operação | Usuários devem ser pesquisáveis e paginados no backend, com filtro por estado operacional, papéis relevantes e dados mínimos para diagnóstico, sem expor senha ou contato desnecessário. | **Coberto** | `GET /admin/usuarios`, `adminOperationRepository`, `adminOperationService`, testes unitários/integration e `AdminOperationPage` |
 | ADM-042 | Operação | Negócios e agendamentos devem expor estados operacionais canônicos e filtráveis, incluindo publicação/arquivamento do negócio e estados reais do ciclo de atendimento. | **Coberto** | `GET /admin/negocios`, `GET /admin/agendamentos`, `AdminOperationPage`, testes da Admin Wave 1 |
-| ADM-043 | Auditoria | Ações administrativas críticas e alterações sensíveis devem possuir trilha transversal que registre ator, ação, alvo, momento e contexto suficiente para rastreabilidade, sem depender apenas de logs ou de auditorias isoladas por módulo. | **Não coberto** | Ledger, revisão, medidores e executor QA implementados; falta medição operacional representativa de RNF02 |
+| ADM-043 | Auditoria | Ações administrativas críticas e alterações sensíveis devem possuir trilha transversal que registre ator, ação, alvo, momento e contexto suficiente para rastreabilidade, sem depender apenas de logs ou de auditorias isoladas por módulo. | **Não coberto** | Ledger e revisão implementados; falta p95 e verificação operacional representativos na produção |
 
 ## Rastreabilidade formal RF40/RF41
 
@@ -150,8 +150,9 @@ específico, autorização proporcional e auditoria.
 RF41 permanece **não fechado** na baseline administrativa v1.1. As Waves 2–3
 implementaram a trilha transversal e a revisão imutável de pendências. A lacuna
 `ADM-043` aguarda qualificação operacional de desempenho sob volume
-representativo. A Wave 6 prepara o perfil agregado, a carga sintética
-descartável e a execução conjunta dos seis cenários, sem antecipar evidência de p95.
+representativo. A Wave 6 conserva um perfil agregado somente leitura; a
+observação HTTP de 24–25/09/2026 não encontrou chamadas à auditoria e não
+permite calcular p95.
 
 A Admin Wave 2 adicionou o ledger transversal da
 migration `104`, a consulta restrita e o registro das escritas administrativas

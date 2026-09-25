@@ -501,16 +501,13 @@ A Admin Wave 3 documentada em `docs/admin-wave-3-rf41-reconciliacao.md` implemen
 revisão humana append-only de tentativas sem resultado HTTP. A revisão usa
 avaliação estruturada e evidência referenciada por hash, sem fabricar HTTP ou
 promover `ADM-043` antes de validação e medição administrativa representativa.
-A Admin Wave 5 prepara o vínculo do benchmark ao build da aplicação QA e mede
-também o filtro de revisões. A evidência operacional continua obrigatória para
-fechar ADM-043; ver `docs/admin-wave-5-rf41-evidencia.md`.
-A Wave 6 prepara a leitura agregada de volume, a carga sintética em banco
-descartável e o executor dos seis cenários para o QA operacional; não promove
-ADM-043 sem p95 representativo e integridade comprovada. O procedimento está em
-`docs/admin-wave-6-rf41-qa-operacional.md`.
-O workflow `Admin audit QA diagnostic` usa banco e app temporários no
-runner para regressão técnica. O perfil sintético do próprio QA não permite
-promover ADM-043; ver `docs/admin-audit-qa-diagnostic.md`.
+As Waves 4–6 consolidam a exigência de medir RF41/RNF02 com requisições reais
+e volume observado em produção. O perfil agregado da Wave 6 executa apenas
+transação de leitura. A carga sintética e os benchmarks que geravam requisições
+ou escritas para a auditoria foram removidos. A observação do proxy em
+24–25/09/2026 não encontrou chamadas a `/admin/auditoria`; sem p95 real e
+sem contagem do ledger de produção, ADM-043 continua Não coberto (41/43).
+Ver `docs/admin-wave-6-rf41-qa-operacional.md`.
 O contexto da dona possui workspace de gestão próprio. O contexto profissional
 possui shell de rotina própria, com navegação curta focada em agenda, horários e
 conta. Essas diferenças visuais não alteram os contratos de autorização do
