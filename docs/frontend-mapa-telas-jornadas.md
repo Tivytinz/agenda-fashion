@@ -236,13 +236,17 @@ As rotas `/profissional/*` passam por `WorkspaceLayout` e devem resolver
 | `/profissional/horarios` | `ScheduleSettingsPage` | horários do vínculo profissional |
 | `/conta` | `AccountPage` | conta da pessoa no contexto do workspace |
 
-A navegação do `ProfessionalShell` também oferece `/convites`, mas a rota de
-convites é montada fora do `WorkspaceLayout` no router atual. Portanto, ao
-entrar em `/convites`, a página é uma tela autenticada de transição e não uma
-subrota `/profissional/*`.
+A rota `/convites` continua fora do grupo `/profissional/*` porque precisa
+funcionar para uma conta autenticada que ainda não possui negócio.
 
-Esse detalhe deve ser considerado antes de mover a rota ou alterar seu shell,
-pois muda composição visual sem mudar a regra de convite.
+Desde a Wave D, a composição é adaptativa:
+
+- profissional com vínculo ativo como contexto atual → `ProfessionalShell`;
+- conta sem negócio → tela autenticada de transição;
+- outros contextos → tela autenticada sem forçar um workspace incompatível.
+
+Assim o item "Convites" da navegação profissional não derruba mais a pessoa para
+fora do shell, sem bloquear o aceite inicial de quem ainda não possui vínculo.
 
 ## 9. Convites e equipe
 
