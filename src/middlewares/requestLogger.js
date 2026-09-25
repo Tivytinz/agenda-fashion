@@ -13,6 +13,30 @@ function deveIgnorar(
   );
 }
 
+function classificarAuditoria(req) {
+  if (req.method === "POST" &&
+      /^\/admin\/auditoria\/[^/]+\/revisao$/.test(req.path)) {
+    return { rota: "/admin/auditoria/:id/revisao", cenario: "REVISAO" };
+  }
+  if (req.method !== "GET" || req.path !== "/admin/auditoria") {
+    return null;
+  }
+
+  const query = req.query || {};
+  const chaves = Object.keys(query).filter((key) => !["pagina", "limite"].includes(key));
+  if (chaves.length === 0) return { rota: req.path, cenario: "RECENTES" };
+  if (chaves.length !== 1) return { rota: req.path, cenario: "OUTRO" };
+  if (chaves[0] === "atorId" && typeof query.atorId === "string" &&
+      /^[1-9]\d*$/.test(query.atorId)) {
+    return { rota: req.path, cenario: "ATOR" };
+  }
+  if (chaves[0] === "resultado" &&
+      ["PENDENTE", "REVISADA"].includes(query.resultado)) {
+    return { rota: req.path, cenario: query.resultado };
+  }
+  return { rota: req.path, cenario: "OUTRO" };
+}
+
 module.exports =
   function requestLogger(
     req,
@@ -51,6 +75,7 @@ module.exports =
             duracaoNs
           ) / 1_000_000;
 
+        const auditoria = classificarAuditoria(req);
         registrador.informacao(
           "Requisição HTTP concluída.",
           {
@@ -62,7 +87,8 @@ module.exports =
             metodo:
               req.method,
             rota:
-              req.path,
+              auditoria?.rota || req.path,
+            ...(auditoria ? { auditoria_cenario: auditoria.cenario } : {}),
             status:
               res.statusCode,
             duracao_ms:
@@ -80,3 +106,5 @@ module.exports =
 
     next();
   };
+
+module.exports.classificarAuditoria = classificarAuditoria;

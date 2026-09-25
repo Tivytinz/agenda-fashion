@@ -33,8 +33,11 @@ produção. **ADM-043 permanece Não coberto (41/43).**
    requisições **reais**; computar p95 nearest rank, `ceil(0,95 × n)`,
    registrando `n`, janela, intervalo entre chamadas e taxa de erro. Separar
    proxy (tempo externo) de logs da aplicação (`duracao_ms`). O proxy sem query
-   string não separa `recentes`, `PENDENTE`, `REVISADA` e ator na mesma rota;
-   usar apenas sinais confiáveis para tal desdobramento.
+   string não separa `recentes`, `PENDENTE`, `REVISADA` e ator na mesma rota.
+   Nos logs da aplicação após o deploy da classificação, o campo
+   `auditoria_cenario` distingue `RECENTES`, `PENDENTE`, `REVISADA`, `ATOR`,
+   `REVISAO` e `OUTRO`, sem gravar parâmetros de consulta ou o ID da revisão.
+   Não atribuir esses grupos a logs gerados antes desse deploy.
 3. Para comparar carga e volume, executar com credencial restrita de leitura,
    fornecida fora do shell/histórico e sem registrar URL, o perfil agregado:
 
