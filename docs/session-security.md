@@ -68,4 +68,4 @@ O middleware obrigatório `auth` já consultava o estado da sessão com o hash d
 
 A rota continua pública quando não há identidade válida: JWT revogado, expirado ou inválido não transforma autenticação opcional em erro obrigatório. Quando o token revogado veio pelo cookie, o cookie é limpo.
 
-A branch inclui teste de regressão e permanece em validação até Quality Gate/merge. A análise detalhada está em [`frontend-seguranca.md`](./frontend-seguranca.md).
+A Wave A foi validada e mergeada na `main`, incluindo o teste de regressão. A análise detalhada está em [`frontend-seguranca.md`](./frontend-seguranca.md).
