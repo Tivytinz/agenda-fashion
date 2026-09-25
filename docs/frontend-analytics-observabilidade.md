@@ -702,8 +702,8 @@ A landing page também é preservada.
 
 ## 31. Consentimento no legado
 
-Diferente do Analytics V2 first-party, a atribuição de `track.js` só é
-capturada quando:
+Na Wave B, o legado e o Analytics V2 passam a usar a mesma fronteira para sinais
+de campanha:
 
 ```text
 MARKETING_CONSENT.GRANTED
@@ -711,12 +711,14 @@ MARKETING_CONSENT.GRANTED
 
 Se a preferência não está concedida:
 
-- atribuição local é limpa;
+- atribuição local do legado é limpa;
 - contexto de marketing retorna sem UTMs/click IDs;
-- eventos de produto continuam podendo existir sem essa atribuição opcional.
+- Analytics V2 também não captura UTMs/click IDs;
+- eventos first-party e eventos de produto continuam podendo existir sem essa
+  atribuição opcional.
 
-Essa diferença entre pipelines é intencional no código atual e deve ser
-considerada ao reconciliar cobertura.
+As diferenças remanescentes entre pipelines são de schema, sessão, retry e
+consumidores — não de consentimento para campanha.
 
 ## 32. first touch e last touch
 
