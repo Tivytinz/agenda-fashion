@@ -1991,6 +1991,7 @@ Preservar esse desenho.
 - [`frontend-arquitetura.md`](./frontend-arquitetura.md): runtime React;
 - [`frontend-formularios-estado-api.md`](./frontend-formularios-estado-api.md):
   estado/rede;
+- [`frontend-seguranca.md`](./frontend-seguranca.md): PII, storage, URLs sensíveis, CSP e secrets;
 - [`frontend-qa-prontidao.md`](./frontend-qa-prontidao.md): testes e
   prontidão;
 - [`planos.md`](./planos.md): fatos de monetização;
