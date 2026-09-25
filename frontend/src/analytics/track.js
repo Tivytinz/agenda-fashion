@@ -218,10 +218,14 @@ function normalizeStored(stored) {
   };
 }
 
-export function clearMarketingAttribution() {
+function clearLegacyMarketingAttribution() {
   removeBrowserStorage("local", ATTRIBUTION_KEY);
   removeBrowserStorage("session", ATTRIBUTION_KEY);
   removeBrowserStorage("local", REFERRER_KEY);
+}
+
+export function clearMarketingAttribution() {
+  clearLegacyMarketingAttribution();
   clearFirstPartyMarketingAttribution();
 }
 
@@ -252,7 +256,7 @@ function readStoredAttribution() {
     return legacySession;
   }
 
-  clearMarketingAttribution();
+  clearLegacyMarketingAttribution();
   return null;
 }
 
