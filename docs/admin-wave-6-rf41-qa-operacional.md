@@ -1,114 +1,62 @@
-# Admin Wave 6 — Preparação do QA operacional de RF41/RNF02
+# Admin Wave 6 — Observação da auditoria em produção
 
-## Objetivo e estado
+## Estado em 25/09/2026, 19:28 UTC
 
-A Wave 5 deixou seis cenários prontos: quatro leituras da auditoria e duas
-escritas auditadas. A Wave 6 adiciona um perfil agregado de referência, carga
-sintética e um executor que reúne os seis cenários e verifica volumes, build e
-integridade. **Nenhuma medição representativa foi realizada nesta preparação.
-ADM-043 continua Não coberto (41/43).**
+A execução com registros sintéticos foi retirada. A produção no Railway estava
+em deployment `7cab53ca-f4d5-4519-9cf7-facd0f564ae6`, status `SUCCESS`,
+commit `f76bd407dabdcbd6c46e5d7aff71604e9e4513b0`. O histórico do proxy
+HTTP de 24/09 00:00 até 25/09 19:28 UTC foi lido em janelas curtas para não
+truncar períodos de maior tráfego (limite de 500 entradas por consulta). Nesse
+recorte, **zero requisições a `/admin/auditoria`**: não existe amostra para
+calcular o p95 dessa rota. Houve nove GETs reais bem-sucedidos em outras rotas
+administrativas entre 00:32 e 00:34 UTC de 24/09, com durações do proxy entre
+13 e 92 ms; ocorreram antes do deployment da Wave 6 e não são substitutos da
+auditoria. As métricas reais de recurso nos 24 h finais
+mostraram, na aplicação, CPU média de ~0,000127 e pico de ~0,0180 unidade
+reportada, memória média de ~0,0820 GB e pico de ~0,1132 GB; no PostgreSQL,
+CPU média de ~0,000284, memória média de ~0,0708 GB e disco ~0,2330 GB. Esses
+indicadores não medem p95 nem garantem integridade da trilha.
 
-O teste automático de CI valida o código, não o p95 de uma aplicação implantada
-sob carga normal. O ambiente Railway `test` observado na análise possui apenas
-PostgreSQL; não tratá-lo como banco descartável nem como aplicação QA pronta.
+Não houve acesso de leitura ao banco de produção por este ambiente: o conector
+Railway oculta o valor de `DATABASE_URL`. Por isso, contagens reais de
+`admin_auditoria_eventos`, resultados e revisões **não foram apuradas**.
+O diagnóstico sintético anterior não constitui evidência de desempenho da
+produção. **ADM-043 permanece Não coberto (41/43).**
 
-## 1. Obter referência sem copiar registros
+## Como completar a análise sem alterar produção
 
-`scripts/profile-admin-audit-volume.js` consulta apenas agregados: tentativas,
-resultados, revisadas sem resultado, pendentes, ocorrências nos últimos 30 dias,
-quantidade de atores e contagens por ação. A transação é `READ ONLY` e tem
-`statement_timeout` de 10 s. Usar uma conexão de leitura apropriada, sem
-imprimir credenciais ou salvar dados pessoais. Exemplo com variáveis injetadas
-fora do histórico do shell:
+1. Obter acesso autorizado às métricas e aos logs de produção. Fixar intervalo
+   UTC, ambiente, IDs e SHAs dos deployments. Dividir consultas ao proxy em
+   intervalos com menos de 500 entradas; subdividir qualquer intervalo que
+   atinja o limite. Não salvar entradas brutas com IP ou query string.
+2. Agregar por método, rota normalizada, build e status as durações de
+   requisições **reais**; computar p95 nearest rank, `ceil(0,95 × n)`,
+   registrando `n`, janela, intervalo entre chamadas e taxa de erro. Separar
+   proxy (tempo externo) de logs da aplicação (`duracao_ms`). O proxy sem query
+   string não separa `recentes`, `PENDENTE`, `REVISADA` e ator na mesma rota;
+   usar apenas sinais confiáveis para tal desdobramento.
+3. Para comparar carga e volume, executar com credencial restrita de leitura,
+   fornecida fora do shell/histórico e sem registrar URL, o perfil agregado:
 
-```sh
-PERF_ADMIN_PROFILE_DATABASE_URL=... \
-PERF_ADMIN_PROFILE_CONFIRM_DATABASE=... \
-PERF_ADMIN_PROFILE_READ_ONLY=auditoria \
-node scripts/profile-admin-audit-volume.js > referencia-auditoria.json
-```
+   ```sh
+   PERF_ADMIN_PROFILE_DATABASE_URL=... \
+   PERF_ADMIN_PROFILE_CONFIRM_DATABASE=... \
+   PERF_ADMIN_PROFILE_READ_ONLY=auditoria \
+   node scripts/profile-admin-audit-volume.js
+   ```
 
-O nome confirmado deve ser exatamente o nome real do banco. Se a consulta
-atingir o timeout, definir uma fonte agregada menos custosa para os mesmos
-contadores; não elevar o tempo sobre produção por suposição. Preservar apenas
-o relatório agregado em local apropriado e registrar a data de referência.
+   O script usa `BEGIN READ ONLY`, timeout de 10 s e retorna somente contagens
+   de tentativas, resultados, revisões, pendências, atores e ações. Se a
+   consulta for custosa ou expirar, interromper e planejar alternativa de
+   leitura sem aumentar o limite no banco principal.
+4. Verificar integridade do ledger por consulta autorizada e minimizada,
+   sem exportar IDs pessoais; confirmar `INICIADA`, `RESULTADO` quando há
+   resposta HTTP, e revisão sem resultado fabricado. Correlacionar latências
+   com CPU, memória e configuração do banco no intervalo observado.
+5. Só aceitar p95 ≤ 2 s com amostras de uso normal, carga representativa,
+   build confirmado e integridade da trilha. Se o uso de determinada operação
+   for inexistente ou insuficiente, manter a evidência como inconclusiva.
 
-## 2. Preparar banco isolado e perfil sintético
-
-Criar **um banco novo, vazio e descartável**, com nome `*_qa` ou `*_test`,
-PostgreSQL e migrations do commit a medir. Não apontar o script ao PostgreSQL
-persistente do Railway `test` ou a um túnel para produção. Obter as contagens de
-`results`, `reviews` e `pending` a partir do perfil agregado, ajustando apenas
-o mínimo necessário para exercitar cada cenário e documentando o ajuste.
-
-`scripts/seed-admin-audit-qa.js` exige `NODE_ENV=test`, host loopback,
-confirmação dupla do nome, pelo menos 100 tentativas, cada grupo não vazio,
-`results + reviews + pending = attempts` e ledger vazio. Ele cria somente fatos
-sintéticos sem usuário, contato, payload ou identificador real; uma falha faz
-`ROLLBACK`. Não apaga nem reescreve eventos append-only. Exemplo:
-
-```sh
-NODE_ENV=test \
-PERF_ADMIN_QA_DATABASE_URL=... \
-PERF_ADMIN_QA_DATABASE_NAME=agenda_fashion_qa \
-PERF_ADMIN_SEED_CONFIRM=agenda_fashion_qa \
-PERF_ADMIN_SEED_ATTEMPTS=1000 \
-PERF_ADMIN_SEED_RESULTS=800 \
-PERF_ADMIN_SEED_REVIEWS=100 \
-PERF_ADMIN_SEED_PENDING=100 \
-node scripts/seed-admin-audit-qa.js
-```
-
-Os números são **exemplo, não baseline do AF**. A carga distribui tentativas
-entre três ações, cinquenta atores sintéticos e trinta dias; todas as
-tentativas ficam dentro dessa janela. Comparar tamanho, cardinalidade,
-distribuição de ações, idade dos registros, perfil de hardware e concorrência
-com a referência. Uma distribuição incompatível torna o resultado diagnóstico,
-mas não prova RNF02 sob carga normal. Não executar o seed novamente no mesmo
-banco: ele recusa ledger já povoado.
-
-## 3. Medir a aplicação QA
-
-Iniciar a aplicação isolada contra **esse mesmo banco**, com usuário
-superadmin de QA e `PERF_ADMIN_QA_BUILD_SHA` originado do commit executado.
-Configurar recursos e modo da aplicação próximos dos normais e registrar as
-diferenças. Não usar token ou credenciais de produção. A aplicação deve ser
-acessível por loopback ao processo do medidor; o preflight verifica que ela lê
-uma tentativa recém-criada no banco escolhido.
-
-Configurar as variáveis de ambos os medidores segundo
-`docs/admin-wave-4-rf41-qualificacao.md`. Para o exemplo de carga acima,
-`PERF_ADMIN_ACTOR_ID=900000000001` seleciona um ator sintético presente.
-O executor roda perfil QA inicial, duas escritas, quatro leituras e perfil QA
-final, nessa ordem; confere SHA, volumes, os seis p95 e a integridade da
-trilha. Ele aceita somente aplicação e banco em loopback, e não imprime
-token ou connection string. Com os segredos já injetados no ambiente:
-
-```sh
-PERF_ADMIN_REFERENCE_FILE=referencia-auditoria.json \
-node scripts/qualify-admin-audit-qa.js > evidencia-admin-043.json
-```
-
-Um p95 acima de 2 s consta no relatório como `p95Aprovado: false` e o comando
-termina com código 1. Mesmo
-com os seis cenários aprovados, o relatório mantém
-`adm043: PENDENTE_VALIDACAO_REPRESENTATIVIDADE`: confrontar volume,
-distribuição, idade dos registros, concorrência e recursos com a carga normal
-real. Guardar o relatório JSON, a referência agregada, a configuração
-não secreta da aplicação/banco, a data e a origem do SHA. Não guardar token
-nem connection string. As etapas também podem ser executadas separadamente
-para investigar um cenário específico.
-
-## Saída da Wave
-
-- **CA-ADM-13 / RNF02:** cada uma das seis operações deve ter p95 ≤ 2 s sob
-  carga operacional normal representativa, ligada ao build realmente executado.
-- **CA-ADM-14 / RF41:** escritas devem gerar `INICIADA` e `RESULTADO` para cada
-  request ID; revisão referencia a tentativa sem fabricar resultado HTTP.
-- **RN25:** autorização superadmin e proteção de dados continuam preservadas.
-- Se houver lentidão, obter `EXPLAIN (ANALYZE, BUFFERS)` das consultas no QA,
-  corrigir a causa e repetir no mesmo perfil antes de declarar cobertura.
-- Só após evidência operacional verificável atualizar ADM-043 e a matriz para
-  **42/43 (97,7%)**. ADM-030 continua dependente de uma fonte factual real de
-  custo variável atribuível por negócio; não simular essa fonte nem declarar
-  43/43.
+O LCP das páginas públicas é uma avaliação separada. ADM-030 depende de uma
+fonte factual de custo variável atribuível ao negócio e não é fechado por
+esta análise.
