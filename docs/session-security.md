@@ -19,7 +19,7 @@ O token JWT bruto nunca é persistido. O backend grava somente:
 - expiração original do token;
 - instante da revogação.
 
-O middleware de autenticação calcula o mesmo hash e recusa tokens revogados ainda dentro da validade original. Registros expirados podem ser descartados com segurança e o fluxo de revogação remove registros expirados oportunisticamente antes de inserir uma nova revogação.
+O middleware obrigatório `auth` calcula o mesmo hash e recusa tokens revogados ainda dentro da validade original. Registros expirados podem ser descartados com segurança e o fluxo de revogação remove registros expirados oportunisticamente antes de inserir uma nova revogação.
 
 `POST /logout` preserva o comportamento idempotente: sem token ou com token já inválido/expirado, a saída local continua podendo concluir. Falhas inesperadas de banco/configuração não devem ser mascaradas; o cookie é limpo e o erro segue para o tratamento central.
 
@@ -58,3 +58,21 @@ A regra anterior permanece: tokens emitidos antes de `usuarios.senha_alterada_em
 ## Operação
 
 A tabela `sessoes_revogadas` possui unicidade por hash, tornando o registro idempotente para o mesmo JWT. Ela também possui índice de expiração para permitir limpeza eficiente quando necessário.
+
+
+## Autenticação opcional e revogação
+
+Existe um hardening pendente no estado executável atual.
+
+O middleware obrigatório `auth` consulta o estado da sessão com o hash do JWT e
+consegue detectar `sessoes_revogadas`. Já `optionalAuth` consulta
+`buscarEstadoDaSessao(decoded.id)` sem fornecer o hash. No repository, a ausência
+do hash faz `token_revogado` resultar em `FALSE`.
+
+Assim, rotas com autenticação opcional não aplicam hoje a mesma checagem explícita
+de revogação do middleware obrigatório. Essas rotas continuam públicas quando não
+há identidade válida; o ajuste futuro deve preservar essa semântica e apenas
+impedir que um JWT revogado seja aceito como identidade opcional.
+
+O patch executável correspondente deve incluir teste de regressão. A análise
+detalhada está em [`frontend-seguranca.md`](./frontend-seguranca.md).
