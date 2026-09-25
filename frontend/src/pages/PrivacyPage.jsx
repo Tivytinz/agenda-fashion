@@ -25,6 +25,7 @@ import {
   initializeMetaAds,
   syncMetaConsent
 } from "../analytics/metaAds";
+import { usePageMetadata } from "../hooks/usePageMetadata";
 import {
   GOOGLE_BUSINESS_DATA_URL,
   LEGAL_CONTACT_EMAIL,
@@ -49,14 +50,10 @@ export function PrivacyPage() {
   const [consent, setConsent] = useState(getMarketingConsent);
   const [syncError, setSyncError] = useState("");
 
-  useEffect(() => {
-    const previousTitle = document.title;
-    document.title = "Privacidade e cookies | Agenda Fashion";
-
-    return () => {
-      document.title = previousTitle;
-    };
-  }, []);
+  usePageMetadata(
+    "Privacidade e cookies | Agenda Fashion",
+    "Entenda quais dados o Agenda Fashion trata, para quais finalidades e como controlar preferências de cookies e medição opcional."
+  );
 
   useEffect(() => {
     Promise.all([
