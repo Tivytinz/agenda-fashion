@@ -535,6 +535,7 @@ ou reabertura do link precisa preservar o passo.
 | plano/checkout | `PlansPage`, `BillingPages`, `SubscriptionPage`, `planos.md` |
 | componentes/primitives | `frontend-componentes-primitives.md` + implementação atual |
 | formulários/estado/API | `frontend-formularios-estado-api.md` + endpoint/backend correspondente |
+| analytics/observabilidade | `frontend-analytics-observabilidade.md` + contrato backend de eventos |
 | QA/prontidão | `frontend-qa-prontidao.md` + testes da jornada |
 | CSS | `frontend-estilos.md` + dono do estilo |
 | Admin | docs `admin-*` + páginas administrativas |
