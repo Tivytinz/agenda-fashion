@@ -913,8 +913,8 @@ Na branch atual:
 A preferência de marketing não é apagada apenas por entrar no Admin. Ao voltar
 para uma rota elegível, a medição pode retomar conforme o consentimento salvo.
 
-A regressão está coberta em `MetaAdsBridge.test.jsx` e permanece em validação
-até Quality Gate/merge.
+A regressão está coberta em `MetaAdsBridge.test.jsx`; a Wave A foi validada e
+mergeada na `main`.
 
 ## 44. Meta Pixel
 
@@ -1935,7 +1935,7 @@ CTR/CPC/PageView não fecham o funil.
 
 ### 102.1 UTM first-party antes de consentimento
 
-Status: **corrigido na Wave B e em validação**.
+Status: **resolvido na Wave B e mergeado na main**.
 
 UTMs e click IDs agora dependem de `MARKETING_CONSENT.GRANTED`; revogação limpa
 a atribuição opcional do legado, da sessão V2 e do outbox V2 pendente.
