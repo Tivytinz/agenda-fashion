@@ -965,6 +965,7 @@ Se a resposta depender de "talvez no futuro", não antecipar a abstração.
 - [`frontend-arquitetura.md`](./frontend-arquitetura.md): arquitetura técnica;
 - [`frontend-mapa-telas-jornadas.md`](./frontend-mapa-telas-jornadas.md):
   rotas e jornadas;
+- [`frontend-formularios-estado-api.md`](./frontend-formularios-estado-api.md): formulários, estado, API, erros e mutações;
 - [`frontend-estilos.md`](./frontend-estilos.md): CSS e ownership;
 - [`ux-contextos-visuais.md`](./ux-contextos-visuais.md): semântica de
   contextos;
