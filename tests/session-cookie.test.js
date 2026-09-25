@@ -2,6 +2,10 @@ const jwt = require(
   "jsonwebtoken"
 );
 
+const authTransportMetrics = require(
+  "../src/utils/authTransportMetrics"
+);
+
 const {
   COOKIE_DESENVOLVIMENTO,
   COOKIE_PRODUCAO,
@@ -21,6 +25,8 @@ describe(
     afterEach(() => {
       process.env.NODE_ENV =
         ambienteOriginal;
+      authTransportMetrics
+        .limparParaTeste();
     });
 
     test(
@@ -103,6 +109,19 @@ describe(
         ).toEqual({
           token: "token-legado",
           origem: "bearer",
+        });
+
+        expect(
+          authTransportMetrics
+            .obterSnapshot()
+        ).toMatchObject({
+          cookie: {
+            requisicoes: 1,
+          },
+          bearerLegado: {
+            requisicoes: 1,
+          },
+          totalRequisicoesAutenticadas: 2,
         });
       }
     );
