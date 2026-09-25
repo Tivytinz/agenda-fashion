@@ -238,6 +238,39 @@ describe("consentimento de marketing", () => {
       .toBe(false);
   });
 
+  it("não inicializa nem envia page_view da Meta em rota administrativa", async () => {
+    getMarketingConsent.mockReturnValue(
+      MARKETING_CONSENT.GRANTED
+    );
+    getMetaConfig.mockResolvedValue({
+      enabled: true,
+      pixelId: "123456789"
+    });
+    getGoogleConfig.mockResolvedValue({
+      enabled: false,
+      measurementId: null,
+      adsId: null
+    });
+
+    render(
+      <MemoryRouter
+        initialEntries={["/admin/nova-funcionalidade"]}
+      >
+        <MetaAdsBridge />
+      </MemoryRouter>
+    );
+
+    await screen.findByRole(
+      "link",
+      { name: "Privacidade" }
+    );
+
+    expect(initializeMetaAds)
+      .not.toHaveBeenCalled();
+    expect(trackMetaPageView)
+      .not.toHaveBeenCalled();
+  });
+
   it("não inicializa nem envia page_view do Google em rota administrativa", async () => {
     getMarketingConsent.mockReturnValue(
       MARKETING_CONSENT.GRANTED
