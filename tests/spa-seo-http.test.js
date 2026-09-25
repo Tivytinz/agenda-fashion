@@ -67,8 +67,24 @@ describe("SEO e 404 das rotas React", () => {
     expect(resposta.text).toContain(
       'property="og:image" content="https://app.agendafashion.com.br/social-preview.png"'
     );
+    expect(resposta.text).toContain(
+      'name="twitter:card" content="summary_large_image"'
+    );
+    expect(resposta.headers["cache-control"])
+      .toContain("no-store");
     expect(resposta.text).not.toContain(
       "utm_source=google"
+    );
+  });
+
+  test("normaliza barra final no canonical da landing profissional", async () => {
+    const resposta = await request(app)
+      .get("/para-profissionais/")
+      .set("Accept", "text/html");
+
+    expect(resposta.status).toBe(200);
+    expect(resposta.text).toContain(
+      'rel="canonical" href="https://app.agendafashion.com.br/para-profissionais"'
     );
   });
 
