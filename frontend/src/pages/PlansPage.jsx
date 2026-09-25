@@ -7,6 +7,7 @@ import {
   getBusinessWorkspacePath
 } from "../auth/session";
 import { BackLink } from "../components/BackLink";
+import { usePageMetadata } from "../hooks/usePageMetadata";
 import { ErrorState, LoadingState } from "../components/ScreenState";
 import { formatCurrency } from "../utils/format";
 import { planFeatures } from "../utils/plans";
@@ -22,6 +23,11 @@ function planMatches(reference, plan, idKey, slugKey) {
 }
 
 export function PlansPage() {
+  usePageMetadata(
+    "Planos para profissionais | Agenda Fashion",
+    "Compare o plano Grátis e os planos pagos do Agenda Fashion para escolher a capacidade de agendamentos, profissionais e serviços do seu negócio."
+  );
+
   const session = useSession();
   const [plans, setPlans] = useState(null);
   const [current, setCurrent] = useState(null);
