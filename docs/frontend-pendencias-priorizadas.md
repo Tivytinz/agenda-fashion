@@ -237,7 +237,7 @@ O item fecha quando:
 
 ## 6. FE-P1-02 — UTM first-party e texto de Privacidade divergem
 
-### Evidência executável
+### Evidência que originou o finding
 
 `firstPartyAnalytics.test.js` garante explicitamente:
 
@@ -747,7 +747,7 @@ canônico.
 
 ## 13. FE-P2-05 — política CSRF precisa ficar explícita
 
-### Estado atual
+### Estado que originou o finding
 
 Não foi observado token CSRF dedicado.
 
