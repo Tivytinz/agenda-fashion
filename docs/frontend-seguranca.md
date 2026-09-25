@@ -2057,7 +2057,7 @@ quando não houver consumidores legados.
 
 ### 142.5 CSRF depende do desenho atual de cookie/topologia
 
-Status: **tratado na Wave B e em validação**.
+Status: **resolvido na Wave B e mergeado na main**.
 
 O runtime combina `SameSite=Lax`/CORS com `csrfProtection` para métodos
 unsafe autenticados por cookie. O middleware valida Fetch Metadata, Origin e
