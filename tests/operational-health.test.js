@@ -8,6 +8,9 @@ jest.mock(
 const metrics = require(
   "../src/services/operationalMetricsService"
 );
+const authTransportMetrics = require(
+  "../src/utils/authTransportMetrics"
+);
 const health = require(
   "../src/services/operationalHealthService"
 );
@@ -15,6 +18,8 @@ const health = require(
 describe("saúde operacional", () => {
   beforeEach(() => {
     metrics.limparMetricasParaTeste();
+    authTransportMetrics
+      .limparParaTeste();
     mockBuscarFilas.mockReset();
   });
 
@@ -48,6 +53,11 @@ describe("saúde operacional", () => {
       },
     ]);
 
+    authTransportMetrics
+      .registrarTransporte("cookie");
+    authTransportMetrics
+      .registrarTransporte("bearer");
+
     const resultado = await health.obterSaudeOperacional();
 
     expect(resultado.processo).toEqual(expect.objectContaining({
@@ -60,5 +70,15 @@ describe("saúde operacional", () => {
     }));
     expect(resultado.filas[0].atrasoMaisAntigoSegundos)
       .toBeGreaterThanOrEqual(4);
+    expect(resultado.autenticacao).toMatchObject({
+      escopo: "processo_atual",
+      cookie: {
+        requisicoes: 1,
+      },
+      bearerLegado: {
+        requisicoes: 1,
+      },
+      totalRequisicoesAutenticadas: 2,
+    });
   });
 });
