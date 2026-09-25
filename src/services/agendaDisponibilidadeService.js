@@ -294,8 +294,18 @@ function horarioRespeitaAntecedencia({
     `${data}T${horarioNormalizado}:00Z`
   );
 
+  const segundoAtual =
+    /^\d{2}$/.test(
+      String(
+        agoraLocal.segundo ||
+        ""
+      )
+    )
+      ? String(agoraLocal.segundo)
+      : "00";
+
   const dataHoraAtual = Date.parse(
-    `${agoraLocal.data}T${agoraLocal.hora}:00Z`
+    `${agoraLocal.data}T${agoraLocal.hora}:${segundoAtual}Z`
   );
 
   if (
