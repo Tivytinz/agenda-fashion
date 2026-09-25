@@ -1967,6 +1967,9 @@ código nesta branch documental.
   page views e sanitização;
 - [`dependency-security.md`](./dependency-security.md): dependências.
 
+
+> Findings abertos e prioridade de execução estão consolidados em [`frontend-pendencias-priorizadas.md`](./frontend-pendencias-priorizadas.md).
+
 ## 127. Manutenção
 
 Atualizar este documento quando mudar de forma durável:
