@@ -670,6 +670,7 @@ Ao tocar código legado:
 
 ## 24. Documentos relacionados
 
+- [`frontend-mapa-telas-jornadas.md`](./frontend-mapa-telas-jornadas.md): inventário de rotas, telas e jornadas implementadas;
 - [`arquitetura.md`](./arquitetura.md): arquitetura geral do AF;
 - [`ux-contextos-visuais.md`](./ux-contextos-visuais.md): semântica dos
   contextos;
