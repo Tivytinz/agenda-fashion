@@ -57,7 +57,7 @@ describe("copilotShareService", () => {
     );
   });
 
-  it("usa fallback quando a IA está desligada", async () => {
+  it("usa geração determinística por padrão quando a IA está desligada", async () => {
     openaiProvider.isEnabled.mockReturnValue(false);
 
     const resultado = await copilotShareService.gerarDivulgacao({
@@ -66,10 +66,15 @@ describe("copilotShareService", () => {
       canal: "whatsapp",
     });
 
-    expect(resultado.fonte).toBe("fallback");
+    expect(resultado.fonte).toBe("deterministic");
     expect(resultado.texto).toContain("Alongamento em gel");
     expect(resultado.texto).not.toMatch(/https?:\/\//i);
     expect(openaiProvider.generateShareCopy).not.toHaveBeenCalled();
+    expect(resultado).toEqual(expect.objectContaining({
+      fonte: "deterministic",
+      oportunidade: "SERVICO_COM_TRACAO_CONCENTRADA",
+      canal: "whatsapp",
+    }));
     expect(dashboardDonoService.buscarDashboardDono).toHaveBeenCalledWith({
       usuarioId: 5,
       periodo: "30dias",
@@ -97,7 +102,7 @@ describe("copilotShareService", () => {
     }));
   });
 
-  it("volta ao fallback quando o provedor falha ou inclui URL", async () => {
+  it("volta à geração determinística quando o provedor falha ou inclui URL", async () => {
     openaiProvider.isEnabled.mockReturnValue(true);
     openaiProvider.generateShareCopy.mockResolvedValue({
       titulo: "Veja agora",
@@ -109,7 +114,7 @@ describe("copilotShareService", () => {
       periodo: "30dias",
     });
 
-    expect(resultado.fonte).toBe("fallback");
+    expect(resultado.fonte).toBe("deterministic");
     expect(resultado.texto).not.toContain("example.com");
   });
 
