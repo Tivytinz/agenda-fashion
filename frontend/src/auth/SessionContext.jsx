@@ -7,7 +7,10 @@ import {
   useState
 } from "react";
 import { useLocation } from "react-router-dom";
-import { apiRequest } from "../api/client";
+import {
+  apiRequest,
+  migrateLegacySession
+} from "../api/client";
 import {
   clearSession,
   clearStoredSessionMetadata,
@@ -58,6 +61,16 @@ export function SessionProvider({ children }) {
     setState((current) => ({ ...current, loading: true }));
 
     try {
+      const migration =
+        await migrateLegacySession();
+
+      if (migration.invalid) {
+        setState(
+          SIGNED_OUT_STATE
+        );
+        return null;
+      }
+
       const result = await apiRequest("/minha-sessao");
 
       const vinculos = Array.isArray(result.vinculos)
