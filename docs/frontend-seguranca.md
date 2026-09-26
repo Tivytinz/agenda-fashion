@@ -2050,10 +2050,15 @@ apenas `session_active`, limpa chaves legadas e reidrata o contexto por
 
 Cliente e backend continuam aceitando token legado em storage/header.
 
-Status: compatibilidade de migração.
+Status: **observabilidade implementada na Wave E e em validação**.
 
-Diretriz: não criar novo emissor de token para localStorage e planejar retirada
-quando não houver consumidores legados.
+O runtime passa a contar, somente no processo atual, requisições autenticadas por
+cookie e por Bearer. O diagnóstico administrativo não registra credenciais,
+usuário, rota ou payload.
+
+A compatibilidade ainda não é removida: zero Bearer em um processo não prova
+ausência histórica. A retirada continua condicionada a janela operacional
+representativa e revisão dos clientes suportados.
 
 ### 142.5 CSRF depende do desenho atual de cookie/topologia
 
@@ -2072,9 +2077,10 @@ antes de deploy.
 Para um patch executável futuro, a ordem técnica recomendada é:
 
 ```text
-1. concluir validação/merge dos hardenings de storage e CORS da Wave D
-2. manter Bearer legado sem novos emissores até existir evidência segura para retirada
-3. revisar novamente o threat model se a topologia de origem mudar
+1. concluir validação/merge da observabilidade de transporte da Wave E
+2. observar Bearer legado em janela operacional representativa antes de qualquer retirada
+3. manter o pipeline analytics legado até a reconciliação de produção permitir decisão
+4. revisar novamente o threat model se a topologia de origem mudar
 ```
 
 Essa ordem não autoriza alteração automática nesta branch documental.

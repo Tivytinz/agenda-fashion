@@ -482,7 +482,36 @@ export function AdminSaasHealthPage() {
                     <small>{worker.falhas ?? 0} falhas observadas neste processo</small>
                   </article>
                 ))}
+              {operational?.autenticacao && (
+                <>
+                  <article className="metric-card saas-health-metric-card">
+                    <span>Sessão por cookie</span>
+                    <strong>
+                      {operational.autenticacao.cookie?.requisicoes ?? 0}
+                    </strong>
+                    <small>requisições autenticadas neste processo</small>
+                  </article>
+                  <article className="metric-card saas-health-metric-card">
+                    <span>Bearer legado</span>
+                    <strong>
+                      {operational.autenticacao.bearerLegado?.requisicoes ?? 0}
+                    </strong>
+                    <small>
+                      {operational.autenticacao.bearerLegado?.ultimaObservacaoEm
+                        ? `último uso em ${formatDate(operational.autenticacao.bearerLegado.ultimaObservacaoEm)}`
+                        : "não observado neste processo"}
+                    </small>
+                  </article>
+                </>
+              )}
             </div>
+          )}
+          {operational?.autenticacao && !operationalError && (
+            <p className="muted">
+              O diagnóstico de transporte reinicia a cada deploy/restart e não registra token,
+              usuário, rota ou payload. Zero Bearer neste processo não autoriza retirar a
+              compatibilidade sozinho.
+            </p>
           )}
         </section>
       )}

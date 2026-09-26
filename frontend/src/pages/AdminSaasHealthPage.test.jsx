@@ -106,7 +106,22 @@ const OPERATIONAL_RESULT = {
       ativo: true,
       falhas: 0
     }
-  ]
+  ],
+  autenticacao: {
+    escopo: "processo_atual",
+    iniciadoEm: "2026-09-25T20:00:00.000Z",
+    cookie: {
+      requisicoes: 32,
+      primeiraObservacaoEm: "2026-09-25T20:01:00.000Z",
+      ultimaObservacaoEm: "2026-09-25T20:30:00.000Z"
+    },
+    bearerLegado: {
+      requisicoes: 1,
+      primeiraObservacaoEm: "2026-09-25T20:10:00.000Z",
+      ultimaObservacaoEm: "2026-09-25T20:10:00.000Z"
+    },
+    totalRequisicoesAutenticadas: 33
+  }
 };
 
 function renderPage(entry = "/admin/saude") {
@@ -168,6 +183,13 @@ describe("ativação profissional no admin", () => {
     expect(within(operational).getByText("2")).not.toBeNull();
     expect(within(operational).getByText("Worker webhook")).not.toBeNull();
     expect(within(operational).getByText("Ativo")).not.toBeNull();
+    expect(within(operational).getByText("Sessão por cookie")).not.toBeNull();
+    expect(within(operational).getByText("32")).not.toBeNull();
+    expect(within(operational).getByText("Bearer legado")).not.toBeNull();
+    expect(within(operational).getByText("1")).not.toBeNull();
+    expect(
+      within(operational).getByText(/Zero Bearer neste processo não autoriza/i)
+    ).not.toBeNull();
   });
 
   it("inicializa filtro e busca a partir do deep link", async () => {

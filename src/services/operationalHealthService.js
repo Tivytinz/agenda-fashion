@@ -4,6 +4,9 @@ const operationalMetricsRepository = require(
 const operationalMetricsService = require(
   "./operationalMetricsService"
 );
+const authTransportMetrics = require(
+  "../utils/authTransportMetrics"
+);
 
 function atrasoSegundos(data, agora = Date.now()) {
   const instante = new Date(data || "").getTime();
@@ -23,6 +26,9 @@ async function obterSaudeOperacional() {
       memoria: process.memoryUsage(),
     },
     workers: operationalMetricsService.obterSnapshotWorkers(),
+    autenticacao:
+      authTransportMetrics
+        .obterSnapshot(),
     filas: filas.map((fila) => ({
       nome: fila.fila,
       pendentes: Number(fila.pendentes || 0),
