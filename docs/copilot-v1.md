@@ -65,7 +65,7 @@ Nomes vindos do banco são tratados como dados, não como instruções.
 
 ## Geração padrão sem tokens
 
-A oportunidade `COMPARTILHAR_PERFIL` e o texto básico de divulgação não dependem de LLM nem de ML. O motor determinístico de inteligência de crescimento decide a oportunidade no backend e `buildFallbackShareOutput` produz uma sugestão utilizável sem chamada externa. Esse é o caminho padrão do produto e não consome tokens.
+A oportunidade `COMPARTILHAR_PERFIL` e o texto básico de divulgação não dependem de LLM nem de ML. O motor determinístico de inteligência de crescimento decide a oportunidade no backend e `buildDeterministicShareOutput` produz uma sugestão utilizável sem chamada externa. Esse é o caminho padrão do produto e não consome tokens.
 
 ML só deve ser considerado futuramente para hipóteses que realmente exijam aprendizado estatístico, como estimar qual próxima ação tende a produzir melhor resultado com amostra suficiente. Ele não substitui as regras atuais para detectar a oportunidade de compartilhamento.
 
@@ -94,7 +94,7 @@ As requisições usam:
 - instruções explícitas para não inventar preço, promoção, disponibilidade, endereço ou resultado garantido;
 - proibição de URL na saída, porque o link rastreável é acrescentado pelo AF depois.
 
-## Fallback e confiabilidade
+## geração determinística e confiabilidade
 
 A integração é fail-soft. Se ocorrer qualquer uma destas situações:
 
@@ -118,10 +118,10 @@ O dashboard só exibe `Criar texto de divulgação` quando a oportunidade princi
 Depois da geração:
 
 1. o texto aparece editável;
-2. a origem é identificada como `Copilot AF` quando veio do provider ou `Sugestão automática` quando veio do fallback;
+2. a origem é identificada como `Copilot AF` quando veio do provider ou `Sugestão automática` quando veio do geração determinística;
 3. a profissional é orientada a revisar antes de enviar;
 4. `PublicShareButton` reutiliza o link rastreável existente;
-5. no fallback do Web Share, texto e link são copiados juntos quando existe texto personalizado.
+5. no geração determinística do Web Share, texto e link são copiados juntos quando existe texto personalizado.
 
 O texto gerado nunca é enviado automaticamente.
 
