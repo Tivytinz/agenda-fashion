@@ -852,8 +852,9 @@ Páginas públicas de aquisição incluídas no sitemap e tratadas como alvo de 
 Mudanças relevantes devem executar validações proporcionais ao risco. O Quality
 Gate atual cobre lint, build, testes frontend, migrations, Jest/PostgreSQL,
 audits, Playwright de UX e acceptance full-stack P0 com frontend buildado,
-Express e PostgreSQL reais. O `Security CI` complementa esse gate com revisão
-de dependências e CodeQL.
+Express e PostgreSQL reais. O `Security CI` complementa esse gate com CodeQL. Dependency Review só pode
+virar gate depois que o Dependency Graph externo do GitHub estiver habilitado e
+validado.
 
 Mudanças em caminhos públicos críticos de performance (home, catálogo, perfil,
 componentes/estilos relacionados e scripts de medição) também disparam o
