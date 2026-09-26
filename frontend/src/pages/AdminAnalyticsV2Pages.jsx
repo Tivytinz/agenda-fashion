@@ -767,7 +767,7 @@ export function AdminJourneyV2Page() {
               <section className="panel">
                 <div className="panel-heading"><div><p className="eyebrow">Caminhos</p><h2>Transições mais comuns</h2></div></div>
                 {transitions.length === 0 ? <p className="muted">Ainda não há sessões com duas ou mais telas.</p> : (
-                  <div className="admin-ranking-list">
+                  <div className="admin-ranking-list admin-journey-ranking">
                     {transitions.map((item) => (
                       <article key={`${item.origem}-${item.destino}`}>
                         <div><strong>{PAGE_LABELS[item.origem] || item.origem} → {PAGE_LABELS[item.destino] || item.destino}</strong></div>
@@ -853,7 +853,7 @@ export function AdminJourneyV2Page() {
 
             <section className="panel">
               <div className="panel-heading"><div><p className="eyebrow">Compatibilidade</p><h2>Dispositivo e navegador</h2></div></div>
-              <div className="admin-ranking-list">
+              <div className="admin-ranking-list admin-journey-ranking">
                 {devices.map((item) => (
                   <article key={`${item.device_type}-${item.browser_family}`}>
                     <div><strong>{item.device_type}</strong><small>{item.browser_family}</small></div>
@@ -904,7 +904,7 @@ export function AdminRetentionV2Page() {
             <section className="panel">
               <div className="panel-heading"><div><p className="eyebrow">Maturidade</p><h2>Recorrência nas janelas candidatas</h2></div></div>
               {windows.length === 0 ? <p className="muted">Amostra insuficiente.</p> : (
-                <div className="admin-command-funnel is-milestones">
+                <div className="admin-command-funnel is-milestones admin-retention-windows">
                   {windows.map((window) => (
                     <article key={window.janelaDias}>
                       <small>D{window.janelaDias}</small>
