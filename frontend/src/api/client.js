@@ -71,6 +71,37 @@ export async function migrateLegacySession() {
     response.status === 401 ||
     response.status === 403
   ) {
+    const cookieSession =
+      await fetch(
+        `${API_URL}/minha-sessao`,
+        {
+          headers: {
+            Accept:
+              "application/json"
+          },
+          credentials:
+            "include"
+        }
+      );
+
+    if (cookieSession.ok) {
+      removeBrowserStorage(
+        "local",
+        "token"
+      );
+      writeBrowserStorage(
+        "local",
+        "session_active",
+        "1"
+      );
+
+      return {
+        attempted: true,
+        migrated: false,
+        alreadyCookie: true
+      };
+    }
+
     clearSession({
       notify: true
     });
