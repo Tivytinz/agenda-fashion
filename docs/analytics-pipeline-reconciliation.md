@@ -61,6 +61,8 @@ O painel também preserva os totais do período de cada pipeline para contexto.
 
 Paridade exata é apenas um diagnóstico técnico. Ela não autoriza, sozinha, a remoção do pipeline legado.
 
+O Admin também expõe evidência de estabilidade por dia: quantidade de dias com evidência, pares dia × evento divergentes e cobertura de `booking_completed` vinculada a booking real. O backend pode sinalizar que o recorte está **pronto para avaliação**, mas não inventa uma duração mínima de observação nem desliga o legado automaticamente. A decisão de retirada continua operacional e explícita.
+
 ## Conclusão de agendamento
 
 O nome `booking_completed` pode existir em duas origens e elas não são
