@@ -272,6 +272,11 @@ describe("adminAnalyticsV2Service", () => {
     repository.buscarReconciliacaoPipelines.mockResolvedValue({
       periodo: "30",
       inicioComparavel: "2026-09-20T12:00:00.000Z",
+      diagnosticoEstabilidade: {
+        diasComEvidencia: 5,
+        paresDiaEventoDivergentes: 1,
+        ultimoDiaComEvidencia: "2026-09-25",
+      },
       eventos: [
         {
           evento: "profile_viewed",
@@ -303,6 +308,11 @@ describe("adminAnalyticsV2Service", () => {
       eventosComDivergencia: 1,
       legadoEventosPeriodo: 16,
       v2EventosPeriodo: 14,
+      evidenciaRetirada: expect.objectContaining({
+        diasComEvidencia: 5,
+        paresDiaEventoDivergentes: 1,
+        prontaParaAvaliacao: false,
+      }),
     });
     expect(
       resultado.reconciliacaoPipelines.eventos[0]
@@ -318,6 +328,33 @@ describe("adminAnalyticsV2Service", () => {
       evento: "booking_completed",
       bookingCompletedVinculados: 4,
       paridadeExata: true,
+    });
+  });
+
+  test("só sinaliza avaliação de retirada com paridade diária e booking concluído vinculado", () => {
+    const resultado = mapearReconciliacaoPipelines({
+      periodo: "30",
+      inicioComparavel: "2026-09-20T12:00:00.000Z",
+      diagnosticoEstabilidade: {
+        diasComEvidencia: 7,
+        paresDiaEventoDivergentes: 0,
+        ultimoDiaComEvidencia: "2026-09-26",
+      },
+      eventos: [
+        {
+          evento: "booking_completed",
+          legado_eventos_comparaveis: 6,
+          v2_eventos_comparaveis: 6,
+          booking_completed_vinculados: 6,
+        },
+      ],
+    });
+
+    expect(resultado.evidenciaRetirada).toMatchObject({
+      diasComEvidencia: 7,
+      paresDiaEventoDivergentes: 0,
+      coberturaBookingCompletedVinculado: 100,
+      prontaParaAvaliacao: true,
     });
   });
 
