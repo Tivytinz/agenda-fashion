@@ -5,7 +5,7 @@ const {
 } = require("./copilot/copilotContextService");
 const {
   sanitizeCopilotShareOutput,
-  buildFallbackShareOutput,
+  buildDeterministicShareOutput,
 } = require("./copilot/copilotOutputService");
 const openaiProvider = require("./copilot/openaiProvider");
 
@@ -82,9 +82,9 @@ async function gerarDivulgacao({ usuarioId, periodo, canal } = {}) {
 
   return {
     canal: canalNormalizado,
-    fonte: "fallback",
+    fonte: "deterministic",
     oportunidade: oportunidade.codigo,
-    ...buildFallbackShareOutput(contexto),
+    ...buildDeterministicShareOutput(contexto),
   };
 }
 
