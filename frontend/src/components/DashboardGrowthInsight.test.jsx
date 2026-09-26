@@ -200,3 +200,54 @@ describe("DashboardGrowthInsight", () => {
     );
   });
 });
+
+
+describe("fonte determinística do Copilot", () => {
+  it("registra deterministic quando o backend usa o caminho sem tokens", async () => {
+    mocks.apiRequest.mockResolvedValue({
+      fonte: "deterministic",
+      titulo: "Studio Rosa no Agenda Fashion",
+      texto: "Conheça o Studio Rosa no Agenda Fashion. Veja os serviços e escolha o melhor horário para você.",
+    });
+
+    render(
+      <MemoryRouter>
+        <DashboardGrowthInsight
+          businessId={11}
+          businessName="Studio Rosa"
+          businessSlug="studio-rosa"
+          insight={{
+            status: "OPORTUNIDADE_PRIORIZADA",
+            periodo: "30dias",
+            oportunidade_principal: {
+              codigo: "SERVICO_COM_TRACAO_CONCENTRADA",
+              categoria: "demanda",
+              titulo: "Divulgue seu perfil",
+              mensagem: "Há uma oportunidade de divulgação.",
+              evidencias: [],
+              acao: {
+                tipo: "COMPARTILHAR_PERFIL",
+                rotulo: "Compartilhar perfil",
+              },
+            },
+          }}
+        />
+      </MemoryRouter>
+    );
+
+    fireEvent.click(screen.getByRole("button", {
+      name: "✨ Criar texto de divulgação",
+    }));
+
+    await screen.findByLabelText("Texto de divulgação");
+
+    expect(mocks.track).toHaveBeenCalledWith(
+      "copilot_divulgacao_gerada",
+      expect.objectContaining({
+        properties: expect.objectContaining({
+          fonte_copilot: "deterministic",
+        }),
+      })
+    );
+  });
+});

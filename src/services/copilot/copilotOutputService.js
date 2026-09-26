@@ -49,7 +49,7 @@ function sanitizeCopilotShareOutput(saida) {
   return { titulo, texto };
 }
 
-function buildFallbackShareOutput(contexto = {}) {
+function buildDeterministicShareOutput(contexto = {}) {
   const negocio = normalizarTexto(contexto.negocio?.nome, 120) || "este negócio";
   const servico = normalizarTexto(contexto.servico_destaque?.nome, 120);
 
@@ -72,6 +72,8 @@ function buildFallbackShareOutput(contexto = {}) {
 
 module.exports = {
   sanitizeCopilotShareOutput,
-  buildFallbackShareOutput,
+  buildDeterministicShareOutput,
+  // Alias temporário para consumidores internos legados; remover após migração completa.
+  buildFallbackShareOutput: buildDeterministicShareOutput,
   possuiAlegacaoNaoAutorizada,
 };
