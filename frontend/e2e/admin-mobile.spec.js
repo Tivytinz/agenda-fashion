@@ -20,7 +20,7 @@ function json(route, body, status = 200) {
 
 test("admin e consentimento permanecem navegáveis no celular", async ({ page }) => {
   await page.addInitScript(() => {
-    localStorage.setItem("token", "admin-e2e");
+    localStorage.setItem("session_active", "1");
     localStorage.setItem(
       "usuario",
       JSON.stringify({ id: 9, nome: "Admin AF" })
