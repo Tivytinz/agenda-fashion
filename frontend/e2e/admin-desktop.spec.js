@@ -150,7 +150,7 @@ test("shell do admin mantém navegação durante rolagem e privacidade fora dos 
   }));
 
   await page.goto("/admin/aquisicao?periodo=30");
-  await expect(page.getByRole("heading", { name: "Aquisição" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Aquisição", exact: true })).toBeVisible();
   await expect(page.getByText("origem-29")).toHaveCount(1);
   await expect(page.getByRole("link", { name: "Privacidade" })).toBeVisible();
 
