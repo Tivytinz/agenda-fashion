@@ -745,6 +745,8 @@ O header `X-Agenda-Access` faz parte do contrato de capability de booking e deve
 
 A retirada de transporte Bearer legado exige evidência operacional sem registrar credenciais. A observabilidade pode contar apenas a classe de transporte (`cookie` ou `bearer`) e timestamps agregados do processo; nunca registrar o token, o header `Authorization`, usuário, rota ou payload para esse diagnóstico. Contador zero em um único processo/deploy não prova ausência histórica e não autoriza remoção automática da compatibilidade.
 
+O frontend web não deve propagar Bearer legado em chamadas normais. Quando encontrar a chave histórica `token` no `localStorage`, deve fazer uma migração única e validada para o cookie HttpOnly pelo endpoint dedicado, remover o token local e seguir usando somente cookie. O backend pode manter aceitação temporária de Bearer para clientes legados enquanto a janela operacional ainda não justificar a retirada total.
+
 Encerramento e privacidade seguem um fluxo de desativação/arquivamento, não de
 deleção física indiscriminada:
 
