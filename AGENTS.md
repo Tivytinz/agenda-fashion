@@ -906,3 +906,12 @@ alterar o contrato do produto.
 Documentação especializada deve concentrar detalhes de implementação e
 operação. Ao mudar uma regra permanente, atualizar os documentos afetados no
 mesmo conjunto de mudanças sempre que possível.
+
+
+### Copilot de divulgação: caminho determinístico por padrão
+
+- A oportunidade `COMPARTILHAR_PERFIL` é decidida pela inteligência de crescimento determinística no backend; não depende de ML nem de LLM.
+- O texto básico de divulgação usa geração determinística por padrão e retorna `fonte: "deterministic"`, sem consumo de tokens.
+- OpenAI permanece opcional e experimental, somente quando explicitamente habilitada; a presença da chave sozinha não torna o provider o caminho padrão.
+- Falha, saída inválida ou indisponibilidade do provider retorna à mesma geração determinística; `fallback` não é mais a identidade analítica do caminho normal.
+- O valor da geração por LLM deve ser medido por impacto incremental no funil compartilhamento → visita → agendamento iniciado → agendamento concluído, não por volume de textos gerados.
