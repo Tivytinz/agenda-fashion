@@ -450,6 +450,18 @@ describe("track attribution", () => {
       .not.toHaveProperty("utm_source");
   });
 
+  test("permite desligar apenas o pipeline legado sem interromper o Analytics V2", () => {
+    vi.stubEnv("VITE_LEGACY_PRODUCT_EVENTS_ENABLED", "false");
+
+    track("agendamento_iniciado", {
+      page: "perfil_negocio",
+      mission: "iniciar_agendamento",
+      businessId: 12,
+    });
+
+    expect(fetch).not.toHaveBeenCalled();
+  });
+
   test("analytics não derruba a interface quando o storage é bloqueado", () => {
     const unavailableStorage = {
       getItem: () => {
