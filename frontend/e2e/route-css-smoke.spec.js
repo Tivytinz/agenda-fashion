@@ -64,7 +64,7 @@ async function disableMarketingMeasurement(page) {
 
 async function installOwnerSession(page) {
   await page.addInitScript(() => {
-    localStorage.setItem("token", "owner-css-smoke");
+    localStorage.setItem("session_active", "1");
     localStorage.setItem("usuario", JSON.stringify({ id: 4, nome: "Ana" }));
     localStorage.setItem("negocio", JSON.stringify({
       id: 11,
@@ -84,7 +84,7 @@ async function installOwnerSession(page) {
 
 async function installAdminSession(page) {
   await page.addInitScript(() => {
-    localStorage.setItem("token", "admin-css-smoke");
+    localStorage.setItem("session_active", "1");
     localStorage.setItem("usuario", JSON.stringify({ id: 9, nome: "Admin AF" }));
   });
 
