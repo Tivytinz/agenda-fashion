@@ -11,6 +11,13 @@ html.admin-context-active body {
   background: #f8f6f8;
 }
 
+/* overflow-x: hidden no documento cria um ancestral rolável para sticky. */
+html.admin-context-active,
+html.admin-context-active body,
+html.admin-context-active #root {
+  overflow-x: clip;
+}
+
 .admin-shell {
   display: grid;
   min-height: 100dvh;

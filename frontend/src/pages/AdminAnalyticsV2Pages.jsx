@@ -207,6 +207,7 @@ function useAdminSection(section) {
 
 function AdminSectionFrame({
   children,
+  className = "",
   eyebrow,
   title,
   description,
@@ -224,7 +225,7 @@ function AdminSectionFrame({
 
   if (!data && !error) {
     return (
-      <main className="workspace-page admin-workspace-page admin-command-page">
+      <main className={`workspace-page admin-workspace-page admin-command-page ${className}`}>
         <LoadingState>Carregando {title.toLocaleLowerCase("pt-BR")}...</LoadingState>
       </main>
     );
@@ -232,7 +233,7 @@ function AdminSectionFrame({
 
   if (!data && error) {
     return (
-      <main className="workspace-page admin-workspace-page admin-command-page">
+      <main className={`workspace-page admin-workspace-page admin-command-page ${className}`}>
         <ErrorState message={error} onRetry={retry} />
       </main>
     );
@@ -241,7 +242,7 @@ function AdminSectionFrame({
   return (
     <main
       aria-busy={refreshing}
-      className="workspace-page admin-workspace-page admin-command-page"
+      className={`workspace-page admin-workspace-page admin-command-page ${className}`}
     >
       <header className="workspace-heading admin-command-heading">
         <div>
@@ -421,6 +422,7 @@ export function AdminAcquisitionV2Page() {
 
   return (
     <AdminSectionFrame
+      className="admin-acquisition-page"
       description="Origem das sessões e qualidade dos profissionais adquiridos, separando tráfego de ativação e receita."
       eyebrow="Crescimento"
       state={state}
@@ -436,6 +438,9 @@ export function AdminAcquisitionV2Page() {
         const financialDiagnosis = acquisitionReturn.diagnostico || {};
         const contributionReadiness =
           acquisitionReturn.contribuicaoProntidao || {};
+        const hasProfessionalCohort = campaigns.length > 0;
+        const hasFinancialDiagnosis = financialCampaigns.length > 0 ||
+          Object.values(financialDiagnosis).some((value) => number(value) > 0);
         const totals = campaigns.reduce((acc, campaign) => ({
           cadastros: acc.cadastros + number(campaign.cadastros),
           primeiros: acc.primeiros + number(campaign.primeirosAgendamentos),
@@ -447,11 +452,19 @@ export function AdminAcquisitionV2Page() {
         return (
           <>
             <section className="admin-command-summary-grid is-period-summary">
-              <MetricCard label="Cadastros atribuídos" hint="profissionais na coorte de aquisição" value={formatNumber(totals.cadastros)} />
-              <MetricCard label="1º agendamento" hint="valor entregue pelos adquiridos" value={formatNumber(totals.primeiros)} />
-              <MetricCard label="Assinaturas pagas" hint="primeiro pagamento válido" value={formatNumber(totals.pagas)} />
-              <MetricCard label="Investimento atribuído" hint="gasto importado/registrado no backend" value={formatCentavos(totals.investimento)} />
+              <MetricCard label="Cadastros profissionais" hint="profissionais agrupados por origem" value={hasProfessionalCohort ? formatNumber(totals.cadastros) : "—"} />
+              <MetricCard label="1º agendamento" hint="agendamentos da coorte profissional" value={hasProfessionalCohort ? formatNumber(totals.primeiros) : "—"} />
+              <MetricCard label="Assinaturas pagas" hint="primeiro pagamento válido" value={hasProfessionalCohort ? formatNumber(totals.pagas) : "—"} />
+              <MetricCard label="Investimento registrado" hint="custo das campanhas na coorte" value={hasProfessionalCohort ? formatCentavos(totals.investimento) : "—"} />
             </section>
+
+            {!hasProfessionalCohort && (
+              <p className="admin-acquisition-scope muted" role="status">
+                {origins.length > 0
+                  ? "Há sessões registradas, mas o funil não retornou cadastros profissionais neste período. Os indicadores acima não têm coorte para comparação."
+                  : "Ainda não há sessões ou cadastros profissionais no funil deste período. Os indicadores acima não têm coorte para comparação."}
+              </p>
+            )}
 
             {!data.qualidadeMensuracao?.prontaParaDecisao && data.qualidadeMensuracao?.bloqueios?.length > 0 && (
               <section className="panel admin-command-alert is-warning" role="status">
@@ -466,14 +479,14 @@ export function AdminAcquisitionV2Page() {
             <section className="panel">
               <div className="panel-heading">
                 <div>
-                  <p className="eyebrow">First-party</p>
+                  <p className="eyebrow">Tráfego do site</p>
                   <h2>Sessões por origem</h2>
-                  <p className="muted">UTM, click IDs consentidos e referrer são resolvidos no backend.</p>
+                  <p className="muted">Cada linha mostra uma origem identificada. A mesma rede pode aparecer em mais de uma linha.</p>
                 </div>
               </div>
               {origins.length === 0 ? (
-                <EmptyState title="Ainda não há sessões first-party neste recorte">
-                  A coleta começa após a publicação desta versão. Histórico antigo permanece nas fontes legadas e não é inventado retroativamente.
+                <EmptyState title="Ainda não há sessões registradas neste período">
+                  Não há dados de visitas para mostrar no recorte selecionado.
                 </EmptyState>
               ) : (
                 <div className="table-wrapper">
@@ -499,18 +512,18 @@ export function AdminAcquisitionV2Page() {
             <section className="panel">
               <div className="panel-heading">
                 <div>
-                  <p className="eyebrow">Qualidade por campanha</p>
+                  <p className="eyebrow">Qualidade por origem</p>
                   <h2>Do cadastro à receita</h2>
                 </div>
               </div>
               {campaigns.length === 0 ? (
-                <EmptyState title="Nenhuma coorte atribuída neste período">
-                  Sem cadastros profissionais atribuídos no recorte selecionado.
+                <EmptyState title="Nenhuma coorte profissional neste período">
+                  O funil não retornou cadastros profissionais neste recorte. Sessões registradas não são contadas como cadastros.
                 </EmptyState>
               ) : (
                 <div className="table-wrapper">
                   <table className="data-table">
-                    <thead><tr><th>Campanha</th><th>Cadastros</th><th>Publicados</th><th>1º agendamento</th><th>Pagas</th><th>CAC</th><th>ROAS</th></tr></thead>
+                    <thead><tr><th>Campanha / origem</th><th>Cadastros</th><th>Publicados</th><th>1º agendamento</th><th>Pagas</th><th>CAC</th><th>ROAS</th></tr></thead>
                     <tbody>
                       {campaigns.map((campaign, index) => (
                         <tr key={`${campaign.origem}-${campaign.midia}-${campaign.campanha}-${index}`}>
@@ -532,39 +545,39 @@ export function AdminAcquisitionV2Page() {
             <section className="panel">
               <div className="panel-heading">
                 <div>
-                  <p className="eyebrow">Unit economics observada</p>
+                  <p className="eyebrow">Resultados financeiros</p>
                   <h2>Retorno da aquisição paga</h2>
                   <p className="muted">
-                    CAC de mídia e receita bruta usam a mesma coorte financeira por negócio. A leitura é acumulada desde o primeiro dia local completo após o cutover da Wave 27 e não muda com o filtro temporal do topo.
+                    Investimento e receita consideram os mesmos negócios elegíveis. Esta leitura é acumulada desde o início da cobertura financeira e não muda com o período selecionado acima.
                   </p>
                 </div>
               </div>
 
-              <section className="admin-command-summary-grid is-period-summary">
+              {hasFinancialDiagnosis && <section className="admin-command-summary-grid is-period-summary">
                 <MetricCard
-                  label="Snapshots oficiais"
-                  hint="negócios pagos com campanha financeira congelada"
-                  value={formatNumber(financialDiagnosis.snapshotsOficiais)}
+                  label="Pagantes com campanha atribuída"
+                  hint="negócios pagos com campanha de aquisição confirmada"
+                  value={financialDiagnosis.snapshotsOficiais == null ? "—" : formatNumber(financialDiagnosis.snapshotsOficiais)}
                 />
                 <MetricCard
                   label="Reconciliação pendente"
-                  hint="conversões ainda sem snapshot financeiro"
+                  hint="conversões aguardando confirmação financeira"
                   tone={number(financialDiagnosis.snapshotsPendentes) > 0 ? "warning" : "neutral"}
-                  value={formatNumber(financialDiagnosis.snapshotsPendentes)}
+                  value={financialDiagnosis.snapshotsPendentes == null ? "—" : formatNumber(financialDiagnosis.snapshotsPendentes)}
                 />
                 <MetricCard
                   label="Atribuição incompleta"
-                  hint="negócios pagos sem campanha financeira oficial"
+                  hint="negócios pagos sem campanha confirmada"
                   tone={number(financialDiagnosis.snapshotsAtribuicaoIncompleta) > 0 ? "warning" : "neutral"}
-                  value={formatNumber(financialDiagnosis.snapshotsAtribuicaoIncompleta)}
+                  value={financialDiagnosis.snapshotsAtribuicaoIncompleta == null ? "—" : formatNumber(financialDiagnosis.snapshotsAtribuicaoIncompleta)}
                 />
                 <MetricCard
                   label="Pagantes sem custo D30"
-                  hint="negócios maduros cuja data de aquisição não possui custo diário da campanha"
+                  hint="negócios sem custo de campanha registrado na data de aquisição"
                   tone={number(financialDiagnosis.pagantesSemCustoD30) > 0 ? "warning" : "neutral"}
-                  value={formatNumber(financialDiagnosis.pagantesSemCustoD30)}
+                  value={financialDiagnosis.pagantesSemCustoD30 == null ? "—" : formatNumber(financialDiagnosis.pagantesSemCustoD30)}
                 />
-              </section>
+              </section>}
 
               {(number(financialDiagnosis.snapshotsPendentes) > 0 ||
                 number(financialDiagnosis.pagantesSemCustoD30) > 0) && (
@@ -576,18 +589,18 @@ export function AdminAcquisitionV2Page() {
                 </div>
               )}
 
-              {!contributionReadiness.retornoContribuicaoDisponivel && (
+              {hasFinancialDiagnosis && !contributionReadiness.retornoContribuicaoDisponivel && (
                 <div className="admin-command-alert is-warning" role="status">
                   <strong>Retorno de contribuição ainda indisponível.</strong>
                   <p className="muted">
-                    A leitura só aparece quando existem fontes obrigatórias de custo variável, investimento de mídia maduro e cobertura integral de gateway + contribuição na mesma coorte pós-cutover da Wave 30.
+                    Para calcular o retorno, é necessário ter investimento de mídia, pagamentos confirmados e custos variáveis completos para os mesmos negócios.
                   </p>
                 </div>
               )}
 
               {financialCampaigns.length === 0 ? (
-                <EmptyState title="Aguardando base financeira pós-cutover">
-                  Ainda não existem campanhas com custo ou negócios pagos elegíveis para a leitura financeira da Wave 27.
+                <EmptyState title="Sem dados suficientes para calcular o retorno">
+                  Nenhuma campanha atende aos critérios financeiros para esta leitura acumulada no momento.
                 </EmptyState>
               ) : (
                 <div className="table-wrapper">
@@ -686,17 +699,16 @@ export function AdminAcquisitionV2Page() {
                 </div>
               )}
 
-              <p className="muted">
-                CAC de mídia não é CAC total. A Wave 30 compara contribuição observada com o investimento de mídia da mesma coorte pós-cutover, sem interpolar dias e sem chamar recuperação de mídia de payback econômico definitivo. Lucro e custos fixos continuam fora desta leitura.
-              </p>
+              {financialCampaigns.length > 0 && <p className="muted">
+                O custo por aquisição mostrado considera investimento em mídia. Custos fixos e lucro não entram neste cálculo.
+              </p>}
             </section>
 
             <details className="admin-metric-definition">
               <summary>Como interpretar aquisição</summary>
-              <p>{data.metodologia?.sessoes}</p>
-              <p>{data.metodologia?.conversao}</p>
-              <p>{data.metodologia?.retornoFinanceiro}</p>
-              <p>{acquisitionReturn.metodologia?.retornoContribuicao}</p>
+              <p>Sessões são visitas ao site e não representam cadastros, agendamentos ou pagamentos. A origem depende das informações disponíveis e do consentimento para medição de marketing.</p>
+              <p>Os indicadores do funil agrupam profissionais conforme a evidência de origem disponível, inclusive quando a origem não pôde ser identificada. Visitas sem cadastro não entram nessa coorte.</p>
+              <p>O retorno da mídia usa investimento e pagamentos dos mesmos negócios elegíveis ao longo do tempo, independentemente do filtro do topo. Valores sem cobertura suficiente não são estimados; custos fixos e lucro ficam fora da análise.</p>
             </details>
           </>
         );

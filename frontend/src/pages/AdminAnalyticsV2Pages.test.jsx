@@ -183,7 +183,7 @@ describe("aquisição administrativa v2", () => {
     expect(screen.getByRole("columnheader", { name: "Recuperação contribuição" })).not.toBeNull();
     expect(screen.getByText("Aguardando maturidade")).not.toBeNull();
     expect(screen.getAllByText("até D60").length).toBeGreaterThanOrEqual(2);
-    expect(screen.getByText(/CAC de mídia não é CAC total/i)).not.toBeNull();
+    expect(screen.getByText(/O custo por aquisição mostrado considera investimento em mídia/i)).not.toBeNull();
   });
 
   it("mantém CAC e ROAS calculados pelo backend", async () => {
@@ -197,9 +197,47 @@ describe("aquisição administrativa v2", () => {
   it("identifica ausência de amostra sem inventar conversão", async () => {
     apiRequest.mockResolvedValue({ periodo: "7", sessoesPorOrigem: [], funilPorCampanha: [] });
     renderPage();
-    expect(await screen.findByText("Nenhuma coorte atribuída neste período")).not.toBeNull();
-    expect(screen.getByText("Ainda não há sessões first-party neste recorte")).not.toBeNull();
+    expect(await screen.findByText("Nenhuma coorte profissional neste período")).not.toBeNull();
+    expect(screen.getByText("Ainda não há sessões registradas neste período")).not.toBeNull();
     expect(screen.queryByText("100%")).toBeNull();
+  });
+
+  it("distingue tráfego de coorte atribuída e mantém o retorno sem base financeira", async () => {
+    apiRequest.mockResolvedValue({
+      ...RESULT,
+      funilPorCampanha: [],
+      retornoAquisicao: {
+        diagnostico: { snapshotsOficiais: 0, snapshotsPendentes: 0 },
+        contribuicaoProntidao: { retornoContribuicaoDisponivel: false },
+        campanhas: []
+      }
+    });
+    renderPage();
+    await screen.findByText("Nenhuma coorte profissional neste período");
+    expect(screen.getByText(/Há sessões registradas, mas o funil não retornou cadastros profissionais/)).not.toBeNull();
+    const summary = screen.getByText("Cadastros profissionais").closest("section");
+    expect(within(summary).getAllByText("—")).toHaveLength(4);
+    expect(screen.getByText("Sem dados suficientes para calcular o retorno")).not.toBeNull();
+    expect(screen.queryByText("Pagantes com campanha atribuída")).toBeNull();
+    expect(screen.queryByText("Retorno de contribuição ainda indisponível.")).toBeNull();
+  });
+
+  it("preserva zero quando a coorte profissional existe e a métrica foi medida", async () => {
+    apiRequest.mockResolvedValue({
+      ...RESULT,
+      funilPorCampanha: [{
+        ...RESULT.funilPorCampanha[0],
+        classificacaoAtribuicao: "sem_evidencia",
+        primeirosAgendamentos: 0,
+        investimentoCentavos: 0
+      }]
+    });
+    renderPage();
+    await screen.findByText("Beleza GO");
+    const summary = screen.getByText("Cadastros profissionais").closest("section");
+    expect(within(summary).getByText("10")).not.toBeNull();
+    expect(within(summary).getByText("0")).not.toBeNull();
+    expect(within(summary).getByText(/R\$\s*0,00/)).not.toBeNull();
   });
 
   it("recarrega o período e persiste a seleção na URL", async () => {
@@ -207,7 +245,7 @@ describe("aquisição administrativa v2", () => {
     await screen.findByText("Beleza GO");
     apiRequest.mockResolvedValue({ ...RESULT, periodo: "30", funilPorCampanha: [] });
     fireEvent.click(screen.getByRole("button", { name: "30 dias" }));
-    await screen.findByText("Nenhuma coorte atribuída neste período");
+    await screen.findByText("Nenhuma coorte profissional neste período");
     expect(apiRequest).toHaveBeenLastCalledWith("/admin/analytics-v2/acquisition?periodo=30", expect.objectContaining({ signal: expect.any(AbortSignal) }));
     expect(screen.getByTestId("location").textContent).toBe("?periodo=30");
   });
