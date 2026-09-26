@@ -77,12 +77,12 @@ Usar quando:
 | FE-P1-04 | P1 | SEO/privacidade | rotas sensíveis não recebem `noindex` server-side | resolvido (Wave A) |
 | FE-P2-01 | P2 | cache/performance | heroes públicos usam URL estável com cache `immutable` de 1 ano | resolvido (Wave C) |
 | FE-P2-02 | P2 | aquisição/SEO | landing `/para-profissionais` depende de metadata client-side | resolvido (Wave C) |
-| FE-P2-03 | P2 | privacidade | cache local de sessão mantém metadados pessoais desnecessários | validando (Wave D) |
+| FE-P2-03 | P2 | privacidade | cache local de sessão mantém metadados pessoais desnecessários | resolvido (Wave D) |
 | FE-P2-04 | P2 | sessão | compatibilidade Bearer/localStorage permanece ativa | migração frontend em validação (Wave F) |
 | FE-P2-05 | P2 | segurança | política CSRF depende implicitamente da topologia atual | resolvido (Wave B) |
-| FE-P3-01 | P3 | CORS | `X-Agenda-Access` não está em `allowedHeaders` | validando (Wave D) |
-| FE-P3-02 | P3 | UX/arquitetura | `/convites` aparece no shell profissional mas monta fora dele | validando (Wave D) |
-| FE-P3-03 | P3 | SEO | páginas públicas estáticas compartilham metadata base | validando (Wave D) |
+| FE-P3-01 | P3 | CORS | `X-Agenda-Access` não está em `allowedHeaders` | resolvido (Wave D) |
+| FE-P3-02 | P3 | UX/arquitetura | `/convites` aparece no shell profissional mas monta fora dele | resolvido (Wave D) |
+| FE-P3-03 | P3 | SEO | páginas públicas estáticas compartilham metadata base | resolvido (Wave D) |
 | FE-P3-04 | P3 | analytics | V2 e `eventos_produto` coexistem | adiado: reconciliação de produção necessária |
 
 ## 4. Ordem recomendada de execução
@@ -110,9 +110,12 @@ Wave D — redução de dívida com evidência suficiente
   FE-P3-02 shell de convites
   FE-P3-03 metadata estática
 
-  adiado por falta de evidência operacional:
-  FE-P2-04 Bearer legado
-  FE-P3-04 retirada do pipeline legado
+  FE-P2-04 continua em transição:
+  Wave E — observabilidade para depreciação (mergeada)
+  Wave F — migração do Bearer no frontend (em validação)
+
+  FE-P3-04 permanece adiado:
+  retirada do pipeline legado depende de reconciliação de produção
 ```
 
 A sequência é recomendação técnica. Cada wave executável ainda precisa de
