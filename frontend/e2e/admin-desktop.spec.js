@@ -157,7 +157,7 @@ test("jornada e retenção mostram rótulos e explicações sem comprimir texto"
     ehAdministrador: true
   }));
   await page.route("**/admin/analytics-v2/journey**", (route) => json(route, {
-    periodo: "30",
+    periodo: "7",
     telas: [{
       page_key: "business_profile",
       route_template: "/negocio/:slug",
@@ -170,7 +170,7 @@ test("jornada e retenção mostram rótulos e explicações sem comprimir texto"
     dispositivos: [{ device_type: "mobile", browser_family: "Chrome", sessoes: 35 }]
   }));
   await page.route("**/admin/analytics-v2/retention**", (route) => json(route, {
-    periodo: "30",
+    periodo: "7",
     resumo: {},
     tempos: { primeiroParaSegundo: { amostra: 0, medianaDias: null } },
     janelasCandidatas: [
@@ -181,7 +181,7 @@ test("jornada e retenção mostram rótulos e explicações sem comprimir texto"
 
   for (const width of [390, 1366]) {
     await page.setViewportSize({ width, height: 768 });
-    await page.goto("/admin/jornada?periodo=30");
+    await page.goto("/admin/jornada?periodo=7");
 
     const transition = page.locator(".admin-journey-ranking article").first();
     await expect(transition.getByText("Perfil do negócio → Checkout")).toBeVisible();
@@ -206,7 +206,17 @@ test("jornada e retenção mostram rótulos e explicações sem comprimir texto"
     })).toBe(true);
     await expectNoHorizontalOverflow(page);
 
-    await page.goto("/admin/retencao?periodo=30");
+    const moduleNavigation = page.getByRole("navigation", {
+      name: width < 901
+        ? "Navegação mobile da administração"
+        : "Módulos administrativos"
+    });
+    const retentionRequest = page.waitForRequest((request) =>
+      request.url().includes("/admin/analytics-v2/retention?periodo=7")
+    );
+    await moduleNavigation.getByRole("link", { name: "Retenção" }).click();
+    await retentionRequest;
+    await expect(page).toHaveURL(/\/admin\/retencao\?periodo=7$/);
     const explanation = page.locator(".admin-retention-windows article > span").first();
     await expect(explanation).toHaveText("Sem base madura nesta janela");
     await expect.poll(() => explanation.evaluate((element) =>
@@ -215,5 +225,8 @@ test("jornada e retenção mostram rótulos e explicações sem comprimir texto"
       element.scrollHeight <= element.clientHeight
     )).toBe(true);
     await expectNoHorizontalOverflow(page);
+
+    await page.goBack();
+    await expect(page).toHaveURL(/\/admin\/jornada\?periodo=7$/);
   }
 });

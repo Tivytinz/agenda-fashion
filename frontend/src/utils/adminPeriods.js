@@ -16,6 +16,13 @@ export const WHATSAPP_PERIODS = [
 
 const ADMIN_VALUES = new Set(ADMIN_PERIODS.map(([value]) => value));
 const WHATSAPP_VALUES = new Set(WHATSAPP_PERIODS.map(([value]) => value));
+const ANALYTICS_NAV_PATHS = new Set([
+  "/admin",
+  "/admin/aquisicao",
+  "/admin/jornada",
+  "/admin/retencao",
+  "/admin/receita"
+]);
 
 export function normalizeAdminPeriod(value, fallback = "30") {
   return ADMIN_VALUES.has(String(value || "")) ? String(value) : fallback;
@@ -33,6 +40,13 @@ export function adminPathWithPeriod(path, period) {
   const params = new URLSearchParams();
   params.set("periodo", normalizeAdminPeriod(period));
   return `${path}?${params.toString()}`;
+}
+
+export function adminNavigationPath(path, search) {
+  if (!ANALYTICS_NAV_PATHS.has(path)) return path;
+
+  const period = new URLSearchParams(search).get("periodo");
+  return ADMIN_VALUES.has(period) ? adminPathWithPeriod(path, period) : path;
 }
 
 export function setPeriodSearchParam(searchParams, value) {

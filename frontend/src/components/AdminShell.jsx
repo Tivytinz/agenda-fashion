@@ -12,6 +12,7 @@ import {
   useLocation
 } from "react-router-dom";
 import afLogoTransparent from "../assets/brand/performance/af-logo-96.webp";
+import { adminNavigationPath } from "../utils/adminPeriods";
 import { AppIcon } from "./AppIcon";
 
 function isAdminRouteActive(pathname, route) {
@@ -20,6 +21,8 @@ function isAdminRouteActive(pathname, route) {
 }
 
 function AdminNavLinks({ links, mobile = false, menu = false, onNavigate }) {
+  const { search } = useLocation();
+
   return links.map(([to, label, icon]) => (
     <NavLink
       className={({ isActive }) => {
@@ -34,7 +37,7 @@ function AdminNavLinks({ links, mobile = false, menu = false, onNavigate }) {
       end={to === "/admin"}
       key={to}
       onClick={onNavigate}
-      to={to}
+      to={adminNavigationPath(to, search)}
     >
       <span aria-hidden="true" className="admin-nav-icon">
         <AppIcon name={icon} />
@@ -94,7 +97,7 @@ export function AdminMobileNavigation({ links = [] }) {
           ref={moreRef}
         >
           <button
-            aria-controls={menuId}
+            aria-controls={menuOpen ? menuId : undefined}
             aria-expanded={menuOpen}
             aria-label={menuOpen
               ? "Fechar mais opções da administração"
@@ -119,6 +122,16 @@ export function AdminMobileNavigation({ links = [] }) {
                 menu
                 onNavigate={() => setMenuOpen(false)}
               />
+              <Link
+                className="admin-mobile-menu-link admin-mobile-menu-product"
+                onClick={() => setMenuOpen(false)}
+                to="/"
+              >
+                <span aria-hidden="true" className="admin-nav-icon">
+                  <AppIcon name="home" />
+                </span>
+                <small>Ver produto</small>
+              </Link>
             </div>
           )}
         </div>
@@ -128,6 +141,8 @@ export function AdminMobileNavigation({ links = [] }) {
 }
 
 export function AdminShell({ children, links = [] }) {
+  const { search } = useLocation();
+
   useLayoutEffect(() => {
     document.documentElement.classList.add("admin-context-active");
 
@@ -145,7 +160,7 @@ export function AdminShell({ children, links = [] }) {
         <Link
           aria-label="Agenda Fashion Admin, visão geral"
           className="admin-brand"
-          to="/admin"
+          to={adminNavigationPath("/admin", search)}
         >
           <span aria-hidden="true" className="admin-brand-mark">
             <img

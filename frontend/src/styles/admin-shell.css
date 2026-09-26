@@ -318,51 +318,6 @@ html.admin-context-active body {
   margin-bottom: 0;
 }
 
-.admin-shell .admin-command-heading {
-  align-items: center;
-}
-
-.admin-shell .admin-command-summary-grid {
-  gap: 14px;
-}
-
-.admin-shell .admin-attention-card,
-.admin-shell .admin-operation-card,
-.admin-shell .admin-command-shortcuts a,
-.admin-shell .admin-command-funnel article,
-.admin-shell .admin-priority-list article {
-  border-color: var(--admin-line);
-  border-radius: 14px;
-  background: var(--admin-surface);
-}
-
-.admin-shell .admin-attention-card:hover,
-.admin-shell .admin-operation-card:hover,
-.admin-shell .admin-command-shortcuts a:hover {
-  border-color: rgb(217 47 127 / 22%);
-  box-shadow: var(--admin-shadow-sm);
-}
-
-.admin-shell .admin-command-funnel article > span {
-  background: var(--admin-brand-strong);
-}
-
-.admin-shell .admin-command-tabs {
-  border-color: var(--admin-line);
-  border-radius: 12px;
-  background: var(--admin-soft);
-}
-
-.admin-shell .admin-command-tabs button {
-  border-radius: 9px;
-}
-
-.admin-shell .admin-command-tabs button.active,
-.admin-shell .admin-command-tabs button[aria-pressed="true"] {
-  color: var(--admin-brand-strong);
-  background: #fff;
-}
-
 .admin-mobile-nav {
   display: none;
 }
@@ -447,12 +402,12 @@ html.admin-context-active body {
 
   .admin-mobile-link small,
   .admin-mobile-more > button small {
-    overflow: hidden;
     max-width: 100%;
-    font-size: .58rem;
+    font-size: .75rem;
     font-weight: 760;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    line-height: 1.15;
+    overflow-wrap: anywhere;
+    text-align: center;
   }
 
   .admin-mobile-link.active,
@@ -504,14 +459,16 @@ html.admin-context-active body {
     font-weight: 760;
   }
 
-  .admin-shell .admin-command-heading {
-    align-items: stretch;
+  .admin-mobile-menu-product {
+    border-top: 1px solid var(--admin-line);
+    border-radius: 0 0 10px 10px;
+    margin-top: 3px;
   }
 }
 
 @media (max-width: 520px) {
   .admin-topbar-context small {
-    font-size: .58rem;
+    font-size: .68rem;
   }
 
   .admin-topbar-context strong {
