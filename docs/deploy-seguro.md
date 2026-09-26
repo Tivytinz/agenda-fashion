@@ -26,7 +26,7 @@ Ele valida, na mesma revisão:
 
 Execuções obsoletas da mesma PR ou ref podem ser canceladas para que apenas a revisão mais recente seja considerada.
 
-Os testes Playwright de UX podem interceptar APIs quando o objetivo é validar navegação, responsividade e estados de interface. Isso não os torna testes full-stack. A suíte separada em `frontend/e2e-fullstack` existe para validar contratos P0 contra a aplicação servida pelo Express e o PostgreSQL de teste reais. O workflow `Security CI` complementa o Quality Gate com revisão de mudanças em dependências e análise CodeQL.
+Os testes Playwright de UX podem interceptar APIs quando o objetivo é validar navegação, responsividade e estados de interface. Isso não os torna testes full-stack. A suíte separada em `frontend/e2e-fullstack` existe para validar contratos P0 contra a aplicação servida pelo Express e o PostgreSQL de teste reais. O workflow `Security CI` complementa o Quality Gate com análise CodeQL. Revisão automática do diff de dependências depende do Dependency Graph do GitHub e permanece fora do gate até essa configuração externa ser habilitada e validada.
 
 ## Ordem obrigatória
 
