@@ -41,6 +41,7 @@ describe("track attribution", () => {
 
   afterEach(() => {
     vi.useRealTimers();
+    vi.unstubAllEnvs();
   });
 
   test("persiste a campanha da entrada e reaplica nos eventos seguintes", () => {
