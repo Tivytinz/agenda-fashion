@@ -20,7 +20,7 @@ async function expectNoHorizontalOverflow(page) {
 
 async function stubAdminMarketingOverview(page) {
   await page.addInitScript(() => {
-    localStorage.setItem("token", "admin-desktop-e2e");
+    localStorage.setItem("session_active", "1");
     localStorage.setItem(
       "usuario",
       JSON.stringify({ id: 9, nome: "Admin AF" })
