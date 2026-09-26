@@ -31,10 +31,8 @@ export async function migrateLegacySession() {
     };
   }
 
-  let response;
-
-  try {
-    response = await fetch(
+  const response =
+    await fetch(
       `${API_URL}/auth/migrar-sessao-legada`,
       {
         method: "POST",
@@ -46,9 +44,6 @@ export async function migrateLegacySession() {
         credentials: "include"
       }
     );
-  } catch (requestError) {
-    throw requestError;
-  }
 
   if (response.ok) {
     removeBrowserStorage(
