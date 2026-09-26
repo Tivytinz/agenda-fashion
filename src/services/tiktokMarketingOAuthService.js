@@ -47,7 +47,7 @@ function validarRedirectUri(valor) {
     redirect = new URL(valor);
     publicUrl = new URL(
       textoEnv("PUBLIC_APP_URL") ||
-        "https://app.agendafashion.com.br"
+        "https://agendafashion.com.br"
     );
   } catch {
     throw new AppError(
@@ -397,7 +397,7 @@ async function obterAccessToken() {
 
 function urlResultado(status) {
   const base = textoEnv("PUBLIC_APP_URL") ||
-    "https://app.agendafashion.com.br";
+    "https://agendafashion.com.br";
   const url = new URL(ADMIN_RESULT_PATH, base);
   url.searchParams.set(
     "tiktok_oauth",

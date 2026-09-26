@@ -49,7 +49,7 @@ describe("prévia social dos links públicos", () => {
       '<title>Beauty &lt;Vanessa&gt; &quot;Studio&quot;</title>'
     );
     expect(html).toContain('property="og:title"');
-    expect(html).toContain('property="og:url" content="https://app.agendafashion.com.br/negocio/beauty-vanessa"');
+    expect(html).toContain('property="og:url" content="https://agendafashion.com.br/negocio/beauty-vanessa"');
     expect(html).not.toContain("content=\"genérica\"");
   });
 
@@ -67,7 +67,7 @@ describe("prévia social dos links públicos", () => {
       "https://cdn.teste/servico.jpg"
     );
     expect(previa.metadados.url).toBe(
-      "https://app.agendafashion.com.br/negocio/beauty-vanessa?servico=11"
+      "https://agendafashion.com.br/negocio/beauty-vanessa?servico=11"
     );
   });
 
@@ -110,7 +110,7 @@ describe("prévia social dos links públicos", () => {
       'name="robots" content="noindex,follow"'
     );
     expect(resposta.text).toContain(
-      'rel="canonical" href="https://app.agendafashion.com.br/negocio/nao-existe"'
+      'rel="canonical" href="https://agendafashion.com.br/negocio/nao-existe"'
     );
   });
 
@@ -129,7 +129,7 @@ describe("prévia social dos links públicos", () => {
       'property="og:image" content="https://cdn.teste/servico.jpg"'
     );
     expect(resposta.text).toContain(
-      'rel="canonical" href="https://app.agendafashion.com.br/negocio/beauty-vanessa?servico=11"'
+      'rel="canonical" href="https://agendafashion.com.br/negocio/beauty-vanessa?servico=11"'
     );
     expect(resposta.text).not.toContain("utm_source");
   });

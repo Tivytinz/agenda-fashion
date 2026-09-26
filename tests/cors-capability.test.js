@@ -19,7 +19,7 @@ describe(
             )
             .set(
               "Origin",
-              "https://app.agendafashion.com.br"
+              "https://agendafashion.com.br"
             )
             .set(
               "Access-Control-Request-Method",
@@ -39,7 +39,7 @@ describe(
             "access-control-allow-origin"
           ]
         ).toBe(
-          "https://app.agendafashion.com.br"
+          "https://agendafashion.com.br"
         );
 
         expect(

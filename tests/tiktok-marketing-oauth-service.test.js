@@ -19,14 +19,14 @@ const service = require(
 
 function envValido() {
   process.env.NODE_ENV = "test";
-  process.env.PUBLIC_APP_URL = "https://app.agendafashion.com.br";
+  process.env.PUBLIC_APP_URL = "https://agendafashion.com.br";
   process.env.TIKTOK_APP_ID = "app_123";
   process.env.TIKTOK_APP_SECRET = "secret_456";
   process.env.TIKTOK_ADVERTISER_ID = "777888999";
   process.env.TIKTOK_OAUTH_ENCRYPTION_KEY =
     "uma-chave-de-criptografia-com-mais-de-32-caracteres";
   process.env.TIKTOK_OAUTH_REDIRECT_URI =
-    "https://app.agendafashion.com.br/admin/marketing/custos-integracoes/tiktok_ads/callback";
+    "https://agendafashion.com.br/admin/marketing/custos-integracoes/tiktok_ads/callback";
   process.env.TIKTOK_OAUTH_SCOPE = "4";
 }
 
