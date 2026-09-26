@@ -20,10 +20,13 @@ Ele valida, na mesma revisão:
 4. testes Vitest;
 5. migrations em PostgreSQL de teste;
 6. Jest com coverage;
-7. auditoria de dependências de produção no nível configurado;
-8. Playwright em Chromium e WebKit, incluindo jornadas mobile aplicáveis.
+7. auditorias dos grafos backend/tooling, runtime e frontend no nível configurado;
+8. Playwright de UX em Chromium e WebKit, incluindo jornadas mobile aplicáveis;
+9. acceptance full-stack em Chromium com frontend buildado, Express e PostgreSQL reais, sem mocks de API no fluxo coberto.
 
 Execuções obsoletas da mesma PR ou ref podem ser canceladas para que apenas a revisão mais recente seja considerada.
+
+Os testes Playwright de UX podem interceptar APIs quando o objetivo é validar navegação, responsividade e estados de interface. Isso não os torna testes full-stack. A suíte separada em `frontend/e2e-fullstack` existe para validar contratos P0 contra a aplicação servida pelo Express e o PostgreSQL de teste reais. O workflow `Security CI` complementa o Quality Gate com revisão de mudanças em dependências e análise CodeQL.
 
 ## Ordem obrigatória
 
