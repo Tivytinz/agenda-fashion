@@ -1,5 +1,9 @@
 import { clearSession } from "../auth/session";
-import { readBrowserStorage } from "../utils/browserStorage";
+import {
+  readBrowserStorage,
+  removeBrowserStorage,
+  writeBrowserStorage
+} from "../utils/browserStorage";
 
 const API_URL = String(import.meta.env.VITE_API_URL || "").replace(/\/+$/, "");
 const DEFAULT_TIMEOUT_MS = 20000;
@@ -13,6 +17,85 @@ export class ApiError extends Error {
   }
 }
 
+export async function migrateLegacySession() {
+  const token =
+    readBrowserStorage(
+      "local",
+      "token"
+    );
+
+  if (!token) {
+    return {
+      attempted: false,
+      migrated: false
+    };
+  }
+
+  let response;
+
+  try {
+    response = await fetch(
+      `${API_URL}/auth/migrar-sessao-legada`,
+      {
+        method: "POST",
+        headers: {
+          Accept: "application/json",
+          Authorization:
+            `Bearer ${token}`
+        },
+        credentials: "include"
+      }
+    );
+  } catch (requestError) {
+    throw requestError;
+  }
+
+  if (response.ok) {
+    removeBrowserStorage(
+      "local",
+      "token"
+    );
+    writeBrowserStorage(
+      "local",
+      "session_active",
+      "1"
+    );
+
+    return {
+      attempted: true,
+      migrated: true
+    };
+  }
+
+  if (
+    response.status === 401 ||
+    response.status === 403
+  ) {
+    clearSession({
+      notify: true
+    });
+
+    return {
+      attempted: true,
+      migrated: false,
+      invalid: true
+    };
+  }
+
+  const data =
+    await response
+      .json()
+      .catch(() => ({}));
+
+  throw new ApiError(
+    data.erro ||
+      data.mensagem ||
+      "Não foi possível migrar a sessão antiga.",
+    response.status,
+    data
+  );
+}
+
 export async function apiRequest(path, options = {}) {
   const {
     signal: externalSignal,
@@ -20,13 +103,8 @@ export async function apiRequest(path, options = {}) {
     ...requestOptions
   } = options;
   const headers = new Headers(options.headers || {});
-  const token = readBrowserStorage("local", "token");
 
   headers.set("Accept", "application/json");
-
-  if (token && !headers.has("Authorization")) {
-    headers.set("Authorization", `Bearer ${token}`);
-  }
 
   let body = options.body;
 
