@@ -135,6 +135,16 @@ test("shell do admin mantém navegação durante rolagem e privacidade fora dos 
   );
 
   await stubAdminMarketingOverview(page);
+  await page.addInitScript(() => {
+    localStorage.setItem("af_marketing_consent_v2", JSON.stringify({
+      version: 2,
+      status: "denied"
+    }));
+  });
+  await page.route("**/marketing/meta/config", (route) => json(route, {
+    enabled: true,
+    pixelId: "123456"
+  }));
   await page.route("**/admin/analytics-v2/acquisition**", (route) => json(route, {
     periodo: "30",
     sessoesPorOrigem: Array.from({ length: 30 }, (_, index) => ({
