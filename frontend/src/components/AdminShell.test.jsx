@@ -110,5 +110,55 @@ describe("AdminShell", () => {
     expect(
       mobileNavigation.querySelector("a[href='/admin/operacao']")
     ).not.toBeNull();
+    expect(
+      mobileNavigation.querySelector("a[href='/']")?.textContent
+    ).toContain("Ver produto");
+    expect(screen.getByRole("button", {
+      name: "Fechar mais opções da administração"
+    }).getAttribute("aria-controls")).not.toBeNull();
+
+    await user.keyboard("{Escape}");
+    expect(screen.getByRole("button", {
+      name: "Abrir mais opções da administração"
+    }).hasAttribute("aria-controls")).toBe(false);
+    expect(mobileNavigation.querySelector("a[href='/']")).toBeNull();
+  });
+
+  it("preserva apenas períodos válidos entre módulos analíticos", async () => {
+    const user = userEvent.setup();
+    renderAdmin("/admin/jornada?periodo=7&aba=ignorada");
+
+    expect(screen.getByRole("link", {
+      name: "Agenda Fashion Admin, visão geral"
+    }).getAttribute("href")).toBe("/admin?periodo=7");
+    expect(document.querySelector(".admin-nav-link[href='/admin/retencao?periodo=7']"))
+      .not.toBeNull();
+    expect(document.querySelector(".admin-nav-link[href='/admin/operacao']"))
+      .not.toBeNull();
+
+    await user.click(screen.getByRole("button", {
+      name: "Abrir mais opções da administração"
+    }));
+    expect(document.querySelector(".admin-mobile-menu-link[href='/admin/receita?periodo=7']"))
+      .not.toBeNull();
+    expect(document.querySelector(".admin-mobile-menu-link[href='/admin/operacao']"))
+      .not.toBeNull();
+  });
+
+  it("não propaga período inválido nem filtros operacionais", async () => {
+    const user = userEvent.setup();
+    const view = renderAdmin("/admin/aquisicao?periodo=30d");
+    expect(document.querySelector(".admin-nav-link[href='/admin/retencao']"))
+      .not.toBeNull();
+    view.unmount();
+
+    renderAdmin("/admin/operacao?aba=usuarios&busca=ana");
+    expect(document.querySelector(".admin-nav-link[href='/admin/jornada']"))
+      .not.toBeNull();
+    await user.click(screen.getByRole("button", {
+      name: "Abrir mais opções da administração"
+    }));
+    expect(document.querySelector(".admin-mobile-menu-link[href='/admin/receita']"))
+      .not.toBeNull();
   });
 });
