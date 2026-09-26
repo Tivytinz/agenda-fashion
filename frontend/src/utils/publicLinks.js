@@ -1,5 +1,5 @@
 const DEFAULT_PUBLIC_ORIGIN =
-  "https://app.agendafashion.com.br";
+  "https://agendafashion.com.br";
 
 export const PUBLIC_LINK_MEDIA =
   Object.freeze({
