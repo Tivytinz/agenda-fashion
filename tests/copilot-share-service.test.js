@@ -66,12 +66,12 @@ describe("copilotShareService", () => {
       canal: "whatsapp",
     });
 
-    expect(resultado.fonte).toBe("fallback");
+    expect(resultado.fonte).toBe("deterministic");
     expect(resultado.texto).toContain("Alongamento em gel");
     expect(resultado.texto).not.toMatch(/https?:\/\//i);
     expect(openaiProvider.generateShareCopy).not.toHaveBeenCalled();
     expect(resultado).toEqual(expect.objectContaining({
-      fonte: "fallback",
+      fonte: "deterministic",
       oportunidade: "SERVICO_COM_TRACAO_CONCENTRADA",
       canal: "whatsapp",
     }));
@@ -102,7 +102,7 @@ describe("copilotShareService", () => {
     }));
   });
 
-  it("volta ao fallback quando o provedor falha ou inclui URL", async () => {
+  it("volta à geração determinística quando o provedor falha ou inclui URL", async () => {
     openaiProvider.isEnabled.mockReturnValue(true);
     openaiProvider.generateShareCopy.mockResolvedValue({
       titulo: "Veja agora",
@@ -114,7 +114,7 @@ describe("copilotShareService", () => {
       periodo: "30dias",
     });
 
-    expect(resultado.fonte).toBe("fallback");
+    expect(resultado.fonte).toBe("deterministic");
     expect(resultado.texto).not.toContain("example.com");
   });
 
