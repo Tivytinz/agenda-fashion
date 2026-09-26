@@ -36,6 +36,36 @@ O AF deve gerar valor para os dois lados do marketplace:
 - clientes finais precisam encontrar oferta relevante, consultar disponibilidade
   real e agendar com poucos passos.
 
+## Domínio público canônico
+
+A origem pública oficial do Agenda Fashion é:
+
+```text
+https://agendafashion.com.br
+```
+
+Site público, descoberta, autenticação e áreas operacionais continuam na mesma
+aplicação React e no mesmo domínio; os contextos são separados por rota, sessão
+e autorização, não por subdomínio.
+
+`app.agendafashion.com.br` é apenas host legado de compatibilidade. Navegações
+HTML GET/HEAD recebidas nele devem redirecionar permanentemente para a mesma rota
+e query no domínio canônico quando `PUBLIC_APP_URL` estiver apontando para a
+origem oficial. APIs, webhooks e chamadas não HTML não devem ser forçados por
+esse redirect para não quebrar integrações durante a transição.
+
+`agenda-fashion-production.up.railway.app` é endereço de infraestrutura e não
+deve ser divulgado como URL de produto.
+
+Backend e frontend devem manter `PUBLIC_APP_URL` e `VITE_PUBLIC_APP_URL`
+alinhados em `https://agendafashion.com.br`. A allowlist de CORS e callbacks
+OAuth de produção também devem usar a origem canônica, salvo compatibilidade
+temporária explicitamente justificada.
+
+A sessão de produção usa cookie `__Host-` host-only. Por isso, a migração do
+host legado para o domínio raiz pode exigir uma autenticação única novamente;
+não ampliar o `Domain` do cookie apenas para compartilhar sessão entre hosts.
+
 ## Entidades e contextos
 
 Não tratar como equivalentes:
