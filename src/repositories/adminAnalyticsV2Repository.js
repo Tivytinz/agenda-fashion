@@ -966,11 +966,89 @@ async function buscarReconciliacaoPipelines(periodo = "30") {
     `
   );
 
+  const inicioComparavel =
+    resultado.rows[0]?.inicio_comparavel || null;
+
+  const diagnostico = inicioComparavel
+    ? await db.query(
+        `
+        WITH legado_dia AS (
+          SELECT
+            (ep.created_at AT TIME ZONE '${TIME_ZONE}')::date AS dia,
+            CASE
+              WHEN ep.nome = 'perfil_visualizado' THEN 'profile_viewed'
+              WHEN ep.nome IN (
+                'link_negocio_copiado',
+                'link_negocio_compartilhado',
+                'link_servico_copiado',
+                'link_servico_compartilhado'
+              ) THEN 'profile_shared'
+              WHEN ep.nome = 'agendamento_iniciado' THEN 'booking_started'
+              WHEN ep.nome = 'agendamento_concluido' THEN 'booking_completed'
+            END AS evento,
+            COUNT(*)::INT AS eventos
+          FROM eventos_produto ep
+          WHERE ep.created_at >= $1
+            AND ep.nome IN (
+              'perfil_visualizado',
+              'link_negocio_copiado',
+              'link_negocio_compartilhado',
+              'link_servico_copiado',
+              'link_servico_compartilhado',
+              'agendamento_iniciado',
+              'agendamento_concluido'
+            )
+          GROUP BY 1, 2
+        ),
+        v2_dia AS (
+          SELECT
+            (ae.occurred_at AT TIME ZONE '${TIME_ZONE}')::date AS dia,
+            ae.nome AS evento,
+            COUNT(*)::INT AS eventos
+          FROM analytics_eventos ae
+          WHERE ae.occurred_at >= $1
+            AND ae.origem = 'frontend'
+            AND ae.nome IN (
+              'profile_viewed',
+              'profile_shared',
+              'booking_started',
+              'booking_completed'
+            )
+          GROUP BY 1, 2
+        ),
+        chaves AS (
+          SELECT dia, evento FROM legado_dia
+          UNION
+          SELECT dia, evento FROM v2_dia
+        )
+        SELECT
+          COUNT(DISTINCT ch.dia)::INT AS dias_com_evidencia,
+          COUNT(*) FILTER (
+            WHERE COALESCE(v.eventos, 0) <> COALESCE(l.eventos, 0)
+          )::INT AS pares_dia_evento_divergentes,
+          MAX(ch.dia) AS ultimo_dia_com_evidencia
+        FROM chaves ch
+        LEFT JOIN legado_dia l
+          ON l.dia = ch.dia AND l.evento = ch.evento
+        LEFT JOIN v2_dia v
+          ON v.dia = ch.dia AND v.evento = ch.evento
+        `,
+        [inicioComparavel]
+      )
+    : { rows: [] };
+
   return {
     periodo: seguro,
-    inicioComparavel:
-      resultado.rows[0]?.inicio_comparavel || null,
+    inicioComparavel,
     eventos: resultado.rows,
+    diagnosticoEstabilidade: {
+      diasComEvidencia:
+        diagnostico.rows[0]?.dias_com_evidencia || 0,
+      paresDiaEventoDivergentes:
+        diagnostico.rows[0]?.pares_dia_evento_divergentes || 0,
+      ultimoDiaComEvidencia:
+        diagnostico.rows[0]?.ultimo_dia_com_evidencia || null,
+    },
   };
 }
 
