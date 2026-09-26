@@ -1,6 +1,6 @@
 const {
   sanitizeCopilotShareOutput,
-  buildFallbackShareOutput,
+  buildDeterministicShareOutput,
 } = require("../src/services/copilot/copilotOutputService");
 
 describe("copilotOutputService", () => {
@@ -47,8 +47,8 @@ describe("copilotOutputService", () => {
     ).toBeNull();
   });
 
-  test("fallback permanece determinístico e sem alegações proibidas", () => {
-    const resultado = buildFallbackShareOutput({
+  test("saída determinística permanece sem alegações proibidas", () => {
+    const resultado = buildDeterministicShareOutput({
       negocio: {
         nome: "Studio Rosa",
       },
