@@ -3,12 +3,16 @@
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { apiRequest } from "../api/client";
+import {
+  apiRequest,
+  migrateLegacySession
+} from "../api/client";
 import { SessionProvider, useSession } from "./SessionContext";
 import { clearSession } from "./session";
 
 vi.mock("../api/client", () => ({
-  apiRequest: vi.fn()
+  apiRequest: vi.fn(),
+  migrateLegacySession: vi.fn()
 }));
 
 function SessionProbe() {
@@ -42,6 +46,12 @@ beforeEach(() => {
     id: 9,
     nome: "Studio Ana"
   }));
+  migrateLegacySession
+    .mockResolvedValue({
+      attempted: false,
+      migrated: false
+    });
+
   apiRequest.mockResolvedValue({
     usuario: { id: 1, nome: "Ana" },
     negocio: null,
@@ -53,6 +63,8 @@ afterEach(() => {
   cleanup();
   localStorage.clear();
   apiRequest.mockReset();
+  migrateLegacySession
+    .mockReset();
 });
 
 describe("sincronização da sessão", () => {
@@ -66,6 +78,60 @@ describe("sincronização da sessão", () => {
     clearSession({ notify: true });
 
     await waitFor(() => expect(screen.getByText("Desconectada")).not.toBeNull());
+  });
+
+  it("migra Bearer legado antes de consultar a sessão canônica", async () => {
+    localStorage.removeItem(
+      "session_active"
+    );
+    localStorage.setItem(
+      "token",
+      "jwt-legado"
+    );
+
+    migrateLegacySession
+      .mockImplementation(
+        async () => {
+          localStorage.removeItem(
+            "token"
+          );
+          localStorage.setItem(
+            "session_active",
+            "1"
+          );
+
+          return {
+            attempted: true,
+            migrated: true
+          };
+        }
+      );
+
+    renderSession();
+
+    expect(
+      await screen.findByText(
+        "Ana"
+      )
+    ).not.toBeNull();
+
+    expect(
+      migrateLegacySession
+    ).toHaveBeenCalledTimes(1);
+
+    expect(
+      apiRequest
+    ).toHaveBeenCalledWith(
+      "/minha-sessao"
+    );
+
+    expect(
+      migrateLegacySession
+        .mock.invocationCallOrder[0]
+    ).toBeLessThan(
+      apiRequest
+        .mock.invocationCallOrder[0]
+    );
   });
 
   it("limpa a sessão local e encerra o cookie no servidor", async () => {
