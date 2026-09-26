@@ -142,3 +142,78 @@ test("marketing admin não corta navegação ou período em desktops intermediá
     await expectMarketingControlsInsideWorkspace(page);
   }
 });
+
+test("jornada e retenção mostram rótulos e explicações sem comprimir texto", async ({ page }, testInfo) => {
+  test.skip(
+    !testInfo.project.name.startsWith("desktop-"),
+    "Cobertura dedicada aos projetos desktop do admin."
+  );
+
+  await page.addInitScript(() => localStorage.setItem("session_active", "1"));
+  await page.route("**/minha-sessao", (route) => json(route, {
+    usuario: { id: 9, nome: "Admin AF" },
+    negocio: null,
+    administrador: { usuarioId: 9 },
+    ehAdministrador: true
+  }));
+  await page.route("**/admin/analytics-v2/journey**", (route) => json(route, {
+    periodo: "30",
+    telas: [{
+      page_key: "business_profile",
+      route_template: "/negocio/:slug",
+      visualizacoes: 17,
+      sessoes: 17,
+      tempo_medio_segundos: 20
+    }],
+    transicoes: [{ origem: "business_profile", destino: "checkout", transicoes: 10 }],
+    eventos: [{ nome: "profile_viewed", eventos: 17, sessoes: 17 }],
+    dispositivos: [{ device_type: "mobile", browser_family: "Chrome", sessoes: 35 }]
+  }));
+  await page.route("**/admin/analytics-v2/retention**", (route) => json(route, {
+    periodo: "30",
+    resumo: {},
+    tempos: { primeiroParaSegundo: { amostra: 0, medianaDias: null } },
+    janelasCandidatas: [
+      { janelaDias: 7, elegiveis: 0, comSegundoNaJanela: 0, taxaSegundoNaJanela: null }
+    ],
+    coortesSemanais: []
+  }));
+
+  for (const width of [390, 1366]) {
+    await page.setViewportSize({ width, height: 768 });
+    await page.goto("/admin/jornada?periodo=30");
+
+    const transition = page.locator(".admin-journey-ranking article").first();
+    await expect(transition.getByText("Perfil do negócio → Checkout")).toBeVisible();
+    await expect.poll(() => transition.evaluate((row) => {
+      const label = row.querySelector("strong");
+      const count = row.querySelector("span");
+      return {
+        columns: getComputedStyle(row).gridTemplateColumns.split(" ").length,
+        labelWraps: getComputedStyle(label).whiteSpace === "normal",
+        countFits: count.scrollWidth <= count.clientWidth
+      };
+    })).toEqual({ columns: 2, labelWraps: true, countFits: true });
+
+    const device = page.locator(".admin-journey-ranking article").last();
+    await expect(device.getByText("mobile")).toBeVisible();
+    await expect(device.getByText("35 sessões")).toBeVisible();
+    await expect.poll(() => device.evaluate((row) => {
+      const label = row.querySelector("strong");
+      const count = row.querySelector("span");
+      return getComputedStyle(label).whiteSpace === "normal" &&
+        count.scrollWidth <= count.clientWidth;
+    })).toBe(true);
+    await expectNoHorizontalOverflow(page);
+
+    await page.goto("/admin/retencao?periodo=30");
+    const explanation = page.locator(".admin-retention-windows article > span").first();
+    await expect(explanation).toHaveText("Sem base madura nesta janela");
+    await expect.poll(() => explanation.evaluate((element) =>
+      getComputedStyle(element).whiteSpace === "normal" &&
+      element.getBoundingClientRect().width > 80 &&
+      element.scrollHeight <= element.clientHeight
+    )).toBe(true);
+    await expectNoHorizontalOverflow(page);
+  }
+});

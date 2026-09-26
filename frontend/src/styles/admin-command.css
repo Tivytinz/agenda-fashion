@@ -454,6 +454,30 @@
   white-space: nowrap;
 }
 
+/* Jornada tem rótulo e contagem; o ranking do marketplace usa três colunas. */
+.admin-journey-ranking article {
+  grid-template-columns: minmax(0, 1fr) max-content;
+}
+
+.admin-journey-ranking article > span {
+  display: block;
+  width: auto;
+  height: auto;
+  border-radius: 0;
+  color: var(--admin-ink);
+  background: transparent;
+  font-size: .78rem;
+  white-space: nowrap;
+}
+
+.admin-journey-ranking strong,
+.admin-journey-ranking small {
+  overflow: visible;
+  overflow-wrap: anywhere;
+  text-overflow: clip;
+  white-space: normal;
+}
+
 @media (max-width: 1180px) {
   .admin-command-summary-grid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
