@@ -40,8 +40,6 @@ afterEach(() => {
 
 describe("link seguro do booking visitante", () => {
   it("CA-AG-09: consulta e cancela apenas com a capability do próprio booking", async () => {
-    vi.spyOn(window, "confirm").mockReturnValue(true);
-
     apiRequest
       .mockResolvedValueOnce({
         agendamento: {
@@ -105,6 +103,19 @@ describe("link seguro do booking visitante", () => {
       })
     );
 
+    expect(
+      screen.getByRole("heading", {
+        name: "Cancelar este agendamento?"
+      })
+    ).not.toBeNull();
+    expect(apiRequest).toHaveBeenCalledTimes(1);
+
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: "Sim, cancelar"
+      })
+    );
+
     await waitFor(() => {
       expect(apiRequest).toHaveBeenLastCalledWith(
         "/agendamentos/91/cancelar-visitante",
@@ -129,5 +140,42 @@ describe("link seguro do booking visitante", () => {
         name: "Cancelar agendamento"
       })
     ).toBeNull();
+  });
+  it("permite desistir sem chamar o endpoint e devolve o foco ao gatilho", async () => {
+    vi.stubGlobal("requestAnimationFrame", (callback) => {
+      callback();
+      return 1;
+    });
+
+    apiRequest.mockResolvedValueOnce({
+      agendamento: {
+        id: 91,
+        status: "confirmado",
+        data: "2026-09-30",
+        horario: "14:00",
+        servico_nome: "Manicure",
+        profissional_nome: "Ana",
+        negocio_nome: "Studio AF",
+        valor: 55
+      },
+      pode_cancelar: true,
+      cancelamento_indisponivel: null
+    });
+
+    render(
+      <MemoryRouter initialEntries={["/agendamento-visitante/91#token=capability-segura"]}>
+        <Routes>
+          <Route path="/agendamento-visitante/:id" element={<GuestBookingAccessPage />} />
+        </Routes>
+      </MemoryRouter>
+    );
+
+    const trigger = await screen.findByRole("button", { name: "Cancelar agendamento" });
+    fireEvent.click(trigger);
+    fireEvent.click(screen.getByRole("button", { name: "Manter agendamento" }));
+
+    expect(apiRequest).toHaveBeenCalledTimes(1);
+    expect(screen.queryByRole("heading", { name: "Cancelar este agendamento?" })).toBeNull();
+    expect(document.activeElement).toBe(trigger);
   });
 });
