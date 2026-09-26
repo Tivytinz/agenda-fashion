@@ -265,6 +265,12 @@ function validarConfiguracaoRuntime(env = process.env) {
     validarUrl(texto(env, "ASAAS_API_URL"), "ASAAS_API_URL", {
       exigirHttps: true,
     });
+    exigirTamanhoMinimo(
+      env,
+      "ASAAS_WEBHOOK_TOKEN",
+      32,
+      "Produção"
+    );
   }
 
   if (flagAtiva(env.WHATSAPP_NOTIFICATIONS_ENABLED)) {

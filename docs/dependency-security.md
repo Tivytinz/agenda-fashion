@@ -16,6 +16,8 @@ O audit completo da raiz impede que vulnerabilidades `high` ou `critical` em Jes
 
 Uma vulnerabilidade `high` ou `critical` em qualquer um desses grafos bloqueia o gate até que seja corrigida ou tecnicamente reavaliada com evidência suficiente. O AF não reduz severidade nem adiciona ignore apenas para liberar CI.
 
+Além dos audits, o repositório mantém `.github/dependabot.yml` para acompanhar dependências npm da raiz, frontend e GitHub Actions. O workflow `Security CI` executa CodeQL para JavaScript/TypeScript. Dependency Review depende do Dependency Graph do GitHub e só deve virar gate depois que essa configuração externa estiver habilitada e validada. Esses controles complementam, mas não substituem, revisão de diff, testes e validação operacional.
+
 ## Remediações transitivas
 
 Quando o pacote vulnerável for transitivo, a preferência é manter a menor mudança compatível no lockfile, dentro do range já aceito pelo pacote pai. Atualizações maiores ou overrides permanentes só devem ser usados quando a resolução transitiva normal não for suficiente.
