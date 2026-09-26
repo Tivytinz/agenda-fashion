@@ -78,7 +78,7 @@ Usar quando:
 | FE-P2-01 | P2 | cache/performance | heroes públicos usam URL estável com cache `immutable` de 1 ano | resolvido (Wave C) |
 | FE-P2-02 | P2 | aquisição/SEO | landing `/para-profissionais` depende de metadata client-side | resolvido (Wave C) |
 | FE-P2-03 | P2 | privacidade | cache local de sessão mantém metadados pessoais desnecessários | validando (Wave D) |
-| FE-P2-04 | P2 | sessão | compatibilidade Bearer/localStorage permanece ativa | observabilidade em validação (Wave E) |
+| FE-P2-04 | P2 | sessão | compatibilidade Bearer/localStorage permanece ativa | migração frontend em validação (Wave F) |
 | FE-P2-05 | P2 | segurança | política CSRF depende implicitamente da topologia atual | resolvido (Wave B) |
 | FE-P3-01 | P3 | CORS | `X-Agenda-Access` não está em `allowedHeaders` | validando (Wave D) |
 | FE-P3-02 | P3 | UX/arquitetura | `/convites` aparece no shell profissional mas monta fora dele | validando (Wave D) |
@@ -739,17 +739,26 @@ Enquanto existir:
 - caminhos de teste/manutenção aumentam;
 - futuro código pode reutilizar o legado por engano.
 
-### Plano de retirada
+### Execução da Wave F
 
-Não remover às cegas.
+A retirada é dividida em duas fases para não quebrar sessões antigas.
 
-Primeiro:
+Fase executada nesta wave:
 
-1. confirmar por logs/telemetria segura se Bearer legado ainda chega;
-2. confirmar clientes/versões suportadas;
-3. remover leitura client-side;
-4. remover aceitação server-side em wave separada;
-5. atualizar testes/documentação.
+1. `apiRequest()` deixa de enviar `localStorage.token` automaticamente;
+2. o bootstrap detecta o token legado;
+3. chama `POST /auth/migrar-sessao-legada`;
+4. o backend valida o Bearer pelo middleware canônico;
+5. grava cookie HttpOnly;
+6. remove o token do browser;
+7. continua a sessão por `/minha-sessao`.
+
+Fase ainda pendente:
+
+1. observar a métrica da Wave E por janela representativa;
+2. confirmar clientes/versões suportados fora do browser atual;
+3. remover a aceitação server-side de Bearer em wave própria;
+4. remover a instrumentação de depreciação quando não for mais necessária.
 
 ### Critério de fechamento
 
@@ -1190,7 +1199,16 @@ divergências e consumidores remanescentes continuam exigindo revisão humana.
 
 # Matriz de testes para fechamento
 
-## 29. Cobertura mínima
+## 29. Wave F — migração do Bearer no frontend
+
+A Wave F corrige a parte do legado que já pode ser removida com segurança: o
+frontend atual deixa de usar Bearer como transporte normal.
+
+O backend ainda mantém compatibilidade temporária para clientes legados. Essa
+separação evita forçar logout em sessões antigas do browser e preserva uma saída
+reversível enquanto a observabilidade da Wave E amadurece.
+
+## 30. Cobertura mínima
 
 | Finding | Teste principal | Teste complementar |
 | --- | --- | --- |
