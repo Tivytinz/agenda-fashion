@@ -2033,7 +2033,7 @@ A correção alinha a checagem ao middleware obrigatório sem transformar a rota
 
 ### 142.2 X-Agenda-Access ausente da allowlist CORS
 
-Status: **implementado na Wave D e em validação**.
+Status: **resolvido na Wave D e mergeado na main**.
 
 `X-Agenda-Access` foi incluído na allowlist e o preflight de origem permitida
 possui regressão automatizada.
@@ -2078,8 +2078,8 @@ antes de deploy.
 Para um patch executável futuro, a ordem técnica recomendada é:
 
 ```text
-1. concluir validação/merge da observabilidade de transporte da Wave E
-2. observar Bearer legado em janela operacional representativa antes de qualquer retirada
+1. concluir validação/merge da migração browser da Wave F
+2. observar Bearer legado server-side em janela operacional representativa antes da retirada final
 3. manter o pipeline analytics legado até a reconciliação de produção permitir decisão
 4. revisar novamente o threat model se a topologia de origem mudar
 ```
