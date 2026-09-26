@@ -56,7 +56,7 @@ describe(
             businessSlug="studio-aurora"
             label="Copiar link"
             mode="copy"
-            origin="https://app.agendafashion.com.br"
+            origin="https://agendafashion.com.br"
             serviceId={12}
             serviceName="Limpeza de pele"
           />
@@ -75,7 +75,7 @@ describe(
         expect(
           writeText
         ).toHaveBeenCalledWith(
-          "https://app.agendafashion.com.br/negocio/studio-aurora?servico=12&af_source=agenda_fashion&af_medium=copy&af_content=servico"
+          "https://agendafashion.com.br/negocio/studio-aurora?servico=12&af_source=agenda_fashion&af_medium=copy&af_content=servico"
         );
 
         expect(
@@ -135,7 +135,7 @@ describe(
             businessName="Studio Aurora"
             businessSlug="studio-aurora"
             onIntent={onIntent}
-            origin="https://app.agendafashion.com.br"
+            origin="https://agendafashion.com.br"
           />
         );
 
@@ -158,7 +158,7 @@ describe(
           text:
             "Veja os serviços de Studio Aurora e escolha seu horário no Agenda Fashion.",
           url:
-            "https://app.agendafashion.com.br/negocio/studio-aurora?af_source=agenda_fashion&af_medium=share&af_content=negocio"
+            "https://agendafashion.com.br/negocio/studio-aurora?af_source=agenda_fashion&af_medium=share&af_content=negocio"
         });
 
         expect(
@@ -213,7 +213,7 @@ describe(
             businessSlug="studio-aurora"
             label="Copiar link"
             mode="copy"
-            origin="https://app.agendafashion.com.br"
+            origin="https://agendafashion.com.br"
             trackingMission="disponibilizar_horarios"
             trackingPage="configuracao_agenda"
           />
@@ -226,7 +226,7 @@ describe(
         );
 
         expect(writeText).toHaveBeenCalledWith(
-          "https://app.agendafashion.com.br/negocio/studio-aurora?af_source=agenda_fashion&af_medium=copy&af_content=negocio"
+          "https://agendafashion.com.br/negocio/studio-aurora?af_source=agenda_fashion&af_medium=copy&af_content=negocio"
         );
         expect(track).toHaveBeenCalledWith(
           "link_negocio_copiado",

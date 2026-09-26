@@ -19,10 +19,10 @@ describe(
             businessSlug:
               "studio-aurora",
             origin:
-              "https://app.agendafashion.com.br"
+              "https://agendafashion.com.br"
           })
         ).toBe(
-          "https://app.agendafashion.com.br/negocio/studio-aurora"
+          "https://agendafashion.com.br/negocio/studio-aurora"
         );
       }
     );
@@ -36,7 +36,7 @@ describe(
               "studio-aurora"
           })
         ).toBe(
-          "https://app.agendafashion.com.br/negocio/studio-aurora"
+          "https://agendafashion.com.br/negocio/studio-aurora"
         );
       }
     );
@@ -49,10 +49,10 @@ describe(
             businessSlug:
               "studio-aurora",
             origin:
-              "https://app.agendafashion.com.br/preview/muito-longo?token=segredo"
+              "https://agendafashion.com.br/preview/muito-longo?token=segredo"
           })
         ).toBe(
-          "https://app.agendafashion.com.br/negocio/studio-aurora"
+          "https://agendafashion.com.br/negocio/studio-aurora"
         );
       }
     );
@@ -66,10 +66,10 @@ describe(
               "studio-aurora",
             serviceId: 12,
             origin:
-              "https://app.agendafashion.com.br"
+              "https://agendafashion.com.br"
           })
         ).toBe(
-          "https://app.agendafashion.com.br/negocio/studio-aurora?servico=12"
+          "https://agendafashion.com.br/negocio/studio-aurora?servico=12"
         );
       }
     );
@@ -81,14 +81,14 @@ describe(
           buildPublicLink({
             businessSlug: "studio-aurora",
             serviceId: 12,
-            origin: "https://app.agendafashion.com.br",
+            origin: "https://agendafashion.com.br",
             acquisition: {
               medium: PUBLIC_LINK_MEDIA.COPY,
               content: "servico"
             }
           })
         ).toBe(
-          "https://app.agendafashion.com.br/negocio/studio-aurora?servico=12&af_source=agenda_fashion&af_medium=copy&af_content=servico"
+          "https://agendafashion.com.br/negocio/studio-aurora?servico=12&af_source=agenda_fashion&af_medium=copy&af_content=servico"
         );
       }
     );
@@ -102,7 +102,7 @@ describe(
       (medium, expected) => {
         const link = buildPublicLink({
           businessSlug: "studio-aurora",
-          origin: "https://app.agendafashion.com.br",
+          origin: "https://agendafashion.com.br",
           acquisition: {
             medium,
             content: "negocio"
@@ -127,14 +127,14 @@ describe(
         expect(
           buildPublicLink({
             businessSlug: "studio-aurora",
-            origin: "https://app.agendafashion.com.br",
+            origin: "https://agendafashion.com.br",
             acquisition: {
               medium: "inventado",
               content: "negocio"
             }
           })
         ).toBe(
-          "https://app.agendafashion.com.br/negocio/studio-aurora"
+          "https://agendafashion.com.br/negocio/studio-aurora"
         );
       }
     );
@@ -146,7 +146,7 @@ describe(
           buildPublicLink({
             businessSlug: "",
             origin:
-              "https://app.agendafashion.com.br"
+              "https://agendafashion.com.br"
           })
         ).toBe("");
       }

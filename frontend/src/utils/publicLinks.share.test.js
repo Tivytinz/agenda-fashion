@@ -23,14 +23,14 @@ describe("sharePublicLink", () => {
     const result = await sharePublicLink({
       title: "Studio Rosa",
       text: "Conheça o Studio Rosa.",
-      url: "https://app.agendafashion.com.br/negocio/studio-rosa?af_source=agenda_fashion",
+      url: "https://agendafashion.com.br/negocio/studio-rosa?af_source=agenda_fashion",
       fallbackText:
-        "Conheça o Studio Rosa.\n\nhttps://app.agendafashion.com.br/negocio/studio-rosa?af_source=agenda_fashion",
+        "Conheça o Studio Rosa.\n\nhttps://agendafashion.com.br/negocio/studio-rosa?af_source=agenda_fashion",
     });
 
     expect(result).toBe("copied");
     expect(writeText).toHaveBeenCalledWith(
-      "Conheça o Studio Rosa.\n\nhttps://app.agendafashion.com.br/negocio/studio-rosa?af_source=agenda_fashion"
+      "Conheça o Studio Rosa.\n\nhttps://agendafashion.com.br/negocio/studio-rosa?af_source=agenda_fashion"
     );
   });
 });

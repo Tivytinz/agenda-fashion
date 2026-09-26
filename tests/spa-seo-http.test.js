@@ -59,13 +59,13 @@ describe("SEO e 404 das rotas React", () => {
       'name="description" content="Agenda online grátis para nail designers, lash designers, designers de sobrancelhas, manicures, esteticistas e salões. Receba agendamentos e, se autorizar, avisos pelo WhatsApp."'
     );
     expect(resposta.text).toContain(
-      'rel="canonical" href="https://app.agendafashion.com.br/para-profissionais"'
+      'rel="canonical" href="https://agendafashion.com.br/para-profissionais"'
     );
     expect(resposta.text).toContain(
       'property="og:title" content="Agenda online grátis para profissionais | Agenda Fashion"'
     );
     expect(resposta.text).toContain(
-      'property="og:image" content="https://app.agendafashion.com.br/social-preview.png"'
+      'property="og:image" content="https://agendafashion.com.br/social-preview.png"'
     );
     expect(resposta.text).toContain(
       'name="twitter:card" content="summary_large_image"'
@@ -84,7 +84,7 @@ describe("SEO e 404 das rotas React", () => {
 
     expect(resposta.status).toBe(200);
     expect(resposta.text).toContain(
-      'rel="canonical" href="https://app.agendafashion.com.br/para-profissionais"'
+      'rel="canonical" href="https://agendafashion.com.br/para-profissionais"'
     );
   });
 
@@ -93,19 +93,19 @@ describe("SEO e 404 das rotas React", () => {
       "/planos?utm_source=google",
       "Planos para profissionais | Agenda Fashion",
       "Compare o plano Grátis e os planos pagos do Agenda Fashion para escolher a capacidade de agendamentos, profissionais e serviços do seu negócio.",
-      "https://app.agendafashion.com.br/planos"
+      "https://agendafashion.com.br/planos"
     ],
     [
       "/privacidade?utm_source=meta",
       "Privacidade e cookies | Agenda Fashion",
       "Entenda quais dados o Agenda Fashion trata, para quais finalidades e como controlar preferências de cookies e medição opcional.",
-      "https://app.agendafashion.com.br/privacidade"
+      "https://agendafashion.com.br/privacidade"
     ],
     [
       "/termos?utm_campaign=legal",
       "Termos de uso | Agenda Fashion",
       "Consulte as regras de uso do Agenda Fashion para contas, agendamentos, planos, pagamentos, comunicações e responsabilidades.",
-      "https://app.agendafashion.com.br/termos"
+      "https://agendafashion.com.br/termos"
     ]
   ])(
     "entrega metadata server-side deliberada para %s",
