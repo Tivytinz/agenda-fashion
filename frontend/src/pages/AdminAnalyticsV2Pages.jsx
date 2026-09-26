@@ -721,6 +721,8 @@ export function AdminJourneyV2Page() {
         const events = Array.isArray(data.eventos) ? data.eventos : [];
         const devices = Array.isArray(data.dispositivos) ? data.dispositivos : [];
         const reconciliation = data.reconciliacaoPipelines || {};
+        const decommissionEvidence =
+          reconciliation.evidenciaRetirada || {};
         const pipelineEvents = Array.isArray(reconciliation.eventos)
           ? reconciliation.eventos
           : [];
@@ -806,6 +808,35 @@ export function AdminJourneyV2Page() {
                   </p>
                 </div>
               </div>
+
+              <section className="admin-command-summary-grid is-period-summary">
+                <MetricCard
+                  label="Dias com evidência"
+                  hint="dias observados desde o início comparável"
+                  value={formatNumber(decommissionEvidence.diasComEvidencia)}
+                />
+                <MetricCard
+                  label="Divergências diárias"
+                  hint="pares dia × evento com contagens diferentes"
+                  tone={number(decommissionEvidence.paresDiaEventoDivergentes) > 0 ? "warning" : "neutral"}
+                  value={formatNumber(decommissionEvidence.paresDiaEventoDivergentes)}
+                />
+                <MetricCard
+                  label="Booking vinculado"
+                  hint="booking_completed V2 ligado a booking real"
+                  value={formatPercent(decommissionEvidence.coberturaBookingCompletedVinculado)}
+                />
+                <MetricCard
+                  label="Gate de retirada"
+                  hint="evidência técnica; decisão operacional continua explícita"
+                  tone={decommissionEvidence.prontaParaAvaliacao ? "success" : "warning"}
+                  value={decommissionEvidence.prontaParaAvaliacao ? "Avaliar retirada" : "Manter legado"}
+                />
+              </section>
+
+              {decommissionEvidence.observacao && (
+                <p className="muted">{decommissionEvidence.observacao}</p>
+              )}
 
               {pipelineEvents.length === 0 ? (
                 <p className="muted">Nenhum evento comparável foi retornado.</p>
