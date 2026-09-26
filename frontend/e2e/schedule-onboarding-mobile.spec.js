@@ -54,7 +54,7 @@ function json(route, body, status = 200) {
 
 test("onboarding de horários salva a sugestão ao pular e permanece utilizável no mobile", async ({ page }) => {
   await page.addInitScript(() => {
-    localStorage.setItem("token", "owner-schedule-e2e");
+    localStorage.setItem("session_active", "1");
     localStorage.setItem("usuario", JSON.stringify({ id: 4, nome: "Ana" }));
     localStorage.setItem("negocio", JSON.stringify({
       id: 11,

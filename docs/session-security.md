@@ -95,3 +95,28 @@ Esse dado é deliberadamente diagnóstico:
 
 A instrumentação existe para produzir evidência sem reduzir a proteção de
 segredos.
+
+
+## Migração do Bearer legado no navegador
+
+A Wave F retira o Bearer legado do caminho normal do frontend sem remover ainda
+a compatibilidade do backend.
+
+Quando o browser encontra a chave histórica `token` no `localStorage`:
+
+1. chama `POST /auth/migrar-sessao-legada` uma única vez com o Bearer antigo;
+2. o middleware `auth` valida conta, expiração, revogação e troca de senha;
+3. o controller grava o mesmo JWT válido no cookie HttpOnly;
+4. o frontend remove `localStorage.token`;
+5. grava apenas `session_active`;
+6. `/minha-sessao` e as demais chamadas passam a usar somente cookie.
+
+`apiRequest()` não injeta mais Bearer automaticamente.
+
+Se o Bearer legado estiver inválido ou expirado, a sessão local é limpa e a
+pessoa precisa autenticar novamente. Falha transitória de rede não transforma
+um token em válido nem copia credencial para outro storage.
+
+O backend continua aceitando Bearer temporariamente para clientes legados que
+não passam pelo frontend atual. A retirada server-side continua condicionada à
+observabilidade da Wave E por janela representativa.

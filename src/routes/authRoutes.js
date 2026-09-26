@@ -5,6 +5,9 @@ const express = require(
 const authController = require(
   "../controllers/authController"
 );
+const auth = require(
+  "../middlewares/auth"
+);
 const revogarSessao = require(
   "../middlewares/revogarSessao"
 );
@@ -54,6 +57,12 @@ router.post(
   "/auth/redefinir-senha",
   limitarRecuperacaoSenha,
   authController.redefinirSenha
+);
+
+router.post(
+  "/auth/migrar-sessao-legada",
+  auth,
+  authController.migrarSessaoLegada
 );
 
 router.post(

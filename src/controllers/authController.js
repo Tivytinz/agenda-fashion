@@ -18,6 +18,7 @@ const passwordResetService = require(
 const {
   definirCookieSessao,
   limparCookieSessao,
+  obterTokenBearer,
 } = require(
   "../config/sessionCookie"
 );
@@ -265,6 +266,32 @@ async function redefinirSenha(
   }
 }
 
+function migrarSessaoLegada(
+  req,
+  res
+) {
+  const tokenLegado =
+    obterTokenBearer(
+      req.headers.authorization
+    );
+
+  if (tokenLegado) {
+    definirCookieSessao(
+      res,
+      tokenLegado
+    );
+  }
+
+  res.set(
+    "Cache-Control",
+    "no-store"
+  );
+
+  return res
+    .status(204)
+    .end();
+}
+
 function logout(
   _req,
   res
@@ -302,6 +329,7 @@ module.exports = {
   loginGoogle,
   esqueciSenha,
   redefinirSenha,
+  migrarSessaoLegada,
   logout,
   configuracaoPublica,
 };

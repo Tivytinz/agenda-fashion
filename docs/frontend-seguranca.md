@@ -2033,7 +2033,7 @@ A correção alinha a checagem ao middleware obrigatório sem transformar a rota
 
 ### 142.2 X-Agenda-Access ausente da allowlist CORS
 
-Status: **implementado na Wave D e em validação**.
+Status: **resolvido na Wave D e mergeado na main**.
 
 `X-Agenda-Access` foi incluído na allowlist e o preflight de origem permitida
 possui regressão automatizada.
@@ -2048,16 +2048,17 @@ apenas `session_active`, limpa chaves legadas e reidrata o contexto por
 
 ### 142.4 Compatibilidade Bearer ainda existe
 
-Cliente e backend continuam aceitando token legado em storage/header.
+Status: **migração do frontend implementada na Wave F e em validação**.
 
-Status: **observabilidade implementada na Wave E e em validação**.
+O frontend atual não injeta mais Bearer em chamadas normais. Se encontrar
+`localStorage.token`, usa somente o endpoint dedicado para converter a sessão
+legada em cookie HttpOnly e remove o token local depois da validação.
 
-O runtime passa a contar, somente no processo atual, requisições autenticadas por
-cookie e por Bearer. O diagnóstico administrativo não registra credenciais,
-usuário, rota ou payload.
+O backend continua aceitando Bearer temporariamente para clientes legados fora
+desse fluxo. A observabilidade da Wave E segue medindo esse uso sem registrar
+credenciais.
 
-A compatibilidade ainda não é removida: zero Bearer em um processo não prova
-ausência histórica. A retirada continua condicionada a janela operacional
+A retirada server-side continua condicionada a uma janela operacional
 representativa e revisão dos clientes suportados.
 
 ### 142.5 CSRF depende do desenho atual de cookie/topologia
@@ -2077,8 +2078,8 @@ antes de deploy.
 Para um patch executável futuro, a ordem técnica recomendada é:
 
 ```text
-1. concluir validação/merge da observabilidade de transporte da Wave E
-2. observar Bearer legado em janela operacional representativa antes de qualquer retirada
+1. concluir validação/merge da migração browser da Wave F
+2. observar Bearer legado server-side em janela operacional representativa antes da retirada final
 3. manter o pipeline analytics legado até a reconciliação de produção permitir decisão
 4. revisar novamente o threat model se a topologia de origem mudar
 ```

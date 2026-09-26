@@ -63,7 +63,7 @@ async function horizontalOverflowDiagnostics(page) {
 
 test("ações do negócio ficam acima da navegação e mantêm foco visível", async ({ page }) => {
   await page.addInitScript(() => {
-    localStorage.setItem("token", "owner-e2e");
+    localStorage.setItem("session_active", "1");
     localStorage.setItem("usuario", JSON.stringify({ id: 4, nome: "Ana" }));
     localStorage.setItem("negocio", JSON.stringify({
       id: 11,
@@ -146,7 +146,7 @@ test("ações do negócio ficam acima da navegação e mantêm foco visível", a
 
 test("próxima ação de ativação cabe no celular e mostra somente a missão atual", async ({ page }) => {
   await page.addInitScript(() => {
-    localStorage.setItem("token", "owner-e2e");
+    localStorage.setItem("session_active", "1");
     localStorage.setItem("usuario", JSON.stringify({ id: 4, nome: "Ana" }));
     localStorage.setItem("negocio", JSON.stringify({
       id: 11,
@@ -218,7 +218,7 @@ test("próxima ação de ativação cabe no celular e mostra somente a missão a
 
 test("ProfessionalShell mantém rotina curta, foco visível e sem overflow no celular", async ({ page }) => {
   await page.addInitScript(() => {
-    localStorage.setItem("token", "professional-e2e");
+    localStorage.setItem("session_active", "1");
     localStorage.setItem("usuario", JSON.stringify({ id: 8, nome: "Bia" }));
     localStorage.setItem("negocio", JSON.stringify({
       id: 11,

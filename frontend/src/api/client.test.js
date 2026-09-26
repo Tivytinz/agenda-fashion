@@ -1,7 +1,10 @@
 // @vitest-environment jsdom
 
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { apiRequest } from "./client";
+import {
+  apiRequest,
+  migrateLegacySession
+} from "./client";
 import { SESSION_CLEARED_EVENT } from "../auth/session";
 
 afterEach(() => {
@@ -27,6 +30,186 @@ describe("cliente da API", () => {
         credentials: "include"
       })
     );
+  });
+
+  it("não envia Bearer legado automaticamente nas chamadas normais", async () => {
+    localStorage.setItem(
+      "token",
+      "jwt-legado"
+    );
+
+    const fetchMock =
+      vi.fn().mockResolvedValue({
+        ok: true,
+        status: 200,
+        json:
+          vi.fn().mockResolvedValue({
+            ok: true
+          })
+      });
+    vi.stubGlobal(
+      "fetch",
+      fetchMock
+    );
+
+    await apiRequest(
+      "/minha-sessao"
+    );
+
+    const options =
+      fetchMock.mock.calls[0][1];
+
+    expect(
+      new Headers(
+        options.headers
+      ).has("Authorization")
+    ).toBe(false);
+  });
+
+  it("faz uma migração única do Bearer legado para cookie e remove o token local", async () => {
+    localStorage.setItem(
+      "token",
+      "jwt-legado"
+    );
+
+    const fetchMock =
+      vi.fn().mockResolvedValue({
+        ok: true,
+        status: 204,
+        json:
+          vi.fn()
+      });
+    vi.stubGlobal(
+      "fetch",
+      fetchMock
+    );
+
+    const resultado =
+      await migrateLegacySession();
+
+    expect(resultado)
+      .toMatchObject({
+        attempted: true,
+        migrated: true
+      });
+
+    expect(fetchMock)
+      .toHaveBeenCalledWith(
+        "/auth/migrar-sessao-legada",
+        expect.objectContaining({
+          method: "POST",
+          credentials: "include",
+          headers:
+            expect.objectContaining({
+              Authorization:
+                "Bearer jwt-legado"
+            })
+        })
+      );
+
+    expect(
+      localStorage.getItem(
+        "token"
+      )
+    ).toBeNull();
+
+    expect(
+      localStorage.getItem(
+        "session_active"
+      )
+    ).toBe("1");
+  });
+
+  it("preserva cookie válido quando só o Bearer legado ficou obsoleto", async () => {
+    localStorage.setItem(
+      "token",
+      "jwt-legado-expirado"
+    );
+
+    const fetchMock =
+      vi.fn()
+        .mockResolvedValueOnce({
+          ok: false,
+          status: 401,
+          json:
+            vi.fn().mockResolvedValue({
+              erro:
+                "Token expirado."
+            })
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          status: 200,
+          json:
+            vi.fn().mockResolvedValue({
+              usuario: {
+                id: 1
+              }
+            })
+        });
+
+    vi.stubGlobal(
+      "fetch",
+      fetchMock
+    );
+
+    const resultado =
+      await migrateLegacySession();
+
+    expect(resultado)
+      .toMatchObject({
+        attempted: true,
+        migrated: false,
+        alreadyCookie: true
+      });
+
+    expect(
+      localStorage.getItem(
+        "token"
+      )
+    ).toBeNull();
+
+    expect(
+      localStorage.getItem(
+        "session_active"
+      )
+    ).toBe("1");
+  });
+
+  it("limpa sessão quando o Bearer legado não pode ser migrado", async () => {
+    localStorage.setItem(
+      "token",
+      "expirado"
+    );
+
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: false,
+        status: 401,
+        json:
+          vi.fn().mockResolvedValue({
+            erro:
+              "Token expirado."
+          })
+      })
+    );
+
+    const resultado =
+      await migrateLegacySession();
+
+    expect(resultado)
+      .toMatchObject({
+        attempted: true,
+        migrated: false,
+        invalid: true
+      });
+
+    expect(
+      localStorage.getItem(
+        "token"
+      )
+    ).toBeNull();
   });
 
   it("limpa e comunica a expiração da sessão ao receber 401", async () => {
