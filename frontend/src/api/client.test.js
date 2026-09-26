@@ -120,6 +120,62 @@ describe("cliente da API", () => {
     ).toBe("1");
   });
 
+  it("preserva cookie válido quando só o Bearer legado ficou obsoleto", async () => {
+    localStorage.setItem(
+      "token",
+      "jwt-legado-expirado"
+    );
+
+    const fetchMock =
+      vi.fn()
+        .mockResolvedValueOnce({
+          ok: false,
+          status: 401,
+          json:
+            vi.fn().mockResolvedValue({
+              erro:
+                "Token expirado."
+            })
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          status: 200,
+          json:
+            vi.fn().mockResolvedValue({
+              usuario: {
+                id: 1
+              }
+            })
+        });
+
+    vi.stubGlobal(
+      "fetch",
+      fetchMock
+    );
+
+    const resultado =
+      await migrateLegacySession();
+
+    expect(resultado)
+      .toMatchObject({
+        attempted: true,
+        migrated: false,
+        alreadyCookie: true
+      });
+
+    expect(
+      localStorage.getItem(
+        "token"
+      )
+    ).toBeNull();
+
+    expect(
+      localStorage.getItem(
+        "session_active"
+      )
+    ).toBe("1");
+  });
+
   it("limpa sessão quando o Bearer legado não pode ser migrado", async () => {
     localStorage.setItem(
       "token",
