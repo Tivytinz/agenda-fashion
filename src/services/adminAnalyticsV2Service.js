@@ -256,6 +256,21 @@ function mapearReconciliacaoPipelines(bruto = {}) {
   const divergentes = eventos.filter(
     (item) => !item.paridadeExata
   ).length;
+  const diagnostico = bruto.diagnosticoEstabilidade || {};
+  const bookingCompleted = eventos.find(
+    (item) => item.evento === "booking_completed"
+  );
+  const bookingCompletedV2 =
+    numero(bookingCompleted?.v2Comparavel);
+  const bookingCompletedVinculados =
+    numero(bookingCompleted?.bookingCompletedVinculados);
+  const coberturaBookingReal =
+    bookingCompletedV2 > 0
+      ? percentual(
+          bookingCompletedVinculados,
+          bookingCompletedV2
+        )
+      : null;
 
   let estado = "divergencia_observada";
   if (!temInicioComparavel) {
@@ -275,6 +290,29 @@ function mapearReconciliacaoPipelines(bruto = {}) {
     legadoEventosPeriodo: legadoPeriodo,
     v2EventosPeriodo: v2Periodo,
     eventos,
+    evidenciaRetirada: {
+      diasComEvidencia:
+        numero(diagnostico.diasComEvidencia),
+      paresDiaEventoDivergentes:
+        numero(
+          diagnostico.paresDiaEventoDivergentes
+        ),
+      ultimoDiaComEvidencia:
+        diagnostico.ultimoDiaComEvidencia || null,
+      coberturaBookingCompletedVinculado:
+        coberturaBookingReal,
+      prontaParaAvaliacao:
+        temInicioComparavel &&
+        divergentes === 0 &&
+        numero(
+          diagnostico.paresDiaEventoDivergentes
+        ) === 0 &&
+        bookingCompletedV2 > 0 &&
+        bookingCompletedVinculados ===
+          bookingCompletedV2,
+      observacao:
+        "Este sinal apenas indica que o recorte não apresenta divergência observada e que booking_completed está vinculado a bookings reais. A duração mínima de observação e a retirada do legado continuam exigindo decisão operacional explícita; não são inferidas pelo sistema.",
+    },
     metodologia: {
       comparacao:
         "A reconciliação compara somente eventos emitidos pelos dois pipelines a partir do primeiro evento V2 comparável do recorte. Ela não soma os pipelines e não substitui fatos transacionais. Sessões aparecem como diagnóstico auxiliar, mas não definem paridade porque os pipelines usam contratos de sessionização diferentes.",

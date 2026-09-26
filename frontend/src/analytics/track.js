@@ -18,6 +18,12 @@ const REFERRER_KEY = "af_acquisition_referrer_host";
 const ATTRIBUTION_VERSION = 2;
 const ATTRIBUTION_WINDOW_MS = 30 * 24 * 60 * 60 * 1000;
 
+function legacyProductEventsEnabled() {
+  return String(
+    import.meta.env.VITE_LEGACY_PRODUCT_EVENTS_ENABLED ?? "true"
+  ).trim().toLowerCase() !== "false";
+}
+
 const ATTRIBUTION_PARAMS = [
   "utm_source",
   "utm_medium",
@@ -386,6 +392,10 @@ export function track(name, {
       serviceId: properties.servico_id,
       properties
     });
+
+    if (!legacyProductEventsEnabled()) {
+      return;
+    }
 
     const attribution = captureAttribution();
     const marketingAllowed =

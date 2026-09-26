@@ -41,6 +41,7 @@ describe("track attribution", () => {
 
   afterEach(() => {
     vi.useRealTimers();
+    vi.unstubAllEnvs();
   });
 
   test("persiste a campanha da entrada e reaplica nos eventos seguintes", () => {
@@ -448,6 +449,18 @@ describe("track attribution", () => {
       .not.toContain("click-secreto");
     expect(payload.propriedades)
       .not.toHaveProperty("utm_source");
+  });
+
+  test("permite desligar apenas o pipeline legado sem interromper o Analytics V2", () => {
+    vi.stubEnv("VITE_LEGACY_PRODUCT_EVENTS_ENABLED", "false");
+
+    track("agendamento_iniciado", {
+      page: "perfil_negocio",
+      mission: "iniciar_agendamento",
+      businessId: 12,
+    });
+
+    expect(fetch).not.toHaveBeenCalled();
   });
 
   test("analytics não derruba a interface quando o storage é bloqueado", () => {

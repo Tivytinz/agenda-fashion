@@ -61,6 +61,8 @@ O painel também preserva os totais do período de cada pipeline para contexto.
 
 Paridade exata é apenas um diagnóstico técnico. Ela não autoriza, sozinha, a remoção do pipeline legado.
 
+O Admin também expõe evidência de estabilidade por dia: quantidade de dias com evidência, pares dia × evento divergentes e cobertura de `booking_completed` vinculada a booking real. O backend pode sinalizar que o recorte está **pronto para avaliação**, mas não inventa uma duração mínima de observação nem desliga o legado automaticamente. A decisão de retirada continua operacional e explícita.
+
 ## Conclusão de agendamento
 
 O nome `booking_completed` pode existir em duas origens e elas não são
@@ -134,6 +136,9 @@ A remoção de `eventos_produto` deve acontecer somente depois de:
 4. confirmar que `booking_completed` está vinculado a agendamentos reais quando o ID estiver disponível;
 5. migrar ou remover todas as leituras que ainda dependem de `eventos_produto`;
 6. manter fatos transacionais como fonte canônica de conversão;
-7. atualizar testes e documentação no mesmo patch de retirada.
+7. atualizar testes e documentação no mesmo patch de retirada;
+8. somente então definir `VITE_LEGACY_PRODUCT_EVENTS_ENABLED=false` no build do frontend.
+
+O gate é reversível e permanece habilitado por padrão. Desligá-lo interrompe apenas o `POST /eventos-produto`; `trackFirstPartyEvent(...)` continua sendo executado antes do gate, preservando o Analytics V2. A existência do gate não é evidência suficiente para retirar o legado.
 
 Até lá, os dois pipelines coexistem deliberadamente.
