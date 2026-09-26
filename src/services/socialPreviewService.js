@@ -6,7 +6,7 @@ const perfilNegocioRepository = require(
 );
 
 const ORIGEM_PUBLICA_PADRAO =
-  "https://app.agendafashion.com.br";
+  "https://agendafashion.com.br";
 
 const PAGINAS_ESTATICAS = Object.freeze({
   "/para-profissionais": {

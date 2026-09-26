@@ -20,14 +20,14 @@ const service = require(
 
 function envValido() {
   process.env.NODE_ENV = "test";
-  process.env.PUBLIC_APP_URL = "https://app.agendafashion.com.br";
+  process.env.PUBLIC_APP_URL = "https://agendafashion.com.br";
   process.env.PINTEREST_APP_ID = "123456";
   process.env.PINTEREST_APP_SECRET = "secret-pinterest";
   process.env.PINTEREST_AD_ACCOUNT_ID = "777888999";
   process.env.PINTEREST_OAUTH_ENCRYPTION_KEY =
     "uma-chave-pinterest-com-mais-de-32-caracteres";
   process.env.PINTEREST_OAUTH_REDIRECT_URI =
-    "https://app.agendafashion.com.br/admin/marketing/custos-integracoes/pinterest_ads/callback";
+    "https://agendafashion.com.br/admin/marketing/custos-integracoes/pinterest_ads/callback";
   process.env.PINTEREST_OAUTH_SCOPE = "ads:read";
 }
 

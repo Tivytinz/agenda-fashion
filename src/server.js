@@ -25,6 +25,7 @@ const apiRoutes = require("./routes/index");
 const errorHandler = require("./middlewares/errorHandler");
 const notFound = require("./middlewares/notFound");
 const requestLogger = require("./middlewares/requestLogger");
+const canonicalHostRedirect = require("./middlewares/canonicalHostRedirect");
 const {
   csrfProtection,
 } = require("./middlewares/csrfProtection");
@@ -109,6 +110,10 @@ app.use(
 
 app.use(
   requestLogger
+);
+
+app.use(
+  canonicalHostRedirect
 );
 
 app.use(

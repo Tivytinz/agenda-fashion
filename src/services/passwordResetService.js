@@ -42,7 +42,7 @@ function hashToken(token) {
 
 function obterUrlPublica() {
   const valor = String(
-    process.env.PUBLIC_APP_URL || "https://app.agendafashion.com.br"
+    process.env.PUBLIC_APP_URL || "https://agendafashion.com.br"
   ).trim();
   const url = new URL(valor);
 

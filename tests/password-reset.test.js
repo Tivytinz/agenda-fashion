@@ -1,7 +1,7 @@
 const crypto = require("crypto");
 
 process.env.JWT_SECRET = "segredo-de-teste";
-process.env.PUBLIC_APP_URL = "https://app.agendafashion.com.br";
+process.env.PUBLIC_APP_URL = "https://agendafashion.com.br";
 process.env.BCRYPT_ROUNDS = "10";
 
 jest.mock("bcrypt", () => ({

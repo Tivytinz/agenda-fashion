@@ -56,7 +56,7 @@ describe("rotas HTTP do catálogo local", () => {
       "<title>Cabelo e barbearia em Goiânia - GO | Agenda Fashion</title>"
     );
     expect(resposta.text).toContain(
-      'rel="canonical" href="https://app.agendafashion.com.br/servicos/cabelo/em/goiania-go"'
+      'rel="canonical" href="https://agendafashion.com.br/servicos/cabelo/em/goiania-go"'
     );
     expect(resposta.text).not.toContain(
       'name="robots" content="noindex,follow"'
@@ -145,7 +145,7 @@ describe("rotas HTTP do catálogo local", () => {
     expect(robots.status).toBe(200);
     expect(robots.headers["content-type"]).toMatch(/text\/plain/);
     expect(robots.text).toContain(
-      "Sitemap: https://app.agendafashion.com.br/sitemap.xml"
+      "Sitemap: https://agendafashion.com.br/sitemap.xml"
     );
   });
 });

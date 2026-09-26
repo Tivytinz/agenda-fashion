@@ -906,7 +906,7 @@ PUBLIC_APP_URL
 com fallback para:
 
 ```text
-https://app.agendafashion.com.br
+https://agendafashion.com.br
 ```
 
 O canonical não carrega UTMs.
@@ -1691,30 +1691,45 @@ O service atual normaliza espaços e limita título/descrição.
 
 A origem pública para canonical/social/sitemap vem de `PUBLIC_APP_URL`.
 
-Em produção, runtime validation exige HTTPS.
+A origem oficial atual é:
+
+```text
+https://agendafashion.com.br
+```
+
+Em produção, runtime validation exige HTTPS. Backend e frontend devem manter
+`PUBLIC_APP_URL` e `VITE_PUBLIC_APP_URL` alinhados nessa mesma origem.
 
 Configuração incorreta pode gerar canonical para domínio errado mesmo que a
 página abra normalmente.
 
-Depois de alterar domínio, validar:
+No cutover do domínio, revisar em conjunto:
 
-- canonical;
-- OG URL;
-- sitemap;
-- robots.
+- canonical e OG URL;
+- sitemap e robots;
+- `CORS_ORIGINS`;
+- callbacks OAuth de TikTok/Pinterest;
+- links de recuperação de senha e compartilhamento;
+- medição Google/Meta;
+- sessão host-only `__Host-af_session`.
+
+Uma sessão criada anteriormente em `app.agendafashion.com.br` não é
+compartilhada com o domínio raiz; a pessoa pode precisar autenticar novamente
+uma vez após o cutover.
 
 ## 109. Domínio canônico de performance
 
-O runbook de performance usa:
+O runbook de performance deve usar:
 
 ```text
-app.agendafashion.com.br
+agendafashion.com.br
 ```
 
-como domínio canônico observado na evidência registrada.
+como domínio canônico atual. `app.agendafashion.com.br` é host legado de
+compatibilidade e o domínio `.up.railway.app` é apenas infraestrutura.
 
-Esse fato histórico não impede mudança futura, mas qualquer troca de domínio
-precisa revisar SEO, cache, CORS, cookies e medição.
+Mudança de domínio exige revalidar SEO, cache, CORS, cookies e medição antes de
+considerar a transição concluída.
 
 ## 110. Finding histórico do domínio raiz
 

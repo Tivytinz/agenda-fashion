@@ -37,13 +37,13 @@ describe("configuração central do runtime", () => {
     expect(() => validarConfiguracaoRuntime({
       ...ambienteBase(),
       NODE_ENV: "production",
-      PUBLIC_APP_URL: "http://app.agendafashion.com.br",
+      PUBLIC_APP_URL: "http://agendafashion.com.br",
     })).toThrow("variáveis ausentes");
 
     expect(() => validarConfiguracaoRuntime({
       ...ambienteBase(),
       NODE_ENV: "production",
-      PUBLIC_APP_URL: "http://app.agendafashion.com.br",
+      PUBLIC_APP_URL: "http://agendafashion.com.br",
       ASAAS_API_URL: "https://api.asaas.com/v3",
       ASAAS_API_KEY: "$aact_prod_teste",
       ASAAS_WEBHOOK_TOKEN: "token-webhook",

@@ -503,10 +503,14 @@ Padrão atual inclui:
 ```text
 http://127.0.0.1:5500
 http://localhost:5500
-https://app.agendafashion.com.br
+https://agendafashion.com.br
 ```
 
 `CORS_ORIGINS` pode substituir essa lista.
+
+O host legado `app.agendafashion.com.br` não deve ser adicionado novamente à
+allowlist por padrão apenas para compartilhar sessão. A sessão de produção usa
+cookie `__Host-` host-only e permanece vinculada ao domínio canônico.
 
 Em produção, runtime validation exige HTTPS para origens configuradas.
 
