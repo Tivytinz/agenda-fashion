@@ -157,7 +157,7 @@ export function DashboardGrowthInsight({
         status: "ready",
         titulo: String(result.titulo || "").trim(),
         texto: String(result.texto || "").trim().slice(0, 600),
-        fonte: result.fonte === "openai" ? "openai" : "fallback",
+        fonte: result.fonte === "openai" ? "openai" : "deterministic",
         erro: "",
       };
 
