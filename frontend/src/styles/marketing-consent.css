@@ -96,7 +96,7 @@
   text-decoration: none;
 }
 
-.app-shell:has(.workspace-shell) > .privacy-shortcut {
+.app-shell:has(.workspace-shell, .admin-shell) > .privacy-shortcut {
   position: static;
   display: block;
   width: fit-content;
