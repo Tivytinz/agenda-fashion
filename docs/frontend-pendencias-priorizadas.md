@@ -83,7 +83,7 @@ Usar quando:
 | FE-P3-01 | P3 | CORS | `X-Agenda-Access` não está em `allowedHeaders` | resolvido (Wave D) |
 | FE-P3-02 | P3 | UX/arquitetura | `/convites` aparece no shell profissional mas monta fora dele | resolvido (Wave D) |
 | FE-P3-03 | P3 | SEO | páginas públicas estáticas compartilham metadata base | resolvido (Wave D) |
-| FE-P3-04 | P3 | analytics | V2 e `eventos_produto` coexistem | adiado: reconciliação de produção necessária |
+| FE-P3-04 | P3 | analytics | V2 e `eventos_produto` coexistem | descomissionamento preparado por gate reversível; aguarda evidência de produção |
 
 ## 4. Ordem recomendada de execução
 
@@ -114,8 +114,8 @@ Wave D — redução de dívida com evidência suficiente
   Wave E — observabilidade para depreciação (mergeada)
   Wave F — migração do Bearer no frontend (em validação)
 
-  FE-P3-04 permanece adiado:
-  retirada do pipeline legado depende de reconciliação de produção
+  FE-P3-04 permanece em observação de produção:
+  gate reversível preparado; retirada do pipeline legado depende de reconciliação estável
 ```
 
 A sequência é recomendação técnica. Cada wave executável ainda precisa de
