@@ -813,7 +813,9 @@ SQL novo pertence a repositories, não a routes/controllers e, salvo legado em
 migração, não deve ser introduzido em services.
 
 Configuração obrigatória do runtime é validada centralmente no startup. Uma
-integração habilitada não pode iniciar com credenciais parciais.
+integração habilitada não pode iniciar com credenciais parciais. Em produção,
+`ASAAS_WEBHOOK_TOKEN` deve possuir no mínimo 32 caracteres para que falhas de
+autenticação financeira sejam detectadas antes de o processo ficar pronto.
 
 E-mail, Google Measurement, GA4 Data API, Meta, custos de mídia, TikTok,
 Pinterest, Copilot e WhatsApp seguem contratos condicionais no validador
@@ -849,7 +851,9 @@ Páginas públicas de aquisição incluídas no sitemap e tratadas como alvo de 
 
 Mudanças relevantes devem executar validações proporcionais ao risco. O Quality
 Gate atual cobre lint, build, testes frontend, migrations, Jest/PostgreSQL,
-audits e Playwright aplicável.
+audits, Playwright de UX e acceptance full-stack P0 com frontend buildado,
+Express e PostgreSQL reais. O `Security CI` complementa esse gate com revisão
+de dependências e CodeQL.
 
 Mudanças em caminhos públicos críticos de performance (home, catálogo, perfil,
 componentes/estilos relacionados e scripts de medição) também disparam o
