@@ -32,6 +32,8 @@ Os módulos ficam em:
 
 A camada é secundária ao dashboard. Se a análise lançar uma exceção inesperada, `dashboardDonoService` devolve `INDISPONIVEL` e preserva as demais informações da tela. A inteligência nunca deve transformar uma consulta válida do dashboard em erro operacional.
 
+Se a consulta de eventos de perfil ou de favoritos falhar, `qualidade_dados` identifica a leitura indisponível e as métricas correspondentes são `null`, não zero. A inteligência devolve `INDISPONIVEL` após a ativação para não usar ausências artificiais como oportunidades. Ranking de profissionais é opcional; sua falha não derruba o resumo. O ranking nominal de clientes não integra a resposta do painel.
+
 ## Contrato
 
 `GET /dashboard-dono` inclui `inteligencia_crescimento`:
@@ -68,7 +70,7 @@ Estados possíveis:
 - `DADOS_INSUFICIENTES`: ainda não há amostra mínima para recomendar;
 - `SEM_OPORTUNIDADE_PRIORITARIA`: há dados, mas nenhuma regra atual gerou hipótese suficientemente útil;
 - `OPORTUNIDADE_PRIORIZADA`: existe uma oportunidade principal;
-- `INDISPONIVEL`: a camada secundária falhou e o dashboard foi preservado.
+- `INDISPONIVEL`: a análise falhou ou depende de leitura indisponível; o dashboard foi preservado.
 
 `impacto`, `confianca`, `urgencia` e `score` são heurísticas internas de priorização em escala normalizada. `confianca` não representa probabilidade estatística, intervalo de confiança nem garantia causal.
 
@@ -77,8 +79,8 @@ Estados possíveis:
 A primeira versão usa sinais do mesmo contrato de dashboard e evita misturar métricas com janelas incompatíveis:
 
 - visitas ao perfil;
-- agendamentos concluídos observados pelos eventos de produto;
-- taxa de conversão já calculada pelo backend;
+- agendamentos não cancelados criados no período, independentemente de atendimento realizado;
+- razão entre agendamentos criados e sessões com visita ao perfil no mesmo período, que não prova que a visita causou o agendamento;
 - cliques em WhatsApp;
 - cliques em Maps;
 - favoritos recebidos;

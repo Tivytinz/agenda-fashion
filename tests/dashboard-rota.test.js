@@ -654,12 +654,7 @@ describe(
           1
         );
 
-        expect(
-          resposta.body
-            .ranking_clientes
-        ).toHaveLength(
-          1
-        );
+        expect(resposta.body).not.toHaveProperty("ranking_clientes");
       }
     );
 
@@ -762,16 +757,7 @@ describe(
           )
         );
 
-        expect(
-          dashboardRepository
-            .buscarRankingClientes
-        ).toHaveBeenCalledWith(
-          11,
-
-          expect.stringContaining(
-            trechoEsperado
-          )
-        );
+        expect(dashboardRepository.buscarRankingClientes).not.toHaveBeenCalled();
 
         expect(
           dashboardRepository

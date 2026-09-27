@@ -407,6 +407,12 @@ describe(
           slug: "studio-fashion"
         });
 
+        expect(resultado.qualidade_dados).toEqual({
+          desempenho_perfil: "disponivel",
+          favoritos: "disponivel",
+          ranking_profissionais: "disponivel"
+        });
+
         expect(resultado.resumo).toEqual({
           agendamentos_hoje: 3,
           agendamentos_periodo: 5,
@@ -444,11 +450,39 @@ describe(
           resultado.ranking_servicos
         ).toHaveLength(1);
 
-        expect(
-          resultado.ranking_clientes
-        ).toHaveLength(1);
+        expect(resultado).not.toHaveProperty("ranking_clientes");
       }
     );
+
+    test("mantém indicadores válidos e sinaliza métricas indisponíveis", async () => {
+      dashboardRepository.buscarNegocioDoUsuario.mockResolvedValue({
+        negocio_id: 11, papel: "dono", nome: "Studio", slug: "studio"
+      });
+      dashboardRepository.buscarResumoDono.mockResolvedValue({
+        agendamentos_periodo: 2, faturamento_periodo: 100
+      });
+      dashboardRetentionRepository.buscarResumoRetencao.mockResolvedValue({
+        clientes_unicos: 1, clientes_recorrentes: 0
+      });
+      dashboardRepository.buscarPerformanceNegocio.mockRejectedValue(new Error("eventos offline"));
+      dashboardRepository.buscarFavoritosRecebidos.mockRejectedValue(new Error("favoritos offline"));
+      dashboardRepository.buscarRankingProfissionais.mockRejectedValue(new Error("ranking offline"));
+      dashboardRepository.buscarResumoDias.mockResolvedValue([]);
+      dashboardRepository.buscarRankingServicos.mockResolvedValue([]);
+
+      const resultado = await dashboardService.buscarDashboardDono({ usuarioId: 7 });
+
+      expect(resultado.resumo.agendamentos_periodo).toBe(2);
+      expect(resultado.qualidade_dados).toEqual({
+        desempenho_perfil: "indisponivel",
+        favoritos: "indisponivel",
+        ranking_profissionais: "indisponivel"
+      });
+      expect(resultado.performance.visitas_perfil).toBeNull();
+      expect(resultado.performance.favoritos_recebidos).toBeNull();
+      expect(resultado.performance.taxa_conversao).toBeNull();
+      expect(resultado.ranking_profissionais).toEqual([]);
+    });
 
     test(
       "recusa dashboard sem usuário autenticado",

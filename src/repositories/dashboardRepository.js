@@ -529,99 +529,86 @@ async function buscarPerformanceNegocio(
   filtroEventos = "",
   filtroAgendamentos = ""
 ) {
-  try {
-    const [eventos, agendamentos] =
-      await Promise.all([
-        db.query(
-          `
-          SELECT
-            COUNT(DISTINCT e.sessao_id) FILTER (
-              WHERE e.nome = 'perfil_visualizado'
-                AND NOT EXISTS (
-                  SELECT 1
-                  FROM usuarios_negocios un
-                  WHERE un.negocio_id = $1
-                    AND un.usuario_id = e.usuario_id
-                    AND un.ativo = TRUE
-                    AND un.papel IN ('dono', 'profissional')
-                )
-            )::INT AS visitas_perfil,
+  const [eventos, agendamentos] =
+    await Promise.all([
+      db.query(
+        `
+        SELECT
+          COUNT(DISTINCT e.sessao_id) FILTER (
+            WHERE e.nome = 'perfil_visualizado'
+              AND NOT EXISTS (
+                SELECT 1
+                FROM usuarios_negocios un
+                WHERE un.negocio_id = $1
+                  AND un.usuario_id = e.usuario_id
+                  AND un.ativo = TRUE
+                  AND un.papel IN ('dono', 'profissional')
+              )
+          )::INT AS visitas_perfil,
 
-            COUNT(*) FILTER (
-              WHERE e.nome = 'contato_selecionado'
-                AND e.propriedades ->> 'acao' = 'whatsapp'
-            )::INT AS cliques_whatsapp,
+          COUNT(*) FILTER (
+            WHERE e.nome = 'contato_selecionado'
+              AND e.propriedades ->> 'acao' = 'whatsapp'
+          )::INT AS cliques_whatsapp,
 
-            COUNT(*) FILTER (
-              WHERE e.nome = 'contato_selecionado'
-                AND e.propriedades ->> 'acao' = 'maps'
-            )::INT AS cliques_maps
+          COUNT(*) FILTER (
+            WHERE e.nome = 'contato_selecionado'
+              AND e.propriedades ->> 'acao' = 'maps'
+          )::INT AS cliques_maps
 
-          FROM eventos_produto e
+        FROM eventos_produto e
 
-          WHERE e.negocio_id = $1
-            ${filtroEventos}
-          `,
-          [negocioId]
-        ),
-        db.query(
-          `
-          SELECT COUNT(*)::INT AS agendamentos_concluidos
-          FROM agendamentos a
-          WHERE a.negocio_id = $1
-            AND COALESCE(a.status, 'agendado') <> 'cancelado'
-            ${filtroAgendamentos}
-          `,
-          [negocioId]
-        ),
-      ]);
+        WHERE e.negocio_id = $1
+          ${filtroEventos}
+        `,
+        [negocioId]
+      ),
+      db.query(
+        `
+        SELECT COUNT(*)::INT AS agendamentos_concluidos
+        FROM agendamentos a
+        WHERE a.negocio_id = $1
+          AND COALESCE(a.status, 'agendado') <> 'cancelado'
+          ${filtroAgendamentos}
+        `,
+        [negocioId]
+      ),
+    ]);
 
-    return {
-      visitas_perfil:
-        Number(eventos.rows[0]?.visitas_perfil) || 0,
-      cliques_whatsapp:
-        Number(eventos.rows[0]?.cliques_whatsapp) || 0,
-      cliques_maps:
-        Number(eventos.rows[0]?.cliques_maps) || 0,
-      agendamentos_concluidos:
-        Number(agendamentos.rows[0]?.agendamentos_concluidos) || 0,
-    };
-  } catch {
-    return {
-      visitas_perfil: 0,
-      cliques_whatsapp: 0,
-      cliques_maps: 0,
-      agendamentos_concluidos: 0,
-    };
-  }
+  return {
+    visitas_perfil:
+      Number(eventos.rows[0]?.visitas_perfil) || 0,
+    cliques_whatsapp:
+      Number(eventos.rows[0]?.cliques_whatsapp) || 0,
+    cliques_maps:
+      Number(eventos.rows[0]?.cliques_maps) || 0,
+    agendamentos_concluidos:
+      Number(agendamentos.rows[0]?.agendamentos_concluidos) || 0,
+  };
 }
 
 async function buscarFavoritosRecebidos(
   negocioId,
   filtro = ""
 ) {
-  try {
-    const result =
-      await db.query(
-        `
-        SELECT
-          COUNT(*)::int AS total
+  const result =
+    await db.query(
+      `
+      SELECT
+        COUNT(*)::int AS total
 
-        FROM favoritos f
+      FROM favoritos f
 
-        WHERE negocio_id = $1
-          ${filtro}
-        `,
-        [negocioId]
-      );
-
-    return (
-      result.rows[0]?.total ||
-      0
+      WHERE negocio_id = $1
+        ${filtro}
+      `,
+      [negocioId]
     );
-  } catch {
-    return 0;
-  }
+
+  return (
+    result.rows[0]?.total ||
+    0
+  );
 }
 
 async function buscarResumoDias(
@@ -679,8 +666,8 @@ async function buscarRankingProfissionais(
   const result = await db.query(
     `
     SELECT
-      cliente.id,
-      cliente.nome,
+      u.id,
+      u.nome,
 
       COUNT(
         a.id
@@ -773,58 +760,6 @@ async function buscarRankingServicos(
   return result.rows;
 }
 
-async function buscarRankingClientes(
-  negocioId,
-  filtro
-) {
-  const result = await db.query(
-    `
-    SELECT
-      cliente.id,
-      cliente.nome,
-
-      COUNT(
-        a.id
-      )::int AS total,
-
-      COALESCE(
-        SUM(
-          COALESCE(
-            a.valor_servico,
-            s.valor,
-            0
-          )
-        ),
-        0
-      )::numeric AS faturamento
-
-    FROM agendamentos a
-
-    LEFT JOIN clientes cliente
-      ON cliente.id = a.client_id
-
-    LEFT JOIN servicos_negocio s
-      ON s.id = a.servico_id
-
-    WHERE a.negocio_id = $1
-      AND a.status != 'cancelado'
-      ${filtro}
-
-    GROUP BY
-      cliente.id,
-      cliente.nome
-
-    ORDER BY
-      total DESC
-
-    LIMIT 6
-    `,
-    [negocioId]
-  );
-
-  return result.rows;
-}
-
 module.exports = {
   buscarNegocioDoUsuario,
   buscarResumoProfissional,
@@ -838,5 +773,4 @@ module.exports = {
   buscarResumoDias,
   buscarRankingProfissionais,
   buscarRankingServicos,
-  buscarRankingClientes,
 };

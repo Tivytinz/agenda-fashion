@@ -244,10 +244,9 @@ export function DashboardPage() {
     reminders: whatsappReminders
   });
   const newClients = Number(summary.clientes_novos) || 0;
-  const profileVisits = Number(performance.visitas_perfil) || 0;
-  const completedBookings = Number(performance.agendamentos_concluidos) || 0;
-  const visitLabel = profileVisits === 1 ? "visita" : "visitas";
-  const bookingLabel = completedBookings === 1 ? "agendamento" : "agendamentos";
+  const profileDataAvailable = data.qualidade_dados?.desempenho_perfil !== "indisponivel";
+  const favoritesAvailable = data.qualidade_dados?.favoritos !== "indisponivel";
+  const displayMetric = (value, available) => available && value != null ? value : "Indisponível";
   const activationCompleted =
     data.proxima_acao_ativacao?.estado === "ATIVADO" &&
     data.proxima_acao_ativacao?.concluido === true;
@@ -259,20 +258,10 @@ export function DashboardPage() {
       : `histórico do negócio · de ${uniqueClients} clientes com agendamento`;
   const cards = [
     ["Agendamentos", summary.agendamentos_periodo ?? 0, "no período"],
-    ["Faturamento", formatCurrency(summary.faturamento_periodo), "previsto"],
-    ["Clientes novos", newClients, newClients === 1 ? "descobriu você" : "descobriram você"],
-    activationCompleted
-      ? [
-          "Clientes que voltaram",
-          recurringClients,
-          recurringHint
-        ]
-      : [
-          "Conversão",
-          `${formatPercent(performance.taxa_conversao)}%`,
-          `${completedBookings} ${bookingLabel} em ${profileVisits} ${visitLabel}`
-        ]
+    ["Valor agendado", formatCurrency(summary.faturamento_periodo), "serviços agendados, não pagamentos recebidos"],
+    ["Novos clientes com agendamento", newClients, "primeiro agendamento no período"]
   ];
+  const dailySummary = Array.isArray(data.resumo_dias) ? data.resumo_dias : [];
 
   const activationPanel = (
     <DashboardNextAction
@@ -398,6 +387,16 @@ export function DashboardPage() {
         </section>
       )}
 
+      <section className="panel dashboard-today" aria-label="Agenda de hoje">
+        <div>
+          <p className="eyebrow">Hoje</p>
+          <h2>{summary.agendamentos_hoje ?? 0} {Number(summary.agendamentos_hoje) === 1 ? "agendamento" : "agendamentos"}</h2>
+        </div>
+        <Link className="button" to="/painel/agenda">Abrir agenda</Link>
+      </section>
+
+      <h2 className="dashboard-section-title">No período selecionado</h2>
+
       <section className="metric-grid" aria-label="Indicadores">
         {cards.map(([label, value, hint]) => (
           <article className="metric-card" key={label}>
@@ -408,14 +407,46 @@ export function DashboardPage() {
         ))}
       </section>
 
+      <section className="panel dashboard-daily-panel" aria-labelledby="dashboard-daily-title">
+        <div className="panel-heading">
+          <div>
+            <h2 id="dashboard-daily-title">Agendamentos por dia</h2>
+            <p className="muted">Dias com agendamentos no período selecionado; valores agendados, sem confirmação de pagamento.</p>
+          </div>
+        </div>
+        {dailySummary.length > 0 ? (
+          <div className="table-wrap">
+            <table>
+              <thead><tr><th>Dia</th><th>Agendamentos</th><th>Valor agendado</th></tr></thead>
+              <tbody>{dailySummary.map((day, index) => (
+                <tr key={`${day.data}-${index}`}>
+                  <td>{day.data}</td>
+                  <td>{day.agendamentos}</td>
+                  <td>{formatCurrency(day.faturamento)}</td>
+                </tr>
+              ))}</tbody>
+            </table>
+          </div>
+        ) : <p className="muted">Nenhum agendamento no período selecionado.</p>}
+      </section>
+
+      {activationCompleted && (
+        <section className="panel dashboard-history" aria-labelledby="dashboard-history-title">
+          <div>
+            <p className="eyebrow">Histórico completo</p>
+            <h2 id="dashboard-history-title">Clientes que voltaram</h2>
+            <p className="muted">{recurringHint}</p>
+          </div>
+          <strong>{recurringClients}</strong>
+        </section>
+      )}
+
       <section className="panel" aria-label="Origem dos clientes">
         <div className="panel-heading">
           <div>
             <p className="eyebrow">Aquisição de clientes</p>
             <h2>De onde vieram seus clientes</h2>
-            <p className="muted">
-              Cada pessoa conta uma vez. Pago, orgânico e acesso autônomo ficam separados para você enxergar o que realmente trouxe clientes.
-            </p>
+            <p className="muted">Primeira origem conhecida de cada cliente com agendamento no período.</p>
           </div>
         </div>
 
@@ -449,6 +480,8 @@ export function DashboardPage() {
               </div>
             </dl>
 
+            <details className="dashboard-origin-details">
+              <summary>Ver detalhes das origens</summary>
             {(Number(customerOriginSummary.clientesPagos) > 0 || Number(customerOriginSummary.clientesOrganicos) > 0) && (
               <dl className="data-list" aria-label="Resultado por tipo de tráfego">
                 <div>
@@ -456,7 +489,7 @@ export function DashboardPage() {
                   <dd>{customerOriginSummary.agendamentosPagos ?? 0}</dd>
                 </div>
                 <div>
-                  <dt>Pago · faturamento</dt>
+                  <dt>Pago · valor agendado</dt>
                   <dd>{formatCurrency(customerOriginSummary.faturamentoPago)}</dd>
                 </div>
                 <div>
@@ -464,7 +497,7 @@ export function DashboardPage() {
                   <dd>{customerOriginSummary.agendamentosOrganicos ?? 0}</dd>
                 </div>
                 <div>
-                  <dt>Orgânico · faturamento</dt>
+                  <dt>Orgânico · valor agendado</dt>
                   <dd>{formatCurrency(customerOriginSummary.faturamentoOrganico)}</dd>
                 </div>
               </dl>
@@ -479,7 +512,7 @@ export function DashboardPage() {
                       <th>Clientes</th>
                       <th>Participação</th>
                       <th>Agendamentos</th>
-                      <th>Faturamento</th>
+                      <th>Valor agendado</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -505,6 +538,7 @@ export function DashboardPage() {
             <p className="muted">
               <strong>Tráfego pago</strong> exige sinal confiável de anúncio, como identificador de clique ou UTM de mídia paga. <strong>Tráfego orgânico</strong> inclui busca, rede social, referência externa e links rastreáveis compartilhados pelo próprio AF sem sinal de anúncio. <strong>Acesso autônomo</strong> fica reservado para visitas sem anúncio, sem referência externa e sem link rastreável do AF. <strong>Origem não identificada</strong> é histórico sem dados suficientes para concluir.
             </p>
+            </details>
           </>
         ) : (
           <p className="muted">A origem dos clientes está temporariamente indisponível. Os demais indicadores continuam válidos.</p>
@@ -516,11 +550,10 @@ export function DashboardPage() {
           <div><p className="eyebrow">Aquisição</p><h2>Desempenho do perfil</h2></div>
         </div>
         <dl className="data-list">
-          <div><dt>Visitas ao perfil</dt><dd>{performance.visitas_perfil ?? 0}</dd></div>
-          <div><dt>Cliques no WhatsApp</dt><dd>{performance.cliques_whatsapp ?? 0}</dd></div>
-          <div><dt>Cliques no mapa</dt><dd>{performance.cliques_maps ?? 0}</dd></div>
-          <div><dt>Favoritos recebidos</dt><dd>{performance.favoritos_recebidos ?? 0}</dd></div>
-          <div><dt>Conversão do perfil</dt><dd>{formatPercent(performance.taxa_conversao)}%</dd></div>
+          <div><dt>Visitas ao perfil</dt><dd>{displayMetric(performance.visitas_perfil, profileDataAvailable)}</dd></div>
+          <div><dt>Cliques no WhatsApp</dt><dd>{displayMetric(performance.cliques_whatsapp, profileDataAvailable)}</dd></div>
+          <div><dt>Cliques no mapa</dt><dd>{displayMetric(performance.cliques_maps, profileDataAvailable)}</dd></div>
+          <div><dt>Favoritos recebidos</dt><dd>{displayMetric(performance.favoritos_recebidos, favoritesAvailable)}</dd></div>
         </dl>
       </section>
 
@@ -529,7 +562,7 @@ export function DashboardPage() {
           <div className="panel-heading"><h2>Serviços mais agendados</h2></div>
           <div className="table-wrap">
             <table>
-              <thead><tr><th>Serviço</th><th>Agendamentos</th><th>Faturamento</th></tr></thead>
+              <thead><tr><th>Serviço</th><th>Agendamentos</th><th>Valor agendado</th></tr></thead>
               <tbody>
                 {data.ranking_servicos.map((item, index) => (
                   <tr key={item.id || item.servico_id || index}>

@@ -136,6 +136,21 @@ describe("dashboardRepository integrado", () => {
     expect(Number(ranking[0].faturamento)).toBe(100);
   });
 
+  test("ranking de profissionais usa o usuário responsável pelo agendamento", async () => {
+    const cliente = await criarCliente("Cliente do ranking");
+    await criarAgendamento(cliente, 0);
+    const filtro = "AND a.data = (NOW() AT TIME ZONE 'America/Sao_Paulo')::date";
+
+    const ranking = await dashboardRepository.buscarRankingProfissionais(
+      cenario.negocioId,
+      filtro
+    );
+
+    expect(Number(ranking[0]?.id)).toBe(cenario.profissional.id);
+    expect(ranking[0]?.nome).toBe(cenario.profissional.nome);
+    expect(ranking[0]?.total).toBe(1);
+  });
+
   test("exclui visita interna e usa agendamento real não cancelado na conversão", async () => {
     const cliente = await criarCliente("Cliente conversão");
     await criarAgendamento(cliente, 0, "12:00");
