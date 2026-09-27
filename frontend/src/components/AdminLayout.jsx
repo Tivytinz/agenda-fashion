@@ -1,18 +1,33 @@
 import { AdminShell } from "./AdminShell";
 import "../styles/admin-core-finish.css";
 
-export const ADMIN_LINKS = [
-  { path: "/admin", label: "Visão geral", icon: "home", mobile: "primary" },
-  { path: "/admin/aquisicao", label: "Aquisição", icon: "marketing", mobile: "primary" },
-  { path: "/admin/jornada", label: "Jornada", icon: "health", mobile: "primary" },
-  { path: "/admin/retencao", label: "Retenção", icon: "business", mobile: "primary" },
-  { path: "/admin/receita", label: "Receita", icon: "plan", mobile: "secondary" },
-  { path: "/admin/operacao", label: "Operação", icon: "calendar", mobile: "secondary" }
+export const ADMIN_NAV_GROUPS = [
+  {
+    label: "Início",
+    links: [{ path: "/admin", label: "Visão geral" }]
+  },
+  {
+    label: "Crescimento",
+    links: [
+      { path: "/admin/trafego-pago", label: "Marketing" },
+      { path: "/admin/aquisicao", label: "Aquisição" },
+      { path: "/admin/jornada", label: "Jornada" },
+      { path: "/admin/retencao", label: "Retenção" },
+      { path: "/admin/receita", label: "Receita" }
+    ]
+  },
+  {
+    label: "Plataforma",
+    links: [
+      { path: "/admin/operacao", label: "Operação" },
+      { path: "/admin/saude", label: "Saúde do SaaS" }
+    ]
+  }
 ];
 
 export function AdminLayout({ children }) {
   return (
-    <AdminShell links={ADMIN_LINKS}>
+    <AdminShell groups={ADMIN_NAV_GROUPS}>
       {children}
     </AdminShell>
   );

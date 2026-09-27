@@ -64,7 +64,7 @@ test("ativação usa deep link e vira cartões sem overflow no celular", async (
   }));
 
   await page.goto("/admin/saude?pendencia=disponibilidade");
-  await expect(page.getByRole("heading", { name: "Ativação profissional" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Saúde do SaaS" })).toBeVisible();
   await expect(page.getByLabel("Filtrar diagnósticos técnicos")
     .getByRole("button", { name: "Disponibilidade não inicializada (5)", exact: true }))
     .toHaveAttribute("aria-pressed", "true");

@@ -72,16 +72,20 @@ Esses dados continuam disponíveis nos módulos especializados quando forem úte
 
 ## Arquitetura da navegação administrativa
 
-A navegação principal atual do Admin possui seis módulos:
+A navegação principal atual do Admin possui oito módulos:
 
 1. **Visão geral** — métricas agregadas do AF;
-2. **Aquisição** — origem e qualidade dos profissionais adquiridos;
-3. **Jornada** — avanço entre sinais de produto até o primeiro agendamento válido;
-4. **Retenção** — repetição de valor e recorrência observada;
-5. **Receita** — monetização e pagamentos reconhecidos pelo backend;
-6. **Operação** — negócios, agendamentos e marketplace em nível operacional.
+2. **Marketing** — canais, campanhas, custos e integrações;
+3. **Aquisição** — origem e qualidade dos profissionais adquiridos;
+4. **Jornada** — avanço entre sinais de produto até o primeiro agendamento válido;
+5. **Retenção** — repetição de valor e recorrência observada;
+6. **Receita** — monetização e pagamentos reconhecidos pelo backend;
+7. **Operação** — negócios, agendamentos e marketplace em nível operacional;
+8. **Saúde do SaaS** — bloqueios de ativação e saúde operacional.
 
-Marketing detalhado, custos/integrações, diagnóstico histórico de ativação e WhatsApp continuam em rotas especializadas. Eles podem ser acessados quando a tarefa exigir sem precisar ocupar o mesmo nível da navegação principal.
+Custos/integrações, WhatsApp e auditoria continuam em rotas especializadas
+acessíveis a partir do módulo correspondente. A navegação mobile abre os mesmos
+oito destinos do sidebar desktop.
 
 `Minha conta` não é um módulo analítico do AF e permanece acessível como ação de conta dentro do contexto adequado.
 

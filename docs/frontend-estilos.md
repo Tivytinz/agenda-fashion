@@ -21,11 +21,11 @@ Mais detalhes sobre contextos visuais ficam em [`ux-contextos-visuais.md`](./ux-
 
 ## Admin e design system
 
-O `AdminShell` fornece a estrutura global do contexto administrativo e os tokens `--admin-*`. A direção atual é um **Command Center do AF**: operação e leitura de dados em primeiro plano, grafite como base de navegação, rosa de marca como assinatura e cores semânticas quando ajudam a interpretar estado.
+O `AdminShell` fornece a estrutura global do contexto administrativo e os tokens `--admin-*`. A direção atual é um centro operacional de superfícies claras, navegação textual e cor de destaque discreta. Cores semânticas só ajudam a interpretar estados reais. Sidebar e painel mobile consomem os mesmos oito destinos agrupados.
 
 O design system não obriga todas as páginas a terem a mesma composição. Ele oferece uma fundação comum para superfícies, bordas, foco, raios, estados e componentes recorrentes.
 
-Os seis módulos principais recebem layout e densidade diretamente das camadas administrativas. Compatibilidade com classes históricas pode permanecer em features antigas quando uma migração ampla não trouxer benefício proporcional.
+Os oito módulos principais recebem layout e densidade diretamente das camadas administrativas. Compatibilidade com classes históricas pode permanecer em features antigas quando uma migração ampla não trouxer benefício proporcional.
 
 Ao alterar uma tela administrativa, vale avaliar se o trecho tocado pode consumir tokens ou primitives `admin-*` sem aumentar desnecessariamente o tamanho e o risco do patch.
 

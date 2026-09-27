@@ -1,21 +1,21 @@
 .admin-shell {
-  --admin-brand: #d92f7f;
-  --admin-brand-hover: #c62975;
-  --admin-brand-strong: #9f1f5c;
-  --admin-brand-soft: #fff0f6;
-  --admin-brand-soft-strong: #fbd8e8;
-  --admin-bg: #f8f6f8;
+  --admin-brand: #466b8c;
+  --admin-brand-hover: #365975;
+  --admin-brand-strong: #234d70;
+  --admin-brand-soft: #e8f0f7;
+  --admin-brand-soft-strong: #d7e5f0;
+  --admin-bg: #f7f8fa;
   --admin-surface: #ffffff;
-  --admin-surface-soft: #fcfafb;
+  --admin-surface-soft: #fafbfc;
   --admin-surface-raised: #ffffff;
-  --admin-line: #eadfe5;
-  --admin-line-strong: #dccbd4;
-  --admin-ink: #241f23;
-  --admin-muted: #746a72;
+  --admin-line: #e3e8ee;
+  --admin-line-strong: #cbd5df;
+  --admin-ink: #1f2d3d;
+  --admin-muted: #59697b;
   --admin-accent: var(--admin-brand);
   --admin-accent-dark: var(--admin-brand-strong);
-  --admin-soft: #f8eef3;
-  --admin-soft-strong: #f2e1e9;
+  --admin-soft: #f0f4f7;
+  --admin-soft-strong: #e6edf3;
   --admin-success: #267454;
   --admin-warning: #956819;
   --admin-danger: #b43d59;
@@ -24,20 +24,20 @@
   --admin-radius-md: 14px;
   --admin-radius-lg: 20px;
   --admin-radius-xl: 26px;
-  --admin-shadow-sm: 0 8px 24px rgb(50 31 43 / 6%);
-  --admin-shadow-md: 0 18px 46px rgb(50 31 43 / 9%);
-  --admin-focus: 0 0 0 3px rgb(217 47 127 / 18%);
+  --admin-shadow-sm: 0 4px 18px rgb(31 45 61 / 4%);
+  --admin-shadow-md: 0 12px 32px rgb(31 45 61 / 8%);
+  --admin-focus: 0 0 0 3px rgb(70 107 140 / 25%);
 
   /* Compatibilidade temporária com componentes administrativos legados. */
-  --pink-50: #fff4f8;
-  --pink-100: #fbd8e8;
-  --pink-500: #d92f7f;
-  --pink-600: #c62975;
-  --pink-700: #9f1f5c;
-  --wine: #241f23;
-  --ink: #241f23;
-  --muted: #746a72;
-  --line: #eadfe5;
+  --pink-50: #f3f7fa;
+  --pink-100: #d7e5f0;
+  --pink-500: #466b8c;
+  --pink-600: #365975;
+  --pink-700: #234d70;
+  --wine: #1f2d3d;
+  --ink: #1f2d3d;
+  --muted: #59697b;
+  --line: #e3e8ee;
   --surface: #ffffff;
   --shadow: var(--admin-shadow-sm);
   --shadow-hover: var(--admin-shadow-md);
@@ -60,13 +60,10 @@
   justify-content: space-between;
   gap: 24px;
   overflow: hidden;
-  border: 1px solid rgb(217 47 127 / 15%);
-  border-radius: var(--admin-radius-xl);
-  padding: clamp(24px, 3vw, 34px);
-  background:
-    radial-gradient(circle at 92% 6%, rgb(251 216 232 / 78%), transparent 28%),
-    linear-gradient(120deg, #ffffff 0%, #fff8fb 56%, #fff1f7 100%);
-  box-shadow: 0 16px 42px rgb(92 42 68 / 7%);
+  border: 1px solid var(--admin-line);
+  border-radius: var(--admin-radius-md);
+  padding: 22px 24px;
+  background: var(--admin-surface);
 }
 
 .admin-shell .admin-page-header > div:first-child {
@@ -118,14 +115,14 @@
   border-radius: var(--admin-radius-sm);
   color: #fff;
   background: var(--admin-brand);
-  box-shadow: 0 8px 18px rgb(217 47 127 / 16%);
+  box-shadow: 0 4px 12px rgb(35 77 112 / 12%);
   font-weight: 780;
 }
 
 .admin-shell .button:hover {
   border-color: var(--admin-brand-hover);
   background: var(--admin-brand-hover);
-  box-shadow: 0 10px 24px rgb(217 47 127 / 20%);
+  box-shadow: 0 6px 18px rgb(35 77 112 / 16%);
 }
 
 .admin-shell .button:focus-visible,
@@ -147,7 +144,7 @@
 
 .admin-shell .button-secondary:hover {
   color: var(--admin-brand-strong);
-  border-color: rgb(217 47 127 / 30%);
+  border-color: var(--admin-line-strong);
   background: var(--admin-brand-soft);
 }
 
@@ -198,13 +195,13 @@
 }
 
 .admin-shell th {
-  color: #665861;
-  background: #fff7fa;
+  color: var(--admin-muted);
+  background: var(--admin-surface-soft);
 }
 
 .admin-shell td,
 .admin-shell th {
-  border-color: #f0e7ec;
+  border-color: var(--admin-line);
 }
 
 .admin-shell .admin-command-metric {
@@ -214,8 +211,7 @@
   border-color: var(--admin-line);
   border-radius: 18px;
   padding: 20px;
-  background:
-    linear-gradient(145deg, #fff 0%, #fff 72%, #fff7fa 100%);
+  background: var(--admin-surface);
   box-shadow: var(--admin-shadow-sm);
 }
 
@@ -225,7 +221,7 @@
   right: 0;
   left: 0;
   height: 3px;
-  background: linear-gradient(90deg, var(--admin-brand), #f29ac2);
+  background: var(--admin-line-strong);
   content: "";
   opacity: .78;
 }
@@ -268,7 +264,7 @@
   .admin-shell .admin-page {
     width: min(100% - 28px, 1380px);
     gap: 16px;
-    padding-block: 20px 104px;
+    padding-block: 20px calc(40px + env(safe-area-inset-bottom));
   }
 
   .admin-shell .workspace-heading,

@@ -116,14 +116,13 @@ As rotas `/admin/*` formam o contexto operacional interno do Agenda Fashion.
 
 A administração possui shell próprio e um conjunto visual próprio porque sua necessidade de densidade, leitura de dados e operação é diferente da experiência pública e profissional. Isso não significa que cada página precise obedecer a uma composição única ou que todos os componentes históricos tenham de ser migrados de uma vez.
 
-A direção visual atual do Admin é a de um **Command Center do AF**. Como referência:
+A direção visual atual do Admin é a de um centro operacional limpo. Como referência:
 
-- sidebar em grafite ajuda a separar o ambiente interno;
-- rosa oficial do AF funciona bem como assinatura de marca, seleção e ação;
-- superfícies claras favorecem leitura de métricas e tabelas;
+- sidebar claro com links textuais agrupados facilita a localização dos oito módulos;
+- superfícies claras e uma cor de destaque discreta favorecem leitura de métricas e tabelas;
 - cores semânticas podem diferenciar sucesso, atenção, erro e informação;
 - tokens `--admin-*` são a fonte preferida para bordas, raios, sombras, foco e superfícies;
-- navegação mobile própria ajuda a manter o contexto administrativo reconhecível;
+- a navegação mobile abre a mesma lista do sidebar em um painel, sem barra inferior fixa;
 - densidade operacional é desejável, desde que a interface continue legível.
 
 Esses elementos são uma base, não uma obrigação de composição. Uma tela pode usar uma solução diferente quando isso melhorar significativamente a tarefa ou evitar complexidade desnecessária.
@@ -163,11 +162,11 @@ As cores semânticas servem como orientação de significado:
 - `danger`: erro, falha ou risco relevante;
 - `info`: informação operacional neutra.
 
-O rosa de marca pode coexistir com essas cores. A escolha deve priorizar entendimento, contraste e consistência.
+A cor de marca pode aparecer quando fizer sentido para a tarefa; o Admin não depende de uma paleta fixa. Priorizar entendimento, contraste e consistência.
 
 ### Evolução do legado visual
 
-Os seis módulos principais do Admin recebem layout e densidade diretamente da camada administrativa. Algumas features históricas ainda podem carregar classes antigas por compatibilidade enquanto não houver benefício proporcional em reescrevê-las.
+Os oito módulos principais do Admin recebem layout e densidade diretamente da camada administrativa. Algumas features históricas ainda podem carregar classes antigas por compatibilidade enquanto não houver benefício proporcional em reescrevê-las.
 
 Quando uma área for alterada, vale avaliar se migrar o trecho tocado para primitives `admin-*` simplifica a arquitetura. Se a migração aumentar muito o risco ou o tamanho do patch sem benefício proporcional, manter temporariamente a compatibilidade é aceitável.
 

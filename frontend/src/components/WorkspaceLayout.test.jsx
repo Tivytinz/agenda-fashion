@@ -101,7 +101,8 @@ describe("menu mobile da área de trabalho", () => {
     expect(screen.queryByRole("link", { name: /Horários/ })).toBeNull();
   });
 
-  it("renderiza a mesma navegação administrativa no conteúdo e na lateral", () => {
+  it("renderiza a mesma navegação administrativa no sidebar e no menu", async () => {
+    const user = userEvent.setup();
     render(
       <MemoryRouter>
         <AdminLayout>
@@ -120,6 +121,7 @@ describe("menu mobile da área de trabalho", () => {
         name: "Conteúdo administrativo"
       })
     ).not.toBeNull();
+    await user.click(screen.getByRole("button", { name: "Menu" }));
     expect(
       screen.getAllByRole("link", { name: /Aquisição/ })
     ).toHaveLength(2);
@@ -127,7 +129,7 @@ describe("menu mobile da área de trabalho", () => {
       screen.getAllByRole("link", { name: /Jornada/ })
     ).toHaveLength(2);
     expect(
-      screen.getAllByRole("link", { name: /Visão geral/ })
+      screen.getAllByRole("link", { name: "Visão geral", exact: true })
     ).toHaveLength(2);
     expect(screen.queryByText("Operação interna")).toBeNull();
   });

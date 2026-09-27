@@ -209,7 +209,7 @@ test("ativação profissional aplica seu CSS administrativo sob demanda", async 
 
   await expect(page.getByRole("heading", {
     level: 1,
-    name: "Ativação profissional"
+    name: "Saúde do SaaS"
   })).toBeVisible();
 
   const metricCard = page.locator(".saas-health-metric-card").first();

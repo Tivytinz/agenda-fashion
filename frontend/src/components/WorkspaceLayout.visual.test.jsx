@@ -52,10 +52,12 @@ describe("contextos visuais do workspace", () => {
     expect(sidebar.classList.contains("admin-sidebar")).toBe(true);
     expect(sidebar.classList.contains("workspace-sidebar")).toBe(false);
     expect(document.querySelector(".workspace-shell--admin")).toBeNull();
-    expect(sidebarQueries.getByText("Command Center")).not.toBeNull();
+    expect(sidebarQueries.getByText("Administração")).not.toBeNull();
     expect(sidebarQueries.getByText("Visão geral")).not.toBeNull();
+    expect(sidebarQueries.getByText("Marketing")).not.toBeNull();
     expect(sidebarQueries.getByText("Aquisição")).not.toBeNull();
     expect(sidebarQueries.getByText("Operação")).not.toBeNull();
+    expect(sidebarQueries.getByText("Saúde do SaaS")).not.toBeNull();
     expect(screen.getByRole("heading", { name: "Visão administrativa" })).not.toBeNull();
   });
 
