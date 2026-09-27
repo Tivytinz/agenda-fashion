@@ -382,9 +382,9 @@ describe(
           negocios_pagos_d60: 1,
           negocios_pagos_d90: 0,
           receita_d30_centavos:
-            "9980",
+            "2000",
           receita_d60_centavos:
-            "14970",
+            "3000",
         });
 
         const fonteDepoisGoogle =

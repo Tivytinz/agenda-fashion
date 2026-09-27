@@ -95,7 +95,7 @@ describe(
           id: 3,
           nome: "Studio",
           slug: "studio",
-          valor: "99.90"
+          valor: "20.00"
         });
 
       checkoutTentativaRepository

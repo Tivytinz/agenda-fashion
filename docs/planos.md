@@ -21,10 +21,10 @@ ou apresentado como uma oferta paga.
 
 | Plano | Valor mensal | Agendamentos/mês | Profissionais | Serviços |
 | --- | ---: | ---: | ---: | ---: |
-| Grátis | R$ 0,00 | 10 | 1 | 2 |
-| Autônoma | R$ 49,90 | 20 | 1 | 4 |
-| Studio | R$ 99,90 | 30 | 1 | 10 |
-| Salão | R$ 199,90 | Ilimitados | 5 | Ilimitados |
+| Grátis | R$ 0,00 | 10 | 1 | 5 |
+| Autônoma | R$ 10,00 | 20 | 3 | 10 |
+| Studio | R$ 20,00 | 30 | 6 | 15 |
+| Salão | R$ 30,00 | Ilimitados | 9 | Ilimitados |
 
 O nome público do plano de entrada é **Grátis**. Seu slug interno permanece
 `inicial` para preservar negócios, triggers e automações existentes. Os slugs
@@ -36,7 +36,7 @@ Dentro dos limites do plano, a profissional pode:
 
 - criar e configurar o negócio;
 - manter um perfil público compartilhável;
-- cadastrar até dois serviços;
+- cadastrar até cinco serviços;
 - operar com um profissional;
 - receber até dez agendamentos por mês;
 - começar sem informar cartão ou gerar cobrança.

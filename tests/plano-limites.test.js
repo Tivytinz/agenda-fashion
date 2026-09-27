@@ -20,7 +20,7 @@ function criarPlano({
     valor: "0.00",
     capacidade_agendamentos: capacidade,
     limite_profissionais: 1,
-    limite_servicos: 2,
+    limite_servicos: 5,
     destaque: false,
     utilizados,
     profissionais_utilizados: 1,
@@ -86,7 +86,7 @@ describe("Limites dos planos", () => {
           .mockResolvedValueOnce({
             rows: [
               criarPlano({
-                servicosUtilizados: 4,
+                servicosUtilizados: 7,
               }),
             ],
           }),
@@ -97,8 +97,8 @@ describe("Limites dos planos", () => {
         executor
       );
 
-      expect(uso.servicos_utilizados).toBe(4);
-      expect(uso.limite_servicos).toBe(2);
+      expect(uso.servicos_utilizados).toBe(7);
+      expect(uso.limite_servicos).toBe(5);
       expect(executor.query).toHaveBeenCalledTimes(2);
       expect(
         executor.query.mock.calls.some(
