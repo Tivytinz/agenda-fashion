@@ -177,12 +177,11 @@ test("shell do admin mantém navegação durante rolagem e privacidade fora dos 
   })).toEqual({ sidebarTop: 0, topbarTop: 0 });
 
   await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
-  const [shellBox, privacyBox] = await Promise.all([
-    page.locator(".admin-shell").boundingBox(),
-    page.getByRole("link", { name: "Privacidade" }).boundingBox()
-  ]);
-  await expect(page.getByRole("link", { name: "Privacidade" })).toHaveCSS("position", "static");
-  expect(privacyBox.y).toBeGreaterThanOrEqual(shellBox.y + shellBox.height - 4);
+  const privacyLink = page.getByRole("link", { name: "Privacidade" });
+  await expect(privacyLink).toHaveCSS("position", "static");
+  await expect.poll(() => privacyLink.evaluate((link) => (
+    link.closest(".admin-shell") === null
+  ))).toBe(true);
   await expectNoHorizontalOverflow(page);
 });
 

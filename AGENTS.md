@@ -647,9 +647,10 @@ fila/auditoria do provedor; `assinatura_eventos` representa o significado de
 produto do AF. Não fazer backfill especulativo quando o histórico antigo não
 provar a transição.
 
-Conversões de assinatura para provedores de mídia devem ser idempotentes por
-assinatura e pagamento financeiro. Webhooks repetidos da mesma cobrança não
-duplicam entrega, mas um pagamento posterior que se torne o primeiro válido após
+Conversões de assinatura para provedores de mídia devem usar identidade canônica
+por assinatura. Webhooks repetidos ou pagamentos posteriores da mesma assinatura
+não podem duplicar uma aquisição já enviada; quando ainda não houve envio, um
+pagamento posterior que se torne o primeiro válido após
 invalidação do anterior precisa poder gerar uma nova entrega.
 
 As integrações administrativas de custos são somente leitura no escopo atual
