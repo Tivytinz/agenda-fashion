@@ -270,6 +270,47 @@ Mudanças de schema exigem migration nova. Migrations aplicadas não devem ser e
 
 Os repositories são a fronteira preferencial para SQL. Operações críticas de booking, billing, webhooks e sincronizações usam transações/locks quando o domínio exige atomicidade ou serialização.
 
+### 6.1 Política de conexão e transação
+
+O acesso ao PostgreSQL é centralizado em `src/db/db.js`, usando `pg.Pool`. A origem da conexão é `DATABASE_URL` com fallback para `DATABASE_PRIVATE_URL`. Em produção, o pool usa TLS e recebe limites/timeouts de `src/config/databasePool.js`.
+
+A camada de banco distingue leitura de escrita para retry: consultas iniciadas por `SELECT`, `SHOW`, `EXPLAIN` ou `VALUES` podem receber **uma segunda tentativa** após falha transitória de conexão; escritas não são repetidas automaticamente para evitar duplicação de agendamentos, pagamentos ou cadastros. `connect()` também pode repetir uma única obtenção de conexão antes de uma transação começar. `executarTransacao()` executa `BEGIN/COMMIT`, tenta `ROLLBACK` em falha e nunca repete a transação automaticamente.
+
+O readiness do banco consulta `schema_migrations` e compara a maior versão aplicada com a maior migration válida encontrada em `database/migrations`. Portanto, `/health/ready` e o processo dedicado de workers não consideram o banco pronto enquanto a versão persistida estiver abaixo da versão esperada.
+
+### 6.2 Mapa dos domínios persistidos
+
+A lista abaixo é um mapa de ownership lógico, não uma tentativa de repetir todas as colunas das migrations.
+
+| Domínio | Tabelas/estruturas centrais | Repositories principais |
+| --- | --- | --- |
+| Identidade e sessão | `usuarios`, vínculos e revogações de sessão | `authRepository`, `authSessionRepository`, `sessaoRepository`, `sessionRevocationRepository`, `contaRepository` |
+| Negócio e equipe | `negocios`, `usuarios_negocios`, convites e perfil profissional | `negocioRepository`, `profissionaisRepository`, `configuracoesRepository` |
+| Serviços | `servicos_negocio`, fotos e matriz profissional-serviço | `servicosRepository`, `profissionalServicosRepository` |
+| Agenda | configurações, disponibilidade, bloqueios e contexto profissional-negócio | `agendaConfiguracaoRepository`, `agendaContextoRepository`, `agendaRepository`, `agendaPublicaRepository` |
+| Booking | `agendamentos`, snapshots, lifecycle, cancelamento e reagendamento | `agendamentoLifecycleRepository`, `agendamentoCancelamentoRepository`, `agendamentoReagendamentoRepository`, `bookingAnalyticsRepository` |
+| Planos e billing | `planos`, assinaturas, pagamentos, tentativas de checkout e eventos de assinatura | `planoRepository`, `assinaturaRepository`, `assinaturaAtivacaoRepository`, `assinaturaEventoRepository`, `pagamentoRepository`, `checkoutRepository`, `checkoutTentativaRepository` |
+| Webhooks | eventos recebidos e retenção de payload | `webhookEventoRepository`, `webhookRetentionRepository`, `assinaturaWebhookRepository` |
+| WhatsApp | mensagens, fila, estado e agenda de comunicação | família `whatsappMensagem*` e `whatsappAgendaRepository` |
+| Marketing | campanhas, gastos, atribuição, conversões, OAuth e sincronização de custos | família `marketing*`, `metaAdsRepository`, `googleMeasurementRepository`, repositories TikTok/Pinterest |
+| Analytics | eventos first-party, jornadas e agregações administrativas | `analyticsV2Repository`, `eventoProdutoRepository`, `adminAnalyticsV2Repository` |
+| Financeiro analítico | aquisição financeira, economia de pagamentos, MRR/LTV/contribuição | `aquisicaoFinanceiraRepository`, `paymentEconomicsRepository`, família `admin*Economics*` |
+| Contribuição | fontes, ledger de custos, cobertura, integrações e histórico de sync | `contributionEconomicsRepository`, `contributionCostSyncRepository`, repositories administrativos de contribuição |
+| Administração/auditoria | administradores, operações e eventos append-only | `adminRepository`, `adminOperationRepository`, `adminAuditRepository` |
+
+### 6.3 Invariantes importantes do banco
+
+- `usuarios.email` possui unicidade case-insensitive e formato normalizado.
+- `negocios.slug` é único e é o identificador público do perfil.
+- `usuarios_negocios` impede dois donos ativos para o mesmo negócio e mais de um vínculo profissional ativo por conta.
+- Serviços pertencem ao negócio; nomes de serviços ativos são únicos por negócio.
+- Agendamentos mantêm referências restritivas para preservar histórico e receberam snapshots/instante UTC em migrations posteriores.
+- Webhooks e checkout possuem estruturas específicas de idempotência/fencing; processamento financeiro não deve depender de repetição cega de escrita.
+- Os ledgers financeiros introduzidos nas waves recentes preservam fatos históricos em vez de recalcular silenciosamente o passado.
+- `contribuicao_custos` é um ledger de débito/crédito com chave de origem idempotente; correções são novos fatos, não edição destrutiva.
+- `contribuicao_operacoes_admin` e `admin_auditoria_eventos` são trilhas append-only protegidas por trigger contra mutação.
+- `contribuicao_integracoes_sync` não armazena credenciais; o cursor só deve avançar junto da persistência reconciliada dos fatos/cobertura.
+
 ## 7. Segurança e fronteiras de confiança
 
 O backend é a autoridade para autenticação, autorização, contexto de negócio, limites de plano, preço e regras financeiras. O frontend não é fonte confiável para esses valores.
@@ -325,6 +366,27 @@ Custos e integrações externas devem preservar origem factual e estado de sincr
 Por compatibilidade, o processo web inicia workers quando `BACKGROUND_WORKERS_ENABLED` não é definido. Para processo dedicado existe `npm run worker`. Em topologia separada, o web deve usar `BACKGROUND_WORKERS_ENABLED=false`.
 
 No shutdown, o servidor para novos ciclos, aguarda workers ativos e só depois encerra o pool PostgreSQL. Há limite de 10 segundos para fechamento das conexões HTTP remanescentes.
+
+### 11.1 Catálogo operacional dos workers
+
+Os oito workers são coordenados por `src/workers/backgroundWorkers.js`. O processo HTTP pode iniciá-los quando habilitado e `src/worker.js` permite executá-los em processo dedicado. O shutdown aguarda as execuções conhecidas antes de encerrar o pool.
+
+| Worker | Responsabilidade | Controles relevantes |
+| --- | --- | --- |
+| `webhook` | processar fila Asaas, entregas de conversão e retenção de payloads | roda imediatamente e a cada 30 s; lease/fencing impede finalização por tentativa que perdeu a reserva; eventos podem terminar `PROCESSED` ou `IGNORED` |
+| WhatsApp | consumir fila de mensagens e executar lembretes/automações habilitadas | condicionado por `WHATSAPP_NOTIFICATIONS_ENABLED`; intervalo e lote configuráveis; automações adicionais possuem flags próprias |
+| custos de marketing | sincronizar custos dos providers de mídia configurados | agenda controlada por configuração/feature flag; integrações preservam vínculo explícito com campanha externa |
+| ML no-show | materializar base de dados operacional para evolução do modelo de no-show | `ML_NO_SHOW_DATA_ENABLED`; intervalo e lote configuráveis; não equivale a decisão automatizada sobre cliente |
+| `billing_reconciliation` | encerrar períodos pagos cancelados vencidos e materializar inadimplência terminal | evita execução concorrente; lote, intervalo e janela terminal configuráveis; falha individual não interrompe os demais candidatos |
+| `acquisition_financial_reconciliation` | materializar snapshots pendentes de aquisição financeira | evita execução concorrente; processa em lote e registra falhas por candidato |
+| `payment_economics_reconciliation` | reconciliar economia líquida observada dos pagamentos | evita execução concorrente; distingue reconciliados, obsoletos e falhas |
+| `contribution_cost_sync` | ingerir custos variáveis de fontes/adaptadores configurados | só agenda quando habilitado; impede sobreposição; cobertura/cursor dependem da reconciliação da fonte |
+
+### 11.2 Regras de execução
+
+Workers periódicos mantêm proteção local contra sobreposição da própria execução. Métricas operacionais registram worker iniciado/parado e início/sucesso/falha das execuções. Os workers financeiros processam candidatos individualmente quando aplicável, permitindo contabilizar falhas sem transformar uma falha isolada em rollback lógico de todo o lote.
+
+A idempotência não é delegada ao timer: ela é sustentada pelos repositories, constraints, chaves externas, leases, snapshots e operações transacionais de cada domínio. Por isso, aumentar frequência ou paralelismo exige revisar essas garantias antes de alterar a agenda.
 
 ## 12. Integrações externas
 
