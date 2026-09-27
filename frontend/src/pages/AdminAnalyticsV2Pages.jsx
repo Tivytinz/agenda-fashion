@@ -804,6 +804,21 @@ export function AdminJourneyV2Page() {
           (total, event) => total + number(event.sessoes),
           0
         );
+        const totalDeviceSessions = devices.reduce(
+          (total, item) => total + number(item.sessoes),
+          0
+        );
+        const deviceSessions = devices.reduce((acc, item) => {
+          const key = String(item.device_type || "other").toLowerCase();
+          acc[key] = (acc[key] || 0) + number(item.sessoes);
+          return acc;
+        }, {});
+        const mobileSessions = number(deviceSessions.mobile);
+        const desktopSessions = number(deviceSessions.desktop);
+        const maxCompatibilitySessions = Math.max(
+          1,
+          ...devices.map((item) => number(item.sessoes))
+        );
         const hasPipelineEvidence =
           pipelineEvents.some((item) => (
             number(item.legadoPeriodo) > 0 ||
@@ -1022,16 +1037,40 @@ export function AdminJourneyV2Page() {
               </details>
             </section>
 
-            <section className="panel">
-              <div className="panel-heading"><div><p className="eyebrow">Compatibilidade</p><h2>Dispositivo e navegador</h2></div></div>
-              <div className="admin-ranking-list admin-journey-ranking">
-                {devices.map((item) => (
-                  <article key={`${item.device_type}-${item.browser_family}`}>
-                    <div><strong>{item.device_type}</strong><small>{item.browser_family}</small></div>
-                    <span>{formatNumber(item.sessoes)} sessões</span>
-                  </article>
-                ))}
+            <section className="panel admin-compatibility-panel">
+              <div className="panel-heading">
+                <div>
+                  <p className="eyebrow">Compatibilidade</p>
+                  <h2>Dispositivo e navegador</h2>
+                  <p className="muted">Distribuição das sessões observadas por combinação de dispositivo e navegador. Use este recorte para priorizar QA e compatibilidade, não para inferir conversão.</p>
+                </div>
               </div>
+              {devices.length === 0 ? (
+                <p className="muted">Ainda não há sessões com dispositivo e navegador identificados.</p>
+              ) : (
+                <>
+                  <section className="admin-compatibility-summary" aria-label="Resumo de compatibilidade">
+                    <MetricCard label="Sessões observadas" hint="soma das combinações exibidas" value={formatNumber(totalDeviceSessions)} />
+                    <MetricCard label="Mobile" hint="participação das sessões mobile" value={formatPercent(totalDeviceSessions > 0 ? (mobileSessions / totalDeviceSessions) * 100 : null)} />
+                    <MetricCard label="Desktop" hint="participação das sessões desktop" value={formatPercent(totalDeviceSessions > 0 ? (desktopSessions / totalDeviceSessions) * 100 : null)} />
+                    <MetricCard label="Combinações" hint="dispositivo × navegador observados" value={formatNumber(devices.length)} />
+                  </section>
+                  <div className="admin-compatibility-list">
+                    {devices.map((item) => (
+                      <article key={`${item.device_type}-${item.browser_family}`}>
+                        <div className="admin-compatibility-identity">
+                          <strong>{item.device_type || "other"}</strong>
+                          <small>{item.browser_family || "Other"}</small>
+                        </div>
+                        <div className="admin-compatibility-volume">
+                          <span aria-hidden="true"><i style={{ width: `${Math.max(4, (number(item.sessoes) / maxCompatibilitySessions) * 100)}%` }} /></span>
+                          <strong>{formatNumber(item.sessoes)} <small>sessões</small></strong>
+                        </div>
+                      </article>
+                    ))}
+                  </div>
+                </>
+              )}
             </section>
           </>
         );
