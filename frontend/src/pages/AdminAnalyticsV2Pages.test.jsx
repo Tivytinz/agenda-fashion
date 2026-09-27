@@ -274,8 +274,13 @@ describe("jornada administrativa v2", () => {
         { page_key: "home", route_template: "/", visualizacoes: 59, sessoes: 43, tempo_medio_segundos: 8 },
         { page_key: "account", route_template: "/conta", visualizacoes: 20, sessoes: 2, tempo_medio_segundos: 2 }
       ],
-      transicoes: [],
-      eventos: [],
+      transicoes: [
+        { origem: "account", destino: "account", transicoes: 18 },
+        { origem: "login", destino: "customer_agenda", transicoes: 3 }
+      ],
+      eventos: [
+        { nome: "profile_viewed", eventos: 17, sessoes: 17 }
+      ],
       dispositivos: [],
       reconciliacaoPipelines: { eventos: [] }
     });
@@ -289,6 +294,12 @@ describe("jornada administrativa v2", () => {
     expect(within(summary).getByText("45")).not.toBeNull();
     expect(within(summary).getByText("2")).not.toBeNull();
     expect(screen.getByText(/Visualização não representa conversão/i)).not.toBeNull();
+    expect(screen.getByText("Mesma tela · não indica avanço")).not.toBeNull();
+    expect(screen.getByText("Mudança entre telas")).not.toBeNull();
+    expect(screen.getByLabelText("Resumo dos caminhos")).not.toBeNull();
+    expect(screen.getByLabelText("Resumo dos marcos de intenção")).not.toBeNull();
+    expect(screen.getByText("Interesse em um perfil")).not.toBeNull();
+    expect(screen.getByText(/Evento, sessão e conversão continuam sendo fatos diferentes/i)).not.toBeNull();
   });
 });
 
