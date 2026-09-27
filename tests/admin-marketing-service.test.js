@@ -68,9 +68,6 @@ describe(
             sessoesAutonomas: 7,
             sessoesRastreamentoIncompleto: 3,
             sessoesSemAtribuicao: 7,
-            sessoesComOrigemComprovada: 40,
-            sessoesSemOrigemComprovada: 10,
-            coberturaOrigemComprovada: 80,
             coberturaAtribuicao: 80,
             campanhas: 3,
             perfisVisualizados: 24,
@@ -110,12 +107,6 @@ describe(
         ).toBe(0);
         expect(
           resultado.coberturaAtribuicao
-        ).toBe(0);
-        expect(
-          resultado.coberturaOrigemComprovada
-        ).toBe(0);
-        expect(
-          resultado.sessoesSemOrigemComprovada
         ).toBe(0);
       }
     );

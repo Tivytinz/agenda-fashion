@@ -121,6 +121,55 @@ const AGENDAMENTO_CONCLUIDO_ID_SQL = `
   )
 `;
 
+const EVENTOS_MARKETING_V2_CTE = `
+  eventos_marketing_v2 AS (
+    SELECT
+      ae.id,
+      CASE
+        WHEN ae.nome = 'profile_viewed' THEN 'perfil_visualizado'
+        WHEN ae.nome = 'profile_shared' THEN 'link_negocio_compartilhado'
+        WHEN ae.nome = 'booking_started' THEN 'agendamento_iniciado'
+        WHEN ae.nome = 'booking_completed' THEN 'agendamento_concluido'
+        ELSE ae.nome
+      END AS nome,
+      s.session_uuid::TEXT AS sessao_id,
+      ae.target_business_id AS negocio_id,
+      (
+        jsonb_strip_nulls(
+          jsonb_build_object(
+            'utm_source', mse.utm_source,
+            'utm_medium', mse.utm_medium,
+            'utm_campaign', mse.utm_campaign,
+            'utm_content', mse.utm_content,
+            'utm_term', mse.utm_term,
+            'gclid', mse.gclid,
+            'gbraid', mse.gbraid,
+            'wbraid', mse.wbraid,
+            'fbclid', mse.fbclid,
+            'msclkid', mse.msclkid,
+            'ttclid', mse.ttclid,
+            'landing_page', mse.landing_page,
+            'referrer_host', mse.referrer_host
+          )
+        )
+        || COALESCE(ae.propriedades, '{}'::JSONB)
+        || jsonb_strip_nulls(
+          jsonb_build_object(
+            'agendamento_id', ae.agendamento_id,
+            'servico_id', ae.target_service_id
+          )
+        )
+      ) AS propriedades,
+      ae.occurred_at AS created_at
+    FROM analytics_eventos ae
+    INNER JOIN analytics_sessoes s
+      ON s.id = ae.sessao_id
+    LEFT JOIN marketing_sessao_evidencias mse
+      ON mse.sessao_id = s.id
+    WHERE ae.origem = 'frontend'
+  )
+`;
+
 async function consultarEventos(
   sql,
   fallbackRows
@@ -154,7 +203,8 @@ async function buscarResumo(
   const resultado =
     await consultarEventos(
       `
-        WITH eventos_resolvidos AS (
+        WITH ${EVENTOS_MARKETING_V2_CTE},
+        eventos_resolvidos AS (
           SELECT
             e.*,
             ${ATRIBUICAO_PAGA_SQL}
@@ -169,7 +219,7 @@ async function buscarResumo(
               AS midia_resolvida,
             ${CAMPANHA_RESOLVIDA_SQL}
               AS campanha_resolvida
-          FROM eventos_produto e
+          FROM eventos_marketing_v2 e
           WHERE 1 = 1
             ${filtro}
         ),
@@ -296,7 +346,8 @@ async function listarCampanhas(
   const resultado =
     await consultarEventos(
       `
-        WITH eventos_resolvidos AS (
+        WITH ${EVENTOS_MARKETING_V2_CTE},
+        eventos_resolvidos AS (
           SELECT
             e.*,
             ${ORIGEM_SQL}
@@ -309,7 +360,7 @@ async function listarCampanhas(
               AS gclid_resolvido,
             ${GOOGLE_CLICK_RESOLVIDO_SQL}
               AS google_click_resolvido
-          FROM eventos_produto e
+          FROM eventos_marketing_v2 e
           WHERE ${ATRIBUICAO_PAGA_SQL}
             ${filtro}
         ),
@@ -449,7 +500,8 @@ async function listarConversoes(
   const resultado =
     await consultarEventos(
       `
-        WITH eventos_resolvidos AS (
+        WITH ${EVENTOS_MARKETING_V2_CTE},
+        eventos_resolvidos AS (
           SELECT
             e.*,
             ${ORIGEM_SQL}
@@ -462,7 +514,7 @@ async function listarConversoes(
               AS gclid_resolvido,
             ${GOOGLE_CLICK_RESOLVIDO_SQL}
               AS google_click_resolvido
-          FROM eventos_produto e
+          FROM eventos_marketing_v2 e
           WHERE e.nome = 'agendamento_concluido'
             AND ${ATRIBUICAO_PAGA_SQL}
             ${filtro}

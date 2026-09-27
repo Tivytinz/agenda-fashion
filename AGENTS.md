@@ -610,6 +610,9 @@ podem coexistir. Eventos equivalentes devem ser reconciliados em uma janela
 comparável, nunca somados como se fossem fontes independentes de verdade. A
 retirada do pipeline legado exige estabilidade observada, investigação de
 divergências e revisão de todas as dependências restantes.
+As leituras operacionais de Marketing do Admin usam o Analytics V2; acesso a
+`eventos_produto` fica restrito à reconciliação temporária enquanto o cutover
+ainda estiver em observação.
 
 Métricas de clientes únicos, recorrência e origem do cliente usam
 `agendamentos.client_id` como identidade. `cliente_id` legado e telefone não

@@ -21,6 +21,88 @@ function idCurto() {
     .slice(0, 12);
 }
 
+async function registrarSessaoV2({
+  sessionUuid,
+  atribuicao,
+  eventos,
+}) {
+  const visitanteUuid = crypto.randomUUID();
+  const visitante = await db.query(
+    `
+      INSERT INTO analytics_visitantes (
+        visitor_uuid,
+        primeiro_visto_em,
+        ultimo_visto_em
+      )
+      VALUES ($1::UUID, NOW(), NOW())
+      RETURNING id
+    `,
+    [visitanteUuid]
+  );
+
+  const sessao = await db.query(
+    `
+      INSERT INTO analytics_sessoes (
+        session_uuid,
+        visitante_id,
+        iniciada_em,
+        ultima_atividade_em
+      )
+      VALUES ($1::UUID, $2, NOW(), NOW())
+      RETURNING id
+    `,
+    [sessionUuid, visitante.rows[0].id]
+  );
+  const sessaoId = sessao.rows[0].id;
+
+  await db.query(
+    `
+      INSERT INTO marketing_sessao_evidencias (
+        sessao_id,
+        utm_source,
+        utm_medium,
+        utm_campaign,
+        utm_content,
+        gclid,
+        landing_page,
+        capturado_em
+      )
+      VALUES ($1,$2,$3,$4,$5,$6,$7,NOW())
+    `,
+    [
+      sessaoId,
+      atribuicao.utm_source || null,
+      atribuicao.utm_medium || null,
+      atribuicao.utm_campaign || null,
+      atribuicao.utm_content || null,
+      atribuicao.gclid || null,
+      atribuicao.landing_page || null,
+    ]
+  );
+
+  for (const evento of eventos) {
+    await db.query(
+      `
+        INSERT INTO analytics_eventos (
+          event_uuid,
+          sessao_id,
+          nome,
+          origem,
+          occurred_at,
+          propriedades
+        )
+        VALUES ($1::UUID,$2,$3,'frontend',NOW(),$4::JSONB)
+      `,
+      [
+        crypto.randomUUID(),
+        sessaoId,
+        evento.nome,
+        JSON.stringify(evento.propriedades || {}),
+      ]
+    );
+  }
+}
+
 describe(
   "adminMarketingRepository integrado",
   () => {
@@ -34,12 +116,9 @@ describe(
     beforeEach(async () => {
       const suffix = idCurto();
 
-      sessionA =
-        `mkta_${suffix}`;
-      sessionB =
-        `mktb_${suffix}`;
-      sessionGoogleSemCampanha =
-        `mktg_${suffix}`;
+      sessionA = crypto.randomUUID();
+      sessionB = crypto.randomUUID();
+      sessionGoogleSemCampanha = crypto.randomUUID();
       campaign =
         `campanha_${suffix}`;
       managedCampaignId = null;
@@ -117,6 +196,44 @@ describe(
           })
         ]
       );
+
+      await registrarSessaoV2({
+        sessionUuid: sessionA,
+        atribuicao: attribution,
+        eventos: [
+          { nome: "profile_viewed" },
+          { nome: "booking_started" },
+          {
+            nome: "booking_completed",
+            propriedades: {
+              agendamento_id: 987654,
+              servico_id: 123456,
+              status: "sucesso",
+            },
+          },
+          {
+            nome: "booking_completed",
+            propriedades: {
+              agendamento_id: 987654,
+              servico_id: 123456,
+              status: "sucesso",
+            },
+          },
+          {
+            nome: "booking_completed",
+            propriedades: {
+              agendamento_id: 987655,
+              servico_id: 123456,
+              status: "sucesso",
+            },
+          },
+        ],
+      });
+      await registrarSessaoV2({
+        sessionUuid: sessionB,
+        atribuicao: attribution,
+        eventos: [{ nome: "profile_viewed" }],
+      });
     });
 
     afterEach(async () => {
@@ -130,6 +247,29 @@ describe(
           sessionB,
           sessionGoogleSemCampanha,
         ]]
+      );
+
+      await db.query(
+        `
+          DELETE FROM analytics_eventos
+          WHERE sessao_id IN (
+            SELECT id
+            FROM analytics_sessoes
+            WHERE session_uuid = ANY($1::UUID[])
+          )
+        `,
+        [[sessionA, sessionB, sessionGoogleSemCampanha]]
+      );
+      await db.query(
+        `
+          DELETE FROM analytics_visitantes
+          WHERE id IN (
+            SELECT visitante_id
+            FROM analytics_sessoes
+            WHERE session_uuid = ANY($1::UUID[])
+          )
+        `,
+        [[sessionA, sessionB, sessionGoogleSemCampanha]]
       );
 
       if (managedCampaignId) {
@@ -279,6 +419,14 @@ describe(
           ]
         );
 
+        await registrarSessaoV2({
+          sessionUuid: sessionGoogleSemCampanha,
+          atribuicao: {
+            gclid: "click-sem-utm-campaign",
+          },
+          eventos: [{ nome: "profile_viewed" }],
+        });
+
         const campanhas =
           await adminMarketingRepository
             .listarCampanhas("all");
@@ -401,6 +549,14 @@ describe(
             }),
           ]
         );
+
+        await registrarSessaoV2({
+          sessionUuid: sessionGoogleSemCampanha,
+          atribuicao: {
+            gclid: "click-resolvido-por-vinculo",
+          },
+          eventos: [{ nome: "profile_viewed" }],
+        });
 
         const campanhas =
           await adminMarketingRepository
