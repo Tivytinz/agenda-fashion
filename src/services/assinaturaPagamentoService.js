@@ -20,6 +20,72 @@ const assinaturaLifecycleService = require(
   "./assinaturaLifecycleService"
 );
 
+const STATUS_PAGAMENTO_VALIDO = new Set([
+  "CONFIRMED",
+  "RECEIVED",
+  "RECEIVED_IN_CASH",
+]);
+
+const STATUS_REVERSAO_TOTAL = new Set([
+  "REFUNDED",
+  "CHARGEBACK_REQUESTED",
+  "CHARGEBACK_DISPUTE",
+  "AWAITING_CHARGEBACK_REVERSAL",
+  "RECEIVED_IN_CASH_UNDONE",
+]);
+
+function dadosReversaoFinanceira(dadosPagamento, statusPagamento) {
+  const status = String(
+    statusPagamento || dadosPagamento?.status || ""
+  ).trim().toUpperCase();
+  const tipoEvento = String(
+    dadosPagamento?.webhookTipoEvento || ""
+  ).trim().toUpperCase();
+
+  const parcial =
+    status === "PARTIALLY_REFUNDED" ||
+    tipoEvento === "PAYMENT_PARTIALLY_REFUNDED";
+  const total =
+    STATUS_REVERSAO_TOTAL.has(status) ||
+    [
+      "PAYMENT_REFUNDED",
+      "PAYMENT_RECEIVED_IN_CASH_UNDONE",
+      "PAYMENT_CHARGEBACK_REQUESTED",
+      "PAYMENT_CHARGEBACK_DISPUTE",
+      "PAYMENT_AWAITING_CHARGEBACK_REVERSAL",
+    ].includes(tipoEvento);
+
+  if (!parcial && !total) {
+    if (
+      STATUS_PAGAMENTO_VALIDO.has(status) ||
+      tipoEvento === "PAYMENT_RESTORED"
+    ) {
+      return { limpar_reversao: true };
+    }
+    return {};
+  }
+
+  const valorBruto = dadosPagamento?.refundedValue;
+  const valorInformado =
+    valorBruto === null || valorBruto === undefined || valorBruto === ""
+      ? NaN
+      : Number(valorBruto);
+  const valorConhecido =
+    total || (Number.isFinite(valorInformado) && valorInformado >= 0);
+  const tipoReversao = parcial
+    ? "PARTIALLY_REFUNDED"
+    : tipoEvento.startsWith("PAYMENT_")
+      ? tipoEvento.slice("PAYMENT_".length)
+      : status;
+
+  return {
+    reversao_tipo: tipoReversao || null,
+    reversao_em: dadosPagamento?.webhookEventoCriadoEm || null,
+    valor_revertido: parcial && valorConhecido ? valorInformado : null,
+    reversao_valor_conhecido: valorConhecido,
+  };
+}
+
 async function garantirPagamentoRecorrente(
   client,
   paymentId,
@@ -114,6 +180,7 @@ async function sincronizarPagamentoPorWebhook(
       evento_criado_em:
         dadosPagamento.webhookEventoCriadoEm || null,
       evento_id: dadosPagamento.webhookEventoId || null,
+      ...dadosReversaoFinanceira(dadosPagamento, statusPagamento),
     };
 
     if (dadosPagamento.invoiceUrl) {
@@ -192,6 +259,7 @@ async function suspenderAssinaturaPorPagamento(
       evento_criado_em:
         dadosPagamento.webhookEventoCriadoEm || null,
       evento_id: dadosPagamento.webhookEventoId || null,
+      ...dadosReversaoFinanceira(dadosPagamento, status),
     };
 
     if (dadosPagamento.invoiceUrl) {
