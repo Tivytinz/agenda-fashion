@@ -31,7 +31,7 @@ ser mantida como duas interpretações válidas.
 
 | Domínio | Documento principal | Complementos |
 | --- | --- | --- |
-| Arquitetura | [arquitetura.md](./arquitetura.md) | [contexto-negocio.md](./contexto-negocio.md), [qualidade-codigo.md](./qualidade-codigo.md) |
+| Arquitetura | [arquitetura.md](./arquitetura.md) | [backend-arquitetura.md](./backend-arquitetura.md), [contexto-negocio.md](./contexto-negocio.md), [qualidade-codigo.md](./qualidade-codigo.md) |
 | Ativação profissional | [ativacao-profissional-ux.md](./ativacao-profissional-ux.md) | [ativacao-proxima-acao.md](./ativacao-proxima-acao.md), [convites-profissionais.md](./convites-profissionais.md) |
 | Agendamentos | [ciclo-atendimento.md](./ciclo-atendimento.md) | [agendamento-integridade.md](./agendamento-integridade.md), [confiabilidade-compromissos-agenda.md](./confiabilidade-compromissos-agenda.md), [snapshots-historicos-agendamento.md](./snapshots-historicos-agendamento.md), [cancelamento-agendamento-visitante.md](./cancelamento-agendamento-visitante.md) |
 | Planos e monetização | [planos.md](./planos.md) | [checkout-idempotente.md](./checkout-idempotente.md), [asaas-ativacao-recorrencia.md](./asaas-ativacao-recorrencia.md) |
@@ -57,6 +57,7 @@ ser mantida como duas interpretações válidas.
 
 ### Especializados e runbooks
 
+- [backend-arquitetura.md](./backend-arquitetura.md): mapa técnico e operacional do backend, pipeline HTTP, camadas, módulos, persistência, segurança, workers, integrações e testes.
 - [contexto-negocio.md](./contexto-negocio.md): resolução e autorização do
   contexto de negócio.
 - [qualidade-codigo.md](./qualidade-codigo.md): guardrails de qualidade do
