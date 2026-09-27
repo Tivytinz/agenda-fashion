@@ -73,6 +73,7 @@ export function ProfessionalShell({ children, links = [] }) {
 
           {ownerBusiness && (
             <Link
+              aria-label="Ir para gestão do meu negócio"
               className="professional-context-switch"
               to="/painel"
             >
