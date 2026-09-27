@@ -145,9 +145,9 @@ Esses eventos medem uso da recomendação, não sucesso. O resultado deve ser an
 
 ## Copilot AF V1
 
-A primeira camada generativa usa a oportunidade estruturada somente quando o motor determinístico recomenda `COMPARTILHAR_PERFIL`. O fluxo, contratos de privacidade, fallback, rate limit e configuração do provider estão em [`copilot-v1.md`](./copilot-v1.md).
+A detecção de `COMPARTILHAR_PERFIL` permanece inteiramente determinística e não exige LLM nem ML. O texto básico de divulgação também possui geração determinística sem tokens. A camada generativa opcional usa a oportunidade estruturada somente quando o motor determinístico recomenda `COMPARTILHAR_PERFIL`. O fluxo, contratos de privacidade, fallback, rate limit e configuração do provider estão em [`copilot-v1.md`](./copilot-v1.md).
 
-O LLM pode redigir uma mensagem mais natural e personalizada, mas não recalcula métricas nem decide qual oportunidade deve ser priorizada. O backend continua sendo a autoridade para ativação, oportunidade, permissões, disponibilidade, preços, planos, publicação e regras financeiras.
+O LLM pode, quando explicitamente habilitado para experimento, redigir uma mensagem mais natural e personalizada, mas não recalcula métricas nem decide qual oportunidade deve ser priorizada. A existência de uma chave de provedor não transforma a geração externa no caminho padrão. O backend continua sendo a autoridade para ativação, oportunidade, permissões, disponibilidade, preços, planos, publicação e regras financeiras.
 
 Se a integração de IA estiver indisponível, a geração cai para um texto determinístico e o mecanismo rastreável de compartilhamento continua funcionando.
 
