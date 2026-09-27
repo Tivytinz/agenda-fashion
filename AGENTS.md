@@ -299,7 +299,9 @@ ativação mais recente para manter a ordem de downgrade determinística.
 As oportunidades de upgrade dentro da área da dona são **contextuais**, não
 publicidade permanente. O backend de assinatura resolve de forma canônica o
 próximo tier pela ordem `inicial → autonoma → studio → salao` e entrega ao
-frontend o plano de destino e suas capacidades. Serviços no limite, profissionais
+frontend o plano de destino e suas capacidades. Quando o negócio ainda usa o
+Grátis efetivo, mas já possui uma intenção paga persistida e sem assinatura
+ativa, essa escolha explícita tem precedência sobre a progressão automática. Serviços no limite, profissionais
 aguardando vaga e agenda a partir de 90% da capacidade podem oferecer esse
 próximo plano; a tela de Plano e assinatura também pode apresentá-lo como
 continuação natural do catálogo.
