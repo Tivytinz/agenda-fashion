@@ -385,6 +385,11 @@ export default function App() {
             />
             <Route path={reactRoutes.professionalAgenda} element={<AgendaWorkspacePage />} />
             <Route path={reactRoutes.professionalSchedule} element={<ScheduleSettingsPage />} />
+            <Route path={reactRoutes.professionalAccount} element={<AccountPage />} />
+            <Route
+              path={reactRoutes.professionalInvitesWorkspace}
+              element={<ProfessionalInvitesPage />}
+            />
           </Route>
 
           <Route path="*" element={<NotFoundPage />} />
