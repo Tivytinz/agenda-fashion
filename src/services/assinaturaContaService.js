@@ -5,6 +5,9 @@ const assinaturaRepository = require(
 const { removerAssinaturaAsaas } = require("./asaasService");
 const { buscarUsoPlano } = require("./planoService");
 const {
+  reconciliarReativacaoAbandonada
+} = require("./assinaturaReativacaoService");
+const {
   calcularProximaCobranca,
   criarErro,
   dataValida,
@@ -200,6 +203,10 @@ async function buscarMinhaAssinatura({ usuarioId }) {
   if (!negocio) {
     throw new Error("Negócio não encontrado.");
   }
+
+  await reconciliarReativacaoAbandonada(
+    negocio.id
+  );
 
   await assinaturaRepository
     .expirarCheckoutsPendentes(negocio.id);
