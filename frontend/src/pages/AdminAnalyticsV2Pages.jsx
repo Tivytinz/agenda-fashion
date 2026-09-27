@@ -1701,7 +1701,7 @@ export function AdminRevenueV2Page() {
               )}
             </section>
 
-            <section className="panel">
+            <section className="panel admin-revenue-churn-panel">
               <div className="panel-heading">
                 <div>
                   <p className="eyebrow">Retenção da base paga</p>
@@ -1711,17 +1711,22 @@ export function AdminRevenueV2Page() {
                   </p>
                 </div>
               </div>
-              <dl className="admin-command-data-list">
-                <div><dt>Base paga no início</dt><dd>{formatNumber(summary.basePagaInicioChurn)}</dd></div>
-                <div><dt>Saídas terminais da base inicial</dt><dd>{formatNumber(summary.saidasTerminaisBaseInicial)}</dd></div>
-                <div><dt>Gross logo churn</dt><dd>{formatPercent(summary.churnBrutoNegocios)}</dd></div>
-                <div><dt>Negócios reativados</dt><dd>{formatNumber(summary.negociosReativadosChurn)}</dd></div>
-                <div><dt>Base paga no fim</dt><dd>{formatNumber(summary.basePagaFimChurn)}</dd></div>
-                <div><dt>Cancelamento voluntário</dt><dd>{formatNumber(summary.saidasCancelamentoVoluntario)}</dd></div>
-                <div><dt>Inadimplência não recuperada</dt><dd>{formatNumber(summary.saidasInadimplenciaNaoRecuperada)}</dd></div>
-                <div><dt>Encerramento pelo provedor</dt><dd>{formatNumber(summary.saidasEncerramentoProvedor)}</dd></div>
-                <div><dt>Outros motivos</dt><dd>{formatNumber(summary.saidasOutrosMotivos)}</dd></div>
-              </dl>
+              <section className="admin-revenue-churn-summary" aria-label="Resumo de churn da base paga">
+                <MetricCard label="Base inicial" hint="negócios pagos no início" value={formatNumber(summary.basePagaInicioChurn)} />
+                <MetricCard label="Saídas terminais" hint="saídas da base inicial" tone={number(summary.saidasTerminaisBaseInicial) > 0 ? "warning" : "neutral"} value={formatNumber(summary.saidasTerminaisBaseInicial)} />
+                <MetricCard label="Gross logo churn" hint="reativação não reduz churn bruto" value={formatPercent(summary.churnBrutoNegocios)} />
+                <MetricCard label="Base final" hint="negócios pagos no fim" value={formatNumber(summary.basePagaFimChurn)} />
+              </section>
+              <details className="admin-revenue-detail">
+                <summary>Reativações e motivos de saída</summary>
+                <dl className="admin-command-data-list">
+                  <div><dt>Negócios reativados</dt><dd>{formatNumber(summary.negociosReativadosChurn)}</dd></div>
+                  <div><dt>Cancelamento voluntário</dt><dd>{formatNumber(summary.saidasCancelamentoVoluntario)}</dd></div>
+                  <div><dt>Inadimplência não recuperada</dt><dd>{formatNumber(summary.saidasInadimplenciaNaoRecuperada)}</dd></div>
+                  <div><dt>Encerramento pelo provedor</dt><dd>{formatNumber(summary.saidasEncerramentoProvedor)}</dd></div>
+                  <div><dt>Outros motivos</dt><dd>{formatNumber(summary.saidasOutrosMotivos)}</dd></div>
+                </dl>
+              </details>
               <p className="muted">
                 Cobertura canônica desde {formatDateTime(data.churn?.inicioCobertura)}.
                 {data.churn?.periodoAjustadoAoCutover
@@ -1730,8 +1735,8 @@ export function AdminRevenueV2Page() {
               </p>
             </section>
 
-            <section className="panel">
-              <div className="panel-heading"><div><p className="eyebrow">Base atual</p><h2>Assinaturas ativas por plano</h2></div></div>
+            <section className="panel admin-revenue-plans-panel">
+              <div className="panel-heading"><div><p className="eyebrow">Base atual</p><h2>Assinaturas ativas por plano</h2><p className="muted">Estoque atual de assinaturas pagas, separado dos eventos financeiros do período.</p></div></div>
               {plans.length === 0 ? (
                 <EmptyState title="Nenhuma assinatura paga ativa">A base paga ativa ainda está vazia.</EmptyState>
               ) : (
