@@ -1538,21 +1538,30 @@ export function AdminRevenueV2Page() {
                 </div>
               )}
 
-              <dl className="admin-command-data-list">
-                <div><dt>MRR da base inicial</dt><dd>{formatCurrency(summary.mrrInicial)}</dd></div>
-                <div><dt>New MRR</dt><dd>{formatCurrency(summary.newMrr)}</dd></div>
-                <div><dt>Expansion MRR</dt><dd>{formatCurrency(summary.expansionMrr)}</dd></div>
-                <div><dt>Contraction MRR</dt><dd>{formatCurrency(summary.contractionMrr)}</dd></div>
-                <div><dt>Churned MRR</dt><dd>{formatCurrency(summary.churnedMrr)}</dd></div>
-                <div><dt>Reactivation MRR</dt><dd>{formatCurrency(summary.reactivationMrr)}</dd></div>
-                <div><dt>MRR final</dt><dd>{formatCurrency(summary.mrrFinalTotal)}</dd></div>
-                <div><dt>MRR em risco</dt><dd>{formatCurrency(summary.mrrEmRisco)}</dd></div>
-                <div><dt>Negócios com MRR em risco</dt><dd>{formatNumber(summary.negociosMrrEmRisco)}</dd></div>
-                <div><dt>GRR</dt><dd>{formatPercent(summary.grr)}</dd></div>
-                <div><dt>NRR</dt><dd>{formatPercent(summary.nrr)}</dd></div>
-                <div><dt>Bridge reconciliado</dt><dd>{summary.bridgeMrrReconciliado ? "Sim" : "Não"}</dd></div>
-                <div><dt>Periodicidade fora do MRR v1</dt><dd>{formatNumber(summary.assinaturasPeriodicidadeNaoSuportada)}</dd></div>
-              </dl>
+              <section className="admin-revenue-mrr-summary" aria-label="Resumo de receita recorrente">
+                <MetricCard label="MRR final" hint="valor recorrente mensal contratado" tone={number(summary.mrrFinalTotal) > 0 ? "success" : "neutral"} value={formatCurrency(summary.mrrFinalTotal)} />
+                <MetricCard label="New MRR" hint="nova receita recorrente" value={formatCurrency(summary.newMrr)} />
+                <MetricCard label="MRR em risco" hint={`${formatNumber(summary.negociosMrrEmRisco)} negócio(s) em risco`} tone={number(summary.mrrEmRisco) > 0 ? "warning" : "neutral"} value={formatCurrency(summary.mrrEmRisco)} />
+                <MetricCard label="NRR" hint="retenção líquida de receita" value={formatPercent(summary.nrr)} />
+              </section>
+              <details className="admin-revenue-detail">
+                <summary>Bridge, GRR e movimentos do MRR</summary>
+                <dl className="admin-command-data-list">
+                  <div><dt>MRR da base inicial</dt><dd>{formatCurrency(summary.mrrInicial)}</dd></div>
+                  <div><dt>New MRR</dt><dd>{formatCurrency(summary.newMrr)}</dd></div>
+                  <div><dt>Expansion MRR</dt><dd>{formatCurrency(summary.expansionMrr)}</dd></div>
+                  <div><dt>Contraction MRR</dt><dd>{formatCurrency(summary.contractionMrr)}</dd></div>
+                  <div><dt>Churned MRR</dt><dd>{formatCurrency(summary.churnedMrr)}</dd></div>
+                  <div><dt>Reactivation MRR</dt><dd>{formatCurrency(summary.reactivationMrr)}</dd></div>
+                  <div><dt>MRR final</dt><dd>{formatCurrency(summary.mrrFinalTotal)}</dd></div>
+                  <div><dt>MRR em risco</dt><dd>{formatCurrency(summary.mrrEmRisco)}</dd></div>
+                  <div><dt>Negócios com MRR em risco</dt><dd>{formatNumber(summary.negociosMrrEmRisco)}</dd></div>
+                  <div><dt>GRR</dt><dd>{formatPercent(summary.grr)}</dd></div>
+                  <div><dt>NRR</dt><dd>{formatPercent(summary.nrr)}</dd></div>
+                  <div><dt>Bridge reconciliado</dt><dd>{summary.bridgeMrrReconciliado ? "Sim" : "Não"}</dd></div>
+                  <div><dt>Periodicidade fora do MRR v1</dt><dd>{formatNumber(summary.assinaturasPeriodicidadeNaoSuportada)}</dd></div>
+                </dl>
+              </details>
 
               <p className="muted">
                 Cobertura monetária canônica desde {formatDateTime(data.mrr?.inicioCobertura)}.
@@ -1562,7 +1571,7 @@ export function AdminRevenueV2Page() {
               </p>
             </section>
 
-            <section className="panel">
+            <section className="panel admin-revenue-ltv-panel">
               <div className="panel-heading">
                 <div>
                   <p className="eyebrow">Coortes de receita</p>
@@ -1573,7 +1582,15 @@ export function AdminRevenueV2Page() {
                 </div>
               </div>
 
-              <dl className="admin-command-data-list">
+              <section className="admin-revenue-ltv-summary" aria-label="Resumo de LTV observado">
+                <MetricCard label="Coorte canônica" hint="negócios elegíveis" value={formatNumber(ltv.negociosCoorte)} />
+                <MetricCard label="LTV bruto D30" hint={`${formatNumber(ltv.madurosD30)} negócio(s) maduros`} value={ltv.ltvBrutoD30 == null ? "Aguardando" : formatCurrency(ltv.ltvBrutoD30)} />
+                <MetricCard label="LTV bruto D60" hint={`${formatNumber(ltv.madurosD60)} negócio(s) maduros`} value={ltv.ltvBrutoD60 == null ? "Aguardando" : formatCurrency(ltv.ltvBrutoD60)} />
+                <MetricCard label="LTV bruto D90" hint={`${formatNumber(ltv.madurosD90)} negócio(s) maduros`} value={ltv.ltvBrutoD90 == null ? "Aguardando" : formatCurrency(ltv.ltvBrutoD90)} />
+              </section>
+              <details className="admin-revenue-detail">
+                <summary>LTV líquido, contribuição e maturidade</summary>
+                <dl className="admin-command-data-list">
                 <div>
                   <dt>Negócios na coorte canônica</dt>
                   <dd>{formatNumber(ltv.negociosCoorte)}</dd>
@@ -1631,6 +1648,7 @@ export function AdminRevenueV2Page() {
                   <dd>{ltv.ltvContribuicaoD90 == null ? "Aguardando cobertura de contribuição" : formatCurrency(ltv.ltvContribuicaoD90)}</dd>
                 </div>
               </dl>
+              </details>
 
               <p className="muted">
                 Cobertura canônica desde {formatDateTime(ltv.inicioCobertura)}. LTV de contribuição possui cutover próprio em {formatDateTime(ltv.inicioCoberturaContribuicao)} e só aparece quando gateway e todas as fontes obrigatórias cobrem a janela inteira. Casos maduros incompletos não são removidos do denominador.
