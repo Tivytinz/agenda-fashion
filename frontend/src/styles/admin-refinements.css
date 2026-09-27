@@ -213,6 +213,27 @@
   line-height: 1.5;
 }
 
+.admin-acquisition-page .admin-metric-definition {
+  font-size: .9rem;
+  line-height: 1.55;
+}
+
+.admin-acquisition-page .admin-metric-definition p {
+  max-width: 75ch;
+  margin-top: 12px;
+}
+
+.admin-acquisition-page .panel > .screen-state {
+  min-height: 0;
+  padding: 20px;
+}
+
+.admin-acquisition-page .admin-acquisition-scope {
+  margin: 0;
+  font-size: .85rem;
+  line-height: 1.5;
+}
+
 .admin-bottleneck {
   display: flex;
   align-items: center;

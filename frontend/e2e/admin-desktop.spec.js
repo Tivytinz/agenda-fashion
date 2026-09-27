@@ -128,6 +128,64 @@ async function expectMarketingControlsInsideWorkspace(page) {
     .toBeLessThanOrEqual(workspaceBox.x + workspaceBox.width + 1);
 }
 
+test("shell do admin mantém navegação durante rolagem e privacidade fora dos dados", async ({ page }, testInfo) => {
+  test.skip(
+    !testInfo.project.name.startsWith("desktop-"),
+    "Navegação lateral dedicada ao desktop."
+  );
+
+  await stubAdminMarketingOverview(page);
+  await page.addInitScript(() => {
+    localStorage.setItem("af_marketing_consent_v2", JSON.stringify({
+      version: 2,
+      status: "denied"
+    }));
+  });
+  await page.route("**/marketing/meta/config", (route) => json(route, {
+    enabled: true,
+    pixelId: "123456"
+  }));
+  await page.route("**/admin/analytics-v2/acquisition**", (route) => json(route, {
+    periodo: "30",
+    sessoesPorOrigem: Array.from({ length: 30 }, (_, index) => ({
+      canal: "organic_social",
+      source: `origem-${index}`,
+      medium: "social",
+      sessoes: 1,
+      usuarios: 1,
+      tempo_engajado_ms: 5000
+    })),
+    funilPorCampanha: [],
+    retornoAquisicao: { diagnostico: {}, campanhas: [] }
+  }));
+
+  await page.goto("/admin/aquisicao?periodo=30");
+  await expect(page.getByRole("heading", { name: "Aquisição", exact: true })).toBeVisible();
+  await expect(page.getByText("origem-29")).toHaveCount(1);
+  await expect(page.getByRole("link", { name: "Privacidade" })).toBeVisible();
+
+  await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight / 2));
+  await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(500);
+
+  const sidebar = page.locator(".admin-sidebar");
+  const topbar = page.locator(".admin-topbar");
+  await expect(sidebar).toBeInViewport();
+  await expect(topbar).toBeInViewport();
+  await expect.poll(async () => ({
+    sidebarTop: Math.round((await sidebar.boundingBox()).y),
+    topbarTop: Math.round((await topbar.boundingBox()).y)
+  })).toEqual({ sidebarTop: 0, topbarTop: 0 });
+
+  await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
+  const [shellBox, privacyBox] = await Promise.all([
+    page.locator(".admin-shell").boundingBox(),
+    page.getByRole("link", { name: "Privacidade" }).boundingBox()
+  ]);
+  await expect(page.getByRole("link", { name: "Privacidade" })).toHaveCSS("position", "static");
+  expect(privacyBox.y).toBeGreaterThanOrEqual(shellBox.y + shellBox.height - 1);
+  await expectNoHorizontalOverflow(page);
+});
+
 test("marketing admin não corta navegação ou período em desktops intermediários", async ({ page }, testInfo) => {
   test.skip(
     !testInfo.project.name.startsWith("desktop-"),
