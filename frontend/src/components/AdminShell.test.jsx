@@ -28,6 +28,8 @@ describe("AdminShell", () => {
 
     expect(document.querySelector(".admin-shell")).not.toBeNull();
     expect(document.querySelector(".workspace-shell")).toBeNull();
+    expect(document.querySelector(".workspace-page")).toBeNull();
+    expect(document.querySelector(".workspace-heading")).toBeNull();
     expect(
       document.querySelector("[data-frontend-context='admin']")
     ).not.toBeNull();
