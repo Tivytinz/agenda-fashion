@@ -29,8 +29,7 @@ export const OWNER_LINKS = [
 export const PROFESSIONAL_LINKS = [
   ["/profissional/agenda", "Minha agenda", "calendar"],
   ["/profissional/horarios", "Meus horários", "clock"],
-  ["/convites", "Convites", "team"],
-  ["/conta", "Minha conta", "account"]
+  ["/profissional/conta", "Minha conta", "account"]
 ];
 
 export { MobileWorkspaceNavigation } from "./WorkspaceNavigation";
