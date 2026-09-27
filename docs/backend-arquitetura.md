@@ -262,6 +262,51 @@ Todas as leituras administrativas abaixo, exceto callbacks OAuth explicitamente 
 | POST | `/admin/marketing/custos-integracoes/:provedor/sincronizar` | auditado: `midia_sincronizar` |
 | GET | `/admin/analytics-v2/:secao` | auth + admin; sem cache |
 
+### 5.8 Contratos de entrada e saída críticos
+
+O inventário de rotas acima indica superfície e autorização. Os contratos abaixo registram campos que os controllers realmente aceitam ou produzem e destacam onde a forma final pertence ao service. Não se deve inferir campo adicional a partir do frontend.
+
+#### Autenticação
+
+- `POST /cadastro` aceita somente a allowlist montada pelo controller: `nome`, `email`, `whatsapp`, `senha`, preferências WhatsApp, `marketing` e `perfil_profissional`. Campos extras do body não são repassados ao service.
+- `POST /login` recebe `email` e `senha`; `POST /auth/google` recebe `credential`, contexto de marketing, preferência WhatsApp e intenção de perfil profissional.
+- Cadastro/login definem o JWT no cookie de sessão e removem `token` do JSON. A resposta usa `Cache-Control: no-store`.
+- Migração de sessão legada e logout respondem `204`; redefinição de senha limpa o cookie de sessão.
+
+#### Checkout e assinatura
+
+- `POST /checkout` recebe `plano_id`, `forma_pagamento`, `cpf_cnpj` e contexto opcional `meta`; a chave de idempotência vem do header `Idempotency-Key`.
+- O controller não aceita preço, limite ou entitlement enviados pelo navegador. O resultado financeiro é construído pelo service e retorna `201`.
+- `GET /checkout/status/:pagamento_id` consulta o pagamento dentro do contexto do usuário autenticado.
+- Leitura/cancelamento da própria assinatura delegam a autorização e o estado final ao service; cancelamento não deve ser interpretado pelo cliente como confirmação de remoção imediata do período já pago.
+
+#### Agenda pública
+
+- Consulta pública exige `slug`, `servicoId` e `profissionalId`; ausência gera `400`.
+- A resposta da disponibilidade contém `negocio`, `servico`, `profissional`, `disponibilidade`, `agenda_indisponivel` e, quando o limite mensal bloqueia todos os dias encontrados, `mensagem`.
+- Criação recebe `slug`, `servico_id`, `profissional_id`, `data`, `horario` e, para visitante, dados de identificação/consentimento. Serviço e profissional são revalidados contra o negócio e o slot é revalidado dentro da operação transacional.
+- Conta autenticada não confia em nome/WhatsApp reenviados pelo navegador: a identidade é resolvida a partir dos dados persistidos.
+- Sucesso de criação responde `201` com `mensagem` e `agendamento`. A notificação interna posterior é fail-open e não desfaz o booking persistido.
+
+#### Administração, analytics e marketing
+
+- Controllers administrativos recebem o ator administrativo de `req.admin`; operações mutáveis relevantes propagam `usuarioId` e/ou condição `superadmin` para o service.
+- Analytics V2 aceita uma `secao` de rota e `periodo`; o service restringe as seções a `overview`, `acquisition`, `journey`, `retention` e `revenue`.
+- `overview` separa audiência, aquisição, entidades, ativação, demanda e receita; não transforma sessões, cadastros, negócios ou pagamentos em métricas equivalentes.
+- `acquisition` retorna sessões por origem, funil por campanha, qualidade/diagnóstico de atribuição e retorno financeiro. O funil por campanha explicita cadastros, negócios, serviços, publicação, primeiro agendamento, checkout, assinatura, investimento, receita de primeiro pagamento, CAC e ROAS quando calculáveis.
+- `journey` inclui reconciliação entre pipelines legado e V2. Paridade técnica é diagnóstico e não autoriza automaticamente remover o pipeline legado.
+- `revenue` compõe receita com churn pago, MRR, LTV observado, economia líquida de pagamentos e contribuição. Valores indisponíveis por falta de cobertura permanecem `null`; não devem ser convertidos silenciosamente para zero pelo consumidor.
+
+#### Custos e contribuição
+
+- Registro administrativo de gasto recebe o payload bruto somente no controller; normalização, validação e auditoria pertencem ao service.
+- Operações de contribuição expõem painel, criação de fonte, lançamento de custo e registro de cobertura. Criação de fonte/custo responde `201`; cobertura responde `200`.
+- Gestão e execução manual das integrações de contribuição exigem `superadmin === true` também no service, não apenas visibilidade no frontend.
+- O status de sincronização retorna `agendamento`, `adaptadores`, `integracoes` e `execucoes`; integrações não expõem segredo do provider.
+- Criação/atualização de integração retorna um objeto `integracao` com identificador, fonte, adaptador, estado e intervalo.
+- Execução de sync retorna contadores de itens recebidos/importados/replay e cobertura. Persistência de custos, cobertura, cursor e conclusão de sucesso ocorre transacionalmente; concorrência para a mesma integração retorna `409`.
+- Resposta inválida do adaptador, excesso de itens ou inconsistência de crédito/cobertura abortam a sincronização. A execução registra código/detalhe seguro de erro sem persistir credencial.
+
 ## 6. Persistência e migrations
 
 O PostgreSQL é acessado por `pg`. O histórico atual vai de `001_usuarios.sql` até `105_admin_auditoria_revisoes.sql`, com numeração histórica não necessariamente contínua.
