@@ -41,7 +41,7 @@ A arquitetura existe para sustentar principalmente:
 | Notificações | WhatsApp Cloud API e e-mail transacional via Resend |
 | Marketing | GA4, Google Ads, Meta Ads/CAPI, TikTok Ads e Pinterest Ads |
 | CI/CD | GitHub Actions e Railway |
-| Domínio principal | `app.agendafashion.com.br` |
+| Domínio principal | `agendafashion.com.br` |
 
 A stack atual continua adequada ao estágio do AF. Nova tecnologia deve entrar
 quando resolver um problema concreto melhor do que a base existente, e não
