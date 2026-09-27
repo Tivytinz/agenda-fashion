@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { apiRequest } from "../api/client";
+import { PlanUpgradeOpportunity } from "../components/PlanUpgradeOpportunity";
 import { ErrorState, LoadingState } from "../components/ScreenState";
 import { formatCurrency, formatDate } from "../utils/format";
 
@@ -225,6 +226,7 @@ export function SubscriptionPage() {
   const recoverablePayment =
     data.pagamento_recuperavel || null;
   const pendingUpgrade = data.upgrade_pendente || null;
+  const upgradeContextual = data.upgrade_contextual || null;
   const pendingPlan = pendingUpgrade?.plano || null;
   const pendingPayment = pendingUpgrade?.pagamento || null;
   const payments = Array.isArray(data.pagamentos) ? data.pagamentos : [];
@@ -490,6 +492,14 @@ export function SubscriptionPage() {
           )}
         </article>
       </section>
+
+      <PlanUpgradeOpportunity
+        upgrade={upgradeContextual}
+        source="assinatura"
+        trigger={usage.status || "consulta_assinatura"}
+        trackingPage="minha_assinatura"
+        title="Seu próximo plano"
+      />
 
       <section className={`panel billing-payments-panel ${payments.length ? "" : "is-empty"}`}>
         <div className="panel-heading"><h2>Pagamentos</h2></div>
