@@ -782,6 +782,28 @@ export function AdminJourneyV2Page() {
           1,
           ...screens.map((screen) => number(screen.visualizacoes))
         );
+        const maxTransitions = Math.max(
+          1,
+          ...transitions.map((item) => number(item.transicoes))
+        );
+        const totalTransitionEvents = transitions.reduce(
+          (total, item) => total + number(item.transicoes),
+          0
+        );
+        const crossScreenTransitions = transitions.reduce(
+          (total, item) => total + (
+            item.origem !== item.destino ? number(item.transicoes) : 0
+          ),
+          0
+        );
+        const totalIntentEvents = events.reduce(
+          (total, event) => total + number(event.eventos),
+          0
+        );
+        const intentSessions = events.reduce(
+          (total, event) => total + number(event.sessoes),
+          0
+        );
         const hasPipelineEvidence =
           pipelineEvents.some((item) => (
             number(item.legadoPeriodo) > 0 ||
@@ -840,32 +862,75 @@ export function AdminJourneyV2Page() {
               </div>
             </section>
 
-            <div className="admin-command-two-column">
-              <section className="panel">
-                <div className="panel-heading"><div><p className="eyebrow">Caminhos</p><h2>Transições mais comuns</h2></div></div>
-                {transitions.length === 0 ? <p className="muted">Ainda não há sessões com duas ou mais telas.</p> : (
-                  <div className="admin-ranking-list admin-journey-ranking">
-                    {transitions.map((item) => (
-                      <article key={`${item.origem}-${item.destino}`}>
-                        <div><strong>{PAGE_LABELS[item.origem] || item.origem} → {PAGE_LABELS[item.destino] || item.destino}</strong></div>
-                        <span>{formatNumber(item.transicoes)}</span>
-                      </article>
-                    ))}
+            <div className="admin-command-two-column admin-journey-insights">
+              <section className="panel admin-journey-paths-panel">
+                <div className="panel-heading">
+                  <div>
+                    <p className="eyebrow">Caminhos</p>
+                    <h2>Transições mais comuns</h2>
+                    <p className="muted">Mostra mudanças observadas entre telas. Repetições na mesma tela são preservadas, mas não são tratadas como avanço da jornada.</p>
                   </div>
+                </div>
+                {transitions.length === 0 ? <p className="muted">Ainda não há sessões com duas ou mais telas.</p> : (
+                  <>
+                    <div className="admin-journey-mini-summary" aria-label="Resumo dos caminhos">
+                      <span><strong>{formatNumber(totalTransitionEvents)}</strong> transições observadas</span>
+                      <span><strong>{formatNumber(crossScreenTransitions)}</strong> entre telas diferentes</span>
+                    </div>
+                    <div className="admin-ranking-list admin-journey-ranking">
+                      {transitions.map((item) => {
+                        const sameScreen = item.origem === item.destino;
+                        return (
+                          <article key={`${item.origem}-${item.destino}`} className={sameScreen ? "is-same-screen" : ""}>
+                            <div>
+                              <strong>{PAGE_LABELS[item.origem] || item.origem} → {PAGE_LABELS[item.destino] || item.destino}</strong>
+                              <small>{sameScreen ? "Mesma tela · não indica avanço" : "Mudança entre telas"}</small>
+                              <span className="admin-journey-path-bar" aria-hidden="true">
+                                <i style={{ width: `${Math.max(4, (number(item.transicoes) / maxTransitions) * 100)}%` }} />
+                              </span>
+                            </div>
+                            <span>{formatNumber(item.transicoes)} <small>transições</small></span>
+                          </article>
+                        );
+                      })}
+                    </div>
+                  </>
                 )}
               </section>
 
-              <section className="panel">
-                <div className="panel-heading"><div><p className="eyebrow">Marcos de intenção</p><h2>Ações observadas no navegador</h2></div></div>
+              <section className="panel admin-journey-intent-panel">
+                <div className="panel-heading">
+                  <div>
+                    <p className="eyebrow">Marcos de intenção</p>
+                    <h2>Ações observadas no navegador</h2>
+                    <p className="muted">Eventos first-party que sinalizam interesse ou avanço. Evento, sessão e conversão continuam sendo fatos diferentes.</p>
+                  </div>
+                </div>
                 {events.length === 0 ? <p className="muted">Nenhum marco frontend neste recorte.</p> : (
-                  <dl className="admin-command-data-list">
-                    {events.map((event) => (
-                      <div key={event.nome}>
-                        <dt>{EVENT_LABELS[event.nome] || event.nome}</dt>
-                        <dd>{formatNumber(event.eventos)} <small>· {formatNumber(event.sessoes)} sessões</small></dd>
-                      </div>
-                    ))}
-                  </dl>
+                  <>
+                    <div className="admin-journey-mini-summary" aria-label="Resumo dos marcos de intenção">
+                      <span><strong>{formatNumber(totalIntentEvents)}</strong> eventos observados</span>
+                      <span><strong>{formatNumber(intentSessions)}</strong> sessões somadas por marco</span>
+                    </div>
+                    <div className="admin-intent-list">
+                      {events.map((event) => (
+                        <article key={event.nome}>
+                          <div>
+                            <strong>{EVENT_LABELS[event.nome] || event.nome}</strong>
+                            <small>{event.nome === "profile_viewed"
+                              ? "Interesse em um perfil"
+                              : event.nome === "booking_completed"
+                                ? "Agendamento concluído no frontend; validar no booking real"
+                                : "Marco first-party observado"}</small>
+                          </div>
+                          <div className="admin-intent-metrics">
+                            <strong>{formatNumber(event.eventos)}</strong>
+                            <small>eventos · {formatNumber(event.sessoes)} sessões</small>
+                          </div>
+                        </article>
+                      ))}
+                    </div>
+                  </>
                 )}
               </section>
             </div>
