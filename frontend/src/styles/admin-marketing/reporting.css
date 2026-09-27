@@ -17,15 +17,15 @@
   --marketing-donut-8: #72515e;
 }
 
-.admin-marketing-page .workspace-heading {
+.admin-marketing-page .admin-page-header {
   margin-bottom: 1.15rem;
 }
 
-.admin-marketing-page .workspace-heading h1 {
+.admin-marketing-page .admin-page-header h1 {
   letter-spacing: -0.035em;
 }
 
-.admin-marketing-page .workspace-heading p:not(.eyebrow) {
+.admin-marketing-page .admin-page-header p:not(.eyebrow) {
   max-width: 720px;
 }
 

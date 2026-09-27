@@ -405,7 +405,7 @@ export function AdminSaasHealthPage() {
 
   if (!data && !error) {
     return (
-      <main className="workspace-page admin-workspace-page admin-marketing-page admin-saas-health-page">
+      <main className="admin-page admin-workspace-page admin-marketing-page admin-saas-health-page">
         <LoadingState>Carregando ativação profissional...</LoadingState>
       </main>
     );
@@ -413,7 +413,7 @@ export function AdminSaasHealthPage() {
 
   if (!data && error) {
     return (
-      <main className="workspace-page admin-workspace-page admin-marketing-page admin-saas-health-page">
+      <main className="admin-page admin-workspace-page admin-marketing-page admin-saas-health-page">
         <ErrorState
           message={error}
           onRetry={() => setReloadKey((current) => current + 1)}
@@ -437,9 +437,9 @@ export function AdminSaasHealthPage() {
   return (
     <main
       aria-busy={refreshing}
-      className="workspace-page admin-workspace-page admin-marketing-page admin-saas-health-page"
+      className="admin-page admin-workspace-page admin-marketing-page admin-saas-health-page"
     >
-      <header className="workspace-heading">
+      <header className="admin-page-header">
         <div>
           <p className="eyebrow">Ativação</p>
           <h1>Ativação profissional</h1>

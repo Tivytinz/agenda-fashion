@@ -312,19 +312,6 @@ html.admin-context-active #root {
   min-width: 0;
 }
 
-/*
- * Ponte de migração: as páginas administrativas atuais ainda usam algumas
- * classes workspace-*. O shell novo assume o controle visual dessas classes
- * somente dentro de .admin-shell, sem depender do WorkspaceLayout.
- */
-.admin-shell .workspace-content {
-  background: transparent;
-}
-
-.admin-shell .workspace-heading {
-  margin-bottom: 0;
-}
-
 .admin-mobile-nav {
   display: none;
 }

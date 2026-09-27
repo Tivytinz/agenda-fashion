@@ -496,3 +496,634 @@
     max-width: 100%;
   }
 }
+
+
+/* Aquisição: tráfego deve ser legível como diagnóstico, não como uma tabela crua. */
+.admin-acquisition-page .admin-traffic-panel {
+  display: grid;
+  gap: 16px;
+}
+
+.admin-acquisition-page .admin-traffic-summary {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.admin-acquisition-page .admin-traffic-summary .admin-command-metric {
+  min-height: 104px;
+}
+
+.admin-acquisition-page .admin-traffic-volume {
+  display: grid;
+  min-width: 92px;
+  gap: 5px;
+}
+
+.admin-acquisition-page .admin-traffic-volume > strong {
+  font-variant-numeric: tabular-nums;
+}
+
+.admin-acquisition-page .admin-traffic-volume > span {
+  display: block;
+  width: 100%;
+  height: 5px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--admin-soft);
+}
+
+.admin-acquisition-page .admin-traffic-volume i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--admin-accent);
+}
+
+.admin-acquisition-page .admin-traffic-panel .data-table td,
+.admin-acquisition-page .admin-traffic-panel .data-table th {
+  vertical-align: middle;
+}
+
+@media (max-width: 800px) {
+  .admin-acquisition-page .admin-traffic-summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 520px) {
+  .admin-acquisition-page .admin-traffic-summary {
+    grid-template-columns: 1fr;
+  }
+}
+
+
+/* Jornada: transforma a tabela de telas em diagnóstico escaneável. */
+.admin-journey-screens-panel {
+  display: grid;
+  gap: 16px;
+}
+
+.admin-journey-screen-summary {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.admin-journey-screen-summary .admin-command-metric {
+  min-height: 104px;
+}
+
+.admin-screen-volume {
+  display: grid;
+  min-width: 104px;
+  gap: 5px;
+}
+
+.admin-screen-volume > strong {
+  font-variant-numeric: tabular-nums;
+}
+
+.admin-screen-volume > span {
+  display: block;
+  width: 100%;
+  height: 5px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--admin-soft);
+}
+
+.admin-screen-volume i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--admin-accent);
+}
+
+.admin-journey-screens-panel .data-table td,
+.admin-journey-screens-panel .data-table th {
+  vertical-align: middle;
+}
+
+@media (max-width: 800px) {
+  .admin-journey-screen-summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 520px) {
+  .admin-journey-screen-summary {
+    grid-template-columns: 1fr;
+  }
+}
+
+
+/* Jornada: caminhos e marcos de intenção precisam explicar comportamento sem chamar navegação de conversão. */
+.admin-journey-insights {
+  align-items: stretch;
+}
+
+.admin-journey-paths-panel,
+.admin-journey-intent-panel {
+  align-content: start;
+}
+
+.admin-journey-mini-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.admin-journey-mini-summary > span {
+  border: 1px solid var(--admin-line);
+  border-radius: 999px;
+  padding: 6px 10px;
+  color: var(--admin-muted);
+  background: var(--admin-soft);
+  font-size: .75rem;
+}
+
+.admin-journey-mini-summary strong {
+  color: var(--admin-ink);
+}
+
+.admin-journey-ranking article {
+  align-items: center;
+}
+
+.admin-journey-ranking article > div {
+  min-width: 0;
+  flex: 1;
+}
+
+.admin-journey-ranking article > span {
+  display: grid;
+  justify-items: end;
+  min-width: 72px;
+  color: var(--admin-ink);
+  font-weight: 800;
+}
+
+.admin-journey-ranking article > span small {
+  color: var(--admin-muted);
+  font-size: .66rem;
+  font-weight: 600;
+}
+
+.admin-journey-ranking .is-same-screen {
+  opacity: .76;
+}
+
+.admin-journey-path-bar {
+  display: block;
+  width: min(240px, 100%);
+  height: 4px;
+  margin-top: 7px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--admin-soft);
+}
+
+.admin-journey-path-bar i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--admin-accent);
+}
+
+.admin-journey-ranking .is-same-screen .admin-journey-path-bar i {
+  opacity: .45;
+}
+
+.admin-intent-list {
+  display: grid;
+}
+
+.admin-intent-list article {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  border-bottom: 1px solid var(--admin-line);
+  padding: 14px 0;
+}
+
+.admin-intent-list article:last-child {
+  border-bottom: 0;
+}
+
+.admin-intent-list article > div:first-child {
+  display: grid;
+  min-width: 0;
+  gap: 3px;
+}
+
+.admin-intent-list small {
+  color: var(--admin-muted);
+  line-height: 1.35;
+}
+
+.admin-intent-metrics {
+  display: grid;
+  justify-items: end;
+  flex: 0 0 auto;
+}
+
+.admin-intent-metrics > strong {
+  color: var(--admin-ink);
+  font-size: 1.2rem;
+  font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 700px) {
+  .admin-intent-list article {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .admin-intent-metrics {
+    justify-items: start;
+  }
+
+  .admin-journey-ranking article {
+    align-items: flex-start;
+  }
+}
+
+
+/* Jornada: compatibilidade vira um diagnóstico de prioridade de QA. */
+.admin-compatibility-panel {
+  display: grid;
+  gap: 16px;
+}
+
+.admin-compatibility-summary {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.admin-compatibility-summary .admin-command-metric {
+  min-height: 104px;
+}
+
+.admin-compatibility-list {
+  display: grid;
+}
+
+.admin-compatibility-list article {
+  display: grid;
+  grid-template-columns: minmax(130px, .7fr) minmax(220px, 1.3fr);
+  align-items: center;
+  gap: 20px;
+  border-bottom: 1px solid var(--admin-line);
+  padding: 13px 0;
+}
+
+.admin-compatibility-list article:last-child {
+  border-bottom: 0;
+}
+
+.admin-compatibility-identity {
+  display: grid;
+  gap: 2px;
+}
+
+.admin-compatibility-identity > strong {
+  text-transform: capitalize;
+}
+
+.admin-compatibility-identity small,
+.admin-compatibility-volume small {
+  color: var(--admin-muted);
+}
+
+.admin-compatibility-volume {
+  display: grid;
+  grid-template-columns: minmax(80px, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+}
+
+.admin-compatibility-volume > span {
+  display: block;
+  height: 6px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--admin-soft);
+}
+
+.admin-compatibility-volume i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--admin-accent);
+}
+
+.admin-compatibility-volume > strong {
+  min-width: 82px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 800px) {
+  .admin-compatibility-summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 600px) {
+  .admin-compatibility-summary,
+  .admin-compatibility-list article,
+  .admin-compatibility-volume {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-compatibility-list article {
+    gap: 8px;
+  }
+
+  .admin-compatibility-volume {
+    gap: 6px;
+  }
+
+  .admin-compatibility-volume > strong {
+    min-width: 0;
+    text-align: left;
+  }
+}
+
+
+/* Receita: prioriza leitura executiva e rebaixa configuração técnica sem esconder evidência. */
+.admin-revenue-economics-panel {
+  display: grid;
+  gap: 16px;
+}
+
+.admin-revenue-economics-summary {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.admin-revenue-economics-summary .admin-command-metric {
+  min-height: 108px;
+}
+
+.admin-revenue-detail {
+  border-top: 1px solid var(--admin-line);
+  padding-top: 12px;
+}
+
+.admin-revenue-detail > summary {
+  cursor: pointer;
+  color: var(--admin-accent-strong);
+  font-weight: 800;
+}
+
+.admin-revenue-detail[open] > summary {
+  margin-bottom: 10px;
+}
+
+.admin-revenue-cost-ops {
+  display: grid;
+  gap: 12px;
+}
+
+.admin-revenue-cost-ops-heading {
+  padding: 0 4px;
+}
+
+.admin-revenue-cost-ops-heading h2 {
+  margin: 2px 0 4px;
+}
+
+.admin-revenue-checkout-grid {
+  align-items: stretch;
+}
+
+.admin-revenue-checkout-panel {
+  display: grid;
+  align-content: start;
+}
+
+.admin-revenue-facts-panel .admin-command-data-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  column-gap: 28px;
+}
+
+.admin-revenue-facts-panel .admin-command-data-list > div:nth-child(-n + 2) {
+  border-top: 0;
+}
+
+@media (max-width: 800px) {
+  .admin-revenue-economics-summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .admin-revenue-facts-panel .admin-command-data-list {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-revenue-facts-panel .admin-command-data-list > div:nth-child(2) {
+    border-top: 1px solid var(--admin-line);
+  }
+}
+
+@media (max-width: 520px) {
+  .admin-revenue-economics-summary {
+    grid-template-columns: 1fr;
+  }
+}
+
+
+/* Receita: retenção, lifecycle, MRR, LTV e churn com leitura executiva primeiro. */
+.admin-revenue-retention-panel,
+.admin-revenue-lifecycle-panel,
+.admin-revenue-mrr-panel,
+.admin-revenue-ltv-panel,
+.admin-revenue-churn-panel {
+  display: grid;
+  gap: 16px;
+}
+
+.admin-revenue-retention-summary,
+.admin-revenue-lifecycle-summary,
+.admin-revenue-mrr-summary,
+.admin-revenue-ltv-summary,
+.admin-revenue-churn-summary {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.admin-revenue-retention-summary .admin-command-metric,
+.admin-revenue-lifecycle-summary .admin-command-metric,
+.admin-revenue-mrr-summary .admin-command-metric,
+.admin-revenue-ltv-summary .admin-command-metric,
+.admin-revenue-churn-summary .admin-command-metric {
+  min-height: 106px;
+}
+
+.admin-revenue-plans-panel .empty-state {
+  min-height: 160px;
+}
+
+@media (max-width: 900px) {
+  .admin-revenue-retention-summary,
+  .admin-revenue-lifecycle-summary,
+  .admin-revenue-mrr-summary,
+  .admin-revenue-ltv-summary,
+  .admin-revenue-churn-summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 520px) {
+  .admin-revenue-retention-summary,
+  .admin-revenue-lifecycle-summary,
+  .admin-revenue-mrr-summary,
+  .admin-revenue-ltv-summary,
+  .admin-revenue-churn-summary {
+    grid-template-columns: 1fr;
+  }
+}
+
+
+/* Operação: busca e filtros formam um único console, com resultados mais escaneáveis. */
+.admin-operation-heading {
+  align-items: center;
+}
+
+.admin-operation-audit-link {
+  display: flex;
+  justify-content: flex-end;
+  margin: -6px 2px 4px;
+}
+
+.admin-operation-control-panel {
+  border: 1px solid var(--admin-line);
+  border-radius: 18px;
+  padding: 12px;
+  background: var(--admin-surface);
+  box-shadow: var(--admin-shadow-soft);
+}
+
+.admin-operation-control-panel .admin-operation-toolbar {
+  margin: 0;
+}
+
+.admin-operation-control-panel .admin-command-tabs {
+  align-self: end;
+}
+
+.admin-operation-search {
+  min-width: min(100%, 420px);
+}
+
+.admin-operation-search > label {
+  color: var(--admin-muted);
+  font-size: .72rem;
+  font-weight: 800;
+  letter-spacing: .02em;
+}
+
+.admin-operation-search-row input {
+  min-width: 190px;
+}
+
+.admin-operation-result-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 14px 0 8px;
+}
+
+.admin-operation-result-heading .admin-operation-count {
+  margin: 0;
+}
+
+.admin-operation-result-heading > small {
+  color: var(--admin-muted);
+}
+
+.admin-operation-card {
+  transition: transform .16s ease, box-shadow .16s ease, border-color .16s ease;
+}
+
+.admin-operation-card:hover {
+  transform: translateY(-1px);
+  border-color: color-mix(in srgb, var(--admin-accent) 24%, var(--admin-line));
+  box-shadow: var(--admin-shadow-soft);
+}
+
+.admin-operation-card > dl {
+  gap: 8px;
+}
+
+.admin-operation-card > dl > div {
+  min-height: 58px;
+  border-radius: 10px;
+}
+
+.admin-operation-card .text-button {
+  display: inline-flex;
+  margin-top: 2px;
+}
+
+@media (max-width: 820px) {
+  .admin-operation-control-panel {
+    padding: 10px;
+  }
+
+  .admin-operation-toolbar,
+  .admin-operation-result-heading {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .admin-operation-search,
+  .admin-operation-search-row,
+  .admin-operation-search-row input,
+  .admin-operation-search-row select {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .admin-operation-search-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .admin-operation-search-row input,
+  .admin-operation-search-row select {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 520px) {
+  .admin-operation-audit-link {
+    justify-content: flex-start;
+  }
+
+  .admin-operation-control-panel .admin-command-tabs {
+    overflow-x: auto;
+    flex-wrap: nowrap;
+  }
+
+  .admin-operation-search-row {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-operation-search-row > * {
+    grid-column: 1 !important;
+  }
+
+  .admin-operation-card:hover {
+    transform: none;
+  }
+}

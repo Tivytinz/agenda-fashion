@@ -236,7 +236,7 @@ export function AdminMarketingPage() {
 
   if (!data && !error) {
     return (
-      <main className="workspace-page admin-workspace-page admin-marketing-page marketing-command-page marketing-command-page-v3">
+      <main className="admin-page admin-workspace-page admin-marketing-page marketing-command-page marketing-command-page-v3">
         <LoadingState>Carregando Marketing...</LoadingState>
       </main>
     );
@@ -244,7 +244,7 @@ export function AdminMarketingPage() {
 
   if (!data && error) {
     return (
-      <main className="workspace-page admin-workspace-page admin-marketing-page marketing-command-page marketing-command-page-v3">
+      <main className="admin-page admin-workspace-page admin-marketing-page marketing-command-page marketing-command-page-v3">
         <ErrorState
           message={error}
           onRetry={() => setReloadKey((current) => current + 1)}
@@ -311,7 +311,7 @@ export function AdminMarketingPage() {
   return (
     <main
       aria-busy={refreshing}
-      className="workspace-page admin-workspace-page admin-marketing-page marketing-command-page marketing-command-page-v3"
+      className="admin-page admin-workspace-page admin-marketing-page marketing-command-page marketing-command-page-v3"
     >
       <header className="marketing-command-hero marketing-command-hero-v3">
         <div>

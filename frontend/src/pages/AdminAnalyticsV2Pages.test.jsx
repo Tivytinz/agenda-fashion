@@ -4,7 +4,7 @@ import { cleanup, fireEvent, render, screen, within } from "@testing-library/rea
 import { MemoryRouter, useLocation } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { apiRequest } from "../api/client";
-import { AdminAcquisitionV2Page, AdminRevenueV2Page } from "./AdminAnalyticsV2Pages";
+import { AdminAcquisitionV2Page, AdminJourneyV2Page, AdminRevenueV2Page } from "./AdminAnalyticsV2Pages";
 
 vi.mock("../api/client", () => ({ apiRequest: vi.fn() }));
 
@@ -164,6 +164,11 @@ describe("aquisição administrativa v2", () => {
     renderPage();
     await screen.findByRole("heading", { name: "Aquisição" });
     expect(screen.getByText("Profissionais GO")).not.toBeNull();
+    const trafficSummary = screen.getByLabelText("Resumo do tráfego");
+    expect(within(trafficSummary).getByText("100")).not.toBeNull();
+    expect(within(trafficSummary).getByText("70")).not.toBeNull();
+    expect(within(trafficSummary).getByText("100%")).not.toBeNull();
+    expect(within(trafficSummary).getByText("1s")).not.toBeNull();
     const row = screen.getByText("Beleza GO").closest("tr");
     expect(within(row).getAllByRole("cell").map((cell) => cell.textContent)).toEqual([
       "Beleza GOgoogle / cpc", "10", "6", "3", "1", "—", "—"
@@ -258,6 +263,53 @@ describe("aquisição administrativa v2", () => {
     expect((await screen.findByRole("alert")).textContent).toContain("últimos dados válidos");
     expect(screen.getByText("Beleza GO")).not.toBeNull();
     expect(screen.getByLabelText("Recorte temporal").textContent).toContain("7 dias");
+  });
+});
+
+describe("jornada administrativa v2", () => {
+  it("resume as telas sem tratar visualização como conversão", async () => {
+    apiRequest.mockResolvedValue({
+      periodo: "30",
+      telas: [
+        { page_key: "home", route_template: "/", visualizacoes: 59, sessoes: 43, tempo_medio_segundos: 8 },
+        { page_key: "account", route_template: "/conta", visualizacoes: 20, sessoes: 2, tempo_medio_segundos: 2 }
+      ],
+      transicoes: [
+        { origem: "account", destino: "account", transicoes: 18 },
+        { origem: "login", destino: "customer_agenda", transicoes: 3 }
+      ],
+      eventos: [
+        { nome: "profile_viewed", eventos: 17, sessoes: 17 }
+      ],
+      dispositivos: [
+        { device_type: "mobile", browser_family: "Chrome", sessoes: 35 },
+        { device_type: "desktop", browser_family: "Edge", sessoes: 14 },
+        { device_type: "mobile", browser_family: "Safari", sessoes: 9 }
+      ],
+      reconciliacaoPipelines: { eventos: [] }
+    });
+    render(
+      <MemoryRouter initialEntries={["/admin/jornada?periodo=30"]}>
+        <AdminJourneyV2Page />
+      </MemoryRouter>
+    );
+    const summary = await screen.findByLabelText("Resumo das telas");
+    expect(within(summary).getByText("79")).not.toBeNull();
+    expect(within(summary).getByText("45")).not.toBeNull();
+    expect(within(summary).getByText("2")).not.toBeNull();
+    expect(screen.getByText(/Visualização não representa conversão/i)).not.toBeNull();
+    expect(screen.getByText("Mesma tela · não indica avanço")).not.toBeNull();
+    expect(screen.getByText("Mudança entre telas")).not.toBeNull();
+    expect(screen.getByLabelText("Resumo dos caminhos")).not.toBeNull();
+    expect(screen.getByLabelText("Resumo dos marcos de intenção")).not.toBeNull();
+    expect(screen.getByText("Interesse em um perfil")).not.toBeNull();
+    expect(screen.getByText(/Evento, sessão e conversão continuam sendo fatos diferentes/i)).not.toBeNull();
+    const compatibilitySummary = screen.getByLabelText("Resumo de compatibilidade");
+    expect(within(compatibilitySummary).getByText("58")).not.toBeNull();
+    expect(within(compatibilitySummary).getByText("75,9%")).not.toBeNull();
+    expect(within(compatibilitySummary).getByText("24,1%")).not.toBeNull();
+    expect(within(compatibilitySummary).getByText("3")).not.toBeNull();
+    expect(screen.getByText(/priorizar QA e compatibilidade/i)).not.toBeNull();
   });
 });
 
@@ -412,21 +464,21 @@ describe("receita administrativa v2", () => {
     expect(screen.getByText("Transições pagas registradas desde a Wave 22")).not.toBeNull();
     expect(screen.getByText("Reativações pagas")).not.toBeNull();
     expect(screen.getByText("Reversões financeiras")).not.toBeNull();
-    expect(screen.getByText("Saídas da base paga")).not.toBeNull();
+    expect(screen.getAllByText("Saídas da base paga").length).toBeGreaterThanOrEqual(1);
     expect(screen.getByText("Pendentes de reconciliação temporal")).not.toBeNull();
     expect(screen.getByRole("heading", { name: "Receita recorrente canônica" })).not.toBeNull();
     expect(screen.getByText("MRR da base inicial")).not.toBeNull();
     expect(screen.getByText("Expansion MRR")).not.toBeNull();
     expect(screen.getByText("Contraction MRR")).not.toBeNull();
     expect(screen.getByText("Churned MRR")).not.toBeNull();
-    expect(screen.getByText("MRR em risco")).not.toBeNull();
-    expect(screen.getByText("GRR")).not.toBeNull();
-    expect(screen.getByText("NRR")).not.toBeNull();
-    expect(screen.getByText("95%")).not.toBeNull();
+    expect(screen.getAllByText("MRR em risco").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText("GRR").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText("NRR").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText("95%").length).toBeGreaterThanOrEqual(1);
     expect(screen.getByRole("heading", { name: "LTV bruto observado" })).not.toBeNull();
-    expect(screen.getByText("LTV bruto D30")).not.toBeNull();
-    expect(screen.getByText("LTV bruto D60")).not.toBeNull();
-    expect(screen.getByText("LTV bruto D90")).not.toBeNull();
+    expect(screen.getAllByText("LTV bruto D30").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText("LTV bruto D60").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText("LTV bruto D90").length).toBeGreaterThanOrEqual(1);
     expect(screen.getByText("Aguardando maturidade")).not.toBeNull();
     expect(screen.getByRole("heading", { name: "Economia do recebimento" })).not.toBeNull();
     expect(screen.getByText("Receita líquida de gateway")).not.toBeNull();
@@ -443,13 +495,13 @@ describe("receita administrativa v2", () => {
     expect(screen.getAllByText("Aguardando cobertura de contribuição").length).toBe(3);
     expect(screen.getAllByText("Indisponível").length).toBeGreaterThan(0);
     expect(screen.getByText("2026-06")).not.toBeNull();
-    expect(screen.getByText("85%")).not.toBeNull();
+    expect(screen.getAllByText("85%").length).toBeGreaterThanOrEqual(1);
     expect(screen.getByRole("heading", { name: "Churn bruto de negócios" })).not.toBeNull();
     expect(screen.getByText("Gross logo churn")).not.toBeNull();
     expect(screen.getByText("Inadimplência não recuperada")).not.toBeNull();
-    expect(screen.getByText("20%")).not.toBeNull();
-    expect(screen.getByText("66,7%")).not.toBeNull();
-    expect(screen.getByText("50%")).not.toBeNull();
+    expect(screen.getAllByText("20%").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText("66,7%").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText("50%").length).toBeGreaterThanOrEqual(1);
     expect(screen.getByText("Cancelar a próxima renovação, atrasar uma cobrança e perder o acesso pago são fatos diferentes.")).not.toBeNull();
     expect(screen.queryByText(/^Churn$/i)).toBeNull();
   });

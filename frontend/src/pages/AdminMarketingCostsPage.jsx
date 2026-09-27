@@ -232,7 +232,7 @@ export function AdminMarketingCostsPage() {
 
   if (!data && !error) {
     return (
-      <main className="workspace-page admin-workspace-page admin-marketing-page admin-costs-page">
+      <main className="admin-page admin-workspace-page admin-marketing-page admin-costs-page">
         <LoadingState>Carregando custos de marketing...</LoadingState>
       </main>
     );
@@ -240,7 +240,7 @@ export function AdminMarketingCostsPage() {
 
   if (!data && error) {
     return (
-      <main className="workspace-page admin-workspace-page admin-marketing-page admin-costs-page">
+      <main className="admin-page admin-workspace-page admin-marketing-page admin-costs-page">
         <ErrorState
           message={error}
           onRetry={() => setReloadKey((current) => current + 1)}
@@ -434,9 +434,9 @@ export function AdminMarketingCostsPage() {
   return (
     <main
       aria-busy={refreshing}
-      className="workspace-page admin-workspace-page admin-marketing-page admin-costs-page"
+      className="admin-page admin-workspace-page admin-marketing-page admin-costs-page"
     >
-      <header className="workspace-heading">
+      <header className="admin-page-header">
         <div>
           <p className="eyebrow">Administração do AF</p>
           <h1>Investimento e eficiência</h1>

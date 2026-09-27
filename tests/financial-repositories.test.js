@@ -181,11 +181,6 @@ describe("repositories financeiros críticos", () => {
         "2026-09-26T12:00:00Z",
         "evt_1",
         "pay_1",
-        false,
-        null,
-        null,
-        null,
-        null,
       ]);
     });
 

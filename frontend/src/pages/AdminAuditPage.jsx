@@ -137,8 +137,8 @@ export function AdminAuditPage() {
   const events = data?.eventos || [];
   const pagination = data?.paginacao || {};
   return (
-    <main className="workspace-page admin-workspace-page admin-command-page admin-operation-page" aria-busy={loading}>
-      <header className="workspace-heading admin-command-heading">
+    <main className="admin-page admin-workspace-page admin-command-page admin-operation-page" aria-busy={loading}>
+      <header className="admin-page-header admin-command-heading">
         <div>
           <p className="eyebrow">Operação</p>
           <h1>Auditoria administrativa</h1>

@@ -2,13 +2,13 @@
   min-width: 0;
 }
 
-.admin-workspace-page .workspace-heading {
+.admin-workspace-page .admin-page-header {
   align-items: flex-start;
   flex-wrap: wrap;
   gap: 1rem 1.25rem;
 }
 
-.admin-workspace-page .workspace-heading > div:first-child {
+.admin-workspace-page .admin-page-header > div:first-child {
   min-width: 0;
   flex: 1 1 520px;
 }
@@ -667,7 +667,7 @@
 }
 
 @media (max-width: 900px) {
-  .admin-workspace-page .workspace-heading > div:first-child {
+  .admin-workspace-page .admin-page-header > div:first-child {
     flex-basis: 100%;
   }
 

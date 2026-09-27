@@ -12,7 +12,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import {
   MobileWorkspaceNavigation
 } from "./WorkspaceLayout";
-import { ADMIN_LINKS, AdminLayout } from "./AdminLayout";
+import { AdminLayout } from "./AdminLayout";
 
 const LINKS = [
   ["/painel", "Visão geral", "⌂"],
@@ -99,50 +99,6 @@ describe("menu mobile da área de trabalho", () => {
     fireEvent.pointerDown(document.body);
 
     expect(screen.queryByRole("link", { name: /Horários/ })).toBeNull();
-  });
-
-  it("prioriza os módulos do AF e mantém Minha conta fora do admin mobile", async () => {
-    const user = userEvent.setup();
-    render(
-      <MemoryRouter
-        initialEntries={[
-          "/admin/aquisicao?periodo=30d"
-        ]}
-      >
-        <MobileWorkspaceNavigation
-          ariaLabel="Administração do Agenda Fashion"
-          links={ADMIN_LINKS}
-        />
-      </MemoryRouter>
-    );
-
-    const navigation = screen.getByRole(
-      "navigation",
-      { name: "Administração do Agenda Fashion" }
-    );
-    const acquisition = screen.getByRole(
-      "link",
-      { name: /Aquisição/ }
-    );
-
-    expect(
-      navigation.querySelectorAll(".workspace-mobile-link")
-    ).toHaveLength(4);
-    expect(screen.getByRole("link", { name: /Visão geral/ })).not.toBeNull();
-    expect(screen.getByRole("link", { name: /Jornada/ })).not.toBeNull();
-    expect(screen.getByRole("link", { name: /Retenção/ })).not.toBeNull();
-    expect(acquisition.classList.contains("active")).toBe(true);
-    expect(screen.queryByRole("link", { name: /Receita/ })).toBeNull();
-    expect(screen.queryByRole("link", { name: /Operação/ })).toBeNull();
-    expect(screen.queryByRole("link", { name: /Minha conta/ })).toBeNull();
-
-    await user.click(
-      screen.getByRole("button", { name: /Abrir mais opções/i })
-    );
-
-    expect(screen.getByRole("link", { name: /Receita/ })).not.toBeNull();
-    expect(screen.getByRole("link", { name: /Operação/ })).not.toBeNull();
-    expect(screen.queryByRole("link", { name: /Minha conta/ })).toBeNull();
   });
 
   it("renderiza a mesma navegação administrativa no conteúdo e na lateral", () => {

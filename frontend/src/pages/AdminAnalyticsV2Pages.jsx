@@ -207,6 +207,7 @@ function useAdminSection(section) {
 
 function AdminSectionFrame({
   children,
+  className = "",
   eyebrow,
   title,
   description,
@@ -224,7 +225,7 @@ function AdminSectionFrame({
 
   if (!data && !error) {
     return (
-      <main className="workspace-page admin-workspace-page admin-command-page">
+      <main className="admin-page admin-workspace-page admin-command-page">
         <LoadingState>Carregando {title.toLocaleLowerCase("pt-BR")}...</LoadingState>
       </main>
     );
@@ -232,7 +233,7 @@ function AdminSectionFrame({
 
   if (!data && error) {
     return (
-      <main className="workspace-page admin-workspace-page admin-command-page">
+      <main className="admin-page admin-workspace-page admin-command-page">
         <ErrorState message={error} onRetry={retry} />
       </main>
     );
@@ -241,9 +242,9 @@ function AdminSectionFrame({
   return (
     <main
       aria-busy={refreshing}
-      className="workspace-page admin-workspace-page admin-command-page"
+      className={`admin-page admin-workspace-page admin-command-page ${className}`.trim()}
     >
-      <header className="workspace-heading admin-command-heading">
+      <header className="admin-page-header admin-command-heading">
         <div>
           <p className="eyebrow">{eyebrow}</p>
           <h1>{title}</h1>
@@ -438,6 +439,26 @@ export function AdminAcquisitionV2Page() {
         const contributionReadiness =
           acquisitionReturn.contribuicaoProntidao || {};
         const hasProfessionalCohort = campaigns.length > 0;
+        const trafficTotals = origins.reduce((acc, origin) => ({
+          sessoes: acc.sessoes + number(origin.sessoes),
+          usuarios: acc.usuarios + number(origin.usuarios),
+          tempoEngajadoMs: acc.tempoEngajadoMs + number(origin.tempo_engajado_ms)
+        }), { sessoes: 0, usuarios: 0, tempoEngajadoMs: 0 });
+        const maxOriginSessions = Math.max(
+          1,
+          ...origins.map((origin) => number(origin.sessoes))
+        );
+        const identifiedSessions = origins.reduce(
+          (total, origin) => total + (
+            ["direct", "unknown"].includes(origin.canal)
+              ? 0
+              : number(origin.sessoes)
+          ),
+          0
+        );
+        const identifiedShare = trafficTotals.sessoes > 0
+          ? (identifiedSessions / trafficTotals.sessoes) * 100
+          : null;
         const hasFinancialDiagnosis = financialCampaigns.length > 0 ||
           Object.values(financialDiagnosis).some((value) => number(value) > 0);
         const totals = campaigns.reduce((acc, campaign) => ({
@@ -475,14 +496,22 @@ export function AdminAcquisitionV2Page() {
               </section>
             )}
 
-            <section className="panel">
-              <div className="panel-heading">
+            <section className="panel admin-traffic-panel">
+              <div className="panel-heading admin-traffic-heading">
                 <div>
                   <p className="eyebrow">Tráfego do site</p>
                   <h2>Sessões por origem</h2>
-                  <p className="muted">Cada linha mostra uma origem identificada. A mesma rede pode aparecer em mais de uma linha.</p>
+                  <p className="muted">Compare volume, alcance e engajamento sem confundir visita com cadastro. Variações de domínio da mesma rede continuam separadas para preservar a evidência capturada.</p>
                 </div>
               </div>
+              {origins.length > 0 && (
+                <section className="admin-traffic-summary" aria-label="Resumo do tráfego">
+                  <MetricCard label="Sessões" hint="visitas registradas no período" value={formatNumber(trafficTotals.sessoes)} />
+                  <MetricCard label="Usuários" hint="identidades first-party observadas" value={formatNumber(trafficTotals.usuarios)} />
+                  <MetricCard label="Origem identificada" hint="sessões fora de direto/não identificado" value={formatPercent(identifiedShare)} />
+                  <MetricCard label="Tempo médio" hint="engajamento médio por sessão" value={trafficTotals.sessoes > 0 ? formatSeconds(trafficTotals.tempoEngajadoMs / trafficTotals.sessoes / 1000) : "—"} />
+                </section>
+              )}
               {origins.length === 0 ? (
                 <EmptyState title="Ainda não há sessões registradas neste período">
                   Não há dados de visitas para mostrar no recorte selecionado.
@@ -497,7 +526,12 @@ export function AdminAcquisitionV2Page() {
                           <td>{CHANNEL_LABELS[row.canal] || row.canal}</td>
                           <td><strong>{row.source}</strong><small> / {row.medium}</small></td>
                           <td>{row.campanha_nome || row.utm_campaign || "—"}</td>
-                          <td>{formatNumber(row.sessoes)}</td>
+                          <td>
+                            <div className="admin-traffic-volume">
+                              <strong>{formatNumber(row.sessoes)}</strong>
+                              <span aria-hidden="true"><i style={{ width: `${Math.max(4, (number(row.sessoes) / maxOriginSessions) * 100)}%` }} /></span>
+                            </div>
+                          </td>
                           <td>{formatNumber(row.usuarios)}</td>
                           <td>{number(row.sessoes) > 0 ? formatSeconds(number(row.tempo_engajado_ms) / number(row.sessoes) / 1000) : "—"}</td>
                         </tr>
@@ -737,6 +771,54 @@ export function AdminJourneyV2Page() {
         const pipelineEvents = Array.isArray(reconciliation.eventos)
           ? reconciliation.eventos
           : [];
+        const screenTotals = screens.reduce((acc, screen) => ({
+          visualizacoes: acc.visualizacoes + number(screen.visualizacoes),
+          sessoes: acc.sessoes + number(screen.sessoes),
+          tempoPonderado: acc.tempoPonderado + (
+            number(screen.tempo_medio_segundos) * number(screen.sessoes)
+          )
+        }), { visualizacoes: 0, sessoes: 0, tempoPonderado: 0 });
+        const maxScreenViews = Math.max(
+          1,
+          ...screens.map((screen) => number(screen.visualizacoes))
+        );
+        const maxTransitions = Math.max(
+          1,
+          ...transitions.map((item) => number(item.transicoes))
+        );
+        const totalTransitionEvents = transitions.reduce(
+          (total, item) => total + number(item.transicoes),
+          0
+        );
+        const crossScreenTransitions = transitions.reduce(
+          (total, item) => total + (
+            item.origem !== item.destino ? number(item.transicoes) : 0
+          ),
+          0
+        );
+        const totalIntentEvents = events.reduce(
+          (total, event) => total + number(event.eventos),
+          0
+        );
+        const intentSessions = events.reduce(
+          (total, event) => total + number(event.sessoes),
+          0
+        );
+        const totalDeviceSessions = devices.reduce(
+          (total, item) => total + number(item.sessoes),
+          0
+        );
+        const deviceSessions = devices.reduce((acc, item) => {
+          const key = String(item.device_type || "other").toLowerCase();
+          acc[key] = (acc[key] || 0) + number(item.sessoes);
+          return acc;
+        }, {});
+        const mobileSessions = number(deviceSessions.mobile);
+        const desktopSessions = number(deviceSessions.desktop);
+        const maxCompatibilitySessions = Math.max(
+          1,
+          ...devices.map((item) => number(item.sessoes))
+        );
         const hasPipelineEvidence =
           pipelineEvents.some((item) => (
             number(item.legadoPeriodo) > 0 ||
@@ -757,8 +839,22 @@ export function AdminJourneyV2Page() {
 
         return (
           <>
-            <section className="panel">
-              <div className="panel-heading"><div><p className="eyebrow">Telas</p><h2>Onde as pessoas passam tempo</h2></div></div>
+            <section className="panel admin-journey-screens-panel">
+              <div className="panel-heading">
+                <div>
+                  <p className="eyebrow">Telas</p>
+                  <h2>Onde as pessoas passam tempo</h2>
+                  <p className="muted">Compare alcance e atenção por tela. Visualização não representa conversão; use os caminhos e marcos abaixo para interpretar intenção.</p>
+                </div>
+              </div>
+              {screens.length > 0 && (
+                <section className="admin-journey-screen-summary" aria-label="Resumo das telas">
+                  <MetricCard label="Visualizações" hint="aberturas de tela no período" value={formatNumber(screenTotals.visualizacoes)} />
+                  <MetricCard label="Sessões nas telas" hint="soma das sessões por tela; não é usuário único" value={formatNumber(screenTotals.sessoes)} />
+                  <MetricCard label="Telas observadas" hint="rotas com evidência first-party" value={formatNumber(screens.length)} />
+                  <MetricCard label="Tempo médio visível" hint="média ponderada pelas sessões exibidas" value={screenTotals.sessoes > 0 ? formatSeconds(screenTotals.tempoPonderado / screenTotals.sessoes) : "—"} />
+                </section>
+              )}
               <div className="table-wrapper">
                 <table className="data-table">
                   <thead><tr><th>Tela</th><th>Visualizações</th><th>Sessões</th><th>Tempo médio visível</th></tr></thead>
@@ -766,7 +862,12 @@ export function AdminJourneyV2Page() {
                     {screens.map((screen) => (
                       <tr key={screen.page_key}>
                         <td><strong>{PAGE_LABELS[screen.page_key] || screen.page_key}</strong><small>{screen.route_template}</small></td>
-                        <td>{formatNumber(screen.visualizacoes)}</td>
+                        <td>
+                          <div className="admin-screen-volume">
+                            <strong>{formatNumber(screen.visualizacoes)}</strong>
+                            <span aria-hidden="true"><i style={{ width: `${Math.max(4, (number(screen.visualizacoes) / maxScreenViews) * 100)}%` }} /></span>
+                          </div>
+                        </td>
                         <td>{formatNumber(screen.sessoes)}</td>
                         <td>{formatSeconds(screen.tempo_medio_segundos)}</td>
                       </tr>
@@ -776,32 +877,75 @@ export function AdminJourneyV2Page() {
               </div>
             </section>
 
-            <div className="admin-command-two-column">
-              <section className="panel">
-                <div className="panel-heading"><div><p className="eyebrow">Caminhos</p><h2>Transições mais comuns</h2></div></div>
-                {transitions.length === 0 ? <p className="muted">Ainda não há sessões com duas ou mais telas.</p> : (
-                  <div className="admin-ranking-list admin-journey-ranking">
-                    {transitions.map((item) => (
-                      <article key={`${item.origem}-${item.destino}`}>
-                        <div><strong>{PAGE_LABELS[item.origem] || item.origem} → {PAGE_LABELS[item.destino] || item.destino}</strong></div>
-                        <span>{formatNumber(item.transicoes)}</span>
-                      </article>
-                    ))}
+            <div className="admin-command-two-column admin-journey-insights">
+              <section className="panel admin-journey-paths-panel">
+                <div className="panel-heading">
+                  <div>
+                    <p className="eyebrow">Caminhos</p>
+                    <h2>Transições mais comuns</h2>
+                    <p className="muted">Mostra mudanças observadas entre telas. Repetições na mesma tela são preservadas, mas não são tratadas como avanço da jornada.</p>
                   </div>
+                </div>
+                {transitions.length === 0 ? <p className="muted">Ainda não há sessões com duas ou mais telas.</p> : (
+                  <>
+                    <div className="admin-journey-mini-summary" aria-label="Resumo dos caminhos">
+                      <span><strong>{formatNumber(totalTransitionEvents)}</strong> transições observadas</span>
+                      <span><strong>{formatNumber(crossScreenTransitions)}</strong> entre telas diferentes</span>
+                    </div>
+                    <div className="admin-ranking-list admin-journey-ranking">
+                      {transitions.map((item) => {
+                        const sameScreen = item.origem === item.destino;
+                        return (
+                          <article key={`${item.origem}-${item.destino}`} className={sameScreen ? "is-same-screen" : ""}>
+                            <div>
+                              <strong>{PAGE_LABELS[item.origem] || item.origem} → {PAGE_LABELS[item.destino] || item.destino}</strong>
+                              <small>{sameScreen ? "Mesma tela · não indica avanço" : "Mudança entre telas"}</small>
+                              <span className="admin-journey-path-bar" aria-hidden="true">
+                                <i style={{ width: `${Math.max(4, (number(item.transicoes) / maxTransitions) * 100)}%` }} />
+                              </span>
+                            </div>
+                            <span>{formatNumber(item.transicoes)} <small>transições</small></span>
+                          </article>
+                        );
+                      })}
+                    </div>
+                  </>
                 )}
               </section>
 
-              <section className="panel">
-                <div className="panel-heading"><div><p className="eyebrow">Marcos de intenção</p><h2>Ações observadas no navegador</h2></div></div>
+              <section className="panel admin-journey-intent-panel">
+                <div className="panel-heading">
+                  <div>
+                    <p className="eyebrow">Marcos de intenção</p>
+                    <h2>Ações observadas no navegador</h2>
+                    <p className="muted">Eventos first-party que sinalizam interesse ou avanço. Evento, sessão e conversão continuam sendo fatos diferentes.</p>
+                  </div>
+                </div>
                 {events.length === 0 ? <p className="muted">Nenhum marco frontend neste recorte.</p> : (
-                  <dl className="admin-command-data-list">
-                    {events.map((event) => (
-                      <div key={event.nome}>
-                        <dt>{EVENT_LABELS[event.nome] || event.nome}</dt>
-                        <dd>{formatNumber(event.eventos)} <small>· {formatNumber(event.sessoes)} sessões</small></dd>
-                      </div>
-                    ))}
-                  </dl>
+                  <>
+                    <div className="admin-journey-mini-summary" aria-label="Resumo dos marcos de intenção">
+                      <span><strong>{formatNumber(totalIntentEvents)}</strong> eventos observados</span>
+                      <span><strong>{formatNumber(intentSessions)}</strong> sessões somadas por marco</span>
+                    </div>
+                    <div className="admin-intent-list">
+                      {events.map((event) => (
+                        <article key={event.nome}>
+                          <div>
+                            <strong>{EVENT_LABELS[event.nome] || event.nome}</strong>
+                            <small>{event.nome === "profile_viewed"
+                              ? "Interesse em um perfil"
+                              : event.nome === "booking_completed"
+                                ? "Agendamento concluído no frontend; validar no booking real"
+                                : "Marco first-party observado"}</small>
+                          </div>
+                          <div className="admin-intent-metrics">
+                            <strong>{formatNumber(event.eventos)}</strong>
+                            <small>eventos · {formatNumber(event.sessoes)} sessões</small>
+                          </div>
+                        </article>
+                      ))}
+                    </div>
+                  </>
                 )}
               </section>
             </div>
@@ -893,16 +1037,40 @@ export function AdminJourneyV2Page() {
               </details>
             </section>
 
-            <section className="panel">
-              <div className="panel-heading"><div><p className="eyebrow">Compatibilidade</p><h2>Dispositivo e navegador</h2></div></div>
-              <div className="admin-ranking-list admin-journey-ranking">
-                {devices.map((item) => (
-                  <article key={`${item.device_type}-${item.browser_family}`}>
-                    <div><strong>{item.device_type}</strong><small>{item.browser_family}</small></div>
-                    <span>{formatNumber(item.sessoes)} sessões</span>
-                  </article>
-                ))}
+            <section className="panel admin-compatibility-panel">
+              <div className="panel-heading">
+                <div>
+                  <p className="eyebrow">Compatibilidade</p>
+                  <h2>Dispositivo e navegador</h2>
+                  <p className="muted">Distribuição das sessões observadas por combinação de dispositivo e navegador. Use este recorte para priorizar QA e compatibilidade, não para inferir conversão.</p>
+                </div>
               </div>
+              {devices.length === 0 ? (
+                <p className="muted">Ainda não há sessões com dispositivo e navegador identificados.</p>
+              ) : (
+                <>
+                  <section className="admin-compatibility-summary" aria-label="Resumo de compatibilidade">
+                    <MetricCard label="Sessões observadas" hint="soma das combinações exibidas" value={formatNumber(totalDeviceSessions)} />
+                    <MetricCard label="Mobile" hint="participação das sessões mobile" value={formatPercent(totalDeviceSessions > 0 ? (mobileSessions / totalDeviceSessions) * 100 : null)} />
+                    <MetricCard label="Desktop" hint="participação das sessões desktop" value={formatPercent(totalDeviceSessions > 0 ? (desktopSessions / totalDeviceSessions) * 100 : null)} />
+                    <MetricCard label="Combinações" hint="dispositivo × navegador observados" value={formatNumber(devices.length)} />
+                  </section>
+                  <div className="admin-compatibility-list">
+                    {devices.map((item) => (
+                      <article key={`${item.device_type}-${item.browser_family}`}>
+                        <div className="admin-compatibility-identity">
+                          <strong>{item.device_type || "other"}</strong>
+                          <small>{item.browser_family || "Other"}</small>
+                        </div>
+                        <div className="admin-compatibility-volume">
+                          <span aria-hidden="true"><i style={{ width: `${Math.max(4, (number(item.sessoes) / maxCompatibilitySessions) * 100)}%` }} /></span>
+                          <strong>{formatNumber(item.sessoes)} <small>sessões</small></strong>
+                        </div>
+                      </article>
+                    ))}
+                  </div>
+                </>
+              )}
             </section>
           </>
         );
@@ -1148,7 +1316,7 @@ export function AdminRevenueV2Page() {
               <MetricCard label="Assinaturas pagas ativas" hint="estoque atual, não criação no período" value={formatNumber(summary.assinaturasPagasAtivas)} />
             </section>
 
-            <section className="panel">
+            <section className="panel admin-revenue-economics-panel">
               <div className="panel-heading">
                 <div>
                   <p className="eyebrow">Economia do gateway</p>
@@ -1174,7 +1342,15 @@ export function AdminRevenueV2Page() {
                   </p>
                 </div>
               )}
-              <dl className="admin-command-data-list">
+              <section className="admin-revenue-economics-summary" aria-label="Resumo da economia do recebimento">
+                <MetricCard label="Bruto reconciliado" hint="pagamentos com evidência econômica" value={formatCurrency(economics.valorBrutoReconciliado)} />
+                <MetricCard label="Taxas observadas" hint="taxas conhecidas do gateway" value={formatCurrency(economics.taxasGatewayObservadas)} />
+                <MetricCard label="Estornos concluídos" hint="reversões já reconciliadas" tone={number(economics.estornosConcluidos) > 0 ? "warning" : "neutral"} value={formatCurrency(economics.estornosConcluidos)} />
+                <MetricCard label="Líquido do gateway" hint="não equivale a lucro" tone={number(economics.receitaLiquidaGateway) > 0 ? "success" : "neutral"} value={formatCurrency(economics.receitaLiquidaGateway)} />
+              </section>
+              <details className="admin-revenue-detail" open={number(economics.pagamentosIncompletos) > 0}>
+                <summary>Detalhes de cobertura e margem</summary>
+                <dl className="admin-command-data-list">
                 <div><dt>Valor bruto reconciliado</dt><dd>{formatCurrency(economics.valorBrutoReconciliado)}</dd></div>
                 <div><dt>Taxas gateway observadas</dt><dd>{formatCurrency(economics.taxasGatewayObservadas)}</dd></div>
                 <div><dt>Estornos concluídos</dt><dd>{formatCurrency(economics.estornosConcluidos)}</dd></div>
@@ -1214,16 +1390,24 @@ export function AdminRevenueV2Page() {
                   </dd>
                 </div>
               </dl>
-              <p className="muted">
-                Cobertura canônica desde {formatDateTime(economics.inicioCobertura)}. Ausência de netValue não é interpretada como taxa zero.
-              </p>
+                <p className="muted">
+                  Cobertura canônica desde {formatDateTime(economics.inicioCobertura)}. Ausência de netValue não é interpretada como taxa zero.
+                </p>
+              </details>
             </section>
 
-            <AdminContributionOperationsPanel />
-            <AdminContributionSyncPanel />
+            <section className="admin-revenue-cost-ops" aria-label="Operação de custos factuais">
+              <div className="admin-revenue-cost-ops-heading">
+                <p className="eyebrow">Custos factuais</p>
+                <h2>Fontes e sincronização</h2>
+                <p className="muted">Configuração operacional necessária para liberar margem de contribuição. Mantenha apenas fontes sustentadas por contrato, fatura ou regra factual verificável.</p>
+              </div>
+              <AdminContributionOperationsPanel />
+              <AdminContributionSyncPanel />
+            </section>
 
-            <div className="admin-command-two-column">
-              <section className="panel">
+            <div className="admin-command-two-column admin-revenue-checkout-grid">
+              <section className="panel admin-revenue-checkout-panel">
                 <div className="panel-heading">
                   <div>
                     <p className="eyebrow">Coorte de checkout</p>
@@ -1238,7 +1422,7 @@ export function AdminRevenueV2Page() {
                 </dl>
               </section>
 
-              <section className="panel">
+              <section className="panel admin-revenue-checkout-panel">
                 <div className="panel-heading">
                   <div>
                     <p className="eyebrow">Processamento técnico</p>
@@ -1253,7 +1437,7 @@ export function AdminRevenueV2Page() {
               </section>
             </div>
 
-            <section className="panel">
+            <section className="panel admin-revenue-facts-panel">
               <div className="panel-heading">
                 <div>
                   <p className="eyebrow">Fatos financeiros</p>
@@ -1270,7 +1454,7 @@ export function AdminRevenueV2Page() {
               </dl>
             </section>
 
-            <section className="panel">
+            <section className="panel admin-revenue-retention-panel">
               <div className="panel-heading">
                 <div>
                   <p className="eyebrow">Retenção financeira</p>
@@ -1280,7 +1464,15 @@ export function AdminRevenueV2Page() {
                   </p>
                 </div>
               </div>
-              <dl className="admin-command-data-list">
+              <section className="admin-revenue-retention-summary" aria-label="Resumo de retenção financeira">
+                <MetricCard label="Previstas" hint="renovações vencidas no período" value={formatNumber(summary.renovacoesPrevistas)} />
+                <MetricCard label="Confirmadas" hint="renovações pagas observadas" tone={number(summary.renovacoesConfirmadas) > 0 ? "success" : "neutral"} value={formatNumber(summary.renovacoesConfirmadas)} />
+                <MetricCard label="Taxa de renovação" hint="sobre a coorte prevista" value={formatPercent(summary.taxaRenovacao)} />
+                <MetricCard label="Em atraso" hint="atraso não equivale a churn" tone={number(summary.renovacoesComAtraso) > 0 ? "warning" : "neutral"} value={formatNumber(summary.renovacoesComAtraso)} />
+              </section>
+              <details className="admin-revenue-detail">
+                <summary>Recuperação e cancelamentos</summary>
+                <dl className="admin-command-data-list">
                 <div><dt>Renovações previstas</dt><dd>{formatNumber(summary.renovacoesPrevistas)}</dd></div>
                 <div><dt>Renovações confirmadas</dt><dd>{formatNumber(summary.renovacoesConfirmadas)}</dd></div>
                 <div><dt>Taxa observada de renovação</dt><dd>{formatPercent(summary.taxaRenovacao)}</dd></div>
@@ -1290,9 +1482,10 @@ export function AdminRevenueV2Page() {
                 <div><dt>Cancelamentos de renovação agendados</dt><dd>{formatNumber(summary.cancelamentosRenovacaoAgendados)}</dd></div>
                 <div><dt>Encerradas após cancelamento</dt><dd>{formatNumber(summary.assinaturasEncerradasAposCancelamento)}</dd></div>
               </dl>
+              </details>
             </section>
 
-            <section className="panel">
+            <section className="panel admin-revenue-lifecycle-panel">
               <div className="panel-heading">
                 <div>
                   <p className="eyebrow">Lifecycle canônico</p>
@@ -1302,7 +1495,15 @@ export function AdminRevenueV2Page() {
                   </p>
                 </div>
               </div>
-              <dl className="admin-command-data-list">
+              <section className="admin-revenue-lifecycle-summary" aria-label="Resumo do lifecycle pago">
+                <MetricCard label="Conversões iniciais" hint="entradas pagas canônicas" value={formatNumber(summary.conversoesIniciaisCanonicas)} />
+                <MetricCard label="Renovações" hint="renovações confirmadas" value={formatNumber(summary.renovacoesConfirmadasCanonicas)} />
+                <MetricCard label="Reativações" hint="retornos pagos" value={formatNumber(summary.reativacoesPagas)} />
+                <MetricCard label="Saídas da base paga" hint="saídas canônicas observadas" tone={number(summary.saidasBasePagaCanonicas) > 0 ? "warning" : "neutral"} value={formatNumber(summary.saidasBasePagaCanonicas)} />
+              </section>
+              <details className="admin-revenue-detail">
+                <summary>Ver todas as transições financeiras</summary>
+                <dl className="admin-command-data-list">
                 <div><dt>Conversões iniciais</dt><dd>{formatNumber(summary.conversoesIniciaisCanonicas)}</dd></div>
                 <div><dt>Renovações confirmadas</dt><dd>{formatNumber(summary.renovacoesConfirmadasCanonicas)}</dd></div>
                 <div><dt>Reativações pagas</dt><dd>{formatNumber(summary.reativacoesPagas)}</dd></div>
@@ -1314,9 +1515,10 @@ export function AdminRevenueV2Page() {
                 <div><dt>Saídas da base paga</dt><dd>{formatNumber(summary.saidasBasePagaCanonicas)}</dd></div>
                 <div><dt>Pendentes de reconciliação temporal</dt><dd>{formatNumber(summary.cancelamentosVencidosPendentesReconciliacao)}</dd></div>
               </dl>
+              </details>
             </section>
 
-            <section className="panel">
+            <section className="panel admin-revenue-mrr-panel">
               <div className="panel-heading">
                 <div>
                   <p className="eyebrow">Receita recorrente</p>
@@ -1336,21 +1538,30 @@ export function AdminRevenueV2Page() {
                 </div>
               )}
 
-              <dl className="admin-command-data-list">
-                <div><dt>MRR da base inicial</dt><dd>{formatCurrency(summary.mrrInicial)}</dd></div>
-                <div><dt>New MRR</dt><dd>{formatCurrency(summary.newMrr)}</dd></div>
-                <div><dt>Expansion MRR</dt><dd>{formatCurrency(summary.expansionMrr)}</dd></div>
-                <div><dt>Contraction MRR</dt><dd>{formatCurrency(summary.contractionMrr)}</dd></div>
-                <div><dt>Churned MRR</dt><dd>{formatCurrency(summary.churnedMrr)}</dd></div>
-                <div><dt>Reactivation MRR</dt><dd>{formatCurrency(summary.reactivationMrr)}</dd></div>
-                <div><dt>MRR final</dt><dd>{formatCurrency(summary.mrrFinalTotal)}</dd></div>
-                <div><dt>MRR em risco</dt><dd>{formatCurrency(summary.mrrEmRisco)}</dd></div>
-                <div><dt>Negócios com MRR em risco</dt><dd>{formatNumber(summary.negociosMrrEmRisco)}</dd></div>
-                <div><dt>GRR</dt><dd>{formatPercent(summary.grr)}</dd></div>
-                <div><dt>NRR</dt><dd>{formatPercent(summary.nrr)}</dd></div>
-                <div><dt>Bridge reconciliado</dt><dd>{summary.bridgeMrrReconciliado ? "Sim" : "Não"}</dd></div>
-                <div><dt>Periodicidade fora do MRR v1</dt><dd>{formatNumber(summary.assinaturasPeriodicidadeNaoSuportada)}</dd></div>
-              </dl>
+              <section className="admin-revenue-mrr-summary" aria-label="Resumo de receita recorrente">
+                <MetricCard label="MRR final" hint="valor recorrente mensal contratado" tone={number(summary.mrrFinalTotal) > 0 ? "success" : "neutral"} value={formatCurrency(summary.mrrFinalTotal)} />
+                <MetricCard label="New MRR" hint="nova receita recorrente" value={formatCurrency(summary.newMrr)} />
+                <MetricCard label="MRR em risco" hint={`${formatNumber(summary.negociosMrrEmRisco)} negócio(s) em risco`} tone={number(summary.mrrEmRisco) > 0 ? "warning" : "neutral"} value={formatCurrency(summary.mrrEmRisco)} />
+                <MetricCard label="NRR" hint="retenção líquida de receita" value={formatPercent(summary.nrr)} />
+              </section>
+              <details className="admin-revenue-detail">
+                <summary>Bridge, GRR e movimentos do MRR</summary>
+                <dl className="admin-command-data-list">
+                  <div><dt>MRR da base inicial</dt><dd>{formatCurrency(summary.mrrInicial)}</dd></div>
+                  <div><dt>New MRR</dt><dd>{formatCurrency(summary.newMrr)}</dd></div>
+                  <div><dt>Expansion MRR</dt><dd>{formatCurrency(summary.expansionMrr)}</dd></div>
+                  <div><dt>Contraction MRR</dt><dd>{formatCurrency(summary.contractionMrr)}</dd></div>
+                  <div><dt>Churned MRR</dt><dd>{formatCurrency(summary.churnedMrr)}</dd></div>
+                  <div><dt>Reactivation MRR</dt><dd>{formatCurrency(summary.reactivationMrr)}</dd></div>
+                  <div><dt>MRR final</dt><dd>{formatCurrency(summary.mrrFinalTotal)}</dd></div>
+                  <div><dt>MRR em risco</dt><dd>{formatCurrency(summary.mrrEmRisco)}</dd></div>
+                  <div><dt>Negócios com MRR em risco</dt><dd>{formatNumber(summary.negociosMrrEmRisco)}</dd></div>
+                  <div><dt>GRR</dt><dd>{formatPercent(summary.grr)}</dd></div>
+                  <div><dt>NRR</dt><dd>{formatPercent(summary.nrr)}</dd></div>
+                  <div><dt>Bridge reconciliado</dt><dd>{summary.bridgeMrrReconciliado ? "Sim" : "Não"}</dd></div>
+                  <div><dt>Periodicidade fora do MRR v1</dt><dd>{formatNumber(summary.assinaturasPeriodicidadeNaoSuportada)}</dd></div>
+                </dl>
+              </details>
 
               <p className="muted">
                 Cobertura monetária canônica desde {formatDateTime(data.mrr?.inicioCobertura)}.
@@ -1360,7 +1571,7 @@ export function AdminRevenueV2Page() {
               </p>
             </section>
 
-            <section className="panel">
+            <section className="panel admin-revenue-ltv-panel">
               <div className="panel-heading">
                 <div>
                   <p className="eyebrow">Coortes de receita</p>
@@ -1371,7 +1582,15 @@ export function AdminRevenueV2Page() {
                 </div>
               </div>
 
-              <dl className="admin-command-data-list">
+              <section className="admin-revenue-ltv-summary" aria-label="Resumo de LTV observado">
+                <MetricCard label="Coorte canônica" hint="negócios elegíveis" value={formatNumber(ltv.negociosCoorte)} />
+                <MetricCard label="LTV bruto D30" hint={`${formatNumber(ltv.madurosD30)} negócio(s) maduros`} value={ltv.ltvBrutoD30 == null ? "Aguardando" : formatCurrency(ltv.ltvBrutoD30)} />
+                <MetricCard label="LTV bruto D60" hint={`${formatNumber(ltv.madurosD60)} negócio(s) maduros`} value={ltv.ltvBrutoD60 == null ? "Aguardando" : formatCurrency(ltv.ltvBrutoD60)} />
+                <MetricCard label="LTV bruto D90" hint={`${formatNumber(ltv.madurosD90)} negócio(s) maduros`} value={ltv.ltvBrutoD90 == null ? "Aguardando" : formatCurrency(ltv.ltvBrutoD90)} />
+              </section>
+              <details className="admin-revenue-detail">
+                <summary>LTV líquido, contribuição e maturidade</summary>
+                <dl className="admin-command-data-list">
                 <div>
                   <dt>Negócios na coorte canônica</dt>
                   <dd>{formatNumber(ltv.negociosCoorte)}</dd>
@@ -1429,6 +1648,7 @@ export function AdminRevenueV2Page() {
                   <dd>{ltv.ltvContribuicaoD90 == null ? "Aguardando cobertura de contribuição" : formatCurrency(ltv.ltvContribuicaoD90)}</dd>
                 </div>
               </dl>
+              </details>
 
               <p className="muted">
                 Cobertura canônica desde {formatDateTime(ltv.inicioCobertura)}. LTV de contribuição possui cutover próprio em {formatDateTime(ltv.inicioCoberturaContribuicao)} e só aparece quando gateway e todas as fontes obrigatórias cobrem a janela inteira. Casos maduros incompletos não são removidos do denominador.
@@ -1481,7 +1701,7 @@ export function AdminRevenueV2Page() {
               )}
             </section>
 
-            <section className="panel">
+            <section className="panel admin-revenue-churn-panel">
               <div className="panel-heading">
                 <div>
                   <p className="eyebrow">Retenção da base paga</p>
@@ -1491,17 +1711,22 @@ export function AdminRevenueV2Page() {
                   </p>
                 </div>
               </div>
-              <dl className="admin-command-data-list">
-                <div><dt>Base paga no início</dt><dd>{formatNumber(summary.basePagaInicioChurn)}</dd></div>
-                <div><dt>Saídas terminais da base inicial</dt><dd>{formatNumber(summary.saidasTerminaisBaseInicial)}</dd></div>
-                <div><dt>Gross logo churn</dt><dd>{formatPercent(summary.churnBrutoNegocios)}</dd></div>
-                <div><dt>Negócios reativados</dt><dd>{formatNumber(summary.negociosReativadosChurn)}</dd></div>
-                <div><dt>Base paga no fim</dt><dd>{formatNumber(summary.basePagaFimChurn)}</dd></div>
-                <div><dt>Cancelamento voluntário</dt><dd>{formatNumber(summary.saidasCancelamentoVoluntario)}</dd></div>
-                <div><dt>Inadimplência não recuperada</dt><dd>{formatNumber(summary.saidasInadimplenciaNaoRecuperada)}</dd></div>
-                <div><dt>Encerramento pelo provedor</dt><dd>{formatNumber(summary.saidasEncerramentoProvedor)}</dd></div>
-                <div><dt>Outros motivos</dt><dd>{formatNumber(summary.saidasOutrosMotivos)}</dd></div>
-              </dl>
+              <section className="admin-revenue-churn-summary" aria-label="Resumo de churn da base paga">
+                <MetricCard label="Base inicial" hint="negócios pagos no início" value={formatNumber(summary.basePagaInicioChurn)} />
+                <MetricCard label="Saídas terminais" hint="saídas da base inicial" tone={number(summary.saidasTerminaisBaseInicial) > 0 ? "warning" : "neutral"} value={formatNumber(summary.saidasTerminaisBaseInicial)} />
+                <MetricCard label="Gross logo churn" hint="reativação não reduz churn bruto" value={formatPercent(summary.churnBrutoNegocios)} />
+                <MetricCard label="Base final" hint="negócios pagos no fim" value={formatNumber(summary.basePagaFimChurn)} />
+              </section>
+              <details className="admin-revenue-detail">
+                <summary>Reativações e motivos de saída</summary>
+                <dl className="admin-command-data-list">
+                  <div><dt>Negócios reativados</dt><dd>{formatNumber(summary.negociosReativadosChurn)}</dd></div>
+                  <div><dt>Cancelamento voluntário</dt><dd>{formatNumber(summary.saidasCancelamentoVoluntario)}</dd></div>
+                  <div><dt>Inadimplência não recuperada</dt><dd>{formatNumber(summary.saidasInadimplenciaNaoRecuperada)}</dd></div>
+                  <div><dt>Encerramento pelo provedor</dt><dd>{formatNumber(summary.saidasEncerramentoProvedor)}</dd></div>
+                  <div><dt>Outros motivos</dt><dd>{formatNumber(summary.saidasOutrosMotivos)}</dd></div>
+                </dl>
+              </details>
               <p className="muted">
                 Cobertura canônica desde {formatDateTime(data.churn?.inicioCobertura)}.
                 {data.churn?.periodoAjustadoAoCutover
@@ -1510,8 +1735,8 @@ export function AdminRevenueV2Page() {
               </p>
             </section>
 
-            <section className="panel">
-              <div className="panel-heading"><div><p className="eyebrow">Base atual</p><h2>Assinaturas ativas por plano</h2></div></div>
+            <section className="panel admin-revenue-plans-panel">
+              <div className="panel-heading"><div><p className="eyebrow">Base atual</p><h2>Assinaturas ativas por plano</h2><p className="muted">Estoque atual de assinaturas pagas, separado dos eventos financeiros do período.</p></div></div>
               {plans.length === 0 ? (
                 <EmptyState title="Nenhuma assinatura paga ativa">A base paga ativa ainda está vazia.</EmptyState>
               ) : (
