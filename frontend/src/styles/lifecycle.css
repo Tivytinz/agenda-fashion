@@ -64,3 +64,52 @@
     width: 100%;
   }
 }
+
+
+/* No contexto profissional, destaca a próxima ação e recolhe operações secundárias. */
+.professional-shell .agenda-workspace-page .slot-lifecycle-actions {
+  align-items: stretch;
+}
+
+.professional-shell .agenda-workspace-page .slot-primary-action {
+  width: 100%;
+}
+
+.professional-shell .agenda-workspace-page .slot-secondary-actions {
+  position: relative;
+  width: 100%;
+}
+
+.professional-shell .agenda-workspace-page .slot-secondary-actions > summary {
+  display: grid;
+  min-height: 34px;
+  place-items: center;
+  border: 1px solid var(--professional-line);
+  border-radius: 9px;
+  padding: 5px 10px;
+  color: var(--professional-brand-strong);
+  background: var(--professional-brand-soft);
+  font-size: .75rem;
+  font-weight: 800;
+  cursor: pointer;
+  list-style: none;
+}
+
+.professional-shell .agenda-workspace-page .slot-secondary-actions > summary::-webkit-details-marker {
+  display: none;
+}
+
+.professional-shell .agenda-workspace-page .slot-secondary-actions > summary:focus-visible {
+  outline: 3px solid var(--professional-focus-outline);
+  outline-offset: 2px;
+}
+
+.professional-shell .agenda-workspace-page .slot-secondary-actions-menu {
+  display: grid;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.professional-shell .agenda-workspace-page .slot-secondary-actions-menu .button {
+  width: 100%;
+}
