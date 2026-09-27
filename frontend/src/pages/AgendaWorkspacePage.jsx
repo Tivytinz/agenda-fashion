@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { apiRequest } from "../api/client";
 import { ConfirmationIcon } from "../components/ConfirmationIcon";
 import { EmptyState, ErrorState, LoadingState } from "../components/ScreenState";
@@ -420,15 +421,28 @@ export function AgendaWorkspacePage({ owner = false }) {
       <header className="workspace-heading">
         <div>
           <p className="eyebrow">{owner ? "Seu negócio em movimento" : "Seu dia de trabalho"}</p>
-          <h1>{owner ? "Agenda geral" : "Minha agenda profissional"}</h1>
+          <h1>{owner ? "Agenda geral" : "Minha agenda"}</h1>
           <p>Bloqueie horários livres, registre cancelamentos operacionais e finalize atendimentos com o estado correto.</p>
         </div>
       </header>
 
       {dates.length === 0 ? (
-        <EmptyState title="Nenhum profissional na agenda">
-          Vincule profissionais e configure os horários para começar.
-        </EmptyState>
+        owner ? (
+          <EmptyState title="Nenhum profissional na agenda">
+            Vincule profissionais e configure os horários para começar.
+          </EmptyState>
+        ) : (
+          <EmptyState
+            action={(
+              <Link className="button button-small" to="/profissional/horarios">
+                Ajustar meus horários
+              </Link>
+            )}
+            title="Sua agenda ainda está vazia"
+          >
+            Confira seus horários de atendimento para começar a receber agendamentos.
+          </EmptyState>
+        )
       ) : (
         <>
           <section className={owner && professionals.length > 1 ? "agenda-toolbar panel has-professional-filter" : "agenda-toolbar panel"}>
