@@ -19,14 +19,18 @@ jest.mock(
 jest.mock(
   "../src/services/planoService",
   () => ({
-    buscarUsoPlano: jest.fn()
+    buscarUsoPlano: jest.fn(),
+    listarPlanos: jest.fn()
   })
 );
 
 const assinaturaRepository = require(
   "../src/repositories/assinaturaRepository"
 );
-const { buscarUsoPlano } = require(
+const {
+  buscarUsoPlano,
+  listarPlanos
+} = require(
   "../src/services/planoService"
 );
 const {
@@ -61,13 +65,13 @@ describe(
                 id: 3,
                 nome: "Studio",
                 slug: "studio",
-                valor: 99.9
+                valor: 20
               }
             : {
                 id: 2,
                 nome: "Autônoma",
                 slug: "autonoma",
-                valor: 49.9
+                valor: 10
               }
         ));
       assinaturaRepository
@@ -93,10 +97,190 @@ describe(
         plano_slug: "autonoma",
         utilizados: 3,
         capacidade_agendamentos: 20,
-        limite_profissionais: 1,
-        limite_servicos: 4
+        limite_profissionais: 3,
+        limite_servicos: 10,
+        status: "normal"
       });
+      listarPlanos.mockResolvedValue([
+        {
+          id: 1,
+          nome: "Grátis",
+          slug: "inicial",
+          valor: 0,
+          capacidade_agendamentos: 10,
+          limite_profissionais: 1,
+          limite_servicos: 5
+        },
+        {
+          id: 2,
+          nome: "Autônoma",
+          slug: "autonoma",
+          valor: 10,
+          capacidade_agendamentos: 20,
+          limite_profissionais: 3,
+          limite_servicos: 10
+        },
+        {
+          id: 3,
+          nome: "Studio",
+          slug: "studio",
+          valor: 20,
+          capacidade_agendamentos: 30,
+          limite_profissionais: 6,
+          limite_servicos: 15
+        },
+        {
+          id: 4,
+          nome: "Salão",
+          slug: "salao",
+          valor: 30,
+          capacidade_agendamentos: null,
+          limite_profissionais: 9,
+          limite_servicos: null
+        }
+      ]);
     });
+
+    test(
+      "oferece o próximo plano sem reconstruir limites no frontend",
+      async () => {
+        assinaturaRepository
+          .buscarAssinaturaAtivaPorNegocio
+          .mockResolvedValue({
+            id: 20,
+            negocio_id: 7,
+            plano_id: 2,
+            status: "ACTIVE",
+            ativo: true,
+            valor: 10
+          });
+        assinaturaRepository
+          .buscarAssinaturaPendentePorNegocio
+          .mockResolvedValue(null);
+
+        const resultado =
+          await buscarMinhaAssinatura({
+            usuarioId: 10
+          });
+
+        expect(resultado.upgrade_contextual)
+          .toMatchObject({
+            negocio_id: 7,
+            disponivel: true,
+            bloqueio: null,
+            valor_contratado_atual: 10,
+            plano_atual: {
+              slug: "autonoma",
+              limite_profissionais: 3,
+              limite_servicos: 10
+            },
+            plano_destino: {
+              slug: "studio",
+              valor: 20,
+              capacidade_agendamentos: 30,
+              limite_profissionais: 6,
+              limite_servicos: 15
+            }
+          });
+        expect(resultado.uso.status)
+          .toBe("normal");
+      }
+    );
+
+    test(
+      "prioriza o plano pago já selecionado quando ainda não existe assinatura ativa",
+      async () => {
+        assinaturaRepository
+          .buscarNegocioDono
+          .mockResolvedValue({
+            id: 7,
+            plano_id: 3
+          });
+        assinaturaRepository
+          .buscarAssinaturaAtivaPorNegocio
+          .mockResolvedValue(null);
+        assinaturaRepository
+          .buscarAssinaturaPendentePorNegocio
+          .mockResolvedValue(null);
+        assinaturaRepository
+          .buscarUltimaAssinaturaPorNegocio
+          .mockResolvedValue(null);
+        buscarUsoPlano.mockResolvedValue({
+          plano_id: 1,
+          plano_nome: "Grátis",
+          plano_slug: "inicial",
+          valor: 0,
+          plano_selecionado_id: 3,
+          plano_selecionado_nome: "Studio",
+          plano_selecionado_slug: "studio",
+          plano_selecionado_valor: 20,
+          utilizados: 3,
+          capacidade_agendamentos: 10,
+          limite_profissionais: 1,
+          limite_servicos: 5,
+          status: "normal"
+        });
+
+        const resultado =
+          await buscarMinhaAssinatura({
+            usuarioId: 10
+          });
+
+        expect(resultado.plano)
+          .toMatchObject({
+            id: 3,
+            slug: "studio"
+          });
+        expect(resultado.estado_assinatura)
+          .toMatchObject({
+            codigo: "GRATUITA"
+          });
+        expect(resultado.upgrade_contextual)
+          .toMatchObject({
+            disponivel: true,
+            plano_atual: {
+              slug: "inicial"
+            },
+            plano_destino: {
+              slug: "studio",
+              valor: 20
+            }
+          });
+      }
+    );
+
+    test(
+      "não promove upgrade contextual que reduziria valor de contrato legado",
+      async () => {
+        assinaturaRepository
+          .buscarAssinaturaAtivaPorNegocio
+          .mockResolvedValue({
+            id: 20,
+            negocio_id: 7,
+            plano_id: 2,
+            status: "ACTIVE",
+            ativo: true,
+            valor: 49.9
+          });
+        assinaturaRepository
+          .buscarAssinaturaPendentePorNegocio
+          .mockResolvedValue(null);
+
+        const resultado =
+          await buscarMinhaAssinatura({
+            usuarioId: 10
+          });
+
+        expect(resultado.upgrade_contextual)
+          .toMatchObject({
+            disponivel: false,
+            bloqueio: "VALOR_CONTRATADO_SUPERIOR",
+            valor_contratado_atual: 49.9,
+            plano_atual: { slug: "autonoma" },
+            plano_destino: { slug: "studio", valor: 20 }
+          });
+      }
+    );
 
     test(
       "mantém a assinatura ativa separada de um upgrade pendente",

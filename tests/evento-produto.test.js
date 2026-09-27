@@ -480,6 +480,76 @@ describe(
     );
 
     test(
+      "aceita impressão contextual de upgrade sem dados pessoais",
+      async () => {
+        const resposta =
+          await request(
+            criarApp()
+          )
+            .post(
+              "/eventos-produto"
+            )
+            .set(
+              "x-test-user",
+              "7"
+            )
+            .send({
+              nome:
+                "upgrade_oportunidade_visualizada",
+              pagina:
+                "servicos",
+              missao:
+                "escolher_plano",
+              sessao_id:
+                "sessao_upgrade_123",
+              negocio_id:
+                11,
+              propriedades: {
+                origem:
+                  "servicos_limite",
+                gatilho_upgrade:
+                  "servicos_limite",
+                plano_atual:
+                  "inicial",
+                plano_destino:
+                  "autonoma",
+                telefone:
+                  "62999999999",
+              },
+            });
+
+        expect(
+          resposta.status
+        ).toBe(202);
+        expect(
+          eventoProdutoRepository
+            .registrar
+        ).toHaveBeenCalledWith(
+          expect.objectContaining({
+            nome:
+              "upgrade_oportunidade_visualizada",
+            pagina:
+              "servicos",
+            missao:
+              "escolher_plano",
+            negocioId:
+              11,
+            propriedades: {
+              origem:
+                "servicos_limite",
+              gatilho_upgrade:
+                "servicos_limite",
+              plano_atual:
+                "inicial",
+              plano_destino:
+                "autonoma",
+            },
+          })
+        );
+      }
+    );
+
+    test(
       "rejeita nomes de evento fora do contrato",
       async () => {
         const resposta =

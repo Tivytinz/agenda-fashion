@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { apiRequest } from "../api/client";
 import { DashboardNextAction } from "../components/DashboardNextAction";
 import { DashboardGrowthInsight } from "../components/DashboardGrowthInsight";
+import { PlanUpgradeOpportunity } from "../components/PlanUpgradeOpportunity";
 import { ErrorState, LoadingState } from "../components/ScreenState";
 import { formatCurrency } from "../utils/format";
 
@@ -68,6 +69,7 @@ export function DashboardPage() {
   const [error, setError] = useState("");
   const [reloadKey, setReloadKey] = useState(0);
   const [refreshing, setRefreshing] = useState(true);
+  const [planContext, setPlanContext] = useState(null);
   const [whatsappReminders, setWhatsappReminders] = useState({
     enabled: null,
     operationalEnabled: null,
@@ -115,6 +117,23 @@ export function DashboardPage() {
       controller.abort();
     };
   }, [period, reloadKey]);
+
+  useEffect(() => {
+    let active = true;
+
+    Promise.resolve()
+      .then(() => apiRequest("/minha-assinatura"))
+      .then((result) => {
+        if (active) setPlanContext(result || null);
+      })
+      .catch(() => {
+        if (active) setPlanContext(null);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [reloadKey]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -262,6 +281,16 @@ export function DashboardPage() {
     ["Novos clientes com agendamento", newClients, "primeiro agendamento no período"]
   ];
   const dailySummary = Array.isArray(data.resumo_dias) ? data.resumo_dias : [];
+  const planUsage = planContext?.uso || {};
+  const planUsageStatus = String(planUsage.status || "");
+  const shouldOfferAgendaUpgrade = [
+    "upgrade_recomendado",
+    "limite_atingido"
+  ].includes(planUsageStatus);
+  const agendaUpgradeSource =
+    planUsageStatus === "limite_atingido"
+      ? "agenda_100"
+      : "agenda_90";
 
   const activationPanel = (
     <DashboardNextAction
@@ -312,6 +341,21 @@ export function DashboardPage() {
           {activationPanel}
           {growthPanel}
         </>
+      )}
+
+      {shouldOfferAgendaUpgrade && (
+        <PlanUpgradeOpportunity
+          upgrade={planContext?.upgrade_contextual}
+          source={agendaUpgradeSource}
+          trigger={planUsageStatus}
+          trackingPage="dashboard_dono"
+          title={planUsageStatus === "limite_atingido"
+            ? "Sua agenda atingiu a capacidade do plano"
+            : "Sua agenda está perto do limite"}
+          description={planUsageStatus === "limite_atingido"
+            ? "O próximo plano aumenta a capacidade para continuar recebendo novos agendamentos."
+            : `Você já usou ${planUsage.utilizados || 0} de ${planUsage.limite || 0} agendamentos neste mês. O próximo plano dá mais espaço antes do limite.`}
+        />
       )}
 
       {whatsappConsentVisibility.operational && (

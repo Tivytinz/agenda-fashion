@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { apiRequest } from "../api/client";
 import { useSession } from "../auth/SessionContext";
+import { PlanUpgradeOpportunity } from "../components/PlanUpgradeOpportunity";
 import { EmptyState, ErrorState, LoadingState } from "../components/ScreenState";
 import { MediaThumb } from "../components/profile/MediaThumb";
 
@@ -22,11 +23,36 @@ export function ProfessionalsPage() {
   const [servicesSaving, setServicesSaving] = useState(false);
   const [servicesError, setServicesError] = useState("");
   const [activatingId, setActivatingId] = useState(null);
+  const [upgradeContextual, setUpgradeContextual] = useState(null);
 
   const load = useCallback(() => {
     setError("");
     apiRequest("/profissionais")
-      .then((result) => setItems(result.profissionais || []))
+      .then(async (result) => {
+        const professionals = result.profissionais || [];
+        const blockedByPlan = professionals.some(
+          (professional) =>
+            professional.ativo === false &&
+            [
+              "aguardando_vaga_plano",
+              "excedente_limite_plano"
+            ].includes(professional.motivo_inatividade)
+        );
+
+        setItems(professionals);
+
+        if (!blockedByPlan) {
+          setUpgradeContextual(null);
+          return;
+        }
+
+        try {
+          const subscription = await apiRequest("/minha-assinatura");
+          setUpgradeContextual(subscription?.upgrade_contextual || null);
+        } catch {
+          setUpgradeContextual(null);
+        }
+      })
       .catch((requestError) => setError(requestError.message));
   }, []);
 
@@ -167,6 +193,15 @@ export function ProfessionalsPage() {
     }
   }
 
+  const blockedByPlanCount = (items || []).filter(
+    (professional) =>
+      professional.ativo === false &&
+      [
+        "aguardando_vaga_plano",
+        "excedente_limite_plano"
+      ].includes(professional.motivo_inatividade)
+  ).length;
+
   return (
     <main className="workspace-page">
       <header className="workspace-heading">
@@ -224,6 +259,19 @@ export function ProfessionalsPage() {
           </div>
           <span className="invite-status-badge">Aguardando aceite</span>
         </section>
+      )}
+
+      {blockedByPlanCount > 0 && (
+        <PlanUpgradeOpportunity
+          upgrade={upgradeContextual}
+          source="profissionais_limite"
+          trigger="profissionais_aguardando_vaga"
+          trackingPage="profissionais"
+          title={blockedByPlanCount === 1
+            ? "1 profissional aguarda uma vaga no plano"
+            : `${blockedByPlanCount} profissionais aguardam vagas no plano`}
+          description="O próximo plano amplia a capacidade da equipe. A ativação continua dependendo da confirmação do pagamento."
+        />
       )}
 
       {!items && !error && (
@@ -299,12 +347,6 @@ export function ProfessionalsPage() {
                           ? "Ativando..."
                           : "Ativar profissional"}
                       </button>
-                      <a
-                        className="text-link"
-                        href="/painel/assinatura"
-                      >
-                        Ver planos
-                      </a>
                     </>
                   ) : (
                     <button

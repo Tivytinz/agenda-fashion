@@ -69,6 +69,37 @@ apagar dados existentes nem impedir a edição do que já foi cadastrado.
   proprietária quando houver capacidade.
 - `NULL` no banco representa capacidade ilimitada.
 
+## Upgrade contextual
+
+O AF pode oferecer o próximo plano dentro da área da proprietária quando existe
+um sinal operacional de necessidade, sem transformar o produto em uma vitrine
+permanente de upsell.
+
+Gatilhos prioritários:
+
+- serviço ativo no limite do plano;
+- profissional aceita/inativada aguardando capacidade;
+- agenda mensal em 90% ou 100% da capacidade;
+- consulta explícita à tela de Plano e assinatura.
+
+A ordem de progressão é `Grátis → Autônoma → Studio → Salão`. Quando o
+negócio ainda usa o Grátis efetivo, mas já possui um plano pago selecionado e
+nenhuma assinatura ativa ou pendente, essa intenção persistida prevalece sobre
+o próximo tier automático. A resolução do plano de destino, preço e capacidades
+pertence ao backend. O frontend apenas
+apresenta a oportunidade recebida e nunca reconstrói preço, limite ou
+elegibilidade.
+
+Uma assinatura paga antiga pode possuir `assinaturas.valor` maior que o preço
+atual do próximo tier. Nesse caso a recomendação automática fica indisponível
+para não incentivar uma redução de MRR tratada visualmente como expansão. O
+catálogo geral continua acessível para decisão explícita da proprietária.
+
+As superfícies contextuais registram impressão e seleção com origem do gatilho.
+Esses eventos são intenção comercial e devem ser reconciliados com checkout,
+pagamento confirmado e entitlement ativo antes de qualquer leitura de conversão
+ou receita.
+
 ## Upgrade, pagamento e cancelamento
 
 - O plano gratuito não exige checkout.

@@ -296,6 +296,25 @@ começando pelas ativações mais recentes. Esses vínculos usam
 `motivo_inatividade = 'excedente_limite_plano'`; `ativado_em` registra a
 ativação mais recente para manter a ordem de downgrade determinística.
 
+As oportunidades de upgrade dentro da área da dona são **contextuais**, não
+publicidade permanente. O backend de assinatura resolve de forma canônica o
+próximo tier pela ordem `inicial → autonoma → studio → salao` e entrega ao
+frontend o plano de destino e suas capacidades. Quando o negócio ainda usa o
+Grátis efetivo, mas já possui uma intenção paga persistida e sem assinatura
+ativa, essa escolha explícita tem precedência sobre a progressão automática. Serviços no limite, profissionais
+aguardando vaga e agenda a partir de 90% da capacidade podem oferecer esse
+próximo plano; a tela de Plano e assinatura também pode apresentá-lo como
+continuação natural do catálogo.
+
+A recomendação contextual não pode criar uma contraction financeira disfarçada
+de upgrade. Quando uma assinatura paga ativa preserva em `assinaturas.valor`
+um valor contratado superior ao preço atual do próximo tier, o backend marca a
+oferta contextual como indisponível. A comparação manual de planos continua
+possível, mas o produto não promove automaticamente essa troca. Impressões e
+seleções de upgrade devem registrar a origem do gatilho para medir
+`oportunidade exibida → seleção → checkout → pagamento` sem tratar clique
+como receita.
+
 Planos pagos usam checkout por PIX. O backend só permite iniciar checkout pago
 para a proprietária ativa de um negócio ativo e já publicado; esconder ou
 redirecionar o botão no frontend não substitui essa validação. A disponibilidade

@@ -138,7 +138,8 @@ function mockDashboardRequests({
       aceita_lembretes_whatsapp: true,
       aceita_alertas_operacionais_whatsapp: true
     }
-  }
+  },
+  subscription = null
 } = {}) {
   apiRequest.mockImplementation((path) => {
     if (path.startsWith("/dashboard-dono/origem-clientes")) {
@@ -149,6 +150,9 @@ function mockDashboardRequests({
     }
     if (path === "/conta") {
       return Promise.resolve(account);
+    }
+    if (path === "/minha-assinatura") {
+      return Promise.resolve(subscription);
     }
     return Promise.reject(new Error(`Rota inesperada: ${path}`));
   });
@@ -462,6 +466,58 @@ describe("dashboard", () => {
       .not.toBeNull();
     expect(screen.getByRole("link", { name: "Cadastrar primeiro serviço" }).getAttribute("href"))
       .toBe("/painel/servicos/novo?onboarding=servico");
+  });
+
+  it("oferece upgrade no dashboard apenas quando a agenda chega a 90% ou ao limite", async () => {
+    mockDashboardRequests({
+      dashboard: {
+        ...DASHBOARD,
+        ativacao: {
+          possui_servico_ativo: true,
+          negocio_publicado: true,
+          agenda_configurada: true,
+          primeiro_agendamento_recebido: true
+        },
+        proxima_acao_ativacao: {
+          estado: "ATIVADO",
+          concluido: true
+        }
+      },
+      subscription: {
+        uso: {
+          plano_nome: "Grátis",
+          plano_slug: "inicial",
+          utilizados: 9,
+          limite: 10,
+          percentual: 90,
+          status: "upgrade_recomendado"
+        },
+        upgrade_contextual: {
+          negocio_id: 11,
+          disponivel: true,
+          plano_atual: { slug: "inicial", nome: "Grátis" },
+          plano_destino: {
+            id: 2,
+            slug: "autonoma",
+            nome: "Autônoma",
+            valor: 10,
+            capacidade_agendamentos: 20,
+            limite_profissionais: 3,
+            limite_servicos: 10
+          }
+        }
+      }
+    });
+
+    render(<MemoryRouter><DashboardPage /></MemoryRouter>);
+
+    expect(
+      await screen.findByRole("heading", { name: "Sua agenda está perto do limite" })
+    ).not.toBeNull();
+    expect(screen.getByText(/9 de 10 agendamentos neste mês/i)).not.toBeNull();
+    expect(
+      screen.getByRole("link", { name: "Fazer upgrade para Autônoma" }).getAttribute("href")
+    ).toContain("upgrade_origem=agenda_90");
   });
 
   it("destaca a ativação do WhatsApp e registra a autorização em um toque", async () => {

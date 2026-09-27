@@ -1202,3 +1202,31 @@ summary:focus-visible {
   padding: 18px clamp(20px, 3vw, 28px);
   background: #fff;
 }
+
+
+.plan-upgrade-opportunity {
+  display: grid;
+  gap: 1rem;
+}
+
+.plan-upgrade-opportunity > div:first-child {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.plan-upgrade-opportunity h2,
+.plan-upgrade-opportunity p {
+  margin: 0;
+}
+
+.plan-upgrade-capabilities {
+  display: grid;
+  gap: 0.45rem;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.plan-upgrade-opportunity .quick-actions {
+  align-items: center;
+}

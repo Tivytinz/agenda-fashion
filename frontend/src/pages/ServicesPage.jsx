@@ -12,6 +12,7 @@ import { useSession } from "../auth/SessionContext";
 import { BackLink } from "../components/BackLink";
 import { ConfirmationIcon } from "../components/ConfirmationIcon";
 import { FlowSteps } from "../components/FlowSteps";
+import { PlanUpgradeOpportunity } from "../components/PlanUpgradeOpportunity";
 import { EmptyState, ErrorState, LoadingState } from "../components/ScreenState";
 import { MediaThumb } from "../components/profile/MediaThumb";
 import { formatCurrency } from "../utils/format";
@@ -74,6 +75,7 @@ export function ServicesPage() {
   const removeDialogRef = useRef(null);
   const [services, setServices] = useState(null);
   const [serviceUsage, setServiceUsage] = useState(null);
+  const [upgradeContextual, setUpgradeContextual] = useState(null);
   const [error, setError] = useState("");
   const [pendingRemove, setPendingRemove] = useState(null);
   const [removing, setRemoving] = useState(false);
@@ -97,6 +99,7 @@ export function ServicesPage() {
       .then(([servicesResult, subscriptionResult]) => {
         setServices(extractServices(servicesResult));
         setServiceUsage(subscriptionResult?.uso || null);
+        setUpgradeContextual(subscriptionResult?.upgrade_contextual || null);
       })
       .catch((requestError) => setError(requestError.message));
   }, []);
@@ -199,6 +202,17 @@ export function ServicesPage() {
           </div>
           {atServiceLimit && <small>Para trocar, desative um dos ativos e depois ative o serviço desejado.</small>}
         </section>
+      )}
+
+      {atServiceLimit && (
+        <PlanUpgradeOpportunity
+          upgrade={upgradeContextual}
+          source="servicos_limite"
+          trigger="servicos_limite"
+          trackingPage="servicos"
+          title="Seu catálogo precisa de mais espaço"
+          description="Você atingiu o limite de serviços ativos do plano atual. O próximo plano libera mais serviços sem precisar ocultar os que já funcionam."
+        />
       )}
 
       {error && services && <p className="form-error" role="alert">{error}</p>}
