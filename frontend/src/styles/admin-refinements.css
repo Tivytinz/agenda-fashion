@@ -938,3 +938,56 @@
     grid-template-columns: 1fr;
   }
 }
+
+
+/* Receita: retenção, lifecycle, MRR, LTV e churn com leitura executiva primeiro. */
+.admin-revenue-retention-panel,
+.admin-revenue-lifecycle-panel,
+.admin-revenue-mrr-panel,
+.admin-revenue-ltv-panel,
+.admin-revenue-churn-panel {
+  display: grid;
+  gap: 16px;
+}
+
+.admin-revenue-retention-summary,
+.admin-revenue-lifecycle-summary,
+.admin-revenue-mrr-summary,
+.admin-revenue-ltv-summary,
+.admin-revenue-churn-summary {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.admin-revenue-retention-summary .admin-command-metric,
+.admin-revenue-lifecycle-summary .admin-command-metric,
+.admin-revenue-mrr-summary .admin-command-metric,
+.admin-revenue-ltv-summary .admin-command-metric,
+.admin-revenue-churn-summary .admin-command-metric {
+  min-height: 106px;
+}
+
+.admin-revenue-plans-panel .empty-state {
+  min-height: 160px;
+}
+
+@media (max-width: 900px) {
+  .admin-revenue-retention-summary,
+  .admin-revenue-lifecycle-summary,
+  .admin-revenue-mrr-summary,
+  .admin-revenue-ltv-summary,
+  .admin-revenue-churn-summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 520px) {
+  .admin-revenue-retention-summary,
+  .admin-revenue-lifecycle-summary,
+  .admin-revenue-mrr-summary,
+  .admin-revenue-ltv-summary,
+  .admin-revenue-churn-summary {
+    grid-template-columns: 1fr;
+  }
+}
