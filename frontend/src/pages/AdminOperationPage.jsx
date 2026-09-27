@@ -388,7 +388,7 @@ export function AdminOperationPage() {
 
   if (!data && !error) {
     return (
-      <main className="workspace-page admin-workspace-page admin-command-page admin-operation-page">
+      <main className="admin-page admin-workspace-page admin-command-page admin-operation-page">
         <LoadingState>Carregando operação da plataforma...</LoadingState>
       </main>
     );
@@ -396,7 +396,7 @@ export function AdminOperationPage() {
 
   if (!data && error) {
     return (
-      <main className="workspace-page admin-workspace-page admin-command-page admin-operation-page">
+      <main className="admin-page admin-workspace-page admin-command-page admin-operation-page">
         <ErrorState
           message={error}
           onRetry={() => setReloadKey((current) => current + 1)}
@@ -430,9 +430,9 @@ export function AdminOperationPage() {
   return (
     <main
       aria-busy={refreshing}
-      className="workspace-page admin-workspace-page admin-command-page admin-operation-page"
+      className="admin-page admin-workspace-page admin-command-page admin-operation-page"
     >
-      <header className="workspace-heading admin-command-heading admin-operation-heading">
+      <header className="admin-page-header admin-command-heading admin-operation-heading">
         <div>
           <p className="eyebrow">Operação</p>
           <h1>Operação da plataforma</h1>
