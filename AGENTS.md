@@ -919,3 +919,8 @@ mesmo conjunto de mudanças sempre que possível.
 - OpenAI permanece opcional e experimental, somente quando explicitamente habilitada; a presença da chave sozinha não torna o provider o caminho padrão.
 - Falha, saída inválida ou indisponibilidade do provider retorna à mesma geração determinística; `fallback` não é mais a identidade analítica do caminho normal.
 - O valor da geração por LLM deve ser medido por impacto incremental no funil compartilhamento → visita → agendamento iniciado → agendamento concluído, não por volume de textos gerados.
+
+
+## Reativação idempotente da renovação
+
+Enquanto o período já pago permanecer válido, a dona pode reativar uma renovação cancelada sem cobrança imediata. Cada ciclo usa `assinaturas.reativacao_tentativa` como versão monotônica e uma `externalReference` determinística no Asaas. O estado transitório `REACTIVATING` não deve ser revertido por timeout ou erro ambíguo: uma execução posterior consulta a mesma referência; recorrência encontrada finaliza a reativação, ausência confirmada restaura `CANCELED` e falha de consulta preserva `REACTIVATING` para nova reconciliação. Chamadas ao Asaas permanecem fora de transações PostgreSQL.
