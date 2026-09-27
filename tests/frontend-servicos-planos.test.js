@@ -35,6 +35,16 @@ describe("Sprint de catálogo, planos e navegação", () => {
     expect(plans).not.toContain("profissional(is)");
     expect(plans).not.toContain("serviço(s)");
     expect(styles).toContain("grid-template-columns: repeat(4");
+    const catalogMigration = ler("database/migrations/109_planos_precos_limites_set2026.sql");
+    expect(catalogMigration).toContain("WHEN 'autonoma' THEN 10.00");
+    expect(catalogMigration).toContain("WHEN 'studio' THEN 20.00");
+    expect(catalogMigration).toContain("WHEN 'salao' THEN 30.00");
+    expect(catalogMigration).toContain("WHEN 'autonoma' THEN 3");
+    expect(catalogMigration).toContain("WHEN 'studio' THEN 6");
+    expect(catalogMigration).toContain("WHEN 'salao' THEN 9");
+    expect(catalogMigration).toContain("WHEN 'inicial' THEN 5");
+    expect(catalogMigration).toContain("WHEN 'autonoma' THEN 10");
+    expect(catalogMigration).toContain("WHEN 'studio' THEN 15");
   });
 
   test("mantém retornos contextuais nas telas prioritárias", () => {
