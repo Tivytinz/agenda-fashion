@@ -12,11 +12,15 @@ const sessionState = vi.hoisted(() => ({
     nome: "Studio Aurora",
     papel: "dono",
     slug: "studio-aurora"
-  }
+  },
+  vinculos: []
 }));
 
 vi.mock("../auth/SessionContext", () => ({
-  useSession: () => ({ negocio: sessionState.negocio })
+  useSession: () => ({
+    negocio: sessionState.negocio,
+    vinculos: sessionState.vinculos
+  })
 }));
 
 afterEach(() => {
@@ -26,6 +30,7 @@ afterEach(() => {
     papel: "dono",
     slug: "studio-aurora"
   };
+  sessionState.vinculos = [];
   document.documentElement.classList.remove("owner-context-active");
   document.documentElement.classList.remove("professional-context-active");
 });
@@ -79,15 +84,29 @@ describe("contextos visuais do workspace", () => {
     expect(ownerShell?.classList.contains("owner-shell")).toBe(true);
     expect(ownerShell?.classList.contains("professional-shell")).toBe(false);
     expect(screen.getByRole("complementary", { name: "Gestão do negócio" })).not.toBeNull();
-    expect(screen.getAllByText("Studio Aurora").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Studio Parceiro").length).toBeGreaterThan(0);
+    expect(
+      screen.getByRole("link", { name: /Ir para gestão/ })
+        .getAttribute("href")
+    ).toBe("/painel");
+    expect(screen.queryByRole("link", { name: /Convites/ })).toBeNull();
   });
 
   it("renderiza a profissional no ProfessionalShell próprio", async () => {
     sessionState.negocio = {
-      nome: "Studio Aurora",
+      nome: "Studio Parceiro",
       papel: "profissional",
-      slug: "studio-aurora"
+      slug: "studio-parceiro"
     };
+    sessionState.vinculos = [
+      {
+        nome: "Meu Studio",
+        papel: "dono",
+        slug: "meu-studio",
+        ativo: true
+      },
+      sessionState.negocio
+    ];
 
     const { container } = render(
       <MemoryRouter initialEntries={["/profissional/agenda"]}>
