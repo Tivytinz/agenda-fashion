@@ -4,7 +4,7 @@ import { cleanup, fireEvent, render, screen, within } from "@testing-library/rea
 import { MemoryRouter, useLocation } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { apiRequest } from "../api/client";
-import { AdminAcquisitionV2Page, AdminRevenueV2Page } from "./AdminAnalyticsV2Pages";
+import { AdminAcquisitionV2Page, AdminJourneyV2Page, AdminRevenueV2Page } from "./AdminAnalyticsV2Pages";
 
 vi.mock("../api/client", () => ({ apiRequest: vi.fn() }));
 
@@ -258,6 +258,33 @@ describe("aquisição administrativa v2", () => {
     expect((await screen.findByRole("alert")).textContent).toContain("últimos dados válidos");
     expect(screen.getByText("Beleza GO")).not.toBeNull();
     expect(screen.getByLabelText("Recorte temporal").textContent).toContain("7 dias");
+  });
+});
+
+
+describe("jornada administrativa v2", () => {
+  it("resume as telas sem tratar visualização como conversão", async () => {
+    apiRequest.mockResolvedValue({
+      periodo: "30",
+      telas: [
+        { page_key: "home", route_template: "/", visualizacoes: 59, sessoes: 43, tempo_medio_segundos: 8 },
+        { page_key: "account", route_template: "/conta", visualizacoes: 20, sessoes: 2, tempo_medio_segundos: 2 }
+      ],
+      transicoes: [],
+      eventos: [],
+      dispositivos: [],
+      reconciliacaoPipelines: { eventos: [] }
+    });
+    render(
+      <MemoryRouter initialEntries={["/admin/jornada?periodo=30"]}>
+        <AdminJourneyV2Page />
+      </MemoryRouter>
+    );
+    const summary = await screen.findByLabelText("Resumo das telas");
+    expect(within(summary).getByText("79")).not.toBeNull();
+    expect(within(summary).getByText("45")).not.toBeNull();
+    expect(within(summary).getByText("2")).not.toBeNull();
+    expect(screen.getByText(/Visualização não representa conversão/i)).not.toBeNull();
   });
 });
 
