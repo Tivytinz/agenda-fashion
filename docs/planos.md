@@ -82,8 +82,11 @@ Gatilhos prioritários:
 - agenda mensal em 90% ou 100% da capacidade;
 - consulta explícita à tela de Plano e assinatura.
 
-A ordem de progressão é `Grátis → Autônoma → Studio → Salão`. A resolução do
-próximo tier, preço e capacidades pertence ao backend. O frontend apenas
+A ordem de progressão é `Grátis → Autônoma → Studio → Salão`. Quando o
+negócio ainda usa o Grátis efetivo, mas já possui um plano pago selecionado e
+nenhuma assinatura ativa ou pendente, essa intenção persistida prevalece sobre
+o próximo tier automático. A resolução do plano de destino, preço e capacidades
+pertence ao backend. O frontend apenas
 apresenta a oportunidade recebida e nunca reconstrói preço, limite ou
 elegibilidade.
 
