@@ -57,7 +57,8 @@ ser mantida como duas interpretações válidas.
 
 ### Especializados e runbooks
 
-- [backend-arquitetura.md](./backend-arquitetura.md): mapa técnico e operacional do backend, pipeline HTTP, camadas, módulos, persistência, segurança, workers, integrações e testes.\n- [contexto-negocio.md](./contexto-negocio.md): resolução e autorização do
+- [backend-arquitetura.md](./backend-arquitetura.md): mapa técnico e operacional do backend, pipeline HTTP, camadas, módulos, persistência, segurança, workers, integrações e testes.
+- [contexto-negocio.md](./contexto-negocio.md): resolução e autorização do
   contexto de negócio.
 - [qualidade-codigo.md](./qualidade-codigo.md): guardrails de qualidade do
   frontend, ESLint, código morto e CI.
