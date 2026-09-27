@@ -556,3 +556,63 @@
     grid-template-columns: 1fr;
   }
 }
+
+
+/* Jornada: transforma a tabela de telas em diagnóstico escaneável. */
+.admin-journey-screens-panel {
+  display: grid;
+  gap: 16px;
+}
+
+.admin-journey-screen-summary {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.admin-journey-screen-summary .admin-command-metric {
+  min-height: 104px;
+}
+
+.admin-screen-volume {
+  display: grid;
+  min-width: 104px;
+  gap: 5px;
+}
+
+.admin-screen-volume > strong {
+  font-variant-numeric: tabular-nums;
+}
+
+.admin-screen-volume > span {
+  display: block;
+  width: 100%;
+  height: 5px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--admin-soft);
+}
+
+.admin-screen-volume i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--admin-accent);
+}
+
+.admin-journey-screens-panel .data-table td,
+.admin-journey-screens-panel .data-table th {
+  vertical-align: middle;
+}
+
+@media (max-width: 800px) {
+  .admin-journey-screen-summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 520px) {
+  .admin-journey-screen-summary {
+    grid-template-columns: 1fr;
+  }
+}
