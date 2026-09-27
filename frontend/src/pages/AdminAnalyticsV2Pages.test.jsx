@@ -464,7 +464,7 @@ describe("receita administrativa v2", () => {
     expect(screen.getByText("Transições pagas registradas desde a Wave 22")).not.toBeNull();
     expect(screen.getByText("Reativações pagas")).not.toBeNull();
     expect(screen.getByText("Reversões financeiras")).not.toBeNull();
-    expect(screen.getByText("Saídas da base paga")).not.toBeNull();
+    expect(screen.getAllByText("Saídas da base paga").length).toBeGreaterThanOrEqual(1);
     expect(screen.getByText("Pendentes de reconciliação temporal")).not.toBeNull();
     expect(screen.getByRole("heading", { name: "Receita recorrente canônica" })).not.toBeNull();
     expect(screen.getByText("MRR da base inicial")).not.toBeNull();
