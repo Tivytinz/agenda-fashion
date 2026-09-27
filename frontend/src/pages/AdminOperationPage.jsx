@@ -432,7 +432,7 @@ export function AdminOperationPage() {
       aria-busy={refreshing}
       className="workspace-page admin-workspace-page admin-command-page admin-operation-page"
     >
-      <header className="workspace-heading admin-command-heading">
+      <header className="workspace-heading admin-command-heading admin-operation-heading">
         <div>
           <p className="eyebrow">Operação</p>
           <h1>Operação da plataforma</h1>
@@ -451,7 +451,9 @@ export function AdminOperationPage() {
       </header>
 
       {session?.administrador?.papel === "superadmin" && (
-        <p><Link to="/admin/auditoria">Consultar auditoria administrativa</Link></p>
+        <div className="admin-operation-audit-link">
+          <Link className="text-button" to="/admin/auditoria">Consultar auditoria administrativa →</Link>
+        </div>
       )}
 
       {refreshing && data && (
@@ -469,6 +471,7 @@ export function AdminOperationPage() {
         </p>
       )}
 
+      <section className="admin-operation-control-panel" aria-label="Controles da operação">
       <div className="admin-operation-toolbar">
         <nav className="admin-command-tabs" aria-label="Áreas da operação">
           {TABS.map(([value, label]) => (
@@ -523,6 +526,7 @@ export function AdminOperationPage() {
           </form>
         )}
       </div>
+      </section>
 
       {tab === "usuarios" && (
         <section aria-label="Usuários da plataforma">
@@ -568,7 +572,10 @@ export function AdminOperationPage() {
             />
           ) : (
             <>
-              <p className="admin-operation-count">{businessData.paginacao?.total ?? businesses.length} negócios encontrados na base.</p>
+              <div className="admin-operation-result-heading">
+                <p className="admin-operation-count"><strong>{businessData.paginacao?.total ?? businesses.length}</strong> negócios encontrados na base.</p>
+                {(search || status) && <small>Filtros ativos neste resultado.</small>}
+              </div>
               {businesses.length === 0 ? (
                 <EmptyState title={emptyTitle(tab)}>
                   Ajuste a busca ou o estado para ampliar os resultados.
