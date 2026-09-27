@@ -92,15 +92,19 @@ function construirUpgradeContextual({
     return null;
   }
 
-  const valorContratado =
+  const valorContratadoBruto =
     assinatura?.ativo === true
       ? Number(assinatura.valor)
-      : 0;
+      : null;
+  const valorContratado =
+    Number.isFinite(valorContratadoBruto)
+      ? valorContratadoBruto
+      : null;
   const valorDestino =
     Number(planoDestino.valor || 0);
   const reduziriaContratoAtivo =
     assinatura?.ativo === true &&
-    Number.isFinite(valorContratado) &&
+    valorContratado !== null &&
     valorContratado > valorDestino;
   const estadoPermiteOferta =
     ["ATIVA", "GRATUITA"].includes(
@@ -119,9 +123,7 @@ function construirUpgradeContextual({
     disponivel: !bloqueio,
     bloqueio,
     valor_contratado_atual:
-      assinatura?.ativo === true
-        ? valorContratado
-        : null,
+      valorContratado,
     plano_atual: resumoPlanoUpgrade(
       planoAtual || {
         id: uso?.plano_id,
