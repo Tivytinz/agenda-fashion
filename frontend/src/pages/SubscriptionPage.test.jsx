@@ -158,9 +158,9 @@ describe("plano e assinatura", () => {
     expect(
       await screen.findByRole("heading", { name: "Seu próximo plano" })
     ).not.toBeNull();
-    expect(screen.getByText("30 agendamentos/mês")).not.toBeNull();
-    expect(screen.getByText("6 profissionais")).not.toBeNull();
-    expect(screen.getByText("15 serviços")).not.toBeNull();
+    expect(screen.getByText(/30 agendamentos\/mês/)).not.toBeNull();
+    expect(screen.getByText(/6 profissionais/)).not.toBeNull();
+    expect(screen.getByText(/15 serviços/)).not.toBeNull();
     expect(
       screen.getByRole("link", { name: "Fazer upgrade para Studio" }).getAttribute("href")
     ).toContain("upgrade_origem=assinatura");
