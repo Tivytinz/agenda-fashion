@@ -164,6 +164,11 @@ describe("aquisição administrativa v2", () => {
     renderPage();
     await screen.findByRole("heading", { name: "Aquisição" });
     expect(screen.getByText("Profissionais GO")).not.toBeNull();
+    const trafficSummary = screen.getByLabelText("Resumo do tráfego");
+    expect(within(trafficSummary).getByText("100")).not.toBeNull();
+    expect(within(trafficSummary).getByText("70")).not.toBeNull();
+    expect(within(trafficSummary).getByText("100%")).not.toBeNull();
+    expect(within(trafficSummary).getByText("1s")).not.toBeNull();
     const row = screen.getByText("Beleza GO").closest("tr");
     expect(within(row).getAllByRole("cell").map((cell) => cell.textContent)).toEqual([
       "Beleza GOgoogle / cpc", "10", "6", "3", "1", "—", "—"
