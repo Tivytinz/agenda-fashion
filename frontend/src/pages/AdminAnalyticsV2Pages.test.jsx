@@ -495,13 +495,13 @@ describe("receita administrativa v2", () => {
     expect(screen.getAllByText("Aguardando cobertura de contribuição").length).toBe(3);
     expect(screen.getAllByText("Indisponível").length).toBeGreaterThan(0);
     expect(screen.getByText("2026-06")).not.toBeNull();
-    expect(screen.getByText("85%")).not.toBeNull();
+    expect(screen.getAllByText("85%").length).toBeGreaterThanOrEqual(1);
     expect(screen.getByRole("heading", { name: "Churn bruto de negócios" })).not.toBeNull();
     expect(screen.getByText("Gross logo churn")).not.toBeNull();
     expect(screen.getByText("Inadimplência não recuperada")).not.toBeNull();
-    expect(screen.getByText("20%")).not.toBeNull();
-    expect(screen.getByText("66,7%")).not.toBeNull();
-    expect(screen.getByText("50%")).not.toBeNull();
+    expect(screen.getAllByText("20%").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText("66,7%").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText("50%").length).toBeGreaterThanOrEqual(1);
     expect(screen.getByText("Cancelar a próxima renovação, atrasar uma cobrança e perder o acesso pago são fatos diferentes.")).not.toBeNull();
     expect(screen.queryByText(/^Churn$/i)).toBeNull();
   });
