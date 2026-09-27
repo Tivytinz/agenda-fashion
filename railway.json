@@ -7,6 +7,6 @@
     "restartPolicyMaxRetries": 3
   },
   "build": {
-    "buildCommand": "npm --prefix frontend ci && npm run frontend:build"
+    "buildCommand": "npm run build:deploy"
   }
 }
