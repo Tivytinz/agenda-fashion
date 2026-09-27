@@ -307,6 +307,16 @@ O inventário de rotas acima indica superfície e autorização. Os contratos ab
 - Execução de sync retorna contadores de itens recebidos/importados/replay e cobertura. Persistência de custos, cobertura, cursor e conclusão de sucesso ocorre transacionalmente; concorrência para a mesma integração retorna `409`.
 - Resposta inválida do adaptador, excesso de itens ou inconsistência de crédito/cobertura abortam a sincronização. A execução registra código/detalhe seguro de erro sem persistir credencial.
 
+### 5.9 Contratos dos módulos operacionais restantes
+
+**Conta, negócio e configuração.** A atualização de conta encaminha somente nome e WhatsApp; preferências de WhatsApp possuem endpoints próprios. Alteração de senha recebe senha atual e nova senha. Foto vem do arquivo processado pelo upload. A criação de negócio usa uma lista explícita de campos de perfil, endereço, localização e fuso; o nome legado de WhatsApp continua aceito apenas por compatibilidade. O endpoint de meu negócio é legado, enquanto o contexto principal deve vir da sessão. Entrada direta em negócio permanece substituída pelo fluxo de convite.
+
+**Profissionais e serviços.** Edição de profissional encaminha nome e WhatsApp. Convites usam e-mail ou WhatsApp e a rota temporária de vinculação reutiliza o fluxo seguro. A matriz profissional-serviço recebe os identificadores de serviços e permanece a fonte de elegibilidade para booking e reagendamento. Serviços recebem nome, descrição, valor, duração, categoria e estado ativo; limites, ownership e autorização continuam no backend. Fotos e galeria usam arquivos processados pelo servidor e a capa referencia uma foto já pertencente ao serviço.
+
+**Lifecycle de agendamento.** Status operacional é validado pelo service no contexto autenticado. Cancelamento autenticado deriva a identidade da sessão; visitante usa capability específica do booking. A política pública retorna um objeto de política de cancelamento e a expectativa exibida é revalidada na criação. Cancelamento operacional registra motivo e suporta o caso já cancelado. Reagendamento recebe nova data, horário e profissional opcional, mas contexto, disponibilidade e elegibilidade são revalidados no backend.
+
+**Descoberta e experiência autenticada.** Busca pública aceita filtros geográficos/categoria e paginação. O perfil HTML injeta metadados sociais; recurso inexistente retorna HTML 404 não indexável e slug não canônico redireciona preservando query segura. Favoritos e notificações sempre derivam o usuário da sessão. Dashboards mantêm visões distintas para profissional e dona; o Copilot recebe período/canal, enquanto dados e contexto são resolvidos no backend.
+
 ## 6. Persistência e migrations
 
 O PostgreSQL é acessado por `pg`. O histórico atual vai de `001_usuarios.sql` até `105_admin_auditoria_revisoes.sql`, com numeração histórica não necessariamente contínua.
