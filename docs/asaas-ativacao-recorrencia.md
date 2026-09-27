@@ -112,3 +112,8 @@ Os testes da saga e da fila devem proteger pelo menos estes comportamentos:
 - pagamento sem vínculo/aplicabilidade não chama o Asaas;
 - a finalização bloqueia o negócio antes de efetivar a troca de plano;
 - dois eventos concorrentes do mesmo recurso não ficam simultaneamente em `PROCESSING`.
+
+
+## Reativação idempotente da renovação
+
+Enquanto o período já pago permanecer válido, a dona pode reativar uma renovação cancelada sem cobrança imediata. Cada ciclo usa `assinaturas.reativacao_tentativa` como versão monotônica e uma `externalReference` determinística no Asaas. O estado transitório `REACTIVATING` não deve ser revertido por timeout ou erro ambíguo: uma execução posterior consulta a mesma referência; recorrência encontrada finaliza a reativação, ausência confirmada restaura `CANCELED` e falha de consulta preserva `REACTIVATING` para nova reconciliação. Chamadas ao Asaas permanecem fora de transações PostgreSQL.
