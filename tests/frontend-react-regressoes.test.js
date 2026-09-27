@@ -405,12 +405,12 @@ describe(
           '["/painel/profissionais", "Equipe"',
           '["/profissional/agenda", "Minha agenda"',
           '["/profissional/horarios", "Meus horários"',
-          '["/admin", "Visão geral"',
-          '["/admin/aquisicao", "Aquisição"',
-          '["/admin/jornada", "Jornada"',
-          '["/admin/retencao", "Retenção"',
-          '["/admin/receita", "Receita"',
-          '["/admin/operacao", "Operação"',
+          '{ path: "/admin", label: "Visão geral"',
+          '{ path: "/admin/aquisicao", label: "Aquisição"',
+          '{ path: "/admin/jornada", label: "Jornada"',
+          '{ path: "/admin/retencao", label: "Retenção"',
+          '{ path: "/admin/receita", label: "Receita"',
+          '{ path: "/admin/operacao", label: "Operação"',
           '["/conta", "Minha conta"',
         ].forEach(
           (rota) => {
