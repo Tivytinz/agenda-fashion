@@ -1454,7 +1454,7 @@ export function AdminRevenueV2Page() {
               </dl>
             </section>
 
-            <section className="panel">
+            <section className="panel admin-revenue-retention-panel">
               <div className="panel-heading">
                 <div>
                   <p className="eyebrow">Retenção financeira</p>
@@ -1464,7 +1464,15 @@ export function AdminRevenueV2Page() {
                   </p>
                 </div>
               </div>
-              <dl className="admin-command-data-list">
+              <section className="admin-revenue-retention-summary" aria-label="Resumo de retenção financeira">
+                <MetricCard label="Previstas" hint="renovações vencidas no período" value={formatNumber(summary.renovacoesPrevistas)} />
+                <MetricCard label="Confirmadas" hint="renovações pagas observadas" tone={number(summary.renovacoesConfirmadas) > 0 ? "success" : "neutral"} value={formatNumber(summary.renovacoesConfirmadas)} />
+                <MetricCard label="Taxa de renovação" hint="sobre a coorte prevista" value={formatPercent(summary.taxaRenovacao)} />
+                <MetricCard label="Em atraso" hint="atraso não equivale a churn" tone={number(summary.renovacoesComAtraso) > 0 ? "warning" : "neutral"} value={formatNumber(summary.renovacoesComAtraso)} />
+              </section>
+              <details className="admin-revenue-detail">
+                <summary>Recuperação e cancelamentos</summary>
+                <dl className="admin-command-data-list">
                 <div><dt>Renovações previstas</dt><dd>{formatNumber(summary.renovacoesPrevistas)}</dd></div>
                 <div><dt>Renovações confirmadas</dt><dd>{formatNumber(summary.renovacoesConfirmadas)}</dd></div>
                 <div><dt>Taxa observada de renovação</dt><dd>{formatPercent(summary.taxaRenovacao)}</dd></div>
@@ -1474,9 +1482,10 @@ export function AdminRevenueV2Page() {
                 <div><dt>Cancelamentos de renovação agendados</dt><dd>{formatNumber(summary.cancelamentosRenovacaoAgendados)}</dd></div>
                 <div><dt>Encerradas após cancelamento</dt><dd>{formatNumber(summary.assinaturasEncerradasAposCancelamento)}</dd></div>
               </dl>
+              </details>
             </section>
 
-            <section className="panel">
+            <section className="panel admin-revenue-lifecycle-panel">
               <div className="panel-heading">
                 <div>
                   <p className="eyebrow">Lifecycle canônico</p>
@@ -1486,7 +1495,15 @@ export function AdminRevenueV2Page() {
                   </p>
                 </div>
               </div>
-              <dl className="admin-command-data-list">
+              <section className="admin-revenue-lifecycle-summary" aria-label="Resumo do lifecycle pago">
+                <MetricCard label="Conversões iniciais" hint="entradas pagas canônicas" value={formatNumber(summary.conversoesIniciaisCanonicas)} />
+                <MetricCard label="Renovações" hint="renovações confirmadas" value={formatNumber(summary.renovacoesConfirmadasCanonicas)} />
+                <MetricCard label="Reativações" hint="retornos pagos" value={formatNumber(summary.reativacoesPagas)} />
+                <MetricCard label="Saídas da base paga" hint="saídas canônicas observadas" tone={number(summary.saidasBasePagaCanonicas) > 0 ? "warning" : "neutral"} value={formatNumber(summary.saidasBasePagaCanonicas)} />
+              </section>
+              <details className="admin-revenue-detail">
+                <summary>Ver todas as transições financeiras</summary>
+                <dl className="admin-command-data-list">
                 <div><dt>Conversões iniciais</dt><dd>{formatNumber(summary.conversoesIniciaisCanonicas)}</dd></div>
                 <div><dt>Renovações confirmadas</dt><dd>{formatNumber(summary.renovacoesConfirmadasCanonicas)}</dd></div>
                 <div><dt>Reativações pagas</dt><dd>{formatNumber(summary.reativacoesPagas)}</dd></div>
@@ -1498,9 +1515,10 @@ export function AdminRevenueV2Page() {
                 <div><dt>Saídas da base paga</dt><dd>{formatNumber(summary.saidasBasePagaCanonicas)}</dd></div>
                 <div><dt>Pendentes de reconciliação temporal</dt><dd>{formatNumber(summary.cancelamentosVencidosPendentesReconciliacao)}</dd></div>
               </dl>
+              </details>
             </section>
 
-            <section className="panel">
+            <section className="panel admin-revenue-mrr-panel">
               <div className="panel-heading">
                 <div>
                   <p className="eyebrow">Receita recorrente</p>
