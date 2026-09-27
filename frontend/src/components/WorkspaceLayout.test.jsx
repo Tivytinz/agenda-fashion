@@ -101,7 +101,7 @@ describe("menu mobile da área de trabalho", () => {
     expect(screen.queryByRole("link", { name: /Horários/ })).toBeNull();
   });
 
-  it("renderiza a mesma navegação administrativa no conteúdo e na lateral administrativa no conteúdo e na lateral", () => {
+  it("renderiza a mesma navegação administrativa no conteúdo e na lateral", () => {
     render(
       <MemoryRouter>
         <AdminLayout>
