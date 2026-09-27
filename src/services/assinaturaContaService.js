@@ -3,7 +3,10 @@ const assinaturaRepository = require(
   "../repositories/assinaturaRepository"
 );
 const { removerAssinaturaAsaas } = require("./asaasService");
-const { buscarUsoPlano } = require("./planoService");
+const {
+  buscarUsoPlano,
+  listarPlanos
+} = require("./planoService");
 const {
   reconciliarReativacaoAbandonada
 } = require("./assinaturaReativacaoService");
@@ -30,6 +33,113 @@ const REVERSOES_OU_DISPUTAS = new Set([
   "CHARGEBACK_DISPUTE",
   "AWAITING_CHARGEBACK_REVERSAL",
 ]);
+
+const ORDEM_PLANOS = Object.freeze([
+  "inicial",
+  "autonoma",
+  "studio",
+  "salao",
+]);
+
+function resumoPlanoUpgrade(plano) {
+  if (!plano) return null;
+
+  return {
+    id: plano.id,
+    nome: plano.nome,
+    slug: plano.slug,
+    valor: plano.valor,
+    capacidade_agendamentos:
+      plano.capacidade_agendamentos ?? null,
+    limite_profissionais:
+      plano.limite_profissionais ?? null,
+    limite_servicos:
+      plano.limite_servicos ?? null,
+  };
+}
+
+function construirUpgradeContextual({
+  negocioId,
+  uso,
+  planos,
+  assinatura,
+  assinaturaPendente,
+  estado,
+}) {
+  const slugAtual = String(
+    uso?.plano_slug || ""
+  ).trim();
+  const indiceAtual =
+    ORDEM_PLANOS.indexOf(slugAtual);
+
+  if (
+    indiceAtual < 0 ||
+    indiceAtual >= ORDEM_PLANOS.length - 1
+  ) {
+    return null;
+  }
+
+  const proximoSlug =
+    ORDEM_PLANOS[indiceAtual + 1];
+  const planoAtual = (planos || []).find(
+    (item) => item.slug === slugAtual
+  );
+  const planoDestino = (planos || []).find(
+    (item) => item.slug === proximoSlug
+  );
+
+  if (!planoDestino) {
+    return null;
+  }
+
+  const valorContratado =
+    assinatura?.ativo === true
+      ? Number(assinatura.valor)
+      : 0;
+  const valorDestino =
+    Number(planoDestino.valor || 0);
+  const reduziriaContratoAtivo =
+    assinatura?.ativo === true &&
+    Number.isFinite(valorContratado) &&
+    valorContratado > valorDestino;
+  const estadoPermiteOferta =
+    ["ATIVA", "GRATUITA"].includes(
+      String(estado?.codigo || "")
+    );
+  const bloqueio = assinaturaPendente
+    ? "UPGRADE_PENDENTE"
+    : reduziriaContratoAtivo
+      ? "VALOR_CONTRATADO_SUPERIOR"
+      : !estadoPermiteOferta
+        ? "ESTADO_FINANCEIRO"
+        : null;
+
+  return {
+    negocio_id: negocioId,
+    disponivel: !bloqueio,
+    bloqueio,
+    valor_contratado_atual:
+      assinatura?.ativo === true
+        ? valorContratado
+        : null,
+    plano_atual: resumoPlanoUpgrade(
+      planoAtual || {
+        id: uso?.plano_id,
+        nome: uso?.plano_nome,
+        slug: slugAtual,
+        valor: uso?.valor,
+        capacidade_agendamentos:
+          uso?.capacidade_agendamentos,
+        limite_profissionais:
+          uso?.limite_profissionais,
+        limite_servicos:
+          uso?.limite_servicos,
+      }
+    ),
+    plano_destino:
+      resumoPlanoUpgrade(planoDestino),
+  };
+}
 
 function statusNormalizado(valor) {
   return String(valor || "")
@@ -211,7 +321,10 @@ async function buscarMinhaAssinatura({ usuarioId }) {
   await assinaturaRepository
     .expirarCheckoutsPendentes(negocio.id);
 
-  const uso = await buscarUsoPlano(negocio.id);
+  const [uso, planosAtivos] = await Promise.all([
+    buscarUsoPlano(negocio.id),
+    listarPlanos(),
+  ]);
   const negocioAtualizado = await assinaturaRepository
     .buscarNegocioDono(usuarioId);
   const [
@@ -250,10 +363,21 @@ async function buscarMinhaAssinatura({ usuarioId }) {
     ultimaAssinatura,
   });
 
+  const upgradeContextual =
+    construirUpgradeContextual({
+      negocioId: negocio.id,
+      uso,
+      planos: planosAtivos,
+      assinatura,
+      assinaturaPendente,
+      estado,
+    });
+
   return {
     plano,
     assinatura,
     estado_assinatura: estado,
+    upgrade_contextual: upgradeContextual,
     pagamento_recuperavel:
       pagamentoRecuperavel(pagamentos, estado),
     upgrade_pendente:
@@ -272,6 +396,8 @@ async function buscarMinhaAssinatura({ usuarioId }) {
       limite: uso?.capacidade_agendamentos ?? null,
       restantes: uso?.restantes ?? null,
       percentual: uso?.percentual ?? null,
+      status: uso?.status || null,
+      mensagem: uso?.mensagem || null,
       profissionais_utilizados:
         uso?.profissionais_utilizados || 0,
       limite_profissionais:
