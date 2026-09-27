@@ -215,7 +215,7 @@ export function ServicesPage() {
         />
       )}
 
-            {error && services && <p className="form-error" role="alert">{error}</p>}
+      {error && services && <p className="form-error" role="alert">{error}</p>}
       {message && <p className="form-success" role="status">{message}</p>}
       {visibilityMessage && <p className="form-success" role="status">{visibilityMessage}</p>}
       {!services && !error && <LoadingState>Carregando serviços...</LoadingState>}
