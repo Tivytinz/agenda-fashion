@@ -74,8 +74,8 @@ describe("Limite de serviços", () => {
     planoService.buscarUsoPlano.mockResolvedValue({
       negocio_id: 7,
       plano_nome: "Grátis",
-      limite_servicos: 2,
-      servicos_utilizados: 2,
+      limite_servicos: 5,
+      servicos_utilizados: 5,
     });
 
     servicosRepository
@@ -90,11 +90,11 @@ describe("Limite de serviços", () => {
   });
 
   test(
-    "bloqueia o terceiro serviço usando o plano efetivo Grátis",
+    "bloqueia o sexto serviço usando o plano efetivo Grátis",
     async () => {
       servicosRepository
         .contarServicosAtivos
-        .mockResolvedValue(2);
+        .mockResolvedValue(5);
 
       await expect(
         servicosService.criarServico({
@@ -108,8 +108,8 @@ describe("Limite de serviços", () => {
         codigo: "LIMITE_SERVICOS",
         uso: {
           plano_nome: "Grátis",
-          utilizados: 2,
-          limite: 2,
+          utilizados: 5,
+          limite: 5,
           acima_do_limite: 0,
         },
       });
@@ -136,7 +136,7 @@ describe("Limite de serviços", () => {
     async () => {
       servicosRepository
         .contarServicosAtivos
-        .mockResolvedValue(3);
+        .mockResolvedValue(6);
 
       await expect(
         servicosService.criarServico({
@@ -150,8 +150,8 @@ describe("Limite de serviços", () => {
         codigo: "LIMITE_SERVICOS",
         uso: {
           plano_nome: "Grátis",
-          utilizados: 3,
-          limite: 2,
+          utilizados: 6,
+          limite: 5,
           acima_do_limite: 1,
         },
       });
