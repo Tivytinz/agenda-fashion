@@ -225,7 +225,7 @@ function AdminSectionFrame({
 
   if (!data && !error) {
     return (
-      <main className="workspace-page admin-workspace-page admin-command-page">
+      <main className="admin-page admin-workspace-page admin-command-page">
         <LoadingState>Carregando {title.toLocaleLowerCase("pt-BR")}...</LoadingState>
       </main>
     );
@@ -233,7 +233,7 @@ function AdminSectionFrame({
 
   if (!data && error) {
     return (
-      <main className="workspace-page admin-workspace-page admin-command-page">
+      <main className="admin-page admin-workspace-page admin-command-page">
         <ErrorState message={error} onRetry={retry} />
       </main>
     );
@@ -242,9 +242,9 @@ function AdminSectionFrame({
   return (
     <main
       aria-busy={refreshing}
-      className={`workspace-page admin-workspace-page admin-command-page ${className}`.trim()}
+      className={`admin-page admin-workspace-page admin-command-page ${className}`.trim()}
     >
-      <header className="workspace-heading admin-command-heading">
+      <header className="admin-page-header admin-command-heading">
         <div>
           <p className="eyebrow">{eyebrow}</p>
           <h1>{title}</h1>
