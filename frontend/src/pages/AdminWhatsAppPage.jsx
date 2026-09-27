@@ -234,7 +234,7 @@ export function AdminWhatsAppPage() {
 
   if (!data && !error) {
     return (
-      <main className="workspace-page admin-workspace-page admin-marketing-page admin-whatsapp-page">
+      <main className="admin-page admin-workspace-page admin-marketing-page admin-whatsapp-page">
         <LoadingState>Carregando saúde do WhatsApp...</LoadingState>
       </main>
     );
@@ -242,7 +242,7 @@ export function AdminWhatsAppPage() {
 
   if (!data && error) {
     return (
-      <main className="workspace-page admin-workspace-page admin-marketing-page admin-whatsapp-page">
+      <main className="admin-page admin-workspace-page admin-marketing-page admin-whatsapp-page">
         <ErrorState
           message={error}
           onRetry={() => setReloadKey((current) => current + 1)}
@@ -264,9 +264,9 @@ export function AdminWhatsAppPage() {
   return (
     <main
       aria-busy={refreshing}
-      className="workspace-page admin-workspace-page admin-marketing-page admin-whatsapp-page"
+      className="admin-page admin-workspace-page admin-marketing-page admin-whatsapp-page"
     >
-      <header className="workspace-heading">
+      <header className="admin-page-header">
         <div>
           <p className="eyebrow">WhatsApp</p>
           <h1>WhatsApp e automações</h1>
