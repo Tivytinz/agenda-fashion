@@ -220,3 +220,29 @@
     padding: 16px 0;
   }
 }
+
+
+.account-page .account-professional-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.account-page .account-professional-actions h2 {
+  margin-bottom: 6px;
+}
+
+.account-page .account-professional-actions p:last-child {
+  margin-bottom: 0;
+}
+
+@media (max-width: 620px) {
+  .account-page .account-professional-actions {
+    display: grid;
+  }
+
+  .account-page .account-professional-actions .button {
+    width: 100%;
+  }
+}
