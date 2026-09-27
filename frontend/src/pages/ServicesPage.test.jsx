@@ -411,7 +411,21 @@ describe("lista profissional de serviços", () => {
       }
       if (path === "/minha-assinatura") {
         return Promise.resolve({
-          uso: { limite_servicos: 2, servicos_utilizados: 2 }
+          uso: { limite_servicos: 2, servicos_utilizados: 2 },
+          upgrade_contextual: {
+            negocio_id: 7,
+            disponivel: true,
+            plano_atual: { slug: "inicial", nome: "Grátis" },
+            plano_destino: {
+              id: 2,
+              slug: "autonoma",
+              nome: "Autônoma",
+              valor: 10,
+              capacidade_agendamentos: 20,
+              limite_profissionais: 3,
+              limite_servicos: 10
+            }
+          }
         });
       }
       if (path === "/servicos/1/ativo" && options.method === "PATCH") {
@@ -432,6 +446,12 @@ describe("lista profissional de serviços", () => {
     renderServices();
 
     expect(await screen.findByText("2 de 2 serviços ativos")).not.toBeNull();
+    expect(
+      screen.getByRole("heading", { name: "Seu catálogo precisa de mais espaço" })
+    ).not.toBeNull();
+    expect(
+      screen.getByRole("link", { name: "Fazer upgrade para Autônoma" }).getAttribute("href")
+    ).toContain("upgrade_origem=servicos_limite");
     const activate = screen.getByRole("button", { name: "Ativar no perfil" });
     expect(activate.disabled).toBe(true);
 
