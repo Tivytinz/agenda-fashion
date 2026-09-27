@@ -46,7 +46,6 @@
   background: var(--admin-bg);
 }
 
-.admin-shell .workspace-page,
 .admin-shell .admin-page {
   display: grid;
   width: min(1380px, calc(100% - 48px));
@@ -55,7 +54,6 @@
   padding-block: 30px 52px;
 }
 
-.admin-shell .workspace-heading,
 .admin-shell .admin-page-header {
   display: flex;
   align-items: center;
@@ -71,12 +69,10 @@
   box-shadow: 0 16px 42px rgb(92 42 68 / 7%);
 }
 
-.admin-shell .workspace-heading > div:first-child,
 .admin-shell .admin-page-header > div:first-child {
   max-width: 820px;
 }
 
-.admin-shell .workspace-heading h1,
 .admin-shell .admin-page-header h1 {
   margin: 4px 0 8px;
   color: var(--admin-ink);
@@ -85,7 +81,6 @@
   letter-spacing: -.04em;
 }
 
-.admin-shell .workspace-heading p:last-child,
 .admin-shell .admin-page-header p:last-child,
 .admin-shell .muted {
   color: var(--admin-muted);
