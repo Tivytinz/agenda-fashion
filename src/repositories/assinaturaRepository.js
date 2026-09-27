@@ -291,6 +291,137 @@ async function registrarCancelamento(
   return result.rows[0] || null;
 }
 
+async function buscarReativacaoAbandonada(
+  negocioId,
+  executor = db
+) {
+  const result = await executor.query(
+    `
+    SELECT *
+    FROM assinaturas
+    WHERE negocio_id = $1
+      AND ativo = TRUE
+      AND UPPER(status) = 'REACTIVATING'
+      AND updated_at
+        < NOW() - INTERVAL '2 minutes'
+    ORDER BY id DESC
+    LIMIT 1
+    `,
+    [negocioId]
+  );
+
+  return result.rows[0] || null;
+}
+
+async function reservarReativacao(
+  client,
+  {
+    assinaturaId,
+    negocioId
+  }
+) {
+  const executor = client || db;
+
+  const result = await executor.query(
+    `
+    UPDATE assinaturas
+    SET
+      status = 'REACTIVATING',
+      reativacao_tentativa =
+        reativacao_tentativa + 1,
+      updated_at = NOW()
+    WHERE id = $1
+      AND negocio_id = $2
+      AND ativo = TRUE
+      AND UPPER(status) IN (
+        'CANCELED',
+        'CANCELLED'
+      )
+    RETURNING *
+    `,
+    [
+      assinaturaId,
+      negocioId
+    ]
+  );
+
+  return result.rows[0] || null;
+}
+
+async function restaurarCancelamentoReativacao(
+  client,
+  {
+    assinaturaId,
+    negocioId
+  }
+) {
+  const executor = client || db;
+
+  const result = await executor.query(
+    `
+    UPDATE assinaturas
+    SET
+      status = 'CANCELED',
+      updated_at = NOW()
+    WHERE id = $1
+      AND negocio_id = $2
+      AND ativo = TRUE
+      AND UPPER(status) = 'REACTIVATING'
+    RETURNING *
+    `,
+    [
+      assinaturaId,
+      negocioId
+    ]
+  );
+
+  return result.rows[0] || null;
+}
+
+async function registrarReativacao(
+  client,
+  {
+    assinaturaId,
+    negocioId,
+    asaasSubscriptionId,
+    dataProximaCobranca,
+    observacoes
+  }
+) {
+  const executor = client || db;
+
+  const result = await executor.query(
+    `
+    UPDATE assinaturas
+    SET
+      asaas_subscription_id = $3,
+      status = 'ACTIVE',
+      ativo = TRUE,
+      data_proxima_cobranca = $4,
+      observacoes = CONCAT_WS(
+        E'\n',
+        NULLIF(observacoes, ''),
+        $5::text
+      ),
+      updated_at = NOW()
+    WHERE id = $1
+      AND negocio_id = $2
+      AND ativo = TRUE
+      AND UPPER(status) = 'REACTIVATING'
+    RETURNING *
+    `,
+    [
+      assinaturaId,
+      negocioId,
+      asaasSubscriptionId,
+      dataProximaCobranca,
+      observacoes
+    ]
+  );
+
+  return result.rows[0] || null;
+}
+
 async function expirarCancelamentoSeNecessario(
   negocioId,
   executor = db
@@ -655,6 +786,10 @@ module.exports = {
   buscarAssinaturaPendentePorNegocio,
   expirarCheckoutsPendentes,
   registrarCancelamento,
+  buscarReativacaoAbandonada,
+  reservarReativacao,
+  restaurarCancelamentoReativacao,
+  registrarReativacao,
   expirarCancelamentoSeNecessario,
   buscarPlano,
   buscarUltimoPagamentoPendente,
