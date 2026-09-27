@@ -23,7 +23,8 @@ function isAdminRouteActive(pathname, route) {
 function AdminNavLinks({ links, mobile = false, menu = false, onNavigate }) {
   const { search } = useLocation();
 
-  return links.map(([to, label, icon]) => (
+  return links.map(({ path, label, icon }) => (
+    
     <NavLink
       className={({ isActive }) => {
         const base = menu
@@ -34,10 +35,10 @@ function AdminNavLinks({ links, mobile = false, menu = false, onNavigate }) {
 
         return isActive ? `${base} active` : base;
       }}
-      end={to === "/admin"}
-      key={to}
+      end={path === "/admin"}
+      key={path}
       onClick={onNavigate}
-      to={adminNavigationPath(to, search)}
+      to={adminNavigationPath(path, search)}
     >
       <span aria-hidden="true" className="admin-nav-icon">
         <AppIcon name={icon} />
@@ -52,10 +53,10 @@ export function AdminMobileNavigation({ links = [] }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const menuId = useId();
   const moreRef = useRef(null);
-  const primary = links.slice(0, 4);
-  const secondary = links.slice(4);
-  const secondaryActive = secondary.some(([to]) =>
-    isAdminRouteActive(pathname, to)
+  const primary = links.filter(({ mobile }) => mobile === "primary");
+  const secondary = links.filter(({ mobile }) => mobile !== "primary");
+  const secondaryActive = secondary.some(({ path }) =>
+    isAdminRouteActive(pathname, path)
   );
 
   useEffect(() => {
