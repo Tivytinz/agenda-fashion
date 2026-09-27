@@ -35,6 +35,21 @@ function analyze(dashboard, overrides = {}) {
 }
 
 describe("growthIntelligenceService", () => {
+  test.each(["desempenho_perfil", "favoritos"])("não recomenda ações quando %s está indisponível", (campo) => {
+    const result = analyze({
+      periodo: "7dias",
+      qualidade_dados: { desempenho_perfil: "disponivel", favoritos: "disponivel", [campo]: "indisponivel" },
+      performance: { visitas_perfil: null, favoritos_recebidos: 0 },
+    });
+
+    expect(result).toEqual({
+      status: GROWTH_INTELLIGENCE_STATUS.INDISPONIVEL,
+      periodo: "7dias",
+      oportunidade_principal: null,
+      oportunidades: [],
+    });
+  });
+
   test("mantém 20 visitas como limiar canônico para avaliar conversão", () => {
     expect(MIN_PROFILE_VISITS_FOR_CONVERSION).toBe(20);
     expect(buildGrowthSignals({

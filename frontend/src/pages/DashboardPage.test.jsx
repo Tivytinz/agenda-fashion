@@ -39,6 +39,7 @@ const DASHBOARD = {
     slug: "studio-aurora"
   },
   resumo: {
+    agendamentos_hoje: 1,
     agendamentos_periodo: 2,
     faturamento_periodo: 100,
     clientes_novos: 1
@@ -48,6 +49,7 @@ const DASHBOARD = {
     visitas_perfil: 145,
     agendamentos_concluidos: 2
   },
+  resumo_dias: [{ data: "27/09", agendamentos: 2, faturamento: 100 }],
   ativacao: {
     possui_servico_ativo: true,
     negocio_publicado: true,
@@ -231,15 +233,19 @@ describe("dashboard", () => {
       .toBe("true");
   });
 
-  it("explica a conversão, pluraliza clientes e nomeia o ranking corretamente", async () => {
+  it("separa agenda de hoje, período, valor agendado e evolução diária", async () => {
     mockDashboardRequests();
     render(<MemoryRouter><DashboardPage /></MemoryRouter>);
 
-    const conversionCard = (await screen.findByText("Conversão")).closest(".metric-card");
-    expect(conversionCard).not.toBeNull();
-    expect(within(conversionCard).getByText("1,4%")).not.toBeNull();
-    expect(screen.getByText("2 agendamentos em 145 visitas")).not.toBeNull();
-    expect(screen.getByText("descobriu você")).not.toBeNull();
+    const today = await screen.findByRole("region", { name: "Agenda de hoje" });
+    expect(within(today).getByText("1 agendamento")).not.toBeNull();
+    expect(within(today).getByRole("link", { name: "Abrir agenda" }).getAttribute("href"))
+      .toBe("/painel/agenda");
+    expect(screen.getByText("Valor agendado", { selector: ".metric-card span" })).not.toBeNull();
+    expect(screen.getByText("Novos clientes com agendamento")).not.toBeNull();
+    expect(screen.queryByText("Conversão", { selector: ".metric-card span" })).toBeNull();
+    expect(screen.getByRole("heading", { name: "Agendamentos por dia" })).not.toBeNull();
+    expect(screen.getByText("27/09")).not.toBeNull();
     expect(screen.getByRole("heading", { name: "Serviços mais agendados" }))
       .not.toBeNull();
   });
@@ -250,6 +256,7 @@ describe("dashboard", () => {
 
     expect(await screen.findByRole("heading", { name: "De onde vieram seus clientes" }))
       .not.toBeNull();
+    fireEvent.click(screen.getByText("Ver detalhes das origens"));
     expect(screen.getByText("Google Ads")).not.toBeNull();
     expect(screen.getByText("Google orgânico")).not.toBeNull();
     expect(screen.getAllByText("Acesso autônomo", { selector: "strong" }).length)
@@ -258,8 +265,8 @@ describe("dashboard", () => {
       .toBeGreaterThan(0);
     expect(screen.getByText("Tráfego pago", { selector: "dt" })).not.toBeNull();
     expect(screen.getByText("Tráfego orgânico", { selector: "dt" })).not.toBeNull();
-    expect(screen.getByText("Pago · faturamento")).not.toBeNull();
-    expect(screen.getByText("Orgânico · faturamento")).not.toBeNull();
+    expect(screen.getByText("Pago · valor agendado")).not.toBeNull();
+    expect(screen.getByText("Orgânico · valor agendado")).not.toBeNull();
     expect(screen.getByText(/sem sinal de anúncio, referência externa ou link rastreável do AF/i))
       .not.toBeNull();
   });
@@ -333,6 +340,29 @@ describe("dashboard", () => {
       .not.toBeNull();
     expect(screen.getByText("A origem dos clientes está temporariamente indisponível. Os demais indicadores continuam válidos."))
       .not.toBeNull();
+  });
+
+  it("mostra indisponível em leituras com falha e mantém zeros reais", async () => {
+    mockDashboardRequests({
+      dashboard: {
+        ...DASHBOARD,
+        qualidade_dados: {
+          desempenho_perfil: "indisponivel",
+          favoritos: "disponivel"
+        },
+        performance: {
+          visitas_perfil: null,
+          cliques_whatsapp: null,
+          cliques_maps: null,
+          favoritos_recebidos: 0
+        }
+      }
+    });
+    render(<MemoryRouter><DashboardPage /></MemoryRouter>);
+
+    const profile = await screen.findByRole("region", { name: "Desempenho do perfil" });
+    expect(within(profile).getAllByText("Indisponível")).toHaveLength(3);
+    expect(within(profile).getByText("0")).not.toBeNull();
   });
 
   it("usa a recomendação canônica do backend mesmo quando as métricas poderiam sugerir outra ação", async () => {

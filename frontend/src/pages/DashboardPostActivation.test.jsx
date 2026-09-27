@@ -134,8 +134,7 @@ describe("dashboard pós-ativação", () => {
         "histórico do negócio · de 8 clientes com agendamento"
       )
     ).not.toBeNull();
-    expect(
-      screen.getByText("Conversão do perfil")
-    ).not.toBeNull();
+    expect(screen.queryByText("Conversão do perfil")).toBeNull();
+    expect(screen.getByText("Valor agendado", { selector: ".metric-card span" })).not.toBeNull();
   });
 });

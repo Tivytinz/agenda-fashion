@@ -63,6 +63,12 @@ function analyzeGrowthIntelligence({
     };
   }
 
+  // A recommendation derived from missing telemetry would treat a failed read as zero.
+  if (dashboard?.qualidade_dados?.desempenho_perfil === "indisponivel" ||
+      dashboard?.qualidade_dados?.favoritos === "indisponivel") {
+    return unavailableGrowthIntelligence(dashboard?.periodo);
+  }
+
   const sinais = buildGrowthSignals(dashboard);
   const oportunidades = rankGrowthOpportunities(
     findGrowthOpportunities(sinais)

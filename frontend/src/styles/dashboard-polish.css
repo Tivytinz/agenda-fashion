@@ -10,6 +10,58 @@
   align-content: stretch;
 }
 
+.dashboard-page .metric-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.dashboard-page .dashboard-section-title {
+  margin: 6px 0 -4px;
+  font-size: 1.2rem;
+}
+
+.dashboard-page .dashboard-today,
+.dashboard-page .dashboard-history {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.dashboard-page .dashboard-today h2,
+.dashboard-page .dashboard-history h2 {
+  margin: 0;
+}
+
+.dashboard-page .dashboard-history strong {
+  font-size: 2rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.dashboard-page .dashboard-daily-panel .table-wrap {
+  max-height: 300px;
+  overflow: auto;
+}
+
+.dashboard-page .dashboard-daily-panel th {
+  position: sticky;
+  top: 0;
+  background: var(--surface, #fff);
+}
+
+.dashboard-page .dashboard-origin-details {
+  margin-top: 16px;
+}
+
+.dashboard-page .dashboard-origin-details summary {
+  cursor: pointer;
+  font-weight: 650;
+  padding: 10px 0;
+}
+
+.dashboard-page .dashboard-origin-details:focus-within summary {
+  outline-offset: 3px;
+}
+
 .dashboard-page .metric-card strong {
   align-self: center;
 }
@@ -59,6 +111,15 @@
 }
 
 @media (max-width: 800px) {
+  .dashboard-page .metric-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .dashboard-page .dashboard-today,
+  .dashboard-page .dashboard-history {
+    align-items: flex-start;
+    flex-direction: column;
+  }
   .dashboard-page .dashboard-quick-actions .button {
     width: 100%;
     min-width: 0;

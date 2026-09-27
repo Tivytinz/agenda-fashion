@@ -456,10 +456,9 @@ test("CA-NEG-01/04: profissional cria o negócio, compartilha o perfil e encerra
     name: "Indicadores"
   });
   await expect(
-    indicators.getByText("Clientes que voltaram", {
-      exact: true
-    })
+    page.getByRole("region", { name: "Clientes que voltaram" })
   ).toBeVisible();
+  await expect(indicators.getByText("Clientes que voltaram", { exact: true })).toHaveCount(0);
   await expect(
     indicators.getByText("Conversão", {
       exact: true

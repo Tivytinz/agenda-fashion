@@ -429,7 +429,6 @@ async function buscarDashboardDono({
     resumoDias,
     rankingProfissionais,
     rankingServicos,
-    rankingClientes,
   ] = await Promise.all([
     dashboardRepository
       .buscarResumoDono(
@@ -447,13 +446,13 @@ async function buscarDashboardDono({
         negocioId,
         filtroEventos,
         filtroAgendamentosConversao
-      ),
+      ).catch(() => null),
 
     dashboardRepository
       .buscarFavoritosRecebidos(
         negocioId,
         filtroFavoritos
-      ),
+      ).catch(() => null),
 
     dashboardRepository
       .buscarResumoDias(
@@ -465,31 +464,28 @@ async function buscarDashboardDono({
       .buscarRankingProfissionais(
         negocioId,
         filtro
-      ),
+      ).catch(() => null),
 
     dashboardRepository
       .buscarRankingServicos(
         negocioId,
         filtro
       ),
-
-    dashboardRepository
-      .buscarRankingClientes(
-        negocioId,
-        filtro
-      ),
   ]);
 
   const totalVisitas =
-    converterNumero(
-      performance.visitas_perfil
-    );
+    performance === null
+      ? null
+      : converterNumero(
+          performance.visitas_perfil
+        );
 
   const agendamentosConvertidos =
-    converterNumero(
-      performance
-        .agendamentos_concluidos
-    );
+    performance === null
+      ? null
+      : converterNumero(
+          performance.agendamentos_concluidos
+        );
 
   const agendamentosPeriodo =
     converterNumero(
@@ -514,7 +510,9 @@ async function buscarDashboardDono({
     );
 
   const taxaConversao =
-    totalVisitas > 0
+    performance === null
+      ? null
+      : totalVisitas > 0
       ? Number(
           ((
             agendamentosConvertidos /
@@ -551,6 +549,15 @@ async function buscarDashboardDono({
       normalizarNegocio(
         negocio
       ),
+
+    qualidade_dados: {
+      desempenho_perfil:
+        performance !== null ? "disponivel" : "indisponivel",
+      favoritos:
+        favoritos !== null ? "disponivel" : "indisponivel",
+      ranking_profissionais:
+        rankingProfissionais !== null ? "disponivel" : "indisponivel",
+    },
 
     resumo: {
       agendamentos_hoje:
@@ -597,21 +604,23 @@ async function buscarDashboardDono({
         totalVisitas,
 
       cliques_whatsapp:
-        converterNumero(
-          performance
-            .cliques_whatsapp
-        ),
+        performance === null
+          ? null
+          : converterNumero(
+              performance.cliques_whatsapp
+            ),
 
       cliques_maps:
-        converterNumero(
-          performance
-            .cliques_maps
-        ),
+        performance === null
+          ? null
+          : converterNumero(
+              performance.cliques_maps
+            ),
 
       favoritos_recebidos:
-        converterNumero(
-          favoritos
-        ),
+        favoritos === null
+          ? null
+          : converterNumero(favoritos),
 
       agendamentos_concluidos:
         agendamentosConvertidos,
@@ -624,13 +633,10 @@ async function buscarDashboardDono({
       resumoDias,
 
     ranking_profissionais:
-      rankingProfissionais,
+      rankingProfissionais || [],
 
     ranking_servicos:
       rankingServicos,
-
-    ranking_clientes:
-      rankingClientes,
   };
 }
 
