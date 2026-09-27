@@ -1316,7 +1316,7 @@ export function AdminRevenueV2Page() {
               <MetricCard label="Assinaturas pagas ativas" hint="estoque atual, não criação no período" value={formatNumber(summary.assinaturasPagasAtivas)} />
             </section>
 
-            <section className="panel">
+            <section className="panel admin-revenue-economics-panel">
               <div className="panel-heading">
                 <div>
                   <p className="eyebrow">Economia do gateway</p>
@@ -1342,7 +1342,15 @@ export function AdminRevenueV2Page() {
                   </p>
                 </div>
               )}
-              <dl className="admin-command-data-list">
+              <section className="admin-revenue-economics-summary" aria-label="Resumo da economia do recebimento">
+                <MetricCard label="Bruto reconciliado" hint="pagamentos com evidência econômica" value={formatCurrency(economics.valorBrutoReconciliado)} />
+                <MetricCard label="Taxas observadas" hint="taxas conhecidas do gateway" value={formatCurrency(economics.taxasGatewayObservadas)} />
+                <MetricCard label="Estornos concluídos" hint="reversões já reconciliadas" tone={number(economics.estornosConcluidos) > 0 ? "warning" : "neutral"} value={formatCurrency(economics.estornosConcluidos)} />
+                <MetricCard label="Líquido do gateway" hint="não equivale a lucro" tone={number(economics.receitaLiquidaGateway) > 0 ? "success" : "neutral"} value={formatCurrency(economics.receitaLiquidaGateway)} />
+              </section>
+              <details className="admin-revenue-detail" open={number(economics.pagamentosIncompletos) > 0}>
+                <summary>Detalhes de cobertura e margem</summary>
+                <dl className="admin-command-data-list">
                 <div><dt>Valor bruto reconciliado</dt><dd>{formatCurrency(economics.valorBrutoReconciliado)}</dd></div>
                 <div><dt>Taxas gateway observadas</dt><dd>{formatCurrency(economics.taxasGatewayObservadas)}</dd></div>
                 <div><dt>Estornos concluídos</dt><dd>{formatCurrency(economics.estornosConcluidos)}</dd></div>
@@ -1382,16 +1390,24 @@ export function AdminRevenueV2Page() {
                   </dd>
                 </div>
               </dl>
-              <p className="muted">
-                Cobertura canônica desde {formatDateTime(economics.inicioCobertura)}. Ausência de netValue não é interpretada como taxa zero.
-              </p>
+                <p className="muted">
+                  Cobertura canônica desde {formatDateTime(economics.inicioCobertura)}. Ausência de netValue não é interpretada como taxa zero.
+                </p>
+              </details>
             </section>
 
-            <AdminContributionOperationsPanel />
-            <AdminContributionSyncPanel />
+            <section className="admin-revenue-cost-ops" aria-label="Operação de custos factuais">
+              <div className="admin-revenue-cost-ops-heading">
+                <p className="eyebrow">Custos factuais</p>
+                <h2>Fontes e sincronização</h2>
+                <p className="muted">Configuração operacional necessária para liberar margem de contribuição. Mantenha apenas fontes sustentadas por contrato, fatura ou regra factual verificável.</p>
+              </div>
+              <AdminContributionOperationsPanel />
+              <AdminContributionSyncPanel />
+            </section>
 
-            <div className="admin-command-two-column">
-              <section className="panel">
+            <div className="admin-command-two-column admin-revenue-checkout-grid">
+              <section className="panel admin-revenue-checkout-panel">
                 <div className="panel-heading">
                   <div>
                     <p className="eyebrow">Coorte de checkout</p>
@@ -1406,7 +1422,7 @@ export function AdminRevenueV2Page() {
                 </dl>
               </section>
 
-              <section className="panel">
+              <section className="panel admin-revenue-checkout-panel">
                 <div className="panel-heading">
                   <div>
                     <p className="eyebrow">Processamento técnico</p>
@@ -1421,7 +1437,7 @@ export function AdminRevenueV2Page() {
               </section>
             </div>
 
-            <section className="panel">
+            <section className="panel admin-revenue-facts-panel">
               <div className="panel-heading">
                 <div>
                   <p className="eyebrow">Fatos financeiros</p>
