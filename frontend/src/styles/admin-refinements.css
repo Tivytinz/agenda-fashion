@@ -616,3 +616,138 @@
     grid-template-columns: 1fr;
   }
 }
+
+
+/* Jornada: caminhos e marcos de intenção precisam explicar comportamento sem chamar navegação de conversão. */
+.admin-journey-insights {
+  align-items: stretch;
+}
+
+.admin-journey-paths-panel,
+.admin-journey-intent-panel {
+  align-content: start;
+}
+
+.admin-journey-mini-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.admin-journey-mini-summary > span {
+  border: 1px solid var(--admin-line);
+  border-radius: 999px;
+  padding: 6px 10px;
+  color: var(--admin-muted);
+  background: var(--admin-soft);
+  font-size: .75rem;
+}
+
+.admin-journey-mini-summary strong {
+  color: var(--admin-ink);
+}
+
+.admin-journey-ranking article {
+  align-items: center;
+}
+
+.admin-journey-ranking article > div {
+  min-width: 0;
+  flex: 1;
+}
+
+.admin-journey-ranking article > span {
+  display: grid;
+  justify-items: end;
+  min-width: 72px;
+  color: var(--admin-ink);
+  font-weight: 800;
+}
+
+.admin-journey-ranking article > span small {
+  color: var(--admin-muted);
+  font-size: .66rem;
+  font-weight: 600;
+}
+
+.admin-journey-ranking .is-same-screen {
+  opacity: .76;
+}
+
+.admin-journey-path-bar {
+  display: block;
+  width: min(240px, 100%);
+  height: 4px;
+  margin-top: 7px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--admin-soft);
+}
+
+.admin-journey-path-bar i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--admin-accent);
+}
+
+.admin-journey-ranking .is-same-screen .admin-journey-path-bar i {
+  opacity: .45;
+}
+
+.admin-intent-list {
+  display: grid;
+}
+
+.admin-intent-list article {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  border-bottom: 1px solid var(--admin-line);
+  padding: 14px 0;
+}
+
+.admin-intent-list article:last-child {
+  border-bottom: 0;
+}
+
+.admin-intent-list article > div:first-child {
+  display: grid;
+  min-width: 0;
+  gap: 3px;
+}
+
+.admin-intent-list small {
+  color: var(--admin-muted);
+  line-height: 1.35;
+}
+
+.admin-intent-metrics {
+  display: grid;
+  justify-items: end;
+  flex: 0 0 auto;
+}
+
+.admin-intent-metrics > strong {
+  color: var(--admin-ink);
+  font-size: 1.2rem;
+  font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 700px) {
+  .admin-intent-list article {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .admin-intent-metrics {
+    justify-items: start;
+  }
+
+  .admin-journey-ranking article {
+    align-items: flex-start;
+  }
+}
