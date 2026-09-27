@@ -91,38 +91,49 @@ describe("equipe por convite", () => {
   });
 
   it("CA-EQP-02: mostra profissional aguardando vaga e permite ativar após capacidade", async () => {
-    apiRequest
-      .mockResolvedValueOnce({
-        profissionais: [
-          { id: 1, nome: "Dona", papel: "dono", foto_url: null, ativo: true },
-          {
-            id: 9,
-            nome: "Ana",
-            papel: "profissional",
-            foto_url: null,
-            ativo: false,
-            motivo_inatividade: "aguardando_vaga_plano"
+    let activated = false;
+    apiRequest.mockImplementation((requestPath, options = {}) => {
+      if (requestPath === "/profissionais") {
+        return Promise.resolve({
+          profissionais: activated
+            ? [
+                { id: 1, nome: "Dona", papel: "dono", foto_url: null, ativo: true },
+                { id: 9, nome: "Ana", papel: "profissional", foto_url: null, ativo: true, motivo_inatividade: null }
+              ]
+            : [
+                { id: 1, nome: "Dona", papel: "dono", foto_url: null, ativo: true },
+                { id: 9, nome: "Ana", papel: "profissional", foto_url: null, ativo: false, motivo_inatividade: "aguardando_vaga_plano" }
+              ]
+        });
+      }
+      if (requestPath === "/minha-assinatura") {
+        return Promise.resolve({
+          upgrade_contextual: {
+            negocio_id: 7,
+            disponivel: true,
+            plano_atual: { slug: "inicial", nome: "Grátis" },
+            plano_destino: {
+              id: 2,
+              slug: "autonoma",
+              nome: "Autônoma",
+              valor: 10,
+              capacidade_agendamentos: 20,
+              limite_profissionais: 3,
+              limite_servicos: 10
+            }
           }
-        ]
-      })
-      .mockResolvedValueOnce({
-        mensagem: "Profissional ativada na equipe.",
-        profissional_id: 9,
-        ativo: true
-      })
-      .mockResolvedValueOnce({
-        profissionais: [
-          { id: 1, nome: "Dona", papel: "dono", foto_url: null, ativo: true },
-          {
-            id: 9,
-            nome: "Ana",
-            papel: "profissional",
-            foto_url: null,
-            ativo: true,
-            motivo_inatividade: null
-          }
-        ]
-      });
+        });
+      }
+      if (requestPath === "/profissionais/9/ativar" && options.method === "POST") {
+        activated = true;
+        return Promise.resolve({
+          mensagem: "Profissional ativada na equipe.",
+          profissional_id: 9,
+          ativo: true
+        });
+      }
+      return Promise.reject(new Error(`Rota inesperada: ${requestPath}`));
+    });
 
     render(<ProfessionalsPage />);
 
@@ -136,8 +147,11 @@ describe("equipe por convite", () => {
       screen.getByRole("button", { name: "Ativar profissional" })
     ).not.toBeNull();
     expect(
-      screen.getByRole("link", { name: "Ver planos" }).getAttribute("href")
-    ).toBe("/painel/assinatura");
+      screen.getByRole("heading", { name: "1 profissional aguarda uma vaga no plano" })
+    ).not.toBeNull();
+    expect(
+      screen.getByRole("link", { name: "Fazer upgrade para Autônoma" }).getAttribute("href")
+    ).toContain("/checkout?plano=autonoma");
 
     fireEvent.click(
       screen.getByRole("button", { name: "Ativar profissional" })
@@ -161,18 +175,26 @@ describe("equipe por convite", () => {
   });
 
   it("CA-PLN-06: identifica profissional inativada por downgrade e permite reativação futura", async () => {
-    apiRequest.mockResolvedValueOnce({
-      profissionais: [
-        { id: 1, nome: "Dona", papel: "dono", foto_url: null, ativo: true },
-        {
-          id: 9,
-          nome: "Ana",
-          papel: "profissional",
-          foto_url: null,
-          ativo: false,
-          motivo_inatividade: "excedente_limite_plano"
-        }
-      ]
+    apiRequest.mockImplementation((requestPath) => {
+      if (requestPath === "/profissionais") {
+        return Promise.resolve({
+          profissionais: [
+            { id: 1, nome: "Dona", papel: "dono", foto_url: null, ativo: true },
+            {
+              id: 9,
+              nome: "Ana",
+              papel: "profissional",
+              foto_url: null,
+              ativo: false,
+              motivo_inatividade: "excedente_limite_plano"
+            }
+          ]
+        });
+      }
+      if (requestPath === "/minha-assinatura") {
+        return Promise.resolve({ upgrade_contextual: null });
+      }
+      return Promise.reject(new Error(`Rota inesperada: ${requestPath}`));
     });
 
     render(<ProfessionalsPage />);
