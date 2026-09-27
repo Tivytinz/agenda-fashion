@@ -9,8 +9,11 @@ import {
 } from "./WorkspaceNavigation";
 
 export function ProfessionalShell({ children, links = [] }) {
-  const { negocio } = useSession();
+  const { negocio, vinculos = [] } = useSession();
   const businessName = negocio?.nome || "Agenda Fashion";
+  const ownerBusiness = vinculos.find(
+    (item) => item?.papel === "dono" && item?.ativo !== false
+  );
   const initial = String(businessName).slice(0, 1).toUpperCase();
 
   useLayoutEffect(() => {
@@ -68,14 +71,15 @@ export function ProfessionalShell({ children, links = [] }) {
             <strong>{businessName}</strong>
           </div>
 
-          <Link
-            aria-label="Abrir minha conta"
-            className="professional-account-link"
-            to="/conta"
-          >
-            <AppIcon name="account" />
-            <span>Conta</span>
-          </Link>
+          {ownerBusiness && (
+            <Link
+              className="professional-context-switch"
+              to="/painel"
+            >
+              <AppIcon name="business" />
+              <span>Ir para gestão</span>
+            </Link>
+          )}
         </header>
 
         <section className="professional-content">
