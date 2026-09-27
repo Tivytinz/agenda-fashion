@@ -85,6 +85,15 @@ A navegação canônica desse contexto é curta:
 - Meus horários;
 - Minha conta.
 
+Conta e demais ações secundárias usadas dentro do workspace devem preservar o
+namespace `/profissional/*` quando o papel profissional já estiver ativo. A rota
+genérica de convite continua disponível para o aceite inicial sem vínculo. Convites
+não ocupam a navegação diária; ficam acessíveis a partir da Conta profissional.
+
+Quando a mesma identidade também possui um vínculo ativo de dona, a troca para a
+gestão deve ser uma ação explícita. Entrar em Conta, Convites ou Horários não pode
+trocar silenciosamente o shell para o negócio principal da sessão.
+
 Controles de equipe, serviços do negócio, publicação, assinatura e demais funções exclusivas da dona não entram na navegação profissional apenas porque a conta pertence ao mesmo negócio.
 
 O `ProfessionalShell` pode reutilizar primitives neutras de navegação com outros contextos para comportamento de rota ativa e menu mobile, mas sidebar, topbar, foco, responsividade e ownership visual permanecem próprios.
