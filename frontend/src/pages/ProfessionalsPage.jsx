@@ -274,7 +274,7 @@ export function ProfessionalsPage() {
         />
       )}
 
-            {!items && !error && (
+      {!items && !error && (
         <LoadingState>Carregando equipe...</LoadingState>
       )}
 
