@@ -171,6 +171,96 @@ describe("agenda do negócio", () => {
     ).toBeNull();
   });
 
+  it("mantém uma ação principal e agrupa operações secundárias para a profissional", async () => {
+    apiRequest.mockResolvedValue({
+      agenda: [{
+        data: "2026-08-03",
+        trabalha: true,
+        horarios: [{
+          hora: "09:30",
+          status: "confirmado",
+          agendamento_id: 91,
+          cliente: "Ana",
+          servico: "Corte",
+          pode_reagendar: true,
+          pode_cancelar: true,
+          pode_iniciar_atendimento: true,
+          pode_marcar_realizado: false,
+          pode_marcar_falta: true
+        }]
+      }]
+    });
+
+    render(
+      <MemoryRouter>
+        <AgendaWorkspacePage />
+      </MemoryRouter>
+    );
+
+    expect(
+      await screen.findByRole("button", { name: "Iniciar atendimento" })
+    ).not.toBeNull();
+    expect(
+      screen.queryByRole("button", { name: "Concluir" })
+    ).toBeNull();
+
+    const more = screen.getByText("Mais");
+    fireEvent.click(more);
+
+    expect(
+      screen.getByRole("button", { name: "Reagendar" })
+    ).not.toBeNull();
+    expect(
+      screen.getByRole("button", { name: "Cancelar agendamento" })
+    ).not.toBeNull();
+    expect(
+      screen.getByRole("button", { name: "Marcar falta" })
+    ).not.toBeNull();
+  });
+
+  it("preserva as ações completas da agenda da dona", async () => {
+    apiRequest.mockResolvedValue({
+      agenda: [{
+        data: "2026-08-03",
+        profissionais: [{
+          id: 1,
+          nome: "Ana",
+          horarios: [{
+            hora: "09:30",
+            status: "confirmado",
+            agendamento_id: 91,
+            cliente: "Cliente",
+            servico: "Corte",
+            pode_reagendar: true,
+            pode_cancelar: true,
+            pode_iniciar_atendimento: true,
+            pode_marcar_realizado: true,
+            pode_marcar_falta: true
+          }]
+        }]
+      }]
+    });
+
+    render(<AgendaWorkspacePage owner />);
+
+    expect(
+      await screen.findByRole("button", { name: "Reagendar" })
+    ).not.toBeNull();
+    expect(
+      screen.getByRole("button", { name: "Cancelar agendamento" })
+    ).not.toBeNull();
+    expect(
+      screen.getByRole("button", { name: "Iniciar atendimento" })
+    ).not.toBeNull();
+    expect(
+      screen.getByRole("button", { name: "Concluir" })
+    ).not.toBeNull();
+    expect(
+      screen.getByRole("button", { name: "Marcar falta" })
+    ).not.toBeNull();
+    expect(screen.queryByText("Mais")).toBeNull();
+  });
+
   it("exibe compromisso persistido mesmo quando o dia atual está marcado como folga", async () => {
     apiRequest.mockResolvedValue({
       agenda: [{
