@@ -84,12 +84,7 @@ describe("contextos visuais do workspace", () => {
     expect(ownerShell?.classList.contains("owner-shell")).toBe(true);
     expect(ownerShell?.classList.contains("professional-shell")).toBe(false);
     expect(screen.getByRole("complementary", { name: "Gestão do negócio" })).not.toBeNull();
-    expect(screen.getAllByText("Studio Parceiro").length).toBeGreaterThan(0);
-    expect(
-      screen.getByRole("link", { name: /Ir para gestão/ })
-        .getAttribute("href")
-    ).toBe("/painel");
-    expect(screen.queryByRole("link", { name: /Convites/ })).toBeNull();
+    expect(screen.getAllByText("Studio Aurora").length).toBeGreaterThan(0);
   });
 
   it("renderiza a profissional no ProfessionalShell próprio", async () => {
@@ -132,7 +127,12 @@ describe("contextos visuais do workspace", () => {
     expect(
       within(sidebar).getByRole("navigation", { name: "Rotina profissional" })
     ).not.toBeNull();
-    expect(screen.getAllByText("Studio Aurora").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Studio Parceiro").length).toBeGreaterThan(0);
+    expect(
+      screen.getByRole("link", { name: /Ir para gestão/ })
+        .getAttribute("href")
+    ).toBe("/painel");
+    expect(screen.queryByRole("link", { name: /Convites/ })).toBeNull();
     expect(screen.getAllByRole("link", { name: /Minha agenda/ }).length).toBeGreaterThan(0);
     expect(screen.queryByRole("link", { name: /Equipe/ })).toBeNull();
     expect(screen.queryByRole("link", { name: /Plano e assinatura/ })).toBeNull();
