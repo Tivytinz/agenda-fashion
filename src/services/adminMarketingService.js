@@ -185,6 +185,13 @@ async function buscarResumo({
         ?.sessoes_convertidas
     );
 
+  const sessoesComOrigemComprovada =
+    sessoes + sessoesOrganicas;
+
+  const sessoesSemOrigemComprovada =
+    sessoesAutonomas +
+    sessoesRastreamentoIncompleto;
+
   return {
     periodo:
       periodoNormalizado,
@@ -195,11 +202,20 @@ async function buscarResumo({
     sessoesOrganicas,
     sessoesAutonomas,
     sessoesRastreamentoIncompleto,
+    // Compatibilidade: este campo histórico representa apenas sessões
+    // autônomas/sem evidência. Não inclui rastreamento incompleto.
     sessoesSemAtribuicao:
       sessoesAutonomas,
+    sessoesComOrigemComprovada,
+    sessoesSemOrigemComprovada,
+    coberturaOrigemComprovada:
+      taxa(
+        sessoesComOrigemComprovada,
+        totalSessoes
+      ),
     coberturaAtribuicao:
       taxa(
-        sessoes + sessoesOrganicas,
+        sessoesComOrigemComprovada,
         totalSessoes
       ),
     campanhas,

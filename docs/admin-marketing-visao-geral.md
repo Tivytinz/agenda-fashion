@@ -26,6 +26,8 @@ Sessão do GA4 não é cadastro e não pode ser usada como denominador automáti
 
 A cobertura de sessões pagas é uma métrica separada, calculada a partir das sessões oficiais e das sessões pagas ainda pendentes de campanha/identidade. As duas coberturas podem divergir e devem continuar visíveis como conceitos diferentes.
 
+No resumo legado de Marketing, `coberturaOrigemComprovada` explicita a parcela de sessões classificadas como pagas ou orgânicas com evidência suficiente. `sessoesSemOrigemComprovada` soma sessões autônomas/sem evidência e sessões com rastreamento incompleto. O campo `sessoesSemAtribuicao` permanece apenas por compatibilidade e continua representando a categoria autônoma histórica; ele não deve ser usado como sinônimo do total sem origem comprovada.
+
 ## Coorte profissional
 
 Os marcos canônicos do painel são:
