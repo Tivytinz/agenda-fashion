@@ -252,3 +252,8 @@ negócio e conversão para plano pago.
 - Índice da reconciliação temporal:
   `database/migrations/094_assinaturas_canceladas_expiracao_idx.sql`.
 - Visão técnica completa: `docs/arquitetura.md`.
+
+
+## Reativação idempotente da renovação
+
+Enquanto o período já pago permanecer válido, a dona pode reativar uma renovação cancelada sem cobrança imediata. Cada ciclo usa `assinaturas.reativacao_tentativa` como versão monotônica e uma `externalReference` determinística no Asaas. O estado transitório `REACTIVATING` não deve ser revertido por timeout ou erro ambíguo: uma execução posterior consulta a mesma referência; recorrência encontrada finaliza a reativação, ausência confirmada restaura `CANCELED` e falha de consulta preserva `REACTIVATING` para nova reconciliação. Chamadas ao Asaas permanecem fora de transações PostgreSQL.
