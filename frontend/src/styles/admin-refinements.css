@@ -854,3 +854,87 @@
     text-align: left;
   }
 }
+
+
+/* Receita: prioriza leitura executiva e rebaixa configuração técnica sem esconder evidência. */
+.admin-revenue-economics-panel {
+  display: grid;
+  gap: 16px;
+}
+
+.admin-revenue-economics-summary {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.admin-revenue-economics-summary .admin-command-metric {
+  min-height: 108px;
+}
+
+.admin-revenue-detail {
+  border-top: 1px solid var(--admin-line);
+  padding-top: 12px;
+}
+
+.admin-revenue-detail > summary {
+  cursor: pointer;
+  color: var(--admin-accent-strong);
+  font-weight: 800;
+}
+
+.admin-revenue-detail[open] > summary {
+  margin-bottom: 10px;
+}
+
+.admin-revenue-cost-ops {
+  display: grid;
+  gap: 12px;
+}
+
+.admin-revenue-cost-ops-heading {
+  padding: 0 4px;
+}
+
+.admin-revenue-cost-ops-heading h2 {
+  margin: 2px 0 4px;
+}
+
+.admin-revenue-checkout-grid {
+  align-items: stretch;
+}
+
+.admin-revenue-checkout-panel {
+  display: grid;
+  align-content: start;
+}
+
+.admin-revenue-facts-panel .admin-command-data-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  column-gap: 28px;
+}
+
+.admin-revenue-facts-panel .admin-command-data-list > div:nth-child(-n + 2) {
+  border-top: 0;
+}
+
+@media (max-width: 800px) {
+  .admin-revenue-economics-summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .admin-revenue-facts-panel .admin-command-data-list {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-revenue-facts-panel .admin-command-data-list > div:nth-child(2) {
+    border-top: 1px solid var(--admin-line);
+  }
+}
+
+@media (max-width: 520px) {
+  .admin-revenue-economics-summary {
+    grid-template-columns: 1fr;
+  }
+}
