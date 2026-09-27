@@ -28,6 +28,14 @@ function subscriptionStatus(plan, subscription) {
     return { label: "Assinatura ativa", tone: "success", active: true };
   }
 
+  if (status === "REACTIVATING") {
+    return {
+      label: "Reativando renovação",
+      tone: "warning",
+      active: true
+    };
+  }
+
   if (PENDING_STATUSES.has(status)) {
     return { label: "Pagamento pendente", tone: "warning", active: false };
   }
@@ -149,6 +157,8 @@ export function SubscriptionPage() {
   );
   const [canceling, setCanceling] = useState(false);
   const [cancelError, setCancelError] = useState("");
+  const [reactivating, setReactivating] = useState(false);
+  const [reactivationError, setReactivationError] = useState("");
 
   const load = useCallback(() => {
     setError("");
@@ -177,6 +187,24 @@ export function SubscriptionPage() {
       setCancelError(requestError.message);
     } finally {
       setCanceling(false);
+    }
+  }
+
+  async function reactivate() {
+    setReactivating(true);
+    setReactivationError("");
+
+    try {
+      const result = await apiRequest(
+        "/minha-assinatura/reativar",
+        { method: "POST" }
+      );
+      setMessage(result.mensagem);
+      load();
+    } catch (requestError) {
+      setReactivationError(requestError.message);
+    } finally {
+      setReactivating(false);
     }
   }
 
@@ -214,6 +242,9 @@ export function SubscriptionPage() {
   const canCancel =
     ACTIVE_STATUSES.has(rawStatus) &&
     subscription?.ativo !== false;
+  const canReactivate =
+    CANCELED_STATUSES.has(rawStatus) &&
+    subscription?.ativo === true;
   const planSlug = String(plan.slug || "").trim();
   const checkoutTarget = planSlug
     ? `/checkout?plano=${encodeURIComponent(planSlug)}`
@@ -253,6 +284,7 @@ export function SubscriptionPage() {
       </header>
 
       {error && <p className="form-error" role="alert">{error}</p>}
+      {reactivationError && <p className="form-error" role="alert">{reactivationError}</p>}
       {message && <p className="form-success" role="status">{message}</p>}
 
       {billingState === "FALHA_DE_PAGAMENTO" && (
@@ -391,6 +423,16 @@ export function SubscriptionPage() {
               type="button"
             >
               Cancelar renovação
+            </button>
+          )}
+          {canReactivate && (
+            <button
+              className="button button-secondary subscription-primary-action"
+              disabled={reactivating}
+              onClick={() => void reactivate()}
+              type="button"
+            >
+              {reactivating ? "Reativando..." : "Reativar renovação"}
             </button>
           )}
         </article>
