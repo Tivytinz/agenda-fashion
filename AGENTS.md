@@ -273,10 +273,10 @@ pressão por upgrade.
 
 | Plano | Valor mensal | Agendamentos/mês | Profissionais | Serviços |
 | --- | ---: | ---: | ---: | ---: |
-| Grátis | R$ 0,00 | 10 | 1 | 2 |
-| Autônoma | R$ 49,90 | 20 | 1 | 4 |
-| Studio | R$ 99,90 | 30 | 1 | 10 |
-| Salão | R$ 199,90 | Ilimitados | 5 | Ilimitados |
+| Grátis | R$ 0,00 | 10 | 1 | 5 |
+| Autônoma | R$ 10,00 | 20 | 3 | 10 |
+| Studio | R$ 20,00 | 30 | 6 | 15 |
+| Salão | R$ 30,00 | Ilimitados | 9 | Ilimitados |
 
 O slug interno do plano gratuito permanece `inicial` por compatibilidade.
 Limites de plano, preço e elegibilidade são regras do backend.
