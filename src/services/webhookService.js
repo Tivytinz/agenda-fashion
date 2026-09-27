@@ -238,6 +238,13 @@ async function enfileirarWebhookAsaas({
             pagamento.value ?? null,
           netValue:
             pagamento.netValue ?? null,
+          refundedValue:
+            pagamento.refundedValue !== null &&
+            pagamento.refundedValue !== undefined &&
+            pagamento.refundedValue !== "" &&
+            Number.isFinite(Number(pagamento.refundedValue))
+              ? Number(pagamento.refundedValue)
+              : null,
           creditDate:
             pagamento.creditDate || null,
           billingType:
@@ -347,7 +354,9 @@ async function processarRegistro(evento) {
     webhookEventoCriadoEm:
       evento.evento_criado_em ||
       evento.payload?.dateCreated ||
-      null
+      null,
+    webhookTipoEvento:
+      evento.tipo_evento || null
   };
 
   try {
