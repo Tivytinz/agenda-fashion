@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 
 import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { apiRequest } from "../api/client";
 import { AgendaWorkspacePage } from "./AgendaWorkspacePage";
@@ -144,6 +145,30 @@ describe("agenda do negócio", () => {
 
     expect(await screen.findByRole("button", { name: /06 ago/ })).not.toBeNull();
     Object.defineProperty(window, "innerWidth", { configurable: true, value: originalWidth });
+  });
+
+  it("orienta a profissional para os próprios horários quando a agenda está vazia", async () => {
+    apiRequest.mockResolvedValue({ agenda: [] });
+
+    render(
+      <MemoryRouter>
+        <AgendaWorkspacePage />
+      </MemoryRouter>
+    );
+
+    expect(
+      await screen.findByRole("heading", { name: "Minha agenda" })
+    ).not.toBeNull();
+    expect(
+      screen.getByText("Sua agenda ainda está vazia")
+    ).not.toBeNull();
+    expect(
+      screen.getByRole("link", { name: "Ajustar meus horários" })
+        .getAttribute("href")
+    ).toBe("/profissional/horarios");
+    expect(
+      screen.queryByText(/Vincule profissionais/i)
+    ).toBeNull();
   });
 
   it("exibe compromisso persistido mesmo quando o dia atual está marcado como folga", async () => {
