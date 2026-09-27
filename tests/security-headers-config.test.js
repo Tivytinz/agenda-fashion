@@ -24,6 +24,9 @@ describe("Content Security Policy", () => {
     expect(scripts).not.toContain(
       "'unsafe-inline'"
     );
+    expect(scripts).not.toContain(
+      "https://static.cloudflareinsights.com"
+    );
   });
 
   test("bloqueia plugins e enquadramento externo", () => {

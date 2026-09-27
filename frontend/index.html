@@ -8,33 +8,20 @@
       content="Encontre profissionais e negócios de beleza e agende online."
     />
     <meta name="theme-color" content="#c5246b" />
-    <script>
-      (() => {
-        const path = window.location.pathname;
-        const preload = document.createElement("link");
-
-        if (path === "/") {
-          preload.rel = "preload";
-          preload.as = "image";
-          preload.fetchPriority = "high";
-          preload.href = window.matchMedia("(max-width: 767px)").matches
-            ? "/assets/home/salon-hero-mobile.webp"
-            : "/assets/home/salon-hero-wide.webp";
-          document.head.append(preload);
-          return;
-        }
-
-        const profileMatch = path.match(/^\/negocio\/([^/]+)\/?$/);
-
-        if (profileMatch) {
-          preload.rel = "preload";
-          preload.as = "fetch";
-          preload.crossOrigin = "use-credentials";
-          preload.href = `/perfil-negocio/${profileMatch[1]}`;
-          document.head.append(preload);
-        }
-      })();
-    </script>
+    <link
+      rel="preload"
+      as="image"
+      href="/assets/home/salon-hero-mobile.webp"
+      media="(max-width: 767px)"
+      fetchpriority="high"
+    />
+    <link
+      rel="preload"
+      as="image"
+      href="/assets/home/salon-hero-wide.webp"
+      media="(min-width: 768px)"
+      fetchpriority="high"
+    />
     <link
       rel="icon"
       type="image/webp"
