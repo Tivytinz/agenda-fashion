@@ -358,7 +358,7 @@ export function DashboardPage() {
         />
       )}
 
-            {whatsappConsentVisibility.operational && (
+      {whatsappConsentVisibility.operational && (
         <section
           aria-labelledby="whatsapp-operational-title"
           className="panel whatsapp-reminders-panel"
