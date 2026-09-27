@@ -207,6 +207,7 @@ function useAdminSection(section) {
 
 function AdminSectionFrame({
   children,
+  className = "",
   eyebrow,
   title,
   description,
@@ -241,7 +242,7 @@ function AdminSectionFrame({
   return (
     <main
       aria-busy={refreshing}
-      className="workspace-page admin-workspace-page admin-command-page"
+      className={`workspace-page admin-workspace-page admin-command-page ${className}`.trim()}
     >
       <header className="workspace-heading admin-command-heading">
         <div>
@@ -438,6 +439,26 @@ export function AdminAcquisitionV2Page() {
         const contributionReadiness =
           acquisitionReturn.contribuicaoProntidao || {};
         const hasProfessionalCohort = campaigns.length > 0;
+        const trafficTotals = origins.reduce((acc, origin) => ({
+          sessoes: acc.sessoes + number(origin.sessoes),
+          usuarios: acc.usuarios + number(origin.usuarios),
+          tempoEngajadoMs: acc.tempoEngajadoMs + number(origin.tempo_engajado_ms)
+        }), { sessoes: 0, usuarios: 0, tempoEngajadoMs: 0 });
+        const maxOriginSessions = Math.max(
+          1,
+          ...origins.map((origin) => number(origin.sessoes))
+        );
+        const identifiedSessions = origins.reduce(
+          (total, origin) => total + (
+            ["direct", "unknown"].includes(origin.canal)
+              ? 0
+              : number(origin.sessoes)
+          ),
+          0
+        );
+        const identifiedShare = trafficTotals.sessoes > 0
+          ? (identifiedSessions / trafficTotals.sessoes) * 100
+          : null;
         const hasFinancialDiagnosis = financialCampaigns.length > 0 ||
           Object.values(financialDiagnosis).some((value) => number(value) > 0);
         const totals = campaigns.reduce((acc, campaign) => ({
@@ -475,14 +496,22 @@ export function AdminAcquisitionV2Page() {
               </section>
             )}
 
-            <section className="panel">
-              <div className="panel-heading">
+            <section className="panel admin-traffic-panel">
+              <div className="panel-heading admin-traffic-heading">
                 <div>
                   <p className="eyebrow">Tráfego do site</p>
                   <h2>Sessões por origem</h2>
-                  <p className="muted">Cada linha mostra uma origem identificada. A mesma rede pode aparecer em mais de uma linha.</p>
+                  <p className="muted">Compare volume, alcance e engajamento sem confundir visita com cadastro. Variações de domínio da mesma rede continuam separadas para preservar a evidência capturada.</p>
                 </div>
               </div>
+              {origins.length > 0 && (
+                <section className="admin-traffic-summary" aria-label="Resumo do tráfego">
+                  <MetricCard label="Sessões" hint="visitas registradas no período" value={formatNumber(trafficTotals.sessoes)} />
+                  <MetricCard label="Usuários" hint="identidades first-party observadas" value={formatNumber(trafficTotals.usuarios)} />
+                  <MetricCard label="Origem identificada" hint="sessões fora de direto/não identificado" value={formatPercent(identifiedShare)} />
+                  <MetricCard label="Tempo médio" hint="engajamento médio por sessão" value={trafficTotals.sessoes > 0 ? formatSeconds(trafficTotals.tempoEngajadoMs / trafficTotals.sessoes / 1000) : "—"} />
+                </section>
+              )}
               {origins.length === 0 ? (
                 <EmptyState title="Ainda não há sessões registradas neste período">
                   Não há dados de visitas para mostrar no recorte selecionado.
@@ -497,7 +526,12 @@ export function AdminAcquisitionV2Page() {
                           <td>{CHANNEL_LABELS[row.canal] || row.canal}</td>
                           <td><strong>{row.source}</strong><small> / {row.medium}</small></td>
                           <td>{row.campanha_nome || row.utm_campaign || "—"}</td>
-                          <td>{formatNumber(row.sessoes)}</td>
+                          <td>
+                            <div className="admin-traffic-volume">
+                              <strong>{formatNumber(row.sessoes)}</strong>
+                              <span aria-hidden="true"><i style={{ width: `${Math.max(4, (number(row.sessoes) / maxOriginSessions) * 100)}%` }} /></span>
+                            </div>
+                          </td>
                           <td>{formatNumber(row.usuarios)}</td>
                           <td>{number(row.sessoes) > 0 ? formatSeconds(number(row.tempo_engajado_ms) / number(row.sessoes) / 1000) : "—"}</td>
                         </tr>
