@@ -281,7 +281,11 @@ describe("jornada administrativa v2", () => {
       eventos: [
         { nome: "profile_viewed", eventos: 17, sessoes: 17 }
       ],
-      dispositivos: [],
+      dispositivos: [
+        { device_type: "mobile", browser_family: "Chrome", sessoes: 35 },
+        { device_type: "desktop", browser_family: "Edge", sessoes: 14 },
+        { device_type: "mobile", browser_family: "Safari", sessoes: 9 }
+      ],
       reconciliacaoPipelines: { eventos: [] }
     });
     render(
@@ -300,6 +304,12 @@ describe("jornada administrativa v2", () => {
     expect(screen.getByLabelText("Resumo dos marcos de intenção")).not.toBeNull();
     expect(screen.getByText("Interesse em um perfil")).not.toBeNull();
     expect(screen.getByText(/Evento, sessão e conversão continuam sendo fatos diferentes/i)).not.toBeNull();
+    const compatibilitySummary = screen.getByLabelText("Resumo de compatibilidade");
+    expect(within(compatibilitySummary).getByText("58")).not.toBeNull();
+    expect(within(compatibilitySummary).getByText("75,9%")).not.toBeNull();
+    expect(within(compatibilitySummary).getByText("24,1%")).not.toBeNull();
+    expect(within(compatibilitySummary).getByText("3")).not.toBeNull();
+    expect(screen.getByText(/priorizar QA e compatibilidade/i)).not.toBeNull();
   });
 });
 
