@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   getAuthDestination,
   getPlanIntentPath,
+  getBusinessContextForPath,
   getBusinessWorkspacePath,
   getWorkspacePath,
   normalizePlanSlug,
@@ -38,6 +39,60 @@ describe("destino da sessão", () => {
       temNegocio: true,
       negocio: { papel: "profissional" }
     })).toBe("/profissional/agenda");
+  });
+});
+
+describe("contexto explícito por rota", () => {
+  const multiRoleSession = {
+    negocioPrincipal: {
+      id: 1,
+      nome: "Meu Studio",
+      papel: "dono"
+    },
+    vinculos: [
+      {
+        id: 1,
+        nome: "Meu Studio",
+        papel: "dono"
+      },
+      {
+        id: 2,
+        nome: "Studio Aurora",
+        papel: "profissional"
+      }
+    ]
+  };
+
+  it("preserva o vínculo profissional em conta e convites do workspace", () => {
+    expect(
+      getBusinessContextForPath(
+        multiRoleSession,
+        "/profissional/conta"
+      )
+    ).toMatchObject({
+      id: 2,
+      papel: "profissional"
+    });
+
+    expect(
+      getBusinessContextForPath(
+        multiRoleSession,
+        "/profissional/convites"
+      )
+    ).toMatchObject({
+      id: 2,
+      papel: "profissional"
+    });
+
+    expect(
+      getBusinessContextForPath(
+        multiRoleSession,
+        "/painel"
+      )
+    ).toMatchObject({
+      id: 1,
+      papel: "dono"
+    });
   });
 });
 
