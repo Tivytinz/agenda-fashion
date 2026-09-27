@@ -36,6 +36,10 @@ O AF deve gerar valor para os dois lados do marketplace:
 - clientes finais precisam encontrar oferta relevante, consultar disponibilidade
   real e agendar com poucos passos.
 
+## Integração contínua e merge
+
+Pull requests não draft direcionados à `main` devem habilitar auto-merge por squash automaticamente. Os gates obrigatórios de CI e as regras de proteção da branch continuam sendo a condição de integração: o PR só entra na `main` depois de satisfazê-los. Falha ou cancelamento de check não deve ser contornado por merge forçado.
+
 ## Domínio público canônico
 
 A origem pública oficial do Agenda Fashion é:
