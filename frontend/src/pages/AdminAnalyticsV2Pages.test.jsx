@@ -474,7 +474,7 @@ describe("receita administrativa v2", () => {
     expect(screen.getAllByText("MRR em risco").length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByText("GRR").length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByText("NRR").length).toBeGreaterThanOrEqual(1);
-    expect(screen.getByText("95%")).not.toBeNull();
+    expect(screen.getAllByText("95%").length).toBeGreaterThanOrEqual(1);
     expect(screen.getByRole("heading", { name: "LTV bruto observado" })).not.toBeNull();
     expect(screen.getByText("LTV bruto D30")).not.toBeNull();
     expect(screen.getByText("LTV bruto D60")).not.toBeNull();
