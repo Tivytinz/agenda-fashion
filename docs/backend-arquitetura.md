@@ -262,7 +262,7 @@ Todas as leituras administrativas abaixo, exceto callbacks OAuth explicitamente 
 | POST | `/admin/marketing/custos-integracoes/:provedor/sincronizar` | auditado: `midia_sincronizar` |
 | GET | `/admin/analytics-v2/:secao` | auth + admin; sem cache |
 
-## 15. Persistência e migrations
+## 6. Persistência e migrations
 
 O PostgreSQL é acessado por `pg`. O histórico atual vai de `001_usuarios.sql` até `105_admin_auditoria_revisoes.sql`, com numeração histórica não necessariamente contínua.
 
@@ -270,7 +270,7 @@ Mudanças de schema exigem migration nova. Migrations aplicadas não devem ser e
 
 Os repositories são a fronteira preferencial para SQL. Operações críticas de booking, billing, webhooks e sincronizações usam transações/locks quando o domínio exige atomicidade ou serialização.
 
-## 6. Segurança e fronteiras de confiança
+## 15. Segurança e fronteiras de confiança
 
 O backend é a autoridade para autenticação, autorização, contexto de negócio, limites de plano, preço e regras financeiras. O frontend não é fonte confiável para esses valores.
 
