@@ -135,7 +135,7 @@ export function DashboardPage() {
     };
   }, [reloadKey]);
 
-    useEffect(() => {
+  useEffect(() => {
     const controller = new AbortController();
     let active = true;
 
