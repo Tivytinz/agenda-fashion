@@ -751,3 +751,106 @@
     align-items: flex-start;
   }
 }
+
+
+/* Jornada: compatibilidade vira um diagnóstico de prioridade de QA. */
+.admin-compatibility-panel {
+  display: grid;
+  gap: 16px;
+}
+
+.admin-compatibility-summary {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.admin-compatibility-summary .admin-command-metric {
+  min-height: 104px;
+}
+
+.admin-compatibility-list {
+  display: grid;
+}
+
+.admin-compatibility-list article {
+  display: grid;
+  grid-template-columns: minmax(130px, .7fr) minmax(220px, 1.3fr);
+  align-items: center;
+  gap: 20px;
+  border-bottom: 1px solid var(--admin-line);
+  padding: 13px 0;
+}
+
+.admin-compatibility-list article:last-child {
+  border-bottom: 0;
+}
+
+.admin-compatibility-identity {
+  display: grid;
+  gap: 2px;
+}
+
+.admin-compatibility-identity > strong {
+  text-transform: capitalize;
+}
+
+.admin-compatibility-identity small,
+.admin-compatibility-volume small {
+  color: var(--admin-muted);
+}
+
+.admin-compatibility-volume {
+  display: grid;
+  grid-template-columns: minmax(80px, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+}
+
+.admin-compatibility-volume > span {
+  display: block;
+  height: 6px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--admin-soft);
+}
+
+.admin-compatibility-volume i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--admin-accent);
+}
+
+.admin-compatibility-volume > strong {
+  min-width: 82px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 800px) {
+  .admin-compatibility-summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 600px) {
+  .admin-compatibility-summary,
+  .admin-compatibility-list article,
+  .admin-compatibility-volume {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-compatibility-list article {
+    gap: 8px;
+  }
+
+  .admin-compatibility-volume {
+    gap: 6px;
+  }
+
+  .admin-compatibility-volume > strong {
+    min-width: 0;
+    text-align: left;
+  }
+}
