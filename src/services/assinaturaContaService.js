@@ -79,8 +79,22 @@ function construirUpgradeContextual({
     return null;
   }
 
+  const slugSelecionado = String(
+    uso?.plano_selecionado_slug || ""
+  ).trim();
+  const planoSelecionado = (planos || []).find(
+    (item) => item.slug === slugSelecionado
+  );
+  const intencaoPagaNaoAtivada =
+    !assinatura &&
+    !assinaturaPendente &&
+    planoSelecionado &&
+    Number(planoSelecionado.valor || 0) > 0 &&
+    planoSelecionado.slug !== slugAtual;
   const proximoSlug =
-    ORDEM_PLANOS[indiceAtual + 1];
+    intencaoPagaNaoAtivada
+      ? planoSelecionado.slug
+      : ORDEM_PLANOS[indiceAtual + 1];
   const planoAtual = (planos || []).find(
     (item) => item.slug === slugAtual
   );
