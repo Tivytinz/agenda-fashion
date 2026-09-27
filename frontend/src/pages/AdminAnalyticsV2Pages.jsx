@@ -771,6 +771,17 @@ export function AdminJourneyV2Page() {
         const pipelineEvents = Array.isArray(reconciliation.eventos)
           ? reconciliation.eventos
           : [];
+        const screenTotals = screens.reduce((acc, screen) => ({
+          visualizacoes: acc.visualizacoes + number(screen.visualizacoes),
+          sessoes: acc.sessoes + number(screen.sessoes),
+          tempoPonderado: acc.tempoPonderado + (
+            number(screen.tempo_medio_segundos) * number(screen.sessoes)
+          )
+        }), { visualizacoes: 0, sessoes: 0, tempoPonderado: 0 });
+        const maxScreenViews = Math.max(
+          1,
+          ...screens.map((screen) => number(screen.visualizacoes))
+        );
         const hasPipelineEvidence =
           pipelineEvents.some((item) => (
             number(item.legadoPeriodo) > 0 ||
@@ -791,8 +802,22 @@ export function AdminJourneyV2Page() {
 
         return (
           <>
-            <section className="panel">
-              <div className="panel-heading"><div><p className="eyebrow">Telas</p><h2>Onde as pessoas passam tempo</h2></div></div>
+            <section className="panel admin-journey-screens-panel">
+              <div className="panel-heading">
+                <div>
+                  <p className="eyebrow">Telas</p>
+                  <h2>Onde as pessoas passam tempo</h2>
+                  <p className="muted">Compare alcance e atenção por tela. Visualização não representa conversão; use os caminhos e marcos abaixo para interpretar intenção.</p>
+                </div>
+              </div>
+              {screens.length > 0 && (
+                <section className="admin-journey-screen-summary" aria-label="Resumo das telas">
+                  <MetricCard label="Visualizações" hint="aberturas de tela no período" value={formatNumber(screenTotals.visualizacoes)} />
+                  <MetricCard label="Sessões nas telas" hint="soma das sessões por tela; não é usuário único" value={formatNumber(screenTotals.sessoes)} />
+                  <MetricCard label="Telas observadas" hint="rotas com evidência first-party" value={formatNumber(screens.length)} />
+                  <MetricCard label="Tempo médio visível" hint="média ponderada pelas sessões exibidas" value={screenTotals.sessoes > 0 ? formatSeconds(screenTotals.tempoPonderado / screenTotals.sessoes) : "—"} />
+                </section>
+              )}
               <div className="table-wrapper">
                 <table className="data-table">
                   <thead><tr><th>Tela</th><th>Visualizações</th><th>Sessões</th><th>Tempo médio visível</th></tr></thead>
@@ -800,7 +825,12 @@ export function AdminJourneyV2Page() {
                     {screens.map((screen) => (
                       <tr key={screen.page_key}>
                         <td><strong>{PAGE_LABELS[screen.page_key] || screen.page_key}</strong><small>{screen.route_template}</small></td>
-                        <td>{formatNumber(screen.visualizacoes)}</td>
+                        <td>
+                          <div className="admin-screen-volume">
+                            <strong>{formatNumber(screen.visualizacoes)}</strong>
+                            <span aria-hidden="true"><i style={{ width: `${Math.max(4, (number(screen.visualizacoes) / maxScreenViews) * 100)}%` }} /></span>
+                          </div>
+                        </td>
                         <td>{formatNumber(screen.sessoes)}</td>
                         <td>{formatSeconds(screen.tempo_medio_segundos)}</td>
                       </tr>
