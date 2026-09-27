@@ -14,7 +14,8 @@ dados autorizados do dashboard
   -> sinais e oportunidades determinísticos
   -> oportunidade de compartilhamento priorizada
   -> contexto seguro
-  -> provider de IA opcional
+  -> texto determinístico por padrão
+  -> provider de IA opcional somente quando explicitamente habilitado
   -> validação de saída
   -> texto editável pelo profissional
   -> compartilhamento pelo link rastreável existente do AF
@@ -62,9 +63,15 @@ Não entram no contexto:
 
 Nomes vindos do banco são tratados como dados, não como instruções.
 
-## Provider OpenAI
+## Geração padrão sem tokens
 
-O provider usa a Responses API pelo `axios` já presente no backend. Não foi adicionada nova dependência.
+A oportunidade `COMPARTILHAR_PERFIL` e o texto básico de divulgação não dependem de LLM nem de ML. O motor determinístico de inteligência de crescimento decide a oportunidade no backend e `buildDeterministicShareOutput` produz uma sugestão utilizável sem chamada externa. Esse é o caminho padrão do produto e não consome tokens.
+
+ML só deve ser considerado futuramente para hipóteses que realmente exijam aprendizado estatístico, como estimar qual próxima ação tende a produzir melhor resultado com amostra suficiente. Ele não substitui as regras atuais para detectar a oportunidade de compartilhamento.
+
+## Provider OpenAI opcional
+
+O provider usa a Responses API pelo `axios` já presente no backend. Não foi adicionada nova dependência. Ele é uma otimização experimental de linguagem, não uma dependência funcional do compartilhamento.
 
 Configuração:
 
@@ -76,7 +83,7 @@ OPENAI_API_URL=https://api.openai.com/v1/responses
 OPENAI_TIMEOUT_MS=8000
 ```
 
-A flag fica desligada por padrão. O provider usa o mesmo parser booleano do runtime (`1`, `true`, `yes`, `sim` e `on` ativam), evitando divergência entre a validação de startup e a execução. A chave é segredo exclusivo do backend e nunca pode ser exposta em `VITE_*`, frontend, logs ou analytics.
+A flag fica desligada por padrão. Configurar apenas a chave não deve gerar consumo: a chamada externa exige habilitação explícita da flag e chave válida. O provider usa o mesmo parser booleano do runtime (`1`, `true`, `yes`, `sim` e `on` ativam), evitando divergência entre a validação de startup e a execução. A chave é segredo exclusivo do backend e nunca pode ser exposta em `VITE_*`, frontend, logs ou analytics.
 
 As requisições usam:
 
@@ -87,7 +94,7 @@ As requisições usam:
 - instruções explícitas para não inventar preço, promoção, disponibilidade, endereço ou resultado garantido;
 - proibição de URL na saída, porque o link rastreável é acrescentado pelo AF depois.
 
-## Fallback e confiabilidade
+## geração determinística e confiabilidade
 
 A integração é fail-soft. Se ocorrer qualquer uma destas situações:
 
@@ -111,10 +118,10 @@ O dashboard só exibe `Criar texto de divulgação` quando a oportunidade princi
 Depois da geração:
 
 1. o texto aparece editável;
-2. a origem é identificada como `Copilot AF` quando veio do provider ou `Sugestão automática` quando veio do fallback;
+2. a origem é identificada como `Copilot AF` quando veio do provider ou `Sugestão automática` quando veio do geração determinística;
 3. a profissional é orientada a revisar antes de enviar;
 4. `PublicShareButton` reutiliza o link rastreável existente;
-5. no fallback do Web Share, texto e link são copiados juntos quando existe texto personalizado.
+5. no geração determinística do Web Share, texto e link são copiados juntos quando existe texto personalizado.
 
 O texto gerado nunca é enviado automaticamente.
 
@@ -156,4 +163,4 @@ Esta V1 não inclui:
 - leitura de dados individuais de clientes;
 - decisão financeira ou de permissão pelo LLM.
 
-A próxima expansão só deve ocorrer depois de observar uso, custo, qualidade do texto e impacto no funil real.
+A próxima expansão só deve ocorrer depois de observar uso, custo, qualidade do texto e impacto no funil real. A ativação da geração por LLM deve ter hipótese mensurável de ganho sobre o texto determinístico e ser avaliada pelo funil de compartilhamento -> visita -> agendamento, não pela quantidade de textos gerados.

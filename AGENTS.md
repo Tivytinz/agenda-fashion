@@ -813,9 +813,7 @@ SQL novo pertence a repositories, não a routes/controllers e, salvo legado em
 migração, não deve ser introduzido em services.
 
 Configuração obrigatória do runtime é validada centralmente no startup. Uma
-integração habilitada não pode iniciar com credenciais parciais. Em produção,
-`ASAAS_WEBHOOK_TOKEN` deve possuir no mínimo 32 caracteres para que falhas de
-autenticação financeira sejam detectadas antes de o processo ficar pronto.
+integração habilitada não pode iniciar com credenciais parciais.
 
 E-mail, Google Measurement, GA4 Data API, Meta, custos de mídia, TikTok,
 Pinterest, Copilot e WhatsApp seguem contratos condicionais no validador
@@ -851,10 +849,7 @@ Páginas públicas de aquisição incluídas no sitemap e tratadas como alvo de 
 
 Mudanças relevantes devem executar validações proporcionais ao risco. O Quality
 Gate atual cobre lint, build, testes frontend, migrations, Jest/PostgreSQL,
-audits, Playwright de UX e acceptance full-stack P0 com frontend buildado,
-Express e PostgreSQL reais. O `Security CI` complementa esse gate com CodeQL. Dependency Review só pode
-virar gate depois que o Dependency Graph externo do GitHub estiver habilitado e
-validado.
+audits e Playwright aplicável.
 
 Mudanças em caminhos públicos críticos de performance (home, catálogo, perfil,
 componentes/estilos relacionados e scripts de medição) também disparam o
@@ -911,3 +906,12 @@ alterar o contrato do produto.
 Documentação especializada deve concentrar detalhes de implementação e
 operação. Ao mudar uma regra permanente, atualizar os documentos afetados no
 mesmo conjunto de mudanças sempre que possível.
+
+
+### Copilot de divulgação: caminho determinístico por padrão
+
+- A oportunidade `COMPARTILHAR_PERFIL` é decidida pela inteligência de crescimento determinística no backend; não depende de ML nem de LLM.
+- O texto básico de divulgação usa geração determinística por padrão e retorna `fonte: "deterministic"`, sem consumo de tokens.
+- OpenAI permanece opcional e experimental, somente quando explicitamente habilitada; a presença da chave sozinha não torna o provider o caminho padrão.
+- Falha, saída inválida ou indisponibilidade do provider retorna à mesma geração determinística; `fallback` não é mais a identidade analítica do caminho normal.
+- O valor da geração por LLM deve ser medido por impacto incremental no funil compartilhamento → visita → agendamento iniciado → agendamento concluído, não por volume de textos gerados.
