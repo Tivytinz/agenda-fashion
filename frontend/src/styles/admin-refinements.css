@@ -496,3 +496,63 @@
     max-width: 100%;
   }
 }
+
+
+/* Aquisição: tráfego deve ser legível como diagnóstico, não como uma tabela crua. */
+.admin-acquisition-page .admin-traffic-panel {
+  display: grid;
+  gap: 16px;
+}
+
+.admin-acquisition-page .admin-traffic-summary {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.admin-acquisition-page .admin-traffic-summary .admin-command-metric {
+  min-height: 104px;
+}
+
+.admin-acquisition-page .admin-traffic-volume {
+  display: grid;
+  min-width: 92px;
+  gap: 5px;
+}
+
+.admin-acquisition-page .admin-traffic-volume > strong {
+  font-variant-numeric: tabular-nums;
+}
+
+.admin-acquisition-page .admin-traffic-volume > span {
+  display: block;
+  width: 100%;
+  height: 5px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--admin-soft);
+}
+
+.admin-acquisition-page .admin-traffic-volume i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--admin-accent);
+}
+
+.admin-acquisition-page .admin-traffic-panel .data-table td,
+.admin-acquisition-page .admin-traffic-panel .data-table th {
+  vertical-align: middle;
+}
+
+@media (max-width: 800px) {
+  .admin-acquisition-page .admin-traffic-summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 520px) {
+  .admin-acquisition-page .admin-traffic-summary {
+    grid-template-columns: 1fr;
+  }
+}
