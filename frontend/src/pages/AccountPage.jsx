@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { apiRequest } from "../api/client";
 import { useSession } from "../auth/SessionContext";
 import { BackLink } from "../components/BackLink";
@@ -39,7 +39,10 @@ function PasswordVisibilityIcon({ visible }) {
 
 export function AccountPage() {
   const session = useSession();
+  const location = useLocation();
   const navigate = useNavigate();
+  const professionalContext =
+    location.pathname === "/profissional/conta";
   const [user, setUser] = useState(null);
   const [profile, setProfile] = useState({ nome: "", whatsapp: "" });
   const [savedProfile, setSavedProfile] = useState({ nome: "", whatsapp: "" });
@@ -414,6 +417,21 @@ export function AccountPage() {
           <button className="button" disabled={!passwordValid || saving === "password"} type="submit">{saving === "password" ? "Alterando..." : "Alterar senha"}</button>
         </form>
       </section>
+      {professionalContext && (
+        <section className="panel account-professional-actions">
+          <div>
+            <p className="eyebrow">Equipe</p>
+            <h2>Convites recebidos</h2>
+            <p className="muted">
+              Revise convites e vínculos aguardando vaga sem sair da sua área profissional.
+            </p>
+          </div>
+          <Link className="button button-secondary button-small" to="/profissional/convites">
+            Ver convites
+          </Link>
+        </section>
+      )}
+
       <section className="panel account-whatsapp-preferences" id="notificacoes-whatsapp">
         <div className="account-preferences-heading">
           <p className="eyebrow">WhatsApp</p>
