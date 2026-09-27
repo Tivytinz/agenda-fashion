@@ -108,6 +108,64 @@ describe("plano e assinatura", () => {
     expect(screen.queryByRole("link", { name: "Assinar Autônoma" })).toBeNull();
   });
 
+  it("recomenda o próximo plano com capacidades vindas do backend", async () => {
+    apiRequest.mockResolvedValueOnce({
+      plano: { id: 2, slug: "autonoma", nome: "Autônoma", valor: 10 },
+      assinatura: {
+        id: 10,
+        status: "ACTIVE",
+        ativo: true,
+        forma_pagamento: "pix",
+        valor: 10
+      },
+      estado_assinatura: { codigo: "ATIVA" },
+      upgrade_contextual: {
+        negocio_id: 7,
+        disponivel: true,
+        plano_atual: {
+          id: 2,
+          slug: "autonoma",
+          nome: "Autônoma",
+          valor: 10
+        },
+        plano_destino: {
+          id: 3,
+          slug: "studio",
+          nome: "Studio",
+          valor: 20,
+          capacidade_agendamentos: 30,
+          limite_profissionais: 6,
+          limite_servicos: 15
+        }
+      },
+      uso: {
+        plano_nome: "Autônoma",
+        plano_slug: "autonoma",
+        utilizados: 4,
+        limite: 20,
+        percentual: 20,
+        status: "normal",
+        profissionais_utilizados: 1,
+        limite_profissionais: 3,
+        servicos_utilizados: 4,
+        limite_servicos: 10
+      },
+      pagamentos: []
+    });
+
+    renderPage();
+
+    expect(
+      await screen.findByRole("heading", { name: "Seu próximo plano" })
+    ).not.toBeNull();
+    expect(screen.getByText("30 agendamentos/mês")).not.toBeNull();
+    expect(screen.getByText("6 profissionais")).not.toBeNull();
+    expect(screen.getByText("15 serviços")).not.toBeNull();
+    expect(
+      screen.getByRole("link", { name: "Fazer upgrade para Studio" }).getAttribute("href")
+    ).toContain("upgrade_origem=assinatura");
+  });
+
   it("mostra cobrança e cancelamento apenas para assinatura ativa", async () => {
     apiRequest.mockResolvedValueOnce({
       plano: { id: 2, slug: "autonoma", nome: "Autônoma", valor: 49.9 },
