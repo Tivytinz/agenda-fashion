@@ -394,7 +394,61 @@ As integrações visíveis no backend incluem Asaas, WhatsApp Cloud API, Resend/
 
 Credenciais ficam no backend e a configuração habilitada deve ser completa. Providers externos não devem controlar autorização interna nem transformar respostas externas em fatos financeiros sem validação.
 
-## 13. Testes e evidência
+### 12.1 Contratos operacionais das integrações
+
+| Integração | Uso no backend | Garantias e falhas relevantes |
+| --- | --- | --- |
+| Asaas | clientes financeiros, cobranças PIX, assinaturas, pagamentos, refunds e webhooks | configuração valida combinação de endpoint oficial e tipo de chave; timeout padrão de 10 s; reutilização por `externalReference` é usada nos fluxos que exigem idempotência; remoção de assinatura trata 404 como remoção já efetivada |
+| Meta | Pixel/configuração pública e Conversions API | envio server-side depende de feature flag, credencial e consentimento; identificadores pessoais elegíveis são normalizados/hasheados; falha de CAPI é registrada sem derrubar o fluxo principal |
+| Google | GA4/Google Ads measurement e consentimento | IDs/labels são validados antes de exposição; Measurement Protocol depende de feature flag e secret; consentimento é persistido separadamente do simples carregamento da configuração |
+| WhatsApp/Meta Graph | mensagens transacionais, lembretes e webhook de status/conversa | envio depende de configuração/flags; webhook POST possui autenticação própria; falha de comunicação posterior ao commit não deve desfazer booking |
+| Resend | e-mail de redefinição de senha | envio depende de feature flag e configuração; timeout de 15 s; falha do provider vira erro controlado do domínio de e-mail |
+| Cloudinary | imagens de conta, negócio e serviços | credenciais permanecem somente no backend; uploads passam pelos limites/middlewares das rotas correspondentes |
+| OpenAI | Copilot de divulgação | `COPILOT_AI_ENABLED` + API key; Responses API; timeout configurável de 1–20 s; saída exige JSON Schema estrito; contexto é tratado como dado, não instrução; logs de falha não registram prompt nem conteúdo gerado |
+| TikTok Ads | OAuth administrativo e importação de campanhas/custos | requer autorização OAuth e advertiser configurado; timeout máximo de 30 s; paginação limitada a 100 páginas; falha externa é normalizada para 502/504 |
+| Pinterest Ads | OAuth administrativo e importação de campanhas/custos | requer autorização OAuth e ad account configurada; timeout máximo de 30 s; paginação limitada e analytics em lotes; falha externa é normalizada para 502/504 |
+
+### 12.2 Fronteira de confiança
+
+Tokens, API keys, client secrets e credenciais OAuth não pertencem ao frontend. Configurações públicas expõem apenas identificadores necessários ao navegador, como IDs de measurement/pixel quando habilitados. Callbacks OAuth de mídia usam estado de uso único e retornam ao domínio público configurado.
+
+Integrações de marketing são auxiliares ao produto: indisponibilidade de tracking não deve converter cadastro, checkout ou assinatura em falha quando o fato principal já foi persistido. Integrações financeiras são diferentes: confirmação de pagamento e entitlement dependem da evidência autenticada do provedor e das regras idempotentes do backend.
+
+## 13. Contrato de erros HTTP
+
+O middleware global `errorHandler` é a última fronteira de serialização de falhas da API. Erros operacionais conhecidos preservam status e mensagem; falhas não tratadas retornam resposta genérica e não expõem stack em produção.
+
+### 13.1 Envelope
+
+Erros operacionais usam o seguinte formato lógico:
+
+```json
+{
+  "erro": "Mensagem segura para o consumidor",
+  "codigo": "codigo_opcional",
+  "pendencias": [],
+  "request_id": "id-opcional-da-requisicao"
+}
+```
+
+`codigo` e `pendencias` só aparecem quando o erro fornece esses campos. `request_id` acompanha a resposta quando a requisição possui identificador, permitindo correlação com observabilidade sem expor detalhes internos.
+
+### 13.2 Classes e status
+
+| Tipo | HTTP | Uso |
+| --- | ---: | --- |
+| `ValidationError` | 400 | entrada inválida |
+| `UnauthorizedError` | 401 | autenticação ausente/inválida |
+| `ForbiddenError` | 403 | identidade válida sem autorização |
+| `NotFoundError` | 404 | recurso inexistente ou não visível no contexto autorizado |
+| `AppError` | configurável | erro operacional explícito do domínio |
+| erro inesperado | 500 | mensagem pública fixa `Erro interno do servidor.` |
+
+O handler também traduz violações conhecidas de integridade do PostgreSQL para 409. Atualmente isso inclui tentativa de remover serviço que possui histórico de agendamentos e inconsistência do vínculo profissional-negócio de um agendamento.
+
+Erros 4xx informados por componentes externos ao `AppError` também são tratados como operacionais. Erros não operacionais são registrados com rota, método, código e `request_id`; detalhes/stack só podem aparecer no log fora de produção. A resposta HTTP de erro inesperado nunca devolve esses detalhes.
+
+## 14. Testes e evidência
 
 O backend usa Jest, Supertest e PostgreSQL de teste. A suíte cobre, entre outros:
 
@@ -413,7 +467,7 @@ O backend usa Jest, Supertest e PostgreSQL de teste. A suíte cobre, entre outro
 
 Mudança de backend deve receber teste proporcional ao risco. Documentação isolada não altera comportamento executável e não exige criar teste funcional novo, mas links e fatos documentados devem ser revisados contra o código.
 
-## 14. Comandos operacionais
+## 15. Comandos operacionais
 
 ```bash
 npm test
@@ -427,7 +481,7 @@ npm run frontend:build
 
 Em produção, `npm start` executa migrations de deploy antes de iniciar o servidor. O worker dedicado usa `npm run worker`.
 
-## 15. Regra de manutenção
+## 16. Regra de manutenção
 
 Ao alterar o backend:
 
