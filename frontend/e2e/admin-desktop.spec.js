@@ -252,7 +252,7 @@ test("jornada e retenção mostram rótulos e explicações sem comprimir texto"
       };
     })).toEqual({ columns: 2, labelWraps: true, countFits: true });
 
-    const device = page.locator(".admin-journey-ranking article").last();
+    const device = page.locator(".admin-compatibility-list article").filter({ hasText: "mobile" }).first();
     await expect(device.getByText("mobile")).toBeVisible();
     await expect(device.getByText("35 sessões")).toBeVisible();
     await expect.poll(() => device.evaluate((row) => {
