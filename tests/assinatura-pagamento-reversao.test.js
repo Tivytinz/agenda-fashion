@@ -80,6 +80,7 @@ beforeEach(() => {
     .mockResolvedValue({
       id: 31
     });
+  mockClient.query.mockResolvedValue({ rows: [] });
   assinaturaWebhookRepository
     .buscarPlanoGratis
     .mockResolvedValue({
