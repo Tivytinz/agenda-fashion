@@ -139,6 +139,6 @@ A remoção de `eventos_produto` deve acontecer somente depois de:
 7. atualizar testes e documentação no mesmo patch de retirada;
 8. somente então definir `VITE_LEGACY_PRODUCT_EVENTS_ENABLED=false` no build do frontend.
 
-O gate é reversível e permanece habilitado por padrão. Desligá-lo interrompe apenas o `POST /eventos-produto`; `trackFirstPartyEvent(...)` continua sendo executado antes do gate, preservando o Analytics V2. A existência do gate não é evidência suficiente para retirar o legado.
+As leituras operacionais de Marketing do Admin (`resumo`, `campanhas` e `conversões`) já usam o Analytics V2 como fonte de telemetria, preservando o contrato existente do painel. A leitura do legado em `adminAnalyticsV2Repository` permanece deliberadamente apenas para reconciliação durante a janela de cutover; ela não deve ser convertida antes de a evidência de produção permitir encerrar a comparação.\n\nO gate é reversível e permanece habilitado por padrão. Desligá-lo interrompe apenas o `POST /eventos-produto`; `trackFirstPartyEvent(...)` continua sendo executado antes do gate, preservando o Analytics V2. A existência do gate não é evidência suficiente para retirar o legado.
 
 Até lá, os dois pipelines coexistem deliberadamente.
