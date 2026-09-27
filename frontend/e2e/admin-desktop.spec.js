@@ -266,6 +266,9 @@ test("jornada e retenção mostram rótulos e explicações sem comprimir texto"
     })).toBe(true);
     await expectNoHorizontalOverflow(page);
 
+    if (width < 901) {
+      await page.getByRole("button", { name: "Menu", exact: true }).click();
+    }
     const moduleNavigation = page.getByRole("navigation", {
       name: width < 901
         ? "Navegação mobile da administração"
