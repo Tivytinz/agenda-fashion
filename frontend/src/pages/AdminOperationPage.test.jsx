@@ -153,7 +153,7 @@ describe("Admin Wave 1 - operação administrativa", () => {
     ).not.toBeNull();
 
     expect(
-      screen.getByText("30 negócios encontrados na base.")
+      screen.getByText((_, element) => element?.classList?.contains("admin-operation-count") && element.textContent === "30 negócios encontrados na base.")
     ).not.toBeNull();
 
     expect(
