@@ -188,6 +188,68 @@ describe(
     );
 
     test(
+      "prioriza o plano pago já selecionado quando ainda não existe assinatura ativa",
+      async () => {
+        assinaturaRepository
+          .buscarNegocioDono
+          .mockResolvedValue({
+            id: 7,
+            plano_id: 3
+          });
+        assinaturaRepository
+          .buscarAssinaturaAtivaPorNegocio
+          .mockResolvedValue(null);
+        assinaturaRepository
+          .buscarAssinaturaPendentePorNegocio
+          .mockResolvedValue(null);
+        assinaturaRepository
+          .buscarUltimaAssinaturaPorNegocio
+          .mockResolvedValue(null);
+        buscarUsoPlano.mockResolvedValue({
+          plano_id: 1,
+          plano_nome: "Grátis",
+          plano_slug: "inicial",
+          valor: 0,
+          plano_selecionado_id: 3,
+          plano_selecionado_nome: "Studio",
+          plano_selecionado_slug: "studio",
+          plano_selecionado_valor: 20,
+          utilizados: 3,
+          capacidade_agendamentos: 10,
+          limite_profissionais: 1,
+          limite_servicos: 5,
+          status: "normal"
+        });
+
+        const resultado =
+          await buscarMinhaAssinatura({
+            usuarioId: 10
+          });
+
+        expect(resultado.plano)
+          .toMatchObject({
+            id: 3,
+            slug: "studio"
+          });
+        expect(resultado.estado_assinatura)
+          .toMatchObject({
+            codigo: "GRATUITA"
+          });
+        expect(resultado.upgrade_contextual)
+          .toMatchObject({
+            disponivel: true,
+            plano_atual: {
+              slug: "inicial"
+            },
+            plano_destino: {
+              slug: "studio",
+              valor: 20
+            }
+          });
+      }
+    );
+
+    test(
       "não promove upgrade contextual que reduziria valor de contrato legado",
       async () => {
         assinaturaRepository
