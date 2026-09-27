@@ -18,7 +18,7 @@ vi.mock("../auth/SessionContext", () => ({
 
 const PLANS = [
   { id: 1, slug: "gratis", nome: "Grátis", valor: 0 },
-  { id: 2, slug: "autonoma", nome: "Autônoma", valor: 49.9 }
+  { id: 2, slug: "autonoma", nome: "Autônoma", valor: 10 }
 ];
 
 function renderPage() {
