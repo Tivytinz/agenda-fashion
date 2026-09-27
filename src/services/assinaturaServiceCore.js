@@ -16,10 +16,14 @@ const pagamentoService = require(
 const contaService = require(
   "./assinaturaContaService"
 );
+const reativacaoService = require(
+  "./assinaturaReativacaoService"
+);
 
 module.exports = {
   ...registroService,
   ...webhookService,
   ...pagamentoService,
   ...contaService,
+  ...reativacaoService,
 };
