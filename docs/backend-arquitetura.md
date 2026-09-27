@@ -317,6 +317,20 @@ O inventário de rotas acima indica superfície e autorização. Os contratos ab
 
 **Descoberta e experiência autenticada.** Busca pública aceita filtros geográficos/categoria e paginação. O perfil HTML injeta metadados sociais; recurso inexistente retorna HTML 404 não indexável e slug não canônico redireciona preservando query segura. Favoritos e notificações sempre derivam o usuário da sessão. Dashboards mantêm visões distintas para profissional e dona; o Copilot recebe período/canal, enquanto dados e contexto são resolvidos no backend.
 
+### 5.10 Contratos complementares e fechamento da superfície HTTP
+
+**Agenda configurável.** O contexto é selecionado pelo header `X-AF-Contexto`, com fallback `dono`; o service continua responsável por validar o vínculo correspondente. Salvamento encaminha duração padrão, intervalo, antecedências de agendamento/cancelamento e horários.
+
+**Analytics e consentimento.** Os coletores legado e V2 respondem `202`, aceitam autenticação opcional e delegam sanitização/validação ao service. Consentimento Google e Meta exige booleano explícito; o backend sanitiza os identificadores auxiliares antes de persistir e responde com `salvo` e o estado de consentimento. Configuração pública não expõe secrets.
+
+**Catálogo e SEO.** Catálogo local JSON usa categoria/localidade, página e limite. A versão HTML redireciona para o caminho canônico quando necessário, injeta metadados no shell React e retorna 404 HTML com `noindex,follow` quando não há oferta publicada. Sitemap usa cache público de uma hora e robots de um dia.
+
+**CEP e encerramento.** Consulta de CEP delega normalização/consulta ao service. Encerramento de negócio, desativação e exclusão de conta derivam a identidade exclusivamente da sessão. Reservas de cliente desativado continuam acessíveis/canceláveis somente por capability específica, recebida por header/query na consulta e body/query no cancelamento.
+
+**Webhooks.** Asaas exige `id` e `event`; payload válido é enfileirado e a resposta informa `recebido`, `duplicado` e `enfileirado`. Processamento pesado ocorre fora do request. A verificação GET do WhatsApp compara o token de verificação em tempo constante e devolve o challenge somente para `subscribe` válido; o POST processa o payload autenticado e responde `recebido: true` junto ao resultado seguro.
+
+**Sessão e planos.** `GET /minha-sessao` sempre usa `Cache-Control: no-store` e devolve o contexto resolvido pelo backend. A listagem JSON de planos retorna `{ planos }`; `GET /meu-plano` resolve o entitlement a partir da conta autenticada, sem aceitar plano/preço pelo cliente.
+
 ## 6. Persistência e migrations
 
 O PostgreSQL é acessado por `pg`. O histórico atual vai de `001_usuarios.sql` até `105_admin_auditoria_revisoes.sql`, com numeração histórica não necessariamente contínua.
@@ -521,6 +535,16 @@ O backend usa Jest, Supertest e PostgreSQL de teste. A suíte cobre, entre outro
 - administração e auditoria.
 
 Mudança de backend deve receber teste proporcional ao risco. Documentação isolada não altera comportamento executável e não exige criar teste funcional novo, mas links e fatos documentados devem ser revisados contra o código.
+
+### 14.1 Auditoria de cobertura da documentação
+
+Na revisão de fechamento desta versão, o repositório contém **25 arquivos de rotas, 46 controllers, 118 services, 81 repositories, 103 migrations SQL e 308 arquivos de teste Jest**. Esses números são inventário do snapshot revisado, não metas arquiteturais.
+
+A documentação é intencionalmente organizada por contrato e domínio, e não como cópia arquivo a arquivo. O inventário HTTP cobre os módulos montados por `src/routes/index.js`; as seções de contratos registram as fronteiras observáveis dos controllers e os casos de maior risco; persistência descreve ownership lógico e invariantes em vez de repetir cada query; workers e integrações possuem catálogo operacional próprio.
+
+Para manutenção, uma mudança é considerada documentalmente relevante quando altera rota/método, autenticação/autorização, campos aceitos, envelope/status observável, regra transacional, tabela/invariante, integração, worker, entitlement financeiro ou comportamento de erro. Helpers internos e refactors sem mudança contratual não exigem uma seção por arquivo.
+
+A auditoria não substitui testes nem transforma a documentação em fonte superior ao runtime. Em divergência futura, código/migrations e testes continuam prevalecendo conforme `AGENTS.md`, e este documento deve ser atualizado no mesmo patch da mudança durável.
 
 ## 15. Comandos operacionais
 
