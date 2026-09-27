@@ -441,10 +441,10 @@ export function AdminSaasHealthPage() {
     >
       <header className="admin-page-header">
         <div>
-          <p className="eyebrow">Ativação</p>
-          <h1>Ativação profissional</h1>
+          <p className="eyebrow">Plataforma</p>
+          <h1>Saúde do SaaS</h1>
           <p>
-            Identifique onde cada profissional está travando, priorize a próxima ação e acompanhe o avanço até publicação e primeiro agendamento.
+            Acompanhe filas e workers, identifique bloqueios de ativação profissional e priorize a próxima ação.
           </p>
         </div>
       </header>

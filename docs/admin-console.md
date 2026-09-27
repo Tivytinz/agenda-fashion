@@ -31,14 +31,22 @@ não fecha requisito de segurança, dinheiro, permissão ou integridade.
 
 ## Arquitetura de informação atual
 
-A navegação principal do Admin 2.0 é definida pelo frontend e hoje possui seis módulos:
+A navegação principal do Admin é definida por uma única lista compartilhada
+entre o sidebar desktop e o painel de navegação mobile. Os oito destinos são
+agrupados por tarefa:
 
-- `/admin` — **Visão geral**;
-- `/admin/aquisicao` — **Aquisição**;
-- `/admin/jornada` — **Jornada**;
-- `/admin/retencao` — **Retenção**;
-- `/admin/receita` — **Receita**;
-- `/admin/operacao` — **Operação**.
+- **Início:** `/admin` — Visão geral;
+- **Crescimento:** `/admin/trafego-pago` — Marketing,
+  `/admin/aquisicao` — Aquisição, `/admin/jornada` — Jornada,
+  `/admin/retencao` — Retenção e `/admin/receita` — Receita;
+- **Plataforma:** `/admin/operacao` — Operação e
+  `/admin/saude` — Saúde do SaaS.
+
+Marketing cobre canais, campanhas, custos e integrações; Aquisição mostra o
+resultado das origens no funil de profissionais. Saúde do SaaS reúne diagnóstico
+de ativação com filas e workers. No celular, o botão Menu abre a lista completa,
+sem uma segunda navegação fixa sobre o conteúdo. As rotas filhas mantêm o grupo
+principal selecionado.
 
 `/admin/auditoria` é uma consulta especializada do superadmin para rastrear
 tentativas e resultados das ações críticas. O contrato e os limites desta
@@ -46,11 +54,9 @@ leitura ficam em `admin-wave-2-rf41-auditoria.md`.
 Revisões humanas das pendências vencidas preservam o resultado HTTP desconhecido;
 o contrato está em `admin-wave-3-rf41-reconciliacao.md`.
 
-Existem também rotas especializadas e de compatibilidade que continuam úteis sem precisar ocupar o primeiro nível da navegação principal:
+As rotas especializadas permanecem acessíveis dentro do módulo correspondente:
 
-- `/admin/trafego-pago` — análise e infraestrutura de Marketing;
 - `/admin/trafego-pago/custos` — custos, integrações e sincronização de mídia;
-- `/admin/saude` — diagnóstico operacional de ativação e perfis;
 - `/admin/whatsapp` — WhatsApp e automações;
 - `/conta` — conta da pessoa autenticada dentro do contexto adequado.
 

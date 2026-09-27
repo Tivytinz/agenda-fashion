@@ -169,6 +169,9 @@ test("shell do admin mantém navegação durante rolagem e privacidade fora dos 
 
   const sidebar = page.locator(".admin-sidebar");
   const topbar = page.locator(".admin-topbar");
+  await expect(sidebar.locator(".admin-nav-link")).toHaveCount(8);
+  await expect(sidebar.getByRole("link", { name: "Marketing" })).toBeVisible();
+  await expect(sidebar.getByRole("link", { name: "Saúde do SaaS" })).toBeVisible();
   await expect(sidebar).toBeInViewport();
   await expect(topbar).toBeInViewport();
   await expect.poll(async () => ({
@@ -263,6 +266,9 @@ test("jornada e retenção mostram rótulos e explicações sem comprimir texto"
     })).toBe(true);
     await expectNoHorizontalOverflow(page);
 
+    if (width < 901) {
+      await page.getByRole("button", { name: "Menu", exact: true }).click();
+    }
     const moduleNavigation = page.getByRole("navigation", {
       name: width < 901
         ? "Navegação mobile da administração"

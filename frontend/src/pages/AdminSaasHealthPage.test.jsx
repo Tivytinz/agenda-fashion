@@ -148,7 +148,7 @@ describe("ativação profissional no admin", () => {
     renderPage();
 
     expect(
-      await screen.findByRole("heading", { name: "Ativação profissional" })
+      await screen.findByRole("heading", { name: "Saúde do SaaS" })
     ).not.toBeNull();
     expect(screen.getByText("Ana Souza")).not.toBeNull();
     expect(screen.getByText("Studio Ana")).not.toBeNull();

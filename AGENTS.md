@@ -508,7 +508,12 @@ A identidade visual do AF é rosa, branca e grafite, acolhedora e ligada ao
 universo de beleza. A marca deve permanecer reconhecível, mas cada contexto pode
 ter densidade e composição próprias.
 
-O Admin funciona como um Command Center operacional com design system próprio.
+O Admin funciona como um centro de comando operacional com design system próprio.
+Seu shell usa uma navegação textual única com oito módulos, agrupados em Início,
+Crescimento e Plataforma. Marketing e Saúde do SaaS ficam visíveis no sidebar;
+no celular, a mesma lista é aberta por um botão Menu, sem barra inferior fixa.
+O contexto administrativo usa superfícies claras, texto de alto contraste e
+cor de destaque com moderação. Cores de estado só representam estados reais.
 Sua cobertura possui baseline independente em
 `docs/admin-requisitos-matriz.md`; o percentual do Admin não deve ser inferido
 a partir da baseline funcional geral `67/67`. Requisitos administrativos de

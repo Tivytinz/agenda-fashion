@@ -282,29 +282,18 @@ test("admin e consentimento permanecem navegáveis no celular", async ({ page })
   await expect(page.getByText("Paid Search")).toBeVisible();
   await expect(page.getByText("/para-profissionais")).toBeVisible();
 
+  const menuButton = page.getByRole("button", { name: "Menu", exact: true });
+  await expect(menuButton).toBeVisible();
+  await menuButton.click();
   const navigation = page.getByRole("navigation", {
     name: "Navegação mobile da administração"
   });
-  await expect(navigation.getByRole("link", { name: /Visão geral/ }))
-    .toBeVisible();
-  await expect(navigation.getByRole("link", { name: /Aquisição/ }))
-    .toBeVisible();
-  await expect(navigation.getByRole("link", { name: /Jornada/ }))
-    .toBeVisible();
-  await expect(navigation.getByRole("link", { name: /Retenção/ }))
-    .toBeVisible();
-  const moreAdmin = navigation.getByRole("button", {
-    name: /mais opções da administração/
-  });
-  await expect(moreAdmin).toBeVisible();
-  await moreAdmin.click();
-  await expect(navigation.getByRole("link", { name: /Operação/ }))
-    .toBeVisible();
-  await expect(navigation.getByRole("link", { name: "Ver produto" }))
-    .toBeVisible();
-  await expect(navigation.getByRole("link", { name: /Minha conta/ }))
-    .toHaveCount(0);
-  await moreAdmin.click();
+  await expect(navigation.locator(".admin-nav-link")).toHaveCount(8);
+  await expect(navigation.getByRole("link", { name: "Marketing" })).toBeVisible();
+  await expect(navigation.getByRole("link", { name: "Saúde do SaaS" })).toBeVisible();
+  await expect(navigation.getByRole("link", { name: "Ver produto" })).toHaveCount(0);
+  await page.keyboard.press("Escape");
+  await expect(menuButton).toHaveAttribute("aria-expanded", "false");
 
   const consent = page.getByRole("complementary", {
     name: "Preferências de privacidade"
@@ -323,11 +312,10 @@ test("admin e consentimento permanecem navegáveis no celular", async ({ page })
   await expect(deny).toBeVisible();
   await expectNoHorizontalOverflow(page);
 
-  const [consentBox, allowBox, denyBox, navigationBox] = await Promise.all([
+  const [consentBox, allowBox, denyBox] = await Promise.all([
     consent.boundingBox(),
     allow.boundingBox(),
-    deny.boundingBox(),
-    navigation.boundingBox()
+    deny.boundingBox()
   ]);
 
   expect(consentBox.x).toBeGreaterThanOrEqual(0);
@@ -337,7 +325,7 @@ test("admin e consentimento permanecem navegáveis no celular", async ({ page })
     .toBeLessThanOrEqual(page.viewportSize().width);
   expect(denyBox.x).toBeGreaterThanOrEqual(0);
   expect(consentBox.y + consentBox.height)
-    .toBeLessThanOrEqual(navigationBox.y);
+    .toBeLessThanOrEqual(page.viewportSize().height);
 
   await allow.click();
   await expect(consent).toBeHidden();

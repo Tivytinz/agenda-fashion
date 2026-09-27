@@ -1,21 +1,15 @@
 // @vitest-environment jsdom
 
-import {
-  cleanup,
-  render,
-  screen
-} from "@testing-library/react";
+import { cleanup, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, describe, expect, it } from "vitest";
 import { AdminLayout } from "./AdminLayout";
 
-function renderAdmin(pathname = "/admin/aquisicao") {
+function renderAdmin(path = "/admin/aquisicao") {
   return render(
-    <MemoryRouter initialEntries={[pathname]}>
-      <AdminLayout>
-        <h1>Conteúdo administrativo</h1>
-      </AdminLayout>
+    <MemoryRouter initialEntries={[path]}>
+      <AdminLayout><h1>Conteúdo administrativo</h1></AdminLayout>
     </MemoryRouter>
   );
 }
@@ -23,144 +17,92 @@ function renderAdmin(pathname = "/admin/aquisicao") {
 afterEach(cleanup);
 
 describe("AdminShell", () => {
-  it("usa shell e classes próprias sem depender do WorkspaceLayout", () => {
+  it("mantém shell independente, atalhos de acesso e limpeza do contexto", () => {
     const view = renderAdmin();
-
     expect(document.querySelector(".admin-shell")).not.toBeNull();
     expect(document.querySelector(".workspace-shell")).toBeNull();
-    expect(document.querySelector(".workspace-page")).toBeNull();
-    expect(document.querySelector(".workspace-heading")).toBeNull();
-    expect(
-      document.querySelector("[data-frontend-context='admin']")
-    ).not.toBeNull();
-    expect(
-      document.documentElement.classList.contains("admin-context-active")
-    ).toBe(true);
-    expect(
-      screen.getByRole("complementary", {
-        name: "Administração do Agenda Fashion"
-      })
-    ).not.toBeNull();
+    expect(document.documentElement.classList.contains("admin-context-active"))
+      .toBe(true);
+    expect(screen.getByRole("complementary", {
+      name: "Administração do Agenda Fashion"
+    })).not.toBeNull();
+    expect(screen.getByRole("link", { name: "Pular para o conteúdo" })
+      .getAttribute("href")).toBe("#admin-main");
+    expect(document.querySelector("#admin-main")?.getAttribute("tabindex"))
+      .toBe("-1");
 
     view.unmount();
-
-    expect(
-      document.documentElement.classList.contains("admin-context-active")
-    ).toBe(false);
+    expect(document.documentElement.classList.contains("admin-context-active"))
+      .toBe(false);
   });
 
-  it("mantém a topbar como contexto global sem repetir o módulo atual", () => {
-    renderAdmin("/admin/receita");
-
-    const topbar = document.querySelector(".admin-topbar");
-
-    expect(topbar).not.toBeNull();
-    expect(topbar.textContent).toContain("Agenda Fashion");
-    expect(topbar.textContent).toContain("Command Center");
-    expect(topbar.textContent).not.toContain("Receita");
-  });
-
-  it("mantém os módulos principais no desktop e na navegação mobile", () => {
-    renderAdmin("/admin/aquisicao?periodo=30d");
-
-    const acquisitionLinks = screen.getAllByRole("link", {
-      name: /Aquisição/
+  it("mostra oito links agrupados no sidebar e seleciona subáreas", () => {
+    renderAdmin("/admin/trafego-pago/custos?periodo=7");
+    const navigation = screen.getByRole("navigation", {
+      name: "Módulos administrativos"
     });
 
-    expect(acquisitionLinks).toHaveLength(2);
-    expect(
-      screen.getAllByRole("link", { name: /Jornada/ })
-    ).toHaveLength(2);
-    expect(
-      screen.getAllByRole("link", { name: /Retenção/ })
-    ).toHaveLength(2);
-
-    const mobileNavigation = screen.getByRole("navigation", {
-      name: "Navegação mobile da administração"
-    });
-
-    expect(
-      mobileNavigation.querySelectorAll(".admin-mobile-link")
-    ).toHaveLength(4);
-    expect(
-      acquisitionLinks.every((link) => link.classList.contains("active"))
-    ).toBe(true);
+    expect(navigation.querySelectorAll(".admin-nav-link")).toHaveLength(8);
+    expect(screen.getByRole("heading", { name: "Crescimento" })).not.toBeNull();
+    expect(navigation.querySelector("a[href='/admin/trafego-pago?periodo=7']")
+      .classList.contains("active")).toBe(true);
+    expect(navigation.querySelector("a[href='/admin/saude']")?.textContent)
+      .toBe("Saúde do SaaS");
+    expect(navigation.querySelector("a[href='/admin/operacao']"))
+      .not.toBeNull();
   });
 
-  it("abre os módulos secundários pelo botão Mais", async () => {
+  it("mantém Saúde e Operação selecionadas nas rotas especializadas", () => {
+    const view = renderAdmin("/admin/whatsapp");
+    expect(document.querySelector(".admin-sidebar a[href='/admin/saude']")
+      .classList.contains("active")).toBe(true);
+    view.unmount();
+
+    renderAdmin("/admin/auditoria");
+    expect(document.querySelector(".admin-sidebar a[href='/admin/operacao']")
+      .classList.contains("active")).toBe(true);
+  });
+
+  it("abre no celular a mesma navegação e fecha pelo botão", async () => {
     const user = userEvent.setup();
     renderAdmin();
 
-    expect(screen.queryByRole("link", { name: /Receita/ })).not.toBeNull();
-
-    const mobileNavigation = screen.getByRole("navigation", {
+    await user.click(screen.getByRole("button", { name: "Menu" }));
+    const navigation = screen.getByRole("navigation", {
       name: "Navegação mobile da administração"
     });
-    expect(
-      mobileNavigation.querySelector("a[href='/admin/receita']")
-    ).toBeNull();
+    expect(navigation.querySelectorAll(".admin-nav-link")).toHaveLength(8);
+    expect(screen.getByRole("button", { name: "Menu" })
+      .getAttribute("aria-expanded")).toBe("true");
+    expect(navigation.querySelector("a[href='/admin/saude']"))
+      .not.toBeNull();
 
-    await user.click(
-      screen.getByRole("button", {
-        name: "Abrir mais opções da administração"
-      })
-    );
-
-    expect(
-      mobileNavigation.querySelector("a[href='/admin/receita']")
-    ).not.toBeNull();
-    expect(
-      mobileNavigation.querySelector("a[href='/admin/operacao']")
-    ).not.toBeNull();
-    expect(
-      mobileNavigation.querySelector("a[href='/']")?.textContent
-    ).toContain("Ver produto");
-    expect(screen.getByRole("button", {
-      name: "Fechar mais opções da administração"
-    }).getAttribute("aria-controls")).not.toBeNull();
-
-    await user.keyboard("{Escape}");
-    expect(screen.getByRole("button", {
-      name: "Abrir mais opções da administração"
-    }).hasAttribute("aria-controls")).toBe(false);
-    expect(mobileNavigation.querySelector("a[href='/']")).toBeNull();
+    await user.click(screen.getByRole("button", { name: "Fechar menu" }));
+    expect(screen.getByRole("button", { name: "Menu" })
+      .getAttribute("aria-expanded")).toBe("false");
   });
 
-  it("preserva apenas períodos válidos entre módulos analíticos", async () => {
+  it("propaga só períodos válidos para módulos que compartilham o recorte", async () => {
     const user = userEvent.setup();
     renderAdmin("/admin/jornada?periodo=7&aba=ignorada");
 
-    expect(screen.getByRole("link", {
-      name: "Agenda Fashion Admin, visão geral"
-    }).getAttribute("href")).toBe("/admin?periodo=7");
-    expect(document.querySelector(".admin-nav-link[href='/admin/retencao?periodo=7']"))
+    const desktop = screen.getByRole("navigation", {
+      name: "Módulos administrativos"
+    });
+    expect(desktop.querySelector("a[href='/admin/retencao?periodo=7']"))
       .not.toBeNull();
-    expect(document.querySelector(".admin-nav-link[href='/admin/operacao']"))
+    expect(desktop.querySelector("a[href='/admin/trafego-pago?periodo=7']"))
+      .not.toBeNull();
+    expect(desktop.querySelector("a[href='/admin/operacao']"))
       .not.toBeNull();
 
-    await user.click(screen.getByRole("button", {
-      name: "Abrir mais opções da administração"
-    }));
-    expect(document.querySelector(".admin-mobile-menu-link[href='/admin/receita?periodo=7']"))
+    await user.click(screen.getByRole("button", { name: "Menu" }));
+    const mobile = screen.getByRole("navigation", {
+      name: "Navegação mobile da administração"
+    });
+    expect(mobile.querySelector("a[href='/admin/receita?periodo=7']"))
       .not.toBeNull();
-    expect(document.querySelector(".admin-mobile-menu-link[href='/admin/operacao']"))
-      .not.toBeNull();
-  });
-
-  it("não propaga período inválido nem filtros operacionais", async () => {
-    const user = userEvent.setup();
-    const view = renderAdmin("/admin/aquisicao?periodo=30d");
-    expect(document.querySelector(".admin-nav-link[href='/admin/retencao']"))
-      .not.toBeNull();
-    view.unmount();
-
-    renderAdmin("/admin/operacao?aba=usuarios&busca=ana");
-    expect(document.querySelector(".admin-nav-link[href='/admin/jornada']"))
-      .not.toBeNull();
-    await user.click(screen.getByRole("button", {
-      name: "Abrir mais opções da administração"
-    }));
-    expect(document.querySelector(".admin-mobile-menu-link[href='/admin/receita']"))
+    expect(mobile.querySelector("a[href='/admin/saude']"))
       .not.toBeNull();
   });
 });

@@ -19,6 +19,7 @@ const WHATSAPP_VALUES = new Set(WHATSAPP_PERIODS.map(([value]) => value));
 const ANALYTICS_NAV_PATHS = new Set([
   "/admin",
   "/admin/aquisicao",
+  "/admin/trafego-pago",
   "/admin/jornada",
   "/admin/retencao",
   "/admin/receita"

@@ -1,152 +1,149 @@
-import {
-  useEffect,
-  useId,
-  useLayoutEffect,
-  useRef,
-  useState
-} from "react";
-import {
-  Link,
-  NavLink,
-  Outlet,
-  useLocation
-} from "react-router-dom";
+import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
+import { Link, Outlet, useLocation } from "react-router-dom";
 import afLogoTransparent from "../assets/brand/performance/af-logo-96.webp";
 import { adminNavigationPath } from "../utils/adminPeriods";
 import { AppIcon } from "./AppIcon";
 
-function isAdminRouteActive(pathname, route) {
-  if (route === "/admin") return pathname === route;
-  return pathname === route || pathname.startsWith(`${route}/`);
-}
-
-function AdminNavLinks({ links, mobile = false, menu = false, onNavigate }) {
-  const { search } = useLocation();
-
-  return links.map(({ path, label, icon }) => (
-    
-    <NavLink
-      className={({ isActive }) => {
-        const base = menu
-          ? "admin-mobile-menu-link"
-          : mobile
-            ? "admin-mobile-link"
-            : "admin-nav-link";
-
-        return isActive ? `${base} active` : base;
-      }}
-      end={path === "/admin"}
-      key={path}
-      onClick={onNavigate}
-      to={adminNavigationPath(path, search)}
-    >
-      <span aria-hidden="true" className="admin-nav-icon">
-        <AppIcon name={icon} />
-      </span>
-      <small>{label}</small>
-    </NavLink>
-  ));
-}
-
-export function AdminMobileNavigation({ links = [] }) {
-  const { pathname } = useLocation();
-  const [menuOpen, setMenuOpen] = useState(false);
-  const menuId = useId();
-  const moreRef = useRef(null);
-  const primary = links.filter(({ mobile }) => mobile === "primary");
-  const secondary = links.filter(({ mobile }) => mobile !== "primary");
-  const secondaryActive = secondary.some(({ path }) =>
-    isAdminRouteActive(pathname, path)
-  );
-
-  useEffect(() => {
-    setMenuOpen(false);
-  }, [pathname]);
-
-  useEffect(() => {
-    if (!menuOpen) return undefined;
-
-    function closeOnOutsideClick(event) {
-      if (!moreRef.current?.contains(event.target)) {
-        setMenuOpen(false);
-      }
-    }
-
-    document.addEventListener("pointerdown", closeOnOutsideClick);
-    return () => document.removeEventListener("pointerdown", closeOnOutsideClick);
-  }, [menuOpen]);
-
-  function closeOnEscape(event) {
-    if (event.key !== "Escape" || !menuOpen) return;
-    setMenuOpen(false);
-    moreRef.current?.querySelector("button")?.focus();
+function isAdminSectionActive(pathname, path) {
+  if (path === "/admin") return pathname === path;
+  if (path === "/admin/operacao" && pathname.startsWith("/admin/auditoria")) {
+    return true;
   }
+  if (path === "/admin/saude" && pathname.startsWith("/admin/whatsapp")) {
+    return true;
+  }
+  return pathname === path || pathname.startsWith(`${path}/`);
+}
+
+function AdminNavigation({ groups, mobile = false, onNavigate }) {
+  const { pathname, search } = useLocation();
+  const prefix = mobile ? "admin-mobile" : "admin-desktop";
 
   return (
-    <nav
-      aria-label="Navegação mobile da administração"
-      className="admin-mobile-nav"
+    <nav aria-label={mobile
+      ? "Navegação mobile da administração"
+      : "Módulos administrativos"}
     >
-      <AdminNavLinks links={primary} mobile />
-
-      {secondary.length > 0 && (
-        <div
-          className={secondaryActive
-            ? "admin-mobile-more active"
-            : "admin-mobile-more"}
-          onKeyDown={closeOnEscape}
-          ref={moreRef}
-        >
-          <button
-            aria-controls={menuOpen ? menuId : undefined}
-            aria-expanded={menuOpen}
-            aria-label={menuOpen
-              ? "Fechar mais opções da administração"
-              : "Abrir mais opções da administração"}
-            onClick={() => setMenuOpen((open) => !open)}
-            type="button"
-          >
-            <span aria-hidden="true" className="admin-nav-icon">
-              <AppIcon name="more" />
-            </span>
-            <small>Mais</small>
-          </button>
-
-          {menuOpen && (
-            <div
-              aria-label="Mais opções da administração"
-              className="admin-mobile-menu"
-              id={menuId}
-            >
-              <AdminNavLinks
-                links={secondary}
-                menu
-                onNavigate={() => setMenuOpen(false)}
-              />
+      {groups.map(({ label, links }, index) => (
+        <div className="admin-nav-section" key={label}>
+          <h2 className="admin-nav-caption" id={`${prefix}-group-${index}`}>
+            {label}
+          </h2>
+          <div aria-labelledby={`${prefix}-group-${index}`} className="admin-nav-list">
+            {links.map(({ path, label: linkLabel }) => (
               <Link
-                className="admin-mobile-menu-link admin-mobile-menu-product"
-                onClick={() => setMenuOpen(false)}
-                to="/"
+                aria-current={pathname === path ? "page" : undefined}
+                className={isAdminSectionActive(pathname, path)
+                  ? "admin-nav-link active"
+                  : "admin-nav-link"}
+                key={path}
+                onClick={onNavigate}
+                to={adminNavigationPath(path, search)}
               >
-                <span aria-hidden="true" className="admin-nav-icon">
-                  <AppIcon name="home" />
-                </span>
-                <small>Ver produto</small>
+                {linkLabel}
               </Link>
-            </div>
-          )}
+            ))}
+          </div>
         </div>
-      )}
+      ))}
     </nav>
   );
 }
 
-export function AdminShell({ children, links = [] }) {
+export function AdminMobileNavigation({ groups = [] }) {
+  const { pathname } = useLocation();
+  const [open, setOpen] = useState(false);
+  const dialogId = useId();
+  const dialogRef = useRef(null);
+
+  useEffect(() => {
+    setOpen(false);
+  }, [pathname]);
+
+  useEffect(() => {
+    if (typeof window.matchMedia !== "function") return undefined;
+    const mobileViewport = window.matchMedia("(max-width: 900px)");
+    const closeOnDesktop = () => {
+      if (!mobileViewport.matches) setOpen(false);
+    };
+
+    mobileViewport.addEventListener("change", closeOnDesktop);
+    return () => mobileViewport.removeEventListener("change", closeOnDesktop);
+  }, []);
+
+  useEffect(() => {
+    const dialog = dialogRef.current;
+    if (!dialog) return;
+
+    if (open && !dialog.open) {
+      if (typeof dialog.showModal === "function") dialog.showModal();
+      else dialog.setAttribute("open", "");
+    } else if (!open && dialog.open) {
+      if (typeof dialog.close === "function") dialog.close();
+      else dialog.removeAttribute("open");
+    }
+  }, [open]);
+
+  return (
+    <>
+      <button
+        aria-controls={dialogId}
+        aria-expanded={open}
+        className="admin-menu-button"
+        onClick={() => setOpen(true)}
+        type="button"
+      >
+        <span aria-hidden="true" className="admin-menu-mark" />
+        Menu
+      </button>
+
+      <dialog
+        aria-label="Menu da administração"
+        className="admin-mobile-drawer"
+        id={dialogId}
+        onCancel={() => setOpen(false)}
+        onClick={(event) => {
+          if (event.target !== event.currentTarget) return;
+          const { left, right, top, bottom } = event.currentTarget.getBoundingClientRect();
+          if (event.clientX < left || event.clientX > right
+            || event.clientY < top || event.clientY > bottom) setOpen(false);
+        }}
+        onClose={() => setOpen(false)}
+        ref={dialogRef}
+      >
+        <div className="admin-mobile-drawer-header">
+          <strong>Administração</strong>
+          <button
+            aria-label="Fechar menu"
+            className="admin-menu-close"
+            onClick={() => setOpen(false)}
+            type="button"
+          >
+            Fechar
+          </button>
+        </div>
+        <AdminNavigation
+          groups={groups}
+          mobile
+          onNavigate={() => setOpen(false)}
+        />
+        <Link
+          className="admin-product-link"
+          onClick={() => setOpen(false)}
+          to="/"
+        >
+          Ver produto
+        </Link>
+      </dialog>
+    </>
+  );
+}
+
+export function AdminShell({ children, groups = [] }) {
   const { search } = useLocation();
 
   useLayoutEffect(() => {
     document.documentElement.classList.add("admin-context-active");
-
     return () => {
       document.documentElement.classList.remove("admin-context-active");
     };
@@ -154,73 +151,43 @@ export function AdminShell({ children, links = [] }) {
 
   return (
     <div className="admin-shell" data-frontend-context="admin">
-      <aside
-        aria-label="Administração do Agenda Fashion"
-        className="admin-sidebar"
-      >
+      <a className="admin-skip-link" href="#admin-main">Pular para o conteúdo</a>
+
+      <aside aria-label="Administração do Agenda Fashion" className="admin-sidebar">
         <Link
           aria-label="Agenda Fashion Admin, visão geral"
           className="admin-brand"
           to={adminNavigationPath("/admin", search)}
         >
           <span aria-hidden="true" className="admin-brand-mark">
-            <img
-              alt=""
-              height="64"
-              src={afLogoTransparent}
-              width="64"
-            />
+            <img alt="" height="64" src={afLogoTransparent} width="64" />
           </span>
           <span className="admin-brand-copy">
             <strong>Agenda Fashion</strong>
-            <small>Command Center</small>
+            <small>Administração</small>
           </span>
         </Link>
 
-        <div className="admin-nav-section">
-          <span className="admin-nav-caption">GESTÃO DO SAAS</span>
-          <nav aria-label="Módulos administrativos">
-            <AdminNavLinks links={links} />
-          </nav>
-        </div>
-
+        <AdminNavigation groups={groups} />
         <div className="admin-sidebar-footer">
-          <span className="admin-environment-dot" aria-hidden="true" />
-          <div>
-            <strong>Ambiente interno</strong>
-            <small>Dados e operação do AF</small>
-          </div>
+          <Link className="admin-product-link" to="/">Ver produto</Link>
         </div>
       </aside>
 
       <div className="admin-surface">
         <header className="admin-topbar">
-          <div className="admin-topbar-context">
-            <small>Agenda Fashion</small>
-            <strong>Command Center</strong>
-          </div>
-
-          <div className="admin-topbar-actions">
-            <Link className="admin-topbar-link" to="/">
-              Ver produto
-            </Link>
-            <Link
-              aria-label="Abrir minha conta"
-              className="admin-account-link"
-              to="/conta"
-            >
-              <AppIcon name="account" />
-              <span>Conta</span>
-            </Link>
-          </div>
+          <AdminMobileNavigation groups={groups} />
+          <strong className="admin-topbar-title">Administração</strong>
+          <Link aria-label="Abrir minha conta" className="admin-account-link" to="/conta">
+            <AppIcon name="account" />
+            <span>Conta</span>
+          </Link>
         </header>
 
-        <section className="admin-content">
+        <div className="admin-content" id="admin-main" tabIndex={-1}>
           {children || <Outlet />}
-        </section>
+        </div>
       </div>
-
-      <AdminMobileNavigation links={links} />
     </div>
   );
 }

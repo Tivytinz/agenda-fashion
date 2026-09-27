@@ -1,10 +1,10 @@
 .marketing-command-page {
-  --marketing-v2-accent: #cf2b72;
-  --marketing-v2-accent-dark: #9f1f57;
-  --marketing-v2-ink: #342d31;
-  --marketing-v2-muted: #78656d;
-  --marketing-v2-line: #eadde2;
-  --marketing-v2-soft: #fff8fb;
+  --marketing-v2-accent: var(--admin-brand, #466b8c);
+  --marketing-v2-accent-dark: var(--admin-brand-strong, #234d70);
+  --marketing-v2-ink: var(--admin-ink, #1f2d3d);
+  --marketing-v2-muted: var(--admin-muted, #59697b);
+  --marketing-v2-line: var(--admin-line, #e3e8ee);
+  --marketing-v2-soft: var(--admin-surface-soft, #fafbfc);
   --marketing-v2-success: #2e7046;
   display: grid;
   gap: 1rem;
@@ -65,8 +65,8 @@
 }
 
 .marketing-command-nav span[aria-current="page"] {
-  border-color: #e7bad0;
-  background: #fff1f7;
+  border-color: var(--admin-line-strong, #cbd5df);
+  background: var(--admin-brand-soft, #e8f0f7);
   color: var(--marketing-v2-accent-dark);
 }
 

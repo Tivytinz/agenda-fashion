@@ -168,12 +168,6 @@
     max-height: calc(100dvh - 94px - env(safe-area-inset-bottom));
   }
 
-  .app-shell:has(.admin-mobile-nav)
-  .marketing-consent-banner {
-    bottom: calc(94px + env(safe-area-inset-bottom));
-    max-height: calc(100dvh - 106px - env(safe-area-inset-bottom));
-  }
-
   .privacy-shortcut {
     position: static;
     display: block;
