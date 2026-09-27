@@ -270,7 +270,7 @@ Mudanças de schema exigem migration nova. Migrations aplicadas não devem ser e
 
 Os repositories são a fronteira preferencial para SQL. Operações críticas de booking, billing, webhooks e sincronizações usam transações/locks quando o domínio exige atomicidade ou serialização.
 
-## 15. Segurança e fronteiras de confiança
+## 7. Segurança e fronteiras de confiança
 
 O backend é a autoridade para autenticação, autorização, contexto de negócio, limites de plano, preço e regras financeiras. O frontend não é fonte confiável para esses valores.
 
@@ -291,25 +291,25 @@ Controles presentes no runtime incluem:
 
 O host público canônico e a política de cookie devem seguir `AGENTS.md`; hosts de infraestrutura não são contrato de produto.
 
-## 7. Agendamento
+## 8. Agendamento
 
 O backend separa agenda pública, configuração e operação. Os módulos de agendamento cobrem criação pública, cancelamento, lifecycle, reagendamento, notificações e ações da cliente.
 
 Invariantes duráveis incluem validação server-side de disponibilidade, elegibilidade profissional↔serviço, conflitos por instante absoluto, snapshots históricos e serialização das mutações concorrentes. O detalhe canônico fica em [ciclo-atendimento.md](./ciclo-atendimento.md) e [agendamento-integridade.md](./agendamento-integridade.md).
 
-## 8. Billing e financeiro
+## 9. Billing e financeiro
 
 Assinaturas foram decompostas em serviços/repositories especializados para registro, conta, ativação Asaas, pagamentos, lifecycle, inadimplência e webhook. Checkout possui repository próprio e fencing de tentativa.
 
 O retorno do navegador não ativa plano. A confirmação financeira depende do backend e do processamento autenticado/idempotente do Asaas. Reconciliações financeiras também podem rodar em background.
 
-## 9. Marketing, analytics e growth
+## 10. Marketing, analytics e growth
 
 O backend mantém separadas telemetria, atribuição, custo e resultado financeiro. Há módulos específicos para Analytics v2, Google Measurement, Meta Ads, sincronização de custos, entrega de conversões, atribuição persistente e leituras administrativas.
 
 Custos e integrações externas devem preservar origem factual e estado de sincronização; valores controlados por providers não devem ser inferidos como fatos quando ausentes.
 
-## 10. Workers
+## 11. Workers
 
 `src/workers/backgroundWorkers.js` coordena atualmente:
 
@@ -326,13 +326,13 @@ Por compatibilidade, o processo web inicia workers quando `BACKGROUND_WORKERS_EN
 
 No shutdown, o servidor para novos ciclos, aguarda workers ativos e só depois encerra o pool PostgreSQL. Há limite de 10 segundos para fechamento das conexões HTTP remanescentes.
 
-## 11. Integrações externas
+## 12. Integrações externas
 
 As integrações visíveis no backend incluem Asaas, WhatsApp Cloud API, Resend/e-mail, Cloudinary, Google Identity/Measurement/Ads, Meta Ads, TikTok Ads, Pinterest Ads e OpenAI no módulo de Copilot.
 
 Credenciais ficam no backend e a configuração habilitada deve ser completa. Providers externos não devem controlar autorização interna nem transformar respostas externas em fatos financeiros sem validação.
 
-## 12. Testes e evidência
+## 13. Testes e evidência
 
 O backend usa Jest, Supertest e PostgreSQL de teste. A suíte cobre, entre outros:
 
@@ -351,7 +351,7 @@ O backend usa Jest, Supertest e PostgreSQL de teste. A suíte cobre, entre outro
 
 Mudança de backend deve receber teste proporcional ao risco. Documentação isolada não altera comportamento executável e não exige criar teste funcional novo, mas links e fatos documentados devem ser revisados contra o código.
 
-## 13. Comandos operacionais
+## 14. Comandos operacionais
 
 ```bash
 npm test
@@ -365,7 +365,7 @@ npm run frontend:build
 
 Em produção, `npm start` executa migrations de deploy antes de iniciar o servidor. O worker dedicado usa `npm run worker`.
 
-## 14. Regra de manutenção
+## 15. Regra de manutenção
 
 Ao alterar o backend:
 
