@@ -235,7 +235,19 @@ describe(
         expect(
           dashboard
         ).toContain(
-          "taxa_conversao"
+          "Valor agendado"
+        );
+
+        expect(
+          dashboard
+        ).toContain(
+          "Agendamentos por dia"
+        );
+
+        expect(
+          dashboard
+        ).toContain(
+          "qualidade_dados"
         );
 
         expect(
